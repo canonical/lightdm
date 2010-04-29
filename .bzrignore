@@ -17,3 +17,4 @@ xmldocs.make
 po/stamp-it
 po/POTFILES
 src/lightdm
+src/display-glue.h

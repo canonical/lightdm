@@ -9,10 +9,15 @@
  * license.
  */
 
+#include <dbus/dbus-glib.h>
+#include <dbus/dbus-glib-bindings.h>
+
 #include "display-manager.h"
 
 struct DisplayManagerPrivate
 {
+    DBusGConnection *connection;
+
     GList *displays;
 };
 
@@ -40,6 +45,7 @@ display_manager_add_display (DisplayManager *manager)
 
     display = display_new ();
     g_signal_connect (G_OBJECT (display), "exited", G_CALLBACK (display_exited_cb), manager);
+    dbus_g_connection_register_g_object (manager->priv->connection, "/org/gnome/LightDisplayManager", G_OBJECT (display));
 
     return display;
 }
@@ -47,7 +53,27 @@ display_manager_add_display (DisplayManager *manager)
 static void
 display_manager_init (DisplayManager *manager)
 {
+    GError *error = NULL;
+    DBusGProxy *proxy;
+    guint result;
+
     manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, DISPLAY_MANAGER_TYPE, DisplayManagerPrivate);
+  
+    manager->priv->connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error); // FIXME: Use system or private bus
+    if (!manager->priv->connection)
+        g_warning ("Failed to register on D-Bus: %s", error->message);
+    g_clear_error (&error);
+
+    proxy = dbus_g_proxy_new_for_name (manager->priv->connection,
+                                       DBUS_SERVICE_DBUS,
+                                       DBUS_PATH_DBUS,
+                                       DBUS_INTERFACE_DBUS);
+    if (!org_freedesktop_DBus_request_name (proxy,
+                                            "org.gnome.LightDisplayManager",
+                                            DBUS_NAME_FLAG_DO_NOT_QUEUE, &result, &error))
+        g_warning ("Failed to register D-Bus name: %s", error->message);
+    g_object_unref (proxy);
+
     display_manager_add_display (manager);
 }
 

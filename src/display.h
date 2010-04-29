@@ -41,7 +41,7 @@ Display *display_new (void);
 
 gboolean display_start_authentication (Display *display, const char *username, DBusGMethodInvocation *context);
 
-gboolean display_continue_authentication (Display *display, int data, DBusGMethodInvocation *context);
+gboolean display_continue_authentication (Display *display, gchar **secrets, DBusGMethodInvocation *context);
 
 G_END_DECLS
 

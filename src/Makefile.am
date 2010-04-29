@@ -1,11 +1,17 @@
 bin_PROGRAMS = lightdm
 
+display-glue.h: display.xml
+	$(DBUSBINDINGTOOL) --prefix=display --mode=glib-server --output=$@ $^
+
 lightdm_SOURCES = \
 	display.c \
 	display.h \
 	display-manager.c \
 	display-manager.h \
 	lightdm.c
+
+BUILT_SOURCES = \
+	display-glue.h
 
 lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
@@ -20,4 +26,5 @@ lightdm_LDADD = \
 	-lpam
 
 DISTCLEANFILES = \
+	$(BUILT_SOURCES) \
 	Makefile.in

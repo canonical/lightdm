@@ -18,6 +18,7 @@
 #include <security/pam_appl.h>
 
 #include "display.h"
+#include "display-glue.h"
 
 enum {
     EXITED,
@@ -161,22 +162,58 @@ start_greeter (Display *display)
     start_session (display, "gdm", argv);
 }
 
+// FIXME: Make a PAM GObject
+
+#define DBUS_STRUCT_INT_STRING dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
+
 static int
 pam_conv_cb (int num_msg, const struct pam_message **msg,
              struct pam_response **resp, void *app_data)
 {
     Display *display = app_data;
-    gpointer response;
+    GPtrArray *request;
+    gchar **secrets;
+    int i, secret_index = 0, n_secrets = 0;
 
     /* Respond to d-bus query with messages */
-    dbus_g_method_return (display->priv->dbus_context, 666); // ACTIONS
+    request = g_ptr_array_new ();
+    for (i = 0; i < num_msg; i++)
+    {
+        GValue value = { 0 };
+      
+        g_value_init (&value, DBUS_STRUCT_INT_STRING);
+        g_value_take_boxed (&value, dbus_g_type_specialized_construct (DBUS_STRUCT_INT_STRING));
+        // FIXME: Need to convert to UTF-8
+        dbus_g_type_struct_set (&value, 0, msg[i]->msg_style, 1, msg[i]->msg, G_MAXUINT);
+        g_ptr_array_add (request, g_value_get_boxed (&value));
+
+        if (msg[i]->msg_style == PAM_PROMPT_ECHO_OFF || msg[i]->msg_style == PAM_PROMPT_ECHO_ON)
+            n_secrets++;
+    }
+    dbus_g_method_return (display->priv->dbus_context, 0, request);
     display->priv->dbus_context = NULL;
 
-    /* Wait for responses */
-    response = g_async_queue_pop (display->priv->authentication_response_queue);
+    /* Wait for secrets */
+    secrets = g_async_queue_pop (display->priv->authentication_response_queue);
+    if (g_strv_length (secrets) != n_secrets)
+        return PAM_SYSTEM_ERR;
 
+    *resp = calloc (num_msg, sizeof (struct pam_response));
+    if (*resp == NULL)
+        return PAM_BUF_ERR;
+  
     /* Fill responses */
-    // ...
+    for (i = 0; i < num_msg; i++)
+    {
+        if (msg[i]->msg_style == PAM_PROMPT_ECHO_OFF || msg[i]->msg_style == PAM_PROMPT_ECHO_ON)
+        {
+            // FIXME: Need to convert from UTF-8
+            (*resp)[i].resp = g_strdup (secrets[secret_index]);
+            secret_index++;
+        }
+    }
+  
+    g_strfreev (secrets);
 
     return 0;
 }
@@ -187,18 +224,20 @@ authenticate_cb (gpointer data)
     Display *display = data;
     struct pam_conv conversation = { pam_conv_cb, display };
     int result;
+    GPtrArray *request;
 
     pam_start ("check_pass", display->priv->username, &conversation, &display->priv->pam_handle);
     result = pam_authenticate (display->priv->pam_handle, 0);
+    g_debug ("pam_authenticate -> %s", pam_strerror (display->priv->pam_handle, result));
 
     /* Thread complete */
-    g_thread_join (display->priv->authentication_thread);
     display->priv->authentication_thread = NULL;
     g_async_queue_unref (display->priv->authentication_response_queue);
     display->priv->authentication_response_queue = NULL;
 
     /* Respond to D-Bus request */
-    dbus_g_method_return (display->priv->dbus_context, 888); // FINISHED
+    request = g_ptr_array_new ();
+    dbus_g_method_return (display->priv->dbus_context, result, request);
     display->priv->dbus_context = NULL;
 
     return NULL;
@@ -211,7 +250,7 @@ display_start_authentication (Display *display, const char *username, DBusGMetho
 
     // FIXME: Only allow calls from the greeter
 
-    g_return_val_if_fail (display->priv->authentication_thread != NULL, FALSE);
+    g_return_val_if_fail (display->priv->authentication_thread == NULL, FALSE);
 
     /* Store authentication request and D-Bus request to respond to */
     g_free (display->priv->username);
@@ -219,8 +258,9 @@ display_start_authentication (Display *display, const char *username, DBusGMetho
     display->priv->dbus_context = context;
 
     /* Start thread */
+    // FIXME: Need to be able to abort the thread on error
     display->priv->authentication_response_queue = g_async_queue_new ();
-    display->priv->authentication_thread = g_thread_create (authenticate_cb, display, TRUE, &error);
+    display->priv->authentication_thread = g_thread_create (authenticate_cb, display, FALSE, &error);
     if (!display->priv->authentication_thread)
     {
         g_warning ("Failed to start authentication thread: %s", error->message);
@@ -233,16 +273,16 @@ display_start_authentication (Display *display, const char *username, DBusGMetho
 }
 
 gboolean
-display_continue_authentication (Display *display, int data, DBusGMethodInvocation *context)
+display_continue_authentication (Display *display, gchar **secrets, DBusGMethodInvocation *context)
 {
-    g_return_val_if_fail (display->priv->authentication_thread == NULL, FALSE);
-    g_return_val_if_fail (display->priv->dbus_context != NULL, FALSE);
+    g_return_val_if_fail (display->priv->authentication_thread != NULL, FALSE);
+    g_return_val_if_fail (display->priv->dbus_context == NULL, FALSE);
 
     // FIXME: Only allow calls from the greeter
 
     /* Push onto queue and store request to respond to */
     display->priv->dbus_context = context;
-    g_async_queue_push (display->priv->authentication_response_queue, GINT_TO_POINTER (data));
+    g_async_queue_push (display->priv->authentication_response_queue, g_strdupv (secrets));
 
     return TRUE;
 }
@@ -302,4 +342,6 @@ display_class_init (DisplayClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
+
+    dbus_g_object_type_install_info (DISPLAY_TYPE, &dbus_glib_display_object_info);
 }
