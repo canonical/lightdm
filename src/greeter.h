@@ -37,9 +37,21 @@ typedef struct
     void (*authentication_complete)(Greeter *greeter);
 } GreeterClass;
 
+typedef struct
+{
+   const char *name;
+   const char *real_name;
+}  UserInfo;
+
 GType greeter_get_type (void);
 
 Greeter *greeter_new (void);
+
+gboolean greeter_connect (Greeter *greeter);
+
+gint greeter_get_num_users (Greeter *greeter);
+
+const GList *greeter_get_users (Greeter *greeter);
 
 void greeter_start_authentication (Greeter *greeter, const char *username);
 

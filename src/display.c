@@ -29,6 +29,14 @@ static guint signals[LAST_SIGNAL] = { 0 };
 // FIXME: PAM sessions
 // FIXME: CK sessions
 
+typedef enum
+{
+    SESSION_NONE = 0,
+    SESSION_GREETER,
+    SESSION_GREETER_AUTHENTICATED,
+    SESSION_USER
+} SessionType;
+
 struct DisplayPrivate
 {
     /* X process */
@@ -46,14 +54,11 @@ struct DisplayPrivate
     /* User logged in as */
     char *username;
 
-    /* TRUE if user has been authenticated */
-    gboolean authenticated;
-
     /* Session to execute */
     char *user_session;
   
-    /* TRUE if in user session */
-    gboolean in_user_session;
+    /* Active session */
+    SessionType active_session;
 
     // FIXME: Token for secure access to this server
 };
@@ -73,6 +78,9 @@ static void
 session_watch_cb (GPid pid, gint status, gpointer data)
 {
     Display *display = data;
+    SessionType session;
+  
+    session = display->priv->active_session;
 
     if (WIFEXITED (status))
         g_debug ("Session exited with return value %d", WEXITSTATUS (status));
@@ -80,19 +88,53 @@ session_watch_cb (GPid pid, gint status, gpointer data)
         g_debug ("Session terminated with signal %d", WTERMSIG (status));
 
     display->priv->session_pid = 0;
+    display->priv->active_session = SESSION_NONE;
 
     // FIXME: Check for respawn loops
-    if (display->priv->authenticated && !display->priv->in_user_session)
+    switch (session)
+    {
+    case SESSION_NONE:
+        g_error ("Failed to start greeter");
+        break;
+    case SESSION_GREETER:
+        start_greeter (display);
+        break;
+    case SESSION_GREETER_AUTHENTICATED:
         start_user_session (display);
-    //else
-    //    start_greeter (display);
+        break;
+    case SESSION_USER:
+        start_greeter (display);
+        break;
+    }
 }
 
 static void
-start_session (Display *display, const char *username, char * const argv[])
+session_fork_cb (gpointer data)
 {
-    pid_t pid;
+    struct passwd *user_info = data;
+  
+    if (setgid (user_info->pw_gid) != 0)
+    {
+        g_warning ("Failed to set group ID: %s", strerror (errno));
+        _exit(1);
+    }
+    // FIXME: Is there a risk of connecting to the process for a user in the given group and accessing memory?
+    if (setuid (user_info->pw_uid) != 0)
+    {
+        g_warning ("Failed to set user ID: %s", strerror (errno));
+        _exit(1);
+    }
+    if (chdir (user_info->pw_dir) != 0)
+        g_warning ("Failed to change directory: %s", strerror (errno));
+}
+
+static void
+start_session (Display *display, const char *username, const char *executable)
+{
     struct passwd *user_info;
+    gint session_stdin, session_stdout, session_stderr;
+    gboolean result;
+    GError *error = NULL;
 
     g_return_if_fail (display->priv->session_pid == 0);
 
@@ -107,68 +149,47 @@ start_session (Display *display, const char *username, char * const argv[])
         return;
     }
 
-    pid = fork ();
-    if (pid < 0)
-    {
-        g_warning ("Failed to fork session: %s", strerror (errno));
-        return;
-    }
-    else if (pid > 0)
-    {
-        g_debug ("Child process started with PID %d", pid);
-        display->priv->session_pid = pid;
+    // FIXME: Do these need to be freed?
+    char *env[] = { g_strdup_printf ("USER=%s", user_info->pw_name),
+                    g_strdup_printf ("HOME=%s", user_info->pw_dir),
+                    g_strdup_printf ("SHELL=%s", user_info->pw_shell),
+                    g_strdup_printf ("HOME=%s", user_info->pw_dir),
+                    g_strdup ("DISPLAY=:0"), NULL };
+    char *argv[] = { g_strdup (executable), NULL };
+
+    result = g_spawn_async_with_pipes (user_info->pw_dir,
+                                       argv,
+                                       env,
+                                       G_SPAWN_DO_NOT_REAP_CHILD,
+                                       session_fork_cb, user_info,
+                                       &display->priv->session_pid,
+                                       &session_stdin, &session_stdout, &session_stderr,
+                                       &error);
+
+    if (!result)
+        g_warning ("Failed to spawn session: %s", error->message);
+    else
         g_child_watch_add (display->priv->session_pid, session_watch_cb, display);
-        return;
-    }
-
-    if (setgid (user_info->pw_gid) != 0)
-    {
-        g_warning ("Failed to set group ID: %s", strerror (errno));
-        _exit(1);
-    }
-    // FIXME: Is there a risk of connecting to the process for a user in the given group and accessing memory?
-    if (setuid (user_info->pw_uid) != 0)
-    {
-        g_warning ("Failed to set user ID: %s", strerror (errno));
-        _exit(1);
-    }
-    if (chdir (user_info->pw_dir) != 0)
-        g_warning ("Failed to change directory: %s", strerror (errno));
-
-    /* Reset environment */
-    // FIXME: Check these work
-    clearenv ();
-    setenv ("USER", user_info->pw_name, 1);
-    setenv ("HOME", user_info->pw_dir, 1);
-    setenv ("SHELL", user_info->pw_shell, 1);
-    setenv ("HOME", user_info->pw_dir, 1);
-    setenv ("DISPLAY", ":0", 1);
-
-    execv (argv[0], argv);
+    g_clear_error (&error);
 }
 
 static void
 start_user_session (Display *display)
 { 
-    char *argv[] = { display->priv->user_session, NULL };
-
     g_debug ("Launching session %s for user %s", display->priv->user_session, display->priv->username);
 
-    display->priv->in_user_session = TRUE;
-    start_session (display, display->priv->username, argv);
+    display->priv->active_session = SESSION_USER;
+    start_session (display, display->priv->username, display->priv->user_session);
 }
 
 static void
 start_greeter (Display *display)
 {
-    char *argv[] = { GREETER_BINARY, NULL };
-
     g_debug ("Launching greeter %s as user %s", GREETER_BINARY, GREETER_USER);
 
-    display->priv->in_user_session = FALSE;
     g_free (display->priv->username);
     display->priv->username = NULL;
-    start_session (display, GREETER_USER, argv);
+    start_session (display, GREETER_USER, GREETER_BINARY);
 }
 
 #define DBUS_STRUCT_INT_STRING dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
@@ -205,7 +226,8 @@ authenticate_cb (PAMAuthenticator *authenticator, int result, Display *display)
     GPtrArray *request;
     DBusGMethodInvocation *context;
 
-    display->priv->authenticated = (result == PAM_SUCCESS);
+    if (result == PAM_SUCCESS)
+        display->priv->active_session = SESSION_GREETER_AUTHENTICATED;
 
     /* Respond to D-Bus request */
     request = g_ptr_array_new ();
@@ -216,9 +238,29 @@ authenticate_cb (PAMAuthenticator *authenticator, int result, Display *display)
 }
 
 gboolean
+display_connect (Display *display, const char **username, gint *delay, GError *error)
+{
+    if (display->priv->active_session == SESSION_NONE) 
+    {
+        display->priv->active_session = SESSION_GREETER;
+        g_debug ("Greeter connected");
+    }
+
+    *username = g_strdup ("");
+    *delay = 0;
+    return TRUE;
+}
+
+gboolean
 display_start_authentication (Display *display, const char *username, DBusGMethodInvocation *context)
 {
     GError *error = NULL;
+  
+    if (display->priv->active_session != SESSION_GREETER)
+    {
+        dbus_g_method_return_error (context, NULL);
+        return TRUE;
+    }
 
     // FIXME: Only allow calls from the correct greeter
 
@@ -233,7 +275,8 @@ display_start_authentication (Display *display, const char *username, DBusGMetho
     if (!pam_authenticator_start (display->priv->authenticator, display->priv->username, &error))
     {
         g_warning ("Failed to start authentication: %s", error->message);
-        display->priv->dbus_context = NULL; // FIXME: D-Bus return error
+        display->priv->dbus_context = NULL;
+        dbus_g_method_return_error (context, NULL);
         return FALSE;
     }
     g_clear_error (&error);
@@ -249,8 +292,26 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
     struct pam_response *response;
     int i, j, n_secrets = 0;
 
-    g_return_val_if_fail (display->priv->authenticator != NULL, FALSE);
-    g_return_val_if_fail (display->priv->dbus_context == NULL, FALSE);
+    /* Not connected */
+    if (display->priv->active_session != SESSION_GREETER)
+    {
+        dbus_g_method_return_error (context, NULL);
+        return TRUE;
+    }
+
+    /* Not in authorization */
+    if (display->priv->authenticator == NULL)
+    {
+        dbus_g_method_return_error (context, NULL);
+        return TRUE;
+    }
+
+    /* Already in another call */
+    if (display->priv->dbus_context != NULL)
+    {
+        dbus_g_method_return_error (context, NULL);
+        return TRUE;
+    }
 
     // FIXME: Only allow calls from the correct greeter
 
@@ -311,18 +372,20 @@ display_init (Display *display)
     char *argv[] = { "/usr/bin/X", ":0", NULL };
     char *env[] = { NULL };
     gboolean result;
+    gint xserver_stdin, xserver_stdout, xserver_stderr;
 
     display->priv = G_TYPE_INSTANCE_GET_PRIVATE (display, DISPLAY_TYPE, DisplayPrivate);
 
-    display->priv->user_session = g_strdup ("/usr/bin/gnome-terminal");
+    display->priv->user_session = g_strdup ("/usr/bin/xeyes");
 
-    result = g_spawn_async (NULL, /* Working directory */
-                            argv,
-                            env,
-                            G_SPAWN_DO_NOT_REAP_CHILD,
-                            NULL, NULL,
-                            &display->priv->xserver_pid,
-                            &error);
+    result = g_spawn_async_with_pipes (NULL, /* Working directory */
+                                       argv,
+                                       env,
+                                       G_SPAWN_DO_NOT_REAP_CHILD,
+                                       NULL, NULL,
+                                       &display->priv->xserver_pid,
+                                       &xserver_stdin, &xserver_stdout, &xserver_stderr,
+                                       &error);
     if (!result)
         g_warning ("Unable to create display: %s", error->message);
     else

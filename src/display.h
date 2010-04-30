@@ -39,6 +39,8 @@ GType display_get_type (void);
 
 Display *display_new (void);
 
+gboolean display_connect (Display *display, const char **username, gint *delay, GError *error);
+
 gboolean display_start_authentication (Display *display, const char *username, DBusGMethodInvocation *context);
 
 gboolean display_continue_authentication (Display *display, gchar **secrets, DBusGMethodInvocation *context);

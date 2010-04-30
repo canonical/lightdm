@@ -1,15 +1,22 @@
 <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node>
+ <!-- FIXME: Change this to org.gnome.LightDisplayManager.Greeter -->
   <interface name="org.gnome.LightDisplayManager.Display">
+    <method name="Connect">
+      <arg name="username" direction="out" type="s"/>
+      <arg name="delay" direction="out" type="i"/>
+    </method>
     <method name="StartAuthentication">
       <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg name="username" direction="in" type="s"/>
-      <arg name="requests" direction="out" type="ia(is)"/>
+      <arg name="result" direction="out" type="i"/>
+      <arg name="requests" direction="out" type="a(is)"/>
     </method>
     <method name="ContinueAuthentication">
       <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg name="secrets" direction="in" type="as"/>
-      <arg name="requests" direction="out" type="ia(is)"/>
+      <arg name="result" direction="out" type="i"/>
+      <arg name="requests" direction="out" type="a(is)"/>
     </method>
   </interface>
 </node>

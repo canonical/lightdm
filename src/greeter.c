@@ -9,8 +9,11 @@
  * license.
  */
 
+#include <errno.h>
 #include <dbus/dbus-glib.h>
 #include <security/pam_appl.h>
+#include <string.h>
+#include <pwd.h>
 
 #include "greeter.h"
 
@@ -28,7 +31,10 @@ struct GreeterPrivate
     DBusGConnection *bus;
 
     DBusGProxy *proxy;
-  
+
+    gboolean have_users;
+    GList *users;
+
     gboolean is_authenticated;
 };
 
@@ -44,6 +50,112 @@ greeter_new (/*int argc, char **argv*/)
     }*/
 
     return g_object_new (GREETER_TYPE, /*"?", argv[1],*/ NULL);
+}
+
+gboolean
+greeter_connect (Greeter *greeter)
+{
+    gchar *timed_user;
+    gint login_delay;
+    gboolean result;
+    GError *error = NULL;
+
+    result = dbus_g_proxy_call (greeter->priv->proxy, "Connect", &error,
+                                G_TYPE_INVALID,
+                                G_TYPE_STRING, &timed_user,
+                                G_TYPE_INT, &login_delay,
+                                G_TYPE_INVALID);
+
+    if (!result)
+        g_warning ("Failed to connect to display manager: %s", error->message);
+    g_clear_error (&error);
+
+    return result;
+}
+
+// FIXME: 100 or 500? Make it configurable
+#define MINIMUM_UID 500
+
+static gint
+compare_user (gconstpointer a, gconstpointer b)
+{
+    const UserInfo *user_a = a, *user_b = b;
+    const char *name_a, *name_b;
+    name_a = user_a->real_name ? user_a->real_name : user_a->name;
+    name_b = user_b->real_name ? user_b->real_name : user_b->name;
+    return strcmp (name_a, name_b);
+}
+
+static void
+update_users (Greeter *greeter)
+{
+    char *invalid_shells[] = { "/bin/false", "/usr/sbin/nologin", NULL };
+    char *invalid_users[] = { "nobody", NULL };
+
+    setpwent ();
+
+    while (TRUE)
+    {
+        struct passwd *entry;
+        UserInfo *user;
+        char **tokens;
+        int i;
+
+        errno = 0;
+        entry = getpwent ();
+        if (!entry)
+            break;
+
+        /* Ignore system users */
+        if (entry->pw_uid < MINIMUM_UID)
+            continue;
+
+        /* Ignore users disabled by shell */
+        if (entry->pw_shell)
+        {
+            for (i = 0; invalid_shells[i] && strcmp (entry->pw_shell, invalid_shells[i]) != 0; i++);
+            if (invalid_shells[i])
+                continue;
+        }
+
+        /* Ignore certain users */
+        for (i = 0; invalid_users[i] && strcmp (entry->pw_name, invalid_users[i]) != 0; i++);
+        if (invalid_users[i])
+            continue;
+
+        user = g_malloc0 (sizeof (UserInfo));
+        user->name = g_strdup (entry->pw_name);
+
+        tokens = g_strsplit (entry->pw_gecos, ",", -1);
+        if (tokens[0] != NULL && tokens[0][0] != '\0')
+            user->real_name = g_strdup (tokens[0]);
+        else
+            user->real_name = NULL;
+        g_strfreev (tokens);
+
+        greeter->priv->users = g_list_insert_sorted (greeter->priv->users, user, compare_user);
+    }
+
+    if (errno != 0)
+        g_warning ("Failed to read password database: %s", strerror (errno));
+
+    endpwent ();
+}
+
+gint
+greeter_get_num_users (Greeter *greeter)
+{
+    if (!greeter->priv->have_users)
+        update_users (greeter);
+    return g_list_length (greeter->priv->users);
+}
+
+const GList *
+greeter_get_users (Greeter *greeter)
+{
+    if (!greeter->priv->have_users)
+        update_users (greeter);
+    return greeter->priv->users;
 }
 
 #define DBUS_STRUCT_INT_STRING dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
