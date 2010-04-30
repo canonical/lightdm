@@ -8,7 +8,9 @@ lightdm_SOURCES = \
 	display.h \
 	display-manager.c \
 	display-manager.h \
-	lightdm.c
+	lightdm.c \
+	pam-authenticator.c \
+	pam-authenticator.h
 
 ldmgreeter_SOURCES = \
 	greeter.c \
@@ -24,6 +26,8 @@ lightdm_CFLAGS = \
 	-DVERSION=\"$(VERSION)\" \
 	-DGETTEXT_PACKAGE=\"$(GETTEXT_PACKAGE)\" \
 	-DLOCALE_DIR=\"$(localedir)\" \
+	-DGREETER_USER=\"gdm\" \
+	-DGREETER_BINARY=\"$(prefix)/bin/ldmgreeter\" \
 	-DLIGHTDM_BINARY=\"lightdm\"
 
 lightdm_LDADD = \
