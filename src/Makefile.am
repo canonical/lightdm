@@ -9,8 +9,8 @@ lightdm_SOURCES = \
 	display-manager.c \
 	display-manager.h \
 	lightdm.c \
-	pam-authenticator.c \
-	pam-authenticator.h
+	pam-session.c \
+	pam-session.h
 
 ldmgreeter_SOURCES = \
 	greeter.c \

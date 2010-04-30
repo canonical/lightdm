@@ -18,7 +18,7 @@
 
 #include "display.h"
 #include "display-glue.h"
-#include "pam-authenticator.h"
+#include "pam-session.h"
 
 enum {
     EXITED,
@@ -26,8 +26,8 @@ enum {
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
-// FIXME: PAM sessions
 // FIXME: CK sessions
+// FIXME: Activate display
 
 typedef enum
 {
@@ -49,8 +49,8 @@ struct DisplayPrivate
     /* Current D-Bus call context */
     DBusGMethodInvocation *dbus_context;
 
-    /* Authentication handle */
-    PAMAuthenticator *authenticator;
+    /* PAM session */
+    PAMSession *pam_session;
 
     /* User logged in as */
     char *username;
@@ -121,6 +121,7 @@ session_watch_cb (GPid pid, gint status, gpointer data)
         start_user_session (display);
         break;
     case SESSION_USER:
+        pam_session_end (display->priv->pam_session);
         start_greeter (display);
         break;
     }
@@ -214,7 +215,7 @@ start_greeter (Display *display)
 #define DBUS_STRUCT_INT_STRING dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
 
 static void
-pam_messages_cb (PAMAuthenticator *authenticator, int num_msg, const struct pam_message **msg, Display *display)
+pam_messages_cb (PAMSession *session, int num_msg, const struct pam_message **msg, Display *display)
 {
     GPtrArray *request;
     int i;
@@ -240,13 +241,10 @@ pam_messages_cb (PAMAuthenticator *authenticator, int num_msg, const struct pam_
 }
 
 static void
-authenticate_cb (PAMAuthenticator *authenticator, int result, Display *display)
+authenticate_result_cb (PAMSession *session, int result, Display *display)
 {
     GPtrArray *request;
     DBusGMethodInvocation *context;
-
-    if (result == PAM_SUCCESS)
-        display->priv->active_session = SESSION_GREETER_AUTHENTICATED;
 
     /* Respond to D-Bus request */
     request = g_ptr_array_new ();
@@ -254,6 +252,12 @@ authenticate_cb (PAMAuthenticator *authenticator, int result, Display *display)
     display->priv->dbus_context = NULL;
 
     dbus_g_method_return (context, result, request);
+}
+
+static void
+session_started_cb (PAMSession *session, Display *display)
+{
+    display->priv->active_session = SESSION_GREETER_AUTHENTICATED;
 }
 
 gboolean
@@ -288,10 +292,11 @@ display_start_authentication (Display *display, const char *username, DBusGMetho
     display->priv->username = g_strdup (username);
     display->priv->dbus_context = context;
 
-    display->priv->authenticator = pam_authenticator_new ();
-    g_signal_connect (G_OBJECT (display->priv->authenticator), "got-messages", G_CALLBACK (pam_messages_cb), display);
-    g_signal_connect (G_OBJECT (display->priv->authenticator), "authentication-complete", G_CALLBACK (authenticate_cb), display);
-    if (!pam_authenticator_start (display->priv->authenticator, display->priv->username, &error))
+    display->priv->pam_session = pam_session_new ();
+    g_signal_connect (G_OBJECT (display->priv->pam_session), "got-messages", G_CALLBACK (pam_messages_cb), display);
+    g_signal_connect (G_OBJECT (display->priv->pam_session), "authentication-result", G_CALLBACK (authenticate_result_cb), display);
+    g_signal_connect (G_OBJECT (display->priv->pam_session), "started", G_CALLBACK (session_started_cb), display);
+    if (!pam_session_start (display->priv->pam_session, display->priv->username, &error))
     {
         g_warning ("Failed to start authentication: %s", error->message);
         display->priv->dbus_context = NULL;
@@ -319,7 +324,7 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
     }
 
     /* Not in authorization */
-    if (display->priv->authenticator == NULL)
+    if (display->priv->pam_session == NULL)
     {
         dbus_g_method_return_error (context, NULL);
         return TRUE;
@@ -334,8 +339,8 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
 
     // FIXME: Only allow calls from the correct greeter
 
-    num_messages = pam_authenticator_get_num_messages (display->priv->authenticator);
-    messages = pam_authenticator_get_messages (display->priv->authenticator);
+    num_messages = pam_session_get_num_messages (display->priv->pam_session);
+    messages = pam_session_get_messages (display->priv->pam_session);
 
     /* Check correct number of responses */
     for (i = 0; i < num_messages; i++)
@@ -346,7 +351,7 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
     }
     if (g_strv_length (secrets) != n_secrets)
     {
-        pam_authenticator_cancel (display->priv->authenticator);
+        pam_session_end (display->priv->pam_session);
         // FIXME: Throw error
         return FALSE;
     }
@@ -364,7 +369,7 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
     }
 
     display->priv->dbus_context = context;  
-    pam_authenticator_respond (display->priv->authenticator, response);
+    pam_session_respond (display->priv->pam_session, response);
 
     return TRUE;
 }
