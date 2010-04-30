@@ -44,8 +44,8 @@ display_manager_add_display (DisplayManager *manager)
     Display *display;
 
     display = display_new ();
-    g_signal_connect (G_OBJECT (display), "exited", G_CALLBACK (display_exited_cb), manager);
     dbus_g_connection_register_g_object (manager->priv->connection, "/org/gnome/LightDisplayManager", G_OBJECT (display));
+    //g_signal_connect (G_OBJECT (display), "exited", G_CALLBACK (display_exited_cb), manager);
 
     return display;
 }

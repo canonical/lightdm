@@ -26,6 +26,11 @@ PKG_CHECK_MODULES(LIGHTDM, [
     ck-connector
 ])
 
+PKG_CHECK_MODULES(LIGHTDM_GREETER, [
+    gtk+-2.0
+    dbus-glib-1
+])
+
 AC_CHECK_HEADERS([security/pam_appl.h],[],[AC_MSG_ERROR([PAM not found])])
 
 AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)

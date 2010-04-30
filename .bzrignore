@@ -18,3 +18,5 @@ po/stamp-it
 po/POTFILES
 src/lightdm
 src/display-glue.h
+src/ldmgreeter
+src/ldmgreeter

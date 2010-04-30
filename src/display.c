@@ -75,17 +75,17 @@ session_watch_cb (GPid pid, gint status, gpointer data)
     Display *display = data;
 
     if (WIFEXITED (status))
-        g_debug ("Display exited with return value %d", WEXITSTATUS (status));
+        g_debug ("Session exited with return value %d", WEXITSTATUS (status));
     else if (WIFSIGNALED (status))
-        g_debug ("Display terminated with signal %d", WTERMSIG (status));
+        g_debug ("Session terminated with signal %d", WTERMSIG (status));
 
     display->priv->session_pid = 0;
 
     // FIXME: Check for respawn loops
     if (display->priv->authenticated && !display->priv->in_user_session)
         start_user_session (display);
-    else
-        start_greeter (display);
+    //else
+    //    start_greeter (display);
 }
 
 static void
@@ -324,9 +324,10 @@ display_init (Display *display)
     else
         g_child_watch_add (display->priv->xserver_pid, xserver_watch_cb, display);
     g_clear_error (&error);
-
+  
     /* TODO: Do autologin if this is requested */
-    start_greeter (display);
+    if (display->priv->xserver_pid != 0)
+        start_greeter (display);
 }
 
 static void

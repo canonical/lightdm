@@ -1,4 +1,4 @@
-bin_PROGRAMS = lightdm
+bin_PROGRAMS = lightdm ldmgreeter
 
 display-glue.h: display.xml
 	$(DBUSBINDINGTOOL) --prefix=display --mode=glib-server --output=$@ $^
@@ -9,6 +9,11 @@ lightdm_SOURCES = \
 	display-manager.c \
 	display-manager.h \
 	lightdm.c
+
+ldmgreeter_SOURCES = \
+	greeter.c \
+	greeter.h \
+	ldmgreeter.c
 
 BUILT_SOURCES = \
 	display-glue.h
@@ -24,6 +29,17 @@ lightdm_CFLAGS = \
 lightdm_LDADD = \
 	$(LIGHTDM_LIBS) \
 	-lpam
+
+ldmgreeter_CFLAGS = \
+	$(LIGHTDM_GREETER_CFLAGS) \
+	$(WARN_CFLAGS) \
+	-DVERSION=\"$(VERSION)\" \
+	-DGETTEXT_PACKAGE=\"$(GETTEXT_PACKAGE)\" \
+	-DLOCALE_DIR=\"$(localedir)\" \
+	-DLIGHTDM_GREETER_BINARY=\"ldmgreeter\"
+
+ldmgreeter_LDADD = \
+	$(LIGHTDM_GREETER_LIBS)
 
 DISTCLEANFILES = \
 	$(BUILT_SOURCES) \
