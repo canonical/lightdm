@@ -120,6 +120,11 @@ notify_auth_complete_cb (gpointer data)
     if (result == PAM_SUCCESS)
     {
         session->priv->in_session = TRUE;
+
+        // FIXME:
+        //pam_set_item (session->priv->pam_handle, PAM_TTY, &tty);
+        //pam_set_item (session->priv->pam_handle, PAM_XDISPLAY, &display);
+
         pam_open_session (session->priv->pam_handle, 0);
         g_signal_emit (G_OBJECT (session), signals[STARTED], 0, result);
     }

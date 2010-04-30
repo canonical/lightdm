@@ -15,6 +15,7 @@
 #include <sys/wait.h>
 #include <pwd.h>
 #include <unistd.h>
+#include <ck-connector.h>
 
 #include "display.h"
 #include "display-glue.h"
@@ -25,9 +26,6 @@ enum {
     LAST_SIGNAL
 };
 static guint signals[LAST_SIGNAL] = { 0 };
-
-// FIXME: CK sessions
-// FIXME: Activate display
 
 typedef enum
 {
@@ -40,6 +38,11 @@ typedef enum
 
 struct DisplayPrivate
 {
+    /* Display device */
+    char *display_device; // ?
+    char *x11_display_device; // e.g. /dev/tty7
+    char *x11_display; // e.g. :0
+  
     /* X process */
     GPid xserver_pid;
 
@@ -51,6 +54,9 @@ struct DisplayPrivate
 
     /* PAM session */
     PAMSession *pam_session;
+  
+    /* ConsoleKit session */
+    CkConnector *ck_session;
 
     /* User logged in as */
     char *username;
@@ -122,6 +128,10 @@ session_watch_cb (GPid pid, gint status, gpointer data)
         break;
     case SESSION_USER:
         pam_session_end (display->priv->pam_session);
+        ck_connector_close_session (display->priv->ck_session, NULL); // FIXME: Handle errors
+        ck_connector_unref (display->priv->ck_session);
+        display->priv->ck_session = NULL;
+
         start_greeter (display);
         break;
     }
@@ -173,7 +183,9 @@ start_session (Display *display, const char *username, const char *executable)
                     g_strdup_printf ("HOME=%s", user_info->pw_dir),
                     g_strdup_printf ("SHELL=%s", user_info->pw_shell),
                     g_strdup_printf ("HOME=%s", user_info->pw_dir),
-                    g_strdup ("DISPLAY=:0"), NULL };
+                    g_strdup_printf ("DISPLAY=%s", display->priv->x11_display),
+                    display->priv->ck_session ? g_strdup_printf ("XDG_SESSION_COOKIE=%s", ck_connector_get_cookie (display->priv->ck_session)) : NULL,
+                    NULL };
     char *argv[] = { g_strdup (executable), NULL };
 
     result = g_spawn_async_with_pipes (user_info->pw_dir,
@@ -257,7 +269,19 @@ authenticate_result_cb (PAMSession *session, int result, Display *display)
 static void
 session_started_cb (PAMSession *session, Display *display)
 {
+    DBusError error;
+
     display->priv->active_session = SESSION_GREETER_AUTHENTICATED;
+
+    display->priv->ck_session = ck_connector_new ();
+    dbus_error_init (&error);
+    if (!ck_connector_open_session_with_parameters (display->priv->ck_session, &error,
+                                                    "unix-user", &display->priv->username,
+                                                    "display-device", &display->priv->display_device,
+                                                    "x11-display-device", &display->priv->x11_display_device,
+                                                    "x11-display", &display->priv->x11_display,
+                                                    NULL))
+        g_warning ("Failed to open CK session: %s: %s", error.name, error.message);
 }
 
 gboolean
@@ -363,12 +387,12 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
         int msg_style = messages[i]->msg_style;
         if (msg_style == PAM_PROMPT_ECHO_OFF || msg_style == PAM_PROMPT_ECHO_ON)
         {
-            response[i].resp = g_strdup (secrets[j]); // FIXME: Need to convert from UTF-8
+            response[i].resp = strdup (secrets[j]); // FIXME: Need to convert from UTF-8
             j++;
         }
     }
 
-    display->priv->dbus_context = context;  
+    display->priv->dbus_context = context;
     pam_session_respond (display->priv->pam_session, response);
 
     return TRUE;
@@ -393,8 +417,6 @@ static void
 display_init (Display *display)
 {
     GError *error = NULL;
-    char *argv[] = { "/usr/bin/X", ":0", NULL };
-    char *env[] = { NULL };
     gboolean result;
     gint xserver_stdin, xserver_stdout, xserver_stderr;
 
@@ -402,6 +424,13 @@ display_init (Display *display)
 
     display->priv->user_session = g_strdup ("/usr/bin/xeyes");
 
+    // FIXME: How to get these?
+    display->priv->display_device = g_strdup ("");
+    display->priv->x11_display_device = g_strdup ("/dev/tty0");
+    display->priv->x11_display = g_strdup (":0");
+
+    char *argv[] = { "/usr/bin/X", display->priv->x11_display, NULL };
+    char *env[] = { NULL };
     result = g_spawn_async_with_pipes (NULL, /* Working directory */
                                        argv,
                                        env,
