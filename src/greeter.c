@@ -141,7 +141,7 @@ greeter_init (Greeter *greeter)
 
     greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, GREETER_TYPE, GreeterPrivate);
   
-    greeter->priv->bus = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+    greeter->priv->bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
     if (!greeter->priv->bus)
         g_error ("Failed to connect to bus: %s", error->message);
     g_clear_error (&error);

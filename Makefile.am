@@ -1,4 +1,4 @@
-SUBDIRS = po src
+SUBDIRS = data po src
 
 EXTRA_DIST = \
 	autogen.sh \
@@ -14,4 +14,5 @@ DISTCLEANFILES = \
 	missing \
 	mkinstalldirs \
 	omf.make \
-	xmldocs.make
+	xmldocs.make \
+	po/Makefile.in.in

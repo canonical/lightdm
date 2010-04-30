@@ -59,7 +59,7 @@ display_manager_init (DisplayManager *manager)
 
     manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, DISPLAY_MANAGER_TYPE, DisplayManagerPrivate);
   
-    manager->priv->connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error); // FIXME: Use system or private bus
+    manager->priv->connection = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
     if (!manager->priv->connection)
         g_warning ("Failed to register on D-Bus: %s", error->message);
     g_clear_error (&error);

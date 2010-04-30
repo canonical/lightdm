@@ -37,6 +37,25 @@ AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)
 AC_SUBST(DBUSBINDINGTOOL)
 
 dnl ###########################################################################
+dnl Check for D-Bus
+dnl ###########################################################################
+
+dnl - Are we specifying a different dbus root ?
+AC_ARG_WITH(dbus-sys,
+            AS_HELP_STRING([--with-dbus-sys=<dir>],
+                           [where D-BUS system.d directory is]))
+AC_ARG_WITH(dbus-services,
+            AS_HELP_STRING([--with-dbus-services=<dir>],
+                           [where D-BUS services directory is]))
+            
+if ! test -z "$with_dbus_sys" ; then
+    DBUS_SYS_DIR="$with_dbus_sys"
+else
+    DBUS_SYS_DIR="$sysconfdir/dbus-1/system.d"
+fi
+AC_SUBST(DBUS_SYS_DIR)
+
+dnl ###########################################################################
 dnl Documentation
 dnl ###########################################################################
 
@@ -57,6 +76,7 @@ dnl ###########################################################################
 
 AC_OUTPUT([
 Makefile
+data/Makefile
 po/Makefile.in
 src/Makefile
 ])
