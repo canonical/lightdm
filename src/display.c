@@ -32,6 +32,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
 typedef enum
 {
     SESSION_NONE = 0,
+    SESSION_GREETER_PRE_CONNECT,
     SESSION_GREETER,
     SESSION_GREETER_AUTHENTICATED,
     SESSION_USER
@@ -81,19 +82,36 @@ session_watch_cb (GPid pid, gint status, gpointer data)
     SessionType session;
   
     session = display->priv->active_session;
-
-    if (WIFEXITED (status))
-        g_debug ("Session exited with return value %d", WEXITSTATUS (status));
-    else if (WIFSIGNALED (status))
-        g_debug ("Session terminated with signal %d", WTERMSIG (status));
-
     display->priv->session_pid = 0;
     display->priv->active_session = SESSION_NONE;
+
+    switch (session)
+    {
+    case SESSION_NONE:
+        break;
+    case SESSION_GREETER_PRE_CONNECT:
+    case SESSION_GREETER:
+    case SESSION_GREETER_AUTHENTICATED:      
+        if (WIFEXITED (status))
+            g_debug ("Greeter exited with return value %d", WEXITSTATUS (status));
+        else if (WIFSIGNALED (status))
+            g_debug ("Greeter terminated with signal %d", WTERMSIG (status));
+        break;
+
+    case SESSION_USER:
+        if (WIFEXITED (status))
+            g_debug ("Session exited with return value %d", WEXITSTATUS (status));
+        else if (WIFSIGNALED (status))
+            g_debug ("Session terminated with signal %d", WTERMSIG (status));
+        break;
+    }
 
     // FIXME: Check for respawn loops
     switch (session)
     {
     case SESSION_NONE:
+        break;
+    case SESSION_GREETER_PRE_CONNECT:
         g_error ("Failed to start greeter");
         break;
     case SESSION_GREETER:
@@ -189,6 +207,7 @@ start_greeter (Display *display)
 
     g_free (display->priv->username);
     display->priv->username = NULL;
+    display->priv->active_session = SESSION_GREETER_PRE_CONNECT;
     start_session (display, GREETER_USER, GREETER_BINARY);
 }
 
@@ -240,7 +259,7 @@ authenticate_cb (PAMAuthenticator *authenticator, int result, Display *display)
 gboolean
 display_connect (Display *display, const char **username, gint *delay, GError *error)
 {
-    if (display->priv->active_session == SESSION_NONE) 
+    if (display->priv->active_session == SESSION_GREETER_PRE_CONNECT)
     {
         display->priv->active_session = SESSION_GREETER;
         g_debug ("Greeter connected");
