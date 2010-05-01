@@ -167,6 +167,18 @@ pam_session_start (PAMSession *session, const char *username, GError **error)
     return TRUE;
 }
 
+const gchar *
+pam_session_strerror (PAMSession *session, int error)
+{
+    return pam_strerror (session->priv->pam_handle, error);
+}
+
+const gchar *
+pam_session_get_username (PAMSession *session)
+{
+    return session->priv->username;
+}
+
 const struct pam_message **
 pam_session_get_messages (PAMSession *session)
 {

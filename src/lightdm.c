@@ -30,6 +30,7 @@ main(int argc, char **argv)
     DisplayManager *manager;
     struct sigaction action;
 
+    /* Quit cleanly on signals */
     action.sa_handler = signal_handler;
     sigemptyset (&action.sa_mask);
     action.sa_flags = 0;
@@ -37,15 +38,18 @@ main(int argc, char **argv)
     sigaction (SIGINT, &action, NULL);
     sigaction (SIGHUP, &action, NULL);
 
+    g_type_init ();
+
     if (getuid () != 0)
     {
         g_print ("Only root can run Light Display Manager\n");
         return -1;
     }
 
+    g_debug ("Starting Light Display Manager %s, PID=%i", VERSION, getpid ());
+
     // Change working directory?
 
-    g_type_init ();
     loop = g_main_loop_new (NULL, FALSE);
 
     // Load config

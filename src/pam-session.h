@@ -47,6 +47,10 @@ gboolean pam_session_get_in_session (PAMSession *session);
 
 gboolean pam_session_start (PAMSession *session, const char *username, GError **error);
 
+const gchar *pam_session_strerror (PAMSession *session, int error);
+
+const gchar *pam_session_get_username (PAMSession *session);
+
 const struct pam_message **pam_session_get_messages (PAMSession *session);
 
 int  pam_session_get_num_messages (PAMSession *session);

@@ -58,9 +58,6 @@ struct DisplayPrivate
     /* ConsoleKit session */
     CkConnector *ck_session;
 
-    /* User logged in as */
-    char *username;
-
     /* Session to execute */
     char *user_session;
   
@@ -206,11 +203,11 @@ start_session (Display *display, const char *username, const char *executable)
 
 static void
 start_user_session (Display *display)
-{ 
-    g_debug ("Launching session %s for user %s", display->priv->user_session, display->priv->username);
+{
+    g_debug ("Launching session %s for user %s", display->priv->user_session, pam_session_get_username (display->priv->pam_session));
 
     display->priv->active_session = SESSION_USER;
-    start_session (display, display->priv->username, display->priv->user_session);
+    start_session (display, pam_session_get_username (display->priv->pam_session), display->priv->user_session);
 }
 
 static void
@@ -218,8 +215,6 @@ start_greeter (Display *display)
 {
     g_debug ("Launching greeter %s as user %s", GREETER_BINARY, GREETER_USER);
 
-    g_free (display->priv->username);
-    display->priv->username = NULL;
     display->priv->active_session = SESSION_GREETER_PRE_CONNECT;
     start_session (display, GREETER_USER, GREETER_BINARY);
 }
@@ -258,6 +253,8 @@ authenticate_result_cb (PAMSession *session, int result, Display *display)
     GPtrArray *request;
     DBusGMethodInvocation *context;
 
+    g_debug ("Authenticate result for user %s: %s", pam_session_get_username (display->priv->pam_session), pam_session_strerror (display->priv->pam_session, result));
+
     /* Respond to D-Bus request */
     request = g_ptr_array_new ();
     context = display->priv->dbus_context;
@@ -270,13 +267,15 @@ static void
 session_started_cb (PAMSession *session, Display *display)
 {
     DBusError error;
+    const gchar *username;
 
     display->priv->active_session = SESSION_GREETER_AUTHENTICATED;
 
     display->priv->ck_session = ck_connector_new ();
     dbus_error_init (&error);
+    username = pam_session_get_username (display->priv->pam_session);
     if (!ck_connector_open_session_with_parameters (display->priv->ck_session, &error,
-                                                    "unix-user", &display->priv->username,
+                                                    "unix-user", &username,
                                                     "display-device", &display->priv->display_device,
                                                     "x11-display-device", &display->priv->x11_display_device,
                                                     "x11-display", &display->priv->x11_display,
@@ -302,25 +301,25 @@ gboolean
 display_start_authentication (Display *display, const char *username, DBusGMethodInvocation *context)
 {
     GError *error = NULL;
-  
+
     if (display->priv->active_session != SESSION_GREETER)
     {
         dbus_g_method_return_error (context, NULL);
         return TRUE;
     }
 
+    g_debug ("Greeter start authorisation for %s", username);
+
     // FIXME: Only allow calls from the correct greeter
 
-    /* Store authentication request and D-Bus request to respond to */
-    g_free (display->priv->username);
-    display->priv->username = g_strdup (username);
+    /* Store D-Bus request to respond to */
     display->priv->dbus_context = context;
 
     display->priv->pam_session = pam_session_new ();
     g_signal_connect (G_OBJECT (display->priv->pam_session), "got-messages", G_CALLBACK (pam_messages_cb), display);
     g_signal_connect (G_OBJECT (display->priv->pam_session), "authentication-result", G_CALLBACK (authenticate_result_cb), display);
     g_signal_connect (G_OBJECT (display->priv->pam_session), "started", G_CALLBACK (session_started_cb), display);
-    if (!pam_session_start (display->priv->pam_session, display->priv->username, &error))
+    if (!pam_session_start (display->priv->pam_session, username, &error))
     {
         g_warning ("Failed to start authentication: %s", error->message);
         display->priv->dbus_context = NULL;
