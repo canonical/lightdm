@@ -45,19 +45,14 @@ display_manager_add_display (DisplayManager *manager)
     Display *display;
 
     display = display_new ();
-    dbus_g_connection_register_g_object (manager->priv->connection, "/org/gnome/LightDisplayManager"/* FIXME: /Display"*/, G_OBJECT (display));
+
+    // FIXME: Do this in lightdm.c
+    dbus_g_connection_register_g_object (manager->priv->connection, "/org/gnome/LightDisplayManager/Display", G_OBJECT (display));
     //g_signal_connect (G_OBJECT (display), "exited", G_CALLBACK (display_exited_cb), manager);
 
     display_start (display);
 
     return display;
-}
-
-gboolean
-display_manager_get_users (Display *display, GPtrArray **users, GError *error)
-{
-    *users = g_ptr_array_new ();
-    return TRUE;
 }
 
 gboolean
@@ -89,10 +84,6 @@ display_manager_init (DisplayManager *manager)
                                             DBUS_NAME_FLAG_DO_NOT_QUEUE, &result, &error))
         g_warning ("Failed to register D-Bus name: %s", error->message);
     g_object_unref (proxy);
-
-    dbus_g_connection_register_g_object (manager->priv->connection, "/org/gnome/LightDisplayManager/Manager", G_OBJECT (manager));
-
-    display_manager_add_display (manager);
 }
 
 static void

@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include "display-manager.h"
+#include "user-manager.h"
 
 static GMainLoop *loop;
 static gboolean debug = FALSE;
@@ -87,8 +88,11 @@ signal_handler (int signum)
 int
 main(int argc, char **argv)
 {
-    DisplayManager *manager;
+    DisplayManager *display_manager;
+    UserManager *user_manager;
+    DBusGConnection *bus;
     struct sigaction action;
+    GError *error = NULL;
 
     /* Quit cleanly on signals */
     action.sa_handler = signal_handler;
@@ -117,7 +121,19 @@ main(int argc, char **argv)
     // Load config
     // FIXME: If autologin selected the first display should be a user session
 
-    manager = display_manager_new ();
+    bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
+    if (!bus) 
+        g_critical ("Failed to get system bus: %s", error->message);
+    g_clear_error (&error);
+
+    user_manager = user_manager_new ();
+    dbus_g_connection_register_g_object (bus, "/org/gnome/LightDisplayManager/Users", G_OBJECT (user_manager));
+
+    display_manager = display_manager_new ();
+    dbus_g_connection_register_g_object (bus, "/org/gnome/LightDisplayManager", G_OBJECT (display_manager));
+
+    /* Add the first display */
+    display_manager_add_display (display_manager);
 
     g_main_loop_run (loop);
 

@@ -39,8 +39,6 @@ DisplayManager *display_manager_new (void);
 
 Display *display_manager_add_display (DisplayManager *manager);
 
-gboolean display_manager_get_users (Display *display, GPtrArray **users, GError *error);
-
 gboolean display_manager_switch_to_user (Display *display, char *username, GError *error);
 
 G_END_DECLS

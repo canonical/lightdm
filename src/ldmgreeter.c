@@ -94,9 +94,9 @@ main(int argc, char **argv)
     {
         UserInfo *user = link->data;
         GtkTreeIter iter;
-
+      
         gtk_list_store_append (GTK_LIST_STORE (user_model), &iter);
-        gtk_list_store_set (GTK_LIST_STORE (user_model), &iter, 0, user->name, 1, user->real_name ? user->real_name : user->name, -1);
+        gtk_list_store_set (GTK_LIST_STORE (user_model), &iter, 0, user->name, 1, user->real_name[0] != '\0' ? user->real_name : user->name, -1);
     }
 
     user_view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (user_model));

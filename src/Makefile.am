@@ -4,6 +4,8 @@ display-glue.h: display.xml
 	$(DBUSBINDINGTOOL) --prefix=display --mode=glib-server --output=$@ $^
 display-manager-glue.h: display-manager.xml
 	$(DBUSBINDINGTOOL) --prefix=display_manager --mode=glib-server --output=$@ $^
+user-manager-glue.h: user-manager.xml
+	$(DBUSBINDINGTOOL) --prefix=user_manager --mode=glib-server --output=$@ $^
 
 lightdm_SOURCES = \
 	display.c \
@@ -12,7 +14,9 @@ lightdm_SOURCES = \
 	display-manager.h \
 	lightdm.c \
 	pam-session.c \
-	pam-session.h
+	pam-session.h \
+	user-manager.c \
+	user-manager.h
 
 ldmgreeter_SOURCES = \
 	greeter.c \
@@ -21,7 +25,8 @@ ldmgreeter_SOURCES = \
 
 BUILT_SOURCES = \
 	display-glue.h \
-	display-manager-glue.h
+	display-manager-glue.h \
+	user-manager-glue.h
 
 lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \

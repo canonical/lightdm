@@ -219,7 +219,7 @@ start_greeter (Display *display)
     start_session (display, GREETER_USER, GREETER_BINARY);
 }
 
-#define DBUS_STRUCT_INT_STRING dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
+#define TYPE_MESSAGE dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
 
 static void
 pam_messages_cb (PAMSession *session, int num_msg, const struct pam_message **msg, Display *display)
@@ -234,8 +234,8 @@ pam_messages_cb (PAMSession *session, int num_msg, const struct pam_message **ms
     {
         GValue value = { 0 };
       
-        g_value_init (&value, DBUS_STRUCT_INT_STRING);
-        g_value_take_boxed (&value, dbus_g_type_specialized_construct (DBUS_STRUCT_INT_STRING));
+        g_value_init (&value, TYPE_MESSAGE);
+        g_value_take_boxed (&value, dbus_g_type_specialized_construct (TYPE_MESSAGE));
         // FIXME: Need to convert to UTF-8
         dbus_g_type_struct_set (&value, 0, msg[i]->msg_style, 1, msg[i]->msg, G_MAXUINT);
         g_ptr_array_add (request, g_value_get_boxed (&value));

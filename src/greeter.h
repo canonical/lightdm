@@ -41,7 +41,7 @@ typedef struct
 {
    const char *name;
    const char *real_name;
-}  UserInfo;
+} UserInfo;
 
 GType greeter_get_type (void);
 

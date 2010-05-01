@@ -9,11 +9,8 @@
  * license.
  */
 
-#include <errno.h>
 #include <dbus/dbus-glib.h>
 #include <security/pam_appl.h>
-#include <string.h>
-#include <pwd.h>
 
 #include "greeter.h"
 
@@ -30,7 +27,7 @@ struct GreeterPrivate
 {
     DBusGConnection *bus;
 
-    DBusGProxy *proxy;
+    DBusGProxy *display_proxy, *user_proxy;
 
     gboolean have_users;
     GList *users;
@@ -60,7 +57,7 @@ greeter_connect (Greeter *greeter)
     gboolean result;
     GError *error = NULL;
 
-    result = dbus_g_proxy_call (greeter->priv->proxy, "Connect", &error,
+    result = dbus_g_proxy_call (greeter->priv->display_proxy, "Connect", &error,
                                 G_TYPE_INVALID,
                                 G_TYPE_STRING, &timed_user,
                                 G_TYPE_INT, &login_delay,
@@ -73,93 +70,68 @@ greeter_connect (Greeter *greeter)
     return result;
 }
 
-// FIXME: 100 or 500? Make it configurable
-#define MINIMUM_UID 500
-
-static gint
-compare_user (gconstpointer a, gconstpointer b)
-{
-    const UserInfo *user_a = a, *user_b = b;
-    const char *name_a, *name_b;
-    name_a = user_a->real_name ? user_a->real_name : user_a->name;
-    name_b = user_b->real_name ? user_b->real_name : user_b->name;
-    return strcmp (name_a, name_b);
-}
+#define TYPE_USER dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INVALID)
+#define TYPE_USER_LIST dbus_g_type_get_collection ("GPtrArray", TYPE_USER)
 
 static void
 update_users (Greeter *greeter)
 {
-    char *invalid_shells[] = { "/bin/false", "/usr/sbin/nologin", NULL };
-    char *invalid_users[] = { "nobody", NULL };
+    GPtrArray *users;
+    gboolean result;
+    gint i;
+    GError *error = NULL;
 
-    setpwent ();
+    if (greeter->priv->have_users)
+        return;
 
-    while (TRUE)
+    result = dbus_g_proxy_call (greeter->priv->user_proxy, "GetUsers", &error,
+                                G_TYPE_INVALID,
+                                TYPE_USER_LIST, &users,
+                                G_TYPE_INVALID);
+    if (!result)
+        g_warning ("Failed to get users: %s", error->message);
+    g_clear_error (&error);
+  
+    if (!result)
+        return;
+  
+    for (i = 0; i < users->len; i++)
     {
-        struct passwd *entry;
-        UserInfo *user;
-        char **tokens;
-        int i;
+        GValue value = { 0 };
+        UserInfo *info;
+      
+        info = g_malloc0 (sizeof (UserInfo));
+      
+        g_value_init (&value, TYPE_USER);
+        g_value_set_static_boxed (&value, users->pdata[i]);
+        dbus_g_type_struct_get (&value, 0, &info->name, 1, &info->real_name, G_MAXUINT);
 
-        errno = 0;
-        entry = getpwent ();
-        if (!entry)
-            break;
+        g_value_unset (&value);
 
-        /* Ignore system users */
-        if (entry->pw_uid < MINIMUM_UID)
-            continue;
-
-        /* Ignore users disabled by shell */
-        if (entry->pw_shell)
-        {
-            for (i = 0; invalid_shells[i] && strcmp (entry->pw_shell, invalid_shells[i]) != 0; i++);
-            if (invalid_shells[i])
-                continue;
-        }
-
-        /* Ignore certain users */
-        for (i = 0; invalid_users[i] && strcmp (entry->pw_name, invalid_users[i]) != 0; i++);
-        if (invalid_users[i])
-            continue;
-
-        user = g_malloc0 (sizeof (UserInfo));
-        user->name = g_strdup (entry->pw_name);
-
-        tokens = g_strsplit (entry->pw_gecos, ",", -1);
-        if (tokens[0] != NULL && tokens[0][0] != '\0')
-            user->real_name = g_strdup (tokens[0]);
-        else
-            user->real_name = NULL;
-        g_strfreev (tokens);
-
-        greeter->priv->users = g_list_insert_sorted (greeter->priv->users, user, compare_user);
+        greeter->priv->users = g_list_append (greeter->priv->users, info);
     }
 
-    if (errno != 0)
-        g_warning ("Failed to read password database: %s", strerror (errno));
+    g_ptr_array_free (users, TRUE);
 
-    endpwent ();
+    greeter->priv->have_users = TRUE;
 }
 
 gint
 greeter_get_num_users (Greeter *greeter)
 {
-    if (!greeter->priv->have_users)
-        update_users (greeter);
+    update_users (greeter);
     return g_list_length (greeter->priv->users);
 }
 
 const GList *
 greeter_get_users (Greeter *greeter)
 {
-    if (!greeter->priv->have_users)
-        update_users (greeter);
+    update_users (greeter);
     return greeter->priv->users;
 }
 
-#define DBUS_STRUCT_INT_STRING dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
-#define DBUS_ARRAY_STRUCT_INT_STRING dbus_g_type_get_collection ("GPtrArray", DBUS_STRUCT_INT_STRING)
+#define TYPE_MESSAGE dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
+#define TYPE_MESSAGE_LIST dbus_g_type_get_collection ("GPtrArray", TYPE_MESSAGE)
 
 static void
 auth_response_cb (DBusGProxy *proxy, DBusGProxyCall *call, gpointer userdata)
@@ -171,7 +143,7 @@ auth_response_cb (DBusGProxy *proxy, DBusGProxyCall *call, gpointer userdata)
     GPtrArray *array;
     int i;
 
-    result = dbus_g_proxy_end_call (proxy, call, &error, G_TYPE_INT, &return_code, DBUS_ARRAY_STRUCT_INT_STRING, &array, G_TYPE_INVALID);
+    result = dbus_g_proxy_end_call (proxy, call, &error, G_TYPE_INT, &return_code, TYPE_MESSAGE_LIST, &array, G_TYPE_INVALID);
     if (!result)
         g_warning ("Failed to complete D-Bus call: %s", error->message);
     g_clear_error (&error);
@@ -184,7 +156,7 @@ auth_response_cb (DBusGProxy *proxy, DBusGProxyCall *call, gpointer userdata)
         gint msg_style;
         gchar *msg;
       
-        g_value_init (&value, DBUS_STRUCT_INT_STRING);
+        g_value_init (&value, TYPE_MESSAGE);
         g_value_set_static_boxed (&value, array->pdata[i]);
         dbus_g_type_struct_get (&value, 0, &msg_style, 1, &msg, G_MAXUINT);
 
@@ -220,7 +192,7 @@ auth_response_cb (DBusGProxy *proxy, DBusGProxyCall *call, gpointer userdata)
 void
 greeter_start_authentication (Greeter *greeter, const char *username)
 {
-    dbus_g_proxy_begin_call (greeter->priv->proxy, "StartAuthentication", auth_response_cb, greeter, NULL, G_TYPE_STRING, username, G_TYPE_INVALID);
+    dbus_g_proxy_begin_call (greeter->priv->display_proxy, "StartAuthentication", auth_response_cb, greeter, NULL, G_TYPE_STRING, username, G_TYPE_INVALID);
 }
 
 void
@@ -232,7 +204,7 @@ greeter_provide_secret (Greeter *greeter, const gchar *secret)
     secrets = g_malloc (sizeof (char *) * 2);
     secrets[0] = g_strdup (secret);
     secrets[1] = NULL;
-    dbus_g_proxy_begin_call (greeter->priv->proxy, "ContinueAuthentication", auth_response_cb, greeter, NULL, G_TYPE_STRV, secrets, G_TYPE_INVALID);
+    dbus_g_proxy_begin_call (greeter->priv->display_proxy, "ContinueAuthentication", auth_response_cb, greeter, NULL, G_TYPE_STRV, secrets, G_TYPE_INVALID);
 }
 
 void
@@ -258,10 +230,14 @@ greeter_init (Greeter *greeter)
         g_error ("Failed to connect to bus: %s", error->message);
     g_clear_error (&error);
 
-    greeter->priv->proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
-                                                      "org.gnome.LightDisplayManager",
-                                                      "/org/gnome/LightDisplayManager",/* FIXME: /Display", */
-                                                      "org.gnome.LightDisplayManager.Display");
+    greeter->priv->display_proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+                                                              "org.gnome.LightDisplayManager",
+                                                              "/org/gnome/LightDisplayManager/Display",
+                                                              "org.gnome.LightDisplayManager.Display");
+    greeter->priv->user_proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+                                                           "org.gnome.LightDisplayManager",
+                                                           "/org/gnome/LightDisplayManager/Users",
+                                                           "org.gnome.LightDisplayManager.Users");
 }
 
 static void
