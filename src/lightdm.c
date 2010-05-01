@@ -9,13 +9,73 @@
  * license.
  */
 
+#include <stdlib.h>
 #include <glib.h>
+#include <glib/gi18n.h>
 #include <signal.h>
 #include <unistd.h>
 
 #include "display-manager.h"
 
 static GMainLoop *loop;
+static gboolean debug = FALSE;
+
+static void
+version()
+{
+    /* NOTE: Is not translated so can be easily parsed */
+    g_printerr ("%s %s\n", LIGHTDM_BINARY, VERSION);
+}
+
+static void
+usage (void)
+{
+    g_printerr (/* Description on how to use Light Display Manager displayed on command-line */
+                _("Usage:\n"
+                  "  %s - Display Manager"), LIGHTDM_BINARY);
+
+    g_printerr ("\n\n");
+
+    g_printerr (/* Description on how to use Light Display Manager displayed on command-line */    
+                _("Help Options:\n"
+                  "  -d, --debug                     Print debugging messages\n"
+                  "  -v, --version                   Show release version\n"
+                  "  -h, --help                      Show help options"));
+    g_printerr ("\n\n");
+}
+
+static void
+get_options (int argc, char **argv)
+{
+    int i;
+
+    for (i = 1; i < argc; i++)
+    {
+        char *arg = argv[i];
+
+        if (strcmp (arg, "-d") == 0 ||
+            strcmp (arg, "--debug") == 0) {
+            debug = TRUE;
+        }
+        else if (strcmp (arg, "-v") == 0 ||
+            strcmp (arg, "--version") == 0)
+        {
+            version ();
+            exit (0);
+        }
+        else if (strcmp (arg, "-h") == 0 ||
+                 strcmp (arg, "--help") == 0)
+        {
+            usage ();
+            exit (0);
+        }
+        else
+        {
+            g_printerr ("Unknown argument: '%s'\n", arg);
+            exit (1);
+        }      
+    }
+}
 
 static void
 signal_handler (int signum)
@@ -45,6 +105,8 @@ main(int argc, char **argv)
         g_print ("Only root can run Light Display Manager\n");
         return -1;
     }
+
+    get_options (argc, argv);
 
     g_debug ("Starting Light Display Manager %s, PID=%i", VERSION, getpid ());
 
