@@ -1,0 +1,16 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name="org.gnome.LightDisplayManager.Manager">
+
+    <!-- Method to return the users -->
+    <method name="GetUsers">
+      <arg name="users" direction="out" type="a(ss)"/>
+    </method>
+
+    <!-- Method to switch to a user -->
+    <method name="SwitchToUser">
+      <arg name="username" direction="in" type="s"/>
+    </method>
+
+  </interface>
+</node>

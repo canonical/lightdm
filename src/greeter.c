@@ -260,7 +260,7 @@ greeter_init (Greeter *greeter)
 
     greeter->priv->proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
                                                       "org.gnome.LightDisplayManager",
-                                                      "/org/gnome/LightDisplayManager",
+                                                      "/org/gnome/LightDisplayManager",/* FIXME: /Display", */
                                                       "org.gnome.LightDisplayManager.Display");
 }
 

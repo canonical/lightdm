@@ -13,6 +13,7 @@
 #include <dbus/dbus-glib-bindings.h>
 
 #include "display-manager.h"
+#include "display-manager-glue.h"
 
 struct DisplayManagerPrivate
 {
@@ -44,10 +45,25 @@ display_manager_add_display (DisplayManager *manager)
     Display *display;
 
     display = display_new ();
-    dbus_g_connection_register_g_object (manager->priv->connection, "/org/gnome/LightDisplayManager", G_OBJECT (display));
+    dbus_g_connection_register_g_object (manager->priv->connection, "/org/gnome/LightDisplayManager"/* FIXME: /Display"*/, G_OBJECT (display));
     //g_signal_connect (G_OBJECT (display), "exited", G_CALLBACK (display_exited_cb), manager);
 
+    display_start (display);
+
     return display;
+}
+
+gboolean
+display_manager_get_users (Display *display, GPtrArray **users, GError *error)
+{
+    *users = g_ptr_array_new ();
+    return TRUE;
+}
+
+gboolean
+display_manager_switch_to_user (Display *display, char *username, GError *error)
+{
+    return TRUE;
 }
 
 static void
@@ -74,11 +90,15 @@ display_manager_init (DisplayManager *manager)
         g_warning ("Failed to register D-Bus name: %s", error->message);
     g_object_unref (proxy);
 
+    dbus_g_connection_register_g_object (manager->priv->connection, "/org/gnome/LightDisplayManager/Manager", G_OBJECT (manager));
+
     display_manager_add_display (manager);
 }
 
 static void
 display_manager_class_init (DisplayManagerClass *klass)
 {
-    g_type_class_add_private (klass, sizeof (DisplayManagerPrivate));  
+    g_type_class_add_private (klass, sizeof (DisplayManagerPrivate));
+
+    dbus_g_object_type_install_info (DISPLAY_MANAGER_TYPE, &dbus_glib_display_manager_object_info);
 }

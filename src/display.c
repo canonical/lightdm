@@ -185,13 +185,13 @@ start_session (Display *display, const char *username, const char *executable)
                     NULL };
     char *argv[] = { g_strdup (executable), NULL };
 
-    result = g_spawn_async_with_pipes (user_info->pw_dir,
+    result = g_spawn_async/*_with_pipes*/ (user_info->pw_dir,
                                        argv,
                                        env,
                                        G_SPAWN_DO_NOT_REAP_CHILD,
                                        session_fork_cb, user_info,
                                        &display->priv->session_pid,
-                                       &session_stdin, &session_stdout, &session_stderr,
+                                       //&session_stdin, &session_stdout, &session_stderr,
                                        &error);
 
     if (!result)
@@ -412,21 +412,12 @@ xserver_watch_cb (GPid pid, gint status, gpointer data)
     g_signal_emit (display, signals[EXITED], 0);
 }
 
-static void
-display_init (Display *display)
+void
+display_start (Display *display)
 {
     GError *error = NULL;
     gboolean result;
     gint xserver_stdin, xserver_stdout, xserver_stderr;
-
-    display->priv = G_TYPE_INSTANCE_GET_PRIVATE (display, DISPLAY_TYPE, DisplayPrivate);
-
-    display->priv->user_session = g_strdup ("/usr/bin/xeyes");
-
-    // FIXME: How to get these?
-    display->priv->display_device = g_strdup ("");
-    display->priv->x11_display_device = g_strdup ("/dev/tty0");
-    display->priv->x11_display = g_strdup (":0");
 
     char *argv[] = { "/usr/bin/X", display->priv->x11_display, NULL };
     char *env[] = { NULL };
@@ -447,6 +438,18 @@ display_init (Display *display)
     /* TODO: Do autologin if this is requested */
     if (display->priv->xserver_pid != 0)
         start_greeter (display);
+}
+
+static void
+display_init (Display *display)
+{
+    display->priv = G_TYPE_INSTANCE_GET_PRIVATE (display, DISPLAY_TYPE, DisplayPrivate);
+
+    display->priv->user_session = g_strdup ("/usr/bin/xeyes");
+    // FIXME: How to get these?
+    display->priv->display_device = g_strdup ("");
+    display->priv->x11_display_device = g_strdup ("/dev/tty0");
+    display->priv->x11_display = g_strdup (":0");
 }
 
 static void

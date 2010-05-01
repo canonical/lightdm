@@ -2,6 +2,8 @@ bin_PROGRAMS = lightdm ldmgreeter
 
 display-glue.h: display.xml
 	$(DBUSBINDINGTOOL) --prefix=display --mode=glib-server --output=$@ $^
+display-manager-glue.h: display-manager.xml
+	$(DBUSBINDINGTOOL) --prefix=display_manager --mode=glib-server --output=$@ $^
 
 lightdm_SOURCES = \
 	display.c \
@@ -18,7 +20,8 @@ ldmgreeter_SOURCES = \
 	ldmgreeter.c
 
 BUILT_SOURCES = \
-	display-glue.h
+	display-glue.h \
+	display-manager-glue.h
 
 lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
