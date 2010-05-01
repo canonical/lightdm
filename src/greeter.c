@@ -233,7 +233,7 @@ greeter_init (Greeter *greeter)
     greeter->priv->display_proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
                                                               "org.gnome.LightDisplayManager",
                                                               "/org/gnome/LightDisplayManager/Display",
-                                                              "org.gnome.LightDisplayManager.Display");
+                                                              "org.gnome.LightDisplayManager.Greeter");
     greeter->priv->user_proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
                                                            "org.gnome.LightDisplayManager",
                                                            "/org/gnome/LightDisplayManager/Users",
