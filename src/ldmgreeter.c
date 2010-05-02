@@ -15,7 +15,8 @@
 
 static Greeter *greeter;
 static GtkListStore *user_model;
-static GtkWidget *window, *vbox, *label, *user_view, *username_entry, *password_entry;
+static GtkWidget *user_window, *vbox, *label, *user_view, *username_entry, *password_entry;
+static GtkWidget *panel_window;
 
 static void
 user_view_activate_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *column)
@@ -73,17 +74,29 @@ main(int argc, char **argv)
 {
     const GList *users, *link;
     GtkCellRenderer *renderer;
+    GdkDisplay *display;
+    GdkScreen *screen;
+    gint screen_width, screen_height;
+    GtkAllocation allocation;
+    GtkWidget *menu_bar, *menu, *item;
 
     gtk_init (&argc, &argv);
 
     greeter = greeter_new ();
-  
-    window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gtk_container_set_border_width (GTK_CONTAINER (window), 12);
-    g_signal_connect (window, "delete-event", gtk_main_quit, NULL);
+
+    display = gdk_display_get_default ();
+    screen = gdk_display_get_default_screen (display);
+    screen_width = gdk_screen_get_width (screen);
+    screen_height = gdk_screen_get_height (screen);  
+
+    user_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_decorated (GTK_WINDOW (user_window), FALSE);
+    gtk_window_set_resizable (GTK_WINDOW (user_window), FALSE);
+    gtk_container_set_border_width (GTK_CONTAINER (user_window), 12);
+    g_signal_connect (user_window, "delete-event", gtk_main_quit, NULL);
 
     vbox = gtk_vbox_new (FALSE, 6);
-    gtk_container_add (GTK_CONTAINER (window), vbox);
+    gtk_container_add (GTK_CONTAINER (user_window), vbox);
 
     label = gtk_label_new ("");
     gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, FALSE, 0);
@@ -114,9 +127,62 @@ main(int argc, char **argv)
     gtk_entry_set_visibility (GTK_ENTRY (password_entry), FALSE);
     gtk_widget_set_sensitive (password_entry, FALSE);
     gtk_box_pack_start (GTK_BOX (vbox), password_entry, FALSE, FALSE, 0);
-    g_signal_connect (password_entry, "activate", G_CALLBACK (password_activate_cb), NULL);  
+    g_signal_connect (password_entry, "activate", G_CALLBACK (password_activate_cb), NULL);
+  
+    gtk_widget_show_all (user_window);
+  
+    /* Center the window */
+    gtk_widget_get_allocation (user_window, &allocation);
+    gtk_window_move (GTK_WINDOW (user_window),
+                     (screen_width - allocation.width) / 2,
+                     (screen_height - allocation.height) / 2);
 
-    gtk_widget_show_all (window);
+    panel_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_decorated (GTK_WINDOW (panel_window), FALSE);
+    gtk_window_set_resizable (GTK_WINDOW (panel_window), FALSE);
+    gtk_window_set_default_size (GTK_WINDOW (panel_window), screen_width, 10);
+
+    menu_bar = gtk_menu_bar_new ();
+    gtk_container_add (GTK_CONTAINER (panel_window), menu_bar);
+
+    item = gtk_image_menu_item_new ();
+    gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), gtk_image_new_from_icon_name ("access", GTK_ICON_SIZE_LARGE_TOOLBAR));
+    gtk_menu_item_set_label (GTK_MENU_ITEM (item), ""); // NOTE: Needed to make the icon show as selected
+    gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (item), TRUE);
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), item);
+
+    menu = gtk_menu_new ();
+    gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("?1"));
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("?2"));
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("?3"));
+
+    item = gtk_menu_item_new_with_label ("Options");
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), item);
+
+    menu = gtk_menu_new ();
+    gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Language..."));
+
+    item = gtk_image_menu_item_new ();
+    gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (item), TRUE);
+    gtk_menu_item_set_right_justified (GTK_MENU_ITEM (item), TRUE);
+    gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), gtk_image_new_from_icon_name ("system-shutdown", GTK_ICON_SIZE_LARGE_TOOLBAR));
+    gtk_menu_item_set_label (GTK_MENU_ITEM (item), ""); // NOTE: Needed to make the icon show as selected
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), item);
+  
+    menu = gtk_menu_new ();
+    gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Suspend"));
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Hibernate"));
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Restart..."));
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Shutdown..."));
+
+    gtk_widget_show_all (panel_window);
+
+    gtk_widget_get_allocation (panel_window, &allocation);
+    gtk_widget_set_size_request (GTK_WIDGET (panel_window), screen_width, allocation.height);  
+    gtk_window_move (GTK_WINDOW (panel_window), 0, screen_height - allocation.height);
 
     g_signal_connect (G_OBJECT (greeter), "show-prompt", G_CALLBACK (show_prompt_cb), NULL);  
     g_signal_connect (G_OBJECT (greeter), "show-message", G_CALLBACK (show_message_cb), NULL);
