@@ -10,6 +10,7 @@
  */
 
 #include <gtk/gtk.h>
+#include <glib/gi18n.h>
 
 #include "greeter.h"
 
@@ -101,7 +102,7 @@ main(int argc, char **argv)
     label = gtk_label_new ("");
     gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, FALSE, 0);
 
-    user_model = gtk_list_store_new (2, G_TYPE_STRING, G_TYPE_STRING);
+    user_model = gtk_list_store_new (3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
     users = greeter_get_users (greeter);
     for (link = users; link; link = link->next)
     {
@@ -109,13 +110,24 @@ main(int argc, char **argv)
         GtkTreeIter iter;
       
         gtk_list_store_append (GTK_LIST_STORE (user_model), &iter);
-        gtk_list_store_set (GTK_LIST_STORE (user_model), &iter, 0, user->name, 1, user->real_name[0] != '\0' ? user->real_name : user->name, -1);
+        gtk_list_store_set (GTK_LIST_STORE (user_model), &iter,
+                            0, user->name,
+                            1, user->real_name[0] != '\0' ? user->real_name : user->name,
+                            2, "gnome-calculator",
+                            -1);
     }
 
     user_view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (user_model));
     gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (user_view), FALSE);
+    gtk_tree_view_set_grid_lines (GTK_TREE_VIEW (user_view), GTK_TREE_VIEW_GRID_LINES_NONE);
+
+    renderer = gtk_cell_renderer_pixbuf_new();
+    g_object_set (G_OBJECT (renderer), "stock-size", GTK_ICON_SIZE_DIALOG, NULL);
+    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 0, "User", renderer, "icon-name", 2, NULL);
+
     renderer = gtk_cell_renderer_text_new();
-    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 0, "User", renderer, "text", 1, NULL);
+    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 1, "User", renderer, "text", 1, NULL);
+
     gtk_box_pack_start (GTK_BOX (vbox), user_view, FALSE, FALSE, 0);
     g_signal_connect (user_view, "row-activated", G_CALLBACK (user_view_activate_cb), NULL);
 
@@ -157,12 +169,14 @@ main(int argc, char **argv)
     gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("?2"));
     gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("?3"));
 
-    item = gtk_menu_item_new_with_label ("Options");
+    item = gtk_menu_item_new_with_label (_("Options"));
     gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), item);
 
     menu = gtk_menu_new ();
     gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Language..."));
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label (_("Select Language...")));
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label (_("Select Keyboard Layout...")));
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label (_("Select Session...")));
 
     item = gtk_image_menu_item_new ();
     gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (item), TRUE);
