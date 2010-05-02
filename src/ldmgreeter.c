@@ -82,6 +82,9 @@ main(int argc, char **argv)
     GtkWidget *menu_bar, *menu, *item;
 
     gtk_init (&argc, &argv);
+  
+    // FIXME: Draw background
+    //gdk_get_default_root_window ();
 
     greeter = greeter_new ();
 
