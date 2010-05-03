@@ -39,9 +39,9 @@ typedef struct
 
 typedef struct
 {
-   const char *name;
-   const char *real_name;
-}  UserInfo;
+    const char *name;
+    const char *real_name;
+} UserInfo;
 
 GType user_manager_get_type (void);
 
