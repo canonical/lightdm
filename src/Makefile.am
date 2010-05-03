@@ -4,6 +4,8 @@ display-glue.h: display.xml
 	$(DBUSBINDINGTOOL) --prefix=display --mode=glib-server --output=$@ $^
 display-manager-glue.h: display-manager.xml
 	$(DBUSBINDINGTOOL) --prefix=display_manager --mode=glib-server --output=$@ $^
+session-manager-glue.h: session-manager.xml
+	$(DBUSBINDINGTOOL) --prefix=session_manager --mode=glib-server --output=$@ $^
 user-manager-glue.h: user-manager.xml
 	$(DBUSBINDINGTOOL) --prefix=user_manager --mode=glib-server --output=$@ $^
 
@@ -15,6 +17,8 @@ lightdm_SOURCES = \
 	lightdm.c \
 	pam-session.c \
 	pam-session.h \
+	session-manager.c \
+	session-manager.h \
 	user-manager.c \
 	user-manager.h
 
@@ -26,6 +30,7 @@ ldmgreeter_SOURCES = \
 BUILT_SOURCES = \
 	display-glue.h \
 	display-manager-glue.h \
+	session-manager-glue.h \
 	user-manager-glue.h
 
 lightdm_CFLAGS = \
@@ -34,6 +39,7 @@ lightdm_CFLAGS = \
 	-DVERSION=\"$(VERSION)\" \
 	-DGETTEXT_PACKAGE=\"$(GETTEXT_PACKAGE)\" \
 	-DLOCALE_DIR=\"$(localedir)\" \
+	-DXSESSIONS_DIR=\"$(prefix)/share/xsessions\" \
 	-DGREETER_USER=\"gdm\" \
 	-DGREETER_BINARY=\"$(prefix)/bin/ldmgreeter\" \
 	-DLIGHTDM_BINARY=\"lightdm\"

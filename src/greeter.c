@@ -27,10 +27,13 @@ struct GreeterPrivate
 {
     DBusGConnection *bus;
 
-    DBusGProxy *display_proxy, *user_proxy;
+    DBusGProxy *display_proxy, *session_proxy, *user_proxy;
 
     gboolean have_users;
     GList *users;
+
+    gboolean have_sessions;
+    GList *sessions;
 
     gboolean is_authenticated;
 };
@@ -128,6 +131,59 @@ greeter_get_users (Greeter *greeter)
 {
     update_users (greeter);
     return greeter->priv->users;
+}
+
+#define TYPE_SESSION dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INVALID)
+#define TYPE_SESSION_LIST dbus_g_type_get_collection ("GPtrArray", TYPE_SESSION)
+
+static void
+update_sessions (Greeter *greeter)
+{
+    GPtrArray *sessions;
+    gboolean result;
+    gint i;
+    GError *error = NULL;
+
+    if (greeter->priv->have_sessions)
+        return;
+
+    result = dbus_g_proxy_call (greeter->priv->session_proxy, "GetSessions", &error,
+                                G_TYPE_INVALID,
+                                TYPE_SESSION_LIST, &sessions,
+                                G_TYPE_INVALID);
+    if (!result)
+        g_warning ("Failed to get sessions: %s", error->message);
+    g_clear_error (&error);
+  
+    if (!result)
+        return;
+  
+    for (i = 0; i < sessions->len; i++)
+    {
+        GValue value = { 0 };
+        Session *session;
+      
+        session = g_malloc0 (sizeof (Session));
+      
+        g_value_init (&value, TYPE_SESSION);
+        g_value_set_static_boxed (&value, sessions->pdata[i]);
+        dbus_g_type_struct_get (&value, 0, &session->name, 1, &session->comment, G_MAXUINT);
+
+        g_value_unset (&value);
+
+        greeter->priv->sessions = g_list_append (greeter->priv->sessions, session);
+    }
+
+    g_ptr_array_free (sessions, TRUE);
+
+    greeter->priv->have_sessions = TRUE;
+}
+
+const GList *
+greeter_get_sessions (Greeter *greeter)
+{
+    update_sessions (greeter);
+    return greeter->priv->sessions;
 }
 
 #define TYPE_MESSAGE dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
@@ -234,6 +290,10 @@ greeter_init (Greeter *greeter)
                                                               "org.gnome.LightDisplayManager",
                                                               "/org/gnome/LightDisplayManager/Display",
                                                               "org.gnome.LightDisplayManager.Greeter");
+    greeter->priv->session_proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+                                                              "org.gnome.LightDisplayManager",
+                                                              "/org/gnome/LightDisplayManager/Session",
+                                                              "org.gnome.LightDisplayManager.Session");
     greeter->priv->user_proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
                                                            "org.gnome.LightDisplayManager",
                                                            "/org/gnome/LightDisplayManager/Users",

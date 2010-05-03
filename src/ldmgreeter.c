@@ -15,8 +15,10 @@
 #include "greeter.h"
 
 static Greeter *greeter;
-static GtkListStore *user_model;
-static GtkWidget *user_window, *vbox, *label, *user_view, *username_entry, *password_entry;
+static GtkListStore *session_model, *user_model;
+static GtkWidget *user_window, *vbox, *label, *user_view;
+static GtkWidget *username_entry, *password_entry;
+static GtkWidget *session_combo;
 static GtkWidget *panel_window;
 
 static void
@@ -73,7 +75,7 @@ authentication_complete_cb (Greeter *greeter)
 int
 main(int argc, char **argv)
 {
-    const GList *users, *link;
+    const GList *sessions, *users, *link;
     GtkCellRenderer *renderer;
     GdkDisplay *display;
     GdkScreen *screen;
@@ -143,6 +145,26 @@ main(int argc, char **argv)
     gtk_widget_set_sensitive (password_entry, FALSE);
     gtk_box_pack_start (GTK_BOX (vbox), password_entry, FALSE, FALSE, 0);
     g_signal_connect (password_entry, "activate", G_CALLBACK (password_activate_cb), NULL);
+
+    session_model = gtk_list_store_new (3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+    sessions = greeter_get_sessions (greeter);
+    for (link = sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+        GtkTreeIter iter;
+      
+        gtk_list_store_append (GTK_LIST_STORE (session_model), &iter);
+        gtk_list_store_set (GTK_LIST_STORE (session_model), &iter,
+                            0, session->name,
+                            1, session->name,
+                            -1);
+    }
+
+    session_combo = gtk_combo_box_new_with_model (GTK_TREE_MODEL (session_model));
+    renderer = gtk_cell_renderer_text_new();
+    gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (session_combo), renderer, TRUE);
+    gtk_cell_layout_add_attribute (GTK_CELL_LAYOUT (session_combo), renderer, "text", 1);
+    gtk_box_pack_start (GTK_BOX (vbox), session_combo, FALSE, FALSE, 0);    
   
     gtk_widget_show_all (user_window);
   

@@ -17,6 +17,7 @@
 
 #include "display-manager.h"
 #include "user-manager.h"
+#include "session-manager.h"
 
 static GMainLoop *loop;
 static gboolean debug = FALSE;
@@ -90,6 +91,7 @@ main(int argc, char **argv)
 {
     DisplayManager *display_manager;
     UserManager *user_manager;
+    SessionManager *session_manager;
     DBusGConnection *bus;
     struct sigaction action;
     GError *error = NULL;
@@ -128,6 +130,9 @@ main(int argc, char **argv)
 
     user_manager = user_manager_new ();
     dbus_g_connection_register_g_object (bus, "/org/gnome/LightDisplayManager/Users", G_OBJECT (user_manager));
+
+    session_manager = session_manager_new ();
+    dbus_g_connection_register_g_object (bus, "/org/gnome/LightDisplayManager/Session", G_OBJECT (session_manager));
 
     display_manager = display_manager_new ();
     dbus_g_connection_register_g_object (bus, "/org/gnome/LightDisplayManager", G_OBJECT (display_manager));
