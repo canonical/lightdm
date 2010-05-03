@@ -419,7 +419,12 @@ display_start (Display *display)
     gboolean result;
     gint xserver_stdin, xserver_stdout, xserver_stderr;
 
-    char *argv[] = { "/usr/bin/X", display->priv->x11_display, NULL };
+    char *argv[] = { "/usr/bin/X",
+                     display->priv->x11_display,
+                     "-nolisten", "tcp", /* Disable TCP/IP connections */
+                     "-nr",              /* No root background */
+                     /*"vtXX"*/
+                     NULL };
     char *env[] = { NULL };
     result = g_spawn_async_with_pipes (NULL, /* Working directory */
                                        argv,
