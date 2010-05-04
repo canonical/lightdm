@@ -82,6 +82,8 @@ greeter_connect (Greeter *greeter)
     if (!result)
         g_warning ("Failed to connect to display manager: %s", error->message);
     g_clear_error (&error);
+    if (!result)
+        return FALSE;
 
     /* Set timeout for default login */
     if (greeter->priv->timed_user[0] != '\0' && greeter->priv->login_delay > 0)
