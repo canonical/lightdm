@@ -30,36 +30,23 @@ typedef struct
 typedef struct
 {
     GObjectClass parent_class;
-  
-    void (*show_prompt)(UserManager *manager, const gchar *text);
-    void (*show_message)(UserManager *manager, const gchar *text);
-    void (*show_error)(UserManager *manager, const gchar *text);
-    void (*authentication_complete)(UserManager *manager);
 } UserManagerClass;
 
 typedef struct
 {
-    const char *name;
-    const char *real_name;
+    const gchar *name;
+    const gchar *real_name;
+    const gchar *image;
+    gboolean logged_in;
 } UserInfo;
 
 GType user_manager_get_type (void);
 
 UserManager *user_manager_new (void);
 
-gboolean user_manager_connect (UserManager *manager);
-
 gint user_manager_get_num_users (UserManager *manager);
 
 gboolean user_manager_get_users (UserManager *manager, GPtrArray **users, GError *error);
-
-void user_manager_start_authentication (UserManager *manager, const char *username);
-
-void user_manager_provide_secret (UserManager *manager, const gchar *secret);
-
-void user_manager_cancel_authentication (UserManager *manager);
-
-gboolean user_manager_get_is_authenticated (UserManager *manager);
 
 G_END_DECLS
 

@@ -4,7 +4,8 @@
 
     <!-- Method to return the users -->
     <method name="GetUsers">
-      <arg name="users" direction="out" type="a(ss)"/>
+      <!-- name,real name,image,logged in -->
+      <arg name="users" direction="out" type="a(sssb)"/>
     </method>
 
   </interface>

@@ -40,8 +40,10 @@ typedef struct
 
 typedef struct
 {
-   const char *name;
-   const char *real_name;
+   const gchar *name;
+   const gchar *real_name;
+   const gchar *image;
+   gboolean logged_in;
 } UserInfo;
 
 typedef struct

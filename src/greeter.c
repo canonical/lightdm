@@ -93,7 +93,7 @@ greeter_connect (Greeter *greeter)
     return result;
 }
 
-#define TYPE_USER dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INVALID)
+#define TYPE_USER dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN, G_TYPE_INVALID)
 #define TYPE_USER_LIST dbus_g_type_get_collection ("GPtrArray", TYPE_USER)
 
 static void
@@ -122,12 +122,12 @@ update_users (Greeter *greeter)
     {
         GValue value = { 0 };
         UserInfo *info;
-      
+
         info = g_malloc0 (sizeof (UserInfo));
-      
+
         g_value_init (&value, TYPE_USER);
         g_value_set_static_boxed (&value, users->pdata[i]);
-        dbus_g_type_struct_get (&value, 0, &info->name, 1, &info->real_name, G_MAXUINT);
+        dbus_g_type_struct_get (&value, 0, &info->name, 1, &info->real_name, 2, &info->image, 3, &info->logged_in, G_MAXUINT);
 
         g_value_unset (&value);
 

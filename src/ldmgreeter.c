@@ -114,18 +114,28 @@ main(int argc, char **argv)
     label = gtk_label_new ("");
     gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, FALSE, 0);
 
-    user_model = gtk_list_store_new (3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+    user_model = gtk_list_store_new (3, G_TYPE_STRING, G_TYPE_STRING, GDK_TYPE_PIXBUF);
     users = greeter_get_users (greeter);
     for (link = users; link; link = link->next)
     {
         UserInfo *user = link->data;
         GtkTreeIter iter;
+        GdkPixbuf *pixbuf = NULL;
+
+        if (user->image[0] != '\0')
+            pixbuf = gdk_pixbuf_new_from_file_at_scale (user->image, 64, 64, TRUE, NULL);
+        if (!pixbuf)
+            pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
+                                               "stock_person",
+                                               64,
+                                               0,
+                                               NULL);
       
         gtk_list_store_append (GTK_LIST_STORE (user_model), &iter);
         gtk_list_store_set (GTK_LIST_STORE (user_model), &iter,
                             0, user->name,
                             1, user->real_name[0] != '\0' ? user->real_name : user->name,
-                            2, "gnome-calculator",
+                            2, pixbuf,
                             -1);
     }
 
@@ -135,7 +145,7 @@ main(int argc, char **argv)
 
     renderer = gtk_cell_renderer_pixbuf_new();
     g_object_set (G_OBJECT (renderer), "stock-size", GTK_ICON_SIZE_DIALOG, NULL);
-    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 0, "User", renderer, "icon-name", 2, NULL);
+    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 0, "User", renderer, "pixbuf", 2, NULL);
 
     renderer = gtk_cell_renderer_text_new();
     gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 1, "User", renderer, "text", 1, NULL);

@@ -59,6 +59,7 @@ update_users (UserManager *manager)
         struct passwd *entry;
         UserInfo *user;
         char **tokens;
+        gchar *image_path;
         int i;
 
         errno = 0;
@@ -93,6 +94,15 @@ update_users (UserManager *manager)
             user->real_name = NULL;
         g_strfreev (tokens);
 
+        image_path = g_build_filename ("/home", user->name, ".face", NULL);
+        if (g_file_test (image_path, G_FILE_TEST_EXISTS))
+            user->image = image_path;
+        else
+        {
+            user->image = g_strdup ("");
+            g_free (image_path);
+        }
+
         manager->priv->users = g_list_insert_sorted (manager->priv->users, user, compare_user);
     }
 
@@ -111,7 +121,7 @@ user_manager_get_num_users (UserManager *manager)
     return g_list_length (manager->priv->users);
 }
 
-#define TYPE_USER dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INVALID)
+#define TYPE_USER dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN, G_TYPE_INVALID)
 
 gboolean
 user_manager_get_users (UserManager *manager, GPtrArray **users, GError *error)
@@ -128,7 +138,7 @@ user_manager_get_users (UserManager *manager, GPtrArray **users, GError *error)
 
         g_value_init (&value, TYPE_USER);
         g_value_take_boxed (&value, dbus_g_type_specialized_construct (TYPE_USER));
-        dbus_g_type_struct_set (&value, 0, info->name, 1, info->real_name, G_MAXUINT);
+        dbus_g_type_struct_set (&value, 0, info->name, 1, info->real_name, 2, info->image, 3, info->logged_in, G_MAXUINT);
         g_ptr_array_add (*users, g_value_get_boxed (&value));
     }
 
