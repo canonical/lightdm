@@ -33,6 +33,7 @@ BUILT_SOURCES = \
 	session-manager-glue.h \
 	user-manager-glue.h
 
+# FIXME: Make these configurable from configure.ac
 lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
 	$(WARN_CFLAGS) \
@@ -42,6 +43,7 @@ lightdm_CFLAGS = \
 	-DXSESSIONS_DIR=\"$(prefix)/share/xsessions\" \
 	-DGREETER_USER=\"gdm\" \
 	-DGREETER_BINARY=\"$(prefix)/bin/ldmgreeter\" \
+	-DCONFIG_FILE=\"$(sysconfdir)/lightdm.conf\" \
 	-DLIGHTDM_BINARY=\"lightdm\"
 
 lightdm_LDADD = \

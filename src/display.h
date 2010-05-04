@@ -39,7 +39,7 @@ GType display_get_type (void);
 
 Display *display_new (void);
 
-void display_start (Display *display);
+void display_start (Display *display, const gchar *username);
 
 gboolean display_connect (Display *display, const char **username, gint *delay, GError *error);
 

@@ -59,7 +59,7 @@ struct DisplayPrivate
     CkConnector *ck_session;
 
     /* Session to execute */
-    char *user_session;
+    gchar *user_session;
   
     /* Active session */
     SessionType active_session;
@@ -76,6 +76,36 @@ Display *
 display_new (void)
 {
     return g_object_new (DISPLAY_TYPE, NULL);
+}
+
+static void
+start_session (Display *display)
+{
+    DBusError error;
+    const gchar *username;
+
+    display->priv->ck_session = ck_connector_new ();
+    dbus_error_init (&error);
+    username = pam_session_get_username (display->priv->pam_session);
+    if (!ck_connector_open_session_with_parameters (display->priv->ck_session, &error,
+                                                    "unix-user", &username,
+                                                    "display-device", &display->priv->display_device,
+                                                    "x11-display-device", &display->priv->x11_display_device,
+                                                    "x11-display", &display->priv->x11_display,
+                                                    NULL))
+        g_warning ("Failed to open CK session: %s: %s", error.name, error.message);
+}
+
+static void
+end_session (Display *display)
+{
+    pam_session_end (display->priv->pam_session);
+    g_object_unref (display->priv->pam_session);
+    display->priv->pam_session = NULL;
+
+    ck_connector_close_session (display->priv->ck_session, NULL); // FIXME: Handle errors
+    ck_connector_unref (display->priv->ck_session);
+    display->priv->ck_session = NULL;
 }
 
 static void
@@ -124,11 +154,7 @@ session_watch_cb (GPid pid, gint status, gpointer data)
         start_user_session (display);
         break;
     case SESSION_USER:
-        pam_session_end (display->priv->pam_session);
-        ck_connector_close_session (display->priv->ck_session, NULL); // FIXME: Handle errors
-        ck_connector_unref (display->priv->ck_session);
-        display->priv->ck_session = NULL;
-
+        end_session (display);
         start_greeter (display);
         break;
     }
@@ -155,7 +181,7 @@ session_fork_cb (gpointer data)
 }
 
 static void
-start_session (Display *display, const char *username, const char *executable)
+open_session (Display *display, const char *username, const char *executable)
 {
     struct passwd *user_info;
     gint session_stdin, session_stdout, session_stderr;
@@ -207,7 +233,7 @@ start_user_session (Display *display)
     g_debug ("Launching session %s for user %s", display->priv->user_session, pam_session_get_username (display->priv->pam_session));
 
     display->priv->active_session = SESSION_USER;
-    start_session (display, pam_session_get_username (display->priv->pam_session), display->priv->user_session);
+    open_session (display, pam_session_get_username (display->priv->pam_session), display->priv->user_session);
 }
 
 static void
@@ -216,7 +242,7 @@ start_greeter (Display *display)
     g_debug ("Launching greeter %s as user %s", GREETER_BINARY, GREETER_USER);
 
     display->priv->active_session = SESSION_GREETER_PRE_CONNECT;
-    start_session (display, GREETER_USER, GREETER_BINARY);
+    open_session (display, GREETER_USER, GREETER_BINARY);
 }
 
 #define TYPE_MESSAGE dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
@@ -266,21 +292,8 @@ authenticate_result_cb (PAMSession *session, int result, Display *display)
 static void
 session_started_cb (PAMSession *session, Display *display)
 {
-    DBusError error;
-    const gchar *username;
-
     display->priv->active_session = SESSION_GREETER_AUTHENTICATED;
-
-    display->priv->ck_session = ck_connector_new ();
-    dbus_error_init (&error);
-    username = pam_session_get_username (display->priv->pam_session);
-    if (!ck_connector_open_session_with_parameters (display->priv->ck_session, &error,
-                                                    "unix-user", &username,
-                                                    "display-device", &display->priv->display_device,
-                                                    "x11-display-device", &display->priv->x11_display_device,
-                                                    "x11-display", &display->priv->x11_display,
-                                                    NULL))
-        g_warning ("Failed to open CK session: %s: %s", error.name, error.message);
+    start_session (display);
 }
 
 gboolean
@@ -315,11 +328,11 @@ display_start_authentication (Display *display, const char *username, DBusGMetho
     /* Store D-Bus request to respond to */
     display->priv->dbus_context = context;
 
-    display->priv->pam_session = pam_session_new ();
+    display->priv->pam_session = pam_session_new (username);
     g_signal_connect (G_OBJECT (display->priv->pam_session), "got-messages", G_CALLBACK (pam_messages_cb), display);
     g_signal_connect (G_OBJECT (display->priv->pam_session), "authentication-result", G_CALLBACK (authenticate_result_cb), display);
     g_signal_connect (G_OBJECT (display->priv->pam_session), "started", G_CALLBACK (session_started_cb), display);
-    if (!pam_session_start (display->priv->pam_session, username, &error))
+    if (!pam_session_start (display->priv->pam_session, &error))
     {
         g_warning ("Failed to start authentication: %s", error->message);
         display->priv->dbus_context = NULL;
@@ -413,7 +426,7 @@ xserver_watch_cb (GPid pid, gint status, gpointer data)
 }
 
 void
-display_start (Display *display)
+display_start (Display *display, const gchar *username)
 {
     GError *error = NULL;
     gboolean result;
@@ -439,9 +452,18 @@ display_start (Display *display)
     else
         g_child_watch_add (display->priv->xserver_pid, xserver_watch_cb, display);
     g_clear_error (&error);
+
+    if (display->priv->xserver_pid == 0)
+        return;
   
-    /* TODO: Do autologin if this is requested */
-    if (display->priv->xserver_pid != 0)
+    if (username)
+    {
+        display->priv->pam_session = pam_session_new (username);
+        pam_session_authorize (display->priv->pam_session);
+        start_session (display);
+        start_user_session (display);
+    }
+    else
         start_greeter (display);
 }
 

@@ -36,11 +36,11 @@ display_exited_cb (Display *display, DisplayManager *manager)
     manager->priv->displays = g_list_remove (manager->priv->displays, display);
     // FIXME: Check for respawn loops
     if (!manager->priv->displays)
-        display_manager_add_display (manager);
+        display_manager_add_display (manager, NULL);
 }
 
 Display *
-display_manager_add_display (DisplayManager *manager)
+display_manager_add_display (DisplayManager *manager, const gchar *username)
 {
     Display *display;
 
@@ -50,7 +50,7 @@ display_manager_add_display (DisplayManager *manager)
     dbus_g_connection_register_g_object (manager->priv->connection, "/org/gnome/LightDisplayManager/Display", G_OBJECT (display));
     //g_signal_connect (G_OBJECT (display), "exited", G_CALLBACK (display_exited_cb), manager);
 
-    display_start (display);
+    display_start (display, username);
 
     return display;
 }

@@ -19,11 +19,13 @@
 #include "user-manager.h"
 #include "session-manager.h"
 
+static GKeyFile *config_file;
+static const gchar *config_path = CONFIG_FILE;
 static GMainLoop *loop;
 static gboolean debug = FALSE;
 
 static void
-version()
+version (void)
 {
     /* NOTE: Is not translated so can be easily parsed */
     g_printerr ("%s %s\n", LIGHTDM_BINARY, VERSION);
@@ -40,6 +42,7 @@ usage (void)
 
     g_printerr (/* Description on how to use Light Display Manager displayed on command-line */    
                 _("Help Options:\n"
+                  "  -c, --config <file>             Use configuration file\n"
                   "  -d, --debug                     Print debugging messages\n"
                   "  -v, --version                   Show release version\n"
                   "  -h, --help                      Show help options"));
@@ -55,7 +58,17 @@ get_options (int argc, char **argv)
     {
         char *arg = argv[i];
 
-        if (strcmp (arg, "-d") == 0 ||
+        if (strcmp (arg, "-c") == 0 ||
+            strcmp (arg, "--config") == 0) {
+            i++;
+            if (i == argc)
+            {
+               usage ();
+               exit (1);
+            }
+            config_path = argv[i];
+        }     
+        else if (strcmp (arg, "-d") == 0 ||
             strcmp (arg, "--debug") == 0) {
             debug = TRUE;
         }
@@ -94,6 +107,7 @@ main(int argc, char **argv)
     SessionManager *session_manager;
     DBusGConnection *bus;
     struct sigaction action;
+    gchar *default_user;
     GError *error = NULL;
 
     /* Quit cleanly on signals */
@@ -120,8 +134,12 @@ main(int argc, char **argv)
 
     loop = g_main_loop_new (NULL, FALSE);
 
-    // Load config
-    // FIXME: If autologin selected the first display should be a user session
+    config_file = g_key_file_new ();
+    if (g_key_file_load_from_file(config_file, config_path, G_KEY_FILE_NONE, &error))
+        g_debug ("Loaded configuration from %s", config_path);
+    else
+        g_warning ("Failed to load configuration from %s: %s", config_path, error->message); // FIXME: Don't make warning on no file, just info
+    g_clear_error (&error);
 
     bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
     if (!bus) 
@@ -137,8 +155,11 @@ main(int argc, char **argv)
     display_manager = display_manager_new ();
     dbus_g_connection_register_g_object (bus, "/org/gnome/LightDisplayManager", G_OBJECT (display_manager));
 
-    /* Add the first display */
-    display_manager_add_display (display_manager);
+    /* Automatically log in or start a greeter session */  
+    default_user = g_key_file_get_value (config_file, "Default User", "name", &error);
+    if (default_user)
+        g_debug ("Starting session for default user %s", default_user);
+    display_manager_add_display (display_manager, default_user);    
 
     g_main_loop_run (loop);
 

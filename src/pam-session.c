@@ -12,6 +12,11 @@
 #include "pam-session.h"
 
 enum {
+    PROP_0,
+    PROP_USERNAME
+};
+
+enum {
     AUTHENTICATION_STARTED,
     STARTED,
     GOT_MESSAGES,
@@ -24,7 +29,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
 struct PAMSessionPrivate
 {
     /* User being authenticated */
-    char *username;
+    gchar *username;
 
     /* Authentication thread */
     GThread *authentication_thread;
@@ -50,15 +55,28 @@ struct PAMSessionPrivate
 G_DEFINE_TYPE (PAMSession, pam_session, G_TYPE_OBJECT);
 
 PAMSession *
-pam_session_new (void)
+pam_session_new (const gchar *username)
 {
-    return g_object_new (PAM_SESSION_TYPE, NULL);
+    return g_object_new (PAM_SESSION_TYPE, "username", username, NULL);
 }
 
 gboolean
 pam_session_get_in_session (PAMSession *session)
 {
     return session->priv->in_session;
+}
+
+void
+pam_session_authorize (PAMSession *session)
+{
+    session->priv->in_session = TRUE;
+
+    // FIXME:
+    //pam_set_item (session->priv->pam_handle, PAM_TTY, &tty);
+    //pam_set_item (session->priv->pam_handle, PAM_XDISPLAY, &display);
+
+    pam_open_session (session->priv->pam_handle, 0);
+    g_signal_emit (G_OBJECT (session), signals[STARTED], 0);
 }
 
 static gboolean
@@ -118,16 +136,7 @@ notify_auth_complete_cb (gpointer data)
     g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, result);
 
     if (result == PAM_SUCCESS)
-    {
-        session->priv->in_session = TRUE;
-
-        // FIXME:
-        //pam_set_item (session->priv->pam_handle, PAM_TTY, &tty);
-        //pam_set_item (session->priv->pam_handle, PAM_XDISPLAY, &display);
-
-        pam_open_session (session->priv->pam_handle, 0);
-        g_signal_emit (G_OBJECT (session), signals[STARTED], 0, result);
-    }
+       pam_session_authorize (session);
 
     return FALSE;
 }
@@ -149,12 +158,9 @@ authenticate_cb (gpointer data)
 }
 
 gboolean
-pam_session_start (PAMSession *session, const char *username, GError **error)
+pam_session_start (PAMSession *session, GError **error)
 {
     g_return_val_if_fail (session->priv->authentication_thread == NULL, FALSE);
-
-    g_free (session->priv->username);
-    session->priv->username = g_strdup (username);
 
     g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_STARTED], 0);
 
@@ -185,7 +191,7 @@ pam_session_get_messages (PAMSession *session)
     return session->priv->messages;  
 }
 
-int
+gint
 pam_session_get_num_messages (PAMSession *session)
 {
     return session->priv->num_messages;
@@ -219,6 +225,47 @@ static void
 pam_session_init (PAMSession *session)
 {
     session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, PAM_SESSION_TYPE, PAMSessionPrivate);
+}
+
+static void
+pam_session_set_property(GObject      *object,
+                         guint         prop_id,
+                         const GValue *value,
+                         GParamSpec   *pspec)
+{
+    PAMSession *self;
+
+    self = PAM_SESSION (object);
+
+    switch (prop_id) {
+    case PROP_USERNAME:
+        self->priv->username = g_strdup (g_value_get_string (value));
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        break;
+    }
+}
+
+
+static void
+pam_session_get_property(GObject    *object,
+                         guint       prop_id,
+                         GValue     *value,
+                         GParamSpec *pspec)
+{
+    PAMSession *self;
+
+    self = PAM_SESSION (object);
+
+    switch (prop_id) {
+    case PROP_USERNAME:
+        g_value_set_string (value, self->priv->username);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        break;
+    }
 }
 
 /* Generated with glib-genmarshal */
@@ -261,7 +308,20 @@ g_cclosure_user_marshal_VOID__INT_POINTER (GClosure     *closure,
 static void
 pam_session_class_init (PAMSessionClass *klass)
 {
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    object_class->set_property = pam_session_set_property;
+    object_class->get_property = pam_session_get_property;
+
     g_type_class_add_private (klass, sizeof (PAMSessionPrivate));
+
+    g_object_class_install_property(object_class,
+                                    PROP_USERNAME,
+                                    g_param_spec_string("username",
+                                                        "username",
+                                                        "User in this session",
+                                                        "",
+                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
     signals[AUTHENTICATION_STARTED] =
         g_signal_new ("authentication-started",
