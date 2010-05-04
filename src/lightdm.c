@@ -14,6 +14,7 @@
 #include <glib/gi18n.h>
 #include <signal.h>
 #include <unistd.h>
+#include <dbus/dbus-glib-bindings.h>
 
 #include "display-manager.h"
 #include "user-manager.h"
@@ -102,10 +103,12 @@ signal_handler (int signum)
 int
 main(int argc, char **argv)
 {
+    DBusGProxy *proxy;
     DisplayManager *display_manager;
     UserManager *user_manager;
     SessionManager *session_manager;
     DBusGConnection *bus;
+    guint result;
     struct sigaction action;
     gchar *default_user;
     GError *error = NULL;
@@ -128,6 +131,26 @@ main(int argc, char **argv)
 
     get_options (argc, argv);
 
+    bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
+    if (!bus) 
+        g_critical ("Failed to get system bus: %s", error->message);
+    g_clear_error (&error);
+
+    proxy = dbus_g_proxy_new_for_name (bus,
+                                       DBUS_SERVICE_DBUS,
+                                       DBUS_PATH_DBUS,
+                                       DBUS_INTERFACE_DBUS);
+    if (!org_freedesktop_DBus_request_name (proxy,
+                                            "org.gnome.LightDisplayManager",
+                                            DBUS_NAME_FLAG_DO_NOT_QUEUE, &result, &error))
+        g_critical ("Failed to register D-Bus name: %s", error->message);
+    if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER)
+    {
+        g_printerr ("Light Display Manager already running\n");
+        return 1;
+    }
+    g_object_unref (proxy);
+
     g_debug ("Starting Light Display Manager %s, PID=%i", VERSION, getpid ());
 
     // Change working directory?
@@ -139,11 +162,6 @@ main(int argc, char **argv)
         g_debug ("Loaded configuration from %s", config_path);
     else
         g_warning ("Failed to load configuration from %s: %s", config_path, error->message); // FIXME: Don't make warning on no file, just info
-    g_clear_error (&error);
-
-    bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
-    if (!bus) 
-        g_critical ("Failed to get system bus: %s", error->message);
     g_clear_error (&error);
 
     user_manager = user_manager_new ();

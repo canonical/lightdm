@@ -10,7 +10,6 @@
  */
 
 #include <dbus/dbus-glib.h>
-#include <dbus/dbus-glib-bindings.h>
 
 #include "display-manager.h"
 #include "display-manager-glue.h"
@@ -65,8 +64,6 @@ static void
 display_manager_init (DisplayManager *manager)
 {
     GError *error = NULL;
-    DBusGProxy *proxy;
-    guint result;
 
     manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, DISPLAY_MANAGER_TYPE, DisplayManagerPrivate);
   
@@ -74,16 +71,6 @@ display_manager_init (DisplayManager *manager)
     if (!manager->priv->connection)
         g_warning ("Failed to register on D-Bus: %s", error->message);
     g_clear_error (&error);
-
-    proxy = dbus_g_proxy_new_for_name (manager->priv->connection,
-                                       DBUS_SERVICE_DBUS,
-                                       DBUS_PATH_DBUS,
-                                       DBUS_INTERFACE_DBUS);
-    if (!org_freedesktop_DBus_request_name (proxy,
-                                            "org.gnome.LightDisplayManager",
-                                            DBUS_NAME_FLAG_DO_NOT_QUEUE, &result, &error))
-        g_warning ("Failed to register D-Bus name: %s", error->message);
-    g_object_unref (proxy);
 }
 
 static void
