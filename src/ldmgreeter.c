@@ -91,6 +91,7 @@ session_changed_cb (GtkWidget *widget)
 int
 main(int argc, char **argv)
 {
+    GdkWindow *root;
     const GList *sessions, *users, *link;
     GSList *session_radio_list = NULL;
     GtkCellRenderer *renderer;
@@ -99,6 +100,7 @@ main(int argc, char **argv)
     gint screen_width, screen_height;
     GtkAllocation allocation;
     GtkWidget *menu_bar, *menu, *item;
+    GdkColor background_color;
 
     gtk_init (&argc, &argv);
   
@@ -118,7 +120,14 @@ main(int argc, char **argv)
     display = gdk_display_get_default ();
     screen = gdk_display_get_default_screen (display);
     screen_width = gdk_screen_get_width (screen);
-    screen_height = gdk_screen_get_height (screen);  
+    screen_height = gdk_screen_get_height (screen);
+  
+    root = gdk_get_default_root_window ();
+    gdk_window_set_cursor (root, gdk_cursor_new (GDK_LEFT_PTR));
+    gdk_color_parse ("#000000", &background_color);
+    gdk_color_alloc (gdk_window_get_colormap (root), &background_color);
+    gdk_window_set_background (root, &background_color);
+    gdk_window_clear(root);
 
     user_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_window_set_decorated (GTK_WINDOW (user_window), FALSE);
