@@ -19,6 +19,7 @@ enum {
     SHOW_MESSAGE,
     SHOW_ERROR,
     AUTHENTICATION_COMPLETE,
+    TIMED_LOGIN,
     LAST_SIGNAL
 };
 static guint signals[LAST_SIGNAL] = { 0 };
@@ -36,6 +37,10 @@ struct GreeterPrivate
     GList *sessions;
 
     gboolean is_authenticated;
+  
+    gchar *timed_user;
+    gint login_delay;
+    guint login_timeout;
 };
 
 G_DEFINE_TYPE (Greeter, greeter, G_TYPE_OBJECT);
@@ -52,23 +57,38 @@ greeter_new (/*int argc, char **argv*/)
     return g_object_new (GREETER_TYPE, /*"?", argv[1],*/ NULL);
 }
 
+static gboolean
+timed_login_cb (gpointer data)
+{
+    Greeter *greeter = data;
+
+    g_signal_emit (G_OBJECT (greeter), signals[TIMED_LOGIN], 0, greeter->priv->timed_user);
+
+    return TRUE;
+}
+
 gboolean
 greeter_connect (Greeter *greeter)
 {
-    gchar *timed_user;
-    gint login_delay;
     gboolean result;
     GError *error = NULL;
 
     result = dbus_g_proxy_call (greeter->priv->display_proxy, "Connect", &error,
                                 G_TYPE_INVALID,
-                                G_TYPE_STRING, &timed_user,
-                                G_TYPE_INT, &login_delay,
+                                G_TYPE_STRING, &greeter->priv->timed_user,
+                                G_TYPE_INT, &greeter->priv->login_delay,
                                 G_TYPE_INVALID);
 
     if (!result)
         g_warning ("Failed to connect to display manager: %s", error->message);
     g_clear_error (&error);
+
+    /* Set timeout for default login */
+    if (greeter->priv->timed_user[0] != '\0' && greeter->priv->login_delay > 0)
+    {
+        g_debug ("Logging in as %s in %d seconds", greeter->priv->timed_user, greeter->priv->login_delay);
+        greeter->priv->login_timeout = g_timeout_add (greeter->priv->login_delay * 1000, timed_login_cb, greeter);
+    }
 
     return result;
 }
@@ -184,6 +204,27 @@ greeter_get_sessions (Greeter *greeter)
 {
     update_sessions (greeter);
     return greeter->priv->sessions;
+}
+
+
+gchar *
+greeter_get_timed_login_user (Greeter *greeter)
+{
+    return greeter->priv->timed_user;
+}
+
+gint
+greeter_get_timed_login_delay (Greeter *greeter)
+{
+    return greeter->priv->login_delay;
+}
+
+void
+greeter_cancel_timed_login (Greeter *greeter)
+{
+    if (greeter->priv->login_timeout)
+       g_source_remove (greeter->priv->login_timeout);
+    greeter->priv->login_timeout = 0;
 }
 
 #define TYPE_MESSAGE dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
@@ -337,4 +378,12 @@ greeter_class_init (GreeterClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
+    signals[TIMED_LOGIN] =
+        g_signal_new ("timed-login",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (GreeterClass, timed_login),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__STRING,
+                      G_TYPE_NONE, 1, G_TYPE_STRING);
 }

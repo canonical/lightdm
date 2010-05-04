@@ -22,6 +22,11 @@
 #include "pam-session.h"
 
 enum {
+    PROP_0,
+    PROP_NUMBER
+};
+
+enum {
     EXITED,
     LAST_SIGNAL
 };
@@ -57,6 +62,10 @@ struct DisplayPrivate
   
     /* ConsoleKit session */
     CkConnector *ck_session;
+  
+    /* Default login hint */
+    gchar *default_user;
+    gint timeout;
 
     /* Session to execute */
     gchar *user_session;
@@ -73,9 +82,9 @@ static void start_greeter (Display *display);
 static void start_user_session (Display *display);
 
 Display *
-display_new (void)
+display_new (/*int number*/)
 {
-    return g_object_new (DISPLAY_TYPE, NULL);
+    return g_object_new (DISPLAY_TYPE,/* "number", number,*/ NULL);
 }
 
 static void
@@ -148,7 +157,16 @@ session_watch_cb (GPid pid, gint status, gpointer data)
         g_error ("Failed to start greeter");
         break;
     case SESSION_GREETER:
-        start_greeter (display);
+        if (display->priv->default_user[0] != '\0' && display->priv->timeout > 0)
+        {
+            g_debug ("Starting session for default user %s", display->priv->default_user);
+            display->priv->pam_session = pam_session_new (display->priv->default_user);
+            pam_session_authorize (display->priv->pam_session);
+            start_session (display);
+            start_user_session (display);
+        }
+        else
+            start_greeter (display);
         break;
     case SESSION_GREETER_AUTHENTICATED:
         start_user_session (display);
@@ -305,8 +323,8 @@ display_connect (Display *display, const char **username, gint *delay, GError *e
         g_debug ("Greeter connected");
     }
 
-    *username = g_strdup ("");
-    *delay = 0;
+    *username = g_strdup (display->priv->default_user);
+    *delay = display->priv->timeout;
     return TRUE;
 }
 
@@ -426,7 +444,7 @@ xserver_watch_cb (GPid pid, gint status, gpointer data)
 }
 
 void
-display_start (Display *display, const gchar *username)
+display_start (Display *display, const gchar *username, gint timeout)
 {
     GError *error = NULL;
     gboolean result;
@@ -455,8 +473,11 @@ display_start (Display *display, const gchar *username)
 
     if (display->priv->xserver_pid == 0)
         return;
-  
-    if (username)
+
+    display->priv->default_user = g_strdup (username ? username : "");
+    display->priv->timeout = timeout;
+
+    if (username && timeout == 0)
     {
         display->priv->pam_session = pam_session_new (username);
         pam_session_authorize (display->priv->pam_session);

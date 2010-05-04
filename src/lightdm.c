@@ -100,36 +100,13 @@ signal_handler (int signum)
     g_main_loop_quit (loop);
 }
 
-int
-main(int argc, char **argv)
+static DBusGConnection *
+start_dbus (void)
 {
-    DBusGProxy *proxy;
-    DisplayManager *display_manager;
-    UserManager *user_manager;
-    SessionManager *session_manager;
     DBusGConnection *bus;
+    DBusGProxy *proxy;
     guint result;
-    struct sigaction action;
-    gchar *default_user;
     GError *error = NULL;
-
-    /* Quit cleanly on signals */
-    action.sa_handler = signal_handler;
-    sigemptyset (&action.sa_mask);
-    action.sa_flags = 0;
-    sigaction (SIGTERM, &action, NULL);
-    sigaction (SIGINT, &action, NULL);
-    sigaction (SIGHUP, &action, NULL);
-
-    g_type_init ();
-
-    if (getuid () != 0)
-    {
-        g_print ("Only root can run Light Display Manager\n");
-        return -1;
-    }
-
-    get_options (argc, argv);
 
     bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
     if (!bus) 
@@ -147,9 +124,45 @@ main(int argc, char **argv)
     if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER)
     {
         g_printerr ("Light Display Manager already running\n");
-        return 1;
+        exit (1);
     }
     g_object_unref (proxy);
+  
+    return bus;
+}
+
+int
+main(int argc, char **argv)
+{
+    DBusGConnection *bus;
+    DisplayManager *display_manager;
+    UserManager *user_manager;
+    SessionManager *session_manager;
+    Display *display;
+    struct sigaction action;
+    gchar *default_user = NULL;
+    gint user_timeout;
+    GError *error = NULL;
+
+    /* Quit cleanly on signals */
+    action.sa_handler = signal_handler;
+    sigemptyset (&action.sa_mask);
+    action.sa_flags = 0;
+    sigaction (SIGTERM, &action, NULL);
+    sigaction (SIGINT, &action, NULL);
+    sigaction (SIGHUP, &action, NULL);
+
+    g_type_init ();
+
+    if (getuid () != 0)
+    {
+        g_printerr ("Only root can run Light Display Manager\n");
+        return -1;
+    }
+
+    get_options (argc, argv);
+  
+    bus = start_dbus ();
 
     g_debug ("Starting Light Display Manager %s, PID=%i", VERSION, getpid ());
 
@@ -173,11 +186,26 @@ main(int argc, char **argv)
     display_manager = display_manager_new ();
     dbus_g_connection_register_g_object (bus, "/org/gnome/LightDisplayManager", G_OBJECT (display_manager));
 
+    /* Start the first display */
+    display = display_manager_add_display (display_manager);
+
     /* Automatically log in or start a greeter session */  
     default_user = g_key_file_get_value (config_file, "Default User", "name", &error);
+    g_clear_error (&error);
+    user_timeout = g_key_file_get_integer (config_file, "Default User", "timeout", &error);
+    g_clear_error (&error);
+    if (user_timeout < 0)
+        user_timeout = 0;
+
     if (default_user)
-        g_debug ("Starting session for default user %s", default_user);
-    display_manager_add_display (display_manager, default_user);    
+    {
+        if (user_timeout == 0)
+            g_debug ("Starting session for user %s", default_user);
+        else
+            g_debug ("Starting session for user %s in %d seconds", default_user, user_timeout);
+    }
+
+    display_start (display, default_user, user_timeout);
 
     g_main_loop_run (loop);
 

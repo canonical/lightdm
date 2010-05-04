@@ -37,7 +37,7 @@ GType display_manager_get_type (void);
 
 DisplayManager *display_manager_new (void);
 
-Display *display_manager_add_display (DisplayManager *manager, const gchar *username);
+Display *display_manager_add_display (DisplayManager *manager);
 
 gboolean display_manager_switch_to_user (Display *display, char *username, GError *error);
 

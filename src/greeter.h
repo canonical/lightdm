@@ -35,6 +35,7 @@ typedef struct
     void (*show_message)(Greeter *greeter, const gchar *text);
     void (*show_error)(Greeter *greeter, const gchar *text);
     void (*authentication_complete)(Greeter *greeter);
+    void (*timed_login)(Greeter *greeter, const gchar *username);
 } GreeterClass;
 
 typedef struct
@@ -60,6 +61,14 @@ gint greeter_get_num_users (Greeter *greeter);
 const GList *greeter_get_users (Greeter *greeter);
 
 const GList *greeter_get_sessions (Greeter *greeter);
+
+gchar *greeter_get_timed_login_user (Greeter *greeter);
+
+gint greeter_get_timed_login_delay (Greeter *greeter);
+
+void greeter_cancel_timed_login (Greeter *greeter);
+
+void greeter_do_timed_login (Greeter *greeter);
 
 void greeter_start_authentication (Greeter *greeter, const char *username);
 

@@ -26,6 +26,7 @@ user_view_activate_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *
 {
     GtkTreeIter iter;
     gchar *user;
+
     gtk_tree_model_get_iter (GTK_TREE_MODEL (user_model), &iter, path);
     gtk_tree_model_get (GTK_TREE_MODEL (user_model), &iter, 0, &user, -1);
 
@@ -70,6 +71,12 @@ authentication_complete_cb (Greeter *greeter)
     gtk_label_set_text (GTK_LABEL (label), "Failed to authenticate");
     gtk_entry_set_text (GTK_ENTRY (password_entry), "");
     gtk_widget_grab_focus (username_entry);
+}
+
+static void
+timed_login_cb (Greeter *greeter, const gchar *username)
+{
+    gtk_main_quit ();
 }
 
 int
@@ -227,6 +234,7 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "show-message", G_CALLBACK (show_message_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "show-error", G_CALLBACK (show_message_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
+    g_signal_connect (G_OBJECT (greeter), "timed-login", G_CALLBACK (timed_login_cb), NULL);
 
     greeter_connect (greeter);
 
