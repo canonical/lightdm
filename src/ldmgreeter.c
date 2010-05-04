@@ -15,10 +15,9 @@
 #include "greeter.h"
 
 static Greeter *greeter;
-static GtkListStore *session_model, *user_model;
+static GtkListStore *user_model;
 static GtkWidget *user_window, *vbox, *label, *user_view;
 static GtkWidget *username_entry, *password_entry;
-static GtkWidget *session_combo;
 static GtkWidget *panel_window;
 
 static void
@@ -52,6 +51,7 @@ password_activate_cb (GtkWidget *widget)
 static void
 show_prompt_cb (Greeter *greeter, const gchar *text)
 {
+    gtk_widget_show (password_entry);
     gtk_widget_set_sensitive (password_entry, TRUE);
     gtk_widget_grab_focus (password_entry);
 }
@@ -59,6 +59,7 @@ show_prompt_cb (Greeter *greeter, const gchar *text)
 static void
 show_message_cb (Greeter *greeter, const gchar *text)
 {
+    gtk_widget_show (label);
     gtk_label_set_text (GTK_LABEL (label), text);
 }
 
@@ -68,6 +69,7 @@ authentication_complete_cb (Greeter *greeter)
     if (greeter_get_is_authenticated (greeter))
         gtk_main_quit ();
 
+    gtk_widget_show (label);
     gtk_label_set_text (GTK_LABEL (label), "Failed to authenticate");
     gtk_entry_set_text (GTK_ENTRY (password_entry), "");
     gtk_widget_grab_focus (username_entry);
@@ -82,21 +84,15 @@ timed_login_cb (Greeter *greeter, const gchar *username)
 static void
 session_changed_cb (GtkWidget *widget)
 {
-    GtkTreeIter iter;
-    gchar *key;
-
-    if (!gtk_combo_box_get_active_iter (GTK_COMBO_BOX (widget), &iter))
-        return;
-    gtk_tree_model_get (GTK_TREE_MODEL (session_model), &iter, 0, &key, -1);
-
-    greeter_set_session (greeter, key);
-    g_free (key);
+    if (gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
+        greeter_set_session (greeter, g_object_get_data (G_OBJECT (widget), "key"));
 }
 
 int
 main(int argc, char **argv)
 {
     const GList *sessions, *users, *link;
+    GSList *session_radio_list = NULL;
     GtkCellRenderer *renderer;
     GdkDisplay *display;
     GdkScreen *screen;
@@ -135,6 +131,7 @@ main(int argc, char **argv)
 
     label = gtk_label_new ("");
     gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, FALSE, 0);
+    gtk_widget_set_no_show_all (label, TRUE);    
 
     user_model = gtk_list_store_new (3, G_TYPE_STRING, G_TYPE_STRING, GDK_TYPE_PIXBUF);
     users = greeter_get_users (greeter);
@@ -177,35 +174,14 @@ main(int argc, char **argv)
     username_entry = gtk_entry_new ();
     gtk_box_pack_start (GTK_BOX (vbox), username_entry, FALSE, FALSE, 0);
     g_signal_connect (username_entry, "activate", G_CALLBACK (username_activate_cb), NULL);
+    gtk_widget_set_no_show_all (username_entry, TRUE);
 
     password_entry = gtk_entry_new ();
     gtk_entry_set_visibility (GTK_ENTRY (password_entry), FALSE);
     gtk_widget_set_sensitive (password_entry, FALSE);
     gtk_box_pack_start (GTK_BOX (vbox), password_entry, FALSE, FALSE, 0);
     g_signal_connect (password_entry, "activate", G_CALLBACK (password_activate_cb), NULL);
-
-    session_model = gtk_list_store_new (3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
-    session_combo = gtk_combo_box_new_with_model (GTK_TREE_MODEL (session_model));
-    renderer = gtk_cell_renderer_text_new();
-    gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (session_combo), renderer, TRUE);
-    gtk_cell_layout_add_attribute (GTK_CELL_LAYOUT (session_combo), renderer, "text", 1);
-    gtk_box_pack_start (GTK_BOX (vbox), session_combo, FALSE, FALSE, 0);    
-
-    sessions = greeter_get_sessions (greeter);
-    for (link = sessions; link; link = link->next)
-    {
-        Session *session = link->data;
-        GtkTreeIter iter;
-      
-        gtk_list_store_append (GTK_LIST_STORE (session_model), &iter);
-        gtk_list_store_set (GTK_LIST_STORE (session_model), &iter,
-                            0, session->key,
-                            1, session->name,
-                            -1);
-        if (g_str_equal (session->key, greeter_get_session (greeter)))
-            gtk_combo_box_set_active_iter (GTK_COMBO_BOX (session_combo), &iter);
-    }
-    g_signal_connect (session_combo, "changed", G_CALLBACK (session_changed_cb), NULL);
+    gtk_widget_set_no_show_all (password_entry, TRUE);
 
     gtk_widget_show_all (user_window);
   
@@ -242,7 +218,27 @@ main(int argc, char **argv)
     gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
     gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label (_("Select Language...")));
     gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label (_("Select Keyboard Layout...")));
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label (_("Select Session...")));
+
+    item = gtk_menu_item_new_with_label (_("Select Session"));
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
+
+    menu = gtk_menu_new ();
+    gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
+    sessions = greeter_get_sessions (greeter);
+    for (link = sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+
+        item = gtk_radio_menu_item_new_with_label (session_radio_list, session->name);
+        session_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (item));
+        gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
+
+        if (g_str_equal (session->key, greeter_get_session (greeter)))
+            gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item), TRUE);
+
+        g_object_set_data (G_OBJECT (item), "key", g_strdup (session->key));
+        g_signal_connect (item, "toggled", G_CALLBACK (session_changed_cb), NULL);
+    }
 
     item = gtk_image_menu_item_new ();
     gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (item), TRUE);
