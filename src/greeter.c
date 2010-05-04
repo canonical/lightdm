@@ -35,9 +35,10 @@ struct GreeterPrivate
 
     gboolean have_sessions;
     GList *sessions;
+    gchar *session;
 
     gboolean is_authenticated;
-  
+
     gchar *timed_user;
     gint login_delay;
     guint login_timeout;
@@ -75,6 +76,7 @@ greeter_connect (Greeter *greeter)
 
     result = dbus_g_proxy_call (greeter->priv->display_proxy, "Connect", &error,
                                 G_TYPE_INVALID,
+                                G_TYPE_STRING, &greeter->priv->session,                                
                                 G_TYPE_STRING, &greeter->priv->timed_user,
                                 G_TYPE_INT, &greeter->priv->login_delay,
                                 G_TYPE_INVALID);
@@ -189,7 +191,7 @@ update_sessions (Greeter *greeter)
       
         g_value_init (&value, TYPE_SESSION);
         g_value_set_static_boxed (&value, sessions->pdata[i]);
-        dbus_g_type_struct_get (&value, 0, &session->name, 1, &session->comment, G_MAXUINT);
+        dbus_g_type_struct_get (&value, 0, &session->key, 1, &session->name, 2, &session->comment, G_MAXUINT);
 
         g_value_unset (&value);
 
@@ -208,6 +210,29 @@ greeter_get_sessions (Greeter *greeter)
     return greeter->priv->sessions;
 }
 
+void
+greeter_set_session (Greeter *greeter, const gchar *session)
+{
+    GError *error = NULL;
+
+    if (!dbus_g_proxy_call (greeter->priv->display_proxy, "SetSession", &error,
+                            G_TYPE_STRING, session,
+                            G_TYPE_INVALID,
+                            G_TYPE_INVALID))
+        g_warning ("Failed to set session: %s", error->message);
+    else
+    {
+        g_free (greeter->priv->session);
+        greeter->priv->session = g_strdup (session);
+    }
+    g_clear_error (&error);
+}
+
+const gchar *
+greeter_get_session (Greeter *greeter)
+{
+    return greeter->priv->session;
+}
 
 gchar *
 greeter_get_timed_login_user (Greeter *greeter)
@@ -331,7 +356,7 @@ greeter_init (Greeter *greeter)
 
     greeter->priv->display_proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
                                                               "org.gnome.LightDisplayManager",
-                                                              "/org/gnome/LightDisplayManager/Display",
+                                                              "/org/gnome/LightDisplayManager/Display0",
                                                               "org.gnome.LightDisplayManager.Greeter");
     greeter->priv->session_proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
                                                               "org.gnome.LightDisplayManager",

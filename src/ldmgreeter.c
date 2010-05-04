@@ -79,6 +79,20 @@ timed_login_cb (Greeter *greeter, const gchar *username)
     gtk_main_quit ();
 }
 
+static void
+session_changed_cb (GtkWidget *widget)
+{
+    GtkTreeIter iter;
+    gchar *key;
+
+    if (!gtk_combo_box_get_active_iter (GTK_COMBO_BOX (widget), &iter))
+        return;
+    gtk_tree_model_get (GTK_TREE_MODEL (session_model), &iter, 0, &key, -1);
+
+    greeter_set_session (greeter, key);
+    g_free (key);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -96,6 +110,14 @@ main(int argc, char **argv)
     //gdk_get_default_root_window ();
 
     greeter = greeter_new ();
+
+    g_signal_connect (G_OBJECT (greeter), "show-prompt", G_CALLBACK (show_prompt_cb), NULL);  
+    g_signal_connect (G_OBJECT (greeter), "show-message", G_CALLBACK (show_message_cb), NULL);
+    g_signal_connect (G_OBJECT (greeter), "show-error", G_CALLBACK (show_message_cb), NULL);
+    g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
+    g_signal_connect (G_OBJECT (greeter), "timed-login", G_CALLBACK (timed_login_cb), NULL);
+
+    greeter_connect (greeter);
 
     display = gdk_display_get_default ();
     screen = gdk_display_get_default_screen (display);
@@ -163,6 +185,12 @@ main(int argc, char **argv)
     g_signal_connect (password_entry, "activate", G_CALLBACK (password_activate_cb), NULL);
 
     session_model = gtk_list_store_new (3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+    session_combo = gtk_combo_box_new_with_model (GTK_TREE_MODEL (session_model));
+    renderer = gtk_cell_renderer_text_new();
+    gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (session_combo), renderer, TRUE);
+    gtk_cell_layout_add_attribute (GTK_CELL_LAYOUT (session_combo), renderer, "text", 1);
+    gtk_box_pack_start (GTK_BOX (vbox), session_combo, FALSE, FALSE, 0);    
+
     sessions = greeter_get_sessions (greeter);
     for (link = sessions; link; link = link->next)
     {
@@ -171,17 +199,14 @@ main(int argc, char **argv)
       
         gtk_list_store_append (GTK_LIST_STORE (session_model), &iter);
         gtk_list_store_set (GTK_LIST_STORE (session_model), &iter,
-                            0, session->name,
+                            0, session->key,
                             1, session->name,
                             -1);
+        if (g_str_equal (session->key, greeter_get_session (greeter)))
+            gtk_combo_box_set_active_iter (GTK_COMBO_BOX (session_combo), &iter);
     }
+    g_signal_connect (session_combo, "changed", G_CALLBACK (session_changed_cb), NULL);
 
-    session_combo = gtk_combo_box_new_with_model (GTK_TREE_MODEL (session_model));
-    renderer = gtk_cell_renderer_text_new();
-    gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (session_combo), renderer, TRUE);
-    gtk_cell_layout_add_attribute (GTK_CELL_LAYOUT (session_combo), renderer, "text", 1);
-    gtk_box_pack_start (GTK_BOX (vbox), session_combo, FALSE, FALSE, 0);    
-  
     gtk_widget_show_all (user_window);
   
     /* Center the window */
@@ -238,14 +263,6 @@ main(int argc, char **argv)
     gtk_widget_get_allocation (panel_window, &allocation);
     gtk_widget_set_size_request (GTK_WIDGET (panel_window), screen_width, allocation.height);  
     gtk_window_move (GTK_WINDOW (panel_window), 0, screen_height - allocation.height);
-
-    g_signal_connect (G_OBJECT (greeter), "show-prompt", G_CALLBACK (show_prompt_cb), NULL);  
-    g_signal_connect (G_OBJECT (greeter), "show-message", G_CALLBACK (show_message_cb), NULL);
-    g_signal_connect (G_OBJECT (greeter), "show-error", G_CALLBACK (show_message_cb), NULL);
-    g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
-    g_signal_connect (G_OBJECT (greeter), "timed-login", G_CALLBACK (timed_login_cb), NULL);
-
-    greeter_connect (greeter);
 
     gtk_main ();
 

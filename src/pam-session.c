@@ -315,13 +315,13 @@ pam_session_class_init (PAMSessionClass *klass)
 
     g_type_class_add_private (klass, sizeof (PAMSessionPrivate));
 
-    g_object_class_install_property(object_class,
-                                    PROP_USERNAME,
-                                    g_param_spec_string("username",
-                                                        "username",
-                                                        "User in this session",
-                                                        "",
-                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+    g_object_class_install_property (object_class,
+                                     PROP_USERNAME,
+                                     g_param_spec_string ("username",
+                                                          "username",
+                                                          "User in this session",
+                                                          "",
+                                                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
     signals[AUTHENTICATION_STARTED] =
         g_signal_new ("authentication-started",

@@ -34,6 +34,7 @@ typedef struct
 
 typedef struct
 {
+    char *key;
     char *name;
     char *comment;
     char *exec;
@@ -42,6 +43,8 @@ typedef struct
 GType session_manager_get_type (void);
 
 SessionManager *session_manager_new (void);
+
+Session *session_manager_get_session (SessionManager *manager, const gchar *key);
 
 gboolean session_manager_get_sessions (SessionManager *manager, GPtrArray **sessions, GError *error);
 

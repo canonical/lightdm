@@ -14,9 +14,17 @@
 #include "display-manager.h"
 #include "display-manager-glue.h"
 
+enum {
+    DISPLAY_ADDED,
+    LAST_SIGNAL
+};
+static guint signals[LAST_SIGNAL] = { 0 };
+
 struct DisplayManagerPrivate
 {
     DBusGConnection *connection;
+
+    SessionManager *sessions;
 
     GList *displays;
 };
@@ -29,16 +37,33 @@ display_manager_new (void)
     return g_object_new (DISPLAY_MANAGER_TYPE, NULL);
 }
 
-static void
-display_exited_cb (Display *display, DisplayManager *manager)
+SessionManager *
+display_manager_get_session_manager (DisplayManager *manager)
 {
-    manager->priv->displays = g_list_remove (manager->priv->displays, display);
-    // FIXME: Check for respawn loops
-    if (!manager->priv->displays)
+    return manager->priv->sessions;
+}
+
+static gboolean
+index_used (DisplayManager *manager, gint index)
+{
+    GList *link;
+
+    for (link = manager->priv->displays; link; link = link->next)
     {
-        display_manager_add_display (manager);
-        display_start (display, NULL, 0);
+        Display *display = link->data;
+        if (display_get_index (display) == index)
+            return TRUE;
     }
+
+    return FALSE;
+}
+
+static gint
+get_free_index (DisplayManager *manager)
+{
+    gint index;
+    for (index = 0; index_used (manager, index); index++);
+    return index;
 }
 
 Display *
@@ -46,11 +71,9 @@ display_manager_add_display (DisplayManager *manager)
 {
     Display *display;
 
-    display = display_new ();
+    display = display_new (manager->priv->sessions, get_free_index (manager));
 
-    // FIXME: Do this in lightdm.c
-    dbus_g_connection_register_g_object (manager->priv->connection, "/org/gnome/LightDisplayManager/Display", G_OBJECT (display));
-    //g_signal_connect (G_OBJECT (display), "exited", G_CALLBACK (display_exited_cb), manager);
+    g_signal_emit (manager, signals[DISPLAY_ADDED], 0, display);
 
     return display;
 }
@@ -64,20 +87,24 @@ display_manager_switch_to_user (Display *display, char *username, GError *error)
 static void
 display_manager_init (DisplayManager *manager)
 {
-    GError *error = NULL;
-
     manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, DISPLAY_MANAGER_TYPE, DisplayManagerPrivate);
-  
-    manager->priv->connection = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
-    if (!manager->priv->connection)
-        g_warning ("Failed to register on D-Bus: %s", error->message);
-    g_clear_error (&error);
+
+    manager->priv->sessions = session_manager_new ();
 }
 
 static void
 display_manager_class_init (DisplayManagerClass *klass)
 {
     g_type_class_add_private (klass, sizeof (DisplayManagerPrivate));
+  
+    signals[DISPLAY_ADDED] =
+        g_signal_new ("display-added",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (DisplayManagerClass, display_added),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__OBJECT,
+                      G_TYPE_NONE, 1, DISPLAY_TYPE);
 
     dbus_g_object_type_install_info (DISPLAY_MANAGER_TYPE, &dbus_glib_display_manager_object_info);
 }

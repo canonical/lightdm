@@ -48,6 +48,7 @@ typedef struct
 
 typedef struct
 {
+   const gchar *key;
    const char *name;
    const char *comment;
 } Session;
@@ -64,13 +65,15 @@ const GList *greeter_get_users (Greeter *greeter);
 
 const GList *greeter_get_sessions (Greeter *greeter);
 
+const gchar *greeter_get_session (Greeter *greeter);
+
+void greeter_set_session (Greeter *greeter, const gchar *session);
+
 gchar *greeter_get_timed_login_user (Greeter *greeter);
 
 gint greeter_get_timed_login_delay (Greeter *greeter);
 
 void greeter_cancel_timed_login (Greeter *greeter);
-
-void greeter_do_timed_login (Greeter *greeter);
 
 void greeter_start_authentication (Greeter *greeter, const char *username);
 

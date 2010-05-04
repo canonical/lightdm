@@ -14,6 +14,7 @@
 
 #include <glib-object.h>
 #include "display.h"
+#include "session-manager.h"
 
 G_BEGIN_DECLS
 
@@ -30,12 +31,16 @@ typedef struct
 
 typedef struct
 {
-    GObjectClass parent_class;  
+    GObjectClass parent_class;
+
+    void (*display_added)(DisplayManager *manager, Display *display);
 } DisplayManagerClass;
 
 GType display_manager_get_type (void);
 
 DisplayManager *display_manager_new (void);
+
+SessionManager *display_manager_get_session_manager (DisplayManager *manager);
 
 Display *display_manager_add_display (DisplayManager *manager);
 

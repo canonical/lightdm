@@ -18,8 +18,8 @@
 
 #include "display-manager.h"
 #include "user-manager.h"
-#include "session-manager.h"
 
+static DBusGConnection *bus;
 static GKeyFile *config_file;
 static const gchar *config_path = CONFIG_FILE;
 static GMainLoop *loop;
@@ -131,16 +131,23 @@ start_dbus (void)
     return bus;
 }
 
+static void
+display_added_cb (DisplayManager *manager, Display *display)
+{
+    gchar *name;
+    name = g_strdup_printf ("/org/gnome/LightDisplayManager/Display%d", display_get_index (display));
+    dbus_g_connection_register_g_object (bus, name, G_OBJECT (display));
+    g_free (name);
+}
+
 int
 main(int argc, char **argv)
 {
-    DBusGConnection *bus;
     DisplayManager *display_manager;
     UserManager *user_manager;
-    SessionManager *session_manager;
     Display *display;
     struct sigaction action;
-    gchar *default_user = NULL;
+    gchar *default_user, *default_session;
     gint user_timeout;
     GError *error = NULL;
 
@@ -180,20 +187,21 @@ main(int argc, char **argv)
     user_manager = user_manager_new ();
     dbus_g_connection_register_g_object (bus, "/org/gnome/LightDisplayManager/Users", G_OBJECT (user_manager));
 
-    session_manager = session_manager_new ();
-    dbus_g_connection_register_g_object (bus, "/org/gnome/LightDisplayManager/Session", G_OBJECT (session_manager));
-
     display_manager = display_manager_new ();
+    g_signal_connect (display_manager, "display-added", G_CALLBACK (display_added_cb), NULL);
+    dbus_g_connection_register_g_object (bus, "/org/gnome/LightDisplayManager/Session", G_OBJECT (display_manager_get_session_manager (display_manager)));
     dbus_g_connection_register_g_object (bus, "/org/gnome/LightDisplayManager", G_OBJECT (display_manager));
 
     /* Start the first display */
     display = display_manager_add_display (display_manager);
 
+    default_session = g_key_file_get_value (config_file, "LightDM", "session", NULL);
+    if (!default_session)
+        default_session = DEFAULT_SESSION;
+
     /* Automatically log in or start a greeter session */  
-    default_user = g_key_file_get_value (config_file, "Default User", "name", &error);
-    g_clear_error (&error);
-    user_timeout = g_key_file_get_integer (config_file, "Default User", "timeout", &error);
-    g_clear_error (&error);
+    default_user = g_key_file_get_value (config_file, "Default User", "name", NULL);
+    user_timeout = g_key_file_get_integer (config_file, "Default User", "timeout", NULL);
     if (user_timeout < 0)
         user_timeout = 0;
 
@@ -205,7 +213,7 @@ main(int argc, char **argv)
             g_debug ("Starting session for user %s in %d seconds", default_user, user_timeout);
     }
 
-    display_start (display, default_user, user_timeout);
+    display_start (display, default_session, default_user, user_timeout);
 
     g_main_loop_run (loop);
 

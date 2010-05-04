@@ -9,6 +9,8 @@
  * license.
  */
 
+#include <string.h>
+
 #include "session-manager.h"
 #include "session-manager-glue.h"
 
@@ -26,9 +28,25 @@ session_manager_new (void)
     return g_object_new (SESSION_MANAGER_TYPE, NULL);
 }
 
+Session *
+session_manager_get_session (SessionManager *manager, const gchar *key)
+{
+    GList *link;
+
+    for (link = manager->priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+        if (g_str_equal (session->key, key))
+            return session;
+    }
+
+    return NULL;
+}
+
 static void
 session_free (Session *session)
 {
+    g_free (session->key);  
     g_free (session->name);
     g_free (session->comment);
     g_free (session->exec);
@@ -36,12 +54,13 @@ session_free (Session *session)
 }
 
 static Session *
-load_session (GKeyFile *key_file, GError **error)
+load_session (GKeyFile *key_file, const gchar *key, GError **error)
 {
     Session *session;
   
     session = g_malloc0 (sizeof (Session));
   
+    session->key = g_strdup (key);
     session->name = g_key_file_get_locale_string(key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NAME, NULL, error);
     if (!session->name)
     {
@@ -87,7 +106,7 @@ load_sessions (SessionManager *manager)
     while (TRUE)
     {
         const gchar *filename;
-        gchar *path;
+        gchar *key, *path;
         gboolean result;
         Session *session;
 
@@ -98,6 +117,7 @@ load_sessions (SessionManager *manager)
         if (!g_str_has_suffix (filename, ".desktop"))
             continue;
 
+        key = g_strndup (filename, strlen (filename) - strlen (".desktop"));
         path = g_build_filename (XSESSIONS_DIR, filename, NULL);
         g_debug ("Loading session %s", path);
 
@@ -108,10 +128,10 @@ load_sessions (SessionManager *manager)
 
         if (result && !g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY, NULL))
         {
-            session = load_session (key_file, &error);
+            session = load_session (key_file, key, &error);
             if (session)
             {
-                g_debug ("Loaded session %s (%s)", session->name, session->comment);
+                g_debug ("Loaded session %s (%s, %s)", session->key, session->name, session->comment);
                 manager->priv->sessions = g_list_append (manager->priv->sessions, session);
             }
             else
@@ -119,6 +139,7 @@ load_sessions (SessionManager *manager)
             g_clear_error (&error);
         }
 
+        g_free (key);      
         g_free (path);
     }
 
@@ -128,7 +149,7 @@ load_sessions (SessionManager *manager)
     manager->priv->sessions_loaded = TRUE;
 }
 
-#define TYPE_SESSION dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INVALID)
+#define TYPE_SESSION dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INVALID)
 
 gboolean
 session_manager_get_sessions (SessionManager *manager, GPtrArray **sessions, GError *error)
@@ -145,7 +166,7 @@ session_manager_get_sessions (SessionManager *manager, GPtrArray **sessions, GEr
 
         g_value_init (&value, TYPE_SESSION);
         g_value_take_boxed (&value, dbus_g_type_specialized_construct (TYPE_SESSION));
-        dbus_g_type_struct_set (&value, 0, session->name, 1, session->comment, G_MAXUINT);
+        dbus_g_type_struct_set (&value, 0, session->key, 1, session->name, 2, session->comment, G_MAXUINT);
         g_ptr_array_add (*sessions, g_value_get_boxed (&value));
     }
 

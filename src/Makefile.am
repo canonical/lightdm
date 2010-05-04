@@ -41,6 +41,7 @@ lightdm_CFLAGS = \
 	-DGETTEXT_PACKAGE=\"$(GETTEXT_PACKAGE)\" \
 	-DLOCALE_DIR=\"$(localedir)\" \
 	-DXSESSIONS_DIR=\"$(prefix)/share/xsessions\" \
+	-DDEFAULT_SESSION=\"gnome\" \
 	-DGREETER_USER=\"gdm\" \
 	-DGREETER_BINARY=\"$(prefix)/bin/ldmgreeter\" \
 	-DCONFIG_FILE=\"$(sysconfdir)/lightdm.conf\" \

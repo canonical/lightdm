@@ -15,6 +15,8 @@
 #include <glib-object.h>
 #include <dbus/dbus-glib.h>
 
+#include "session-manager.h"
+
 G_BEGIN_DECLS
 
 #define DISPLAY_TYPE (display_get_type())
@@ -37,13 +39,17 @@ typedef struct
 
 GType display_get_type (void);
 
-Display *display_new (void);
+Display *display_new (SessionManager *sessions, gint index);
 
-void display_start (Display *display, const gchar *username, gint timeout);
+gint display_get_index (Display *display);
 
-gboolean display_connect (Display *display, const char **username, gint *delay, GError *error);
+void display_start (Display *display, const gchar *session, const gchar *username, gint timeout);
 
-gboolean display_start_authentication (Display *display, const char *username, DBusGMethodInvocation *context);
+gboolean display_connect (Display *display, const gchar **session, const gchar **username, gint *delay, GError *error);
+
+gboolean display_set_session (Display *display, const gchar *session, GError *error);
+
+gboolean display_start_authentication (Display *display, const gchar *username, DBusGMethodInvocation *context);
 
 gboolean display_continue_authentication (Display *display, gchar **secrets, DBusGMethodInvocation *context);
 

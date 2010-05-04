@@ -23,7 +23,8 @@
 
 enum {
     PROP_0,
-    PROP_NUMBER
+    PROP_SESSIONS,
+    PROP_INDEX
 };
 
 enum {
@@ -43,10 +44,14 @@ typedef enum
 
 struct DisplayPrivate
 {
+    SessionManager *sessions;
+  
+    gint index;
+  
     /* Display device */
-    char *display_device; // ?
-    char *x11_display_device; // e.g. /dev/tty7
-    char *x11_display; // e.g. :0
+    gchar *display_device; // ?
+    gchar *x11_display_device; // e.g. /dev/tty7
+    gchar *x11_display; // e.g. :0
   
     /* X process */
     GPid xserver_pid;
@@ -68,7 +73,7 @@ struct DisplayPrivate
     gint timeout;
 
     /* Session to execute */
-    gchar *user_session;
+    gchar *session_name;
   
     /* Active session */
     SessionType active_session;
@@ -82,9 +87,15 @@ static void start_greeter (Display *display);
 static void start_user_session (Display *display);
 
 Display *
-display_new (/*int number*/)
+display_new (SessionManager *sessions, gint index)
 {
-    return g_object_new (DISPLAY_TYPE,/* "number", number,*/ NULL);
+    return g_object_new (DISPLAY_TYPE, "sessions", sessions, "index", index, NULL);
+}
+
+gint
+display_get_index (Display *display)
+{
+    return display->priv->index;
 }
 
 static void
@@ -199,7 +210,7 @@ session_fork_cb (gpointer data)
 }
 
 static void
-open_session (Display *display, const char *username, const char *executable)
+open_session (Display *display, const gchar *username, const gchar *executable)
 {
     struct passwd *user_info;
     gint session_stdin, session_stdout, session_stderr;
@@ -220,19 +231,19 @@ open_session (Display *display, const char *username, const char *executable)
     }
 
     // FIXME: Do these need to be freed?
-    char *env[] = { g_strdup_printf ("USER=%s", user_info->pw_name),
-                    g_strdup_printf ("HOME=%s", user_info->pw_dir),
-                    g_strdup_printf ("SHELL=%s", user_info->pw_shell),
-                    g_strdup_printf ("HOME=%s", user_info->pw_dir),
-                    g_strdup_printf ("DISPLAY=%s", display->priv->x11_display),
-                    display->priv->ck_session ? g_strdup_printf ("XDG_SESSION_COOKIE=%s", ck_connector_get_cookie (display->priv->ck_session)) : NULL,
-                    NULL };
-    char *argv[] = { g_strdup (executable), NULL };
+    gchar *env[] = { g_strdup_printf ("USER=%s", user_info->pw_name),
+                     g_strdup_printf ("HOME=%s", user_info->pw_dir),
+                     g_strdup_printf ("SHELL=%s", user_info->pw_shell),
+                     g_strdup_printf ("HOME=%s", user_info->pw_dir),
+                     g_strdup_printf ("DISPLAY=%s", display->priv->x11_display),
+                     display->priv->ck_session ? g_strdup_printf ("XDG_SESSION_COOKIE=%s", ck_connector_get_cookie (display->priv->ck_session)) : NULL,
+                     NULL };
+    gchar *argv[] = { g_strdup (executable), NULL };
 
     result = g_spawn_async_with_pipes (user_info->pw_dir,
                                        argv,
                                        env,
-                                       G_SPAWN_DO_NOT_REAP_CHILD,
+                                       G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH,
                                        session_fork_cb, user_info,
                                        &display->priv->session_pid,
                                        &session_stdin, &session_stdout, &session_stderr,
@@ -248,10 +259,15 @@ open_session (Display *display, const char *username, const char *executable)
 static void
 start_user_session (Display *display)
 {
-    g_debug ("Launching session %s for user %s", display->priv->user_session, pam_session_get_username (display->priv->pam_session));
+    Session *session;
+
+    g_debug ("Launching %s session for user %s", display->priv->session_name, pam_session_get_username (display->priv->pam_session));
+
+    session = session_manager_get_session (display->priv->sessions, display->priv->session_name);
+    g_return_if_fail (session != NULL);
 
     display->priv->active_session = SESSION_USER;
-    open_session (display, pam_session_get_username (display->priv->pam_session), display->priv->user_session);
+    open_session (display, pam_session_get_username (display->priv->pam_session), session->exec);
 }
 
 static void
@@ -315,7 +331,7 @@ session_started_cb (PAMSession *session, Display *display)
 }
 
 gboolean
-display_connect (Display *display, const char **username, gint *delay, GError *error)
+display_connect (Display *display, const gchar **session, const gchar **username, gint *delay, GError *error)
 {
     if (display->priv->active_session == SESSION_GREETER_PRE_CONNECT)
     {
@@ -323,13 +339,22 @@ display_connect (Display *display, const char **username, gint *delay, GError *e
         g_debug ("Greeter connected");
     }
 
+    *session = g_strdup (display->priv->session_name);
     *username = g_strdup (display->priv->default_user);
     *delay = display->priv->timeout;
     return TRUE;
 }
 
 gboolean
-display_start_authentication (Display *display, const char *username, DBusGMethodInvocation *context)
+display_set_session (Display *display, const gchar *session, GError *error)
+{
+    g_debug ("Session set to %s", session);
+    display->priv->session_name = g_strdup (session);
+    return TRUE;
+}
+
+gboolean
+display_start_authentication (Display *display, const gchar *username, DBusGMethodInvocation *context)
 {
     GError *error = NULL;
 
@@ -444,19 +469,19 @@ xserver_watch_cb (GPid pid, gint status, gpointer data)
 }
 
 void
-display_start (Display *display, const gchar *username, gint timeout)
+display_start (Display *display, const gchar *session, const gchar *username, gint timeout)
 {
     GError *error = NULL;
     gboolean result;
     gint xserver_stdin, xserver_stdout, xserver_stderr;
 
-    char *argv[] = { "/usr/bin/X",
-                     display->priv->x11_display,
-                     "-nolisten", "tcp", /* Disable TCP/IP connections */
-                     "-nr",              /* No root background */
-                     /*"vtXX"*/
-                     NULL };
-    char *env[] = { NULL };
+    gchar *argv[] = { "/usr/bin/X",
+                      display->priv->x11_display,
+                      "-nolisten", "tcp", /* Disable TCP/IP connections */
+                      "-nr",              /* No root background */
+                      /*"vtXX"*/
+                      NULL };
+    gchar *env[] = { NULL };
     result = g_spawn_async_with_pipes (NULL, /* Working directory */
                                        argv,
                                        env,
@@ -474,6 +499,7 @@ display_start (Display *display, const gchar *username, gint timeout)
     if (display->priv->xserver_pid == 0)
         return;
 
+    display->priv->session_name = g_strdup (session);
     display->priv->default_user = g_strdup (username ? username : "");
     display->priv->timeout = timeout;
 
@@ -493,17 +519,83 @@ display_init (Display *display)
 {
     display->priv = G_TYPE_INSTANCE_GET_PRIVATE (display, DISPLAY_TYPE, DisplayPrivate);
 
-    display->priv->user_session = g_strdup ("/usr/bin/xeyes");
     // FIXME: How to get these?
     display->priv->display_device = g_strdup ("");
     display->priv->x11_display_device = g_strdup ("/dev/tty0");
-    display->priv->x11_display = g_strdup (":0");
+}
+
+static void
+display_set_property(GObject      *object,
+                     guint         prop_id,
+                     const GValue *value,
+                     GParamSpec   *pspec)
+{
+    Display *self;
+
+    self = DISPLAY (object);
+
+    switch (prop_id) {
+    case PROP_SESSIONS:
+        self->priv->sessions = g_object_ref (g_value_get_object (value));
+        break;
+    case PROP_INDEX:
+        self->priv->index = g_value_get_int (value);
+        self->priv->x11_display = g_strdup_printf (":%d", self->priv->index);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        break;
+    }
+}
+
+
+static void
+display_get_property(GObject    *object,
+                     guint       prop_id,
+                     GValue     *value,
+                     GParamSpec *pspec)
+{
+    Display *self;
+
+    self = DISPLAY (object);
+
+    switch (prop_id) {
+    case PROP_SESSIONS:
+        g_value_set_object (value, self->priv->sessions);
+        break;
+    case PROP_INDEX:
+        g_value_set_int (value, self->priv->index);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        break;
+    }
 }
 
 static void
 display_class_init (DisplayClass *klass)
 {
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    object_class->set_property = display_set_property;
+    object_class->get_property = display_get_property;
+
     g_type_class_add_private (klass, sizeof (DisplayPrivate));
+
+    g_object_class_install_property (object_class,
+                                     PROP_SESSIONS,
+                                     g_param_spec_object ("sessions",
+                                                          "sessions",
+                                                          "Sessions available",
+                                                          SESSION_MANAGER_TYPE,
+                                                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+    g_object_class_install_property (object_class,
+                                     PROP_INDEX,
+                                     g_param_spec_int ("index",
+                                                       "index",
+                                                       "Index for this display",
+                                                       0, G_MAXINT, 0,
+                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
     signals[EXITED] =
         g_signal_new ("exited",
