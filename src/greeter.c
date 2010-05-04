@@ -9,6 +9,8 @@
  * license.
  */
 
+#include <stdlib.h>
+
 #include <dbus/dbus-glib.h>
 #include <security/pam_appl.h>
 
@@ -370,6 +372,7 @@ static void
 greeter_init (Greeter *greeter)
 {
     GError *error = NULL;
+    const gchar *object;
 
     greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, GREETER_TYPE, GreeterPrivate);
   
@@ -377,10 +380,14 @@ greeter_init (Greeter *greeter)
     if (!greeter->priv->bus)
         g_error ("Failed to connect to bus: %s", error->message);
     g_clear_error (&error);
+  
+    object = getenv ("LDM_DISPLAY");
+    if (!object)
+        g_error ("No LDM_DISPLAY enviroment variable");
 
     greeter->priv->display_proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
                                                               "org.gnome.LightDisplayManager",
-                                                              "/org/gnome/LightDisplayManager/Display0",
+                                                              object,
                                                               "org.gnome.LightDisplayManager.Greeter");
     greeter->priv->session_proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
                                                               "org.gnome.LightDisplayManager",

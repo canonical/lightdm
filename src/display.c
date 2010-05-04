@@ -210,11 +210,13 @@ session_fork_cb (gpointer data)
 }
 
 static void
-open_session (Display *display, const gchar *username, const gchar *executable)
+open_session (Display *display, const gchar *username, const gchar *executable, gboolean is_greeter)
 {
     struct passwd *user_info;
     gint session_stdin, session_stdout, session_stderr;
     gboolean result;
+    gchar **env;
+    gint n_env = 0;
     GError *error = NULL;
 
     g_return_if_fail (display->priv->session_pid == 0);
@@ -231,13 +233,17 @@ open_session (Display *display, const gchar *username, const gchar *executable)
     }
 
     // FIXME: Do these need to be freed?
-    gchar *env[] = { g_strdup_printf ("USER=%s", user_info->pw_name),
-                     g_strdup_printf ("HOME=%s", user_info->pw_dir),
-                     g_strdup_printf ("SHELL=%s", user_info->pw_shell),
-                     g_strdup_printf ("HOME=%s", user_info->pw_dir),
-                     g_strdup_printf ("DISPLAY=%s", display->priv->x11_display),
-                     display->priv->ck_session ? g_strdup_printf ("XDG_SESSION_COOKIE=%s", ck_connector_get_cookie (display->priv->ck_session)) : NULL,
-                     NULL };
+    env = g_malloc (sizeof (gchar *) * 8);
+    env[n_env++] = g_strdup_printf ("USER=%s", user_info->pw_name);
+    env[n_env++] = g_strdup_printf ("HOME=%s", user_info->pw_dir);
+    env[n_env++] = g_strdup_printf ("SHELL=%s", user_info->pw_shell);
+    env[n_env++] = g_strdup_printf ("HOME=%s", user_info->pw_dir);
+    env[n_env++] = g_strdup_printf ("DISPLAY=%s", display->priv->x11_display);
+    if (is_greeter)
+        env[n_env++] = g_strdup_printf ("LDM_DISPLAY=/org/gnome/LightDisplayManager/Display%d", display->priv->index); // FIXME: D-Bus not known about in here!
+    if (display->priv->ck_session)
+        env[n_env++] = g_strdup_printf ("XDG_SESSION_COOKIE=%s", ck_connector_get_cookie (display->priv->ck_session));
+    env[n_env] = NULL;
     gchar *argv[] = { g_strdup (executable), NULL };
 
     result = g_spawn_async_with_pipes (user_info->pw_dir,
@@ -267,7 +273,7 @@ start_user_session (Display *display)
     g_return_if_fail (session != NULL);
 
     display->priv->active_session = SESSION_USER;
-    open_session (display, pam_session_get_username (display->priv->pam_session), session->exec);
+    open_session (display, pam_session_get_username (display->priv->pam_session), session->exec, FALSE);
 }
 
 static void
@@ -276,7 +282,7 @@ start_greeter (Display *display)
     g_debug ("Launching greeter %s as user %s", GREETER_BINARY, GREETER_USER);
 
     display->priv->active_session = SESSION_GREETER_PRE_CONNECT;
-    open_session (display, GREETER_USER, GREETER_BINARY);
+    open_session (display, GREETER_USER, GREETER_BINARY, TRUE);
 }
 
 #define TYPE_MESSAGE dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
