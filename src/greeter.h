@@ -83,6 +83,14 @@ void greeter_cancel_authentication (Greeter *greeter);
 
 gboolean greeter_get_is_authenticated (Greeter *greeter);
 
+void greeter_suspend (Greeter *greeter);
+
+void greeter_hibernate (Greeter *greeter);
+
+void greeter_restart (Greeter *greeter);
+
+void greeter_shutdown (Greeter *greeter);
+
 G_END_DECLS
 
 #endif /* _GREETER_H_ */

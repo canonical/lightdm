@@ -342,6 +342,30 @@ greeter_get_is_authenticated (Greeter *greeter)
     return greeter->priv->is_authenticated;
 }
 
+void
+greeter_suspend (Greeter *greeter)
+{
+    // FIXME
+}
+
+void
+greeter_hibernate (Greeter *greeter)
+{
+    // FIXME
+}
+
+void
+greeter_restart (Greeter *greeter)
+{
+    // FIXME
+}
+
+void
+greeter_shutdown (Greeter *greeter)
+{
+    // FIXME
+}
+
 static void
 greeter_init (Greeter *greeter)
 {

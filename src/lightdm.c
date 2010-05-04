@@ -201,6 +201,7 @@ main(int argc, char **argv)
 
     /* Automatically log in or start a greeter session */  
     default_user = g_key_file_get_value (config_file, "Default User", "name", NULL);
+    //FIXME default_user_session = g_key_file_get_value (config_file, "Default User", "session", NULL); // FIXME
     user_timeout = g_key_file_get_integer (config_file, "Default User", "timeout", NULL);
     if (user_timeout < 0)
         user_timeout = 0;
