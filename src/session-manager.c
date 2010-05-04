@@ -41,7 +41,7 @@ load_session (GKeyFile *key_file, GError **error)
     Session *session;
   
     session = g_malloc0 (sizeof (Session));
-
+  
     session->name = g_key_file_get_locale_string(key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NAME, NULL, error);
     if (!session->name)
     {
@@ -106,7 +106,7 @@ load_sessions (SessionManager *manager)
             g_warning ("Failed to load session file %s: %s:", path, error->message);
         g_clear_error (&error);
 
-        if (result)
+        if (result && !g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY, NULL))
         {
             session = load_session (key_file, &error);
             if (session)
