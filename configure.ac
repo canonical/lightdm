@@ -56,6 +56,70 @@ fi
 AC_SUBST(DBUS_SYS_DIR)
 
 dnl ###########################################################################
+dnl Configurable values
+dnl ###########################################################################
+
+AC_ARG_WITH(config-file,
+            AS_HELP_STRING([--config-file=<file>],
+                           [Configuration file to load]))
+if test x$withval != x; then
+    CONFIG_FILE="$withval"
+else
+    CONFIG_FILE=$(sysconfdir)/lightdm.conf
+fi
+AC_SUBST(CONFIG_FILE)
+
+AC_ARG_WITH(xserver-binary,
+            AS_HELP_STRING([--xserver-binary=<binary>],
+                           [X server binary name]))
+if test x$withval != x; then
+    XSERVER_BINARY="$withval"
+else
+    XSERVER_BINARY=${prefix}/bin/X
+fi
+AC_SUBST(XSERVER_BINARY)
+
+AC_ARG_WITH(xsession-dir,
+            AS_HELP_STRING([--xsession-dir=<dir>],
+                           [X session directory]))
+if test x$withval != x; then
+    XSESSION_DIR="$withval"
+else
+    XSESSION_DIR=${prefix}/share/xsessions
+fi
+AC_SUBST(XSESSION_DIR)
+
+AC_ARG_WITH(default-session,
+            AS_HELP_STRING([--default-session=<name>],
+                           [Default session to launch]))
+if test x$withval != x; then
+    DEFAULT_SESSION="$withval"
+else
+    DEFAULT_SESSION=gnome
+fi
+AC_SUBST(DEFAULT_SESSION)
+
+AC_ARG_WITH(greeter-user,
+            AS_HELP_STRING([--greeter-user=<username>],
+                           [User to run greeter as]))
+if test x$withval != x; then
+    GREETER_USER="$withval"
+else
+    GREETER_USER=gdm
+fi
+AC_SUBST(GREETER_USER)
+
+AC_ARG_WITH(greeter-binary,
+            AS_HELP_STRING([--greeter-binary=<binary>],
+                           [Greeter to execute]))
+if test x$withval != x; then
+    GREETER_BINARY="$withval"
+else
+    GREETER_BINARY=${prefix}/bin/ldmgreeter
+fi
+AC_SUBST(GREETER_BINARY)
+
+dnl ###########################################################################
 dnl Documentation
 dnl ###########################################################################
 
@@ -80,3 +144,20 @@ data/Makefile
 po/Makefile.in
 src/Makefile
 ])
+
+dnl ###########################################################################
+dnl Summary
+dnl ###########################################################################
+
+echo "
+                    Light Display Manager $VERSION
+                    ===========================
+
+        prefix:                   ${prefix}
+        Config file:              ${CONFIG_FILE}
+        XServer binary:           ${XSERVER_BINARY}
+        XSessions dir:            ${XSESSION_DIR}
+        Default session:          ${DEFAULT_SESSION}
+        Greeter user:             ${GREETER_USER}
+        Greeter binary:           ${GREETER_BINARY}
+"

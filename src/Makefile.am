@@ -40,11 +40,12 @@ lightdm_CFLAGS = \
 	-DVERSION=\"$(VERSION)\" \
 	-DGETTEXT_PACKAGE=\"$(GETTEXT_PACKAGE)\" \
 	-DLOCALE_DIR=\"$(localedir)\" \
-	-DXSESSIONS_DIR=\"$(prefix)/share/xsessions\" \
-	-DDEFAULT_SESSION=\"gnome\" \
-	-DGREETER_USER=\"gdm\" \
-	-DGREETER_BINARY=\"$(prefix)/bin/ldmgreeter\" \
-	-DCONFIG_FILE=\"$(sysconfdir)/lightdm.conf\" \
+	-XSERVER_BINARY=\"$(XSERVER_BINARY)\" \
+	-DXSESSIONS_DIR=\"$(XSESSION_DIR)\" \
+	-DDEFAULT_SESSION=\"$(DEFAULT_SESSION)\" \
+	-DGREETER_USER=\"$(GREETER_USER)\" \
+	-DGREETER_BINARY=\"$(GREETER_BINARY)\" \
+	-DCONFIG_FILE=\"$(CONFIG_FILE)\" \
 	-DLIGHTDM_BINARY=\"lightdm\"
 
 lightdm_LDADD = \

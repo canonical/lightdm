@@ -481,7 +481,7 @@ display_start (Display *display, const gchar *session, const gchar *username, gi
     gboolean result;
     gint xserver_stdin, xserver_stdout, xserver_stderr;
 
-    gchar *argv[] = { "/usr/bin/X",
+    gchar *argv[] = { XSERVER_BINARY,
                       display->priv->x11_display,
                       "-nolisten", "tcp", /* Disable TCP/IP connections */
                       "-nr",              /* No root background */
