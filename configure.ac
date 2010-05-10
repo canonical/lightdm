@@ -65,7 +65,7 @@ AC_ARG_WITH(config-file,
 if test x$withval != x; then
     CONFIG_FILE="$withval"
 else
-    CONFIG_FILE=$(sysconfdir)/lightdm.conf
+    CONFIG_FILE=${sysconfdir}/lightdm.conf
 fi
 AC_SUBST(CONFIG_FILE)
 
