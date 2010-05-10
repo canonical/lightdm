@@ -43,7 +43,7 @@ Display *display_new (SessionManager *sessions, gint index);
 
 gint display_get_index (Display *display);
 
-void display_start (Display *display, const gchar *session, const gchar *username, gint timeout);
+void display_start (Display *display, const gchar *xserver_binary, const gchar *session, const gchar *username, gint timeout);
 
 gboolean display_connect (Display *display, const gchar **session, const gchar **username, gint *delay, GError *error);
 

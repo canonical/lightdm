@@ -215,6 +215,7 @@ open_session (Display *display, const gchar *username, const gchar *executable, 
     struct passwd *user_info;
     gint session_stdin, session_stdout, session_stderr;
     gboolean result;
+    gchar *command;
     gchar **env;
     gint n_env = 0;
     GError *error = NULL;
@@ -245,6 +246,10 @@ open_session (Display *display, const gchar *username, const gchar *executable, 
         env[n_env++] = g_strdup_printf ("XDG_SESSION_COOKIE=%s", ck_connector_get_cookie (display->priv->ck_session));
     env[n_env] = NULL;
     gchar *argv[] = { g_strdup (executable), NULL };
+
+    command = g_strjoinv (" ", env);
+    g_debug ("Launching greeter: %s %s", command, executable);
+    g_free (command);
 
     result = g_spawn_async_with_pipes (user_info->pw_dir,
                                        argv,
@@ -279,7 +284,7 @@ start_user_session (Display *display)
 static void
 start_greeter (Display *display)
 {
-    g_debug ("Launching greeter %s as user %s", GREETER_BINARY, GREETER_USER);
+    g_debug ("Starting greeter as user %s", GREETER_USER);
 
     display->priv->active_session = SESSION_GREETER_PRE_CONNECT;
     open_session (display, GREETER_USER, GREETER_BINARY, TRUE);
@@ -475,19 +480,25 @@ xserver_watch_cb (GPid pid, gint status, gpointer data)
 }
 
 void
-display_start (Display *display, const gchar *session, const gchar *username, gint timeout)
+display_start (Display *display, const gchar *xserver_binary, const gchar *session, const gchar *username, gint timeout)
 {
     GError *error = NULL;
     gboolean result;
+    gchar *command;
     gint xserver_stdin, xserver_stdout, xserver_stderr;
 
-    gchar *argv[] = { XSERVER_BINARY,
+    gchar *argv[] = { (gchar *) xserver_binary,
                       display->priv->x11_display,
                       "-nolisten", "tcp", /* Disable TCP/IP connections */
                       "-nr",              /* No root background */
                       /*"vtXX"*/
                       NULL };
     gchar *env[] = { NULL };
+
+    command = g_strjoinv (" ", argv);
+    g_debug ("Launching X Server: %s", command);
+    g_free (command);
+
     result = g_spawn_async_with_pipes (NULL, /* Working directory */
                                        argv,
                                        env,

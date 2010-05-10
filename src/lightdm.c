@@ -147,7 +147,7 @@ main(int argc, char **argv)
     UserManager *user_manager;
     Display *display;
     struct sigaction action;
-    gchar *default_user, *default_session;
+    gchar *default_user, *xserver_binary, *default_session;
     gint user_timeout;
     GError *error = NULL;
 
@@ -195,6 +195,9 @@ main(int argc, char **argv)
     /* Start the first display */
     display = display_manager_add_display (display_manager);
 
+    xserver_binary = g_key_file_get_value (config_file, "LightDM", "xserver", NULL);
+    if (!xserver_binary)
+        xserver_binary = XSERVER_BINARY;
     default_session = g_key_file_get_value (config_file, "LightDM", "session", NULL);
     if (!default_session)
         default_session = DEFAULT_SESSION;
@@ -214,7 +217,7 @@ main(int argc, char **argv)
             g_debug ("Starting session for user %s in %d seconds", default_user, user_timeout);
     }
 
-    display_start (display, default_session, default_user, user_timeout);
+    display_start (display, xserver_binary, default_session, default_user, user_timeout);
 
     g_main_loop_run (loop);
 
