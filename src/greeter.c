@@ -344,28 +344,152 @@ greeter_get_is_authenticated (Greeter *greeter)
     return greeter->priv->is_authenticated;
 }
 
+gboolean
+greeter_get_can_suspend (Greeter *greeter)
+{
+    DBusGProxy *proxy;
+    gboolean result = FALSE;
+    GError *error = NULL;
+
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+                                       "org.freedesktop.UPower",
+                                       "/org/freedesktop/UPower",
+                                       "org.freedesktop.UPower");
+    if (!dbus_g_proxy_call (proxy, "SuspendAllowed", &error, G_TYPE_INVALID, G_TYPE_BOOLEAN, &result, G_TYPE_INVALID))
+        g_warning ("Error checking for suspend authority: %s", error->message);
+    g_clear_error (&error);
+
+    g_object_unref (proxy);
+
+    return result;
+}
+
 void
 greeter_suspend (Greeter *greeter)
 {
-    // FIXME
+    DBusGProxy *proxy;
+    GError *error = NULL;
+
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+                                       "org.freedesktop.UPower",
+                                       "/org/freedesktop/UPower",
+                                       "org.freedesktop.UPower");
+    if (!dbus_g_proxy_call (proxy, "Suspend", &error, G_TYPE_INVALID, G_TYPE_INVALID))
+        g_warning ("Failed to hibernate: %s", error->message);
+    g_clear_error (&error);
+
+    g_object_unref (proxy);
+}
+
+gboolean
+greeter_get_can_hibernate (Greeter *greeter)
+{
+    DBusGProxy *proxy;
+    gboolean result = FALSE;
+    GError *error = NULL;
+
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+                                       "org.freedesktop.UPower",
+                                       "/org/freedesktop/UPower",
+                                       "org.freedesktop.UPower");
+    if (!dbus_g_proxy_call (proxy, "HibernateAllowed", &error, G_TYPE_INVALID, G_TYPE_BOOLEAN, &result, G_TYPE_INVALID))
+        g_warning ("Error checking for hibernate authority: %s", error->message);
+    g_clear_error (&error);
+
+    g_object_unref (proxy);
+
+    return result;
 }
 
 void
 greeter_hibernate (Greeter *greeter)
 {
-    // FIXME
+    DBusGProxy *proxy;
+    GError *error = NULL;
+
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+                                       "org.freedesktop.UPower",
+                                       "/org/freedesktop/UPower",
+                                       "org.freedesktop.UPower");
+    if (!dbus_g_proxy_call (proxy, "Hibernate", &error, G_TYPE_INVALID, G_TYPE_INVALID))
+        g_warning ("Failed to hibernate: %s", error->message);
+    g_clear_error (&error);
+
+    g_object_unref (proxy);
+}
+
+gboolean
+greeter_get_can_restart (Greeter *greeter)
+{
+    DBusGProxy *proxy;
+    gboolean result = FALSE;
+    GError *error = NULL;
+
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+                                       "org.freedesktop.ConsoleKit",
+                                       "/org/freedesktop/ConsoleKit/Manager",
+                                       "org.freedesktop.ConsoleKit.Manager");
+    if (!dbus_g_proxy_call (proxy, "CanRestart", &error, G_TYPE_INVALID, G_TYPE_BOOLEAN, &result, G_TYPE_INVALID))
+        g_warning ("Error checking for restart authority: %s", error->message);
+    g_clear_error (&error);
+
+    g_object_unref (proxy);
+
+    return result; 
 }
 
 void
 greeter_restart (Greeter *greeter)
 {
-    // FIXME
+    DBusGProxy *proxy;
+    GError *error = NULL;
+
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+                                       "org.freedesktop.ConsoleKit",
+                                       "/org/freedesktop/ConsoleKit/Manager",
+                                       "org.freedesktop.ConsoleKit.Manager");
+    if (!dbus_g_proxy_call (proxy, "Restart", &error, G_TYPE_INVALID, G_TYPE_INVALID))
+        g_warning ("Failed to restart: %s", error->message);
+    g_clear_error (&error);
+
+    g_object_unref (proxy);
+}
+
+gboolean
+greeter_get_can_shutdown (Greeter *greeter)
+{
+    DBusGProxy *proxy;
+    gboolean result = FALSE;
+    GError *error = NULL;
+
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+                                       "org.freedesktop.ConsoleKit",
+                                       "/org/freedesktop/ConsoleKit/Manager",
+                                       "org.freedesktop.ConsoleKit.Manager");
+    if (!dbus_g_proxy_call (proxy, "CanStop", &error, G_TYPE_INVALID, G_TYPE_BOOLEAN, &result, G_TYPE_INVALID))
+        g_warning ("Error checking for shutdown authority: %s", error->message);
+    g_clear_error (&error);
+
+    g_object_unref (proxy);
+
+    return result; 
 }
 
 void
 greeter_shutdown (Greeter *greeter)
 {
-    // FIXME
+    DBusGProxy *proxy;
+    GError *error = NULL;
+
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+                                       "org.freedesktop.ConsoleKit",
+                                       "/org/freedesktop/ConsoleKit/Manager",
+                                       "org.freedesktop.ConsoleKit.Manager");
+    if (!dbus_g_proxy_call (proxy, "Stop", &error, G_TYPE_INVALID, G_TYPE_INVALID))
+        g_warning ("Failed to shutdown: %s", error->message);
+    g_clear_error (&error);
+
+    g_object_unref (proxy);
 }
 
 static void

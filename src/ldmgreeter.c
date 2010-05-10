@@ -101,6 +101,7 @@ main(int argc, char **argv)
     GtkAllocation allocation;
     GtkWidget *menu_bar, *menu, *item;
     GdkColor background_color;
+    gint n_power_items = 0;
 
     gtk_init (&argc, &argv);
   
@@ -248,20 +249,38 @@ main(int argc, char **argv)
         g_object_set_data (G_OBJECT (item), "key", g_strdup (session->key));
         g_signal_connect (item, "toggled", G_CALLBACK (session_changed_cb), NULL);
     }
-
-    item = gtk_image_menu_item_new ();
-    gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (item), TRUE);
-    gtk_menu_item_set_right_justified (GTK_MENU_ITEM (item), TRUE);
-    gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), gtk_image_new_from_icon_name ("system-shutdown", GTK_ICON_SIZE_LARGE_TOOLBAR));
-    gtk_menu_item_set_label (GTK_MENU_ITEM (item), ""); // NOTE: Needed to make the icon show as selected
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), item);
-  
+ 
     menu = gtk_menu_new ();
-    gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Suspend"));
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Hibernate"));
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Restart..."));
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Shutdown..."));
+    if (greeter_get_can_suspend (greeter))
+    {
+        gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Suspend"));
+        n_power_items++;
+    }
+    if (greeter_get_can_hibernate (greeter))
+    {
+        gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Hibernate"));
+        n_power_items++;
+    }
+    if (greeter_get_can_restart (greeter))
+    {
+        gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Restart..."));
+        n_power_items++;
+    }
+    if (greeter_get_can_shutdown (greeter))
+    {
+        gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Shutdown..."));
+        n_power_items++;
+    }
+    if (n_power_items > 0)
+    {
+        item = gtk_image_menu_item_new ();
+        gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (item), TRUE);
+        gtk_menu_item_set_right_justified (GTK_MENU_ITEM (item), TRUE);
+        gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), gtk_image_new_from_icon_name ("system-shutdown", GTK_ICON_SIZE_LARGE_TOOLBAR));
+        gtk_menu_item_set_label (GTK_MENU_ITEM (item), ""); // NOTE: Needed to make the icon show as selected
+        gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
+        gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), item);
+    }
 
     gtk_widget_show_all (panel_window);
 

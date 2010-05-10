@@ -83,11 +83,19 @@ void greeter_cancel_authentication (Greeter *greeter);
 
 gboolean greeter_get_is_authenticated (Greeter *greeter);
 
+gboolean greeter_get_can_suspend (Greeter *greeter);
+
 void greeter_suspend (Greeter *greeter);
+
+gboolean greeter_get_can_hibernate (Greeter *greeter);
 
 void greeter_hibernate (Greeter *greeter);
 
+gboolean greeter_get_can_restart (Greeter *greeter);
+
 void greeter_restart (Greeter *greeter);
+
+gboolean greeter_get_can_shutdown (Greeter *greeter);
 
 void greeter_shutdown (Greeter *greeter);
 
