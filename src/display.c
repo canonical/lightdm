@@ -259,13 +259,13 @@ open_session (Display *display, const gchar *username, const gchar *executable, 
     g_debug ("Launching greeter: %s %s", command, executable);
     g_free (command);
 
-    result = g_spawn_async_with_pipes (user_info->pw_dir,
+    result = g_spawn_async/*_with_pipes*/ (user_info->pw_dir,
                                        argv,
                                        env,
                                        G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH,
                                        session_fork_cb, user_info,
                                        &display->priv->session_pid,
-                                       &session_stdin, &session_stdout, &session_stderr,
+                                       //&session_stdin, &session_stdout, &session_stderr,
                                        &error);
 
     if (!result)

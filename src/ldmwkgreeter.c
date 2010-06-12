@@ -11,6 +11,7 @@
 
 #include <gtk/gtk.h>
 #include <webkit/webkit.h>
+#include <JavaScriptCore/JavaScript.h>
 #include <glib/gi18n.h>
 
 #include "greeter.h"
@@ -42,11 +43,87 @@ timed_login_cb (Greeter *greeter, const gchar *username)
 }
 
 static void
-window_object_cleared_cb (WebKitWebView  *web_view,
-                          WebKitWebFrame *frame,
-                          JSGlobalContextRef *context,
-                          JSObjectRef *window_object)
+ldm_init_cb (JSContextRef ctx, JSObjectRef object)
 {
+}
+
+static void
+ldm_finalize_cb (JSObjectRef object)
+{
+}
+
+static JSValueRef
+test_cb (JSContextRef context,
+         JSObjectRef function,
+         JSObjectRef thisObject,
+         size_t argumentCount,
+         const JSValueRef arguments[],
+         JSValueRef *exception)
+{
+    return JSValueMakeString (context, JSStringCreateWithUTF8CString ("Hello World!"));
+}
+
+static JSValueRef
+start_authentication_cb (JSContextRef context,
+                         JSObjectRef function,
+                         JSObjectRef thisObject,
+                         size_t argumentCount,
+                         const JSValueRef arguments[],
+                         JSValueRef *exception)
+{
+    printf ("!\n");
+    return JSValueMakeNull (context);
+}
+
+static JSValueRef
+provide_secret_cb (JSContextRef context,
+                   JSObjectRef function,
+                   JSObjectRef thisObject,
+                   size_t argumentCount,
+                   const JSValueRef arguments[],
+                   JSValueRef *exception)
+{  
+    return JSValueMakeNull (context);
+}
+
+static const JSStaticFunction ldm_functions[] =
+{
+    { "test", test_cb, kJSPropertyAttributeReadOnly },  
+    { "start_authentication", start_authentication_cb, kJSPropertyAttributeReadOnly },
+    { "provide_secret", provide_secret_cb, kJSPropertyAttributeReadOnly },
+    { NULL, NULL, 0 }
+};
+
+static const JSClassDefinition ldm_definition =
+{
+    0,
+    kJSClassAttributeNone,
+    "LightDMClass",
+    NULL,
+
+    NULL,
+    ldm_functions,
+
+    ldm_init_cb,
+    ldm_finalize_cb
+};
+
+static void
+window_object_cleared_cb (WebKitWebView  *web_view,
+                          WebKitWebFrame *frame)
+{
+    JSGlobalContextRef context;
+    JSClassRef ldm_class;
+    JSObjectRef ldm_object;
+
+    context = webkit_web_frame_get_global_context (frame);
+
+    ldm_class = JSClassCreate (&ldm_definition);
+    ldm_object = JSObjectMake (context, ldm_class, context);
+    JSObjectSetProperty (context,
+                         JSContextGetGlobalObject (context),
+                         JSStringCreateWithUTF8CString ("lightdm"),
+                         ldm_object, kJSPropertyAttributeNone, NULL);
 }
 
 int
