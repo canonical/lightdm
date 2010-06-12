@@ -38,7 +38,7 @@ typedef struct
 
 GType display_manager_get_type (void);
 
-DisplayManager *display_manager_new (void);
+DisplayManager *display_manager_new (GKeyFile *config);
 
 SessionManager *display_manager_get_session_manager (DisplayManager *manager);
 

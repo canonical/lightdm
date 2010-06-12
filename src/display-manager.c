@@ -15,6 +15,11 @@
 #include "display-manager-glue.h"
 
 enum {
+    PROP_0,
+    PROP_CONFIG,
+};
+
+enum {
     DISPLAY_ADDED,
     LAST_SIGNAL
 };
@@ -22,6 +27,8 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct DisplayManagerPrivate
 {
+    GKeyFile *config;
+
     DBusGConnection *connection;
 
     SessionManager *sessions;
@@ -32,9 +39,9 @@ struct DisplayManagerPrivate
 G_DEFINE_TYPE (DisplayManager, display_manager, G_TYPE_OBJECT);
 
 DisplayManager *
-display_manager_new (void)
+display_manager_new (GKeyFile *config)
 {
-    return g_object_new (DISPLAY_MANAGER_TYPE, NULL);
+    return g_object_new (DISPLAY_MANAGER_TYPE, "config", config, NULL);
 }
 
 SessionManager *
@@ -71,7 +78,7 @@ display_manager_add_display (DisplayManager *manager)
 {
     Display *display;
 
-    display = display_new (manager->priv->sessions, get_free_index (manager));
+    display = display_new (manager->priv->config, manager->priv->sessions, get_free_index (manager));
 
     g_signal_emit (manager, signals[DISPLAY_ADDED], 0, display);
 
@@ -93,9 +100,62 @@ display_manager_init (DisplayManager *manager)
 }
 
 static void
+display_manager_set_property(GObject      *object,
+                             guint         prop_id,
+                             const GValue *value,
+                             GParamSpec   *pspec)
+{
+    DisplayManager *self;
+
+    self = DISPLAY_MANAGER (object);
+
+    switch (prop_id) {
+    case PROP_CONFIG:
+        self->priv->config = g_value_get_pointer (value);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        break;
+    }
+}
+
+
+static void
+display_manager_get_property(GObject    *object,
+                             guint       prop_id,
+                             GValue     *value,
+                             GParamSpec *pspec)
+{
+    DisplayManager *self;
+
+    self = DISPLAY_MANAGER (object);
+
+    switch (prop_id) {
+    case PROP_CONFIG:
+        g_value_set_pointer (value, self->priv->config);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        break;
+    }
+}
+
+static void
 display_manager_class_init (DisplayManagerClass *klass)
 {
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    object_class->set_property = display_manager_set_property;
+    object_class->get_property = display_manager_get_property;
+
     g_type_class_add_private (klass, sizeof (DisplayManagerPrivate));
+
+    g_object_class_install_property (object_class,
+                                     PROP_CONFIG,
+                                     g_param_spec_pointer ("config",
+                                                           "config",
+                                                           "Configuration",
+                                                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
   
     signals[DISPLAY_ADDED] =
         g_signal_new ("display-added",

@@ -23,6 +23,7 @@
 
 enum {
     PROP_0,
+    PROP_CONFIG,
     PROP_SESSIONS,
     PROP_INDEX
 };
@@ -44,6 +45,8 @@ typedef enum
 
 struct DisplayPrivate
 {
+    GKeyFile *config;
+
     SessionManager *sessions;
   
     gint index;
@@ -67,7 +70,7 @@ struct DisplayPrivate
   
     /* ConsoleKit session */
     CkConnector *ck_session;
-  
+
     /* Default login hint */
     gchar *default_user;
     gint timeout;
@@ -87,9 +90,9 @@ static void start_greeter (Display *display);
 static void start_user_session (Display *display);
 
 Display *
-display_new (SessionManager *sessions, gint index)
+display_new (GKeyFile *config, SessionManager *sessions, gint index)
 {
-    return g_object_new (DISPLAY_TYPE, "sessions", sessions, "index", index, NULL);
+    return g_object_new (DISPLAY_TYPE, "config", config, "sessions", sessions, "index", index, NULL);
 }
 
 gint
@@ -284,10 +287,21 @@ start_user_session (Display *display)
 static void
 start_greeter (Display *display)
 {
-    g_debug ("Starting greeter as user %s", GREETER_USER);
+    gchar *user;
+  
+    user = g_key_file_get_value (display->priv->config, "Greeter", "user", NULL);
+    if (!user || !getpwnam (user))
+    {
+        g_free (user);
+        user = g_strdup (GREETER_USER);
+    }
+
+    g_debug ("Starting greeter as user %s", user);
 
     display->priv->active_session = SESSION_GREETER_PRE_CONNECT;
-    open_session (display, GREETER_USER, GREETER_BINARY, TRUE);
+    open_session (display, user, GREETER_BINARY, TRUE);
+  
+    g_free (user);
 }
 
 #define TYPE_MESSAGE dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
@@ -552,6 +566,9 @@ display_set_property(GObject      *object,
     self = DISPLAY (object);
 
     switch (prop_id) {
+    case PROP_CONFIG:
+        self->priv->config = g_value_get_pointer (value);
+        break;
     case PROP_SESSIONS:
         self->priv->sessions = g_object_ref (g_value_get_object (value));
         break;
@@ -577,6 +594,9 @@ display_get_property(GObject    *object,
     self = DISPLAY (object);
 
     switch (prop_id) {
+    case PROP_CONFIG:
+        g_value_set_pointer (value, self->priv->config);
+        break;
     case PROP_SESSIONS:
         g_value_set_object (value, self->priv->sessions);
         break;
@@ -599,6 +619,12 @@ display_class_init (DisplayClass *klass)
 
     g_type_class_add_private (klass, sizeof (DisplayPrivate));
 
+    g_object_class_install_property (object_class,
+                                     PROP_CONFIG,
+                                     g_param_spec_pointer ("config",
+                                                           "config",
+                                                           "Configuration",
+                                                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
     g_object_class_install_property (object_class,
                                      PROP_SESSIONS,
                                      g_param_spec_object ("sessions",

@@ -39,7 +39,7 @@ typedef struct
 
 GType display_get_type (void);
 
-Display *display_new (SessionManager *sessions, gint index);
+Display *display_new (GKeyFile *config, SessionManager *sessions, gint index);
 
 gint display_get_index (Display *display);
 
