@@ -494,24 +494,38 @@ xserver_watch_cb (GPid pid, gint status, gpointer data)
 }
 
 void
-display_start (Display *display, const gchar *xserver_binary, const gchar *session, const gchar *username, gint timeout)
+display_start (Display *display, const gchar *session, const gchar *username, gint timeout)
 {
     GError *error = NULL;
     gboolean result;
-    gchar *command;
+    gchar *xserver_binary;
+    GString *command;
+    gint argc;
+    gchar **argv;
+    gchar *env[] = { NULL };
     gint xserver_stdin, xserver_stdout, xserver_stderr;
 
-    gchar *argv[] = { (gchar *) xserver_binary,
-                      display->priv->x11_display,
-                      "-nolisten", "tcp", /* Disable TCP/IP connections */
-                      "-nr",              /* No root background */
-                      /*"vtXX"*/
-                      NULL };
-    gchar *env[] = { NULL };
+    xserver_binary = g_key_file_get_value (display->priv->config, "LightDM", "xserver", NULL);
+    if (!xserver_binary)
+        xserver_binary = g_strdup (XSERVER_BINARY);
+    command = g_string_new (xserver_binary);
+    g_string_append_printf (command, " %s", display->priv->x11_display);
+    g_string_append (command, " -nolisten tcp"); /* Disable TCP/IP connections */
+    g_string_append (command, " -nr");           /* No root background */
+    //g_string_append_printf (command, " vt%d");
+    g_free (xserver_binary);
 
-    command = g_strjoinv (" ", argv);
-    g_debug ("Launching X Server: %s", command);
-    g_free (command);
+    g_debug ("Launching X Server: %s", command->str);
+
+    result = g_shell_parse_argv (command->str, &argc, &argv, &error);
+    g_string_free (command, TRUE);
+    if (!result)
+    {
+        g_error ("Failed to parse X server command line: %s", error->message);
+        g_clear_error (&error);
+        return;
+    }
+    g_clear_error (&error);
 
     result = g_spawn_async_with_pipes (NULL, /* Working directory */
                                        argv,
@@ -521,6 +535,7 @@ display_start (Display *display, const gchar *xserver_binary, const gchar *sessi
                                        &display->priv->xserver_pid,
                                        &xserver_stdin, &xserver_stdout, &xserver_stderr,
                                        &error);
+    g_strfreev (argv);
     if (!result)
         g_warning ("Unable to create display: %s", error->message);
     else
