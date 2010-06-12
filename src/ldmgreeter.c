@@ -104,9 +104,6 @@ main(int argc, char **argv)
     gint n_power_items = 0;
 
     gtk_init (&argc, &argv);
-  
-    // FIXME: Draw background
-    //gdk_get_default_root_window ();
 
     greeter = greeter_new ();
 
@@ -127,6 +124,7 @@ main(int argc, char **argv)
     gdk_window_set_cursor (root, gdk_cursor_new (GDK_LEFT_PTR));
     gdk_color_parse ("#000000", &background_color);
     gdk_color_alloc (gdk_window_get_colormap (root), &background_color);
+    gdk_window_set_back_pixmap (root, NULL, TRUE);
     gdk_window_set_background (root, &background_color);
     gdk_window_clear(root);
 

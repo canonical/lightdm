@@ -31,6 +31,12 @@ PKG_CHECK_MODULES(LIGHTDM_GREETER, [
     dbus-glib-1
 ])
 
+PKG_CHECK_MODULES(LIGHTDM_WKGREETER, [
+    gtk+-2.0
+    webkit-1.0
+    dbus-glib-1
+])
+
 AC_CHECK_HEADERS([security/pam_appl.h],[],[AC_MSG_ERROR([PAM not found])])
 
 AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)
