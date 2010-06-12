@@ -161,13 +161,13 @@ main(int argc, char **argv)
 
     g_type_init ();
 
+    get_options (argc, argv);
+
     if (getuid () != 0)
     {
         g_printerr ("Only root can run Light Display Manager\n");
         return -1;
     }
-
-    get_options (argc, argv);
   
     bus = start_dbus ();
 
