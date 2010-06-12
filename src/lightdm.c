@@ -22,6 +22,7 @@
 static DBusGConnection *bus;
 static GKeyFile *config_file;
 static const gchar *config_path = CONFIG_FILE;
+static DBusBusType bus_type = DBUS_BUS_SYSTEM;
 static GMainLoop *loop;
 static gboolean do_root_check = TRUE;
 static gboolean debug = FALSE;
@@ -47,6 +48,7 @@ usage (void)
                   "  -c, --config <file>             Use configuration file\n"
                   "  -d, --debug                     Print debugging messages\n"
                   "      --no-root-check             Don't check if root user\n"
+                  "      --use-session-bus           Use the session D-Bus\n"
                   "  -v, --version                   Show release version\n"
                   "  -h, --help                      Show help options"));
     g_printerr ("\n\n");
@@ -77,6 +79,9 @@ get_options (int argc, char **argv)
         }
         else if (strcmp (arg, "--no-root-check") == 0) {
             do_root_check = FALSE;
+        }
+        else if (strcmp (arg, "--use-session-bus") == 0) {
+            bus_type = DBUS_BUS_SESSION;
         }
         else if (strcmp (arg, "-v") == 0 ||
             strcmp (arg, "--version") == 0)
@@ -113,7 +118,7 @@ start_dbus (void)
     guint result;
     GError *error = NULL;
 
-    bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
+    bus = dbus_g_bus_get (bus_type, &error);
     if (!bus) 
         g_critical ("Failed to get system bus: %s", error->message);
     g_clear_error (&error);
@@ -173,7 +178,7 @@ main(int argc, char **argv)
         g_printerr ("Only root can run Light Display Manager\n");
         return -1;
     }
-  
+
     bus = start_dbus ();
 
     g_debug ("Starting Light Display Manager %s, PID=%i", VERSION, getpid ());
