@@ -10,6 +10,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include <dbus/dbus-glib.h>
 #include <security/pam_appl.h>
@@ -28,7 +29,9 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct GreeterPrivate
 {
-    DBusGConnection *bus;
+    DBusGConnection *lightdm_bus;
+
+    DBusGConnection *system_bus;
 
     DBusGProxy *display_proxy, *session_proxy, *user_proxy;
 
@@ -351,7 +354,7 @@ greeter_get_can_suspend (Greeter *greeter)
     gboolean result = FALSE;
     GError *error = NULL;
 
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.UPower",
                                        "/org/freedesktop/UPower",
                                        "org.freedesktop.UPower");
@@ -370,7 +373,7 @@ greeter_suspend (Greeter *greeter)
     DBusGProxy *proxy;
     GError *error = NULL;
 
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.UPower",
                                        "/org/freedesktop/UPower",
                                        "org.freedesktop.UPower");
@@ -388,7 +391,7 @@ greeter_get_can_hibernate (Greeter *greeter)
     gboolean result = FALSE;
     GError *error = NULL;
 
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.UPower",
                                        "/org/freedesktop/UPower",
                                        "org.freedesktop.UPower");
@@ -407,7 +410,7 @@ greeter_hibernate (Greeter *greeter)
     DBusGProxy *proxy;
     GError *error = NULL;
 
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.UPower",
                                        "/org/freedesktop/UPower",
                                        "org.freedesktop.UPower");
@@ -425,7 +428,7 @@ greeter_get_can_restart (Greeter *greeter)
     gboolean result = FALSE;
     GError *error = NULL;
 
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.ConsoleKit",
                                        "/org/freedesktop/ConsoleKit/Manager",
                                        "org.freedesktop.ConsoleKit.Manager");
@@ -444,7 +447,7 @@ greeter_restart (Greeter *greeter)
     DBusGProxy *proxy;
     GError *error = NULL;
 
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.ConsoleKit",
                                        "/org/freedesktop/ConsoleKit/Manager",
                                        "org.freedesktop.ConsoleKit.Manager");
@@ -462,7 +465,7 @@ greeter_get_can_shutdown (Greeter *greeter)
     gboolean result = FALSE;
     GError *error = NULL;
 
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.ConsoleKit",
                                        "/org/freedesktop/ConsoleKit/Manager",
                                        "org.freedesktop.ConsoleKit.Manager");
@@ -481,7 +484,7 @@ greeter_shutdown (Greeter *greeter)
     DBusGProxy *proxy;
     GError *error = NULL;
 
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.ConsoleKit",
                                        "/org/freedesktop/ConsoleKit/Manager",
                                        "org.freedesktop.ConsoleKit.Manager");
@@ -496,28 +499,38 @@ static void
 greeter_init (Greeter *greeter)
 {
     GError *error = NULL;
-    const gchar *object;
+    const gchar *bus_address, *object;
+    DBusBusType bus_type = DBUS_BUS_SYSTEM;
 
     greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, GREETER_TYPE, GreeterPrivate);
-  
-    greeter->priv->bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
-    if (!greeter->priv->bus)
-        g_error ("Failed to connect to bus: %s", error->message);
+
+    greeter->priv->system_bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
+    if (!greeter->priv->system_bus)
+        g_error ("Failed to connect to system bus: %s", error->message);
     g_clear_error (&error);
-  
+
+    bus_address = getenv ("LDM_BUS");
+    if (bus_address && strcmp (bus_address, "SESSION") == 0)
+        bus_type = DBUS_BUS_SESSION;
+
+    greeter->priv->lightdm_bus = dbus_g_bus_get (bus_type, &error);
+    if (!greeter->priv->lightdm_bus)
+        g_error ("Failed to connect to LightDM bus: %s", error->message);
+    g_clear_error (&error);
+
     object = getenv ("LDM_DISPLAY");
     if (!object)
         g_error ("No LDM_DISPLAY enviroment variable");
 
-    greeter->priv->display_proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+    greeter->priv->display_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
                                                               "org.gnome.LightDisplayManager",
                                                               object,
                                                               "org.gnome.LightDisplayManager.Greeter");
-    greeter->priv->session_proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+    greeter->priv->session_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
                                                               "org.gnome.LightDisplayManager",
                                                               "/org/gnome/LightDisplayManager/Session",
                                                               "org.gnome.LightDisplayManager.Session");
-    greeter->priv->user_proxy = dbus_g_proxy_new_for_name (greeter->priv->bus,
+    greeter->priv->user_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
                                                            "org.gnome.LightDisplayManager",
                                                            "/org/gnome/LightDisplayManager/Users",
                                                            "org.gnome.LightDisplayManager.Users");

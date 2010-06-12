@@ -237,14 +237,19 @@ open_session (Display *display, const gchar *username, const gchar *executable, 
     }
 
     // FIXME: Do these need to be freed?
-    env = g_malloc (sizeof (gchar *) * 8);
+    env = g_malloc (sizeof (gchar *) * 10);
     env[n_env++] = g_strdup_printf ("USER=%s", user_info->pw_name);
     env[n_env++] = g_strdup_printf ("HOME=%s", user_info->pw_dir);
     env[n_env++] = g_strdup_printf ("SHELL=%s", user_info->pw_shell);
     env[n_env++] = g_strdup_printf ("HOME=%s", user_info->pw_dir);
     env[n_env++] = g_strdup_printf ("DISPLAY=%s", display->priv->x11_display);
     if (is_greeter)
-        env[n_env++] = g_strdup_printf ("LDM_DISPLAY=/org/gnome/LightDisplayManager/Display%d", display->priv->index); // FIXME: D-Bus not known about in here!
+    {
+        // FIXME: D-Bus not known about in here!
+        //env[n_env++] = g_strdup_printf ("DBUS_SESSION_BUS_ADDRESS=%s", getenv ("DBUS_SESSION_BUS_ADDRESS")); // FIXME: Only if using session bus
+        //env[n_env++] = g_strdup ("LDM_BUS=SESSION"); // FIXME: Only if using session bus
+        env[n_env++] = g_strdup_printf ("LDM_DISPLAY=/org/gnome/LightDisplayManager/Display%d", display->priv->index);
+    }
     if (display->priv->ck_session)
         env[n_env++] = g_strdup_printf ("XDG_SESSION_COOKIE=%s", ck_connector_get_cookie (display->priv->ck_session));
     env[n_env] = NULL;
@@ -287,7 +292,7 @@ start_user_session (Display *display)
 static void
 start_greeter (Display *display)
 {
-    gchar *user;
+    gchar *user, *binary;
   
     user = g_key_file_get_value (display->priv->config, "Greeter", "user", NULL);
     if (!user || !getpwnam (user))
@@ -295,13 +300,17 @@ start_greeter (Display *display)
         g_free (user);
         user = g_strdup (GREETER_USER);
     }
+    binary = g_key_file_get_value (display->priv->config, "Greeter", "greeter", NULL);
+    if (!binary)
+        binary = g_strdup (GREETER_BINARY);
 
     g_debug ("Starting greeter as user %s", user);
 
     display->priv->active_session = SESSION_GREETER_PRE_CONNECT;
-    open_session (display, user, GREETER_BINARY, TRUE);
+    open_session (display, user, binary, TRUE);
   
     g_free (user);
+    g_free (binary);
 }
 
 #define TYPE_MESSAGE dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
