@@ -23,6 +23,7 @@ static DBusGConnection *bus;
 static GKeyFile *config_file;
 static const gchar *config_path = CONFIG_FILE;
 static GMainLoop *loop;
+static gboolean do_root_check = TRUE;
 static gboolean debug = FALSE;
 
 static void
@@ -45,6 +46,7 @@ usage (void)
                 _("Help Options:\n"
                   "  -c, --config <file>             Use configuration file\n"
                   "  -d, --debug                     Print debugging messages\n"
+                  "      --no-root-check             Don't check if root user\n"
                   "  -v, --version                   Show release version\n"
                   "  -h, --help                      Show help options"));
     g_printerr ("\n\n");
@@ -72,6 +74,9 @@ get_options (int argc, char **argv)
         else if (strcmp (arg, "-d") == 0 ||
             strcmp (arg, "--debug") == 0) {
             debug = TRUE;
+        }
+        else if (strcmp (arg, "--no-root-check") == 0) {
+            do_root_check = FALSE;
         }
         else if (strcmp (arg, "-v") == 0 ||
             strcmp (arg, "--version") == 0)
@@ -163,7 +168,7 @@ main(int argc, char **argv)
 
     get_options (argc, argv);
 
-    if (getuid () != 0)
+    if (do_root_check && getuid () != 0)
     {
         g_printerr ("Only root can run Light Display Manager\n");
         return -1;
