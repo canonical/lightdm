@@ -9,6 +9,7 @@
  * license.
  */
 
+#include <stdlib.h>
 #include <dbus/dbus-glib.h>
 
 #include "display-manager.h"
@@ -68,8 +69,18 @@ index_used (DisplayManager *manager, gint index)
 static gint
 get_free_index (DisplayManager *manager)
 {
-    gint index;
-    for (index = 0; index_used (manager, index); index++);
+    gint min_index = 0, index;
+    gchar *numbers;
+
+    numbers = g_key_file_get_value (manager->priv->config, "LightDM", "display_numbers", NULL);
+    if (numbers)
+    {
+        min_index = atoi (numbers);
+        g_free (numbers);
+    }
+
+    for (index = min_index; index_used (manager, index); index++);
+
     return index;
 }
 
