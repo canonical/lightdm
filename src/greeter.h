@@ -40,17 +40,17 @@ typedef struct
 
 typedef struct
 {
-   const gchar *name;
-   const gchar *real_name;
-   const gchar *image;
+   gchar *name;
+   gchar *real_name;
+   gchar *image;
    gboolean logged_in;
 } UserInfo;
 
 typedef struct
 {
-   const gchar *key;
-   const char *name;
-   const char *comment;
+   gchar *key;
+   gchar *name;
+   gchar *comment;
 } Session;
 
 GType greeter_get_type (void);
@@ -69,7 +69,7 @@ const gchar *greeter_get_session (Greeter *greeter);
 
 void greeter_set_session (Greeter *greeter, const gchar *session);
 
-gchar *greeter_get_timed_login_user (Greeter *greeter);
+const gchar *greeter_get_timed_login_user (Greeter *greeter);
 
 gint greeter_get_timed_login_delay (Greeter *greeter);
 

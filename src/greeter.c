@@ -239,7 +239,7 @@ greeter_get_session (Greeter *greeter)
     return greeter->priv->session;
 }
 
-gchar *
+const gchar *
 greeter_get_timed_login_user (Greeter *greeter)
 {
     return greeter->priv->timed_user;

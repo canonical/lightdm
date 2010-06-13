@@ -9,12 +9,15 @@
  * license.
  */
 
+#include <stdlib.h>
 #include <gtk/gtk.h>
 #include <webkit/webkit.h>
 #include <JavaScriptCore/JavaScript.h>
 #include <glib/gi18n.h>
 
 #include "greeter.h"
+
+static JSClassRef ldm_class, ldm_user_class, ldm_session_class;
 
 static void
 show_prompt_cb (Greeter *greeter, const gchar *text, WebKitWebView *view)
@@ -39,15 +42,262 @@ show_message_cb (Greeter *greeter, const gchar *text, WebKitWebView *view)
 static void
 authentication_complete_cb (Greeter *greeter, WebKitWebView *view)
 {
-    if (greeter_get_is_authenticated (greeter))
-        gtk_main_quit ();
-
+    webkit_web_view_execute_script (view, "authentication_complete()");
 }
 
 static void
 timed_login_cb (Greeter *greeter, const gchar *username)
 {
     gtk_main_quit ();
+}
+
+static JSValueRef
+get_user_name_cb (JSContextRef context,
+                  JSObjectRef thisObject,
+                  JSStringRef propertyName,
+                  JSValueRef *exception)
+{
+    UserInfo *user = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+  printf("%p\n", user);
+
+    string = JSStringCreateWithUTF8CString (user->name);
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_user_real_name_cb (JSContextRef context,
+                       JSObjectRef thisObject,
+                       JSStringRef propertyName,
+                       JSValueRef *exception)
+{
+    UserInfo *user = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (user->real_name);
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_user_image_cb (JSContextRef context,
+                   JSObjectRef thisObject,
+                   JSStringRef propertyName,
+                   JSValueRef *exception)
+{
+    UserInfo *user = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (user->image);
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_user_logged_in_cb (JSContextRef context,
+                       JSObjectRef thisObject,
+                       JSStringRef propertyName,
+                       JSValueRef *exception)
+{
+    UserInfo *user = JSObjectGetPrivate (thisObject);
+    return JSValueMakeBoolean (context, user->logged_in);  
+}
+
+static JSValueRef
+get_session_key_cb (JSContextRef context,
+                    JSObjectRef thisObject,
+                    JSStringRef propertyName,
+                    JSValueRef *exception)
+{
+    Session *session = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (session->key);
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_session_name_cb (JSContextRef context,
+                     JSObjectRef thisObject,
+                     JSStringRef propertyName,
+                     JSValueRef *exception)
+{
+    Session *session = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (session->name);
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_session_comment_cb (JSContextRef context,
+                        JSObjectRef thisObject,
+                        JSStringRef propertyName,
+                        JSValueRef *exception)
+{
+    Session *session = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (session->comment);
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_num_users_cb (JSContextRef context,
+                  JSObjectRef thisObject,
+                  JSStringRef propertyName,
+                  JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    gint num_users;
+  
+    num_users = greeter_get_num_users (greeter);
+    return JSValueMakeNumber (context, num_users);
+}
+
+static JSValueRef
+get_users_cb (JSContextRef context,
+              JSObjectRef thisObject,
+              JSStringRef propertyName,
+              JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    JSObjectRef array;
+    const GList *users, *link;
+    guint i, n_users = 0;
+    JSValueRef *args;
+  
+    users = greeter_get_users (greeter);
+    n_users = g_list_length ((GList *)users);
+    args = g_malloc (sizeof (JSValueRef) * (n_users + 1));
+    for (i = 0, link = users; link; i++, link = link->next)
+    {
+        UserInfo *user = link->data, *copy;
+
+        copy = g_malloc (sizeof (UserInfo));
+        copy->name = g_strdup (user->name);
+        copy->real_name = g_strdup (user->real_name);
+        copy->image = g_strdup (user->image);
+        copy->logged_in = user->logged_in;
+        args[i] = JSObjectMake (context, ldm_user_class, copy);
+    }
+
+    array = JSObjectMakeArray (context, n_users, args, NULL);
+    g_free (args);
+    return array;
+}
+
+static JSValueRef
+get_sessions_cb (JSContextRef context,
+                 JSObjectRef thisObject,
+                 JSStringRef propertyName,
+                 JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    JSObjectRef array;
+    const GList *sessions, *link;
+    guint i, n_sessions = 0;
+    JSValueRef *args;
+  
+    sessions = greeter_get_sessions (greeter);
+    n_sessions = g_list_length ((GList *)sessions);
+    args = g_malloc (sizeof (JSValueRef) * (n_sessions + 1));
+    for (i = 0, link = sessions; link; i++, link = link->next)
+    {
+        Session *session = link->data, *copy;
+
+        copy = g_malloc (sizeof (Session));
+        copy->key = g_strdup (session->key);
+        copy->name = g_strdup (session->name);
+        copy->comment = g_strdup (session->comment);
+        args[i] = JSObjectMake (context, ldm_session_class, copy);
+    }
+
+    array = JSObjectMakeArray (context, n_sessions, args, NULL);
+    g_free (args);
+    return array;
+}
+
+static JSValueRef
+get_session_cb (JSContextRef context,
+                JSObjectRef thisObject,
+                JSStringRef propertyName,
+                JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (greeter_get_session (greeter));
+
+    return JSValueMakeString (context, string);
+}
+
+static bool
+set_session_cb (JSContextRef context,
+                JSObjectRef thisObject,
+                JSStringRef propertyName,
+                JSValueRef value,
+                JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);  
+    JSStringRef session_arg;
+    char session[1024];
+
+    // FIXME: Throw exception
+    if (JSValueGetType (context, value) != kJSTypeString)
+        return false;
+
+    session_arg = JSValueToStringCopy (context, value, NULL);
+    JSStringGetUTF8CString (session_arg, session, 1024);
+    JSStringRelease (session_arg);
+  
+    greeter_set_session (greeter, session);
+
+    return true;
+}
+
+static JSValueRef
+get_timed_login_user_cb (JSContextRef context,
+                         JSObjectRef thisObject,
+                         JSStringRef propertyName,
+                         JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (greeter_get_timed_login_user (greeter));
+
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_timed_login_delay_cb (JSContextRef context,
+                          JSObjectRef thisObject,
+                          JSStringRef propertyName,
+                          JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    gint delay;
+  
+    delay = greeter_get_timed_login_delay (greeter);
+    return JSValueMakeNumber (context, delay);
+}
+
+static JSValueRef
+cancel_timed_login_cb (JSContextRef context,
+                       JSObjectRef function,
+                       JSObjectRef thisObject,
+                       size_t argumentCount,
+                       const JSValueRef arguments[],
+                       JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+
+    // FIXME: Throw exception
+    if (argumentCount != 0)
+        return JSValueMakeNull (context);
+  
+    greeter_cancel_timed_login (greeter);
+    return JSValueMakeNull (context);
 }
 
 static JSValueRef
@@ -98,11 +348,250 @@ provide_secret_cb (JSContextRef context,
     return JSValueMakeNull (context);
 }
 
+static JSValueRef
+cancel_authentication_cb (JSContextRef context,
+                          JSObjectRef function,
+                          JSObjectRef thisObject,
+                          size_t argumentCount,
+                          const JSValueRef arguments[],
+                          JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+
+    // FIXME: Throw exception
+    if (argumentCount != 0)
+        return JSValueMakeNull (context);
+
+    greeter_cancel_authentication (greeter);
+    return JSValueMakeNull (context);
+}
+
+static JSValueRef
+get_is_authenticated_cb (JSContextRef context,
+                         JSObjectRef thisObject,
+                         JSStringRef propertyName,
+                         JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    return JSValueMakeBoolean (context, greeter_get_is_authenticated (greeter));
+}
+
+static JSValueRef
+get_can_suspend_cb (JSContextRef context,
+                    JSObjectRef thisObject,
+                    JSStringRef propertyName,
+                    JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    return JSValueMakeBoolean (context, greeter_get_can_suspend (greeter));
+}
+
+static JSValueRef
+suspend_cb (JSContextRef context,
+            JSObjectRef function,
+            JSObjectRef thisObject,
+            size_t argumentCount,
+            const JSValueRef arguments[],
+            JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+
+    // FIXME: Throw exception
+    if (argumentCount != 0)
+        return JSValueMakeNull (context);
+
+    greeter_suspend (greeter);
+    return JSValueMakeNull (context);
+}
+
+static JSValueRef
+get_can_hibernate_cb (JSContextRef context,
+                      JSObjectRef thisObject,
+                      JSStringRef propertyName,
+                      JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    return JSValueMakeBoolean (context, greeter_get_can_hibernate (greeter));  
+}
+
+static JSValueRef
+hibernate_cb (JSContextRef context,
+              JSObjectRef function,
+              JSObjectRef thisObject,
+              size_t argumentCount,
+              const JSValueRef arguments[],
+              JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+
+    // FIXME: Throw exception
+    if (argumentCount != 0)
+        return JSValueMakeNull (context);
+
+    greeter_hibernate (greeter);
+    return JSValueMakeNull (context);
+}
+
+static JSValueRef
+get_can_restart_cb (JSContextRef context,
+                    JSObjectRef thisObject,
+                    JSStringRef propertyName,
+                    JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    return JSValueMakeBoolean (context, greeter_get_can_restart (greeter));
+}
+
+static JSValueRef
+restart_cb (JSContextRef context,
+            JSObjectRef function,
+            JSObjectRef thisObject,
+            size_t argumentCount,
+            const JSValueRef arguments[],
+            JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+
+    // FIXME: Throw exception
+    if (argumentCount != 0)
+        return JSValueMakeNull (context);
+
+    greeter_restart (greeter);
+    return JSValueMakeNull (context);
+}
+
+static JSValueRef
+get_can_shutdown_cb (JSContextRef context,
+                     JSObjectRef thisObject,
+                     JSStringRef propertyName,
+                     JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    return JSValueMakeBoolean (context, greeter_get_can_shutdown (greeter));
+}
+
+static JSValueRef
+shutdown_cb (JSContextRef context,
+             JSObjectRef function,
+             JSObjectRef thisObject,
+             size_t argumentCount,
+             const JSValueRef arguments[],
+             JSValueRef *exception)
+{
+    Greeter *greeter = JSObjectGetPrivate (thisObject);
+
+    // FIXME: Throw exception
+    if (argumentCount != 0)
+        return JSValueMakeNull (context);
+
+    greeter_shutdown (greeter);  
+    return JSValueMakeNull (context);
+}
+
+static JSValueRef
+close_cb (JSContextRef context,
+          JSObjectRef function,
+          JSObjectRef thisObject,
+          size_t argumentCount,
+          const JSValueRef arguments[],
+          JSValueRef *exception)
+{
+    // FIXME: Throw exception
+    if (argumentCount != 0)
+        return JSValueMakeNull (context);
+
+    exit (0);
+}
+
+static void
+ldm_user_finalize (JSObjectRef object)
+{
+    UserInfo *user = JSObjectGetPrivate (object);
+    g_free (user->name);
+    g_free (user->real_name);
+    g_free (user->image);
+    g_free (user);
+}
+
+static void
+ldm_session_finalize (JSObjectRef object)
+{
+    Session *session = JSObjectGetPrivate (object);
+    g_free (session->key);
+    g_free (session->name);
+    g_free (session->comment);
+    g_free (session);
+}
+
+static const JSStaticValue ldm_user_values[] =
+{
+    { "name", get_user_name_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "real_name", get_user_real_name_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "image", get_user_image_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "logged_in", get_user_logged_in_cb, NULL, kJSPropertyAttributeReadOnly },
+    { NULL, NULL, NULL, 0 }
+};
+
+static const JSStaticValue ldm_session_values[] =
+{
+    { "key", get_session_key_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "name", get_session_name_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "comment", get_session_comment_cb, NULL, kJSPropertyAttributeReadOnly },
+    { NULL, NULL, NULL, 0 }
+};
+
+static const JSStaticValue ldm_values[] =
+{
+    { "users", get_users_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "sessions", get_sessions_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "num_users", get_num_users_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "session", get_session_cb, set_session_cb, kJSPropertyAttributeNone },
+    { "timed_login_user", get_timed_login_user_cb, NULL, kJSPropertyAttributeReadOnly },  
+    { "timed_login_delay", get_timed_login_delay_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "is_authenticated", get_is_authenticated_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "can_suspend", get_can_suspend_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "can_hibernate", get_can_hibernate_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "can_restart", get_can_restart_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "can_shutdown", get_can_shutdown_cb, NULL, kJSPropertyAttributeReadOnly },
+    { NULL, NULL, NULL, 0 }
+};
+
 static const JSStaticFunction ldm_functions[] =
 {
+    { "cancel_timed_login", cancel_timed_login_cb, kJSPropertyAttributeReadOnly },  
     { "start_authentication", start_authentication_cb, kJSPropertyAttributeReadOnly },
     { "provide_secret", provide_secret_cb, kJSPropertyAttributeReadOnly },
+    { "cancel_authentication", cancel_authentication_cb, kJSPropertyAttributeReadOnly },
+    { "suspend", suspend_cb, kJSPropertyAttributeReadOnly },
+    { "hibernate", hibernate_cb, kJSPropertyAttributeReadOnly },
+    { "restart", restart_cb, kJSPropertyAttributeReadOnly },
+    { "shutdown", shutdown_cb, kJSPropertyAttributeReadOnly },
+    { "close", close_cb, kJSPropertyAttributeReadOnly },
     { NULL, NULL, 0 }
+};
+
+static const JSClassDefinition ldm_user_definition =
+{
+    0,                     /* Version */
+    kJSClassAttributeNone, /* Attributes */
+    "LightDMUser",         /* Class name */
+    NULL,                  /* Parent class */
+    ldm_user_values,       /* Static values */
+    NULL,                  /* Static functions */
+    NULL,
+    ldm_user_finalize
+};
+
+static const JSClassDefinition ldm_session_definition =
+{
+    0,                     /* Version */
+    kJSClassAttributeNone, /* Attributes */
+    "LightDMSession",      /* Class name */
+    NULL,                  /* Parent class */
+    ldm_session_values,    /* Static values */
+    NULL,
+    NULL,
+    ldm_session_finalize
 };
 
 static const JSClassDefinition ldm_definition =
@@ -111,7 +600,7 @@ static const JSClassDefinition ldm_definition =
     kJSClassAttributeNone, /* Attributes */
     "LightDMClass",        /* Class name */
     NULL,                  /* Parent class */
-    NULL,                  /* Static values */
+    ldm_values,            /* Static values */
     ldm_functions,         /* Static functions */
 };
 
@@ -122,10 +611,12 @@ window_object_cleared_cb (WebKitWebView  *web_view,
                           JSObjectRef window_object,
                           Greeter *greeter)
 {
-    JSClassRef ldm_class;
     JSObjectRef ldm_object;
 
     ldm_class = JSClassCreate (&ldm_definition);
+    ldm_user_class = JSClassCreate (&ldm_user_definition);
+    ldm_session_class = JSClassCreate (&ldm_session_definition);
+
     ldm_object = JSObjectMake (context, ldm_class, greeter);
     JSObjectSetProperty (context,
                          JSContextGetGlobalObject (context),
