@@ -28,21 +28,6 @@ session_manager_new (void)
     return g_object_new (SESSION_MANAGER_TYPE, NULL);
 }
 
-Session *
-session_manager_get_session (SessionManager *manager, const gchar *key)
-{
-    GList *link;
-
-    for (link = manager->priv->sessions; link; link = link->next)
-    {
-        Session *session = link->data;
-        if (g_str_equal (session->key, key))
-            return session;
-    }
-
-    return NULL;
-}
-
 static void
 session_free (Session *session)
 {
@@ -147,6 +132,23 @@ load_sessions (SessionManager *manager)
     g_key_file_free (key_file);
 
     manager->priv->sessions_loaded = TRUE;
+}
+
+Session *
+session_manager_get_session (SessionManager *manager, const gchar *key)
+{
+    GList *link;
+
+    load_sessions (manager);
+
+    for (link = manager->priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+        if (g_str_equal (session->key, key))
+            return session;
+    }
+
+    return NULL;
 }
 
 #define TYPE_SESSION dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INVALID)
