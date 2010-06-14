@@ -43,86 +43,67 @@ AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)
 AC_SUBST(DBUSBINDINGTOOL)
 
 dnl ###########################################################################
-dnl Check for D-Bus
-dnl ###########################################################################
-
-dnl - Are we specifying a different dbus root ?
-AC_ARG_WITH(dbus-sys,
-            AS_HELP_STRING([--with-dbus-sys=<dir>],
-                           [where D-BUS system.d directory is]))
-AC_ARG_WITH(dbus-services,
-            AS_HELP_STRING([--with-dbus-services=<dir>],
-                           [where D-BUS services directory is]))
-            
-if ! test -z "$with_dbus_sys" ; then
-    DBUS_SYS_DIR="$with_dbus_sys"
-else
-    DBUS_SYS_DIR="$sysconfdir/dbus-1/system.d"
-fi
-AC_SUBST(DBUS_SYS_DIR)
-
-dnl ###########################################################################
 dnl Configurable values
 dnl ###########################################################################
 
+CONFIG_FILE=${sysconfdir}/lightdm.conf
 AC_ARG_WITH(config-file,
-            AS_HELP_STRING([--config-file=<file>],
-                           [Configuration file to load]))
-if test x$withval != x; then
-    CONFIG_FILE="$withval"
-else
-    CONFIG_FILE=${sysconfdir}/lightdm.conf
-fi
+            AS_HELP_STRING([--with-config-file=<file>],
+                           [Configuration file to load]),
+    if test x$withval != x; then
+        CONFIG_FILE="$withval"
+    fi
+)    
 AC_SUBST(CONFIG_FILE)
 
+XSERVER_BINARY=${prefix}/bin/X
 AC_ARG_WITH(xserver-binary,
-            AS_HELP_STRING([--xserver-binary=<binary>],
-                           [X server binary name]))
-if test x$withval != x; then
-    XSERVER_BINARY="$withval"
-else
-    XSERVER_BINARY=${prefix}/bin/X
-fi
+            AS_HELP_STRING([--with-xserver-binary=<binary>],
+                           [X server binary name]),
+    if test x$withval != x; then
+        XSERVER_BINARY="$withval"
+    fi
+)    
 AC_SUBST(XSERVER_BINARY)
 
+XSESSION_DIR=${prefix}/share/xsessions
 AC_ARG_WITH(xsession-dir,
-            AS_HELP_STRING([--xsession-dir=<dir>],
-                           [X session directory]))
-if test x$withval != x; then
-    XSESSION_DIR="$withval"
-else
-    XSESSION_DIR=${prefix}/share/xsessions
-fi
+            AS_HELP_STRING([--with-xsession-dir=<dir>],
+                           [X session directory]),
+    if test x$withval != x; then
+        XSESSION_DIR="$withval"
+    fi
+)    
 AC_SUBST(XSESSION_DIR)
 
+DEFAULT_SESSION=gnome
 AC_ARG_WITH(default-session,
-            AS_HELP_STRING([--default-session=<name>],
-                           [Default session to launch]))
-if test x$withval != x; then
-    DEFAULT_SESSION="$withval"
-else
-    DEFAULT_SESSION=gnome
-fi
+            AS_HELP_STRING([--with-default-session=<name>],
+                           [Default session to launch]),
+    if test x$withval != x; then
+        DEFAULT_SESSION="$withval"
+    fi
+)
 AC_SUBST(DEFAULT_SESSION)
 
+GREETER_USER=gdm
 AC_ARG_WITH(greeter-user,
-            AS_HELP_STRING([--greeter-user=<username>],
-                           [User to run greeter as]))
-if test x$withval != x; then
-    GREETER_USER="$withval"
-else
-    GREETER_USER=gdm
-fi
+            AS_HELP_STRING([--with-greeter-user=<username>],
+                           [User to run greeter as]),
+    if test x$withval != x; then
+        GREETER_USER="$withval"
+    fi
+)
 AC_SUBST(GREETER_USER)
 
+GREETER_BINARY=${prefix}/bin/ldmgreeter
 AC_ARG_WITH(greeter-binary,
-            AS_HELP_STRING([--greeter-binary=<binary>],
-                           [Greeter to execute]))
-if test x$withval != x; then
-    GREETER_BINARY="$withval"
-else
-    GREETER_BINARY=${prefix}/bin/ldmgreeter
-fi
+            AS_HELP_STRING([--with-greeter-binary=<binary>],
+                           [Greeter to execute]),
+    if test x$withval != x; then
+        GREETER_BINARY="$withval"
+    fi
+)
 AC_SUBST(GREETER_BINARY)
 
 dnl ###########################################################################
