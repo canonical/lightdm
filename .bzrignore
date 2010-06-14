@@ -17,8 +17,8 @@ xmldocs.make
 po/stamp-it
 po/POTFILES
 src/lightdm
-src/ldmgreeter
-src/ldmgreeter
+src/ldm-webkit-greeter
+src/ldm-gtk-greeter
 src/display-glue.h
 src/display-manager-glue.h
 src/user-manager-glue.h
