@@ -48,7 +48,20 @@ function show_message(text)
 function authentication_complete()
 {
    if (lightdm.is_authenticated)
+   {
        lightdm.close();
+       return;
+   }
+
+   user_table = document.getElementById('user_table');   
+   for (i in user_table.rows)
+   {
+       row = user_table.rows[i];
+       if (row.style != null) // FIXME: Don't know why there are rows with styles
+           row.style.opacity = 1;
+   }
+   table = document.getElementById('password_table');
+   table.style.visibility = "hidden";
 }
 
 function start_authentication(username)
