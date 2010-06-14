@@ -618,7 +618,7 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), web_view);
     g_signal_connect (G_OBJECT (greeter), "timed-login", G_CALLBACK (timed_login_cb), web_view);
 
-    webkit_web_view_load_uri (WEBKIT_WEB_VIEW (web_view), "file:///home/bob/bzr/lightdm/index.html");
+    webkit_web_view_load_uri (WEBKIT_WEB_VIEW (web_view), "file:///home/bob/bzr/lightdm/themes/greeter.html");
     greeter_connect (greeter);
 
     gtk_widget_show_all (window);

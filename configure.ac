@@ -130,6 +130,7 @@ Makefile
 data/Makefile
 po/Makefile.in
 src/Makefile
+themes/Makefile
 ])
 
 dnl ###########################################################################

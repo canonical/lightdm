@@ -1,0 +1,103 @@
+<html>
+<head>
+<style type="text/css">
+body
+{
+    background-image: url('bg.jpg');
+}
+
+td
+{
+    font-size: 20px;
+    color: white;
+    verical-align: middle;
+}
+
+</style>
+<script type="text/javascript">
+
+password_prompt = false;
+selected_user = null;
+
+function show_prompt(text)
+{
+   password_prompt = true;
+
+   label = document.getElementById('password_prompt');
+   label.innerHTML = text;
+   
+   user_table = document.getElementById('user_table');   
+   for (i in user_table.rows)
+   {
+       row = user_table.rows[i];
+       if (row.id != ('user_' + selected_user) && row.style != null) // FIXME: Don't know why there are rows with styles
+           row.style.opacity = 0.25;
+   }
+
+   table = document.getElementById('password_table');
+   table.style.visibility = "visible";
+
+   entry = document.getElementById('password_entry');
+   entry.focus();
+}
+
+function show_message(text)
+{
+}
+
+function authentication_complete()
+{
+   if (lightdm.is_authenticated)
+       lightdm.close();
+}
+
+function start_authentication(username)
+{
+   if (!password_prompt) {
+       lightdm.start_authentication(username);
+       selected_user = username;
+   }
+}
+
+function provide_secret()
+{
+   entry = document.getElementById('password_entry');
+   lightdm.provide_secret(entry.value);
+}
+
+document.write('<table id="user_table" style="margin: auto;">');
+for (i in lightdm.users)
+{
+   user = lightdm.users[i];
+
+   if (user.real_name.length > 0)
+      label = user.real_name
+   else
+      label = user.name
+      
+   if (user.image.length > 0)
+      image = 'file://' + user.image
+   else
+      image = 'file:///usr/share/icons/gnome/32x32/stock/generic/stock_person.png'
+
+   document.write('<tr id="user_' + user.name +'"onclick="start_authentication(\'' + user.name + '\')" style="cursor: pointer;">');
+   document.write('<td><img width="48px" height="48px" src="' + image + '" /></td>');
+   document.write('<td>' + label + '</td>');
+   document.write('</tr>');
+}
+document.write("</table>");
+document.write('<table id="password_table" style="margin: auto; visibility: hidden;"><tr>');
+document.write('<td id="password_prompt"></td>');
+document.write('<td><form action="javascript: provide_secret()"><input id="password_entry" type="password" /></form></td>');
+document.write('</tr></table>');
+</script>
+</head>
+
+<body>
+<script type="text/javascript">
+</script>
+<div>
+</div>
+</body>
+
+</html>

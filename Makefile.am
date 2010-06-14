@@ -1,4 +1,4 @@
-SUBDIRS = data po src
+SUBDIRS = data po src themes
 
 EXTRA_DIST = \
 	autogen.sh \
