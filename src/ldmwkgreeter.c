@@ -60,8 +60,6 @@ get_user_name_cb (JSContextRef context,
     UserInfo *user = JSObjectGetPrivate (thisObject);
     JSStringRef string;
 
-  printf("%p\n", user);
-
     string = JSStringCreateWithUTF8CString (user->name);
     return JSValueMakeString (context, string);
 }
@@ -171,14 +169,8 @@ get_users_cb (JSContextRef context,
     args = g_malloc (sizeof (JSValueRef) * (n_users + 1));
     for (i = 0, link = users; link; i++, link = link->next)
     {
-        UserInfo *user = link->data, *copy;
-
-        copy = g_malloc (sizeof (UserInfo));
-        copy->name = g_strdup (user->name);
-        copy->real_name = g_strdup (user->real_name);
-        copy->image = g_strdup (user->image);
-        copy->logged_in = user->logged_in;
-        args[i] = JSObjectMake (context, ldm_user_class, copy);
+        UserInfo *user = link->data;
+        args[i] = JSObjectMake (context, ldm_user_class, user);
     }
 
     array = JSObjectMakeArray (context, n_users, args, NULL);
@@ -203,13 +195,8 @@ get_sessions_cb (JSContextRef context,
     args = g_malloc (sizeof (JSValueRef) * (n_sessions + 1));
     for (i = 0, link = sessions; link; i++, link = link->next)
     {
-        Session *session = link->data, *copy;
-
-        copy = g_malloc (sizeof (Session));
-        copy->key = g_strdup (session->key);
-        copy->name = g_strdup (session->name);
-        copy->comment = g_strdup (session->comment);
-        args[i] = JSObjectMake (context, ldm_session_class, copy);
+        Session *session = link->data;
+        args[i] = JSObjectMake (context, ldm_session_class, session);
     }
 
     array = JSObjectMakeArray (context, n_sessions, args, NULL);
@@ -503,26 +490,6 @@ close_cb (JSContextRef context,
     exit (0);
 }
 
-static void
-ldm_user_finalize (JSObjectRef object)
-{
-    UserInfo *user = JSObjectGetPrivate (object);
-    g_free (user->name);
-    g_free (user->real_name);
-    g_free (user->image);
-    g_free (user);
-}
-
-static void
-ldm_session_finalize (JSObjectRef object)
-{
-    Session *session = JSObjectGetPrivate (object);
-    g_free (session->key);
-    g_free (session->name);
-    g_free (session->comment);
-    g_free (session);
-}
-
 static const JSStaticValue ldm_user_values[] =
 {
     { "name", get_user_name_cb, NULL, kJSPropertyAttributeReadOnly },
@@ -577,9 +544,6 @@ static const JSClassDefinition ldm_user_definition =
     "LightDMUser",         /* Class name */
     NULL,                  /* Parent class */
     ldm_user_values,       /* Static values */
-    NULL,                  /* Static functions */
-    NULL,
-    ldm_user_finalize
 };
 
 static const JSClassDefinition ldm_session_definition =
@@ -589,9 +553,6 @@ static const JSClassDefinition ldm_session_definition =
     "LightDMSession",      /* Class name */
     NULL,                  /* Parent class */
     ldm_session_values,    /* Static values */
-    NULL,
-    NULL,
-    ldm_session_finalize
 };
 
 static const JSClassDefinition ldm_definition =
