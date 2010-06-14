@@ -593,8 +593,15 @@ main(int argc, char **argv)
     GdkScreen *screen;
     gint screen_width, screen_height;
     GtkWidget *window, *web_view;
+    gchar *url;
 
     gtk_init (&argc, &argv);
+  
+    if (argc != 2) {
+        g_printerr ("Usage: %s <url>\n", argv[0]);
+        return 1;
+    }
+    url = argv[1];
 
     greeter = greeter_new ();
 
@@ -618,7 +625,7 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), web_view);
     g_signal_connect (G_OBJECT (greeter), "timed-login", G_CALLBACK (timed_login_cb), web_view);
 
-    webkit_web_view_load_uri (WEBKIT_WEB_VIEW (web_view), "file:///home/bob/bzr/lightdm/themes/greeter.html");
+    webkit_web_view_load_uri (WEBKIT_WEB_VIEW (web_view), url);
     greeter_connect (greeter);
 
     gtk_widget_show_all (window);

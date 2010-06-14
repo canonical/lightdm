@@ -1,7 +1,9 @@
-themedir = $(datarootdir)/lightdm/themes
-theme_DATA = greeter.html
+SUBDIRS = webkit
 
-EXTRA_DIST = $(theme_DATA)
+themedir = $(THEME_DIR)
+theme_DATA = gnome.theme webkit.theme
+
+EXTRA_DIST = $(theme_files)
 
 DISTCLEANFILES = \
 	Makefile.in

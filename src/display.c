@@ -213,12 +213,13 @@ session_fork_cb (gpointer data)
 }
 
 static void
-open_session (Display *display, const gchar *username, const gchar *executable, gboolean is_greeter)
+open_session (Display *display, const gchar *username, const gchar *command, gboolean is_greeter)
 {
     struct passwd *user_info;
     gint session_stdin, session_stdout, session_stderr;
     gboolean result;
-    gchar *command;
+    gint argc;
+    gchar **argv;
     gchar **env;
     gint n_env = 0;
     GError *error = NULL;
@@ -253,11 +254,14 @@ open_session (Display *display, const gchar *username, const gchar *executable, 
     if (display->priv->ck_session)
         env[n_env++] = g_strdup_printf ("XDG_SESSION_COOKIE=%s", ck_connector_get_cookie (display->priv->ck_session));
     env[n_env] = NULL;
-    gchar *argv[] = { g_strdup (executable), NULL };
+    result = g_shell_parse_argv (command, &argc, &argv, &error);
+    if (!result)
+        g_error ("Failed to parse session command line: %s", error->message);
+    g_clear_error (&error);
+    if (!result)
+        return;
 
-    command = g_strjoinv (" ", env);
-    g_debug ("Launching greeter: %s %s", command, executable);
-    g_free (command);
+    g_debug ("Launching greeter: %s %s", command);
 
     result = g_spawn_async/*_with_pipes*/ (user_info->pw_dir,
                                        argv,
@@ -289,10 +293,80 @@ start_user_session (Display *display)
     open_session (display, pam_session_get_username (display->priv->pam_session), session->exec, FALSE);
 }
 
+static GKeyFile *
+load_theme (const gchar *name, GError **error)
+{
+    gchar *filename, *path;
+    GKeyFile *theme;
+    gboolean result;
+
+    filename = g_strdup_printf ("%s.theme", name);
+    path = g_build_filename (THEME_DIR, filename, NULL);
+    g_free (filename);
+
+    theme = g_key_file_new ();
+    result = g_key_file_load_from_file (theme, path, G_KEY_FILE_NONE, error);
+    g_free (path);
+
+    if (!result)
+    {
+        g_key_file_free (theme);
+        return NULL;
+    }
+
+    return theme;
+}
+
+static gchar *
+theme_get_command (GKeyFile *theme)
+{
+    gchar *engine, *command = NULL;
+
+    engine = g_key_file_get_value (theme, "theme", "engine", NULL);
+    if (!engine)
+    {
+        g_warning ("No engine defined in theme");
+        return NULL;
+    }
+
+    if (strcmp (engine, "gtk") == 0)
+        command = g_build_filename (THEME_ENGINE_DIR, "ldm-gtk-greeter", NULL);
+    else if (strcmp (engine, "webkit") == 0)
+    {
+        gchar *binary, *url;
+
+        binary = g_build_filename (THEME_ENGINE_DIR, "ldm-webkit-greeter", NULL);
+        url = g_key_file_get_value (theme, "theme", "url", NULL);
+        if (url)
+        {
+            if (strchr (url, ':'))
+                command = g_strdup_printf ("%s %s", binary, url);
+            else
+                command = g_strdup_printf ("%s file://%s/%s", binary, THEME_DIR, url);
+        }
+        else
+            g_warning ("Missing URL in WebKit theme");
+        g_free (binary);
+        g_free (url);
+    }
+    else if (strcmp (engine, "custom") == 0)
+    {
+        command = g_key_file_get_value (theme, "theme", "command", NULL);
+        if (!command)
+            g_warning ("Missing command in custom theme");
+    }
+    else
+        g_warning ("Unknown theme engine: %s", engine);
+
+    return command;
+}
+
 static void
 start_greeter (Display *display)
 {
-    gchar *user, *binary;
+    gchar *user, *theme_name;
+    GKeyFile *theme;
+    GError *error = NULL;
   
     user = g_key_file_get_value (display->priv->config, "Greeter", "user", NULL);
     if (!user || !getpwnam (user))
@@ -300,17 +374,29 @@ start_greeter (Display *display)
         g_free (user);
         user = g_strdup (GREETER_USER);
     }
-    binary = g_key_file_get_value (display->priv->config, "Greeter", "greeter", NULL);
-    if (!binary)
-        binary = g_strdup (GREETER_BINARY);
-
-    g_debug ("Starting greeter as user %s", user);
-
-    display->priv->active_session = SESSION_GREETER_PRE_CONNECT;
-    open_session (display, user, binary, TRUE);
+    theme_name = g_key_file_get_value (display->priv->config, "Greeter", "theme", NULL);
+    if (!theme_name)
+        theme_name = g_strdup (GREETER_THEME);
   
+    theme = load_theme (theme_name, &error);
+    if (!theme)
+        g_warning ("Failed to find theme %s: %s", theme_name, error->message);
+    g_clear_error (&error);
+  
+    if (theme)
+    {
+        gchar *command;
+
+        g_debug ("Starting greeter %s as user %s", theme_name, user);
+        display->priv->active_session = SESSION_GREETER_PRE_CONNECT;
+
+        command = theme_get_command (theme);
+        open_session (display, user, command, TRUE);
+        g_free (command);
+    }
+
     g_free (user);
-    g_free (binary);
+    g_free (theme_name);
 }
 
 #define TYPE_MESSAGE dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
@@ -529,12 +615,10 @@ display_start (Display *display, const gchar *session, const gchar *username, gi
     result = g_shell_parse_argv (command->str, &argc, &argv, &error);
     g_string_free (command, TRUE);
     if (!result)
-    {
         g_error ("Failed to parse X server command line: %s", error->message);
-        g_clear_error (&error);
-        return;
-    }
     g_clear_error (&error);
+    if (!result)
+        return;
 
     result = g_spawn_async_with_pipes (NULL, /* Working directory */
                                        argv,

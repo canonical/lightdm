@@ -106,7 +106,7 @@ load_sessions (SessionManager *manager)
         path = g_build_filename (XSESSIONS_DIR, filename, NULL);
         g_debug ("Loading session %s", path);
 
-        result = g_key_file_load_from_file(key_file, path, G_KEY_FILE_NONE, &error);
+        result = g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, &error);
         if (!result)
             g_warning ("Failed to load session file %s: %s:", path, error->message);
         g_clear_error (&error);

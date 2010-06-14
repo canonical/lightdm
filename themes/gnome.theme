@@ -1,0 +1,4 @@
+[theme]
+name=GNOME
+description=GNOME Theme
+engine=gtk

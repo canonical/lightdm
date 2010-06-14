@@ -56,7 +56,7 @@ AC_ARG_WITH(config-file,
 )    
 AC_SUBST(CONFIG_FILE)
 
-XSERVER_BINARY=${prefix}/bin/X
+XSERVER_BINARY=/usr/bin/X
 AC_ARG_WITH(xserver-binary,
             AS_HELP_STRING([--with-xserver-binary=<binary>],
                            [X server binary name]),
@@ -96,15 +96,25 @@ AC_ARG_WITH(greeter-user,
 )
 AC_SUBST(GREETER_USER)
 
-GREETER_BINARY=${prefix}/bin/ldmgreeter
-AC_ARG_WITH(greeter-binary,
-            AS_HELP_STRING([--with-greeter-binary=<binary>],
-                           [Greeter to execute]),
+THEME_DIR=${prefix}/share/lightdm/themes
+AC_ARG_WITH(theme-dir,
+            AS_HELP_STRING([--with-theme-dir=<dir>],
+                           [Directory containing greeter themes]),
     if test x$withval != x; then
-        GREETER_BINARY="$withval"
+        THEME_DIR="$withval"
     fi
 )
-AC_SUBST(GREETER_BINARY)
+AC_SUBST(THEME_DIR)
+
+GREETER_THEME=gnome
+AC_ARG_WITH(theme,
+            AS_HELP_STRING([--with-theme=<theme>],
+                           [Default theme]),
+    if test x$withval != x; then
+        GREETER_THEME="$withval"
+    fi
+)
+AC_SUBST(GREETER_THEME)
 
 dnl ###########################################################################
 dnl Documentation
@@ -131,6 +141,7 @@ data/Makefile
 po/Makefile.in
 src/Makefile
 themes/Makefile
+themes/webkit/Makefile
 ])
 
 dnl ###########################################################################
@@ -143,9 +154,10 @@ echo "
 
         prefix:                   ${prefix}
         Config file:              ${CONFIG_FILE}
-        XServer binary:           ${XSERVER_BINARY}
+        X server binary:          ${XSERVER_BINARY}
         XSessions dir:            ${XSESSION_DIR}
         Default session:          ${DEFAULT_SESSION}
         Greeter user:             ${GREETER_USER}
-        Greeter binary:           ${GREETER_BINARY}
+        Theme directory:          ${THEME_DIR}
+        Theme:                    ${GREETER_THEME}
 "
