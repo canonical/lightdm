@@ -123,6 +123,7 @@ dnl Documentation
 dnl ###########################################################################
 
 GNOME_DOC_INIT
+GTK_DOC_CHECK
 
 dnl ###########################################################################
 dnl Internationalization
@@ -140,6 +141,7 @@ dnl ###########################################################################
 AC_OUTPUT([
 Makefile
 data/Makefile
+doc/Makefile
 greeters/Makefile
 libldmgreeter/libldmgreeter-1.pc
 libldmgreeter/Makefile

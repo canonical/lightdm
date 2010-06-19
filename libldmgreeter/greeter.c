@@ -51,6 +51,13 @@ struct GreeterPrivate
 
 G_DEFINE_TYPE (Greeter, greeter, G_TYPE_OBJECT);
 
+/**
+ * greeter_new:
+ * 
+ * Create a new greeter.
+ * 
+ * Return value: the new #Greeter
+ **/
 Greeter *
 greeter_new (/*int argc, char **argv*/)
 {
@@ -60,7 +67,7 @@ greeter_new (/*int argc, char **argv*/)
         return NULL;
     }*/
 
-    return g_object_new (GREETER_TYPE, /*"?", argv[1],*/ NULL);
+    return g_object_new (TYPE_GREETER, /*"?", argv[1],*/ NULL);
 }
 
 static gboolean
@@ -73,6 +80,14 @@ timed_login_cb (gpointer data)
     return TRUE;
 }
 
+/**
+ * greeter_connect:
+ * @greeter: The greeter to connect
+ *
+ * Connects the greeter to the display manager.
+ * 
+ * Return value: TRUE if successfully connected
+ **/
 gboolean
 greeter_connect (Greeter *greeter)
 {
@@ -148,6 +163,12 @@ update_users (Greeter *greeter)
     greeter->priv->have_users = TRUE;
 }
 
+/**
+ * greeter_get_num_users:
+ * @greeter: a #Greeter
+ *
+ * Return value: The number of users able to log in
+ **/
 gint
 greeter_get_num_users (Greeter *greeter)
 {
@@ -155,6 +176,12 @@ greeter_get_num_users (Greeter *greeter)
     return g_list_length (greeter->priv->users);
 }
 
+/**
+ * greeter_get_users:
+ * @greeter:
+ * 
+ * Return value: A list of #UserInfo that should be presented to the user.
+ */
 const GList *
 greeter_get_users (Greeter *greeter)
 {
@@ -347,6 +374,12 @@ greeter_get_is_authenticated (Greeter *greeter)
     return greeter->priv->is_authenticated;
 }
 
+/**
+ * greeter_get_can_suspend:
+ * @greeter: A #Greeter
+ *
+ * Return value: TRUE if the greeter can suspend the machine
+ **/
 gboolean
 greeter_get_can_suspend (Greeter *greeter)
 {
@@ -502,7 +535,7 @@ greeter_init (Greeter *greeter)
     const gchar *bus_address, *object;
     DBusBusType bus_type = DBUS_BUS_SYSTEM;
 
-    greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, GREETER_TYPE, GreeterPrivate);
+    greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, TYPE_GREETER, GreeterPrivate);
 
     greeter->priv->system_bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
     if (!greeter->priv->system_bus)
@@ -541,6 +574,14 @@ greeter_class_init (GreeterClass *klass)
 {
     g_type_class_add_private (klass, sizeof (GreeterPrivate));
 
+    /**
+     * Greeter::show-prompt:
+     * @greeter: The greeter on which the signal is emitted
+     * @text: The text to show in the prompt
+     * 
+     * The ::show-prompt signal gets emitted when the greeter
+     * should show a prompt to the user.
+     **/
     signals[SHOW_PROMPT] =
         g_signal_new ("show-prompt",
                       G_TYPE_FROM_CLASS (klass),

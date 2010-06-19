@@ -16,21 +16,29 @@
 
 G_BEGIN_DECLS
 
-#define GREETER_TYPE (greeter_get_type())
-#define GREETER(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), GREETER_TYPE, Greeter));
+#define TYPE_GREETER            (greeter_get_type())
+#define GREETER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), TYPE_GREETER, Greeter));
+#define GREETER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), TYPE_GREETER, GreeterClass))
+#define IS_GREETER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), TYPE_GREETER))
+#define IS_GREETER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), TYPE_GREETER))
+#define GREETER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), TYPE_GREETER, GreeterClass))
 
+
+/*<private>*/
 typedef struct GreeterPrivate GreeterPrivate;
 
 typedef struct
 {
     GObject         parent_instance;
-    GreeterPrivate *priv;
+    GreeterPrivate *GSEAL (priv);
 } Greeter;
 
 typedef struct
 {
     GObjectClass parent_class;
-  
+
+    /*< private >*/
+
     void (*show_prompt)(Greeter *greeter, const gchar *text);
     void (*show_message)(Greeter *greeter, const gchar *text);
     void (*show_error)(Greeter *greeter, const gchar *text);
