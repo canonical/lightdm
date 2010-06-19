@@ -1,4 +1,4 @@
-SUBDIRS = data po src themes
+SUBDIRS = libldmgreeter data greeters po src themes
 
 EXTRA_DIST = \
 	autogen.sh \

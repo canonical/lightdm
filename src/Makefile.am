@@ -1,7 +1,5 @@
 bin_PROGRAMS = lightdm
 
-libexec_PROGRAMS = ldm-gtk-greeter ldm-webkit-greeter
-
 display-glue.h: display.xml
 	$(DBUSBINDINGTOOL) --prefix=display --mode=glib-server --output=$@ $^
 display-manager-glue.h: display-manager.xml
@@ -23,16 +21,6 @@ lightdm_SOURCES = \
 	session-manager.h \
 	user-manager.c \
 	user-manager.h
-
-ldm_gtk_greeter_SOURCES = \
-	greeter.c \
-	greeter.h \
-	ldm-gtk-greeter.c
-
-ldm_webkit_greeter_SOURCES = \
-	greeter.c \
-	greeter.h \
-	ldm-webkit-greeter.c
 
 BUILT_SOURCES = \
 	display-glue.h \
@@ -60,28 +48,6 @@ lightdm_CFLAGS = \
 lightdm_LDADD = \
 	$(LIGHTDM_LIBS) \
 	-lpam
-
-ldm_gtk_greeter_CFLAGS = \
-	$(LIGHTDM_GREETER_CFLAGS) \
-	$(WARN_CFLAGS) \
-	-DVERSION=\"$(VERSION)\" \
-	-DGETTEXT_PACKAGE=\"$(GETTEXT_PACKAGE)\" \
-	-DLOCALE_DIR=\"$(localedir)\" \
-	-DLIGHTDM_GREETER_BINARY=\"ldm-gtk-greeter\"
-
-ldm_gtk_greeter_LDADD = \
-	$(LIGHTDM_GREETER_LIBS)
-
-ldm_webkit_greeter_CFLAGS = \
-	$(LIGHTDM_WKGREETER_CFLAGS) \
-	$(WARN_CFLAGS) \
-	-DVERSION=\"$(VERSION)\" \
-	-DGETTEXT_PACKAGE=\"$(GETTEXT_PACKAGE)\" \
-	-DLOCALE_DIR=\"$(localedir)\" \
-	-DLIGHTDM_WKGREETER_BINARY=\"ldm-webkit-greeter\"
-
-ldm_webkit_greeter_LDADD = \
-	$(LIGHTDM_WKGREETER_LIBS)
 
 DISTCLEANFILES = \
 	$(BUILT_SOURCES) \

@@ -14,13 +14,14 @@ aclocal.m4
 depcomp
 omf.make
 xmldocs.make
+greeters/ldm-webkit-greeter
+greeters/ldm-gtk-greeter
 po/stamp-it
 po/POTFILES
 src/lightdm
-src/ldm-webkit-greeter
-src/ldm-gtk-greeter
 src/display-glue.h
 src/display-manager-glue.h
 src/user-manager-glue.h
 src/session-manager-glue.h
 src/ldmwkgreeter
+libldmgreeter/libldmgreeter-1.pc

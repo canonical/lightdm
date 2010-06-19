@@ -1,15 +1,11 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(configure.ac)
-AM_INIT_AUTOMAKE(lightdm, 0.0.1)
+AC_INIT(lightdm, 0.0.1)
+AM_INIT_AUTOMAKE
+AM_SILENT_RULES([yes])
+LT_INIT
+AM_PROG_CC_C_O
 AM_MAINTAINER_MODE
-GNOME_MAINTAINER_MODE_DEFINES
-m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
-
-AC_ISC_POSIX
-AC_PROG_CC_C_O
-AM_PROG_CC_STDC
-AC_HEADER_STDC
 
 AM_GCONF_SOURCE_2
 
@@ -24,6 +20,12 @@ PKG_CHECK_MODULES(LIGHTDM, [
     gobject-2.0
     dbus-glib-1
     ck-connector
+])
+
+PKG_CHECK_MODULES(LIBLDMGREETER, [
+    glib-2.0
+    gobject-2.0
+    dbus-glib-1
 ])
 
 PKG_CHECK_MODULES(LIGHTDM_GREETER, [
@@ -138,6 +140,9 @@ dnl ###########################################################################
 AC_OUTPUT([
 Makefile
 data/Makefile
+greeters/Makefile
+libldmgreeter/libldmgreeter-1.pc
+libldmgreeter/Makefile
 po/Makefile.in
 src/Makefile
 themes/Makefile
