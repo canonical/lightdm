@@ -245,12 +245,14 @@ main(int argc, char **argv)
     for (link = sessions; link; link = link->next)
     {
         LdmSession *session = link->data;
+        gchar *current_session;
 
         item = gtk_radio_menu_item_new_with_label (session_radio_list, ldm_session_get_name (session));
         session_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (item));
         gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
 
-        if (g_str_equal (ldm_session_get_key (session), ldm_greeter_get_session (greeter)))
+        current_session = ldm_greeter_get_session (greeter);
+        if (current_session && g_str_equal (ldm_session_get_key (session), current_session))
             gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item), TRUE);
 
         g_object_set_data (G_OBJECT (item), "key", g_strdup (ldm_session_get_key (session)));

@@ -4,7 +4,7 @@
 
     <!-- Method to return the users -->
     <method name="GetSessions">
-      <arg name="users" direction="out" type="a(ss)"/>
+      <arg name="users" direction="out" type="a(sss)"/>
     </method>
 
   </interface>
