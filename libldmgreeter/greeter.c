@@ -154,17 +154,20 @@ update_users (LdmGreeter *greeter)
     for (i = 0; i < users->len; i++)
     {
         GValue value = { 0 };
-        UserInfo *info;
-
-        info = g_malloc0 (sizeof (UserInfo));
+        LdmUser *user;
+        gchar *name, *real_name, *image;
+        gboolean logged_in;
 
         g_value_init (&value, TYPE_USER);
         g_value_set_static_boxed (&value, users->pdata[i]);
-        dbus_g_type_struct_get (&value, 0, &info->name, 1, &info->real_name, 2, &info->image, 3, &info->logged_in, G_MAXUINT);
-
+        dbus_g_type_struct_get (&value, 0, &name, 1, &real_name, 2, &image, 3, &logged_in, G_MAXUINT);
         g_value_unset (&value);
 
-        greeter->priv->users = g_list_append (greeter->priv->users, info);
+        user = ldm_user_new (name, real_name, image, logged_in);
+        g_free (name);
+        g_free (real_name);
+        g_free (image);
+        greeter->priv->users = g_list_append (greeter->priv->users, user);
     }
 
     g_ptr_array_free (users, TRUE);
@@ -189,7 +192,7 @@ ldm_greeter_get_num_users (LdmGreeter *greeter)
  * ldm_greeter_get_users:
  * @greeter:
  * 
- * Return value: A list of #UserInfo that should be presented to the user.
+ * Return value: A list of #LdmUser that should be presented to the user.
  */
 const GList *
 ldm_greeter_get_users (LdmGreeter *greeter)

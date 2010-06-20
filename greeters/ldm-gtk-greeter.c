@@ -145,12 +145,14 @@ main(int argc, char **argv)
     users = ldm_greeter_get_users (greeter);
     for (link = users; link; link = link->next)
     {
-        UserInfo *user = link->data;
+        LdmUser *user = link->data;
         GtkTreeIter iter;
+        const gchar *image;
         GdkPixbuf *pixbuf = NULL;
 
-        if (user->image[0] != '\0')
-            pixbuf = gdk_pixbuf_new_from_file_at_scale (user->image, 64, 64, TRUE, NULL);
+        image = ldm_user_get_image (user);
+        if (image[0] != '\0')
+            pixbuf = gdk_pixbuf_new_from_file_at_scale (image, 64, 64, TRUE, NULL);
         if (!pixbuf)
             pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
                                                "stock_person",
@@ -160,8 +162,8 @@ main(int argc, char **argv)
       
         gtk_list_store_append (GTK_LIST_STORE (user_model), &iter);
         gtk_list_store_set (GTK_LIST_STORE (user_model), &iter,
-                            0, user->name,
-                            1, user->real_name[0] != '\0' ? user->real_name : user->name,
+                            0, ldm_user_get_name (user),
+                            1, ldm_user_get_display_name (user),
                             2, pixbuf,
                             -1);
     }

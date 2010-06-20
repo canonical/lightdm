@@ -57,10 +57,10 @@ get_user_name_cb (JSContextRef context,
                   JSStringRef propertyName,
                   JSValueRef *exception)
 {
-    UserInfo *user = JSObjectGetPrivate (thisObject);
+    LdmUser *user = JSObjectGetPrivate (thisObject);
     JSStringRef string;
 
-    string = JSStringCreateWithUTF8CString (user->name);
+    string = JSStringCreateWithUTF8CString (ldm_user_get_name (user));
     return JSValueMakeString (context, string);
 }
 
@@ -70,10 +70,10 @@ get_user_real_name_cb (JSContextRef context,
                        JSStringRef propertyName,
                        JSValueRef *exception)
 {
-    UserInfo *user = JSObjectGetPrivate (thisObject);
+    LdmUser *user = JSObjectGetPrivate (thisObject);
     JSStringRef string;
 
-    string = JSStringCreateWithUTF8CString (user->real_name);
+    string = JSStringCreateWithUTF8CString (ldm_user_get_real_name (user));
     return JSValueMakeString (context, string);
 }
 
@@ -83,10 +83,10 @@ get_user_image_cb (JSContextRef context,
                    JSStringRef propertyName,
                    JSValueRef *exception)
 {
-    UserInfo *user = JSObjectGetPrivate (thisObject);
+    LdmUser *user = JSObjectGetPrivate (thisObject);
     JSStringRef string;
 
-    string = JSStringCreateWithUTF8CString (user->image);
+    string = JSStringCreateWithUTF8CString (ldm_user_get_image (user));
     return JSValueMakeString (context, string);
 }
 
@@ -96,8 +96,8 @@ get_user_logged_in_cb (JSContextRef context,
                        JSStringRef propertyName,
                        JSValueRef *exception)
 {
-    UserInfo *user = JSObjectGetPrivate (thisObject);
-    return JSValueMakeBoolean (context, user->logged_in);  
+    LdmUser *user = JSObjectGetPrivate (thisObject);
+    return JSValueMakeBoolean (context, ldm_user_get_logged_in (user));
 }
 
 static JSValueRef
@@ -169,7 +169,8 @@ get_users_cb (JSContextRef context,
     args = g_malloc (sizeof (JSValueRef) * (n_users + 1));
     for (i = 0, link = users; link; i++, link = link->next)
     {
-        UserInfo *user = link->data;
+        LdmUser *user = link->data;
+        g_object_ref (user);
         args[i] = JSObjectMake (context, ldm_user_class, user);
     }
 

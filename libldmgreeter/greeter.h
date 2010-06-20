@@ -14,6 +14,8 @@
 
 #include <glib-object.h>
 
+#include "user.h"
+
 G_BEGIN_DECLS
 
 #define LDM_TYPE_GREETER            (ldm_greeter_get_type())
@@ -45,14 +47,6 @@ typedef struct
     void (*authentication_complete)(LdmGreeter *greeter);
     void (*timed_login)(LdmGreeter *greeter, const gchar *username);
 } LdmGreeterClass;
-
-typedef struct
-{
-   gchar *name;
-   gchar *real_name;
-   gchar *image;
-   gboolean logged_in;
-} UserInfo;
 
 typedef struct
 {

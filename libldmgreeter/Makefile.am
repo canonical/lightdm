@@ -1,13 +1,15 @@
 lib_LTLIBRARIES = libldmgreeter.la
 
 libldmgreeterinclude_HEADERS = \
-	greeter.h
+	greeter.h \
+	user.h
 
 libldmgreeter_la_LIBADD = $(LIBLDMGREETER_LIBS)
 libldmgreeter_la_CFLAGS = $(LIBLDMGREETER_CFLAGS)
 
 libldmgreeter_la_SOURCES= \
-	greeter.c
+	greeter.c \
+	user.c
 
 libldmgreeterincludedir=$(includedir)/lightdm-1.0
 
