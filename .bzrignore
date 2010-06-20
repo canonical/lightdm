@@ -32,6 +32,8 @@ doc/*.txt
 doc/xml
 greeters/ldm-gtk-greeter
 greeters/ldm-webkit-greeter
+libldmgreeter/*.gir
+libldmgreeter/*.typelib
 libldmgreeter/libldmgreeter-1.pc
 po/POTFILES
 po/stamp-it
