@@ -574,7 +574,7 @@ ldm_greeter_init (LdmGreeter *greeter)
     greeter->priv->display_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
                                                               "org.gnome.LightDisplayManager",
                                                               object,
-                                                              "org.gnome.LightDisplayManager.LdmGreeter");
+                                                              "org.gnome.LightDisplayManager.Greeter");
     greeter->priv->session_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
                                                               "org.gnome.LightDisplayManager",
                                                               "/org/gnome/LightDisplayManager/Session",
