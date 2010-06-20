@@ -9,29 +9,29 @@
  * license.
  */
 
-#ifndef _GREETER_H_
-#define _GREETER_H_
+#ifndef _LDM_GREETER_H_
+#define _LDM_GREETER_H_
 
 #include <glib-object.h>
 
 G_BEGIN_DECLS
 
-#define TYPE_GREETER            (greeter_get_type())
-#define GREETER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), TYPE_GREETER, Greeter));
-#define GREETER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), TYPE_GREETER, GreeterClass))
-#define IS_GREETER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), TYPE_GREETER))
-#define IS_GREETER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), TYPE_GREETER))
-#define GREETER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), TYPE_GREETER, GreeterClass))
+#define LDM_TYPE_GREETER            (ldm_greeter_get_type())
+#define LDM_GREETER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), LDM_TYPE_GREETER, LdmGreeter));
+#define LDM_GREETER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), LDM_TYPE_GREETER, LdmGreeterClass))
+#define LDM_IS_GREETER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), LDM_TYPE_GREETER))
+#define LDM_IS_GREETER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LDM_TYPE_GREETER))
+#define LDM_GREETER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LDM_TYPE_GREETER, LdmGreeterClass))
 
 
 /*<private>*/
-typedef struct GreeterPrivate GreeterPrivate;
+typedef struct LdmGreeterPrivate LdmGreeterPrivate;
 
 typedef struct
 {
-    GObject         parent_instance;
-    GreeterPrivate *priv;
-} Greeter;
+    GObject            parent_instance;
+    LdmGreeterPrivate *priv;
+} LdmGreeter;
 
 typedef struct
 {
@@ -39,12 +39,12 @@ typedef struct
 
     /*< private >*/
 
-    void (*show_prompt)(Greeter *greeter, const gchar *text);
-    void (*show_message)(Greeter *greeter, const gchar *text);
-    void (*show_error)(Greeter *greeter, const gchar *text);
-    void (*authentication_complete)(Greeter *greeter);
-    void (*timed_login)(Greeter *greeter, const gchar *username);
-} GreeterClass;
+    void (*show_prompt)(LdmGreeter *greeter, const gchar *text);
+    void (*show_message)(LdmGreeter *greeter, const gchar *text);
+    void (*show_error)(LdmGreeter *greeter, const gchar *text);
+    void (*authentication_complete)(LdmGreeter *greeter);
+    void (*timed_login)(LdmGreeter *greeter, const gchar *username);
+} LdmGreeterClass;
 
 typedef struct
 {
@@ -61,52 +61,52 @@ typedef struct
    gchar *comment;
 } Session;
 
-GType greeter_get_type (void);
+GType ldm_greeter_get_type (void);
 
-Greeter *greeter_new (void);
+LdmGreeter *ldm_greeter_new (void);
 
-gboolean greeter_connect (Greeter *greeter);
+gboolean ldm_greeter_connect (LdmGreeter *greeter);
 
-gint greeter_get_num_users (Greeter *greeter);
+gint ldm_greeter_get_num_users (LdmGreeter *greeter);
 
-const GList *greeter_get_users (Greeter *greeter);
+const GList *ldm_greeter_get_users (LdmGreeter *greeter);
 
-const GList *greeter_get_sessions (Greeter *greeter);
+const GList *ldm_greeter_get_sessions (LdmGreeter *greeter);
 
-const gchar *greeter_get_session (Greeter *greeter);
+const gchar *ldm_greeter_get_session (LdmGreeter *greeter);
 
-void greeter_set_session (Greeter *greeter, const gchar *session);
+void ldm_greeter_set_session (LdmGreeter *greeter, const gchar *session);
 
-const gchar *greeter_get_timed_login_user (Greeter *greeter);
+const gchar *ldm_greeter_get_timed_login_user (LdmGreeter *greeter);
 
-gint greeter_get_timed_login_delay (Greeter *greeter);
+gint ldm_greeter_get_timed_login_delay (LdmGreeter *greeter);
 
-void greeter_cancel_timed_login (Greeter *greeter);
+void ldm_greeter_cancel_timed_login (LdmGreeter *greeter);
 
-void greeter_start_authentication (Greeter *greeter, const char *username);
+void ldm_greeter_start_authentication (LdmGreeter *greeter, const char *username);
 
-void greeter_provide_secret (Greeter *greeter, const gchar *secret);
+void ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret);
 
-void greeter_cancel_authentication (Greeter *greeter);
+void ldm_greeter_cancel_authentication (LdmGreeter *greeter);
 
-gboolean greeter_get_is_authenticated (Greeter *greeter);
+gboolean ldm_greeter_get_is_authenticated (LdmGreeter *greeter);
 
-gboolean greeter_get_can_suspend (Greeter *greeter);
+gboolean ldm_greeter_get_can_suspend (LdmGreeter *greeter);
 
-void greeter_suspend (Greeter *greeter);
+void ldm_greeter_suspend (LdmGreeter *greeter);
 
-gboolean greeter_get_can_hibernate (Greeter *greeter);
+gboolean ldm_greeter_get_can_hibernate (LdmGreeter *greeter);
 
-void greeter_hibernate (Greeter *greeter);
+void ldm_greeter_hibernate (LdmGreeter *greeter);
 
-gboolean greeter_get_can_restart (Greeter *greeter);
+gboolean ldm_greeter_get_can_restart (LdmGreeter *greeter);
 
-void greeter_restart (Greeter *greeter);
+void ldm_greeter_restart (LdmGreeter *greeter);
 
-gboolean greeter_get_can_shutdown (Greeter *greeter);
+gboolean ldm_greeter_get_can_shutdown (LdmGreeter *greeter);
 
-void greeter_shutdown (Greeter *greeter);
+void ldm_greeter_shutdown (LdmGreeter *greeter);
 
 G_END_DECLS
 
-#endif /* _GREETER_H_ */
+#endif /* _LDM_GREETER_H_ */

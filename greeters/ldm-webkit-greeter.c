@@ -20,7 +20,7 @@
 static JSClassRef ldm_class, ldm_user_class, ldm_session_class;
 
 static void
-show_prompt_cb (Greeter *greeter, const gchar *text, WebKitWebView *view)
+show_prompt_cb (LdmGreeter *greeter, const gchar *text, WebKitWebView *view)
 {
     gchar *command;
 
@@ -30,7 +30,7 @@ show_prompt_cb (Greeter *greeter, const gchar *text, WebKitWebView *view)
 }
 
 static void
-show_message_cb (Greeter *greeter, const gchar *text, WebKitWebView *view)
+show_message_cb (LdmGreeter *greeter, const gchar *text, WebKitWebView *view)
 {
     gchar *command;
 
@@ -40,13 +40,13 @@ show_message_cb (Greeter *greeter, const gchar *text, WebKitWebView *view)
 }
 
 static void
-authentication_complete_cb (Greeter *greeter, WebKitWebView *view)
+authentication_complete_cb (LdmGreeter *greeter, WebKitWebView *view)
 {
     webkit_web_view_execute_script (view, "authentication_complete()");
 }
 
 static void
-timed_login_cb (Greeter *greeter, const gchar *username)
+timed_login_cb (LdmGreeter *greeter, const gchar *username)
 {
     gtk_main_quit ();
 }
@@ -145,10 +145,10 @@ get_num_users_cb (JSContextRef context,
                   JSStringRef propertyName,
                   JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
     gint num_users;
   
-    num_users = greeter_get_num_users (greeter);
+    num_users = ldm_greeter_get_num_users (greeter);
     return JSValueMakeNumber (context, num_users);
 }
 
@@ -158,13 +158,13 @@ get_users_cb (JSContextRef context,
               JSStringRef propertyName,
               JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
     JSObjectRef array;
     const GList *users, *link;
     guint i, n_users = 0;
     JSValueRef *args;
   
-    users = greeter_get_users (greeter);
+    users = ldm_greeter_get_users (greeter);
     n_users = g_list_length ((GList *)users);
     args = g_malloc (sizeof (JSValueRef) * (n_users + 1));
     for (i = 0, link = users; link; i++, link = link->next)
@@ -184,13 +184,13 @@ get_sessions_cb (JSContextRef context,
                  JSStringRef propertyName,
                  JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
     JSObjectRef array;
     const GList *sessions, *link;
     guint i, n_sessions = 0;
     JSValueRef *args;
   
-    sessions = greeter_get_sessions (greeter);
+    sessions = ldm_greeter_get_sessions (greeter);
     n_sessions = g_list_length ((GList *)sessions);
     args = g_malloc (sizeof (JSValueRef) * (n_sessions + 1));
     for (i = 0, link = sessions; link; i++, link = link->next)
@@ -210,10 +210,10 @@ get_session_cb (JSContextRef context,
                 JSStringRef propertyName,
                 JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
     JSStringRef string;
 
-    string = JSStringCreateWithUTF8CString (greeter_get_session (greeter));
+    string = JSStringCreateWithUTF8CString (ldm_greeter_get_session (greeter));
 
     return JSValueMakeString (context, string);
 }
@@ -225,7 +225,7 @@ set_session_cb (JSContextRef context,
                 JSValueRef value,
                 JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);  
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);  
     JSStringRef session_arg;
     char session[1024];
 
@@ -237,7 +237,7 @@ set_session_cb (JSContextRef context,
     JSStringGetUTF8CString (session_arg, session, 1024);
     JSStringRelease (session_arg);
   
-    greeter_set_session (greeter, session);
+    ldm_greeter_set_session (greeter, session);
 
     return true;
 }
@@ -248,10 +248,10 @@ get_timed_login_user_cb (JSContextRef context,
                          JSStringRef propertyName,
                          JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
     JSStringRef string;
 
-    string = JSStringCreateWithUTF8CString (greeter_get_timed_login_user (greeter));
+    string = JSStringCreateWithUTF8CString (ldm_greeter_get_timed_login_user (greeter));
 
     return JSValueMakeString (context, string);
 }
@@ -262,10 +262,10 @@ get_timed_login_delay_cb (JSContextRef context,
                           JSStringRef propertyName,
                           JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
     gint delay;
   
-    delay = greeter_get_timed_login_delay (greeter);
+    delay = ldm_greeter_get_timed_login_delay (greeter);
     return JSValueMakeNumber (context, delay);
 }
 
@@ -277,13 +277,13 @@ cancel_timed_login_cb (JSContextRef context,
                        const JSValueRef arguments[],
                        JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
 
     // FIXME: Throw exception
     if (argumentCount != 0)
         return JSValueMakeNull (context);
   
-    greeter_cancel_timed_login (greeter);
+    ldm_greeter_cancel_timed_login (greeter);
     return JSValueMakeNull (context);
 }
 
@@ -295,7 +295,7 @@ start_authentication_cb (JSContextRef context,
                          const JSValueRef arguments[],
                          JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
     JSStringRef name_arg;
     char name[1024];
 
@@ -307,7 +307,7 @@ start_authentication_cb (JSContextRef context,
     JSStringGetUTF8CString (name_arg, name, 1024);
     JSStringRelease (name_arg);
 
-    greeter_start_authentication (greeter, name);
+    ldm_greeter_start_authentication (greeter, name);
     return JSValueMakeNull (context);
 }
 
@@ -319,7 +319,7 @@ provide_secret_cb (JSContextRef context,
                    const JSValueRef arguments[],
                    JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
     JSStringRef secret_arg;
     char secret[1024];
 
@@ -331,7 +331,7 @@ provide_secret_cb (JSContextRef context,
     JSStringGetUTF8CString (secret_arg, secret, 1024);
     JSStringRelease (secret_arg);
 
-    greeter_provide_secret (greeter, secret);
+    ldm_greeter_provide_secret (greeter, secret);
     return JSValueMakeNull (context);
 }
 
@@ -343,13 +343,13 @@ cancel_authentication_cb (JSContextRef context,
                           const JSValueRef arguments[],
                           JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
 
     // FIXME: Throw exception
     if (argumentCount != 0)
         return JSValueMakeNull (context);
 
-    greeter_cancel_authentication (greeter);
+    ldm_greeter_cancel_authentication (greeter);
     return JSValueMakeNull (context);
 }
 
@@ -359,8 +359,8 @@ get_is_authenticated_cb (JSContextRef context,
                          JSStringRef propertyName,
                          JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
-    return JSValueMakeBoolean (context, greeter_get_is_authenticated (greeter));
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    return JSValueMakeBoolean (context, ldm_greeter_get_is_authenticated (greeter));
 }
 
 static JSValueRef
@@ -369,8 +369,8 @@ get_can_suspend_cb (JSContextRef context,
                     JSStringRef propertyName,
                     JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
-    return JSValueMakeBoolean (context, greeter_get_can_suspend (greeter));
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    return JSValueMakeBoolean (context, ldm_greeter_get_can_suspend (greeter));
 }
 
 static JSValueRef
@@ -381,13 +381,13 @@ suspend_cb (JSContextRef context,
             const JSValueRef arguments[],
             JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
 
     // FIXME: Throw exception
     if (argumentCount != 0)
         return JSValueMakeNull (context);
 
-    greeter_suspend (greeter);
+    ldm_greeter_suspend (greeter);
     return JSValueMakeNull (context);
 }
 
@@ -397,8 +397,8 @@ get_can_hibernate_cb (JSContextRef context,
                       JSStringRef propertyName,
                       JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
-    return JSValueMakeBoolean (context, greeter_get_can_hibernate (greeter));  
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    return JSValueMakeBoolean (context, ldm_greeter_get_can_hibernate (greeter));  
 }
 
 static JSValueRef
@@ -409,13 +409,13 @@ hibernate_cb (JSContextRef context,
               const JSValueRef arguments[],
               JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
 
     // FIXME: Throw exception
     if (argumentCount != 0)
         return JSValueMakeNull (context);
 
-    greeter_hibernate (greeter);
+    ldm_greeter_hibernate (greeter);
     return JSValueMakeNull (context);
 }
 
@@ -425,8 +425,8 @@ get_can_restart_cb (JSContextRef context,
                     JSStringRef propertyName,
                     JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
-    return JSValueMakeBoolean (context, greeter_get_can_restart (greeter));
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    return JSValueMakeBoolean (context, ldm_greeter_get_can_restart (greeter));
 }
 
 static JSValueRef
@@ -437,13 +437,13 @@ restart_cb (JSContextRef context,
             const JSValueRef arguments[],
             JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
 
     // FIXME: Throw exception
     if (argumentCount != 0)
         return JSValueMakeNull (context);
 
-    greeter_restart (greeter);
+    ldm_greeter_restart (greeter);
     return JSValueMakeNull (context);
 }
 
@@ -453,8 +453,8 @@ get_can_shutdown_cb (JSContextRef context,
                      JSStringRef propertyName,
                      JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
-    return JSValueMakeBoolean (context, greeter_get_can_shutdown (greeter));
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    return JSValueMakeBoolean (context, ldm_greeter_get_can_shutdown (greeter));
 }
 
 static JSValueRef
@@ -465,13 +465,13 @@ shutdown_cb (JSContextRef context,
              const JSValueRef arguments[],
              JSValueRef *exception)
 {
-    Greeter *greeter = JSObjectGetPrivate (thisObject);
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
 
     // FIXME: Throw exception
     if (argumentCount != 0)
         return JSValueMakeNull (context);
 
-    greeter_shutdown (greeter);  
+    ldm_greeter_shutdown (greeter);  
     return JSValueMakeNull (context);
 }
 
@@ -570,7 +570,7 @@ window_object_cleared_cb (WebKitWebView  *web_view,
                           WebKitWebFrame *frame,
                           JSGlobalContextRef context,
                           JSObjectRef window_object,
-                          Greeter *greeter)
+                          LdmGreeter *greeter)
 {
     JSObjectRef ldm_object;
 
@@ -588,7 +588,7 @@ window_object_cleared_cb (WebKitWebView  *web_view,
 int
 main(int argc, char **argv)
 {
-    Greeter *greeter;
+    LdmGreeter *greeter;
     GdkDisplay *display;
     GdkScreen *screen;
     gint screen_width, screen_height;
@@ -603,7 +603,7 @@ main(int argc, char **argv)
     }
     url = argv[1];
 
-    greeter = greeter_new ();
+    greeter = ldm_greeter_new ();
 
     display = gdk_display_get_default ();
     screen = gdk_display_get_default_screen (display);
@@ -626,7 +626,7 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "timed-login", G_CALLBACK (timed_login_cb), web_view);
 
     webkit_web_view_load_uri (WEBKIT_WEB_VIEW (web_view), url);
-    greeter_connect (greeter);
+    ldm_greeter_connect (greeter);
 
     gtk_widget_show_all (window);
 

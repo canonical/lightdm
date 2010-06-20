@@ -18,6 +18,21 @@
 #include "greeter.h"
 
 enum {
+    PROP_0,
+    PROP_NUM_USERS,
+    PROP_USERS,
+    PROP_SESSIONS,
+    PROP_SESSION,
+    PROP_TIMED_LOGIN_USER,
+    PROP_TIMED_LOGIN_DELAY,
+    PROP_IS_AUTHENTICATED,
+    PROP_CAN_SUSPEND,
+    PROP_CAN_HIBERNATE,
+    PROP_CAN_RESTART,
+    PROP_CAN_SHUTDOWN
+};
+
+enum {
     SHOW_PROMPT,
     SHOW_MESSAGE,
     SHOW_ERROR,
@@ -27,7 +42,7 @@ enum {
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
-struct GreeterPrivate
+struct LdmGreeterPrivate
 {
     DBusGConnection *lightdm_bus;
 
@@ -49,31 +64,25 @@ struct GreeterPrivate
     guint login_timeout;
 };
 
-G_DEFINE_TYPE (Greeter, greeter, G_TYPE_OBJECT);
+G_DEFINE_TYPE (LdmGreeter, ldm_greeter, G_TYPE_OBJECT);
 
 /**
- * greeter_new:
+ * ldm_greeter_new:
  * 
  * Create a new greeter.
  * 
- * Return value: the new #Greeter
+ * Return value: the new #LdmGreeter
  **/
-Greeter *
-greeter_new (/*int argc, char **argv*/)
+LdmGreeter *
+ldm_greeter_new ()
 {
-    /*if (argc != 2)
-    {
-        g_warning ("Incorrect arguments provided to Greeter");
-        return NULL;
-    }*/
-
-    return g_object_new (TYPE_GREETER, /*"?", argv[1],*/ NULL);
+    return g_object_new (LDM_TYPE_GREETER, NULL);
 }
 
 static gboolean
 timed_login_cb (gpointer data)
 {
-    Greeter *greeter = data;
+    LdmGreeter *greeter = data;
 
     g_signal_emit (G_OBJECT (greeter), signals[TIMED_LOGIN], 0, greeter->priv->timed_user);
 
@@ -81,7 +90,7 @@ timed_login_cb (gpointer data)
 }
 
 /**
- * greeter_connect:
+ * ldm_greeter_connect:
  * @greeter: The greeter to connect
  *
  * Connects the greeter to the display manager.
@@ -89,7 +98,7 @@ timed_login_cb (gpointer data)
  * Return value: TRUE if successfully connected
  **/
 gboolean
-greeter_connect (Greeter *greeter)
+ldm_greeter_connect (LdmGreeter *greeter)
 {
     gboolean result;
     GError *error = NULL;
@@ -121,7 +130,7 @@ greeter_connect (Greeter *greeter)
 #define TYPE_USER_LIST dbus_g_type_get_collection ("GPtrArray", TYPE_USER)
 
 static void
-update_users (Greeter *greeter)
+update_users (LdmGreeter *greeter)
 {
     GPtrArray *users;
     gboolean result;
@@ -164,26 +173,26 @@ update_users (Greeter *greeter)
 }
 
 /**
- * greeter_get_num_users:
- * @greeter: a #Greeter
+ * ldm_greeter_get_num_users:
+ * @greeter: a #LdmGreeter
  *
  * Return value: The number of users able to log in
  **/
 gint
-greeter_get_num_users (Greeter *greeter)
+ldm_greeter_get_num_users (LdmGreeter *greeter)
 {
     update_users (greeter);
     return g_list_length (greeter->priv->users);
 }
 
 /**
- * greeter_get_users:
+ * ldm_greeter_get_users:
  * @greeter:
  * 
  * Return value: A list of #UserInfo that should be presented to the user.
  */
 const GList *
-greeter_get_users (Greeter *greeter)
+ldm_greeter_get_users (LdmGreeter *greeter)
 {
     update_users (greeter);
     return greeter->priv->users;
@@ -193,7 +202,7 @@ greeter_get_users (Greeter *greeter)
 #define TYPE_SESSION_LIST dbus_g_type_get_collection ("GPtrArray", TYPE_SESSION)
 
 static void
-update_sessions (Greeter *greeter)
+update_sessions (LdmGreeter *greeter)
 {
     GPtrArray *sessions;
     gboolean result;
@@ -236,14 +245,14 @@ update_sessions (Greeter *greeter)
 }
 
 const GList *
-greeter_get_sessions (Greeter *greeter)
+ldm_greeter_get_sessions (LdmGreeter *greeter)
 {
     update_sessions (greeter);
     return greeter->priv->sessions;
 }
 
 void
-greeter_set_session (Greeter *greeter, const gchar *session)
+ldm_greeter_set_session (LdmGreeter *greeter, const gchar *session)
 {
     GError *error = NULL;
 
@@ -261,25 +270,25 @@ greeter_set_session (Greeter *greeter, const gchar *session)
 }
 
 const gchar *
-greeter_get_session (Greeter *greeter)
+ldm_greeter_get_session (LdmGreeter *greeter)
 {
     return greeter->priv->session;
 }
 
 const gchar *
-greeter_get_timed_login_user (Greeter *greeter)
+ldm_greeter_get_timed_login_user (LdmGreeter *greeter)
 {
     return greeter->priv->timed_user;
 }
 
 gint
-greeter_get_timed_login_delay (Greeter *greeter)
+ldm_greeter_get_timed_login_delay (LdmGreeter *greeter)
 {
     return greeter->priv->login_delay;
 }
 
 void
-greeter_cancel_timed_login (Greeter *greeter)
+ldm_greeter_cancel_timed_login (LdmGreeter *greeter)
 {
     if (greeter->priv->login_timeout)
        g_source_remove (greeter->priv->login_timeout);
@@ -292,7 +301,7 @@ greeter_cancel_timed_login (Greeter *greeter)
 static void
 auth_response_cb (DBusGProxy *proxy, DBusGProxyCall *call, gpointer userdata)
 {
-    Greeter *greeter = userdata;
+    LdmGreeter *greeter = userdata;
     gboolean result;
     GError *error = NULL;
     gint return_code;
@@ -346,13 +355,13 @@ auth_response_cb (DBusGProxy *proxy, DBusGProxyCall *call, gpointer userdata)
 }
 
 void
-greeter_start_authentication (Greeter *greeter, const char *username)
+ldm_greeter_start_authentication (LdmGreeter *greeter, const char *username)
 {
     dbus_g_proxy_begin_call (greeter->priv->display_proxy, "StartAuthentication", auth_response_cb, greeter, NULL, G_TYPE_STRING, username, G_TYPE_INVALID);
 }
 
 void
-greeter_provide_secret (Greeter *greeter, const gchar *secret)
+ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret)
 {
     gchar **secrets;
 
@@ -364,24 +373,24 @@ greeter_provide_secret (Greeter *greeter, const gchar *secret)
 }
 
 void
-greeter_cancel_authentication (Greeter *greeter)
+ldm_greeter_cancel_authentication (LdmGreeter *greeter)
 {
 }
 
 gboolean
-greeter_get_is_authenticated (Greeter *greeter)
+ldm_greeter_get_is_authenticated (LdmGreeter *greeter)
 {
     return greeter->priv->is_authenticated;
 }
 
 /**
- * greeter_get_can_suspend:
- * @greeter: A #Greeter
+ * ldm_greeter_get_can_suspend:
+ * @greeter: A #LdmGreeter
  *
  * Return value: TRUE if the greeter can suspend the machine
  **/
 gboolean
-greeter_get_can_suspend (Greeter *greeter)
+ldm_greeter_get_can_suspend (LdmGreeter *greeter)
 {
     DBusGProxy *proxy;
     gboolean result = FALSE;
@@ -401,7 +410,7 @@ greeter_get_can_suspend (Greeter *greeter)
 }
 
 void
-greeter_suspend (Greeter *greeter)
+ldm_greeter_suspend (LdmGreeter *greeter)
 {
     DBusGProxy *proxy;
     GError *error = NULL;
@@ -418,7 +427,7 @@ greeter_suspend (Greeter *greeter)
 }
 
 gboolean
-greeter_get_can_hibernate (Greeter *greeter)
+ldm_greeter_get_can_hibernate (LdmGreeter *greeter)
 {
     DBusGProxy *proxy;
     gboolean result = FALSE;
@@ -438,7 +447,7 @@ greeter_get_can_hibernate (Greeter *greeter)
 }
 
 void
-greeter_hibernate (Greeter *greeter)
+ldm_greeter_hibernate (LdmGreeter *greeter)
 {
     DBusGProxy *proxy;
     GError *error = NULL;
@@ -455,7 +464,7 @@ greeter_hibernate (Greeter *greeter)
 }
 
 gboolean
-greeter_get_can_restart (Greeter *greeter)
+ldm_greeter_get_can_restart (LdmGreeter *greeter)
 {
     DBusGProxy *proxy;
     gboolean result = FALSE;
@@ -475,7 +484,7 @@ greeter_get_can_restart (Greeter *greeter)
 }
 
 void
-greeter_restart (Greeter *greeter)
+ldm_greeter_restart (LdmGreeter *greeter)
 {
     DBusGProxy *proxy;
     GError *error = NULL;
@@ -492,7 +501,7 @@ greeter_restart (Greeter *greeter)
 }
 
 gboolean
-greeter_get_can_shutdown (Greeter *greeter)
+ldm_greeter_get_can_shutdown (LdmGreeter *greeter)
 {
     DBusGProxy *proxy;
     gboolean result = FALSE;
@@ -512,7 +521,7 @@ greeter_get_can_shutdown (Greeter *greeter)
 }
 
 void
-greeter_shutdown (Greeter *greeter)
+ldm_greeter_shutdown (LdmGreeter *greeter)
 {
     DBusGProxy *proxy;
     GError *error = NULL;
@@ -529,13 +538,13 @@ greeter_shutdown (Greeter *greeter)
 }
 
 static void
-greeter_init (Greeter *greeter)
+ldm_greeter_init (LdmGreeter *greeter)
 {
     GError *error = NULL;
     const gchar *bus_address, *object;
     DBusBusType bus_type = DBUS_BUS_SYSTEM;
 
-    greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, TYPE_GREETER, GreeterPrivate);
+    greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, LDM_TYPE_GREETER, LdmGreeterPrivate);
 
     greeter->priv->system_bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
     if (!greeter->priv->system_bus)
@@ -558,7 +567,7 @@ greeter_init (Greeter *greeter)
     greeter->priv->display_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
                                                               "org.gnome.LightDisplayManager",
                                                               object,
-                                                              "org.gnome.LightDisplayManager.Greeter");
+                                                              "org.gnome.LightDisplayManager.LdmGreeter");
     greeter->priv->session_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
                                                               "org.gnome.LightDisplayManager",
                                                               "/org/gnome/LightDisplayManager/Session",
@@ -570,12 +579,160 @@ greeter_init (Greeter *greeter)
 }
 
 static void
-greeter_class_init (GreeterClass *klass)
+ldm_greeter_set_property(GObject      *object,
+                         guint         prop_id,
+                         const GValue *value,
+                         GParamSpec   *pspec)
 {
-    g_type_class_add_private (klass, sizeof (GreeterPrivate));
+    LdmGreeter *self;
+    gint i, n_pages;
+
+    self = LDM_GREETER (object);
+
+    switch (prop_id) {
+    case PROP_SESSION:
+        ldm_greeter_set_session(self, g_value_get_string (value));
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        break;
+    }
+}
+
+static void
+ldm_greeter_get_property(GObject    *object,
+                         guint       prop_id,
+                         GValue     *value,
+                         GParamSpec *pspec)
+{
+    LdmGreeter *self;
+
+    self = LDM_GREETER (object);
+
+    switch (prop_id) {
+    case PROP_NUM_USERS:
+        g_value_set_int (value, ldm_greeter_get_num_users (self));
+        break;
+    case PROP_USERS:
+        break;
+    case PROP_SESSIONS:
+        break;
+    case PROP_SESSION:
+        g_value_set_string (value, ldm_greeter_get_session (self));
+        break;
+    case PROP_TIMED_LOGIN_USER:
+        g_value_set_string (value, ldm_greeter_get_timed_login_user (self));
+        break;
+    case PROP_TIMED_LOGIN_DELAY:
+        g_value_set_int (value, ldm_greeter_get_timed_login_delay (self));
+        break;
+    case PROP_IS_AUTHENTICATED:
+        g_value_set_boolean (value, ldm_greeter_get_is_authenticated (self));
+        break;
+    case PROP_CAN_SUSPEND:
+        g_value_set_boolean (value, ldm_greeter_get_can_suspend (self));
+        break;
+    case PROP_CAN_HIBERNATE:
+        g_value_set_boolean (value, ldm_greeter_get_can_hibernate (self));
+        break;
+    case PROP_CAN_RESTART:
+        g_value_set_boolean (value, ldm_greeter_get_can_restart (self));
+        break;
+    case PROP_CAN_SHUTDOWN:
+        g_value_set_boolean (value, ldm_greeter_get_can_shutdown (self));
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        break;
+    }
+}
+
+static void
+ldm_greeter_class_init (LdmGreeterClass *klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+  
+    g_type_class_add_private (klass, sizeof (LdmGreeterPrivate));
+
+    object_class->set_property = ldm_greeter_set_property;
+    object_class->get_property = ldm_greeter_get_property;
+
+    g_object_class_install_property(object_class,
+                                    PROP_NUM_USERS,
+                                    g_param_spec_int("num-users",
+                                                     "num- users",
+                                                     "Number of login users",
+                                                     0, G_MAXINT, 0,
+                                                     G_PARAM_READABLE));
+    /*g_object_class_install_property(object_class,
+                                    PROP_USERS,
+                                    g_param_spec_list("users",
+                                                      "users",
+                                                      "Users that can login"));
+    g_object_class_install_property(object_class,
+                                    PROP_SESSIONS,
+                                    g_param_spec_list("sessions",
+                                                      "sessions",
+                                                      "Available sessions"));*/
+    g_object_class_install_property(object_class,
+                                    PROP_SESSION,
+                                    g_param_spec_string("session",
+                                                        "session",
+                                                        "Selected session",
+                                                        NULL,
+                                                        G_PARAM_READWRITE));
+    g_object_class_install_property(object_class,
+                                    PROP_TIMED_LOGIN_USER,
+                                    g_param_spec_string("timed-login-user",
+                                                        "timed-login-user",
+                                                        "User to login as when timed expires",
+                                                        NULL,
+                                                        G_PARAM_READABLE));
+    g_object_class_install_property(object_class,
+                                    PROP_TIMED_LOGIN_DELAY,
+                                    g_param_spec_int("login-delay",
+                                                     "login-delay",
+                                                     "Number of seconds until logging in as default user",
+                                                     G_MININT, G_MAXINT, 0,
+                                                     G_PARAM_READABLE));
+    g_object_class_install_property(object_class,
+                                    PROP_IS_AUTHENTICATED,
+                                    g_param_spec_boolean("is-authenticated",
+                                                         "is-authenticated",
+                                                         "TRUE if the selected user is authenticated",
+                                                         FALSE,
+                                                         G_PARAM_READABLE));
+    g_object_class_install_property(object_class,
+                                    PROP_CAN_SUSPEND,
+                                    g_param_spec_boolean("can-suspend",
+                                                         "can-suspend",
+                                                         "TRUE if allowed to suspend the machine",
+                                                         FALSE,
+                                                         G_PARAM_READABLE));
+    g_object_class_install_property(object_class,
+                                    PROP_CAN_HIBERNATE,
+                                    g_param_spec_boolean("can-hibernate",
+                                                         "can-hibernate",
+                                                         "TRUE if allowed to hibernate the machine",
+                                                         FALSE,
+                                                         G_PARAM_READABLE));
+    g_object_class_install_property(object_class,
+                                    PROP_CAN_RESTART,
+                                    g_param_spec_boolean("can-restart",
+                                                         "can-restart",
+                                                         "TRUE if allowed to restart the machine",
+                                                         FALSE,
+                                                         G_PARAM_READABLE));
+    g_object_class_install_property(object_class,
+                                    PROP_CAN_SHUTDOWN,
+                                    g_param_spec_boolean("can-shutdown",
+                                                         "can-shutdown",
+                                                         "TRUE if allowed to shutdown the machine",
+                                                         FALSE,
+                                                         G_PARAM_READABLE));
 
     /**
-     * Greeter::show-prompt:
+     * LdmGreeter::show-prompt:
      * @greeter: The greeter on which the signal is emitted
      * @text: The text to show in the prompt
      * 
@@ -586,7 +743,7 @@ greeter_class_init (GreeterClass *klass)
         g_signal_new ("show-prompt",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (GreeterClass, show_prompt),
+                      G_STRUCT_OFFSET (LdmGreeterClass, show_prompt),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__STRING,
                       G_TYPE_NONE, 1, G_TYPE_STRING);
@@ -594,7 +751,7 @@ greeter_class_init (GreeterClass *klass)
         g_signal_new ("show-message",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (GreeterClass, show_message),
+                      G_STRUCT_OFFSET (LdmGreeterClass, show_message),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__STRING,
                       G_TYPE_NONE, 1, G_TYPE_STRING);
@@ -602,7 +759,7 @@ greeter_class_init (GreeterClass *klass)
         g_signal_new ("show-error",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (GreeterClass, show_error),
+                      G_STRUCT_OFFSET (LdmGreeterClass, show_error),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__STRING,
                       G_TYPE_NONE, 1, G_TYPE_STRING);
@@ -610,7 +767,7 @@ greeter_class_init (GreeterClass *klass)
         g_signal_new ("authentication-complete",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (GreeterClass, authentication_complete),
+                      G_STRUCT_OFFSET (LdmGreeterClass, authentication_complete),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
@@ -618,7 +775,7 @@ greeter_class_init (GreeterClass *klass)
         g_signal_new ("timed-login",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (GreeterClass, timed_login),
+                      G_STRUCT_OFFSET (LdmGreeterClass, timed_login),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__STRING,
                       G_TYPE_NONE, 1, G_TYPE_STRING);

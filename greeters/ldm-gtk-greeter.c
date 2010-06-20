@@ -14,7 +14,7 @@
 
 #include "greeter.h"
 
-static Greeter *greeter;
+static LdmGreeter *greeter;
 static GtkListStore *user_model;
 static GtkWidget *user_window, *vbox, *label, *user_view;
 static GtkWidget *username_entry, *password_entry;
@@ -30,7 +30,7 @@ user_view_activate_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *
     gtk_tree_model_get (GTK_TREE_MODEL (user_model), &iter, 0, &user, -1);
 
     gtk_entry_set_text (GTK_ENTRY (username_entry), user);
-    greeter_start_authentication (greeter, user);
+    ldm_greeter_start_authentication (greeter, user);
 
     g_free (user);
 }
@@ -38,18 +38,18 @@ user_view_activate_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *
 static void
 username_activate_cb (GtkWidget *widget)
 {
-    greeter_start_authentication (greeter, gtk_entry_get_text (GTK_ENTRY (widget)));
+    ldm_greeter_start_authentication (greeter, gtk_entry_get_text (GTK_ENTRY (widget)));
 }
 
 static void
 password_activate_cb (GtkWidget *widget)
 {
     gtk_widget_set_sensitive (widget, FALSE);
-    greeter_provide_secret (greeter, gtk_entry_get_text (GTK_ENTRY (widget)));
+    ldm_greeter_provide_secret (greeter, gtk_entry_get_text (GTK_ENTRY (widget)));
 }
 
 static void
-show_prompt_cb (Greeter *greeter, const gchar *text)
+show_prompt_cb (LdmGreeter *greeter, const gchar *text)
 {
     gtk_widget_show (password_entry);
     gtk_widget_set_sensitive (password_entry, TRUE);
@@ -57,16 +57,16 @@ show_prompt_cb (Greeter *greeter, const gchar *text)
 }
 
 static void
-show_message_cb (Greeter *greeter, const gchar *text)
+show_message_cb (LdmGreeter *greeter, const gchar *text)
 {
     gtk_widget_show (label);
     gtk_label_set_text (GTK_LABEL (label), text);
 }
 
 static void
-authentication_complete_cb (Greeter *greeter)
+authentication_complete_cb (LdmGreeter *greeter)
 {
-    if (greeter_get_is_authenticated (greeter))
+    if (ldm_greeter_get_is_authenticated (greeter))
         gtk_main_quit ();
 
     gtk_widget_show (label);
@@ -76,7 +76,7 @@ authentication_complete_cb (Greeter *greeter)
 }
 
 static void
-timed_login_cb (Greeter *greeter, const gchar *username)
+timed_login_cb (LdmGreeter *greeter, const gchar *username)
 {
     gtk_main_quit ();
 }
@@ -85,7 +85,7 @@ static void
 session_changed_cb (GtkWidget *widget)
 {
     if (gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
-        greeter_set_session (greeter, g_object_get_data (G_OBJECT (widget), "key"));
+        ldm_greeter_set_session (greeter, g_object_get_data (G_OBJECT (widget), "key"));
 }
 
 int
@@ -105,7 +105,7 @@ main(int argc, char **argv)
 
     gtk_init (&argc, &argv);
 
-    greeter = greeter_new ();
+    greeter = ldm_greeter_new ();
 
     g_signal_connect (G_OBJECT (greeter), "show-prompt", G_CALLBACK (show_prompt_cb), NULL);  
     g_signal_connect (G_OBJECT (greeter), "show-message", G_CALLBACK (show_message_cb), NULL);
@@ -113,7 +113,7 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "timed-login", G_CALLBACK (timed_login_cb), NULL);
 
-    greeter_connect (greeter);
+    ldm_greeter_connect (greeter);
 
     display = gdk_display_get_default ();
     screen = gdk_display_get_default_screen (display);
@@ -142,7 +142,7 @@ main(int argc, char **argv)
     gtk_widget_set_no_show_all (label, TRUE);    
 
     user_model = gtk_list_store_new (3, G_TYPE_STRING, G_TYPE_STRING, GDK_TYPE_PIXBUF);
-    users = greeter_get_users (greeter);
+    users = ldm_greeter_get_users (greeter);
     for (link = users; link; link = link->next)
     {
         UserInfo *user = link->data;
@@ -232,7 +232,7 @@ main(int argc, char **argv)
 
     menu = gtk_menu_new ();
     gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
-    sessions = greeter_get_sessions (greeter);
+    sessions = ldm_greeter_get_sessions (greeter);
     for (link = sessions; link; link = link->next)
     {
         Session *session = link->data;
@@ -241,7 +241,7 @@ main(int argc, char **argv)
         session_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (item));
         gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
 
-        if (g_str_equal (session->key, greeter_get_session (greeter)))
+        if (g_str_equal (session->key, ldm_greeter_get_session (greeter)))
             gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item), TRUE);
 
         g_object_set_data (G_OBJECT (item), "key", g_strdup (session->key));
@@ -249,22 +249,22 @@ main(int argc, char **argv)
     }
  
     menu = gtk_menu_new ();
-    if (greeter_get_can_suspend (greeter))
+    if (ldm_greeter_get_can_suspend (greeter))
     {
         gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Suspend"));
         n_power_items++;
     }
-    if (greeter_get_can_hibernate (greeter))
+    if (ldm_greeter_get_can_hibernate (greeter))
     {
         gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Hibernate"));
         n_power_items++;
     }
-    if (greeter_get_can_restart (greeter))
+    if (ldm_greeter_get_can_restart (greeter))
     {
         gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Restart..."));
         n_power_items++;
     }
-    if (greeter_get_can_shutdown (greeter))
+    if (ldm_greeter_get_can_shutdown (greeter))
     {
         gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Shutdown..."));
         n_power_items++;
