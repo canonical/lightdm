@@ -21,6 +21,7 @@
 #include "display-glue.h"
 #include "xserver.h"
 #include "pam-session.h"
+#include "theme.h"
 
 enum {
     PROP_0,
@@ -293,74 +294,6 @@ start_user_session (Display *display)
 
     display->priv->active_session = SESSION_USER;
     open_session (display, pam_session_get_username (display->priv->pam_session), session->exec, FALSE);
-}
-
-static GKeyFile *
-load_theme (const gchar *name, GError **error)
-{
-    gchar *filename, *path;
-    GKeyFile *theme;
-    gboolean result;
-
-    filename = g_strdup_printf ("%s.theme", name);
-    path = g_build_filename (THEME_DIR, filename, NULL);
-    g_free (filename);
-
-    theme = g_key_file_new ();
-    result = g_key_file_load_from_file (theme, path, G_KEY_FILE_NONE, error);
-    g_free (path);
-
-    if (!result)
-    {
-        g_key_file_free (theme);
-        return NULL;
-    }
-
-    return theme;
-}
-
-static gchar *
-theme_get_command (GKeyFile *theme)
-{
-    gchar *engine, *command = NULL;
-
-    engine = g_key_file_get_value (theme, "theme", "engine", NULL);
-    if (!engine)
-    {
-        g_warning ("No engine defined in theme");
-        return NULL;
-    }
-
-    if (strcmp (engine, "gtk") == 0)
-        command = g_build_filename (THEME_ENGINE_DIR, "ldm-gtk-greeter", NULL);
-    else if (strcmp (engine, "webkit") == 0)
-    {
-        gchar *binary, *url;
-
-        binary = g_build_filename (THEME_ENGINE_DIR, "ldm-webkit-greeter", NULL);
-        url = g_key_file_get_value (theme, "theme", "url", NULL);
-        if (url)
-        {
-            if (strchr (url, ':'))
-                command = g_strdup_printf ("%s %s", binary, url);
-            else
-                command = g_strdup_printf ("%s file://%s/%s", binary, THEME_DIR, url);
-        }
-        else
-            g_warning ("Missing URL in WebKit theme");
-        g_free (binary);
-        g_free (url);
-    }
-    else if (strcmp (engine, "custom") == 0)
-    {
-        command = g_key_file_get_value (theme, "theme", "command", NULL);
-        if (!command)
-            g_warning ("Missing command in custom theme");
-    }
-    else
-        g_warning ("Unknown theme engine: %s", engine);
-
-    return command;
 }
 
 static void

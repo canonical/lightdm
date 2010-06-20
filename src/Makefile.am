@@ -19,6 +19,8 @@ lightdm_SOURCES = \
 	pam-session.h \
 	session-manager.c \
 	session-manager.h \
+	theme.c \
+	theme.h \
 	user-manager.c \
 	user-manager.h \
 	xserver.c \
