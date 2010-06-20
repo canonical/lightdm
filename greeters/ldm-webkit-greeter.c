@@ -106,10 +106,10 @@ get_session_key_cb (JSContextRef context,
                     JSStringRef propertyName,
                     JSValueRef *exception)
 {
-    Session *session = JSObjectGetPrivate (thisObject);
+    LdmSession *session = JSObjectGetPrivate (thisObject);
     JSStringRef string;
 
-    string = JSStringCreateWithUTF8CString (session->key);
+    string = JSStringCreateWithUTF8CString (ldm_session_get_key (session));
     return JSValueMakeString (context, string);
 }
 
@@ -119,10 +119,10 @@ get_session_name_cb (JSContextRef context,
                      JSStringRef propertyName,
                      JSValueRef *exception)
 {
-    Session *session = JSObjectGetPrivate (thisObject);
+    LdmSession *session = JSObjectGetPrivate (thisObject);
     JSStringRef string;
 
-    string = JSStringCreateWithUTF8CString (session->name);
+    string = JSStringCreateWithUTF8CString (ldm_session_get_name (session));
     return JSValueMakeString (context, string);
 }
 
@@ -132,10 +132,10 @@ get_session_comment_cb (JSContextRef context,
                         JSStringRef propertyName,
                         JSValueRef *exception)
 {
-    Session *session = JSObjectGetPrivate (thisObject);
+    LdmSession *session = JSObjectGetPrivate (thisObject);
     JSStringRef string;
 
-    string = JSStringCreateWithUTF8CString (session->comment);
+    string = JSStringCreateWithUTF8CString (ldm_session_get_comment (session));
     return JSValueMakeString (context, string);
 }
 
@@ -196,7 +196,8 @@ get_sessions_cb (JSContextRef context,
     args = g_malloc (sizeof (JSValueRef) * (n_sessions + 1));
     for (i = 0, link = sessions; link; i++, link = link->next)
     {
-        Session *session = link->data;
+        LdmSession *session = link->data;
+        g_object_ref (session);
         args[i] = JSObjectMake (context, ldm_session_class, session);
     }
 

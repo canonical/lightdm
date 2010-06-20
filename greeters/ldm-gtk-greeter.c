@@ -237,16 +237,16 @@ main(int argc, char **argv)
     sessions = ldm_greeter_get_sessions (greeter);
     for (link = sessions; link; link = link->next)
     {
-        Session *session = link->data;
+        LdmSession *session = link->data;
 
-        item = gtk_radio_menu_item_new_with_label (session_radio_list, session->name);
+        item = gtk_radio_menu_item_new_with_label (session_radio_list, ldm_session_get_name (session));
         session_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (item));
         gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
 
-        if (g_str_equal (session->key, ldm_greeter_get_session (greeter)))
+        if (g_str_equal (ldm_session_get_key (session), ldm_greeter_get_session (greeter)))
             gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item), TRUE);
 
-        g_object_set_data (G_OBJECT (item), "key", g_strdup (session->key));
+        g_object_set_data (G_OBJECT (item), "key", g_strdup (ldm_session_get_key (session)));
         g_signal_connect (item, "toggled", G_CALLBACK (session_changed_cb), NULL);
     }
  

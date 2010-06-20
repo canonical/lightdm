@@ -15,6 +15,7 @@
 #include <glib-object.h>
 
 #include "user.h"
+#include "session.h"
 
 G_BEGIN_DECLS
 
@@ -47,13 +48,6 @@ typedef struct
     void (*authentication_complete)(LdmGreeter *greeter);
     void (*timed_login)(LdmGreeter *greeter, const gchar *username);
 } LdmGreeterClass;
-
-typedef struct
-{
-   gchar *key;
-   gchar *name;
-   gchar *comment;
-} Session;
 
 GType ldm_greeter_get_type (void);
 

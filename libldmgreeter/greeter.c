@@ -229,15 +229,18 @@ update_sessions (LdmGreeter *greeter)
     for (i = 0; i < sessions->len; i++)
     {
         GValue value = { 0 };
-        Session *session;
-      
-        session = g_malloc0 (sizeof (Session));
-      
+        LdmSession *session;
+        gchar *key, *name, *comment;
+
         g_value_init (&value, TYPE_SESSION);
         g_value_set_static_boxed (&value, sessions->pdata[i]);
-        dbus_g_type_struct_get (&value, 0, &session->key, 1, &session->name, 2, &session->comment, G_MAXUINT);
-
+        dbus_g_type_struct_get (&value, 0, &key, 1, &name, 2, &comment, G_MAXUINT);
         g_value_unset (&value);
+
+        session = ldm_session_new (key, name, comment);
+        g_free (key);
+        g_free (name);
+        g_free (comment);
 
         greeter->priv->sessions = g_list_append (greeter->priv->sessions, session);
     }
