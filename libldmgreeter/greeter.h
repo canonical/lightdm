@@ -30,7 +30,7 @@ typedef struct GreeterPrivate GreeterPrivate;
 typedef struct
 {
     GObject         parent_instance;
-    GreeterPrivate *GSEAL (priv);
+    GreeterPrivate *priv;
 } Greeter;
 
 typedef struct
