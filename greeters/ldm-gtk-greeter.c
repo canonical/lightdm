@@ -152,7 +152,14 @@ main(int argc, char **argv)
 
         image = ldm_user_get_image (user);
         if (image[0] != '\0')
-            pixbuf = gdk_pixbuf_new_from_file_at_scale (image, 64, 64, TRUE, NULL);
+        {
+            gchar *path;
+
+            path = g_filename_from_uri (image, NULL, NULL);
+            if (path)
+                pixbuf = gdk_pixbuf_new_from_file_at_scale (path, 64, 64, TRUE, NULL);
+            g_free (path);
+        }
         if (!pixbuf)
             pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
                                                "stock_person",
