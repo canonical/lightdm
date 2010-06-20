@@ -661,6 +661,8 @@ display_init (Display *display)
 {
     display->priv = G_TYPE_INSTANCE_GET_PRIVATE (display, DISPLAY_TYPE, DisplayPrivate);
 
+    display->priv->session_name = g_strdup (DEFAULT_SESSION);
+
     // FIXME: How to get these?
     display->priv->display_device = g_strdup ("");
     display->priv->x11_display_device = g_strdup ("/dev/tty0");
@@ -673,12 +675,19 @@ display_set_property(GObject      *object,
                      GParamSpec   *pspec)
 {
     Display *self;
+    gchar *session;
 
     self = DISPLAY (object);
 
     switch (prop_id) {
     case PROP_CONFIG:
         self->priv->config = g_value_get_pointer (value);
+        session = g_key_file_get_value (self->priv->config, "LightDM", "session", NULL);
+        if (session)
+        {
+            g_free (self->priv->session_name);
+            self->priv->session_name = session;
+        }
         break;
     case PROP_SESSIONS:
         self->priv->sessions = g_object_ref (g_value_get_object (value));
