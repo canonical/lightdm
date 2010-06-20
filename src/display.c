@@ -221,6 +221,7 @@ open_session (Display *display, const gchar *username, const gchar *command, gbo
     gint argc;
     gchar **argv;
     gchar **env;
+    gchar *env_string;
     gint n_env = 0;
     GError *error = NULL;
 
@@ -261,7 +262,9 @@ open_session (Display *display, const gchar *username, const gchar *command, gbo
     if (!result)
         return;
 
-    g_debug ("Launching greeter: %s %s", command);
+    env_string = g_strjoinv (" ", env);
+    g_debug ("Launching greeter: %s %s", env_string, command);
+    g_free (env_string);
 
     result = g_spawn_async/*_with_pipes*/ (user_info->pw_dir,
                                        argv,
