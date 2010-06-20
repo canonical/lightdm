@@ -68,7 +68,7 @@ AC_ARG_WITH(xserver-binary,
 )    
 AC_SUBST(XSERVER_BINARY)
 
-XSESSION_DIR=${prefix}/share/xsessions
+XSESSION_DIR=/usr/share/xsessions
 AC_ARG_WITH(xsession-dir,
             AS_HELP_STRING([--with-xsession-dir=<dir>],
                            [X session directory]),
