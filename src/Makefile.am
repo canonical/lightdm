@@ -20,7 +20,9 @@ lightdm_SOURCES = \
 	session-manager.c \
 	session-manager.h \
 	user-manager.c \
-	user-manager.h
+	user-manager.h \
+	xserver.c \
+	xserver.h
 
 BUILT_SOURCES = \
 	display-glue.h \

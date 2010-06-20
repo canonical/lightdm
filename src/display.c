@@ -19,6 +19,7 @@
 
 #include "display.h"
 #include "display-glue.h"
+#include "xserver.h"
 #include "pam-session.h"
 
 enum {
@@ -50,11 +51,8 @@ struct DisplayPrivate
     SessionManager *sessions;
   
     gint index;
-  
-    /* Display device */
-    gchar *display_device; // ?
-    gchar *x11_display_device; // e.g. /dev/tty7
-    gchar *x11_display; // e.g. :0
+
+    XServer *xserver;
   
     /* X process */
     GPid xserver_pid;
@@ -105,16 +103,17 @@ static void
 start_session (Display *display)
 {
     DBusError error;
-    const gchar *username;
+    const gchar *username, *x11_display;
 
     display->priv->ck_session = ck_connector_new ();
     dbus_error_init (&error);
     username = pam_session_get_username (display->priv->pam_session);
+    x11_display = xserver_get_display (display->priv->xserver);
     if (!ck_connector_open_session_with_parameters (display->priv->ck_session, &error,
                                                     "unix-user", &username,
-                                                    "display-device", &display->priv->display_device,
-                                                    "x11-display-device", &display->priv->x11_display_device,
-                                                    "x11-display", &display->priv->x11_display,
+                                                    //"display-device", &display->priv->display_device,
+                                                    //"x11-display-device", &display->priv->x11_display_device,
+                                                    "x11-display", &x11_display,
                                                     NULL))
         g_warning ("Failed to open CK session: %s: %s", error.name, error.message);
 }
@@ -244,7 +243,7 @@ open_session (Display *display, const gchar *username, const gchar *command, gbo
     env[n_env++] = g_strdup_printf ("HOME=%s", user_info->pw_dir);
     env[n_env++] = g_strdup_printf ("SHELL=%s", user_info->pw_shell);
     env[n_env++] = g_strdup_printf ("HOME=%s", user_info->pw_dir);
-    env[n_env++] = g_strdup_printf ("DISPLAY=%s", display->priv->x11_display);
+    env[n_env++] = g_strdup_printf ("DISPLAY=%s", xserver_get_display (display->priv->xserver));
     if (is_greeter)
     {
         // FIXME: D-Bus not known about in here!
@@ -577,68 +576,17 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
 }
 
 static void
-xserver_watch_cb (GPid pid, gint status, gpointer data)
+xserver_exit_cb (XServer *server, Display *display)
 {
-    Display *display = data;
-
-    if (WIFEXITED (status))
-        g_debug ("Display exited with return value %d", WEXITSTATUS (status));
-    else if (WIFSIGNALED (status))
-        g_debug ("Display terminated with signal %d", WTERMSIG (status));
-
-    display->priv->xserver_pid = 0;
-
-    g_signal_emit (display, signals[EXITED], 0);
+    g_signal_emit (server, signals[EXITED], 0);  
 }
 
 void
 display_start (Display *display, const gchar *session, const gchar *username, gint timeout)
 {
-    GError *error = NULL;
-    gboolean result;
-    gchar *xserver_binary;
-    GString *command;
-    gint argc;
-    gchar **argv;
-    gchar *env[] = { NULL };
-    gint xserver_stdin, xserver_stdout, xserver_stderr;
-
-    xserver_binary = g_key_file_get_value (display->priv->config, "LightDM", "xserver", NULL);
-    if (!xserver_binary)
-        xserver_binary = g_strdup (XSERVER_BINARY);
-    command = g_string_new (xserver_binary);
-    g_string_append_printf (command, " %s", display->priv->x11_display);
-    g_string_append (command, " -nolisten tcp"); /* Disable TCP/IP connections */
-    g_string_append (command, " -nr");           /* No root background */
-    //g_string_append_printf (command, " vt%d");
-    g_free (xserver_binary);
-
-    g_debug ("Launching X Server: %s", command->str);
-
-    result = g_shell_parse_argv (command->str, &argc, &argv, &error);
-    g_string_free (command, TRUE);
-    if (!result)
-        g_error ("Failed to parse X server command line: %s", error->message);
-    g_clear_error (&error);
-    if (!result)
-        return;
-
-    result = g_spawn_async_with_pipes (NULL, /* Working directory */
-                                       argv,
-                                       env,
-                                       G_SPAWN_DO_NOT_REAP_CHILD,
-                                       NULL, NULL,
-                                       &display->priv->xserver_pid,
-                                       &xserver_stdin, &xserver_stdout, &xserver_stderr,
-                                       &error);
-    g_strfreev (argv);
-    if (!result)
-        g_warning ("Unable to create display: %s", error->message);
-    else
-        g_child_watch_add (display->priv->xserver_pid, xserver_watch_cb, display);
-    g_clear_error (&error);
-
-    if (display->priv->xserver_pid == 0)
+    display->priv->xserver = xserver_new (display->priv->config, display->priv->index);
+    g_signal_connect (G_OBJECT (display->priv->xserver), "exited", G_CALLBACK (xserver_exit_cb), display);
+    if (!xserver_start (display->priv->xserver))
         return;
 
     display->priv->session_name = g_strdup (session);
@@ -660,12 +608,7 @@ static void
 display_init (Display *display)
 {
     display->priv = G_TYPE_INSTANCE_GET_PRIVATE (display, DISPLAY_TYPE, DisplayPrivate);
-
     display->priv->session_name = g_strdup (DEFAULT_SESSION);
-
-    // FIXME: How to get these?
-    display->priv->display_device = g_strdup ("");
-    display->priv->x11_display_device = g_strdup ("/dev/tty0");
 }
 
 static void
@@ -694,7 +637,6 @@ display_set_property(GObject      *object,
         break;
     case PROP_INDEX:
         self->priv->index = g_value_get_int (value);
-        self->priv->x11_display = g_strdup_printf (":%d", self->priv->index);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
