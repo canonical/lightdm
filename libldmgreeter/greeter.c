@@ -167,6 +167,7 @@ update_users (LdmGreeter *greeter)
         g_free (name);
         g_free (real_name);
         g_free (image);
+
         greeter->priv->users = g_list_append (greeter->priv->users, user);
     }
 
@@ -201,7 +202,7 @@ ldm_greeter_get_users (LdmGreeter *greeter)
     return greeter->priv->users;
 }
 
-#define TYPE_SESSION dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INVALID)
+#define TYPE_SESSION dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INVALID)
 #define TYPE_SESSION_LIST dbus_g_type_get_collection ("GPtrArray", TYPE_SESSION)
 
 static void
