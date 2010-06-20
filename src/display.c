@@ -54,9 +54,6 @@ struct DisplayPrivate
     gint index;
 
     XServer *xserver;
-  
-    /* X process */
-    GPid xserver_pid;
 
     /* Session process (either greeter or user session) */
     GPid session_pid;
@@ -79,8 +76,6 @@ struct DisplayPrivate
   
     /* Active session */
     SessionType active_session;
-
-    // FIXME: Token for secure access to this server
 };
 
 G_DEFINE_TYPE (Display, display, G_TYPE_OBJECT);
