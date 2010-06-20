@@ -377,12 +377,12 @@ start_greeter (Display *display)
     theme_name = g_key_file_get_value (display->priv->config, "Greeter", "theme", NULL);
     if (!theme_name)
         theme_name = g_strdup (GREETER_THEME);
-  
+
     theme = load_theme (theme_name, &error);
     if (!theme)
         g_warning ("Failed to find theme %s: %s", theme_name, error->message);
     g_clear_error (&error);
-  
+
     if (theme)
     {
         gchar *command;

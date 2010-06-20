@@ -2,3 +2,4 @@
 name=GNOME
 description=GNOME Theme
 engine=gtk
+session=gnome
