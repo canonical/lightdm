@@ -975,8 +975,8 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
      *
      * The ::quit signal gets emitted when the greeter should exit.
      **/
-    signals[TIMED_LOGIN] =
-        g_signal_new ("timed-login",
+    signals[QUIT] =
+        g_signal_new ("quit",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LdmGreeterClass, quit),
