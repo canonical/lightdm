@@ -82,7 +82,7 @@ xserver_start (XServer *server)
     gint argc;
     gchar **argv;
     gchar *env[] = { NULL };
-    gint xserver_stdin, xserver_stdout, xserver_stderr;
+    //gint xserver_stdin, xserver_stdout, xserver_stderr;
 
     xserver_binary = g_key_file_get_value (server->priv->config, "LightDM", "xserver", NULL);
     if (!xserver_binary)
@@ -104,13 +104,13 @@ xserver_start (XServer *server)
     if (!result)
         return FALSE;
 
-    result = g_spawn_async_with_pipes (NULL, /* Working directory */
+    result = g_spawn_async/*_with_pipes*/ (NULL, /* Working directory */
                                        argv,
                                        env,
                                        G_SPAWN_DO_NOT_REAP_CHILD,
                                        NULL, NULL,
                                        &server->priv->pid,
-                                       &xserver_stdin, &xserver_stdout, &xserver_stderr,
+                                       //&xserver_stdin, &xserver_stdout, &xserver_stderr,
                                        &error);
     g_strfreev (argv);
     if (!result)

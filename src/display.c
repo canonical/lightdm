@@ -211,7 +211,7 @@ static void
 open_session (Display *display, const gchar *username, const gchar *command, gboolean is_greeter)
 {
     struct passwd *user_info;
-    gint session_stdin, session_stdout, session_stderr;
+    //gint session_stdin, session_stdout, session_stderr;
     gboolean result;
     gint argc;
     gchar **argv;
