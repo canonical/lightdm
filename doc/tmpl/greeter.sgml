@@ -1,0 +1,358 @@
+<!-- ##### SECTION Title ##### -->
+LdmGreeter
+
+<!-- ##### SECTION Short_Description ##### -->
+LightDM greeter object
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+#LdmGreeter is an object that manages the connection to the LightDM server and provides common greeter functionality.
+</para>
+<para>
+To connect to the display manager instanciate a #LdmGreeter object from inside the greeter process:
+<example>
+<title>Connecting to the display manager</title>
+<programlisting><![CDATA[
+LdmGreeter *greeter = ldm_greeter_new ();
+if (!ldm_greeter_connect (LDM_GREETER (greeter))) {
+    // Log an error
+    exit (0);
+}
+]]></programlisting>
+</example>
+Information on how to connect to the display manager is passed using environment variables.
+</para>
+<para>
+Once connected, start an authentication conversation like this:
+<example>
+<title>Example Authorization Conversation</title>
+<programlisting><![CDATA[
+static void show_prompt_cb (LdmGreeter *greeter, const char *text)
+{
+    // Show the user the message and prompt for some response
+    gchar *secret = ask_user_question (text);
+
+    // Give the result to the user
+    ldm_greeter_provide_secret (greeter, secret);
+}
+
+static void authentication_complete_cb (LdmGreeter *greeter)
+{
+    if (ldm_greeter_get_is_authenticated (greeter)) {
+        // Log in to this session.
+        ldm_greeter_login (greeter);
+    }
+    else {
+        // Display a warning and reset the greeter
+    }
+}
+
+static void quit_cb (LdmGreeter *greeter)
+{
+    // Clean up
+    // ...
+    
+    exit (0);
+}
+
+g_object_connect (G_OBJECT (greeter), "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
+g_object_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
+g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
+]]></programlisting>
+</example>
+</para>
+
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### SECTION Image ##### -->
+
+
+<!-- ##### STRUCT LdmGreeter ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SIGNAL LdmGreeter::authentication-complete ##### -->
+<para>
+
+</para>
+
+@ldmgreeter: the object which received the signal.
+
+<!-- ##### SIGNAL LdmGreeter::show-error ##### -->
+<para>
+
+</para>
+
+@ldmgreeter: the object which received the signal.
+@arg1: 
+
+<!-- ##### SIGNAL LdmGreeter::show-message ##### -->
+<para>
+
+</para>
+
+@ldmgreeter: the object which received the signal.
+@arg1: 
+
+<!-- ##### SIGNAL LdmGreeter::show-prompt ##### -->
+<para>
+
+</para>
+
+@ldmgreeter: the object which received the signal.
+@arg1: 
+
+<!-- ##### SIGNAL LdmGreeter::timed-login ##### -->
+<para>
+
+</para>
+
+@ldmgreeter: the object which received the signal.
+@arg1: 
+
+<!-- ##### ARG LdmGreeter:can-hibernate ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:can-restart ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:can-shutdown ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:can-suspend ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:is-authenticated ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:login-delay ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:num-users ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:session ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:timed-login-user ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION ldm_greeter_new ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_connect ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_num_users ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_users ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_sessions ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_session ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_set_session ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@session: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_timed_login_user ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_timed_login_delay ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_cancel_timed_login ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
+<!-- ##### FUNCTION ldm_greeter_start_authentication ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@username: 
+
+
+<!-- ##### FUNCTION ldm_greeter_provide_secret ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@secret: 
+
+
+<!-- ##### FUNCTION ldm_greeter_cancel_authentication ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_is_authenticated ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_can_suspend ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_suspend ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_can_hibernate ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_hibernate ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_can_restart ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_restart ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_can_shutdown ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_shutdown ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+

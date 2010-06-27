@@ -46,7 +46,17 @@ authentication_complete_cb (LdmGreeter *greeter, WebKitWebView *view)
 }
 
 static void
-timed_login_cb (LdmGreeter *greeter, const gchar *username)
+timed_login_cb (LdmGreeter *greeter, const gchar *username, WebKitWebView *view)
+{
+    gchar *command;
+  
+    command = g_strdup_printf ("timed_login('%s')", username); // FIXME: Escape text
+    webkit_web_view_execute_script (view, command);
+    g_free (command);
+}
+
+static void
+quit_cb (LdmGreeter *greeter, const gchar *username)
 {
     gtk_main_quit ();
 }
@@ -478,18 +488,21 @@ shutdown_cb (JSContextRef context,
 }
 
 static JSValueRef
-close_cb (JSContextRef context,
+login_cb (JSContextRef context,
           JSObjectRef function,
           JSObjectRef thisObject,
           size_t argumentCount,
           const JSValueRef arguments[],
           JSValueRef *exception)
 {
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+
     // FIXME: Throw exception
     if (argumentCount != 0)
         return JSValueMakeNull (context);
 
-    exit (0);
+    ldm_greeter_login (greeter);
+    return JSValueMakeNull (context);
 }
 
 static const JSStaticValue ldm_user_values[] =
@@ -535,7 +548,7 @@ static const JSStaticFunction ldm_functions[] =
     { "hibernate", hibernate_cb, kJSPropertyAttributeReadOnly },
     { "restart", restart_cb, kJSPropertyAttributeReadOnly },
     { "shutdown", shutdown_cb, kJSPropertyAttributeReadOnly },
-    { "close", close_cb, kJSPropertyAttributeReadOnly },
+    { "login", login_cb, kJSPropertyAttributeReadOnly },
     { NULL, NULL, 0 }
 };
 
@@ -626,6 +639,7 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "show-error", G_CALLBACK (show_message_cb), web_view);
     g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), web_view);
     g_signal_connect (G_OBJECT (greeter), "timed-login", G_CALLBACK (timed_login_cb), web_view);
+    g_signal_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), web_view);
 
     webkit_web_view_load_uri (WEBKIT_WEB_VIEW (web_view), url);
     ldm_greeter_connect (greeter);

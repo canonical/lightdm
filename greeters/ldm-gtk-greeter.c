@@ -67,16 +67,26 @@ static void
 authentication_complete_cb (LdmGreeter *greeter)
 {
     if (ldm_greeter_get_is_authenticated (greeter))
-        gtk_main_quit ();
-
-    gtk_widget_show (label);
-    gtk_label_set_text (GTK_LABEL (label), "Failed to authenticate");
-    gtk_entry_set_text (GTK_ENTRY (password_entry), "");
-    gtk_widget_grab_focus (username_entry);
+    {
+        ldm_greeter_login (greeter);
+    }
+    else
+    {
+        gtk_widget_show (label);
+        gtk_label_set_text (GTK_LABEL (label), "Failed to authenticate");
+        gtk_entry_set_text (GTK_ENTRY (password_entry), "");
+        gtk_widget_grab_focus (username_entry);
+    }
 }
 
 static void
 timed_login_cb (LdmGreeter *greeter, const gchar *username)
+{
+    ldm_greeter_login (greeter);
+}
+
+static void
+quit_cb (LdmGreeter *greeter, const gchar *username)
 {
     gtk_main_quit ();
 }
@@ -112,6 +122,7 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "show-error", G_CALLBACK (show_message_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "timed-login", G_CALLBACK (timed_login_cb), NULL);
+    g_signal_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
     ldm_greeter_connect (greeter);
 

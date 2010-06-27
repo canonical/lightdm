@@ -49,7 +49,7 @@ function authentication_complete()
 {
    if (lightdm.is_authenticated)
    {
-       lightdm.close();
+       lightdm.login();
        return;
    }
 

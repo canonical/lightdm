@@ -1,0 +1,70 @@
+<!-- ##### SECTION Title ##### -->
+LdmSession
+
+<!-- ##### SECTION Short_Description ##### -->
+Information about a session
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+Object containing information about available sessions on this system. #LdmSession objects are not created by the user, but provided by the #LdmGreeter object.
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### SECTION Image ##### -->
+
+
+<!-- ##### STRUCT LdmSession ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### ARG LdmSession:comment ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmSession:key ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmSession:name ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION ldm_session_get_key ##### -->
+<para>
+
+</para>
+
+@session: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_session_get_name ##### -->
+<para>
+
+</para>
+
+@session: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_session_get_comment ##### -->
+<para>
+
+</para>
+
+@session: 
+@Returns: 
+
+

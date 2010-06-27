@@ -7,7 +7,9 @@
   </bookinfo>
 
   <part id="core">
-    <title>Gnome Scan Core Reference</title>
+    <title>LightDM Greeter Core Reference</title>
     <xi:include href="xml/greeter.xml"/>
+    <xi:include href="xml/session.xml"/>
+    <xi:include href="xml/user.xml"/>
   </part>
 </book>

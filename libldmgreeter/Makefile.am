@@ -13,7 +13,7 @@ libldmgreeter_la_SOURCES= \
 	session.c \
 	user.c
 
-libldmgreeterincludedir=$(includedir)/lightdm-1.0
+libldmgreeterincludedir=$(includedir)/lightdm-1.0/lightdm
 
 if HAVE_INTROSPECTION
 

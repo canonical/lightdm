@@ -26,28 +26,27 @@ G_BEGIN_DECLS
 #define LDM_IS_GREETER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LDM_TYPE_GREETER))
 #define LDM_GREETER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LDM_TYPE_GREETER, LdmGreeterClass))
 
+typedef struct _LdmGreeter        LdmGreeter;
+typedef struct _LdmGreeterClass   LdmGreeterClass;
+typedef struct _LdmGreeterPrivate LdmGreeterPrivate;
 
-/*<private>*/
-typedef struct LdmGreeterPrivate LdmGreeterPrivate;
-
-typedef struct
+struct _LdmGreeter
 {
     GObject            parent_instance;
     LdmGreeterPrivate *priv;
-} LdmGreeter;
+};
 
-typedef struct
+struct _LdmGreeterClass
 {
     GObjectClass parent_class;
-
-    /*< private >*/
 
     void (*show_prompt)(LdmGreeter *greeter, const gchar *text);
     void (*show_message)(LdmGreeter *greeter, const gchar *text);
     void (*show_error)(LdmGreeter *greeter, const gchar *text);
     void (*authentication_complete)(LdmGreeter *greeter);
     void (*timed_login)(LdmGreeter *greeter, const gchar *username);
-} LdmGreeterClass;
+    void (*quit)(LdmGreeter *greeter);
+};
 
 GType ldm_greeter_get_type (void);
 
@@ -78,6 +77,8 @@ void ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret);
 void ldm_greeter_cancel_authentication (LdmGreeter *greeter);
 
 gboolean ldm_greeter_get_is_authenticated (LdmGreeter *greeter);
+
+void ldm_greeter_login (LdmGreeter *greeter);
 
 gboolean ldm_greeter_get_can_suspend (LdmGreeter *greeter);
 

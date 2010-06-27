@@ -38,11 +38,12 @@ enum {
     SHOW_ERROR,
     AUTHENTICATION_COMPLETE,
     TIMED_LOGIN,
+    QUIT,
     LAST_SIGNAL
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
-struct LdmGreeterPrivate
+struct _LdmGreeterPrivate
 {
     DBusGConnection *lightdm_bus;
 
@@ -191,10 +192,13 @@ ldm_greeter_get_num_users (LdmGreeter *greeter)
 
 /**
  * ldm_greeter_get_users:
- * @greeter:
+ * @greeter: A #LdmGreeter
+ * 
+ * Get a list of users to present to the user.  This list may be a subset of the
+ * available users and may be empty depending on the server configuration.
  * 
  * Return value: A list of #LdmUser that should be presented to the user.
- */
+ **/
 const GList *
 ldm_greeter_get_users (LdmGreeter *greeter)
 {
@@ -251,6 +255,14 @@ update_sessions (LdmGreeter *greeter)
     greeter->priv->have_sessions = TRUE;
 }
 
+/**
+ * ldm_greeter_get_sessions:
+ * @greeter: A #LdmGreeter
+ *
+ * Get the available sessions.
+ *
+ * Return value: A list of #LdmSession
+ **/
 const GList *
 ldm_greeter_get_sessions (LdmGreeter *greeter)
 {
@@ -258,6 +270,13 @@ ldm_greeter_get_sessions (LdmGreeter *greeter)
     return greeter->priv->sessions;
 }
 
+/**
+ * ldm_greeter_set_session:
+ * @greeter: A #LdmGreeter
+ * @session: A session name.
+ * 
+ * Set the session to log into.
+ **/
 void
 ldm_greeter_set_session (LdmGreeter *greeter, const gchar *session)
 {
@@ -276,24 +295,54 @@ ldm_greeter_set_session (LdmGreeter *greeter, const gchar *session)
     g_clear_error (&error);
 }
 
+/**
+ * ldm_greeter_get_session:
+ * @greeter: A #LdmGreeter
+ *
+ * Get the session that will be logged into.
+ *
+ * Return value: The session name
+ **/
 const gchar *
 ldm_greeter_get_session (LdmGreeter *greeter)
 {
     return greeter->priv->session;
 }
 
+/**
+ * ldm_greeter_get_timed_login_user:
+ * @greeter: A #LdmGreeter
+ *
+ * Get the user to log in by as default.
+ *
+ * Return value: A username
+ */
 const gchar *
 ldm_greeter_get_timed_login_user (LdmGreeter *greeter)
 {
     return greeter->priv->timed_user;
 }
 
+/**
+ * ldm_greeter_get_timed_login_delay:
+ * @greeter: A #LdmGreeter
+ *
+ * Get the number of seconds to wait until logging in as the default user.
+ *
+ * Return value: The number of seconds before logging in as the default user
+ */
 gint
 ldm_greeter_get_timed_login_delay (LdmGreeter *greeter)
 {
     return greeter->priv->login_delay;
 }
 
+/**
+ * ldm_greeter_cancel_timed_login:
+ * @greeter: A #LdmGreeter
+ *
+ * Cancel the login as the default user.
+ */
 void
 ldm_greeter_cancel_timed_login (LdmGreeter *greeter)
 {
@@ -361,12 +410,26 @@ auth_response_cb (DBusGProxy *proxy, DBusGProxyCall *call, gpointer userdata)
     g_ptr_array_unref (array);
 }
 
+/**
+ * ldm_greeter_start_authentication:
+ * @greeter: A #LdmGreeter
+ * @username: A username
+ *
+ * Starts the authentication procedure for a user.
+ **/
 void
 ldm_greeter_start_authentication (LdmGreeter *greeter, const char *username)
 {
     dbus_g_proxy_begin_call (greeter->priv->display_proxy, "StartAuthentication", auth_response_cb, greeter, NULL, G_TYPE_STRING, username, G_TYPE_INVALID);
 }
 
+/**
+ * ldm_greeter_provide_secret:
+ * @greeter: A #LdmGreeter
+ * @secret: Response to a prompt
+ *
+ * Provide secret information from a prompt.
+ **/
 void
 ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret)
 {
@@ -379,11 +442,25 @@ ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret)
     dbus_g_proxy_begin_call (greeter->priv->display_proxy, "ContinueAuthentication", auth_response_cb, greeter, NULL, G_TYPE_STRV, secrets, G_TYPE_INVALID);
 }
 
+/**
+ * ldm_greeter_cancel_authentication:
+ * @greeter: A #LdmGreeter
+ * 
+ * Cancel the current user authentication.
+ **/
 void
 ldm_greeter_cancel_authentication (LdmGreeter *greeter)
 {
 }
 
+/**
+ * ldm_greeter_get_is_authenticated:
+ * @greeter: A #LdmGreeter
+ * 
+ * Checks if the greeter has successfully authenticated.
+ *
+ * Return value: TRUE if the greeter is authenticated for login.
+ **/
 gboolean
 ldm_greeter_get_is_authenticated (LdmGreeter *greeter)
 {
@@ -391,10 +468,25 @@ ldm_greeter_get_is_authenticated (LdmGreeter *greeter)
 }
 
 /**
+ * ldm_greeter_login:
+ * @greeter: A #LdmGreeter
+ * 
+ * Login with the currently authenticated user.
+ **/
+void
+ldm_greeter_login (LdmGreeter *greeter)
+{
+    /* Quitting the greeter will cause the login to occur */
+    g_signal_emit (G_OBJECT (greeter), signals[QUIT], 0);
+}
+
+/**
  * ldm_greeter_get_can_suspend:
  * @greeter: A #LdmGreeter
+ * 
+ * Checks if the greeter is authorized to do a system suspend.
  *
- * Return value: TRUE if the greeter can suspend the machine
+ * Return value: TRUE if the greeter can suspend the system
  **/
 gboolean
 ldm_greeter_get_can_suspend (LdmGreeter *greeter)
@@ -416,6 +508,12 @@ ldm_greeter_get_can_suspend (LdmGreeter *greeter)
     return result;
 }
 
+/**
+ * ldm_greeter_suspend:
+ * @greeter: A #LdmGreeter
+ * 
+ * Triggers a system suspend.
+ **/
 void
 ldm_greeter_suspend (LdmGreeter *greeter)
 {
@@ -433,6 +531,14 @@ ldm_greeter_suspend (LdmGreeter *greeter)
     g_object_unref (proxy);
 }
 
+/**
+ * ldm_greeter_get_can_hibernate:
+ * @greeter: A #LdmGreeter
+ * 
+ * Checks if the greeter is authorized to do a system hibernate.
+ *
+ * Return value: TRUE if the greeter can hibernate the system
+ **/
 gboolean
 ldm_greeter_get_can_hibernate (LdmGreeter *greeter)
 {
@@ -453,6 +559,12 @@ ldm_greeter_get_can_hibernate (LdmGreeter *greeter)
     return result;
 }
 
+/**
+ * ldm_greeter_hibernate:
+ * @greeter: A #LdmGreeter
+ * 
+ * Triggers a system hibernate.
+ **/
 void
 ldm_greeter_hibernate (LdmGreeter *greeter)
 {
@@ -470,6 +582,14 @@ ldm_greeter_hibernate (LdmGreeter *greeter)
     g_object_unref (proxy);
 }
 
+/**
+ * ldm_greeter_get_can_restart:
+ * @greeter: A #LdmGreeter
+ * 
+ * Checks if the greeter is authorized to do a system restart.
+ *
+ * Return value: TRUE if the greeter can restart the system
+ **/
 gboolean
 ldm_greeter_get_can_restart (LdmGreeter *greeter)
 {
@@ -490,6 +610,12 @@ ldm_greeter_get_can_restart (LdmGreeter *greeter)
     return result; 
 }
 
+/**
+ * ldm_greeter_restart:
+ * @greeter: A #LdmGreeter
+ * 
+ * Triggers a system restart.
+ **/
 void
 ldm_greeter_restart (LdmGreeter *greeter)
 {
@@ -507,6 +633,14 @@ ldm_greeter_restart (LdmGreeter *greeter)
     g_object_unref (proxy);
 }
 
+/**
+ * ldm_greeter_get_can_shutdown:
+ * @greeter: A #LdmGreeter
+ * 
+ * Checks if the greeter is authorized to do a system shutdown.
+ *
+ * Return value: TRUE if the greeter can shutdown the system
+ **/
 gboolean
 ldm_greeter_get_can_shutdown (LdmGreeter *greeter)
 {
@@ -527,6 +661,12 @@ ldm_greeter_get_can_shutdown (LdmGreeter *greeter)
     return result; 
 }
 
+/**
+ * ldm_greeter_shutdown:
+ * @greeter: A #LdmGreeter
+ * 
+ * Triggers a system shutdown.
+ **/
 void
 ldm_greeter_shutdown (LdmGreeter *greeter)
 {
@@ -713,38 +853,42 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                                     PROP_CAN_SUSPEND,
                                     g_param_spec_boolean("can-suspend",
                                                          "can-suspend",
-                                                         "TRUE if allowed to suspend the machine",
+                                                         "TRUE if allowed to suspend the system",
                                                          FALSE,
                                                          G_PARAM_READABLE));
     g_object_class_install_property(object_class,
                                     PROP_CAN_HIBERNATE,
                                     g_param_spec_boolean("can-hibernate",
                                                          "can-hibernate",
-                                                         "TRUE if allowed to hibernate the machine",
+                                                         "TRUE if allowed to hibernate the system",
                                                          FALSE,
                                                          G_PARAM_READABLE));
     g_object_class_install_property(object_class,
                                     PROP_CAN_RESTART,
                                     g_param_spec_boolean("can-restart",
                                                          "can-restart",
-                                                         "TRUE if allowed to restart the machine",
+                                                         "TRUE if allowed to restart the system",
                                                          FALSE,
                                                          G_PARAM_READABLE));
     g_object_class_install_property(object_class,
                                     PROP_CAN_SHUTDOWN,
                                     g_param_spec_boolean("can-shutdown",
                                                          "can-shutdown",
-                                                         "TRUE if allowed to shutdown the machine",
+                                                         "TRUE if allowed to shutdown the system",
                                                          FALSE,
                                                          G_PARAM_READABLE));
 
     /**
      * LdmGreeter::show-prompt:
-     * @greeter: The greeter on which the signal is emitted
-     * @text: The text to show in the prompt
+     * @greeter: A #LdmGreeter
+     * @text: Prompt text
      * 
-     * The ::show-prompt signal gets emitted when the greeter
-     * should show a prompt to the user.
+     * The ::show-prompt signal gets emitted when the greeter should show a
+     * prompt to the user.  The given text should be displayed and an input
+     * field for the user to provide a response.
+     * 
+     * Call ldm_greeter_provide_secret() with the resultant input or
+     * ldm_greeter_cancel_authentication() to abort the authentication.
      **/
     signals[SHOW_PROMPT] =
         g_signal_new ("show-prompt",
@@ -754,6 +898,15 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__STRING,
                       G_TYPE_NONE, 1, G_TYPE_STRING);
+
+    /**
+     * LdmGreeter::show-message:
+     * @greeter: A #LdmGreeter
+     * @text: Message text
+     *
+     * The ::show-message signal gets emitted when the greeter
+     * should show an informational message to the user.
+     **/
     signals[SHOW_MESSAGE] =
         g_signal_new ("show-message",
                       G_TYPE_FROM_CLASS (klass),
@@ -762,6 +915,15 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__STRING,
                       G_TYPE_NONE, 1, G_TYPE_STRING);
+
+    /**
+     * LdmGreeter::show-error:
+     * @greeter: A #LdmGreeter
+     * @text: Message text
+     *
+     * The ::show-error signal gets emitted when the greeter
+     * should show an error message to the user.
+     **/
     signals[SHOW_ERROR] =
         g_signal_new ("show-error",
                       G_TYPE_FROM_CLASS (klass),
@@ -770,6 +932,17 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__STRING,
                       G_TYPE_NONE, 1, G_TYPE_STRING);
+
+    /**
+     * LdmGreeter::authentication-complete:
+     * @greeter: A #LdmGreeter
+     *
+     * The ::authentication-complete signal gets emitted when the greeter
+     * has completed authentication.
+     * 
+     * Call ldm_greeter_get_is_authenticated() to check if the authentication
+     * was successful.
+     **/
     signals[AUTHENTICATION_COMPLETE] =
         g_signal_new ("authentication-complete",
                       G_TYPE_FROM_CLASS (klass),
@@ -778,6 +951,15 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
+
+    /**
+     * LdmGreeter::timed-login:
+     * @greeter: A #LdmGreeter
+     * @username: A username
+     *
+     * The ::timed-login signal gets emitted when the default user timer
+     * has expired.
+     **/
     signals[TIMED_LOGIN] =
         g_signal_new ("timed-login",
                       G_TYPE_FROM_CLASS (klass),
@@ -786,4 +968,19 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__STRING,
                       G_TYPE_NONE, 1, G_TYPE_STRING);
+
+    /**
+     * LdmGreeter::quit:
+     * @greeter: A #LdmGreeter
+     *
+     * The ::quit signal gets emitted when the greeter should exit.
+     **/
+    signals[TIMED_LOGIN] =
+        g_signal_new ("timed-login",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (LdmGreeterClass, quit),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
 }

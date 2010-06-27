@@ -18,7 +18,7 @@ enum {
     PROP_COMMENT
 };
 
-struct LdmSessionPrivate
+struct _LdmSessionPrivate
 {
     gchar *key;
     gchar *name;
@@ -27,34 +27,68 @@ struct LdmSessionPrivate
 
 G_DEFINE_TYPE (LdmSession, ldm_session, G_TYPE_OBJECT);
 
+/**
+ * ldm_session_new:
+ * 
+ * Create a new session.
+ * @key: The unique key for this session
+ * @name: The name of this session
+ * @comment: The comment for this session
+ * 
+ * Return value: the new #LdmSession
+ **/
 LdmSession *
 ldm_session_new (const gchar *key, const gchar *name, const gchar *comment)
 {
     return g_object_new (LDM_TYPE_SESSION, "key", key, "name", name, "comment", comment, NULL);
 }
 
+/**
+ * ldm_session_get_key
+ * @session: A #LdmSession
+ * 
+ * Get the key for a session
+ * 
+ * Return value: The session key
+ **/
 const gchar *
-ldm_session_get_key (LdmSession *user)
+ldm_session_get_key (LdmSession *session)
 {
-    return user->priv->key;
+    return session->priv->key;
 }
 
+/**
+ * ldm_session_get_name
+ * @session: A #LdmSession
+ * 
+ * Get the name for a session
+ * 
+ * Return value: The session name
+ **/
 const gchar *
-ldm_session_get_name (LdmSession *user)
+ldm_session_get_name (LdmSession *session)
 {
-    return user->priv->name;
+    return session->priv->name;
 }
 
+/**
+ * ldm_session_get_comment
+ * @session: A #LdmSession
+ * 
+ * Get the comment for a session
+ * 
+ * Return value: The session comment
+ **/
 const gchar *
-ldm_session_get_comment (LdmSession *user)
+ldm_session_get_comment (LdmSession *session)
 {
-    return user->priv->comment;
+    return session->priv->comment;
 }
 
 static void
-ldm_session_init (LdmSession *user)
+ldm_session_init (LdmSession *session)
 {
-    user->priv = G_TYPE_INSTANCE_GET_PRIVATE (user, LDM_TYPE_SESSION, LdmSessionPrivate);
+    session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, LDM_TYPE_SESSION, LdmSessionPrivate);
 }
 
 static void

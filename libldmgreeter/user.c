@@ -20,7 +20,7 @@ enum {
     PROP_LOGGED_IN
 };
 
-struct LdmUserPrivate
+struct _LdmUserPrivate
 {
     gchar *name;
     gchar *real_name;
@@ -30,24 +30,59 @@ struct LdmUserPrivate
 
 G_DEFINE_TYPE (LdmUser, ldm_user, G_TYPE_OBJECT);
 
+/**
+ * ldm_user_new:
+ * 
+ * Create a new user.
+ * @name: The username
+ * @real_name: The real name of the user
+ * @image: The image URI
+ * @logged_in: TRUE if this user is currently logged in
+ * 
+ * Return value: the new #LdmUser
+ **/
 LdmUser *
 ldm_user_new (const gchar *name, const gchar *real_name, const gchar *image, gboolean logged_in)
 {
     return g_object_new (LDM_TYPE_USER, "name", name, "real-name", real_name, "image", image, "logged-in", logged_in, NULL);
 }
 
+/**
+ * ldm_user_get_name:
+ * @user: A #LdmUser
+ * 
+ * Get the name of a user.
+ * 
+ * Return value: The name of the given user
+ **/
 const gchar *
 ldm_user_get_name (LdmUser *user)
 {
     return user->priv->name;
 }
 
+/**
+ * ldm_user_get_real_name:
+ * @user: A #LdmUser
+ * 
+ * Get the real name of a user.
+ *
+ * Return value: The real name of the given user (may be blank)
+ **/
 const gchar *
 ldm_user_get_real_name (LdmUser *user)
 {
     return user->priv->real_name;
 }
 
+/**
+ * ldm_user_get_display_name:
+ * @user: A #LdmUser
+ * 
+ * Get the display name of a user.
+ * 
+ * Return value: The display name of the given user
+ **/
 const gchar *
 ldm_user_get_display_name (LdmUser *user)
 {
@@ -57,12 +92,28 @@ ldm_user_get_display_name (LdmUser *user)
         return user->priv->name;
 }
 
+/**
+ * ldm_user_get_image:
+ * @user: A #LdmUser
+ * 
+ * Get the image URI for a user.
+ * 
+ * Return value: The image URI for the given user or NULL if no URI
+ **/
 const gchar *
 ldm_user_get_image (LdmUser *user)
 {
     return user->priv->image;
 }
 
+/**
+ * ldm_user_get_logged_in:
+ * @user: A #LdmUser
+ * 
+ * Check if a user is logged in.
+ * 
+ * Return value: TRUE if the user is currently logged in.
+ **/
 gboolean
 ldm_user_get_logged_in (LdmUser *user)
 {

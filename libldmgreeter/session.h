@@ -23,28 +23,30 @@ G_BEGIN_DECLS
 #define LDM_IS_SESSION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LDM_TYPE_SESSION))
 #define LDM_SESSION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LDM_TYPE_SESSION, LdmSessionClass))
 
-typedef struct LdmSessionPrivate LdmSessionPrivate;
+typedef struct _LdmSession        LdmSession;
+typedef struct _LdmSessionClass   LdmSessionClass;
+typedef struct _LdmSessionPrivate LdmSessionPrivate;
 
-typedef struct
+struct _LdmSession
 {
     GObject            parent_instance;
     LdmSessionPrivate *priv;
-} LdmSession;
+};
 
-typedef struct
+struct _LdmSessionClass
 {
     GObjectClass parent_class;
-} LdmSessionClass;
+};
 
 GType ldm_session_get_type (void);
 
 LdmSession *ldm_session_new (const gchar *key, const gchar *name, const gchar *comment);
 
-const gchar *ldm_session_get_key (LdmSession *user);
+const gchar *ldm_session_get_key (LdmSession *session);
 
-const gchar *ldm_session_get_name (LdmSession *user);
+const gchar *ldm_session_get_name (LdmSession *session);
 
-const gchar *ldm_session_get_comment (LdmSession *user);
+const gchar *ldm_session_get_comment (LdmSession *session);
 
 G_END_DECLS
 

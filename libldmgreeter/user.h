@@ -23,18 +23,20 @@ G_BEGIN_DECLS
 #define LDM_IS_USER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LDM_TYPE_USER))
 #define LDM_USER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LDM_TYPE_USER, LdmUserClass))
 
-typedef struct LdmUserPrivate LdmUserPrivate;
+typedef struct _LdmUser        LdmUser;
+typedef struct _LdmUserClass   LdmUserClass;
+typedef struct _LdmUserPrivate LdmUserPrivate;
 
-typedef struct
+struct _LdmUser
 {
     GObject         parent_instance;
     LdmUserPrivate *priv;
-} LdmUser;
+};
 
-typedef struct
+struct _LdmUserClass
 {
     GObjectClass parent_class;
-} LdmUserClass;
+};
 
 GType ldm_user_get_type (void);
 
