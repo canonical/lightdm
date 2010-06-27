@@ -1,12 +1,12 @@
 bin_PROGRAMS = lightdm
 
-display-glue.h: display.xml
+display-glue.h: $(srcdir)/display.xml
 	$(DBUSBINDINGTOOL) --prefix=display --mode=glib-server --output=$@ $^
-display-manager-glue.h: display-manager.xml
+display-manager-glue.h: $(srcdir)/display-manager.xml
 	$(DBUSBINDINGTOOL) --prefix=display_manager --mode=glib-server --output=$@ $^
-session-manager-glue.h: session-manager.xml
+session-manager-glue.h: $(srcdir)/session-manager.xml
 	$(DBUSBINDINGTOOL) --prefix=session_manager --mode=glib-server --output=$@ $^
-user-manager-glue.h: user-manager.xml
+user-manager-glue.h: $(srcdir)/user-manager.xml
 	$(DBUSBINDINGTOOL) --prefix=user_manager --mode=glib-server --output=$@ $^
 
 lightdm_SOURCES = \

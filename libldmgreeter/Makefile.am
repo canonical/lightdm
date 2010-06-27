@@ -42,4 +42,6 @@ pkgconfig_DATA = libldmgreeter-1.pc
 
 DISTCLEANFILES = \
 	Makefile.in \
-	libldmgreeter-1.pc
+	libldmgreeter-1.pc \
+	$(gir_DATA) \
+	$(typelib_DATA)

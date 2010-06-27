@@ -4,7 +4,7 @@ LIBGREETER_LIB = $(top_builddir)/libldmgreeter/libldmgreeter.la
 LIBGREETER_CFLAGS = \
 	-I$(top_srcdir)/libldmgreeter
 LIBGREETER_LDADD = \
-	-L$(top_srcdir)/libldmgreeter \
+	-L$(top_builddir)/libldmgreeter \
 	-lldmgreeter
 
 ldm_gtk_greeter_SOURCES = \
