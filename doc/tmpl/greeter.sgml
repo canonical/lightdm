@@ -205,6 +205,14 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
+<!-- ##### FUNCTION ldm_greeter_login ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
 <!-- ##### FUNCTION ldm_greeter_get_can_suspend ##### -->
 <para>
 
