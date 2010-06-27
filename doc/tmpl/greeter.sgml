@@ -30,7 +30,7 @@ Once connected, start an authentication conversation like this:
 static void show_prompt_cb (LdmGreeter *greeter, const char *text)
 {
     // Show the user the message and prompt for some response
-    gchar *secret = ask_user_question (text);
+    gchar *secret = prompt_user (text);
 
     // Give the result to the user
     ldm_greeter_provide_secret (greeter, secret);
@@ -44,6 +44,7 @@ static void authentication_complete_cb (LdmGreeter *greeter)
     }
     else {
         // Display a warning and reset the greeter
+        reset_login_screen ();
     }
 }
 
