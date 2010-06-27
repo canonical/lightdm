@@ -6,7 +6,7 @@ dbusconf_DATA = org.gnome.LightDisplayManager.conf
 
 man1_MANS = lightdm.1
 
-EXTRA_DIST = $(conf_DATA) $(dbusconf_DATA)
+EXTRA_DIST = $(conf_DATA) $(dbusconf_DATA) $(man1_MANS)
 
 DISTCLEANFILES = \
 	Makefile.in
