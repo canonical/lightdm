@@ -18,4 +18,7 @@ MKDB_OPTIONS=--sgml-mode --output-format=xml --name-space=ldm
 
 include $(top_srcdir)/gtk-doc.make
 
-DISTCLEANFILES = Makefile.in $(DOC_MODULE)-docs.xml $(DOC_MODULE)-overrides.txt $(DOC_MODULE).types
+DISTCLEANFILES = Makefile.in \
+	$(DOC_MODULE)-docs.xml \
+	$(DOC_MODULE)-overrides.txt \
+	$(DOC_MODULE).types
