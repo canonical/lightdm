@@ -34,10 +34,12 @@ function show_prompt(text)
            row.style.opacity = 0.25;
    }
 
+   entry = document.getElementById('password_entry');
+   entry.value = '';
+
    table = document.getElementById('password_table');
    table.style.visibility = "visible";
 
-   entry = document.getElementById('password_entry');
    entry.focus();
 }
 
@@ -49,7 +51,7 @@ function authentication_complete()
 {
    if (lightdm.is_authenticated)
    {
-       lightdm.login();
+       lightdm.login ();
        return;
    }
 
@@ -62,13 +64,20 @@ function authentication_complete()
    }
    table = document.getElementById('password_table');
    table.style.visibility = "hidden";
+   password_prompt = false;
+}
+
+function timed_login(user)
+{
+   lightdm.login ();
 }
 
 function start_authentication(username)
 {
+   lightdm.cancel_timed_login ();
    if (!password_prompt) {
-       lightdm.start_authentication(username);
        selected_user = username;
+       lightdm.start_authentication(username);
    }
 }
 
@@ -83,11 +92,6 @@ for (i in lightdm.users)
 {
    user = lightdm.users[i];
 
-   if (user.real_name.length > 0)
-      label = user.real_name
-   else
-      label = user.name
-      
    if (user.image.length > 0)
       image = user.image
    else
@@ -95,7 +99,7 @@ for (i in lightdm.users)
 
    document.write('<tr id="user_' + user.name +'"onclick="start_authentication(\'' + user.name + '\')" style="cursor: pointer;">');
    document.write('<td><img width="48px" height="48px" src="' + image + '" /></td>');
-   document.write('<td>' + label + '</td>');
+   document.write('<td>' + user.display_name + '</td>');
    document.write('</tr>');
 }
 document.write("</table>");
@@ -107,10 +111,6 @@ document.write('</tr></table>');
 </head>
 
 <body>
-<script type="text/javascript">
-</script>
-<div>
-</div>
 </body>
 
 </html>

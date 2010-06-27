@@ -88,6 +88,19 @@ get_user_real_name_cb (JSContextRef context,
 }
 
 static JSValueRef
+get_user_display_name_cb (JSContextRef context,
+                          JSObjectRef thisObject,
+                          JSStringRef propertyName,
+                          JSValueRef *exception)
+{
+    LdmUser *user = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (ldm_user_get_display_name (user));
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
 get_user_image_cb (JSContextRef context,
                    JSObjectRef thisObject,
                    JSStringRef propertyName,
@@ -509,6 +522,7 @@ static const JSStaticValue ldm_user_values[] =
 {
     { "name", get_user_name_cb, NULL, kJSPropertyAttributeReadOnly },
     { "real_name", get_user_real_name_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "display_name", get_user_display_name_cb, NULL, kJSPropertyAttributeReadOnly },
     { "image", get_user_image_cb, NULL, kJSPropertyAttributeReadOnly },
     { "logged_in", get_user_logged_in_cb, NULL, kJSPropertyAttributeReadOnly },
     { NULL, NULL, NULL, 0 }
