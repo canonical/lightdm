@@ -45,16 +45,22 @@ function show_prompt(text)
 
 function show_message(text)
 {
+   table = document.getElementById('message_table');
+   label = document.getElementById('message_label');
+   label.innerHTML = text;
+   if (text.length > 0)
+       table.style.visibility = "visible";
+   else
+       table.style.visibility = "hidden";
 }
 
-function authentication_complete()
+function show_error(text)
 {
-   if (lightdm.is_authenticated)
-   {
-       lightdm.login ();
-       return;
-   }
+   show_message (text);
+}
 
+function reset()
+{
    user_table = document.getElementById('user_table');   
    for (i in user_table.rows)
    {
@@ -67,6 +73,16 @@ function authentication_complete()
    password_prompt = false;
 }
 
+function authentication_complete()
+{
+   if (lightdm.is_authenticated)
+       lightdm.login ();
+   else
+       show_message ("Authentication Failed");
+
+   reset ();
+}
+
 function timed_login(user)
 {
    lightdm.login ();
@@ -75,6 +91,7 @@ function timed_login(user)
 function start_authentication(username)
 {
    lightdm.cancel_timed_login ();
+   show_message("");
    if (!password_prompt) {
        selected_user = username;
        lightdm.start_authentication(username);
@@ -102,8 +119,9 @@ for (i in lightdm.users)
    document.write('<td>' + user.display_name + '</td>');
    document.write('</tr>');
 }
-document.write("</table>");
-document.write('<table id="password_table" style="margin: auto; visibility: hidden;"><tr>');
+document.write('</table>');
+document.write('<table id="message_table" style="margin: auto; visibility: hidden;"><td id="message_label"></td></table>');
+document.write('<table id="password_table" style="margin: auto; visibility: hidden; color: red;"><tr>');
 document.write('<td id="password_prompt"></td>');
 document.write('<td><form action="javascript: provide_secret()"><input id="password_entry" type="password" /></form></td>');
 document.write('</tr></table>');
