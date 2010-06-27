@@ -25,21 +25,8 @@ Object containing information about available sessions on this system. #LdmSessi
 
 </para>
 
-
-<!-- ##### ARG LdmSession:comment ##### -->
-<para>
-
-</para>
-
-<!-- ##### ARG LdmSession:key ##### -->
-<para>
-
-</para>
-
-<!-- ##### ARG LdmSession:name ##### -->
-<para>
-
-</para>
+@parent_instance: 
+@priv: 
 
 <!-- ##### FUNCTION ldm_session_get_key ##### -->
 <para>

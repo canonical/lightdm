@@ -41,31 +41,8 @@ A user has the following properties:
 
 </para>
 
-
-<!-- ##### ARG LdmUser:display-name ##### -->
-<para>
-
-</para>
-
-<!-- ##### ARG LdmUser:image ##### -->
-<para>
-
-</para>
-
-<!-- ##### ARG LdmUser:logged-in ##### -->
-<para>
-
-</para>
-
-<!-- ##### ARG LdmUser:name ##### -->
-<para>
-
-</para>
-
-<!-- ##### ARG LdmUser:real-name ##### -->
-<para>
-
-</para>
+@parent_instance: 
+@priv: 
 
 <!-- ##### FUNCTION ldm_user_get_name ##### -->
 <para>
