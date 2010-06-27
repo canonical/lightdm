@@ -17,7 +17,6 @@ GTKDOC_LIBS = \
 MKDB_OPTIONS=--sgml-mode --output-format=xml --name-space=ldm
 
 DISTCLEANFILES = $(DOC_MODULE)-docs.xml \
-	$(DOC_MODULE)-overrides.txt \
-	$(DOC_MODULE).types
+	$(DOC_MODULE)-overrides.txt
 
 include $(top_srcdir)/gtk-doc.make

@@ -78,8 +78,90 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
 </para>
 
-@parent_instance: 
-@priv: 
+
+<!-- ##### SIGNAL LdmGreeter::authentication-complete ##### -->
+<para>
+
+</para>
+
+@ldmgreeter: the object which received the signal.
+
+<!-- ##### SIGNAL LdmGreeter::show-error ##### -->
+<para>
+
+</para>
+
+@ldmgreeter: the object which received the signal.
+@arg1: 
+
+<!-- ##### SIGNAL LdmGreeter::show-message ##### -->
+<para>
+
+</para>
+
+@ldmgreeter: the object which received the signal.
+@arg1: 
+
+<!-- ##### SIGNAL LdmGreeter::show-prompt ##### -->
+<para>
+
+</para>
+
+@ldmgreeter: the object which received the signal.
+@arg1: 
+
+<!-- ##### SIGNAL LdmGreeter::timed-login ##### -->
+<para>
+
+</para>
+
+@ldmgreeter: the object which received the signal.
+@arg1: 
+
+<!-- ##### ARG LdmGreeter:can-hibernate ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:can-restart ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:can-shutdown ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:can-suspend ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:is-authenticated ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:login-delay ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:num-users ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:session ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:timed-login-user ##### -->
+<para>
+
+</para>
 
 <!-- ##### FUNCTION ldm_greeter_new ##### -->
 <para>
