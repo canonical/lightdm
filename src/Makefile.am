@@ -53,6 +53,11 @@ lightdm_LDADD = \
 	$(LIGHTDM_LIBS) \
 	-lpam
 
+EXTRA_DIST = display-manager.xml \
+	display.xml \
+	session-manager.xml \
+	user-manager.xml
+
 DISTCLEANFILES = \
 	$(BUILT_SOURCES) \
 	Makefile.in
