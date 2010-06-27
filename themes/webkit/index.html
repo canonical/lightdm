@@ -18,6 +18,7 @@ td
 
 password_prompt = false;
 selected_user = null;
+time_remaining = 0
 
 function show_prompt(text)
 {
@@ -90,7 +91,10 @@ function timed_login(user)
 
 function start_authentication(username)
 {
+   label = document.getElementById('countdown_label');
    lightdm.cancel_timed_login ();
+   label.style.visibility = "hidden";
+
    show_message("");
    if (!password_prompt) {
        selected_user = username;
@@ -102,6 +106,14 @@ function provide_secret()
 {
    entry = document.getElementById('password_entry');
    lightdm.provide_secret(entry.value);
+}
+
+function countdown()
+{
+   label = document.getElementById('countdown_label');
+   label.innerHTML = ' in ' + time_remaining + ' seconds'
+   setTimeout('countdown()', 1000);
+   time_remaining--;
 }
 
 document.write('<table id="user_table" style="margin: auto;">');
@@ -117,6 +129,8 @@ for (i in lightdm.users)
    document.write('<tr id="user_' + user.name +'"onclick="start_authentication(\'' + user.name + '\')" style="cursor: pointer;">');
    document.write('<td><img width="48px" height="48px" src="' + image + '" /></td>');
    document.write('<td>' + user.display_name + '</td>');
+   if (user.name == lightdm.timed_login_user && lightdm.timed_login_delay > 0)
+       document.write('<td id="countdown_label"></td>');
    document.write('</tr>');
 }
 document.write('</table>');
@@ -125,6 +139,10 @@ document.write('<table id="password_table" style="margin: auto; visibility: hidd
 document.write('<td id="password_prompt"></td>');
 document.write('<td><form action="javascript: provide_secret()"><input id="password_entry" type="password" /></form></td>');
 document.write('</tr></table>');
+
+time_remaining = lightdm.timed_login_delay;
+if (time_remaining > 0)
+    countdown();
 </script>
 </head>
 
