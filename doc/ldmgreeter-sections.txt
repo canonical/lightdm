@@ -1,3 +1,5 @@
+<INCLUDE>lightdm/greeter.h</INCLUDE>
+
 <SECTION>
 <FILE>user</FILE>
 <TITLE>LdmUser</TITLE>
