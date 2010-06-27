@@ -17,6 +17,8 @@ dnl ###########################################################################
 dnl Dependencies
 dnl ###########################################################################
 
+AC_CHECK_HEADERS([security/pam_appl.h],[],[AC_MSG_ERROR([PAM not found])])
+
 PKG_CHECK_MODULES(LIGHTDM, [
     glib-2.0
     gobject-2.0
