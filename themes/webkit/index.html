@@ -91,9 +91,10 @@ function timed_login(user)
 
 function start_authentication(username)
 {
-   label = document.getElementById('countdown_label');
    lightdm.cancel_timed_login ();
-   label.style.visibility = "hidden";
+   label = document.getElementById('countdown_label');
+   if (label != null)
+       label.style.visibility = "hidden";
 
    show_message("");
    if (!password_prompt) {

@@ -2,6 +2,7 @@ Overview of changes in lightdm 0.0.2
 
     * Fix installation of D-Bus service file
     * Allow DISPLAY env variable to be passed to X server so can run Xephyr
+    * Handle no automatic login in webkit theme
 
 Overview of changes in lightdm 0.0.1
 
