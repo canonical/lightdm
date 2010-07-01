@@ -9,6 +9,7 @@
  * license.
  */
 
+#include <stdlib.h>
 #include <sys/wait.h>
 
 #include "xserver.h"
@@ -81,8 +82,16 @@ xserver_start (XServer *server)
     GString *command;
     gint argc;
     gchar **argv;
-    gchar *env[] = { NULL };
+    gchar **env;
+    gint n_env = 0;
+    gchar *env_string;
     //gint xserver_stdin, xserver_stdout, xserver_stderr;
+
+    // FIXME: Do these need to be freed?
+    env = g_malloc (sizeof (gchar *) * 2);
+    if (getenv ("DISPLAY"))
+        env[n_env++] = g_strdup_printf ("DISPLAY=%s", getenv ("DISPLAY"));
+    env[n_env] = NULL;
 
     xserver_binary = g_key_file_get_value (server->priv->config, "LightDM", "xserver", NULL);
     if (!xserver_binary)
@@ -94,7 +103,9 @@ xserver_start (XServer *server)
     //g_string_append_printf (command, " vt%d");
     g_free (xserver_binary);
 
-    g_debug ("Launching X Server: %s", command->str);
+    env_string = g_strjoinv (" ", env);
+    g_debug ("Launching X Server: %s %s", env_string, command->str);
+    g_free (env_string);
 
     result = g_shell_parse_argv (command->str, &argc, &argv, &error);
     g_string_free (command, TRUE);
