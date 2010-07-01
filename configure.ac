@@ -62,6 +62,16 @@ AC_ARG_WITH(config-file,
 )    
 AC_SUBST(CONFIG_FILE)
 
+DBUS_SYS_DIR="$sysconfdir/dbus-1/system.d"
+AC_ARG_WITH(dbus-sys,
+            AS_HELP_STRING([--with-dbus-sys=<dir>],
+                           [where D-BUS system.d directory is]),
+    if test x$withval != x ; then
+        DBUS_SYS_DIR="$withval"
+    fi
+)
+AC_SUBST(DBUS_SYS_DIR)
+
 XSERVER_BINARY=/usr/bin/X
 AC_ARG_WITH(xserver-binary,
             AS_HELP_STRING([--with-xserver-binary=<binary>],
@@ -165,6 +175,7 @@ echo "
 
         prefix:                   ${prefix}
         Config file:              ${CONFIG_FILE}
+        D-Bus system directory:   ${DBUS_SYS_DIR}
         X server binary:          ${XSERVER_BINARY}
         XSessions dir:            ${XSESSION_DIR}
         Default session:          ${DEFAULT_SESSION}
