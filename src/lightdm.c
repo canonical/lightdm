@@ -27,6 +27,8 @@ static GMainLoop *loop;
 static gboolean do_root_check = TRUE;
 static gboolean debug = FALSE;
 
+#define LDM_BUS_NAME "org.gnome.LightDisplayManager"
+
 static void
 version (void)
 {
@@ -128,10 +130,16 @@ start_dbus (void)
                                        DBUS_PATH_DBUS,
                                        DBUS_INTERFACE_DBUS);
     if (!org_freedesktop_DBus_request_name (proxy,
-                                            "org.gnome.LightDisplayManager",
+                                            LDM_BUS_NAME,
                                             DBUS_NAME_FLAG_DO_NOT_QUEUE, &result, &error))
-        g_critical ("Failed to register D-Bus name: %s", error->message);
-    if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER)
+    {
+        if (g_error_matches (error, DBUS_GERROR, DBUS_GERROR_ACCESS_DENIED))
+           g_printerr ("Not authorised to use bus name " LDM_BUS_NAME ", do you have appropriate permissions?\n");
+        else
+           g_printerr ("Failed to register D-Bus name: %s\n", error->message);
+        exit (1);
+    }
+    if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) 
     {
         g_printerr ("Light Display Manager already running\n");
         exit (1);
