@@ -32,7 +32,6 @@ BUILT_SOURCES = \
 	session-manager-glue.h \
 	user-manager-glue.h
 
-# FIXME: Make these configurable from configure.ac
 lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
 	$(WARN_CFLAGS) \

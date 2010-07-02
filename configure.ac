@@ -11,7 +11,7 @@ GOBJECT_INTROSPECTION_CHECK([0.6.7])
 
 AM_GCONF_SOURCE_2
 
-GNOME_COMPILE_WARNINGS(yes)
+GNOME_COMPILE_WARNINGS(maximum)
 
 dnl ###########################################################################
 dnl Dependencies
