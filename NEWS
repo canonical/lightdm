@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.0.3
+
+    * Add language selector API
+
 Overview of changes in lightdm 0.0.2
 
     * Fix installation of D-Bus service file

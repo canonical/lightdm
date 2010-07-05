@@ -151,6 +151,11 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
 </para>
 
+<!-- ##### ARG LdmGreeter:layout ##### -->
+<para>
+
+</para>
+
 <!-- ##### ARG LdmGreeter:login-delay ##### -->
 <para>
 

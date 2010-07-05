@@ -15,6 +15,7 @@
 #include <glib-object.h>
 
 #include "user.h"
+#include "layout.h"
 #include "session.h"
 
 G_BEGIN_DECLS
@@ -57,6 +58,12 @@ gboolean ldm_greeter_connect (LdmGreeter *greeter);
 gint ldm_greeter_get_num_users (LdmGreeter *greeter);
 
 const GList *ldm_greeter_get_users (LdmGreeter *greeter);
+
+const GList *ldm_greeter_get_layouts (LdmGreeter *greeter);
+
+void ldm_greeter_set_layout (LdmGreeter *greeter, const gchar *layout);
+
+const gchar *ldm_greeter_get_layout (LdmGreeter *greeter);
 
 const GList *ldm_greeter_get_sessions (LdmGreeter *greeter);
 

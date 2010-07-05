@@ -2,11 +2,11 @@
 LdmSession
 
 <!-- ##### SECTION Short_Description ##### -->
-Information about a session
+
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
-Object containing information about available sessions on this system. #LdmSession objects are not created by the user, but provided by the #LdmGreeter object.
+
 </para>
 
 <!-- ##### SECTION See_Also ##### -->

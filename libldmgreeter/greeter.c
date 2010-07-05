@@ -14,6 +14,7 @@
 
 #include <dbus/dbus-glib.h>
 #include <security/pam_appl.h>
+#include <libxklavier/xklavier.h>
 
 #include "greeter.h"
 
@@ -21,6 +22,8 @@ enum {
     PROP_0,
     PROP_NUM_USERS,
     PROP_USERS,
+    PROP_LAYOUTS,
+    PROP_LAYOUT,
     PROP_SESSIONS,
     PROP_SESSION,
     PROP_TIMED_LOGIN_USER,
@@ -53,6 +56,9 @@ struct _LdmGreeterPrivate
 
     gboolean have_users;
     GList *users;
+
+    gboolean have_layouts;
+    GList *layouts;
 
     gboolean have_sessions;
     GList *sessions;
@@ -204,6 +210,74 @@ ldm_greeter_get_users (LdmGreeter *greeter)
 {
     update_users (greeter);
     return greeter->priv->users;
+}
+
+static void
+layout_cb (XklConfigRegistry *config,
+           const XklConfigItem *item,
+           gpointer data)
+{
+    LdmGreeter *greeter = data;
+    LdmLayout *layout;
+  
+    layout = ldm_layout_new (item->name, item->short_description, item->description);
+    greeter->priv->layouts = g_list_append (greeter->priv->layouts, layout);
+}
+
+/**
+ * ldm_greeter_get_layouts:
+ * @greeter: A #LdmGreeter
+ * 
+ * Get a list of keyboard layouts to present to the user.
+ * 
+ * Return value: A list of #LdmLayout that should be presented to the user.
+ **/
+const GList *
+ldm_greeter_get_layouts (LdmGreeter *greeter)
+{
+    Display *display;
+    XklEngine *engine;
+    XklConfigRegistry *config;
+
+    if (greeter->priv->have_layouts)
+        return greeter->priv->layouts;
+
+    display = XOpenDisplay (NULL);
+    engine = xkl_engine_get_instance (display);
+    config = xkl_config_registry_get_instance (engine);
+    xkl_config_registry_load (config, FALSE);
+    xkl_config_registry_foreach_layout (config, layout_cb, greeter);
+    // FIXME: Unref the above?
+    greeter->priv->have_layouts = TRUE;
+
+    return greeter->priv->layouts;
+}
+
+/**
+ * ldm_greeter_set_layout:
+ * @greeter: A #LdmGreeter
+ * @layout: The layout to use
+ * 
+ * Set the layout for this session.
+ **/
+void
+ldm_greeter_set_layout (LdmGreeter *greeter, const gchar *layout)
+{
+    // FIXME: ??
+}
+
+/**
+ * ldm_greeter_get_layout:
+ * @greeter: A #LdmGreeter
+ * 
+ * Get the current keyboard layout.
+ * 
+ * Return value: The currently active layout for this user.
+ **/
+const gchar *
+ldm_greeter_get_layout (LdmGreeter *greeter)
+{
+    // FIXME: ??
 }
 
 #define TYPE_SESSION dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INVALID)
@@ -737,6 +811,9 @@ ldm_greeter_set_property(GObject      *object,
     self = LDM_GREETER (object);
 
     switch (prop_id) {
+    case PROP_LAYOUT:
+        ldm_greeter_set_layout(self, g_value_get_string (value));
+        break;
     case PROP_SESSION:
         ldm_greeter_set_session(self, g_value_get_string (value));
         break;
@@ -762,6 +839,11 @@ ldm_greeter_get_property(GObject    *object,
         break;
     case PROP_USERS:
         break;
+    case PROP_LAYOUTS:
+        break;
+    case PROP_LAYOUT:
+        g_value_set_string (value, ldm_greeter_get_layout (self));
+        break;      
     case PROP_SESSIONS:
         break;
     case PROP_SESSION:
@@ -817,6 +899,18 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                                                       "users",
                                                       "Users that can login"));
     g_object_class_install_property(object_class,
+                                    PROP_LAYOUTS,
+                                    g_param_spec_list("layouts",
+                                                      "layouts",
+                                                      "Available keyboard layouts"));*/
+    g_object_class_install_property(object_class,
+                                    PROP_LAYOUT,
+                                    g_param_spec_string("layout",
+                                                        "layout",
+                                                        "Current keyboard layout",
+                                                        NULL,
+                                                        G_PARAM_READWRITE));
+    /*g_object_class_install_property(object_class,
                                     PROP_SESSIONS,
                                     g_param_spec_list("sessions",
                                                       "sessions",
