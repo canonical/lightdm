@@ -10,6 +10,7 @@
  */
 
 #include <string.h>
+#include <gio/gdesktopappinfo.h>
 
 #include "session-manager.h"
 #include "session-manager-glue.h"
@@ -38,38 +39,6 @@ session_free (Session *session)
     g_free (session);
 }
 
-static Session *
-load_session (GKeyFile *key_file, const gchar *key, GError **error)
-{
-    Session *session;
-  
-    session = g_malloc0 (sizeof (Session));
-  
-    session->key = g_strdup (key);
-    session->name = g_key_file_get_locale_string(key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NAME, NULL, error);
-    if (!session->name)
-    {
-        session_free (session);
-        return NULL;
-    }
-
-    session->comment = g_key_file_get_locale_string(key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_COMMENT, NULL, error);
-    if (!session->comment)
-    {
-        session_free (session);
-        return NULL;
-    }
-
-    session->exec = g_key_file_get_value(key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, error);
-    if (!session->exec)
-    {
-        session_free (session);
-        return NULL;
-    }
-
-    return session;
-}
-
 static void
 load_sessions (SessionManager *manager)
 {
@@ -93,7 +62,6 @@ load_sessions (SessionManager *manager)
         const gchar *filename;
         gchar *key, *path;
         gboolean result;
-        Session *session;
 
         filename = g_dir_read_name (directory);
         if (filename == NULL)
@@ -111,17 +79,34 @@ load_sessions (SessionManager *manager)
             g_warning ("Failed to load session file %s: %s:", path, error->message);
         g_clear_error (&error);
 
-        if (result && !g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY, NULL))
+        if (result)
         {
-            session = load_session (key_file, key, &error);
-            if (session)
+            GDesktopAppInfo *desktop_file;
+
+            desktop_file = g_desktop_app_info_new_from_keyfile (key_file);
+
+            if (g_app_info_should_show (G_APP_INFO (desktop_file)))
             {
-                g_debug ("Loaded session %s (%s, %s)", session->key, session->name, session->comment);
-                manager->priv->sessions = g_list_append (manager->priv->sessions, session);
-            }
-            else
-                g_warning ("Invalid session %s: %s", path, error->message);
-            g_clear_error (&error);
+                Session *session;
+
+                session = g_malloc0 (sizeof (Session)); 
+                session->key = g_strdup (key);
+                session->name = g_strdup (g_app_info_get_name (G_APP_INFO (desktop_file)));
+                session->comment = g_strdup (g_app_info_get_display_name (G_APP_INFO (desktop_file)));
+                session->exec = g_strdup (g_app_info_get_executable (G_APP_INFO (desktop_file)));
+
+                if (session->name && session->comment && session->exec)
+                {
+                    g_debug ("Loaded session %s (%s, %s)", session->key, session->name, session->comment);
+                    manager->priv->sessions = g_list_append (manager->priv->sessions, session);
+                }
+                else
+                {
+                    g_warning ("Invalid session %s: %s", path, error->message);
+                    session_free (session);
+                }
+                g_clear_error (&error);
+            }                
         }
 
         g_free (key);      

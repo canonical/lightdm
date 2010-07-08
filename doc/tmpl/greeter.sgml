@@ -212,6 +212,33 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
+<!-- ##### FUNCTION ldm_greeter_get_layout ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_layouts ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_set_layout ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@layout: 
+
+
 <!-- ##### FUNCTION ldm_greeter_get_sessions ##### -->
 <para>
 
