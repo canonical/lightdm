@@ -1,0 +1,70 @@
+<!-- ##### SECTION Title ##### -->
+LdmLayout
+
+<!-- ##### SECTION Short_Description ##### -->
+LightDM keyboard layout object
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+#LdmLayout is an object that describes a keyboard that is available on the system.
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### SECTION Image ##### -->
+
+
+<!-- ##### STRUCT LdmLayout ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### ARG LdmLayout:description ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmLayout:name ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmLayout:short-description ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION ldm_layout_get_name ##### -->
+<para>
+
+</para>
+
+@layout: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_layout_get_short_description ##### -->
+<para>
+
+</para>
+
+@layout: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_layout_get_description ##### -->
+<para>
+
+</para>
+
+@layout: 
+@Returns: 
+
+

@@ -1,6 +1,27 @@
 <INCLUDE>lightdm/greeter.h</INCLUDE>
 
 <SECTION>
+<FILE>language</FILE>
+<TITLE>LdmLanguage</TITLE>
+LdmLanguage
+ldm_language_get_code
+ldm_language_get_name
+ldm_language_get_territory
+<SUBSECTION Standard>
+LDM_IS_LANGUAGE
+LDM_IS_LANGUAGE_CLASS
+LDM_LANGUAGE
+LDM_LANGUAGE_CLASS
+LDM_LANGUAGE_GET_CLASS
+LDM_TYPE_LANGUAGE
+ldm_language_get_type
+<SUBSECTION Private>
+LdmLanguageClass
+LdmLanguagePrivate
+ldm_language_new
+</SECTION>
+
+<SECTION>
 <FILE>layout</FILE>
 <TITLE>LdmLayout</TITLE>
 LdmLayout
@@ -73,6 +94,7 @@ ldm_greeter_new
 ldm_greeter_connect
 ldm_greeter_get_num_users
 ldm_greeter_get_users
+ldm_greeter_get_languages
 ldm_greeter_get_layout
 ldm_greeter_get_layouts
 ldm_greeter_set_layout

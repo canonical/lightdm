@@ -1,0 +1,70 @@
+<!-- ##### SECTION Title ##### -->
+LdmLanguage
+
+<!-- ##### SECTION Short_Description ##### -->
+LightDM language object
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+#LdmLanguage is an object that describes a language that is available on the system.
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### SECTION Image ##### -->
+
+
+<!-- ##### STRUCT LdmLanguage ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### ARG LdmLanguage:id ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmLanguage:name ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmLanguage:territory ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION ldm_language_get_code ##### -->
+<para>
+
+</para>
+
+@language: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_language_get_name ##### -->
+<para>
+
+</para>
+
+@language: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_language_get_territory ##### -->
+<para>
+
+</para>
+
+@language: 
+@Returns: 
+
+

@@ -1,4 +1,5 @@
 ldm_greeter_get_type
+ldm_language_get_type
 ldm_layout_get_type
 ldm_session_get_type
 ldm_user_get_type
