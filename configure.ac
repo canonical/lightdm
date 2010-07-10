@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(lightdm, 0.0.2)
+AC_INIT(lightdm, 0.0.3)
 AM_INIT_AUTOMAKE
 AM_SILENT_RULES([yes])
 LT_INIT

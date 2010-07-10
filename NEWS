@@ -1,8 +1,9 @@
 Overview of changes in lightdm 0.0.3
 
-    * Add language selector API
     * Wait for signal from X server before starting session
-    * Add gettext support to WebKit greeter
+    * Add language API
+    * Add keyboard layout API
+    * Add gettext support to the WebKit greeter
 
 Overview of changes in lightdm 0.0.2
 
