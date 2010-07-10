@@ -95,6 +95,7 @@ ldm_greeter_connect
 ldm_greeter_get_num_users
 ldm_greeter_get_users
 ldm_greeter_get_languages
+ldm_greeter_get_language
 ldm_greeter_get_layout
 ldm_greeter_get_layouts
 ldm_greeter_set_layout

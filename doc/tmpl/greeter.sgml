@@ -221,6 +221,15 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
+<!-- ##### FUNCTION ldm_greeter_get_language ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
 <!-- ##### FUNCTION ldm_greeter_get_layout ##### -->
 <para>
 

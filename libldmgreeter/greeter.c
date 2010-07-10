@@ -11,6 +11,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <locale.h>
 
 #include <dbus/dbus-glib.h>
 #include <security/pam_appl.h>
@@ -54,10 +55,13 @@ struct _LdmGreeterPrivate
 
     DBusGProxy *display_proxy, *session_proxy, *user_proxy;
 
+    Display *display;
+
     gboolean have_users;
     GList *users;
-
-    Display *display;
+  
+    gboolean have_languages;
+    GList *languages;
 
     XklEngine *xkl_engine;
     XklConfigRec *xkl_config;
@@ -215,6 +219,78 @@ ldm_greeter_get_users (LdmGreeter *greeter)
 {
     update_users (greeter);
     return greeter->priv->users;
+}
+
+static void
+update_languages (LdmGreeter *greeter)
+{
+    gchar *stdout_text = NULL, *stderr_text = NULL;
+    gint exit_status;
+    gboolean result;
+    GError *error = NULL;
+
+    if (greeter->priv->have_languages)
+        return;
+
+    result = g_spawn_command_line_sync ("locale -a", &stdout_text, &stderr_text, &exit_status, &error);
+    if (!result || exit_status != 0)
+        g_warning ("Failed to get languages, locale -a returned %d: %s", exit_status, error->message);
+    else
+    {
+        gchar **tokens;
+        int i;
+
+        tokens = g_strsplit_set (stdout_text, "\n\r", -1);
+        for (i = 0; tokens[i]; i++)
+        {
+            LdmLanguage *language;
+            gchar *code;
+
+            code = g_strchug (tokens[i]);
+            if (code[0] == '\0')
+                continue;
+
+            language = ldm_language_new (code);
+            greeter->priv->languages = g_list_append (greeter->priv->languages, language);
+        }
+
+        g_strfreev (tokens);
+    }
+
+    g_clear_error (&error);
+    g_free (stdout_text);
+    g_free (stderr_text);
+
+    greeter->priv->have_languages = TRUE;
+}
+
+/**
+ * ldm_greeter_get_languages:
+ * @greeter: A #LdmGreeter
+ * 
+ * Get a list of languages to present to the user.
+ * 
+ * Return value: A list of #LdmLanguage that should be presented to the user.
+ **/
+const GList *
+ldm_greeter_get_languages (LdmGreeter *greeter)
+{
+    update_languages (greeter);
+    return greeter->priv->languages;
+}
+
+/**
+ * ldm_greeter_get_language:
+ * @greeter: A #LdmGreeter
+ * 
+ * Get the current language.
+ * 
+ * Return value: The current language.
+ **/
+const gchar *
+ldm_greeter_get_language (LdmGreeter *greeter)
+{
+    return setlocale (LC_ALL, NULL);
 }
 
 static void

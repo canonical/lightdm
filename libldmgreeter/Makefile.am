@@ -2,6 +2,7 @@ lib_LTLIBRARIES = libldmgreeter.la
 
 libldmgreeterinclude_HEADERS = \
 	greeter.h \
+	language.h \
 	layout.h \
 	session.h \
 	user.h
@@ -11,6 +12,7 @@ libldmgreeter_la_CFLAGS = $(LIBLDMGREETER_CFLAGS)
 
 libldmgreeter_la_SOURCES= \
 	greeter.c \
+	language.c \
 	layout.c \
 	session.c \
 	user.c

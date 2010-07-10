@@ -110,7 +110,7 @@ main(int argc, char **argv)
 {
     GdkWindow *root;
     const GList *items, *item;
-    GSList *session_radio_list = NULL, *layout_radio_list = NULL;
+    GSList *session_radio_list = NULL, *language_radio_list = NULL, *layout_radio_list = NULL;
     GtkCellRenderer *renderer;
     GdkDisplay *display;
     GdkScreen *screen;
@@ -256,6 +256,27 @@ main(int argc, char **argv)
     gtk_menu_shell_append (GTK_MENU_SHELL (option_menu), menu_item);
     menu = gtk_menu_new ();
     gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
+    items = ldm_greeter_get_languages (greeter);
+    for (item = items; item; item = item->next)
+    {
+        LdmLanguage *language = item->data;
+        gchar *label;
+      
+        if (ldm_language_get_name (language)[0] == '\0')
+            label = g_strdup (ldm_language_get_code (language));
+        else
+            label = g_strdup_printf ("%s - %s", ldm_language_get_name (language), ldm_language_get_territory (language));
+
+        menu_item = gtk_radio_menu_item_new_with_label (language_radio_list, label);
+        language_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menu_item));
+        gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
+
+        if (g_str_equal (ldm_language_get_code (language), ldm_greeter_get_language (greeter)))
+            gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), TRUE);
+
+        //g_object_set_data (G_OBJECT (menu_item), "language", g_strdup (ldm_language_get_code (language)));
+        //g_signal_connect (menu_item, "toggled", G_CALLBACK (language_changed_cb), NULL);
+    }
 
     menu_item = gtk_menu_item_new_with_label (_("Keyboard Layout"));
     gtk_menu_shell_append (GTK_MENU_SHELL (option_menu), menu_item);
