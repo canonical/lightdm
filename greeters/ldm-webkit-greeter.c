@@ -518,6 +518,59 @@ login_cb (JSContextRef context,
     return JSValueMakeNull (context);
 }
 
+static JSValueRef
+gettext_cb (JSContextRef context,
+            JSObjectRef function,
+            JSObjectRef thisObject,
+            size_t argumentCount,
+            const JSValueRef arguments[],
+            JSValueRef *exception)
+{
+    JSStringRef string_arg, result;
+    char string[1024];
+
+    // FIXME: Throw exception
+    if (argumentCount != 1)
+        return JSValueMakeNull (context);
+
+    string_arg = JSValueToStringCopy (context, arguments[0], NULL);
+    JSStringGetUTF8CString (string_arg, string, 1024);
+    JSStringRelease (string_arg);
+
+    result = JSStringCreateWithUTF8CString (gettext (string));
+    return JSValueMakeString (context, result);
+}
+
+static JSValueRef
+ngettext_cb (JSContextRef context,
+             JSObjectRef function,
+             JSObjectRef thisObject,
+             size_t argumentCount,
+             const JSValueRef arguments[],
+             JSValueRef *exception)
+{
+    JSStringRef string_arg, plural_string_arg, result;
+    char string[1024], plural_string[1024];
+    unsigned int n;
+
+    // FIXME: Throw exception
+    if (argumentCount != 3)
+        return JSValueMakeNull (context);
+
+    string_arg = JSValueToStringCopy (context, arguments[0], NULL);
+    JSStringGetUTF8CString (string_arg, string, 1024);
+    JSStringRelease (string_arg);
+
+    plural_string_arg = JSValueToStringCopy (context, arguments[1], NULL);
+    JSStringGetUTF8CString (plural_string_arg, string, 1024);
+    JSStringRelease (plural_string_arg);
+  
+    n = JSValueToNumber (context, arguments[2], NULL);
+
+    result = JSStringCreateWithUTF8CString (ngettext (string, plural_string, n));
+    return JSValueMakeString (context, result);
+}
+
 static const JSStaticValue ldm_user_values[] =
 {
     { "name", get_user_name_cb, NULL, kJSPropertyAttributeReadOnly },
@@ -566,6 +619,13 @@ static const JSStaticFunction ldm_functions[] =
     { NULL, NULL, 0 }
 };
 
+static const JSStaticFunction gettext_functions[] =
+{
+    { "gettext", gettext_cb, kJSPropertyAttributeReadOnly },  
+    { "ngettext", ngettext_cb, kJSPropertyAttributeReadOnly },
+    { NULL, NULL, 0 }
+};
+
 static const JSClassDefinition ldm_user_definition =
 {
     0,                     /* Version */
@@ -592,6 +652,16 @@ static const JSClassDefinition ldm_definition =
     NULL,                  /* Parent class */
     ldm_values,            /* Static values */
     ldm_functions,         /* Static functions */
+};
+
+static const JSClassDefinition gettext_definition =
+{
+    0,                     /* Version */
+    kJSClassAttributeNone, /* Attributes */
+    "GettextClass",        /* Class name */
+    NULL,                  /* Parent class */
+    NULL,
+    gettext_functions,     /* Static functions */
 };
 
 static void
