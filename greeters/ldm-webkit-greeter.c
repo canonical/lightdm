@@ -17,7 +17,7 @@
 
 #include "greeter.h"
 
-static JSClassRef ldm_class, ldm_user_class, ldm_session_class;
+static JSClassRef ldm_greeter_class, ldm_user_class, ldm_language_class, ldm_layout_class, ldm_session_class;
 
 static void
 show_prompt_cb (LdmGreeter *greeter, const gchar *text, WebKitWebView *view)
@@ -124,6 +124,84 @@ get_user_logged_in_cb (JSContextRef context,
 }
 
 static JSValueRef
+get_language_code_cb (JSContextRef context,
+                      JSObjectRef thisObject,
+                      JSStringRef propertyName,
+                      JSValueRef *exception)
+{
+    LdmLanguage *language = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (ldm_language_get_code (language));
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_language_name_cb (JSContextRef context,
+                      JSObjectRef thisObject,
+                      JSStringRef propertyName,
+                      JSValueRef *exception)
+{
+    LdmLanguage *language = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (ldm_language_get_name (language));
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_language_territory_cb (JSContextRef context,
+                           JSObjectRef thisObject,
+                           JSStringRef propertyName,
+                           JSValueRef *exception)
+{
+    LdmLanguage *language = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (ldm_language_get_territory (language));
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_layout_name_cb (JSContextRef context,
+                    JSObjectRef thisObject,
+                    JSStringRef propertyName,
+                    JSValueRef *exception)
+{
+    LdmLayout *layout = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (ldm_layout_get_name (layout));
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_layout_short_description_cb (JSContextRef context,
+                                 JSObjectRef thisObject,
+                                 JSStringRef propertyName,
+                                 JSValueRef *exception)
+{
+    LdmLayout *layout = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (ldm_layout_get_short_description (layout));
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_layout_description_cb (JSContextRef context,
+                           JSObjectRef thisObject,
+                           JSStringRef propertyName,
+                           JSValueRef *exception)
+{
+    LdmLayout *layout = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (ldm_layout_get_description (layout));
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
 get_session_key_cb (JSContextRef context,
                     JSObjectRef thisObject,
                     JSStringRef propertyName,
@@ -134,8 +212,8 @@ get_session_key_cb (JSContextRef context,
 
     string = JSStringCreateWithUTF8CString (ldm_session_get_key (session));
     return JSValueMakeString (context, string);
-}
 
+}
 static JSValueRef
 get_session_name_cb (JSContextRef context,
                      JSObjectRef thisObject,
@@ -200,6 +278,112 @@ get_users_cb (JSContextRef context,
     array = JSObjectMakeArray (context, n_users, args, NULL);
     g_free (args);
     return array;
+}
+
+static JSValueRef
+get_languages_cb (JSContextRef context,
+                  JSObjectRef thisObject,
+                  JSStringRef propertyName,
+                  JSValueRef *exception)
+{
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    JSObjectRef array;
+    const GList *languages, *link;
+    guint i, n_languages = 0;
+    JSValueRef *args;
+  
+    languages = ldm_greeter_get_languages (greeter);
+    n_languages = g_list_length ((GList *)languages);
+    args = g_malloc (sizeof (JSValueRef) * (n_languages + 1));
+    for (i = 0, link = languages; link; i++, link = link->next)
+    {
+        LdmLanguage *language = link->data;
+        g_object_ref (language);
+        args[i] = JSObjectMake (context, ldm_language_class, language);
+    }
+
+    array = JSObjectMakeArray (context, n_languages, args, NULL);
+    g_free (args);
+    return array;
+}
+
+static JSValueRef
+get_language_cb (JSContextRef context,
+                 JSObjectRef thisObject,
+                 JSStringRef propertyName,
+                 JSValueRef *exception)
+{
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (ldm_greeter_get_language (greeter));
+
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_layouts_cb (JSContextRef context,
+                JSObjectRef thisObject,
+                JSStringRef propertyName,
+                JSValueRef *exception)
+{
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    JSObjectRef array;
+    const GList *layouts, *link;
+    guint i, n_layouts = 0;
+    JSValueRef *args;
+  
+    layouts = ldm_greeter_get_layouts (greeter);
+    n_layouts = g_list_length ((GList *)layouts);
+    args = g_malloc (sizeof (JSValueRef) * (n_layouts + 1));
+    for (i = 0, link = layouts; link; i++, link = link->next)
+    {
+        LdmLayout *layout = link->data;
+        g_object_ref (layout);
+        args[i] = JSObjectMake (context, ldm_layout_class, layout);
+    }
+
+    array = JSObjectMakeArray (context, n_layouts, args, NULL);
+    g_free (args);
+    return array;
+}
+
+static JSValueRef
+get_layout_cb (JSContextRef context,
+               JSObjectRef thisObject,
+               JSStringRef propertyName,
+               JSValueRef *exception)
+{
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (ldm_greeter_get_layout (greeter));
+
+    return JSValueMakeString (context, string);
+}
+
+static bool
+set_layout_cb (JSContextRef context,
+               JSObjectRef thisObject,
+               JSStringRef propertyName,
+               JSValueRef value,
+               JSValueRef *exception)
+{
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);  
+    JSStringRef layout_arg;
+    char layout[1024];
+
+    // FIXME: Throw exception
+    if (JSValueGetType (context, value) != kJSTypeString)
+        return false;
+
+    layout_arg = JSValueToStringCopy (context, value, NULL);
+    JSStringGetUTF8CString (layout_arg, layout, 1024);
+    JSStringRelease (layout_arg);
+  
+    ldm_greeter_set_layout (greeter, layout);
+
+    return true;
 }
 
 static JSValueRef
@@ -581,6 +765,22 @@ static const JSStaticValue ldm_user_values[] =
     { NULL, NULL, NULL, 0 }
 };
 
+static const JSStaticValue ldm_language_values[] =
+{
+    { "code", get_language_code_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "name", get_language_name_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "territory", get_language_territory_cb, NULL, kJSPropertyAttributeReadOnly },
+    { NULL, NULL, NULL, 0 }
+};
+
+static const JSStaticValue ldm_layout_values[] =
+{
+    { "name", get_layout_name_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "short_description", get_layout_short_description_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "description", get_layout_description_cb, NULL, kJSPropertyAttributeReadOnly },
+    { NULL, NULL, NULL, 0 }
+};
+
 static const JSStaticValue ldm_session_values[] =
 {
     { "key", get_session_key_cb, NULL, kJSPropertyAttributeReadOnly },
@@ -589,9 +789,13 @@ static const JSStaticValue ldm_session_values[] =
     { NULL, NULL, NULL, 0 }
 };
 
-static const JSStaticValue ldm_values[] =
+static const JSStaticValue ldm_greeter_values[] =
 {
     { "users", get_users_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "languages", get_languages_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "language", get_language_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "layouts", get_layouts_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "layout", get_layout_cb, set_layout_cb, kJSPropertyAttributeReadOnly },
     { "sessions", get_sessions_cb, NULL, kJSPropertyAttributeReadOnly },
     { "num_users", get_num_users_cb, NULL, kJSPropertyAttributeReadOnly },
     { "session", get_session_cb, set_session_cb, kJSPropertyAttributeNone },
@@ -605,7 +809,7 @@ static const JSStaticValue ldm_values[] =
     { NULL, NULL, NULL, 0 }
 };
 
-static const JSStaticFunction ldm_functions[] =
+static const JSStaticFunction ldm_greeter_functions[] =
 {
     { "cancel_timed_login", cancel_timed_login_cb, kJSPropertyAttributeReadOnly },  
     { "start_authentication", start_authentication_cb, kJSPropertyAttributeReadOnly },
@@ -630,28 +834,46 @@ static const JSClassDefinition ldm_user_definition =
 {
     0,                     /* Version */
     kJSClassAttributeNone, /* Attributes */
-    "LightDMUser",         /* Class name */
+    "LdmUser",             /* Class name */
     NULL,                  /* Parent class */
     ldm_user_values,       /* Static values */
+};
+
+static const JSClassDefinition ldm_language_definition =
+{
+    0,                     /* Version */
+    kJSClassAttributeNone, /* Attributes */
+    "LdmLanguage",         /* Class name */
+    NULL,                  /* Parent class */
+    ldm_language_values,   /* Static values */
+};
+
+static const JSClassDefinition ldm_layout_definition =
+{
+    0,                     /* Version */
+    kJSClassAttributeNone, /* Attributes */
+    "LdmLayout",           /* Class name */
+    NULL,                  /* Parent class */
+    ldm_layout_values,     /* Static values */
 };
 
 static const JSClassDefinition ldm_session_definition =
 {
     0,                     /* Version */
     kJSClassAttributeNone, /* Attributes */
-    "LightDMSession",      /* Class name */
+    "LdmSession",          /* Class name */
     NULL,                  /* Parent class */
     ldm_session_values,    /* Static values */
 };
 
-static const JSClassDefinition ldm_definition =
+static const JSClassDefinition ldm_greeter_definition =
 {
     0,                     /* Version */
     kJSClassAttributeNone, /* Attributes */
-    "LightDMClass",        /* Class name */
+    "LdmGreeter",          /* Class name */
     NULL,                  /* Parent class */
-    ldm_values,            /* Static values */
-    ldm_functions,         /* Static functions */
+    ldm_greeter_values,    /* Static values */
+    ldm_greeter_functions, /* Static functions */
 };
 
 static const JSClassDefinition gettext_definition =
@@ -673,11 +895,13 @@ window_object_cleared_cb (WebKitWebView  *web_view,
 {
     JSObjectRef ldm_object;
 
-    ldm_class = JSClassCreate (&ldm_definition);
+    ldm_greeter_class = JSClassCreate (&ldm_greeter_definition);
     ldm_user_class = JSClassCreate (&ldm_user_definition);
+    ldm_language_class = JSClassCreate (&ldm_language_definition);
+    ldm_layout_class = JSClassCreate (&ldm_layout_definition);
     ldm_session_class = JSClassCreate (&ldm_session_definition);
 
-    ldm_object = JSObjectMake (context, ldm_class, greeter);
+    ldm_object = JSObjectMake (context, ldm_greeter_class, greeter);
     JSObjectSetProperty (context,
                          JSContextGetGlobalObject (context),
                          JSStringCreateWithUTF8CString ("lightdm"),
