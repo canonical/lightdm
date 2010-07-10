@@ -32,10 +32,13 @@ typedef struct
 {
     GObjectClass parent_class;
 
+    void (*ready)(XServer *server);  
     void (*exited)(XServer *server);
 } XServerClass;
 
 GType xserver_get_type (void);
+
+void xserver_handle_signal (GPid pid);
 
 XServer *xserver_new (GKeyFile *config, gint index);
 

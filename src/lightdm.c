@@ -18,6 +18,7 @@
 
 #include "display-manager.h"
 #include "user-manager.h"
+#include "xserver.h"
 
 static DBusGConnection *bus;
 static GKeyFile *config_file;
@@ -106,8 +107,14 @@ get_options (int argc, char **argv)
 }
 
 static void
-signal_handler (int signum)
+signal_cb (int signum, siginfo_t *info, void *data)
 {
+    if (signum == SIGUSR1)
+    {
+        xserver_handle_signal (info->si_pid);
+        return;
+    }
+
     g_debug ("Caught %s signal, exiting", g_strsignal (signum));
     g_main_loop_quit (loop);
 }
@@ -170,12 +177,13 @@ main(int argc, char **argv)
     GError *error = NULL;
 
     /* Quit cleanly on signals */
-    action.sa_handler = signal_handler;
+    action.sa_sigaction = signal_cb;
     sigemptyset (&action.sa_mask);
-    action.sa_flags = 0;
+    action.sa_flags = SA_SIGINFO;
     sigaction (SIGTERM, &action, NULL);
     sigaction (SIGINT, &action, NULL);
     sigaction (SIGHUP, &action, NULL);
+    sigaction (SIGUSR1, &action, NULL);
 
     g_type_init ();
 

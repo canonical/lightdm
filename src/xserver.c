@@ -21,6 +21,7 @@ enum {
 };
 
 enum {
+    READY,  
     EXITED,
     LAST_SIGNAL
 };
@@ -40,6 +41,24 @@ struct XServerPrivate
 };
 
 G_DEFINE_TYPE (XServer, xserver, G_TYPE_OBJECT);
+
+static GHashTable *servers = NULL;
+
+void
+xserver_handle_signal (GPid pid)
+{
+    XServer *server;
+
+    server = g_hash_table_lookup (servers, GINT_TO_POINTER (pid));
+    if (!server)
+    {
+        g_warning ("Ignoring signal from unknown process %d", pid);
+        return;
+    }
+
+    g_debug ("Got signal from X server %s", server->priv->display);
+    g_signal_emit (server, signals[READY], 0);
+}
 
 XServer *
 xserver_new (GKeyFile *config, gint index)
@@ -68,9 +87,18 @@ xserver_watch_cb (GPid pid, gint status, gpointer data)
     else if (WIFSIGNALED (status))
         g_debug ("XServer terminated with signal %d", WTERMSIG (status));
 
+    g_hash_table_remove (servers, GINT_TO_POINTER (server->priv->pid));
+
     server->priv->pid = 0;
 
     g_signal_emit (server, signals[EXITED], 0);
+}
+
+static void
+xserver_fork_cb (gpointer data)
+{
+    /* Clear USR1 handler so the server will signal us when ready */
+    signal (SIGUSR1, SIG_IGN);
 }
 
 gboolean
@@ -119,7 +147,8 @@ xserver_start (XServer *server)
                                        argv,
                                        env,
                                        G_SPAWN_DO_NOT_REAP_CHILD,
-                                       NULL, NULL,
+                                       xserver_fork_cb,
+                                       NULL,
                                        &server->priv->pid,
                                        //&xserver_stdin, &xserver_stdout, &xserver_stderr,
                                        &error);
@@ -127,7 +156,11 @@ xserver_start (XServer *server)
     if (!result)
         g_warning ("Unable to create display: %s", error->message);
     else
+    {
+        g_debug ("Waiting for signal from X server %s", server->priv->display);
+        g_hash_table_insert (servers, GINT_TO_POINTER (server->priv->pid), server);
         g_child_watch_add (server->priv->pid, xserver_watch_cb, server);
+    }
     g_clear_error (&error);
 
     return server->priv->pid != 0;
@@ -211,6 +244,15 @@ xserver_class_init (XServerClass *klass)
                                                        0, G_MAXINT, 0,
                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
+    signals[READY] =
+        g_signal_new ("ready",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XServerClass, ready),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
+
     signals[EXITED] =
         g_signal_new ("exited",
                       G_TYPE_FROM_CLASS (klass),
@@ -219,4 +261,6 @@ xserver_class_init (XServerClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
+
+    servers = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_object_unref);
 }

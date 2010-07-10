@@ -166,7 +166,7 @@ session_watch_cb (GPid pid, gint status, gpointer data)
         g_error ("Failed to start greeter");
         break;
     case SESSION_GREETER:
-        if (display->priv->default_user[0] != '\0' && display->priv->timeout > 0)
+        if (display->priv->default_user && display->priv->timeout > 0)
         {
             g_debug ("Starting session for default user %s", display->priv->default_user);
             display->priv->pam_session = pam_session_new (display->priv->default_user);
@@ -509,27 +509,33 @@ xserver_exit_cb (XServer *server, Display *display)
     g_signal_emit (server, signals[EXITED], 0);  
 }
 
-void
-display_start (Display *display, const gchar *session, const gchar *username, gint timeout)
+static void
+xserver_ready_cb (XServer *xserver, Display *display)
 {
-    display->priv->xserver = xserver_new (display->priv->config, display->priv->index);
-    g_signal_connect (G_OBJECT (display->priv->xserver), "exited", G_CALLBACK (xserver_exit_cb), display);
-    if (!xserver_start (display->priv->xserver))
-        return;
-
-    display->priv->session_name = g_strdup (session);
-    display->priv->default_user = g_strdup (username ? username : "");
-    display->priv->timeout = timeout;
-
-    if (username && timeout == 0)
+    /* If have user then automatically login */
+    if (display->priv->default_user && display->priv->timeout == 0)
     {
-        display->priv->pam_session = pam_session_new (username);
+        display->priv->pam_session = pam_session_new (display->priv->default_user);
         pam_session_authorize (display->priv->pam_session);
         start_session (display);
         start_user_session (display);
     }
     else
         start_greeter (display);
+}
+
+void
+display_start (Display *display, const gchar *session, const gchar *username, gint timeout)
+{
+    display->priv->session_name = g_strdup (session);
+    display->priv->default_user = g_strdup (username);
+    display->priv->timeout = timeout;
+    display->priv->xserver = xserver_new (display->priv->config, display->priv->index);
+
+    g_signal_connect (G_OBJECT (display->priv->xserver), "ready", G_CALLBACK (xserver_ready_cb), display);
+    g_signal_connect (G_OBJECT (display->priv->xserver), "exited", G_CALLBACK (xserver_exit_cb), display);
+    if (!xserver_start (display->priv->xserver))
+        return;
 }
 
 static void
