@@ -1,6 +1,7 @@
 Overview of changes in lightdm 0.0.3
 
     * Add language selector API
+    * Wait for signal from X server before starting session
 
 Overview of changes in lightdm 0.0.2
 

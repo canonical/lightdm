@@ -92,6 +92,13 @@ quit_cb (LdmGreeter *greeter, const gchar *username)
 }
 
 static void
+layout_changed_cb (GtkWidget *widget)
+{
+    if (gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
+        ldm_greeter_set_layout (greeter, g_object_get_data (G_OBJECT (widget), "layout"));
+}
+
+static void
 session_changed_cb (GtkWidget *widget)
 {
     if (gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
@@ -102,14 +109,15 @@ int
 main(int argc, char **argv)
 {
     GdkWindow *root;
-    const GList *sessions, *users, *link;
-    GSList *session_radio_list = NULL;
+    const GList *items, *item;
+    GSList *session_radio_list = NULL, *layout_radio_list = NULL;
     GtkCellRenderer *renderer;
     GdkDisplay *display;
     GdkScreen *screen;
     gint screen_width, screen_height;
     GtkAllocation allocation;
-    GtkWidget *menu_bar, *menu, *item;
+    GtkWidget *option_menu, *power_menu;
+    GtkWidget *menu_bar, *menu, *menu_item;
     GdkColor background_color;
     gint n_power_items = 0;
 
@@ -153,10 +161,10 @@ main(int argc, char **argv)
     gtk_widget_set_no_show_all (label, TRUE);    
 
     user_model = gtk_list_store_new (3, G_TYPE_STRING, G_TYPE_STRING, GDK_TYPE_PIXBUF);
-    users = ldm_greeter_get_users (greeter);
-    for (link = users; link; link = link->next)
+    items = ldm_greeter_get_users (greeter);
+    for (item = items; item; item = item->next)
     {
-        LdmUser *user = link->data;
+        LdmUser *user = item->data;
         GtkTreeIter iter;
         const gchar *image;
         GdkPixbuf *pixbuf = NULL;
@@ -205,7 +213,7 @@ main(int argc, char **argv)
     gtk_widget_set_no_show_all (username_entry, TRUE);
 
     password_entry = gtk_entry_new ();
-    gtk_entry_set_visibility (GTK_ENTRY (password_entry), FALSE);
+    //gtk_entry_set_visibility (GTK_ENTRY (password_entry), FALSE);
     gtk_widget_set_sensitive (password_entry, FALSE);
     gtk_box_pack_start (GTK_BOX (vbox), password_entry, FALSE, FALSE, 0);
     g_signal_connect (password_entry, "activate", G_CALLBACK (password_activate_cb), NULL);
@@ -227,79 +235,98 @@ main(int argc, char **argv)
     menu_bar = gtk_menu_bar_new ();
     gtk_container_add (GTK_CONTAINER (panel_window), menu_bar);
 
-    item = gtk_image_menu_item_new ();
-    gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), gtk_image_new_from_icon_name ("access", GTK_ICON_SIZE_LARGE_TOOLBAR));
-    gtk_menu_item_set_label (GTK_MENU_ITEM (item), ""); // NOTE: Needed to make the icon show as selected
-    gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (item), TRUE);
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), item);
+    menu_item = gtk_image_menu_item_new ();
+    gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_item), gtk_image_new_from_icon_name ("access", GTK_ICON_SIZE_LARGE_TOOLBAR));
+    gtk_menu_item_set_label (GTK_MENU_ITEM (menu_item), ""); // NOTE: Needed to make the icon show as selected
+    gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (menu_item), TRUE);
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), menu_item);
 
     menu = gtk_menu_new ();
-    gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
+    gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
     gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("?1"));
     gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("?2"));
     gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("?3"));
 
-    item = gtk_menu_item_new_with_label (_("Options"));
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), item);
+    menu_item = gtk_menu_item_new_with_label (_("Options"));
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), menu_item);
+    option_menu = gtk_menu_new ();
+    gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), option_menu);
 
+    menu_item = gtk_menu_item_new_with_label (_("Language"));
+    gtk_menu_shell_append (GTK_MENU_SHELL (option_menu), menu_item);
     menu = gtk_menu_new ();
-    gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label (_("Select Language...")));
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label (_("Select Keyboard Layout...")));
+    gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
 
-    item = gtk_menu_item_new_with_label (_("Select Session"));
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
-
+    menu_item = gtk_menu_item_new_with_label (_("Keyboard Layout"));
+    gtk_menu_shell_append (GTK_MENU_SHELL (option_menu), menu_item);
     menu = gtk_menu_new ();
-    gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
-    sessions = ldm_greeter_get_sessions (greeter);
-    for (link = sessions; link; link = link->next)
+    gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
+    items = ldm_greeter_get_layouts (greeter);
+    for (item = items; item; item = item->next)
     {
-        LdmSession *session = link->data;
-        const gchar *current_session;
+        LdmLayout *layout = item->data;
 
-        item = gtk_radio_menu_item_new_with_label (session_radio_list, ldm_session_get_name (session));
-        session_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (item));
-        gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
+        menu_item = gtk_radio_menu_item_new_with_label (layout_radio_list, ldm_layout_get_description (layout));
+        layout_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menu_item));
+        gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
-        current_session = ldm_greeter_get_session (greeter);
-        if (g_str_equal (ldm_session_get_key (session), current_session))
-            gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item), TRUE);
+        if (g_str_equal (ldm_layout_get_name (layout), ldm_greeter_get_layout (greeter)))
+            gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), TRUE);
 
-        g_object_set_data (G_OBJECT (item), "key", g_strdup (ldm_session_get_key (session)));
-        g_signal_connect (item, "toggled", G_CALLBACK (session_changed_cb), NULL);
+        g_object_set_data (G_OBJECT (menu_item), "layout", g_strdup (ldm_layout_get_name (layout)));
+        g_signal_connect (menu_item, "toggled", G_CALLBACK (layout_changed_cb), NULL);
     }
- 
+
+    menu_item = gtk_menu_item_new_with_label (_("Session"));
+    gtk_menu_shell_append (GTK_MENU_SHELL (option_menu), menu_item);
     menu = gtk_menu_new ();
+    gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
+    items = ldm_greeter_get_sessions (greeter);
+    for (item = items; item; item = item->next)
+    {
+        LdmSession *session = item->data;
+
+        menu_item = gtk_radio_menu_item_new_with_label (session_radio_list, ldm_session_get_name (session));
+        session_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menu_item));
+        gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
+
+        if (g_str_equal (ldm_session_get_key (session), ldm_greeter_get_session (greeter)))
+            gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), TRUE);
+
+        g_object_set_data (G_OBJECT (menu_item), "key", g_strdup (ldm_session_get_key (session)));
+        g_signal_connect (menu_item, "toggled", G_CALLBACK (session_changed_cb), NULL);
+    }
+
+    power_menu = gtk_menu_new ();
     if (ldm_greeter_get_can_suspend (greeter))
     {
-        gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Suspend"));
+        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), gtk_menu_item_new_with_label ("Suspend"));
         n_power_items++;
     }
     if (ldm_greeter_get_can_hibernate (greeter))
     {
-        gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Hibernate"));
+        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), gtk_menu_item_new_with_label ("Hibernate"));
         n_power_items++;
     }
     if (ldm_greeter_get_can_restart (greeter))
     {
-        gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Restart..."));
+        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), gtk_menu_item_new_with_label ("Restart..."));
         n_power_items++;
     }
     if (ldm_greeter_get_can_shutdown (greeter))
     {
-        gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("Shutdown..."));
+        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), gtk_menu_item_new_with_label ("Shutdown..."));
         n_power_items++;
     }
     if (n_power_items > 0)
     {
-        item = gtk_image_menu_item_new ();
-        gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (item), TRUE);
-        gtk_menu_item_set_right_justified (GTK_MENU_ITEM (item), TRUE);
-        gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), gtk_image_new_from_icon_name ("system-shutdown", GTK_ICON_SIZE_LARGE_TOOLBAR));
-        gtk_menu_item_set_label (GTK_MENU_ITEM (item), ""); // NOTE: Needed to make the icon show as selected
-        gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
-        gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), item);
+        menu_item = gtk_image_menu_item_new ();
+        gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (menu_item), TRUE);
+        gtk_menu_item_set_right_justified (GTK_MENU_ITEM (menu_item), TRUE);
+        gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_item), gtk_image_new_from_icon_name ("system-shutdown", GTK_ICON_SIZE_LARGE_TOOLBAR));
+        gtk_menu_item_set_label (GTK_MENU_ITEM (menu_item), ""); // NOTE: Needed to make the icon show as selected
+        gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
+        gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), menu_item);
     }
 
     gtk_widget_show_all (panel_window);

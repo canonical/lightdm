@@ -57,8 +57,13 @@ struct _LdmGreeterPrivate
     gboolean have_users;
     GList *users;
 
+    Display *display;
+
+    XklEngine *xkl_engine;
+    XklConfigRec *xkl_config;
     gboolean have_layouts;
     GList *layouts;
+    gchar *layout;
 
     gboolean have_sessions;
     GList *sessions;
@@ -224,6 +229,24 @@ layout_cb (XklConfigRegistry *config,
     greeter->priv->layouts = g_list_append (greeter->priv->layouts, layout);
 }
 
+static void
+setup_display (LdmGreeter *greeter)
+{
+    if (!greeter->priv->display)
+        greeter->priv->display = XOpenDisplay (NULL);
+}
+
+static void
+setup_xkl (LdmGreeter *greeter)
+{
+    setup_display (greeter);
+    greeter->priv->xkl_engine = xkl_engine_get_instance (greeter->priv->display);
+    greeter->priv->xkl_config = xkl_config_rec_new ();
+    if (!xkl_config_rec_get_from_server (greeter->priv->xkl_config, greeter->priv->xkl_engine))
+        g_warning ("Failed to get Xkl configuration from server");
+    greeter->priv->layout = g_strdup (greeter->priv->xkl_config->layouts[0]);
+}
+
 /**
  * ldm_greeter_get_layouts:
  * @greeter: A #LdmGreeter
@@ -235,19 +258,17 @@ layout_cb (XklConfigRegistry *config,
 const GList *
 ldm_greeter_get_layouts (LdmGreeter *greeter)
 {
-    Display *display;
-    XklEngine *engine;
-    XklConfigRegistry *config;
+    XklConfigRegistry *registry;
 
     if (greeter->priv->have_layouts)
         return greeter->priv->layouts;
 
-    display = XOpenDisplay (NULL);
-    engine = xkl_engine_get_instance (display);
-    config = xkl_config_registry_get_instance (engine);
-    xkl_config_registry_load (config, FALSE);
-    xkl_config_registry_foreach_layout (config, layout_cb, greeter);
-    // FIXME: Unref the above?
+    setup_xkl (greeter);
+
+    registry = xkl_config_registry_get_instance (greeter->priv->xkl_engine);
+    xkl_config_registry_load (registry, FALSE);
+    xkl_config_registry_foreach_layout (registry, layout_cb, greeter);
+    g_object_unref (registry);
     greeter->priv->have_layouts = TRUE;
 
     return greeter->priv->layouts;
@@ -263,7 +284,20 @@ ldm_greeter_get_layouts (LdmGreeter *greeter)
 void
 ldm_greeter_set_layout (LdmGreeter *greeter, const gchar *layout)
 {
-    // FIXME: ??
+    XklConfigRec *config;
+
+    setup_xkl (greeter);
+
+    config = xkl_config_rec_new ();
+    config->layouts = g_malloc (sizeof (gchar *) * 2);
+    config->model = g_strdup (greeter->priv->xkl_config->model);
+    config->layouts[0] = g_strdup (layout);
+    config->layouts[1] = NULL;
+    if (!xkl_config_rec_activate (config, greeter->priv->xkl_engine))
+        g_warning ("Failed to activate XKL config");
+    else
+        greeter->priv->layout = g_strdup (layout);
+    g_object_unref (config);
 }
 
 /**
@@ -277,7 +311,8 @@ ldm_greeter_set_layout (LdmGreeter *greeter, const gchar *layout)
 const gchar *
 ldm_greeter_get_layout (LdmGreeter *greeter)
 {
-    // FIXME: ??
+    setup_xkl (greeter);
+    return greeter->priv->layout;
 }
 
 #define TYPE_SESSION dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INVALID)

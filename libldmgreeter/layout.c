@@ -177,5 +177,5 @@ ldm_layout_class_init (LdmLayoutClass *klass)
                                                         "description",
                                                         "Long description of the layout",
                                                         NULL,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
