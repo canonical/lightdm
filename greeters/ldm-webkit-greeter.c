@@ -17,7 +17,7 @@
 
 #include "greeter.h"
 
-static JSClassRef ldm_greeter_class, ldm_user_class, ldm_language_class, ldm_layout_class, ldm_session_class;
+static JSClassRef gettext_class, ldm_greeter_class, ldm_user_class, ldm_language_class, ldm_layout_class, ldm_session_class;
 
 static void
 show_prompt_cb (LdmGreeter *greeter, const gchar *text, WebKitWebView *view)
@@ -893,19 +893,26 @@ window_object_cleared_cb (WebKitWebView  *web_view,
                           JSObjectRef window_object,
                           LdmGreeter *greeter)
 {
-    JSObjectRef ldm_object;
+    JSObjectRef gettext_object, ldm_greeter_object;
 
+    gettext_class = JSClassCreate (&gettext_definition);  
     ldm_greeter_class = JSClassCreate (&ldm_greeter_definition);
     ldm_user_class = JSClassCreate (&ldm_user_definition);
     ldm_language_class = JSClassCreate (&ldm_language_definition);
     ldm_layout_class = JSClassCreate (&ldm_layout_definition);
     ldm_session_class = JSClassCreate (&ldm_session_definition);
 
-    ldm_object = JSObjectMake (context, ldm_greeter_class, greeter);
+    gettext_object = JSObjectMake (context, gettext_class, NULL);
+    JSObjectSetProperty (context,
+                         JSContextGetGlobalObject (context),
+                         JSStringCreateWithUTF8CString ("gettext"),
+                         gettext_object, kJSPropertyAttributeNone, NULL);
+
+    ldm_greeter_object = JSObjectMake (context, ldm_greeter_class, greeter);
     JSObjectSetProperty (context,
                          JSContextGetGlobalObject (context),
                          JSStringCreateWithUTF8CString ("lightdm"),
-                         ldm_object, kJSPropertyAttributeNone, NULL);
+                         ldm_greeter_object, kJSPropertyAttributeNone, NULL);
 }
 
 int

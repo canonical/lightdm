@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.0.4
+
+    * Create gettext instance in WebKit greeter
+
 Overview of changes in lightdm 0.0.3
 
     * Wait for signal from X server before starting session
