@@ -106,17 +106,27 @@ get_options (int argc, char **argv)
     }
 }
 
+static gboolean
+handle_signal (gpointer data)
+{
+    siginfo_t *info = data;
+
+    if (info->si_signo == SIGUSR1)
+    {
+        xserver_handle_signal (info->si_pid);
+        return FALSE;
+    }
+
+    g_debug ("Caught %s signal, exiting", g_strsignal (info->si_signo));
+    g_main_loop_quit (loop);
+
+    return FALSE;
+}
+
 static void
 signal_cb (int signum, siginfo_t *info, void *data)
 {
-    if (signum == SIGUSR1)
-    {
-        xserver_handle_signal (info->si_pid);
-        return;
-    }
-
-    g_debug ("Caught %s signal, exiting", g_strsignal (signum));
-    g_main_loop_quit (loop);
+    g_idle_add (handle_signal, info);
 }
 
 static DBusGConnection *
