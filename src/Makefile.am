@@ -17,6 +17,8 @@ lightdm_SOURCES = \
 	lightdm.c \
 	pam-session.c \
 	pam-session.h \
+	session.c \
+	session.h \
 	session-manager.c \
 	session-manager.h \
 	theme.c \

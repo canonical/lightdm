@@ -10,16 +10,14 @@
  */
 
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
-#include <sys/wait.h>
 #include <pwd.h>
-#include <unistd.h>
 #include <ck-connector.h>
 
 #include "display.h"
 #include "display-glue.h"
 #include "xserver.h"
+#include "session.h"
 #include "pam-session.h"
 #include "theme.h"
 
@@ -56,8 +54,8 @@ struct DisplayPrivate
     XServer *xserver;
 
     /* Session process (either greeter or user session) */
-    GPid session_pid;
-  
+    Session *session;
+
     /* Current D-Bus call context */
     DBusGMethodInvocation *dbus_context;
 
@@ -127,38 +125,18 @@ end_session (Display *display)
 }
 
 static void
-session_watch_cb (GPid pid, gint status, gpointer data)
+session_exit_cb (Session *session, Display *display)
 {
-    Display *display = data;
-    SessionType session;
-  
-    session = display->priv->active_session;
-    display->priv->session_pid = 0;
+    SessionType active_session;
+
+    g_object_unref (display->priv->session);
+    display->priv->session = NULL;
+
+    active_session = display->priv->active_session;
     display->priv->active_session = SESSION_NONE;
 
-    switch (session)
-    {
-    case SESSION_NONE:
-        break;
-    case SESSION_GREETER_PRE_CONNECT:
-    case SESSION_GREETER:
-    case SESSION_GREETER_AUTHENTICATED:      
-        if (WIFEXITED (status))
-            g_debug ("Greeter exited with return value %d", WEXITSTATUS (status));
-        else if (WIFSIGNALED (status))
-            g_debug ("Greeter terminated with signal %d", WTERMSIG (status));
-        break;
-
-    case SESSION_USER:
-        if (WIFEXITED (status))
-            g_debug ("Session exited with return value %d", WEXITSTATUS (status));
-        else if (WIFSIGNALED (status))
-            g_debug ("Session terminated with signal %d", WTERMSIG (status));
-        break;
-    }
-
     // FIXME: Check for respawn loops
-    switch (session)
+    switch (active_session)
     {
     case SESSION_NONE:
         break;
@@ -186,101 +164,36 @@ session_watch_cb (GPid pid, gint status, gpointer data)
         break;
     }
 }
-
-static void
-session_fork_cb (gpointer data)
-{
-    struct passwd *user_info = data;
-  
-    if (setgid (user_info->pw_gid) != 0)
-    {
-        g_warning ("Failed to set group ID: %s", strerror (errno));
-        _exit(1);
-    }
-    // FIXME: Is there a risk of connecting to the process for a user in the given group and accessing memory?
-    if (setuid (user_info->pw_uid) != 0)
-    {
-        g_warning ("Failed to set user ID: %s", strerror (errno));
-        _exit(1);
-    }
-    if (chdir (user_info->pw_dir) != 0)
-        g_warning ("Failed to change directory: %s", strerror (errno));
-}
-
+ 
 static void
 open_session (Display *display, const gchar *username, const gchar *command, gboolean is_greeter)
 {
-    struct passwd *user_info;
-    //gint session_stdin, session_stdout, session_stderr;
-    gboolean result;
-    gint argc;
-    gchar **argv;
-    gchar **env;
-    gchar *env_string;
-    gint n_env = 0;
-    GError *error = NULL;
+    g_return_if_fail (display->priv->session == NULL);
 
-    g_return_if_fail (display->priv->session_pid == 0);
-
-    errno = 0;
-    user_info = getpwnam (username);
-    if (!user_info)
-    {
-        if (errno == 0)
-            g_warning ("Unable to get information on user %s: User does not exist", username);
-        else
-            g_warning ("Unable to get information on user %s: %s", username, strerror (errno));
-        return;
-    }
-
-    // FIXME: Do these need to be freed?
-    env = g_malloc (sizeof (gchar *) * 10);
-    env[n_env++] = g_strdup_printf ("USER=%s", user_info->pw_name);
-    env[n_env++] = g_strdup_printf ("HOME=%s", user_info->pw_dir);
-    env[n_env++] = g_strdup_printf ("SHELL=%s", user_info->pw_shell);
-    env[n_env++] = g_strdup_printf ("HOME=%s", user_info->pw_dir);
-    env[n_env++] = g_strdup_printf ("DISPLAY=%s", xserver_get_display (display->priv->xserver));
+    display->priv->session = session_new (display->priv->config, username, command);
+    g_signal_connect (G_OBJECT (display->priv->session), "exited", G_CALLBACK (session_exit_cb), display);
+    session_set_env (display->priv->session, "DISPLAY", xserver_get_display (display->priv->xserver));
     if (is_greeter)
     {
+        gchar *string;
+
         // FIXME: D-Bus not known about in here!
-        //env[n_env++] = g_strdup_printf ("DBUS_SESSION_BUS_ADDRESS=%s", getenv ("DBUS_SESSION_BUS_ADDRESS")); // FIXME: Only if using session bus
-        //env[n_env++] = g_strdup ("LDM_BUS=SESSION"); // FIXME: Only if using session bus
-        env[n_env++] = g_strdup_printf ("LDM_DISPLAY=/org/gnome/LightDisplayManager/Display%d", display->priv->index);
+        //session_set_env (display->priv->session, "DBUS_SESSION_BUS_ADDRESS", getenv ("DBUS_SESSION_BUS_ADDRESS")); // FIXME: Only if using session bus
+        //session_set_env (display->priv->session, "LDM_BUS, ""SESSION"); // FIXME: Only if using session bus
+        string = g_strdup_printf ("/org/gnome/LightDisplayManager/Display%d", display->priv->index);
+        session_set_env (display->priv->session, "LDM_DISPLAY", string);
+        g_free (string);
     }
     if (display->priv->ck_session)
-        env[n_env++] = g_strdup_printf ("XDG_SESSION_COOKIE=%s", ck_connector_get_cookie (display->priv->ck_session));
-    env[n_env] = NULL;
-    result = g_shell_parse_argv (command, &argc, &argv, &error);
-    if (!result)
-        g_error ("Failed to parse session command line: %s", error->message);
-    g_clear_error (&error);
-    if (!result)
-        return;
+        session_set_env (display->priv->session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->ck_session));
 
-    env_string = g_strjoinv (" ", env);
-    g_debug ("Launching greeter: %s %s", env_string, command);
-    g_free (env_string);
-
-    result = g_spawn_async/*_with_pipes*/ (user_info->pw_dir,
-                                       argv,
-                                       env,
-                                       G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH,
-                                       session_fork_cb, user_info,
-                                       &display->priv->session_pid,
-                                       //&session_stdin, &session_stdout, &session_stderr,
-                                       &error);
-
-    if (!result)
-        g_warning ("Failed to spawn session: %s", error->message);
-    else
-        g_child_watch_add (display->priv->session_pid, session_watch_cb, display);
-    g_clear_error (&error);
+    session_start (display->priv->session);
 }
 
 static void
 start_user_session (Display *display)
 {
-    Session *session;
+    SessionConfig *session;
 
     g_debug ("Launching %s session for user %s", display->priv->session_name, pam_session_get_username (display->priv->pam_session));
 

@@ -30,7 +30,7 @@ session_manager_new (void)
 }
 
 static void
-session_free (Session *session)
+session_free (SessionConfig *session)
 {
     g_free (session->key);  
     g_free (session->name);
@@ -87,9 +87,9 @@ load_sessions (SessionManager *manager)
 
             if (g_app_info_should_show (G_APP_INFO (desktop_file)))
             {
-                Session *session;
+                SessionConfig *session;
 
-                session = g_malloc0 (sizeof (Session)); 
+                session = g_malloc0 (sizeof (SessionConfig)); 
                 session->key = g_strdup (key);
                 session->name = g_strdup (g_app_info_get_name (G_APP_INFO (desktop_file)));
                 session->comment = g_strdup (g_app_info_get_display_name (G_APP_INFO (desktop_file)));
@@ -119,7 +119,7 @@ load_sessions (SessionManager *manager)
     manager->priv->sessions_loaded = TRUE;
 }
 
-Session *
+SessionConfig *
 session_manager_get_session (SessionManager *manager, const gchar *key)
 {
     GList *link;
@@ -128,7 +128,7 @@ session_manager_get_session (SessionManager *manager, const gchar *key)
 
     for (link = manager->priv->sessions; link; link = link->next)
     {
-        Session *session = link->data;
+        SessionConfig *session = link->data;
         if (g_str_equal (session->key, key))
             return session;
     }
@@ -148,7 +148,7 @@ session_manager_get_sessions (SessionManager *manager, GPtrArray **sessions, GEr
     *sessions = g_ptr_array_sized_new (g_list_length (manager->priv->sessions));
     for (link = manager->priv->sessions; link; link = link->next)
     {
-        Session *session = link->data;
+        SessionConfig *session = link->data;
         GValue value = { 0 };
 
         g_value_init (&value, TYPE_SESSION);

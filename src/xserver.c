@@ -30,6 +30,8 @@ static guint signals[LAST_SIGNAL] = { 0 };
 struct XServerPrivate
 {
     GKeyFile *config;
+  
+    gboolean ready;
 
     gint index;
 
@@ -56,8 +58,12 @@ xserver_handle_signal (GPid pid)
         return;
     }
 
-    g_debug ("Got signal from X server %s", server->priv->display);
-    g_signal_emit (server, signals[READY], 0);
+    if (!server->priv->ready)
+    {
+        server->priv->ready = TRUE;
+        g_debug ("Got signal from X server %s", server->priv->display);
+        g_signal_emit (server, signals[READY], 0);
+    }
 }
 
 XServer *
