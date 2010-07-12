@@ -30,6 +30,7 @@ PKG_CHECK_MODULES(LIGHTDM, [
 
 PKG_CHECK_MODULES(LIBLDMGREETER, [
     glib-2.0
+    gio-unix-2.0
     gobject-2.0
     dbus-glib-1
     libxklavier

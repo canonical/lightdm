@@ -13,6 +13,7 @@
 #include <string.h>
 #include <pwd.h>
 #include <ck-connector.h>
+#include <gio/gdesktopappinfo.h>
 
 #include "display.h"
 #include "display-glue.h"
@@ -24,7 +25,6 @@
 enum {
     PROP_0,
     PROP_CONFIG,
-    PROP_SESSIONS,
     PROP_INDEX
 };
 
@@ -47,8 +47,6 @@ struct DisplayPrivate
 {
     GKeyFile *config;
 
-    SessionManager *sessions;
-  
     gint index;
 
     XServer *xserver;
@@ -82,9 +80,9 @@ static void start_greeter (Display *display);
 static void start_user_session (Display *display);
 
 Display *
-display_new (GKeyFile *config, SessionManager *sessions, gint index)
+display_new (GKeyFile *config, gint index)
 {
-    return g_object_new (DISPLAY_TYPE, "config", config, "sessions", sessions, "index", index, NULL);
+    return g_object_new (DISPLAY_TYPE, "config", config, "index", index, NULL);
 }
 
 gint
@@ -193,15 +191,41 @@ open_session (Display *display, const gchar *username, const gchar *command, gbo
 static void
 start_user_session (Display *display)
 {
-    SessionConfig *session;
+    gchar *filename, *path;
+    GKeyFile *key_file;
+    gboolean result;
+    GError *error = NULL;
 
     g_debug ("Launching %s session for user %s", display->priv->session_name, pam_session_get_username (display->priv->pam_session));
 
-    session = session_manager_get_session (display->priv->sessions, display->priv->session_name);
-    g_return_if_fail (session != NULL);
+    filename = g_strdup_printf ("%s.desktop", display->priv->session_name);
+    path = g_build_filename (XSESSIONS_DIR, filename, NULL);
+    g_free (filename);
 
-    display->priv->active_session = SESSION_USER;
-    open_session (display, pam_session_get_username (display->priv->pam_session), session->exec, FALSE);
+    key_file = g_key_file_new ();
+    result = g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, &error);
+    g_free (path);
+
+    if (!result)
+        g_warning ("Failed to load session file %s: %s:", path, error->message);
+    g_clear_error (&error);
+
+    if (result)
+    {
+        GDesktopAppInfo *desktop_file;
+
+        desktop_file = g_desktop_app_info_new_from_keyfile (key_file);
+
+        display->priv->active_session = SESSION_USER;
+        open_session (display,
+                      pam_session_get_username (display->priv->pam_session),
+                      g_app_info_get_executable (G_APP_INFO (desktop_file)),
+                      FALSE);
+
+        g_object_unref (desktop_file);
+    }
+
+    g_key_file_free (key_file);
 }
 
 static void
@@ -479,9 +503,6 @@ display_set_property(GObject      *object,
             self->priv->session_name = session;
         }
         break;
-    case PROP_SESSIONS:
-        self->priv->sessions = g_object_ref (g_value_get_object (value));
-        break;
     case PROP_INDEX:
         self->priv->index = g_value_get_int (value);
         break;
@@ -505,9 +526,6 @@ display_get_property(GObject    *object,
     switch (prop_id) {
     case PROP_CONFIG:
         g_value_set_pointer (value, self->priv->config);
-        break;
-    case PROP_SESSIONS:
-        g_value_set_object (value, self->priv->sessions);
         break;
     case PROP_INDEX:
         g_value_set_int (value, self->priv->index);
@@ -534,13 +552,6 @@ display_class_init (DisplayClass *klass)
                                                            "config",
                                                            "Configuration",
                                                            G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-    g_object_class_install_property (object_class,
-                                     PROP_SESSIONS,
-                                     g_param_spec_object ("sessions",
-                                                          "sessions",
-                                                          "Sessions available",
-                                                          SESSION_MANAGER_TYPE,
-                                                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
     g_object_class_install_property (object_class,
                                      PROP_INDEX,
                                      g_param_spec_int ("index",

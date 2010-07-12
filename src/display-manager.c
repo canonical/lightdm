@@ -32,8 +32,6 @@ struct DisplayManagerPrivate
 
     DBusGConnection *connection;
 
-    SessionManager *sessions;
-
     GList *displays;
 };
 
@@ -43,12 +41,6 @@ DisplayManager *
 display_manager_new (GKeyFile *config)
 {
     return g_object_new (DISPLAY_MANAGER_TYPE, "config", config, NULL);
-}
-
-SessionManager *
-display_manager_get_session_manager (DisplayManager *manager)
-{
-    return manager->priv->sessions;
 }
 
 static gboolean
@@ -89,7 +81,7 @@ display_manager_add_display (DisplayManager *manager)
 {
     Display *display;
 
-    display = display_new (manager->priv->config, manager->priv->sessions, get_free_index (manager));
+    display = display_new (manager->priv->config, get_free_index (manager));
 
     g_signal_emit (manager, signals[DISPLAY_ADDED], 0, display);
 
@@ -106,8 +98,6 @@ static void
 display_manager_init (DisplayManager *manager)
 {
     manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, DISPLAY_MANAGER_TYPE, DisplayManagerPrivate);
-
-    manager->priv->sessions = session_manager_new ();
 }
 
 static void

@@ -14,7 +14,6 @@
 
 #include <glib-object.h>
 #include "display.h"
-#include "session-manager.h"
 
 G_BEGIN_DECLS
 
@@ -39,8 +38,6 @@ typedef struct
 GType display_manager_get_type (void);
 
 DisplayManager *display_manager_new (GKeyFile *config);
-
-SessionManager *display_manager_get_session_manager (DisplayManager *manager);
 
 Display *display_manager_add_display (DisplayManager *manager);
 

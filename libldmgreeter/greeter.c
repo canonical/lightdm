@@ -13,6 +13,7 @@
 #include <string.h>
 #include <locale.h>
 
+#include <gio/gdesktopappinfo.h>
 #include <dbus/dbus-glib.h>
 #include <security/pam_appl.h>
 #include <libxklavier/xklavier.h>
@@ -391,51 +392,77 @@ ldm_greeter_get_layout (LdmGreeter *greeter)
     return greeter->priv->layout;
 }
 
-#define TYPE_SESSION dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INVALID)
-#define TYPE_SESSION_LIST dbus_g_type_get_collection ("GPtrArray", TYPE_SESSION)
-
 static void
 update_sessions (LdmGreeter *greeter)
 {
-    GPtrArray *sessions;
-    gboolean result;
-    gint i;
+    GDir *directory;
     GError *error = NULL;
+    GKeyFile *key_file;
 
     if (greeter->priv->have_sessions)
         return;
 
-    result = dbus_g_proxy_call (greeter->priv->session_proxy, "GetSessions", &error,
-                                G_TYPE_INVALID,
-                                TYPE_SESSION_LIST, &sessions,
-                                G_TYPE_INVALID);
-    if (!result)
-        g_warning ("Failed to get sessions: %s", error->message);
+    directory = g_dir_open (XSESSIONS_DIR, 0, &error);
+    if (!directory)
+        g_warning ("Failed to open sessions directory: %s", error->message);
     g_clear_error (&error);
-  
-    if (!result)
+    if (!directory)
         return;
-  
-    for (i = 0; i < sessions->len; i++)
+
+    key_file = g_key_file_new ();
+    while (TRUE)
     {
-        GValue value = { 0 };
-        LdmSession *session;
-        gchar *key, *name, *comment;
+        const gchar *filename;
+        gchar *key, *path;
+        gboolean result;
 
-        g_value_init (&value, TYPE_SESSION);
-        g_value_set_static_boxed (&value, sessions->pdata[i]);
-        dbus_g_type_struct_get (&value, 0, &key, 1, &name, 2, &comment, G_MAXUINT);
-        g_value_unset (&value);
+        filename = g_dir_read_name (directory);
+        if (filename == NULL)
+            break;
 
-        session = ldm_session_new (key, name, comment);
-        g_free (key);
-        g_free (name);
-        g_free (comment);
+        if (!g_str_has_suffix (filename, ".desktop"))
+            continue;
 
-        greeter->priv->sessions = g_list_append (greeter->priv->sessions, session);
+        key = g_strndup (filename, strlen (filename) - strlen (".desktop"));
+        path = g_build_filename (XSESSIONS_DIR, filename, NULL);
+        g_debug ("Loading session %s", path);
+
+        result = g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, &error);
+        if (!result)
+            g_warning ("Failed to load session file %s: %s:", path, error->message);
+        g_clear_error (&error);
+
+        if (result)
+        {
+            GDesktopAppInfo *desktop_file;
+
+            desktop_file = g_desktop_app_info_new_from_keyfile (key_file);
+
+            if (g_app_info_should_show (G_APP_INFO (desktop_file)))
+            {
+                const gchar *name, *comment;
+
+                name = g_app_info_get_name (G_APP_INFO (desktop_file));
+                comment = g_app_info_get_display_name (G_APP_INFO (desktop_file));
+                if (name && comment)
+                {
+                    g_debug ("Loaded session %s (%s, %s)", key, name, comment);
+                    greeter->priv->sessions = g_list_append (greeter->priv->sessions, ldm_session_new (key, name, comment));
+                }
+                else
+                    g_warning ("Invalid session %s: %s", path, error->message);
+                g_clear_error (&error);
+            }
+
+            g_object_unref (desktop_file);
+        }
+
+        g_free (key);      
+        g_free (path);
     }
 
-    g_ptr_array_free (sessions, TRUE);
+    g_dir_close (directory);
+    g_key_file_free (key_file);
 
     greeter->priv->have_sessions = TRUE;
 }

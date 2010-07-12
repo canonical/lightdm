@@ -225,7 +225,6 @@ main(int argc, char **argv)
 
     display_manager = display_manager_new (config_file);
     g_signal_connect (display_manager, "display-added", G_CALLBACK (display_added_cb), NULL);
-    dbus_g_connection_register_g_object (bus, "/org/gnome/LightDisplayManager/Session", G_OBJECT (display_manager_get_session_manager (display_manager)));
     dbus_g_connection_register_g_object (bus, "/org/gnome/LightDisplayManager", G_OBJECT (display_manager));
 
     /* Start the first display */

@@ -4,8 +4,6 @@ display-glue.h: $(srcdir)/display.xml
 	$(DBUSBINDINGTOOL) --prefix=display --mode=glib-server --output=$@ $^
 display-manager-glue.h: $(srcdir)/display-manager.xml
 	$(DBUSBINDINGTOOL) --prefix=display_manager --mode=glib-server --output=$@ $^
-session-manager-glue.h: $(srcdir)/session-manager.xml
-	$(DBUSBINDINGTOOL) --prefix=session_manager --mode=glib-server --output=$@ $^
 user-manager-glue.h: $(srcdir)/user-manager.xml
 	$(DBUSBINDINGTOOL) --prefix=user_manager --mode=glib-server --output=$@ $^
 
@@ -19,8 +17,6 @@ lightdm_SOURCES = \
 	pam-session.h \
 	session.c \
 	session.h \
-	session-manager.c \
-	session-manager.h \
 	theme.c \
 	theme.h \
 	user-manager.c \
@@ -31,7 +27,6 @@ lightdm_SOURCES = \
 BUILT_SOURCES = \
 	display-glue.h \
 	display-manager-glue.h \
-	session-manager-glue.h \
 	user-manager-glue.h
 
 lightdm_CFLAGS = \
@@ -56,7 +51,6 @@ lightdm_LDADD = \
 
 EXTRA_DIST = display-manager.xml \
 	display.xml \
-	session-manager.xml \
 	user-manager.xml
 
 DISTCLEANFILES = \

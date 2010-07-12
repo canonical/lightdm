@@ -15,8 +15,6 @@
 #include <glib-object.h>
 #include <dbus/dbus-glib.h>
 
-#include "session-manager.h"
-
 G_BEGIN_DECLS
 
 #define DISPLAY_TYPE (display_get_type())
@@ -39,7 +37,7 @@ typedef struct
 
 GType display_get_type (void);
 
-Display *display_new (GKeyFile *config, SessionManager *sessions, gint index);
+Display *display_new (GKeyFile *config, gint index);
 
 gint display_get_index (Display *display);
 
