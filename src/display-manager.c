@@ -14,6 +14,8 @@
 
 #include "display-manager.h"
 #include "display-manager-glue.h"
+#include "xdmcp-server.h"
+#include "theme.h"
 
 enum {
     PROP_0,
@@ -33,6 +35,8 @@ struct DisplayManagerPrivate
     DBusGConnection *connection;
 
     GList *displays;
+
+    XDMCPServer *xdmcp_server;
 };
 
 G_DEFINE_TYPE (DisplayManager, display_manager, G_TYPE_OBJECT);
@@ -90,9 +94,61 @@ display_manager_add_display (DisplayManager *manager)
 }
 
 gboolean
-display_manager_switch_to_user (Display *display, char *username, GError *error)
+display_manager_switch_to_user (DisplayManager *manager, char *username, GError *error)
 {
     return TRUE;
+}
+
+static void
+xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *manager)
+{
+    Display *display;
+    gchar *address;
+
+    display = display_manager_add_display (manager);
+    address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (session)));
+    display_set_remote_host (display, address, xdmcp_session_get_display_number (session));
+    g_free (address);
+    display_start (display, NULL, 0);
+}
+
+void
+display_manager_start (DisplayManager *manager)
+{
+    /* Start the first display */
+    if (!g_key_file_get_boolean (manager->priv->config, "LightDM", "headless", NULL))
+    {
+        Display *display;
+        gchar *default_user;
+        gint user_timeout;
+
+        display = display_manager_add_display (manager);
+
+        /* Automatically log in or start a greeter session */  
+        default_user = g_key_file_get_value (manager->priv->config, "Default User", "name", NULL);
+        //FIXME default_user_session = g_key_file_get_value (manager->priv->config, "Default User", "session", NULL); // FIXME
+        user_timeout = g_key_file_get_integer (manager->priv->config, "Default User", "timeout", NULL);
+        if (user_timeout < 0)
+            user_timeout = 0;
+
+        if (default_user)
+        {
+            if (user_timeout == 0)
+                g_debug ("Starting session for user %s", default_user);
+            else
+                g_debug ("Starting session for user %s in %d seconds", default_user, user_timeout);
+        }
+
+        display_start (display, default_user, user_timeout);
+        g_free (default_user);
+    }
+
+    if (g_key_file_get_boolean (manager->priv->config, "xdmcp", "enabled", NULL))
+    {
+        manager->priv->xdmcp_server = xdmcp_server_new (manager->priv->config);
+        g_signal_connect (manager->priv->xdmcp_server, "session-added", G_CALLBACK (xdmcp_session_cb), manager);
+        xdmcp_server_start (manager->priv->xdmcp_server); 
+    }
 }
 
 static void

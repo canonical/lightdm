@@ -19,7 +19,6 @@
 #include "display-manager.h"
 #include "user-manager.h"
 #include "xserver.h"
-#include "xdmcp-server.h"
 
 static DBusGConnection *bus = NULL;
 static GKeyFile *config_file = NULL;
@@ -178,35 +177,11 @@ display_added_cb (DisplayManager *manager, Display *display)
     g_free (name);
 }
 
-#include "theme.h"
-#include "session.h"
-static void
-xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
-{
-    Display *display;
-    gchar *default_session;
-    gchar *address;
-
-    default_session = g_key_file_get_value (config_file, "LightDM", "session", NULL);
-    if (!default_session)
-        default_session = g_strdup (DEFAULT_SESSION);
-
-    display = display_manager_add_display (display_manager);
-    address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (session)));
-    display_set_remote_host (display, address, xdmcp_session_get_display_number (session));
-    g_free (address);
-    display_start (display, default_session, NULL, 0);
-
-    g_free (default_session);
-}
-
 int
 main(int argc, char **argv)
 {
     UserManager *user_manager;
     struct sigaction action;
-    gchar *default_user, *default_session;
-    gint user_timeout;
     GError *error = NULL;
 
     /* Quit cleanly on signals */
@@ -250,45 +225,7 @@ main(int argc, char **argv)
     g_signal_connect (display_manager, "display-added", G_CALLBACK (display_added_cb), NULL);
     dbus_g_connection_register_g_object (bus, "/org/gnome/LightDisplayManager", G_OBJECT (display_manager));
 
-    /* Start the first display */
-    if (!g_key_file_get_boolean (config_file, "LightDM", "headless", NULL))
-    {
-        Display *display;
-
-        display = display_manager_add_display (display_manager);
-
-        default_session = g_key_file_get_value (config_file, "LightDM", "session", NULL);
-        if (!default_session)
-            default_session = g_strdup (DEFAULT_SESSION);
-
-        /* Automatically log in or start a greeter session */  
-        default_user = g_key_file_get_value (config_file, "Default User", "name", NULL);
-        //FIXME default_user_session = g_key_file_get_value (config_file, "Default User", "session", NULL); // FIXME
-        user_timeout = g_key_file_get_integer (config_file, "Default User", "timeout", NULL);
-        if (user_timeout < 0)
-            user_timeout = 0;
-
-        if (default_user)
-        {
-            if (user_timeout == 0)
-                g_debug ("Starting session for user %s", default_user);
-            else
-                g_debug ("Starting session for user %s in %d seconds", default_user, user_timeout);
-        }
-
-        display_start (display, default_session, default_user, user_timeout);
-        g_free (default_session);
-        g_free (default_user);
-    }
-
-    if (g_key_file_get_boolean (config_file, "xdmcp", "enabled", NULL))
-    {
-        XDMCPServer *xdmcp_server;
-
-        xdmcp_server = xdmcp_server_new (config_file);
-        g_signal_connect (xdmcp_server, "session-added", G_CALLBACK (xdmcp_session_cb), NULL);
-        xdmcp_server_start (xdmcp_server);
-    }
+    display_manager_start (display_manager);
 
     g_main_loop_run (loop);
 

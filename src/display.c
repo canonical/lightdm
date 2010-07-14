@@ -473,9 +473,8 @@ xserver_ready_cb (XServer *xserver, Display *display)
 }
 
 void
-display_start (Display *display, const gchar *session, const gchar *username, gint timeout)
+display_start (Display *display, const gchar *username, gint timeout)
 {
-    display->priv->session_name = g_strdup (session);
     display->priv->default_user = g_strdup (username);
     display->priv->timeout = timeout;
 
@@ -517,11 +516,8 @@ display_set_property(GObject      *object,
     case PROP_CONFIG:
         self->priv->config = g_value_get_pointer (value);
         session = g_key_file_get_value (self->priv->config, "LightDM", "session", NULL);
-        if (session)
-        {
-            g_free (self->priv->session_name);
-            self->priv->session_name = session;
-        }
+        if (!session)
+            session = g_strdup (DEFAULT_SESSION);        
         break;
     case PROP_INDEX:
         self->priv->index = g_value_get_int (value);
@@ -531,7 +527,6 @@ display_set_property(GObject      *object,
         break;
     }
 }
-
 
 static void
 display_get_property(GObject    *object,

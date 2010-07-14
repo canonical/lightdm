@@ -41,7 +41,9 @@ DisplayManager *display_manager_new (GKeyFile *config);
 
 Display *display_manager_add_display (DisplayManager *manager);
 
-gboolean display_manager_switch_to_user (Display *display, char *username, GError *error);
+gboolean display_manager_switch_to_user (DisplayManager *manager, char *username, GError *error);
+
+void display_manager_start (DisplayManager *manager);
 
 G_END_DECLS
 
