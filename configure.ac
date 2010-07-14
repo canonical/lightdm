@@ -26,6 +26,7 @@ PKG_CHECK_MODULES(LIGHTDM, [
     gobject-2.0
     dbus-glib-1
     ck-connector
+    x11
 ])
 
 PKG_CHECK_MODULES(LIBLDMGREETER, [

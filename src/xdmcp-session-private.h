@@ -12,6 +12,8 @@
 #ifndef _XDMCP_SESSION_PRIVATE_H_
 #define _XDMCP_SESSION_PRIVATE_H_
 
+#include <X11/Xlib.h>
+
 struct XDMCPSessionPrivate
 {
     guint16 id;
@@ -27,8 +29,8 @@ struct XDMCPSessionPrivate
     guint16 display_number;
 
     gchar *display_class;
-};
 
-void xdmcp_session_manage (XDMCPSession *session, guint16 display_number, const gchar *display_class);
+    Display *display;
+};
 
 #endif /* _XDMCP_SESSION_PRIVATE_H_ */

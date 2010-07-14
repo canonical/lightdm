@@ -62,17 +62,6 @@ xdmcp_session_get_display_class (XDMCPSession *session)
     return session->priv->display_class;
 }
 
-void
-xdmcp_session_manage (XDMCPSession *session, guint16 display_number, const gchar *display_class)
-{
-    if (session->priv->started)
-        return;
-
-    session->priv->started = TRUE;
-    session->priv->display_number = display_number;  
-    session->priv->display_class = g_strdup (display_class);
-}
-
 static void
 xdmcp_session_init (XDMCPSession *session)
 {

@@ -150,6 +150,8 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     gchar *authentication_name;
     gchar *authorization_name;
     GInetAddress *address4 = NULL; /*, *address6 = NULL;*/
+  
+    /* FIXME: If session not started (i.e. not received the Manage then response with Accept again) */
 
     /* FIXME: Perform requested authentication */
     authentication_name = g_strdup ("");
@@ -175,10 +177,16 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
         }
     }
 
-    // FIXME
-    //if (!address4 && !address6)
-    //    ;
-
+    if (!address4)
+    {
+        response = xdmcp_packet_alloc (XDMCP_Decline);
+        response->Decline.status = g_strdup ("No valid address found");
+        response->Decline.authentication_name = authentication_name;
+        send_packet (socket, address, response);
+        xdmcp_packet_free (response);
+        return;
+    }
+  
     /* FIXME: Allow a higher layer to decline */
 
     session = add_session (server);
@@ -201,14 +209,47 @@ handle_manage (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XD
     session = get_session (server, packet->Manage.session_id);
     if (session)
     {
-        xdmcp_session_manage (session, packet->Manage.display_number, packet->Manage.display_class);
+        gchar *ip_address, *display_address;
 
-        //FIXME: Only call once
-        g_signal_emit (server, signals[SESSION_ADDED], 0, session);
+        /* Ignore duplicate requests */
+        if (session->priv->started)
+        {
+            if (session->priv->display_number != packet->Manage.display_number ||
+                strcmp (session->priv->display_class, packet->Manage.display_class) != 0)
+                g_warning ("Duplicate Manage received with different data");
+            return;
+        }
+
+        /* Try and connect */
+        ip_address = g_inet_address_to_string (G_INET_ADDRESS (session->priv->address));
+        display_address = g_strdup_printf ("%s:%d", ip_address, packet->Manage.display_number);
+        g_free (ip_address);
+        session->priv->display = XOpenDisplay (display_address);
+      
+        if (!session->priv->display)
+        {
+            XDMCPPacket *response;
+
+            response = xdmcp_packet_alloc (XDMCP_Failed);
+            response->Failed.session_id = packet->Manage.session_id;
+            response->Failed.status = g_strdup_printf ("Failed to connect to display %s", display_address);
+            send_packet (socket, address, response);
+            xdmcp_packet_free (response);
+        }
+        else
+        {
+            session->priv->started = TRUE;
+            session->priv->display_number = packet->Manage.display_number;  
+            session->priv->display_class = g_strdup (packet->Manage.display_class);
+            g_signal_emit (server, signals[SESSION_ADDED], 0, session);
+        }
+
+        g_free (display_address);
     }
     else
     {
-        XDMCPPacket *response;        
+        XDMCPPacket *response;
+
         response = xdmcp_packet_alloc (XDMCP_Refuse);
         response->Refuse.session_id = packet->Manage.session_id;
         send_packet (socket, address, response);
