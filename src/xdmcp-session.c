@@ -44,12 +44,6 @@ xdmcp_session_get_address (XDMCPSession *session)
     return session->priv->address;
 }
 
-const GInetAddress *
-xdmcp_session_get_address6 (XDMCPSession *session)
-{
-    return session->priv->address6;
-}
-
 const gchar *
 xdmcp_session_get_authorization_name (XDMCPSession *session)
 {

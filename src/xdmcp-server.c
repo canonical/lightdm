@@ -9,6 +9,7 @@
  * license.
  */
 
+#include <X11/X.h>
 #include <string.h>
 #include <gio/gio.h>
 
@@ -143,10 +144,12 @@ handle_query (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XDM
 static void
 handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XDMCPPacket *packet)
 {
+    int i;
     XDMCPPacket *response;
     XDMCPSession *session;
     gchar *authentication_name;
     gchar *authorization_name;
+    GInetAddress *address4 = NULL; /*, *address6 = NULL;*/
 
     /* FIXME: Perform requested authentication */
     authentication_name = g_strdup ("");
@@ -154,9 +157,32 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     /* FIXME: Choose an authorization from the list */
     authorization_name = g_strdup ("");
 
+    for (i = 0; i < packet->Request.n_connections; i++)
+    {
+        XDMCPConnection *connection;
+
+        connection = &packet->Request.connections[i];
+        switch (connection->type)
+        {
+        case FamilyInternet:
+            if (connection->address.length == 4)
+                address4 = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV4);
+            break;
+        /*case FamilyInternet6:
+            if (connection->address.length == 16)
+                address6 = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV6);          
+            break;*/
+        }
+    }
+
+    // FIXME
+    //if (!address4 && !address6)
+    //    ;
+
     /* FIXME: Allow a higher layer to decline */
 
     session = add_session (server);
+    session->priv->address = address4; /*address6 ? address6 : address4;*/
     // FIXME: Timeout inactive sessions?
 
     response = xdmcp_packet_alloc (XDMCP_Accept);

@@ -20,8 +20,6 @@ struct XDMCPSessionPrivate
 
     GInetAddress *address;
 
-    GInetAddress *address6;
-
     gchar *authorization_name;
   
     gboolean started;

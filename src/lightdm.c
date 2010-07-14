@@ -185,13 +185,16 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
 {
     Display *display;
     gchar *default_session;
+    gchar *address;
 
     default_session = g_key_file_get_value (config_file, "LightDM", "session", NULL);
     if (!default_session)
         default_session = g_strdup (DEFAULT_SESSION);
 
     display = display_manager_add_display (display_manager);
-    display_set_remote_host (display, "localhost", xdmcp_session_get_display_number (session));
+    address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (session)));
+    display_set_remote_host (display, address, xdmcp_session_get_display_number (session));
+    g_free (address);
     display_start (display, default_session, NULL, 0);
 
     g_free (default_session);
