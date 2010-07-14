@@ -1,6 +1,7 @@
 Overview of changes in lightdm 0.0.4
 
     * Create gettext instance in WebKit greeter
+    * Add basic XDMCP support
 
 Overview of changes in lightdm 0.0.3
 

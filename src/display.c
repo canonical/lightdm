@@ -49,6 +49,10 @@ struct DisplayPrivate
 
     gint index;
 
+    // FIXME: Merge these into one object
+    gchar *xserver_hostname;
+    guint16 xserver_display_number;
+    gchar *xserver_address;
     XServer *xserver;
 
     /* Session process (either greeter or user session) */
@@ -91,21 +95,27 @@ display_get_index (Display *display)
     return display->priv->index;
 }
 
+void
+display_set_remote_host (Display *display, const gchar *hostname, guint16 display_number)
+{
+    display->priv->xserver_hostname = g_strdup (hostname);
+    display->priv->xserver_display_number = display_number;
+}
+
 static void
 start_session (Display *display)
 {
     DBusError error;
-    const gchar *username, *x11_display;
+    const gchar *username;
 
     display->priv->ck_session = ck_connector_new ();
     dbus_error_init (&error);
     username = pam_session_get_username (display->priv->pam_session);
-    x11_display = xserver_get_display (display->priv->xserver);
     if (!ck_connector_open_session_with_parameters (display->priv->ck_session, &error,
                                                     "unix-user", &username,
                                                     //"display-device", &display->priv->display_device,
                                                     //"x11-display-device", &display->priv->x11_display_device,
-                                                    "x11-display", &x11_display,
+                                                    "x11-display", &display->priv->xserver_address,
                                                     NULL))
         g_warning ("Failed to open CK session: %s: %s", error.name, error.message);
 }
@@ -170,7 +180,7 @@ open_session (Display *display, const gchar *username, const gchar *command, gbo
 
     display->priv->session = session_new (display->priv->config, username, command);
     g_signal_connect (G_OBJECT (display->priv->session), "exited", G_CALLBACK (session_exit_cb), display);
-    session_set_env (display->priv->session, "DISPLAY", xserver_get_display (display->priv->xserver));
+    session_set_env (display->priv->session, "DISPLAY", display->priv->xserver_address);
     if (is_greeter)
     {
         gchar *string;
@@ -260,6 +270,7 @@ start_greeter (Display *display)
         command = theme_get_command (theme);
         open_session (display, user, command, TRUE);
         g_free (command);
+        g_key_file_free (theme);
     }
 
     g_free (user);
@@ -467,12 +478,21 @@ display_start (Display *display, const gchar *session, const gchar *username, gi
     display->priv->session_name = g_strdup (session);
     display->priv->default_user = g_strdup (username);
     display->priv->timeout = timeout;
-    display->priv->xserver = xserver_new (display->priv->config, display->priv->index);
 
-    g_signal_connect (G_OBJECT (display->priv->xserver), "ready", G_CALLBACK (xserver_ready_cb), display);
-    g_signal_connect (G_OBJECT (display->priv->xserver), "exited", G_CALLBACK (xserver_exit_cb), display);
-    if (!xserver_start (display->priv->xserver))
-        return;
+    if (!display->priv->xserver_hostname)
+    {
+        display->priv->xserver = xserver_new (display->priv->config, display->priv->index); // FIXME: Don't use our ID, use the next available local number
+        display->priv->xserver_address = g_strdup_printf (":%d", xserver_get_display_number (display->priv->xserver));
+        g_signal_connect (G_OBJECT (display->priv->xserver), "ready", G_CALLBACK (xserver_ready_cb), display);
+        g_signal_connect (G_OBJECT (display->priv->xserver), "exited", G_CALLBACK (xserver_exit_cb), display);
+        if (!xserver_start (display->priv->xserver))
+            return;
+    }
+    else
+    {
+        display->priv->xserver_address = g_strdup_printf("%s:%d", display->priv->xserver_hostname, display->priv->xserver_display_number);
+        xserver_ready_cb (NULL, display);
+    }
 }
 
 static void

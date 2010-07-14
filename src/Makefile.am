@@ -21,6 +21,13 @@ lightdm_SOURCES = \
 	theme.h \
 	user-manager.c \
 	user-manager.h \
+	xdmcp-protocol.c \
+	xdmcp-protocol.h \
+	xdmcp-server.c \
+	xdmcp-server.h \
+	xdmcp-session.c \
+	xdmcp-session.h \
+	xdmcp-session-private.h \
 	xserver.c \
 	xserver.h
 

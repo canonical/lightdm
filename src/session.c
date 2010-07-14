@@ -116,7 +116,7 @@ static gchar **session_get_env (Session *session)
     GHashTableIter iter;
     gint i = 0;
 
-    env = g_malloc (sizeof (gchar *) * g_hash_table_size (session->priv->env));
+    env = g_malloc (sizeof (gchar *) * (g_hash_table_size (session->priv->env) + 1));
     g_hash_table_iter_init (&iter, session->priv->env);
     while (g_hash_table_iter_next (&iter, &key, &value))
     {

@@ -438,7 +438,7 @@ update_sessions (LdmGreeter *greeter)
 
             desktop_file = g_desktop_app_info_new_from_keyfile (key_file);
 
-            if (g_app_info_should_show (G_APP_INFO (desktop_file)))
+            if (desktop_file && g_app_info_should_show (G_APP_INFO (desktop_file)))
             {
                 const gchar *name, *comment;
 
@@ -454,10 +454,11 @@ update_sessions (LdmGreeter *greeter)
                 g_clear_error (&error);
             }
 
-            g_object_unref (desktop_file);
+            if (desktop_file)
+                g_object_unref (desktop_file);
         }
 
-        g_free (key);      
+        g_free (key);
         g_free (path);
     }
 

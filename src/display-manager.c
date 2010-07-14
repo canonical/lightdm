@@ -82,6 +82,7 @@ display_manager_add_display (DisplayManager *manager)
     Display *display;
 
     display = display_new (manager->priv->config, get_free_index (manager));
+    manager->priv->displays = g_list_append (manager->priv->displays, display);
 
     g_signal_emit (manager, signals[DISPLAY_ADDED], 0, display);
 

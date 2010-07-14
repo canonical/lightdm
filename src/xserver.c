@@ -17,7 +17,7 @@
 enum {
     PROP_0,
     PROP_CONFIG,
-    PROP_INDEX
+    PROP_DISPLAY_NUMBER
 };
 
 enum {
@@ -33,11 +33,8 @@ struct XServerPrivate
   
     gboolean ready;
 
-    gint index;
+    gint display_number;
 
-    /* Display device */
-    gchar *display; // e.g. :0
-  
     /* X process */
     GPid pid;
 };
@@ -61,26 +58,21 @@ xserver_handle_signal (GPid pid)
     if (!server->priv->ready)
     {
         server->priv->ready = TRUE;
-        g_debug ("Got signal from X server %s", server->priv->display);
+        g_debug ("Got signal from X server :%d", server->priv->display_number);
         g_signal_emit (server, signals[READY], 0);
     }
 }
 
 XServer *
-xserver_new (GKeyFile *config, gint index)
+xserver_new (GKeyFile *config, gint display_number)
 {
-    return g_object_new (XSERVER_TYPE, "config", config, "index", index, NULL);
+    return g_object_new (XSERVER_TYPE, "config", config, "display-number", display_number, NULL);
 }
 
 gint
-xserver_get_index (XServer *server)
+xserver_get_display_number (XServer *server)
 {
-    return server->priv->index;
-}
-
-const gchar *xserver_get_display (XServer *server)
-{
-    return server->priv->display;
+    return server->priv->display_number;
 }
 
 static void
@@ -131,7 +123,7 @@ xserver_start (XServer *server)
     if (!xserver_binary)
         xserver_binary = g_strdup (XSERVER_BINARY);
     command = g_string_new (xserver_binary);
-    g_string_append_printf (command, " %s", server->priv->display);
+    g_string_append_printf (command, " :%d", server->priv->display_number);
     g_string_append (command, " -nolisten tcp"); /* Disable TCP/IP connections */
     g_string_append (command, " -nr");           /* No root background */
     //g_string_append_printf (command, " vt%d");
@@ -163,7 +155,7 @@ xserver_start (XServer *server)
         g_warning ("Unable to create display: %s", error->message);
     else
     {
-        g_debug ("Waiting for signal from X server %s", server->priv->display);
+        g_debug ("Waiting for signal from X server :%d", server->priv->display_number);
         g_hash_table_insert (servers, GINT_TO_POINTER (server->priv->pid), server);
         g_child_watch_add (server->priv->pid, xserver_watch_cb, server);
     }
@@ -192,9 +184,8 @@ xserver_set_property(GObject      *object,
     case PROP_CONFIG:
         self->priv->config = g_value_get_pointer (value);
         break;
-    case PROP_INDEX:
-        self->priv->index = g_value_get_int (value);
-        self->priv->display = g_strdup_printf (":%d", self->priv->index);
+    case PROP_DISPLAY_NUMBER:
+        self->priv->display_number = g_value_get_int (value);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -217,8 +208,8 @@ xserver_get_property(GObject    *object,
     case PROP_CONFIG:
         g_value_set_pointer (value, self->priv->config);
         break;
-    case PROP_INDEX:
-        g_value_set_int (value, self->priv->index);
+    case PROP_DISPLAY_NUMBER:
+        g_value_set_int (value, self->priv->display_number);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -243,10 +234,10 @@ xserver_class_init (XServerClass *klass)
                                                            "Configuration",
                                                            G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
     g_object_class_install_property (object_class,
-                                     PROP_INDEX,
-                                     g_param_spec_int ("index",
-                                                       "index",
-                                                       "Server index",
+                                     PROP_DISPLAY_NUMBER,
+                                     g_param_spec_int ("display-number",
+                                                       "display-number",
+                                                       "Server display number",
                                                        0, G_MAXINT, 0,
                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
