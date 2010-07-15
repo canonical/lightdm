@@ -104,11 +104,11 @@ add_session (XDMCPServer *server)
 
     do
     {
-        id = g_random_int ();
-    } while (g_hash_table_lookup (server->priv->sessions, GINT_TO_POINTER (id)));
+        id = g_random_int () & 0xFFFFFFFF;
+    } while (g_hash_table_lookup (server->priv->sessions, GINT_TO_POINTER ((gint) id)));
 
     session = xdmcp_session_new (id);
-    g_hash_table_insert (server->priv->sessions, GINT_TO_POINTER (id), session);
+    g_hash_table_insert (server->priv->sessions, GINT_TO_POINTER ((gint) id), session);
 
     return session;
 }
@@ -116,7 +116,7 @@ add_session (XDMCPServer *server)
 static XDMCPSession *
 get_session (XDMCPServer *server, guint16 id)
 {
-    return g_hash_table_lookup (server->priv->sessions, GINT_TO_POINTER (id));
+    return g_hash_table_lookup (server->priv->sessions, GINT_TO_POINTER ((gint) id));
 }
 
 static void
