@@ -50,35 +50,22 @@ display_manager_new (GKeyFile *config)
     return g_object_new (DISPLAY_MANAGER_TYPE, "config", config, NULL);
 }
 
-static gboolean
-display_number_used (DisplayManager *manager, gint display_number)
-{
-    GList *link;
-
-    for (link = manager->priv->xservers; link; link = link->next)
-    {
-        XServer *xserver = link->data;
-        if (xserver_get_display_number (xserver) == display_number)
-            return TRUE;
-    }
-
-    return FALSE;
-}
-
-static gint
+static guint
 get_free_display_number (DisplayManager *manager)
 {
-    gint min_display_number = 0, display_number;
-    gchar *numbers;
+    guint display_number = 0;
 
-    numbers = g_key_file_get_value (manager->priv->config, "LightDM", "display_numbers", NULL);
-    if (numbers)
+    while (TRUE)
     {
-        min_display_number = atoi (numbers);
-        g_free (numbers);
-    }
+        GList *link;
 
-    for (display_number = min_display_number; display_number_used (manager, display_number); display_number++);
+        for (link = manager->priv->xservers; link; link = link->next)
+        {
+            XServer *xserver = link->data;
+            if (xserver_get_display_number (xserver) == display_number)
+                return TRUE;
+        }
+    }
 
     return display_number;
 }
@@ -117,12 +104,26 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
 void
 display_manager_start (DisplayManager *manager)
 {
+    gchar *displays;
+    gchar **tokens, **i;
+  
     /* Start the first display */
-    if (!g_key_file_get_boolean (manager->priv->config, "LightDM", "headless", NULL))
+    displays = g_key_file_get_string (manager->priv->config, "LightDM", "displays", NULL);
+    if (!displays)
+        displays = g_strdup ("");
+    tokens = g_strsplit (displays, " ", -1);
+    g_free (displays);
+
+    for (i = tokens; *i; i++)
     {
         Display *display;
         gchar *default_user;
         gint user_timeout;
+        gchar *display_name;
+        guint display_number;
+
+        display_name = *i;
+        g_debug ("Loading display %s", display_name);
 
         display = add_display (manager);
 
@@ -141,9 +142,15 @@ display_manager_start (DisplayManager *manager)
                 g_debug ("Starting session for user %s in %d seconds", default_user, user_timeout);
         }
 
-        display_start (display, NULL, get_free_display_number (manager), default_user, user_timeout);
+        if (g_key_file_has_key (manager->priv->config, display_name, "display-number", NULL))
+            display_number = g_key_file_get_integer (manager->priv->config, display_name, "display-number", NULL);
+        else
+            display_number = get_free_display_number (manager);
+
+        display_start (display, NULL, display_number, default_user, user_timeout);
         g_free (default_user);
     }
+    g_strfreev (tokens);
 
     if (g_key_file_get_boolean (manager->priv->config, "xdmcp", "enabled", NULL))
     {
