@@ -186,7 +186,7 @@ xserver_start (XServer *server)
     else
     {
         g_debug ("Waiting for signal from X server :%d", server->priv->display_number);
-        g_hash_table_insert (servers, GINT_TO_POINTER (server->priv->pid), server);
+        g_hash_table_insert (servers, GINT_TO_POINTER (server->priv->pid), g_object_ref (server));
         g_child_watch_add (server->priv->pid, xserver_watch_cb, server);
     }
     g_clear_error (&error);
@@ -201,10 +201,10 @@ xserver_init (XServer *server)
 }
 
 static void
-xserver_set_property(GObject      *object,
-                     guint         prop_id,
-                     const GValue *value,
-                     GParamSpec   *pspec)
+xserver_set_property (GObject      *object,
+                      guint         prop_id,
+                      const GValue *value,
+                      GParamSpec   *pspec)
 {
     XServer *self;
 
@@ -228,10 +228,10 @@ xserver_set_property(GObject      *object,
 
 
 static void
-xserver_get_property(GObject    *object,
-                     guint       prop_id,
-                     GValue     *value,
-                     GParamSpec *pspec)
+xserver_get_property (GObject    *object,
+                      guint       prop_id,
+                      GValue     *value,
+                      GParamSpec *pspec)
 {
     XServer *self;
 
@@ -257,12 +257,27 @@ xserver_get_property(GObject    *object,
 }
 
 static void
+xserver_finalize (GObject *object)
+{
+    XServer *self;
+
+    self = XSERVER (object);
+  
+    if (self->priv->pid)
+        kill (self->priv->pid, SIGTERM);
+
+    g_free (self->priv->hostname);
+    g_free (self->priv->address);
+}
+
+static void
 xserver_class_init (XServerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->set_property = xserver_set_property;
     object_class->get_property = xserver_get_property;
+    object_class->finalize = xserver_finalize;  
 
     g_type_class_add_private (klass, sizeof (XServerPrivate));
 

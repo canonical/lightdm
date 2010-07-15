@@ -108,7 +108,7 @@ add_session (XDMCPServer *server)
     } while (g_hash_table_lookup (server->priv->sessions, GINT_TO_POINTER ((gint) id)));
 
     session = xdmcp_session_new (id);
-    g_hash_table_insert (server->priv->sessions, GINT_TO_POINTER ((gint) id), session);
+    g_hash_table_insert (server->priv->sessions, GINT_TO_POINTER ((gint) id), g_object_ref (session));
 
     return session;
 }
@@ -499,10 +499,10 @@ xdmcp_server_init (XDMCPServer *server)
 }
 
 static void
-xdmcp_server_set_property(GObject      *object,
-                          guint         prop_id,
-                          const GValue *value,
-                          GParamSpec   *pspec)
+xdmcp_server_set_property (GObject      *object,
+                           guint         prop_id,
+                           const GValue *value,
+                           GParamSpec   *pspec)
 {
     XDMCPServer *self;
 
@@ -527,12 +527,11 @@ xdmcp_server_set_property(GObject      *object,
     }
 }
 
-
 static void
-xdmcp_server_get_property(GObject    *object,
-                          guint       prop_id,
-                          GValue     *value,
-                          GParamSpec *pspec)
+xdmcp_server_get_property (GObject    *object,
+                           guint       prop_id,
+                           GValue     *value,
+                           GParamSpec *pspec)
 {
     XDMCPServer *self;
 
@@ -558,12 +557,28 @@ xdmcp_server_get_property(GObject    *object,
 }
 
 static void
+xdmcp_server_finalize (GObject *object)
+{
+    XDMCPServer *self;
+
+    self = XDMCP_SERVER (object);
+  
+    if (self->priv->socket)
+        g_object_unref (self->priv->socket);
+    g_free (self->priv->hostname);
+    g_free (self->priv->status);
+    g_free (self->priv->authentication_key_string);
+    g_hash_table_unref (self->priv->sessions);
+}
+
+static void
 xdmcp_server_class_init (XDMCPServerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->set_property = xdmcp_server_set_property;
     object_class->get_property = xdmcp_server_get_property;
+    object_class->finalize = xdmcp_server_finalize;  
 
     g_type_class_add_private (klass, sizeof (XDMCPServerPrivate));
 

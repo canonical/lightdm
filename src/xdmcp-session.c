@@ -72,10 +72,10 @@ xdmcp_session_init (XDMCPSession *session)
 }
 
 static void
-xdmcp_session_set_property(GObject      *object,
-                           guint         prop_id,
-                           const GValue *value,
-                           GParamSpec   *pspec)
+xdmcp_session_set_property (GObject      *object,
+                            guint         prop_id,
+                            const GValue *value,
+                            GParamSpec   *pspec)
 {
     XDMCPSession *self;
 
@@ -93,10 +93,10 @@ xdmcp_session_set_property(GObject      *object,
 
 
 static void
-xdmcp_session_get_property(GObject    *object,
-                           guint       prop_id,
-                           GValue     *value,
-                           GParamSpec *pspec)
+xdmcp_session_get_property (GObject    *object,
+                            guint       prop_id,
+                            GValue     *value,
+                            GParamSpec *pspec)
 {
     XDMCPSession *self;
 
@@ -116,12 +116,30 @@ xdmcp_session_get_property(GObject    *object,
 }
 
 static void
+xdmcp_session_finalize (GObject *object)
+{
+    XDMCPSession *self;
+
+    self = XDMCP_SESSION (object);
+  
+    if (self->priv->connection)
+        xcb_disconnect (self->priv->connection);
+
+    g_free (self->priv->manufacturer_display_id);
+    if (self->priv->address)
+        g_object_unref (self->priv->address);
+    g_free (self->priv->authorization_name);
+    g_free (self->priv->display_class);
+}
+
+static void
 xdmcp_session_class_init (XDMCPSessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->set_property = xdmcp_session_set_property;
     object_class->get_property = xdmcp_session_get_property;
+    object_class->finalize = xdmcp_session_finalize;  
 
     g_object_class_install_property (object_class,
                                      PROP_ID,

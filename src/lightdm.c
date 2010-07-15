@@ -120,6 +120,7 @@ handle_signal (gpointer data)
     }
 
     g_debug ("Caught %s signal, exiting", g_strsignal (info->si_signo));
+    g_object_unref (display_manager);
     g_main_loop_quit (loop);
 
     return FALSE;

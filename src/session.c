@@ -196,10 +196,10 @@ session_init (Session *session)
 }
 
 static void
-session_set_property(GObject      *object,
-                     guint         prop_id,
-                     const GValue *value,
-                     GParamSpec   *pspec)
+session_set_property (GObject      *object,
+                      guint         prop_id,
+                      const GValue *value,
+                      GParamSpec   *pspec)
 {
     Session *self;
 
@@ -221,12 +221,11 @@ session_set_property(GObject      *object,
     }
 }
 
-
 static void
-session_get_property(GObject    *object,
-                     guint       prop_id,
-                     GValue     *value,
-                     GParamSpec *pspec)
+session_get_property (GObject    *object,
+                      guint       prop_id,
+                      GValue     *value,
+                      GParamSpec *pspec)
 {
     Session *self;
 
@@ -249,12 +248,26 @@ session_get_property(GObject    *object,
 }
 
 static void
+session_finalize (GObject *object)
+{
+    Session *self;
+
+    self = SESSION (object);
+    if (self->priv->pid)
+        kill (self->priv->pid, SIGTERM);    
+    g_free (self->priv->username);
+    g_hash_table_unref (self->priv->env);
+    g_free (self->priv->command);
+}
+
+static void
 session_class_init (SessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->set_property = session_set_property;
     object_class->get_property = session_get_property;
+    object_class->finalize = session_finalize;
 
     g_type_class_add_private (klass, sizeof (SessionPrivate));
 

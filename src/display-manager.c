@@ -33,12 +33,8 @@ struct DisplayManagerPrivate
 {
     GKeyFile *config;
 
-    DBusGConnection *connection;
-
     GList *displays;
   
-    GList *xservers;
-
     XDMCPServer *xdmcp_server;
 };
 
@@ -50,23 +46,30 @@ display_manager_new (GKeyFile *config)
     return g_object_new (DISPLAY_MANAGER_TYPE, "config", config, NULL);
 }
 
+static gboolean
+display_number_used (DisplayManager *manager, guint display_number)
+{
+    GList *link;
+
+    for (link = manager->priv->displays; link; link = link->next)
+    {
+        Display *display = link->data;      
+        XServer *xserver = display_get_xserver (display);
+        if (xserver && xserver_get_hostname (xserver) == NULL && xserver_get_display_number (xserver) == display_number)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 static guint
 get_free_display_number (DisplayManager *manager)
 {
     guint display_number = 0;
 
-    while (TRUE)
-    {
-        GList *link;
-
-        for (link = manager->priv->xservers; link; link = link->next)
-        {
-            XServer *xserver = link->data;
-            if (xserver_get_display_number (xserver) == display_number)
-                return TRUE;
-        }
-    }
-
+    while (display_number_used (manager, display_number))
+        display_number++;
+  
     return display_number;
 }
 
@@ -175,10 +178,10 @@ display_manager_init (DisplayManager *manager)
 }
 
 static void
-display_manager_set_property(GObject      *object,
-                             guint         prop_id,
-                             const GValue *value,
-                             GParamSpec   *pspec)
+display_manager_set_property (GObject      *object,
+                              guint         prop_id,
+                              const GValue *value,
+                              GParamSpec   *pspec)
 {
     DisplayManager *self;
 
@@ -196,10 +199,10 @@ display_manager_set_property(GObject      *object,
 
 
 static void
-display_manager_get_property(GObject    *object,
-                             guint       prop_id,
-                             GValue     *value,
-                             GParamSpec *pspec)
+display_manager_get_property (GObject    *object,
+                              guint       prop_id,
+                              GValue     *value,
+                              GParamSpec *pspec)
 {
     DisplayManager *self;
 
@@ -216,12 +219,27 @@ display_manager_get_property(GObject    *object,
 }
 
 static void
+display_manager_finalize (GObject *object)
+{
+    DisplayManager *self;
+    GList *link;
+
+    self = DISPLAY_MANAGER (object);
+
+    if (self->priv->xdmcp_server)
+        g_object_unref (self->priv->xdmcp_server);
+    for (link = self->priv->displays; link; link = link->next)
+        g_object_unref (link->data);
+}
+
+static void
 display_manager_class_init (DisplayManagerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->set_property = display_manager_set_property;
     object_class->get_property = display_manager_get_property;
+    object_class->finalize = display_manager_finalize;
 
     g_type_class_add_private (klass, sizeof (DisplayManagerPrivate));
 

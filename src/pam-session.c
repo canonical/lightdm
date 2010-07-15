@@ -228,10 +228,10 @@ pam_session_init (PAMSession *session)
 }
 
 static void
-pam_session_set_property(GObject      *object,
-                         guint         prop_id,
-                         const GValue *value,
-                         GParamSpec   *pspec)
+pam_session_set_property (GObject      *object,
+                          guint         prop_id,
+                          const GValue *value,
+                          GParamSpec   *pspec)
 {
     PAMSession *self;
 
@@ -249,10 +249,10 @@ pam_session_set_property(GObject      *object,
 
 
 static void
-pam_session_get_property(GObject    *object,
-                         guint       prop_id,
-                         GValue     *value,
-                         GParamSpec *pspec)
+pam_session_get_property (GObject    *object,
+                          guint       prop_id,
+                          GValue     *value,
+                          GParamSpec *pspec)
 {
     PAMSession *self;
 
@@ -266,6 +266,18 @@ pam_session_get_property(GObject    *object,
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
     }
+}
+
+static void
+pam_session_finalize (GObject *object)
+{
+    PAMSession *self;
+
+    self = PAM_SESSION (object);
+
+    g_free (self->priv->username);
+    if (self->priv->pam_handle)
+        pam_end (self->priv->pam_handle, PAM_SUCCESS);
 }
 
 /* Generated with glib-genmarshal */
@@ -312,6 +324,7 @@ pam_session_class_init (PAMSessionClass *klass)
 
     object_class->set_property = pam_session_set_property;
     object_class->get_property = pam_session_get_property;
+    object_class->finalize = pam_session_finalize;  
 
     g_type_class_add_private (klass, sizeof (PAMSessionPrivate));
 

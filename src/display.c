@@ -17,7 +17,6 @@
 
 #include "display.h"
 #include "display-glue.h"
-#include "xserver.h"
 #include "session.h"
 #include "pam-session.h"
 #include "theme.h"
@@ -90,6 +89,12 @@ gint
 display_get_index (Display *display)
 {
     return display->priv->index;
+}
+
+XServer *
+display_get_xserver (Display *display)
+{
+    return display->priv->xserver;
 }
 
 static void
@@ -484,10 +489,10 @@ display_init (Display *display)
 }
 
 static void
-display_set_property(GObject      *object,
-                     guint         prop_id,
-                     const GValue *value,
-                     GParamSpec   *pspec)
+display_set_property (GObject      *object,
+                      guint         prop_id,
+                      const GValue *value,
+                      GParamSpec   *pspec)
 {
     Display *self;
     gchar *session;
@@ -511,10 +516,10 @@ display_set_property(GObject      *object,
 }
 
 static void
-display_get_property(GObject    *object,
-                     guint       prop_id,
-                     GValue     *value,
-                     GParamSpec *pspec)
+display_get_property (GObject    *object,
+                      guint       prop_id,
+                      GValue     *value,
+                      GParamSpec *pspec)
 {
     Display *self;
 
@@ -534,12 +539,32 @@ display_get_property(GObject    *object,
 }
 
 static void
+display_finalize (GObject *object)
+{
+    Display *self;
+
+    self = DISPLAY (object);
+
+    if (self->priv->session)
+        g_object_unref (self->priv->session);
+    if (self->priv->pam_session)
+        g_object_unref (self->priv->pam_session);
+    if (self->priv->ck_session)
+        ck_connector_unref (self->priv->ck_session);
+    if (self->priv->xserver)  
+        g_object_unref (self->priv->xserver);
+    g_free (self->priv->default_user);
+    g_free (self->priv->session_name);
+}
+
+static void
 display_class_init (DisplayClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->set_property = display_set_property;
     object_class->get_property = display_get_property;
+    object_class->finalize = display_finalize;
 
     g_type_class_add_private (klass, sizeof (DisplayPrivate));
 

@@ -14,6 +14,7 @@
 
 #include <glib-object.h>
 #include <dbus/dbus-glib.h>
+#include "xserver.h"
 
 G_BEGIN_DECLS
 
@@ -40,6 +41,8 @@ GType display_get_type (void);
 Display *display_new (GKeyFile *config, /* config_name, */ gint index);
 
 gint display_get_index (Display *display);
+
+XServer *display_get_xserver (Display *display);
 
 // FIXME: Remove username and timeout to properties and set them to defaults
 void display_start (Display *display, const gchar *hostname, guint display_number, const gchar *username, gint timeout);
