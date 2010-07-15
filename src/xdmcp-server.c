@@ -224,9 +224,10 @@ handle_manage (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XD
         ip_address = g_inet_address_to_string (G_INET_ADDRESS (session->priv->address));
         display_address = g_strdup_printf ("%s:%d", ip_address, packet->Manage.display_number);
         g_free (ip_address);
-        session->priv->display = XOpenDisplay (display_address);
+        session->priv->connection = xcb_connect (display_address, NULL);
+        // TODO: xcb_connect_to_display_with_auth_info (display_address, NULL);
       
-        if (!session->priv->display)
+        if (!session->priv->connection)
         {
             XDMCPPacket *response;
 

@@ -12,7 +12,7 @@
 #ifndef _XDMCP_SESSION_PRIVATE_H_
 #define _XDMCP_SESSION_PRIVATE_H_
 
-#include <X11/Xlib.h>
+#include <xcb/xcb.h>
 
 struct XDMCPSessionPrivate
 {
@@ -30,7 +30,7 @@ struct XDMCPSessionPrivate
 
     gchar *display_class;
 
-    Display *display;
+    xcb_connection_t *connection;
 };
 
 #endif /* _XDMCP_SESSION_PRIVATE_H_ */
