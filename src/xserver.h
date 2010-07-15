@@ -40,9 +40,13 @@ GType xserver_get_type (void);
 
 void xserver_handle_signal (GPid pid);
 
-XServer *xserver_new (GKeyFile *config, gint display_number);
+XServer *xserver_new (GKeyFile *config, const gchar *hostname, gint display_number);
+
+const gchar *xserver_get_hostname (XServer *server);
 
 gint xserver_get_display_number (XServer *server);
+
+const gchar *xserver_get_address (XServer *server);
 
 gboolean xserver_start (XServer *server);
 

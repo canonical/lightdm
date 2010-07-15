@@ -17,7 +17,9 @@
 enum {
     PROP_0,
     PROP_CONFIG,
-    PROP_DISPLAY_NUMBER
+    PROP_HOSTNAME,
+    PROP_DISPLAY_NUMBER,
+    PROP_ADDRESS
 };
 
 enum {
@@ -33,7 +35,11 @@ struct XServerPrivate
   
     gboolean ready;
 
+    gchar *hostname;
+
     gint display_number;
+  
+    gchar *address;
 
     /* X process */
     GPid pid;
@@ -64,15 +70,29 @@ xserver_handle_signal (GPid pid)
 }
 
 XServer *
-xserver_new (GKeyFile *config, gint display_number)
+xserver_new (GKeyFile *config, const gchar *hostname, gint display_number)
 {
-    return g_object_new (XSERVER_TYPE, "config", config, "display-number", display_number, NULL);
+    return g_object_new (XSERVER_TYPE, "config", config, "hostname", hostname, "display-number", display_number, NULL);
+}
+
+const gchar *
+xserver_get_hostname (XServer *server)
+{
+    return server->priv->hostname;
 }
 
 gint
 xserver_get_display_number (XServer *server)
 {
     return server->priv->display_number;
+}
+
+const gchar *
+xserver_get_address (XServer *server)
+{
+    if (!server->priv->address)
+        server->priv->address = g_strdup_printf("%s:%d", server->priv->hostname ? server->priv->hostname : "", server->priv->display_number);
+    return server->priv->address;
 }
 
 static void
@@ -112,6 +132,14 @@ xserver_start (XServer *server)
     gint n_env = 0;
     gchar *env_string;
     //gint xserver_stdin, xserver_stdout, xserver_stderr;
+ 
+    /* Don't need to do anything if a remote server */
+    if (server->priv->hostname != NULL)
+    {
+        server->priv->ready = TRUE;
+        g_signal_emit (server, signals[READY], 0);
+        return TRUE;
+    }
 
     // FIXME: Do these need to be freed?
     env = g_malloc (sizeof (gchar *) * 2);
@@ -184,6 +212,9 @@ xserver_set_property(GObject      *object,
     case PROP_CONFIG:
         self->priv->config = g_value_get_pointer (value);
         break;
+    case PROP_HOSTNAME:
+        self->priv->hostname = g_strdup (g_value_get_string (value));
+        break;
     case PROP_DISPLAY_NUMBER:
         self->priv->display_number = g_value_get_int (value);
         break;
@@ -208,8 +239,14 @@ xserver_get_property(GObject    *object,
     case PROP_CONFIG:
         g_value_set_pointer (value, self->priv->config);
         break;
+    case PROP_HOSTNAME:
+        g_value_set_string (value, self->priv->hostname);
+        break;
     case PROP_DISPLAY_NUMBER:
         g_value_set_int (value, self->priv->display_number);
+        break;
+    case PROP_ADDRESS:
+        g_value_set_string (value, xserver_get_address (self));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -234,12 +271,26 @@ xserver_class_init (XServerClass *klass)
                                                            "Configuration",
                                                            G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
     g_object_class_install_property (object_class,
+                                     PROP_HOSTNAME,
+                                     g_param_spec_string ("hostname",
+                                                          "hostname",
+                                                          "Server hostname",
+                                                          NULL,
+                                                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+    g_object_class_install_property (object_class,
                                      PROP_DISPLAY_NUMBER,
                                      g_param_spec_int ("display-number",
                                                        "display-number",
                                                        "Server display number",
                                                        0, G_MAXINT, 0,
                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+    g_object_class_install_property (object_class,
+                                     PROP_ADDRESS,
+                                     g_param_spec_string ("address",
+                                                          "address",
+                                                          "Server address",
+                                                          NULL,
+                                                          G_PARAM_READABLE));
 
     signals[READY] =
         g_signal_new ("ready",

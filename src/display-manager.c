@@ -15,6 +15,7 @@
 #include "display-manager.h"
 #include "display-manager-glue.h"
 #include "xdmcp-server.h"
+#include "xserver.h"
 #include "theme.h"
 
 enum {
@@ -35,6 +36,8 @@ struct DisplayManagerPrivate
     DBusGConnection *connection;
 
     GList *displays;
+  
+    GList *xservers;
 
     XDMCPServer *xdmcp_server;
 };
@@ -48,14 +51,14 @@ display_manager_new (GKeyFile *config)
 }
 
 static gboolean
-index_used (DisplayManager *manager, gint index)
+display_number_used (DisplayManager *manager, gint display_number)
 {
     GList *link;
 
-    for (link = manager->priv->displays; link; link = link->next)
+    for (link = manager->priv->xservers; link; link = link->next)
     {
-        Display *display = link->data;
-        if (display_get_index (display) == index)
+        XServer *xserver = link->data;
+        if (xserver_get_display_number (xserver) == display_number)
             return TRUE;
     }
 
@@ -63,29 +66,29 @@ index_used (DisplayManager *manager, gint index)
 }
 
 static gint
-get_free_index (DisplayManager *manager)
+get_free_display_number (DisplayManager *manager)
 {
-    gint min_index = 0, index;
+    gint min_display_number = 0, display_number;
     gchar *numbers;
 
     numbers = g_key_file_get_value (manager->priv->config, "LightDM", "display_numbers", NULL);
     if (numbers)
     {
-        min_index = atoi (numbers);
+        min_display_number = atoi (numbers);
         g_free (numbers);
     }
 
-    for (index = min_index; index_used (manager, index); index++);
+    for (display_number = min_display_number; display_number_used (manager, display_number); display_number++);
 
-    return index;
+    return display_number;
 }
 
-Display *
-display_manager_add_display (DisplayManager *manager)
+static Display *
+add_display (DisplayManager *manager)
 {
     Display *display;
 
-    display = display_new (manager->priv->config, get_free_index (manager));
+    display = display_new (manager->priv->config, g_list_length (manager->priv->displays));
     manager->priv->displays = g_list_append (manager->priv->displays, display);
 
     g_signal_emit (manager, signals[DISPLAY_ADDED], 0, display);
@@ -105,11 +108,10 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
     Display *display;
     gchar *address;
 
-    display = display_manager_add_display (manager);
+    display = add_display (manager);
     address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (session)));
-    display_set_remote_host (display, address, xdmcp_session_get_display_number (session));
+    display_start (display, address, xdmcp_session_get_display_number (session), NULL, 0);
     g_free (address);
-    display_start (display, NULL, 0);
 }
 
 void
@@ -122,7 +124,7 @@ display_manager_start (DisplayManager *manager)
         gchar *default_user;
         gint user_timeout;
 
-        display = display_manager_add_display (manager);
+        display = add_display (manager);
 
         /* Automatically log in or start a greeter session */  
         default_user = g_key_file_get_value (manager->priv->config, "Default User", "name", NULL);
@@ -139,7 +141,7 @@ display_manager_start (DisplayManager *manager)
                 g_debug ("Starting session for user %s in %d seconds", default_user, user_timeout);
         }
 
-        display_start (display, default_user, user_timeout);
+        display_start (display, NULL, get_free_display_number (manager), default_user, user_timeout);
         g_free (default_user);
     }
 
