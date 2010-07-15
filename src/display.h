@@ -37,7 +37,7 @@ typedef struct
 
 GType display_get_type (void);
 
-Display *display_new (GKeyFile *config, gint index);
+Display *display_new (GKeyFile *config, /* config_name, */ gint index);
 
 gint display_get_index (Display *display);
 

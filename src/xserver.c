@@ -142,9 +142,11 @@ xserver_start (XServer *server)
     }
 
     // FIXME: Do these need to be freed?
-    env = g_malloc (sizeof (gchar *) * 2);
+    env = g_malloc (sizeof (gchar *) * 3);
     if (getenv ("DISPLAY"))
         env[n_env++] = g_strdup_printf ("DISPLAY=%s", getenv ("DISPLAY"));
+    if (getenv ("XAUTHORITY"))
+        env[n_env++] = g_strdup_printf ("XAUTHORITY=%s", getenv ("XAUTHORITY"));
     env[n_env] = NULL;
 
     xserver_binary = g_key_file_get_value (server->priv->config, "LightDM", "xserver", NULL);
