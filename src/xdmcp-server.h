@@ -49,6 +49,10 @@ void xdmcp_server_set_status (XDMCPServer *server, const gchar *status);
 
 const gchar *xdmcp_server_get_status (XDMCPServer *server);
 
+void xdmcp_server_set_authentication_key (XDMCPServer *server, const gchar *key);
+
+const gchar *xdmcp_server_get_authentication_key (XDMCPServer *server);
+
 gboolean xdmcp_server_start (XDMCPServer *server);
 
 G_END_DECLS

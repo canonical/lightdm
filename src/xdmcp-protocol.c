@@ -419,6 +419,26 @@ data_tostring (XDMCPData *data)
     return string;
 }
 
+static gchar *
+string_list_tostring (gchar **strings)
+{
+    GString *s;
+    gchar *string;
+    gchar **i;
+  
+    s = g_string_new ("");  
+    for (i = strings; *i; i++)
+    {
+        if (i != strings)
+           g_string_append (s, " ");
+        g_string_append_printf (s, "'%s'", *i);
+    }
+    string = s->str;
+    g_string_free (s, FALSE);
+
+    return string;
+}
+
 gchar *
 xdmcp_packet_tostring (XDMCPPacket *packet)
 {
@@ -429,22 +449,22 @@ xdmcp_packet_tostring (XDMCPPacket *packet)
     switch (packet->opcode)
     {
     case XDMCP_BroadcastQuery:
-        t = g_strjoinv (" ", packet->Query.authentication_names);
+        t = string_list_tostring (packet->Query.authentication_names);
         string = g_strdup_printf ("BroadcastQuery(authentication_names=[%s])", t);
         g_free (t);
         return string;
     case XDMCP_Query:
-        t = g_strjoinv (" ", packet->Query.authentication_names);
+        t = string_list_tostring (packet->Query.authentication_names);
         string = g_strdup_printf ("Query(authentication_names=[%s])", t);
         g_free (t);
         return string;
     case XDMCP_IndirectQuery:
-        t = g_strjoinv (" ", packet->Query.authentication_names);
+        t = string_list_tostring (packet->Query.authentication_names);
         string = g_strdup_printf ("IndirectQuery(authentication_names=[%s])", t);
         g_free (t);
         return string;
     case XDMCP_ForwardQuery:
-        t = g_strjoinv (" ", packet->ForwardQuery.authentication_names);
+        t = string_list_tostring (packet->ForwardQuery.authentication_names);
         string = g_strdup_printf ("ForwardQuery(client_address='%s' client_port='%s' authentication_names=[%s])",
                                   packet->ForwardQuery.client_address, packet->ForwardQuery.client_port, t);
         g_free (t);
@@ -456,7 +476,7 @@ xdmcp_packet_tostring (XDMCPPacket *packet)
         return g_strdup_printf ("Unwilling(hostname='%s' status='%s')",
                                 packet->Unwilling.hostname, packet->Unwilling.status);      
     case XDMCP_Request:
-        t = g_strjoinv (" ", packet->Request.authorization_names);
+        t = string_list_tostring (packet->Request.authorization_names);
         t2 = data_tostring (&packet->Request.authentication_data);
         t3 = g_string_new ("");
         for (i = 0; i < packet->Request.n_connections; i++)

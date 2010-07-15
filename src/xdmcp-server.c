@@ -9,8 +9,11 @@
  * license.
  */
 
-#include <X11/X.h>
+#include <stdlib.h>
 #include <string.h>
+#include <X11/X.h>
+#define HASXDMAUTH
+#include <X11/Xdmcp.h>
 #include <gio/gio.h>
 
 #include "xdmcp-server.h"
@@ -21,7 +24,8 @@ enum {
     PROP_0,
     PROP_CONFIG,
     PROP_HOSTNAME,
-    PROP_STATUS
+    PROP_STATUS,
+    PROP_AUTHENTICATION_KEY
 };
 
 enum {
@@ -39,6 +43,8 @@ struct XDMCPServerPrivate
     gchar *hostname;
 
     gchar *status;
+
+    gchar *authentication_key_string;
 
     GHashTable *sessions;
 };
@@ -75,6 +81,19 @@ const gchar *
 xdmcp_server_get_status (XDMCPServer *server)
 {
     return server->priv->status;
+}
+
+void
+xdmcp_server_set_authentication_key (XDMCPServer *server, const gchar *key_string)
+{
+    g_free (server->priv->authentication_key_string);
+    server->priv->authentication_key_string = g_strdup (key_string);
+}
+
+const gchar *
+xdmcp_server_get_authentication_key (XDMCPServer *server)
+{
+    return server->priv->authentication_key_string;
 }
 
 static XDMCPSession *
@@ -126,13 +145,21 @@ static void
 handle_query (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XDMCPPacket *packet)
 {
     XDMCPPacket *response;
-    gchar *authentication_name;
+    const gchar *authentication_name = "";
+    gchar **i;
 
-    /* FIXME: Check offered authentication schemes */
-    authentication_name = g_strdup ("");
+    /* Use authentication if we are configured for it */
+    for (i = packet->Query.authentication_names; *i; i++)
+    {
+        if (strcmp (*i, "XDM-AUTHENTICATION-1") == 0)
+        {
+            if (server->priv->authentication_key_string)
+                authentication_name = "XDM-AUTHENTICATION-1";
+        }
+    }
 
     response = xdmcp_packet_alloc (XDMCP_Willing);
-    response->Willing.authentication_name = authentication_name;
+    response->Willing.authentication_name = g_strdup (authentication_name);
     response->Willing.hostname = g_strdup (server->priv->hostname);
     response->Willing.status = g_strdup (server->priv->status);
 
@@ -141,23 +168,119 @@ handle_query (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XDM
     xdmcp_packet_free (response);
 }
 
+static guchar
+atox (gchar c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    return 0;
+}
+
+static void
+string_to_key (XdmAuthKeyRec *key, const gchar *string)
+{
+    gint i;
+  
+    if (strncmp (string, "0x", 2) == 0 || strncmp (string, "0X", 2) == 0)
+    {
+        gint j = 0;
+
+        for (i = 0; i < 8 && string[j]; i++)
+        {
+            key->data[i] = 0;
+
+            if (string[j])
+            {
+                key->data[i] |= atox (string[j]) >> 8;
+                j++;
+                if (string[j])
+                {
+                    key->data[i] |= atox (string[j+1]);
+                    j++;
+                }
+            }
+        }
+    }
+    else
+    {
+        key->data[0] = 0;
+        for (i = 1; i < 8 && string[i-1]; i++)
+            key->data[i] = string[i-1];
+        for (; i < 8; i++)
+            key->data[i] = 0;
+    }
+}
+
 static void
 handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XDMCPPacket *packet)
 {
     int i;
     XDMCPPacket *response;
     XDMCPSession *session;
-    gchar *authentication_name;
-    gchar *authorization_name;
+    const gchar *authorization_name = "";
+    guchar *authentication_data = NULL;
+    gsize authentication_data_length = 0;
+    gchar **j;
     GInetAddress *address4 = NULL; /*, *address6 = NULL;*/
   
     /* FIXME: If session not started (i.e. not received the Manage then response with Accept again) */
 
     /* FIXME: Perform requested authentication */
-    authentication_name = g_strdup ("");
+    if (strcmp (packet->Request.authentication_name, "") == 0)
+        ; /* No authentication */
+    else if (strcmp (packet->Request.authentication_name, "XDM-AUTHENTICATION-1") == 0)
+    {
+        XdmAuthKeyRec key, message;
 
-    /* FIXME: Choose an authorization from the list */
-    authorization_name = g_strdup ("");
+        if (!server->priv->authentication_key_string)
+        {
+            // FIXME: Send Decline
+            return;
+        }
+
+        // FIXME: I don't think it technically has to be 8 but the Xdmcp library requires it
+        if (packet->Request.authentication_data.length != 8)
+        {
+            // FIXME: Send Decline
+            return;
+        }
+
+        /* Setup key */
+        string_to_key (&key, server->priv->authentication_key_string);
+
+        /* Decode message from server */
+        authentication_data = g_malloc (sizeof (guchar) * packet->Request.authentication_data.length);
+        authentication_data_length = packet->Request.authentication_data.length;
+
+        XdmcpUnwrap (packet->Request.authentication_data.data, key.data, message.data, authentication_data_length);
+        XdmcpIncrementKey (&message);
+        XdmcpWrap (message.data, key.data, authentication_data, authentication_data_length);
+
+        //authorization_name = "XDM_AUTHORIZATION-1";
+    }
+    else
+    {
+        // FIXME: Send Decline
+        return;
+    }
+
+    /* Choose an authorization from the list */
+    for (j = packet->Request.authorization_names; *j; j++)
+    {
+        if (strcmp (*j, "MIT-MAGIC-COOKIE-1") == 0)
+        {
+            // FIXME: Generate cookie
+        }
+        else if (strcmp (*j, "XDM-AUTHORIZATION-1") == 0)
+        {
+        }
+    }
+
+    // FIXME: Check have supported authorization
 
     for (i = 0; i < packet->Request.n_connections; i++)
     {
@@ -181,12 +304,14 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     {
         response = xdmcp_packet_alloc (XDMCP_Decline);
         response->Decline.status = g_strdup ("No valid address found");
-        response->Decline.authentication_name = authentication_name;
+        response->Decline.authentication_name = g_strdup (packet->Request.authentication_name);
+        response->Accept.authentication_data.data = authentication_data;
+        response->Accept.authentication_data.length = authentication_data_length;
         send_packet (socket, address, response);
         xdmcp_packet_free (response);
         return;
     }
-  
+
     /* FIXME: Allow a higher layer to decline */
 
     session = add_session (server);
@@ -195,8 +320,10 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
 
     response = xdmcp_packet_alloc (XDMCP_Accept);
     response->Accept.session_id = xdmcp_session_get_id (session);
-    response->Accept.authentication_name = authentication_name;
-    response->Accept.authorization_name = authorization_name;
+    response->Accept.authentication_name = g_strdup (packet->Request.authentication_name);
+    response->Accept.authentication_data.data = authentication_data;
+    response->Accept.authentication_data.length = authentication_data_length;
+    response->Accept.authorization_name = g_strdup (authorization_name);
     send_packet (socket, address, response);
     xdmcp_packet_free (response);
 }
@@ -391,6 +518,9 @@ xdmcp_server_set_property(GObject      *object,
     case PROP_STATUS:
         xdmcp_server_set_status (self, g_value_get_string (value));      
         break;
+    case PROP_AUTHENTICATION_KEY:
+        xdmcp_server_set_authentication_key (self, g_value_get_string (value));      
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -417,6 +547,9 @@ xdmcp_server_get_property(GObject    *object,
         break;
     case PROP_STATUS:
         g_value_set_string (value, self->priv->status);
+        break;
+    case PROP_AUTHENTICATION_KEY:
+        g_value_set_string (value, xdmcp_server_get_authentication_key (self));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -452,6 +585,13 @@ xdmcp_server_class_init (XDMCPServerClass *klass)
                                      g_param_spec_string ("status",
                                                           "status",
                                                           "Server status",
+                                                          NULL,
+                                                          G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
+                                     PROP_AUTHENTICATION_KEY,
+                                     g_param_spec_string ("authentication-key",
+                                                          "authentication-key",
+                                                          "Authentication key",
                                                           NULL,
                                                           G_PARAM_READWRITE));
 

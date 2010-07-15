@@ -27,6 +27,7 @@ PKG_CHECK_MODULES(LIGHTDM, [
     dbus-glib-1
     ck-connector
     xcb
+    xdmcp
 ])
 
 PKG_CHECK_MODULES(LIBLDMGREETER, [

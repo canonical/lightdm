@@ -145,8 +145,16 @@ display_manager_start (DisplayManager *manager)
 
     if (g_key_file_get_boolean (manager->priv->config, "xdmcp", "enabled", NULL))
     {
+        gchar *key;
+
         manager->priv->xdmcp_server = xdmcp_server_new (manager->priv->config);
         g_signal_connect (manager->priv->xdmcp_server, "session-added", G_CALLBACK (xdmcp_session_cb), manager);
+
+        key = g_key_file_get_string (manager->priv->config, "xdmcp", "key", NULL);
+        if (key)
+            xdmcp_server_set_authentication_key (manager->priv->xdmcp_server, key);
+        g_free (key);
+
         xdmcp_server_start (manager->priv->xdmcp_server); 
     }
 }
