@@ -468,6 +468,10 @@ xserver_exit_cb (XServer *server, Display *display)
 static void
 xserver_ready_cb (XServer *xserver, Display *display)
 {
+    /* Don't run any sessions on local terminals */
+    if (xserver_get_server_type (xserver) == XSERVER_TYPE_LOCAL_TERMINAL)
+        return;
+
     /* If have user then automatically login */
     if (display->priv->default_user && display->priv->timeout == 0)
     {

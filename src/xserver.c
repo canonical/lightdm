@@ -16,8 +16,11 @@
 
 enum {
     PROP_0,
+    PROP_TYPE,
     PROP_COMMAND,
     PROP_HOSTNAME,
+    PROP_PORT,
+    PROP_COOKIE,
     PROP_DISPLAY_NUMBER,
     PROP_ADDRESS
 };
@@ -29,16 +32,32 @@ enum {
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
+// FIXME: Make a base class and a LocalXServer, RemoteXServer etc
+
 struct XServerPrivate
-{
+{  
+    /* Type of server */
+    XServerType type;
+
+    /* Command to run the X server */
     gchar *command;
 
+    /* TRUE if the xserver has started */
     gboolean ready;
 
+    /* Name of remote host or XDMCP manager */
     gchar *hostname;
 
+    /* UDP/IP port to connect to XDMCP manager */
+    guint port;
+
+    /* Auhentication cookie to use */
+    gchar *cookie;
+
+    /* Display number */
     gint display_number;
-  
+
+    /* Cached server address */
     gchar *address;
 
     /* X process */
@@ -70,9 +89,15 @@ xserver_handle_signal (GPid pid)
 }
 
 XServer *
-xserver_new (const gchar *hostname, gint display_number)
+xserver_new (XServerType type, const gchar *hostname, gint display_number)
 {
-    return g_object_new (XSERVER_TYPE, "hostname", hostname, "display-number", display_number, NULL);
+    return g_object_new (XSERVER_TYPE, "type", type, "hostname", hostname, "display-number", display_number, NULL);
+}
+
+XServerType
+xserver_get_server_type (XServer *server)
+{
+    return server->priv->type;
 }
 
 void
@@ -86,6 +111,30 @@ const gchar *
 xserver_get_command (XServer *server)
 {
     return server->priv->command;
+}
+
+void
+xserver_set_port (XServer *server, guint port)
+{
+    server->priv->port = port;
+}
+
+guint xserver_get_port (XServer *server)
+{
+    return server->priv->port;
+}
+
+void
+xserver_set_cookie (XServer *server, const gchar *cookie)
+{
+    g_free (server->priv->cookie);
+    server->priv->cookie = g_strdup (cookie);
+}
+
+const gchar *
+xserver_get_cookie (XServer *server)
+{
+    return server->priv->cookie;
 }
 
 const gchar *
@@ -104,7 +153,13 @@ const gchar *
 xserver_get_address (XServer *server)
 {
     if (!server->priv->address)
-        server->priv->address = g_strdup_printf("%s:%d", server->priv->hostname ? server->priv->hostname : "", server->priv->display_number);
+    {
+        if (server->priv->type == XSERVER_TYPE_REMOTE)
+            server->priv->address = g_strdup_printf("%s:%d", server->priv->hostname, server->priv->display_number);
+        else
+            server->priv->address = g_strdup_printf(":%d", server->priv->display_number);
+    }  
+
     return server->priv->address;
 }
 
@@ -146,7 +201,7 @@ xserver_start (XServer *server)
     //gint xserver_stdin, xserver_stdout, xserver_stderr;
  
     /* Don't need to do anything if a remote server */
-    if (server->priv->hostname != NULL)
+    if (server->priv->type == XSERVER_TYPE_REMOTE)
     {
         server->priv->ready = TRUE;
         g_signal_emit (server, signals[READY], 0);
@@ -163,9 +218,18 @@ xserver_start (XServer *server)
 
     command = g_string_new (server->priv->command);
     g_string_append_printf (command, " :%d", server->priv->display_number);
-    g_string_append (command, " -nolisten tcp"); /* Disable TCP/IP connections */
     g_string_append (command, " -nr");           /* No root background */
     //g_string_append_printf (command, " vt%d");
+    if (server->priv->type == XSERVER_TYPE_LOCAL_TERMINAL)
+    {
+        if (server->priv->port != 0)
+            g_string_append_printf (command, " -port %d", server->priv->port);
+        g_string_append_printf (command, " -query %s", server->priv->hostname);
+        if (server->priv->cookie)
+            g_string_append_printf (command, " -cookie %s", server->priv->cookie);
+    }
+    else
+        g_string_append (command, " -nolisten tcp");
 
     env_string = g_strjoinv (" ", env);
     g_debug ("Launching X Server: %s %s", env_string, command->str);
@@ -220,11 +284,20 @@ xserver_set_property (GObject      *object,
     self = XSERVER (object);
 
     switch (prop_id) {
+    case PROP_TYPE:
+        self->priv->type = g_value_get_int (value);
+        break;
     case PROP_COMMAND:
         xserver_set_command (self, g_value_get_string (value));
         break;
     case PROP_HOSTNAME:
         self->priv->hostname = g_strdup (g_value_get_string (value));
+        break;
+    case PROP_PORT:
+        self->priv->port = g_value_get_int (value);
+        break;
+    case PROP_COOKIE:
+        xserver_set_cookie (self, g_value_get_string (value));
         break;
     case PROP_DISPLAY_NUMBER:
         self->priv->display_number = g_value_get_int (value);
@@ -247,11 +320,20 @@ xserver_get_property (GObject    *object,
     self = XSERVER (object);
 
     switch (prop_id) {
+    case PROP_TYPE:
+        g_value_set_int (value, self->priv->type);
+        break;
     case PROP_COMMAND:
         g_value_set_string (value, self->priv->command);
         break;
     case PROP_HOSTNAME:
         g_value_set_string (value, self->priv->hostname);
+        break;
+    case PROP_PORT:
+        g_value_set_int (value, self->priv->port);
+        break;
+    case PROP_COOKIE:
+        g_value_set_string (value, self->priv->cookie);
         break;
     case PROP_DISPLAY_NUMBER:
         g_value_set_int (value, self->priv->display_number);
@@ -277,6 +359,7 @@ xserver_finalize (GObject *object)
 
     g_free (self->priv->command);  
     g_free (self->priv->hostname);
+    g_free (self->priv->cookie);
     g_free (self->priv->address);
 }
 
@@ -291,6 +374,13 @@ xserver_class_init (XServerClass *klass)
 
     g_type_class_add_private (klass, sizeof (XServerPrivate));
 
+    g_object_class_install_property (object_class,
+                                     PROP_TYPE,
+                                     g_param_spec_int ("type",
+                                                       "type",
+                                                       "X Server type",
+                                                       0, G_MAXINT, 0,
+                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
     g_object_class_install_property (object_class,
                                      PROP_COMMAND,
                                      g_param_spec_string ("command",
@@ -312,6 +402,20 @@ xserver_class_init (XServerClass *klass)
                                                        "Server display number",
                                                        0, G_MAXINT, 0,
                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+    g_object_class_install_property (object_class,
+                                     PROP_PORT,
+                                     g_param_spec_int ("port",
+                                                       "port",
+                                                       "UDP/IP port to connect XDMCP on",
+                                                       0, G_MAXINT, 0,
+                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+    g_object_class_install_property (object_class,
+                                     PROP_COOKIE,
+                                     g_param_spec_string ("cookie",
+                                                          "cookie",
+                                                          "Authentication key to use for XDMCP",
+                                                          NULL,
+                                                          G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
                                      PROP_ADDRESS,
                                      g_param_spec_string ("address",

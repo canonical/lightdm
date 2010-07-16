@@ -154,7 +154,7 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
 
     display = add_display (manager);
     address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (session)));
-    xserver = xserver_new (address, xdmcp_session_get_display_number (session));
+    xserver = xserver_new (XSERVER_TYPE_REMOTE, address, xdmcp_session_get_display_number (session));
     display_start (display, xserver, NULL, 0);
     g_object_unref (xserver);
     g_free (address);
@@ -176,9 +176,8 @@ display_manager_start (DisplayManager *manager)
     for (i = tokens; *i; i++)
     {
         Display *display;
-        gchar *default_user;
+        gchar *default_user, *xdmcp_manager, *display_name;
         gint user_timeout;
-        gchar *display_name;
         guint display_number;
         XServer *xserver;
 
@@ -207,7 +206,24 @@ display_manager_start (DisplayManager *manager)
         else
             display_number = get_free_display_number (manager);
 
-        xserver = xserver_new (NULL, display_number);
+        xdmcp_manager = g_key_file_get_string (manager->priv->config, display_name, "xdmcp-manager", NULL);
+        if (xdmcp_manager)
+        {
+            gint port;
+            gchar *key;
+
+            xserver = xserver_new (XSERVER_TYPE_LOCAL_TERMINAL, xdmcp_manager, display_number);
+            port = g_key_file_get_integer (manager->priv->config, display_name, "xdmcp-port", NULL);
+            if (port > 0)
+                xserver_set_port (xserver, port);
+            key = g_key_file_get_string (manager->priv->config, display_name, "key", NULL);
+            if (key)
+                xserver_set_cookie (xserver, key);
+        }
+        else
+            xserver = xserver_new (XSERVER_TYPE_LOCAL, NULL, display_number);
+        g_free (xdmcp_manager);
+
         if (manager->priv->test_mode)
             xserver_set_command (xserver, "Xephyr");
 
@@ -236,6 +252,7 @@ display_manager_start (DisplayManager *manager)
             xdmcp_server_set_authentication_key (manager->priv->xdmcp_server, key);
         g_free (key);
 
+        g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (manager->priv->xdmcp_server));
         xdmcp_server_start (manager->priv->xdmcp_server); 
     }
 }

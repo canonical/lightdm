@@ -36,15 +36,37 @@ typedef struct
     void (*exited)(XServer *server);
 } XServerClass;
 
+typedef enum
+{
+    /* Local server */
+    XSERVER_TYPE_LOCAL,
+  
+    /* Local server active as a terminal to a remote display manager */
+    XSERVER_TYPE_LOCAL_TERMINAL,
+
+    /* Remote server */
+    XSERVER_TYPE_REMOTE
+} XServerType;
+
 GType xserver_get_type (void);
 
 void xserver_handle_signal (GPid pid);
 
-XServer *xserver_new (const gchar *hostname, gint display_number);
+XServer *xserver_new (XServerType type, const gchar *hostname, gint display_number);
+
+XServerType xserver_get_server_type (XServer *server);
 
 void xserver_set_command (XServer *server, const gchar *command);
 
 const gchar *xserver_get_command (XServer *server);
+
+void xserver_set_port (XServer *server, guint port);
+
+guint xserver_get_port (XServer *server);
+
+void xserver_set_cookie (XServer *server, const gchar *cookie);
+
+const gchar *xserver_get_cookie (XServer *server);
 
 const gchar *xserver_get_hostname (XServer *server);
 
