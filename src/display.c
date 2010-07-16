@@ -17,17 +17,16 @@
 
 #include "display.h"
 #include "display-glue.h"
-#include "session.h"
 #include "pam-session.h"
 #include "theme.h"
 
 enum {
     PROP_0,
-    PROP_CONFIG,
     PROP_INDEX
 };
 
 enum {
+    START_SESSION,  
     EXITED,
     LAST_SIGNAL
 };
@@ -44,12 +43,16 @@ typedef enum
 
 struct DisplayPrivate
 {
-    GKeyFile *config;
-
     gint index;
 
     /* X server */
     XServer *xserver;
+
+    /* User to run greeter as */
+    gchar *greeter_user;
+
+    /* Theme to use */
+    gchar *greeter_theme;
 
     /* Session process (either greeter or user session) */
     Session *session;
@@ -80,15 +83,55 @@ static void start_greeter (Display *display);
 static void start_user_session (Display *display);
 
 Display *
-display_new (GKeyFile *config, gint index)
+display_new (gint index)
 {
-    return g_object_new (DISPLAY_TYPE, "config", config, "index", index, NULL);
+    return g_object_new (DISPLAY_TYPE, "index", index, NULL);
 }
 
 gint
 display_get_index (Display *display)
 {
     return display->priv->index;
+}
+
+void
+display_set_greeter_user (Display *display, const gchar *username)
+{
+    g_free (display->priv->greeter_user);
+    display->priv->greeter_user = g_strdup (username);
+}
+
+const gchar *
+display_get_greeter_user (Display *display)
+{
+    return display->priv->greeter_user;  
+}
+
+void
+display_set_greeter_theme (Display *display, const gchar *greeter_theme)
+{
+    g_free (display->priv->greeter_theme);
+    display->priv->greeter_theme = g_strdup (greeter_theme);
+}
+
+const gchar *
+display_get_greeter_theme (Display *display)
+{
+    return display->priv->greeter_theme;
+}
+
+gboolean
+display_set_session (Display *display, const gchar *session, GError *error)
+{
+    g_debug ("Session set to %s", session);
+    display->priv->session_name = g_strdup (session);
+    return TRUE;
+}
+
+const gchar *
+display_get_session (Display *display)
+{
+    return display->priv->session_name;
 }
 
 XServer *
@@ -170,26 +213,17 @@ session_exit_cb (Session *session, Display *display)
 }
  
 static void
-open_session (Display *display, const gchar *username, const gchar *command, gboolean is_greeter)
+open_session (Display *display, const gchar *username, const gchar *command)
 {
     g_return_if_fail (display->priv->session == NULL);
 
-    display->priv->session = session_new (display->priv->config, username, command);
+    display->priv->session = session_new (username, command);
     g_signal_connect (G_OBJECT (display->priv->session), "exited", G_CALLBACK (session_exit_cb), display);
     session_set_env (display->priv->session, "DISPLAY", xserver_get_address (display->priv->xserver));
-    if (is_greeter)
-    {
-        gchar *string;
-
-        // FIXME: D-Bus not known about in here!
-        //session_set_env (display->priv->session, "DBUS_SESSION_BUS_ADDRESS", getenv ("DBUS_SESSION_BUS_ADDRESS")); // FIXME: Only if using session bus
-        //session_set_env (display->priv->session, "LDM_BUS, ""SESSION"); // FIXME: Only if using session bus
-        string = g_strdup_printf ("/org/gnome/LightDisplayManager/Display%d", display->priv->index);
-        session_set_env (display->priv->session, "LDM_DISPLAY", string);
-        g_free (string);
-    }
     if (display->priv->ck_session)
         session_set_env (display->priv->session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->ck_session));
+
+    g_signal_emit (display, signals[START_SESSION], 0, display->priv->session);
 
     session_start (display->priv->session);
 }
@@ -225,8 +259,7 @@ start_user_session (Display *display)
         display->priv->active_session = SESSION_USER;
         open_session (display,
                       pam_session_get_username (display->priv->pam_session),
-                      g_app_info_get_executable (G_APP_INFO (desktop_file)),
-                      FALSE);
+                      g_app_info_get_executable (G_APP_INFO (desktop_file)));
 
         g_object_unref (desktop_file);
     }
@@ -237,40 +270,27 @@ start_user_session (Display *display)
 static void
 start_greeter (Display *display)
 {
-    gchar *user, *theme_name;
     GKeyFile *theme;
     GError *error = NULL;
-  
-    user = g_key_file_get_value (display->priv->config, "Greeter", "user", NULL);
-    if (!user || !getpwnam (user))
-    {
-        g_free (user);
-        user = g_strdup (GREETER_USER);
-    }
-    theme_name = g_key_file_get_value (display->priv->config, "Greeter", "theme", NULL);
-    if (!theme_name)
-        theme_name = g_strdup (GREETER_THEME);
 
-    theme = load_theme (theme_name, &error);
+    theme = load_theme (display->priv->greeter_theme, &error);
     if (!theme)
-        g_warning ("Failed to find theme %s: %s", theme_name, error->message);
+        g_warning ("Failed to find theme %s: %s", display->priv->greeter_theme, error->message);
     g_clear_error (&error);
 
     if (theme)
     {
         gchar *command;
 
-        g_debug ("Starting greeter %s as user %s", theme_name, user);
+        g_debug ("Starting greeter %s as user %s", display->priv->greeter_theme,
+                 display->priv->greeter_user ? display->priv->greeter_user : "<current>");
         display->priv->active_session = SESSION_GREETER_PRE_CONNECT;
 
         command = theme_get_command (theme);
-        open_session (display, user, command, TRUE);
+        open_session (display, display->priv->greeter_user, command);
         g_free (command);
         g_key_file_free (theme);
     }
-
-    g_free (user);
-    g_free (theme_name);
 }
 
 #define TYPE_MESSAGE dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
@@ -336,14 +356,6 @@ display_connect (Display *display, const gchar **session, const gchar **username
     *session = g_strdup (display->priv->session_name);
     *username = g_strdup (display->priv->default_user);
     *delay = display->priv->timeout;
-    return TRUE;
-}
-
-gboolean
-display_set_session (Display *display, const gchar *session, GError *error)
-{
-    g_debug ("Session set to %s", session);
-    display->priv->session_name = g_strdup (session);
     return TRUE;
 }
 
@@ -469,12 +481,12 @@ xserver_ready_cb (XServer *xserver, Display *display)
 }
 
 void
-display_start (Display *display, const gchar *hostname, guint display_number, const gchar *username, gint timeout)
+display_start (Display *display, XServer *xserver, const gchar *username, gint timeout)
 {
     display->priv->default_user = g_strdup (username);
     display->priv->timeout = timeout;
 
-    display->priv->xserver = xserver_new (display->priv->config, hostname, display_number);
+    display->priv->xserver = g_object_ref (xserver);
     g_signal_connect (G_OBJECT (display->priv->xserver), "ready", G_CALLBACK (xserver_ready_cb), display);
     g_signal_connect (G_OBJECT (display->priv->xserver), "exited", G_CALLBACK (xserver_exit_cb), display);
     if (!xserver_start (display->priv->xserver))
@@ -485,6 +497,8 @@ static void
 display_init (Display *display)
 {
     display->priv = G_TYPE_INSTANCE_GET_PRIVATE (display, DISPLAY_TYPE, DisplayPrivate);
+    display->priv->greeter_user = g_strdup (GREETER_USER);
+    display->priv->greeter_theme = g_strdup (GREETER_THEME);
     display->priv->session_name = g_strdup (DEFAULT_SESSION);
 }
 
@@ -495,17 +509,10 @@ display_set_property (GObject      *object,
                       GParamSpec   *pspec)
 {
     Display *self;
-    gchar *session;
 
     self = DISPLAY (object);
 
     switch (prop_id) {
-    case PROP_CONFIG:
-        self->priv->config = g_value_get_pointer (value);
-        session = g_key_file_get_value (self->priv->config, "LightDM", "session", NULL);
-        if (!session)
-            session = g_strdup (DEFAULT_SESSION);        
-        break;
     case PROP_INDEX:
         self->priv->index = g_value_get_int (value);
         break;
@@ -526,9 +533,6 @@ display_get_property (GObject    *object,
     self = DISPLAY (object);
 
     switch (prop_id) {
-    case PROP_CONFIG:
-        g_value_set_pointer (value, self->priv->config);
-        break;
     case PROP_INDEX:
         g_value_set_int (value, self->priv->index);
         break;
@@ -553,6 +557,8 @@ display_finalize (GObject *object)
         ck_connector_unref (self->priv->ck_session);
     if (self->priv->xserver)  
         g_object_unref (self->priv->xserver);
+    g_free (self->priv->greeter_user);
+    g_free (self->priv->greeter_theme);
     g_free (self->priv->default_user);
     g_free (self->priv->session_name);
 }
@@ -569,12 +575,6 @@ display_class_init (DisplayClass *klass)
     g_type_class_add_private (klass, sizeof (DisplayPrivate));
 
     g_object_class_install_property (object_class,
-                                     PROP_CONFIG,
-                                     g_param_spec_pointer ("config",
-                                                           "config",
-                                                           "Configuration",
-                                                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-    g_object_class_install_property (object_class,
                                      PROP_INDEX,
                                      g_param_spec_int ("index",
                                                        "index",
@@ -582,6 +582,14 @@ display_class_init (DisplayClass *klass)
                                                        0, G_MAXINT, 0,
                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
+    signals[START_SESSION] =
+        g_signal_new ("start-session",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (DisplayClass, start_session),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__OBJECT,
+                      G_TYPE_NONE, 1, SESSION_TYPE);
     signals[EXITED] =
         g_signal_new ("exited",
                       G_TYPE_FROM_CLASS (klass),

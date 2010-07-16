@@ -16,7 +16,7 @@
 
 enum {
     PROP_0,
-    PROP_CONFIG,
+    PROP_COMMAND,
     PROP_HOSTNAME,
     PROP_DISPLAY_NUMBER,
     PROP_ADDRESS
@@ -31,8 +31,8 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct XServerPrivate
 {
-    GKeyFile *config;
-  
+    gchar *command;
+
     gboolean ready;
 
     gchar *hostname;
@@ -70,9 +70,22 @@ xserver_handle_signal (GPid pid)
 }
 
 XServer *
-xserver_new (GKeyFile *config, const gchar *hostname, gint display_number)
+xserver_new (const gchar *hostname, gint display_number)
 {
-    return g_object_new (XSERVER_TYPE, "config", config, "hostname", hostname, "display-number", display_number, NULL);
+    return g_object_new (XSERVER_TYPE, "hostname", hostname, "display-number", display_number, NULL);
+}
+
+void
+xserver_set_command (XServer *server, const gchar *command)
+{
+    g_free (server->priv->command);
+    server->priv->command = g_strdup (command);
+}
+
+const gchar *
+xserver_get_command (XServer *server)
+{
+    return server->priv->command;
 }
 
 const gchar *
@@ -124,7 +137,6 @@ xserver_start (XServer *server)
 {
     GError *error = NULL;
     gboolean result;
-    gchar *xserver_binary;
     GString *command;
     gint argc;
     gchar **argv;
@@ -149,15 +161,11 @@ xserver_start (XServer *server)
         env[n_env++] = g_strdup_printf ("XAUTHORITY=%s", getenv ("XAUTHORITY"));
     env[n_env] = NULL;
 
-    xserver_binary = g_key_file_get_value (server->priv->config, "LightDM", "xserver", NULL);
-    if (!xserver_binary)
-        xserver_binary = g_strdup (XSERVER_BINARY);
-    command = g_string_new (xserver_binary);
+    command = g_string_new (server->priv->command);
     g_string_append_printf (command, " :%d", server->priv->display_number);
     g_string_append (command, " -nolisten tcp"); /* Disable TCP/IP connections */
     g_string_append (command, " -nr");           /* No root background */
     //g_string_append_printf (command, " vt%d");
-    g_free (xserver_binary);
 
     env_string = g_strjoinv (" ", env);
     g_debug ("Launching X Server: %s %s", env_string, command->str);
@@ -174,7 +182,7 @@ xserver_start (XServer *server)
     result = g_spawn_async/*_with_pipes*/ (NULL, /* Working directory */
                                        argv,
                                        env,
-                                       G_SPAWN_DO_NOT_REAP_CHILD,
+                                       G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
                                        xserver_fork_cb,
                                        NULL,
                                        &server->priv->pid,
@@ -198,6 +206,7 @@ static void
 xserver_init (XServer *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_TYPE, XServerPrivate);
+    server->priv->command = g_strdup (XSERVER_BINARY);
 }
 
 static void
@@ -211,8 +220,8 @@ xserver_set_property (GObject      *object,
     self = XSERVER (object);
 
     switch (prop_id) {
-    case PROP_CONFIG:
-        self->priv->config = g_value_get_pointer (value);
+    case PROP_COMMAND:
+        xserver_set_command (self, g_value_get_string (value));
         break;
     case PROP_HOSTNAME:
         self->priv->hostname = g_strdup (g_value_get_string (value));
@@ -238,8 +247,8 @@ xserver_get_property (GObject    *object,
     self = XSERVER (object);
 
     switch (prop_id) {
-    case PROP_CONFIG:
-        g_value_set_pointer (value, self->priv->config);
+    case PROP_COMMAND:
+        g_value_set_string (value, self->priv->command);
         break;
     case PROP_HOSTNAME:
         g_value_set_string (value, self->priv->hostname);
@@ -266,6 +275,7 @@ xserver_finalize (GObject *object)
     if (self->priv->pid)
         kill (self->priv->pid, SIGTERM);
 
+    g_free (self->priv->command);  
     g_free (self->priv->hostname);
     g_free (self->priv->address);
 }
@@ -282,11 +292,12 @@ xserver_class_init (XServerClass *klass)
     g_type_class_add_private (klass, sizeof (XServerPrivate));
 
     g_object_class_install_property (object_class,
-                                     PROP_CONFIG,
-                                     g_param_spec_pointer ("config",
-                                                           "config",
-                                                           "Configuration",
-                                                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+                                     PROP_COMMAND,
+                                     g_param_spec_string ("command",
+                                                          "command",
+                                                          "Command to launch the X server",
+                                                          NULL,
+                                                          G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
                                      PROP_HOSTNAME,
                                      g_param_spec_string ("hostname",

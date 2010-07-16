@@ -33,6 +33,8 @@ struct DisplayManagerPrivate
 {
     GKeyFile *config;
 
+    gboolean test_mode;
+
     GList *displays;
   
     XDMCPServer *xdmcp_server;
@@ -46,6 +48,7 @@ display_manager_new (GKeyFile *config)
     return g_object_new (DISPLAY_MANAGER_TYPE, "config", config, NULL);
 }
 
+#include <xcb/xcb.h>
 static gboolean
 display_number_used (DisplayManager *manager, guint display_number)
 {
@@ -57,6 +60,22 @@ display_number_used (DisplayManager *manager, guint display_number)
         XServer *xserver = display_get_xserver (display);
         if (xserver && xserver_get_hostname (xserver) == NULL && xserver_get_display_number (xserver) == display_number)
             return TRUE;
+    }
+
+    /* In test mode there is probably another display manager running so see if the server exists */
+    if (manager->priv->test_mode)
+    {
+        xcb_connection_t *connection;
+        gchar *address;
+        gboolean is_used;
+
+        address = g_strdup_printf (":%d", display_number);
+        connection = xcb_connect_to_display_with_auth_info (address, NULL, NULL);
+        g_free (address);
+        is_used = !xcb_connection_has_error (connection);
+        xcb_disconnect (connection);
+
+        return is_used;
     }
 
     return FALSE;
@@ -73,12 +92,46 @@ get_free_display_number (DisplayManager *manager)
     return display_number;
 }
 
+static void
+start_session_cb (Display *display, Session *session, DisplayManager *manager)
+{
+    gchar *string;
+
+    /* Connect using the session bus */
+    if (manager->priv->test_mode)
+    {
+        session_set_env (session, "DBUS_SESSION_BUS_ADDRESS", getenv ("DBUS_SESSION_BUS_ADDRESS"));
+        session_set_env (session, "LDM_BUS", "SESSION");
+    }
+
+    /* Address for greeter to connect to */
+    string = g_strdup_printf ("/org/gnome/LightDisplayManager/Display%d", display_get_index (display));
+    session_set_env (session, "LDM_DISPLAY", string);
+
+    g_free (string);
+}
+
 static Display *
 add_display (DisplayManager *manager)
 {
     Display *display;
+    gchar *value;
 
-    display = display_new (manager->priv->config, g_list_length (manager->priv->displays));
+    display = display_new (g_list_length (manager->priv->displays));
+    g_signal_connect (display, "start-session", G_CALLBACK (start_session_cb), manager);
+
+    if (manager->priv->test_mode)
+        display_set_greeter_user (display, NULL);
+
+    value = g_key_file_get_value (manager->priv->config, "Greeter", "user", NULL);
+    if (value)
+        display_set_greeter_user (display, value);
+    g_free (value);
+    value = g_key_file_get_value (manager->priv->config, "Greeter", "theme", NULL);
+    if (value)
+        display_set_greeter_theme (display, value);
+    g_free (value);
+
     manager->priv->displays = g_list_append (manager->priv->displays, display);
 
     g_signal_emit (manager, signals[DISPLAY_ADDED], 0, display);
@@ -97,10 +150,13 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
 {
     Display *display;
     gchar *address;
+    XServer *xserver;
 
     display = add_display (manager);
     address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (session)));
-    display_start (display, address, xdmcp_session_get_display_number (session), NULL, 0);
+    xserver = xserver_new (address, xdmcp_session_get_display_number (session));
+    display_start (display, xserver, NULL, 0);
+    g_object_unref (xserver);
     g_free (address);
 }
 
@@ -124,6 +180,7 @@ display_manager_start (DisplayManager *manager)
         gint user_timeout;
         gchar *display_name;
         guint display_number;
+        XServer *xserver;
 
         display_name = *i;
         g_debug ("Loading display %s", display_name);
@@ -150,7 +207,12 @@ display_manager_start (DisplayManager *manager)
         else
             display_number = get_free_display_number (manager);
 
-        display_start (display, NULL, display_number, default_user, user_timeout);
+        xserver = xserver_new (NULL, display_number);
+        if (manager->priv->test_mode)
+            xserver_set_command (xserver, "Xephyr");
+
+        display_start (display, xserver, default_user, user_timeout);
+        g_object_unref (xserver);
         g_free (default_user);
     }
     g_strfreev (tokens);
@@ -159,7 +221,14 @@ display_manager_start (DisplayManager *manager)
     {
         gchar *key;
 
-        manager->priv->xdmcp_server = xdmcp_server_new (manager->priv->config);
+        manager->priv->xdmcp_server = xdmcp_server_new ();
+        if (g_key_file_has_key (manager->priv->config, "xdmcp", "port", NULL))
+        {
+            gint port;
+            port = g_key_file_get_integer (manager->priv->config, "xdmcp", "port", NULL);
+            if (port > 0)
+                xdmcp_server_set_port (manager->priv->xdmcp_server, port);
+        }
         g_signal_connect (manager->priv->xdmcp_server, "session-added", G_CALLBACK (xdmcp_session_cb), manager);
 
         key = g_key_file_get_string (manager->priv->config, "xdmcp", "key", NULL);
@@ -190,6 +259,7 @@ display_manager_set_property (GObject      *object,
     switch (prop_id) {
     case PROP_CONFIG:
         self->priv->config = g_value_get_pointer (value);
+        self->priv->test_mode = g_key_file_get_boolean (self->priv->config, "LightDM", "test-mode", NULL);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

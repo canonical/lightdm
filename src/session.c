@@ -20,7 +20,6 @@
 
 enum {
     PROP_0,
-    PROP_CONFIG,
     PROP_USERNAME,
     PROP_COMMAND
 };
@@ -33,8 +32,6 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct SessionPrivate
 {
-    GKeyFile *config;
-
     /* User running this session */
     gchar *username;
 
@@ -51,9 +48,9 @@ struct SessionPrivate
 G_DEFINE_TYPE (Session, session, G_TYPE_OBJECT);
 
 Session *
-session_new (GKeyFile *config, const char *username, const char *command)
+session_new (const char *username, const char *command)
 {
-    return g_object_new (SESSION_TYPE, "config", config, "username", username, "command", command, NULL);
+    return g_object_new (SESSION_TYPE, "username", username, "command", command, NULL);
 }
 
 const gchar *
@@ -94,6 +91,9 @@ session_fork_cb (gpointer data)
 {
     struct passwd *user_info = data;
   
+    if (!user_info)
+        return;
+  
     if (setgid (user_info->pw_gid) != 0)
     {
         g_warning ("Failed to set group ID: %s", strerror (errno));
@@ -132,30 +132,41 @@ static gchar **session_get_env (Session *session)
 gboolean
 session_start (Session *session)
 {
-    struct passwd *user_info;
+    struct passwd *user_info = NULL;
     //gint session_stdin, session_stdout, session_stderr;
     gboolean result;
     gint argc;
+    const gchar *working_dir = NULL;
     gchar **argv, **env;
     gchar *env_string;
     GError *error = NULL;
 
     g_return_val_if_fail (session->priv->pid == 0, FALSE);
 
-    errno = 0;
-    user_info = getpwnam (session->priv->username);
-    if (!user_info)
+    if (session->priv->username)
     {
-        if (errno == 0)
-            g_warning ("Unable to get information on user %s: User does not exist", session->priv->username);
-        else
-            g_warning ("Unable to get information on user %s: %s", session->priv->username, strerror (errno));
-        return FALSE;
-    }
+        errno = 0;
+        user_info = getpwnam (session->priv->username);
+        if (!user_info)
+        {
+            if (errno == 0)
+                g_warning ("Unable to get information on user %s: User does not exist", session->priv->username);
+            else
+                g_warning ("Unable to get information on user %s: %s", session->priv->username, strerror (errno));
+            return FALSE;
+        }
   
-    session_set_env (session, "USER", user_info->pw_name);
-    session_set_env (session, "HOME", user_info->pw_dir);
-    session_set_env (session, "SHELL", user_info->pw_shell);
+        working_dir = user_info->pw_dir;
+        session_set_env (session, "USER", user_info->pw_name);
+        session_set_env (session, "HOME", user_info->pw_dir);
+        session_set_env (session, "SHELL", user_info->pw_shell);
+    }
+    else
+    {
+        session_set_env (session, "USER", getenv ("USER"));
+        session_set_env (session, "HOME", getenv ("HOME"));
+        session_set_env (session, "SHELL", getenv ("SHELL"));
+    }
 
     env = session_get_env (session);
 
@@ -170,7 +181,7 @@ session_start (Session *session)
     g_debug ("Launching greeter: %s %s", env_string, session->priv->command);
     g_free (env_string);
 
-    result = g_spawn_async/*_with_pipes*/ (user_info->pw_dir,
+    result = g_spawn_async/*_with_pipes*/ (working_dir,
                                        argv,
                                        env,
                                        G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH,
@@ -206,9 +217,6 @@ session_set_property (GObject      *object,
     self = SESSION (object);
 
     switch (prop_id) {
-    case PROP_CONFIG:
-        self->priv->config = g_value_get_pointer (value);
-        break;
     case PROP_USERNAME:
         self->priv->username = g_strdup (g_value_get_string (value));
         break;
@@ -232,9 +240,6 @@ session_get_property (GObject    *object,
     self = SESSION (object);
 
     switch (prop_id) {
-    case PROP_CONFIG:
-        g_value_set_pointer (value, self->priv->config);
-        break;
     case PROP_USERNAME:
         g_value_set_string (value, self->priv->username);
         break;
@@ -271,12 +276,6 @@ session_class_init (SessionClass *klass)
 
     g_type_class_add_private (klass, sizeof (SessionPrivate));
 
-    g_object_class_install_property (object_class,
-                                     PROP_CONFIG,
-                                     g_param_spec_pointer ("config",
-                                                           "config",
-                                                           "Configuration",
-                                                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
     g_object_class_install_property (object_class,
                                      PROP_USERNAME,
                                      g_param_spec_string ("username",

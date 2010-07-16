@@ -39,7 +39,11 @@ typedef struct
 
 GType xdmcp_server_get_type (void);
 
-XDMCPServer *xdmcp_server_new (GKeyFile *config);
+XDMCPServer *xdmcp_server_new (void);
+
+void xdmcp_server_set_port (XDMCPServer *server, guint port);
+
+guint xdmcp_server_get_port (XDMCPServer *server);
 
 void xdmcp_server_set_hostname (XDMCPServer *server, const gchar *hostname);
 

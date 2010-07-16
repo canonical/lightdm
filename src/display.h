@@ -14,7 +14,9 @@
 
 #include <glib-object.h>
 #include <dbus/dbus-glib.h>
+
 #include "xserver.h"
+#include "session.h"
 
 G_BEGIN_DECLS
 
@@ -33,25 +35,36 @@ typedef struct
 {
     GObjectClass parent_class;
   
+    void (*start_session)(Display *display, Session *session);
     void (*exited)(Display *display);
 } DisplayClass;
 
 GType display_get_type (void);
 
-Display *display_new (GKeyFile *config, /* config_name, */ gint index);
+Display *display_new (gint index);
 
 gint display_get_index (Display *display);
+
+void display_set_greeter_user (Display *display, const gchar *username);
+
+const gchar *display_get_greeter_user (Display *display);
+
+void display_set_greeter_theme (Display *display, const gchar *greeter_theme);
+
+const gchar *display_get_greeter_theme (Display *display);
+
+gboolean display_set_session (Display *display, const gchar *session, GError *error);
+
+const gchar *display_get_session (Display *display);
 
 XServer *display_get_xserver (Display *display);
 
 // FIXME: Remove username and timeout to properties and set them to defaults
-void display_start (Display *display, const gchar *hostname, guint display_number, const gchar *username, gint timeout);
+void display_start (Display *display, XServer *server, const gchar *username, gint timeout);
 
 // FIXME: Make greeter its own object?
 
 gboolean display_connect (Display *display, const gchar **session, const gchar **username, gint *delay, GError *error);
-
-gboolean display_set_session (Display *display, const gchar *session, GError *error);
 
 gboolean display_start_authentication (Display *display, const gchar *username, DBusGMethodInvocation *context);
 

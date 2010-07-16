@@ -36,7 +36,7 @@ typedef struct
 
 GType session_get_type (void);
 
-Session *session_new (GKeyFile *config, const char *username, const char *command);
+Session *session_new (const char *username, const char *command);
 
 const gchar *session_get_username (Session *session);
 

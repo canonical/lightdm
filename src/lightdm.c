@@ -23,9 +23,8 @@
 static DBusGConnection *bus = NULL;
 static GKeyFile *config_file = NULL;
 static const gchar *config_path = CONFIG_FILE;
-static DBusBusType bus_type = DBUS_BUS_SYSTEM;
 static GMainLoop *loop = NULL;
-static gboolean do_root_check = TRUE;
+static gboolean test_mode = FALSE;
 static gboolean debug = FALSE;
 
 static DisplayManager *display_manager = NULL;
@@ -52,8 +51,7 @@ usage (void)
                 _("Help Options:\n"
                   "  -c, --config <file>             Use configuration file\n"
                   "  -d, --debug                     Print debugging messages\n"
-                  "      --no-root-check             Don't check if root user\n"
-                  "      --use-session-bus           Use the session D-Bus\n"
+                  "      --test-mode                 Run as unprivileged user\n"
                   "  -v, --version                   Show release version\n"
                   "  -h, --help                      Show help options"));
     g_printerr ("\n\n");
@@ -82,11 +80,8 @@ get_options (int argc, char **argv)
             strcmp (arg, "--debug") == 0) {
             debug = TRUE;
         }
-        else if (strcmp (arg, "--no-root-check") == 0) {
-            do_root_check = FALSE;
-        }
-        else if (strcmp (arg, "--use-session-bus") == 0) {
-            bus_type = DBUS_BUS_SESSION;
+        else if (strcmp (arg, "--test-mode") == 0) {
+            test_mode = TRUE;
         }
         else if (strcmp (arg, "-v") == 0 ||
             strcmp (arg, "--version") == 0)
@@ -140,7 +135,7 @@ start_dbus (void)
     guint result;
     GError *error = NULL;
 
-    bus = dbus_g_bus_get (bus_type, &error);
+    bus = dbus_g_bus_get (test_mode ? DBUS_BUS_SESSION : DBUS_BUS_SYSTEM, &error);
     if (!bus) 
         g_critical ("Failed to get system bus: %s", error->message);
     g_clear_error (&error);
@@ -198,7 +193,7 @@ main(int argc, char **argv)
 
     get_options (argc, argv);
 
-    if (do_root_check && getuid () != 0)
+    if (!test_mode && getuid () != 0)
     {
         g_printerr ("Only root can run Light Display Manager\n");
         return -1;
@@ -213,11 +208,14 @@ main(int argc, char **argv)
     loop = g_main_loop_new (NULL, FALSE);
 
     config_file = g_key_file_new ();
-    if (g_key_file_load_from_file(config_file, config_path, G_KEY_FILE_NONE, &error))
+    if (g_key_file_load_from_file (config_file, config_path, G_KEY_FILE_NONE, &error))
         g_debug ("Loaded configuration from %s", config_path);
     else
         g_warning ("Failed to load configuration from %s: %s", config_path, error->message); // FIXME: Don't make warning on no file, just info
     g_clear_error (&error);
+
+    if (test_mode)
+       g_key_file_set_boolean (config_file, "LightDM", "test-mode", TRUE);
 
     user_manager = user_manager_new ();
     dbus_g_connection_register_g_object (bus, "/org/gnome/LightDisplayManager/Users", G_OBJECT (user_manager));

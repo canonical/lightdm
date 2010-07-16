@@ -22,7 +22,7 @@
 
 enum {
     PROP_0,
-    PROP_CONFIG,
+    PROP_PORT,  
     PROP_HOSTNAME,
     PROP_STATUS,
     PROP_AUTHENTICATION_KEY
@@ -37,6 +37,8 @@ static guint signals[LAST_SIGNAL] = { 0 };
 struct XDMCPServerPrivate
 {
     GKeyFile *config;
+  
+    guint port;
 
     GSocket *socket;
 
@@ -52,9 +54,21 @@ struct XDMCPServerPrivate
 G_DEFINE_TYPE (XDMCPServer, xdmcp_server, G_TYPE_OBJECT);
 
 XDMCPServer *
-xdmcp_server_new (GKeyFile *config)
+xdmcp_server_new (void)
 {
-    return g_object_new (XDMCP_SERVER_TYPE, "config", config, NULL);
+    return g_object_new (XDMCP_SERVER_TYPE, NULL);
+}
+
+void
+xdmcp_server_set_port (XDMCPServer *server, guint port)
+{
+    server->priv->port = port;
+}
+
+guint
+xdmcp_server_get_port (XDMCPServer *server)
+{
+    return server->priv->port;
 }
 
 void
@@ -457,7 +471,6 @@ gboolean
 xdmcp_server_start (XDMCPServer *server)
 {
     GSocketAddress *address;
-    gint port;
     GSource *source;
     gboolean result;
     GError *error = NULL;
@@ -468,12 +481,8 @@ xdmcp_server_start (XDMCPServer *server)
     g_clear_error (&error);
     if (!server->priv->socket)
         return FALSE;
-  
-    port = g_key_file_get_integer (server->priv->config, "xdmcp", "port", NULL);
-    if (port <= 0)
-        port = 177;
 
-    address = g_inet_socket_address_new (g_inet_address_new_any (G_SOCKET_FAMILY_IPV4), port);
+    address = g_inet_socket_address_new (g_inet_address_new_any (G_SOCKET_FAMILY_IPV4), server->priv->port);
     result = g_socket_bind (server->priv->socket, address, TRUE, &error);
     if (!result)
         g_warning ("Failed to bind XDMCP server port: %s", error->message);
@@ -493,6 +502,7 @@ xdmcp_server_init (XDMCPServer *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XDMCP_SERVER_TYPE, XDMCPServerPrivate);
 
+    server->priv->port = XDM_UDP_PORT;
     server->priv->hostname = g_strdup ("");
     server->priv->status = g_strdup ("");
     server->priv->sessions = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
@@ -509,9 +519,6 @@ xdmcp_server_set_property (GObject      *object,
     self = XDMCP_SERVER (object);
 
     switch (prop_id) {
-    case PROP_CONFIG:
-        self->priv->config = g_value_get_pointer (value);
-        break;
     case PROP_HOSTNAME:
         xdmcp_server_set_hostname (self, g_value_get_string (value));
         break;
@@ -538,9 +545,6 @@ xdmcp_server_get_property (GObject    *object,
     self = XDMCP_SERVER (object);
 
     switch (prop_id) {
-    case PROP_CONFIG:
-        g_value_set_pointer (value, self->priv->config);
-        break;
     case PROP_HOSTNAME:
         g_value_set_string (value, self->priv->hostname);
         break;
@@ -583,11 +587,12 @@ xdmcp_server_class_init (XDMCPServerClass *klass)
     g_type_class_add_private (klass, sizeof (XDMCPServerPrivate));
 
     g_object_class_install_property (object_class,
-                                     PROP_CONFIG,
-                                     g_param_spec_pointer ("config",
-                                                           "config",
-                                                           "Configuration",
-                                                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+                                     PROP_PORT,
+                                     g_param_spec_int ("port",
+                                                       "port",
+                                                       "UDP/IP port to listen on",
+                                                       1, G_MAXUINT16, XDM_UDP_PORT,
+                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
     g_object_class_install_property (object_class,
                                      PROP_HOSTNAME,
                                      g_param_spec_string ("hostname",
