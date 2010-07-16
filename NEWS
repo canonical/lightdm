@@ -1,8 +1,9 @@
 Overview of changes in lightdm 0.0.4
 
-    * Create gettext instance in WebKit greeter
     * Support XDMCP logins
     * Support multi-head
+    * Clean up resources on exit
+    * Create gettext instance in WebKit greeter
 
 Overview of changes in lightdm 0.0.3
 
