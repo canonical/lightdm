@@ -519,6 +519,9 @@ xdmcp_server_set_property (GObject      *object,
     self = XDMCP_SERVER (object);
 
     switch (prop_id) {
+    case PROP_PORT:
+        xdmcp_server_set_port (self, g_value_get_int (value));
+        break;
     case PROP_HOSTNAME:
         xdmcp_server_set_hostname (self, g_value_get_string (value));
         break;
@@ -545,6 +548,9 @@ xdmcp_server_get_property (GObject    *object,
     self = XDMCP_SERVER (object);
 
     switch (prop_id) {
+    case PROP_PORT:
+        g_value_set_int (value, self->priv->port);
+        break;
     case PROP_HOSTNAME:
         g_value_set_string (value, self->priv->hostname);
         break;
@@ -592,7 +598,7 @@ xdmcp_server_class_init (XDMCPServerClass *klass)
                                                        "port",
                                                        "UDP/IP port to listen on",
                                                        1, G_MAXUINT16, XDM_UDP_PORT,
-                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+                                                       G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
                                      PROP_HOSTNAME,
                                      g_param_spec_string ("hostname",
