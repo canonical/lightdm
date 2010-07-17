@@ -10,6 +10,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <sys/wait.h>
 
 #include "xserver.h"
@@ -20,7 +21,6 @@ enum {
     PROP_COMMAND,
     PROP_HOSTNAME,
     PROP_PORT,
-    PROP_COOKIE,
     PROP_DISPLAY_NUMBER,
     PROP_ADDRESS
 };
@@ -51,8 +51,19 @@ struct XServerPrivate
     /* UDP/IP port to connect to XDMCP manager */
     guint port;
 
-    /* Auhentication cookie to use */
-    gchar *cookie;
+    /* Auhentication scheme to use */
+    gchar *authentication_name;
+
+    /* Auhentication data */  
+    guchar *authentication_data;
+    gsize authentication_data_length;
+
+    /* Authorization scheme to use */
+    gchar *authorization_name;
+
+    /* Authorization data */
+    guchar *authorization_data;
+    gsize authorization_data_length;
 
     /* Display number */
     gint display_number;
@@ -75,10 +86,7 @@ xserver_handle_signal (GPid pid)
 
     server = g_hash_table_lookup (servers, GINT_TO_POINTER (pid));
     if (!server)
-    {
-        g_warning ("Ignoring signal from unknown process %d", pid);
         return;
-    }
 
     if (!server->priv->ready)
     {
@@ -124,19 +132,6 @@ guint xserver_get_port (XServer *server)
     return server->priv->port;
 }
 
-void
-xserver_set_cookie (XServer *server, const gchar *cookie)
-{
-    g_free (server->priv->cookie);
-    server->priv->cookie = g_strdup (cookie);
-}
-
-const gchar *
-xserver_get_cookie (XServer *server)
-{
-    return server->priv->cookie;
-}
-
 const gchar *
 xserver_get_hostname (XServer *server)
 {
@@ -161,6 +156,64 @@ xserver_get_address (XServer *server)
     }  
 
     return server->priv->address;
+}
+
+void
+xserver_set_authentication (XServer *server, const gchar *name, const guchar *data, gsize data_length)
+{
+    g_free (server->priv->authentication_name);
+    server->priv->authentication_name = g_strdup (name);
+    g_free (server->priv->authentication_data);
+    server->priv->authentication_data = g_malloc (data_length);
+    server->priv->authentication_data_length = data_length;
+    memcpy (server->priv->authentication_data, data, data_length);
+}
+
+const gchar *
+xserver_get_authentication_name (XServer *server)
+{
+    return server->priv->authentication_name;
+}
+
+const guchar *
+xserver_get_authentication_data (XServer *server)
+{
+    return server->priv->authentication_data;
+}
+
+gsize
+xserver_get_authentication_data_length (XServer *server)
+{
+    return server->priv->authentication_data_length;
+}
+
+void
+xserver_set_authorization (XServer *server, const gchar *name, const guchar *data, gsize data_length)
+{
+    g_free (server->priv->authorization_name);
+    server->priv->authorization_name = g_strdup (name);
+    g_free (server->priv->authorization_data);
+    server->priv->authorization_data = g_malloc (data_length);
+    server->priv->authorization_data_length = data_length;
+    memcpy (server->priv->authorization_data, data, data_length);
+}
+
+const gchar *
+xserver_get_authorization_name (XServer *server)
+{
+    return server->priv->authorization_name;
+}
+
+const guchar *
+xserver_get_authorization_data (XServer *server)
+{
+    return server->priv->authorization_data;
+}
+
+gsize
+xserver_get_authorization_data_length (XServer *server)
+{
+    return server->priv->authorization_data_length;
 }
 
 static void
@@ -225,8 +278,17 @@ xserver_start (XServer *server)
         if (server->priv->port != 0)
             g_string_append_printf (command, " -port %d", server->priv->port);
         g_string_append_printf (command, " -query %s", server->priv->hostname);
-        if (server->priv->cookie)
-            g_string_append_printf (command, " -cookie %s", server->priv->cookie);
+        if (strcmp (server->priv->authentication_name, "XDM-AUTHENTICATION-1") == 0 && server->priv->authentication_data_length > 0)
+        {
+            GString *cookie;
+            gsize i;
+
+            cookie = g_string_new ("0x");
+            for (i = 0; i < server->priv->authentication_data_length; i++)
+                g_string_append_printf (cookie, "%02X", server->priv->authentication_data[i]);
+            g_string_append_printf (command, " -cookie %s", cookie->str);
+            g_string_free (cookie, TRUE);
+        }
     }
     else
         g_string_append (command, " -nolisten tcp");
@@ -271,6 +333,8 @@ xserver_init (XServer *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_TYPE, XServerPrivate);
     server->priv->command = g_strdup (XSERVER_BINARY);
+    server->priv->authentication_name = g_strdup ("");
+    server->priv->authorization_name = g_strdup ("");
 }
 
 static void
@@ -295,9 +359,6 @@ xserver_set_property (GObject      *object,
         break;
     case PROP_PORT:
         self->priv->port = g_value_get_int (value);
-        break;
-    case PROP_COOKIE:
-        xserver_set_cookie (self, g_value_get_string (value));
         break;
     case PROP_DISPLAY_NUMBER:
         self->priv->display_number = g_value_get_int (value);
@@ -332,9 +393,6 @@ xserver_get_property (GObject    *object,
     case PROP_PORT:
         g_value_set_int (value, self->priv->port);
         break;
-    case PROP_COOKIE:
-        g_value_set_string (value, self->priv->cookie);
-        break;
     case PROP_DISPLAY_NUMBER:
         g_value_set_int (value, self->priv->display_number);
         break;
@@ -357,9 +415,12 @@ xserver_finalize (GObject *object)
     if (self->priv->pid)
         kill (self->priv->pid, SIGTERM);
 
-    g_free (self->priv->command);  
+    g_free (self->priv->command);
     g_free (self->priv->hostname);
-    g_free (self->priv->cookie);
+    g_free (self->priv->authentication_name);
+    g_free (self->priv->authentication_data);
+    g_free (self->priv->authorization_name);
+    g_free (self->priv->authorization_data);
     g_free (self->priv->address);
 }
 
@@ -409,13 +470,6 @@ xserver_class_init (XServerClass *klass)
                                                        "UDP/IP port to connect XDMCP on",
                                                        0, G_MAXINT, 0,
                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-    g_object_class_install_property (object_class,
-                                     PROP_COOKIE,
-                                     g_param_spec_string ("cookie",
-                                                          "cookie",
-                                                          "Authentication key to use for XDMCP",
-                                                          NULL,
-                                                          G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
                                      PROP_ADDRESS,
                                      g_param_spec_string ("address",

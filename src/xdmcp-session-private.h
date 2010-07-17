@@ -12,15 +12,20 @@
 #ifndef _XDMCP_SESSION_PRIVATE_H_
 #define _XDMCP_SESSION_PRIVATE_H_
 
+#include "xdmcp-server.h"
 #include <xcb/xcb.h>
 
 struct XDMCPSessionPrivate
 {
+    XDMCPServer *server;
+
     guint16 id;
 
     gchar *manufacturer_display_id;
 
     GInetAddress *address;
+
+    guint inactive_timeout;
 
     gchar *authorization_name;
   

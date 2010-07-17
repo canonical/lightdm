@@ -10,6 +10,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <dbus/dbus-glib.h>
 
 #include "display-manager.h"
@@ -160,6 +161,43 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
     g_free (address);
 }
 
+static guchar
+atox (char c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    return 0;
+}
+
+static void
+string_to_xdm_auth_key (const gchar *key, guchar *data)
+{
+    gint i;
+
+    memset (data, 0, sizeof (data));
+    if (strncmp (key, "0x", 2) == 0 || strncmp (key, "0X", 2) == 0)
+    {
+        for (i = 0; i < 8; i++)
+        {
+            if (key[i*2] == '\0')
+                break;
+            data[i] |= atox (key[i*2]) << 8;
+            if (key[i*2+1] == '\0')
+                break;
+            data[i] |= atox (key[i*2+1]);
+        }
+    }
+    else
+    {
+        for (i = 1; i < 8 && key[i-1]; i++)
+           data[i] = key[i-1];
+    }
+}
+
 void
 display_manager_start (DisplayManager *manager)
 {
@@ -218,7 +256,13 @@ display_manager_start (DisplayManager *manager)
                 xserver_set_port (xserver, port);
             key = g_key_file_get_string (manager->priv->config, display_name, "key", NULL);
             if (key)
-                xserver_set_cookie (xserver, key);
+            {
+                guchar data[8];
+
+                string_to_xdm_auth_key (key, data);
+                xserver_set_authentication (xserver, "XDM-AUTHENTICATION-1", data, 8);
+                //xserver_set_authorization (xserver, "XDM-AUTHORIZATION-1", data, 8);
+            }
         }
         else
             xserver = xserver_new (XSERVER_TYPE_LOCAL, NULL, display_number);
@@ -249,7 +293,12 @@ display_manager_start (DisplayManager *manager)
 
         key = g_key_file_get_string (manager->priv->config, "xdmcp", "key", NULL);
         if (key)
-            xdmcp_server_set_authentication_key (manager->priv->xdmcp_server, key);
+        {
+            guchar data[8];
+            string_to_xdm_auth_key (key, data);
+            xdmcp_server_set_authentication (manager->priv->xdmcp_server, "XDM-AUTHENTICATION-1", data, 8);
+            //xdmcp_server_set_authorization (manager->priv->xdmcp_server, "XDM-AUTHORIZATION-1", data, 8);
+        }
         g_free (key);
 
         g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (manager->priv->xdmcp_server));

@@ -64,15 +64,27 @@ void xserver_set_port (XServer *server, guint port);
 
 guint xserver_get_port (XServer *server);
 
-void xserver_set_cookie (XServer *server, const gchar *cookie);
-
-const gchar *xserver_get_cookie (XServer *server);
-
 const gchar *xserver_get_hostname (XServer *server);
 
 gint xserver_get_display_number (XServer *server);
 
 const gchar *xserver_get_address (XServer *server);
+
+void xserver_set_authentication (XServer *server, const gchar *name, const guchar *data, gsize data_length);
+
+const gchar *xserver_get_authentication_name (XServer *server);
+
+const guchar *xserver_get_authentication_data (XServer *server);
+
+gsize xserver_get_authentication_data_length (XServer *server);
+
+void xserver_set_authorization (XServer *server, const gchar *name, const guchar *data, gsize data_length);
+
+const gchar *xserver_get_authorization_name (XServer *server);
+
+const guchar *xserver_get_authorization_data (XServer *server);
+
+gsize xserver_get_authorization_data_length (XServer *server);
 
 gboolean xserver_start (XServer *server);
 
