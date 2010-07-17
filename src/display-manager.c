@@ -261,7 +261,7 @@ display_manager_start (DisplayManager *manager)
 
                 string_to_xdm_auth_key (key, data);
                 xserver_set_authentication (xserver, "XDM-AUTHENTICATION-1", data, 8);
-                //xserver_set_authorization (xserver, "XDM-AUTHORIZATION-1", data, 8);
+                xserver_set_authorization (xserver, "XDM-AUTHORIZATION-1", data, 8);
             }
         }
         else
@@ -297,7 +297,7 @@ display_manager_start (DisplayManager *manager)
             guchar data[8];
             string_to_xdm_auth_key (key, data);
             xdmcp_server_set_authentication (manager->priv->xdmcp_server, "XDM-AUTHENTICATION-1", data, 8);
-            //xdmcp_server_set_authorization (manager->priv->xdmcp_server, "XDM-AUTHORIZATION-1", data, 8);
+            xdmcp_server_set_authorization (manager->priv->xdmcp_server, "XDM-AUTHORIZATION-1", data, 8);
         }
         g_free (key);
 

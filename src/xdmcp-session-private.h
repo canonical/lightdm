@@ -29,6 +29,9 @@ struct XDMCPSessionPrivate
 
     gchar *authorization_name;
   
+    /* Session key for XDM-AUTHORIZATION-1 */
+    guchar key[8];
+  
     gboolean started;
 
     guint16 display_number;

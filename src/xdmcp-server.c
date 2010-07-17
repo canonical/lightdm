@@ -268,6 +268,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     guchar *authorization_data = NULL;
     gsize authorization_data_length = 0;
     gchar **j;
+    guchar session_key[8];
     GInetAddress *address4 = NULL; /*, *address6 = NULL;*/
   
     /* Must be using our authentication scheme */
@@ -315,7 +316,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
              break;
         }
     }
-
+  
     if (!match_authorization)
     {
         response = xdmcp_packet_alloc (XDMCP_Decline);
@@ -329,6 +330,32 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
         send_packet (socket, address, response);
         xdmcp_packet_free (response);
         return;
+    }
+
+    /* Perform requested authorization */
+    memset (session_key, 0, sizeof (session_key));
+    if (strcmp (server->priv->authorization_name, "MIT-MAGIC-COOKIE-1") == 0)
+    {
+        /* Data is the cookie */
+        authorization_data = g_malloc (sizeof (guchar) * server->priv->authorization_data_length);
+        memcpy (authorization_data, server->priv->authorization_data, server->priv->authorization_data_length);
+        authorization_data_length = server->priv->authorization_data_length;
+    }
+    else if (strcmp (server->priv->authorization_name, "XDM-AUTHORIZATION-1") == 0)
+    {
+        gint i;
+        guchar key[8];
+
+        /* Setup key */
+        memset (key, 0, 8);
+        memcpy (key, server->priv->authentication_data, server->priv->authentication_data_length > 8 ? 8 : server->priv->authentication_data_length);
+
+        /* Generate a private session key and encode it */
+        for (i = 0; i < 8; i++)
+            session_key[i] = g_random_int () & 0xFF;
+        authorization_data = g_malloc (sizeof (guchar) * 8);
+        authorization_data_length = 8;
+        XdmcpWrap (session_key, key, authorization_data, authorization_data_length);
     }
 
     for (i = 0; i < packet->Request.n_connections; i++)
@@ -363,6 +390,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
 
     session = add_session (server);
     session->priv->address = address4; /*address6 ? address6 : address4;*/
+    memcpy (session->priv->key, session_key, 8);
 
     response = xdmcp_packet_alloc (XDMCP_Accept);
     response->Accept.session_id = xdmcp_session_get_id (session);
