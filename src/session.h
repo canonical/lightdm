@@ -13,6 +13,7 @@
 #define _SESSION_H_
 
 #include <glib-object.h>
+#include "xauth.h"
 
 G_BEGIN_DECLS
 
@@ -43,6 +44,10 @@ const gchar *session_get_username (Session *session);
 const gchar *session_get_command (Session *session);
 
 void session_set_env (Session *session, const gchar *name, const gchar *value);
+
+void session_set_authorization (Session *session, XAuthorization *authorization, const gchar *path);
+
+XAuthorization *session_get_authorization (Session *session);
 
 gboolean session_start (Session *session);
 

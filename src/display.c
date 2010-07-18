@@ -188,7 +188,7 @@ session_exit_cb (Session *session, Display *display)
     case SESSION_NONE:
         break;
     case SESSION_GREETER_PRE_CONNECT:
-        g_error ("Failed to start greeter");
+        g_warning ("Failed to start greeter");
         break;
     case SESSION_GREETER:
         if (display->priv->default_user && display->priv->timeout > 0)

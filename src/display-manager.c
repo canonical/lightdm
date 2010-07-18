@@ -11,6 +11,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <dbus/dbus-glib.h>
 
 #include "display-manager.h"
@@ -33,12 +34,16 @@ static guint signals[LAST_SIGNAL] = { 0 };
 struct DisplayManagerPrivate
 {
     GKeyFile *config;
+  
+    gchar *auth_dir;
 
     gboolean test_mode;
 
     GList *displays;
   
     XDMCPServer *xdmcp_server;
+  
+    guint auth_counter;
 };
 
 G_DEFINE_TYPE (DisplayManager, display_manager, G_TYPE_OBJECT);
@@ -93,10 +98,22 @@ get_free_display_number (DisplayManager *manager)
     return display_number;
 }
 
+static gchar *
+get_authorization_path (DisplayManager *manager)
+{
+    gchar *path;
+
+    path = g_strdup_printf ("%s/%d", manager->priv->auth_dir, manager->priv->auth_counter);
+    manager->priv->auth_counter++;
+
+    return path;
+}
+
 static void
 start_session_cb (Display *display, Session *session, DisplayManager *manager)
 {
     gchar *string;
+    XAuthorization *authorization;
 
     /* Connect using the session bus */
     if (manager->priv->test_mode)
@@ -108,6 +125,16 @@ start_session_cb (Display *display, Session *session, DisplayManager *manager)
     /* Address for greeter to connect to */
     string = g_strdup_printf ("/org/gnome/LightDisplayManager/Display%d", display_get_index (display));
     session_set_env (session, "LDM_DISPLAY", string);
+
+    authorization = xserver_get_authorization (display_get_xserver (display));
+    if (authorization)
+    {
+        gchar *path;
+
+        path = get_authorization_path (manager);
+        session_set_authorization (session, authorization, path);
+        g_free (path);
+    }
 
     g_free (string);
 }
@@ -150,15 +177,22 @@ static void
 xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *manager)
 {
     Display *display;
-    gchar *address;
+    gchar *address, *path;
     XServer *xserver;
+    XAuthorization *authorization;
 
     display = add_display (manager);
     address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (session)));
     xserver = xserver_new (XSERVER_TYPE_REMOTE, address, xdmcp_session_get_display_number (session));
+    authorization = xauth_new (xdmcp_session_get_authorization_name (session),
+                               xdmcp_session_get_authorization_data (session),
+                               xdmcp_session_get_authorization_data_length (session));
+    path = get_authorization_path (manager);
+    xserver_set_authorization (xserver, authorization, path);
     display_start (display, xserver, NULL, 0);
     g_object_unref (xserver);
     g_free (address);
+    g_free (path);
 }
 
 static guchar
@@ -198,11 +232,51 @@ string_to_xdm_auth_key (const gchar *key, guchar *data)
     }
 }
 
+static void
+setup_auth_dir (DisplayManager *manager)
+{
+    GDir *dir;
+    GError *error = NULL;
+
+    g_mkdir_with_parents (manager->priv->auth_dir, S_IRWXU);
+    dir = g_dir_open (manager->priv->auth_dir, 0, &error);
+    if (!dir)
+    {
+        g_warning ("Authorization dir not created: %s", error->message);
+        g_clear_error (&error);
+        return;
+    }
+
+    /* Clear out the directory */
+    while (TRUE)
+    {
+        const gchar *filename;
+        gchar *path;
+        GFile *file;
+
+        filename = g_dir_read_name (dir);
+        if (!filename)
+            break;
+
+        path = g_build_filename (manager->priv->auth_dir, filename, NULL);
+        file = g_file_new_for_path (filename);
+        g_file_delete (file, NULL, NULL);
+
+        g_free (path);
+        g_object_unref (file);
+    }
+
+    g_dir_close (dir);
+}
+
 void
 display_manager_start (DisplayManager *manager)
 {
     gchar *displays;
     gchar **tokens, **i;
+
+    /* Make an empty authorization directory */
+    setup_auth_dir (manager);
   
     /* Start the first display */
     displays = g_key_file_get_string (manager->priv->config, "LightDM", "displays", NULL);
@@ -258,14 +332,31 @@ display_manager_start (DisplayManager *manager)
             if (key)
             {
                 guchar data[8];
+                gchar *path;
+                XAuthorization *authorization;
 
                 string_to_xdm_auth_key (key, data);
                 xserver_set_authentication (xserver, "XDM-AUTHENTICATION-1", data, 8);
-                xserver_set_authorization (xserver, "XDM-AUTHORIZATION-1", data, 8);
+
+                authorization = xauth_new ("XDM-AUTHORIZATION-1", data, 8);
+                path = get_authorization_path (manager);
+                xserver_set_authorization (xserver, authorization, path);
+
+              g_free (path);
             }
         }
         else
+        {
+            gchar *path;
+            XAuthorization *authorization;
+
             xserver = xserver_new (XSERVER_TYPE_LOCAL, NULL, display_number);
+
+            authorization = xauth_new_cookie ();
+            path = get_authorization_path (manager);
+            xserver_set_authorization (xserver, authorization, path);
+            g_free (path);
+        }
         g_free (xdmcp_manager);
 
         if (manager->priv->test_mode)
@@ -326,13 +417,16 @@ display_manager_set_property (GObject      *object,
     case PROP_CONFIG:
         self->priv->config = g_value_get_pointer (value);
         self->priv->test_mode = g_key_file_get_boolean (self->priv->config, "LightDM", "test-mode", NULL);
+        if (self->priv->test_mode)
+            self->priv->auth_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "authority", NULL);
+        else
+            self->priv->auth_dir = g_strdup (XAUTH_DIR);       
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
     }
 }
-
 
 static void
 display_manager_get_property (GObject    *object,
@@ -366,6 +460,7 @@ display_manager_finalize (GObject *object)
         g_object_unref (self->priv->xdmcp_server);
     for (link = self->priv->displays; link; link = link->next)
         g_object_unref (link->data);
+    g_list_free (self->priv->displays);
 }
 
 static void

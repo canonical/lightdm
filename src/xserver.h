@@ -15,6 +15,8 @@
 #include <glib-object.h>
 #include <dbus/dbus-glib.h>
 
+#include "xauth.h"
+
 G_BEGIN_DECLS
 
 #define XSERVER_TYPE (xserver_get_type())
@@ -78,13 +80,9 @@ const guchar *xserver_get_authentication_data (XServer *server);
 
 gsize xserver_get_authentication_data_length (XServer *server);
 
-void xserver_set_authorization (XServer *server, const gchar *name, const guchar *data, gsize data_length);
+void xserver_set_authorization (XServer *server, XAuthorization *authorization, const gchar *path);
 
-const gchar *xserver_get_authorization_name (XServer *server);
-
-const guchar *xserver_get_authorization_data (XServer *server);
-
-gsize xserver_get_authorization_data_length (XServer *server);
+XAuthorization *xserver_get_authorization (XServer *server);
 
 gboolean xserver_start (XServer *server);
 

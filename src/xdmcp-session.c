@@ -50,6 +50,18 @@ xdmcp_session_get_authorization_name (XDMCPSession *session)
     return session->priv->authorization_name;
 }
 
+const guchar *
+xdmcp_session_get_authorization_data (XDMCPSession *session)
+{
+    return session->priv->authorization_data;  
+}
+
+const gsize
+xdmcp_session_get_authorization_data_length (XDMCPSession *session)
+{
+    return session->priv->authorization_data_length;
+}
+
 guint16
 xdmcp_session_get_display_number (XDMCPSession *session)
 {

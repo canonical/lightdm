@@ -267,8 +267,9 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     gboolean match_authorization = FALSE;
     guchar *authorization_data = NULL;
     gsize authorization_data_length = 0;
+    guchar *session_authorization_data = NULL;
+    gsize session_authorization_data_length = 0;
     gchar **j;
-    guchar session_key[8];
     GInetAddress *address4 = NULL; /*, *address6 = NULL;*/
   
     /* Must be using our authentication scheme */
@@ -333,7 +334,6 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     }
 
     /* Perform requested authorization */
-    memset (session_key, 0, sizeof (session_key));
     if (strcmp (server->priv->authorization_name, "MIT-MAGIC-COOKIE-1") == 0)
     {
         /* Data is the cookie */
@@ -344,18 +344,28 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     else if (strcmp (server->priv->authorization_name, "XDM-AUTHORIZATION-1") == 0)
     {
         gint i;
-        guchar key[8];
+        guchar key[8], session_key[8];
 
         /* Setup key */
         memset (key, 0, 8);
         memcpy (key, server->priv->authentication_data, server->priv->authentication_data_length > 8 ? 8 : server->priv->authentication_data_length);
 
-        /* Generate a private session key and encode it */
+        /* Generate a private session key */
+        // FIXME: Pick a good DES key?
         for (i = 0; i < 8; i++)
             session_key[i] = g_random_int () & 0xFF;
+
+        /* Encrypt the session key and send it to the server */
         authorization_data = g_malloc (sizeof (guchar) * 8);
         authorization_data_length = 8;
         XdmcpWrap (session_key, key, authorization_data, authorization_data_length);
+
+        /* Authorization data is the session key (64 bit) followed by the private key (56 bit) followed by an empty byte */
+        session_authorization_data = g_malloc (sizeof (guchar) * 16);
+        session_authorization_data_length = 8;
+        memcpy (session_authorization_data, session_key, 8);
+        memcpy (session_authorization_data + 8, key + 1, 7);
+        session_authorization_data[15] = 0;
     }
 
     for (i = 0; i < packet->Request.n_connections; i++)
@@ -390,7 +400,9 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
 
     session = add_session (server);
     session->priv->address = address4; /*address6 ? address6 : address4;*/
-    memcpy (session->priv->key, session_key, 8);
+    session->priv->authorization_name = g_strdup (server->priv->authorization_name);
+    session->priv->authorization_data = session_authorization_data;
+    session->priv->authorization_data_length = session_authorization_data_length;
 
     response = xdmcp_packet_alloc (XDMCP_Accept);
     response->Accept.session_id = xdmcp_session_get_id (session);
@@ -574,7 +586,7 @@ xdmcp_server_init (XDMCPServer *server)
     server->priv->port = XDM_UDP_PORT;
     server->priv->hostname = g_strdup ("");
     server->priv->status = g_strdup ("");
-    server->priv->sessions = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
+    server->priv->sessions = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_object_unref);
     server->priv->authentication_name = g_strdup ("");
     server->priv->authorization_name = g_strdup ("");
 }

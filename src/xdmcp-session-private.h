@@ -29,8 +29,8 @@ struct XDMCPSessionPrivate
 
     gchar *authorization_name;
   
-    /* Session key for XDM-AUTHORIZATION-1 */
-    guchar key[8];
+    guchar *authorization_data;
+    gsize authorization_data_length;
   
     gboolean started;
 

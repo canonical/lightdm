@@ -58,12 +58,10 @@ struct XServerPrivate
     guchar *authentication_data;
     gsize authentication_data_length;
 
-    /* Authorization scheme to use */
-    gchar *authorization_name;
-
-    /* Authorization data */
-    guchar *authorization_data;
-    gsize authorization_data_length;
+    /* Authorization */
+    XAuthorization *authorization;
+    gchar *authorization_path;
+    GFile *authorization_file;
 
     /* Display number */
     gint display_number;
@@ -188,32 +186,16 @@ xserver_get_authentication_data_length (XServer *server)
 }
 
 void
-xserver_set_authorization (XServer *server, const gchar *name, const guchar *data, gsize data_length)
+xserver_set_authorization (XServer *server, XAuthorization *authorization, const gchar *path)
 {
-    g_free (server->priv->authorization_name);
-    server->priv->authorization_name = g_strdup (name);
-    g_free (server->priv->authorization_data);
-    server->priv->authorization_data = g_malloc (data_length);
-    server->priv->authorization_data_length = data_length;
-    memcpy (server->priv->authorization_data, data, data_length);
+    server->priv->authorization = authorization;
+    server->priv->authorization_path = g_strdup (path);
 }
 
-const gchar *
-xserver_get_authorization_name (XServer *server)
+XAuthorization *
+xserver_get_authorization (XServer *server)
 {
-    return server->priv->authorization_name;
-}
-
-const guchar *
-xserver_get_authorization_data (XServer *server)
-{
-    return server->priv->authorization_data;
-}
-
-gsize
-xserver_get_authorization_data_length (XServer *server)
-{
-    return server->priv->authorization_data_length;
+    return server->priv->authorization;
 }
 
 static void
@@ -252,6 +234,8 @@ xserver_start (XServer *server)
     gint n_env = 0;
     gchar *env_string;
     //gint xserver_stdin, xserver_stdout, xserver_stderr;
+
+    g_return_val_if_fail (server->priv->pid == 0, FALSE);
  
     /* Don't need to do anything if a remote server */
     if (server->priv->type == XSERVER_TYPE_REMOTE)
@@ -269,10 +253,25 @@ xserver_start (XServer *server)
         env[n_env++] = g_strdup_printf ("XAUTHORITY=%s", getenv ("XAUTHORITY"));
     env[n_env] = NULL;
 
+    /* Write the authorization file */
+    if (server->priv->authorization)
+    {
+        GError *error = NULL;
+
+        server->priv->authorization_file = xauth_write (server->priv->authorization, server->priv->authorization_path, &error);
+        if (!server->priv->authorization_file)
+            g_warning ("Failed to write authorization: %s", error->message);
+        g_clear_error (&error);
+    }
+
     command = g_string_new (server->priv->command);
     g_string_append_printf (command, " :%d", server->priv->display_number);
     g_string_append (command, " -nr");           /* No root background */
     //g_string_append_printf (command, " vt%d");
+
+    if (server->priv->authorization)
+         g_string_append_printf (command, " -auth %s", server->priv->authorization_path);
+
     if (server->priv->type == XSERVER_TYPE_LOCAL_TERMINAL)
     {
         if (server->priv->port != 0)
@@ -300,7 +299,7 @@ xserver_start (XServer *server)
     result = g_shell_parse_argv (command->str, &argc, &argv, &error);
     g_string_free (command, TRUE);
     if (!result)
-        g_error ("Failed to parse X server command line: %s", error->message);
+        g_warning ("Failed to parse X server command line: %s", error->message);
     g_clear_error (&error);
     if (!result)
         return FALSE;
@@ -310,7 +309,7 @@ xserver_start (XServer *server)
                                        env,
                                        G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
                                        xserver_fork_cb,
-                                       NULL,
+                                       server,
                                        &server->priv->pid,
                                        //&xserver_stdin, &xserver_stdout, &xserver_stderr,
                                        &error);
@@ -334,7 +333,6 @@ xserver_init (XServer *server)
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_TYPE, XServerPrivate);
     server->priv->command = g_strdup (XSERVER_BINARY);
     server->priv->authentication_name = g_strdup ("");
-    server->priv->authorization_name = g_strdup ("");
 }
 
 static void
@@ -419,9 +417,15 @@ xserver_finalize (GObject *object)
     g_free (self->priv->hostname);
     g_free (self->priv->authentication_name);
     g_free (self->priv->authentication_data);
-    g_free (self->priv->authorization_name);
-    g_free (self->priv->authorization_data);
     g_free (self->priv->address);
+    if (self->priv->authorization)
+        g_object_unref (self->priv->authorization);
+    g_free (self->priv->authorization_path);
+    if (self->priv->authorization_file)
+    {
+        g_file_delete (self->priv->authorization_file, NULL, NULL);
+        g_object_unref (self->priv->authorization_file);
+    }
 }
 
 static void

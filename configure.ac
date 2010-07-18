@@ -88,6 +88,16 @@ AC_ARG_WITH(xserver-binary,
 )    
 AC_SUBST(XSERVER_BINARY)
 
+XAUTH_DIR=$localstatedir/run/lightdm/authority
+AC_ARG_WITH(xauth-dir,
+            AS_HELP_STRING([--with-xauth-dir=<dir>],
+                           [X server authorization directory]),
+    if test x$withval != x; then
+        XAUTH_DIR="$withval"
+    fi
+)    
+AC_SUBST(XAUTH_DIR)
+
 XSESSION_DIR=/usr/share/xsessions
 AC_ARG_WITH(xsession-dir,
             AS_HELP_STRING([--with-xsession-dir=<dir>],
@@ -183,6 +193,7 @@ echo "
         Config file:              ${CONFIG_FILE}
         D-Bus system directory:   ${DBUS_SYS_DIR}
         X server binary:          ${XSERVER_BINARY}
+        X authorization dir:      ${XAUTH_DIR}
         XSessions dir:            ${XSESSION_DIR}
         Default session:          ${DEFAULT_SESSION}
         Greeter user:             ${GREETER_USER}

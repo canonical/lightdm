@@ -21,6 +21,8 @@ lightdm_SOURCES = \
 	theme.h \
 	user-manager.c \
 	user-manager.h \
+	xauth.c \
+	xauth.h \
 	xdmcp-protocol.c \
 	xdmcp-protocol.h \
 	xdmcp-server.c \
@@ -43,6 +45,7 @@ lightdm_CFLAGS = \
 	-DGETTEXT_PACKAGE=\"$(GETTEXT_PACKAGE)\" \
 	-DLOCALE_DIR=\"$(localedir)\" \
 	-DXSERVER_BINARY=\"$(XSERVER_BINARY)\" \
+	-DXAUTH_DIR=\"$(XAUTH_DIR)\" \
 	-DXSESSIONS_DIR=\"$(XSESSION_DIR)\" \
 	-DDEFAULT_SESSION=\"$(DEFAULT_SESSION)\" \
 	-DGREETER_USER=\"$(GREETER_USER)\" \

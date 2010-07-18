@@ -43,6 +43,11 @@ struct SessionPrivate
 
     /* Session process */
     GPid pid;
+
+    /* X authorization */
+    XAuthorization *authorization;
+    gchar *authorization_path;
+    GFile *authorization_file;
 };
 
 G_DEFINE_TYPE (Session, session, G_TYPE_OBJECT);
@@ -69,6 +74,18 @@ void
 session_set_env (Session *session, const gchar *name, const gchar *value)
 {
     g_hash_table_insert (session->priv->env, g_strdup (name), g_strdup (value));
+}
+
+void
+session_set_authorization (Session *session, XAuthorization *authorization, const gchar *path)
+{
+    session->priv->authorization = authorization;
+    session->priv->authorization_path = g_strdup (path);
+}
+
+XAuthorization *session_get_authorization (Session *session)
+{
+    return session->priv->authorization;
 }
 
 static void
@@ -155,7 +172,7 @@ session_start (Session *session)
                 g_warning ("Unable to get information on user %s: %s", session->priv->username, strerror (errno));
             return FALSE;
         }
-  
+
         working_dir = user_info->pw_dir;
         session_set_env (session, "USER", user_info->pw_name);
         session_set_env (session, "HOME", user_info->pw_dir);
@@ -168,11 +185,21 @@ session_start (Session *session)
         session_set_env (session, "SHELL", getenv ("SHELL"));
     }
 
+    if (session->priv->authorization)
+    {
+        session->priv->authorization_file = xauth_write (session->priv->authorization, session->priv->authorization_path, &error);
+        if (session->priv->authorization_file)
+            session_set_env (session, "XAUTHORITY", session->priv->authorization_path);
+        else
+            g_warning ("Failed to write authorization: %s", error->message);
+        g_clear_error (&error);
+    }
+
     env = session_get_env (session);
 
     result = g_shell_parse_argv (session->priv->command, &argc, &argv, &error);
     if (!result)
-        g_error ("Failed to parse session command line: %s", error->message);
+        g_warning ("Failed to parse session command line: %s", error->message);
     g_clear_error (&error);
     if (!result)
         return FALSE;
@@ -263,6 +290,14 @@ session_finalize (GObject *object)
     g_free (self->priv->username);
     g_hash_table_unref (self->priv->env);
     g_free (self->priv->command);
+    if (self->priv->authorization)
+        g_object_unref (self->priv->authorization);
+    g_free (self->priv->authorization_path);
+    if (self->priv->authorization_file)
+    {
+        g_file_delete (self->priv->authorization_file, NULL, NULL);
+        g_object_unref (self->priv->authorization_file);
+    }
 }
 
 static void
