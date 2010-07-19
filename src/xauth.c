@@ -73,7 +73,7 @@ xauth_get_authorization_data_length (XAuthorization *auth)
 static void
 write_uint16 (GString *string, guint16 value)
 {
-    g_string_append_c (string, (gchar) value >> 8);
+    g_string_append_c (string, (gchar) (value >> 8));
     g_string_append_c (string, (gchar) value);
 }
 

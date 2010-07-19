@@ -342,7 +342,7 @@ display_manager_start (DisplayManager *manager)
                 path = get_authorization_path (manager);
                 xserver_set_authorization (xserver, authorization, path);
 
-              g_free (path);
+                g_free (path);
             }
         }
         else

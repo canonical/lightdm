@@ -167,7 +167,7 @@ session_timeout_cb (XDMCPSession *session)
 {
     g_debug ("Timing out unmanaged session %d", session->priv->id);
     g_hash_table_remove (session->priv->server->priv->sessions, GINT_TO_POINTER ((gint) session->priv->id));
-    return TRUE;
+    return FALSE;
 }
 
 static XDMCPSession *
@@ -271,6 +271,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     gsize session_authorization_data_length = 0;
     gchar **j;
     GInetAddress *address4 = NULL; /*, *address6 = NULL;*/
+    XdmAuthKeyRec rho;
   
     /* Must be using our authentication scheme */
     if (strcmp (packet->Request.authentication_name, server->priv->authentication_name) != 0)
@@ -290,7 +291,6 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     if (strcmp (server->priv->authentication_name, "XDM-AUTHENTICATION-1") == 0)
     {
         guchar input[8], key[8];
-        XdmAuthKeyRec message;
 
         memset (input, 0, 8);
         memcpy (input, packet->Request.authentication_data.data, packet->Request.authentication_data.length > 8 ? 8 : packet->Request.authentication_data.length);
@@ -303,9 +303,9 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
         authentication_data = g_malloc (sizeof (guchar) * 8);
         authentication_data_length = 8;
 
-        XdmcpUnwrap (input, key, message.data, authentication_data_length);
-        XdmcpIncrementKey (&message);
-        XdmcpWrap (message.data, key, authentication_data, authentication_data_length);
+        XdmcpUnwrap (input, key, rho.data, authentication_data_length);
+        XdmcpIncrementKey (&rho);
+        XdmcpWrap (rho.data, key, authentication_data, authentication_data_length);
     }
 
     /* Check if they support our authorization */
@@ -353,19 +353,19 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
         /* Generate a private session key */
         // FIXME: Pick a good DES key?
         for (i = 0; i < 8; i++)
-            session_key[i] = g_random_int () & 0xFF;
+            session_key[i] = 0; //g_random_int () & 0xFF;
 
         /* Encrypt the session key and send it to the server */
-        authorization_data = g_malloc (sizeof (guchar) * 8);
+        authorization_data = g_malloc (8);
         authorization_data_length = 8;
         XdmcpWrap (session_key, key, authorization_data, authorization_data_length);
 
-        /* Authorization data is the session key (64 bit) followed by the private key (56 bit) followed by an empty byte */
-        session_authorization_data = g_malloc (sizeof (guchar) * 16);
-        session_authorization_data_length = 8;
-        memcpy (session_authorization_data, session_key, 8);
-        memcpy (session_authorization_data + 8, key + 1, 7);
-        session_authorization_data[15] = 0;
+        /* Authorization data is the number received from the client followed by the private session key */
+        session_authorization_data = g_malloc (16);
+        session_authorization_data_length = 16;
+        XdmcpDecrementKey (&rho);
+        memcpy (session_authorization_data, rho.data, 8);
+        memcpy (session_authorization_data + 8, session_key, 8);
     }
 
     for (i = 0; i < packet->Request.n_connections; i++)
@@ -437,13 +437,14 @@ handle_manage (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XD
         }
 
         /* Try and connect */
+        // FIXME: The auth data is the raw data that is provided in the message, we want to use our own XAUTHORITY file without setting the environment variables
         ip_address = g_inet_address_to_string (G_INET_ADDRESS (session->priv->address));
         display_address = g_strdup_printf ("%s:%d", ip_address, packet->Manage.display_number);
         g_free (ip_address);
         auth_info.namelen = strlen (server->priv->authorization_name);
         auth_info.name = server->priv->authorization_name;
-        auth_info.datalen = server->priv->authorization_data_length;
-        auth_info.data = (char *) server->priv->authorization_data;
+        auth_info.datalen = session->priv->authorization_data_length;
+        auth_info.data = (char *) session->priv->authorization_data;
         session->priv->connection = xcb_connect_to_display_with_auth_info (display_address, &auth_info, NULL);
 
         if (!session->priv->connection)
