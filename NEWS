@@ -3,6 +3,7 @@ Overview of changes in lightdm 0.0.5
     * Make --test-mode which runs as the current user
     * Support displays acting as XDMCP terminals
     * Support MIT-MAGIC-COOKIE-1 and XDM-AUTHORIZATION-1 authorization
+    * Support XDMCP over IPv6
 
 Overview of changes in lightdm 0.0.4
 

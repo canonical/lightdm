@@ -33,8 +33,8 @@ struct XDMCPServerPrivate
     /* Port to listen on */
     guint port;
 
-    /* Listening socket */
-    GSocket *socket;
+    /* Listening sockets */
+    GSocket *socket, *socket6;
 
     /* Hostname to report to client */
     gchar *hostname;
@@ -542,32 +542,57 @@ read_cb (GSocket *socket, GIOCondition condition, XDMCPServer *server)
     return TRUE;
 }
 
+static GSocket *
+open_udp_socket (GSocketFamily family, guint port, GError **error)
+{
+    GSocket *socket;
+    GSocketAddress *address;
+    gboolean result;
+  
+    socket = g_socket_new (family, G_SOCKET_TYPE_DATAGRAM, G_SOCKET_PROTOCOL_UDP, error);
+    if (!socket)
+        return NULL;
+
+    address = g_inet_socket_address_new (g_inet_address_new_any (family), port);
+    result = g_socket_bind (socket, address, TRUE, error);
+    if (!result)
+    {
+        g_object_unref (socket);
+        return NULL;
+    }
+
+    return socket;
+}
+
 gboolean
 xdmcp_server_start (XDMCPServer *server)
 {
-    GSocketAddress *address;
     GSource *source;
-    gboolean result;
     GError *error = NULL;
   
-    server->priv->socket = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_DATAGRAM, G_SOCKET_PROTOCOL_UDP, &error);
-    if (!server->priv->socket)
-        g_warning ("Failed to create XDMCP socket: %s", error->message);
+    server->priv->socket = open_udp_socket (G_SOCKET_FAMILY_IPV4, server->priv->port, &error);
+    if (server->priv->socket)
+    {
+        source = g_socket_create_source (server->priv->socket, G_IO_IN, NULL);
+        g_source_set_callback (source, (GSourceFunc) read_cb, server, NULL);
+        g_source_attach (source, NULL);
+    }
+    else
+        g_warning ("Failed to create IPv4 XDMCP socket: %s", error->message);
     g_clear_error (&error);
-    if (!server->priv->socket)
-        return FALSE;
-
-    address = g_inet_socket_address_new (g_inet_address_new_any (G_SOCKET_FAMILY_IPV4), server->priv->port);
-    result = g_socket_bind (server->priv->socket, address, TRUE, &error);
-    if (!result)
-        g_warning ("Failed to bind XDMCP server port: %s", error->message);
+    server->priv->socket6 = open_udp_socket (G_SOCKET_FAMILY_IPV6, server->priv->port, &error);  
+    if (server->priv->socket6)
+    {
+        source = g_socket_create_source (server->priv->socket6, G_IO_IN, NULL);
+        g_source_set_callback (source, (GSourceFunc) read_cb, server, NULL);
+        g_source_attach (source, NULL);
+    }
+    else
+        g_warning ("Failed to create IPv6 XDMCP socket: %s", error->message);
     g_clear_error (&error);
-    if (!result)
-        return FALSE;
 
-    source = g_socket_create_source (server->priv->socket, G_IO_IN, NULL);
-    g_source_set_callback (source, (GSourceFunc) read_cb, server, NULL);
-    g_source_attach (source, NULL);
+    if (!server->priv->socket && !server->priv->socket6)
+        return FALSE;
 
     return TRUE;
 }
@@ -594,6 +619,8 @@ xdmcp_server_finalize (GObject *object)
   
     if (self->priv->socket)
         g_object_unref (self->priv->socket);
+    if (self->priv->socket6)
+        g_object_unref (self->priv->socket6);
     g_free (self->priv->hostname);
     g_free (self->priv->status);
     g_free (self->priv->authentication_name);
