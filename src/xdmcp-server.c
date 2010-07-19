@@ -352,8 +352,9 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
 
         /* Generate a private session key */
         // FIXME: Pick a good DES key?
-        for (i = 0; i < 8; i++)
-            session_key[i] = 0; //g_random_int () & 0xFF;
+        session_key[0] = 0;
+        for (i = 1; i < 8; i++)
+            session_key[i] = g_random_int () & 0xFF;
 
         /* Encrypt the session key and send it to the server */
         authorization_data = g_malloc (8);
