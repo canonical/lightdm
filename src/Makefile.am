@@ -1,5 +1,11 @@
 bin_PROGRAMS = lightdm
 
+ldm-marshal.c: ldm-marshal.list
+	@GLIB_GENMARSHAL@ --prefix=ldm_marshal $(srcdir)/ldm-marshal.list --header --body > ldm-marshal.c
+
+ldm-marshal.h: ldm-marshal.list
+	@GLIB_GENMARSHAL@ --prefix=ldm_marshal $(srcdir)/ldm-marshal.list --header > ldm-marshal.h
+
 display-glue.h: $(srcdir)/display.xml
 	$(DBUSBINDINGTOOL) --prefix=display --mode=glib-server --output=$@ $^
 display-manager-glue.h: $(srcdir)/display-manager.xml
@@ -13,6 +19,8 @@ lightdm_SOURCES = \
 	display-manager.c \
 	display-manager.h \
 	lightdm.c \
+	ldm-marshal.c \
+	ldm-marshal.h \
 	pam-session.c \
 	pam-session.h \
 	session.c \
@@ -36,7 +44,9 @@ lightdm_SOURCES = \
 BUILT_SOURCES = \
 	display-glue.h \
 	display-manager-glue.h \
-	user-manager-glue.h
+	user-manager-glue.h \
+	ldm-marshal.c \
+	ldm-marshal.h
 
 lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \

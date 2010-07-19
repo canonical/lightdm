@@ -13,7 +13,6 @@
 #define _XDMCP_SESSION_PRIVATE_H_
 
 #include "xdmcp-server.h"
-#include <xcb/xcb.h>
 
 struct XDMCPSessionPrivate
 {
@@ -37,8 +36,6 @@ struct XDMCPSessionPrivate
     guint16 display_number;
 
     gchar *display_class;
-
-    xcb_connection_t *connection;
 };
 
 #endif /* _XDMCP_SESSION_PRIVATE_H_ */

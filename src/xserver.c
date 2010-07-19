@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <xcb/xcb.h>
 
 #include "xserver.h"
 
@@ -71,6 +72,9 @@ struct XServerPrivate
 
     /* X process */
     GPid pid;
+
+    /* Connection to X server */
+    xcb_connection_t *connection;
 };
 
 G_DEFINE_TYPE (XServer, xserver, G_TYPE_OBJECT);
@@ -198,6 +202,41 @@ xserver_get_authorization (XServer *server)
     return server->priv->authorization;
 }
 
+static gboolean
+xserver_connect (XServer *server)
+{
+    gchar *xauthority = NULL;
+
+    /* Write the authorization file */
+    if (server->priv->authorization)
+    {
+        GError *error = NULL;
+
+        server->priv->authorization_file = xauth_write (server->priv->authorization, server->priv->authorization_path, &error);
+        if (!server->priv->authorization_file)
+            g_warning ("Failed to write authorization: %s", error->message);
+        g_clear_error (&error);
+    }
+
+    /* NOTE: We have to do this hack as xcb_connect_to_display_with_auth_info can't be used
+     * for XDM-AUTHORIZATION-1 and the authorization data requires to know the source port */
+    if (server->priv->authorization_file)
+    {
+        xauthority = g_strdup (getenv ("XAUTHORITY"));
+        setenv ("XAUTHORITY", server->priv->authorization_path, TRUE);
+    }
+
+    server->priv->connection = xcb_connect (xserver_get_address (server), NULL);
+
+    if (server->priv->authorization_file)
+    {
+        setenv ("XAUTHORITY", xauthority, TRUE);
+        g_free (xauthority);
+    }
+
+    return xcb_connection_has_error (server->priv->connection) == 0;
+}
+
 static void
 xserver_watch_cb (GPid pid, gint status, gpointer data)
 {
@@ -237,9 +276,12 @@ xserver_start (XServer *server)
 
     g_return_val_if_fail (server->priv->pid == 0, FALSE);
  
-    /* Don't need to do anything if a remote server */
+    /* Check if we can connect to the remote server */
     if (server->priv->type == XSERVER_TYPE_REMOTE)
     {
+        if (!xserver_connect (server))
+            return FALSE;
+
         server->priv->ready = TRUE;
         g_signal_emit (server, signals[READY], 0);
         return TRUE;
@@ -409,6 +451,9 @@ xserver_finalize (GObject *object)
     XServer *self;
 
     self = XSERVER (object);
+
+    if (self->priv->connection)
+        xcb_disconnect (self->priv->connection);
   
     if (self->priv->pid)
         kill (self->priv->pid, SIGTERM);

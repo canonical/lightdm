@@ -9,6 +9,7 @@
  * license.
  */
 
+#include "ldm-marshal.h"
 #include "pam-session.h"
 
 enum {
@@ -280,43 +281,6 @@ pam_session_finalize (GObject *object)
         pam_end (self->priv->pam_handle, PAM_SUCCESS);
 }
 
-/* Generated with glib-genmarshal */
-static void
-g_cclosure_user_marshal_VOID__INT_POINTER (GClosure     *closure,
-                                           GValue       *return_value G_GNUC_UNUSED,
-                                           guint         n_param_values,
-                                           const GValue *param_values,
-                                           gpointer      invocation_hint G_GNUC_UNUSED,
-                                           gpointer      marshal_data)
-{
-  typedef void (*GMarshalFunc_VOID__INT_POINTER) (gpointer       data1,
-                                                  gint           arg_1,
-                                                  gconstpointer  arg_2,
-                                                  gpointer       data2);
-  register GMarshalFunc_VOID__INT_POINTER callback;
-  register GCClosure *cc = (GCClosure*) closure;
-  register gpointer data1, data2;
-
-  g_return_if_fail (n_param_values == 3);
-
-  if (G_CCLOSURE_SWAP_DATA (closure))
-    {
-      data1 = closure->data;
-      data2 = g_value_peek_pointer (param_values + 0);
-    }
-  else
-    {
-      data1 = g_value_peek_pointer (param_values + 0);
-      data2 = closure->data;
-    }
-  callback = (GMarshalFunc_VOID__INT_POINTER) (marshal_data ? marshal_data : cc->callback);
-
-  callback (data1,
-            g_value_get_int (param_values + 1),
-            g_value_get_pointer (param_values + 2),
-            data2);
-}
-
 static void
 pam_session_class_init (PAMSessionClass *klass)
 {
@@ -350,7 +314,7 @@ pam_session_class_init (PAMSessionClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (PAMSessionClass, got_messages),
                       NULL, NULL,
-                      g_cclosure_user_marshal_VOID__INT_POINTER,
+                      ldm_marshal_VOID__INT_POINTER,
                       G_TYPE_NONE, 2, G_TYPE_INT, G_TYPE_POINTER);
     signals[AUTHENTICATION_RESULT] =
         g_signal_new ("authentication-result",

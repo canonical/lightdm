@@ -33,8 +33,7 @@ typedef struct
 {
     GObjectClass parent_class;
 
-    // FIXME: void (*authenticate)(XDMCPServer *server, const gchar *authentication_name, const gchar *au
-    void (*session_added)(XDMCPServer *server, XDMCPSession *session);
+    gboolean (*new_session)(XDMCPServer *server, XDMCPSession *session);
 } XDMCPServerClass;
 
 GType xdmcp_server_get_type (void);

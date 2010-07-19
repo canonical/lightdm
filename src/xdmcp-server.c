@@ -15,13 +15,15 @@
 #define HASXDMAUTH
 #include <X11/Xdmcp.h>
 #include <gio/gio.h>
+#include "ldm-marshal.h"
 
 #include "xdmcp-server.h"
 #include "xdmcp-protocol.h"
 #include "xdmcp-session-private.h"
+#include "xauth.h"
 
 enum {
-    SESSION_ADDED,
+    NEW_SESSION,
     LAST_SIGNAL
 };
 static guint signals[LAST_SIGNAL] = { 0 };
@@ -425,8 +427,8 @@ handle_manage (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XD
     session = get_session (server, packet->Manage.session_id);
     if (session)
     {
-        gchar *ip_address, *display_address;
-        xcb_auth_info_t auth_info;
+        gchar *display_address;
+        gboolean result;
 
         /* Ignore duplicate requests */
         if (session->priv->started)
@@ -437,18 +439,18 @@ handle_manage (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XD
             return;
         }
 
-        /* Try and connect */
-        // FIXME: The auth data is the raw data that is provided in the message, we want to use our own XAUTHORITY file without setting the environment variables
-        ip_address = g_inet_address_to_string (G_INET_ADDRESS (session->priv->address));
-        display_address = g_strdup_printf ("%s:%d", ip_address, packet->Manage.display_number);
-        g_free (ip_address);
-        auth_info.namelen = strlen (server->priv->authorization_name);
-        auth_info.name = server->priv->authorization_name;
-        auth_info.datalen = session->priv->authorization_data_length;
-        auth_info.data = (char *) session->priv->authorization_data;
-        session->priv->connection = xcb_connect_to_display_with_auth_info (display_address, &auth_info, NULL);
+        session->priv->display_number = packet->Manage.display_number;  
+        session->priv->display_class = g_strdup (packet->Manage.display_class);
 
-        if (!session->priv->connection)
+        g_signal_emit (server, signals[NEW_SESSION], 0, session, &result);
+        if (result)
+        {
+            /* Cancel the inactive timer */
+            g_source_remove (session->priv->inactive_timeout);
+
+            session->priv->started = TRUE;
+        }
+        else
         {
             XDMCPPacket *response;
 
@@ -457,16 +459,6 @@ handle_manage (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XD
             response->Failed.status = g_strdup_printf ("Failed to connect to display %s", display_address);
             send_packet (socket, address, response);
             xdmcp_packet_free (response);
-        }
-        else
-        {
-            /* Cancel the inactive timer */
-            g_source_remove (session->priv->inactive_timeout);
-
-            session->priv->started = TRUE;
-            session->priv->display_number = packet->Manage.display_number;  
-            session->priv->display_class = g_strdup (packet->Manage.display_class);
-            g_signal_emit (server, signals[SESSION_ADDED], 0, session);
         }
 
         g_free (display_address);
@@ -620,12 +612,13 @@ xdmcp_server_class_init (XDMCPServerClass *klass)
 
     g_type_class_add_private (klass, sizeof (XDMCPServerPrivate));
 
-    signals[SESSION_ADDED] =
-        g_signal_new ("session-added",
+    signals[NEW_SESSION] =
+        g_signal_new ("new-session",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (XDMCPServerClass, session_added),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
-                      G_TYPE_NONE, 1, XDMCP_SESSION_TYPE);
+                      G_STRUCT_OFFSET (XDMCPServerClass, new_session),
+                      g_signal_accumulator_true_handled,
+                      NULL,
+                      ldm_marshal_BOOLEAN__OBJECT,
+                      G_TYPE_BOOLEAN, 1, XDMCP_SESSION_TYPE);
 }

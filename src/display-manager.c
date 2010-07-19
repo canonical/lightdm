@@ -173,26 +173,39 @@ display_manager_switch_to_user (DisplayManager *manager, char *username, GError 
     return TRUE;
 }
 
-static void
+static gboolean
 xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *manager)
 {
     Display *display;
-    gchar *address, *path;
+    gchar *address;
     XServer *xserver;
-    XAuthorization *authorization;
+    gboolean result;
 
     display = add_display (manager);
     address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (session)));
     xserver = xserver_new (XSERVER_TYPE_REMOTE, address, xdmcp_session_get_display_number (session));
-    authorization = xauth_new (xdmcp_session_get_authorization_name (session),
-                               xdmcp_session_get_authorization_data (session),
-                               xdmcp_session_get_authorization_data_length (session));
-    path = get_authorization_path (manager);
-    xserver_set_authorization (xserver, authorization, path);
-    display_start (display, xserver, NULL, 0);
+    if (strcmp (xdmcp_session_get_authorization_name (session), "") != 0)
+    {
+        XAuthorization *authorization = NULL;
+        gchar *path;
+
+        authorization = xauth_new (xdmcp_session_get_authorization_name (session),
+                                   xdmcp_session_get_authorization_data (session),
+                                   xdmcp_session_get_authorization_data_length (session));
+        path = get_authorization_path (manager);
+
+        xserver_set_authorization (xserver, authorization, path);
+
+        g_free (path);
+    }
+
+    result = display_start (display, xserver, NULL, 0);
     g_object_unref (xserver);
     g_free (address);
-    g_free (path);
+    if (!result)
+       g_object_unref (display);
+
+    return result;
 }
 
 static guchar
@@ -380,7 +393,7 @@ display_manager_start (DisplayManager *manager)
             if (port > 0)
                 xdmcp_server_set_port (manager->priv->xdmcp_server, port);
         }
-        g_signal_connect (manager->priv->xdmcp_server, "session-added", G_CALLBACK (xdmcp_session_cb), manager);
+        g_signal_connect (manager->priv->xdmcp_server, "new-session", G_CALLBACK (xdmcp_session_cb), manager);
 
         key = g_key_file_get_string (manager->priv->config, "xdmcp", "key", NULL);
         if (key)

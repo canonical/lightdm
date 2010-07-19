@@ -484,7 +484,7 @@ xserver_ready_cb (XServer *xserver, Display *display)
         start_greeter (display);
 }
 
-void
+gboolean
 display_start (Display *display, XServer *xserver, const gchar *username, gint timeout)
 {
     display->priv->default_user = g_strdup (username);
@@ -493,8 +493,7 @@ display_start (Display *display, XServer *xserver, const gchar *username, gint t
     display->priv->xserver = g_object_ref (xserver);
     g_signal_connect (G_OBJECT (display->priv->xserver), "ready", G_CALLBACK (xserver_ready_cb), display);
     g_signal_connect (G_OBJECT (display->priv->xserver), "exited", G_CALLBACK (xserver_exit_cb), display);
-    if (!xserver_start (display->priv->xserver))
-        return;
+    return xserver_start (display->priv->xserver);
 }
 
 static void

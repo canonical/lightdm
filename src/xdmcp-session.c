@@ -134,9 +134,6 @@ xdmcp_session_finalize (GObject *object)
 
     self = XDMCP_SESSION (object);
   
-    if (self->priv->connection)
-        xcb_disconnect (self->priv->connection);
-
     g_free (self->priv->manufacturer_display_id);
     if (self->priv->address)
         g_object_unref (self->priv->address);

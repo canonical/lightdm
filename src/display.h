@@ -60,7 +60,7 @@ const gchar *display_get_session (Display *display);
 XServer *display_get_xserver (Display *display);
 
 // FIXME: Remove username and timeout to properties and set them to defaults
-void display_start (Display *display, XServer *server, const gchar *username, gint timeout);
+gboolean display_start (Display *display, XServer *server, const gchar *username, gint timeout);
 
 // FIXME: Make greeter its own object?
 
