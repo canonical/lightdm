@@ -43,6 +43,8 @@ const gchar *xdmcp_session_get_manufacturer_display_id (XDMCPSession *session);
 
 const GInetAddress *xdmcp_session_get_address (XDMCPSession *session);
 
+const GInetAddress *xdmcp_session_get_address6 (XDMCPSession *session);
+
 const gchar *xdmcp_session_get_authorization_name (XDMCPSession *session);
 
 const guchar *xdmcp_session_get_authorization_data (XDMCPSession *session);

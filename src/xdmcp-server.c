@@ -272,7 +272,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     guchar *session_authorization_data = NULL;
     gsize session_authorization_data_length = 0;
     gchar **j;
-    GInetAddress *address4 = NULL; /*, *address6 = NULL;*/
+    GInetAddress *address4 = NULL, *address6 = NULL;
     XdmAuthKeyRec rho;
   
     /* Must be using our authentication scheme */
@@ -382,14 +382,14 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
             if (connection->address.length == 4)
                 address4 = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV4);
             break;
-        /*case FamilyInternet6:
+        case FamilyInternet6:
             if (connection->address.length == 16)
                 address6 = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV6);          
-            break;*/
+            break;
         }
     }
 
-    if (!address4)
+    if (!address4) // FIXME: && !address6)
     {
         response = xdmcp_packet_alloc (XDMCP_Decline);
         response->Decline.status = g_strdup ("No valid address found");
@@ -402,7 +402,8 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     }
 
     session = add_session (server);
-    session->priv->address = address4; /*address6 ? address6 : address4;*/
+    session->priv->address = address4;
+    session->priv->address6 = address6;
     session->priv->authorization_name = g_strdup (server->priv->authorization_name);
     session->priv->authorization_data = session_authorization_data;
     session->priv->authorization_data_length = session_authorization_data_length;

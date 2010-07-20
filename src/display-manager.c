@@ -180,6 +180,8 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
     gchar *address;
     XServer *xserver;
     gboolean result;
+  
+    // FIXME: Try IPv6 then fallback to IPv4
 
     display = add_display (manager);
     address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (session)));

@@ -137,6 +137,8 @@ xdmcp_session_finalize (GObject *object)
     g_free (self->priv->manufacturer_display_id);
     if (self->priv->address)
         g_object_unref (self->priv->address);
+    if (self->priv->address6)
+        g_object_unref (self->priv->address6);
     g_free (self->priv->authorization_name);
     g_free (self->priv->display_class);
 }
