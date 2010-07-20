@@ -56,6 +56,8 @@ LdmGreeter *ldm_greeter_new (void);
 
 gboolean ldm_greeter_connect (LdmGreeter *greeter);
 
+const gchar *ldm_greeter_get_hostname (LdmGreeter *greeter);
+
 gint ldm_greeter_get_num_users (LdmGreeter *greeter);
 
 const GList *ldm_greeter_get_users (LdmGreeter *greeter);

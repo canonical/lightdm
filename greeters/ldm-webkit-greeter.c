@@ -241,6 +241,20 @@ get_session_comment_cb (JSContextRef context,
 }
 
 static JSValueRef
+get_hostname_cb (JSContextRef context,
+                 JSObjectRef thisObject,
+                 JSStringRef propertyName,
+                 JSValueRef *exception)
+{
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (ldm_greeter_get_hostname (greeter));
+
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
 get_num_users_cb (JSContextRef context,
                   JSObjectRef thisObject,
                   JSStringRef propertyName,
@@ -791,6 +805,7 @@ static const JSStaticValue ldm_session_values[] =
 
 static const JSStaticValue ldm_greeter_values[] =
 {
+    { "hostname", get_hostname_cb, NULL, kJSPropertyAttributeReadOnly },  
     { "users", get_users_cb, NULL, kJSPropertyAttributeReadOnly },
     { "languages", get_languages_cb, NULL, kJSPropertyAttributeReadOnly },
     { "language", get_language_cb, NULL, kJSPropertyAttributeReadOnly },

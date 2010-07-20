@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <locale.h>
+#include <sys/utsname.h>
 
 #include <gio/gdesktopappinfo.h>
 #include <dbus/dbus-glib.h>
@@ -22,6 +23,7 @@
 
 enum {
     PROP_0,
+    PROP_HOSTNAME,  
     PROP_NUM_USERS,
     PROP_USERS,
     PROP_LAYOUTS,
@@ -57,6 +59,8 @@ struct _LdmGreeterPrivate
     DBusGProxy *display_proxy, *session_proxy, *user_proxy;
 
     Display *display;
+
+    gchar *hostname;
 
     gboolean have_users;
     GList *users;
@@ -141,6 +145,25 @@ ldm_greeter_connect (LdmGreeter *greeter)
     }
 
     return result;
+}
+
+/**
+ * ldm_greeter_get_hostname:
+ * @greeter: a #LdmGreeter
+ *
+ * Return value: The host this greeter is displaying
+ **/
+const gchar *
+ldm_greeter_get_hostname (LdmGreeter *greeter)
+{
+    if (!greeter->priv->hostname)
+    {
+        struct utsname info;
+        uname (&info);
+        greeter->priv->hostname = g_strdup (info.nodename);
+    }
+
+    return greeter->priv->hostname;
 }
 
 #define TYPE_USER dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN, G_TYPE_INVALID)
@@ -705,7 +728,7 @@ gboolean
 ldm_greeter_get_can_suspend (LdmGreeter *greeter)
 {
     DBusGProxy *proxy;
-    gboolean result = FALSE;
+    gboolean result = TRUE;
     GError *error = NULL;
 
     proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
@@ -973,6 +996,9 @@ ldm_greeter_get_property(GObject    *object,
     self = LDM_GREETER (object);
 
     switch (prop_id) {
+    case PROP_HOSTNAME:
+        g_value_set_string (value, ldm_greeter_get_hostname (self));
+        break;
     case PROP_NUM_USERS:
         g_value_set_int (value, ldm_greeter_get_num_users (self));
         break;
@@ -1025,91 +1051,98 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
     object_class->set_property = ldm_greeter_set_property;
     object_class->get_property = ldm_greeter_get_property;
 
-    g_object_class_install_property(object_class,
-                                    PROP_NUM_USERS,
-                                    g_param_spec_int("num-users",
-                                                     "num- users",
-                                                     "Number of login users",
-                                                     0, G_MAXINT, 0,
-                                                     G_PARAM_READABLE));
-    /*g_object_class_install_property(object_class,
-                                    PROP_USERS,
-                                    g_param_spec_list("users",
-                                                      "users",
-                                                      "Users that can login"));
-    g_object_class_install_property(object_class,
-                                    PROP_LAYOUTS,
-                                    g_param_spec_list("layouts",
-                                                      "layouts",
-                                                      "Available keyboard layouts"));*/
-    g_object_class_install_property(object_class,
-                                    PROP_LAYOUT,
-                                    g_param_spec_string("layout",
-                                                        "layout",
-                                                        "Current keyboard layout",
-                                                        NULL,
-                                                        G_PARAM_READWRITE));
-    /*g_object_class_install_property(object_class,
-                                    PROP_SESSIONS,
-                                    g_param_spec_list("sessions",
-                                                      "sessions",
-                                                      "Available sessions"));*/
-    g_object_class_install_property(object_class,
-                                    PROP_SESSION,
-                                    g_param_spec_string("session",
-                                                        "session",
-                                                        "Selected session",
-                                                        NULL,
-                                                        G_PARAM_READWRITE));
-    g_object_class_install_property(object_class,
-                                    PROP_TIMED_LOGIN_USER,
-                                    g_param_spec_string("timed-login-user",
-                                                        "timed-login-user",
-                                                        "User to login as when timed expires",
-                                                        NULL,
-                                                        G_PARAM_READABLE));
-    g_object_class_install_property(object_class,
-                                    PROP_TIMED_LOGIN_DELAY,
-                                    g_param_spec_int("login-delay",
-                                                     "login-delay",
-                                                     "Number of seconds until logging in as default user",
-                                                     G_MININT, G_MAXINT, 0,
-                                                     G_PARAM_READABLE));
-    g_object_class_install_property(object_class,
-                                    PROP_IS_AUTHENTICATED,
-                                    g_param_spec_boolean("is-authenticated",
-                                                         "is-authenticated",
-                                                         "TRUE if the selected user is authenticated",
-                                                         FALSE,
-                                                         G_PARAM_READABLE));
-    g_object_class_install_property(object_class,
-                                    PROP_CAN_SUSPEND,
-                                    g_param_spec_boolean("can-suspend",
-                                                         "can-suspend",
-                                                         "TRUE if allowed to suspend the system",
-                                                         FALSE,
-                                                         G_PARAM_READABLE));
-    g_object_class_install_property(object_class,
-                                    PROP_CAN_HIBERNATE,
-                                    g_param_spec_boolean("can-hibernate",
-                                                         "can-hibernate",
-                                                         "TRUE if allowed to hibernate the system",
-                                                         FALSE,
-                                                         G_PARAM_READABLE));
-    g_object_class_install_property(object_class,
-                                    PROP_CAN_RESTART,
-                                    g_param_spec_boolean("can-restart",
-                                                         "can-restart",
-                                                         "TRUE if allowed to restart the system",
-                                                         FALSE,
-                                                         G_PARAM_READABLE));
-    g_object_class_install_property(object_class,
-                                    PROP_CAN_SHUTDOWN,
-                                    g_param_spec_boolean("can-shutdown",
-                                                         "can-shutdown",
-                                                         "TRUE if allowed to shutdown the system",
-                                                         FALSE,
-                                                         G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     PROP_NUM_USERS,
+                                     g_param_spec_string ("hostname",
+                                                          "hostname",
+                                                          "Hostname displaying greeter for",
+                                                          NULL,
+                                                          G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     PROP_NUM_USERS,
+                                     g_param_spec_int ("num-users",
+                                                       "num-users",
+                                                       "Number of login users",
+                                                       0, G_MAXINT, 0,
+                                                       G_PARAM_READABLE));
+    /*g_object_class_install_property (object_class,
+                                     PROP_USERS,
+                                     g_param_spec_list ("users",
+                                                        "users",
+                                                        "Users that can login"));
+    g_object_class_install_property (object_class,
+                                     PROP_LAYOUTS,
+                                     g_param_spec_list ("layouts",
+                                                        "layouts",
+                                                        "Available keyboard layouts"));*/
+    g_object_class_install_property (object_class,
+                                     PROP_LAYOUT,
+                                     g_param_spec_string ("layout",
+                                                          "layout",
+                                                          "Current keyboard layout",
+                                                          NULL,
+                                                          G_PARAM_READWRITE));
+    /*g_object_class_install_property (object_class,
+                                     PROP_SESSIONS,
+                                     g_param_spec_list ("sessions",
+                                                        "sessions",
+                                                        "Available sessions"));*/
+    g_object_class_install_property (object_class,
+                                     PROP_SESSION,
+                                     g_param_spec_string ("session",
+                                                          "session",
+                                                          "Selected session",
+                                                          NULL,
+                                                          G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
+                                     PROP_TIMED_LOGIN_USER,
+                                     g_param_spec_string ("timed-login-user",
+                                                          "timed-login-user",
+                                                          "User to login as when timed expires",
+                                                          NULL,
+                                                          G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     PROP_TIMED_LOGIN_DELAY,
+                                     g_param_spec_int ("login-delay",
+                                                       "login-delay",
+                                                       "Number of seconds until logging in as default user",
+                                                       G_MININT, G_MAXINT, 0,
+                                                       G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     PROP_IS_AUTHENTICATED,
+                                     g_param_spec_boolean ("is-authenticated",
+                                                           "is-authenticated",
+                                                           "TRUE if the selected user is authenticated",
+                                                           FALSE,
+                                                           G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     PROP_CAN_SUSPEND,
+                                     g_param_spec_boolean ("can-suspend",
+                                                           "can-suspend",
+                                                           "TRUE if allowed to suspend the system",
+                                                           FALSE,
+                                                           G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     PROP_CAN_HIBERNATE,
+                                     g_param_spec_boolean ("can-hibernate",
+                                                           "can-hibernate",
+                                                           "TRUE if allowed to hibernate the system",
+                                                           FALSE,
+                                                           G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     PROP_CAN_RESTART,
+                                     g_param_spec_boolean ("can-restart",
+                                                           "can-restart",
+                                                           "TRUE if allowed to restart the system",
+                                                           FALSE,
+                                                           G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     PROP_CAN_SHUTDOWN,
+                                     g_param_spec_boolean ("can-shutdown",
+                                                           "can-shutdown",
+                                                           "TRUE if allowed to shutdown the system",
+                                                           FALSE,
+                                                           G_PARAM_READABLE));
 
     /**
      * LdmGreeter::show-prompt:

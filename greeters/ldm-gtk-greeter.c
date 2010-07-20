@@ -16,7 +16,7 @@
 
 static LdmGreeter *greeter;
 static GtkListStore *user_model;
-static GtkWidget *user_window, *vbox, *label, *user_view;
+static GtkWidget *user_window, *vbox, *message_label, *user_view;
 static GtkWidget *username_entry, *password_entry;
 static GtkWidget *panel_window;
 
@@ -59,8 +59,8 @@ show_prompt_cb (LdmGreeter *greeter, const gchar *text)
 static void
 show_message_cb (LdmGreeter *greeter, const gchar *text)
 {
-    gtk_widget_show (label);
-    gtk_label_set_text (GTK_LABEL (label), text);
+    gtk_widget_show (message_label);
+    gtk_label_set_text (GTK_LABEL (message_label), text);
 }
 
 static void
@@ -72,8 +72,8 @@ authentication_complete_cb (LdmGreeter *greeter)
     }
     else
     {
-        gtk_widget_show (label);
-        gtk_label_set_text (GTK_LABEL (label), "Failed to authenticate");
+        gtk_widget_show (message_label);
+        gtk_label_set_text (GTK_LABEL (message_label), "Failed to authenticate");
         gtk_entry_set_text (GTK_ENTRY (password_entry), "");
         gtk_widget_grab_focus (username_entry);
     }
@@ -105,6 +105,25 @@ session_changed_cb (GtkWidget *widget)
         ldm_greeter_set_session (greeter, g_object_get_data (G_OBJECT (widget), "key"));
 }
 
+static void
+a11y_font_cb (GtkWidget *widget)
+{
+    if (gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
+        g_object_set (gtk_settings_get_default (), "gtk-font-name", "UbuntuBeta 20", NULL);
+    else
+        g_object_set (gtk_settings_get_default (), "gtk-font-name", "UbuntuBeta 10", NULL);
+}
+
+static void
+a11y_contrast_cb (GtkWidget *widget)
+{
+    if (gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
+        g_object_set (gtk_settings_get_default (), "gtk-theme-name", "HighContrastInverse", NULL);
+    else
+        g_object_set (gtk_settings_get_default (), "gtk-theme-name", "Ambiance", NULL);
+        ldm_greeter_set_session (greeter, g_object_get_data (G_OBJECT (widget), "key"));  
+}
+
 int
 main(int argc, char **argv)
 {
@@ -116,12 +135,29 @@ main(int argc, char **argv)
     GdkScreen *screen;
     gint screen_width, screen_height;
     GtkAllocation allocation;
+    GtkWidget *logo_image;
     GtkWidget *option_menu, *power_menu;
     GtkWidget *menu_bar, *menu, *menu_item;
     GdkColor background_color;
     gint n_power_items = 0;
 
+    gtk_rc_add_default_file ("foo");
+    gchar **i, **files = gtk_rc_get_default_files ();
+    for (i = files; *i; i++)
+    {
+      printf("%s\n", *i);
+    }
+  
     gtk_init (&argc, &argv);
+
+    g_object_set (gtk_settings_get_default (), "gtk-theme-name", "HumanLogin", NULL);
+    g_object_set (gtk_settings_get_default (), "gtk-icon-theme-name", "LoginIcons", NULL);
+//    g_object_set (gtk_settings_get_default (), "gtk-cursor-theme-name", "DMZ-White", NULL);
+    g_object_set (gtk_settings_get_default (), "gtk-font-name", "UbuntuBeta 10", NULL);
+    g_object_set (gtk_settings_get_default (), "gtk-xft-dpi", 1024*96, NULL);
+    g_object_set (gtk_settings_get_default (), "gtk-xft-hinting", 1, NULL);
+    g_object_set (gtk_settings_get_default (), "gtk-xft-hintstyle", "hintslight", NULL);
+    g_object_set (gtk_settings_get_default (), "gtk-xft-rgba", "rgb", NULL);
 
     greeter = ldm_greeter_new ();
 
@@ -156,9 +192,14 @@ main(int argc, char **argv)
     vbox = gtk_vbox_new (FALSE, 6);
     gtk_container_add (GTK_CONTAINER (user_window), vbox);
 
-    label = gtk_label_new ("");
-    gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, FALSE, 0);
-    gtk_widget_set_no_show_all (label, TRUE);    
+    logo_image = gtk_image_new_from_icon_name ("computer", GTK_ICON_SIZE_DIALOG);
+    gtk_image_set_pixel_size (GTK_IMAGE (logo_image), 64);
+    gtk_box_pack_start (GTK_BOX (vbox), logo_image, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), gtk_label_new (ldm_greeter_get_hostname (greeter)), FALSE, FALSE, 0);
+
+    message_label = gtk_label_new ("");
+    gtk_box_pack_start (GTK_BOX (vbox), message_label, FALSE, FALSE, 0);
+    gtk_widget_set_no_show_all (message_label, TRUE);
 
     user_model = gtk_list_store_new (3, G_TYPE_STRING, G_TYPE_STRING, GDK_TYPE_PIXBUF);
     items = ldm_greeter_get_users (greeter);
@@ -213,7 +254,7 @@ main(int argc, char **argv)
     gtk_widget_set_no_show_all (username_entry, TRUE);
 
     password_entry = gtk_entry_new ();
-    //gtk_entry_set_visibility (GTK_ENTRY (password_entry), FALSE);
+    gtk_entry_set_visibility (GTK_ENTRY (password_entry), FALSE);
     gtk_widget_set_sensitive (password_entry, FALSE);
     gtk_box_pack_start (GTK_BOX (vbox), password_entry, FALSE, FALSE, 0);
     g_signal_connect (password_entry, "activate", G_CALLBACK (password_activate_cb), NULL);
@@ -240,12 +281,16 @@ main(int argc, char **argv)
     gtk_menu_item_set_label (GTK_MENU_ITEM (menu_item), ""); // NOTE: Needed to make the icon show as selected
     gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (menu_item), TRUE);
     gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), menu_item);
-
     menu = gtk_menu_new ();
     gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("?1"));
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("?2"));
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_menu_item_new_with_label ("?3"));
+
+    menu_item = gtk_check_menu_item_new_with_label (_("Large Font"));
+    g_signal_connect (menu_item, "toggled", G_CALLBACK (a11y_font_cb), NULL);
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
+
+    menu_item = gtk_check_menu_item_new_with_label (_("High Constrast"));
+    g_signal_connect (menu_item, "toggled", G_CALLBACK (a11y_contrast_cb), NULL);
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
     menu_item = gtk_menu_item_new_with_label (_("Options"));
     gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), menu_item);
