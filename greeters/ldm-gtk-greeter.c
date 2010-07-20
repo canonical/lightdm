@@ -141,23 +141,7 @@ main(int argc, char **argv)
     GdkColor background_color;
     gint n_power_items = 0;
 
-    gtk_rc_add_default_file ("foo");
-    gchar **i, **files = gtk_rc_get_default_files ();
-    for (i = files; *i; i++)
-    {
-      printf("%s\n", *i);
-    }
-  
-    gtk_init (&argc, &argv);
-
-    g_object_set (gtk_settings_get_default (), "gtk-theme-name", "HumanLogin", NULL);
-    g_object_set (gtk_settings_get_default (), "gtk-icon-theme-name", "LoginIcons", NULL);
-//    g_object_set (gtk_settings_get_default (), "gtk-cursor-theme-name", "DMZ-White", NULL);
-    g_object_set (gtk_settings_get_default (), "gtk-font-name", "UbuntuBeta 10", NULL);
-    g_object_set (gtk_settings_get_default (), "gtk-xft-dpi", 1024*96, NULL);
-    g_object_set (gtk_settings_get_default (), "gtk-xft-hinting", 1, NULL);
-    g_object_set (gtk_settings_get_default (), "gtk-xft-hintstyle", "hintslight", NULL);
-    g_object_set (gtk_settings_get_default (), "gtk-xft-rgba", "rgb", NULL);
+    g_type_init ();
 
     greeter = ldm_greeter_new ();
 
@@ -169,6 +153,12 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
     ldm_greeter_connect (greeter);
+
+      printf("2.%s\n", ldm_greeter_get_theme (greeter));
+
+    gtk_rc_add_default_file ("foo");
+
+    gtk_init (&argc, &argv);
 
     display = gdk_display_get_default ();
     screen = gdk_display_get_default_screen (display);

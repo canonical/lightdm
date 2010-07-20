@@ -345,17 +345,24 @@ session_started_cb (PAMSession *session, Display *display)
 }
 
 gboolean
-display_connect (Display *display, const gchar **session, const gchar **username, gint *delay, GError *error)
+display_connect (Display *display, const gchar **theme, const gchar **session, const gchar **username, gint *delay, GError *error)
 {
+    gchar *filename;
+
     if (display->priv->active_session == SESSION_GREETER_PRE_CONNECT)
     {
         display->priv->active_session = SESSION_GREETER;
         g_debug ("Greeter connected");
     }
 
+    filename = g_strdup_printf ("%s.theme", display->priv->greeter_theme);
+    *theme = g_build_filename (THEME_DIR, filename, NULL);
+    printf("1.%s\n", *theme);
+    g_free (filename);
     *session = g_strdup (display->priv->session_name);
     *username = g_strdup (display->priv->default_user);
     *delay = display->priv->timeout;
+
     return TRUE;
 }
 

@@ -7,7 +7,8 @@
 
     <!-- Method for greeter to connect to display manager -->
     <method name="Connect">
-      <arg name="session" direction="out" type="s"/>    
+      <arg name="theme" direction="out" type="s"/>
+      <arg name="session" direction="out" type="s"/>
       <arg name="username" direction="out" type="s"/>
       <arg name="delay" direction="out" type="i"/>
     </method>

@@ -93,6 +93,9 @@ LdmGreeter
 ldm_greeter_new
 ldm_greeter_connect
 ldm_greeter_get_hostname
+ldm_greeter_get_theme
+ldm_greeter_get_theme_string_property
+ldm_greeter_get_theme_integer_property
 ldm_greeter_get_num_users
 ldm_greeter_get_users
 ldm_greeter_get_languages

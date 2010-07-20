@@ -62,6 +62,9 @@ struct _LdmGreeterPrivate
 
     gchar *hostname;
 
+    gchar *theme;
+    GKeyFile *theme_file;
+
     gboolean have_users;
     GList *users;
   
@@ -126,7 +129,8 @@ ldm_greeter_connect (LdmGreeter *greeter)
 
     result = dbus_g_proxy_call (greeter->priv->display_proxy, "Connect", &error,
                                 G_TYPE_INVALID,
-                                G_TYPE_STRING, &greeter->priv->session,                                
+                                G_TYPE_STRING, &greeter->priv->theme,
+                                G_TYPE_STRING, &greeter->priv->session,
                                 G_TYPE_STRING, &greeter->priv->timed_user,
                                 G_TYPE_INT, &greeter->priv->login_delay,
                                 G_TYPE_INVALID);
@@ -164,6 +168,78 @@ ldm_greeter_get_hostname (LdmGreeter *greeter)
     }
 
     return greeter->priv->hostname;
+}
+
+/**
+ * ldm_greeter_get_theme:
+ * @greeter: a #LdmGreeter
+ *
+ * Return value: The theme this greeter is using
+ **/
+const gchar *
+ldm_greeter_get_theme (LdmGreeter *greeter)
+{
+    return greeter->priv->theme;
+}
+
+static void
+load_theme (LdmGreeter *greeter)
+{
+    GError *error = NULL;
+
+    if (greeter->priv->theme_file)
+        return;
+
+    greeter->priv->theme_file = g_key_file_new ();
+    if (!g_key_file_load_from_file (greeter->priv->theme_file, greeter->priv->theme, G_KEY_FILE_NONE, &error))
+        g_warning ("Failed to read theme file: %s", error->message);
+    g_clear_error (&error);
+}
+
+/**
+ * ldm_greeter_get_string_theme:
+ * @greeter: a #LdmGreeter
+ * @name: the name of the property to get
+ *
+ * Return value: The value of this property or NULL if is not defined
+ **/
+gchar *
+ldm_greeter_get_theme_string_property (LdmGreeter *greeter, const gchar *name)
+{
+    GError *error = NULL;
+    gchar *result;
+
+    load_theme (greeter);
+
+    result = g_key_file_get_string (greeter->priv->theme_file, "theme", name, &error);
+    if (!result)
+        g_warning ("Error reading theme property: %s", error->message); // FIXME: Can handle G_KEY_FILE_ERROR_KEY_NOT_FOUND and G_KEY_FILE_ERROR_GROUP_NOT_FOUND
+    g_clear_error (&error);
+
+    return result;
+}
+
+/**
+ * ldm_greeter_get_int_theme:
+ * @greeter: a #LdmGreeter
+ * @name: the name of the property to get
+ *
+ * Return value: The value of this property or NULL if is not defined
+ **/
+gint
+ldm_greeter_get_theme_integer_property (LdmGreeter *greeter, const gchar *name)
+{
+    GError *error = NULL;
+    gint result;
+
+    load_theme (greeter);
+
+    result = g_key_file_get_integer (greeter->priv->theme_file, "theme", name, &error);
+    if (!result)
+        g_warning ("Error reading theme property: %s", error->message); // FIXME: Can handle G_KEY_FILE_ERROR_KEY_NOT_FOUND and G_KEY_FILE_ERROR_GROUP_NOT_FOUND
+    g_clear_error (&error);
+
+    return result;
 }
 
 #define TYPE_USER dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN, G_TYPE_INVALID)
