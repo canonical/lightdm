@@ -12,18 +12,16 @@
 #include "xdmcp-session.h"
 #include "xdmcp-session-private.h"
 
-enum {
-    PROP_0,
-    PROP_ID,
-    PROP_MANUFACTURER_DISPLAY_ID
-};
-
 G_DEFINE_TYPE (XDMCPSession, xdmcp_session, G_TYPE_OBJECT);
 
 XDMCPSession *
 xdmcp_session_new (guint16 id)
 {
-    return g_object_new (XDMCP_SESSION_TYPE, "id", id, NULL);
+    XDMCPSession *self = g_object_new (XDMCP_SESSION_TYPE, NULL);
+
+    self->priv->id = id;
+
+    return self;
 }
 
 guint16
@@ -84,50 +82,6 @@ xdmcp_session_init (XDMCPSession *session)
 }
 
 static void
-xdmcp_session_set_property (GObject      *object,
-                            guint         prop_id,
-                            const GValue *value,
-                            GParamSpec   *pspec)
-{
-    XDMCPSession *self;
-
-    self = XDMCP_SESSION (object);
-
-    switch (prop_id) {
-    case PROP_ID:
-        self->priv->id = g_value_get_int (value);
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
-}
-
-
-static void
-xdmcp_session_get_property (GObject    *object,
-                            guint       prop_id,
-                            GValue     *value,
-                            GParamSpec *pspec)
-{
-    XDMCPSession *self;
-
-    self = XDMCP_SESSION (object);
-
-    switch (prop_id) {
-    case PROP_ID:
-        g_value_set_int (value, self->priv->id);
-        break;
-    case PROP_MANUFACTURER_DISPLAY_ID:
-        g_value_set_string (value, self->priv->manufacturer_display_id);
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
-}
-
-static void
 xdmcp_session_finalize (GObject *object)
 {
     XDMCPSession *self;
@@ -148,24 +102,7 @@ xdmcp_session_class_init (XDMCPSessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->set_property = xdmcp_session_set_property;
-    object_class->get_property = xdmcp_session_get_property;
     object_class->finalize = xdmcp_session_finalize;  
-
-    g_object_class_install_property (object_class,
-                                     PROP_ID,
-                                     g_param_spec_int ("id",
-                                                       "id",
-                                                       "Session ID",
-                                                       0, G_MAXUINT16, 0,
-                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-    g_object_class_install_property (object_class,
-                                     PROP_MANUFACTURER_DISPLAY_ID,
-                                     g_param_spec_string ("manufacturer-display-id",
-                                                          "manufacturer-display-id",
-                                                          "Manufacturer Display ID",
-                                                          NULL,
-                                                          G_PARAM_READABLE));
 
     g_type_class_add_private (klass, sizeof (XDMCPSessionPrivate));
 }

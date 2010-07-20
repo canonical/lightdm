@@ -13,11 +13,6 @@
 #include "pam-session.h"
 
 enum {
-    PROP_0,
-    PROP_USERNAME
-};
-
-enum {
     AUTHENTICATION_STARTED,
     STARTED,
     GOT_MESSAGES,
@@ -58,7 +53,11 @@ G_DEFINE_TYPE (PAMSession, pam_session, G_TYPE_OBJECT);
 PAMSession *
 pam_session_new (const gchar *username)
 {
-    return g_object_new (PAM_SESSION_TYPE, "username", username, NULL);
+    PAMSession *self = g_object_new (PAM_SESSION_TYPE, NULL);
+
+    self->priv->username = g_strdup (username);
+
+    return self;
 }
 
 gboolean
@@ -229,47 +228,6 @@ pam_session_init (PAMSession *session)
 }
 
 static void
-pam_session_set_property (GObject      *object,
-                          guint         prop_id,
-                          const GValue *value,
-                          GParamSpec   *pspec)
-{
-    PAMSession *self;
-
-    self = PAM_SESSION (object);
-
-    switch (prop_id) {
-    case PROP_USERNAME:
-        self->priv->username = g_strdup (g_value_get_string (value));
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
-}
-
-
-static void
-pam_session_get_property (GObject    *object,
-                          guint       prop_id,
-                          GValue     *value,
-                          GParamSpec *pspec)
-{
-    PAMSession *self;
-
-    self = PAM_SESSION (object);
-
-    switch (prop_id) {
-    case PROP_USERNAME:
-        g_value_set_string (value, self->priv->username);
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
-}
-
-static void
 pam_session_finalize (GObject *object)
 {
     PAMSession *self;
@@ -286,19 +244,9 @@ pam_session_class_init (PAMSessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->set_property = pam_session_set_property;
-    object_class->get_property = pam_session_get_property;
     object_class->finalize = pam_session_finalize;  
 
     g_type_class_add_private (klass, sizeof (PAMSessionPrivate));
-
-    g_object_class_install_property (object_class,
-                                     PROP_USERNAME,
-                                     g_param_spec_string ("username",
-                                                          "username",
-                                                          "User in this session",
-                                                          "",
-                                                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
     signals[AUTHENTICATION_STARTED] =
         g_signal_new ("authentication-started",

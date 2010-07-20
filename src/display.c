@@ -21,11 +21,6 @@
 #include "theme.h"
 
 enum {
-    PROP_0,
-    PROP_INDEX
-};
-
-enum {
     START_SESSION,  
     EXITED,
     LAST_SIGNAL
@@ -82,10 +77,15 @@ G_DEFINE_TYPE (Display, display, G_TYPE_OBJECT);
 static void start_greeter (Display *display);
 static void start_user_session (Display *display);
 
+// FIXME: Remove the index, it is an external property
 Display *
 display_new (gint index)
 {
-    return g_object_new (DISPLAY_TYPE, "index", index, NULL);
+    Display *self = g_object_new (DISPLAY_TYPE, NULL);
+
+    self->priv->index = index;
+
+    return self;
 }
 
 gint
@@ -506,46 +506,6 @@ display_init (Display *display)
 }
 
 static void
-display_set_property (GObject      *object,
-                      guint         prop_id,
-                      const GValue *value,
-                      GParamSpec   *pspec)
-{
-    Display *self;
-
-    self = DISPLAY (object);
-
-    switch (prop_id) {
-    case PROP_INDEX:
-        self->priv->index = g_value_get_int (value);
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
-}
-
-static void
-display_get_property (GObject    *object,
-                      guint       prop_id,
-                      GValue     *value,
-                      GParamSpec *pspec)
-{
-    Display *self;
-
-    self = DISPLAY (object);
-
-    switch (prop_id) {
-    case PROP_INDEX:
-        g_value_set_int (value, self->priv->index);
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
-}
-
-static void
 display_finalize (GObject *object)
 {
     Display *self;
@@ -571,19 +531,9 @@ display_class_init (DisplayClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->set_property = display_set_property;
-    object_class->get_property = display_get_property;
     object_class->finalize = display_finalize;
 
     g_type_class_add_private (klass, sizeof (DisplayPrivate));
-
-    g_object_class_install_property (object_class,
-                                     PROP_INDEX,
-                                     g_param_spec_int ("index",
-                                                       "index",
-                                                       "Index for this display",
-                                                       0, G_MAXINT, 0,
-                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
     signals[START_SESSION] =
         g_signal_new ("start-session",

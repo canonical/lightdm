@@ -21,11 +21,6 @@
 #include "theme.h"
 
 enum {
-    PROP_0,
-    PROP_CONFIG,
-};
-
-enum {
     DISPLAY_ADDED,
     LAST_SIGNAL
 };
@@ -51,7 +46,16 @@ G_DEFINE_TYPE (DisplayManager, display_manager, G_TYPE_OBJECT);
 DisplayManager *
 display_manager_new (GKeyFile *config)
 {
-    return g_object_new (DISPLAY_MANAGER_TYPE, "config", config, NULL);
+    DisplayManager *self = g_object_new (DISPLAY_MANAGER_TYPE, NULL);
+
+    self->priv->config = config;
+    self->priv->test_mode = g_key_file_get_boolean (self->priv->config, "LightDM", "test-mode", NULL);
+    if (self->priv->test_mode)
+        self->priv->auth_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "authority", NULL);
+    else
+        self->priv->auth_dir = g_strdup (XAUTH_DIR);       
+
+    return self;
 }
 
 #include <xcb/xcb.h>
@@ -419,51 +423,6 @@ display_manager_init (DisplayManager *manager)
 }
 
 static void
-display_manager_set_property (GObject      *object,
-                              guint         prop_id,
-                              const GValue *value,
-                              GParamSpec   *pspec)
-{
-    DisplayManager *self;
-
-    self = DISPLAY_MANAGER (object);
-
-    switch (prop_id) {
-    case PROP_CONFIG:
-        self->priv->config = g_value_get_pointer (value);
-        self->priv->test_mode = g_key_file_get_boolean (self->priv->config, "LightDM", "test-mode", NULL);
-        if (self->priv->test_mode)
-            self->priv->auth_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "authority", NULL);
-        else
-            self->priv->auth_dir = g_strdup (XAUTH_DIR);       
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
-}
-
-static void
-display_manager_get_property (GObject    *object,
-                              guint       prop_id,
-                              GValue     *value,
-                              GParamSpec *pspec)
-{
-    DisplayManager *self;
-
-    self = DISPLAY_MANAGER (object);
-
-    switch (prop_id) {
-    case PROP_CONFIG:
-        g_value_set_pointer (value, self->priv->config);
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
-}
-
-static void
 display_manager_finalize (GObject *object)
 {
     DisplayManager *self;
@@ -483,19 +442,10 @@ display_manager_class_init (DisplayManagerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->set_property = display_manager_set_property;
-    object_class->get_property = display_manager_get_property;
     object_class->finalize = display_manager_finalize;
 
     g_type_class_add_private (klass, sizeof (DisplayManagerPrivate));
 
-    g_object_class_install_property (object_class,
-                                     PROP_CONFIG,
-                                     g_param_spec_pointer ("config",
-                                                           "config",
-                                                           "Configuration",
-                                                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-  
     signals[DISPLAY_ADDED] =
         g_signal_new ("display-added",
                       G_TYPE_FROM_CLASS (klass),

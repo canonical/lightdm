@@ -17,16 +17,6 @@
 #include "xserver.h"
 
 enum {
-    PROP_0,
-    PROP_TYPE,
-    PROP_COMMAND,
-    PROP_HOSTNAME,
-    PROP_PORT,
-    PROP_DISPLAY_NUMBER,
-    PROP_ADDRESS
-};
-
-enum {
     READY,  
     EXITED,
     LAST_SIGNAL
@@ -101,7 +91,13 @@ xserver_handle_signal (GPid pid)
 XServer *
 xserver_new (XServerType type, const gchar *hostname, gint display_number)
 {
-    return g_object_new (XSERVER_TYPE, "type", type, "hostname", hostname, "display-number", display_number, NULL);
+    XServer *self = g_object_new (XSERVER_TYPE, NULL);
+
+    self->priv->type = type;
+    self->priv->hostname = g_strdup (hostname);
+    self->priv->display_number = display_number;
+  
+    return self;
 }
 
 XServerType
@@ -378,74 +374,6 @@ xserver_init (XServer *server)
 }
 
 static void
-xserver_set_property (GObject      *object,
-                      guint         prop_id,
-                      const GValue *value,
-                      GParamSpec   *pspec)
-{
-    XServer *self;
-
-    self = XSERVER (object);
-
-    switch (prop_id) {
-    case PROP_TYPE:
-        self->priv->type = g_value_get_int (value);
-        break;
-    case PROP_COMMAND:
-        xserver_set_command (self, g_value_get_string (value));
-        break;
-    case PROP_HOSTNAME:
-        self->priv->hostname = g_strdup (g_value_get_string (value));
-        break;
-    case PROP_PORT:
-        self->priv->port = g_value_get_int (value);
-        break;
-    case PROP_DISPLAY_NUMBER:
-        self->priv->display_number = g_value_get_int (value);
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
-}
-
-
-static void
-xserver_get_property (GObject    *object,
-                      guint       prop_id,
-                      GValue     *value,
-                      GParamSpec *pspec)
-{
-    XServer *self;
-
-    self = XSERVER (object);
-
-    switch (prop_id) {
-    case PROP_TYPE:
-        g_value_set_int (value, self->priv->type);
-        break;
-    case PROP_COMMAND:
-        g_value_set_string (value, self->priv->command);
-        break;
-    case PROP_HOSTNAME:
-        g_value_set_string (value, self->priv->hostname);
-        break;
-    case PROP_PORT:
-        g_value_set_int (value, self->priv->port);
-        break;
-    case PROP_DISPLAY_NUMBER:
-        g_value_set_int (value, self->priv->display_number);
-        break;
-    case PROP_ADDRESS:
-        g_value_set_string (value, xserver_get_address (self));
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
-}
-
-static void
 xserver_finalize (GObject *object)
 {
     XServer *self;
@@ -478,54 +406,9 @@ xserver_class_init (XServerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->set_property = xserver_set_property;
-    object_class->get_property = xserver_get_property;
     object_class->finalize = xserver_finalize;  
 
     g_type_class_add_private (klass, sizeof (XServerPrivate));
-
-    g_object_class_install_property (object_class,
-                                     PROP_TYPE,
-                                     g_param_spec_int ("type",
-                                                       "type",
-                                                       "X Server type",
-                                                       0, G_MAXINT, 0,
-                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-    g_object_class_install_property (object_class,
-                                     PROP_COMMAND,
-                                     g_param_spec_string ("command",
-                                                          "command",
-                                                          "Command to launch the X server",
-                                                          NULL,
-                                                          G_PARAM_READWRITE));
-    g_object_class_install_property (object_class,
-                                     PROP_HOSTNAME,
-                                     g_param_spec_string ("hostname",
-                                                          "hostname",
-                                                          "Server hostname",
-                                                          NULL,
-                                                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-    g_object_class_install_property (object_class,
-                                     PROP_DISPLAY_NUMBER,
-                                     g_param_spec_int ("display-number",
-                                                       "display-number",
-                                                       "Server display number",
-                                                       0, G_MAXINT, 0,
-                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-    g_object_class_install_property (object_class,
-                                     PROP_PORT,
-                                     g_param_spec_int ("port",
-                                                       "port",
-                                                       "UDP/IP port to connect XDMCP on",
-                                                       0, G_MAXINT, 0,
-                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-    g_object_class_install_property (object_class,
-                                     PROP_ADDRESS,
-                                     g_param_spec_string ("address",
-                                                          "address",
-                                                          "Server address",
-                                                          NULL,
-                                                          G_PARAM_READABLE));
 
     signals[READY] =
         g_signal_new ("ready",

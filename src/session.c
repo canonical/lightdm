@@ -19,12 +19,6 @@
 #include "session.h"
 
 enum {
-    PROP_0,
-    PROP_USERNAME,
-    PROP_COMMAND
-};
-
-enum {
     EXITED,
     LAST_SIGNAL
 };
@@ -55,7 +49,12 @@ G_DEFINE_TYPE (Session, session, G_TYPE_OBJECT);
 Session *
 session_new (const char *username, const char *command)
 {
-    return g_object_new (SESSION_TYPE, "username", username, "command", command, NULL);
+    Session *self = g_object_new (SESSION_TYPE, NULL);
+
+    self->priv->username = g_strdup (username);
+    self->priv->command = g_strdup (command);
+
+    return self;
 }
 
 const gchar *
@@ -234,52 +233,6 @@ session_init (Session *session)
 }
 
 static void
-session_set_property (GObject      *object,
-                      guint         prop_id,
-                      const GValue *value,
-                      GParamSpec   *pspec)
-{
-    Session *self;
-
-    self = SESSION (object);
-
-    switch (prop_id) {
-    case PROP_USERNAME:
-        self->priv->username = g_strdup (g_value_get_string (value));
-        break;
-    case PROP_COMMAND:
-        self->priv->command = g_strdup (g_value_get_string (value));
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
-}
-
-static void
-session_get_property (GObject    *object,
-                      guint       prop_id,
-                      GValue     *value,
-                      GParamSpec *pspec)
-{
-    Session *self;
-
-    self = SESSION (object);
-
-    switch (prop_id) {
-    case PROP_USERNAME:
-        g_value_set_string (value, self->priv->username);
-        break;
-    case PROP_COMMAND:
-        g_value_set_string (value, self->priv->command);
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
-}
-
-static void
 session_finalize (GObject *object)
 {
     Session *self;
@@ -305,26 +258,9 @@ session_class_init (SessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->set_property = session_set_property;
-    object_class->get_property = session_get_property;
     object_class->finalize = session_finalize;
 
     g_type_class_add_private (klass, sizeof (SessionPrivate));
-
-    g_object_class_install_property (object_class,
-                                     PROP_USERNAME,
-                                     g_param_spec_string ("username",
-                                                          "username",
-                                                          "Session user",
-                                                          NULL,
-                                                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-    g_object_class_install_property (object_class,
-                                     PROP_COMMAND,
-                                     g_param_spec_string ("command",
-                                                          "command",
-                                                          "Session executable command",
-                                                          NULL,
-                                                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
     signals[EXITED] =
         g_signal_new ("exited",
