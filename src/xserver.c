@@ -208,7 +208,7 @@ xserver_connect (XServer *server)
     {
         GError *error = NULL;
 
-        server->priv->authorization_file = xauth_write (server->priv->authorization, server->priv->authorization_path, &error);
+        server->priv->authorization_file = xauth_write (server->priv->authorization, NULL, server->priv->authorization_path, &error);
         if (!server->priv->authorization_file)
             g_warning ("Failed to write authorization: %s", error->message);
         g_clear_error (&error);
@@ -296,7 +296,7 @@ xserver_start (XServer *server)
     {
         GError *error = NULL;
 
-        server->priv->authorization_file = xauth_write (server->priv->authorization, server->priv->authorization_path, &error);
+        server->priv->authorization_file = xauth_write (server->priv->authorization, NULL, server->priv->authorization_path, &error);
         if (!server->priv->authorization_file)
             g_warning ("Failed to write authorization: %s", error->message);
         g_clear_error (&error);

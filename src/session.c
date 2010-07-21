@@ -157,6 +157,7 @@ session_start (Session *session)
     //gint session_stdin, session_stdout, session_stderr;
     gboolean result;
     gint argc;
+    gchar *username;
     const gchar *working_dir = NULL;
     gchar **argv, **env;
     gchar *env_string;
@@ -177,6 +178,7 @@ session_start (Session *session)
             return FALSE;
         }
 
+        username = session->priv->username;
         working_dir = user_info->pw_dir;
         session_set_env (session, "USER", user_info->pw_name);
         session_set_env (session, "HOME", user_info->pw_dir);
@@ -184,6 +186,7 @@ session_start (Session *session)
     }
     else
     {
+        username = getenv ("USER");
         session_set_env (session, "USER", getenv ("USER"));
         session_set_env (session, "HOME", getenv ("HOME"));
         session_set_env (session, "SHELL", getenv ("SHELL"));
@@ -191,7 +194,7 @@ session_start (Session *session)
 
     if (session->priv->authorization)
     {
-        session->priv->authorization_file = xauth_write (session->priv->authorization, session->priv->authorization_path, &error);
+        session->priv->authorization_file = xauth_write (session->priv->authorization, username, session->priv->authorization_path, &error);
         if (session->priv->authorization_file)
             session_set_env (session, "XAUTHORITY", session->priv->authorization_path);
         else

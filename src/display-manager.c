@@ -258,7 +258,7 @@ setup_auth_dir (DisplayManager *manager)
     GDir *dir;
     GError *error = NULL;
 
-    g_mkdir_with_parents (manager->priv->auth_dir, S_IRWXU);
+    g_mkdir_with_parents (manager->priv->auth_dir, S_IRWXU | S_IXGRP | S_IXOTH);
     dir = g_dir_open (manager->priv->auth_dir, 0, &error);
     if (!dir)
     {

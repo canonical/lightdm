@@ -10,6 +10,7 @@
  */
 
 #include <string.h>
+#include <pwd.h>
 
 #include "xauth.h"
 
@@ -91,7 +92,7 @@ write_string (GString *string, const gchar *value)
 }
 
 GFile *
-xauth_write (XAuthorization *auth, const gchar *path, GError **error)
+xauth_write (XAuthorization *auth, const gchar *username, const gchar *path, GError **error)
 {
     GFile *file;
     GFileOutputStream *stream;
@@ -107,7 +108,23 @@ xauth_write (XAuthorization *auth, const gchar *path, GError **error)
         g_object_unref (file);
         return FALSE;
     }
-  
+
+    /* NOTE: Would like to do:
+     * g_file_set_attribute_string (file, G_FILE_ATTRIBUTE_OWNER_USER, username, G_FILE_QUERY_INFO_NONE, NULL, error))
+     * but not supported. */
+    if (username)
+    {
+        int result = -1;
+        struct passwd *info;
+
+        info = getpwnam (username);
+        if (info)
+            result = chown (path, info->pw_uid, info->pw_gid);
+      
+        if (result != 0)
+            g_warning ("Failed to set authorization owner");
+    }
+
     data = g_string_sized_new (1024);
     write_uint16 (data, 0xFFFF); /* FamilyWild - this entry is used for all connections */
     write_string (data, ""); /* Not requires as using FamilyWild */
