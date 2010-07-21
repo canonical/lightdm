@@ -123,6 +123,7 @@ start_session_cb (Display *display, Session *session, DisplayManager *manager)
     if (manager->priv->test_mode)
     {
         session_set_env (session, "DBUS_SESSION_BUS_ADDRESS", getenv ("DBUS_SESSION_BUS_ADDRESS"));
+        session_set_env (session, "XDG_SESSION_COOKIE", getenv ("XDG_SESSION_COOKIE"));
         session_set_env (session, "LDM_BUS", "SESSION");
     }
 

@@ -49,17 +49,20 @@ struct DisplayPrivate
     /* Theme to use */
     gchar *greeter_theme;
 
-    /* Session process (either greeter or user session) */
-    Session *session;
+    /* Greeter session process */
+    Session *greeter_session;
+    gboolean greeter_connected;
+    gboolean greeter_authenticated;
+    PAMSession *greeter_pam_session;
+    CkConnector *greeter_ck_session;
+
+    /* User session process */
+    Session *user_session;
+    PAMSession *user_pam_session;
+    CkConnector *user_ck_session;
 
     /* Current D-Bus call context */
     DBusGMethodInvocation *dbus_context;
-
-    /* PAM session */
-    PAMSession *pam_session;
-  
-    /* ConsoleKit session */
-    CkConnector *ck_session;
 
     /* Default login hint */
     gchar *default_user;
@@ -67,9 +70,6 @@ struct DisplayPrivate
 
     /* Session to execute */
     gchar *session_name;
-
-    /* Active session */
-    SessionType active_session;
 };
 
 G_DEFINE_TYPE (Display, display, G_TYPE_OBJECT);
@@ -144,14 +144,15 @@ static void
 start_session (Display *display)
 {
     DBusError error;
-    const gchar *username, *address;
+    const gchar *address;
+    struct passwd *user_info;
 
-    display->priv->ck_session = ck_connector_new ();
+    display->priv->user_ck_session = ck_connector_new ();
     dbus_error_init (&error);
-    username = pam_session_get_username (display->priv->pam_session);
+    user_info = getpwnam (pam_session_get_username (display->priv->user_pam_session));
     address = xserver_get_address (display->priv->xserver);
-    if (!ck_connector_open_session_with_parameters (display->priv->ck_session, &error,
-                                                    "unix-user", &username,
+    if (!ck_connector_open_session_with_parameters (display->priv->user_ck_session, &error,
+                                                    "unix-user", &user_info->pw_uid,
                                                     //"display-device", &display->priv->display_device,
                                                     //"x11-display-device", &display->priv->x11_display_device,
                                                     "x11-display", &address,
@@ -160,96 +161,35 @@ start_session (Display *display)
 }
 
 static void
-end_session (Display *display)
+end_user_session (Display *display, gboolean clean_exit)
 {
-    pam_session_end (display->priv->pam_session);
-    g_object_unref (display->priv->pam_session);
-    display->priv->pam_session = NULL;
+    g_object_unref (display->priv->user_session);
+    display->priv->user_session = NULL;
 
-    ck_connector_close_session (display->priv->ck_session, NULL); // FIXME: Handle errors
-    ck_connector_unref (display->priv->ck_session);
-    display->priv->ck_session = NULL;
-}
+    pam_session_end (display->priv->user_pam_session);
+    g_object_unref (display->priv->user_pam_session);
+    display->priv->user_pam_session = NULL;
 
-static void
-handle_end_session (Display *display, Session *session, gboolean clean_exit)
-{
-    SessionType active_session;
-  
-    g_object_unref (display->priv->session);
-    display->priv->session = NULL;
-
-    active_session = display->priv->active_session;
-    display->priv->active_session = SESSION_NONE;
-
-    /* Session ended, return to the greeter */
-    if (active_session == SESSION_USER)
-    {
-        if (!clean_exit)
-            g_warning ("Session exited unexpectedly");
-        end_session (display);
-        start_greeter (display);
-        return;
-    }
+    ck_connector_close_session (display->priv->user_ck_session, NULL); // FIXME: Handle errors
+    ck_connector_unref (display->priv->user_ck_session);
+    display->priv->user_ck_session = NULL;
 
     if (!clean_exit)
-    {
-        g_warning ("Greeter failed");
-        return;
-    }
+        g_warning ("Session exited unexpectedly");
 
-    if (active_session == SESSION_GREETER_PRE_CONNECT)
-    {
-        g_warning ("Greeter quit before connecting");
-        return;
-    }
-
-    /* Greeter successfully chose a user, start their session */
-    if (active_session == SESSION_GREETER_AUTHENTICATED)
-    {
-        start_user_session (display);
-        return;
-    }
-
-    if (display->priv->default_user && display->priv->timeout > 0)
-    {
-        g_debug ("Starting session for default user %s", display->priv->default_user);
-        display->priv->pam_session = pam_session_new (display->priv->default_user);
-        pam_session_authorize (display->priv->pam_session);
-        start_session (display);
-        start_user_session (display);
-    }
-    else
-        start_greeter (display);
+    start_greeter (display);
 }
 
 static void
-session_exited_cb (Session *session, gint status, Display *display)
+user_session_exited_cb (Session *session, gint status, Display *display)
 {
-    handle_end_session (display, session, status == 0);
+    end_user_session (display, status == 0);
 }
 
 static void
-session_killed_cb (Session *session, gint status, Display *display)
+user_session_killed_cb (Session *session, gint status, Display *display)
 {
-    handle_end_session (display, session, FALSE);
-}
-
-static void
-open_session (Display *display, const gchar *username, const gchar *command)
-{
-    g_return_if_fail (display->priv->session == NULL);
-
-    display->priv->session = session_new (username, command);
-    g_signal_connect (G_OBJECT (display->priv->session), "exited", G_CALLBACK (session_exited_cb), display);
-    g_signal_connect (G_OBJECT (display->priv->session), "killed", G_CALLBACK (session_killed_cb), display);
-    session_set_env (display->priv->session, "DISPLAY", xserver_get_address (display->priv->xserver));
-    if (display->priv->ck_session)
-        session_set_env (display->priv->session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->ck_session));
-
-    g_signal_emit (display, signals[START_SESSION], 0, display->priv->session);
-
-    session_start (display->priv->session);
+    end_user_session (display, FALSE);
 }
 
 static void
@@ -260,7 +200,7 @@ start_user_session (Display *display)
     gboolean result;
     GError *error = NULL;
 
-    g_debug ("Launching %s session for user %s", display->priv->session_name, pam_session_get_username (display->priv->pam_session));
+    g_debug ("Launching %s session for user %s", display->priv->session_name, pam_session_get_username (display->priv->user_pam_session));
 
     filename = g_strdup_printf ("%s.desktop", display->priv->session_name);
     path = g_build_filename (XSESSIONS_DIR, filename, NULL);
@@ -280,15 +220,79 @@ start_user_session (Display *display)
 
         desktop_file = g_desktop_app_info_new_from_keyfile (key_file);
 
-        display->priv->active_session = SESSION_USER;
-        open_session (display,
-                      pam_session_get_username (display->priv->pam_session),
-                      g_app_info_get_executable (G_APP_INFO (desktop_file)));
+        display->priv->user_session = session_new (pam_session_get_username (display->priv->user_pam_session), g_app_info_get_executable (G_APP_INFO (desktop_file)));
+        g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
+        g_signal_connect (G_OBJECT (display->priv->user_session), "killed", G_CALLBACK (user_session_killed_cb), display);
+        session_set_env (display->priv->user_session, "DISPLAY", xserver_get_address (display->priv->xserver));
+        session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
+
+        g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
+
+        session_start (display->priv->user_session);
 
         g_object_unref (desktop_file);
     }
 
     g_key_file_free (key_file);
+}
+
+static void
+end_greeter_session (Display *display, gboolean clean_exit)
+{
+    g_object_unref (display->priv->greeter_session);
+    display->priv->greeter_session = NULL;
+    display->priv->greeter_connected = FALSE;
+    display->priv->greeter_authenticated = FALSE;
+
+    pam_session_end (display->priv->greeter_pam_session);
+    g_object_unref (display->priv->greeter_pam_session);
+    display->priv->greeter_pam_session = NULL;
+
+    ck_connector_close_session (display->priv->greeter_ck_session, NULL); // FIXME: Handle errors
+    ck_connector_unref (display->priv->greeter_ck_session);
+    display->priv->greeter_ck_session = NULL;
+
+    if (!clean_exit)
+    {
+        g_warning ("Greeter failed");
+        return;
+    }
+
+    if (!display->priv->greeter_connected)
+    {
+        g_warning ("Greeter quit before connecting");
+        return;
+    }
+
+    /* Greeter successfully chose a user, start their session */
+    if (!display->priv->greeter_authenticated)
+    {
+        start_user_session (display);
+        return;
+    }
+
+    if (display->priv->default_user && display->priv->timeout > 0)
+    {
+        g_debug ("Starting session for default user %s", display->priv->default_user);
+        display->priv->user_pam_session = pam_session_new (display->priv->default_user);
+        pam_session_authorize (display->priv->user_pam_session);
+        start_session (display);
+        start_user_session (display);
+    }
+    else
+        start_greeter (display);
+}
+
+static void
+greeter_session_exited_cb (Session *session, gint status, Display *display)
+{
+    end_greeter_session (display, status == 0);
+}
+
+static void
+greeter_session_killed_cb (Session *session, gint status, Display *display)
+{
+    end_greeter_session (display, FALSE);
 }
 
 static void
@@ -305,13 +309,45 @@ start_greeter (Display *display)
     if (theme)
     {
         gchar *command;
+        const gchar *address, *session_type = "LoginWindow", *hostname = "";
+        gboolean is_local = TRUE;
+        DBusError dbus_error;
+        struct passwd *user_info;
 
         g_debug ("Starting greeter %s as user %s", display->priv->greeter_theme,
                  display->priv->greeter_user ? display->priv->greeter_user : "<current>");
-        display->priv->active_session = SESSION_GREETER_PRE_CONNECT;
 
         command = theme_get_command (theme);
-        open_session (display, display->priv->greeter_user, command);
+
+        display->priv->greeter_pam_session = pam_session_new (display->priv->greeter_user);
+        pam_session_authorize (display->priv->greeter_pam_session);
+
+        display->priv->greeter_ck_session = ck_connector_new ();
+        address = xserver_get_address (display->priv->xserver);
+        dbus_error_init (&dbus_error);
+        user_info = getpwnam (display->priv->greeter_user ? display->priv->greeter_user : getenv ("USER"));
+        if (!ck_connector_open_session_with_parameters (display->priv->greeter_ck_session, &dbus_error,
+                                                        "unix-user", &user_info->pw_uid,
+                                                        "session-type", &session_type,
+                                                        "x11-display", &address,
+                                                        //"x11-display-device", &display->priv->x11_display_device, // FIXME: e.g. /dev/tty7
+                                                        "remote-host-name", &hostname,
+                                                        "is-local", &is_local,
+                                                        NULL))
+            g_warning ("Failed to open CK session: %s: %s", dbus_error.name, dbus_error.message);
+
+        display->priv->greeter_connected = FALSE;
+        display->priv->greeter_authenticated = FALSE;
+        display->priv->greeter_session = session_new (display->priv->greeter_user, command);
+        g_signal_connect (G_OBJECT (display->priv->greeter_session), "exited", G_CALLBACK (greeter_session_exited_cb), display);
+        g_signal_connect (G_OBJECT (display->priv->greeter_session), "killed", G_CALLBACK (greeter_session_killed_cb), display);
+        session_set_env (display->priv->greeter_session, "DISPLAY", xserver_get_address (display->priv->xserver));
+        session_set_env (display->priv->greeter_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->greeter_ck_session));
+
+        g_signal_emit (display, signals[START_SESSION], 0, display->priv->greeter_session);
+
+        session_start (display->priv->greeter_session);
+
         g_free (command);
         g_key_file_free (theme);
     }
@@ -351,7 +387,7 @@ authenticate_result_cb (PAMSession *session, int result, Display *display)
     GPtrArray *request;
     DBusGMethodInvocation *context;
 
-    g_debug ("Authenticate result for user %s: %s", pam_session_get_username (display->priv->pam_session), pam_session_strerror (display->priv->pam_session, result));
+    g_debug ("Authenticate result for user %s: %s", pam_session_get_username (display->priv->user_pam_session), pam_session_strerror (display->priv->user_pam_session, result));
 
     /* Respond to D-Bus request */
     request = g_ptr_array_new ();
@@ -364,7 +400,7 @@ authenticate_result_cb (PAMSession *session, int result, Display *display)
 static void
 session_started_cb (PAMSession *session, Display *display)
 {
-    display->priv->active_session = SESSION_GREETER_AUTHENTICATED;
+    display->priv->greeter_authenticated = TRUE;
     start_session (display);
 }
 
@@ -373,9 +409,9 @@ display_connect (Display *display, const gchar **theme, const gchar **session, c
 {
     gchar *filename;
 
-    if (display->priv->active_session == SESSION_GREETER_PRE_CONNECT)
+    if (!display->priv->greeter_connected)
     {
-        display->priv->active_session = SESSION_GREETER;
+        display->priv->greeter_connected = TRUE;
         g_debug ("Greeter connected");
     }
 
@@ -394,7 +430,7 @@ display_start_authentication (Display *display, const gchar *username, DBusGMeth
 {
     GError *error = NULL;
 
-    if (display->priv->active_session != SESSION_GREETER)
+    if (!display->priv->greeter_session || display->priv->user_session)
     {
         dbus_g_method_return_error (context, NULL);
         return TRUE;
@@ -407,11 +443,11 @@ display_start_authentication (Display *display, const gchar *username, DBusGMeth
     /* Store D-Bus request to respond to */
     display->priv->dbus_context = context;
 
-    display->priv->pam_session = pam_session_new (username);
-    g_signal_connect (G_OBJECT (display->priv->pam_session), "got-messages", G_CALLBACK (pam_messages_cb), display);
-    g_signal_connect (G_OBJECT (display->priv->pam_session), "authentication-result", G_CALLBACK (authenticate_result_cb), display);
-    g_signal_connect (G_OBJECT (display->priv->pam_session), "started", G_CALLBACK (session_started_cb), display);
-    if (!pam_session_start (display->priv->pam_session, &error))
+    display->priv->user_pam_session = pam_session_new (username);
+    g_signal_connect (G_OBJECT (display->priv->user_pam_session), "got-messages", G_CALLBACK (pam_messages_cb), display);
+    g_signal_connect (G_OBJECT (display->priv->user_pam_session), "authentication-result", G_CALLBACK (authenticate_result_cb), display);
+    g_signal_connect (G_OBJECT (display->priv->user_pam_session), "started", G_CALLBACK (session_started_cb), display);
+    if (!pam_session_start (display->priv->user_pam_session, &error))
     {
         g_warning ("Failed to start authentication: %s", error->message);
         display->priv->dbus_context = NULL;
@@ -432,14 +468,14 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
     int i, j, n_secrets = 0;
 
     /* Not connected */
-    if (display->priv->active_session != SESSION_GREETER)
+    if (!display->priv->greeter_connected)
     {
         dbus_g_method_return_error (context, NULL);
         return TRUE;
     }
 
     /* Not in authorization */
-    if (display->priv->pam_session == NULL)
+    if (display->priv->user_pam_session == NULL)
     {
         dbus_g_method_return_error (context, NULL);
         return TRUE;
@@ -454,8 +490,8 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
 
     // FIXME: Only allow calls from the correct greeter
 
-    num_messages = pam_session_get_num_messages (display->priv->pam_session);
-    messages = pam_session_get_messages (display->priv->pam_session);
+    num_messages = pam_session_get_num_messages (display->priv->user_pam_session);
+    messages = pam_session_get_messages (display->priv->user_pam_session);
 
     /* Check correct number of responses */
     for (i = 0; i < num_messages; i++)
@@ -466,7 +502,7 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
     }
     if (g_strv_length (secrets) != n_secrets)
     {
-        pam_session_end (display->priv->pam_session);
+        pam_session_end (display->priv->user_pam_session);
         // FIXME: Throw error
         return FALSE;
     }
@@ -484,7 +520,7 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
     }
 
     display->priv->dbus_context = context;
-    pam_session_respond (display->priv->pam_session, response);
+    pam_session_respond (display->priv->user_pam_session, response);
 
     return TRUE;
 }
@@ -505,8 +541,8 @@ xserver_ready_cb (XServer *xserver, Display *display)
     /* If have user then automatically login */
     if (display->priv->default_user && display->priv->timeout == 0)
     {
-        display->priv->pam_session = pam_session_new (display->priv->default_user);
-        pam_session_authorize (display->priv->pam_session);
+        display->priv->user_pam_session = pam_session_new (display->priv->default_user);
+        pam_session_authorize (display->priv->user_pam_session);
         start_session (display);
         start_user_session (display);
     }
@@ -542,12 +578,16 @@ display_finalize (GObject *object)
 
     self = DISPLAY (object);
 
-    if (self->priv->session)
-        g_object_unref (self->priv->session);
-    if (self->priv->pam_session)
-        g_object_unref (self->priv->pam_session);
-    if (self->priv->ck_session)
-        ck_connector_unref (self->priv->ck_session);
+    if (self->priv->greeter_session)
+        g_object_unref (self->priv->greeter_session);
+    if (self->priv->user_session)
+        g_object_unref (self->priv->user_session);
+    if (self->priv->user_pam_session)
+        g_object_unref (self->priv->user_pam_session);
+    if (self->priv->greeter_ck_session)
+        ck_connector_unref (self->priv->greeter_ck_session);
+    if (self->priv->user_ck_session)
+        ck_connector_unref (self->priv->user_ck_session);
     if (self->priv->xserver)  
         g_object_unref (self->priv->xserver);
     g_free (self->priv->greeter_user);
