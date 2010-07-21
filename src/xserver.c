@@ -188,7 +188,7 @@ xserver_get_authentication_data_length (XServer *server)
 void
 xserver_set_authorization (XServer *server, XAuthorization *authorization, const gchar *path)
 {
-    server->priv->authorization = authorization;
+    server->priv->authorization = g_object_ref (authorization);
     server->priv->authorization_path = g_strdup (path);
 }
 

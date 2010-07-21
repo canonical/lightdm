@@ -202,6 +202,7 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
 
         xserver_set_authorization (xserver, authorization, path);
 
+        g_object_unref (authorization);
         g_free (path);
     }
 
@@ -361,6 +362,7 @@ display_manager_start (DisplayManager *manager)
                 path = get_authorization_path (manager);
                 xserver_set_authorization (xserver, authorization, path);
 
+                g_object_unref (authorization);              
                 g_free (path);
             }
         }
@@ -373,7 +375,10 @@ display_manager_start (DisplayManager *manager)
 
             authorization = xauth_new_cookie ();
             path = get_authorization_path (manager);
+
             xserver_set_authorization (xserver, authorization, path);
+
+            g_object_unref (authorization);
             g_free (path);
         }
         g_free (xdmcp_manager);

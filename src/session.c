@@ -78,7 +78,7 @@ session_set_env (Session *session, const gchar *name, const gchar *value)
 void
 session_set_authorization (Session *session, XAuthorization *authorization, const gchar *path)
 {
-    session->priv->authorization = authorization;
+    session->priv->authorization = g_object_ref (authorization);
     session->priv->authorization_path = g_strdup (path);
 }
 
