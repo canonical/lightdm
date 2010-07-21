@@ -11,6 +11,8 @@
 
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
+#include <gdk-pixbuf-xlib/gdk-pixbuf-xlib.h>
 
 #include "greeter.h"
 
@@ -127,7 +129,7 @@ a11y_contrast_cb (GtkWidget *widget)
 int
 main(int argc, char **argv)
 {
-    gchar *theme_dir, *rc_file, *rc_path;
+    gchar *theme_dir, *rc_file, *background_image;
     GdkWindow *root;
     const GList *items, *item;
     GSList *session_radio_list = NULL, *language_radio_list = NULL, *layout_radio_list = NULL;
@@ -159,11 +161,11 @@ main(int argc, char **argv)
     rc_file = ldm_greeter_get_string_property (greeter, "gtkrc");
     if (rc_file)
     {
-        rc_path = g_build_filename (theme_dir, rc_file, NULL);
+        gchar *path = g_build_filename (theme_dir, rc_file, NULL);
         g_free (rc_file);
-        gtk_rc_add_default_file (rc_path);
+        gtk_rc_add_default_file (path);
+        g_free (path);
     }
-    g_free (theme_dir);
 
     gtk_init (&argc, &argv);
 
@@ -174,10 +176,42 @@ main(int argc, char **argv)
   
     root = gdk_get_default_root_window ();
     gdk_window_set_cursor (root, gdk_cursor_new (GDK_LEFT_PTR));
+    //FIXME: background_color = ldm_greeter_get_string_property (greeter, "background-color");
     gdk_color_parse ("#000000", &background_color);
     gdk_color_alloc (gdk_window_get_colormap (root), &background_color);
-    gdk_window_set_back_pixmap (root, NULL, TRUE);
     gdk_window_set_background (root, &background_color);
+
+    background_image = ldm_greeter_get_string_property (greeter, "background-image");
+    if (background_image)
+    {
+        gchar *path;
+        GdkPixbuf *pixbuf;
+        GError *error = NULL;
+
+        path = g_build_filename (theme_dir, background_image, NULL);
+        g_free (background_image);
+        pixbuf = gdk_pixbuf_new_from_file (path, &error);
+        if (!pixbuf)
+           g_warning ("Failed to load background: %s", error->message);
+        g_clear_error (&error);
+        g_free (path);
+
+        if (pixbuf)
+        {
+            GdkPixmap *pixmap;
+            GdkPixbuf *scaled;
+
+            scaled = gdk_pixbuf_scale_simple (pixbuf, screen_width, screen_height, GDK_INTERP_BILINEAR);
+            g_object_unref (pixbuf);
+
+            gdk_pixbuf_render_pixmap_and_mask_for_colormap (scaled, gdk_window_get_colormap (root), &pixmap, NULL, 0);
+            g_object_unref (scaled);
+
+            gdk_window_set_back_pixmap (root, pixmap, FALSE);
+        }
+        else
+            background_image = NULL;
+    }
     gdk_window_clear(root);
 
     user_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
@@ -274,7 +308,7 @@ main(int argc, char **argv)
     gtk_container_add (GTK_CONTAINER (panel_window), menu_bar);
 
     menu_item = gtk_image_menu_item_new ();
-    gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_item), gtk_image_new_from_icon_name ("access", GTK_ICON_SIZE_LARGE_TOOLBAR));
+    gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_item), gtk_image_new_from_icon_name ("preferences-desktop-accessibility", GTK_ICON_SIZE_LARGE_TOOLBAR));
     gtk_menu_item_set_label (GTK_MENU_ITEM (menu_item), ""); // NOTE: Needed to make the icon show as selected
     gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (menu_item), TRUE);
     gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), menu_item);
@@ -388,7 +422,7 @@ main(int argc, char **argv)
         gtk_menu_item_set_right_justified (GTK_MENU_ITEM (menu_item), TRUE);
         gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_item), gtk_image_new_from_icon_name ("system-shutdown", GTK_ICON_SIZE_LARGE_TOOLBAR));
         gtk_menu_item_set_label (GTK_MENU_ITEM (menu_item), ""); // NOTE: Needed to make the icon show as selected
-        gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
+        gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), power_menu);
         gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), menu_item);
     }
 

@@ -4,3 +4,4 @@ description=GNOME Theme
 engine=gtk
 session=gnome
 gtkrc=gnome/gtkrc
+background-image=gnome/bg.jpg
