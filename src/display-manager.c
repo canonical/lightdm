@@ -307,7 +307,7 @@ display_manager_start (DisplayManager *manager)
     for (i = tokens; *i; i++)
     {
         Display *display;
-        gchar *default_user, *xdmcp_manager, *display_name;
+        gchar *xserver_command, *default_user, *xdmcp_manager, *display_name;
         gint user_timeout;
         guint display_number;
         XServer *xserver;
@@ -377,6 +377,11 @@ display_manager_start (DisplayManager *manager)
             g_free (path);
         }
         g_free (xdmcp_manager);
+
+        xserver_command = g_key_file_get_string (manager->priv->config, "LightDM", "xserver", NULL);
+        if (xserver_command)
+            xserver_set_command (xserver, xserver_command);
+        g_free (xserver_command);
 
         if (manager->priv->test_mode)
             xserver_set_command (xserver, "Xephyr");
