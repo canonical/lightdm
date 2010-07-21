@@ -127,6 +127,7 @@ a11y_contrast_cb (GtkWidget *widget)
 int
 main(int argc, char **argv)
 {
+    gchar *theme_dir, *rc_file, *rc_path;
     GdkWindow *root;
     const GList *items, *item;
     GSList *session_radio_list = NULL, *language_radio_list = NULL, *layout_radio_list = NULL;
@@ -154,9 +155,15 @@ main(int argc, char **argv)
 
     ldm_greeter_connect (greeter);
 
-      printf("2.%s\n", ldm_greeter_get_theme (greeter));
-
-    gtk_rc_add_default_file ("foo");
+    theme_dir = g_path_get_dirname (ldm_greeter_get_theme (greeter));
+    rc_file = ldm_greeter_get_string_property (greeter, "gtkrc");
+    if (rc_file)
+    {
+        rc_path = g_build_filename (theme_dir, rc_file, NULL);
+        g_free (rc_file);
+        gtk_rc_add_default_file (rc_path);
+    }
+    g_free (theme_dir);
 
     gtk_init (&argc, &argv);
 

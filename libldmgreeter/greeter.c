@@ -197,14 +197,14 @@ load_theme (LdmGreeter *greeter)
 }
 
 /**
- * ldm_greeter_get_string_theme:
+ * ldm_greeter_get_string_property:
  * @greeter: a #LdmGreeter
  * @name: the name of the property to get
  *
- * Return value: The value of this property or NULL if is not defined
+ * Return value: The value of this property or NULL if it is not defined
  **/
 gchar *
-ldm_greeter_get_theme_string_property (LdmGreeter *greeter, const gchar *name)
+ldm_greeter_get_string_property (LdmGreeter *greeter, const gchar *name)
 {
     GError *error = NULL;
     gchar *result;
@@ -220,14 +220,14 @@ ldm_greeter_get_theme_string_property (LdmGreeter *greeter, const gchar *name)
 }
 
 /**
- * ldm_greeter_get_int_theme:
+ * ldm_greeter_get_integer_property:
  * @greeter: a #LdmGreeter
  * @name: the name of the property to get
  *
- * Return value: The value of this property or NULL if is not defined
+ * Return value: The value of this property or 0 if it is not defined
  **/
 gint
-ldm_greeter_get_theme_integer_property (LdmGreeter *greeter, const gchar *name)
+ldm_greeter_get_integer_property (LdmGreeter *greeter, const gchar *name)
 {
     GError *error = NULL;
     gint result;
@@ -235,6 +235,29 @@ ldm_greeter_get_theme_integer_property (LdmGreeter *greeter, const gchar *name)
     load_theme (greeter);
 
     result = g_key_file_get_integer (greeter->priv->theme_file, "theme", name, &error);
+    if (!result)
+        g_warning ("Error reading theme property: %s", error->message); // FIXME: Can handle G_KEY_FILE_ERROR_KEY_NOT_FOUND and G_KEY_FILE_ERROR_GROUP_NOT_FOUND
+    g_clear_error (&error);
+
+    return result;
+}
+
+/**
+ * ldm_greeter_get_boolean_property:
+ * @greeter: a #LdmGreeter
+ * @name: the name of the property to get
+ *
+ * Return value: The value of this property or FALSE if it is not defined
+ **/
+gboolean
+ldm_greeter_get_boolean_property (LdmGreeter *greeter, const gchar *name)
+{
+    GError *error = NULL;
+    gboolean result;
+
+    load_theme (greeter);
+
+    result = g_key_file_get_boolean (greeter->priv->theme_file, "theme", name, &error);
     if (!result)
         g_warning ("Error reading theme property: %s", error->message); // FIXME: Can handle G_KEY_FILE_ERROR_KEY_NOT_FOUND and G_KEY_FILE_ERROR_GROUP_NOT_FOUND
     g_clear_error (&error);

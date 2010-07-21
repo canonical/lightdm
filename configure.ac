@@ -179,6 +179,7 @@ libldmgreeter/Makefile
 po/Makefile.in
 src/Makefile
 themes/Makefile
+themes/gnome/Makefile
 themes/webkit/Makefile
 ])
 

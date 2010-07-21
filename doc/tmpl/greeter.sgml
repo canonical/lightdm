@@ -146,6 +146,11 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
 </para>
 
+<!-- ##### ARG LdmGreeter:hostname ##### -->
+<para>
+
+</para>
+
 <!-- ##### ARG LdmGreeter:is-authenticated ##### -->
 <para>
 
@@ -191,6 +196,54 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 </para>
 
 @greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_hostname ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_theme ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_string_property ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@name: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_integer_property ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@name: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_boolean_property ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@name: 
 @Returns: 
 
 

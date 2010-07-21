@@ -1,4 +1,4 @@
-SUBDIRS = webkit
+SUBDIRS = gnome webkit
 
 themedir = $(THEME_DIR)
 theme_DATA = gnome.theme webkit.theme

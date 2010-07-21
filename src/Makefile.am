@@ -69,7 +69,8 @@ lightdm_LDADD = \
 	$(LIGHTDM_LIBS) \
 	-lpam
 
-EXTRA_DIST = display-manager.xml \
+EXTRA_DIST = ldm-marshal.list \
+	display-manager.xml \
 	display.xml \
 	user-manager.xml
 

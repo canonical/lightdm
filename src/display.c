@@ -357,7 +357,6 @@ display_connect (Display *display, const gchar **theme, const gchar **session, c
 
     filename = g_strdup_printf ("%s.theme", display->priv->greeter_theme);
     *theme = g_build_filename (THEME_DIR, filename, NULL);
-    printf("1.%s\n", *theme);
     g_free (filename);
     *session = g_strdup (display->priv->session_name);
     *username = g_strdup (display->priv->default_user);

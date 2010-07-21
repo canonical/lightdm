@@ -493,6 +493,84 @@ get_timed_login_delay_cb (JSContextRef context,
 }
 
 static JSValueRef
+get_string_property_cb (JSContextRef context,
+                        JSObjectRef function,
+                        JSObjectRef thisObject,
+                        size_t argumentCount,
+                        const JSValueRef arguments[],
+                        JSValueRef *exception)
+{
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    JSStringRef name_arg;
+    char name[1024];
+    gchar *value;
+    JSStringRef string;
+
+    // FIXME: Throw exception
+    if (argumentCount != 1)
+        return JSValueMakeNull (context);
+
+    name_arg = JSValueToStringCopy (context, arguments[0], NULL);
+    JSStringGetUTF8CString (name_arg, name, 1024);
+    JSStringRelease (name_arg);
+  
+    value = ldm_greeter_get_string_property (greeter, name);
+
+    if (!value)
+        return JSValueMakeNull (context);
+
+    string = JSStringCreateWithUTF8CString (value);
+    g_free (value);
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_integer_property_cb (JSContextRef context,
+                         JSObjectRef function,
+                         JSObjectRef thisObject,
+                         size_t argumentCount,
+                         const JSValueRef arguments[],
+                         JSValueRef *exception)
+{
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    JSStringRef name_arg;
+    char name[1024];
+
+    // FIXME: Throw exception
+    if (argumentCount != 1)
+        return JSValueMakeNull (context);
+
+    name_arg = JSValueToStringCopy (context, arguments[0], NULL);
+    JSStringGetUTF8CString (name_arg, name, 1024);
+    JSStringRelease (name_arg);
+  
+    return JSValueMakeNumber (context, ldm_greeter_get_integer_property (greeter, name));
+}
+
+static JSValueRef
+get_boolean_property_cb (JSContextRef context,
+                         JSObjectRef function,
+                         JSObjectRef thisObject,
+                         size_t argumentCount,
+                         const JSValueRef arguments[],
+                         JSValueRef *exception)
+{
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    JSStringRef name_arg;
+    char name[1024];
+
+    // FIXME: Throw exception
+    if (argumentCount != 1)
+        return JSValueMakeNull (context);
+
+    name_arg = JSValueToStringCopy (context, arguments[0], NULL);
+    JSStringGetUTF8CString (name_arg, name, 1024);
+    JSStringRelease (name_arg);
+
+    return JSValueMakeBoolean (context, ldm_greeter_get_boolean_property (greeter, name));
+}
+
+static JSValueRef
 cancel_timed_login_cb (JSContextRef context,
                        JSObjectRef function,
                        JSObjectRef thisObject,
@@ -826,7 +904,10 @@ static const JSStaticValue ldm_greeter_values[] =
 
 static const JSStaticFunction ldm_greeter_functions[] =
 {
-    { "cancel_timed_login", cancel_timed_login_cb, kJSPropertyAttributeReadOnly },  
+    { "get_string_property", get_string_property_cb, kJSPropertyAttributeReadOnly },
+    { "get_integer_property", get_integer_property_cb, kJSPropertyAttributeReadOnly },
+    { "get_boolean_property", get_boolean_property_cb, kJSPropertyAttributeReadOnly },
+    { "cancel_timed_login", cancel_timed_login_cb, kJSPropertyAttributeReadOnly },
     { "start_authentication", start_authentication_cb, kJSPropertyAttributeReadOnly },
     { "provide_secret", provide_secret_cb, kJSPropertyAttributeReadOnly },
     { "cancel_authentication", cancel_authentication_cb, kJSPropertyAttributeReadOnly },
