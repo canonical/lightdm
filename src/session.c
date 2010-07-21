@@ -20,6 +20,7 @@
 
 enum {
     EXITED,
+    KILLED,
     LAST_SIGNAL
 };
 static guint signals[LAST_SIGNAL] = { 0 };
@@ -92,14 +93,18 @@ session_watch_cb (GPid pid, gint status, gpointer data)
 {
     Session *session = data;
 
-    if (WIFEXITED (status))
-        g_debug ("Session exited with return value %d", WEXITSTATUS (status));
-    else if (WIFSIGNALED (status))
-        g_debug ("Session terminated with signal %d", WTERMSIG (status));
-
     session->priv->pid = 0;
 
-    g_signal_emit (session, signals[EXITED], 0);
+    if (WIFEXITED (status))
+    {
+        g_debug ("Session exited with return value %d", WEXITSTATUS (status));
+        g_signal_emit (session, signals[EXITED], 0, WEXITSTATUS (status));
+    }
+    else if (WIFSIGNALED (status))
+    {
+        g_debug ("Session terminated with signal %d", WTERMSIG (status));
+        g_signal_emit (session, signals[KILLED], 0, WTERMSIG (status));
+    }
 }
 
 static void
@@ -156,7 +161,7 @@ session_start (Session *session)
     gchar **argv, **env;
     gchar *env_string;
     GError *error = NULL;
-
+  
     g_return_val_if_fail (session->priv->pid == 0, FALSE);
 
     if (session->priv->username)
@@ -204,7 +209,7 @@ session_start (Session *session)
         return FALSE;
 
     env_string = g_strjoinv (" ", env);
-    g_debug ("Launching greeter: %s %s", env_string, session->priv->command);
+    g_debug ("Launching session: %s %s", env_string, session->priv->command);
     g_free (env_string);
 
     result = g_spawn_async/*_with_pipes*/ (working_dir,
@@ -268,6 +273,14 @@ session_class_init (SessionClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SessionClass, exited),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
+                      g_cclosure_marshal_VOID__INT,
+                      G_TYPE_NONE, 1, G_TYPE_INT);
+    signals[KILLED] =
+        g_signal_new ("killed",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (SessionClass, killed),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__INT,
+                      G_TYPE_NONE, 1, G_TYPE_INT);
 }

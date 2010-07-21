@@ -32,7 +32,8 @@ typedef struct
 {
     GObjectClass parent_class;
 
-    void (*exited)(Session *session);
+    void (*exited) (Session *session, int status);
+    void (*killed) (Session *session, int signum);
 } SessionClass;
 
 GType session_get_type (void);

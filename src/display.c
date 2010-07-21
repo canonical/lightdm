@@ -172,53 +172,77 @@ end_session (Display *display)
 }
 
 static void
-session_exit_cb (Session *session, Display *display)
+handle_end_session (Display *display, Session *session, gboolean clean_exit)
 {
     SessionType active_session;
-
+  
     g_object_unref (display->priv->session);
     display->priv->session = NULL;
 
     active_session = display->priv->active_session;
     display->priv->active_session = SESSION_NONE;
 
-    // FIXME: Check for respawn loops
-    switch (active_session)
+    /* Session ended, return to the greeter */
+    if (active_session == SESSION_USER)
     {
-    case SESSION_NONE:
-        break;
-    case SESSION_GREETER_PRE_CONNECT:
-        g_warning ("Failed to start greeter");
-        break;
-    case SESSION_GREETER:
-        if (display->priv->default_user && display->priv->timeout > 0)
-        {
-            g_debug ("Starting session for default user %s", display->priv->default_user);
-            display->priv->pam_session = pam_session_new (display->priv->default_user);
-            pam_session_authorize (display->priv->pam_session);
-            start_session (display);
-            start_user_session (display);
-        }
-        else
-            start_greeter (display);
-        break;
-    case SESSION_GREETER_AUTHENTICATED:
-        start_user_session (display);
-        break;
-    case SESSION_USER:
+        if (!clean_exit)
+            g_warning ("Session exited unexpectedly");
         end_session (display);
         start_greeter (display);
-        break;
+        return;
     }
+
+    if (!clean_exit)
+    {
+        g_warning ("Greeter failed");
+        return;
+    }
+
+    if (active_session == SESSION_GREETER_PRE_CONNECT)
+    {
+        g_warning ("Greeter quit before connecting");
+        return;
+    }
+
+    /* Greeter successfully chose a user, start their session */
+    if (active_session == SESSION_GREETER_AUTHENTICATED)
+    {
+        start_user_session (display);
+        return;
+    }
+
+    if (display->priv->default_user && display->priv->timeout > 0)
+    {
+        g_debug ("Starting session for default user %s", display->priv->default_user);
+        display->priv->pam_session = pam_session_new (display->priv->default_user);
+        pam_session_authorize (display->priv->pam_session);
+        start_session (display);
+        start_user_session (display);
+    }
+    else
+        start_greeter (display);
 }
- 
+
+static void
+session_exited_cb (Session *session, gint status, Display *display)
+{
+    handle_end_session (display, session, status == 0);
+}
+
+static void
+session_killed_cb (Session *session, gint status, Display *display)
+{
+    handle_end_session (display, session, FALSE);
+}
+
 static void
 open_session (Display *display, const gchar *username, const gchar *command)
 {
     g_return_if_fail (display->priv->session == NULL);
 
     display->priv->session = session_new (username, command);
-    g_signal_connect (G_OBJECT (display->priv->session), "exited", G_CALLBACK (session_exit_cb), display);
+    g_signal_connect (G_OBJECT (display->priv->session), "exited", G_CALLBACK (session_exited_cb), display);
+    g_signal_connect (G_OBJECT (display->priv->session), "killed", G_CALLBACK (session_killed_cb), display);
     session_set_env (display->priv->session, "DISPLAY", xserver_get_address (display->priv->xserver));
     if (display->priv->ck_session)
         session_set_env (display->priv->session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->ck_session));
@@ -272,7 +296,7 @@ start_greeter (Display *display)
 {
     GKeyFile *theme;
     GError *error = NULL;
-
+  
     theme = load_theme (display->priv->greeter_theme, &error);
     if (!theme)
         g_warning ("Failed to find theme %s: %s", display->priv->greeter_theme, error->message);
@@ -477,7 +501,7 @@ xserver_ready_cb (XServer *xserver, Display *display)
     /* Don't run any sessions on local terminals */
     if (xserver_get_server_type (xserver) == XSERVER_TYPE_LOCAL_TERMINAL)
         return;
-
+  
     /* If have user then automatically login */
     if (display->priv->default_user && display->priv->timeout == 0)
     {
