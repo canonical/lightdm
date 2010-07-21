@@ -111,12 +111,14 @@ handle_signal (gpointer data)
     if (info->si_signo == SIGUSR1)
     {
         xserver_handle_signal (info->si_pid);
-        return FALSE;
     }
-
-    g_debug ("Caught %s signal, exiting", g_strsignal (info->si_signo));
-    g_object_unref (display_manager);
-    g_main_loop_quit (loop);
+    else
+    {
+        g_debug ("Caught %s signal, exiting", g_strsignal (info->si_signo));
+        g_object_unref (display_manager);
+        g_main_loop_quit (loop);
+    }
+    g_free (info);
 
     return FALSE;
 }
@@ -124,7 +126,12 @@ handle_signal (gpointer data)
 static void
 signal_cb (int signum, siginfo_t *info, void *data)
 {
-    g_idle_add (handle_signal, info);
+    siginfo_t *info_copy;
+
+    info_copy = g_malloc (sizeof (siginfo_t));
+    *info_copy = *info;
+
+    g_idle_add (handle_signal, info_copy);
 }
 
 static DBusGConnection *

@@ -133,7 +133,6 @@ static void
 xauth_init (XAuthorization *auth)
 {
     auth->priv = G_TYPE_INSTANCE_GET_PRIVATE (auth, XAUTH_TYPE, XAuthorizationPrivate);
-    auth->priv->authorization_name = g_strdup ("");
 }
 
 static void
