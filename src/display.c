@@ -388,7 +388,6 @@ pam_messages_cb (PAMSession *session, int num_msg, const struct pam_message **ms
 
     context = display->priv->dbus_context;
     display->priv->dbus_context = NULL;
-
     dbus_g_method_return (context, 0, request);
 }
 
@@ -441,15 +440,25 @@ display_start_authentication (Display *display, const gchar *username, DBusGMeth
 {
     GError *error = NULL;
 
+    // FIXME: Only allow calls from the correct greeter
+
     if (!display->priv->greeter_session || display->priv->user_session)
     {
         dbus_g_method_return_error (context, NULL);
         return TRUE;
     }
 
-    g_debug ("Greeter start authorisation for %s", username);
+    /* Abort existing authentication */
+    if (display->priv->user_pam_session)
+    {
+        g_signal_handlers_disconnect_matched (display->priv->user_pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
+        pam_session_end (display->priv->user_pam_session);
+        if (display->priv->dbus_context)
+            dbus_g_method_return_error (display->priv->dbus_context, NULL);
+        g_object_unref (display->priv->user_pam_session);
+    }
 
-    // FIXME: Only allow calls from the correct greeter
+    g_debug ("Greeter start authentication for %s", username);
 
     /* Store D-Bus request to respond to */
     display->priv->dbus_context = context;
@@ -458,6 +467,7 @@ display_start_authentication (Display *display, const gchar *username, DBusGMeth
     g_signal_connect (G_OBJECT (display->priv->user_pam_session), "got-messages", G_CALLBACK (pam_messages_cb), display);
     g_signal_connect (G_OBJECT (display->priv->user_pam_session), "authentication-result", G_CALLBACK (authenticate_result_cb), display);
     g_signal_connect (G_OBJECT (display->priv->user_pam_session), "started", G_CALLBACK (session_started_cb), display);
+
     if (!pam_session_start (display->priv->user_pam_session, &error))
     {
         g_warning ("Failed to start authentication: %s", error->message);

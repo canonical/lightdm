@@ -94,20 +94,27 @@ pam_conv_cb (int num_msg, const struct pam_message **msg,
              struct pam_response **resp, void *app_data)
 {
     PAMSession *session = app_data;
+    struct pam_response *response;
+
+    /* Cancelled by user */
+    if (session->priv->stop)
+        return PAM_CONV_ERR;
 
     /* Notify user */
     session->priv->num_messages = num_msg;
     session->priv->messages = msg;
     g_idle_add (notify_messages_cb, session);
 
-    /* Wait for response */  
-    *resp = g_async_queue_pop (session->priv->authentication_response_queue);
+    /* Wait for response */
+    response = g_async_queue_pop (session->priv->authentication_response_queue);
     session->priv->num_messages = 0;
     session->priv->messages = NULL;
-
+  
     /* Cancelled by user */
-    if (*resp == NULL)
-        return PAM_SYSTEM_ERR;
+    if (session->priv->stop)
+        return PAM_CONV_ERR;
+
+    *resp = response;
 
     return PAM_SUCCESS;
 }
@@ -128,15 +135,16 @@ notify_auth_complete_cb (gpointer data)
 
     /* Authentication was cancelled */
     if (session->priv->stop)
-    {
         pam_session_end (session);
-        return FALSE;
+    else
+    {
+        g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, result);
+        if (result == PAM_SUCCESS)
+           pam_session_authorize (session);
     }
 
-    g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, result);
-
-    if (result == PAM_SUCCESS)
-       pam_session_authorize (session);
+    /* The thread is complete, drop the reference */
+    g_object_unref (session);
 
     return FALSE;
 }
@@ -149,6 +157,7 @@ authenticate_cb (gpointer data)
 
     pam_start ("check_pass", session->priv->username, &conversation, &session->priv->pam_handle);
     session->priv->result = pam_authenticate (session->priv->pam_handle, 0);
+
     g_debug ("pam_authenticate -> %s", pam_strerror (session->priv->pam_handle, session->priv->result));
 
     /* Notify user */
@@ -163,6 +172,9 @@ pam_session_start (PAMSession *session, GError **error)
     g_return_val_if_fail (session->priv->authentication_thread == NULL, FALSE);
 
     g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_STARTED], 0);
+  
+    /* Hold a reference to this object while the thread may access it */
+    g_object_ref (session);
 
     /* Start thread */
     session->priv->authentication_response_queue = g_async_queue_new ();
@@ -211,7 +223,7 @@ pam_session_end (PAMSession *session)
     if (session->priv->authentication_thread)
     {
         session->priv->stop = TRUE;
-        g_async_queue_push (session->priv->authentication_response_queue, NULL);
+        g_async_queue_push (session->priv->authentication_response_queue, GINT_TO_POINTER (-1));
     }
     else if (session->priv->in_session)
     {
@@ -233,6 +245,8 @@ pam_session_finalize (GObject *object)
     PAMSession *self;
 
     self = PAM_SESSION (object);
+  
+    pam_session_end (self);
 
     g_free (self->priv->username);
     if (self->priv->pam_handle)
