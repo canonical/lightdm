@@ -30,6 +30,9 @@ struct XServerPrivate
     /* Type of server */
     XServerType type;
 
+    /* Environment variables */
+    GHashTable *env;
+
     /* Command to run the X server */
     gchar *command;
 
@@ -117,6 +120,12 @@ const gchar *
 xserver_get_command (XServer *server)
 {
     return server->priv->command;
+}
+
+void
+xserver_set_env (XServer *server, const gchar *name, const gchar *value)
+{
+    g_hash_table_insert (server->priv->env, g_strdup (name), g_strdup (value));
 }
 
 void
@@ -257,6 +266,27 @@ xserver_fork_cb (gpointer data)
     signal (SIGUSR1, SIG_IGN);
 }
 
+static gchar **
+get_env (XServer *server)
+{
+    gchar **env;
+    gpointer key, value;
+    GHashTableIter iter;
+    gint i = 0;
+
+    env = g_malloc (sizeof (gchar *) * (g_hash_table_size (server->priv->env) + 1));
+    g_hash_table_iter_init (&iter, server->priv->env);
+    while (g_hash_table_iter_next (&iter, &key, &value))
+    {
+        // FIXME: Do these need to be freed?
+        env[i] = g_strdup_printf("%s=%s", (gchar *)key, (gchar *)value);
+        i++;
+    }
+    env[i] = NULL;
+
+    return env;
+}
+
 gboolean
 xserver_start (XServer *server)
 {
@@ -266,7 +296,6 @@ xserver_start (XServer *server)
     gint argc;
     gchar **argv;
     gchar **env;
-    gint n_env = 0;
     gchar *env_string;
     //gint xserver_stdin, xserver_stdout, xserver_stderr;
 
@@ -283,13 +312,7 @@ xserver_start (XServer *server)
         return TRUE;
     }
 
-    // FIXME: Do these need to be freed?
-    env = g_malloc (sizeof (gchar *) * 3);
-    if (getenv ("DISPLAY"))
-        env[n_env++] = g_strdup_printf ("DISPLAY=%s", getenv ("DISPLAY"));
-    if (getenv ("XAUTHORITY"))
-        env[n_env++] = g_strdup_printf ("XAUTHORITY=%s", getenv ("XAUTHORITY"));
-    env[n_env] = NULL;
+    env = get_env (server);
 
     /* Write the authorization file */
     if (server->priv->authorization)
@@ -369,6 +392,7 @@ static void
 xserver_init (XServer *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_TYPE, XServerPrivate);
+    server->priv->env = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
     server->priv->command = g_strdup (XSERVER_BINARY);
     server->priv->authentication_name = g_strdup ("");
 }
@@ -386,6 +410,7 @@ xserver_finalize (GObject *object)
     if (self->priv->pid)
         kill (self->priv->pid, SIGTERM);
 
+    g_hash_table_unref (self->priv->env);
     g_free (self->priv->command);
     g_free (self->priv->hostname);
     g_free (self->priv->authentication_name);

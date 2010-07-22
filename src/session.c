@@ -130,7 +130,8 @@ session_fork_cb (gpointer data)
         g_warning ("Failed to change directory: %s", strerror (errno));
 }
 
-static gchar **session_get_env (Session *session)
+static gchar **
+get_env (Session *session)
 {
     gchar **env;
     gpointer key, value;
@@ -202,7 +203,7 @@ session_start (Session *session)
         g_clear_error (&error);
     }
 
-    env = session_get_env (session);
+    env = get_env (session);
 
     result = g_shell_parse_argv (session->priv->command, &argc, &argv, &error);
     if (!result)

@@ -384,6 +384,12 @@ display_manager_start (DisplayManager *manager)
         }
         g_free (xdmcp_manager);
 
+        /* Allow X server to be Xephyr */
+        if (getenv ("DISPLAY"))
+            xserver_set_env (xserver, "DISPLAY", getenv ("DISPLAY"));
+        if (getenv ("XAUTHORITY"))
+            xserver_set_env (xserver, "XAUTHORITY", getenv ("XAUTHORITY"));
+
         xserver_command = g_key_file_get_string (manager->priv->config, "LightDM", "xserver", NULL);
         if (xserver_command)
             xserver_set_command (xserver, xserver_command);
