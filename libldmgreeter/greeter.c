@@ -559,7 +559,6 @@ update_sessions (LdmGreeter *greeter)
 {
     GDir *directory;
     GError *error = NULL;
-    GKeyFile *key_file;
 
     if (greeter->priv->have_sessions)
         return;
@@ -571,10 +570,10 @@ update_sessions (LdmGreeter *greeter)
     if (!directory)
         return;
 
-    key_file = g_key_file_new ();
     while (TRUE)
     {
         const gchar *filename;
+        GKeyFile *key_file;
         gchar *key, *path;
         gboolean result;
 
@@ -589,43 +588,40 @@ update_sessions (LdmGreeter *greeter)
         path = g_build_filename (XSESSIONS_DIR, filename, NULL);
         g_debug ("Loading session %s", path);
 
+        key_file = g_key_file_new ();
         result = g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, &error);
         if (!result)
             g_warning ("Failed to load session file %s: %s:", path, error->message);
         g_clear_error (&error);
 
-        if (result)
+        if (result && !g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY, NULL))
         {
-            GDesktopAppInfo *desktop_file;
+            gchar *domain, *name, *comment;
 
-            desktop_file = g_desktop_app_info_new_from_keyfile (key_file);
-
-            if (desktop_file && g_app_info_should_show (G_APP_INFO (desktop_file)))
+            domain = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN, NULL);
+            name = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NAME, domain, NULL);
+            comment = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_COMMENT, domain, NULL);
+            if (!comment)
+                comment = g_strdup ("");
+            if (name)
             {
-                const gchar *name, *comment;
-
-                name = g_app_info_get_name (G_APP_INFO (desktop_file));
-                comment = g_app_info_get_display_name (G_APP_INFO (desktop_file));
-                if (name && comment)
-                {
-                    g_debug ("Loaded session %s (%s, %s)", key, name, comment);
-                    greeter->priv->sessions = g_list_append (greeter->priv->sessions, ldm_session_new (key, name, comment));
-                }
-                else
-                    g_warning ("Invalid session %s: %s", path, error->message);
-                g_clear_error (&error);
+                g_debug ("Loaded session %s (%s, %s)", key, name, comment);
+                greeter->priv->sessions = g_list_append (greeter->priv->sessions, ldm_session_new (key, name, comment));
             }
-
-            if (desktop_file)
-                g_object_unref (desktop_file);
+            else
+                g_warning ("Invalid session %s: %s", path, error->message);
+            g_clear_error (&error);
+            g_free (domain);
+            g_free (name);
+            g_free (comment);
         }
 
         g_free (key);
         g_free (path);
+        g_key_file_free (key_file);
     }
 
     g_dir_close (directory);
-    g_key_file_free (key_file);
 
     greeter->priv->have_sessions = TRUE;
 }
