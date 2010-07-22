@@ -21,6 +21,7 @@ static GtkListStore *user_model;
 static GtkWidget *user_window, *vbox, *message_label, *user_view;
 static GtkWidget *password_entry;
 static GtkWidget *panel_window;
+static gchar *theme_name;
 
 static void
 start_authentication (const gchar *username)
@@ -169,7 +170,7 @@ a11y_contrast_cb (GtkWidget *widget)
     if (gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
         g_object_set (gtk_settings_get_default (), "gtk-theme-name", "HighContrastInverse", NULL);
     else
-        g_object_set (gtk_settings_get_default (), "gtk-theme-name", "Ambiance", NULL);
+        g_object_set (gtk_settings_get_default (), "gtk-theme-name", theme_name, NULL);
         ldm_greeter_set_session (greeter, g_object_get_data (G_OBJECT (widget), "key"));  
 }
 
@@ -216,6 +217,8 @@ main(int argc, char **argv)
     }
 
     gtk_init (&argc, &argv);
+
+    g_object_get (gtk_settings_get_default (), "gtk-theme-name", &theme_name, NULL);
 
     display = gdk_display_get_default ();
     screen = gdk_display_get_default_screen (display);
@@ -319,7 +322,7 @@ main(int argc, char **argv)
     gtk_tree_view_set_grid_lines (GTK_TREE_VIEW (user_view), GTK_TREE_VIEW_GRID_LINES_NONE);
 
     renderer = gtk_cell_renderer_pixbuf_new();
-    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 0, "Face", renderer, "pixbuf", 2, /*"sensitive", 3,*/ NULL);
+    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 0, "Face", renderer, "pixbuf", 2, "sensitive", 3, NULL);
 
     renderer = gtk_cell_renderer_text_new();
     gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 1, "Name", renderer, "text", 1, NULL);
