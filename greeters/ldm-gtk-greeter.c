@@ -115,6 +115,7 @@ authentication_complete_cb (LdmGreeter *greeter)
             gtk_list_store_set (GTK_LIST_STORE (user_model), &iter, 3, TRUE, -1);
         } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (user_model), &iter));
     }
+    gtk_widget_grab_focus (user_view);
 
     if (ldm_greeter_get_is_authenticated (greeter))
     {
@@ -178,6 +179,7 @@ main(int argc, char **argv)
     gchar *theme_dir, *rc_file, *background_image;
     GdkWindow *root;
     const GList *items, *item;
+    GtkTreeIter iter;
     GSList *session_radio_list = NULL, *language_radio_list = NULL, *layout_radio_list = NULL;
     GtkCellRenderer *renderer;
     GdkDisplay *display;
@@ -283,7 +285,6 @@ main(int argc, char **argv)
     for (item = items; item; item = item->next)
     {
         LdmUser *user = item->data;
-        GtkTreeIter iter;
         const gchar *image;
         GdkPixbuf *pixbuf = NULL;
 
@@ -326,6 +327,9 @@ main(int argc, char **argv)
     gtk_box_pack_start (GTK_BOX (vbox), user_view, FALSE, FALSE, 0);
     g_signal_connect (user_view, "row-activated", G_CALLBACK (user_view_activate_cb), NULL);
     g_signal_connect (user_view, "button-press-event", G_CALLBACK (user_view_click_cb), NULL);
+
+    if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (user_model), &iter))
+        gtk_tree_selection_select_iter (gtk_tree_view_get_selection (GTK_TREE_VIEW (user_view)), &iter);
 
     password_entry = gtk_entry_new ();
     gtk_entry_set_visibility (GTK_ENTRY (password_entry), FALSE);
@@ -474,6 +478,8 @@ main(int argc, char **argv)
     gtk_widget_get_allocation (panel_window, &allocation);
     gtk_widget_set_size_request (GTK_WIDGET (panel_window), screen_width, allocation.height);  
     gtk_window_move (GTK_WINDOW (panel_window), 0, screen_height - allocation.height);
+
+    gtk_widget_grab_focus (user_view);
 
     gtk_main ();
 
