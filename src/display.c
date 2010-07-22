@@ -270,7 +270,7 @@ end_greeter_session (Display *display, gboolean clean_exit)
     }
 
     /* Greeter successfully chose a user, start their session */
-    if (!greeter_authenticated)
+    if (greeter_authenticated)
     {
         start_user_session (display);
         return;
