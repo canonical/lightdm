@@ -156,6 +156,10 @@ add_display (DisplayManager *manager)
     if (manager->priv->test_mode)
         display_set_greeter_user (display, NULL);
 
+    value = g_key_file_get_value (manager->priv->config, "Greeter", "session", NULL);
+    if (value)
+        display_set_session (display, value, NULL);
+    g_free (value);
     value = g_key_file_get_value (manager->priv->config, "Greeter", "user", NULL);
     if (value)
         display_set_greeter_user (display, value);
