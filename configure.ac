@@ -67,7 +67,7 @@ AC_ARG_WITH(config-file,
 )    
 AC_SUBST(CONFIG_FILE)
 
-DBUS_SYS_DIR="/etc/dbus-1/system.d"
+DBUS_SYS_DIR="$sysconfdir/dbus-1/system.d"
 AC_ARG_WITH(dbus-sys,
             AS_HELP_STRING([--with-dbus-sys=<dir>],
                            [where D-BUS system.d directory is]),
@@ -87,7 +87,7 @@ AC_ARG_WITH(xserver-binary,
 )    
 AC_SUBST(XSERVER_BINARY)
 
-XAUTH_DIR=/var/run/lightdm/authority
+XAUTH_DIR=$localstatedir/run/lightdm/authority
 AC_ARG_WITH(xauth-dir,
             AS_HELP_STRING([--with-xauth-dir=<dir>],
                            [X server authorization directory]),
