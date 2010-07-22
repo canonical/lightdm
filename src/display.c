@@ -216,21 +216,27 @@ start_user_session (Display *display)
 
     if (result)
     {
-        GDesktopAppInfo *desktop_file;
+        gchar *command;
 
-        desktop_file = g_desktop_app_info_new_from_keyfile (key_file);
+        command = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
+        if (!command)
+            g_warning ("No command in session file %s", path);
 
-        display->priv->user_session = session_new (pam_session_get_username (display->priv->user_pam_session), g_app_info_get_executable (G_APP_INFO (desktop_file)));
-        g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
-        g_signal_connect (G_OBJECT (display->priv->user_session), "killed", G_CALLBACK (user_session_killed_cb), display);
-        session_set_env (display->priv->user_session, "DISPLAY", xserver_get_address (display->priv->xserver));
-        session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
+        if (command)
+        {
+            display->priv->user_session = session_new (pam_session_get_username (display->priv->user_pam_session), command);
 
-        g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
+            g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
+            g_signal_connect (G_OBJECT (display->priv->user_session), "killed", G_CALLBACK (user_session_killed_cb), display);
+            session_set_env (display->priv->user_session, "DISPLAY", xserver_get_address (display->priv->xserver));
+            session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
 
-        session_start (display->priv->user_session);
+            g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
 
-        g_object_unref (desktop_file);
+            session_start (display->priv->user_session);
+        }
+
+        g_free (command);
     }
 
     g_key_file_free (key_file);
