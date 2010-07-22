@@ -19,8 +19,27 @@
 static LdmGreeter *greeter;
 static GtkListStore *user_model;
 static GtkWidget *user_window, *vbox, *message_label, *user_view;
-static GtkWidget *username_entry, *password_entry;
+static GtkWidget *password_entry;
 static GtkWidget *panel_window;
+
+static void
+start_authentication (const gchar *username)
+{
+    GtkTreeIter iter;
+
+    if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (user_model), &iter))
+    {
+        do
+        {
+            gchar *user;
+            gtk_tree_model_get (GTK_TREE_MODEL (user_model), &iter, 0, &user, -1);
+            gtk_list_store_set (GTK_LIST_STORE (user_model), &iter, 3, strcmp (user, username) == 0, -1);
+            g_free (user);
+        } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (user_model), &iter));
+    }
+
+    ldm_greeter_start_authentication (greeter, username);
+}
 
 static void
 user_view_activate_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *column)
@@ -30,17 +49,33 @@ user_view_activate_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *
 
     gtk_tree_model_get_iter (GTK_TREE_MODEL (user_model), &iter, path);
     gtk_tree_model_get (GTK_TREE_MODEL (user_model), &iter, 0, &user, -1);
-
-    gtk_entry_set_text (GTK_ENTRY (username_entry), user);
-    ldm_greeter_start_authentication (greeter, user);
-
+    start_authentication (user);
     g_free (user);
 }
 
-static void
-username_activate_cb (GtkWidget *widget)
+static gboolean
+idle_select_cb ()
 {
-    ldm_greeter_start_authentication (greeter, gtk_entry_get_text (GTK_ENTRY (widget)));
+    GtkTreeIter iter;
+    gchar *user;
+
+    if (gtk_tree_selection_get_selected (gtk_tree_view_get_selection (GTK_TREE_VIEW (user_view)),
+                                         NULL, &iter))
+    {
+        gtk_tree_model_get (GTK_TREE_MODEL (user_model), &iter, 0, &user, -1);
+        start_authentication (user);
+        g_free (user);
+    }
+
+    return FALSE;
+}
+
+static gboolean
+user_view_click_cb (GtkWidget *widget, GdkEventButton *event)
+{
+    /* Do it in the idle loop so the selection is done first */
+    g_idle_add (idle_select_cb, NULL);
+    return FALSE;
 }
 
 static void
@@ -68,6 +103,19 @@ show_message_cb (LdmGreeter *greeter, const gchar *text)
 static void
 authentication_complete_cb (LdmGreeter *greeter)
 {
+    GtkTreeIter iter;
+
+    gtk_widget_hide (password_entry);
+    gtk_entry_set_text (GTK_ENTRY (password_entry), "");
+
+    if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (user_model), &iter))
+    {
+        do
+        {
+            gtk_list_store_set (GTK_LIST_STORE (user_model), &iter, 3, TRUE, -1);
+        } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (user_model), &iter));
+    }
+
     if (ldm_greeter_get_is_authenticated (greeter))
     {
         ldm_greeter_login (greeter);
@@ -76,8 +124,6 @@ authentication_complete_cb (LdmGreeter *greeter)
     {
         gtk_widget_show (message_label);
         gtk_label_set_text (GTK_LABEL (message_label), "Failed to authenticate");
-        gtk_entry_set_text (GTK_ENTRY (password_entry), "");
-        gtk_widget_grab_focus (username_entry);
     }
 }
 
@@ -232,7 +278,7 @@ main(int argc, char **argv)
     gtk_box_pack_start (GTK_BOX (vbox), message_label, FALSE, FALSE, 0);
     gtk_widget_set_no_show_all (message_label, TRUE);
 
-    user_model = gtk_list_store_new (3, G_TYPE_STRING, G_TYPE_STRING, GDK_TYPE_PIXBUF);
+    user_model = gtk_list_store_new (4, G_TYPE_STRING, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_BOOLEAN);
     items = ldm_greeter_get_users (greeter);
     for (item = items; item; item = item->next)
     {
@@ -257,12 +303,13 @@ main(int argc, char **argv)
                                                64,
                                                0,
                                                NULL);
-      
+
         gtk_list_store_append (GTK_LIST_STORE (user_model), &iter);
         gtk_list_store_set (GTK_LIST_STORE (user_model), &iter,
                             0, ldm_user_get_name (user),
                             1, ldm_user_get_display_name (user),
                             2, pixbuf,
+                            3, TRUE,
                             -1);
     }
 
@@ -271,18 +318,14 @@ main(int argc, char **argv)
     gtk_tree_view_set_grid_lines (GTK_TREE_VIEW (user_view), GTK_TREE_VIEW_GRID_LINES_NONE);
 
     renderer = gtk_cell_renderer_pixbuf_new();
-    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 0, "User", renderer, "pixbuf", 2, NULL);
+    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 0, "Face", renderer, "pixbuf", 2, /*"sensitive", 3,*/ NULL);
 
     renderer = gtk_cell_renderer_text_new();
-    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 1, "User", renderer, "text", 1, NULL);
+    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 1, "Name", renderer, "text", 1, NULL);
 
     gtk_box_pack_start (GTK_BOX (vbox), user_view, FALSE, FALSE, 0);
     g_signal_connect (user_view, "row-activated", G_CALLBACK (user_view_activate_cb), NULL);
-
-    username_entry = gtk_entry_new ();
-    gtk_box_pack_start (GTK_BOX (vbox), username_entry, FALSE, FALSE, 0);
-    g_signal_connect (username_entry, "activate", G_CALLBACK (username_activate_cb), NULL);
-    gtk_widget_set_no_show_all (username_entry, TRUE);
+    g_signal_connect (user_view, "button-press-event", G_CALLBACK (user_view_click_cb), NULL);
 
     password_entry = gtk_entry_new ();
     gtk_entry_set_visibility (GTK_ENTRY (password_entry), FALSE);

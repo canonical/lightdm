@@ -124,8 +124,48 @@ timed_login_cb (gpointer data)
 gboolean
 ldm_greeter_connect (LdmGreeter *greeter)
 {
-    gboolean result;
     GError *error = NULL;
+    const gchar *bus_address, *object;
+    DBusBusType bus_type = DBUS_BUS_SYSTEM;
+    gboolean result;
+
+    greeter->priv->system_bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
+    if (!greeter->priv->system_bus)
+        g_warning ("Failed to connect to system bus: %s", error->message);
+    g_clear_error (&error);
+    if (!greeter->priv->system_bus)
+        return FALSE;
+
+    bus_address = getenv ("LDM_BUS");
+    if (bus_address && strcmp (bus_address, "SESSION") == 0)
+        bus_type = DBUS_BUS_SESSION;
+
+    greeter->priv->lightdm_bus = dbus_g_bus_get (bus_type, &error);
+    if (!greeter->priv->lightdm_bus)
+        g_warning ("Failed to connect to LightDM bus: %s", error->message);
+    g_clear_error (&error);
+    if (!greeter->priv->lightdm_bus)
+        return FALSE;
+
+    object = getenv ("LDM_DISPLAY");
+    if (!object)
+    {
+        g_warning ("No LDM_DISPLAY enviroment variable");
+        return FALSE;
+    }
+
+    greeter->priv->display_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
+                                                              "org.gnome.LightDisplayManager",
+                                                              object,
+                                                              "org.gnome.LightDisplayManager.Greeter");
+    greeter->priv->session_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
+                                                              "org.gnome.LightDisplayManager",
+                                                              "/org/gnome/LightDisplayManager/Session",
+                                                              "org.gnome.LightDisplayManager.Session");
+    greeter->priv->user_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
+                                                           "org.gnome.LightDisplayManager",
+                                                           "/org/gnome/LightDisplayManager/Users",
+                                                           "org.gnome.LightDisplayManager.Users");
 
     result = dbus_g_proxy_call (greeter->priv->display_proxy, "Connect", &error,
                                 G_TYPE_INVALID,
@@ -1022,42 +1062,7 @@ ldm_greeter_shutdown (LdmGreeter *greeter)
 static void
 ldm_greeter_init (LdmGreeter *greeter)
 {
-    GError *error = NULL;
-    const gchar *bus_address, *object;
-    DBusBusType bus_type = DBUS_BUS_SYSTEM;
-
     greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, LDM_TYPE_GREETER, LdmGreeterPrivate);
-
-    greeter->priv->system_bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
-    if (!greeter->priv->system_bus)
-        g_error ("Failed to connect to system bus: %s", error->message);
-    g_clear_error (&error);
-
-    bus_address = getenv ("LDM_BUS");
-    if (bus_address && strcmp (bus_address, "SESSION") == 0)
-        bus_type = DBUS_BUS_SESSION;
-
-    greeter->priv->lightdm_bus = dbus_g_bus_get (bus_type, &error);
-    if (!greeter->priv->lightdm_bus)
-        g_error ("Failed to connect to LightDM bus: %s", error->message);
-    g_clear_error (&error);
-
-    object = getenv ("LDM_DISPLAY");
-    if (!object)
-        g_error ("No LDM_DISPLAY enviroment variable");
-
-    greeter->priv->display_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
-                                                              "org.gnome.LightDisplayManager",
-                                                              object,
-                                                              "org.gnome.LightDisplayManager.Greeter");
-    greeter->priv->session_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
-                                                              "org.gnome.LightDisplayManager",
-                                                              "/org/gnome/LightDisplayManager/Session",
-                                                              "org.gnome.LightDisplayManager.Session");
-    greeter->priv->user_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
-                                                           "org.gnome.LightDisplayManager",
-                                                           "/org/gnome/LightDisplayManager/Users",
-                                                           "org.gnome.LightDisplayManager.Users");
 }
 
 static void
