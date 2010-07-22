@@ -238,7 +238,12 @@ start_user_session (Display *display)
 
 static void
 end_greeter_session (Display *display, gboolean clean_exit)
-{
+{  
+    gboolean greeter_connected, greeter_authenticated;
+
+    greeter_connected = display->priv->greeter_connected;
+    greeter_authenticated = display->priv->greeter_authenticated;
+
     g_object_unref (display->priv->greeter_session);
     display->priv->greeter_session = NULL;
     display->priv->greeter_connected = FALSE;
@@ -258,14 +263,14 @@ end_greeter_session (Display *display, gboolean clean_exit)
         return;
     }
 
-    if (!display->priv->greeter_connected)
+    if (!greeter_connected)
     {
         g_warning ("Greeter quit before connecting");
         return;
     }
 
     /* Greeter successfully chose a user, start their session */
-    if (!display->priv->greeter_authenticated)
+    if (!greeter_authenticated)
     {
         start_user_session (display);
         return;
