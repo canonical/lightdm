@@ -128,7 +128,7 @@ start_session_cb (Display *display, Session *session, DisplayManager *manager)
     }
 
     /* Address for greeter to connect to */
-    string = g_strdup_printf ("/org/gnome/LightDisplayManager/Display%d", display_get_index (display));
+    string = g_strdup_printf ("/org/freedesktop/LightDisplayManager/Display%d", display_get_index (display));
     session_set_env (session, "LDM_DISPLAY", string);
 
     authorization = xserver_get_authorization (display_get_xserver (display));

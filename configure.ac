@@ -169,6 +169,7 @@ dnl ###########################################################################
 
 AC_OUTPUT([
 Makefile
+data/org.freedesktop.LightDisplayManager.conf
 data/Makefile
 doc/Makefile
 greeters/Makefile

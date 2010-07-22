@@ -155,17 +155,17 @@ ldm_greeter_connect (LdmGreeter *greeter)
     }
 
     greeter->priv->display_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
-                                                              "org.gnome.LightDisplayManager",
+                                                              "org.freedesktop.LightDisplayManager",
                                                               object,
-                                                              "org.gnome.LightDisplayManager.Greeter");
+                                                              "org.freedesktop.LightDisplayManager.Greeter");
     greeter->priv->session_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
-                                                              "org.gnome.LightDisplayManager",
-                                                              "/org/gnome/LightDisplayManager/Session",
-                                                              "org.gnome.LightDisplayManager.Session");
+                                                              "org.freedesktop.LightDisplayManager",
+                                                              "/org/freedesktop/LightDisplayManager/Session",
+                                                              "org.freedesktop.LightDisplayManager.Session");
     greeter->priv->user_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
-                                                           "org.gnome.LightDisplayManager",
-                                                           "/org/gnome/LightDisplayManager/Users",
-                                                           "org.gnome.LightDisplayManager.Users");
+                                                           "org.freedesktop.LightDisplayManager",
+                                                           "/org/freedesktop/LightDisplayManager/Users",
+                                                           "org.freedesktop.LightDisplayManager.Users");
 
     result = dbus_g_proxy_call (greeter->priv->display_proxy, "Connect", &error,
                                 G_TYPE_INVALID,
