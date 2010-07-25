@@ -114,13 +114,12 @@ session_fork_cb (gpointer data)
   
     if (!user_info)
         return;
-  
+
     if (setgid (user_info->pw_gid) != 0)
     {
         g_warning ("Failed to set group ID: %s", strerror (errno));
         _exit(1);
     }
-    // FIXME: Is there a risk of connecting to the process for a user in the given group and accessing memory?
     if (setuid (user_info->pw_uid) != 0)
     {
         g_warning ("Failed to set user ID: %s", strerror (errno));
@@ -158,10 +157,9 @@ session_start (Session *session)
     //gint session_stdin, session_stdout, session_stderr;
     gboolean result;
     gint argc;
-    gchar *username;
+    gchar *username, *env_string;
     const gchar *working_dir = NULL;
     gchar **argv, **env;
-    gchar *env_string;
     GError *error = NULL;
   
     g_return_val_if_fail (session->priv->pid == 0, FALSE);

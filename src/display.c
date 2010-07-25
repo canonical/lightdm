@@ -216,11 +216,14 @@ start_user_session (Display *display)
 
     if (result)
     {
-        gchar *command;
+        gchar *session_command, *command = NULL;
 
-        command = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
-        if (!command)
+        session_command = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
+        if (!session_command)
             g_warning ("No command in session file %s", path);
+        if (session_command)
+            command = g_strdup_printf ("/etc/X11/Xsession %s", session_command);
+        g_free (session_command);
 
         if (command)
         {
@@ -231,6 +234,7 @@ start_user_session (Display *display)
             session_set_env (display->priv->user_session, "DISPLAY", xserver_get_address (display->priv->xserver));
             session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
             session_set_env (display->priv->user_session, "DESKTOP_SESSION", display->priv->session_name);
+            session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");
 
             g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
 
