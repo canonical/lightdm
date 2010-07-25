@@ -230,6 +230,7 @@ start_user_session (Display *display)
             g_signal_connect (G_OBJECT (display->priv->user_session), "killed", G_CALLBACK (user_session_killed_cb), display);
             session_set_env (display->priv->user_session, "DISPLAY", xserver_get_address (display->priv->xserver));
             session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
+            session_set_env (display->priv->user_session, "DESKTOP_SESSION", display->priv->session_name);
 
             g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
 
