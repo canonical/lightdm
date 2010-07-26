@@ -53,9 +53,9 @@ void display_set_greeter_theme (Display *display, const gchar *greeter_theme);
 
 const gchar *display_get_greeter_theme (Display *display);
 
-gboolean display_set_session (Display *display, const gchar *session, GError *error);
+void display_set_default_session (Display *display, const gchar *session);
 
-const gchar *display_get_session (Display *display);
+const gchar *display_get_default_session (Display *display);
 
 XServer *display_get_xserver (Display *display);
 
@@ -69,6 +69,8 @@ gboolean display_connect (Display *display, const gchar **theme, const gchar **s
 gboolean display_start_authentication (Display *display, const gchar *username, DBusGMethodInvocation *context);
 
 gboolean display_continue_authentication (Display *display, gchar **secrets, DBusGMethodInvocation *context);
+
+gboolean display_login (Display *display, gchar *username, gchar *session, GError *error);
 
 G_END_DECLS
 

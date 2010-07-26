@@ -82,9 +82,7 @@ const gchar *ldm_greeter_get_layout (LdmGreeter *greeter);
 
 const GList *ldm_greeter_get_sessions (LdmGreeter *greeter);
 
-const gchar *ldm_greeter_get_session (LdmGreeter *greeter);
-
-void ldm_greeter_set_session (LdmGreeter *greeter, const gchar *session);
+const gchar *ldm_greeter_get_default_session (LdmGreeter *greeter);
 
 const gchar *ldm_greeter_get_timed_login_user (LdmGreeter *greeter);
 
@@ -100,7 +98,9 @@ void ldm_greeter_cancel_authentication (LdmGreeter *greeter);
 
 gboolean ldm_greeter_get_is_authenticated (LdmGreeter *greeter);
 
-void ldm_greeter_login (LdmGreeter *greeter);
+const gchar *ldm_greeter_get_authentication_user (LdmGreeter *greeter);
+
+void ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *session);
 
 gboolean ldm_greeter_get_can_suspend (LdmGreeter *greeter);
 

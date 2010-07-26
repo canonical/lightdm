@@ -158,7 +158,7 @@ add_display (DisplayManager *manager)
 
     value = g_key_file_get_value (manager->priv->config, "Greeter", "session", NULL);
     if (value)
-        display_set_session (display, value, NULL);
+        display_set_default_session (display, value);
     g_free (value);
     value = g_key_file_get_value (manager->priv->config, "Greeter", "user", NULL);
     if (value)

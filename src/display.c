@@ -52,7 +52,6 @@ struct DisplayPrivate
     /* Greeter session process */
     Session *greeter_session;
     gboolean greeter_connected;
-    gboolean greeter_authenticated;
     PAMSession *greeter_pam_session;
     CkConnector *greeter_ck_session;
 
@@ -68,14 +67,13 @@ struct DisplayPrivate
     gchar *default_user;
     gint timeout;
 
-    /* Session to execute */
-    gchar *session_name;
+    /* Default session */
+    gchar *default_session;
 };
 
 G_DEFINE_TYPE (Display, display, G_TYPE_OBJECT);
 
 static void start_greeter (Display *display);
-static void start_user_session (Display *display);
 
 // FIXME: Remove the index, it is an external property
 Display *
@@ -120,18 +118,17 @@ display_get_greeter_theme (Display *display)
     return display->priv->greeter_theme;
 }
 
-gboolean
-display_set_session (Display *display, const gchar *session, GError *error)
+void
+display_set_default_session (Display *display, const gchar *session)
 {
-    g_debug ("Session set to %s", session);
-    display->priv->session_name = g_strdup (session);
-    return TRUE;
+    g_free (display->priv->default_session);
+    display->priv->default_session = g_strdup (session);
 }
 
 const gchar *
-display_get_session (Display *display)
+display_get_default_session (Display *display)
 {
-    return display->priv->session_name;
+    return display->priv->default_session;
 }
 
 XServer *
@@ -193,16 +190,16 @@ user_session_killed_cb (Session *session, gint status, Display *display)
 }
 
 static void
-start_user_session (Display *display)
+start_user_session (Display *display, const gchar *session)
 {
     gchar *filename, *path;
     GKeyFile *key_file;
     gboolean result;
     GError *error = NULL;
 
-    g_debug ("Launching %s session for user %s", display->priv->session_name, pam_session_get_username (display->priv->user_pam_session));
+    g_debug ("Launching '%s' session for user %s", session, pam_session_get_username (display->priv->user_pam_session));
 
-    filename = g_strdup_printf ("%s.desktop", display->priv->session_name);
+    filename = g_strdup_printf ("%s.desktop", session);
     path = g_build_filename (XSESSIONS_DIR, filename, NULL);
     g_free (filename);
 
@@ -233,7 +230,7 @@ start_user_session (Display *display)
             g_signal_connect (G_OBJECT (display->priv->user_session), "killed", G_CALLBACK (user_session_killed_cb), display);
             session_set_env (display->priv->user_session, "DISPLAY", xserver_get_address (display->priv->xserver));
             session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
-            session_set_env (display->priv->user_session, "DESKTOP_SESSION", display->priv->session_name);
+            session_set_env (display->priv->user_session, "DESKTOP_SESSION", session);
             session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");
 
             g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
@@ -248,17 +245,28 @@ start_user_session (Display *display)
 }
 
 static void
+start_default_session (Display *display, gchar *session)
+{
+    /* Don't need to check authentication, just authorize */
+    if (display->priv->user_pam_session)
+        pam_session_end (display->priv->user_pam_session);    
+    display->priv->user_pam_session = pam_session_new (display->priv->default_user);
+    pam_session_authorize (display->priv->user_pam_session);
+
+    start_session (display);
+    start_user_session (display, session);
+}
+
+static void
 end_greeter_session (Display *display, gboolean clean_exit)
 {  
-    gboolean greeter_connected, greeter_authenticated;
+    gboolean greeter_connected;
 
     greeter_connected = display->priv->greeter_connected;
-    greeter_authenticated = display->priv->greeter_authenticated;
 
     g_object_unref (display->priv->greeter_session);
     display->priv->greeter_session = NULL;
     display->priv->greeter_connected = FALSE;
-    display->priv->greeter_authenticated = FALSE;
 
     pam_session_end (display->priv->greeter_pam_session);
     g_object_unref (display->priv->greeter_pam_session);
@@ -269,34 +277,15 @@ end_greeter_session (Display *display, gboolean clean_exit)
     display->priv->greeter_ck_session = NULL;
 
     if (!clean_exit)
-    {
         g_warning ("Greeter failed");
-        return;
-    }
-
-    if (!greeter_connected)
-    {
+    else if (!greeter_connected)
         g_warning ("Greeter quit before connecting");
-        return;
-    }
-
-    /* Greeter successfully chose a user, start their session */
-    if (greeter_authenticated)
-    {
-        start_user_session (display);
-        return;
-    }
-
-    if (display->priv->default_user && display->priv->timeout > 0)
-    {
-        g_debug ("Starting session for default user %s", display->priv->default_user);
-        display->priv->user_pam_session = pam_session_new (display->priv->default_user);
-        pam_session_authorize (display->priv->user_pam_session);
-        start_session (display);
-        start_user_session (display);
-    }
+    else if (!display->priv->user_session)
+        g_warning ("Greeter quit before session started");
     else
-        start_greeter (display);
+        return;
+
+    // FIXME: Issue with greeter, don't want to start a new one, report error to user
 }
 
 static void
@@ -353,7 +342,6 @@ start_greeter (Display *display)
             g_warning ("Failed to open CK session: %s: %s", dbus_error.name, dbus_error.message);
 
         display->priv->greeter_connected = FALSE;
-        display->priv->greeter_authenticated = FALSE;
         display->priv->greeter_session = session_new (display->priv->greeter_user, command);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "exited", G_CALLBACK (greeter_session_exited_cb), display);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "killed", G_CALLBACK (greeter_session_killed_cb), display);
@@ -415,7 +403,6 @@ authenticate_result_cb (PAMSession *session, int result, Display *display)
 static void
 session_started_cb (PAMSession *session, Display *display)
 {
-    display->priv->greeter_authenticated = TRUE;
     start_session (display);
 }
 
@@ -433,7 +420,7 @@ display_connect (Display *display, const gchar **theme, const gchar **session, c
     filename = g_strdup_printf ("%s.theme", display->priv->greeter_theme);
     *theme = g_build_filename (THEME_DIR, filename, NULL);
     g_free (filename);
-    *session = g_strdup (display->priv->session_name);
+    *session = g_strdup (display->priv->default_session);
     *username = g_strdup (display->priv->default_user);
     *delay = display->priv->timeout;
 
@@ -551,6 +538,29 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
     return TRUE;
 }
 
+gboolean
+display_login (Display *display, gchar *username, gchar *session, GError *error)
+{
+    g_debug ("Greeter login for user %s on session %s", username, session);
+
+    if (display->priv->default_user && strcmp (username, display->priv->default_user) == 0)
+        start_default_session (display, session);
+    else if (display->priv->user_pam_session &&
+             pam_session_get_in_session (display->priv->user_pam_session) &&
+             strcmp (username, pam_session_get_username (display->priv->user_pam_session)) == 0)
+        start_user_session (display, session);
+    else
+    {
+        g_warning ("Ignoring request for login with unauthenticated user");
+        return FALSE;
+    }
+
+    /* Stop the greeter */
+    session_stop (display->priv->greeter_session);
+
+    return TRUE;
+}
+
 static void
 xserver_exit_cb (XServer *server, Display *display)
 {
@@ -566,12 +576,7 @@ xserver_ready_cb (XServer *xserver, Display *display)
   
     /* If have user then automatically login */
     if (display->priv->default_user && display->priv->timeout == 0)
-    {
-        display->priv->user_pam_session = pam_session_new (display->priv->default_user);
-        pam_session_authorize (display->priv->user_pam_session);
-        start_session (display);
-        start_user_session (display);
-    }
+        start_default_session (display, display->priv->default_session);
     else
         start_greeter (display);
 }
@@ -594,7 +599,7 @@ display_init (Display *display)
     display->priv = G_TYPE_INSTANCE_GET_PRIVATE (display, DISPLAY_TYPE, DisplayPrivate);
     display->priv->greeter_user = g_strdup (GREETER_USER);
     display->priv->greeter_theme = g_strdup (GREETER_THEME);
-    display->priv->session_name = g_strdup (DEFAULT_SESSION);
+    display->priv->default_session = g_strdup (DEFAULT_SESSION);
 }
 
 static void
@@ -619,7 +624,7 @@ display_finalize (GObject *object)
     g_free (self->priv->greeter_user);
     g_free (self->priv->greeter_theme);
     g_free (self->priv->default_user);
-    g_free (self->priv->session_name);
+    g_free (self->priv->default_session);
 }
 
 static void

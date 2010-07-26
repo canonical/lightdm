@@ -52,6 +52,8 @@ XAuthorization *session_get_authorization (Session *session);
 
 gboolean session_start (Session *session);
 
+void session_stop (Session *session);
+
 G_END_DECLS
 
 #endif /* _SESSION_H_ */

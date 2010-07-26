@@ -29,9 +29,10 @@ enum {
     PROP_LAYOUTS,
     PROP_LAYOUT,
     PROP_SESSIONS,
-    PROP_SESSION,
+    PROP_DEFAULT_SESSION,
     PROP_TIMED_LOGIN_USER,
     PROP_TIMED_LOGIN_DELAY,
+    PROP_AUTHENTICATION_USER,
     PROP_IS_AUTHENTICATED,
     PROP_CAN_SUSPEND,
     PROP_CAN_HIBERNATE,
@@ -79,8 +80,9 @@ struct _LdmGreeterPrivate
 
     gboolean have_sessions;
     GList *sessions;
-    gchar *session;
+    gchar *default_session;
 
+    gchar *authentication_user;
     gboolean is_authenticated;
 
     gchar *timed_user;
@@ -170,7 +172,7 @@ ldm_greeter_connect (LdmGreeter *greeter)
     result = dbus_g_proxy_call (greeter->priv->display_proxy, "Connect", &error,
                                 G_TYPE_INVALID,
                                 G_TYPE_STRING, &greeter->priv->theme,
-                                G_TYPE_STRING, &greeter->priv->session,
+                                G_TYPE_STRING, &greeter->priv->default_session,
                                 G_TYPE_STRING, &greeter->priv->timed_user,
                                 G_TYPE_INT, &greeter->priv->login_delay,
                                 G_TYPE_INVALID);
@@ -646,42 +648,17 @@ ldm_greeter_get_sessions (LdmGreeter *greeter)
 }
 
 /**
- * ldm_greeter_set_session:
- * @greeter: A #LdmGreeter
- * @session: A session name.
- * 
- * Set the session to log into.
- **/
-void
-ldm_greeter_set_session (LdmGreeter *greeter, const gchar *session)
-{
-    GError *error = NULL;
-
-    if (!dbus_g_proxy_call (greeter->priv->display_proxy, "SetSession", &error,
-                            G_TYPE_STRING, session,
-                            G_TYPE_INVALID,
-                            G_TYPE_INVALID))
-        g_warning ("Failed to set session: %s", error->message);
-    else
-    {
-        g_free (greeter->priv->session);
-        greeter->priv->session = g_strdup (session);
-    }
-    g_clear_error (&error);
-}
-
-/**
- * ldm_greeter_get_session:
+ * ldm_greeter_get_default_session:
  * @greeter: A #LdmGreeter
  *
- * Get the session that will be logged into.
+ * Get the default session to use.
  *
  * Return value: The session name
  **/
 const gchar *
-ldm_greeter_get_session (LdmGreeter *greeter)
+ldm_greeter_get_default_session (LdmGreeter *greeter)
 {
-    return greeter->priv->session;
+    return greeter->priv->default_session;
 }
 
 /**
@@ -779,6 +756,11 @@ auth_response_cb (DBusGProxy *proxy, DBusGProxyCall *call, gpointer userdata)
     if (array->len == 0)
     {
         greeter->priv->is_authenticated = (return_code == 0);
+        if (!greeter->priv->is_authenticated)
+        {
+            g_free (greeter->priv->authentication_user);
+            greeter->priv->authentication_user = NULL;
+        }
         g_signal_emit (G_OBJECT (greeter), signals[AUTHENTICATION_COMPLETE], 0);
     }
 
@@ -795,6 +777,9 @@ auth_response_cb (DBusGProxy *proxy, DBusGProxyCall *call, gpointer userdata)
 void
 ldm_greeter_start_authentication (LdmGreeter *greeter, const char *username)
 {
+    greeter->priv->is_authenticated = FALSE;
+    g_free (greeter->priv->authentication_user);
+    greeter->priv->authentication_user = g_strdup (username);
     dbus_g_proxy_begin_call (greeter->priv->display_proxy, "StartAuthentication", auth_response_cb, greeter, NULL, G_TYPE_STRING, username, G_TYPE_INVALID);
 }
 
@@ -843,16 +828,37 @@ ldm_greeter_get_is_authenticated (LdmGreeter *greeter)
 }
 
 /**
+ * ldm_greeter_get_authentication_user:
+ * @greeter: A #LdmGreeter
+ * 
+ * Get the user that is being authenticated.
+ * 
+ * Return value: The username of the authentication user being authenticated or NULL if no authentication in progress.
+ */
+const gchar *
+ldm_greeter_get_authentication_user (LdmGreeter *greeter)
+{
+    return greeter->priv->authentication_user;
+}
+
+/**
  * ldm_greeter_login:
  * @greeter: A #LdmGreeter
  * 
  * Login with the currently authenticated user.
  **/
 void
-ldm_greeter_login (LdmGreeter *greeter)
+ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *session)
 {
-    /* Quitting the greeter will cause the login to occur */
-    g_signal_emit (G_OBJECT (greeter), signals[QUIT], 0);
+    GError *error = NULL;
+
+    if (!dbus_g_proxy_call (greeter->priv->display_proxy, "Login", &error,
+                            G_TYPE_STRING, username,
+                            G_TYPE_STRING, session,
+                            G_TYPE_INVALID,
+                            G_TYPE_INVALID))
+        g_warning ("Failed to login: %s", error->message);
+    g_clear_error (&error);
 }
 
 /**
@@ -1080,9 +1086,6 @@ ldm_greeter_set_property(GObject      *object,
     case PROP_LAYOUT:
         ldm_greeter_set_layout(self, g_value_get_string (value));
         break;
-    case PROP_SESSION:
-        ldm_greeter_set_session(self, g_value_get_string (value));
-        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -1115,14 +1118,17 @@ ldm_greeter_get_property(GObject    *object,
         break;      
     case PROP_SESSIONS:
         break;
-    case PROP_SESSION:
-        g_value_set_string (value, ldm_greeter_get_session (self));
+    case PROP_DEFAULT_SESSION:
+        g_value_set_string (value, ldm_greeter_get_default_session (self));
         break;
     case PROP_TIMED_LOGIN_USER:
         g_value_set_string (value, ldm_greeter_get_timed_login_user (self));
         break;
     case PROP_TIMED_LOGIN_DELAY:
         g_value_set_int (value, ldm_greeter_get_timed_login_delay (self));
+        break;
+    case PROP_AUTHENTICATION_USER:
+        g_value_set_string (value, ldm_greeter_get_authentication_user (self));
         break;
     case PROP_IS_AUTHENTICATED:
         g_value_set_boolean (value, ldm_greeter_get_is_authenticated (self));
@@ -1192,10 +1198,10 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                                                         "sessions",
                                                         "Available sessions"));*/
     g_object_class_install_property (object_class,
-                                     PROP_SESSION,
-                                     g_param_spec_string ("session",
-                                                          "session",
-                                                          "Selected session",
+                                     PROP_DEFAULT_SESSION,
+                                     g_param_spec_string ("default-session",
+                                                          "default-session",
+                                                          "Default session",
                                                           NULL,
                                                           G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
@@ -1212,6 +1218,13 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                                                        "Number of seconds until logging in as default user",
                                                        G_MININT, G_MAXINT, 0,
                                                        G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     PROP_AUTHENTICATION_USER,
+                                     g_param_spec_string ("authentication-user",
+                                                          "authentication-user",
+                                                          "The user being authenticated",
+                                                          NULL,
+                                                          G_PARAM_READABLE));
     g_object_class_install_property (object_class,
                                      PROP_IS_AUTHENTICATED,
                                      g_param_spec_boolean ("is-authenticated",

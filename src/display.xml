@@ -13,11 +13,6 @@
       <arg name="delay" direction="out" type="i"/>
     </method>
 
-    <!-- Method for greeter to set session -->
-    <method name="SetSession">
-      <arg name="session" direction="in" type="s"/>
-    </method>
-
     <!-- Method for greeter to start authenticating a user -->
     <method name="StartAuthentication">
       <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
@@ -32,6 +27,12 @@
       <arg name="secrets" direction="in" type="as"/>
       <arg name="result" direction="out" type="i"/>
       <arg name="requests" direction="out" type="a(is)"/>
+    </method>
+
+    <!-- Method for greeter to start login -->
+    <method name="Login">
+      <arg name="username" direction="in" type="s"/>
+      <arg name="session" direction="in" type="s"/>
     </method>
 
   </interface>

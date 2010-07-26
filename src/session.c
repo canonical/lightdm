@@ -232,6 +232,13 @@ session_start (Session *session)
     return session->priv->pid != 0;
 }
 
+void
+session_stop (Session *session)
+{
+    if (session->priv->pid)
+        kill (session->priv->pid, SIGTERM);
+}
+
 static void
 session_init (Session *session)
 {
@@ -246,7 +253,7 @@ session_finalize (GObject *object)
 
     self = SESSION (object);
     if (self->priv->pid)
-        kill (self->priv->pid, SIGTERM);    
+        kill (self->priv->pid, SIGTERM);
     g_free (self->priv->username);
     g_hash_table_unref (self->priv->env);
     g_free (self->priv->command);

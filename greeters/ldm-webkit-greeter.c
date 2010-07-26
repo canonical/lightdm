@@ -428,41 +428,17 @@ get_sessions_cb (JSContextRef context,
 }
 
 static JSValueRef
-get_session_cb (JSContextRef context,
-                JSObjectRef thisObject,
-                JSStringRef propertyName,
-                JSValueRef *exception)
+get_default_session_cb (JSContextRef context,
+                        JSObjectRef thisObject,
+                        JSStringRef propertyName,
+                        JSValueRef *exception)
 {
     LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
     JSStringRef string;
 
-    string = JSStringCreateWithUTF8CString (ldm_greeter_get_session (greeter));
+    string = JSStringCreateWithUTF8CString (ldm_greeter_get_default_session (greeter));
 
     return JSValueMakeString (context, string);
-}
-
-static bool
-set_session_cb (JSContextRef context,
-                JSObjectRef thisObject,
-                JSStringRef propertyName,
-                JSValueRef value,
-                JSValueRef *exception)
-{
-    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);  
-    JSStringRef session_arg;
-    char session[1024];
-
-    // FIXME: Throw exception
-    if (JSValueGetType (context, value) != kJSTypeString)
-        return false;
-
-    session_arg = JSValueToStringCopy (context, value, NULL);
-    JSStringGetUTF8CString (session_arg, session, 1024);
-    JSStringRelease (session_arg);
-  
-    ldm_greeter_set_session (greeter, session);
-
-    return true;
 }
 
 static JSValueRef
@@ -655,6 +631,16 @@ cancel_authentication_cb (JSContextRef context,
 }
 
 static JSValueRef
+get_authentication_user_cb (JSContextRef context,
+                            JSObjectRef thisObject,
+                            JSStringRef propertyName,
+                            JSValueRef *exception)
+{
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    return JSValueMakeString (context, JSStringCreateWithUTF8CString (ldm_greeter_get_authentication_user (greeter)));
+}
+
+static JSValueRef
 get_is_authenticated_cb (JSContextRef context,
                          JSObjectRef thisObject,
                          JSStringRef propertyName,
@@ -785,12 +771,22 @@ login_cb (JSContextRef context,
           JSValueRef *exception)
 {
     LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    JSStringRef username_arg, session_arg;
+    char username[1024], session[1024];
 
     // FIXME: Throw exception
-    if (argumentCount != 0)
+    if (argumentCount != 2)
         return JSValueMakeNull (context);
 
-    ldm_greeter_login (greeter);
+    username_arg = JSValueToStringCopy (context, arguments[0], NULL);
+    JSStringGetUTF8CString (username_arg, username, 1024);
+    JSStringRelease (username_arg);
+
+    session_arg = JSValueToStringCopy (context, arguments[1], NULL);
+    JSStringGetUTF8CString (session_arg, session, 1024);
+    JSStringRelease (session_arg);
+
+    ldm_greeter_login (greeter, username, session);
     return JSValueMakeNull (context);
 }
 
@@ -891,9 +887,10 @@ static const JSStaticValue ldm_greeter_values[] =
     { "layout", get_layout_cb, set_layout_cb, kJSPropertyAttributeReadOnly },
     { "sessions", get_sessions_cb, NULL, kJSPropertyAttributeReadOnly },
     { "num_users", get_num_users_cb, NULL, kJSPropertyAttributeReadOnly },
-    { "session", get_session_cb, set_session_cb, kJSPropertyAttributeNone },
+    { "session", get_default_session_cb, NULL, kJSPropertyAttributeNone },
     { "timed_login_user", get_timed_login_user_cb, NULL, kJSPropertyAttributeReadOnly },  
     { "timed_login_delay", get_timed_login_delay_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "authentication_user", get_authentication_user_cb, NULL, kJSPropertyAttributeReadOnly },
     { "is_authenticated", get_is_authenticated_cb, NULL, kJSPropertyAttributeReadOnly },
     { "can_suspend", get_can_suspend_cb, NULL, kJSPropertyAttributeReadOnly },
     { "can_hibernate", get_can_hibernate_cb, NULL, kJSPropertyAttributeReadOnly },

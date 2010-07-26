@@ -21,7 +21,7 @@ static GtkListStore *user_model;
 static GtkWidget *user_window, *vbox, *message_label, *user_view;
 static GtkWidget *password_entry;
 static GtkWidget *panel_window;
-static gchar *theme_name;
+static gchar *session = NULL, *theme_name;
 
 static void
 start_authentication (const gchar *username)
@@ -109,6 +109,7 @@ authentication_complete_cb (LdmGreeter *greeter)
     gtk_widget_hide (password_entry);
     gtk_entry_set_text (GTK_ENTRY (password_entry), "");
 
+    /* Clear row shading */
     if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (user_model), &iter))
     {
         do
@@ -117,10 +118,10 @@ authentication_complete_cb (LdmGreeter *greeter)
         } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (user_model), &iter));
     }
     gtk_widget_grab_focus (user_view);
-
+  
     if (ldm_greeter_get_is_authenticated (greeter))
     {
-        ldm_greeter_login (greeter);
+        ldm_greeter_login (greeter, ldm_greeter_get_authentication_user (greeter), session);
     }
     else
     {
@@ -132,7 +133,7 @@ authentication_complete_cb (LdmGreeter *greeter)
 static void
 timed_login_cb (LdmGreeter *greeter, const gchar *username)
 {
-    ldm_greeter_login (greeter);
+    ldm_greeter_login (greeter, ldm_greeter_get_timed_login_user (greeter), ldm_greeter_get_default_session (greeter));
 }
 
 static void
@@ -152,7 +153,10 @@ static void
 session_changed_cb (GtkWidget *widget)
 {
     if (gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
-        ldm_greeter_set_session (greeter, g_object_get_data (G_OBJECT (widget), "key"));
+    {
+        g_free (session);
+        session = g_strdup (g_object_get_data (G_OBJECT (widget), "key"));
+    }
 }
 
 static void
@@ -171,7 +175,6 @@ a11y_contrast_cb (GtkWidget *widget)
         g_object_set (gtk_settings_get_default (), "gtk-theme-name", "HighContrastInverse", NULL);
     else
         g_object_set (gtk_settings_get_default (), "gtk-theme-name", theme_name, NULL);
-        ldm_greeter_set_session (greeter, g_object_get_data (G_OBJECT (widget), "key"));  
 }
 
 int
@@ -205,6 +208,7 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
     ldm_greeter_connect (greeter);
+    session = g_strdup (ldm_greeter_get_default_session (greeter));
 
     theme_dir = g_path_get_dirname (ldm_greeter_get_theme (greeter));
     rc_file = ldm_greeter_get_string_property (greeter, "gtkrc");
@@ -437,7 +441,7 @@ main(int argc, char **argv)
         session_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menu_item));
         gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
-        if (g_str_equal (ldm_session_get_key (session), ldm_greeter_get_session (greeter)))
+        if (g_str_equal (ldm_session_get_key (session), ldm_greeter_get_default_session (greeter)))
             gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), TRUE);
 
         g_object_set_data (G_OBJECT (menu_item), "key", g_strdup (ldm_session_get_key (session)));

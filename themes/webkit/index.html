@@ -77,7 +77,7 @@ function reset()
 function authentication_complete()
 {
    if (lightdm.is_authenticated)
-       lightdm.login ();
+       lightdm.login (lightdm.authentication_user, lightdm.default_session);
    else
        show_message ("Authentication Failed");
 
