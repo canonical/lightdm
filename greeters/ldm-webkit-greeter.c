@@ -887,7 +887,7 @@ static const JSStaticValue ldm_greeter_values[] =
     { "layout", get_layout_cb, set_layout_cb, kJSPropertyAttributeReadOnly },
     { "sessions", get_sessions_cb, NULL, kJSPropertyAttributeReadOnly },
     { "num_users", get_num_users_cb, NULL, kJSPropertyAttributeReadOnly },
-    { "session", get_default_session_cb, NULL, kJSPropertyAttributeNone },
+    { "default_session", get_default_session_cb, NULL, kJSPropertyAttributeNone },
     { "timed_login_user", get_timed_login_user_cb, NULL, kJSPropertyAttributeReadOnly },  
     { "timed_login_delay", get_timed_login_delay_cb, NULL, kJSPropertyAttributeReadOnly },
     { "authentication_user", get_authentication_user_cb, NULL, kJSPropertyAttributeReadOnly },
