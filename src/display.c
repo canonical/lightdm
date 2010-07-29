@@ -589,6 +589,8 @@ display_login (Display *display, gchar *username, gchar *session, GError *error)
 static void
 xserver_exit_cb (XServer *server, Display *display)
 {
+    g_object_unref (display->priv->xserver);
+    display->priv->xserver = NULL;
     g_signal_emit (display, signals[EXITED], 0);
 }
 
@@ -633,7 +635,7 @@ display_finalize (GObject *object)
     Display *self;
 
     self = DISPLAY (object);
-
+  
     if (self->priv->greeter_session)
         g_object_unref (self->priv->greeter_session);
     if (self->priv->user_session)

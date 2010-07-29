@@ -382,7 +382,7 @@ xserver_start (XServer *server)
     else
     {
         g_debug ("Waiting for signal from X server :%d", server->priv->display_number);
-        g_hash_table_insert (servers, GINT_TO_POINTER (server->priv->pid), g_object_ref (server));
+        g_hash_table_insert (servers, GINT_TO_POINTER (server->priv->pid), server);
         g_child_watch_add (server->priv->pid, xserver_watch_cb, server);
     }
     g_clear_error (&error);
@@ -414,6 +414,9 @@ xserver_finalize (GObject *object)
     XServer *self;
 
     self = XSERVER (object);
+
+    if (self->priv->pid > 0)
+        g_hash_table_remove (servers, GINT_TO_POINTER (self->priv->pid));  
 
     if (self->priv->connection)
         xcb_disconnect (self->priv->connection);
@@ -464,5 +467,5 @@ xserver_class_init (XServerClass *klass)
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
 
-    servers = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_object_unref);
+    servers = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
 }
