@@ -390,6 +390,15 @@ xserver_start (XServer *server)
     return server->priv->pid != 0;
 }
 
+void
+xserver_disconnect_clients (XServer *server)
+{
+    server->priv->ready = FALSE;
+
+    if (server->priv->pid)
+        kill (server->priv->pid, SIGHUP);
+}
+
 static void
 xserver_init (XServer *server)
 {

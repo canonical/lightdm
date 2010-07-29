@@ -52,7 +52,9 @@ lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
 	$(CONSOLE_KIT_CFLAGS) \
 	$(WARN_CFLAGS) \
+  	-DCONFIG_FILE=\"$(CONFIG_FILE)\" \
 	-DTHEME_ENGINE_DIR=\"$(libexecdir)\" \
+  	-DXAUTH_DIR=\"$(XAUTHDIR)\" \
 	-DLIGHTDM_BINARY=\"lightdm\"
 
 lightdm_LDADD = \

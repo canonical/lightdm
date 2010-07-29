@@ -109,7 +109,7 @@ static gboolean
 handle_signal (gpointer data)
 {
     siginfo_t *info = data;
-
+  
     if (info->si_signo == SIGUSR1)
         xserver_handle_signal (info->si_pid);
     else

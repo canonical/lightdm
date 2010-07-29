@@ -85,10 +85,10 @@ AC_ARG_WITH(config-file,
     if test x$withval != x; then
         CONFIG_FILE="$withval"
     fi
-)    
-AC_DEFINE_UNQUOTED(CONFIG_FILE, "$CONFIG_FILE", Configuration file to load)
+)
+AC_SUBST(CONFIG_FILE)
 
-DBUS_SYS_DIR="$sysconfdir/dbus-1/system.d"
+DBUS_SYS_DIR="${sysconfdir}/dbus-1/system.d"
 AC_ARG_WITH(dbus-sys,
             AS_HELP_STRING(--with-dbus-sys=<dir>,
                            Where D-BUS system.d directory is),
@@ -105,7 +105,8 @@ AC_ARG_WITH(xserver-binary,
     if test x$withval != x; then
         XSERVER_BINARY="$withval"
     fi
-)    
+)
+AC_SUBST(XSERVER_BINARY)
 AC_DEFINE_UNQUOTED(XSERVER_BINARY, "$XSERVER_BINARY", X server binary name)
 
 XAUTH_DIR=$localstatedir/run/lightdm/authority
@@ -115,8 +116,8 @@ AC_ARG_WITH(xauth-dir,
     if test x$withval != x; then
         XAUTH_DIR="$withval"
     fi
-)    
-AC_DEFINE_UNQUOTED(XAUTH_DIR, "$XAUTH_DIR", X server authorization directory)
+)
+AC_SUBST(XAUTH_DIR)
 
 XSESSIONS_DIR=/usr/share/xsessions
 AC_ARG_WITH(xsession-dir,
@@ -126,6 +127,7 @@ AC_ARG_WITH(xsession-dir,
         XSESSIONS_DIR="$withval"
     fi
 )
+AC_SUBST(XSESSIONS_DIR)
 AC_DEFINE_UNQUOTED(XSESSIONS_DIR, "$XSESSIONS_DIR", X session directory)
 
 DEFAULT_SESSION=gnome
@@ -136,6 +138,7 @@ AC_ARG_WITH(default-session,
         DEFAULT_SESSION="$withval"
     fi
 )
+AC_SUBST(DEFAULT_SESSION)
 AC_DEFINE_UNQUOTED(DEFAULT_SESSION, "$DEFAULT_SESSION", Default session)
 
 GREETER_USER=gdm
@@ -146,6 +149,7 @@ AC_ARG_WITH(greeter-user,
         GREETER_USER="$withval"
     fi
 )
+AC_SUBST(GREETER_USER)
 AC_DEFINE_UNQUOTED(GREETER_USER, "$GREETER_USER", User to run greeter as)
 
 THEME_DIR=${prefix}/share/lightdm/themes
@@ -156,8 +160,8 @@ AC_ARG_WITH(theme-dir,
         THEME_DIR="$withval"
     fi
 )
-AC_DEFINE_UNQUOTED(THEME_DIR, "$THEME_DIR", Directory containing greeter themes)
 AC_SUBST(THEME_DIR)
+AC_DEFINE_UNQUOTED(THEME_DIR, "$THEME_DIR", Directory containing greeter themes)
 
 GREETER_THEME=gnome
 AC_ARG_WITH(theme,
@@ -167,6 +171,7 @@ AC_ARG_WITH(theme,
         GREETER_THEME="$withval"
     fi
 )
+AC_SUBST(GREETER_THEME)
 AC_DEFINE_UNQUOTED(GREETER_THEME, "$GREETER_THEME", Default theme)
 
 dnl ###########################################################################

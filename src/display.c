@@ -187,7 +187,7 @@ end_user_session (Display *display, gboolean clean_exit)
     if (!clean_exit)
         g_warning ("Session exited unexpectedly");
 
-    start_greeter (display);
+    xserver_disconnect_clients (display->priv->xserver);
 }
 
 static void
@@ -596,7 +596,7 @@ xserver_ready_cb (XServer *xserver, Display *display)
     /* Don't run any sessions on local terminals */
     if (xserver_get_server_type (xserver) == XSERVER_TYPE_LOCAL_TERMINAL)
         return;
-  
+
     /* If have user then automatically login */
     if (display->priv->default_user && display->priv->timeout == 0)
         start_default_session (display, display->priv->default_session);

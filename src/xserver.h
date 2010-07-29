@@ -88,6 +88,8 @@ XAuthorization *xserver_get_authorization (XServer *server);
 
 gboolean xserver_start (XServer *server);
 
+void xserver_disconnect_clients (XServer *server);
+
 G_END_DECLS
 
 #endif /* _XSERVER_H_ */
