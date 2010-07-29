@@ -10,6 +10,8 @@ DISTCLEANFILES = \
 	Makefile.in \
 	aclocal.m4 \
 	configure \
+	config.h.in \
+	config.h \
 	depcomp \
 	gnome-doc-utils.make \
 	install-sh \

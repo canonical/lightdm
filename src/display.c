@@ -9,11 +9,16 @@
  * license.
  */
 
+#include <config.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <pwd.h>
-#include <ck-connector.h>
 #include <gio/gdesktopappinfo.h>
+
+#ifdef HAVE_CONSOLE_KIT
+#include <ck-connector.h>
+#endif
 
 #include "display.h"
 #include "display-glue.h"
@@ -53,12 +58,16 @@ struct DisplayPrivate
     Session *greeter_session;
     gboolean greeter_connected;
     PAMSession *greeter_pam_session;
+#ifdef HAVE_CONSOLE_KIT
     CkConnector *greeter_ck_session;
+#endif
 
     /* User session process */
     Session *user_session;
     PAMSession *user_pam_session;
+#ifdef HAVE_CONSOLE_KIT
     CkConnector *user_ck_session;
+#endif
 
     /* Current D-Bus call context */
     DBusGMethodInvocation *dbus_context;
@@ -140,6 +149,7 @@ display_get_xserver (Display *display)
 static void
 start_session (Display *display)
 {
+#ifdef HAVE_CONSOLE_KIT
     DBusError error;
     const gchar *address;
     struct passwd *user_info;
@@ -155,6 +165,7 @@ start_session (Display *display)
                                                     "x11-display", &address,
                                                     NULL))
         g_warning ("Failed to open CK session: %s: %s", error.name, error.message);
+#endif
 }
 
 static void
@@ -167,9 +178,11 @@ end_user_session (Display *display, gboolean clean_exit)
     g_object_unref (display->priv->user_pam_session);
     display->priv->user_pam_session = NULL;
 
+#ifdef HAVE_CONSOLE_KIT
     ck_connector_close_session (display->priv->user_ck_session, NULL); // FIXME: Handle errors
     ck_connector_unref (display->priv->user_ck_session);
     display->priv->user_ck_session = NULL;
+#endif
 
     if (!clean_exit)
         g_warning ("Session exited unexpectedly");
@@ -229,7 +242,9 @@ start_user_session (Display *display, const gchar *session)
             g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
             g_signal_connect (G_OBJECT (display->priv->user_session), "killed", G_CALLBACK (user_session_killed_cb), display);
             session_set_env (display->priv->user_session, "DISPLAY", xserver_get_address (display->priv->xserver));
+#ifdef HAVE_CONSOLE_KIT
             session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
+#endif
             session_set_env (display->priv->user_session, "DESKTOP_SESSION", session);
             session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");
 
@@ -272,9 +287,11 @@ end_greeter_session (Display *display, gboolean clean_exit)
     g_object_unref (display->priv->greeter_pam_session);
     display->priv->greeter_pam_session = NULL;
 
+#ifdef HAVE_CONSOLE_KIT
     ck_connector_close_session (display->priv->greeter_ck_session, NULL); // FIXME: Handle errors
     ck_connector_unref (display->priv->greeter_ck_session);
     display->priv->greeter_ck_session = NULL;
+#endif
 
     if (!clean_exit)
         g_warning ("Greeter failed");
@@ -314,10 +331,12 @@ start_greeter (Display *display)
     if (theme)
     {
         gchar *command;
+#ifdef HAVE_CONSOLE_KIT
         const gchar *address, *session_type = "LoginWindow", *hostname = "";
         gboolean is_local = TRUE;
         DBusError dbus_error;
         struct passwd *user_info;
+#endif
 
         g_debug ("Starting greeter %s as user %s", display->priv->greeter_theme,
                  display->priv->greeter_user ? display->priv->greeter_user : "<current>");
@@ -327,6 +346,7 @@ start_greeter (Display *display)
         display->priv->greeter_pam_session = pam_session_new (display->priv->greeter_user);
         pam_session_authorize (display->priv->greeter_pam_session);
 
+#ifdef HAVE_CONSOLE_KIT
         display->priv->greeter_ck_session = ck_connector_new ();
         address = xserver_get_address (display->priv->xserver);
         dbus_error_init (&dbus_error);
@@ -340,13 +360,16 @@ start_greeter (Display *display)
                                                         "is-local", &is_local,
                                                         NULL))
             g_warning ("Failed to open CK session: %s: %s", dbus_error.name, dbus_error.message);
+#endif
 
         display->priv->greeter_connected = FALSE;
         display->priv->greeter_session = session_new (display->priv->greeter_user, command);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "exited", G_CALLBACK (greeter_session_exited_cb), display);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "killed", G_CALLBACK (greeter_session_killed_cb), display);
         session_set_env (display->priv->greeter_session, "DISPLAY", xserver_get_address (display->priv->xserver));
+#ifdef HAVE_CONSOLE_KIT
         session_set_env (display->priv->greeter_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->greeter_ck_session));
+#endif
 
         g_signal_emit (display, signals[START_SESSION], 0, display->priv->greeter_session);
 
@@ -615,10 +638,12 @@ display_finalize (GObject *object)
         g_object_unref (self->priv->user_session);
     if (self->priv->user_pam_session)
         g_object_unref (self->priv->user_pam_session);
+#ifdef HAVE_CONSOLE_KIT
     if (self->priv->greeter_ck_session)
         ck_connector_unref (self->priv->greeter_ck_session);
     if (self->priv->user_ck_session)
         ck_connector_unref (self->priv->user_ck_session);
+#endif
     if (self->priv->xserver)  
         g_object_unref (self->priv->xserver);
     g_free (self->priv->greeter_user);

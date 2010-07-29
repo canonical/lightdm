@@ -1,13 +1,14 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(lightdm, 0.1.0)
+AC_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE
-AM_SILENT_RULES([yes])
+AM_SILENT_RULES(yes)
 LT_INIT
 AM_PROG_CC_C_O
 AM_MAINTAINER_MODE
 
-GOBJECT_INTROSPECTION_CHECK([0.6.7])
+GOBJECT_INTROSPECTION_CHECK(0.6.7)
 
 GNOME_COMPILE_WARNINGS(maximum)
 
@@ -15,7 +16,7 @@ dnl ###########################################################################
 dnl Dependencies
 dnl ###########################################################################
 
-AC_CHECK_HEADERS([security/pam_appl.h],[],[AC_MSG_ERROR([PAM not found])])
+AC_CHECK_HEADERS(security/pam_appl.h, [], AC_MSG_ERROR(PAM not found))
 
 PKG_CHECK_MODULES(LIGHTDM, [
     glib-2.0
@@ -23,10 +24,32 @@ PKG_CHECK_MODULES(LIGHTDM, [
     gio-unix-2.0
     gobject-2.0
     dbus-glib-1
-    ck-connector
     xcb
     xdmcp
 ])
+
+AC_ARG_ENABLE(console-kit,
+              AC_HELP_STRING(--enable-console-kit=[no/auto/yes], Enable Console Kit),
+              enable_console_kit=$enableval,
+              enable_console_kit="auto")
+
+have_console_kit=no
+case "$enable_console_kit" in
+    "auto")
+        PKG_CHECK_MODULES(CONSOLE_KIT,
+                          ck-connector,
+                          have_console_kit=yes,
+                          have_console_kit=no)
+        ;;
+    "yes")
+        PKG_CHECK_MODULES(CONSOLE_KIT, ck-connector)
+        have_console_kit=yes;
+        ;;
+esac
+
+if test $have_console_kit = yes; then
+    AC_DEFINE(HAVE_CONSOLE_KIT, 1, Define if using Console Kit)
+fi
 
 PKG_CHECK_MODULES(LIBLDMGREETER, [
     glib-2.0
@@ -47,8 +70,6 @@ PKG_CHECK_MODULES(LIGHTDM_WKGREETER, [
     dbus-glib-1
 ])
 
-AC_CHECK_HEADERS([security/pam_appl.h],[],[AC_MSG_ERROR([PAM not found])])
-
 AC_PATH_PROG(GLIB_GENMARSHAL, glib-genmarshal)
 AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)
 AC_SUBST(DBUSBINDINGTOOL)
@@ -59,18 +80,18 @@ dnl ###########################################################################
 
 CONFIG_FILE=${sysconfdir}/lightdm.conf
 AC_ARG_WITH(config-file,
-            AS_HELP_STRING([--with-config-file=<file>],
-                           [Configuration file to load]),
+            AS_HELP_STRING(--with-config-file=<file>,
+                           Configuration file to load),
     if test x$withval != x; then
         CONFIG_FILE="$withval"
     fi
 )    
-AC_SUBST(CONFIG_FILE)
+AC_DEFINE_UNQUOTED(CONFIG_FILE, "$CONFIG_FILE", Configuration file to load)
 
 DBUS_SYS_DIR="$sysconfdir/dbus-1/system.d"
 AC_ARG_WITH(dbus-sys,
-            AS_HELP_STRING([--with-dbus-sys=<dir>],
-                           [where D-BUS system.d directory is]),
+            AS_HELP_STRING(--with-dbus-sys=<dir>,
+                           Where D-BUS system.d directory is),
     if test x$withval != x ; then
         DBUS_SYS_DIR="$withval"
     fi
@@ -79,73 +100,73 @@ AC_SUBST(DBUS_SYS_DIR)
 
 XSERVER_BINARY=/usr/bin/X
 AC_ARG_WITH(xserver-binary,
-            AS_HELP_STRING([--with-xserver-binary=<binary>],
-                           [X server binary name]),
+            AS_HELP_STRING(--with-xserver-binary=<binary>,
+                           X server binary name),
     if test x$withval != x; then
         XSERVER_BINARY="$withval"
     fi
 )    
-AC_SUBST(XSERVER_BINARY)
+AC_DEFINE_UNQUOTED(XSERVER_BINARY, "$XSERVER_BINARY", X server binary name)
 
 XAUTH_DIR=$localstatedir/run/lightdm/authority
 AC_ARG_WITH(xauth-dir,
-            AS_HELP_STRING([--with-xauth-dir=<dir>],
-                           [X server authorization directory]),
+            AS_HELP_STRING(--with-xauth-dir=<dir>,
+                           X server authorization directory),
     if test x$withval != x; then
         XAUTH_DIR="$withval"
     fi
 )    
-AC_SUBST(XAUTH_DIR)
+AC_DEFINE_UNQUOTED(XAUTH_DIR, "$XAUTH_DIR", X server authorization directory)
 
-XSESSION_DIR=/usr/share/xsessions
+XSESSIONS_DIR=/usr/share/xsessions
 AC_ARG_WITH(xsession-dir,
-            AS_HELP_STRING([--with-xsession-dir=<dir>],
-                           [X session directory]),
+            AS_HELP_STRING(--with-xsession-dir=<dir>,
+                           X session directory),
     if test x$withval != x; then
-        XSESSION_DIR="$withval"
+        XSESSIONS_DIR="$withval"
     fi
-)    
-AC_SUBST(XSESSION_DIR)
+)
+AC_DEFINE_UNQUOTED(XSESSIONS_DIR, "$XSESSIONS_DIR", X session directory)
 
 DEFAULT_SESSION=gnome
 AC_ARG_WITH(default-session,
-            AS_HELP_STRING([--with-default-session=<name>],
-                           [Default session to launch]),
+            AS_HELP_STRING(--with-default-session=<name>,
+                           Default session to launch),
     if test x$withval != x; then
         DEFAULT_SESSION="$withval"
     fi
 )
-AC_SUBST(DEFAULT_SESSION)
+AC_DEFINE_UNQUOTED(DEFAULT_SESSION, "$DEFAULT_SESSION", Default session)
 
 GREETER_USER=gdm
 AC_ARG_WITH(greeter-user,
-            AS_HELP_STRING([--with-greeter-user=<username>],
-                           [User to run greeter as]),
+            AS_HELP_STRING(--with-greeter-user=<username>,
+                           User to run greeter as),
     if test x$withval != x; then
         GREETER_USER="$withval"
     fi
 )
-AC_SUBST(GREETER_USER)
+AC_DEFINE_UNQUOTED(GREETER_USER, "$GREETER_USER", User to run greeter as)
 
 THEME_DIR=${prefix}/share/lightdm/themes
 AC_ARG_WITH(theme-dir,
-            AS_HELP_STRING([--with-theme-dir=<dir>],
-                           [Directory containing greeter themes]),
+            AS_HELP_STRING(--with-theme-dir=<dir>,
+                           Directory containing greeter themes),
     if test x$withval != x; then
         THEME_DIR="$withval"
     fi
 )
-AC_SUBST(THEME_DIR)
+AC_DEFINE_UNQUOTED(THEME_DIR, "$THEME_DIR", Directory containing greeter themes)
 
 GREETER_THEME=gnome
 AC_ARG_WITH(theme,
-            AS_HELP_STRING([--with-theme=<theme>],
-                           [Default theme]),
+            AS_HELP_STRING(--with-theme=<theme>,
+                           Default theme),
     if test x$withval != x; then
         GREETER_THEME="$withval"
     fi
 )
-AC_SUBST(GREETER_THEME)
+AC_DEFINE_UNQUOTED(GREETER_THEME, "$GREETER_THEME", Default theme)
 
 dnl ###########################################################################
 dnl Documentation
@@ -158,9 +179,9 @@ dnl ###########################################################################
 dnl Internationalization
 dnl ###########################################################################
 
-IT_PROG_INTLTOOL([0.35.0])
+IT_PROG_INTLTOOL(0.35.0)
 GETTEXT_PACKAGE=lightdm
-AC_SUBST(GETTEXT_PACKAGE)
+AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", Gettext package)
 AM_GLIB_GNU_GETTEXT
 
 dnl ###########################################################################
@@ -190,14 +211,15 @@ echo "
                     Light Display Manager $VERSION
                     ===========================
 
-        prefix:                   ${prefix}
-        Config file:              ${CONFIG_FILE}
-        D-Bus system directory:   ${DBUS_SYS_DIR}
-        X server binary:          ${XSERVER_BINARY}
-        X authorization dir:      ${XAUTH_DIR}
-        XSessions dir:            ${XSESSION_DIR}
-        Default session:          ${DEFAULT_SESSION}
-        Greeter user:             ${GREETER_USER}
-        Theme directory:          ${THEME_DIR}
-        Theme:                    ${GREETER_THEME}
+        prefix:                   $prefix
+        Config file:              $CONFIG_FILE
+        D-Bus system directory:   $DBUS_SYS_DIR
+        X server binary:          $XSERVER_BINARY
+        X authorization dir:      $XAUTH_DIR
+        XSessions dir:            $XSESSIONS_DIR
+        Default session:          $DEFAULT_SESSION
+        Console Kit:              $have_console_kit
+        Greeter user:             $GREETER_USER
+        Theme directory:          $THEME_DIR
+        Theme:                    $GREETER_THEME
 "
