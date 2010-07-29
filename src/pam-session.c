@@ -270,22 +270,7 @@ pam_session_class_init (PAMSessionClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
-    signals[GOT_MESSAGES] =
-        g_signal_new ("got-messages",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (PAMSessionClass, got_messages),
-                      NULL, NULL,
-                      ldm_marshal_VOID__INT_POINTER,
-                      G_TYPE_NONE, 2, G_TYPE_INT, G_TYPE_POINTER);
-    signals[AUTHENTICATION_RESULT] =
-        g_signal_new ("authentication-result",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (PAMSessionClass, authentication_result),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__INT,
-                      G_TYPE_NONE, 1, G_TYPE_INT);
+
     signals[STARTED] =
         g_signal_new ("started",
                       G_TYPE_FROM_CLASS (klass),
@@ -294,6 +279,25 @@ pam_session_class_init (PAMSessionClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
+
+    signals[GOT_MESSAGES] =
+        g_signal_new ("got-messages",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (PAMSessionClass, got_messages),
+                      NULL, NULL,
+                      ldm_marshal_VOID__INT_POINTER,
+                      G_TYPE_NONE, 2, G_TYPE_INT, G_TYPE_POINTER);
+
+    signals[AUTHENTICATION_RESULT] =
+        g_signal_new ("authentication-result",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (PAMSessionClass, authentication_result),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__INT,
+                      G_TYPE_NONE, 1, G_TYPE_INT);
+
     signals[ENDED] =
         g_signal_new ("ended",
                       G_TYPE_FROM_CLASS (klass),

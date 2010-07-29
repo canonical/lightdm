@@ -589,7 +589,7 @@ display_login (Display *display, gchar *username, gchar *session, GError *error)
 static void
 xserver_exit_cb (XServer *server, Display *display)
 {
-    g_signal_emit (server, signals[EXITED], 0);  
+    g_signal_emit (display, signals[EXITED], 0);
 }
 
 static void
@@ -671,6 +671,7 @@ display_class_init (DisplayClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__OBJECT,
                       G_TYPE_NONE, 1, SESSION_TYPE);
+
     signals[EXITED] =
         g_signal_new ("exited",
                       G_TYPE_FROM_CLASS (klass),

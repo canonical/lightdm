@@ -284,6 +284,7 @@ session_class_init (SessionClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__INT,
                       G_TYPE_NONE, 1, G_TYPE_INT);
+
     signals[KILLED] =
         g_signal_new ("killed",
                       G_TYPE_FROM_CLASS (klass),
