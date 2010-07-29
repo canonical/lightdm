@@ -267,7 +267,7 @@ main(int argc, char **argv)
         else
             background_image = NULL;
     }
-    gdk_window_clear(root);
+    gdk_window_clear (root);
 
     user_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_window_set_decorated (GTK_WINDOW (user_window), FALSE);
@@ -346,7 +346,7 @@ main(int argc, char **argv)
     gtk_widget_set_no_show_all (password_entry, TRUE);
 
     gtk_widget_show_all (user_window);
-  
+
     /* Center the window */
     gtk_widget_get_allocation (user_window, &allocation);
     gtk_window_move (GTK_WINDOW (user_window),
