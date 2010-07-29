@@ -54,7 +54,7 @@ lightdm_CFLAGS = \
 	$(WARN_CFLAGS) \
   	-DCONFIG_FILE=\"$(CONFIG_FILE)\" \
 	-DTHEME_ENGINE_DIR=\"$(libexecdir)\" \
-  	-DXAUTH_DIR=\"$(XAUTHDIR)\" \
+  	-DXAUTH_DIR=\"$(XAUTH_DIR)\" \
 	-DLIGHTDM_BINARY=\"lightdm\"
 
 lightdm_LDADD = \
