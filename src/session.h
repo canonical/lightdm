@@ -44,6 +44,10 @@ const gchar *session_get_username (Session *session);
 
 const gchar *session_get_command (Session *session);
 
+void session_set_log_file (Session *session, const gchar *log_file);
+
+const gchar *session_get_log_file (Session *session);
+
 void session_set_env (Session *session, const gchar *name, const gchar *value);
 
 void session_set_authorization (Session *session, XAuthorization *authorization, const gchar *path);

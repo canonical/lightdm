@@ -62,6 +62,10 @@ void xserver_set_command (XServer *server, const gchar *command);
 
 const gchar *xserver_get_command (XServer *server);
 
+void xserver_set_log_file (XServer *server, const gchar *log_file);
+
+const gchar *xserver_get_log_file (XServer *server);
+
 void xserver_set_env (XServer *server, const gchar *name, const gchar *value);
 
 void xserver_set_port (XServer *server, guint port);

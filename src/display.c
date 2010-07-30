@@ -250,6 +250,11 @@ start_user_session (Display *display, const gchar *session)
             session_set_env (display->priv->user_session, "DESKTOP_SESSION", session);
             session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");
 
+            // FIXME: Copy old error file
+            path = g_build_filename (getpwnam (pam_session_get_username (display->priv->user_pam_session))->pw_dir, ".xsession-errors", NULL);
+            session_set_log_file (display->priv->user_session, path);
+            g_free (path);
+
             g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
 
             session_start (display->priv->user_session);
@@ -332,7 +337,7 @@ start_greeter (Display *display)
 
     if (theme)
     {
-        gchar *command;
+        gchar *command, *filename, *path;
 #ifdef HAVE_CONSOLE_KIT
         const gchar *address, *session_type = "LoginWindow", *hostname = "";
         gboolean is_local = TRUE;
@@ -372,6 +377,13 @@ start_greeter (Display *display)
 #ifdef HAVE_CONSOLE_KIT
         session_set_env (display->priv->greeter_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->greeter_ck_session));
 #endif
+
+        filename = g_strdup_printf ("%s-greeter.log", xserver_get_address (display->priv->xserver));
+        path = g_build_filename (LOG_DIR, filename, NULL); // FIXME: Log dir should be controlled from display-manager.c
+        g_debug ("Logging to %s", path);
+        session_set_log_file (display->priv->greeter_session, path);
+        g_free (filename);
+        g_free (path);
 
         g_signal_emit (display, signals[START_SESSION], 0, display->priv->greeter_session);
 

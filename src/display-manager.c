@@ -30,17 +30,26 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct DisplayManagerPrivate
 {
+    /* Configuration */
     GKeyFile *config;
-  
+
+    /* Directory to store authorization files */
     gchar *auth_dir;
 
+    /* Counter to generate unique authorization file names */
+    guint auth_counter;
+
+    /* Directory to write log files to */
+    gchar *log_dir;
+
+    /* TRUE if running in test mode (i.e. as non-root for testing) */
     gboolean test_mode;
 
+    /* The displays being managed */
     GList *displays;
-  
+
+    /* XDMCP server */
     XDMCPServer *xdmcp_server;
-  
-    guint auth_counter;
 };
 
 G_DEFINE_TYPE (DisplayManager, display_manager, G_TYPE_OBJECT);
@@ -55,7 +64,9 @@ display_manager_new (GKeyFile *config)
     if (self->priv->test_mode)
         self->priv->auth_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "authority", NULL);
     else
-        self->priv->auth_dir = g_strdup (XAUTH_DIR);       
+        self->priv->auth_dir = g_strdup (XAUTH_DIR);
+
+    self->priv->log_dir = g_strdup (LOG_DIR);
 
     return self;
 }
@@ -302,6 +313,9 @@ display_manager_start (DisplayManager *manager)
     gchar *displays;
     gchar **tokens, **i;
 
+    /* Make an empty log dir */
+    g_mkdir_with_parents (manager->priv->log_dir, S_IRWXU | S_IXGRP | S_IXOTH);
+
     /* Make an empty authorization directory */
     setup_auth_dir (manager);
   
@@ -349,9 +363,17 @@ display_manager_start (DisplayManager *manager)
         if (xdmcp_manager)
         {
             gint port;
-            gchar *key;
+            gchar *filename, *path, *key;
 
             xserver = xserver_new (XSERVER_TYPE_LOCAL_TERMINAL, xdmcp_manager, display_number);
+
+            filename = g_strdup_printf ("%s.log", xserver_get_address (xserver));
+            path = g_build_filename (manager->priv->log_dir, filename, NULL);
+            g_debug ("Logging to %s", path);
+            xserver_set_log_file (xserver, path);
+            g_free (filename);
+            g_free (path);
+
             port = g_key_file_get_integer (manager->priv->config, display_name, "xdmcp-port", NULL);
             if (port > 0)
                 xserver_set_port (xserver, port);
@@ -375,10 +397,17 @@ display_manager_start (DisplayManager *manager)
         }
         else
         {
-            gchar *path;
+            gchar *filename, *path;
             XAuthorization *authorization;
 
             xserver = xserver_new (XSERVER_TYPE_LOCAL, NULL, display_number);
+
+            filename = g_strdup_printf ("%s.log", xserver_get_address (xserver));
+            path = g_build_filename (manager->priv->log_dir, filename, NULL);
+            g_debug ("Logging to %s", path);
+            xserver_set_log_file (xserver, path);
+            g_free (filename);
+            g_free (path);
 
             authorization = xauth_new_cookie ();
             path = get_authorization_path (manager);

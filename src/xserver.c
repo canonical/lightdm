@@ -12,7 +12,9 @@
 #include <config.h>
 
 #include <stdlib.h>
+#include <errno.h>
 #include <string.h>
+#include <fcntl.h>
 #include <sys/wait.h>
 #include <xcb/xcb.h>
 
@@ -31,6 +33,9 @@ struct XServerPrivate
 {  
     /* Type of server */
     XServerType type;
+
+    /* Path of file to log to */
+    gchar *log_file;
 
     /* Environment variables */
     GHashTable *env;
@@ -124,6 +129,19 @@ xserver_get_command (XServer *server)
     return server->priv->command;
 }
 
+void
+xserver_set_log_file (XServer *server, const gchar *log_file)
+{
+    g_free (server->priv->log_file);
+    server->priv->log_file = g_strdup (log_file);
+}
+
+const gchar *
+xserver_get_log_file (XServer *server)
+{
+    return server->priv->log_file;
+}
+  
 void
 xserver_set_env (XServer *server, const gchar *name, const gchar *value)
 {
@@ -264,8 +282,26 @@ xserver_watch_cb (GPid pid, gint status, gpointer data)
 static void
 xserver_fork_cb (gpointer data)
 {
+    XServer *server = data;
+
     /* Clear USR1 handler so the server will signal us when ready */
     signal (SIGUSR1, SIG_IGN);
+
+    /* Redirect output to logfile */
+    if (server->priv->log_file)
+    {
+         int fd;
+
+         fd = open (server->priv->log_file, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
+         if (fd < 0)
+             g_warning ("Failed to open session log file %s: %s", server->priv->log_file, g_strerror (errno));
+         else
+         {
+             dup2 (fd, STDOUT_FILENO);
+             dup2 (fd, STDERR_FILENO);
+             close (fd);
+         }
+    }
 }
 
 static gchar **
@@ -367,15 +403,13 @@ xserver_start (XServer *server)
     if (!result)
         return FALSE;
 
-    result = g_spawn_async/*_with_pipes*/ (NULL, /* Working directory */
-                                       argv,
-                                       env,
-                                       G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
-                                       xserver_fork_cb,
-                                       server,
-                                       &server->priv->pid,
-                                       //&xserver_stdin, &xserver_stdout, &xserver_stderr,
-                                       &error);
+    result = g_spawn_async (NULL, /* Working directory */
+                            argv,
+                            env,
+                            G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+                            xserver_fork_cb, server,
+                            &server->priv->pid,
+                            &error);
     g_strfreev (argv);
     if (!result)
         g_warning ("Unable to create display: %s", error->message);

@@ -10,6 +10,7 @@
  */
 
 #include <stdlib.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <pwd.h>
@@ -29,6 +30,12 @@ struct SessionPrivate
 {
     /* User running this session */
     gchar *username;
+  
+    /* Info from password database */
+    struct passwd *user_info;
+  
+    /* Path of file to log to */
+    gchar *log_file;
 
     /* Environment variables */
     GHashTable *env;
@@ -71,6 +78,19 @@ session_get_command (Session *session)
 }
 
 void
+session_set_log_file (Session *session, const gchar *log_file)
+{
+    g_free (session->priv->log_file);
+    session->priv->log_file = g_strdup (log_file);
+}
+
+const gchar *
+session_get_log_file (Session *session)
+{
+    return session->priv->log_file;
+}
+
+void
 session_set_env (Session *session, const gchar *name, const gchar *value)
 {
     g_hash_table_insert (session->priv->env, g_strdup (name), g_strdup (value));
@@ -110,23 +130,39 @@ session_watch_cb (GPid pid, gint status, gpointer data)
 static void
 session_fork_cb (gpointer data)
 {
-    struct passwd *user_info = data;
-  
-    if (!user_info)
-        return;
+    Session *session = data;
 
-    if (setgid (user_info->pw_gid) != 0)
+    if (session->priv->user_info)
     {
-        g_warning ("Failed to set group ID: %s", strerror (errno));
-        _exit(1);
+        if (setgid (session->priv->user_info->pw_gid) != 0)
+        {
+            g_warning ("Failed to set group ID: %s", strerror (errno));
+            _exit(1);
+        }
+        if (setuid (session->priv->user_info->pw_uid) != 0)
+        {
+            g_warning ("Failed to set user ID: %s", strerror (errno));
+            _exit(1);
+        }
+        if (chdir (session->priv->user_info->pw_dir) != 0)
+            g_warning ("Failed to change directory: %s", strerror (errno));
     }
-    if (setuid (user_info->pw_uid) != 0)
+
+    /* Redirect output to logfile */
+    if (session->priv->log_file)
     {
-        g_warning ("Failed to set user ID: %s", strerror (errno));
-        _exit(1);
+        int fd;
+
+        fd = open (session->priv->log_file, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
+        if (fd < 0)
+            g_warning ("Failed to open session log file %s: %s", session->priv->log_file, g_strerror (errno));
+        else
+        {
+            dup2 (fd, STDOUT_FILENO);
+            dup2 (fd, STDERR_FILENO);
+            close (fd);
+        }
     }
-    if (chdir (user_info->pw_dir) != 0)
-        g_warning ("Failed to change directory: %s", strerror (errno));
 }
 
 static gchar **
@@ -153,7 +189,6 @@ get_env (Session *session)
 gboolean
 session_start (Session *session)
 {
-    struct passwd *user_info = NULL;
     //gint session_stdin, session_stdout, session_stderr;
     gboolean result;
     gint argc;
@@ -167,8 +202,8 @@ session_start (Session *session)
     if (session->priv->username)
     {
         errno = 0;
-        user_info = getpwnam (session->priv->username);
-        if (!user_info)
+        session->priv->user_info = getpwnam (session->priv->username);
+        if (!session->priv->user_info)
         {
             if (errno == 0)
                 g_warning ("Unable to get information on user %s: User does not exist", session->priv->username);
@@ -178,10 +213,10 @@ session_start (Session *session)
         }
 
         username = session->priv->username;
-        working_dir = user_info->pw_dir;
-        session_set_env (session, "USER", user_info->pw_name);
-        session_set_env (session, "HOME", user_info->pw_dir);
-        session_set_env (session, "SHELL", user_info->pw_shell);
+        working_dir = session->priv->user_info->pw_dir;
+        session_set_env (session, "USER", session->priv->user_info->pw_name);
+        session_set_env (session, "HOME", session->priv->user_info->pw_dir);
+        session_set_env (session, "SHELL", session->priv->user_info->pw_shell);
     }
     else
     {
@@ -214,14 +249,13 @@ session_start (Session *session)
     g_debug ("Launching session: %s %s", env_string, session->priv->command);
     g_free (env_string);
 
-    result = g_spawn_async/*_with_pipes*/ (working_dir,
-                                       argv,
-                                       env,
-                                       G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH,
-                                       session_fork_cb, user_info,
-                                       &session->priv->pid,
-                                       //&session_stdin, &session_stdout, &session_stderr,
-                                       &error);
+    result = g_spawn_async (working_dir,
+                            argv,
+                            env,
+                            G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH,
+                            session_fork_cb, session,
+                            &session->priv->pid,
+                            &error);
 
     if (!result)
         g_warning ("Failed to spawn session: %s", error->message);

@@ -88,6 +88,16 @@ AC_ARG_WITH(config-file,
 )
 AC_SUBST(CONFIG_FILE)
 
+LOG_DIR=${localstatedir}/log/lightdm
+AC_ARG_WITH(log-dir,
+            AS_HELP_STRING(--with-log-dir=<file>,
+                           Directory to write logs to),
+    if test x$withval != x; then
+        LOG_DIR="$withval"
+    fi
+)
+AC_SUBST(LOG_DIR)
+
 DBUS_SYS_DIR="${sysconfdir}/dbus-1/system.d"
 AC_ARG_WITH(dbus-sys,
             AS_HELP_STRING(--with-dbus-sys=<dir>,
@@ -219,6 +229,7 @@ echo "
 
         prefix:                   $prefix
         Config file:              $CONFIG_FILE
+        Log directory:            $LOG_DIR        
         D-Bus system directory:   $DBUS_SYS_DIR
         X server binary:          $XSERVER_BINARY
         X authorization dir:      $XAUTH_DIR
