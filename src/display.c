@@ -247,7 +247,8 @@ start_user_session (Display *display, const gchar *session)
 #ifdef HAVE_CONSOLE_KIT
             session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
 #endif
-            session_set_env (display->priv->user_session, "DESKTOP_SESSION", session);
+            session_set_env (display->priv->user_session, "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
+            session_set_env (display->priv->user_session, "GDMSESSION", session); // FIXME: No cross-desktop
             session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");
 
             // FIXME: Copy old error file

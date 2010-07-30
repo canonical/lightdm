@@ -215,6 +215,7 @@ session_start (Session *session)
         username = session->priv->username;
         working_dir = session->priv->user_info->pw_dir;
         session_set_env (session, "USER", session->priv->user_info->pw_name);
+        session_set_env (session, "USERNAME", session->priv->user_info->pw_name); // FIXME: Is this required?      
         session_set_env (session, "HOME", session->priv->user_info->pw_dir);
         session_set_env (session, "SHELL", session->priv->user_info->pw_shell);
     }
@@ -222,6 +223,7 @@ session_start (Session *session)
     {
         username = getenv ("USER");
         session_set_env (session, "USER", getenv ("USER"));
+        session_set_env (session, "USERNAME", getenv ("USER")); // FIXME: Is this required?
         session_set_env (session, "HOME", getenv ("HOME"));
         session_set_env (session, "SHELL", getenv ("SHELL"));
     }
