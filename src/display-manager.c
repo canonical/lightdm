@@ -176,7 +176,7 @@ start_session_cb (Display *display, Session *session, gboolean is_greeter, Displ
     {
         gchar *filename;
         filename = g_strdup_printf ("%s-greeter.log", xserver_get_address (display_get_xserver (display)));
-        string = g_build_filename (manager->priv->log_dir, filename, NULL); // FIXME: Log dir should be controlled from display-manager.c
+        string = g_build_filename (manager->priv->log_dir, filename, NULL);
         g_free (filename);
     }
     g_debug ("Logging to %s", string);
