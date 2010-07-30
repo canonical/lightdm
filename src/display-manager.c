@@ -16,6 +16,7 @@
 #include <sys/stat.h>
 #include <dbus/dbus-glib.h>
 #include <xcb/xcb.h>
+#include <pwd.h>
 
 #include "display-manager.h"
 #include "display-manager-glue.h"
@@ -135,7 +136,7 @@ get_authorization_path (DisplayManager *manager)
 }
 
 static void
-start_session_cb (Display *display, Session *session, DisplayManager *manager)
+start_session_cb (Display *display, Session *session, gboolean is_greeter, DisplayManager *manager)
 {
     gchar *string;
     XAuthorization *authorization;
@@ -151,6 +152,7 @@ start_session_cb (Display *display, Session *session, DisplayManager *manager)
     /* Address for greeter to connect to */
     string = g_strdup_printf ("/org/freedesktop/LightDisplayManager/Display%d", display_get_index (display));
     session_set_env (session, "LDM_DISPLAY", string);
+    g_free (string);
 
     authorization = xserver_get_authorization (display_get_xserver (display));
     if (authorization)
@@ -162,6 +164,23 @@ start_session_cb (Display *display, Session *session, DisplayManager *manager)
         g_free (path);
     }
 
+    if (is_greeter)
+    {
+        // FIXME: Copy old error file
+        if (manager->priv->test_mode)
+            string = g_strdup (".xsession-errors");
+        else
+            string = g_build_filename (getpwnam (session_get_username (session))->pw_dir, ".xsession-errors", NULL);
+    }
+    else
+    {
+        gchar *filename;
+        filename = g_strdup_printf ("%s-greeter.log", xserver_get_address (display_get_xserver (display)));
+        string = g_build_filename (manager->priv->log_dir, filename, NULL); // FIXME: Log dir should be controlled from display-manager.c
+        g_free (filename);
+    }
+    g_debug ("Logging to %s", string);
+    session_set_log_file (session, string);
     g_free (string);
 }
 

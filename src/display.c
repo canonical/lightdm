@@ -24,6 +24,7 @@
 #include "display-glue.h"
 #include "pam-session.h"
 #include "theme.h"
+#include "ldm-marshal.h"
 
 enum {
     START_SESSION,  
@@ -251,12 +252,7 @@ start_user_session (Display *display, const gchar *session)
             session_set_env (display->priv->user_session, "GDMSESSION", session); // FIXME: No cross-desktop
             session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");
 
-            // FIXME: Copy old error file
-            path = g_build_filename (getpwnam (pam_session_get_username (display->priv->user_pam_session))->pw_dir, ".xsession-errors", NULL);
-            session_set_log_file (display->priv->user_session, path);
-            g_free (path);
-
-            g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
+            g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session, FALSE);
 
             session_start (display->priv->user_session);
         }
@@ -338,7 +334,7 @@ start_greeter (Display *display)
 
     if (theme)
     {
-        gchar *command, *filename, *path;
+        gchar *command;
 #ifdef HAVE_CONSOLE_KIT
         const gchar *address, *session_type = "LoginWindow", *hostname = "";
         gboolean is_local = TRUE;
@@ -379,14 +375,7 @@ start_greeter (Display *display)
         session_set_env (display->priv->greeter_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->greeter_ck_session));
 #endif
 
-        filename = g_strdup_printf ("%s-greeter.log", xserver_get_address (display->priv->xserver));
-        path = g_build_filename (LOG_DIR, filename, NULL); // FIXME: Log dir should be controlled from display-manager.c
-        g_debug ("Logging to %s", path);
-        session_set_log_file (display->priv->greeter_session, path);
-        g_free (filename);
-        g_free (path);
-
-        g_signal_emit (display, signals[START_SESSION], 0, display->priv->greeter_session);
+        g_signal_emit (display, signals[START_SESSION], 0, display->priv->greeter_session, TRUE);
 
         session_start (display->priv->greeter_session);
 
@@ -684,8 +673,8 @@ display_class_init (DisplayClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayClass, start_session),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
-                      G_TYPE_NONE, 1, SESSION_TYPE);
+                      ldm_marshal_VOID__OBJECT_BOOLEAN,
+                      G_TYPE_NONE, 2, SESSION_TYPE, G_TYPE_BOOLEAN);
 
     signals[EXITED] =
         g_signal_new ("exited",
