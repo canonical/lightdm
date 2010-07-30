@@ -62,11 +62,19 @@ display_manager_new (GKeyFile *config)
     self->priv->config = config;
     self->priv->test_mode = g_key_file_get_boolean (self->priv->config, "LightDM", "test-mode", NULL);
     if (self->priv->test_mode)
+    {
         self->priv->auth_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "authority", NULL);
+        self->priv->log_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", NULL);
+    }
     else
-        self->priv->auth_dir = g_strdup (XAUTH_DIR);
+    {
+        gchar *value;
 
-    self->priv->log_dir = g_strdup (LOG_DIR);
+        value = g_key_file_get_value (self->priv->config, "LightDM", "authorization-directory", NULL);
+        self->priv->auth_dir = value ? value : g_strdup (XAUTH_DIR);
+        value = g_key_file_get_value (self->priv->config, "LightDM", "log-directory", NULL);
+        self->priv->log_dir = value ? value : g_strdup (LOG_DIR);
+    }
 
     return self;
 }
