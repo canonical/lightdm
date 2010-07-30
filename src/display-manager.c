@@ -15,6 +15,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <dbus/dbus-glib.h>
+#include <xcb/xcb.h>
 
 #include "display-manager.h"
 #include "display-manager-glue.h"
@@ -79,7 +80,6 @@ display_manager_new (GKeyFile *config)
     return self;
 }
 
-#include <xcb/xcb.h>
 static gboolean
 display_number_used (DisplayManager *manager, guint display_number)
 {
