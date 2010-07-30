@@ -9,6 +9,7 @@
  * license.
  */
 
+#include <stdlib.h>
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
@@ -177,6 +178,12 @@ a11y_contrast_cb (GtkWidget *widget)
         g_object_set (gtk_settings_get_default (), "gtk-theme-name", theme_name, NULL);
 }
 
+static void
+sigterm_cb (int signum)
+{
+    exit (0);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -195,6 +202,8 @@ main(int argc, char **argv)
     GtkWidget *menu_bar, *menu, *menu_item;
     GdkColor background_color;
     gint n_power_items = 0;
+
+    signal (SIGTERM, sigterm_cb);
 
     g_type_init ();
 

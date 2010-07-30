@@ -1008,6 +1008,12 @@ window_object_cleared_cb (WebKitWebView  *web_view,
                          ldm_greeter_object, kJSPropertyAttributeNone, NULL);
 }
 
+static void
+sigterm_cb (int signum)
+{
+    exit (0);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -1017,6 +1023,8 @@ main(int argc, char **argv)
     gint screen_width, screen_height;
     GtkWidget *window, *web_view;
     gchar *url;
+
+    signal (SIGTERM, sigterm_cb);
 
     gtk_init (&argc, &argv);
   
