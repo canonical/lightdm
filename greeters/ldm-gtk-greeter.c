@@ -138,6 +138,76 @@ timed_login_cb (LdmGreeter *greeter, const gchar *username)
 }
 
 static void
+suspend_cb (GtkWidget *widget, LdmGreeter *greeter)
+{
+    ldm_greeter_suspend (greeter);
+}
+
+static void
+hibernate_cb (GtkWidget *widget, LdmGreeter *greeter)
+{
+    ldm_greeter_hibernate (greeter);
+}
+
+static void
+center_window (GtkWindow *window)
+{
+    GtkAllocation allocation;
+    GdkDisplay *display;
+    GdkScreen *screen;
+    gint screen_width, screen_height;
+
+    gtk_widget_get_allocation (GTK_WIDGET (window), &allocation);
+    display = gdk_display_get_default ();
+    screen = gdk_display_get_default_screen (display);
+    screen_width = gdk_screen_get_width (screen);
+    screen_height = gdk_screen_get_height (screen);
+    gtk_window_move (GTK_WINDOW (window),
+                     (screen_width - allocation.width) / 2,
+                     (screen_height - allocation.height) / 2);
+}
+
+static void
+restart_cb (GtkWidget *widget, LdmGreeter *greeter)
+{
+    GtkWidget *dialog;
+
+    dialog = gtk_message_dialog_new (NULL,
+                                     GTK_DIALOG_MODAL | GTK_DIALOG_NO_SEPARATOR,
+                                     GTK_MESSAGE_OTHER,
+                                     GTK_BUTTONS_NONE,
+                                     "%s", _("Are you sure you want to close all programs and restart the computer?"));
+    gtk_message_dialog_set_image (GTK_MESSAGE_DIALOG (dialog), gtk_image_new_from_icon_name ("system-restart", GTK_ICON_SIZE_DIALOG));
+    gtk_dialog_add_buttons (GTK_DIALOG (dialog), _("Cancel"), FALSE, _("Restart"), TRUE, NULL);
+    gtk_widget_show_all (dialog);
+    center_window (GTK_WINDOW (dialog));
+
+    if (gtk_dialog_run (GTK_DIALOG (dialog)))
+        ldm_greeter_restart (greeter);
+    gtk_widget_destroy (dialog);
+}
+
+static void
+shutdown_cb (GtkWidget *widget, LdmGreeter *greeter)
+{
+    GtkWidget *dialog;
+
+    dialog = gtk_message_dialog_new (NULL,
+                                     GTK_DIALOG_MODAL | GTK_DIALOG_NO_SEPARATOR,
+                                     GTK_MESSAGE_OTHER,
+                                     GTK_BUTTONS_NONE,
+                                     "%s", _("Are you sure you want to close all programs and shutdown the computer?"));
+    gtk_message_dialog_set_image (GTK_MESSAGE_DIALOG (dialog), gtk_image_new_from_icon_name ("system-shutdown", GTK_ICON_SIZE_DIALOG));
+    gtk_dialog_add_buttons (GTK_DIALOG (dialog), _("Cancel"), FALSE, _("Shutdown"), TRUE, NULL);
+    gtk_widget_show_all (dialog);
+    center_window (GTK_WINDOW (dialog));
+
+    if (gtk_dialog_run (GTK_DIALOG (dialog)))
+        ldm_greeter_shutdown (greeter);
+    gtk_widget_destroy (dialog);
+}
+
+static void
 quit_cb (LdmGreeter *greeter, const gchar *username)
 {
     gtk_main_quit ();
@@ -357,10 +427,7 @@ main(int argc, char **argv)
     gtk_widget_show_all (user_window);
 
     /* Center the window */
-    gtk_widget_get_allocation (user_window, &allocation);
-    gtk_window_move (GTK_WINDOW (user_window),
-                     (screen_width - allocation.width) / 2,
-                     (screen_height - allocation.height) / 2);
+    center_window (GTK_WINDOW (user_window));
 
     panel_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_window_set_decorated (GTK_WINDOW (panel_window), FALSE);
@@ -460,22 +527,30 @@ main(int argc, char **argv)
     power_menu = gtk_menu_new ();
     if (ldm_greeter_get_can_suspend (greeter))
     {
-        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), gtk_menu_item_new_with_label ("Suspend"));
+        menu_item = gtk_menu_item_new_with_label (_("Suspend"));
+        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), menu_item);
+        g_signal_connect (menu_item, "activate", G_CALLBACK (suspend_cb), greeter);
         n_power_items++;
     }
     if (ldm_greeter_get_can_hibernate (greeter))
     {
-        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), gtk_menu_item_new_with_label ("Hibernate"));
+        menu_item = gtk_menu_item_new_with_label (_("Hibernate"));
+        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), menu_item);
+        g_signal_connect (menu_item, "activate", G_CALLBACK (hibernate_cb), greeter);
         n_power_items++;
     }
     if (ldm_greeter_get_can_restart (greeter))
     {
-        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), gtk_menu_item_new_with_label ("Restart..."));
+        menu_item = gtk_menu_item_new_with_label (_("Restart..."));
+        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), menu_item);
+        g_signal_connect (menu_item, "activate", G_CALLBACK (restart_cb), greeter);
         n_power_items++;
     }
     if (ldm_greeter_get_can_shutdown (greeter))
     {
-        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), gtk_menu_item_new_with_label ("Shutdown..."));
+        menu_item = gtk_menu_item_new_with_label (_("Shutdown..."));
+        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), menu_item);
+        g_signal_connect (menu_item, "activate", G_CALLBACK (shutdown_cb), greeter);
         n_power_items++;
     }
     if (n_power_items > 0)

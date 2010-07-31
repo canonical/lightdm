@@ -8,6 +8,7 @@ Overview of changes in lightdm 0.1.1
     * Send SIGHUP to X server when returning to greeter (makes all clients quit)
     * Change authorization after a session ends so previous session does not get
       access
+    * Make shutdown buttons work in GTK+ greeter
 
 Overview of changes in lightdm 0.1.0
 
