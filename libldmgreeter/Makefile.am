@@ -9,7 +9,7 @@ libldmgreeterinclude_HEADERS = \
 
 libldmgreeter_la_LIBADD = $(LIBLDMGREETER_LIBS)
 libldmgreeter_la_CFLAGS = $(LIBLDMGREETER_CFLAGS) \
-	-DXSESSIONS_DIR=\"$(XSESSION_DIR)\"
+	-DXSESSIONS_DIR=\"$(XSESSIONS_DIR)\"
 
 libldmgreeter_la_SOURCES= \
 	greeter.c \
