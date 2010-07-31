@@ -35,7 +35,10 @@ typedef struct
 {
     GObjectClass parent_class;
   
-    void (*start_session)(Display *display, Session *session, gboolean is_greeter);
+    void (*start_greeter)(Display *display, Session *session);
+    void (*end_greeter)(Display *display, Session *session);  
+    void (*start_session)(Display *display, Session *session);
+    void (*end_session)(Display *display, Session *session);
     void (*exited)(Display *display);
 } DisplayClass;
 

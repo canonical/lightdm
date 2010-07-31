@@ -27,7 +27,10 @@
 #include "ldm-marshal.h"
 
 enum {
-    START_SESSION,  
+    START_GREETER,
+    END_GREETER,
+    START_SESSION,
+    END_SESSION,
     EXITED,
     LAST_SIGNAL
 };
@@ -171,7 +174,9 @@ start_session (Display *display)
 
 static void
 end_user_session (Display *display, gboolean clean_exit)
-{
+{  
+    g_signal_emit (display, signals[END_SESSION], 0, display->priv->user_session);
+
     g_object_unref (display->priv->user_session);
     display->priv->user_session = NULL;
 
@@ -187,7 +192,7 @@ end_user_session (Display *display, gboolean clean_exit)
 
     if (!clean_exit)
         g_warning ("Session exited unexpectedly");
-  
+
     // FIXME: Change authorization
 
     xserver_disconnect_clients (display->priv->xserver);
@@ -252,7 +257,7 @@ start_user_session (Display *display, const gchar *session)
             session_set_env (display->priv->user_session, "GDMSESSION", session); // FIXME: No cross-desktop
             session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");
 
-            g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session, FALSE);
+            g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
 
             session_start (display->priv->user_session);
         }
@@ -280,6 +285,8 @@ static void
 end_greeter_session (Display *display, gboolean clean_exit)
 {  
     gboolean greeter_connected;
+
+    g_signal_emit (display, signals[END_GREETER], 0, display->priv->greeter_session);
 
     greeter_connected = display->priv->greeter_connected;
 
@@ -375,7 +382,7 @@ start_greeter (Display *display)
         session_set_env (display->priv->greeter_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->greeter_ck_session));
 #endif
 
-        g_signal_emit (display, signals[START_SESSION], 0, display->priv->greeter_session, TRUE);
+        g_signal_emit (display, signals[START_GREETER], 0, display->priv->greeter_session);
 
         session_start (display->priv->greeter_session);
 
@@ -667,14 +674,41 @@ display_class_init (DisplayClass *klass)
 
     g_type_class_add_private (klass, sizeof (DisplayPrivate));
 
+    signals[START_GREETER] =
+        g_signal_new ("start-greeter",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (DisplayClass, start_greeter),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__OBJECT,
+                      G_TYPE_NONE, 1, SESSION_TYPE);
+
+    signals[END_GREETER] =
+        g_signal_new ("end-greeter",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (DisplayClass, end_greeter),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__OBJECT,
+                      G_TYPE_NONE, 1, SESSION_TYPE);
+  
     signals[START_SESSION] =
         g_signal_new ("start-session",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayClass, start_session),
                       NULL, NULL,
-                      ldm_marshal_VOID__OBJECT_BOOLEAN,
-                      G_TYPE_NONE, 2, SESSION_TYPE, G_TYPE_BOOLEAN);
+                      g_cclosure_marshal_VOID__OBJECT,
+                      G_TYPE_NONE, 1, SESSION_TYPE);
+
+    signals[END_SESSION] =
+        g_signal_new ("end-session",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (DisplayClass, end_session),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__OBJECT,
+                      G_TYPE_NONE, 1, SESSION_TYPE);
 
     signals[EXITED] =
         g_signal_new ("exited",

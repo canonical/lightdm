@@ -217,8 +217,23 @@ xserver_get_authentication_data_length (XServer *server)
 void
 xserver_set_authorization (XServer *server, XAuthorization *authorization, const gchar *path)
 {
+    if (server->priv->authorization)
+        g_object_unref (server->priv->authorization);
     server->priv->authorization = g_object_ref (authorization);
-    server->priv->authorization_path = g_strdup (path);
+    if (path)
+        server->priv->authorization_path = g_strdup (path);
+  
+    /* If already running then change authorization immediately */
+    if (server->priv->authorization_file)
+    {
+        GError *error = NULL;
+
+        g_object_unref (server->priv->authorization_file);
+        server->priv->authorization_file = xauth_write (server->priv->authorization, NULL, server->priv->authorization_path, &error);
+        if (!server->priv->authorization_file)
+            g_warning ("Failed to write authorization: %s", error->message);
+        g_clear_error (&error);
+    }
 }
 
 XAuthorization *

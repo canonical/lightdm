@@ -136,7 +136,7 @@ get_authorization_path (DisplayManager *manager)
 }
 
 static void
-start_session_cb (Display *display, Session *session, gboolean is_greeter, DisplayManager *manager)
+start_session (Display *display, Session *session, gboolean is_greeter, DisplayManager *manager)
 {
     gchar *string;
     XAuthorization *authorization;
@@ -184,6 +184,36 @@ start_session_cb (Display *display, Session *session, gboolean is_greeter, Displ
     g_free (string);
 }
 
+static void
+start_greeter_cb (Display *display, Session *session, DisplayManager *manager)
+{
+    start_session (display, session, TRUE, manager);
+}
+
+static void
+start_session_cb (Display *display, Session *session, DisplayManager *manager)
+{
+    start_session (display, session, FALSE, manager);
+}
+
+static void
+end_session_cb (Display *display, Session *session, DisplayManager *manager)
+{
+    XServer *xserver;
+
+    /* Change authorization for next session */
+    xserver = display_get_xserver (display);
+    if (xserver_get_server_type (xserver) == XSERVER_TYPE_LOCAL)
+    {
+        XAuthorization *authorization;
+
+        g_debug ("Generating new authorization cookie for %s", xserver_get_address (xserver));
+        authorization = xauth_new_cookie ();
+        xserver_set_authorization (xserver, authorization, NULL);
+        g_object_unref (authorization);
+    }
+}
+
 static Display *
 add_display (DisplayManager *manager)
 {
@@ -191,7 +221,9 @@ add_display (DisplayManager *manager)
     gchar *value;
 
     display = display_new (g_list_length (manager->priv->displays));
+    g_signal_connect (display, "start-greeter", G_CALLBACK (start_greeter_cb), manager);
     g_signal_connect (display, "start-session", G_CALLBACK (start_session_cb), manager);
+    g_signal_connect (display, "end-session", G_CALLBACK (end_session_cb), manager);
 
     if (manager->priv->test_mode)
         display_set_greeter_user (display, NULL);

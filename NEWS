@@ -6,6 +6,8 @@ Overview of changes in lightdm 0.1.1
     * Run sessions through Xsession
     * Close all X servers on exit
     * Send SIGHUP to X server when returning to greeter (makes all clients quit)
+    * Change authorization after a session ends so previous session does not get
+      access
 
 Overview of changes in lightdm 0.1.0
 
