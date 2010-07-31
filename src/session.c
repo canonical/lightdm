@@ -10,12 +10,13 @@
  */
 
 #include <stdlib.h>
-#include <fcntl.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <pwd.h>
 #include <errno.h>
 #include <string.h>
+#include <fcntl.h>
+#include <glib/gstdio.h>
 
 #include "session.h"
 
@@ -131,6 +132,7 @@ static void
 session_fork_cb (gpointer data)
 {
     Session *session = data;
+    int fd;
 
     if (session->priv->user_info)
     {
@@ -148,12 +150,15 @@ session_fork_cb (gpointer data)
             g_warning ("Failed to change directory: %s", strerror (errno));
     }
 
+    /* Make input non-blocking */
+    fd = g_open ("/dev/null", O_RDONLY);
+    dup2 (fd, STDIN_FILENO);
+    close (fd);
+
     /* Redirect output to logfile */
     if (session->priv->log_file)
     {
-        int fd;
-
-        fd = open (session->priv->log_file, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
+        fd = g_open (session->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
         if (fd < 0)
             g_warning ("Failed to open session log file %s: %s", session->priv->log_file, g_strerror (errno));
         else

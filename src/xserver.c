@@ -14,9 +14,10 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <fcntl.h>
 #include <sys/wait.h>
 #include <xcb/xcb.h>
+#include <fcntl.h>
+#include <glib/gstdio.h>
 
 #include "xserver.h"
 
@@ -307,7 +308,7 @@ xserver_fork_cb (gpointer data)
     {
          int fd;
 
-         fd = open (server->priv->log_file, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
+         fd = g_open (server->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
          if (fd < 0)
              g_warning ("Failed to open session log file %s: %s", server->priv->log_file, g_strerror (errno));
          else

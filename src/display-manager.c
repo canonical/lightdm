@@ -166,18 +166,18 @@ start_session (Display *display, Session *session, gboolean is_greeter, DisplayM
 
     if (is_greeter)
     {
+        gchar *filename;
+        filename = g_strdup_printf ("%s-greeter.log", xserver_get_address (display_get_xserver (display)));
+        string = g_build_filename (manager->priv->log_dir, filename, NULL);
+        g_free (filename);
+    }
+    else
+    {
         // FIXME: Copy old error file
         if (manager->priv->test_mode)
             string = g_strdup (".xsession-errors");
         else
             string = g_build_filename (getpwnam (session_get_username (session))->pw_dir, ".xsession-errors", NULL);
-    }
-    else
-    {
-        gchar *filename;
-        filename = g_strdup_printf ("%s-greeter.log", xserver_get_address (display_get_xserver (display)));
-        string = g_build_filename (manager->priv->log_dir, filename, NULL);
-        g_free (filename);
     }
     g_debug ("Logging to %s", string);
     session_set_log_file (session, string);
