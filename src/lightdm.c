@@ -143,8 +143,14 @@ start_dbus (void)
     GError *error = NULL;
 
     bus = dbus_g_bus_get (test_mode ? DBUS_BUS_SESSION : DBUS_BUS_SYSTEM, &error);
-    if (!bus) 
-        g_critical ("Failed to get system bus: %s", error->message);
+    if (!bus)
+    {
+        if (test_mode)
+            g_critical ("Failed to get session bus: %s", error->message);
+        else
+            g_critical ("Failed to get system bus: %s", error->message);
+        return 1;
+    }
     g_clear_error (&error);
 
     proxy = dbus_g_proxy_new_for_name (bus,
