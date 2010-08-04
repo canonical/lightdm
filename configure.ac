@@ -3,10 +3,11 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT(lightdm, 0.1.0)
 AC_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE
-AM_SILENT_RULES(yes)
 LT_INIT
 AM_PROG_CC_C_O
+AC_PROG_LIBTOOL
 AM_MAINTAINER_MODE
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES(yes)])
 
 GOBJECT_INTROSPECTION_CHECK(0.6.7)
 
