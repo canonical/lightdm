@@ -155,17 +155,22 @@ start_session (Display *display)
 {
 #ifdef HAVE_CONSOLE_KIT
     DBusError error;
-    const gchar *address;
+    const gchar *username, *address;
     struct passwd *user_info;
-    dbus_int32_t uid;
+
+    username = pam_session_get_username (display->priv->user_pam_session);
+    user_info = getpwnam (username);
+    if (!user_info)
+    {
+        g_warning ("Failed to get user info for user '%s'", username);
+        return;
+    }
 
     display->priv->user_ck_session = ck_connector_new ();
     dbus_error_init (&error);
-    user_info = getpwnam (pam_session_get_username (display->priv->user_pam_session));
-    uid = user_info->pw_uid;
     address = xserver_get_address (display->priv->xserver);
     if (!ck_connector_open_session_with_parameters (display->priv->user_ck_session, &error,
-                                                    "unix-user", &uid,
+                                                    "unix-user", user_info->pw_uid,
                                                     //"display-device", &display->priv->display_device,
                                                     //"x11-display-device", &display->priv->x11_display_device,
                                                     "x11-display", &address,
