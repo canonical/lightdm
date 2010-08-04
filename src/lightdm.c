@@ -149,7 +149,7 @@ start_dbus (void)
             g_critical ("Failed to get session bus: %s", error->message);
         else
             g_critical ("Failed to get system bus: %s", error->message);
-        return 1;
+        return NULL;
     }
     g_clear_error (&error);
 
@@ -209,10 +209,12 @@ main(int argc, char **argv)
     if (!test_mode && getuid () != 0)
     {
         g_printerr ("Only root can run Light Display Manager\n");
-        return -1;
+        return 1;
     }
 
     bus = start_dbus ();
+    if (!bus)
+        return 1;
 
     g_debug ("Starting Light Display Manager %s, PID=%i", VERSION, getpid ());
 
