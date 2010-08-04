@@ -9,6 +9,8 @@ Overview of changes in lightdm 0.1.1
     * Change authorization after a session ends so previous session does not get
       access
     * Make shutdown buttons work in GTK+ greeter
+    * Make user manager configurable
+    * Make GTK+ greeter show username entry if no user list
 
 Overview of changes in lightdm 0.1.0
 
