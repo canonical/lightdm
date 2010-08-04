@@ -18,9 +18,9 @@
 #include "greeter.h"
 
 static LdmGreeter *greeter;
-static GtkListStore *user_model;
+static GtkTreeModel *user_model;
 static GtkWidget *user_window, *vbox, *message_label, *user_view;
-static GtkWidget *password_entry;
+static GtkWidget *username_entry, *password_entry;
 static GtkWidget *panel_window;
 static gchar *session = NULL, *theme_name;
 
@@ -29,7 +29,7 @@ start_authentication (const gchar *username)
 {
     GtkTreeIter iter;
 
-    if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (user_model), &iter))
+    if (user_model && gtk_tree_model_get_iter_first (GTK_TREE_MODEL (user_model), &iter))
     {
         do
         {
@@ -39,6 +39,8 @@ start_authentication (const gchar *username)
             g_free (user);
         } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (user_model), &iter));
     }
+    if (username_entry)
+        gtk_widget_set_sensitive (username_entry, FALSE);
 
     ldm_greeter_start_authentication (greeter, username);
 }
@@ -81,6 +83,12 @@ user_view_click_cb (GtkWidget *widget, GdkEventButton *event)
 }
 
 static void
+username_activate_cb (GtkWidget *widget)
+{
+    start_authentication (gtk_entry_get_text (GTK_ENTRY (username_entry)));
+}
+
+static void
 password_activate_cb (GtkWidget *widget)
 {
     gtk_widget_set_sensitive (widget, FALSE);
@@ -111,14 +119,23 @@ authentication_complete_cb (LdmGreeter *greeter)
     gtk_entry_set_text (GTK_ENTRY (password_entry), "");
 
     /* Clear row shading */
-    if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (user_model), &iter))
+    if (user_model && gtk_tree_model_get_iter_first (GTK_TREE_MODEL (user_model), &iter))
     {
         do
         {
             gtk_list_store_set (GTK_LIST_STORE (user_model), &iter, 3, TRUE, -1);
         } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (user_model), &iter));
     }
-    gtk_widget_grab_focus (user_view);
+    if (username_entry)
+    {
+        gtk_entry_set_text (GTK_ENTRY (username_entry), "");
+        gtk_widget_set_sensitive (username_entry, TRUE);
+    }
+
+    if (user_view)
+        gtk_widget_grab_focus (user_view);
+    else
+        gtk_widget_grab_focus (username_entry);
   
     if (ldm_greeter_get_is_authenticated (greeter))
     {
@@ -254,15 +271,78 @@ sigterm_cb (int signum)
     exit (0);
 }
 
+static GtkWidget *
+make_user_view (void)
+{
+    GtkListStore *model;
+    GtkWidget *view;
+    GtkCellRenderer *renderer;
+    const GList *items, *item;
+    GtkTreeIter iter;
+
+    items = ldm_greeter_get_users (greeter);
+    if (!items)
+        return NULL;
+  
+    model = gtk_list_store_new (4, G_TYPE_STRING, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_BOOLEAN);
+    for (item = items; item; item = item->next)
+    {
+        LdmUser *user = item->data;
+        const gchar *image;
+        GdkPixbuf *pixbuf = NULL;
+
+        image = ldm_user_get_image (user);
+        if (image[0] != '\0')
+        {
+            gchar *path;
+
+            path = g_filename_from_uri (image, NULL, NULL);
+            if (path)
+                pixbuf = gdk_pixbuf_new_from_file_at_scale (path, 64, 64, TRUE, NULL);
+            g_free (path);
+        }
+        if (!pixbuf)
+            pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
+                                               "stock_person",
+                                               64,
+                                               0,
+                                               NULL);
+
+        gtk_list_store_append (GTK_LIST_STORE (model), &iter);
+        gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+                            0, ldm_user_get_name (user),
+                            1, ldm_user_get_display_name (user),
+                            2, pixbuf,
+                            3, TRUE,
+                            -1);
+    }
+
+    view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (model));
+    gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (view), FALSE);
+    gtk_tree_view_set_grid_lines (GTK_TREE_VIEW (view), GTK_TREE_VIEW_GRID_LINES_NONE);
+
+    renderer = gtk_cell_renderer_pixbuf_new();
+    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view), 0, "Face", renderer, "pixbuf", 2, "sensitive", 3, NULL);
+
+    renderer = gtk_cell_renderer_text_new();
+    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view), 1, "Name", renderer, "text", 1, NULL);
+
+    g_signal_connect (view, "row-activated", G_CALLBACK (user_view_activate_cb), NULL);
+    g_signal_connect (view, "button-press-event", G_CALLBACK (user_view_click_cb), NULL);
+
+    if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (model), &iter))
+        gtk_tree_selection_select_iter (gtk_tree_view_get_selection (GTK_TREE_VIEW (view)), &iter);
+
+    return view;
+}
+
 int
 main(int argc, char **argv)
 {
     gchar *theme_dir, *rc_file, *background_image;
     GdkWindow *root;
     const GList *items, *item;
-    GtkTreeIter iter;
     GSList *session_radio_list = NULL, *language_radio_list = NULL, *layout_radio_list = NULL;
-    GtkCellRenderer *renderer;
     GdkDisplay *display;
     GdkScreen *screen;
     gint screen_width, screen_height;
@@ -366,56 +446,20 @@ main(int argc, char **argv)
     gtk_box_pack_start (GTK_BOX (vbox), message_label, FALSE, FALSE, 0);
     gtk_widget_set_no_show_all (message_label, TRUE);
 
-    user_model = gtk_list_store_new (4, G_TYPE_STRING, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_BOOLEAN);
-    items = ldm_greeter_get_users (greeter);
-    for (item = items; item; item = item->next)
+    user_view = make_user_view ();
+    if (user_view)
     {
-        LdmUser *user = item->data;
-        const gchar *image;
-        GdkPixbuf *pixbuf = NULL;
-
-        image = ldm_user_get_image (user);
-        if (image[0] != '\0')
-        {
-            gchar *path;
-
-            path = g_filename_from_uri (image, NULL, NULL);
-            if (path)
-                pixbuf = gdk_pixbuf_new_from_file_at_scale (path, 64, 64, TRUE, NULL);
-            g_free (path);
-        }
-        if (!pixbuf)
-            pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
-                                               "stock_person",
-                                               64,
-                                               0,
-                                               NULL);
-
-        gtk_list_store_append (GTK_LIST_STORE (user_model), &iter);
-        gtk_list_store_set (GTK_LIST_STORE (user_model), &iter,
-                            0, ldm_user_get_name (user),
-                            1, ldm_user_get_display_name (user),
-                            2, pixbuf,
-                            3, TRUE,
-                            -1);
+        username_entry = NULL;
+        user_model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
+        gtk_box_pack_start (GTK_BOX (vbox), user_view, FALSE, FALSE, 0);
     }
-
-    user_view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (user_model));
-    gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (user_view), FALSE);
-    gtk_tree_view_set_grid_lines (GTK_TREE_VIEW (user_view), GTK_TREE_VIEW_GRID_LINES_NONE);
-
-    renderer = gtk_cell_renderer_pixbuf_new();
-    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 0, "Face", renderer, "pixbuf", 2, "sensitive", 3, NULL);
-
-    renderer = gtk_cell_renderer_text_new();
-    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 1, "Name", renderer, "text", 1, NULL);
-
-    gtk_box_pack_start (GTK_BOX (vbox), user_view, FALSE, FALSE, 0);
-    g_signal_connect (user_view, "row-activated", G_CALLBACK (user_view_activate_cb), NULL);
-    g_signal_connect (user_view, "button-press-event", G_CALLBACK (user_view_click_cb), NULL);
-
-    if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (user_model), &iter))
-        gtk_tree_selection_select_iter (gtk_tree_view_get_selection (GTK_TREE_VIEW (user_view)), &iter);
+    else
+    {
+        username_entry = gtk_entry_new ();
+        gtk_box_pack_start (GTK_BOX (vbox), username_entry, FALSE, FALSE, 0);
+        g_signal_connect (username_entry, "activate", G_CALLBACK (username_activate_cb), NULL);
+        user_model = NULL;
+    }
 
     password_entry = gtk_entry_new ();
     gtk_entry_set_visibility (GTK_ENTRY (password_entry), FALSE);
