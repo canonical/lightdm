@@ -42,7 +42,7 @@ typedef struct
 
 GType user_manager_get_type (void);
 
-UserManager *user_manager_new (void);
+UserManager *user_manager_new (GKeyFile *config_file);
 
 gint user_manager_get_num_users (UserManager *manager);
 

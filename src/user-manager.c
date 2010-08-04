@@ -18,26 +18,34 @@
 
 struct UserManagerPrivate
 {
+    /* Configuration file */
+    GKeyFile *config;
+
+    /* TRUE if have scanned users */
     gboolean have_users;
+
+    /* List of users */
     GList *users;
 };
 
 G_DEFINE_TYPE (UserManager, user_manager, G_TYPE_OBJECT);
 
 UserManager *
-user_manager_new (/*int argc, char **argv*/)
+user_manager_new (GKeyFile *config_file)
 {
-    return g_object_new (USER_MANAGER_TYPE, NULL);
-}
+    UserManager *manager;
 
-// FIXME: 100 or 500? Make it configurable
-#define MINIMUM_UID 500
+    manager = g_object_new (USER_MANAGER_TYPE, NULL);
+    manager->priv->config = config_file;
+
+    return manager;
+}
 
 static gint
 compare_user (gconstpointer a, gconstpointer b)
 {
     const UserInfo *user_a = a, *user_b = b;
-    const char *name_a, *name_b;
+    const gchar *name_a, *name_b;
     name_a = user_a->real_name ? user_a->real_name : user_a->name;
     name_b = user_b->real_name ? user_b->real_name : user_b->name;
     return strcmp (name_a, name_b);
@@ -46,11 +54,37 @@ compare_user (gconstpointer a, gconstpointer b)
 static void
 update_users (UserManager *manager)
 {
-    char *invalid_shells[] = { "/bin/false", "/usr/sbin/nologin", NULL };
-    char *invalid_users[] = { "nobody", NULL };
+    gchar **hidden_users, **hidden_shells;
+    gchar *value;
+    gint minimum_uid;
 
     if (manager->priv->have_users)
         return;
+
+    /* User listing is disabled */
+    if (g_key_file_has_key (manager->priv->config, "UserManager", "load-users", NULL) &&
+        !g_key_file_get_boolean (manager->priv->config, "UserManager", "load-users", NULL))
+    {
+        manager->priv->have_users = TRUE;
+        return;
+    }
+
+    if (g_key_file_has_key (manager->priv->config, "UserManager", "minimum-uid", NULL))
+        minimum_uid = g_key_file_get_integer (manager->priv->config, "UserManager", "minimum-uid", NULL);
+    else
+        minimum_uid = 500;
+
+    value = g_key_file_get_string (manager->priv->config, "UserManager", "hidden-users", NULL);
+    if (!value)
+        value = g_strdup ("nobody nobody4 noaccess");
+    hidden_users = g_strsplit (value, " ", -1);
+    g_free (value);
+
+    value = g_key_file_get_string (manager->priv->config, "UserManager", "hidden-shells", NULL);
+    if (!value)
+        value = g_strdup ("/bin/false /usr/sbin/nologin");
+    hidden_shells = g_strsplit (value, " ", -1);
+    g_free (value);
 
     setpwent ();
 
@@ -68,20 +102,20 @@ update_users (UserManager *manager)
             break;
 
         /* Ignore system users */
-        if (entry->pw_uid < MINIMUM_UID)
+        if (entry->pw_uid < minimum_uid)
             continue;
 
         /* Ignore users disabled by shell */
         if (entry->pw_shell)
         {
-            for (i = 0; invalid_shells[i] && strcmp (entry->pw_shell, invalid_shells[i]) != 0; i++);
-            if (invalid_shells[i])
+            for (i = 0; hidden_shells[i] && strcmp (entry->pw_shell, hidden_shells[i]) != 0; i++);
+            if (hidden_shells[i])
                 continue;
         }
 
         /* Ignore certain users */
-        for (i = 0; invalid_users[i] && strcmp (entry->pw_name, invalid_users[i]) != 0; i++);
-        if (invalid_users[i])
+        for (i = 0; hidden_users[i] && strcmp (entry->pw_name, hidden_users[i]) != 0; i++);
+        if (hidden_users[i])
             continue;
 
         user = g_malloc0 (sizeof (UserInfo));
@@ -108,6 +142,9 @@ update_users (UserManager *manager)
         g_warning ("Failed to read password database: %s", strerror (errno));
 
     endpwent ();
+  
+    g_strfreev (hidden_users);
+    g_strfreev (hidden_shells);
 
     manager->priv->have_users = TRUE;
 }

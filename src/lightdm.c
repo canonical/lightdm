@@ -232,7 +232,7 @@ main(int argc, char **argv)
     if (test_mode)
        g_key_file_set_boolean (config_file, "LightDM", "test-mode", TRUE);
 
-    user_manager = user_manager_new ();
+    user_manager = user_manager_new (config_file);
     dbus_g_connection_register_g_object (bus, "/org/freedesktop/LightDisplayManager/Users", G_OBJECT (user_manager));
 
     display_manager = display_manager_new (config_file);
