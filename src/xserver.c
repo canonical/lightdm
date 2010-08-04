@@ -382,9 +382,6 @@ xserver_start (XServer *server)
 
     command = g_string_new (server->priv->command);
     g_string_append_printf (command, " :%d", server->priv->display_number);
-    // FIXME: Disabled as not supported on Solaris, may not be necessary on modern X servers anyway?
-    //        Consider handling with a generic X server flags configuration item
-    //g_string_append (command, " -nr");           /* No root background */
     //g_string_append_printf (command, " vt%d");
 
     if (server->priv->authorization)
