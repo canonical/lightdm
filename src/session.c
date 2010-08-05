@@ -33,7 +33,8 @@ struct SessionPrivate
     gchar *username;
   
     /* Info from password database */
-    struct passwd *user_info;
+    uid_t uid;
+    gid_t gid;
   
     /* Path of file to log to */
     gchar *log_file;
@@ -134,20 +135,15 @@ session_fork_cb (gpointer data)
     Session *session = data;
     int fd;
 
-    if (session->priv->user_info)
+    if (session->priv->gid && setgid (session->priv->gid) != 0)
     {
-        if (setgid (session->priv->user_info->pw_gid) != 0)
-        {
-            g_warning ("Failed to set group ID: %s", strerror (errno));
-            _exit(1);
-        }
-        if (setuid (session->priv->user_info->pw_uid) != 0)
-        {
-            g_warning ("Failed to set user ID: %s", strerror (errno));
-            _exit(1);
-        }
-        if (chdir (session->priv->user_info->pw_dir) != 0)
-            g_warning ("Failed to change directory: %s", strerror (errno));
+        g_warning ("Failed to set group ID: %s", strerror (errno));
+        _exit(1);
+    }
+    if (session->priv->uid && setuid (session->priv->uid) != 0)
+    {
+        g_warning ("Failed to set user ID: %s", strerror (errno));
+        _exit(1);
     }
 
     /* Make input non-blocking */
@@ -206,9 +202,11 @@ session_start (Session *session)
 
     if (session->priv->username)
     {
+        struct passwd *user_info;
+
         errno = 0;
-        session->priv->user_info = getpwnam (session->priv->username);
-        if (!session->priv->user_info)
+        user_info = getpwnam (session->priv->username);
+        if (!user_info)
         {
             if (errno == 0)
                 g_warning ("Unable to get information on user %s: User does not exist", session->priv->username);
@@ -216,13 +214,16 @@ session_start (Session *session)
                 g_warning ("Unable to get information on user %s: %s", session->priv->username, strerror (errno));
             return FALSE;
         }
+      
+        session->priv->uid = user_info->pw_uid;
+        session->priv->gid = user_info->pw_gid;
 
         username = session->priv->username;
-        working_dir = session->priv->user_info->pw_dir;
-        session_set_env (session, "USER", session->priv->user_info->pw_name);
-        session_set_env (session, "USERNAME", session->priv->user_info->pw_name); // FIXME: Is this required?      
-        session_set_env (session, "HOME", session->priv->user_info->pw_dir);
-        session_set_env (session, "SHELL", session->priv->user_info->pw_shell);
+        working_dir = user_info->pw_dir;
+        session_set_env (session, "USER", user_info->pw_name);
+        session_set_env (session, "USERNAME", user_info->pw_name); // FIXME: Is this required?      
+        session_set_env (session, "HOME", user_info->pw_dir);
+        session_set_env (session, "SHELL", user_info->pw_shell);
     }
     else
     {

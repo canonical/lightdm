@@ -177,7 +177,13 @@ start_session (Display *display, Session *session, gboolean is_greeter, DisplayM
         if (manager->priv->test_mode)
             string = g_strdup (".xsession-errors");
         else
-            string = g_build_filename (getpwnam (session_get_username (session))->pw_dir, ".xsession-errors", NULL);
+        {
+            struct passwd *user_info = getpwnam (session_get_username (session));
+            if (user_info)
+                string = g_build_filename (user_info->pw_dir, ".xsession-errors", NULL);
+            else
+                g_warning ("Failed to get user info for user '%s'", session_get_username (session));
+        }
     }
     g_debug ("Logging to %s", string);
     session_set_log_file (session, string);

@@ -121,7 +121,7 @@ xauth_write (XAuthorization *auth, const gchar *username, const gchar *path, GEr
         info = getpwnam (username);
         if (info)
             result = chown (path, info->pw_uid, info->pw_gid);
-      
+
         if (result != 0)
             g_warning ("Failed to set authorization owner");
     }

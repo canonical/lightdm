@@ -150,34 +150,49 @@ display_get_xserver (Display *display)
     return display->priv->xserver;
 }
 
-static void
-start_session (Display *display)
-{
 #ifdef HAVE_CONSOLE_KIT
+static CkConnector *
+start_ck_session (Display *display, const gchar *session_type, const gchar *username)
+{
+    CkConnector *session;
     DBusError error;
-    const gchar *username, *address;
+    const gchar *address, *hostname = "";
     struct passwd *user_info;
+    gboolean is_local = TRUE;
 
-    username = pam_session_get_username (display->priv->user_pam_session);
+    session = ck_connector_new ();
+
     user_info = getpwnam (username);
     if (!user_info)
     {
         g_warning ("Failed to get user info for user '%s'", username);
-        return;
+        return session;
     }
 
-    display->priv->user_ck_session = ck_connector_new ();
     dbus_error_init (&error);
     address = xserver_get_address (display->priv->xserver);
-    if (!ck_connector_open_session_with_parameters (display->priv->user_ck_session, &error,
-                                                    "unix-user", user_info->pw_uid,
+    if (!ck_connector_open_session_with_parameters (session, &error,
+                                                    "session-type", &session_type,
+                                                    "unix-user", &user_info->pw_uid,
                                                     //"display-device", &display->priv->display_device,
                                                     //"x11-display-device", &display->priv->x11_display_device,
+                                                    "remote-host-name", &hostname,
                                                     "x11-display", &address,
+                                                    "is-local", &is_local,
                                                     NULL))
         g_warning ("Failed to open CK session: %s: %s", error.name, error.message);
-#endif
+
+    return session;
 }
+
+static void
+end_ck_session (CkConnector *session)
+{
+    ck_connector_close_session (session, NULL); // FIXME: Handle errors
+    ck_connector_unref (session);
+}
+
+#endif
 
 static void
 end_user_session (Display *display, gboolean clean_exit)
@@ -192,8 +207,7 @@ end_user_session (Display *display, gboolean clean_exit)
     display->priv->user_pam_session = NULL;
 
 #ifdef HAVE_CONSOLE_KIT
-    ck_connector_close_session (display->priv->user_ck_session, NULL); // FIXME: Handle errors
-    ck_connector_unref (display->priv->user_ck_session);
+    end_ck_session (display->priv->user_ck_session);
     display->priv->user_ck_session = NULL;
 #endif
 
@@ -284,7 +298,9 @@ start_default_session (Display *display, gchar *session)
     display->priv->user_pam_session = pam_session_new (display->priv->default_user);
     pam_session_authorize (display->priv->user_pam_session);
 
-    start_session (display);
+#ifdef HAVE_CONSOLE_KIT
+    display->priv->user_ck_session = start_ck_session (display, "", pam_session_get_username (display->priv->user_pam_session));
+#endif
     start_user_session (display, session);
 }
 
@@ -306,8 +322,7 @@ end_greeter_session (Display *display, gboolean clean_exit)
     display->priv->greeter_pam_session = NULL;
 
 #ifdef HAVE_CONSOLE_KIT
-    ck_connector_close_session (display->priv->greeter_ck_session, NULL); // FIXME: Handle errors
-    ck_connector_unref (display->priv->greeter_ck_session);
+    end_ck_session (display->priv->greeter_ck_session);
     display->priv->greeter_ck_session = NULL;
 #endif
 
@@ -349,12 +364,6 @@ start_greeter (Display *display)
     if (theme)
     {
         gchar *command;
-#ifdef HAVE_CONSOLE_KIT
-        const gchar *address, *session_type = "LoginWindow", *hostname = "";
-        gboolean is_local = TRUE;
-        DBusError dbus_error;
-        struct passwd *user_info;
-#endif
 
         g_debug ("Starting greeter %s as user %s", display->priv->greeter_theme,
                  display->priv->greeter_user ? display->priv->greeter_user : "<current>");
@@ -365,19 +374,9 @@ start_greeter (Display *display)
         pam_session_authorize (display->priv->greeter_pam_session);
 
 #ifdef HAVE_CONSOLE_KIT
-        display->priv->greeter_ck_session = ck_connector_new ();
-        address = xserver_get_address (display->priv->xserver);
-        dbus_error_init (&dbus_error);
-        user_info = getpwnam (display->priv->greeter_user ? display->priv->greeter_user : getenv ("USER"));
-        if (!ck_connector_open_session_with_parameters (display->priv->greeter_ck_session, &dbus_error,
-                                                        "unix-user", &user_info->pw_uid,
-                                                        "session-type", &session_type,
-                                                        "x11-display", &address,
-                                                        //"x11-display-device", &display->priv->x11_display_device, // FIXME: e.g. /dev/tty7
-                                                        "remote-host-name", &hostname,
-                                                        "is-local", &is_local,
-                                                        NULL))
-            g_warning ("Failed to open CK session: %s: %s", dbus_error.name, dbus_error.message);
+        display->priv->greeter_ck_session = start_ck_session (display,
+                                                              "LoginWindow",
+                                                              display->priv->greeter_user ? display->priv->greeter_user : getenv ("USER"));
 #endif
 
         display->priv->greeter_connected = FALSE;
@@ -444,7 +443,9 @@ authenticate_result_cb (PAMSession *session, int result, Display *display)
 static void
 session_started_cb (PAMSession *session, Display *display)
 {
-    start_session (display);
+#ifdef HAVE_CONSOLE_KIT
+    display->priv->user_ck_session = start_ck_session (display, "", pam_session_get_username (display->priv->user_pam_session));
+#endif
 }
 
 gboolean
@@ -659,10 +660,8 @@ display_finalize (GObject *object)
     if (self->priv->user_pam_session)
         g_object_unref (self->priv->user_pam_session);
 #ifdef HAVE_CONSOLE_KIT
-    if (self->priv->greeter_ck_session)
-        ck_connector_unref (self->priv->greeter_ck_session);
-    if (self->priv->user_ck_session)
-        ck_connector_unref (self->priv->user_ck_session);
+    end_ck_session (self->priv->greeter_ck_session);
+    end_ck_session (self->priv->user_ck_session);
 #endif
     if (self->priv->xserver)  
         g_object_unref (self->priv->xserver);
