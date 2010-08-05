@@ -43,3 +43,8 @@ src/ldmwkgreeter
 src/lightdm
 src/session-manager-glue.h
 src/user-manager-glue.h
+src/ldm-marshal.c
+src/ldm-marshal.h
+data/org.freedesktop.LightDisplayManager.conf
+config.h
+config.h.in
