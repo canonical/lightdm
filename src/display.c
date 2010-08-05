@@ -13,6 +13,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <pwd.h>
 #include <gio/gdesktopappinfo.h>
 
@@ -162,10 +163,14 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
 
     session = ck_connector_new ();
 
+    errno = 0;
     user_info = getpwnam (username);
     if (!user_info)
     {
-        g_warning ("Failed to get user info for user '%s'", username);
+        if (errno == 0)
+            g_warning ("Unable to get information on user %s: User does not exist", username);
+        else
+            g_warning ("Unable to get information on user %s: %s", username, strerror (errno));
         return session;
     }
 
