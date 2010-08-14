@@ -848,8 +848,10 @@ ldm_greeter_get_authentication_user (LdmGreeter *greeter)
 /**
  * ldm_greeter_login:
  * @greeter: A #LdmGreeter
+ * @username: The user to log in as
+ * @session: The session to log into
  * 
- * Login with the currently authenticated user.
+ * Login a user to a session
  **/
 void
 ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *session)
