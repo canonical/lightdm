@@ -280,8 +280,11 @@ start_user_session (Display *display, const gchar *session)
             session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
 #endif
             session_set_env (display->priv->user_session, "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
-            session_set_env (display->priv->user_session, "GDMSESSION", session); // FIXME: No cross-desktop
+            session_set_env (display->priv->user_session, "GDMSESSION", session); // FIXME: Not cross-desktop
             session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");
+            session_set_env (display->priv->user_session, "LANG", "C");
+            session_set_env (display->priv->user_session, "GDM_LANG", "C"); // FIXME: Not cross-desktop
+            session_set_env (display->priv->user_session, "GDM_KEYBOARD_LAYOUT", "us"); // FIXME: Not cross-desktop
 
             g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
 
