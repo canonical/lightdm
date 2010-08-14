@@ -1072,10 +1072,10 @@ ldm_greeter_init (LdmGreeter *greeter)
 }
 
 static void
-ldm_greeter_set_property(GObject      *object,
-                         guint         prop_id,
-                         const GValue *value,
-                         GParamSpec   *pspec)
+ldm_greeter_set_property (GObject      *object,
+                          guint         prop_id,
+                          const GValue *value,
+                          GParamSpec   *pspec)
 {
     LdmGreeter *self;
     gint i, n_pages;
@@ -1093,10 +1093,10 @@ ldm_greeter_set_property(GObject      *object,
 }
 
 static void
-ldm_greeter_get_property(GObject    *object,
-                         guint       prop_id,
-                         GValue     *value,
-                         GParamSpec *pspec)
+ldm_greeter_get_property (GObject    *object,
+                          guint       prop_id,
+                          GValue     *value,
+                          GParamSpec *pspec)
 {
     LdmGreeter *self;
 
