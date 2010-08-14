@@ -40,7 +40,7 @@ static void authentication_complete_cb (LdmGreeter *greeter)
 {
     if (ldm_greeter_get_is_authenticated (greeter)) {
         // Log in to this session.
-        ldm_greeter_login (greeter);
+        ldm_greeter_login (greeter, ldm_greeter_get_authentication_user (greeter), ldm_greeter_get_default_session (greeter));
     }
     else {
         // Display a warning and reset the greeter
@@ -126,6 +126,11 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @ldmgreeter: the object which received the signal.
 @arg1: 
 
+<!-- ##### ARG LdmGreeter:authentication-user ##### -->
+<para>
+
+</para>
+
 <!-- ##### ARG LdmGreeter:can-hibernate ##### -->
 <para>
 
@@ -142,6 +147,11 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 </para>
 
 <!-- ##### ARG LdmGreeter:can-suspend ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:default-session ##### -->
 <para>
 
 </para>
@@ -167,11 +177,6 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 </para>
 
 <!-- ##### ARG LdmGreeter:num-users ##### -->
-<para>
-
-</para>
-
-<!-- ##### ARG LdmGreeter:session ##### -->
 <para>
 
 </para>
@@ -319,22 +324,13 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_session ##### -->
+<!-- ##### FUNCTION ldm_greeter_get_default_session ##### -->
 <para>
 
 </para>
 
 @greeter: 
 @Returns: 
-
-
-<!-- ##### FUNCTION ldm_greeter_set_session ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@session: 
 
 
 <!-- ##### FUNCTION ldm_greeter_get_timed_login_user ##### -->
@@ -398,12 +394,23 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
+<!-- ##### FUNCTION ldm_greeter_get_authentication_user ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
 <!-- ##### FUNCTION ldm_greeter_login ##### -->
 <para>
 
 </para>
 
 @greeter: 
+@username: 
+@session: 
 
 
 <!-- ##### FUNCTION ldm_greeter_get_can_suspend ##### -->
