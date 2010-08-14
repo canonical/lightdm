@@ -415,6 +415,10 @@ update_languages (LdmGreeter *greeter)
             if (code[0] == '\0')
                 continue;
 
+            /* Ignore the non-interesting languages */
+            if (strcmp (code, "C") == 0 || strcmp (code, "POSIX") == 0)
+                continue;
+
             language = ldm_language_new (code);
             greeter->priv->languages = g_list_append (greeter->priv->languages, language);
         }
@@ -526,7 +530,7 @@ void
 ldm_greeter_set_layout (LdmGreeter *greeter, const gchar *layout)
 {
     XklConfigRec *config;
-
+  
     setup_xkl (greeter);
 
     config = xkl_config_rec_new ();
