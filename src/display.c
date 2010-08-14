@@ -151,6 +151,24 @@ display_get_xserver (Display *display)
     return display->priv->xserver;
 }
 
+static struct passwd *
+get_user_info (const gchar *username)
+{
+    struct passwd *user_info;
+
+    errno = 0;
+    user_info = getpwnam (username);
+    if (!user_info)
+    {
+        if (errno == 0)
+            g_warning ("Unable to get information on user %s: User does not exist", username);
+        else
+            g_warning ("Unable to get information on user %s: %s", username, strerror (errno));
+    }
+
+    return user_info;
+}
+
 #ifdef HAVE_CONSOLE_KIT
 static CkConnector *
 start_ck_session (Display *display, const gchar *session_type, const gchar *username)
@@ -163,16 +181,9 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
 
     session = ck_connector_new ();
 
-    errno = 0;
-    user_info = getpwnam (username);
+    user_info = get_user_info (username);
     if (!user_info)
-    {
-        if (errno == 0)
-            g_warning ("Unable to get information on user %s: User does not exist", username);
-        else
-            g_warning ("Unable to get information on user %s: %s", username, strerror (errno));
         return session;
-    }
 
     dbus_error_init (&error);
     address = xserver_get_address (display->priv->xserver);
@@ -242,18 +253,30 @@ static void
 start_user_session (Display *display, const gchar *session)
 {
     gchar *filename, *path;
-    GKeyFile *key_file;
+    struct passwd *user_info;
+    GKeyFile *dmrc_file, *session_desktop_file;
     gboolean result;
     GError *error = NULL;
 
     g_debug ("Launching '%s' session for user %s", session, pam_session_get_username (display->priv->user_pam_session));
 
+    dmrc_file = g_key_file_new ();
+    user_info = get_user_info (pam_session_get_username (display->priv->user_pam_session));
+    if (user_info)
+    {
+        path = g_build_filename (user_info->pw_dir, ".dmrc", NULL);
+        if (!g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_NONE, &error))
+            g_warning ("Failed to load .dmrc file %s: %s", path, error->message);
+        g_clear_error (&error);
+        g_free (path);
+    }
+
     filename = g_strdup_printf ("%s.desktop", session);
     path = g_build_filename (XSESSIONS_DIR, filename, NULL);
     g_free (filename);
 
-    key_file = g_key_file_new ();
-    result = g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, &error);
+    session_desktop_file = g_key_file_new ();
+    result = g_key_file_load_from_file (session_desktop_file, path, G_KEY_FILE_NONE, &error);
     g_free (path);
 
     if (!result)
@@ -264,7 +287,7 @@ start_user_session (Display *display, const gchar *session)
     {
         gchar *session_command, *command = NULL;
 
-        session_command = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
+        session_command = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
         if (!session_command)
             g_warning ("No command in session file %s", path);
         if (session_command)
@@ -273,7 +296,16 @@ start_user_session (Display *display, const gchar *session)
 
         if (command)
         {
+            gchar *language, *layout;
+
             display->priv->user_session = session_new (pam_session_get_username (display->priv->user_pam_session), command);
+          
+            language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
+            if (!language)
+                language = g_strdup ("C");
+            layout = g_key_file_get_string (dmrc_file, "Desktop", "Layout", NULL);
+            if (!layout)
+                layout = g_strdup ("us");
 
             g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
             g_signal_connect (G_OBJECT (display->priv->user_session), "killed", G_CALLBACK (user_session_killed_cb), display);
@@ -284,19 +316,23 @@ start_user_session (Display *display, const gchar *session)
             session_set_env (display->priv->user_session, "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
             session_set_env (display->priv->user_session, "GDMSESSION", session); // FIXME: Not cross-desktop
             session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");
-            session_set_env (display->priv->user_session, "LANG", "C");
-            session_set_env (display->priv->user_session, "GDM_LANG", "C"); // FIXME: Not cross-desktop
-            session_set_env (display->priv->user_session, "GDM_KEYBOARD_LAYOUT", "us"); // FIXME: Not cross-desktop
+            session_set_env (display->priv->user_session, "LANG", language);
+            session_set_env (display->priv->user_session, "GDM_LANG", language); // FIXME: Not cross-desktop
+            session_set_env (display->priv->user_session, "GDM_KEYBOARD_LAYOUT", layout); // FIXME: Not cross-desktop
 
             g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
 
             session_start (display->priv->user_session);
+
+            g_free (language); 
+            g_free (layout);         
         }
 
         g_free (command);
     }
 
-    g_key_file_free (key_file);
+    g_key_file_free (session_desktop_file);
+    g_key_file_free (dmrc_file);  
 }
 
 static void

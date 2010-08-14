@@ -11,6 +11,8 @@ Overview of changes in lightdm 0.1.1
     * Make shutdown buttons work in GTK+ greeter
     * Make user manager configurable
     * Make GTK+ greeter show username entry if no user list
+    * Hide C and POSIX languages in greeter
+    * Load language and layout from .dmrc file
 
 Overview of changes in lightdm 0.1.0
 
