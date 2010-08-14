@@ -193,6 +193,8 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
 static void
 end_ck_session (CkConnector *session)
 {
+    if (!session)
+        return;
     ck_connector_close_session (session, NULL); // FIXME: Handle errors
     ck_connector_unref (session);
 }
