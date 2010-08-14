@@ -109,10 +109,10 @@ ldm_language_init (LdmLanguage *language)
 }
 
 static void
-ldm_language_set_property(GObject      *object,
-                          guint         prop_id,
-                          const GValue *value,
-                          GParamSpec   *pspec)
+ldm_language_set_property (GObject      *object,
+                           guint         prop_id,
+                           const GValue *value,
+                           GParamSpec   *pspec)
 {
     LdmLanguage *self;
     gint i, n_pages;
@@ -131,10 +131,10 @@ ldm_language_set_property(GObject      *object,
 }
 
 static void
-ldm_language_get_property(GObject    *object,
-                          guint       prop_id,
-                          GValue     *value,
-                          GParamSpec *pspec)
+ldm_language_get_property (GObject    *object,
+                           guint       prop_id,
+                           GValue     *value,
+                           GParamSpec *pspec)
 {
     LdmLanguage *self;
 

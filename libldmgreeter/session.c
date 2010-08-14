@@ -92,10 +92,10 @@ ldm_session_init (LdmSession *session)
 }
 
 static void
-ldm_session_set_property(GObject      *object,
-                         guint         prop_id,
-                         const GValue *value,
-                         GParamSpec   *pspec)
+ldm_session_set_property (GObject      *object,
+                          guint         prop_id,
+                          const GValue *value,
+                          GParamSpec   *pspec)
 {
     LdmSession *self;
     gint i, n_pages;
@@ -122,10 +122,10 @@ ldm_session_set_property(GObject      *object,
 }
 
 static void
-ldm_session_get_property(GObject    *object,
-                         guint       prop_id,
-                         GValue     *value,
-                         GParamSpec *pspec)
+ldm_session_get_property (GObject    *object,
+                          guint       prop_id,
+                          GValue     *value,
+                          GParamSpec *pspec)
 {
     LdmSession *self;
 

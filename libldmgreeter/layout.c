@@ -92,10 +92,10 @@ ldm_layout_init (LdmLayout *layout)
 }
 
 static void
-ldm_layout_set_property(GObject      *object,
-                        guint         prop_id,
-                        const GValue *value,
-                        GParamSpec   *pspec)
+ldm_layout_set_property (GObject      *object,
+                         guint         prop_id,
+                         const GValue *value,
+                         GParamSpec   *pspec)
 {
     LdmLayout *self;
     gint i, n_pages;
@@ -122,10 +122,10 @@ ldm_layout_set_property(GObject      *object,
 }
 
 static void
-ldm_layout_get_property(GObject    *object,
-                        guint       prop_id,
-                        GValue     *value,
-                        GParamSpec *pspec)
+ldm_layout_get_property (GObject    *object,
+                         guint       prop_id,
+                         GValue     *value,
+                         GParamSpec *pspec)
 {
     LdmLayout *self;
 

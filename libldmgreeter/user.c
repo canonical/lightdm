@@ -127,10 +127,10 @@ ldm_user_init (LdmUser *user)
 }
 
 static void
-ldm_user_set_property(GObject      *object,
-                      guint         prop_id,
-                      const GValue *value,
-                      GParamSpec   *pspec)
+ldm_user_set_property (GObject      *object,
+                       guint         prop_id,
+                       const GValue *value,
+                       GParamSpec   *pspec)
 {
     LdmUser *self;
     gint i, n_pages;
@@ -160,10 +160,10 @@ ldm_user_set_property(GObject      *object,
 }
 
 static void
-ldm_user_get_property(GObject    *object,
-                      guint       prop_id,
-                      GValue     *value,
-                      GParamSpec *pspec)
+ldm_user_get_property (GObject    *object,
+                       guint       prop_id,
+                       GValue     *value,
+                       GParamSpec *pspec)
 {
     LdmUser *self;
 
