@@ -59,6 +59,7 @@ PKG_CHECK_MODULES(LIBLDMGREETER, [
     gobject-2.0
     dbus-glib-1
     libxklavier
+    x11
 ])
 
 PKG_CHECK_MODULES(LIGHTDM_GREETER, [
