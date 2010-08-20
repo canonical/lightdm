@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.1.2
+
+    * Write PID file
+
 Overview of changes in lightdm 0.1.1
 
     * Change licence of libldmgreeter from GPL to LGPL

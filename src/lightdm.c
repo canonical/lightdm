@@ -12,6 +12,7 @@
 #include <config.h>
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <glib.h>
 #include <glib/gi18n.h>
 #include <signal.h>
@@ -189,9 +190,18 @@ display_added_cb (DisplayManager *manager, Display *display)
 int
 main(int argc, char **argv)
 {
+    FILE *pid_file;
     UserManager *user_manager;
     struct sigaction action;
     GError *error = NULL;
+
+    /* Write PID file */
+    pid_file = fopen ("/var/run/lightdm.pid", "w");
+    if (pid_file)
+    {
+        fprintf (pid_file, "%d\n", getpid ());
+        fclose (pid_file);
+    }
 
     /* Quit cleanly on signals */
     action.sa_sigaction = signal_cb;
