@@ -1,6 +1,7 @@
 Overview of changes in lightdm 0.1.2
 
     * Write PID file
+    * Make user switcher API work
 
 Overview of changes in lightdm 0.1.1
 

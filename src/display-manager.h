@@ -39,6 +39,8 @@ GType display_manager_get_type (void);
 
 DisplayManager *display_manager_new (GKeyFile *config);
 
+gboolean display_manager_add_display (DisplayManager *manager, GError *error);
+
 gboolean display_manager_switch_to_user (DisplayManager *manager, char *username, GError *error);
 
 void display_manager_start (DisplayManager *manager);

@@ -2,10 +2,18 @@
 <node>
   <interface name="org.freedesktop.LightDisplayManager">
 
-    <!-- Method to switch to a user -->
+    <!-- Start a new display -->
+    <method name="AddDisplay">
+    </method>
+
+    <!-- Switch to a user, starting a new display if required -->
     <method name="SwitchToUser">
       <arg name="username" direction="in" type="s"/>
     </method>
+
+    <!-- Switch to the guest user -->
+    <!--<method name="SwitchToGuest">
+    </method>-->
 
   </interface>
 </node>

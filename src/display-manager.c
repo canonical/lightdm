@@ -361,6 +361,21 @@ add_display (DisplayManager *manager)
 }
 
 gboolean
+display_manager_add_display (DisplayManager *manager, GError *error)
+{
+    Display *display;
+    XServer *xserver;
+
+    g_debug ("Starting new display");
+    display = add_display (manager);
+    xserver = make_xserver (manager, NULL);
+    display_start (display, xserver, NULL, 0);
+    g_object_unref (xserver);
+
+    return TRUE;
+}
+
+gboolean
 display_manager_switch_to_user (DisplayManager *manager, char *username, GError *error)
 {
     GList *link;
