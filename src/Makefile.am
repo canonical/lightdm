@@ -68,6 +68,8 @@ EXTRA_DIST = ldm-marshal.list \
 	display.xml \
 	user-manager.xml
 
+CLEANFILES = \
+	$(BUILT_SOURCES)
+
 DISTCLEANFILES = \
-	$(BUILT_SOURCES) \
 	Makefile.in
