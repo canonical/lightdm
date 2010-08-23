@@ -26,6 +26,7 @@
 static DBusGConnection *bus = NULL;
 static GKeyFile *config_file = NULL;
 static const gchar *config_path = CONFIG_FILE;
+static const gchar *pid_path = "/var/run/lightdm.pid";
 static GMainLoop *loop = NULL;
 static gboolean test_mode = FALSE;
 static gboolean debug = FALSE;
@@ -53,6 +54,7 @@ usage (void)
     g_printerr (/* Description on how to use Light Display Manager displayed on command-line */    
                 _("Help Options:\n"
                   "  -c, --config <file>             Use configuration file\n"
+                  "      --pid-file <file>           File to write PID into\n"
                   "  -d, --debug                     Print debugging messages\n"
                   "      --test-mode                 Run as unprivileged user\n"
                   "  -v, --version                   Show release version\n"
@@ -78,7 +80,17 @@ get_options (int argc, char **argv)
                exit (1);
             }
             config_path = argv[i];
-        }     
+        }
+        else if (strcmp (arg, "--pid-file"))
+        {
+            i++;
+            if (i == argc)
+            {
+               usage ();
+               exit (1);
+            }
+            pid_path = argv[i];
+        }
         else if (strcmp (arg, "-d") == 0 ||
             strcmp (arg, "--debug") == 0) {
             debug = TRUE;
@@ -195,14 +207,6 @@ main(int argc, char **argv)
     struct sigaction action;
     GError *error = NULL;
 
-    /* Write PID file */
-    pid_file = fopen ("/var/run/lightdm.pid", "w");
-    if (pid_file)
-    {
-        fprintf (pid_file, "%d\n", getpid ());
-        fclose (pid_file);
-    }
-
     /* Quit cleanly on signals */
     action.sa_sigaction = signal_cb;
     sigemptyset (&action.sa_mask);
@@ -215,6 +219,14 @@ main(int argc, char **argv)
     g_type_init ();
 
     get_options (argc, argv);
+
+    /* Write PID file */
+    pid_file = fopen (pid_path, "w");
+    if (pid_file)
+    {
+        fprintf (pid_file, "%d\n", getpid ());
+        fclose (pid_file);
+    }
 
     if (!test_mode && getuid () != 0)
     {
