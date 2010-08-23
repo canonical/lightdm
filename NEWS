@@ -2,6 +2,7 @@ Overview of changes in lightdm 0.1.2
 
     * Write PID file
     * Make user switcher API work
+    * Add a AddDisplay D-Bus method to start new displays
     * Feed signals to GLib main loop via a pipe
     * Add an upstart script
     * Make theme files more similar to existing themes
