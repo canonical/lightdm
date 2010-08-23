@@ -30,6 +30,7 @@ static const gchar *pid_path = "/var/run/lightdm.pid";
 static GMainLoop *loop = NULL;
 static gboolean test_mode = FALSE;
 static gboolean debug = FALSE;
+static int signal_pipe[2];
 
 static DisplayManager *display_manager = NULL;
 
@@ -81,7 +82,7 @@ get_options (int argc, char **argv)
             }
             config_path = argv[i];
         }
-        else if (strcmp (arg, "--pid-file"))
+        else if (strcmp (arg, "--pid-file") == 0)
         {
             i++;
             if (i == argc)
@@ -119,32 +120,33 @@ get_options (int argc, char **argv)
 }
 
 static gboolean
-handle_signal (gpointer data)
+handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
 {
-    siginfo_t *info = data;
-  
-    if (info->si_signo == SIGUSR1)
-        xserver_handle_signal (info->si_pid);
+    int signo;
+    pid_t pid;
+
+    if (read (signal_pipe[0], &signo, sizeof (int)) < 0 || 
+        read (signal_pipe[0], &pid, sizeof (pid_t)) < 0)
+        return TRUE;
+
+    if (signo == SIGUSR1)
+        xserver_handle_signal (pid);
     else
     {
-        g_debug ("Caught %s signal, exiting", g_strsignal (info->si_signo));
+        g_debug ("Caught %s signal, exiting", g_strsignal (signo));
         g_object_unref (display_manager);
         g_main_loop_quit (loop);
     }
-    g_free (info);
 
-    return FALSE;
+    return TRUE;
 }
 
 static void
 signal_cb (int signum, siginfo_t *info, void *data)
 {
-    siginfo_t *info_copy;
-
-    info_copy = g_malloc (sizeof (siginfo_t));
-    *info_copy = *info;
-
-    g_idle_add (handle_signal, info_copy);
+    if (write (signal_pipe[1], &info->si_signo, sizeof (int)) < 0 ||
+        write (signal_pipe[1], &info->si_pid, sizeof (pid_t)) < 0)
+        g_warning ("Failed to write to signal pipe");
 }
 
 static DBusGConnection *
@@ -207,7 +209,10 @@ main(int argc, char **argv)
     struct sigaction action;
     GError *error = NULL;
 
-    /* Quit cleanly on signals */
+    /* Catch signals and feed them to the main loop via a pipe */
+    if (pipe (signal_pipe) != 0)
+        g_critical ("Failed to create signal pipe");
+    g_io_add_watch (g_io_channel_unix_new (signal_pipe[0]), G_IO_IN, handle_signal, NULL);
     action.sa_sigaction = signal_cb;
     sigemptyset (&action.sa_mask);
     action.sa_flags = SA_SIGINFO;
