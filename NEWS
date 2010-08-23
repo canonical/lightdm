@@ -4,6 +4,7 @@ Overview of changes in lightdm 0.1.2
     * Make user switcher API work
     * Feed signals to GLib main loop via a pipe
     * Add an upstart script
+    * Make theme files more similar to existing themes
 
 Overview of changes in lightdm 0.1.1
 

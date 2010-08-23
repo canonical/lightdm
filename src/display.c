@@ -506,17 +506,13 @@ session_started_cb (PAMSession *session, Display *display)
 gboolean
 display_connect (Display *display, const gchar **theme, const gchar **session, const gchar **username, gint *delay, GError *error)
 {
-    gchar *filename;
-
     if (!display->priv->greeter_connected)
     {
         display->priv->greeter_connected = TRUE;
         g_debug ("Greeter connected");
     }
 
-    filename = g_strdup_printf ("%s.theme", display->priv->greeter_theme);
-    *theme = g_build_filename (THEME_DIR, filename, NULL);
-    g_free (filename);
+    *theme = g_build_filename (THEME_DIR, display->priv->greeter_theme, "index.theme", NULL);
     *session = g_strdup (display->priv->default_session);
     *username = g_strdup (display->priv->default_user);
     *delay = display->priv->timeout;

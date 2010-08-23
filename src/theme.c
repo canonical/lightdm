@@ -18,13 +18,11 @@
 GKeyFile *
 load_theme (const gchar *name, GError **error)
 {
-    gchar *filename, *path;
+    gchar *path;
     GKeyFile *theme;
     gboolean result;
 
-    filename = g_strdup_printf ("%s.theme", name);
-    path = g_build_filename (THEME_DIR, filename, NULL);
-    g_free (filename);
+    path = g_build_filename (THEME_DIR, name, "index.theme", NULL);
 
     theme = g_key_file_new ();
     result = g_key_file_load_from_file (theme, path, G_KEY_FILE_NONE, error);

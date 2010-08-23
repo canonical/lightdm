@@ -2,5 +2,5 @@
 name=WebKit
 description=WebKit Theme
 engine=webkit
-url=webkit/index.html
+url=index.html
 session=gnome
