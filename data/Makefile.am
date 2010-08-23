@@ -1,3 +1,5 @@
+SUBDIRS = init
+
 confdir = $(sysconfdir)
 conf_DATA = lightdm.conf
 
