@@ -220,6 +220,112 @@ end_session_cb (Display *display, Session *session, DisplayManager *manager)
     }
 }
 
+static guchar
+atox (char c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    return 0;
+}
+
+static void
+string_to_xdm_auth_key (const gchar *key, guchar *data)
+{
+    gint i;
+
+    memset (data, 0, sizeof (data));
+    if (strncmp (key, "0x", 2) == 0 || strncmp (key, "0X", 2) == 0)
+    {
+        for (i = 0; i < 8; i++)
+        {
+            if (key[i*2] == '\0')
+                break;
+            data[i] |= atox (key[i*2]) << 8;
+            if (key[i*2+1] == '\0')
+                break;
+            data[i] |= atox (key[i*2+1]);
+        }
+    }
+    else
+    {
+        for (i = 1; i < 8 && key[i-1]; i++)
+           data[i] = key[i-1];
+    }
+}
+
+static XServer *
+make_xserver (DisplayManager *manager, gchar *config_section)
+{
+    gint display_number;
+    XServer *xserver;
+    XAuthorization *authorization = NULL;
+    gchar *xdmcp_manager, *filename, *path, *xserver_command;
+
+    if (config_section && g_key_file_has_key (manager->priv->config, config_section, "display-number", NULL))
+        display_number = g_key_file_get_integer (manager->priv->config, config_section, "display-number", NULL);
+    else
+        display_number = get_free_display_number (manager);
+
+    xdmcp_manager = config_section ? g_key_file_get_string (manager->priv->config, config_section, "xdmcp-manager", NULL) : NULL;
+    if (xdmcp_manager)
+    {
+        gint port;
+        gchar *key;
+
+        xserver = xserver_new (XSERVER_TYPE_LOCAL_TERMINAL, xdmcp_manager, display_number);
+
+        port = g_key_file_get_integer (manager->priv->config, config_section, "xdmcp-port", NULL);
+        if (port > 0)
+            xserver_set_port (xserver, port);
+        key = g_key_file_get_string (manager->priv->config, config_section, "key", NULL);
+        if (key)
+        {
+            guchar data[8];
+
+            string_to_xdm_auth_key (key, data);
+            xserver_set_authentication (xserver, "XDM-AUTHENTICATION-1", data, 8);
+            authorization = xauth_new ("XDM-AUTHORIZATION-1", data, 8);
+        }
+    }
+    else
+    {
+        xserver = xserver_new (XSERVER_TYPE_LOCAL, NULL, display_number);
+        authorization = xauth_new_cookie ();
+    }
+    g_free (xdmcp_manager);
+
+    path = get_authorization_path (manager);
+    xserver_set_authorization (xserver, authorization, path);
+    g_object_unref (authorization);
+    g_free (path);
+
+    filename = g_strdup_printf ("%s.log", xserver_get_address (xserver));
+    path = g_build_filename (manager->priv->log_dir, filename, NULL);
+    g_debug ("Logging to %s", path);
+    xserver_set_log_file (xserver, path);
+    g_free (filename);
+    g_free (path);
+
+    /* Allow X server to be Xephyr */
+    if (getenv ("DISPLAY"))
+        xserver_set_env (xserver, "DISPLAY", getenv ("DISPLAY"));
+    if (getenv ("XAUTHORITY"))
+        xserver_set_env (xserver, "XAUTHORITY", getenv ("XAUTHORITY"));
+    xserver_command = g_key_file_get_string (manager->priv->config, "LightDM", "xserver", NULL);
+    if (xserver_command)
+        xserver_set_command (xserver, xserver_command);
+    g_free (xserver_command);
+
+    if (manager->priv->test_mode)
+        xserver_set_command (xserver, "Xephyr");
+  
+    return xserver;
+}
+
 static Display *
 add_display (DisplayManager *manager)
 {
@@ -257,6 +363,30 @@ add_display (DisplayManager *manager)
 gboolean
 display_manager_switch_to_user (DisplayManager *manager, char *username, GError *error)
 {
+    GList *link;
+    Display *display;
+    XServer *xserver;
+
+    for (link = manager->priv->displays; link; link = link->next)
+    {
+        display = link->data;
+        const gchar *session_user;
+
+        session_user = display_get_session_user (display);
+        if (session_user && strcmp (session_user, username) == 0)
+        {
+            g_debug ("Switching to user %s session on display %s", username, xserver_get_address (display_get_xserver (display)));
+            //display_focus (display);
+            return TRUE;
+        }
+    }
+
+    g_debug ("Starting new display for user %s", username);
+    display = add_display (manager);
+    xserver = make_xserver (manager, NULL);
+    display_start (display, xserver, NULL, 0);
+    g_object_unref (xserver);
+
     return TRUE;
 }
 
@@ -296,43 +426,6 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
        g_object_unref (display);
 
     return result;
-}
-
-static guchar
-atox (char c)
-{
-    if (c >= '0' && c <= '9')
-        return c - '0';
-    if (c >= 'a' && c <= 'f')
-        return c - 'a' + 10;
-    if (c >= 'A' && c <= 'F')
-        return c - 'A' + 10;
-    return 0;
-}
-
-static void
-string_to_xdm_auth_key (const gchar *key, guchar *data)
-{
-    gint i;
-
-    memset (data, 0, sizeof (data));
-    if (strncmp (key, "0x", 2) == 0 || strncmp (key, "0X", 2) == 0)
-    {
-        for (i = 0; i < 8; i++)
-        {
-            if (key[i*2] == '\0')
-                break;
-            data[i] |= atox (key[i*2]) << 8;
-            if (key[i*2+1] == '\0')
-                break;
-            data[i] |= atox (key[i*2+1]);
-        }
-    }
-    else
-    {
-        for (i = 1; i < 8 && key[i-1]; i++)
-           data[i] = key[i-1];
-    }
 }
 
 static void
@@ -394,9 +487,8 @@ display_manager_start (DisplayManager *manager)
     for (i = tokens; *i; i++)
     {
         Display *display;
-        gchar *xserver_command, *default_user, *xdmcp_manager, *display_name;
+        gchar *default_user, *display_name;
         gint user_timeout;
-        guint display_number;
         XServer *xserver;
 
         display_name = *i;
@@ -419,84 +511,7 @@ display_manager_start (DisplayManager *manager)
                 g_debug ("Starting session for user %s in %d seconds", default_user, user_timeout);
         }
 
-        if (g_key_file_has_key (manager->priv->config, display_name, "display-number", NULL))
-            display_number = g_key_file_get_integer (manager->priv->config, display_name, "display-number", NULL);
-        else
-            display_number = get_free_display_number (manager);
-
-        xdmcp_manager = g_key_file_get_string (manager->priv->config, display_name, "xdmcp-manager", NULL);
-        if (xdmcp_manager)
-        {
-            gint port;
-            gchar *filename, *path, *key;
-
-            xserver = xserver_new (XSERVER_TYPE_LOCAL_TERMINAL, xdmcp_manager, display_number);
-
-            filename = g_strdup_printf ("%s.log", xserver_get_address (xserver));
-            path = g_build_filename (manager->priv->log_dir, filename, NULL);
-            g_debug ("Logging to %s", path);
-            xserver_set_log_file (xserver, path);
-            g_free (filename);
-            g_free (path);
-
-            port = g_key_file_get_integer (manager->priv->config, display_name, "xdmcp-port", NULL);
-            if (port > 0)
-                xserver_set_port (xserver, port);
-            key = g_key_file_get_string (manager->priv->config, display_name, "key", NULL);
-            if (key)
-            {
-                guchar data[8];
-                gchar *path;
-                XAuthorization *authorization;
-
-                string_to_xdm_auth_key (key, data);
-                xserver_set_authentication (xserver, "XDM-AUTHENTICATION-1", data, 8);
-
-                authorization = xauth_new ("XDM-AUTHORIZATION-1", data, 8);
-                path = get_authorization_path (manager);
-                xserver_set_authorization (xserver, authorization, path);
-
-                g_object_unref (authorization);              
-                g_free (path);
-            }
-        }
-        else
-        {
-            gchar *filename, *path;
-            XAuthorization *authorization;
-
-            xserver = xserver_new (XSERVER_TYPE_LOCAL, NULL, display_number);
-
-            filename = g_strdup_printf ("%s.log", xserver_get_address (xserver));
-            path = g_build_filename (manager->priv->log_dir, filename, NULL);
-            g_debug ("Logging to %s", path);
-            xserver_set_log_file (xserver, path);
-            g_free (filename);
-            g_free (path);
-
-            authorization = xauth_new_cookie ();
-            path = get_authorization_path (manager);
-
-            xserver_set_authorization (xserver, authorization, path);
-
-            g_object_unref (authorization);
-            g_free (path);
-        }
-        g_free (xdmcp_manager);
-
-        /* Allow X server to be Xephyr */
-        if (getenv ("DISPLAY"))
-            xserver_set_env (xserver, "DISPLAY", getenv ("DISPLAY"));
-        if (getenv ("XAUTHORITY"))
-            xserver_set_env (xserver, "XAUTHORITY", getenv ("XAUTHORITY"));
-
-        xserver_command = g_key_file_get_string (manager->priv->config, "LightDM", "xserver", NULL);
-        if (xserver_command)
-            xserver_set_command (xserver, xserver_command);
-        g_free (xserver_command);
-
-        if (manager->priv->test_mode)
-            xserver_set_command (xserver, "Xephyr");
+        xserver = make_xserver (manager, display_name);
 
         display_start (display, xserver, default_user, user_timeout);
         g_object_unref (xserver);

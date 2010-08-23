@@ -119,6 +119,15 @@ display_get_greeter_user (Display *display)
     return display->priv->greeter_user;  
 }
 
+const gchar *
+display_get_session_user (Display *display)
+{
+    if (display->priv->user_session)
+        return pam_session_get_username (display->priv->user_pam_session);
+    else
+        return NULL;
+}
+
 void
 display_set_greeter_theme (Display *display, const gchar *greeter_theme)
 {
