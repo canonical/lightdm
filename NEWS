@@ -5,6 +5,8 @@ Overview of changes in lightdm 0.1.2
     * Feed signals to GLib main loop via a pipe
     * Add an upstart script
     * Make theme files more similar to existing themes
+    * Change dbus namespace from org.freedesktop.LightDisplayManager to
+      org.lightdm.LightDisplayManager
 
 Overview of changes in lightdm 0.1.1
 

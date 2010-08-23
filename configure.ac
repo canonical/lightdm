@@ -209,7 +209,7 @@ dnl ###########################################################################
 
 AC_OUTPUT([
 Makefile
-data/org.freedesktop.LightDisplayManager.conf
+data/org.lightdm.LightDisplayManager.conf
 data/Makefile
 data/init/Makefile
 doc/Makefile

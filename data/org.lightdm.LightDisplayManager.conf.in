@@ -1,0 +1,25 @@
+<!DOCTYPE busconfig PUBLIC
+ "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+<busconfig>
+
+  <!-- Only root can own the service -->
+  <policy user="root">
+    <allow own="org.lightdm.LightDisplayManager"/>
+  </policy>
+
+  <!-- Limit access to greeter API -->
+  <policy user="@GREETER_USER@">
+    <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.lightdm.LightDisplayManager.Greeter"/>
+  </policy>
+
+  <policy context="default">
+    <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.lightdm.DBus.Properties"/>
+    <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.lightdm.DBus.Introspectable"/>
+    <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.lightdm.LightDisplayManager"/>
+    <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.lightdm.LightDisplayManager.Display"/>
+    <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.lightdm.LightDisplayManager.Users"/>
+    <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.lightdm.LightDisplayManager.Session"/>
+  </policy>
+
+</busconfig>

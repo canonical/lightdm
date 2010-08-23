@@ -150,7 +150,7 @@ start_session (Display *display, Session *session, gboolean is_greeter, DisplayM
     }
 
     /* Address for greeter to connect to */
-    string = g_strdup_printf ("/org/freedesktop/LightDisplayManager/Display%d", display_get_index (display));
+    string = g_strdup_printf ("/org/lightdm/LightDisplayManager/Display%d", display_get_index (display));
     session_set_env (session, "LDM_DISPLAY", string);
     g_free (string);
 

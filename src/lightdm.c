@@ -34,7 +34,7 @@ static int signal_pipe[2];
 
 static DisplayManager *display_manager = NULL;
 
-#define LDM_BUS_NAME "org.freedesktop.LightDisplayManager"
+#define LDM_BUS_NAME "org.lightdm.LightDisplayManager"
 
 static void
 version (void)
@@ -196,7 +196,7 @@ static void
 display_added_cb (DisplayManager *manager, Display *display)
 {
     gchar *name;
-    name = g_strdup_printf ("/org/freedesktop/LightDisplayManager/Display%d", display_get_index (display));
+    name = g_strdup_printf ("/org/lightdm/LightDisplayManager/Display%d", display_get_index (display));
     dbus_g_connection_register_g_object (bus, name, G_OBJECT (display));
     g_free (name);
 }
@@ -260,11 +260,11 @@ main(int argc, char **argv)
        g_key_file_set_boolean (config_file, "LightDM", "test-mode", TRUE);
 
     user_manager = user_manager_new (config_file);
-    dbus_g_connection_register_g_object (bus, "/org/freedesktop/LightDisplayManager/Users", G_OBJECT (user_manager));
+    dbus_g_connection_register_g_object (bus, "/org/lightdm/LightDisplayManager/Users", G_OBJECT (user_manager));
 
     display_manager = display_manager_new (config_file);
     g_signal_connect (display_manager, "display-added", G_CALLBACK (display_added_cb), NULL);
-    dbus_g_connection_register_g_object (bus, "/org/freedesktop/LightDisplayManager", G_OBJECT (display_manager));
+    dbus_g_connection_register_g_object (bus, "/org/lightdm/LightDisplayManager", G_OBJECT (display_manager));
 
     display_manager_start (display_manager);
 
