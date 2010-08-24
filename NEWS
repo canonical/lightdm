@@ -8,6 +8,8 @@ Overview of changes in lightdm 0.1.2
     * Make theme files more similar to existing themes
     * Change dbus namespace from org.freedesktop.LightDisplayManager to
       org.lightdm.LightDisplayManager
+    * Write debug log to /var/log/lightdm/lightdm.log instead of stdout.  Use
+      --debug for the previous behaviour
 
 Overview of changes in lightdm 0.1.1
 

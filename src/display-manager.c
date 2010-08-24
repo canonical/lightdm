@@ -63,20 +63,12 @@ display_manager_new (GKeyFile *config)
 
     self->priv->config = config;
     self->priv->test_mode = g_key_file_get_boolean (self->priv->config, "LightDM", "test-mode", NULL);
-    if (self->priv->test_mode)
-    {
-        self->priv->auth_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "authority", NULL);
-        self->priv->log_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", NULL);
-    }
-    else
-    {
-        gchar *value;
-
-        value = g_key_file_get_value (self->priv->config, "LightDM", "authorization-directory", NULL);
-        self->priv->auth_dir = value ? value : g_strdup (XAUTH_DIR);
-        value = g_key_file_get_value (self->priv->config, "LightDM", "log-directory", NULL);
-        self->priv->log_dir = value ? value : g_strdup (LOG_DIR);
-    }
+    self->priv->auth_dir = g_key_file_get_string (self->priv->config, "LightDM", "authorization-directory", NULL);
+    if (!self->priv->auth_dir)
+        self->priv->auth_dir = g_strdup (XAUTH_DIR);
+    self->priv->log_dir = g_key_file_get_string (self->priv->config, "LightDM", "log-directory", NULL);
+    if (!self->priv->log_dir)
+        self->priv->log_dir = g_strdup (LOG_DIR);
 
     return self;
 }
@@ -340,15 +332,15 @@ add_display (DisplayManager *manager)
     if (manager->priv->test_mode)
         display_set_greeter_user (display, NULL);
 
-    value = g_key_file_get_value (manager->priv->config, "Greeter", "session", NULL);
+    value = g_key_file_get_string (manager->priv->config, "Greeter", "session", NULL);
     if (value)
         display_set_default_session (display, value);
     g_free (value);
-    value = g_key_file_get_value (manager->priv->config, "Greeter", "user", NULL);
+    value = g_key_file_get_string (manager->priv->config, "Greeter", "user", NULL);
     if (value)
         display_set_greeter_user (display, value);
     g_free (value);
-    value = g_key_file_get_value (manager->priv->config, "Greeter", "theme", NULL);
+    value = g_key_file_get_string (manager->priv->config, "Greeter", "theme", NULL);
     if (value)
         display_set_greeter_theme (display, value);
     g_free (value);
@@ -486,9 +478,6 @@ display_manager_start (DisplayManager *manager)
     gchar *displays;
     gchar **tokens, **i;
 
-    /* Make an empty log dir */
-    g_mkdir_with_parents (manager->priv->log_dir, S_IRWXU | S_IXGRP | S_IXOTH);
-
     /* Make an empty authorization directory */
     setup_auth_dir (manager);
   
@@ -512,8 +501,8 @@ display_manager_start (DisplayManager *manager)
         display = add_display (manager);
 
         /* Automatically log in or start a greeter session */  
-        default_user = g_key_file_get_value (manager->priv->config, "Default User", "name", NULL);
-        //FIXME default_user_session = g_key_file_get_value (manager->priv->config, "Default User", "session", NULL); // FIXME
+        default_user = g_key_file_get_string (manager->priv->config, "Default User", "name", NULL);
+        //FIXME default_user_session = g_key_file_get_string (manager->priv->config, "Default User", "session", NULL); // FIXME
         user_timeout = g_key_file_get_integer (manager->priv->config, "Default User", "timeout", NULL);
         if (user_timeout < 0)
             user_timeout = 0;
