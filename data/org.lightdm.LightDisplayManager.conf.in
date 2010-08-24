@@ -14,8 +14,8 @@
   </policy>
 
   <policy context="default">
-    <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.lightdm.DBus.Properties"/>
-    <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.lightdm.DBus.Introspectable"/>
+    <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.freedesktop.DBus.Properties"/>
+    <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.freedesktop.DBus.Introspectable"/>
     <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.lightdm.LightDisplayManager"/>
     <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.lightdm.LightDisplayManager.Display"/>
     <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.lightdm.LightDisplayManager.Users"/>

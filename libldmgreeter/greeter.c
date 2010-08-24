@@ -169,6 +169,7 @@ ldm_greeter_connect (LdmGreeter *greeter)
                                                            "/org/lightdm/LightDisplayManager/Users",
                                                            "org.lightdm.LightDisplayManager.Users");
 
+    g_debug ("Connecting to display manager...");
     result = dbus_g_proxy_call (greeter->priv->display_proxy, "Connect", &error,
                                 G_TYPE_INVALID,
                                 G_TYPE_STRING, &greeter->priv->theme,
@@ -176,6 +177,8 @@ ldm_greeter_connect (LdmGreeter *greeter)
                                 G_TYPE_STRING, &greeter->priv->timed_user,
                                 G_TYPE_INT, &greeter->priv->login_delay,
                                 G_TYPE_INVALID);
+    g_debug ("Connected theme=%s default-session=%s timed-user=%s login-delay=%d",
+             greeter->priv->theme, greeter->priv->default_session, greeter->priv->timed_user, greeter->priv->login_delay);
 
     if (!result)
         g_warning ("Failed to connect to display manager: %s", error->message);
@@ -321,6 +324,7 @@ update_users (LdmGreeter *greeter)
     if (greeter->priv->have_users)
         return;
 
+    g_debug ("Getting user list...");
     result = dbus_g_proxy_call (greeter->priv->user_proxy, "GetUsers", &error,
                                 G_TYPE_INVALID,
                                 TYPE_USER_LIST, &users,
@@ -331,7 +335,8 @@ update_users (LdmGreeter *greeter)
   
     if (!result)
         return;
-  
+
+    g_debug ("Got %d users", users->len);
     for (i = 0; i < users->len; i++)
     {
         GValue value = { 0 };
@@ -722,10 +727,15 @@ auth_response_cb (DBusGProxy *proxy, DBusGProxyCall *call, gpointer userdata)
 
     result = dbus_g_proxy_end_call (proxy, call, &error, G_TYPE_INT, &return_code, TYPE_MESSAGE_LIST, &array, G_TYPE_INVALID);
     if (!result)
-        g_warning ("Failed to complete D-Bus call: %s", error->message);
+        g_warning ("Failed to complete StartAuthentication(): %s", error->message);
     g_clear_error (&error);
     if (!result)
         return;
+
+    if (array->len > 0)
+        g_debug ("Authentication continues with %d messages", array->len);
+    else
+        g_debug ("Authentication complete with return code %d", return_code);
 
     for (i = 0; i < array->len; i++)
     {
@@ -784,6 +794,7 @@ ldm_greeter_start_authentication (LdmGreeter *greeter, const char *username)
     greeter->priv->is_authenticated = FALSE;
     g_free (greeter->priv->authentication_user);
     greeter->priv->authentication_user = g_strdup (username);
+    g_debug ("Starting authentication for user %s...", username);
     dbus_g_proxy_begin_call (greeter->priv->display_proxy, "StartAuthentication", auth_response_cb, greeter, NULL, G_TYPE_STRING, username, G_TYPE_INVALID);
 }
 
@@ -803,6 +814,7 @@ ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret)
     secrets = g_malloc (sizeof (char *) * 2);
     secrets[0] = g_strdup (secret);
     secrets[1] = NULL;
+    g_debug ("Providing secret to display manager");  
     dbus_g_proxy_begin_call (greeter->priv->display_proxy, "ContinueAuthentication", auth_response_cb, greeter, NULL, G_TYPE_STRV, secrets, G_TYPE_INVALID);
 }
 
@@ -858,6 +870,7 @@ ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *sess
 {
     GError *error = NULL;
 
+    g_debug ("Logging in");
     if (!dbus_g_proxy_call (greeter->priv->display_proxy, "Login", &error,
                             G_TYPE_STRING, username,
                             G_TYPE_STRING, session,

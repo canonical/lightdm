@@ -15,7 +15,7 @@
 
     <!-- Method for greeter to start authenticating a user -->
     <method name="StartAuthentication">
-      <annotation name="org.lightdm.DBus.GLib.Async" value="true"/>
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg name="username" direction="in" type="s"/>
       <arg name="result" direction="out" type="i"/>
       <arg name="requests" direction="out" type="a(is)"/>
@@ -23,7 +23,7 @@
 
     <!-- Method for greeter to provide secrets for a user -->
     <method name="ContinueAuthentication">
-      <annotation name="org.lightdm.DBus.GLib.Async" value="true"/>
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg name="secrets" direction="in" type="as"/>
       <arg name="result" direction="out" type="i"/>
       <arg name="requests" direction="out" type="a(is)"/>

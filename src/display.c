@@ -540,6 +540,7 @@ display_start_authentication (Display *display, const gchar *username, DBusGMeth
         pam_session_end (display->priv->user_pam_session);
         if (display->priv->dbus_context)
             dbus_g_method_return_error (display->priv->dbus_context, NULL);
+
         g_object_unref (display->priv->user_pam_session);
     }
 
@@ -612,6 +613,8 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
         // FIXME: Throw error
         return FALSE;
     }
+
+    g_debug ("Continue authentication");
 
     /* Build response */
     response = calloc (num_messages, sizeof (struct pam_response));  
