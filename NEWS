@@ -10,6 +10,7 @@ Overview of changes in lightdm 0.1.2
       org.lightdm.LightDisplayManager
     * Write debug log to /var/log/lightdm/lightdm.log instead of stdout.  Use
       --debug for the previous behaviour
+    * Add exec_prefix into libldmgreeter.pc
 
 Overview of changes in lightdm 0.1.1
 
