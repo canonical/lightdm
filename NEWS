@@ -11,6 +11,8 @@ Overview of changes in lightdm 0.1.2
     * Write debug log to /var/log/lightdm/lightdm.log instead of stdout.  Use
       --debug for the previous behaviour
     * Add exec_prefix into libldmgreeter.pc
+    * Change versioned include and pkgconfig files from 1 to 0
+    * Add themedir variable into pkgconfig file
 
 Overview of changes in lightdm 0.1.1
 

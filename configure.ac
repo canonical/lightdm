@@ -213,7 +213,7 @@ data/Makefile
 data/init/Makefile
 doc/Makefile
 greeters/Makefile
-libldmgreeter/libldmgreeter-1.pc
+libldmgreeter/libldmgreeter-0.pc
 libldmgreeter/Makefile
 po/Makefile.in
 src/Makefile

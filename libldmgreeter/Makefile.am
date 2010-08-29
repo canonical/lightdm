@@ -18,7 +18,7 @@ libldmgreeter_la_SOURCES= \
 	session.c \
 	user.c
 
-libldmgreeterincludedir=$(includedir)/lightdm-1.0/lightdm
+libldmgreeterincludedir=$(includedir)/lightdm-0/lightdm
 
 if HAVE_INTROSPECTION
 
@@ -26,27 +26,27 @@ if HAVE_INTROSPECTION
 INTROSPECTION_SCANNER_ARGS = --add-include-path=$(srcdir)
 INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
 
-INTROSPECTION_GIRS = LightDMGreeter-1.gir
+INTROSPECTION_GIRS = LightDMGreeter-0.gir
 
-LightDMGreeter-1.gir: libldmgreeter.la
-LightDMGreeter_1_gir_INCLUDES = GObject-2.0
-LightDMGreeter_1_gir_CFLAGS = $(INCLUDES)
-LightDMGreeter_1_gir_LIBS = libldmgreeter.la
-LightDMGreeter_1_gir_FILES = $(libldmgreeter_la_SOURCES)
+LightDMGreeter-0.gir: libldmgreeter.la
+LightDMGreeter_0_gir_INCLUDES = GObject-2.0
+LightDMGreeter_0_gir_CFLAGS = $(INCLUDES)
+LightDMGreeter_0_gir_LIBS = libldmgreeter.la
+LightDMGreeter_0_gir_FILES = $(libldmgreeter_la_SOURCES)
 
 girdir = $(datadir)/gir-1.0
-gir_DATA = LightDMGreeter-1.gir
+gir_DATA = LightDMGreeter-0.gir
 
 typelibdir = $(libdir)/girepository-1.0
-typelib_DATA = LightDMGreeter-1.typelib
+typelib_DATA = LightDMGreeter-0.typelib
 
 endif
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libldmgreeter-1.pc
+pkgconfig_DATA = libldmgreeter-0.pc
 
 DISTCLEANFILES = \
 	Makefile.in \
-	libldmgreeter-1.pc \
+	libldmgreeter-0.pc \
 	$(gir_DATA) \
 	$(typelib_DATA)
