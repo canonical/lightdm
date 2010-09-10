@@ -771,22 +771,37 @@ login_cb (JSContextRef context,
           JSValueRef *exception)
 {
     LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
-    JSStringRef username_arg, session_arg;
-    char username[1024], session[1024];
+    JSStringRef arg;
+    char username[1024], *session = NULL, *language = NULL;
 
     // FIXME: Throw exception
-    if (argumentCount != 2)
+    if (argumentCount < 1 || argumentCount > 3)
         return JSValueMakeNull (context);
 
-    username_arg = JSValueToStringCopy (context, arguments[0], NULL);
-    JSStringGetUTF8CString (username_arg, username, 1024);
-    JSStringRelease (username_arg);
+    arg = JSValueToStringCopy (context, arguments[0], NULL);
+    JSStringGetUTF8CString (arg, username, 1024);
+    JSStringRelease (arg);
 
-    session_arg = JSValueToStringCopy (context, arguments[1], NULL);
-    JSStringGetUTF8CString (session_arg, session, 1024);
-    JSStringRelease (session_arg);
+    if (argumentCount > 1)
+    {
+        arg = JSValueToStringCopy (context, arguments[1], NULL);
+        session = g_malloc (sizeof (char) * 1024);
+        JSStringGetUTF8CString (arg, session, 1024);
+        JSStringRelease (arg);
+    }
 
-    ldm_greeter_login (greeter, username, session);
+    if (argumentCount > 2)
+    {
+        arg = JSValueToStringCopy (context, arguments[1], NULL);
+        language = g_malloc (sizeof (char) * 1024);
+        JSStringGetUTF8CString (arg, language, 1024);
+        JSStringRelease (arg);
+    }
+
+    ldm_greeter_login (greeter, username, session, language);
+    g_free (session);
+    g_free (language);
+
     return JSValueMakeNull (context);
 }
 

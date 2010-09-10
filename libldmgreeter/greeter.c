@@ -131,6 +131,8 @@ ldm_greeter_connect (LdmGreeter *greeter)
     DBusBusType bus_type = DBUS_BUS_SYSTEM;
     gboolean result;
 
+    g_return_val_if_fail (greeter != NULL, FALSE);
+
     greeter->priv->system_bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
     if (!greeter->priv->system_bus)
         g_warning ("Failed to connect to system bus: %s", error->message);
@@ -205,6 +207,8 @@ ldm_greeter_connect (LdmGreeter *greeter)
 const gchar *
 ldm_greeter_get_hostname (LdmGreeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, NULL);
+
     if (!greeter->priv->hostname)
     {
         struct utsname info;
@@ -224,6 +228,7 @@ ldm_greeter_get_hostname (LdmGreeter *greeter)
 const gchar *
 ldm_greeter_get_theme (LdmGreeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, NULL);
     return greeter->priv->theme;
 }
 
@@ -231,7 +236,7 @@ static void
 load_theme (LdmGreeter *greeter)
 {
     GError *error = NULL;
-
+  
     if (greeter->priv->theme_file)
         return;
 
@@ -253,6 +258,8 @@ ldm_greeter_get_string_property (LdmGreeter *greeter, const gchar *name)
 {
     GError *error = NULL;
     gchar *result;
+
+    g_return_val_if_fail (greeter != NULL, NULL);
 
     load_theme (greeter);
 
@@ -277,6 +284,8 @@ ldm_greeter_get_integer_property (LdmGreeter *greeter, const gchar *name)
     GError *error = NULL;
     gint result;
 
+    g_return_val_if_fail (greeter != NULL, 0);
+
     load_theme (greeter);
 
     result = g_key_file_get_integer (greeter->priv->theme_file, "theme", name, &error);
@@ -299,6 +308,8 @@ ldm_greeter_get_boolean_property (LdmGreeter *greeter, const gchar *name)
 {
     GError *error = NULL;
     gboolean result;
+
+    g_return_val_if_fail (greeter != NULL, FALSE);
 
     load_theme (greeter);
 
@@ -371,6 +382,7 @@ update_users (LdmGreeter *greeter)
 gint
 ldm_greeter_get_num_users (LdmGreeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, 0);
     update_users (greeter);
     return g_list_length (greeter->priv->users);
 }
@@ -387,6 +399,7 @@ ldm_greeter_get_num_users (LdmGreeter *greeter)
 const GList *
 ldm_greeter_get_users (LdmGreeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, NULL);
     update_users (greeter);
     return greeter->priv->users;
 }
@@ -449,6 +462,7 @@ update_languages (LdmGreeter *greeter)
 const GList *
 ldm_greeter_get_languages (LdmGreeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, NULL);
     update_languages (greeter);
     return greeter->priv->languages;
 }
@@ -464,6 +478,7 @@ ldm_greeter_get_languages (LdmGreeter *greeter)
 const gchar *
 ldm_greeter_get_language (LdmGreeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, NULL);
     return setlocale (LC_ALL, NULL);
 }
 
@@ -510,6 +525,8 @@ ldm_greeter_get_layouts (LdmGreeter *greeter)
 {
     XklConfigRegistry *registry;
 
+    g_return_val_if_fail (greeter != NULL, NULL);
+
     if (greeter->priv->have_layouts)
         return greeter->priv->layouts;
 
@@ -535,6 +552,9 @@ void
 ldm_greeter_set_layout (LdmGreeter *greeter, const gchar *layout)
 {
     XklConfigRec *config;
+
+    g_return_if_fail (LDM_IS_GREETER (greeter));
+    g_return_if_fail (layout != NULL);
   
     setup_xkl (greeter);
 
@@ -561,6 +581,7 @@ ldm_greeter_set_layout (LdmGreeter *greeter, const gchar *layout)
 const gchar *
 ldm_greeter_get_layout (LdmGreeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, NULL);
     setup_xkl (greeter);
     return greeter->priv->layout;
 }
@@ -652,6 +673,7 @@ update_sessions (LdmGreeter *greeter)
 const GList *
 ldm_greeter_get_sessions (LdmGreeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, NULL);
     update_sessions (greeter);
     return greeter->priv->sessions;
 }
@@ -667,6 +689,7 @@ ldm_greeter_get_sessions (LdmGreeter *greeter)
 const gchar *
 ldm_greeter_get_default_session (LdmGreeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, NULL);
     return greeter->priv->default_session;
 }
 
@@ -681,6 +704,7 @@ ldm_greeter_get_default_session (LdmGreeter *greeter)
 const gchar *
 ldm_greeter_get_timed_login_user (LdmGreeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, NULL);
     return greeter->priv->timed_user;
 }
 
@@ -695,6 +719,7 @@ ldm_greeter_get_timed_login_user (LdmGreeter *greeter)
 gint
 ldm_greeter_get_timed_login_delay (LdmGreeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, 0);
     return greeter->priv->login_delay;
 }
 
@@ -707,6 +732,8 @@ ldm_greeter_get_timed_login_delay (LdmGreeter *greeter)
 void
 ldm_greeter_cancel_timed_login (LdmGreeter *greeter)
 {
+    g_return_if_fail (LDM_IS_GREETER (greeter));
+  
     if (greeter->priv->login_timeout)
        g_source_remove (greeter->priv->login_timeout);
     greeter->priv->login_timeout = 0;
@@ -791,6 +818,9 @@ auth_response_cb (DBusGProxy *proxy, DBusGProxyCall *call, gpointer userdata)
 void
 ldm_greeter_start_authentication (LdmGreeter *greeter, const char *username)
 {
+    g_return_if_fail (LDM_IS_GREETER (greeter));
+    g_return_if_fail (username != NULL);
+
     greeter->priv->is_authenticated = FALSE;
     g_free (greeter->priv->authentication_user);
     greeter->priv->authentication_user = g_strdup (username);
@@ -810,6 +840,9 @@ ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret)
 {
     gchar **secrets;
 
+    g_return_if_fail (LDM_IS_GREETER (greeter));
+    g_return_if_fail (secret != NULL);
+
     // FIXME: Could be multiple secrets required
     secrets = g_malloc (sizeof (char *) * 2);
     secrets[0] = g_strdup (secret);
@@ -827,6 +860,7 @@ ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret)
 void
 ldm_greeter_cancel_authentication (LdmGreeter *greeter)
 {
+    g_return_if_fail (LDM_IS_GREETER (greeter));
 }
 
 /**
@@ -840,6 +874,7 @@ ldm_greeter_cancel_authentication (LdmGreeter *greeter)
 gboolean
 ldm_greeter_get_is_authenticated (LdmGreeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, FALSE);
     return greeter->priv->is_authenticated;
 }
 
@@ -854,6 +889,7 @@ ldm_greeter_get_is_authenticated (LdmGreeter *greeter)
 const gchar *
 ldm_greeter_get_authentication_user (LdmGreeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, NULL);
     return greeter->priv->authentication_user;
 }
 
@@ -861,19 +897,24 @@ ldm_greeter_get_authentication_user (LdmGreeter *greeter)
  * ldm_greeter_login:
  * @greeter: A #LdmGreeter
  * @username: The user to log in as
- * @session: The session to log into
- * 
+ * @session: The session to log into or NULL to use the default
+ * @language: The language to use or NULL to use the default
+ *
  * Login a user to a session
  **/
 void
-ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *session)
+ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *session, const gchar *language)
 {
     GError *error = NULL;
+
+    g_return_if_fail (LDM_IS_GREETER (greeter));
+    g_return_if_fail (username != NULL);
 
     g_debug ("Logging in");
     if (!dbus_g_proxy_call (greeter->priv->display_proxy, "Login", &error,
                             G_TYPE_STRING, username,
-                            G_TYPE_STRING, session,
+                            G_TYPE_STRING, session ? session : "",
+                            G_TYPE_STRING, language ? language : "",
                             G_TYPE_INVALID,
                             G_TYPE_INVALID))
         g_warning ("Failed to login: %s", error->message);
@@ -894,6 +935,8 @@ ldm_greeter_get_can_suspend (LdmGreeter *greeter)
     DBusGProxy *proxy;
     gboolean result = TRUE;
     GError *error = NULL;
+
+    g_return_val_if_fail (greeter != NULL, FALSE);
 
     proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.UPower",
@@ -919,6 +962,8 @@ ldm_greeter_suspend (LdmGreeter *greeter)
 {
     DBusGProxy *proxy;
     GError *error = NULL;
+
+    g_return_if_fail (LDM_IS_GREETER (greeter));
 
     proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.UPower",
@@ -946,6 +991,8 @@ ldm_greeter_get_can_hibernate (LdmGreeter *greeter)
     gboolean result = FALSE;
     GError *error = NULL;
 
+    g_return_val_if_fail (greeter != NULL, FALSE);
+
     proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.UPower",
                                        "/org/freedesktop/UPower",
@@ -970,6 +1017,8 @@ ldm_greeter_hibernate (LdmGreeter *greeter)
 {
     DBusGProxy *proxy;
     GError *error = NULL;
+
+    g_return_if_fail (LDM_IS_GREETER (greeter));
 
     proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.UPower",
@@ -997,6 +1046,8 @@ ldm_greeter_get_can_restart (LdmGreeter *greeter)
     gboolean result = FALSE;
     GError *error = NULL;
 
+    g_return_val_if_fail (greeter != NULL, FALSE);
+
     proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.ConsoleKit",
                                        "/org/freedesktop/ConsoleKit/Manager",
@@ -1021,6 +1072,8 @@ ldm_greeter_restart (LdmGreeter *greeter)
 {
     DBusGProxy *proxy;
     GError *error = NULL;
+
+    g_return_if_fail (LDM_IS_GREETER (greeter));
 
     proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.ConsoleKit",
@@ -1048,6 +1101,8 @@ ldm_greeter_get_can_shutdown (LdmGreeter *greeter)
     gboolean result = FALSE;
     GError *error = NULL;
 
+    g_return_val_if_fail (greeter != NULL, FALSE);
+
     proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.ConsoleKit",
                                        "/org/freedesktop/ConsoleKit/Manager",
@@ -1072,6 +1127,8 @@ ldm_greeter_shutdown (LdmGreeter *greeter)
 {
     DBusGProxy *proxy;
     GError *error = NULL;
+
+    g_return_if_fail (LDM_IS_GREETER (greeter));
 
     proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
                                        "org.freedesktop.ConsoleKit",

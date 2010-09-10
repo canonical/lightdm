@@ -75,7 +75,7 @@ gboolean display_start_authentication (Display *display, const gchar *username, 
 
 gboolean display_continue_authentication (Display *display, gchar **secrets, DBusGMethodInvocation *context);
 
-gboolean display_login (Display *display, gchar *username, gchar *session, GError *error);
+gboolean display_login (Display *display, gchar *username, gchar *session, gchar *language, GError *error);
 
 G_END_DECLS
 

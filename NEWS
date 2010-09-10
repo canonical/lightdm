@@ -13,6 +13,7 @@ Overview of changes in lightdm 0.1.2
     * Add exec_prefix into libldmgreeter.pc
     * Change versioned include and pkgconfig files from 1 to 0
     * Add themedir variable into pkgconfig file
+    * Connect language list in GTK greeter to login language
 
 Overview of changes in lightdm 0.1.1
 

@@ -259,7 +259,7 @@ user_session_killed_cb (Session *session, gint status, Display *display)
 }
 
 static void
-start_user_session (Display *display, const gchar *session)
+start_user_session (Display *display, const gchar *session, const gchar *language)
 {
     gchar *filename, *path;
     struct passwd *user_info;
@@ -305,13 +305,17 @@ start_user_session (Display *display, const gchar *session)
 
         if (command)
         {
-            gchar *language, *layout;
+            gchar *session_language, *layout;
 
             display->priv->user_session = session_new (pam_session_get_username (display->priv->user_pam_session), command);
-          
-            language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
-            if (!language)
-                language = g_strdup ("C");
+
+            session_language = g_strdup (language);
+            if (!session_language)
+                session_language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
+            if (!session_language)
+                session_language = g_strdup ("C");
+            g_debug ("session_language='%s'", session_language);
+
             layout = g_key_file_get_string (dmrc_file, "Desktop", "Layout", NULL);
             if (!layout)
                 layout = g_strdup ("us");
@@ -325,15 +329,15 @@ start_user_session (Display *display, const gchar *session)
             session_set_env (display->priv->user_session, "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
             session_set_env (display->priv->user_session, "GDMSESSION", session); // FIXME: Not cross-desktop
             session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");
-            session_set_env (display->priv->user_session, "LANG", language);
-            session_set_env (display->priv->user_session, "GDM_LANG", language); // FIXME: Not cross-desktop
+            session_set_env (display->priv->user_session, "LANG", session_language);
+            session_set_env (display->priv->user_session, "GDM_LANG", session_language); // FIXME: Not cross-desktop
             session_set_env (display->priv->user_session, "GDM_KEYBOARD_LAYOUT", layout); // FIXME: Not cross-desktop
 
             g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
 
             session_start (display->priv->user_session);
 
-            g_free (language); 
+            g_free (session_language); 
             g_free (layout);         
         }
 
@@ -345,7 +349,7 @@ start_user_session (Display *display, const gchar *session)
 }
 
 static void
-start_default_session (Display *display, gchar *session)
+start_default_session (Display *display, const gchar *session, const gchar *language)
 {
     /* Don't need to check authentication, just authorize */
     if (display->priv->user_pam_session)
@@ -356,7 +360,7 @@ start_default_session (Display *display, gchar *session)
 #ifdef HAVE_CONSOLE_KIT
     display->priv->user_ck_session = start_ck_session (display, "", pam_session_get_username (display->priv->user_pam_session));
 #endif
-    start_user_session (display, session);
+    start_user_session (display, session, language);
 }
 
 static void
@@ -635,16 +639,24 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
 }
 
 gboolean
-display_login (Display *display, gchar *username, gchar *session, GError *error)
+display_login (Display *display, gchar *username, gchar *session, gchar *language, GError *error)
 {
     g_debug ("Greeter login for user %s on session %s", username, session);
+  
+    /* Default session requested */
+    if (strcmp (session, "") == 0)
+        session = display->priv->default_session;
+
+    /* Default language requested */
+    if (strcmp (language, "") == 0)
+        language = NULL;
 
     if (display->priv->default_user && strcmp (username, display->priv->default_user) == 0)
-        start_default_session (display, session);
+        start_default_session (display, session, language);
     else if (display->priv->user_pam_session &&
              pam_session_get_in_session (display->priv->user_pam_session) &&
              strcmp (username, pam_session_get_username (display->priv->user_pam_session)) == 0)
-        start_user_session (display, session);
+        start_user_session (display, session, language);
     else
     {
         g_warning ("Ignoring request for login with unauthenticated user");
@@ -674,7 +686,7 @@ xserver_ready_cb (XServer *xserver, Display *display)
 
     /* If have user then automatically login */
     if (display->priv->default_user && display->priv->timeout == 0)
-        start_default_session (display, display->priv->default_session);
+        start_default_session (display, display->priv->default_session, NULL);
     else
         start_greeter (display);
 }

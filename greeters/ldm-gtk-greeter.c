@@ -22,7 +22,7 @@ static GtkTreeModel *user_model;
 static GtkWidget *user_window, *vbox, *message_label, *user_view;
 static GtkWidget *username_entry, *password_entry;
 static GtkWidget *panel_window;
-static gchar *session = NULL, *theme_name;
+static gchar *session = NULL, *language = NULL, *theme_name;
 
 static void
 start_authentication (const gchar *username)
@@ -139,7 +139,7 @@ authentication_complete_cb (LdmGreeter *greeter)
   
     if (ldm_greeter_get_is_authenticated (greeter))
     {
-        ldm_greeter_login (greeter, ldm_greeter_get_authentication_user (greeter), session);
+        ldm_greeter_login (greeter, ldm_greeter_get_authentication_user (greeter), session, language);
     }
     else
     {
@@ -151,7 +151,7 @@ authentication_complete_cb (LdmGreeter *greeter)
 static void
 timed_login_cb (LdmGreeter *greeter, const gchar *username)
 {
-    ldm_greeter_login (greeter, ldm_greeter_get_timed_login_user (greeter), ldm_greeter_get_default_session (greeter));
+    ldm_greeter_login (greeter, ldm_greeter_get_timed_login_user (greeter), NULL, NULL);
 }
 
 static void
@@ -245,6 +245,16 @@ session_changed_cb (GtkWidget *widget)
         g_free (session);
         session = g_strdup (g_object_get_data (G_OBJECT (widget), "key"));
     }
+}
+
+static void
+language_changed_cb (GtkWidget *widget)
+{
+    if (!gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
+        return;
+
+    g_free (language);
+    language = g_strdup (g_object_get_data (G_OBJECT (widget), "language"));
 }
 
 static void
@@ -506,6 +516,12 @@ main(int argc, char **argv)
     gtk_menu_shell_append (GTK_MENU_SHELL (option_menu), menu_item);
     menu = gtk_menu_new ();
     gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
+
+    menu_item = gtk_radio_menu_item_new_with_label (language_radio_list, _("Previous language"));
+    language_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menu_item));
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
+    g_signal_connect (menu_item, "toggled", G_CALLBACK (language_changed_cb), NULL);
+
     items = ldm_greeter_get_languages (greeter);
     for (item = items; item; item = item->next)
     {
@@ -524,8 +540,8 @@ main(int argc, char **argv)
         if (g_str_equal (ldm_language_get_code (language), ldm_greeter_get_language (greeter)))
             gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), TRUE);
 
-        //g_object_set_data (G_OBJECT (menu_item), "language", g_strdup (ldm_language_get_code (language)));
-        //g_signal_connect (menu_item, "toggled", G_CALLBACK (language_changed_cb), NULL);
+        g_object_set_data (G_OBJECT (menu_item), "language", g_strdup (ldm_language_get_code (language)));
+        g_signal_connect (menu_item, "toggled", G_CALLBACK (language_changed_cb), NULL);
     }
 
     menu_item = gtk_menu_item_new_with_label (_("Keyboard Layout"));

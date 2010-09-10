@@ -33,6 +33,7 @@
     <method name="Login">
       <arg name="username" direction="in" type="s"/>
       <arg name="session" direction="in" type="s"/>
+      <arg name="language" direction="in" type="s"/>
     </method>
 
   </interface>
