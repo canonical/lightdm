@@ -110,9 +110,10 @@ timed_login_cb (gpointer data)
 {
     LdmGreeter *greeter = data;
 
+    greeter->priv->login_timeout = 0;
     g_signal_emit (G_OBJECT (greeter), signals[TIMED_LOGIN], 0, greeter->priv->timed_user);
 
-    return TRUE;
+    return FALSE;
 }
 
 /**
