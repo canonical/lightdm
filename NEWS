@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.1.3
+
+    * Make default user configuration per-display
+
 Overview of changes in lightdm 0.1.2
 
     * Write PID file

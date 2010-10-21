@@ -501,9 +501,8 @@ display_manager_start (DisplayManager *manager)
         display = add_display (manager);
 
         /* Automatically log in or start a greeter session */  
-        default_user = g_key_file_get_string (manager->priv->config, "Default User", "name", NULL);
-        //FIXME default_user_session = g_key_file_get_string (manager->priv->config, "Default User", "session", NULL); // FIXME
-        user_timeout = g_key_file_get_integer (manager->priv->config, "Default User", "timeout", NULL);
+        default_user = g_key_file_get_string (manager->priv->config, display_name, "default-user", NULL);
+        user_timeout = g_key_file_get_integer (manager->priv->config, display_name, "default-user-timeout", NULL);
         if (user_timeout < 0)
             user_timeout = 0;
 
