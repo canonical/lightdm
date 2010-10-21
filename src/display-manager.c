@@ -361,7 +361,8 @@ display_manager_add_display (DisplayManager *manager, GError *error)
     g_debug ("Starting new display");
     display = add_display (manager);
     xserver = make_xserver (manager, NULL);
-    display_start (display, xserver, NULL, 0);
+    display_set_xserver (display, xserver);
+    display_start (display);
     g_object_unref (xserver);
 
     return TRUE;
@@ -391,7 +392,8 @@ display_manager_switch_to_user (DisplayManager *manager, char *username, GError 
     g_debug ("Starting new display for user %s", username);
     display = add_display (manager);
     xserver = make_xserver (manager, NULL);
-    display_start (display, xserver, NULL, 0);
+    display_set_xserver (display, xserver);
+    display_start (display);
     g_object_unref (xserver);
 
     return TRUE;
@@ -426,7 +428,8 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
         g_free (path);
     }
 
-    result = display_start (display, xserver, NULL, 0);
+    display_set_xserver (display, xserver);
+    result = display_start (display);
     g_object_unref (xserver);
     g_free (address);
     if (!result)
@@ -500,7 +503,7 @@ display_manager_start (DisplayManager *manager)
 
         display = add_display (manager);
 
-        /* Automatically log in or start a greeter session */  
+        /* Automatically log in or start a greeter session */
         default_user = g_key_file_get_string (manager->priv->config, display_name, "default-user", NULL);
         user_timeout = g_key_file_get_integer (manager->priv->config, display_name, "default-user-timeout", NULL);
         if (user_timeout < 0)
@@ -508,6 +511,8 @@ display_manager_start (DisplayManager *manager)
 
         if (default_user)
         {
+            display_set_default_user (display, default_user);
+            display_set_default_user_timeout (display, user_timeout);
             if (user_timeout == 0)
                 g_debug ("Starting session for user %s", default_user);
             else
@@ -516,7 +521,8 @@ display_manager_start (DisplayManager *manager)
 
         xserver = make_xserver (manager, display_name);
 
-        display_start (display, xserver, default_user, user_timeout);
+        display_set_xserver (display, xserver);
+        display_start (display);
         g_object_unref (xserver);
         g_free (default_user);
     }

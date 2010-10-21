@@ -107,6 +107,31 @@ display_get_index (Display *display)
 }
 
 void
+display_set_default_user (Display *display, const gchar *username)
+{
+    g_free (display->priv->default_user);
+    display->priv->default_user = g_strdup (username);
+}
+
+const gchar *
+display_get_default_user (Display *display)
+{
+    return display->priv->default_user;
+}
+
+void
+display_set_default_user_timeout (Display *display, gint timeout)
+{
+    display->priv->timeout = timeout;  
+}
+
+gint
+display_get_default_user_timeout (Display *display)
+{
+    return display->priv->timeout;
+}
+
+void
 display_set_greeter_user (Display *display, const gchar *username)
 {
     g_free (display->priv->greeter_user);
@@ -152,6 +177,14 @@ const gchar *
 display_get_default_session (Display *display)
 {
     return display->priv->default_session;
+}
+
+void
+display_set_xserver (Display *display, XServer *xserver)
+{
+    if (display->priv->xserver)
+        g_object_unref (display->priv->xserver);
+    display->priv->xserver = g_object_ref (xserver);  
 }
 
 XServer *
@@ -692,12 +725,9 @@ xserver_ready_cb (XServer *xserver, Display *display)
 }
 
 gboolean
-display_start (Display *display, XServer *xserver, const gchar *username, gint timeout)
+display_start (Display *display)
 {
-    display->priv->default_user = g_strdup (username);
-    display->priv->timeout = timeout;
-
-    display->priv->xserver = g_object_ref (xserver);
+    g_return_val_if_fail (display->priv->xserver != NULL, FALSE);
     g_signal_connect (G_OBJECT (display->priv->xserver), "ready", G_CALLBACK (xserver_ready_cb), display);
     g_signal_connect (G_OBJECT (display->priv->xserver), "exited", G_CALLBACK (xserver_exit_cb), display);
     return xserver_start (display->priv->xserver);

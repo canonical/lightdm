@@ -48,6 +48,14 @@ Display *display_new (gint index);
 
 gint display_get_index (Display *display);
 
+void display_set_default_user (Display *display, const gchar *username);
+
+const gchar *display_get_default_user (Display *display);
+
+void display_set_default_user_timeout (Display *display, gint timeout);
+
+gint display_get_default_user_timeout (Display *display);
+
 void display_set_greeter_user (Display *display, const gchar *username);
 
 const gchar *display_get_greeter_user (Display *display);
@@ -62,10 +70,11 @@ void display_set_default_session (Display *display, const gchar *session);
 
 const gchar *display_get_default_session (Display *display);
 
+void display_set_xserver (Display *display, XServer *xserver);
+
 XServer *display_get_xserver (Display *display);
 
-// FIXME: Remove username and timeout to properties and set them to defaults
-gboolean display_start (Display *display, XServer *server, const gchar *username, gint timeout);
+gboolean display_start (Display *display);
 
 // FIXME: Make greeter its own object?
 
