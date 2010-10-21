@@ -274,8 +274,6 @@ end_user_session (Display *display, gboolean clean_exit)
     if (!clean_exit)
         g_warning ("Session exited unexpectedly");
 
-    // FIXME: Change authorization
-
     xserver_disconnect_clients (display->priv->xserver);
 }
 
