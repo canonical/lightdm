@@ -34,6 +34,10 @@ load_theme (const gchar *name, GError **error)
         return NULL;
     }
 
+    path = g_build_filename (THEME_DIR, name, NULL);
+    g_key_file_set_string (theme, "_", "path", path);
+    g_free (path);
+
     return theme;
 }
 
@@ -62,7 +66,7 @@ theme_get_command (GKeyFile *theme)
             if (strchr (url, ':'))
                 command = g_strdup_printf ("%s %s", binary, url);
             else
-                command = g_strdup_printf ("%s file://%s/%s", binary, THEME_DIR, url);
+                command = g_strdup_printf ("%s file://%s/%s", binary, g_key_file_get_value (theme, "_", "path", NULL), url);
         }
         else
             g_warning ("Missing URL in WebKit theme");

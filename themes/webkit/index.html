@@ -86,7 +86,7 @@ function authentication_complete()
 
 function timed_login(user)
 {
-   lightdm.login ();
+   lightdm.login (lightdm.timed_login_user);
 }
 
 function start_authentication(username)
@@ -113,8 +113,9 @@ function countdown()
 {
    label = document.getElementById('countdown_label');
    label.innerHTML = ' in ' + time_remaining + ' seconds'
-   setTimeout('countdown()', 1000);
    time_remaining--;
+   if (time_remaining >= 0)
+       setTimeout('countdown()', 1000);
 }
 
 document.write('<table id="user_table" style="margin: auto;">');
