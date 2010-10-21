@@ -52,6 +52,9 @@ struct DisplayPrivate
 
     /* X server */
     XServer *xserver;
+  
+    /* Number of times have logged in */
+    gint login_count;
 
     /* User to run greeter as */
     gchar *greeter_user;
@@ -299,6 +302,7 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
     GError *error = NULL;
 
     g_debug ("Launching '%s' session for user %s", session, pam_session_get_username (display->priv->user_pam_session));
+    display->priv->login_count++;
 
     dmrc_file = g_key_file_new ();
     user_info = get_user_info (pam_session_get_username (display->priv->user_pam_session));
@@ -715,8 +719,8 @@ xserver_ready_cb (XServer *xserver, Display *display)
     if (xserver_get_server_type (xserver) == XSERVER_TYPE_LOCAL_TERMINAL)
         return;
 
-    /* If have user then automatically login */
-    if (display->priv->default_user && display->priv->timeout == 0)
+    /* If have user then automatically login the first time */
+    if (display->priv->default_user && display->priv->timeout == 0 && display->priv->login_count == 0)
         start_default_session (display, display->priv->default_session, NULL);
     else
         start_greeter (display);
