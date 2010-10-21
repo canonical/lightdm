@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -49,7 +49,7 @@ static void
 timed_login_cb (LdmGreeter *greeter, const gchar *username, WebKitWebView *view)
 {
     gchar *command;
-  
+
     command = g_strdup_printf ("timed_login('%s')", username); // FIXME: Escape text
     webkit_web_view_execute_script (view, command);
     g_free (command);
@@ -262,7 +262,7 @@ get_num_users_cb (JSContextRef context,
 {
     LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
     gint num_users;
-  
+
     num_users = ldm_greeter_get_num_users (greeter);
     return JSValueMakeNumber (context, num_users);
 }
@@ -278,7 +278,7 @@ get_users_cb (JSContextRef context,
     const GList *users, *link;
     guint i, n_users = 0;
     JSValueRef *args;
-  
+
     users = ldm_greeter_get_users (greeter);
     n_users = g_list_length ((GList *)users);
     args = g_malloc (sizeof (JSValueRef) * (n_users + 1));
@@ -305,7 +305,7 @@ get_languages_cb (JSContextRef context,
     const GList *languages, *link;
     guint i, n_languages = 0;
     JSValueRef *args;
-  
+
     languages = ldm_greeter_get_languages (greeter);
     n_languages = g_list_length ((GList *)languages);
     args = g_malloc (sizeof (JSValueRef) * (n_languages + 1));
@@ -346,7 +346,7 @@ get_layouts_cb (JSContextRef context,
     const GList *layouts, *link;
     guint i, n_layouts = 0;
     JSValueRef *args;
-  
+
     layouts = ldm_greeter_get_layouts (greeter);
     n_layouts = g_list_length ((GList *)layouts);
     args = g_malloc (sizeof (JSValueRef) * (n_layouts + 1));
@@ -383,7 +383,7 @@ set_layout_cb (JSContextRef context,
                JSValueRef value,
                JSValueRef *exception)
 {
-    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);  
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
     JSStringRef layout_arg;
     char layout[1024];
 
@@ -394,7 +394,7 @@ set_layout_cb (JSContextRef context,
     layout_arg = JSValueToStringCopy (context, value, NULL);
     JSStringGetUTF8CString (layout_arg, layout, 1024);
     JSStringRelease (layout_arg);
-  
+
     ldm_greeter_set_layout (greeter, layout);
 
     return true;
@@ -411,7 +411,7 @@ get_sessions_cb (JSContextRef context,
     const GList *sessions, *link;
     guint i, n_sessions = 0;
     JSValueRef *args;
-  
+
     sessions = ldm_greeter_get_sessions (greeter);
     n_sessions = g_list_length ((GList *)sessions);
     args = g_malloc (sizeof (JSValueRef) * (n_sessions + 1));
@@ -463,7 +463,7 @@ get_timed_login_delay_cb (JSContextRef context,
 {
     LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
     gint delay;
-  
+
     delay = ldm_greeter_get_timed_login_delay (greeter);
     return JSValueMakeNumber (context, delay);
 }
@@ -489,7 +489,7 @@ get_string_property_cb (JSContextRef context,
     name_arg = JSValueToStringCopy (context, arguments[0], NULL);
     JSStringGetUTF8CString (name_arg, name, 1024);
     JSStringRelease (name_arg);
-  
+
     value = ldm_greeter_get_string_property (greeter, name);
 
     if (!value)
@@ -519,7 +519,7 @@ get_integer_property_cb (JSContextRef context,
     name_arg = JSValueToStringCopy (context, arguments[0], NULL);
     JSStringGetUTF8CString (name_arg, name, 1024);
     JSStringRelease (name_arg);
-  
+
     return JSValueMakeNumber (context, ldm_greeter_get_integer_property (greeter, name));
 }
 
@@ -559,7 +559,7 @@ cancel_timed_login_cb (JSContextRef context,
     // FIXME: Throw exception
     if (argumentCount != 0)
         return JSValueMakeNull (context);
-  
+
     ldm_greeter_cancel_timed_login (greeter);
     return JSValueMakeNull (context);
 }
@@ -685,7 +685,7 @@ get_can_hibernate_cb (JSContextRef context,
                       JSValueRef *exception)
 {
     LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
-    return JSValueMakeBoolean (context, ldm_greeter_get_can_hibernate (greeter));  
+    return JSValueMakeBoolean (context, ldm_greeter_get_can_hibernate (greeter));
 }
 
 static JSValueRef
@@ -758,7 +758,7 @@ shutdown_cb (JSContextRef context,
     if (argumentCount != 0)
         return JSValueMakeNull (context);
 
-    ldm_greeter_shutdown (greeter);  
+    ldm_greeter_shutdown (greeter);
     return JSValueMakeNull (context);
 }
 
@@ -851,7 +851,7 @@ ngettext_cb (JSContextRef context,
     plural_string_arg = JSValueToStringCopy (context, arguments[1], NULL);
     JSStringGetUTF8CString (plural_string_arg, string, 1024);
     JSStringRelease (plural_string_arg);
-  
+
     n = JSValueToNumber (context, arguments[2], NULL);
 
     result = JSStringCreateWithUTF8CString (ngettext (string, plural_string, n));
@@ -894,7 +894,7 @@ static const JSStaticValue ldm_session_values[] =
 
 static const JSStaticValue ldm_greeter_values[] =
 {
-    { "hostname", get_hostname_cb, NULL, kJSPropertyAttributeReadOnly },  
+    { "hostname", get_hostname_cb, NULL, kJSPropertyAttributeReadOnly },
     { "users", get_users_cb, NULL, kJSPropertyAttributeReadOnly },
     { "languages", get_languages_cb, NULL, kJSPropertyAttributeReadOnly },
     { "language", get_language_cb, NULL, kJSPropertyAttributeReadOnly },
@@ -903,7 +903,7 @@ static const JSStaticValue ldm_greeter_values[] =
     { "sessions", get_sessions_cb, NULL, kJSPropertyAttributeReadOnly },
     { "num_users", get_num_users_cb, NULL, kJSPropertyAttributeReadOnly },
     { "default_session", get_default_session_cb, NULL, kJSPropertyAttributeNone },
-    { "timed_login_user", get_timed_login_user_cb, NULL, kJSPropertyAttributeReadOnly },  
+    { "timed_login_user", get_timed_login_user_cb, NULL, kJSPropertyAttributeReadOnly },
     { "timed_login_delay", get_timed_login_delay_cb, NULL, kJSPropertyAttributeReadOnly },
     { "authentication_user", get_authentication_user_cb, NULL, kJSPropertyAttributeReadOnly },
     { "is_authenticated", get_is_authenticated_cb, NULL, kJSPropertyAttributeReadOnly },
@@ -933,7 +933,7 @@ static const JSStaticFunction ldm_greeter_functions[] =
 
 static const JSStaticFunction gettext_functions[] =
 {
-    { "gettext", gettext_cb, kJSPropertyAttributeReadOnly },  
+    { "gettext", gettext_cb, kJSPropertyAttributeReadOnly },
     { "ngettext", ngettext_cb, kJSPropertyAttributeReadOnly },
     { NULL, NULL, 0 }
 };
@@ -1003,7 +1003,7 @@ window_object_cleared_cb (WebKitWebView  *web_view,
 {
     JSObjectRef gettext_object, ldm_greeter_object;
 
-    gettext_class = JSClassCreate (&gettext_definition);  
+    gettext_class = JSClassCreate (&gettext_definition);
     ldm_greeter_class = JSClassCreate (&ldm_greeter_definition);
     ldm_user_class = JSClassCreate (&ldm_user_definition);
     ldm_language_class = JSClassCreate (&ldm_language_definition);
@@ -1042,7 +1042,7 @@ main(int argc, char **argv)
     signal (SIGTERM, sigterm_cb);
 
     gtk_init (&argc, &argv);
-  
+
     if (argc != 2) {
         g_printerr ("Usage: %s <url>\n", argv[0]);
         return 1;
