@@ -74,6 +74,18 @@ function reset()
    password_prompt = false;
 }
 
+loading_text = ''
+
+function throbber()
+{
+   loading_text += '.';
+   if (loading_text == '....')
+       loading_text = '.'
+   label = document.getElementById('countdown_label');
+   label.innerHTML = loading_text;
+   setTimeout('throbber()', 1000);
+}
+
 function authentication_complete()
 {
    if (lightdm.is_authenticated)
@@ -82,11 +94,13 @@ function authentication_complete()
        show_message ("Authentication Failed");
 
    reset ();
+   setTimeout('throbber()', 1000);
 }
 
 function timed_login(user)
 {
    lightdm.login (lightdm.timed_login_user);
+   setTimeout('throbber()', 1000);
 }
 
 function start_authentication(username)

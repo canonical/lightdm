@@ -70,8 +70,11 @@ struct DisplayPrivate
     CkConnector *greeter_ck_session;
 #endif
 
+    gboolean supports_transitions;
+
     /* User session process */
     Session *user_session;
+    guint user_session_timer;
     PAMSession *user_pam_session;
 #ifdef HAVE_CONSOLE_KIT
     CkConnector *user_ck_session;
@@ -261,6 +264,12 @@ static void
 end_user_session (Display *display, gboolean clean_exit)
 {  
     g_signal_emit (display, signals[END_SESSION], 0, display->priv->user_session);
+  
+    if (display->priv->user_session_timer)
+    {
+        g_source_remove (display->priv->user_session_timer);
+        display->priv->user_session_timer = 0;
+    }
 
     g_object_unref (display->priv->user_session);
     display->priv->user_session = NULL;
@@ -337,6 +346,8 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
         if (session_command)
             command = g_strdup_printf ("/etc/X11/Xsession %s", session_command);
         g_free (session_command);
+
+        display->priv->supports_transitions = g_key_file_get_boolean (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Supports-Transitions", NULL);
 
         if (command)
         {
@@ -673,9 +684,27 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
     return TRUE;
 }
 
+static gboolean
+session_timeout_cb (Display *display)
+{
+    g_warning ("Session has not indicated it is ready, stopping greeter anyway");
+
+    /* Stop the greeter */
+    session_stop (display->priv->greeter_session);
+
+    display->priv->user_session_timer = 0;
+    return FALSE;
+}
+
 gboolean
 display_login (Display *display, gchar *username, gchar *session, gchar *language, GError *error)
 {
+    if (display->priv->user_session != NULL)
+    {
+        g_warning ("Ignoring request to log in when already logged in");
+        return TRUE;
+    }
+
     g_debug ("Greeter login for user %s on session %s", username, session);
   
     /* Default session requested */
@@ -698,8 +727,12 @@ display_login (Display *display, gchar *username, gchar *session, gchar *languag
         return FALSE;
     }
 
-    /* Stop the greeter */
-    session_stop (display->priv->greeter_session);
+    /* Stop session, waiting for user session to indicate it is ready (if supported) */
+    // FIXME: Hard-coded timeout
+    if (display->priv->supports_transitions)
+        display->priv->user_session_timer = g_timeout_add (5000, (GSourceFunc) session_timeout_cb, display);
+    else
+        session_stop (display->priv->greeter_session);
 
     return TRUE;
 }
@@ -750,9 +783,11 @@ display_finalize (GObject *object)
     Display *self;
 
     self = DISPLAY (object);
-  
+
     if (self->priv->greeter_session)
         g_object_unref (self->priv->greeter_session);
+    if (self->priv->user_session_timer)
+        g_source_remove (self->priv->user_session_timer);
     if (self->priv->user_session)
         g_object_unref (self->priv->user_session);
     if (self->priv->user_pam_session)

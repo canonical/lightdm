@@ -19,7 +19,7 @@
 
 static LdmGreeter *greeter;
 static GtkTreeModel *user_model;
-static GtkWidget *user_window, *vbox, *message_label, *user_view;
+static GtkWidget *background_window, *user_window, *vbox, *message_label, *user_view;
 static GtkWidget *username_entry, *password_entry;
 static GtkWidget *panel_window;
 static gchar *session = NULL, *language = NULL, *theme_name;
@@ -224,10 +224,28 @@ shutdown_cb (GtkWidget *widget, LdmGreeter *greeter)
     gtk_widget_destroy (dialog);
 }
 
+static gboolean
+fade_timer_cb (gpointer data)
+{
+    gdouble opacity;
+
+    opacity = gtk_window_get_opacity (GTK_WINDOW (background_window));
+    opacity -= 0.1;
+    if (opacity <= 0)
+    {
+        gtk_main_quit ();
+        return FALSE;
+    }
+    gtk_window_set_opacity (GTK_WINDOW (background_window), opacity);
+
+    return TRUE;
+}
+
 static void
 quit_cb (LdmGreeter *greeter, const gchar *username)
 {
-    gtk_main_quit ();
+    /* Fade out the greeter */
+    g_timeout_add (40, (GSourceFunc) fade_timer_cb, NULL);
 }
 
 static void
@@ -360,7 +378,6 @@ main(int argc, char **argv)
     GtkWidget *logo_image;
     GtkWidget *option_menu, *power_menu;
     GtkWidget *menu_bar, *menu, *menu_item;
-    GdkColor background_color;
     gint n_power_items = 0;
 
     signal (SIGTERM, sigterm_cb);
@@ -397,13 +414,13 @@ main(int argc, char **argv)
     screen = gdk_display_get_default_screen (display);
     screen_width = gdk_screen_get_width (screen);
     screen_height = gdk_screen_get_height (screen);
-  
+
     root = gdk_get_default_root_window ();
     gdk_window_set_cursor (root, gdk_cursor_new (GDK_LEFT_PTR));
-    //FIXME: background_color = ldm_greeter_get_string_property (greeter, "background-color");
-    gdk_color_parse ("#000000", &background_color);
-    gdk_color_alloc (gdk_window_get_colormap (root), &background_color);
-    gdk_window_set_background (root, &background_color);
+
+    background_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    gtk_window_fullscreen (GTK_WINDOW (background_window));
+    gtk_widget_show (background_window);
 
     background_image = ldm_greeter_get_string_property (greeter, "background-image");
     if (background_image)
@@ -422,25 +439,21 @@ main(int argc, char **argv)
 
         if (pixbuf)
         {
-            GdkPixmap *pixmap;
             GdkPixbuf *scaled;
+            GtkWidget *background;
 
             scaled = gdk_pixbuf_scale_simple (pixbuf, screen_width, screen_height, GDK_INTERP_BILINEAR);
             g_object_unref (pixbuf);
 
-            gdk_pixbuf_render_pixmap_and_mask_for_colormap (scaled, gdk_window_get_colormap (root), &pixmap, NULL, 0);
+            background = gtk_image_new_from_pixbuf (scaled);
+            gtk_widget_show (background);
+            gtk_container_add (GTK_CONTAINER (background_window), background);
             g_object_unref (scaled);
-
-            gdk_window_set_back_pixmap (root, pixmap, FALSE);
         }
-        else
-            background_image = NULL;
     }
-    gdk_window_clear (root);
 
     user_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_window_set_decorated (GTK_WINDOW (user_window), FALSE);
-    gtk_window_set_resizable (GTK_WINDOW (user_window), FALSE);
     gtk_container_set_border_width (GTK_CONTAINER (user_window), 12);
     g_signal_connect (user_window, "delete-event", gtk_main_quit, NULL);
 
@@ -485,7 +498,6 @@ main(int argc, char **argv)
 
     panel_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_window_set_decorated (GTK_WINDOW (panel_window), FALSE);
-    gtk_window_set_resizable (GTK_WINDOW (panel_window), FALSE);
     gtk_window_set_default_size (GTK_WINDOW (panel_window), screen_width, 10);
 
     menu_bar = gtk_menu_bar_new ();
@@ -627,7 +639,7 @@ main(int argc, char **argv)
     gtk_widget_show_all (panel_window);
 
     gtk_widget_get_allocation (panel_window, &allocation);
-    gtk_widget_set_size_request (GTK_WIDGET (panel_window), screen_width, allocation.height);  
+    gtk_widget_set_size_request (panel_window, screen_width, allocation.height);  
     gtk_window_move (GTK_WINDOW (panel_window), 0, screen_height - allocation.height);
 
     gtk_widget_grab_focus (user_view);

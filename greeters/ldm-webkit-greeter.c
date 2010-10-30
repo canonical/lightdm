@@ -19,6 +19,8 @@
 
 static JSClassRef gettext_class, ldm_greeter_class, ldm_user_class, ldm_language_class, ldm_layout_class, ldm_session_class;
 
+static GtkWidget *window;
+
 static void
 show_prompt_cb (LdmGreeter *greeter, const gchar *text, WebKitWebView *view)
 {
@@ -55,10 +57,28 @@ timed_login_cb (LdmGreeter *greeter, const gchar *username, WebKitWebView *view)
     g_free (command);
 }
 
+static gboolean
+fade_timer_cb (gpointer data)
+{
+    gdouble opacity;
+
+    opacity = gtk_window_get_opacity (GTK_WINDOW (window));
+    opacity -= 0.1;
+    if (opacity <= 0)
+    {
+        gtk_main_quit ();
+        return FALSE;
+    }
+    gtk_window_set_opacity (GTK_WINDOW (window), opacity);
+
+    return TRUE;
+}
+
 static void
 quit_cb (LdmGreeter *greeter, const gchar *username)
 {
-    gtk_main_quit ();
+    /* Fade out the greeter */
+    g_timeout_add (40, (GSourceFunc) fade_timer_cb, NULL);
 }
 
 static JSValueRef
@@ -1036,7 +1056,7 @@ main(int argc, char **argv)
     GdkDisplay *display;
     GdkScreen *screen;
     gint screen_width, screen_height;
-    GtkWidget *window, *web_view;
+    GtkWidget *web_view;
     gchar *url;
 
     signal (SIGTERM, sigterm_cb);
@@ -1057,8 +1077,8 @@ main(int argc, char **argv)
     screen_height = gdk_screen_get_height (screen);
 
     window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_decorated (GTK_WINDOW (window), FALSE);
     gtk_window_set_default_size (GTK_WINDOW (window), screen_width, screen_height);
+    gtk_window_fullscreen (GTK_WINDOW (window));
     gtk_window_move (GTK_WINDOW (window), 0, 0);
 
     web_view = webkit_web_view_new ();
