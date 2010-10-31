@@ -93,13 +93,23 @@ AC_SUBST(CONFIG_FILE)
 
 LOG_DIR=${localstatedir}/log/lightdm
 AC_ARG_WITH(log-dir,
-            AS_HELP_STRING(--with-log-dir=<file>,
+            AS_HELP_STRING(--with-log-dir=<dir>,
                            Directory to write logs to),
     if test x$withval != x; then
         LOG_DIR="$withval"
     fi
 )
 AC_SUBST(LOG_DIR)
+
+CACHE_DIR=${localstatedir}/cache/lightdm
+AC_ARG_WITH(log-dir,
+            AS_HELP_STRING(--with-cache-dir=<dir>,
+                           Directory to cache information in),
+    if test x$withval != x; then
+        CACHE_DIR="$withval"
+    fi
+)
+AC_SUBST(CACHE_DIR)
 
 DBUS_SYS_DIR="${sysconfdir}/dbus-1/system.d"
 AC_ARG_WITH(dbus-sys,

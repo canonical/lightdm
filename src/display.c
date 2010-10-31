@@ -307,22 +307,44 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
     gchar *filename, *path;
     struct passwd *user_info;
     GKeyFile *dmrc_file, *session_desktop_file;
-    gboolean result;
+    gboolean have_dmrc = FALSE, result;
     GError *error = NULL;
 
     g_debug ("Launching '%s' session for user %s", session, pam_session_get_username (display->priv->user_pam_session));
     display->priv->login_count++;
 
+    /* Load the users login settings (~/.dmrc) */
     dmrc_file = g_key_file_new ();
     user_info = get_user_info (pam_session_get_username (display->priv->user_pam_session));
     if (user_info)
     {
+        /* Load from the user directory, if this fails (e.g. the user directory
+         * is not yet mounted) then load from the cache */
         path = g_build_filename (user_info->pw_dir, ".dmrc", NULL);
-        if (!g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_NONE, &error))
+        have_dmrc = g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_NONE, NULL);
+        g_free (path);
+    }
+
+    /* If no .dmrc, then load from the cache */
+    if (!have_dmrc)
+    {
+        filename = g_strdup_printf ("%s.dmrc", user_info->pw_name);
+        path = g_build_filename (CACHE_DIR, "dmrc", filename, NULL);
+        g_free (filename);
+        if (!g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_NONE, &error))          
             g_warning ("Failed to load .dmrc file %s: %s", path, error->message);
         g_clear_error (&error);
         g_free (path);
     }
+  
+    /* Update the .dmrc with changed settings */
+    g_key_file_set_string (dmrc_file, "Desktop", "Session", session);
+    if (language)
+        g_key_file_set_string (dmrc_file, "Desktop", "Language", language);
+    else if (!g_key_file_has_key (dmrc_file, "Desktop", "Language", NULL))
+        g_key_file_set_string (dmrc_file, "Desktop", "Language", "C");
+    if (!g_key_file_has_key (dmrc_file, "Desktop", "Layout", NULL))
+        g_key_file_set_string (dmrc_file, "Desktop", "Layout", "us");
 
     filename = g_strdup_printf ("%s.desktop", session);
     path = g_build_filename (XSESSIONS_DIR, filename, NULL);
@@ -352,19 +374,15 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
         if (command)
         {
             gchar *session_language, *layout;
+            gchar *data;
+            gsize length;
 
             display->priv->user_session = session_new (pam_session_get_username (display->priv->user_pam_session), command);
 
-            session_language = g_strdup (language);
-            if (!session_language)
-                session_language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
-            if (!session_language)
-                session_language = g_strdup ("C");
+            session_language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
             g_debug ("session_language='%s'", session_language);
 
             layout = g_key_file_get_string (dmrc_file, "Desktop", "Layout", NULL);
-            if (!layout)
-                layout = g_strdup ("us");
 
             g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
             g_signal_connect (G_OBJECT (display->priv->user_session), "killed", G_CALLBACK (user_session_killed_cb), display);
@@ -383,6 +401,23 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
             session_start (display->priv->user_session);
 
+            data = g_key_file_to_data (dmrc_file, &length, NULL);
+
+            /* Update the users .dmrc */
+            if (user_info)
+            {
+                path = g_build_filename (user_info->pw_dir, ".dmrc", NULL);
+                g_file_set_contents (path, data, length, NULL);
+                g_free (path);
+            }
+
+            /* Update the .dmrc cache */
+            filename = g_strdup_printf ("%s.dmrc", pam_session_get_username (display->priv->user_pam_session));
+            path = g_build_filename (CACHE_DIR, "dmrc", filename, NULL);
+            g_file_set_contents (path, data, length, NULL);
+            g_free (path);
+
+            g_free (data);
             g_free (session_language); 
             g_free (layout);         
         }
