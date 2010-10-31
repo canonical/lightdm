@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
+#include <cairo.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gdk-pixbuf-xlib/gdk-pixbuf-xlib.h>
 
@@ -19,9 +20,9 @@
 
 static LdmGreeter *greeter;
 static GtkTreeModel *user_model;
-static GtkWidget *background_window, *user_window, *vbox, *message_label, *user_view;
+static GtkWidget *window, *vbox, *login_vbox, *message_label, *user_view;
+static GdkPixmap *background_pixmap;
 static GtkWidget *username_entry, *password_entry;
-static GtkWidget *panel_window;
 static gchar *session = NULL, *language = NULL, *theme_name;
 
 static void
@@ -229,14 +230,14 @@ fade_timer_cb (gpointer data)
 {
     gdouble opacity;
 
-    opacity = gtk_window_get_opacity (GTK_WINDOW (background_window));
+    opacity = gtk_window_get_opacity (GTK_WINDOW (window));
     opacity -= 0.1;
     if (opacity <= 0)
     {
         gtk_main_quit ();
         return FALSE;
     }
-    gtk_window_set_opacity (GTK_WINDOW (background_window), opacity);
+    gtk_window_set_opacity (GTK_WINDOW (window), opacity);
 
     return TRUE;
 }
@@ -364,6 +365,24 @@ make_user_view (void)
     return view;
 }
 
+static gboolean
+draw_background_cb (GtkWidget *widget, GdkEventExpose *event)
+{
+    cairo_t *context;
+    GtkAllocation allocation;
+
+    context = gdk_cairo_create (GDK_DRAWABLE (gtk_widget_get_window (widget)));
+
+    gtk_widget_get_allocation (GTK_WIDGET (window), &allocation);
+    gdk_cairo_set_source_pixmap (context, background_pixmap, 0.0, 0.0);
+    cairo_rectangle (context, 0, 0, allocation.width, allocation.height);
+    cairo_fill (context);
+
+    cairo_destroy (context);
+
+    return FALSE;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -374,8 +393,7 @@ main(int argc, char **argv)
     GdkDisplay *display;
     GdkScreen *screen;
     gint screen_width, screen_height;
-    GtkAllocation allocation;
-    GtkWidget *logo_image;
+    GtkWidget *login_align, *logo_image;
     GtkWidget *option_menu, *power_menu;
     GtkWidget *menu_bar, *menu, *menu_item;
     gint n_power_items = 0;
@@ -418,9 +436,12 @@ main(int argc, char **argv)
     root = gdk_get_default_root_window ();
     gdk_window_set_cursor (root, gdk_cursor_new (GDK_LEFT_PTR));
 
-    background_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gtk_window_fullscreen (GTK_WINDOW (background_window));
-    gtk_widget_show (background_window);
+    window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    gtk_widget_set_app_paintable (window, TRUE);
+    g_signal_connect (G_OBJECT (window), "expose-event", G_CALLBACK (draw_background_cb), NULL);
+    gtk_window_set_default_size (GTK_WINDOW (window), screen_width, screen_height);
+    gtk_window_fullscreen (GTK_WINDOW (window));
+    gtk_widget_realize (window);
 
     background_image = ldm_greeter_get_string_property (greeter, "background-image");
     if (background_image)
@@ -440,33 +461,40 @@ main(int argc, char **argv)
         if (pixbuf)
         {
             GdkPixbuf *scaled;
-            GtkWidget *background;
+            GdkWindow *w;
 
             scaled = gdk_pixbuf_scale_simple (pixbuf, screen_width, screen_height, GDK_INTERP_BILINEAR);
             g_object_unref (pixbuf);
 
-            background = gtk_image_new_from_pixbuf (scaled);
-            gtk_widget_show (background);
-            gtk_container_add (GTK_CONTAINER (background_window), background);
+            w = gtk_widget_get_window (GTK_WIDGET (window));
+
+            gdk_pixbuf_render_pixmap_and_mask_for_colormap (scaled, gdk_window_get_colormap (w), &background_pixmap, NULL, 0);
             g_object_unref (scaled);
         }
     }
 
-    user_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_decorated (GTK_WINDOW (user_window), FALSE);
-    gtk_container_set_border_width (GTK_CONTAINER (user_window), 12);
-    g_signal_connect (user_window, "delete-event", gtk_main_quit, NULL);
+    vbox = gtk_vbox_new (FALSE, 0);
+    gtk_container_add (GTK_CONTAINER (window), vbox);
 
-    vbox = gtk_vbox_new (FALSE, 6);
-    gtk_container_add (GTK_CONTAINER (user_window), vbox);
+    login_align = gtk_alignment_new (0.5, 0.5, 0.0, 0.0);
+    gtk_box_pack_start (GTK_BOX (vbox), login_align, TRUE, TRUE, 0);
+
+    GtkWidget *notebook;
+    notebook = gtk_notebook_new ();
+    gtk_notebook_set_show_tabs (GTK_NOTEBOOK (notebook), FALSE);
+    gtk_container_add (GTK_CONTAINER (login_align), notebook);
+
+    login_vbox = gtk_vbox_new (FALSE, 6);
+    gtk_container_set_border_width (GTK_CONTAINER (login_vbox), 12);
+    gtk_container_add (GTK_CONTAINER (notebook), login_vbox);
 
     logo_image = gtk_image_new_from_icon_name ("computer", GTK_ICON_SIZE_DIALOG);
     gtk_image_set_pixel_size (GTK_IMAGE (logo_image), 64);
-    gtk_box_pack_start (GTK_BOX (vbox), logo_image, FALSE, FALSE, 0);
-    gtk_box_pack_start (GTK_BOX (vbox), gtk_label_new (ldm_greeter_get_hostname (greeter)), FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (login_vbox), logo_image, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (login_vbox), gtk_label_new (ldm_greeter_get_hostname (greeter)), FALSE, FALSE, 0);
 
     message_label = gtk_label_new ("");
-    gtk_box_pack_start (GTK_BOX (vbox), message_label, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (login_vbox), message_label, FALSE, FALSE, 0);
     gtk_widget_set_no_show_all (message_label, TRUE);
 
     user_view = make_user_view ();
@@ -474,12 +502,12 @@ main(int argc, char **argv)
     {
         username_entry = NULL;
         user_model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
-        gtk_box_pack_start (GTK_BOX (vbox), user_view, FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (login_vbox), user_view, FALSE, FALSE, 0);
     }
     else
     {
         username_entry = gtk_entry_new ();
-        gtk_box_pack_start (GTK_BOX (vbox), username_entry, FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (login_vbox), username_entry, FALSE, FALSE, 0);
         g_signal_connect (username_entry, "activate", G_CALLBACK (username_activate_cb), NULL);
         user_model = NULL;
     }
@@ -487,21 +515,12 @@ main(int argc, char **argv)
     password_entry = gtk_entry_new ();
     gtk_entry_set_visibility (GTK_ENTRY (password_entry), FALSE);
     gtk_widget_set_sensitive (password_entry, FALSE);
-    gtk_box_pack_start (GTK_BOX (vbox), password_entry, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (login_vbox), password_entry, FALSE, FALSE, 0);
     g_signal_connect (password_entry, "activate", G_CALLBACK (password_activate_cb), NULL);
     gtk_widget_set_no_show_all (password_entry, TRUE);
 
-    gtk_widget_show_all (user_window);
-
-    /* Center the window */
-    center_window (GTK_WINDOW (user_window));
-
-    panel_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_decorated (GTK_WINDOW (panel_window), FALSE);
-    gtk_window_set_default_size (GTK_WINDOW (panel_window), screen_width, 10);
-
     menu_bar = gtk_menu_bar_new ();
-    gtk_container_add (GTK_CONTAINER (panel_window), menu_bar);
+    gtk_box_pack_start (GTK_BOX (vbox), menu_bar, FALSE, TRUE, 0);
 
     menu_item = gtk_image_menu_item_new ();
     gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_item), gtk_image_new_from_icon_name ("preferences-desktop-accessibility", GTK_ICON_SIZE_LARGE_TOOLBAR));
@@ -636,11 +655,7 @@ main(int argc, char **argv)
         gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), menu_item);
     }
 
-    gtk_widget_show_all (panel_window);
-
-    gtk_widget_get_allocation (panel_window, &allocation);
-    gtk_widget_set_size_request (panel_window, screen_width, allocation.height);  
-    gtk_window_move (GTK_WINDOW (panel_window), 0, screen_height - allocation.height);
+    gtk_widget_show_all (window);
 
     gtk_widget_grab_focus (user_view);
 

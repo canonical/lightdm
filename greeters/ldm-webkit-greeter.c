@@ -1079,7 +1079,6 @@ main(int argc, char **argv)
     window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_window_set_default_size (GTK_WINDOW (window), screen_width, screen_height);
     gtk_window_fullscreen (GTK_WINDOW (window));
-    gtk_window_move (GTK_WINDOW (window), 0, 0);
 
     web_view = webkit_web_view_new ();
     g_signal_connect (G_OBJECT (web_view), "window-object-cleared", G_CALLBACK (window_object_cleared_cb), greeter);
