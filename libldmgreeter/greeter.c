@@ -92,8 +92,6 @@ struct _LdmGreeterPrivate
 
 G_DEFINE_TYPE (LdmGreeter, ldm_greeter, G_TYPE_OBJECT);
 
-static int signal_pipe[2];
-
 /**
  * ldm_greeter_new:
  * 
@@ -116,6 +114,12 @@ timed_login_cb (gpointer data)
     g_signal_emit (G_OBJECT (greeter), signals[TIMED_LOGIN], 0, greeter->priv->timed_user);
 
     return FALSE;
+}
+
+static void
+quit_cb (DBusGProxy *proxy, LdmGreeter *greeter)
+{
+    g_signal_emit (G_OBJECT (greeter), signals[QUIT], 0);
 }
 
 /**
@@ -165,6 +169,8 @@ ldm_greeter_connect (LdmGreeter *greeter)
                                                               "org.lightdm.LightDisplayManager",
                                                               object,
                                                               "org.lightdm.LightDisplayManager.Greeter");
+    dbus_g_proxy_add_signal (greeter->priv->display_proxy, "QuitGreeter", G_TYPE_INVALID);
+    dbus_g_proxy_connect_signal (greeter->priv->display_proxy, "QuitGreeter", G_CALLBACK (quit_cb), greeter, NULL);
     greeter->priv->session_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
                                                               "org.lightdm.LightDisplayManager",
                                                               "/org/lightdm/LightDisplayManager/Session",
@@ -1144,45 +1150,10 @@ ldm_greeter_shutdown (LdmGreeter *greeter)
     g_object_unref (proxy);
 }
 
-static gboolean
-handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
-{
-    LdmGreeter *greeter = data;
-    int signo;
-    pid_t pid;
-
-    if (read (signal_pipe[0], &signo, sizeof (int)) < 0 || 
-        read (signal_pipe[0], &pid, sizeof (pid_t)) < 0)
-        return TRUE;
-
-    if (signo == SIGTERM)
-        g_signal_emit (greeter, signals[QUIT], 0);
-
-    return TRUE;
-}
-
-static void
-signal_cb (int signum, siginfo_t *info, void *data)
-{
-    if (write (signal_pipe[1], &info->si_signo, sizeof (int)) < 0 ||
-        write (signal_pipe[1], &info->si_pid, sizeof (pid_t)) < 0)
-        g_warning ("Failed to write to signal pipe");
-}
-
 static void
 ldm_greeter_init (LdmGreeter *greeter)
 {
-    struct sigaction action;
-
     greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, LDM_TYPE_GREETER, LdmGreeterPrivate);
-
-    if (pipe (signal_pipe) != 0)
-        g_critical ("Failed to create signal pipe");
-    g_io_add_watch (g_io_channel_unix_new (signal_pipe[0]), G_IO_IN, handle_signal, greeter);
-    action.sa_sigaction = signal_cb;
-    sigemptyset (&action.sa_mask);
-    action.sa_flags = SA_SIGINFO;
-    sigaction (SIGTERM, &action, NULL);
 }
 
 static void

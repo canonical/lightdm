@@ -36,5 +36,7 @@
       <arg name="language" direction="in" type="s"/>
     </method>
 
+    <!-- Signal to indicate the greeter should exit -->
+    <signal name="QuitGreeter" />
   </interface>
 </node>

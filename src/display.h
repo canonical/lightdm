@@ -40,6 +40,7 @@ typedef struct
     void (*start_session)(Display *display, Session *session);
     void (*end_session)(Display *display, Session *session);
     void (*exited)(Display *display);
+    void (*quit_greeter)(Display *display);
 } DisplayClass;
 
 GType display_get_type (void);

@@ -27,12 +27,19 @@
 #include "theme.h"
 #include "ldm-marshal.h"
 
+/* Length of time in milliseconds to wait for a session to load */
+#define USER_SESSION_TIMEOUT 5000
+
+/* Length of time in milliseconds to wait for a greeter to quit */
+#define GREETER_QUIT_TIMEOUT 1000
+
 enum {
     START_GREETER,
     END_GREETER,
     START_SESSION,
     END_SESSION,
     EXITED,
+    QUIT_GREETER,
     LAST_SIGNAL
 };
 static guint signals[LAST_SIGNAL] = { 0 };
@@ -65,6 +72,7 @@ struct DisplayPrivate
     /* Greeter session process */
     Session *greeter_session;
     gboolean greeter_connected;
+    guint greeter_quit_timeout;
     PAMSession *greeter_pam_session;
 #ifdef HAVE_CONSOLE_KIT
     CkConnector *greeter_ck_session;
@@ -448,6 +456,12 @@ static void
 end_greeter_session (Display *display, gboolean clean_exit)
 {  
     gboolean greeter_connected;
+  
+    if (display->priv->greeter_quit_timeout)
+    {
+        g_source_remove (display->priv->greeter_quit_timeout);
+        display->priv->greeter_quit_timeout = 0;
+    }
 
     g_signal_emit (display, signals[END_GREETER], 0, display->priv->greeter_session);
 
@@ -720,12 +734,31 @@ display_continue_authentication (Display *display, gchar **secrets, DBusGMethodI
 }
 
 static gboolean
+quit_greeter_cb (gpointer data)
+{
+    Display *display = data;
+    g_warning ("Greeter did not quit, sending kill signal");
+    session_stop (display->priv->greeter_session);
+    display->priv->greeter_quit_timeout = 0;
+    return TRUE;
+}
+
+static void
+quit_greeter (Display *display)
+{
+    g_signal_emit (display, signals[QUIT_GREETER], 0);
+    if (display->priv->greeter_quit_timeout)
+        g_source_remove (display->priv->greeter_quit_timeout);
+    display->priv->greeter_quit_timeout = g_timeout_add (GREETER_QUIT_TIMEOUT, quit_greeter_cb, display);
+}
+
+static gboolean
 session_timeout_cb (Display *display)
 {
     g_warning ("Session has not indicated it is ready, stopping greeter anyway");
 
     /* Stop the greeter */
-    session_stop (display->priv->greeter_session);
+    quit_greeter (display);
 
     display->priv->user_session_timer = 0;
     return FALSE;
@@ -765,9 +798,9 @@ display_login (Display *display, gchar *username, gchar *session, gchar *languag
     /* Stop session, waiting for user session to indicate it is ready (if supported) */
     // FIXME: Hard-coded timeout
     if (display->priv->supports_transitions)
-        display->priv->user_session_timer = g_timeout_add (5000, (GSourceFunc) session_timeout_cb, display);
+        display->priv->user_session_timer = g_timeout_add (USER_SESSION_TIMEOUT, (GSourceFunc) session_timeout_cb, display);
     else
-        session_stop (display->priv->greeter_session);
+        quit_greeter (display);
 
     return TRUE;
 }
@@ -889,6 +922,15 @@ display_class_init (DisplayClass *klass)
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayClass, exited),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
+
+    signals[QUIT_GREETER] =
+        g_signal_new ("quit_greeter",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (DisplayClass, quit_greeter),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
