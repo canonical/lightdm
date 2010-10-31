@@ -452,6 +452,9 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             }
 
             /* Update the .dmrc cache */
+            path = g_build_filename (CACHE_DIR, "dmrc", NULL);          
+            g_mkdir_with_parents (path, 0700);
+            g_free (path);
             filename = g_strdup_printf ("%s.dmrc", pam_session_get_username (display->priv->user_pam_session));
             path = g_build_filename (CACHE_DIR, "dmrc", filename, NULL);
             g_file_set_contents (path, data, length, NULL);
