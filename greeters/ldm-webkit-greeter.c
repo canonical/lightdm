@@ -342,15 +342,29 @@ get_languages_cb (JSContextRef context,
 }
 
 static JSValueRef
-get_language_cb (JSContextRef context,
-                 JSObjectRef thisObject,
-                 JSStringRef propertyName,
-                 JSValueRef *exception)
+get_default_language_cb (JSContextRef context,
+                         JSObjectRef thisObject,
+                         JSStringRef propertyName,
+                         JSValueRef *exception)
 {
     LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
     JSStringRef string;
 
-    string = JSStringCreateWithUTF8CString (ldm_greeter_get_language (greeter));
+    string = JSStringCreateWithUTF8CString (ldm_greeter_get_default_language (greeter));
+
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_default_layout_cb (JSContextRef context,
+                       JSObjectRef thisObject,
+                       JSStringRef propertyName,
+                       JSValueRef *exception)
+{
+    LdmGreeter *greeter = JSObjectGetPrivate (thisObject);
+    JSStringRef string;
+
+    string = JSStringCreateWithUTF8CString (ldm_greeter_get_default_layout (greeter));
 
     return JSValueMakeString (context, string);
 }
@@ -916,8 +930,9 @@ static const JSStaticValue ldm_greeter_values[] =
 {
     { "hostname", get_hostname_cb, NULL, kJSPropertyAttributeReadOnly },
     { "users", get_users_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "default_language", get_default_language_cb, NULL, kJSPropertyAttributeReadOnly },
     { "languages", get_languages_cb, NULL, kJSPropertyAttributeReadOnly },
-    { "language", get_language_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "default_layout", get_default_layout_cb, NULL, kJSPropertyAttributeReadOnly },
     { "layouts", get_layouts_cb, NULL, kJSPropertyAttributeReadOnly },
     { "layout", get_layout_cb, set_layout_cb, kJSPropertyAttributeReadOnly },
     { "sessions", get_sessions_cb, NULL, kJSPropertyAttributeReadOnly },

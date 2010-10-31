@@ -26,6 +26,7 @@ enum {
     PROP_HOSTNAME,  
     PROP_NUM_USERS,
     PROP_USERS,
+    PROP_DEFAULT_LANGUAGE,
     PROP_LAYOUTS,
     PROP_LAYOUT,
     PROP_SESSIONS,
@@ -68,10 +69,12 @@ struct _LdmGreeterPrivate
 
     gboolean have_users;
     GList *users;
-  
+
+    gchar *default_language;  
     gboolean have_languages;
     GList *languages;
 
+    gchar *default_layout;
     XklEngine *xkl_engine;
     XklConfigRec *xkl_config;
     gboolean have_layouts;
@@ -184,6 +187,8 @@ ldm_greeter_connect (LdmGreeter *greeter)
     result = dbus_g_proxy_call (greeter->priv->display_proxy, "Connect", &error,
                                 G_TYPE_INVALID,
                                 G_TYPE_STRING, &greeter->priv->theme,
+                                G_TYPE_STRING, &greeter->priv->default_language,
+                                G_TYPE_STRING, &greeter->priv->default_layout,
                                 G_TYPE_STRING, &greeter->priv->default_session,
                                 G_TYPE_STRING, &greeter->priv->timed_user,
                                 G_TYPE_INT, &greeter->priv->login_delay,
@@ -461,6 +466,21 @@ update_languages (LdmGreeter *greeter)
 }
 
 /**
+ * ldm_greeter_get_default_language:
+ * @greeter: A #LdmGreeter
+ * 
+ * Get the default language.
+ * 
+ * Return value: The default language.
+ **/
+const gchar *
+ldm_greeter_get_default_language (LdmGreeter *greeter)
+{
+    g_return_val_if_fail (greeter != NULL, NULL);
+    return greeter->priv->default_language;
+}
+
+/**
  * ldm_greeter_get_languages:
  * @greeter: A #LdmGreeter
  * 
@@ -476,19 +496,11 @@ ldm_greeter_get_languages (LdmGreeter *greeter)
     return greeter->priv->languages;
 }
 
-/**
- * ldm_greeter_get_language:
- * @greeter: A #LdmGreeter
- * 
- * Get the current language.
- * 
- * Return value: The current language.
- **/
 const gchar *
-ldm_greeter_get_language (LdmGreeter *greeter)
+ldm_greeter_get_default_layout (LdmGreeter *greeter)
 {
     g_return_val_if_fail (greeter != NULL, NULL);
-    return setlocale (LC_ALL, NULL);
+    return greeter->priv->default_layout;
 }
 
 static void
@@ -1196,6 +1208,9 @@ ldm_greeter_get_property (GObject    *object,
         break;
     case PROP_USERS:
         break;
+    case PROP_DEFAULT_LANGUAGE:
+        g_value_set_string (value, ldm_greeter_get_default_language (self));
+        break;
     case PROP_LAYOUTS:
         break;
     case PROP_LAYOUT:
@@ -1265,6 +1280,13 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                                      g_param_spec_list ("users",
                                                         "users",
                                                         "Users that can login"));
+    g_object_class_install_property (object_class,
+                                     PROP_DEFAULT_LANGUAGE,
+                                     g_param_spec_string ("default-language",
+                                                          "default-language",
+                                                          "Default language",
+                                                          NULL,
+                                                          G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
                                      PROP_LAYOUTS,
                                      g_param_spec_list ("layouts",

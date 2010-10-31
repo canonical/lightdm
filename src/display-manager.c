@@ -332,6 +332,14 @@ add_display (DisplayManager *manager)
     if (manager->priv->test_mode)
         display_set_greeter_user (display, NULL);
 
+    value = g_key_file_get_string (manager->priv->config, "Greeter", "language", NULL);
+    if (value)
+        display_set_default_language (display, value);
+    g_free (value);
+    value = g_key_file_get_string (manager->priv->config, "Greeter", "layout", NULL);
+    if (value)
+        display_set_default_layout (display, value);
+    g_free (value);
     value = g_key_file_get_string (manager->priv->config, "Greeter", "session", NULL);
     if (value)
         display_set_default_session (display, value);

@@ -70,9 +70,11 @@ gint ldm_greeter_get_num_users (LdmGreeter *greeter);
 
 const GList *ldm_greeter_get_users (LdmGreeter *greeter);
 
+const gchar *ldm_greeter_get_default_language (LdmGreeter *greeter);
+
 const GList *ldm_greeter_get_languages (LdmGreeter *greeter);
 
-const gchar *ldm_greeter_get_language (LdmGreeter *greeter);
+const gchar *ldm_greeter_get_default_layout (LdmGreeter *greeter);
 
 const GList *ldm_greeter_get_layouts (LdmGreeter *greeter);
 

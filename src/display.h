@@ -67,6 +67,14 @@ void display_set_greeter_theme (Display *display, const gchar *greeter_theme);
 
 const gchar *display_get_greeter_theme (Display *display);
 
+void display_set_default_language (Display *display, const gchar *language);
+
+const gchar *display_get_default_language (Display *display);
+
+void display_set_default_layout (Display *display, const gchar *layout);
+
+const gchar *display_get_default_layout (Display *display);
+
 void display_set_default_session (Display *display, const gchar *session);
 
 const gchar *display_get_default_session (Display *display);
@@ -79,7 +87,7 @@ gboolean display_start (Display *display);
 
 // FIXME: Make greeter its own object?
 
-gboolean display_connect (Display *display, const gchar **theme, const gchar **session, const gchar **username, gint *delay, GError *error);
+gboolean display_connect (Display *display, const gchar **theme, const gchar **language, const gchar **layout, const gchar **session, const gchar **username, gint *delay, GError *error);
 
 gboolean display_start_authentication (Display *display, const gchar *username, DBusGMethodInvocation *context);
 

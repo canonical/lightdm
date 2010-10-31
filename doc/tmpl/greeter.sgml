@@ -270,6 +270,15 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
+<!-- ##### FUNCTION ldm_greeter_get_default_language ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
 <!-- ##### FUNCTION ldm_greeter_get_languages ##### -->
 <para>
 
@@ -279,16 +288,7 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_language ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION ldm_greeter_get_layout ##### -->
+<!-- ##### FUNCTION ldm_greeter_get_default_layout ##### -->
 <para>
 
 </para>
@@ -298,6 +298,15 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
 
 <!-- ##### FUNCTION ldm_greeter_get_layouts ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_layout ##### -->
 <para>
 
 </para>

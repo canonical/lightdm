@@ -63,6 +63,12 @@ struct DisplayPrivate
     /* Number of times have logged in */
     gint login_count;
 
+    /* Language to use in greeter/sessions */
+    gchar *default_language;
+
+    /* Layout to use in greeter/sessions */
+    gchar *default_layout;
+
     /* User to run greeter as */
     gchar *greeter_user;
 
@@ -178,6 +184,32 @@ const gchar *
 display_get_greeter_theme (Display *display)
 {
     return display->priv->greeter_theme;
+}
+
+void
+display_set_default_language (Display *display, const gchar *language)
+{
+    g_free (display->priv->default_language);
+    display->priv->default_language = g_strdup (language);
+}
+
+const gchar *
+display_get_default_language (Display *display)
+{
+    return display->priv->default_language;
+}
+
+void
+display_set_default_layout (Display *display, const gchar *layout)
+{
+    g_free (display->priv->default_layout);
+    display->priv->default_layout = g_strdup (layout);
+}
+
+const gchar *
+display_get_default_layout (Display *display)
+{
+    return display->priv->default_layout;
 }
 
 void
@@ -350,9 +382,9 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
     if (language)
         g_key_file_set_string (dmrc_file, "Desktop", "Language", language);
     else if (!g_key_file_has_key (dmrc_file, "Desktop", "Language", NULL))
-        g_key_file_set_string (dmrc_file, "Desktop", "Language", "C");
+        g_key_file_set_string (dmrc_file, "Desktop", "Language", display->priv->default_language);
     if (!g_key_file_has_key (dmrc_file, "Desktop", "Layout", NULL))
-        g_key_file_set_string (dmrc_file, "Desktop", "Layout", "us");
+        g_key_file_set_string (dmrc_file, "Desktop", "Layout", display->priv->default_layout);
 
     filename = g_strdup_printf ("%s.desktop", session);
     path = g_build_filename (XSESSIONS_DIR, filename, NULL);
@@ -603,7 +635,10 @@ session_started_cb (PAMSession *session, Display *display)
 }
 
 gboolean
-display_connect (Display *display, const gchar **theme, const gchar **session, const gchar **username, gint *delay, GError *error)
+display_connect (Display *display,
+                 const gchar **theme,
+                 const gchar **language, const gchar **layout, const gchar **session,
+                 const gchar **username, gint *delay, GError *error)
 {
     if (!display->priv->greeter_connected)
     {
@@ -612,6 +647,8 @@ display_connect (Display *display, const gchar **theme, const gchar **session, c
     }
 
     *theme = g_build_filename (THEME_DIR, display->priv->greeter_theme, "index.theme", NULL);
+    *language = g_strdup (display->priv->default_language);
+    *layout = g_strdup (display->priv->default_layout);
     *session = g_strdup (display->priv->default_session);
     *username = g_strdup (display->priv->default_user);
     *delay = display->priv->timeout;
@@ -842,6 +879,8 @@ display_init (Display *display)
     display->priv = G_TYPE_INSTANCE_GET_PRIVATE (display, DISPLAY_TYPE, DisplayPrivate);
     display->priv->greeter_user = g_strdup (GREETER_USER);
     display->priv->greeter_theme = g_strdup (GREETER_THEME);
+    display->priv->default_language = getenv ("LANG") ? getenv ("LANG") : g_strdup ("C");
+    display->priv->default_layout = g_strdup ("us"); // FIXME: Is there a better default to get?
     display->priv->default_session = g_strdup (DEFAULT_SESSION);
 }
 
@@ -869,6 +908,8 @@ display_finalize (GObject *object)
     g_free (self->priv->greeter_user);
     g_free (self->priv->greeter_theme);
     g_free (self->priv->default_user);
+    g_free (self->priv->default_language);
+    g_free (self->priv->default_layout);
     g_free (self->priv->default_session);
 }
 
