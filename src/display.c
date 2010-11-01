@@ -361,7 +361,7 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
         /* Load from the user directory, if this fails (e.g. the user directory
          * is not yet mounted) then load from the cache */
         path = g_build_filename (user_info->pw_dir, ".dmrc", NULL);
-        have_dmrc = g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_NONE, NULL);
+        have_dmrc = g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, NULL);
         g_free (path);
     }
 
@@ -371,7 +371,7 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
         filename = g_strdup_printf ("%s.dmrc", user_info->pw_name);
         path = g_build_filename (CACHE_DIR, "dmrc", filename, NULL);
         g_free (filename);
-        if (!g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_NONE, &error))          
+        if (!g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, &error))
             g_warning ("Failed to load .dmrc file %s: %s", path, error->message);
         g_clear_error (&error);
         g_free (path);
