@@ -193,8 +193,10 @@ ldm_greeter_connect (LdmGreeter *greeter)
                                 G_TYPE_STRING, &greeter->priv->timed_user,
                                 G_TYPE_INT, &greeter->priv->login_delay,
                                 G_TYPE_INVALID);
-    g_debug ("Connected theme=%s default-session=%s timed-user=%s login-delay=%d",
-             greeter->priv->theme, greeter->priv->default_session, greeter->priv->timed_user, greeter->priv->login_delay);
+    g_debug ("Connected theme=%s default-language=%s default-layout=%s default-session=%s timed-user=%s login-delay=%d",
+             greeter->priv->theme,
+             greeter->priv->default_language, greeter->priv->default_layout, greeter->priv->default_session,
+             greeter->priv->timed_user, greeter->priv->login_delay);
 
     if (!result)
         g_warning ("Failed to connect to display manager: %s", error->message);
@@ -374,7 +376,7 @@ update_users (LdmGreeter *greeter)
         dbus_g_type_struct_get (&value, 0, &name, 1, &real_name, 2, &image, 3, &logged_in, G_MAXUINT);
         g_value_unset (&value);
 
-        user = ldm_user_new (name, real_name, image, logged_in);
+        user = ldm_user_new (greeter, name, real_name, image, logged_in);
         g_free (name);
         g_free (real_name);
         g_free (image);
@@ -1160,6 +1162,27 @@ ldm_greeter_shutdown (LdmGreeter *greeter)
     g_clear_error (&error);
 
     g_object_unref (proxy);
+}
+
+gboolean
+ldm_greeter_get_user_defaults (LdmGreeter *greeter, const gchar *username, gchar **language, gchar **layout, gchar **session)
+{
+    GError *error = NULL;
+    gboolean result;
+
+    result = dbus_g_proxy_call (greeter->priv->user_proxy, "GetUserDefaults", &error,
+                                G_TYPE_STRING, username,
+                                G_TYPE_INVALID,
+                                G_TYPE_STRING, language,
+                                G_TYPE_STRING, layout,
+                                G_TYPE_STRING, session,
+                                G_TYPE_INVALID);
+  
+    if (!result)
+        g_warning ("Failed to get user defaults: %s", error->message);
+    g_clear_error (&error);
+
+    return result;
 }
 
 static void

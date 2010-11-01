@@ -47,7 +47,22 @@ A user has the following properties:
 
 </para>
 
+<!-- ##### ARG LdmUser:greeter ##### -->
+<para>
+
+</para>
+
 <!-- ##### ARG LdmUser:image ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmUser:language ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmUser:layout ##### -->
 <para>
 
 </para>
@@ -63,6 +78,11 @@ A user has the following properties:
 </para>
 
 <!-- ##### ARG LdmUser:real-name ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmUser:session ##### -->
 <para>
 
 </para>
@@ -95,6 +115,33 @@ A user has the following properties:
 
 
 <!-- ##### FUNCTION ldm_user_get_image ##### -->
+<para>
+
+</para>
+
+@user: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_user_get_language ##### -->
+<para>
+
+</para>
+
+@user: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_user_get_layout ##### -->
+<para>
+
+</para>
+
+@user: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_user_get_session ##### -->
 <para>
 
 </para>

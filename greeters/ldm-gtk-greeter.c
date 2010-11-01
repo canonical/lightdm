@@ -23,12 +23,108 @@ static GtkTreeModel *user_model;
 static GtkWidget *window, *vbox, *login_vbox, *message_label, *user_view;
 static GdkPixmap *background_pixmap;
 static GtkWidget *username_entry, *password_entry;
-static gchar *session = NULL, *language = NULL, *theme_name;
+static gchar *theme_name;
+static GSList *session_radio_list = NULL, *language_radio_list = NULL, *layout_radio_list = NULL;
+
+static gchar *
+get_language ()
+{
+    GSList *iter;
+
+    for (iter = language_radio_list; iter; iter = iter->next)
+    {
+        GtkCheckMenuItem *item = iter->data;
+        if (gtk_check_menu_item_get_active (item))
+            return g_object_get_data (G_OBJECT (item), "language");
+    }
+
+    return NULL;
+}
+
+static void
+set_language (const gchar *language)
+{
+    GSList *iter;
+
+    for (iter = language_radio_list; iter; iter = iter->next)
+    {
+        GtkCheckMenuItem *item = iter->data;
+        if (strcmp (language, g_object_get_data (G_OBJECT (item), "language")) == 0)
+            gtk_check_menu_item_set_active (item, TRUE);
+    }
+}
+
+static gchar *
+get_layout ()
+{
+    GSList *iter;
+
+    for (iter = layout_radio_list; iter; iter = iter->next)
+    {
+        GtkCheckMenuItem *item = iter->data;
+        if (gtk_check_menu_item_get_active (item))
+            return g_object_get_data (G_OBJECT (item), "layout");
+    }
+
+    return NULL;
+}
+
+static void
+set_layout (const gchar *layout)
+{
+    GSList *iter;
+
+    for (iter = layout_radio_list; iter; iter = iter->next)
+    {
+        GtkCheckMenuItem *item = iter->data;
+        if (strcmp (layout, g_object_get_data (G_OBJECT (item), "layout")) == 0)
+            gtk_check_menu_item_set_active (item, TRUE);
+    }
+}
+
+static gchar *
+get_session ()
+{
+    GSList *iter;
+
+    for (iter = session_radio_list; iter; iter = iter->next)
+    {
+        GtkCheckMenuItem *item = iter->data;
+        if (gtk_check_menu_item_get_active (item))
+            return g_object_get_data (G_OBJECT (item), "key");
+    }
+
+    return NULL;
+}
+
+static void
+set_session (const gchar *session)
+{
+    GSList *iter;
+
+    for (iter = session_radio_list; iter; iter = iter->next)
+    {
+        GtkCheckMenuItem *item = iter->data;
+        if (strcmp (session, g_object_get_data (G_OBJECT (item), "key")) == 0)
+            gtk_check_menu_item_set_active (item, TRUE);
+    }
+}
 
 static void
 start_authentication (const gchar *username)
 {
     GtkTreeIter iter;
+    gchar *language, *layout, *session;
+  
+    if (ldm_greeter_get_user_defaults (greeter, username, &language, &layout, &session))
+    {
+        set_language (language);
+        set_session (session);
+        set_layout (layout);
+        g_free (language);
+        g_free (layout);
+        g_free (session);
+    }
 
     if (user_model && gtk_tree_model_get_iter_first (GTK_TREE_MODEL (user_model), &iter))
     {
@@ -140,7 +236,7 @@ authentication_complete_cb (LdmGreeter *greeter)
   
     if (ldm_greeter_get_is_authenticated (greeter))
     {
-        ldm_greeter_login (greeter, ldm_greeter_get_authentication_user (greeter), session, language);
+        ldm_greeter_login (greeter, ldm_greeter_get_authentication_user (greeter), get_session (), get_language ());
     }
     else
     {
@@ -257,26 +353,6 @@ layout_changed_cb (GtkWidget *widget)
 }
 
 static void
-session_changed_cb (GtkWidget *widget)
-{
-    if (gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
-    {
-        g_free (session);
-        session = g_strdup (g_object_get_data (G_OBJECT (widget), "key"));
-    }
-}
-
-static void
-language_changed_cb (GtkWidget *widget)
-{
-    if (!gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
-        return;
-
-    g_free (language);
-    language = g_strdup (g_object_get_data (G_OBJECT (widget), "language"));
-}
-
-static void
 a11y_font_cb (GtkWidget *widget)
 {
     if (gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
@@ -389,7 +465,6 @@ main(int argc, char **argv)
     gchar *theme_dir, *rc_file, *background_image;
     GdkWindow *root;
     const GList *items, *item;
-    GSList *session_radio_list = NULL, *language_radio_list = NULL, *layout_radio_list = NULL;
     GdkDisplay *display;
     GdkScreen *screen;
     gint screen_width, screen_height;
@@ -412,7 +487,6 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
     ldm_greeter_connect (greeter);
-    session = g_strdup (ldm_greeter_get_default_session (greeter));
 
     theme_dir = g_path_get_dirname (ldm_greeter_get_theme (greeter));
     rc_file = ldm_greeter_get_string_property (greeter, "gtkrc");
@@ -548,11 +622,6 @@ main(int argc, char **argv)
     menu = gtk_menu_new ();
     gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
 
-    menu_item = gtk_radio_menu_item_new_with_label (language_radio_list, _("Previous language"));
-    language_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menu_item));
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
-    g_signal_connect (menu_item, "toggled", G_CALLBACK (language_changed_cb), NULL);
-
     items = ldm_greeter_get_languages (greeter);
     for (item = items; item; item = item->next)
     {
@@ -572,7 +641,6 @@ main(int argc, char **argv)
             gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), TRUE);
 
         g_object_set_data (G_OBJECT (menu_item), "language", g_strdup (ldm_language_get_code (language)));
-        g_signal_connect (menu_item, "toggled", G_CALLBACK (language_changed_cb), NULL);
     }
 
     menu_item = gtk_menu_item_new_with_label (_("Keyboard Layout"));
@@ -588,7 +656,7 @@ main(int argc, char **argv)
         layout_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menu_item));
         gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
-        if (g_str_equal (ldm_layout_get_name (layout), ldm_greeter_get_layout (greeter)))
+        if (g_str_equal (ldm_layout_get_name (layout), ldm_greeter_get_default_layout (greeter)))
             gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), TRUE);
 
         g_object_set_data (G_OBJECT (menu_item), "layout", g_strdup (ldm_layout_get_name (layout)));
@@ -612,7 +680,6 @@ main(int argc, char **argv)
             gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), TRUE);
 
         g_object_set_data (G_OBJECT (menu_item), "key", g_strdup (ldm_session_get_key (session)));
-        g_signal_connect (menu_item, "toggled", G_CALLBACK (session_changed_cb), NULL);
     }
 
     power_menu = gtk_menu_new ();

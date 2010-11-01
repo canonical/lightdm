@@ -134,6 +134,57 @@ get_user_image_cb (JSContextRef context,
 }
 
 static JSValueRef
+get_user_language_cb (JSContextRef context,
+                      JSObjectRef thisObject,
+                      JSStringRef propertyName,
+                      JSValueRef *exception)
+{
+    LdmUser *user = JSObjectGetPrivate (thisObject);
+    const gchar *language = ldm_user_get_language (user);
+    JSStringRef string;
+
+    if (!language)
+        return JSValueMakeNull (context);
+
+    string = JSStringCreateWithUTF8CString (language);
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_user_layout_cb (JSContextRef context,
+                    JSObjectRef thisObject,
+                    JSStringRef propertyName,
+                    JSValueRef *exception)
+{
+    LdmUser *user = JSObjectGetPrivate (thisObject);
+    const gchar *layout = ldm_user_get_layout (user);
+    JSStringRef string;
+
+    if (!layout)
+        return JSValueMakeNull (context);
+
+    string = JSStringCreateWithUTF8CString (layout);
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
+get_user_session_cb (JSContextRef context,
+                     JSObjectRef thisObject,
+                     JSStringRef propertyName,
+                     JSValueRef *exception)
+{
+    LdmUser *user = JSObjectGetPrivate (thisObject);
+    const gchar *session = ldm_user_get_session (user);
+    JSStringRef string;
+
+    if (!session)
+        return JSValueMakeNull (context);
+
+    string = JSStringCreateWithUTF8CString (session);
+    return JSValueMakeString (context, string);
+}
+
+static JSValueRef
 get_user_logged_in_cb (JSContextRef context,
                        JSObjectRef thisObject,
                        JSStringRef propertyName,
@@ -898,6 +949,9 @@ static const JSStaticValue ldm_user_values[] =
     { "real_name", get_user_real_name_cb, NULL, kJSPropertyAttributeReadOnly },
     { "display_name", get_user_display_name_cb, NULL, kJSPropertyAttributeReadOnly },
     { "image", get_user_image_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "language", get_user_language_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "layout", get_user_layout_cb, NULL, kJSPropertyAttributeReadOnly },
+    { "session", get_user_session_cb, NULL, kJSPropertyAttributeReadOnly },
     { "logged_in", get_user_logged_in_cb, NULL, kJSPropertyAttributeReadOnly },
     { NULL, NULL, NULL, 0 }
 };

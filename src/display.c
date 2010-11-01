@@ -420,7 +420,6 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             display->priv->user_session = session_new (pam_session_get_username (display->priv->user_pam_session), command);
 
             session_language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
-            g_debug ("session_language='%s'", session_language);
 
             layout = g_key_file_get_string (dmrc_file, "Desktop", "Layout", NULL);
 
@@ -882,7 +881,7 @@ display_init (Display *display)
     display->priv = G_TYPE_INSTANCE_GET_PRIVATE (display, DISPLAY_TYPE, DisplayPrivate);
     display->priv->greeter_user = g_strdup (GREETER_USER);
     display->priv->greeter_theme = g_strdup (GREETER_THEME);
-    display->priv->default_language = getenv ("LANG") ? getenv ("LANG") : g_strdup ("C");
+    display->priv->default_language = getenv ("LANG") ? g_strdup (getenv ("LANG")) : g_strdup ("C");
     display->priv->default_layout = g_strdup ("us"); // FIXME: Is there a better default to get?
     display->priv->default_session = g_strdup (DEFAULT_SESSION);
 }

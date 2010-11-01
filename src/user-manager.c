@@ -127,8 +127,10 @@ update_users (UserManager *manager)
         else
             user->real_name = NULL;
         g_strfreev (tokens);
+      
+        user->home_dir = g_strdup (entry->pw_dir);
 
-        image_path = g_build_filename ("/home", user->name, ".face", NULL);
+        image_path = g_build_filename (user->home_dir, ".face", NULL);
         if (g_file_test (image_path, G_FILE_TEST_EXISTS))
             user->image = g_filename_to_uri (image_path, NULL, NULL);
         else
@@ -156,6 +158,23 @@ user_manager_get_num_users (UserManager *manager)
     return g_list_length (manager->priv->users);
 }
 
+const UserInfo *
+user_manager_get_user (UserManager *manager, const gchar *username)
+{
+    GList *link;
+
+    update_users (manager);
+
+    for (link = manager->priv->users; link; link = link->next)
+    {
+        UserInfo *info = link->data;
+        if (strcmp (info->name, username) == 0)
+            return info;
+    }
+
+    return NULL;
+}
+
 #define TYPE_USER dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN, G_TYPE_INVALID)
 
 gboolean
@@ -179,6 +198,50 @@ user_manager_get_users (UserManager *manager, GPtrArray **users, GError *error)
 
     return TRUE;
 }
+
+gboolean
+user_manager_get_user_defaults (UserManager *manager, gchar *username, gchar **language, gchar **layout, gchar **session, GError *error)
+{
+    const UserInfo *info;
+    GKeyFile *dmrc_file;
+    gboolean have_dmrc;
+    gchar *path;
+
+    info = user_manager_get_user (manager, username);
+    if (!info)
+        return FALSE;
+
+    dmrc_file = g_key_file_new ();
+    g_key_file_set_string (dmrc_file, "Desktop", "Language", "");
+    g_key_file_set_string (dmrc_file, "Desktop", "Layout", "");
+    g_key_file_set_string (dmrc_file, "Desktop", "Session", "");
+
+    /* Load the users login settings (~/.dmrc) */  
+    path = g_build_filename (info->home_dir, ".dmrc", NULL);
+    have_dmrc = g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_NONE, NULL);
+    g_free (path);
+
+    /* If no .dmrc, then load from the cache */
+    if (!have_dmrc)
+    {
+        gchar *filename;
+
+        filename = g_strdup_printf ("%s.dmrc", username);
+        path = g_build_filename (CACHE_DIR, "dmrc", filename, NULL);
+        g_free (filename);
+        have_dmrc = g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_NONE, NULL);
+        g_free (path);
+    }
+
+    *language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
+    *layout = g_key_file_get_string (dmrc_file, "Desktop", "Layout", NULL);
+    *session = g_key_file_get_string (dmrc_file, "Desktop", "Session", NULL);
+
+    g_key_file_free (dmrc_file);
+
+    return TRUE;
+}
+
 
 static void
 user_manager_init (UserManager *manager)

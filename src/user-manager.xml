@@ -7,6 +7,14 @@
       <!-- name,real name,image,logged in -->
       <arg name="users" direction="out" type="a(sssb)"/>
     </method>
+    
+    <!-- Method to get user default information -->
+    <method name="GetUserDefaults">
+      <arg name="username" direction="in" type="s"/>    
+      <arg name="language" direction="out" type="s"/>
+      <arg name="layout" direction="out" type="s"/>
+      <arg name="session" direction="out" type="s"/>
+    </method>
 
   </interface>
 </node>

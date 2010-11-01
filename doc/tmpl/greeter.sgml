@@ -491,3 +491,16 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @greeter: 
 
 
+<!-- ##### FUNCTION ldm_greeter_get_user_defaults ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@username: 
+@language: 
+@layout: 
+@session: 
+@Returns: 
+
+

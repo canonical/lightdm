@@ -322,7 +322,6 @@ static Display *
 add_display (DisplayManager *manager)
 {
     Display *display;
-    gchar *value;
 
     display = display_new (g_list_length (manager->priv->displays));
     g_signal_connect (display, "start-greeter", G_CALLBACK (start_greeter_cb), manager);
@@ -331,27 +330,6 @@ add_display (DisplayManager *manager)
 
     if (manager->priv->test_mode)
         display_set_greeter_user (display, NULL);
-
-    value = g_key_file_get_string (manager->priv->config, "Greeter", "language", NULL);
-    if (value)
-        display_set_default_language (display, value);
-    g_free (value);
-    value = g_key_file_get_string (manager->priv->config, "Greeter", "layout", NULL);
-    if (value)
-        display_set_default_layout (display, value);
-    g_free (value);
-    value = g_key_file_get_string (manager->priv->config, "Greeter", "session", NULL);
-    if (value)
-        display_set_default_session (display, value);
-    g_free (value);
-    value = g_key_file_get_string (manager->priv->config, "Greeter", "user", NULL);
-    if (value)
-        display_set_greeter_user (display, value);
-    g_free (value);
-    value = g_key_file_get_string (manager->priv->config, "Greeter", "theme", NULL);
-    if (value)
-        display_set_greeter_theme (display, value);
-    g_free (value);
 
     manager->priv->displays = g_list_append (manager->priv->displays, display);
 
@@ -502,7 +480,7 @@ display_manager_start (DisplayManager *manager)
     for (i = tokens; *i; i++)
     {
         Display *display;
-        gchar *default_user, *display_name;
+        gchar *value, *default_user, *display_name;
         gint user_timeout;
         XServer *xserver;
 
@@ -511,6 +489,27 @@ display_manager_start (DisplayManager *manager)
 
         display = add_display (manager);
 
+        value = g_key_file_get_string (manager->priv->config, display_name, "language", NULL);
+        if (value)
+            display_set_default_language (display, value);
+        g_free (value);
+        value = g_key_file_get_string (manager->priv->config, display_name, "layout", NULL);
+        if (value)
+            display_set_default_layout (display, value);
+        g_free (value);
+        value = g_key_file_get_string (manager->priv->config, display_name, "session", NULL);
+        if (value)
+            display_set_default_session (display, value);
+        g_free (value);
+        value = g_key_file_get_string (manager->priv->config, display_name, "user", NULL);
+        if (value)
+            display_set_greeter_user (display, value);
+        g_free (value);
+        value = g_key_file_get_string (manager->priv->config, display_name, "theme", NULL);
+        if (value)
+            display_set_greeter_theme (display, value);
+        g_free (value);
+      
         /* Automatically log in or start a greeter session */
         default_user = g_key_file_get_string (manager->priv->config, display_name, "default-user", NULL);
         user_timeout = g_key_file_get_integer (manager->priv->config, display_name, "default-user-timeout", NULL);

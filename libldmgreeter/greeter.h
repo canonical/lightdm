@@ -14,11 +14,6 @@
 
 #include <glib-object.h>
 
-#include "user.h"
-#include "language.h"
-#include "layout.h"
-#include "session.h"
-
 G_BEGIN_DECLS
 
 #define LDM_TYPE_GREETER            (ldm_greeter_get_type())
@@ -31,6 +26,11 @@ G_BEGIN_DECLS
 typedef struct _LdmGreeter        LdmGreeter;
 typedef struct _LdmGreeterClass   LdmGreeterClass;
 typedef struct _LdmGreeterPrivate LdmGreeterPrivate;
+
+#include "user.h"
+#include "language.h"
+#include "layout.h"
+#include "session.h"
 
 struct _LdmGreeter
 {
@@ -119,6 +119,8 @@ void ldm_greeter_restart (LdmGreeter *greeter);
 gboolean ldm_greeter_get_can_shutdown (LdmGreeter *greeter);
 
 void ldm_greeter_shutdown (LdmGreeter *greeter);
+
+gboolean ldm_greeter_get_user_defaults (LdmGreeter *greeter, const gchar *username, gchar **language, gchar **layout, gchar **session);
 
 G_END_DECLS
 

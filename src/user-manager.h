@@ -37,6 +37,7 @@ typedef struct
     const gchar *name;
     const gchar *real_name;
     const gchar *image;
+    const gchar *home_dir;
     gboolean logged_in;
 } UserInfo;
 
@@ -46,7 +47,11 @@ UserManager *user_manager_new (GKeyFile *config_file);
 
 gint user_manager_get_num_users (UserManager *manager);
 
+const UserInfo *user_manager_get_user (UserManager *manager, const gchar *username);
+
 gboolean user_manager_get_users (UserManager *manager, GPtrArray **users, GError *error);
+
+gboolean user_manager_get_user_defaults (UserManager *manager, gchar *username, gchar **language, gchar **layout, gchar **session, GError *error);
 
 G_END_DECLS
 

@@ -50,6 +50,9 @@ ldm_user_get_name
 ldm_user_get_real_name
 ldm_user_get_display_name
 ldm_user_get_image
+ldm_user_get_language
+ldm_user_get_layout
+ldm_user_get_session
 ldm_user_get_logged_in
 <SUBSECTION Standard>
 LDM_USER
@@ -124,6 +127,7 @@ ldm_greeter_get_can_restart
 ldm_greeter_restart
 ldm_greeter_get_can_shutdown
 ldm_greeter_shutdown
+ldm_greeter_get_user_defaults
 <SUBSECTION Standard>
 LDM_GREETER
 LDM_IS_GREETER
