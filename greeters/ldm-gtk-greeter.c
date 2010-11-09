@@ -663,6 +663,8 @@ main(int argc, char **argv)
         g_signal_connect (menu_item, "toggled", G_CALLBACK (layout_changed_cb), NULL);
     }
 
+    ldm_greeter_set_layout (greeter, ldm_greeter_get_default_layout (greeter));
+
     menu_item = gtk_menu_item_new_with_label (_("Session"));
     gtk_menu_shell_append (GTK_MENU_SHELL (option_menu), menu_item);
     menu = gtk_menu_new ();
