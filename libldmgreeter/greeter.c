@@ -578,6 +578,8 @@ ldm_greeter_set_layout (LdmGreeter *greeter, const gchar *layout)
 
     g_return_if_fail (LDM_IS_GREETER (greeter));
     g_return_if_fail (layout != NULL);
+
+    g_debug ("Setting keyboard layout to %s", layout);
   
     setup_xkl (greeter);
 
