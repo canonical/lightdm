@@ -276,12 +276,11 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
     dbus_error_init (&error);
     address = xserver_get_address (display->priv->xserver);
     if (!ck_connector_open_session_with_parameters (session, &error,
-                                                    "session-type", &session_type,
                                                     "unix-user", &user_info->pw_uid,
-                                                    //"display-device", &display->priv->display_device,
-                                                    //"x11-display-device", &display->priv->x11_display_device,
-                                                    "remote-host-name", &hostname,
+                                                    "session-type", &session_type,
                                                     "x11-display", &address,
+                                                    //"x11-display-device", &display->priv->x11_display_device, // e.g. /dev/tty7
+                                                    "remote-host-name", &hostname,
                                                     "is-local", &is_local,
                                                     NULL))
         g_warning ("Failed to open CK session: %s: %s", error.name, error.message);
