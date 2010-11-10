@@ -75,6 +75,9 @@ struct DisplayPrivate
     /* Theme to use */
     gchar *greeter_theme;
 
+    /* Program to run sessions through */
+    gchar *session_wrapper;
+
     /* Greeter session process */
     Session *greeter_session;
     gboolean greeter_connected;
@@ -124,6 +127,19 @@ gint
 display_get_index (Display *display)
 {
     return display->priv->index;
+}
+
+void
+display_set_session_wrapper (Display *display, const gchar *session_wrapper)
+{
+    g_free (display->priv->session_wrapper);
+    display->priv->session_wrapper = g_strdup (session_wrapper);  
+}
+
+const gchar *
+display_get_session_wrapper (Display *display)
+{
+    return display->priv->session_wrapper;
 }
 
 void
@@ -399,24 +415,29 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
     if (result)
     {
-        gchar *session_command, *command = NULL;
+        gchar *session_command;
 
         session_command = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
         if (!session_command)
             g_warning ("No command in session file %s", path);
-        if (session_command)
-            command = g_strdup_printf ("/etc/X11/Xsession %s", session_command);
-        g_free (session_command);
 
         display->priv->supports_transitions = g_key_file_get_boolean (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Supports-Transitions", NULL);
 
-        if (command)
+        if (session_command)
         {
             gchar *session_language, *layout;
             gchar *data;
             gsize length;
 
-            display->priv->user_session = session_new (pam_session_get_username (display->priv->user_pam_session), command);
+            if (display->priv->session_wrapper)
+            {
+                gchar *old_command = session_command;
+                session_command = g_strdup_printf ("%s %s", display->priv->session_wrapper, session_command);
+                g_free (old_command);
+            }
+          g_debug ("'%s'", session_command);
+
+            display->priv->user_session = session_new (pam_session_get_username (display->priv->user_pam_session), session_command);
 
             session_language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
 
@@ -463,7 +484,7 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             g_free (layout);         
         }
 
-        g_free (command);
+        g_free (session_command);
     }
 
     g_key_file_free (session_desktop_file);

@@ -49,6 +49,10 @@ Display *display_new (gint index);
 
 gint display_get_index (Display *display);
 
+void display_set_session_wrapper (Display *display, const gchar *session_wrapper);
+
+const gchar *display_get_session_wrapper (Display *display);
+
 void display_set_default_user (Display *display, const gchar *username);
 
 const gchar *display_get_default_user (Display *display);

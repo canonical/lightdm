@@ -322,11 +322,17 @@ static Display *
 add_display (DisplayManager *manager)
 {
     Display *display;
+    gchar *value;
 
     display = display_new (g_list_length (manager->priv->displays));
     g_signal_connect (display, "start-greeter", G_CALLBACK (start_greeter_cb), manager);
     g_signal_connect (display, "start-session", G_CALLBACK (start_session_cb), manager);
     g_signal_connect (display, "end-session", G_CALLBACK (end_session_cb), manager);
+
+    value = g_key_file_get_string (manager->priv->config, "LightDM", "session-wrapper", NULL);
+    if (value)
+        display_set_session_wrapper (display, value);
+    g_free (value);
 
     if (manager->priv->test_mode)
         display_set_greeter_user (display, NULL);

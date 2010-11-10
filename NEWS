@@ -1,4 +1,4 @@
-Overview of changes in lightdm 0.1.3
+Overview of changes in lightdm 0.2.0
 
     * Make default user configuration per-display
     * Only automatically login the first time
@@ -8,6 +8,9 @@ Overview of changes in lightdm 0.1.3
     * Load user settings from ~/.dmrc
     * Add configuration for default language/layout
     * Change language/layout/session when user selected in GTK+ greeter
+    * Set default keyboard layout on first login
+    * Don't run all sessions throught /etc/X11/XSession - make the session
+      wrapper optional and configurable.
 
 Overview of changes in lightdm 0.1.2
 
