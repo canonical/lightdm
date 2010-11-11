@@ -507,11 +507,11 @@ display_manager_start (DisplayManager *manager)
         if (value)
             display_set_default_session (display, value);
         g_free (value);
-        value = g_key_file_get_string (manager->priv->config, display_name, "user", NULL);
+        value = g_key_file_get_string (manager->priv->config, display_name, "greeter-user", NULL);
         if (value)
             display_set_greeter_user (display, value);
         g_free (value);
-        value = g_key_file_get_string (manager->priv->config, display_name, "theme", NULL);
+        value = g_key_file_get_string (manager->priv->config, display_name, "greeter-theme", NULL);
         if (value)
             display_set_greeter_theme (display, value);
         g_free (value);
