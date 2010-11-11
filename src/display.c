@@ -316,8 +316,16 @@ end_ck_session (CkConnector *session)
 #endif
 
 static void
+run_script (const gchar *script)
+{
+    // FIXME
+}
+
+static void
 end_user_session (Display *display, gboolean clean_exit)
-{  
+{
+    run_script ("PostSession");
+
     g_signal_emit (display, signals[END_SESSION], 0, display->priv->user_session);
   
     if (display->priv->user_session_timer)
@@ -364,6 +372,8 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
     GKeyFile *dmrc_file, *session_desktop_file;
     gboolean have_dmrc = FALSE, result;
     GError *error = NULL;
+
+    run_script ("PreSession");
 
     g_debug ("Launching '%s' session for user %s", session, pam_session_get_username (display->priv->user_pam_session));
     display->priv->login_count++;
@@ -435,8 +445,6 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
                 session_command = g_strdup_printf ("%s %s", display->priv->session_wrapper, session_command);
                 g_free (old_command);
             }
-          g_debug ("'%s'", session_command);
-
             display->priv->user_session = session_new (pam_session_get_username (display->priv->user_pam_session), session_command);
 
             session_language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
@@ -639,6 +647,12 @@ authenticate_result_cb (PAMSession *session, int result, Display *display)
     DBusGMethodInvocation *context;
 
     g_debug ("Authenticate result for user %s: %s", pam_session_get_username (display->priv->user_pam_session), pam_session_strerror (display->priv->user_pam_session, result));
+
+    if (result == PAM_SUCCESS)
+    {
+        run_script ("PostLogin");
+        pam_session_authorize (session);
+    }
 
     /* Respond to D-Bus request */
     request = g_ptr_array_new ();
@@ -875,6 +889,8 @@ xserver_exit_cb (XServer *server, Display *display)
 static void
 xserver_ready_cb (XServer *xserver, Display *display)
 {
+    run_script ("Init"); // FIXME: Async
+
     /* Don't run any sessions on local terminals */
     if (xserver_get_server_type (xserver) == XSERVER_TYPE_LOCAL_TERMINAL)
         return;

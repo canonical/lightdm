@@ -11,6 +11,7 @@ Overview of changes in lightdm 0.2.0
     * Set default keyboard layout on first login
     * Don't run all sessions throught /etc/X11/XSession - make the session
       wrapper optional and configurable.
+    * Make pkgconfig file require libxklavier
 
 Overview of changes in lightdm 0.1.2
 

@@ -137,11 +137,7 @@ notify_auth_complete_cb (gpointer data)
     if (session->priv->stop)
         pam_session_end (session);
     else
-    {
         g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, result);
-        if (result == PAM_SUCCESS)
-           pam_session_authorize (session);
-    }
 
     /* The thread is complete, drop the reference */
     g_object_unref (session);
