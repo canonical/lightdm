@@ -12,6 +12,7 @@ Overview of changes in lightdm 0.2.0
     * Don't run all sessions throught /etc/X11/XSession - make the session
       wrapper optional and configurable.
     * Make pkgconfig file require libxklavier
+    * Only compile greeters if have dependencies
 
 Overview of changes in lightdm 0.1.2
 

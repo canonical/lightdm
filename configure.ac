@@ -62,16 +62,18 @@ PKG_CHECK_MODULES(LIBLDMGREETER, [
     x11
 ])
 
-PKG_CHECK_MODULES(LIGHTDM_GREETER, [
+PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
     gtk+-2.0
     dbus-glib-1
-])
+], have_gtk=yes, have_gtk=no)
+AM_CONDITIONAL(HAVE_GTK_GREETER, test $have_gtk = yes)
 
-PKG_CHECK_MODULES(LIGHTDM_WKGREETER, [
+PKG_CHECK_MODULES(LIGHTDM_WEBKIT_GREETER, [
     gtk+-2.0
     webkit-1.0
     dbus-glib-1
-])
+], have_webkit=yes, have_webkit=no)
+AM_CONDITIONAL(HAVE_WEBKIT_GREETER, test $have_webkit = yes)
 
 AC_PATH_PROG(GLIB_GENMARSHAL, glib-genmarshal)
 AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)
@@ -252,4 +254,8 @@ echo "
         Greeter user:             $GREETER_USER
         Theme directory:          $THEME_DIR
         Theme:                    $GREETER_THEME
+
+        Greeters:
+        GTK+:                     $have_gtk
+        Webkit:                   $have_webkit
 "
