@@ -296,8 +296,10 @@ log_init (void)
     g_free (log_dir);
 
     log_file = fopen (path, "w");
-    g_free (path);
     g_log_set_default_handler (log_cb, NULL);
+
+    g_debug ("Logging to %s", path);
+    g_free (path);
 }
 
 static void
