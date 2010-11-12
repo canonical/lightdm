@@ -194,8 +194,7 @@ session_start (Session *session)
     gboolean result;
     gint argc;
     struct passwd *user_info;
-    gchar *username, *env_string;
-    const gchar *working_dir = NULL;
+    gchar *username, *working_dir, *env_string;
     gchar **argv, **env;
     GError *error = NULL;
   
@@ -227,8 +226,8 @@ session_start (Session *session)
     session->priv->uid = user_info->pw_uid;
     session->priv->gid = user_info->pw_gid;
 
-    username = user_info->pw_name;
-    working_dir = user_info->pw_dir;
+    username = g_strdup (user_info->pw_name);
+    working_dir = g_strdup (user_info->pw_dir);
     session_set_env (session, "USER", user_info->pw_name);
     session_set_env (session, "USERNAME", user_info->pw_name); // FIXME: Is this required?      
     session_set_env (session, "HOME", user_info->pw_dir);
@@ -243,6 +242,7 @@ session_start (Session *session)
             g_warning ("Failed to write authorization: %s", error->message);
         g_clear_error (&error);
     }
+    g_free (username);
 
     env = get_env (session);
 
@@ -251,7 +251,10 @@ session_start (Session *session)
         g_warning ("Failed to parse session command line: %s", error->message);
     g_clear_error (&error);
     if (!result)
+    {
+        g_free (working_dir);
         return FALSE;
+    }  
 
     env_string = g_strjoinv (" ", env);
     g_debug ("Launching session: %s %s", env_string, session->priv->command);
@@ -273,6 +276,7 @@ session_start (Session *session)
                             session_fork_cb, session,
                             &session->priv->pid,
                             &error);
+    g_free (working_dir);
 
     if (!result)
         g_warning ("Failed to spawn session: %s", error->message);
