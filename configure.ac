@@ -30,29 +30,6 @@ PKG_CHECK_MODULES(LIGHTDM, [
     xdmcp
 ])
 
-AC_ARG_ENABLE(console-kit,
-              AC_HELP_STRING(--enable-console-kit=[no/auto/yes], Enable Console Kit),
-              enable_console_kit=$enableval,
-              enable_console_kit="auto")
-
-have_console_kit=no
-case "$enable_console_kit" in
-    "auto")
-        PKG_CHECK_MODULES(CONSOLE_KIT,
-                          ck-connector,
-                          have_console_kit=yes,
-                          have_console_kit=no)
-        ;;
-    "yes")
-        PKG_CHECK_MODULES(CONSOLE_KIT, ck-connector)
-        have_console_kit=yes;
-        ;;
-esac
-
-if test $have_console_kit = yes; then
-    AC_DEFINE(HAVE_CONSOLE_KIT, 1, Define if using Console Kit)
-fi
-
 PKG_CHECK_MODULES(LIBLDMGREETER, [
     glib-2.0
     gio-unix-2.0
@@ -250,7 +227,6 @@ echo "
         X authorization dir:      $XAUTH_DIR
         XSessions dir:            $XSESSIONS_DIR
         Default session:          $DEFAULT_SESSION
-        Console Kit:              $have_console_kit
         Greeter user:             $GREETER_USER
         Theme directory:          $THEME_DIR
         Theme:                    $GREETER_THEME

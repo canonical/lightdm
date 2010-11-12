@@ -17,15 +17,12 @@
 #include <pwd.h>
 #include <gio/gdesktopappinfo.h>
 
-#ifdef HAVE_CONSOLE_KIT
-#include <ck-connector.h>
-#endif
-
 #include "display.h"
 #include "display-glue.h"
 #include "pam-session.h"
 #include "theme.h"
 #include "ldm-marshal.h"
+#include "ck-connector.h"
 
 /* Length of time in milliseconds to wait for a session to load */
 #define USER_SESSION_TIMEOUT 5000
@@ -83,9 +80,7 @@ struct DisplayPrivate
     gboolean greeter_connected;
     guint greeter_quit_timeout;
     PAMSession *greeter_pam_session;
-#ifdef HAVE_CONSOLE_KIT
     CkConnector *greeter_ck_session;
-#endif
 
     gboolean supports_transitions;
 
@@ -93,9 +88,7 @@ struct DisplayPrivate
     Session *user_session;
     guint user_session_timer;
     PAMSession *user_pam_session;
-#ifdef HAVE_CONSOLE_KIT
     CkConnector *user_ck_session;
-#endif
 
     /* Current D-Bus call context */
     DBusGMethodInvocation *dbus_context;
@@ -273,7 +266,6 @@ get_user_info (const gchar *username)
     return user_info;
 }
 
-#ifdef HAVE_CONSOLE_KIT
 static CkConnector *
 start_ck_session (Display *display, const gchar *session_type, const gchar *username)
 {
@@ -299,7 +291,11 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
                                                     "remote-host-name", &hostname,
                                                     "is-local", &is_local,
                                                     NULL))
+    {
         g_warning ("Failed to open CK session: %s: %s", error.name, error.message);
+        ck_connector_unref (session);
+        return NULL;
+    }
 
     return session;
 }
@@ -312,8 +308,6 @@ end_ck_session (CkConnector *session)
     ck_connector_close_session (session, NULL); // FIXME: Handle errors
     ck_connector_unref (session);
 }
-
-#endif
 
 static void
 run_script (const gchar *script)
@@ -341,10 +335,8 @@ end_user_session (Display *display, gboolean clean_exit)
     g_object_unref (display->priv->user_pam_session);
     display->priv->user_pam_session = NULL;
 
-#ifdef HAVE_CONSOLE_KIT
     end_ck_session (display->priv->user_ck_session);
     display->priv->user_ck_session = NULL;
-#endif
 
     if (!clean_exit)
         g_warning ("Session exited unexpectedly");
@@ -454,9 +446,8 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
             g_signal_connect (G_OBJECT (display->priv->user_session), "killed", G_CALLBACK (user_session_killed_cb), display);
             session_set_env (display->priv->user_session, "DISPLAY", xserver_get_address (display->priv->xserver));
-#ifdef HAVE_CONSOLE_KIT
-            session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
-#endif
+            if (display->priv->user_ck_session)
+                session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
             session_set_env (display->priv->user_session, "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
             session_set_env (display->priv->user_session, "GDMSESSION", session); // FIXME: Not cross-desktop
             session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");
@@ -508,9 +499,7 @@ start_default_session (Display *display, const gchar *session, const gchar *lang
     display->priv->user_pam_session = pam_session_new (display->priv->default_user);
     pam_session_authorize (display->priv->user_pam_session);
 
-#ifdef HAVE_CONSOLE_KIT
     display->priv->user_ck_session = start_ck_session (display, "", pam_session_get_username (display->priv->user_pam_session));
-#endif
     start_user_session (display, session, language);
 }
 
@@ -537,10 +526,8 @@ end_greeter_session (Display *display, gboolean clean_exit)
     g_object_unref (display->priv->greeter_pam_session);
     display->priv->greeter_pam_session = NULL;
 
-#ifdef HAVE_CONSOLE_KIT
     end_ck_session (display->priv->greeter_ck_session);
     display->priv->greeter_ck_session = NULL;
-#endif
 
     if (!clean_exit)
         g_warning ("Greeter failed");
@@ -589,20 +576,17 @@ start_greeter (Display *display)
         display->priv->greeter_pam_session = pam_session_new (display->priv->greeter_user);
         pam_session_authorize (display->priv->greeter_pam_session);
 
-#ifdef HAVE_CONSOLE_KIT
         display->priv->greeter_ck_session = start_ck_session (display,
                                                               "LoginWindow",
                                                               display->priv->greeter_user ? display->priv->greeter_user : getenv ("USER"));
-#endif
 
         display->priv->greeter_connected = FALSE;
         display->priv->greeter_session = session_new (display->priv->greeter_user, command);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "exited", G_CALLBACK (greeter_session_exited_cb), display);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "killed", G_CALLBACK (greeter_session_killed_cb), display);
         session_set_env (display->priv->greeter_session, "DISPLAY", xserver_get_address (display->priv->xserver));
-#ifdef HAVE_CONSOLE_KIT
-        session_set_env (display->priv->greeter_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->greeter_ck_session));
-#endif
+        if (display->priv->greeter_ck_session)
+            session_set_env (display->priv->greeter_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->greeter_ck_session));
 
         g_signal_emit (display, signals[START_GREETER], 0, display->priv->greeter_session);
 
@@ -665,9 +649,7 @@ authenticate_result_cb (PAMSession *session, int result, Display *display)
 static void
 session_started_cb (PAMSession *session, Display *display)
 {
-#ifdef HAVE_CONSOLE_KIT
     display->priv->user_ck_session = start_ck_session (display, "", pam_session_get_username (display->priv->user_pam_session));
-#endif
 }
 
 gboolean
@@ -937,10 +919,8 @@ display_finalize (GObject *object)
         g_object_unref (self->priv->user_session);
     if (self->priv->user_pam_session)
         g_object_unref (self->priv->user_pam_session);
-#ifdef HAVE_CONSOLE_KIT
     end_ck_session (self->priv->greeter_ck_session);
     end_ck_session (self->priv->user_ck_session);
-#endif
     if (self->priv->xserver)  
         g_object_unref (self->priv->xserver);
     g_free (self->priv->greeter_user);

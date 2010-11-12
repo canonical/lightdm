@@ -14,6 +14,8 @@ user-manager-glue.h: $(srcdir)/user-manager.xml
 	$(DBUSBINDINGTOOL) --prefix=user_manager --mode=glib-server --output=$@ $^
 
 lightdm_SOURCES = \
+	ck-connector.c \
+	ck-connector.h \
 	display.c \
 	display.h \
 	display-manager.c \
@@ -50,7 +52,6 @@ BUILT_SOURCES = \
 
 lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
-	$(CONSOLE_KIT_CFLAGS) \
 	$(WARN_CFLAGS) \
 	-DCONFIG_FILE=\"$(CONFIG_FILE)\" \
 	-DLOG_DIR=\"$(LOG_DIR)\" \
@@ -61,7 +62,6 @@ lightdm_CFLAGS = \
 
 lightdm_LDADD = \
 	$(LIGHTDM_LIBS) \
-	$(CONSOLE_KIT_LIBS) \
 	-lpam
 
 EXTRA_DIST = ldm-marshal.list \
