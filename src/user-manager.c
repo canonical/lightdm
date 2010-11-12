@@ -207,6 +207,8 @@ user_manager_get_user_defaults (UserManager *manager, gchar *username, gchar **l
     gboolean have_dmrc;
     gchar *path;
 
+    update_users (manager);
+
     info = user_manager_get_user (manager, username);
     if (!info)
         return FALSE;
