@@ -915,7 +915,8 @@ static void
 display_init (Display *display)
 {
     display->priv = G_TYPE_INSTANCE_GET_PRIVATE (display, DISPLAY_TYPE, DisplayPrivate);
-    display->priv->greeter_user = g_strdup (GREETER_USER);
+    if (strcmp (GREETER_USER, "") != 0)
+        display->priv->greeter_user = g_strdup (GREETER_USER);
     display->priv->greeter_theme = g_strdup (GREETER_THEME);
     display->priv->default_language = getenv ("LANG") ? g_strdup (getenv ("LANG")) : g_strdup ("C");
     display->priv->default_layout = g_strdup ("us"); // FIXME: Is there a better default to get?

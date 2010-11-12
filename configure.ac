@@ -143,7 +143,7 @@ AC_ARG_WITH(default-session,
 AC_SUBST(DEFAULT_SESSION)
 AC_DEFINE_UNQUOTED(DEFAULT_SESSION, "$DEFAULT_SESSION", Default session)
 
-GREETER_USER=gdm
+GREETER_USER=
 AC_ARG_WITH(greeter-user,
             AS_HELP_STRING(--with-greeter-user=<username>,
                            User to run greeter as),
