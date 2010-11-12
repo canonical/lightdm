@@ -193,12 +193,13 @@ ldm_greeter_connect (LdmGreeter *greeter)
                                 G_TYPE_STRING, &greeter->priv->timed_user,
                                 G_TYPE_INT, &greeter->priv->login_delay,
                                 G_TYPE_INVALID);
-    g_debug ("Connected theme=%s default-language=%s default-layout=%s default-session=%s timed-user=%s login-delay=%d",
-             greeter->priv->theme,
-             greeter->priv->default_language, greeter->priv->default_layout, greeter->priv->default_session,
-             greeter->priv->timed_user, greeter->priv->login_delay);
 
-    if (!result)
+    if (result)
+        g_debug ("Connected theme=%s default-language=%s default-layout=%s default-session=%s timed-user=%s login-delay=%d",
+                 greeter->priv->theme,
+                 greeter->priv->default_language, greeter->priv->default_layout, greeter->priv->default_session,
+                 greeter->priv->timed_user, greeter->priv->login_delay);
+    else
         g_warning ("Failed to connect to display manager: %s", error->message);
     g_clear_error (&error);
     if (!result)
