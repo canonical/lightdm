@@ -257,6 +257,15 @@ session_start (Session *session)
     g_debug ("Launching session: %s %s", env_string, session->priv->command);
     g_free (env_string);
 
+    /* Create the log file owned by the target user */
+    if (session->priv->username)
+    {
+        gint fd = g_open (session->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+        close (fd);
+        if (chown (session->priv->log_file, session->priv->uid, session->priv->gid) != 0)
+            g_warning ("Failed to set greeter log file ownership: %s", strerror (errno));
+    }
+
     result = g_spawn_async (working_dir,
                             argv,
                             env,

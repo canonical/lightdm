@@ -291,7 +291,7 @@ log_init (void)
     log_dir = g_key_file_get_string (config_file, "LightDM", "log-directory", NULL);
     if (!log_dir)
         log_dir = g_strdup (LOG_DIR);
-    g_mkdir_with_parents (log_dir, 0700);
+    g_mkdir_with_parents (log_dir, 0755);
     path = g_build_filename (log_dir, "lightdm.log", NULL);
     g_free (log_dir);
 
