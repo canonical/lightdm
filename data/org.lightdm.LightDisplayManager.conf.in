@@ -9,6 +9,9 @@
   </policy>
 
   <!-- Limit access to greeter API -->
+  <policy user="root">
+    <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.lightdm.LightDisplayManager.Greeter"/>
+  </policy>
   <policy user="@GREETER_USER@">
     <allow send_destination="org.lightdm.LightDisplayManager" send_interface="org.lightdm.LightDisplayManager.Greeter"/>
   </policy>
