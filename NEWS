@@ -16,6 +16,7 @@ Overview of changes in lightdm 0.2.0
     * Include ck-connector code to reduce library dependencies
     * Add introspection.m4 to the source tree
     * Support using no greeter user in lightdm.conf
+    * Flush writes to main log file
 
 Overview of changes in lightdm 0.1.2
 

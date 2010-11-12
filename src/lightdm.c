@@ -268,6 +268,7 @@ log_cb (const gchar *log_domain, GLogLevelFlags log_level,
         }
 
         fprintf (log_file, "[%+.2fs] %s %s\n", g_timer_elapsed (log_timer, NULL), prefix, message);
+        fflush (log_file);
     }
 
     /* Only show debug if requested */
