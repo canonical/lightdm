@@ -164,7 +164,10 @@ void
 display_set_greeter_user (Display *display, const gchar *username)
 {
     g_free (display->priv->greeter_user);
-    display->priv->greeter_user = g_strdup (username);
+    if (username[0] != '\0')
+        display->priv->greeter_user = g_strdup (username);
+    else
+        display->priv->greeter_user = NULL;
 }
 
 const gchar *
