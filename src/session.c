@@ -193,6 +193,7 @@ session_start (Session *session)
     //gint session_stdin, session_stdout, session_stderr;
     gboolean result;
     gint argc;
+    struct passwd *user_info;
     gchar *username, *env_string;
     const gchar *working_dir = NULL;
     gchar **argv, **env;
@@ -200,11 +201,9 @@ session_start (Session *session)
   
     g_return_val_if_fail (session->priv->pid == 0, FALSE);
 
+    errno = 0;
     if (session->priv->username)
     {
-        struct passwd *user_info;
-
-        errno = 0;
         user_info = getpwnam (session->priv->username);
         if (!user_info)
         {
@@ -214,25 +213,26 @@ session_start (Session *session)
                 g_warning ("Unable to get information on user %s: %s", session->priv->username, strerror (errno));
             return FALSE;
         }
-      
-        session->priv->uid = user_info->pw_uid;
-        session->priv->gid = user_info->pw_gid;
-
-        username = session->priv->username;
-        working_dir = user_info->pw_dir;
-        session_set_env (session, "USER", user_info->pw_name);
-        session_set_env (session, "USERNAME", user_info->pw_name); // FIXME: Is this required?      
-        session_set_env (session, "HOME", user_info->pw_dir);
-        session_set_env (session, "SHELL", user_info->pw_shell);
     }
     else
     {
-        username = getenv ("USER");
-        session_set_env (session, "USER", getenv ("USER"));
-        session_set_env (session, "USERNAME", getenv ("USER")); // FIXME: Is this required?
-        session_set_env (session, "HOME", getenv ("HOME"));
-        session_set_env (session, "SHELL", getenv ("SHELL"));
+        user_info = getpwuid (getuid ());
+        if (!user_info)
+        {
+            g_warning ("Unable to determine current username: %s", strerror (errno));
+            return FALSE;;
+        }
     }
+
+    session->priv->uid = user_info->pw_uid;
+    session->priv->gid = user_info->pw_gid;
+
+    username = user_info->pw_name;
+    working_dir = user_info->pw_dir;
+    session_set_env (session, "USER", user_info->pw_name);
+    session_set_env (session, "USERNAME", user_info->pw_name); // FIXME: Is this required?      
+    session_set_env (session, "HOME", user_info->pw_dir);
+    session_set_env (session, "SHELL", user_info->pw_shell);
 
     if (session->priv->authorization)
     {

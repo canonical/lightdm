@@ -570,21 +570,36 @@ start_greeter (Display *display)
     if (theme)
     {
         gchar *command;
+        gchar *username = NULL;
 
         g_debug ("Starting greeter %s as user %s", display->priv->greeter_theme,
                  display->priv->greeter_user ? display->priv->greeter_user : "<current>");
 
         command = theme_get_command (theme);
+      
+        if (display->priv->greeter_user)
+            username = display->priv->greeter_user;
+        else
+        {
+            struct passwd *user_info;
+            user_info = getpwuid (getuid ());
+            if (!user_info)
+            {
+                g_warning ("Unable to determine current username: %s", strerror (errno));
+                return;
+            }
+            username = user_info->pw_name;
+        }
 
-        display->priv->greeter_pam_session = pam_session_new (display->priv->greeter_user);
+        display->priv->greeter_pam_session = pam_session_new (username);
         pam_session_authorize (display->priv->greeter_pam_session);
 
         display->priv->greeter_ck_session = start_ck_session (display,
                                                               "LoginWindow",
-                                                              display->priv->greeter_user ? display->priv->greeter_user : getenv ("USER"));
+                                                              username);
 
         display->priv->greeter_connected = FALSE;
-        display->priv->greeter_session = session_new (display->priv->greeter_user, command);
+        display->priv->greeter_session = session_new (username, command);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "exited", G_CALLBACK (greeter_session_exited_cb), display);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "killed", G_CALLBACK (greeter_session_killed_cb), display);
         session_set_env (display->priv->greeter_session, "DISPLAY", xserver_get_address (display->priv->xserver));

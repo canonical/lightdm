@@ -18,6 +18,7 @@ Overview of changes in lightdm 0.2.0
     * Support using no greeter user in lightdm.conf
     * Flush writes to main log file
     * Allow non-privilidged user to write greeter log file in /var
+    * Fix bugs stopping running greeter as priviledged user (i.e. root)
 
 Overview of changes in lightdm 0.1.2
 
