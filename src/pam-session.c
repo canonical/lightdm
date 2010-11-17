@@ -24,6 +24,9 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct PAMSessionPrivate
 {
+    /* Service to authenticate against */
+    gchar *service;
+
     /* User being authenticated */
     gchar *username;
 
@@ -51,10 +54,11 @@ struct PAMSessionPrivate
 G_DEFINE_TYPE (PAMSession, pam_session, G_TYPE_OBJECT);
 
 PAMSession *
-pam_session_new (const gchar *username)
+pam_session_new (const gchar *service, const gchar *username)
 {
     PAMSession *self = g_object_new (PAM_SESSION_TYPE, NULL);
 
+    self->priv->service = g_strdup (service);
     self->priv->username = g_strdup (username);
 
     return self;
@@ -151,7 +155,7 @@ authenticate_cb (gpointer data)
     PAMSession *session = data;
     struct pam_conv conversation = { pam_conv_cb, session };
 
-    pam_start ("check_pass", session->priv->username, &conversation, &session->priv->pam_handle);
+    pam_start (session->priv->service, session->priv->username, &conversation, &session->priv->pam_handle);
     session->priv->result = pam_authenticate (session->priv->pam_handle, 0);
 
     g_debug ("pam_authenticate -> %s", pam_strerror (session->priv->pam_handle, session->priv->result));

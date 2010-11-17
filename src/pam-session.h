@@ -41,7 +41,7 @@ typedef struct
 
 GType pam_session_get_type (void);
 
-PAMSession *pam_session_new (const gchar *username);
+PAMSession *pam_session_new (const gchar *service, const gchar *username);
 
 gboolean pam_session_get_in_session (PAMSession *session);
 

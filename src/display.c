@@ -75,6 +75,9 @@ struct DisplayPrivate
     /* Program to run sessions through */
     gchar *session_wrapper;
 
+    /* PAM service to authenticate against */
+    gchar *pam_service;
+
     /* Greeter session process */
     Session *greeter_session;
     gboolean greeter_connected;
@@ -112,6 +115,7 @@ display_new (gint index)
     Display *self = g_object_new (DISPLAY_TYPE, NULL);
 
     self->priv->index = index;
+    self->priv->pam_service = g_strdup (DEFAULT_PAM_SERVICE);
 
     return self;
 }
@@ -235,6 +239,19 @@ const gchar *
 display_get_default_session (Display *display)
 {
     return display->priv->default_session;
+}
+
+void
+display_set_pam_service (Display *display, const gchar *service)
+{
+    g_free (display->priv->pam_service);
+    display->priv->pam_service = g_strdup (service);
+}
+
+const gchar *
+display_get_pam_service (Display *display)
+{
+    return display->priv->pam_service;
 }
 
 void
@@ -499,7 +516,7 @@ start_default_session (Display *display, const gchar *session, const gchar *lang
     /* Don't need to check authentication, just authorize */
     if (display->priv->user_pam_session)
         pam_session_end (display->priv->user_pam_session);    
-    display->priv->user_pam_session = pam_session_new (display->priv->default_user);
+    display->priv->user_pam_session = pam_session_new (display->priv->pam_service, display->priv->default_user);
     pam_session_authorize (display->priv->user_pam_session);
 
     display->priv->user_ck_session = start_ck_session (display, "", pam_session_get_username (display->priv->user_pam_session));
@@ -591,7 +608,7 @@ start_greeter (Display *display)
             username = user_info->pw_name;
         }
 
-        display->priv->greeter_pam_session = pam_session_new (username);
+        display->priv->greeter_pam_session = pam_session_new (display->priv->pam_service, username);
         pam_session_authorize (display->priv->greeter_pam_session);
 
         display->priv->greeter_ck_session = start_ck_session (display,
@@ -721,7 +738,7 @@ display_start_authentication (Display *display, const gchar *username, DBusGMeth
     /* Store D-Bus request to respond to */
     display->priv->dbus_context = context;
 
-    display->priv->user_pam_session = pam_session_new (username);
+    display->priv->user_pam_session = pam_session_new (display->priv->pam_service, username);
     g_signal_connect (G_OBJECT (display->priv->user_pam_session), "got-messages", G_CALLBACK (pam_messages_cb), display);
     g_signal_connect (G_OBJECT (display->priv->user_pam_session), "authentication-result", G_CALLBACK (authenticate_result_cb), display);
     g_signal_connect (G_OBJECT (display->priv->user_pam_session), "started", G_CALLBACK (session_started_cb), display);

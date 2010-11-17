@@ -154,6 +154,17 @@ AC_ARG_WITH(greeter-user,
 AC_SUBST(GREETER_USER)
 AC_DEFINE_UNQUOTED(GREETER_USER, "$GREETER_USER", User to run greeter as)
 
+DEFAULT_PAM_SERVICE=lightdm
+AC_ARG_WITH(default-pam-service,
+            AS_HELP_STRING(--with-default-pam-service=<name>,
+                           Default PAM service to use),
+    if test x$withval != x; then
+        DEFAULT_PAM_SERVICE="$withval"
+    fi
+)
+AC_SUBST(DEFAULT_PAM_SERVICE)
+AC_DEFINE_UNQUOTED(DEFAULT_PAM_SERVICE, "$DEFAULT_PAM_SERVICE", Default PAM service to use)
+
 THEME_DIR=${prefix}/share/lightdm/themes
 AC_ARG_WITH(theme-dir,
             AS_HELP_STRING(--with-theme-dir=<dir>,
@@ -228,6 +239,7 @@ echo "
         XSessions dir:            $XSESSIONS_DIR
         Default session:          $DEFAULT_SESSION
         Greeter user:             $GREETER_USER
+        PAM service:              $DEFAULT_PAM_SERVICE
         Theme directory:          $THEME_DIR
         Theme:                    $GREETER_THEME
 

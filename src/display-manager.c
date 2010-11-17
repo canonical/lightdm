@@ -515,7 +515,11 @@ display_manager_start (DisplayManager *manager)
         if (value)
             display_set_greeter_theme (display, value);
         g_free (value);
-      
+        value = g_key_file_get_string (manager->priv->config, display_name, "pam-service", NULL);
+        if (value)
+            display_set_pam_service (display, value);
+        g_free (value);
+
         /* Automatically log in or start a greeter session */
         default_user = g_key_file_get_string (manager->priv->config, display_name, "default-user", NULL);
         user_timeout = g_key_file_get_integer (manager->priv->config, display_name, "default-user-timeout", NULL);

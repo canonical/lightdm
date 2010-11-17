@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.2.1
+
+    * Use "lightdm" as default PAM service and make it configurable
+
 Overview of changes in lightdm 0.2.0
 
     * Make default user configuration per-display

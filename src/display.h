@@ -83,6 +83,10 @@ void display_set_default_session (Display *display, const gchar *session);
 
 const gchar *display_get_default_session (Display *display);
 
+void display_set_pam_service (Display *display, const gchar *service);
+
+const gchar *display_get_pam_service (Display *display);
+
 void display_set_xserver (Display *display, XServer *xserver);
 
 XServer *display_get_xserver (Display *display);
