@@ -7,12 +7,12 @@ if HAVE_WEBKIT_GREETER
 libexec_PROGRAMS += ldm-webkit-greeter
 endif
 
-LIBGREETER_LIB = $(top_builddir)/libldmgreeter/libldmgreeter.la
+LIBGREETER_LIB = $(top_builddir)/libldmgreeter-gobject/libldmgreeter.la
 LIBGREETER_CFLAGS = \
-	-I$(top_srcdir)/libldmgreeter
+	-I$(top_srcdir)/libldmgreeter-gobject
 LIBGREETER_LDADD = \
-	-L$(top_builddir)/libldmgreeter \
-	-lldmgreeter
+	-L$(top_builddir)/libldmgreeter-gobject \
+	-lldmgreeter-gobject
 
 ldm_gtk_greeter_SOURCES = \
 	ldm-gtk-greeter.c

@@ -30,7 +30,7 @@ PKG_CHECK_MODULES(LIGHTDM, [
     xdmcp
 ])
 
-PKG_CHECK_MODULES(LIBLDMGREETER, [
+PKG_CHECK_MODULES(LIBLDMGREETER_GOBJECT, [
     glib-2.0
     gio-unix-2.0
     gobject-2.0
@@ -213,8 +213,8 @@ data/Makefile
 data/init/Makefile
 doc/Makefile
 greeters/Makefile
-libldmgreeter/libldmgreeter-0.pc
-libldmgreeter/Makefile
+libldmgreeter-gobject/libldmgreeter-gobject-0.pc
+libldmgreeter-gobject/Makefile
 po/Makefile.in
 src/Makefile
 themes/Makefile
