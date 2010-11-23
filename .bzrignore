@@ -35,6 +35,7 @@ greeters/ldm-webkit-greeter
 libldmgreeter-gobject/*.gir
 libldmgreeter-gobject/*.typelib
 libldmgreeter-gobject/libldmgreeter-gobject-0.pc
+libldmgreeter-qt/libldmgreeter-qt-0.pc
 po/POTFILES
 po/stamp-it
 src/display-glue.h
