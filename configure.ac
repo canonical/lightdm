@@ -6,6 +6,7 @@ AC_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE
 LT_INIT
 AM_PROG_CC_C_O
+AC_PROG_CXX
 AC_PROG_LIBTOOL
 AM_MAINTAINER_MODE
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES(yes)])
@@ -38,6 +39,12 @@ PKG_CHECK_MODULES(LIBLDMGREETER_GOBJECT, [
     libxklavier
     x11
 ])
+
+PKG_CHECK_MODULES(LIBLDMGREETER_QT, [
+    QtCore
+    QtGui
+], have_qt=yes, have_qt=no)
+AM_CONDITIONAL(HAVE_QT, test $have_qt = yes)
 
 PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
     gtk+-2.0
@@ -215,6 +222,8 @@ doc/Makefile
 greeters/Makefile
 libldmgreeter-gobject/libldmgreeter-gobject-0.pc
 libldmgreeter-gobject/Makefile
+libldmgreeter-qt/libldmgreeter-qt-0.pc
+libldmgreeter-qt/Makefile
 po/Makefile.in
 src/Makefile
 themes/Makefile
@@ -244,6 +253,7 @@ echo "
         Theme:                    $GREETER_THEME
 
         Greeters:
+        libldmgreeter-qt:         $have_qt
         GTK+:                     $have_gtk
         Webkit:                   $have_webkit
 "

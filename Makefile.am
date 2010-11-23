@@ -1,4 +1,4 @@
-SUBDIRS = libldmgreeter-gobject data greeters po src themes doc
+SUBDIRS = libldmgreeter-gobject libldmgreeter-qt data greeters po src themes doc
 
 DISTCHECK_CONFIGURE_FLAGS = --enable-introspection --enable-gtk-doc
 

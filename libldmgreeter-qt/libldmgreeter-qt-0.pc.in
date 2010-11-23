@@ -5,9 +5,9 @@ includedir=@includedir@
 
 themedir=@THEME_DIR@
 
-Name: libldmgreeter-gobject
+Name: libldmgreeter-qt
 Description: LightDM greeter library
 Version: @VERSION@
-Requires: glib-2.0 dbus-glib-1 libxklavier
-Libs: -L${libdir} -lldmgreeter-gobject
-Cflags: -I${includedir}/lightdm-gobject-0
+Requires: QtCore QtGui
+Libs: -L${libdir} -lldmgreeter-qt
+Cflags: -I${includedir}/lightdm-qt-0
