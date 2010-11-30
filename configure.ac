@@ -253,6 +253,8 @@ echo "
         Theme:                    $GREETER_THEME
 
         Greeters:
+        libldmgreeter-gobject:    yes
+        GObject introspection:    $found_introspection
         libldmgreeter-qt:         $have_qt
         GTK+:                     $have_gtk
         Webkit:                   $have_webkit
