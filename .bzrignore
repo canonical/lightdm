@@ -36,6 +36,10 @@ libldmgreeter-gobject/*.gir
 libldmgreeter-gobject/*.typelib
 libldmgreeter-gobject/libldmgreeter-gobject-0.pc
 libldmgreeter-qt/libldmgreeter-qt-0.pc
+libldmgreeter-qt/displayinterface.cpp
+libldmgreeter-qt/displayinterface.h
+libldmgreeter-qt/usermanagerinterface.cpp
+libldmgreeter-qt/usermanagerinterface.h       
 po/POTFILES
 po/stamp-it
 src/display-glue.h
