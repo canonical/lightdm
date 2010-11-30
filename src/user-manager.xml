@@ -5,6 +5,7 @@
     <!-- Method to return the users -->
     <method name="GetUsers">
       <!-- name,real name,image,logged in -->
+      <annotation name="com.trolltech.QtDBus.QtTypeName.Out0" value="QList&lt;LdmUser&gt;"/>
       <arg name="users" direction="out" type="a(sssb)"/>
     </method>
     

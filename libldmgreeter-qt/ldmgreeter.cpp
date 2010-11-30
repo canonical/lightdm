@@ -53,7 +53,7 @@ LdmGreeter::LdmGreeter() :
     d->consoleKit = new ConsoleKitInterface("org.freedesktop.ConsoleKit","/org/freedesktop/ConsoleKit/Manager", QDBusConnection::systemBus(), this );
 
     //FIXME use the pendingReply, it's a much nicer API.
-    QDBusReply<QString> connectResult = d->display->connect(d->language, d->layout, d->session, d->username, d->delay);
+    QDBusReply<QString> connectResult = d->display->Connect(d->language, d->layout, d->session, d->username, d->delay);
     connect(d->display, SIGNAL(quitGreeter()), SIGNAL(quit()));
 
 
@@ -142,21 +142,21 @@ QList<LdmSession> LdmGreeter::sessions()
 void LdmGreeter::startAuthentication(QString username)
 {
     d->currentlyAuthenticatingUser = username;
-    QDBusPendingReply<int, QList<LdmAuthRequest> > reply = d->display->startAuthentication(username);
+    QDBusPendingReply<int, QList<LdmAuthRequest> > reply = d->display->StartAuthentication(username);
     QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(reply, this);
     connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), SLOT(onAuthFinished(QDBusPendingCallWatcher*)));
 }
 
 void LdmGreeter::provideSecret(QString secret)
 {
-    QDBusPendingReply<int, QList<LdmAuthRequest> > reply = d->display->continueAuthentication(QStringList() << secret);
+    QDBusPendingReply<int, QList<LdmAuthRequest> > reply = d->display->ContinueAuthentication(QStringList() << secret);
     QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(reply, this);
     connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), SLOT(onAuthFinished(QDBusPendingCallWatcher*)));
 }
 
 void LdmGreeter::login(QString username, QString session, QString language)
 {
-    d->display->login(username, session, language);
+    d->display->Login(username, session, language);
 }
 
 
