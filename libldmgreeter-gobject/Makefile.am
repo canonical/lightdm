@@ -17,7 +17,8 @@ libldmgreeter_gobject_la_SOURCES= \
 	language.c \
 	layout.c \
 	session.c \
-	user.c
+	user.c \
+	$(libldmgreeter_gobjectinclude_HEADERS)
 
 if HAVE_INTROSPECTION
 
@@ -29,7 +30,7 @@ INTROSPECTION_GIRS = LightDMGreeter-0.gir
 
 LightDMGreeter-0.gir: libldmgreeter-gobject.la
 LightDMGreeter_0_gir_INCLUDES = GObject-2.0
-LightDMGreeter_0_gir_CFLAGS = $(INCLUDES)
+LightDMGreeter_0_gir_CFLAGS = $(INCLUDES) --identifier-prefix=Ldm
 LightDMGreeter_0_gir_LIBS = libldmgreeter-gobject.la
 LightDMGreeter_0_gir_FILES = $(libldmgreeter_gobject_la_SOURCES)
 
