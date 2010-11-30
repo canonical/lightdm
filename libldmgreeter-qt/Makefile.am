@@ -13,6 +13,8 @@ displayinterface.cpp displayinterface.h: $(top_srcdir)/src/display.xml
 usermanagerinterface.cpp usermanagerinterface.h: $(top_srcdir)/src/user-manager.xml
 	qdbusxml2cpp $< -i ldmuser.h -c UserManagerInterface -p usermanagerinterface
 
+ldmgreeter.cpp: displayinterface.h usermanagerinterface.h    
+
 libldmgreeter_qtinclude_HEADERS = \
 	consolekitinterface.h \
 	displayinterface.h \
