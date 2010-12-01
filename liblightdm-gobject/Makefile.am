@@ -1,5 +1,7 @@
 lib_LTLIBRARIES = liblightdm-gobject-0.la
 
+CLEANFILES =
+
 liblightdm_gobject_0include_HEADERS = \
 	greeter.h \
 	language.h \
@@ -39,6 +41,17 @@ gir_DATA = LightDM-0.gir
 
 typelibdir = $(libdir)/girepository-1.0
 typelib_DATA = LightDM-0.typelib
+
+vapidir = $(datadir)/vala/vapi
+vapi_DATA = LightDM-0.vapi
+
+LightDM-0.vapi: LightDM-0.gir Makefile.am
+	$(VALA_API_GEN) --library=LightDM-0 \
+		--pkg glib-2.0 \
+		--vapidir=$(top_builddir)/src \
+		$<
+
+CLEANFILES += $(vapi_DATA)
 
 endif
 

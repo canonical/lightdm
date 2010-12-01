@@ -5,6 +5,7 @@ Overview of changes in lightdm 0.2.1
     * Add libldmgreeter-qt (David Edmundson)
     * Fix gobject-introspection build
     * Renamed libldmgreeter to liblightdm
+    * Install a .vapi file
 
 Overview of changes in lightdm 0.2.0
 
