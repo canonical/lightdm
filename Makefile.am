@@ -13,7 +13,7 @@ DISTCLEANFILES = \
 	config.h.in \
 	config.h \
 	depcomp \
-	gnome-doc-utils.make \
+	gtk-doc.make \
 	install-sh \
 	missing \
 	mkinstalldirs \
