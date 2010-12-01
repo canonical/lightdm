@@ -2,6 +2,7 @@ Overview of changes in lightdm 0.2.2
 
     * Make default themedir work when --prefix is not passed to configure
     * Look for face images in ~/.face and ~/.face.icon
+    * Put .vapi file in unversioned vala directory
 
 Overview of changes in lightdm 0.2.1
 
