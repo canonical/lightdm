@@ -3,11 +3,11 @@
 [encoding: UTF-8]
 greeters/ldm-gtk-greeter.c
 greeters/ldm-webkit-greeter.c
-libldmgreeter-gobject/greeter.c
-libldmgreeter-gobject/language.c
-libldmgreeter-gobject/layout.c
-libldmgreeter-gobject/session.c
-libldmgreeter-gobject/user.c
+liblightdm-gobject/greeter.c
+liblightdm-gobject/language.c
+liblightdm-gobject/layout.c
+liblightdm-gobject/session.c
+liblightdm-gobject/user.c
 src/display.c
 src/display-manager.c
 src/lightdm.c

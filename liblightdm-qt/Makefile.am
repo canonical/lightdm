@@ -1,5 +1,5 @@
 if HAVE_QT
-lib_LTLIBRARIES = libldmgreeter-qt.la
+lib_LTLIBRARIES = liblightdm-qt.la
 endif
 
 GENERATED_FILES = \
@@ -15,7 +15,7 @@ usermanagerinterface.cpp usermanagerinterface.h: $(top_srcdir)/src/user-manager.
 
 ldmgreeter.cpp: displayinterface.h usermanagerinterface.h    
 
-libldmgreeter_qtinclude_HEADERS = \
+liblightdm_qtinclude_HEADERS = \
 	consolekitinterface.h \
 	displayinterface.h \
 	ldmauthrequest.h \
@@ -25,13 +25,13 @@ libldmgreeter_qtinclude_HEADERS = \
 	ldmuser.h \
 	powermanagementinterface.h \
 	usermanagerinterface.h
-libldmgreeter_qtincludedir=$(includedir)/lightdm-qt-0/lightdm
+liblightdm_qtincludedir=$(includedir)/lightdm-qt-0/lightdm
 
-libldmgreeter_qt_la_LIBADD = $(LIBLDMGREETER_QT_LIBS)
-libldmgreeter_qt_la_CXXFLAGS = $(LIBLDMGREETER_QT_CFLAGS) \
+liblightdm_qt_la_LIBADD = $(LIBLIGHTDM_QT_LIBS)
+liblightdm_qt_la_CXXFLAGS = $(LIBLIGHTDM_QT_CFLAGS) \
 	-DXSESSIONS_DIR=\"$(XSESSIONS_DIR)\"
 
-libldmgreeter_qt_la_SOURCES= \
+liblightdm_qt_la_SOURCES= \
 	consolekitinterface.cpp \
 	displayinterface.cpp \
 	ldmauthrequest.cpp \
@@ -43,7 +43,7 @@ libldmgreeter_qt_la_SOURCES= \
 	usermanagerinterface.cpp
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libldmgreeter-qt-0.pc
+pkgconfig_DATA = liblightdm-qt-0.pc
 
 CLEANFILES = \
 	$(GENERATED_FILES)

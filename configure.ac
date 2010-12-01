@@ -31,7 +31,7 @@ PKG_CHECK_MODULES(LIGHTDM, [
     xdmcp
 ])
 
-PKG_CHECK_MODULES(LIBLDMGREETER_GOBJECT, [
+PKG_CHECK_MODULES(LIBLIGHTDM_GOBJECT, [
     glib-2.0
     gio-unix-2.0
     gobject-2.0
@@ -40,7 +40,7 @@ PKG_CHECK_MODULES(LIBLDMGREETER_GOBJECT, [
     x11
 ])
 
-PKG_CHECK_MODULES(LIBLDMGREETER_QT, [
+PKG_CHECK_MODULES(LIBLIGHTDM_QT, [
     QtCore
     QtGui
 ], have_qt=yes, have_qt=no)
@@ -219,10 +219,10 @@ data/Makefile
 data/init/Makefile
 doc/Makefile
 greeters/Makefile
-libldmgreeter-gobject/libldmgreeter-gobject-0.pc
-libldmgreeter-gobject/Makefile
-libldmgreeter-qt/libldmgreeter-qt-0.pc
-libldmgreeter-qt/Makefile
+liblightdm-gobject/liblightdm-gobject-0.pc
+liblightdm-gobject/Makefile
+liblightdm-qt/liblightdm-qt-0.pc
+liblightdm-qt/Makefile
 po/Makefile.in
 src/Makefile
 themes/Makefile
@@ -252,9 +252,9 @@ echo "
         Theme:                    $GREETER_THEME
 
         Greeters:
-        libldmgreeter-gobject:    yes
+        liblightdm-gobject:       yes
         GObject introspection:    $found_introspection
-        libldmgreeter-qt:         $have_qt
+        liblightdm-qt:            $have_qt
         GTK+:                     $have_gtk
         Webkit:                   $have_webkit
 "

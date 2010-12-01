@@ -5,8 +5,8 @@ includedir=@includedir@
 
 themedir=@THEME_DIR@
 
-Name: libldmgreeter-gobject
-Description: LightDM greeter library
+Name: liblightdm-gobject
+Description: LightDM client library
 Version: @VERSION@
 Requires: glib-2.0 dbus-glib-1 libxklavier
 Libs: -L${libdir} -lldmgreeter-gobject

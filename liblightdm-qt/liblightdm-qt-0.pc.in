@@ -5,8 +5,8 @@ includedir=@includedir@
 
 themedir=@THEME_DIR@
 
-Name: libldmgreeter-qt
-Description: LightDM greeter library
+Name: liblightdm-qt
+Description: LightDM client library
 Version: @VERSION@
 Requires: QtCore QtGui
 Libs: -L${libdir} -lldmgreeter-qt
