@@ -1,4 +1,4 @@
-DOC_MODULE=lightdm-0
+DOC_MODULE=lightdm-gobject-0
 
 DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
 
