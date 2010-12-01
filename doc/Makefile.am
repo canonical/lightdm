@@ -13,7 +13,7 @@ INCLUDES = \
 
 GTKDOC_LIBS = \
 	$(LIBLIGHTDM_GOBJECT_LIBS) \
-	$(top_builddir)/liblightdm-gobject/liblightdm-gobject.la
+	$(top_builddir)/liblightdm-gobject/liblightdm-gobject-0.la
 
 MKDB_OPTIONS=--sgml-mode --output-format=xml --name-space=ldm
 

@@ -12,7 +12,7 @@ LIBLIGHTDM_CFLAGS = \
 	-I$(top_srcdir)/liblightdm-gobject
 LIBLIGHTDM_LDADD = \
 	-L$(top_builddir)/liblightdm-gobject \
-	-llightdm-gobject
+	-llightdm-gobject-0
 
 ldm_gtk_greeter_SOURCES = \
 	ldm-gtk-greeter.c
