@@ -134,7 +134,14 @@ update_users (UserManager *manager)
         if (g_file_test (image_path, G_FILE_TEST_EXISTS))
             user->image = g_filename_to_uri (image_path, NULL, NULL);
         else
-            user->image = g_strdup ("");
+        {
+            g_free (image_path);
+            image_path = g_build_filename (user->home_dir, ".face.icon", NULL);
+            if (g_file_test (image_path, G_FILE_TEST_EXISTS))
+                user->image = g_filename_to_uri (image_path, NULL, NULL);
+            else
+                user->image = g_strdup ("");
+        }
         g_free (image_path);
 
         manager->priv->users = g_list_insert_sorted (manager->priv->users, user, compare_user);
