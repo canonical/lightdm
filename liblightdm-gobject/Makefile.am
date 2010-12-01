@@ -1,24 +1,24 @@
-lib_LTLIBRARIES = liblightdm-gobject.la
+lib_LTLIBRARIES = liblightdm-gobject-0.la
 
-liblightdm_gobjectinclude_HEADERS = \
+liblightdm_gobject_0include_HEADERS = \
 	greeter.h \
 	language.h \
 	layout.h \
 	session.h \
 	user.h
-liblightdm_gobjectincludedir=$(includedir)/lightdm-gobject-0/lightdm
+liblightdm_gobject_0includedir=$(includedir)/lightdm-gobject-0/lightdm
 
-liblightdm_gobject_la_LIBADD = $(LIBLIGHTDM_GOBJECT_LIBS)
-liblightdm_gobject_la_CFLAGS = $(LIBLIGHTDM_GOBJECT_CFLAGS) \
+liblightdm_gobject_0_la_LIBADD = $(LIBLIGHTDM_GOBJECT_LIBS)
+liblightdm_gobject_0_la_CFLAGS = $(LIBLIGHTDM_GOBJECT_CFLAGS) \
 	-DXSESSIONS_DIR=\"$(XSESSIONS_DIR)\"
 
-liblightdm_gobject_la_SOURCES= \
+liblightdm_gobject_0_la_SOURCES= \
 	greeter.c \
 	language.c \
 	layout.c \
 	session.c \
 	user.c \
-	$(liblightdm_gobjectinclude_HEADERS)
+	$(liblightdm_gobject_0include_HEADERS)
 
 if HAVE_INTROSPECTION
 
@@ -26,19 +26,19 @@ if HAVE_INTROSPECTION
 INTROSPECTION_SCANNER_ARGS = --add-include-path=$(srcdir)
 INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
 
-INTROSPECTION_GIRS = LightDMGreeter-0.gir
+INTROSPECTION_GIRS = LightDM-0.gir
 
-LightDMGreeter-0.gir: liblightdm-gobject.la
-LightDMGreeter_0_gir_INCLUDES = GObject-2.0
-LightDMGreeter_0_gir_CFLAGS = $(INCLUDES) --identifier-prefix=Ldm
-LightDMGreeter_0_gir_LIBS = liblightdm-gobject.la
-LightDMGreeter_0_gir_FILES = $(liblightdm_gobject_la_SOURCES)
+LightDM-0.gir: liblightdm-gobject-0.la
+LightDM_0_gir_INCLUDES = GObject-2.0
+LightDM_0_gir_CFLAGS = $(INCLUDES) --identifier-prefix=Ldm
+LightDM_0_gir_LIBS = liblightdm-gobject-0.la
+LightDM_0_gir_FILES = $(liblightdm_gobject_0_la_SOURCES)
 
 girdir = $(datadir)/gir-1.0
-gir_DATA = LightDMGreeter-0.gir
+gir_DATA = LightDM-0.gir
 
 typelibdir = $(libdir)/girepository-1.0
-typelib_DATA = LightDMGreeter-0.typelib
+typelib_DATA = LightDM-0.typelib
 
 endif
 
