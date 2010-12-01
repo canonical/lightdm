@@ -174,7 +174,7 @@ AC_ARG_WITH(default-pam-service,
 AC_SUBST(DEFAULT_PAM_SERVICE)
 AC_DEFINE_UNQUOTED(DEFAULT_PAM_SERVICE, "$DEFAULT_PAM_SERVICE", Default PAM service to use)
 
-THEME_DIR=${prefix}/share/lightdm/themes
+THEME_DIR=${datarootdir}/lightdm/themes
 AC_ARG_WITH(theme-dir,
             AS_HELP_STRING(--with-theme-dir=<dir>,
                            Directory containing greeter themes),

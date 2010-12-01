@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.2.2
+
+    * Make default themedir work when --prefix is not passed to configure
+
 Overview of changes in lightdm 0.2.1
 
     * Use "lightdm" as default PAM service and make it configurable
