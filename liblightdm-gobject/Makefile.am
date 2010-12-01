@@ -42,7 +42,7 @@ gir_DATA = LightDM-0.gir
 typelibdir = $(libdir)/girepository-1.0
 typelib_DATA = LightDM-0.typelib
 
-vapidir = $(datadir)/vala/vapi
+vapidir = $(datadir)/vala-0.12/vapi
 vapi_DATA = LightDM-0.vapi
 
 LightDM-0.vapi: LightDM-0.gir Makefile.am
