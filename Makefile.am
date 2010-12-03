@@ -1,4 +1,8 @@
-SUBDIRS = liblightdm-gobject liblightdm-qt data greeters po src themes doc
+SUBDIRS = liblightdm-gobject
+if HAVE_QT
+SUBDIRS += liblightdm-qt
+endif
+SUBDIRS += data greeters po src themes doc
 
 DISTCHECK_CONFIGURE_FLAGS = --enable-introspection --enable-gtk-doc
 

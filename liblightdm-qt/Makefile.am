@@ -1,6 +1,4 @@
-if HAVE_QT
 lib_LTLIBRARIES = liblightdm-qt-0.la
-endif
 
 GENERATED_FILES = \
 	displayinterface.cpp \
