@@ -410,6 +410,9 @@ ck_connector_open_session_with_parameters_valist (CkConnector *connector,
                 type = lookup_parameter_type (name);
                 value = va_arg (var_args, const void *);
 
+                if (value == NULL)
+                        continue;
+
                 if (type == DBUS_TYPE_INVALID) {
                         dbus_set_error (error,
                                         CK_CONNECTOR_ERROR,

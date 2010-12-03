@@ -17,6 +17,10 @@
 #include <dbus/dbus-glib.h>
 #include <xcb/xcb.h>
 #include <pwd.h>
+#include <fcntl.h>
+#include <glib/gstdio.h>
+#include <sys/ioctl.h>
+#include <linux/vt.h>
 
 #include "display-manager.h"
 #include "display-manager-glue.h"
@@ -256,6 +260,7 @@ make_xserver (DisplayManager *manager, gchar *config_section)
     XServer *xserver;
     XAuthorization *authorization = NULL;
     gchar *xdmcp_manager, *filename, *path, *xserver_command;
+    gint console_fd;
 
     if (config_section && g_key_file_has_key (manager->priv->config, config_section, "display-number", NULL))
         display_number = g_key_file_get_integer (manager->priv->config, config_section, "display-number", NULL);
@@ -301,6 +306,20 @@ make_xserver (DisplayManager *manager, gchar *config_section)
     xserver_set_log_file (xserver, path);
     g_free (filename);
     g_free (path);
+
+    /* Open on a free terminal */
+    if (!manager->priv->test_mode)
+    {
+        console_fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
+        if (console_fd >= 0)
+        {
+            int number;
+            ioctl (console_fd, VT_OPENQRY, &number);
+            g_debug ("Starting on /dev/tty%d", number);
+            xserver_set_vt (xserver, number);
+            close (console_fd);
+        }
+    }
 
     /* Allow X server to be Xephyr */
     if (getenv ("DISPLAY"))

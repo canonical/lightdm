@@ -291,9 +291,11 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
 {
     CkConnector *session;
     DBusError error;
+    char *display_device = NULL;
     const gchar *address, *hostname = "";
     struct passwd *user_info;
     gboolean is_local = TRUE;
+    gboolean result;
 
     session = ck_connector_new ();
 
@@ -301,16 +303,22 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
     if (!user_info)
         return session;
 
+    if (xserver_get_vt (display->priv->xserver) >= 0)
+        display_device = g_strdup_printf ("/dev/tty%d", xserver_get_vt (display->priv->xserver));
+
     dbus_error_init (&error);
     address = xserver_get_address (display->priv->xserver);
-    if (!ck_connector_open_session_with_parameters (session, &error,
-                                                    "unix-user", &user_info->pw_uid,
-                                                    "session-type", &session_type,
-                                                    "x11-display", &address,
-                                                    //"x11-display-device", &display->priv->x11_display_device, // e.g. /dev/tty7
-                                                    "remote-host-name", &hostname,
-                                                    "is-local", &is_local,
-                                                    NULL))
+    result = ck_connector_open_session_with_parameters (session, &error,
+                                                        "unix-user", &user_info->pw_uid,
+                                                        "session-type", &session_type,
+                                                        "x11-display", &address,
+                                                        "x11-display-device", &display_device,
+                                                        "remote-host-name", &hostname,
+                                                        "is-local", &is_local,
+                                                        NULL);
+    g_free (display_device);
+
+    if (!result)
     {
         g_warning ("Failed to open CK session: %s: %s", error.name, error.message);
         ck_connector_unref (session);

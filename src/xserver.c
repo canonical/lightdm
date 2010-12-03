@@ -66,6 +66,9 @@ struct XServerPrivate
     gchar *authorization_path;
     GFile *authorization_file;
 
+    /* VT to run on */
+    gint vt;
+
     /* Display number */
     gint display_number;
 
@@ -244,6 +247,18 @@ xserver_get_authorization (XServer *server)
     return server->priv->authorization;
 }
 
+void
+xserver_set_vt (XServer *xserver, gint vt)
+{
+    xserver->priv->vt = vt;  
+}
+
+gint
+xserver_get_vt (XServer *xserver)
+{
+    return xserver->priv->vt;
+}
+
 static gboolean
 xserver_connect (XServer *server)
 {
@@ -407,6 +422,9 @@ xserver_start (XServer *server)
     else
         g_string_append (command, " -nolisten tcp");
 
+    if (server->priv->vt >= 0)
+        g_string_append_printf (command, " vt%d", server->priv->vt);
+
     env_string = g_strjoinv (" ", env);
     g_debug ("Launching X Server: %s %s", env_string, command->str);
     g_free (env_string);
@@ -456,6 +474,7 @@ xserver_init (XServer *server)
     server->priv->env = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
     server->priv->command = g_strdup (XSERVER_BINARY);
     server->priv->authentication_name = g_strdup ("");
+    server->priv->vt = -1;
 }
 
 static void

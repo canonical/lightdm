@@ -90,6 +90,10 @@ void xserver_set_authorization (XServer *server, XAuthorization *authorization, 
 
 XAuthorization *xserver_get_authorization (XServer *server);
 
+void xserver_set_vt (XServer *xserver, gint vt);
+
+gint xserver_get_vt (XServer *xserver);
+
 gboolean xserver_start (XServer *server);
 
 void xserver_disconnect_clients (XServer *server);

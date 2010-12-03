@@ -91,6 +91,10 @@ void display_set_xserver (Display *display, XServer *xserver);
 
 XServer *display_get_xserver (Display *display);
 
+void display_set_vt (Display *display, gint vt);
+
+gint display_get_vt (Display *display);
+
 gboolean display_start (Display *display);
 
 // FIXME: Make greeter its own object?
