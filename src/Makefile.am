@@ -58,6 +58,7 @@ lightdm_CFLAGS = \
 	-DTHEME_ENGINE_DIR=\"$(libexecdir)\" \
 	-DXAUTH_DIR=\"$(XAUTH_DIR)\" \
 	-DCACHE_DIR=\"$(CACHE_DIR)\" \
+	-DTHEME_DIR=\"$(THEME_DIR)\" \
 	-DLIGHTDM_BINARY=\"lightdm\"
 
 lightdm_LDADD = \

@@ -24,6 +24,8 @@ load_theme (const gchar *name, GError **error)
 
     path = g_build_filename (THEME_DIR, name, "index.theme", NULL);
 
+    g_debug ("Looking for %s theme in %s", name, path);
+
     theme = g_key_file_new ();
     result = g_key_file_load_from_file (theme, path, G_KEY_FILE_NONE, error);
     g_free (path);

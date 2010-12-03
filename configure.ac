@@ -183,7 +183,6 @@ AC_ARG_WITH(theme-dir,
     fi
 )
 AC_SUBST(THEME_DIR)
-AC_DEFINE_UNQUOTED(THEME_DIR, "$THEME_DIR", Directory containing greeter themes)
 
 GREETER_THEME=gnome
 AC_ARG_WITH(theme,
