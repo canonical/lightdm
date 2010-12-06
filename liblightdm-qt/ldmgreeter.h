@@ -11,6 +11,7 @@ class LdmGreeterPrivate;
 class LdmUser;
 class LdmSession;
 class LdmAuthRequest;
+class LdmLanguage;
 class QDBusPendingCallWatcher;
 
 //TODO
@@ -31,14 +32,14 @@ public:
 
     /** The hostname of the machine*/
     QString hostname();
-    QString defaultLanguage();
+    QString defaultLanguage(); //QLocale::Language?
     QString defaultLayout();
     QString defaultSession();
     QString defaultUsername();
 
     QList<LdmUser> users();
-
     QList<LdmSession> sessions();
+  //  QList<LdmLanguage> languages();
 
     //FIXME this is inconsistent - need to decide whether lib remembers username, or client needs to keep passing it.
     void startAuthentication(QString username);
@@ -47,13 +48,9 @@ public:
 
     //FIXME should probably mess about with Q_PROPERTY
     bool canSuspend();
-    void suspend();
     bool canHibernate();
-    void hibernate();
     bool canShutdown();
-    void shutdown();
     bool canRestart();
-    void restart();
 
     //FIXME replace these signals with pure virtual
     //virtual blah() = 0;
@@ -67,6 +64,10 @@ signals:
     void quit();
 
 public slots:
+    void suspend();
+    void hibernate();
+    void shutdown();
+    void restart();
 
 private slots:
     void onAuthFinished(QDBusPendingCallWatcher*);
