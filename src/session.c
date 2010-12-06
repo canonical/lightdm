@@ -17,6 +17,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <glib/gstdio.h>
+#include <grp.h>
 
 #include "session.h"
 
@@ -134,6 +135,9 @@ session_fork_cb (gpointer data)
 {
     Session *session = data;
     int fd;
+
+    if (initgroups (session->priv->username, session->priv->gid) < 0)
+      g_warning ("Failed to initialize supplementary groups for %s: %s", session->priv->username, strerror (errno));
 
     if (session->priv->gid && setgid (session->priv->gid) != 0)
     {

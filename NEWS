@@ -5,6 +5,7 @@ Overview of changes in lightdm 0.2.2
     * Put .vapi file in unversioned vala directory
     * Fix compiling without QT
     * Choose the VT to open the display on
+    * Set correct group memberships for sessions
 
 Overview of changes in lightdm 0.2.1
 
