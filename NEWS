@@ -8,6 +8,7 @@ Overview of changes in lightdm 0.2.2
     * Set correct group memberships for sessions
     * Set permissions on xauthority file so it can only be read by the owning
       user
+    * Add --enable-qt configure option
 
 Overview of changes in lightdm 0.2.1
 

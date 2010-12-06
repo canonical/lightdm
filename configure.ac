@@ -42,11 +42,22 @@ PKG_CHECK_MODULES(LIBLIGHTDM_GOBJECT, [
     x11
 ])
 
-PKG_CHECK_MODULES(LIBLIGHTDM_QT, [
-    QtCore
-    QtGui
-], have_qt=yes, have_qt=no)
-AM_CONDITIONAL(HAVE_QT, test $have_qt = yes)
+AC_ARG_ENABLE(qt,
+	AS_HELP_STRING([--enable-qt],[Enable QT libraries [[default=auto]]]),
+	[enable_qt=$enableval],
+	[enable_qt="auto"])
+if test x"$enable_qt" = "xauto"; then
+    PKG_CHECK_MODULES(LIBLIGHTDM_QT, [
+        QtCore
+        QtGui
+    ], have_qt=yes, have_qt=no)
+elif text x"$enable_qt" = "xyes"; then
+    PKG_CHECK_MODULES(LIBLIGHTDM_QT, [
+        QtCore
+        QtGui
+    ])
+fi
+AM_CONDITIONAL(HAVE_QT, test x"$enable_qt" != "xno")
 
 PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
     gtk+-2.0
@@ -255,7 +266,7 @@ echo "
         Greeters:
         liblightdm-gobject:       yes
         GObject introspection:    $found_introspection
-        liblightdm-qt:            $have_qt
+        liblightdm-qt:            $enable_qt
         GTK+:                     $have_gtk
         Webkit:                   $have_webkit
 "
