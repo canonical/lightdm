@@ -494,6 +494,7 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             {
                 path = g_build_filename (user_info->pw_dir, ".dmrc", NULL);
                 g_file_set_contents (path, data, length, NULL);
+                chown (path, user_info->pw_uid, user_info->pw_gid);
                 g_free (path);
             }
 
