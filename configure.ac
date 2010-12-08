@@ -33,33 +33,51 @@ PKG_CHECK_MODULES(LIGHTDM, [
     xdmcp
 ])
 
-PKG_CHECK_MODULES(LIBLIGHTDM_GOBJECT, [
-    glib-2.0
-    gio-unix-2.0
-    gobject-2.0
-    dbus-glib-1
-    libxklavier
-    x11
-])
+AC_ARG_ENABLE(liblightdm-gobject,
+	AS_HELP_STRING([--enable-liblightdm-gobject],[Enable LightDM client gobject libraries [[default=yes]]]),
+	[enable_liblightdm_gobject=$enableval],
+	[enable_liblightdm_gobject="yes"])
+compile_liblightdm_gobject=no
+if test x"$enable_liblightdm_gobject" = "xauto"; then
+    PKG_CHECK_MODULES(LIBLIGHTDM_GOBJECT, [
+        glib-2.0
+        gio-unix-2.0
+        gobject-2.0
+        dbus-glib-1
+        libxklavier
+        x11
+    ], compile_liblightdm_gobject=yes, compile_liblightdm_gobject=no)
+elif test x"$enable_liblightdm_gobject" = "xyes"; then
+    PKG_CHECK_MODULES(LIBLIGHTDM_GOBJECT, [
+        glib-2.0
+        gio-unix-2.0
+        gobject-2.0
+        dbus-glib-1
+        libxklavier
+        x11
+    ])
+    compile_liblightdm_gobject=yes
+fi
+AM_CONDITIONAL(COMPILE_LIBLIGHTDM_GOBJECT, test x"$compile_liblightdm_gobject" != "xno")
 
-AC_ARG_ENABLE(qt,
-	AS_HELP_STRING([--enable-qt],[Enable QT libraries [[default=auto]]]),
-	[enable_qt=$enableval],
-	[enable_qt="auto"])
-have_qt=no    
-if test x"$enable_qt" = "xauto"; then
+AC_ARG_ENABLE(liblightdm-qt,
+	AS_HELP_STRING([--enable-liblightdm-qt],[Enable LightDM client QT libraries [[default=auto]]]),
+	[enable_liblightdm_qt=$enableval],
+	[enable_liblightdm_qt="auto"])
+compile_liblightdm_qt=no
+if test x"$enable_liblightdm_qt" = "xauto"; then
     PKG_CHECK_MODULES(LIBLIGHTDM_QT, [
         QtCore
         QtGui
-    ], have_qt=yes, have_qt=no)
-elif text x"$enable_qt" = "xyes"; then
+    ], compile_liblightdm_qt=yes, compile_liblightdm_qt=no)
+elif test x"$enable_liblightdm_qt" = "xyes"; then
     PKG_CHECK_MODULES(LIBLIGHTDM_QT, [
         QtCore
         QtGui
     ])
-    have_qt=yes
+    compile_liblightdm_qt=yes
 fi
-AM_CONDITIONAL(HAVE_QT, test x"$have_qt" != "xno")
+AM_CONDITIONAL(COMPILE_LIBLIGHTDM_QT, test x"$compile_liblightdm_qt" != "xno")
 
 PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
     gtk+-2.0
@@ -266,9 +284,9 @@ echo "
         Theme:                    $GREETER_THEME
 
         Greeters:
-        liblightdm-gobject:       yes
+        liblightdm-gobject:       $compile_liblightdm_gobject
         GObject introspection:    $found_introspection
-        liblightdm-qt:            $have_qt
+        liblightdm-qt:            $compile_liblightdm_qt
         GTK+:                     $have_gtk
         Webkit:                   $have_webkit
 "

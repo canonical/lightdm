@@ -9,7 +9,7 @@ Overview of changes in lightdm 0.2.2
     * Set permissions on xauthority file so it can only be read by the owning
       user (Yves-Alexis Perez)
     * Set correct permissions on ~/.dmrc (Yves-Alexis Perez)
-    * Add --enable-qt configure option
+    * Add --enable-liblightdm-gobject, --enable-liblightdm-qt configure option
     * Set environment variables from PAM (Yves-Alexis Perez)
 
 Overview of changes in lightdm 0.2.1

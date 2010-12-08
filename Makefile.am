@@ -1,5 +1,8 @@
-SUBDIRS = liblightdm-gobject
-if HAVE_QT
+SUBDIRS =
+if COMPILE_LIBLIGHTDM_GOBJECT
+SUBDIRS += liblightdm-gobject
+endif
+if COMPILE_LIBLIGHTDM_QT
 SUBDIRS += liblightdm-qt
 endif
 SUBDIRS += data greeters po src themes doc
