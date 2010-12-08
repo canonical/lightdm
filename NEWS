@@ -10,6 +10,7 @@ Overview of changes in lightdm 0.2.2
       user (Yves-Alexis Perez)
     * Set correct permissions on ~/.dmrc (Yves-Alexis Perez)
     * Add --enable-qt configure option
+    * Set environment variables from PAM (Yves-Alexis Perez)
 
 Overview of changes in lightdm 0.2.1
 

@@ -458,6 +458,7 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             gchar *session_language, *layout;
             gchar *data;
             gsize length;
+            gchar **pam_env;
 
             if (display->priv->session_wrapper)
             {
@@ -482,6 +483,23 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             session_set_env (display->priv->user_session, "LANG", session_language);
             session_set_env (display->priv->user_session, "GDM_LANG", session_language); // FIXME: Not cross-desktop
             session_set_env (display->priv->user_session, "GDM_KEYBOARD_LAYOUT", layout); // FIXME: Not cross-desktop
+
+            pam_env = pam_session_get_envlist(display->priv->user_pam_session);
+            if (pam_env)
+            {
+                int i;
+                for (i = 0; pam_env[i]; i++)
+                {
+                    gchar **pam_env_vars = g_strsplit (pam_env[i], "=", 2);
+                    if (pam_env_vars && pam_env_vars[0] && pam_env_vars[1])
+                    {
+                        session_set_env (display->priv->user_session, pam_env_vars[0], pam_env_vars[1]);
+                        g_strfreev (pam_env_vars);
+                    }
+                    else
+                        g_warning ("Can't parse PAM environment variable %s", pam_env[i]);
+                }
+            }
 
             g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
 
