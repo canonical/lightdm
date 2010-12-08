@@ -47,25 +47,37 @@ LdmGreeter::LdmGreeter() :
     qDBusRegisterMetaType<LdmAuthRequest>();
     qDBusRegisterMetaType<QList<LdmAuthRequest> >();
 
-    d->powerManagement = new PowerManagementInterface("org.freedesktop.PowerManagement","/org/freedesktop/PowerManagement", QDBusConnection::sessionBus(), this);
-    d->display = new DisplayInterface("org.lightdm.LightDisplayManager", "/org/lightdm/LightDisplayManager/Display0", QDBusConnection::sessionBus(), this);
-    d->userManager = new UserManagerInterface("org.lightdm.LightDisplayManager", "/org/lightdm/LightDisplayManager/Users", QDBusConnection::sessionBus(), this);
+    //find out which connection to use for communicating to LightDM, use this for all LightDM DBus connections.
+    QDBusConnection busType = QDBusConnection::systemBus();
+    char* ldmBus = getenv("LDM_BUS");
+    if(ldmBus && strcmp(ldmBus, "SESSION") == 0)
+    {
+        busType = QDBusConnection::sessionBus();
+    }
+
+    d->powerManagement = new PowerManagementInterface("org.freedesktop.PowerManagement","/org/freedesktop/PowerManagement", busType, this);
+    d->display = new DisplayInterface("org.lightdm.LightDisplayManager", "/org/lightdm/LightDisplayManager/Display0", busType, this);
+    d->userManager = new UserManagerInterface("org.lightdm.LightDisplayManager", "/org/lightdm/LightDisplayManager/Users", busType, this);
     d->consoleKit = new ConsoleKitInterface("org.freedesktop.ConsoleKit","/org/freedesktop/ConsoleKit/Manager", QDBusConnection::systemBus(), this );
 
-    //FIXME use the pendingReply, it's a much nicer API.
-    QDBusReply<QString> connectResult = d->display->Connect(d->language, d->layout, d->session, d->username, d->delay);
-    connect(d->display, SIGNAL(quitGreeter()), SIGNAL(quit()));
-
-
+    QDBusPendingReply<QString, QString, QString, QString, QString, int> connectResult = d->display->Connect();
+    connectResult.waitForFinished();
     if(!connectResult.isValid())
     {
         qDebug() << connectResult.error().name();
     }
     else
     {
-        d->themeName = connectResult;
-        //TODO create a kconfig from this path name - or not. Keep this lib Qt only?
+      d->themeName = connectResult.argumentAt<0>();
+      d->language = connectResult.argumentAt<1>();
+      d->layout = connectResult.argumentAt<2>();
+      d->session = connectResult.argumentAt<3>();
+      d->username = connectResult.argumentAt<4>();
+      d->delay = connectResult.argumentAt<5>();
     }
+    connect(d->display, SIGNAL(quitGreeter()), SIGNAL(quit()));
+    
+    //TODO create a kconfig from this path name - or not. Keep this lib Qt only?
 }
 
 LdmGreeter::~LdmGreeter()
