@@ -137,13 +137,17 @@ session_fork_cb (gpointer data)
     int fd;
 
     if (initgroups (session->priv->username, session->priv->gid) < 0)
-      g_warning ("Failed to initialize supplementary groups for %s: %s", session->priv->username, strerror (errno));
+    {
+        g_warning ("Failed to initialize supplementary groups for %s: %s", session->priv->username, strerror (errno));
+        //_exit(1);
+    }
 
     if (session->priv->gid && setgid (session->priv->gid) != 0)
     {
         g_warning ("Failed to set group ID: %s", strerror (errno));
         _exit(1);
     }
+
     if (session->priv->uid && setuid (session->priv->uid) != 0)
     {
         g_warning ("Failed to set user ID: %s", strerror (errno));
