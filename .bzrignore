@@ -34,6 +34,7 @@ greeters/ldm-gtk-greeter
 greeters/ldm-webkit-greeter
 liblightdm-gobject/*.gir
 liblightdm-gobject/*.typelib
+liblightdm-gobject/*.vapi
 liblightdm-gobject/liblightdm-gobject-0.pc
 liblightdm-qt/liblightdm-qt-0.pc
 liblightdm-qt/displayinterface.cpp
