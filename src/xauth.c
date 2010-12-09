@@ -104,16 +104,13 @@ xauth_write (XAuthorization *auth, const gchar *username, const gchar *path, GEr
 
     file = g_file_new_for_path (path);
 
-    stream = g_file_replace (file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, error);
+    stream = g_file_replace (file, NULL, FALSE, G_FILE_CREATE_PRIVATE, NULL, error);
     if (!stream)
     {
         g_object_unref (file);
         return FALSE;
     }
     
-    if (chmod (path, S_IRUSR | S_IWUSR) != 0)
-        g_warning ("Failed to set permissions on authorization file");
-
     /* NOTE: Would like to do:
      * g_file_set_attribute_string (file, G_FILE_ATTRIBUTE_OWNER_USER, username, G_FILE_QUERY_INFO_NONE, NULL, error))
      * but not supported. */
