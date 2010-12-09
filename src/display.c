@@ -312,7 +312,7 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
                                                         "unix-user", &user_info->pw_uid,
                                                         "session-type", &session_type,
                                                         "x11-display", &address,
-                                                        "x11-display-device", &display_device,
+                                                        "x11-display-device", display_device ? &display_device : NULL,
                                                         "remote-host-name", &hostname,
                                                         "is-local", &is_local,
                                                         NULL);
