@@ -75,7 +75,8 @@ LdmGreeter::LdmGreeter() :
       d->username = connectResult.argumentAt<4>();
       d->delay = connectResult.argumentAt<5>();
     }
-    connect(d->display, SIGNAL(quitGreeter()), SIGNAL(quit()));
+
+    connect(d->display, SIGNAL(QuitGreeter()), SLOT(close()));
     
     //TODO create a kconfig from this path name - or not. Keep this lib Qt only?
 }
@@ -84,7 +85,6 @@ LdmGreeter::~LdmGreeter()
 {
     delete d;
 }
-
 
 
 QString LdmGreeter::hostname()
