@@ -2,7 +2,7 @@
 LdmGreeter
 
 <!-- ##### SECTION Short_Description ##### -->
-LightDM greeter object
+Manages connection to LightDM server and provides greeter functionality
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>

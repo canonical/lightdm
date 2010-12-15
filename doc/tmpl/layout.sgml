@@ -2,7 +2,7 @@
 LdmLayout
 
 <!-- ##### SECTION Short_Description ##### -->
-LightDM keyboard layout object
+Information about an available keyboard layout
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
