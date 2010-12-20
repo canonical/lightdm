@@ -9,5 +9,5 @@ Name: liblightdm-gobject
 Description: LightDM client library
 Version: @VERSION@
 Requires: glib-2.0 dbus-glib-1 libxklavier
-Libs: -L${libdir} -llightdm-gobject
+Libs: -L${libdir} -llightdm-gobject-0
 Cflags: -I${includedir}/lightdm-gobject-0
