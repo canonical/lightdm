@@ -25,9 +25,9 @@ Makefile.in.in
 ./omf.make
 ./xmldocs.make
 doc/html
-doc/ldmgreeter-gobject.*
+doc/lightdm-gobject-*.*
 doc/*.stamp
-doc/tmpl
+doc/tmpl/*-unused.sgml
 doc/*.txt
 doc/xml
 greeters/ldm-gtk-greeter

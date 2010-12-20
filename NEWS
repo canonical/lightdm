@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.2.3
+
+    * Set correct linking library name in liblightdm-gobject-0.pc
+
 Overview of changes in lightdm 0.2.2
 
     * Make default themedir work when --prefix is not passed to configure
