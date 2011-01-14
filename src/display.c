@@ -384,6 +384,28 @@ user_session_killed_cb (Session *session, gint status, Display *display)
     end_user_session (display, FALSE);
 }
 
+static void set_env_from_pam_session (Session *session, PAMSession *pam_session)
+{
+    gchar **pam_env;
+
+    pam_env = pam_session_get_envlist (pam_session);
+    if (pam_env)
+    {
+        int i;
+        for (i = 0; pam_env[i]; i++)
+        {
+            g_debug ("pam_env[%d]=%s", i, pam_env[i]);
+            gchar **pam_env_vars = g_strsplit (pam_env[i], "=", 2);
+            if (pam_env_vars && pam_env_vars[0] && pam_env_vars[1])
+                session_set_env (session, pam_env_vars[0], pam_env_vars[1]);
+            else
+                g_warning ("Can't parse PAM environment variable %s", pam_env[i]);
+            g_strfreev (pam_env_vars);
+        }
+        g_strfreev (pam_env);
+    }
+}
+
 static void
 start_user_session (Display *display, const gchar *session, const gchar *language)
 {
@@ -458,12 +480,11 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             gchar *session_language, *layout;
             gchar *data;
             gsize length;
-            gchar **pam_env;
 
             if (display->priv->session_wrapper)
             {
                 gchar *old_command = session_command;
-                session_command = g_strdup_printf ("%s %s", display->priv->session_wrapper, session_command);
+                session_command = g_strdup_printf ("%s '%s'", display->priv->session_wrapper, session_command);
                 g_free (old_command);
             }
             display->priv->user_session = session_new (pam_session_get_username (display->priv->user_pam_session), session_command);
@@ -479,26 +500,11 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
                 session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
             session_set_env (display->priv->user_session, "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
             session_set_env (display->priv->user_session, "GDMSESSION", session); // FIXME: Not cross-desktop
-            session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");
+            session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");                
             session_set_env (display->priv->user_session, "LANG", session_language);
             session_set_env (display->priv->user_session, "GDM_LANG", session_language); // FIXME: Not cross-desktop
             session_set_env (display->priv->user_session, "GDM_KEYBOARD_LAYOUT", layout); // FIXME: Not cross-desktop
-
-            pam_env = pam_session_get_envlist (display->priv->user_pam_session);
-            if (pam_env)
-            {
-                int i;
-                for (i = 0; pam_env[i]; i++)
-                {
-                    gchar **pam_env_vars = g_strsplit (pam_env[i], "=", 2);
-                    if (pam_env_vars && pam_env_vars[0] && pam_env_vars[1])
-                        session_set_env (display->priv->user_session, pam_env_vars[0], pam_env_vars[1]);
-                    else
-                        g_warning ("Can't parse PAM environment variable %s", pam_env[i]);
-                    g_strfreev (pam_env_vars);
-                }
-                g_strfreev (pam_env);
-            }
+            set_env_from_pam_session (display->priv->user_session, display->priv->user_pam_session);
 
             g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
 
@@ -648,6 +654,7 @@ start_greeter (Display *display)
         session_set_env (display->priv->greeter_session, "DISPLAY", xserver_get_address (display->priv->xserver));
         if (display->priv->greeter_ck_session)
             session_set_env (display->priv->greeter_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->greeter_ck_session));
+        set_env_from_pam_session (display->priv->greeter_session, display->priv->greeter_pam_session);
 
         g_signal_emit (display, signals[START_GREETER], 0, display->priv->greeter_session);
 

@@ -216,6 +216,12 @@ pam_session_respond (PAMSession *session, struct pam_response *response)
     g_async_queue_push (session->priv->authentication_response_queue, response);
 }
 
+const gchar *
+pam_session_getenv (PAMSession *session, const gchar *name)
+{
+    return pam_getenv (session->priv->pam_handle, name);
+}
+
 gchar **
 pam_session_get_envlist (PAMSession *session)
 {
