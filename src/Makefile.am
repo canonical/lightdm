@@ -7,11 +7,11 @@ ldm-marshal.h: ldm-marshal.list
 	@GLIB_GENMARSHAL@ --prefix=ldm_marshal $(srcdir)/ldm-marshal.list --header > ldm-marshal.h
 
 display-glue.h: $(srcdir)/display.xml
-	$(DBUSBINDINGTOOL) --prefix=display --mode=glib-server --output=$@ $^
+	$(DBUSBINDINGTOOL) --prefix=display --mode=glib-server --output=$@ $<
 display-manager-glue.h: $(srcdir)/display-manager.xml
-	$(DBUSBINDINGTOOL) --prefix=display_manager --mode=glib-server --output=$@ $^
+	$(DBUSBINDINGTOOL) --prefix=display_manager --mode=glib-server --output=$@ $<
 user-manager-glue.h: $(srcdir)/user-manager.xml
-	$(DBUSBINDINGTOOL) --prefix=user_manager --mode=glib-server --output=$@ $^
+	$(DBUSBINDINGTOOL) --prefix=user_manager --mode=glib-server --output=$@ $<
 
 lightdm_SOURCES = \
 	ck-connector.c \
