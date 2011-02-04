@@ -19,6 +19,11 @@ liblightdm_qt_0include_HEADERS = \
 	ldmlanguage.h \
 	ldmsession.h \
 	ldmuser.h \
+	include/LdmAuthRequest \
+	include/LdmGreeter \
+	include/LdmLanguage \
+	include/LdmSession \
+	include/LdmUser
 liblightdm_qt_0includedir=$(includedir)/lightdm-qt-0/lightdm
 
 liblightdm_qt_0_la_LIBADD = $(LIBLIGHTDM_QT_LIBS)
