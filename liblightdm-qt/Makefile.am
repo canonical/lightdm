@@ -14,15 +14,11 @@ usermanagerinterface.cpp usermanagerinterface.h: $(top_srcdir)/src/user-manager.
 ldmgreeter.cpp: displayinterface.h usermanagerinterface.h    
 
 liblightdm_qt_0include_HEADERS = \
-	consolekitinterface.h \
-	displayinterface.h \
 	ldmauthrequest.h \
 	ldmgreeter.h \
 	ldmlanguage.h \
 	ldmsession.h \
 	ldmuser.h \
-	powermanagementinterface.h \
-	usermanagerinterface.h
 liblightdm_qt_0includedir=$(includedir)/lightdm-qt-0/lightdm
 
 liblightdm_qt_0_la_LIBADD = $(LIBLIGHTDM_QT_LIBS)
