@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.2.4
+
+    * Generate metadata for QT libraries
+
 Overview of changes in lightdm 0.2.3
 
     * Set correct linking library names in pkg-config files
