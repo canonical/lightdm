@@ -71,10 +71,6 @@ void display_set_greeter_theme (Display *display, const gchar *greeter_theme);
 
 const gchar *display_get_greeter_theme (Display *display);
 
-void display_set_default_language (Display *display, const gchar *language);
-
-const gchar *display_get_default_language (Display *display);
-
 void display_set_default_layout (Display *display, const gchar *layout);
 
 const gchar *display_get_default_layout (Display *display);

@@ -514,10 +514,6 @@ display_manager_start (DisplayManager *manager)
 
         display = add_display (manager);
 
-        value = g_key_file_get_string (manager->priv->config, display_name, "language", NULL);
-        if (value)
-            display_set_default_language (display, value);
-        g_free (value);
         value = g_key_file_get_string (manager->priv->config, display_name, "layout", NULL);
         if (value)
             display_set_default_layout (display, value);

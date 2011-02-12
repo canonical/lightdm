@@ -60,9 +60,6 @@ struct DisplayPrivate
     /* Number of times have logged in */
     gint login_count;
 
-    /* Language to use in greeter/sessions */
-    gchar *default_language;
-
     /* Layout to use in greeter/sessions */
     gchar *default_layout;
 
@@ -200,19 +197,6 @@ const gchar *
 display_get_greeter_theme (Display *display)
 {
     return display->priv->greeter_theme;
-}
-
-void
-display_set_default_language (Display *display, const gchar *language)
-{
-    g_free (display->priv->default_language);
-    display->priv->default_language = g_strdup (language);
-}
-
-const gchar *
-display_get_default_language (Display *display)
-{
-    return display->priv->default_language;
 }
 
 void
@@ -448,8 +432,6 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
     g_key_file_set_string (dmrc_file, "Desktop", "Session", session);
     if (language)
         g_key_file_set_string (dmrc_file, "Desktop", "Language", language);
-    else if (!g_key_file_has_key (dmrc_file, "Desktop", "Language", NULL))
-        g_key_file_set_string (dmrc_file, "Desktop", "Language", display->priv->default_language);
     if (!g_key_file_has_key (dmrc_file, "Desktop", "Layout", NULL))
         g_key_file_set_string (dmrc_file, "Desktop", "Layout", display->priv->default_layout);
 
@@ -477,7 +459,7 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
         if (session_command)
         {
-            gchar *session_language, *layout;
+            gchar *session_language, *session_language_list, *layout;
             gchar *data;
             gsize length;
 
@@ -489,7 +471,13 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             }
             display->priv->user_session = session_new (pam_session_get_username (display->priv->user_pam_session), session_command);
 
+            /* Override default language with user specified one */
             session_language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
+            if (!session_language && getenv ("LANG"))
+                session_language = g_strdup (getenv ("LANG"));
+            session_language_list = g_key_file_get_string (dmrc_file, "Desktop", "Langlist", NULL);
+            if (!session_language_list && getenv ("LANGUAGE"))
+                session_language_list = g_strdup (getenv ("LANGUAGE"));
 
             layout = g_key_file_get_string (dmrc_file, "Desktop", "Layout", NULL);
 
@@ -500,9 +488,14 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
                 session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
             session_set_env (display->priv->user_session, "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
             session_set_env (display->priv->user_session, "GDMSESSION", session); // FIXME: Not cross-desktop
-            session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");                
-            session_set_env (display->priv->user_session, "LANG", session_language);
-            session_set_env (display->priv->user_session, "GDM_LANG", session_language); // FIXME: Not cross-desktop
+            session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");
+            if (session_language)
+            {
+                session_set_env (display->priv->user_session, "LANG", session_language);
+                session_set_env (display->priv->user_session, "GDM_LANG", session_language); // FIXME: Not cross-desktop
+            }
+            if (session_language_list)
+                session_set_env (display->priv->user_session, "LANGUAGE", session_language_list);
             session_set_env (display->priv->user_session, "GDM_KEYBOARD_LAYOUT", layout); // FIXME: Not cross-desktop
             set_env_from_pam_session (display->priv->user_session, display->priv->user_pam_session);
 
@@ -733,7 +726,7 @@ display_connect (Display *display,
     }
 
     *theme = g_build_filename (THEME_DIR, display->priv->greeter_theme, "index.theme", NULL);
-    *language = g_strdup (display->priv->default_language);
+    *language =  g_strdup (getenv ("LANG") ? getenv ("LANG") : "C");
     *layout = g_strdup (display->priv->default_layout);
     *session = g_strdup (display->priv->default_session);
     *username = g_strdup (display->priv->default_user);
@@ -968,7 +961,6 @@ display_init (Display *display)
     if (strcmp (GREETER_USER, "") != 0)
         display->priv->greeter_user = g_strdup (GREETER_USER);
     display->priv->greeter_theme = g_strdup (GREETER_THEME);
-    display->priv->default_language = getenv ("LANG") ? g_strdup (getenv ("LANG")) : g_strdup ("C");
     display->priv->default_layout = g_strdup ("us"); // FIXME: Is there a better default to get?
     display->priv->default_session = g_strdup (DEFAULT_SESSION);
 }
@@ -995,7 +987,6 @@ display_finalize (GObject *object)
     g_free (self->priv->greeter_user);
     g_free (self->priv->greeter_theme);
     g_free (self->priv->default_user);
-    g_free (self->priv->default_language);
     g_free (self->priv->default_layout);
     g_free (self->priv->default_session);
 }
