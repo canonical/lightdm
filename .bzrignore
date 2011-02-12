@@ -30,7 +30,7 @@ doc/*.stamp
 doc/tmpl/*-unused.sgml
 doc/*.txt
 doc/xml
-greeters/ldm-gtk-greeter
+greeters/lightdm-gtk-greeter
 liblightdm-gobject/*.gir
 liblightdm-gobject/*.typelib
 liblightdm-gobject/*.vapi
@@ -44,12 +44,11 @@ po/POTFILES
 po/stamp-it
 src/display-glue.h
 src/display-manager-glue.h
-src/ldmwkgreeter
-src/lightdm
 src/session-manager-glue.h
 src/user-manager-glue.h
 src/ldm-marshal.c
 src/ldm-marshal.h
+src/lightdm
 data/org.lightdm.LightDisplayManager.conf
 config.h
 config.h.in

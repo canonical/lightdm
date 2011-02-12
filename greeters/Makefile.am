@@ -1,7 +1,7 @@
 libexec_PROGRAMS =
 
 if HAVE_GTK_GREETER
-libexec_PROGRAMS += ldm-gtk-greeter
+libexec_PROGRAMS += lightdm-gtk-greeter
 endif
 
 LIBLIGHTDM_LIB = $(top_builddir)/liblightdm-gobject/liblightdm-gobject.la
@@ -11,19 +11,19 @@ LIBLIGHTDM_LDADD = \
 	-L$(top_builddir)/liblightdm-gobject \
 	-llightdm-gobject-0
 
-ldm_gtk_greeter_SOURCES = \
-	ldm-gtk-greeter.c
+lightdm_gtk_greeter_SOURCES = \
+	lightdm-gtk-greeter.c
 
-ldm_gtk_greeter_CFLAGS = \
+lightdm_gtk_greeter_CFLAGS = \
 	$(LIBLIGHTDM_CFLAGS) \
 	$(LIGHTDM_GTK_GREETER_CFLAGS) \
 	$(WARN_CFLAGS) \
 	-DVERSION=\"$(VERSION)\" \
 	-DGETTEXT_PACKAGE=\"$(GETTEXT_PACKAGE)\" \
 	-DLOCALE_DIR=\"$(localedir)\" \
-	-DLIGHTDM_GTK_GREETER_BINARY=\"ldm-gtk-greeter\"
+	-DLIGHTDM_GTK_GREETER_BINARY=\"lightdm-gtk-greeter\"
 
-ldm_gtk_greeter_LDADD = \
+lightdm_gtk_greeter_LDADD = \
 	$(LIBLIGHTDM_LDADD) \
 	$(LIGHTDM_GTK_GREETER_LIBS)
 
