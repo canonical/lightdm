@@ -3,8 +3,8 @@ Overview of changes in lightdm 0.2.4
     * Generate metadata for QT libraries
     * Move Webkit greeter into separate module
     * Rename ldm-gtk-greeter to lightdm-gtk-greeter
-    * Correctly pass LANG, LANGUAGE and LC_MESSAGES through to the session
-    * Correctly pass PATH through to the session
+    * Correctly environment variables through to the session
+    * Allow starting virtual terminal to be configured
 
 Overview of changes in lightdm 0.2.3
 

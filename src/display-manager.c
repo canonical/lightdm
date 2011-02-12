@@ -253,14 +253,37 @@ string_to_xdm_auth_key (const gchar *key, guchar *data)
     }
 }
 
+static gint
+get_vt (DisplayManager *manager, gchar *config_section)
+{
+    gchar *tty;
+    gint console_fd;
+    int number;
+
+    if (manager->priv->test_mode)
+        return -1;
+
+    tty = g_key_file_get_string (manager->priv->config, config_section, "tty", NULL);
+    if (tty)
+        return atoi (tty);
+
+    console_fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
+    if (console_fd < 0)
+        return -1;
+
+    ioctl (console_fd, VT_OPENQRY, &number);
+    close (console_fd);
+
+    return number;  
+}
+
 static XServer *
 make_xserver (DisplayManager *manager, gchar *config_section)
 {
-    gint display_number;
+    gint display_number, vt;
     XServer *xserver;
     XAuthorization *authorization = NULL;
     gchar *xdmcp_manager, *filename, *path, *xserver_command;
-    gint console_fd;
 
     if (config_section && g_key_file_has_key (manager->priv->config, config_section, "display-number", NULL))
         display_number = g_key_file_get_integer (manager->priv->config, config_section, "display-number", NULL);
@@ -307,18 +330,11 @@ make_xserver (DisplayManager *manager, gchar *config_section)
     g_free (filename);
     g_free (path);
 
-    /* Open on a free terminal */
-    if (!manager->priv->test_mode)
+    vt = get_vt (manager, config_section);
+    if (vt >= 0)
     {
-        console_fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
-        if (console_fd >= 0)
-        {
-            int number;
-            ioctl (console_fd, VT_OPENQRY, &number);
-            g_debug ("Starting on /dev/tty%d", number);
-            xserver_set_vt (xserver, number);
-            close (console_fd);
-        }
+        g_debug ("Starting on /dev/tty%d", vt);
+        xserver_set_vt (xserver, vt);
     }
 
     /* Allow X server to be Xephyr */
