@@ -1,6 +1,8 @@
 Overview of changes in lightdm 0.2.4
 
     * Generate metadata for QT libraries
+    * Move Webkit greeter into separate module
+    * Rename ldm-gtk-greeter to lightdm-gtk-greeter
 
 Overview of changes in lightdm 0.2.3
 
