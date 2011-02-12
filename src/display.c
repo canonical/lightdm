@@ -462,7 +462,7 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
         if (session_command)
         {
-            gchar *session_language, *session_language_list, *layout;
+            gchar *session_language, *session_language_list, *session_lc_messages, *layout;
             gchar *data;
             gsize length;
 
@@ -481,6 +481,9 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             session_language_list = g_key_file_get_string (dmrc_file, "Desktop", "Langlist", NULL);
             if (!session_language_list && getenv ("LANGUAGE"))
                 session_language_list = g_strdup (getenv ("LANGUAGE"));
+            session_lc_messages = g_key_file_get_string (dmrc_file, "Desktop", "LCMess", NULL);
+            if (!session_lc_messages && getenv ("LC_MESSAGES"))
+                session_lc_messages = g_strdup (getenv ("LC_MESSAGES"));
 
             layout = g_key_file_get_string (dmrc_file, "Desktop", "Layout", NULL);
 
@@ -502,6 +505,8 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             }
             if (session_language_list)
                 session_set_env (display->priv->user_session, "LANGUAGE", session_language_list);
+            if (session_lc_messages)
+                session_set_env (display->priv->user_session, "LC_MESSAGES", session_lc_messages);
             session_set_env (display->priv->user_session, "GDM_KEYBOARD_LAYOUT", layout); // FIXME: Not cross-desktop
             set_env_from_pam_session (display->priv->user_session, display->priv->user_pam_session);
 
@@ -530,7 +535,9 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             g_free (path);
 
             g_free (data);
-            g_free (session_language); 
+            g_free (session_language);
+            g_free (session_language_list);
+            g_free (session_lc_messages);
             g_free (layout);         
         }
 
@@ -659,6 +666,8 @@ start_greeter (Display *display)
             session_set_env (display->priv->greeter_session, "LANG", getenv ("LANG"));
         if (getenv ("LANGUAGE"))
             session_set_env (display->priv->greeter_session, "LANGUAGE", getenv ("LANGUAGE"));
+        if (getenv ("LC_MESSAGES"))
+            session_set_env (display->priv->greeter_session, "LC_MESSAGES", getenv ("LC_MESSAGES"));
         if (display->priv->greeter_ck_session)
             session_set_env (display->priv->greeter_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->greeter_ck_session));
         set_env_from_pam_session (display->priv->greeter_session, display->priv->greeter_pam_session);
