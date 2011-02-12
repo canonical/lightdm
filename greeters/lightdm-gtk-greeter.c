@@ -637,7 +637,7 @@ main(int argc, char **argv)
         language_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menu_item));
         gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
-        if (g_str_equal (ldm_language_get_code (language), ldm_greeter_get_default_language (greeter)))
+        if (ldm_language_matches (language, ldm_greeter_get_default_language (greeter)))
             gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), TRUE);
 
         g_object_set_data (G_OBJECT (menu_item), "language", g_strdup (ldm_language_get_code (language)));

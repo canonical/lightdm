@@ -17,7 +17,6 @@
 class LdmGreeterPrivate
 {
 public:
-    QString language;
     QString layout;
     QString session;
     QString username;
@@ -60,7 +59,7 @@ LdmGreeter::LdmGreeter() :
     d->userManager = new UserManagerInterface("org.lightdm.LightDisplayManager", "/org/lightdm/LightDisplayManager/Users", busType, this);
     d->consoleKit = new ConsoleKitInterface("org.freedesktop.ConsoleKit","/org/freedesktop/ConsoleKit/Manager", QDBusConnection::systemBus(), this );
 
-    QDBusPendingReply<QString, QString, QString, QString, QString, int> connectResult = d->display->Connect();
+    QDBusPendingReply<QString, QString, QString, QString, int> connectResult = d->display->Connect();
     connectResult.waitForFinished();
     if(!connectResult.isValid())
     {
@@ -69,11 +68,10 @@ LdmGreeter::LdmGreeter() :
     else
     {
       d->themeName = connectResult.argumentAt<0>();
-      d->language = connectResult.argumentAt<1>();
-      d->layout = connectResult.argumentAt<2>();
-      d->session = connectResult.argumentAt<3>();
-      d->username = connectResult.argumentAt<4>();
-      d->delay = connectResult.argumentAt<5>();
+      d->layout = connectResult.argumentAt<1>();
+      d->session = connectResult.argumentAt<2>();
+      d->username = connectResult.argumentAt<3>();
+      d->delay = connectResult.argumentAt<4>();
     }
 
     connect(d->display, SIGNAL(QuitGreeter()), SLOT(close()));
@@ -94,7 +92,7 @@ QString LdmGreeter::hostname()
 
 QString LdmGreeter::defaultLanguage()
 {
-    return d->language;
+    return getenv("LANG");
 }
 
 QString LdmGreeter::defaultLayout()

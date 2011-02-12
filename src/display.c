@@ -431,7 +431,10 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
     /* Update the .dmrc with changed settings */
     g_key_file_set_string (dmrc_file, "Desktop", "Session", session);
     if (language)
+    {
         g_key_file_set_string (dmrc_file, "Desktop", "Language", language);
+        g_key_file_set_string (dmrc_file, "Desktop", "Langlist", language);
+    }
     if (!g_key_file_has_key (dmrc_file, "Desktop", "Layout", NULL))
         g_key_file_set_string (dmrc_file, "Desktop", "Layout", display->priv->default_layout);
 
@@ -645,6 +648,10 @@ start_greeter (Display *display)
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "exited", G_CALLBACK (greeter_session_exited_cb), display);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "killed", G_CALLBACK (greeter_session_killed_cb), display);
         session_set_env (display->priv->greeter_session, "DISPLAY", xserver_get_address (display->priv->xserver));
+        if (getenv ("LANG"))
+            session_set_env (display->priv->greeter_session, "LANG", getenv ("LANG"));
+        if (getenv ("LANGUAGE"))
+            session_set_env (display->priv->greeter_session, "LANGUAGE", getenv ("LANGUAGE"));
         if (display->priv->greeter_ck_session)
             session_set_env (display->priv->greeter_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->greeter_ck_session));
         set_env_from_pam_session (display->priv->greeter_session, display->priv->greeter_pam_session);
@@ -716,7 +723,7 @@ session_started_cb (PAMSession *session, Display *display)
 gboolean
 display_connect (Display *display,
                  const gchar **theme,
-                 const gchar **language, const gchar **layout, const gchar **session,
+                 const gchar **layout, const gchar **session,
                  const gchar **username, gint *delay, GError *error)
 {
     if (!display->priv->greeter_connected)
@@ -726,7 +733,6 @@ display_connect (Display *display,
     }
 
     *theme = g_build_filename (THEME_DIR, display->priv->greeter_theme, "index.theme", NULL);
-    *language =  g_strdup (getenv ("LANG") ? getenv ("LANG") : "C");
     *layout = g_strdup (display->priv->default_layout);
     *session = g_strdup (display->priv->default_session);
     *username = g_strdup (display->priv->default_user);

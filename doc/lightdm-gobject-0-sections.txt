@@ -7,6 +7,7 @@ LdmLanguage
 ldm_language_get_code
 ldm_language_get_name
 ldm_language_get_territory
+ldm_language_matches
 <SUBSECTION Standard>
 LDM_IS_LANGUAGE
 LDM_IS_LANGUAGE_CLASS

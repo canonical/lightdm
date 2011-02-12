@@ -5,7 +5,6 @@
     <!-- Method for greeter to connect to display manager -->
     <method name="Connect">
       <arg name="theme" direction="out" type="s"/>
-      <arg name="language" direction="out" type="s"/>
       <arg name="layout" direction="out" type="s"/>
       <arg name="session" direction="out" type="s"/>
       <arg name="username" direction="out" type="s"/>

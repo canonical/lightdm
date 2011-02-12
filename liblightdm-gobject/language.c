@@ -102,6 +102,36 @@ ldm_language_get_territory (LdmLanguage *language)
     return language->priv->territory;
 }
 
+static gboolean
+is_utf8 (const gchar *code)
+{
+   return g_str_has_suffix (code, ".utf8") || g_str_has_suffix (code, ".UTF-8");
+}
+
+/**
+ * ldm_language_matches:
+ * @language: A #LdmLanguage
+ * @code: A language code
+ * 
+ * Check if a language code matches this language.
+ * 
+ * Return value: TRUE if the code matches this language.
+ **/
+gboolean
+ldm_language_matches (LdmLanguage *language, const gchar *code)
+{
+    /* Handle the fact the UTF-8 is specified both as '.utf8' and '.UTF-8' */
+    if (is_utf8 (language->priv->code) && is_utf8 (code))
+    {
+        /* Match the characters before the '.' */
+        int i;
+        for (i = 0; language->priv->code[i] && code[i] && language->priv->code[i] == code[i] && code[i] != '.' ; i++);
+        return language->priv->code[i] == '.' && code[i] == '.';
+    }
+
+    return g_str_equal (language->priv->code, code);
+}
+
 static void
 ldm_language_init (LdmLanguage *language)
 {

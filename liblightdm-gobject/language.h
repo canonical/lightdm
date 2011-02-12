@@ -48,6 +48,8 @@ const gchar *ldm_language_get_name (LdmLanguage *language);
 
 const gchar *ldm_language_get_territory (LdmLanguage *language);
 
+gboolean ldm_language_matches (LdmLanguage *language, const gchar *code);
+
 G_END_DECLS
 
 #endif /* _LDM_LANGUAGE_H_ */

@@ -70,7 +70,6 @@ struct _LdmGreeterPrivate
     gboolean have_users;
     GList *users;
 
-    gchar *default_language;  
     gboolean have_languages;
     GList *languages;
 
@@ -187,7 +186,6 @@ ldm_greeter_connect (LdmGreeter *greeter)
     result = dbus_g_proxy_call (greeter->priv->display_proxy, "Connect", &error,
                                 G_TYPE_INVALID,
                                 G_TYPE_STRING, &greeter->priv->theme,
-                                G_TYPE_STRING, &greeter->priv->default_language,
                                 G_TYPE_STRING, &greeter->priv->default_layout,
                                 G_TYPE_STRING, &greeter->priv->default_session,
                                 G_TYPE_STRING, &greeter->priv->timed_user,
@@ -195,9 +193,9 @@ ldm_greeter_connect (LdmGreeter *greeter)
                                 G_TYPE_INVALID);
 
     if (result)
-        g_debug ("Connected theme=%s default-language=%s default-layout=%s default-session=%s timed-user=%s login-delay=%d",
+        g_debug ("Connected theme=%s default-layout=%s default-session=%s timed-user=%s login-delay=%d",
                  greeter->priv->theme,
-                 greeter->priv->default_language, greeter->priv->default_layout, greeter->priv->default_session,
+                 greeter->priv->default_layout, greeter->priv->default_session,
                  greeter->priv->timed_user, greeter->priv->login_delay);
     else
         g_warning ("Failed to connect to display manager: %s", error->message);
@@ -480,7 +478,7 @@ const gchar *
 ldm_greeter_get_default_language (LdmGreeter *greeter)
 {
     g_return_val_if_fail (greeter != NULL, NULL);
-    return greeter->priv->default_language;
+    return getenv ("LANG");
 }
 
 /**
@@ -1192,6 +1190,8 @@ static void
 ldm_greeter_init (LdmGreeter *greeter)
 {
     greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, LDM_TYPE_GREETER, LdmGreeterPrivate);
+
+    g_debug ("default-language=%s", ldm_greeter_get_default_language (greeter));
 }
 
 static void
