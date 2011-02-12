@@ -85,13 +85,6 @@ PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
 ], have_gtk=yes, have_gtk=no)
 AM_CONDITIONAL(HAVE_GTK_GREETER, test $have_gtk = yes)
 
-PKG_CHECK_MODULES(LIGHTDM_WEBKIT_GREETER, [
-    gtk+-2.0
-    webkit-1.0
-    dbus-glib-1
-], have_webkit=yes, have_webkit=no)
-AM_CONDITIONAL(HAVE_WEBKIT_GREETER, test $have_webkit = yes)
-
 AC_PATH_PROG(GLIB_GENMARSHAL, glib-genmarshal)
 AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)
 AC_SUBST(DBUSBINDINGTOOL)
@@ -259,7 +252,6 @@ po/Makefile.in
 src/Makefile
 themes/Makefile
 themes/gnome/Makefile
-themes/webkit/Makefile
 ])
 
 dnl ###########################################################################
@@ -288,5 +280,4 @@ echo "
         GObject introspection:    $found_introspection
         liblightdm-qt:            $compile_liblightdm_qt
         GTK+:                     $have_gtk
-        Webkit:                   $have_webkit
 "

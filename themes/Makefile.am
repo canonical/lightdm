@@ -1,4 +1,4 @@
-SUBDIRS = gnome webkit
+SUBDIRS = gnome
 
 DISTCLEANFILES = \
 	Makefile.in
