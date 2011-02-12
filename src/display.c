@@ -434,6 +434,7 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
     if (language && (!old_language || !g_str_equal(language, old_language)))
     {
         g_key_file_set_string (dmrc_file, "Desktop", "Language", language);
+        /* We don't have advanced language checking, so reset these variables */
         g_key_file_remove_key (dmrc_file, "Desktop", "Langlist", NULL);
         g_key_file_remove_key (dmrc_file, "Desktop", "LCMess", NULL);
     }
@@ -465,7 +466,7 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
         if (session_command)
         {
-            gchar *session_language, *session_language_list, *session_lc_messages, *layout;
+            gchar *session_language, *session_language_list = NULL, *session_lc_messages = NULL, *layout;
             gchar *data;
             gsize length;
 
@@ -479,14 +480,20 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
             /* Override default language with user specified one */
             session_language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
-            if (!session_language && getenv ("LANG"))
-                session_language = g_strdup (getenv ("LANG"));
-            session_language_list = g_key_file_get_string (dmrc_file, "Desktop", "Langlist", NULL);
-            if (!session_language_list && getenv ("LANGUAGE"))
-                session_language_list = g_strdup (getenv ("LANGUAGE"));
-            session_lc_messages = g_key_file_get_string (dmrc_file, "Desktop", "LCMess", NULL);
-            if (!session_lc_messages && getenv ("LC_MESSAGES"))
-                session_lc_messages = g_strdup (getenv ("LC_MESSAGES"));
+            if (session_language)
+            {
+                session_language_list = g_key_file_get_string (dmrc_file, "Desktop", "Langlist", NULL);
+                session_lc_messages = g_key_file_get_string (dmrc_file, "Desktop", "LCMess", NULL);
+            }
+            else
+            {
+                if (getenv ("LANG"))
+                    session_language = g_strdup (getenv ("LANG"));
+                if (getenv ("LANGUAGE"))
+                    session_language_list = g_strdup (getenv ("LANGUAGE"));
+                if (getenv ("LC_MESSAGES"))
+                    session_lc_messages = g_strdup (getenv ("LC_MESSAGES"));
+            }
 
             layout = g_key_file_get_string (dmrc_file, "Desktop", "Layout", NULL);
 
