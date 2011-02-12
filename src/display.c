@@ -368,7 +368,8 @@ user_session_killed_cb (Session *session, gint status, Display *display)
     end_user_session (display, FALSE);
 }
 
-static void set_env_from_pam_session (Session *session, PAMSession *pam_session)
+static void
+set_env_from_pam_session (Session *session, PAMSession *pam_session)
 {
     gchar **pam_env;
 
@@ -388,6 +389,19 @@ static void set_env_from_pam_session (Session *session, PAMSession *pam_session)
         }
         g_strfreev (pam_env);
     }
+}
+
+static void
+set_env_from_keyfile (Session *session, const gchar *name, GKeyFile *key_file, const gchar *section, const gchar *key)
+{
+    char *value;
+
+    value = g_key_file_get_string (key_file, section, key, NULL);
+    if (!value)
+        return;
+
+    session_set_env (session, name, value);
+    g_free (value);
 }
 
 static void
@@ -466,7 +480,6 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
         if (session_command)
         {
-            gchar *session_language, *session_language_list = NULL, *session_lc_messages = NULL, *layout;
             gchar *data;
             gsize length;
 
@@ -478,25 +491,6 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             }
             display->priv->user_session = session_new (pam_session_get_username (display->priv->user_pam_session), session_command);
 
-            /* Override default language with user specified one */
-            session_language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
-            if (session_language)
-            {
-                session_language_list = g_key_file_get_string (dmrc_file, "Desktop", "Langlist", NULL);
-                session_lc_messages = g_key_file_get_string (dmrc_file, "Desktop", "LCMess", NULL);
-            }
-            else
-            {
-                if (getenv ("LANG"))
-                    session_language = g_strdup (getenv ("LANG"));
-                if (getenv ("LANGUAGE"))
-                    session_language_list = g_strdup (getenv ("LANGUAGE"));
-                if (getenv ("LC_MESSAGES"))
-                    session_lc_messages = g_strdup (getenv ("LC_MESSAGES"));
-            }
-
-            layout = g_key_file_get_string (dmrc_file, "Desktop", "Layout", NULL);
-
             g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
             g_signal_connect (G_OBJECT (display->priv->user_session), "killed", G_CALLBACK (user_session_killed_cb), display);
             session_set_env (display->priv->user_session, "DISPLAY", xserver_get_address (display->priv->xserver));
@@ -504,20 +498,11 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
                 session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
             session_set_env (display->priv->user_session, "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
             session_set_env (display->priv->user_session, "GDMSESSION", session); // FIXME: Not cross-desktop
-            if (getenv ("PATH"))
-                session_set_env (display->priv->user_session, "PATH", getenv ("PATH"));
-            else
-                session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");            
-            if (session_language)
-            {
-                session_set_env (display->priv->user_session, "LANG", session_language);
-                session_set_env (display->priv->user_session, "GDM_LANG", session_language); // FIXME: Not cross-desktop
-            }
-            if (session_language_list)
-                session_set_env (display->priv->user_session, "LANGUAGE", session_language_list);
-            if (session_lc_messages)
-                session_set_env (display->priv->user_session, "LC_MESSAGES", session_lc_messages);
-            session_set_env (display->priv->user_session, "GDM_KEYBOARD_LAYOUT", layout); // FIXME: Not cross-desktop
+            set_env_from_keyfile (display->priv->user_session, "LANG", dmrc_file, "Desktop", "Language");
+            set_env_from_keyfile (display->priv->user_session, "LANGUAGE", dmrc_file, "Desktop", "Langlist");
+            set_env_from_keyfile (display->priv->user_session, "LC_MESSAGES", dmrc_file, "Desktop", "LCMess");
+            //session_set_env (display->priv->user_session, "GDM_LANG", session_language); // FIXME: Not cross-desktop
+            set_env_from_keyfile (display->priv->user_session, "GDM_KEYBOARD_LAYOUT", dmrc_file, "Desktop", "Layout"); // FIXME: Not cross-desktop
             set_env_from_pam_session (display->priv->user_session, display->priv->user_pam_session);
 
             g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
@@ -545,10 +530,6 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             g_free (path);
 
             g_free (data);
-            g_free (session_language);
-            g_free (session_language_list);
-            g_free (session_lc_messages);
-            g_free (layout);         
         }
 
         g_free (session_command);
@@ -668,16 +649,6 @@ start_greeter (Display *display)
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "exited", G_CALLBACK (greeter_session_exited_cb), display);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "killed", G_CALLBACK (greeter_session_killed_cb), display);
         session_set_env (display->priv->greeter_session, "DISPLAY", xserver_get_address (display->priv->xserver));
-        if (getenv ("PATH"))
-            session_set_env (display->priv->greeter_session, "PATH", getenv ("PATH"));
-        else
-            session_set_env (display->priv->greeter_session, "PATH", "/usr/local/bin:/usr/bin:/bin");            
-        if (getenv ("LANG"))
-            session_set_env (display->priv->greeter_session, "LANG", getenv ("LANG"));
-        if (getenv ("LANGUAGE"))
-            session_set_env (display->priv->greeter_session, "LANGUAGE", getenv ("LANGUAGE"));
-        if (getenv ("LC_MESSAGES"))
-            session_set_env (display->priv->greeter_session, "LC_MESSAGES", getenv ("LC_MESSAGES"));
         if (display->priv->greeter_ck_session)
             session_set_env (display->priv->greeter_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->greeter_ck_session));
         set_env_from_pam_session (display->priv->greeter_session, display->priv->greeter_pam_session);

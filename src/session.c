@@ -134,7 +134,14 @@ static void
 session_fork_cb (gpointer data)
 {
     Session *session = data;
+    GHashTableIter iter;
+    gpointer key, value;
     int fd;
+
+    /* Set environment */
+    g_hash_table_iter_init (&iter, session->priv->env);
+    while (g_hash_table_iter_next (&iter, &key, &value))
+        g_setenv ((gchar *)key, (gchar *)value, TRUE);
 
     if (initgroups (session->priv->username, session->priv->gid) < 0)
     {
@@ -174,25 +181,26 @@ session_fork_cb (gpointer data)
     }
 }
 
-static gchar **
-get_env (Session *session)
+static gchar *
+make_env_string (Session *session)
 {
-    gchar **env;
+    GString *string;
+    gchar *result;
     gpointer key, value;
     GHashTableIter iter;
-    gint i = 0;
 
-    env = g_malloc (sizeof (gchar *) * (g_hash_table_size (session->priv->env) + 1));
+    string = g_string_new ("");
     g_hash_table_iter_init (&iter, session->priv->env);
-    while (g_hash_table_iter_next (&iter, &key, &value))
+    if (g_hash_table_iter_next (&iter, &key, &value))
     {
-        // FIXME: Do these need to be freed?
-        env[i] = g_strdup_printf("%s=%s", (gchar *)key, (gchar *)value);
-        i++;
+        g_string_append_printf (string, "%s=%s", (gchar *)key, (gchar *)value);      
+        while (g_hash_table_iter_next (&iter, &key, &value))
+            g_string_append_printf (string, " %s=%s", (gchar *)key, (gchar *)value);
     }
-    env[i] = NULL;
+    result = string->str;
+    g_string_free (string, FALSE);
 
-    return env;
+    return result;
 }
 
 gboolean
@@ -203,7 +211,7 @@ session_start (Session *session)
     gint argc;
     struct passwd *user_info;
     gchar *username, *working_dir, *env_string;
-    gchar **argv, **env;
+    gchar **argv;
     GError *error = NULL;
   
     g_return_val_if_fail (session->priv->pid == 0, FALSE);
@@ -252,8 +260,6 @@ session_start (Session *session)
     }
     g_free (username);
 
-    env = get_env (session);
-
     result = g_shell_parse_argv (session->priv->command, &argc, &argv, &error);
     if (!result)
         g_warning ("Failed to parse session command line: %s", error->message);
@@ -262,9 +268,9 @@ session_start (Session *session)
     {
         g_free (working_dir);
         return FALSE;
-    }  
+    }
 
-    env_string = g_strjoinv (" ", env);
+    env_string = make_env_string (session);
     g_debug ("Launching session: %s %s", env_string, session->priv->command);
     g_free (env_string);
 
@@ -279,7 +285,7 @@ session_start (Session *session)
 
     result = g_spawn_async (working_dir,
                             argv,
-                            env,
+                            NULL,
                             G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH,
                             session_fork_cb, session,
                             &session->priv->pid,

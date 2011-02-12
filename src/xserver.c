@@ -315,6 +315,13 @@ static void
 xserver_fork_cb (gpointer data)
 {
     XServer *server = data;
+    GHashTableIter iter;
+    gpointer key, value;
+
+    /* Set environment */
+    g_hash_table_iter_init (&iter, server->priv->env);
+    while (g_hash_table_iter_next (&iter, &key, &value))
+        g_setenv ((gchar *)key, (gchar *)value, TRUE);
 
     /* Clear USR1 handler so the server will signal us when ready */
     signal (SIGUSR1, SIG_IGN);
@@ -336,25 +343,26 @@ xserver_fork_cb (gpointer data)
     }
 }
 
-static gchar **
-get_env (XServer *server)
+static gchar *
+make_env_string (XServer *server)
 {
-    gchar **env;
+    GString *string;
+    gchar *result;
     gpointer key, value;
     GHashTableIter iter;
-    gint i = 0;
 
-    env = g_malloc (sizeof (gchar *) * (g_hash_table_size (server->priv->env) + 1));
+    string = g_string_new ("");
     g_hash_table_iter_init (&iter, server->priv->env);
-    while (g_hash_table_iter_next (&iter, &key, &value))
+    if (g_hash_table_iter_next (&iter, &key, &value))
     {
-        // FIXME: Do these need to be freed?
-        env[i] = g_strdup_printf("%s=%s", (gchar *)key, (gchar *)value);
-        i++;
+        g_string_append_printf (string, "%s=%s", (gchar *)key, (gchar *)value);      
+        while (g_hash_table_iter_next (&iter, &key, &value))
+            g_string_append_printf (string, " %s=%s", (gchar *)key, (gchar *)value);
     }
-    env[i] = NULL;
+    result = string->str;
+    g_string_free (string, FALSE);
 
-    return env;
+    return result;
 }
 
 gboolean
@@ -364,9 +372,7 @@ xserver_start (XServer *server)
     gboolean result;
     GString *command;
     gint argc;
-    gchar **argv;
-    gchar **env;
-    gchar *env_string;
+    gchar **argv, *env_string;
     //gint xserver_stdin, xserver_stdout, xserver_stderr;
 
     g_return_val_if_fail (server->priv->pid == 0, FALSE);
@@ -381,8 +387,6 @@ xserver_start (XServer *server)
         g_signal_emit (server, signals[READY], 0);
         return TRUE;
     }
-
-    env = get_env (server);
 
     /* Write the authorization file */
     if (server->priv->authorization)
@@ -425,7 +429,7 @@ xserver_start (XServer *server)
     if (server->priv->vt >= 0)
         g_string_append_printf (command, " vt%d", server->priv->vt);
 
-    env_string = g_strjoinv (" ", env);
+    env_string = make_env_string (server);
     g_debug ("Launching X Server: %s %s", env_string, command->str);
     g_free (env_string);
 
@@ -439,7 +443,7 @@ xserver_start (XServer *server)
 
     result = g_spawn_async (NULL, /* Working directory */
                             argv,
-                            env,
+                            NULL,
                             G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
                             xserver_fork_cb, server,
                             &server->priv->pid,
