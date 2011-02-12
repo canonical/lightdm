@@ -491,7 +491,10 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
                 session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
             session_set_env (display->priv->user_session, "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
             session_set_env (display->priv->user_session, "GDMSESSION", session); // FIXME: Not cross-desktop
-            session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");
+            if (getenv ("PATH"))
+                session_set_env (display->priv->user_session, "PATH", getenv ("PATH"));
+            else
+                session_set_env (display->priv->user_session, "PATH", "/usr/local/bin:/usr/bin:/bin");            
             if (session_language)
             {
                 session_set_env (display->priv->user_session, "LANG", session_language);
@@ -648,6 +651,10 @@ start_greeter (Display *display)
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "exited", G_CALLBACK (greeter_session_exited_cb), display);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "killed", G_CALLBACK (greeter_session_killed_cb), display);
         session_set_env (display->priv->greeter_session, "DISPLAY", xserver_get_address (display->priv->xserver));
+        if (getenv ("PATH"))
+            session_set_env (display->priv->greeter_session, "PATH", getenv ("PATH"));
+        else
+            session_set_env (display->priv->greeter_session, "PATH", "/usr/local/bin:/usr/bin:/bin");            
         if (getenv ("LANG"))
             session_set_env (display->priv->greeter_session, "LANG", getenv ("LANG"));
         if (getenv ("LANGUAGE"))
