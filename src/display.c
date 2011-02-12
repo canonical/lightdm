@@ -393,7 +393,7 @@ static void set_env_from_pam_session (Session *session, PAMSession *pam_session)
 static void
 start_user_session (Display *display, const gchar *session, const gchar *language)
 {
-    gchar *filename, *path;
+    gchar *filename, *path, *old_language;
     struct passwd *user_info;
     GKeyFile *dmrc_file, *session_desktop_file;
     gboolean have_dmrc = FALSE, result;
@@ -427,14 +427,17 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
         g_clear_error (&error);
         g_free (path);
     }
-  
+
     /* Update the .dmrc with changed settings */
     g_key_file_set_string (dmrc_file, "Desktop", "Session", session);
-    if (language)
+    old_language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
+    if (language && (!old_language || !g_str_equal(language, old_language)))
     {
         g_key_file_set_string (dmrc_file, "Desktop", "Language", language);
-        g_key_file_set_string (dmrc_file, "Desktop", "Langlist", language);
+        g_key_file_remove_key (dmrc_file, "Desktop", "Langlist", NULL);
+        g_key_file_remove_key (dmrc_file, "Desktop", "LCMess", NULL);
     }
+    g_free (old_language);
     if (!g_key_file_has_key (dmrc_file, "Desktop", "Layout", NULL))
         g_key_file_set_string (dmrc_file, "Desktop", "Layout", display->priv->default_layout);
 
