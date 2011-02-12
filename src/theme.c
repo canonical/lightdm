@@ -56,12 +56,12 @@ theme_get_command (GKeyFile *theme)
     }
 
     if (strcmp (engine, "gtk") == 0)
-        command = g_build_filename (THEME_ENGINE_DIR, "ldm-gtk-greeter", NULL);
+        command = g_build_filename (THEME_ENGINE_DIR, "lightdm-gtk-greeter", NULL);
     else if (strcmp (engine, "webkit") == 0)
     {
         gchar *binary, *url;
 
-        binary = g_build_filename (THEME_ENGINE_DIR, "ldm-webkit-greeter", NULL);
+        binary = g_build_filename (THEME_ENGINE_DIR, "lightdm-webkit-greeter", NULL);
         url = g_key_file_get_value (theme, "theme", "url", NULL);
         if (url)
         {
