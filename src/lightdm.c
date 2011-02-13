@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <glib.h>
 #include <glib/gi18n.h>
-#include <signal.h>
 #include <unistd.h>
 #include <dbus/dbus-glib-bindings.h>
 
@@ -32,59 +31,10 @@ static gboolean test_mode = FALSE;
 static GTimer *log_timer;
 static FILE *log_file;
 static gboolean debug = FALSE;
-static int signal_pipe[2];
 
 static DisplayManager *display_manager = NULL;
 
 #define LDM_BUS_NAME "org.lightdm.LightDisplayManager"
-
-static gboolean
-handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
-{
-    int signo;
-    pid_t pid;
-
-    if (read (signal_pipe[0], &signo, sizeof (int)) < 0 || 
-        read (signal_pipe[0], &pid, sizeof (pid_t)) < 0)
-        return TRUE;
-
-    if (signo == SIGUSR1)
-        xserver_handle_signal (pid);
-    else
-    {
-        g_debug ("Caught %s signal, exiting", g_strsignal (signo));
-        g_object_unref (display_manager);
-        g_main_loop_quit (loop);
-    }
-
-    return TRUE;
-}
-
-static void
-signal_cb (int signum, siginfo_t *info, void *data)
-{
-    if (write (signal_pipe[1], &info->si_signo, sizeof (int)) < 0 ||
-        write (signal_pipe[1], &info->si_pid, sizeof (pid_t)) < 0)
-        g_warning ("Failed to write to signal pipe");
-}
-
-static void
-handle_signals (void)
-{
-    struct sigaction action;
-
-    /* Catch signals and feed them to the main loop via a pipe */
-    if (pipe (signal_pipe) != 0)
-        g_critical ("Failed to create signal pipe");
-    g_io_add_watch (g_io_channel_unix_new (signal_pipe[0]), G_IO_IN, handle_signal, NULL);
-    action.sa_sigaction = signal_cb;
-    sigemptyset (&action.sa_mask);
-    action.sa_flags = SA_SIGINFO;
-    sigaction (SIGTERM, &action, NULL);
-    sigaction (SIGINT, &action, NULL);
-    sigaction (SIGHUP, &action, NULL);
-    sigaction (SIGUSR1, &action, NULL);
-}
 
 static void
 version (void)
@@ -311,16 +261,24 @@ display_added_cb (DisplayManager *manager, Display *display)
     g_free (name);
 }
 
+static void
+signal_cb (ChildProcess *process, int signum)
+{
+    g_debug ("Caught %s signal, exiting", g_strsignal (signum));
+    g_object_unref (display_manager);
+    g_main_loop_quit (loop);
+}
+
 int
 main(int argc, char **argv)
 {
     FILE *pid_file;
     UserManager *user_manager;
 
-    handle_signals ();
-
     g_thread_init (NULL);
     g_type_init ();
+
+    g_signal_connect (child_process_get_parent (), "got-signal", G_CALLBACK (signal_cb), NULL);
 
     get_options (argc, argv);
 

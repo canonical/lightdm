@@ -382,7 +382,7 @@ set_env_from_pam_session (Session *session, PAMSession *pam_session)
             g_debug ("pam_env[%d]=%s", i, pam_env[i]);
             gchar **pam_env_vars = g_strsplit (pam_env[i], "=", 2);
             if (pam_env_vars && pam_env_vars[0] && pam_env_vars[1])
-                session_set_env (session, pam_env_vars[0], pam_env_vars[1]);
+                child_process_set_env (CHILD_PROCESS (session), pam_env_vars[0], pam_env_vars[1]);
             else
                 g_warning ("Can't parse PAM environment variable %s", pam_env[i]);
             g_strfreev (pam_env_vars);
@@ -400,7 +400,7 @@ set_env_from_keyfile (Session *session, const gchar *name, GKeyFile *key_file, c
     if (!value)
         return;
 
-    session_set_env (session, name, value);
+    child_process_set_env (CHILD_PROCESS (session), name, value);
     g_free (value);
 }
 
@@ -493,15 +493,15 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
             g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
             g_signal_connect (G_OBJECT (display->priv->user_session), "killed", G_CALLBACK (user_session_killed_cb), display);
-            session_set_env (display->priv->user_session, "DISPLAY", xserver_get_address (display->priv->xserver));
+            child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DISPLAY", xserver_get_address (display->priv->xserver));
             if (display->priv->user_ck_session)
-                session_set_env (display->priv->user_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
-            session_set_env (display->priv->user_session, "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
-            session_set_env (display->priv->user_session, "GDMSESSION", session); // FIXME: Not cross-desktop
+                child_process_set_env (CHILD_PROCESS (display->priv->user_session), "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->user_ck_session));
+            child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
+            child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDMSESSION", session); // FIXME: Not cross-desktop
             set_env_from_keyfile (display->priv->user_session, "LANG", dmrc_file, "Desktop", "Language");
             set_env_from_keyfile (display->priv->user_session, "LANGUAGE", dmrc_file, "Desktop", "Langlist");
             set_env_from_keyfile (display->priv->user_session, "LC_MESSAGES", dmrc_file, "Desktop", "LCMess");
-            //session_set_env (display->priv->user_session, "GDM_LANG", session_language); // FIXME: Not cross-desktop
+            //child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDM_LANG", session_language); // FIXME: Not cross-desktop
             set_env_from_keyfile (display->priv->user_session, "GDM_KEYBOARD_LAYOUT", dmrc_file, "Desktop", "Layout"); // FIXME: Not cross-desktop
             set_env_from_pam_session (display->priv->user_session, display->priv->user_pam_session);
 
@@ -648,9 +648,9 @@ start_greeter (Display *display)
         display->priv->greeter_session = session_new (username, command);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "exited", G_CALLBACK (greeter_session_exited_cb), display);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "killed", G_CALLBACK (greeter_session_killed_cb), display);
-        session_set_env (display->priv->greeter_session, "DISPLAY", xserver_get_address (display->priv->xserver));
+        child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "DISPLAY", xserver_get_address (display->priv->xserver));
         if (display->priv->greeter_ck_session)
-            session_set_env (display->priv->greeter_session, "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->greeter_ck_session));
+            child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "XDG_SESSION_COOKIE", ck_connector_get_cookie (display->priv->greeter_ck_session));
         set_env_from_pam_session (display->priv->greeter_session, display->priv->greeter_pam_session);
 
         g_signal_emit (display, signals[START_GREETER], 0, display->priv->greeter_session);

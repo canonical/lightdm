@@ -24,7 +24,6 @@
 
 enum {
     READY,  
-    EXITED,
     LAST_SIGNAL
 };
 static guint signals[LAST_SIGNAL] = { 0 };
@@ -38,9 +37,6 @@ struct XServerPrivate
 
     /* Path of file to log to */
     gchar *log_file;
-
-    /* Environment variables */
-    GHashTable *env;
 
     /* Command to run the X server */
     gchar *command;
@@ -75,33 +71,13 @@ struct XServerPrivate
     /* Cached server address */
     gchar *address;
 
-    /* X process */
-    GPid pid;
-
     /* Connection to X server */
     xcb_connection_t *connection;
 };
 
-G_DEFINE_TYPE (XServer, xserver, G_TYPE_OBJECT);
+G_DEFINE_TYPE (XServer, xserver, CHILD_PROCESS_TYPE);
 
 static GHashTable *servers = NULL;
-
-void
-xserver_handle_signal (GPid pid)
-{
-    XServer *server;
-
-    server = g_hash_table_lookup (servers, GINT_TO_POINTER (pid));
-    if (!server)
-        return;
-
-    if (!server->priv->ready)
-    {
-        server->priv->ready = TRUE;
-        g_debug ("Got signal from X server :%d", server->priv->display_number);
-        g_signal_emit (server, signals[READY], 0);
-    }
-}
 
 XServer *
 xserver_new (XServerType type, const gchar *hostname, gint display_number)
@@ -147,12 +123,6 @@ xserver_get_log_file (XServer *server)
     return server->priv->log_file;
 }
   
-void
-xserver_set_env (XServer *server, const gchar *name, const gchar *value)
-{
-    g_hash_table_insert (server->priv->env, g_strdup (name), g_strdup (value));
-}
-
 void
 xserver_set_port (XServer *server, guint port)
 {
@@ -294,88 +264,14 @@ xserver_connect (XServer *server)
     return xcb_connection_has_error (server->priv->connection) == 0;
 }
 
-static void
-xserver_watch_cb (GPid pid, gint status, gpointer data)
-{
-    XServer *server = data;
-
-    if (WIFEXITED (status))
-        g_debug ("XServer exited with return value %d", WEXITSTATUS (status));
-    else if (WIFSIGNALED (status))
-        g_debug ("XServer terminated with signal %d", WTERMSIG (status));
-
-    g_hash_table_remove (servers, GINT_TO_POINTER (server->priv->pid));
-
-    server->priv->pid = 0;
-
-    g_signal_emit (server, signals[EXITED], 0);
-}
-
-static void
-xserver_fork_cb (gpointer data)
-{
-    XServer *server = data;
-    GHashTableIter iter;
-    gpointer key, value;
-
-    /* Set environment */
-    g_hash_table_iter_init (&iter, server->priv->env);
-    while (g_hash_table_iter_next (&iter, &key, &value))
-        g_setenv ((gchar *)key, (gchar *)value, TRUE);
-
-    /* Clear USR1 handler so the server will signal us when ready */
-    signal (SIGUSR1, SIG_IGN);
-
-    /* Redirect output to logfile */
-    if (server->priv->log_file)
-    {
-         int fd;
-
-         fd = g_open (server->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-         if (fd < 0)
-             g_warning ("Failed to open session log file %s: %s", server->priv->log_file, g_strerror (errno));
-         else
-         {
-             dup2 (fd, STDOUT_FILENO);
-             dup2 (fd, STDERR_FILENO);
-             close (fd);
-         }
-    }
-}
-
-static gchar *
-make_env_string (XServer *server)
-{
-    GString *string;
-    gchar *result;
-    gpointer key, value;
-    GHashTableIter iter;
-
-    string = g_string_new ("");
-    g_hash_table_iter_init (&iter, server->priv->env);
-    if (g_hash_table_iter_next (&iter, &key, &value))
-    {
-        g_string_append_printf (string, "%s=%s", (gchar *)key, (gchar *)value);      
-        while (g_hash_table_iter_next (&iter, &key, &value))
-            g_string_append_printf (string, " %s=%s", (gchar *)key, (gchar *)value);
-    }
-    result = string->str;
-    g_string_free (string, FALSE);
-
-    return result;
-}
-
 gboolean
 xserver_start (XServer *server)
 {
     GError *error = NULL;
     gboolean result;
     GString *command;
-    gint argc;
-    gchar **argv, *env_string;
-    //gint xserver_stdin, xserver_stdout, xserver_stderr;
 
-    g_return_val_if_fail (server->priv->pid == 0, FALSE);
+    //g_return_val_if_fail (server->priv->pid == 0, FALSE);
  
     /* Check if we can connect to the remote server */
     if (server->priv->type == XSERVER_TYPE_REMOTE)
@@ -429,53 +325,34 @@ xserver_start (XServer *server)
     if (server->priv->vt >= 0)
         g_string_append_printf (command, " vt%d", server->priv->vt);
 
-    env_string = make_env_string (server);
-    g_debug ("Launching X Server: %s %s", env_string, command->str);
-    g_free (env_string);
+    g_debug ("Launching X Server");
 
-    result = g_shell_parse_argv (command->str, &argc, &argv, &error);
+    result = child_process_start (CHILD_PROCESS (server),
+                                  NULL, /* Username (run as current user) */
+                                  NULL, /* Environment (inherit parent) */
+                                  command->str,
+                                  &error);
     g_string_free (command, TRUE);
-    if (!result)
-        g_warning ("Failed to parse X server command line: %s", error->message);
-    g_clear_error (&error);
-    if (!result)
-        return FALSE;
-
-    result = g_spawn_async (NULL, /* Working directory */
-                            argv,
-                            NULL,
-                            G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
-                            xserver_fork_cb, server,
-                            &server->priv->pid,
-                            &error);
-    g_strfreev (argv);
     if (!result)
         g_warning ("Unable to create display: %s", error->message);
     else
-    {
         g_debug ("Waiting for signal from X server :%d", server->priv->display_number);
-        g_hash_table_insert (servers, GINT_TO_POINTER (server->priv->pid), server);
-        g_child_watch_add (server->priv->pid, xserver_watch_cb, server);
-    }
     g_clear_error (&error);
 
-    return server->priv->pid != 0;
+    return result;
 }
 
 void
 xserver_disconnect_clients (XServer *server)
 {
     server->priv->ready = FALSE;
-
-    if (server->priv->pid)
-        kill (server->priv->pid, SIGHUP);
+    child_process_signal (CHILD_PROCESS (server), SIGHUP);
 }
 
 static void
 xserver_init (XServer *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_TYPE, XServerPrivate);
-    server->priv->env = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
     server->priv->command = g_strdup (XSERVER_BINARY);
     server->priv->authentication_name = g_strdup ("");
     server->priv->vt = -1;
@@ -488,16 +365,9 @@ xserver_finalize (GObject *object)
 
     self = XSERVER (object);
 
-    if (self->priv->pid > 0)
-        g_hash_table_remove (servers, GINT_TO_POINTER (self->priv->pid));  
-
     if (self->priv->connection)
         xcb_disconnect (self->priv->connection);
-  
-    if (self->priv->pid)
-        kill (self->priv->pid, SIGTERM);
 
-    g_hash_table_unref (self->priv->env);
     g_free (self->priv->command);
     g_free (self->priv->hostname);
     g_free (self->priv->authentication_name);
@@ -514,11 +384,26 @@ xserver_finalize (GObject *object)
 }
 
 static void
+xserver_got_signal (ChildProcess *process, int signum)
+{
+    XServer *server = XSERVER (process);
+
+    if (signum == SIGUSR1 && !server->priv->ready)
+    {
+        server->priv->ready = TRUE;
+        g_debug ("Got signal from X server :%d", server->priv->display_number);
+        g_signal_emit (server, signals[READY], 0);
+    }
+}
+
+static void
 xserver_class_init (XServerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    ChildProcessClass *parent_class = CHILD_PROCESS_CLASS (klass);
 
-    object_class->finalize = xserver_finalize;  
+    object_class->finalize = xserver_finalize;
+    parent_class->got_signal = xserver_got_signal;
 
     g_type_class_add_private (klass, sizeof (XServerPrivate));
 
@@ -527,15 +412,6 @@ xserver_class_init (XServerClass *klass)
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XServerClass, ready),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
-
-    signals[EXITED] =
-        g_signal_new ("exited",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (XServerClass, exited),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);

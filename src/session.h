@@ -12,7 +12,7 @@
 #ifndef _SESSION_H_
 #define _SESSION_H_
 
-#include <glib-object.h>
+#include "child-process.h"
 #include "xauth.h"
 
 G_BEGIN_DECLS
@@ -24,16 +24,13 @@ typedef struct SessionPrivate SessionPrivate;
 
 typedef struct
 {
-    GObject         parent_instance;
+    ChildProcess    parent_instance;
     SessionPrivate *priv;
 } Session;
 
 typedef struct
 {
-    GObjectClass parent_class;
-
-    void (*exited) (Session *session, int status);
-    void (*killed) (Session *session, int signum);
+    ChildProcessClass parent_class;
 } SessionClass;
 
 GType session_get_type (void);
@@ -43,12 +40,6 @@ Session *session_new (const char *username, const char *command);
 const gchar *session_get_username (Session *session);
 
 const gchar *session_get_command (Session *session);
-
-void session_set_log_file (Session *session, const gchar *log_file);
-
-const gchar *session_get_log_file (Session *session);
-
-void session_set_env (Session *session, const gchar *name, const gchar *value);
 
 void session_set_authorization (Session *session, XAuthorization *authorization, const gchar *path);
 

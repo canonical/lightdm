@@ -14,6 +14,8 @@ user-manager-glue.h: $(srcdir)/user-manager.xml
 	$(DBUSBINDINGTOOL) --prefix=user_manager --mode=glib-server --output=$@ $<
 
 lightdm_SOURCES = \
+	child-process.c \
+	child-process.h \
 	ck-connector.c \
 	ck-connector.h \
 	display.c \

@@ -140,14 +140,14 @@ start_session (Display *display, Session *session, gboolean is_greeter, DisplayM
     /* Connect using the session bus */
     if (manager->priv->test_mode)
     {
-        session_set_env (session, "DBUS_SESSION_BUS_ADDRESS", getenv ("DBUS_SESSION_BUS_ADDRESS"));
-        session_set_env (session, "XDG_SESSION_COOKIE", getenv ("XDG_SESSION_COOKIE"));
-        session_set_env (session, "LDM_BUS", "SESSION");
+        child_process_set_env (CHILD_PROCESS (session), "DBUS_SESSION_BUS_ADDRESS", getenv ("DBUS_SESSION_BUS_ADDRESS"));
+        child_process_set_env (CHILD_PROCESS (session), "XDG_SESSION_COOKIE", getenv ("XDG_SESSION_COOKIE"));
+        child_process_set_env (CHILD_PROCESS (session), "LDM_BUS", "SESSION");
     }
 
     /* Address for greeter to connect to */
     string = g_strdup_printf ("/org/lightdm/LightDisplayManager/Display%d", display_get_index (display));
-    session_set_env (session, "LDM_DISPLAY", string);
+    child_process_set_env (CHILD_PROCESS (session), "LDM_DISPLAY", string);
     g_free (string);
 
     authorization = xserver_get_authorization (display_get_xserver (display));
@@ -182,7 +182,7 @@ start_session (Display *display, Session *session, gboolean is_greeter, DisplayM
         }
     }
     g_debug ("Logging to %s", string);
-    session_set_log_file (session, string);
+    child_process_set_log_file (CHILD_PROCESS (session), string);
     g_free (string);
 }
 
@@ -326,7 +326,7 @@ make_xserver (DisplayManager *manager, gchar *config_section)
     filename = g_strdup_printf ("%s.log", xserver_get_address (xserver));
     path = g_build_filename (manager->priv->log_dir, filename, NULL);
     g_debug ("Logging to %s", path);
-    xserver_set_log_file (xserver, path);
+    child_process_set_log_file (CHILD_PROCESS (xserver), path);
     g_free (filename);
     g_free (path);
 
@@ -337,11 +337,6 @@ make_xserver (DisplayManager *manager, gchar *config_section)
         xserver_set_vt (xserver, vt);
     }
 
-    /* Allow X server to be Xephyr */
-    if (getenv ("DISPLAY"))
-        xserver_set_env (xserver, "DISPLAY", getenv ("DISPLAY"));
-    if (getenv ("XAUTHORITY"))
-        xserver_set_env (xserver, "XAUTHORITY", getenv ("XAUTHORITY"));
     xserver_command = g_key_file_get_string (manager->priv->config, "LightDM", "xserver", NULL);
     if (xserver_command)
         xserver_set_command (xserver, xserver_command);

@@ -12,9 +12,9 @@
 #ifndef _XSERVER_H_
 #define _XSERVER_H_
 
-#include <glib-object.h>
 #include <dbus/dbus-glib.h>
 
+#include "child-process.h"
 #include "xauth.h"
 
 G_BEGIN_DECLS
@@ -26,16 +26,15 @@ typedef struct XServerPrivate XServerPrivate;
 
 typedef struct
 {
-    GObject         parent_instance;
+    ChildProcess    parent_instance;
     XServerPrivate *priv;
 } XServer;
 
 typedef struct
 {
-    GObjectClass parent_class;
+    ChildProcessClass parent_class;
 
     void (*ready)(XServer *server);  
-    void (*exited)(XServer *server);
 } XServerClass;
 
 typedef enum
@@ -65,8 +64,6 @@ const gchar *xserver_get_command (XServer *server);
 void xserver_set_log_file (XServer *server, const gchar *log_file);
 
 const gchar *xserver_get_log_file (XServer *server);
-
-void xserver_set_env (XServer *server, const gchar *name, const gchar *value);
 
 void xserver_set_port (XServer *server, guint port);
 
