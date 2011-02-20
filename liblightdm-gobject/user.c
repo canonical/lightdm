@@ -200,7 +200,6 @@ ldm_user_set_property (GObject      *object,
                        GParamSpec   *pspec)
 {
     LdmUser *self;
-    gint i, n_pages;
 
     self = LDM_USER (object);
 

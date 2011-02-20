@@ -98,7 +98,6 @@ ldm_layout_set_property (GObject      *object,
                          GParamSpec   *pspec)
 {
     LdmLayout *self;
-    gint i, n_pages;
 
     self = LDM_LAYOUT (object);
 

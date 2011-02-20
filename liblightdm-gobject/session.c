@@ -98,7 +98,6 @@ ldm_session_set_property (GObject      *object,
                           GParamSpec   *pspec)
 {
     LdmSession *self;
-    gint i, n_pages;
 
     self = LDM_SESSION (object);
 

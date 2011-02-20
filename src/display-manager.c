@@ -134,7 +134,7 @@ get_authorization_path (DisplayManager *manager)
 static void
 start_session (Display *display, Session *session, gboolean is_greeter, DisplayManager *manager)
 {
-    gchar *string;
+    gchar *log_filename = NULL;
     XAuthorization *authorization;
 
     /* Connect using the session bus */
@@ -144,11 +144,6 @@ start_session (Display *display, Session *session, gboolean is_greeter, DisplayM
         child_process_set_env (CHILD_PROCESS (session), "XDG_SESSION_COOKIE", getenv ("XDG_SESSION_COOKIE"));
         child_process_set_env (CHILD_PROCESS (session), "LDM_BUS", "SESSION");
     }
-
-    /* Address for greeter to connect to */
-    string = g_strdup_printf ("/org/lightdm/LightDisplayManager/Display%d", display_get_index (display));
-    child_process_set_env (CHILD_PROCESS (session), "LDM_DISPLAY", string);
-    g_free (string);
 
     authorization = xserver_get_authorization (display_get_xserver (display));
     if (authorization)
@@ -164,26 +159,30 @@ start_session (Display *display, Session *session, gboolean is_greeter, DisplayM
     {
         gchar *filename;
         filename = g_strdup_printf ("%s-greeter.log", xserver_get_address (display_get_xserver (display)));
-        string = g_build_filename (manager->priv->log_dir, filename, NULL);
+        log_filename = g_build_filename (manager->priv->log_dir, filename, NULL);
         g_free (filename);
     }
     else
     {
         // FIXME: Copy old error file
         if (manager->priv->test_mode)
-            string = g_strdup (".xsession-errors");
+            log_filename = g_strdup (".xsession-errors");
         else
         {
             struct passwd *user_info = getpwnam (session_get_username (session));
             if (user_info)
-                string = g_build_filename (user_info->pw_dir, ".xsession-errors", NULL);
+                log_filename = g_build_filename (user_info->pw_dir, ".xsession-errors", NULL);
             else
                 g_warning ("Failed to get user info for user '%s'", session_get_username (session));
         }
     }
-    g_debug ("Logging to %s", string);
-    child_process_set_log_file (CHILD_PROCESS (session), string);
-    g_free (string);
+  
+    if (log_filename)
+    {      
+        g_debug ("Logging to %s", log_filename);
+        child_process_set_log_file (CHILD_PROCESS (session), log_filename);
+        g_free (log_filename);
+    }
 }
 
 static void

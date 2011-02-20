@@ -32,6 +32,7 @@ typedef struct
 typedef struct
 {
     GObjectClass parent_class;
+    void (*got_data)(ChildProcess *process);
     void (*got_signal)(ChildProcess *process, int signum);
     void (*exited)(ChildProcess *process, int status);
     void (*terminated) (ChildProcess *process, int signum);
@@ -53,11 +54,22 @@ gboolean child_process_start (ChildProcess *process,
                               const gchar *username,
                               const gchar *working_dir,
                               const gchar *command,
+                              gboolean create_pipe, // FIXME: Move the pipe code into session.c, and then make a whitelist of fds to keep open
                               GError **error);
 
 GPid child_process_get_pid (ChildProcess *process);
 
 void child_process_signal (ChildProcess *process, int signum);
+
+guint32 child_process_read_int (ChildProcess *process);
+
+gchar *child_process_read_string (ChildProcess *process);
+
+void child_process_write_int (ChildProcess *process, guint32 value);
+
+void child_process_write_string (ChildProcess *process, const gchar *value);
+
+void child_process_flush (ChildProcess *process);
 
 G_END_DECLS
 

@@ -459,8 +459,8 @@ draw_background_cb (GtkWidget *widget, GdkEventExpose *event)
     return FALSE;
 }
 
-int
-main(int argc, char **argv)
+static void
+connect_cb (LdmGreeter *greeter)
 {
     gchar *theme_dir, *rc_file, *background_image;
     GdkWindow *root;
@@ -473,21 +473,6 @@ main(int argc, char **argv)
     GtkWidget *menu_bar, *menu, *menu_item;
     gint n_power_items = 0;
 
-    signal (SIGTERM, sigterm_cb);
-
-    g_type_init ();
-
-    greeter = ldm_greeter_new ();
-
-    g_signal_connect (G_OBJECT (greeter), "show-prompt", G_CALLBACK (show_prompt_cb), NULL);  
-    g_signal_connect (G_OBJECT (greeter), "show-message", G_CALLBACK (show_message_cb), NULL);
-    g_signal_connect (G_OBJECT (greeter), "show-error", G_CALLBACK (show_message_cb), NULL);
-    g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
-    g_signal_connect (G_OBJECT (greeter), "timed-login", G_CALLBACK (timed_login_cb), NULL);
-    g_signal_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
-
-    ldm_greeter_connect (greeter);
-
     theme_dir = g_path_get_dirname (ldm_greeter_get_theme (greeter));
     rc_file = ldm_greeter_get_string_property (greeter, "gtkrc");
     if (rc_file)
@@ -497,8 +482,6 @@ main(int argc, char **argv)
         gtk_rc_add_default_file (path);
         g_free (path);
     }
-
-    gtk_init (&argc, &argv);
 
     g_object_get (gtk_settings_get_default (), "gtk-theme-name", &theme_name, NULL);
 
@@ -727,6 +710,26 @@ main(int argc, char **argv)
     gtk_widget_show_all (window);
 
     gtk_widget_grab_focus (user_view);
+}
+
+int
+main(int argc, char **argv)
+{
+    signal (SIGTERM, sigterm_cb);
+
+    g_type_init ();
+
+    greeter = ldm_greeter_new ();
+    g_signal_connect (G_OBJECT (greeter), "connected", G_CALLBACK (connect_cb), NULL);    
+    g_signal_connect (G_OBJECT (greeter), "show-prompt", G_CALLBACK (show_prompt_cb), NULL);  
+    g_signal_connect (G_OBJECT (greeter), "show-message", G_CALLBACK (show_message_cb), NULL);
+    g_signal_connect (G_OBJECT (greeter), "show-error", G_CALLBACK (show_message_cb), NULL);
+    g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
+    g_signal_connect (G_OBJECT (greeter), "timed-login", G_CALLBACK (timed_login_cb), NULL);
+    g_signal_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
+    ldm_greeter_connect (greeter);
+
+    gtk_init (&argc, &argv);
 
     gtk_main ();
 

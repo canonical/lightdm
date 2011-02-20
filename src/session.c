@@ -79,7 +79,7 @@ XAuthorization *session_get_authorization (Session *session)
 }
 
 gboolean
-session_start (Session *session)
+session_start (Session *session, gboolean create_pipe)
 {
     //gint session_stdin, session_stdout, session_stderr;
     gboolean result;
@@ -136,6 +136,7 @@ session_start (Session *session)
                                   session->priv->username,
                                   working_dir,
                                   session->priv->command,
+                                  create_pipe,
                                   &error);
     g_free (working_dir);
 

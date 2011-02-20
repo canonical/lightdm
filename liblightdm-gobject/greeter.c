@@ -20,10 +20,11 @@
 #include <libxklavier/xklavier.h>
 
 #include "greeter.h"
+#include "greeter-protocol.h"
 
 enum {
     PROP_0,
-    PROP_HOSTNAME,  
+    PROP_HOSTNAME,
     PROP_NUM_USERS,
     PROP_USERS,
     PROP_DEFAULT_LANGUAGE,
@@ -42,6 +43,7 @@ enum {
 };
 
 enum {
+    CONNECTED,
     SHOW_PROMPT,
     SHOW_MESSAGE,
     SHOW_ERROR,
@@ -58,7 +60,9 @@ struct _LdmGreeterPrivate
 
     DBusGConnection *system_bus;
 
-    DBusGProxy *display_proxy, *session_proxy, *user_proxy;
+    DBusGProxy *session_proxy, *user_proxy;
+
+    GIOChannel *to_server_channel, *from_server_channel;
 
     Display *display;
 
@@ -118,10 +122,135 @@ timed_login_cb (gpointer data)
     return FALSE;
 }
 
-static void
-quit_cb (DBusGProxy *proxy, LdmGreeter *greeter)
+static guint32
+read_int (LdmGreeter *greeter)
 {
-    g_signal_emit (G_OBJECT (greeter), signals[QUIT], 0);
+    guint32 value;
+    g_io_channel_read_chars (greeter->priv->from_server_channel, (gchar *) &value, sizeof (value), NULL, NULL);
+    return value;
+}
+
+static void
+write_int (LdmGreeter *greeter, guint32 value)
+{
+    if (g_io_channel_write_chars (greeter->priv->to_server_channel, (const gchar *) &value, sizeof (value), NULL, NULL) != G_IO_STATUS_NORMAL)
+        g_warning ("Error writing to server");
+}
+
+static gchar *
+read_string (LdmGreeter *greeter)
+{
+    guint32 length;
+    gchar *value;
+
+    length = read_int (greeter);
+    value = g_malloc (sizeof (gchar *) * (length + 1));
+    g_io_channel_read_chars (greeter->priv->from_server_channel, value, length, NULL, NULL);    
+    value[length] = '\0';
+
+    return value;
+}
+
+static void
+write_string (LdmGreeter *greeter, const gchar *value)
+{
+    write_int (greeter, strlen (value));
+    g_io_channel_write_chars (greeter->priv->to_server_channel, value, -1, NULL, NULL);
+}
+
+static void
+flush (LdmGreeter *greeter)
+{
+    g_io_channel_flush (greeter->priv->to_server_channel, NULL);  
+}
+
+static void
+handle_prompt_authentication (LdmGreeter *greeter)
+{
+    int n_messages, i;
+
+    n_messages = read_int (greeter);
+    g_debug ("Prompt user with %d message(s)", n_messages);
+
+    for (i = 0; i < n_messages; i++)
+    {
+        int msg_style;
+        gchar *msg;
+
+        msg_style = read_int (greeter);
+        msg = read_string (greeter);
+
+        // FIXME: Should stop on prompts?
+        switch (msg_style)
+        {
+        case PAM_PROMPT_ECHO_OFF:
+        case PAM_PROMPT_ECHO_ON:
+            g_signal_emit (G_OBJECT (greeter), signals[SHOW_PROMPT], 0, msg);
+            break;
+        case PAM_ERROR_MSG:
+            g_signal_emit (G_OBJECT (greeter), signals[SHOW_ERROR], 0, msg);
+            break;
+        case PAM_TEXT_INFO:
+            g_signal_emit (G_OBJECT (greeter), signals[SHOW_MESSAGE], 0, msg);
+            break;
+        }
+
+        g_free (msg);
+    }
+}
+
+static gboolean
+from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
+{
+    LdmGreeter *greeter = data;
+    int message, return_code;
+
+    message = read_int (greeter);
+    switch (message)
+    {
+    case GREETER_MESSAGE_CONNECTED:
+        greeter->priv->theme = read_string (greeter);
+        greeter->priv->default_layout = read_string (greeter);
+        greeter->priv->default_session = read_string (greeter);
+        greeter->priv->timed_user = read_string (greeter);
+        greeter->priv->login_delay = read_int (greeter);
+      
+        g_debug ("Connected theme=%s default-layout=%s default-session=%s timed-user=%s login-delay=%d",
+                 greeter->priv->theme,
+                 greeter->priv->default_layout, greeter->priv->default_session,
+                 greeter->priv->timed_user, greeter->priv->login_delay);
+
+        /* Set timeout for default login */
+        if (greeter->priv->timed_user[0] != '\0' && greeter->priv->login_delay > 0)
+        {
+            g_debug ("Logging in as %s in %d seconds", greeter->priv->timed_user, greeter->priv->login_delay);
+            greeter->priv->login_timeout = g_timeout_add (greeter->priv->login_delay * 1000, timed_login_cb, greeter);
+        }
+        g_signal_emit (G_OBJECT (greeter), signals[CONNECTED], 0);      
+        break;
+    case GREETER_MESSAGE_QUIT:
+        g_signal_emit (G_OBJECT (greeter), signals[QUIT], 0);
+        break;
+    case GREETER_MESSAGE_PROMPT_AUTHENTICATION:
+        handle_prompt_authentication (greeter);
+        break;
+    case GREETER_MESSAGE_END_AUTHENTICATION:
+        return_code = read_int (greeter);
+        g_debug ("Authentication complete with return code %d", return_code);
+        greeter->priv->is_authenticated = (return_code == 0);
+        if (!greeter->priv->is_authenticated)
+        {
+            g_free (greeter->priv->authentication_user);
+            greeter->priv->authentication_user = NULL;
+        }
+        g_signal_emit (G_OBJECT (greeter), signals[AUTHENTICATION_COMPLETE], 0);
+        break;
+    default:
+        g_warning ("Unknown message from server: %d", message);
+        break;      
+    }
+
+    return TRUE;
 }
 
 /**
@@ -136,9 +265,8 @@ gboolean
 ldm_greeter_connect (LdmGreeter *greeter)
 {
     GError *error = NULL;
-    const gchar *bus_address, *object;
+    const gchar *bus_address, *fd;
     DBusBusType bus_type = DBUS_BUS_SYSTEM;
-    gboolean result;
 
     g_return_val_if_fail (greeter != NULL, FALSE);
 
@@ -160,19 +288,25 @@ ldm_greeter_connect (LdmGreeter *greeter)
     if (!greeter->priv->lightdm_bus)
         return FALSE;
 
-    object = getenv ("LDM_DISPLAY");
-    if (!object)
+    fd = getenv ("LDM_TO_SERVER_FD");
+    if (!fd)
     {
-        g_warning ("No LDM_DISPLAY enviroment variable");
+        g_warning ("No LDM_TO_SERVER_FD environment variable");
         return FALSE;
     }
+    greeter->priv->to_server_channel = g_io_channel_unix_new (atoi (fd));
+    g_io_channel_set_encoding (greeter->priv->to_server_channel, NULL, NULL);
 
-    greeter->priv->display_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
-                                                              "org.lightdm.LightDisplayManager",
-                                                              object,
-                                                              "org.lightdm.LightDisplayManager.Greeter");
-    dbus_g_proxy_add_signal (greeter->priv->display_proxy, "QuitGreeter", G_TYPE_INVALID);
-    dbus_g_proxy_connect_signal (greeter->priv->display_proxy, "QuitGreeter", G_CALLBACK (quit_cb), greeter, NULL);
+    fd = getenv ("LDM_FROM_SERVER_FD");
+    if (!fd)
+    {
+        g_warning ("No LDM_FROM_SERVER_FD environment variable");
+        return FALSE;
+    }
+    greeter->priv->from_server_channel = g_io_channel_unix_new (atoi (fd));
+    g_io_channel_set_encoding (greeter->priv->from_server_channel, NULL, NULL);
+    g_io_add_watch (greeter->priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
+
     greeter->priv->session_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
                                                               "org.lightdm.LightDisplayManager",
                                                               "/org/lightdm/LightDisplayManager/Session",
@@ -183,34 +317,10 @@ ldm_greeter_connect (LdmGreeter *greeter)
                                                            "org.lightdm.LightDisplayManager.Users");
 
     g_debug ("Connecting to display manager...");
-    result = dbus_g_proxy_call (greeter->priv->display_proxy, "Connect", &error,
-                                G_TYPE_INVALID,
-                                G_TYPE_STRING, &greeter->priv->theme,
-                                G_TYPE_STRING, &greeter->priv->default_layout,
-                                G_TYPE_STRING, &greeter->priv->default_session,
-                                G_TYPE_STRING, &greeter->priv->timed_user,
-                                G_TYPE_INT, &greeter->priv->login_delay,
-                                G_TYPE_INVALID);
+    write_int (greeter, GREETER_MESSAGE_CONNECT);
+    flush (greeter);
 
-    if (result)
-        g_debug ("Connected theme=%s default-layout=%s default-session=%s timed-user=%s login-delay=%d",
-                 greeter->priv->theme,
-                 greeter->priv->default_layout, greeter->priv->default_session,
-                 greeter->priv->timed_user, greeter->priv->login_delay);
-    else
-        g_warning ("Failed to connect to display manager: %s", error->message);
-    g_clear_error (&error);
-    if (!result)
-        return FALSE;
-
-    /* Set timeout for default login */
-    if (greeter->priv->timed_user[0] != '\0' && greeter->priv->login_delay > 0)
-    {
-        g_debug ("Logging in as %s in %d seconds", greeter->priv->timed_user, greeter->priv->login_delay);
-        greeter->priv->login_timeout = g_timeout_add (greeter->priv->login_delay * 1000, timed_login_cb, greeter);
-    }
-
-    return result;
+    return TRUE;
 }
 
 /**
@@ -763,75 +873,6 @@ ldm_greeter_cancel_timed_login (LdmGreeter *greeter)
     greeter->priv->login_timeout = 0;
 }
 
-#define TYPE_MESSAGE dbus_g_type_get_struct ("GValueArray", G_TYPE_INT, G_TYPE_STRING, G_TYPE_INVALID)
-#define TYPE_MESSAGE_LIST dbus_g_type_get_collection ("GPtrArray", TYPE_MESSAGE)
-
-static void
-auth_response_cb (DBusGProxy *proxy, DBusGProxyCall *call, gpointer userdata)
-{
-    LdmGreeter *greeter = userdata;
-    gboolean result;
-    GError *error = NULL;
-    gint return_code;
-    GPtrArray *array;
-    int i;
-
-    result = dbus_g_proxy_end_call (proxy, call, &error, G_TYPE_INT, &return_code, TYPE_MESSAGE_LIST, &array, G_TYPE_INVALID);
-    if (!result)
-        g_warning ("Failed to complete StartAuthentication(): %s", error->message);
-    g_clear_error (&error);
-    if (!result)
-        return;
-
-    if (array->len > 0)
-        g_debug ("Authentication continues with %d messages", array->len);
-    else
-        g_debug ("Authentication complete with return code %d", return_code);
-
-    for (i = 0; i < array->len; i++)
-    {
-        GValue value = { 0 };
-        gint msg_style;
-        gchar *msg;
-      
-        g_value_init (&value, TYPE_MESSAGE);
-        g_value_set_static_boxed (&value, array->pdata[i]);
-        dbus_g_type_struct_get (&value, 0, &msg_style, 1, &msg, G_MAXUINT);
-
-        // FIXME: Should stop on prompts?
-        switch (msg_style)
-        {
-        case PAM_PROMPT_ECHO_OFF:
-        case PAM_PROMPT_ECHO_ON:
-            g_signal_emit (G_OBJECT (greeter), signals[SHOW_PROMPT], 0, msg);
-            break;
-        case PAM_ERROR_MSG:
-            g_signal_emit (G_OBJECT (greeter), signals[SHOW_ERROR], 0, msg);
-            break;
-        case PAM_TEXT_INFO:
-            g_signal_emit (G_OBJECT (greeter), signals[SHOW_MESSAGE], 0, msg);
-            break;
-        }
-
-        g_free (msg);
-
-        g_value_unset (&value);
-    }
-
-    if (array->len == 0)
-    {
-        greeter->priv->is_authenticated = (return_code == 0);
-        if (!greeter->priv->is_authenticated)
-        {
-            g_free (greeter->priv->authentication_user);
-            greeter->priv->authentication_user = NULL;
-        }
-        g_signal_emit (G_OBJECT (greeter), signals[AUTHENTICATION_COMPLETE], 0);
-    }
-
-    g_ptr_array_unref (array);
-}
-
 /**
  * ldm_greeter_start_authentication:
  * @greeter: A #LdmGreeter
@@ -849,7 +890,9 @@ ldm_greeter_start_authentication (LdmGreeter *greeter, const char *username)
     g_free (greeter->priv->authentication_user);
     greeter->priv->authentication_user = g_strdup (username);
     g_debug ("Starting authentication for user %s...", username);
-    dbus_g_proxy_begin_call (greeter->priv->display_proxy, "StartAuthentication", auth_response_cb, greeter, NULL, G_TYPE_STRING, username, G_TYPE_INVALID);
+    write_int (greeter, GREETER_MESSAGE_START_AUTHENTICATION);
+    write_string (greeter, username);
+    flush (greeter);
 }
 
 /**
@@ -862,17 +905,15 @@ ldm_greeter_start_authentication (LdmGreeter *greeter, const char *username)
 void
 ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret)
 {
-    gchar **secrets;
-
     g_return_if_fail (LDM_IS_GREETER (greeter));
     g_return_if_fail (secret != NULL);
 
+    g_debug ("Providing secret to display manager");
+    write_int (greeter, GREETER_MESSAGE_CONTINUE_AUTHENTICATION);
     // FIXME: Could be multiple secrets required
-    secrets = g_malloc (sizeof (char *) * 2);
-    secrets[0] = g_strdup (secret);
-    secrets[1] = NULL;
-    g_debug ("Providing secret to display manager");  
-    dbus_g_proxy_begin_call (greeter->priv->display_proxy, "ContinueAuthentication", auth_response_cb, greeter, NULL, G_TYPE_STRV, secrets, G_TYPE_INVALID);
+    write_int (greeter, 1);
+    write_string (greeter, secret);
+    flush (greeter);
 }
 
 /**
@@ -929,20 +970,15 @@ ldm_greeter_get_authentication_user (LdmGreeter *greeter)
 void
 ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *session, const gchar *language)
 {
-    GError *error = NULL;
-
     g_return_if_fail (LDM_IS_GREETER (greeter));
     g_return_if_fail (username != NULL);
 
     g_debug ("Logging in");
-    if (!dbus_g_proxy_call (greeter->priv->display_proxy, "Login", &error,
-                            G_TYPE_STRING, username,
-                            G_TYPE_STRING, session ? session : "",
-                            G_TYPE_STRING, language ? language : "",
-                            G_TYPE_INVALID,
-                            G_TYPE_INVALID))
-        g_warning ("Failed to login: %s", error->message);
-    g_clear_error (&error);
+    write_int (greeter, GREETER_MESSAGE_LOGIN);
+    write_string (greeter, username);
+    write_string (greeter, session ? session : "");
+    write_string (greeter, language ? language : "");
+    flush (greeter);
 }
 
 /**
@@ -1201,7 +1237,6 @@ ldm_greeter_set_property (GObject      *object,
                           GParamSpec   *pspec)
 {
     LdmGreeter *self;
-    gint i, n_pages;
 
     self = LDM_GREETER (object);
 
@@ -1393,6 +1428,22 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                                                            "TRUE if allowed to shutdown the system",
                                                            FALSE,
                                                            G_PARAM_READABLE));
+
+    /**
+     * LdmGreeter::connected:
+     * @greeter: A #LdmGreeter
+     * 
+     * The ::connected signal gets emitted when the greeter connects to the
+     * LightDM server.
+     **/
+    signals[CONNECTED] =
+        g_signal_new ("connected",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (LdmGreeterClass, connected),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
 
     /**
      * LdmGreeter::show-prompt:

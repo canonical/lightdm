@@ -42,6 +42,7 @@ struct _LdmGreeterClass
 {
     GObjectClass parent_class;
 
+    void (*connected)(LdmGreeter *greeter);
     void (*show_prompt)(LdmGreeter *greeter, const gchar *text);
     void (*show_message)(LdmGreeter *greeter, const gchar *text);
     void (*show_error)(LdmGreeter *greeter, const gchar *text);

@@ -6,8 +6,6 @@ ldm-marshal.c: ldm-marshal.list
 ldm-marshal.h: ldm-marshal.list
 	@GLIB_GENMARSHAL@ --prefix=ldm_marshal $(srcdir)/ldm-marshal.list --header > ldm-marshal.h
 
-display-glue.h: $(srcdir)/display.xml
-	$(DBUSBINDINGTOOL) --prefix=display --mode=glib-server --output=$@ $<
 display-manager-glue.h: $(srcdir)/display-manager.xml
 	$(DBUSBINDINGTOOL) --prefix=display_manager --mode=glib-server --output=$@ $<
 user-manager-glue.h: $(srcdir)/user-manager.xml
@@ -46,7 +44,6 @@ lightdm_SOURCES = \
 	xserver.h
 
 BUILT_SOURCES = \
-	display-glue.h \
 	display-manager-glue.h \
 	user-manager-glue.h \
 	ldm-marshal.c \
@@ -69,7 +66,6 @@ lightdm_LDADD = \
 
 EXTRA_DIST = ldm-marshal.list \
 	display-manager.xml \
-	display.xml \
 	user-manager.xml
 
 CLEANFILES = \

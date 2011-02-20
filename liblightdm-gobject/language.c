@@ -145,7 +145,6 @@ ldm_language_set_property (GObject      *object,
                            GParamSpec   *pspec)
 {
     LdmLanguage *self;
-    gint i, n_pages;
 
     self = LDM_LANGUAGE (object);
 

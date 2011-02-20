@@ -40,6 +40,7 @@ liblightdm-qt/displayinterface.cpp
 liblightdm-qt/displayinterface.h
 liblightdm-qt/usermanagerinterface.cpp
 liblightdm-qt/usermanagerinterface.h
+liblightdm-qt/*_moc.cpp
 po/POTFILES
 po/stamp-it
 src/display-glue.h

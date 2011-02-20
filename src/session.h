@@ -45,7 +45,7 @@ void session_set_authorization (Session *session, XAuthorization *authorization,
 
 XAuthorization *session_get_authorization (Session *session);
 
-gboolean session_start (Session *session);
+gboolean session_start (Session *session, gboolean create_pipe);
 
 void session_stop (Session *session);
 

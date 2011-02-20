@@ -40,7 +40,6 @@ typedef struct
     void (*start_session)(Display *display, Session *session);
     void (*end_session)(Display *display, Session *session);
     void (*exited)(Display *display);
-    void (*quit_greeter)(Display *display);
 } DisplayClass;
 
 GType display_get_type (void);
@@ -92,16 +91,6 @@ void display_set_vt (Display *display, gint vt);
 gint display_get_vt (Display *display);
 
 gboolean display_start (Display *display);
-
-// FIXME: Make greeter its own object?
-
-gboolean display_connect (Display *display, const gchar **theme, const gchar **layout, const gchar **session, const gchar **username, gint *delay, GError *error);
-
-gboolean display_start_authentication (Display *display, const gchar *username, DBusGMethodInvocation *context);
-
-gboolean display_continue_authentication (Display *display, gchar **secrets, DBusGMethodInvocation *context);
-
-gboolean display_login (Display *display, gchar *username, gchar *session, gchar *language, GError *error);
 
 G_END_DECLS
 

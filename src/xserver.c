@@ -331,6 +331,7 @@ xserver_start (XServer *server)
                                   NULL, /* Username (run as current user) */
                                   NULL, /* Environment (inherit parent) */
                                   command->str,
+                                  FALSE,
                                   &error);
     g_string_free (command, TRUE);
     if (!result)

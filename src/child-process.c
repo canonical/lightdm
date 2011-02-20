@@ -23,6 +23,7 @@
 #include "child-process.h"
 
 enum {
+    GOT_DATA,
     GOT_SIGNAL,  
     EXITED,
     TERMINATED,
@@ -42,6 +43,10 @@ struct ChildProcessPrivate
 
     /* Path of file to log to */
     gchar *log_file;
+  
+    /* Pipes to communicate with */
+    GIOChannel *to_child_channel;
+    GIOChannel *from_child_channel;
 
     /* Process ID */
     GPid pid;
@@ -111,12 +116,13 @@ child_process_watch_cb (GPid pid, gint status, gpointer data)
 }
 
 static void
-child_process_fork_cb (gpointer data)
+run_child_process (ChildProcess *process, char *const argv[])
 {
-    ChildProcess *process = data;
     GHashTableIter iter;
     gpointer key, value;
     int fd;
+
+    /* FIXME: Close existing file descriptors */
 
     /* Make input non-blocking */
     fd = g_open ("/dev/null", O_RDONLY);
@@ -171,6 +177,16 @@ child_process_fork_cb (gpointer data)
              close (fd);
          }
     }
+  
+    execvp (argv[0], argv);
+}
+
+static gboolean
+from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
+{
+    ChildProcess *process = data;
+    g_signal_emit (process, signals[GOT_DATA], 0);
+    return TRUE;
 }
 
 gboolean
@@ -178,6 +194,7 @@ child_process_start (ChildProcess *process,
                      const gchar *username,
                      const gchar *working_dir,
                      const gchar *command,
+                     gboolean create_pipe,
                      GError **error)
 {
     gboolean result;
@@ -186,7 +203,8 @@ child_process_start (ChildProcess *process,
     GString *string;
     gpointer key, value;
     GHashTableIter iter;
-    //gint child_process_stdin, child_process_stdout, child_process_stderr;
+    pid_t pid;
+    int from_server_fd = -1, to_server_fd = -1;
 
     g_return_val_if_fail (process->priv->pid == 0, FALSE);
 
@@ -215,29 +233,77 @@ child_process_start (ChildProcess *process,
         gint fd = g_open (process->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
         close (fd);
         if (chown (process->priv->log_file, process->priv->uid, process->priv->gid) != 0)
-            g_warning ("Failed to set greeter log file ownership: %s", strerror (errno));
+            g_warning ("Failed to set process log file ownership: %s", strerror (errno));
     }
 
-    string = g_string_new ("");
-    g_hash_table_iter_init (&iter, process->priv->env);
-    if (g_hash_table_iter_next (&iter, &key, &value))
-        g_string_append_printf (string, "%s=%s ", (gchar *)key, (gchar *)value);
-    g_string_append (string, command);
-    g_debug ("Launching process: %s", string->str);
-    g_string_free (string, TRUE);
+    if (create_pipe)
+    {
+        gchar *fd;
+        int to_child_pipe[2];
+        int from_child_pipe[2];
+
+        if (pipe (to_child_pipe) != 0 || 
+            pipe (from_child_pipe) != 0)
+        {
+            g_warning ("Failed to create pipes: %s", strerror (errno));            
+            return FALSE;
+        }
+
+        process->priv->to_child_channel = g_io_channel_unix_new (to_child_pipe[1]);
+        g_io_channel_set_encoding (process->priv->to_child_channel, NULL, NULL);
+
+        /* Watch for data from the child process */
+        process->priv->from_child_channel = g_io_channel_unix_new (from_child_pipe[0]);
+        g_io_channel_set_encoding (process->priv->from_child_channel, NULL, NULL);
+        g_io_add_watch (process->priv->from_child_channel, G_IO_IN, from_child_cb, process);
+
+        to_server_fd = from_child_pipe[1];
+        from_server_fd = to_child_pipe[0];
+
+        fd = g_strdup_printf ("%d", to_server_fd);
+        child_process_set_env (process, "LDM_TO_SERVER_FD", fd);
+        g_free (fd);
+        fd = g_strdup_printf ("%d", from_server_fd);
+        child_process_set_env (process, "LDM_FROM_SERVER_FD", fd);
+        g_free (fd);
+    }
 
     result = g_shell_parse_argv (command, &argc, &argv, error);
     if (!result)
         return FALSE;
 
-    process->priv->pid = 0;
-    result = g_spawn_async (working_dir,
-                            argv,
-                            NULL,
-                            G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
-                            child_process_fork_cb, process,
-                            &process->priv->pid,
-                            error);
+    pid = fork ();
+    if (pid < 0)
+    {
+        g_warning ("Failed to fork: %s", strerror (errno));
+        return FALSE;
+    }
+
+    if (pid == 0)
+    {
+        /* Close pipes */
+        // TEMP: Remove this when have more generic file closing
+        if (process->priv->to_child_channel)
+            close (g_io_channel_unix_get_fd (process->priv->to_child_channel));
+        if (process->priv->from_child_channel)
+            close (g_io_channel_unix_get_fd (process->priv->from_child_channel));
+
+        run_child_process (process, argv);
+        _exit (EXIT_FAILURE);
+    }
+    close (from_server_fd);
+    close (to_server_fd);
+
+    string = g_string_new ("");
+    g_hash_table_iter_init (&iter, process->priv->env);
+    while (g_hash_table_iter_next (&iter, &key, &value))
+        g_string_append_printf (string, "%s=%s ", (gchar *)key, (gchar *)value);
+    g_string_append (string, command);
+    g_debug ("Launching process %d: %s", pid, string->str);
+    g_string_free (string, TRUE);
+
+    process->priv->pid = pid;
+
     g_strfreev (argv);
     if (!result)
         return FALSE;
@@ -260,6 +326,47 @@ child_process_signal (ChildProcess *process, int signum)
 {
     if (process->priv->pid)
         kill (process->priv->pid, signum);
+}
+
+guint32
+child_process_read_int (ChildProcess *process)
+{
+    guint32 value;
+    g_io_channel_read_chars (process->priv->from_child_channel, (gchar *) &value, sizeof (value), NULL, NULL);
+    return value;
+}
+
+gchar *
+child_process_read_string (ChildProcess *process)
+{
+    guint32 length;
+    gchar *value;
+
+    length = child_process_read_int (process);
+    value = g_malloc (sizeof (gchar *) * (length + 1));
+    g_io_channel_read_chars (process->priv->from_child_channel, value, length, NULL, NULL);    
+    value[length] = '\0';
+
+    return value;
+}
+
+void
+child_process_write_int (ChildProcess *process, guint32 value)
+{
+    g_io_channel_write_chars (process->priv->to_child_channel, (const gchar *) &value, sizeof (value), NULL, NULL);
+}
+
+void
+child_process_write_string (ChildProcess *process, const gchar *value)
+{
+    child_process_write_int (process, strlen (value));
+    g_io_channel_write_chars (process->priv->to_child_channel, value, -1, NULL, NULL);  
+}
+
+void
+child_process_flush (ChildProcess *process)
+{
+    g_io_channel_flush (process->priv->to_child_channel, NULL);
 }
 
 static void
@@ -323,6 +430,14 @@ child_process_class_init (ChildProcessClass *klass)
 
     g_type_class_add_private (klass, sizeof (ChildProcessPrivate));
 
+    signals[GOT_DATA] =
+        g_signal_new ("got-data",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (ChildProcessClass, got_data),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0); 
     signals[GOT_SIGNAL] =
         g_signal_new ("got-signal",
                       G_TYPE_FROM_CLASS (klass),
