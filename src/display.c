@@ -428,7 +428,7 @@ user_session_exited_cb (Session *session, gint status, Display *display)
 }
 
 static void
-user_session_killed_cb (Session *session, gint status, Display *display)
+user_session_terminated_cb (Session *session, gint signum, Display *display)
 {
     end_user_session (display, FALSE);
 }
@@ -557,7 +557,7 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             display->priv->user_session = session_new (pam_session_get_username (display->priv->user_pam_session), session_command);
 
             g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
-            g_signal_connect (G_OBJECT (display->priv->user_session), "killed", G_CALLBACK (user_session_killed_cb), display);
+            g_signal_connect (G_OBJECT (display->priv->user_session), "terminated", G_CALLBACK (user_session_terminated_cb), display);
             child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DISPLAY", xserver_get_address (display->priv->xserver));
             if (display->priv->user_ck_cookie)
                 child_process_set_env (CHILD_PROCESS (display->priv->user_session), "XDG_SESSION_COOKIE", display->priv->user_ck_cookie);
@@ -917,7 +917,7 @@ greeter_session_exited_cb (Session *session, gint status, Display *display)
 }
 
 static void
-greeter_session_killed_cb (Session *session, gint status, Display *display)
+greeter_session_terminated_cb (Session *session, gint signum, Display *display)
 {
     end_greeter_session (display, FALSE);
 }
@@ -968,7 +968,7 @@ start_greeter (Display *display)
         display->priv->greeter_session = session_new (username, command);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "got-data", G_CALLBACK (greeter_data_cb), display);      
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "exited", G_CALLBACK (greeter_session_exited_cb), display);
-        g_signal_connect (G_OBJECT (display->priv->greeter_session), "killed", G_CALLBACK (greeter_session_killed_cb), display);
+        g_signal_connect (G_OBJECT (display->priv->greeter_session), "terminated", G_CALLBACK (greeter_session_terminated_cb), display);
         child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "DISPLAY", xserver_get_address (display->priv->xserver));
         if (display->priv->greeter_ck_cookie)
             child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "XDG_SESSION_COOKIE", display->priv->greeter_ck_cookie);
@@ -984,7 +984,7 @@ start_greeter (Display *display)
 }
 
 static void
-xserver_exit_cb (XServer *server, Display *display)
+xserver_exit_cb (XServer *server, int status, Display *display)
 {
     g_object_unref (display->priv->xserver);
     display->priv->xserver = NULL;
