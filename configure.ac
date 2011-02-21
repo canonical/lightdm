@@ -25,10 +25,9 @@ AC_CHECK_HEADERS(security/pam_appl.h, [], AC_MSG_ERROR(PAM not found))
 
 PKG_CHECK_MODULES(LIGHTDM, [
     glib-2.0
-    gio-2.0
+    gio-2.0 >= 2.26
     gio-unix-2.0
     gobject-2.0
-    dbus-glib-1
     xcb
     xdmcp
 ])
@@ -41,18 +40,18 @@ compile_liblightdm_gobject=no
 if test x"$enable_liblightdm_gobject" = "xauto"; then
     PKG_CHECK_MODULES(LIBLIGHTDM_GOBJECT, [
         glib-2.0
+        gio-2.0 >= 2.26
         gio-unix-2.0
         gobject-2.0
-        dbus-glib-1
         libxklavier
         x11
     ], compile_liblightdm_gobject=yes, compile_liblightdm_gobject=no)
 elif test x"$enable_liblightdm_gobject" = "xyes"; then
     PKG_CHECK_MODULES(LIBLIGHTDM_GOBJECT, [
         glib-2.0
+        gio-2.0 >= 2.26
         gio-unix-2.0
         gobject-2.0
-        dbus-glib-1
         libxklavier
         x11
     ])
@@ -81,7 +80,6 @@ AM_CONDITIONAL(COMPILE_LIBLIGHTDM_QT, test x"$compile_liblightdm_qt" != "xno")
 
 PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
     gtk+-2.0
-    dbus-glib-1
 ], have_gtk=yes, have_gtk=no)
 AM_CONDITIONAL(HAVE_GTK_GREETER, test $have_gtk = yes)
 

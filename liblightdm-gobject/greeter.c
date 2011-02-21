@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
  * Software Foundation; either version 3 of the License, or (at your option) any
@@ -15,7 +15,6 @@
 #include <sys/utsname.h>
 
 #include <gio/gdesktopappinfo.h>
-#include <dbus/dbus-glib.h>
 #include <security/pam_appl.h>
 #include <libxklavier/xklavier.h>
 
@@ -56,11 +55,11 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct _LdmGreeterPrivate
 {
-    DBusGConnection *lightdm_bus;
+    GDBusConnection *lightdm_bus;
 
-    DBusGConnection *system_bus;
+    GDBusConnection *system_bus;
 
-    DBusGProxy *session_proxy, *user_proxy;
+    GDBusProxy *session_proxy, *user_proxy;
 
     GIOChannel *to_server_channel, *from_server_channel;
 
@@ -100,9 +99,9 @@ G_DEFINE_TYPE (LdmGreeter, ldm_greeter, G_TYPE_OBJECT);
 
 /**
  * ldm_greeter_new:
- * 
+ *
  * Create a new greeter.
- * 
+ *
  * Return value: the new #LdmGreeter
  **/
 LdmGreeter *
@@ -145,7 +144,7 @@ read_string (LdmGreeter *greeter)
 
     length = read_int (greeter);
     value = g_malloc (sizeof (gchar *) * (length + 1));
-    g_io_channel_read_chars (greeter->priv->from_server_channel, value, length, NULL, NULL);    
+    g_io_channel_read_chars (greeter->priv->from_server_channel, value, length, NULL, NULL);
     value[length] = '\0';
 
     return value;
@@ -161,7 +160,7 @@ write_string (LdmGreeter *greeter, const gchar *value)
 static void
 flush (LdmGreeter *greeter)
 {
-    g_io_channel_flush (greeter->priv->to_server_channel, NULL);  
+    g_io_channel_flush (greeter->priv->to_server_channel, NULL);
 }
 
 static void
@@ -214,7 +213,7 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         greeter->priv->default_session = read_string (greeter);
         greeter->priv->timed_user = read_string (greeter);
         greeter->priv->login_delay = read_int (greeter);
-      
+
         g_debug ("Connected theme=%s default-layout=%s default-session=%s timed-user=%s login-delay=%d",
                  greeter->priv->theme,
                  greeter->priv->default_layout, greeter->priv->default_session,
@@ -226,7 +225,7 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
             g_debug ("Logging in as %s in %d seconds", greeter->priv->timed_user, greeter->priv->login_delay);
             greeter->priv->login_timeout = g_timeout_add (greeter->priv->login_delay * 1000, timed_login_cb, greeter);
         }
-        g_signal_emit (G_OBJECT (greeter), signals[CONNECTED], 0);      
+        g_signal_emit (G_OBJECT (greeter), signals[CONNECTED], 0);
         break;
     case GREETER_MESSAGE_QUIT:
         g_signal_emit (G_OBJECT (greeter), signals[QUIT], 0);
@@ -247,7 +246,7 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         break;
     default:
         g_warning ("Unknown message from server: %d", message);
-        break;      
+        break;
     }
 
     return TRUE;
@@ -258,7 +257,7 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
  * @greeter: The greeter to connect
  *
  * Connects the greeter to the display manager.
- * 
+ *
  * Return value: TRUE if successfully connected
  **/
 gboolean
@@ -266,11 +265,11 @@ ldm_greeter_connect (LdmGreeter *greeter)
 {
     GError *error = NULL;
     const gchar *bus_address, *fd;
-    DBusBusType bus_type = DBUS_BUS_SYSTEM;
+    GBusType bus_type = G_BUS_TYPE_SYSTEM;
 
     g_return_val_if_fail (greeter != NULL, FALSE);
 
-    greeter->priv->system_bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
+    greeter->priv->system_bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
     if (!greeter->priv->system_bus)
         g_warning ("Failed to connect to system bus: %s", error->message);
     g_clear_error (&error);
@@ -279,9 +278,9 @@ ldm_greeter_connect (LdmGreeter *greeter)
 
     bus_address = getenv ("LDM_BUS");
     if (bus_address && strcmp (bus_address, "SESSION") == 0)
-        bus_type = DBUS_BUS_SESSION;
+        bus_type = G_BUS_TYPE_SESSION;
 
-    greeter->priv->lightdm_bus = dbus_g_bus_get (bus_type, &error);
+    greeter->priv->lightdm_bus = g_bus_get_sync (bus_type, NULL, &error);
     if (!greeter->priv->lightdm_bus)
         g_warning ("Failed to connect to LightDM bus: %s", error->message);
     g_clear_error (&error);
@@ -307,14 +306,20 @@ ldm_greeter_connect (LdmGreeter *greeter)
     g_io_channel_set_encoding (greeter->priv->from_server_channel, NULL, NULL);
     g_io_add_watch (greeter->priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
 
-    greeter->priv->session_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
-                                                              "org.lightdm.LightDisplayManager",
-                                                              "/org/lightdm/LightDisplayManager/Session",
-                                                              "org.lightdm.LightDisplayManager.Session");
-    greeter->priv->user_proxy = dbus_g_proxy_new_for_name (greeter->priv->lightdm_bus,
-                                                           "org.lightdm.LightDisplayManager",
-                                                           "/org/lightdm/LightDisplayManager/Users",
-                                                           "org.lightdm.LightDisplayManager.Users");
+    greeter->priv->session_proxy = g_dbus_proxy_new_sync (greeter->priv->lightdm_bus,
+                                                          G_DBUS_PROXY_FLAGS_NONE,
+                                                          NULL,
+                                                          "org.lightdm.LightDisplayManager",
+                                                          "/org/lightdm/LightDisplayManager/Session",
+                                                          "org.lightdm.LightDisplayManager.Session",
+                                                          NULL, NULL);
+    greeter->priv->user_proxy = g_dbus_proxy_new_sync (greeter->priv->lightdm_bus,
+                                                       G_DBUS_PROXY_FLAGS_NONE,
+                                                       NULL,
+                                                       "org.lightdm.LightDisplayManager",
+                                                       "/org/lightdm/LightDisplayManager/Users",
+                                                       "org.lightdm.LightDisplayManager.Users",
+                                                       NULL, NULL);
 
     g_debug ("Connecting to display manager...");
     write_int (greeter, GREETER_MESSAGE_CONNECT);
@@ -361,7 +366,7 @@ static void
 load_theme (LdmGreeter *greeter)
 {
     GError *error = NULL;
-  
+
     if (greeter->priv->theme_file)
         return;
 
@@ -446,56 +451,52 @@ ldm_greeter_get_boolean_property (LdmGreeter *greeter, const gchar *name)
     return result;
 }
 
-#define TYPE_USER dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN, G_TYPE_INVALID)
-#define TYPE_USER_LIST dbus_g_type_get_collection ("GPtrArray", TYPE_USER)
-
 static void
 update_users (LdmGreeter *greeter)
 {
-    GPtrArray *users;
-    gboolean result;
-    gint i;
+    GVariant *result, *user_array;
+    GVariantIter iter;
+    gchar *name, *real_name, *image;
+    gboolean logged_in;
     GError *error = NULL;
 
     if (greeter->priv->have_users)
         return;
 
     g_debug ("Getting user list...");
-    result = dbus_g_proxy_call (greeter->priv->user_proxy, "GetUsers", &error,
-                                G_TYPE_INVALID,
-                                TYPE_USER_LIST, &users,
-                                G_TYPE_INVALID);
+    result = g_dbus_proxy_call_sync (greeter->priv->user_proxy,
+                                     "GetUsers",
+                                     NULL,
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     -1,
+                                     NULL,
+                                     &error);
     if (!result)
         g_warning ("Failed to get users: %s", error->message);
     g_clear_error (&error);
-  
     if (!result)
         return;
 
-    g_debug ("Got %d users", users->len);
-    for (i = 0; i < users->len; i++)
+    if (!g_variant_is_of_type (result, G_VARIANT_TYPE ("(a(sssb))")))
     {
-        GValue value = { 0 };
+        g_warning ("Unknown type returned");
+        g_variant_unref (result);
+        return;
+    }
+    g_variant_iter_init (&iter, result);
+    user_array = g_variant_iter_next_value (&iter);
+    g_debug ("Got %zi users", g_variant_n_children (user_array));
+    g_variant_iter_init (&iter, user_array);
+    while (g_variant_iter_loop (&iter, "(sssb)", &name, &real_name, &image, &logged_in))
+    {
         LdmUser *user;
-        gchar *name, *real_name, *image;
-        gboolean logged_in;
-
-        g_value_init (&value, TYPE_USER);
-        g_value_set_static_boxed (&value, users->pdata[i]);
-        dbus_g_type_struct_get (&value, 0, &name, 1, &real_name, 2, &image, 3, &logged_in, G_MAXUINT);
-        g_value_unset (&value);
 
         user = ldm_user_new (greeter, name, real_name, image, logged_in);
-        g_free (name);
-        g_free (real_name);
-        g_free (image);
-
         greeter->priv->users = g_list_append (greeter->priv->users, user);
     }
-
-    g_ptr_array_free (users, TRUE);
-
     greeter->priv->have_users = TRUE;
+
+    g_variant_unref (result);
 }
 
 /**
@@ -515,10 +516,10 @@ ldm_greeter_get_num_users (LdmGreeter *greeter)
 /**
  * ldm_greeter_get_users:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Get a list of users to present to the user.  This list may be a subset of the
  * available users and may be empty depending on the server configuration.
- * 
+ *
  * Return value: A list of #LdmUser that should be presented to the user.
  **/
 const GList *
@@ -579,9 +580,9 @@ update_languages (LdmGreeter *greeter)
 /**
  * ldm_greeter_get_default_language:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Get the default language.
- * 
+ *
  * Return value: The default language.
  **/
 const gchar *
@@ -594,9 +595,9 @@ ldm_greeter_get_default_language (LdmGreeter *greeter)
 /**
  * ldm_greeter_get_languages:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Get a list of languages to present to the user.
- * 
+ *
  * Return value: A list of #LdmLanguage that should be presented to the user.
  **/
 const GList *
@@ -621,7 +622,7 @@ layout_cb (XklConfigRegistry *config,
 {
     LdmGreeter *greeter = data;
     LdmLayout *layout;
-  
+
     layout = ldm_layout_new (item->name, item->short_description, item->description);
     greeter->priv->layouts = g_list_append (greeter->priv->layouts, layout);
 }
@@ -647,9 +648,9 @@ setup_xkl (LdmGreeter *greeter)
 /**
  * ldm_greeter_get_layouts:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Get a list of keyboard layouts to present to the user.
- * 
+ *
  * Return value: A list of #LdmLayout that should be presented to the user.
  **/
 const GList *
@@ -677,7 +678,7 @@ ldm_greeter_get_layouts (LdmGreeter *greeter)
  * ldm_greeter_set_layout:
  * @greeter: A #LdmGreeter
  * @layout: The layout to use
- * 
+ *
  * Set the layout for this session.
  **/
 void
@@ -689,7 +690,7 @@ ldm_greeter_set_layout (LdmGreeter *greeter, const gchar *layout)
     g_return_if_fail (layout != NULL);
 
     g_debug ("Setting keyboard layout to %s", layout);
-  
+
     setup_xkl (greeter);
 
     config = xkl_config_rec_new ();
@@ -707,9 +708,9 @@ ldm_greeter_set_layout (LdmGreeter *greeter, const gchar *layout)
 /**
  * ldm_greeter_get_layout:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Get the current keyboard layout.
- * 
+ *
  * Return value: The currently active layout for this user.
  **/
 const gchar *
@@ -768,7 +769,7 @@ update_sessions (LdmGreeter *greeter)
             domain = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN, NULL);
 #else
             domain = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, "X-GNOME-Gettext-Domain", NULL);
-#endif          
+#endif
             name = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NAME, domain, NULL);
             comment = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_COMMENT, domain, NULL);
             if (!comment)
@@ -867,7 +868,7 @@ void
 ldm_greeter_cancel_timed_login (LdmGreeter *greeter)
 {
     g_return_if_fail (LDM_IS_GREETER (greeter));
-  
+
     if (greeter->priv->login_timeout)
        g_source_remove (greeter->priv->login_timeout);
     greeter->priv->login_timeout = 0;
@@ -919,7 +920,7 @@ ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret)
 /**
  * ldm_greeter_cancel_authentication:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Cancel the current user authentication.
  **/
 void
@@ -931,7 +932,7 @@ ldm_greeter_cancel_authentication (LdmGreeter *greeter)
 /**
  * ldm_greeter_get_is_authenticated:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Checks if the greeter has successfully authenticated.
  *
  * Return value: TRUE if the greeter is authenticated for login.
@@ -946,9 +947,9 @@ ldm_greeter_get_is_authenticated (LdmGreeter *greeter)
 /**
  * ldm_greeter_get_authentication_user:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Get the user that is being authenticated.
- * 
+ *
  * Return value: The username of the authentication user being authenticated or NULL if no authentication in progress.
  */
 const gchar *
@@ -981,10 +982,49 @@ ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *sess
     flush (greeter);
 }
 
+static gboolean
+upower_call_function (LdmGreeter *greeter, const gchar *function, gboolean has_result)
+{
+    GDBusProxy *proxy;
+    GVariant *result;
+    GError *error = NULL;
+    gboolean function_result = FALSE;
+
+    g_return_val_if_fail (greeter != NULL, FALSE);
+
+    proxy = g_dbus_proxy_new_sync (greeter->priv->system_bus,
+                                   G_DBUS_PROXY_FLAGS_NONE,
+                                   NULL,
+                                   "org.freedesktop.UPower",
+                                   "/org/freedesktop/UPower",
+                                   "org.freedesktop.UPower",
+                                   NULL, NULL);
+    result = g_dbus_proxy_call_sync (proxy,
+                                     function,
+                                     NULL,
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     -1,
+                                     NULL,
+                                     &error);
+    g_object_unref (proxy);
+
+    if (!result)
+        g_warning ("Error calling UPower function %s: %s", function, error->message);
+    g_clear_error (&error);
+    if (!result)
+        return FALSE;
+
+    if (g_variant_is_of_type (result, G_VARIANT_TYPE_BOOLEAN))
+        function_result = g_variant_get_boolean (result);
+
+    g_variant_unref (result);
+    return function_result;
+}
+
 /**
  * ldm_greeter_get_can_suspend:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Checks if the greeter is authorized to do a system suspend.
  *
  * Return value: TRUE if the greeter can suspend the system
@@ -992,54 +1032,25 @@ ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *sess
 gboolean
 ldm_greeter_get_can_suspend (LdmGreeter *greeter)
 {
-    DBusGProxy *proxy;
-    gboolean result = TRUE;
-    GError *error = NULL;
-
-    g_return_val_if_fail (greeter != NULL, FALSE);
-
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
-                                       "org.freedesktop.UPower",
-                                       "/org/freedesktop/UPower",
-                                       "org.freedesktop.UPower");
-    if (!dbus_g_proxy_call (proxy, "SuspendAllowed", &error, G_TYPE_INVALID, G_TYPE_BOOLEAN, &result, G_TYPE_INVALID))
-        g_warning ("Error checking for suspend authority: %s", error->message);
-    g_clear_error (&error);
-
-    g_object_unref (proxy);
-
-    return result;
+    return upower_call_function (greeter, "SuspendAllowed", TRUE);
 }
 
 /**
  * ldm_greeter_suspend:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Triggers a system suspend.
  **/
 void
 ldm_greeter_suspend (LdmGreeter *greeter)
 {
-    DBusGProxy *proxy;
-    GError *error = NULL;
-
-    g_return_if_fail (LDM_IS_GREETER (greeter));
-
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
-                                       "org.freedesktop.UPower",
-                                       "/org/freedesktop/UPower",
-                                       "org.freedesktop.UPower");
-    if (!dbus_g_proxy_call (proxy, "Suspend", &error, G_TYPE_INVALID, G_TYPE_INVALID))
-        g_warning ("Failed to hibernate: %s", error->message);
-    g_clear_error (&error);
-
-    g_object_unref (proxy);
+    upower_call_function (greeter, "Suspend", FALSE);
 }
 
 /**
  * ldm_greeter_get_can_hibernate:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Checks if the greeter is authorized to do a system hibernate.
  *
  * Return value: TRUE if the greeter can hibernate the system
@@ -1047,54 +1058,64 @@ ldm_greeter_suspend (LdmGreeter *greeter)
 gboolean
 ldm_greeter_get_can_hibernate (LdmGreeter *greeter)
 {
-    DBusGProxy *proxy;
-    gboolean result = FALSE;
-    GError *error = NULL;
-
-    g_return_val_if_fail (greeter != NULL, FALSE);
-
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
-                                       "org.freedesktop.UPower",
-                                       "/org/freedesktop/UPower",
-                                       "org.freedesktop.UPower");
-    if (!dbus_g_proxy_call (proxy, "HibernateAllowed", &error, G_TYPE_INVALID, G_TYPE_BOOLEAN, &result, G_TYPE_INVALID))
-        g_warning ("Error checking for hibernate authority: %s", error->message);
-    g_clear_error (&error);
-
-    g_object_unref (proxy);
-
-    return result;
+    return upower_call_function (greeter, "HibernateAllowed", TRUE);
 }
 
 /**
  * ldm_greeter_hibernate:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Triggers a system hibernate.
  **/
 void
 ldm_greeter_hibernate (LdmGreeter *greeter)
 {
-    DBusGProxy *proxy;
+    upower_call_function (greeter, "Hibernate", FALSE);
+}
+
+static gboolean
+ck_call_function (LdmGreeter *greeter, const gchar *function, gboolean has_result)
+{
+    GDBusProxy *proxy;
+    GVariant *result;
     GError *error = NULL;
+    gboolean function_result = FALSE;
 
-    g_return_if_fail (LDM_IS_GREETER (greeter));
+    g_return_val_if_fail (greeter != NULL, FALSE);
 
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
-                                       "org.freedesktop.UPower",
-                                       "/org/freedesktop/UPower",
-                                       "org.freedesktop.UPower");
-    if (!dbus_g_proxy_call (proxy, "Hibernate", &error, G_TYPE_INVALID, G_TYPE_INVALID))
-        g_warning ("Failed to hibernate: %s", error->message);
-    g_clear_error (&error);
-
+    proxy = g_dbus_proxy_new_sync (greeter->priv->system_bus,
+                                   G_DBUS_PROXY_FLAGS_NONE,
+                                   NULL,
+                                   "org.freedesktop.ConsoleKit",
+                                   "/org/freedesktop/ConsoleKit/Manager",
+                                   "org.freedesktop.ConsoleKit.Manager",
+                                   NULL, NULL);
+    result = g_dbus_proxy_call_sync (proxy,
+                                     function,
+                                     NULL,
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     -1,
+                                     NULL,
+                                     &error);
     g_object_unref (proxy);
+
+    if (!result)
+        g_warning ("Error calling ConsoleKit function %s: %s", function, error->message);
+    g_clear_error (&error);
+    if (!result)
+        return FALSE;
+
+    if (g_variant_is_of_type (result, G_VARIANT_TYPE_BOOLEAN))
+        function_result = g_variant_get_boolean (result);
+
+    g_variant_unref (result);
+    return function_result;
 }
 
 /**
  * ldm_greeter_get_can_restart:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Checks if the greeter is authorized to do a system restart.
  *
  * Return value: TRUE if the greeter can restart the system
@@ -1102,54 +1123,25 @@ ldm_greeter_hibernate (LdmGreeter *greeter)
 gboolean
 ldm_greeter_get_can_restart (LdmGreeter *greeter)
 {
-    DBusGProxy *proxy;
-    gboolean result = FALSE;
-    GError *error = NULL;
-
-    g_return_val_if_fail (greeter != NULL, FALSE);
-
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
-                                       "org.freedesktop.ConsoleKit",
-                                       "/org/freedesktop/ConsoleKit/Manager",
-                                       "org.freedesktop.ConsoleKit.Manager");
-    if (!dbus_g_proxy_call (proxy, "CanRestart", &error, G_TYPE_INVALID, G_TYPE_BOOLEAN, &result, G_TYPE_INVALID))
-        g_warning ("Error checking for restart authority: %s", error->message);
-    g_clear_error (&error);
-
-    g_object_unref (proxy);
-
-    return result; 
+    return ck_call_function (greeter, "CanRestart", TRUE);
 }
 
 /**
  * ldm_greeter_restart:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Triggers a system restart.
  **/
 void
 ldm_greeter_restart (LdmGreeter *greeter)
 {
-    DBusGProxy *proxy;
-    GError *error = NULL;
-
-    g_return_if_fail (LDM_IS_GREETER (greeter));
-
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
-                                       "org.freedesktop.ConsoleKit",
-                                       "/org/freedesktop/ConsoleKit/Manager",
-                                       "org.freedesktop.ConsoleKit.Manager");
-    if (!dbus_g_proxy_call (proxy, "Restart", &error, G_TYPE_INVALID, G_TYPE_INVALID))
-        g_warning ("Failed to restart: %s", error->message);
-    g_clear_error (&error);
-
-    g_object_unref (proxy);
+    ck_call_function (greeter, "Restart", FALSE);
 }
 
 /**
  * ldm_greeter_get_can_shutdown:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Checks if the greeter is authorized to do a system shutdown.
  *
  * Return value: TRUE if the greeter can shutdown the system
@@ -1157,69 +1149,52 @@ ldm_greeter_restart (LdmGreeter *greeter)
 gboolean
 ldm_greeter_get_can_shutdown (LdmGreeter *greeter)
 {
-    DBusGProxy *proxy;
-    gboolean result = FALSE;
-    GError *error = NULL;
-
-    g_return_val_if_fail (greeter != NULL, FALSE);
-
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
-                                       "org.freedesktop.ConsoleKit",
-                                       "/org/freedesktop/ConsoleKit/Manager",
-                                       "org.freedesktop.ConsoleKit.Manager");
-    if (!dbus_g_proxy_call (proxy, "CanStop", &error, G_TYPE_INVALID, G_TYPE_BOOLEAN, &result, G_TYPE_INVALID))
-        g_warning ("Error checking for shutdown authority: %s", error->message);
-    g_clear_error (&error);
-
-    g_object_unref (proxy);
-
-    return result; 
+    return ck_call_function (greeter, "CanStop", TRUE);
 }
 
 /**
  * ldm_greeter_shutdown:
  * @greeter: A #LdmGreeter
- * 
+ *
  * Triggers a system shutdown.
  **/
 void
 ldm_greeter_shutdown (LdmGreeter *greeter)
 {
-    DBusGProxy *proxy;
-    GError *error = NULL;
-
-    g_return_if_fail (LDM_IS_GREETER (greeter));
-
-    proxy = dbus_g_proxy_new_for_name (greeter->priv->system_bus,
-                                       "org.freedesktop.ConsoleKit",
-                                       "/org/freedesktop/ConsoleKit/Manager",
-                                       "org.freedesktop.ConsoleKit.Manager");
-    if (!dbus_g_proxy_call (proxy, "Stop", &error, G_TYPE_INVALID, G_TYPE_INVALID))
-        g_warning ("Failed to shutdown: %s", error->message);
-    g_clear_error (&error);
-
-    g_object_unref (proxy);
+    ck_call_function (greeter, "Stop", FALSE);
 }
 
 gboolean
 ldm_greeter_get_user_defaults (LdmGreeter *greeter, const gchar *username, gchar **language, gchar **layout, gchar **session)
 {
     GError *error = NULL;
-    gboolean result;
+    GVariant *result;
+    gboolean got_defaults = FALSE;
 
-    result = dbus_g_proxy_call (greeter->priv->user_proxy, "GetUserDefaults", &error,
-                                G_TYPE_STRING, username,
-                                G_TYPE_INVALID,
-                                G_TYPE_STRING, language,
-                                G_TYPE_STRING, layout,
-                                G_TYPE_STRING, session,
-                                G_TYPE_INVALID);
-  
+    result = g_dbus_proxy_call_sync (greeter->priv->user_proxy,
+                                     "GetUserDefaults",
+                                     g_variant_new ("(s)", username),
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     -1,
+                                     NULL,
+                                     &error);
+
     if (!result)
         g_warning ("Failed to get user defaults: %s", error->message);
     g_clear_error (&error);
 
-    return result;
+    if (!result)
+        return FALSE;
+
+    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(sss)")))
+    {
+        g_variant_get (result, "(sss)", language, layout, session);
+        got_defaults = TRUE;
+    }
+
+    g_variant_unref (result);
+
+    return got_defaults;
 }
 
 static void
@@ -1276,7 +1251,7 @@ ldm_greeter_get_property (GObject    *object,
         break;
     case PROP_LAYOUT:
         g_value_set_string (value, ldm_greeter_get_layout (self));
-        break;      
+        break;
     case PROP_SESSIONS:
         break;
     case PROP_DEFAULT_SESSION:
@@ -1316,7 +1291,7 @@ static void
 ldm_greeter_class_init (LdmGreeterClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-  
+
     g_type_class_add_private (klass, sizeof (LdmGreeterPrivate));
 
     object_class->set_property = ldm_greeter_set_property;
@@ -1432,7 +1407,7 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
     /**
      * LdmGreeter::connected:
      * @greeter: A #LdmGreeter
-     * 
+     *
      * The ::connected signal gets emitted when the greeter connects to the
      * LightDM server.
      **/
@@ -1449,11 +1424,11 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
      * LdmGreeter::show-prompt:
      * @greeter: A #LdmGreeter
      * @text: Prompt text
-     * 
+     *
      * The ::show-prompt signal gets emitted when the greeter should show a
      * prompt to the user.  The given text should be displayed and an input
      * field for the user to provide a response.
-     * 
+     *
      * Call ldm_greeter_provide_secret() with the resultant input or
      * ldm_greeter_cancel_authentication() to abort the authentication.
      **/
@@ -1506,7 +1481,7 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
      *
      * The ::authentication-complete signal gets emitted when the greeter
      * has completed authentication.
-     * 
+     *
      * Call ldm_greeter_get_is_authenticated() to check if the authentication
      * was successful.
      **/

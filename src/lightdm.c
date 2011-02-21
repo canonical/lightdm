@@ -16,13 +16,11 @@
 #include <glib.h>
 #include <glib/gi18n.h>
 #include <unistd.h>
-#include <dbus/dbus-glib-bindings.h>
 
 #include "display-manager.h"
 #include "user-manager.h"
 #include "xserver.h"
 
-static DBusGConnection *bus = NULL;
 static GKeyFile *config_file = NULL;
 static const gchar *config_path = CONFIG_FILE;
 static const gchar *pid_path = "/var/run/lightdm.pid";
@@ -32,6 +30,7 @@ static GTimer *log_timer;
 static FILE *log_file;
 static gboolean debug = FALSE;
 
+static UserManager *user_manager = NULL;
 static DisplayManager *display_manager = NULL;
 
 #define LDM_BUS_NAME "org.lightdm.LightDisplayManager"
@@ -117,49 +116,6 @@ get_options (int argc, char **argv)
             exit (1);
         }      
     }
-}
-
-static DBusGConnection *
-start_dbus (void)
-{
-    DBusGConnection *bus;
-    DBusGProxy *proxy;
-    guint result;
-    GError *error = NULL;
-
-    bus = dbus_g_bus_get (test_mode ? DBUS_BUS_SESSION : DBUS_BUS_SYSTEM, &error);
-    if (!bus)
-    {
-        if (test_mode)
-            g_critical ("Failed to get session bus: %s", error->message);
-        else
-            g_critical ("Failed to get system bus: %s", error->message);
-        return NULL;
-    }
-    g_clear_error (&error);
-
-    proxy = dbus_g_proxy_new_for_name (bus,
-                                       DBUS_SERVICE_DBUS,
-                                       DBUS_PATH_DBUS,
-                                       DBUS_INTERFACE_DBUS);
-    if (!org_freedesktop_DBus_request_name (proxy,
-                                            LDM_BUS_NAME,
-                                            DBUS_NAME_FLAG_DO_NOT_QUEUE, &result, &error))
-    {
-        if (g_error_matches (error, DBUS_GERROR, DBUS_GERROR_ACCESS_DENIED))
-           g_printerr ("Not authorised to use bus name " LDM_BUS_NAME ", do you have appropriate permissions?\n");
-        else
-           g_printerr ("Failed to register D-Bus name: %s\n", error->message);
-        exit (1);
-    }
-    if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) 
-    {
-        g_printerr ("Light Display Manager already running\n");
-        exit (1);
-    }
-    g_object_unref (proxy);
-
-    return bus;
 }
 
 static void
@@ -260,11 +216,160 @@ signal_cb (ChildProcess *process, int signum)
     g_main_loop_quit (loop);
 }
 
+static void
+handle_display_manager_call (GDBusConnection       *connection,
+                             const gchar           *sender,
+                             const gchar           *object_path,
+                             const gchar           *interface_name,
+                             const gchar           *method_name,
+                             GVariant              *parameters,
+                             GDBusMethodInvocation *invocation,
+                             gpointer               user_data)
+{
+    if (g_strcmp0 (method_name, "AddDisplay") == 0)
+    {
+        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
+            return;
+
+        display_manager_add_display (display_manager);
+        g_dbus_method_invocation_return_value (invocation, NULL);
+    }
+    else if (g_strcmp0 (method_name, "SwitchToUser") == 0)
+    {
+        gchar *username;
+
+        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(s)")))
+            return;
+
+        g_variant_get (parameters, "(s)", &username);
+        display_manager_switch_to_user (display_manager, username);
+        g_dbus_method_invocation_return_value (invocation, NULL);
+        g_free (username);
+    }
+}
+
+static void
+handle_user_manager_call (GDBusConnection       *connection,
+                          const gchar           *sender,
+                          const gchar           *object_path,
+                          const gchar           *interface_name,
+                          const gchar           *method_name,
+                          GVariant              *parameters,
+                          GDBusMethodInvocation *invocation,
+                          gpointer               user_data)
+{
+    if (g_strcmp0 (method_name, "GetUsers") == 0)
+    {
+        GVariantBuilder *builder;
+        GVariant *arg0;
+        GList *users, *iter;
+
+        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
+            return;
+
+        builder = g_variant_builder_new (G_VARIANT_TYPE_ARRAY);
+        users = user_manager_get_users (user_manager);
+        for (iter = users; iter; iter = iter->next)
+        {
+            UserInfo *info = iter->data;
+            g_variant_builder_add_value (builder, g_variant_new ("(sssb)", info->name, info->real_name, info->image, info->logged_in));
+        }
+        arg0 = g_variant_builder_end (builder);
+        g_dbus_method_invocation_return_value (invocation, g_variant_new_tuple (&arg0, 1));
+        g_variant_builder_unref (builder);
+    }
+    else if (g_strcmp0 (method_name, "GetUserDefaults") == 0)
+    {
+        gchar *username, *language, *layout, *session;
+
+        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(s)")))
+            return;
+
+        g_variant_get (parameters, "(s)", &username);
+        user_manager_get_user_defaults (user_manager, username, &language, &layout, &session);
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(sss)", language, layout, session));
+        g_free (username);
+        g_free (language);
+        g_free (layout);
+        g_free (session);
+    }
+}
+
+static void
+bus_acquired_cb (GDBusConnection *connection,
+                 const gchar     *name,
+                 gpointer         user_data)
+{
+    const gchar *display_manager_interface =
+        "<node>"
+        "  <interface name='org.lightdm.LightDisplayManager'>"
+        "    <method name='AddDisplay'/>"
+        "    <method name='SwitchToUser'>"
+        "      <arg name='username' direction='in' type='s'/>"
+        "    </method>"
+        "  </interface>"
+        "</node>";
+    static const GDBusInterfaceVTable display_manager_vtable =
+    {
+        handle_display_manager_call
+    };
+
+    const gchar *user_manager_interface =
+        "<node>"
+        "  <interface name='org.lightdm.LightDisplayManager.Users'>"
+        "    <method name='GetUsers'>"
+        "      <arg name='users' direction='out' type='a(sssb)'/>"
+        "    </method>"
+        "    <method name='GetUserDefaults'>"
+        "      <arg name='username' direction='in' type='s'/>"
+        "      <arg name='language' direction='out' type='s'/>"
+        "      <arg name='layout' direction='out' type='s'/>"
+        "      <arg name='session' direction='out' type='s'/>"
+        "    </method>"
+        "  </interface>"
+        "</node>";
+    static const GDBusInterfaceVTable user_manager_vtable =
+    {
+        handle_user_manager_call
+    };
+    GDBusNodeInfo *display_manager_info, *user_manager_info;
+
+    display_manager_info = g_dbus_node_info_new_for_xml (display_manager_interface, NULL);
+    g_assert (display_manager_info != NULL);
+    g_dbus_connection_register_object (connection,
+                                       "/org/lightdm/LightDisplayManager",
+                                       display_manager_info->interfaces[0],
+                                       &display_manager_vtable,
+                                       NULL, NULL,
+                                       NULL);
+
+    user_manager_info = g_dbus_node_info_new_for_xml (user_manager_interface, NULL);
+    g_assert (user_manager_info != NULL);
+    g_dbus_connection_register_object (connection,
+                                       "/org/lightdm/LightDisplayManager/Users",
+                                       user_manager_info->interfaces[0],
+                                       &user_manager_vtable,
+                                       NULL, NULL,
+                                       NULL);
+}
+
+static void
+name_lost_cb (GDBusConnection *connection,
+              const gchar *name,
+              gpointer user_data)
+{
+    if (connection)
+        g_printerr ("Failed to use bus name " LDM_BUS_NAME ", do you have appropriate permissions?\n");
+    else
+        g_printerr ("Failed to get system bus");
+
+    exit (EXIT_FAILURE);
+}
+
 int
 main(int argc, char **argv)
 {
     FILE *pid_file;
-    UserManager *user_manager;
 
     g_thread_init (NULL);
     g_type_init ();
@@ -288,13 +393,16 @@ main(int argc, char **argv)
         return 1;
     }
 
-    bus = start_dbus ();
-    if (!bus)
-        return 1;
-
-    // Change working directory?
-
     loop = g_main_loop_new (NULL, FALSE);
+
+    g_bus_own_name (test_mode ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM,
+                    LDM_BUS_NAME,
+                    G_BUS_NAME_OWNER_FLAGS_NONE,
+                    bus_acquired_cb,
+                    NULL,
+                    name_lost_cb,
+                    NULL,
+                    NULL);
 
     load_config ();
 
@@ -305,10 +413,7 @@ main(int argc, char **argv)
     g_debug ("Loaded configuration from %s", config_path);
 
     user_manager = user_manager_new (config_file);
-    dbus_g_connection_register_g_object (bus, "/org/lightdm/LightDisplayManager/Users", G_OBJECT (user_manager));
-
     display_manager = display_manager_new (config_file);
-    dbus_g_connection_register_g_object (bus, "/org/lightdm/LightDisplayManager", G_OBJECT (display_manager));
 
     display_manager_start (display_manager);
 

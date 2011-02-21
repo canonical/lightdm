@@ -14,7 +14,6 @@
 #include <errno.h>
 
 #include "user-manager.h"
-#include "user-manager-glue.h"
 
 struct UserManagerPrivate
 {
@@ -185,32 +184,15 @@ user_manager_get_user (UserManager *manager, const gchar *username)
     return NULL;
 }
 
-#define TYPE_USER dbus_g_type_get_struct ("GValueArray", G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN, G_TYPE_INVALID)
-
-gboolean
-user_manager_get_users (UserManager *manager, GPtrArray **users, GError *error)
+GList *
+user_manager_get_users (UserManager *manager)
 {
-    GList *link;
-
     update_users (manager);
-
-    *users = g_ptr_array_sized_new (g_list_length (manager->priv->users));
-    for (link = manager->priv->users; link; link = link->next)
-    {
-        UserInfo *info = link->data;
-        GValue value = { 0 };
-
-        g_value_init (&value, TYPE_USER);
-        g_value_take_boxed (&value, dbus_g_type_specialized_construct (TYPE_USER));
-        dbus_g_type_struct_set (&value, 0, info->name, 1, info->real_name, 2, info->image, 3, info->logged_in, G_MAXUINT);
-        g_ptr_array_add (*users, g_value_get_boxed (&value));
-    }
-
-    return TRUE;
+    return manager->priv->users;
 }
 
 gboolean
-user_manager_get_user_defaults (UserManager *manager, gchar *username, gchar **language, gchar **layout, gchar **session, GError *error)
+user_manager_get_user_defaults (UserManager *manager, gchar *username, gchar **language, gchar **layout, gchar **session)
 {
     const UserInfo *info;
     GKeyFile *dmrc_file;
@@ -266,6 +248,4 @@ static void
 user_manager_class_init (UserManagerClass *klass)
 {
     g_type_class_add_private (klass, sizeof (UserManagerPrivate));
-
-    dbus_g_object_type_install_info (USER_MANAGER_TYPE, &dbus_glib_user_manager_object_info);
 }

@@ -49,9 +49,9 @@ gint user_manager_get_num_users (UserManager *manager);
 
 const UserInfo *user_manager_get_user (UserManager *manager, const gchar *username);
 
-gboolean user_manager_get_users (UserManager *manager, GPtrArray **users, GError *error);
+GList *user_manager_get_users (UserManager *manager);
 
-gboolean user_manager_get_user_defaults (UserManager *manager, gchar *username, gchar **language, gchar **layout, gchar **session, GError *error);
+gboolean user_manager_get_user_defaults (UserManager *manager, gchar *username, gchar **language, gchar **layout, gchar **session);
 
 G_END_DECLS
 

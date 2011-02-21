@@ -7,6 +7,7 @@ Overview of changes in lightdm 0.3.0
     * Allow starting virtual terminal to be configured
     * Replace D-Bus greeter communication with a private pipe
     * liblightdmgreeter now connect asynchronously
+    * Use GDBus instead of dbus-glib
 
 Overview of changes in lightdm 0.2.3
 

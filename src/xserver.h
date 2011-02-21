@@ -12,8 +12,6 @@
 #ifndef _XSERVER_H_
 #define _XSERVER_H_
 
-#include <dbus/dbus-glib.h>
-
 #include "child-process.h"
 #include "xauth.h"
 

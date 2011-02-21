@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <dbus/dbus-glib.h>
 #include <xcb/xcb.h>
 #include <pwd.h>
 #include <fcntl.h>
@@ -23,7 +22,6 @@
 #include <linux/vt.h>
 
 #include "display-manager.h"
-#include "display-manager-glue.h"
 #include "xdmcp-server.h"
 #include "xserver.h"
 #include "theme.h"
@@ -373,8 +371,8 @@ add_display (DisplayManager *manager)
     return display;
 }
 
-gboolean
-display_manager_add_display (DisplayManager *manager, GError *error)
+Display *
+display_manager_add_display (DisplayManager *manager)
 {
     Display *display;
     XServer *xserver;
@@ -386,11 +384,11 @@ display_manager_add_display (DisplayManager *manager, GError *error)
     display_start (display);
     g_object_unref (xserver);
 
-    return TRUE;
+    return display;
 }
 
-gboolean
-display_manager_switch_to_user (DisplayManager *manager, char *username, GError *error)
+void
+display_manager_switch_to_user (DisplayManager *manager, char *username)
 {
     GList *link;
     Display *display;
@@ -406,7 +404,7 @@ display_manager_switch_to_user (DisplayManager *manager, char *username, GError 
         {
             g_debug ("Switching to user %s session on display %s", username, xserver_get_address (display_get_xserver (display)));
             //display_focus (display);
-            return TRUE;
+            return;
         }
     }
 
@@ -416,8 +414,6 @@ display_manager_switch_to_user (DisplayManager *manager, char *username, GError 
     display_set_xserver (display, xserver);
     display_start (display);
     g_object_unref (xserver);
-
-    return TRUE;
 }
 
 static gboolean
@@ -637,6 +633,4 @@ display_manager_class_init (DisplayManagerClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__OBJECT,
                       G_TYPE_NONE, 1, DISPLAY_TYPE);
-
-    dbus_g_object_type_install_info (DISPLAY_MANAGER_TYPE, &dbus_glib_display_manager_object_info);
 }
