@@ -46,7 +46,7 @@ load_theme (const gchar *name, GError **error)
 gchar *
 theme_get_command (GKeyFile *theme)
 {
-    gchar *engine, *command = NULL;
+    gchar *engine, *command;
 
     engine = g_key_file_get_value (theme, "theme", "engine", NULL);
     if (!engine)
@@ -55,34 +55,10 @@ theme_get_command (GKeyFile *theme)
         return NULL;
     }
 
-    if (strcmp (engine, "gtk") == 0)
-        command = g_build_filename (THEME_ENGINE_DIR, "lightdm-gtk-greeter", NULL);
-    else if (strcmp (engine, "webkit") == 0)
-    {
-        gchar *binary, *url;
-
-        binary = g_build_filename (THEME_ENGINE_DIR, "lightdm-webkit-greeter", NULL);
-        url = g_key_file_get_value (theme, "theme", "url", NULL);
-        if (url)
-        {
-            if (strchr (url, ':'))
-                command = g_strdup_printf ("%s %s", binary, url);
-            else
-                command = g_strdup_printf ("%s file://%s/%s", binary, g_key_file_get_value (theme, "_", "path", NULL), url);
-        }
-        else
-            g_warning ("Missing URL in WebKit theme");
-        g_free (binary);
-        g_free (url);
-    }
-    else if (strcmp (engine, "custom") == 0)
-    {
-        command = g_key_file_get_value (theme, "theme", "command", NULL);
-        if (!command)
-            g_warning ("Missing command in custom theme");
-    }
-    else
-        g_warning ("Unknown theme engine: %s", engine);
+    /* FIXME: This is perhaps unsafe - 'engine' could contain a relative path, e.g. "../../../run_something_malicious".
+     * Perhaps there should be a check for this or the engines need a file like /usr/share/lightdm/engines/foo.engine */
+    command = g_build_filename (THEME_ENGINE_DIR, engine, NULL);
+    g_free (engine);
 
     return command;
 }
