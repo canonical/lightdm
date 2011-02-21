@@ -486,7 +486,7 @@ update_users (LdmGreeter *greeter)
     user_array = g_variant_get_child_value (result, 0);
     g_debug ("Got %zi users", g_variant_n_children (user_array));
     g_variant_iter_init (&iter, user_array);
-    while (g_variant_iter_loop (&iter, "(sssb)", &name, &real_name, &image, &logged_in))
+    while (g_variant_iter_next (&iter, "(&s&s&sb)", &name, &real_name, &image, &logged_in))
     {
         LdmUser *user;
 
