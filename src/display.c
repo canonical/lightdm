@@ -75,6 +75,8 @@ struct DisplayPrivate
 
     /* Pipe to communicate to greeter */
     int greeter_pipe[2];
+    gchar *read_buffer;
+    gsize n_read;
 
     /* Greeter session process */
     Session *greeter_session;
@@ -657,6 +659,44 @@ end_greeter_session (Display *display, gboolean clean_exit)
 }
 
 static void
+write_int (Display *display, guint32 value)
+{
+    g_io_channel_write_chars (child_process_get_to_child_channel (CHILD_PROCESS (display->priv->greeter_session)), (const gchar *) &value, sizeof (value), NULL, NULL);
+}
+
+static void
+write_string (Display *display, const gchar *value)
+{
+    write_int (display, strlen (value));
+    g_io_channel_write_chars (child_process_get_to_child_channel (CHILD_PROCESS (display->priv->greeter_session)), value, -1, NULL, NULL);  
+}
+
+static void
+write_header (Display *display, guint32 id, guint32 length)
+{
+    write_int (display, id);
+    write_int (display, length);
+}
+
+static guint32
+int_length ()
+{
+    return sizeof (guint32);
+}
+
+static guint32
+string_length (const gchar *value)
+{
+    return int_length () + strlen (value);
+}
+
+static void
+flush (Display *display)
+{
+    g_io_channel_flush (child_process_get_to_child_channel (CHILD_PROCESS (display->priv->greeter_session)), NULL);
+}
+
+static void
 handle_connect (Display *display)
 {
     gchar *theme;
@@ -667,32 +707,38 @@ handle_connect (Display *display)
         g_debug ("Greeter connected");
     }
 
-    child_process_write_int (CHILD_PROCESS (display->priv->greeter_session), GREETER_MESSAGE_CONNECTED);
     theme = g_build_filename (THEME_DIR, display->priv->greeter_theme, "index.theme", NULL);
-    child_process_write_string (CHILD_PROCESS (display->priv->greeter_session), theme);
+
+    write_header (display, GREETER_MESSAGE_CONNECTED, string_length (theme) + string_length (display->priv->default_layout) + string_length (display->priv->default_session) + string_length (display->priv->default_user ? display->priv->default_user : "") + int_length ());
+    write_string (display, theme);
+    write_string (display, display->priv->default_layout);
+    write_string (display, display->priv->default_session);
+    write_string (display, display->priv->default_user ? display->priv->default_user : "");
+    write_int (display, display->priv->timeout);
+    flush (display);
+
     g_free (theme);
-    child_process_write_string (CHILD_PROCESS (display->priv->greeter_session), display->priv->default_layout);
-    child_process_write_string (CHILD_PROCESS (display->priv->greeter_session), display->priv->default_session);
-    child_process_write_string (CHILD_PROCESS (display->priv->greeter_session), display->priv->default_user ? display->priv->default_user : "");
-    child_process_write_int (CHILD_PROCESS (display->priv->greeter_session), display->priv->timeout);
-    child_process_flush (CHILD_PROCESS (display->priv->greeter_session));
 }
 
 static void
 pam_messages_cb (PAMSession *session, int num_msg, const struct pam_message **msg, Display *display)
 {
     int i;
+    guint32 size;
 
     /* Respond to d-bus query with messages */
     g_debug ("Prompt greeter with %d message(s)", num_msg);
-    child_process_write_int (CHILD_PROCESS (display->priv->greeter_session), GREETER_MESSAGE_PROMPT_AUTHENTICATION);
-    child_process_write_int (CHILD_PROCESS (display->priv->greeter_session), num_msg);
+    size = int_length ();
+    for (i = 0; i < num_msg; i++)
+        size += int_length () + string_length (msg[i]->msg);
+    write_header (display, GREETER_MESSAGE_PROMPT_AUTHENTICATION, size);
+    write_int (display, num_msg);
     for (i = 0; i < num_msg; i++)
     {
-        child_process_write_int (CHILD_PROCESS (display->priv->greeter_session), msg[i]->msg_style);
-        child_process_write_string (CHILD_PROCESS (display->priv->greeter_session), msg[i]->msg);
+        write_int (display, msg[i]->msg_style);
+        write_string (display, msg[i]->msg);
     }
-    child_process_flush (CHILD_PROCESS (display->priv->greeter_session));  
+    flush (display);  
 }
 
 static void
@@ -707,9 +753,9 @@ authenticate_result_cb (PAMSession *session, int result, Display *display)
     }
 
     /* Respond to D-Bus request */
-    child_process_write_int (CHILD_PROCESS (display->priv->greeter_session), GREETER_MESSAGE_END_AUTHENTICATION);
-    child_process_write_int (CHILD_PROCESS (display->priv->greeter_session), result);   
-    child_process_flush (CHILD_PROCESS (display->priv->greeter_session));
+    write_header (display, GREETER_MESSAGE_END_AUTHENTICATION, int_length ());
+    write_int (display, result);   
+    flush (display);
 }
 
 static void
@@ -807,8 +853,8 @@ quit_greeter_cb (gpointer data)
 static void
 quit_greeter (Display *display)
 {
-    child_process_write_int (CHILD_PROCESS (display->priv->greeter_session), GREETER_MESSAGE_QUIT);
-    child_process_flush (CHILD_PROCESS (display->priv->greeter_session));
+    write_header (display, GREETER_MESSAGE_QUIT, 0);
+    flush (display);
 
     if (display->priv->greeter_quit_timeout)
         g_source_remove (display->priv->greeter_quit_timeout);
@@ -866,39 +912,110 @@ handle_login (Display *display, gchar *username, gchar *session, gchar *language
         quit_greeter (display);
 }
 
+#define HEADER_SIZE (sizeof (guint32) * 2)
+
+static guint32
+read_int (Display *display, gsize *offset)
+{
+    guint32 *value;
+    if (display->priv->n_read - *offset < sizeof (guint32))
+    {
+        g_warning ("Not enough space for int, need %zu, got %zu", sizeof (guint32), display->priv->n_read - *offset);
+        return 0;
+    }
+    value = (guint32 *) (display->priv->read_buffer + *offset);
+    *offset += sizeof (guint32);
+    return *value;
+}
+
+static gchar *
+read_string (Display *display, gsize *offset)
+{
+    guint32 length;
+    gchar *value;
+
+    length = read_int (display, offset);
+    if (display->priv->n_read - *offset < length)
+    {
+        g_warning ("Not enough space for string, need %u, got %zu", length, display->priv->n_read - *offset);
+        return g_strdup ("");
+    }
+
+    value = g_malloc (sizeof (gchar *) * (length + 1));
+    memcpy (value, display->priv->read_buffer + *offset, length);
+    value[length] = '\0';
+    *offset += length;
+
+    return value;
+}
+
 static void
 greeter_data_cb (Session *session, Display *display)
 {
+    gsize n_to_read, n_read, offset;
+    GIOStatus status;
     int message, n_secrets, i;
     gchar *username, *session_name, *language;
     gchar **secrets;
+    GError *error = NULL;
 
-    /* FIXME: This could all block and lock up the server */
+    n_to_read = HEADER_SIZE;
+    if (display->priv->n_read >= HEADER_SIZE)
+        n_to_read += ((guint32 *) display->priv->read_buffer)[1];
 
-    message = child_process_read_int (CHILD_PROCESS (session));
+    status = g_io_channel_read_chars (child_process_get_from_child_channel (CHILD_PROCESS (session)),
+                                      display->priv->read_buffer + display->priv->n_read,
+                                      n_to_read - display->priv->n_read,
+                                      &n_read,
+                                      &error);
+    if (status != G_IO_STATUS_NORMAL)
+        g_warning ("Error reading from greeter: %s", error->message);
+    g_clear_error (&error);
+    if (status != G_IO_STATUS_NORMAL)
+        return;
+
+    display->priv->n_read += n_read;
+    if (display->priv->n_read != n_to_read)
+        return;
+
+    /* If have header, rerun for content */
+    if (display->priv->n_read == HEADER_SIZE)
+    {
+        n_to_read = ((guint32 *) display->priv->read_buffer)[1];
+        if (n_to_read > 0)
+        {
+            display->priv->read_buffer = g_realloc (display->priv->read_buffer, HEADER_SIZE + n_to_read);
+            greeter_data_cb (session, display);
+            return;
+        }
+    }
+
+    offset = 0;
+    message = read_int (display, &offset);
+    read_int (display, &offset);
     switch (message)
     {
     case GREETER_MESSAGE_CONNECT:
         handle_connect (display);
         break;
     case GREETER_MESSAGE_START_AUTHENTICATION:
-        username = child_process_read_string (CHILD_PROCESS (session));
+        username = read_string (display, &offset);
         handle_start_authentication (display, username);
         g_free (username);
         break;
     case GREETER_MESSAGE_CONTINUE_AUTHENTICATION:
-        n_secrets = child_process_read_int (CHILD_PROCESS (session));
+        n_secrets = read_int (display, &offset);
         secrets = g_malloc (sizeof (gchar *) * (n_secrets + 1));
         for (i = 0; i < n_secrets; i++)
-            secrets[i] = child_process_read_string (CHILD_PROCESS (session));
+            secrets[i] = read_string (display, &offset);
         secrets[i] = NULL;
         handle_continue_authentication (display, secrets);
         g_strfreev (secrets);
         break;
     case GREETER_MESSAGE_LOGIN:
-        username = child_process_read_string (CHILD_PROCESS (session));
-        session_name = child_process_read_string (CHILD_PROCESS (session));
-        language = child_process_read_string (CHILD_PROCESS (session));
+        username = read_string (display, &offset);
+        session_name = read_string (display, &offset);
+        language = read_string (display, &offset);
         handle_login (display, username, session_name, language);
         g_free (username);
         g_free (session_name);
@@ -908,6 +1025,8 @@ greeter_data_cb (Session *session, Display *display)
         g_warning ("Unknown message from greeter: %d", message);
         break;
     }
+
+    display->priv->n_read = 0;
 }
 
 static void
@@ -1025,6 +1144,7 @@ display_init (Display *display)
     display->priv->greeter_theme = g_strdup (GREETER_THEME);
     display->priv->default_layout = g_strdup ("us"); // FIXME: Is there a better default to get?
     display->priv->default_session = g_strdup (DEFAULT_SESSION);
+    display->priv->read_buffer = g_malloc (HEADER_SIZE);
 }
 
 static void

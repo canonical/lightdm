@@ -255,6 +255,7 @@ child_process_start (ChildProcess *process,
         /* Watch for data from the child process */
         process->priv->from_child_channel = g_io_channel_unix_new (from_child_pipe[0]);
         g_io_channel_set_encoding (process->priv->from_child_channel, NULL, NULL);
+
         g_io_add_watch (process->priv->from_child_channel, G_IO_IN, from_child_cb, process);
 
         to_server_fd = from_child_pipe[1];
@@ -328,45 +329,16 @@ child_process_signal (ChildProcess *process, int signum)
         kill (process->priv->pid, signum);
 }
 
-guint32
-child_process_read_int (ChildProcess *process)
+GIOChannel *
+child_process_get_to_child_channel (ChildProcess *process)
 {
-    guint32 value;
-    g_io_channel_read_chars (process->priv->from_child_channel, (gchar *) &value, sizeof (value), NULL, NULL);
-    return value;
+    return process->priv->to_child_channel;
 }
 
-gchar *
-child_process_read_string (ChildProcess *process)
+GIOChannel *
+child_process_get_from_child_channel (ChildProcess *process)
 {
-    guint32 length;
-    gchar *value;
-
-    length = child_process_read_int (process);
-    value = g_malloc (sizeof (gchar *) * (length + 1));
-    g_io_channel_read_chars (process->priv->from_child_channel, value, length, NULL, NULL);    
-    value[length] = '\0';
-
-    return value;
-}
-
-void
-child_process_write_int (ChildProcess *process, guint32 value)
-{
-    g_io_channel_write_chars (process->priv->to_child_channel, (const gchar *) &value, sizeof (value), NULL, NULL);
-}
-
-void
-child_process_write_string (ChildProcess *process, const gchar *value)
-{
-    child_process_write_int (process, strlen (value));
-    g_io_channel_write_chars (process->priv->to_child_channel, value, -1, NULL, NULL);  
-}
-
-void
-child_process_flush (ChildProcess *process)
-{
-    g_io_channel_flush (process->priv->to_child_channel, NULL);
+    return process->priv->from_child_channel;
 }
 
 static void

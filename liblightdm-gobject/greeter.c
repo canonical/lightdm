@@ -157,6 +157,25 @@ write_string (LdmGreeter *greeter, const gchar *value)
     g_io_channel_write_chars (greeter->priv->to_server_channel, value, -1, NULL, NULL);
 }
 
+static guint32
+int_length ()
+{
+    return sizeof (guint32);
+}
+
+static guint32
+string_length (const gchar *value)
+{
+    return int_length () + strlen (value);
+}
+
+static void
+write_header (LdmGreeter *greeter, guint32 id, guint32 length)
+{
+    write_int (greeter, id);
+    write_int (greeter, length);
+}
+
 static void
 flush (LdmGreeter *greeter)
 {
@@ -205,6 +224,7 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     int message, return_code;
 
     message = read_int (greeter);
+    read_int (greeter); // length
     switch (message)
     {
     case GREETER_MESSAGE_CONNECTED:
@@ -322,7 +342,7 @@ ldm_greeter_connect (LdmGreeter *greeter)
                                                        NULL, NULL);
 
     g_debug ("Connecting to display manager...");
-    write_int (greeter, GREETER_MESSAGE_CONNECT);
+    write_header (greeter, GREETER_MESSAGE_CONNECT, 0);
     flush (greeter);
 
     return TRUE;
@@ -890,7 +910,7 @@ ldm_greeter_start_authentication (LdmGreeter *greeter, const char *username)
     g_free (greeter->priv->authentication_user);
     greeter->priv->authentication_user = g_strdup (username);
     g_debug ("Starting authentication for user %s...", username);
-    write_int (greeter, GREETER_MESSAGE_START_AUTHENTICATION);
+    write_header (greeter, GREETER_MESSAGE_START_AUTHENTICATION, string_length (username));
     write_string (greeter, username);
     flush (greeter);
 }
@@ -909,7 +929,7 @@ ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret)
     g_return_if_fail (secret != NULL);
 
     g_debug ("Providing secret to display manager");
-    write_int (greeter, GREETER_MESSAGE_CONTINUE_AUTHENTICATION);
+    write_header (greeter, GREETER_MESSAGE_CONTINUE_AUTHENTICATION, int_length () + string_length (secret));
     // FIXME: Could be multiple secrets required
     write_int (greeter, 1);
     write_string (greeter, secret);
@@ -972,12 +992,17 @@ ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *sess
 {
     g_return_if_fail (LDM_IS_GREETER (greeter));
     g_return_if_fail (username != NULL);
+  
+    if (!session)
+        session = "";
+    if (!language)
+        language = "";
 
     g_debug ("Logging in");
-    write_int (greeter, GREETER_MESSAGE_LOGIN);
+    write_header (greeter, GREETER_MESSAGE_LOGIN, string_length (username) + string_length (session) + string_length (language));
     write_string (greeter, username);
-    write_string (greeter, session ? session : "");
-    write_string (greeter, language ? language : "");
+    write_string (greeter, session);
+    write_string (greeter, language);
     flush (greeter);
 }
 

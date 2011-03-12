@@ -61,15 +61,9 @@ GPid child_process_get_pid (ChildProcess *process);
 
 void child_process_signal (ChildProcess *process, int signum);
 
-guint32 child_process_read_int (ChildProcess *process);
+GIOChannel *child_process_get_to_child_channel (ChildProcess *process);
 
-gchar *child_process_read_string (ChildProcess *process);
-
-void child_process_write_int (ChildProcess *process, guint32 value);
-
-void child_process_write_string (ChildProcess *process, const gchar *value);
-
-void child_process_flush (ChildProcess *process);
+GIOChannel *child_process_get_from_child_channel (ChildProcess *process);
 
 G_END_DECLS
 
