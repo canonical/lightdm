@@ -18,7 +18,7 @@
 G_BEGIN_DECLS
 
 #define SESSION_TYPE (session_get_type())
-#define SESSION(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), SESSION_TYPE, Session));
+#define SESSION(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), SESSION_TYPE, Session))
 
 typedef struct SessionPrivate SessionPrivate;
 
@@ -35,9 +35,13 @@ typedef struct
 
 GType session_get_type (void);
 
-Session *session_new (const char *username, const char *command);
+Session *session_new (void);
+
+void session_set_username (Session *session, const gchar *username);
 
 const gchar *session_get_username (Session *session);
+
+void session_set_command (Session *session, const gchar *command);
 
 const gchar *session_get_command (Session *session);
 

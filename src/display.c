@@ -21,13 +21,10 @@
 #include "pam-session.h"
 #include "theme.h"
 #include "ldm-marshal.h"
-#include "greeter-protocol.h"
+#include "greeter.h"
 
 /* Length of time in milliseconds to wait for a session to load */
 #define USER_SESSION_TIMEOUT 5000
-
-/* Length of time in milliseconds to wait for a greeter to quit */
-#define GREETER_QUIT_TIMEOUT 1000
 
 enum {
     START_GREETER,
@@ -73,15 +70,8 @@ struct DisplayPrivate
     /* PAM service to authenticate against */
     gchar *pam_service;
 
-    /* Pipe to communicate to greeter */
-    int greeter_pipe[2];
-    gchar *read_buffer;
-    gsize n_read;
-
     /* Greeter session process */
-    Session *greeter_session;
-    gboolean greeter_connected;
-    guint greeter_quit_timeout;
+    Greeter *greeter_session;
     PAMSession *greeter_pam_session;
     gchar *greeter_ck_cookie;
 
@@ -556,7 +546,9 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
                 session_command = g_strdup_printf ("%s '%s'", display->priv->session_wrapper, session_command);
                 g_free (old_command);
             }
-            display->priv->user_session = session_new (pam_session_get_username (display->priv->user_pam_session), session_command);
+            display->priv->user_session = session_new ();
+            session_set_username (display->priv->user_session, pam_session_get_username (display->priv->user_pam_session));
+            session_set_command (display->priv->user_session, session_command);
 
             g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
             g_signal_connect (G_OBJECT (display->priv->user_session), "terminated", G_CALLBACK (user_session_terminated_cb), display);
@@ -619,271 +611,21 @@ start_default_session (Display *display, const gchar *session, const gchar *lang
     start_user_session (display, session, language);
 }
 
-static void
-end_greeter_session (Display *display, gboolean clean_exit)
-{  
-    gboolean greeter_connected;
-  
-    if (display->priv->greeter_quit_timeout)
-    {
-        g_source_remove (display->priv->greeter_quit_timeout);
-        display->priv->greeter_quit_timeout = 0;
-    }
-
-    g_signal_emit (display, signals[END_GREETER], 0, display->priv->greeter_session);
-
-    greeter_connected = display->priv->greeter_connected;
-
-    g_object_unref (display->priv->greeter_session);
-    display->priv->greeter_session = NULL;
-    display->priv->greeter_connected = FALSE;
-
-    pam_session_end (display->priv->greeter_pam_session);
-    g_object_unref (display->priv->greeter_pam_session);
-    display->priv->greeter_pam_session = NULL;
-
-    end_ck_session (display->priv->greeter_ck_cookie);
-    g_free (display->priv->greeter_ck_cookie);
-    display->priv->greeter_ck_cookie = NULL;
-
-    if (!clean_exit)
-        g_warning ("Greeter failed");
-    else if (!greeter_connected)
-        g_warning ("Greeter quit before connecting");
-    else if (!display->priv->user_session)
-        g_warning ("Greeter quit before session started");
-    else
-        return;
-
-    // FIXME: Issue with greeter, don't want to start a new one, report error to user
-}
-
-static void
-write_int (Display *display, guint32 value)
-{
-    g_io_channel_write_chars (child_process_get_to_child_channel (CHILD_PROCESS (display->priv->greeter_session)), (const gchar *) &value, sizeof (value), NULL, NULL);
-}
-
-static void
-write_string (Display *display, const gchar *value)
-{
-    write_int (display, strlen (value));
-    g_io_channel_write_chars (child_process_get_to_child_channel (CHILD_PROCESS (display->priv->greeter_session)), value, -1, NULL, NULL);  
-}
-
-static void
-write_header (Display *display, guint32 id, guint32 length)
-{
-    write_int (display, id);
-    write_int (display, length);
-}
-
-static guint32
-int_length ()
-{
-    return sizeof (guint32);
-}
-
-static guint32
-string_length (const gchar *value)
-{
-    return int_length () + strlen (value);
-}
-
-static void
-flush (Display *display)
-{
-    g_io_channel_flush (child_process_get_to_child_channel (CHILD_PROCESS (display->priv->greeter_session)), NULL);
-}
-
-static void
-handle_connect (Display *display)
-{
-    gchar *theme;
-
-    if (!display->priv->greeter_connected)
-    {
-        display->priv->greeter_connected = TRUE;
-        g_debug ("Greeter connected");
-    }
-
-    theme = g_build_filename (THEME_DIR, display->priv->greeter_theme, "index.theme", NULL);
-
-    write_header (display, GREETER_MESSAGE_CONNECTED, string_length (theme) + string_length (display->priv->default_layout) + string_length (display->priv->default_session) + string_length (display->priv->default_user ? display->priv->default_user : "") + int_length ());
-    write_string (display, theme);
-    write_string (display, display->priv->default_layout);
-    write_string (display, display->priv->default_session);
-    write_string (display, display->priv->default_user ? display->priv->default_user : "");
-    write_int (display, display->priv->timeout);
-    flush (display);
-
-    g_free (theme);
-}
-
-static void
-pam_messages_cb (PAMSession *session, int num_msg, const struct pam_message **msg, Display *display)
-{
-    int i;
-    guint32 size;
-
-    /* Respond to d-bus query with messages */
-    g_debug ("Prompt greeter with %d message(s)", num_msg);
-    size = int_length ();
-    for (i = 0; i < num_msg; i++)
-        size += int_length () + string_length (msg[i]->msg);
-    write_header (display, GREETER_MESSAGE_PROMPT_AUTHENTICATION, size);
-    write_int (display, num_msg);
-    for (i = 0; i < num_msg; i++)
-    {
-        write_int (display, msg[i]->msg_style);
-        write_string (display, msg[i]->msg);
-    }
-    flush (display);  
-}
-
-static void
-authenticate_result_cb (PAMSession *session, int result, Display *display)
-{
-    g_debug ("Authenticate result for user %s: %s", pam_session_get_username (display->priv->user_pam_session), pam_session_strerror (display->priv->user_pam_session, result));
-
-    if (result == PAM_SUCCESS)
-    {
-        run_script ("PostLogin");
-        pam_session_authorize (session);
-    }
-
-    /* Respond to D-Bus request */
-    write_header (display, GREETER_MESSAGE_END_AUTHENTICATION, int_length ());
-    write_int (display, result);   
-    flush (display);
-}
-
-static void
-session_started_cb (PAMSession *session, Display *display)
-{
-    display->priv->user_ck_cookie = start_ck_session (display, "", pam_session_get_username (display->priv->user_pam_session));
-}
-
-static void
-handle_start_authentication (Display *display, const gchar *username)
-{
-    GError *error = NULL;
-
-    if (!display->priv->greeter_session || display->priv->user_session)
-        return;
-
-    /* Abort existing authentication */
-    if (display->priv->user_pam_session)
-    {
-        g_signal_handlers_disconnect_matched (display->priv->user_pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-        pam_session_end (display->priv->user_pam_session);
-        g_object_unref (display->priv->user_pam_session);
-    }
-
-    g_debug ("Greeter start authentication for %s", username);
-
-    display->priv->user_pam_session = pam_session_new (display->priv->pam_service, username);
-    g_signal_connect (G_OBJECT (display->priv->user_pam_session), "got-messages", G_CALLBACK (pam_messages_cb), display);
-    g_signal_connect (G_OBJECT (display->priv->user_pam_session), "authentication-result", G_CALLBACK (authenticate_result_cb), display);
-    g_signal_connect (G_OBJECT (display->priv->user_pam_session), "started", G_CALLBACK (session_started_cb), display);
-
-    if (!pam_session_start (display->priv->user_pam_session, &error))
-        g_warning ("Failed to start authentication: %s", error->message);
-}
-
-static void
-handle_continue_authentication (Display *display, gchar **secrets)
-{
-    int num_messages;
-    const struct pam_message **messages;
-    struct pam_response *response;
-    int i, j, n_secrets = 0;
-
-    /* Not connected */
-    if (!display->priv->greeter_connected)
-        return;
-
-    /* Not in authorization */
-    if (display->priv->user_pam_session == NULL)
-        return;
-
-    num_messages = pam_session_get_num_messages (display->priv->user_pam_session);
-    messages = pam_session_get_messages (display->priv->user_pam_session);
-
-    /* Check correct number of responses */
-    for (i = 0; i < num_messages; i++)
-    {
-        int msg_style = messages[i]->msg_style;
-        if (msg_style == PAM_PROMPT_ECHO_OFF || msg_style == PAM_PROMPT_ECHO_ON)
-            n_secrets++;
-    }
-    if (g_strv_length (secrets) != n_secrets)
-    {
-        pam_session_end (display->priv->user_pam_session);
-        return;
-    }
-
-    g_debug ("Continue authentication");
-
-    /* Build response */
-    response = calloc (num_messages, sizeof (struct pam_response));  
-    for (i = 0, j = 0; i < num_messages; i++)
-    {
-        int msg_style = messages[i]->msg_style;
-        if (msg_style == PAM_PROMPT_ECHO_OFF || msg_style == PAM_PROMPT_ECHO_ON)
-        {
-            response[i].resp = strdup (secrets[j]); // FIXME: Need to convert from UTF-8
-            j++;
-        }
-    }
-
-    pam_session_respond (display->priv->user_pam_session, response);
-}
-
-static gboolean
-quit_greeter_cb (gpointer data)
-{
-    Display *display = data;
-    g_warning ("Greeter did not quit, sending kill signal");
-    session_stop (display->priv->greeter_session);
-    display->priv->greeter_quit_timeout = 0;
-    return TRUE;
-}
-
-static void
-quit_greeter (Display *display)
-{
-    write_header (display, GREETER_MESSAGE_QUIT, 0);
-    flush (display);
-
-    if (display->priv->greeter_quit_timeout)
-        g_source_remove (display->priv->greeter_quit_timeout);
-    display->priv->greeter_quit_timeout = g_timeout_add (GREETER_QUIT_TIMEOUT, quit_greeter_cb, display);
-}
-
 static gboolean
 session_timeout_cb (Display *display)
 {
     g_warning ("Session has not indicated it is ready, stopping greeter anyway");
 
     /* Stop the greeter */
-    quit_greeter (display);
+    greeter_quit (display->priv->greeter_session);
 
     display->priv->user_session_timer = 0;
     return FALSE;
 }
 
 static void
-handle_login (Display *display, gchar *username, gchar *session, gchar *language)
+greeter_login_cb (Greeter *greeter, const gchar *username, const gchar *session, const gchar *language, Display *display)
 {
-    if (display->priv->user_session != NULL)
-    {
-        g_warning ("Ignoring request to log in when already logged in");
-        return;
-    }
-
-    g_debug ("Greeter login for user %s on session %s", username, session);
-  
     /* Default session requested */
     if (strcmp (session, "") == 0)
         session = display->priv->default_session;
@@ -891,6 +633,9 @@ handle_login (Display *display, gchar *username, gchar *session, gchar *language
     /* Default language requested */
     if (strcmp (language, "") == 0)
         language = NULL;
+  
+    display->priv->user_pam_session = greeter_get_pam_session (greeter);
+    display->priv->user_ck_cookie = start_ck_session (display, "", pam_session_get_username (display->priv->user_pam_session));
 
     if (display->priv->default_user && strcmp (username, display->priv->default_user) == 0)
         start_default_session (display, session, language);
@@ -909,136 +654,24 @@ handle_login (Display *display, gchar *username, gchar *session, gchar *language
     if (display->priv->supports_transitions)
         display->priv->user_session_timer = g_timeout_add (USER_SESSION_TIMEOUT, (GSourceFunc) session_timeout_cb, display);
     else
-        quit_greeter (display);
-}
-
-#define HEADER_SIZE (sizeof (guint32) * 2)
-
-static guint32
-read_int (Display *display, gsize *offset)
-{
-    guint32 *value;
-    if (display->priv->n_read - *offset < sizeof (guint32))
-    {
-        g_warning ("Not enough space for int, need %zu, got %zu", sizeof (guint32), display->priv->n_read - *offset);
-        return 0;
-    }
-    value = (guint32 *) (display->priv->read_buffer + *offset);
-    *offset += sizeof (guint32);
-    return *value;
-}
-
-static gchar *
-read_string (Display *display, gsize *offset)
-{
-    guint32 length;
-    gchar *value;
-
-    length = read_int (display, offset);
-    if (display->priv->n_read - *offset < length)
-    {
-        g_warning ("Not enough space for string, need %u, got %zu", length, display->priv->n_read - *offset);
-        return g_strdup ("");
-    }
-
-    value = g_malloc (sizeof (gchar *) * (length + 1));
-    memcpy (value, display->priv->read_buffer + *offset, length);
-    value[length] = '\0';
-    *offset += length;
-
-    return value;
+        greeter_quit (display->priv->greeter_session);
 }
 
 static void
-greeter_data_cb (Session *session, Display *display)
+greeter_quit_cb (Greeter *greeter, Display *display)
 {
-    gsize n_to_read, n_read, offset;
-    GIOStatus status;
-    int message, n_secrets, i;
-    gchar *username, *session_name, *language;
-    gchar **secrets;
-    GError *error = NULL;
+    g_signal_emit (greeter, signals[END_GREETER], 0, display->priv->greeter_session);
 
-    n_to_read = HEADER_SIZE;
-    if (display->priv->n_read >= HEADER_SIZE)
-        n_to_read += ((guint32 *) display->priv->read_buffer)[1];
+    pam_session_end (display->priv->greeter_pam_session);
+    g_object_unref (display->priv->greeter_pam_session);
+    display->priv->greeter_pam_session = NULL;
 
-    status = g_io_channel_read_chars (child_process_get_from_child_channel (CHILD_PROCESS (session)),
-                                      display->priv->read_buffer + display->priv->n_read,
-                                      n_to_read - display->priv->n_read,
-                                      &n_read,
-                                      &error);
-    if (status != G_IO_STATUS_NORMAL)
-        g_warning ("Error reading from greeter: %s", error->message);
-    g_clear_error (&error);
-    if (status != G_IO_STATUS_NORMAL)
-        return;
+    g_object_unref (display->priv->greeter_session);
+    display->priv->greeter_session = NULL;
 
-    display->priv->n_read += n_read;
-    if (display->priv->n_read != n_to_read)
-        return;
-
-    /* If have header, rerun for content */
-    if (display->priv->n_read == HEADER_SIZE)
-    {
-        n_to_read = ((guint32 *) display->priv->read_buffer)[1];
-        if (n_to_read > 0)
-        {
-            display->priv->read_buffer = g_realloc (display->priv->read_buffer, HEADER_SIZE + n_to_read);
-            greeter_data_cb (session, display);
-            return;
-        }
-    }
-
-    offset = 0;
-    message = read_int (display, &offset);
-    read_int (display, &offset);
-    switch (message)
-    {
-    case GREETER_MESSAGE_CONNECT:
-        handle_connect (display);
-        break;
-    case GREETER_MESSAGE_START_AUTHENTICATION:
-        username = read_string (display, &offset);
-        handle_start_authentication (display, username);
-        g_free (username);
-        break;
-    case GREETER_MESSAGE_CONTINUE_AUTHENTICATION:
-        n_secrets = read_int (display, &offset);
-        secrets = g_malloc (sizeof (gchar *) * (n_secrets + 1));
-        for (i = 0; i < n_secrets; i++)
-            secrets[i] = read_string (display, &offset);
-        secrets[i] = NULL;
-        handle_continue_authentication (display, secrets);
-        g_strfreev (secrets);
-        break;
-    case GREETER_MESSAGE_LOGIN:
-        username = read_string (display, &offset);
-        session_name = read_string (display, &offset);
-        language = read_string (display, &offset);
-        handle_login (display, username, session_name, language);
-        g_free (username);
-        g_free (session_name);
-        g_free (language);
-        break;
-    default:
-        g_warning ("Unknown message from greeter: %d", message);
-        break;
-    }
-
-    display->priv->n_read = 0;
-}
-
-static void
-greeter_session_exited_cb (Session *session, gint status, Display *display)
-{
-    end_greeter_session (display, status == 0);
-}
-
-static void
-greeter_session_terminated_cb (Session *session, gint signum, Display *display)
-{
-    end_greeter_session (display, FALSE);
+    end_ck_session (display->priv->greeter_ck_cookie);
+    g_free (display->priv->greeter_ck_cookie);
+    display->priv->greeter_ck_cookie = NULL;  
 }
 
 static void
@@ -1080,22 +713,26 @@ start_greeter (Display *display)
         pam_session_authorize (display->priv->greeter_pam_session);
 
         display->priv->greeter_ck_cookie = start_ck_session (display,
-                                                              "LoginWindow",
-                                                              username);
+                                                             "LoginWindow",
+                                                             username);
 
-        display->priv->greeter_connected = FALSE;
-        display->priv->greeter_session = session_new (username, command);
-        g_signal_connect (G_OBJECT (display->priv->greeter_session), "got-data", G_CALLBACK (greeter_data_cb), display);      
-        g_signal_connect (G_OBJECT (display->priv->greeter_session), "exited", G_CALLBACK (greeter_session_exited_cb), display);
-        g_signal_connect (G_OBJECT (display->priv->greeter_session), "terminated", G_CALLBACK (greeter_session_terminated_cb), display);
+        display->priv->greeter_session = greeter_new ();
+        greeter_set_theme (display->priv->greeter_session, display->priv->greeter_theme);
+        greeter_set_default_user (display->priv->greeter_session, display->priv->default_user, display->priv->timeout);
+        greeter_set_layout (display->priv->greeter_session, display->priv->default_layout);
+        greeter_set_session (display->priv->greeter_session, display->priv->default_session);
+        g_signal_connect (G_OBJECT (display->priv->greeter_session), "login", G_CALLBACK (greeter_login_cb), display);
+        g_signal_connect (G_OBJECT (display->priv->greeter_session), "quit", G_CALLBACK (greeter_quit_cb), display);
+        session_set_username (SESSION (display->priv->greeter_session), username);
+        session_set_command (SESSION (display->priv->greeter_session), command);
         child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "DISPLAY", xserver_get_address (display->priv->xserver));
         if (display->priv->greeter_ck_cookie)
             child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "XDG_SESSION_COOKIE", display->priv->greeter_ck_cookie);
-        set_env_from_pam_session (display->priv->greeter_session, display->priv->greeter_pam_session);
+        set_env_from_pam_session (SESSION (display->priv->greeter_session), display->priv->greeter_pam_session);
 
         g_signal_emit (display, signals[START_GREETER], 0, display->priv->greeter_session);
 
-        session_start (display->priv->greeter_session, TRUE);
+        session_start (SESSION (display->priv->greeter_session), TRUE);
 
         g_free (command);
         g_key_file_free (theme);
@@ -1144,7 +781,6 @@ display_init (Display *display)
     display->priv->greeter_theme = g_strdup (GREETER_THEME);
     display->priv->default_layout = g_strdup ("us"); // FIXME: Is there a better default to get?
     display->priv->default_session = g_strdup (DEFAULT_SESSION);
-    display->priv->read_buffer = g_malloc (HEADER_SIZE);
 }
 
 static void

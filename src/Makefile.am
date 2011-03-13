@@ -13,6 +13,8 @@ lightdm_SOURCES = \
 	display.h \
 	display-manager.c \
 	display-manager.h \
+	greeter.c \
+	greeter.h \
 	lightdm.c \
 	ldm-marshal.c \
 	ldm-marshal.h \

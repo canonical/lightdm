@@ -44,20 +44,27 @@ struct SessionPrivate
 G_DEFINE_TYPE (Session, session, CHILD_PROCESS_TYPE);
 
 Session *
-session_new (const char *username, const char *command)
+session_new ()
 {
-    Session *self = g_object_new (SESSION_TYPE, NULL);
+    return g_object_new (SESSION_TYPE, NULL);
+}
 
-    self->priv->username = g_strdup (username);
-    self->priv->command = g_strdup (command);
-
-    return self;
+void
+session_set_username (Session *session, const gchar *username)
+{
+    session->priv->username = g_strdup (username);
 }
 
 const gchar *
 session_get_username (Session *session)
 {
     return session->priv->username;
+}
+
+void
+session_set_command (Session *session, const gchar *command)
+{
+    session->priv->command = g_strdup (command);
 }
 
 const gchar *
@@ -88,6 +95,7 @@ session_start (Session *session, gboolean create_pipe)
     GError *error = NULL;
   
     //g_return_val_if_fail (session->priv->pid == 0, FALSE);
+    g_return_val_if_fail (session->priv->command != NULL, FALSE);
 
     errno = 0;
     if (session->priv->username)
