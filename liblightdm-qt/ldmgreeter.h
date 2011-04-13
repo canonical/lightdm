@@ -1,79 +1,86 @@
 #ifndef LDMGREETER_H
 #define LDMGREETER_H
 
-#include <QWidget>
-
-class PowerManagementInterface;
-class DisplayInterface;
-class UserManagerInterface;
+#include <QObject>
 
 class LdmGreeterPrivate;
 class LdmUser;
-class LdmSession;
-class LdmAuthRequest;
 class LdmLanguage;
-class QDBusPendingCallWatcher;
+class LdmLayout;
+class LdmSession;
 
-//TODO
-// all accessors need to be marked const.
-// need to pass by reference where applicable.
-// fix FIXME about authentication.
-// decide async start - provide ready() signal(like Tp-Qt4)?
-// quit is a rubbish name for a signal, it sounds too much like a slot.
-// maybe modify defaultLayout to return the layout?(same for sesion) - or the modelIndex?
-// document all the public methods.
-
-class Q_DECL_EXPORT LdmGreeter : public QWidget
+class Q_DECL_EXPORT LdmGreeter : public QObject
 {
     Q_OBJECT
 public:
-    explicit LdmGreeter();
+    LdmGreeter();
     ~LdmGreeter();
 
-    /** The hostname of the machine*/
+    /** The hostname of the machine */
     QString hostname();
-    QString defaultLanguage(); //QLocale::Language?
-    QString defaultLayout();
-    QString defaultSession();
-    QString defaultUsername();
+
+    QString theme();
+    QString getStringProperty(QString name);
+    int getIntegerProperty(QString name);
+    bool getBooleanProperty(QString name);
+
+    QString timedLoginUser();
+    int timedLoginDelay();
 
     QList<LdmUser> users();
-    QList<LdmSession> sessions();
-  //  QList<LdmLanguage> languages();
+    void getUserDefaults(QString name, QString language, QString layout, QString session);
 
-    //FIXME this is inconsistent - need to decide whether lib remembers username, or client needs to keep passing it.
+    QList<LdmLanguage> languages();
+    QString defaultLanguage();
+
+    QList<LdmLayout> layouts();
+    QString defaultLayout();
+    QString layout();
+
+    QList<LdmSession> sessions();
+    QString defaultSession();
+
+    bool inAuthentication();
+    bool isAuthenticated();
+    QString authenticationUser();
+
+    void connectToServer();
+    void cancelTimedLogin();  
     void startAuthentication(QString username);
     void provideSecret(QString secret);
+    void cancelAuthentication();
     void login(QString username, QString session, QString language);
 
-    //FIXME should probably mess about with Q_PROPERTY
     bool canSuspend();
     bool canHibernate();
     bool canShutdown();
     bool canRestart();
-
-    //FIXME replace these signals with pure virtual
-    //virtual blah() = 0;
-
-signals:
-    void showPrompt(QString prompt);
-    void showMessage(QString message);
-    void showError(QString message);
-    void authenticationComplete(bool success);
-    void timedLogin(QString username);
-    void quit();
-
-public slots:
     void suspend();
     void hibernate();
     void shutdown();
     void restart();
 
-private slots:
-    void onAuthFinished(QDBusPendingCallWatcher*);
+signals:
+    void connected();
+    void showPrompt(QString prompt);
+    void showMessage(QString message);
+    void showError(QString message);
+    void authenticationComplete();
+    void timedLogin(QString username);
+    void quit();
+ 
+private slots:  
+    void onRead(int fd);
 
 private:
-    LdmGreeterPrivate* d;
+    LdmGreeterPrivate *d;
+    void writeInt(int value);
+    void writeString(QString value);
+    void writeHeader(int id, int length);
+    void flush();
+    int getPacketLength();
+    int readInt(int *offset);
+    QString readString(int *offset);
 };
 
-#endif // GREETER_H
+#endif // LDMGREETER_H

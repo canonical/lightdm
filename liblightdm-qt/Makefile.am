@@ -4,7 +4,7 @@ lib_LTLIBRARIES = liblightdm-qt-0.la
 INTERFACE_FILES = \
 	usermanagerinterface.cpp \
 	usermanagerinterface.h
-usermanagerinterface.cpp usermanagerinterface.h: $(top_srcdir)/src/user-manager.xml
+usermanagerinterface.cpp usermanagerinterface.h: user-manager.xml
 	qdbusxml2cpp $< -i ldmuser.h -c UserManagerInterface -p usermanagerinterface
 
 # Generate metadata for QObjects

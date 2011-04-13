@@ -7,76 +7,57 @@
 #include "ldmuser.h"
 #include "ldmsession.h"
 
+#include <security/pam_appl.h>
 #include <QtNetwork/QHostInfo> //needed for localHostName
 #include <QDebug>
-#include <QtDBus/QDBusReply>
 #include <QtDBus/QDBusPendingReply>
-#include <QtGui/QApplication>
-#include <QtGui/QDesktopWidget>
+
+typedef enum
+{
+    /* Messages from the greeter to the server */
+    GREETER_MESSAGE_CONNECT                 = 1,
+    GREETER_MESSAGE_START_AUTHENTICATION    = 2,
+    GREETER_MESSAGE_CONTINUE_AUTHENTICATION = 3,
+    GREETER_MESSAGE_LOGIN                   = 4,
+
+    /* Messages from the server to the greeter */
+    GREETER_MESSAGE_CONNECTED               = 101,
+    GREETER_MESSAGE_QUIT                    = 102,
+    GREETER_MESSAGE_PROMPT_AUTHENTICATION   = 103,
+    GREETER_MESSAGE_END_AUTHENTICATION      = 104
+} GreeterMessage;
+
+#define HEADER_SIZE 8
 
 class LdmGreeterPrivate
 {
 public:
-    QString layout;
-    QString session;
-    QString username;
-    QString themeName; //TODO turn into a KConfig
-    int delay;
-
-    QString currentlyAuthenticatingUser;
+    QString theme;
+    QString defaultLayout;
+    QString defaultSession;
+    QString timedUser;
+    int loginDelay;
 
     PowerManagementInterface* powerManagement;
-    DisplayInterface* display;
     UserManagerInterface* userManager;
     ConsoleKitInterface* consoleKit;
+  
+    int toServerFd;
+    int fromServerFd;
+    QSocketNotifier *n;
+    char *readBuffer;
+    int nRead;
+    bool inAuthentication;
+    bool isAuthenticated;
+    QString authenticationUser;
 };
 
 
-
 LdmGreeter::LdmGreeter() :
-    QWidget(0),
     d(new LdmGreeterPrivate)
 {
-    QRect screen = QApplication::desktop()->rect();
-    this->setGeometry(screen);
-
-    qDBusRegisterMetaType<LdmUser>();
-    qDBusRegisterMetaType<QList<LdmUser> >();
-
-    qDBusRegisterMetaType<LdmAuthRequest>();
-    qDBusRegisterMetaType<QList<LdmAuthRequest> >();
-
-    //find out which connection to use for communicating to LightDM, use this for all LightDM DBus connections.
-    QDBusConnection busType = QDBusConnection::systemBus();
-    char* ldmBus = getenv("LDM_BUS");
-    if(ldmBus && strcmp(ldmBus, "SESSION") == 0)
-    {
-        busType = QDBusConnection::sessionBus();
-    }
-
-    d->powerManagement = new PowerManagementInterface("org.freedesktop.PowerManagement","/org/freedesktop/PowerManagement", busType, this);
-    d->display = new DisplayInterface("org.lightdm.LightDisplayManager", "/org/lightdm/LightDisplayManager/Display0", busType, this);
-    d->userManager = new UserManagerInterface("org.lightdm.LightDisplayManager", "/org/lightdm/LightDisplayManager/Users", busType, this);
-    d->consoleKit = new ConsoleKitInterface("org.freedesktop.ConsoleKit","/org/freedesktop/ConsoleKit/Manager", QDBusConnection::systemBus(), this );
-
-    QDBusPendingReply<QString, QString, QString, QString, int> connectResult = d->display->Connect();
-    connectResult.waitForFinished();
-    if(!connectResult.isValid())
-    {
-        qDebug() << connectResult.error().name();
-    }
-    else
-    {
-      d->themeName = connectResult.argumentAt<0>();
-      d->layout = connectResult.argumentAt<1>();
-      d->session = connectResult.argumentAt<2>();
-      d->username = connectResult.argumentAt<3>();
-      d->delay = connectResult.argumentAt<4>();
-    }
-
-    connect(d->display, SIGNAL(QuitGreeter()), SLOT(close()));
-    
-    //TODO create a kconfig from this path name - or not. Keep this lib Qt only?
+    d->readBuffer = (char *)malloc (HEADER_SIZE);
+    d->nRead = 0;
 }
 
 LdmGreeter::~LdmGreeter()
@@ -84,10 +65,291 @@ LdmGreeter::~LdmGreeter()
     delete d;
 }
 
+static int intLength()
+{
+    return 4;
+}
+
+static int stringLength(QString value)
+{
+    QByteArray a = value.toUtf8();  
+    return intLength() + a.size();
+}
+
+void LdmGreeter::writeInt(int value)
+{
+    char buffer[4];
+    buffer[0] = value >> 24;
+    buffer[1] = (value >> 16) & 0xFF;
+    buffer[2] = (value >> 8) & 0xFF;
+    buffer[3] = value & 0xFF;   
+    if (write(d->toServerFd, buffer, intLength()) != intLength())
+        qDebug() << "Error writing to server";
+}
+
+void LdmGreeter::writeString(QString value)
+{
+    QByteArray a = value.toUtf8();
+    writeInt(a.size());
+    if (write(d->toServerFd, a.data(), a.size()) != a.size())
+        qDebug() << "Error writing to server";
+}
+
+void LdmGreeter::writeHeader(int id, int length)
+{
+    writeInt(id);
+    writeInt(length);
+}
+
+void LdmGreeter::flush()
+{
+    fsync(d->toServerFd);
+}
+
+int LdmGreeter::getPacketLength()
+{
+    int offset = intLength();
+    return readInt(&offset);
+}
+
+int LdmGreeter::readInt(int *offset)
+{
+    if(d->nRead - *offset < intLength())
+    {
+        qDebug() << "Not enough space for int, need " << intLength() << ", got " << (d->nRead - *offset);
+        return 0;
+    }
+    char *buffer = d->readBuffer + *offset;
+    int value = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
+    *offset += intLength();
+    return value;
+}
+
+QString LdmGreeter::readString(int *offset)
+{
+    int length = readInt(offset);
+    if(d->nRead - *offset < length)
+    {
+        qDebug() << "Not enough space for string, need " << length << ", got " << (d->nRead - *offset);
+        return "";
+    }
+    char *start = d->readBuffer + *offset;
+    *offset += length;
+    return QString::fromUtf8(start, length);
+}
+
+void LdmGreeter::connectToServer()
+{
+    d->powerManagement = new PowerManagementInterface("org.freedesktop.PowerManagement","/org/freedesktop/PowerManagement", QDBusConnection::systemBus(), this);
+    d->consoleKit = new ConsoleKitInterface("org.freedesktop.ConsoleKit","/org/freedesktop/ConsoleKit/Manager", QDBusConnection::systemBus(), this );
+
+    QDBusConnection busType = QDBusConnection::systemBus();
+    char* ldmBus = getenv("LDM_BUS");
+    if(ldmBus && strcmp(ldmBus, "SESSION") == 0)
+        busType = QDBusConnection::sessionBus();
+    d->userManager = new UserManagerInterface("org.lightdm.LightDisplayManager", "/org/lightdm/LightDisplayManager/Users", busType, this);
+
+    char* fd = getenv("LDM_TO_SERVER_FD");
+    if(!fd)
+    {
+       qDebug() << "No LDM_TO_SERVER_FD environment variable";
+       return;
+    }
+    d->toServerFd = atoi(fd);
+
+    fd = getenv("LDM_FROM_SERVER_FD");
+    if(!fd)
+    {
+       qDebug() << "No LDM_FROM_SERVER_FD environment variable";
+       return;
+    }
+    d->fromServerFd = atoi(fd);
+
+    d->n = new QSocketNotifier(d->fromServerFd, QSocketNotifier::Read);
+    connect(d->n, SIGNAL(activated(int)), this, SLOT(onRead(int)));
+
+    qDebug() << "Connecting to display manager...";
+    writeHeader(GREETER_MESSAGE_CONNECT, 0);
+    flush();
+}
+
+void LdmGreeter::startAuthentication(QString username)
+{
+    d->inAuthentication = true;
+    d->isAuthenticated = false;
+    d->authenticationUser = username;
+    qDebug() << "Starting authentication for user " << username << "...";
+    writeHeader(GREETER_MESSAGE_START_AUTHENTICATION, stringLength(username));
+    writeString(username);
+    flush();     
+}
+
+void LdmGreeter::provideSecret(QString secret)
+{
+    qDebug() << "Providing secret to display manager";
+    writeHeader(GREETER_MESSAGE_CONTINUE_AUTHENTICATION, intLength() + stringLength(secret));
+    // FIXME: Could be multiple secrets required
+    writeInt(1);
+    writeString(secret);
+    flush();
+}
+
+void LdmGreeter::cancelAuthentication()
+{
+}
+
+bool LdmGreeter::inAuthentication()
+{
+    return d->inAuthentication;
+}
+
+bool LdmGreeter::isAuthenticated()
+{
+    return d->isAuthenticated;
+}
+
+QString LdmGreeter::authenticationUser()
+{
+    return d->authenticationUser;
+}
+
+void LdmGreeter::login(QString username, QString session, QString language)
+{
+    qDebug() << "Logging in as " << username << " for session " << session << " with language " << language;
+    writeHeader(GREETER_MESSAGE_LOGIN, stringLength(username) + stringLength(session) + stringLength(language));
+    writeString(username);
+    writeString(session);
+    writeString(language);
+    flush();
+}
+
+void LdmGreeter::onRead(int fd)
+{
+    //qDebug() << "Reading from server";
+
+    int nToRead = HEADER_SIZE;
+    if(d->nRead >= HEADER_SIZE)
+        nToRead += getPacketLength();
+  
+    ssize_t nRead;
+    nRead = read(fd, d->readBuffer + d->nRead, nToRead - d->nRead);
+    if(nRead < 0)
+    {
+        qDebug() << "Error reading from server";
+        return;
+    }
+    if (nRead == 0)
+    {
+        qDebug() << "EOF reading from server";
+        return;
+    }  
+
+    //qDebug() << "Read " << nRead << "octets";
+    d->nRead += nRead;
+    if(d->nRead != nToRead)
+        return;
+  
+    /* If have header, rerun for content */
+    if(d->nRead == HEADER_SIZE)
+    {
+        nToRead = getPacketLength();
+        if(nToRead > 0)
+        {
+            d->readBuffer = (char *)realloc(d->readBuffer, HEADER_SIZE + nToRead);
+            onRead(fd);
+            return;
+        }
+    }
+
+    int offset = 0;
+    int id = readInt(&offset);
+    readInt(&offset);
+    int nMessages, returnCode;
+    switch(id)
+    {
+    case GREETER_MESSAGE_CONNECTED:
+        d->theme = readString(&offset);
+        d->defaultLayout = readString(&offset);
+        d->defaultSession = readString(&offset);
+        d->timedUser = readString(&offset);
+        d->loginDelay = readInt(&offset);
+        qDebug() << "Connected theme=" << d->theme << " default-layout=" << d->defaultLayout << " default-session=" << d->defaultSession << " timed-user=" << d->timedUser << " login-delay" << d->loginDelay;
+
+        /* Set timeout for default login */
+        if(d->timedUser != "" && d->loginDelay > 0)
+        {
+            qDebug() << "Logging in as " << d->timedUser << " in " << d->loginDelay << " seconds";
+            //FIXME: d->login_timeout = g_timeout_add (d->login_delay * 1000, timed_login_cb, greeter);
+        }
+        emit connected();
+        break;
+    case GREETER_MESSAGE_QUIT:
+        qDebug() << "Got quit request from server";
+        emit quit();
+        break;
+    case GREETER_MESSAGE_PROMPT_AUTHENTICATION:
+        nMessages = readInt(&offset);
+        qDebug() << "Prompt user with " << nMessages << " message(s)";
+        for(int i = 0; i < nMessages; i++)
+        {
+            int msg_style = readInt (&offset);
+            QString msg = readString (&offset);
+
+            // FIXME: Should stop on prompts?
+            switch (msg_style)
+            {
+            case PAM_PROMPT_ECHO_OFF:
+            case PAM_PROMPT_ECHO_ON:
+                emit showPrompt(msg);
+                break;
+            case PAM_ERROR_MSG:
+                emit showError(msg);
+                break;
+            case PAM_TEXT_INFO:
+                emit showMessage(msg);
+                break;
+            }
+        }
+        break;
+    case GREETER_MESSAGE_END_AUTHENTICATION:
+        returnCode = readInt(&offset);
+        qDebug() << "Authentication complete with return code " << returnCode;
+        d->isAuthenticated = (returnCode == 0);
+        if(!d->isAuthenticated)
+            d->authenticationUser = "";
+        emit authenticationComplete();
+        d->inAuthentication = false;
+        break;
+    default:
+        qDebug() << "Unknown message from server: " << id;
+    }
+
+    d->nRead = 0;
+}
 
 QString LdmGreeter::hostname()
 {
     return QHostInfo::localHostName();
+}
+
+QString LdmGreeter::theme()
+{
+    return d->theme;
+}
+
+QString LdmGreeter::getStringProperty(QString name)
+{
+    return ""; // FIXME
+}
+
+int LdmGreeter::getIntegerProperty(QString name)
+{
+    return 0; // FIXME
+}
+
+bool LdmGreeter::getBooleanProperty(QString name)
+{
+    return false; // FIXME
 }
 
 QString LdmGreeter::defaultLanguage()
@@ -97,19 +359,23 @@ QString LdmGreeter::defaultLanguage()
 
 QString LdmGreeter::defaultLayout()
 {
-    return d->layout;
+    return d->defaultLayout;
 }
 
 QString LdmGreeter::defaultSession()
 {
-    return d->session;
+    return d->defaultSession;
 }
 
-QString LdmGreeter::defaultUsername()
+QString LdmGreeter::timedLoginUser()
 {
-    return d->username;
+    return d->timedUser;
 }
 
+int LdmGreeter::timedLoginDelay()
+{
+    return d->loginDelay;
+}
 
 QList<LdmUser> LdmGreeter::users()
 {
@@ -148,28 +414,6 @@ QList<LdmSession> LdmGreeter::sessions()
     return sessions;
 }
 
-
-void LdmGreeter::startAuthentication(QString username)
-{
-    d->currentlyAuthenticatingUser = username;
-    QDBusPendingReply<int, QList<LdmAuthRequest> > reply = d->display->StartAuthentication(username);
-    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(reply, this);
-    connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), SLOT(onAuthFinished(QDBusPendingCallWatcher*)));
-}
-
-void LdmGreeter::provideSecret(QString secret)
-{
-    QDBusPendingReply<int, QList<LdmAuthRequest> > reply = d->display->ContinueAuthentication(QStringList() << secret);
-    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(reply, this);
-    connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), SLOT(onAuthFinished(QDBusPendingCallWatcher*)));
-}
-
-void LdmGreeter::login(QString username, QString session, QString language)
-{
-    d->display->Login(username, session, language);
-}
-
-
 bool LdmGreeter::canSuspend()
 {
     QDBusPendingReply<bool> reply = d->powerManagement->canSuspend();
@@ -201,7 +445,6 @@ bool LdmGreeter::canShutdown()
     return reply.value();
 }
 
-
 void LdmGreeter::shutdown()
 {
     d->consoleKit->stop();
@@ -217,52 +460,4 @@ bool LdmGreeter::canRestart()
 void LdmGreeter::restart()
 {
     d->consoleKit->restart();
-}
-
-
-void LdmGreeter::onAuthFinished(QDBusPendingCallWatcher *call)
-{
-    QDBusPendingReply<int, QList<LdmAuthRequest> > reply = *call;
-    if(reply.isValid())
-    {
-        QList<LdmAuthRequest> requests = reply.argumentAt<1>();
-
-        if (requests.size() == 0) //if there are no requests
-        {
-            int returnValue = reply.argumentAt<0>();
-            if (returnValue == 0) //Magic number..FIXME
-            {
-                emit authenticationComplete(true);
-            }
-            else
-            {
-                emit authenticationComplete(false);
-            }
-        }
-        else
-        {
-            foreach(LdmAuthRequest request, requests)
-            {
-                switch(request.messageType())
-                {
-                    //FIXME create an enum use that (or include PAM libs)
-                case 0:
-                case 1:
-                    emit showPrompt(request.message());
-                    break;
-                case 2:
-                    emit showMessage(request.message());
-                    break;
-                case 3:
-                    emit showError(request.message());
-                    break;
-                }
-            }
-        }
-    }
-    else
-    {
-        qDebug() << reply.error().name();
-        qDebug() << reply.error().message();
-    }
 }
