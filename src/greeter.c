@@ -100,10 +100,21 @@ greeter_get_pam_session (Greeter *greeter)
     return greeter->priv->pam_session;
 }
 
+static guint32
+int_length ()
+{
+    return 4;
+}
+
 static void
 write_int (Greeter *greeter, guint32 value)
 {
-    g_io_channel_write_chars (child_process_get_to_child_channel (CHILD_PROCESS (greeter)), (const gchar *) &value, sizeof (value), NULL, NULL);
+    gchar buffer[4];
+    buffer[0] = value >> 24;
+    buffer[1] = (value >> 16) & 0xFF;
+    buffer[2] = (value >> 8) & 0xFF;
+    buffer[3] = value & 0xFF;
+    g_io_channel_write_chars (child_process_get_to_child_channel (CHILD_PROCESS (greeter)), buffer, int_length (), NULL, NULL);
 }
 
 static void
@@ -118,12 +129,6 @@ write_header (Greeter *greeter, guint32 id, guint32 length)
 {
     write_int (greeter, id);
     write_int (greeter, length);
-}
-
-static guint32
-int_length ()
-{
-    return sizeof (guint32);
 }
 
 static guint32
@@ -316,15 +321,17 @@ handle_login (Greeter *greeter, gchar *username, gchar *session, gchar *language
 static guint32
 read_int (Greeter *greeter, gsize *offset)
 {
-    guint32 *value;
+    guint32 value;
+    gchar *buffer;
     if (greeter->priv->n_read - *offset < sizeof (guint32))
     {
         g_warning ("Not enough space for int, need %zu, got %zu", sizeof (guint32), greeter->priv->n_read - *offset);
         return 0;
     }
-    value = (guint32 *) (greeter->priv->read_buffer + *offset);
-    *offset += sizeof (guint32);
-    return *value;
+    buffer = greeter->priv->read_buffer + *offset;
+    value = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
+    *offset += int_length ();
+    return value;
 }
 
 static gchar *
