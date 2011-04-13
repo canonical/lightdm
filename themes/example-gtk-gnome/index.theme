@@ -1,6 +1,6 @@
 [theme]
 name=GNOME
-description=GNOME Theme
+description=GNOME Example Theme
 engine=lightdm-gtk-greeter
 session=gnome
 gtkrc=gtkrc

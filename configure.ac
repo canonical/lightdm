@@ -259,7 +259,7 @@ liblightdm-qt/Makefile
 po/Makefile.in
 src/Makefile
 themes/Makefile
-themes/gnome/Makefile
+themes/example-gtk-gnome/Makefile
 ])
 
 dnl ###########################################################################

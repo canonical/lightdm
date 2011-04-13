@@ -9,6 +9,7 @@ Overview of changes in lightdm 0.3.0
     * liblightdmgreeter now connect asynchronously
     * Use GDBus instead of dbus-glib
     * Use the engine process name instead of a hardcoded value in theme files
+    * Rename gnome theme to example-gtk-gnome
     * Add basic QT engine
 
 Overview of changes in lightdm 0.2.3
