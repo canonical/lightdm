@@ -31,6 +31,8 @@ doc/tmpl/*-unused.sgml
 doc/*.txt
 doc/xml
 greeters/lightdm-gtk-greeter
+greeters/lightdm-qt-greeter
+greeters/lightdm-qt-greeter_moc.cpp
 liblightdm-gobject/*.gir
 liblightdm-gobject/*.typelib
 liblightdm-gobject/*.vapi

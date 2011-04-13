@@ -67,16 +67,27 @@ compile_liblightdm_qt=no
 if test x"$enable_liblightdm_qt" = "xauto"; then
     PKG_CHECK_MODULES(LIBLIGHTDM_QT, [
         QtCore
-        QtGui
+        QtDBus
+        QtNetwork
     ], compile_liblightdm_qt=yes, compile_liblightdm_qt=no)
 elif test x"$enable_liblightdm_qt" = "xyes"; then
     PKG_CHECK_MODULES(LIBLIGHTDM_QT, [
         QtCore
-        QtGui
+        QtDBus
+        QtNetwork
     ])
     compile_liblightdm_qt=yes
 fi
 AM_CONDITIONAL(COMPILE_LIBLIGHTDM_QT, test x"$compile_liblightdm_qt" != "xno")
+
+have_qt=no
+if test x"$compile_liblightdm_qt" = "xyes"; then
+    PKG_CHECK_MODULES(LIGHTDM_QT_GREETER, [
+        QtCore
+        QtGui
+    ], have_qt=yes, have_qt=no)
+fi
+AM_CONDITIONAL(HAVE_QT_GREETER, test $have_qt = yes)
 
 PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
     gtk+-2.0
@@ -276,5 +287,6 @@ echo "
         liblightdm-gobject:       $compile_liblightdm_gobject
         GObject introspection:    $found_introspection
         liblightdm-qt:            $compile_liblightdm_qt
-        GTK+:                     $have_gtk
+        GTK+ Greeter:             $have_gtk
+        Qt Greeter:               $have_qt
 "
