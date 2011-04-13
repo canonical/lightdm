@@ -34,6 +34,7 @@ enum {
     PROP_TIMED_LOGIN_USER,
     PROP_TIMED_LOGIN_DELAY,
     PROP_AUTHENTICATION_USER,
+    PROP_IN_AUTHENTICATION,
     PROP_IS_AUTHENTICATED,
     PROP_CAN_SUSPEND,
     PROP_CAN_HIBERNATE,
@@ -62,6 +63,8 @@ struct _LdmGreeterPrivate
     GDBusProxy *session_proxy, *user_proxy;
 
     GIOChannel *to_server_channel, *from_server_channel;
+    gchar *read_buffer;
+    gsize n_read;
 
     Display *display;
 
@@ -88,6 +91,7 @@ struct _LdmGreeterPrivate
     gchar *default_session;
 
     gchar *authentication_user;
+    gboolean in_authentication;
     gboolean is_authenticated;
 
     gchar *timed_user;
@@ -96,6 +100,8 @@ struct _LdmGreeterPrivate
 };
 
 G_DEFINE_TYPE (LdmGreeter, ldm_greeter, G_TYPE_OBJECT);
+
+#define HEADER_SIZE 8
 
 /**
  * ldm_greeter_new:
@@ -122,32 +128,21 @@ timed_login_cb (gpointer data)
 }
 
 static guint32
-read_int (LdmGreeter *greeter)
+int_length ()
 {
-    guint32 value;
-    g_io_channel_read_chars (greeter->priv->from_server_channel, (gchar *) &value, sizeof (value), NULL, NULL);
-    return value;
+    return 4;
 }
 
 static void
 write_int (LdmGreeter *greeter, guint32 value)
 {
-    if (g_io_channel_write_chars (greeter->priv->to_server_channel, (const gchar *) &value, sizeof (value), NULL, NULL) != G_IO_STATUS_NORMAL)
+    gchar buffer[4];
+    buffer[0] = value >> 24;
+    buffer[1] = (value >> 16) & 0xFF;
+    buffer[2] = (value >> 8) & 0xFF;
+    buffer[3] = value & 0xFF;
+    if (g_io_channel_write_chars (greeter->priv->to_server_channel, buffer, int_length (), NULL, NULL) != G_IO_STATUS_NORMAL)
         g_warning ("Error writing to server");
-}
-
-static gchar *
-read_string (LdmGreeter *greeter)
-{
-    guint32 length;
-    gchar *value;
-
-    length = read_int (greeter);
-    value = g_malloc (sizeof (gchar *) * (length + 1));
-    g_io_channel_read_chars (greeter->priv->from_server_channel, value, length, NULL, NULL);
-    value[length] = '\0';
-
-    return value;
 }
 
 static void
@@ -158,9 +153,40 @@ write_string (LdmGreeter *greeter, const gchar *value)
 }
 
 static guint32
-int_length ()
+read_int (LdmGreeter *greeter, gsize *offset)
 {
-    return sizeof (guint32);
+    guint32 value;
+    gchar *buffer;
+    if (greeter->priv->n_read - *offset < int_length ())
+    {
+        g_warning ("Not enough space for int, need %i, got %zi", int_length (), greeter->priv->n_read - *offset);
+        return 0;
+    }
+    buffer = greeter->priv->read_buffer + *offset;
+    value = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
+    *offset += int_length ();
+    return value;
+}
+
+static gchar *
+read_string (LdmGreeter *greeter, gsize *offset)
+{
+    guint32 length;
+    gchar *value;
+
+    length = read_int (greeter, offset);
+    if (greeter->priv->n_read - *offset < length)
+    {
+        g_warning ("Not enough space for string, need %u, got %zu", length, greeter->priv->n_read - *offset);
+        return g_strdup ("");
+    }
+
+    value = g_malloc (sizeof (gchar) * (length + 1));
+    memcpy (value, greeter->priv->read_buffer + *offset, length);
+    value[length] = '\0';
+    *offset += length;
+
+    return value;
 }
 
 static guint32
@@ -176,6 +202,12 @@ write_header (LdmGreeter *greeter, guint32 id, guint32 length)
     write_int (greeter, length);
 }
 
+static guint32 get_packet_length (LdmGreeter *greeter)
+{
+    gsize offset = 4;
+    return read_int (greeter, &offset);
+}
+
 static void
 flush (LdmGreeter *greeter)
 {
@@ -183,11 +215,11 @@ flush (LdmGreeter *greeter)
 }
 
 static void
-handle_prompt_authentication (LdmGreeter *greeter)
+handle_prompt_authentication (LdmGreeter *greeter, gsize *offset)
 {
     int n_messages, i;
 
-    n_messages = read_int (greeter);
+    n_messages = read_int (greeter, offset);
     g_debug ("Prompt user with %d message(s)", n_messages);
 
     for (i = 0; i < n_messages; i++)
@@ -195,8 +227,8 @@ handle_prompt_authentication (LdmGreeter *greeter)
         int msg_style;
         gchar *msg;
 
-        msg_style = read_int (greeter);
-        msg = read_string (greeter);
+        msg_style = read_int (greeter, offset);
+        msg = read_string (greeter, offset);
 
         // FIXME: Should stop on prompts?
         switch (msg_style)
@@ -221,18 +253,52 @@ static gboolean
 from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 {
     LdmGreeter *greeter = data;
-    int message, return_code;
+    gsize n_to_read, n_read, offset;
+    GIOStatus status;
+    guint32 id, return_code;
+    GError *error = NULL;
 
-    message = read_int (greeter);
-    read_int (greeter); // length
-    switch (message)
+    n_to_read = HEADER_SIZE;
+    if (greeter->priv->n_read >= HEADER_SIZE)
+        n_to_read += get_packet_length (greeter);
+
+    status = g_io_channel_read_chars (greeter->priv->from_server_channel,
+                                      greeter->priv->read_buffer + greeter->priv->n_read,
+                                      n_to_read - greeter->priv->n_read,
+                                      &n_read,
+                                      &error);
+    if (status != G_IO_STATUS_NORMAL)
+        g_warning ("Error reading from server: %s", error->message);
+    g_clear_error (&error);
+    if (status != G_IO_STATUS_NORMAL)
+        return TRUE;
+
+    greeter->priv->n_read += n_read;
+    if (greeter->priv->n_read != n_to_read)
+        return TRUE;
+
+    /* If have header, rerun for content */
+    if (greeter->priv->n_read == HEADER_SIZE)
+    {
+        n_to_read = get_packet_length (greeter);
+        if (n_to_read > 0)
+        {
+            greeter->priv->read_buffer = g_realloc (greeter->priv->read_buffer, HEADER_SIZE + n_to_read);
+            return from_server_cb (source, condition, data);
+        }
+    }
+
+    offset = 0;
+    id = read_int (greeter, &offset);
+    read_int (greeter, &offset);
+    switch (id)
     {
     case GREETER_MESSAGE_CONNECTED:
-        greeter->priv->theme = read_string (greeter);
-        greeter->priv->default_layout = read_string (greeter);
-        greeter->priv->default_session = read_string (greeter);
-        greeter->priv->timed_user = read_string (greeter);
-        greeter->priv->login_delay = read_int (greeter);
+        greeter->priv->theme = read_string (greeter, &offset);
+        greeter->priv->default_layout = read_string (greeter, &offset);
+        greeter->priv->default_session = read_string (greeter, &offset);
+        greeter->priv->timed_user = read_string (greeter, &offset);
+        greeter->priv->login_delay = read_int (greeter, &offset);
 
         g_debug ("Connected theme=%s default-layout=%s default-session=%s timed-user=%s login-delay=%d",
                  greeter->priv->theme,
@@ -248,13 +314,14 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         g_signal_emit (G_OBJECT (greeter), signals[CONNECTED], 0);
         break;
     case GREETER_MESSAGE_QUIT:
+        g_debug ("Got quit request from server");
         g_signal_emit (G_OBJECT (greeter), signals[QUIT], 0);
         break;
     case GREETER_MESSAGE_PROMPT_AUTHENTICATION:
-        handle_prompt_authentication (greeter);
+        handle_prompt_authentication (greeter, &offset);
         break;
     case GREETER_MESSAGE_END_AUTHENTICATION:
-        return_code = read_int (greeter);
+        return_code = read_int (greeter, &offset);
         g_debug ("Authentication complete with return code %d", return_code);
         greeter->priv->is_authenticated = (return_code == 0);
         if (!greeter->priv->is_authenticated)
@@ -265,9 +332,11 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         g_signal_emit (G_OBJECT (greeter), signals[AUTHENTICATION_COMPLETE], 0);
         break;
     default:
-        g_warning ("Unknown message from server: %d", message);
+        g_warning ("Unknown message from server: %d", id);
         break;
     }
+
+    greeter->priv->n_read = 0;
 
     return TRUE;
 }
@@ -949,6 +1018,21 @@ ldm_greeter_cancel_authentication (LdmGreeter *greeter)
 }
 
 /**
+ * ldm_greeter_get_in_authentication:
+ * @greeter: A #LdmGreeter
+ *
+ * Checks if the greeter is in the process of authenticating.
+ *
+ * Return value: TRUE if the greeter is authenticating a user.
+ **/
+gboolean
+ldm_greeter_get_in_authentication (LdmGreeter *greeter)
+{
+    g_return_val_if_fail (greeter != NULL, FALSE);
+    return greeter->priv->in_authentication;
+}
+
+/**
  * ldm_greeter_get_is_authenticated:
  * @greeter: A #LdmGreeter
  *
@@ -1225,6 +1309,7 @@ static void
 ldm_greeter_init (LdmGreeter *greeter)
 {
     greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, LDM_TYPE_GREETER, LdmGreeterPrivate);
+    greeter->priv->read_buffer = g_malloc (HEADER_SIZE);
 
     g_debug ("default-language=%s", ldm_greeter_get_default_language (greeter));
 }
@@ -1289,6 +1374,9 @@ ldm_greeter_get_property (GObject    *object,
         break;
     case PROP_AUTHENTICATION_USER:
         g_value_set_string (value, ldm_greeter_get_authentication_user (self));
+        break;
+    case PROP_IN_AUTHENTICATION:
+        g_value_set_boolean (value, ldm_greeter_get_in_authentication (self));
         break;
     case PROP_IS_AUTHENTICATED:
         g_value_set_boolean (value, ldm_greeter_get_is_authenticated (self));
@@ -1392,6 +1480,13 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                                                           "The user being authenticated",
                                                           NULL,
                                                           G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     PROP_IN_AUTHENTICATION,
+                                     g_param_spec_boolean ("in-authentication",
+                                                           "in-authentication",
+                                                           "TRUE if a user is being authenticated",
+                                                           FALSE,
+                                                           G_PARAM_READABLE));
     g_object_class_install_property (object_class,
                                      PROP_IS_AUTHENTICATED,
                                      g_param_spec_boolean ("is-authenticated",

@@ -13,11 +13,11 @@ liblightdm_gobject_0includedir=$(includedir)/lightdm-gobject-0/lightdm
 liblightdm_gobject_0_la_LIBADD = $(LIBLIGHTDM_GOBJECT_LIBS)
 liblightdm_gobject_0_la_CFLAGS = $(LIBLIGHTDM_GOBJECT_CFLAGS) \
 	$(WARN_CFLAGS) \
-	-I../src \
 	-DXSESSIONS_DIR=\"$(XSESSIONS_DIR)\"
 
 liblightdm_gobject_0_la_SOURCES= \
 	greeter.c \
+	greeter-protocol.h \
 	language.c \
 	layout.c \
 	session.c \

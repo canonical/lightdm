@@ -99,6 +99,8 @@ void ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret);
 
 void ldm_greeter_cancel_authentication (LdmGreeter *greeter);
 
+gboolean ldm_greeter_get_in_authentication (LdmGreeter *greeter);
+
 gboolean ldm_greeter_get_is_authenticated (LdmGreeter *greeter);
 
 const gchar *ldm_greeter_get_authentication_user (LdmGreeter *greeter);
