@@ -7,9 +7,13 @@
 #include "ldmsession.h"
 
 #include <security/pam_appl.h>
+
 #include <QtNetwork/QHostInfo> //needed for localHostName
-#include <QDebug>
+#include <QtCore/QDebug>
+#include <QtCore/QDir>
+#include <QtCore/QVariant>
 #include <QtDBus/QDBusPendingReply>
+
 
 typedef enum
 {
@@ -61,6 +65,7 @@ LdmGreeter::LdmGreeter() :
 
 LdmGreeter::~LdmGreeter()
 {
+    delete d->readBuffer;
     delete d;
 }
 
@@ -83,7 +88,9 @@ void LdmGreeter::writeInt(int value)
     buffer[2] = (value >> 8) & 0xFF;
     buffer[3] = value & 0xFF;   
     if (write(d->toServerFd, buffer, intLength()) != intLength())
+    {
         qDebug() << "Error writing to server";
+    }
 }
 
 void LdmGreeter::writeString(QString value)
@@ -91,7 +98,9 @@ void LdmGreeter::writeString(QString value)
     QByteArray a = value.toUtf8();
     writeInt(a.size());
     if (write(d->toServerFd, a.data(), a.size()) != a.size())
+    {
         qDebug() << "Error writing to server";
+    }
 }
 
 void LdmGreeter::writeHeader(int id, int length)
@@ -143,9 +152,12 @@ void LdmGreeter::connectToServer()
     d->consoleKit = new ConsoleKitInterface("org.freedesktop.ConsoleKit","/org/freedesktop/ConsoleKit/Manager", QDBusConnection::systemBus(), this );
 
     QDBusConnection busType = QDBusConnection::systemBus();
-    char* ldmBus = getenv("LDM_BUS");
-    if(ldmBus && strcmp(ldmBus, "SESSION") == 0)
+    QString ldmBus(qgetenv("LDM_BUS"));
+    if(ldmBus ==  QLatin1String("SESSION"))
+    {
         busType = QDBusConnection::sessionBus();
+    }
+
     d->userManager = new UserManagerInterface("org.lightdm.LightDisplayManager", "/org/lightdm/LightDisplayManager/Users", busType, this);
 
     char* fd = getenv("LDM_TO_SERVER_FD");
@@ -172,7 +184,7 @@ void LdmGreeter::connectToServer()
     flush();
 }
 
-void LdmGreeter::startAuthentication(QString username)
+void LdmGreeter::startAuthentication(const QString &username)
 {
     d->inAuthentication = true;
     d->isAuthenticated = false;
@@ -183,7 +195,7 @@ void LdmGreeter::startAuthentication(QString username)
     flush();     
 }
 
-void LdmGreeter::provideSecret(QString secret)
+void LdmGreeter::provideSecret(const QString &secret)
 {
     qDebug() << "Providing secret to display manager";
     writeHeader(GREETER_MESSAGE_CONTINUE_AUTHENTICATION, intLength() + stringLength(secret));
@@ -197,22 +209,22 @@ void LdmGreeter::cancelAuthentication()
 {
 }
 
-bool LdmGreeter::inAuthentication()
+bool LdmGreeter::inAuthentication() const
 {
     return d->inAuthentication;
 }
 
-bool LdmGreeter::isAuthenticated()
+bool LdmGreeter::isAuthenticated() const
 {
     return d->isAuthenticated;
 }
 
-QString LdmGreeter::authenticationUser()
+QString LdmGreeter::authenticationUser() const
 {
     return d->authenticationUser;
 }
 
-void LdmGreeter::login(QString username, QString session, QString language)
+void LdmGreeter::login(const QString &username, const QString &session, const QString &language)
 {
     qDebug() << "Logging in as " << username << " for session " << session << " with language " << language;
     writeHeader(GREETER_MESSAGE_LOGIN, stringLength(username) + stringLength(session) + stringLength(language));
@@ -326,57 +338,47 @@ void LdmGreeter::onRead(int fd)
     d->nRead = 0;
 }
 
-QString LdmGreeter::hostname()
+QString LdmGreeter::hostname() const
 {
     return QHostInfo::localHostName();
 }
 
-QString LdmGreeter::theme()
+QString LdmGreeter::theme() const
 {
     return d->theme;
 }
 
-QString LdmGreeter::getStringProperty(QString name)
+QVariant LdmGreeter::getProperty(const QString &name) const
 {
-    return ""; // FIXME
+    return QVariant(); //FIXME TODO
 }
 
-int LdmGreeter::getIntegerProperty(QString name)
-{
-    return 0; // FIXME
-}
-
-bool LdmGreeter::getBooleanProperty(QString name)
-{
-    return false; // FIXME
-}
-
-QString LdmGreeter::defaultLanguage()
+QString LdmGreeter::defaultLanguage() const
 {
     return getenv("LANG");
 }
 
-QString LdmGreeter::defaultLayout()
+QString LdmGreeter::defaultLayout() const
 {
     return d->defaultLayout;
 }
 
-QString LdmGreeter::defaultSession()
+QString LdmGreeter::defaultSession() const
 {
     return d->defaultSession;
 }
 
-QString LdmGreeter::timedLoginUser()
+QString LdmGreeter::timedLoginUser() const
 {
     return d->timedUser;
 }
 
-int LdmGreeter::timedLoginDelay()
+int LdmGreeter::timedLoginDelay() const
 {
     return d->loginDelay;
 }
 
-QList<LdmUser> LdmGreeter::users()
+QList<LdmUser> LdmGreeter::users() const
 {
     QDBusPendingReply<QList<LdmUser> > users = d->userManager->GetUsers();
     users.waitForFinished();
@@ -392,16 +394,15 @@ QList<LdmUser> LdmGreeter::users()
     }
 }
 
-QList<LdmSession> LdmGreeter::sessions()
+QList<LdmSession> LdmGreeter::sessions() const
 {
     QList<LdmSession> sessions;
     //FIXME don't hardcode this!
-    //FIXME I'm not happy with this bodgy finding .desktop files, and strcat situtation.
     QDir sessionDir("/usr/share/xsessions");
     sessionDir.setNameFilters(QStringList() << "*.desktop");
     foreach(QString sessionFileName, sessionDir.entryList())
     {
-        QSettings sessionData(QString("/usr/share/xsessions/").append(sessionFileName), QSettings::IniFormat);
+        QSettings sessionData(sessionDir.filePath(sessionFileName), QSettings::IniFormat);
         sessionData.beginGroup("Desktop Entry");
         sessionFileName.chop(8);// chop(8) removes '.desktop'
         QString name = sessionData.value("Name").toString();
@@ -413,7 +414,7 @@ QList<LdmSession> LdmGreeter::sessions()
     return sessions;
 }
 
-bool LdmGreeter::canSuspend()
+bool LdmGreeter::canSuspend() const
 {
     QDBusPendingReply<bool> reply = d->powerManagement->canSuspend();
     reply.waitForFinished();
@@ -425,7 +426,7 @@ void LdmGreeter::suspend()
     d->powerManagement->suspend();
 }
 
-bool LdmGreeter::canHibernate()
+bool LdmGreeter::canHibernate() const
 {
     QDBusPendingReply<bool> reply = d->powerManagement->canHibernate();
     reply.waitForFinished();
@@ -437,7 +438,7 @@ void LdmGreeter::hibernate()
     d->powerManagement->hibernate();
 }
 
-bool LdmGreeter::canShutdown()
+bool LdmGreeter::canShutdown() const
 {
     QDBusPendingReply<bool> reply = d->consoleKit->canStop();
     reply.waitForFinished();
@@ -449,11 +450,11 @@ void LdmGreeter::shutdown()
     d->consoleKit->stop();
 }
 
-bool LdmGreeter::canRestart()
+bool LdmGreeter::canRestart() const
 {
     QDBusPendingReply<bool> reply = d->consoleKit->canRestart();
     reply.waitForFinished();
-        return reply.value();
+    return reply.value();
 }
 
 void LdmGreeter::restart()

@@ -13,48 +13,46 @@ class Q_DECL_EXPORT LdmGreeter : public QObject
 {
     Q_OBJECT
 public:
-    LdmGreeter();
-    ~LdmGreeter();
+    explicit LdmGreeter();
+    virtual ~LdmGreeter();
 
     /** The hostname of the machine */
-    QString hostname();
+    QString hostname() const;
+    QString theme() const;
 
-    QString theme();
-    QString getStringProperty(QString name);
-    int getIntegerProperty(QString name);
-    bool getBooleanProperty(QString name);
+    QVariant getProperty(const QString &name) const;
 
-    QString timedLoginUser();
-    int timedLoginDelay();
+    QString timedLoginUser() const;
+    int timedLoginDelay() const;
 
-    QList<LdmUser> users();
-    void getUserDefaults(QString name, QString language, QString layout, QString session);
+    QList<LdmUser> users() const;
+    void getUserDefaults(const QString &name, const QString &language, const QString &layout, const QString &session);
 
-    QList<LdmLanguage> languages();
-    QString defaultLanguage();
+    QList<LdmLanguage> languages() const;
+    QString defaultLanguage() const;
 
-    QList<LdmLayout> layouts();
-    QString defaultLayout();
-    QString layout();
+    QList<LdmLayout> layouts() const;
+    QString defaultLayout() const;
+    QString layout() const;
 
-    QList<LdmSession> sessions();
-    QString defaultSession();
+    QList<LdmSession> sessions() const;
+    QString defaultSession() const;
 
-    bool inAuthentication();
-    bool isAuthenticated();
-    QString authenticationUser();
+    bool inAuthentication() const;
+    bool isAuthenticated() const;
+    QString authenticationUser() const;
 
     void connectToServer();
     void cancelTimedLogin();  
-    void startAuthentication(QString username);
-    void provideSecret(QString secret);
+    void startAuthentication(const QString &username);
+    void provideSecret(const QString &secret);
     void cancelAuthentication();
-    void login(QString username, QString session, QString language);
+    void login(const QString &username, const QString &session, const QString &language);
 
-    bool canSuspend();
-    bool canHibernate();
-    bool canShutdown();
-    bool canRestart();
+    bool canSuspend() const;
+    bool canHibernate() const;
+    bool canShutdown() const;
+    bool canRestart() const;
     void suspend();
     void hibernate();
     void shutdown();
