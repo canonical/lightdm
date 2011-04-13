@@ -260,6 +260,7 @@ po/Makefile.in
 src/Makefile
 themes/Makefile
 themes/example-gtk-gnome/Makefile
+themes/example-qt-kde/Makefile
 ])
 
 dnl ###########################################################################

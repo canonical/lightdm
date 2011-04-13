@@ -1,4 +1,4 @@
-SUBDIRS = example-gtk-gnome
+SUBDIRS = example-gtk-gnome example-qt-kde
 
 DISTCLEANFILES = \
 	Makefile.in
