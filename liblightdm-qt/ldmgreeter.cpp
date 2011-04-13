@@ -1,7 +1,6 @@
 #include "ldmgreeter.h"
 
 #include "powermanagementinterface.h"
-#include "displayinterface.h"
 #include "usermanagerinterface.h"
 #include "consolekitinterface.h"
 #include "ldmuser.h"
