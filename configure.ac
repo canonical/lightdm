@@ -217,7 +217,7 @@ AC_ARG_WITH(theme-dir,
 )
 AC_SUBST(THEME_DIR)
 
-GREETER_THEME=gnome
+GREETER_THEME=example-gtk-gnome
 AC_ARG_WITH(theme,
             AS_HELP_STRING(--with-theme=<theme>,
                            Default theme),
