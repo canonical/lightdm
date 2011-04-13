@@ -11,7 +11,7 @@ class Q_DECL_EXPORT LdmUser
 {
 public:
     explicit LdmUser();
-    LdmUser(const QString& name, const QString& realName, const QString& image, const bool loggedIn);
+    LdmUser(const QString &name, const QString &realName, const QString &image, const bool loggedIn);
     LdmUser(const LdmUser& other);
     ~LdmUser();
     LdmUser &operator=(const LdmUser& other);
