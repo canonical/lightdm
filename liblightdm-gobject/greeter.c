@@ -1272,6 +1272,16 @@ ldm_greeter_shutdown (LdmGreeter *greeter)
     ck_call_function (greeter, "Stop", FALSE);
 }
 
+/**
+ * ldm_greeter_get_user_defaults:
+ * @greeter: A #LdmGreeter
+ * @username: The user to check
+ * @language: (out): Default language for this user.
+ * @layout: (out): Default keyboard layout for this user.
+ * @session: (out): Default session for this user.
+ * 
+ * Get the default settings for a given user.
+ **/
 gboolean
 ldm_greeter_get_user_defaults (LdmGreeter *greeter, const gchar *username, gchar **language, gchar **layout, gchar **session)
 {

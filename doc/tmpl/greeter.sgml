@@ -87,6 +87,13 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
 @ldmgreeter: the object which received the signal.
 
+<!-- ##### SIGNAL LdmGreeter::connected ##### -->
+<para>
+
+</para>
+
+@ldmgreeter: the object which received the signal.
+
 <!-- ##### SIGNAL LdmGreeter::quit ##### -->
 <para>
 
@@ -157,6 +164,11 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 </para>
 
 <!-- ##### ARG LdmGreeter:hostname ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:in-authentication ##### -->
 <para>
 
 </para>
@@ -392,6 +404,15 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 </para>
 
 @greeter: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_in_authentication ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
 
 
 <!-- ##### FUNCTION ldm_greeter_get_is_authenticated ##### -->
