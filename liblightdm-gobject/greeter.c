@@ -608,7 +608,7 @@ ldm_greeter_get_num_users (LdmGreeter *greeter)
  * Get a list of users to present to the user.  This list may be a subset of the
  * available users and may be empty depending on the server configuration.
  *
- * Return value: A list of #LdmUser that should be presented to the user.
+ * Return value: (element-type LdmUser): A list of #LdmUser that should be presented to the user.
  **/
 const GList *
 ldm_greeter_get_users (LdmGreeter *greeter)
@@ -686,7 +686,7 @@ ldm_greeter_get_default_language (LdmGreeter *greeter)
  *
  * Get a list of languages to present to the user.
  *
- * Return value: A list of #LdmLanguage that should be presented to the user.
+ * Return value: (element-type LdmLanguage): A list of #LdmLanguage that should be presented to the user.
  **/
 const GList *
 ldm_greeter_get_languages (LdmGreeter *greeter)
@@ -739,7 +739,7 @@ setup_xkl (LdmGreeter *greeter)
  *
  * Get a list of keyboard layouts to present to the user.
  *
- * Return value: A list of #LdmLayout that should be presented to the user.
+ * Return value: (element-type LdmLayout): A list of #LdmLayout that should be presented to the user.
  **/
 const GList *
 ldm_greeter_get_layouts (LdmGreeter *greeter)
@@ -891,7 +891,7 @@ update_sessions (LdmGreeter *greeter)
  *
  * Get the available sessions.
  *
- * Return value: A list of #LdmSession
+ * Return value: (element-type LdmSession): A list of #LdmSession
  **/
 const GList *
 ldm_greeter_get_sessions (LdmGreeter *greeter)
