@@ -55,7 +55,7 @@ GType ldm_greeter_get_type (void);
 
 LdmGreeter *ldm_greeter_new (void);
 
-gboolean ldm_greeter_connect (LdmGreeter *greeter);
+gboolean ldm_greeter_connect_to_server (LdmGreeter *greeter);
 
 const gchar *ldm_greeter_get_hostname (LdmGreeter *greeter);
 

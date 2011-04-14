@@ -207,7 +207,7 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_connect ##### -->
+<!-- ##### FUNCTION ldm_greeter_connect_to_server ##### -->
 <para>
 
 </para>

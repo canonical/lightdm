@@ -342,7 +342,7 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 }
 
 /**
- * ldm_greeter_connect:
+ * ldm_greeter_connect_to_server:
  * @greeter: The greeter to connect
  *
  * Connects the greeter to the display manager.
@@ -350,7 +350,7 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
  * Return value: TRUE if successfully connected
  **/
 gboolean
-ldm_greeter_connect (LdmGreeter *greeter)
+ldm_greeter_connect_to_server (LdmGreeter *greeter)
 {
     GError *error = NULL;
     const gchar *bus_address, *fd;

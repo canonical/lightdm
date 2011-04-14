@@ -727,7 +727,7 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "timed-login", G_CALLBACK (timed_login_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
-    ldm_greeter_connect (greeter);
+    ldm_greeter_connect_to_server (greeter);
 
     gtk_init (&argc, &argv);
 
