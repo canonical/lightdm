@@ -252,6 +252,8 @@ data/Makefile
 data/init/Makefile
 doc/Makefile
 greeters/Makefile
+greeters/gtk/Makefile
+greeters/qt/Makefile
 liblightdm-gobject/liblightdm-gobject-0.pc
 liblightdm-gobject/Makefile
 liblightdm-qt/liblightdm-qt-0.pc
