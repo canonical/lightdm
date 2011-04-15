@@ -1,14 +1,12 @@
 SUBDIRS = init
 
 confdir = $(sysconfdir)
-conf_DATA = lightdm.conf
+dist_conf_DATA = lightdm.conf
 
 dbusconfdir = $(DBUS_SYS_DIR)
-dbusconf_DATA = org.lightdm.LightDisplayManager.conf
+dist_dbusconf_DATA = org.lightdm.LightDisplayManager.conf
 
-man1_MANS = lightdm.1
-
-EXTRA_DIST = $(conf_DATA) $(dbusconf_DATA) $(man1_MANS)
+dist_man1_MANS = lightdm.1
 
 DISTCLEANFILES = \
 	Makefile.in

@@ -47,13 +47,10 @@ typelib_DATA = LightDM-0.typelib
 endif
 
 vapidir = $(datadir)/vala/vapi
-vapi_DATA = lightdm-0.vapi
+dist_vapi_DATA = lightdm-0.vapi
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = liblightdm-gobject-0.pc
-
-EXTRA_DIST = \
-	$(vapi_DATA)
 
 DISTCLEANFILES = \
 	Makefile.in \

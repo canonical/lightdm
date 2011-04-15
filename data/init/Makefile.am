@@ -1,7 +1,5 @@
 initdir = ${sysconfdir}/init
-init_DATA = lightdm.conf
-
-EXTRA_DIST = $(init_DATA)
+dist_init_DATA = lightdm.conf
 
 DISTCLEANFILES = \
 	Makefile.in
