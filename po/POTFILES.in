@@ -1,7 +1,10 @@
 # List of source files containing translatable strings.
 # Please keep this file sorted alphabetically.
 [encoding: UTF-8]
-greeters/lightdm-gtk-greeter.c
+greeters/gtk/lightdm-gtk-greeter.c
+greeters/python-gtk/lightdm-python-gtk-greeter
+greeters/qt/lightdm-qt-greeter.cpp
+greeters/vala-gtk/lightdm-vala-gtk-greeter.vala
 liblightdm-gobject/greeter.c
 liblightdm-gobject/language.c
 liblightdm-gobject/layout.c
