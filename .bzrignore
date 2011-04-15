@@ -3,6 +3,7 @@
 *.lo
 .deps
 .libs
+*_vala.stamp
 Makefile
 Makefile.in
 Makefile.in.in
@@ -30,9 +31,11 @@ doc/*.stamp
 doc/tmpl/*-unused.sgml
 doc/*.txt
 doc/xml
-greeters/lightdm-gtk-greeter
-greeters/lightdm-qt-greeter
-greeters/lightdm-qt-greeter_moc.cpp
+greeters/gtk/lightdm-gtk-greeter
+greeters/qt/lightdm-qt-greeter
+greeters/qt/*_moc.cpp
+greeters/vala-gtk/lightdm-vala-gtk-greeter
+greeters/vala-gtk/*.c
 liblightdm-gobject/*.gir
 liblightdm-gobject/*.typelib
 liblightdm-gobject/*.vapi
