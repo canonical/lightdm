@@ -660,7 +660,7 @@ greeter_login_cb (Greeter *greeter, const gchar *username, const gchar *session,
 static void
 greeter_quit_cb (Greeter *greeter, Display *display)
 {
-    g_signal_emit (greeter, signals[END_GREETER], 0, display->priv->greeter_session);
+    g_signal_emit (display, signals[END_GREETER], 0, display->priv->greeter_session);
 
     pam_session_end (display->priv->greeter_pam_session);
     g_object_unref (display->priv->greeter_pam_session);
