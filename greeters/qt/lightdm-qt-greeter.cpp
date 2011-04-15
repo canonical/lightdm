@@ -1,23 +1,29 @@
-#include <QApplication>
-#include <QtGui>
-
 #include "lightdm-qt-greeter.h"
+
+#include <QtGui/QApplication>
+#include <QtGui/QLabel>
+#include <QtGui/QLineEdit>
+#include <QtGui/QPushButton>
+#include <QtGui/QGridLayout>
+
+#include "ldmgreeter.h"
 
 LoginDialog::LoginDialog() : QDialog()
 {
-    label = new QLabel("Username:");
-    entry = new QLineEdit;
+    label = new QLabel("Username:", this);
+    entry = new QLineEdit(this);
     connect(entry, SIGNAL(returnPressed()), this, SLOT(onLogin()));  
-    QPushButton *button = new QPushButton("Login");
+
+    QPushButton *button = new QPushButton("Login", this);
     connect(button, SIGNAL(clicked()), this, SLOT(onLogin()));
 
-    QGridLayout *layout = new QGridLayout;
+    QGridLayout *layout = new QGridLayout(this);
     layout->addWidget(label, 0, 0, 1, 1);
     layout->addWidget(entry, 1, 0, 2, 1);
     layout->addWidget(button, 2, 0, 3, 1);
     setLayout(layout);
 
-    greeter = new LdmGreeter;
+    greeter = new LdmGreeter; //FIXME this LEAKS! Either finish the QWidget subclass plan, or add parent arg to LdmGreeter.
     connect(greeter, SIGNAL(showPrompt(QString)), this, SLOT(showPrompt(QString)));
     connect(greeter, SIGNAL(showMessage(QString)), this, SLOT(showMessage(QString)));
     connect(greeter, SIGNAL(showError(QString)), this, SLOT(showError(QString)));
@@ -28,16 +34,17 @@ LoginDialog::LoginDialog() : QDialog()
 
 void LoginDialog::onLogin()
 {
-    if(greeter->inAuthentication())
-    {
-        if(inPrompt)
+    if(greeter->inAuthentication()) {
+        if(inPrompt) {
             greeter->provideSecret(entry->text());
+        }
         inPrompt = false;
         entry->setText("");
         entry->setEchoMode(QLineEdit::Normal);
     }
-    else
+    else {
         greeter->startAuthentication(entry->text());
+    }
 }
 
 void LoginDialog::showPrompt(QString text)
@@ -61,10 +68,12 @@ void LoginDialog::showError(QString text)
 void LoginDialog::authenticationComplete()
 {
     entry->setText("");
-    if(greeter->isAuthenticated())
+    if(greeter->isAuthenticated()) {
         greeter->login(greeter->authenticationUser(), greeter->defaultSession(), greeter->defaultLanguage());
-    else
+    }
+    else {
         label->setText("Failed to authenticate");
+    }
 }
 
 void LoginDialog::quit()

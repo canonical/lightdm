@@ -1,6 +1,8 @@
-#include <QtGui>
+#include <QtGui/QDialog>
 
-#include "ldmgreeter.h"
+class QLabel;
+class QLineEdit;
+class LdmGreeter;
 
 class LoginDialog : public QDialog
 {
