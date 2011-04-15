@@ -45,12 +45,14 @@ liblightdm_qt_0_la_CXXFLAGS = $(LIBLIGHTDM_QT_CFLAGS) \
 
 liblightdm_qt_0_la_SOURCES = \
 	consolekitinterface.cpp \
+	consolekitinterface.h \
 	ldmauthrequest.cpp \
 	ldmgreeter.cpp \
 	ldmlanguage.cpp \
 	ldmsession.cpp \
 	ldmuser.cpp \
 	powermanagementinterface.cpp \
+	powermanagementinterface.h \
 	$(GENERATED_FILES)
 
 pkgconfigdir = $(libdir)/pkgconfig
@@ -58,6 +60,9 @@ pkgconfig_DATA = liblightdm-qt-0.pc
 
 CLEANFILES = \
 	$(GENERATED_FILES)
+
+EXTRA_DIST = \
+	user-manager.xml
 
 DISTCLEANFILES = \
 	Makefile.in \
