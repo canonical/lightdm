@@ -69,7 +69,7 @@ class Greeter
         password_entry.visibility = false;
         password_entry.sensitive = false;
         login_vbox.pack_start (password_entry, false, false, 0);
-        username_entry.activate.connect (password_activate_cb);
+        password_entry.activate.connect (password_activate_cb);
         password_entry.no_show_all = true;
         
         window.show_all ();
