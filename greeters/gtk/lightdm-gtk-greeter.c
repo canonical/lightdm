@@ -709,7 +709,8 @@ connect_cb (LdmGreeter *greeter)
 
     gtk_widget_show_all (window);
 
-    gtk_widget_grab_focus (user_view);
+    if (user_view)
+        gtk_widget_grab_focus (user_view);
 }
 
 int
