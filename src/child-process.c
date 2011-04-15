@@ -255,6 +255,7 @@ child_process_start (ChildProcess *process,
         /* Watch for data from the child process */
         process->priv->from_child_channel = g_io_channel_unix_new (from_child_pipe[0]);
         g_io_channel_set_encoding (process->priv->from_child_channel, NULL, NULL);
+        g_io_channel_set_buffered (process->priv->from_child_channel, FALSE);
 
         g_io_add_watch (process->priv->from_child_channel, G_IO_IN, from_child_cb, process);
 

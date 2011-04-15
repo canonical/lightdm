@@ -360,14 +360,17 @@ got_data_cb (Greeter *greeter)
 {
     gsize n_to_read, n_read, offset;
     GIOStatus status;
-    int message, n_secrets, i;
+    int id, n_secrets, i;
     gchar *username, *session_name, *language;
     gchar **secrets;
     GError *error = NULL;
-
+  
     n_to_read = HEADER_SIZE;
     if (greeter->priv->n_read >= HEADER_SIZE)
-        n_to_read += ((guint32 *) greeter->priv->read_buffer)[1];
+    {
+        offset = int_length ();
+        n_to_read += read_int (greeter, &offset);
+    }
 
     status = g_io_channel_read_chars (child_process_get_from_child_channel (CHILD_PROCESS (greeter)),
                                       greeter->priv->read_buffer + greeter->priv->n_read,
@@ -395,11 +398,11 @@ got_data_cb (Greeter *greeter)
             return;
         }
     }
-
+  
     offset = 0;
-    message = read_int (greeter, &offset);
+    id = read_int (greeter, &offset);
     read_int (greeter, &offset);
-    switch (message)
+    switch (id)
     {
     case GREETER_MESSAGE_CONNECT:
         handle_connect (greeter);
@@ -428,7 +431,7 @@ got_data_cb (Greeter *greeter)
         g_free (language);
         break;
     default:
-        g_warning ("Unknown message from greeter: %d", message);
+        g_warning ("Unknown message from greeter: %d", id);
         break;
     }
 
