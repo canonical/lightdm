@@ -13,6 +13,8 @@ Overview of changes in lightdm 0.3.0
     * Add basic QT engine and theme
     * Rename ldm_greeter_connect to ldm_greeter_connect_to_server so it doesn't
       clash with GObject method name
+    * Add more annotations to liblightdm-gobject
+    * Add an example PyGObject greeter
 
 Overview of changes in lightdm 0.2.3
 
