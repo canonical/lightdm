@@ -1,3 +1,1 @@
-libexec_PROGRAMS = lightdm-python-gtk-greeter
-
-lightdm-python-gtk-greeter:
+libexec_SCRIPTS = lightdm-python-gtk-greeter
