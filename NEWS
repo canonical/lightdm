@@ -1,20 +1,19 @@
 Overview of changes in lightdm 0.3.0
 
-    * Generate metadata for QT libraries
-    * Move Webkit greeter into separate module
-    * Rename ldm-gtk-greeter to lightdm-gtk-greeter
-    * Correctly environment variables through to the session
+    * Correctly pass environment variables through to the session
     * Allow starting virtual terminal to be configured
     * Replace D-Bus greeter communication with a private pipe
-    * liblightdmgreeter now connect asynchronously
     * Use GDBus instead of dbus-glib
     * Use the engine process name instead of a hardcoded value in theme files
-    * Rename gnome theme to example-gtk-gnome
-    * Add basic QT engine and theme
     * Rename ldm_greeter_connect to ldm_greeter_connect_to_server so it doesn't
       clash with GObject method name
+    * Rename ldm-gtk-greeter to lightdm-gtk-greeter
+    * Rename gnome theme to example-gtk-gnome
     * Add more annotations to liblightdm-gobject
     * Add an example PyGObject greeter
+    * Generate metadata for QT libraries
+    * Add basic QT engine and theme
+    * Move Webkit greeter into separate module
 
 Overview of changes in lightdm 0.2.3
 
