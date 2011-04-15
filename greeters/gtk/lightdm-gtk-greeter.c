@@ -54,6 +54,7 @@ set_language (const gchar *language)
     }
 }
 
+#if 0
 static gchar *
 get_layout ()
 {
@@ -68,6 +69,7 @@ get_layout ()
 
     return NULL;
 }
+#endif
 
 static void
 set_layout (const gchar *layout)
