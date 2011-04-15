@@ -10,9 +10,8 @@ Overview of changes in lightdm 0.3.0
     * Rename ldm-gtk-greeter to lightdm-gtk-greeter
     * Rename gnome theme to example-gtk-gnome
     * Add more annotations to liblightdm-gobject
-    * Add an example PyGObject greeter
+    * Add an example PyGObject, Vala and QT greeter
     * Generate metadata for QT libraries
-    * Add basic QT engine and theme
     * Move Webkit greeter into separate module
 
 Overview of changes in lightdm 0.2.3

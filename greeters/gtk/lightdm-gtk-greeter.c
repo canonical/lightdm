@@ -203,8 +203,8 @@ show_prompt_cb (LdmGreeter *greeter, const gchar *text)
 static void
 show_message_cb (LdmGreeter *greeter, const gchar *text)
 {
-    gtk_widget_show (message_label);
     gtk_label_set_text (GTK_LABEL (message_label), text);
+    gtk_widget_show (message_label);
 }
 
 static void
@@ -240,8 +240,8 @@ authentication_complete_cb (LdmGreeter *greeter)
     }
     else
     {
-        gtk_widget_show (message_label);
         gtk_label_set_text (GTK_LABEL (message_label), "Failed to authenticate");
+        gtk_widget_show (message_label);
     }
 }
 
@@ -711,6 +711,8 @@ connect_cb (LdmGreeter *greeter)
 
     if (user_view)
         gtk_widget_grab_focus (user_view);
+    else
+        gtk_widget_grab_focus (username_entry);    
 }
 
 int

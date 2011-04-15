@@ -1,0 +1,7 @@
+[theme]
+name=GNOME
+description=GNOME Example Theme (Vala)
+engine=lightdm-vala-gtk-greeter
+session=gnome
+gtkrc=gtkrc
+background-image=bg.jpg

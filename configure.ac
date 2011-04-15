@@ -6,6 +6,7 @@ AC_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE
 LT_INIT
 AM_PROG_CC_C_O
+AM_PROG_VALAC
 AC_PROG_CXX
 AC_PROG_LIBTOOL
 AM_MAINTAINER_MODE
@@ -58,6 +59,13 @@ elif test x"$enable_liblightdm_gobject" = "xyes"; then
     compile_liblightdm_gobject=yes
 fi
 AM_CONDITIONAL(COMPILE_LIBLIGHTDM_GOBJECT, test x"$compile_liblightdm_gobject" != "xno")
+
+if test x"$VALAC" = "x"; then
+    have_vala=no
+else
+    have_vala=yes
+fi
+AM_CONDITIONAL(HAVE_VALA_GTK_GREETER, test $have_vala = yes)
 
 AC_ARG_ENABLE(liblightdm-qt,
 	AS_HELP_STRING([--enable-liblightdm-qt],[Enable LightDM client QT libraries [[default=auto]]]),
@@ -255,6 +263,7 @@ greeters/Makefile
 greeters/gtk/Makefile
 greeters/python-gtk/Makefile
 greeters/qt/Makefile
+greeters/vala-gtk/Makefile
 liblightdm-gobject/liblightdm-gobject-0.pc
 liblightdm-gobject/Makefile
 liblightdm-qt/liblightdm-qt-0.pc
@@ -265,6 +274,7 @@ themes/Makefile
 themes/example-gtk-gnome/Makefile
 themes/example-python-gtk-gnome/Makefile
 themes/example-qt-kde/Makefile
+themes/example-vala-gtk-gnome/Makefile
 ])
 
 dnl ###########################################################################
@@ -293,5 +303,6 @@ echo "
         GObject introspection:    $found_introspection
         liblightdm-qt:            $compile_liblightdm_qt
         GTK+ Greeter:             $have_gtk
+        Vala Greeter:             $have_vala
         Qt Greeter:               $have_qt
 "
