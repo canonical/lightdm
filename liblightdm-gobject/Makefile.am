@@ -44,18 +44,10 @@ gir_DATA = LightDM-0.gir
 typelibdir = $(libdir)/girepository-1.0
 typelib_DATA = LightDM-0.typelib
 
-vapidir = $(datadir)/vala/vapi
-vapi_DATA = LightDM-0.vapi
-
-LightDM-0.vapi: LightDM-0.gir Makefile.am
-	$(VALA_API_GEN) --library=LightDM-0 \
-		--pkg glib-2.0 \
-		--vapidir=$(top_builddir)/src \
-		$<
-
-CLEANFILES += $(vapi_DATA)
-
 endif
+
+vapidir = $(datadir)/vala/vapi
+vapi_DATA = lightdm-0.vapi
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = liblightdm-gobject-0.pc
