@@ -1066,8 +1066,8 @@ ldm_greeter_get_authentication_user (LdmGreeter *greeter)
  * ldm_greeter_login:
  * @greeter: A #LdmGreeter
  * @username: The user to log in as
- * @session: The session to log into or NULL to use the default
- * @language: The language to use or NULL to use the default
+ * @session: (allow-none): The session to log into or NULL to use the default
+ * @language: (allow-none): The language to use or NULL to use the default
  *
  * Login a user to a session
  **/
