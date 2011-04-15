@@ -1,0 +1,304 @@
+#!/usr/bin/python
+
+from gi.repository import GLib
+from gi.repository import Gdk
+from gi.repository import GdkPixbuf
+from gi.repository import Gtk
+from gi.repository import LightDM
+
+class Greeter:
+    def __init__(self):
+        self.greeter = LightDM.Greeter()
+        self.greeter.connect('connected', self.connect_cb)
+        self.greeter.connect('show-prompt', self.show_prompt_cb)
+        self.greeter.connect('show-message', self.show_message_cb)
+        self.greeter.connect('show-error', self.show_message_cb)
+        self.greeter.connect('authentication-complete', self.authentication_complete_cb)
+        self.greeter.connect('timed-login', self.timed_login_cb)
+        self.greeter.connect('quit', self.quit_cb)
+
+    def connect_to_server(self):
+        self.greeter.connect_to_server()
+
+    def connect_cb(self, greeter):
+        theme_dir = GLib.path_get_dirname(greeter.get_theme())
+        rc_file = greeter.get_string_property('gtkrc')
+        if rc_file is not None:
+            Gtk.rc_add_default_file(GLib.build_filenamev((theme_dir, rc_file)))
+
+        settings = Gtk.Settings.get_default()
+        self.theme_name = settings.get_property('gtk-theme-name')
+
+        display = Gdk.Display.get_default()
+        screen = display.get_default_screen()
+        screen_width = screen.get_width()
+        screen_height = screen.get_height()
+
+        # FIXME: Not introspectable
+        #root = Gdk.Window.get_default_root()
+        #root.set_cursor(Gdk.Cursor(GDK_LEFT_PTR))
+
+        self.window = Gtk.Window()
+        self.window.app_paintable = True
+        self.window.set_default_size(screen_width, screen_height)
+        self.window.fullscreen()
+        self.window.realize()
+
+        background_image = greeter.get_string_property('background-image')
+        if background_image is not None:
+            path = GLib.build_filenamev((theme_dir, background_image))
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file(path)
+            self.background = pixbuf.scale_simple(screen_width, screen_height, GdkPixbuf.InterpType.BILINEAR)
+            # FIXME: Convert to cairo surface
+            self.window.connect('draw', self.draw_background_cb)
+
+        vbox = Gtk.VBox()
+        self.window.add(vbox)
+
+        login_align = Gtk.Alignment()
+        login_align.set(0.5, 0.5, 0.0, 0.0)
+        vbox.pack_start(login_align, True, True, 0)
+
+        notebook = Gtk.Notebook()
+        notebook.set_show_tabs(False)
+        login_align.add(notebook)
+
+        login_vbox = Gtk.VBox()
+        login_vbox.set_border_width(12)
+        notebook.add(login_vbox)
+
+        logo_image = Gtk.Image.new_from_icon_name('computer', Gtk.IconSize.DIALOG)
+        logo_image.set_pixel_size(64)
+        login_vbox.pack_start(logo_image, False, False, 0)
+        login_vbox.pack_start(Gtk.Label(greeter.get_hostname()), False, False, 0)
+
+        self.message_label = Gtk.Label()
+        login_vbox.pack_start(self.message_label, False, False, 0)
+        self.message_label.set_no_show_all(True)
+
+        users = greeter.get_users()
+        user_view = None
+        if True:#users is None:
+            self.username_entry = Gtk.Entry()
+            login_vbox.pack_start(self.username_entry, False, False, 0)
+            self.username_entry.connect('activate', self.username_activate_cb)
+        else:
+            model = Gtk.ListStore(str, str, GdkPixbuf.Pixbuf, bool)
+            for user in users:
+                image = user.get_image()
+                pixbuf = None
+                if image != '':
+                    path = GLib.filename_from_uri(image)
+                    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, 64, 64, True)
+                model.append((user.get_name(), user.get_display_name(), pixbuf, True))
+            user_view = Gtk.TreeView()
+            user_view.set_model(model)
+            user_view.set_headers_visible(False)
+            user_view.set_grid_lines(Gtk.TreeViewGridLines.NONE)
+            user_view.append_column(Gtk.TreeViewColumn('Face', Gtk.CellRendererPixbuf(), pixbuf = 2, sensitive = 3))
+            user_view.append_column(Gtk.TreeViewColumn('Name', Gtk.CellRendererText(), text = 1))
+            user_view.connect('row-activated', self.user_view_activate_cb)
+            user_view.connect('button-press-event', self.user_view_click_cb)
+            i = model.get_iter_first()
+            if i is not None:
+                user_view.get_selection().select_iter(i)
+
+            login_vbox.pack_start(user_view, False, False, 0)
+
+        self.password_entry = Gtk.Entry()
+        self.password_entry.visibility = False
+        self.password_entry.sensitive = False
+        login_vbox.pack_start(self.password_entry, False, False, 0)
+        self.password_entry.connect('activate', self.password_activate_cb)
+        self.password_entry.set_no_show_all(True)
+
+        menu_bar = Gtk.MenuBar ()
+        vbox.pack_start(menu_bar, False, True, 0)
+
+        menu_item = Gtk.ImageMenuItem()
+        menu_item.set_image(Gtk.Image.new_from_icon_name('preferences-desktop-accessibility', Gtk.IconSize.LARGE_TOOLBAR))
+        menu_item.set_label('') # NOTE: Needed to make the icon show as selected
+        menu_item.set_always_show_image(True)
+        menu_bar.append(menu_item)
+        menu = Gtk.Menu()
+        menu_item.set_submenu(menu)
+
+        menu_item = Gtk.CheckMenuItem.new_with_label("Large Font")
+        menu_item.connect('toggled', self.a11y_font_cb)
+        menu.append(menu_item)
+
+        menu_item = Gtk.CheckMenuItem.new_with_label("High Constrast")
+        menu_item.connect('toggled', self.a11y_contrast_cb)
+        menu.append(menu_item)
+
+        menu_item = Gtk.MenuItem.new_with_label("Options")
+        menu_bar.append(menu_item)
+        option_menu = Gtk.Menu()
+        menu_item.set_submenu(option_menu)
+
+        menu_item = Gtk.MenuItem.new_with_label("Language")
+        option_menu.append(menu_item)
+        menu = Gtk.Menu()
+        menu_item.set_submenu(menu)
+
+        language_radio_list = []
+        for l in greeter.get_languages():
+            if l.get_name() == "":
+                label = l.get_code()
+            else:
+                label = '%s - %s' % (l.get_name(), l.get_territory())
+            menu_item = Gtk.RadioMenuItem.new_with_label(language_radio_list, label)
+            language_radio_list = menu_item.get_group()
+            menu.append(menu_item)
+
+            if l.matches(greeter.get_default_language()):
+                menu_item.set_active(True)
+
+            menu_item.set_data('language', l.get_code())
+
+        menu_item = Gtk.MenuItem.new_with_label("Keyboard Layout")
+        option_menu.append(menu_item)
+        menu = Gtk.Menu()
+        menu_item.set_submenu(menu)
+
+        layout_radio_list = []
+        for l in greeter.get_layouts():
+            menu_item = Gtk.RadioMenuItem.new_with_label(layout_radio_list, l.get_description())
+            layout_radio_list = menu_item.get_group()
+            menu.append(menu_item)
+
+            if l.get_name() == greeter.get_default_layout():
+                menu_item.set_active(True)
+
+            menu_item.set_data('layout', l.get_name())
+            menu_item.connect('toggled', self.layout_changed_cb)
+
+        menu_item = Gtk.MenuItem.new_with_label("Session")
+        option_menu.append(menu_item)
+        menu = Gtk.Menu()
+        menu_item.set_submenu(menu)
+
+        session_radio_list = []
+        for s in greeter.get_sessions():
+            menu_item = Gtk.RadioMenuItem.new_with_label(session_radio_list, s.get_name())
+            session_radio_list = menu_item.get_group()
+            menu.append(menu_item)
+
+            if s.get_key() == greeter.get_default_session():
+                menu_item.set_active(True)
+
+            menu_item.set_data('key', s.get_key())
+
+        power_menu = Gtk.Menu()
+        n_power_items = 0
+        if greeter.get_can_suspend():
+            menu_item = Gtk.MenuItem('Suspend')
+            power_menu.append(menu_item)
+            menu_item.connect('activate', self.suspend_cb)
+            n_power_items += 1
+        if greeter.get_can_hibernate():
+            menu_item = Gtk.MenuItem('Hibernate')
+            power_menu.append(menu_item)
+            menu_item.connect('activate', self.hibernate_cb)
+            n_power_items += 1
+        if greeter.get_can_restart():
+            menu_item = Gtk.MenuItem('Restart...')
+            power_menu.append(menu_item)
+            menu_item.connect('activate', self.restart_cb)
+            n_power_items += 1
+        if greeter.get_can_shutdown():
+            menu_item = Gtk.MenuItem('Shutdown...')
+            power_menu.append(menu_item)
+            menu_item.connect('activate', self.shutdown_cb)
+            n_power_items += 1
+
+        if n_power_items > 0:
+            menu_item = Gtk.ImageMenuItem()
+            menu_item.set_always_show_image(True)
+            menu_item.set_right_justified(True)
+            menu_item.set_image(Gtk.Image.new_from_icon_name('system-shutdown', Gtk.IconSize.LARGE_TOOLBAR))
+            menu_item.set_label('') # NOTE: Needed to make the icon show as selected
+            menu_item.set_submenu(power_menu)
+            menu_bar.append(menu_item)
+
+        self.window.show_all()
+        if user_view is not None:
+            user_view.grab_focus()
+
+    def draw_background_cb(self, widget, context):
+        pass#self.background
+    
+    def start_authentication(self, username):
+        # FIXME if self.greeter.get_user_defaults
+        # FIXME if user_model
+        if self.username_entry is not None:
+            self.username_entry.set_sensitive(False)
+        self.greeter.start_authentication(username)
+
+    def username_activate_cb(self, widget):
+        self.start_authentication(self.username_entry.get_text())
+
+    def password_activate_cb(self, widget):
+        self.password_entry.set_sensitive(False)
+        self.greeter.provide_secret(self.password_entry.get_text())
+
+    def show_prompt_cb(self, greeter, text):
+        self.password_entry.show()
+        self.password_entry.set_sensitive(True)
+        self.password_entry.frab_focus()
+
+    def show_message_cb(self, greeter, text):
+        self.message_label.show()
+        self.message_label.set_text(text)
+
+    def authentication_complete_cb(self, greeter):
+        self.password_entry.hide()
+        self.password_entry.set_text('')
+
+        # Clear row shading
+        # FIXME
+        if self.username_entry is not None:
+            self.username_entry.set_text('')
+            self.username_entry.set_sentitive(True)
+
+        if user_view is not None:
+            user_view.grab_focus()
+        else:
+            username_entry.grab_focus()
+
+    def timed_login_cb(self, greeter, username):
+        self.greeter.login(greeter.get_timed_login_user(), None, None)
+
+    def quit_cb(self, greeter):
+        Gtk.main_quit()
+
+    def user_view_activate_cb(self, widget):
+        pass
+
+    def user_view_click_cb(self, widget):
+        pass
+
+    def layout_changed_cb(self, widget):
+        pass
+
+    def a11y_font_cb(self, widget):
+        pass
+
+    def a11y_contrast_cb(self, widget):
+        pass
+
+    def suspend_cb(self, widget):
+        self.greeter.suspend()
+
+    def hibernate_cb(self, widget):
+        self.greeter.hibernate()
+
+    def restart_cb(self, widget):
+        pass
+
+    def shutdown_cb(self, widget):
+        pass
+
+g = Greeter()
+g.connect_to_server()
+Gtk.main()

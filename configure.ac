@@ -253,6 +253,7 @@ data/init/Makefile
 doc/Makefile
 greeters/Makefile
 greeters/gtk/Makefile
+greeters/python-gtk/Makefile
 greeters/qt/Makefile
 liblightdm-gobject/liblightdm-gobject-0.pc
 liblightdm-gobject/Makefile
@@ -262,6 +263,7 @@ po/Makefile.in
 src/Makefile
 themes/Makefile
 themes/example-gtk-gnome/Makefile
+themes/example-python-gtk-gnome/Makefile
 themes/example-qt-kde/Makefile
 ])
 

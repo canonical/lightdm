@@ -1,4 +1,4 @@
-SUBDIRS =
+SUBDIRS = python-gtk
 
 if HAVE_GTK_GREETER
 SUBDIRS += gtk
