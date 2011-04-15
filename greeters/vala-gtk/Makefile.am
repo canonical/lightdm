@@ -5,7 +5,7 @@ lightdm_vala_gtk_greeter_SOURCES = \
 
 lightdm_vala_gtk_greeter_VALAFLAGS = \
 	--pkg gtk+-2.0 \
-	--vapidir $(top_builddir)/liblightdm-gobject \    
+	--vapidir $(top_builddir)/liblightdm-gobject \
 	--pkg lightdm-0
 
 lightdm_vala_gtk_greeter_CFLAGS = \
