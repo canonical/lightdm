@@ -428,7 +428,6 @@ handle_manage (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XD
     session = get_session (server, packet->Manage.session_id);
     if (session)
     {
-        gchar *display_address;
         gboolean result;
 
         /* Ignore duplicate requests */
@@ -457,12 +456,10 @@ handle_manage (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XD
 
             response = xdmcp_packet_alloc (XDMCP_Failed);
             response->Failed.session_id = packet->Manage.session_id;
-            response->Failed.status = g_strdup_printf ("Failed to connect to display %s", display_address);
+            response->Failed.status = g_strdup_printf ("Failed to connect to display :%d", packet->Manage.display_number);
             send_packet (socket, address, response);
             xdmcp_packet_free (response);
         }
-
-        g_free (display_address);
     }
     else
     {
