@@ -5,6 +5,7 @@ lightdm-qt-greeter_moc.cpp: lightdm-qt-greeter.h
 
 lightdm_qt_greeter_SOURCES = \
 	lightdm-qt-greeter.cpp \
+	lightdm-qt-greeter.h \
 	lightdm-qt-greeter_moc.cpp
 
 lightdm_qt_greeter_CXXFLAGS = \
