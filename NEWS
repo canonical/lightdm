@@ -3,6 +3,7 @@ Overview of changes in lightdm 0.3.1
     * Add greeter login_with_defaults method
     * Add example to the name of all the greeters
     * Set the configuration for the default display to use VT 7
+    * Fix the vt setting for displays, it was incorrectly named tty
 
 Overview of changes in lightdm 0.3.0
 

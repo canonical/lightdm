@@ -260,7 +260,7 @@ get_vt (DisplayManager *manager, gchar *config_section)
     if (manager->priv->test_mode)
         return -1;
 
-    tty = g_key_file_get_string (manager->priv->config, config_section, "tty", NULL);
+    tty = g_key_file_get_string (manager->priv->config, config_section, "vt", NULL);
     if (tty)
         return atoi (tty);
 
