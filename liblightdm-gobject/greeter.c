@@ -1098,12 +1098,12 @@ ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *sess
  * Login a user to a session using default settings for that user.
  **/
 void
-ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *session, const gchar *language)
+ldm_greeter_login_with_defaults (LdmGreeter *greeter, const gchar *username)
 {
     g_return_if_fail (LDM_IS_GREETER (greeter));
     g_return_if_fail (username != NULL);
 
-    ldm_greeter_login (greeter, username, NULL);
+    ldm_greeter_login (greeter, username, NULL, NULL);
 }
 
 static gboolean

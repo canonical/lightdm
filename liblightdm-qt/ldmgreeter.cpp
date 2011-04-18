@@ -236,7 +236,7 @@ void LdmGreeter::login(const QString &username, const QString &session, const QS
 
 void LdmGreeter::loginWithDefaults(const QString &username)
 {
-    login(username, NULL, NULL, NULL);
+    login(username, NULL, NULL);
 }
 
 void LdmGreeter::onRead(int fd)
