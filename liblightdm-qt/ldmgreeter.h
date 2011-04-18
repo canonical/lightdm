@@ -48,6 +48,7 @@ public:
     void provideSecret(const QString &secret);
     void cancelAuthentication();
     void login(const QString &username, const QString &session, const QString &language);
+    void loginWithDefaults(const QString &username);
 
     bool canSuspend() const;
     bool canHibernate() const;

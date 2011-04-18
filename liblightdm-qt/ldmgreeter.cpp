@@ -234,6 +234,11 @@ void LdmGreeter::login(const QString &username, const QString &session, const QS
     flush();
 }
 
+void LdmGreeter::loginWithDefaults(const QString &username)
+{
+    login(username, NULL, NULL, NULL);
+}
+
 void LdmGreeter::onRead(int fd)
 {
     //qDebug() << "Reading from server";

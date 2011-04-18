@@ -33,6 +33,7 @@ namespace LightDM {
 		public unowned GLib.List<weak LightDM.User> get_users ();
 		public void hibernate ();
 		public void login (string username, string? session, string? language);
+		public void login_with_defaults (string username);
 		public void provide_secret (string secret);
 		public void restart ();
 		public void set_layout (string layout);

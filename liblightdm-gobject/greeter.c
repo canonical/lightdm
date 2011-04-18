@@ -1069,7 +1069,7 @@ ldm_greeter_get_authentication_user (LdmGreeter *greeter)
  * @session: (allow-none): The session to log into or NULL to use the default
  * @language: (allow-none): The language to use or NULL to use the default
  *
- * Login a user to a session
+ * Login a user to a session.
  **/
 void
 ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *session, const gchar *language)
@@ -1088,6 +1088,22 @@ ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *sess
     write_string (greeter, session);
     write_string (greeter, language);
     flush (greeter);
+}
+
+/**
+ * ldm_greeter_login_with_defaults:
+ * @greeter: A #LdmGreeter
+ * @username: The user to log in as
+ *
+ * Login a user to a session using default settings for that user.
+ **/
+void
+ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *session, const gchar *language)
+{
+    g_return_if_fail (LDM_IS_GREETER (greeter));
+    g_return_if_fail (username != NULL);
+
+    ldm_greeter_login (greeter, username, NULL);
 }
 
 static gboolean

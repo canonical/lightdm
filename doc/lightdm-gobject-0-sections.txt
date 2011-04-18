@@ -121,6 +121,7 @@ ldm_greeter_get_in_authentication
 ldm_greeter_get_is_authenticated
 ldm_greeter_get_authentication_user
 ldm_greeter_login
+ldm_greeter_login_with_defaults
 ldm_greeter_get_can_suspend
 ldm_greeter_suspend
 ldm_greeter_get_can_hibernate

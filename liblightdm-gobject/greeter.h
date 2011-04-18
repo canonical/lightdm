@@ -107,6 +107,8 @@ const gchar *ldm_greeter_get_authentication_user (LdmGreeter *greeter);
 
 void ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *session, const gchar *language);
 
+void ldm_greeter_login_with_defaults (LdmGreeter *greeter, const gchar *username);
+
 gboolean ldm_greeter_get_can_suspend (LdmGreeter *greeter);
 
 void ldm_greeter_suspend (LdmGreeter *greeter);

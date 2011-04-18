@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.3.1
+
+    * Add greeter login_with_defaults method
+
 Overview of changes in lightdm 0.3.0
 
     * Correctly pass environment variables through to the session
