@@ -1,28 +1,24 @@
-libexec_PROGRAMS = lightdm-qt-greeter
+libexec_PROGRAMS = lightdm-example-qt-greeter
 
-lightdm-qt-greeter_moc.cpp: lightdm-qt-greeter.h
+lightdm-example-qt-greeter_moc.cpp: lightdm-example-qt-greeter.h
 	moc $< -o $@
 
-lightdm_qt_greeter_SOURCES = \
-	lightdm-qt-greeter.cpp \
-	lightdm-qt-greeter.h \
-	lightdm-qt-greeter_moc.cpp
+lightdm_example_qt_greeter_SOURCES = \
+	lightdm-example-qt-greeter.cpp \
+	lightdm-example-qt-greeter.h \
+	lightdm-example-qt-greeter_moc.cpp
 
-lightdm_qt_greeter_CXXFLAGS = \
+lightdm_example_qt_greeter_CXXFLAGS = \
 	-I$(top_srcdir)/liblightdm-qt \
-	$(LIGHTDM_QT_GREETER_CFLAGS) \
-	-DVERSION=\"$(VERSION)\" \
-	-DGETTEXT_PACKAGE=\"$(GETTEXT_PACKAGE)\" \
-	-DLOCALE_DIR=\"$(localedir)\" \
-	-DLIGHTDM_QT_GREETER_BINARY=\"lightdm-qt-greeter\"
+	$(LIGHTDM_EXAMPLE_QT_GREETER_CFLAGS)
 
-lightdm_qt_greeter_LDADD = \
+lightdm_example_qt_greeter_LDADD = \
 	-L$(top_builddir)/liblightdm-qt \
 	-llightdm-qt-0 \
-	$(LIGHTDM_QT_GREETER_LIBS)
+	$(LIGHTDM_EXAMPLE_QT_GREETER_LIBS)
 
 CLEANFILES = \
-	lightdm-qt-greeter_moc.cpp
+	lightdm-example-qt-greeter_moc.cpp
 
 DISTCLEANFILES = \
 	Makefile.in

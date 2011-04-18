@@ -1,6 +1,7 @@
 Overview of changes in lightdm 0.3.1
 
     * Add greeter login_with_defaults method
+    * Add example to the name of all the greeters
 
 Overview of changes in lightdm 0.3.0
 

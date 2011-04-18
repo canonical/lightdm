@@ -444,6 +444,15 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @language: 
 
 
+<!-- ##### FUNCTION ldm_greeter_login_with_defaults ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@username: 
+
+
 <!-- ##### FUNCTION ldm_greeter_get_can_suspend ##### -->
 <para>
 

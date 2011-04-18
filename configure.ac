@@ -90,14 +90,14 @@ AM_CONDITIONAL(COMPILE_LIBLIGHTDM_QT, test x"$compile_liblightdm_qt" != "xno")
 
 have_qt=no
 if test x"$compile_liblightdm_qt" = "xyes"; then
-    PKG_CHECK_MODULES(LIGHTDM_QT_GREETER, [
+    PKG_CHECK_MODULES(LIGHTDM_EXAMPLE_QT_GREETER, [
         QtCore
         QtGui
     ], have_qt=yes, have_qt=no)
 fi
 AM_CONDITIONAL(HAVE_QT_GREETER, test $have_qt = yes)
 
-PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
+PKG_CHECK_MODULES(LIGHTDM_EXAMPLE_GTK_GREETER, [
     gtk+-2.0
 ], have_gtk=yes, have_gtk=no)
 AM_CONDITIONAL(HAVE_GTK_GREETER, test $have_gtk = yes)

@@ -1,4 +1,4 @@
-#include "lightdm-qt-greeter.h"
+#include "lightdm-example-qt-greeter.h"
 
 #include <QtGui/QApplication>
 #include <QtGui/QLabel>

@@ -1,1 +1,1 @@
-dist_libexec_SCRIPTS = lightdm-python-gtk-greeter
+dist_libexec_SCRIPTS = lightdm-example-python-gtk-greeter
