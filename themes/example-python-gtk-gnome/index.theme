@@ -1,7 +1,7 @@
 [theme]
 name=GNOME
 description=GNOME Example Theme (Python)
-engine=lightdm-python-gtk-greeter
+engine=lightdm-example-python-gtk-greeter
 session=gnome
 gtkrc=gtkrc
 background-image=bg.jpg

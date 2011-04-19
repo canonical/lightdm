@@ -1,5 +1,5 @@
 [theme]
 name=KDE
 description=KDE Example Theme
-engine=lightdm-qt-greeter
+engine=lightdm-example-qt-greeter
 session=kde
