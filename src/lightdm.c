@@ -267,7 +267,7 @@ handle_user_manager_call (GDBusConnection       *connection,
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
             return;
 
-        builder = g_variant_builder_new (G_VARIANT_TYPE_ARRAY);
+        builder = g_variant_builder_new (G_VARIANT_TYPE ("a(sssb)"));
         users = user_manager_get_users (user_manager);
         for (iter = users; iter; iter = iter->next)
         {
