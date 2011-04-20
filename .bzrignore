@@ -31,10 +31,10 @@ doc/*.stamp
 doc/tmpl/*-unused.sgml
 doc/*.txt
 doc/xml
-greeters/gtk/lightdm-gtk-greeter
-greeters/qt/lightdm-qt-greeter
+greeters/gtk/lightdm-example-gtk-greeter
+greeters/qt/lightdm-example-qt-greeter
 greeters/qt/*_moc.cpp
-greeters/vala-gtk/lightdm-vala-gtk-greeter
+greeters/vala-gtk/lightdm-example-vala-gtk-greeter
 greeters/vala-gtk/*.c
 liblightdm-gobject/*.gir
 liblightdm-gobject/*.typelib
