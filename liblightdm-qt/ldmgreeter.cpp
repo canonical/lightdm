@@ -56,7 +56,8 @@ public:
 };
 
 
-LdmGreeter::LdmGreeter() :
+LdmGreeter::LdmGreeter(QObject *parent) :
+    QObject(parent),
     d(new LdmGreeterPrivate)
 {
     d->readBuffer = (char *)malloc (HEADER_SIZE);
