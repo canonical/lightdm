@@ -27,12 +27,10 @@ GENERATED_FILES = $(INTERFACE_FILES) $(MOC_FILES)
 ldmgreeter.cpp: usermanagerinterface.h    
 
 liblightdm_qt_0include_HEADERS = \
-	ldmauthrequest.h \
 	ldmgreeter.h \
 	ldmlanguage.h \
 	ldmsession.h \
 	ldmuser.h \
-	include/LdmAuthRequest \
 	include/LdmGreeter \
 	include/LdmLanguage \
 	include/LdmSession \
@@ -46,7 +44,6 @@ liblightdm_qt_0_la_CXXFLAGS = $(LIBLIGHTDM_QT_CFLAGS) \
 liblightdm_qt_0_la_SOURCES = \
 	consolekitinterface.cpp \
 	consolekitinterface.h \
-	ldmauthrequest.cpp \
 	ldmgreeter.cpp \
 	ldmlanguage.cpp \
 	ldmsession.cpp \
