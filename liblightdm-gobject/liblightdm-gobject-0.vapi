@@ -1,6 +1,5 @@
-[CCode (cprefix = "Ldm", lower_case_cprefix = "ldm_", gir_namespace = "LightDM", gir_version = "0")]
+[CCode (cprefix = "Ldm", lower_case_cprefix = "ldm_", gir_namespace = "LightDM", gir_version = "0", cheader_filename = "lightdm/greeter.h")]
 namespace LightDM {
-	[CCode (cheader_filename = "greeter.h")]
 	public class Greeter : GLib.Object {
 		[CCode (has_construct_function = false)]
 		public Greeter ();
@@ -62,7 +61,6 @@ namespace LightDM {
 		public virtual signal void show_prompt (string greeter);
 		public virtual signal void timed_login (string greeter);
 	}
-	[CCode (cheader_filename = "greeter.h")]
 	public class Language : GLib.Object {
 		[CCode (has_construct_function = false)]
 		public Language (string code);
@@ -74,7 +72,6 @@ namespace LightDM {
 		public string name { get; }
 		public string territory { get; }
 	}
-	[CCode (cheader_filename = "greeter.h")]
 	public class Layout : GLib.Object {
 		[CCode (has_construct_function = false)]
 		public Layout (string name, string short_description, string description);
@@ -85,7 +82,6 @@ namespace LightDM {
 		public string name { get; construct; }
 		public string short_description { get; construct; }
 	}
-	[CCode (cheader_filename = "greeter.h")]
 	public class Session : GLib.Object {
 		[CCode (has_construct_function = false)]
 		public Session (string key, string name, string comment);
@@ -96,7 +92,6 @@ namespace LightDM {
 		public string key { get; construct; }
 		public string name { get; construct; }
 	}
-	[CCode (cheader_filename = "greeter.h")]
 	public class User : GLib.Object {
 		[CCode (has_construct_function = false)]
 		public User (LightDM.Greeter greeter, string name, string real_name, string image, bool logged_in);

@@ -47,7 +47,7 @@ typelib_DATA = LightDM-0.typelib
 endif
 
 vapidir = $(datadir)/vala/vapi
-dist_vapi_DATA = lightdm-0.vapi
+dist_vapi_DATA = liblightdm-gobject-0.vapi
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = liblightdm-gobject-0.pc
