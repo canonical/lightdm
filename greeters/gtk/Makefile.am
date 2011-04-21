@@ -1,7 +1,7 @@
 libexec_PROGRAMS = lightdm-example-gtk-greeter
 
 uidir = $(datadir)/lightdm-example-gtk-greeter
-ui_DATA = greeter.ui
+ui_DATA = $(srcdir)/greeter.ui
 
 lightdm_example_gtk_greeter_SOURCES = \
 	lightdm-example-gtk-greeter.c
