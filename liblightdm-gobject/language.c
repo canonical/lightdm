@@ -110,7 +110,7 @@ ldm_language_get_territory (LdmLanguage *language)
 static gboolean
 is_utf8 (const gchar *code)
 {
-   return g_str_has_suffix (code, ".utf8") || g_str_has_suffix (code, ".UTF-8");
+    return g_str_has_suffix (code, ".utf8") || g_str_has_suffix (code, ".UTF-8");
 }
 
 /**

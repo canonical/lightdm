@@ -679,8 +679,13 @@ update_languages (LdmGreeter *greeter)
 const gchar *
 ldm_greeter_get_default_language (LdmGreeter *greeter)
 {
+    gchar *lang;
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
-    return getenv ("LANG");
+    lang = getenv ("LANG");
+    if (lang)
+        return lang;
+    else
+        return "C";
 }
 
 /**
