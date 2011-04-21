@@ -9,7 +9,7 @@
  * license.
  */
 
-#include "session.h"
+#include "lightdm/session.h"
 
 enum {
     PROP_0,

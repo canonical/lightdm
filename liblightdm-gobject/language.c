@@ -12,7 +12,7 @@
 #include <locale.h>
 #include <langinfo.h>
 
-#include "language.h"
+#include "lightdm/language.h"
 
 enum {
     PROP_0,

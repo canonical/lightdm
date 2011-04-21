@@ -9,7 +9,7 @@
  * license.
  */
 
-#include "layout.h"
+#include "lightdm/layout.h"
 
 enum {
     PROP_0,

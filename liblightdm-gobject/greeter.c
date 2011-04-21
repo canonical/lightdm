@@ -18,7 +18,7 @@
 #include <security/pam_appl.h>
 #include <libxklavier/xklavier.h>
 
-#include "greeter.h"
+#include "lightdm/greeter.h"
 #include "greeter-protocol.h"
 
 enum {

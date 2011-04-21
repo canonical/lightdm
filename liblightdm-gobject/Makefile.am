@@ -1,14 +1,8 @@
+SUBDIRS = lightdm
+
 lib_LTLIBRARIES = liblightdm-gobject-0.la
 
 CLEANFILES =
-
-liblightdm_gobject_0include_HEADERS = \
-	greeter.h \
-	language.h \
-	layout.h \
-	session.h \
-	user.h
-liblightdm_gobject_0includedir=$(includedir)/lightdm-gobject-0/lightdm
 
 liblightdm_gobject_0_la_LIBADD = $(LIBLIGHTDM_GOBJECT_LIBS)
 liblightdm_gobject_0_la_CFLAGS = $(LIBLIGHTDM_GOBJECT_CFLAGS) \
@@ -22,7 +16,7 @@ liblightdm_gobject_0_la_SOURCES= \
 	layout.c \
 	session.c \
 	user.c \
-	$(liblightdm_gobject_0include_HEADERS)
+	lightdm/*.h
 
 if HAVE_INTROSPECTION
 

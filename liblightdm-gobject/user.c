@@ -9,7 +9,7 @@
  * license.
  */
 
-#include "user.h"
+#include "lightdm/user.h"
 
 enum {
     PROP_0,

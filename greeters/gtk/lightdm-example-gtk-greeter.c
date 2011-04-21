@@ -16,7 +16,7 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gdk-pixbuf-xlib/gdk-pixbuf-xlib.h>
 
-#include "greeter.h"
+#include "lightdm/greeter.h"
 
 static LdmGreeter *greeter;
 static GtkWidget *window, *message_label, *user_view;
