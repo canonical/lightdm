@@ -30,6 +30,7 @@ typedef struct _LdmLanguagePrivate LdmLanguagePrivate;
 struct _LdmLanguage
 {
     GObject         parent_instance;
+    /*<private>*/
     LdmLanguagePrivate *priv;
 };
 

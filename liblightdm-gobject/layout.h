@@ -30,6 +30,7 @@ typedef struct _LdmLayoutPrivate LdmLayoutPrivate;
 struct _LdmLayout
 {
     GObject         parent_instance;
+    /*<private>*/
     LdmLayoutPrivate *priv;
 };
 

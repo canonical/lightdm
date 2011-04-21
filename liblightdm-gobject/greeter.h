@@ -35,6 +35,7 @@ typedef struct _LdmGreeterPrivate LdmGreeterPrivate;
 struct _LdmGreeter
 {
     GObject            parent_instance;
+    /*<private>*/
     LdmGreeterPrivate *priv;
 };
 

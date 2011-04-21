@@ -6,6 +6,7 @@ Overview of changes in lightdm 0.3.1
     * Fix the vt setting for displays, it was incorrectly named tty
     * Fix crash when load-users is false in UserManager
     * Fix up name of .vapi file so it can be used directly from valac
+    * Tidy up Qt library and greeter
 
 Overview of changes in lightdm 0.3.0
 

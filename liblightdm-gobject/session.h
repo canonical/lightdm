@@ -30,6 +30,7 @@ typedef struct _LdmSessionPrivate LdmSessionPrivate;
 struct _LdmSession
 {
     GObject            parent_instance;
+    /*<private>*/
     LdmSessionPrivate *priv;
 };
 

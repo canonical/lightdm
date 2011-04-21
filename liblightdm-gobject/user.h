@@ -32,6 +32,7 @@ typedef struct _LdmUserPrivate LdmUserPrivate;
 struct _LdmUser
 {
     GObject         parent_instance;
+    /*<private>*/
     LdmUserPrivate *priv;
 };
 
