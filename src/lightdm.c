@@ -286,12 +286,14 @@ handle_user_manager_call (GDBusConnection       *connection,
             return;
 
         g_variant_get (parameters, "(s)", &username);
-        user_manager_get_user_defaults (user_manager, username, &language, &layout, &session);
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(sss)", language, layout, session));
+        if (user_manager_get_user_defaults (user_manager, username, &language, &layout, &session))
+        {
+            g_dbus_method_invocation_return_value (invocation, g_variant_new ("(sss)", language, layout, session));
+            g_free (language);
+            g_free (layout);
+            g_free (session);
+        }
         g_free (username);
-        g_free (language);
-        g_free (layout);
-        g_free (session);
     }
 }
 

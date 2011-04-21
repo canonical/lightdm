@@ -202,7 +202,7 @@ user_manager_get_user_defaults (UserManager *manager, gchar *username, gchar **l
     info = user_manager_get_user (manager, username);
     if (!info)
     {
-        g_warning ("Unable to get user defaults, user %s does not exist", username);
+        g_debug ("Unable to get user defaults, user %s does not exist", username);
         return FALSE;
     }
 
