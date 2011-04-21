@@ -55,63 +55,6 @@ class Greeter:
         vbox = Gtk.VBox()
         self.window.add(vbox)
 
-        login_align = Gtk.Alignment()
-        login_align.set(0.5, 0.5, 0.0, 0.0)
-        vbox.pack_start(login_align, True, True, 0)
-
-        notebook = Gtk.Notebook()
-        notebook.set_show_tabs(False)
-        login_align.add(notebook)
-
-        login_vbox = Gtk.VBox()
-        login_vbox.set_border_width(12)
-        notebook.add(login_vbox)
-
-        logo_image = Gtk.Image.new_from_icon_name('computer', Gtk.IconSize.DIALOG)
-        logo_image.set_pixel_size(64)
-        login_vbox.pack_start(logo_image, False, False, 0)
-        login_vbox.pack_start(Gtk.Label(greeter.get_hostname()), False, False, 0)
-
-        self.message_label = Gtk.Label()
-        login_vbox.pack_start(self.message_label, False, False, 0)
-        self.message_label.set_no_show_all(True)
-
-        users = greeter.get_users()
-        user_view = None
-        if True:#users is None:
-            self.username_entry = Gtk.Entry()
-            login_vbox.pack_start(self.username_entry, False, False, 0)
-            self.username_entry.connect('activate', self.username_activate_cb)
-        else:
-            model = Gtk.ListStore(str, str, GdkPixbuf.Pixbuf, bool)
-            for user in users:
-                image = user.get_image()
-                pixbuf = None
-                if image != '':
-                    path = GLib.filename_from_uri(image)
-                    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, 64, 64, True)
-                model.append((user.get_name(), user.get_display_name(), pixbuf, True))
-            user_view = Gtk.TreeView()
-            user_view.set_model(model)
-            user_view.set_headers_visible(False)
-            user_view.set_grid_lines(Gtk.TreeViewGridLines.NONE)
-            user_view.append_column(Gtk.TreeViewColumn('Face', Gtk.CellRendererPixbuf(), pixbuf = 2, sensitive = 3))
-            user_view.append_column(Gtk.TreeViewColumn('Name', Gtk.CellRendererText(), text = 1))
-            user_view.connect('row-activated', self.user_view_activate_cb)
-            user_view.connect('button-press-event', self.user_view_click_cb)
-            i = model.get_iter_first()
-            if i is not None:
-                user_view.get_selection().select_iter(i)
-
-            login_vbox.pack_start(user_view, False, False, 0)
-
-        self.password_entry = Gtk.Entry()
-        self.password_entry.visibility = False
-        self.password_entry.sensitive = False
-        login_vbox.pack_start(self.password_entry, False, False, 0)
-        self.password_entry.connect('activate', self.password_activate_cb)
-        self.password_entry.set_no_show_all(True)
-
         menu_bar = Gtk.MenuBar ()
         vbox.pack_start(menu_bar, False, True, 0)
 
@@ -220,6 +163,63 @@ class Greeter:
             menu_item.set_label('') # NOTE: Needed to make the icon show as selected
             menu_item.set_submenu(power_menu)
             menu_bar.append(menu_item)
+
+        login_align = Gtk.Alignment()
+        login_align.set(0.5, 0.5, 0.0, 0.0)
+        vbox.pack_start(login_align, True, True, 0)
+
+        notebook = Gtk.Notebook()
+        notebook.set_show_tabs(False)
+        login_align.add(notebook)
+
+        login_vbox = Gtk.VBox()
+        login_vbox.set_border_width(12)
+        notebook.add(login_vbox)
+
+        logo_image = Gtk.Image.new_from_icon_name('computer', Gtk.IconSize.DIALOG)
+        logo_image.set_pixel_size(64)
+        login_vbox.pack_start(logo_image, False, False, 0)
+        login_vbox.pack_start(Gtk.Label(greeter.get_hostname()), False, False, 0)
+
+        self.message_label = Gtk.Label()
+        login_vbox.pack_start(self.message_label, False, False, 0)
+        self.message_label.set_no_show_all(True)
+
+        users = greeter.get_users()
+        user_view = None
+        if True:#users is None:
+            self.username_entry = Gtk.Entry()
+            login_vbox.pack_start(self.username_entry, False, False, 0)
+            self.username_entry.connect('activate', self.username_activate_cb)
+        else:
+            model = Gtk.ListStore(str, str, GdkPixbuf.Pixbuf, bool)
+            for user in users:
+                image = user.get_image()
+                pixbuf = None
+                if image != '':
+                    path = GLib.filename_from_uri(image)
+                    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, 64, 64, True)
+                model.append((user.get_name(), user.get_display_name(), pixbuf, True))
+            user_view = Gtk.TreeView()
+            user_view.set_model(model)
+            user_view.set_headers_visible(False)
+            user_view.set_grid_lines(Gtk.TreeViewGridLines.NONE)
+            user_view.append_column(Gtk.TreeViewColumn('Face', Gtk.CellRendererPixbuf(), pixbuf = 2, sensitive = 3))
+            user_view.append_column(Gtk.TreeViewColumn('Name', Gtk.CellRendererText(), text = 1))
+            user_view.connect('row-activated', self.user_view_activate_cb)
+            user_view.connect('button-press-event', self.user_view_click_cb)
+            i = model.get_iter_first()
+            if i is not None:
+                user_view.get_selection().select_iter(i)
+
+            login_vbox.pack_start(user_view, False, False, 0)
+
+        self.password_entry = Gtk.Entry()
+        self.password_entry.visibility = False
+        self.password_entry.sensitive = False
+        login_vbox.pack_start(self.password_entry, False, False, 0)
+        self.password_entry.connect('activate', self.password_activate_cb)
+        self.password_entry.set_no_show_all(True)
 
         self.window.show_all()
         if user_view is not None:

@@ -535,49 +535,6 @@ connect_cb (LdmGreeter *greeter)
     vbox = gtk_vbox_new (FALSE, 0);
     gtk_container_add (GTK_CONTAINER (window), vbox);
 
-    login_align = gtk_alignment_new (0.5, 0.5, 0.0, 0.0);
-    gtk_box_pack_start (GTK_BOX (vbox), login_align, TRUE, TRUE, 0);
-
-    GtkWidget *notebook;
-    notebook = gtk_notebook_new ();
-    gtk_notebook_set_show_tabs (GTK_NOTEBOOK (notebook), FALSE);
-    gtk_container_add (GTK_CONTAINER (login_align), notebook);
-
-    login_vbox = gtk_vbox_new (FALSE, 6);
-    gtk_container_set_border_width (GTK_CONTAINER (login_vbox), 12);
-    gtk_container_add (GTK_CONTAINER (notebook), login_vbox);
-
-    logo_image = gtk_image_new_from_icon_name ("computer", GTK_ICON_SIZE_DIALOG);
-    gtk_image_set_pixel_size (GTK_IMAGE (logo_image), 64);
-    gtk_box_pack_start (GTK_BOX (login_vbox), logo_image, FALSE, FALSE, 0);
-    gtk_box_pack_start (GTK_BOX (login_vbox), gtk_label_new (ldm_greeter_get_hostname (greeter)), FALSE, FALSE, 0);
-
-    message_label = gtk_label_new ("");
-    gtk_box_pack_start (GTK_BOX (login_vbox), message_label, FALSE, FALSE, 0);
-    gtk_widget_set_no_show_all (message_label, TRUE);
-
-    user_view = make_user_view ();
-    if (user_view)
-    {
-        username_entry = NULL;
-        user_model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
-        gtk_box_pack_start (GTK_BOX (login_vbox), user_view, FALSE, FALSE, 0);
-    }
-    else
-    {
-        username_entry = gtk_entry_new ();
-        gtk_box_pack_start (GTK_BOX (login_vbox), username_entry, FALSE, FALSE, 0);
-        g_signal_connect (username_entry, "activate", G_CALLBACK (username_activate_cb), NULL);
-        user_model = NULL;
-    }
-
-    password_entry = gtk_entry_new ();
-    gtk_entry_set_visibility (GTK_ENTRY (password_entry), FALSE);
-    gtk_widget_set_sensitive (password_entry, FALSE);
-    gtk_box_pack_start (GTK_BOX (login_vbox), password_entry, FALSE, FALSE, 0);
-    g_signal_connect (password_entry, "activate", G_CALLBACK (password_activate_cb), NULL);
-    gtk_widget_set_no_show_all (password_entry, TRUE);
-
     menu_bar = gtk_menu_bar_new ();
     gtk_box_pack_start (GTK_BOX (vbox), menu_bar, FALSE, TRUE, 0);
 
@@ -709,6 +666,49 @@ connect_cb (LdmGreeter *greeter)
         gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), menu_item);
     }
 
+    login_align = gtk_alignment_new (0.5, 0.5, 0.0, 0.0);
+    gtk_box_pack_start (GTK_BOX (vbox), login_align, TRUE, TRUE, 0);
+
+    GtkWidget *notebook;
+    notebook = gtk_notebook_new ();
+    gtk_notebook_set_show_tabs (GTK_NOTEBOOK (notebook), FALSE);
+    gtk_container_add (GTK_CONTAINER (login_align), notebook);
+
+    login_vbox = gtk_vbox_new (FALSE, 6);
+    gtk_container_set_border_width (GTK_CONTAINER (login_vbox), 12);
+    gtk_container_add (GTK_CONTAINER (notebook), login_vbox);
+
+    logo_image = gtk_image_new_from_icon_name ("computer", GTK_ICON_SIZE_DIALOG);
+    gtk_image_set_pixel_size (GTK_IMAGE (logo_image), 64);
+    gtk_box_pack_start (GTK_BOX (login_vbox), logo_image, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (login_vbox), gtk_label_new (ldm_greeter_get_hostname (greeter)), FALSE, FALSE, 0);
+
+    message_label = gtk_label_new ("");
+    gtk_box_pack_start (GTK_BOX (login_vbox), message_label, FALSE, FALSE, 0);
+    gtk_widget_set_no_show_all (message_label, TRUE);
+
+    user_view = make_user_view ();
+    if (user_view)
+    {
+        username_entry = NULL;
+        user_model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
+        gtk_box_pack_start (GTK_BOX (login_vbox), user_view, FALSE, FALSE, 0);
+    }
+    else
+    {
+        username_entry = gtk_entry_new ();
+        gtk_box_pack_start (GTK_BOX (login_vbox), username_entry, FALSE, FALSE, 0);
+        g_signal_connect (username_entry, "activate", G_CALLBACK (username_activate_cb), NULL);
+        user_model = NULL;
+    }
+
+    password_entry = gtk_entry_new ();
+    gtk_entry_set_visibility (GTK_ENTRY (password_entry), FALSE);
+    gtk_widget_set_sensitive (password_entry, FALSE);
+    gtk_box_pack_start (GTK_BOX (login_vbox), password_entry, FALSE, FALSE, 0);
+    g_signal_connect (password_entry, "activate", G_CALLBACK (password_activate_cb), NULL);
+    gtk_widget_set_no_show_all (password_entry, TRUE);
+
     gtk_widget_show_all (window);
 
     if (user_view)
@@ -720,8 +720,10 @@ connect_cb (LdmGreeter *greeter)
 int
 main(int argc, char **argv)
 {
-    signal (SIGTERM, sigterm_cb);
+    unsetenv ("UBUNTU_MENUPROXY");
 
+    signal (SIGTERM, sigterm_cb);
+  
     g_type_init ();
 
     greeter = ldm_greeter_new ();
