@@ -281,6 +281,22 @@ handle_continue_authentication (Greeter *greeter, gchar **secrets)
     pam_session_respond (greeter->priv->pam_session, response);
 }
 
+static void
+handle_cancel_authentication (Greeter *greeter)
+{
+    /* Not connected */
+    if (!greeter->priv->connected)
+        return;
+
+    /* Not in authorization */
+    if (greeter->priv->pam_session == NULL)
+        return;
+
+    g_debug ("Cancel authentication");
+
+    pam_session_cancel (greeter->priv->pam_session);
+}
+
 static gboolean
 quit_greeter_cb (gpointer data)
 {
@@ -420,6 +436,9 @@ got_data_cb (Greeter *greeter)
         secrets[i] = NULL;
         handle_continue_authentication (greeter, secrets);
         g_strfreev (secrets);
+        break;
+    case GREETER_MESSAGE_CANCEL_AUTHENTICATION:
+        handle_cancel_authentication (greeter);
         break;
     case GREETER_MESSAGE_LOGIN:
         username = read_string (greeter, &offset);

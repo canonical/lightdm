@@ -36,6 +36,9 @@ struct PAMSessionPrivate
     /* TRUE if the thread is being intentionally stopped */
     gboolean stop;
 
+    /* TRUE if the conversation should be cancelled */
+    gboolean cancel;
+
     /* Messages requested */
     int num_messages;
     const struct pam_message **messages;
@@ -100,10 +103,6 @@ pam_conv_cb (int num_msg, const struct pam_message **msg,
     PAMSession *session = app_data;
     struct pam_response *response;
 
-    /* Cancelled by user */
-    if (session->priv->stop)
-        return PAM_CONV_ERR;
-
     /* Notify user */
     session->priv->num_messages = num_msg;
     session->priv->messages = msg;
@@ -113,10 +112,13 @@ pam_conv_cb (int num_msg, const struct pam_message **msg,
     response = g_async_queue_pop (session->priv->authentication_response_queue);
     session->priv->num_messages = 0;
     session->priv->messages = NULL;
-  
+
     /* Cancelled by user */
-    if (session->priv->stop)
+    if (session->priv->stop || session->priv->cancel)
+    {
+        session->priv->cancel = FALSE;
         return PAM_CONV_ERR;
+    }
 
     *resp = response;
 
@@ -214,6 +216,14 @@ pam_session_respond (PAMSession *session, struct pam_response *response)
 {
     g_return_if_fail (session->priv->authentication_thread != NULL);  
     g_async_queue_push (session->priv->authentication_response_queue, response);
+}
+
+void
+pam_session_cancel (PAMSession *session)
+{
+    g_return_if_fail (session->priv->authentication_thread != NULL);
+    session->priv->cancel = TRUE;
+    g_async_queue_push (session->priv->authentication_response_queue, GINT_TO_POINTER (-1));
 }
 
 const gchar *

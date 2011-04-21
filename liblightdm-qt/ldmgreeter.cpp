@@ -22,6 +22,7 @@ typedef enum
     GREETER_MESSAGE_START_AUTHENTICATION    = 2,
     GREETER_MESSAGE_CONTINUE_AUTHENTICATION = 3,
     GREETER_MESSAGE_LOGIN                   = 4,
+    GREETER_MESSAGE_CANCEL_AUTHENTICATION   = 5,
 
     /* Messages from the server to the greeter */
     GREETER_MESSAGE_CONNECTED               = 101,
@@ -208,6 +209,9 @@ void LdmGreeter::provideSecret(const QString &secret)
 
 void LdmGreeter::cancelAuthentication()
 {
+    qDebug() << "Cancelling authentication";
+    writeHeader(GREETER_MESSAGE_CANCEL_AUTHENTICATION, 0);
+    flush();  
 }
 
 bool LdmGreeter::inAuthentication() const

@@ -323,7 +323,6 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     case GREETER_MESSAGE_END_AUTHENTICATION:
         return_code = read_int (greeter, &offset);
         g_debug ("Authentication complete with return code %d", return_code);
-        greeter->priv->in_authentication = FALSE;
         greeter->priv->is_authenticated = (return_code == 0);
         if (!greeter->priv->is_authenticated)
         {
@@ -331,6 +330,7 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
             greeter->priv->authentication_user = NULL;
         }
         g_signal_emit (G_OBJECT (greeter), signals[AUTHENTICATION_COMPLETE], 0);
+        greeter->priv->in_authentication = FALSE;
         break;
     default:
         g_warning ("Unknown message from server: %d", id);
@@ -1025,6 +1025,8 @@ void
 ldm_greeter_cancel_authentication (LdmGreeter *greeter)
 {
     g_return_if_fail (LDM_IS_GREETER (greeter));
+    write_header (greeter, GREETER_MESSAGE_CANCEL_AUTHENTICATION, 0);
+    flush (greeter);
 }
 
 /**
