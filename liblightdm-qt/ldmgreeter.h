@@ -13,7 +13,7 @@ class Q_DECL_EXPORT LdmGreeter : public QObject
 {
     Q_OBJECT
 public:
-    explicit LdmGreeter();
+    explicit LdmGreeter(QObject* parent=0);
     virtual ~LdmGreeter();
 
     /** The hostname of the machine */

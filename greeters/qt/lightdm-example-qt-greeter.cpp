@@ -8,7 +8,8 @@
 
 #include "ldmgreeter.h"
 
-LoginDialog::LoginDialog() : QDialog()
+LoginDialog::LoginDialog() : 
+  QDialog()
 {
     label = new QLabel("Username:", this);
     entry = new QLineEdit(this);
@@ -23,7 +24,7 @@ LoginDialog::LoginDialog() : QDialog()
     layout->addWidget(button, 2, 0, 3, 1);
     setLayout(layout);
 
-    greeter = new LdmGreeter; //FIXME this LEAKS! Either finish the QWidget subclass plan, or add parent arg to LdmGreeter.
+    greeter = new LdmGreeter(this);
     connect(greeter, SIGNAL(showPrompt(QString)), this, SLOT(showPrompt(QString)));
     connect(greeter, SIGNAL(showMessage(QString)), this, SLOT(showMessage(QString)));
     connect(greeter, SIGNAL(showError(QString)), this, SLOT(showError(QString)));
