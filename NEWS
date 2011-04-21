@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.3.2
+
+    * Distribute GTK greeter .ui file
+
 Overview of changes in lightdm 0.3.1
 
     * Add greeter login_with_defaults method
