@@ -323,6 +323,7 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     case GREETER_MESSAGE_END_AUTHENTICATION:
         return_code = read_int (greeter, &offset);
         g_debug ("Authentication complete with return code %d", return_code);
+        greeter->priv->in_authentication = FALSE;
         greeter->priv->is_authenticated = (return_code == 0);
         if (!greeter->priv->is_authenticated)
         {
@@ -983,6 +984,7 @@ ldm_greeter_start_authentication (LdmGreeter *greeter, const char *username)
     g_return_if_fail (LDM_IS_GREETER (greeter));
     g_return_if_fail (username != NULL);
 
+    greeter->priv->in_authentication = TRUE;  
     greeter->priv->is_authenticated = FALSE;
     g_free (greeter->priv->authentication_user);
     greeter->priv->authentication_user = g_strdup (username);
