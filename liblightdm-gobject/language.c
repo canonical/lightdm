@@ -55,6 +55,7 @@ ldm_language_new (const gchar *code)
 const gchar *
 ldm_language_get_code (LdmLanguage *language)
 {
+    g_return_val_if_fail (LDM_IS_LANGUAGE (language), NULL);
     return language->priv->code;
 }
 
@@ -69,6 +70,8 @@ ldm_language_get_code (LdmLanguage *language)
 const gchar *
 ldm_language_get_name (LdmLanguage *language)
 {
+    g_return_val_if_fail (LDM_IS_LANGUAGE (language), NULL);
+
     if (!language->priv->name)
     {
         char *current = setlocale(LC_ALL, NULL);
@@ -91,6 +94,8 @@ ldm_language_get_name (LdmLanguage *language)
 const gchar *
 ldm_language_get_territory (LdmLanguage *language)
 {
+    g_return_val_if_fail (LDM_IS_LANGUAGE (language), NULL);
+
     if (!language->priv->territory)
     {
         char *current = setlocale(LC_ALL, NULL);
@@ -120,6 +125,9 @@ is_utf8 (const gchar *code)
 gboolean
 ldm_language_matches (LdmLanguage *language, const gchar *code)
 {
+    g_return_val_if_fail (LDM_IS_LANGUAGE (language), FALSE);
+    g_return_val_if_fail (code != NULL, FALSE);
+
     /* Handle the fact the UTF-8 is specified both as '.utf8' and '.UTF-8' */
     if (is_utf8 (language->priv->code) && is_utf8 (code))
     {

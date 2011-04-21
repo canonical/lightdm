@@ -54,6 +54,7 @@ ldm_session_new (const gchar *key, const gchar *name, const gchar *comment)
 const gchar *
 ldm_session_get_key (LdmSession *session)
 {
+    g_return_val_if_fail (LDM_IS_SESSION (session), NULL);
     return session->priv->key;
 }
 
@@ -68,6 +69,7 @@ ldm_session_get_key (LdmSession *session)
 const gchar *
 ldm_session_get_name (LdmSession *session)
 {
+    g_return_val_if_fail (LDM_IS_SESSION (session), NULL);
     return session->priv->name;
 }
 
@@ -82,6 +84,7 @@ ldm_session_get_name (LdmSession *session)
 const gchar *
 ldm_session_get_comment (LdmSession *session)
 {
+    g_return_val_if_fail (LDM_IS_SESSION (session), NULL);
     return session->priv->comment;
 }
 

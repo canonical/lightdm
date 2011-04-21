@@ -70,6 +70,7 @@ ldm_user_new (LdmGreeter *greeter, const gchar *name, const gchar *real_name, co
 const gchar *
 ldm_user_get_name (LdmUser *user)
 {
+    g_return_val_if_fail (LDM_IS_USER (user), NULL);
     return user->priv->name;
 }
 
@@ -84,6 +85,7 @@ ldm_user_get_name (LdmUser *user)
 const gchar *
 ldm_user_get_real_name (LdmUser *user)
 {
+    g_return_val_if_fail (LDM_IS_USER (user), NULL);
     return user->priv->real_name;
 }
 
@@ -98,6 +100,8 @@ ldm_user_get_real_name (LdmUser *user)
 const gchar *
 ldm_user_get_display_name (LdmUser *user)
 {
+    g_return_val_if_fail (LDM_IS_USER (user), NULL);
+
     if (user->priv->real_name[0] != '\0')
         return user->priv->real_name;
     else
@@ -115,6 +119,7 @@ ldm_user_get_display_name (LdmUser *user)
 const gchar *
 ldm_user_get_image (LdmUser *user)
 {
+    g_return_val_if_fail (LDM_IS_USER (user), NULL);
     return user->priv->image;
 }
 
@@ -139,6 +144,7 @@ get_defaults (LdmUser *user)
 const gchar *
 ldm_user_get_language (LdmUser *user)
 {
+    g_return_val_if_fail (LDM_IS_USER (user), NULL);
     get_defaults (user);
     return user->priv->language;
 }
@@ -154,6 +160,7 @@ ldm_user_get_language (LdmUser *user)
 const gchar *
 ldm_user_get_layout (LdmUser *user)
 {
+    g_return_val_if_fail (LDM_IS_USER (user), NULL);
     get_defaults (user);
     return user->priv->layout;
 }
@@ -169,6 +176,7 @@ ldm_user_get_layout (LdmUser *user)
 const gchar *
 ldm_user_get_session (LdmUser *user)
 {
+    g_return_val_if_fail (LDM_IS_USER (user), NULL);
     get_defaults (user);
     return user->priv->session; 
 }
@@ -184,6 +192,7 @@ ldm_user_get_session (LdmUser *user)
 gboolean
 ldm_user_get_logged_in (LdmUser *user)
 {
+    g_return_val_if_fail (LDM_IS_USER (user), FALSE);
     return user->priv->logged_in;
 }
 

@@ -54,6 +54,7 @@ ldm_layout_new (const gchar *name, const gchar *short_description, const gchar *
 const gchar *
 ldm_layout_get_name (LdmLayout *layout)
 {
+    g_return_val_if_fail (LDM_IS_LAYOUT (layout), NULL);
     return layout->priv->name;
 }
 
@@ -68,6 +69,7 @@ ldm_layout_get_name (LdmLayout *layout)
 const gchar *
 ldm_layout_get_short_description (LdmLayout *layout)
 {
+    g_return_val_if_fail (LDM_IS_LAYOUT (layout), NULL);
     return layout->priv->short_description;
 }
 
@@ -82,6 +84,7 @@ ldm_layout_get_short_description (LdmLayout *layout)
 const gchar *
 ldm_layout_get_description (LdmLayout *layout)
 {
+    g_return_val_if_fail (LDM_IS_LAYOUT (layout), NULL);
     return layout->priv->description;
 }
 
