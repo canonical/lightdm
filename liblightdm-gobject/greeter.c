@@ -1147,8 +1147,8 @@ upower_call_function (LdmGreeter *greeter, const gchar *function, gboolean has_r
     if (!result)
         return FALSE;
 
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE_BOOLEAN))
-        function_result = g_variant_get_boolean (result);
+    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(b)")))
+        g_variant_get (result, "(b)", &function_result);
 
     g_variant_unref (result);
     return function_result;
@@ -1240,8 +1240,8 @@ ck_call_function (LdmGreeter *greeter, const gchar *function, gboolean has_resul
     if (!result)
         return FALSE;
 
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE_BOOLEAN))
-        function_result = g_variant_get_boolean (result);
+    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(b)")))
+        g_variant_get (result, "(b)", &function_result);
 
     g_variant_unref (result);
     return function_result;
