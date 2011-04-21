@@ -1,9 +1,13 @@
 libexec_PROGRAMS = lightdm-example-gtk-greeter
 
+uidir = $(datadir)/lightdm-example-gtk-greeter
+ui_DATA = greeter.ui
+
 lightdm_example_gtk_greeter_SOURCES = \
 	lightdm-example-gtk-greeter.c
 
 lightdm_example_gtk_greeter_CFLAGS = \
+	-DUI_DIR=\""$(uidir)"\" \
 	-I$(top_srcdir)/liblightdm-gobject \
 	$(LIGHTDM_EXAMPLE_GTK_GREETER_CFLAGS) \
 	$(WARN_CFLAGS)

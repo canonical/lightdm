@@ -9,6 +9,7 @@ Overview of changes in lightdm 0.3.1
     * Tidy up Qt library and greeter
     * Move menubar in greeters to top of screen
     * Fix console kit get_can_*() methods
+    * Use GtkBuilder for example GTK greeter
 
 Overview of changes in lightdm 0.3.0
 

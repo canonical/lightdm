@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Robert Ancell.
+ * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
  * 
  * This program is free software: you can redistribute it and/or modify it under
@@ -19,139 +19,90 @@
 #include "greeter.h"
 
 static LdmGreeter *greeter;
-static GtkTreeModel *user_model;
-static GtkWidget *window, *vbox, *login_vbox, *message_label, *user_view;
-static GdkPixmap *background_pixmap;
-static GtkWidget *username_entry, *password_entry;
+static GtkWidget *window, *message_label, *user_view;
+static GdkPixbuf *background_pixbuf;
+static GtkWidget *prompt_box, *prompt_label, *prompt_entry, *session_combo;
 static gchar *theme_name;
-static GSList *session_radio_list = NULL, *language_radio_list = NULL, *layout_radio_list = NULL;
-
-static gchar *
-get_language ()
-{
-    GSList *iter;
-
-    for (iter = language_radio_list; iter; iter = iter->next)
-    {
-        GtkCheckMenuItem *item = iter->data;
-        if (gtk_check_menu_item_get_active (item))
-            return g_object_get_data (G_OBJECT (item), "language");
-    }
-
-    return NULL;
-}
-
-static void
-set_language (const gchar *language)
-{
-    GSList *iter;
-
-    for (iter = language_radio_list; iter; iter = iter->next)
-    {
-        GtkCheckMenuItem *item = iter->data;
-        if (strcmp (language, g_object_get_data (G_OBJECT (item), "language")) == 0)
-            gtk_check_menu_item_set_active (item, TRUE);
-    }
-}
-
-#if 0
-static gchar *
-get_layout ()
-{
-    GSList *iter;
-
-    for (iter = layout_radio_list; iter; iter = iter->next)
-    {
-        GtkCheckMenuItem *item = iter->data;
-        if (gtk_check_menu_item_get_active (item))
-            return g_object_get_data (G_OBJECT (item), "layout");
-    }
-
-    return NULL;
-}
-#endif
-
-static void
-set_layout (const gchar *layout)
-{
-    GSList *iter;
-
-    for (iter = layout_radio_list; iter; iter = iter->next)
-    {
-        GtkCheckMenuItem *item = iter->data;
-        if (strcmp (layout, g_object_get_data (G_OBJECT (item), "layout")) == 0)
-            gtk_check_menu_item_set_active (item, TRUE);
-    }
-}
 
 static gchar *
 get_session ()
 {
-    GSList *iter;
+    GtkTreeIter iter;
+    gchar *session;
 
-    for (iter = session_radio_list; iter; iter = iter->next)
-    {
-        GtkCheckMenuItem *item = iter->data;
-        if (gtk_check_menu_item_get_active (item))
-            return g_object_get_data (G_OBJECT (item), "key");
-    }
+    if (!gtk_combo_box_get_active_iter (GTK_COMBO_BOX (session_combo), &iter))
+        return g_strdup (ldm_greeter_get_default_session (greeter));
 
-    return NULL;
+    gtk_tree_model_get (gtk_combo_box_get_model (GTK_COMBO_BOX (session_combo)), &iter, 1, &session, -1);
+
+    return session;
 }
 
 static void
 set_session (const gchar *session)
 {
-    GSList *iter;
-
-    for (iter = session_radio_list; iter; iter = iter->next)
+    GtkTreeModel *model = gtk_combo_box_get_model (GTK_COMBO_BOX (session_combo));
+    GtkTreeIter iter;
+  
+    if (!gtk_tree_model_get_iter_first (model, &iter))
+        return;
+  
+    do
     {
-        GtkCheckMenuItem *item = iter->data;
-        if (strcmp (session, g_object_get_data (G_OBJECT (item), "key")) == 0)
-            gtk_check_menu_item_set_active (item, TRUE);
-    }
+        gchar *s;
+        gboolean matched;
+        gtk_tree_model_get (model, &iter, 1, &s, -1);
+        matched = strcmp (s, session) == 0;
+        g_free (s);
+        if (matched)
+        {
+            gtk_combo_box_set_active_iter (GTK_COMBO_BOX (session_combo), &iter);
+            return;
+        }
+    } while (gtk_tree_model_iter_next (model, &iter));
 }
 
 static void
 start_authentication (const gchar *username)
 {
-    GtkTreeIter iter;
     gchar *language, *layout, *session;
-  
+
+    gtk_widget_hide (message_label);
+    gtk_label_set_text (GTK_LABEL (message_label), "");
+
+    if (strcmp (username, "") == 0)
+    {
+        gtk_label_set_text (GTK_LABEL (prompt_label), _("Username:"));
+        gtk_widget_set_sensitive (prompt_entry, TRUE);
+        gtk_entry_set_text (GTK_ENTRY (prompt_entry), "");
+        gtk_entry_set_visibility (GTK_ENTRY (prompt_entry), TRUE);
+        gtk_widget_show (prompt_box);
+        gtk_widget_grab_focus (prompt_entry);
+        return;
+    }
+
     if (ldm_greeter_get_user_defaults (greeter, username, &language, &layout, &session))
     {
-        set_language (language);
         set_session (session);
-        set_layout (layout);
         g_free (language);
         g_free (layout);
         g_free (session);
     }
 
-    if (user_model && gtk_tree_model_get_iter_first (GTK_TREE_MODEL (user_model), &iter))
-    {
-        do
-        {
-            gchar *user;
-            gtk_tree_model_get (GTK_TREE_MODEL (user_model), &iter, 0, &user, -1);
-            gtk_list_store_set (GTK_LIST_STORE (user_model), &iter, 3, strcmp (user, username) == 0, -1);
-            g_free (user);
-        } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (user_model), &iter));
-    }
-    if (username_entry)
-        gtk_widget_set_sensitive (username_entry, FALSE);
-
     ldm_greeter_start_authentication (greeter, username);
 }
 
-static void
-user_view_activate_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *column)
+void user_treeview_row_activated_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *column);
+G_MODULE_EXPORT
+void
+user_treeview_row_activated_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *column)
 {
+    GtkTreeModel *model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));  
     GtkTreeIter iter;
     gchar *user;
 
-    gtk_tree_model_get_iter (GTK_TREE_MODEL (user_model), &iter, path);
-    gtk_tree_model_get (GTK_TREE_MODEL (user_model), &iter, 0, &user, -1);
+    gtk_tree_model_get_iter (GTK_TREE_MODEL (model), &iter, path);
+    gtk_tree_model_get (GTK_TREE_MODEL (model), &iter, 0, &user, -1);
     start_authentication (user);
     g_free (user);
 }
@@ -159,13 +110,14 @@ user_view_activate_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *
 static gboolean
 idle_select_cb ()
 {
+    GtkTreeModel *model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
     GtkTreeIter iter;
     gchar *user;
 
     if (gtk_tree_selection_get_selected (gtk_tree_view_get_selection (GTK_TREE_VIEW (user_view)),
                                          NULL, &iter))
     {
-        gtk_tree_model_get (GTK_TREE_MODEL (user_model), &iter, 0, &user, -1);
+        gtk_tree_model_get (GTK_TREE_MODEL (model), &iter, 0, &user, -1);
         start_authentication (user);
         g_free (user);
     }
@@ -173,33 +125,46 @@ idle_select_cb ()
     return FALSE;
 }
 
-static gboolean
-user_view_click_cb (GtkWidget *widget, GdkEventButton *event)
+gboolean user_treeview_button_press_event_cb (GtkWidget *widget, GdkEventButton *event);
+G_MODULE_EXPORT
+gboolean
+user_treeview_button_press_event_cb (GtkWidget *widget, GdkEventButton *event)
 {
     /* Do it in the idle loop so the selection is done first */
     g_idle_add (idle_select_cb, NULL);
     return FALSE;
 }
 
-static void
-username_activate_cb (GtkWidget *widget)
+void login_cb (GtkWidget *widget);
+G_MODULE_EXPORT
+void
+login_cb (GtkWidget *widget)
 {
-    start_authentication (gtk_entry_get_text (GTK_ENTRY (username_entry)));
+    gtk_widget_set_sensitive (prompt_entry, FALSE);
+    if (!ldm_greeter_get_in_authentication (greeter))
+        start_authentication (gtk_entry_get_text (GTK_ENTRY (prompt_entry)));
+    else
+        ldm_greeter_provide_secret (greeter, gtk_entry_get_text (GTK_ENTRY (prompt_entry)));
+    gtk_entry_set_text (GTK_ENTRY (prompt_entry), "");
 }
 
-static void
-password_activate_cb (GtkWidget *widget)
+void cancel_cb (GtkWidget *widget);
+G_MODULE_EXPORT
+void
+cancel_cb (GtkWidget *widget)
 {
-    gtk_widget_set_sensitive (widget, FALSE);
-    ldm_greeter_provide_secret (greeter, gtk_entry_get_text (GTK_ENTRY (widget)));
+    ldm_greeter_cancel_authentication (greeter);
 }
 
 static void
 show_prompt_cb (LdmGreeter *greeter, const gchar *text)
 {
-    gtk_widget_show (password_entry);
-    gtk_widget_set_sensitive (password_entry, TRUE);
-    gtk_widget_grab_focus (password_entry);
+    gtk_label_set_text (GTK_LABEL (prompt_label), text);
+    gtk_widget_set_sensitive (prompt_entry, TRUE);
+    gtk_entry_set_text (GTK_ENTRY (prompt_entry), "");
+    gtk_entry_set_visibility (GTK_ENTRY (prompt_entry), FALSE);
+    gtk_widget_show (prompt_box);
+    gtk_widget_grab_focus (prompt_entry);
 }
 
 static void
@@ -212,33 +177,17 @@ show_message_cb (LdmGreeter *greeter, const gchar *text)
 static void
 authentication_complete_cb (LdmGreeter *greeter)
 {
-    GtkTreeIter iter;
+    gtk_widget_hide (prompt_box);
+    gtk_label_set_text (GTK_LABEL (prompt_label), "");
+    gtk_entry_set_text (GTK_ENTRY (prompt_entry), "");
 
-    gtk_widget_hide (password_entry);
-    gtk_entry_set_text (GTK_ENTRY (password_entry), "");
+    gtk_widget_grab_focus (user_view);
 
-    /* Clear row shading */
-    if (user_model && gtk_tree_model_get_iter_first (GTK_TREE_MODEL (user_model), &iter))
-    {
-        do
-        {
-            gtk_list_store_set (GTK_LIST_STORE (user_model), &iter, 3, TRUE, -1);
-        } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (user_model), &iter));
-    }
-    if (username_entry)
-    {
-        gtk_entry_set_text (GTK_ENTRY (username_entry), "");
-        gtk_widget_set_sensitive (username_entry, TRUE);
-    }
-
-    if (user_view)
-        gtk_widget_grab_focus (user_view);
-    else
-        gtk_widget_grab_focus (username_entry);
-  
     if (ldm_greeter_get_is_authenticated (greeter))
     {
-        ldm_greeter_login (greeter, ldm_greeter_get_authentication_user (greeter), get_session (), get_language ());
+        gchar *session = get_session ();
+        ldm_greeter_login (greeter, ldm_greeter_get_authentication_user (greeter), session, NULL);
+        g_free (session);
     }
     else
     {
@@ -253,13 +202,17 @@ timed_login_cb (LdmGreeter *greeter, const gchar *username)
     ldm_greeter_login (greeter, ldm_greeter_get_timed_login_user (greeter), NULL, NULL);
 }
 
-static void
+void suspend_cb (GtkWidget *widget, LdmGreeter *greeter);
+G_MODULE_EXPORT
+void
 suspend_cb (GtkWidget *widget, LdmGreeter *greeter)
 {
     ldm_greeter_suspend (greeter);
 }
 
-static void
+void hibernate_cb (GtkWidget *widget, LdmGreeter *greeter);
+G_MODULE_EXPORT
+void
 hibernate_cb (GtkWidget *widget, LdmGreeter *greeter)
 {
     ldm_greeter_hibernate (greeter);
@@ -283,7 +236,9 @@ center_window (GtkWindow *window)
                      (screen_height - allocation.height) / 2);
 }
 
-static void
+void restart_cb (GtkWidget *widget, LdmGreeter *greeter);
+G_MODULE_EXPORT
+void
 restart_cb (GtkWidget *widget, LdmGreeter *greeter)
 {
     GtkWidget *dialog;
@@ -303,7 +258,9 @@ restart_cb (GtkWidget *widget, LdmGreeter *greeter)
     gtk_widget_destroy (dialog);
 }
 
-static void
+void shutdown_cb (GtkWidget *widget, LdmGreeter *greeter);
+G_MODULE_EXPORT
+void
 shutdown_cb (GtkWidget *widget, LdmGreeter *greeter)
 {
     GtkWidget *dialog;
@@ -347,23 +304,20 @@ quit_cb (LdmGreeter *greeter, const gchar *username)
     g_timeout_add (40, (GSourceFunc) fade_timer_cb, NULL);
 }
 
-static void
-layout_changed_cb (GtkWidget *widget)
-{
-    if (gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
-        ldm_greeter_set_layout (greeter, g_object_get_data (G_OBJECT (widget), "layout"));
-}
-
-static void
+void a11y_font_cb (GtkWidget *widget);
+G_MODULE_EXPORT
+void
 a11y_font_cb (GtkWidget *widget)
 {
     if (gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
-        g_object_set (gtk_settings_get_default (), "gtk-font-name", "UbuntuBeta 20", NULL);
+        g_object_set (gtk_settings_get_default (), "gtk-font-name", "Ubuntu 20", NULL);
     else
-        g_object_set (gtk_settings_get_default (), "gtk-font-name", "UbuntuBeta 10", NULL);
+        g_object_set (gtk_settings_get_default (), "gtk-font-name", "Ubuntu 10", NULL);
 }
 
-static void
+void a11y_contrast_cb (GtkWidget *widget);
+G_MODULE_EXPORT
+void
 a11y_contrast_cb (GtkWidget *widget)
 {
     if (gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
@@ -378,72 +332,9 @@ sigterm_cb (int signum)
     exit (0);
 }
 
-static GtkWidget *
-make_user_view (void)
-{
-    GtkListStore *model;
-    GtkWidget *view;
-    GtkCellRenderer *renderer;
-    const GList *items, *item;
-    GtkTreeIter iter;
-
-    items = ldm_greeter_get_users (greeter);
-    if (!items)
-        return NULL;
-  
-    model = gtk_list_store_new (4, G_TYPE_STRING, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_BOOLEAN);
-    for (item = items; item; item = item->next)
-    {
-        LdmUser *user = item->data;
-        const gchar *image;
-        GdkPixbuf *pixbuf = NULL;
-
-        image = ldm_user_get_image (user);
-        if (image[0] != '\0')
-        {
-            gchar *path;
-
-            path = g_filename_from_uri (image, NULL, NULL);
-            if (path)
-                pixbuf = gdk_pixbuf_new_from_file_at_scale (path, 64, 64, TRUE, NULL);
-            g_free (path);
-        }
-        if (!pixbuf)
-            pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
-                                               "stock_person",
-                                               64,
-                                               0,
-                                               NULL);
-
-        gtk_list_store_append (GTK_LIST_STORE (model), &iter);
-        gtk_list_store_set (GTK_LIST_STORE (model), &iter,
-                            0, ldm_user_get_name (user),
-                            1, ldm_user_get_display_name (user),
-                            2, pixbuf,
-                            3, TRUE,
-                            -1);
-    }
-
-    view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (model));
-    gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (view), FALSE);
-    gtk_tree_view_set_grid_lines (GTK_TREE_VIEW (view), GTK_TREE_VIEW_GRID_LINES_NONE);
-
-    renderer = gtk_cell_renderer_pixbuf_new();
-    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view), 0, "Face", renderer, "pixbuf", 2, "sensitive", 3, NULL);
-
-    renderer = gtk_cell_renderer_text_new();
-    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view), 1, "Name", renderer, "text", 1, NULL);
-
-    g_signal_connect (view, "row-activated", G_CALLBACK (user_view_activate_cb), NULL);
-    g_signal_connect (view, "button-press-event", G_CALLBACK (user_view_click_cb), NULL);
-
-    if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (model), &iter))
-        gtk_tree_selection_select_iter (gtk_tree_view_get_selection (GTK_TREE_VIEW (view)), &iter);
-
-    return view;
-}
-
-static gboolean
+gboolean draw_background_cb (GtkWidget *widget, GdkEventExpose *event);
+G_MODULE_EXPORT
+gboolean
 draw_background_cb (GtkWidget *widget, GdkEventExpose *event)
 {
     cairo_t *context;
@@ -452,8 +343,8 @@ draw_background_cb (GtkWidget *widget, GdkEventExpose *event)
     context = gdk_cairo_create (GDK_DRAWABLE (gtk_widget_get_window (widget)));
 
     gtk_widget_get_allocation (GTK_WIDGET (window), &allocation);
-    gdk_cairo_set_source_pixmap (context, background_pixmap, 0.0, 0.0);
-    cairo_rectangle (context, 0, 0, allocation.width, allocation.height);
+    gdk_cairo_set_source_pixbuf (context, background_pixbuf, 0.0, 0.0);
+    gdk_cairo_region (context, event->region);
     cairo_fill (context);
 
     cairo_destroy (context);
@@ -464,17 +355,27 @@ draw_background_cb (GtkWidget *widget, GdkEventExpose *event)
 static void
 connect_cb (LdmGreeter *greeter)
 {
-    gchar *theme_dir, *rc_file, *background_image;
     GdkWindow *root;
-    const GList *items, *item;
     GdkDisplay *display;
     GdkScreen *screen;
     gint screen_width, screen_height;
-    GtkWidget *login_align, *logo_image;
-    GtkWidget *option_menu, *power_menu;
-    GtkWidget *menu_bar, *menu, *menu_item;
-    gint n_power_items = 0;
+    GtkBuilder *builder;
+    const GList *items, *item;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    GtkCellRenderer *renderer;
+    gchar *theme_dir, *rc_file, *background_image;
+    GError *error = NULL;
 
+    root = gdk_get_default_root_window ();
+    gdk_window_set_cursor (root, gdk_cursor_new (GDK_LEFT_PTR));
+
+    display = gdk_display_get_default ();
+    screen = gdk_display_get_default_screen (display);
+    screen_width = gdk_screen_get_width (screen);
+    screen_height = gdk_screen_get_height (screen);
+
+    g_object_get (gtk_settings_get_default (), "gtk-theme-name", &theme_name, NULL);
     theme_dir = g_path_get_dirname (ldm_greeter_get_theme (greeter));
     rc_file = ldm_greeter_get_string_property (greeter, "gtkrc");
     if (rc_file)
@@ -485,22 +386,21 @@ connect_cb (LdmGreeter *greeter)
         g_free (path);
     }
 
-    g_object_get (gtk_settings_get_default (), "gtk-theme-name", &theme_name, NULL);
-
-    display = gdk_display_get_default ();
-    screen = gdk_display_get_default_screen (display);
-    screen_width = gdk_screen_get_width (screen);
-    screen_height = gdk_screen_get_height (screen);
-
-    root = gdk_get_default_root_window ();
-    gdk_window_set_cursor (root, gdk_cursor_new (GDK_LEFT_PTR));
-
-    window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gtk_widget_set_app_paintable (window, TRUE);
-    g_signal_connect (G_OBJECT (window), "expose-event", G_CALLBACK (draw_background_cb), NULL);
-    gtk_window_set_default_size (GTK_WINDOW (window), screen_width, screen_height);
-    gtk_window_fullscreen (GTK_WINDOW (window));
-    gtk_widget_realize (window);
+    builder = gtk_builder_new ();
+    if (!gtk_builder_add_from_file (builder, UI_DIR "/greeter.ui", &error))
+    {
+        g_warning ("Error loading UI: %s", error->message);
+        return;
+    }
+    g_clear_error (&error);
+    window = GTK_WIDGET (gtk_builder_get_object (builder, "greeter_window"));
+    prompt_box = GTK_WIDGET (gtk_builder_get_object (builder, "prompt_box"));
+    prompt_label = GTK_WIDGET (gtk_builder_get_object (builder, "prompt_label"));
+    prompt_entry = GTK_WIDGET (gtk_builder_get_object (builder, "prompt_entry"));
+    message_label = GTK_WIDGET (gtk_builder_get_object (builder, "message_label"));
+    session_combo = GTK_WIDGET (gtk_builder_get_object (builder, "session_combobox"));
+  
+    gtk_label_set_text (GTK_LABEL (gtk_builder_get_object (builder, "hostname_label")), ldm_greeter_get_hostname (greeter));
 
     background_image = ldm_greeter_get_string_property (greeter, "background-image");
     if (background_image)
@@ -519,207 +419,96 @@ connect_cb (LdmGreeter *greeter)
 
         if (pixbuf)
         {
-            GdkPixbuf *scaled;
-            GdkWindow *w;
-
-            scaled = gdk_pixbuf_scale_simple (pixbuf, screen_width, screen_height, GDK_INTERP_BILINEAR);
+            background_pixbuf = gdk_pixbuf_scale_simple (pixbuf, screen_width, screen_height, GDK_INTERP_BILINEAR);
             g_object_unref (pixbuf);
-
-            w = gtk_widget_get_window (GTK_WIDGET (window));
-
-            gdk_pixbuf_render_pixmap_and_mask_for_colormap (scaled, gdk_window_get_colormap (w), &background_pixmap, NULL, 0);
-            g_object_unref (scaled);
         }
     }
 
-    vbox = gtk_vbox_new (FALSE, 0);
-    gtk_container_add (GTK_CONTAINER (window), vbox);
+    if (!ldm_greeter_get_can_suspend (greeter))
+        gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (builder, "suspend_menuitem")));
+    if (!ldm_greeter_get_can_hibernate (greeter))
+        gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (builder, "hibernate_menuitem")));
+    if (!ldm_greeter_get_can_restart (greeter))
+        gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (builder, "restart_menuitem")));
+    if (!ldm_greeter_get_can_shutdown (greeter))
+        gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (builder, "shutdown_menuitem")));
 
-    menu_bar = gtk_menu_bar_new ();
-    gtk_box_pack_start (GTK_BOX (vbox), menu_bar, FALSE, TRUE, 0);
+    user_view = GTK_WIDGET (gtk_builder_get_object (builder, "user_treeview"));
+    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 0, "Face", gtk_cell_renderer_pixbuf_new(), "pixbuf", 2, NULL);
+    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 1, "Name", gtk_cell_renderer_text_new(), "text", 1, NULL);
 
-    menu_item = gtk_image_menu_item_new ();
-    gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_item), gtk_image_new_from_icon_name ("preferences-desktop-accessibility", GTK_ICON_SIZE_LARGE_TOOLBAR));
-    gtk_menu_item_set_label (GTK_MENU_ITEM (menu_item), ""); // NOTE: Needed to make the icon show as selected
-    gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (menu_item), TRUE);
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), menu_item);
-    menu = gtk_menu_new ();
-    gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
-
-    menu_item = gtk_check_menu_item_new_with_label (_("Large Font"));
-    g_signal_connect (menu_item, "toggled", G_CALLBACK (a11y_font_cb), NULL);
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
-
-    menu_item = gtk_check_menu_item_new_with_label (_("High Constrast"));
-    g_signal_connect (menu_item, "toggled", G_CALLBACK (a11y_contrast_cb), NULL);
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
-
-    menu_item = gtk_menu_item_new_with_label (_("Options"));
-    gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), menu_item);
-    option_menu = gtk_menu_new ();
-    gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), option_menu);
-
-    menu_item = gtk_menu_item_new_with_label (_("Language"));
-    gtk_menu_shell_append (GTK_MENU_SHELL (option_menu), menu_item);
-    menu = gtk_menu_new ();
-    gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
-
-    items = ldm_greeter_get_languages (greeter);
+    model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
+    items = ldm_greeter_get_users (greeter);
     for (item = items; item; item = item->next)
     {
-        LdmLanguage *language = item->data;
-        gchar *label;
-      
-        if (ldm_language_get_name (language)[0] == '\0')
-            label = g_strdup (ldm_language_get_code (language));
-        else
-            label = g_strdup_printf ("%s - %s", ldm_language_get_name (language), ldm_language_get_territory (language));
+        LdmUser *user = item->data;
+        const gchar *image;
+        GdkPixbuf *pixbuf = NULL;
 
-        menu_item = gtk_radio_menu_item_new_with_label (language_radio_list, label);
-        language_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menu_item));
-        gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
+        image = ldm_user_get_image (user);
+        if (strcmp (image, "") == 0)
+        {
+            gchar *path;
 
-        if (ldm_language_matches (language, ldm_greeter_get_default_language (greeter)))
-            gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), TRUE);
+            path = g_filename_from_uri (image, NULL, NULL);
+            if (path)
+                pixbuf = gdk_pixbuf_new_from_file_at_scale (path, 64, 64, TRUE, NULL);
+            g_free (path);
+        }
+        if (!pixbuf)
+            pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
+                                               "stock_person",
+                                               64,
+                                               GTK_ICON_LOOKUP_USE_BUILTIN,
+                                               NULL);
+        /*if (!pixbuf)
+        {
+            pixbuf = gdk_pixbuf_new (GDK_COLORSPACE_RGB, FALSE, 8, 64, 64);
+            memset (gdk_pixbuf_get_pixels (pixbuf), 0, gdk_pixbuf_get_height (pixbuf) * gdk_pixbuf_get_rowstride (pixbuf) * gdk_pixbuf_get_n_channels (pixbuf));
+        }*/
 
-        g_object_set_data (G_OBJECT (menu_item), "language", g_strdup (ldm_language_get_code (language)));
+        gtk_list_store_append (GTK_LIST_STORE (model), &iter);
+        gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+                            0, ldm_user_get_name (user),
+                            1, ldm_user_get_display_name (user),
+                            2, pixbuf,
+                            -1);
     }
+    gtk_list_store_append (GTK_LIST_STORE (model), &iter);
+    gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+                        0, "",
+                        1, "Other...",
+                        2, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
+                        -1);
 
-    menu_item = gtk_menu_item_new_with_label (_("Keyboard Layout"));
-    gtk_menu_shell_append (GTK_MENU_SHELL (option_menu), menu_item);
-    menu = gtk_menu_new ();
-    gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
-    items = ldm_greeter_get_layouts (greeter);
-    for (item = items; item; item = item->next)
-    {
-        LdmLayout *layout = item->data;
-
-        menu_item = gtk_radio_menu_item_new_with_label (layout_radio_list, ldm_layout_get_description (layout));
-        layout_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menu_item));
-        gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
-
-        if (g_str_equal (ldm_layout_get_name (layout), ldm_greeter_get_default_layout (greeter)))
-            gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), TRUE);
-
-        g_object_set_data (G_OBJECT (menu_item), "layout", g_strdup (ldm_layout_get_name (layout)));
-        g_signal_connect (menu_item, "toggled", G_CALLBACK (layout_changed_cb), NULL);
-    }
-
-    ldm_greeter_set_layout (greeter, ldm_greeter_get_default_layout (greeter));
-
-    menu_item = gtk_menu_item_new_with_label (_("Session"));
-    gtk_menu_shell_append (GTK_MENU_SHELL (option_menu), menu_item);
-    menu = gtk_menu_new ();
-    gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
+    renderer = gtk_cell_renderer_text_new();
+    gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (session_combo), renderer, TRUE);
+    gtk_cell_layout_add_attribute (GTK_CELL_LAYOUT (session_combo), renderer, "text", 0);
+    model = gtk_combo_box_get_model (GTK_COMBO_BOX (session_combo));
     items = ldm_greeter_get_sessions (greeter);
     for (item = items; item; item = item->next)
     {
         LdmSession *session = item->data;
 
-        menu_item = gtk_radio_menu_item_new_with_label (session_radio_list, ldm_session_get_name (session));
-        session_radio_list = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menu_item));
-        gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
-
-        if (g_str_equal (ldm_session_get_key (session), ldm_greeter_get_default_session (greeter)))
-            gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), TRUE);
-
-        g_object_set_data (G_OBJECT (menu_item), "key", g_strdup (ldm_session_get_key (session)));
+        gtk_list_store_append (GTK_LIST_STORE (model), &iter);
+        gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+                            0, ldm_session_get_name (session),
+                            1, ldm_session_get_key (session),
+                            -1);
     }
+    set_session (ldm_greeter_get_default_session (greeter));
 
-    power_menu = gtk_menu_new ();
-    if (ldm_greeter_get_can_suspend (greeter))
-    {
-        menu_item = gtk_menu_item_new_with_label (_("Suspend"));
-        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), menu_item);
-        g_signal_connect (menu_item, "activate", G_CALLBACK (suspend_cb), greeter);
-        n_power_items++;
-    }
-    if (ldm_greeter_get_can_hibernate (greeter))
-    {
-        menu_item = gtk_menu_item_new_with_label (_("Hibernate"));
-        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), menu_item);
-        g_signal_connect (menu_item, "activate", G_CALLBACK (hibernate_cb), greeter);
-        n_power_items++;
-    }
-    if (ldm_greeter_get_can_restart (greeter))
-    {
-        menu_item = gtk_menu_item_new_with_label (_("Restart..."));
-        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), menu_item);
-        g_signal_connect (menu_item, "activate", G_CALLBACK (restart_cb), greeter);
-        n_power_items++;
-    }
-    if (ldm_greeter_get_can_shutdown (greeter))
-    {
-        menu_item = gtk_menu_item_new_with_label (_("Shutdown..."));
-        gtk_menu_shell_append (GTK_MENU_SHELL (power_menu), menu_item);
-        g_signal_connect (menu_item, "activate", G_CALLBACK (shutdown_cb), greeter);
-        n_power_items++;
-    }
-    if (n_power_items > 0)
-    {
-        menu_item = gtk_image_menu_item_new ();
-        gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (menu_item), TRUE);
-        gtk_menu_item_set_right_justified (GTK_MENU_ITEM (menu_item), TRUE);
-        gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_item), gtk_image_new_from_icon_name ("system-shutdown", GTK_ICON_SIZE_LARGE_TOOLBAR));
-        gtk_menu_item_set_label (GTK_MENU_ITEM (menu_item), ""); // NOTE: Needed to make the icon show as selected
-        gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), power_menu);
-        gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), menu_item);
-    }
+    gtk_window_set_default_size (GTK_WINDOW (window), screen_width, screen_height);
+    gtk_builder_connect_signals(builder, greeter);
+    gtk_widget_show (window);
 
-    login_align = gtk_alignment_new (0.5, 0.5, 0.0, 0.0);
-    gtk_box_pack_start (GTK_BOX (vbox), login_align, TRUE, TRUE, 0);
-
-    GtkWidget *notebook;
-    notebook = gtk_notebook_new ();
-    gtk_notebook_set_show_tabs (GTK_NOTEBOOK (notebook), FALSE);
-    gtk_container_add (GTK_CONTAINER (login_align), notebook);
-
-    login_vbox = gtk_vbox_new (FALSE, 6);
-    gtk_container_set_border_width (GTK_CONTAINER (login_vbox), 12);
-    gtk_container_add (GTK_CONTAINER (notebook), login_vbox);
-
-    logo_image = gtk_image_new_from_icon_name ("computer", GTK_ICON_SIZE_DIALOG);
-    gtk_image_set_pixel_size (GTK_IMAGE (logo_image), 64);
-    gtk_box_pack_start (GTK_BOX (login_vbox), logo_image, FALSE, FALSE, 0);
-    gtk_box_pack_start (GTK_BOX (login_vbox), gtk_label_new (ldm_greeter_get_hostname (greeter)), FALSE, FALSE, 0);
-
-    message_label = gtk_label_new ("");
-    gtk_box_pack_start (GTK_BOX (login_vbox), message_label, FALSE, FALSE, 0);
-    gtk_widget_set_no_show_all (message_label, TRUE);
-
-    user_view = make_user_view ();
-    if (user_view)
-    {
-        username_entry = NULL;
-        user_model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
-        gtk_box_pack_start (GTK_BOX (login_vbox), user_view, FALSE, FALSE, 0);
-    }
-    else
-    {
-        username_entry = gtk_entry_new ();
-        gtk_box_pack_start (GTK_BOX (login_vbox), username_entry, FALSE, FALSE, 0);
-        g_signal_connect (username_entry, "activate", G_CALLBACK (username_activate_cb), NULL);
-        user_model = NULL;
-    }
-
-    password_entry = gtk_entry_new ();
-    gtk_entry_set_visibility (GTK_ENTRY (password_entry), FALSE);
-    gtk_widget_set_sensitive (password_entry, FALSE);
-    gtk_box_pack_start (GTK_BOX (login_vbox), password_entry, FALSE, FALSE, 0);
-    g_signal_connect (password_entry, "activate", G_CALLBACK (password_activate_cb), NULL);
-    gtk_widget_set_no_show_all (password_entry, TRUE);
-
-    gtk_widget_show_all (window);
-
-    if (user_view)
-        gtk_widget_grab_focus (user_view);
-    else
-        gtk_widget_grab_focus (username_entry);    
+    gtk_widget_grab_focus (user_view);
 }
 
 int
 main(int argc, char **argv)
 {
+    /* Disable global menus */
     unsetenv ("UBUNTU_MENUPROXY");
 
     signal (SIGTERM, sigterm_cb);
