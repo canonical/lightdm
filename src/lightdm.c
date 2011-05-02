@@ -395,6 +395,20 @@ main(int argc, char **argv)
         return 1;
     }
 
+    /* Test mode requires Xephry */
+    if (test_mode)
+    {
+        gchar *xephyr_path;
+      
+        xephyr_path = g_find_program_in_path ("Xephyr");
+        if (!xephyr_path)
+        {
+            g_printerr ("Test mode requires Xephyr to be installed but it cannot be found.  Please install it or update your PATH environment variable.\n");
+            return 1;
+        }
+        g_free (xephyr_path);
+    }
+
     loop = g_main_loop_new (NULL, FALSE);
 
     g_bus_own_name (test_mode ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM,

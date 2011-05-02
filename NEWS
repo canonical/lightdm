@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.3.3
+
+    * Don't run in test-mode if Xephyr cannot be found
+
 Overview of changes in lightdm 0.3.2
 
     * Distribute GTK greeter .ui file
