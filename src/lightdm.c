@@ -391,7 +391,7 @@ main(int argc, char **argv)
     /* Check if root */
     if (!test_mode && getuid () != 0)
     {
-        g_printerr ("Only root can run Light Display Manager\n");
+        g_printerr ("Only root can run Light Display Manager.  To run as a regular user for testing run with the --test-mode flag.\n");
         return 1;
     }
 
