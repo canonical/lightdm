@@ -185,6 +185,13 @@ static gboolean
 from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 {
     ChildProcess *process = data;
+
+    if (condition == G_IO_HUP)
+    {
+        g_debug ("Process %d closed communication channel", process->priv->pid);
+        return FALSE;
+    }
+
     g_signal_emit (process, signals[GOT_DATA], 0);
     return TRUE;
 }
@@ -257,7 +264,7 @@ child_process_start (ChildProcess *process,
         g_io_channel_set_encoding (process->priv->from_child_channel, NULL, NULL);
         g_io_channel_set_buffered (process->priv->from_child_channel, FALSE);
 
-        g_io_add_watch (process->priv->from_child_channel, G_IO_IN, from_child_cb, process);
+        g_io_add_watch (process->priv->from_child_channel, G_IO_IN | G_IO_HUP, from_child_cb, process);
 
         to_server_fd = from_child_pipe[1];
         from_server_fd = to_child_pipe[0];

@@ -399,6 +399,8 @@ got_data_cb (Greeter *greeter)
     if (status != G_IO_STATUS_NORMAL)
         return;
 
+    g_debug ("Read %zi bytes from greeter", n_read);
+
     greeter->priv->n_read += n_read;
     if (greeter->priv->n_read != n_to_read)
         return;
