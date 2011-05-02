@@ -1,6 +1,7 @@
 Overview of changes in lightdm 0.3.3
 
     * Don't run in test-mode if Xephyr cannot be found
+    * Fix daemon using 100% CPU after greeter quits
 
 Overview of changes in lightdm 0.3.2
 
