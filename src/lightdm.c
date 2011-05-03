@@ -316,7 +316,7 @@ user_added_cb (UserManager *user_manager, UserInfo *info)
                                    NULL,
                                    "/org/lightdm/LightDisplayManager/Users",
                                    "org.lightdm.LightDisplayManager.Users",
-                                   "UserRemoved",
+                                   "UserAdded",
                                    user_info_to_args (info),
                                    NULL);
 }
@@ -328,7 +328,7 @@ user_changed_cb (UserManager *user_manager, UserInfo *info)
                                    NULL,
                                    "/org/lightdm/LightDisplayManager/Users",
                                    "org.lightdm.LightDisplayManager.Users",
-                                   "UserRemoved",
+                                   "UserChanged",
                                    user_info_to_args (info),
                                    NULL); 
 }
