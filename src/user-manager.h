@@ -23,6 +23,15 @@ typedef struct UserManagerPrivate UserManagerPrivate;
 
 typedef struct
 {
+    gchar *name;
+    gchar *real_name;
+    gchar *image;
+    gchar *home_dir;
+    gboolean logged_in;
+} UserInfo;
+
+typedef struct
+{
     GObject         parent_instance;
     UserManagerPrivate *priv;
 } UserManager;
@@ -30,16 +39,10 @@ typedef struct
 typedef struct
 {
     GObjectClass parent_class;
+    void (*user_added)(UserManager *manager, UserInfo *user);
+    void (*user_updated)(UserManager *manager, UserInfo *user);
+    void (*user_removed)(UserManager *manager, UserInfo *user);
 } UserManagerClass;
-
-typedef struct
-{
-    const gchar *name;
-    const gchar *real_name;
-    const gchar *image;
-    const gchar *home_dir;
-    gboolean logged_in;
-} UserInfo;
 
 GType user_manager_get_type (void);
 

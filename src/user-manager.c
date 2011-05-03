@@ -12,13 +12,25 @@
 #include <string.h>
 #include <pwd.h>
 #include <errno.h>
+#include <gio/gio.h>
 
 #include "user-manager.h"
+
+enum {
+    USER_ADDED,
+    USER_UPDATED,
+    USER_REMOVED,
+    LAST_SIGNAL
+};
+static guint signals[LAST_SIGNAL] = { 0 };
 
 struct UserManagerPrivate
 {
     /* Configuration file */
     GKeyFile *config;
+  
+    /* File monitor for password file */
+    GFileMonitor *passwd_monitor;
 
     /* TRUE if have scanned users */
     gboolean have_users;
@@ -51,22 +63,12 @@ compare_user (gconstpointer a, gconstpointer b)
 }
 
 static void
-update_users (UserManager *manager)
+load_users (UserManager *manager)
 {
     gchar **hidden_users, **hidden_shells;
     gchar *value;
     gint minimum_uid;
-
-    if (manager->priv->have_users)
-        return;
-
-    /* User listing is disabled */
-    if (g_key_file_has_key (manager->priv->config, "UserManager", "load-users", NULL) &&
-        !g_key_file_get_boolean (manager->priv->config, "UserManager", "load-users", NULL))
-    {
-        manager->priv->have_users = TRUE;
-        return;
-    }
+    GList *users = NULL, *old_users, *new_users = NULL, *updated_users = NULL, *link;
 
     if (g_key_file_has_key (manager->priv->config, "UserManager", "minimum-uid", NULL))
         minimum_uid = g_key_file_get_integer (manager->priv->config, "UserManager", "minimum-uid", NULL);
@@ -146,16 +148,138 @@ update_users (UserManager *manager)
             user->image = g_strdup ("");
         g_free (image_path);
 
-        manager->priv->users = g_list_insert_sorted (manager->priv->users, user, compare_user);
+        /* Update existing users if have them */
+        for (link = manager->priv->users; link; link = link->next)
+        {
+            UserInfo *info = link->data;
+            if (strcmp (info->name, user->name) == 0)
+            {
+                if (strcmp (info->real_name, user->real_name) != 0 ||
+                    strcmp (info->image, user->image) != 0 ||
+                    strcmp (info->home_dir, user->home_dir) != 0 ||
+                    info->logged_in != user->logged_in)
+                {
+                    g_free (info->real_name);
+                    g_free (info->image);
+                    g_free (info->home_dir);
+                    info->real_name = user->real_name;
+                    info->image = user->image;
+                    info->home_dir = user->home_dir;
+                    info->logged_in = user->logged_in;
+                    g_free (user);
+                    user = info;
+                    updated_users = g_list_insert_sorted (updated_users, user, compare_user);
+                }
+                else
+                {
+                    g_free (user->real_name);
+                    g_free (user->image);
+                    g_free (user->home_dir);
+                    g_free (user);
+                    user = info;
+                }
+                break;
+            }
+        }
+        if (!link)
+        {
+            /* Only notify once we have loaded the user list */
+            if (manager->priv->have_users)
+                new_users = g_list_insert_sorted (new_users, user, compare_user);
+        }
+        users = g_list_insert_sorted (users, user, compare_user);
     }
+    g_strfreev (hidden_users);
+    g_strfreev (hidden_shells);
 
     if (errno != 0)
         g_warning ("Failed to read password database: %s", strerror (errno));
 
     endpwent ();
-  
-    g_strfreev (hidden_users);
-    g_strfreev (hidden_shells);
+
+    /* Use new user list */
+    old_users = manager->priv->users;
+    manager->priv->users = users;
+
+    /* Notify of changes */
+    for (link = new_users; link; link = link->next)
+    {
+        UserInfo *info = link->data;
+        g_debug ("User %s added", info->name);
+        g_signal_emit (manager, signals[USER_ADDED], 0, info);
+    }
+    g_list_free (new_users);
+    for (link = updated_users; link; link = link->next)
+    {
+        UserInfo *info = link->data;
+        g_debug ("User %s updated", info->name);
+        g_signal_emit (manager, signals[USER_UPDATED], 0, info);
+    }
+    g_list_free (updated_users);
+    for (link = old_users; link; link = link->next)
+    {
+        GList *new_link;
+
+        /* See if this user is in the current list */
+        for (new_link = manager->priv->users; new_link; new_link = new_link->next)
+        {
+            if (new_link->data == link->data)
+                break;
+        }
+
+        if (!new_link)
+        {
+            UserInfo *info = link->data;
+            g_debug ("User %s removed", info->name);
+            g_signal_emit (manager, signals[USER_REMOVED], 0, info);
+            g_free (info->name);
+            g_free (info->real_name);
+            g_free (info->image);
+            g_free (info->home_dir);
+            g_free (info);
+        }
+    }
+    g_list_free (old_users);
+}
+
+static void
+passwd_changed_cb (GFileMonitor *monitor, GFile *file, GFile *other_file, GFileMonitorEvent event_type, UserManager *manager)
+{
+    if (event_type == G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT)
+    {
+        g_debug ("%s changed, reloading user list", g_file_get_path (file));
+        load_users (manager);
+    }
+}
+
+static void
+update_users (UserManager *manager)
+{
+    GFile *passwd_file;
+    GError *error = NULL;
+
+    if (manager->priv->have_users)
+        return;
+
+    /* User listing is disabled */
+    if (g_key_file_has_key (manager->priv->config, "UserManager", "load-users", NULL) &&
+        !g_key_file_get_boolean (manager->priv->config, "UserManager", "load-users", NULL))
+    {
+        manager->priv->have_users = TRUE;
+        return;
+    }
+
+    load_users (manager);
+
+    /* Watch for changes to user list */
+    passwd_file = g_file_new_for_path ("/etc/passwd");
+    manager->priv->passwd_monitor = g_file_monitor (passwd_file, G_FILE_MONITOR_NONE, NULL, &error);
+    g_object_unref (passwd_file);
+    if (!manager->priv->passwd_monitor)
+        g_warning ("Error monitoring /etc/passwd: %s", error->message);
+    else
+        g_signal_connect (manager->priv->passwd_monitor, "changed", G_CALLBACK (passwd_changed_cb), manager);
+    g_clear_error (&error);
 
     manager->priv->have_users = TRUE;
 }
@@ -248,4 +372,29 @@ static void
 user_manager_class_init (UserManagerClass *klass)
 {
     g_type_class_add_private (klass, sizeof (UserManagerPrivate));
+
+    signals[USER_ADDED] =
+        g_signal_new ("user-added",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (UserManagerClass, user_added),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    signals[USER_UPDATED] =
+        g_signal_new ("user-updated",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (UserManagerClass, user_updated),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    signals[USER_REMOVED] =
+        g_signal_new ("user-removed",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (UserManagerClass, user_removed),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
 }
