@@ -1458,7 +1458,10 @@ ldm_greeter_shutdown (LdmGreeter *greeter)
  * @layout: (out): Default keyboard layout for this user.
  * @session: (out): Default session for this user.
  *
- * Get the default settings for a given user.
+ * Get the default settings for a given user.  If the user does not exist FALSE
+ * is returned and language, layout and session are not set.
+ *
+ * Return value: TRUE if this user exists.
  **/
 gboolean
 ldm_greeter_get_user_defaults (LdmGreeter *greeter, const gchar *username, gchar **language, gchar **layout, gchar **session)
