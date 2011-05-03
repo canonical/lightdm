@@ -426,6 +426,9 @@ main(int argc, char **argv)
 
     g_debug ("Starting Light Display Manager %s, PID=%i", VERSION, getpid ());
 
+    if (test_mode)
+        g_debug ("Running in test mode");
+
     g_debug ("Loaded configuration from %s", config_path);
 
     user_manager = user_manager_new (config_file);
