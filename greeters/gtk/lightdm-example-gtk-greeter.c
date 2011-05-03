@@ -43,7 +43,7 @@ set_session (const gchar *session)
 {
     GtkTreeModel *model = gtk_combo_box_get_model (GTK_COMBO_BOX (session_combo));
     GtkTreeIter iter;
-  
+
     if (!gtk_tree_model_get_iter_first (model, &iter))
         return;
   
@@ -298,6 +298,76 @@ fade_timer_cb (gpointer data)
 }
 
 static void
+user_added_cb (LdmGreeter *greeter, LdmUser *user)
+{
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+
+    model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
+
+    gtk_list_store_append (GTK_LIST_STORE (model), &iter);
+    gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+                        0, ldm_user_get_name (user),
+                        1, ldm_user_get_display_name (user),
+                        /*2, pixbuf,*/
+                        -1);
+}
+
+static gboolean
+get_user_iter (const gchar *username, GtkTreeIter *iter)
+{
+    GtkTreeModel *model;
+
+    model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
+  
+    if (!gtk_tree_model_get_iter_first (model, iter))
+        return FALSE;
+    do
+    {
+        gchar *name;
+        gboolean matched;
+
+        gtk_tree_model_get (model, iter, 0, &name, -1);
+        matched = strcmp (name, username) == 0;
+        g_free (name);
+        if (matched)
+            return TRUE;
+    } while (gtk_tree_model_iter_next (model, iter));
+
+    return FALSE;
+}
+
+static void
+user_changed_cb (LdmGreeter *greeter, LdmUser *user)
+{
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+
+    if (!get_user_iter (ldm_user_get_name (user), &iter))
+        return;
+
+    model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
+    gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+                        0, ldm_user_get_name (user),
+                        1, ldm_user_get_display_name (user),
+                        /*2, pixbuf,*/
+                        -1);
+}
+
+static void
+user_removed_cb (LdmGreeter *greeter, LdmUser *user)
+{
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+
+    if (!get_user_iter (ldm_user_get_name (user), &iter))
+        return;
+
+    model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));  
+    gtk_list_store_remove (GTK_LIST_STORE (model), &iter);
+}
+
+static void
 quit_cb (LdmGreeter *greeter, const gchar *username)
 {
     /* Fade out the greeter */
@@ -522,6 +592,9 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "show-error", G_CALLBACK (show_message_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "timed-login", G_CALLBACK (timed_login_cb), NULL);
+    g_signal_connect (G_OBJECT (greeter), "user-added", G_CALLBACK (user_added_cb), NULL);
+    g_signal_connect (G_OBJECT (greeter), "user-changed", G_CALLBACK (user_changed_cb), NULL);
+    g_signal_connect (G_OBJECT (greeter), "user-removed", G_CALLBACK (user_removed_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
     ldm_greeter_connect_to_server (greeter);
 
