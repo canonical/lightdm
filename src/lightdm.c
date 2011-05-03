@@ -272,7 +272,11 @@ handle_user_manager_call (GDBusConnection       *connection,
         for (iter = users; iter; iter = iter->next)
         {
             UserInfo *info = iter->data;
-            g_variant_builder_add_value (builder, g_variant_new ("(sssb)", info->name, info->real_name, info->image, info->logged_in));
+            g_variant_builder_add_value (builder, g_variant_new ("(sssb)",
+                                                                 info->name,
+                                                                 info->real_name ? info->real_name : "",
+                                                                 info->image ? info->image : "",
+                                                                 info->logged_in));
         }
         arg0 = g_variant_builder_end (builder);
         g_dbus_method_invocation_return_value (invocation, g_variant_new_tuple (&arg0, 1));
