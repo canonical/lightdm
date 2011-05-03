@@ -33,6 +33,8 @@ static gboolean debug = FALSE;
 static UserManager *user_manager = NULL;
 static DisplayManager *display_manager = NULL;
 
+static GDBusConnection *bus = NULL;
+
 #define LDM_BUS_NAME "org.lightdm.LightDisplayManager"
 
 static void
@@ -248,6 +250,16 @@ handle_display_manager_call (GDBusConnection       *connection,
     }
 }
 
+static GVariant *
+user_info_to_args (UserInfo *info)
+{
+    return g_variant_new ("(sssb)",
+                          info->name,
+                          info->real_name ? info->real_name : "",
+                          info->image ? info->image : "",
+                          info->logged_in);
+}
+
 static void
 handle_user_manager_call (GDBusConnection       *connection,
                           const gchar           *sender,
@@ -272,11 +284,7 @@ handle_user_manager_call (GDBusConnection       *connection,
         for (iter = users; iter; iter = iter->next)
         {
             UserInfo *info = iter->data;
-            g_variant_builder_add_value (builder, g_variant_new ("(sssb)",
-                                                                 info->name,
-                                                                 info->real_name ? info->real_name : "",
-                                                                 info->image ? info->image : "",
-                                                                 info->logged_in));
+            g_variant_builder_add_value (builder, user_info_to_args (info));
         }
         arg0 = g_variant_builder_end (builder);
         g_dbus_method_invocation_return_value (invocation, g_variant_new_tuple (&arg0, 1));
@@ -299,6 +307,42 @@ handle_user_manager_call (GDBusConnection       *connection,
         }
         g_free (username);
     }
+}
+
+static void
+user_added_cb (UserManager *user_manager, UserInfo *info)
+{
+    g_dbus_connection_emit_signal (bus,
+                                   NULL,
+                                   "/org/lightdm/LightDisplayManager/Users",
+                                   "org.lightdm.LightDisplayManager.Users",
+                                   "UserRemoved",
+                                   user_info_to_args (info),
+                                   NULL);
+}
+
+static void
+user_changed_cb (UserManager *user_manager, UserInfo *info)
+{
+    g_dbus_connection_emit_signal (bus,
+                                   NULL,
+                                   "/org/lightdm/LightDisplayManager/Users",
+                                   "org.lightdm.LightDisplayManager.Users",
+                                   "UserRemoved",
+                                   user_info_to_args (info),
+                                   NULL); 
+}
+
+static void
+user_removed_cb (UserManager *user_manager, UserInfo *info)
+{
+    g_dbus_connection_emit_signal (bus,
+                                   NULL,
+                                   "/org/lightdm/LightDisplayManager/Users",
+                                   "org.lightdm.LightDisplayManager.Users",
+                                   "UserRemoved",
+                                   g_variant_new ("(s)", info->name),
+                                   NULL);
 }
 
 static void
@@ -332,6 +376,21 @@ bus_acquired_cb (GDBusConnection *connection,
         "      <arg name='layout' direction='out' type='s'/>"
         "      <arg name='session' direction='out' type='s'/>"
         "    </method>"
+        "    <signal name='UserAdded'>"
+        "      <arg name='username' type='s'/>"
+        "      <arg name='real-name' type='s'/>"
+        "      <arg name='image' type='s'/>"
+        "      <arg name='username' type='b'/>"
+        "    </signal>"
+        "    <signal name='UserChanged'>"
+        "      <arg name='username' type='s'/>"
+        "      <arg name='real-name' type='s'/>"
+        "      <arg name='image' type='s'/>"
+        "      <arg name='username' type='b'/>"
+        "    </signal>"
+        "    <signal name='UserRemoved'>"
+        "      <arg name='username' type='s'/>"
+        "    </signal>"
         "  </interface>"
         "</node>";
     static const GDBusInterfaceVTable user_manager_vtable =
@@ -339,6 +398,8 @@ bus_acquired_cb (GDBusConnection *connection,
         handle_user_manager_call
     };
     GDBusNodeInfo *display_manager_info, *user_manager_info;
+
+    bus = connection;
 
     display_manager_info = g_dbus_node_info_new_for_xml (display_manager_interface, NULL);
     g_assert (display_manager_info != NULL);
@@ -357,6 +418,10 @@ bus_acquired_cb (GDBusConnection *connection,
                                        &user_manager_vtable,
                                        NULL, NULL,
                                        NULL);
+
+    g_signal_connect (user_manager, "user-added", G_CALLBACK (user_added_cb), NULL);
+    g_signal_connect (user_manager, "user-changed", G_CALLBACK (user_changed_cb), NULL);
+    g_signal_connect (user_manager, "user-removed", G_CALLBACK (user_removed_cb), NULL);
 }
 
 static void

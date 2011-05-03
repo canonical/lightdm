@@ -133,6 +133,20 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @ldmgreeter: the object which received the signal.
 @arg1: 
 
+<!-- ##### SIGNAL LdmGreeter::user-added ##### -->
+<para>
+
+</para>
+
+@ldmgreeter: the object which received the signal.
+
+<!-- ##### SIGNAL LdmGreeter::user-changed ##### -->
+<para>
+
+</para>
+
+@ldmgreeter: the object which received the signal.
+
 <!-- ##### ARG LdmGreeter:authentication-user ##### -->
 <para>
 
@@ -279,6 +293,16 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 </para>
 
 @greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_user_by_name ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@username: 
 @Returns: 
 
 

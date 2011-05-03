@@ -14,8 +14,6 @@
 
 #include <glib-object.h>
 
-#include "greeter.h"
-
 G_BEGIN_DECLS
 
 #define LDM_TYPE_USER            (ldm_user_get_type())
@@ -42,8 +40,6 @@ struct _LdmUserClass
 };
 
 GType ldm_user_get_type (void);
-
-LdmUser *ldm_user_new (LdmGreeter *greeter, const gchar *name, const gchar *real_name, const gchar *image, gboolean logged_in);
 
 const gchar *ldm_user_get_name (LdmUser *user);
 

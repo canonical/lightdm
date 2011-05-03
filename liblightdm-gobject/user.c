@@ -9,7 +9,7 @@
  * license.
  */
 
-#include "lightdm/user.h"
+#include "user-private.h"
 
 enum {
     PROP_0,
@@ -89,6 +89,14 @@ ldm_user_get_real_name (LdmUser *user)
     return user->priv->real_name;
 }
 
+void
+ldm_user_set_real_name (LdmUser *user, const gchar *real_name)
+{
+    g_return_if_fail (LDM_IS_USER (user));
+    g_free (user->priv->real_name);
+    user->priv->real_name = g_strdup (real_name);
+}
+
 /**
  * ldm_user_get_display_name:
  * @user: A #LdmUser
@@ -121,6 +129,14 @@ ldm_user_get_image (LdmUser *user)
 {
     g_return_val_if_fail (LDM_IS_USER (user), NULL);
     return user->priv->image;
+}
+
+void
+ldm_user_set_image (LdmUser *user, const gchar *image)
+{
+    g_return_if_fail (LDM_IS_USER (user));
+    g_free (user->priv->image);
+    user->priv->image = g_strdup (image);
 }
 
 static void
@@ -194,6 +210,13 @@ ldm_user_get_logged_in (LdmUser *user)
 {
     g_return_val_if_fail (LDM_IS_USER (user), FALSE);
     return user->priv->logged_in;
+}
+
+void
+ldm_user_set_logged_in (LdmUser *user, gboolean logged_in)
+{
+    g_return_if_fail (LDM_IS_USER (user));
+    user->priv->logged_in = logged_in;
 }
 
 static void

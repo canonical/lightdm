@@ -40,7 +40,7 @@ typedef struct
 {
     GObjectClass parent_class;
     void (*user_added)(UserManager *manager, UserInfo *user);
-    void (*user_updated)(UserManager *manager, UserInfo *user);
+    void (*user_changed)(UserManager *manager, UserInfo *user);
     void (*user_removed)(UserManager *manager, UserInfo *user);
 } UserManagerClass;
 

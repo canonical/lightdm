@@ -18,7 +18,7 @@
 
 enum {
     USER_ADDED,
-    USER_UPDATED,
+    USER_CHANGED,
     USER_REMOVED,
     LAST_SIGNAL
 };
@@ -68,7 +68,7 @@ load_users (UserManager *manager)
     gchar **hidden_users, **hidden_shells;
     gchar *value;
     gint minimum_uid;
-    GList *users = NULL, *old_users, *new_users = NULL, *updated_users = NULL, *link;
+    GList *users = NULL, *old_users, *new_users = NULL, *changed_users = NULL, *link;
 
     if (g_key_file_has_key (manager->priv->config, "UserManager", "minimum-uid", NULL))
         minimum_uid = g_key_file_get_integer (manager->priv->config, "UserManager", "minimum-uid", NULL);
@@ -168,7 +168,7 @@ load_users (UserManager *manager)
                     info->logged_in = user->logged_in;
                     g_free (user);
                     user = info;
-                    updated_users = g_list_insert_sorted (updated_users, user, compare_user);
+                    changed_users = g_list_insert_sorted (changed_users, user, compare_user);
                 }
                 else
                 {
@@ -209,13 +209,13 @@ load_users (UserManager *manager)
         g_signal_emit (manager, signals[USER_ADDED], 0, info);
     }
     g_list_free (new_users);
-    for (link = updated_users; link; link = link->next)
+    for (link = changed_users; link; link = link->next)
     {
         UserInfo *info = link->data;
-        g_debug ("User %s updated", info->name);
-        g_signal_emit (manager, signals[USER_UPDATED], 0, info);
+        g_debug ("User %s changed", info->name);
+        g_signal_emit (manager, signals[USER_CHANGED], 0, info);
     }
-    g_list_free (updated_users);
+    g_list_free (changed_users);
     for (link = old_users; link; link = link->next)
     {
         GList *new_link;
@@ -381,11 +381,11 @@ user_manager_class_init (UserManagerClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__POINTER,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
-    signals[USER_UPDATED] =
-        g_signal_new ("user-updated",
+    signals[USER_CHANGED] =
+        g_signal_new ("user-changed",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (UserManagerClass, user_updated),
+                      G_STRUCT_OFFSET (UserManagerClass, user_changed),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__POINTER,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);

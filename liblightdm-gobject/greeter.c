@@ -19,6 +19,7 @@
 #include <libxklavier/xklavier.h>
 
 #include "lightdm/greeter.h"
+#include "user-private.h"
 #include "greeter-protocol.h"
 
 enum {
@@ -49,6 +50,9 @@ enum {
     SHOW_ERROR,
     AUTHENTICATION_COMPLETE,
     TIMED_LOGIN,
+    USER_ADDED,
+    USER_CHANGED,
+    USER_REMOVED,
     QUIT,
     LAST_SIGNAL
 };
@@ -544,6 +548,98 @@ ldm_greeter_get_boolean_property (LdmGreeter *greeter, const gchar *name)
     return result;
 }
 
+static LdmUser *
+get_user_by_name (LdmGreeter *greeter, const gchar *username)
+{
+    GList *link;
+  
+    for (link = greeter->priv->users; link; link = link->next)
+    {
+        LdmUser *user = link->data;
+        if (strcmp (ldm_user_get_name (user), username) == 0)
+            return user;
+    }
+
+    return NULL;
+}
+  
+static void
+user_changed_cb (GDBusConnection *connection,
+                 const gchar *sender_name,
+                 const gchar *object_path,
+                 const gchar *interface_name,
+                 const gchar *signal_name,
+                 GVariant *parameters,
+                 gpointer user_data)
+{
+    LdmGreeter *greeter = user_data;
+    gchar *username, *real_name, *image;
+    gboolean logged_in;
+    LdmUser *user;
+
+    if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(sssb)")))
+    {
+        g_warning ("Unknown type in %s signal", signal_name);
+        return;
+    }
+
+    g_variant_get (parameters, "(sssb)", &username, &real_name, &image, &logged_in);
+
+    user = get_user_by_name (greeter, username);
+    if (user)
+    {
+        g_debug ("User %s changed", username);
+        ldm_user_set_real_name (user, real_name);
+        ldm_user_set_image (user, image);
+        ldm_user_set_logged_in (user, logged_in);
+        g_signal_emit (greeter, signals[USER_ADDED], 0, user);
+    }
+    else
+    {
+        g_debug ("User %s added", username);
+        user = ldm_user_new (greeter, username, real_name, image, logged_in);
+        greeter->priv->users = g_list_append (greeter->priv->users, user);
+        g_signal_emit (greeter, signals[USER_ADDED], 0, user);
+    }
+
+    g_free (username);
+    g_free (real_name);
+    g_free (image);
+}
+
+static void
+user_removed_cb (GDBusConnection *connection,
+                 const gchar *sender_name,
+                 const gchar *object_path,
+                 const gchar *interface_name,
+                 const gchar *signal_name,
+                 GVariant *parameters,
+                 gpointer user_data)
+{
+    LdmGreeter *greeter = user_data;
+    gchar *username;
+    LdmUser *user;
+
+    if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(s)")))
+    {
+        g_warning ("Unknown type in %s signal", signal_name);
+        return;
+    }
+
+    g_variant_get (parameters, "(s)", &username);
+
+    user = get_user_by_name (greeter, username);
+    if (user)
+    {
+        g_debug ("User %s removed", username);
+        greeter->priv->users = g_list_remove (greeter->priv->users, user);
+        g_signal_emit (greeter, signals[USER_REMOVED], 0, user);      
+        g_object_unref (user);
+    }
+
+    g_free (username);
+}
+
 static void
 update_users (LdmGreeter *greeter)
 {
@@ -555,6 +651,37 @@ update_users (LdmGreeter *greeter)
 
     if (greeter->priv->have_users)
         return;
+
+    g_dbus_connection_signal_subscribe (greeter->priv->lightdm_bus,
+                                        "org.lightdm.LightDisplayManager",
+                                        "org.lightdm.LightDisplayManager.Users",
+                                        "UserAdded",
+                                        "/org/lightdm/LightDisplayManager/Users",
+                                        NULL,
+                                        G_DBUS_SIGNAL_FLAGS_NONE,
+                                        user_changed_cb,
+                                        greeter,
+                                        NULL);
+    g_dbus_connection_signal_subscribe (greeter->priv->lightdm_bus,
+                                        "org.lightdm.LightDisplayManager",
+                                        "org.lightdm.LightDisplayManager.Users",
+                                        "UserChanged",
+                                        "/org/lightdm/LightDisplayManager/Users",
+                                        NULL,
+                                        G_DBUS_SIGNAL_FLAGS_NONE,
+                                        user_changed_cb,
+                                        greeter,
+                                        NULL);
+    g_dbus_connection_signal_subscribe (greeter->priv->lightdm_bus,
+                                        "org.lightdm.LightDisplayManager",
+                                        "org.lightdm.LightDisplayManager.Users",
+                                        "UserRemoved",
+                                        "/org/lightdm/LightDisplayManager/Users",
+                                        NULL,
+                                        G_DBUS_SIGNAL_FLAGS_NONE,
+                                        user_removed_cb,
+                                        greeter,
+                                        NULL);
 
     g_debug ("Getting user list...");
     result = g_dbus_proxy_call_sync (greeter->priv->user_proxy,
@@ -586,6 +713,7 @@ update_users (LdmGreeter *greeter)
         user = ldm_user_new (greeter, name, real_name, image, logged_in);
         greeter->priv->users = g_list_append (greeter->priv->users, user);
     }
+
     greeter->priv->have_users = TRUE;
 
     g_variant_unref (result);
@@ -620,6 +748,25 @@ ldm_greeter_get_users (LdmGreeter *greeter)
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
     update_users (greeter);
     return greeter->priv->users;
+}
+
+/**
+ * ldm_greeter_get_user_by_name:
+ * @greeter: A #LdmGreeter
+ * @username: Name of user to get.
+ *
+ * Get infomation about a given user or NULL if this user doesn't exist.
+ *
+ * Return value: (allow-none): A #LdmUser entry for the given user.
+ **/
+const LdmUser *
+ldm_greeter_get_user_by_name (LdmGreeter *greeter, const gchar *username)
+{
+    g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
+
+    update_users (greeter);
+
+    return get_user_by_name (greeter, username);
 }
 
 static void
@@ -1310,7 +1457,7 @@ ldm_greeter_shutdown (LdmGreeter *greeter)
  * @language: (out): Default language for this user.
  * @layout: (out): Default keyboard layout for this user.
  * @session: (out): Default session for this user.
- * 
+ *
  * Get the default settings for a given user.
  **/
 gboolean
@@ -1673,6 +1820,51 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__STRING,
                       G_TYPE_NONE, 1, G_TYPE_STRING);
+
+    /**
+     * LdmGreeter::user-added:
+     * @greeter: A #LdmGreeter
+     *
+     * The ::user-added signal gets emitted when a user account is created.
+     **/
+    signals[USER_ADDED] =
+        g_signal_new ("user-added",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (LdmGreeterClass, user_added),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
+
+    /**
+     * LdmGreeter::user-changed:
+     * @greeter: A #LdmGreeter
+     *
+     * The ::user-changed signal gets emitted when a user account is modified.
+     **/
+    signals[USER_CHANGED] =
+        g_signal_new ("user-changed",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (LdmGreeterClass, user_changed),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
+
+    /**
+     * LdmGreeter::user-removed:
+     * @greeter: A #LdmGreeter
+     *
+     * The ::user-removed signal gets emitted when a user account is removed.
+     **/
+    signals[USER_REMOVED] =
+        g_signal_new ("user-added",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (LdmGreeterClass, user_removed),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
 
     /**
      * LdmGreeter::quit:

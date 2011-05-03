@@ -67,6 +67,9 @@ LDM_USER_GET_CLASS
 LdmUserClass
 LdmUserPrivate
 ldm_user_new
+ldm_user_set_image
+ldm_user_set_logged_in
+ldm_user_set_real_name
 </SECTION>
 
 <SECTION>
@@ -103,6 +106,7 @@ ldm_greeter_get_integer_property
 ldm_greeter_get_boolean_property
 ldm_greeter_get_num_users
 ldm_greeter_get_users
+ldm_greeter_get_user_by_name
 ldm_greeter_get_default_language
 ldm_greeter_get_languages
 ldm_greeter_get_default_layout
