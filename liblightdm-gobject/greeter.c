@@ -592,7 +592,7 @@ user_changed_cb (GDBusConnection *connection,
         ldm_user_set_real_name (user, real_name);
         ldm_user_set_image (user, image);
         ldm_user_set_logged_in (user, logged_in);
-        g_signal_emit (greeter, signals[USER_ADDED], 0, user);
+        g_signal_emit (greeter, signals[USER_CHANGED], 0, user);
     }
     else
     {
@@ -1836,8 +1836,8 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LdmGreeterClass, user_added),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
+                      g_cclosure_marshal_VOID__OBJECT,
+                      G_TYPE_NONE, 1, LDM_TYPE_USER);
 
     /**
      * LdmGreeter::user-changed:
@@ -1851,8 +1851,8 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LdmGreeterClass, user_changed),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
+                      g_cclosure_marshal_VOID__OBJECT,
+                      G_TYPE_NONE, 1, LDM_TYPE_USER);
 
     /**
      * LdmGreeter::user-removed:
@@ -1861,13 +1861,13 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
      * The ::user-removed signal gets emitted when a user account is removed.
      **/
     signals[USER_REMOVED] =
-        g_signal_new ("user-added",
+        g_signal_new ("user-removed",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LdmGreeterClass, user_removed),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
+                      g_cclosure_marshal_VOID__OBJECT,
+                      G_TYPE_NONE, 1, LDM_TYPE_USER);
 
     /**
      * LdmGreeter::quit:
