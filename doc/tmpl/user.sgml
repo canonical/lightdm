@@ -52,6 +52,11 @@ A user has the following properties:
 
 </para>
 
+<!-- ##### ARG LdmUser:home-directory ##### -->
+<para>
+
+</para>
+
 <!-- ##### ARG LdmUser:image ##### -->
 <para>
 

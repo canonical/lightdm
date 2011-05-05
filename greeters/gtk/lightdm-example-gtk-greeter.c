@@ -516,7 +516,7 @@ connect_cb (LdmGreeter *greeter)
         GdkPixbuf *pixbuf = NULL;
 
         image = ldm_user_get_image (user);
-        if (strcmp (image, "") == 0)
+        if (image)
         {
             gchar *path;
 

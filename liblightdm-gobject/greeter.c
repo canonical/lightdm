@@ -10,10 +10,11 @@
  */
 
 #include <stdlib.h>
+#include <errno.h>
 #include <string.h>
 #include <locale.h>
 #include <sys/utsname.h>
-
+#include <pwd.h>
 #include <gio/gdesktopappinfo.h>
 #include <security/pam_appl.h>
 #include <libxklavier/xklavier.h>
@@ -64,7 +65,7 @@ struct _LdmGreeterPrivate
 
     GDBusConnection *system_bus;
 
-    GDBusProxy *session_proxy, *user_proxy;
+    GDBusProxy *lightdm_proxy;
 
     GIOChannel *to_server_channel, *from_server_channel;
     gchar *read_buffer;
@@ -74,10 +75,19 @@ struct _LdmGreeterPrivate
 
     gchar *hostname;
 
+    /* Configuration file */
+    GKeyFile *config;
+
     gchar *theme;
     GKeyFile *theme_file;
 
+    /* File monitor for password file */
+    GFileMonitor *passwd_monitor;
+
+    /* TRUE if have scanned users */
     gboolean have_users;
+
+    /* List of users */
     GList *users;
 
     gboolean have_languages;
@@ -254,32 +264,36 @@ handle_prompt_authentication (LdmGreeter *greeter, gsize *offset)
 }
 
 static gboolean
-from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
+read_packet (LdmGreeter *greeter, gboolean block)
 {
-    LdmGreeter *greeter = data;
-    gsize n_to_read, n_read, offset;
-    GIOStatus status;
-    guint32 id, return_code;
+    gsize n_to_read, n_read;
     GError *error = NULL;
 
+    /* Read the header, or the whole packet if we already have that */
     n_to_read = HEADER_SIZE;
     if (greeter->priv->n_read >= HEADER_SIZE)
         n_to_read += get_packet_length (greeter);
 
-    status = g_io_channel_read_chars (greeter->priv->from_server_channel,
-                                      greeter->priv->read_buffer + greeter->priv->n_read,
-                                      n_to_read - greeter->priv->n_read,
-                                      &n_read,
-                                      &error);
-    if (status != G_IO_STATUS_NORMAL)
-        g_warning ("Error reading from server: %s", error->message);
-    g_clear_error (&error);
-    if (status != G_IO_STATUS_NORMAL)
-        return TRUE;
+    do
+    {
+        GIOStatus status;
+        status = g_io_channel_read_chars (greeter->priv->from_server_channel,
+                                          greeter->priv->read_buffer + greeter->priv->n_read,
+                                          n_to_read - greeter->priv->n_read,
+                                          &n_read,
+                                          &error);
+        if (status == G_IO_STATUS_ERROR)
+            g_warning ("Error reading from server: %s", error->message);
+        g_clear_error (&error);
+        if (status != G_IO_STATUS_NORMAL)
+            break;
 
-    greeter->priv->n_read += n_read;
+        greeter->priv->n_read += n_read;
+    } while (greeter->priv->n_read < n_to_read && block);
+
+    /* Stop if haven't got all the data we want */
     if (greeter->priv->n_read != n_to_read)
-        return TRUE;
+        return FALSE;
 
     /* If have header, rerun for content */
     if (greeter->priv->n_read == HEADER_SIZE)
@@ -288,9 +302,22 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         if (n_to_read > 0)
         {
             greeter->priv->read_buffer = g_realloc (greeter->priv->read_buffer, HEADER_SIZE + n_to_read);
-            return from_server_cb (source, condition, data);
+            return read_packet (greeter, block);
         }
     }
+
+    return TRUE;
+}
+
+static gboolean
+from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
+{
+    LdmGreeter *greeter = data;
+    gsize offset;
+    guint32 id, return_code;
+  
+    if (!read_packet (greeter, FALSE))
+        return TRUE;
 
     offset = 0;
     id = read_int (greeter, &offset);
@@ -400,20 +427,13 @@ ldm_greeter_connect_to_server (LdmGreeter *greeter)
     g_io_channel_set_encoding (greeter->priv->from_server_channel, NULL, NULL);
     g_io_add_watch (greeter->priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
 
-    greeter->priv->session_proxy = g_dbus_proxy_new_sync (greeter->priv->lightdm_bus,
+    greeter->priv->lightdm_proxy = g_dbus_proxy_new_sync (greeter->priv->lightdm_bus,
                                                           G_DBUS_PROXY_FLAGS_NONE,
                                                           NULL,
                                                           "org.lightdm.LightDisplayManager",
-                                                          "/org/lightdm/LightDisplayManager/Session",
-                                                          "org.lightdm.LightDisplayManager.Session",
+                                                          "/org/lightdm/LightDisplayManager",
+                                                          "org.lightdm.LightDisplayManager",
                                                           NULL, NULL);
-    greeter->priv->user_proxy = g_dbus_proxy_new_sync (greeter->priv->lightdm_bus,
-                                                       G_DBUS_PROXY_FLAGS_NONE,
-                                                       NULL,
-                                                       "org.lightdm.LightDisplayManager",
-                                                       "/org/lightdm/LightDisplayManager/Users",
-                                                       "org.lightdm.LightDisplayManager.Users",
-                                                       NULL, NULL);
 
     g_debug ("Connecting to display manager...");
     write_header (greeter, GREETER_MESSAGE_CONNECT, 0);
@@ -563,160 +583,264 @@ get_user_by_name (LdmGreeter *greeter, const gchar *username)
     return NULL;
 }
   
-static void
-user_changed_cb (GDBusConnection *connection,
-                 const gchar *sender_name,
-                 const gchar *object_path,
-                 const gchar *interface_name,
-                 const gchar *signal_name,
-                 GVariant *parameters,
-                 gpointer user_data)
+static gint
+compare_user (gconstpointer a, gconstpointer b)
 {
-    LdmGreeter *greeter = user_data;
-    gchar *username, *real_name, *image;
-    gboolean logged_in;
-    LdmUser *user;
-
-    if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(sssb)")))
-    {
-        g_warning ("Unknown type in %s signal", signal_name);
-        return;
-    }
-
-    g_variant_get (parameters, "(sssb)", &username, &real_name, &image, &logged_in);
-
-    user = get_user_by_name (greeter, username);
-    if (user)
-    {
-        g_debug ("User %s changed", username);
-        ldm_user_set_real_name (user, real_name);
-        ldm_user_set_image (user, image);
-        ldm_user_set_logged_in (user, logged_in);
-        g_signal_emit (greeter, signals[USER_CHANGED], 0, user);
-    }
-    else
-    {
-        g_debug ("User %s added", username);
-        user = ldm_user_new (greeter, username, real_name, image, logged_in);
-        greeter->priv->users = g_list_append (greeter->priv->users, user);
-        g_signal_emit (greeter, signals[USER_ADDED], 0, user);
-    }
-
-    g_free (username);
-    g_free (real_name);
-    g_free (image);
+    LdmUser *user_a = (LdmUser *) a, *user_b = (LdmUser *) b;
+    return strcmp (ldm_user_get_display_name (user_a), ldm_user_get_display_name (user_b));
 }
 
 static void
-user_removed_cb (GDBusConnection *connection,
-                 const gchar *sender_name,
-                 const gchar *object_path,
-                 const gchar *interface_name,
-                 const gchar *signal_name,
-                 GVariant *parameters,
-                 gpointer user_data)
+load_config (LdmGreeter *greeter)
 {
-    LdmGreeter *greeter = user_data;
-    gchar *username;
-    LdmUser *user;
+    GVariant *result;
+    const gchar *config_path = NULL;
 
-    if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(s)")))
+    if (greeter->priv->config)
+        return;
+
+    result = g_dbus_proxy_get_cached_property (greeter->priv->lightdm_proxy,
+                                               "ConfigFile");
+    if (!result)
     {
-        g_warning ("Unknown type in %s signal", signal_name);
+        g_warning ("No ConfigFile property");
         return;
     }
 
-    g_variant_get (parameters, "(s)", &username);
+    if (g_variant_is_of_type (result, G_VARIANT_TYPE_STRING))
+        config_path = g_variant_get_string (result, NULL);
+    else
+        g_warning ("Invalid type for config file: %s, expected string", g_variant_get_type_string (result));
 
-    user = get_user_by_name (greeter, username);
-    if (user)
+    if (config_path)
     {
-        g_debug ("User %s removed", username);
-        greeter->priv->users = g_list_remove (greeter->priv->users, user);
-        g_signal_emit (greeter, signals[USER_REMOVED], 0, user);      
-        g_object_unref (user);
+        GError *error = NULL;
+
+        g_debug ("Loading config from %s", config_path);
+
+        greeter->priv->config = g_key_file_new ();
+        if (!g_key_file_load_from_file (greeter->priv->config, config_path, G_KEY_FILE_NONE, &error))
+            g_warning ("Failed to load configuration from %s: %s", config_path, error->message); // FIXME: Don't make warning on no file, just info
+        g_clear_error (&error);
     }
 
-    g_free (username);
+    g_variant_unref (result);
+}
+  
+static void
+load_users (LdmGreeter *greeter)
+{
+    gchar **hidden_users, **hidden_shells;
+    gchar *value;
+    gint minimum_uid;
+    GList *users = NULL, *old_users, *new_users = NULL, *changed_users = NULL, *link;
+
+    load_config (greeter);
+
+    if (g_key_file_has_key (greeter->priv->config, "UserManager", "minimum-uid", NULL))
+        minimum_uid = g_key_file_get_integer (greeter->priv->config, "UserManager", "minimum-uid", NULL);
+    else
+        minimum_uid = 500;
+
+    value = g_key_file_get_string (greeter->priv->config, "UserManager", "hidden-users", NULL);
+    if (!value)
+        value = g_strdup ("nobody nobody4 noaccess");
+    hidden_users = g_strsplit (value, " ", -1);
+    g_free (value);
+
+    value = g_key_file_get_string (greeter->priv->config, "UserManager", "hidden-shells", NULL);
+    if (!value)
+        value = g_strdup ("/bin/false /usr/sbin/nologin");
+    hidden_shells = g_strsplit (value, " ", -1);
+    g_free (value);
+
+    setpwent ();
+
+    while (TRUE)
+    {
+        struct passwd *entry;
+        LdmUser *user;
+        char **tokens;
+        gchar *real_name, *image_path, *image;
+        int i;
+
+        errno = 0;
+        entry = getpwent ();
+        if (!entry)
+            break;
+
+        /* Ignore system users */
+        if (entry->pw_uid < minimum_uid)
+            continue;
+
+        /* Ignore users disabled by shell */
+        if (entry->pw_shell)
+        {
+            for (i = 0; hidden_shells[i] && strcmp (entry->pw_shell, hidden_shells[i]) != 0; i++);
+            if (hidden_shells[i])
+                continue;
+        }
+
+        /* Ignore certain users */
+        for (i = 0; hidden_users[i] && strcmp (entry->pw_name, hidden_users[i]) != 0; i++);
+        if (hidden_users[i])
+            continue;
+
+        tokens = g_strsplit (entry->pw_gecos, ",", -1);
+        if (tokens[0] != NULL && tokens[0][0] != '\0')
+            real_name = g_strdup (tokens[0]);
+        else
+            real_name = NULL;
+        g_strfreev (tokens);
+      
+        image_path = g_build_filename (entry->pw_dir, ".face", NULL);
+        if (!g_file_test (image_path, G_FILE_TEST_EXISTS))
+        {
+            g_free (image_path);
+            image_path = g_build_filename (entry->pw_dir, ".face.icon", NULL);
+            if (!g_file_test (image_path, G_FILE_TEST_EXISTS))
+            {
+                g_free (image_path);
+                image_path = NULL;
+            }
+        }
+        if (image_path)
+            image = g_filename_to_uri (image_path, NULL, NULL);
+        else
+            image = NULL;
+        g_free (image_path);
+
+        user = ldm_user_new (greeter, entry->pw_name, real_name, entry->pw_dir, image, FALSE);
+        g_free (real_name);
+        g_free (image);
+
+        /* Update existing users if have them */
+        for (link = greeter->priv->users; link; link = link->next)
+        {
+            LdmUser *info = link->data;
+            if (strcmp (ldm_user_get_name (info), ldm_user_get_name (user)) == 0)
+            {
+                // FIXME: Use changed signal from user object?
+                if (g_strcmp0 (ldm_user_get_real_name (info), ldm_user_get_real_name (user)) != 0 ||
+                    g_strcmp0 (ldm_user_get_image (info), ldm_user_get_image (user)) != 0 ||
+                    g_strcmp0 (ldm_user_get_home_directory (info), ldm_user_get_home_directory (user)) != 0 ||
+                    ldm_user_get_logged_in (info) != ldm_user_get_logged_in (user))
+                {
+                    ldm_user_set_real_name (info, ldm_user_get_real_name (user));
+                    ldm_user_set_image (info, ldm_user_get_image (user));
+                    ldm_user_set_home_directory (info, ldm_user_get_home_directory (user));
+                    ldm_user_set_logged_in (info, ldm_user_get_logged_in (user));
+                    g_object_unref (user);
+                    user = info;
+                    changed_users = g_list_insert_sorted (changed_users, user, compare_user);
+                }
+                else
+                {
+                    g_object_unref (user);
+                    user = info;
+                }
+                break;
+            }
+        }
+        if (!link)
+        {
+            /* Only notify once we have loaded the user list */
+            if (greeter->priv->have_users)
+                new_users = g_list_insert_sorted (new_users, user, compare_user);
+        }
+        users = g_list_insert_sorted (users, user, compare_user);
+    }
+    g_strfreev (hidden_users);
+    g_strfreev (hidden_shells);
+
+    if (errno != 0)
+        g_warning ("Failed to read password database: %s", strerror (errno));
+
+    endpwent ();
+
+    /* Use new user list */
+    old_users = greeter->priv->users;
+    greeter->priv->users = users;
+
+    /* Notify of changes */
+    for (link = new_users; link; link = link->next)
+    {
+        LdmUser *info = link->data;
+        g_debug ("User %s added", ldm_user_get_name (info));
+        g_signal_emit (greeter, signals[USER_ADDED], 0, info);
+    }
+    g_list_free (new_users);
+    for (link = changed_users; link; link = link->next)
+    {
+        LdmUser *info = link->data;
+        g_debug ("User %s changed", ldm_user_get_name (info));
+        g_signal_emit (greeter, signals[USER_CHANGED], 0, info);
+    }
+    g_list_free (changed_users);
+    for (link = old_users; link; link = link->next)
+    {
+        GList *new_link;
+
+        /* See if this user is in the current list */
+        for (new_link = greeter->priv->users; new_link; new_link = new_link->next)
+        {
+            if (new_link->data == link->data)
+                break;
+        }
+
+        if (!new_link)
+        {
+            LdmUser *info = link->data;
+            g_debug ("User %s removed", ldm_user_get_name (info));
+            g_signal_emit (greeter, signals[USER_REMOVED], 0, info);
+            g_object_unref (info);
+        }
+    }
+    g_list_free (old_users);
+}
+
+static void
+passwd_changed_cb (GFileMonitor *monitor, GFile *file, GFile *other_file, GFileMonitorEvent event_type, LdmGreeter *greeter)
+{
+    if (event_type == G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT)
+    {
+        g_debug ("%s changed, reloading user list", g_file_get_path (file));
+        load_users (greeter);
+    }
 }
 
 static void
 update_users (LdmGreeter *greeter)
 {
-    GVariant *result, *user_array;
-    GVariantIter iter;
-    gchar *name, *real_name, *image;
-    gboolean logged_in;
+    GFile *passwd_file;
     GError *error = NULL;
 
     if (greeter->priv->have_users)
         return;
 
-    g_dbus_connection_signal_subscribe (greeter->priv->lightdm_bus,
-                                        "org.lightdm.LightDisplayManager",
-                                        "org.lightdm.LightDisplayManager.Users",
-                                        "UserAdded",
-                                        "/org/lightdm/LightDisplayManager/Users",
-                                        NULL,
-                                        G_DBUS_SIGNAL_FLAGS_NONE,
-                                        user_changed_cb,
-                                        greeter,
-                                        NULL);
-    g_dbus_connection_signal_subscribe (greeter->priv->lightdm_bus,
-                                        "org.lightdm.LightDisplayManager",
-                                        "org.lightdm.LightDisplayManager.Users",
-                                        "UserChanged",
-                                        "/org/lightdm/LightDisplayManager/Users",
-                                        NULL,
-                                        G_DBUS_SIGNAL_FLAGS_NONE,
-                                        user_changed_cb,
-                                        greeter,
-                                        NULL);
-    g_dbus_connection_signal_subscribe (greeter->priv->lightdm_bus,
-                                        "org.lightdm.LightDisplayManager",
-                                        "org.lightdm.LightDisplayManager.Users",
-                                        "UserRemoved",
-                                        "/org/lightdm/LightDisplayManager/Users",
-                                        NULL,
-                                        G_DBUS_SIGNAL_FLAGS_NONE,
-                                        user_removed_cb,
-                                        greeter,
-                                        NULL);
+    load_config (greeter);
 
-    g_debug ("Getting user list...");
-    result = g_dbus_proxy_call_sync (greeter->priv->user_proxy,
-                                     "GetUsers",
-                                     NULL,
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     -1,
-                                     NULL,
-                                     &error);
-    if (!result)
-        g_warning ("Failed to get users: %s", error->message);
+    /* User listing is disabled */
+    if (g_key_file_has_key (greeter->priv->config, "UserManager", "load-users", NULL) &&
+        !g_key_file_get_boolean (greeter->priv->config, "UserManager", "load-users", NULL))
+    {
+        greeter->priv->have_users = TRUE;
+        return;
+    }
+
+    load_users (greeter);
+
+    /* Watch for changes to user list */
+    passwd_file = g_file_new_for_path ("/etc/passwd");
+    greeter->priv->passwd_monitor = g_file_monitor (passwd_file, G_FILE_MONITOR_NONE, NULL, &error);
+    g_object_unref (passwd_file);
+    if (!greeter->priv->passwd_monitor)
+        g_warning ("Error monitoring /etc/passwd: %s", error->message);
+    else
+        g_signal_connect (greeter->priv->passwd_monitor, "changed", G_CALLBACK (passwd_changed_cb), greeter);
     g_clear_error (&error);
-    if (!result)
-        return;
-
-    if (!g_variant_is_of_type (result, G_VARIANT_TYPE ("(a(sssb))")))
-    {
-        g_warning ("Unknown type returned");
-        g_variant_unref (result);
-        return;
-    }
-    user_array = g_variant_get_child_value (result, 0);
-    g_debug ("Got %zi users", g_variant_n_children (user_array));
-    g_variant_iter_init (&iter, user_array);
-    while (g_variant_iter_next (&iter, "(&s&s&sb)", &name, &real_name, &image, &logged_in))
-    {
-        LdmUser *user;
-
-        user = ldm_user_new (greeter, name, real_name, image, logged_in);
-        greeter->priv->users = g_list_append (greeter->priv->users, user);
-    }
 
     greeter->priv->have_users = TRUE;
-
-    g_variant_unref (result);
 }
 
 /**
@@ -1466,37 +1590,34 @@ ldm_greeter_shutdown (LdmGreeter *greeter)
 gboolean
 ldm_greeter_get_user_defaults (LdmGreeter *greeter, const gchar *username, gchar **language, gchar **layout, gchar **session)
 {
-    GError *error = NULL;
-    GVariant *result;
-    gboolean got_defaults = FALSE;
+    gsize offset = 0;
+    guint32 id;
 
     g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
     g_return_val_if_fail (username != NULL, FALSE);
 
-    result = g_dbus_proxy_call_sync (greeter->priv->user_proxy,
-                                     "GetUserDefaults",
-                                     g_variant_new ("(s)", username),
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     -1,
-                                     NULL,
-                                     &error);
+    write_header (greeter, GREETER_MESSAGE_GET_USER_DEFAULTS, string_length (username));
+    write_string (greeter, username);
+    flush (greeter);
 
-    if (!result)
-        g_warning ("Failed to get user defaults: %s", error->message);
-    g_clear_error (&error);
-
-    if (!result)
-        return FALSE;
-
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(sss)")))
+    if (!read_packet (greeter, TRUE))
     {
-        g_variant_get (result, "(sss)", language, layout, session);
-        got_defaults = TRUE;
+        g_warning ("Error reading user defaults from server");
+        return FALSE;
     }
 
-    g_variant_unref (result);
+    id = read_int (greeter, &offset);
+    g_assert (id == GREETER_MESSAGE_USER_DEFAULTS);
+    read_int (greeter, &offset);
+    *language = read_string (greeter, &offset);
+    *layout = read_string (greeter, &offset);
+    *session = read_string (greeter, &offset);
 
-    return got_defaults;
+    g_debug ("User defaults for %s: language=%s, layout=%s, session=%s", username, *language, *layout, *session);
+
+    greeter->priv->n_read = 0;
+
+    return TRUE;
 }
 
 static void

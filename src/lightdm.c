@@ -18,7 +18,6 @@
 #include <unistd.h>
 
 #include "display-manager.h"
-#include "user-manager.h"
 #include "xserver.h"
 
 static GKeyFile *config_file = NULL;
@@ -30,7 +29,6 @@ static GTimer *log_timer;
 static FILE *log_file;
 static gboolean debug = FALSE;
 
-static UserManager *user_manager = NULL;
 static DisplayManager *display_manager = NULL;
 
 static GDBusConnection *bus = NULL;
@@ -251,98 +249,20 @@ handle_display_manager_call (GDBusConnection       *connection,
 }
 
 static GVariant *
-user_info_to_args (UserInfo *info)
+handle_display_manager_get_property (GDBusConnection       *connection,
+                                     const gchar           *sender,
+                                     const gchar           *object_path,
+                                     const gchar           *interface_name,
+                                     const gchar           *property_name,
+                                     GError               **error,
+                                     gpointer               user_data)
 {
-    return g_variant_new ("(sssb)",
-                          info->name,
-                          info->real_name ? info->real_name : "",
-                          info->image ? info->image : "",
-                          info->logged_in);
-}
-
-static void
-handle_user_manager_call (GDBusConnection       *connection,
-                          const gchar           *sender,
-                          const gchar           *object_path,
-                          const gchar           *interface_name,
-                          const gchar           *method_name,
-                          GVariant              *parameters,
-                          GDBusMethodInvocation *invocation,
-                          gpointer               user_data)
-{
-    if (g_strcmp0 (method_name, "GetUsers") == 0)
+    if (g_strcmp0 (property_name, "ConfigFile") == 0)
     {
-        GVariantBuilder *builder;
-        GVariant *arg0;
-        GList *users, *iter;
-
-        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
-            return;
-
-        builder = g_variant_builder_new (G_VARIANT_TYPE ("a(sssb)"));
-        users = user_manager_get_users (user_manager);
-        for (iter = users; iter; iter = iter->next)
-        {
-            UserInfo *info = iter->data;
-            g_variant_builder_add_value (builder, user_info_to_args (info));
-        }
-        arg0 = g_variant_builder_end (builder);
-        g_dbus_method_invocation_return_value (invocation, g_variant_new_tuple (&arg0, 1));
-        g_variant_builder_unref (builder);
+        return g_variant_new_string (config_path);
     }
-    else if (g_strcmp0 (method_name, "GetUserDefaults") == 0)
-    {
-        gchar *username, *language, *layout, *session;
 
-        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(s)")))
-            return;
-
-        g_variant_get (parameters, "(s)", &username);
-        if (user_manager_get_user_defaults (user_manager, username, &language, &layout, &session))
-        {
-            g_dbus_method_invocation_return_value (invocation, g_variant_new ("(sss)", language, layout, session));
-            g_free (language);
-            g_free (layout);
-            g_free (session);
-        }
-        g_free (username);
-    }
-}
-
-static void
-user_added_cb (UserManager *user_manager, UserInfo *info)
-{
-    g_dbus_connection_emit_signal (bus,
-                                   NULL,
-                                   "/org/lightdm/LightDisplayManager/Users",
-                                   "org.lightdm.LightDisplayManager.Users",
-                                   "UserAdded",
-                                   user_info_to_args (info),
-                                   NULL);
-}
-
-static void
-user_changed_cb (UserManager *user_manager, UserInfo *info)
-{
-    g_dbus_connection_emit_signal (bus,
-                                   NULL,
-                                   "/org/lightdm/LightDisplayManager/Users",
-                                   "org.lightdm.LightDisplayManager.Users",
-                                   "UserChanged",
-                                   user_info_to_args (info),
-                                   NULL); 
-}
-
-static void
-user_removed_cb (UserManager *user_manager, UserInfo *info)
-{
-    g_dbus_connection_emit_signal (bus,
-                                   NULL,
-                                   "/org/lightdm/LightDisplayManager/Users",
-                                   "org.lightdm.LightDisplayManager.Users",
-                                   "UserRemoved",
-                                   g_variant_new ("(s)", info->name),
-                                   NULL);
+    return NULL;
 }
 
 static void
@@ -353,6 +273,7 @@ bus_acquired_cb (GDBusConnection *connection,
     const gchar *display_manager_interface =
         "<node>"
         "  <interface name='org.lightdm.LightDisplayManager'>"
+        "    <property name='ConfigFile' type='s' access='read'/>"
         "    <method name='AddDisplay'/>"
         "    <method name='SwitchToUser'>"
         "      <arg name='username' direction='in' type='s'/>"
@@ -361,43 +282,10 @@ bus_acquired_cb (GDBusConnection *connection,
         "</node>";
     static const GDBusInterfaceVTable display_manager_vtable =
     {
-        handle_display_manager_call
+        handle_display_manager_call,
+        handle_display_manager_get_property
     };
-
-    const gchar *user_manager_interface =
-        "<node>"
-        "  <interface name='org.lightdm.LightDisplayManager.Users'>"
-        "    <method name='GetUsers'>"
-        "      <arg name='users' direction='out' type='a(sssb)'/>"
-        "    </method>"
-        "    <method name='GetUserDefaults'>"
-        "      <arg name='username' direction='in' type='s'/>"
-        "      <arg name='language' direction='out' type='s'/>"
-        "      <arg name='layout' direction='out' type='s'/>"
-        "      <arg name='session' direction='out' type='s'/>"
-        "    </method>"
-        "    <signal name='UserAdded'>"
-        "      <arg name='username' type='s'/>"
-        "      <arg name='real-name' type='s'/>"
-        "      <arg name='image' type='s'/>"
-        "      <arg name='username' type='b'/>"
-        "    </signal>"
-        "    <signal name='UserChanged'>"
-        "      <arg name='username' type='s'/>"
-        "      <arg name='real-name' type='s'/>"
-        "      <arg name='image' type='s'/>"
-        "      <arg name='username' type='b'/>"
-        "    </signal>"
-        "    <signal name='UserRemoved'>"
-        "      <arg name='username' type='s'/>"
-        "    </signal>"
-        "  </interface>"
-        "</node>";
-    static const GDBusInterfaceVTable user_manager_vtable =
-    {
-        handle_user_manager_call
-    };
-    GDBusNodeInfo *display_manager_info, *user_manager_info;
+    GDBusNodeInfo *display_manager_info;
 
     bus = connection;
 
@@ -409,19 +297,6 @@ bus_acquired_cb (GDBusConnection *connection,
                                        &display_manager_vtable,
                                        NULL, NULL,
                                        NULL);
-
-    user_manager_info = g_dbus_node_info_new_for_xml (user_manager_interface, NULL);
-    g_assert (user_manager_info != NULL);
-    g_dbus_connection_register_object (connection,
-                                       "/org/lightdm/LightDisplayManager/Users",
-                                       user_manager_info->interfaces[0],
-                                       &user_manager_vtable,
-                                       NULL, NULL,
-                                       NULL);
-
-    g_signal_connect (user_manager, "user-added", G_CALLBACK (user_added_cb), NULL);
-    g_signal_connect (user_manager, "user-changed", G_CALLBACK (user_changed_cb), NULL);
-    g_signal_connect (user_manager, "user-removed", G_CALLBACK (user_removed_cb), NULL);
 }
 
 static void
@@ -500,7 +375,6 @@ main(int argc, char **argv)
 
     g_debug ("Loaded configuration from %s", config_path);
 
-    user_manager = user_manager_new (config_file);
     display_manager = display_manager_new (config_file);
 
     display_manager_start (display_manager);

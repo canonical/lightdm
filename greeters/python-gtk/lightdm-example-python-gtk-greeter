@@ -196,7 +196,7 @@ class Greeter:
             for user in users:
                 image = user.get_image()
                 pixbuf = None
-                if image != '':
+                if image != None:
                     path = GLib.filename_from_uri(image)
                     pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, 64, 64, True)
                 model.append((user.get_name(), user.get_display_name(), pixbuf, True))

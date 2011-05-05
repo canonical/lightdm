@@ -47,6 +47,8 @@ const gchar *ldm_user_get_real_name (LdmUser *user);
 
 const gchar *ldm_user_get_display_name (LdmUser *user);
 
+const gchar *ldm_user_get_home_directory (LdmUser *user);
+
 const gchar *ldm_user_get_image (LdmUser *user);
 
 const gchar *ldm_user_get_language (LdmUser *user);

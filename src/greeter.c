@@ -10,6 +10,8 @@
  */
 
 #include <string.h>
+#include <pwd.h>
+#include <errno.h>
 
 #include "greeter.h"
 #include "ldm-marshal.h"
@@ -332,6 +334,69 @@ handle_login (Greeter *greeter, gchar *username, gchar *session, gchar *language
     g_signal_emit (greeter, signals[LOGIN], 0, username, session, language);
 }
 
+static void
+handle_get_user_defaults (Greeter *greeter, gchar *username)
+{
+    struct passwd *user_info;
+    GKeyFile *dmrc_file;
+    gboolean have_dmrc = FALSE;
+    gchar *language, *layout, *session;
+
+    user_info = getpwnam (username);
+    if (!user_info)
+    {
+        if (errno == 0)
+            g_warning ("Unable to get information on user %s: User does not exist", username);
+        else
+            g_warning ("Unable to get information on user %s: %s", username, strerror (errno));
+    }
+      
+    dmrc_file = g_key_file_new ();
+
+    /* Load the users login settings (~/.dmrc) */  
+    if (user_info)
+    {
+        gchar *path;
+        path = g_build_filename (user_info->pw_dir, ".dmrc", NULL);
+        have_dmrc = g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_NONE, NULL);
+        g_free (path);
+    }
+
+    /* If no .dmrc, then load from the cache */
+    if (!have_dmrc)
+    {
+        gchar *path, *filename;
+
+        filename = g_strdup_printf ("%s.dmrc", username);
+        path = g_build_filename (CACHE_DIR, "dmrc", filename, NULL);
+        g_free (filename);
+        have_dmrc = g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_NONE, NULL);
+        g_free (path);
+    }
+
+    language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
+    if (!language)
+        language = g_strdup ("");
+    layout = g_key_file_get_string (dmrc_file, "Desktop", "Layout", NULL);
+    if (!layout)
+        layout = g_strdup ("");
+    session = g_key_file_get_string (dmrc_file, "Desktop", "Session", NULL);
+    if (!session)
+        session = g_strdup ("");
+
+    write_header (greeter, GREETER_MESSAGE_USER_DEFAULTS, string_length (language) + string_length (layout) + string_length (session));
+    write_string (greeter, language);
+    write_string (greeter, layout);
+    write_string (greeter, session);
+    flush (greeter);
+  
+    g_free (language);
+    g_free (layout);
+    g_free (session);
+
+    g_key_file_free (dmrc_file);
+}
+
 #define HEADER_SIZE (sizeof (guint32) * 2)
 
 static guint32
@@ -450,6 +515,11 @@ got_data_cb (Greeter *greeter)
         g_free (username);
         g_free (session_name);
         g_free (language);
+        break;
+    case GREETER_MESSAGE_GET_USER_DEFAULTS:
+        username = read_string (greeter, &offset);
+        handle_get_user_defaults (greeter, username);
+        g_free (username);
         break;
     default:
         g_warning ("Unknown message from greeter: %d", id);

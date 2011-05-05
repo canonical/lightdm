@@ -1,7 +1,6 @@
 #include "ldmgreeter.h"
 
 #include "powermanagementinterface.h"
-#include "usermanagerinterface.h"
 #include "consolekitinterface.h"
 #include "ldmuser.h"
 #include "ldmsession.h"
@@ -43,7 +42,6 @@ public:
     int loginDelay;
 
     PowerManagementInterface* powerManagement;
-    UserManagerInterface* userManager;
     ConsoleKitInterface* consoleKit;
   
     int toServerFd;
@@ -159,8 +157,6 @@ void LdmGreeter::connectToServer()
     {
         busType = QDBusConnection::sessionBus();
     }
-
-    d->userManager = new UserManagerInterface("org.lightdm.LightDisplayManager", "/org/lightdm/LightDisplayManager/Users", busType, this);
 
     char* fd = getenv("LDM_TO_SERVER_FD");
     if(!fd)
@@ -390,18 +386,7 @@ int LdmGreeter::timedLoginDelay() const
 
 QList<LdmUser> LdmGreeter::users() const
 {
-    QDBusPendingReply<QList<LdmUser> > users = d->userManager->GetUsers();
-    users.waitForFinished();
-    if (users.isValid())
-    {
-        return users.value();
-    }
-    else
-    {
-        qDebug() << users.error().name();
-        qDebug() << users.error().message();
-        return QList<LdmUser>();
-    }
+    // FIXME
 }
 
 QList<LdmSession> LdmGreeter::sessions() const

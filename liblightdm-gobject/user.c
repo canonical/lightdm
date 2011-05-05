@@ -17,6 +17,7 @@ enum {
     PROP_NAME,
     PROP_REAL_NAME,
     PROP_DISPLAY_NAME,
+    PROP_HOME_DIRECTORY,
     PROP_IMAGE,
     PROP_LANGUAGE,
     PROP_LAYOUT,
@@ -30,6 +31,7 @@ struct _LdmUserPrivate
 
     gchar *name;
     gchar *real_name;
+    gchar *home_directory;
     gchar *image;
     gboolean logged_in;
 
@@ -48,15 +50,16 @@ G_DEFINE_TYPE (LdmUser, ldm_user, G_TYPE_OBJECT);
  * @greeter: The greeter the user is connected to
  * @name: The username
  * @real_name: The real name of the user
+ * @home_directory: The home directory of the user
  * @image: The image URI
  * @logged_in: TRUE if this user is currently logged in
  * 
  * Return value: the new #LdmUser
  **/
 LdmUser *
-ldm_user_new (LdmGreeter *greeter, const gchar *name, const gchar *real_name, const gchar *image, gboolean logged_in)
+ldm_user_new (LdmGreeter *greeter, const gchar *name, const gchar *real_name, const gchar *home_directory, const gchar *image, gboolean logged_in)
 {
-    return g_object_new (LDM_TYPE_USER, "greeter", greeter, "name", name, "real-name", real_name, "image", image, "logged-in", logged_in, NULL);
+    return g_object_new (LDM_TYPE_USER, "greeter", greeter, "name", name, "real-name", real_name, "home-directory", home_directory, "image", image, "logged-in", logged_in, NULL);
 }
 
 /**
@@ -72,6 +75,14 @@ ldm_user_get_name (LdmUser *user)
 {
     g_return_val_if_fail (LDM_IS_USER (user), NULL);
     return user->priv->name;
+}
+
+void
+ldm_user_set_name (LdmUser *user, const gchar *name)
+{
+    g_return_if_fail (LDM_IS_USER (user));
+    g_free (user->priv->name);
+    user->priv->name = g_strdup (name);
 }
 
 /**
@@ -110,10 +121,33 @@ ldm_user_get_display_name (LdmUser *user)
 {
     g_return_val_if_fail (LDM_IS_USER (user), NULL);
 
-    if (user->priv->real_name[0] != '\0')
+    if (user->priv->real_name)
         return user->priv->real_name;
     else
         return user->priv->name;
+}
+
+/**
+ * ldm_user_get_home_directory:
+ * @user: A #LdmUser
+ * 
+ * Get the home directory for a user.
+ * 
+ * Return value: The users home directory
+ */
+const gchar *
+ldm_user_get_home_directory (LdmUser *user)
+{
+    g_return_val_if_fail (LDM_IS_USER (user), NULL);
+    return user->priv->home_directory;
+}
+
+void
+ldm_user_set_home_directory (LdmUser *user, const gchar *home_directory)
+{
+    g_return_if_fail (LDM_IS_USER (user));
+    g_free (user->priv->home_directory);
+    user->priv->home_directory = g_strdup (home_directory);
 }
 
 /**
@@ -240,16 +274,19 @@ ldm_user_set_property (GObject      *object,
         self->priv->greeter = g_object_ref (g_value_get_object (value));
         break;
     case PROP_NAME:
-        self->priv->name = g_strdup (g_value_get_string (value));
+        ldm_user_set_name (self, g_value_get_string (value));
         break;
     case PROP_REAL_NAME:
-        self->priv->real_name = g_strdup (g_value_get_string (value));
+        ldm_user_set_real_name (self, g_value_get_string (value));
+        break;
+    case PROP_HOME_DIRECTORY:
+        ldm_user_set_home_directory (self, g_value_get_string (value));
         break;
     case PROP_IMAGE:
-        self->priv->image = g_strdup (g_value_get_string (value));
+        ldm_user_set_image (self, g_value_get_string (value));
         break;
     case PROP_LOGGED_IN:
-        self->priv->logged_in = g_value_get_boolean (value);
+        ldm_user_set_logged_in (self, g_value_get_boolean (value));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -276,6 +313,9 @@ ldm_user_get_property (GObject    *object,
         break;
     case PROP_DISPLAY_NAME:
         g_value_set_string (value, ldm_user_get_display_name (self));
+        break;
+    case PROP_HOME_DIRECTORY:
+        g_value_set_string (value, ldm_user_get_home_directory (self));
         break;
     case PROP_IMAGE:
         g_value_set_string (value, ldm_user_get_image (self));
@@ -336,6 +376,13 @@ ldm_user_class_init (LdmUserClass *klass)
                                                         "Users display name",
                                                         NULL,
                                                         G_PARAM_READABLE));
+    g_object_class_install_property(object_class,
+                                    PROP_HOME_DIRECTORY,
+                                    g_param_spec_string("home-directory",
+                                                        "home-directory",
+                                                        "Home directory",
+                                                        NULL,
+                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
     g_object_class_install_property(object_class,
                                     PROP_IMAGE,
                                     g_param_spec_string("image",
