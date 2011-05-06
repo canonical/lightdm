@@ -62,6 +62,26 @@ ldm_user_new (LdmGreeter *greeter, const gchar *name, const gchar *real_name, co
     return g_object_new (LDM_TYPE_USER, "greeter", greeter, "name", name, "real-name", real_name, "home-directory", home_directory, "image", image, "logged-in", logged_in, NULL);
 }
 
+gboolean
+ldm_user_update (LdmUser *user, const gchar *real_name, const gchar *home_directory, const gchar *image, gboolean logged_in)
+{
+    if (g_strcmp0 (user->priv->real_name, real_name) != 0 ||
+        g_strcmp0 (user->priv->home_directory, home_directory) != 0 ||
+        g_strcmp0 (user->priv->image, image) != 0 ||
+        user->priv->logged_in != logged_in)
+        return FALSE;
+  
+    g_free (user->priv->real_name);
+    user->priv->real_name = g_strdup (real_name);
+    g_free (user->priv->home_directory);
+    user->priv->home_directory = g_strdup (home_directory);
+    g_free (user->priv->image);
+    user->priv->image = g_strdup (image);
+    user->priv->logged_in = logged_in;
+
+    return TRUE;
+}
+
 /**
  * ldm_user_get_name:
  * @user: A #LdmUser

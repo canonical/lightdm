@@ -720,25 +720,10 @@ load_users (LdmGreeter *greeter)
             LdmUser *info = link->data;
             if (strcmp (ldm_user_get_name (info), ldm_user_get_name (user)) == 0)
             {
-                // FIXME: Use changed signal from user object?
-                if (g_strcmp0 (ldm_user_get_real_name (info), ldm_user_get_real_name (user)) != 0 ||
-                    g_strcmp0 (ldm_user_get_image (info), ldm_user_get_image (user)) != 0 ||
-                    g_strcmp0 (ldm_user_get_home_directory (info), ldm_user_get_home_directory (user)) != 0 ||
-                    ldm_user_get_logged_in (info) != ldm_user_get_logged_in (user))
-                {
-                    ldm_user_set_real_name (info, ldm_user_get_real_name (user));
-                    ldm_user_set_image (info, ldm_user_get_image (user));
-                    ldm_user_set_home_directory (info, ldm_user_get_home_directory (user));
-                    ldm_user_set_logged_in (info, ldm_user_get_logged_in (user));
-                    g_object_unref (user);
-                    user = info;
+                if (ldm_user_update (info, ldm_user_get_real_name (user), ldm_user_get_home_directory (user), ldm_user_get_image (user), ldm_user_get_logged_in (user)))
                     changed_users = g_list_insert_sorted (changed_users, user, compare_user);
-                }
-                else
-                {
-                    g_object_unref (user);
-                    user = info;
-                }
+                g_object_unref (user);
+                user = info;
                 break;
             }
         }

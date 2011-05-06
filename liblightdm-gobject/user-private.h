@@ -6,6 +6,8 @@
 
 LdmUser *ldm_user_new (LdmGreeter *greeter, const gchar *name, const gchar *real_name, const gchar *home_directory, const gchar *image, gboolean logged_in);
 
+gboolean ldm_user_update (LdmUser *user, const gchar *real_name, const gchar *home_directory, const gchar *image, gboolean logged_in);
+
 void ldm_user_set_name (LdmUser *user, const gchar *name);
 
 void ldm_user_set_real_name (LdmUser *user, const gchar *real_name);
