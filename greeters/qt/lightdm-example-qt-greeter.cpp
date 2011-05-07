@@ -5,6 +5,7 @@
 #include <QtGui/QLineEdit>
 #include <QtGui/QPushButton>
 #include <QtGui/QGridLayout>
+#include <QtCore/QDebug>
 
 #include "ldmgreeter.h"
 

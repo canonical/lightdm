@@ -4,10 +4,11 @@
 #include <QObject>
 
 class LdmGreeterPrivate;
-class LdmUser;
-class LdmLanguage;
-class LdmLayout;
-class LdmSession;
+
+#include "ldmuser.h"
+#include "ldmlanguage.h"
+//#include "ldmlayout.h"
+#include "ldmsession.h"
 
 class Q_DECL_EXPORT LdmGreeter : public QObject
 {
@@ -31,7 +32,7 @@ public:
     QList<LdmLanguage> languages() const;
     QString defaultLanguage() const;
 
-    QList<LdmLayout> layouts() const;
+    //QList<LdmLayout> layouts() const;
     QString defaultLayout() const;
     QString layout() const;
 

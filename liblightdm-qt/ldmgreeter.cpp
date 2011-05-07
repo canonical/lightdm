@@ -68,6 +68,8 @@ LdmGreeter::LdmGreeter(QObject *parent) :
 {
     d->readBuffer = (char *)malloc (HEADER_SIZE);
     d->nRead = 0;
+    d->haveConfig = false;
+    d->haveUsers = false;
 }
 
 LdmGreeter::~LdmGreeter()
@@ -394,10 +396,11 @@ void LdmGreeter::loadConfig()
 {
     if(d->haveConfig)
         return;
+  
+    QString file = d->lightdmInterface->property("ConfigFile").toString();
+    qDebug() << "Loading configuration from " << file;
+    d->config = new QSettings(file, QSettings::IniFormat);
 
-    //FIXME: Need to get property QDBusReply<QString> reply = d->lightdmInterface.call("
-
-    d->config = new QSettings(/*FIXME*/"/etc/lightdm.conf", QSettings::IniFormat);
     d->haveConfig = true;
 }
 
