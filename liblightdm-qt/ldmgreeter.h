@@ -25,7 +25,7 @@ public:
     QString timedLoginUser() const;
     int timedLoginDelay() const;
 
-    QList<LdmUser> users() const;
+    QList<LdmUser*> users();
     void getUserDefaults(const QString &name, const QString &language, const QString &layout, const QString &session);
 
     QList<LdmLanguage> languages() const;
@@ -66,6 +66,9 @@ signals:
     void showError(QString message);
     void authenticationComplete();
     void timedLogin(QString username);
+    void userAdded(LdmUser *user);
+    void userChanged(LdmUser *user);
+    void userRemoved(LdmUser *user);
     void quit();
  
 private slots:  
@@ -80,6 +83,9 @@ private:
     int getPacketLength();
     int readInt(int *offset);
     QString readString(int *offset);
+    void loadConfig();
+    void loadUsers();
+    void updateUsers();
 };
 
 #endif // LDMGREETER_H

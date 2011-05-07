@@ -5,6 +5,7 @@ class LdmUserPrivate
 public:
     QString name;
     QString realName;
+    QString homeDirectory;
     QString image;
     bool isLoggedIn;
 };
@@ -14,13 +15,14 @@ LdmUser::LdmUser():
 {
 }
 
-LdmUser::LdmUser(const QString& name, const QString& realName, const QString& image, const bool loggedIn) :
+LdmUser::LdmUser(const QString& name, const QString& realName, const QString& homeDirectory, const QString& image, bool isLoggedIn) :
     d(new LdmUserPrivate)
 {
     d->name = name;
     d->realName = realName;
+    d->homeDirectory = homeDirectory;
     d->image = image;
-    d->isLoggedIn = loggedIn;
+    d->isLoggedIn = isLoggedIn;
 }
 
 LdmUser::LdmUser(const LdmUser &other)
@@ -38,6 +40,19 @@ LdmUser& LdmUser::operator=(const LdmUser& other)
 {
     *d = *other.d;
     return *this;
+}
+
+bool LdmUser::update(const QString& realName, const QString& homeDirectory, const QString& image, bool isLoggedIn)
+{
+    if (d->realName == realName && d->homeDirectory == homeDirectory && d->image == image && d->isLoggedIn == isLoggedIn)
+        return false;
+
+    d->realName = realName;
+    d->homeDirectory = homeDirectory;
+    d->image = image;
+    d->isLoggedIn = isLoggedIn;
+
+    return true;
 }
 
 QString LdmUser::displayName() const
@@ -62,6 +77,11 @@ QString LdmUser::realName() const
     return d->realName;
 }
 
+QString LdmUser::homeDirectory() const
+{
+    return d->homeDirectory;
+}
+
 QString LdmUser::image() const
 {
     return d->image;
@@ -71,30 +91,3 @@ bool LdmUser::isLoggedIn() const
 {
     return d->isLoggedIn;
 }
-
-
-//don't actually need this I never send an LdmUser across DBUS...
-QDBusArgument &operator<<(QDBusArgument &argument, const LdmUser &user)
-{
-    argument.beginStructure();
-    argument << user.name() << user.realName() << user.image() << user.isLoggedIn();
-    argument.endStructure();
-    return argument;
-}
-
-const QDBusArgument &operator>>(const QDBusArgument &argument, LdmUser &user)
-{
-    QString name;
-    QString realName;
-    QString image;
-    bool loggedIn;
-
-    argument.beginStructure();
-    argument >> name >> realName >> image >> loggedIn;
-    argument.endStructure();
-
-    user  = LdmUser(name, realName, image, loggedIn);
-
-    return argument;
-}
-

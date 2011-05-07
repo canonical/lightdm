@@ -1,11 +1,11 @@
 #include "ldmgreeter.h"
 
-#include "powermanagementinterface.h"
-#include "consolekitinterface.h"
 #include "ldmuser.h"
 #include "ldmsession.h"
 
 #include <security/pam_appl.h>
+#include <pwd.h>
+#include <errno.h>
 
 #include <QtNetwork/QHostInfo> //needed for localHostName
 #include <QtCore/QDebug>
@@ -41,8 +41,15 @@ public:
     QString timedUser;
     int loginDelay;
 
-    PowerManagementInterface* powerManagement;
-    ConsoleKitInterface* consoleKit;
+    QSettings *config;
+    bool haveConfig;
+
+    QList<LdmUser*> users;
+    bool haveUsers;
+
+    QDBusInterface* lightdmInterface;
+    QDBusInterface* powerManagementInterface;
+    QDBusInterface* consoleKitInterface;
   
     int toServerFd;
     int fromServerFd;
@@ -148,15 +155,14 @@ QString LdmGreeter::readString(int *offset)
 
 void LdmGreeter::connectToServer()
 {
-    d->powerManagement = new PowerManagementInterface("org.freedesktop.PowerManagement","/org/freedesktop/PowerManagement", QDBusConnection::systemBus(), this);
-    d->consoleKit = new ConsoleKitInterface("org.freedesktop.ConsoleKit","/org/freedesktop/ConsoleKit/Manager", QDBusConnection::systemBus(), this );
-
     QDBusConnection busType = QDBusConnection::systemBus();
     QString ldmBus(qgetenv("LDM_BUS"));
-    if(ldmBus ==  QLatin1String("SESSION"))
-    {
+    if(ldmBus == QLatin1String("SESSION"))
         busType = QDBusConnection::sessionBus();
-    }
+
+    d->lightdmInterface = new QDBusInterface("org.lightdm.LightDisplayManager", "/org/lightdm/LightDisplayManager", "org.lightdm.LightDisplayManager", busType);
+    d->powerManagementInterface = new QDBusInterface("org.freedesktop.PowerManagement","/org/freedesktop/PowerManagement", "org.freedesktop.PowerManagement");
+    d->consoleKitInterface = new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit");
 
     char* fd = getenv("LDM_TO_SERVER_FD");
     if(!fd)
@@ -384,9 +390,183 @@ int LdmGreeter::timedLoginDelay() const
     return d->loginDelay;
 }
 
-QList<LdmUser> LdmGreeter::users() const
+void LdmGreeter::loadConfig()
 {
-    // FIXME
+    if(d->haveConfig)
+        return;
+
+    //FIXME: Need to get property QDBusReply<QString> reply = d->lightdmInterface.call("
+
+    d->config = new QSettings(/*FIXME*/"/etc/lightdm.conf", QSettings::IniFormat);
+    d->haveConfig = true;
+}
+
+void LdmGreeter::loadUsers()
+{
+    QStringList hiddenUsers, hiddenShells;
+    int minimumUid;
+    QList<LdmUser*> users, oldUsers, newUsers, changedUsers;
+
+    loadConfig();
+
+    if(d->config->contains("UserManager/minimum-uid"))
+        minimumUid = d->config->value("UserManager/minimum-uid").toInt();
+    else
+        minimumUid = 500;
+
+    if (d->config->contains("UserManager/hidden-shells"))
+        hiddenUsers = d->config->value("UserManager/hidden-shells").toString().split(" ");
+    else
+        hiddenUsers << "nobody" << "nobody4" << "noaccess";
+
+    if (d->config->contains("UserManager/hidden-shells"))
+        hiddenShells = d->config->value("UserManager/hidden-shells").toString().split(" ");
+    else
+        hiddenShells << "/bin/false" << "/usr/sbin/nologin";
+
+    setpwent();
+
+    while(TRUE)
+    {
+        struct passwd *entry;
+        LdmUser *user;
+        QStringList tokens;
+        QString realName, image;
+        QFile *imageFile;
+        int i;
+
+        errno = 0;
+        entry = getpwent();
+        if(!entry)
+            break;
+
+        /* Ignore system users */
+        if(entry->pw_uid < minimumUid)
+            continue;
+
+        /* Ignore users disabled by shell */
+        if(entry->pw_shell)
+        {
+            for(i = 0; i < hiddenShells.size(); i++)
+                if(entry->pw_shell == hiddenShells.at(i))
+                    break;
+            if(i < hiddenShells.size())
+                continue;
+        }
+
+        /* Ignore certain users */
+        for(i = 0; i < hiddenUsers.size(); i++)
+            if(entry->pw_name == hiddenUsers.at(i))
+                break;
+        if(i < hiddenUsers.size())
+            continue;
+ 
+        tokens = QString(entry->pw_gecos).split(",");
+        if(tokens.size() > 0 && tokens.at(i) != "")
+            realName = tokens.at(i);
+      
+        QDir homeDir(entry->pw_dir);
+        imageFile = new QFile(homeDir.filePath(".face"));
+        if(!imageFile->exists())
+        {
+            delete imageFile;
+            imageFile = new QFile(homeDir.filePath(".face.icon"));
+        }
+        if(imageFile->exists())
+            image = "file://" + imageFile->fileName();
+        delete imageFile;
+
+        user = new LdmUser(entry->pw_name, realName, entry->pw_dir, image, FALSE);
+
+        /* Update existing users if have them */
+        bool matchedUser = false;
+        foreach(LdmUser *info, d->users)
+        {
+            if(info->name() == user->name())
+            {
+                matchedUser = true;
+                if(info->update(user->realName(), user->homeDirectory(), user->image(), user->isLoggedIn()))
+                    changedUsers.append(user);
+                delete user;
+                user = info;
+                break;
+            }
+        }
+        if(!matchedUser)
+        {
+            /* Only notify once we have loaded the user list */
+            if(d->haveUsers)
+                newUsers.append(user);
+        }
+        users.append(user);
+    }
+
+    if(errno != 0)
+        qDebug() << "Failed to read password database: " << strerror(errno);
+
+    endpwent();
+
+    /* Use new user list */
+    oldUsers = d->users;
+    d->users = users;
+
+    /* Notify of changes */
+    foreach(LdmUser *user, newUsers)
+    {
+        qDebug() << "User " << user->name() << " added";
+        emit userAdded(user);
+    }
+    foreach(LdmUser *user, changedUsers)
+    {
+        qDebug() << "User " << user->name() << " changed";
+        emit userChanged(user);
+    }
+    foreach(LdmUser *user, oldUsers)
+    {
+        /* See if this user is in the current list */
+        bool existing = false;
+        foreach(LdmUser *new_user, d->users)
+        {
+            if (new_user == user)
+            {
+                existing = true;
+                break;
+            }
+        }
+
+        if(!existing)
+        {
+            qDebug() << "User " << user->name() << " removed";
+            emit userRemoved(user);
+            delete user;
+        }
+    }
+}
+
+void LdmGreeter::updateUsers()
+{
+    if (d->haveUsers)
+        return;
+  
+    loadConfig();
+
+    /* User listing is disabled */
+    if (d->config->contains("UserManager/load-users") &&
+        !d->config->value("UserManager/load-users").toBool())
+    {
+        d->haveUsers = true;
+        return;
+    }
+
+    loadUsers();
+
+    d->haveUsers = true;
+}
+
+QList<LdmUser*> LdmGreeter::users()
+{
+    updateUsers();
+    return d->users;
 }
 
 QList<LdmSession> LdmGreeter::sessions() const
@@ -398,10 +578,9 @@ QList<LdmSession> LdmGreeter::sessions() const
     foreach(QString sessionFileName, sessionDir.entryList())
     {
         QSettings sessionData(sessionDir.filePath(sessionFileName), QSettings::IniFormat);
-        sessionData.beginGroup("Desktop Entry");
         sessionFileName.chop(8);// chop(8) removes '.desktop'
-        QString name = sessionData.value("Name").toString();
-        QString comment = sessionData.value("Comment").toString();
+        QString name = sessionData.value("DesktopEntry/Name").toString();
+        QString comment = sessionData.value("DesktopEntry/Comment").toString();
         LdmSession session(sessionFileName, name, comment);
 
         sessions.append(session);
@@ -411,48 +590,56 @@ QList<LdmSession> LdmGreeter::sessions() const
 
 bool LdmGreeter::canSuspend() const
 {
-    QDBusPendingReply<bool> reply = d->powerManagement->canSuspend();
-    reply.waitForFinished();
-    return reply.value();
+    QDBusReply<bool> reply = d->powerManagementInterface->call("CanSuspend");
+    if (reply.isValid())
+        return reply.value();
+    else
+        return false;
 }
 
 void LdmGreeter::suspend()
 {
-    d->powerManagement->suspend();
+    d->powerManagementInterface->call("Suspend");
 }
 
 bool LdmGreeter::canHibernate() const
 {
-    QDBusPendingReply<bool> reply = d->powerManagement->canHibernate();
-    reply.waitForFinished();
-    return reply.value();
+    QDBusReply<bool> reply = d->powerManagementInterface->call("CanHibernate");
+    if (reply.isValid())
+        return reply.value();
+    else
+        return false;
 }
 
 void LdmGreeter::hibernate()
 {
-    d->powerManagement->hibernate();
+    d->powerManagementInterface->call("Hibernate");
 }
 
 bool LdmGreeter::canShutdown() const
 {
-    QDBusPendingReply<bool> reply = d->consoleKit->canStop();
-    reply.waitForFinished();
-    return reply.value();
+    QDBusReply<bool> reply = d->consoleKitInterface->call("CanStop");
+    if (reply.isValid())
+        return reply.value();
+    else
+        return false;
 }
 
 void LdmGreeter::shutdown()
 {
-    d->consoleKit->stop();
+    d->consoleKitInterface->call("stop");
 }
 
 bool LdmGreeter::canRestart() const
 {
-    QDBusPendingReply<bool> reply = d->consoleKit->canRestart();
-    reply.waitForFinished();
-    return reply.value();
+    QDBusReply<bool> reply = d->consoleKitInterface->call("CanRestart");
+    if (reply.isValid())
+        return reply.value();
+    else
+        return false;
 }
 
 void LdmGreeter::restart()
 {
-    d->consoleKit->restart();
+    d->consoleKitInterface->call("Restart");
 }

@@ -11,10 +11,12 @@ class Q_DECL_EXPORT LdmUser
 {
 public:
     explicit LdmUser();
-    LdmUser(const QString &name, const QString &realName, const QString &image, const bool loggedIn);
+    LdmUser(const QString &name, const QString &realName, const QString &homeDirectory, const QString &image, bool isLoggedIn);
     LdmUser(const LdmUser& other);
     ~LdmUser();
     LdmUser &operator=(const LdmUser& other);
+
+    bool update(const QString &realName, const QString &homeDirectory, const QString &image, bool isLoggedIn);
 
     /** The name to display (the real name if available, otherwise use the username */
     QString displayName() const;
@@ -23,6 +25,9 @@ public:
     QString name() const;
     /** The user's real name, use this for displaying*/
     QString realName() const;
+
+    /** Returns the home directory of this user*/
+    QString homeDirectory() const;
 
     /** Returns the path to an avatar of this user*/
     QString image() const;
@@ -34,9 +39,6 @@ public:
 private:
     LdmUserPrivate* d;
 };
-
-QDBusArgument &operator<<(QDBusArgument &argument, const LdmUser &request);
-const QDBusArgument &operator>>(const QDBusArgument &argument, LdmUser &request);
 
 Q_DECLARE_METATYPE(LdmUser);
 Q_DECLARE_METATYPE(QList<LdmUser>);
