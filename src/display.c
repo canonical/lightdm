@@ -332,8 +332,10 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
     if (!result)
         return NULL;
 
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE_STRING))
-        cookie = g_strdup (g_variant_get_string (result, NULL));
+    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(s)")))
+        g_variant_get (result, "(s)", &cookie);
+    else
+        g_warning ("Unexpected response from OpenSessionWithParameters: %s", g_variant_get_type_string (result));
     g_variant_unref (result);
 
     return cookie;
@@ -371,8 +373,15 @@ end_ck_session (const gchar *cookie)
     if (!result)
         return;
 
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE_BOOLEAN) && !g_variant_get_boolean (result))
-        g_warning ("ConsoleKit.Manager.CloseSession() returned false");
+    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(b)")))
+    {
+        gboolean is_closed;
+        g_variant_get (result, "(b)", &is_closed);
+        if (!is_closed)
+            g_warning ("ConsoleKit.Manager.CloseSession() returned false");
+    }
+    else
+        g_warning ("Unexpected response from CloseSession: %s", g_variant_get_type_string (result));
 
     g_variant_unref (result);
 }
