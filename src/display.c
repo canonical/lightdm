@@ -338,6 +338,9 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
         g_warning ("Unexpected response from OpenSessionWithParameters: %s", g_variant_get_type_string (result));
     g_variant_unref (result);
 
+    if (cookie)
+        g_debug ("Opened ConsoleKit session %s", cookie);
+
     return cookie;
 }
 
@@ -350,6 +353,8 @@ end_ck_session (const gchar *cookie)
 
     if (!cookie)
         return;
+
+    g_debug ("Ending ConsoleKit session %s", cookie);
 
     proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
                                            G_DBUS_PROXY_FLAGS_NONE,
