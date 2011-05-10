@@ -11,13 +11,15 @@ liblightdm-gobject/language.c
 liblightdm-gobject/layout.c
 liblightdm-gobject/session.c
 liblightdm-gobject/user.c
+src/child-process.c
 src/display.c
 src/display-manager.c
+src/greeter.c
 src/lightdm.c
 src/pam-session.c
 src/session.c
 src/theme.c
-src/user-manager.c
+src/xauth.c
 src/xdmcp-protocol.c
 src/xdmcp-server.c
 src/xdmcp-session.c

@@ -16,6 +16,7 @@ liblightdm_gobject_0_la_SOURCES= \
 	layout.c \
 	session.c \
 	user.c \
+	user-private.h \
 	lightdm/greeter.h \
 	lightdm/language.h \
 	lightdm/layout.h \
