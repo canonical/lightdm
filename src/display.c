@@ -260,24 +260,6 @@ get_user_info (const gchar *username)
     return user_info;
 }
 
-static void
-add_int_value (GVariantBuilder *builder, const gchar *name, gint32 value)
-{
-    g_variant_builder_add_value (builder, g_variant_new ("(sv)", name, g_variant_new_variant (g_variant_new_int32 (value))));
-}
-
-static void
-add_string_value (GVariantBuilder *builder, const gchar *name, const gchar *value)
-{
-    g_variant_builder_add_value (builder, g_variant_new ("(sv)", name, g_variant_new_variant (g_variant_new_string (value))));
-}
-
-static void
-add_boolean_value (GVariantBuilder *builder, const gchar *name, gboolean value)
-{
-    g_variant_builder_add_value (builder, g_variant_new ("(sv)", name, g_variant_new_variant (g_variant_new_boolean (value))));
-}
-
 static gchar *
 start_ck_session (Display *display, const gchar *session_type, const gchar *username)
 {
@@ -285,9 +267,7 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
     char *display_device = NULL;
     const gchar *address, *hostname = "";
     struct passwd *user_info;
-    gboolean is_local = TRUE;
-    GVariantBuilder *arg_builder;
-    GVariant *arg0;
+    GVariantBuilder arg_builder;
     GVariant *result;
     gchar *cookie = NULL;
     GError *error = NULL;
@@ -307,23 +287,23 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
                                            "/org/freedesktop/ConsoleKit/Manager",
                                            "org.freedesktop.ConsoleKit.Manager", 
                                            NULL, NULL);
-    arg_builder = g_variant_builder_new (G_VARIANT_TYPE_ARRAY);
-    add_int_value (arg_builder, "unix-user", user_info->pw_uid);
-    add_string_value (arg_builder, "session-type", session_type);
-    add_string_value (arg_builder, "x11-display", address);
+    g_variant_builder_init (&arg_builder, G_VARIANT_TYPE ("(a(sv))"));
+    g_variant_builder_open (&arg_builder, G_VARIANT_TYPE ("a(sv)"));
+    g_variant_builder_add (&arg_builder, "(sv)", "unix-user", g_variant_new_int32 (user_info->pw_uid));
+    g_variant_builder_add (&arg_builder, "(sv)", "session-type", g_variant_new_string (session_type));
+    g_variant_builder_add (&arg_builder, "(sv)", "x11-display", g_variant_new_string (address));
     if (display_device)
-        add_string_value (arg_builder, "x11-display-device", display_device);
-    add_string_value (arg_builder, "remote-host-name", hostname);
-    add_boolean_value (arg_builder, "is-local", is_local);
-    arg0 = g_variant_builder_end (arg_builder);
+        g_variant_builder_add (&arg_builder, "(sv)", "x11-display-device", g_variant_new_string (display_device));
+    g_variant_builder_add (&arg_builder, "(sv)", "remote-host-name", g_variant_new_string (hostname));
+    g_variant_builder_add (&arg_builder, "(sv)", "is-local", g_variant_new_boolean (TRUE));
+    g_variant_builder_close (&arg_builder);
     result = g_dbus_proxy_call_sync (proxy,
                                      "OpenSessionWithParameters",
-                                     g_variant_new_tuple (&arg0, 1),
+                                     g_variant_builder_end (&arg_builder),
                                      G_DBUS_CALL_FLAGS_NONE,
                                      -1,
                                      NULL,
                                      &error);
-    g_variant_builder_unref (arg_builder);
     g_object_unref (proxy);
     g_free (display_device);
     if (!result)
