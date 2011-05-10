@@ -614,6 +614,8 @@ display_manager_finalize (GObject *object)
     for (link = self->priv->displays; link; link = link->next)
         g_object_unref (link->data);
     g_list_free (self->priv->displays);
+
+    G_OBJECT_CLASS (display_manager_parent_class)->finalize (object);
 }
 
 static void

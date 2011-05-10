@@ -812,13 +812,15 @@ display_finalize (GObject *object)
     g_free (self->priv->greeter_ck_cookie);
     end_ck_session (self->priv->user_ck_cookie);
     g_free (self->priv->user_ck_cookie);
-    if (self->priv->xserver)  
+    if (self->priv->xserver)
         g_object_unref (self->priv->xserver);
     g_free (self->priv->greeter_user);
     g_free (self->priv->greeter_theme);
     g_free (self->priv->default_user);
     g_free (self->priv->default_layout);
     g_free (self->priv->default_session);
+
+    G_OBJECT_CLASS (display_parent_class)->finalize (object);
 }
 
 static void

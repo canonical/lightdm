@@ -5,6 +5,7 @@ Overview of changes in lightdm 0.3.3
     * Fix crash when users don't have GECOS data
     * Greeters can now detect user add/remove events
     * Fix ConsoleKit support broken with switch to GDBus
+    * Correctly clean up X processes on exit
 
 Overview of changes in lightdm 0.3.2
 

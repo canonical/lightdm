@@ -185,6 +185,8 @@ session_finalize (GObject *object)
         g_file_delete (self->priv->authorization_file, NULL, NULL);
         g_object_unref (self->priv->authorization_file);
     }
+
+    G_OBJECT_CLASS (session_parent_class)->finalize (object);
 }
 
 static void

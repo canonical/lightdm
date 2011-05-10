@@ -164,6 +164,8 @@ xauth_finalize (GObject *object)
     g_free (self->priv->username);
     g_free (self->priv->authorization_name);
     g_free (self->priv->authorization_data);
+
+    G_OBJECT_CLASS (xauth_parent_class)->finalize (object);  
 }
 
 static void

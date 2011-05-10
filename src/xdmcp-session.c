@@ -95,6 +95,8 @@ xdmcp_session_finalize (GObject *object)
         g_object_unref (self->priv->address6);
     g_free (self->priv->authorization_name);
     g_free (self->priv->display_class);
+
+    G_OBJECT_CLASS (xdmcp_session_parent_class)->finalize (object);
 }
 
 static void

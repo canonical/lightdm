@@ -363,7 +363,7 @@ static void
 xserver_finalize (GObject *object)
 {
     XServer *self;
-
+  
     self = XSERVER (object);
 
     if (self->priv->connection)
@@ -382,6 +382,8 @@ xserver_finalize (GObject *object)
         g_file_delete (self->priv->authorization_file, NULL, NULL);
         g_object_unref (self->priv->authorization_file);
     }
+
+    G_OBJECT_CLASS (xserver_parent_class)->finalize (object);
 }
 
 static void

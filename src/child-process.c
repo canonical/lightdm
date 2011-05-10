@@ -372,6 +372,8 @@ child_process_finalize (GObject *object)
         kill (self->priv->pid, SIGTERM);
 
     g_hash_table_unref (self->priv->env);
+
+    G_OBJECT_CLASS (child_process_parent_class)->finalize (object);
 }
 
 static void

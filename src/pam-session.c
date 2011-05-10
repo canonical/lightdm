@@ -273,6 +273,8 @@ pam_session_finalize (GObject *object)
     g_free (self->priv->username);
     if (self->priv->pam_handle)
         pam_end (self->priv->pam_handle, PAM_SUCCESS);
+  
+    G_OBJECT_CLASS (pam_session_parent_class)->finalize (object);
 }
 
 static void

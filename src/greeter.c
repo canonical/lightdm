@@ -586,6 +586,8 @@ greeter_finalize (GObject *object)
     g_free (self->priv->layout);
     g_free (self->priv->session);
     g_free (self->priv->default_user);
+  
+    G_OBJECT_CLASS (greeter_parent_class)->finalize (object);
 }
 
 static void

@@ -626,6 +626,8 @@ xdmcp_server_finalize (GObject *object)
     g_free (self->priv->authorization_name);
     g_free (self->priv->authorization_data);
     g_hash_table_unref (self->priv->sessions);
+  
+    G_OBJECT_CLASS (xdmcp_server_parent_class)->finalize (object);  
 }
 
 static void
