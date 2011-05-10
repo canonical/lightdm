@@ -93,8 +93,7 @@ session_start (Session *session, gboolean create_pipe)
     struct passwd *user_info;
     gchar *username, *working_dir;
     GError *error = NULL;
-  
-    //g_return_val_if_fail (session->priv->pid == 0, FALSE);
+
     g_return_val_if_fail (session->priv->command != NULL, FALSE);
 
     errno = 0;
@@ -116,7 +115,7 @@ session_start (Session *session, gboolean create_pipe)
         if (!user_info)
         {
             g_warning ("Unable to determine current username: %s", strerror (errno));
-            return FALSE;;
+            return FALSE;
         }
     }
 

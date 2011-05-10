@@ -75,6 +75,7 @@ struct DisplayPrivate
     PAMSession *greeter_pam_session;
     gchar *greeter_ck_cookie;
 
+    /* TRUE if the greeter can stay active during the session */
     gboolean supports_transitions;
 
     /* User session process */
@@ -560,7 +561,10 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
             g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
 
-            session_start (display->priv->user_session, FALSE);
+            if (display->priv->supports_transitions)
+                session_start (display->priv->user_session, FALSE);
+            else
+                g_debug ("Waiting for greeter to quit before starting user session process");
 
             data = g_key_file_to_data (dmrc_file, &length, NULL);
 
@@ -646,6 +650,7 @@ greeter_login_cb (Greeter *greeter, const gchar *username, const gchar *session,
 
     /* Stop session, waiting for user session to indicate it is ready (if supported) */
     // FIXME: Hard-coded timeout
+    // FIXME: Greeter quit timeout
     if (display->priv->supports_transitions)
         display->priv->user_session_timer = g_timeout_add (USER_SESSION_TIMEOUT, (GSourceFunc) session_timeout_cb, display);
     else
@@ -656,6 +661,13 @@ static void
 greeter_quit_cb (Greeter *greeter, Display *display)
 {
     g_signal_emit (display, signals[END_GREETER], 0, display->priv->greeter_session);
+
+    /* Start session if waiting for greeter to quit */
+    if (display->priv->user_session && child_process_get_pid (CHILD_PROCESS (display->priv->user_session)) == 0)
+    {
+        g_debug ("Greeter quit, starting user session process");
+        session_start (display->priv->user_session, FALSE);
+    }
 
     pam_session_end (display->priv->greeter_pam_session);
     g_object_unref (display->priv->greeter_pam_session);

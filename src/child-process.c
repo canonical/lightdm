@@ -314,8 +314,6 @@ child_process_start (ChildProcess *process,
     process->priv->pid = pid;
 
     g_strfreev (argv);
-    if (!result)
-        return FALSE;
 
     g_hash_table_insert (processes, GINT_TO_POINTER (process->priv->pid), process);
     g_child_watch_add (process->priv->pid, child_process_watch_cb, process);
