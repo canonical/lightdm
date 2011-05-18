@@ -2,18 +2,21 @@ lib_LTLIBRARIES = liblightdm-qt-0.la
 
 # Generate metadata for QObjects
 MOC_FILES = \
-	ldmgreeter_moc.cpp
+	ldmgreeter_moc.cpp \
+	ldmsessionsmodel_moc.cpp
+
 ldmgreeter_moc.cpp: ldmgreeter.h
+ldmsessionsmodel_moc.cpp: ldmsessionsmodel.h
 	moc $< -o $@
 
 liblightdm_qt_0include_HEADERS = \
 	ldmgreeter.h \
 	ldmlanguage.h \
-	ldmsession.h \
+	ldmsessionsmodel.h \
 	ldmuser.h \
 	include/LdmGreeter \
 	include/LdmLanguage \
-	include/LdmSession \
+	include/LdmSessionsModel \
 	include/LdmUser
 liblightdm_qt_0includedir=$(includedir)/lightdm-qt-0/lightdm
 
@@ -24,7 +27,7 @@ liblightdm_qt_0_la_CXXFLAGS = $(LIBLIGHTDM_QT_CFLAGS) \
 liblightdm_qt_0_la_SOURCES = \
 	ldmgreeter.cpp \
 	ldmlanguage.cpp \
-	ldmsession.cpp \
+	ldmsessionsmodel.cpp \
 	ldmuser.cpp \
 	$(MOC_FILES)
 

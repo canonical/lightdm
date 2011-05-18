@@ -8,7 +8,8 @@ class LdmGreeterPrivate;
 #include "ldmuser.h"
 #include "ldmlanguage.h"
 //#include "ldmlayout.h"
-#include "ldmsession.h"
+
+class LdmSessionsModel;
 
 class Q_DECL_EXPORT LdmGreeter : public QObject
 {
@@ -36,7 +37,7 @@ public:
     QString defaultLayout() const;
     QString layout() const;
 
-    QList<LdmSession> sessions() const;
+    LdmSessionsModel *sessionsModel() const;
     QString defaultSession() const;
 
     bool inAuthentication() const;

@@ -1,7 +1,7 @@
 #include "ldmgreeter.h"
 
 #include "ldmuser.h"
-#include "ldmsession.h"
+#include "ldmsessionsmodel.h"
 
 #include <security/pam_appl.h>
 #include <pwd.h>
@@ -41,6 +41,8 @@ public:
     QString defaultSession;
     QString timedUser;
     int loginDelay;
+    
+    LdmSessionsModel *sessionsModel;
 
     QSettings *config;
     bool haveConfig;
@@ -71,6 +73,8 @@ LdmGreeter::LdmGreeter(QObject *parent) :
     d->nRead = 0;
     d->haveConfig = false;
     d->haveUsers = false;
+    
+    d->sessionsModel = new LdmSessionsModel(this);
 }
 
 LdmGreeter::~LdmGreeter()
@@ -581,24 +585,11 @@ QList<LdmUser*> LdmGreeter::users()
     return d->users;
 }
 
-QList<LdmSession> LdmGreeter::sessions() const
+LdmSessionsModel* LdmGreeter::sessionsModel() const
 {
-    QList<LdmSession> sessions;
-    //FIXME don't hardcode this!
-    QDir sessionDir("/usr/share/xsessions");
-    sessionDir.setNameFilters(QStringList() << "*.desktop");
-    foreach(QString sessionFileName, sessionDir.entryList())
-    {
-        QSettings sessionData(sessionDir.filePath(sessionFileName), QSettings::IniFormat);
-        sessionFileName.chop(8);// chop(8) removes '.desktop'
-        QString name = sessionData.value("DesktopEntry/Name").toString();
-        QString comment = sessionData.value("DesktopEntry/Comment").toString();
-        LdmSession session(sessionFileName, name, comment);
-
-        sessions.append(session);
-    }
-    return sessions;
+    return d->sessionsModel; 
 }
+
 
 bool LdmGreeter::canSuspend() const
 {
