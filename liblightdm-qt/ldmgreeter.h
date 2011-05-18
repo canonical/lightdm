@@ -55,17 +55,19 @@ public:
     bool canHibernate() const;
     bool canShutdown() const;
     bool canRestart() const;
+
+public slots:
     void suspend();
     void hibernate();
     void shutdown();
     void restart();
-
+  
 signals:
     void connected();
     void showPrompt(QString prompt);
     void showMessage(QString message);
     void showError(QString message);
-    void authenticationComplete();
+    void authenticationComplete(bool isAuthenticated);
     void timedLogin(QString username);
     void userAdded(LdmUser *user);
     void userChanged(LdmUser *user);

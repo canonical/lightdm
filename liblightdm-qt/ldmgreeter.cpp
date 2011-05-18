@@ -11,6 +11,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
 #include <QtCore/QVariant>
+#include <QtCore/QFile>
 #include <QtDBus/QDBusPendingReply>
 
 
@@ -96,8 +97,7 @@ void LdmGreeter::writeInt(int value)
     buffer[1] = (value >> 16) & 0xFF;
     buffer[2] = (value >> 8) & 0xFF;
     buffer[3] = value & 0xFF;   
-    if (write(d->toServerFd, buffer, intLength()) != intLength())
-    {
+    if (write(d->toServerFd, buffer, intLength()) != intLength()) {
         qDebug() << "Error writing to server";
     }
 }
@@ -106,8 +106,7 @@ void LdmGreeter::writeString(QString value)
 {
     QByteArray a = value.toUtf8();
     writeInt(a.size());
-    if (write(d->toServerFd, a.data(), a.size()) != a.size())
-    {
+    if (write(d->toServerFd, a.data(), a.size()) != a.size()) {
         qDebug() << "Error writing to server";
     }
 }
@@ -131,11 +130,11 @@ int LdmGreeter::getPacketLength()
 
 int LdmGreeter::readInt(int *offset)
 {
-    if(d->nRead - *offset < intLength())
-    {
+    if(d->nRead - *offset < intLength()) {
         qDebug() << "Not enough space for int, need " << intLength() << ", got " << (d->nRead - *offset);
         return 0;
     }
+
     char *buffer = d->readBuffer + *offset;
     int value = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
     *offset += intLength();
@@ -145,8 +144,7 @@ int LdmGreeter::readInt(int *offset)
 QString LdmGreeter::readString(int *offset)
 {
     int length = readInt(offset);
-    if(d->nRead - *offset < length)
-    {
+    if(d->nRead - *offset < length) {
         qDebug() << "Not enough space for string, need " << length << ", got " << (d->nRead - *offset);
         return "";
     }
@@ -159,24 +157,29 @@ void LdmGreeter::connectToServer()
 {
     QDBusConnection busType = QDBusConnection::systemBus();
     QString ldmBus(qgetenv("LDM_BUS"));
-    if(ldmBus == QLatin1String("SESSION"))
+    if(ldmBus == QLatin1String("SESSION")) {
         busType = QDBusConnection::sessionBus();
+    }
+
 
     d->lightdmInterface = new QDBusInterface("org.lightdm.LightDisplayManager", "/org/lightdm/LightDisplayManager", "org.lightdm.LightDisplayManager", busType);
     d->powerManagementInterface = new QDBusInterface("org.freedesktop.PowerManagement","/org/freedesktop/PowerManagement", "org.freedesktop.PowerManagement");
     d->consoleKitInterface = new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit");
 
     char* fd = getenv("LDM_TO_SERVER_FD");
-    if(!fd)
-    {
+    if(!fd) {
        qDebug() << "No LDM_TO_SERVER_FD environment variable";
        return;
     }
     d->toServerFd = atoi(fd);
 
+
+    qDebug() << "***connecting to server";
+    QFile toServer;
+    qDebug() << toServer.open(d->toServerFd, QIODevice::WriteOnly);
+
     fd = getenv("LDM_FROM_SERVER_FD");
-    if(!fd)
-    {
+    if(!fd) {
        qDebug() << "No LDM_FROM_SERVER_FD environment variable";
        return;
     }
@@ -340,9 +343,10 @@ void LdmGreeter::onRead(int fd)
         returnCode = readInt(&offset);
         qDebug() << "Authentication complete with return code " << returnCode;
         d->isAuthenticated = (returnCode == 0);
-        if(!d->isAuthenticated)
+        if(!d->isAuthenticated) {
             d->authenticationUser = "";
-        emit authenticationComplete();
+        }
+        emit authenticationComplete(d->isAuthenticated);
         d->inAuthentication = false;
         break;
     default:
@@ -397,9 +401,11 @@ void LdmGreeter::loadConfig()
     if(d->haveConfig)
         return;
   
-    QString file = d->lightdmInterface->property("ConfigFile").toString();
-    qDebug() << "Loading configuration from " << file;
-    d->config = new QSettings(file, QSettings::IniFormat);
+     QString file;
+     if(false)
+       file = d->lightdmInterface->property("ConfigFile").toString();
+     qDebug() << "Loading configuration from " << file;
+     d->config = new QSettings(file, QSettings::IniFormat);
 
     d->haveConfig = true;
 }
@@ -519,11 +525,13 @@ void LdmGreeter::loadUsers()
         qDebug() << "User " << user->name() << " added";
         emit userAdded(user);
     }
+
     foreach(LdmUser *user, changedUsers)
     {
         qDebug() << "User " << user->name() << " changed";
         emit userChanged(user);
     }
+
     foreach(LdmUser *user, oldUsers)
     {
         /* See if this user is in the current list */
@@ -548,8 +556,9 @@ void LdmGreeter::loadUsers()
 
 void LdmGreeter::updateUsers()
 {
-    if (d->haveUsers)
+    if (d->haveUsers) {
         return;
+    }
   
     loadConfig();
 
