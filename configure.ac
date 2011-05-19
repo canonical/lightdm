@@ -132,7 +132,7 @@ AC_ARG_WITH(log-dir,
 AC_SUBST(LOG_DIR)
 
 CACHE_DIR=${localstatedir}/cache/lightdm
-AC_ARG_WITH(log-dir,
+AC_ARG_WITH(cache-dir,
             AS_HELP_STRING(--with-cache-dir=<dir>,
                            Directory to cache information in),
     if test x$withval != x; then

@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.3.4
+
+    * Fix --with-cache-dir not working
+
 Overview of changes in lightdm 0.3.3
 
     * Don't run in test-mode if Xephyr cannot be found
