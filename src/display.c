@@ -234,7 +234,7 @@ display_set_xserver (Display *display, XServer *xserver)
 {
     if (display->priv->xserver)
         g_object_unref (display->priv->xserver);
-    display->priv->xserver = g_object_ref (xserver);  
+    display->priv->xserver = g_object_ref (xserver);
 }
 
 XServer *
@@ -749,9 +749,17 @@ start_greeter (Display *display)
 static void
 xserver_exit_cb (XServer *server, int status, Display *display)
 {
+    if (status != 0)
+        g_warning ("X server exited with value %d", status);
     g_object_unref (display->priv->xserver);
     display->priv->xserver = NULL;
     g_signal_emit (display, signals[EXITED], 0);
+}
+
+static void
+xserver_terminate_cb (XServer *server, int signum, Display *display)
+{
+    g_warning ("X server exited with value %d", signum);
 }
 
 static void
@@ -776,6 +784,7 @@ display_start (Display *display)
     g_return_val_if_fail (display->priv->xserver != NULL, FALSE);
     g_signal_connect (G_OBJECT (display->priv->xserver), "ready", G_CALLBACK (xserver_ready_cb), display);
     g_signal_connect (G_OBJECT (display->priv->xserver), "exited", G_CALLBACK (xserver_exit_cb), display);
+    g_signal_connect (G_OBJECT (display->priv->xserver), "terminated", G_CALLBACK (xserver_terminate_cb), display);
     return xserver_start (display->priv->xserver);
 }
 

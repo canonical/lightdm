@@ -6,6 +6,7 @@ MOC_FILES = \
 	ldmsessionsmodel_moc.cpp
 
 ldmgreeter_moc.cpp: ldmgreeter.h
+	moc $< -o $@
 ldmsessionsmodel_moc.cpp: ldmsessionsmodel.h
 	moc $< -o $@
 
