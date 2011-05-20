@@ -15,8 +15,16 @@ class Q_DECL_EXPORT LdmGreeter : public QObject
 {
     Q_OBJECT
 public:
+
     explicit LdmGreeter(QObject* parent=0);
     virtual ~LdmGreeter();
+
+    Q_PROPERTY(bool canSuspend READ canSuspend);
+    Q_PROPERTY(bool canHibernate READ canHibernate);
+    Q_PROPERTY(bool canShutdown READ canShutdown);
+    Q_PROPERTY(bool canRestart READ canRestart);
+
+    Q_PROPERTY(QString hostname READ hostname);
 
     /** The hostname of the machine */
     QString hostname() const;
