@@ -1,5 +1,6 @@
 Overview of changes in lightdm 0.3.4
 
+    * Updates to liblightdm-qt
     * Fix --with-cache-dir not working
     * Set greeterdir in .pc files to point to where greeter engines should be
       installed
