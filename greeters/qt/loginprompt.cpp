@@ -7,7 +7,7 @@
 
 #include <QListWidgetItem>
 
-LoginPrompt::LoginPrompt(LdmGreeter *greeter, QWidget *parent) :
+LoginPrompt::LoginPrompt(QLightDM::Greeter *greeter, QWidget *parent) :
     QWidget(parent),
     m_greeter(greeter),
     ui(new Ui::Widget)
@@ -19,8 +19,8 @@ LoginPrompt::LoginPrompt(LdmGreeter *greeter, QWidget *parent) :
 
     ui->hostnameLabel->setText(m_greeter->hostname());
 
-    QList<LdmUser*> users = m_greeter->users();
-    foreach(LdmUser *user, users) {
+    QList<QLightDM::User*> users = m_greeter->users();
+    foreach(QLightDM::User *user, users) {
         QListWidgetItem* item = new QListWidgetItem(user->displayName(), ui->userList);
         item->setData(Qt::UserRole, user->name());
         if(user->image().isEmpty())         {
