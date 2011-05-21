@@ -1,7 +1,7 @@
-#include "ldmgreeter.h"
+#include "greeter.h"
 
-#include "ldmuser.h"
-#include "ldmsessionsmodel.h"
+#include "user.h"
+#include "sessionsmodel.h"
 
 #include <security/pam_appl.h>
 #include <pwd.h>

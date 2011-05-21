@@ -1,4 +1,4 @@
-#include "ldmuser.h"
+#include "user.h"
 
 using namespace QLightDM;
 

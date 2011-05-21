@@ -1,4 +1,4 @@
-#include "ldmsessionsmodel.h"
+#include "sessionsmodel.h"
 
 #include <QtCore/QList>
 #include <QtCore/QDir>

@@ -1,4 +1,4 @@
-#include "ldmlanguage.h"
+#include "language.h"
 
 using namespace QLightDM;
 

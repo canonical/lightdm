@@ -4,8 +4,8 @@
 #include <QObject>
 class GreeterPrivate;
 
-#include "ldmuser.h"
-#include "ldmlanguage.h"
+#include "user.h"
+#include "language.h"
 //#include "ldmlayout.h"
 
 class GreeterPrivate;
