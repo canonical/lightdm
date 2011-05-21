@@ -26,6 +26,7 @@ lightdm_example_qt_greeter_SOURCES = \
 
 lightdm_example_qt_greeter_CXXFLAGS = \
 	-I$(top_srcdir)/liblightdm-qt \
+        -I$(top_srcdir)/liblightdm-qt/include \
 	$(LIGHTDM_EXAMPLE_QT_GREETER_CFLAGS)
 
 lightdm_example_qt_greeter_LDADD = \

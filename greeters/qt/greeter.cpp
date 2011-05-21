@@ -4,7 +4,7 @@
 #include <QApplication>
 #include <QDesktopWidget>
 
-#include <lightdm-qt-0/lightdm/LdmGreeter>
+#include <LdmGreeter>
 
 #include "loginprompt.h"
 #include "panel.h"

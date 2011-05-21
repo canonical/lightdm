@@ -1,8 +1,8 @@
 #include "panel.h"
 #include "ui_panel.h"
 
-#include <lightdm-qt-0/lightdm/LdmGreeter>
-#include <lightdm-qt-0/lightdm/LdmSessionsModel>
+#include <LdmGreeter>
+#include <LdmSessionsModel>
 
 #include <QMenu>
 #include <QAction>

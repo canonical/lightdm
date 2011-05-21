@@ -1,10 +1,10 @@
 #include "loginprompt.h"
 #include "ui_loginprompt.h"
 
-#include <lightdm-qt-0/lightdm/LdmGreeter>
-#include <lightdm-qt-0/lightdm/LdmUser>
-#include <lightdm-qt-0/lightdm/LdmSession>
-#include <lightdm-qt-0/lightdm/LdmLanguage>
+#include <LdmGreeter>
+#include <LdmUser>
+#include <LdmSession>
+#include <LdmLanguage>
 
 #include <QListWidgetItem>
 
