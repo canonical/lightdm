@@ -5,9 +5,11 @@
 #include <QtCore/QVariant>
 #include <QtCore/QSettings>
 
+using namespace QLightDM;
+
 class SessionItem;
 
-class LdmSessionsModelPrivate
+class SessionsModelPrivate
 {
 public:
     QList<SessionItem> items;
@@ -22,18 +24,18 @@ public:
     QString comment;
 };
 
-LdmSessionsModel::LdmSessionsModel(QObject *parent) :
+SessionsModel::SessionsModel(QObject *parent) :
     QAbstractListModel(parent),
-    d(new LdmSessionsModelPrivate())
+    d(new SessionsModelPrivate())
 {
     buildList();
 }
 
-LdmSessionsModel::~LdmSessionsModel()
+SessionsModel::~SessionsModel()
 {
 }
 
-int LdmSessionsModel::rowCount(const QModelIndex &parent) const
+int SessionsModel::rowCount(const QModelIndex &parent) const
 {
     if (parent == QModelIndex()) { //if top level
         return d->items.size();
@@ -42,7 +44,7 @@ int LdmSessionsModel::rowCount(const QModelIndex &parent) const
     }
 }
 
-QVariant LdmSessionsModel::data(const QModelIndex &index, int role) const
+QVariant SessionsModel::data(const QModelIndex &index, int role) const
 {
     if (! index.isValid()) {
         return QVariant();
@@ -60,7 +62,7 @@ QVariant LdmSessionsModel::data(const QModelIndex &index, int role) const
     return QVariant();
 }
 
-void LdmSessionsModel::buildList()
+void SessionsModel::buildList()
 {
     //maybe clear first?
 

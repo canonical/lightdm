@@ -1,6 +1,8 @@
 #include "ldmlanguage.h"
 
-class LdmLanguagePrivate
+using namespace QLightDM;
+
+class LanguagePrivate
 {
 public:
     QString code;
@@ -8,42 +10,42 @@ public:
     QString territory;
 };
 
-LdmLanguage::LdmLanguage(QString &code, QString &name, QString &territory)
-    : d(new LdmLanguagePrivate)
+Language::Language(QString &code, QString &name, QString &territory)
+    : d(new LanguagePrivate)
 {
     d->code = code;
     d->name = name;
     d->territory = territory;
 }
 
-LdmLanguage::LdmLanguage(const LdmLanguage &other)
-    :d(new LdmLanguagePrivate(*other.d))
+Language::Language(const Language &other)
+    :d(new LanguagePrivate(*other.d))
 {
 }
 
-LdmLanguage::~LdmLanguage()
+Language::~Language()
 {
     delete d;
 }
 
-LdmLanguage& LdmLanguage::operator=(const LdmLanguage& other)
+Language& Language::operator=(const Language& other)
 {
     *d = *other.d;
     return *this;
 }
 
 
-QString LdmLanguage::code() const
+QString Language::code() const
 {
     return d->code;
 }
 
-QString LdmLanguage::name() const
+QString Language::name() const
 {
     return d->name;
 }
 
-QString LdmLanguage::territory() const
+QString Language::territory() const
 {
     return d->territory;
 }

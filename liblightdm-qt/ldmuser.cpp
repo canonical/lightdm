@@ -1,6 +1,8 @@
 #include "ldmuser.h"
 
-class LdmUserPrivate
+using namespace QLightDM;
+
+class UserPrivate
 {
 public:
     QString name;
@@ -10,13 +12,13 @@ public:
     bool isLoggedIn;
 };
 
-LdmUser::LdmUser():
-    d(new LdmUserPrivate)
+User::User():
+    d(new UserPrivate)
 {
 }
 
-LdmUser::LdmUser(const QString& name, const QString& realName, const QString& homeDirectory, const QString& image, bool isLoggedIn) :
-    d(new LdmUserPrivate)
+User::User(const QString& name, const QString& realName, const QString& homeDirectory, const QString& image, bool isLoggedIn) :
+    d(new UserPrivate)
 {
     d->name = name;
     d->realName = realName;
@@ -25,24 +27,24 @@ LdmUser::LdmUser(const QString& name, const QString& realName, const QString& ho
     d->isLoggedIn = isLoggedIn;
 }
 
-LdmUser::LdmUser(const LdmUser &other)
-    :d(new LdmUserPrivate(*other.d))
+User::User(const User &other)
+    :d(new UserPrivate(*other.d))
 {
 }
 
-LdmUser::~LdmUser()
+User::~User()
 {
     delete d;
 }
 
 
-LdmUser& LdmUser::operator=(const LdmUser& other)
+User& User::operator=(const User& other)
 {
     *d = *other.d;
     return *this;
 }
 
-bool LdmUser::update(const QString& realName, const QString& homeDirectory, const QString& image, bool isLoggedIn)
+bool User::update(const QString& realName, const QString& homeDirectory, const QString& image, bool isLoggedIn)
 {
     if (d->realName == realName && d->homeDirectory == homeDirectory && d->image == image && d->isLoggedIn == isLoggedIn)
         return false;
@@ -55,7 +57,7 @@ bool LdmUser::update(const QString& realName, const QString& homeDirectory, cons
     return true;
 }
 
-QString LdmUser::displayName() const
+QString User::displayName() const
 {
     if (!d->realName.isEmpty())
     {
@@ -67,27 +69,27 @@ QString LdmUser::displayName() const
     }
 }
 
-QString LdmUser::name() const
+QString User::name() const
 {
     return d->name;
 }
 
-QString LdmUser::realName() const
+QString User::realName() const
 {
     return d->realName;
 }
 
-QString LdmUser::homeDirectory() const
+QString User::homeDirectory() const
 {
     return d->homeDirectory;
 }
 
-QString LdmUser::image() const
+QString User::image() const
 {
     return d->image;
 }
 
-bool LdmUser::isLoggedIn() const
+bool User::isLoggedIn() const
 {
     return d->isLoggedIn;
 }

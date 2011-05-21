@@ -4,43 +4,46 @@
 #include <QString>
 #include <QtDBus/QtDBus>
 
-class LdmUserPrivate;
+class UserPrivate;
 
-//public facing User class
-class Q_DECL_EXPORT LdmUser
+namespace QLightDM
 {
-public:
-    explicit LdmUser();
-    LdmUser(const QString &name, const QString &realName, const QString &homeDirectory, const QString &image, bool isLoggedIn);
-    LdmUser(const LdmUser& other);
-    ~LdmUser();
-    LdmUser &operator=(const LdmUser& other);
+    //public facing User class
+    class Q_DECL_EXPORT User
+    {
+    public:
+        explicit User();
+        User(const QString &name, const QString &realName, const QString &homeDirectory, const QString &image, bool isLoggedIn);
+        User(const User& other);
+        ~User();
+        User &operator=(const User& other);
 
-    bool update(const QString &realName, const QString &homeDirectory, const QString &image, bool isLoggedIn);
+        bool update(const QString &realName, const QString &homeDirectory, const QString &image, bool isLoggedIn);
 
-    /** The name to display (the real name if available, otherwise use the username */
-    QString displayName() const;
+        /** The name to display (the real name if available, otherwise use the username */
+        QString displayName() const;
 
-    /** The username of the user*/
-    QString name() const;
-    /** The user's real name, use this for displaying*/
-    QString realName() const;
+        /** The username of the user*/
+        QString name() const;
+        /** The user's real name, use this for displaying*/
+        QString realName() const;
 
-    /** Returns the home directory of this user*/
-    QString homeDirectory() const;
+        /** Returns the home directory of this user*/
+        QString homeDirectory() const;
 
-    /** Returns the path to an avatar of this user*/
-    QString image() const;
+        /** Returns the path to an avatar of this user*/
+        QString image() const;
 
-    /** Returns true if this user is already logged in on another session*/
-    bool isLoggedIn() const;
+        /** Returns true if this user is already logged in on another session*/
+        bool isLoggedIn() const;
 
-//    LdmUser &operator=(const LdmUser user);
-private:
-    LdmUserPrivate* d;
-};
+    //    LdmUser &operator=(const LdmUser user);
+    private:
+        UserPrivate* d;
+    };
+}
 
-Q_DECLARE_METATYPE(LdmUser);
-Q_DECLARE_METATYPE(QList<LdmUser>);
+Q_DECLARE_METATYPE(QLightDM::User);
+Q_DECLARE_METATYPE(QList<QLightDM::User>);
 
 #endif // LDMUSER_H
