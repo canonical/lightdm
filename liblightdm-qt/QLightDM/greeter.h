@@ -38,7 +38,6 @@ namespace QLightDM
 	int timedLoginDelay() const;
 
 	QList<QLightDM::User*> users();
-	void getUserDefaults(const QString &name, const QString &language, const QString &layout, const QString &session);
 
 	QList<QLightDM::Language> languages() const;
 	QString defaultLanguage() const;
