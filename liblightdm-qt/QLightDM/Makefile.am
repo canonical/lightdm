@@ -15,10 +15,10 @@ liblightdm_qt_0include_HEADERS = \
 	language.h \
 	sessionsmodel.h \
 	user.h \
-	QLightDM/Greeter \
-	QLightDM/Language \
-	QLightDM/SessionsModel \
-	QLightDM/User
+	Greeter \
+	Language \
+	SessionsModel \
+	User
 liblightdm_qt_0includedir=$(includedir)/lightdm-qt-0/lightdm
 
 liblightdm_qt_0_la_LIBADD = $(LIBLIGHTDM_QT_LIBS)

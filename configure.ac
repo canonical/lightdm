@@ -268,8 +268,9 @@ greeters/vala-gtk/Makefile
 liblightdm-gobject/liblightdm-gobject-0.pc
 liblightdm-gobject/Makefile
 liblightdm-gobject/lightdm/Makefile
-liblightdm-qt/liblightdm-qt-0.pc
 liblightdm-qt/Makefile
+liblightdm-qt/QLightDM/liblightdm-qt-0.pc
+liblightdm-qt/QLightDM/Makefile
 po/Makefile.in
 src/Makefile
 themes/Makefile
