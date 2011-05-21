@@ -7,19 +7,21 @@ namespace Ui {
     class Panel;
 }
 
-class LdmGreeter;
+namespace QLightDM {
+    class Greeter;
+}
 
 class Panel : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit Panel(LdmGreeter *greeter, QWidget *parent = 0);
+    explicit Panel(QLightDM::Greeter *greeter, QWidget *parent = 0);
     virtual ~Panel();
 
 private:
     Ui::Panel *ui;
-    LdmGreeter *m_greeter;
+    QLightDM::Greeter *m_greeter;
 };
 
 #endif // PANEL_H

@@ -1,7 +1,7 @@
-#include "ldmgreeter.h"
+#include "greeter.h"
 
-#include "ldmuser.h"
-#include "ldmsessionsmodel.h"
+#include "user.h"
+#include "sessionsmodel.h"
 
 #include <security/pam_appl.h>
 #include <pwd.h>
@@ -33,7 +33,9 @@ typedef enum
 
 #define HEADER_SIZE 8
 
-class LdmGreeterPrivate
+using namespace QLightDM;
+
+class GreeterPrivate
 {
 public:
     QString theme;
@@ -42,12 +44,12 @@ public:
     QString timedUser;
     int loginDelay;
     
-    LdmSessionsModel *sessionsModel;
+    SessionsModel *sessionsModel;
 
     QSettings *config;
     bool haveConfig;
 
-    QList<LdmUser*> users;
+    QList<User*> users;
     bool haveUsers;
 
     QDBusInterface* lightdmInterface;
@@ -65,19 +67,19 @@ public:
 };
 
 
-LdmGreeter::LdmGreeter(QObject *parent) :
+Greeter::Greeter(QObject *parent) :
     QObject(parent),
-    d(new LdmGreeterPrivate)
+    d(new GreeterPrivate)
 {
     d->readBuffer = (char *)malloc (HEADER_SIZE);
     d->nRead = 0;
     d->haveConfig = false;
     d->haveUsers = false;
     
-    d->sessionsModel = new LdmSessionsModel(this);
+    d->sessionsModel = new SessionsModel(this);
 }
 
-LdmGreeter::~LdmGreeter()
+Greeter::~Greeter()
 {
     delete d->readBuffer;
     delete d;
@@ -94,7 +96,7 @@ static int stringLength(QString value)
     return intLength() + a.size();
 }
 
-void LdmGreeter::writeInt(int value)
+void Greeter::writeInt(int value)
 {
     char buffer[4];
     buffer[0] = value >> 24;
@@ -106,7 +108,7 @@ void LdmGreeter::writeInt(int value)
     }
 }
 
-void LdmGreeter::writeString(QString value)
+void Greeter::writeString(QString value)
 {
     QByteArray a = value.toUtf8();
     writeInt(a.size());
@@ -115,24 +117,24 @@ void LdmGreeter::writeString(QString value)
     }
 }
 
-void LdmGreeter::writeHeader(int id, int length)
+void Greeter::writeHeader(int id, int length)
 {
     writeInt(id);
     writeInt(length);
 }
 
-void LdmGreeter::flush()
+void Greeter::flush()
 {
     fsync(d->toServerFd);
 }
 
-int LdmGreeter::getPacketLength()
+int Greeter::getPacketLength()
 {
     int offset = intLength();
     return readInt(&offset);
 }
 
-int LdmGreeter::readInt(int *offset)
+int Greeter::readInt(int *offset)
 {
     if(d->nRead - *offset < intLength()) {
         qDebug() << "Not enough space for int, need " << intLength() << ", got " << (d->nRead - *offset);
@@ -145,7 +147,7 @@ int LdmGreeter::readInt(int *offset)
     return value;
 }
 
-QString LdmGreeter::readString(int *offset)
+QString Greeter::readString(int *offset)
 {
     int length = readInt(offset);
     if(d->nRead - *offset < length) {
@@ -157,7 +159,7 @@ QString LdmGreeter::readString(int *offset)
     return QString::fromUtf8(start, length);
 }
 
-void LdmGreeter::connectToServer()
+void Greeter::connectToServer()
 {
     QDBusConnection busType = QDBusConnection::systemBus();
     QString ldmBus(qgetenv("LDM_BUS"));
@@ -197,7 +199,7 @@ void LdmGreeter::connectToServer()
     flush();
 }
 
-void LdmGreeter::startAuthentication(const QString &username)
+void Greeter::startAuthentication(const QString &username)
 {
     d->inAuthentication = true;
     d->isAuthenticated = false;
@@ -208,7 +210,7 @@ void LdmGreeter::startAuthentication(const QString &username)
     flush();     
 }
 
-void LdmGreeter::provideSecret(const QString &secret)
+void Greeter::provideSecret(const QString &secret)
 {
     qDebug() << "Providing secret to display manager";
     writeHeader(GREETER_MESSAGE_CONTINUE_AUTHENTICATION, intLength() + stringLength(secret));
@@ -218,29 +220,29 @@ void LdmGreeter::provideSecret(const QString &secret)
     flush();
 }
 
-void LdmGreeter::cancelAuthentication()
+void Greeter::cancelAuthentication()
 {
     qDebug() << "Cancelling authentication";
     writeHeader(GREETER_MESSAGE_CANCEL_AUTHENTICATION, 0);
     flush();  
 }
 
-bool LdmGreeter::inAuthentication() const
+bool Greeter::inAuthentication() const
 {
     return d->inAuthentication;
 }
 
-bool LdmGreeter::isAuthenticated() const
+bool Greeter::isAuthenticated() const
 {
     return d->isAuthenticated;
 }
 
-QString LdmGreeter::authenticationUser() const
+QString Greeter::authenticationUser() const
 {
     return d->authenticationUser;
 }
 
-void LdmGreeter::login(const QString &username, const QString &session, const QString &language)
+void Greeter::login(const QString &username, const QString &session, const QString &language)
 {
     qDebug() << "Logging in as " << username << " for session " << session << " with language " << language;
     writeHeader(GREETER_MESSAGE_LOGIN, stringLength(username) + stringLength(session) + stringLength(language));
@@ -250,12 +252,12 @@ void LdmGreeter::login(const QString &username, const QString &session, const QS
     flush();
 }
 
-void LdmGreeter::loginWithDefaults(const QString &username)
+void Greeter::loginWithDefaults(const QString &username)
 {
     login(username, NULL, NULL);
 }
 
-void LdmGreeter::onRead(int fd)
+void Greeter::onRead(int fd)
 {
     //qDebug() << "Reading from server";
 
@@ -360,47 +362,47 @@ void LdmGreeter::onRead(int fd)
     d->nRead = 0;
 }
 
-QString LdmGreeter::hostname() const
+QString Greeter::hostname() const
 {
     return QHostInfo::localHostName();
 }
 
-QString LdmGreeter::theme() const
+QString Greeter::theme() const
 {
     return d->theme;
 }
 
-QVariant LdmGreeter::getProperty(const QString &name) const
+QVariant Greeter::getProperty(const QString &name) const
 {
     return QVariant(); //FIXME TODO
 }
 
-QString LdmGreeter::defaultLanguage() const
+QString Greeter::defaultLanguage() const
 {
     return getenv("LANG");
 }
 
-QString LdmGreeter::defaultLayout() const
+QString Greeter::defaultLayout() const
 {
     return d->defaultLayout;
 }
 
-QString LdmGreeter::defaultSession() const
+QString Greeter::defaultSession() const
 {
     return d->defaultSession;
 }
 
-QString LdmGreeter::timedLoginUser() const
+QString Greeter::timedLoginUser() const
 {
     return d->timedUser;
 }
 
-int LdmGreeter::timedLoginDelay() const
+int Greeter::timedLoginDelay() const
 {
     return d->loginDelay;
 }
 
-void LdmGreeter::loadConfig()
+void Greeter::loadConfig()
 {
     if(d->haveConfig)
         return;
@@ -414,11 +416,11 @@ void LdmGreeter::loadConfig()
     d->haveConfig = true;
 }
 
-void LdmGreeter::loadUsers()
+void Greeter::loadUsers()
 {
     QStringList hiddenUsers, hiddenShells;
     int minimumUid;
-    QList<LdmUser*> users, oldUsers, newUsers, changedUsers;
+    QList<User*> users, oldUsers, newUsers, changedUsers;
 
     loadConfig();
 
@@ -442,7 +444,7 @@ void LdmGreeter::loadUsers()
     while(TRUE)
     {
         struct passwd *entry;
-        LdmUser *user;
+        User *user;
         QStringList tokens;
         QString realName, image;
         QFile *imageFile;
@@ -489,11 +491,11 @@ void LdmGreeter::loadUsers()
             image = "file://" + imageFile->fileName();
         delete imageFile;
 
-        user = new LdmUser(entry->pw_name, realName, entry->pw_dir, image, FALSE);
+        user = new User(entry->pw_name, realName, entry->pw_dir, image, FALSE);
 
         /* Update existing users if have them */
         bool matchedUser = false;
-        foreach(LdmUser *info, d->users)
+        foreach(User *info, d->users)
         {
             if(info->name() == user->name())
             {
@@ -524,23 +526,23 @@ void LdmGreeter::loadUsers()
     d->users = users;
 
     /* Notify of changes */
-    foreach(LdmUser *user, newUsers)
+    foreach(User *user, newUsers)
     {
         qDebug() << "User " << user->name() << " added";
         emit userAdded(user);
     }
 
-    foreach(LdmUser *user, changedUsers)
+    foreach(User *user, changedUsers)
     {
         qDebug() << "User " << user->name() << " changed";
         emit userChanged(user);
     }
 
-    foreach(LdmUser *user, oldUsers)
+    foreach(User *user, oldUsers)
     {
         /* See if this user is in the current list */
         bool existing = false;
-        foreach(LdmUser *new_user, d->users)
+        foreach(User *new_user, d->users)
         {
             if (new_user == user)
             {
@@ -558,7 +560,7 @@ void LdmGreeter::loadUsers()
     }
 }
 
-void LdmGreeter::updateUsers()
+void Greeter::updateUsers()
 {
     if (d->haveUsers) {
         return;
@@ -579,19 +581,19 @@ void LdmGreeter::updateUsers()
     d->haveUsers = true;
 }
 
-QList<LdmUser*> LdmGreeter::users()
+QList<User*> Greeter::users()
 {
     updateUsers();
     return d->users;
 }
 
-LdmSessionsModel* LdmGreeter::sessionsModel() const
+SessionsModel* Greeter::sessionsModel() const
 {
     return d->sessionsModel; 
 }
 
 
-bool LdmGreeter::canSuspend() const
+bool Greeter::canSuspend() const
 {
     QDBusReply<bool> reply = d->powerManagementInterface->call("CanSuspend");
     if (reply.isValid())
@@ -600,12 +602,12 @@ bool LdmGreeter::canSuspend() const
         return false;
 }
 
-void LdmGreeter::suspend()
+void Greeter::suspend()
 {
     d->powerManagementInterface->call("Suspend");
 }
 
-bool LdmGreeter::canHibernate() const
+bool Greeter::canHibernate() const
 {
     QDBusReply<bool> reply = d->powerManagementInterface->call("CanHibernate");
     if (reply.isValid())
@@ -614,12 +616,12 @@ bool LdmGreeter::canHibernate() const
         return false;
 }
 
-void LdmGreeter::hibernate()
+void Greeter::hibernate()
 {
     d->powerManagementInterface->call("Hibernate");
 }
 
-bool LdmGreeter::canShutdown() const
+bool Greeter::canShutdown() const
 {
     QDBusReply<bool> reply = d->consoleKitInterface->call("CanStop");
     if (reply.isValid())
@@ -628,12 +630,12 @@ bool LdmGreeter::canShutdown() const
         return false;
 }
 
-void LdmGreeter::shutdown()
+void Greeter::shutdown()
 {
     d->consoleKitInterface->call("stop");
 }
 
-bool LdmGreeter::canRestart() const
+bool Greeter::canRestart() const
 {
     QDBusReply<bool> reply = d->consoleKitInterface->call("CanRestart");
     if (reply.isValid())
@@ -642,7 +644,7 @@ bool LdmGreeter::canRestart() const
         return false;
 }
 
-void LdmGreeter::restart()
+void Greeter::restart()
 {
     d->consoleKitInterface->call("Restart");
 }

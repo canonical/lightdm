@@ -4,11 +4,10 @@
 #include <QApplication>
 #include <QDesktopWidget>
 
-#include <LdmGreeter>
+#include <QLightDM/Greeter>
 
 #include "loginprompt.h"
 #include "panel.h"
-
 
 Greeter::Greeter() :
     QWidget(0)
@@ -21,7 +20,7 @@ Greeter::Greeter() :
     //TODO load this from the config file in order to test that works.
     background->setPixmap(QPixmap("/usr/share/wallpapers/Horos/contents/images/1920x1200.png"));
 
-    LdmGreeter* greeter = new LdmGreeter(this);
+    QLightDM::Greeter* greeter = new QLightDM::Greeter(this);
     greeter->connectToServer();
 
     LoginPrompt* loginPrompt = new LoginPrompt(greeter, this);

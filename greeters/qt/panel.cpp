@@ -1,14 +1,14 @@
 #include "panel.h"
 #include "ui_panel.h"
 
-#include <LdmGreeter>
-#include <LdmSessionsModel>
+#include <QLightDM/Greeter>
+#include <QLightDM/SessionsModel>
 
 #include <QMenu>
 #include <QAction>
 #include <QIcon>
 
-Panel::Panel(LdmGreeter *greeter, QWidget *parent):
+Panel::Panel(QLightDM::Greeter *greeter, QWidget *parent):
     m_greeter(greeter),
     QWidget(parent),
     ui(new Ui::Panel)

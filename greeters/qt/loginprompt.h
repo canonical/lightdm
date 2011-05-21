@@ -7,14 +7,16 @@ namespace Ui {
     class Widget;
 }
 
-class LdmGreeter;
+namespace QLightDM {
+    class Greeter;
+}
 
 class LoginPrompt : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit LoginPrompt(LdmGreeter* greeter, QWidget *parent = 0);
+    explicit LoginPrompt(QLightDM::Greeter* greeter, QWidget *parent = 0);
     virtual ~LoginPrompt();
 
 private slots:
@@ -23,7 +25,7 @@ private slots:
     void prompt(const QString &message);
 
 private:
-    LdmGreeter *m_greeter;
+    QLightDM::Greeter *m_greeter;
     Ui::Widget *ui;
 };
 
