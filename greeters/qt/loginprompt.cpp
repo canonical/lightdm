@@ -3,7 +3,6 @@
 
 #include <QLightDM/Greeter>
 #include <QLightDM/User>
-#include <QLightDM/Session>
 #include <QLightDM/Language>
 
 #include <QListWidgetItem>
