@@ -1,12 +1,28 @@
 libexec_PROGRAMS = lightdm-example-qt-greeter
 
-lightdm-example-qt-greeter_moc.cpp: lightdm-example-qt-greeter.h
+greeter_moc.cpp: greeter.h
 	moc $< -o $@
 
+loginprompt_moc.cpp: loginprompt.h
+	moc $< -o $@
+
+panel_moc.cpp: panel.h
+	moc $< -o $@
+
+ui_loginprompt.h: loginprompt.ui
+	uic $< -o $@
+
+ui_panel.h: panel.ui
+	uic $< -o $@
+
 lightdm_example_qt_greeter_SOURCES = \
-	lightdm-example-qt-greeter.cpp \
-	lightdm-example-qt-greeter.h \
-	lightdm-example-qt-greeter_moc.cpp
+	greeter.cpp \
+	loginprompt.cpp \
+	main.cpp \
+	panel.cpp \
+	greeter_moc.cpp \
+	loginprompt_moc.cpp \
+	panel_moc.cpp
 
 lightdm_example_qt_greeter_CXXFLAGS = \
 	-I$(top_srcdir)/liblightdm-qt \
@@ -18,7 +34,12 @@ lightdm_example_qt_greeter_LDADD = \
 	$(LIGHTDM_EXAMPLE_QT_GREETER_LIBS)
 
 CLEANFILES = \
-	lightdm-example-qt-greeter_moc.cpp
+	greeter_moc.cpp \
+	loginprompt_moc.cpp \
+	panel_moc.cpp \
+	ui_loginprompt.h \
+	ui_panel.h
+
 
 DISTCLEANFILES = \
 	Makefile.in
