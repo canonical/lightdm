@@ -1,5 +1,5 @@
-#ifndef LDMGREETER_H
-#define LDMGREETER_H
+#ifndef QLIGTHDM_GREETER_H
+#define QLIGTHDM_GREETER_H
 
 #include <QObject>
 class GreeterPrivate;

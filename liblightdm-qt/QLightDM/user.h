@@ -1,5 +1,5 @@
-#ifndef LDMUSER_H
-#define LDMUSER_H
+#ifndef QLIGTHDM_USER_H
+#define QLIGTHDM_USER_H
 
 #include <QString>
 #include <QtDBus/QtDBus>

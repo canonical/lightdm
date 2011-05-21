@@ -1,5 +1,5 @@
-#ifndef LDMSESSIONSMODEL_H
-#define LDMSESSIONSMODEL_H
+#ifndef QLIGTHDM_SESSIONSMODEL_H
+#define QLIGTHDM_SESSIONSMODEL_H
 
 #include <QtCore/QAbstractListModel>
 

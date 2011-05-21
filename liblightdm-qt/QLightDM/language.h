@@ -1,5 +1,5 @@
-#ifndef LDMLANGUAGE_H
-#define LDMLANGUAGE_H
+#ifndef QLIGTHDM_LANGUAGE_H
+#define QLIGTHDM_LANGUAGE_H
 #include <QString>
 
 class LanguagePrivate;
