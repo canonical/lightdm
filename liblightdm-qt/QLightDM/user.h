@@ -14,9 +14,7 @@ namespace QLightDM
     public:
         explicit User();
         User(const QString &name, const QString &realName, const QString &homeDirectory, const QString &image, bool isLoggedIn);
-        User(const User& other);
         ~User();
-        User &operator=(const User& other);
 
         bool update(const QString &realName, const QString &homeDirectory, const QString &image, bool isLoggedIn);
 
@@ -37,13 +35,12 @@ namespace QLightDM
         /** Returns true if this user is already logged in on another session*/
         bool isLoggedIn() const;
 
-    //    LdmUser &operator=(const LdmUser user);
     private:
+        Q_DISABLE_COPY(User);
         UserPrivate* d;
     };
 }
 
-Q_DECLARE_METATYPE(QLightDM::User);
-Q_DECLARE_METATYPE(QList<QLightDM::User>);
+Q_DECLARE_METATYPE(QLightDM::User*);
 
 #endif // LDMUSER_H

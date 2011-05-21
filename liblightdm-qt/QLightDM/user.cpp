@@ -27,21 +27,9 @@ User::User(const QString& name, const QString& realName, const QString& homeDire
     d->isLoggedIn = isLoggedIn;
 }
 
-User::User(const User &other)
-    :d(new UserPrivate(*other.d))
-{
-}
-
 User::~User()
 {
     delete d;
-}
-
-
-User& User::operator=(const User& other)
-{
-    *d = *other.d;
-    return *this;
 }
 
 bool User::update(const QString& realName, const QString& homeDirectory, const QString& image, bool isLoggedIn)
