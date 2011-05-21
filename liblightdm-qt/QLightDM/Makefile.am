@@ -9,6 +9,9 @@ greeter_moc.cpp: greeter.h
 	moc $< -o $@
 sessionsmodel_moc.cpp: sessionsmodel.h
 	moc $< -o $@
+user_moc.cpp: user.h
+	moc $< -o $@
+
 
 liblightdm_qt_0include_HEADERS = \
 	greeter.h \

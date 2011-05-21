@@ -17,7 +17,8 @@ User::User():
 {
 }
 
-User::User(const QString& name, const QString& realName, const QString& homeDirectory, const QString& image, bool isLoggedIn) :
+User::User(const QString& name, const QString& realName, const QString& homeDirectory, const QString& image, bool isLoggedIn, QObject *parent) :
+    QObject(parent),
     d(new UserPrivate)
 {
     d->name = name;
@@ -42,6 +43,7 @@ bool User::update(const QString& realName, const QString& homeDirectory, const Q
     d->image = image;
     d->isLoggedIn = isLoggedIn;
 
+    Q_EMIT changed();
     return true;
 }
 
@@ -81,3 +83,4 @@ bool User::isLoggedIn() const
 {
     return d->isLoggedIn;
 }
+

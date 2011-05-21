@@ -1,7 +1,9 @@
 #ifndef QLIGTHDM_USER_H
 #define QLIGTHDM_USER_H
 
-#include <QString>
+#include <QtCore/QString>
+#include <QtCore/QObject>
+
 #include <QtDBus/QtDBus>
 
 class UserPrivate;
@@ -9,11 +11,13 @@ class UserPrivate;
 namespace QLightDM
 {
     //public facing User class
-    class Q_DECL_EXPORT User
+    class Q_DECL_EXPORT User : QObject
     {
+    Q_OBJECT
+
     public:
         explicit User();
-        User(const QString &name, const QString &realName, const QString &homeDirectory, const QString &image, bool isLoggedIn);
+        User(const QString &name, const QString &realName, const QString &homeDirectory, const QString &image, bool isLoggedIn, QObject *parent=0);
         ~User();
 
         bool update(const QString &realName, const QString &homeDirectory, const QString &image, bool isLoggedIn);
@@ -34,6 +38,9 @@ namespace QLightDM
 
         /** Returns true if this user is already logged in on another session*/
         bool isLoggedIn() const;
+
+    Q_SIGNALS:
+        void changed();
 
     private:
         Q_DISABLE_COPY(User);
