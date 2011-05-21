@@ -3,7 +3,6 @@
 
 #include <LdmGreeter>
 #include <LdmUser>
-#include <LdmSession>
 #include <LdmLanguage>
 
 #include <QListWidgetItem>
