@@ -2,6 +2,7 @@
 
 #include "user.h"
 #include "sessionsmodel.h"
+#include "config.h"
 
 #include <security/pam_appl.h>
 #include <pwd.h>
@@ -45,9 +46,7 @@ public:
     int loginDelay;
     
     SessionsModel *sessionsModel;
-
-    QSettings *config;
-    bool haveConfig;
+    Config *config;
 
     QList<User*> users;
     bool haveUsers;
@@ -73,7 +72,6 @@ Greeter::Greeter(QObject *parent) :
 {
     d->readBuffer = (char *)malloc (HEADER_SIZE);
     d->nRead = 0;
-    d->haveConfig = false;
     d->haveUsers = false;
     
     d->sessionsModel = new SessionsModel(this);
@@ -197,6 +195,12 @@ void Greeter::connectToServer()
     qDebug() << "Connecting to display manager...";
     writeHeader(GREETER_MESSAGE_CONNECT, 0);
     flush();
+
+
+    QString file;
+    file = d->lightdmInterface->property("ConfigFile").toString();
+    qDebug() << "Loading configuration from " << file;
+    d->config = new Config(file, this);
 }
 
 void Greeter::startAuthentication(const QString &username)
@@ -402,42 +406,15 @@ int Greeter::timedLoginDelay() const
     return d->loginDelay;
 }
 
-void Greeter::loadConfig()
-{
-    if(d->haveConfig)
-        return;
-  
-     QString file;
-     if(false)
-       file = d->lightdmInterface->property("ConfigFile").toString();
-     qDebug() << "Loading configuration from " << file;
-     d->config = new QSettings(file, QSettings::IniFormat);
-
-    d->haveConfig = true;
-}
-
 void Greeter::loadUsers()
 {
     QStringList hiddenUsers, hiddenShells;
     int minimumUid;
     QList<User*> users, oldUsers, newUsers, changedUsers;
 
-    loadConfig();
-
-    if(d->config->contains("UserManager/minimum-uid"))
-        minimumUid = d->config->value("UserManager/minimum-uid").toInt();
-    else
-        minimumUid = 500;
-
-    if (d->config->contains("UserManager/hidden-shells"))
-        hiddenUsers = d->config->value("UserManager/hidden-shells").toString().split(" ");
-    else
-        hiddenUsers << "nobody" << "nobody4" << "noaccess";
-
-    if (d->config->contains("UserManager/hidden-shells"))
-        hiddenShells = d->config->value("UserManager/hidden-shells").toString().split(" ");
-    else
-        hiddenShells << "/bin/false" << "/usr/sbin/nologin";
+    minimumUid = d->config->minimumUid();
+    hiddenUsers = d->config->hiddenUsers();
+    hiddenShells = d->config->hiddenShells();
 
     setpwent();
 
@@ -565,18 +542,11 @@ void Greeter::updateUsers()
     if (d->haveUsers) {
         return;
     }
-  
-    loadConfig();
 
-    /* User listing is disabled */
-    if (d->config->contains("UserManager/load-users") &&
-        !d->config->value("UserManager/load-users").toBool())
-    {
-        d->haveUsers = true;
-        return;
+    /** Load users if we need to. */
+    if (d->config->loadUsers()) {
+        loadUsers();
     }
-
-    loadUsers();
 
     d->haveUsers = true;
 }

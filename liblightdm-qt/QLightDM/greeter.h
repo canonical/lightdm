@@ -46,6 +46,7 @@ namespace QLightDM
 	QString defaultLayout() const;
 	QString layout() const;
 
+        //TODO why did I make this? the clients can just create a session model when they need to
 	QLightDM::SessionsModel *sessionsModel() const;
 	QString defaultSession() const;
 
@@ -96,7 +97,6 @@ namespace QLightDM
 	int getPacketLength();
 	int readInt(int *offset);
 	QString readString(int *offset);
-	void loadConfig();
 	void loadUsers();
 	void updateUsers();
     };

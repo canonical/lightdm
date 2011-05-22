@@ -27,6 +27,7 @@ namespace QLightDM
 
         /** The username of the user*/
         QString name() const;
+
         /** The user's real name, use this for displaying*/
         QString realName() const;
 

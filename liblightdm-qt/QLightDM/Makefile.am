@@ -3,13 +3,17 @@ lib_LTLIBRARIES = liblightdm-qt-0.la
 # Generate metadata for QObjects
 MOC_FILES = \
 	greeter_moc.cpp \
-	sessionsmodel_moc.cpp
+	sessionsmodel_moc.cpp \
+	user_moc.cpp \
+	config_moc.cpp
 
 greeter_moc.cpp: greeter.h
 	moc $< -o $@
 sessionsmodel_moc.cpp: sessionsmodel.h
 	moc $< -o $@
 user_moc.cpp: user.h
+	moc $< -o $@
+config_moc.cpp: config.h
 	moc $< -o $@
 
 
@@ -18,10 +22,13 @@ liblightdm_qt_0include_HEADERS = \
 	language.h \
 	sessionsmodel.h \
 	user.h \
+	config.h \
 	Greeter \
 	Language \
 	SessionsModel \
-	User
+	User \
+	Config
+
 liblightdm_qt_0includedir=$(includedir)/lightdm-qt-0/lightdm
 
 liblightdm_qt_0_la_LIBADD = $(LIBLIGHTDM_QT_LIBS)
@@ -33,6 +40,7 @@ liblightdm_qt_0_la_SOURCES = \
 	language.cpp \
 	sessionsmodel.cpp \
 	user.cpp \
+	config.cpp \
 	$(MOC_FILES)
 
 pkgconfigdir = $(libdir)/pkgconfig
