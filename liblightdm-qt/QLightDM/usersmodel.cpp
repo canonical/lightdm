@@ -66,19 +66,15 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
 }
 
 
-void UsersModel::loadUsers()
+QList<User> UsersModel::getUsers()
 {
-    QStringList hiddenUsers, hiddenShells;
-    int minimumUid;
-    QList<User> newUsers;
+    int minimumUid = d->config->minimumUid();
+    QStringList hiddenUsers = d->config->hiddenUsers();
+    QStringList hiddenShells = d->config->hiddenShells();
 
-    minimumUid = d->config->minimumUid();
-    hiddenUsers = d->config->hiddenUsers();
-    hiddenShells = d->config->hiddenShells();
-    //FIXME accidently not got the "if contact removed" code. Need to fix.
+    QList<User> users;
 
     setpwent();
-
     while(TRUE)
     {
         struct passwd *entry;
@@ -89,40 +85,34 @@ void UsersModel::loadUsers()
 
         errno = 0;
         entry = getpwent();
-        if(!entry)
+        if(!entry) {
             break;
-
-        /* Ignore system users */
-        if(entry->pw_uid < minimumUid)
-            continue;
-
-        /* Ignore users disabled by shell */
-        if(entry->pw_shell)
-        {
-            for(i = 0; i < hiddenShells.size(); i++)
-                if(entry->pw_shell == hiddenShells.at(i))
-                    break;
-            if(i < hiddenShells.size())
-                continue;
         }
 
-        /* Ignore certain users */
-        for(i = 0; i < hiddenUsers.size(); i++)
-            if(entry->pw_name == hiddenUsers.at(i))
-                break;
-        if(i < hiddenUsers.size())
+        /* Ignore system users */
+        if(entry->pw_uid < minimumUid) {
             continue;
+        }
+
+        /* Ignore users disabled by shell */
+        if(entry->pw_shell) {
+            if (hiddenShells.contains(entry->pw_shell)) {
+                continue;
+            }
+        }
+
+        if (hiddenUsers.contains(entry->pw_name)) {
+            continue;
+        }
 
         tokens = QString(entry->pw_gecos).split(",");
         if(tokens.size() > 0 && tokens.at(i) != "")
             realName = tokens.at(i);
 
-
         //replace this with QFile::exists();
         QDir homeDir(entry->pw_dir);
         imageFile = new QFile(homeDir.filePath(".face"));
-        if(!imageFile->exists())
-        {
+        if(!imageFile->exists()) {
             delete imageFile;
             imageFile = new QFile(homeDir.filePath(".face.icon"));
         }
@@ -131,24 +121,8 @@ void UsersModel::loadUsers()
         }
         delete imageFile;
 
-        //FIXME don't create objects on the heap in the middle of a loop with breaks in it! Destined for fail.
-        //FIXME pointers all over the place in this code.
         User user(entry->pw_name, realName, entry->pw_dir, image, false);
-
-        /* Update existing users if have them */
-        bool matchedUser = false;
-
-        for (int i=0; i < d->users.size(); i++)
-        {
-            if(d->users[i].name() == user.name()) {
-                matchedUser = true;
-                d->users[i].update(user.realName(), user.homeDirectory(), user.image(), user.isLoggedIn());
-                dataChanged(createIndex(i, 0), createIndex(i,0));
-            }
-        }
-        if(!matchedUser) {
-            newUsers.append(user);
-        }
+        users.append(user);
     }
 
     if(errno != 0) {
@@ -156,16 +130,59 @@ void UsersModel::loadUsers()
     }
 
     endpwent();
+    return users;
+}
+
+void UsersModel::loadUsers()
+{
+    QList<User> usersToAdd;
 
     //FIXME accidently not got the "if contact removed" code. Need to restore that.
     //should call beginRemoveRows, and then remove the row from the model.
     //might get rid of "User" object, keep as private object (like sessionsmodel) - or make it copyable.
 
 
+    //loop through all the new list of users, if it's in the list already update it (or do nothing) otherwise append to list of new users
+    QList<User> newUserList = getUsers();
+
+    foreach(const User &user, newUserList) {
+        bool alreadyInList = false;
+        for(int i=0; i < d->users.size(); i++) {
+            if (user.name() == d->users[i].name()) {
+                alreadyInList = true;
+                d->users[i].update(user.name(), user.homeDirectory(), user.image(), user.isLoggedIn());
+                QModelIndex index = createIndex(i,0);
+                dataChanged(index, index);
+            }
+        }
+
+        if (!alreadyInList) {
+            usersToAdd.append(user);
+        }
+    }
+
+    //loop through all the existing users, if they're not in the newly gathered list, remove them.
+
+    //FIXME this isn't perfect, looping like this in a mutating list - use mutable iterator.
+    for (int i=0; i < d->users.size() ; i++) {
+        bool found = false;
+        foreach(const User &user, newUserList) {
+            if (d->users[i].name() == user.name()) {
+                found = true;
+            }
+        }
+
+        if (!found) {
+            beginRemoveRows(QModelIndex(), i, i);
+            d->users.removeAt(i);
+            endRemoveRows();
+        }
+    }
+
     //append new users
-    if (newUsers.size() > 0) {
-        beginInsertRows(QModelIndex(), 0, newUsers.size());
-        d->users.append(newUsers);
+    if (usersToAdd.size() > 0) {
+        beginInsertRows(QModelIndex(), d->users.size(), d->users.size() + usersToAdd.size() -1);
+        d->users.append(usersToAdd);
         endInsertRows();
     }
 }
