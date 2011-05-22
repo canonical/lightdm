@@ -38,7 +38,7 @@
     </widget>
    </item>
    <item>
-    <widget class="QListWidget" name="userList"/>
+    <widget class="QListView" name="userListView"/>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">

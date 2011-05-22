@@ -12,7 +12,7 @@ class GreeterPrivate;
 
 namespace QLightDM
 {
-  class SessionsModel;
+  class Config;
   
   class Q_DECL_EXPORT Greeter : public QObject
   {
@@ -37,8 +37,6 @@ namespace QLightDM
 	QString timedLoginUser() const;
 	int timedLoginDelay() const;
 
-	QList<QLightDM::User*> users();
-
 	QList<QLightDM::Language> languages() const;
 	QString defaultLanguage() const;
 
@@ -46,8 +44,8 @@ namespace QLightDM
 	QString defaultLayout() const;
 	QString layout() const;
 
-        //TODO why did I make this? the clients can just create a session model when they need to
-	QLightDM::SessionsModel *sessionsModel() const;
+        QLightDM::Config *config() const;
+
 	QString defaultSession() const;
 
 	bool inAuthentication() const;
@@ -80,9 +78,6 @@ namespace QLightDM
 	void showError(QString message);
 	void authenticationComplete(bool isAuthenticated);
 	void timedLogin(QString username);
-        void userAdded(User *user);
-        void userChanged(User *user);
-        void userRemoved(User *user);
 	void quit();
     
     private slots:  
@@ -97,8 +92,6 @@ namespace QLightDM
 	int getPacketLength();
 	int readInt(int *offset);
 	QString readString(int *offset);
-	void loadUsers();
-	void updateUsers();
     };
 
 };//end namespace

@@ -5,7 +5,8 @@ MOC_FILES = \
 	greeter_moc.cpp \
 	sessionsmodel_moc.cpp \
 	user_moc.cpp \
-	config_moc.cpp
+	config_moc.cpp \
+	usersmodel_moc.cpp 
 
 greeter_moc.cpp: greeter.h
 	moc $< -o $@
@@ -15,6 +16,8 @@ user_moc.cpp: user.h
 	moc $< -o $@
 config_moc.cpp: config.h
 	moc $< -o $@
+usersmodel_moc.cpp: usersmodel.h
+	moc $< -o $@
 
 
 liblightdm_qt_0include_HEADERS = \
@@ -23,6 +26,7 @@ liblightdm_qt_0include_HEADERS = \
 	sessionsmodel.h \
 	user.h \
 	config.h \
+	usersmodel.h \
 	Greeter \
 	Language \
 	SessionsModel \
@@ -41,6 +45,7 @@ liblightdm_qt_0_la_SOURCES = \
 	sessionsmodel.cpp \
 	user.cpp \
 	config.cpp \
+	usersmodel.cpp \
 	$(MOC_FILES)
 
 pkgconfigdir = $(libdir)/pkgconfig

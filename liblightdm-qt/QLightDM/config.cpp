@@ -2,6 +2,8 @@
 
 #include <QtCore/QSettings>
 
+#include <QDebug>
+
 using namespace QLightDM;
 
 class ConfigPrivate {
@@ -13,11 +15,17 @@ Config::Config(QString filePath, QObject *parent) :
     QObject(parent),
     d (new ConfigPrivate())
 {
+    qDebug() << "creating config";
+    qDebug() << this;
     d->settings = new QSettings(filePath, QSettings::IniFormat, this);
+    qDebug() << d->settings;
+    qDebug() << d->settings->value("UserManager/load-users", QVariant(true)).toBool();
 }
 
 Config::~Config()
 {
+    qDebug() << "deleting config";
+
     delete d;
 }
 
@@ -47,5 +55,7 @@ QStringList Config::hiddenUsers() const
 
 bool QLightDM::Config::loadUsers() const
 {
+    qDebug() << this;
+    qDebug() << d->settings;
     return d->settings->value("UserManager/load-users", QVariant(true)).toBool();
 }

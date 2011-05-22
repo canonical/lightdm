@@ -10,8 +10,8 @@
 
 class ConfigPrivate;
 
-//Ideas:
-//    This uses an sync method to get the filename to load from dbus. For bonus points we should make it async and emit a sort of "finsihed() signal"
+//Logic for loading file name should be here.
+//For bonus points it should be async.
 
 namespace QLightDM
 {
