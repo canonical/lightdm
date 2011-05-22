@@ -4,15 +4,12 @@ lib_LTLIBRARIES = liblightdm-qt-0.la
 MOC_FILES = \
 	greeter_moc.cpp \
 	sessionsmodel_moc.cpp \
-	user_moc.cpp \
 	config_moc.cpp \
 	usersmodel_moc.cpp 
 
 greeter_moc.cpp: greeter.h
 	moc $< -o $@
 sessionsmodel_moc.cpp: sessionsmodel.h
-	moc $< -o $@
-user_moc.cpp: user.h
 	moc $< -o $@
 config_moc.cpp: config.h
 	moc $< -o $@

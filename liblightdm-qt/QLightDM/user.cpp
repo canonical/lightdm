@@ -1,8 +1,10 @@
 #include "user.h"
 
+#include <QtCore/QSharedData>
+
 using namespace QLightDM;
 
-class UserPrivate
+class UserPrivate : public QSharedData
 {
 public:
     QString name;
@@ -17,8 +19,7 @@ User::User():
 {
 }
 
-User::User(const QString& name, const QString& realName, const QString& homeDirectory, const QString& image, bool isLoggedIn, QObject *parent) :
-    QObject(parent),
+User::User(const QString& name, const QString& realName, const QString& homeDirectory, const QString& image, bool isLoggedIn) :
     d(new UserPrivate)
 {
     d->name = name;
@@ -28,33 +29,42 @@ User::User(const QString& name, const QString& realName, const QString& homeDire
     d->isLoggedIn = isLoggedIn;
 }
 
+User::User(const User &other)
+    : d(other.d)
+{
+}
+
 User::~User()
 {
-    delete d;
+}
+
+
+User& User::operator=(const User& other)
+{
+    d = other.d;
+    return *this;
 }
 
 bool User::update(const QString& realName, const QString& homeDirectory, const QString& image, bool isLoggedIn)
 {
-    if (d->realName == realName && d->homeDirectory == homeDirectory && d->image == image && d->isLoggedIn == isLoggedIn)
+    if (d->realName == realName && d->homeDirectory == homeDirectory && d->image == image && d->isLoggedIn == isLoggedIn) {
         return false;
+    }
 
     d->realName = realName;
     d->homeDirectory = homeDirectory;
     d->image = image;
     d->isLoggedIn = isLoggedIn;
 
-    Q_EMIT changed();
     return true;
 }
 
 QString User::displayName() const
 {
-    if (!d->realName.isEmpty())
-    {
+    if (!d->realName.isEmpty()) {
         return d->realName;
     }
-    else
-    {
+    else {
         return d->name;
     }
 }
@@ -83,4 +93,3 @@ bool User::isLoggedIn() const
 {
     return d->isLoggedIn;
 }
-

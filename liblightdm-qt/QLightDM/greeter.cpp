@@ -11,8 +11,10 @@
 #include <QtCore/QDir>
 #include <QtCore/QVariant>
 #include <QtCore/QFile>
+#include <QtCore/QSocketNotifier>
 #include <QtDBus/QDBusPendingReply>
-
+#include <QtDBus/QDBusInterface>
+#include <QtDBus/QDBusReply>
 
 typedef enum
 {

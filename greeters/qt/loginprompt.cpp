@@ -1,12 +1,15 @@
 #include "loginprompt.h"
 #include "ui_loginprompt.h"
 
+
+
 #include <QLightDM/Greeter>
 #include <QLightDM/User>
 #include <QLightDM/Language>
+#include <QLightDM/UsersModel>
 
-#include <QListWidgetItem>
-#include <QLightDM/usersmodel.h>
+#include <QtCore/QDebug>
+#include <QtGui/QListWidgetItem>
 
 LoginPrompt::LoginPrompt(QLightDM::Greeter *greeter, QWidget *parent) :
     QWidget(parent),

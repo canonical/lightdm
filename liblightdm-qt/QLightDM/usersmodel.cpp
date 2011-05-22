@@ -7,13 +7,17 @@
 
 #include <QtCore/QString>
 #include <QtCore/QFileSystemWatcher>
+#include <QtCore/QFile>
+#include <QtCore/QDir>
+#include <QtCore/QDebug>
+
 #include <QtGui/QPixmap>
 
 using namespace QLightDM;
 
 class UsersModelPrivate {
 public:
-    QList<User*> users;
+    QList<User> users;
     QLightDM::Config *config;
 };
 
@@ -53,9 +57,9 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
     int row = index.row();
     switch (role) {
     case Qt::DisplayRole:
-        return d->users[row]->displayName();
+        return d->users[row].displayName();
     case Qt::DecorationRole:
-        return QPixmap(d->users[row]->image());
+        return QPixmap(d->users[row].image());
     }
 
     return QVariant();
@@ -66,7 +70,7 @@ void UsersModel::loadUsers()
 {
     QStringList hiddenUsers, hiddenShells;
     int minimumUid;
-    QList<User*> newUsers;
+    QList<User> newUsers;
 
     minimumUid = d->config->minimumUid();
     hiddenUsers = d->config->hiddenUsers();
@@ -78,7 +82,6 @@ void UsersModel::loadUsers()
     while(TRUE)
     {
         struct passwd *entry;
-        User *user;
         QStringList tokens;
         QString realName, image;
         QFile *imageFile;
@@ -130,19 +133,17 @@ void UsersModel::loadUsers()
 
         //FIXME don't create objects on the heap in the middle of a loop with breaks in it! Destined for fail.
         //FIXME pointers all over the place in this code.
-        user = new User(entry->pw_name, realName, entry->pw_dir, image, false, this);
+        User user(entry->pw_name, realName, entry->pw_dir, image, false);
 
         /* Update existing users if have them */
         bool matchedUser = false;
 
         for (int i=0; i < d->users.size(); i++)
         {
-            User* info = d->users[i];
-            if(info->name() == user->name()) {
+            if(d->users[i].name() == user.name()) {
                 matchedUser = true;
-                info->update(user->realName(), user->homeDirectory(), user->image(), user->isLoggedIn());
+                d->users[i].update(user.realName(), user.homeDirectory(), user.image(), user.isLoggedIn());
                 dataChanged(createIndex(i, 0), createIndex(i,0));
-                delete user;
             }
         }
         if(!matchedUser) {

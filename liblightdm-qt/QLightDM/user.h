@@ -2,23 +2,24 @@
 #define QLIGTHDM_USER_H
 
 #include <QtCore/QString>
-#include <QtCore/QObject>
-
-#include <QtDBus/QtDBus>
+#include <QtCore/QSharedDataPointer>
 
 class UserPrivate;
 
 namespace QLightDM
 {
     //public facing User class
-    class Q_DECL_EXPORT User : QObject
-    {
-    Q_OBJECT
+    /** Class storing user information.
+      This is an implicitly shared class. */
 
+    class Q_DECL_EXPORT User
+    {
     public:
         explicit User();
-        User(const QString &name, const QString &realName, const QString &homeDirectory, const QString &image, bool isLoggedIn, QObject *parent=0);
+        User(const QString &name, const QString &realName, const QString &homeDirectory, const QString &image, bool isLoggedIn);
+        User(const User& other);
         ~User();
+        User &operator=(const User& other);
 
         bool update(const QString &realName, const QString &homeDirectory, const QString &image, bool isLoggedIn);
 
@@ -27,7 +28,6 @@ namespace QLightDM
 
         /** The username of the user*/
         QString name() const;
-
         /** The user's real name, use this for displaying*/
         QString realName() const;
 
@@ -40,15 +40,10 @@ namespace QLightDM
         /** Returns true if this user is already logged in on another session*/
         bool isLoggedIn() const;
 
-    Q_SIGNALS:
-        void changed();
-
+    //    LdmUser &operator=(const LdmUser user);
     private:
-        Q_DISABLE_COPY(User);
-        UserPrivate* d;
+        QSharedDataPointer<UserPrivate> d;
     };
 }
-
-Q_DECLARE_METATYPE(QLightDM::User*);
 
 #endif // LDMUSER_H
