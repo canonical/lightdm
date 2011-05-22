@@ -42,7 +42,9 @@ Panel::Panel(QLightDM::Greeter *greeter, QWidget *parent):
 
     ui->powerOptionsButton->setMenu(powerMenu);
 
-    ui->sessionCombo->setModel(m_greeter->sessionsModel());
+    
+    QLightDM::SessionsModel* sessionsModel = new QLightDM::SessionsModel(this);
+    ui->sessionCombo->setModel(sessionsModel);
 }
 
 Panel::~Panel()

@@ -1,8 +1,10 @@
 #include "user.h"
 
+#include <QtCore/QSharedData>
+
 using namespace QLightDM;
 
-class UserPrivate
+class UserPrivate : public QSharedData
 {
 public:
     QString name;
@@ -28,26 +30,26 @@ User::User(const QString& name, const QString& realName, const QString& homeDire
 }
 
 User::User(const User &other)
-    :d(new UserPrivate(*other.d))
+    : d(other.d)
 {
 }
 
 User::~User()
 {
-    delete d;
 }
 
 
 User& User::operator=(const User& other)
 {
-    *d = *other.d;
+    d = other.d;
     return *this;
 }
 
 bool User::update(const QString& realName, const QString& homeDirectory, const QString& image, bool isLoggedIn)
 {
-    if (d->realName == realName && d->homeDirectory == homeDirectory && d->image == image && d->isLoggedIn == isLoggedIn)
+    if (d->realName == realName && d->homeDirectory == homeDirectory && d->image == image && d->isLoggedIn == isLoggedIn) {
         return false;
+    }
 
     d->realName = realName;
     d->homeDirectory = homeDirectory;
@@ -59,12 +61,10 @@ bool User::update(const QString& realName, const QString& homeDirectory, const Q
 
 QString User::displayName() const
 {
-    if (!d->realName.isEmpty())
-    {
+    if (!d->realName.isEmpty()) {
         return d->realName;
     }
-    else
-    {
+    else {
         return d->name;
     }
 }

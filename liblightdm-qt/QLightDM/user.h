@@ -1,14 +1,17 @@
 #ifndef QLIGTHDM_USER_H
 #define QLIGTHDM_USER_H
 
-#include <QString>
-#include <QtDBus/QtDBus>
+#include <QtCore/QString>
+#include <QtCore/QSharedDataPointer>
 
 class UserPrivate;
 
 namespace QLightDM
 {
     //public facing User class
+    /** Class storing user information.
+      This is an implicitly shared class. */
+
     class Q_DECL_EXPORT User
     {
     public:
@@ -39,11 +42,8 @@ namespace QLightDM
 
     //    LdmUser &operator=(const LdmUser user);
     private:
-        UserPrivate* d;
+        QSharedDataPointer<UserPrivate> d;
     };
 }
-
-Q_DECLARE_METATYPE(QLightDM::User);
-Q_DECLARE_METATYPE(QList<QLightDM::User>);
 
 #endif // LDMUSER_H

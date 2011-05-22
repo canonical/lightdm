@@ -1,11 +1,15 @@
 #include "loginprompt.h"
 #include "ui_loginprompt.h"
 
+
+
 #include <QLightDM/Greeter>
 #include <QLightDM/User>
 #include <QLightDM/Language>
+#include <QLightDM/UsersModel>
 
-#include <QListWidgetItem>
+#include <QtCore/QDebug>
+#include <QtGui/QListWidgetItem>
 
 LoginPrompt::LoginPrompt(QLightDM::Greeter *greeter, QWidget *parent) :
     QWidget(parent),
@@ -14,22 +18,11 @@ LoginPrompt::LoginPrompt(QLightDM::Greeter *greeter, QWidget *parent) :
 {
     ui->setupUi(this);
     ui->feedbackLabel->setText(QString());
-
-    m_greeter->connectToServer();
-
+    
     ui->hostnameLabel->setText(m_greeter->hostname());
-
-    QList<QLightDM::User*> users = m_greeter->users();
-    foreach(QLightDM::User *user, users) {
-        QListWidgetItem* item = new QListWidgetItem(user->displayName(), ui->userList);
-        item->setData(Qt::UserRole, user->name());
-        if(user->image().isEmpty())         {
-            item->setIcon(QIcon::fromTheme("user-identity"));
-        } else {
-            item->setIcon(QIcon(user->image()));
-        }
-
-    }
+    
+    QLightDM::UsersModel *usersModel = new QLightDM::UsersModel(greeter->config(), this);
+    ui->userListView->setModel(usersModel);
 
     connect(ui->loginButton, SIGNAL(released()), SLOT(onLoginButtonClicked()));
     connect(m_greeter, SIGNAL(authenticationComplete(bool)), SLOT(onAuthenticationComplete(bool)));
@@ -41,11 +34,12 @@ LoginPrompt::~LoginPrompt()
     delete ui;
 }
 
+
 void LoginPrompt::onLoginButtonClicked()
 {
     ui->feedbackLabel->setText(QString());
-    if (ui->userList->currentItem()) {
-        m_greeter->startAuthentication(ui->userList->currentItem()->data(Qt::UserRole).toString());
+    if (ui->userListView->currentIndex().isValid()) {
+        m_greeter->startAuthentication(ui->userListView->currentIndex().data(Qt::UserRole).toString());
     }
 }
 

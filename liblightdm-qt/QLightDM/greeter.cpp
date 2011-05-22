@@ -2,18 +2,19 @@
 
 #include "user.h"
 #include "sessionsmodel.h"
+#include "config.h"
 
 #include <security/pam_appl.h>
-#include <pwd.h>
-#include <errno.h>
 
 #include <QtNetwork/QHostInfo> //needed for localHostName
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
 #include <QtCore/QVariant>
 #include <QtCore/QFile>
+#include <QtCore/QSocketNotifier>
 #include <QtDBus/QDBusPendingReply>
-
+#include <QtDBus/QDBusInterface>
+#include <QtDBus/QDBusReply>
 
 typedef enum
 {
@@ -45,12 +46,7 @@ public:
     int loginDelay;
     
     SessionsModel *sessionsModel;
-
-    QSettings *config;
-    bool haveConfig;
-
-    QList<User*> users;
-    bool haveUsers;
+    Config *config;
 
     QDBusInterface* lightdmInterface;
     QDBusInterface* powerManagementInterface;
@@ -73,9 +69,7 @@ Greeter::Greeter(QObject *parent) :
 {
     d->readBuffer = (char *)malloc (HEADER_SIZE);
     d->nRead = 0;
-    d->haveConfig = false;
-    d->haveUsers = false;
-    
+    d->config = 0;
     d->sessionsModel = new SessionsModel(this);
 }
 
@@ -167,10 +161,14 @@ void Greeter::connectToServer()
         busType = QDBusConnection::sessionBus();
     }
 
-
     d->lightdmInterface = new QDBusInterface("org.lightdm.LightDisplayManager", "/org/lightdm/LightDisplayManager", "org.lightdm.LightDisplayManager", busType);
     d->powerManagementInterface = new QDBusInterface("org.freedesktop.PowerManagement","/org/freedesktop/PowerManagement", "org.freedesktop.PowerManagement");
     d->consoleKitInterface = new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit");
+
+    QString file;
+    file = d->lightdmInterface->property("ConfigFile").toString();
+    qDebug() << "Loading configuration from " << file;
+    d->config = new Config(file, this);
 
     char* fd = getenv("LDM_TO_SERVER_FD");
     if(!fd) {
@@ -197,6 +195,9 @@ void Greeter::connectToServer()
     qDebug() << "Connecting to display manager...";
     writeHeader(GREETER_MESSAGE_CONNECT, 0);
     flush();
+
+
+
 }
 
 void Greeter::startAuthentication(const QString &username)
@@ -402,196 +403,10 @@ int Greeter::timedLoginDelay() const
     return d->loginDelay;
 }
 
-void Greeter::loadConfig()
+Config* Greeter::config() const
 {
-    if(d->haveConfig)
-        return;
-  
-     QString file;
-     if(false)
-       file = d->lightdmInterface->property("ConfigFile").toString();
-     qDebug() << "Loading configuration from " << file;
-     d->config = new QSettings(file, QSettings::IniFormat);
-
-    d->haveConfig = true;
+    return d->config;
 }
-
-void Greeter::loadUsers()
-{
-    QStringList hiddenUsers, hiddenShells;
-    int minimumUid;
-    QList<User*> users, oldUsers, newUsers, changedUsers;
-
-    loadConfig();
-
-    if(d->config->contains("UserManager/minimum-uid"))
-        minimumUid = d->config->value("UserManager/minimum-uid").toInt();
-    else
-        minimumUid = 500;
-
-    if (d->config->contains("UserManager/hidden-shells"))
-        hiddenUsers = d->config->value("UserManager/hidden-shells").toString().split(" ");
-    else
-        hiddenUsers << "nobody" << "nobody4" << "noaccess";
-
-    if (d->config->contains("UserManager/hidden-shells"))
-        hiddenShells = d->config->value("UserManager/hidden-shells").toString().split(" ");
-    else
-        hiddenShells << "/bin/false" << "/usr/sbin/nologin";
-
-    setpwent();
-
-    while(TRUE)
-    {
-        struct passwd *entry;
-        User *user;
-        QStringList tokens;
-        QString realName, image;
-        QFile *imageFile;
-        int i;
-
-        errno = 0;
-        entry = getpwent();
-        if(!entry)
-            break;
-
-        /* Ignore system users */
-        if(entry->pw_uid < minimumUid)
-            continue;
-
-        /* Ignore users disabled by shell */
-        if(entry->pw_shell)
-        {
-            for(i = 0; i < hiddenShells.size(); i++)
-                if(entry->pw_shell == hiddenShells.at(i))
-                    break;
-            if(i < hiddenShells.size())
-                continue;
-        }
-
-        /* Ignore certain users */
-        for(i = 0; i < hiddenUsers.size(); i++)
-            if(entry->pw_name == hiddenUsers.at(i))
-                break;
-        if(i < hiddenUsers.size())
-            continue;
- 
-        tokens = QString(entry->pw_gecos).split(",");
-        if(tokens.size() > 0 && tokens.at(i) != "")
-            realName = tokens.at(i);
-      
-        QDir homeDir(entry->pw_dir);
-        imageFile = new QFile(homeDir.filePath(".face"));
-        if(!imageFile->exists())
-        {
-            delete imageFile;
-            imageFile = new QFile(homeDir.filePath(".face.icon"));
-        }
-        if(imageFile->exists())
-            image = "file://" + imageFile->fileName();
-        delete imageFile;
-
-        user = new User(entry->pw_name, realName, entry->pw_dir, image, FALSE);
-
-        /* Update existing users if have them */
-        bool matchedUser = false;
-        foreach(User *info, d->users)
-        {
-            if(info->name() == user->name())
-            {
-                matchedUser = true;
-                if(info->update(user->realName(), user->homeDirectory(), user->image(), user->isLoggedIn()))
-                    changedUsers.append(user);
-                delete user;
-                user = info;
-                break;
-            }
-        }
-        if(!matchedUser)
-        {
-            /* Only notify once we have loaded the user list */
-            if(d->haveUsers)
-                newUsers.append(user);
-        }
-        users.append(user);
-    }
-
-    if(errno != 0)
-        qDebug() << "Failed to read password database: " << strerror(errno);
-
-    endpwent();
-
-    /* Use new user list */
-    oldUsers = d->users;
-    d->users = users;
-
-    /* Notify of changes */
-    foreach(User *user, newUsers)
-    {
-        qDebug() << "User " << user->name() << " added";
-        emit userAdded(user);
-    }
-
-    foreach(User *user, changedUsers)
-    {
-        qDebug() << "User " << user->name() << " changed";
-        emit userChanged(user);
-    }
-
-    foreach(User *user, oldUsers)
-    {
-        /* See if this user is in the current list */
-        bool existing = false;
-        foreach(User *new_user, d->users)
-        {
-            if (new_user == user)
-            {
-                existing = true;
-                break;
-            }
-        }
-
-        if(!existing)
-        {
-            qDebug() << "User " << user->name() << " removed";
-            emit userRemoved(user);
-            delete user;
-        }
-    }
-}
-
-void Greeter::updateUsers()
-{
-    if (d->haveUsers) {
-        return;
-    }
-  
-    loadConfig();
-
-    /* User listing is disabled */
-    if (d->config->contains("UserManager/load-users") &&
-        !d->config->value("UserManager/load-users").toBool())
-    {
-        d->haveUsers = true;
-        return;
-    }
-
-    loadUsers();
-
-    d->haveUsers = true;
-}
-
-QList<User*> Greeter::users()
-{
-    updateUsers();
-    return d->users;
-}
-
-SessionsModel* Greeter::sessionsModel() const
-{
-    return d->sessionsModel; 
-}
-
 
 bool Greeter::canSuspend() const
 {
