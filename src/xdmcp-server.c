@@ -250,7 +250,10 @@ handle_query (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XDM
     {
         response = xdmcp_packet_alloc (XDMCP_Unwilling);
         response->Unwilling.hostname = g_strdup (server->priv->hostname);
-        response->Unwilling.status = g_strdup (server->priv->status);
+        if (strcmp (server->priv->authentication_name, "") != 0)
+            response->Unwilling.status = g_strdup_printf ("No matching authentication, server requires %s", server->priv->authentication_name);
+        else
+            response->Unwilling.status = g_strdup ("Server does not support authentication");
     }
   
     send_packet (socket, address, response);
