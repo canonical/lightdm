@@ -253,7 +253,10 @@ xserver_connect (XServer *server)
         setenv ("XAUTHORITY", server->priv->authorization_path, TRUE);
     }
 
+    g_debug ("Connecting to XServer %s", xserver_get_address (server));
     server->priv->connection = xcb_connect (xserver_get_address (server), NULL);
+    if (xcb_connection_has_error (server->priv->connection))
+        g_debug ("Error connecting to XServer %s", xserver_get_address (server));
 
     if (server->priv->authorization_file)
     {

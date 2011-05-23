@@ -4,6 +4,7 @@ Overview of changes in lightdm 0.3.4
     * Fix --with-cache-dir not working
     * Set greeterdir in .pc files to point to where greeter engines should be
       installed
+    * Fix XDMCP authentication/authorization errors
 
 Overview of changes in lightdm 0.3.3
 

@@ -338,10 +338,14 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     /* Perform requested authorization */
     if (strcmp (server->priv->authorization_name, "MIT-MAGIC-COOKIE-1") == 0)
     {
+        XAuthorization *auth;
+
         /* Data is the cookie */
-        authorization_data = g_malloc (sizeof (guchar) * server->priv->authorization_data_length);
-        memcpy (authorization_data, server->priv->authorization_data, server->priv->authorization_data_length);
-        authorization_data_length = server->priv->authorization_data_length;
+        auth = xauth_new_cookie ();
+        authorization_data = xauth_copy_authorization_data (auth);
+        authorization_data_length = xauth_get_authorization_data_length (auth);
+        session_authorization_data = xauth_copy_authorization_data (auth);
+        session_authorization_data_length = xauth_get_authorization_data_length (auth);
     }
     else if (strcmp (server->priv->authorization_name, "XDM-AUTHORIZATION-1") == 0)
     {

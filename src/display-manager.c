@@ -590,14 +590,7 @@ display_manager_start (DisplayManager *manager)
             g_free (key);
         }
         else
-        {
-            XAuthorization *authorization = xauth_new_cookie ();
-            xdmcp_server_set_authorization (manager->priv->xdmcp_server,
-                                            xauth_get_authorization_name (authorization),
-                                            xauth_copy_authorization_data (authorization),
-                                            xauth_get_authorization_data_length (authorization));
-            g_object_unref (authorization);
-        }
+            xdmcp_server_set_authorization (manager->priv->xdmcp_server, "MIT-MAGIC-COOKIE-1", NULL, 0);
 
         g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (manager->priv->xdmcp_server));
         xdmcp_server_start (manager->priv->xdmcp_server); 
