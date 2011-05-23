@@ -43,6 +43,8 @@ const gchar *xauth_get_authorization_name (XAuthorization *auth);
 
 const guchar *xauth_get_authorization_data (XAuthorization *auth);
 
+guchar *xauth_copy_authorization_data (XAuthorization *auth);
+
 gsize xauth_get_authorization_data_length (XAuthorization *auth);
 
 GFile *xauth_write (XAuthorization *auth, const gchar *username, const gchar *path, GError **error);

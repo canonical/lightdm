@@ -67,6 +67,14 @@ xauth_get_authorization_data (XAuthorization *auth)
     return auth->priv->authorization_data;
 }
 
+guchar *
+xauth_copy_authorization_data (XAuthorization *auth)
+{
+    gchar *data = g_malloc (auth->priv->authorization_data_length);
+    memcpy (data, auth->priv->authorization_data, auth->priv->authorization_data_length);
+    return data;
+}
+
 gsize
 xauth_get_authorization_data_length (XAuthorization *auth)
 {

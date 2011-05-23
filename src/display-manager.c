@@ -587,8 +587,17 @@ display_manager_start (DisplayManager *manager)
             string_to_xdm_auth_key (key, data);
             xdmcp_server_set_authentication (manager->priv->xdmcp_server, "XDM-AUTHENTICATION-1", data, 8);
             xdmcp_server_set_authorization (manager->priv->xdmcp_server, "XDM-AUTHORIZATION-1", data, 8);
+            g_free (key);
         }
-        g_free (key);
+        else
+        {
+            XAuthorization *authorization = xauth_new_cookie ();
+            xdmcp_server_set_authorization (manager->priv->xdmcp_server,
+                                            xauth_get_authorization_name (authorization),
+                                            xauth_copy_authorization_data (authorization),
+                                            xauth_get_authorization_data_length (authorization));
+            g_object_unref (authorization);
+        }
 
         g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (manager->priv->xdmcp_server));
         xdmcp_server_start (manager->priv->xdmcp_server); 
