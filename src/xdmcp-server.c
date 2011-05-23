@@ -249,8 +249,8 @@ handle_query (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XDM
     else
     {
         response = xdmcp_packet_alloc (XDMCP_Unwilling);
-        response->Willing.hostname = g_strdup (server->priv->hostname);
-        response->Willing.status = g_strdup (server->priv->status);
+        response->Unwilling.hostname = g_strdup (server->priv->hostname);
+        response->Unwilling.status = g_strdup (server->priv->status);
     }
   
     send_packet (socket, address, response);
