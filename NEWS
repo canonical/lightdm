@@ -1,11 +1,16 @@
+Overview of changes in lightdm 0.3.5
+
+    * Massive improvements to Qt greeter
+    * Fix XDMCP authentication/authorization errors
+    * Have the daemon open a connection to a local X server
+    * Tidy up some debugging messages
+    
 Overview of changes in lightdm 0.3.4
 
     * Updates to liblightdm-qt
     * Fix --with-cache-dir not working
     * Set greeterdir in .pc files to point to where greeter engines should be
       installed
-    * Fix XDMCP authentication/authorization errors
-    * Have the daemon open a connection to a local X server
 
 Overview of changes in lightdm 0.3.3
 
