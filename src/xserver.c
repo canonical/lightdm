@@ -398,6 +398,9 @@ xserver_got_signal (ChildProcess *process, int signum)
     {
         server->priv->ready = TRUE;
         g_debug ("Got signal from X server :%d", server->priv->display_number);
+
+        xserver_connect (server);
+
         g_signal_emit (server, signals[READY], 0);
     }
 }
