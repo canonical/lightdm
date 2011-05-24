@@ -437,9 +437,6 @@ connect_cb (LdmGreeter *greeter)
     gchar *theme_dir, *rc_file, *background_image;
     GError *error = NULL;
 
-    root = gdk_get_default_root_window ();
-    gdk_window_set_cursor (root, gdk_cursor_new (GDK_LEFT_PTR));
-
     display = gdk_display_get_default ();
     screen = gdk_display_get_default_screen (display);
     screen_width = gdk_screen_get_width (screen);
@@ -492,6 +489,17 @@ connect_cb (LdmGreeter *greeter)
             background_pixbuf = gdk_pixbuf_scale_simple (pixbuf, screen_width, screen_height, GDK_INTERP_BILINEAR);
             g_object_unref (pixbuf);
         }
+    }
+
+    /* Set the background */
+    root = gdk_get_default_root_window ();
+    gdk_window_set_cursor (root, gdk_cursor_new (GDK_LEFT_PTR));
+    if (background_pixbuf)
+    {
+        GdkPixmap *pixmap;
+
+        gdk_pixbuf_render_pixmap_and_mask_for_colormap (background_pixbuf, gdk_window_get_colormap (root), &pixmap, NULL, 0);
+        gdk_window_set_back_pixmap (root, pixmap, FALSE);
     }
 
     if (!ldm_greeter_get_can_suspend (greeter))
