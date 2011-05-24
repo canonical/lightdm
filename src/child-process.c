@@ -40,6 +40,7 @@ struct ChildProcessPrivate
     gchar *username;
     uid_t uid;
     gid_t gid;
+    gchar *home_dir;
 
     /* Path of file to log to */
     gchar *log_file;
@@ -160,6 +161,12 @@ run_child_process (ChildProcess *process, char *const argv[])
             g_warning ("Failed to set user ID: %s", strerror (errno));
             _exit(1);
         }
+
+        if (chdir (process->priv->home_dir) != 0)
+        {
+            g_warning ("Failed to change to home directory: %s", strerror (errno));
+            _exit(1);
+        }
     }
   
     /* Redirect output to logfile */
@@ -232,6 +239,7 @@ child_process_start (ChildProcess *process,
         process->priv->username = g_strdup (username);
         process->priv->uid = user_info->pw_uid;
         process->priv->gid = user_info->pw_gid;
+        process->priv->home_dir = g_strdup (user_info->pw_dir);
     }
 
     /* Create the log file owned by the target user */
