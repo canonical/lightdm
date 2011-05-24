@@ -428,10 +428,15 @@ set_env_from_pam_session (Session *session, PAMSession *pam_session)
     pam_env = pam_session_get_envlist (pam_session);
     if (pam_env)
     {
+        gchar *env_string;      
         int i;
+
+        env_string = g_strjoinv (" ", pam_env);
+        g_debug ("PAM returns environment %s", env_string);
+        g_free (env_string);
+
         for (i = 0; pam_env[i]; i++)
         {
-            g_debug ("pam_env[%d]=%s", i, pam_env[i]);
             gchar **pam_env_vars = g_strsplit (pam_env[i], "=", 2);
             if (pam_env_vars && pam_env_vars[0] && pam_env_vars[1])
                 child_process_set_env (CHILD_PROCESS (session), pam_env_vars[0], pam_env_vars[1]);
