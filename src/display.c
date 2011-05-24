@@ -660,14 +660,9 @@ greeter_login_cb (Greeter *greeter, const gchar *username, const gchar *session,
 static void
 greeter_quit_cb (Greeter *greeter, Display *display)
 {
-    g_signal_emit (display, signals[END_GREETER], 0, display->priv->greeter_session);
+    g_debug ("Greeter quit");
 
-    /* Start session if waiting for greeter to quit */
-    if (display->priv->user_session && child_process_get_pid (CHILD_PROCESS (display->priv->user_session)) == 0)
-    {
-        g_debug ("Greeter quit, starting user session process");
-        session_start (display->priv->user_session, FALSE);
-    }
+    g_signal_emit (display, signals[END_GREETER], 0, display->priv->greeter_session);
 
     pam_session_end (display->priv->greeter_pam_session);
     g_object_unref (display->priv->greeter_pam_session);
@@ -678,7 +673,14 @@ greeter_quit_cb (Greeter *greeter, Display *display)
 
     end_ck_session (display->priv->greeter_ck_cookie);
     g_free (display->priv->greeter_ck_cookie);
-    display->priv->greeter_ck_cookie = NULL;  
+    display->priv->greeter_ck_cookie = NULL;   
+
+    /* Start session if waiting for greeter to quit */
+    if (display->priv->user_session && child_process_get_pid (CHILD_PROCESS (display->priv->user_session)) == 0)
+    {
+        g_debug ("Starting user session");
+        session_start (display->priv->user_session, FALSE);
+    }
 }
 
 static void
