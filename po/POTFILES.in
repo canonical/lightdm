@@ -4,7 +4,6 @@
 greeters/gtk/lightdm-example-gtk-greeter.c
 [type: gettext/glade]greeters/gtk/greeter.ui
 greeters/python-gtk/lightdm-example-python-gtk-greeter
-greeters/qt/lightdm-example-qt-greeter.cpp
 greeters/vala-gtk/lightdm-example-vala-gtk-greeter.vala
 liblightdm-gobject/greeter.c
 liblightdm-gobject/language.c

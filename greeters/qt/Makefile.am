@@ -17,9 +17,12 @@ panel.cpp: ui_panel.h
 
 lightdm_example_qt_greeter_SOURCES = \
 	greeter.cpp \
+	greeter.h \
 	loginprompt.cpp \
+	loginprompt.h \
 	main.cpp \
 	panel.cpp \
+	panel.h \
 	greeter_moc.cpp \
 	loginprompt_moc.cpp \
 	panel_moc.cpp
@@ -39,6 +42,10 @@ CLEANFILES = \
 	panel_moc.cpp \
 	ui_loginprompt.h \
 	ui_panel.h
+
+EXTRA_DIST = \
+	loginprompt.ui \
+	panel.ui
 
 DISTCLEANFILES = \
 	Makefile.in

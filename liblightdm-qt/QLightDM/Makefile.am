@@ -24,6 +24,7 @@ liblightdm_qt_0include_HEADERS = \
 	user.h \
 	config.h \
 	usersmodel.h \
+	UsersModel \
 	Greeter \
 	Language \
 	SessionsModel \
