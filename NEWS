@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.3.6
+
+    * Allow display vt setting to be set to "active" to start on active VT
+
 Overview of changes in lightdm 0.3.5
 
     * Set working directory when logging in

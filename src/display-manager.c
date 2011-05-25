@@ -13,6 +13,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <xcb/xcb.h>
 #include <pwd.h>
@@ -254,8 +255,9 @@ static gint
 get_vt (DisplayManager *manager, gchar *config_section)
 {
     gchar *tty;
+    gboolean use_active = FALSE;
     gint console_fd;
-    int number;
+    int number = -1;
 
     if (manager->priv->test_mode)
         return -1;
@@ -263,16 +265,37 @@ get_vt (DisplayManager *manager, gchar *config_section)
     tty = g_key_file_get_string (manager->priv->config, config_section, "vt", NULL);
     if (tty)
     {
-        number = atoi (tty);
+        if (strcmp (tty, "active") == 0)
+            use_active = TRUE;
+        else
+            number = atoi (tty);
         g_free (tty);
-        return number;
+
+        if (number >= 0)
+            return number;
     }
 
     console_fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
     if (console_fd < 0)
+    {
+        g_warning ("Error opening /dev/console: %s", strerror (errno));
         return -1;
+    }
 
-    ioctl (console_fd, VT_OPENQRY, &number);
+    if (use_active)
+    {
+        struct vt_stat console_state = { 0 };
+        if (ioctl (console_fd, VT_GETSTATE, &console_state) < 0)
+            g_warning ("Error using VT_GETSTATE on /dev/console: %s", strerror (errno));
+        else
+            number = console_state.v_active;
+    }
+    else
+    {      
+        if (ioctl (console_fd, VT_OPENQRY, &number) < 0)
+            g_warning ("Error using VT_OPENQRY on /dev/console: %s", strerror (errno));
+    }
+
     close (console_fd);
 
     return number;  
