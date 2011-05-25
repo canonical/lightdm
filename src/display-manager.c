@@ -262,7 +262,11 @@ get_vt (DisplayManager *manager, gchar *config_section)
 
     tty = g_key_file_get_string (manager->priv->config, config_section, "vt", NULL);
     if (tty)
-        return atoi (tty);
+    {
+        number = atoi (tty);
+        g_free (tty);
+        return number;
+    }
 
     console_fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
     if (console_fd < 0)
