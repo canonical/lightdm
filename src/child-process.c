@@ -401,12 +401,13 @@ handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
         read (signal_pipe[0], &pid, sizeof (pid_t)) < 0)
         return TRUE;
 
-    if (pid == 0)
+    process = g_hash_table_lookup (processes, GINT_TO_POINTER (pid));
+    if (process == NULL) {
         process = child_process_get_parent ();
-    else
-        process = g_hash_table_lookup (processes, GINT_TO_POINTER (pid));
-    if (process)
+    }
+    if (process) {
         g_signal_emit (process, signals[GOT_SIGNAL], 0, signo);
+    }
 
     return TRUE;
 }
