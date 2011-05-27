@@ -15,9 +15,8 @@ class Q_DECL_EXPORT UsersModel : public QAbstractListModel
 {
     Q_OBJECT
 public:
-    enum UserModelRolws {NameRole = Qt::UserRole,
+    enum UserModelRoles {NameRole = Qt::UserRole,
                          RealNameRole,
-                         HomeDirectoryRole,
                          LoggedInRole
                         };
 

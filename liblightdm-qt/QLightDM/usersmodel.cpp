@@ -60,6 +60,12 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
         return d->users[row].displayName();
     case Qt::DecorationRole:
         return QPixmap(d->users[row].image());
+    case UsersModel::NameRole:
+        return d->users[row].name();
+    case UsersModel::RealNameRole:
+        return d->users[row].realName();
+    case UsersModel::LoggedInRole:
+        return d->users[row].isLoggedIn();
     }
 
     return QVariant();

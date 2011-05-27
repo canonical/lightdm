@@ -1,8 +1,6 @@
 #include "loginprompt.h"
 #include "ui_loginprompt.h"
 
-
-
 #include <QLightDM/Greeter>
 #include <QLightDM/User>
 #include <QLightDM/Language>
@@ -38,8 +36,9 @@ LoginPrompt::~LoginPrompt()
 void LoginPrompt::onLoginButtonClicked()
 {
     ui->feedbackLabel->setText(QString());
-    if (ui->userListView->currentIndex().isValid()) {
-        m_greeter->startAuthentication(ui->userListView->currentIndex().data(Qt::UserRole).toString());
+    QModelIndex currentIndex = ui->userListView->currentIndex();
+    if (currentIndex.isValid()) {
+        m_greeter->startAuthentication(currentIndex.data(QLightDM::UsersModel::NameRole).toString());
     }
 }
 
