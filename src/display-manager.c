@@ -663,6 +663,7 @@ display_manager_start (DisplayManager *manager)
         if (replaces_plymouth)
         {
             g_debug ("Display %s will replace Plymouth", display_name);
+            xserver_set_no_root (xserver, TRUE);
             g_signal_connect (xserver, "ready", G_CALLBACK (stop_plymouth_cb), manager);
             g_signal_connect (xserver, "exited", G_CALLBACK (stop_plymouth_due_to_failure_cb), manager);
             g_signal_connect (xserver, "terminated", G_CALLBACK (stop_plymouth_due_to_failure_cb), manager);

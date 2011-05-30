@@ -65,6 +65,9 @@ struct XServerPrivate
     /* VT to run on */
     gint vt;
 
+    /* TRUE to disable setting the root window */
+    gboolean no_root;
+
     /* Display number */
     gint display_number;
 
@@ -229,6 +232,12 @@ xserver_get_vt (XServer *xserver)
     return xserver->priv->vt;
 }
 
+void
+xserver_set_no_root (XServer *xserver, gboolean no_root)
+{
+    xserver->priv->no_root = no_root;
+}
+
 static gboolean
 xserver_connect (XServer *server)
 {
@@ -327,6 +336,9 @@ xserver_start (XServer *server)
 
     if (server->priv->vt >= 0)
         g_string_append_printf (command, " vt%d", server->priv->vt);
+
+    if (server->priv->no_root)
+        g_string_append (command, " -nr");
 
     g_debug ("Launching X Server");
 

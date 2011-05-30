@@ -89,6 +89,8 @@ void xserver_set_vt (XServer *xserver, gint vt);
 
 gint xserver_get_vt (XServer *xserver);
 
+void xserver_set_no_root (XServer *xserver, gboolean no_root);
+
 gboolean xserver_start (XServer *server);
 
 void xserver_disconnect_clients (XServer *server);
