@@ -1,8 +1,9 @@
 Overview of changes in lightdm 0.3.6
 
-    * Allow display vt setting to be set to "active" to start on active VT
     * Disable Plymouth when starting
-    * Fix typo for High Contrast menu item
+    * Allow display vt setting to be set to "active" to start on active VT
+    * Fix login in Qt example greeter
+    * Fix typo for High Contrast menu item (GTK example greeter)
 
 Overview of changes in lightdm 0.3.5
 
