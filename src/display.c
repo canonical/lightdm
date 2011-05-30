@@ -566,7 +566,7 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
             g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
 
-            if (display->priv->supports_transitions)
+            if (display->priv->greeter_session == NULL || display->priv->supports_transitions)
                 session_start (display->priv->user_session, FALSE);
             else
                 g_debug ("Waiting for greeter to quit before starting user session process");

@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.3.7
+
+    * Fix autologin broken in 0.3.3
+
 Overview of changes in lightdm 0.3.6
 
     * Disable Plymouth when starting
