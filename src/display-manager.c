@@ -254,7 +254,7 @@ string_to_xdm_auth_key (const gchar *key, guchar *data)
 static gint
 get_vt (DisplayManager *manager, gchar *config_section)
 {
-    gchar *tty;
+    gchar *vt;
     gboolean use_active = FALSE;
     gint console_fd;
     int number = -1;
@@ -262,14 +262,14 @@ get_vt (DisplayManager *manager, gchar *config_section)
     if (manager->priv->test_mode)
         return -1;
 
-    tty = g_key_file_get_string (manager->priv->config, config_section, "vt", NULL);
-    if (tty)
+    vt = g_key_file_get_string (manager->priv->config, config_section, "vt", NULL);
+    if (vt)
     {
-        if (strcmp (tty, "active") == 0)
+        if (strcmp (vt, "active") == 0)
             use_active = TRUE;
         else
-            number = atoi (tty);
-        g_free (tty);
+            number = atoi (vt);
+        g_free (vt);
 
         if (number >= 0)
             return number;
@@ -519,33 +519,105 @@ setup_auth_dir (DisplayManager *manager)
     g_dir_close (dir);
 }
 
+static gboolean
+plymouth_run_command (const gchar *command, gint *exit_status)
+{
+    gchar *command_line;
+    gboolean result;
+    GError *error = NULL;
+
+    command_line = g_strdup_printf ("/bin/plymouth %s", command);  
+    result = g_spawn_command_line_sync (command_line, NULL, NULL, exit_status, &error);
+    g_free (command_line);
+
+    if (!result)
+        g_debug ("Could not run %s: %s", command_line, error->message);
+    g_clear_error (&error);
+
+    return result;
+}
+
+static gboolean
+plymouth_command_returns_true (gchar *command)
+{
+    gint exit_status;
+    if (!plymouth_run_command (command, &exit_status))
+        return FALSE;
+    return WIFEXITED (exit_status) && WEXITSTATUS (exit_status) == 0;
+}
+
+static void
+stop_plymouth_cb (XServer *xserver, DisplayManager *manager)
+{
+    g_debug ("Stopping Plymouth, display replacing it has started");
+    plymouth_run_command ("quit --retain-splash", NULL);
+}
+
+static void
+stop_plymouth_due_to_failure_cb (XServer *xserver, int status_of_signum, DisplayManager *manager)
+{
+    /* Check if Plymouth is even running (we may have already transitioned to it */
+    if (!plymouth_command_returns_true ("--ping"))
+        return;
+
+    g_debug ("Stopping Plymouth, error starting display");
+    plymouth_run_command ("quit", NULL);   
+}
+
 void
 display_manager_start (DisplayManager *manager)
 {
     gchar *displays;
     gchar **tokens, **i;
+    gboolean plymouth_is_running, plymouth_on_active_vt = FALSE, plymouth_being_replaced = FALSE;
 
     /* Make an empty authorization directory */
     setup_auth_dir (manager);
-  
-    /* Start the first display */
+
+    /* Load the static display entries */
     displays = g_key_file_get_string (manager->priv->config, "LightDM", "displays", NULL);
     if (!displays)
         displays = g_strdup ("");
     tokens = g_strsplit (displays, " ", -1);
     g_free (displays);
 
+    /* Check if Plymouth is running and start to deactivate it */
+    plymouth_is_running = plymouth_command_returns_true ("--ping");
+    if (plymouth_is_running)
+    {
+        /* Check if running on the active VT */
+        plymouth_on_active_vt = plymouth_command_returns_true ("--has-active-vt");
+
+        /* Deactivate stops Plymouth from drawing, as we are about to start an X server to replace it */
+        plymouth_run_command ("deactivate", NULL);
+    }
+
+    /* Start each static display */
     for (i = tokens; *i; i++)
     {
         Display *display;
         gchar *value, *default_user, *display_name;
         gint user_timeout;
         XServer *xserver;
+        gboolean replaces_plymouth = FALSE;
 
         display_name = *i;
         g_debug ("Loading display %s", display_name);
 
         display = add_display (manager);
+
+        /* If this is starting on the active VT, then this display will replace Plymouth */
+        if (plymouth_on_active_vt && !plymouth_being_replaced)
+        {
+            gchar *vt;
+            vt = g_key_file_get_string (manager->priv->config, display_name, "vt", NULL);
+            if (vt && strcmp (vt, "active") == 0)
+            {
+                plymouth_being_replaced = TRUE;
+                replaces_plymouth = TRUE;
+            }
+            g_free (vt);
+        }
 
         value = g_key_file_get_string (manager->priv->config, display_name, "layout", NULL);
         if (value)
@@ -585,13 +657,39 @@ display_manager_start (DisplayManager *manager)
         }
 
         xserver = make_xserver (manager, display_name);
-
         display_set_xserver (display, xserver);
-        display_start (display);
+
+        /* Stop Plymouth when the X server starts/fails */
+        if (replaces_plymouth)
+        {
+            g_debug ("Display %s will replace Plymouth", display_name);
+            g_signal_connect (xserver, "ready", G_CALLBACK (stop_plymouth_cb), manager);
+            g_signal_connect (xserver, "exited", G_CALLBACK (stop_plymouth_due_to_failure_cb), manager);
+            g_signal_connect (xserver, "terminated", G_CALLBACK (stop_plymouth_due_to_failure_cb), manager);
+        }
+
+        /* Start it up! */
+        if (!display_start (display))
+        {
+            g_warning ("Failed to start static display %s", display_name);
+            if (replaces_plymouth)
+            {
+                g_debug ("Stopping Plymouth, display failed to start");
+                plymouth_run_command ("quit", NULL);
+            }
+        }
+
         g_object_unref (xserver);
         g_free (default_user);
     }
     g_strfreev (tokens);
+
+    /* Stop Plymouth if we're not expecting an X server to replace it */
+    if (plymouth_is_running && !plymouth_being_replaced)
+    {
+        g_debug ("Stopping Plymouth, no displays replace it");
+        plymouth_run_command ("quit", NULL);
+    }
 
     if (g_key_file_get_boolean (manager->priv->config, "xdmcp", "enabled", NULL))
     {
