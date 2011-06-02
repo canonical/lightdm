@@ -20,15 +20,15 @@ Greeter::Greeter() :
     //TODO load this from the config file in order to test that works.
     background->setPixmap(QPixmap("/usr/share/wallpapers/Horos/contents/images/1920x1200.png"));
 
-    QLightDM::Greeter* greeter = new QLightDM::Greeter(this);
+    QLightDM::Greeter *greeter = new QLightDM::Greeter(this);
     greeter->connectToServer();
     connect(greeter, SIGNAL(quit()), this, SLOT(close()));
 
-    LoginPrompt* loginPrompt = new LoginPrompt(greeter, this);
+    LoginPrompt *loginPrompt = new LoginPrompt(greeter, this);
     loginPrompt->move(this->width()/2 - loginPrompt->width()/2, this->height()/2 - loginPrompt->height()/2);
     loginPrompt->setAutoFillBackground(true);
 
-    Panel* panel = new Panel(greeter, this);
+    Panel *panel = new Panel(greeter, this);
     panel->setGeometry(QRect(QPoint(0, screen.height() - panel->height()), screen.bottomRight()));
     panel->setAutoFillBackground(true);
 }
