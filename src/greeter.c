@@ -9,6 +9,7 @@
  * license.
  */
 
+#include <stdlib.h>
 #include <string.h>
 #include <pwd.h>
 #include <errno.h>
