@@ -31,7 +31,7 @@ liblightdm_qt_0include_HEADERS = \
 	User \
 	Config
 
-liblightdm_qt_0includedir=$(includedir)/lightdm-qt-0/lightdm
+liblightdm_qt_0includedir=$(includedir)/lightdm-qt-0/QLightDM
 
 liblightdm_qt_0_la_LIBADD = $(LIBLIGHTDM_QT_LIBS)
 liblightdm_qt_0_la_CXXFLAGS = $(LIBLIGHTDM_QT_CFLAGS) \
