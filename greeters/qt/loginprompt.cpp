@@ -45,8 +45,7 @@ void LoginPrompt::onLoginButtonClicked()
 void LoginPrompt::onAuthenticationComplete(bool success)
 {
     if (success) {
-        ui->feedbackLabel->setText("YAY - log in");
-        //        m_greeter->login(ui->userList->currentItem()->text(), "kde", "en-UK");
+        m_greeter->loginWithDefaults(m_greeter->authenticationUser());
     } else {
         ui->feedbackLabel->setText("Sorry, you suck. Try again.");
     }
