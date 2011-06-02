@@ -22,6 +22,7 @@ Greeter::Greeter() :
 
     QLightDM::Greeter* greeter = new QLightDM::Greeter(this);
     greeter->connectToServer();
+    connect(greeter, SIGNAL(quit()), this, SLOT(close()));
 
     LoginPrompt* loginPrompt = new LoginPrompt(greeter, this);
     loginPrompt->move(this->width()/2 - loginPrompt->width()/2, this->height()/2 - loginPrompt->height()/2);
