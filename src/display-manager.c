@@ -20,7 +20,9 @@
 #include <fcntl.h>
 #include <glib/gstdio.h>
 #include <sys/ioctl.h>
+#ifdef __linux__
 #include <linux/vt.h>
+#endif
 
 #include "display-manager.h"
 #include "xdmcp-server.h"
@@ -256,7 +258,9 @@ get_vt (DisplayManager *manager, gchar *config_section)
 {
     gchar *vt;
     gboolean use_active = FALSE;
+#ifdef __linux__
     gint console_fd;
+#endif
     int number = -1;
 
     if (manager->priv->test_mode)
@@ -275,6 +279,7 @@ get_vt (DisplayManager *manager, gchar *config_section)
             return number;
     }
 
+#ifdef __linux__
     console_fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
     if (console_fd < 0)
     {
@@ -297,6 +302,9 @@ get_vt (DisplayManager *manager, gchar *config_section)
     }
 
     close (console_fd);
+#else
+    number = -1;
+#endif    
 
     return number;  
 }
