@@ -76,7 +76,11 @@ ldm_language_get_name (LdmLanguage *language)
     {
         char *current = setlocale(LC_ALL, NULL);
         setlocale(LC_ALL, language->priv->code);
+#ifdef _NL_IDENTIFICATION_LANGUAGE
         language->priv->name = g_strdup (nl_langinfo (_NL_IDENTIFICATION_LANGUAGE));
+#else
+        language->priv->name = g_strdup ("Unknown");
+#endif
         setlocale(LC_ALL, current);
     }
 
@@ -100,7 +104,11 @@ ldm_language_get_territory (LdmLanguage *language)
     {
         char *current = setlocale(LC_ALL, NULL);
         setlocale(LC_ALL, language->priv->code);
+#ifdef _NL_IDENTIFICATION_TERRITORY
         language->priv->territory = g_strdup (nl_langinfo (_NL_IDENTIFICATION_TERRITORY));
+#else
+        language->priv->territory = g_strdup ("Unknown");
+#endif
         setlocale(LC_ALL, current);
     }
 
