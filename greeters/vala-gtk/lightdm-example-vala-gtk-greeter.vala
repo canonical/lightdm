@@ -107,7 +107,7 @@ class Greeter
 
     private void timed_login_cb (LightDM.Greeter greeter, string username)
     {
-        greeter.start_session_with_defaults (); // FIXME: timed user is not authenticated...
+        greeter.login (greeter.timed_login_user);
     }
 
     private void quit_cb (LightDM.Greeter greeter)

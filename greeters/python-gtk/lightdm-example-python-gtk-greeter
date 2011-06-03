@@ -228,15 +228,12 @@ class Greeter:
     def draw_background_cb(self, widget, context):
         pass#self.background
     
-    def start_authentication(self, username):
+    def username_activate_cb(self, widget):
         # FIXME if self.greeter.get_user_defaults
         # FIXME if user_model
         if self.username_entry is not None:
             self.username_entry.set_sensitive(False)
-        self.greeter.start_authentication(username)
-
-    def username_activate_cb(self, widget):
-        self.start_authentication(self.username_entry.get_text())
+        self.greeter.login(self.username_entry.get_text())
 
     def password_activate_cb(self, widget):
         self.password_entry.set_sensitive(False)
@@ -266,8 +263,11 @@ class Greeter:
         else:
             username_entry.grab_focus()
 
+        if self.greeter.is_authenticated:
+            self.greeter.start_session_with_defaults()
+
     def timed_login_cb(self, greeter, username):
-        self.greeter.login(greeter.get_timed_login_user(), None, None)
+        self.greeter.login(greeter.get_timed_login_user())
 
     def quit_cb(self, greeter):
         Gtk.main_quit()

@@ -199,7 +199,8 @@ authentication_complete_cb (LdmGreeter *greeter)
 static void
 timed_login_cb (LdmGreeter *greeter, const gchar *username)
 {
-    ldm_greeter_start_session (greeter, NULL, NULL); // FIXME: timed user is not authenticated...
+    set_session (ldm_greeter_get_default_session (greeter));
+    ldm_greeter_login (greeter, ldm_greeter_get_timed_login_user (greeter));
 }
 
 void suspend_cb (GtkWidget *widget, LdmGreeter *greeter);
