@@ -43,6 +43,8 @@ Display *display_manager_add_display (DisplayManager *manager);
 
 void display_manager_switch_to_user (DisplayManager *manager, char *username);
 
+void display_manager_switch_to_guest (DisplayManager *manager);
+
 void display_manager_start (DisplayManager *manager);
 
 G_END_DECLS

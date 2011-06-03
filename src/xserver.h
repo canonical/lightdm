@@ -18,7 +18,7 @@
 G_BEGIN_DECLS
 
 #define XSERVER_TYPE (xserver_get_type())
-#define XSERVER(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), XSERVER_TYPE, XServer));
+#define XSERVER(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), XSERVER_TYPE, XServer))
 
 typedef struct XServerPrivate XServerPrivate;
 

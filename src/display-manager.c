@@ -25,6 +25,7 @@
 #endif
 
 #include "display-manager.h"
+#include "guest-manager.h"
 #include "xdmcp-server.h"
 #include "xserver.h"
 #include "theme.h"
@@ -52,6 +53,9 @@ struct DisplayManagerPrivate
     /* TRUE if running in test mode (i.e. as non-root for testing) */
     gboolean test_mode;
 
+    /* Guest account manager */
+    GuestManager *guest_manager;
+
     /* The displays being managed */
     GList *displays;
 
@@ -74,6 +78,7 @@ display_manager_new (GKeyFile *config)
     self->priv->log_dir = g_key_file_get_string (self->priv->config, "LightDM", "log-directory", NULL);
     if (!self->priv->log_dir)
         self->priv->log_dir = g_strdup (LOG_DIR);
+    self->priv->guest_manager = guest_manager_new (self->priv->config);
 
     return self;
 }
@@ -449,6 +454,12 @@ display_manager_switch_to_user (DisplayManager *manager, char *username)
     display_set_xserver (display, xserver);
     display_start (display);
     g_object_unref (xserver);
+}
+
+void
+display_manager_switch_to_guest (DisplayManager *manager)
+{
+    // fixme  
 }
 
 static gboolean

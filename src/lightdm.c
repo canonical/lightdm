@@ -246,6 +246,14 @@ handle_display_manager_call (GDBusConnection       *connection,
         g_dbus_method_invocation_return_value (invocation, NULL);
         g_free (username);
     }
+    else if (g_strcmp0 (method_name, "SwitchToGuest") == 0)
+    {
+        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
+            return;
+
+        display_manager_switch_to_guest (display_manager);
+        g_dbus_method_invocation_return_value (invocation, NULL);
+    }
 }
 
 static GVariant *
@@ -278,6 +286,7 @@ bus_acquired_cb (GDBusConnection *connection,
         "    <method name='SwitchToUser'>"
         "      <arg name='username' direction='in' type='s'/>"
         "    </method>"
+        "    <method name='SwitchToGuest'/>"
         "  </interface>"
         "</node>";
     static const GDBusInterfaceVTable display_manager_vtable =
