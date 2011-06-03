@@ -82,6 +82,12 @@ greeter_set_theme (Greeter *greeter, const gchar *theme)
     greeter->priv->theme = g_strdup (theme);
 }
 
+const gchar *
+greeter_get_theme (Greeter *greeter)
+{
+    return greeter->priv->theme;
+}
+
 void
 greeter_set_default_session (Greeter *greeter, const gchar *session)
 {

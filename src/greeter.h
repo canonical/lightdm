@@ -43,9 +43,7 @@ void greeter_set_default_user (Greeter *greeter, const gchar *username, gint tim
 
 void greeter_set_theme (Greeter *greeter, const gchar *theme);
 
-void greeter_set_layout (Greeter *greeter, const gchar *layout);
-
-const gchar *greeter_get_layout (Greeter *greeter);
+const gchar *greeter_get_theme (Greeter *greeter);
 
 void greeter_set_default_session (Greeter *greeter, const gchar *session);
 
