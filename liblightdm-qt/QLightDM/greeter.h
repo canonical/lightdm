@@ -21,8 +21,8 @@ namespace QLightDM
         explicit Greeter(QObject* parent=0);
         virtual ~Greeter();
 
-        Q_PROPERTY(bool canSuspend READ canSuspend);
-        Q_PROPERTY(bool canHibernate READ canHibernate);
+    Q_PROPERTY(bool canSuspend READ canSuspend);
+    Q_PROPERTY(bool canHibernate READ canHibernate);
 	Q_PROPERTY(bool canShutdown READ canShutdown);
 	Q_PROPERTY(bool canRestart READ canRestart);
 
@@ -44,9 +44,10 @@ namespace QLightDM
 	QString defaultLayout() const;
 	QString layout() const;
 
-        QLightDM::Config *config() const;
+    QLightDM::Config *config() const;
 
 	QString defaultSession() const;
+    bool guestAccountSupported() const;
 
 	bool inAuthentication() const;
 	bool isAuthenticated() const;
@@ -59,6 +60,8 @@ namespace QLightDM
 	void cancelAuthentication();
 	void login(const QString &username, const QString &session, const QString &language);
 	void loginWithDefaults(const QString &username);
+	void loginAsGuest(const QString &session, const QString &language);
+	void loginAsGuestWithDefaults();
 
 	bool canSuspend() const;
 	bool canHibernate() const;

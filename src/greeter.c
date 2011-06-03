@@ -23,6 +23,7 @@
 
 enum {
     LOGIN,
+    LOGIN_AS_GUEST,
     QUIT,
     LAST_SIGNAL
 };
@@ -159,12 +160,13 @@ handle_connect (Greeter *greeter)
 
     theme = g_build_filename (THEME_DIR, greeter->priv->theme, "index.theme", NULL);
 
-    write_header (greeter, GREETER_MESSAGE_CONNECTED, string_length (theme) + string_length (greeter->priv->layout) + string_length (greeter->priv->session) + string_length (greeter->priv->default_user ? greeter->priv->default_user : "") + int_length ());
+    write_header (greeter, GREETER_MESSAGE_CONNECTED, string_length (theme) + string_length (greeter->priv->layout) + string_length (greeter->priv->session) + string_length (greeter->priv->default_user ? greeter->priv->default_user : "") + int_length () + int_length ());
     write_string (greeter, theme);
     write_string (greeter, greeter->priv->layout);
     write_string (greeter, greeter->priv->session);
     write_string (greeter, greeter->priv->default_user ? greeter->priv->default_user : "");
     write_int (greeter, greeter->priv->autologin_timeout);
+    write_int (greeter, FALSE);
     flush (greeter);
 
     g_free (theme);
@@ -333,6 +335,20 @@ handle_login (Greeter *greeter, gchar *username, gchar *session, gchar *language
     g_debug ("Greeter login for user %s on session %s", username, session);
 
     g_signal_emit (greeter, signals[LOGIN], 0, username, session, language);
+}
+
+static void
+handle_guest_login (Greeter *greeter, gchar *session, gchar *language)
+{
+    /*if (greeter->priv->user_session != NULL)
+    {
+        g_warning ("Ignoring request to log in when already logged in");
+        return;
+    }*/
+
+    g_debug ("Greeter login to guest account on session %s", session);
+
+    g_signal_emit (greeter, signals[LOGIN_AS_GUEST], 0, session, language);
 }
 
 static void
@@ -517,6 +533,12 @@ got_data_cb (Greeter *greeter)
         g_free (session_name);
         g_free (language);
         break;
+    case GREETER_MESSAGE_LOGIN_AS_GUEST:
+        session_name = read_string (greeter, &offset);
+        language = read_string (greeter, &offset);
+        handle_guest_login (greeter, session_name, language);
+        g_free (session_name);
+        g_free (language);
     case GREETER_MESSAGE_GET_USER_DEFAULTS:
         username = read_string (greeter, &offset);
         handle_get_user_defaults (greeter, username);
@@ -606,6 +628,14 @@ greeter_class_init (GreeterClass *klass)
                       NULL, NULL,
                       ldm_marshal_VOID__STRING_STRING_STRING,
                       G_TYPE_NONE, 3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+    signals[LOGIN_AS_GUEST] =
+        g_signal_new ("login-as-guest",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (GreeterClass, login_as_guest),
+                      NULL, NULL,
+                      ldm_marshal_VOID__STRING_STRING,
+                      G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_STRING);
     signals[QUIT] =
         g_signal_new ("quit",
                       G_TYPE_FROM_CLASS (klass),

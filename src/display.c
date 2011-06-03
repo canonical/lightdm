@@ -663,6 +663,16 @@ greeter_login_cb (Greeter *greeter, const gchar *username, const gchar *session,
 }
 
 static void
+greeter_login_as_guest_cb (Greeter *greeter, const gchar *session, const gchar *language, Display *display)
+{
+    //gchar *username;
+
+    // FIXME: Create a guest session
+
+    //greeter_login_cb (greeter, username, session, language, display);
+}
+
+static void
 greeter_quit_cb (Greeter *greeter, Display *display)
 {
     g_debug ("Greeter quit");
@@ -736,6 +746,7 @@ start_greeter (Display *display)
         greeter_set_layout (display->priv->greeter_session, display->priv->default_layout);
         greeter_set_session (display->priv->greeter_session, display->priv->default_session);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "login", G_CALLBACK (greeter_login_cb), display);
+        g_signal_connect (G_OBJECT (display->priv->greeter_session), "login-as-guest", G_CALLBACK (greeter_login_as_guest_cb), display);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "quit", G_CALLBACK (greeter_quit_cb), display);
         session_set_username (SESSION (display->priv->greeter_session), username);
         session_set_command (SESSION (display->priv->greeter_session), command);

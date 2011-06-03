@@ -24,12 +24,15 @@ typedef enum
     GREETER_MESSAGE_CONTINUE_AUTHENTICATION = 3,
     GREETER_MESSAGE_LOGIN                   = 4,
     GREETER_MESSAGE_CANCEL_AUTHENTICATION   = 5,
+    GREETER_MESSAGE_GET_USER_DEFAULTS       = 6,
+    GREETER_MESSAGE_LOGIN_AS_GUEST          = 7,
 
     /* Messages from the server to the greeter */
     GREETER_MESSAGE_CONNECTED               = 101,
     GREETER_MESSAGE_QUIT                    = 102,
     GREETER_MESSAGE_PROMPT_AUTHENTICATION   = 103,
-    GREETER_MESSAGE_END_AUTHENTICATION      = 104
+    GREETER_MESSAGE_END_AUTHENTICATION      = 104,
+    GREETER_MESSAGE_USER_DEFAULTS           = 106
 } GreeterMessage;
 
 #define HEADER_SIZE 8
@@ -44,14 +47,15 @@ public:
     QString defaultSession;
     QString timedUser;
     int loginDelay;
-    
+    bool guestAccountSupported;
+
     SessionsModel *sessionsModel;
     Config *config;
 
     QDBusInterface* lightdmInterface;
     QDBusInterface* powerManagementInterface;
     QDBusInterface* consoleKitInterface;
-  
+
     int toServerFd;
     int fromServerFd;
     QSocketNotifier *n;
@@ -195,9 +199,6 @@ void Greeter::connectToServer()
     qDebug() << "Connecting to display manager...";
     writeHeader(GREETER_MESSAGE_CONNECT, 0);
     flush();
-
-
-
 }
 
 void Greeter::startAuthentication(const QString &username)
@@ -258,6 +259,20 @@ void Greeter::loginWithDefaults(const QString &username)
     login(username, NULL, NULL);
 }
 
+void Greeter::loginAsGuest(const QString &session, const QString &language)
+{
+    qDebug() << "Logging into guest account for session " << session << " with language " << language;
+    writeHeader(GREETER_MESSAGE_LOGIN_AS_GUEST, stringLength(session) + stringLength(language));
+    writeString(session);
+    writeString(language);
+    flush(); 
+}
+
+void Greeter::loginAsGuestWithDefaults()
+{
+    loginAsGuest(NULL, NULL);
+}
+
 void Greeter::onRead(int fd)
 {
     //qDebug() << "Reading from server";
@@ -308,7 +323,8 @@ void Greeter::onRead(int fd)
         d->defaultSession = readString(&offset);
         d->timedUser = readString(&offset);
         d->loginDelay = readInt(&offset);
-        qDebug() << "Connected theme=" << d->theme << " default-layout=" << d->defaultLayout << " default-session=" << d->defaultSession << " timed-user=" << d->timedUser << " login-delay" << d->loginDelay;
+        d->guestAccountSupported = readInt(&offset) != 0;
+        qDebug() << "Connected theme=" << d->theme << " default-layout=" << d->defaultLayout << " default-session=" << d->defaultSession << " timed-user=" << d->timedUser << " login-delay" << d->loginDelay << " guestAccountSupported" << d->guestAccountSupported;
 
         /* Set timeout for default login */
         if(d->timedUser != "" && d->loginDelay > 0)
@@ -391,6 +407,11 @@ QString Greeter::defaultLayout() const
 QString Greeter::defaultSession() const
 {
     return d->defaultSession;
+}
+
+bool Greeter::guestAccountSupported() const
+{
+    return d->guestAccountSupported;
 }
 
 QString Greeter::timedLoginUser() const

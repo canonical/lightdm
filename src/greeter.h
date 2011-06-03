@@ -32,6 +32,7 @@ typedef struct
 {
     SessionClass parent_class;
     void (*login)(Greeter *greeter, const gchar *username, const gchar *session, const gchar *language);
+    void (*login_as_guest)(Greeter *greeter, const gchar *session, const gchar *language);
     void (*quit)(Greeter *greeter);
 } GreeterClass;
 

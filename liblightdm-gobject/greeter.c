@@ -111,6 +111,7 @@ struct _LdmGreeterPrivate
     gchar *timed_user;
     gint login_delay;
     guint login_timeout;
+    gboolean guest_account_supported;
 };
 
 G_DEFINE_TYPE (LdmGreeter, ldm_greeter, G_TYPE_OBJECT);
@@ -330,11 +331,13 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         greeter->priv->default_session = read_string (greeter, &offset);
         greeter->priv->timed_user = read_string (greeter, &offset);
         greeter->priv->login_delay = read_int (greeter, &offset);
+        greeter->priv->guest_account_supported = read_int (greeter, &offset) != 0;
 
-        g_debug ("Connected theme=%s default-layout=%s default-session=%s timed-user=%s login-delay=%d",
+        g_debug ("Connected theme=%s default-layout=%s default-session=%s timed-user=%s login-delay=%d guest-account-supported=%s",
                  greeter->priv->theme,
                  greeter->priv->default_layout, greeter->priv->default_session,
-                 greeter->priv->timed_user, greeter->priv->login_delay);
+                 greeter->priv->timed_user, greeter->priv->login_delay,
+                 greeter->priv->guest_account_supported ? "true" : "false");
 
         /* Set timeout for default login */
         if (greeter->priv->timed_user[0] != '\0' && greeter->priv->login_delay > 0)
@@ -1182,6 +1185,21 @@ ldm_greeter_get_default_session (LdmGreeter *greeter)
 }
 
 /**
+ * ldm_greeter_get_has_guest_session:
+ * @greeter: A #LdmGreeter
+ *
+ * Check if guest sessions are supported.
+ *
+ * Return value: TRUE if guest sessions are supported.
+ */
+gboolean
+ldm_greeter_get_has_guest_session (LdmGreeter *greeter)
+{
+    g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
+    return greeter->priv->guest_account_supported;
+}
+
+/**
  * ldm_greeter_get_timed_login_user:
  * @greeter: A #LdmGreeter
  *
@@ -1350,7 +1368,7 @@ ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *sess
     if (!language)
         language = "";
 
-    g_debug ("Logging in");
+    g_debug ("Logging in as %s", username);
     write_header (greeter, GREETER_MESSAGE_LOGIN, string_length (username) + string_length (session) + string_length (language));
     write_string (greeter, username);
     write_string (greeter, session);
@@ -1368,9 +1386,44 @@ ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *sess
 void
 ldm_greeter_login_with_defaults (LdmGreeter *greeter, const gchar *username)
 {
-    g_return_if_fail (LDM_IS_GREETER (greeter));
-    g_return_if_fail (username != NULL);
     ldm_greeter_login (greeter, username, NULL, NULL);
+}
+
+/**
+ * ldm_greeter_login_as_guest:
+ * @greeter: A #LdmGreeter
+ * @session: (allow-none): The session to log into or NULL to use the default
+ * @language: (allow-none): The language to use or NULL to use the default
+ *
+ * Login a user into a guest session.
+ **/
+void
+ldm_greeter_login_as_guest (LdmGreeter *greeter, const gchar *session, const gchar *language)
+{
+    g_return_if_fail (LDM_IS_GREETER (greeter));
+
+    if (!session)
+        session = "";
+    if (!language)
+        language = "";
+
+    g_debug ("Logging into guest account");
+    write_header (greeter, GREETER_MESSAGE_LOGIN_AS_GUEST, string_length (session) + string_length (language));
+    write_string (greeter, session);
+    write_string (greeter, language);
+    flush (greeter);
+}
+
+/**
+ * ldm_greeter_login_as_guest_with_defaults:
+ * @greeter: A #LdmGreeter
+ *
+ * Login a user into a guest session using default settings for that user.
+ **/
+void
+ldm_greeter_login_as_guest_with_defaults (LdmGreeter *greeter)
+{
+    ldm_greeter_login_as_guest (greeter, NULL, NULL);  
 }
 
 static gboolean
