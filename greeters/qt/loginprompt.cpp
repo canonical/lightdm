@@ -38,14 +38,14 @@ void LoginPrompt::onLoginButtonClicked()
     ui->feedbackLabel->setText(QString());
     QModelIndex currentIndex = ui->userListView->currentIndex();
     if (currentIndex.isValid()) {
-        m_greeter->startAuthentication(currentIndex.data(QLightDM::UsersModel::NameRole).toString());
+        m_greeter->login(currentIndex.data(QLightDM::UsersModel::NameRole).toString());
     }
 }
 
 void LoginPrompt::onAuthenticationComplete(bool success)
 {
     if (success) {
-        m_greeter->loginWithDefaults(m_greeter->authenticationUser());
+        m_greeter->startSessionWithDefaults();
     } else {
         ui->feedbackLabel->setText("Sorry, you suck. Try again.");
     }

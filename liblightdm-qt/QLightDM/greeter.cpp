@@ -20,12 +20,12 @@ typedef enum
 {
     /* Messages from the greeter to the server */
     GREETER_MESSAGE_CONNECT                 = 1,
-    GREETER_MESSAGE_START_AUTHENTICATION    = 2,
-    GREETER_MESSAGE_CONTINUE_AUTHENTICATION = 3,
-    GREETER_MESSAGE_LOGIN                   = 4,
-    GREETER_MESSAGE_CANCEL_AUTHENTICATION   = 5,
-    GREETER_MESSAGE_GET_USER_DEFAULTS       = 6,
-    GREETER_MESSAGE_LOGIN_AS_GUEST          = 7,
+    GREETER_MESSAGE_LOGIN                   = 2,
+    GREETER_MESSAGE_LOGIN_AS_GUEST          = 3,
+    GREETER_MESSAGE_CONTINUE_AUTHENTICATION = 4,
+    GREETER_MESSAGE_START_SESSION           = 5,
+    GREETER_MESSAGE_CANCEL_AUTHENTICATION   = 6,
+    GREETER_MESSAGE_GET_USER_DEFAULTS       = 7,
 
     /* Messages from the server to the greeter */
     GREETER_MESSAGE_CONNECTED               = 101,
@@ -201,14 +201,24 @@ void Greeter::connectToServer()
     flush();
 }
 
-void Greeter::startAuthentication(const QString &username)
+void Greeter::login(const QString &username)
 {
     d->inAuthentication = true;
     d->isAuthenticated = false;
     d->authenticationUser = username;
     qDebug() << "Starting authentication for user " << username << "...";
-    writeHeader(GREETER_MESSAGE_START_AUTHENTICATION, stringLength(username));
+    writeHeader(GREETER_MESSAGE_LOGIN, stringLength(username));
     writeString(username);
+    flush();
+}
+
+void Greeter::loginAsGuest()
+{
+    d->inAuthentication = true;
+    d->isAuthenticated = false;
+    d->authenticationUser = "";
+    qDebug() << "Starting authentication for guest account";
+    writeHeader(GREETER_MESSAGE_LOGIN_AS_GUEST, 0);
     flush();     
 }
 
@@ -244,33 +254,18 @@ QString Greeter::authenticationUser() const
     return d->authenticationUser;
 }
 
-void Greeter::login(const QString &username, const QString &session, const QString &language)
+void Greeter::startSession(const QString &session, const QString &language)
 {
-    qDebug() << "Logging in as " << username << " for session " << session << " with language " << language;
-    writeHeader(GREETER_MESSAGE_LOGIN, stringLength(username) + stringLength(session) + stringLength(language));
-    writeString(username);
+    qDebug() << "Starting session " << session << " with language " << language;
+    writeHeader(GREETER_MESSAGE_START_SESSION, stringLength(session) + stringLength(language));
     writeString(session);
     writeString(language);
     flush();
 }
 
-void Greeter::loginWithDefaults(const QString &username)
+void Greeter::startSessionWithDefaults()
 {
-    login(username, NULL, NULL);
-}
-
-void Greeter::loginAsGuest(const QString &session, const QString &language)
-{
-    qDebug() << "Logging into guest account for session " << session << " with language " << language;
-    writeHeader(GREETER_MESSAGE_LOGIN_AS_GUEST, stringLength(session) + stringLength(language));
-    writeString(session);
-    writeString(language);
-    flush(); 
-}
-
-void Greeter::loginAsGuestWithDefaults()
-{
-    loginAsGuest(NULL, NULL);
+    startSession(NULL, NULL);
 }
 
 void Greeter::onRead(int fd)

@@ -606,13 +606,14 @@ static void
 start_default_session (Display *display, const gchar *session, const gchar *language)
 {
     /* Don't need to check authentication, just authorize */
+    // FIXME: Not correct, should use lightdm-autologin pam session
     if (display->priv->user_pam_session)
         pam_session_end (display->priv->user_pam_session);    
     display->priv->user_pam_session = pam_session_new (display->priv->pam_service, display->priv->default_user);
     pam_session_authorize (display->priv->user_pam_session);
 
     display->priv->user_ck_cookie = start_ck_session (display, "", pam_session_get_username (display->priv->user_pam_session));
-    start_user_session (display, session, language);
+    start_user_session (display, session, language);  
 }
 
 static gboolean
@@ -628,7 +629,7 @@ session_timeout_cb (Display *display)
 }
 
 static void
-greeter_login_cb (Greeter *greeter, const gchar *username, const gchar *session, const gchar *language, Display *display)
+greeter_start_session_cb (Greeter *greeter, const gchar *session, const gchar *language, Display *display)
 {
     /* Default session requested */
     if (strcmp (session, "") == 0)
@@ -641,17 +642,14 @@ greeter_login_cb (Greeter *greeter, const gchar *username, const gchar *session,
     display->priv->user_pam_session = greeter_get_pam_session (greeter);
     display->priv->user_ck_cookie = start_ck_session (display, "", pam_session_get_username (display->priv->user_pam_session));
 
-    if (display->priv->default_user && strcmp (username, display->priv->default_user) == 0)
-        start_default_session (display, session, language);
-    else if (display->priv->user_pam_session &&
-             pam_session_get_in_session (display->priv->user_pam_session) &&
-             strcmp (username, pam_session_get_username (display->priv->user_pam_session)) == 0)
-        start_user_session (display, session, language);
-    else
+    if (!display->priv->user_pam_session ||
+        !pam_session_get_in_session (display->priv->user_pam_session))
     {
         g_warning ("Ignoring request for login with unauthenticated user");
         return;
     }
+
+    start_user_session (display, session, language);
 
     /* Stop session, waiting for user session to indicate it is ready (if supported) */
     // FIXME: Hard-coded timeout
@@ -660,16 +658,6 @@ greeter_login_cb (Greeter *greeter, const gchar *username, const gchar *session,
         display->priv->user_session_timer = g_timeout_add (USER_SESSION_TIMEOUT, (GSourceFunc) session_timeout_cb, display);
     else
         greeter_quit (display->priv->greeter_session);
-}
-
-static void
-greeter_login_as_guest_cb (Greeter *greeter, const gchar *session, const gchar *language, Display *display)
-{
-    //gchar *username;
-
-    // FIXME: Create a guest session
-
-    //greeter_login_cb (greeter, username, session, language, display);
 }
 
 static void
@@ -745,8 +733,7 @@ start_greeter (Display *display)
         greeter_set_default_user (display->priv->greeter_session, display->priv->default_user, display->priv->timeout);
         greeter_set_layout (display->priv->greeter_session, display->priv->default_layout);
         greeter_set_session (display->priv->greeter_session, display->priv->default_session);
-        g_signal_connect (G_OBJECT (display->priv->greeter_session), "login", G_CALLBACK (greeter_login_cb), display);
-        g_signal_connect (G_OBJECT (display->priv->greeter_session), "login-as-guest", G_CALLBACK (greeter_login_as_guest_cb), display);
+        g_signal_connect (G_OBJECT (display->priv->greeter_session), "start-session", G_CALLBACK (greeter_start_session_cb), display);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "quit", G_CALLBACK (greeter_quit_cb), display);
         session_set_username (SESSION (display->priv->greeter_session), username);
         session_set_command (SESSION (display->priv->greeter_session), command);

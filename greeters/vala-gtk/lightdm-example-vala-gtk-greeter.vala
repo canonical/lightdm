@@ -25,7 +25,7 @@ class Greeter
     private void username_activate_cb (Gtk.Entry entry)
     {
         username_entry.sensitive = false;
-        greeter.start_authentication (username_entry.text);
+        greeter.login (username_entry.text);
     }
 
     private void password_activate_cb (Gtk.Entry entry)
@@ -97,7 +97,7 @@ class Greeter
         username_entry.sensitive = true;
         username_entry.grab_focus ();
         if (greeter.is_authenticated)
-            greeter.login (greeter.get_authentication_user (), null, null);
+            greeter.start_session_with_defaults ();
         else
         {
             message_label.label = "Failed to authenticate";
@@ -107,7 +107,7 @@ class Greeter
 
     private void timed_login_cb (LightDM.Greeter greeter, string username)
     {
-        greeter.login (greeter.get_timed_login_user (), null, null);
+        greeter.start_session_with_defaults (); // FIXME: timed user is not authenticated...
     }
 
     private void quit_cb (LightDM.Greeter greeter)

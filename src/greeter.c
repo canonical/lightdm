@@ -22,8 +22,7 @@
 #define GREETER_QUIT_TIMEOUT 1000
 
 enum {
-    LOGIN,
-    LOGIN_AS_GUEST,
+    START_SESSION,
     QUIT,
     LAST_SIGNAL
 };
@@ -211,7 +210,7 @@ authenticate_result_cb (PAMSession *session, int result, Greeter *greeter)
 }
 
 static void
-handle_start_authentication (Greeter *greeter, const gchar *username)
+handle_login (Greeter *greeter, const gchar *username)
 {
     GError *error = NULL;
 
@@ -235,6 +234,37 @@ handle_start_authentication (Greeter *greeter, const gchar *username)
 
     if (!pam_session_start (greeter->priv->pam_session, &error))
         g_warning ("Failed to start authentication: %s", error->message);
+}
+
+static void
+handle_login_as_guest (Greeter *greeter)
+{
+#if 0
+    GError *error = NULL;
+
+    // FIXME
+    //if (greeter->priv->user_session)
+    //    return;
+
+    /* Abort existing authentication */
+    if (greeter->priv->pam_session)
+    {
+        g_signal_handlers_disconnect_matched (greeter->priv->pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
+        pam_session_end (greeter->priv->pam_session);
+        g_object_unref (greeter->priv->pam_session);
+    }
+  
+    // FIXME: Create guest account
+
+    g_debug ("Greeter start authentication for guest account");
+
+    greeter->priv->pam_session = pam_session_new ("lightdm"/*FIXMEgreeter->priv->pam_service*/, username);
+    g_signal_connect (G_OBJECT (greeter->priv->pam_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
+    g_signal_connect (G_OBJECT (greeter->priv->pam_session), "authentication-result", G_CALLBACK (authenticate_result_cb), greeter);
+
+    if (!pam_session_start (greeter->priv->pam_session, &error))
+        g_warning ("Failed to start authentication: %s", error->message);
+#endif
 }
 
 static void
@@ -324,7 +354,7 @@ greeter_quit (Greeter *greeter)
 }
 
 static void
-handle_login (Greeter *greeter, gchar *username, gchar *session, gchar *language)
+handle_start_session (Greeter *greeter, gchar *session, gchar *language)
 {
     /*if (greeter->priv->user_session != NULL)
     {
@@ -332,23 +362,9 @@ handle_login (Greeter *greeter, gchar *username, gchar *session, gchar *language
         return;
     }*/
 
-    g_debug ("Greeter login for user %s on session %s", username, session);
+    g_debug ("Greeter start session %s with language", session, language);
 
-    g_signal_emit (greeter, signals[LOGIN], 0, username, session, language);
-}
-
-static void
-handle_guest_login (Greeter *greeter, gchar *session, gchar *language)
-{
-    /*if (greeter->priv->user_session != NULL)
-    {
-        g_warning ("Ignoring request to log in when already logged in");
-        return;
-    }*/
-
-    g_debug ("Greeter login to guest account on session %s", session);
-
-    g_signal_emit (greeter, signals[LOGIN_AS_GUEST], 0, session, language);
+    g_signal_emit (greeter, signals[START_SESSION], 0, session, language);
 }
 
 static void
@@ -507,10 +523,13 @@ got_data_cb (Greeter *greeter)
     case GREETER_MESSAGE_CONNECT:
         handle_connect (greeter);
         break;
-    case GREETER_MESSAGE_START_AUTHENTICATION:
+    case GREETER_MESSAGE_LOGIN:
         username = read_string (greeter, &offset);
-        handle_start_authentication (greeter, username);
+        handle_login (greeter, username);
         g_free (username);
+        break;
+    case GREETER_MESSAGE_LOGIN_AS_GUEST:
+        handle_login_as_guest (greeter);
         break;
     case GREETER_MESSAGE_CONTINUE_AUTHENTICATION:
         n_secrets = read_int (greeter, &offset);
@@ -524,21 +543,13 @@ got_data_cb (Greeter *greeter)
     case GREETER_MESSAGE_CANCEL_AUTHENTICATION:
         handle_cancel_authentication (greeter);
         break;
-    case GREETER_MESSAGE_LOGIN:
-        username = read_string (greeter, &offset);
+    case GREETER_MESSAGE_START_SESSION:
         session_name = read_string (greeter, &offset);
         language = read_string (greeter, &offset);
-        handle_login (greeter, username, session_name, language);
-        g_free (username);
+        handle_start_session (greeter, session_name, language);
         g_free (session_name);
         g_free (language);
         break;
-    case GREETER_MESSAGE_LOGIN_AS_GUEST:
-        session_name = read_string (greeter, &offset);
-        language = read_string (greeter, &offset);
-        handle_guest_login (greeter, session_name, language);
-        g_free (session_name);
-        g_free (language);
     case GREETER_MESSAGE_GET_USER_DEFAULTS:
         username = read_string (greeter, &offset);
         handle_get_user_defaults (greeter, username);
@@ -620,19 +631,11 @@ greeter_class_init (GreeterClass *klass)
 
     object_class->finalize = greeter_finalize;
 
-    signals[LOGIN] =
-        g_signal_new ("login",
+    signals[START_SESSION] =
+        g_signal_new ("start-session",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (GreeterClass, login),
-                      NULL, NULL,
-                      ldm_marshal_VOID__STRING_STRING_STRING,
-                      G_TYPE_NONE, 3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
-    signals[LOGIN_AS_GUEST] =
-        g_signal_new ("login-as-guest",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (GreeterClass, login_as_guest),
+                      G_STRUCT_OFFSET (GreeterClass, start_session),
                       NULL, NULL,
                       ldm_marshal_VOID__STRING_STRING,
                       G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_STRING);

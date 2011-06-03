@@ -119,6 +119,15 @@ A user has the following properties:
 @Returns: 
 
 
+<!-- ##### FUNCTION ldm_user_get_home_directory ##### -->
+<para>
+
+</para>
+
+@user: 
+@Returns: 
+
+
 <!-- ##### FUNCTION ldm_user_get_image ##### -->
 <para>
 

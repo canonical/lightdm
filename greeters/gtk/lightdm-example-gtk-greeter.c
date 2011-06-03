@@ -89,7 +89,7 @@ start_authentication (const gchar *username)
         g_free (session);
     }
 
-    ldm_greeter_start_authentication (greeter, username);
+    ldm_greeter_login (greeter, username);
 }
 
 void user_treeview_row_activated_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *column);
@@ -186,7 +186,7 @@ authentication_complete_cb (LdmGreeter *greeter)
     if (ldm_greeter_get_is_authenticated (greeter))
     {
         gchar *session = get_session ();
-        ldm_greeter_login (greeter, ldm_greeter_get_authentication_user (greeter), session, NULL);
+        ldm_greeter_start_session (greeter, session, NULL);
         g_free (session);
     }
     else
@@ -199,7 +199,7 @@ authentication_complete_cb (LdmGreeter *greeter)
 static void
 timed_login_cb (LdmGreeter *greeter, const gchar *username)
 {
-    ldm_greeter_login (greeter, ldm_greeter_get_timed_login_user (greeter), NULL, NULL);
+    ldm_greeter_start_session (greeter, NULL, NULL); // FIXME: timed user is not authenticated...
 }
 
 void suspend_cb (GtkWidget *widget, LdmGreeter *greeter);

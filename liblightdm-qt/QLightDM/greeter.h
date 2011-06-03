@@ -55,13 +55,12 @@ namespace QLightDM
 
 	void connectToServer();
 	void cancelTimedLogin();  
-	void startAuthentication(const QString &username);
+	void login(const QString &username);
+	void loginAsGuest();
 	void provideSecret(const QString &secret);
 	void cancelAuthentication();
-	void login(const QString &username, const QString &session, const QString &language);
-	void loginWithDefaults(const QString &username);
-	void loginAsGuest(const QString &session, const QString &language);
-	void loginAsGuestWithDefaults();
+	void startSession(const QString &session, const QString &language);
+	void startSessionWithDefaults();
 
 	bool canSuspend() const;
 	bool canHibernate() const;

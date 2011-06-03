@@ -1246,14 +1246,14 @@ ldm_greeter_cancel_timed_login (LdmGreeter *greeter)
 }
 
 /**
- * ldm_greeter_start_authentication:
+ * ldm_greeter_login:
  * @greeter: A #LdmGreeter
  * @username: A username
  *
  * Starts the authentication procedure for a user.
  **/
 void
-ldm_greeter_start_authentication (LdmGreeter *greeter, const char *username)
+ldm_greeter_login (LdmGreeter *greeter, const char *username)
 {
     g_return_if_fail (LDM_IS_GREETER (greeter));
     g_return_if_fail (username != NULL);
@@ -1263,8 +1263,28 @@ ldm_greeter_start_authentication (LdmGreeter *greeter, const char *username)
     g_free (greeter->priv->authentication_user);
     greeter->priv->authentication_user = g_strdup (username);
     g_debug ("Starting authentication for user %s...", username);
-    write_header (greeter, GREETER_MESSAGE_START_AUTHENTICATION, string_length (username));
+    write_header (greeter, GREETER_MESSAGE_LOGIN, string_length (username));
     write_string (greeter, username);
+    flush (greeter);
+}
+
+/**
+ * ldm_greeter_login_as_guest:
+ * @greeter: A #LdmGreeter
+ *
+ * Starts the authentication procedure for the guest user.
+ **/
+void
+ldm_greeter_login_as_guest (LdmGreeter *greeter)
+{
+    g_return_if_fail (LDM_IS_GREETER (greeter));
+
+    greeter->priv->in_authentication = TRUE;
+    greeter->priv->is_authenticated = FALSE;
+    g_free (greeter->priv->authentication_user);
+    greeter->priv->authentication_user = NULL;
+    g_debug ("Starting authentication for guest account...");
+    write_header (greeter, GREETER_MESSAGE_LOGIN_AS_GUEST, 0);
     flush (greeter);
 }
 
@@ -1349,81 +1369,40 @@ ldm_greeter_get_authentication_user (LdmGreeter *greeter)
 }
 
 /**
- * ldm_greeter_login:
+ * ldm_greeter_start_session:
  * @greeter: A #LdmGreeter
- * @username: The user to log in as
  * @session: (allow-none): The session to log into or NULL to use the default
  * @language: (allow-none): The language to use or NULL to use the default
  *
- * Login a user to a session.
+ * Start a session for the logged in user.
  **/
 void
-ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *session, const gchar *language)
+ldm_greeter_start_session (LdmGreeter *greeter, const gchar *session, const gchar *language)
 {
     g_return_if_fail (LDM_IS_GREETER (greeter));
-    g_return_if_fail (username != NULL);
   
     if (!session)
         session = "";
     if (!language)
         language = "";
 
-    g_debug ("Logging in as %s", username);
-    write_header (greeter, GREETER_MESSAGE_LOGIN, string_length (username) + string_length (session) + string_length (language));
-    write_string (greeter, username);
+    g_debug ("Starting session %s with language %s", session, language);
+    write_header (greeter, GREETER_MESSAGE_START_SESSION, string_length (session) + string_length (language));
     write_string (greeter, session);
     write_string (greeter, language);
     flush (greeter);
 }
 
 /**
- * ldm_greeter_login_with_defaults:
+ * ldm_greeter_start_session_with_defaults:
  * @greeter: A #LdmGreeter
- * @username: The user to log in as
  *
  * Login a user to a session using default settings for that user.
  **/
 void
-ldm_greeter_login_with_defaults (LdmGreeter *greeter, const gchar *username)
+ldm_greeter_start_session_with_defaults (LdmGreeter *greeter)
 {
-    ldm_greeter_login (greeter, username, NULL, NULL);
-}
-
-/**
- * ldm_greeter_login_as_guest:
- * @greeter: A #LdmGreeter
- * @session: (allow-none): The session to log into or NULL to use the default
- * @language: (allow-none): The language to use or NULL to use the default
- *
- * Login a user into a guest session.
- **/
-void
-ldm_greeter_login_as_guest (LdmGreeter *greeter, const gchar *session, const gchar *language)
-{
-    g_return_if_fail (LDM_IS_GREETER (greeter));
-
-    if (!session)
-        session = "";
-    if (!language)
-        language = "";
-
-    g_debug ("Logging into guest account");
-    write_header (greeter, GREETER_MESSAGE_LOGIN_AS_GUEST, string_length (session) + string_length (language));
-    write_string (greeter, session);
-    write_string (greeter, language);
-    flush (greeter);
-}
-
-/**
- * ldm_greeter_login_as_guest_with_defaults:
- * @greeter: A #LdmGreeter
- *
- * Login a user into a guest session using default settings for that user.
- **/
-void
-ldm_greeter_login_as_guest_with_defaults (LdmGreeter *greeter)
-{
-    ldm_greeter_login_as_guest (greeter, NULL, NULL);  
+    ldm_greeter_start_session (greeter, NULL, NULL);
 }
 
 static gboolean

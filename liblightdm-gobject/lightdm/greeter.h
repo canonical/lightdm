@@ -101,7 +101,9 @@ gint ldm_greeter_get_timed_login_delay (LdmGreeter *greeter);
 
 void ldm_greeter_cancel_timed_login (LdmGreeter *greeter);
 
-void ldm_greeter_start_authentication (LdmGreeter *greeter, const char *username);
+void ldm_greeter_login (LdmGreeter *greeter, const char *username);
+
+void ldm_greeter_login_as_guest (LdmGreeter *greeter);
 
 void ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret);
 
@@ -113,13 +115,9 @@ gboolean ldm_greeter_get_is_authenticated (LdmGreeter *greeter);
 
 const gchar *ldm_greeter_get_authentication_user (LdmGreeter *greeter);
 
-void ldm_greeter_login (LdmGreeter *greeter, const gchar *username, const gchar *session, const gchar *language);
+void ldm_greeter_start_session (LdmGreeter *greeter, const gchar *session, const gchar *language);
 
-void ldm_greeter_login_with_defaults (LdmGreeter *greeter, const gchar *username);
-
-void ldm_greeter_login_as_guest (LdmGreeter *greeter, const gchar *session, const gchar *language);
-
-void ldm_greeter_login_as_guest_with_defaults (LdmGreeter *greeter);
+void ldm_greeter_start_session_with_defaults (LdmGreeter *greeter);
 
 gboolean ldm_greeter_get_can_suspend (LdmGreeter *greeter);
 

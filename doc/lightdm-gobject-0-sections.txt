@@ -50,6 +50,7 @@ LdmUser
 ldm_user_get_name
 ldm_user_get_real_name
 ldm_user_get_display_name
+ldm_user_get_home_directory
 ldm_user_get_image
 ldm_user_get_language
 ldm_user_get_layout
@@ -67,9 +68,12 @@ LDM_USER_GET_CLASS
 LdmUserClass
 LdmUserPrivate
 ldm_user_new
+ldm_user_set_name
+ldm_user_set_real_name
+ldm_user_set_home_directory
 ldm_user_set_image
 ldm_user_set_logged_in
-ldm_user_set_real_name
+ldm_user_update
 </SECTION>
 
 <SECTION>
@@ -115,17 +119,19 @@ ldm_greeter_get_layout
 ldm_greeter_set_layout
 ldm_greeter_get_sessions
 ldm_greeter_get_default_session
+ldm_greeter_get_has_guest_session
 ldm_greeter_get_timed_login_user
 ldm_greeter_get_timed_login_delay
 ldm_greeter_cancel_timed_login
-ldm_greeter_start_authentication
+ldm_greeter_login
+ldm_greeter_login_as_guest
 ldm_greeter_provide_secret
 ldm_greeter_cancel_authentication
 ldm_greeter_get_in_authentication
 ldm_greeter_get_is_authenticated
 ldm_greeter_get_authentication_user
-ldm_greeter_login
-ldm_greeter_login_with_defaults
+ldm_greeter_start_session
+ldm_greeter_start_session_with_defaults
 ldm_greeter_get_can_suspend
 ldm_greeter_suspend
 ldm_greeter_get_can_hibernate

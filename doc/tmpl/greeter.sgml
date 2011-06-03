@@ -388,6 +388,15 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
+<!-- ##### FUNCTION ldm_greeter_get_has_guest_session ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
 <!-- ##### FUNCTION ldm_greeter_get_timed_login_user ##### -->
 <para>
 
@@ -414,13 +423,21 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @greeter: 
 
 
-<!-- ##### FUNCTION ldm_greeter_start_authentication ##### -->
+<!-- ##### FUNCTION ldm_greeter_login ##### -->
 <para>
 
 </para>
 
 @greeter: 
 @username: 
+
+
+<!-- ##### FUNCTION ldm_greeter_login_as_guest ##### -->
+<para>
+
+</para>
+
+@greeter: 
 
 
 <!-- ##### FUNCTION ldm_greeter_provide_secret ##### -->
@@ -467,24 +484,22 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_login ##### -->
+<!-- ##### FUNCTION ldm_greeter_start_session ##### -->
 <para>
 
 </para>
 
 @greeter: 
-@username: 
 @session: 
 @language: 
 
 
-<!-- ##### FUNCTION ldm_greeter_login_with_defaults ##### -->
+<!-- ##### FUNCTION ldm_greeter_start_session_with_defaults ##### -->
 <para>
 
 </para>
 
 @greeter: 
-@username: 
 
 
 <!-- ##### FUNCTION ldm_greeter_get_can_suspend ##### -->

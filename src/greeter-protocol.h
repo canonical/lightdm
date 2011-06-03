@@ -16,12 +16,12 @@ typedef enum
 {
     /* Messages from the greeter to the server */
     GREETER_MESSAGE_CONNECT                 = 1,
-    GREETER_MESSAGE_START_AUTHENTICATION    = 2,
-    GREETER_MESSAGE_CONTINUE_AUTHENTICATION = 3,
-    GREETER_MESSAGE_LOGIN                   = 4,
-    GREETER_MESSAGE_CANCEL_AUTHENTICATION   = 5,
-    GREETER_MESSAGE_GET_USER_DEFAULTS       = 6,
-    GREETER_MESSAGE_LOGIN_AS_GUEST          = 7,
+    GREETER_MESSAGE_LOGIN                   = 2,
+    GREETER_MESSAGE_LOGIN_AS_GUEST          = 3,
+    GREETER_MESSAGE_CONTINUE_AUTHENTICATION = 4,
+    GREETER_MESSAGE_START_SESSION           = 5,
+    GREETER_MESSAGE_CANCEL_AUTHENTICATION   = 6,
+    GREETER_MESSAGE_GET_USER_DEFAULTS       = 7,
 
     /* Messages from the server to the greeter */
     GREETER_MESSAGE_CONNECTED               = 101,
