@@ -1,9 +1,10 @@
 Overview of changes in lightdm 0.3.8
 
-    * liblightdm API change:
+    * liblightdm API changes:
       - ldm_greeter_start_authentication becomes ldm_greeter_login
       - The existing ldm_greeter_login is now ldm_greeter_start_session
         and the username parameter is not required.
+      - Drop ldm_greeter_get_default_layout (X controls the layout)
     * Add guest account logins
 
 Overview of changes in lightdm 0.3.7

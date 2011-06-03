@@ -55,9 +55,6 @@ struct DisplayPrivate
     /* Number of times have logged in */
     gint login_count;
 
-    /* Layout to use in greeter/sessions */
-    gchar *default_layout;
-
     /* User to run greeter as */
     gchar *greeter_user;
 
@@ -188,19 +185,6 @@ const gchar *
 display_get_greeter_theme (Display *display)
 {
     return display->priv->greeter_theme;
-}
-
-void
-display_set_default_layout (Display *display, const gchar *layout)
-{
-    g_free (display->priv->default_layout);
-    display->priv->default_layout = g_strdup (layout);
-}
-
-const gchar *
-display_get_default_layout (Display *display)
-{
-    return display->priv->default_layout;
 }
 
 void
@@ -510,8 +494,6 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
         g_key_file_remove_key (dmrc_file, "Desktop", "LCMess", NULL);
     }
     g_free (old_language);
-    if (!g_key_file_has_key (dmrc_file, "Desktop", "Layout", NULL))
-        g_key_file_set_string (dmrc_file, "Desktop", "Layout", display->priv->default_layout);
 
     filename = g_strdup_printf ("%s.desktop", session);
     path = g_build_filename (XSESSIONS_DIR, filename, NULL);
@@ -731,8 +713,7 @@ start_greeter (Display *display)
         display->priv->greeter_session = greeter_new ();
         greeter_set_theme (display->priv->greeter_session, display->priv->greeter_theme);
         greeter_set_default_user (display->priv->greeter_session, display->priv->default_user, display->priv->timeout);
-        greeter_set_layout (display->priv->greeter_session, display->priv->default_layout);
-        greeter_set_session (display->priv->greeter_session, display->priv->default_session);
+        greeter_set_default_session (display->priv->greeter_session, display->priv->default_session);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "start-session", G_CALLBACK (greeter_start_session_cb), display);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "quit", G_CALLBACK (greeter_quit_cb), display);
         session_set_username (SESSION (display->priv->greeter_session), username);
@@ -807,7 +788,6 @@ display_init (Display *display)
     if (strcmp (GREETER_USER, "") != 0)
         display->priv->greeter_user = g_strdup (GREETER_USER);
     display->priv->greeter_theme = g_strdup (GREETER_THEME);
-    display->priv->default_layout = g_strdup ("us"); // FIXME: Is there a better default to get?
     display->priv->default_session = g_strdup (DEFAULT_SESSION);
 }
 
@@ -835,7 +815,6 @@ display_finalize (GObject *object)
     g_free (self->priv->greeter_user);
     g_free (self->priv->greeter_theme);
     g_free (self->priv->default_user);
-    g_free (self->priv->default_layout);
     g_free (self->priv->default_session);
 
     G_OBJECT_CLASS (display_parent_class)->finalize (object);

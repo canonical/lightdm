@@ -30,21 +30,32 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct GreeterPrivate
 {
+    /* TRUE if the greeter has connected to the daemon pipe */
     gboolean connected;
 
     /* Pipe to communicate to greeter */
     int pipe[2];
+
+    /* Buffer for data read from greeter */
     gchar *read_buffer;
     gsize n_read;
-  
+
+    /* Theme for greeter to use */
     gchar *theme;
-    gchar *layout;
-    gchar *session;
+
+    /* Default session to use */   
+    gchar *default_session;
+
+    /* Default user to log in as, or NULL for no default */
     gchar *default_user;
+
+    /* Time in seconds to wait until logging in as default user */
     gint autologin_timeout;
 
+    /* Timeout for greeter to respond to quit request */
     guint quit_timeout;
-  
+
+    /* PAM session being constructed by the greeter */
     PAMSession *pam_session;    
 };
 
@@ -72,29 +83,16 @@ greeter_set_theme (Greeter *greeter, const gchar *theme)
 }
 
 void
-greeter_set_layout (Greeter *greeter, const gchar *layout)
+greeter_set_default_session (Greeter *greeter, const gchar *session)
 {
-    g_free (greeter->priv->layout);
-    greeter->priv->layout = g_strdup (layout);
+    g_free (greeter->priv->default_session);
+    greeter->priv->default_session = g_strdup (session);
 }
 
 const gchar *
-greeter_get_layout (Greeter *greeter)
+greeter_get_default_session (Greeter *greeter)
 {
-    return greeter->priv->layout;
-}
-
-void
-greeter_set_session (Greeter *greeter, const gchar *session)
-{
-    g_free (greeter->priv->session);
-    greeter->priv->session = g_strdup (session);
-}
-
-const gchar *
-greeter_get_session (Greeter *greeter)
-{
-    return greeter->priv->session;
+    return greeter->priv->default_session;
 }
 
 PAMSession *
@@ -159,10 +157,9 @@ handle_connect (Greeter *greeter)
 
     theme = g_build_filename (THEME_DIR, greeter->priv->theme, "index.theme", NULL);
 
-    write_header (greeter, GREETER_MESSAGE_CONNECTED, string_length (theme) + string_length (greeter->priv->layout) + string_length (greeter->priv->session) + string_length (greeter->priv->default_user ? greeter->priv->default_user : "") + int_length () + int_length ());
+    write_header (greeter, GREETER_MESSAGE_CONNECTED, string_length (theme) + string_length (greeter->priv->default_session) + string_length (greeter->priv->default_user ? greeter->priv->default_user : "") + int_length () + int_length ());
     write_string (greeter, theme);
-    write_string (greeter, greeter->priv->layout);
-    write_string (greeter, greeter->priv->session);
+    write_string (greeter, greeter->priv->default_session);
     write_string (greeter, greeter->priv->default_user ? greeter->priv->default_user : "");
     write_int (greeter, greeter->priv->autologin_timeout);
     write_int (greeter, FALSE);
@@ -362,7 +359,7 @@ handle_start_session (Greeter *greeter, gchar *session, gchar *language)
         return;
     }*/
 
-    g_debug ("Greeter start session %s with language", session, language);
+    g_debug ("Greeter start session %s with language %s", session, language);
 
     g_signal_emit (greeter, signals[START_SESSION], 0, session, language);
 }
@@ -617,8 +614,7 @@ greeter_finalize (GObject *object)
   
     g_free (self->priv->read_buffer);
     g_free (self->priv->theme);
-    g_free (self->priv->layout);
-    g_free (self->priv->session);
+    g_free (self->priv->default_session);
     g_free (self->priv->default_user);
   
     G_OBJECT_CLASS (greeter_parent_class)->finalize (object);

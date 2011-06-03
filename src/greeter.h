@@ -47,9 +47,9 @@ void greeter_set_layout (Greeter *greeter, const gchar *layout);
 
 const gchar *greeter_get_layout (Greeter *greeter);
 
-void greeter_set_session (Greeter *greeter, const gchar *session);
+void greeter_set_default_session (Greeter *greeter, const gchar *session);
 
-const gchar *greeter_get_session (Greeter *greeter);
+const gchar *greeter_get_default_session (Greeter *greeter);
 
 PAMSession *greeter_get_pam_session (Greeter *greeter);
 

@@ -43,7 +43,6 @@ class GreeterPrivate
 {
 public:
     QString theme;
-    QString defaultLayout;
     QString defaultSession;
     QString timedUser;
     int loginDelay;
@@ -314,12 +313,11 @@ void Greeter::onRead(int fd)
     {
     case GREETER_MESSAGE_CONNECTED:
         d->theme = readString(&offset);
-        d->defaultLayout = readString(&offset);
         d->defaultSession = readString(&offset);
         d->timedUser = readString(&offset);
         d->loginDelay = readInt(&offset);
         d->guestAccountSupported = readInt(&offset) != 0;
-        qDebug() << "Connected theme=" << d->theme << " default-layout=" << d->defaultLayout << " default-session=" << d->defaultSession << " timed-user=" << d->timedUser << " login-delay" << d->loginDelay << " guestAccountSupported" << d->guestAccountSupported;
+        qDebug() << "Connected theme=" << d->theme << " default-session=" << d->defaultSession << " timed-user=" << d->timedUser << " login-delay" << d->loginDelay << " guestAccountSupported" << d->guestAccountSupported;
 
         /* Set timeout for default login */
         if(d->timedUser != "" && d->loginDelay > 0)
@@ -392,11 +390,6 @@ QVariant Greeter::getProperty(const QString &name) const
 QString Greeter::defaultLanguage() const
 {
     return getenv("LANG");
-}
-
-QString Greeter::defaultLayout() const
-{
-    return d->defaultLayout;
 }
 
 QString Greeter::defaultSession() const

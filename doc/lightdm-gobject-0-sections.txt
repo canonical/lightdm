@@ -113,7 +113,6 @@ ldm_greeter_get_users
 ldm_greeter_get_user_by_name
 ldm_greeter_get_default_language
 ldm_greeter_get_languages
-ldm_greeter_get_default_layout
 ldm_greeter_get_layouts
 ldm_greeter_get_layout
 ldm_greeter_set_layout

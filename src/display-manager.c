@@ -638,10 +638,6 @@ display_manager_start (DisplayManager *manager)
             g_free (vt);
         }
 
-        value = g_key_file_get_string (manager->priv->config, display_name, "layout", NULL);
-        if (value)
-            display_set_default_layout (display, value);
-        g_free (value);
         value = g_key_file_get_string (manager->priv->config, display_name, "session", NULL);
         if (value)
             display_set_default_session (display, value);

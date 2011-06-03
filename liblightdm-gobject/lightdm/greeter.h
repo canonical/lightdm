@@ -81,8 +81,6 @@ const gchar *ldm_greeter_get_default_language (LdmGreeter *greeter);
 
 const GList *ldm_greeter_get_languages (LdmGreeter *greeter);
 
-const gchar *ldm_greeter_get_default_layout (LdmGreeter *greeter);
-
 const GList *ldm_greeter_get_layouts (LdmGreeter *greeter);
 
 void ldm_greeter_set_layout (LdmGreeter *greeter, const gchar *layout);

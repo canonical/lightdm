@@ -41,7 +41,6 @@ namespace QLightDM
 	QString defaultLanguage() const;
 
 	//QList<LdmLayout> layouts() const;
-	QString defaultLayout() const;
 	QString layout() const;
 
     QLightDM::Config *config() const;

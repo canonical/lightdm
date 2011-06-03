@@ -93,7 +93,6 @@ struct _LdmGreeterPrivate
     gboolean have_languages;
     GList *languages;
 
-    gchar *default_layout;
     XklEngine *xkl_engine;
     XklConfigRec *xkl_config;
     gboolean have_layouts;
@@ -327,15 +326,14 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     {
     case GREETER_MESSAGE_CONNECTED:
         greeter->priv->theme = read_string (greeter, &offset);
-        greeter->priv->default_layout = read_string (greeter, &offset);
         greeter->priv->default_session = read_string (greeter, &offset);
         greeter->priv->timed_user = read_string (greeter, &offset);
         greeter->priv->login_delay = read_int (greeter, &offset);
         greeter->priv->guest_account_supported = read_int (greeter, &offset) != 0;
 
-        g_debug ("Connected theme=%s default-layout=%s default-session=%s timed-user=%s login-delay=%d guest-account-supported=%s",
+        g_debug ("Connected theme=%s default-session=%s timed-user=%s login-delay=%d guest-account-supported=%s",
                  greeter->priv->theme,
-                 greeter->priv->default_layout, greeter->priv->default_session,
+                 greeter->priv->default_session,
                  greeter->priv->timed_user, greeter->priv->login_delay,
                  greeter->priv->guest_account_supported ? "true" : "false");
 
@@ -962,13 +960,6 @@ ldm_greeter_get_languages (LdmGreeter *greeter)
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
     update_languages (greeter);
     return greeter->priv->languages;
-}
-
-const gchar *
-ldm_greeter_get_default_layout (LdmGreeter *greeter)
-{
-    g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
-    return greeter->priv->default_layout;
 }
 
 static void
