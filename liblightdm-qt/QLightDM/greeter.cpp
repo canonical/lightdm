@@ -262,11 +262,6 @@ void Greeter::startSession(const QString &session, const QString &language)
     flush();
 }
 
-void Greeter::startSessionWithDefaults()
-{
-    startSession(NULL, NULL);
-}
-
 void Greeter::onRead(int fd)
 {
     //qDebug() << "Reading from server";

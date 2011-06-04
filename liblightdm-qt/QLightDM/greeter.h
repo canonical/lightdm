@@ -58,8 +58,7 @@ namespace QLightDM
 	void loginAsGuest();
 	void provideSecret(const QString &secret);
 	void cancelAuthentication();
-	void startSession(const QString &session, const QString &language);
-	void startSessionWithDefaults();
+	void startSession(const QString &session=QString(), const QString &language=QString());
 
 	bool canSuspend() const;
 	bool canHibernate() const;
