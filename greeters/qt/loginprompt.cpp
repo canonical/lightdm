@@ -45,14 +45,13 @@ void LoginPrompt::onLoginButtonClicked()
 void LoginPrompt::onAuthenticationComplete(bool success)
 {
     if (success) {
-        m_greeter->startSession();
+        emit startSession();
     } else {
         ui->feedbackLabel->setText("Sorry, you suck. Try again.");
     }
 }
 
-void LoginPrompt::prompt(const QString &message)
-{
+void LoginPrompt::prompt(const QString &message) {
     qDebug() << message;
     m_greeter->provideSecret(ui->password->text());
 }

@@ -53,6 +53,8 @@ QVariant SessionsModel::data(const QModelIndex &index, int role) const
     int row = index.row();
 
     switch (role) {
+    case SessionsModel::IdRole:
+        return d->items[row].id;
     case Qt::DisplayRole:
         return d->items[row].name;
     case Qt::ToolTipRole:

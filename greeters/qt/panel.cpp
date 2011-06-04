@@ -47,6 +47,15 @@ Panel::Panel(QLightDM::Greeter *greeter, QWidget *parent):
     ui->sessionCombo->setModel(sessionsModel);
 }
 
+QString Panel::session() const{
+    int index = ui->sessionCombo->currentIndex();
+    if (index > -1) {
+        return ui->sessionCombo->itemData(index, QLightDM::SessionsModel::IdRole).toString();
+    }
+    return QString();
+}
+
+
 Panel::~Panel()
 {
     delete ui;

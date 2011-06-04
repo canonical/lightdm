@@ -18,7 +18,11 @@ class Panel : public QWidget
 public:
     explicit Panel(QLightDM::Greeter *greeter, QWidget *parent = 0);
     virtual ~Panel();
-
+    
+    /** Returns the currently selected session*/
+    QString session() const;
+    
+    
 private:
     Ui::Panel *ui;
     QLightDM::Greeter *m_greeter;

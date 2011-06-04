@@ -19,6 +19,9 @@ public:
     explicit LoginPrompt(QLightDM::Greeter* greeter, QWidget *parent = 0);
     virtual ~LoginPrompt();
 
+signals:
+    void startSession();
+    
 private slots:
     void onLoginButtonClicked();
     void onAuthenticationComplete(bool success);
