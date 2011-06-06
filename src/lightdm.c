@@ -35,38 +35,6 @@ static GDBusConnection *bus = NULL;
 #define LDM_BUS_NAME "org.lightdm.LightDisplayManager"
 
 static void
-load_config (void)
-{
-    GError *error = NULL;
-
-    if (!config_load_from_file (config_get_instance (), config_path, &error))
-    {
-        g_warning ("Failed to load configuration from %s: %s", config_path, error->message); // FIXME: Don't make warning on no file, just info
-        exit (EXIT_FAILURE);
-    }
-    g_clear_error (&error);
-
-    /* Set default values */
-    config_set_string (config_get_instance (), "LightDM", "log-directory", LOG_DIR);
-    config_set_string (config_get_instance (), "LightDM", "theme-directory", THEME_DIR);
-    config_set_string (config_get_instance (), "LightDM", "theme-engine-directory", THEME_ENGINE_DIR);
-    config_set_string (config_get_instance (), "LightDM", "authorization-directory", XAUTH_DIR);
-    config_set_string (config_get_instance (), "LightDM", "cache-directory", CACHE_DIR);
-
-    if (test_mode)
-    {
-        gchar *path;
-        config_set_boolean (config_get_instance (), "LightDM", "test-mode", TRUE);
-        path = g_build_filename (g_get_user_cache_dir (), "lightdm", "authority", NULL);
-        config_set_string (config_get_instance (), "LightDM", "authorization-directory", path);
-        g_free (path);
-        path = g_build_filename (g_get_user_cache_dir (), "lightdm", NULL);
-        config_set_string (config_get_instance (), "LightDM", "log-directory", path);
-        g_free (path);
-    }
-}
-
-static void
 log_cb (const gchar *log_domain, GLogLevelFlags log_level,
         const gchar *message, gpointer data)
 {
@@ -248,21 +216,28 @@ main(int argc, char **argv)
     FILE *pid_file;
     GOptionContext *option_context;
     gchar *pid_path = "/var/run/lightdm.pid";
+    gchar *theme_dir = THEME_DIR, *theme_engine_dir = THEME_ENGINE_DIR;
     gboolean show_version = FALSE;
     GOptionEntry options[] = 
     {
         { "config", 'c', 0, G_OPTION_ARG_STRING, &config_path,
           /* Help string for command line --config flag */
           N_("Use configuration file"), NULL },
-        { "pid-file", 0, 0, G_OPTION_ARG_STRING, &pid_path,
-          /* Help string for command line --pid-file flag */
-          N_("File to write PID into"), NULL },
         { "debug", 'd', 0, G_OPTION_ARG_NONE, &debug,
           /* Help string for command line --debug flag */
           N_("Print debugging messages"), NULL },
         { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
           /* Help string for command line --test-mode flag */
           N_("Run as unprivileged user"), NULL },
+        { "pid-file", 0, 0, G_OPTION_ARG_STRING, &pid_path,
+          /* Help string for command line --pid-file flag */
+          N_("File to write PID into"), NULL },
+        { "theme-dir", 0, 0, G_OPTION_ARG_STRING, &theme_dir,
+          /* Help string for command line --theme-dir flag */
+          N_("Directory to load themes from"), NULL },
+        { "theme-engine-dir", 0, 0, G_OPTION_ARG_STRING, &theme_engine_dir,
+          /* Help string for command line --theme-engine-dir flag */
+          N_("Directory to load theme engines from"), NULL },
         { "version", 'v', 0, G_OPTION_ARG_NONE, &show_version,
           /* Help string for command line --version flag */
           N_("Show release version"), NULL },
@@ -334,7 +309,31 @@ main(int argc, char **argv)
                     NULL,
                     NULL);
 
-    load_config ();
+    if (!config_load_from_file (config_get_instance (), config_path, &error))
+    {
+        g_warning ("Failed to load configuration from %s: %s", config_path, error->message); // FIXME: Don't make warning on no file, just info
+        exit (EXIT_FAILURE);
+    }
+    g_clear_error (&error);
+
+    /* Set default values */
+    config_set_string (config_get_instance (), "LightDM", "log-directory", LOG_DIR);
+    config_set_string (config_get_instance (), "LightDM", "theme-directory", theme_dir);
+    config_set_string (config_get_instance (), "LightDM", "theme-engine-directory", theme_engine_dir);
+    config_set_string (config_get_instance (), "LightDM", "authorization-directory", XAUTH_DIR);
+    config_set_string (config_get_instance (), "LightDM", "cache-directory", CACHE_DIR);
+
+    if (test_mode)
+    {
+        gchar *path;
+        config_set_boolean (config_get_instance (), "LightDM", "test-mode", TRUE);
+        path = g_build_filename (g_get_user_cache_dir (), "lightdm", "authority", NULL);
+        config_set_string (config_get_instance (), "LightDM", "authorization-directory", path);
+        g_free (path);
+        path = g_build_filename (g_get_user_cache_dir (), "lightdm", NULL);
+        config_set_string (config_get_instance (), "LightDM", "log-directory", path);
+        g_free (path);
+    }
 
     log_init ();
 
