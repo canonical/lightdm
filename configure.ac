@@ -33,6 +33,10 @@ PKG_CHECK_MODULES(LIGHTDM, [
     xdmcp
 ])
 
+PKG_CHECK_MODULES(GOBJECT, [
+    gobject-2.0
+])    
+
 AC_ARG_ENABLE(liblightdm-gobject,
 	AS_HELP_STRING([--enable-liblightdm-gobject],[Enable LightDM client gobject libraries [[default=yes]]]),
 	[enable_liblightdm_gobject=$enableval],
@@ -273,6 +277,7 @@ liblightdm-qt/QLightDM/liblightdm-qt-0.pc
 liblightdm-qt/QLightDM/Makefile
 po/Makefile.in
 src/Makefile
+tests/Makefile
 themes/Makefile
 themes/example-gtk-gnome/Makefile
 themes/example-python-gtk-gnome/Makefile

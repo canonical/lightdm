@@ -1,0 +1,2 @@
+#!/bin/sh
+#../src/lightdm --test-mode --config test-autologin.conf

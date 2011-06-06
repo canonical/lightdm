@@ -5,7 +5,7 @@ endif
 if COMPILE_LIBLIGHTDM_QT
 SUBDIRS += liblightdm-qt
 endif
-SUBDIRS += data greeters po src themes doc
+SUBDIRS += data greeters po src themes doc tests
 
 DISTCHECK_CONFIGURE_FLAGS = --enable-introspection --enable-gtk-doc
 
