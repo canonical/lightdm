@@ -13,20 +13,18 @@
 
 struct GuestManagerPrivate
 {
-    /* Configuration */
-    GKeyFile *config;
 };
 
 G_DEFINE_TYPE (GuestManager, guest_manager, G_TYPE_OBJECT);
 
+static GuestManager *guest_manager_instance = NULL;
+
 GuestManager *
-guest_manager_new (GKeyFile *config)
+guest_manager_get_instance ()
 {
-    GuestManager *self = g_object_new (GUEST_MANAGER_TYPE, NULL);
-
-    self->priv->config = config;
-
-    return self;
+    if (!guest_manager_instance)
+        guest_manager_instance = g_object_new (GUEST_MANAGER_TYPE, NULL);
+    return guest_manager_instance;
 }
 
 gboolean

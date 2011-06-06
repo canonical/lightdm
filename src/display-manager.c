@@ -25,6 +25,7 @@
 #endif
 
 #include "display-manager.h"
+#include "configuration.h"
 #include "guest-manager.h"
 #include "xdmcp-server.h"
 #include "xserver.h"
@@ -38,9 +39,6 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct DisplayManagerPrivate
 {
-    /* Configuration */
-    GKeyFile *config;
-
     /* Directory to store authorization files */
     gchar *auth_dir;
 
@@ -53,9 +51,6 @@ struct DisplayManagerPrivate
     /* TRUE if running in test mode (i.e. as non-root for testing) */
     gboolean test_mode;
 
-    /* Guest account manager */
-    GuestManager *guest_manager;
-
     /* The displays being managed */
     GList *displays;
 
@@ -66,19 +61,17 @@ struct DisplayManagerPrivate
 G_DEFINE_TYPE (DisplayManager, display_manager, G_TYPE_OBJECT);
 
 DisplayManager *
-display_manager_new (GKeyFile *config)
+display_manager_new (void)
 {
     DisplayManager *self = g_object_new (DISPLAY_MANAGER_TYPE, NULL);
 
-    self->priv->config = config;
-    self->priv->test_mode = g_key_file_get_boolean (self->priv->config, "LightDM", "test-mode", NULL);
-    self->priv->auth_dir = g_key_file_get_string (self->priv->config, "LightDM", "authorization-directory", NULL);
+    self->priv->test_mode = config_get_boolean (config_get_instance (), "LightDM", "test-mode");
+    self->priv->auth_dir = config_get_string (config_get_instance (), "LightDM", "authorization-directory");
     if (!self->priv->auth_dir)
         self->priv->auth_dir = g_strdup (XAUTH_DIR);
-    self->priv->log_dir = g_key_file_get_string (self->priv->config, "LightDM", "log-directory", NULL);
+    self->priv->log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
     if (!self->priv->log_dir)
         self->priv->log_dir = g_strdup (LOG_DIR);
-    self->priv->guest_manager = guest_manager_new (self->priv->config);
 
     return self;
 }
@@ -271,7 +264,7 @@ get_vt (DisplayManager *manager, gchar *config_section)
     if (manager->priv->test_mode)
         return -1;
 
-    vt = g_key_file_get_string (manager->priv->config, config_section, "vt", NULL);
+    vt = config_get_string (config_get_instance (), config_section, "vt");
     if (vt)
     {
         if (strcmp (vt, "active") == 0)
@@ -322,12 +315,12 @@ make_xserver (DisplayManager *manager, gchar *config_section)
     XAuthorization *authorization = NULL;
     gchar *xdmcp_manager, *filename, *path, *xserver_command;
 
-    if (config_section && g_key_file_has_key (manager->priv->config, config_section, "display-number", NULL))
-        display_number = g_key_file_get_integer (manager->priv->config, config_section, "display-number", NULL);
+    if (config_section && config_has_key (config_get_instance (), config_section, "display-number"))
+        display_number = config_get_integer (config_get_instance (), config_section, "display-number");
     else
         display_number = get_free_display_number (manager);
 
-    xdmcp_manager = config_section ? g_key_file_get_string (manager->priv->config, config_section, "xdmcp-manager", NULL) : NULL;
+    xdmcp_manager = config_section ? config_get_string (config_get_instance (), config_section, "xdmcp-manager") : NULL;
     if (xdmcp_manager)
     {
         gint port;
@@ -335,10 +328,10 @@ make_xserver (DisplayManager *manager, gchar *config_section)
 
         xserver = xserver_new (XSERVER_TYPE_LOCAL_TERMINAL, xdmcp_manager, display_number);
 
-        port = g_key_file_get_integer (manager->priv->config, config_section, "xdmcp-port", NULL);
+        port = config_get_integer (config_get_instance (), config_section, "xdmcp-port");
         if (port > 0)
             xserver_set_port (xserver, port);
-        key = g_key_file_get_string (manager->priv->config, config_section, "key", NULL);
+        key = config_get_string (config_get_instance (), config_section, "key");
         if (key)
         {
             guchar data[8];
@@ -374,7 +367,7 @@ make_xserver (DisplayManager *manager, gchar *config_section)
         xserver_set_vt (xserver, vt);
     }
 
-    xserver_command = g_key_file_get_string (manager->priv->config, "LightDM", "xserver", NULL);
+    xserver_command = config_get_string (config_get_instance (), "LightDM", "xserver");
     if (xserver_command)
         xserver_set_command (xserver, xserver_command);
     g_free (xserver_command);
@@ -396,7 +389,7 @@ add_display (DisplayManager *manager)
     g_signal_connect (display, "start-session", G_CALLBACK (start_session_cb), manager);
     g_signal_connect (display, "end-session", G_CALLBACK (end_session_cb), manager);
 
-    value = g_key_file_get_string (manager->priv->config, "LightDM", "session-wrapper", NULL);
+    value = config_get_string (config_get_instance (), "LightDM", "session-wrapper");
     if (value)
         display_set_session_wrapper (display, value);
     g_free (value);
@@ -594,7 +587,7 @@ display_manager_start (DisplayManager *manager)
     setup_auth_dir (manager);
 
     /* Load the static display entries */
-    displays = g_key_file_get_string (manager->priv->config, "LightDM", "displays", NULL);
+    displays = config_get_string (config_get_instance (), "LightDM", "displays");
     if (!displays)
         displays = g_strdup ("");
     tokens = g_strsplit (displays, " ", -1);
@@ -629,7 +622,7 @@ display_manager_start (DisplayManager *manager)
         if (plymouth_on_active_vt && !plymouth_being_replaced)
         {
             gchar *vt;
-            vt = g_key_file_get_string (manager->priv->config, display_name, "vt", NULL);
+            vt = config_get_string (config_get_instance (), display_name, "vt");
             if (vt && strcmp (vt, "active") == 0)
             {
                 plymouth_being_replaced = TRUE;
@@ -638,26 +631,26 @@ display_manager_start (DisplayManager *manager)
             g_free (vt);
         }
 
-        value = g_key_file_get_string (manager->priv->config, display_name, "session", NULL);
+        value = config_get_string (config_get_instance (), display_name, "session");
         if (value)
             display_set_default_session (display, value);
         g_free (value);
-        value = g_key_file_get_string (manager->priv->config, display_name, "greeter-user", NULL);
+        value = config_get_string (config_get_instance (), display_name, "greeter-user");
         if (value)
             display_set_greeter_user (display, value);
         g_free (value);
-        value = g_key_file_get_string (manager->priv->config, display_name, "greeter-theme", NULL);
+        value = config_get_string (config_get_instance (), display_name, "greeter-theme");
         if (value)
             display_set_greeter_theme (display, value);
         g_free (value);
-        value = g_key_file_get_string (manager->priv->config, display_name, "pam-service", NULL);
+        value = config_get_string (config_get_instance (), display_name, "pam-service");
         if (value)
             display_set_pam_service (display, value);
         g_free (value);
 
         /* Automatically log in or start a greeter session */
-        default_user = g_key_file_get_string (manager->priv->config, display_name, "default-user", NULL);
-        user_timeout = g_key_file_get_integer (manager->priv->config, display_name, "default-user-timeout", NULL);
+        default_user = config_get_string (config_get_instance (), display_name, "default-user");
+        user_timeout = config_get_integer (config_get_instance (), display_name, "default-user-timeout");
         if (user_timeout < 0)
             user_timeout = 0;
 
@@ -707,21 +700,21 @@ display_manager_start (DisplayManager *manager)
         plymouth_run_command ("quit", NULL);
     }
 
-    if (g_key_file_get_boolean (manager->priv->config, "xdmcp", "enabled", NULL))
+    if (config_get_boolean (config_get_instance (), "xdmcp", "enabled"))
     {
         gchar *key;
 
         manager->priv->xdmcp_server = xdmcp_server_new ();
-        if (g_key_file_has_key (manager->priv->config, "xdmcp", "port", NULL))
+        if (config_has_key (config_get_instance (), "xdmcp", "port"))
         {
             gint port;
-            port = g_key_file_get_integer (manager->priv->config, "xdmcp", "port", NULL);
+            port = config_get_integer (config_get_instance (), "xdmcp", "port");
             if (port > 0)
                 xdmcp_server_set_port (manager->priv->xdmcp_server, port);
         }
         g_signal_connect (manager->priv->xdmcp_server, "new-session", G_CALLBACK (xdmcp_session_cb), manager);
 
-        key = g_key_file_get_string (manager->priv->config, "xdmcp", "key", NULL);
+        key = config_get_string (config_get_instance (), "xdmcp", "key");
         if (key)
         {
             guchar data[8];

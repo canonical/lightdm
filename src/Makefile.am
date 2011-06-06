@@ -9,6 +9,8 @@ ldm-marshal.h: ldm-marshal.list
 lightdm_SOURCES = \
 	child-process.c \
 	child-process.h \
+	configuration.c \
+	configuration.h \
 	display.c \
 	display.h \
 	display-manager.c \

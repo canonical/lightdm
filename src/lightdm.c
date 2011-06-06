@@ -17,10 +17,10 @@
 #include <glib/gi18n.h>
 #include <unistd.h>
 
+#include "configuration.h"
 #include "display-manager.h"
 #include "xserver.h"
 
-static GKeyFile *config_file = NULL;
 static gchar *config_path = CONFIG_FILE;
 static GMainLoop *loop = NULL;
 static gboolean test_mode = FALSE;
@@ -39,8 +39,7 @@ load_config (void)
 {
     GError *error = NULL;
 
-    config_file = g_key_file_new ();
-    if (!g_key_file_load_from_file (config_file, config_path, G_KEY_FILE_NONE, &error))
+    if (!config_load_from_file (config_get_instance (), config_path, &error))
     {
         g_warning ("Failed to load configuration from %s: %s", config_path, error->message); // FIXME: Don't make warning on no file, just info
         exit (EXIT_FAILURE);
@@ -50,12 +49,12 @@ load_config (void)
     if (test_mode)
     {
         gchar *path;
-        g_key_file_set_boolean (config_file, "LightDM", "test-mode", TRUE);
+        config_set_boolean (config_get_instance (), "LightDM", "test-mode", TRUE);
         path = g_build_filename (g_get_user_cache_dir (), "lightdm", "authority", NULL);
-        g_key_file_set_string (config_file, "LightDM", "authorization-directory", path);
+        config_set_string (config_get_instance (), "LightDM", "authorization-directory", path);
         g_free (path);
         path = g_build_filename (g_get_user_cache_dir (), "lightdm", NULL);
-        g_key_file_set_string (config_file, "LightDM", "log-directory", path);
+        config_set_string (config_get_instance (), "LightDM", "log-directory", path);
         g_free (path);
     }
 }
@@ -113,7 +112,7 @@ log_init (void)
     log_timer = g_timer_new ();
 
     /* Log to a file */
-    log_dir = g_key_file_get_string (config_file, "LightDM", "log-directory", NULL);
+    log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
     if (!log_dir)
         log_dir = g_strdup (LOG_DIR);
     g_mkdir_with_parents (log_dir, 0755);
@@ -341,7 +340,7 @@ main(int argc, char **argv)
 
     g_debug ("Loaded configuration from %s", config_path);
 
-    display_manager = display_manager_new (config_file);
+    display_manager = display_manager_new ();
 
     display_manager_start (display_manager);
 

@@ -34,7 +34,7 @@ typedef struct
 
 GType guest_manager_get_type (void);
 
-GuestManager *guest_manager_new (GKeyFile *config);
+GuestManager *guest_manager_get_instance (void);
 
 gboolean guest_manager_get_is_enabled (GuestManager *manager);
 
