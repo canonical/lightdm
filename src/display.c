@@ -19,6 +19,7 @@
 
 #include "display.h"
 #include "pam-session.h"
+#include "dmrc.h"
 #include "theme.h"
 #include "ldm-marshal.h"
 #include "greeter.h"
@@ -449,9 +450,8 @@ static void
 start_user_session (Display *display, const gchar *session, const gchar *language)
 {
     gchar *filename, *path, *old_language;
-    struct passwd *user_info;
     GKeyFile *dmrc_file, *session_desktop_file;
-    gboolean have_dmrc = FALSE, result;
+    gboolean result;
     GError *error = NULL;
 
     run_script ("PreSession");
@@ -460,28 +460,7 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
     display->priv->login_count++;
 
     /* Load the users login settings (~/.dmrc) */
-    dmrc_file = g_key_file_new ();
-    user_info = get_user_info (pam_session_get_username (display->priv->user_pam_session));
-    if (user_info)
-    {
-        /* Load from the user directory, if this fails (e.g. the user directory
-         * is not yet mounted) then load from the cache */
-        path = g_build_filename (user_info->pw_dir, ".dmrc", NULL);
-        have_dmrc = g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, NULL);
-        g_free (path);
-    }
-
-    /* If no .dmrc, then load from the cache */
-    if (!have_dmrc)
-    {
-        filename = g_strdup_printf ("%s.dmrc", user_info->pw_name);
-        path = g_build_filename (CACHE_DIR, "dmrc", filename, NULL);
-        g_free (filename);
-        if (!g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, &error))
-            g_warning ("Failed to load .dmrc file %s: %s", path, error->message);
-        g_clear_error (&error);
-        g_free (path);
-    }
+    dmrc_file = dmrc_load (pam_session_get_username (display->priv->user_pam_session));
 
     /* Update the .dmrc with changed settings */
     g_key_file_set_string (dmrc_file, "Desktop", "Session", session);
@@ -519,9 +498,6 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
         if (session_command)
         {
-            gchar *data;
-            gsize length;
-
             if (display->priv->session_wrapper)
             {
                 gchar *old_command = session_command;
@@ -553,28 +529,8 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
             else
                 g_debug ("Waiting for greeter to quit before starting user session process");
 
-            data = g_key_file_to_data (dmrc_file, &length, NULL);
-
-            /* Update the users .dmrc */
-            if (user_info)
-            {
-                path = g_build_filename (user_info->pw_dir, ".dmrc", NULL);
-                g_file_set_contents (path, data, length, NULL);
-                if (chown (path, user_info->pw_uid, user_info->pw_gid) < 0)
-                    g_warning ("Error setting ownership on %s: %s", path, strerror (errno));
-                g_free (path);
-            }
-
-            /* Update the .dmrc cache */
-            path = g_build_filename (CACHE_DIR, "dmrc", NULL);          
-            g_mkdir_with_parents (path, 0700);
-            g_free (path);
-            filename = g_strdup_printf ("%s.dmrc", pam_session_get_username (display->priv->user_pam_session));
-            path = g_build_filename (CACHE_DIR, "dmrc", filename, NULL);
-            g_file_set_contents (path, data, length, NULL);
-            g_free (path);
-
-            g_free (data);
+            /* Save modified DMRC */
+            dmrc_save (dmrc_file, pam_session_get_username (display->priv->user_pam_session));
         }
 
         g_free (session_command);

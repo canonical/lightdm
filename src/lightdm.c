@@ -46,6 +46,13 @@ load_config (void)
     }
     g_clear_error (&error);
 
+    /* Set default values */
+    config_set_string (config_get_instance (), "LightDM", "log-directory", LOG_DIR);
+    config_set_string (config_get_instance (), "LightDM", "theme-directory", THEME_DIR);
+    config_set_string (config_get_instance (), "LightDM", "theme-engine-directory", THEME_ENGINE_DIR);
+    config_set_string (config_get_instance (), "LightDM", "authorization-directory", XAUTH_DIR);
+    config_set_string (config_get_instance (), "LightDM", "cache-directory", CACHE_DIR);
+
     if (test_mode)
     {
         gchar *path;
@@ -113,8 +120,6 @@ log_init (void)
 
     /* Log to a file */
     log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    if (!log_dir)
-        log_dir = g_strdup (LOG_DIR);
     g_mkdir_with_parents (log_dir, 0755);
     path = g_build_filename (log_dir, "lightdm.log", NULL);
     g_free (log_dir);

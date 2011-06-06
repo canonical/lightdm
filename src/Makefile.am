@@ -15,6 +15,8 @@ lightdm_SOURCES = \
 	display.h \
 	display-manager.c \
 	display-manager.h \
+	dmrc.c \
+	dmrc.h \
 	greeter.c \
 	greeter.h \
 	greeter-protocol.h \

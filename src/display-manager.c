@@ -67,11 +67,7 @@ display_manager_new (void)
 
     self->priv->test_mode = config_get_boolean (config_get_instance (), "LightDM", "test-mode");
     self->priv->auth_dir = config_get_string (config_get_instance (), "LightDM", "authorization-directory");
-    if (!self->priv->auth_dir)
-        self->priv->auth_dir = g_strdup (XAUTH_DIR);
     self->priv->log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    if (!self->priv->log_dir)
-        self->priv->log_dir = g_strdup (LOG_DIR);
 
     return self;
 }

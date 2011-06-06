@@ -80,7 +80,7 @@ static void
 config_init (Configuration *config)
 {
     config->priv = G_TYPE_INSTANCE_GET_PRIVATE (config, CONFIGURATION_TYPE, ConfigurationPrivate);
-    config->priv->key_file = g_key_file_new ();
+    config->priv->key_file = g_key_file_new ();  
 }
 
 static void

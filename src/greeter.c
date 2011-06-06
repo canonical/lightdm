@@ -15,6 +15,8 @@
 #include <errno.h>
 
 #include "greeter.h"
+#include "configuration.h"
+#include "dmrc.h"
 #include "ldm-marshal.h"
 #include "greeter-protocol.h"
 
@@ -153,7 +155,7 @@ flush (Greeter *greeter)
 static void
 handle_connect (Greeter *greeter)
 {
-    gchar *theme;
+    gchar *theme_dir, *theme;
 
     if (!greeter->priv->connected)
     {
@@ -161,7 +163,9 @@ handle_connect (Greeter *greeter)
         g_debug ("Greeter connected");
     }
 
-    theme = g_build_filename (THEME_DIR, greeter->priv->theme, "index.theme", NULL);
+    theme_dir = config_get_string (config_get_instance (), "LightDM", "theme-directory");  
+    theme = g_build_filename (theme_dir, greeter->priv->theme, "index.theme", NULL);
+    g_free (theme_dir);
 
     write_header (greeter, GREETER_MESSAGE_CONNECTED, string_length (theme) + string_length (greeter->priv->default_session) + string_length (greeter->priv->default_user ? greeter->priv->default_user : "") + int_length () + int_length ());
     write_string (greeter, theme);
@@ -373,42 +377,11 @@ handle_start_session (Greeter *greeter, gchar *session, gchar *language)
 static void
 handle_get_user_defaults (Greeter *greeter, gchar *username)
 {
-    struct passwd *user_info;
     GKeyFile *dmrc_file;
-    gboolean have_dmrc = FALSE;
     gchar *language, *layout, *session;
 
-    user_info = getpwnam (username);
-    if (!user_info)
-    {
-        if (errno == 0)
-            g_warning ("Unable to get information on user %s: User does not exist", username);
-        else
-            g_warning ("Unable to get information on user %s: %s", username, strerror (errno));
-    }
-      
-    dmrc_file = g_key_file_new ();
-
-    /* Load the users login settings (~/.dmrc) */  
-    if (user_info)
-    {
-        gchar *path;
-        path = g_build_filename (user_info->pw_dir, ".dmrc", NULL);
-        have_dmrc = g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_NONE, NULL);
-        g_free (path);
-    }
-
-    /* If no .dmrc, then load from the cache */
-    if (!have_dmrc)
-    {
-        gchar *path, *filename;
-
-        filename = g_strdup_printf ("%s.dmrc", username);
-        path = g_build_filename (CACHE_DIR, "dmrc", filename, NULL);
-        g_free (filename);
-        have_dmrc = g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_NONE, NULL);
-        g_free (path);
-    }
+    /* Load the users login settings (~/.dmrc) */
+    dmrc_file = dmrc_load (username);
 
     language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
     if (!language)

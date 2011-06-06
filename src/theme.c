@@ -14,15 +14,18 @@
 #include <string.h>
 
 #include "theme.h"
+#include "configuration.h"
 
 GKeyFile *
 load_theme (const gchar *name, GError **error)
 {
-    gchar *path;
+    gchar *theme_dir, *path;
     GKeyFile *theme;
     gboolean result;
 
-    path = g_build_filename (THEME_DIR, name, "index.theme", NULL);
+    theme_dir = config_get_string (config_get_instance (), "LightDM", "theme-directory");
+    path = g_build_filename (theme_dir, name, "index.theme", NULL);
+    g_free (theme_dir);
 
     g_debug ("Looking for %s theme in %s", name, path);
 
@@ -36,17 +39,13 @@ load_theme (const gchar *name, GError **error)
         return NULL;
     }
 
-    path = g_build_filename (THEME_DIR, name, NULL);
-    g_key_file_set_string (theme, "_", "path", path);
-    g_free (path);
-
     return theme;
 }
 
 gchar *
 theme_get_command (GKeyFile *theme)
 {
-    gchar *engine, *command;
+    gchar *engine, *engine_dir, *command;
 
     engine = g_key_file_get_value (theme, "theme", "engine", NULL);
     if (!engine)
@@ -57,7 +56,9 @@ theme_get_command (GKeyFile *theme)
 
     /* FIXME: This is perhaps unsafe - 'engine' could contain a relative path, e.g. "../../../run_something_malicious".
      * Perhaps there should be a check for this or the engines need a file like /usr/share/lightdm/engines/foo.engine */
-    command = g_build_filename (THEME_ENGINE_DIR, engine, NULL);
+    engine_dir = config_get_string (config_get_instance (), "LightDM", "theme-engine-directory");
+    command = g_build_filename (engine_dir, engine, NULL);
+    g_free (engine_dir);
     g_free (engine);
 
     return command;
