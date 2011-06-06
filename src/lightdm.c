@@ -21,8 +21,7 @@
 #include "xserver.h"
 
 static GKeyFile *config_file = NULL;
-static const gchar *config_path = CONFIG_FILE;
-static const gchar *pid_path = "/var/run/lightdm.pid";
+static gchar *config_path = CONFIG_FILE;
 static GMainLoop *loop = NULL;
 static gboolean test_mode = FALSE;
 static GTimer *log_timer;
@@ -36,96 +35,16 @@ static GDBusConnection *bus = NULL;
 #define LDM_BUS_NAME "org.lightdm.LightDisplayManager"
 
 static void
-version (void)
-{
-    /* NOTE: Is not translated so can be easily parsed */
-    g_printerr ("%s %s\n", LIGHTDM_BINARY, VERSION);
-}
-
-static void
-usage (void)
-{
-    g_printerr (/* Description on how to use Light Display Manager displayed on command-line */
-                _("Usage:\n"
-                  "  %s - Display Manager"), LIGHTDM_BINARY);
-
-    g_printerr ("\n\n");
-
-    g_printerr (/* Description on how to use Light Display Manager displayed on command-line */    
-                _("Help Options:\n"
-                  "  -c, --config <file>             Use configuration file\n"
-                  "      --pid-file <file>           File to write PID into\n"
-                  "  -d, --debug                     Print debugging messages\n"
-                  "      --test-mode                 Run as unprivileged user\n"
-                  "  -v, --version                   Show release version\n"
-                  "  -h, --help                      Show help options"));
-    g_printerr ("\n\n");
-}
-
-static void
-get_options (int argc, char **argv)
-{
-    int i;
-
-    for (i = 1; i < argc; i++)
-    {
-        char *arg = argv[i];
-
-        if (strcmp (arg, "-c") == 0 ||
-            strcmp (arg, "--config") == 0) {
-            i++;
-            if (i == argc)
-            {
-               usage ();
-               exit (1);
-            }
-            config_path = argv[i];
-        }
-        else if (strcmp (arg, "--pid-file") == 0)
-        {
-            i++;
-            if (i == argc)
-            {
-               usage ();
-               exit (1);
-            }
-            pid_path = argv[i];
-        }
-        else if (strcmp (arg, "-d") == 0 ||
-            strcmp (arg, "--debug") == 0) {
-            debug = TRUE;
-        }
-        else if (strcmp (arg, "--test-mode") == 0) {
-            test_mode = TRUE;
-        }
-        else if (strcmp (arg, "-v") == 0 ||
-            strcmp (arg, "--version") == 0)
-        {
-            version ();
-            exit (0);
-        }
-        else if (strcmp (arg, "-h") == 0 ||
-                 strcmp (arg, "--help") == 0)
-        {
-            usage ();
-            exit (0);
-        }
-        else
-        {
-            g_printerr ("Unknown argument: '%s'\n", arg);
-            exit (1);
-        }      
-    }
-}
-
-static void
 load_config (void)
 {
     GError *error = NULL;
 
     config_file = g_key_file_new ();
     if (!g_key_file_load_from_file (config_file, config_path, G_KEY_FILE_NONE, &error))
+    {
         g_warning ("Failed to load configuration from %s: %s", config_path, error->message); // FIXME: Don't make warning on no file, just info
+        exit (EXIT_FAILURE);
+    }
     g_clear_error (&error);
 
     if (test_mode)
@@ -266,9 +185,7 @@ handle_display_manager_get_property (GDBusConnection       *connection,
                                      gpointer               user_data)
 {
     if (g_strcmp0 (property_name, "ConfigFile") == 0)
-    {
         return g_variant_new_string (config_path);
-    }
 
     return NULL;
 }
@@ -325,13 +242,53 @@ int
 main(int argc, char **argv)
 {
     FILE *pid_file;
+    GOptionContext *option_context;
+    gchar *pid_path = "/var/run/lightdm.pid";
+    gboolean show_version = FALSE;
+    GOptionEntry options[] = 
+    {
+        { "config", 'c', 0, G_OPTION_ARG_STRING, &config_path,
+          /* Help string for command line --config flag */
+          N_("Use configuration file"), NULL },
+        { "pid-file", 0, 0, G_OPTION_ARG_STRING, &pid_path,
+          /* Help string for command line --pid-file flag */
+          N_("File to write PID into"), NULL },
+        { "debug", 'd', 0, G_OPTION_ARG_NONE, &debug,
+          /* Help string for command line --debug flag */
+          N_("Print debugging messages"), NULL },
+        { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
+          /* Help string for command line --test-mode flag */
+          N_("Run as unprivileged user"), NULL },
+        { "version", 'v', 0, G_OPTION_ARG_NONE, &show_version,
+          /* Help string for command line --version flag */
+          N_("Show release version"), NULL },
+        { NULL }
+    };
+    GError *error = NULL;
 
     g_thread_init (NULL);
     g_type_init ();
 
     g_signal_connect (child_process_get_parent (), "got-signal", G_CALLBACK (signal_cb), NULL);
 
-    get_options (argc, argv);
+    option_context = g_option_context_new (/* Arguments and description for --help test */
+                                           _("- Display Manager"));
+    g_option_context_add_main_entries (option_context, options, GETTEXT_PACKAGE);
+    if (!g_option_context_parse (option_context, &argc, &argv, &error))
+    {
+        fprintf (stderr, "%s\n", error->message);
+        fprintf (stderr, /* Text printed out when an unknown command-line argument provided */
+                 _("Run '%s --help' to see a full list of available command line options."), argv[0]);
+        fprintf (stderr, "\n");
+        return EXIT_FAILURE;
+    }
+    g_clear_error (&error);
+    if (show_version)
+    {
+        /* NOTE: Is not translated so can be easily parsed */
+        g_printerr ("%s %s\n", LIGHTDM_BINARY, VERSION);
+        return EXIT_SUCCESS;
+    }
 
     /* Write PID file */
     pid_file = fopen (pid_path, "w");
