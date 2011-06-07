@@ -97,37 +97,42 @@ user_get_by_uid (uid_t uid)
 const gchar *
 user_get_name (User *user)
 {
+    g_return_val_if_fail (user != NULL, NULL);
     return user->priv->name;
 }
 
 uid_t
 user_get_uid (User *user)
 {
+    g_return_val_if_fail (user != NULL, 0);
     return user->priv->uid;
-  
 }
 
 gid_t
 user_get_gid (User *user)
 {
+    g_return_val_if_fail (user != NULL, 0);
     return user->priv->gid;
 }
 
 const gchar *
 user_get_gecos (User *user)
 {
+    g_return_val_if_fail (user != NULL, NULL);
     return user->priv->gecos;
 }
 
 const gchar *
 user_get_home_directory (User *user)
 {
+    g_return_val_if_fail (user != NULL, NULL);
     return user->priv->home_directory;
 }
 
 const gchar *
 user_get_shell (User *user)
 {
+    g_return_val_if_fail (user != NULL, NULL);
     return user->priv->shell;
 }
 
