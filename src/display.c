@@ -15,6 +15,7 @@
 #include <gio/gdesktopappinfo.h>
 
 #include "display.h"
+#include "configuration.h"
 #include "user.h"
 #include "pam-session.h"
 #include "dmrc.h"
@@ -439,7 +440,7 @@ set_env_from_keyfile (Session *session, const gchar *name, GKeyFile *key_file, c
 static void
 start_user_session (Display *display, const gchar *session, const gchar *language)
 {
-    gchar *filename, *path, *old_language;
+    gchar *filename, *path, *old_language, *xsessions_dir;
     GKeyFile *dmrc_file, *session_desktop_file;
     gboolean result;
     GError *error = NULL;
@@ -464,8 +465,10 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
     }
     g_free (old_language);
 
+    xsessions_dir = config_get_string (config_get_instance (), "LightDM", "xsessions-directory");
     filename = g_strdup_printf ("%s.desktop", session);
-    path = g_build_filename (XSESSIONS_DIR, filename, NULL);
+    path = g_build_filename (xsessions_dir, filename, NULL);
+    g_free (xsessions_dir);
     g_free (filename);
 
     session_desktop_file = g_key_file_new ();

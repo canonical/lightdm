@@ -217,6 +217,7 @@ main(int argc, char **argv)
     GOptionContext *option_context;
     gchar *pid_path = "/var/run/lightdm.pid";
     gchar *theme_dir = THEME_DIR, *theme_engine_dir = THEME_ENGINE_DIR;
+    gchar *xsessions_dir = XSESSIONS_DIR;
     gboolean show_version = FALSE;
     GOptionEntry options[] = 
     {
@@ -238,6 +239,9 @@ main(int argc, char **argv)
         { "theme-engine-dir", 0, 0, G_OPTION_ARG_STRING, &theme_engine_dir,
           /* Help string for command line --theme-engine-dir flag */
           N_("Directory to load theme engines from"), NULL },
+        { "xsessions-dir", 0, 0, G_OPTION_ARG_STRING, &xsessions_dir,
+          /* Help string for command line --xsessions-dir flag */
+          N_("Directory to load X sessions from"), NULL },
         { "version", 'v', 0, G_OPTION_ARG_NONE, &show_version,
           /* Help string for command line --version flag */
           N_("Show release version"), NULL },
@@ -322,6 +326,7 @@ main(int argc, char **argv)
     config_set_string (config_get_instance (), "LightDM", "theme-engine-directory", theme_engine_dir);
     config_set_string (config_get_instance (), "LightDM", "authorization-directory", XAUTH_DIR);
     config_set_string (config_get_instance (), "LightDM", "cache-directory", CACHE_DIR);
+    config_set_string (config_get_instance (), "LightDM", "xsessions-directory", xsessions_dir);
 
     if (test_mode)
     {
