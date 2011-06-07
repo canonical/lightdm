@@ -379,7 +379,7 @@ end_user_session (Display *display, gboolean clean_exit)
     display->priv->user_ck_cookie = NULL;
 
     if (!clean_exit)
-        g_warning ("Session exited unexpectedly");
+        g_debug ("Session exited unexpectedly");
 
     xserver_disconnect_clients (display->priv->xserver);
 }
