@@ -97,6 +97,8 @@ session_start (Session *session, gboolean create_pipe)
         user = user_get_by_name (session->priv->username);
     else
         user = user_get_by_uid (getuid ());
+    if (!user)
+        return FALSE;
 
     child_process_set_env (CHILD_PROCESS (session), "USER", user_get_name (user));
     child_process_set_env (CHILD_PROCESS (session), "USERNAME", user_get_name (user)); // FIXME: Is this required?      
