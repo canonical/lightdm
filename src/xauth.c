@@ -118,18 +118,18 @@ xauth_write (XAuthorization *auth, const gchar *username, const gchar *path, GEr
         g_object_unref (file);
         return FALSE;
     }
-    
+
     /* NOTE: Would like to do:
      * g_file_set_attribute_string (file, G_FILE_ATTRIBUTE_OWNER_USER, username, G_FILE_QUERY_INFO_NONE, NULL, error))
      * but not supported. */
     if (username)
     {
         int result = -1;
-        struct passwd *info;
+        struct passwd *user_info;
 
-        info = getpwnam (username);
-        if (info)
-            result = chown (path, info->pw_uid, info->pw_gid);
+        user_info = getpwnam (username);
+        if (user_info)
+            result = chown (path, user_info->pw_uid, user_info->pw_gid);
 
         if (result != 0)
             g_warning ("Failed to set authorization owner");
