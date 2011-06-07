@@ -63,8 +63,7 @@ lightdm_LDADD = \
 	-lpam
 
 EXTRA_DIST = ldm-marshal.list \
-	display-manager.xml \
-	user-manager.xml
+	display-manager.xml
 
 CLEANFILES = \
 	$(BUILT_SOURCES)
