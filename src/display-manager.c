@@ -49,7 +49,7 @@ struct DisplayManagerPrivate
     gchar *log_dir;
 
     /* TRUE if running in test mode (i.e. as non-root for testing) */
-    gboolean test_mode;
+    gchar *test_mode;
 
     /* The displays being managed */
     GList *displays;
@@ -65,7 +65,8 @@ display_manager_new (void)
 {
     DisplayManager *self = g_object_new (DISPLAY_MANAGER_TYPE, NULL);
 
-    self->priv->test_mode = config_get_boolean (config_get_instance (), "LightDM", "test-mode");
+    if (config_has_key (config_get_instance (), "LightDM", "test-mode"))
+        self->priv->test_mode = config_get_string (config_get_instance (), "LightDM", "test-mode");
     self->priv->auth_dir = config_get_string (config_get_instance (), "LightDM", "authorization-directory");
     self->priv->log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
 
@@ -372,8 +373,13 @@ make_xserver (DisplayManager *manager, gchar *config_section)
     g_free (xserver_command);
 
     if (manager->priv->test_mode)
-        xserver_set_command (xserver, "Xephyr");
-  
+    {
+        if (strcmp (manager->priv->test_mode, "unittest") == 0)
+            xserver_set_command (xserver, "Xvfb");
+        else
+            xserver_set_command (xserver, "Xephyr");
+    }
+
     return xserver;
 }
 

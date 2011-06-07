@@ -23,7 +23,8 @@
 
 static gchar *config_path = CONFIG_FILE;
 static GMainLoop *loop = NULL;
-static gboolean test_mode = FALSE;
+static gchar *test_mode = NULL;
+static gchar *test_xserver_name;
 static GTimer *log_timer;
 static FILE *log_file;
 static gboolean debug = FALSE;
@@ -210,6 +211,24 @@ name_lost_cb (GDBusConnection *connection,
     exit (EXIT_FAILURE);
 }
 
+static gboolean
+test_mode_cb (const gchar *option_name, const gchar *value, gpointer data, GError **error)
+{
+    /* Default to interactive */
+    if (!value)
+        value = "interactive";
+
+    test_mode = g_strdup (value);
+    if (strcmp (value, "interactive") == 0)
+        test_xserver_name = "Xephyr";
+    else if (strcmp (value, "unittest") == 0)
+        test_xserver_name = "Xvfb";
+    else
+        return FALSE;
+
+    return TRUE;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -227,21 +246,21 @@ main(int argc, char **argv)
         { "debug", 'd', 0, G_OPTION_ARG_NONE, &debug,
           /* Help string for command line --debug flag */
           N_("Print debugging messages"), NULL },
-        { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
+        { "test-mode", 0, G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, test_mode_cb,
           /* Help string for command line --test-mode flag */
-          N_("Run as unprivileged user"), NULL },
+          N_("Run as unprivileged user.  Optional MODE can be interactive (default) or unittest"), "MODE" },
         { "pid-file", 0, 0, G_OPTION_ARG_STRING, &pid_path,
           /* Help string for command line --pid-file flag */
-          N_("File to write PID into"), NULL },
+          N_("File to write PID into"), "FILE" },
         { "theme-dir", 0, 0, G_OPTION_ARG_STRING, &theme_dir,
           /* Help string for command line --theme-dir flag */
-          N_("Directory to load themes from"), NULL },
+          N_("Directory to load themes from"), "DIRECTORY" },
         { "theme-engine-dir", 0, 0, G_OPTION_ARG_STRING, &theme_engine_dir,
           /* Help string for command line --theme-engine-dir flag */
-          N_("Directory to load theme engines from"), NULL },
+          N_("Directory to load theme engines from"), "DIRECTORY" },
         { "xsessions-dir", 0, 0, G_OPTION_ARG_STRING, &xsessions_dir,
           /* Help string for command line --xsessions-dir flag */
-          N_("Directory to load X sessions from"), NULL },
+          N_("Directory to load X sessions from"), "DIRECTORY" },
         { "version", 'v', 0, G_OPTION_ARG_NONE, &show_version,
           /* Help string for command line --version flag */
           N_("Show release version"), NULL },
@@ -288,18 +307,18 @@ main(int argc, char **argv)
         return 1;
     }
 
-    /* Test mode requires Xephry */
+    /* Test mode requires Xephyr or Xvfb */
     if (test_mode)
     {
-        gchar *xephyr_path;
-      
-        xephyr_path = g_find_program_in_path ("Xephyr");
-        if (!xephyr_path)
+        gchar *xserver_path;
+
+        xserver_path = g_find_program_in_path (test_xserver_name);
+        if (!xserver_path)
         {
-            g_printerr ("Test mode requires Xephyr to be installed but it cannot be found.  Please install it or update your PATH environment variable.\n");
+            g_printerr ("Test mode requires %s to be installed but it cannot be found.  Please install it or update your PATH environment variable.\n", test_xserver_name);
             return 1;
         }
-        g_free (xephyr_path);
+        g_free (xserver_path);
     }
 
     loop = g_main_loop_new (NULL, FALSE);
@@ -331,7 +350,7 @@ main(int argc, char **argv)
     if (test_mode)
     {
         gchar *path;
-        config_set_boolean (config_get_instance (), "LightDM", "test-mode", TRUE);
+        config_set_string (config_get_instance (), "LightDM", "test-mode", test_mode);
         path = g_build_filename (g_get_user_cache_dir (), "lightdm", "authority", NULL);
         config_set_string (config_get_instance (), "LightDM", "authorization-directory", path);
         g_free (path);
