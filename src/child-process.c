@@ -356,7 +356,8 @@ child_process_finalize (GObject *object)
 
     self = CHILD_PROCESS (object);
   
-    g_object_unref (self->priv->user);
+    if (self->priv->user)
+        g_object_unref (self->priv->user);
 
     if (self->priv->pid > 0)
         g_hash_table_remove (processes, GINT_TO_POINTER (self->priv->pid));
