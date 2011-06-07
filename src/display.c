@@ -10,14 +10,12 @@
  */
 
 #include <config.h>
-
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <pwd.h>
 #include <gio/gdesktopappinfo.h>
 
 #include "display.h"
+#include "user.h"
 #include "pam-session.h"
 #include "dmrc.h"
 #include "theme.h"
@@ -228,38 +226,20 @@ display_get_xserver (Display *display)
     return display->priv->xserver;
 }
 
-static struct passwd *
-get_user_info (const gchar *username)
-{
-    struct passwd *user_info;
-
-    errno = 0;
-    user_info = getpwnam (username);
-    if (!user_info)
-    {
-        if (errno == 0)
-            g_warning ("Unable to get information on user %s: User does not exist", username);
-        else
-            g_warning ("Unable to get information on user %s: %s", username, strerror (errno));
-    }
-
-    return user_info;
-}
-
 static gchar *
 start_ck_session (Display *display, const gchar *session_type, const gchar *username)
 {
     GDBusProxy *proxy;
     char *display_device = NULL;
     const gchar *address, *hostname = "";
-    struct passwd *user_info;
+    User *user;
     GVariantBuilder arg_builder;
     GVariant *result;
     gchar *cookie = NULL;
     GError *error = NULL;
 
-    user_info = get_user_info (username);
-    if (!user_info)
+    user = user_get_by_name (username);
+    if (!user)
         return NULL;
 
     if (xserver_get_vt (display->priv->xserver) >= 0)
@@ -275,7 +255,7 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
                                            NULL, NULL);
     g_variant_builder_init (&arg_builder, G_VARIANT_TYPE ("(a(sv))"));
     g_variant_builder_open (&arg_builder, G_VARIANT_TYPE ("a(sv)"));
-    g_variant_builder_add (&arg_builder, "(sv)", "unix-user", g_variant_new_int32 (user_info->pw_uid));
+    g_variant_builder_add (&arg_builder, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
     g_variant_builder_add (&arg_builder, "(sv)", "session-type", g_variant_new_string (session_type));
     g_variant_builder_add (&arg_builder, "(sv)", "x11-display", g_variant_new_string (address));
     if (display_device)
@@ -283,6 +263,9 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
     g_variant_builder_add (&arg_builder, "(sv)", "remote-host-name", g_variant_new_string (hostname));
     g_variant_builder_add (&arg_builder, "(sv)", "is-local", g_variant_new_boolean (TRUE));
     g_variant_builder_close (&arg_builder);
+    g_object_unref (user);
+    g_free (display_device);
+
     result = g_dbus_proxy_call_sync (proxy,
                                      "OpenSessionWithParameters",
                                      g_variant_builder_end (&arg_builder),
@@ -291,7 +274,7 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
                                      NULL,
                                      &error);
     g_object_unref (proxy);
-    g_free (display_device);
+
     if (!result)
         g_warning ("Failed to open CK session: %s", error->message);
     g_clear_error (&error);
@@ -646,17 +629,15 @@ start_greeter (Display *display)
         command = theme_get_command (theme);
       
         if (display->priv->greeter_user)
-            username = display->priv->greeter_user;
+            username = g_strdup (display->priv->greeter_user);
         else
         {
-            struct passwd *user_info;
-            user_info = getpwuid (getuid ());
-            if (!user_info)
-            {
-                g_warning ("Unable to determine current username: %s", strerror (errno));
+            User *user;
+            user = user_get_by_uid (getuid ());
+            if (!user)
                 return;
-            }
-            username = user_info->pw_name;
+            username = g_strdup (user_get_name (user));
+            g_object_unref (user);
         }
 
         display->priv->greeter_pam_session = pam_session_new (display->priv->pam_service, username);
@@ -683,6 +664,7 @@ start_greeter (Display *display)
 
         session_start (SESSION (display->priv->greeter_session), TRUE);
 
+        g_free (username);
         g_free (command);
         g_key_file_free (theme);
     }

@@ -11,10 +11,10 @@
 
 #include <string.h>
 #include <unistd.h>
-#include <pwd.h>
 #include <sys/stat.h>
 
 #include "xauth.h"
+#include "user.h"
 
 struct XAuthorizationPrivate
 {
@@ -125,11 +125,14 @@ xauth_write (XAuthorization *auth, const gchar *username, const gchar *path, GEr
     if (username)
     {
         int result = -1;
-        struct passwd *user_info;
+        User *user;
 
-        user_info = getpwnam (username);
-        if (user_info)
-            result = chown (path, user_info->pw_uid, user_info->pw_gid);
+        user = user_get_by_name (username);
+        if (user)
+        {
+            result = chown (path, user_get_uid (user), user_get_gid (user));
+            g_object_unref (user);
+        }
 
         if (result != 0)
             g_warning ("Failed to set authorization owner");

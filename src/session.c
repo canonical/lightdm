@@ -12,14 +12,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include <pwd.h>
-#include <errno.h>
-#include <string.h>
 #include <fcntl.h>
 #include <glib/gstdio.h>
 #include <grp.h>
 
 #include "session.h"
+#include "user.h"
 
 struct SessionPrivate
 {
@@ -90,66 +88,45 @@ session_start (Session *session, gboolean create_pipe)
 {
     //gint session_stdin, session_stdout, session_stderr;
     gboolean result;
-    struct passwd *user_info;
-    gchar *username, *working_dir;
+    User *user;
     GError *error = NULL;
 
     g_return_val_if_fail (session->priv->command != NULL, FALSE);
 
-    errno = 0;
     if (session->priv->username)
-    {
-        user_info = getpwnam (session->priv->username);
-        if (!user_info)
-        {
-            if (errno == 0)
-                g_warning ("Unable to get information on user %s: User does not exist", session->priv->username);
-            else
-                g_warning ("Unable to get information on user %s: %s", session->priv->username, strerror (errno));
-            return FALSE;
-        }
-    }
+        user = user_get_by_name (session->priv->username);
     else
-    {
-        user_info = getpwuid (getuid ());
-        if (!user_info)
-        {
-            g_warning ("Unable to determine current username: %s", strerror (errno));
-            return FALSE;
-        }
-    }
+        user = user_get_by_uid (getuid ());
 
-    username = g_strdup (user_info->pw_name);
-    working_dir = g_strdup (user_info->pw_dir);
-    child_process_set_env (CHILD_PROCESS (session), "USER", user_info->pw_name);
-    child_process_set_env (CHILD_PROCESS (session), "USERNAME", user_info->pw_name); // FIXME: Is this required?      
-    child_process_set_env (CHILD_PROCESS (session), "HOME", user_info->pw_dir);
-    child_process_set_env (CHILD_PROCESS (session), "SHELL", user_info->pw_shell);
+    child_process_set_env (CHILD_PROCESS (session), "USER", user_get_name (user));
+    child_process_set_env (CHILD_PROCESS (session), "USERNAME", user_get_name (user)); // FIXME: Is this required?      
+    child_process_set_env (CHILD_PROCESS (session), "HOME", user_get_home_directory (user));
+    child_process_set_env (CHILD_PROCESS (session), "SHELL", user_get_shell (user));
 
     if (session->priv->authorization)
     {
-        session->priv->authorization_file = xauth_write (session->priv->authorization, username, session->priv->authorization_path, &error);
+        session->priv->authorization_file = xauth_write (session->priv->authorization, user_get_name (user), session->priv->authorization_path, &error);
         if (session->priv->authorization_file)
             child_process_set_env (CHILD_PROCESS (session), "XAUTHORITY", session->priv->authorization_path);
         else
             g_warning ("Failed to write authorization: %s", error->message);
         g_clear_error (&error);
     }
-    g_free (username);
 
     g_debug ("Launching session");
 
     result = child_process_start (CHILD_PROCESS (session),
                                   session->priv->username,
-                                  working_dir,
+                                  user_get_home_directory (user),
                                   session->priv->command,
                                   create_pipe,
                                   &error);
-    g_free (working_dir);
 
     if (!result)
         g_warning ("Failed to spawn session: %s", error->message);
     g_clear_error (&error);
+
+    g_object_unref (user);
 
     return result;
 }

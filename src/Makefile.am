@@ -31,6 +31,8 @@ lightdm_SOURCES = \
 	session.h \
 	theme.c \
 	theme.h \
+	user.c \
+	user.h \
 	xauth.c \
 	xauth.h \
 	xdmcp-protocol.c \

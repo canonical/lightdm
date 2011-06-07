@@ -16,7 +16,6 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <xcb/xcb.h>
-#include <pwd.h>
 #include <fcntl.h>
 #include <glib/gstdio.h>
 #include <sys/ioctl.h>
@@ -26,6 +25,7 @@
 
 #include "display-manager.h"
 #include "configuration.h"
+#include "user.h"
 #include "guest-manager.h"
 #include "xdmcp-server.h"
 #include "xserver.h"
@@ -164,9 +164,12 @@ start_session (Display *display, Session *session, gboolean is_greeter, DisplayM
             log_filename = g_strdup (".xsession-errors");
         else
         {
-            struct passwd *user_info = getpwnam (session_get_username (session));
-            if (user_info)
-                log_filename = g_build_filename (user_info->pw_dir, ".xsession-errors", NULL);
+            User *user = user_get_by_name (session_get_username (session));
+            if (user)
+            {
+                log_filename = g_build_filename (user_get_home_directory (user), ".xsession-errors", NULL);
+                g_object_unref (user);
+            }
             else
                 g_warning ("Failed to get user info for user '%s'", session_get_username (session));
         }

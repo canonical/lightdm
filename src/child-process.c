@@ -16,11 +16,11 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <pwd.h>
 #include <grp.h>
 #include <glib/gstdio.h>
 
 #include "child-process.h"
+#include "user.h"
 
 enum {
     GOT_DATA,
@@ -37,10 +37,7 @@ struct ChildProcessPrivate
     GHashTable *env;
 
     /* User to run as */
-    gchar *username;
-    uid_t uid;
-    gid_t gid;
-    gchar *home_dir;
+    User *user;
 
     /* Path of file to log to */
     gchar *log_file;
@@ -142,27 +139,27 @@ run_child_process (ChildProcess *process, char *const argv[])
     signal (SIGUSR1, SIG_IGN);
     signal (SIGUSR2, SIG_IGN);
 
-    if (process->priv->username)
+    if (process->priv->user)
     {
-        if (initgroups (process->priv->username, process->priv->gid) < 0)
+        if (initgroups (user_get_name (process->priv->user), user_get_gid (process->priv->user)) < 0)
         {
-            g_warning ("Failed to initialize supplementary groups for %s: %s", process->priv->username, strerror (errno));
+            g_warning ("Failed to initialize supplementary groups for %s: %s", user_get_name (process->priv->user), strerror (errno));
             //_exit(1);
         }
 
-        if (setgid (process->priv->gid) != 0)
+        if (setgid (user_get_gid (process->priv->user)) != 0)
         {
             g_warning ("Failed to set group ID: %s", strerror (errno));
             _exit(1);
         }
 
-        if (setuid (process->priv->uid) != 0)
+        if (setuid (user_get_uid (process->priv->user)) != 0)
         {
             g_warning ("Failed to set user ID: %s", strerror (errno));
             _exit(1);
         }
 
-        if (chdir (process->priv->home_dir) != 0)
+        if (chdir (user_get_home_directory (process->priv->user)) != 0)
         {
             g_warning ("Failed to change to home directory: %s", strerror (errno));
             _exit(1);
@@ -224,22 +221,9 @@ child_process_start (ChildProcess *process,
 
     if (username)
     {
-        struct passwd *user_info;
-
-        user_info = getpwnam (username);
-        if (!user_info)
-        {
-            if (errno == 0)
-                g_warning ("Unable to get information on user %s: User does not exist", username);
-            else
-                g_warning ("Unable to get information on user %s: %s", username, strerror (errno));
+        process->priv->user = user_get_by_name (username);
+        if (!process->priv->user)
             return FALSE;
-        }
-
-        process->priv->username = g_strdup (username);
-        process->priv->uid = user_info->pw_uid;
-        process->priv->gid = user_info->pw_gid;
-        process->priv->home_dir = g_strdup (user_info->pw_dir);
     }
 
     /* Create the log file owned by the target user */
@@ -247,7 +231,7 @@ child_process_start (ChildProcess *process,
     {
         gint fd = g_open (process->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
         close (fd);
-        if (chown (process->priv->log_file, process->priv->uid, process->priv->gid) != 0)
+        if (chown (process->priv->log_file, user_get_uid (process->priv->user), user_get_gid (process->priv->user)) != 0)
             g_warning ("Failed to set process log file ownership: %s", strerror (errno));
     }
 
@@ -369,7 +353,7 @@ child_process_finalize (GObject *object)
 
     self = CHILD_PROCESS (object);
   
-    g_free (self->priv->username);
+    g_object_unref (self->priv->user);
 
     if (self->priv->pid > 0)
         g_hash_table_remove (processes, GINT_TO_POINTER (self->priv->pid));

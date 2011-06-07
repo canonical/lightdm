@@ -11,8 +11,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <pwd.h>
-#include <errno.h>
 
 #include "greeter.h"
 #include "configuration.h"
