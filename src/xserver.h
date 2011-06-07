@@ -59,6 +59,14 @@ void xserver_set_command (XServer *server, const gchar *command);
 
 const gchar *xserver_get_command (XServer *server);
 
+void xserver_set_config_file (XServer *server, const gchar *config_file);
+
+const gchar *xserver_get_config_file (XServer *server);
+
+void xserver_set_layout (XServer *server, const gchar *layout);
+
+const gchar *xserver_get_layout (XServer *server);
+
 void xserver_set_log_file (XServer *server, const gchar *log_file);
 
 const gchar *xserver_get_log_file (XServer *server);

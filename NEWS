@@ -9,6 +9,7 @@ Overview of changes in lightdm 0.3.8
     * Allow theme, theme engine and xsession directory to be specified in
       configuration and on the command line
     * Add unit tests
+    * Make X server configuration a separate section and add additional options
 
 Overview of changes in lightdm 0.3.7
 

@@ -313,7 +313,7 @@ make_xserver (DisplayManager *manager, gchar *config_section)
     gint display_number, vt;
     XServer *xserver;
     XAuthorization *authorization = NULL;
-    gchar *xdmcp_manager, *filename, *path, *xserver_command;
+    gchar *xdmcp_manager, *filename, *path, *xserver_section = NULL;
 
     if (config_section && config_has_key (config_get_instance (), config_section, "display-number"))
         display_number = config_get_integer (config_get_instance (), config_section, "display-number");
@@ -367,10 +367,35 @@ make_xserver (DisplayManager *manager, gchar *config_section)
         xserver_set_vt (xserver, vt);
     }
 
-    xserver_command = config_get_string (config_get_instance (), "LightDM", "xserver");
-    if (xserver_command)
-        xserver_set_command (xserver, xserver_command);
-    g_free (xserver_command);
+    /* Get the X server configuration */
+    if (config_section)
+        xserver_section = config_get_string (config_get_instance (), config_section, "xserver");
+    if (!xserver_section)
+        xserver_section = config_get_string (config_get_instance (), "LightDM", "xserver");
+
+    if (xserver_section)
+    {
+        gchar *xserver_command, *xserver_layout, *xserver_config_file;
+
+        g_debug ("Using X server configuration '%s' for display '%s'", xserver_section, config_section ? config_section : "<anonymous>");
+
+        xserver_command = config_get_string (config_get_instance (), xserver_section, "command");
+        if (xserver_command)
+            xserver_set_command (xserver, xserver_command);
+        g_free (xserver_command);
+
+        xserver_layout = config_get_string (config_get_instance (), xserver_section, "layout");
+        if (xserver_layout)
+            xserver_set_layout (xserver, xserver_layout);
+        g_free (xserver_layout);
+
+        xserver_config_file = config_get_string (config_get_instance (), xserver_section, "config-file");
+        if (xserver_config_file)
+            xserver_set_config_file (xserver, xserver_config_file);
+        g_free (xserver_config_file);
+
+        g_free (xserver_section);
+    }
 
     if (manager->priv->test_mode)
     {

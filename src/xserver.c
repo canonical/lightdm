@@ -41,6 +41,12 @@ struct XServerPrivate
     /* Command to run the X server */
     gchar *command;
 
+    /* Config file to use */
+    gchar *config_file;
+
+    /* Server layout to use */
+    gchar *layout;
+
     /* TRUE if the xserver has started */
     gboolean ready;
 
@@ -105,6 +111,32 @@ xserver_set_command (XServer *server, const gchar *command)
 {
     g_free (server->priv->command);
     server->priv->command = g_strdup (command);
+}
+
+void
+xserver_set_config_file (XServer *server, const gchar *config_file)
+{
+    g_free (server->priv->config_file);
+    server->priv->config_file = g_strdup (config_file);
+}
+
+const gchar *
+xserver_get_config_file (XServer *server)
+{
+    return server->priv->config_file;
+}
+
+void
+xserver_set_layout (XServer *server, const gchar *layout)
+{
+    g_free (server->priv->layout);
+    server->priv->layout = g_strdup (layout);
+}
+
+const gchar *
+xserver_get_layout (XServer *server)
+{
+    return server->priv->layout;
 }
 
 const gchar *
@@ -311,8 +343,14 @@ xserver_start (XServer *server)
     g_string_append_printf (command, " :%d", server->priv->display_number);
     //g_string_append_printf (command, " vt%d");
 
+    if (server->priv->config_file)
+        g_string_append_printf (command, " -config %s", server->priv->config_file);
+
+    if (server->priv->layout)
+        g_string_append_printf (command, " -layout %s", server->priv->layout);
+
     if (server->priv->authorization)
-         g_string_append_printf (command, " -auth %s", server->priv->authorization_path);
+        g_string_append_printf (command, " -auth %s", server->priv->authorization_path);
 
     if (server->priv->type == XSERVER_TYPE_LOCAL_TERMINAL)
     {
@@ -385,6 +423,8 @@ xserver_finalize (GObject *object)
         xcb_disconnect (self->priv->connection);
 
     g_free (self->priv->command);
+    g_free (self->priv->config_file);
+    g_free (self->priv->layout);
     g_free (self->priv->hostname);
     g_free (self->priv->authentication_name);
     g_free (self->priv->authentication_data);
