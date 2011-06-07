@@ -26,11 +26,11 @@ dmrc_load (const gchar *username)
     gboolean have_dmrc;
     GError *error = NULL;
 
+    dmrc_file = g_key_file_new ();
+
     user = user_get_by_name (username);
     if (!user)
-        return NULL;
-
-    dmrc_file = g_key_file_new ();
+        return dmrc_file;
 
     /* Load from the user directory, if this fails (e.g. the user directory
      * is not yet mounted) then load from the cache */
@@ -71,7 +71,7 @@ dmrc_save (GKeyFile *dmrc_file, const gchar *username)
     user = user_get_by_name (username);
     if (!user)
         return;
-  
+
     data = g_key_file_to_data (dmrc_file, &length, NULL);
 
     /* Update the users .dmrc */
