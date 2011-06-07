@@ -238,6 +238,13 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
     gchar *cookie = NULL;
     GError *error = NULL;
 
+    /* Only start ConsoleKit sessions when running as root */
+    if (getuid () != 0)
+    {
+        g_debug ("Not opening ConsoleKit session - not running as root");
+        return NULL;
+    }
+
     user = user_get_by_name (username);
     if (!user)
         return NULL;

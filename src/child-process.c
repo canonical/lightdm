@@ -141,22 +141,25 @@ run_child_process (ChildProcess *process, char *const argv[])
 
     if (process->priv->user)
     {
-        if (initgroups (user_get_name (process->priv->user), user_get_gid (process->priv->user)) < 0)
+        if (getuid () == 0)
         {
-            g_warning ("Failed to initialize supplementary groups for %s: %s", user_get_name (process->priv->user), strerror (errno));
-            //_exit(1);
-        }
+            if (initgroups (user_get_name (process->priv->user), user_get_gid (process->priv->user)) < 0)
+            {
+                g_warning ("Failed to initialize supplementary groups for %s: %s", user_get_name (process->priv->user), strerror (errno));
+                _exit(1);
+            }
 
-        if (setgid (user_get_gid (process->priv->user)) != 0)
-        {
-            g_warning ("Failed to set group ID: %s", strerror (errno));
-            _exit(1);
-        }
+            if (setgid (user_get_gid (process->priv->user)) != 0)
+            {
+                g_warning ("Failed to set group ID: %s", strerror (errno));
+                _exit(1);
+            }
 
-        if (setuid (user_get_uid (process->priv->user)) != 0)
-        {
-            g_warning ("Failed to set user ID: %s", strerror (errno));
-            _exit(1);
+            if (setuid (user_get_uid (process->priv->user)) != 0)
+            {
+                g_warning ("Failed to set user ID: %s", strerror (errno));
+                _exit(1);
+            }
         }
 
         if (chdir (user_get_home_directory (process->priv->user)) != 0)
