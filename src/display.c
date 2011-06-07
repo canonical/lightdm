@@ -689,14 +689,14 @@ static void
 xserver_exit_cb (XServer *server, int status, Display *display)
 {
     if (status != 0)
-        g_warning ("X server exited with value %d", status);
+        g_debug ("X server exited with value %d", status);
     end_display (display);
 }
 
 static void
 xserver_terminate_cb (XServer *server, int signum, Display *display)
 {
-    g_warning ("X server terminated with signal %d", signum);
+    g_debug ("X server terminated with signal %d", signum);
     end_display (display);
 }
 
