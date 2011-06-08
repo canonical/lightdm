@@ -1,10 +1,14 @@
-Overview of changes in lightdm 0.3.8
+Overview of changes in lightdm 0.4.0
 
     * liblightdm API changes:
       - ldm_greeter_start_authentication becomes ldm_greeter_login
       - The existing ldm_greeter_login is now ldm_greeter_start_session
         and the username parameter is not required.
       - Drop ldm_greeter_get_default_layout (X controls the layout)
+    * Configuration changes:
+      - The "displays" item is now called "seats".  LightDM will fallback to
+        "displays" if "seats" is not defined, but this is deprecated and will
+        be removed by version 1.0.
     * Add guest account logins
     * Allow theme, theme engine and xsession directory to be specified in
       configuration and on the command line

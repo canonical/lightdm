@@ -599,7 +599,7 @@ stop_plymouth_due_to_failure_cb (XServer *xserver, int status_of_signum, Display
 void
 display_manager_start (DisplayManager *manager)
 {
-    gchar *displays;
+    gchar *seats;
     gchar **tokens, **i;
     gboolean plymouth_is_running, plymouth_on_active_vt = FALSE, plymouth_being_replaced = FALSE;
 
@@ -607,11 +607,14 @@ display_manager_start (DisplayManager *manager)
     setup_auth_dir (manager);
 
     /* Load the static display entries */
-    displays = config_get_string (config_get_instance (), "LightDM", "displays");
-    if (!displays)
-        displays = g_strdup ("");
-    tokens = g_strsplit (displays, " ", -1);
-    g_free (displays);
+    seats = config_get_string (config_get_instance (), "LightDM", "seats");
+    /* Fallback to the old name for seats, this will be removed before 1.0 */
+    if (!seats)
+        seats = config_get_string (config_get_instance (), "LightDM", "displays");
+    if (!seats)
+        seats = g_strdup ("");
+    tokens = g_strsplit (seats, " ", -1);
+    g_free (seats);
 
     /* Check if Plymouth is running and start to deactivate it */
     plymouth_is_running = plymouth_command_returns_true ("--ping");
