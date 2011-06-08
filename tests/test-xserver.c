@@ -378,6 +378,9 @@ main (int argc, char **argv)
     }
 
     g_io_add_watch (g_io_channel_unix_new (s), G_IO_IN, socket_connect_cb, NULL);
+  
+    /* Ready for connection */
+    kill (getppid (), SIGUSR1);
 
     g_main_loop_run (loop);
 
