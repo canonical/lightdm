@@ -34,6 +34,10 @@ PKG_CHECK_MODULES(LIGHTDM, [
 
 PKG_CHECK_MODULES(GLIB, [
     glib-2.0
+])
+
+PKG_CHECK_MODULES(XCB, [
+    xcb
 ])    
 
 AC_ARG_ENABLE(liblightdm-gobject,
