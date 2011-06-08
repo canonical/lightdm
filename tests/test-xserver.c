@@ -4,12 +4,15 @@
 #include <errno.h>
 #include <signal.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <linux/un.h> // FIXME: Should use sys version but UNIX_PATH_MAX not defined
 #include <glib.h>
 
-static gchar *socket_name;
+static gchar *socket_path = NULL;
+static gchar *lock_path = NULL;
 
 #define BYTE_ORDER_MSB 'B'
 #define BYTE_ORDER_LSB 'l'
@@ -275,52 +278,103 @@ socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 }
 
 static void
-quit ()
+quit (int status)
 {
-    unlink (socket_name);
+    if (lock_path)
+        unlink (lock_path);
+    if (socket_path)
+        unlink (socket_path);
 
-    exit (EXIT_SUCCESS);
+    exit (status);
 }
 
 static void
 quit_cb (int signum)
 {
-    quit ();
+    quit (EXIT_SUCCESS);
 }
 
 int
 main (int argc, char **argv)
 {
-    int s;
+    int i, s, display_number = 0;
     struct sockaddr_un address;
+    char *auth_path = NULL, *pid_string;
     GMainLoop *loop;
+    int lock_file;
 
     signal (SIGINT, quit_cb);
     signal (SIGTERM, quit_cb);
- 
+
+    for (i = 1; i < argc; i++)
+    {
+        char *arg = argv[i];
+
+        if (arg[0] == ':')
+        {
+            display_number = atoi (arg + 1);
+        }
+        else if (strcmp (arg, "-auth") == 0)
+        {
+            auth_path = argv[i+1];
+            i++;
+        }
+        else if (strcmp (arg, "-nolisten") == 0)
+        {
+            char *protocol = argv[i+1];
+            i++;
+            if (strcmp (protocol, "tcp") == 0)
+            {
+                // FIXME: Disable TCP/IP socket
+            }
+        }
+        else if (strcmp (arg, "-nr") == 0)
+            ;
+    }
+
     loop = g_main_loop_new (NULL, FALSE);
+
+    lock_path = g_strdup_printf ("/tmp/.X%d-lock", display_number);
+    lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
+    if (lock_file < 0)
+    {
+        g_free (lock_path);
+        lock_path = NULL;
+        fprintf (stderr,
+                 "Fatal server error:\n"
+                 "Server is already active for display %d\n"
+                 "	If this server is no longer running, remove %s\n"
+                 "	and start again.\n", display_number, lock_path);
+        quit (EXIT_FAILURE);
+    }
+    pid_string = g_strdup_printf ("%10ld", (long) getpid ());
+    if (write (lock_file, pid_string, strlen (pid_string)) < 0)
+    {
+        g_warning ("Error writing PID file: %s", strerror (errno));
+        quit (EXIT_FAILURE);
+    }
+    g_free (pid_string);
 
     s = socket (AF_UNIX, SOCK_STREAM, 0);
     if (s < 0)
     {
         g_warning ("Error opening socket: %s", strerror (errno));
-        quit ();
+        quit (EXIT_FAILURE);
     }
 
-    socket_name = g_strdup_printf ("/tmp/.X11-unix/X%d", 1);
-
+    socket_path = g_strdup_printf ("/tmp/.X11-unix/X%d", display_number);
     address.sun_family = AF_UNIX;
-    strncpy (address.sun_path, socket_name, UNIX_PATH_MAX);
+    strncpy (address.sun_path, socket_path, UNIX_PATH_MAX);
     if (bind (s, (struct sockaddr *) &address, sizeof (address)) < 0)
     {
         g_warning ("Error binding socket: %s", strerror (errno));
-        quit ();
+        quit (EXIT_FAILURE);
     }
 
     if (listen (s, 10) < 0)
     {
         g_warning ("Error binding socket: %s", strerror (errno));
-        quit ();
+        quit (EXIT_FAILURE);
     }
 
     g_io_add_watch (g_io_channel_unix_new (s), G_IO_IN, socket_connect_cb, NULL);
