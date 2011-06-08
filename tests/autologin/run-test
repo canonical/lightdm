@@ -1,0 +1,2 @@
+#!/bin/sh
+PATH=.. ../../src/lightdm --no-root --debug --config lightdm.conf --theme-dir=`pwd` --theme-engine-dir=`pwd`/../.libs --xsessions-dir=`pwd`

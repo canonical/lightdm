@@ -10,6 +10,8 @@ Makefile.in.in
 ./aclocal.m4
 ./autom4te.cache
 ./compile
+./config.h
+./config.h.in
 ./config.guess
 ./config.log
 ./config.status
@@ -25,6 +27,7 @@ Makefile.in.in
 ./mkinstalldirs
 ./omf.make
 ./xmldocs.make
+data/org.lightdm.LightDisplayManager.conf
 doc/html
 doc/lightdm-gobject-*.*
 doc/*.stamp
@@ -52,6 +55,5 @@ src/user-manager-glue.h
 src/ldm-marshal.c
 src/ldm-marshal.h
 src/lightdm
-data/org.lightdm.LightDisplayManager.conf
-config.h
-config.h.in
+tests/test-gobject-greeter
+tests/test-xserver

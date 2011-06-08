@@ -1,3 +1,5 @@
+SUBDIRS = autologin login-gobject
+
 noinst_PROGRAMS = test-gobject-greeter test-xserver
 
 test_gobject_greeter_CFLAGS = \
@@ -16,5 +18,3 @@ test_xserver_CFLAGS = \
 
 test_xserver_LDADD = \
 	$(GLIB_LIBS)
-
-TESTS = test-autologin
