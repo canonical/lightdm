@@ -48,9 +48,6 @@ struct DisplayManagerPrivate
     /* Directory to write log files to */
     gchar *log_dir;
 
-    /* TRUE if running in test mode (i.e. as non-root for testing) */
-    gchar *test_mode;
-
     /* The displays being managed */
     GList *displays;
 
@@ -65,8 +62,6 @@ display_manager_new (void)
 {
     DisplayManager *self = g_object_new (DISPLAY_MANAGER_TYPE, NULL);
 
-    if (config_has_key (config_get_instance (), "LightDM", "test-mode"))
-        self->priv->test_mode = config_get_string (config_get_instance (), "LightDM", "test-mode");
     self->priv->auth_dir = config_get_string (config_get_instance (), "LightDM", "authorization-directory");
     self->priv->log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
 
@@ -87,7 +82,7 @@ display_number_used (DisplayManager *manager, guint display_number)
     }
 
     /* In test mode there is probably another display manager running so see if the server exists */
-    if (manager->priv->test_mode)
+    if (getpid () != 0)
     {
         xcb_connection_t *connection;
         gchar *address;
@@ -134,7 +129,7 @@ start_session (Display *display, Session *session, gboolean is_greeter, DisplayM
     XAuthorization *authorization;
 
     /* Connect using the session bus */
-    if (manager->priv->test_mode)
+    if (getpid () != 0)
     {
         child_process_set_env (CHILD_PROCESS (session), "DBUS_SESSION_BUS_ADDRESS", getenv ("DBUS_SESSION_BUS_ADDRESS"));
         child_process_set_env (CHILD_PROCESS (session), "XDG_SESSION_COOKIE", getenv ("XDG_SESSION_COOKIE"));
@@ -161,7 +156,7 @@ start_session (Display *display, Session *session, gboolean is_greeter, DisplayM
     else
     {
         // FIXME: Copy old error file
-        if (manager->priv->test_mode)
+        if (getpid () != 0)
             log_filename = g_strdup (".xsession-errors");
         else
         {
@@ -261,7 +256,7 @@ get_vt (DisplayManager *manager, gchar *config_section)
 #endif
     int number = -1;
 
-    if (manager->priv->test_mode)
+    if (getpid () != 0)
         return -1;
 
     vt = config_get_string (config_get_instance (), config_section, "vt");
@@ -397,13 +392,8 @@ make_xserver (DisplayManager *manager, gchar *config_section)
         g_free (xserver_section);
     }
 
-    if (manager->priv->test_mode)
-    {
-        if (strcmp (manager->priv->test_mode, "unittest") == 0)
-            xserver_set_command (xserver, "Xvfb");
-        else
-            xserver_set_command (xserver, "Xephyr");
-    }
+    if (config_get_boolean (config_get_instance (), "LightDM", "use-xephyr"))
+        xserver_set_command (xserver, "Xephyr");
 
     return xserver;
 }
@@ -424,7 +414,7 @@ add_display (DisplayManager *manager)
         display_set_session_wrapper (display, value);
     g_free (value);
 
-    if (manager->priv->test_mode)
+    if (getpid () != 0)
         display_set_greeter_user (display, NULL);
 
     manager->priv->displays = g_list_append (manager->priv->displays, display);

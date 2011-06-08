@@ -1,2 +1,2 @@
 #!/bin/sh
-#../src/lightdm --test-mode=unittest --debug --config test-autologin.conf --theme-dir=`pwd` --theme-engine-dir=`pwd` --xsessions-dir=`pwd`
+#../src/lightdm --no-root --debug --config test-autologin.conf --theme-dir=`pwd` --theme-engine-dir=`pwd` --xsessions-dir=`pwd`

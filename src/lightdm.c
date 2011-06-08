@@ -23,8 +23,6 @@
 
 static gchar *config_path = CONFIG_FILE;
 static GMainLoop *loop = NULL;
-static gchar *test_mode = NULL;
-static gchar *test_xserver_name;
 static GTimer *log_timer;
 static FILE *log_file;
 static gboolean debug = FALSE;
@@ -211,29 +209,14 @@ name_lost_cb (GDBusConnection *connection,
     exit (EXIT_FAILURE);
 }
 
-static gboolean
-test_mode_cb (const gchar *option_name, const gchar *value, gpointer data, GError **error)
-{
-    /* Default to interactive */
-    if (!value)
-        value = "interactive";
-
-    test_mode = g_strdup (value);
-    if (strcmp (value, "interactive") == 0)
-        test_xserver_name = "Xephyr";
-    else if (strcmp (value, "unittest") == 0)
-        test_xserver_name = "Xvfb";
-    else
-        return FALSE;
-
-    return TRUE;
-}
-
 int
 main(int argc, char **argv)
 {
     FILE *pid_file;
     GOptionContext *option_context;
+    gboolean test_mode = FALSE;
+    gboolean no_root = FALSE;
+    gboolean use_xephyr = FALSE;
     gchar *pid_path = "/var/run/lightdm.pid";
     gchar *theme_dir = THEME_DIR, *theme_engine_dir = THEME_ENGINE_DIR;
     gchar *xsessions_dir = XSESSIONS_DIR;
@@ -246,9 +229,15 @@ main(int argc, char **argv)
         { "debug", 'd', 0, G_OPTION_ARG_NONE, &debug,
           /* Help string for command line --debug flag */
           N_("Print debugging messages"), NULL },
-        { "test-mode", 0, G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, test_mode_cb,
+        { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
           /* Help string for command line --test-mode flag */
-          N_("Run as unprivileged user.  Optional MODE can be interactive (default) or unittest"), "MODE" },
+          N_("Alias for --no-root --use-xephyr"), NULL },
+        { "no-root", 0, 0, G_OPTION_ARG_NONE, &no_root,
+          /* Help string for command line --no-root flag */
+          N_("Run as unprivileged user, skipping things that require root access"), NULL },
+        { "use-xephyr", 0, 0, G_OPTION_ARG_NONE, &use_xephyr,
+          /* Help string for command line --xephyr flag */
+          N_("Use Xephyr as an X server for testing (use with --no-root)"), NULL },
         { "pid-file", 0, 0, G_OPTION_ARG_STRING, &pid_path,
           /* Help string for command line --pid-file flag */
           N_("File to write PID into"), "FILE" },
@@ -285,6 +274,11 @@ main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     g_clear_error (&error);
+    if (test_mode)
+    {
+        no_root = TRUE;
+        use_xephyr = TRUE;
+    }
     if (show_version)
     {
         /* NOTE: Is not translated so can be easily parsed */
@@ -301,21 +295,21 @@ main(int argc, char **argv)
     }
 
     /* Check if root */
-    if (!test_mode && getuid () != 0)
+    if (!no_root && getuid () != 0)
     {
         g_printerr ("Only root can run Light Display Manager.  To run as a regular user for testing run with the --test-mode flag.\n");
         return 1;
     }
 
-    /* Test mode requires Xephyr or Xvfb */
-    if (test_mode)
+    /* Check if requiring Xephyr */
+    if (use_xephyr)
     {
         gchar *xserver_path;
 
-        xserver_path = g_find_program_in_path (test_xserver_name);
+        xserver_path = g_find_program_in_path ("Xephyr");
         if (!xserver_path)
         {
-            g_printerr ("Test mode requires %s to be installed but it cannot be found.  Please install it or update your PATH environment variable.\n", test_xserver_name);
+            g_printerr ("Test mode requires Xephyr to be installed but it cannot be found.  Please install it or update your PATH environment variable.\n");
             return 1;
         }
         g_free (xserver_path);
@@ -323,7 +317,7 @@ main(int argc, char **argv)
 
     loop = g_main_loop_new (NULL, FALSE);
 
-    g_bus_own_name (test_mode ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM,
+    g_bus_own_name (no_root ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM,
                     LDM_BUS_NAME,
                     G_BUS_NAME_OWNER_FLAGS_NONE,
                     bus_acquired_cb,
@@ -347,10 +341,9 @@ main(int argc, char **argv)
     config_set_string (config_get_instance (), "LightDM", "cache-directory", CACHE_DIR);
     config_set_string (config_get_instance (), "LightDM", "xsessions-directory", xsessions_dir);
 
-    if (test_mode)
+    if (no_root)
     {
         gchar *path;
-        config_set_string (config_get_instance (), "LightDM", "test-mode", test_mode);
         path = g_build_filename (g_get_user_cache_dir (), "lightdm", "authority", NULL);
         config_set_string (config_get_instance (), "LightDM", "authorization-directory", path);
         g_free (path);
@@ -358,13 +351,16 @@ main(int argc, char **argv)
         config_set_string (config_get_instance (), "LightDM", "log-directory", path);
         g_free (path);
     }
+    config_set_boolean (config_get_instance (), "LightDM", "use-xephyr", use_xephyr);
 
     log_init ();
 
     g_debug ("Starting Light Display Manager %s, PID=%i", VERSION, getpid ());
 
-    if (test_mode)
-        g_debug ("Running in test mode");
+    if (no_root)
+        g_debug ("Running in user mode");
+    if (use_xephyr)
+        g_debug ("Using Xephyr for X servers");
 
     g_debug ("Loaded configuration from %s", config_path);
 
