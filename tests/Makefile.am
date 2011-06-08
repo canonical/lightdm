@@ -1,6 +1,6 @@
 SUBDIRS = autologin login-gobject
 
-noinst_PROGRAMS = test-gobject-greeter test-xserver
+noinst_PROGRAMS = test-xserver test-gobject-greeter test-session
 
 test_gobject_greeter_CFLAGS = \
 	-I$(top_srcdir)/liblightdm-gobject \
