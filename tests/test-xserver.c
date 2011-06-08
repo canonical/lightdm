@@ -13,6 +13,7 @@
 
 static gchar *socket_path = NULL;
 static gchar *lock_path = NULL;
+static gchar *auth_path = NULL;
 
 #define BYTE_ORDER_MSB 'B'
 #define BYTE_ORDER_LSB 'l'
@@ -249,7 +250,9 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
                         &protocol_major_version, &protocol_minor_version,
                         &authorization_protocol_name,
                         &authorization_protocol_data, &authorization_protocol_data_length);
-        g_debug ("Got connect");
+        g_debug ("Got connect request");
+
+        // FIXME: Check authorization
 
         n_written = encode_accept (accept_buffer, MAXIMUM_REQUEST_LENGTH, byte_order);
         g_debug ("Sending Success");
@@ -265,7 +268,7 @@ socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 {
     int s, data_socket;
 
-    g_debug ("Connect");
+    g_debug ("Got connection");
 
     s = g_io_channel_unix_get_fd (channel);
     data_socket = accept (s, NULL, NULL);
@@ -299,7 +302,7 @@ main (int argc, char **argv)
 {
     int i, s, display_number = 0;
     struct sockaddr_un address;
-    char *auth_path = NULL, *pid_string;
+    char *pid_string;
     GMainLoop *loop;
     int lock_file;
 
