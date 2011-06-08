@@ -305,6 +305,7 @@ main (int argc, char **argv)
     char *pid_string;
     GMainLoop *loop;
     int lock_file;
+    void *handler;
 
     signal (SIGINT, quit_cb);
     signal (SIGTERM, quit_cb);
@@ -382,8 +383,11 @@ main (int argc, char **argv)
 
     g_io_add_watch (g_io_channel_unix_new (s), G_IO_IN, socket_connect_cb, NULL);
   
-    /* Ready for connection */
-    kill (getppid (), SIGUSR1);
+    /* Indicate ready if parent process has requested it */
+    handler = signal (SIGUSR1, SIG_IGN);
+    if (handler == SIG_IGN)
+        kill (getppid (), SIGUSR1);
+    signal (SIGUSR1, handler);
 
     g_main_loop_run (loop);
 
