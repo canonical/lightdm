@@ -1,6 +1,13 @@
 SUBDIRS = autologin login-gobject
 
-noinst_PROGRAMS = test-xserver test-gobject-greeter test-session
+noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-session
+
+test_runner_CFLAGS = \
+	$(WARN_CFLAGS) \
+	$(GLIB_CFLAGS)
+
+test_runner_LDADD = \
+	$(GLIB_LIBS)
 
 test_xserver_CFLAGS = \
 	$(WARN_CFLAGS) \
