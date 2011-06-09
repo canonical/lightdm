@@ -209,12 +209,6 @@ pam_session_start (PAMSession *session, GError **error)
             session->priv->num_messages = 1;
 
             g_signal_emit (G_OBJECT (session), signals[GOT_MESSAGES], 0, session->priv->num_messages, session->priv->messages);
-
-            g_free ((gchar *) messages[0]->msg);
-            g_free (messages[0]);
-            g_free (messages);
-            session->priv->messages = NULL;
-            session->priv->num_messages = 0;
         }
     }
     else
@@ -264,11 +258,25 @@ void
 pam_session_respond (PAMSession *session, struct pam_response *response)
 {
     g_return_if_fail (session != NULL);
-    g_return_if_fail (session->priv->authentication_thread != NULL);
 
     if (use_fake_users)
     {
         User *user;
+
+        if (session->priv->messages)
+        {
+            int i;
+            struct pam_message **messages = (struct pam_message **) session->priv->messages;
+
+            for (i = 0; i < session->priv->num_messages; i++)
+            {
+                g_free ((gchar *) messages[i]->msg);
+                g_free (messages[i]);
+            }
+            g_free (messages);
+            session->priv->messages = NULL;
+            session->priv->num_messages = 0;
+        }
 
         user = user_get_by_name (session->priv->username);
         if (user && strcmp (response->resp, "password") == 0)
@@ -280,20 +288,24 @@ pam_session_respond (PAMSession *session, struct pam_response *response)
         g_object_unref (user);
     }
     else
+    {
+        g_return_if_fail (session->priv->authentication_thread != NULL);
         g_async_queue_push (session->priv->authentication_response_queue, response);
+    }
 }
 
 void
 pam_session_cancel (PAMSession *session)
 {
     g_return_if_fail (session != NULL);
-    g_return_if_fail (session->priv->authentication_thread != NULL);
 
-    if (use_fake_users)
+    if (!use_fake_users)
     {
+        g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_CONV_ERR);
     }
     else
     {
+        g_return_if_fail (session->priv->authentication_thread != NULL);
         session->priv->cancel = TRUE;
         g_async_queue_push (session->priv->authentication_response_queue, GINT_TO_POINTER (-1));
     }
