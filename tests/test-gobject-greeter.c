@@ -33,7 +33,7 @@ main (int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    notify_status ("GREETER CONNECT-XSERVER");
+    notify_status ("GREETER CONNECT-XSERVER %s", getenv ("DISPLAY"));
 
     greeter = ldm_greeter_new ();
     g_object_connect (greeter, "connected", G_CALLBACK (connected_cb), NULL);

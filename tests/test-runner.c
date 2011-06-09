@@ -13,11 +13,13 @@
 #endif
 
 static GPid lightdm_pid;
+static gchar *status_socket_name = NULL;
 
 static void
 quit (int status)
 {
-    unlink (".status-socket");
+    if (status_socket_name)
+        unlink (status_socket_name);
     exit (status);
 }
 
@@ -57,7 +59,7 @@ status_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     ssize_t n_read;
 
     s = g_io_channel_unix_get_fd (channel);
-    n_read = recv (s, buffer, 1024, 0);
+    n_read = recv (s, buffer, 1023, 0);
     if (n_read < 0)
         g_warning ("Error reading from socket: %s", strerror (errno));
     else if (n_read == 0)
@@ -65,8 +67,11 @@ status_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
         g_debug ("EOF");
         return FALSE;
     }
-
-    g_print ("%s\n", buffer);
+    else
+    {
+        buffer[n_read] = '\0';
+        g_print ("%s\n", buffer);
+    }
 
     return TRUE;
 }
@@ -94,21 +99,23 @@ main (int argc, char **argv)
     /* Only run the binaries we've built */
     g_setenv ("PATH", ".", TRUE);
 
+    if (!getcwd (cwd, 1024))
+    {
+        g_critical ("Error getting current directory: %s", strerror (errno));
+        quit (EXIT_FAILURE);
+    }
+
     /* Open socket for status */
-    unlink (".status-socket");  
-    status_socket = open_unix_socket (".status-socket");
+    status_socket_name = g_build_filename (cwd, ".status-socket", NULL);
+    g_setenv ("LIGHTDM_TEST_STATUS_SOCKET", status_socket_name, TRUE);
+    unlink (status_socket_name);  
+    status_socket = open_unix_socket (status_socket_name);
     if (status_socket < 0)
     {
         g_critical ("Error opening status socket: %s", strerror (errno));
         quit (EXIT_FAILURE);
     }
     g_io_add_watch (g_io_channel_unix_new (status_socket), G_IO_IN, status_message_cb, NULL);
-  
-    if (!getcwd (cwd, 1024))
-    {
-        g_critical ("Error getting current directory: %s", strerror (errno));
-        quit (EXIT_FAILURE);
-    }
 
     command_line = g_strdup_printf ("../src/lightdm --debug --no-root --config %s --theme-dir=%s --theme-engine-dir=%s/.libs --xsessions-dir=%s",
                                     config, cwd, cwd, cwd);

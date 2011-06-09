@@ -261,7 +261,7 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
                         &authorization_protocol_data, &authorization_protocol_data_length);
         g_debug ("Got connect request");
 
-        notify_status ("XSERVER %d CONNECT", display_number);
+        notify_status ("XSERVER :%d ACCEPT-CONNECT", display_number);
 
         // FIXME: Check authorization
 
@@ -347,7 +347,7 @@ main (int argc, char **argv)
             ;
     }
 
-    notify_status ("XSERVER %d START", display_number);
+    notify_status ("XSERVER :%d START", display_number);
 
     loop = g_main_loop_new (NULL, FALSE);
 
