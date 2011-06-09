@@ -14,6 +14,7 @@
 
 static GPid lightdm_pid;
 static gchar *status_socket_name = NULL;
+static gboolean expect_exit = FALSE;
 
 static void
 quit (int status)
@@ -31,8 +32,10 @@ daemon_exit_cb (GPid pid, gint status, gpointer data)
     else
         g_print ("RUNNER DAEMON-TERMINATE SIGNAL=%d\n", WTERMSIG (status));
 
-    /* FIXME: Not a failure if expecting it to quit */
-    quit (EXIT_FAILURE);
+    if (expect_exit)
+        quit (EXIT_SUCCESS);
+    else
+        quit (EXIT_FAILURE);
 }
 
 static int
@@ -76,6 +79,13 @@ status_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     return TRUE;
 }
 
+static void
+signal_cb (int signum)
+{
+    g_debug ("Caught signal %d, killing daemon", signum);
+    kill (lightdm_pid, SIGTERM);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -86,6 +96,9 @@ main (int argc, char **argv)
     gchar **lightdm_argv;
     gchar cwd[1024];
     GError *error = NULL;
+
+    signal (SIGINT, signal_cb);
+    signal (SIGTERM, signal_cb);
 
     loop = g_main_loop_new (NULL, FALSE);
 
@@ -119,8 +132,8 @@ main (int argc, char **argv)
     }
     g_io_add_watch (g_io_channel_unix_new (status_socket), G_IO_IN, status_message_cb, NULL);
 
-    command_line = g_strdup_printf ("../src/lightdm --debug --no-root --config %s --passwd-file test-passwd --theme-dir=%s --theme-engine-dir=%s/.libs --xsessions-dir=%s",
-                                    config, cwd, cwd, cwd);
+    command_line = g_strdup_printf ("../src/lightdm %s --no-root --config %s --passwd-file test-passwd --theme-dir=%s --theme-engine-dir=%s/.libs --xsessions-dir=%s",
+                                    getenv ("DEBUG") ? "--debug" : "", config, cwd, cwd, cwd);
     g_print ("RUNNER START-DAEMON COMMAND=\"%s\"\n", command_line);
 
     if (!g_shell_parse_argv (command_line, NULL, &lightdm_argv, &error))
@@ -130,7 +143,7 @@ main (int argc, char **argv)
     }
     g_clear_error (&error);
 
-    if (!g_spawn_async (NULL, lightdm_argv, NULL, 0, NULL, NULL, &lightdm_pid, &error))
+    if (!g_spawn_async (NULL, lightdm_argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &lightdm_pid, &error))
     {
         g_warning ("Error launching LightDM: %s", error->message);
         quit (EXIT_FAILURE);

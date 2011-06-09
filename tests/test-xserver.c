@@ -293,17 +293,19 @@ socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 
 static void
 quit (int status)
-{
+{    
     if (lock_path)
         unlink (lock_path);
     if (socket_path)
         unlink (socket_path);
 
+    notify_status ("XSERVER :%d QUIT", display_number);
+
     exit (status);
 }
 
 static void
-quit_cb (int signum)
+signal_cb (int signum)
 {
     quit (EXIT_SUCCESS);
 }
@@ -318,8 +320,8 @@ main (int argc, char **argv)
     int lock_file;
     void *handler;
 
-    signal (SIGINT, quit_cb);
-    signal (SIGTERM, quit_cb);
+    signal (SIGINT, signal_cb);
+    signal (SIGTERM, signal_cb);
 
     for (i = 1; i < argc; i++)
     {
