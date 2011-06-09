@@ -1,3 +1,0 @@
-alice::1000:1000:Alice User:test-home/alice:/bin/sh
-bob::1001:1001:Bob User:test-home/bob:/bin/sh
-carol::1002:1002:Carol Visitor:test-home/carol:/bin/sh
