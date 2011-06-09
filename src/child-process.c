@@ -187,7 +187,7 @@ run_child_process (ChildProcess *process, char *const argv[])
 
     execvp (argv[0], argv);
 
-    g_warning ("Error executing child process: %s", g_strerror (errno));
+    g_warning ("Error executing child process %s: %s", argv[0], g_strerror (errno));
     _exit (EXIT_FAILURE);
 }
 
