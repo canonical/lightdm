@@ -211,6 +211,21 @@ name_lost_cb (GDBusConnection *connection,
     exit (EXIT_FAILURE);
 }
 
+static gchar *
+path_make_absolute (gchar *path)
+{
+    gchar *cwd, *abs_path;
+
+    if (g_path_is_absolute (path))
+        return path;
+
+    cwd = g_get_current_dir ();
+    abs_path = g_build_filename (cwd, path, NULL);
+    g_free (path);
+
+    return abs_path;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -221,8 +236,8 @@ main(int argc, char **argv)
     gboolean use_xephyr = FALSE;
     gchar *passwd_path = NULL;
     gchar *pid_path = "/var/run/lightdm.pid";
-    gchar *theme_dir = THEME_DIR, *theme_engine_dir = THEME_ENGINE_DIR;
-    gchar *xsessions_dir = XSESSIONS_DIR;
+    gchar *theme_dir = g_strdup (THEME_DIR), *theme_engine_dir = g_strdup (THEME_ENGINE_DIR);
+    gchar *xsessions_dir = g_strdup (XSESSIONS_DIR);
     gboolean show_version = FALSE;
     GOptionEntry options[] = 
     {
@@ -291,6 +306,11 @@ main(int argc, char **argv)
         g_printerr ("%s %s\n", LIGHTDM_BINARY, VERSION);
         return EXIT_SUCCESS;
     }
+
+    /* Always use absolute directories as child processes may run from different locations */
+    theme_dir = path_make_absolute (theme_dir);
+    theme_engine_dir = path_make_absolute (theme_engine_dir);
+    xsessions_dir = path_make_absolute (xsessions_dir);
 
     /* Write PID file */
     pid_file = fopen (pid_path, "w");
