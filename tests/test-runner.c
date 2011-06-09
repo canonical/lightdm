@@ -79,6 +79,7 @@ main (int argc, char **argv)
     int status_socket;
     gchar *command_line;
     gchar **lightdm_argv;
+    gchar cwd[1024];
     GError *error = NULL;
 
     loop = g_main_loop_new (NULL, FALSE);
@@ -102,9 +103,15 @@ main (int argc, char **argv)
         quit (EXIT_FAILURE);
     }
     g_io_add_watch (g_io_channel_unix_new (status_socket), G_IO_IN, status_message_cb, NULL);
+  
+    if (!getcwd (cwd, 1024))
+    {
+        g_critical ("Error getting current directory: %s", strerror (errno));
+        quit (EXIT_FAILURE);
+    }
 
-    command_line = g_strdup_printf ("../src/lightdm --debug --no-root --config %s --theme-dir=. --theme-engine-dir=. --xsessions-dir=.",
-                                    config);
+    command_line = g_strdup_printf ("../src/lightdm --debug --no-root --config %s --theme-dir=%s --theme-engine-dir=%s/.libs --xsessions-dir=%s",
+                                    config, cwd, cwd, cwd);
     g_debug ("Running %s", command_line);
 
     if (!g_shell_parse_argv (command_line, NULL, &lightdm_argv, &error))
