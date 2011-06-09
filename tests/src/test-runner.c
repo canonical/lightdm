@@ -276,7 +276,7 @@ main (int argc, char **argv)
 
     status_timeout = g_timeout_add (2000, status_timeout_cb, NULL);
 
-    command_line = g_strdup_printf ("../src/lightdm %s --no-root --config scripts/%s.conf --passwd-file test-passwd --theme-dir=%s --theme-engine-dir=%s/src/.libs --xsessions-dir=%s",
+    command_line = g_strdup_printf ("../src/lightdm %s --no-root --config scripts/%s.conf --passwd-file data/test-passwd --theme-dir=%s/data --theme-engine-dir=%s/src/.libs --xsessions-dir=%s/data",
                                     getenv ("DEBUG") ? "--debug" : "", script_name, cwd, cwd, cwd);
     g_debug ("Start daemon with command: %s", command_line);
 
