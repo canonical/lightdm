@@ -68,7 +68,7 @@ struct _LdmGreeterPrivate
     GDBusProxy *lightdm_proxy;
 
     GIOChannel *to_server_channel, *from_server_channel;
-    gchar *read_buffer;
+    guint8 *read_buffer;
     gsize n_read;
 
     Display *display;
@@ -170,7 +170,7 @@ static guint32
 read_int (LdmGreeter *greeter, gsize *offset)
 {
     guint32 value;
-    gchar *buffer;
+    guint8 *buffer;
     if (greeter->priv->n_read - *offset < int_length ())
     {
         g_warning ("Not enough space for int, need %i, got %zi", int_length (), greeter->priv->n_read - *offset);
@@ -278,7 +278,7 @@ read_packet (LdmGreeter *greeter, gboolean block)
     {
         GIOStatus status;
         status = g_io_channel_read_chars (greeter->priv->from_server_channel,
-                                          greeter->priv->read_buffer + greeter->priv->n_read,
+                                          (gchar *) greeter->priv->read_buffer + greeter->priv->n_read,
                                           n_to_read - greeter->priv->n_read,
                                           &n_read,
                                           &error);

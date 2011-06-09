@@ -37,7 +37,7 @@ struct GreeterPrivate
     int pipe[2];
 
     /* Buffer for data read from greeter */
-    gchar *read_buffer;
+    guint8 *read_buffer;
     gsize n_read;
 
     /* Theme for greeter to use */
@@ -410,7 +410,7 @@ static guint32
 read_int (Greeter *greeter, gsize *offset)
 {
     guint32 value;
-    gchar *buffer;
+    guint8 *buffer;
     if (greeter->priv->n_read - *offset < sizeof (guint32))
     {
         g_warning ("Not enough space for int, need %zu, got %zu", sizeof (guint32), greeter->priv->n_read - *offset);
@@ -461,7 +461,7 @@ got_data_cb (Greeter *greeter)
     }
 
     status = g_io_channel_read_chars (child_process_get_from_child_channel (CHILD_PROCESS (greeter)),
-                                      greeter->priv->read_buffer + greeter->priv->n_read,
+                                      (gchar *) greeter->priv->read_buffer + greeter->priv->n_read,
                                       n_to_read - greeter->priv->n_read,
                                       &n_read,
                                       &error);
@@ -472,6 +472,9 @@ got_data_cb (Greeter *greeter)
         return;
 
     g_debug ("Read %zi bytes from greeter", n_read);
+    for (i = 0; i < n_read; i++)
+       g_print ("%02X ", greeter->priv->read_buffer[i+greeter->priv->n_read]);
+    g_print ("\n");
 
     greeter->priv->n_read += n_read;
     if (greeter->priv->n_read != n_to_read)
