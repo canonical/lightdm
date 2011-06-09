@@ -16,8 +16,8 @@ static GPid lightdm_pid = 0;
 static gchar *status_socket_name = NULL;
 static gboolean expect_exit = FALSE;
 static GList *statuses = NULL;
-static gchar **script = NULL;
-static gint script_index = 0;
+static GList *script = NULL;
+static GList *script_iter = NULL;
 static guint status_timeout = 0;
 static gboolean failed = FALSE;
 
@@ -60,6 +60,14 @@ fail (const gchar *event, const gchar *expected)
     stop_daemon ();
 }
 
+static gchar *
+get_script_line ()
+{
+    if (!script_iter)
+        return NULL;
+    return script_iter->data;
+}
+
 static void
 daemon_exit_cb (GPid pid, gint status, gpointer data)
 {
@@ -74,9 +82,9 @@ daemon_exit_cb (GPid pid, gint status, gpointer data)
     check_status (status_text);
 
     /* Check if expected more */
-    if (script[script_index] != NULL)
+    if (get_script_line () != NULL)
     {
-        fail ("(daemon quit)", script[script_index]);
+        fail ("(daemon quit)", get_script_line ());
         quit (EXIT_FAILURE);
     }
 
@@ -108,14 +116,18 @@ static void
 run_commands ()
 {
     /* Stop daemon if requested */
-    while (script[script_index] && (script[script_index][0] == '*' || script[script_index][0] == '\0'))
+    while (TRUE)
     {
-        gchar *command = script[script_index];
+        gchar *command = get_script_line ();
 
-        /* Ignore empty lines */
-        if (strcmp (command, "") == 0)
-            ;
-        else if (strcmp (command, "*STOP-DAEMON") == 0)
+        if (!command)
+            break;
+
+        /* Commands start with an asterisk */
+        if (command[0] != '*')
+            break;
+
+        if (strcmp (command, "*STOP-DAEMON") == 0)
         {
             expect_exit = TRUE;
             stop_daemon ();
@@ -127,11 +139,11 @@ run_commands ()
             return;
         }
         statuses = g_list_append (statuses, g_strdup (command));
-        script_index++;
+        script_iter = script_iter->next;
     }
 
     /* Stop at the end of the script */
-    if (script[script_index] == NULL)
+    if (get_script_line () == NULL)
     {
         expect_exit = TRUE;
         stop_daemon ();
@@ -141,7 +153,7 @@ run_commands ()
 static gboolean
 status_timeout_cb (gpointer data)
 {
-    fail ("(timeout)", script[script_index]);
+    fail ("(timeout)", get_script_line ());
     return FALSE;
 }
 
@@ -159,13 +171,13 @@ check_status (const gchar *status)
         g_print ("%s\n", status);
 
     /* Try and match against expected */
-    pattern = script[script_index];
+    pattern = get_script_line ();
     if (!pattern || !g_regex_match_simple (pattern, status, 0, 0))
     {
         fail (NULL, pattern);
         return;
     }
-    script_index++;
+    script_iter = script_iter->next;
 
     /* Restart timeout */
     g_source_remove (status_timeout);
@@ -209,7 +221,8 @@ signal_cb (int signum)
 static void
 load_script (const gchar *name)
 {
-    gchar *filename, *path, *data;
+    int i;
+    gchar *filename, *path, *data, **lines;
 
     filename = g_strdup_printf ("%s.script", name);
     path = g_build_filename ("scripts", filename, NULL);
@@ -222,9 +235,21 @@ load_script (const gchar *name)
     }
     g_free (path);
 
-    script = g_strsplit (data, "\n", -1);
-    script_index = 0;
+    lines = g_strsplit (data, "\n", -1);
     g_free (data);
+
+    for (i = 0; lines[i]; i++)
+    {
+        gchar *line = g_strstrip (lines[i]);
+
+        /* Skip empty lines and comments */
+        if (line[0] == '\0' || line[0] == '#')
+            continue;
+
+        script = g_list_append (script, g_strdup (line));
+    }
+    script_iter = script;
+    g_strfreev (lines);
 }
 
 int
