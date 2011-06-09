@@ -38,6 +38,8 @@ test_gobject_greeter_LDADD = \
 test_session_SOURCES = test-session.c status.c
 test_session_CFLAGS = \
 	$(WARN_CFLAGS) \
+	$(GLIB_CFLAGS) \
 	$(XCB_CFLAGS)
 test_session_LDADD = \
+	$(GLIB_LIBS) \
 	$(XCB_LIBS)
