@@ -1,14 +1,6 @@
 noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-session
 
-TESTS = test-autologin test-login-gobject test-timed-login-gobject
-.PHONY: $(TESTS)
-
-test-autologin:
-	./test-runner autologin
-test-login-gobject:
-	./test-runner login-gobject
-test-timed-login-gobject:
-	./test-runner timed-login-gobject
+TESTS = test-autologin test-login-gobject
 
 test_runner_CFLAGS = \
 	$(WARN_CFLAGS) \

@@ -19,11 +19,13 @@ static GList *statuses = NULL;
 static gchar **script = NULL;
 static gint script_index = 0;
 static guint status_timeout = 0;
+static gboolean failed = FALSE;
+
+static void check_status (const gchar *status);
 
 static void
 stop_daemon ()
 {
-    g_debug ("%d", lightdm_pid);
     if (lightdm_pid)
         kill (lightdm_pid, SIGTERM);
 }
@@ -38,14 +40,45 @@ quit (int status)
 }
 
 static void
+fail (const gchar *event, const gchar *expected)
+{
+    GList *link;
+
+    if (failed)
+        return;
+    failed = TRUE;
+
+    for (link = statuses; link; link = link->next)
+        g_printerr ("%s\n", (gchar *)link->data);
+    if (event)
+        g_printerr ("%s\n", event);
+    if (expected)
+        g_printerr ("^^^ expected \"%s\"\n", expected);
+    else
+        g_printerr ("^^^ expected nothing\n");
+
+    stop_daemon ();
+}
+
+static void
 daemon_exit_cb (GPid pid, gint status, gpointer data)
 {
-    lightdm_pid = 0;
+    gchar *status_text;
 
+    lightdm_pid = 0;
+  
     if (WIFEXITED (status))
-        g_print ("RUNNER DAEMON-EXIT STATUS=%d\n", WEXITSTATUS (status));
+        status_text = g_strdup_printf ("RUNNER DAEMON-EXIT STATUS=%d", WEXITSTATUS (status));
     else
-        g_print ("RUNNER DAEMON-TERMINATE SIGNAL=%d\n", WTERMSIG (status));
+        status_text = g_strdup_printf ("RUNNER DAEMON-TERMINATE SIGNAL=%d", WTERMSIG (status));
+    check_status (status_text);
+
+    /* Check if expected more */
+    if (script[script_index] != NULL)
+    {
+        fail ("(daemon quit)", script[script_index]);
+        quit (EXIT_FAILURE);
+    }
 
     if (expect_exit)
         quit (EXIT_SUCCESS);
@@ -75,16 +108,23 @@ static void
 run_commands ()
 {
     /* Stop daemon if requested */
-    while (script[script_index] && script[script_index][0] == '*')
+    while (script[script_index] && (script[script_index][0] == '*' || script[script_index][0] == '\0'))
     {
         gchar *command = script[script_index];
 
-        if (strcmp (command, "*STOP-DAEMON") == 0)
+        /* Ignore empty lines */
+        if (strcmp (command, "") == 0)
+            ;
+        else if (strcmp (command, "*STOP-DAEMON") == 0)
+        {
+            expect_exit = TRUE;
             stop_daemon ();
+        }
         else
         {
             g_printerr ("Unknown command %s\n", command);
-            exit (EXIT_FAILURE);
+            quit (EXIT_FAILURE);
+            return;
         }
         statuses = g_list_append (statuses, g_strdup (command));
         script_index++;
@@ -101,14 +141,7 @@ run_commands ()
 static gboolean
 status_timeout_cb (gpointer data)
 {
-    GList *link;
-
-    for (link = statuses; link; link = link->next)
-        g_printerr ("%s\n", (gchar *)link->data);
-    g_printerr ("(timeout)\n");
-    g_printerr ("^^^ expected \"%s\"\n", script[script_index]);
-    stop_daemon ();
-
+    fail ("(timeout)", script[script_index]);
     return FALSE;
 }
 
@@ -116,21 +149,21 @@ static void
 check_status (const gchar *status)
 {
     gchar *pattern;
+
+    if (failed)
+        return;
   
     statuses = g_list_append (statuses, g_strdup (status));
-
-    //g_print ("%s\n", buffer);
+  
+    if (getenv ("DEBUG"))
+        g_print ("%s\n", status);
 
     /* Try and match against expected */
     pattern = script[script_index];
-    if (!g_regex_match_simple (pattern, status, 0, 0))
+    if (!pattern || !g_regex_match_simple (pattern, status, 0, 0))
     {
-        GList *link;
-
-        for (link = statuses; link; link = link->next)
-            g_printerr ("%s\n", (gchar *)link->data);
-        g_printerr ("^^^ expected \"%s\"\n", pattern);
-        quit (EXIT_FAILURE);
+        fail (NULL, pattern);
+        return;
     }
     script_index++;
 
@@ -219,7 +252,7 @@ main (int argc, char **argv)
 
     load_script (script_name);
     
-    g_print ("RUNNER START SCRIPT=%s\n", script_name);
+    g_debug ("Using script %s", script_name);
 
     if (!getcwd (cwd, 1024))
     {
@@ -248,7 +281,7 @@ main (int argc, char **argv)
 
     command_line = g_strdup_printf ("../src/lightdm %s --no-root --config scripts/%s.conf --passwd-file test-passwd --theme-dir=%s --theme-engine-dir=%s/.libs --xsessions-dir=%s",
                                     getenv ("DEBUG") ? "--debug" : "", script_name, cwd, cwd, cwd);
-    g_print ("RUNNER START-DAEMON COMMAND=\"%s\"\n", command_line);
+    g_debug ("Start daemon with command: %s", command_line);
 
     if (!g_shell_parse_argv (command_line, NULL, &lightdm_argv, &error))
     {
