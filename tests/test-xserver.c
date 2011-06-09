@@ -8,8 +8,13 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <linux/un.h> // FIXME: Should use sys version but UNIX_PATH_MAX not defined
+#include <sys/un.h>
 #include <glib.h>
+
+/* For some reason sys/un.h doesn't define this */
+#ifndef UNIX_PATH_MAX
+#define UNIX_PATH_MAX 108
+#endif
 
 static gchar *socket_path = NULL;
 static gchar *lock_path = NULL;
