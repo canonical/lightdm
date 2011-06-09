@@ -98,14 +98,14 @@ main (int argc, char **argv)
   
     g_print ("RUNNER START CONFIG=%s\n", config);
 
-    /* Only run the binaries we've built */
-    g_setenv ("PATH", ".", TRUE);
-
     if (!getcwd (cwd, 1024))
     {
         g_critical ("Error getting current directory: %s", strerror (errno));
         quit (EXIT_FAILURE);
     }
+
+    /* Only run the binaries we've built */
+    g_setenv ("PATH", cwd, TRUE);
 
     /* Open socket for status */
     status_socket_name = g_build_filename (cwd, ".status-socket", NULL);
