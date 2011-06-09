@@ -116,12 +116,12 @@ int_length ()
 static void
 write_int (Greeter *greeter, guint32 value)
 {
-    gchar buffer[4];
+    guint8 buffer[4];
     buffer[0] = value >> 24;
     buffer[1] = (value >> 16) & 0xFF;
     buffer[2] = (value >> 8) & 0xFF;
     buffer[3] = value & 0xFF;
-    g_io_channel_write_chars (child_process_get_to_child_channel (CHILD_PROCESS (greeter)), buffer, int_length (), NULL, NULL);
+    g_io_channel_write_chars (child_process_get_to_child_channel (CHILD_PROCESS (greeter)), (gchar *) buffer, int_length (), NULL, NULL);
 }
 
 static void

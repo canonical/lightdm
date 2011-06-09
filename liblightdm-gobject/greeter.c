@@ -150,12 +150,12 @@ int_length ()
 static void
 write_int (LdmGreeter *greeter, guint32 value)
 {
-    gchar buffer[4];
+    guint8 buffer[4];
     buffer[0] = value >> 24;
     buffer[1] = (value >> 16) & 0xFF;
     buffer[2] = (value >> 8) & 0xFF;
     buffer[3] = value & 0xFF;
-    if (g_io_channel_write_chars (greeter->priv->to_server_channel, buffer, int_length (), NULL, NULL) != G_IO_STATUS_NORMAL)
+    if (g_io_channel_write_chars (greeter->priv->to_server_channel, (gchar *) buffer, int_length (), NULL, NULL) != G_IO_STATUS_NORMAL)
         g_warning ("Error writing to server");
 }
 
