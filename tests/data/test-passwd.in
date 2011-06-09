@@ -1,3 +1,0 @@
-alice::1000:1000:Alice User:@abs_srcdir@/test-home/alice:/bin/sh
-bob::1001:1001:Bob User:@abs_srcdir@/test-home/bob:/bin/sh
-carol::1002:1002:Carol Visitor:@abs_srcdir@/test-home/carol:/bin/sh

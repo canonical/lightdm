@@ -281,7 +281,7 @@ liblightdm-qt/QLightDM/Makefile
 po/Makefile.in
 src/Makefile
 tests/Makefile
-tests/data/test-passwd
+tests/data/passwd
 tests/src/Makefile
 themes/Makefile
 themes/example-gtk-gnome/Makefile
