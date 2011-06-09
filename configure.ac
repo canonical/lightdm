@@ -281,8 +281,6 @@ liblightdm-qt/QLightDM/Makefile
 po/Makefile.in
 src/Makefile
 tests/Makefile
-tests/autologin/Makefile
-tests/login-gobject/Makefile
 themes/Makefile
 themes/example-gtk-gnome/Makefile
 themes/example-python-gtk-gnome/Makefile

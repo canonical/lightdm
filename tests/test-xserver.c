@@ -11,6 +11,8 @@
 #include <sys/un.h>
 #include <glib.h>
 
+#include "status.h"
+
 /* For some reason sys/un.h doesn't define this */
 #ifndef UNIX_PATH_MAX
 #define UNIX_PATH_MAX 108
@@ -19,6 +21,8 @@
 static gchar *socket_path = NULL;
 static gchar *lock_path = NULL;
 static gchar *auth_path = NULL;
+
+static int display_number = 0;
 
 #define BYTE_ORDER_MSB 'B'
 #define BYTE_ORDER_LSB 'l'
@@ -257,6 +261,8 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
                         &authorization_protocol_data, &authorization_protocol_data_length);
         g_debug ("Got connect request");
 
+        notify_status ("XSERVER %d CONNECT", display_number);
+
         // FIXME: Check authorization
 
         n_written = encode_accept (accept_buffer, MAXIMUM_REQUEST_LENGTH, byte_order);
@@ -305,7 +311,7 @@ quit_cb (int signum)
 int
 main (int argc, char **argv)
 {
-    int i, s, display_number = 0;
+    int i, s;
     struct sockaddr_un address;
     char *pid_string;
     GMainLoop *loop;
@@ -340,6 +346,8 @@ main (int argc, char **argv)
         else if (strcmp (arg, "-nr") == 0)
             ;
     }
+
+    notify_status ("XSERVER %d START", display_number);
 
     loop = g_main_loop_new (NULL, FALSE);
 

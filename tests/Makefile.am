@@ -1,36 +1,43 @@
-SUBDIRS = autologin login-gobject
-
 noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-session
+
+TESTS = test-autologin test-login-gobject test-timed-login-gobject
+.PHONY: $(TESTS)
+
+test-autologin:
+	./test-runner autologin.conf
+test-login-gobject:
+	./test-runner login-gobject.conf
+test-timed-login-gobject:
+	./test-runner timed-login-gobject.conf
 
 test_runner_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS)
-
 test_runner_LDADD = \
 	$(GLIB_LIBS)
 
+test_xserver_SOURCES = test-xserver.c status.c
 test_xserver_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS)
-
 test_xserver_LDADD = \
 	$(GLIB_LIBS)
 
+test_gobject_greeter_SOURCES = test-gobject-greeter.c status.c
 test_gobject_greeter_CFLAGS = \
 	-I$(top_srcdir)/liblightdm-gobject \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
 	$(XCB_CFLAGS)
-
 test_gobject_greeter_LDADD = \
 	-L$(top_builddir)/liblightdm-gobject \
 	-llightdm-gobject-0 \
 	$(GLIB_LIBS) \
 	$(XCB_LIBS)
 
+test_session_SOURCES = test-session.c status.c
 test_session_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(XCB_CFLAGS)
-
 test_session_LDADD = \
 	$(XCB_LIBS)

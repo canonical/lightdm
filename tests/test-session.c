@@ -2,10 +2,14 @@
 #include <stdio.h>
 #include <xcb/xcb.h>
 
+#include "status.h"
+
 int
 main (int argc, char **argv)
 {
     xcb_connection_t *connection;
+  
+    notify_status ("SESSION START");
 
     connection = xcb_connect (NULL, NULL);
 
@@ -14,6 +18,8 @@ main (int argc, char **argv)
         fprintf (stderr, "Error connecting\n");
         return EXIT_FAILURE;
     }
+
+    notify_status ("SESSION CONNECT-XSERVER");
 
     return EXIT_SUCCESS;
 }
