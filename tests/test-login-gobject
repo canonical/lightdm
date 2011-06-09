@@ -1,2 +1,2 @@
 #!/bin/sh
-./test-runner login-gobject
+PATH=`pwd`/src ./src/test-runner login-gobject

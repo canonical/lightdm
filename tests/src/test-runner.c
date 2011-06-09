@@ -260,9 +260,6 @@ main (int argc, char **argv)
         quit (EXIT_FAILURE);
     }
 
-    /* Only run the binaries we've built */
-    g_setenv ("PATH", cwd, TRUE);
-
     /* Open socket for status */
     status_socket_name = g_build_filename (cwd, ".status-socket", NULL);
     g_setenv ("LIGHTDM_TEST_STATUS_SOCKET", status_socket_name, TRUE);
@@ -279,7 +276,7 @@ main (int argc, char **argv)
 
     status_timeout = g_timeout_add (2000, status_timeout_cb, NULL);
 
-    command_line = g_strdup_printf ("../src/lightdm %s --no-root --config scripts/%s.conf --passwd-file test-passwd --theme-dir=%s --theme-engine-dir=%s/.libs --xsessions-dir=%s",
+    command_line = g_strdup_printf ("../src/lightdm %s --no-root --config scripts/%s.conf --passwd-file test-passwd --theme-dir=%s --theme-engine-dir=%s/src/.libs --xsessions-dir=%s",
                                     getenv ("DEBUG") ? "--debug" : "", script_name, cwd, cwd, cwd);
     g_debug ("Start daemon with command: %s", command_line);
 

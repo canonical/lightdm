@@ -282,6 +282,7 @@ po/Makefile.in
 src/Makefile
 tests/Makefile
 tests/test-passwd
+tests/src/Makefile
 themes/Makefile
 themes/example-gtk-gnome/Makefile
 themes/example-python-gtk-gnome/Makefile
