@@ -20,6 +20,8 @@
 #include "configuration.h"
 #include "display-manager.h"
 #include "xserver.h"
+#include "user.h"
+#include "pam-session.h"
 
 static gchar *config_path = CONFIG_FILE;
 static GMainLoop *loop = NULL;
@@ -217,6 +219,7 @@ main(int argc, char **argv)
     gboolean test_mode = FALSE;
     gboolean no_root = FALSE;
     gboolean use_xephyr = FALSE;
+    gchar *passwd_path = NULL;
     gchar *pid_path = "/var/run/lightdm.pid";
     gchar *theme_dir = THEME_DIR, *theme_engine_dir = THEME_ENGINE_DIR;
     gchar *xsessions_dir = XSESSIONS_DIR;
@@ -238,6 +241,9 @@ main(int argc, char **argv)
         { "use-xephyr", 0, 0, G_OPTION_ARG_NONE, &use_xephyr,
           /* Help string for command line --xephyr flag */
           N_("Use Xephyr as an X server for testing (use with --no-root)"), NULL },
+        { "passwd-file", 0, 0, G_OPTION_ARG_STRING, &passwd_path,
+          /* Help string for command line --use-passwd flag */
+          N_("Use the given password file for authentication (for testing, requires --no-root)"), "FILE" },
         { "pid-file", 0, 0, G_OPTION_ARG_STRING, &pid_path,
           /* Help string for command line --pid-file flag */
           N_("File to write PID into"), "FILE" },
@@ -298,7 +304,7 @@ main(int argc, char **argv)
     if (!no_root && getuid () != 0)
     {
         g_printerr ("Only root can run Light Display Manager.  To run as a regular user for testing run with the --test-mode flag.\n");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     /* Check if requiring Xephyr */
@@ -310,9 +316,22 @@ main(int argc, char **argv)
         if (!xserver_path)
         {
             g_printerr ("Test mode requires Xephyr to be installed but it cannot be found.  Please install it or update your PATH environment variable.\n");
-            return 1;
+            return EXIT_FAILURE;
         }
         g_free (xserver_path);
+    }
+
+    /* Don't allow to be run as root and use a password file (asking for danger!) */
+    if (!no_root && passwd_path)
+    {
+        g_printerr ("Only allowed to use --passwd-file when running with --no-root.\n"); 
+        return EXIT_FAILURE;
+    }
+    if (passwd_path)
+    {
+        g_debug ("Using password file '%s' for authentication", passwd_path);
+        user_set_use_passwd_file (passwd_path);
+        pam_session_set_use_fake_users (TRUE);
     }
 
     loop = g_main_loop_new (NULL, FALSE);
@@ -370,5 +389,5 @@ main(int argc, char **argv)
 
     g_main_loop_run (loop);
 
-    return 0;
+    return EXIT_SUCCESS;
 }

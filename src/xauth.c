@@ -18,9 +18,6 @@
 
 struct XAuthorizationPrivate
 {
-    /* User who is using this authorization */
-    gchar *username;
-
     /* Authorization scheme */
     gchar *authorization_name;
 
@@ -172,7 +169,6 @@ xauth_finalize (GObject *object)
 
     self = XAUTH (object);
 
-    g_free (self->priv->username);
     g_free (self->priv->authorization_name);
     g_free (self->priv->authorization_data);
 

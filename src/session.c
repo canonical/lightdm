@@ -78,7 +78,8 @@ session_set_authorization (Session *session, XAuthorization *authorization, cons
     session->priv->authorization_path = g_strdup (path);
 }
 
-XAuthorization *session_get_authorization (Session *session)
+XAuthorization *
+session_get_authorization (Session *session)
 {
     return session->priv->authorization;
 }
@@ -94,11 +95,16 @@ session_start (Session *session, gboolean create_pipe)
     g_return_val_if_fail (session->priv->command != NULL, FALSE);
 
     if (session->priv->username)
+    {
         user = user_get_by_name (session->priv->username);
+        if (!user)
+        {
+            g_warning ("Unable to start session, user %s does not exist", session->priv->username);
+            return FALSE;
+        }
+    }
     else
-        user = user_get_by_uid (getuid ());
-    if (!user)
-        return FALSE;
+        user = user_get_current ();
 
     child_process_set_env (CHILD_PROCESS (session), "USER", user_get_name (user));
     child_process_set_env (CHILD_PROCESS (session), "USERNAME", user_get_name (user)); // FIXME: Is this required?      

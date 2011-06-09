@@ -633,8 +633,10 @@ start_greeter (Display *display)
         gchar *command;
         gchar *username = NULL;
 
-        g_debug ("Starting greeter %s as user %s", display->priv->greeter_theme,
-                 display->priv->greeter_user ? display->priv->greeter_user : "<current>");
+        if (display->priv->greeter_user)
+            g_debug ("Starting greeter %s as user %s", display->priv->greeter_theme, display->priv->greeter_user);
+        else
+            g_debug ("Starting greeter %s as current user", display->priv->greeter_theme);
 
         command = theme_get_command (theme);
       
@@ -643,9 +645,7 @@ start_greeter (Display *display)
         else
         {
             User *user;
-            user = user_get_by_uid (getuid ());
-            if (!user)
-                return;
+            user = user_get_current ();
             username = g_strdup (user_get_name (user));
             g_object_unref (user);
         }

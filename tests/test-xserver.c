@@ -355,13 +355,13 @@ main (int argc, char **argv)
     lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
     if (lock_file < 0)
     {
-        g_free (lock_path);
-        lock_path = NULL;
         fprintf (stderr,
                  "Fatal server error:\n"
                  "Server is already active for display %d\n"
                  "	If this server is no longer running, remove %s\n"
                  "	and start again.\n", display_number, lock_path);
+        g_free (lock_path);
+        lock_path = NULL;
         quit (EXIT_FAILURE);
     }
     pid_string = g_strdup_printf ("%10ld", (long) getpid ());

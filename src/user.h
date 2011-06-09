@@ -35,9 +35,13 @@ typedef struct
 
 GType user_get_type (void);
 
+void user_set_use_passwd_file (gchar *passwd_file);
+
 User *user_get_by_name (const gchar *username);
 
 User *user_get_by_uid (uid_t uid);
+
+User *user_get_current (void);
 
 const gchar *user_get_name (User *user);
 

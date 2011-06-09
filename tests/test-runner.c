@@ -27,9 +27,9 @@ static void
 daemon_exit_cb (GPid pid, gint status, gpointer data)
 {
     if (WIFEXITED (status))
-        g_debug ("LightDM daemon exited with return value %d", WEXITSTATUS (status));
+        g_print ("RUNNER DAEMON-EXIT STATUS=%d\n", WEXITSTATUS (status));
     else
-        g_debug ("LightDM daemon terminated with signal %d", WTERMSIG (status));
+        g_print ("RUNNER DAEMON-TERMINATE SIGNAL=%d\n", WTERMSIG (status));
 
     /* FIXME: Not a failure if expecting it to quit */
     quit (EXIT_FAILURE);
@@ -95,6 +95,8 @@ main (int argc, char **argv)
         quit (EXIT_FAILURE);
     }
     config = argv[1];
+  
+    g_print ("RUNNER START CONFIG=%s\n", config);
 
     /* Only run the binaries we've built */
     g_setenv ("PATH", ".", TRUE);
@@ -117,9 +119,9 @@ main (int argc, char **argv)
     }
     g_io_add_watch (g_io_channel_unix_new (status_socket), G_IO_IN, status_message_cb, NULL);
 
-    command_line = g_strdup_printf ("../src/lightdm --debug --no-root --config %s --theme-dir=%s --theme-engine-dir=%s/.libs --xsessions-dir=%s",
+    command_line = g_strdup_printf ("../src/lightdm --debug --no-root --config %s --passwd-file test-passwd --theme-dir=%s --theme-engine-dir=%s/.libs --xsessions-dir=%s",
                                     config, cwd, cwd, cwd);
-    g_debug ("Running %s", command_line);
+    g_print ("RUNNER START-DAEMON COMMAND=\"%s\"\n", command_line);
 
     if (!g_shell_parse_argv (command_line, NULL, &lightdm_argv, &error))
     {

@@ -11,6 +11,7 @@
 
 #include <errno.h>
 #include <pwd.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "user.h"
@@ -38,6 +39,9 @@ struct UserPrivate
 
 G_DEFINE_TYPE (User, user, G_TYPE_OBJECT);
 
+static gboolean use_fake_users = FALSE;
+static GList *fake_users = NULL;
+
 static User *
 user_from_passwd (struct passwd *user_info)
 {
@@ -54,44 +58,129 @@ user_from_passwd (struct passwd *user_info)
     return user;
 }
 
+void
+user_set_use_passwd_file (gchar *passwd_file)
+{
+    gchar *data = NULL, **lines;
+    gint i;
+    GError *error = NULL;
+
+    use_fake_users = TRUE;
+
+    if (!g_file_get_contents (passwd_file, &data, NULL, &error))
+        g_warning ("Error loading passwd file: %s", error->message);
+    g_clear_error (&error);
+  
+    if (!data)
+        return;
+
+    lines = g_strsplit (data, "\n", -1);
+    g_free (data);
+
+    for (i = 0; lines[i]; i++)
+    {
+        gchar *line, **fields;
+
+        line = g_strstrip (lines[i]);
+        fields = g_strsplit (line, ":", -1);
+        if (g_strv_length (fields) == 7)
+        {
+            User *user = g_object_new (USER_TYPE, NULL);
+            user->priv->name = g_strdup (fields[0]);
+            user->priv->uid = atoi (fields[2]);
+            user->priv->gid = atoi (fields[3]);
+            user->priv->gecos = g_strdup (fields[4]);
+            user->priv->home_directory = g_strdup (fields[5]);
+            user->priv->shell = g_strdup (fields[6]);
+            fake_users = g_list_append (fake_users, user);
+        }
+        g_strfreev (fields);
+    }
+    g_strfreev (lines);
+}
+
 User *
 user_get_by_name (const gchar *username)
 {
-    struct passwd *user_info;
+    User *user = NULL;
 
     errno = 0;
-    user_info = getpwnam (username);
-    if (!user_info)
+    if (use_fake_users)
+    {
+        GList *iter;
+        for (iter = fake_users; iter; iter = iter->next)
+        {
+            User *u = iter->data;
+            if (strcmp (u->priv->name, username) == 0)
+            {
+                user = g_object_ref (u);
+                break;
+            }
+        }
+    }
+    else
+    {
+        struct passwd *user_info;
+
+        user_info = getpwnam (username);
+        if (user_info)
+            user = user_from_passwd (user_info);
+    }
+
+    if (!user)
     {
         if (errno == 0)
             g_warning ("Unable to get information on user %s: User does not exist", username);
         else
             g_warning ("Unable to get information on user %s: %s", username, strerror (errno));
-
-        return NULL;
     }
 
-    return user_from_passwd (user_info);
+    return user;
 }
 
 User *
 user_get_by_uid (uid_t uid)
 {
-    struct passwd *user_info;
+    User *user = NULL;
 
     errno = 0;
-    user_info = getpwuid (uid);
-    if (!user_info)
+    if (use_fake_users)
+    {
+        GList *iter;
+        for (iter = fake_users; iter; iter = iter->next)
+        {
+            User *u = iter->data;
+            if (u->priv->uid == uid)
+            {
+                user = g_object_ref (u);
+                break;
+            }
+        }
+    }
+    else
+    {
+        struct passwd *user_info;
+
+        user_info = getpwuid (uid);
+        if (user_info)
+            user = user_from_passwd (user_info);
+    }
+
+    if (!user)
     {
         if (errno == 0)
             g_warning ("Unable to get information on user %d: User does not exist", uid);
         else
             g_warning ("Unable to get information on user %d: %s", uid, strerror (errno));
-
-        return NULL;
     }
 
-    return user_from_passwd (user_info);
+    return user;
+}
+
+User *
+user_get_current ()
+{
+    return user_from_passwd (getpwuid (getuid ()));
 }
 
 const gchar *
