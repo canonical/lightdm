@@ -375,6 +375,7 @@ child_process_finalize (GObject *object)
 static void
 signal_cb (int signum, siginfo_t *info, void *data)
 {
+    g_debug ("Got signal");
     if (write (signal_pipe[1], &info->si_signo, sizeof (int)) < 0 ||
         write (signal_pipe[1], &info->si_pid, sizeof (pid_t)) < 0)
         g_warning ("Failed to write to signal pipe");
@@ -389,7 +390,10 @@ handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
 
     if (read (signal_pipe[0], &signo, sizeof (int)) < 0 || 
         read (signal_pipe[0], &pid, sizeof (pid_t)) < 0)
+    {
+        g_warning ("Error reading from signal pipe: %s", strerror (errno));
         return TRUE;
+    }
 
     if (pid == 0)
         process = child_process_get_parent ();
