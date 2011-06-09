@@ -12,13 +12,26 @@
 #define UNIX_PATH_MAX 108
 #endif
 
-static GPid lightdm_pid;
+static GPid lightdm_pid = 0;
 static gchar *status_socket_name = NULL;
 static gboolean expect_exit = FALSE;
+static GList *statuses = NULL;
+static gchar **script = NULL;
+static gint script_index = 0;
+static guint status_timeout = 0;
+
+static void
+stop_daemon ()
+{
+    g_debug ("%d", lightdm_pid);
+    if (lightdm_pid)
+        kill (lightdm_pid, SIGTERM);
+}
 
 static void
 quit (int status)
 {
+    stop_daemon ();
     if (status_socket_name)
         unlink (status_socket_name);
     exit (status);
@@ -27,6 +40,8 @@ quit (int status)
 static void
 daemon_exit_cb (GPid pid, gint status, gpointer data)
 {
+    lightdm_pid = 0;
+
     if (WIFEXITED (status))
         g_print ("RUNNER DAEMON-EXIT STATUS=%d\n", WEXITSTATUS (status));
     else
@@ -54,6 +69,78 @@ open_unix_socket (const gchar *name)
     return s;
 }
 
+// FIXME: Add timeout
+
+static void
+run_commands ()
+{
+    /* Stop daemon if requested */
+    while (script[script_index] && script[script_index][0] == '*')
+    {
+        gchar *command = script[script_index];
+
+        if (strcmp (command, "*STOP-DAEMON") == 0)
+            stop_daemon ();
+        else
+        {
+            g_printerr ("Unknown command %s\n", command);
+            exit (EXIT_FAILURE);
+        }
+        statuses = g_list_append (statuses, g_strdup (command));
+        script_index++;
+    }
+
+    /* Stop at the end of the script */
+    if (script[script_index] == NULL)
+    {
+        expect_exit = TRUE;
+        stop_daemon ();
+    }
+}
+
+static gboolean
+status_timeout_cb (gpointer data)
+{
+    GList *link;
+
+    for (link = statuses; link; link = link->next)
+        g_printerr ("%s\n", (gchar *)link->data);
+    g_printerr ("(timeout)\n");
+    g_printerr ("^^^ expected \"%s\"\n", script[script_index]);
+    stop_daemon ();
+
+    return FALSE;
+}
+
+static void
+check_status (const gchar *status)
+{
+    gchar *pattern;
+  
+    statuses = g_list_append (statuses, g_strdup (status));
+
+    //g_print ("%s\n", buffer);
+
+    /* Try and match against expected */
+    pattern = script[script_index];
+    if (!g_regex_match_simple (pattern, status, 0, 0))
+    {
+        GList *link;
+
+        for (link = statuses; link; link = link->next)
+            g_printerr ("%s\n", (gchar *)link->data);
+        g_printerr ("^^^ expected \"%s\"\n", pattern);
+        quit (EXIT_FAILURE);
+    }
+    script_index++;
+
+    /* Restart timeout */
+    g_source_remove (status_timeout);
+    status_timeout = g_timeout_add (2000, status_timeout_cb, NULL);
+
+    run_commands ();
+}
+
 static gboolean
 status_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 {
@@ -73,7 +160,7 @@ status_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     else
     {
         buffer[n_read] = '\0';
-        g_print ("%s\n", buffer);
+        check_status ((gchar *) buffer);
     }
 
     return TRUE;
@@ -83,14 +170,35 @@ static void
 signal_cb (int signum)
 {
     g_debug ("Caught signal %d, killing daemon", signum);
-    kill (lightdm_pid, SIGTERM);
+    stop_daemon ();
+}
+
+static void
+load_script (const gchar *name)
+{
+    gchar *filename, *path, *data;
+
+    filename = g_strdup_printf ("%s.script", name);
+    path = g_build_filename ("scripts", filename, NULL);
+    g_free (filename);
+
+    if (!g_file_get_contents (path, &data, NULL, NULL))
+    {
+        g_printerr ("Unable to load script: %s\n", path);
+        quit (EXIT_FAILURE);
+    }
+    g_free (path);
+
+    script = g_strsplit (data, "\n", -1);
+    script_index = 0;
+    g_free (data);
 }
 
 int
 main (int argc, char **argv)
 {
     GMainLoop *loop;
-    gchar *config;
+    gchar *script_name;
     int status_socket;
     gchar *command_line;
     gchar **lightdm_argv;
@@ -104,12 +212,14 @@ main (int argc, char **argv)
 
     if (argc != 2)
     {
-        g_printerr ("Usage %s CONFIG\n", argv[0]);
+        g_printerr ("Usage %s SCRIPT-NAME\n", argv[0]);
         quit (EXIT_FAILURE);
     }
-    config = argv[1];
-  
-    g_print ("RUNNER START CONFIG=%s\n", config);
+    script_name = argv[1];
+
+    load_script (script_name);
+    
+    g_print ("RUNNER START SCRIPT=%s\n", script_name);
 
     if (!getcwd (cwd, 1024))
     {
@@ -132,8 +242,12 @@ main (int argc, char **argv)
     }
     g_io_add_watch (g_io_channel_unix_new (status_socket), G_IO_IN, status_message_cb, NULL);
 
-    command_line = g_strdup_printf ("../src/lightdm %s --no-root --config %s --passwd-file test-passwd --theme-dir=%s --theme-engine-dir=%s/.libs --xsessions-dir=%s",
-                                    getenv ("DEBUG") ? "--debug" : "", config, cwd, cwd, cwd);
+    run_commands ();
+
+    status_timeout = g_timeout_add (2000, status_timeout_cb, NULL);
+
+    command_line = g_strdup_printf ("../src/lightdm %s --no-root --config scripts/%s.conf --passwd-file test-passwd --theme-dir=%s --theme-engine-dir=%s/.libs --xsessions-dir=%s",
+                                    getenv ("DEBUG") ? "--debug" : "", script_name, cwd, cwd, cwd);
     g_print ("RUNNER START-DAEMON COMMAND=\"%s\"\n", command_line);
 
     if (!g_shell_parse_argv (command_line, NULL, &lightdm_argv, &error))

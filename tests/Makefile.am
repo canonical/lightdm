@@ -4,11 +4,11 @@ TESTS = test-autologin test-login-gobject test-timed-login-gobject
 .PHONY: $(TESTS)
 
 test-autologin:
-	./test-runner autologin.conf
+	./test-runner autologin
 test-login-gobject:
-	./test-runner login-gobject.conf
+	./test-runner login-gobject
 test-timed-login-gobject:
-	./test-runner timed-login-gobject.conf
+	./test-runner timed-login-gobject
 
 test_runner_CFLAGS = \
 	$(WARN_CFLAGS) \
