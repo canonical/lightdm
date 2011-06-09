@@ -327,12 +327,6 @@ main(int argc, char **argv)
         g_printerr ("Only allowed to use --passwd-file when running with --no-root.\n"); 
         return EXIT_FAILURE;
     }
-    if (passwd_path)
-    {
-        g_debug ("Using password file '%s' for authentication", passwd_path);
-        user_set_use_passwd_file (passwd_path);
-        pam_session_set_use_fake_users (TRUE);
-    }
 
     loop = g_main_loop_new (NULL, FALSE);
 
@@ -378,6 +372,12 @@ main(int argc, char **argv)
 
     if (no_root)
         g_debug ("Running in user mode");
+    if (passwd_path)
+    {
+        g_debug ("Using password file '%s' for authentication", passwd_path);
+        user_set_use_passwd_file (passwd_path);
+        pam_session_set_use_fake_users (TRUE);
+    }
     if (use_xephyr)
         g_debug ("Using Xephyr for X servers");
 
