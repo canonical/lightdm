@@ -184,8 +184,11 @@ run_child_process (ChildProcess *process, char *const argv[])
              close (fd);
          }
     }
-  
+
     execvp (argv[0], argv);
+
+    g_warning ("Error executing child process: %s", g_strerror (errno));
+    _exit (EXIT_FAILURE);
 }
 
 static gboolean
@@ -293,7 +296,6 @@ child_process_start (ChildProcess *process,
             close (g_io_channel_unix_get_fd (process->priv->from_child_channel));
 
         run_child_process (process, argv);
-        _exit (EXIT_FAILURE);
     }
     close (from_server_fd);
     close (to_server_fd);
