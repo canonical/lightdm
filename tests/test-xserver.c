@@ -299,14 +299,13 @@ quit (int status)
     if (socket_path)
         unlink (socket_path);
 
-    notify_status ("XSERVER :%d QUIT", display_number);
-
     exit (status);
 }
 
 static void
 signal_cb (int signum)
 {
+    notify_status ("XSERVER :%d TERMINATE SIGNAL=%d", display_number, signum);
     quit (EXIT_SUCCESS);
 }
 

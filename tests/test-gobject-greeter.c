@@ -53,7 +53,7 @@ quit_cb (LdmGreeter *greeter)
 static void
 signal_cb (int signum)
 {
-    notify_status ("GREETER QUIT SIGNAL=%d", signum);
+    notify_status ("GREETER TERMINATE SIGNAL=%d", signum);
     exit (EXIT_SUCCESS);
 }
 
