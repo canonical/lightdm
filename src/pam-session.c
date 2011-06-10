@@ -285,7 +285,8 @@ pam_session_respond (PAMSession *session, struct pam_response *response)
             g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_AUTH_ERR);
         g_free (response->resp);
         g_free (response);
-        g_object_unref (user);
+        if (user)
+            g_object_unref (user);
     }
     else
     {
