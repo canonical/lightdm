@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <glib.h>
@@ -256,9 +257,9 @@ int
 main (int argc, char **argv)
 {
     GMainLoop *loop;
-    gchar *script_name;
+    gchar *script_name, *config_file;
     int status_socket;
-    gchar *command_line;
+    GString *command_line;
     gchar **lightdm_argv;
     gchar cwd[1024];
     GError *error = NULL;
@@ -274,6 +275,7 @@ main (int argc, char **argv)
         quit (EXIT_FAILURE);
     }
     script_name = argv[1];
+    config_file = g_strdup_printf ("scripts/%s.conf", script_name);
 
     load_script (script_name);
     
@@ -301,11 +303,15 @@ main (int argc, char **argv)
 
     status_timeout = g_timeout_add (2000, status_timeout_cb, NULL);
 
-    command_line = g_strdup_printf ("../src/lightdm %s --no-root --config scripts/%s.conf --passwd-file data/passwd --theme-dir=data/themes --theme-engine-dir=src/.libs --xsessions-dir=data/xsessions",
-                                    getenv ("DEBUG") ? "--debug" : "", script_name);
-    g_debug ("Start daemon with command: %s", command_line);
+    command_line = g_string_new ("../src/lightdm");
+    if (getenv ("DEBUG"))
+        g_string_append (command_line, " --debug");
+    if (fopen (config_file, "r"))
+        g_string_append_printf (command_line, " --config %s", config_file);
+    g_string_append (command_line, " --no-root --passwd-file data/passwd --theme-dir=data/themes --theme-engine-dir=src/.libs --xsessions-dir=data/xsessions");
+    g_debug ("Start daemon with command: %s", command_line->str);
 
-    if (!g_shell_parse_argv (command_line, NULL, &lightdm_argv, &error))
+    if (!g_shell_parse_argv (command_line->str, NULL, &lightdm_argv, &error))
     {
         g_warning ("Error parsing command line: %s", error->message);
         quit (EXIT_FAILURE);
