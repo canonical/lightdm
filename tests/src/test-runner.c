@@ -308,7 +308,7 @@ main (int argc, char **argv)
         g_string_append (command_line, " --debug");
     if (fopen (config_file, "r"))
         g_string_append_printf (command_line, " --config %s", config_file);
-    g_string_append (command_line, " --no-root --passwd-file data/passwd --theme-dir=data/themes --theme-engine-dir=src/.libs --xsessions-dir=data/xsessions");
+    g_string_append (command_line, " --no-root --default-xserver-command=test-xserver --default-xsession=test-session --default-greeter-theme=test-theme --passwd-file data/passwd --theme-dir=data/themes --theme-engine-dir=src/.libs --xsessions-dir=data/xsessions");
     g_print ("Start daemon with command: %s\n", command_line->str);
 
     if (!g_shell_parse_argv (command_line->str, NULL, &lightdm_argv, &error))
