@@ -495,7 +495,7 @@ got_data_cb (Greeter *greeter)
 
     g_debug ("Read %zi bytes from greeter", n_read);
     /*for (i = 0; i < n_read; i++)
-       g_print ("%02X ", greeter->priv->read_buffer[i+greeter->priv->n_read]);
+       g_print ("%02X ", greeter->priv->read_buffer[greeter->priv->n_read+i]);
     g_print ("\n");*/
 
     greeter->priv->n_read += n_read;
