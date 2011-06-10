@@ -378,10 +378,10 @@ child_process_finalize (GObject *object)
 static void
 signal_cb (int signum, siginfo_t *info, void *data)
 {
-    g_debug ("Got signal");
+    g_debug ("Got signal %d from process %d", info->si_signo, info->si_pid);
     if (write (signal_pipe[1], &info->si_signo, sizeof (int)) < 0 ||
         write (signal_pipe[1], &info->si_pid, sizeof (pid_t)) < 0)
-        g_warning ("Failed to write to signal pipe");
+        g_warning ("Failed to write to signal pipe: %s", strerror (errno));
 }
 
 static gboolean
