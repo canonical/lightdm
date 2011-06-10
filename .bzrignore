@@ -55,5 +55,7 @@ src/user-manager-glue.h
 src/ldm-marshal.c
 src/ldm-marshal.h
 src/lightdm
-tests/test-gobject-greeter
-tests/test-xserver
+tests/src/test-gobject-greeter
+tests/src/test-runner
+tests/src/test-session
+tests/src/test-xserver
