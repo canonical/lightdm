@@ -109,8 +109,8 @@ child_process_watch_cb (GPid pid, gint status, gpointer data)
         g_signal_emit (process, signals[TERMINATED], 0, WTERMSIG (status));
     }
 
-    g_hash_table_remove (processes, GINT_TO_POINTER (process->priv->pid));
     process->priv->pid = 0;
+    g_hash_table_remove (processes, GINT_TO_POINTER (process->priv->pid));
 }
 
 static void
@@ -315,7 +315,7 @@ child_process_start (ChildProcess *process,
 
     g_strfreev (argv);
 
-    g_hash_table_insert (processes, GINT_TO_POINTER (process->priv->pid), process);
+    g_hash_table_insert (processes, GINT_TO_POINTER (process->priv->pid), g_object_ref (process));
     g_child_watch_add (process->priv->pid, child_process_watch_cb, process);
 
     return TRUE;
@@ -399,12 +399,10 @@ handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
     }
 
     process = g_hash_table_lookup (processes, GINT_TO_POINTER (pid));
-    if (process == NULL) {
+    if (process == NULL)
         process = child_process_get_parent ();
-    }
-    if (process) {
+    if (process)
         g_signal_emit (process, signals[GOT_SIGNAL], 0, signo);
-    }
 
     return TRUE;
 }
@@ -453,7 +451,7 @@ child_process_class_init (ChildProcessClass *klass)
                       G_TYPE_NONE, 1, G_TYPE_INT);
 
     /* Catch signals and feed them to the main loop via a pipe */
-    processes = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
+    processes = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_object_unref);
     if (pipe (signal_pipe) != 0)
         g_critical ("Failed to create signal pipe");
     g_io_add_watch (g_io_channel_unix_new (signal_pipe[0]), G_IO_IN, handle_signal, NULL);

@@ -15,6 +15,7 @@ Overview of changes in lightdm 0.4.0
     * Add unit tests
     * Make X server configuration a separate section and add additional options
     * Correctly handle signals from external programs (Thanks to Jason Conti)
+    * Fix reference counting with child processes
 
 Overview of changes in lightdm 0.3.7
 
