@@ -38,11 +38,6 @@ quit (int status)
     if (status_socket_name)
         unlink (status_socket_name);
   
-    if (status == EXIT_SUCCESS)
-        g_print ("Test passed\n");
-    else
-        g_print ("Test failed\n");
-
     exit (status);
 }
 
@@ -55,12 +50,13 @@ fail (const gchar *event, const gchar *expected)
         return;
     failed = TRUE;
 
+    g_printerr ("Test failed, got the following events:\n");
     for (link = statuses; link; link = link->next)
-        g_printerr ("%s\n", (gchar *)link->data);
+        g_printerr ("    %s\n", (gchar *)link->data);
     if (event)
-        g_printerr ("%s\n", event);
+        g_printerr ("    %s\n", event);
     if (expected)
-        g_printerr ("^^^ expected \"%s\"\n", expected);
+        g_printerr ("    ^^^ expected \"%s\"\n", expected);
     else
         g_printerr ("^^^ expected nothing\n");
 
