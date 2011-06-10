@@ -5,13 +5,34 @@
 
 #include "status.h"
 
+static gchar *login_username = NULL, *login_password = NULL;
+
 static void
 connected_cb (LdmGreeter *greeter)
-{
+{  
+    gchar *login;
+
     notify_status ("GREETER CONNECTED-TO-DAEMON");
 
-    notify_status ("GREETER LOGIN USERNAME=alice");
-    ldm_greeter_login (greeter, "alice");
+    login = ldm_greeter_get_string_property (greeter, "login");
+    if (login)
+    {
+        gchar **items;
+        items = g_strsplit (login, ":", -1);
+        if (items[0])
+        {
+            login_username = g_strdup (items[0]);
+            if (items[1])
+                login_password = g_strdup (items[1]);
+        }
+        g_free (login);
+    }
+
+    if (login_username)
+    {
+        notify_status ("GREETER LOGIN USERNAME=%s", login_username);
+        ldm_greeter_login (greeter, login_username);
+    }
 }
 
 static void
@@ -31,8 +52,11 @@ show_prompt_cb (LdmGreeter *greeter, const gchar *text)
 {
     notify_status ("GREETER SHOW-PROMPT TEXT=\"%s\"", text);
 
-    notify_status ("GREETER PROVIDE-SECRET TEXT=\"password\"");
-    ldm_greeter_provide_secret (greeter, "password");
+    if (login_password)
+    {
+        notify_status ("GREETER PROVIDE-SECRET TEXT=\"%s\"", login_password);
+        ldm_greeter_provide_secret (greeter, login_password);
+    }
 }
 
 static void
