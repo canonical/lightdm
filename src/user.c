@@ -127,13 +127,8 @@ user_get_by_name (const gchar *username)
             user = user_from_passwd (user_info);
     }
 
-    if (!user)
-    {
-        if (errno == 0)
-            g_warning ("Unable to get information on user %s: User does not exist", username);
-        else
-            g_warning ("Unable to get information on user %s: %s", username, strerror (errno));
-    }
+    if (!user && errno != 0)
+        g_warning ("Unable to get information on user %s: %s", username, strerror (errno));
 
     return user;
 }
@@ -166,13 +161,8 @@ user_get_by_uid (uid_t uid)
             user = user_from_passwd (user_info);
     }
 
-    if (!user)
-    {
-        if (errno == 0)
-            g_warning ("Unable to get information on user %d: User does not exist", uid);
-        else
-            g_warning ("Unable to get information on user %d: %s", uid, strerror (errno));
-    }
+    if (!user && errno != 0)
+        g_warning ("Unable to get information on user %d: %s", uid, strerror (errno));
 
     return user;
 }

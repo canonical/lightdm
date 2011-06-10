@@ -229,7 +229,10 @@ child_process_start (ChildProcess *process,
     {
         process->priv->user = user_get_by_name (username);
         if (!process->priv->user)
+        {
+            g_warning ("Unable to start child process - unable to get information on user %s", username);
             return FALSE;
+        }
     }
 
     /* Create the log file owned by the target user */

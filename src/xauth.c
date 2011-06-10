@@ -10,6 +10,7 @@
  */
 
 #include <string.h>
+#include <errno.h>
 #include <unistd.h>
 #include <sys/stat.h>
 
@@ -121,18 +122,17 @@ xauth_write (XAuthorization *auth, const gchar *username, const gchar *path, GEr
      * but not supported. */
     if (username && getpid () == 0)
     {
-        int result = -1;
         User *user;
 
         user = user_get_by_name (username);
         if (user)
         {
-            result = chown (path, user_get_uid (user), user_get_gid (user));
+            if (chown (path, user_get_uid (user), user_get_gid (user)) < 0)
+                g_warning ("Failed to set authorization owner: %s", strerror (errno));
             g_object_unref (user);
         }
-
-        if (result != 0)
-            g_warning ("Failed to set authorization owner");
+        else
+            g_warning ("Unable to set ownership on Xauth file - unable to get information on user %s", username);
     }
 
     data = g_string_sized_new (1024);

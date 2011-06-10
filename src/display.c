@@ -248,7 +248,10 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
 
     user = user_get_by_name (username);
     if (!user)
+    {      
+
         return NULL;
+    }
 
     if (xserver_get_vt (display->priv->xserver) >= 0)
         display_device = g_strdup_printf ("/dev/tty%d", xserver_get_vt (display->priv->xserver));

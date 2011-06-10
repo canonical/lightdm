@@ -30,7 +30,10 @@ dmrc_load (const gchar *username)
 
     user = user_get_by_name (username);
     if (!user)
+    {
+        g_warning ("Cannot load .dmrc file, unable to get information on user %s", username);      
         return dmrc_file;
+    }
 
     /* Load from the user directory, if this fails (e.g. the user directory
      * is not yet mounted) then load from the cache */
@@ -70,7 +73,10 @@ dmrc_save (GKeyFile *dmrc_file, const gchar *username)
 
     user = user_get_by_name (username);
     if (!user)
+    {
+        g_warning ("Not saving DMRC file - unable to get information on user %s", username);
         return;
+    }
 
     data = g_key_file_to_data (dmrc_file, &length, NULL);
 
