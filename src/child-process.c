@@ -378,10 +378,10 @@ child_process_finalize (GObject *object)
 static void
 signal_cb (int signum, siginfo_t *info, void *data)
 {
-    g_debug ("Got signal %d from process %d", info->si_signo, info->si_pid);
+    /* NOTE: Using g_printerr as can't call g_warning from a signal callback */
     if (write (signal_pipe[1], &info->si_signo, sizeof (int)) < 0 ||
         write (signal_pipe[1], &info->si_pid, sizeof (pid_t)) < 0)
-        g_warning ("Failed to write to signal pipe: %s", strerror (errno));
+        g_printerr ("Failed to write to signal pipe: %s", strerror (errno));
 }
 
 static gboolean
@@ -397,6 +397,8 @@ handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
         g_warning ("Error reading from signal pipe: %s", strerror (errno));
         return TRUE;
     }
+
+    g_debug ("Got signal %d from process %d", signo, pid);
 
     process = g_hash_table_lookup (processes, GINT_TO_POINTER (pid));
     if (process == NULL)
