@@ -319,6 +319,8 @@ main (int argc, char **argv)
     }
     g_clear_error (&error);
 
+    check_status ("RUNNER DAEMON-START");
+
     g_child_watch_add (lightdm_pid, daemon_exit_cb, NULL);
 
     g_main_loop_run (loop);
