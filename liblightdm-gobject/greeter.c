@@ -151,15 +151,16 @@ int_length ()
 static void
 write_message (LdmGreeter *greeter, guint8 *message, gint message_length)
 {
+    GError *error = NULL;
     if (g_io_channel_write_chars (greeter->priv->to_server_channel, (gchar *) message, message_length, NULL, NULL) != G_IO_STATUS_NORMAL)
-        g_warning ("Error writing to server");
+        g_warning ("Error writing to daemon: %s", error->message);
+    g_clear_error (&error);
     g_io_channel_flush (greeter->priv->to_server_channel, NULL);
 }
 
 static void
 write_int (guint8 *buffer, gint buffer_length, guint32 value, gsize *offset)
 {
-    g_debug ("write_int %d %d", value, int_length ());
     if (*offset + 4 >= buffer_length)
         return;
     buffer[*offset] = value >> 24;
@@ -226,7 +227,6 @@ string_length (const gchar *value)
 static void
 write_header (guint8 *buffer, gint buffer_length, guint32 id, guint32 length, gsize *offset)
 {
-    g_debug ("write_header %d %d", id, length);
     write_int (buffer, buffer_length, id, offset);
     write_int (buffer, buffer_length, length, offset);
 }

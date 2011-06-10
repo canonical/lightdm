@@ -113,29 +113,47 @@ int_length ()
     return 4;
 }
 
+#define HEADER_SIZE (sizeof (guint32) * 2)
+#define MAX_MESSAGE_LENGTH 1024
+
 static void
-write_int (Greeter *greeter, guint32 value)
+write_message (Greeter *greeter, guint8 *message, gint message_length)
 {
-    guint8 buffer[4];
-    buffer[0] = value >> 24;
-    buffer[1] = (value >> 16) & 0xFF;
-    buffer[2] = (value >> 8) & 0xFF;
-    buffer[3] = value & 0xFF;
-    g_io_channel_write_chars (child_process_get_to_child_channel (CHILD_PROCESS (greeter)), (gchar *) buffer, int_length (), NULL, NULL);
+    GError *error = NULL;
+    if (g_io_channel_write_chars (child_process_get_to_child_channel (CHILD_PROCESS (greeter)), (gchar *) message, message_length, NULL, &error) != G_IO_STATUS_NORMAL)
+        g_warning ("Error writing to greeter: %s", error->message);
+    g_clear_error (&error);
+    g_io_channel_flush (child_process_get_to_child_channel (CHILD_PROCESS (greeter)), NULL);
 }
 
 static void
-write_string (Greeter *greeter, const gchar *value)
+write_int (guint8 *buffer, gint buffer_length, guint32 value, gsize *offset)
 {
-    write_int (greeter, strlen (value));
-    g_io_channel_write_chars (child_process_get_to_child_channel (CHILD_PROCESS (greeter)), value, -1, NULL, NULL);  
+    if (*offset + 4 >= buffer_length)
+        return;
+    buffer[*offset] = value >> 24;
+    buffer[*offset+1] = (value >> 16) & 0xFF;
+    buffer[*offset+2] = (value >> 8) & 0xFF;
+    buffer[*offset+3] = value & 0xFF;
+    *offset += 4;
 }
 
 static void
-write_header (Greeter *greeter, guint32 id, guint32 length)
+write_string (guint8 *buffer, gint buffer_length, const gchar *value, gsize *offset)
 {
-    write_int (greeter, id);
-    write_int (greeter, length);
+    gint length = strlen (value);
+    write_int (buffer, buffer_length, length, offset);
+    if (*offset + length >= buffer_length)
+        return;
+    memcpy (buffer + *offset, value, length);
+    *offset += length;
+}
+
+static void
+write_header (guint8 *buffer, gint buffer_length, guint32 id, guint32 length, gsize *offset)
+{
+    write_int (buffer, buffer_length, id, offset);
+    write_int (buffer, buffer_length, length, offset);
 }
 
 static guint32
@@ -145,15 +163,11 @@ string_length (const gchar *value)
 }
 
 static void
-flush (Greeter *greeter)
-{
-    g_io_channel_flush (child_process_get_to_child_channel (CHILD_PROCESS (greeter)), NULL);
-}
-
-static void
 handle_connect (Greeter *greeter)
 {
     gchar *theme_dir, *theme;
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
 
     if (!greeter->priv->connected)
     {
@@ -165,13 +179,13 @@ handle_connect (Greeter *greeter)
     theme = g_build_filename (theme_dir, greeter->priv->theme, "index.theme", NULL);
     g_free (theme_dir);
 
-    write_header (greeter, GREETER_MESSAGE_CONNECTED, string_length (theme) + string_length (greeter->priv->default_session) + string_length (greeter->priv->default_user ? greeter->priv->default_user : "") + int_length () + int_length ());
-    write_string (greeter, theme);
-    write_string (greeter, greeter->priv->default_session);
-    write_string (greeter, greeter->priv->default_user ? greeter->priv->default_user : "");
-    write_int (greeter, greeter->priv->autologin_timeout);
-    write_int (greeter, FALSE);
-    flush (greeter);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECTED, string_length (theme) + string_length (greeter->priv->default_session) + string_length (greeter->priv->default_user ? greeter->priv->default_user : "") + int_length () + int_length (), &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, theme, &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, greeter->priv->default_session, &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, greeter->priv->default_user ? greeter->priv->default_user : "", &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->autologin_timeout, &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, FALSE, &offset);
+    write_message (greeter, message, offset);
 
     g_free (theme);
 }
@@ -181,25 +195,30 @@ pam_messages_cb (PAMSession *session, int num_msg, const struct pam_message **ms
 {
     int i;
     guint32 size;
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
 
     /* Respond to d-bus query with messages */
     g_debug ("Prompt greeter with %d message(s)", num_msg);
     size = int_length ();
     for (i = 0; i < num_msg; i++)
         size += int_length () + string_length (msg[i]->msg);
-    write_header (greeter, GREETER_MESSAGE_PROMPT_AUTHENTICATION, size);
-    write_int (greeter, num_msg);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_PROMPT_AUTHENTICATION, size, &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, num_msg, &offset);
     for (i = 0; i < num_msg; i++)
     {
-        write_int (greeter, msg[i]->msg_style);
-        write_string (greeter, msg[i]->msg);
+        write_int (message, MAX_MESSAGE_LENGTH, msg[i]->msg_style, &offset);
+        write_string (message, MAX_MESSAGE_LENGTH, msg[i]->msg, &offset);
     }
-    flush (greeter);  
+    write_message (greeter, message, offset);  
 }
 
 static void
 authenticate_result_cb (PAMSession *session, int result, Greeter *greeter)
 {
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+
     g_debug ("Authenticate result for user %s: %s", pam_session_get_username (greeter->priv->pam_session), pam_session_strerror (greeter->priv->pam_session, result));
 
     if (result == PAM_SUCCESS)
@@ -209,9 +228,9 @@ authenticate_result_cb (PAMSession *session, int result, Greeter *greeter)
     }
 
     /* Respond to D-Bus request */
-    write_header (greeter, GREETER_MESSAGE_END_AUTHENTICATION, int_length ());
-    write_int (greeter, result);   
-    flush (greeter);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_END_AUTHENTICATION, int_length (), &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, result, &offset);   
+    write_message (greeter, message, offset);
 }
 
 static void
@@ -350,8 +369,11 @@ quit_greeter_cb (gpointer data)
 void
 greeter_quit (Greeter *greeter)
 {
-    write_header (greeter, GREETER_MESSAGE_QUIT, 0);
-    flush (greeter);
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_QUIT, 0, &offset);
+    write_message (greeter, message, offset);
 
     if (greeter->priv->quit_timeout)
         g_source_remove (greeter->priv->quit_timeout);
@@ -377,6 +399,8 @@ handle_get_user_defaults (Greeter *greeter, gchar *username)
 {
     GKeyFile *dmrc_file;
     gchar *language, *layout, *session;
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
 
     /* Load the users login settings (~/.dmrc) */
     dmrc_file = dmrc_load (username);
@@ -391,11 +415,11 @@ handle_get_user_defaults (Greeter *greeter, gchar *username)
     if (!session)
         session = g_strdup ("");
 
-    write_header (greeter, GREETER_MESSAGE_USER_DEFAULTS, string_length (language) + string_length (layout) + string_length (session));
-    write_string (greeter, language);
-    write_string (greeter, layout);
-    write_string (greeter, session);
-    flush (greeter);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_USER_DEFAULTS, string_length (language) + string_length (layout) + string_length (session), &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, language, &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, layout, &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, session, &offset);
+    write_message (greeter, message, offset);
   
     g_free (language);
     g_free (layout);
@@ -403,8 +427,6 @@ handle_get_user_defaults (Greeter *greeter, gchar *username)
 
     g_key_file_free (dmrc_file);
 }
-
-#define HEADER_SIZE (sizeof (guint32) * 2)
 
 static guint32
 read_int (Greeter *greeter, gsize *offset)
