@@ -83,18 +83,6 @@ daemon_exit_cb (GPid pid, gint status, gpointer data)
     else
         status_text = g_strdup_printf ("RUNNER DAEMON-TERMINATE SIGNAL=%d", WTERMSIG (status));
     check_status (status_text);
-
-    /* Check if expected more */
-    if (get_script_line () != NULL)
-    {
-        fail ("(daemon quit)", get_script_line ());
-        quit (EXIT_FAILURE);
-    }
-
-    if (expect_exit)
-        quit (EXIT_SUCCESS);
-    else
-        quit (EXIT_FAILURE);
 }
 
 static int
@@ -148,8 +136,13 @@ run_commands ()
     /* Stop at the end of the script */
     if (get_script_line () == NULL)
     {
-        expect_exit = TRUE;
-        stop_daemon ();
+        if (lightdm_pid)
+        {
+            expect_exit = TRUE;
+            stop_daemon ();
+        }
+        else
+            quit (EXIT_SUCCESS);
     }
 }
 
@@ -214,8 +207,16 @@ status_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 static void
 signal_cb (int signum)
 {
-    g_print ("Caught signal %d, killing daemon\n", signum);
-    stop_daemon ();
+    if (lightdm_pid != 0)
+    {
+        g_print ("Caught signal %d, killing daemon\n", signum);
+        stop_daemon ();
+    }
+    else
+    {
+        g_print ("Caught signal %d, quitting\n", signum);
+        quit (EXIT_FAILURE);
+    }
 }
 
 static void
