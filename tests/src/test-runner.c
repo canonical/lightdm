@@ -37,6 +37,12 @@ quit (int status)
     stop_daemon ();
     if (status_socket_name)
         unlink (status_socket_name);
+  
+    if (status == EXIT_SUCCESS)
+        g_print ("Test passed\n");
+    else
+        g_print ("Test failed\n");
+
     exit (status);
 }
 
@@ -199,10 +205,7 @@ status_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     if (n_read < 0)
         g_warning ("Error reading from socket: %s", strerror (errno));
     else if (n_read == 0)
-    {
-        g_debug ("EOF");
         return FALSE;
-    }
     else
     {
         buffer[n_read] = '\0';
@@ -215,7 +218,7 @@ status_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 static void
 signal_cb (int signum)
 {
-    g_debug ("Caught signal %d, killing daemon", signum);
+    g_print ("Caught signal %d, killing daemon\n", signum);
     stop_daemon ();
 }
 
@@ -279,7 +282,8 @@ main (int argc, char **argv)
 
     load_script (script_name);
     
-    g_debug ("Using script %s", script_name);
+    g_print ("----------------------------------------\n");
+    g_print ("Running script %s\n", script_name);
 
     if (!getcwd (cwd, 1024))
     {
@@ -309,7 +313,7 @@ main (int argc, char **argv)
     if (fopen (config_file, "r"))
         g_string_append_printf (command_line, " --config %s", config_file);
     g_string_append (command_line, " --no-root --passwd-file data/passwd --theme-dir=data/themes --theme-engine-dir=src/.libs --xsessions-dir=data/xsessions");
-    g_debug ("Start daemon with command: %s", command_line->str);
+    g_print ("Start daemon with command: %s\n", command_line->str);
 
     if (!g_shell_parse_argv (command_line->str, NULL, &lightdm_argv, &error))
     {
