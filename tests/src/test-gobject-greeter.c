@@ -5,33 +5,18 @@
 
 #include "status.h"
 
-static gchar *login_username = NULL, *login_password = NULL;
-
 static void
 connected_cb (LdmGreeter *greeter)
 {  
-    gchar *login;
+    gchar *username;
 
     notify_status ("GREETER CONNECTED-TO-DAEMON");
 
-    login = ldm_greeter_get_string_property (greeter, "login");
-    if (login)
+    username = ldm_greeter_get_string_property (greeter, "username");
+    if (username)
     {
-        gchar **items;
-        items = g_strsplit (login, ":", -1);
-        if (items[0])
-        {
-            login_username = g_strdup (items[0]);
-            if (items[1])
-                login_password = g_strdup (items[1]);
-        }
-        g_free (login);
-    }
-
-    if (login_username)
-    {
-        notify_status ("GREETER LOGIN USERNAME=%s", login_username);
-        ldm_greeter_login (greeter, login_username);
+        notify_status ("GREETER LOGIN USERNAME=%s", username);
+        ldm_greeter_login (greeter, username);
     }
 }
 
@@ -50,12 +35,15 @@ show_error_cb (LdmGreeter *greeter, const gchar *text)
 static void
 show_prompt_cb (LdmGreeter *greeter, const gchar *text)
 {
+    gchar *password;
+
     notify_status ("GREETER SHOW-PROMPT TEXT=\"%s\"", text);
 
-    if (login_password)
+    password = ldm_greeter_get_string_property (greeter, "password");
+    if (password)
     {
-        notify_status ("GREETER PROVIDE-SECRET TEXT=\"%s\"", login_password);
-        ldm_greeter_provide_secret (greeter, login_password);
+        notify_status ("GREETER PROVIDE-SECRET TEXT=\"%s\"", password);
+        ldm_greeter_provide_secret (greeter, password);
     }
 }
 

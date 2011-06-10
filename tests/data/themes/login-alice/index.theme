@@ -1,3 +1,4 @@
 [theme]
 engine=test-gobject-greeter
-login=alice:password
+username=alice
+password=password
