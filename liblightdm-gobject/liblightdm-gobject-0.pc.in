@@ -3,7 +3,7 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-themedir=@THEME_DIR@
+themedir=@GREETER_THEME_DIR@
 greeterdir=@libexecdir@
 
 Name: liblightdm-gobject

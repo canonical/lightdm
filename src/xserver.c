@@ -316,6 +316,7 @@ xserver_start (XServer *server)
     GString *command;
 
     //g_return_val_if_fail (server->priv->pid == 0, FALSE);
+    g_return_val_if_fail (server->priv->command != NULL, FALSE);
  
     /* Check if we can connect to the remote server */
     if (server->priv->type == XSERVER_TYPE_REMOTE)
@@ -407,7 +408,6 @@ static void
 xserver_init (XServer *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_TYPE, XServerPrivate);
-    server->priv->command = g_strdup (XSERVER_BINARY);
     server->priv->authentication_name = g_strdup ("");
     server->priv->vt = -1;
 }

@@ -54,10 +54,10 @@ lightdm_CFLAGS = \
 	$(WARN_CFLAGS) \
 	-DCONFIG_FILE=\"$(CONFIG_FILE)\" \
 	-DLOG_DIR=\"$(LOG_DIR)\" \
-	-DTHEME_ENGINE_DIR=\"$(libexecdir)\" \
+	-DGREETER_THEME_ENGINE_DIR=\"$(libexecdir)\" \
 	-DXAUTH_DIR=\"$(XAUTH_DIR)\" \
 	-DCACHE_DIR=\"$(CACHE_DIR)\" \
-	-DTHEME_DIR=\"$(THEME_DIR)\" \
+	-DGREETER_THEME_DIR=\"$(GREETER_THEME_DIR)\" \
 	-DLIGHTDM_BINARY=\"lightdm\"
 
 lightdm_LDADD = \

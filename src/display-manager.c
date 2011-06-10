@@ -303,7 +303,7 @@ make_xserver (DisplayManager *manager, gchar *config_section)
     gint display_number, vt;
     XServer *xserver;
     XAuthorization *authorization = NULL;
-    gchar *xdmcp_manager, *filename, *path, *xserver_section = NULL;
+    gchar *xdmcp_manager, *filename, *path, *command, *xserver_section = NULL;
 
     if (config_section && config_has_key (config_get_instance (), config_section, "display-number"))
         display_number = config_get_integer (config_get_instance (), config_section, "display-number");
@@ -337,6 +337,10 @@ make_xserver (DisplayManager *manager, gchar *config_section)
         authorization = xauth_new_cookie ();
     }
     g_free (xdmcp_manager);
+
+    command = config_get_string (config_get_instance (), "LightDM", "default-xserver-command");
+    xserver_set_command (xserver, command);
+    g_free (command);
 
     path = get_authorization_path (manager);
     xserver_set_authorization (xserver, authorization, path);

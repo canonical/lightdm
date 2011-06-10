@@ -234,10 +234,13 @@ main(int argc, char **argv)
     gboolean test_mode = FALSE;
     gboolean no_root = FALSE;
     gboolean use_xephyr = FALSE;
+    gchar *default_xserver_command = g_strdup (XSERVER_BINARY);
     gchar *passwd_path = NULL;
     gchar *pid_path = "/var/run/lightdm.pid";
-    gchar *theme_dir = g_strdup (THEME_DIR), *theme_engine_dir = g_strdup (THEME_ENGINE_DIR);
+    gchar *theme_dir = g_strdup (GREETER_THEME_DIR), *theme_engine_dir = g_strdup (GREETER_THEME_ENGINE_DIR);
+    gchar *default_greeter_theme = g_strdup (DEFAULT_GREETER_THEME);
     gchar *xsessions_dir = g_strdup (XSESSIONS_DIR);
+    gchar *default_xsession = g_strdup (DEFAULT_XSESSION);
     gboolean show_version = FALSE;
     GOptionEntry options[] = 
     {
@@ -262,15 +265,24 @@ main(int argc, char **argv)
         { "pid-file", 0, 0, G_OPTION_ARG_STRING, &pid_path,
           /* Help string for command line --pid-file flag */
           N_("File to write PID into"), "FILE" },
+        { "default-xserver-command", 0, 0, G_OPTION_ARG_STRING, &default_xserver_command,
+          /* Help string for command line --default-xserver-command flag */
+          N_("Default command to run X servers"), "COMMAND" },
         { "theme-dir", 0, 0, G_OPTION_ARG_STRING, &theme_dir,
           /* Help string for command line --theme-dir flag */
           N_("Directory to load themes from"), "DIRECTORY" },
         { "theme-engine-dir", 0, 0, G_OPTION_ARG_STRING, &theme_engine_dir,
           /* Help string for command line --theme-engine-dir flag */
           N_("Directory to load theme engines from"), "DIRECTORY" },
+        { "default-greeter-theme", 0, 0, G_OPTION_ARG_STRING, &default_greeter_theme,
+          /* Help string for command line --default-greeter-theme flag */
+          N_("Default greeter theme"), "THEME" },
         { "xsessions-dir", 0, 0, G_OPTION_ARG_STRING, &xsessions_dir,
           /* Help string for command line --xsessions-dir flag */
           N_("Directory to load X sessions from"), "DIRECTORY" },
+        { "default-xsession", 0, 0, G_OPTION_ARG_STRING, &default_xsession,
+          /* Help string for command line --default-xsession flag */
+          N_("Default X session"), "XSESSION" },
         { "version", 'v', 0, G_OPTION_ARG_NONE, &show_version,
           /* Help string for command line --version flag */
           N_("Show release version"), NULL },
@@ -368,11 +380,14 @@ main(int argc, char **argv)
 
     /* Set default values */
     config_set_string (config_get_instance (), "LightDM", "log-directory", LOG_DIR);
+    config_set_string (config_get_instance (), "LightDM", "default-xserver-command", default_xserver_command);
     config_set_string (config_get_instance (), "LightDM", "theme-directory", theme_dir);
     config_set_string (config_get_instance (), "LightDM", "theme-engine-directory", theme_engine_dir);
+    config_set_string (config_get_instance (), "LightDM", "default-greeter-theme", default_greeter_theme);
     config_set_string (config_get_instance (), "LightDM", "authorization-directory", XAUTH_DIR);
     config_set_string (config_get_instance (), "LightDM", "cache-directory", CACHE_DIR);
     config_set_string (config_get_instance (), "LightDM", "xsessions-directory", xsessions_dir);
+    config_set_string (config_get_instance (), "LightDM", "default-xsession", default_xsession);
 
     if (no_root)
     {

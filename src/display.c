@@ -735,8 +735,8 @@ display_init (Display *display)
     display->priv = G_TYPE_INSTANCE_GET_PRIVATE (display, DISPLAY_TYPE, DisplayPrivate);
     if (strcmp (GREETER_USER, "") != 0)
         display->priv->greeter_user = g_strdup (GREETER_USER);
-    display->priv->greeter_theme = g_strdup (GREETER_THEME);
-    display->priv->default_session = g_strdup (DEFAULT_SESSION);
+    display->priv->greeter_theme = config_get_string (config_get_instance (), "LightDM", "default-greeter-theme");
+    display->priv->default_session = config_get_string (config_get_instance (), "LightDM", "default-xsession");
 }
 
 static void

@@ -190,16 +190,16 @@ AC_ARG_WITH(xsession-dir,
 AC_SUBST(XSESSIONS_DIR)
 AC_DEFINE_UNQUOTED(XSESSIONS_DIR, "$XSESSIONS_DIR", X session directory)
 
-DEFAULT_SESSION=gnome
-AC_ARG_WITH(default-session,
-            AS_HELP_STRING(--with-default-session=<name>,
-                           Default session to launch),
+DEFAULT_XSESSION=gnome
+AC_ARG_WITH(default-xsession,
+            AS_HELP_STRING(--with-default-xsession=<name>,
+                           Default X session to launch),
     if test x$withval != x; then
-        DEFAULT_SESSION="$withval"
+        DEFAULT_XSESSION="$withval"
     fi
 )
-AC_SUBST(DEFAULT_SESSION)
-AC_DEFINE_UNQUOTED(DEFAULT_SESSION, "$DEFAULT_SESSION", Default session)
+AC_SUBST(DEFAULT_XSESSION)
+AC_DEFINE_UNQUOTED(DEFAULT_XSESSION, "$DEFAULT_XSESSION", Default X session)
 
 GREETER_USER=
 AC_ARG_WITH(greeter-user,
@@ -223,26 +223,26 @@ AC_ARG_WITH(default-pam-service,
 AC_SUBST(DEFAULT_PAM_SERVICE)
 AC_DEFINE_UNQUOTED(DEFAULT_PAM_SERVICE, "$DEFAULT_PAM_SERVICE", Default PAM service to use)
 
-THEME_DIR=${datarootdir}/lightdm/themes
-AC_ARG_WITH(theme-dir,
-            AS_HELP_STRING(--with-theme-dir=<dir>,
+GREETER_THEME_DIR=${datarootdir}/lightdm/themes
+AC_ARG_WITH(greeter-theme-dir,
+            AS_HELP_STRING(--with-greeter-theme-dir=<dir>,
                            Directory containing greeter themes),
     if test x$withval != x; then
-        THEME_DIR="$withval"
+        GREETER_THEME_DIR="$withval"
     fi
 )
-AC_SUBST(THEME_DIR)
+AC_SUBST(GREETER_THEME_DIR)
 
-GREETER_THEME=example-gtk-gnome
+DEFAULT_GREETER_THEME=example-gtk-gnome
 AC_ARG_WITH(theme,
             AS_HELP_STRING(--with-theme=<theme>,
                            Default theme),
     if test x$withval != x; then
-        GREETER_THEME="$withval"
+        DEFAULT_GREETER_THEME="$withval"
     fi
 )
-AC_SUBST(GREETER_THEME)
-AC_DEFINE_UNQUOTED(GREETER_THEME, "$GREETER_THEME", Default theme)
+AC_SUBST(DEFAULT_GREETER_THEME)
+AC_DEFINE_UNQUOTED(DEFAULT_GREETER_THEME, "$DEFAULT_GREETER_THEME", Default greeter theme)
 
 dnl ###########################################################################
 dnl Documentation
@@ -304,12 +304,12 @@ echo "
         D-Bus system directory:   $DBUS_SYS_DIR
         X server binary:          $XSERVER_BINARY
         X authorization dir:      $XAUTH_DIR
-        XSessions dir:            $XSESSIONS_DIR
-        Default session:          $DEFAULT_SESSION
+        X session dir:            $XSESSIONS_DIR
+        Default X session:        $DEFAULT_XSESSION
         Greeter user:             $GREETER_USER
         PAM service:              $DEFAULT_PAM_SERVICE
-        Theme directory:          $THEME_DIR
-        Theme:                    $GREETER_THEME
+        Greeter theme directory:  $GREETER_THEME_DIR
+        Default greeter theme:    $DEFAULT_GREETER_THEME
 
         Greeters:
         liblightdm-gobject:       $compile_liblightdm_gobject
