@@ -118,7 +118,7 @@ dnl ###########################################################################
 dnl Configurable values
 dnl ###########################################################################
 
-CONFIG_FILE=${sysconfdir}/lightdm.conf
+CONFIG_FILE=${sysconfdir}/lightdm/lightdm.conf
 AC_ARG_WITH(config-file,
             AS_HELP_STRING(--with-config-file=<file>,
                            Configuration file to load),

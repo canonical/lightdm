@@ -1,6 +1,6 @@
 SUBDIRS = init
 
-confdir = $(sysconfdir)
+confdir = $(sysconfdir)/lightdm
 dist_conf_DATA = lightdm.conf
 
 dbusconfdir = $(DBUS_SYS_DIR)

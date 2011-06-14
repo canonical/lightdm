@@ -21,6 +21,7 @@ Overview of changes in lightdm 0.4.0
     * Fix crashes when session quits after X server
     * Use org.freedesktop.DisplayManager instead of
       org.lightdm.LightDisplayManager for D-Bus
+    * Move config file from /etc/lightdm.conf to /etc/lightdm/lightdm.conf
 
 Overview of changes in lightdm 0.3.7
 
