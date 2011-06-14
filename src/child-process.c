@@ -302,6 +302,7 @@ child_process_start (ChildProcess *process,
     }
     close (from_server_fd);
     close (to_server_fd);
+    g_strfreev (argv);
 
     string = g_string_new ("");
     g_hash_table_iter_init (&iter, process->priv->env);
@@ -312,8 +313,6 @@ child_process_start (ChildProcess *process,
     g_string_free (string, TRUE);
 
     process->priv->pid = pid;
-
-    g_strfreev (argv);
 
     g_hash_table_insert (processes, GINT_TO_POINTER (process->priv->pid), g_object_ref (process));
     g_child_watch_add (process->priv->pid, child_process_watch_cb, process);
