@@ -193,7 +193,7 @@ end_session_cb (Display *display, Session *session, DisplayManager *manager)
 
     /* Change authorization for next session */
     xserver = display_get_xserver (display);
-    if (xserver_get_server_type (xserver) == XSERVER_TYPE_LOCAL)
+    if (xserver && xserver_get_server_type (xserver) == XSERVER_TYPE_LOCAL)
     {
         XAuthorization *authorization;
 
