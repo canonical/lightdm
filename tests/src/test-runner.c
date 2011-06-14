@@ -60,7 +60,11 @@ fail (const gchar *event, const gchar *expected)
     else
         g_printerr ("^^^ expected nothing\n");
 
-    stop_daemon ();
+    /* Either wait for the daemon to quit, or stop now if it already is */
+    if (lightdm_pid)
+        stop_daemon ();
+    else
+        quit (EXIT_FAILURE);
 }
 
 static gchar *
@@ -75,6 +79,10 @@ static void
 daemon_exit_cb (GPid pid, gint status, gpointer data)
 {
     gchar *status_text;
+
+    /* Quit when the daemon does */
+    if (failed)
+        exit (EXIT_FAILURE);
 
     lightdm_pid = 0;
   
