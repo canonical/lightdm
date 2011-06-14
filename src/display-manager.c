@@ -669,6 +669,10 @@ display_manager_start (DisplayManager *manager)
         if (value)
             display_set_pam_service (display, value);
         g_free (value);
+        value = config_get_string (config_get_instance (), display_name, "pam-autologin-service");
+        if (value)
+            display_set_pam_autologin_service (display, value);
+        g_free (value);
 
         /* Automatically log in or start a greeter session */
         default_user = config_get_string (config_get_instance (), display_name, "default-user");

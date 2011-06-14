@@ -223,6 +223,7 @@ authenticate_result_cb (PAMSession *session, int result, Greeter *greeter)
 
     if (result == PAM_SUCCESS)
     {
+        g_debug ("User %s authorized", pam_session_get_username (session));
         //run_script ("PostLogin");
         pam_session_authorize (session);
     }

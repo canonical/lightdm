@@ -67,6 +67,9 @@ struct DisplayPrivate
     /* PAM service to authenticate against */
     gchar *pam_service;
 
+    /* PAM service to authenticate against for automatic logins */
+    gchar *pam_autologin_service;
+
     /* Greeter session process */
     Greeter *greeter_session;
     PAMSession *greeter_pam_session;
@@ -101,6 +104,7 @@ display_new (gint index)
 
     self->priv->index = index;
     self->priv->pam_service = g_strdup (DEFAULT_PAM_SERVICE);
+    self->priv->pam_autologin_service = g_strdup (DEFAULT_PAM_AUTOLOGIN_SERVICE);
 
     return self;
 }
@@ -211,6 +215,19 @@ const gchar *
 display_get_pam_service (Display *display)
 {
     return display->priv->pam_service;
+}
+
+void
+display_set_pam_autologin_service (Display *display, const gchar *service)
+{
+    g_free (display->priv->pam_autologin_service);
+    display->priv->pam_autologin_service = g_strdup (service);
+}
+
+const gchar *
+display_get_pam_autologin_service (Display *display)
+{
+    return display->priv->pam_autologin_service;
 }
 
 void
@@ -411,7 +428,7 @@ set_env_from_pam_session (Session *session, PAMSession *pam_session)
         int i;
 
         env_string = g_strjoinv (" ", pam_env);
-        g_debug ("PAM returns environment %s", env_string);
+        g_debug ("PAM returns environment '%s'", env_string);
         g_free (env_string);
 
         for (i = 0; pam_env[i]; i++)
@@ -452,6 +469,9 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
     g_debug ("Launching '%s' session for user %s", session, pam_session_get_username (display->priv->user_pam_session));
     display->priv->login_count++;
+
+    /* Open ConsoleKit session */
+    display->priv->user_ck_cookie = start_ck_session (display, "", pam_session_get_username (display->priv->user_pam_session));
 
     /* Load the users login settings (~/.dmrc) */
     dmrc_file = dmrc_load (pam_session_get_username (display->priv->user_pam_session));
@@ -537,17 +557,41 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 }
 
 static void
-start_default_session (Display *display, const gchar *session, const gchar *language)
+default_session_pam_message_cb (PAMSession *session, int num_msg, const struct pam_message **msg, Display *display)
 {
-    /* Don't need to check authentication, just authorize */
-    // FIXME: Not correct, should use lightdm-autologin pam session
-    if (display->priv->user_pam_session)
-        pam_session_end (display->priv->user_pam_session);    
-    display->priv->user_pam_session = pam_session_new (display->priv->pam_service, display->priv->default_user);
-    pam_session_authorize (display->priv->user_pam_session);
+    g_debug ("Aborting automatic login, PAM requests input");
+    pam_session_cancel (session);
+}
 
-    display->priv->user_ck_cookie = start_ck_session (display, "", pam_session_get_username (display->priv->user_pam_session));
-    start_user_session (display, session, language);  
+static void
+default_session_authentication_result_cb (PAMSession *session, int result, Display *display)
+{
+    if (result == PAM_SUCCESS)
+    {
+        g_debug ("User %s authorized", pam_session_get_username (session));
+        pam_session_authorize (session);
+        start_user_session (display, display->priv->default_session, NULL);
+    }
+    else
+    {
+        g_debug ("Failed to authorize default user, starting greeter");
+        start_greeter (display);
+    }
+}
+  
+static gboolean
+start_autologin_session (Display *display, GError **error)
+{
+    /* Run using autologin PAM session, abort if get asked any questions */
+    if (display->priv->user_pam_session)
+        pam_session_end (display->priv->user_pam_session);
+    display->priv->user_pam_session = pam_session_new (display->priv->pam_autologin_service, display->priv->default_user);
+    g_signal_connect (display->priv->user_pam_session, "got-messages", G_CALLBACK (default_session_pam_message_cb), display);
+    g_signal_connect (display->priv->user_pam_session, "authentication-result", G_CALLBACK (default_session_authentication_result_cb), display);
+    if (!pam_session_start (display->priv->user_pam_session, error))
+        return FALSE;
+
+    return TRUE;
 }
 
 static gboolean
@@ -574,7 +618,6 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session, const gchar *l
         language = NULL;
   
     display->priv->user_pam_session = greeter_get_pam_session (greeter);
-    display->priv->user_ck_cookie = start_ck_session (display, "", pam_session_get_username (display->priv->user_pam_session));
 
     if (!display->priv->user_pam_session ||
         !pam_session_get_in_session (display->priv->user_pam_session))
@@ -717,9 +760,20 @@ xserver_ready_cb (XServer *xserver, Display *display)
 
     /* If have user then automatically login the first time */
     if (display->priv->default_user && display->priv->timeout == 0 && display->priv->login_count == 0)
-        start_default_session (display, display->priv->default_session, NULL);
-    else
-        start_greeter (display);
+    {
+        GError *error = NULL;
+        gboolean result;
+
+        g_debug ("Automatically logging in user %s", display->priv->default_user);
+        result = start_autologin_session (display, &error);
+        if (!result)
+            g_warning ("Failed to autologin user %s, starting greeter instead: %s", display->priv->default_user, error->message);
+        g_clear_error (&error);
+        if (result)
+            return;
+    }
+
+    start_greeter (display);
 }
 
 gboolean
@@ -749,22 +803,27 @@ display_finalize (GObject *object)
 
     self = DISPLAY (object);
 
-    if (self->priv->greeter_session)
-        g_object_unref (self->priv->greeter_session);
-    if (self->priv->user_session_timer)
-        g_source_remove (self->priv->user_session_timer);
-    if (self->priv->user_session)
-        g_object_unref (self->priv->user_session);
-    if (self->priv->user_pam_session)
-        g_object_unref (self->priv->user_pam_session);
-    end_ck_session (self->priv->greeter_ck_cookie);
-    g_free (self->priv->greeter_ck_cookie);
-    end_ck_session (self->priv->user_ck_cookie);
-    g_free (self->priv->user_ck_cookie);
     if (self->priv->xserver)
         g_object_unref (self->priv->xserver);
     g_free (self->priv->greeter_user);
     g_free (self->priv->greeter_theme);
+    g_free (self->priv->session_wrapper);
+    g_free (self->priv->pam_service);
+    g_free (self->priv->pam_autologin_service);
+    if (self->priv->greeter_session)
+        g_object_unref (self->priv->greeter_session);
+    if (self->priv->greeter_pam_session)
+        g_object_unref (self->priv->greeter_pam_session);
+    end_ck_session (self->priv->greeter_ck_cookie);
+    g_free (self->priv->greeter_ck_cookie);
+    if (self->priv->user_session)
+        g_object_unref (self->priv->user_session);
+    if (self->priv->user_session_timer)
+        g_source_remove (self->priv->user_session_timer);
+    if (self->priv->user_pam_session)
+        g_object_unref (self->priv->user_pam_session);
+    end_ck_session (self->priv->user_ck_cookie);
+    g_free (self->priv->user_ck_cookie);
     g_free (self->priv->default_user);
     g_free (self->priv->default_session);
 

@@ -223,6 +223,17 @@ AC_ARG_WITH(default-pam-service,
 AC_SUBST(DEFAULT_PAM_SERVICE)
 AC_DEFINE_UNQUOTED(DEFAULT_PAM_SERVICE, "$DEFAULT_PAM_SERVICE", Default PAM service to use)
 
+DEFAULT_PAM_AUTOLOGIN_SERVICE=lightdm-autologin
+AC_ARG_WITH(default-pam-autologin-service,
+            AS_HELP_STRING(--with-default-pam-autologin-service=<name>,
+                           Default PAM service to use for automatic logins),
+    if test x$withval != x; then
+        DEFAULT_PAM_AUTOLOGIN_SERVICE="$withval"
+    fi
+)
+AC_SUBST(DEFAULT_PAM_AUTOLOGIN_SERVICE)
+AC_DEFINE_UNQUOTED(DEFAULT_PAM_AUTOLOGIN_SERVICE, "$DEFAULT_PAM_AUTOLOGIN_SERVICE", Default PAM service to use for automatic logins)
+
 GREETER_THEME_DIR=${datarootdir}/lightdm/themes
 AC_ARG_WITH(greeter-theme-dir,
             AS_HELP_STRING(--with-greeter-theme-dir=<dir>,
@@ -308,6 +319,7 @@ echo "
         Default X session:        $DEFAULT_XSESSION
         Greeter user:             $GREETER_USER
         PAM service:              $DEFAULT_PAM_SERVICE
+        PAM service (autologins): $DEFAULT_PAM_AUTOLOGIN_SERVICE
         Greeter theme directory:  $GREETER_THEME_DIR
         Default greeter theme:    $DEFAULT_GREETER_THEME
 
