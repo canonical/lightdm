@@ -401,7 +401,8 @@ end_user_session (Display *display, gboolean clean_exit)
     if (!clean_exit)
         g_debug ("Session exited unexpectedly");
 
-    xserver_disconnect_clients (display->priv->xserver);
+    if (display->priv->xserver)
+        xserver_disconnect_clients (display->priv->xserver);
 }
 
 static void
