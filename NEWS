@@ -18,6 +18,7 @@ Overview of changes in lightdm 0.4.0
     * Make X server configuration a separate section and add additional options
     * Correctly handle signals from external programs (Thanks to Jason Conti)
     * Automatic login users now use PAM session lightdm-autologin
+    * Fix crashes when session quits after X server
 
 Overview of changes in lightdm 0.3.7
 
