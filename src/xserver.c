@@ -391,7 +391,7 @@ xserver_start (XServer *server)
     if (!result)
         g_warning ("Unable to create display: %s", error->message);
     else
-        g_debug ("Waiting for signal from X server :%d", server->priv->display_number);
+        g_debug ("Waiting for ready signal from X server :%d", server->priv->display_number);
     g_clear_error (&error);
 
     return result;
