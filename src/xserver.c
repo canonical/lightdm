@@ -103,12 +103,15 @@ xserver_new (XServerType type, const gchar *hostname, gint display_number)
 XServerType
 xserver_get_server_type (XServer *server)
 {
+    g_return_val_if_fail (server != NULL, 0);
     return server->priv->type;
 }
 
 void
 xserver_set_command (XServer *server, const gchar *command)
 {
+    g_return_if_fail (server != NULL);
+
     g_free (server->priv->command);
     server->priv->command = g_strdup (command);
 }
@@ -116,6 +119,8 @@ xserver_set_command (XServer *server, const gchar *command)
 void
 xserver_set_config_file (XServer *server, const gchar *config_file)
 {
+    g_return_if_fail (server != NULL);
+
     g_free (server->priv->config_file);
     server->priv->config_file = g_strdup (config_file);
 }
@@ -123,12 +128,15 @@ xserver_set_config_file (XServer *server, const gchar *config_file)
 const gchar *
 xserver_get_config_file (XServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
     return server->priv->config_file;
 }
 
 void
 xserver_set_layout (XServer *server, const gchar *layout)
 {
+    g_return_if_fail (server != NULL);
+
     g_free (server->priv->layout);
     server->priv->layout = g_strdup (layout);
 }
@@ -136,18 +144,22 @@ xserver_set_layout (XServer *server, const gchar *layout)
 const gchar *
 xserver_get_layout (XServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
     return server->priv->layout;
 }
 
 const gchar *
 xserver_get_command (XServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
     return server->priv->command;
 }
 
 void
 xserver_set_log_file (XServer *server, const gchar *log_file)
 {
+    g_return_if_fail (server != NULL);
+
     g_free (server->priv->log_file);
     server->priv->log_file = g_strdup (log_file);
 }
@@ -155,35 +167,43 @@ xserver_set_log_file (XServer *server, const gchar *log_file)
 const gchar *
 xserver_get_log_file (XServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
     return server->priv->log_file;
 }
   
 void
 xserver_set_port (XServer *server, guint port)
 {
+    g_return_if_fail (server != NULL);
     server->priv->port = port;
 }
 
-guint xserver_get_port (XServer *server)
+guint
+xserver_get_port (XServer *server)
 {
+    g_return_val_if_fail (server != NULL, 0);
     return server->priv->port;
 }
 
 const gchar *
 xserver_get_hostname (XServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
     return server->priv->hostname;
 }
 
 gint
 xserver_get_display_number (XServer *server)
 {
+    g_return_val_if_fail (server != NULL, 0);
     return server->priv->display_number;
 }
 
 const gchar *
 xserver_get_address (XServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
+
     if (!server->priv->address)
     {
         if (server->priv->type == XSERVER_TYPE_REMOTE)
@@ -198,6 +218,8 @@ xserver_get_address (XServer *server)
 void
 xserver_set_authentication (XServer *server, const gchar *name, const guchar *data, gsize data_length)
 {
+    g_return_if_fail (server != NULL);
+
     g_free (server->priv->authentication_name);
     server->priv->authentication_name = g_strdup (name);
     g_free (server->priv->authentication_data);
@@ -209,24 +231,29 @@ xserver_set_authentication (XServer *server, const gchar *name, const guchar *da
 const gchar *
 xserver_get_authentication_name (XServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
     return server->priv->authentication_name;
 }
 
 const guchar *
 xserver_get_authentication_data (XServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
     return server->priv->authentication_data;
 }
 
 gsize
 xserver_get_authentication_data_length (XServer *server)
 {
+    g_return_val_if_fail (server != NULL, 0);
     return server->priv->authentication_data_length;
 }
 
 void
 xserver_set_authorization (XServer *server, XAuthorization *authorization, const gchar *path)
 {
+    g_return_if_fail (server != NULL);
+
     if (server->priv->authorization)
         g_object_unref (server->priv->authorization);
     server->priv->authorization = g_object_ref (authorization);
@@ -249,31 +276,37 @@ xserver_set_authorization (XServer *server, XAuthorization *authorization, const
 XAuthorization *
 xserver_get_authorization (XServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
     return server->priv->authorization;
 }
 
 void
-xserver_set_vt (XServer *xserver, gint vt)
+xserver_set_vt (XServer *server, gint vt)
 {
-    xserver->priv->vt = vt;  
+    g_return_if_fail (server != NULL);
+    server->priv->vt = vt;
 }
 
 gint
-xserver_get_vt (XServer *xserver)
+xserver_get_vt (XServer *server)
 {
-    return xserver->priv->vt;
+    g_return_val_if_fail (server != NULL, 0);
+    return server->priv->vt;
 }
 
 void
-xserver_set_no_root (XServer *xserver, gboolean no_root)
+xserver_set_no_root (XServer *server, gboolean no_root)
 {
-    xserver->priv->no_root = no_root;
+    g_return_if_fail (server != NULL);
+    server->priv->no_root = no_root;
 }
 
 static gboolean
 xserver_connect (XServer *server)
 {
     gchar *xauthority = NULL;
+
+    g_return_val_if_fail (server != NULL, FALSE);
 
     /* Write the authorization file */
     if (server->priv->authorization)
@@ -315,6 +348,7 @@ xserver_start (XServer *server)
     gboolean result;
     GString *command;
 
+    g_return_val_if_fail (server != NULL, FALSE);
     //g_return_val_if_fail (server->priv->pid == 0, FALSE);
     g_return_val_if_fail (server->priv->command != NULL, FALSE);
  
@@ -400,6 +434,8 @@ xserver_start (XServer *server)
 void
 xserver_disconnect_clients (XServer *server)
 {
+    g_return_if_fail (server != NULL);
+
     server->priv->ready = FALSE;
     child_process_signal (CHILD_PROCESS (server), SIGHUP);
 }
