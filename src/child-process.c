@@ -78,6 +78,8 @@ child_process_new (void)
 void
 child_process_set_log_file (ChildProcess *process, const gchar *log_file)
 {
+    g_return_if_fail (process != NULL);
+
     g_free (process->priv->log_file);
     process->priv->log_file = g_strdup (log_file);
 }
@@ -85,12 +87,14 @@ child_process_set_log_file (ChildProcess *process, const gchar *log_file)
 const gchar *
 child_process_get_log_file (ChildProcess *process)
 {
+    g_return_val_if_fail (process != NULL, NULL);
     return process->priv->log_file;
 }
   
 void
 child_process_set_env (ChildProcess *process, const gchar *name, const gchar *value)
 {
+    g_return_if_fail (process != NULL);
     g_hash_table_insert (process->priv->env, g_strdup (name), g_strdup (value));
 }
 
@@ -232,6 +236,7 @@ child_process_start (ChildProcess *process,
     pid_t pid;
     int from_server_fd = -1, to_server_fd = -1;
 
+    g_return_val_if_fail (process != NULL, FALSE);
     g_return_val_if_fail (process->priv->pid == 0, FALSE);
 
     if (username)
@@ -332,13 +337,15 @@ child_process_start (ChildProcess *process,
 GPid
 child_process_get_pid (ChildProcess *process)
 {
+    g_return_val_if_fail (process != NULL, 9);
     return process->priv->pid;
-  
 }
 
 void
 child_process_signal (ChildProcess *process, int signum)
 {
+    g_return_if_fail (process != NULL);
+
     if (process->priv->pid == 0)
         return;
 
@@ -351,12 +358,14 @@ child_process_signal (ChildProcess *process, int signum)
 GIOChannel *
 child_process_get_to_child_channel (ChildProcess *process)
 {
+    g_return_val_if_fail (process != NULL, NULL);
     return process->priv->to_child_channel;
 }
 
 GIOChannel *
 child_process_get_from_child_channel (ChildProcess *process)
 {
+    g_return_val_if_fail (process != NULL, NULL);
     return process->priv->from_child_channel;
 }
 

@@ -50,37 +50,51 @@ session_new ()
 void
 session_set_username (Session *session, const gchar *username)
 {
+    g_return_if_fail (session != NULL);
+
+    g_free (session->priv->username);
     session->priv->username = g_strdup (username);
 }
 
 const gchar *
 session_get_username (Session *session)
 {
+    g_return_val_if_fail (session != NULL, NULL);
     return session->priv->username;
 }
 
 void
 session_set_command (Session *session, const gchar *command)
 {
+    g_return_if_fail (session != NULL);
+
+    g_free (session->priv->command);
     session->priv->command = g_strdup (command);
 }
 
 const gchar *
 session_get_command (Session *session)
 {
+    g_return_val_if_fail (session != NULL, NULL);  
     return session->priv->command;
 }
 
 void
 session_set_authorization (Session *session, XAuthorization *authorization, const gchar *path)
 {
+    g_return_if_fail (session != NULL);
+
+    if (session->priv->authorization)
+        g_object_unref (session->priv->authorization);
     session->priv->authorization = g_object_ref (authorization);
+    g_free (session->priv->authorization_path);
     session->priv->authorization_path = g_strdup (path);
 }
 
 XAuthorization *
 session_get_authorization (Session *session)
 {
+    g_return_val_if_fail (session != NULL, NULL);
     return session->priv->authorization;
 }
 
@@ -92,6 +106,7 @@ session_start (Session *session, gboolean create_pipe)
     User *user;
     GError *error = NULL;
 
+    g_return_val_if_fail (session != NULL, FALSE);
     g_return_val_if_fail (session->priv->command != NULL, FALSE);
 
     if (session->priv->username)
@@ -142,6 +157,7 @@ session_start (Session *session, gboolean create_pipe)
 void
 session_stop (Session *session)
 {
+    g_return_if_fail (session != NULL);
     child_process_signal (CHILD_PROCESS (session), SIGTERM);
 }
 

@@ -70,6 +70,8 @@ greeter_new (void)
 void
 greeter_set_default_user (Greeter *greeter, const gchar *username, gint timeout)
 {
+    g_return_if_fail (greeter != NULL);
+
     g_free (greeter->priv->default_user);
     greeter->priv->default_user = g_strdup (username);
     greeter->priv->autologin_timeout = timeout;
@@ -78,6 +80,8 @@ greeter_set_default_user (Greeter *greeter, const gchar *username, gint timeout)
 void
 greeter_set_theme (Greeter *greeter, const gchar *theme)
 {
+    g_return_if_fail (greeter != NULL);
+
     g_free (greeter->priv->theme);
     greeter->priv->theme = g_strdup (theme);
 }
@@ -85,12 +89,15 @@ greeter_set_theme (Greeter *greeter, const gchar *theme)
 const gchar *
 greeter_get_theme (Greeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, NULL);
     return greeter->priv->theme;
 }
 
 void
 greeter_set_default_session (Greeter *greeter, const gchar *session)
 {
+    g_return_if_fail (greeter != NULL);
+
     g_free (greeter->priv->default_session);
     greeter->priv->default_session = g_strdup (session);
 }
@@ -98,12 +105,14 @@ greeter_set_default_session (Greeter *greeter, const gchar *session)
 const gchar *
 greeter_get_default_session (Greeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, NULL);
     return greeter->priv->default_session;
 }
 
 PAMSession *
 greeter_get_pam_session (Greeter *greeter)
 {
+    g_return_val_if_fail (greeter != NULL, NULL);
     return greeter->priv->pam_session;
 }
 
@@ -372,6 +381,8 @@ greeter_quit (Greeter *greeter)
 {
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
+
+    g_return_if_fail (greeter != NULL);
 
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_QUIT, 0, &offset);
     write_message (greeter, message, offset);

@@ -71,18 +71,22 @@ xdmcp_server_new (void)
 void
 xdmcp_server_set_port (XDMCPServer *server, guint port)
 {
+    g_return_if_fail (server != NULL);
     server->priv->port = port;
 }
 
 guint
 xdmcp_server_get_port (XDMCPServer *server)
 {
+    g_return_val_if_fail (server != NULL, 0);
     return server->priv->port;
 }
 
 void
 xdmcp_server_set_hostname (XDMCPServer *server, const gchar *hostname)
 {
+    g_return_if_fail (server != NULL);
+
     g_free (server->priv->hostname);
     server->priv->hostname = g_strdup (hostname);
 }
@@ -90,12 +94,15 @@ xdmcp_server_set_hostname (XDMCPServer *server, const gchar *hostname)
 const gchar *
 xdmcp_server_get_hostname (XDMCPServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
     return server->priv->hostname;
 }
 
 void
 xdmcp_server_set_status (XDMCPServer *server, const gchar *status)
 {
+    g_return_if_fail (server != NULL);
+
     g_free (server->priv->status);
     server->priv->status = g_strdup (status);
 }
@@ -103,12 +110,15 @@ xdmcp_server_set_status (XDMCPServer *server, const gchar *status)
 const gchar *
 xdmcp_server_get_status (XDMCPServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
     return server->priv->status;
 }
 
 void
 xdmcp_server_set_authentication (XDMCPServer *server, const gchar *name, const guchar *data, gsize data_length)
 {
+    g_return_if_fail (server != NULL);
+
     g_free (server->priv->authentication_name);
     server->priv->authentication_name = g_strdup (name);
     g_free (server->priv->authentication_data);
@@ -120,24 +130,29 @@ xdmcp_server_set_authentication (XDMCPServer *server, const gchar *name, const g
 const gchar *
 xdmcp_server_get_authentication_name (XDMCPServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
     return server->priv->authentication_name;
 }
 
 const guchar *
 xdmcp_server_get_authentication_data (XDMCPServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
     return server->priv->authentication_data;
 }
 
 gsize
 xdmcp_server_get_authentication_data_length (XDMCPServer *server)
 {
+    g_return_val_if_fail (server != NULL, 0);
     return server->priv->authentication_data_length;
 }
 
 void
 xdmcp_server_set_authorization (XDMCPServer *server, const gchar *name, const guchar *data, gsize data_length)
 {
+    g_return_if_fail (server != NULL);
+
     g_free (server->priv->authorization_name);
     server->priv->authorization_name = g_strdup (name);
     g_free (server->priv->authorization_data);
@@ -149,18 +164,21 @@ xdmcp_server_set_authorization (XDMCPServer *server, const gchar *name, const gu
 const gchar *
 xdmcp_server_get_authorization_name (XDMCPServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
     return server->priv->authorization_name;
 }
 
 const guchar *
 xdmcp_server_get_authorization_data (XDMCPServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
     return server->priv->authorization_data;
 }
 
 gsize
 xdmcp_server_get_authorization_data_length (XDMCPServer *server)
 {
+    g_return_val_if_fail (server != NULL, 0);
     return server->priv->authorization_data_length;
 }
 
@@ -574,6 +592,8 @@ xdmcp_server_start (XDMCPServer *server)
 {
     GSource *source;
     GError *error = NULL;
+
+    g_return_val_if_fail (server != NULL, FALSE);
   
     server->priv->socket = open_udp_socket (G_SOCKET_FAMILY_IPV4, server->priv->port, &error);
     if (server->priv->socket)

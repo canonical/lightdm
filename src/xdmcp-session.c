@@ -27,48 +27,56 @@ xdmcp_session_new (guint16 id)
 guint16
 xdmcp_session_get_id (XDMCPSession *session)
 {
+    g_return_val_if_fail (session != NULL, 0);
     return session->priv->id;
 }
 
 const gchar *
 xdmcp_session_get_manufacturer_display_id (XDMCPSession *session)
 {
+    g_return_val_if_fail (session != NULL, NULL);
     return session->priv->manufacturer_display_id;
 }
 
 const GInetAddress *
 xdmcp_session_get_address (XDMCPSession *session)
 {
+    g_return_val_if_fail (session != NULL, NULL);
     return session->priv->address;
 }
 
 const gchar *
 xdmcp_session_get_authorization_name (XDMCPSession *session)
 {
+    g_return_val_if_fail (session != NULL, NULL);
     return session->priv->authorization_name;
 }
 
 const guchar *
 xdmcp_session_get_authorization_data (XDMCPSession *session)
 {
-    return session->priv->authorization_data;  
+    g_return_val_if_fail (session != NULL, NULL);
+    return session->priv->authorization_data;
 }
 
 const gsize
 xdmcp_session_get_authorization_data_length (XDMCPSession *session)
 {
+    g_return_val_if_fail (session != NULL, 0);
     return session->priv->authorization_data_length;
 }
 
 guint16
 xdmcp_session_get_display_number (XDMCPSession *session)
 {
+    g_return_val_if_fail (session != NULL, 0);
     return session->priv->display_number;
 }
 
 const gchar *
 xdmcp_session_get_display_class (XDMCPSession *session)
 {
+    g_return_val_if_fail (session != NULL, NULL);
     return session->priv->display_class;
 }
 
