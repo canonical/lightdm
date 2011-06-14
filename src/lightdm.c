@@ -34,7 +34,7 @@ static DisplayManager *display_manager = NULL;
 
 static GDBusConnection *bus = NULL;
 
-#define LDM_BUS_NAME "org.lightdm.LightDisplayManager"
+#define LDM_BUS_NAME "org.freedesktop.DisplayManager"
 
 static void
 log_cb (const gchar *log_domain, GLogLevelFlags log_level,
@@ -171,7 +171,7 @@ bus_acquired_cb (GDBusConnection *connection,
 {
     const gchar *display_manager_interface =
         "<node>"
-        "  <interface name='org.lightdm.LightDisplayManager'>"
+        "  <interface name='org.freedesktop.DisplayManager'>"
         "    <property name='ConfigFile' type='s' access='read'/>"
         "    <method name='AddDisplay'/>"
         "    <method name='SwitchToUser'>"
@@ -192,7 +192,7 @@ bus_acquired_cb (GDBusConnection *connection,
     display_manager_info = g_dbus_node_info_new_for_xml (display_manager_interface, NULL);
     g_assert (display_manager_info != NULL);
     g_dbus_connection_register_object (connection,
-                                       "/org/lightdm/LightDisplayManager",
+                                       "/org/freedesktop/DisplayManager",
                                        display_manager_info->interfaces[0],
                                        &display_manager_vtable,
                                        NULL, NULL,

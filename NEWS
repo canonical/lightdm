@@ -19,6 +19,8 @@ Overview of changes in lightdm 0.4.0
     * Correctly handle signals from external programs (Thanks to Jason Conti)
     * Automatic login users now use PAM session lightdm-autologin
     * Fix crashes when session quits after X server
+    * Use org.freedesktop.DisplayManager instead of
+      org.lightdm.LightDisplayManager for D-Bus
 
 Overview of changes in lightdm 0.3.7
 

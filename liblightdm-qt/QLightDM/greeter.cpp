@@ -176,7 +176,7 @@ void Greeter::connectToServer()
         busType = QDBusConnection::sessionBus();
     }
 
-    d->lightdmInterface = new QDBusInterface("org.lightdm.LightDisplayManager", "/org/lightdm/LightDisplayManager", "org.lightdm.LightDisplayManager", busType);
+    d->lightdmInterface = new QDBusInterface("org.freedesktop.DisplayManager", "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", busType);
     d->powerManagementInterface = new QDBusInterface("org.freedesktop.PowerManagement","/org/freedesktop/PowerManagement", "org.freedesktop.PowerManagement");
     d->consoleKitInterface = new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit");
 

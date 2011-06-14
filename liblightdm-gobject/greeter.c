@@ -442,9 +442,9 @@ ldm_greeter_connect_to_server (LdmGreeter *greeter)
     greeter->priv->lightdm_proxy = g_dbus_proxy_new_sync (greeter->priv->lightdm_bus,
                                                           G_DBUS_PROXY_FLAGS_NONE,
                                                           NULL,
-                                                          "org.lightdm.LightDisplayManager",
-                                                          "/org/lightdm/LightDisplayManager",
-                                                          "org.lightdm.LightDisplayManager",
+                                                          "org.freedesktop.DisplayManager",
+                                                          "/org/freedesktop/DisplayManager",
+                                                          "org.freedesktop.DisplayManager",
                                                           NULL, NULL);
 
     g_debug ("Connecting to display manager...");

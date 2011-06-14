@@ -27,7 +27,6 @@ Makefile.in.in
 ./mkinstalldirs
 ./omf.make
 ./xmldocs.make
-data/org.lightdm.LightDisplayManager.conf
 doc/html
 doc/lightdm-gobject-*.*
 doc/*.stamp
