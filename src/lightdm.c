@@ -22,6 +22,7 @@
 #include "xserver.h"
 #include "user.h"
 #include "pam-session.h"
+#include "child-process.h"
 
 static gchar *config_path = CONFIG_FILE;
 static GMainLoop *loop = NULL;
@@ -103,9 +104,9 @@ log_init (void)
 static void
 signal_cb (ChildProcess *process, int signum)
 {
+    /* Quit when all child processes have ended */
     g_debug ("Caught %s signal, exiting", g_strsignal (signum));
-    g_object_unref (display_manager);
-    g_main_loop_quit (loop);
+    child_process_stop_all ();
 }
 
 static void

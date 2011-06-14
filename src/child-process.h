@@ -65,6 +65,8 @@ GIOChannel *child_process_get_to_child_channel (ChildProcess *process);
 
 GIOChannel *child_process_get_from_child_channel (ChildProcess *process);
 
+void child_process_stop_all (void);
+
 G_END_DECLS
 
 #endif /* _CHILD_PROCESS_H_ */

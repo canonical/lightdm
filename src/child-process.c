@@ -55,6 +55,7 @@ G_DEFINE_TYPE (ChildProcess, child_process, G_TYPE_OBJECT);
 static ChildProcess *parent_process = NULL;
 static GHashTable *processes = NULL;
 static int signal_pipe[2];
+static gboolean stopping = FALSE;
 
 ChildProcess *
 child_process_get_parent (void)
@@ -110,7 +111,11 @@ child_process_watch_cb (GPid pid, gint status, gpointer data)
     }
 
     process->priv->pid = 0;
-    g_hash_table_remove (processes, GINT_TO_POINTER (process->priv->pid));
+    g_hash_table_remove (processes, GINT_TO_POINTER (pid));
+
+    /* Stop when all processes quit */
+    if (stopping && g_hash_table_size (processes) == 0)
+        exit (EXIT_SUCCESS);
 }
 
 static void
@@ -138,6 +143,10 @@ run_child_process (ChildProcess *process, char *const argv[])
     signal (SIGHUP, SIG_IGN);
     signal (SIGUSR1, SIG_IGN);
     signal (SIGUSR2, SIG_IGN);
+
+    /* Make this process its own session so */
+    if (setsid () < 0)
+        g_warning ("Failed to make process a new session: %s", strerror (errno));
 
     if (process->priv->user)
     {
@@ -330,8 +339,13 @@ child_process_get_pid (ChildProcess *process)
 void
 child_process_signal (ChildProcess *process, int signum)
 {
-    if (process->priv->pid)
-        kill (process->priv->pid, signum);
+    if (process->priv->pid == 0)
+        return;
+
+    g_debug ("Sending signal %d to process %d", signum, process->priv->pid);
+
+    if (kill (process->priv->pid, signum) < 0)
+        g_warning ("Error sending signal %d to process %d: %s", signum, process->priv->pid, strerror (errno));
 }
 
 GIOChannel *
@@ -344,6 +358,26 @@ GIOChannel *
 child_process_get_from_child_channel (ChildProcess *process)
 {
     return process->priv->from_child_channel;
+}
+
+void
+child_process_stop_all (void)
+{
+    GHashTableIter iter;
+    gpointer key, value;
+
+    stopping = TRUE;
+
+    /* If no processes, then just quit */
+    if (g_hash_table_size (processes) == 0)
+        exit (EXIT_SUCCESS);
+
+    g_hash_table_iter_init (&iter, processes);
+    while (g_hash_table_iter_next (&iter, &key, &value))
+    {
+        ChildProcess *process = (ChildProcess *)value;
+        child_process_signal (process, SIGTERM);
+    }
 }
 
 static void
