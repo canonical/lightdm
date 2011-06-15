@@ -24,7 +24,7 @@
 #include "pam-session.h"
 #include "child-process.h"
 
-static gchar *config_path = CONFIG_FILE;
+static gchar *config_path = NULL;
 static GMainLoop *loop = NULL;
 static GTimer *log_timer;
 static FILE *log_file;
@@ -232,6 +232,7 @@ main(int argc, char **argv)
 {
     FILE *pid_file;
     GOptionContext *option_context;
+    gboolean explicit_config = FALSE;
     gboolean test_mode = FALSE;
     gboolean no_root = FALSE;
     gboolean use_xephyr = FALSE;
@@ -308,6 +309,10 @@ main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     g_clear_error (&error);
+    if (config_path)
+        explicit_config = TRUE;
+    else
+        config_path = g_strdup (DEFAULT_CONFIG_FILE);
     if (test_mode)
     {
         no_root = TRUE;
@@ -374,8 +379,14 @@ main(int argc, char **argv)
 
     if (!config_load_from_file (config_get_instance (), config_path, &error))
     {
-        g_warning ("Failed to load configuration from %s: %s", config_path, error->message); // FIXME: Don't make warning on no file, just info
-        exit (EXIT_FAILURE);
+        if (explicit_config || !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+        {
+            g_printerr ("Failed to load configuration from %s: %s\n", config_path, error->message);
+            exit (EXIT_FAILURE);
+        }
+
+        /* Add in some default configuration */
+        config_set_string (config_get_instance (), "LightDM", "seats", "seat-0");
     }
     g_clear_error (&error);
 

@@ -1,2 +1,2 @@
 #!/bin/sh
-PATH=`pwd`/src ./src/test-runner login-gobject-invalid-user
+./src/test-runner login-gobject-invalid-user

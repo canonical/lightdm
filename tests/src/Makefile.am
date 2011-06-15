@@ -2,7 +2,9 @@ noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-session
 
 test_runner_CFLAGS = \
 	$(WARN_CFLAGS) \
-	$(GLIB_CFLAGS)
+	$(GLIB_CFLAGS) \
+	-DSRCDIR=\"$(abs_top_srcdir)\" \
+	-DBUILDDIR=\"$(abs_top_builddir)\"
 test_runner_LDADD = \
 	$(GLIB_LIBS)
 

@@ -118,15 +118,15 @@ dnl ###########################################################################
 dnl Configurable values
 dnl ###########################################################################
 
-CONFIG_FILE=${sysconfdir}/lightdm/lightdm.conf
+DEFAULT_CONFIG_FILE=${sysconfdir}/lightdm/lightdm.conf
 AC_ARG_WITH(config-file,
             AS_HELP_STRING(--with-config-file=<file>,
                            Configuration file to load),
     if test x$withval != x; then
-        CONFIG_FILE="$withval"
+        DEFAULT_CONFIG_FILE="$withval"
     fi
 )
-AC_SUBST(CONFIG_FILE)
+AC_SUBST(DEFAULT_CONFIG_FILE)
 
 LOG_DIR=${localstatedir}/log/lightdm
 AC_ARG_WITH(log-dir,
@@ -310,7 +310,7 @@ echo "
                     ===========================
 
         prefix:                   $prefix
-        Config file:              $CONFIG_FILE
+        Config file:              $DEFAULT_CONFIG_FILE
         Log directory:            $LOG_DIR        
         D-Bus system directory:   $DBUS_SYS_DIR
         X server binary:          $XSERVER_BINARY

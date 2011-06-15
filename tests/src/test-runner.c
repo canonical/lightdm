@@ -234,7 +234,7 @@ load_script (const gchar *name)
     gchar *filename, *path, *data, **lines;
 
     filename = g_strdup_printf ("%s.script", name);
-    path = g_build_filename ("scripts", filename, NULL);
+    path = g_build_filename (SRCDIR, "tests", "scripts", filename, NULL);
     g_free (filename);
 
     if (!g_file_get_contents (path, &data, NULL, NULL))
@@ -265,7 +265,7 @@ int
 main (int argc, char **argv)
 {
     GMainLoop *loop;
-    gchar *script_name, *config_file;
+    gchar *script_name, *config_file, *config_path, *path, *path1, *path2, *ld_library_path;
     int status_socket;
     GString *command_line;
     gchar **lightdm_argv;
@@ -283,7 +283,9 @@ main (int argc, char **argv)
         quit (EXIT_FAILURE);
     }
     script_name = argv[1];
-    config_file = g_strdup_printf ("scripts/%s.conf", script_name);
+    config_file = g_strdup_printf ("%s.conf", script_name);
+    config_path = g_build_filename (SRCDIR, "tests", "scripts", config_file, NULL);
+    g_free (config_file);
 
     load_script (script_name);
     
@@ -295,6 +297,22 @@ main (int argc, char **argv)
         g_critical ("Error getting current directory: %s", strerror (errno));
         quit (EXIT_FAILURE);
     }
+
+    /* Use locally built libraries and binaries */
+    path1 = g_build_filename (BUILDDIR, "tests", "src", ".libs", NULL);
+    path2 = g_build_filename (BUILDDIR, "tests", "src", NULL);
+    path = g_strdup_printf ("%s:%s", path1, path2);
+    g_free (path1);
+    g_free (path2);
+    g_setenv ("PATH", path, TRUE);
+    g_free (path);
+    path1 = g_build_filename (BUILDDIR, "liblightdm-gobject", ".libs", NULL);  
+    path2 = g_build_filename (BUILDDIR, "liblightdm-qt", "QLightDM", ".libs", NULL);
+    ld_library_path = g_strdup_printf ("%s:%s", path1, path2);
+    g_free (path1);
+    g_free (path2);
+    g_setenv ("LD_LIBRARY_PATH", ld_library_path, TRUE);
+    g_free (ld_library_path);
 
     /* Open socket for status */
     status_socket_name = g_build_filename (cwd, ".status-socket", NULL);
@@ -315,10 +333,18 @@ main (int argc, char **argv)
     command_line = g_string_new ("../src/lightdm");
     if (getenv ("DEBUG"))
         g_string_append (command_line, " --debug");
-    if (fopen (config_file, "r"))
-        g_string_append_printf (command_line, " --config %s", config_file);
-    g_string_append (command_line, " --no-root --default-xserver-command=test-xserver --default-xsession=test-session --default-greeter-theme=test-theme --passwd-file data/passwd --theme-dir=data/themes --theme-engine-dir=src/.libs --xsessions-dir=data/xsessions");
-    g_print ("Start daemon with command: %s\n", command_line->str);
+    if (fopen (config_path, "r"))
+        g_string_append_printf (command_line, " --config %s", config_path);
+    g_string_append (command_line, " --no-root");
+    g_string_append(command_line, " --default-xserver-command=test-xserver");
+    g_string_append (command_line, " --default-xsession=test-session");
+    g_string_append_printf (command_line, " --default-greeter-theme=test-theme");
+    g_string_append_printf (command_line, " --passwd-file %s/tests/data/passwd", BUILDDIR);
+    g_string_append_printf (command_line, " --theme-dir=%s/tests/data/themes", SRCDIR);
+    g_string_append_printf (command_line, " --theme-engine-dir=%s/tests/src/.libs", BUILDDIR);
+    g_string_append_printf (command_line, " --xsessions-dir=%s/tests/data/xsessions", SRCDIR);
+
+    g_print ("Start daemon with command: PATH=%s LD_LIBRARY_PATH=%s %s\n", g_getenv ("PATH"), g_getenv ("LD_LIBRARY_PATH"), command_line->str);
 
     if (!g_shell_parse_argv (command_line->str, NULL, &lightdm_argv, &error))
     {

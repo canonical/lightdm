@@ -1,2 +1,2 @@
 #!/bin/sh
-PATH=`pwd`/src ./src/test-runner autologin
+./src/test-runner autologin
