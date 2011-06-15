@@ -13,6 +13,7 @@
 #define UNIX_PATH_MAX 108
 #endif
 
+static GPid dbus_pid = 0;
 static GPid lightdm_pid = 0;
 static gchar *status_socket_name = NULL;
 static gboolean expect_exit = FALSE;
@@ -37,6 +38,8 @@ quit (int status)
     stop_daemon ();
     if (status_socket_name)
         unlink (status_socket_name);
+    if (dbus_pid)
+        kill (dbus_pid, SIGTERM);
   
     exit (status);
 }
@@ -267,7 +270,11 @@ main (int argc, char **argv)
     GMainLoop *loop;
     gchar *script_name, *config_file, *config_path, *path, *path1, *path2, *ld_library_path;
     int status_socket;
+    gchar *dbus_command, dbus_address[1024];
     GString *command_line;
+    int dbus_pipe[2];
+    ssize_t n_read;
+    gchar **dbus_argv;
     gchar **lightdm_argv;
     gchar cwd[1024];
     GError *error = NULL;
@@ -301,7 +308,7 @@ main (int argc, char **argv)
     /* Use locally built libraries and binaries */
     path1 = g_build_filename (BUILDDIR, "tests", "src", ".libs", NULL);
     path2 = g_build_filename (BUILDDIR, "tests", "src", NULL);
-    path = g_strdup_printf ("%s:%s", path1, path2);
+    path = g_strdup_printf ("%s:%s:%s", path1, path2, g_getenv ("PATH"));
     g_free (path1);
     g_free (path2);
     g_setenv ("PATH", path, TRUE);
@@ -313,6 +320,33 @@ main (int argc, char **argv)
     g_free (path2);
     g_setenv ("LD_LIBRARY_PATH", ld_library_path, TRUE);
     g_free (ld_library_path);
+
+    /* Run local D-Bus daemon */
+    if (pipe (dbus_pipe) < 0)
+    {
+        g_warning ("Error creating pipe: %s", strerror (errno));
+        quit (EXIT_FAILURE);
+    }
+    dbus_command = g_strdup_printf ("dbus-daemon --session --print-address=%d", dbus_pipe[1]);
+    if (!g_shell_parse_argv (dbus_command, NULL, &dbus_argv, &error))
+    {
+        g_warning ("Error parsing command line: %s", error->message);
+        quit (EXIT_FAILURE);
+    }
+    g_clear_error (&error);
+    if (!g_spawn_async (NULL, dbus_argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_LEAVE_DESCRIPTORS_OPEN, NULL, NULL, &dbus_pid, &error))
+    {
+        g_warning ("Error launching LightDM: %s", error->message);
+        quit (EXIT_FAILURE);
+    }
+    n_read = read (dbus_pipe[0], dbus_address, 1023);
+    if (n_read < 0)
+    {
+        g_warning ("Error reading D-Bus address: %s", strerror (errno));
+        quit (EXIT_FAILURE);
+    }
+    dbus_address[n_read] = '\0';
+    g_setenv ("DBUS_SESSION_BUS_ADDRESS", dbus_address, TRUE);
 
     /* Open socket for status */
     status_socket_name = g_build_filename (cwd, ".status-socket", NULL);
@@ -344,7 +378,9 @@ main (int argc, char **argv)
     g_string_append_printf (command_line, " --theme-engine-dir=%s/tests/src/.libs", BUILDDIR);
     g_string_append_printf (command_line, " --xsessions-dir=%s/tests/data/xsessions", SRCDIR);
 
-    g_print ("Start daemon with command: PATH=%s LD_LIBRARY_PATH=%s %s\n", g_getenv ("PATH"), g_getenv ("LD_LIBRARY_PATH"), command_line->str);
+    g_print ("Start daemon with command: PATH=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_STATUS_SOCKET=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
+             g_getenv ("PATH"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
+             command_line->str);
 
     if (!g_shell_parse_argv (command_line->str, NULL, &lightdm_argv, &error))
     {
