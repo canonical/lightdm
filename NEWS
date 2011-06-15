@@ -2,25 +2,25 @@ Overview of changes in lightdm 0.4.0
 
     * Fix crash when child processes quit
     * Fix crash when catching signals
+    * Fix crash when session quits after X server
+    * Add internal checking for NULL object access
+    * Correctly handle signals from external programs (Thanks to Jason Conti)
     * liblightdm API changes:
       - ldm_greeter_start_authentication becomes ldm_greeter_login
       - The existing ldm_greeter_login is now ldm_greeter_start_session
         and the username parameter is not required.
       - Drop ldm_greeter_get_default_layout (X controls the layout)
     * Configuration changes:
+      - Use /etc/lightdm/lightdm.conf instead of /etc/lightdm.conf
       - The "displays" item is now called "seats".  LightDM will fallback to
         "displays" if "seats" is not defined, but this is deprecated and will
         be removed by version 1.0.
-    * Allow theme, theme engine and xsession directory to be specified in
-      configuration and on the command line
-    * Add unit tests
-    * Make X server configuration a separate section and add additional options
-    * Correctly handle signals from external programs (Thanks to Jason Conti)
+      - Make X server configuration a separate section and now has new options
     * Automatic login users now use PAM session lightdm-autologin
-    * Fix crashes when session quits after X server
     * Use org.freedesktop.DisplayManager instead of
-      org.lightdm.LightDisplayManager for D-Bus
-    * Move config file from /etc/lightdm.conf to /etc/lightdm/lightdm.conf
+      org.lightdm.LightDisplayManager for D-Bus name
+    * Add regression tests
+    * Allow many more options to be set from the command line
 
 Overview of changes in lightdm 0.3.7
 
