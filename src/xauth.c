@@ -42,7 +42,8 @@ xauth_new (const gchar *name, const guchar *data, gsize data_length)
     return auth;
 }
 
-XAuthorization *xauth_new_cookie (void)
+XAuthorization *
+xauth_new_cookie (void)
 {
     guchar cookie[16];
     gint i;
