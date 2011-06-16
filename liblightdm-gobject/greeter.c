@@ -409,8 +409,6 @@ ldm_greeter_connect_to_server (LdmGreeter *greeter)
     if (!greeter->priv->system_bus)
         g_warning ("Failed to connect to system bus: %s", error->message);
     g_clear_error (&error);
-    if (!greeter->priv->system_bus)
-        return FALSE;
 
     bus_address = getenv ("LDM_BUS");
     if (bus_address && strcmp (bus_address, "SESSION") == 0)
@@ -1448,6 +1446,9 @@ upower_call_function (LdmGreeter *greeter, const gchar *function, gboolean has_r
     GVariant *result;
     GError *error = NULL;
     gboolean function_result = FALSE;
+  
+    if (!greeter->priv->system_bus)
+        return FALSE;
 
     proxy = g_dbus_proxy_new_sync (greeter->priv->system_bus,
                                    G_DBUS_PROXY_FLAGS_NONE,
@@ -1541,6 +1542,9 @@ ck_call_function (LdmGreeter *greeter, const gchar *function, gboolean has_resul
     GVariant *result;
     GError *error = NULL;
     gboolean function_result = FALSE;
+
+    if (!greeter->priv->system_bus)
+        return FALSE;
 
     proxy = g_dbus_proxy_new_sync (greeter->priv->system_bus,
                                    G_DBUS_PROXY_FLAGS_NONE,
