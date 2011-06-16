@@ -20,7 +20,7 @@ EXTRA_DIST = \
 	data/themes/login-alice-wrong-password/index.theme \
 	data/themes/login-invalid-user/index.theme \
 	data/themes/test-theme/index.theme \
-	data/xsessions/est-session-crash.desktop \
+	data/xsessions/test-session-crash.desktop \
 	data/xsessions/test-session.desktop \
 	data/xsessions/test-session-logout.desktop \
 	scripts/autologin.conf \
