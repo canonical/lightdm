@@ -312,7 +312,13 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
                                            "org.freedesktop.ConsoleKit",
                                            "/org/freedesktop/ConsoleKit/Manager",
                                            "org.freedesktop.ConsoleKit.Manager", 
-                                           NULL, NULL);
+                                           NULL, &error);
+    if (!proxy)
+        g_warning ("Unable to get connection to ConsoleKit: %s", error->message);
+    g_clear_error (&error);
+    if (!proxy)
+        return NULL;
+
     g_variant_builder_init (&arg_builder, G_VARIANT_TYPE ("(a(sv))"));
     g_variant_builder_open (&arg_builder, G_VARIANT_TYPE ("a(sv)"));
     g_variant_builder_add (&arg_builder, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
