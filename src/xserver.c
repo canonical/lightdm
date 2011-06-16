@@ -416,8 +416,8 @@ xserver_start (XServer *server)
     g_debug ("Launching X Server");
 
     result = child_process_start (CHILD_PROCESS (server),
-                                  NULL, /* Username (run as current user) */
-                                  NULL, /* Environment (inherit parent) */
+                                  user_get_current (),
+                                  NULL,
                                   command->str,
                                   FALSE,
                                   &error);

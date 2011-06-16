@@ -20,7 +20,6 @@
 #include <glib/gstdio.h>
 
 #include "child-process.h"
-#include "user.h"
 
 enum {
     GOT_DATA,
@@ -221,7 +220,7 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 
 gboolean
 child_process_start (ChildProcess *process,
-                     const gchar *username,
+                     User *user,
                      const gchar *working_dir,
                      const gchar *command,
                      gboolean create_pipe,
@@ -239,18 +238,10 @@ child_process_start (ChildProcess *process,
     g_return_val_if_fail (process != NULL, FALSE);
     g_return_val_if_fail (process->priv->pid == 0, FALSE);
 
-    if (username)
-    {
-        process->priv->user = user_get_by_name (username);
-        if (!process->priv->user)
-        {
-            g_warning ("Unable to start child process - unable to get information on user %s", username);
-            return FALSE;
-        }
-    }
+    process->priv->user = g_object_ref (user);
 
     /* Create the log file owned by the target user */
-    if (username && process->priv->log_file)
+    if (process->priv->log_file)
     {
         gint fd = g_open (process->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
         close (fd);

@@ -127,7 +127,7 @@ session_start (Session *session, gboolean create_pipe)
     g_debug ("Launching session");
 
     result = child_process_start (CHILD_PROCESS (session),
-                                  user_get_name (session->priv->user),
+                                  session->priv->user,
                                   user_get_home_directory (session->priv->user),
                                   session->priv->command,
                                   create_pipe,
