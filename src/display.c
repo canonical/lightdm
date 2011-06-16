@@ -710,13 +710,6 @@ start_greeter (Display *display)
         gchar *username = NULL;
 
         if (display->priv->greeter_user)
-            g_debug ("Starting greeter %s as user %s", display->priv->greeter_theme, display->priv->greeter_user);
-        else
-            g_debug ("Starting greeter %s as current user", display->priv->greeter_theme);
-
-        command = theme_get_command (theme);
-      
-        if (display->priv->greeter_user)
             username = g_strdup (display->priv->greeter_user);
         else
         {
@@ -726,12 +719,12 @@ start_greeter (Display *display)
             g_object_unref (user);
         }
 
+        g_debug ("Starting greeter %s as user %s", display->priv->greeter_theme, username);
+     
         display->priv->greeter_pam_session = pam_session_new (display->priv->pam_service, username);
         pam_session_authorize (display->priv->greeter_pam_session);
 
-        display->priv->greeter_ck_cookie = start_ck_session (display,
-                                                             "LoginWindow",
-                                                             username);
+        display->priv->greeter_ck_cookie = start_ck_session (display, "LoginWindow", username);
 
         display->priv->greeter_session = greeter_new ();
         greeter_set_theme (display->priv->greeter_session, display->priv->greeter_theme);
@@ -740,7 +733,9 @@ start_greeter (Display *display)
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "start-session", G_CALLBACK (greeter_start_session_cb), display);
         g_signal_connect (G_OBJECT (display->priv->greeter_session), "quit", G_CALLBACK (greeter_quit_cb), display);
         session_set_username (SESSION (display->priv->greeter_session), username);
+        command = theme_get_command (theme);
         session_set_command (SESSION (display->priv->greeter_session), command);
+        g_free (command);
         child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "DISPLAY", xserver_get_address (display->priv->xserver));
         if (display->priv->greeter_ck_cookie)
             child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "XDG_SESSION_COOKIE", display->priv->greeter_ck_cookie);
@@ -751,7 +746,6 @@ start_greeter (Display *display)
         session_start (SESSION (display->priv->greeter_session), TRUE);
 
         g_free (username);
-        g_free (command);
         g_key_file_free (theme);
     }
 }
