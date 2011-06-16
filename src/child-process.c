@@ -94,7 +94,10 @@ void
 child_process_set_env (ChildProcess *process, const gchar *name, const gchar *value)
 {
     g_return_if_fail (process != NULL);
-    g_hash_table_insert (process->priv->env, g_strdup (name), g_strdup (value));
+    if (value)
+        g_hash_table_insert (process->priv->env, g_strdup (name), g_strdup (value));
+    else
+        g_hash_table_remove (process->priv->env, name);
 }
 
 static void
