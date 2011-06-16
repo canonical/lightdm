@@ -43,11 +43,13 @@ static int display_number = 0;
 
 enum
 {
-    Success = 1
+    Failed = 0,
+    Success = 1,
+    Authenticate = 2
 };
 
-static size_t
-pad (size_t length)
+static gsize
+pad (gsize length)
 {
     if (length % 4 == 0)
         return 0;
@@ -55,13 +57,13 @@ pad (size_t length)
 }
 
 static void
-read_padding (size_t length, size_t *offset)
+read_padding (gsize length, gsize *offset)
 {
     *offset += length;
 }
 
 static guint8
-read_card8 (guint8 *buffer, size_t buffer_length, size_t *offset)
+read_card8 (guint8 *buffer, gsize buffer_length, gsize *offset)
 {
     if (*offset >= buffer_length)
         return 0;
@@ -70,7 +72,7 @@ read_card8 (guint8 *buffer, size_t buffer_length, size_t *offset)
 }
 
 static guint16
-read_card16 (guint8 *buffer, size_t buffer_length, guint8 byte_order, size_t *offset)
+read_card16 (guint8 *buffer, gsize buffer_length, guint8 byte_order, gsize *offset)
 {
     guint8 a, b;
 
@@ -83,7 +85,7 @@ read_card16 (guint8 *buffer, size_t buffer_length, guint8 byte_order, size_t *of
 }
 
 static guint8 *
-read_string8 (guint8 *buffer, size_t buffer_length, size_t string_length, size_t *offset)
+read_string8 (guint8 *buffer, gsize buffer_length, gsize string_length, gsize *offset)
 {
     guint8 *string;
     int i;
@@ -95,8 +97,17 @@ read_string8 (guint8 *buffer, size_t buffer_length, size_t string_length, size_t
     return string;
 }
 
+static gchar *
+read_padded_string (guint8 *buffer, gsize buffer_length, gsize string_length, gsize *offset)
+{
+    guint8 *value;
+    value = read_string8 (buffer, buffer_length, string_length, offset);
+    read_padding (pad (string_length), offset);
+    return (gchar *) value;
+}
+
 static void
-write_card8 (guint8 *buffer, size_t buffer_length, guint8 value, size_t *offset)
+write_card8 (guint8 *buffer, gsize buffer_length, guint8 value, gsize *offset)
 {
     if (*offset >= buffer_length)
         return;
@@ -105,15 +116,15 @@ write_card8 (guint8 *buffer, size_t buffer_length, guint8 value, size_t *offset)
 }
 
 static void
-write_padding (guint8 *buffer, size_t buffer_length, size_t length, size_t *offset)
+write_padding (guint8 *buffer, gsize buffer_length, gsize length, gsize *offset)
 {
-    size_t i;
+    gsize i;
     for (i = 0; i < length; i++)
         write_card8 (buffer, buffer_length, 0, offset);
 }
 
 static void
-write_card16 (guint8 *buffer, size_t buffer_length, guint8 byte_order, guint16 value, size_t *offset)
+write_card16 (guint8 *buffer, gsize buffer_length, guint8 byte_order, guint16 value, gsize *offset)
 {
     if (byte_order == BYTE_ORDER_MSB)
     {
@@ -128,7 +139,7 @@ write_card16 (guint8 *buffer, size_t buffer_length, guint8 byte_order, guint16 v
 }
 
 static void
-write_card32 (guint8 *buffer, size_t buffer_length, guint8 byte_order, guint32 value, size_t *offset)
+write_card32 (guint8 *buffer, gsize buffer_length, guint8 byte_order, guint32 value, gsize *offset)
 {
     if (byte_order == BYTE_ORDER_MSB)
     {
@@ -147,21 +158,34 @@ write_card32 (guint8 *buffer, size_t buffer_length, guint8 byte_order, guint32 v
 }
 
 static void
-write_string8 (guint8 *buffer, size_t buffer_length, const guint8 *value, size_t value_length, size_t *offset)
+write_string8 (guint8 *buffer, gsize buffer_length, const guint8 *value, gsize value_length, gsize *offset)
 {
-    size_t i;
+    gsize i;
     for (i = 0; i < value_length; i++)
         write_card8 (buffer, buffer_length, value[i], offset);
 }
 
+static gsize
+padded_string_length (const gchar *value)
+{
+    return strlen (value) + pad (strlen (value)) / 4;
+}
+
 static void
-decode_connect (guint8 *buffer, size_t buffer_length,
+write_padded_string (guint8 *buffer, gsize buffer_length, const gchar *value, gsize *offset)
+{
+    write_string8 (buffer, buffer_length, (guint8 *) value, strlen (value), offset);
+    write_padding (buffer, buffer_length, pad (strlen (value)), offset);
+}
+
+static void
+decode_connect (guint8 *buffer, gsize buffer_length,
                 guint8 *byte_order,
                 guint16 *protocol_major_version, guint16 *protocol_minor_version,
                 gchar **authorization_protocol_name,
                 guint8 **authorization_protocol_data, guint16 *authorization_protocol_data_length)
 {
-    size_t offset = 0;
+    gsize offset = 0;
     guint16 n;
 
     *byte_order = read_card8 (buffer, buffer_length, &offset);
@@ -171,24 +195,43 @@ decode_connect (guint8 *buffer, size_t buffer_length,
     n = read_card16 (buffer, buffer_length, *byte_order, &offset);
     *authorization_protocol_data_length = read_card16 (buffer, buffer_length, *byte_order, &offset);
     read_padding (2, &offset);
-    *authorization_protocol_name = (gchar *) read_string8 (buffer, buffer_length, n, &offset);
-    read_padding (pad (n), &offset);
+    *authorization_protocol_name = read_padded_string (buffer, buffer_length, n, &offset);
     *authorization_protocol_data = read_string8 (buffer, buffer_length, *authorization_protocol_data_length, &offset);
     read_padding (pad (*authorization_protocol_data_length), &offset);
 }
 
-static size_t
-encode_accept (guint8 *buffer, size_t buffer_length,
+static gsize
+encode_failed (guint8 *buffer, gsize buffer_length,
+               guint8 byte_order, const gchar *reason)
+{
+    gsize offset = 0;
+    guint8 additional_data_length;
+
+    write_card8 (buffer, buffer_length, Failed, &offset);
+    write_card8 (buffer, buffer_length, strlen (reason), &offset);
+    write_card16 (buffer, buffer_length, byte_order, PROTOCOL_MAJOR_VERSION, &offset);
+    write_card16 (buffer, buffer_length, byte_order, PROTOCOL_MINOR_VERSION, &offset);
+    additional_data_length = padded_string_length (reason);
+    write_card16 (buffer, buffer_length, byte_order, additional_data_length, &offset);
+
+    /* Additional data */
+    write_padded_string (buffer, buffer_length, reason, &offset);
+
+    return offset;
+}
+
+static gsize
+encode_accept (guint8 *buffer, gsize buffer_length,
                guint8 byte_order)
 {
-    size_t offset = 0;
+    gsize offset = 0;
     guint8 additional_data_length;
 
     write_card8 (buffer, buffer_length, Success, &offset);
     write_padding (buffer, buffer_length, 1, &offset);
     write_card16 (buffer, buffer_length, byte_order, PROTOCOL_MAJOR_VERSION, &offset);
     write_card16 (buffer, buffer_length, byte_order, PROTOCOL_MINOR_VERSION, &offset);
-    additional_data_length = 8 + (strlen (VENDOR) + pad (strlen (VENDOR))) / 4;
+    additional_data_length = 8 + padded_string_length (VENDOR);
     write_card16 (buffer, buffer_length, byte_order, additional_data_length, &offset);
 
     /* Additional data */
@@ -207,8 +250,7 @@ encode_accept (guint8 *buffer, size_t buffer_length,
     write_card8 (buffer, buffer_length, MIN_KEYCODE, &offset);
     write_card8 (buffer, buffer_length, MAX_KEYCODE, &offset);
     write_padding (buffer, buffer_length, 4, &offset);
-    write_string8 (buffer, buffer_length, (guint8 *) VENDOR, strlen (VENDOR), &offset);
-    write_padding (buffer, buffer_length, pad (strlen (VENDOR)), &offset);
+    write_padded_string (buffer, buffer_length, VENDOR, &offset);
     // pixmap formats
     // screens
 
@@ -216,9 +258,9 @@ encode_accept (guint8 *buffer, size_t buffer_length,
 }
 
 static void
-log_buffer (const gchar *text, const guint8 *buffer, size_t buffer_length)
+log_buffer (const gchar *text, const guint8 *buffer, gsize buffer_length)
 {
-    size_t i;
+    gsize i;
 
     printf ("%s", text);
     for (i = 0; i < buffer_length; i++)
@@ -231,7 +273,7 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 {
     int s;
     guint8 buffer[MAXIMUM_REQUEST_LENGTH];
-    ssize_t n_read;
+    gssize n_read;
 
     s = g_io_channel_unix_get_fd (channel);
     n_read = recv (s, buffer, MAXIMUM_REQUEST_LENGTH, 0);
@@ -249,8 +291,9 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
         gchar *authorization_protocol_name;
         guint8 *authorization_protocol_data;
         guint16 authorization_protocol_data_length;
-        guint8 accept_buffer[MAXIMUM_REQUEST_LENGTH];
-        size_t n_written;
+        gchar *auth_error = NULL;
+        guint8 response_buffer[MAXIMUM_REQUEST_LENGTH];
+        gsize n_written;
 
         log_buffer ("Read", buffer, n_read);
 
@@ -259,16 +302,76 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
                         &protocol_major_version, &protocol_minor_version,
                         &authorization_protocol_name,
                         &authorization_protocol_data, &authorization_protocol_data_length);
-        g_debug ("Got connect request");
+        g_debug ("Got connect request using protocol %d.%d and authorization '%s'", protocol_major_version, protocol_minor_version, authorization_protocol_name);
 
         notify_status ("XSERVER :%d ACCEPT-CONNECT", display_number);
 
-        // FIXME: Check authorization
+        if (auth_path)
+        {
+            gchar *xauth_data;
+            gsize xauth_length;
+            GError *error = NULL;
 
-        n_written = encode_accept (accept_buffer, MAXIMUM_REQUEST_LENGTH, byte_order);
-        g_debug ("Sending Success");
-        send (s, accept_buffer, n_written, 0);
-        log_buffer ("Wrote", accept_buffer, n_written);
+            if (g_file_get_contents (auth_path, &xauth_data, &xauth_length, &error))
+            {
+                gsize offset;
+                guint16 family, length, data_length;
+                gchar *address, *number, *name;
+                guint8 *data;
+
+                family = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
+                length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
+                address = (gchar *) read_string8 ((guint8 *) xauth_data, xauth_length, length, &offset);
+                length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
+                number = (gchar *) read_string8 ((guint8 *) xauth_data, xauth_length, length, &offset);
+                length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
+                name = (gchar *) read_string8 ((guint8 *) xauth_data, xauth_length, length, &offset);
+                data_length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
+                data = read_string8 ((guint8 *) xauth_data, xauth_length, data_length, &offset);
+
+                if (strcmp (authorization_protocol_name, "") == 0)
+                    auth_error = g_strdup ("Authorization required");
+                else if (strcmp (authorization_protocol_name, "MIT-MAGIC-COOKIE-1") == 0)
+                {
+                    gboolean matches = TRUE;
+                    if (authorization_protocol_data_length == data_length)
+                    {
+                        guint16 i;
+                        for (i = 0; i < data_length && authorization_protocol_data[i] == data[i]; i++);
+                        matches = i == data_length;
+                    }
+                    else
+                        matches = FALSE;
+                    if (!matches)
+                        auth_error = g_strdup_printf ("Invalid MIT-MAGIC-COOKIE key");
+                }
+                else
+                    auth_error = g_strdup_printf ("Unknown authorization: '%s'", authorization_protocol_name);
+
+                g_free (address);
+                g_free (number);
+                g_free (name);
+                g_free (data);
+            }
+            else
+                g_warning ("Error reading auth file: %s", error->message);
+            g_clear_error (&error);
+        }
+
+        if (auth_error)
+        {
+            n_written = encode_failed (response_buffer, MAXIMUM_REQUEST_LENGTH, byte_order, auth_error);
+            g_debug ("Sending Failed: %s", auth_error);
+            g_free (auth_error);
+        }
+        else
+        {
+            n_written = encode_accept (response_buffer, MAXIMUM_REQUEST_LENGTH, byte_order);
+            g_debug ("Sending Success");
+        }
+
+        send (s, response_buffer, n_written, 0);
+        log_buffer ("Wrote", response_buffer, n_written);
     }
 
     return TRUE;
