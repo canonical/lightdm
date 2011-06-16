@@ -85,7 +85,7 @@ dmrc_save (GKeyFile *dmrc_file, const gchar *username)
     {
         path = g_build_filename (user_get_home_directory (user), ".dmrc", NULL);
         g_file_set_contents (path, data, length, NULL);
-        if (chown (path, user_get_uid (user), user_get_gid (user)) < 0)
+        if (getuid () == 0 && chown (path, user_get_uid (user), user_get_gid (user)) < 0)
             g_warning ("Error setting ownership on %s: %s", path, strerror (errno));
         g_free (path);
     }
