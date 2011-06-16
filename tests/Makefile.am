@@ -7,7 +7,8 @@ TESTS = \
 	test-login-gobject \
 	test-login-gobject-wrong-password \
 	test-login-gobject-invalid-user \
-	test-login-gobject-logout
+	test-login-gobject-logout \
+	test-login-gobject-session-crash
 
 EXTRA_DIST = \
 	$(TESTS) \
