@@ -37,6 +37,8 @@ notify_status (const char *format, ...)
     if (!socket_name)
     {
         fprintf (stderr, "LIGHTDM_TEST_STATUS_SOCKET not defined\n");
+        fprintf (stderr, "%s", status);
+        fprintf (stderr, "\n");
         return;
     }
 
