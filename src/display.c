@@ -94,7 +94,7 @@ struct DisplayPrivate
 
 G_DEFINE_TYPE (Display, display, G_TYPE_OBJECT);
 
-static void start_greeter (Display *display);
+static gboolean start_greeter (Display *display);
 
 // FIXME: Remove the index, it is an external property
 Display *
@@ -294,8 +294,8 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
 
     user = user_get_by_name (username);
     if (!user)
-    {      
-
+    {
+        g_warning ("Unable to open ConsoleKit session, user %s does not exist", username);
         return NULL;
     }
 
@@ -487,10 +487,13 @@ set_env_from_keyfile (Session *session, const gchar *name, GKeyFile *key_file, c
     g_free (value);
 }
 
-static void
+static gboolean
 start_user_session (Display *display, const gchar *session, const gchar *language)
 {
     gchar *filename, *path, *old_language, *xsessions_dir;
+    gchar *session_command;
+    User *user;
+    gboolean supports_transitions;
     GKeyFile *dmrc_file, *session_desktop_file;
     gboolean result;
     GError *error = NULL;
@@ -527,63 +530,74 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
     session_desktop_file = g_key_file_new ();
     result = g_key_file_load_from_file (session_desktop_file, path, G_KEY_FILE_NONE, &error);
     g_free (path);
-
     if (!result)
         g_warning ("Failed to load session file %s: %s:", path, error->message);
     g_clear_error (&error);
+    if (!result)
+        return FALSE;
+    session_command = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
+    supports_transitions = g_key_file_get_boolean (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Supports-Transitions", NULL);
+    g_key_file_free (session_desktop_file);
 
-    if (result)
+    if (!session_command)
     {
-        gchar *session_command;
-
-        session_command = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
-        if (!session_command)
-            g_warning ("No command in session file %s", path);
-
-        display->priv->supports_transitions = g_key_file_get_boolean (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Supports-Transitions", NULL);
-
-        if (session_command)
-        {
-            if (display->priv->session_wrapper)
-            {
-                gchar *old_command = session_command;
-                session_command = g_strdup_printf ("%s '%s'", display->priv->session_wrapper, session_command);
-                g_free (old_command);
-            }
-            display->priv->user_session = session_new ();
-            session_set_username (display->priv->user_session, pam_session_get_username (display->priv->user_pam_session));
-            session_set_command (display->priv->user_session, session_command);
-
-            g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
-            g_signal_connect (G_OBJECT (display->priv->user_session), "terminated", G_CALLBACK (user_session_terminated_cb), display);
-            child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DISPLAY", xserver_get_address (display->priv->xserver));
-            if (display->priv->user_ck_cookie)
-                child_process_set_env (CHILD_PROCESS (display->priv->user_session), "XDG_SESSION_COOKIE", display->priv->user_ck_cookie);
-            child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
-            child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDMSESSION", session); // FIXME: Not cross-desktop
-            set_env_from_keyfile (display->priv->user_session, "LANG", dmrc_file, "Desktop", "Language");
-            set_env_from_keyfile (display->priv->user_session, "LANGUAGE", dmrc_file, "Desktop", "Langlist");
-            set_env_from_keyfile (display->priv->user_session, "LC_MESSAGES", dmrc_file, "Desktop", "LCMess");
-            //child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDM_LANG", session_language); // FIXME: Not cross-desktop
-            set_env_from_keyfile (display->priv->user_session, "GDM_KEYBOARD_LAYOUT", dmrc_file, "Desktop", "Layout"); // FIXME: Not cross-desktop
-            set_env_from_pam_session (display->priv->user_session, display->priv->user_pam_session);
-
-            g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
-
-            if (display->priv->greeter_session == NULL || display->priv->supports_transitions)
-                session_start (display->priv->user_session, FALSE);
-            else
-                g_debug ("Waiting for greeter to quit before starting user session process");
-
-            /* Save modified DMRC */
-            dmrc_save (dmrc_file, pam_session_get_username (display->priv->user_pam_session));
-        }
-
-        g_free (session_command);
+        g_warning ("No command in session file %s", path);
+        return FALSE;
+    }
+    if (display->priv->session_wrapper)
+    {
+        gchar *old_command = session_command;
+        session_command = g_strdup_printf ("%s '%s'", display->priv->session_wrapper, session_command);
+        g_free (old_command);
     }
 
-    g_key_file_free (session_desktop_file);
-    g_key_file_free (dmrc_file);  
+    user = user_get_by_name (pam_session_get_username (display->priv->user_pam_session));
+    if (!user)
+    {
+        g_free (session_command);
+        g_warning ("Unable to start session, user %s does not exist", pam_session_get_username (display->priv->user_pam_session));
+        return FALSE;
+    }
+
+    display->priv->supports_transitions = supports_transitions;
+    display->priv->user_session = session_new ();
+
+    session_set_user (display->priv->user_session, user);
+    g_object_unref (user);
+
+    session_set_command (display->priv->user_session, session_command);
+    g_free (session_command);
+
+    g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
+    g_signal_connect (G_OBJECT (display->priv->user_session), "terminated", G_CALLBACK (user_session_terminated_cb), display);
+    child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DISPLAY", xserver_get_address (display->priv->xserver));
+    if (display->priv->user_ck_cookie)
+        child_process_set_env (CHILD_PROCESS (display->priv->user_session), "XDG_SESSION_COOKIE", display->priv->user_ck_cookie);
+    child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
+    child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDMSESSION", session); // FIXME: Not cross-desktop
+    set_env_from_keyfile (display->priv->user_session, "LANG", dmrc_file, "Desktop", "Language");
+    set_env_from_keyfile (display->priv->user_session, "LANGUAGE", dmrc_file, "Desktop", "Langlist");
+    set_env_from_keyfile (display->priv->user_session, "LC_MESSAGES", dmrc_file, "Desktop", "LCMess");
+    //child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDM_LANG", session_language); // FIXME: Not cross-desktop
+    set_env_from_keyfile (display->priv->user_session, "GDM_KEYBOARD_LAYOUT", dmrc_file, "Desktop", "Layout"); // FIXME: Not cross-desktop
+    set_env_from_pam_session (display->priv->user_session, display->priv->user_pam_session);
+
+    g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
+
+    /* Start it now, or wait for the greeter to quit */
+    if (display->priv->greeter_session == NULL || display->priv->supports_transitions)
+        result = session_start (display->priv->user_session, FALSE);
+    else
+    {
+        g_debug ("Waiting for greeter to quit before starting user session process");
+        result = TRUE;
+    }
+
+    /* Save modified DMRC */
+    dmrc_save (dmrc_file, pam_session_get_username (display->priv->user_pam_session));
+    g_key_file_free (dmrc_file);
+
+    return result;
 }
 
 static void
@@ -693,61 +707,64 @@ greeter_quit_cb (Greeter *greeter, Display *display)
     }
 }
 
-static void
+static gboolean
 start_greeter (Display *display)
 {
     GKeyFile *theme;
+    gchar *command;
+    User *user;
+    gboolean result;
     GError *error = NULL;
   
     theme = load_theme (display->priv->greeter_theme, &error);
     if (!theme)
         g_warning ("Failed to find theme %s: %s", display->priv->greeter_theme, error->message);
     g_clear_error (&error);
+    if (!theme)
+        return FALSE;
 
-    if (theme)
+    if (display->priv->greeter_user)
     {
-        gchar *command;
-        gchar *username = NULL;
-
-        if (display->priv->greeter_user)
-            username = g_strdup (display->priv->greeter_user);
-        else
+        user = user_get_by_name (display->priv->greeter_user);
+        if (!user)
         {
-            User *user;
-            user = user_get_current ();
-            username = g_strdup (user_get_name (user));
-            g_object_unref (user);
+            g_warning ("Unable to start greeter, user %s does not exist", display->priv->greeter_user);
+            return FALSE;
         }
-
-        g_debug ("Starting greeter %s as user %s", display->priv->greeter_theme, username);
-     
-        display->priv->greeter_pam_session = pam_session_new (display->priv->pam_service, username);
-        pam_session_authorize (display->priv->greeter_pam_session);
-
-        display->priv->greeter_ck_cookie = start_ck_session (display, "LoginWindow", username);
-
-        display->priv->greeter_session = greeter_new ();
-        greeter_set_theme (display->priv->greeter_session, display->priv->greeter_theme);
-        greeter_set_default_user (display->priv->greeter_session, display->priv->default_user, display->priv->timeout);
-        greeter_set_default_session (display->priv->greeter_session, display->priv->default_session);
-        g_signal_connect (G_OBJECT (display->priv->greeter_session), "start-session", G_CALLBACK (greeter_start_session_cb), display);
-        g_signal_connect (G_OBJECT (display->priv->greeter_session), "quit", G_CALLBACK (greeter_quit_cb), display);
-        session_set_username (SESSION (display->priv->greeter_session), username);
-        command = theme_get_command (theme);
-        session_set_command (SESSION (display->priv->greeter_session), command);
-        g_free (command);
-        child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "DISPLAY", xserver_get_address (display->priv->xserver));
-        if (display->priv->greeter_ck_cookie)
-            child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "XDG_SESSION_COOKIE", display->priv->greeter_ck_cookie);
-        set_env_from_pam_session (SESSION (display->priv->greeter_session), display->priv->greeter_pam_session);
-
-        g_signal_emit (display, signals[START_GREETER], 0, display->priv->greeter_session);
-
-        session_start (SESSION (display->priv->greeter_session), TRUE);
-
-        g_free (username);
-        g_key_file_free (theme);
     }
+    else
+        user = user_get_current ();
+
+    g_debug ("Starting greeter %s as user %s", display->priv->greeter_theme, user_get_name (user));
+
+    display->priv->greeter_pam_session = pam_session_new (display->priv->pam_service, user_get_name (user));
+    pam_session_authorize (display->priv->greeter_pam_session);
+
+    display->priv->greeter_ck_cookie = start_ck_session (display, "LoginWindow", user_get_name (user));
+
+    display->priv->greeter_session = greeter_new ();
+    greeter_set_theme (display->priv->greeter_session, display->priv->greeter_theme);
+    greeter_set_default_user (display->priv->greeter_session, display->priv->default_user, display->priv->timeout);
+    greeter_set_default_session (display->priv->greeter_session, display->priv->default_session);
+    g_signal_connect (G_OBJECT (display->priv->greeter_session), "start-session", G_CALLBACK (greeter_start_session_cb), display);
+    g_signal_connect (G_OBJECT (display->priv->greeter_session), "quit", G_CALLBACK (greeter_quit_cb), display);
+    session_set_user (SESSION (display->priv->greeter_session), user);
+    command = theme_get_command (theme);
+    session_set_command (SESSION (display->priv->greeter_session), command);
+    g_free (command);
+    child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "DISPLAY", xserver_get_address (display->priv->xserver));
+    if (display->priv->greeter_ck_cookie)
+        child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "XDG_SESSION_COOKIE", display->priv->greeter_ck_cookie);
+    set_env_from_pam_session (SESSION (display->priv->greeter_session), display->priv->greeter_pam_session);
+
+    g_signal_emit (display, signals[START_GREETER], 0, display->priv->greeter_session);
+
+    result = session_start (SESSION (display->priv->greeter_session), TRUE);
+
+    g_key_file_free (theme);
+    g_object_unref (user);
+
+    return result;
 }
 
 static void

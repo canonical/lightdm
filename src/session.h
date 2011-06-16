@@ -13,6 +13,7 @@
 #define _SESSION_H_
 
 #include "child-process.h"
+#include "user.h"
 #include "xauth.h"
 
 G_BEGIN_DECLS
@@ -37,9 +38,9 @@ GType session_get_type (void);
 
 Session *session_new (void);
 
-void session_set_username (Session *session, const gchar *username);
+void session_set_user (Session *session, User *user);
 
-const gchar *session_get_username (Session *session);
+User *session_get_user (Session *session);
 
 void session_set_command (Session *session, const gchar *command);
 
