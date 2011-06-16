@@ -30,6 +30,9 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct GreeterPrivate
 {
+    /* The number of greeters before this one */
+    guint count;
+
     /* TRUE if the greeter has connected to the daemon pipe */
     gboolean connected;
 
@@ -62,9 +65,14 @@ struct GreeterPrivate
 G_DEFINE_TYPE (Greeter, greeter, SESSION_TYPE);
 
 Greeter *
-greeter_new (void)
+greeter_new (const gchar *theme, guint count)
 {
-    return g_object_new (GREETER_TYPE, NULL);
+    Greeter *greeter = g_object_new (GREETER_TYPE, NULL);
+
+    greeter->priv->theme = g_strdup (theme);
+    greeter->priv->count = count;
+
+    return greeter;
 }
 
 void
@@ -75,15 +83,6 @@ greeter_set_default_user (Greeter *greeter, const gchar *username, gint timeout)
     g_free (greeter->priv->default_user);
     greeter->priv->default_user = g_strdup (username);
     greeter->priv->autologin_timeout = timeout;
-}
-
-void
-greeter_set_theme (Greeter *greeter, const gchar *theme)
-{
-    g_return_if_fail (greeter != NULL);
-
-    g_free (greeter->priv->theme);
-    greeter->priv->theme = g_strdup (theme);
 }
 
 const gchar *
@@ -188,12 +187,13 @@ handle_connect (Greeter *greeter)
     theme = g_build_filename (theme_dir, greeter->priv->theme, "index.theme", NULL);
     g_free (theme_dir);
 
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECTED, string_length (theme) + string_length (greeter->priv->default_session) + string_length (greeter->priv->default_user ? greeter->priv->default_user : "") + int_length () + int_length (), &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECTED, string_length (theme) + string_length (greeter->priv->default_session) + string_length (greeter->priv->default_user ? greeter->priv->default_user : "") + int_length () + int_length () + int_length (), &offset);
     write_string (message, MAX_MESSAGE_LENGTH, theme, &offset);
     write_string (message, MAX_MESSAGE_LENGTH, greeter->priv->default_session, &offset);
     write_string (message, MAX_MESSAGE_LENGTH, greeter->priv->default_user ? greeter->priv->default_user : "", &offset);
     write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->autologin_timeout, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, FALSE, &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->count, &offset);
     write_message (greeter, message, offset);
 
     g_free (theme);

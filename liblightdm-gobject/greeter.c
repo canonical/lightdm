@@ -111,6 +111,7 @@ struct _LdmGreeterPrivate
     gint login_delay;
     guint login_timeout;
     gboolean guest_account_supported;
+    guint greeter_count;
 };
 
 G_DEFINE_TYPE (LdmGreeter, ldm_greeter, G_TYPE_OBJECT);
@@ -339,12 +340,14 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         greeter->priv->timed_user = read_string (greeter, &offset);
         greeter->priv->login_delay = read_int (greeter, &offset);
         greeter->priv->guest_account_supported = read_int (greeter, &offset) != 0;
+        greeter->priv->greeter_count = read_int (greeter, &offset);
 
-        g_debug ("Connected theme=%s default-session=%s timed-user=%s login-delay=%d guest-account-supported=%s",
+        g_debug ("Connected theme=%s default-session=%s timed-user=%s login-delay=%d guest-account-supported=%s greeter-count=%d",
                  greeter->priv->theme,
                  greeter->priv->default_session,
                  greeter->priv->timed_user, greeter->priv->login_delay,
-                 greeter->priv->guest_account_supported ? "true" : "false");
+                 greeter->priv->guest_account_supported ? "true" : "false",
+                 greeter->priv->greeter_count);
 
         /* Set timeout for default login */
         if (greeter->priv->timed_user[0] != '\0' && greeter->priv->login_delay > 0)
@@ -1199,6 +1202,21 @@ ldm_greeter_get_has_guest_session (LdmGreeter *greeter)
 {
     g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
     return greeter->priv->guest_account_supported;
+}
+
+/**
+ * ldm_greeter_get_is_first:
+ * @greeter: A #LdmGreeter
+ *
+ * Check if this is the first time a greeter has been shown on this display.
+ *
+ * Return value: TRUE if this is the first greeter on this display.
+ */
+gboolean
+ldm_greeter_get_is_first (LdmGreeter *greeter)
+{
+    g_return_val_if_fail (LDM_IS_GREETER (greeter), 0);
+    return greeter->priv->greeter_count == 0;
 }
 
 /**

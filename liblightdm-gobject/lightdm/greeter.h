@@ -93,6 +93,8 @@ const gchar *ldm_greeter_get_default_session (LdmGreeter *greeter);
 
 gboolean ldm_greeter_get_has_guest_session (LdmGreeter *greeter);
 
+gboolean ldm_greeter_get_is_first (LdmGreeter *greeter);
+
 const gchar *ldm_greeter_get_timed_login_user (LdmGreeter *greeter);
 
 gint ldm_greeter_get_timed_login_delay (LdmGreeter *greeter);

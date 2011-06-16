@@ -37,11 +37,9 @@ typedef struct
 
 GType greeter_get_type (void);
 
-Greeter *greeter_new (void);
+Greeter *greeter_new (const gchar *theme, guint count);
 
 void greeter_set_default_user (Greeter *greeter, const gchar *username, gint timeout);
-
-void greeter_set_theme (Greeter *greeter, const gchar *theme);
 
 const gchar *greeter_get_theme (Greeter *greeter);
 
