@@ -166,20 +166,20 @@ run_child_process (ChildProcess *process, char *const argv[])
 
             if (setgid (user_get_gid (process->priv->user)) != 0)
             {
-                g_warning ("Failed to set group ID: %s", strerror (errno));
+                g_warning ("Failed to set group ID to %d: %s", user_get_gid (process->priv->user), strerror (errno));
                 _exit (EXIT_FAILURE);
             }
 
             if (setuid (user_get_uid (process->priv->user)) != 0)
             {
-                g_warning ("Failed to set user ID: %s", strerror (errno));
+                g_warning ("Failed to set user ID to %d: %s", user_get_uid (process->priv->user), strerror (errno));
                 _exit (EXIT_FAILURE);
             }
         }
 
         if (chdir (user_get_home_directory (process->priv->user)) != 0)
         {
-            g_warning ("Failed to change to home directory: %s", strerror (errno));
+            g_warning ("Failed to change to home directory %s: %s", user_get_home_directory (process->priv->user), strerror (errno));
             _exit (EXIT_FAILURE);
         }
     }
