@@ -13,11 +13,12 @@ connected_cb (LdmGreeter *greeter)
     notify_status ("GREETER CONNECTED-TO-DAEMON");
 
     username = ldm_greeter_get_string_property (greeter, "username");
-    if (username)
+    if (username && ldm_greeter_get_is_first (greeter))
     {
         notify_status ("GREETER LOGIN USERNAME=%s", username);
         ldm_greeter_login (greeter, username);
     }
+    g_free (username);
 }
 
 static void

@@ -1,0 +1,4 @@
+[Desktop Entry]
+Name=Test
+Comment=LightDM test session (logs out after 1s)
+Exec=test-session --logout

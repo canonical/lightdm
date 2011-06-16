@@ -303,10 +303,31 @@ quit (int status)
 }
 
 static void
+indicate_ready ()
+{
+    void *handler;  
+    handler = signal (SIGUSR1, SIG_IGN);
+    if (handler == SIG_IGN)
+    {
+        notify_status ("XSERVER :%d INDICATE-READY", display_number);
+        kill (getppid (), SIGUSR1);
+    }
+    signal (SIGUSR1, handler);
+}
+
+static void
 signal_cb (int signum)
 {
-    notify_status ("XSERVER :%d TERMINATE SIGNAL=%d", display_number, signum);
-    quit (EXIT_SUCCESS);
+    if (signum == SIGHUP)
+    {
+        notify_status ("XSERVER :%d DISCONNECT-CLIENTS", display_number);
+        indicate_ready ();
+    }
+    else
+    {
+        notify_status ("XSERVER :%d TERMINATE SIGNAL=%d", display_number, signum);
+        quit (EXIT_SUCCESS);
+    }
 }
 
 int
@@ -317,10 +338,10 @@ main (int argc, char **argv)
     char *pid_string;
     GMainLoop *loop;
     int lock_file;
-    void *handler;
 
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
+    signal (SIGHUP, signal_cb);
 
     for (i = 1; i < argc; i++)
     {
@@ -398,10 +419,7 @@ main (int argc, char **argv)
     g_io_add_watch (g_io_channel_unix_new (s), G_IO_IN, socket_connect_cb, NULL);
   
     /* Indicate ready if parent process has requested it */
-    handler = signal (SIGUSR1, SIG_IGN);
-    if (handler == SIG_IGN)
-        kill (getppid (), SIGUSR1);
-    signal (SIGUSR1, handler);
+    indicate_ready ();
 
     g_main_loop_run (loop);
 
