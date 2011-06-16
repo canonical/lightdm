@@ -53,7 +53,7 @@ guest_manager_init (GuestManager *manager)
 static void
 guest_manager_finalize (GObject *object)
 {
-    GuestManager *self = GUEST_MANAGER (object);
+    //GuestManager *self = GUEST_MANAGER (object);
 
     G_OBJECT_CLASS (guest_manager_parent_class)->finalize (object);
 }
