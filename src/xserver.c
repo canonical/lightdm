@@ -446,6 +446,8 @@ void
 xserver_disconnect_clients (XServer *server)
 {
     g_return_if_fail (server != NULL);
+  
+    g_debug ("Sending signal to X server to disconnect clients");
 
     server->priv->ready = FALSE;
     child_process_signal (CHILD_PROCESS (server), SIGHUP);
