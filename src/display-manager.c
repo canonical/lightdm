@@ -192,7 +192,7 @@ end_session_cb (Display *display, Session *session, DisplayManager *manager)
 
         g_debug ("Generating new authorization cookie for %s", xserver_get_address (xserver));
         authorization = xauth_new_cookie ();
-        xserver_set_authorization (xserver, authorization, NULL);
+        xserver_set_authorization (xserver, authorization, xserver_get_authorization_path (xserver));
         g_object_unref (authorization);
     }
 }

@@ -93,6 +93,8 @@ void xserver_set_authorization (XServer *server, XAuthorization *authorization, 
 
 XAuthorization *xserver_get_authorization (XServer *server);
 
+const gchar *xserver_get_authorization_path (XServer *server);
+
 void xserver_set_vt (XServer *server, gint vt);
 
 gint xserver_get_vt (XServer *server);

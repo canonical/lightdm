@@ -249,28 +249,48 @@ xserver_get_authentication_data_length (XServer *server)
     return server->priv->authentication_data_length;
 }
 
+static void
+write_authorization_file (XServer *server)
+{
+    GError *error = NULL;
+
+    /* Stop if not using authorization or already written */
+    if (!server->priv->authorization || server->priv->authorization_file)
+        return;
+
+    server->priv->authorization_file = xauth_write (server->priv->authorization, NULL, server->priv->authorization_path, &error);
+    if (!server->priv->authorization_file)
+        g_warning ("Failed to write authorization: %s", error->message);
+    g_clear_error (&error);
+}
+
 void
 xserver_set_authorization (XServer *server, XAuthorization *authorization, const gchar *path)
 {
+    gboolean rewrite = FALSE;
+
     g_return_if_fail (server != NULL);
+
+    /* Delete existing authorization */
+    if (server->priv->authorization_file)
+    {
+        g_file_delete (server->priv->authorization_file, NULL, NULL);
+        g_object_unref (server->priv->authorization_file);
+        server->priv->authorization_file = NULL;
+        rewrite = TRUE;
+    }
 
     if (server->priv->authorization)
         g_object_unref (server->priv->authorization);
-    server->priv->authorization = g_object_ref (authorization);
-    if (path)
-        server->priv->authorization_path = g_strdup (path);
-  
-    /* If already running then change authorization immediately */
-    if (server->priv->authorization_file)
-    {
-        GError *error = NULL;
+    server->priv->authorization = NULL;
+    if (authorization)
+        server->priv->authorization = g_object_ref (authorization);
+    g_free (server->priv->authorization_path);
+    server->priv->authorization_path = g_strdup (path);
 
-        g_object_unref (server->priv->authorization_file);
-        server->priv->authorization_file = xauth_write (server->priv->authorization, NULL, server->priv->authorization_path, &error);
-        if (!server->priv->authorization_file)
-            g_warning ("Failed to write authorization: %s", error->message);
-        g_clear_error (&error);
-    }
+    /* If already running then change authorization immediately */
+    if (rewrite)
+        write_authorization_file (server);
 }
 
 XAuthorization *
@@ -278,6 +298,13 @@ xserver_get_authorization (XServer *server)
 {
     g_return_val_if_fail (server != NULL, NULL);
     return server->priv->authorization;
+}
+
+const gchar *
+xserver_get_authorization_path (XServer *server)
+{
+    g_return_val_if_fail (server != NULL, NULL);
+    return server->priv->authorization_path;
 }
 
 void
@@ -309,15 +336,7 @@ xserver_connect (XServer *server)
     g_return_val_if_fail (server != NULL, FALSE);
 
     /* Write the authorization file */
-    if (server->priv->authorization)
-    {
-        GError *error = NULL;
-
-        server->priv->authorization_file = xauth_write (server->priv->authorization, NULL, server->priv->authorization_path, &error);
-        if (!server->priv->authorization_file)
-            g_warning ("Failed to write authorization: %s", error->message);
-        g_clear_error (&error);
-    }
+    write_authorization_file (server);
 
     /* NOTE: We have to do this hack as xcb_connect_to_display_with_auth_info can't be used
      * for XDM-AUTHORIZATION-1 and the authorization data requires to know the source port */
@@ -364,15 +383,7 @@ xserver_start (XServer *server)
     }
 
     /* Write the authorization file */
-    if (server->priv->authorization)
-    {
-        GError *error = NULL;
-
-        server->priv->authorization_file = xauth_write (server->priv->authorization, NULL, server->priv->authorization_path, &error);
-        if (!server->priv->authorization_file)
-            g_warning ("Failed to write authorization: %s", error->message);
-        g_clear_error (&error);
-    }
+    write_authorization_file (server);
 
     command = g_string_new (server->priv->command);
     g_string_append_printf (command, " :%d", server->priv->display_number);
