@@ -129,7 +129,11 @@ run_commands ()
         if (command[0] != '*')
             break;
 
-        if (strcmp (command, "*STOP-DAEMON") == 0)
+        if (strcmp (command, "*WAIT") == 0)
+        {
+            sleep (1);
+        }
+        else if (strcmp (command, "*STOP-DAEMON") == 0)
         {
             expect_exit = TRUE;
             stop_daemon ();

@@ -14,6 +14,8 @@ XSERVER :.* ACCEPT-CONNECT
 GREETER CONNECT-XSERVER :.*
 GREETER CONNECT-TO-DAEMON
 GREETER CONNECTED-TO-DAEMON
+# Wait in case the greeter tries to log in immediately
+*WAIT
 *STOP-DAEMON
 # Don't know what order they will terminate
 (GREETER TERMINATE SIGNAL=15|XSERVER :.* TERMINATE SIGNAL=15)
