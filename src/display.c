@@ -277,12 +277,11 @@ display_get_xserver (Display *display)
 }
 
 static gchar *
-start_ck_session (Display *display, const gchar *session_type, const gchar *username)
+start_ck_session (Display *display, const gchar *session_type, User *user)
 {
     GDBusProxy *proxy;
     char *display_device = NULL;
     const gchar *address, *hostname = "";
-    User *user;
     GVariantBuilder arg_builder;
     GVariant *result;
     gchar *cookie = NULL;
@@ -292,13 +291,6 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
     if (getuid () != 0)
     {
         g_debug ("Not opening ConsoleKit session - not running as root");
-        return NULL;
-    }
-
-    user = user_get_by_name (username);
-    if (!user)
-    {
-        g_warning ("Unable to open ConsoleKit session, user %s does not exist", username);
         return NULL;
     }
 
@@ -329,7 +321,6 @@ start_ck_session (Display *display, const gchar *session_type, const gchar *user
     g_variant_builder_add (&arg_builder, "(sv)", "remote-host-name", g_variant_new_string (hostname));
     g_variant_builder_add (&arg_builder, "(sv)", "is-local", g_variant_new_boolean (TRUE));
     g_variant_builder_close (&arg_builder);
-    g_object_unref (user);
     g_free (display_device);
 
     result = g_dbus_proxy_call_sync (proxy,
@@ -512,9 +503,6 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
     g_debug ("Launching '%s' session for user %s", session, pam_session_get_username (display->priv->user_pam_session));
     display->priv->login_count++;
 
-    /* Open ConsoleKit session */
-    display->priv->user_ck_cookie = start_ck_session (display, "", pam_session_get_username (display->priv->user_pam_session));
-
     /* Load the users login settings (~/.dmrc) */
     dmrc_file = dmrc_load (pam_session_get_username (display->priv->user_pam_session));
 
@@ -567,6 +555,9 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
         g_warning ("Unable to start session, user %s does not exist", pam_session_get_username (display->priv->user_pam_session));
         return FALSE;
     }
+
+    /* Open ConsoleKit session */
+    display->priv->user_ck_cookie = start_ck_session (display, "", user);
 
     display->priv->supports_transitions = supports_transitions;
     display->priv->user_session = session_new ();
@@ -750,7 +741,7 @@ start_greeter (Display *display)
     display->priv->greeter_pam_session = pam_session_new (display->priv->pam_service, user_get_name (user));
     pam_session_authorize (display->priv->greeter_pam_session);
 
-    display->priv->greeter_ck_cookie = start_ck_session (display, "LoginWindow", user_get_name (user));
+    display->priv->greeter_ck_cookie = start_ck_session (display, "LoginWindow", user);
 
     display->priv->greeter_session = greeter_new (display->priv->greeter_theme, display->priv->greeter_count - 1);
     greeter_set_default_user (display->priv->greeter_session, display->priv->default_user, display->priv->timeout);
