@@ -116,7 +116,8 @@ session_start (Session *session, gboolean create_pipe)
 
     if (session->priv->authorization)
     {
-        session->priv->authorization_file = xauth_write (session->priv->authorization, user_get_name (session->priv->user), session->priv->authorization_path, &error);
+        g_debug ("Writing session authority to %s", session->priv->authorization_path);
+        session->priv->authorization_file = xauth_write (session->priv->authorization, session->priv->user, session->priv->authorization_path, &error);
         if (session->priv->authorization_file)
             child_process_set_env (CHILD_PROCESS (session), "XAUTHORITY", session->priv->authorization_path);
         else

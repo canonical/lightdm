@@ -15,7 +15,6 @@
 #include <sys/stat.h>
 
 #include "xauth.h"
-#include "user.h"
 
 struct XAuthorizationPrivate
 {
@@ -101,7 +100,7 @@ write_string (GString *string, const gchar *value)
 }
 
 GFile *
-xauth_write (XAuthorization *auth, const gchar *username, const gchar *path, GError **error)
+xauth_write (XAuthorization *auth, User *user, const gchar *path, GError **error)
 {
     GFile *file;
     GFileOutputStream *stream;
@@ -121,19 +120,10 @@ xauth_write (XAuthorization *auth, const gchar *username, const gchar *path, GEr
     /* NOTE: Would like to do:
      * g_file_set_attribute_string (file, G_FILE_ATTRIBUTE_OWNER_USER, username, G_FILE_QUERY_INFO_NONE, NULL, error))
      * but not supported. */
-    if (username && getuid () == 0)
+    if (user && getuid () == 0)
     {
-        User *user;
-
-        user = user_get_by_name (username);
-        if (user)
-        {
-            if (chown (path, user_get_uid (user), user_get_gid (user)) < 0)
-                g_warning ("Failed to set authorization owner: %s", strerror (errno));
-            g_object_unref (user);
-        }
-        else
-            g_warning ("Unable to set ownership on Xauth file - unable to get information on user %s", username);
+        if (chown (path, user_get_uid (user), user_get_gid (user)) < 0)
+            g_warning ("Failed to set authorization owner: %s", strerror (errno));
     }
 
     data = g_string_sized_new (1024);
