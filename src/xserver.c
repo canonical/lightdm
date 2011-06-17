@@ -429,7 +429,7 @@ xserver_start (XServer *server)
         g_string_append_printf (command, " vt%d", server->priv->vt);
 
     if (server->priv->no_root)
-        g_string_append (command, " -nr");
+        g_string_append (command, " -background none");
 
     g_debug ("Launching X Server");
 
