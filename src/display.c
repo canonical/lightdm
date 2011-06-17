@@ -488,6 +488,19 @@ set_env_from_keyfile (Session *session, const gchar *name, GKeyFile *key_file, c
 }
 
 static gboolean
+really_start_user_session (Display *display)
+{
+    g_debug ("Starting user session");
+
+    /* Open ConsoleKit session */
+    display->priv->user_ck_cookie = start_ck_session (display, "", session_get_user (display->priv->user_session));
+    if (display->priv->user_ck_cookie)
+        child_process_set_env (CHILD_PROCESS (display->priv->user_session), "XDG_SESSION_COOKIE", display->priv->user_ck_cookie);
+
+    return session_start (display->priv->user_session, FALSE);
+}
+
+static gboolean
 start_user_session (Display *display, const gchar *session, const gchar *language)
 {
     gchar *filename, *path, *old_language, *xsessions_dir;
@@ -500,7 +513,7 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
     run_script ("PreSession");
 
-    g_debug ("Launching '%s' session for user %s", session, pam_session_get_username (display->priv->user_pam_session));
+    g_debug ("Preparing '%s' session for user %s", session, pam_session_get_username (display->priv->user_pam_session));
     display->priv->login_count++;
 
     /* Load the users login settings (~/.dmrc) */
@@ -556,9 +569,6 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
         return FALSE;
     }
 
-    /* Open ConsoleKit session */
-    display->priv->user_ck_cookie = start_ck_session (display, "", user);
-
     display->priv->supports_transitions = supports_transitions;
     display->priv->user_session = session_new ();
 
@@ -571,8 +581,6 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
     g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
     g_signal_connect (G_OBJECT (display->priv->user_session), "terminated", G_CALLBACK (user_session_terminated_cb), display);
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DISPLAY", xserver_get_address (display->priv->xserver));
-    if (display->priv->user_ck_cookie)
-        child_process_set_env (CHILD_PROCESS (display->priv->user_session), "XDG_SESSION_COOKIE", display->priv->user_ck_cookie);
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDMSESSION", session); // FIXME: Not cross-desktop
     set_env_from_keyfile (display->priv->user_session, "LANG", dmrc_file, "Desktop", "Language");
@@ -586,7 +594,9 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
     /* Start it now, or wait for the greeter to quit */
     if (display->priv->greeter_session == NULL || display->priv->supports_transitions)
-        result = session_start (display->priv->user_session, FALSE);
+    {
+        result = really_start_user_session (display);
+    }
     else
     {
         g_debug ("Waiting for greeter to quit before starting user session process");
@@ -701,10 +711,7 @@ greeter_quit_cb (Greeter *greeter, Display *display)
 
     /* Start session if waiting for greeter to quit */
     if (display->priv->user_session && child_process_get_pid (CHILD_PROCESS (display->priv->user_session)) == 0)
-    {
-        g_debug ("Starting user session");
-        session_start (display->priv->user_session, FALSE);
-    }
+        really_start_user_session (display);
 }
 
 static gboolean
