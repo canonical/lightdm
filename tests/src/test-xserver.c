@@ -257,15 +257,34 @@ encode_accept (guint8 *buffer, gsize buffer_length,
     return offset;
 }
 
+static gchar *
+make_hex_string (const guint8 *buffer, gsize buffer_length)
+{
+    GString *text;
+    gsize i;
+    gchar *result;
+
+    text = g_string_new ("");
+    for (i = 0; i < buffer_length; i++)
+    {
+        if (i > 0)
+            g_string_append (text, " ");
+        g_string_append_printf (text, "%02X", buffer[i]);
+    }
+
+    result = text->str;
+    g_string_free (text, FALSE);
+    return result;
+}
+
 static void
 log_buffer (const gchar *text, const guint8 *buffer, gsize buffer_length)
 {
-    gsize i;
+    gchar *hex;
 
-    printf ("%s", text);
-    for (i = 0; i < buffer_length; i++)
-        printf (" %02X", buffer[i]);
-    printf ("\n");
+    hex = make_hex_string (buffer, buffer_length);
+    printf ("%s %s\n", text, hex);
+    g_free (hex);
 }
 
 static gboolean
@@ -291,6 +310,7 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
         gchar *authorization_protocol_name;
         guint8 *authorization_protocol_data;
         guint16 authorization_protocol_data_length;
+        gchar *hex;
         gchar *auth_error = NULL;
         guint8 response_buffer[MAXIMUM_REQUEST_LENGTH];
         gsize n_written;
@@ -302,7 +322,9 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
                         &protocol_major_version, &protocol_minor_version,
                         &authorization_protocol_name,
                         &authorization_protocol_data, &authorization_protocol_data_length);
-        g_debug ("Got connect request using protocol %d.%d and authorization '%s'", protocol_major_version, protocol_minor_version, authorization_protocol_name);
+        hex = make_hex_string (authorization_protocol_data, authorization_protocol_data_length);
+        g_debug ("Got connect request using protocol %d.%d and authorization '%s' with data '%s'", protocol_major_version, protocol_minor_version, authorization_protocol_name, hex);
+        g_free (hex);
 
         notify_status ("XSERVER :%d ACCEPT-CONNECT", display_number);
 
@@ -314,7 +336,7 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 
             if (g_file_get_contents (auth_path, &xauth_data, &xauth_length, &error))
             {
-                gsize offset;
+                gsize offset = 0;
                 guint16 family, length, data_length;
                 gchar *address, *number, *name;
                 guint8 *data;
@@ -343,7 +365,15 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
                     else
                         matches = FALSE;
                     if (!matches)
+                    {
+                        gchar *hex1, *hex2;
+                        hex1 = make_hex_string (authorization_protocol_data, authorization_protocol_data_length);
+                        hex2 = make_hex_string (data, data_length);
+                        g_debug ("MIT-MAGIC-COOKIE mismatch, got '%s', expect '%s'", hex1, hex2);
+                        g_free (hex1);
+                        g_free (hex2);
                         auth_error = g_strdup_printf ("Invalid MIT-MAGIC-COOKIE key");
+                    }
                 }
                 else
                     auth_error = g_strdup_printf ("Unknown authorization: '%s'", authorization_protocol_name);
@@ -457,6 +487,7 @@ main (int argc, char **argv)
         else if (strcmp (arg, "-auth") == 0)
         {
             auth_path = argv[i+1];
+            g_debug ("Loading authorization from %s", auth_path);
             i++;
         }
         else if (strcmp (arg, "-nolisten") == 0)
