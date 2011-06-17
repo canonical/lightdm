@@ -384,7 +384,10 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
                 g_free (data);
             }
             else
+            {
                 g_warning ("Error reading auth file: %s", error->message);
+                auth_error = g_strdup ("No authorization database");
+            }
             g_clear_error (&error);
         }
 
