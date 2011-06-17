@@ -168,7 +168,7 @@ write_string8 (guint8 *buffer, gsize buffer_length, const guint8 *value, gsize v
 static gsize
 padded_string_length (const gchar *value)
 {
-    return strlen (value) + pad (strlen (value)) / 4;
+    return (strlen (value) + pad (strlen (value))) / 4;
 }
 
 static void
