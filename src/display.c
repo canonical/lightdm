@@ -497,6 +497,8 @@ really_start_user_session (Display *display)
     if (display->priv->user_ck_cookie)
         child_process_set_env (CHILD_PROCESS (display->priv->user_session), "XDG_SESSION_COOKIE", display->priv->user_ck_cookie);
 
+    g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
+
     return session_start (display->priv->user_session, FALSE);
 }
 
@@ -571,32 +573,27 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
     display->priv->supports_transitions = supports_transitions;
     display->priv->user_session = session_new ();
-
-    session_set_user (display->priv->user_session, user);
-    g_object_unref (user);
-
-    session_set_command (display->priv->user_session, session_command);
-    g_free (session_command);
-
     g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
     g_signal_connect (G_OBJECT (display->priv->user_session), "terminated", G_CALLBACK (user_session_terminated_cb), display);
-    child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DISPLAY", xserver_get_address (display->priv->xserver));
-    child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
-    child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDMSESSION", session); // FIXME: Not cross-desktop
+
+    session_set_user (display->priv->user_session, user);
+    session_set_command (display->priv->user_session, session_command);
     set_env_from_keyfile (display->priv->user_session, "LANG", dmrc_file, "Desktop", "Language");
     set_env_from_keyfile (display->priv->user_session, "LANGUAGE", dmrc_file, "Desktop", "Langlist");
     set_env_from_keyfile (display->priv->user_session, "LC_MESSAGES", dmrc_file, "Desktop", "LCMess");
     //child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDM_LANG", session_language); // FIXME: Not cross-desktop
     set_env_from_keyfile (display->priv->user_session, "GDM_KEYBOARD_LAYOUT", dmrc_file, "Desktop", "Layout"); // FIXME: Not cross-desktop
+    child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
+    child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDMSESSION", session); // FIXME: Not cross-desktop
+    child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DISPLAY", xserver_get_address (display->priv->xserver));
     set_env_from_pam_session (display->priv->user_session, display->priv->user_pam_session);
 
-    g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
+    g_object_unref (user);
+    g_free (session_command);
 
     /* Start it now, or wait for the greeter to quit */
     if (display->priv->greeter_session == NULL || display->priv->supports_transitions)
-    {
         result = really_start_user_session (display);
-    }
     else
     {
         g_debug ("Waiting for greeter to quit before starting user session process");
