@@ -20,11 +20,13 @@ test_gobject_greeter_CFLAGS = \
 	-I$(top_srcdir)/liblightdm-gobject \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
+	$(GOBJECT_CFLAGS) \
 	$(XCB_CFLAGS)
 test_gobject_greeter_LDADD = \
 	-L$(top_builddir)/liblightdm-gobject \
 	-llightdm-gobject-0 \
 	$(GLIB_LIBS) \
+	$(GOBJECT_LIBS) \
 	$(XCB_LIBS)
 
 test_session_SOURCES = test-session.c status.c status.h

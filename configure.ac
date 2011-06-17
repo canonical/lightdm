@@ -36,6 +36,10 @@ PKG_CHECK_MODULES(GLIB, [
     glib-2.0
 ])
 
+PKG_CHECK_MODULES(GOBJECT, [
+    gobject-2.0
+])
+
 PKG_CHECK_MODULES(XCB, [
     xcb
 ])    
