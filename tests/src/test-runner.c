@@ -40,7 +40,7 @@ quit (int status)
         unlink (status_socket_name);
     if (dbus_pid)
         kill (dbus_pid, SIGTERM);
-  
+
     exit (status);
 }
 
@@ -85,7 +85,7 @@ daemon_exit_cb (GPid pid, gint status, gpointer data)
 
     /* Quit when the daemon does */
     if (failed)
-        exit (EXIT_FAILURE);
+        quit (EXIT_FAILURE);
 
     lightdm_pid = 0;
   
