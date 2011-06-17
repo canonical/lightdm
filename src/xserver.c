@@ -258,6 +258,8 @@ write_authorization_file (XServer *server)
     if (!server->priv->authorization || server->priv->authorization_file)
         return;
 
+    g_debug ("Writing X server authorization to %s", server->priv->authorization_path);
+
     server->priv->authorization_file = xauth_write (server->priv->authorization, NULL, server->priv->authorization_path, &error);
     if (!server->priv->authorization_file)
         g_warning ("Failed to write authorization: %s", error->message);
@@ -285,8 +287,13 @@ xserver_set_authorization (XServer *server, XAuthorization *authorization, const
     server->priv->authorization = NULL;
     if (authorization)
         server->priv->authorization = g_object_ref (authorization);
-    g_free (server->priv->authorization_path);
-    server->priv->authorization_path = g_strdup (path);
+
+    /* Update path if it has changed */
+    if (path != server->priv->authorization_path)
+    {
+        g_free (server->priv->authorization_path);
+        server->priv->authorization_path = g_strdup (path);
+    }
 
     /* If already running then change authorization immediately */
     if (rewrite)
