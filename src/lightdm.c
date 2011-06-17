@@ -415,7 +415,7 @@ main(int argc, char **argv)
 
     log_init ();
 
-    g_debug ("Starting Light Display Manager %s, PID=%i", VERSION, getpid ());
+    g_debug ("Starting Light Display Manager %s, UID=%i PID=%i", VERSION, getuid (), getpid ());
 
     if (no_root)
         g_debug ("Running in user mode");
