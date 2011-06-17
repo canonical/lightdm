@@ -82,7 +82,7 @@ display_number_used (DisplayManager *manager, guint display_number)
     }
 
     /* In test mode there is probably another display manager running so see if the server exists */
-    if (getpid () != 0)
+    if (getuid () != 0)
     {
         xcb_connection_t *connection;
         gchar *address;
@@ -129,7 +129,7 @@ start_session (Display *display, Session *session, gboolean is_greeter, DisplayM
     XAuthorization *authorization;
 
     /* Connect using the session bus */
-    if (getpid () != 0)
+    if (getuid () != 0)
     {
         child_process_set_env (CHILD_PROCESS (session), "DBUS_SESSION_BUS_ADDRESS", getenv ("DBUS_SESSION_BUS_ADDRESS"));
         child_process_set_env (CHILD_PROCESS (session), "XDG_SESSION_COOKIE", getenv ("XDG_SESSION_COOKIE"));
@@ -244,7 +244,7 @@ get_vt (DisplayManager *manager, gchar *config_section)
 #endif
     int number = -1;
 
-    if (getpid () != 0)
+    if (getuid () != 0)
         return -1;
 
     vt = config_get_string (config_get_instance (), config_section, "vt");
@@ -406,7 +406,7 @@ add_display (DisplayManager *manager)
         display_set_session_wrapper (display, value);
     g_free (value);
 
-    if (getpid () != 0)
+    if (getuid () != 0)
         display_set_greeter_user (display, NULL);
 
     manager->priv->displays = g_list_append (manager->priv->displays, display);

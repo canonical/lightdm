@@ -121,7 +121,7 @@ xauth_write (XAuthorization *auth, const gchar *username, const gchar *path, GEr
     /* NOTE: Would like to do:
      * g_file_set_attribute_string (file, G_FILE_ATTRIBUTE_OWNER_USER, username, G_FILE_QUERY_INFO_NONE, NULL, error))
      * but not supported. */
-    if (username && getpid () == 0)
+    if (username && getuid () == 0)
     {
         User *user;
 

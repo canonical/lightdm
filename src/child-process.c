@@ -248,7 +248,7 @@ child_process_start (ChildProcess *process,
     {
         gint fd = g_open (process->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
         close (fd);
-        if (getpid () == 0 && chown (process->priv->log_file, user_get_uid (process->priv->user), user_get_gid (process->priv->user)) != 0)
+        if (getuid () == 0 && chown (process->priv->log_file, user_get_uid (process->priv->user), user_get_gid (process->priv->user)) != 0)
             g_warning ("Failed to set process log file ownership: %s", strerror (errno));
     }
 
