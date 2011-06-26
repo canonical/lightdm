@@ -8,17 +8,27 @@
 static void
 connected_cb (LdmGreeter *greeter)
 {  
-    gchar *username;
-
     notify_status ("GREETER CONNECTED-TO-DAEMON");
 
-    username = ldm_greeter_get_string_property (greeter, "username");
-    if (username && ldm_greeter_get_is_first (greeter))
+    if (ldm_greeter_get_is_first (greeter))
     {
-        notify_status ("GREETER LOGIN USERNAME=%s", username);
-        ldm_greeter_login (greeter, username);
+        gchar *username;
+
+        username = ldm_greeter_get_string_property (greeter, "username");
+
+        if (ldm_greeter_get_boolean_property (greeter, "login-guest"))
+        {
+            notify_status ("GREETER LOGIN-GUEST");
+            ldm_greeter_login_as_guest (greeter);
+        }
+        else if (username)
+        {
+          notify_status ("GREETER LOGIN USERNAME=%s", username);
+          ldm_greeter_login (greeter, username);
+        }
+
+        g_free (username);
     }
-    g_free (username);
 }
 
 static void

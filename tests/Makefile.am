@@ -8,7 +8,8 @@ TESTS = \
 	test-login-gobject-wrong-password \
 	test-login-gobject-invalid-user \
 	test-login-gobject-logout \
-	test-login-gobject-session-crash
+	test-login-gobject-session-crash \
+	test-login-gobject-guest
 
 EXTRA_DIST = \
 	$(TESTS) \
@@ -37,4 +38,6 @@ EXTRA_DIST = \
 	scripts/login-gobject-session-crash.script \
 	scripts/login-gobject-wrong-password.conf \
 	scripts/login-gobject-wrong-password.script \
+	scripts/login-gobject-guest.conf \
+	scripts/login-gobject-guest.script \
 	scripts/no-config.script

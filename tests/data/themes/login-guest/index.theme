@@ -1,0 +1,3 @@
+[theme]
+engine=test-gobject-greeter
+login-guest=true

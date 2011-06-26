@@ -1,4 +1,5 @@
 noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-session
+noinst_SCRIPTS = test-setup-guest test-cleanup-guest
 
 test_runner_CFLAGS = \
 	$(WARN_CFLAGS) \

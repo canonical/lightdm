@@ -298,6 +298,8 @@ src/Makefile
 tests/Makefile
 tests/data/passwd
 tests/src/Makefile
+tests/src/test-setup-guest
+tests/src/test-cleanup-guest
 themes/Makefile
 themes/example-gtk-gnome/Makefile
 themes/example-python-gtk-gnome/Makefile

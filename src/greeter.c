@@ -17,6 +17,7 @@
 #include "dmrc.h"
 #include "ldm-marshal.h"
 #include "greeter-protocol.h"
+#include "guest-account.h"
 
 /* Length of time in milliseconds to wait for a greeter to quit */
 #define GREETER_QUIT_TIMEOUT 1000
@@ -223,11 +224,19 @@ pam_messages_cb (PAMSession *session, int num_msg, const struct pam_message **ms
 }
 
 static void
-authenticate_result_cb (PAMSession *session, int result, Greeter *greeter)
+send_end_authentication (Greeter *greeter, int result)
 {
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
 
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_END_AUTHENTICATION, int_length (), &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, result, &offset);
+    write_message (greeter, message, offset); 
+}
+
+static void
+authenticate_result_cb (PAMSession *session, int result, Greeter *greeter)
+{
     g_debug ("Authenticate result for user %s: %s", pam_session_get_username (greeter->priv->pam_session), pam_session_strerror (greeter->priv->pam_session, result));
 
     if (result == PAM_SUCCESS)
@@ -237,68 +246,64 @@ authenticate_result_cb (PAMSession *session, int result, Greeter *greeter)
         pam_session_authorize (session);
     }
 
-    /* Respond to D-Bus request */
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_END_AUTHENTICATION, int_length (), &offset);
-    write_int (message, MAX_MESSAGE_LENGTH, result, &offset);   
-    write_message (greeter, message, offset);
+    send_end_authentication (greeter, result);
+}
+
+static void
+start_authentication (Greeter *greeter, PAMSession *session)
+{
+    GError *error = NULL;
+
+    // FIXME
+    //if (greeter->priv->user_session)
+    //    return;
+
+    /* Abort existing authentication */
+    if (greeter->priv->pam_session)
+    {
+        g_signal_handlers_disconnect_matched (greeter->priv->pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
+        pam_session_end (greeter->priv->pam_session);
+        g_object_unref (greeter->priv->pam_session);
+    }
+    greeter->priv->pam_session = session;
+
+    g_signal_connect (G_OBJECT (greeter->priv->pam_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
+    g_signal_connect (G_OBJECT (greeter->priv->pam_session), "authentication-result", G_CALLBACK (authenticate_result_cb), greeter);
+
+    if (!pam_session_start (greeter->priv->pam_session, &error))
+    {
+        g_warning ("Failed to start authentication: %s", error->message);
+        send_end_authentication (greeter, PAM_SYSTEM_ERR);
+    }
 }
 
 static void
 handle_login (Greeter *greeter, const gchar *username)
 {
-    GError *error = NULL;
-
-    // FIXME
-    //if (greeter->priv->user_session)
-    //    return;
-
-    /* Abort existing authentication */
-    if (greeter->priv->pam_session)
-    {
-        g_signal_handlers_disconnect_matched (greeter->priv->pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
-        pam_session_end (greeter->priv->pam_session);
-        g_object_unref (greeter->priv->pam_session);
-    }
-
     g_debug ("Greeter start authentication for %s", username);
-
-    greeter->priv->pam_session = pam_session_new ("lightdm"/*FIXMEgreeter->priv->pam_service*/, username);
-    g_signal_connect (G_OBJECT (greeter->priv->pam_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
-    g_signal_connect (G_OBJECT (greeter->priv->pam_session), "authentication-result", G_CALLBACK (authenticate_result_cb), greeter);
-
-    if (!pam_session_start (greeter->priv->pam_session, &error))
-        g_warning ("Failed to start authentication: %s", error->message);
+    start_authentication (greeter, pam_session_new ("lightdm"/*FIXMEgreeter->priv->pam_service*/, username));
 }
 
 static void
 handle_login_as_guest (Greeter *greeter)
 {
-#if 0
-    GError *error = NULL;
-
-    // FIXME
-    //if (greeter->priv->user_session)
-    //    return;
-
-    /* Abort existing authentication */
-    if (greeter->priv->pam_session)
-    {
-        g_signal_handlers_disconnect_matched (greeter->priv->pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
-        pam_session_end (greeter->priv->pam_session);
-        g_object_unref (greeter->priv->pam_session);
-    }
-  
-    // FIXME: Create guest account
-
     g_debug ("Greeter start authentication for guest account");
 
-    greeter->priv->pam_session = pam_session_new ("lightdm"/*FIXMEgreeter->priv->pam_service*/, username);
-    g_signal_connect (G_OBJECT (greeter->priv->pam_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
-    g_signal_connect (G_OBJECT (greeter->priv->pam_session), "authentication-result", G_CALLBACK (authenticate_result_cb), greeter);
+    if (!guest_account_get_is_enabled (guest_account_get_instance ()))
+    {
+        g_debug ("Guest account is disabled");
+        send_end_authentication (greeter, PAM_USER_UNKNOWN);
+        return;
+    }
 
-    if (!pam_session_start (greeter->priv->pam_session, &error))
-        g_warning ("Failed to start authentication: %s", error->message);
-#endif
+    if (!guest_account_setup (guest_account_get_instance ()))
+    {
+        g_debug ("Unable to create guest account");
+        send_end_authentication (greeter, PAM_USER_UNKNOWN);
+        return;
+    }
+
+    start_authentication (greeter, pam_session_new ("lightdm"/*FIXMEgreeter->priv->pam_service*/, guest_account_get_username (guest_account_get_instance ())));
 }
 
 static void

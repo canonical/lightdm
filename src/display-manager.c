@@ -26,7 +26,6 @@
 #include "display-manager.h"
 #include "configuration.h"
 #include "user.h"
-#include "guest-manager.h"
 #include "xdmcp-server.h"
 #include "xserver.h"
 #include "theme.h"
