@@ -277,7 +277,7 @@ dnl ###########################################################################
 dnl Files to generate
 dnl ###########################################################################
 
-AC_OUTPUT([
+AC_CONFIG_FILES([
 Makefile
 data/Makefile
 data/init/Makefile
@@ -305,7 +305,9 @@ themes/example-gtk-gnome/Makefile
 themes/example-python-gtk-gnome/Makefile
 themes/example-qt-kde/Makefile
 themes/example-vala-gtk-gnome/Makefile
-])
+],
+[chmod +x tests/src/test-setup-guest tests/src/test-cleanup-guest])
+AC_OUTPUT
 
 dnl ###########################################################################
 dnl Summary

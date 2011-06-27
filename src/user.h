@@ -35,6 +35,8 @@ typedef struct
 
 GType user_get_type (void);
 
+void user_set_use_pam (void);
+
 void user_set_use_passwd_file (gchar *passwd_file);
 
 User *user_get_by_name (const gchar *username);

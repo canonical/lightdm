@@ -39,8 +39,7 @@ struct UserPrivate
 
 G_DEFINE_TYPE (User, user, G_TYPE_OBJECT);
 
-static gboolean use_fake_users = FALSE;
-static GList *fake_users = NULL;
+static gchar *passwd_file = NULL;
 
 static User *
 user_from_passwd (struct passwd *user_info)
@@ -59,20 +58,32 @@ user_from_passwd (struct passwd *user_info)
 }
 
 void
-user_set_use_passwd_file (gchar *passwd_file)
+user_set_use_pam (void)
 {
+    user_set_use_passwd_file (NULL);
+}
+
+void
+user_set_use_passwd_file (gchar *passwd_file_)
+{
+    g_free (passwd_file);
+    passwd_file = g_strdup (passwd_file_);
+}
+
+static GList *
+load_passwd_file ()
+{
+    GList *users = NULL;
     gchar *data = NULL, **lines;
     gint i;
     GError *error = NULL;
 
-    use_fake_users = TRUE;
-
     if (!g_file_get_contents (passwd_file, &data, NULL, &error))
         g_warning ("Error loading passwd file: %s", error->message);
     g_clear_error (&error);
-  
+
     if (!data)
-        return;
+        return users;
 
     lines = g_strsplit (data, "\n", -1);
     g_free (data);
@@ -92,11 +103,13 @@ user_set_use_passwd_file (gchar *passwd_file)
             user->priv->gecos = g_strdup (fields[4]);
             user->priv->home_directory = g_strdup (fields[5]);
             user->priv->shell = g_strdup (fields[6]);
-            fake_users = g_list_append (fake_users, user);
+            users = g_list_append (users, user);
         }
         g_strfreev (fields);
     }
     g_strfreev (lines);
+
+    return users;
 }
 
 User *
@@ -105,10 +118,12 @@ user_get_by_name (const gchar *username)
     User *user = NULL;
 
     errno = 0;
-    if (use_fake_users)
+    if (passwd_file)
     {
-        GList *iter;
-        for (iter = fake_users; iter; iter = iter->next)
+        GList *users, *iter;
+
+        users = load_passwd_file ();
+        for (iter = users; iter; iter = iter->next)
         {
             User *u = iter->data;
             if (strcmp (u->priv->name, username) == 0)
@@ -117,6 +132,7 @@ user_get_by_name (const gchar *username)
                 break;
             }
         }
+        g_list_free_full (users, g_object_unref);
     }
     else
     {
@@ -139,10 +155,12 @@ user_get_by_uid (uid_t uid)
     User *user = NULL;
 
     errno = 0;
-    if (use_fake_users)
+    if (passwd_file)
     {
-        GList *iter;
-        for (iter = fake_users; iter; iter = iter->next)
+        GList *users, *iter;
+
+        users = load_passwd_file ();
+        for (iter = users; iter; iter = iter->next)
         {
             User *u = iter->data;
             if (u->priv->uid == uid)
@@ -151,6 +169,7 @@ user_get_by_uid (uid_t uid)
                 break;
             }
         }
+        g_list_free_full (users, g_object_unref);
     }
     else
     {
