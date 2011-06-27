@@ -14,6 +14,10 @@
 
 struct GuestAccountPrivate
 {
+    /* Reference count */
+    gint ref_count;
+
+    /* Username of opened guest account */
     gchar *username;
 };
 
@@ -61,13 +65,20 @@ run_script (const gchar *script, gchar **stdout_text, gint *exit_status, GError 
 }
 
 gboolean
-guest_account_setup (GuestAccount *account)
+guest_account_ref (GuestAccount *account)
 {
     gchar *setup_script;
     gchar *stdout_text = NULL;
     gint exit_status;
     gboolean result;
     GError *error = NULL;
+
+    /* If already opened then no action required */
+    if (account->priv->ref_count > 0)
+    {
+        account->priv->ref_count++;
+        return TRUE;
+    }
 
     if (!guest_account_get_is_enabled (account))
         return FALSE;
@@ -100,33 +111,45 @@ guest_account_setup (GuestAccount *account)
 
     g_free (stdout_text);
 
-    return result;
+    if (result)
+    {
+        account->priv->ref_count++;
+        return TRUE;
+    }
+    else
+        return FALSE;
 }
 
 void
-guest_account_cleanup (GuestAccount *account)
+guest_account_unref (GuestAccount *account)
 {
     gchar *cleanup_script;
-    gint exit_status;
-    GError *error = NULL;
 
-    if (!guest_account_get_is_enabled (account))
+    g_return_if_fail (account->priv->ref_count > 0);
+
+    account->priv->ref_count--;
+    if (account->priv->ref_count > 0)
         return;
 
     cleanup_script = config_get_string (config_get_instance (), "GuestAccount", "cleanup-script");
-    if (!cleanup_script)
-        return;
-
-    g_debug ("Closing guest account with script %s", cleanup_script);
-
-    if (run_script (cleanup_script, NULL, &exit_status, &error))
+    if (cleanup_script)
     {
-        if (exit_status != 0)
-            g_warning ("Guest account cleanup script returns %d", exit_status);
+        gint exit_status;
+        GError *error = NULL;
+
+        g_debug ("Closing guest account with script %s", cleanup_script);
+
+        if (run_script (cleanup_script, NULL, &exit_status, &error))
+        {
+            if (exit_status != 0)
+                g_warning ("Guest account cleanup script returns %d", exit_status);
+        }
+        else
+            g_warning ("Error running guest account cleanup script '%s': %s", cleanup_script, error->message);
+        g_clear_error (&error);
     }
     else
-        g_warning ("Error running guest account cleanup script '%s': %s", cleanup_script, error->message);
-    g_clear_error (&error);
+        g_debug ("Closing guest account");
 
     g_free (cleanup_script);
 }

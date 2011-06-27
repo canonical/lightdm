@@ -59,7 +59,10 @@ struct GreeterPrivate
     guint quit_timeout;
 
     /* PAM session being constructed by the greeter */
-    PAMSession *pam_session;    
+    PAMSession *pam_session;
+
+    /* TRUE if logging into guest session */
+    gboolean using_guest_account;
 };
 
 G_DEFINE_TYPE (Greeter, greeter, SESSION_TYPE);
@@ -249,6 +252,21 @@ authenticate_result_cb (PAMSession *session, int result, Greeter *greeter)
 }
 
 static void
+reset_session (Greeter *greeter)
+{
+    if (greeter->priv->pam_session == NULL)
+        return;
+
+    g_signal_handlers_disconnect_matched (greeter->priv->pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
+    pam_session_end (greeter->priv->pam_session);
+    g_object_unref (greeter->priv->pam_session);
+
+    if (greeter->priv->using_guest_account)
+        guest_account_unref (guest_account_get_instance ());
+    greeter->priv->using_guest_account = FALSE;
+}
+
+static void
 start_authentication (Greeter *greeter, PAMSession *session)
 {
     GError *error = NULL;
@@ -257,13 +275,6 @@ start_authentication (Greeter *greeter, PAMSession *session)
     //if (greeter->priv->user_session)
     //    return;
 
-    /* Abort existing authentication */
-    if (greeter->priv->pam_session)
-    {
-        g_signal_handlers_disconnect_matched (greeter->priv->pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
-        pam_session_end (greeter->priv->pam_session);
-        g_object_unref (greeter->priv->pam_session);
-    }
     greeter->priv->pam_session = session;
 
     g_signal_connect (G_OBJECT (greeter->priv->pam_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
@@ -280,6 +291,8 @@ static void
 handle_login (Greeter *greeter, const gchar *username)
 {
     g_debug ("Greeter start authentication for %s", username);
+    reset_session (greeter);
+    greeter->priv->using_guest_account = FALSE;
     start_authentication (greeter, pam_session_new ("lightdm"/*FIXMEgreeter->priv->pam_service*/, username));
 }
 
@@ -288,6 +301,8 @@ handle_login_as_guest (Greeter *greeter)
 {
     g_debug ("Greeter start authentication for guest account");
 
+    reset_session (greeter);
+
     if (!guest_account_get_is_enabled (guest_account_get_instance ()))
     {
         g_debug ("Guest account is disabled");
@@ -295,12 +310,13 @@ handle_login_as_guest (Greeter *greeter)
         return;
     }
 
-    if (!guest_account_setup (guest_account_get_instance ()))
+    if (!guest_account_ref (guest_account_get_instance ()))
     {
         g_debug ("Unable to create guest account");
         send_end_authentication (greeter, PAM_USER_UNKNOWN);
         return;
     }
+    greeter->priv->using_guest_account = TRUE;
 
     start_authentication (greeter, pam_session_new ("lightdm"/*FIXMEgreeter->priv->pam_service*/, guest_account_get_username (guest_account_get_instance ())));
 }
@@ -627,12 +643,14 @@ greeter_finalize (GObject *object)
     Greeter *self;
 
     self = GREETER (object);
-  
+
     g_free (self->priv->read_buffer);
     g_free (self->priv->theme);
     g_free (self->priv->default_session);
     g_free (self->priv->default_user);
-  
+    if (self->priv->using_guest_account)
+        guest_account_unref (guest_account_get_instance ());
+
     G_OBJECT_CLASS (greeter_parent_class)->finalize (object);
 }
 

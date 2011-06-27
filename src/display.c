@@ -22,6 +22,7 @@
 #include "theme.h"
 #include "ldm-marshal.h"
 #include "greeter.h"
+#include "guest-account.h"
 
 /* Length of time in milliseconds to wait for a session to load */
 #define USER_SESSION_TIMEOUT 5000
@@ -467,6 +468,10 @@ user_session_stopped_cb (Session *session, Display *display)
 {
     g_signal_handlers_disconnect_matched (display->priv->user_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
 
+    /* If a guest account, remove the account on exit */
+    if (g_strcmp0 (user_get_name (session_get_user (session)), guest_account_get_username (guest_account_get_instance ())) == 0)
+        guest_account_unref (guest_account_get_instance ());
+
     g_object_unref (display->priv->user_session);
     display->priv->user_session = NULL;
     check_stopped (display);
@@ -516,6 +521,8 @@ set_env_from_keyfile (Session *session, const gchar *name, GKeyFile *key_file, c
 static gboolean
 really_start_user_session (Display *display)
 {
+    gboolean result;
+
     g_debug ("Starting user session");
 
     /* Open ConsoleKit session */
@@ -525,7 +532,13 @@ really_start_user_session (Display *display)
 
     g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
 
-    return session_start (display->priv->user_session, FALSE);
+    result = session_start (display->priv->user_session, FALSE);
+
+    /* If a guest account, remove the account on exit */
+    if (result && g_strcmp0 (user_get_name (session_get_user (display->priv->user_session)), guest_account_get_username (guest_account_get_instance ())) == 0)
+        guest_account_ref (guest_account_get_instance ());
+
+    return result;
 }
 
 static gboolean

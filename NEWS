@@ -1,6 +1,7 @@
 Overview of changes in lightdm 0.4.1
 
     * Fix linking issue with -z,defs
+    * Added guest account support
 
 Overview of changes in lightdm 0.4.0
 

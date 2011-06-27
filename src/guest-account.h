@@ -40,9 +40,9 @@ gboolean guest_account_get_is_enabled (GuestAccount *account);
 
 const gchar *guest_account_get_username (GuestAccount *account);
 
-gboolean guest_account_setup (GuestAccount *account);
+gboolean guest_account_ref (GuestAccount *account);
 
-void guest_account_cleanup (GuestAccount *account);
+void guest_account_unref (GuestAccount *account);
 
 G_END_DECLS
 
