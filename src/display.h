@@ -34,11 +34,12 @@ typedef struct
 {
     GObjectClass parent_class;
   
+    void (*started)(Display *display);
     void (*start_greeter)(Display *display, Session *session);
     void (*end_greeter)(Display *display, Session *session);  
     void (*start_session)(Display *display, Session *session);
     void (*end_session)(Display *display, Session *session);
-    void (*exited)(Display *display);
+    void (*stopped)(Display *display);
 } DisplayClass;
 
 GType display_get_type (void);
@@ -90,6 +91,8 @@ void display_set_vt (Display *display, gint vt);
 gint display_get_vt (Display *display);
 
 gboolean display_start (Display *display);
+
+void display_stop (Display *display);
 
 G_END_DECLS
 

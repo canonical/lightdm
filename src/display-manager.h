@@ -32,7 +32,9 @@ typedef struct
 {
     GObjectClass parent_class;
 
+    void (*started)(DisplayManager *manager);
     void (*display_added)(DisplayManager *manager, Display *display);
+    void (*stopped)(DisplayManager *manager);
 } DisplayManagerClass;
 
 GType display_manager_get_type (void);
@@ -46,6 +48,8 @@ void display_manager_switch_to_user (DisplayManager *manager, char *username);
 void display_manager_switch_to_guest (DisplayManager *manager);
 
 void display_manager_start (DisplayManager *manager);
+
+void display_manager_stop (DisplayManager *manager);
 
 G_END_DECLS
 

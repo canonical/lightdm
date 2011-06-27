@@ -33,10 +33,12 @@ typedef struct
 typedef struct
 {
     GObjectClass parent_class;
+    void (*started)(ChildProcess *process);
     void (*got_data)(ChildProcess *process);
     void (*got_signal)(ChildProcess *process, int signum);
     void (*exited)(ChildProcess *process, int status);
-    void (*terminated) (ChildProcess *process, int signum);
+    void (*terminated)(ChildProcess *process, int signum);
+    void (*stopped)(ChildProcess *process);
 } ChildProcessClass;
 
 GType child_process_get_type (void);
@@ -66,7 +68,9 @@ GIOChannel *child_process_get_to_child_channel (ChildProcess *process);
 
 GIOChannel *child_process_get_from_child_channel (ChildProcess *process);
 
-void child_process_stop_all (void);
+void child_process_stop (ChildProcess *process);
+
+//void child_process_stop_all (void);
 
 G_END_DECLS
 

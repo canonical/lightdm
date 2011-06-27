@@ -24,7 +24,6 @@
 
 enum {
     START_SESSION,
-    QUIT,
     LAST_SIGNAL
 };
 static guint signals[LAST_SIGNAL] = { 0 };
@@ -598,8 +597,6 @@ end_session (Greeter *greeter, gboolean clean_exit)
         return;*/
 
     // FIXME: Issue with greeter, don't want to start a new one, report error to user
-
-    g_signal_emit (greeter, signals[QUIT], 0);
 }
 
 static void
@@ -654,14 +651,6 @@ greeter_class_init (GreeterClass *klass)
                       NULL, NULL,
                       ldm_marshal_VOID__STRING_STRING,
                       G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_STRING);
-    signals[QUIT] =
-        g_signal_new ("quit",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (GreeterClass, quit),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
 
     g_type_class_add_private (klass, sizeof (GreeterPrivate));
 }

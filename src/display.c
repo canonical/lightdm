@@ -27,11 +27,12 @@
 #define USER_SESSION_TIMEOUT 5000
 
 enum {
+    STARTED,
     START_GREETER,
     END_GREETER,
     START_SESSION,
     END_SESSION,
-    EXITED,
+    STOPPED,
     LAST_SIGNAL
 };
 static guint signals[LAST_SIGNAL] = { 0 };
@@ -93,6 +94,9 @@ struct DisplayPrivate
 
     /* Default session */
     gchar *default_session;
+
+    /* TRUE if stopping the display (waiting for xserver, greeter and session to stop) */
+    gboolean stopping;    
 };
 
 G_DEFINE_TYPE (Display, display, G_TYPE_OBJECT);
@@ -416,9 +420,6 @@ end_user_session (Display *display, gboolean clean_exit)
         display->priv->user_session_timer = 0;
     }
 
-    g_object_unref (display->priv->user_session);
-    display->priv->user_session = NULL;
-
     pam_session_end (display->priv->user_pam_session);
     g_object_unref (display->priv->user_pam_session);
     display->priv->user_pam_session = NULL;
@@ -437,13 +438,38 @@ end_user_session (Display *display, gboolean clean_exit)
 static void
 user_session_exited_cb (Session *session, gint status, Display *display)
 {
-    end_user_session (display, status == 0);
+    if (!display->priv->stopping)
+        end_user_session (display, status == 0);
 }
 
 static void
 user_session_terminated_cb (Session *session, gint signum, Display *display)
 {
-    end_user_session (display, FALSE);
+    if (!display->priv->stopping)
+        end_user_session (display, FALSE);
+}
+
+static void
+check_stopped (Display *display)
+{
+    if (display->priv->stopping &&
+        display->priv->xserver == NULL &&        
+        display->priv->greeter_session == NULL &&
+        display->priv->user_session == NULL)
+    {
+        g_debug ("Display stopped");
+        g_signal_emit (display, signals[STOPPED], 0);
+    }
+}
+
+static void
+user_session_stopped_cb (Session *session, Display *display)
+{
+    g_signal_handlers_disconnect_matched (display->priv->user_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
+
+    g_object_unref (display->priv->user_session);
+    display->priv->user_session = NULL;
+    check_stopped (display);
 }
 
 static void
@@ -575,6 +601,7 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
     display->priv->user_session = session_new ();
     g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
     g_signal_connect (G_OBJECT (display->priv->user_session), "terminated", G_CALLBACK (user_session_terminated_cb), display);
+    g_signal_connect (G_OBJECT (display->priv->user_session), "stopped", G_CALLBACK (user_session_stopped_cb), display);
 
     session_set_user (display->priv->user_session, user);
     session_set_command (display->priv->user_session, session_command);
@@ -689,7 +716,7 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session, const gchar *l
 }
 
 static void
-greeter_quit_cb (Greeter *greeter, Display *display)
+greeter_stopped_cb (Greeter *greeter, Display *display)
 {
     g_debug ("Greeter quit");
 
@@ -699,16 +726,24 @@ greeter_quit_cb (Greeter *greeter, Display *display)
     g_object_unref (display->priv->greeter_pam_session);
     display->priv->greeter_pam_session = NULL;
 
-    g_object_unref (display->priv->greeter_session);
-    display->priv->greeter_session = NULL;
-
     end_ck_session (display->priv->greeter_ck_cookie);
     g_free (display->priv->greeter_ck_cookie);
     display->priv->greeter_ck_cookie = NULL;   
 
-    /* Start session if waiting for greeter to quit */
-    if (display->priv->user_session && child_process_get_pid (CHILD_PROCESS (display->priv->user_session)) == 0)
-        really_start_user_session (display);
+    g_signal_handlers_disconnect_matched (display->priv->greeter_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
+    g_object_unref (display->priv->greeter_session);
+    display->priv->greeter_session = NULL;
+  
+    if (display->priv->stopping)
+    {
+        check_stopped (display);
+    }
+    else
+    {
+        /* Start session if waiting for greeter to quit */
+        if (display->priv->user_session && child_process_get_pid (CHILD_PROCESS (display->priv->user_session)) == 0)
+            really_start_user_session (display);
+    }
 }
 
 static gboolean
@@ -751,7 +786,7 @@ start_greeter (Display *display)
     greeter_set_default_user (display->priv->greeter_session, display->priv->default_user, display->priv->timeout);
     greeter_set_default_session (display->priv->greeter_session, display->priv->default_session);
     g_signal_connect (G_OBJECT (display->priv->greeter_session), "start-session", G_CALLBACK (greeter_start_session_cb), display);
-    g_signal_connect (G_OBJECT (display->priv->greeter_session), "quit", G_CALLBACK (greeter_quit_cb), display);
+    g_signal_connect (G_OBJECT (display->priv->greeter_session), "stopped", G_CALLBACK (greeter_stopped_cb), display);
     session_set_user (SESSION (display->priv->greeter_session), user);
     command = theme_get_command (theme);
     session_set_command (SESSION (display->priv->greeter_session), command);
@@ -772,26 +807,28 @@ start_greeter (Display *display)
 }
 
 static void
-end_display (Display *display)
-{
-    g_object_unref (display->priv->xserver);
-    display->priv->xserver = NULL;
-    g_signal_emit (display, signals[EXITED], 0);
-}
-
-static void
 xserver_exit_cb (XServer *server, int status, Display *display)
 {
     if (status != 0)
         g_debug ("X server exited with value %d", status);
-    end_display (display);
 }
 
 static void
 xserver_terminate_cb (XServer *server, int signum, Display *display)
 {
     g_debug ("X server terminated with signal %d", signum);
-    end_display (display);
+}
+
+static void
+xserver_stopped_cb (XServer *server, Display *display)
+{
+    g_signal_handlers_disconnect_matched (display->priv->xserver, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
+    g_object_unref (display->priv->xserver);
+    display->priv->xserver = NULL;
+
+    // FIXME: Should restart xserver
+
+    check_stopped (display);
 }
 
 static void
@@ -824,13 +861,35 @@ xserver_ready_cb (XServer *xserver, Display *display)
 gboolean
 display_start (Display *display)
 {
+    gboolean result;
+
     g_return_val_if_fail (display != NULL, FALSE);
     g_return_val_if_fail (display->priv->xserver != NULL, FALSE);
 
     g_signal_connect (G_OBJECT (display->priv->xserver), "ready", G_CALLBACK (xserver_ready_cb), display);
     g_signal_connect (G_OBJECT (display->priv->xserver), "exited", G_CALLBACK (xserver_exit_cb), display);
+    g_signal_connect (G_OBJECT (display->priv->xserver), "stopped", G_CALLBACK (xserver_stopped_cb), display);
     g_signal_connect (G_OBJECT (display->priv->xserver), "terminated", G_CALLBACK (xserver_terminate_cb), display);
-    return xserver_start (display->priv->xserver);
+    result = xserver_start (display->priv->xserver);
+  
+    g_signal_emit (display, signals[STARTED], 0);
+
+    return result;
+}
+
+void
+display_stop (Display *display)
+{
+    g_debug ("Stopping display");
+
+    display->priv->stopping = TRUE;
+
+    if (display->priv->xserver)
+        child_process_stop (CHILD_PROCESS (display->priv->xserver));
+    if (display->priv->greeter_session)
+        child_process_stop (CHILD_PROCESS (display->priv->greeter_session));
+    if (display->priv->user_session)
+        child_process_stop (CHILD_PROCESS (display->priv->user_session));
 }
 
 static void
@@ -886,6 +945,14 @@ display_class_init (DisplayClass *klass)
 
     g_type_class_add_private (klass, sizeof (DisplayPrivate));
 
+    signals[STARTED] =
+        g_signal_new ("started",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (DisplayClass, started),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
     signals[START_GREETER] =
         g_signal_new ("start-greeter",
                       G_TYPE_FROM_CLASS (klass),
@@ -894,7 +961,6 @@ display_class_init (DisplayClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__OBJECT,
                       G_TYPE_NONE, 1, SESSION_TYPE);
-
     signals[END_GREETER] =
         g_signal_new ("end-greeter",
                       G_TYPE_FROM_CLASS (klass),
@@ -903,7 +969,6 @@ display_class_init (DisplayClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__OBJECT,
                       G_TYPE_NONE, 1, SESSION_TYPE);
-  
     signals[START_SESSION] =
         g_signal_new ("start-session",
                       G_TYPE_FROM_CLASS (klass),
@@ -912,7 +977,6 @@ display_class_init (DisplayClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__OBJECT,
                       G_TYPE_NONE, 1, SESSION_TYPE);
-
     signals[END_SESSION] =
         g_signal_new ("end-session",
                       G_TYPE_FROM_CLASS (klass),
@@ -921,12 +985,11 @@ display_class_init (DisplayClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__OBJECT,
                       G_TYPE_NONE, 1, SESSION_TYPE);
-
-    signals[EXITED] =
-        g_signal_new ("exited",
+    signals[STOPPED] =
+        g_signal_new ("stopped",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (DisplayClass, exited),
+                      G_STRUCT_OFFSET (DisplayClass, stopped),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);

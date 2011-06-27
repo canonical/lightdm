@@ -22,10 +22,12 @@
 #include "child-process.h"
 
 enum {
+    STARTED,
     GOT_DATA,
     GOT_SIGNAL,  
     EXITED,
     TERMINATED,
+    STOPPED,
     LAST_SIGNAL
 };
 static guint signals[LAST_SIGNAL] = { 0 };
@@ -45,6 +47,9 @@ struct ChildProcessPrivate
     GIOChannel *to_child_channel;
     GIOChannel *from_child_channel;
 
+    /* Timeout waiting for process to quit */
+    guint quit_timeout;
+
     /* Process ID */
     GPid pid;
 };
@@ -54,7 +59,6 @@ G_DEFINE_TYPE (ChildProcess, child_process, G_TYPE_OBJECT);
 static ChildProcess *parent_process = NULL;
 static GHashTable *processes = NULL;
 static int signal_pipe[2];
-static gboolean stopping = FALSE;
 
 ChildProcess *
 child_process_get_parent (void)
@@ -116,12 +120,13 @@ child_process_watch_cb (GPid pid, gint status, gpointer data)
         g_signal_emit (process, signals[TERMINATED], 0, WTERMSIG (status));
     }
 
+    if (process->priv->quit_timeout)
+        g_source_remove (process->priv->quit_timeout);
+    process->priv->quit_timeout = 0;  
     process->priv->pid = 0;
     g_hash_table_remove (processes, GINT_TO_POINTER (pid));
 
-    /* Stop when all processes quit */
-    if (stopping && g_hash_table_size (processes) == 0)
-        exit (EXIT_SUCCESS);
+    g_signal_emit (process, signals[STOPPED], 0);
 }
 
 static void
@@ -325,6 +330,8 @@ child_process_start (ChildProcess *process,
     g_hash_table_insert (processes, GINT_TO_POINTER (process->priv->pid), g_object_ref (process));
     g_child_watch_add (process->priv->pid, child_process_watch_cb, process);
 
+    g_signal_emit (process, signals[STARTED], 0);  
+
     return TRUE;
 }
 
@@ -363,24 +370,20 @@ child_process_get_from_child_channel (ChildProcess *process)
     return process->priv->from_child_channel;
 }
 
-void
-child_process_stop_all (void)
+static gboolean
+quit_timeout_cb (ChildProcess *process)
 {
-    GHashTableIter iter;
-    gpointer key, value;
+    process->priv->quit_timeout = 0;
+    child_process_signal (process, SIGKILL);
+    return FALSE;
+}
 
-    stopping = TRUE;
-
-    /* If no processes, then just quit */
-    if (g_hash_table_size (processes) == 0)
-        exit (EXIT_SUCCESS);
-
-    g_hash_table_iter_init (&iter, processes);
-    while (g_hash_table_iter_next (&iter, &key, &value))
-    {
-        ChildProcess *process = (ChildProcess *)value;
-        child_process_signal (process, SIGTERM);
-    }
+void
+child_process_stop (ChildProcess *process)
+{
+    /* Send SIGTERM, and then SIGKILL if no response */
+    process->priv->quit_timeout = g_timeout_add (5000, (GSourceFunc) quit_timeout_cb, process);
+    child_process_signal (process, SIGTERM);
 }
 
 static void
@@ -455,6 +458,14 @@ child_process_class_init (ChildProcessClass *klass)
 
     g_type_class_add_private (klass, sizeof (ChildProcessPrivate));
 
+    signals[STARTED] =
+        g_signal_new ("started",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (ChildProcessClass, started),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0); 
     signals[GOT_DATA] =
         g_signal_new ("got-data",
                       G_TYPE_FROM_CLASS (klass),
@@ -487,6 +498,14 @@ child_process_class_init (ChildProcessClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__INT,
                       G_TYPE_NONE, 1, G_TYPE_INT);
+    signals[STOPPED] =
+        g_signal_new ("stopped",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (ChildProcessClass, stopped),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
 
     /* Catch signals and feed them to the main loop via a pipe */
     processes = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_object_unref);

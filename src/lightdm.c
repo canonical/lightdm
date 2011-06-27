@@ -105,8 +105,15 @@ static void
 signal_cb (ChildProcess *process, int signum)
 {
     /* Quit when all child processes have ended */
-    g_debug ("Caught %s signal, exiting", g_strsignal (signum));
-    child_process_stop_all ();
+    g_debug ("Caught %s signal, shutting down", g_strsignal (signum));
+    display_manager_stop (display_manager);
+}
+
+static void
+display_manager_stopped_cb (DisplayManager *display_manager)
+{
+    g_debug ("All processes complete, exiting");
+    exit (EXIT_SUCCESS);
 }
 
 static void
@@ -431,6 +438,7 @@ main(int argc, char **argv)
     g_debug ("Loaded configuration from %s", config_path);
 
     display_manager = display_manager_new ();
+    g_signal_connect (display_manager, "stopped", G_CALLBACK (display_manager_stopped_cb), NULL);
 
     display_manager_start (display_manager);
 
