@@ -59,3 +59,5 @@ tests/src/test-gobject-greeter
 tests/src/test-runner
 tests/src/test-session
 tests/src/test-xserver
+tests/src/test-cleanup-guest
+tests/src/test-setup-guest

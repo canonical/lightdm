@@ -9,7 +9,11 @@ TESTS = \
 	test-login-gobject-invalid-user \
 	test-login-gobject-logout \
 	test-login-gobject-session-crash \
-	test-login-gobject-guest
+	test-login-gobject-guest \
+	test-login-gobject-guest-no-config \
+	test-login-gobject-guest-disabled \
+	test-login-gobject-guest-no-setup-script \
+	test-login-gobject-guest-fail-setup-script
 
 EXTRA_DIST = \
 	$(TESTS) \
