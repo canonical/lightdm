@@ -2,7 +2,6 @@ SUBDIRS = src
 
 TESTS = \
 	test-headless \
-	test-no-config \
 	test-autologin \
 	test-login-gobject \
 	test-login-gobject-wrong-password \
@@ -14,6 +13,10 @@ TESTS = \
 	test-login-gobject-guest-disabled \
 	test-login-gobject-guest-no-setup-script \
 	test-login-gobject-guest-fail-setup-script
+
+# Disable no-config script, we can't specify display numbers currently so it
+# conflicts with an existing running X server
+#	test-no-config
 
 EXTRA_DIST = \
 	$(TESTS) \
