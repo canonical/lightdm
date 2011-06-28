@@ -12,37 +12,22 @@
 #include "guest-account.h"
 #include "configuration.h"
 
-struct GuestAccountPrivate
-{
-    /* Reference count */
-    gint ref_count;
+/* Reference count */
+static gint ref_count;
 
-    /* Username of opened guest account */
-    gchar *username;
-};
-
-G_DEFINE_TYPE (GuestAccount, guest_account, G_TYPE_OBJECT);
-
-static GuestAccount *guest_account_instance = NULL;
-
-GuestAccount *
-guest_account_get_instance ()
-{
-    if (!guest_account_instance)
-        guest_account_instance = g_object_new (GUEST_ACCOUNT_TYPE, NULL);
-    return guest_account_instance;
-}
+/* Username of opened guest account */
+static gchar *username = NULL;
 
 gboolean
-guest_account_get_is_enabled (GuestAccount *account)
+guest_account_get_is_enabled ()
 {
     return config_get_boolean (config_get_instance (), "GuestAccount", "enabled");
 }
 
 const gchar *
-guest_account_get_username (GuestAccount *account)
+guest_account_get_username ()
 {
-    return account->priv->username;
+    return username;
 }
 
 static gboolean
@@ -65,7 +50,7 @@ run_script (const gchar *script, gchar **stdout_text, gint *exit_status, GError 
 }
 
 gboolean
-guest_account_ref (GuestAccount *account)
+guest_account_ref ()
 {
     gchar *setup_script;
     gchar *stdout_text = NULL;
@@ -74,13 +59,13 @@ guest_account_ref (GuestAccount *account)
     GError *error = NULL;
 
     /* If already opened then no action required */
-    if (account->priv->ref_count > 0)
+    if (ref_count > 0)
     {
-        account->priv->ref_count++;
+        ref_count++;
         return TRUE;
     }
 
-    if (!guest_account_get_is_enabled (account))
+    if (!guest_account_get_is_enabled ())
         return FALSE;
 
     setup_script = config_get_string (config_get_instance (), "GuestAccount", "setup-script");
@@ -104,16 +89,16 @@ guest_account_ref (GuestAccount *account)
     }
     else
     {
-        g_free (account->priv->username);
-        account->priv->username = g_strdup (g_strstrip (stdout_text));
-        g_debug ("Guest account setup with username '%s'", account->priv->username);
+        g_free (username);
+        username = g_strdup (g_strstrip (stdout_text));
+        g_debug ("Guest account setup with username '%s'", username);
     }
 
     g_free (stdout_text);
 
     if (result)
     {
-        account->priv->ref_count++;
+        ref_count++;
         return TRUE;
     }
     else
@@ -121,14 +106,14 @@ guest_account_ref (GuestAccount *account)
 }
 
 void
-guest_account_unref (GuestAccount *account)
+guest_account_unref ()
 {
     gchar *cleanup_script;
 
-    g_return_if_fail (account->priv->ref_count > 0);
+    g_return_if_fail (ref_count > 0);
 
-    account->priv->ref_count--;
-    if (account->priv->ref_count > 0)
+    ref_count--;
+    if (ref_count > 0)
         return;
 
     cleanup_script = config_get_string (config_get_instance (), "GuestAccount", "cleanup-script");
@@ -152,30 +137,4 @@ guest_account_unref (GuestAccount *account)
         g_debug ("Closing guest account");
 
     g_free (cleanup_script);
-}
-
-static void
-guest_account_init (GuestAccount *account)
-{
-    account->priv = G_TYPE_INSTANCE_GET_PRIVATE (account, GUEST_ACCOUNT_TYPE, GuestAccountPrivate);  
-}
-
-static void
-guest_account_finalize (GObject *object)
-{
-    GuestAccount *self = GUEST_ACCOUNT (object);
-
-    g_free (self->priv->username);
-
-    G_OBJECT_CLASS (guest_account_parent_class)->finalize (object);
-}
-
-static void
-guest_account_class_init (GuestAccountClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-    object_class->finalize = guest_account_finalize;
-
-    g_type_class_add_private (klass, sizeof (GuestAccountPrivate));
 }

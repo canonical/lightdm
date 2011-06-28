@@ -262,7 +262,7 @@ reset_session (Greeter *greeter)
     g_object_unref (greeter->priv->pam_session);
 
     if (greeter->priv->using_guest_account)
-        guest_account_unref (guest_account_get_instance ());
+        guest_account_unref ();
     greeter->priv->using_guest_account = FALSE;
 }
 
@@ -303,14 +303,14 @@ handle_login_as_guest (Greeter *greeter)
 
     reset_session (greeter);
 
-    if (!guest_account_get_is_enabled (guest_account_get_instance ()))
+    if (!guest_account_get_is_enabled ())
     {
         g_debug ("Guest account is disabled");
         send_end_authentication (greeter, PAM_USER_UNKNOWN);
         return;
     }
 
-    if (!guest_account_ref (guest_account_get_instance ()))
+    if (!guest_account_ref ())
     {
         g_debug ("Unable to create guest account");
         send_end_authentication (greeter, PAM_USER_UNKNOWN);
@@ -318,7 +318,7 @@ handle_login_as_guest (Greeter *greeter)
     }
     greeter->priv->using_guest_account = TRUE;
 
-    start_authentication (greeter, pam_session_new ("lightdm"/*FIXMEgreeter->priv->pam_service*/, guest_account_get_username (guest_account_get_instance ())));
+    start_authentication (greeter, pam_session_new ("lightdm"/*FIXMEgreeter->priv->pam_service*/, guest_account_get_username ()));
 }
 
 static void
@@ -649,7 +649,7 @@ greeter_finalize (GObject *object)
     g_free (self->priv->default_session);
     g_free (self->priv->default_user);
     if (self->priv->using_guest_account)
-        guest_account_unref (guest_account_get_instance ());
+        guest_account_unref ();
 
     G_OBJECT_CLASS (greeter_parent_class)->finalize (object);
 }

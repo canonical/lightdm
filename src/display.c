@@ -469,8 +469,8 @@ user_session_stopped_cb (Session *session, Display *display)
     g_signal_handlers_disconnect_matched (display->priv->user_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
 
     /* If a guest account, remove the account on exit */
-    if (g_strcmp0 (user_get_name (session_get_user (session)), guest_account_get_username (guest_account_get_instance ())) == 0)
-        guest_account_unref (guest_account_get_instance ());
+    if (g_strcmp0 (user_get_name (session_get_user (session)), guest_account_get_username ()) == 0)
+        guest_account_unref ();
 
     g_object_unref (display->priv->user_session);
     display->priv->user_session = NULL;
@@ -535,8 +535,8 @@ really_start_user_session (Display *display)
     result = session_start (display->priv->user_session, FALSE);
 
     /* If a guest account, remove the account on exit */
-    if (result && g_strcmp0 (user_get_name (session_get_user (display->priv->user_session)), guest_account_get_username (guest_account_get_instance ())) == 0)
-        guest_account_ref (guest_account_get_instance ());
+    if (result && g_strcmp0 (user_get_name (session_get_user (display->priv->user_session)), guest_account_get_username ()) == 0)
+        guest_account_ref ();
 
     return result;
 }

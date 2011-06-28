@@ -16,33 +16,13 @@
 
 G_BEGIN_DECLS
 
-#define GUEST_ACCOUNT_TYPE (guest_account_get_type())
-#define GUEST_ACCOUNT(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), GUEST_ACCOUNT_TYPE, GuestAccount))
+gboolean guest_account_get_is_enabled (void);
 
-typedef struct GuestAccountPrivate GuestAccountPrivate;
+const gchar *guest_account_get_username (void);
 
-typedef struct
-{
-    GObject              parent_instance;
-    GuestAccountPrivate *priv;  
-} GuestAccount;
+gboolean guest_account_ref (void);
 
-typedef struct
-{
-    GObjectClass parent_class;
-} GuestAccountClass;
-
-GType guest_account_get_type (void);
-
-GuestAccount *guest_account_get_instance (void);
-
-gboolean guest_account_get_is_enabled (GuestAccount *account);
-
-const gchar *guest_account_get_username (GuestAccount *account);
-
-gboolean guest_account_ref (GuestAccount *account);
-
-void guest_account_unref (GuestAccount *account);
+void guest_account_unref (void);
 
 G_END_DECLS
 
