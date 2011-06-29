@@ -1,8 +1,0 @@
-#!/bin/sh
-
-# Remove account from password file
-PASSWD_FILE=@abs_top_srcdir@/tests/data/passwd
-sed -i '/^guest:/c\\' $PASSWD_FILE
-
-# Delete home directory
-rm -rf @abs_top_srcdir@/tests/data/home/guest

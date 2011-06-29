@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Output name of created account
+echo "guest"
+
+# Stop if already in passwd file
+ACC=`grep guest $LIGHTDM_TEST_PASSWD_FILE`
+if [ -n "$ACC" ] ; then
+   exit 0
+fi
+
+# Add account to password file
+echo "guest::1003:1003:Guest Account:$LIGHTDM_TEST_HOME_DIR/guest:/bin/sh" >> $LIGHTDM_TEST_PASSWD_FILE
+
+# Create home directory
+mkdir -p $LIGHTDM_TEST_HOME_DIR/guest

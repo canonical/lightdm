@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Remove account from password file
+sed -i '/^guest:/c\\' $LIGHTDM_TEST_PASSWD_FILE
+
+# Delete home directory
+rm -rf $LIGHTDM_TEST_HOME_DIR/guest

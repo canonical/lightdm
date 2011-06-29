@@ -27,10 +27,6 @@ TESTS = \
 
 EXTRA_DIST = \
 	$(TESTS) \
-	data/passwd.in \
-	data/home/alice \    
-	data/home/bob \
-	data/home/carol \
 	data/themes/test-theme/index.theme \
 	data/xsessions/test-session.desktop \
 	scripts/autologin.conf \
@@ -43,6 +39,14 @@ EXTRA_DIST = \
 	scripts/login-gobject.script \
 	scripts/login-gobject-guest.conf \
 	scripts/login-gobject-guest.script \
+	scripts/login-gobject-guest-disabled.conf \
+	scripts/login-gobject-guest-disabled.script \
+	scripts/login-gobject-guest-fail-setup-script.conf \
+	scripts/login-gobject-guest-fail-setup-script.script \
+	scripts/login-gobject-guest-no-config.conf \
+	scripts/login-gobject-guest-no-config.script \
+	scripts/login-gobject-guest-no-setup-script.conf \
+	scripts/login-gobject-guest-no-setup-script.script \
 	scripts/login-gobject-invalid-user.conf \
 	scripts/login-gobject-invalid-user.script \
 	scripts/login-gobject-logout.conf \
