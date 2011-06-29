@@ -12,8 +12,7 @@
     </method>
 
     <!-- Switch to the guest user -->
-    <!--<method name="SwitchToGuest">
-    </method>-->
+    <method name="SwitchToGuest"/>
 
   </interface>
 </node>
