@@ -18,6 +18,8 @@
 #define UNIX_PATH_MAX 108
 #endif
 
+static GKeyFile *config;
+
 static gchar *socket_path = NULL;
 static gchar *lock_path = NULL;
 static gchar *auth_path = NULL;
@@ -507,6 +509,17 @@ main (int argc, char **argv)
     }
 
     notify_status ("XSERVER :%d START", display_number);
+  
+    config = g_key_file_new ();
+    if (g_getenv ("TEST_CONFIG"))
+        g_key_file_load_from_file (config, g_getenv ("TEST_CONFIG"), G_KEY_FILE_NONE, NULL);
+
+    if (g_key_file_has_key (config, "test-xserver-config", "return-value", NULL))
+    {
+        int return_value = g_key_file_get_integer (config, "test-xserver-config", "return-value", NULL);
+        notify_status ("XSERVER :%d EXIT CODE=%d", display_number, return_value);
+        return return_value;
+    }
 
     loop = g_main_loop_new (NULL, FALSE);
 

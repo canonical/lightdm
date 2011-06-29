@@ -325,6 +325,10 @@ main (int argc, char **argv)
     g_setenv ("LD_LIBRARY_PATH", ld_library_path, TRUE);
     g_free (ld_library_path);
 
+    /* Set config for child processes to read */
+    if (config_path)
+        g_setenv ("TEST_CONFIG", config_path, TRUE);
+
     /* Run local D-Bus daemon */
     if (pipe (dbus_pipe) < 0)
     {
