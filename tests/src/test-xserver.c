@@ -423,7 +423,10 @@ decode_intern_atom (Connection *connection, const guint8 *buffer, gssize buffer_
     g_debug ("InternAtom only-if-exits=%s name=%s", only_if_exists ? "True" : "False", name);
 
     if (strcmp (name, "SIGSEGV") == 0)
-        kill (getppid (), SIGSEGV);
+    {
+        notify_status ("XSERVER :%d CRASH", display_number);      
+        kill (getpid (), SIGSEGV);
+    }
 }
 
 static void
