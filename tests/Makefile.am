@@ -35,18 +35,22 @@ EXTRA_DIST = \
 	data/xsessions/test-session.desktop \
 	scripts/autologin.conf \
 	scripts/autologin.script \
+	scripts/autologin-logout.conf \
+	scripts/autologin-logout.script \
 	scripts/headless.conf \
 	scripts/headless.script \
 	scripts/login-gobject.conf \
+	scripts/login-gobject.script \
+	scripts/login-gobject-guest.conf \
+	scripts/login-gobject-guest.script \
 	scripts/login-gobject-invalid-user.conf \
 	scripts/login-gobject-invalid-user.script \
 	scripts/login-gobject-logout.conf \
 	scripts/login-gobject-logout.script \
-	scripts/login-gobject.script \
 	scripts/login-gobject-session-crash.conf \
 	scripts/login-gobject-session-crash.script \
 	scripts/login-gobject-wrong-password.conf \
 	scripts/login-gobject-wrong-password.script \
-	scripts/login-gobject-guest.conf \
-	scripts/login-gobject-guest.script \
+	scripts/login-gobject-xserver-crash.conf \
+	scripts/login-gobject-xserver-crash.script \
 	scripts/no-config.script
