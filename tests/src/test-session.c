@@ -9,6 +9,8 @@
 
 #include "status.h"
 
+static GKeyFile *config;
+
 static void
 quit_cb (int signum)
 {
@@ -27,6 +29,10 @@ main (int argc, char **argv)
   
     notify_status ("SESSION START USER=%s", getenv ("USER"));
 
+    config = g_key_file_new ();
+    if (g_getenv ("TEST_CONFIG"))
+        g_key_file_load_from_file (config, g_getenv ("TEST_CONFIG"), G_KEY_FILE_NONE, NULL);
+
     loop = g_main_loop_new (NULL, FALSE);
 
     connection = xcb_connect (NULL, NULL);
@@ -39,19 +45,17 @@ main (int argc, char **argv)
 
     notify_status ("SESSION CONNECT-XSERVER");
 
-    if (argc > 1)
+    if (g_key_file_get_boolean (config, "test-session-config", "logout", NULL))
     {
-        if (strcmp (argv[1], "--logout") == 0)
-        {
-            sleep (1);
-            notify_status ("SESSION LOGOUT");
-            return EXIT_SUCCESS;
-        }
-        else if (strcmp (argv[1], "--crash") == 0)
-        {
-            notify_status ("SESSION CRASH");
-            kill (getpid (), SIGSEGV);
-        }
+        sleep (1);
+        notify_status ("SESSION LOGOUT");
+        return EXIT_SUCCESS;
+    }
+
+    if (g_key_file_get_boolean (config, "test-session-config", "sigsegv", NULL))
+    {
+        notify_status ("SESSION CRASH");
+        kill (getpid (), SIGSEGV);
     }
   
     g_main_loop_run (loop);    

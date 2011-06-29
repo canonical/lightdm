@@ -14,6 +14,11 @@ TESTS = \
 	test-login-gobject-guest-no-setup-script \
 	test-login-gobject-guest-fail-setup-script
 
+# In progress
+#	test-xserver-fail-start
+#	test-greeter-xserver-crash
+#	test-session-xserver-crash
+
 # Disable no-config script, we can't specify display numbers currently so it
 # conflicts with an existing running X server
 #	test-no-config
@@ -28,9 +33,7 @@ EXTRA_DIST = \
 	data/themes/login-alice-wrong-password/index.theme \
 	data/themes/login-invalid-user/index.theme \
 	data/themes/test-theme/index.theme \
-	data/xsessions/test-session-crash.desktop \
 	data/xsessions/test-session.desktop \
-	data/xsessions/test-session-logout.desktop \
 	scripts/autologin.conf \
 	scripts/autologin.script \
 	scripts/headless.conf \

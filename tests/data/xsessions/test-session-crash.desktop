@@ -1,4 +1,0 @@
-[Desktop Entry]
-Name=Test
-Comment=LightDM test session (crashes)
-Exec=test-session --crash
