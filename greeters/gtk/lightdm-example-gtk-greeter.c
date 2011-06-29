@@ -186,7 +186,7 @@ authentication_complete_cb (LdmGreeter *greeter)
     if (ldm_greeter_get_is_authenticated (greeter))
     {
         gchar *session = get_session ();
-        ldm_greeter_start_session (greeter, session, NULL);
+        ldm_greeter_start_session (greeter, session);
         g_free (session);
     }
     else

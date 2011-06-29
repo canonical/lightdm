@@ -97,7 +97,7 @@ class Greeter
         username_entry.sensitive = true;
         username_entry.grab_focus ();
         if (greeter.is_authenticated)
-            greeter.start_session_with_defaults ();
+            greeter.start_default_session ();
         else
         {
             message_label.label = "Failed to authenticate";

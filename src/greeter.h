@@ -31,7 +31,7 @@ typedef struct
 typedef struct
 {
     SessionClass parent_class;
-    void (*start_session)(Greeter *greeter, const gchar *session, const gchar *language);
+    void (*start_session)(Greeter *greeter, const gchar *session);
 } GreeterClass;
 
 GType greeter_get_type (void);

@@ -115,9 +115,9 @@ gboolean ldm_greeter_get_is_authenticated (LdmGreeter *greeter);
 
 const gchar *ldm_greeter_get_authentication_user (LdmGreeter *greeter);
 
-void ldm_greeter_start_session (LdmGreeter *greeter, const gchar *session, const gchar *language);
+void ldm_greeter_start_session (LdmGreeter *greeter, const gchar *session);
 
-void ldm_greeter_start_session_with_defaults (LdmGreeter *greeter);
+void ldm_greeter_start_default_session (LdmGreeter *greeter);
 
 gboolean ldm_greeter_get_can_suspend (LdmGreeter *greeter);
 

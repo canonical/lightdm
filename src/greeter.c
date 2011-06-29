@@ -413,7 +413,7 @@ greeter_quit (Greeter *greeter)
 }
 
 static void
-handle_start_session (Greeter *greeter, gchar *session, gchar *language)
+handle_start_session (Greeter *greeter, gchar *session)
 {
     /*if (greeter->priv->user_session != NULL)
     {
@@ -421,9 +421,9 @@ handle_start_session (Greeter *greeter, gchar *session, gchar *language)
         return;
     }*/
 
-    g_debug ("Greeter start session %s with language %s", session, language);
+    g_debug ("Greeter start session %s", session);
 
-    g_signal_emit (greeter, signals[START_SESSION], 0, session, language);
+    g_signal_emit (greeter, signals[START_SESSION], 0, session);
 }
 
 static void
@@ -503,7 +503,7 @@ got_data_cb (Greeter *greeter)
     gsize n_to_read, n_read, offset;
     GIOStatus status;
     int id, n_secrets, i;
-    gchar *username, *session_name, *language;
+    gchar *username, *session_name;
     gchar **secrets;
     GError *error = NULL;
   
@@ -576,10 +576,8 @@ got_data_cb (Greeter *greeter)
         break;
     case GREETER_MESSAGE_START_SESSION:
         session_name = read_string (greeter, &offset);
-        language = read_string (greeter, &offset);
-        handle_start_session (greeter, session_name, language);
+        handle_start_session (greeter, session_name);
         g_free (session_name);
-        g_free (language);
         break;
     case GREETER_MESSAGE_GET_USER_DEFAULTS:
         username = read_string (greeter, &offset);
@@ -667,8 +665,8 @@ greeter_class_init (GreeterClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (GreeterClass, start_session),
                       NULL, NULL,
-                      ldm_marshal_VOID__STRING_STRING,
-                      G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_STRING);
+                      g_cclosure_marshal_VOID__STRING,
+                      G_TYPE_NONE, 1, G_TYPE_STRING);
 
     g_type_class_add_private (klass, sizeof (GreeterPrivate));
 }

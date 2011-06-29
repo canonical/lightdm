@@ -31,8 +31,8 @@ namespace LightDM {
 		public bool get_user_defaults (string username, out string language, out string layout, out string session);
 		public unowned GLib.List<weak LightDM.User> get_users ();
 		public void hibernate ();
-		public void start_session (string? session, string? language);
-		public void start_session_with_defaults ();
+		public void start_session (string? session);
+		public void start_default_session ();
 		public void provide_secret (string secret);
 		public void restart ();
 		public void set_layout (string layout);

@@ -65,7 +65,7 @@ authentication_complete_cb (LdmGreeter *greeter)
 {
     notify_status ("GREETER AUTHENTICATION-COMPLETE AUTHENTICATED=%s", ldm_greeter_get_is_authenticated (greeter) ? "TRUE" : "FALSE");
     if (ldm_greeter_get_is_authenticated (greeter))
-        ldm_greeter_start_session_with_defaults (greeter);
+        ldm_greeter_start_default_session (greeter);
 }
 
 static void

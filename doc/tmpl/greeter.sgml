@@ -482,15 +482,6 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
 @greeter: 
 @session: 
-@language: 
-
-
-<!-- ##### FUNCTION ldm_greeter_start_session_with_defaults ##### -->
-<para>
-
-</para>
-
-@greeter: 
 
 
 <!-- ##### FUNCTION ldm_greeter_get_can_suspend ##### -->

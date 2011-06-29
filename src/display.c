@@ -523,9 +523,9 @@ really_start_user_session (Display *display)
 }
 
 static gboolean
-start_user_session (Display *display, const gchar *session, const gchar *language)
+start_user_session (Display *display, const gchar *session)
 {
-    gchar *filename, *path, *old_language, *xsessions_dir;
+    gchar *filename, *path, *xsessions_dir;
     gchar *session_command;
     User *user;
     gboolean supports_transitions;
@@ -543,15 +543,6 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
     /* Update the .dmrc with changed settings */
     g_key_file_set_string (dmrc_file, "Desktop", "Session", session);
-    old_language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
-    if (language && (!old_language || !g_str_equal(language, old_language)))
-    {
-        g_key_file_set_string (dmrc_file, "Desktop", "Language", language);
-        /* We don't have advanced language checking, so reset these variables */
-        g_key_file_remove_key (dmrc_file, "Desktop", "Langlist", NULL);
-        g_key_file_remove_key (dmrc_file, "Desktop", "LCMess", NULL);
-    }
-    g_free (old_language);
 
     xsessions_dir = config_get_string (config_get_instance (), "LightDM", "xsessions-directory");
     filename = g_strdup_printf ("%s.desktop", session);
@@ -637,7 +628,7 @@ default_session_authentication_result_cb (PAMSession *session, int result, Displ
     {
         g_debug ("User %s authorized", pam_session_get_username (session));
         pam_session_authorize (session);
-        start_user_session (display, display->priv->default_session, NULL);
+        start_user_session (display, display->priv->default_session);
     }
     else
     {
@@ -674,16 +665,12 @@ session_timeout_cb (Display *display)
 }
 
 static void
-greeter_start_session_cb (Greeter *greeter, const gchar *session, const gchar *language, Display *display)
+greeter_start_session_cb (Greeter *greeter, const gchar *session, Display *display)
 {
     /* Default session requested */
     if (strcmp (session, "") == 0)
         session = display->priv->default_session;
 
-    /* Default language requested */
-    if (strcmp (language, "") == 0)
-        language = NULL;
-  
     display->priv->user_pam_session = greeter_get_pam_session (greeter);
 
     if (!display->priv->user_pam_session ||
@@ -693,7 +680,7 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session, const gchar *l
         return;
     }
 
-    start_user_session (display, session, language);
+    start_user_session (display, session);
 
     /* Stop session, waiting for user session to indicate it is ready (if supported) */
     // FIXME: Hard-coded timeout

@@ -266,12 +266,11 @@ QString Greeter::authenticationUser() const
     return d->authenticationUser;
 }
 
-void Greeter::startSession(const QString &session, const QString &language)
+void Greeter::startSession(const QString &session)
 {
-    qDebug() << "Starting session " << session << " with language " << language;
-    writeHeader(GREETER_MESSAGE_START_SESSION, stringLength(session) + stringLength(language));
+    qDebug() << "Starting session " << session;
+    writeHeader(GREETER_MESSAGE_START_SESSION, stringLength(session));
     writeString(session);
-    writeString(language);
     flush();
 }
 

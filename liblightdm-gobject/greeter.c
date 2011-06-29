@@ -1403,12 +1403,11 @@ ldm_greeter_get_authentication_user (LdmGreeter *greeter)
  * ldm_greeter_start_session:
  * @greeter: A #LdmGreeter
  * @session: (allow-none): The session to log into or NULL to use the default
- * @language: (allow-none): The language to use or NULL to use the default
  *
  * Start a session for the logged in user.
  **/
 void
-ldm_greeter_start_session (LdmGreeter *greeter, const gchar *session, const gchar *language)
+ldm_greeter_start_session (LdmGreeter *greeter, const gchar *session)
 {
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
@@ -1417,13 +1416,10 @@ ldm_greeter_start_session (LdmGreeter *greeter, const gchar *session, const gcha
   
     if (!session)
         session = "";
-    if (!language)
-        language = "";
 
-    g_debug ("Starting session %s with language %s", session, language);
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_START_SESSION, string_length (session) + string_length (language), &offset);
+    g_debug ("Starting session %s", session);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_START_SESSION, string_length (session), &offset);
     write_string (message, MAX_MESSAGE_LENGTH, session, &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, language, &offset);
     write_message (greeter, message, offset);
 }
 
@@ -1434,9 +1430,9 @@ ldm_greeter_start_session (LdmGreeter *greeter, const gchar *session, const gcha
  * Login a user to a session using default settings for that user.
  **/
 void
-ldm_greeter_start_session_with_defaults (LdmGreeter *greeter)
+ldm_greeter_start_default_session (LdmGreeter *greeter)
 {
-    ldm_greeter_start_session (greeter, NULL, NULL);
+    ldm_greeter_start_session (greeter, NULL);
 }
 
 static gboolean
