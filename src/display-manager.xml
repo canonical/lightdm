@@ -2,9 +2,8 @@
 <node>
   <interface name="org.freedesktop.DisplayManager">
 
-    <!-- Start a new display -->
-    <method name="AddDisplay">
-    </method>
+    <!-- Show greeter to allow new login / switch users -->
+    <method name="ShowGreeter"/>
 
     <!-- Switch to a user, starting a new display if required -->
     <method name="SwitchToUser">
