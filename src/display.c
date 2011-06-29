@@ -612,11 +612,6 @@ start_user_session (Display *display, const gchar *session, const gchar *languag
 
     session_set_user (display->priv->user_session, user);
     session_set_command (display->priv->user_session, session_command);
-    set_env_from_keyfile (display->priv->user_session, "LANG", dmrc_file, "Desktop", "Language");
-    set_env_from_keyfile (display->priv->user_session, "LANGUAGE", dmrc_file, "Desktop", "Langlist");
-    set_env_from_keyfile (display->priv->user_session, "LC_MESSAGES", dmrc_file, "Desktop", "LCMess");
-    //child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDM_LANG", session_language); // FIXME: Not cross-desktop
-    set_env_from_keyfile (display->priv->user_session, "GDM_KEYBOARD_LAYOUT", dmrc_file, "Desktop", "Layout"); // FIXME: Not cross-desktop
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDMSESSION", session); // FIXME: Not cross-desktop
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DISPLAY", xserver_get_address (display->priv->xserver));
