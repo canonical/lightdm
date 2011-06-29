@@ -415,12 +415,12 @@ make_xserver (DisplayManager *manager, gchar *config_section)
 }
 
 static Display *
-add_display (DisplayManager *manager)
+add_display (DisplayManager *manager, XServer *xserver)
 {
     Display *display;
     gchar *value;
 
-    display = display_new (g_list_length (manager->priv->displays));
+    display = display_new (g_list_length (manager->priv->displays), xserver);
     g_signal_connect (display, "start-greeter", G_CALLBACK (start_greeter_cb), manager);
     g_signal_connect (display, "start-session", G_CALLBACK (start_session_cb), manager);
     g_signal_connect (display, "end-session", G_CALLBACK (end_session_cb), manager);
@@ -448,11 +448,10 @@ display_manager_add_display (DisplayManager *manager)
     XServer *xserver;
 
     g_debug ("Starting new display");
-    display = add_display (manager);
     xserver = make_xserver (manager, NULL);
-    display_set_xserver (display, xserver);
-    display_start (display);
+    display = add_display (manager, xserver);
     g_object_unref (xserver);
+    display_start (display);
 
     return display;
 }
@@ -479,11 +478,10 @@ display_manager_switch_to_user (DisplayManager *manager, char *username)
     }
 
     g_debug ("Starting new display for user %s", username);
-    display = add_display (manager);
     xserver = make_xserver (manager, NULL);
-    display_set_xserver (display, xserver);
-    display_start (display);
+    display = add_display (manager, xserver);
     g_object_unref (xserver);
+    display_start (display);
 }
 
 void
@@ -502,9 +500,10 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
   
     // FIXME: Try IPv6 then fallback to IPv4
 
-    display = add_display (manager);
     address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (session)));
     xserver = xserver_new (XSERVER_TYPE_REMOTE, address, xdmcp_session_get_display_number (session));
+    display = add_display (manager, xserver);
+    g_object_unref (xserver);
     if (strcmp (xdmcp_session_get_authorization_name (session), "") != 0)
     {
         XAuthorization *authorization = NULL;
@@ -521,9 +520,7 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
         g_free (path);
     }
 
-    display_set_xserver (display, xserver);
     result = display_start (display);
-    g_object_unref (xserver);
     g_free (address);
     if (!result)
        g_object_unref (display);
@@ -656,7 +653,9 @@ display_manager_start (DisplayManager *manager)
         display_name = *i;
         g_debug ("Loading display %s", display_name);
 
-        display = add_display (manager);
+        xserver = make_xserver (manager, display_name);
+        display = add_display (manager, xserver);
+        g_object_unref (xserver);
 
         /* If this is starting on the active VT, then this display will replace Plymouth */
         if (plymouth_on_active_vt && !plymouth_being_replaced)
@@ -708,12 +707,11 @@ display_manager_start (DisplayManager *manager)
                 g_debug ("Starting session for user %s in %d seconds", default_user, user_timeout);
         }
 
-        xserver = make_xserver (manager, display_name);
-        display_set_xserver (display, xserver);
-
         /* Stop Plymouth when the X server starts/fails */
         if (replaces_plymouth)
         {
+            XServer *xserver = display_get_xserver (display);
+
             g_debug ("Display %s will replace Plymouth", display_name);
             xserver_set_no_root (xserver, TRUE);
             g_signal_connect (xserver, "ready", G_CALLBACK (stop_plymouth_cb), manager);
@@ -732,7 +730,6 @@ display_manager_start (DisplayManager *manager)
             }
         }
 
-        g_object_unref (xserver);
         g_free (default_user);
     }
     g_strfreev (tokens);

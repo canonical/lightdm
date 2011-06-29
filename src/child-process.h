@@ -60,6 +60,8 @@ gboolean child_process_start (ChildProcess *process,
                               gboolean create_pipe, // FIXME: Move the pipe code into session.c, and then make a whitelist of fds to keep open
                               GError **error);
 
+gboolean child_process_get_is_running (ChildProcess *process);
+
 GPid child_process_get_pid (ChildProcess *process);
 
 void child_process_signal (ChildProcess *process, int signum);

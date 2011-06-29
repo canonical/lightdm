@@ -8,6 +8,7 @@ TESTS = \
 	test-login-gobject-wrong-password \
 	test-login-gobject-invalid-user \
 	test-login-gobject-logout \
+	test-login-gobject-xserver-crash \
 	test-login-gobject-session-crash \
 	test-login-gobject-guest \
 	test-login-gobject-guest-no-config \

@@ -335,10 +335,17 @@ child_process_start (ChildProcess *process,
     return TRUE;
 }
 
+gboolean
+child_process_get_is_running (ChildProcess *process)
+{
+    g_return_val_if_fail (process != NULL, FALSE);
+    return process->priv->pid != 0;
+}
+
 GPid
 child_process_get_pid (ChildProcess *process)
 {
-    g_return_val_if_fail (process != NULL, 9);
+    g_return_val_if_fail (process != NULL, 0);
     return process->priv->pid;
 }
 

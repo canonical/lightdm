@@ -377,6 +377,8 @@ xserver_start (XServer *server)
     g_return_val_if_fail (server != NULL, FALSE);
     //g_return_val_if_fail (server->priv->pid == 0, FALSE);
     g_return_val_if_fail (server->priv->command != NULL, FALSE);
+  
+    server->priv->ready = FALSE;
  
     /* Check if we can connect to the remote server */
     if (server->priv->type == XSERVER_TYPE_REMOTE)
@@ -449,6 +451,14 @@ xserver_start (XServer *server)
     return result;
 }
 
+gboolean
+xserver_get_is_running (XServer *server)
+{
+    g_return_val_if_fail (server != NULL, FALSE);
+
+    return child_process_get_is_running (CHILD_PROCESS (server));
+}
+  
 void
 xserver_disconnect_clients (XServer *server)
 {
@@ -458,6 +468,14 @@ xserver_disconnect_clients (XServer *server)
 
     server->priv->ready = FALSE;
     child_process_signal (CHILD_PROCESS (server), SIGHUP);
+}
+
+void
+xserver_stop (XServer *server)
+{
+    g_return_if_fail (server != NULL);
+
+    child_process_stop (CHILD_PROCESS (server));
 }
 
 static void

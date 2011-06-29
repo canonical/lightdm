@@ -103,7 +103,11 @@ void xserver_set_no_root (XServer *server, gboolean no_root);
 
 gboolean xserver_start (XServer *server);
 
+gboolean xserver_get_is_running (XServer *server);
+
 void xserver_disconnect_clients (XServer *server);
+
+void xserver_stop (XServer *server);
 
 G_END_DECLS
 
