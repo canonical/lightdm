@@ -57,6 +57,22 @@ enum
     Authenticate = 2
 };
 
+static void
+cleanup ()
+{
+    if (lock_path)
+        unlink (lock_path);
+    if (socket_path)
+        unlink (socket_path);
+}
+
+static void
+quit (int status)
+{
+    cleanup ();
+    exit (status);
+}
+
 static gsize
 pad (gsize length)
 {
@@ -424,7 +440,8 @@ decode_intern_atom (Connection *connection, const guint8 *buffer, gssize buffer_
 
     if (strcmp (name, "SIGSEGV") == 0)
     {
-        notify_status ("XSERVER :%d CRASH", display_number);      
+        notify_status ("XSERVER :%d CRASH", display_number);
+        cleanup ();
         kill (getpid (), SIGSEGV);
     }
 }
@@ -492,17 +509,6 @@ socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
         g_io_add_watch (g_io_channel_unix_new (data_socket), G_IO_IN, socket_data_cb, NULL);
 
     return TRUE;
-}
-
-static void
-quit (int status)
-{    
-    if (lock_path)
-        unlink (lock_path);
-    if (socket_path)
-        unlink (socket_path);
-
-    exit (status);
 }
 
 static void

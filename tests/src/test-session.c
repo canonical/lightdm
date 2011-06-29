@@ -39,11 +39,19 @@ main (int argc, char **argv)
 
     if (xcb_connection_has_error (connection))
     {
-        fprintf (stderr, "Error connecting\n");
+        notify_status ("SESSION CONNECT-XSERVER-ERROR");
         return EXIT_FAILURE;
     }
 
     notify_status ("SESSION CONNECT-XSERVER");
+
+    if (g_key_file_get_boolean (config, "test-session-config", "crash-xserver", NULL))
+    {
+        const gchar *name = "SIGSEGV";
+        notify_status ("SESSION CRASH-XSERVER");
+        xcb_intern_atom (connection, FALSE, strlen (name), name);
+        xcb_flush (connection);
+    }
 
     if (g_key_file_get_boolean (config, "test-session-config", "logout", NULL))
     {

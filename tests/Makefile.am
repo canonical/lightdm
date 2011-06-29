@@ -15,9 +15,9 @@ TESTS = \
 	test-login-gobject-guest-fail-setup-script
 
 # In progress
+#	test-autologin-xserver-crash
 #	test-xserver-fail-start
 #	test-greeter-xserver-crash
-#	test-session-xserver-crash
 
 # Disable no-config script, we can't specify display numbers currently so it
 # conflicts with an existing running X server
