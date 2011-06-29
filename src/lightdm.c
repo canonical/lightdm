@@ -249,6 +249,7 @@ main(int argc, char **argv)
     gchar *theme_dir = g_strdup (GREETER_THEME_DIR), *theme_engine_dir = g_strdup (GREETER_THEME_ENGINE_DIR);
     gchar *default_greeter_theme = g_strdup (DEFAULT_GREETER_THEME);
     gchar *xsessions_dir = g_strdup (XSESSIONS_DIR);
+    gchar *cache_dir = g_strdup (CACHE_DIR);
     gchar *default_xsession = g_strdup (DEFAULT_XSESSION);
     gboolean show_version = FALSE;
     GOptionEntry options[] = 
@@ -277,6 +278,9 @@ main(int argc, char **argv)
         { "default-xserver-command", 0, 0, G_OPTION_ARG_STRING, &default_xserver_command,
           /* Help string for command line --default-xserver-command flag */
           N_("Default command to run X servers"), "COMMAND" },
+        { "cache-dir", 0, 0, G_OPTION_ARG_STRING, &cache_dir,
+          /* Help string for command line --cache-dir flag */
+          N_("Directory to cache information"), "DIRECTORY" },
         { "theme-dir", 0, 0, G_OPTION_ARG_STRING, &theme_dir,
           /* Help string for command line --theme-dir flag */
           N_("Directory to load themes from"), "DIRECTORY" },
@@ -404,7 +408,7 @@ main(int argc, char **argv)
     config_set_string (config_get_instance (), "LightDM", "theme-engine-directory", theme_engine_dir);
     config_set_string (config_get_instance (), "LightDM", "default-greeter-theme", default_greeter_theme);
     config_set_string (config_get_instance (), "LightDM", "authorization-directory", XAUTH_DIR);
-    config_set_string (config_get_instance (), "LightDM", "cache-directory", CACHE_DIR);
+    config_set_string (config_get_instance (), "LightDM", "cache-directory", cache_dir);
     config_set_string (config_get_instance (), "LightDM", "xsessions-directory", xsessions_dir);
     config_set_string (config_get_instance (), "LightDM", "default-xsession", default_xsession);
 
