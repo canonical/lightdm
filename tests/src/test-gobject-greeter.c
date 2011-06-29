@@ -5,6 +5,8 @@
 
 #include "status.h"
 
+static GKeyFile *config;
+
 static void
 connected_cb (LdmGreeter *greeter)
 {  
@@ -14,9 +16,9 @@ connected_cb (LdmGreeter *greeter)
     {
         gchar *username;
 
-        username = ldm_greeter_get_string_property (greeter, "username");
+        username = g_key_file_get_string (config, "test-greeter-config", "username", NULL);
 
-        if (ldm_greeter_get_boolean_property (greeter, "login-guest"))
+        if (g_key_file_get_boolean (config, "test-greeter-config", "login-guest", NULL))
         {
             notify_status ("GREETER LOGIN-GUEST");
             ldm_greeter_login_as_guest (greeter);
@@ -50,7 +52,7 @@ show_prompt_cb (LdmGreeter *greeter, const gchar *text)
 
     notify_status ("GREETER SHOW-PROMPT TEXT=\"%s\"", text);
 
-    password = ldm_greeter_get_string_property (greeter, "password");
+    password = g_key_file_get_string (config, "test-greeter-config", "password", NULL);
     if (password)
     {
         notify_status ("GREETER PROVIDE-SECRET TEXT=\"%s\"", password);
@@ -89,9 +91,11 @@ main (int argc, char **argv)
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
 
-    g_debug ("Starting greeter");
-
     notify_status ("GREETER START");
+
+    config = g_key_file_new ();
+    if (g_getenv ("TEST_CONFIG"))
+        g_key_file_load_from_file (config, g_getenv ("TEST_CONFIG"), G_KEY_FILE_NONE, NULL);
 
     g_type_init ();
 

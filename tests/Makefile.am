@@ -29,9 +29,6 @@ EXTRA_DIST = \
 	data/home/alice \    
 	data/home/bob \
 	data/home/carol \
-	data/themes/login-alice/index.theme \
-	data/themes/login-alice-wrong-password/index.theme \
-	data/themes/login-invalid-user/index.theme \
 	data/themes/test-theme/index.theme \
 	data/xsessions/test-session.desktop \
 	scripts/autologin.conf \
