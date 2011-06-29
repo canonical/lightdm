@@ -499,19 +499,6 @@ set_env_from_pam_session (Session *session, PAMSession *pam_session)
     }
 }
 
-static void
-set_env_from_keyfile (Session *session, const gchar *name, GKeyFile *key_file, const gchar *section, const gchar *key)
-{
-    char *value;
-
-    value = g_key_file_get_string (key_file, section, key, NULL);
-    if (!value)
-        return;
-
-    child_process_set_env (CHILD_PROCESS (session), name, value);
-    g_free (value);
-}
-
 static gboolean
 really_start_user_session (Display *display)
 {
