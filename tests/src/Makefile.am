@@ -12,8 +12,10 @@ test_runner_LDADD = \
 test_xserver_SOURCES = test-xserver.c status.c status.h
 test_xserver_CFLAGS = \
 	$(WARN_CFLAGS) \
+	$(GOBJECT_CFLAGS) \
 	$(GLIB_CFLAGS)
 test_xserver_LDADD = \
+	$(GOBJECT_LIBS) \
 	$(GLIB_LIBS)
 
 test_gobject_greeter_SOURCES = test-gobject-greeter.c status.c status.h

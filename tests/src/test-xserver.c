@@ -24,6 +24,13 @@ static gchar *socket_path = NULL;
 static gchar *lock_path = NULL;
 static gchar *auth_path = NULL;
 
+typedef struct
+{
+    GIOChannel *channel;
+    guint8 byte_order;
+} Connection;
+static GHashTable *connections;
+
 static int display_number = 0;
 
 #define BYTE_ORDER_MSB 'B'
@@ -65,7 +72,7 @@ read_padding (gsize length, gsize *offset)
 }
 
 static guint8
-read_card8 (guint8 *buffer, gsize buffer_length, gsize *offset)
+read_card8 (const guint8 *buffer, gsize buffer_length, gsize *offset)
 {
     if (*offset >= buffer_length)
         return 0;
@@ -74,7 +81,7 @@ read_card8 (guint8 *buffer, gsize buffer_length, gsize *offset)
 }
 
 static guint16
-read_card16 (guint8 *buffer, gsize buffer_length, guint8 byte_order, gsize *offset)
+read_card16 (const guint8 *buffer, gsize buffer_length, guint8 byte_order, gsize *offset)
 {
     guint8 a, b;
 
@@ -87,7 +94,7 @@ read_card16 (guint8 *buffer, gsize buffer_length, guint8 byte_order, gsize *offs
 }
 
 static guint8 *
-read_string8 (guint8 *buffer, gsize buffer_length, gsize string_length, gsize *offset)
+read_string8 (const guint8 *buffer, gsize buffer_length, gsize string_length, gsize *offset)
 {
     guint8 *string;
     int i;
@@ -100,7 +107,7 @@ read_string8 (guint8 *buffer, gsize buffer_length, gsize string_length, gsize *o
 }
 
 static gchar *
-read_padded_string (guint8 *buffer, gsize buffer_length, gsize string_length, gsize *offset)
+read_padded_string (const guint8 *buffer, gsize buffer_length, gsize string_length, gsize *offset)
 {
     guint8 *value;
     value = read_string8 (buffer, buffer_length, string_length, offset);
@@ -181,7 +188,7 @@ write_padded_string (guint8 *buffer, gsize buffer_length, const gchar *value, gs
 }
 
 static void
-decode_connect (guint8 *buffer, gsize buffer_length,
+decode_connect (const guint8 *buffer, gsize buffer_length,
                 guint8 *byte_order,
                 guint16 *protocol_major_version, guint16 *protocol_minor_version,
                 gchar **authorization_protocol_name,
@@ -289,15 +296,161 @@ log_buffer (const gchar *text, const guint8 *buffer, gsize buffer_length)
     g_free (hex);
 }
 
+static void
+decode_connection_request (GIOChannel *channel, const guint8 *buffer, gssize buffer_length)
+{
+    guint8 byte_order;
+    guint16 protocol_major_version, protocol_minor_version;
+    gchar *authorization_protocol_name;
+    guint8 *authorization_protocol_data;
+    guint16 authorization_protocol_data_length;
+    gchar *hex;
+    gchar *auth_error = NULL;
+    guint8 response_buffer[MAXIMUM_REQUEST_LENGTH];
+    gsize n_written;
+
+    decode_connect (buffer, buffer_length,
+                    &byte_order,
+                    &protocol_major_version, &protocol_minor_version,
+                    &authorization_protocol_name,
+                    &authorization_protocol_data, &authorization_protocol_data_length);
+    hex = make_hex_string (authorization_protocol_data, authorization_protocol_data_length);
+    g_debug ("Got connect request using protocol %d.%d and authorization '%s' with data '%s'", protocol_major_version, protocol_minor_version, authorization_protocol_name, hex);
+    g_free (hex);
+
+    notify_status ("XSERVER :%d ACCEPT-CONNECT", display_number);
+
+    if (auth_path)
+    {
+        gchar *xauth_data;
+        gsize xauth_length;
+        GError *error = NULL;
+
+        if (g_file_get_contents (auth_path, &xauth_data, &xauth_length, &error))
+        {
+            gsize offset = 0;
+            guint16 family, length, data_length;
+            gchar *address, *number, *name;
+            guint8 *data;
+
+            family = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
+            length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
+            address = (gchar *) read_string8 ((guint8 *) xauth_data, xauth_length, length, &offset);
+            length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
+            number = (gchar *) read_string8 ((guint8 *) xauth_data, xauth_length, length, &offset);
+            length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
+            name = (gchar *) read_string8 ((guint8 *) xauth_data, xauth_length, length, &offset);
+            data_length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
+            data = read_string8 ((guint8 *) xauth_data, xauth_length, data_length, &offset);
+
+            if (strcmp (authorization_protocol_name, "") == 0)
+                auth_error = g_strdup ("Authorization required");
+            else if (strcmp (authorization_protocol_name, "MIT-MAGIC-COOKIE-1") == 0)
+            {
+                gboolean matches = TRUE;
+                if (authorization_protocol_data_length == data_length)
+                {
+                    guint16 i;
+                    for (i = 0; i < data_length && authorization_protocol_data[i] == data[i]; i++);
+                    matches = i == data_length;
+                }
+                else
+                    matches = FALSE;
+                if (!matches)
+                {
+                    gchar *hex1, *hex2;
+                    hex1 = make_hex_string (authorization_protocol_data, authorization_protocol_data_length);
+                    hex2 = make_hex_string (data, data_length);
+                    g_debug ("MIT-MAGIC-COOKIE mismatch, got '%s', expect '%s'", hex1, hex2);
+                    g_free (hex1);
+                    g_free (hex2);
+                    auth_error = g_strdup_printf ("Invalid MIT-MAGIC-COOKIE key");
+                }
+            }
+            else
+                auth_error = g_strdup_printf ("Unknown authorization: '%s'", authorization_protocol_name);
+
+            g_free (address);
+            g_free (number);
+            g_free (name);
+            g_free (data);
+        }
+        else
+        {
+            g_warning ("Error reading auth file: %s", error->message);
+            auth_error = g_strdup ("No authorization database");
+        }
+        g_clear_error (&error);
+    }
+
+    if (auth_error)
+    {
+        n_written = encode_failed (response_buffer, MAXIMUM_REQUEST_LENGTH, byte_order, auth_error);
+        g_debug ("Sending Failed: %s", auth_error);
+        g_free (auth_error);
+    }
+    else
+    {
+        Connection *connection;
+
+        g_debug ("Sending Success");
+        n_written = encode_accept (response_buffer, MAXIMUM_REQUEST_LENGTH, byte_order);
+
+        /* Store connection */
+        connection = g_malloc0 (sizeof (Connection));
+        connection->channel = g_io_channel_ref (channel);
+        connection->byte_order = byte_order;
+        g_hash_table_insert (connections, channel, connection);
+    }
+
+    send (g_io_channel_unix_get_fd (channel), response_buffer, n_written, 0);
+    log_buffer ("Wrote", response_buffer, n_written);
+}
+
+static void
+decode_intern_atom (Connection *connection, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    gboolean only_if_exists;
+    guint16 name_length;
+    gchar *name;
+
+    only_if_exists = read_card8 (buffer, buffer_length, offset) != 0;
+    read_padding (2, offset);
+    name_length = read_card16 (buffer, buffer_length, connection->byte_order, offset);
+    read_padding (2, offset);
+    name = read_padded_string (buffer, buffer_length, name_length, offset);
+  
+    g_debug ("InternAtom only-if-exits=%s name=%s", only_if_exists ? "True" : "False", name);
+
+    if (strcmp (name, "SIGSEGV") == 0)
+        kill (getppid (), SIGSEGV);
+}
+
+static void
+decode_request (Connection *connection, const guint8 *buffer, gssize buffer_length)
+{
+    int opcode;
+    gsize offset = 0;
+
+    opcode = read_card8 (buffer, buffer_length, &offset);
+    switch (opcode)
+    {
+    case 16:
+        decode_intern_atom (connection, buffer, buffer_length, &offset);
+        break;
+    default:
+        g_debug ("Ignoring unknown opcode %d", opcode);
+        break;
+    }
+}
+
 static gboolean
 socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 {
-    int s;
     guint8 buffer[MAXIMUM_REQUEST_LENGTH];
     gssize n_read;
 
-    s = g_io_channel_unix_get_fd (channel);
-    n_read = recv (s, buffer, MAXIMUM_REQUEST_LENGTH, 0);
+    n_read = recv (g_io_channel_unix_get_fd (channel), buffer, MAXIMUM_REQUEST_LENGTH, 0);
     if (n_read < 0)
         g_warning ("Error reading from socket: %s", strerror (errno));
     else if (n_read == 0)
@@ -307,106 +460,15 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     }
     else
     {
-        guint8 byte_order;
-        guint16 protocol_major_version, protocol_minor_version;
-        gchar *authorization_protocol_name;
-        guint8 *authorization_protocol_data;
-        guint16 authorization_protocol_data_length;
-        gchar *hex;
-        gchar *auth_error = NULL;
-        guint8 response_buffer[MAXIMUM_REQUEST_LENGTH];
-        gsize n_written;
+        Connection *connection;
 
         log_buffer ("Read", buffer, n_read);
 
-        decode_connect (buffer, n_read,
-                        &byte_order,
-                        &protocol_major_version, &protocol_minor_version,
-                        &authorization_protocol_name,
-                        &authorization_protocol_data, &authorization_protocol_data_length);
-        hex = make_hex_string (authorization_protocol_data, authorization_protocol_data_length);
-        g_debug ("Got connect request using protocol %d.%d and authorization '%s' with data '%s'", protocol_major_version, protocol_minor_version, authorization_protocol_name, hex);
-        g_free (hex);
-
-        notify_status ("XSERVER :%d ACCEPT-CONNECT", display_number);
-
-        if (auth_path)
-        {
-            gchar *xauth_data;
-            gsize xauth_length;
-            GError *error = NULL;
-
-            if (g_file_get_contents (auth_path, &xauth_data, &xauth_length, &error))
-            {
-                gsize offset = 0;
-                guint16 family, length, data_length;
-                gchar *address, *number, *name;
-                guint8 *data;
-
-                family = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
-                length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
-                address = (gchar *) read_string8 ((guint8 *) xauth_data, xauth_length, length, &offset);
-                length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
-                number = (gchar *) read_string8 ((guint8 *) xauth_data, xauth_length, length, &offset);
-                length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
-                name = (gchar *) read_string8 ((guint8 *) xauth_data, xauth_length, length, &offset);
-                data_length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
-                data = read_string8 ((guint8 *) xauth_data, xauth_length, data_length, &offset);
-
-                if (strcmp (authorization_protocol_name, "") == 0)
-                    auth_error = g_strdup ("Authorization required");
-                else if (strcmp (authorization_protocol_name, "MIT-MAGIC-COOKIE-1") == 0)
-                {
-                    gboolean matches = TRUE;
-                    if (authorization_protocol_data_length == data_length)
-                    {
-                        guint16 i;
-                        for (i = 0; i < data_length && authorization_protocol_data[i] == data[i]; i++);
-                        matches = i == data_length;
-                    }
-                    else
-                        matches = FALSE;
-                    if (!matches)
-                    {
-                        gchar *hex1, *hex2;
-                        hex1 = make_hex_string (authorization_protocol_data, authorization_protocol_data_length);
-                        hex2 = make_hex_string (data, data_length);
-                        g_debug ("MIT-MAGIC-COOKIE mismatch, got '%s', expect '%s'", hex1, hex2);
-                        g_free (hex1);
-                        g_free (hex2);
-                        auth_error = g_strdup_printf ("Invalid MIT-MAGIC-COOKIE key");
-                    }
-                }
-                else
-                    auth_error = g_strdup_printf ("Unknown authorization: '%s'", authorization_protocol_name);
-
-                g_free (address);
-                g_free (number);
-                g_free (name);
-                g_free (data);
-            }
-            else
-            {
-                g_warning ("Error reading auth file: %s", error->message);
-                auth_error = g_strdup ("No authorization database");
-            }
-            g_clear_error (&error);
-        }
-
-        if (auth_error)
-        {
-            n_written = encode_failed (response_buffer, MAXIMUM_REQUEST_LENGTH, byte_order, auth_error);
-            g_debug ("Sending Failed: %s", auth_error);
-            g_free (auth_error);
-        }
+        connection = g_hash_table_lookup (connections, channel);
+        if (connection)
+            decode_request (connection, buffer, n_read);
         else
-        {
-            n_written = encode_accept (response_buffer, MAXIMUM_REQUEST_LENGTH, byte_order);
-            g_debug ("Sending Success");
-        }
-
-        send (s, response_buffer, n_written, 0);
-        log_buffer ("Wrote", response_buffer, n_written);
+            decode_connection_request (channel, buffer, n_read);
     }
 
     return TRUE;
@@ -509,7 +571,7 @@ main (int argc, char **argv)
     }
 
     notify_status ("XSERVER :%d START", display_number);
-  
+
     config = g_key_file_new ();
     if (g_getenv ("TEST_CONFIG"))
         g_key_file_load_from_file (config, g_getenv ("TEST_CONFIG"), G_KEY_FILE_NONE, NULL);
@@ -565,6 +627,8 @@ main (int argc, char **argv)
         g_warning ("Error binding socket: %s", strerror (errno));
         quit (EXIT_FAILURE);
     }
+
+    connections = g_hash_table_new (g_direct_hash, g_direct_equal);
 
     g_io_add_watch (g_io_channel_unix_new (s), G_IO_IN, socket_connect_cb, NULL);
   
