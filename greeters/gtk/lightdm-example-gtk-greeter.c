@@ -70,7 +70,7 @@ start_authentication (const gchar *username)
     gtk_widget_hide (message_label);
     gtk_label_set_text (GTK_LABEL (message_label), "");
 
-    if (strcmp (username, "") == 0)
+    if (strcmp (username, "*other") == 0)
     {
         gtk_label_set_text (GTK_LABEL (prompt_label), _("Username:"));
         gtk_widget_set_sensitive (prompt_entry, TRUE);
@@ -80,16 +80,22 @@ start_authentication (const gchar *username)
         gtk_widget_grab_focus (prompt_entry);
         return;
     }
-
-    if (ldm_greeter_get_user_defaults (greeter, username, &language, &layout, &session))
+    else if (strcmp (username, "*guest") == 0)
     {
-        set_session (session);
-        g_free (language);
-        g_free (layout);
-        g_free (session);
+        ldm_greeter_login_as_guest (greeter);
     }
+    else
+    {
+        if (ldm_greeter_get_user_defaults (greeter, username, &language, &layout, &session))
+        {
+            set_session (session);
+            g_free (language);
+            g_free (layout);
+            g_free (session);
+        }
 
-    ldm_greeter_login (greeter, username);
+        ldm_greeter_login (greeter, username);
+    }
 }
 
 void user_treeview_row_activated_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *column);
@@ -553,9 +559,19 @@ connect_cb (LdmGreeter *greeter)
                             2, pixbuf,
                             -1);
     }
+    if (ldm_greeter_get_has_guest_session (greeter))
+    {
+        gtk_list_store_append (GTK_LIST_STORE (model), &iter);
+        gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+                            0, "*guest",
+                            1, "Guest Account",
+                            2, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
+                            -1);
+    }
+
     gtk_list_store_append (GTK_LIST_STORE (model), &iter);
     gtk_list_store_set (GTK_LIST_STORE (model), &iter,
-                        0, "",
+                        0, "*other",
                         1, "Other...",
                         2, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
                         -1);
