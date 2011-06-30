@@ -1,7 +1,12 @@
 #!/bin/sh
 
+if [ -z `grep guest $LIGHTDM_TEST_PASSWD_FILE` ] ; then
+    echo "Error: invalid user $USER"
+    exit 1
+fi
+
 # Remove account from password file
-sed -i '/^guest:/c\\' $LIGHTDM_TEST_PASSWD_FILE
+sed -i "/^guest:/c\\" $LIGHTDM_TEST_PASSWD_FILE
 
 # Delete home directory
 rm -rf $LIGHTDM_TEST_HOME_DIR/guest

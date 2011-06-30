@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# Output name of created account
-echo "guest"
-
 # Stop if already in passwd file
 ACC=`grep guest $LIGHTDM_TEST_PASSWD_FILE`
 if [ -n "$ACC" ] ; then

@@ -15,7 +15,7 @@
 /* Reference count */
 static gint ref_count;
 
-/* Username of opened guest account */
+/* Username of guest account */
 static gchar *username = NULL;
 
 gboolean
@@ -27,6 +27,13 @@ guest_account_get_is_enabled ()
 const gchar *
 guest_account_get_username ()
 {
+    if (username)
+        return username;
+
+    username = config_get_string (config_get_instance (), "GuestAccount", "username");
+    if (!username)
+        username = g_strdup ("guest");
+
     return username;
 }
 
@@ -89,9 +96,7 @@ guest_account_ref ()
     }
     else
     {
-        g_free (username);
-        username = g_strdup (g_strstrip (stdout_text));
-        g_debug ("Guest account setup with username '%s'", username);
+        g_debug ("Guest account setup");
     }
 
     g_free (stdout_text);
