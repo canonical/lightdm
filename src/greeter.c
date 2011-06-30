@@ -237,7 +237,7 @@ send_end_authentication (Greeter *greeter, int result)
 }
 
 static void
-authenticate_result_cb (PAMSession *session, int result, Greeter *greeter)
+authentication_result_cb (PAMSession *session, int result, Greeter *greeter)
 {
     g_debug ("Authenticate result for user %s: %s", pam_session_get_username (greeter->priv->pam_session), pam_session_strerror (greeter->priv->pam_session, result));
 
@@ -278,7 +278,7 @@ start_authentication (Greeter *greeter, PAMSession *session)
     greeter->priv->pam_session = session;
 
     g_signal_connect (G_OBJECT (greeter->priv->pam_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
-    g_signal_connect (G_OBJECT (greeter->priv->pam_session), "authentication-result", G_CALLBACK (authenticate_result_cb), greeter);
+    g_signal_connect (G_OBJECT (greeter->priv->pam_session), "authentication-result", G_CALLBACK (authentication_result_cb), greeter);
 
     if (!pam_session_start (greeter->priv->pam_session, &error))
     {
@@ -318,7 +318,7 @@ handle_login_as_guest (Greeter *greeter)
     }
     greeter->priv->using_guest_account = TRUE;
 
-    start_authentication (greeter, pam_session_new ("lightdm"/*FIXMEgreeter->priv->pam_service*/, guest_account_get_username ()));
+    start_authentication (greeter, pam_session_new ("lightdm-autologin"/*FIXMEgreeter->priv->pam_service*/, guest_account_get_username ()));
 }
 
 static void
