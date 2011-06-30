@@ -65,10 +65,10 @@ ldm_user_new (LdmGreeter *greeter, const gchar *name, const gchar *real_name, co
 gboolean
 ldm_user_update (LdmUser *user, const gchar *real_name, const gchar *home_directory, const gchar *image, gboolean logged_in)
 {
-    if (g_strcmp0 (user->priv->real_name, real_name) != 0 ||
-        g_strcmp0 (user->priv->home_directory, home_directory) != 0 ||
-        g_strcmp0 (user->priv->image, image) != 0 ||
-        user->priv->logged_in != logged_in)
+    if (g_strcmp0 (user->priv->real_name, real_name) == 0 &&
+        g_strcmp0 (user->priv->home_directory, home_directory) == 0 &&
+        g_strcmp0 (user->priv->image, image) == 0 &&
+        user->priv->logged_in == logged_in)
         return FALSE;
   
     g_free (user->priv->real_name);

@@ -734,7 +734,7 @@ load_users (LdmGreeter *greeter)
             if (strcmp (ldm_user_get_name (info), ldm_user_get_name (user)) == 0)
             {
                 if (ldm_user_update (info, ldm_user_get_real_name (user), ldm_user_get_home_directory (user), ldm_user_get_image (user), ldm_user_get_logged_in (user)))
-                    changed_users = g_list_insert_sorted (changed_users, user, compare_user);
+                    changed_users = g_list_insert_sorted (changed_users, info, compare_user);
                 g_object_unref (user);
                 user = info;
                 break;
@@ -759,7 +759,7 @@ load_users (LdmGreeter *greeter)
     /* Use new user list */
     old_users = greeter->priv->users;
     greeter->priv->users = users;
-
+  
     /* Notify of changes */
     for (link = new_users; link; link = link->next)
     {

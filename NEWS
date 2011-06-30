@@ -7,6 +7,7 @@ Overview of changes in lightdm 0.4.1
       (system default) and leave it to ~/.profile for users to set these
     * Change greeter library API, starting a session no longer has a language
       option
+    * Fix crash when user accounts change
 
 Overview of changes in lightdm 0.4.0
 
