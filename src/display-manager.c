@@ -259,32 +259,12 @@ string_to_xdm_auth_key (const gchar *key, guchar *data)
 }
 
 static gint
-get_vt (DisplayManager *manager, gchar *config_section)
+vt_get_active ()
 {
-    gchar *vt;
-    gboolean use_active = FALSE;
 #ifdef __linux__
     gint console_fd;
-#endif
-    int number = -1;
+    struct vt_stat console_state = { 0 };    
 
-    if (getuid () != 0)
-        return -1;
-
-    vt = config_get_string (config_get_instance (), config_section, "vt");
-    if (vt)
-    {
-        if (strcmp (vt, "active") == 0)
-            use_active = TRUE;
-        else
-            number = atoi (vt);
-        g_free (vt);
-
-        if (number >= 0)
-            return number;
-    }
-
-#ifdef __linux__
     console_fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
     if (console_fd < 0)
     {
@@ -292,32 +272,46 @@ get_vt (DisplayManager *manager, gchar *config_section)
         return -1;
     }
 
-    if (use_active)
-    {
-        struct vt_stat console_state = { 0 };
-        if (ioctl (console_fd, VT_GETSTATE, &console_state) < 0)
-            g_warning ("Error using VT_GETSTATE on /dev/console: %s", strerror (errno));
-        else
-            number = console_state.v_active;
-    }
-    else
-    {      
-        if (ioctl (console_fd, VT_OPENQRY, &number) < 0)
-            g_warning ("Error using VT_OPENQRY on /dev/console: %s", strerror (errno));
-    }
+    if (ioctl (console_fd, VT_GETSTATE, &console_state) < 0)
+        g_warning ("Error using VT_GETSTATE on /dev/console: %s", strerror (errno));
 
     close (console_fd);
-#else
-    number = -1;
-#endif    
 
-    return number;  
+    return console_state.v_active;
+#else
+    return -1;
+#endif    
+}
+
+static gint
+vt_get_unused ()
+{
+#ifdef __linux__
+    gint console_fd;
+    int number;
+
+    console_fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
+    if (console_fd < 0)
+    {
+        g_warning ("Error opening /dev/console: %s", strerror (errno));
+        return -1;
+    }
+
+    if (ioctl (console_fd, VT_OPENQRY, &number) < 0)
+        g_warning ("Error using VT_OPENQRY on /dev/console: %s", strerror (errno));
+
+    close (console_fd);
+  
+    return number;
+#else
+    return -1;
+#endif    
 }
 
 static XServer *
 make_xserver (DisplayManager *manager, gchar *config_section)
 {
-    gint display_number, vt;
+    gint display_number;
     XServer *xserver;
     XAuthorization *authorization = NULL;
     gchar *xdmcp_manager, *filename, *path, *command, *xserver_section = NULL;
@@ -370,13 +364,6 @@ make_xserver (DisplayManager *manager, gchar *config_section)
     child_process_set_log_file (CHILD_PROCESS (xserver), path);
     g_free (filename);
     g_free (path);
-
-    vt = get_vt (manager, config_section);
-    if (vt >= 0)
-    {
-        g_debug ("Starting on /dev/tty%d", vt);
-        xserver_set_vt (xserver, vt);
-    }
 
     /* Get the X server configuration */
     if (config_section)
@@ -646,7 +633,7 @@ display_manager_start (DisplayManager *manager)
     {
         Display *display;
         gchar *value, *default_user, *display_name;
-        gint user_timeout;
+        gint vt, user_timeout;
         XServer *xserver;
         gboolean replaces_plymouth = FALSE;
 
@@ -657,18 +644,30 @@ display_manager_start (DisplayManager *manager)
         display = add_display (manager, xserver);
         g_object_unref (xserver);
 
-        /* If this is starting on the active VT, then this display will replace Plymouth */
-        if (plymouth_on_active_vt && !plymouth_being_replaced)
+        /* If this display is not on a specific VT, then this display will replace Plymouth */
+        value = config_get_string (config_get_instance (), display_name, "vt");
+        /* Workaround for old format, ignore "active" option */
+        /* FIXME: Remove this before 1.0 */
+        if (value && strcmp (value, "active") == 0)
         {
-            gchar *vt;
-            vt = config_get_string (config_get_instance (), display_name, "vt");
-            if (vt && strcmp (vt, "active") == 0)
-            {
-                plymouth_being_replaced = TRUE;
-                replaces_plymouth = TRUE;
-            }
-            g_free (vt);
+            g_free (value);
+            value = NULL;
         }
+        if (value)
+            vt = atoi (value);
+        else if (plymouth_on_active_vt && !plymouth_being_replaced)
+        {
+            g_debug ("Display %s will replace Plymouth", display_name);
+            plymouth_being_replaced = TRUE;
+            replaces_plymouth = TRUE;
+            vt = vt_get_active ();
+        }
+        else
+            vt = vt_get_unused ();
+        g_free (value);
+
+        g_debug ("Starting on /dev/tty%d", vt);          
+        xserver_set_vt (xserver, vt);
 
         value = config_get_string (config_get_instance (), display_name, "session");
         if (value)
@@ -712,7 +711,6 @@ display_manager_start (DisplayManager *manager)
         {
             XServer *xserver = display_get_xserver (display);
 
-            g_debug ("Display %s will replace Plymouth", display_name);
             xserver_set_no_root (xserver, TRUE);
             g_signal_connect (xserver, "ready", G_CALLBACK (stop_plymouth_cb), manager);
             g_signal_connect (xserver, "exited", G_CALLBACK (stop_plymouth_due_to_failure_cb), manager);

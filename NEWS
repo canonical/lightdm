@@ -1,6 +1,9 @@
 Overview of changes in lightdm 0.4.2
 
     * Fix errors communicating with PAM
+    * Fix interaction with Plytmouth.
+    * Removes the vt=active option in lightdm.conf, this is no longer required
+      and the active VT is used if no VT is specified and LightDM is detected
 
 Overview of changes in lightdm 0.4.1
 
