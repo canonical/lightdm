@@ -175,9 +175,21 @@ authenticate_cb (gpointer data)
     struct pam_conv conversation = { pam_conv_cb, session };
 
     pam_start (session->priv->service, session->priv->username, &conversation, &session->priv->pam_handle);
-    session->priv->result = pam_authenticate (session->priv->pam_handle, 0);
 
+    session->priv->result = pam_authenticate (session->priv->pam_handle, 0);
     g_debug ("pam_authenticate -> %s", pam_strerror (session->priv->pam_handle, session->priv->result));
+  
+    if (session->priv->result == PAM_SUCCESS)
+    {
+        session->priv->result = pam_acct_mgmt (session->priv->pam_handle, 0);
+        g_debug ("pam_acct_mgmt -> %s", pam_strerror (session->priv->pam_handle, session->priv->result));
+
+        if (session->priv->result == PAM_NEW_AUTHTOK_REQD)
+        {
+            session->priv->result = pam_chauthtok (session->priv->pam_handle, PAM_CHANGE_EXPIRED_AUTHTOK);
+            g_debug ("pam_chauthtok -> %s", pam_strerror (session->priv->pam_handle, session->priv->result));
+        }
+    }
 
     /* Notify user */
     g_idle_add (notify_auth_complete_cb, session);
