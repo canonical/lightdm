@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.4.2
+
+    * Fix errors communicating with PAM
+
 Overview of changes in lightdm 0.4.1
 
     * Fix linking issue with -z,defs

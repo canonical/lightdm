@@ -93,11 +93,17 @@ pam_session_authorize (PAMSession *session)
     session->priv->in_session = TRUE;
 
     if (!use_fake_users)
-    {      
+    {
+        int result;
+
         // FIXME:-
         //pam_set_item (session->priv->pam_handle, PAM_TTY, &tty);
         //pam_set_item (session->priv->pam_handle, PAM_XDISPLAY, &display);
-        pam_open_session (session->priv->pam_handle, 0);
+        result = pam_open_session (session->priv->pam_handle, 0);
+        g_debug ("pam_open_session -> %s", pam_strerror (session->priv->pam_handle, result));
+
+        result = pam_setcred (session->priv->pam_handle, PAM_ESTABLISH_CRED);
+        g_debug ("pam_setcred(PAM_ESTABLISH_CRED) -> %s", pam_strerror (session->priv->pam_handle, result));
     }
 
     g_signal_emit (G_OBJECT (session), signals[STARTED], 0);
@@ -362,7 +368,14 @@ pam_session_end (PAMSession *session)
     }
     else if (session->priv->in_session)
     {
-        pam_close_session (session->priv->pam_handle, 0);
+        int result;
+
+        result = pam_close_session (session->priv->pam_handle, 0);
+        g_debug ("pam_close_session -> %s", pam_strerror (session->priv->pam_handle, result));
+
+        pam_setcred (session->priv->pam_handle, PAM_DELETE_CRED);
+        g_debug ("pam_setcred(PAM_DELETE_CRED) -> %s", pam_strerror (session->priv->pam_handle, result));
+
         session->priv->in_session = FALSE;
         g_signal_emit (G_OBJECT (session), signals[ENDED], 0);
     }
