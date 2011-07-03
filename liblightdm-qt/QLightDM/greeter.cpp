@@ -22,6 +22,8 @@
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
 #include <QtCore/QVariant>
+#include <QtCore/QSettings>
+#include <QtCore/QUrl>
 #include <QtCore/QFile>
 #include <QtCore/QSocketNotifier>
 #include <QtDBus/QDBusPendingReply>
@@ -392,7 +394,9 @@ QString Greeter::theme() const
 
 QVariant Greeter::getProperty(const QString &name) const
 {
-    return QVariant(); //FIXME TODO
+    QUrl themeUrl(d->theme);
+    QSettings themeInfo(themeUrl.path(), QSettings::IniFormat);
+    return themeInfo.value(name);
 }
 
 QString Greeter::defaultLanguage() const
@@ -423,6 +427,11 @@ QString Greeter::timedLoginUser() const
 int Greeter::timedLoginDelay() const
 {
     return d->loginDelay;
+}
+
+void Greeter::cancelTimedLogin() 
+{
+    //FIXME TODO
 }
 
 Config* Greeter::config() const

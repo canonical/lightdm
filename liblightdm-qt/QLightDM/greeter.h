@@ -13,7 +13,8 @@
 #ifndef QLIGTHDM_GREETER_H
 #define QLIGTHDM_GREETER_H
 
-#include <QObject>
+#include <QtCore/QObject>
+#include <QtCore/QVariant>
 
 #include "user.h"
 #include "language.h"
@@ -32,18 +33,18 @@ namespace QLightDM
         explicit Greeter(QObject* parent=0);
         virtual ~Greeter();
 
-    Q_PROPERTY(bool canSuspend READ canSuspend);
-    Q_PROPERTY(bool canHibernate READ canHibernate);
-	Q_PROPERTY(bool canShutdown READ canShutdown);
-	Q_PROPERTY(bool canRestart READ canRestart);
+        Q_PROPERTY(bool canSuspend READ canSuspend);
+        Q_PROPERTY(bool canHibernate READ canHibernate);
+        Q_PROPERTY(bool canShutdown READ canShutdown);
+        Q_PROPERTY(bool canRestart READ canRestart);
 
-	Q_PROPERTY(QString hostname READ hostname);
+	Q_PROPERTY(QString hostname READ hostname CONSTANT);
 
 	/** The hostname of the machine */
 	QString hostname() const;
 	QString theme() const;
 
-	QVariant getProperty(const QString &name) const;
+	Q_INVOKABLE QVariant getProperty(const QString &name) const;
 
 	QString timedLoginUser() const;
 	int timedLoginDelay() const;
@@ -54,23 +55,15 @@ namespace QLightDM
 	//QList<LdmLayout> layouts() const;
 	QString layout() const;
 
-    QLightDM::Config *config() const;
+        QLightDM::Config *config() const;
 
 	QString defaultSession() const;
-    bool guestAccountSupported() const;
-    bool isFirst() const;
+        bool guestAccountSupported() const;
+        bool isFirst() const;
 
 	bool inAuthentication() const;
 	bool isAuthenticated() const;
 	QString authenticationUser() const;
-
-	void connectToServer();
-	void cancelTimedLogin();  
-	void login(const QString &username);
-	void loginAsGuest();
-	void provideSecret(const QString &secret);
-	void cancelAuthentication();
-	void startSession(const QString &session=QString());
 
 	bool canSuspend() const;
 	bool canHibernate() const;
@@ -82,7 +75,15 @@ namespace QLightDM
 	void hibernate();
 	void shutdown();
 	void restart();
-      
+
+        void connectToServer();
+        void cancelTimedLogin();  
+        void login(const QString &username);
+        void loginAsGuest();
+        void provideSecret(const QString &secret);
+        void cancelAuthentication();
+        void startSession(const QString &session=QString());
+        
     signals:
 	void connected();
 	void showPrompt(QString prompt);
