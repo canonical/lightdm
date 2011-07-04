@@ -129,6 +129,9 @@ run_commands ()
     while (TRUE)
     {
         gchar *command = get_script_line ();
+        gchar **args, *name;
+        GHashTable *params;
+        gint i;
 
         if (!command)
             break;
@@ -137,14 +140,25 @@ run_commands ()
         if (command[0] != '*')
             break;
         statuses = g_list_append (statuses, g_strdup (command));
-        command++;
         script_iter = script_iter->next;
 
-        if (strcmp (command, "WAIT") == 0)
+        args = g_strsplit (command, " ", -1);
+        name = g_strdup (args[0] + 1);
+        params = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+        for (i = 1; args[i]; i++)
+        {
+            gchar **v;
+            v = g_strsplit (args[i], "=", 2);
+            g_hash_table_insert (params, g_strdup (v[0]), g_strdup (v[1]));
+            g_strfreev (v);
+        }
+        g_strfreev (args);
+
+        if (strcmp (name, "WAIT") == 0)
         {
             sleep (1);
         }
-        else if (strcmp (command, "SHOW-GREETER") == 0)
+        else if (strcmp (name, "SHOW-GREETER") == 0)
         {
             g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL),
                                          "org.freedesktop.DisplayManager",
@@ -159,17 +173,40 @@ run_commands ()
                                          NULL);
             check_status ("RUNNER SHOW-GREETER");
         }
-        else if (strcmp (command, "STOP-DAEMON") == 0)
+        else if (strcmp (name, "SWITCH-TO-USER") == 0)
+        {
+            gchar *status_text, *username;
+          
+            username = g_hash_table_lookup (params, "USERNAME");
+            g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL),
+                                         "org.freedesktop.DisplayManager",
+                                         "/org/freedesktop/DisplayManager",                                         
+                                         "org.freedesktop.DisplayManager",
+                                         "SwitchToUser",
+                                         g_variant_new ("(s)", username),
+                                         G_VARIANT_TYPE ("()"),
+                                         G_DBUS_CALL_FLAGS_NONE,
+                                         0,
+                                         NULL,
+                                         NULL);
+            status_text = g_strdup_printf ("RUNNER SWITCH-TO-USER USERNAME=%s", username);
+            check_status (status_text);
+            g_free (status_text);
+        }
+        else if (strcmp (name, "STOP-DAEMON") == 0)
         {
             expect_exit = TRUE;
             stop_daemon ();
         }
         else
         {
-            g_printerr ("Unknown command %s\n", command);
+            g_printerr ("Unknown command '%s'\n", name);
             quit (EXIT_FAILURE);
             return;
         }
+
+        g_free (name);
+        g_hash_table_unref (params);
     }
 
     /* Stop at the end of the script */
