@@ -386,9 +386,12 @@ switch_to_user (DisplayManager *manager, const gchar *username)
         const gchar *session_user;
 
         session_user = display_get_session_user (display);
-        if (session_user && g_strcmp0 (session_user, username) == 0)
+        if (g_strcmp0 (session_user, username) == 0)
         {
-            g_debug ("Switching to user %s session on display %s", username, xserver_get_address (display_get_xserver (display)));
+            if (username)
+                g_debug ("Switching to user %s session on display %s", username, xserver_get_address (display_get_xserver (display)));
+            else
+                g_debug ("Switching to greeter session on display %s", xserver_get_address (display_get_xserver (display)));
             display_show (display);
             return;
         }
@@ -397,7 +400,7 @@ switch_to_user (DisplayManager *manager, const gchar *username)
     if (username)
         g_debug ("Starting new display for user %s", username);
     else
-        g_debug ("Starting new greeter");
+        g_debug ("Starting new display for greeter");
 
     xserver = make_xserver (manager, NULL);
     display = add_display (manager, xserver);
@@ -409,19 +412,35 @@ switch_to_user (DisplayManager *manager, const gchar *username)
 void
 display_manager_show_greeter (DisplayManager *manager)
 {
-    switch_to_user (manager, NULL);
+    g_return_if_fail (manager != NULL);
+
+    g_debug ("Showing greeter");
+    if (!manager->priv->stopping)
+        switch_to_user (manager, NULL);
 }
 
 void
 display_manager_switch_to_user (DisplayManager *manager, char *username)
 {
-    switch_to_user (manager, username);
+    g_return_if_fail (manager != NULL);
+    g_return_if_fail (username != NULL);
+
+    g_debug ("Switching to user %s", username);
+    if (!manager->priv->stopping)
+        switch_to_user (manager, username);
 }
 
 void
 display_manager_switch_to_guest (DisplayManager *manager)
 {
-    switch_to_user (manager, guest_account_get_username ());
+    g_return_if_fail (manager != NULL);
+
+    if (guest_account_get_is_enabled ())
+        return;
+
+    g_debug ("Switching to guest account");
+    if (!manager->priv->stopping)
+        switch_to_user (manager, guest_account_get_username ());
 }
 
 static gboolean
@@ -550,6 +569,8 @@ display_manager_start (DisplayManager *manager)
     gchar *seats;
     gchar **tokens, **i;
     gboolean plymouth_is_running, plymouth_on_active_vt = FALSE, plymouth_being_replaced = FALSE;
+
+    g_return_if_fail (manager != NULL);
 
     /* Make an empty authorization directory */
     setup_auth_dir (manager);
@@ -712,6 +733,8 @@ void
 display_manager_stop (DisplayManager *manager)
 {
     GList *link;
+
+    g_return_if_fail (manager != NULL);
 
     g_debug ("Stopping display manager");
 
