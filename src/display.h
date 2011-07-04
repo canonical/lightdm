@@ -90,6 +90,8 @@ gint display_get_vt (Display *display);
 
 gboolean display_start (Display *display);
 
+void display_show (Display *display);
+
 void display_stop (Display *display);
 
 G_END_DECLS

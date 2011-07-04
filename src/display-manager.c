@@ -23,6 +23,7 @@
 #include "xserver.h"
 #include "vt.h"
 #include "theme.h"
+#include "guest-account.h"
 
 enum {
     STARTED,
@@ -372,23 +373,8 @@ add_display (DisplayManager *manager, XServer *xserver)
     return display;
 }
 
-Display *
-display_manager_add_display (DisplayManager *manager)
-{
-    Display *display;
-    XServer *xserver;
-
-    g_debug ("Starting new display");
-    xserver = make_xserver (manager, NULL);
-    display = add_display (manager, xserver);
-    g_object_unref (xserver);
-    display_start (display);
-
-    return display;
-}
-
-void
-display_manager_switch_to_user (DisplayManager *manager, char *username)
+static void
+switch_to_user (DisplayManager *manager, const gchar *username)
 {
     GList *link;
     Display *display;
@@ -400,25 +386,42 @@ display_manager_switch_to_user (DisplayManager *manager, char *username)
         const gchar *session_user;
 
         session_user = display_get_session_user (display);
-        if (session_user && strcmp (session_user, username) == 0)
+        if (session_user && g_strcmp0 (session_user, username) == 0)
         {
             g_debug ("Switching to user %s session on display %s", username, xserver_get_address (display_get_xserver (display)));
-            //display_focus (display);
+            display_show (display);
             return;
         }
     }
 
-    g_debug ("Starting new display for user %s", username);
+    if (username)
+        g_debug ("Starting new display for user %s", username);
+    else
+        g_debug ("Starting new greeter");
+
     xserver = make_xserver (manager, NULL);
     display = add_display (manager, xserver);
+    // FIXME: Add selected user hint
     g_object_unref (xserver);
     display_start (display);
 }
 
 void
+display_manager_show_greeter (DisplayManager *manager)
+{
+    switch_to_user (manager, NULL);
+}
+
+void
+display_manager_switch_to_user (DisplayManager *manager, char *username)
+{
+    switch_to_user (manager, username);
+}
+
+void
 display_manager_switch_to_guest (DisplayManager *manager)
 {
-    // fixme  
+    switch_to_user (manager, guest_account_get_username ());
 }
 
 static gboolean

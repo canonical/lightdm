@@ -131,7 +131,7 @@ handle_display_manager_call (GDBusConnection       *connection,
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
             return;
 
-        display_manager_add_display (display_manager);
+        display_manager_show_greeter (display_manager);
         g_dbus_method_invocation_return_value (invocation, NULL);
     }
     else if (g_strcmp0 (method_name, "SwitchToUser") == 0)

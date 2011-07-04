@@ -20,4 +20,6 @@ gint vt_get_unused (void);
 
 void vt_release (gint number);
 
+void vt_set_active (gint number);
+
 #endif /* _VT_H_ */

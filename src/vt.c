@@ -25,29 +25,37 @@
 
 static GList *used_vts = NULL;
 
+static gint
+open_console (void)
+{
+    int fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
+    if (fd < 0)
+        g_warning ("Error opening /dev/console: %s", strerror (errno));
+    return fd;
+}
+
 gint
 vt_get_active (void)
 {
 #ifdef __linux__
     gint console_fd;
-    struct vt_stat console_state = { 0 };    
+    gint active = -1;
 
-    console_fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
-    if (console_fd < 0)
+    console_fd = open_console ();
+    if (console_fd)
     {
-        g_warning ("Error opening /dev/console: %s", strerror (errno));
-        return -1;
+        struct vt_stat console_state = { 0 };
+        if (ioctl (console_fd, VT_GETSTATE, &console_state) < 0)
+            g_warning ("Error using VT_GETSTATE on /dev/console: %s", strerror (errno));
+        else
+            active = console_state.v_active;
+        close (console_fd);
     }
 
-    if (ioctl (console_fd, VT_GETSTATE, &console_state) < 0)
-        g_warning ("Error using VT_GETSTATE on /dev/console: %s", strerror (errno));
-
-    close (console_fd);
-
-    return console_state.v_active;
+    return active;
 #else
     return -1;
-#endif    
+#endif
 }
 
 static gboolean
@@ -96,4 +104,21 @@ vt_release (gint number)
 
     if (link)
         used_vts = g_list_remove_link (used_vts, link);
+}
+
+void
+vt_set_active (gint number)
+{
+#ifdef __linux__
+    gint console_fd;
+
+    console_fd = open_console ();
+    if (console_fd)
+    {
+        int n = number;
+        if (ioctl (console_fd, VT_ACTIVATE, &n) < 0)
+            g_warning ("Error using VT_ACTIVATE on /dev/console: %s", strerror (errno));
+        close (console_fd);
+    }
+#endif
 }
