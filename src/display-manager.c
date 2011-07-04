@@ -591,18 +591,8 @@ display_manager_start (DisplayManager *manager)
         display = add_display (manager, xserver);
         g_object_unref (xserver);
 
-        /* If this display is not on a specific VT, then this display will replace Plymouth */
-        value = config_get_string (config_get_instance (), display_name, "vt");
-        /* Workaround for old format, ignore "active" option */
-        /* FIXME: Remove this before 1.0 */
-        if (value && strcmp (value, "active") == 0)
-        {
-            g_free (value);
-            value = NULL;
-        }
-        if (value)
-            vt = atoi (value);
-        else if (plymouth_on_active_vt && !plymouth_being_replaced)
+        /* Replace Plymouth */
+        if (plymouth_on_active_vt && !plymouth_being_replaced)
         {
             g_debug ("Display %s will replace Plymouth", display_name);
             plymouth_being_replaced = TRUE;
@@ -611,7 +601,6 @@ display_manager_start (DisplayManager *manager)
         }
         else
             vt = vt_get_unused ();
-        g_free (value);
 
         g_debug ("Starting on /dev/tty%d", vt);          
         xserver_set_vt (xserver, vt);
