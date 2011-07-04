@@ -36,7 +36,8 @@ typedef struct
   
     void (*started)(Display *display);
     void (*start_greeter)(Display *display, Session *session);
-    void (*end_greeter)(Display *display, Session *session);  
+    void (*end_greeter)(Display *display, Session *session);
+    gboolean (*activate_user)(Display *display, const gchar *username);
     void (*start_session)(Display *display, Session *session);
     void (*end_session)(Display *display, Session *session);
     void (*stopped)(Display *display);
@@ -44,9 +45,7 @@ typedef struct
 
 GType display_get_type (void);
 
-Display *display_new (gint index, XServer *xserver);
-
-gint display_get_index (Display *display);
+Display *display_new (XServer *xserver);
 
 XServer *display_get_xserver (Display *display);
 

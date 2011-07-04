@@ -33,6 +33,7 @@ static gboolean debug = FALSE;
 static DisplayManager *display_manager = NULL;
 
 static GDBusConnection *bus = NULL;
+static guint bus_id;
 
 #define LDM_BUS_NAME "org.freedesktop.DisplayManager"
 
@@ -106,6 +107,7 @@ signal_cb (ChildProcess *process, int signum)
 {
     /* Quit when all child processes have ended */
     g_debug ("Caught %s signal, shutting down", g_strsignal (signum));
+    g_dbus_connection_unregister_object (bus, bus_id);
     display_manager_stop (display_manager);
 }
 
@@ -142,7 +144,7 @@ handle_display_manager_call (GDBusConnection       *connection,
             return;
 
         g_variant_get (parameters, "(s)", &username);
-        display_manager_switch_to_user (display_manager, username);
+        display_manager_switch_to_user (display_manager, username, TRUE);
         g_dbus_method_invocation_return_value (invocation, NULL);
         g_free (username);
     }
@@ -151,7 +153,7 @@ handle_display_manager_call (GDBusConnection       *connection,
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
             return;
 
-        display_manager_switch_to_guest (display_manager);
+        display_manager_switch_to_guest (display_manager, TRUE);
         g_dbus_method_invocation_return_value (invocation, NULL);
     }
 }
@@ -198,12 +200,12 @@ bus_acquired_cb (GDBusConnection *connection,
 
     display_manager_info = g_dbus_node_info_new_for_xml (display_manager_interface, NULL);
     g_assert (display_manager_info != NULL);
-    g_dbus_connection_register_object (connection,
-                                       "/org/freedesktop/DisplayManager",
-                                       display_manager_info->interfaces[0],
-                                       &display_manager_vtable,
-                                       NULL, NULL,
-                                       NULL);
+    bus_id = g_dbus_connection_register_object (connection,
+                                                "/org/freedesktop/DisplayManager",
+                                                display_manager_info->interfaces[0],
+                                                &display_manager_vtable,
+                                                NULL, NULL,
+                                                NULL);
 }
 
 static void

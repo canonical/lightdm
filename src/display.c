@@ -32,6 +32,7 @@ enum {
     STARTED,
     START_GREETER,
     END_GREETER,
+    ACTIVATE_USER,
     START_SESSION,
     END_SESSION,
     STOPPED,
@@ -50,8 +51,6 @@ typedef enum
 
 struct DisplayPrivate
 {
-    gint index;
-
     /* X server */
     XServer *xserver;
 
@@ -105,27 +104,18 @@ G_DEFINE_TYPE (Display, display, G_TYPE_OBJECT);
 
 static gboolean start_greeter (Display *display);
 
-// FIXME: Remove the index, it is an external property
 Display *
-display_new (gint index, XServer *xserver)
+display_new (XServer *xserver)
 {
     Display *self = g_object_new (DISPLAY_TYPE, NULL);
 
     g_return_val_if_fail (xserver != NULL, NULL);
 
-    self->priv->index = index;
     self->priv->pam_service = g_strdup (DEFAULT_PAM_SERVICE);
     self->priv->pam_autologin_service = g_strdup (DEFAULT_PAM_AUTOLOGIN_SERVICE);
     self->priv->xserver = g_object_ref (xserver);
 
     return self;
-}
-
-gint
-display_get_index (Display *display)
-{
-    g_return_val_if_fail (display != NULL, 0);
-    return display->priv->index;
 }
 
 XServer *
@@ -622,12 +612,26 @@ default_session_pam_message_cb (PAMSession *session, int num_msg, const struct p
     pam_session_cancel (session);
 }
 
+static gboolean
+activate_user (Display *display, const gchar *username)
+{
+    gboolean result;
+
+    g_signal_emit (display, signals[ACTIVATE_USER], 0, username, &result);
+
+    return result;
+}
+
 static void
 default_session_authentication_result_cb (PAMSession *session, int result, Display *display)
 {
     if (result == PAM_SUCCESS)
     {
         g_debug ("User %s authorized", pam_session_get_username (session));
+
+        if (activate_user (display, pam_session_get_username (display->priv->user_pam_session)))
+            return;
+
         pam_session_authorize (session);
         start_user_session (display, display->priv->default_session);
     }
@@ -680,6 +684,9 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session, Display *displ
         g_warning ("Ignoring request for login with unauthenticated user");
         return;
     }
+
+    if (activate_user (display, pam_session_get_username (display->priv->user_pam_session)))
+        return;
 
     start_user_session (display, session);
 
@@ -860,6 +867,8 @@ display_start (Display *display)
 void
 display_show (Display *display)
 {
+    g_return_if_fail (display != NULL);
+
     gint number = xserver_get_vt (display->priv->xserver);
     if (number >= 0)
         vt_set_active (number);
@@ -868,6 +877,8 @@ display_show (Display *display)
 void
 display_stop (Display *display)
 {
+    g_return_if_fail (display != NULL);
+
     g_debug ("Stopping display");
 
     display->priv->stopping = TRUE;
@@ -955,6 +966,15 @@ display_class_init (DisplayClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__OBJECT,
                       G_TYPE_NONE, 1, SESSION_TYPE);
+    signals[ACTIVATE_USER] =
+        g_signal_new ("activate-user",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (DisplayClass, activate_user),
+                      g_signal_accumulator_true_handled,
+                      NULL,
+                      ldm_marshal_BOOLEAN__STRING,
+                      G_TYPE_BOOLEAN, 1, G_TYPE_STRING);
     signals[START_SESSION] =
         g_signal_new ("start-session",
                       G_TYPE_FROM_CLASS (klass),

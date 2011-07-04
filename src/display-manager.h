@@ -43,9 +43,9 @@ DisplayManager *display_manager_new (void);
 
 void display_manager_show_greeter (DisplayManager *manager);
 
-void display_manager_switch_to_user (DisplayManager *manager, char *username);
+gboolean display_manager_switch_to_user (DisplayManager *manager, const gchar *username, gboolean start_greeter);
 
-void display_manager_switch_to_guest (DisplayManager *manager);
+gboolean display_manager_switch_to_guest (DisplayManager *manager, gboolean start_greeter);
 
 void display_manager_start (DisplayManager *manager);
 
