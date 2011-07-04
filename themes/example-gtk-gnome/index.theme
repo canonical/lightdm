@@ -1,5 +1,5 @@
 [theme]
-name=GNOME
+name=GNOME Example Theme
 description=GNOME Example Theme
 engine=lightdm-example-gtk-greeter
 session=gnome

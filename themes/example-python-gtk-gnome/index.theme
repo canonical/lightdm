@@ -1,5 +1,5 @@
 [theme]
-name=GNOME
+name=GNOME Example Theme (Python)
 description=GNOME Example Theme (Python)
 engine=lightdm-example-python-gtk-greeter
 session=gnome
