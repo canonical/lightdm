@@ -168,7 +168,7 @@ run_commands ()
                                          g_variant_new ("()"),
                                          G_VARIANT_TYPE ("()"),
                                          G_DBUS_CALL_FLAGS_NONE,
-                                         0,
+                                         1000,
                                          NULL,
                                          NULL);
             check_status ("RUNNER SHOW-GREETER");
@@ -186,7 +186,7 @@ run_commands ()
                                          g_variant_new ("(s)", username),
                                          G_VARIANT_TYPE ("()"),
                                          G_DBUS_CALL_FLAGS_NONE,
-                                         0,
+                                         1000,
                                          NULL,
                                          NULL);
             status_text = g_strdup_printf ("RUNNER SWITCH-TO-USER USERNAME=%s", username);
