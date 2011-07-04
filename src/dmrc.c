@@ -24,7 +24,6 @@ dmrc_load (const gchar *username)
     GKeyFile *dmrc_file;
     gchar *path;
     gboolean have_dmrc;
-    GError *error = NULL;
 
     dmrc_file = g_key_file_new ();
 
@@ -52,9 +51,7 @@ dmrc_load (const gchar *username)
         g_free (filename);
         g_free (cache_dir);
 
-        if (!g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, &error))
-            g_warning ("Failed to load .dmrc file %s: %s", path, error->message);
-        g_clear_error (&error);
+        g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, NULL);
         g_free (path);
     }
 
