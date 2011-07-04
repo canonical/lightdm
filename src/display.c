@@ -406,7 +406,7 @@ static void
 user_session_exited_cb (Session *session, gint status, Display *display)
 {
     if (status != 0)
-        g_debug ("User session exited with valuel %d", status);
+        g_debug ("User session exited with value %d", status);
 }
 
 static void
