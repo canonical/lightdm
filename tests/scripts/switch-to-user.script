@@ -23,7 +23,7 @@ SESSION START USER=alice
 XSERVER :.* ACCEPT-CONNECT
 SESSION CONNECT-XSERVER
 
-# Show the greeter again, should not do anything
+# Switch again, should not do anything as user session already running
 *SWITCH-TO-USER USERNAME=alice
 RUNNER SWITCH-TO-USER USERNAME=alice
 *WAIT
