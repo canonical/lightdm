@@ -21,6 +21,9 @@
 #endif
 
 #include "vt.h"
+#include "configuration.h"
+
+static GList *used_vts = NULL;
 
 gint
 vt_get_active (void)
@@ -47,32 +50,50 @@ vt_get_active (void)
 #endif    
 }
 
+static gboolean
+vt_is_used (gint number)
+{
+    GList *link;
+
+    for (link = used_vts; link; link = link->next)
+    {
+        int n = GPOINTER_TO_INT (link->data);
+        if (n == number)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 gint
 vt_get_unused (void)
 {
-#ifdef __linux__
-    gint console_fd;
-    int number;
+    gint number;
 
-    console_fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
-    if (console_fd < 0)
-    {
-        g_warning ("Error opening /dev/console: %s", strerror (errno));
-        return -1;
-    }
+    number = config_get_integer (config_get_instance (), "LightDM", "minimum-vt");
+    if (number < 1)
+        number = 1;
 
-    if (ioctl (console_fd, VT_OPENQRY, &number) < 0)
-        g_warning ("Error using VT_OPENQRY on /dev/console: %s", strerror (errno));
+    while (vt_is_used (number))
+        number++;
 
-    close (console_fd);
-  
+    used_vts = g_list_append (used_vts, GINT_TO_POINTER (number));
+ 
     return number;
-#else
-    return -1;
-#endif    
 }
 
 void
 vt_release (gint number)
 {
+    GList *link;
+
+    for (link = used_vts; link; link = link->next)
+    {
+        int n = GPOINTER_TO_INT (link->data);
+        if (n == number)
+            break;
+    }
+
+    if (link)
+        used_vts = g_list_remove_link (used_vts, link);
 }

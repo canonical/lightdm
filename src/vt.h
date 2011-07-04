@@ -12,7 +12,7 @@
 #ifndef _VT_H_
 #define _VT_H_
 
-#include <glib.h>
+#include <glib-object.h>
 
 gint vt_get_active (void);
 
