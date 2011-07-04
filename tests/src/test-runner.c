@@ -3,6 +3,7 @@
 #include <string.h>
 #include <errno.h>
 #include <glib.h>
+#include <gio/gio.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -135,12 +136,30 @@ run_commands ()
         /* Commands start with an asterisk */
         if (command[0] != '*')
             break;
+        statuses = g_list_append (statuses, g_strdup (command));
+        command++;
+        script_iter = script_iter->next;
 
-        if (strcmp (command, "*WAIT") == 0)
+        if (strcmp (command, "WAIT") == 0)
         {
             sleep (1);
         }
-        else if (strcmp (command, "*STOP-DAEMON") == 0)
+        else if (strcmp (command, "SHOW-GREETER") == 0)
+        {
+            g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL),
+                                         "org.freedesktop.DisplayManager",
+                                         "/org/freedesktop/DisplayManager",                                         
+                                         "org.freedesktop.DisplayManager",
+                                         "ShowGreeter",
+                                         g_variant_new ("()"),
+                                         G_VARIANT_TYPE ("()"),
+                                         G_DBUS_CALL_FLAGS_NONE,
+                                         0,
+                                         NULL,
+                                         NULL);
+            check_status ("RUNNER SHOW-GREETER");
+        }
+        else if (strcmp (command, "STOP-DAEMON") == 0)
         {
             expect_exit = TRUE;
             stop_daemon ();
@@ -151,8 +170,6 @@ run_commands ()
             quit (EXIT_FAILURE);
             return;
         }
-        statuses = g_list_append (statuses, g_strdup (command));
-        script_iter = script_iter->next;
     }
 
     /* Stop at the end of the script */
@@ -293,6 +310,8 @@ main (int argc, char **argv)
 
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
+
+    g_type_init ();
 
     loop = g_main_loop_new (NULL, FALSE);
 

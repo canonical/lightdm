@@ -4,10 +4,12 @@ dist_noinst_SCRIPTS = test-setup-guest test-cleanup-guest
 test_runner_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
+	$(GIO_CFLAGS) \
 	-DSRCDIR=\"$(abs_top_srcdir)\" \
 	-DBUILDDIR=\"$(abs_top_builddir)\"
 test_runner_LDADD = \
-	$(GLIB_LIBS)
+	$(GLIB_LIBS) \
+	$(GIO_LIBS)
 
 test_xserver_SOURCES = test-xserver.c status.c status.h
 test_xserver_CFLAGS = \
