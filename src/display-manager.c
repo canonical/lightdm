@@ -466,8 +466,8 @@ gboolean
 display_manager_switch_to_guest (DisplayManager *manager, gboolean start_greeter)
 {
     g_return_val_if_fail (manager != NULL, FALSE);
-
-    if (guest_account_get_is_enabled ())
+  
+    if (!guest_account_get_is_enabled ())
         return FALSE;
 
     g_debug ("Switching to guest account");
