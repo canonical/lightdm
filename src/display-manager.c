@@ -13,21 +13,15 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <sys/stat.h>
 #include <xcb/xcb.h>
 #include <fcntl.h>
-#include <glib/gstdio.h>
-#include <sys/ioctl.h>
-#ifdef __linux__
-#include <linux/vt.h>
-#endif
 
 #include "display-manager.h"
 #include "configuration.h"
 #include "user.h"
 #include "xdmcp-server.h"
 #include "xserver.h"
+#include "vt.h"
 #include "theme.h"
 
 enum {
@@ -256,56 +250,6 @@ string_to_xdm_auth_key (const gchar *key, guchar *data)
         for (i = 1; i < 8 && key[i-1]; i++)
            data[i] = key[i-1];
     }
-}
-
-static gint
-vt_get_active ()
-{
-#ifdef __linux__
-    gint console_fd;
-    struct vt_stat console_state = { 0 };    
-
-    console_fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
-    if (console_fd < 0)
-    {
-        g_warning ("Error opening /dev/console: %s", strerror (errno));
-        return -1;
-    }
-
-    if (ioctl (console_fd, VT_GETSTATE, &console_state) < 0)
-        g_warning ("Error using VT_GETSTATE on /dev/console: %s", strerror (errno));
-
-    close (console_fd);
-
-    return console_state.v_active;
-#else
-    return -1;
-#endif    
-}
-
-static gint
-vt_get_unused ()
-{
-#ifdef __linux__
-    gint console_fd;
-    int number;
-
-    console_fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
-    if (console_fd < 0)
-    {
-        g_warning ("Error opening /dev/console: %s", strerror (errno));
-        return -1;
-    }
-
-    if (ioctl (console_fd, VT_OPENQRY, &number) < 0)
-        g_warning ("Error using VT_OPENQRY on /dev/console: %s", strerror (errno));
-
-    close (console_fd);
-  
-    return number;
-#else
-    return -1;
-#endif    
 }
 
 static XServer *
