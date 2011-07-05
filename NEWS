@@ -6,8 +6,9 @@ Overview of changes in lightdm 0.4.2
       and the active is used for the first display if Plymouth is
       detected.  A new option minimum-vt is added to select the first
       VT to be used for other displays.
-    * Make login switch to existing session if already logged in.  Make D-Bus
-      interface switch to existing sessions correctly.
+    * On login switch to an existing session if already logged in with that
+      username.
+    * Correctly connect up D-Bus interface for user switching
 
 Overview of changes in lightdm 0.4.1
 
