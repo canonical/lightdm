@@ -506,7 +506,7 @@ really_start_user_session (Display *display)
 
     result = session_start (display->priv->user_session, FALSE);
 
-    /* If a guest account, remove the account on exit */
+    /* Create guest account */
     if (result && g_strcmp0 (user_get_name (session_get_user (display->priv->user_session)), guest_account_get_username ()) == 0)
         guest_account_ref ();
 
@@ -645,6 +645,10 @@ default_session_authentication_result_cb (PAMSession *session, int result, Displ
 static gboolean
 start_autologin_session (Display *display, GError **error)
 {
+    /* Open guest account if necessary */
+    if (g_strcmp0 (display->priv->default_user, guest_account_get_username ()) == 0)
+        guest_account_ref ();
+  
     /* Run using autologin PAM session, abort if get asked any questions */
     if (display->priv->user_pam_session)
         pam_session_end (display->priv->user_pam_session);

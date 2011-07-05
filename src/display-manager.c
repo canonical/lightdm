@@ -400,10 +400,11 @@ add_display (DisplayManager *manager, XServer *xserver)
 }
 
 static gboolean
-switch_to_user (DisplayManager *manager, const gchar *username, gboolean start_new_greeter)
+switch_to_user (DisplayManager *manager, const gchar *username)
 {
     GList *link;
     Display *display;
+    XServer *xserver;
 
     for (link = manager->priv->displays; link; link = link->next)
     {
@@ -422,23 +423,21 @@ switch_to_user (DisplayManager *manager, const gchar *username, gboolean start_n
         }
     }
 
-    if (start_new_greeter)
-    {
-        XServer *xserver;
+    if (username)
+        g_debug ("Starting new display for user %s", username);
+    else
+        g_debug ("Starting new display for greeter");
 
-        if (username)
-            g_debug ("Starting new display for user %s", username);
-        else
-            g_debug ("Starting new display for greeter");
+    xserver = make_xserver (manager, NULL);
+    display = add_display (manager, xserver);
+    // FIXME: Add selected user hint
+    g_object_unref (xserver);
 
-        xserver = make_xserver (manager, NULL);
-        display = add_display (manager, xserver);
-        // FIXME: Add selected user hint
-        g_object_unref (xserver);
-        display_start (display);
+    /* Guest account should log in immediately */
+    if (username && g_strcmp0 (username, guest_account_get_username ()) == 0)
+        display_set_default_user (display, username);
 
-        return TRUE;
-    }
+    display_start (display);
 
     return FALSE;
 }
@@ -449,21 +448,21 @@ display_manager_show_greeter (DisplayManager *manager)
     g_return_if_fail (manager != NULL);
 
     g_debug ("Showing greeter");
-    switch_to_user (manager, NULL, TRUE);
+    switch_to_user (manager, NULL);
 }
 
 gboolean
-display_manager_switch_to_user (DisplayManager *manager, const gchar *username, gboolean start_greeter)
+display_manager_switch_to_user (DisplayManager *manager, const gchar *username)
 {
     g_return_val_if_fail (manager != NULL, FALSE);
     g_return_val_if_fail (username != NULL, FALSE);
 
     g_debug ("Switching to user %s", username);
-    return switch_to_user (manager, username, start_greeter);
+    return switch_to_user (manager, username);
 }
 
 gboolean
-display_manager_switch_to_guest (DisplayManager *manager, gboolean start_greeter)
+display_manager_switch_to_guest (DisplayManager *manager)
 {
     g_return_val_if_fail (manager != NULL, FALSE);
   
@@ -471,7 +470,7 @@ display_manager_switch_to_guest (DisplayManager *manager, gboolean start_greeter
         return FALSE;
 
     g_debug ("Switching to guest account");
-    return switch_to_user (manager, guest_account_get_username (), start_greeter);
+    return switch_to_user (manager, guest_account_get_username ());
 }
 
 static gboolean

@@ -144,7 +144,7 @@ handle_display_manager_call (GDBusConnection       *connection,
             return;
 
         g_variant_get (parameters, "(s)", &username);
-        display_manager_switch_to_user (display_manager, username, TRUE);
+        display_manager_switch_to_user (display_manager, username);
         g_dbus_method_invocation_return_value (invocation, NULL);
         g_free (username);
     }
@@ -153,7 +153,7 @@ handle_display_manager_call (GDBusConnection       *connection,
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
             return;
 
-        display_manager_switch_to_guest (display_manager, TRUE);
+        display_manager_switch_to_guest (display_manager);
         g_dbus_method_invocation_return_value (invocation, NULL);
     }
 }

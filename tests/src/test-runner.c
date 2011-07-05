@@ -193,6 +193,21 @@ run_commands ()
             check_status (status_text);
             g_free (status_text);
         }
+        else if (strcmp (name, "SWITCH-TO-GUEST") == 0)
+        {
+            g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL),
+                                         "org.freedesktop.DisplayManager",
+                                         "/org/freedesktop/DisplayManager",                                         
+                                         "org.freedesktop.DisplayManager",
+                                         "SwitchToGuest",
+                                         g_variant_new ("()"),
+                                         G_VARIANT_TYPE ("()"),
+                                         G_DBUS_CALL_FLAGS_NONE,
+                                         1000,
+                                         NULL,
+                                         NULL);
+            check_status ("RUNNER SWITCH-TO-GUEST");
+        }
         else if (strcmp (name, "STOP-DAEMON") == 0)
         {
             expect_exit = TRUE;
