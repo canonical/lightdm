@@ -1,7 +1,8 @@
 #!/bin/sh
 
-if [ -z `grep guest $LIGHTDM_TEST_PASSWD_FILE` ] ; then
-    echo "Error: invalid user $USER"
+LINE=`grep guest $LIGHTDM_TEST_PASSWD_FILE`
+if [ -z "$LINE" ] ; then
+    echo "Error: guest account does not exist"
     exit 1
 fi
 
