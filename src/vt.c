@@ -58,6 +58,25 @@ vt_get_active (void)
 #endif
 }
 
+void
+vt_set_active (gint number)
+{
+#ifdef __linux__
+    gint console_fd;
+
+    g_debug ("Activating VT %d", number);
+
+    console_fd = open_console ();
+    if (console_fd >= 0)
+    {
+        int n = number;
+        if (ioctl (console_fd, VT_ACTIVATE, n) < 0)
+            g_warning ("Error using VT_ACTIVATE %d on /dev/console: %s", n, strerror (errno));
+        close (console_fd);
+    }
+#endif
+}
+
 static gboolean
 vt_is_used (gint number)
 {
@@ -113,23 +132,4 @@ vt_release (gint number)
 
     if (link)
         used_vts = g_list_remove_link (used_vts, link);
-}
-
-void
-vt_set_active (gint number)
-{
-#ifdef __linux__
-    gint console_fd;
-
-    g_debug ("Activating VT %d", number);
-
-    console_fd = open_console ();
-    if (console_fd >= 0)
-    {
-        int n = number;
-        if (ioctl (console_fd, VT_ACTIVATE, n) < 0)
-            g_warning ("Error using VT_ACTIVATE %d on /dev/console: %s", n, strerror (errno));
-        close (console_fd);
-    }
-#endif
 }
