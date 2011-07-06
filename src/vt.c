@@ -74,7 +74,7 @@ vt_is_used (gint number)
 }
 
 gint
-vt_get_unused (void)
+vt_get_min (void)
 {
     gint number;
 
@@ -82,6 +82,15 @@ vt_get_unused (void)
     if (number < 1)
         number = 1;
 
+    return number;
+}
+
+gint
+vt_get_unused (void)
+{
+    gint number;
+
+    number = vt_get_min ();
     while (vt_is_used (number))
         number++;
 

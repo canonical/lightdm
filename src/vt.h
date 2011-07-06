@@ -18,6 +18,8 @@ gint vt_get_active (void);
 
 gint vt_get_unused (void);
 
+gint vt_get_min (void);
+
 void vt_release (gint number);
 
 void vt_set_active (gint number);

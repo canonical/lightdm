@@ -631,7 +631,7 @@ display_manager_start (DisplayManager *manager)
     {
         Display *display;
         gchar *value, *default_user, *display_name;
-        gint vt, user_timeout;
+        gint vt = -1, user_timeout;
         XServer *xserver;
         gboolean replaces_plymouth = FALSE;
 
@@ -645,12 +645,21 @@ display_manager_start (DisplayManager *manager)
         /* Replace Plymouth */
         if (plymouth_on_active_vt && !plymouth_being_replaced)
         {
-            g_debug ("Display %s will replace Plymouth", display_name);
-            plymouth_being_replaced = TRUE;
-            replaces_plymouth = TRUE;
             vt = vt_get_active ();
+            if (vt > 0 && vt < vt_get_min ())
+            {
+                g_debug ("Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", vt, vt_get_min ());
+                vt = -1;
+            }
+            else if (vt > 0)
+            {              
+                g_debug ("Display %s will replace Plymouth", display_name);
+                plymouth_being_replaced = TRUE;
+                replaces_plymouth = TRUE;
+            }
         }
-        else
+
+        if (vt < 0)
             vt = vt_get_unused ();
 
         g_debug ("Starting on /dev/tty%d", vt);          
