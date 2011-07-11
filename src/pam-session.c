@@ -215,7 +215,7 @@ pam_session_start (PAMSession *session, GError **error)
     {
         /* Always succeed with autologin, otherwise prompt for a password */
         if (strcmp (session->priv->service, "lightdm-autologin") == 0 ||
-            strcmp (session->priv->username, "guest") == 0)
+            g_strcmp0 (session->priv->username, "guest") == 0)
             g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_SUCCESS);
         else
         {

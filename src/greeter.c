@@ -290,7 +290,14 @@ start_authentication (Greeter *greeter, PAMSession *session)
 static void
 handle_login (Greeter *greeter, const gchar *username)
 {
-    g_debug ("Greeter start authentication for %s", username);
+    if (username[0] == '\0')
+    {
+        g_debug ("Greeter start authentication");
+        username = NULL;
+    }
+    else
+        g_debug ("Greeter start authentication for %s", username);        
+
     reset_session (greeter);
     greeter->priv->using_guest_account = FALSE;
     start_authentication (greeter, pam_session_new ("lightdm"/*FIXMEgreeter->priv->pam_service*/, username));
