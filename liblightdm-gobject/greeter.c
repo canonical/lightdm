@@ -1266,7 +1266,7 @@ ldm_greeter_cancel_timed_login (LdmGreeter *greeter)
 /**
  * ldm_greeter_login:
  * @greeter: A #LdmGreeter
- * @username: A username
+ * @username: (allow-none): A username or NULL to prompt for a username.
  *
  * Starts the authentication procedure for a user.
  **/
@@ -1277,7 +1277,9 @@ ldm_greeter_login (LdmGreeter *greeter, const char *username)
     gsize offset = 0;
 
     g_return_if_fail (LDM_IS_GREETER (greeter));
-    g_return_if_fail (username != NULL);
+  
+    if (!username)
+        username = "";
 
     greeter->priv->in_authentication = TRUE;  
     greeter->priv->is_authenticated = FALSE;
