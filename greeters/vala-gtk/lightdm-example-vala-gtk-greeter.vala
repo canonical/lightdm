@@ -11,7 +11,6 @@ class Greeter
         greeter.connected.connect (connect_cb);
         greeter.show_prompt.connect (show_prompt_cb);
         greeter.show_message.connect (show_message_cb);
-        greeter.show_error.connect (show_message_cb);
         greeter.authentication_complete.connect (authentication_complete_cb);
         greeter.timed_login.connect (timed_login_cb);
         greeter.quit.connect (quit_cb);
@@ -83,7 +82,7 @@ class Greeter
         password_entry.grab_focus ();
     }
 
-    private void show_message_cb (LightDM.Greeter greeter, string text)
+    private void show_message_cb (LightDM.Greeter greeter, string text, LightDM.MessageType type)
     {
         message_label.label = text;
         message_label.show ();

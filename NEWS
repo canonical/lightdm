@@ -6,7 +6,9 @@ Overview of changes in lightdm 0.4.4
     * liblightdm API changes:
       - Rename ldm_greeter_provide_secret to ldm_greeter_respond - responses
         may not be secrets.
-      - show_prompt signal now has a PromptType field
+      - show-prompt signal now has a PromptType field
+      - show-message signal now has a MessageType field and takes over
+        behaviour of show-error signal
     * Fix error where an authentication failure from a previous session could
       be interpreted as a failure in the current session.
     * Simplify Vala bindings and add missing methods

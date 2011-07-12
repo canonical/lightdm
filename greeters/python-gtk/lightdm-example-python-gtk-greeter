@@ -12,7 +12,6 @@ class Greeter:
         self.greeter.connect('connected', self.connect_cb)
         self.greeter.connect('show-prompt', self.show_prompt_cb)
         self.greeter.connect('show-message', self.show_message_cb)
-        self.greeter.connect('show-error', self.show_message_cb)
         self.greeter.connect('authentication-complete', self.authentication_complete_cb)
         self.greeter.connect('timed-login', self.timed_login_cb)
         self.greeter.connect('quit', self.quit_cb)
@@ -244,7 +243,7 @@ class Greeter:
         self.prompt_entry.set_visibility(type != LightDM.PROMPT_TYPE_SECRET)
         self.prompt_entry.grab_focus()
 
-    def show_message_cb(self, greeter, text):
+    def show_message_cb(self, greeter, text, type):
         self.message_label.show()
         self.message_label.set_text(text)
 

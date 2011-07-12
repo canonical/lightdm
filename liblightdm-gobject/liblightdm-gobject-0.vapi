@@ -3,8 +3,7 @@ namespace LightDM {
     public class Greeter : GLib.Object {
         public Greeter ();
         public virtual signal void connected ();
-        public virtual signal void show_error (string text);
-        public virtual signal void show_message (string text);
+        public virtual signal void show_message (string text, MessageType type);
         public virtual signal void show_prompt (string text, PromptType type);
         public virtual signal void timed_login (string username);
         public virtual signal void authentication_complete ();
@@ -51,6 +50,10 @@ namespace LightDM {
         public void cancel_authentication ();
         public void start_session (string? session);
         public void start_default_session ();
+    }
+    public enum MessageType {
+        INFO,
+        ERROR
     }
     public enum PromptType {
         QUESTION,

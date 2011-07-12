@@ -38,6 +38,12 @@ typedef enum
     LDM_PROMPT_TYPE_SECRET
 } LdmPromptType;
 
+typedef enum
+{
+    LDM_MESSAGE_TYPE_INFO,
+    LDM_MESSAGE_TYPE_ERROR
+} LdmMessageType;
+
 struct _LdmGreeter
 {
     GObject            parent_instance;
@@ -51,8 +57,7 @@ struct _LdmGreeterClass
 
     void (*connected)(LdmGreeter *greeter);
     void (*show_prompt)(LdmGreeter *greeter, const gchar *text, LdmPromptType type);
-    void (*show_message)(LdmGreeter *greeter, const gchar *text);
-    void (*show_error)(LdmGreeter *greeter, const gchar *text);
+    void (*show_message)(LdmGreeter *greeter, const gchar *text, LdmMessageType type);
     void (*authentication_complete)(LdmGreeter *greeter);
     void (*timed_login)(LdmGreeter *greeter, const gchar *username);
     void (*user_added)(LdmGreeter *greeter, LdmUser *user);

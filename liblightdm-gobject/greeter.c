@@ -48,7 +48,6 @@ enum {
     CONNECTED,
     SHOW_PROMPT,
     SHOW_MESSAGE,
-    SHOW_ERROR,
     AUTHENTICATION_COMPLETE,
     TIMED_LOGIN,
     USER_ADDED,
@@ -259,16 +258,16 @@ handle_prompt_authentication (LdmGreeter *greeter, gsize *offset)
         switch (msg_style)
         {
         case PAM_PROMPT_ECHO_OFF:
-            g_signal_emit (G_OBJECT (greeter), signals[SHOW_PROMPT], 0, msg, GREETER_PROMPT_SECRET);
+            g_signal_emit (G_OBJECT (greeter), signals[SHOW_PROMPT], 0, msg, LDM_PROMPT_TYPE_SECRET);
             break;
         case PAM_PROMPT_ECHO_ON:
-            g_signal_emit (G_OBJECT (greeter), signals[SHOW_PROMPT], 0, msg, GREETER_PROMPT_QUESTION);
+            g_signal_emit (G_OBJECT (greeter), signals[SHOW_PROMPT], 0, msg, LDM_PROMPT_TYPE_QUESTION);
             break;
         case PAM_ERROR_MSG:
-            g_signal_emit (G_OBJECT (greeter), signals[SHOW_ERROR], 0, msg);
+            g_signal_emit (G_OBJECT (greeter), signals[SHOW_MESSAGE], 0, msg, LDM_MESSAGE_TYPE_ERROR);
             break;
         case PAM_TEXT_INFO:
-            g_signal_emit (G_OBJECT (greeter), signals[SHOW_MESSAGE], 0, msg);
+            g_signal_emit (G_OBJECT (greeter), signals[SHOW_MESSAGE], 0, msg, LDM_MESSAGE_TYPE_INFO);
             break;
         }
 
@@ -1932,6 +1931,7 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
      * LdmGreeter::show-prompt:
      * @greeter: A #LdmGreeter
      * @text: Prompt text
+     * @type: Prompt type
      *
      * The ::show-prompt signal gets emitted when the greeter should show a
      * prompt to the user.  The given text should be displayed and an input
@@ -1953,9 +1953,10 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
      * LdmGreeter::show-message:
      * @greeter: A #LdmGreeter
      * @text: Message text
+     * @type: Message type
      *
      * The ::show-message signal gets emitted when the greeter
-     * should show an informational message to the user.
+     * should show a message to the user.
      **/
     signals[SHOW_MESSAGE] =
         g_signal_new ("show-message",
@@ -1963,25 +1964,8 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LdmGreeterClass, show_message),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__STRING,
-                      G_TYPE_NONE, 1, G_TYPE_STRING);
-
-    /**
-     * LdmGreeter::show-error:
-     * @greeter: A #LdmGreeter
-     * @text: Message text
-     *
-     * The ::show-error signal gets emitted when the greeter
-     * should show an error message to the user.
-     **/
-    signals[SHOW_ERROR] =
-        g_signal_new ("show-error",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (LdmGreeterClass, show_error),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__STRING,
-                      G_TYPE_NONE, 1, G_TYPE_STRING);
+                      marshal_VOID__STRING_INT,
+                      G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_INT);
 
     /**
      * LdmGreeter::authentication-complete:

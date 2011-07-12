@@ -165,7 +165,7 @@ show_prompt_cb (LdmGreeter *greeter, const gchar *text, LdmPromptType type)
 }
 
 static void
-show_message_cb (LdmGreeter *greeter, const gchar *text)
+show_message_cb (LdmGreeter *greeter, const gchar *text, LdmMessageType type)
 {
     gtk_label_set_text (GTK_LABEL (message_label), text);
     gtk_widget_show (message_label);
@@ -605,7 +605,6 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "connected", G_CALLBACK (connect_cb), NULL);    
     g_signal_connect (G_OBJECT (greeter), "show-prompt", G_CALLBACK (show_prompt_cb), NULL);  
     g_signal_connect (G_OBJECT (greeter), "show-message", G_CALLBACK (show_message_cb), NULL);
-    g_signal_connect (G_OBJECT (greeter), "show-error", G_CALLBACK (show_message_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "timed-login", G_CALLBACK (timed_login_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "user-added", G_CALLBACK (user_added_cb), NULL);
