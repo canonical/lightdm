@@ -117,6 +117,7 @@ ldm_greeter_get_layouts
 ldm_greeter_get_layout
 ldm_greeter_set_layout
 ldm_greeter_get_sessions
+ldm_greeter_get_is_first
 ldm_greeter_get_default_session
 ldm_greeter_get_has_guest_session
 ldm_greeter_get_timed_login_user
@@ -131,7 +132,7 @@ ldm_greeter_get_in_authentication
 ldm_greeter_get_is_authenticated
 ldm_greeter_get_authentication_user
 ldm_greeter_start_session
-ldm_greeter_start_session_with_defaults
+ldm_greeter_start_default_session
 ldm_greeter_get_can_suspend
 ldm_greeter_suspend
 ldm_greeter_get_can_hibernate

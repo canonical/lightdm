@@ -370,6 +370,15 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
+<!-- ##### FUNCTION ldm_greeter_get_is_first ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
 <!-- ##### FUNCTION ldm_greeter_get_default_session ##### -->
 <para>
 
@@ -421,6 +430,14 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
 @greeter: 
 @username: 
+
+
+<!-- ##### FUNCTION ldm_greeter_login_with_user_prompt ##### -->
+<para>
+
+</para>
+
+@greeter: 
 
 
 <!-- ##### FUNCTION ldm_greeter_login_as_guest ##### -->
@@ -482,6 +499,14 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
 @greeter: 
 @session: 
+
+
+<!-- ##### FUNCTION ldm_greeter_start_default_session ##### -->
+<para>
+
+</para>
+
+@greeter: 
 
 
 <!-- ##### FUNCTION ldm_greeter_get_can_suspend ##### -->
