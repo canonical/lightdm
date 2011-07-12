@@ -73,21 +73,21 @@ gboolean ldm_greeter_get_boolean_property (LdmGreeter *greeter, const gchar *nam
 
 gint ldm_greeter_get_num_users (LdmGreeter *greeter);
 
-const GList *ldm_greeter_get_users (LdmGreeter *greeter);
+GList *ldm_greeter_get_users (LdmGreeter *greeter);
 
 LdmUser *ldm_greeter_get_user_by_name (LdmGreeter *greeter, const gchar *username);
 
 const gchar *ldm_greeter_get_default_language (LdmGreeter *greeter);
 
-const GList *ldm_greeter_get_languages (LdmGreeter *greeter);
+GList *ldm_greeter_get_languages (LdmGreeter *greeter);
 
-const GList *ldm_greeter_get_layouts (LdmGreeter *greeter);
+GList *ldm_greeter_get_layouts (LdmGreeter *greeter);
 
 void ldm_greeter_set_layout (LdmGreeter *greeter, const gchar *layout);
 
 const gchar *ldm_greeter_get_layout (LdmGreeter *greeter);
 
-const GList *ldm_greeter_get_sessions (LdmGreeter *greeter);
+GList *ldm_greeter_get_sessions (LdmGreeter *greeter);
 
 const gchar *ldm_greeter_get_default_session (LdmGreeter *greeter);
 
