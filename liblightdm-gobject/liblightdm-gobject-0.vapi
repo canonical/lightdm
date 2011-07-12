@@ -37,7 +37,8 @@ namespace LightDM {
 		public bool can_restart { get; }
 		public bool can_shutdown { get; }
 		public bool can_suspend { get; }
-		public unowned string default_session { get; set; }
+		public unowned string default_session { get; }
+		public bool has_guest_session { get; }
 		public unowned string hostname { get; }
 		public bool in_authentication { get; }
 		public bool is_authenticated { get; }
