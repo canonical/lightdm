@@ -152,5 +152,4 @@ LDM_GREETER_GET_CLASS
 <SUBSECTION Private>
 LdmGreeterClass
 LdmGreeterPrivate
-ldm_greeter_get_user_defaults
 </SECTION>

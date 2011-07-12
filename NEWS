@@ -5,7 +5,9 @@ Overview of changes in lightdm 0.4.4
       username.
     * Rename ldm_greeter_provide_secret to ldm_greeter_respond - responses
       may not be secrets.
-    * Simplify Vala bindings
+    * Fix error where an authentication failure from a previous session could
+      be interpreted as a failure in the current session.
+    * Simplify Vala bindings and add missing methods
 
 Overview of changes in lightdm 0.4.2
 

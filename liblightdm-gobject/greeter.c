@@ -106,6 +106,7 @@ struct _LdmGreeterPrivate
     gchar *authentication_user;
     gboolean in_authentication;
     gboolean is_authenticated;
+    guint32 authenticate_sequence_number;
 
     gchar *timed_user;
     gint login_delay;
@@ -324,7 +325,7 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 {
     LdmGreeter *greeter = data;
     gsize offset;
-    guint32 id, return_code;
+    guint32 id, sequence_number, return_code;
   
     if (!read_packet (greeter, FALSE))
         return TRUE;
@@ -365,16 +366,23 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         handle_prompt_authentication (greeter, &offset);
         break;
     case GREETER_MESSAGE_END_AUTHENTICATION:
+        sequence_number = read_int (greeter, &offset);
         return_code = read_int (greeter, &offset);
-        g_debug ("Authentication complete with return code %d", return_code);
-        greeter->priv->is_authenticated = (return_code == 0);
-        if (!greeter->priv->is_authenticated)
+
+        if (sequence_number == greeter->priv->authenticate_sequence_number)
         {
-            g_free (greeter->priv->authentication_user);
-            greeter->priv->authentication_user = NULL;
+            g_debug ("Authentication complete with return code %d", return_code);
+            greeter->priv->is_authenticated = (return_code == 0);
+            if (!greeter->priv->is_authenticated)
+            {
+                g_free (greeter->priv->authentication_user);
+                greeter->priv->authentication_user = NULL;
+            }
+            g_signal_emit (G_OBJECT (greeter), signals[AUTHENTICATION_COMPLETE], 0);
+            greeter->priv->in_authentication = FALSE;
         }
-        g_signal_emit (G_OBJECT (greeter), signals[AUTHENTICATION_COMPLETE], 0);
-        greeter->priv->in_authentication = FALSE;
+        else
+            g_debug ("Ignoring end authentication with invalid sequence number %d", sequence_number);
         break;
     default:
         g_warning ("Unknown message from server: %d", id);
@@ -1282,18 +1290,21 @@ ldm_greeter_login (LdmGreeter *greeter, const char *username)
     if (!username)
         username = "";
 
+    greeter->priv->authenticate_sequence_number++;
     greeter->priv->in_authentication = TRUE;  
     greeter->priv->is_authenticated = FALSE;
     g_free (greeter->priv->authentication_user);
     greeter->priv->authentication_user = g_strdup (username);
+
     g_debug ("Starting authentication for user %s...", username);
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_LOGIN, string_length (username), &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_LOGIN, int_length () + string_length (username), &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->authenticate_sequence_number, &offset);
     write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
     write_message (greeter, message, offset);
 }
 
 /**
- * ldm_greeter_login_with_user_promp:
+ * ldm_greeter_login_with_user_prompt:
  * @greeter: A #LdmGreeter
  *
  * Starts the authentication procedure, prompting the greeter for a username.
@@ -1318,12 +1329,15 @@ ldm_greeter_login_as_guest (LdmGreeter *greeter)
 
     g_return_if_fail (LDM_IS_GREETER (greeter));
 
+    greeter->priv->authenticate_sequence_number++;
     greeter->priv->in_authentication = TRUE;
     greeter->priv->is_authenticated = FALSE;
     g_free (greeter->priv->authentication_user);
     greeter->priv->authentication_user = NULL;
+
     g_debug ("Starting authentication for guest account...");
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_LOGIN_AS_GUEST, 0, &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_LOGIN_AS_GUEST, int_length (), &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->authenticate_sequence_number, &offset);
     write_message (greeter, message, offset);
 }
 

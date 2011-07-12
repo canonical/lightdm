@@ -57,6 +57,9 @@ struct GreeterPrivate
     /* Timeout for greeter to respond to quit request */
     guint quit_timeout;
 
+    /* Sequence number of current PAM session */
+    guint32 authentication_sequence_number;
+
     /* PAM session being constructed by the greeter */
     PAMSession *pam_session;
 
@@ -225,12 +228,13 @@ pam_messages_cb (PAMSession *session, int num_msg, const struct pam_message **ms
 }
 
 static void
-send_end_authentication (Greeter *greeter, int result)
+send_end_authentication (Greeter *greeter, guint32 sequence_number, int result)
 {
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
 
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_END_AUTHENTICATION, int_length (), &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_END_AUTHENTICATION, int_length () + int_length (), &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, sequence_number, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, result, &offset);
     write_message (greeter, message, offset); 
 }
@@ -247,7 +251,7 @@ authentication_result_cb (PAMSession *session, int result, Greeter *greeter)
         pam_session_authorize (session);
     }
 
-    send_end_authentication (greeter, result);
+    send_end_authentication (greeter, greeter->priv->authentication_sequence_number, result);
 }
 
 static void
@@ -266,7 +270,7 @@ reset_session (Greeter *greeter)
 }
 
 static void
-start_authentication (Greeter *greeter, PAMSession *session)
+start_authentication (Greeter *greeter, guint32 sequence_number, PAMSession *session)
 {
     GError *error = NULL;
 
@@ -275,6 +279,7 @@ start_authentication (Greeter *greeter, PAMSession *session)
     //    return;
 
     greeter->priv->pam_session = session;
+    greeter->priv->authentication_sequence_number = sequence_number;
 
     g_signal_connect (G_OBJECT (greeter->priv->pam_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
     g_signal_connect (G_OBJECT (greeter->priv->pam_session), "authentication-result", G_CALLBACK (authentication_result_cb), greeter);
@@ -282,12 +287,12 @@ start_authentication (Greeter *greeter, PAMSession *session)
     if (!pam_session_start (greeter->priv->pam_session, &error))
     {
         g_warning ("Failed to start authentication: %s", error->message);
-        send_end_authentication (greeter, PAM_SYSTEM_ERR);
+        send_end_authentication (greeter, sequence_number, PAM_SYSTEM_ERR);
     }
 }
 
 static void
-handle_login (Greeter *greeter, const gchar *username)
+handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
 {
     if (username[0] == '\0')
     {
@@ -299,11 +304,11 @@ handle_login (Greeter *greeter, const gchar *username)
 
     reset_session (greeter);
     greeter->priv->using_guest_account = FALSE;
-    start_authentication (greeter, pam_session_new ("lightdm"/*FIXMEgreeter->priv->pam_service*/, username));
+    start_authentication (greeter, sequence_number, pam_session_new ("lightdm"/*FIXMEgreeter->priv->pam_service*/, username));
 }
 
 static void
-handle_login_as_guest (Greeter *greeter)
+handle_login_as_guest (Greeter *greeter, guint32 sequence_number)
 {
     g_debug ("Greeter start authentication for guest account");
 
@@ -312,19 +317,19 @@ handle_login_as_guest (Greeter *greeter)
     if (!guest_account_get_is_enabled ())
     {
         g_debug ("Guest account is disabled");
-        send_end_authentication (greeter, PAM_USER_UNKNOWN);
+        send_end_authentication (greeter, sequence_number, PAM_USER_UNKNOWN);
         return;
     }
 
     if (!guest_account_ref ())
     {
         g_debug ("Unable to create guest account");
-        send_end_authentication (greeter, PAM_USER_UNKNOWN);
+        send_end_authentication (greeter, sequence_number, PAM_USER_UNKNOWN);
         return;
     }
     greeter->priv->using_guest_account = TRUE;
 
-    start_authentication (greeter, pam_session_new ("lightdm-autologin"/*FIXMEgreeter->priv->pam_service*/, guest_account_get_username ()));
+    start_authentication (greeter, sequence_number, pam_session_new ("lightdm-autologin"/*FIXMEgreeter->priv->pam_service*/, guest_account_get_username ()));
 }
 
 static void
@@ -475,6 +480,7 @@ got_data_cb (Greeter *greeter)
     gsize n_to_read, n_read, offset;
     GIOStatus status;
     int id, n_secrets, i;
+    guint32 sequence_number;
     gchar *username, *session_name;
     gchar **secrets;
     GError *error = NULL;
@@ -527,12 +533,14 @@ got_data_cb (Greeter *greeter)
         handle_connect (greeter);
         break;
     case GREETER_MESSAGE_LOGIN:
+        sequence_number = read_int (greeter, &offset);
         username = read_string (greeter, &offset);
-        handle_login (greeter, username);
+        handle_login (greeter, sequence_number, username);
         g_free (username);
         break;
     case GREETER_MESSAGE_LOGIN_AS_GUEST:
-        handle_login_as_guest (greeter);
+        sequence_number = read_int (greeter, &offset);
+        handle_login_as_guest (greeter, sequence_number);
         break;
     case GREETER_MESSAGE_CONTINUE_AUTHENTICATION:
         n_secrets = read_int (greeter, &offset);
