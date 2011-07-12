@@ -31,7 +31,7 @@ class Greeter
     private void password_activate_cb (Gtk.Entry entry)
     {
         password_entry.sensitive = false;
-        greeter.provide_secret (password_entry.text);
+        greeter.respond (password_entry.text);
     }
 
     private void connect_cb (LightDM.Greeter greeter)

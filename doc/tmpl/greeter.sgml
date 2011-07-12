@@ -33,7 +33,7 @@ static void show_prompt_cb (LdmGreeter *greeter, const char *text)
     gchar *secret = prompt_user (text);
 
     // Give the result to the user
-    ldm_greeter_provide_secret (greeter, secret);
+    ldm_greeter_respond (greeter, secret);
 }
 
 static void authentication_complete_cb (LdmGreeter *greeter)
@@ -448,13 +448,13 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @greeter: 
 
 
-<!-- ##### FUNCTION ldm_greeter_provide_secret ##### -->
+<!-- ##### FUNCTION ldm_greeter_respond ##### -->
 <para>
 
 </para>
 
 @greeter: 
-@secret: 
+@response: 
 
 
 <!-- ##### FUNCTION ldm_greeter_cancel_authentication ##### -->

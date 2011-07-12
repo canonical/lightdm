@@ -64,5 +64,5 @@ void LoginPrompt::onAuthenticationComplete(bool success)
 
 void LoginPrompt::prompt(const QString &message) {
     qDebug() << message;
-    m_greeter->provideSecret(ui->password->text());
+    m_greeter->respond(ui->password->text());
 }

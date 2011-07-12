@@ -144,7 +144,7 @@ login_cb (GtkWidget *widget)
     if (!ldm_greeter_get_in_authentication (greeter))
         start_authentication (gtk_entry_get_text (GTK_ENTRY (prompt_entry)));
     else
-        ldm_greeter_provide_secret (greeter, gtk_entry_get_text (GTK_ENTRY (prompt_entry)));
+        ldm_greeter_respond (greeter, gtk_entry_get_text (GTK_ENTRY (prompt_entry)));
     gtk_entry_set_text (GTK_ENTRY (prompt_entry), "");
 }
 

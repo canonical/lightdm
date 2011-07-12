@@ -70,8 +70,8 @@ show_prompt_cb (LdmGreeter *greeter, const gchar *text)
 
     if (response)
     {
-        notify_status ("GREETER PROVIDE-SECRET TEXT=\"%s\"", response);
-        ldm_greeter_provide_secret (greeter, response);
+        notify_status ("GREETER RESPOND TEXT=\"%s\"", response);
+        ldm_greeter_respond (greeter, response);
     }
 
     g_free (username);

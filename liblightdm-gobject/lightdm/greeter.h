@@ -107,7 +107,7 @@ void ldm_greeter_login_with_user_prompt (LdmGreeter *greeter);
 
 void ldm_greeter_login_as_guest (LdmGreeter *greeter);
 
-void ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret);
+void ldm_greeter_respond (LdmGreeter *greeter, const gchar *response);
 
 void ldm_greeter_cancel_authentication (LdmGreeter *greeter);
 

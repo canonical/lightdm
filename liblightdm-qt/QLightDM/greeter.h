@@ -80,7 +80,7 @@ namespace QLightDM
         void cancelTimedLogin();  
         void login(const QString &username);
         void loginAsGuest();
-        void provideSecret(const QString &secret);
+        void respond(const QString &response);
         void cancelAuthentication();
         void startSession(const QString &session=QString());
         

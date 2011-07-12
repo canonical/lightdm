@@ -236,13 +236,13 @@ void Greeter::loginAsGuest()
     flush();     
 }
 
-void Greeter::provideSecret(const QString &secret)
+void Greeter::respond(const QString &response)
 {
-    qDebug() << "Providing secret to display manager";
-    writeHeader(GREETER_MESSAGE_CONTINUE_AUTHENTICATION, intLength() + stringLength(secret));
-    // FIXME: Could be multiple secrets required
+    qDebug() << "Providing response to display manager";
+    writeHeader(GREETER_MESSAGE_CONTINUE_AUTHENTICATION, intLength() + stringLength(response));
+    // FIXME: Could be multiple response required
     writeInt(1);
-    writeString(secret);
+    writeString(response);
     flush();
 }
 

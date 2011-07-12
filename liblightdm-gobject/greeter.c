@@ -1327,26 +1327,26 @@ ldm_greeter_login_as_guest (LdmGreeter *greeter)
 }
 
 /**
- * ldm_greeter_provide_secret:
+ * ldm_greeter_respond:
  * @greeter: A #LdmGreeter
- * @secret: Response to a prompt
+ * @response: Response to a prompt
  *
- * Provide secret information from a prompt.
+ * Provide response to a prompt.
  **/
 void
-ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret)
+ldm_greeter_respond (LdmGreeter *greeter, const gchar *response)
 {
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
 
     g_return_if_fail (LDM_IS_GREETER (greeter));
-    g_return_if_fail (secret != NULL);
+    g_return_if_fail (response != NULL);
 
-    g_debug ("Providing secret to display manager");
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONTINUE_AUTHENTICATION, int_length () + string_length (secret), &offset);
-    // FIXME: Could be multiple secrets required
+    g_debug ("Providing response to display manager");
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONTINUE_AUTHENTICATION, int_length () + string_length (response), &offset);
+    // FIXME: Could be multiple responses required
     write_int (message, MAX_MESSAGE_LENGTH, 1, &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, secret, &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, response, &offset);
     write_message (greeter, message, offset);
 }
 
@@ -1933,7 +1933,7 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
      * prompt to the user.  The given text should be displayed and an input
      * field for the user to provide a response.
      *
-     * Call ldm_greeter_provide_secret() with the resultant input or
+     * Call ldm_greeter_respond() with the resultant input or
      * ldm_greeter_cancel_authentication() to abort the authentication.
      **/
     signals[SHOW_PROMPT] =

@@ -27,7 +27,7 @@ namespace LightDM {
 		public void hibernate ();
 		public void start_session (string? session);
 		public void start_default_session ();
-		public void provide_secret (string secret);
+		public void respond (string response);
 		public void set_layout (string layout);
 		public void login_as_guest ();
 		public unowned string default_language { get; }

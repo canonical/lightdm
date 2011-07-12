@@ -3,6 +3,8 @@ Overview of changes in lightdm 0.4.4
     * Simplify Vala bindings
     * Allow a null username to log in with - the system will prompt for a
       username.
+    * Rename ldm_greeter_provide_secret to ldm_greeter_respond - responses
+      may not be secrets.
 
 Overview of changes in lightdm 0.4.3
 
