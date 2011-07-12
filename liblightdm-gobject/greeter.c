@@ -870,7 +870,7 @@ ldm_greeter_get_num_users (LdmGreeter *greeter)
  * Get a list of users to present to the user.  This list may be a subset of the
  * available users and may be empty depending on the server configuration.
  *
- * Return value: (element-type LdmUser): A list of #LdmUser that should be presented to the user.
+ * Return value: (element-type LdmUser) (transfer container): A list of #LdmUser that should be presented to the user.
  **/
 const GList *
 ldm_greeter_get_users (LdmGreeter *greeter)
@@ -887,9 +887,9 @@ ldm_greeter_get_users (LdmGreeter *greeter)
  *
  * Get infomation about a given user or NULL if this user doesn't exist.
  *
- * Return value: (allow-none): A #LdmUser entry for the given user.
+ * Return value: (transfer none): A #LdmUser entry for the given user.
  **/
-const LdmUser *
+LdmUser *
 ldm_greeter_get_user_by_name (LdmGreeter *greeter, const gchar *username)
 {
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);

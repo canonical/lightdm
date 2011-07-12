@@ -75,7 +75,7 @@ gint ldm_greeter_get_num_users (LdmGreeter *greeter);
 
 const GList *ldm_greeter_get_users (LdmGreeter *greeter);
 
-const LdmUser *ldm_greeter_get_user_by_name (LdmGreeter *greeter, const gchar *username);
+LdmUser *ldm_greeter_get_user_by_name (LdmGreeter *greeter, const gchar *username);
 
 const gchar *ldm_greeter_get_default_language (LdmGreeter *greeter);
 

@@ -65,8 +65,6 @@ set_session (const gchar *session)
 static void
 start_authentication (const gchar *username)
 {
-    gchar *language, *layout, *session;
-
     gtk_widget_hide (message_label);
     gtk_label_set_text (GTK_LABEL (message_label), "");
 
@@ -80,13 +78,12 @@ start_authentication (const gchar *username)
     }
     else
     {
-        if (ldm_greeter_get_user_defaults (greeter, username, &language, &layout, &session))
-        {
-            set_session (session);
-            g_free (language);
-            g_free (layout);
-            g_free (session);
-        }
+        LdmUser *user;
+        user = ldm_greeter_get_user_by_name (greeter, username);
+        if (user)
+            set_session (ldm_user_get_session (user));
+        else
+            set_session (ldm_greeter_get_default_session (greeter));
 
         ldm_greeter_login (greeter, username);
     }
