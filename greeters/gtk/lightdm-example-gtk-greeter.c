@@ -72,7 +72,7 @@ start_authentication (const gchar *username)
 
     if (strcmp (username, "*other") == 0)
     {
-        ldm_greeter_login (greeter, NULL);
+        ldm_greeter_login_with_user_prompt (greeter);
     }
     else if (strcmp (username, "*guest") == 0)
     {

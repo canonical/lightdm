@@ -123,6 +123,7 @@ ldm_greeter_get_timed_login_user
 ldm_greeter_get_timed_login_delay
 ldm_greeter_cancel_timed_login
 ldm_greeter_login
+ldm_greeter_login_with_user_prompt
 ldm_greeter_login_as_guest
 ldm_greeter_provide_secret
 ldm_greeter_cancel_authentication

@@ -103,6 +103,8 @@ void ldm_greeter_cancel_timed_login (LdmGreeter *greeter);
 
 void ldm_greeter_login (LdmGreeter *greeter, const char *username);
 
+void ldm_greeter_login_with_user_prompt (LdmGreeter *greeter);
+
 void ldm_greeter_login_as_guest (LdmGreeter *greeter);
 
 void ldm_greeter_provide_secret (LdmGreeter *greeter, const gchar *secret);

@@ -1292,6 +1292,18 @@ ldm_greeter_login (LdmGreeter *greeter, const char *username)
 }
 
 /**
+ * ldm_greeter_login_with_user_promp:
+ * @greeter: A #LdmGreeter
+ *
+ * Starts the authentication procedure, prompting the greeter for a username.
+ **/
+void
+ldm_greeter_login_with_user_prompt (LdmGreeter *greeter)
+{
+    ldm_greeter_login (greeter, NULL);
+}
+
+/**
  * ldm_greeter_login_as_guest:
  * @greeter: A #LdmGreeter
  *
