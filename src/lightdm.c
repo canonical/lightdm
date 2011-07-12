@@ -436,7 +436,7 @@ main(int argc, char **argv)
     {
         g_debug ("Using password file '%s' for authentication", passwd_path);
         user_set_use_passwd_file (passwd_path);
-        pam_session_set_use_fake_users (TRUE);
+        pam_session_set_use_passwd_file (passwd_path);
     }
     if (use_xephyr)
         g_debug ("Using Xephyr for X servers");

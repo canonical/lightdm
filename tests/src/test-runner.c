@@ -457,12 +457,13 @@ main (int argc, char **argv)
     struct
     {
         gchar *user_name;
+        gchar *password;
         gchar *real_name;
         gint uid;
     } users[] =
     {
-        {"alice", "Alice User", 1000},
-        {"bob", "Bob User", 1001},
+        {"alice", "password", "Alice User", 1000},
+        {"bob", "", "Bob User", 1001},
         {NULL, NULL, 0}
     };
     int i;
@@ -472,7 +473,7 @@ main (int argc, char **argv)
         g_mkdir_with_parents (path, 0755);
         g_free (path);
 
-        g_string_append_printf (passwd_data, "%s::%d:%d:%s:%s/home/alice:/bin/sh\n", users[i].user_name, users[i].uid, users[i].uid, users[i].real_name, temp_dir);
+        g_string_append_printf (passwd_data, "%s:%s:%d:%d:%s:%s/home/alice:/bin/sh\n", users[i].user_name, users[i].password, users[i].uid, users[i].uid, users[i].real_name, temp_dir);
     }
 
     path = g_build_filename (temp_dir, "passwd", NULL);

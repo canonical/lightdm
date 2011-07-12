@@ -41,7 +41,9 @@ typedef struct
 
 GType pam_session_get_type (void);
 
-void pam_session_set_use_fake_users (gboolean use_fake_users);
+void pam_session_set_use_pam (void);
+
+void pam_session_set_use_passwd_file (gchar *passwd_file);
 
 PAMSession *pam_session_new (const gchar *service, const gchar *username);
 

@@ -9,6 +9,7 @@ TESTS = \
 	test-autologin-logout \
 	test-login-gobject \
 	test-login-gobject-manual \
+	test-login-gobject-no-password \
 	test-login-gobject-wrong-password \
 	test-login-gobject-invalid-user \
 	test-login-gobject-logout \

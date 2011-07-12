@@ -59,12 +59,19 @@ struct PAMSessionPrivate
 
 G_DEFINE_TYPE (PAMSession, pam_session, G_TYPE_OBJECT);
 
-static gboolean use_fake_users = FALSE;
+static gchar *passwd_file = NULL;
 
 void
-pam_session_set_use_fake_users (gboolean use_fake_users_)
+pam_session_set_use_pam (void)
 {
-    use_fake_users = use_fake_users_;
+    pam_session_set_use_passwd_file (NULL);
+}
+
+void
+pam_session_set_use_passwd_file (gchar *passwd_file_)
+{
+    g_free (passwd_file);
+    passwd_file = g_strdup (passwd_file_);
 }
 
 PAMSession *
@@ -92,7 +99,7 @@ pam_session_authorize (PAMSession *session)
 
     session->priv->in_session = TRUE;
 
-    if (!use_fake_users)
+    if (!passwd_file)
     {
         int result;
 
@@ -203,6 +210,53 @@ authenticate_cb (gpointer data)
     return NULL;
 }
 
+static gchar *
+get_password (const gchar *username)
+{
+    gchar *data = NULL, **lines, *password = NULL;
+    gint i;
+    GError *error = NULL;
+
+    if (!g_file_get_contents (passwd_file, &data, NULL, &error))
+        g_warning ("Error loading passwd file: %s", error->message);
+    g_clear_error (&error);
+
+    if (!data)
+        return NULL;
+
+    lines = g_strsplit (data, "\n", -1);
+    g_free (data);
+
+    for (i = 0; lines[i] && password == NULL; i++)
+    {
+        gchar *line, **fields;
+
+        line = g_strstrip (lines[i]);
+        fields = g_strsplit (line, ":", -1);
+        if (g_strv_length (fields) == 7 && strcmp (fields[0], username) == 0)
+            password = g_strdup (fields[1]);
+        g_strfreev (fields);
+    }
+    g_strfreev (lines);
+
+    return password;
+}
+
+static void
+send_message (PAMSession *session, gint style, const gchar *text)
+{
+    struct pam_message **messages;
+
+    messages = calloc (1, sizeof (struct pam_message *));
+    messages[0] = g_malloc0 (sizeof (struct pam_message));
+    messages[0]->msg_style = style;
+    messages[0]->msg = g_strdup (text);
+    session->priv->messages = (const struct pam_message **) messages;
+    session->priv->num_messages = 1;
+
+    g_signal_emit (G_OBJECT (session), signals[GOT_MESSAGES], 0, session->priv->num_messages, session->priv->messages);
+}
+
 gboolean
 pam_session_start (PAMSession *session, GError **error)
 {
@@ -211,36 +265,23 @@ pam_session_start (PAMSession *session, GError **error)
 
     g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_STARTED], 0);
 
-    if (use_fake_users)
+    if (passwd_file)
     {
         if (session->priv->username == NULL)
-        {
-            struct pam_message **messages;
-            messages = calloc (1, sizeof (struct pam_message *));
-            messages[0] = g_malloc0 (sizeof (struct pam_message));
-            messages[0]->msg_style = PAM_PROMPT_ECHO_ON;
-            messages[0]->msg = g_strdup ("login:");
-            session->priv->messages = (const struct pam_message **) messages;
-            session->priv->num_messages = 1;
-
-            g_signal_emit (G_OBJECT (session), signals[GOT_MESSAGES], 0, session->priv->num_messages, session->priv->messages);         
-        }
-        /* Always succeed with autologin, otherwise prompt for a password */
-        else if (strcmp (session->priv->service, "lightdm-autologin") == 0 ||
-            g_strcmp0 (session->priv->username, "guest") == 0)
-            g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_SUCCESS);
+            send_message (session, PAM_PROMPT_ECHO_ON, "login:");
         else
         {
-            struct pam_message **messages;
-            messages = calloc (1, sizeof (struct pam_message *));
-            messages[0] = g_malloc0 (sizeof (struct pam_message));
-            messages[0]->msg_style = PAM_PROMPT_ECHO_OFF;
-            messages[0]->msg = g_strdup ("Password:");
-            session->priv->messages = (const struct pam_message **) messages;
-            session->priv->num_messages = 1;
+            gchar *password;
 
-            g_signal_emit (G_OBJECT (session), signals[GOT_MESSAGES], 0, session->priv->num_messages, session->priv->messages);
-        }
+            password = get_password (session->priv->username);
+            /* Always succeed with autologin, or no password on account otherwise prompt for a password */
+            if (strcmp (session->priv->service, "lightdm-autologin") == 0 ||
+                g_strcmp0 (password, "") == 0)
+                g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_SUCCESS);
+            else
+                send_message (session, PAM_PROMPT_ECHO_OFF, "Password:");
+            g_free (password);
+        }      
     }
     else
     {
@@ -300,8 +341,10 @@ pam_session_respond (PAMSession *session, struct pam_response *response)
 {
     g_return_if_fail (session != NULL);
 
-    if (use_fake_users)
+    if (passwd_file)
     {
+        gchar *password;
+
         if (session->priv->messages)
         {
             int i;
@@ -317,27 +360,23 @@ pam_session_respond (PAMSession *session, struct pam_response *response)
             session->priv->num_messages = 0;
         }
 
+
         if (session->priv->username == NULL)
         {
-            struct pam_message **messages;
-          
             session->priv->username = g_strdup (response->resp);
-
-            messages = calloc (1, sizeof (struct pam_message *));
-            messages[0] = g_malloc0 (sizeof (struct pam_message));
-            messages[0]->msg_style = PAM_PROMPT_ECHO_OFF;
-            messages[0]->msg = g_strdup ("Password:");
-            session->priv->messages = (const struct pam_message **) messages;
-            session->priv->num_messages = 1;
-
-            g_signal_emit (G_OBJECT (session), signals[GOT_MESSAGES], 0, session->priv->num_messages, session->priv->messages);          
+            password = get_password (session->priv->username);
+            if (g_strcmp0 (password, "") == 0)
+                g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_SUCCESS);
+            else
+                send_message (session, PAM_PROMPT_ECHO_OFF, "Password:");
         }
         else
         {
             User *user;
 
             user = user_get_by_name (session->priv->username);
-            if (user && strcmp (response->resp, "password") == 0)
+            password = get_password (session->priv->username);
+            if (user && g_strcmp0 (response->resp, password) == 0)
                 g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_SUCCESS);
             else
                 g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_AUTH_ERR);
@@ -345,6 +384,7 @@ pam_session_respond (PAMSession *session, struct pam_response *response)
             if (user)
                 g_object_unref (user);
         }
+        g_free (password);
         g_free (response->resp);
         g_free (response);
     }
@@ -360,7 +400,7 @@ pam_session_cancel (PAMSession *session)
 {
     g_return_if_fail (session != NULL);
 
-    if (!use_fake_users)
+    if (!passwd_file)
     {
         g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_CONV_ERR);
     }
@@ -376,7 +416,7 @@ const gchar *
 pam_session_getenv (PAMSession *session, const gchar *name)
 {
     g_return_val_if_fail (session != NULL, NULL);
-    if (use_fake_users)
+    if (passwd_file)
         return NULL;
     else
         return pam_getenv (session->priv->pam_handle, name);
@@ -386,7 +426,7 @@ gchar **
 pam_session_get_envlist (PAMSession *session)
 {
     g_return_val_if_fail (session != NULL, NULL);
-    if (use_fake_users)
+    if (passwd_file)
     {
         char **env_list = calloc (1, sizeof (gchar *));
         env_list[0] = NULL;
