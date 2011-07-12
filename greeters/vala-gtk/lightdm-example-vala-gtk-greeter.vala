@@ -66,7 +66,6 @@ class Greeter
         username_entry.activate.connect (username_activate_cb);
         
         password_entry = new Gtk.Entry ();
-        password_entry.visibility = false;
         password_entry.sensitive = false;
         login_vbox.pack_start (password_entry, false, false, 0);
         password_entry.activate.connect (password_activate_cb);
@@ -76,10 +75,11 @@ class Greeter
         username_entry.grab_focus ();
     }
 
-    private void show_prompt_cb (LightDM.Greeter greeter, string text)
+    private void show_prompt_cb (LightDM.Greeter greeter, string text, LightDM.PromptType type)
     {
         password_entry.show ();
         password_entry.sensitive = true;
+        password_entry.visibility = type != LightDM.PromptType.SECRET;
         password_entry.grab_focus ();
     }
 

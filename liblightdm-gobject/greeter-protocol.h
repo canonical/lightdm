@@ -30,4 +30,10 @@ typedef enum
     GREETER_MESSAGE_USER_DEFAULTS           = 106
 } GreeterMessage;
 
+typedef enum
+{
+    GREETER_PROMPT_QUESTION,
+    GREETER_PROMPT_SECRET
+} GreeterPromptType;
+
 #endif /* _GREETER_PROTOCOL_H_ */

@@ -214,12 +214,11 @@ class Greeter:
 
             login_vbox.pack_start(user_view, False, False, 0)
 
-        self.password_entry = Gtk.Entry()
-        self.password_entry.visibility = False
-        self.password_entry.sensitive = False
-        login_vbox.pack_start(self.password_entry, False, False, 0)
-        self.password_entry.connect('activate', self.password_activate_cb)
-        self.password_entry.set_no_show_all(True)
+        self.prompt_entry = Gtk.Entry()
+        self.prompt_entry.set_sensitive(False)
+        login_vbox.pack_start(self.prompt_entry, False, False, 0)
+        self.prompt_entry.connect('activate', self.password_activate_cb)
+        self.prompt_entry.set_no_show_all(True)
 
         self.window.show_all()
         if user_view is not None:
@@ -236,21 +235,22 @@ class Greeter:
         self.greeter.login(self.username_entry.get_text())
 
     def password_activate_cb(self, widget):
-        self.password_entry.set_sensitive(False)
-        self.greeter.respond(self.password_entry.get_text())
+        self.prompt_entry.set_sensitive(False)
+        self.greeter.respond(self.prompt_entry.get_text())
 
-    def show_prompt_cb(self, greeter, text):
-        self.password_entry.show()
-        self.password_entry.set_sensitive(True)
-        self.password_entry.frab_focus()
+    def show_prompt_cb(self, greeter, text, type):
+        self.prompt_entry.show()
+        self.prompt_entry.set_sensitive(True)
+        self.prompt_entry.set_visibility(type != LightDM.PROMPT_TYPE_SECRET)
+        self.prompt_entry.grab_focus()
 
     def show_message_cb(self, greeter, text):
         self.message_label.show()
         self.message_label.set_text(text)
 
     def authentication_complete_cb(self, greeter):
-        self.password_entry.hide()
-        self.password_entry.set_text('')
+        self.prompt_entry.hide()
+        self.prompt_entry.set_text('')
 
         # Clear row shading
         # FIXME

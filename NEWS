@@ -3,8 +3,10 @@ Overview of changes in lightdm 0.4.4
     * Don't replace Plymouth if it isn't running on a valid VT
     * Allow a null username to log in with - the system will prompt for a
       username.
-    * Rename ldm_greeter_provide_secret to ldm_greeter_respond - responses
-      may not be secrets.
+    * liblightdm API changes:
+      - Rename ldm_greeter_provide_secret to ldm_greeter_respond - responses
+        may not be secrets.
+      - show_prompt signal now has a PromptType field
     * Fix error where an authentication failure from a previous session could
       be interpreted as a failure in the current session.
     * Simplify Vala bindings and add missing methods

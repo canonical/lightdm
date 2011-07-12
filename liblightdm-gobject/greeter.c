@@ -259,8 +259,10 @@ handle_prompt_authentication (LdmGreeter *greeter, gsize *offset)
         switch (msg_style)
         {
         case PAM_PROMPT_ECHO_OFF:
+            g_signal_emit (G_OBJECT (greeter), signals[SHOW_PROMPT], 0, msg, GREETER_PROMPT_SECRET);
+            break;
         case PAM_PROMPT_ECHO_ON:
-            g_signal_emit (G_OBJECT (greeter), signals[SHOW_PROMPT], 0, msg);
+            g_signal_emit (G_OBJECT (greeter), signals[SHOW_PROMPT], 0, msg, GREETER_PROMPT_QUESTION);
             break;
         case PAM_ERROR_MSG:
             g_signal_emit (G_OBJECT (greeter), signals[SHOW_ERROR], 0, msg);
@@ -1751,6 +1753,42 @@ ldm_greeter_get_property (GObject    *object,
 }
 
 static void
+marshal_VOID__STRING_INT (GClosure     *closure,
+                          GValue       *return_value G_GNUC_UNUSED,
+                          guint         n_param_values,
+                          const GValue *param_values,
+                          gpointer      invocation_hint G_GNUC_UNUSED,
+                          gpointer      marshal_data)
+{
+    typedef void (*GMarshalFunc_VOID__STRING_INT) (gpointer     data1,
+                                                   gpointer     arg_1,
+                                                   gint         arg_2,
+                                                   gpointer     data2);
+    register GMarshalFunc_VOID__STRING_INT callback;
+    register GCClosure *cc = (GCClosure*) closure;
+    register gpointer data1, data2;
+
+    g_return_if_fail (n_param_values == 3);
+
+    if (G_CCLOSURE_SWAP_DATA (closure))
+    {
+        data1 = closure->data;
+        data2 = g_value_peek_pointer (param_values + 0);
+    }
+    else
+    {
+        data1 = g_value_peek_pointer (param_values + 0);
+        data2 = closure->data;
+    }
+    callback = (GMarshalFunc_VOID__STRING_INT) (marshal_data ? marshal_data : cc->callback);
+
+    callback (data1,
+              (param_values + 1)->data[0].v_pointer,
+              (param_values + 2)->data[0].v_int,
+              data2);
+}
+
+static void
 ldm_greeter_class_init (LdmGreeterClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
@@ -1908,8 +1946,8 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LdmGreeterClass, show_prompt),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__STRING,
-                      G_TYPE_NONE, 1, G_TYPE_STRING);
+                      marshal_VOID__STRING_INT,
+                      G_TYPE_NONE, 1, G_TYPE_STRING, G_TYPE_INT);
 
     /**
      * LdmGreeter::show-message:

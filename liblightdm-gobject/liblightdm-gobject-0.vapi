@@ -5,7 +5,7 @@ namespace LightDM {
         public virtual signal void connected ();
         public virtual signal void show_error (string text);
         public virtual signal void show_message (string text);
-        public virtual signal void show_prompt (string text);
+        public virtual signal void show_prompt (string text, PromptType type);
         public virtual signal void timed_login (string username);
         public virtual signal void authentication_complete ();
         public virtual signal void quit ();
@@ -51,6 +51,10 @@ namespace LightDM {
         public void cancel_authentication ();
         public void start_session (string? session);
         public void start_default_session ();
+    }
+    public enum PromptType {
+        QUESTION,
+        SECRET
     }
     public class Language : GLib.Object {
         public unowned string code { get; }

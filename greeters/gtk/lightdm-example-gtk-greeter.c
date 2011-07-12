@@ -154,12 +154,12 @@ cancel_cb (GtkWidget *widget)
 }
 
 static void
-show_prompt_cb (LdmGreeter *greeter, const gchar *text)
+show_prompt_cb (LdmGreeter *greeter, const gchar *text, LdmPromptType type)
 {
     gtk_label_set_text (GTK_LABEL (prompt_label), text);
     gtk_widget_set_sensitive (prompt_entry, TRUE);
     gtk_entry_set_text (GTK_ENTRY (prompt_entry), "");
-    gtk_entry_set_visibility (GTK_ENTRY (prompt_entry), FALSE);
+    gtk_entry_set_visibility (GTK_ENTRY (prompt_entry), type != LDM_PROMPT_TYPE_SECRET);
     gtk_widget_show (prompt_box);
     gtk_widget_grab_focus (prompt_entry);
 }
