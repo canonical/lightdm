@@ -21,7 +21,6 @@ typedef enum
     GREETER_MESSAGE_CONTINUE_AUTHENTICATION = 4,
     GREETER_MESSAGE_START_SESSION           = 5,
     GREETER_MESSAGE_CANCEL_AUTHENTICATION   = 6,
-    GREETER_MESSAGE_GET_USER_DEFAULTS       = 7,
 
     /* Messages from the server to the greeter */
     GREETER_MESSAGE_CONNECTED               = 101,

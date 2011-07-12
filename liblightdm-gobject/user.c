@@ -35,7 +35,7 @@ struct _LdmUserPrivate
     gchar *image;
     gboolean logged_in;
 
-    gboolean have_defaults;
+    GKeyFile *dmrc_file;
     gchar *language;
     gchar *layout;
     gchar *session;
@@ -194,13 +194,26 @@ ldm_user_set_image (LdmUser *user, const gchar *image)
 }
 
 static void
-get_defaults (LdmUser *user)
+load_dmrc (LdmUser *user)
 {
-    if (user->priv->have_defaults)
-        return;
+    gchar *path;
+    gboolean have_dmrc;
 
-    if (ldm_greeter_get_user_defaults (user->priv->greeter, user->priv->name, &user->priv->language, &user->priv->layout, &user->priv->session))
-        user->priv->have_defaults = TRUE;
+    user->priv->dmrc_file = g_key_file_new ();
+
+    /* Load from the user directory */  
+    path = g_build_filename (user->priv->home_directory, ".dmrc", NULL);
+    have_dmrc = g_key_file_load_from_file (user->priv->dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, NULL);
+    g_free (path);
+
+    /* If no ~/.dmrc, then load from the cache */
+    // FIXME
+
+    // FIXME: Watch for changes
+
+    user->priv->language = g_key_file_get_string (user->priv->dmrc_file, "Desktop", "Language", NULL);
+    user->priv->layout = g_key_file_get_string (user->priv->dmrc_file, "Desktop", "Layout", NULL);
+    user->priv->session = g_key_file_get_string (user->priv->dmrc_file, "Desktop", "Session", NULL);
 }
 
 /**
@@ -215,7 +228,7 @@ const gchar *
 ldm_user_get_language (LdmUser *user)
 {
     g_return_val_if_fail (LDM_IS_USER (user), NULL);
-    get_defaults (user);
+    load_dmrc (user);
     return user->priv->language;
 }
 
@@ -231,7 +244,7 @@ const gchar *
 ldm_user_get_layout (LdmUser *user)
 {
     g_return_val_if_fail (LDM_IS_USER (user), NULL);
-    get_defaults (user);
+    load_dmrc (user);
     return user->priv->layout;
 }
 
@@ -247,7 +260,7 @@ const gchar *
 ldm_user_get_session (LdmUser *user)
 {
     g_return_val_if_fail (LDM_IS_USER (user), NULL);
-    get_defaults (user);
+    load_dmrc (user);
     return user->priv->session; 
 }
 
@@ -359,6 +372,21 @@ ldm_user_get_property (GObject    *object,
 }
 
 static void
+ldm_user_finalize (GObject *object)
+{
+    LdmUser *self;
+
+    self = LDM_USER (object);
+
+    g_free (self->priv->name);
+    g_free (self->priv->real_name);
+    g_free (self->priv->home_directory);
+    g_free (self->priv->image);
+    if (self->priv->dmrc_file)
+        g_key_file_free (self->priv->dmrc_file);
+}
+
+static void
 ldm_user_class_init (LdmUserClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
@@ -367,6 +395,7 @@ ldm_user_class_init (LdmUserClass *klass)
 
     object_class->set_property = ldm_user_set_property;
     object_class->get_property = ldm_user_get_property;
+    object_class->finalize = ldm_user_finalize;
 
     g_object_class_install_property(object_class,
                                     PROP_GREETER,

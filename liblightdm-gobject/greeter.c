@@ -885,6 +885,7 @@ const LdmUser *
 ldm_greeter_get_user_by_name (LdmGreeter *greeter, const gchar *username)
 {
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
+    g_return_val_if_fail (username != NULL, NULL);
 
     update_users (greeter);
 
@@ -1639,55 +1640,6 @@ ldm_greeter_shutdown (LdmGreeter *greeter)
 {
     g_return_if_fail (LDM_IS_GREETER (greeter));
     ck_call_function (greeter, "Stop", FALSE);
-}
-
-/**
- * ldm_greeter_get_user_defaults:
- * @greeter: A #LdmGreeter
- * @username: The user to check
- * @language: (out): Default language for this user.
- * @layout: (out): Default keyboard layout for this user.
- * @session: (out): Default session for this user.
- *
- * Get the default settings for a given user.  If the user does not exist FALSE
- * is returned and language, layout and session are not set.
- *
- * Return value: TRUE if this user exists.
- **/
-gboolean
-ldm_greeter_get_user_defaults (LdmGreeter *greeter, const gchar *username, gchar **language, gchar **layout, gchar **session)
-{
-    gsize offset = 0;
-    guint32 id;
-    guint8 message[MAX_MESSAGE_LENGTH];
-
-    g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
-    g_return_val_if_fail (username != NULL, FALSE);
-
-    offset = 0;
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_GET_USER_DEFAULTS, string_length (username), &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
-    write_message (greeter, message, offset);
-
-    if (!read_packet (greeter, TRUE))
-    {
-        g_warning ("Error reading user defaults from server");
-        return FALSE;
-    }
-
-    offset = 0;
-    id = read_int (greeter, &offset);
-    g_assert (id == GREETER_MESSAGE_USER_DEFAULTS);
-    read_int (greeter, &offset);
-    *language = read_string (greeter, &offset);
-    *layout = read_string (greeter, &offset);
-    *session = read_string (greeter, &offset);
-
-    g_debug ("User defaults for %s: language=%s, layout=%s, session=%s", username, *language, *layout, *session);
-
-    greeter->priv->n_read = 0;
-
-    return TRUE;
 }
 
 static void

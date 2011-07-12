@@ -14,7 +14,6 @@
 
 #include "greeter.h"
 #include "configuration.h"
-#include "dmrc.h"
 #include "ldm-marshal.h"
 #include "greeter-protocol.h"
 #include "guest-account.h"
@@ -433,40 +432,6 @@ handle_start_session (Greeter *greeter, gchar *session)
     g_signal_emit (greeter, signals[START_SESSION], 0, session);
 }
 
-static void
-handle_get_user_defaults (Greeter *greeter, gchar *username)
-{
-    GKeyFile *dmrc_file;
-    gchar *language, *layout, *session;
-    guint8 message[MAX_MESSAGE_LENGTH];
-    gsize offset = 0;
-
-    /* Load the users login settings (~/.dmrc) */
-    dmrc_file = dmrc_load (username);
-
-    language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
-    if (!language)
-        language = g_strdup ("");
-    layout = g_key_file_get_string (dmrc_file, "Desktop", "Layout", NULL);
-    if (!layout)
-        layout = g_strdup ("");
-    session = g_key_file_get_string (dmrc_file, "Desktop", "Session", NULL);
-    if (!session)
-        session = g_strdup ("");
-
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_USER_DEFAULTS, string_length (language) + string_length (layout) + string_length (session), &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, language, &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, layout, &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, session, &offset);
-    write_message (greeter, message, offset);
-  
-    g_free (language);
-    g_free (layout);
-    g_free (session);
-
-    g_key_file_free (dmrc_file);
-}
-
 static guint32
 read_int (Greeter *greeter, gsize *offset)
 {
@@ -585,11 +550,6 @@ got_data_cb (Greeter *greeter)
         session_name = read_string (greeter, &offset);
         handle_start_session (greeter, session_name);
         g_free (session_name);
-        break;
-    case GREETER_MESSAGE_GET_USER_DEFAULTS:
-        username = read_string (greeter, &offset);
-        handle_get_user_defaults (greeter, username);
-        g_free (username);
         break;
     default:
         g_warning ("Unknown message from greeter: %d", id);

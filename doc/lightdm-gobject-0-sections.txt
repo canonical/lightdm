@@ -141,7 +141,6 @@ ldm_greeter_get_can_restart
 ldm_greeter_restart
 ldm_greeter_get_can_shutdown
 ldm_greeter_shutdown
-ldm_greeter_get_user_defaults
 <SUBSECTION Standard>
 LDM_GREETER
 LDM_IS_GREETER
@@ -153,4 +152,5 @@ LDM_GREETER_GET_CLASS
 <SUBSECTION Private>
 LdmGreeterClass
 LdmGreeterPrivate
+ldm_greeter_get_user_defaults
 </SECTION>

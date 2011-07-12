@@ -27,6 +27,7 @@ namespace LightDM {
         public bool has_guest_session { get; }
         public int num_users { get; }
         public unowned GLib.List<weak LightDM.User> get_users ();
+        public unowned LightDM.User get_user_by_name (string username);
         public unowned string timed_login_user { get; }
         public int timed_login_delay { get; }
 
@@ -39,7 +40,6 @@ namespace LightDM {
         public void suspend ();
         public void hibernate ();
 
-        public bool get_user_defaults (string username, out string language, out string layout, out string session);
         public void cancel_timed_login ();
         public void login (string username);
         public void login_with_user_prompt ();
