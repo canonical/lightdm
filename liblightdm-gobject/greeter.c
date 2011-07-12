@@ -1947,7 +1947,7 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                       G_STRUCT_OFFSET (LdmGreeterClass, show_prompt),
                       NULL, NULL,
                       marshal_VOID__STRING_INT,
-                      G_TYPE_NONE, 1, G_TYPE_STRING, G_TYPE_INT);
+                      G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_INT);
 
     /**
      * LdmGreeter::show-message:

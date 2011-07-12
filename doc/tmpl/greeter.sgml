@@ -124,6 +124,7 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
 @ldmgreeter: the object which received the signal.
 @arg1: 
+@Param3: 
 
 <!-- ##### SIGNAL LdmGreeter::timed-login ##### -->
 <para>
