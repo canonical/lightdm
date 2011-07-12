@@ -1277,7 +1277,7 @@ ldm_greeter_login (LdmGreeter *greeter, const char *username)
     gsize offset = 0;
 
     g_return_if_fail (LDM_IS_GREETER (greeter));
-  
+
     if (!username)
         username = "";
 

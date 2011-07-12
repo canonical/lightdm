@@ -72,13 +72,7 @@ start_authentication (const gchar *username)
 
     if (strcmp (username, "*other") == 0)
     {
-        gtk_label_set_text (GTK_LABEL (prompt_label), _("Username:"));
-        gtk_widget_set_sensitive (prompt_entry, TRUE);
-        gtk_entry_set_text (GTK_ENTRY (prompt_entry), "");
-        gtk_entry_set_visibility (GTK_ENTRY (prompt_entry), TRUE);
-        gtk_widget_show (prompt_box);
-        gtk_widget_grab_focus (prompt_entry);
-        return;
+        ldm_greeter_login (greeter, NULL);
     }
     else if (strcmp (username, "*guest") == 0)
     {
