@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.4.4
+
+    * Fix failure to accept XDMCP connections due to invalid assert
+
 Overview of changes in lightdm 0.4.3
 
     * Don't replace Plymouth if it isn't running on a valid VT

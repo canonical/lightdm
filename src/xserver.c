@@ -376,7 +376,6 @@ xserver_start (XServer *server)
 
     g_return_val_if_fail (server != NULL, FALSE);
     //g_return_val_if_fail (server->priv->pid == 0, FALSE);
-    g_return_val_if_fail (server->priv->command != NULL, FALSE);
   
     server->priv->ready = FALSE;
  
@@ -390,6 +389,8 @@ xserver_start (XServer *server)
         g_signal_emit (server, signals[READY], 0);
         return TRUE;
     }
+
+    g_return_val_if_fail (server->priv->command != NULL, FALSE);
 
     /* Write the authorization file */
     write_authorization_file (server);
