@@ -10,13 +10,10 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <glib.h>
+#include <gio/gio.h>
+#include <gio/gunixsocketaddress.h>
 
 #include "status.h"
-
-/* For some reason sys/un.h doesn't define this */
-#ifndef UNIX_PATH_MAX
-#define UNIX_PATH_MAX 108
-#endif
 
 static GKeyFile *config;
 
@@ -32,6 +29,14 @@ typedef struct
 static GHashTable *connections;
 
 static int display_number = 0;
+
+static GSocket *local_socket = NULL;
+
+static int xdmcp_port = 177;
+static gboolean do_xdmcp = FALSE;
+static gchar *xdmcp_host = NULL;
+static GSocket *xdmcp_socket = NULL;
+static guint xdmcp_query_timer = 0;
 
 #define BYTE_ORDER_MSB 'B'
 #define BYTE_ORDER_LSB 'l'
@@ -56,6 +61,24 @@ enum
     Success = 1,
     Authenticate = 2
 };
+
+typedef enum
+{
+    XDMCP_BroadcastQuery = 1,
+    XDMCP_Query          = 2,
+    XDMCP_IndirectQuery  = 3,
+    XDMCP_ForwardQuery   = 4,
+    XDMCP_Willing        = 5,
+    XDMCP_Unwilling      = 6,
+    XDMCP_Request        = 7,
+    XDMCP_Accept         = 8,
+    XDMCP_Decline        = 9,
+    XDMCP_Manage         = 10,
+    XDMCP_Refuse         = 11,
+    XDMCP_Failed         = 12,
+    XDMCP_KeepAlive      = 13,
+    XDMCP_Alive          = 14
+} XDMCPOpcode;
 
 static void
 cleanup ()
@@ -109,6 +132,21 @@ read_card16 (const guint8 *buffer, gsize buffer_length, guint8 byte_order, gsize
         return b << 8 | a;
 }
 
+static guint32
+read_card32 (const guint8 *buffer, gsize buffer_length, guint8 byte_order, gsize *offset)
+{
+    guint8 a, b, c, d;
+
+    a = read_card8 (buffer, buffer_length, offset);
+    b = read_card8 (buffer, buffer_length, offset);
+    c = read_card8 (buffer, buffer_length, offset);
+    d = read_card8 (buffer, buffer_length, offset);
+    if (byte_order == BYTE_ORDER_MSB)
+        return a << 24 | b << 16 | c << 8 | d;
+    else
+        return d << 24 | c << 16 | b << 8 | a;
+}
+
 static guint8 *
 read_string8 (const guint8 *buffer, gsize buffer_length, gsize string_length, gsize *offset)
 {
@@ -120,6 +158,12 @@ read_string8 (const guint8 *buffer, gsize buffer_length, gsize string_length, gs
         string[i] = read_card8 (buffer, buffer_length, offset);
     string[i] = '\0';
     return string;
+}
+
+static gchar *
+read_string (const guint8 *buffer, gsize buffer_length, gsize string_length, gsize *offset)
+{
+    return (gchar *) read_string8 (buffer, buffer_length, string_length, offset);
 }
 
 static gchar *
@@ -194,6 +238,12 @@ static gsize
 padded_string_length (const gchar *value)
 {
     return (strlen (value) + pad (strlen (value))) / 4;
+}
+
+static void
+write_string (guint8 *buffer, gsize buffer_length, const gchar *value, gsize *offset)
+{
+    write_string8 (buffer, buffer_length, (guint8 *) value, strlen (value), offset);
 }
 
 static void
@@ -345,11 +395,11 @@ decode_connection_request (GIOChannel *channel, const guint8 *buffer, gssize buf
         if (g_file_get_contents (auth_path, &xauth_data, &xauth_length, &error))
         {
             gsize offset = 0;
-            guint16 family, length, data_length;
+            guint16 length, data_length;
             gchar *address, *number, *name;
             guint8 *data;
 
-            family = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
+            /*family =*/ read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
             length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
             address = (gchar *) read_string8 ((guint8 *) xauth_data, xauth_length, length, &offset);
             length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
@@ -420,7 +470,7 @@ decode_connection_request (GIOChannel *channel, const guint8 *buffer, gssize buf
     }
 
     send (g_io_channel_unix_get_fd (channel), response_buffer, n_written, 0);
-    log_buffer ("Wrote", response_buffer, n_written);
+    log_buffer ("Wrote X", response_buffer, n_written);
 }
 
 static void
@@ -482,7 +532,7 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     {
         Connection *connection;
 
-        log_buffer ("Read", buffer, n_read);
+        log_buffer ("Read X", buffer, n_read);
 
         connection = g_hash_table_lookup (connections, channel);
         if (connection)
@@ -539,18 +589,193 @@ signal_cb (int signum)
     }
 }
 
+static void
+xdmcp_write (const guint8 *buffer, gssize buffer_length)
+{
+    gssize n_written;
+
+    n_written = g_socket_send (xdmcp_socket, (const gchar *) buffer, buffer_length, NULL, NULL);
+    if (n_written != buffer_length)
+        g_warning ("Failed to write XDMCP request");
+    log_buffer ("Wrote XDMCP", buffer, buffer_length);
+}
+
+static gboolean
+xdmcp_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
+{
+    guint8 buffer[MAXIMUM_REQUEST_LENGTH];
+    gssize n_read;
+
+    n_read = recv (g_io_channel_unix_get_fd (channel), buffer, MAXIMUM_REQUEST_LENGTH, 0);
+    if (n_read < 0)
+        g_warning ("Error reading from XDMCP socket: %s", strerror (errno));
+    else if (n_read == 0)
+    {
+        g_debug ("EOF");
+        return FALSE;
+    }
+    else
+    {
+        gsize offset = 0;
+        guint16 version, opcode, length, l;
+        guint32 session_id;
+        gchar *authentication_name, *authorization_name, *hostname, *status;
+        guint8 response[MAXIMUM_REQUEST_LENGTH];
+        GSocketAddress *local_address;
+        const guint8 *native_address;
+        gssize native_address_length;
+
+        log_buffer ("Read XDMCP", buffer, n_read);
+
+        version = read_card16 (buffer, n_read, BYTE_ORDER_MSB, &offset);
+        opcode = read_card16 (buffer, n_read, BYTE_ORDER_MSB, &offset);
+        length = read_card16 (buffer, n_read, BYTE_ORDER_MSB, &offset);
+
+        if (version != 1)
+        {
+            g_debug ("Ignoring XDMCP version %d message", version);
+            return TRUE;
+        }
+        if (6 + length > n_read)
+        {
+            g_debug ("Ignoring XDMCP message of length %zi with invalid length field %d", n_read, length);
+            return TRUE;
+        }
+        switch (opcode)
+        {
+        case XDMCP_Willing:
+            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
+            authentication_name = read_string (buffer, 3 + length, l, &offset);
+            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
+            hostname = read_string (buffer, 3 + length, l, &offset);
+            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
+            status = read_string (buffer, 3 + length, l, &offset);
+
+            notify_status ("XSERVER :%d GOT-WILLING AUTHENTICATION-NAME=\"%s\" HOSTNAME=\"%s\" STATUS=\"%s\"", display_number, authentication_name, hostname, status);
+
+            /* Stop sending queries */
+            g_source_remove (xdmcp_query_timer);
+            xdmcp_query_timer = 0;
+
+            local_address = g_socket_get_local_address (xdmcp_socket, NULL);
+            GInetAddress *inet_address = g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (local_address));
+            native_address_length = g_inet_address_get_native_size (inet_address);
+            native_address = g_inet_address_to_bytes (inet_address);
+
+            offset = 0;
+            notify_status ("XSERVER :%d GOT-WILLING AUTHENTICATION-NAME=\"%s\" HOSTNAME=\"%s\" STATUS=\"%s\"", display_number, authentication_name, hostname, status);
+            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 1, &offset); /* version = 1 */
+            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, XDMCP_Request, &offset);
+            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 17 + native_address_length + strlen ("") + strlen ("MIT-MAGIC-COOKIE-1") + strlen ("TEST XSERVER"), &offset);
+
+            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, display_number, &offset);
+            write_card8 (response, MAXIMUM_REQUEST_LENGTH, 1, &offset); /* 1 address */
+            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 0, &offset); /* FamilyInternet */
+            write_card8 (response, MAXIMUM_REQUEST_LENGTH, 1, &offset); /* 1 address */
+            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, native_address_length, &offset);
+            write_string8 (response, MAXIMUM_REQUEST_LENGTH, native_address, native_address_length, &offset);
+            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, strlen (""), &offset);
+            write_string (response, MAXIMUM_REQUEST_LENGTH, "", &offset);
+            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 0, &offset); /* No authentication data */
+            write_card8 (response, MAXIMUM_REQUEST_LENGTH, 1, &offset); /* 1 authorization */
+            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, strlen ("MIT-MAGIC-COOKIE-1"), &offset);
+            write_string (response, MAXIMUM_REQUEST_LENGTH, "MIT-MAGIC-COOKIE-1", &offset);
+            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, strlen ("TEST XSERVER"), &offset);
+            write_string (response, MAXIMUM_REQUEST_LENGTH, "TEST XSERVER", &offset);
+
+            notify_status ("XSERVER :%d SEND-REQUEST DISPLAY-NUMBER=%d AUTHORIZATION-NAME=\"%s\" MFID=\"%s\"", display_number, display_number, "MIT-MAGIC-COOKIE-1", "TEST XSERVER");
+
+            xdmcp_write (response, offset);
+            break;
+
+        case XDMCP_Accept:
+            session_id = read_card32 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
+            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
+            authentication_name = read_string (buffer, 3 + length, l, &offset);
+            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
+            read_string8 (buffer, 3 + length, l, &offset);
+            authorization_name = read_string (buffer, 3 + length, l, &offset);
+            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
+            read_string8 (buffer, 3 + length, l, &offset);
+
+            notify_status ("XSERVER :%d GOT-ACCEPT SESSION-ID=%d AUTHENTICATION-NAME=\"%s\" AUTHORIZATION-NAME=\"%s\"", display_number, session_id, authentication_name, authorization_name);
+
+            offset = 0;
+            notify_status ("XSERVER :%d GOT-WILLING AUTHENTICATION-NAME=\"%s\" HOSTNAME=\"%s\" STATUS=\"%s\"", display_number, authentication_name, hostname, status);
+            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 1, &offset); /* version = 1 */
+            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, XDMCP_Manage, &offset);
+            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 8 + strlen ("DISPLAY CLASS"), &offset);
+
+            write_card32 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, session_id, &offset);
+            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, display_number, &offset);
+            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, strlen ("DISPLAY CLASS"), &offset);
+            write_string (response, MAXIMUM_REQUEST_LENGTH, "DISPLAY CLASS", &offset);
+
+            notify_status ("XSERVER :%d SEND-MANAGE SESSION-ID=%d DISPLAY-NUMBER=%d DISPLAY-CLASS=\"%s\"", display_number, session_id, display_number, "DISPLAY CLASS");
+
+            xdmcp_write (response, offset);
+            break;
+
+        case XDMCP_Decline:
+            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
+            status = read_string (buffer, 3 + length, l, &offset);
+            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
+            authentication_name = read_string (buffer, 3 + length, l, &offset);
+            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
+            read_string8 (buffer, 3 + length, l, &offset);
+
+            notify_status ("XSERVER :%d GOT-DECLINE STATUS=\"%s\" AUTHENTICATION-NAME=\"%s\"", display_number, status, authentication_name);
+            break;
+
+        case XDMCP_Failed:
+            session_id = read_card32 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
+            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
+            status = read_string (buffer, 3 + length, l, &offset);
+
+            notify_status ("XSERVER :%d GOT-FAILED SESSION-ID=%d STATUS=\"%s\"", display_number, session_id, status);
+            break;
+
+        default:
+            g_debug ("Ignoring unknown XDMCP opcode %d", opcode);
+            break;
+        }
+    }
+
+    return TRUE;
+}
+
+static gboolean
+xdmcp_query_cb (gpointer data)
+{
+    guint8 buffer[MAXIMUM_REQUEST_LENGTH];
+    gsize offset = 0;
+
+    notify_status ("XSERVER :%d SEND-QUERY", display_number);
+
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 1, &offset); /* version = 1 */
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, XDMCP_Query, &offset);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 1, &offset);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 0, &offset);
+
+    xdmcp_write (buffer, offset);
+
+    return TRUE;
+}
+
 int
 main (int argc, char **argv)
 {
-    int i, s;
-    struct sockaddr_un address;
+    int i;
     char *pid_string;
     GMainLoop *loop;
     int lock_file;
+    GError *error = NULL;
 
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
     signal (SIGHUP, signal_cb);
+  
+    g_type_init ();
 
     for (i = 1; i < argc; i++)
     {
@@ -576,7 +801,23 @@ main (int argc, char **argv)
             }
         }
         else if (strcmp (arg, "-nr") == 0)
-            ;
+        {
+        }
+        else if (strcmp (arg, "-port") == 0)
+        {
+            xdmcp_port = atoi (argv[i+1]);
+            i++;
+        }
+        else if (strcmp (arg, "-query") == 0)
+        {
+            do_xdmcp = TRUE;
+            xdmcp_host = argv[i+1];
+            i++;
+        }
+        else if (strcmp (arg, "-broadcast") == 0)
+        {
+            do_xdmcp = TRUE;
+        }
     }
 
     notify_status ("XSERVER :%d START", display_number);
@@ -615,34 +856,47 @@ main (int argc, char **argv)
     }
     g_free (pid_string);
 
-    s = socket (AF_UNIX, SOCK_STREAM, 0);
-    if (s < 0)
-    {
-        g_warning ("Error opening socket: %s", strerror (errno));
-        quit (EXIT_FAILURE);
-    }
-
-    socket_path = g_strdup_printf ("/tmp/.X11-unix/X%d", display_number);
-    address.sun_family = AF_UNIX;
-    strncpy (address.sun_path, socket_path, UNIX_PATH_MAX);
-    if (bind (s, (struct sockaddr *) &address, sizeof (address)) < 0)
-    {
-        g_warning ("Error binding socket: %s", strerror (errno));
-        quit (EXIT_FAILURE);
-    }
-
-    if (listen (s, 10) < 0)
-    {
-        g_warning ("Error binding socket: %s", strerror (errno));
-        quit (EXIT_FAILURE);
-    }
-
     connections = g_hash_table_new (g_direct_hash, g_direct_equal);
 
-    g_io_add_watch (g_io_channel_unix_new (s), G_IO_IN, socket_connect_cb, NULL);
-  
+    socket_path = g_strdup_printf ("/tmp/.X11-unix/X%d", display_number);
+    local_socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
+    if (!local_socket ||
+        !g_socket_bind (local_socket, g_unix_socket_address_new (socket_path), TRUE, &error) ||
+        !g_socket_listen (local_socket, &error) ||
+        !g_io_add_watch (g_io_channel_unix_new (g_socket_get_fd (local_socket)), G_IO_IN, socket_connect_cb, &error))
+    {
+        g_warning ("Error creating X socket: %s", error->message);
+        quit (EXIT_FAILURE);
+    }
+
+    /* Enable XDMCP */
+    if (do_xdmcp)
+    {
+        GSocketConnectable *address;
+        GSocketAddress *socket_address;
+
+        xdmcp_socket = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_DATAGRAM, G_SOCKET_PROTOCOL_UDP, &error);
+      
+        address = g_network_address_new (xdmcp_host, xdmcp_port);
+        socket_address = g_socket_address_enumerator_next (g_socket_connectable_enumerate (address), NULL, NULL);
+
+        if (!xdmcp_socket ||
+            !g_socket_connect (xdmcp_socket, socket_address, NULL, NULL) ||
+            !g_io_add_watch (g_io_channel_unix_new (g_socket_get_fd (xdmcp_socket)), G_IO_IN, xdmcp_data_cb, &error))
+        {
+            g_warning ("Error creating XDMCP socket: %s", error->message);
+            quit (EXIT_FAILURE);
+        }
+
+        xdmcp_query_timer = g_timeout_add (2000, xdmcp_query_cb, NULL);
+    }
+
     /* Indicate ready if parent process has requested it */
     indicate_ready ();
+  
+    /* Send first query */
+    if (xdmcp_query_timer)
+        xdmcp_query_cb (NULL);
 
     g_main_loop_run (loop);
 

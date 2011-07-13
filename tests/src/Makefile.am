@@ -15,10 +15,14 @@ test_xserver_SOURCES = test-xserver.c status.c status.h
 test_xserver_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GOBJECT_CFLAGS) \
-	$(GLIB_CFLAGS)
+	$(GLIB_CFLAGS) \
+	$(GIO_CFLAGS) \
+	$(GIO_UNIX_CFLAGS)
 test_xserver_LDADD = \
 	$(GOBJECT_LIBS) \
-	$(GLIB_LIBS)
+	$(GLIB_LIBS) \
+	$(GIO_LIBS) \
+	$(GIO_UNIX_LIBS)
 
 test_gobject_greeter_SOURCES = test-gobject-greeter.c status.c status.h
 test_gobject_greeter_CFLAGS = \
