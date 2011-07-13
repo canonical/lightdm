@@ -878,6 +878,10 @@ main (int argc, char **argv)
         {
             do_xdmcp = TRUE;
         }
+        else if (g_str_has_prefix (arg, "vt"))
+        {
+            /* Ignore VT arg */
+        }
         else
         {
             g_printerr ("Unknown argument: %s", arg);
