@@ -30,7 +30,10 @@ static GHashTable *connections;
 
 static int display_number = 0;
 
-static GSocket *local_socket = NULL;
+static gboolean listen_unix = TRUE;
+static gboolean listen_tcp = TRUE;
+static GSocket *unix_socket = NULL;
+static GSocket *tcp_socket = NULL;
 
 static int xdmcp_port = 177;
 static gboolean do_xdmcp = FALSE;
@@ -848,9 +851,9 @@ main (int argc, char **argv)
             char *protocol = argv[i+1];
             i++;
             if (strcmp (protocol, "tcp") == 0)
-            {
-                // FIXME: Disable TCP/IP socket
-            }
+                listen_tcp = FALSE;
+            else if (strcmp (protocol, "unix") == 0)
+                listen_unix = FALSE;
         }
         else if (strcmp (arg, "-nr") == 0)
         {
@@ -874,6 +877,11 @@ main (int argc, char **argv)
         else if (strcmp (arg, "-broadcast") == 0)
         {
             do_xdmcp = TRUE;
+        }
+        else
+        {
+            g_printerr ("Unknown argument: %s", arg);
+            return EXIT_FAILURE;
         }
     }
 
@@ -915,15 +923,31 @@ main (int argc, char **argv)
 
     connections = g_hash_table_new (g_direct_hash, g_direct_equal);
 
-    socket_path = g_strdup_printf ("/tmp/.X11-unix/X%d", display_number);
-    local_socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
-    if (!local_socket ||
-        !g_socket_bind (local_socket, g_unix_socket_address_new (socket_path), TRUE, &error) ||
-        !g_socket_listen (local_socket, &error) ||
-        !g_io_add_watch (g_io_channel_unix_new (g_socket_get_fd (local_socket)), G_IO_IN, socket_connect_cb, &error))
+    if (listen_unix)
     {
-        g_warning ("Error creating X socket: %s", error->message);
-        quit (EXIT_FAILURE);
+        socket_path = g_strdup_printf ("/tmp/.X11-unix/X%d", display_number);
+        unix_socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
+        if (!unix_socket ||
+            !g_socket_bind (unix_socket, g_unix_socket_address_new (socket_path), TRUE, &error) ||
+            !g_socket_listen (unix_socket, &error) ||
+            !g_io_add_watch (g_io_channel_unix_new (g_socket_get_fd (unix_socket)), G_IO_IN, socket_connect_cb, &error))
+        {
+            g_warning ("Error creating Unix X socket: %s", error->message);
+            quit (EXIT_FAILURE);
+        }
+    }
+
+    if (listen_tcp)
+    {
+        tcp_socket = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_TCP, &error);
+        if (!tcp_socket ||
+            !g_socket_bind (tcp_socket, g_inet_socket_address_new (g_inet_address_new_any (G_SOCKET_FAMILY_IPV4), 6000 + display_number), TRUE, &error) ||
+            !g_socket_listen (tcp_socket, &error) ||
+            !g_io_add_watch (g_io_channel_unix_new (g_socket_get_fd (tcp_socket)), G_IO_IN, socket_connect_cb, &error))
+        {
+            g_warning ("Error creating TCP/IP X socket: %s", error->message);
+            quit (EXIT_FAILURE);
+        }
     }
 
     /* Enable XDMCP */
