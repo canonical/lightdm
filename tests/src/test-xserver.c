@@ -600,6 +600,134 @@ xdmcp_write (const guint8 *buffer, gssize buffer_length)
     log_buffer ("Wrote XDMCP", buffer, buffer_length);
 }
 
+static void
+decode_willing (const guint8 *buffer, gssize buffer_length)
+{
+    gsize offset = 0;
+    guint16 length;
+    gchar *authentication_name, *hostname, *status;
+    GSocketAddress *local_address;
+    const guint8 *native_address;
+    gssize native_address_length;
+    guint8 response[MAXIMUM_REQUEST_LENGTH];
+
+    length = read_card16 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
+    authentication_name = read_string (buffer, buffer_length, length, &offset);
+    length = read_card16 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
+    hostname = read_string (buffer, buffer_length, length, &offset);
+    length = read_card16 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
+    status = read_string (buffer, buffer_length, length, &offset);
+
+    if (xdmcp_query_timer == 0)
+    {
+        g_debug ("Ignoring XDMCP unrequested/duplicate Willing");
+        return;
+    }
+
+    notify_status ("XSERVER :%d GOT-WILLING AUTHENTICATION-NAME=\"%s\" HOSTNAME=\"%s\" STATUS=\"%s\"", display_number, authentication_name, hostname, status);
+
+    /* Stop sending queries */
+    g_source_remove (xdmcp_query_timer);
+    xdmcp_query_timer = 0;
+
+    local_address = g_socket_get_local_address (xdmcp_socket, NULL);
+    GInetAddress *inet_address = g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (local_address));
+    native_address_length = g_inet_address_get_native_size (inet_address);
+    native_address = g_inet_address_to_bytes (inet_address);
+
+    offset = 0;
+    notify_status ("XSERVER :%d GOT-WILLING AUTHENTICATION-NAME=\"%s\" HOSTNAME=\"%s\" STATUS=\"%s\"", display_number, authentication_name, hostname, status);
+    write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 1, &offset); /* version = 1 */
+    write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, XDMCP_Request, &offset);
+    write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 17 + native_address_length + strlen ("") + strlen ("MIT-MAGIC-COOKIE-1") + strlen ("TEST XSERVER"), &offset);
+
+    write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, display_number, &offset);
+    write_card8 (response, MAXIMUM_REQUEST_LENGTH, 1, &offset); /* 1 address */
+    write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 0, &offset); /* FamilyInternet */
+    write_card8 (response, MAXIMUM_REQUEST_LENGTH, 1, &offset); /* 1 address */
+    write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, native_address_length, &offset);
+    write_string8 (response, MAXIMUM_REQUEST_LENGTH, native_address, native_address_length, &offset);
+    write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, strlen (""), &offset);
+    write_string (response, MAXIMUM_REQUEST_LENGTH, "", &offset);
+    write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 0, &offset); /* No authentication data */
+    write_card8 (response, MAXIMUM_REQUEST_LENGTH, 1, &offset); /* 1 authorization */
+    write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, strlen ("MIT-MAGIC-COOKIE-1"), &offset);
+    write_string (response, MAXIMUM_REQUEST_LENGTH, "MIT-MAGIC-COOKIE-1", &offset);
+    write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, strlen ("TEST XSERVER"), &offset);
+    write_string (response, MAXIMUM_REQUEST_LENGTH, "TEST XSERVER", &offset);
+
+    notify_status ("XSERVER :%d SEND-REQUEST DISPLAY-NUMBER=%d AUTHORIZATION-NAME=\"%s\" MFID=\"%s\"", display_number, display_number, "MIT-MAGIC-COOKIE-1", "TEST XSERVER");
+
+    xdmcp_write (response, offset); 
+}
+
+static void
+decode_accept (const guint8 *buffer, gssize buffer_length)
+{
+    gsize offset = 0;
+    guint16 length;
+    guint32 session_id;
+    gchar *authentication_name, *authorization_name;
+    guint8 response[MAXIMUM_REQUEST_LENGTH];
+
+    session_id = read_card32 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
+    length = read_card16 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
+    authentication_name = read_string (buffer, buffer_length, length, &offset);
+    length = read_card16 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
+    read_string8 (buffer, buffer_length, length, &offset);
+    authorization_name = read_string (buffer, buffer_length, length, &offset);
+    length = read_card16 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
+    read_string8 (buffer, buffer_length, length, &offset);
+
+    notify_status ("XSERVER :%d GOT-ACCEPT SESSION-ID=%d AUTHENTICATION-NAME=\"%s\" AUTHORIZATION-NAME=\"%s\"", display_number, session_id, authentication_name, authorization_name);
+
+    offset = 0;
+    write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 1, &offset); /* version = 1 */
+    write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, XDMCP_Manage, &offset);
+    write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 8 + strlen ("DISPLAY CLASS"), &offset);
+
+    write_card32 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, session_id, &offset);
+    write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, display_number, &offset);
+    write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, strlen ("DISPLAY CLASS"), &offset);
+    write_string (response, MAXIMUM_REQUEST_LENGTH, "DISPLAY CLASS", &offset);
+
+    notify_status ("XSERVER :%d SEND-MANAGE SESSION-ID=%d DISPLAY-NUMBER=%d DISPLAY-CLASS=\"%s\"", display_number, session_id, display_number, "DISPLAY CLASS");
+
+    xdmcp_write (response, offset);
+}
+
+static void
+decode_decline (const guint8 *buffer, gssize buffer_length)
+{
+    gsize offset = 0;
+    guint16 length;
+    gchar *authentication_name, *status;
+
+    length = read_card16 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
+    status = read_string (buffer, buffer_length, length, &offset);
+    length = read_card16 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
+    authentication_name = read_string (buffer, buffer_length, length, &offset);
+    length = read_card16 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
+    read_string8 (buffer, buffer_length, length, &offset);
+
+    notify_status ("XSERVER :%d GOT-DECLINE STATUS=\"%s\" AUTHENTICATION-NAME=\"%s\"", display_number, status, authentication_name);
+}
+
+static void
+decode_failed (const guint8 *buffer, gssize buffer_length)
+{
+    gsize offset = 0;
+    guint16 length;
+    guint32 session_id;
+    gchar *status;
+
+    session_id = read_card32 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
+    length = read_card16 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
+    status = read_string (buffer, buffer_length, length, &offset);
+
+    notify_status ("XSERVER :%d GOT-FAILED SESSION-ID=%d STATUS=\"%s\"", display_number, session_id, status);
+}
+
 static gboolean
 xdmcp_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 {
@@ -617,13 +745,7 @@ xdmcp_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     else
     {
         gsize offset = 0;
-        guint16 version, opcode, length, l;
-        guint32 session_id;
-        gchar *authentication_name, *authorization_name, *hostname, *status;
-        guint8 response[MAXIMUM_REQUEST_LENGTH];
-        GSocketAddress *local_address;
-        const guint8 *native_address;
-        gssize native_address_length;
+        guint16 version, opcode, length;
 
         log_buffer ("Read XDMCP", buffer, n_read);
 
@@ -644,95 +766,19 @@ xdmcp_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
         switch (opcode)
         {
         case XDMCP_Willing:
-            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
-            authentication_name = read_string (buffer, 3 + length, l, &offset);
-            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
-            hostname = read_string (buffer, 3 + length, l, &offset);
-            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
-            status = read_string (buffer, 3 + length, l, &offset);
-
-            notify_status ("XSERVER :%d GOT-WILLING AUTHENTICATION-NAME=\"%s\" HOSTNAME=\"%s\" STATUS=\"%s\"", display_number, authentication_name, hostname, status);
-
-            /* Stop sending queries */
-            g_source_remove (xdmcp_query_timer);
-            xdmcp_query_timer = 0;
-
-            local_address = g_socket_get_local_address (xdmcp_socket, NULL);
-            GInetAddress *inet_address = g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (local_address));
-            native_address_length = g_inet_address_get_native_size (inet_address);
-            native_address = g_inet_address_to_bytes (inet_address);
-
-            offset = 0;
-            notify_status ("XSERVER :%d GOT-WILLING AUTHENTICATION-NAME=\"%s\" HOSTNAME=\"%s\" STATUS=\"%s\"", display_number, authentication_name, hostname, status);
-            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 1, &offset); /* version = 1 */
-            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, XDMCP_Request, &offset);
-            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 17 + native_address_length + strlen ("") + strlen ("MIT-MAGIC-COOKIE-1") + strlen ("TEST XSERVER"), &offset);
-
-            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, display_number, &offset);
-            write_card8 (response, MAXIMUM_REQUEST_LENGTH, 1, &offset); /* 1 address */
-            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 0, &offset); /* FamilyInternet */
-            write_card8 (response, MAXIMUM_REQUEST_LENGTH, 1, &offset); /* 1 address */
-            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, native_address_length, &offset);
-            write_string8 (response, MAXIMUM_REQUEST_LENGTH, native_address, native_address_length, &offset);
-            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, strlen (""), &offset);
-            write_string (response, MAXIMUM_REQUEST_LENGTH, "", &offset);
-            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 0, &offset); /* No authentication data */
-            write_card8 (response, MAXIMUM_REQUEST_LENGTH, 1, &offset); /* 1 authorization */
-            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, strlen ("MIT-MAGIC-COOKIE-1"), &offset);
-            write_string (response, MAXIMUM_REQUEST_LENGTH, "MIT-MAGIC-COOKIE-1", &offset);
-            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, strlen ("TEST XSERVER"), &offset);
-            write_string (response, MAXIMUM_REQUEST_LENGTH, "TEST XSERVER", &offset);
-
-            notify_status ("XSERVER :%d SEND-REQUEST DISPLAY-NUMBER=%d AUTHORIZATION-NAME=\"%s\" MFID=\"%s\"", display_number, display_number, "MIT-MAGIC-COOKIE-1", "TEST XSERVER");
-
-            xdmcp_write (response, offset);
+            decode_willing (buffer + offset, n_read - offset);
             break;
 
         case XDMCP_Accept:
-            session_id = read_card32 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
-            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
-            authentication_name = read_string (buffer, 3 + length, l, &offset);
-            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
-            read_string8 (buffer, 3 + length, l, &offset);
-            authorization_name = read_string (buffer, 3 + length, l, &offset);
-            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
-            read_string8 (buffer, 3 + length, l, &offset);
-
-            notify_status ("XSERVER :%d GOT-ACCEPT SESSION-ID=%d AUTHENTICATION-NAME=\"%s\" AUTHORIZATION-NAME=\"%s\"", display_number, session_id, authentication_name, authorization_name);
-
-            offset = 0;
-            notify_status ("XSERVER :%d GOT-WILLING AUTHENTICATION-NAME=\"%s\" HOSTNAME=\"%s\" STATUS=\"%s\"", display_number, authentication_name, hostname, status);
-            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 1, &offset); /* version = 1 */
-            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, XDMCP_Manage, &offset);
-            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 8 + strlen ("DISPLAY CLASS"), &offset);
-
-            write_card32 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, session_id, &offset);
-            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, display_number, &offset);
-            write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, strlen ("DISPLAY CLASS"), &offset);
-            write_string (response, MAXIMUM_REQUEST_LENGTH, "DISPLAY CLASS", &offset);
-
-            notify_status ("XSERVER :%d SEND-MANAGE SESSION-ID=%d DISPLAY-NUMBER=%d DISPLAY-CLASS=\"%s\"", display_number, session_id, display_number, "DISPLAY CLASS");
-
-            xdmcp_write (response, offset);
+            decode_accept (buffer + offset, n_read - offset);
             break;
 
         case XDMCP_Decline:
-            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
-            status = read_string (buffer, 3 + length, l, &offset);
-            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
-            authentication_name = read_string (buffer, 3 + length, l, &offset);
-            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
-            read_string8 (buffer, 3 + length, l, &offset);
-
-            notify_status ("XSERVER :%d GOT-DECLINE STATUS=\"%s\" AUTHENTICATION-NAME=\"%s\"", display_number, status, authentication_name);
+            decode_decline (buffer + offset, n_read - offset);
             break;
 
         case XDMCP_Failed:
-            session_id = read_card32 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
-            l = read_card16 (buffer, 3 + length, BYTE_ORDER_MSB, &offset);
-            status = read_string (buffer, 3 + length, l, &offset);
-
-            notify_status ("XSERVER :%d GOT-FAILED SESSION-ID=%d STATUS=\"%s\"", display_number, session_id, status);
+            decode_failed (buffer + offset, n_read - offset);
             break;
 
         default:
@@ -749,8 +795,14 @@ xdmcp_query_cb (gpointer data)
 {
     guint8 buffer[MAXIMUM_REQUEST_LENGTH];
     gsize offset = 0;
+    static gboolean notified_query = FALSE;
 
-    notify_status ("XSERVER :%d SEND-QUERY", display_number);
+    g_debug ("Send XDMCP Query");
+    if (!notified_query)
+    {
+        notify_status ("XSERVER :%d SEND-QUERY", display_number);
+        notified_query = TRUE;
+    }
 
     write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 1, &offset); /* version = 1 */
     write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, XDMCP_Query, &offset);
