@@ -39,19 +39,13 @@ connected_cb (LdmGreeter *greeter)
 }
 
 static void
-show_message_cb (LdmGreeter *greeter, const gchar *text)
+show_message_cb (LdmGreeter *greeter, const gchar *text, LdmMessageType type)
 {
     notify_status ("GREETER SHOW-MESSAGE TEXT=\"%s\"", text);
 }
 
 static void
-show_error_cb (LdmGreeter *greeter, const gchar *text)
-{
-    notify_status ("GREETER SHOW-ERROR TEXT=\"%s\"", text);
-}
-
-static void
-show_prompt_cb (LdmGreeter *greeter, const gchar *text)
+show_prompt_cb (LdmGreeter *greeter, const gchar *text, LdmPromptType type)
 {
     gchar *username, *password, *response = NULL;
 
@@ -130,7 +124,6 @@ main (int argc, char **argv)
     greeter = ldm_greeter_new ();
     g_signal_connect (greeter, "connected", G_CALLBACK (connected_cb), NULL);
     g_signal_connect (greeter, "show-message", G_CALLBACK (show_message_cb), NULL);
-    g_signal_connect (greeter, "show-error", G_CALLBACK (show_error_cb), NULL);
     g_signal_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
     g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
     g_signal_connect (greeter, "quit", G_CALLBACK (quit_cb), NULL);
