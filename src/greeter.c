@@ -133,6 +133,7 @@ static void
 write_message (Greeter *greeter, guint8 *message, gint message_length)
 {
     GError *error = NULL;
+    g_debug ("Wrote %d bytes to greeter", message_length);
     if (g_io_channel_write_chars (child_process_get_to_child_channel (CHILD_PROCESS (greeter)), (gchar *) message, message_length, NULL, &error) != G_IO_STATUS_NORMAL)
         g_warning ("Error writing to greeter: %s", error->message);
     g_clear_error (&error);
