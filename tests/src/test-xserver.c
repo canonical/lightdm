@@ -855,6 +855,11 @@ main (int argc, char **argv)
         else if (strcmp (arg, "-nr") == 0)
         {
         }
+        else if (strcmp (arg, "-background") == 0)
+        {
+            /* Ignore arg */
+            i++;
+        }
         else if (strcmp (arg, "-port") == 0)
         {
             xdmcp_port = atoi (argv[i+1]);
