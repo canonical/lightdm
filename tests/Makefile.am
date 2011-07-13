@@ -56,6 +56,10 @@ EXTRA_DIST = \
 	scripts/login-gobject-invalid-user.script \
 	scripts/login-gobject-logout.conf \
 	scripts/login-gobject-logout.script \
+	scripts/login-gobject-manual.conf \
+	scripts/login-gobject-manual.script \
+	scripts/login-gobject-no-password.script \
+	scripts/login-gobject-no-password.script \
 	scripts/login-gobject-session-crash.conf \
 	scripts/login-gobject-session-crash.script \
 	scripts/login-gobject-wrong-password.conf \
