@@ -559,7 +559,7 @@ main (int argc, char **argv)
         g_mkdir_with_parents (path, 0755);
         g_free (path);
 
-        g_string_append_printf (passwd_data, "%s:%s:%d:%d:%s:%s/home/alice:/bin/sh\n", users[i].user_name, users[i].password, users[i].uid, users[i].uid, users[i].real_name, temp_dir);
+        g_string_append_printf (passwd_data, "%s:%s:%d:%d:%s:%s/home/%s:/bin/sh\n", users[i].user_name, users[i].password, users[i].uid, users[i].uid, users[i].real_name, temp_dir, users[i].user_name);
     }
 
     path = g_build_filename (temp_dir, "passwd", NULL);
