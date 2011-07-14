@@ -265,7 +265,7 @@ main(int argc, char **argv)
           N_("Print debugging messages"), NULL },
         { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
           /* Help string for command line --test-mode flag */
-          N_("Alias for --no-root --use-xephyr"), NULL },
+          N_("Alias for --no-root --use-xephyr --minimum-display-number=50"), NULL },
         { "no-root", 0, 0, G_OPTION_ARG_NONE, &no_root,
           /* Help string for command line --no-root flag */
           N_("Run as unprivileged user, skipping things that require root access"), NULL },
@@ -334,6 +334,7 @@ main(int argc, char **argv)
     {
         no_root = TRUE;
         use_xephyr = TRUE;
+        minimum_display_number = g_strdup ("50");
     }
     if (show_version)
     {
