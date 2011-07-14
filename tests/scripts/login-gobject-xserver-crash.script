@@ -1,3 +1,7 @@
+#
+# Check LightDM returns to the greeter if the X server crashes inside a session
+#
+
 RUNNER DAEMON-START
 
 # XServer starts

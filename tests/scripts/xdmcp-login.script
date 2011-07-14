@@ -1,7 +1,11 @@
+#
+# Check that LightDM correctly negotiates the XDMCP and starts the session to the remote server.
+#
+
 RUNNER DAEMON-START
 *WAIT 1
 
-# Start an X server to log in with XDMCP
+# Start a remote X server to log in with XDMCP
 *START-XSERVER ARGS=":98 -query localhost -port 9999"
 XSERVER :98 START
 XSERVER :98 SEND-QUERY
@@ -13,14 +17,14 @@ XSERVER :98 GOT-ACCEPT SESSION-ID=[0-9]* AUTHENTICATION-NAME="" AUTHORIZATION-NA
 XSERVER :98 SEND-MANAGE SESSION-ID=[0-9]* DISPLAY-NUMBER=98 DISPLAY-CLASS="DISPLAY CLASS"
 XSERVER :98 ACCEPT-CONNECT
 
-# A greeter should start and connect to this X server
+# Greeter starts and connects to remote X server
 GREETER START
 XSERVER :98 ACCEPT-CONNECT
 GREETER CONNECT-XSERVER 127.0.0.1:98
 GREETER CONNECT-TO-DAEMON
 GREETER CONNECTED-TO-DAEMON
 
-# User logs in
+# Log in
 GREETER LOGIN USERNAME=alice
 GREETER SHOW-PROMPT TEXT="Password:"
 GREETER RESPOND TEXT="password"

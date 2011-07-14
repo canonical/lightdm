@@ -1,12 +1,22 @@
+#
+# Check LightDM runs without configuration
+#
+
 RUNNER DAEMON-START
+
+# One X server should start by default
 XSERVER :.* START
 XSERVER :.* INDICATE-READY
 XSERVER :.* ACCEPT-CONNECT
+
+# A greeter should run on the X server
 GREETER START
 XSERVER :.* ACCEPT-CONNECT
 GREETER CONNECT-XSERVER :.*
 GREETER CONNECT-TO-DAEMON
 GREETER CONNECTED-TO-DAEMON
+
+# Cleanup
 *STOP-DAEMON
 # Don't know what order they will terminate
 (GREETER TERMINATE SIGNAL=15|XSERVER :.* TERMINATE SIGNAL=15)

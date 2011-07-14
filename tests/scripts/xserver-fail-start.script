@@ -1,3 +1,6 @@
+#
+# Check that LightDM handles an X server that fails to start.
+#
 RUNNER DAEMON-START
 XSERVER :.* START
 XSERVER :.* EXIT CODE=1

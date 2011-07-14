@@ -1,4 +1,12 @@
+#
+# Check can run in headless mode
+#
+
 RUNNER DAEMON-START
+
+# No indication that anything is happening...
 *WAIT
+
+# Cleanup
 *STOP-DAEMON
 RUNNER DAEMON-EXIT STATUS=0

@@ -1,3 +1,7 @@
+#
+# Use D-Bus interface to show the greeter
+#
+
 RUNNER DAEMON-START
 *WAIT
 

@@ -1,10 +1,20 @@
+#
+# Check X server crashing while running greeter is handled
+#
+
 RUNNER DAEMON-START
+
+# X server starts
 XSERVER :.* START
 XSERVER :.* INDICATE-READY
 XSERVER :.* ACCEPT-CONNECT
+
+# ... FIXME
 SESSION START USER=alice
 XSERVER :.* ACCEPT-CONNECT
 SESSION CONNECT-XSERVER
+
+# ... FIXME
 *STOP-DAEMON
 # Don't know what order they will terminate
 (SESSION TERMINATE SIGNAL=15|XSERVER :.* TERMINATE SIGNAL=15)
