@@ -986,16 +986,17 @@ main (int argc, char **argv)
             g_warning ("Error creating XDMCP socket: %s", error->message);
             quit (EXIT_FAILURE);
         }
-
-        xdmcp_query_timer = g_timeout_add (2000, xdmcp_query_cb, NULL);
     }
 
     /* Indicate ready if parent process has requested it */
     indicate_ready ();
   
     /* Send first query */
-    if (xdmcp_query_timer)
+    if (do_xdmcp)
+    {
+        xdmcp_query_timer = g_timeout_add (2000, xdmcp_query_cb, NULL);
         xdmcp_query_cb (NULL);
+    }
 
     g_main_loop_run (loop);
 

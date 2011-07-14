@@ -128,8 +128,6 @@ open_unix_socket (const gchar *name)
     return s;
 }
 
-// FIXME: Add timeout
-
 static void
 run_commands ()
 {
