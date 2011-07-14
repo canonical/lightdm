@@ -54,9 +54,6 @@ struct DisplayPrivate
     /* X server */
     XServer *xserver;
 
-    /* Number of times we have shown the greeter */
-    gint greeter_count;
-  
     /* Number of times have logged in */
     gint login_count;
 
@@ -761,14 +758,13 @@ start_greeter (Display *display)
         user = user_get_current ();
 
     g_debug ("Starting greeter %s as user %s", display->priv->greeter_theme, user_get_name (user));
-    display->priv->greeter_count++;
 
     display->priv->greeter_pam_session = pam_session_new (display->priv->pam_service, user_get_name (user));
     pam_session_authorize (display->priv->greeter_pam_session);
 
     display->priv->greeter_ck_cookie = start_ck_session (display, "LoginWindow", user);
 
-    display->priv->greeter_session = greeter_new (display->priv->greeter_theme, display->priv->greeter_count - 1);
+    display->priv->greeter_session = greeter_new (display->priv->greeter_theme);
     greeter_set_default_user (display->priv->greeter_session, display->priv->default_user, display->priv->timeout);
     greeter_set_default_session (display->priv->greeter_session, display->priv->default_session);
     g_signal_connect (G_OBJECT (display->priv->greeter_session), "start-session", G_CALLBACK (greeter_start_session_cb), display);

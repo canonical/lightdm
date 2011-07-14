@@ -417,7 +417,7 @@ switch_to_user (DisplayManager *manager, const gchar *username)
             return TRUE;
         }
     }
-  
+
     /* If there is an existing greeter then switch to that */
     if (greeter_display)
     {

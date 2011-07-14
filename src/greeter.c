@@ -29,9 +29,6 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct GreeterPrivate
 {
-    /* The number of greeters before this one */
-    guint count;
-
     /* TRUE if the greeter has connected to the daemon pipe */
     gboolean connected;
 
@@ -70,12 +67,11 @@ struct GreeterPrivate
 G_DEFINE_TYPE (Greeter, greeter, SESSION_TYPE);
 
 Greeter *
-greeter_new (const gchar *theme, guint count)
+greeter_new (const gchar *theme)
 {
     Greeter *greeter = g_object_new (GREETER_TYPE, NULL);
 
     greeter->priv->theme = g_strdup (theme);
-    greeter->priv->count = count;
 
     return greeter;
 }
@@ -199,7 +195,6 @@ handle_connect (Greeter *greeter)
     write_string (message, MAX_MESSAGE_LENGTH, greeter->priv->default_user ? greeter->priv->default_user : "", &offset);
     write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->autologin_timeout, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, guest_account_get_is_enabled (), &offset);
-    write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->count, &offset);
     write_message (greeter, message, offset);
 
     g_free (theme);

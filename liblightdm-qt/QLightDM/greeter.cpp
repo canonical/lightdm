@@ -60,7 +60,6 @@ public:
     QString timedUser;
     int loginDelay;
     bool guestAccountSupported;
-    int greeterCount;
 
     SessionsModel *sessionsModel;
     Config *config;
@@ -331,7 +330,6 @@ void Greeter::onRead(int fd)
         d->timedUser = readString(&offset);
         d->loginDelay = readInt(&offset);
         d->guestAccountSupported = readInt(&offset) != 0;
-        d->greeterCount = readInt(&offset);
         qDebug() << "Connected theme=" << d->theme << " default-session=" << d->defaultSession << " timed-user=" << d->timedUser << " login-delay" << d->loginDelay << " guestAccountSupported" << d->guestAccountSupported;
 
         /* Set timeout for default login */
