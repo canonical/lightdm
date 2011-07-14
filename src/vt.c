@@ -28,7 +28,12 @@ static GList *used_vts = NULL;
 static gint
 open_console (void)
 {
-    int fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
+    int fd;
+
+    if (getuid () != 0)
+        return -1;
+
+    fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
     if (fd < 0)
         g_warning ("Error opening /dev/console: %s", strerror (errno));
     return fd;
