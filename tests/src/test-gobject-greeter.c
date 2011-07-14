@@ -11,22 +11,24 @@ static GKeyFile *config;
 
 static void
 connected_cb (LdmGreeter *greeter)
-{  
+{
+    gchar *login_lock;
+    FILE *f;
+
     notify_status ("GREETER CONNECTED-TO-DAEMON");
 
-    if (ldm_greeter_get_is_first (greeter))
+    if (g_key_file_get_boolean (config, "test-greeter-config", "crash-xserver", NULL))
     {
-        gchar *username;
+        const gchar *name = "SIGSEGV";
+        notify_status ("GREETER CRASH-XSERVER");
+        xcb_intern_atom (connection, FALSE, strlen (name), name);
+        xcb_flush (connection);
+    }
 
-        username = g_key_file_get_string (config, "test-greeter-config", "username", NULL);
-
-        if (g_key_file_get_boolean (config, "test-greeter-config", "crash-xserver", NULL))
-        {
-            const gchar *name = "SIGSEGV";
-            notify_status ("GREETER CRASH-XSERVER");
-            xcb_intern_atom (connection, FALSE, strlen (name), name);
-            xcb_flush (connection);
-        }
+    login_lock = g_build_filename (g_getenv ("LIGHTDM_TEST_HOME_DIR"), ".greeter-logged-in", NULL);
+    f = fopen (login_lock, "r");
+    if (f == NULL)
+    {
         if (g_key_file_get_boolean (config, "test-greeter-config", "login-guest", NULL))
         {
             notify_status ("GREETER LOGIN-GUEST");
@@ -37,13 +39,27 @@ connected_cb (LdmGreeter *greeter)
             notify_status ("GREETER LOGIN");
             ldm_greeter_login (greeter, NULL);
         }
-        else if (username)
+        else
         {
+            gchar *username;
+
+            username = g_key_file_get_string (config, "test-greeter-config", "username", NULL);
+            if (!username)
+                return;
+
             notify_status ("GREETER LOGIN USERNAME=%s", username);
             ldm_greeter_login (greeter, username);
+            g_free (username);
         }
 
-        g_free (username);
+        /* Write lock to stop repeatedly logging in */
+        f = fopen (login_lock, "w");
+        fclose (f);
+    }
+    else
+    {
+        g_debug ("Not logging in, lock file detected %s", login_lock);
+        fclose (f);
     }
 }
 
