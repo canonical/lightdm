@@ -106,6 +106,20 @@ authentication_complete_cb (LdmGreeter *greeter)
 }
 
 static void
+select_user_cb (LdmGreeter *greeter, const gchar *username)
+{
+    notify_status ("GREETER LOGIN USERNAME=%s", username);
+    ldm_greeter_login (greeter, username);
+}
+
+static void
+select_guest_cb (LdmGreeter *greeter)
+{
+    notify_status ("GREETER LOGIN-GUEST");
+    ldm_greeter_login_as_guest (greeter);
+}
+
+static void
 quit_cb (LdmGreeter *greeter)
 {
     notify_status ("GREETER QUIT");
@@ -150,6 +164,8 @@ main (int argc, char **argv)
     g_signal_connect (greeter, "show-message", G_CALLBACK (show_message_cb), NULL);
     g_signal_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
     g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
+    g_signal_connect (greeter, "select-user", G_CALLBACK (select_user_cb), NULL);
+    g_signal_connect (greeter, "select-guest", G_CALLBACK (select_guest_cb), NULL);
     g_signal_connect (greeter, "quit", G_CALLBACK (quit_cb), NULL);
 
     notify_status ("GREETER CONNECT-TO-DAEMON");
