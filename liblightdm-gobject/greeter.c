@@ -240,9 +240,58 @@ static guint32 get_packet_length (LdmGreeter *greeter)
 }
 
 static void
+handle_connected (LdmGreeter *greeter, gsize *offset)
+{
+    greeter->priv->theme = read_string (greeter, offset);
+    greeter->priv->default_session = read_string (greeter, offset);
+    greeter->priv->timed_user = read_string (greeter, offset);
+    greeter->priv->login_delay = read_int (greeter, offset);
+    greeter->priv->guest_account_supported = read_int (greeter, offset) != 0;
+
+    g_debug ("Connected theme=%s default-session=%s timed-user=%s login-delay=%d guest-account-supported=%s",
+             greeter->priv->theme,
+             greeter->priv->default_session,
+             greeter->priv->timed_user, greeter->priv->login_delay,
+             greeter->priv->guest_account_supported ? "true" : "false");
+
+    /* Set timeout for default login */
+    if (greeter->priv->timed_user[0] != '\0' && greeter->priv->login_delay > 0)
+    {
+        g_debug ("Logging in as %s in %d seconds", greeter->priv->timed_user, greeter->priv->login_delay);
+        greeter->priv->login_timeout = g_timeout_add (greeter->priv->login_delay * 1000, timed_login_cb, greeter);
+    }
+    g_signal_emit (G_OBJECT (greeter), signals[CONNECTED], 0);
+}
+
+static void
+handle_select_user (LdmGreeter *greeter, gsize *offset)
+{
+    gchar *username;
+
+    username = read_string (greeter, offset);
+    g_debug ("Got request to select user %s", username);
+    g_signal_emit (G_OBJECT (greeter), signals[SELECT_USER], 0, username);
+    g_free (username);
+}
+
+static void
+handle_select_guest (LdmGreeter *greeter, gsize *offset)
+{
+    g_debug ("Got request to select guest account");
+    g_signal_emit (G_OBJECT (greeter), signals[SELECT_GUEST], 0);
+}
+
+static void
 handle_prompt_authentication (LdmGreeter *greeter, gsize *offset)
 {
-    int n_messages, i;
+    guint32 sequence_number, n_messages, i;
+
+    sequence_number = read_int (greeter, offset);
+    if (sequence_number != greeter->priv->authenticate_sequence_number)
+    {
+        g_debug ("Ignoring prompt authentication with invalid sequence number %d", sequence_number);
+        return;
+    }
 
     n_messages = read_int (greeter, offset);
     g_debug ("Prompt user with %d message(s)", n_messages);
@@ -274,6 +323,38 @@ handle_prompt_authentication (LdmGreeter *greeter, gsize *offset)
 
         g_free (msg);
     }
+}
+
+static void
+handle_end_authentication (LdmGreeter *greeter, gsize *offset)
+{ 
+    guint32 sequence_number, return_code;
+
+    sequence_number = read_int (greeter, offset);
+    return_code = read_int (greeter, offset);
+
+    if (sequence_number != greeter->priv->authenticate_sequence_number)
+    {
+        g_debug ("Ignoring end authentication with invalid sequence number %d", sequence_number);
+        return;
+    }
+
+    g_debug ("Authentication complete with return code %d", return_code);
+    greeter->priv->is_authenticated = (return_code == 0);
+    if (!greeter->priv->is_authenticated)
+    {
+        g_free (greeter->priv->authentication_user);
+        greeter->priv->authentication_user = NULL;
+    }
+    g_signal_emit (G_OBJECT (greeter), signals[AUTHENTICATION_COMPLETE], 0);
+    greeter->priv->in_authentication = FALSE;
+}
+
+static void
+handle_quit (LdmGreeter *greeter, gsize *offset)
+{
+    g_debug ("Got quit request from server");
+    g_signal_emit (G_OBJECT (greeter), signals[QUIT], 0);
 }
 
 static gboolean
@@ -327,8 +408,7 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 {
     LdmGreeter *greeter = data;
     gsize offset;
-    guint32 id, sequence_number, return_code;
-    gchar *username;
+    guint32 id;
   
     if (!read_packet (greeter, FALSE))
         return TRUE;
@@ -339,61 +419,22 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     switch (id)
     {
     case GREETER_MESSAGE_CONNECTED:
-        greeter->priv->theme = read_string (greeter, &offset);
-        greeter->priv->default_session = read_string (greeter, &offset);
-        greeter->priv->timed_user = read_string (greeter, &offset);
-        greeter->priv->login_delay = read_int (greeter, &offset);
-        greeter->priv->guest_account_supported = read_int (greeter, &offset) != 0;
-
-        g_debug ("Connected theme=%s default-session=%s timed-user=%s login-delay=%d guest-account-supported=%s",
-                 greeter->priv->theme,
-                 greeter->priv->default_session,
-                 greeter->priv->timed_user, greeter->priv->login_delay,
-                 greeter->priv->guest_account_supported ? "true" : "false");
-
-        /* Set timeout for default login */
-        if (greeter->priv->timed_user[0] != '\0' && greeter->priv->login_delay > 0)
-        {
-            g_debug ("Logging in as %s in %d seconds", greeter->priv->timed_user, greeter->priv->login_delay);
-            greeter->priv->login_timeout = g_timeout_add (greeter->priv->login_delay * 1000, timed_login_cb, greeter);
-        }
-        g_signal_emit (G_OBJECT (greeter), signals[CONNECTED], 0);
+        handle_connected (greeter, &offset);
         break;
-    case GREETER_MESSAGE_QUIT:
-        g_debug ("Got quit request from server");
-        g_signal_emit (G_OBJECT (greeter), signals[QUIT], 0);
+    case GREETER_MESSAGE_SELECT_USER:
+        handle_select_user (greeter, &offset);
+        break;
+    case GREETER_MESSAGE_SELECT_GUEST:
+        handle_select_guest (greeter, &offset);
         break;
     case GREETER_MESSAGE_PROMPT_AUTHENTICATION:
         handle_prompt_authentication (greeter, &offset);
         break;
     case GREETER_MESSAGE_END_AUTHENTICATION:
-        sequence_number = read_int (greeter, &offset);
-        return_code = read_int (greeter, &offset);
-
-        if (sequence_number == greeter->priv->authenticate_sequence_number)
-        {
-            g_debug ("Authentication complete with return code %d", return_code);
-            greeter->priv->is_authenticated = (return_code == 0);
-            if (!greeter->priv->is_authenticated)
-            {
-                g_free (greeter->priv->authentication_user);
-                greeter->priv->authentication_user = NULL;
-            }
-            g_signal_emit (G_OBJECT (greeter), signals[AUTHENTICATION_COMPLETE], 0);
-            greeter->priv->in_authentication = FALSE;
-        }
-        else
-            g_debug ("Ignoring end authentication with invalid sequence number %d", sequence_number);
+        handle_end_authentication (greeter, &offset);
         break;
-    case GREETER_MESSAGE_SELECT_USER:
-        username = read_string (greeter, &offset);
-        g_debug ("Got request to select user %s", username);
-        g_signal_emit (G_OBJECT (greeter), signals[SELECT_USER], 0, username);
-        g_free (username);
-        break;
-    case GREETER_MESSAGE_SELECT_GUEST:
-        g_debug ("Got request to select guest account");
-        g_signal_emit (G_OBJECT (greeter), signals[SELECT_GUEST], 0);
+    case GREETER_MESSAGE_QUIT:
+        handle_quit (greeter, &offset);
         break;
     default:
         g_warning ("Unknown message from server: %d", id);

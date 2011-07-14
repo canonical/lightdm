@@ -347,26 +347,31 @@ void Greeter::onRead(int fd)
         emit quit();
         break;
     case GREETER_MESSAGE_PROMPT_AUTHENTICATION:
-        nMessages = readInt(&offset);
-        qDebug() << "Prompt user with " << nMessages << " message(s)";
-        for(int i = 0; i < nMessages; i++)
-        {
-            int msg_style = readInt (&offset);
-            QString msg = readString (&offset);
+        sequenceNumber = readInt(&offset);
 
-            // FIXME: Should stop on prompts?
-            switch (msg_style)
+        if (sequenceNumber == d->authenticateSequenceNumber)
+        {
+            nMessages = readInt(&offset);
+            qDebug() << "Prompt user with " << nMessages << " message(s)";
+            for(int i = 0; i < nMessages; i++)
             {
-            case PAM_PROMPT_ECHO_OFF:
-            case PAM_PROMPT_ECHO_ON:
-                emit showPrompt(msg);
-                break;
-            case PAM_ERROR_MSG:
-                emit showError(msg);
-                break;
-            case PAM_TEXT_INFO:
-                emit showMessage(msg);
-                break;
+                int msg_style = readInt (&offset);
+                QString msg = readString (&offset);
+
+                // FIXME: Should stop on prompts?
+                switch (msg_style)
+                {
+                case PAM_PROMPT_ECHO_OFF:
+                case PAM_PROMPT_ECHO_ON:
+                    emit showPrompt(msg);
+                    break;
+                case PAM_ERROR_MSG:
+                    emit showError(msg);
+                    break;
+                case PAM_TEXT_INFO:
+                    emit showMessage(msg);
+                    break;
+                }
             }
         }
         break;

@@ -210,10 +210,11 @@ pam_messages_cb (PAMSession *session, int num_msg, const struct pam_message **ms
 
     /* Respond to d-bus query with messages */
     g_debug ("Prompt greeter with %d message(s)", num_msg);
-    size = int_length ();
+    size = int_length () + int_length ();
     for (i = 0; i < num_msg; i++)
         size += int_length () + string_length (msg[i]->msg);
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_PROMPT_AUTHENTICATION, size, &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->authentication_sequence_number, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, num_msg, &offset);
     for (i = 0; i < num_msg; i++)
     {
