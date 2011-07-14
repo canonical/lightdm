@@ -392,41 +392,48 @@ static gboolean
 switch_to_user (DisplayManager *manager, const gchar *username)
 {
     GList *link;
-    Display *display;
+    Display *greeter_display = NULL;
     XServer *xserver;
 
+    /* Switch to active display if it exists */
     for (link = manager->priv->displays; link; link = link->next)
     {
+        Display *display;
+
         display = link->data;
         const gchar *session_user;
 
         session_user = display_get_session_user (display);
+        if (session_user == NULL)
+        {
+            greeter_display = display;
+            continue;
+        }
+      
         if (g_strcmp0 (session_user, username) == 0)
         {
-            if (username)
-                g_debug ("Switching to user %s session on display %s", username, xserver_get_address (display_get_xserver (display)));
-            else
-                g_debug ("Switching to greeter session on display %s", xserver_get_address (display_get_xserver (display)));
+            g_debug ("Switching to user %s session on display %s", username, xserver_get_address (display_get_xserver (display)));
             display_show (display);
             return TRUE;
         }
     }
+  
+    /* If there is an existing greeter then switch to that */
+    if (greeter_display)
+    {
+        g_debug ("Switching to greeter session on display %s", xserver_get_address (display_get_xserver (greeter_display)));
+        // FIXME: Notify greeter of user to switch to
+        display_show (greeter_display);
+        return TRUE;
+    }
 
-    if (username)
-        g_debug ("Starting new display for user %s", username);
-    else
-        g_debug ("Starting new display for greeter");
+    g_debug ("Starting new display to switch user");
 
     xserver = make_xserver (manager, NULL);
-    display = add_display (manager, xserver);
+    greeter_display = add_display (manager, xserver);
     // FIXME: Add selected user hint
     g_object_unref (xserver);
-
-    /* Guest account should log in immediately */
-    if (username && g_strcmp0 (username, guest_account_get_username ()) == 0)
-        display_set_default_user (display, username);
-
-    display_start (display);
+    display_start (greeter_display);
 
     return FALSE;
 }
