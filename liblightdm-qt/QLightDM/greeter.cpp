@@ -78,6 +78,7 @@ public:
     bool isAuthenticated;
     QString authenticationUser;
     int authenticateSequenceNumber;
+    bool cancellingAuthentication;
 };
 
 
@@ -220,6 +221,7 @@ void Greeter::login(const QString &username)
 {
     d->inAuthentication = true;
     d->isAuthenticated = false;
+    d->cancellingAuthentication = false;
     d->authenticationUser = username;
     qDebug() << "Starting authentication for user " << username << "...";
     writeHeader(GREETER_MESSAGE_LOGIN, intLength() + stringLength(username));
@@ -234,6 +236,7 @@ void Greeter::loginAsGuest()
     d->authenticateSequenceNumber++;
     d->inAuthentication = true;
     d->isAuthenticated = false;
+    d->cancellingAuthentication = false;
     d->authenticationUser = "";
     qDebug() << "Starting authentication for guest account";
     writeHeader(GREETER_MESSAGE_LOGIN_AS_GUEST, intLength());
@@ -254,6 +257,7 @@ void Greeter::respond(const QString &response)
 void Greeter::cancelAuthentication()
 {
     qDebug() << "Cancelling authentication";
+    d->cancellingAuthentication = true;
     writeHeader(GREETER_MESSAGE_CANCEL_AUTHENTICATION, 0);
     flush();  
 }
@@ -349,7 +353,8 @@ void Greeter::onRead(int fd)
     case GREETER_MESSAGE_PROMPT_AUTHENTICATION:
         sequenceNumber = readInt(&offset);
 
-        if (sequenceNumber == d->authenticateSequenceNumber)
+        if (sequenceNumber == d->authenticateSequenceNumber &&
+            !d->cancellingAuthentication)
         {
             nMessages = readInt(&offset);
             qDebug() << "Prompt user with " << nMessages << " message(s)";
@@ -382,6 +387,7 @@ void Greeter::onRead(int fd)
         if (sequenceNumber == d->authenticateSequenceNumber)
         {
             qDebug() << "Authentication complete with return code " << returnCode;
+            d->cancellingAuthentication = false;
             d->isAuthenticated = (returnCode == 0);
             if(!d->isAuthenticated) {
                 d->authenticationUser = "";

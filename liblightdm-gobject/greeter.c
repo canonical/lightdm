@@ -108,6 +108,7 @@ struct _LdmGreeterPrivate
     gboolean in_authentication;
     gboolean is_authenticated;
     guint32 authenticate_sequence_number;
+    gboolean cancelling_authentication;
 
     gchar *timed_user;
     gint login_delay;
@@ -293,6 +294,12 @@ handle_prompt_authentication (LdmGreeter *greeter, gsize *offset)
         return;
     }
 
+    if (greeter->priv->cancelling_authentication)
+    {
+        g_debug ("Ignoring prompt authentication as waiting for it to cancel");
+        return;
+    }
+
     n_messages = read_int (greeter, offset);
     g_debug ("Prompt user with %d message(s)", n_messages);
 
@@ -340,6 +347,7 @@ handle_end_authentication (LdmGreeter *greeter, gsize *offset)
     }
 
     g_debug ("Authentication complete with return code %d", return_code);
+    greeter->priv->cancelling_authentication = FALSE;
     greeter->priv->is_authenticated = (return_code == 0);
     if (!greeter->priv->is_authenticated)
     {
@@ -1327,6 +1335,7 @@ ldm_greeter_login (LdmGreeter *greeter, const char *username)
     if (!username)
         username = "";
 
+    greeter->priv->cancelling_authentication = FALSE;
     greeter->priv->authenticate_sequence_number++;
     greeter->priv->in_authentication = TRUE;  
     greeter->priv->is_authenticated = FALSE;
@@ -1366,6 +1375,7 @@ ldm_greeter_login_as_guest (LdmGreeter *greeter)
 
     g_return_if_fail (LDM_IS_GREETER (greeter));
 
+    greeter->priv->cancelling_authentication = FALSE;
     greeter->priv->authenticate_sequence_number++;
     greeter->priv->in_authentication = TRUE;
     greeter->priv->is_authenticated = FALSE;
@@ -1416,6 +1426,7 @@ ldm_greeter_cancel_authentication (LdmGreeter *greeter)
 
     g_return_if_fail (LDM_IS_GREETER (greeter));
 
+    greeter->priv->cancelling_authentication = TRUE;
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CANCEL_AUTHENTICATION, 0, &offset);
     write_message (greeter, message, offset);
 }
