@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <errno.h>
 #include <glib.h>
 #include <gio/gio.h>
@@ -14,7 +15,6 @@
 #define UNIX_PATH_MAX 108
 #endif
 
-static GPid dbus_pid = 0;
 static GPid lightdm_pid = 0;
 static gchar *status_socket_name = NULL;
 static gboolean expect_exit = FALSE;
@@ -24,6 +24,7 @@ static GList *script_iter = NULL;
 static guint status_timeout = 0;
 static gboolean failed = FALSE;
 static gchar *temp_dir = NULL;
+static GList *children = NULL;
 
 static void check_status (const gchar *status);
 
@@ -37,11 +38,18 @@ stop_daemon ()
 static void
 quit (int status)
 {
+    GList *link;
+
     stop_daemon ();
     if (status_socket_name)
         unlink (status_socket_name);
-    if (dbus_pid)
-        kill (dbus_pid, SIGTERM);
+
+    for (link = children; link; link = link->next)
+    {
+        GPid pid = GPOINTER_TO_INT (link->data);
+        kill (pid, SIGTERM);
+    }
+
     if (temp_dir)
     {
         gchar *command = g_strdup_printf ("rm -r %s", temp_dir);
@@ -128,11 +136,10 @@ run_commands ()
     /* Stop daemon if requested */
     while (TRUE)
     {
-        gchar *command = get_script_line ();
-        gchar **args, *name;
+        gchar *command, *name = NULL, *c;
         GHashTable *params;
-        gint i;
 
+        command = get_script_line ();
         if (!command)
             break;
 
@@ -142,17 +149,74 @@ run_commands ()
         statuses = g_list_append (statuses, g_strdup (command));
         script_iter = script_iter->next;
 
-        args = g_strsplit (command, " ", -1);
-        name = g_strdup (args[0] + 1);
+        c = command + 1;
+        while (*c && !isspace (*c))
+            c++;
+        name = g_strdup_printf ("%.*s", (int) (c - command - 1), command + 1);
+
         params = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-        for (i = 1; args[i]; i++)
+        while (TRUE)
         {
-            gchar **v;
-            v = g_strsplit (args[i], "=", 2);
-            g_hash_table_insert (params, g_strdup (v[0]), g_strdup (v[1]));
-            g_strfreev (v);
+            gchar *start, *param_name, *param_value;
+          
+            while (isspace (*c))
+                c++;
+            start = c;
+            while (*c && !isspace (*c) && *c != '=')
+                c++;
+            if (*c == '\0')
+                break;
+
+            param_name = g_strdup_printf ("%.*s", (int) (c - start), start);
+
+            if (*c == '=')
+            {
+                c++;
+                while (isspace (*c))
+                    c++;
+                if (*c == '\"')
+                {
+                    gboolean escaped = FALSE;
+                    GString *value;
+
+                    c++;
+                    value = g_string_new ("");
+                    while (*c)
+                    {
+                        if (*c == '\\')
+                        {
+                            if (escaped)
+                            {
+                                g_string_append_c (value, '\\');
+                                escaped = FALSE;
+                            }
+                            else
+                                escaped = TRUE;
+                        }
+                        else if (!escaped && *c == '\"')
+                            break;
+                        if (!escaped)
+                            g_string_append_c (value, *c);
+                        c++;
+                    }
+                    param_value = value->str;
+                    g_string_free (value, FALSE);
+                    if (*c == '\"')
+                        c++;
+                }
+                else
+                {
+                    start = c;
+                    while (*c && !isspace (*c))
+                        c++;
+                    param_value = g_strdup_printf ("%.*s", (int) (c - start), start);
+                }
+            }
+            else
+                param_value = g_strdup ("");
+
+            g_hash_table_insert (params, param_name, param_value);
         }
-        g_strfreev (args);
 
         if (strcmp (name, "WAIT") == 0)
         {
@@ -212,6 +276,28 @@ run_commands ()
         {
             expect_exit = TRUE;
             stop_daemon ();
+        }
+        else if (strcmp (name, "START-XSERVER") == 0)
+        {
+            gchar *xserver_args, *command_line;
+            gchar **argv;
+            GPid pid;
+            GError *error = NULL;
+
+            xserver_args = g_hash_table_lookup (params, "ARGS");
+            if (!xserver_args)
+                xserver_args = "";
+            command_line = g_strdup_printf ("%s/tests/src/test-xserver %s", BUILDDIR, xserver_args);
+
+            g_debug ("Run %s", command_line);
+            if (!g_shell_parse_argv (command_line, NULL, &argv, &error) ||
+                !g_spawn_async (NULL, argv, NULL, 0, NULL, NULL, &pid, &error))
+            {
+                g_printerr ("Error starting X server: %s", error->message);
+                quit (EXIT_FAILURE);
+                return;
+            }
+            children = g_list_append (children, GINT_TO_POINTER (pid));
         }
         else
         {
@@ -352,6 +438,7 @@ main (int argc, char **argv)
     GString *passwd_data;
     int status_socket;
     gchar *dbus_command, dbus_address[1024];
+    GPid pid;
     GString *command_line;
     int dbus_pipe[2];
     ssize_t n_read;
@@ -417,11 +504,12 @@ main (int argc, char **argv)
         quit (EXIT_FAILURE);
     }
     g_clear_error (&error);
-    if (!g_spawn_async (NULL, dbus_argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_LEAVE_DESCRIPTORS_OPEN, NULL, NULL, &dbus_pid, &error))
+    if (!g_spawn_async (NULL, dbus_argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_LEAVE_DESCRIPTORS_OPEN, NULL, NULL, &pid, &error))
     {
         g_warning ("Error launching LightDM: %s", error->message);
         quit (EXIT_FAILURE);
     }
+    children = g_list_append (children, GINT_TO_POINTER (pid));
     n_read = read (dbus_pipe[0], dbus_address, 1023);
     if (n_read < 0)
     {
