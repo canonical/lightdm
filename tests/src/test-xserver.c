@@ -33,7 +33,9 @@ static int display_number = 0;
 static gboolean listen_unix = TRUE;
 static gboolean listen_tcp = TRUE;
 static GSocket *unix_socket = NULL;
+static GIOChannel *unix_channel = NULL;
 static GSocket *tcp_socket = NULL;
+static GIOChannel *tcp_channel = NULL;
 
 static int xdmcp_port = 177;
 static gboolean do_xdmcp = FALSE;
@@ -884,7 +886,17 @@ main (int argc, char **argv)
         }
         else
         {
-            g_printerr ("Unknown argument: %s", arg);
+            g_printerr ("Unrecognized option: %s\n"
+                        "Use: %s [:<display>] [option]\n"
+                        "-auth file             Select authorization file\n"
+                        "-nolisten string       Don't listen on protocol\n"
+                        "-background [none]     Create root window with no background\n"
+                        "-nr                    (Ubuntu-specific) Synonym for -background none\n"
+                        "-query host-name       Contact named host for XDMCP\n"
+                        "-broadcast             Broadcast for XDMCP\n"
+                        "-port port-num         UDP port number to send messages to\n"
+                        "vtxx                   Use virtual terminal xx instead of the next available\n",
+                        arg, argv[0]);
             return EXIT_FAILURE;
         }
     }
@@ -933,12 +945,13 @@ main (int argc, char **argv)
         unix_socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
         if (!unix_socket ||
             !g_socket_bind (unix_socket, g_unix_socket_address_new (socket_path), TRUE, &error) ||
-            !g_socket_listen (unix_socket, &error) ||
-            !g_io_add_watch (g_io_channel_unix_new (g_socket_get_fd (unix_socket)), G_IO_IN, socket_connect_cb, &error))
+            !g_socket_listen (unix_socket, &error))
         {
             g_warning ("Error creating Unix X socket: %s", error->message);
             quit (EXIT_FAILURE);
         }
+        unix_channel = g_io_channel_unix_new (g_socket_get_fd (unix_socket));
+        g_io_add_watch (unix_channel, G_IO_IN, socket_connect_cb, NULL);
     }
 
     if (listen_tcp)
@@ -946,12 +959,13 @@ main (int argc, char **argv)
         tcp_socket = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_TCP, &error);
         if (!tcp_socket ||
             !g_socket_bind (tcp_socket, g_inet_socket_address_new (g_inet_address_new_any (G_SOCKET_FAMILY_IPV4), 6000 + display_number), TRUE, &error) ||
-            !g_socket_listen (tcp_socket, &error) ||
-            !g_io_add_watch (g_io_channel_unix_new (g_socket_get_fd (tcp_socket)), G_IO_IN, socket_connect_cb, &error))
+            !g_socket_listen (tcp_socket, &error))
         {
             g_warning ("Error creating TCP/IP X socket: %s", error->message);
             quit (EXIT_FAILURE);
         }
+        tcp_channel = g_io_channel_unix_new (g_socket_get_fd (tcp_socket));
+        g_io_add_watch (tcp_channel, G_IO_IN, socket_connect_cb, NULL);
     }
 
     /* Enable XDMCP */
