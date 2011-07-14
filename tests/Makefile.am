@@ -19,7 +19,8 @@ TESTS = \
 	test-login-gobject-guest-no-config \
 	test-login-gobject-guest-disabled \
 	test-login-gobject-guest-no-setup-script \
-	test-login-gobject-guest-fail-setup-script
+	test-login-gobject-guest-fail-setup-script \
+	test-xdmcp-login
 
 # In progress
 #	test-autologin-xserver-crash
@@ -72,4 +73,6 @@ EXTRA_DIST = \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-guest.script \
 	scripts/switch-to-user.conf \
-	scripts/switch-to-user.script
+	scripts/switch-to-user.script \
+	scripts/xdmcp-login.conf \
+	scripts/xdmcp-login.script

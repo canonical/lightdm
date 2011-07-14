@@ -598,10 +598,15 @@ static void
 xdmcp_write (const guint8 *buffer, gssize buffer_length)
 {
     gssize n_written;
+    GError *error = NULL;
 
-    n_written = g_socket_send (xdmcp_socket, (const gchar *) buffer, buffer_length, NULL, NULL);
-    if (n_written != buffer_length)
-        g_warning ("Failed to write XDMCP request");
+    n_written = g_socket_send (xdmcp_socket, (const gchar *) buffer, buffer_length, NULL, &error);
+    if (n_written < 0)
+        g_warning ("Failed to send XDMCP request: %s", error->message);
+    else if (n_written != buffer_length)
+        g_warning ("Partial write for XDMCP request, wrote %zi, expected %zi", n_written, buffer_length);
+    g_clear_error (&error);
+
     log_buffer ("Wrote XDMCP", buffer, buffer_length);
 }
 
@@ -641,7 +646,6 @@ decode_willing (const guint8 *buffer, gssize buffer_length)
     native_address = g_inet_address_to_bytes (inet_address);
 
     offset = 0;
-    notify_status ("XSERVER :%d GOT-WILLING AUTHENTICATION-NAME=\"%s\" HOSTNAME=\"%s\" STATUS=\"%s\"", display_number, authentication_name, hostname, status);
     write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 1, &offset); /* version = 1 */
     write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, XDMCP_Request, &offset);
     write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 17 + native_address_length + strlen ("") + strlen ("MIT-MAGIC-COOKIE-1") + strlen ("TEST XSERVER"), &offset);
@@ -990,7 +994,7 @@ main (int argc, char **argv)
 
     /* Indicate ready if parent process has requested it */
     indicate_ready ();
-  
+
     /* Send first query */
     if (do_xdmcp)
     {
