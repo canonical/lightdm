@@ -366,6 +366,18 @@ user_removed_cb (LdmGreeter *greeter, LdmUser *user)
 }
 
 static void
+select_user_cb (LdmGreeter *greeter, const gchar *username)
+{
+    // FIXME
+}
+
+static void
+select_guest_cb (LdmGreeter *greeter)
+{
+    // FIXME
+}
+
+static void
 quit_cb (LdmGreeter *greeter, const gchar *username)
 {
     /* Fade out the greeter */
@@ -610,6 +622,8 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "user-added", G_CALLBACK (user_added_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "user-changed", G_CALLBACK (user_changed_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "user-removed", G_CALLBACK (user_removed_cb), NULL);
+    g_signal_connect (G_OBJECT (greeter), "select-user", G_CALLBACK (select_user_cb), NULL);
+    g_signal_connect (G_OBJECT (greeter), "select-guest", G_CALLBACK (select_guest_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
     ldm_greeter_connect_to_server (greeter);
 
