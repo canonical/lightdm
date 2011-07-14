@@ -189,7 +189,7 @@ handle_connect (Greeter *greeter)
     theme = g_build_filename (theme_dir, greeter->priv->theme, "index.theme", NULL);
     g_free (theme_dir);
 
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECTED, string_length (theme) + string_length (greeter->priv->default_session) + string_length (greeter->priv->default_user ? greeter->priv->default_user : "") + int_length () + int_length () + int_length (), &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECTED, string_length (theme) + string_length (greeter->priv->default_session) + string_length (greeter->priv->default_user ? greeter->priv->default_user : "") + int_length () + int_length (), &offset);
     write_string (message, MAX_MESSAGE_LENGTH, theme, &offset);
     write_string (message, MAX_MESSAGE_LENGTH, greeter->priv->default_session, &offset);
     write_string (message, MAX_MESSAGE_LENGTH, greeter->priv->default_user ? greeter->priv->default_user : "", &offset);
