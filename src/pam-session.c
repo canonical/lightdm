@@ -451,11 +451,14 @@ pam_session_end (PAMSession *session)
     {
         int result;
 
-        result = pam_close_session (session->priv->pam_handle, 0);
-        g_debug ("pam_close_session -> %s", pam_strerror (session->priv->pam_handle, result));
+        if (!passwd_file)
+        {
+            result = pam_close_session (session->priv->pam_handle, 0);
+            g_debug ("pam_close_session -> %s", pam_strerror (session->priv->pam_handle, result));
 
-        pam_setcred (session->priv->pam_handle, PAM_DELETE_CRED);
-        g_debug ("pam_setcred(PAM_DELETE_CRED) -> %s", pam_strerror (session->priv->pam_handle, result));
+            pam_setcred (session->priv->pam_handle, PAM_DELETE_CRED);
+            g_debug ("pam_setcred(PAM_DELETE_CRED) -> %s", pam_strerror (session->priv->pam_handle, result));
+        }
 
         session->priv->in_session = FALSE;
         g_signal_emit (G_OBJECT (session), signals[ENDED], 0);
