@@ -426,11 +426,6 @@ bool Greeter::guestAccountSupported() const
     return d->guestAccountSupported;
 }
 
-bool Greeter::isFirst() const
-{
-    return d->greeterCount == 0;
-}
-
 QString Greeter::timedLoginUser() const
 {
     return d->timedUser;

@@ -59,7 +59,6 @@ namespace QLightDM
 
 	QString defaultSession() const;
         bool guestAccountSupported() const;
-        bool isFirst() const;
 
 	bool inAuthentication() const;
 	bool isAuthenticated() const;

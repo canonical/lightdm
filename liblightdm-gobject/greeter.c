@@ -1213,21 +1213,6 @@ ldm_greeter_get_has_guest_session (LdmGreeter *greeter)
 }
 
 /**
- * ldm_greeter_get_is_first:
- * @greeter: A #LdmGreeter
- *
- * Check if this is the first time a greeter has been shown on this display.
- *
- * Return value: TRUE if this is the first greeter on this display.
- */
-gboolean
-ldm_greeter_get_is_first (LdmGreeter *greeter)
-{
-    g_return_val_if_fail (LDM_IS_GREETER (greeter), 0);
-    return greeter->priv->greeter_count == 0;
-}
-
-/**
  * ldm_greeter_get_timed_login_user:
  * @greeter: A #LdmGreeter
  *

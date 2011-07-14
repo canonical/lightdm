@@ -4,6 +4,8 @@ Overview of changes in lightdm 0.4.4
     * Added XDMCP regression tests
     * Allow minimum-display-number to be set in lightdm.conf and on the command
       line
+    * Drop ldm_greeter_get_is_first() - it was added for testing and doesn't
+      work well
 
 Overview of changes in lightdm 0.4.3
 

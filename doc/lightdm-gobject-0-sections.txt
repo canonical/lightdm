@@ -117,7 +117,6 @@ ldm_greeter_get_layouts
 ldm_greeter_get_layout
 ldm_greeter_set_layout
 ldm_greeter_get_sessions
-ldm_greeter_get_is_first
 ldm_greeter_get_default_session
 ldm_greeter_get_has_guest_session
 ldm_greeter_get_timed_login_user
