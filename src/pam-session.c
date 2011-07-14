@@ -451,7 +451,7 @@ pam_session_end (PAMSession *session)
     {
         int result;
 
-        if (!passwd_file)
+        if (!passwd_file && session->priv->pam_handle)
         {
             result = pam_close_session (session->priv->pam_handle, 0);
             g_debug ("pam_close_session -> %s", pam_strerror (session->priv->pam_handle, result));
