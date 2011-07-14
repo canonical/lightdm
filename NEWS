@@ -1,7 +1,6 @@
 Overview of changes in lightdm 0.4.4
 
     * Fix failure to accept XDMCP connections due to invalid assert
-    * Added XDMCP regression tests
     * Allow minimum-display-number to be set in lightdm.conf and on the command
       line
     * liblightdm API changes:
@@ -9,6 +8,9 @@ Overview of changes in lightdm 0.4.4
         greeter to select a user account for logging in.
       - Drop ldm_greeter_get_is_first() - it was added for testing and doesn't
         work well
+    * Fix more errors where authentication messages from previous sessions could
+      be confused with new sessions.
+    * Added XDMCP regression tests
 
 Overview of changes in lightdm 0.4.3
 
