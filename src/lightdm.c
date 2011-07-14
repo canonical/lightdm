@@ -253,6 +253,7 @@ main(int argc, char **argv)
     gchar *xsessions_dir = g_strdup (XSESSIONS_DIR);
     gchar *cache_dir = g_strdup (CACHE_DIR);
     gchar *default_xsession = g_strdup (DEFAULT_XSESSION);
+    gchar *minimum_display_number = NULL;
     gboolean show_version = FALSE;
     GOptionEntry options[] = 
     {
@@ -298,6 +299,9 @@ main(int argc, char **argv)
         { "default-xsession", 0, 0, G_OPTION_ARG_STRING, &default_xsession,
           /* Help string for command line --default-xsession flag */
           N_("Default X session"), "XSESSION" },
+        { "minimum-display-number", 0, 0, G_OPTION_ARG_STRING, &minimum_display_number,
+          /* Help string for command line --minimum-display-number flag */
+          N_("Minimum display number to use for X servers"), "NUMBER" },
         { "version", 'v', 0, G_OPTION_ARG_NONE, &show_version,
           /* Help string for command line --version flag */
           N_("Show release version"), NULL },
@@ -413,6 +417,9 @@ main(int argc, char **argv)
     config_set_string (config_get_instance (), "LightDM", "cache-directory", cache_dir);
     config_set_string (config_get_instance (), "LightDM", "xsessions-directory", xsessions_dir);
     config_set_string (config_get_instance (), "LightDM", "default-xsession", default_xsession);
+
+    if (minimum_display_number)
+        config_set_integer (config_get_instance (), "LightDM", "minimum-display-number", atoi (minimum_display_number));
 
     if (no_root)
     {

@@ -71,6 +71,11 @@ static gboolean
 display_number_used (DisplayManager *manager, guint display_number)
 {
     GList *link;
+    gint minimum_display_number;
+
+    minimum_display_number = config_get_integer (config_get_instance (), "LightDM", "minimum-display-number");
+    if (display_number < minimum_display_number)
+        return TRUE;
 
     for (link = manager->priv->displays; link; link = link->next)
     {
@@ -78,22 +83,6 @@ display_number_used (DisplayManager *manager, guint display_number)
         XServer *xserver = display_get_xserver (display);
         if (xserver && xserver_get_hostname (xserver) == NULL && xserver_get_display_number (xserver) == display_number)
             return TRUE;
-    }
-
-    /* In test mode there is probably another display manager running so see if the server exists */
-    if (getuid () != 0)
-    {
-        xcb_connection_t *connection;
-        gchar *address;
-        gboolean is_used;
-
-        address = g_strdup_printf (":%d", display_number);
-        connection = xcb_connect_to_display_with_auth_info (address, NULL, NULL);
-        g_free (address);
-        is_used = !xcb_connection_has_error (connection);
-        xcb_disconnect (connection);
-
-        return is_used;
     }
 
     return FALSE;

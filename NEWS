@@ -2,6 +2,8 @@ Overview of changes in lightdm 0.4.4
 
     * Fix failure to accept XDMCP connections due to invalid assert
     * Added XDMCP regression tests
+    * Allow minimum-display-number to be set in lightdm.conf and on the command
+      line
 
 Overview of changes in lightdm 0.4.3
 
