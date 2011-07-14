@@ -586,6 +586,7 @@ main (int argc, char **argv)
     g_string_append_printf (command_line, " --theme-dir=%s/tests/data/themes", SRCDIR);
     g_string_append_printf (command_line, " --theme-engine-dir=%s/tests/src/.libs", BUILDDIR);
     g_string_append_printf (command_line, " --xsessions-dir=%s/tests/data/xsessions", SRCDIR);
+    g_string_append (command_line, " --minimum-display-number=50");
 
     g_print ("Start daemon with command: PATH=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_STATUS_SOCKET=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
              g_getenv ("PATH"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
