@@ -1,10 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <xcb/xcb.h>
 #include <lightdm/greeter.h>
 
 #include "status.h"
 
+static xcb_connection_t *connection = NULL;
 static GKeyFile *config;
 
 static void
@@ -18,6 +20,13 @@ connected_cb (LdmGreeter *greeter)
 
         username = g_key_file_get_string (config, "test-greeter-config", "username", NULL);
 
+        if (g_key_file_get_boolean (config, "test-greeter-config", "crash-xserver", NULL))
+        {
+            const gchar *name = "SIGSEGV";
+            notify_status ("GREETER CRASH-XSERVER");
+            xcb_intern_atom (connection, FALSE, strlen (name), name);
+            xcb_flush (connection);
+        }
         if (g_key_file_get_boolean (config, "test-greeter-config", "login-guest", NULL))
         {
             notify_status ("GREETER LOGIN-GUEST");
@@ -98,7 +107,6 @@ int
 main (int argc, char **argv)
 {
     LdmGreeter *greeter;
-    xcb_connection_t *connection;
 
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
