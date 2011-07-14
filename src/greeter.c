@@ -393,6 +393,27 @@ handle_cancel_authentication (Greeter *greeter)
     pam_session_cancel (greeter->priv->pam_session);
 }
 
+void
+greeter_select_user (Greeter *greeter, const gchar *username)
+{
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_SELECT_USER, string_length (username), &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
+    write_message (greeter, message, offset);
+}
+
+void
+greeter_select_guest (Greeter *greeter)
+{
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_SELECT_GUEST, 0, &offset);
+    write_message (greeter, message, offset);
+}
+
 static gboolean
 quit_greeter_cb (gpointer data)
 {

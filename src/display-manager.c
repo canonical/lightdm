@@ -398,19 +398,16 @@ switch_to_user (DisplayManager *manager, const gchar *username)
     /* Switch to active display if it exists */
     for (link = manager->priv->displays; link; link = link->next)
     {
-        Display *display;
-
-        display = link->data;
-        const gchar *session_user;
-
-        session_user = display_get_session_user (display);
-        if (session_user == NULL)
+        Display *display = link->data;
+ 
+        /* If running a greeter can't use this one */
+        if (display_get_greeter (display))
         {
             greeter_display = display;
             continue;
         }
-      
-        if (g_strcmp0 (session_user, username) == 0)
+
+        if (g_strcmp0 (display_get_session_user (display), username) == 0)
         {
             g_debug ("Switching to user %s session on display %s", username, xserver_get_address (display_get_xserver (display)));
             display_show (display);
@@ -422,7 +419,10 @@ switch_to_user (DisplayManager *manager, const gchar *username)
     if (greeter_display)
     {
         g_debug ("Switching to greeter session on display %s", xserver_get_address (display_get_xserver (greeter_display)));
-        // FIXME: Notify greeter of user to switch to
+        if (strcmp (username, guest_account_get_username ()) == 0)
+            greeter_select_guest (display_get_greeter (greeter_display));
+        else
+            greeter_select_user (display_get_greeter (greeter_display), username);
         display_show (greeter_display);
         return TRUE;
     }

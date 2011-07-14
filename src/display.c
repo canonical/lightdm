@@ -122,6 +122,13 @@ display_get_xserver (Display *display)
     return display->priv->xserver;
 }
 
+Greeter *
+display_get_greeter (Display *display)
+{
+    g_return_val_if_fail (display != NULL, NULL);
+    return display->priv->greeter_session;
+}
+
 void
 display_set_session_wrapper (Display *display, const gchar *session_wrapper)
 {

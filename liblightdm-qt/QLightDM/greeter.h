@@ -90,6 +90,8 @@ namespace QLightDM
 	void showError(QString message);
 	void authenticationComplete(bool isAuthenticated);
 	void timedLogin(QString username);
+	void selectUser(QString username);
+	void selectGuest();
 	void quit();
     
     private slots:  

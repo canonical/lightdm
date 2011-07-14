@@ -50,6 +50,8 @@ enum {
     SHOW_MESSAGE,
     AUTHENTICATION_COMPLETE,
     TIMED_LOGIN,
+    SELECT_USER,
+    SELECT_GUEST,
     USER_ADDED,
     USER_CHANGED,
     USER_REMOVED,
@@ -326,6 +328,7 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     LdmGreeter *greeter = data;
     gsize offset;
     guint32 id, sequence_number, return_code;
+    gchar *username;
   
     if (!read_packet (greeter, FALSE))
         return TRUE;
@@ -381,6 +384,16 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         }
         else
             g_debug ("Ignoring end authentication with invalid sequence number %d", sequence_number);
+        break;
+    case GREETER_MESSAGE_SELECT_USER:
+        username = read_string (greeter, &offset);
+        g_debug ("Got request to select user %s", username);
+        g_signal_emit (G_OBJECT (greeter), signals[SELECT_USER], 0, username);
+        g_free (username);
+        break;
+    case GREETER_MESSAGE_SELECT_GUEST:
+        g_debug ("Got request to select guest account");
+        g_signal_emit (G_OBJECT (greeter), signals[SELECT_GUEST], 0);
         break;
     default:
         g_warning ("Unknown message from server: %d", id);
@@ -1984,6 +1997,37 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__STRING,
                       G_TYPE_NONE, 1, G_TYPE_STRING);
+
+    /**
+     * LdmGreeter::select-user:
+     * @greeter: A #LdmGreeter
+     * @username: A username
+     *
+     * The ::select-user signal gets emitted when the daemon request the greeter to select a user to log in as.
+     **/
+    signals[SELECT_USER] =
+        g_signal_new ("select-user",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (LdmGreeterClass, select_user),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__STRING,
+                      G_TYPE_NONE, 1, G_TYPE_STRING);
+
+    /**
+     * LdmGreeter::select-guest:
+     * @greeter: A #LdmGreeter
+     *
+     * The ::select-guest signal gets emitted when the deamon requests the greeter to select the guest account.
+     **/
+    signals[SELECT_GUEST] =
+        g_signal_new ("select-guest",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (LdmGreeterClass, select_guest),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
 
     /**
      * LdmGreeter::user-added:

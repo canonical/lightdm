@@ -48,6 +48,10 @@ const gchar *greeter_get_default_session (Greeter *greeter);
 
 PAMSession *greeter_get_pam_session (Greeter *greeter);
 
+void greeter_select_user (Greeter *greeter, const gchar *username);
+
+void greeter_select_guest (Greeter *greeter);
+
 void greeter_quit (Greeter *greeter);
 
 G_END_DECLS

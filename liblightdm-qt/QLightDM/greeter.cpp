@@ -45,7 +45,8 @@ typedef enum
     GREETER_MESSAGE_QUIT                    = 102,
     GREETER_MESSAGE_PROMPT_AUTHENTICATION   = 103,
     GREETER_MESSAGE_END_AUTHENTICATION      = 104,
-    GREETER_MESSAGE_USER_DEFAULTS           = 106
+    GREETER_MESSAGE_SELECT_USER             = 107,
+    GREETER_MESSAGE_SELECT_GUEST            = 108
 } GreeterMessage;
 
 #define HEADER_SIZE 8
@@ -322,6 +323,7 @@ void Greeter::onRead(int fd)
     int id = readInt(&offset);
     readInt(&offset);
     int nMessages, sequenceNumber, returnCode;
+    QString username;
     switch(id)
     {
     case GREETER_MESSAGE_CONNECTED:
@@ -384,6 +386,15 @@ void Greeter::onRead(int fd)
         }
         else
             qDebug () << "Ignoring end authentication with invalid sequence number " << sequenceNumber;
+        break;
+    case GREETER_MESSAGE_SELECT_USER:
+        username = readString(&offset);
+        qDebug() << "Got request to select user " << username;
+        emit selectUser(username);
+        break;
+    case GREETER_MESSAGE_SELECT_GUEST:
+        qDebug() << "Got request to select guest account";
+        emit selectGuest();
         break;
     default:
         qDebug() << "Unknown message from server: " << id;

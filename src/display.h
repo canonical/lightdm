@@ -16,6 +16,7 @@
 
 #include "xserver.h"
 #include "session.h"
+#include "greeter.h"
 
 G_BEGIN_DECLS
 
@@ -48,6 +49,8 @@ GType display_get_type (void);
 Display *display_new (XServer *xserver);
 
 XServer *display_get_xserver (Display *display);
+
+Greeter *display_get_greeter (Display *display);
 
 void display_set_session_wrapper (Display *display, const gchar *session_wrapper);
 
