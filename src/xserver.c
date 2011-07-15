@@ -260,8 +260,8 @@ write_authorization_file (XServer *server)
 
     g_debug ("Writing X server authorization to %s", server->priv->authorization_path);
 
-    server->priv->authorization_file = xauth_write (server->priv->authorization, NULL, server->priv->authorization_path, &error);
-    if (!server->priv->authorization_file)
+    server->priv->authorization_file = g_file_new_for_path (server->priv->authorization_path);
+    if (!xauth_update (server->priv->authorization, NULL, server->priv->authorization_file, &error))
         g_warning ("Failed to write authorization: %s", error->message);
     g_clear_error (&error);
 }
@@ -372,6 +372,7 @@ xserver_start (XServer *server)
 {
     GError *error = NULL;
     gboolean result;
+    gchar *full_path;
     GString *command;
 
     g_return_val_if_fail (server != NULL, FALSE);
@@ -392,12 +393,16 @@ xserver_start (XServer *server)
 
     g_return_val_if_fail (server->priv->command != NULL, FALSE);
 
-    /* Write the authorization file */
-    write_authorization_file (server);
+    full_path = g_find_program_in_path (server->priv->command);
+    if (!full_path)
+    {
+        g_debug ("Can't launch X server %s, not found in path", server->priv->command);
+        return FALSE;
+    }
+    command = g_string_new (full_path);
+    g_free (full_path);
 
-    command = g_string_new (server->priv->command);
     g_string_append_printf (command, " :%d", server->priv->display_number);
-    //g_string_append_printf (command, " vt%d");
 
     if (server->priv->config_file)
         g_string_append_printf (command, " -config %s", server->priv->config_file);
@@ -434,7 +439,24 @@ xserver_start (XServer *server)
     if (server->priv->no_root)
         g_string_append (command, " -background none");
 
+    /* Write the authorization file */
+    write_authorization_file (server);
+
     g_debug ("Launching X Server");
+
+    /* If running inside another display then pass through those variables */
+    if (getenv ("DISPLAY"))
+        child_process_set_env (CHILD_PROCESS (server), "DISPLAY", getenv ("DISPLAY"));
+    if (getenv ("XAUTHORITY"))
+        child_process_set_env (CHILD_PROCESS (server), "XAUTHORITY", getenv ("XAUTHORITY"));
+
+    /* Variable required for regression tests */
+    if (getenv ("LIGHTDM_TEST_STATUS_SOCKET"))
+    {
+        child_process_set_env (CHILD_PROCESS (server), "LIGHTDM_TEST_STATUS_SOCKET", getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
+        child_process_set_env (CHILD_PROCESS (server), "LIGHTDM_TEST_CONFIG", getenv ("LIGHTDM_TEST_CONFIG"));
+        child_process_set_env (CHILD_PROCESS (server), "LIGHTDM_TEST_HOME_DIR", getenv ("LIGHTDM_TEST_HOME_DIR"));
+    }
 
     result = child_process_start (CHILD_PROCESS (server),
                                   user_get_current (),

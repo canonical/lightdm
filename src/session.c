@@ -23,18 +23,11 @@ struct SessionPrivate
     /* User running this session */
     User *user;
   
-    /* Path of file to log to */
-    gchar *log_file;
-
-    /* Environment variables */
-    GHashTable *env;
-
     /* Command to run for this session */
     gchar *command;
 
     /* X authorization */
     XAuthorization *authorization;
-    gchar *authorization_path;
     GFile *authorization_file;
 };
 
@@ -80,15 +73,13 @@ session_get_command (Session *session)
 }
 
 void
-session_set_authorization (Session *session, XAuthorization *authorization, const gchar *path)
+session_set_authorization (Session *session, XAuthorization *authorization)
 {
     g_return_if_fail (session != NULL);
 
     if (session->priv->authorization)
         g_object_unref (session->priv->authorization);
     session->priv->authorization = g_object_ref (authorization);
-    g_free (session->priv->authorization_path);
-    session->priv->authorization_path = g_strdup (path);
 }
 
 XAuthorization *
@@ -104,23 +95,29 @@ session_start (Session *session, gboolean create_pipe)
     //gint session_stdin, session_stdout, session_stderr;
     gboolean result;
     GError *error = NULL;
+    gchar *full_path;
 
     g_return_val_if_fail (session != NULL, FALSE);
     g_return_val_if_fail (session->priv->user != NULL, FALSE);
     g_return_val_if_fail (session->priv->command != NULL, FALSE);
 
-    child_process_set_env (CHILD_PROCESS (session), "USER", user_get_name (session->priv->user));
-    child_process_set_env (CHILD_PROCESS (session), "USERNAME", user_get_name (session->priv->user)); // FIXME: Is this required?      
-    child_process_set_env (CHILD_PROCESS (session), "HOME", user_get_home_directory (session->priv->user));
-    child_process_set_env (CHILD_PROCESS (session), "SHELL", user_get_shell (session->priv->user));
+    full_path = g_find_program_in_path (session->priv->command);
+    if (!full_path)
+    {
+        g_debug ("Can't launch session %s, not found in path", session->priv->command);
+        return FALSE;     
+    }
 
     if (session->priv->authorization)
     {
-        g_debug ("Writing session authority to %s", session->priv->authorization_path);
-        session->priv->authorization_file = xauth_write (session->priv->authorization, session->priv->user, session->priv->authorization_path, &error);
-        if (session->priv->authorization_file)
-            child_process_set_env (CHILD_PROCESS (session), "XAUTHORITY", session->priv->authorization_path);
-        else
+        gchar *path;
+
+        path = g_build_filename (user_get_home_directory (session->priv->user), ".Xauthority", NULL);
+        session->priv->authorization_file = g_file_new_for_path (path);
+        g_free (path);
+
+        g_debug ("Adding session authority to %s", g_file_get_path (session->priv->authorization_file));
+        if (!xauth_update (session->priv->authorization, session->priv->user, session->priv->authorization_file, &error))
             g_warning ("Failed to write authorization: %s", error->message);
         g_clear_error (&error);
     }
@@ -130,9 +127,10 @@ session_start (Session *session, gboolean create_pipe)
     result = child_process_start (CHILD_PROCESS (session),
                                   session->priv->user,
                                   user_get_home_directory (session->priv->user),
-                                  session->priv->command,
+                                  full_path,
                                   create_pipe,
                                   &error);
+    g_free (full_path);
 
     if (!result)
         g_warning ("Failed to spawn session: %s", error->message);
@@ -152,7 +150,6 @@ static void
 session_init (Session *session)
 {
     session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, SESSION_TYPE, SessionPrivate);
-    session->priv->env = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 }
 
 static void
@@ -161,18 +158,19 @@ session_finalize (GObject *object)
     Session *self;
 
     self = SESSION (object);
+
+    if (self->priv->authorization_file)
+    {
+        g_debug ("Removing session authority from %s", g_file_get_path (self->priv->authorization_file));
+        xauth_remove (self->priv->authorization, self->priv->user, self->priv->authorization_file, NULL);
+        g_object_unref (self->priv->authorization_file);
+    }
+
     if (self->priv->user)
         g_object_unref (self->priv->user);
-    g_hash_table_unref (self->priv->env);
     g_free (self->priv->command);
     if (self->priv->authorization)
         g_object_unref (self->priv->authorization);
-    g_free (self->priv->authorization_path);
-    if (self->priv->authorization_file)
-    {
-        g_file_delete (self->priv->authorization_file, NULL, NULL);
-        g_object_unref (self->priv->authorization_file);
-    }
 
     G_OBJECT_CLASS (session_parent_class)->finalize (object);
 }

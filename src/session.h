@@ -46,7 +46,7 @@ void session_set_command (Session *session, const gchar *command);
 
 const gchar *session_get_command (Session *session);
 
-void session_set_authorization (Session *session, XAuthorization *authorization, const gchar *path);
+void session_set_authorization (Session *session, XAuthorization *authorization);
 
 XAuthorization *session_get_authorization (Session *session);
 

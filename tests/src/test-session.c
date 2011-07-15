@@ -30,8 +30,8 @@ main (int argc, char **argv)
     notify_status ("SESSION START USER=%s", getenv ("USER"));
 
     config = g_key_file_new ();
-    if (g_getenv ("TEST_CONFIG"))
-        g_key_file_load_from_file (config, g_getenv ("TEST_CONFIG"), G_KEY_FILE_NONE, NULL);
+    if (g_getenv ("LIGHTDM_TEST_CONFIG"))
+        g_key_file_load_from_file (config, g_getenv ("LIGHTDM_TEST_CONFIG"), G_KEY_FILE_NONE, NULL);
 
     loop = g_main_loop_new (NULL, FALSE);
 

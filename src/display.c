@@ -585,10 +585,23 @@ start_user_session (Display *display, const gchar *session)
 
     session_set_user (display->priv->user_session, user);
     session_set_command (display->priv->user_session, session_command);
+    child_process_set_env (CHILD_PROCESS (display->priv->user_session), "PATH", "/usr/local/bin:/usr/bin:/bin");
+    child_process_set_env (CHILD_PROCESS (display->priv->user_session), "USER", user_get_name (user));
+    child_process_set_env (CHILD_PROCESS (display->priv->user_session), "USERNAME", user_get_name (user)); // FIXME: Is this required?
+    child_process_set_env (CHILD_PROCESS (display->priv->user_session), "HOME", user_get_home_directory (user));
+    child_process_set_env (CHILD_PROCESS (display->priv->user_session), "SHELL", user_get_shell (user));
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDMSESSION", session); // FIXME: Not cross-desktop
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DISPLAY", xserver_get_address (display->priv->xserver));
     set_env_from_pam_session (display->priv->user_session, display->priv->user_pam_session);
+  
+    /* Variable required for regression tests */
+    if (getenv ("LIGHTDM_TEST_STATUS_SOCKET"))
+    {
+        child_process_set_env (CHILD_PROCESS (display->priv->user_session), "LIGHTDM_TEST_STATUS_SOCKET", getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
+        child_process_set_env (CHILD_PROCESS (display->priv->user_session), "LIGHTDM_TEST_CONFIG", getenv ("LIGHTDM_TEST_CONFIG"));
+        child_process_set_env (CHILD_PROCESS (display->priv->user_session), "LIGHTDM_TEST_HOME_DIR", getenv ("LIGHTDM_TEST_HOME_DIR"));
+    }
 
     g_object_unref (user);
     g_free (session_command);
@@ -780,10 +793,23 @@ start_greeter (Display *display)
     command = theme_get_command (theme);
     session_set_command (SESSION (display->priv->greeter_session), command);
     g_free (command);
+
+    child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "PATH", "/usr/local/bin:/usr/bin:/bin");
+    child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "USER", user_get_name (user));
+    child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "HOME", user_get_home_directory (user));
+    child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "SHELL", user_get_shell (user));
     child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "DISPLAY", xserver_get_address (display->priv->xserver));
     if (display->priv->greeter_ck_cookie)
         child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "XDG_SESSION_COOKIE", display->priv->greeter_ck_cookie);
     set_env_from_pam_session (SESSION (display->priv->greeter_session), display->priv->greeter_pam_session);
+
+    /* Variable required for regression tests */
+    if (getenv ("LIGHTDM_TEST_STATUS_SOCKET"))
+    {
+        child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "LIGHTDM_TEST_STATUS_SOCKET", getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
+        child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "LIGHTDM_TEST_CONFIG", getenv ("LIGHTDM_TEST_CONFIG"));
+        child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "LIGHTDM_TEST_HOME_DIR", getenv ("LIGHTDM_TEST_HOME_DIR"));
+    }
 
     g_signal_emit (display, signals[START_GREETER], 0, display->priv->greeter_session);
 

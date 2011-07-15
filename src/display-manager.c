@@ -126,13 +126,7 @@ start_session (Display *display, Session *session, gboolean is_greeter, DisplayM
 
     authorization = xserver_get_authorization (display_get_xserver (display));
     if (authorization)
-    {
-        gchar *path;
-
-        path = get_authorization_path (manager);
-        session_set_authorization (session, authorization, path);
-        g_free (path);
-    }
+        session_set_authorization (session, authorization);
 
     if (is_greeter)
     {
@@ -201,10 +195,13 @@ end_session_cb (Display *display, Session *session, DisplayManager *manager)
     xserver = display_get_xserver (display);
     if (xserver && xserver_get_server_type (xserver) == XSERVER_TYPE_LOCAL)
     {
-        XAuthorization *authorization;
+        XAuthorization *old_authorization, *authorization;
 
         g_debug ("Generating new authorization cookie for %s", xserver_get_address (xserver));
-        authorization = xauth_new_cookie ();
+        old_authorization = xserver_get_authorization (xserver);
+        authorization = xauth_new_cookie (xauth_get_family (old_authorization),
+                                          xauth_get_address (old_authorization),
+                                          xauth_get_number (old_authorization));
         xserver_set_authorization (xserver, authorization, xserver_get_authorization_path (xserver));
         g_object_unref (authorization);
     }
@@ -298,13 +295,19 @@ make_xserver (DisplayManager *manager, gchar *config_section)
 
             string_to_xdm_auth_key (key, data);
             xserver_set_authentication (xserver, "XDM-AUTHENTICATION-1", data, 8);
-            authorization = xauth_new ("XDM-AUTHORIZATION-1", data, 8);
+            authorization = xauth_new (XAUTH_FAMILY_WILD, "", "", "XDM-AUTHORIZATION-1", data, 8);
         }
     }
     else
     {
+        gchar *number;
+        gchar hostname[1024];
+
         xserver = xserver_new (XSERVER_TYPE_LOCAL, NULL, display_number);
-        authorization = xauth_new_cookie ();
+        number = g_strdup_printf ("%d", display_number);
+        gethostname (hostname, 1024);
+        authorization = xauth_new_cookie (XAUTH_FAMILY_LOCAL, hostname, number);
+        g_free (number);
     }
     g_free (xdmcp_manager);
 
@@ -476,7 +479,7 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
     gchar *address;
     XServer *xserver;
     gboolean result;
-  
+
     // FIXME: Try IPv6 then fallback to IPv4
 
     address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (session)));
@@ -487,10 +490,16 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
     {
         XAuthorization *authorization = NULL;
         gchar *path;
+        gchar *number;
 
-        authorization = xauth_new (xdmcp_session_get_authorization_name (session),
+        number = g_strdup_printf ("%d", xdmcp_session_get_display_number (session));
+        authorization = xauth_new (XAUTH_FAMILY_INTERNET, // FIXME: Handle IPv6
+                                   address,
+                                   number,
+                                   xdmcp_session_get_authorization_name (session),
                                    xdmcp_session_get_authorization_data (session),
                                    xdmcp_session_get_authorization_data_length (session));
+        g_free (number);
         path = get_authorization_path (manager);
 
         xserver_set_authorization (xserver, authorization, path);

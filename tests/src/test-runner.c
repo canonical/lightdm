@@ -487,7 +487,7 @@ main (int argc, char **argv)
 
     /* Set config for child processes to read */
     if (config_path)
-        g_setenv ("TEST_CONFIG", config_path, TRUE);
+        g_setenv ("LIGHTDM_TEST_CONFIG", config_path, TRUE);
 
     /* Run local D-Bus daemon */
     if (pipe (dbus_pipe) < 0)

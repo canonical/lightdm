@@ -98,10 +98,7 @@ void
 child_process_set_env (ChildProcess *process, const gchar *name, const gchar *value)
 {
     g_return_if_fail (process != NULL);
-    if (value)
-        g_hash_table_insert (process->priv->env, g_strdup (name), g_strdup (value));
-    else
-        g_hash_table_remove (process->priv->env, name);
+    g_hash_table_insert (process->priv->env, g_strdup (name), g_strdup (value));
 }
 
 static void
@@ -144,6 +141,7 @@ run_child_process (ChildProcess *process, char *const argv[])
     close (fd);
 
     /* Set environment */
+    clearenv ();
     g_hash_table_iter_init (&iter, process->priv->env);
     while (g_hash_table_iter_next (&iter, &key, &value))
         g_setenv ((gchar *)key, (gchar *)value, TRUE);
@@ -205,7 +203,7 @@ run_child_process (ChildProcess *process, char *const argv[])
          }
     }
 
-    execvp (argv[0], argv);
+    execv (argv[0], argv);
 
     g_warning ("Error executing child process %s: %s", argv[0], g_strerror (errno));
     _exit (EXIT_FAILURE);

@@ -362,11 +362,13 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
         XAuthorization *auth;
 
         /* Data is the cookie */
-        auth = xauth_new_cookie ();
+        auth = xauth_new_cookie (XAUTH_FAMILY_WILD, "", "");
         authorization_data = xauth_copy_authorization_data (auth);
         authorization_data_length = xauth_get_authorization_data_length (auth);
         session_authorization_data = xauth_copy_authorization_data (auth);
         session_authorization_data_length = xauth_get_authorization_data_length (auth);
+      
+        g_object_unref (auth);
     }
     else if (strcmp (server->priv->authorization_name, "XDM-AUTHORIZATION-1") == 0)
     {

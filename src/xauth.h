@@ -35,21 +35,50 @@ typedef struct
     GObjectClass parent_class;
 } XAuthorizationClass;
 
+#define XAUTH_FAMILY_INTERNET 0
+#define XAUTH_FAMILY_DECNET 1
+#define XAUTH_FAMILY_CHAOS 2
+#define XAUTH_FAMILY_SERVER_INTERPRETED 5
+#define XAUTH_FAMILY_INTERNET6 6
+#define XAUTH_FAMILY_LOCALHOST 252
+#define XAUTH_FAMILY_KRB5_PRINCIPAL 253
+#define XAUTH_FAMILY_NETNAME 254
+#define XAUTH_FAMILY_LOCAL 256
+#define XAUTH_FAMILY_WILD 65535
+
 GType xauth_get_type (void);
 
-XAuthorization *xauth_new (const gchar *name, const guchar *data, gsize data_length);
+XAuthorization *xauth_new (guint16 family, const gchar *address, const gchar *number, const gchar *name, const guint8 *data, gsize data_length);
 
-XAuthorization *xauth_new_cookie (void);
+XAuthorization *xauth_new_cookie (guint16 family, const gchar *address, const gchar *number);
+
+void xauth_set_family (XAuthorization *auth, guint16 family);
+
+guint16 xauth_get_family (XAuthorization *auth);
+
+void xauth_set_address (XAuthorization *auth, const gchar *address);
+
+const gchar *xauth_get_address (XAuthorization *auth);
+
+void xauth_set_number (XAuthorization *auth, const gchar *number);
+
+const gchar *xauth_get_number (XAuthorization *auth);
+
+void xauth_set_authorization_name (XAuthorization *auth, const gchar *name);
 
 const gchar *xauth_get_authorization_name (XAuthorization *auth);
 
-const guchar *xauth_get_authorization_data (XAuthorization *auth);
+void xauth_set_authorization_data (XAuthorization *auth, const guint8 *data, gsize data_length);
 
-guchar *xauth_copy_authorization_data (XAuthorization *auth);
+const guint8 *xauth_get_authorization_data (XAuthorization *auth);
+
+guint8 *xauth_copy_authorization_data (XAuthorization *auth);
 
 gsize xauth_get_authorization_data_length (XAuthorization *auth);
 
-GFile *xauth_write (XAuthorization *auth, User *user, const gchar *path, GError **error);
+gboolean xauth_update (XAuthorization *auth, User *user, GFile *file, GError **error);
+
+gboolean xauth_remove (XAuthorization *auth, User *user, GFile *file, GError **error);
 
 G_END_DECLS
 
