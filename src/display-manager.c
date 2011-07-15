@@ -291,6 +291,8 @@ make_xserver (DisplayManager *manager, gchar *config_section)
     }
     g_free (xdmcp_manager);
 
+    xserver_set_vt (xserver, vt_get_unused ());
+
     command = config_get_string (config_get_instance (), "LightDM", "default-xserver-command");
     xserver_set_command (xserver, command);
     g_free (command);
@@ -583,17 +585,15 @@ display_manager_start (DisplayManager *manager)
             }
             else if (vt > 0)
             {              
-                g_debug ("Display %s will replace Plymouth", display_name);
+                g_debug ("Display %s will replace Plymouth on VT %d", display_name, vt);
                 plymouth_being_replaced = TRUE;
                 replaces_plymouth = TRUE;
+                vt_release (xserver_get_vt (xserver));
+                xserver_set_vt (xserver, vt);
             }
         }
 
-        if (vt < 0)
-            vt = vt_get_unused ();
-
-        g_debug ("Starting on /dev/tty%d", vt);          
-        xserver_set_vt (xserver, vt);
+        g_debug ("Starting on /dev/tty%d", xserver_get_vt (xserver));
 
         value = config_get_string (config_get_instance (), display_name, "session");
         if (value)

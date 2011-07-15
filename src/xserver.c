@@ -22,6 +22,7 @@
 
 #include "xserver.h"
 #include "configuration.h"
+#include "vt.h"
 
 enum {
     READY,  
@@ -546,6 +547,9 @@ xserver_finalize (GObject *object)
 
     if (self->priv->connection)
         xcb_disconnect (self->priv->connection);
+  
+    if (self->priv->vt >= 0)
+        vt_release (self->priv->vt);
 
     g_free (self->priv->command);
     g_free (self->priv->config_file);
