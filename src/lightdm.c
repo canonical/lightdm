@@ -447,7 +447,7 @@ main(int argc, char **argv)
         config_set_string (config_get_instance (), "Directories", "log-directory", path);
         g_free (path);
     }
-    config_set_boolean (config_get_instance (), "Defaults", "use-xephyr", use_xephyr);
+    config_set_boolean (config_get_instance (), "LightDM", "use-xephyr", use_xephyr);
 
     log_init ();
 
