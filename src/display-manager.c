@@ -13,8 +13,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <xcb/xcb.h>
-#include <fcntl.h>
 
 #include "display-manager.h"
 #include "configuration.h"
@@ -35,12 +33,6 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct DisplayManagerPrivate
 {
-    /* Directory to store authorization files */
-    gchar *auth_dir;
-
-    /* Counter to generate unique authorization file names */
-    guint auth_counter;
-
     /* Directory to write log files to */
     gchar *log_dir;
 
@@ -61,7 +53,6 @@ display_manager_new (void)
 {
     DisplayManager *self = g_object_new (DISPLAY_MANAGER_TYPE, NULL);
 
-    self->priv->auth_dir = config_get_string (config_get_instance (), "LightDM", "authorization-directory");
     self->priv->log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
 
     return self;
@@ -97,17 +88,6 @@ get_free_display_number (DisplayManager *manager)
         display_number++;
   
     return display_number;
-}
-
-static gchar *
-get_authorization_path (DisplayManager *manager)
-{
-    gchar *path;
-
-    path = g_strdup_printf ("%s/%d", manager->priv->auth_dir, manager->priv->auth_counter);
-    manager->priv->auth_counter++;
-
-    return path;
 }
 
 static void
@@ -202,7 +182,7 @@ end_session_cb (Display *display, Session *session, DisplayManager *manager)
         authorization = xauth_new_cookie (xauth_get_family (old_authorization),
                                           xauth_get_address (old_authorization),
                                           xauth_get_number (old_authorization));
-        xserver_set_authorization (xserver, authorization, xserver_get_authorization_path (xserver));
+        xserver_set_authorization (xserver, authorization);
         g_object_unref (authorization);
     }
 }
@@ -315,10 +295,8 @@ make_xserver (DisplayManager *manager, gchar *config_section)
     xserver_set_command (xserver, command);
     g_free (command);
 
-    path = get_authorization_path (manager);
-    xserver_set_authorization (xserver, authorization, path);
+    xserver_set_authorization (xserver, authorization);
     g_object_unref (authorization);
-    g_free (path);
 
     filename = g_strdup_printf ("%s.log", xserver_get_address (xserver));
     path = g_build_filename (manager->priv->log_dir, filename, NULL);
@@ -480,7 +458,6 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
     if (strcmp (xdmcp_session_get_authorization_name (session), "") != 0)
     {
         XAuthorization *authorization = NULL;
-        gchar *path;
         gchar *number;
 
         number = g_strdup_printf ("%d", xdmcp_session_get_display_number (session));
@@ -491,12 +468,9 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
                                    xdmcp_session_get_authorization_data (session),
                                    xdmcp_session_get_authorization_data_length (session));
         g_free (number);
-        path = get_authorization_path (manager);
 
-        xserver_set_authorization (xserver, authorization, path);
-
+        xserver_set_authorization (xserver, authorization);
         g_object_unref (authorization);
-        g_free (path);
     }
 
     result = display_start (display);
@@ -505,43 +479,6 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
        g_object_unref (display);
 
     return result;
-}
-
-static void
-setup_auth_dir (DisplayManager *manager)
-{
-    GDir *dir;
-    GError *error = NULL;
-
-    g_mkdir_with_parents (manager->priv->auth_dir, S_IRWXU | S_IXGRP | S_IXOTH);
-    dir = g_dir_open (manager->priv->auth_dir, 0, &error);
-    if (!dir)
-    {
-        g_warning ("Authorization dir not created: %s", error->message);
-        g_clear_error (&error);
-        return;
-    }
-
-    /* Clear out the directory */
-    while (TRUE)
-    {
-        const gchar *filename;
-        gchar *path;
-        GFile *file;
-
-        filename = g_dir_read_name (dir);
-        if (!filename)
-            break;
-
-        path = g_build_filename (manager->priv->auth_dir, filename, NULL);
-        file = g_file_new_for_path (filename);
-        g_file_delete (file, NULL, NULL);
-
-        g_free (path);
-        g_object_unref (file);
-    }
-
-    g_dir_close (dir);
 }
 
 static gboolean
@@ -597,9 +534,6 @@ display_manager_start (DisplayManager *manager)
     gboolean plymouth_is_running, plymouth_on_active_vt = FALSE, plymouth_being_replaced = FALSE;
 
     g_return_if_fail (manager != NULL);
-
-    /* Make an empty authorization directory */
-    setup_auth_dir (manager);
 
     /* Load the static display entries */
     seats = config_get_string (config_get_instance (), "LightDM", "seats");

@@ -21,6 +21,7 @@
 #include <glib/gstdio.h>
 
 #include "xserver.h"
+#include "configuration.h"
 
 enum {
     READY,  
@@ -65,7 +66,6 @@ struct XServerPrivate
 
     /* Authorization */
     XAuthorization *authorization;
-    gchar *authorization_path;
     GFile *authorization_file;
 
     /* VT to run on */
@@ -252,22 +252,32 @@ xserver_get_authentication_data_length (XServer *server)
 static void
 write_authorization_file (XServer *server)
 {
+    gchar *run_dir, *dir, *path;
     GError *error = NULL;
 
     /* Stop if not using authorization or already written */
     if (!server->priv->authorization || server->priv->authorization_file)
         return;
 
-    g_debug ("Writing X server authorization to %s", server->priv->authorization_path);
+    run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
+    dir = g_build_filename (run_dir, "root", NULL);
+    g_free (run_dir);
+    g_mkdir_with_parents (dir, S_IRWXU);
 
-    server->priv->authorization_file = g_file_new_for_path (server->priv->authorization_path);
-    if (!xauth_update (server->priv->authorization, NULL, server->priv->authorization_file, &error))
+    path = g_build_filename (dir, xserver_get_address (server), NULL);
+    g_free (dir);
+    server->priv->authorization_file = g_file_new_for_path (path);
+
+    g_debug ("Writing X server authorization to %s", path);
+    g_free (path);
+
+    if (!xauth_write (server->priv->authorization, XAUTH_WRITE_MODE_SET, NULL, server->priv->authorization_file, &error))
         g_warning ("Failed to write authorization: %s", error->message);
     g_clear_error (&error);
 }
 
 void
-xserver_set_authorization (XServer *server, XAuthorization *authorization, const gchar *path)
+xserver_set_authorization (XServer *server, XAuthorization *authorization)
 {
     gboolean rewrite = FALSE;
 
@@ -288,13 +298,6 @@ xserver_set_authorization (XServer *server, XAuthorization *authorization, const
     if (authorization)
         server->priv->authorization = g_object_ref (authorization);
 
-    /* Update path if it has changed */
-    if (path != server->priv->authorization_path)
-    {
-        g_free (server->priv->authorization_path);
-        server->priv->authorization_path = g_strdup (path);
-    }
-
     /* If already running then change authorization immediately */
     if (rewrite)
         write_authorization_file (server);
@@ -305,13 +308,6 @@ xserver_get_authorization (XServer *server)
 {
     g_return_val_if_fail (server != NULL, NULL);
     return server->priv->authorization;
-}
-
-const gchar *
-xserver_get_authorization_path (XServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->authorization_path;
 }
 
 void
@@ -349,8 +345,10 @@ xserver_connect (XServer *server)
      * for XDM-AUTHORIZATION-1 and the authorization data requires to know the source port */
     if (server->priv->authorization_file)
     {
+        gchar *path = g_file_get_path (server->priv->authorization_file);
         xauthority = g_strdup (getenv ("XAUTHORITY"));
-        setenv ("XAUTHORITY", server->priv->authorization_path, TRUE);
+        setenv ("XAUTHORITY", path, TRUE);
+        g_free (path);
     }
 
     g_debug ("Connecting to XServer %s", xserver_get_address (server));
@@ -424,6 +422,9 @@ xserver_start (XServer *server)
     command = g_string_new (absolute_command);
     g_free (absolute_command);
 
+    /* Write the authorization file */
+    write_authorization_file (server);
+
     g_string_append_printf (command, " :%d", server->priv->display_number);
 
     if (server->priv->config_file)
@@ -433,8 +434,12 @@ xserver_start (XServer *server)
         g_string_append_printf (command, " -layout %s", server->priv->layout);
 
     if (server->priv->authorization)
-        g_string_append_printf (command, " -auth %s", server->priv->authorization_path);
-
+    {
+        gchar *path = g_file_get_path (server->priv->authorization_file);
+        g_string_append_printf (command, " -auth %s", path);
+        g_free (path);
+    }
+  
     if (server->priv->type == XSERVER_TYPE_LOCAL_TERMINAL)
     {
         if (server->priv->port != 0)
@@ -460,9 +465,6 @@ xserver_start (XServer *server)
 
     if (server->priv->no_root)
         g_string_append (command, " -background none");
-
-    /* Write the authorization file */
-    write_authorization_file (server);
 
     g_debug ("Launching X Server");
 
@@ -551,7 +553,6 @@ xserver_finalize (GObject *object)
     g_free (self->priv->address);
     if (self->priv->authorization)
         g_object_unref (self->priv->authorization);
-    g_free (self->priv->authorization_path);
     if (self->priv->authorization_file)
     {
         g_file_delete (self->priv->authorization_file, NULL, NULL);

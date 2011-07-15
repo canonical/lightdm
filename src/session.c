@@ -10,6 +10,8 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <fcntl.h>
@@ -17,6 +19,7 @@
 #include <grp.h>
 
 #include "session.h"
+#include "configuration.h"
 
 struct SessionPrivate
 {
@@ -133,13 +136,35 @@ session_start (Session *session, gboolean create_pipe)
     if (session->priv->authorization)
     {
         gchar *path;
+      
+        if (config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"))
+        {
+            gchar *run_dir, *dir;
 
-        path = g_build_filename (user_get_home_directory (session->priv->user), ".Xauthority", NULL);
+            run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");          
+            dir = g_build_filename (run_dir, user_get_name (session->priv->user), NULL);
+            g_free (run_dir);
+
+            g_mkdir_with_parents (dir, S_IRWXU);
+            if (getuid () == 0)
+            {
+                if (chown (dir, user_get_uid (session->priv->user), user_get_gid (session->priv->user)) < 0)
+                    g_warning ("Failed to set ownership of user authorization dir: %s", strerror (errno));
+            }
+
+            path = g_build_filename (dir, "xauthority", NULL);
+            g_free (dir);
+
+            child_process_set_env (CHILD_PROCESS (session), "XAUTHORITY", path);
+        }
+        else
+            path = g_build_filename (user_get_home_directory (session->priv->user), ".Xauthority", NULL);
+
         session->priv->authorization_file = g_file_new_for_path (path);
         g_free (path);
 
         g_debug ("Adding session authority to %s", g_file_get_path (session->priv->authorization_file));
-        if (!xauth_update (session->priv->authorization, session->priv->user, session->priv->authorization_file, &error))
+        if (!xauth_write (session->priv->authorization, XAUTH_WRITE_MODE_REPLACE, session->priv->user, session->priv->authorization_file, &error))
             g_warning ("Failed to write authorization: %s", error->message);
         g_clear_error (&error);
     }
@@ -184,7 +209,7 @@ session_finalize (GObject *object)
     if (self->priv->authorization_file)
     {
         g_debug ("Removing session authority from %s", g_file_get_path (self->priv->authorization_file));
-        xauth_remove (self->priv->authorization, self->priv->user, self->priv->authorization_file, NULL);
+        xauth_write (self->priv->authorization, XAUTH_WRITE_MODE_REMOVE, self->priv->user, self->priv->authorization_file, NULL);
         g_object_unref (self->priv->authorization_file);
     }
 

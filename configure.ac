@@ -150,6 +150,16 @@ AC_ARG_WITH(log-dir,
 )
 AC_SUBST(LOG_DIR)
 
+RUN_DIR=$localstatedir/run/lightdm
+AC_ARG_WITH(xauth-dir,
+            AS_HELP_STRING(--with-run-dir=<dir>,
+                           Directory to put running state in),
+    if test x$withval != x; then
+        RUN_DIR="$withval"
+    fi
+)
+AC_SUBST(RUN_DIR)
+
 CACHE_DIR=${localstatedir}/cache/lightdm
 AC_ARG_WITH(cache-dir,
             AS_HELP_STRING(--with-cache-dir=<dir>,
@@ -180,16 +190,6 @@ AC_ARG_WITH(xserver-binary,
 )
 AC_SUBST(XSERVER_BINARY)
 AC_DEFINE_UNQUOTED(XSERVER_BINARY, "$XSERVER_BINARY", X server binary name)
-
-XAUTH_DIR=$localstatedir/run/lightdm/authority
-AC_ARG_WITH(xauth-dir,
-            AS_HELP_STRING(--with-xauth-dir=<dir>,
-                           X server authorization directory),
-    if test x$withval != x; then
-        XAUTH_DIR="$withval"
-    fi
-)
-AC_SUBST(XAUTH_DIR)
 
 XSESSIONS_DIR=/usr/share/xsessions
 AC_ARG_WITH(xsession-dir,
@@ -327,7 +327,8 @@ echo "
         Log directory:            $LOG_DIR        
         D-Bus system directory:   $DBUS_SYS_DIR
         X server binary:          $XSERVER_BINARY
-        X authorization dir:      $XAUTH_DIR
+        Run dir:                  $RUN_DIR
+        Cache dir:                $CACHE_DIR
         X session dir:            $XSESSIONS_DIR
         Default X session:        $DEFAULT_XSESSION
         Greeter user:             $GREETER_USER

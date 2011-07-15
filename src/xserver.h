@@ -89,11 +89,9 @@ const guchar *xserver_get_authentication_data (XServer *server);
 
 gsize xserver_get_authentication_data_length (XServer *server);
 
-void xserver_set_authorization (XServer *server, XAuthorization *authorization, const gchar *path);
+void xserver_set_authorization (XServer *server, XAuthorization *authorization);
 
 XAuthorization *xserver_get_authorization (XServer *server);
-
-const gchar *xserver_get_authorization_path (XServer *server);
 
 void xserver_set_vt (XServer *server, gint vt);
 

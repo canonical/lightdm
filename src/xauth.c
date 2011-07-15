@@ -231,19 +231,22 @@ write_string (GOutputStream *stream, const gchar *value, GError **error)
     write_data (stream, (guint8 *) value, strlen (value), error);
 }
 
-static gboolean
-xauth_merge (XAuthorization *auth, gboolean delete, User *user, GFile *file, GError **error)
+gboolean
+xauth_write (XAuthorization *auth, XAuthWriteMode mode, User *user, GFile *file, GError **error)
 {
     GList *link, *records = NULL;
-    GFileInputStream *input_stream;
+    GFileInputStream *input_stream = NULL;
     GFileOutputStream *output_stream;
     XAuthorization *a;
     gboolean matched = FALSE;
   
     /* Read out existing records */
-    input_stream = g_file_read (file, NULL, error);
-    if (!input_stream && error && !g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
-        return FALSE;
+    if (mode != XAUTH_WRITE_MODE_SET)
+    {
+        input_stream = g_file_read (file, NULL, error);
+        if (!input_stream && error && !g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+            return FALSE;
+    }
 
     while (input_stream)
     {
@@ -276,7 +279,7 @@ xauth_merge (XAuthorization *auth, gboolean delete, User *user, GFile *file, GEr
             strcmp (auth->priv->number, a->priv->number) == 0)
         {
             matched = TRUE;
-            if (delete)
+            if (mode == XAUTH_WRITE_MODE_REMOVE)
             {
                 g_object_unref (a);
                 continue;
@@ -335,22 +338,6 @@ xauth_merge (XAuthorization *auth, gboolean delete, User *user, GFile *file, GEr
     }
   
     return TRUE;
-}
-
-gboolean
-xauth_update (XAuthorization *auth, User *user, GFile *file, GError **error)
-{
-    g_return_val_if_fail (auth != NULL, FALSE);
-    g_return_val_if_fail (file != NULL, FALSE);
-    return xauth_merge (auth, FALSE, user, file, error);
-}
-
-gboolean
-xauth_remove (XAuthorization *auth, User *user, GFile *file, GError **error)
-{
-    g_return_val_if_fail (auth != NULL, FALSE);
-    g_return_val_if_fail (file != NULL, FALSE);
-    return xauth_merge (auth, TRUE, user, file, error);
 }
 
 static void

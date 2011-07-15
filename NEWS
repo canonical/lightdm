@@ -3,9 +3,10 @@ Overview of changes in lightdm 0.4.4
     * Fix failure to accept XDMCP connections due to invalid assert.
     * Allow minimum-display-number to be set in lightdm.conf and on the command
       line.
-    * Write session X authority information to ~/.Xauthority - this fixes it not
-      being able to be used with the xauth util and allows you to have more than
-      one authorization.
+    * Session X authority now written to ~/.Xauthority by default.  It can be
+      configured to run from the system location by setting
+      user-authority-in-system-dir=true in lightdm.conf.
+    * When using system authority the authority can be updated by the user.
     * Written X authority files now checks hostname and display number.
     * Enironment is no longer passed through to X servers and sessions, this is
       no longer required now PAM works correctly.

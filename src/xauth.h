@@ -46,6 +46,13 @@ typedef struct
 #define XAUTH_FAMILY_LOCAL 256
 #define XAUTH_FAMILY_WILD 65535
 
+typedef enum
+{
+   XAUTH_WRITE_MODE_REPLACE,
+   XAUTH_WRITE_MODE_REMOVE,
+   XAUTH_WRITE_MODE_SET  
+} XAuthWriteMode;
+
 GType xauth_get_type (void);
 
 XAuthorization *xauth_new (guint16 family, const gchar *address, const gchar *number, const gchar *name, const guint8 *data, gsize data_length);
@@ -76,9 +83,7 @@ guint8 *xauth_copy_authorization_data (XAuthorization *auth);
 
 gsize xauth_get_authorization_data_length (XAuthorization *auth);
 
-gboolean xauth_update (XAuthorization *auth, User *user, GFile *file, GError **error);
-
-gboolean xauth_remove (XAuthorization *auth, User *user, GFile *file, GError **error);
+gboolean xauth_write (XAuthorization *auth, XAuthWriteMode mode, User *user, GFile *file, GError **error);
 
 G_END_DECLS
 

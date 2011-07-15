@@ -16,6 +16,7 @@
 #include <glib.h>
 #include <glib/gi18n.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "configuration.h"
 #include "display-manager.h"
@@ -251,6 +252,7 @@ main(int argc, char **argv)
     gchar *theme_dir = g_strdup (GREETER_THEME_DIR), *theme_engine_dir = g_strdup (GREETER_THEME_ENGINE_DIR);
     gchar *default_greeter_theme = g_strdup (DEFAULT_GREETER_THEME);
     gchar *xsessions_dir = g_strdup (XSESSIONS_DIR);
+    gchar *run_dir = g_strdup (RUN_DIR);
     gchar *cache_dir = g_strdup (CACHE_DIR);
     gchar *default_xsession = g_strdup (DEFAULT_XSESSION);
     gchar *minimum_display_number = NULL;
@@ -281,6 +283,9 @@ main(int argc, char **argv)
         { "default-xserver-command", 0, 0, G_OPTION_ARG_STRING, &default_xserver_command,
           /* Help string for command line --default-xserver-command flag */
           N_("Default command to run X servers"), "COMMAND" },
+        { "run-dir", 0, 0, G_OPTION_ARG_STRING, &run_dir,
+          /* Help string for command line --run-dir flag */
+          N_("Directory to store run information"), "DIRECTORY" },
         { "cache-dir", 0, 0, G_OPTION_ARG_STRING, &cache_dir,
           /* Help string for command line --cache-dir flag */
           N_("Directory to cache information"), "DIRECTORY" },
@@ -348,14 +353,6 @@ main(int argc, char **argv)
     theme_engine_dir = path_make_absolute (theme_engine_dir);
     xsessions_dir = path_make_absolute (xsessions_dir);
 
-    /* Write PID file */
-    pid_file = fopen (pid_path, "w");
-    if (pid_file)
-    {
-        fprintf (pid_file, "%d\n", getpid ());
-        fclose (pid_file);
-    }
-
     /* Check if root */
     if (!no_root && getuid () != 0)
     {
@@ -383,6 +380,18 @@ main(int argc, char **argv)
         g_printerr ("Only allowed to use --passwd-file when running with --no-root.\n"); 
         return EXIT_FAILURE;
     }
+
+    /* Write PID file */
+    pid_file = fopen (pid_path, "w");
+    if (pid_file)
+    {
+        fprintf (pid_file, "%d\n", getpid ());
+        fclose (pid_file);
+    }
+
+    /* Create run and cache directories */
+    g_mkdir_with_parents (run_dir, S_IRWXU | S_IXGRP | S_IXOTH);
+    g_mkdir_with_parents (cache_dir, S_IRWXU | S_IXGRP | S_IXOTH);
 
     loop = g_main_loop_new (NULL, FALSE);
 
@@ -414,7 +423,7 @@ main(int argc, char **argv)
     config_set_string (config_get_instance (), "LightDM", "theme-directory", theme_dir);
     config_set_string (config_get_instance (), "LightDM", "theme-engine-directory", theme_engine_dir);
     config_set_string (config_get_instance (), "LightDM", "default-greeter-theme", default_greeter_theme);
-    config_set_string (config_get_instance (), "LightDM", "authorization-directory", XAUTH_DIR);
+    config_set_string (config_get_instance (), "LightDM", "run-directory", run_dir);
     config_set_string (config_get_instance (), "LightDM", "cache-directory", cache_dir);
     config_set_string (config_get_instance (), "LightDM", "xsessions-directory", xsessions_dir);
     config_set_string (config_get_instance (), "LightDM", "default-xsession", default_xsession);
@@ -425,10 +434,16 @@ main(int argc, char **argv)
     if (no_root)
     {
         gchar *path;
-        path = g_build_filename (g_get_user_cache_dir (), "lightdm", "authority", NULL);
-        config_set_string (config_get_instance (), "LightDM", "authorization-directory", path);
+
+        path = g_build_filename (g_get_user_cache_dir (), "lightdm", "run", NULL);
+        config_set_string (config_get_instance (), "LightDM", "run-directory", path);
         g_free (path);
-        path = g_build_filename (g_get_user_cache_dir (), "lightdm", NULL);
+
+        path = g_build_filename (g_get_user_cache_dir (), "lightdm", "cache", NULL);
+        config_set_string (config_get_instance (), "LightDM", "cache-directory", path);
+        g_free (path);
+
+        path = g_build_filename (g_get_user_cache_dir (), "lightdm", "log", NULL);
         config_set_string (config_get_instance (), "LightDM", "log-directory", path);
         g_free (path);
     }
