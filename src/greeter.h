@@ -38,7 +38,7 @@ GType greeter_get_type (void);
 
 Greeter *greeter_new (const gchar *theme);
 
-void greeter_set_default_user (Greeter *greeter, const gchar *username, gint timeout);
+void greeter_set_selected_user (Greeter *greeter, const gchar *username, gint timeout);
 
 const gchar *greeter_get_theme (Greeter *greeter);
 
@@ -47,10 +47,6 @@ void greeter_set_default_session (Greeter *greeter, const gchar *session);
 const gchar *greeter_get_default_session (Greeter *greeter);
 
 PAMSession *greeter_get_pam_session (Greeter *greeter);
-
-void greeter_select_user (Greeter *greeter, const gchar *username);
-
-void greeter_select_guest (Greeter *greeter);
 
 void greeter_quit (Greeter *greeter);
 

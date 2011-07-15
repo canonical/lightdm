@@ -56,11 +56,11 @@ void display_set_session_wrapper (Display *display, const gchar *session_wrapper
 
 const gchar *display_get_session_wrapper (Display *display);
 
-void display_set_default_user (Display *display, const gchar *username);
+void display_set_default_user (Display *display, const gchar *username, gboolean is_guest, gboolean requires_password, gint timeout);
 
 const gchar *display_get_default_user (Display *display);
 
-void display_set_default_user_timeout (Display *display, gint timeout);
+gboolean display_get_default_user_requires_password (Display *display);
 
 gint display_get_default_user_timeout (Display *display);
 

@@ -60,8 +60,6 @@ struct _LdmGreeterClass
     void (*show_message)(LdmGreeter *greeter, const gchar *text, LdmMessageType type);
     void (*authentication_complete)(LdmGreeter *greeter);
     void (*timed_login)(LdmGreeter *greeter, const gchar *username);
-    void (*select_user)(LdmGreeter *greeter, const gchar *username);
-    void (*select_guest)(LdmGreeter *greeter);
     void (*user_added)(LdmGreeter *greeter, LdmUser *user);
     void (*user_changed)(LdmGreeter *greeter, LdmUser *user);
     void (*user_removed)(LdmGreeter *greeter, LdmUser *user);

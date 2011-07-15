@@ -45,8 +45,8 @@ struct GreeterPrivate
     /* Default session to use */   
     gchar *default_session;
 
-    /* Default user to log in as, or NULL for no default */
-    gchar *default_user;
+    /* Hint for user to select */
+    gchar *selected_user;
 
     /* Time in seconds to wait until logging in as default user */
     gint autologin_timeout;
@@ -77,12 +77,12 @@ greeter_new (const gchar *theme)
 }
 
 void
-greeter_set_default_user (Greeter *greeter, const gchar *username, gint timeout)
+greeter_set_selected_user (Greeter *greeter, const gchar *username, gint timeout)
 {
     g_return_if_fail (greeter != NULL);
 
-    g_free (greeter->priv->default_user);
-    greeter->priv->default_user = g_strdup (username);
+    g_free (greeter->priv->selected_user);
+    greeter->priv->selected_user = g_strdup (username);
     greeter->priv->autologin_timeout = timeout;
 }
 
@@ -151,12 +151,20 @@ write_int (guint8 *buffer, gint buffer_length, guint32 value, gsize *offset)
 static void
 write_string (guint8 *buffer, gint buffer_length, const gchar *value, gsize *offset)
 {
-    gint length = strlen (value);
+    gint length;
+  
+    if (value)
+        length = strlen (value);
+    else
+        length = 0;
     write_int (buffer, buffer_length, length, offset);
     if (*offset + length >= buffer_length)
         return;
-    memcpy (buffer + *offset, value, length);
-    *offset += length;
+    if (length > 0)
+    {
+        memcpy (buffer + *offset, value, length);
+        *offset += length;
+    }
 }
 
 static void
@@ -169,7 +177,10 @@ write_header (guint8 *buffer, gint buffer_length, guint32 id, guint32 length, gs
 static guint32
 string_length (const gchar *value)
 {
-    return int_length () + strlen (value);
+    if (value == NULL)
+        return int_length ();
+    else
+        return int_length () + strlen (value);
 }
 
 static void
@@ -189,10 +200,10 @@ handle_connect (Greeter *greeter)
     theme = g_build_filename (theme_dir, greeter->priv->theme, "index.theme", NULL);
     g_free (theme_dir);
 
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECTED, string_length (theme) + string_length (greeter->priv->default_session) + string_length (greeter->priv->default_user ? greeter->priv->default_user : "") + int_length () + int_length (), &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECTED, string_length (theme) + string_length (greeter->priv->default_session) + string_length (greeter->priv->selected_user) + int_length () + int_length (), &offset);
     write_string (message, MAX_MESSAGE_LENGTH, theme, &offset);
     write_string (message, MAX_MESSAGE_LENGTH, greeter->priv->default_session, &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, greeter->priv->default_user ? greeter->priv->default_user : "", &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, greeter->priv->selected_user, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->autologin_timeout, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, guest_account_get_is_enabled (), &offset);
     write_message (greeter, message, offset);
@@ -394,27 +405,6 @@ handle_cancel_authentication (Greeter *greeter)
     pam_session_cancel (greeter->priv->pam_session);
 }
 
-void
-greeter_select_user (Greeter *greeter, const gchar *username)
-{
-    guint8 message[MAX_MESSAGE_LENGTH];
-    gsize offset = 0;
-
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_SELECT_USER, string_length (username), &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
-    write_message (greeter, message, offset);
-}
-
-void
-greeter_select_guest (Greeter *greeter)
-{
-    guint8 message[MAX_MESSAGE_LENGTH];
-    gsize offset = 0;
-
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_SELECT_GUEST, 0, &offset);
-    write_message (greeter, message, offset);
-}
-
 static gboolean
 quit_greeter_cb (gpointer data)
 {
@@ -452,7 +442,7 @@ handle_start_session (Greeter *greeter, gchar *session)
 
     g_debug ("Greeter start session %s", session);
 
-    g_signal_emit (greeter, signals[START_SESSION], 0, session);
+    g_signal_emit (greeter, signals[START_SESSION], 0, session, greeter->priv->using_guest_account);
 }
 
 static guint32
@@ -638,7 +628,7 @@ greeter_finalize (GObject *object)
     g_free (self->priv->read_buffer);
     g_free (self->priv->theme);
     g_free (self->priv->default_session);
-    g_free (self->priv->default_user);
+    g_free (self->priv->selected_user);
     if (self->priv->using_guest_account)
         guest_account_unref ();
 
@@ -658,8 +648,8 @@ greeter_class_init (GreeterClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (GreeterClass, start_session),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__STRING,
-                      G_TYPE_NONE, 1, G_TYPE_STRING);
+                      ldm_marshal_VOID__STRING_BOOLEAN,
+                      G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_BOOLEAN);
 
     g_type_class_add_private (klass, sizeof (GreeterPrivate));
 }

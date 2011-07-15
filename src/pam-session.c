@@ -404,9 +404,8 @@ pam_session_cancel (PAMSession *session)
     {
         g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_CONV_ERR);
     }
-    else
+    else if (session->priv->authentication_thread)
     {
-        g_return_if_fail (session->priv->authentication_thread != NULL);
         session->priv->cancel = TRUE;
         g_async_queue_push (session->priv->authentication_response_queue, GINT_TO_POINTER (-1));
     }

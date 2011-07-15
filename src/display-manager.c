@@ -392,21 +392,21 @@ add_display (DisplayManager *manager, XServer *xserver)
 }
 
 static gboolean
-switch_to_user (DisplayManager *manager, const gchar *username)
+switch_to_user (DisplayManager *manager, const gchar *username, gboolean is_guest)
 {
     GList *link;
-    Display *greeter_display = NULL;
+    Display *display = NULL;
     XServer *xserver;
 
     /* Switch to active display if it exists */
     for (link = manager->priv->displays; link; link = link->next)
     {
-        Display *display = link->data;
+        display = link->data;
  
-        /* If running a greeter can't use this one */
+        /* Shouldn't be any other greeters running, close them if so */
         if (display_get_greeter (display))
         {
-            greeter_display = display;
+            display_stop (display);
             continue;
         }
 
@@ -418,25 +418,16 @@ switch_to_user (DisplayManager *manager, const gchar *username)
         }
     }
 
-    /* If there is an existing greeter then switch to that */
-    if (greeter_display)
-    {
-        g_debug ("Switching to greeter session on display %s", xserver_get_address (display_get_xserver (greeter_display)));
-        if (strcmp (username, guest_account_get_username ()) == 0)
-            greeter_select_guest (display_get_greeter (greeter_display));
-        else
-            greeter_select_user (display_get_greeter (greeter_display), username);
-        display_show (greeter_display);
-        return TRUE;
-    }
-
     g_debug ("Starting new display to switch user");
-
+  
     xserver = make_xserver (manager, NULL);
-    greeter_display = add_display (manager, xserver);
-    // FIXME: Add selected user hint
+    display = add_display (manager, xserver);
+    if (is_guest)
+        display_set_default_user (display, NULL, TRUE, FALSE, 0);
+    else if (username)
+        display_set_default_user (display, username, FALSE, TRUE, 0);    
     g_object_unref (xserver);
-    display_start (greeter_display);
+    display_start (display);
 
     return FALSE;
 }
@@ -447,7 +438,7 @@ display_manager_show_greeter (DisplayManager *manager)
     g_return_if_fail (manager != NULL);
 
     g_debug ("Showing greeter");
-    switch_to_user (manager, NULL);
+    switch_to_user (manager, NULL, FALSE);
 }
 
 gboolean
@@ -457,7 +448,7 @@ display_manager_switch_to_user (DisplayManager *manager, const gchar *username)
     g_return_val_if_fail (username != NULL, FALSE);
 
     g_debug ("Switching to user %s", username);
-    return switch_to_user (manager, username);
+    return switch_to_user (manager, username, FALSE);
 }
 
 gboolean
@@ -469,7 +460,7 @@ display_manager_switch_to_guest (DisplayManager *manager)
         return FALSE;
 
     g_debug ("Switching to guest account");
-    return switch_to_user (manager, guest_account_get_username ());
+    return switch_to_user (manager, guest_account_get_username (), TRUE);
 }
 
 static gboolean
@@ -698,14 +689,7 @@ display_manager_start (DisplayManager *manager)
             user_timeout = 0;
 
         if (default_user)
-        {
-            display_set_default_user (display, default_user);
-            display_set_default_user_timeout (display, user_timeout);
-            if (user_timeout == 0)
-                g_debug ("Starting session for user %s", default_user);
-            else
-                g_debug ("Starting session for user %s in %d seconds", default_user, user_timeout);
-        }
+            display_set_default_user (display, default_user, FALSE, FALSE, user_timeout);
 
         /* Stop Plymouth when the X server starts/fails */
         if (replaces_plymouth)

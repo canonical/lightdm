@@ -10,8 +10,6 @@ Overview of changes in lightdm 0.4.4
     * Enironment is no longer passed through to X servers and sessions, this is
       no longer required now PAM works correctly.
     * liblightdm API changes:
-      - Added two signals: select-user and select-guest.  This requires the
-        greeter to select a user account for logging in.
       - Drop ldm_greeter_get_is_first() - it was added for testing and doesn't
         work well.
     * Fix more errors where authentication messages from previous sessions could

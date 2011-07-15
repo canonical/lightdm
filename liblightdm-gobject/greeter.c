@@ -50,8 +50,6 @@ enum {
     SHOW_MESSAGE,
     AUTHENTICATION_COMPLETE,
     TIMED_LOGIN,
-    SELECT_USER,
-    SELECT_GUEST,
     USER_ADDED,
     USER_CHANGED,
     USER_REMOVED,
@@ -110,7 +108,7 @@ struct _LdmGreeterPrivate
     guint32 authenticate_sequence_number;
     gboolean cancelling_authentication;
 
-    gchar *timed_user;
+    gchar *selected_user;
     gint login_delay;
     guint login_timeout;
     gboolean guest_account_supported;
@@ -140,7 +138,7 @@ timed_login_cb (gpointer data)
     LdmGreeter *greeter = data;
 
     greeter->priv->login_timeout = 0;
-    g_signal_emit (G_OBJECT (greeter), signals[TIMED_LOGIN], 0, greeter->priv->timed_user);
+    g_signal_emit (G_OBJECT (greeter), signals[TIMED_LOGIN], 0, greeter->priv->selected_user);
 
     return FALSE;
 }
@@ -245,41 +243,26 @@ handle_connected (LdmGreeter *greeter, gsize *offset)
 {
     greeter->priv->theme = read_string (greeter, offset);
     greeter->priv->default_session = read_string (greeter, offset);
-    greeter->priv->timed_user = read_string (greeter, offset);
+    greeter->priv->selected_user = read_string (greeter, offset);
     greeter->priv->login_delay = read_int (greeter, offset);
     greeter->priv->guest_account_supported = read_int (greeter, offset) != 0;
 
     g_debug ("Connected theme=%s default-session=%s timed-user=%s login-delay=%d guest-account-supported=%s",
              greeter->priv->theme,
              greeter->priv->default_session,
-             greeter->priv->timed_user, greeter->priv->login_delay,
+             greeter->priv->selected_user, greeter->priv->login_delay,
              greeter->priv->guest_account_supported ? "true" : "false");
 
+    if (greeter->priv->selected_user[0] == '\0')
+        greeter->priv->selected_user = NULL;
+
     /* Set timeout for default login */
-    if (greeter->priv->timed_user[0] != '\0' && greeter->priv->login_delay > 0)
+    if (greeter->priv->selected_user && greeter->priv->login_delay > 0)
     {
-        g_debug ("Logging in as %s in %d seconds", greeter->priv->timed_user, greeter->priv->login_delay);
+        g_debug ("Logging in as %s in %d seconds", greeter->priv->selected_user, greeter->priv->login_delay);
         greeter->priv->login_timeout = g_timeout_add (greeter->priv->login_delay * 1000, timed_login_cb, greeter);
     }
     g_signal_emit (G_OBJECT (greeter), signals[CONNECTED], 0);
-}
-
-static void
-handle_select_user (LdmGreeter *greeter, gsize *offset)
-{
-    gchar *username;
-
-    username = read_string (greeter, offset);
-    g_debug ("Got request to select user %s", username);
-    g_signal_emit (G_OBJECT (greeter), signals[SELECT_USER], 0, username);
-    g_free (username);
-}
-
-static void
-handle_select_guest (LdmGreeter *greeter, gsize *offset)
-{
-    g_debug ("Got request to select guest account");
-    g_signal_emit (G_OBJECT (greeter), signals[SELECT_GUEST], 0);
 }
 
 static void
@@ -428,12 +411,6 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     {
     case GREETER_MESSAGE_CONNECTED:
         handle_connected (greeter, &offset);
-        break;
-    case GREETER_MESSAGE_SELECT_USER:
-        handle_select_user (greeter, &offset);
-        break;
-    case GREETER_MESSAGE_SELECT_GUEST:
-        handle_select_guest (greeter, &offset);
         break;
     case GREETER_MESSAGE_PROMPT_AUTHENTICATION:
         handle_prompt_authentication (greeter, &offset);
@@ -1283,7 +1260,7 @@ const gchar *
 ldm_greeter_get_timed_login_user (LdmGreeter *greeter)
 {
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
-    return greeter->priv->timed_user;
+    return greeter->priv->selected_user;
 }
 
 /**
@@ -2049,37 +2026,6 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__STRING,
                       G_TYPE_NONE, 1, G_TYPE_STRING);
-
-    /**
-     * LdmGreeter::select-user:
-     * @greeter: A #LdmGreeter
-     * @username: A username
-     *
-     * The ::select-user signal gets emitted when the daemon request the greeter to select a user to log in as.
-     **/
-    signals[SELECT_USER] =
-        g_signal_new ("select-user",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (LdmGreeterClass, select_user),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__STRING,
-                      G_TYPE_NONE, 1, G_TYPE_STRING);
-
-    /**
-     * LdmGreeter::select-guest:
-     * @greeter: A #LdmGreeter
-     *
-     * The ::select-guest signal gets emitted when the deamon requests the greeter to select the guest account.
-     **/
-    signals[SELECT_GUEST] =
-        g_signal_new ("select-guest",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (LdmGreeterClass, select_guest),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
 
     /**
      * LdmGreeter::user-added:

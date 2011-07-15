@@ -366,18 +366,6 @@ user_removed_cb (LdmGreeter *greeter, LdmUser *user)
 }
 
 static void
-select_user_cb (LdmGreeter *greeter, const gchar *username)
-{
-    // FIXME
-}
-
-static void
-select_guest_cb (LdmGreeter *greeter)
-{
-    // FIXME
-}
-
-static void
 quit_cb (LdmGreeter *greeter, const gchar *username)
 {
     /* Fade out the greeter */
@@ -433,7 +421,7 @@ draw_background_cb (GtkWidget *widget, GdkEventExpose *event)
 }
 
 static void
-connect_cb (LdmGreeter *greeter)
+connected_cb (LdmGreeter *greeter)
 {
     GdkWindow *root;
     GdkDisplay *display;
@@ -578,6 +566,8 @@ connect_cb (LdmGreeter *greeter)
                         1, "Other...",
                         2, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
                         -1);
+  
+    // FIXME: Select the requested user if ldm_greeter_get_timed_login_user () && ldm_greeter_get_timed_login_delay () == 0
 
     renderer = gtk_cell_renderer_text_new();
     gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (session_combo), renderer, TRUE);
@@ -614,7 +604,7 @@ main(int argc, char **argv)
     g_type_init ();
 
     greeter = ldm_greeter_new ();
-    g_signal_connect (G_OBJECT (greeter), "connected", G_CALLBACK (connect_cb), NULL);    
+    g_signal_connect (G_OBJECT (greeter), "connected", G_CALLBACK (connected_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "show-prompt", G_CALLBACK (show_prompt_cb), NULL);  
     g_signal_connect (G_OBJECT (greeter), "show-message", G_CALLBACK (show_message_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
@@ -622,8 +612,6 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "user-added", G_CALLBACK (user_added_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "user-changed", G_CALLBACK (user_changed_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "user-removed", G_CALLBACK (user_removed_cb), NULL);
-    g_signal_connect (G_OBJECT (greeter), "select-user", G_CALLBACK (select_user_cb), NULL);
-    g_signal_connect (G_OBJECT (greeter), "select-guest", G_CALLBACK (select_guest_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
     ldm_greeter_connect_to_server (greeter);
 
