@@ -35,7 +35,6 @@ typedef struct
     GObjectClass parent_class;
 
     gboolean (*start)(Seat *seat);
-    gboolean (*get_can_switch)(Seat *seat); // FIXME: Make a construct property
     Display *(*add_display)(Seat *seat);
     void (*set_active_display)(Seat *seat, Display *display);
     void (*stop)(Seat *seat);
@@ -46,11 +45,15 @@ typedef struct
 
 GType seat_get_type (void);
 
+void seat_set_can_switch (Seat *seat, gboolean can_switch);
+
+void seat_set_autologin_user (Seat *seat, const gchar *username, guint timeout);
+
+void seat_set_autologin_guest (Seat *seat, guint timeout);
+
 gboolean seat_start (Seat *seat);
 
 GList *seat_get_displays (Seat *seat);
-
-void seat_remove_display (Seat *seat, Display *display);
 
 gboolean seat_get_can_switch (Seat *seat);
 

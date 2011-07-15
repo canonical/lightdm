@@ -129,7 +129,7 @@ handle_display_manager_call (GDBusConnection       *connection,
                              GDBusMethodInvocation *invocation,
                              gpointer               user_data)
 {
-    if (g_strcmp0 (method_name, "ShowGreeter") == 0)
+    if (g_strcmp0 (method_name, "SwitchToGreeter") == 0)
     {
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
             return;
@@ -183,7 +183,7 @@ bus_acquired_cb (GDBusConnection *connection,
         "<node>"
         "  <interface name='org.freedesktop.DisplayManager'>"
         "    <property name='ConfigFile' type='s' access='read'/>"
-        "    <method name='ShowGreeter'/>"
+        "    <method name='SwitchToGreeter'/>"
         "    <method name='SwitchToUser'>"
         "      <arg name='username' direction='in' type='s'/>"
         "    </method>"

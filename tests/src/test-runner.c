@@ -220,20 +220,20 @@ run_commands ()
         {
             sleep (1);
         }
-        else if (strcmp (name, "SHOW-GREETER") == 0)
+        else if (strcmp (name, "SWITCH-TO-GREETER") == 0)
         {
             g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL),
                                          "org.freedesktop.DisplayManager",
                                          "/org/freedesktop/DisplayManager",                                         
                                          "org.freedesktop.DisplayManager",
-                                         "ShowGreeter",
+                                         "SwitchToGreeter",
                                          g_variant_new ("()"),
                                          G_VARIANT_TYPE ("()"),
                                          G_DBUS_CALL_FLAGS_NONE,
                                          1000,
                                          NULL,
                                          NULL);
-            check_status ("RUNNER SHOW-GREETER");
+            check_status ("RUNNER SWITCH-TO-GREETER");
         }
         else if (strcmp (name, "SWITCH-TO-USER") == 0)
         {

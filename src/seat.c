@@ -27,6 +27,14 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct SeatPrivate
 {
+    /* True if able to switch users */
+    gboolean can_switch;
+
+    /* User to automatically log in as */
+    gchar *autologin_username;
+    gboolean autologin_guest;
+    guint autologin_timeout;
+
     /* The displays for this seat */
     GList *displays;
 
@@ -35,6 +43,36 @@ struct SeatPrivate
 };
 
 G_DEFINE_TYPE (Seat, seat, G_TYPE_OBJECT);
+
+void
+seat_set_can_switch (Seat *seat, gboolean can_switch)
+{
+    g_return_if_fail (seat != NULL);
+
+    seat->priv->can_switch = can_switch;
+}
+
+void
+seat_set_autologin_user (Seat *seat, const gchar *username, guint timeout)
+{
+    g_return_if_fail (seat != NULL);
+  
+    g_free (seat->priv->autologin_username);
+    seat->priv->autologin_username = g_strdup (username);
+    seat->priv->autologin_timeout = timeout;
+    seat->priv->autologin_guest = FALSE;
+}
+
+void
+seat_set_autologin_guest (Seat *seat, guint timeout)
+{
+    g_return_if_fail (seat != NULL);
+
+    g_free (seat->priv->autologin_username);
+    seat->priv->autologin_username = NULL;
+    seat->priv->autologin_timeout = timeout;
+    seat->priv->autologin_guest = TRUE;
+}
 
 gboolean
 seat_start (Seat *seat)
@@ -50,25 +88,37 @@ seat_get_displays (Seat *seat)
     return seat->priv->displays;
 }
 
-void
-seat_remove_display (Seat *seat, Display *display)
-{
-    g_return_if_fail (seat != NULL);
-    g_return_if_fail (display != NULL);
-    seat->priv->displays = g_list_remove (seat->priv->displays, display);
-}
-
 gboolean
 seat_get_can_switch (Seat *seat)
 {
     g_return_val_if_fail (seat != NULL, FALSE);
-    return SEAT_GET_CLASS (seat)->get_can_switch (seat);
+    return seat->priv->can_switch;
 }
 
 static gboolean
 display_activate_user_cb (Display *display, const gchar *username, Seat *seat)
 {
-    return seat_switch_to_user (seat, username);
+    GList *link;
+
+    /* Switch to active display if it exists */
+    for (link = seat->priv->displays; link; link = link->next)
+    {
+        Display *d = link->data;
+
+        if (d == display)
+            continue;
+ 
+        /* If already logged in, then switch to that display and stop the greeter display */
+        if (g_strcmp0 (display_get_session_user (d), username) == 0)
+        {
+            g_debug ("Switching to user %s session on display %s", username, xserver_get_address (display_get_xserver (display)));
+            SEAT_GET_CLASS (seat)->set_active_display (seat, display);
+            return TRUE;
+        }
+    }
+
+    /* Otherwise start on this display */
+    return FALSE;
 }
 
 static gboolean
@@ -89,6 +139,19 @@ display_stopped_cb (Display *display, Seat *seat)
     seat->priv->displays = g_list_remove (seat->priv->displays, display);
     if (seat->priv->stopping)
         check_stopped (seat);
+}
+
+static Display *
+add_display (Seat *seat)
+{
+    Display *display;
+
+    display = SEAT_GET_CLASS (seat)->add_display (seat);
+    g_signal_connect (display, "activate-user", G_CALLBACK (display_activate_user_cb), seat);
+    g_signal_connect (display, "stopped", G_CALLBACK (display_stopped_cb), seat);
+    seat->priv->displays = g_list_append (seat->priv->displays, display);
+  
+    return display;
 }
 
 static gboolean
@@ -118,11 +181,7 @@ switch_to_user (Seat *seat, const gchar *username, gboolean is_guest)
         }
     }
 
-    display = SEAT_GET_CLASS (seat)->add_display (seat);
-    g_signal_connect (display, "activate-user", G_CALLBACK (display_activate_user_cb), seat);
-    g_signal_connect (display, "stopped", G_CALLBACK (display_stopped_cb), seat);
-    seat->priv->displays = g_list_append (seat->priv->displays, display);
-
+    display = add_display (seat);
     if (is_guest)
         display_set_default_user (display, NULL, TRUE, FALSE, 0);
     else if (username)
@@ -135,8 +194,8 @@ gboolean
 seat_switch_to_greeter (Seat *seat)
 {
     g_return_val_if_fail (seat != NULL, FALSE);
-  
-    if (!seat_get_can_switch (seat))
+
+    if (!seat->priv->can_switch)
         return FALSE;
 
     g_debug ("Showing greeter");
@@ -150,7 +209,7 @@ seat_switch_to_user (Seat *seat, const gchar *username)
     g_return_val_if_fail (seat != NULL, FALSE);
     g_return_val_if_fail (username != NULL, FALSE);
 
-    if (!seat_get_can_switch (seat))
+    if (!seat->priv->can_switch)
         return FALSE;
 
     g_debug ("Switching to user %s", username);
@@ -162,7 +221,7 @@ seat_switch_to_guest (Seat *seat)
 {
     g_return_val_if_fail (seat != NULL, FALSE);
 
-    if (!seat_get_can_switch (seat))
+    if (!seat->priv->can_switch)
         return FALSE;
 
     if (!guest_account_get_is_enabled ())
@@ -185,13 +244,16 @@ seat_stop (Seat *seat)
 static gboolean
 seat_real_start (Seat *seat)
 {
-    return seat_switch_to_greeter (seat);
-}
+    Display *display;
 
-static gboolean
-seat_real_get_can_switch (Seat *seat)
-{
-    return FALSE;
+    display = add_display (seat);
+
+    if (seat->priv->autologin_username)
+        display_set_default_user (display, seat->priv->autologin_username, FALSE, FALSE, seat->priv->autologin_timeout);
+    else if (seat->priv->autologin_guest)
+        display_set_default_user (display, NULL, TRUE, FALSE, seat->priv->autologin_timeout);
+
+    return display_start (display);
 }
 
 static Display *
@@ -247,7 +309,6 @@ seat_class_init (SeatClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     klass->start = seat_real_start;
-    klass->get_can_switch = seat_real_get_can_switch;
     klass->add_display = seat_real_add_display;
     klass->set_active_display = seat_real_set_active_display;
     klass->stop = seat_real_stop;

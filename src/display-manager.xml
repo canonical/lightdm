@@ -3,7 +3,7 @@
   <interface name="org.freedesktop.DisplayManager">
 
     <!-- Show greeter to allow new login / switch users -->
-    <method name="ShowGreeter"/>
+    <method name="SwitchToGreeter"/>
 
     <!-- Switch to a user, starting a new display if required -->
     <method name="SwitchToUser">

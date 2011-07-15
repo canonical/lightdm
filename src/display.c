@@ -598,7 +598,7 @@ start_user_session (Display *display, const gchar *session)
     // FIXME: Copy old error file  
     log_filename = g_build_filename (user_get_home_directory (user), ".xsession-errors", NULL);
     g_debug ("Logging to %s", log_filename);
-    child_process_set_log_file (CHILD_PROCESS (session), log_filename);
+    child_process_set_log_file (CHILD_PROCESS (display->priv->user_session), log_filename);
     g_free (log_filename);
 
     /* Connect using the session bus */
@@ -711,9 +711,10 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session, gboolean is_gu
         return;
     }
 
+    /* Stop this display if can switch to that user */
     if (activate_user (display, pam_session_get_username (display->priv->user_pam_session)))
     {
-        display_stop (display);      
+        display_stop (display);
         return;
     }
 

@@ -60,12 +60,15 @@ add_seat (DisplayManager *manager, Seat *seat)
 {
     gboolean result;
 
-    manager->priv->seats = g_list_append (manager->priv->seats, seat);
+    manager->priv->seats = g_list_append (manager->priv->seats, g_object_ref (seat));
     result = seat_start (SEAT (seat));
 
     if (!result)
+    {
         manager->priv->seats = g_list_remove (manager->priv->seats, seat);
-  
+        g_object_unref (seat);
+    }
+
     return result;
 }
 
@@ -77,8 +80,7 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
 
     seat = seat_xdmcp_session_new (session);  
     result = add_seat (manager, SEAT (seat));
-    if (!result)
-       g_object_unref (seat);
+    g_object_unref (seat);
   
     return result;
 }
@@ -113,6 +115,7 @@ display_manager_start (DisplayManager *manager)
 
         if (!add_seat (manager, SEAT (seat)))
             g_warning ("Failed to start seat %s", seat_name);
+        g_object_unref (seat);
     }
     g_strfreev (tokens);
 

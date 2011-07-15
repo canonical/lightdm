@@ -28,17 +28,21 @@ SeatLocal *
 seat_local_new (const gchar *config_section)
 {
     SeatLocal *seat;
+    gchar *username;
+    guint timeout;
 
     seat = g_object_new (SEAT_LOCAL_TYPE, NULL);
     seat->priv->config_section = g_strdup (config_section);
 
-    return seat;
-}
+    seat_set_can_switch (SEAT (seat), TRUE);
+    username = config_get_string (config_get_instance (), config_section, "default-user");
+    timeout = config_get_integer (config_get_instance (), config_section, "default-user-timeout");
+    if (timeout < 0)
+        timeout = 0;
+    if (username)
+        seat_set_autologin_user (SEAT (seat), username, timeout);
 
-static gboolean
-seat_local_get_can_switch (Seat *seat)
-{
-    return TRUE;
+    return seat;
 }
 
 static Display *
@@ -46,12 +50,13 @@ seat_local_add_display (Seat *seat)
 {
     XServer *xserver;
     XAuthorization *authorization = NULL;
-    gchar *dir, *filename, *path, *command, *xserver_section = NULL;
+    gchar *xserver_section = NULL;
+    gchar *command, *dir, *filename, *path;
     gchar *number;
     gchar hostname[1024];
     Display *display;
 
-    g_debug ("Starting new display to switch user");
+    g_debug ("Starting display");
 
     xserver = xserver_new (XSERVER_TYPE_LOCAL, NULL, xserver_get_free_display_number ());
     number = g_strdup_printf ("%d", xserver_get_display_number (xserver));
@@ -148,7 +153,6 @@ seat_local_class_init (SeatLocalClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     SeatClass *seat_class = SEAT_CLASS (klass);
 
-    seat_class->get_can_switch = seat_local_get_can_switch;
     seat_class->add_display = seat_local_add_display;
     seat_class->set_active_display = seat_local_set_active_display;
     object_class->finalize = seat_local_finalize;

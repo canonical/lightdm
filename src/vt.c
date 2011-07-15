@@ -114,6 +114,9 @@ vt_get_unused (void)
 {
     gint number;
 
+    if (getuid () != 0)
+        return -1;
+
     number = vt_get_min ();
     while (vt_is_used (number))
         number++;
