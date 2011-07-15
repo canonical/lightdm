@@ -50,7 +50,7 @@ seat_local_add_display (Seat *seat)
 {
     XServer *xserver;
     XAuthorization *authorization = NULL;
-    gchar *command, *dir, *filename, *path;
+    gchar *dir, *filename, *path;
     gchar *xserver_command, *xserver_layout, *xserver_config;
     gchar *number;
     gchar hostname[1024];
@@ -65,10 +65,6 @@ seat_local_add_display (Seat *seat)
     g_free (number);
 
     xserver_set_vt (xserver, vt_get_unused ());
-
-    command = config_get_string (config_get_instance (), "LightDM", "default-xserver-command");
-    xserver_set_command (xserver, command);
-    g_free (command);
 
     xserver_set_authorization (xserver, authorization);
     g_object_unref (authorization);

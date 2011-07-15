@@ -43,7 +43,7 @@ seat_xdmcp_client_add_display (Seat *seat)
 {
     XServer *xserver;
     XAuthorization *authorization = NULL;
-    gchar *xdmcp_manager, *dir, *filename, *path, *command;
+    gchar *xdmcp_manager, *dir, *filename, *path;
     gchar *xserver_command, *xserver_layout, *xserver_config;
     gint port;
     //gchar *key;
@@ -70,10 +70,6 @@ seat_xdmcp_client_add_display (Seat *seat)
     }*/
 
     xserver_set_vt (xserver, vt_get_unused ());
-
-    command = config_get_string (config_get_instance (), "LightDM", "default-xserver-command");
-    xserver_set_command (xserver, command);
-    g_free (command);
 
     xserver_set_authorization (xserver, authorization);
     g_object_unref (authorization);
