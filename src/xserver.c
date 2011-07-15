@@ -367,12 +367,34 @@ xserver_connect (XServer *server)
     return xcb_connection_has_error (server->priv->connection) == 0;
 }
 
+static gchar *
+get_absolute_command (const gchar *command)
+{
+    gchar **tokens;
+    gchar *absolute_binary, *absolute_command = NULL;
+
+    tokens = g_strsplit (command, " ", 2);
+
+    absolute_binary = g_find_program_in_path (tokens[0]);
+    if (absolute_binary)
+    {
+        if (tokens[1])
+            absolute_command = g_strjoin (" ", absolute_binary, tokens[1], NULL);
+        else
+            absolute_command = g_strdup (absolute_binary);
+    }
+
+    g_strfreev (tokens);
+
+    return absolute_command;
+}
+
 gboolean
 xserver_start (XServer *server)
 {
     GError *error = NULL;
     gboolean result;
-    gchar *full_path;
+    gchar *absolute_command;
     GString *command;
 
     g_return_val_if_fail (server != NULL, FALSE);
@@ -393,14 +415,14 @@ xserver_start (XServer *server)
 
     g_return_val_if_fail (server->priv->command != NULL, FALSE);
 
-    full_path = g_find_program_in_path (server->priv->command);
-    if (!full_path)
+    absolute_command = get_absolute_command (server->priv->command);
+    if (!absolute_command)
     {
         g_debug ("Can't launch X server %s, not found in path", server->priv->command);
         return FALSE;
     }
-    command = g_string_new (full_path);
-    g_free (full_path);
+    command = g_string_new (absolute_command);
+    g_free (absolute_command);
 
     g_string_append_printf (command, " :%d", server->priv->display_number);
 

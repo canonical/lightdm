@@ -89,23 +89,45 @@ session_get_authorization (Session *session)
     return session->priv->authorization;
 }
 
+static gchar *
+get_absolute_command (const gchar *command)
+{
+    gchar **tokens;
+    gchar *absolute_binary, *absolute_command = NULL;
+
+    tokens = g_strsplit (command, " ", 2);
+
+    absolute_binary = g_find_program_in_path (tokens[0]);
+    if (absolute_binary)
+    {
+        if (tokens[1])
+            absolute_command = g_strjoin (" ", absolute_binary, tokens[1], NULL);
+        else
+            absolute_command = g_strdup (absolute_binary);
+    }
+
+    g_strfreev (tokens);
+
+    return absolute_command;
+}
+
 gboolean
 session_start (Session *session, gboolean create_pipe)
 {
     //gint session_stdin, session_stdout, session_stderr;
     gboolean result;
     GError *error = NULL;
-    gchar *full_path;
+    gchar *absolute_command;
 
     g_return_val_if_fail (session != NULL, FALSE);
     g_return_val_if_fail (session->priv->user != NULL, FALSE);
     g_return_val_if_fail (session->priv->command != NULL, FALSE);
 
-    full_path = g_find_program_in_path (session->priv->command);
-    if (!full_path)
+    absolute_command = get_absolute_command (session->priv->command);
+    if (!absolute_command)
     {
         g_debug ("Can't launch session %s, not found in path", session->priv->command);
-        return FALSE;     
+        return FALSE;
     }
 
     if (session->priv->authorization)
@@ -127,10 +149,10 @@ session_start (Session *session, gboolean create_pipe)
     result = child_process_start (CHILD_PROCESS (session),
                                   session->priv->user,
                                   user_get_home_directory (session->priv->user),
-                                  full_path,
+                                  absolute_command,
                                   create_pipe,
                                   &error);
-    g_free (full_path);
+    g_free (absolute_command);
 
     if (!result)
         g_warning ("Failed to spawn session: %s", error->message);
