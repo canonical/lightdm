@@ -126,15 +126,5 @@ vt_get_unused (void)
 void
 vt_release (gint number)
 {
-    GList *link;
-
-    for (link = used_vts; link; link = link->next)
-    {
-        int n = GPOINTER_TO_INT (link->data);
-        if (n == number)
-            break;
-    }
-
-    if (link)
-        used_vts = g_list_remove_link (used_vts, link);
+    used_vts = g_list_remove (used_vts, GINT_TO_POINTER (link));
 }

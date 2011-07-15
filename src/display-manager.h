@@ -13,7 +13,6 @@
 #define _DISPLAY_MANAGER_H_
 
 #include <glib-object.h>
-#include "display.h"
 
 G_BEGIN_DECLS
 
@@ -28,12 +27,13 @@ typedef struct
     DisplayManagerPrivate *priv;
 } DisplayManager;
 
+#include "seat.h"
+
 typedef struct
 {
     GObjectClass parent_class;
 
     void (*started)(DisplayManager *manager);
-    void (*display_added)(DisplayManager *manager, Display *display);
     void (*stopped)(DisplayManager *manager);
 } DisplayManagerClass;
 
@@ -41,11 +41,7 @@ GType display_manager_get_type (void);
 
 DisplayManager *display_manager_new (void);
 
-void display_manager_show_greeter (DisplayManager *manager);
-
-gboolean display_manager_switch_to_user (DisplayManager *manager, const gchar *username);
-
-gboolean display_manager_switch_to_guest (DisplayManager *manager);
+Seat *display_manager_get_seat (DisplayManager *manager);
 
 void display_manager_start (DisplayManager *manager);
 

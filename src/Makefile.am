@@ -27,6 +27,16 @@ lightdm_SOURCES = \
 	ldm-marshal.h \
 	pam-session.c \
 	pam-session.h \
+	plymouth.c \
+	plymouth.h \
+	seat.c \
+	seat.h \
+	seat-local.c \
+	seat-local.h \
+	seat-xdmcp-client.c \
+	seat-xdmcp-client.h \
+	seat-xdmcp-session.c \
+	seat-xdmcp-session.h \
 	session.c \
 	session.h \
 	theme.c \

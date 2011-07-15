@@ -47,9 +47,11 @@ typedef enum
     XSERVER_TYPE_REMOTE
 } XServerType;
 
-GType xserver_get_type (void);
+guint xserver_get_free_display_number (void);
 
-void xserver_handle_signal (GPid pid);
+void xserver_release_display_number (guint number);
+
+GType xserver_get_type (void);
 
 XServer *xserver_new (XServerType type, const gchar *hostname, gint display_number);
 

@@ -87,7 +87,27 @@ struct XServerPrivate
 
 G_DEFINE_TYPE (XServer, xserver, CHILD_PROCESS_TYPE);
 
-static GHashTable *servers = NULL;
+static GList *display_numbers = NULL;
+
+guint
+xserver_get_free_display_number (void)
+{
+    guint number;
+
+    number = config_get_integer (config_get_instance (), "LightDM", "minimum-display-number");
+    while (g_list_find (display_numbers, GINT_TO_POINTER (number)))
+        number++;
+
+    display_numbers = g_list_append (display_numbers, GINT_TO_POINTER (number));
+
+    return number;
+}
+
+void
+xserver_release_display_number (guint number)
+{
+    display_numbers = g_list_remove (display_numbers, GINT_TO_POINTER (number));
+}
 
 XServer *
 xserver_new (XServerType type, const gchar *hostname, gint display_number)
@@ -604,6 +624,4 @@ xserver_class_init (XServerClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
-
-    servers = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
 }

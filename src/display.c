@@ -30,11 +30,7 @@
 
 enum {
     STARTED,
-    START_GREETER,
-    END_GREETER,
     ACTIVATE_USER,
-    START_SESSION,
-    END_SESSION,
     STOPPED,
     LAST_SIGNAL
 };
@@ -284,10 +280,7 @@ start_ck_session (Display *display, const gchar *session_type, User *user)
 
     /* Only start ConsoleKit sessions when running as root */
     if (getuid () != 0)
-    {
-        g_debug ("Not opening ConsoleKit session - not running as root");
         return NULL;
-    }
 
     if (xserver_get_vt (display->priv->xserver) >= 0)
         display_device = g_strdup_printf ("/dev/tty%d", xserver_get_vt (display->priv->xserver));
@@ -441,8 +434,6 @@ user_session_stopped_cb (Session *session, Display *display)
     {
         run_script ("PostSession");
 
-        g_signal_emit (display, signals[END_SESSION], 0, display->priv->user_session);
-
         if (display->priv->user_session_timer)
         {
             g_source_remove (display->priv->user_session_timer);
@@ -508,8 +499,6 @@ really_start_user_session (Display *display)
     if (display->priv->user_ck_cookie)
         child_process_set_env (CHILD_PROCESS (display->priv->user_session), "XDG_SESSION_COOKIE", display->priv->user_ck_cookie);
 
-    g_signal_emit (display, signals[START_SESSION], 0, display->priv->user_session);
-
     result = session_start (display->priv->user_session, FALSE);
 
     /* Create guest account */
@@ -523,10 +512,11 @@ static gboolean
 start_user_session (Display *display, const gchar *session)
 {
     gchar *filename, *path, *xsessions_dir;
-    gchar *session_command;
+    gchar *command, *log_filename;
     User *user;
     gboolean supports_transitions;
     GKeyFile *dmrc_file, *session_desktop_file;
+    XAuthorization *authorization;
     gboolean result;
     GError *error = NULL;
 
@@ -559,26 +549,26 @@ start_user_session (Display *display, const gchar *session)
     g_clear_error (&error);
     if (!result)
         return FALSE;
-    session_command = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
+    command = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
     supports_transitions = g_key_file_get_boolean (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Supports-Transitions", NULL);
     g_key_file_free (session_desktop_file);
 
-    if (!session_command)
+    if (!command)
     {
         g_warning ("No command in session file %s", path);
         return FALSE;
     }
     if (display->priv->session_wrapper)
     {
-        gchar *old_command = session_command;
-        session_command = g_strdup_printf ("%s '%s'", display->priv->session_wrapper, session_command);
-        g_free (old_command);
+        gchar *t = command;
+        command = g_strdup_printf ("%s '%s'", display->priv->session_wrapper, command);
+        g_free (t);
     }
 
     user = user_get_by_name (pam_session_get_username (display->priv->user_pam_session));
     if (!user)
     {
-        g_free (session_command);
+        g_free (command);
         g_warning ("Unable to start session, user %s does not exist", pam_session_get_username (display->priv->user_pam_session));
         return FALSE;
     }
@@ -590,7 +580,7 @@ start_user_session (Display *display, const gchar *session)
     g_signal_connect (G_OBJECT (display->priv->user_session), "stopped", G_CALLBACK (user_session_stopped_cb), display);
 
     session_set_user (display->priv->user_session, user);
-    session_set_command (display->priv->user_session, session_command);
+    session_set_command (display->priv->user_session, command);
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "PATH", "/usr/local/bin:/usr/bin:/bin");
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "USER", user_get_name (user));
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "USERNAME", user_get_name (user)); // FIXME: Is this required?
@@ -600,7 +590,25 @@ start_user_session (Display *display, const gchar *session)
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDMSESSION", session); // FIXME: Not cross-desktop
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DISPLAY", xserver_get_address (display->priv->xserver));
     set_env_from_pam_session (display->priv->user_session, display->priv->user_pam_session);
-  
+
+    authorization = xserver_get_authorization (display_get_xserver (display));
+    if (authorization)
+        session_set_authorization (display->priv->user_session, authorization);
+
+    // FIXME: Copy old error file  
+    log_filename = g_build_filename (user_get_home_directory (user), ".xsession-errors", NULL);
+    g_debug ("Logging to %s", log_filename);
+    child_process_set_log_file (CHILD_PROCESS (session), log_filename);
+    g_free (log_filename);
+
+    /* Connect using the session bus */
+    if (getuid () != 0)
+    {
+        child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DBUS_SESSION_BUS_ADDRESS", getenv ("DBUS_SESSION_BUS_ADDRESS"));
+        child_process_set_env (CHILD_PROCESS (display->priv->user_session), "XDG_SESSION_COOKIE", getenv ("XDG_SESSION_COOKIE"));
+        child_process_set_env (CHILD_PROCESS (display->priv->user_session), "LDM_BUS", "SESSION");
+    }
+
     /* Variable required for regression tests */
     if (getenv ("LIGHTDM_TEST_STATUS_SOCKET"))
     {
@@ -611,7 +619,7 @@ start_user_session (Display *display, const gchar *session)
     }
 
     g_object_unref (user);
-    g_free (session_command);
+    g_free (command);
 
     /* Start it now, or wait for the greeter to quit */
     if (display->priv->greeter_session == NULL || display->priv->supports_transitions)
@@ -704,7 +712,10 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session, gboolean is_gu
     }
 
     if (activate_user (display, pam_session_get_username (display->priv->user_pam_session)))
+    {
+        display_stop (display);      
         return;
+    }
 
     start_user_session (display, session);
 
@@ -721,8 +732,6 @@ static void
 greeter_stopped_cb (Greeter *greeter, Display *display)
 {
     g_debug ("Greeter quit");
-
-    g_signal_emit (display, signals[END_GREETER], 0, display->priv->greeter_session);
 
     pam_session_end (display->priv->greeter_pam_session);
     g_object_unref (display->priv->greeter_pam_session);
@@ -750,8 +759,9 @@ static gboolean
 start_greeter (Display *display)
 {
     GKeyFile *theme;
-    gchar *command;
+    gchar *command, *log_dir, *filename, *log_filename;
     User *user;
+    XAuthorization *authorization;
     gboolean result;
     GError *error = NULL;
 
@@ -803,6 +813,27 @@ start_greeter (Display *display)
         child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "XDG_SESSION_COOKIE", display->priv->greeter_ck_cookie);
     set_env_from_pam_session (SESSION (display->priv->greeter_session), display->priv->greeter_pam_session);
 
+    authorization = xserver_get_authorization (display_get_xserver (display));
+    if (authorization)
+        session_set_authorization (SESSION (display->priv->greeter_session), authorization);
+
+    log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
+    filename = g_strdup_printf ("%s-greeter.log", xserver_get_address (display_get_xserver (display)));
+    log_filename = g_build_filename (log_dir, filename, NULL);
+    g_free (log_dir);
+    g_free (filename);
+    g_debug ("Logging to %s", log_filename);
+    child_process_set_log_file (CHILD_PROCESS (display->priv->greeter_session), log_filename);
+    g_free (log_filename);
+  
+    /* Connect using the session bus */
+    if (getuid () != 0)
+    {
+        child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "DBUS_SESSION_BUS_ADDRESS", getenv ("DBUS_SESSION_BUS_ADDRESS"));
+        child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "XDG_SESSION_COOKIE", getenv ("XDG_SESSION_COOKIE"));
+        child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "LDM_BUS", "SESSION");
+    }
+
     /* Variable required for regression tests */
     if (getenv ("LIGHTDM_TEST_STATUS_SOCKET"))
     {
@@ -811,8 +842,6 @@ start_greeter (Display *display)
         child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "LIGHTDM_TEST_HOME_DIR", getenv ("LIGHTDM_TEST_HOME_DIR"));
         child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "LD_LIBRARY_PATH", getenv ("LD_LIBRARY_PATH"));
     }
-
-    g_signal_emit (display, signals[START_GREETER], 0, display->priv->greeter_session);
 
     result = session_start (SESSION (display->priv->greeter_session), TRUE);
 
@@ -918,16 +947,6 @@ display_start (Display *display)
 }
 
 void
-display_show (Display *display)
-{
-    g_return_if_fail (display != NULL);
-
-    gint number = xserver_get_vt (display->priv->xserver);
-    if (number >= 0)
-        vt_set_active (number);
-}
-
-void
 display_stop (Display *display)
 {
     g_return_if_fail (display != NULL);
@@ -1003,22 +1022,6 @@ display_class_init (DisplayClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
-    signals[START_GREETER] =
-        g_signal_new ("start-greeter",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (DisplayClass, start_greeter),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
-                      G_TYPE_NONE, 1, SESSION_TYPE);
-    signals[END_GREETER] =
-        g_signal_new ("end-greeter",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (DisplayClass, end_greeter),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
-                      G_TYPE_NONE, 1, SESSION_TYPE);
     signals[ACTIVATE_USER] =
         g_signal_new ("activate-user",
                       G_TYPE_FROM_CLASS (klass),
@@ -1028,22 +1031,6 @@ display_class_init (DisplayClass *klass)
                       NULL,
                       ldm_marshal_BOOLEAN__STRING,
                       G_TYPE_BOOLEAN, 1, G_TYPE_STRING);
-    signals[START_SESSION] =
-        g_signal_new ("start-session",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (DisplayClass, start_session),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
-                      G_TYPE_NONE, 1, SESSION_TYPE);
-    signals[END_SESSION] =
-        g_signal_new ("end-session",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (DisplayClass, end_session),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
-                      G_TYPE_NONE, 1, SESSION_TYPE);
     signals[STOPPED] =
         g_signal_new ("stopped",
                       G_TYPE_FROM_CLASS (klass),

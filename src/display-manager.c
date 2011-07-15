@@ -16,16 +16,14 @@
 
 #include "display-manager.h"
 #include "configuration.h"
-#include "user.h"
+#include "display.h"
 #include "xdmcp-server.h"
-#include "xserver.h"
-#include "vt.h"
-#include "theme.h"
-#include "guest-account.h"
+#include "seat-local.h"
+#include "seat-xdmcp-client.h"
+#include "seat-xdmcp-session.h"
 
 enum {
     STARTED,
-    DISPLAY_ADDED,
     STOPPED,
     LAST_SIGNAL
 };
@@ -33,16 +31,13 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct DisplayManagerPrivate
 {
-    /* Directory to write log files to */
-    gchar *log_dir;
-
-    /* The displays being managed */
-    GList *displays;
+    /* The seats available */
+    GList *seats;
 
     /* XDMCP server */
     XDMCPServer *xdmcp_server;
 
-    /* TRUE if stopping the display manager (waiting for displays to stop) */
+    /* TRUE if stopping the display manager (waiting for seats to stop) */
     gboolean stopping;
 };
 
@@ -51,481 +46,41 @@ G_DEFINE_TYPE (DisplayManager, display_manager, G_TYPE_OBJECT);
 DisplayManager *
 display_manager_new (void)
 {
-    DisplayManager *self = g_object_new (DISPLAY_MANAGER_TYPE, NULL);
+    return g_object_new (DISPLAY_MANAGER_TYPE, NULL);
+}
 
-    self->priv->log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-
-    return self;
+Seat *
+display_manager_get_seat (DisplayManager *manager)
+{
+    return manager->priv->seats->data;
 }
 
 static gboolean
-display_number_used (DisplayManager *manager, guint display_number)
+add_seat (DisplayManager *manager, Seat *seat)
 {
-    GList *link;
-    gint minimum_display_number;
+    gboolean result;
 
-    minimum_display_number = config_get_integer (config_get_instance (), "LightDM", "minimum-display-number");
-    if (display_number < minimum_display_number)
-        return TRUE;
+    manager->priv->seats = g_list_append (manager->priv->seats, seat);
+    result = seat_start (SEAT (seat));
 
-    for (link = manager->priv->displays; link; link = link->next)
-    {
-        Display *display = link->data;      
-        XServer *xserver = display_get_xserver (display);
-        if (xserver && xserver_get_hostname (xserver) == NULL && xserver_get_display_number (xserver) == display_number)
-            return TRUE;
-    }
-
-    return FALSE;
-}
-
-static guint
-get_free_display_number (DisplayManager *manager)
-{
-    guint display_number = 0;
-
-    while (display_number_used (manager, display_number))
-        display_number++;
+    if (!result)
+        manager->priv->seats = g_list_remove (manager->priv->seats, seat);
   
-    return display_number;
-}
-
-static void
-start_session (Display *display, Session *session, gboolean is_greeter, DisplayManager *manager)
-{
-    gchar *log_filename = NULL;
-    XAuthorization *authorization;
-
-    /* Connect using the session bus */
-    if (getuid () != 0)
-    {
-        child_process_set_env (CHILD_PROCESS (session), "DBUS_SESSION_BUS_ADDRESS", getenv ("DBUS_SESSION_BUS_ADDRESS"));
-        child_process_set_env (CHILD_PROCESS (session), "XDG_SESSION_COOKIE", getenv ("XDG_SESSION_COOKIE"));
-        child_process_set_env (CHILD_PROCESS (session), "LDM_BUS", "SESSION");
-    }
-
-    authorization = xserver_get_authorization (display_get_xserver (display));
-    if (authorization)
-        session_set_authorization (session, authorization);
-
-    if (is_greeter)
-    {
-        gchar *filename;
-        filename = g_strdup_printf ("%s-greeter.log", xserver_get_address (display_get_xserver (display)));
-        log_filename = g_build_filename (manager->priv->log_dir, filename, NULL);
-        g_free (filename);
-    }
-    else
-    {
-        // FIXME: Copy old error file
-        log_filename = g_build_filename (user_get_home_directory (session_get_user (session)), ".xsession-errors", NULL);
-    }
-
-    if (log_filename)
-    {      
-        g_debug ("Logging to %s", log_filename);
-        child_process_set_log_file (CHILD_PROCESS (session), log_filename);
-        g_free (log_filename);
-    }
-}
-
-static void
-start_greeter_cb (Display *display, Session *session, DisplayManager *manager)
-{
-    start_session (display, session, TRUE, manager);
-}
-
-static gboolean
-activate_user_cb (Display *display, const gchar *username, DisplayManager *manager)
-{
-    GList *link;
-
-    for (link = manager->priv->displays; link; link = link->next)
-    {
-        Display *d = link->data;
-
-        if (d == display)
-            continue;
-
-        if (g_strcmp0 (username, display_get_session_user (d)) == 0)
-        {
-            g_debug ("Switching to user %s session on display %s, stopping greeter display %s",
-                     username, xserver_get_address (display_get_xserver (d)), xserver_get_address (display_get_xserver (display)));
-            display_stop (display);
-            display_show (d);
-            return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-static void
-start_session_cb (Display *display, Session *session, DisplayManager *manager)
-{
-    start_session (display, session, FALSE, manager);
-}
-
-static void
-end_session_cb (Display *display, Session *session, DisplayManager *manager)
-{
-    XServer *xserver;
-
-    /* Change authorization for next session */
-    xserver = display_get_xserver (display);
-    if (xserver && xserver_get_server_type (xserver) == XSERVER_TYPE_LOCAL)
-    {
-        XAuthorization *old_authorization, *authorization;
-
-        g_debug ("Generating new authorization cookie for %s", xserver_get_address (xserver));
-        old_authorization = xserver_get_authorization (xserver);
-        authorization = xauth_new_cookie (xauth_get_family (old_authorization),
-                                          xauth_get_address (old_authorization),
-                                          xauth_get_number (old_authorization));
-        xserver_set_authorization (xserver, authorization);
-        g_object_unref (authorization);
-    }
-}
-
-static gboolean
-check_stopped (DisplayManager *manager)
-{
-    if (g_list_length (manager->priv->displays) == 0)
-    {
-        g_debug ("Display manager stopped");
-        g_signal_emit (manager, signals[STOPPED], 0);
-        return TRUE;
-    }
-    return FALSE;
-}
-
-static void
-stopped_cb (Display *display, DisplayManager *manager)
-{
-    manager->priv->displays = g_list_remove (manager->priv->displays, display);
-    if (manager->priv->stopping)
-        check_stopped (manager);
-}
-
-static guchar
-atox (char c)
-{
-    if (c >= '0' && c <= '9')
-        return c - '0';
-    if (c >= 'a' && c <= 'f')
-        return c - 'a' + 10;
-    if (c >= 'A' && c <= 'F')
-        return c - 'A' + 10;
-    return 0;
-}
-
-static void
-string_to_xdm_auth_key (const gchar *key, guchar *data)
-{
-    gint i;
-
-    memset (data, 0, sizeof (data));
-    if (strncmp (key, "0x", 2) == 0 || strncmp (key, "0X", 2) == 0)
-    {
-        for (i = 0; i < 8; i++)
-        {
-            if (key[i*2] == '\0')
-                break;
-            data[i] |= atox (key[i*2]) << 8;
-            if (key[i*2+1] == '\0')
-                break;
-            data[i] |= atox (key[i*2+1]);
-        }
-    }
-    else
-    {
-        for (i = 1; i < 8 && key[i-1]; i++)
-           data[i] = key[i-1];
-    }
-}
-
-static XServer *
-make_xserver (DisplayManager *manager, gchar *config_section)
-{
-    gint display_number;
-    XServer *xserver;
-    XAuthorization *authorization = NULL;
-    gchar *xdmcp_manager, *filename, *path, *command, *xserver_section = NULL;
-
-    if (config_section && config_has_key (config_get_instance (), config_section, "display-number"))
-        display_number = config_get_integer (config_get_instance (), config_section, "display-number");
-    else
-        display_number = get_free_display_number (manager);
-
-    xdmcp_manager = config_section ? config_get_string (config_get_instance (), config_section, "xdmcp-manager") : NULL;
-    if (xdmcp_manager)
-    {
-        gint port;
-        gchar *key;
-
-        xserver = xserver_new (XSERVER_TYPE_LOCAL_TERMINAL, xdmcp_manager, display_number);
-
-        port = config_get_integer (config_get_instance (), config_section, "xdmcp-port");
-        if (port > 0)
-            xserver_set_port (xserver, port);
-        key = config_get_string (config_get_instance (), config_section, "key");
-        if (key)
-        {
-            guchar data[8];
-
-            string_to_xdm_auth_key (key, data);
-            xserver_set_authentication (xserver, "XDM-AUTHENTICATION-1", data, 8);
-            authorization = xauth_new (XAUTH_FAMILY_WILD, "", "", "XDM-AUTHORIZATION-1", data, 8);
-        }
-    }
-    else
-    {
-        gchar *number;
-        gchar hostname[1024];
-
-        xserver = xserver_new (XSERVER_TYPE_LOCAL, NULL, display_number);
-        number = g_strdup_printf ("%d", display_number);
-        gethostname (hostname, 1024);
-        authorization = xauth_new_cookie (XAUTH_FAMILY_LOCAL, hostname, number);
-        g_free (number);
-    }
-    g_free (xdmcp_manager);
-
-    xserver_set_vt (xserver, vt_get_unused ());
-
-    command = config_get_string (config_get_instance (), "LightDM", "default-xserver-command");
-    xserver_set_command (xserver, command);
-    g_free (command);
-
-    xserver_set_authorization (xserver, authorization);
-    g_object_unref (authorization);
-
-    filename = g_strdup_printf ("%s.log", xserver_get_address (xserver));
-    path = g_build_filename (manager->priv->log_dir, filename, NULL);
-    g_debug ("Logging to %s", path);
-    child_process_set_log_file (CHILD_PROCESS (xserver), path);
-    g_free (filename);
-    g_free (path);
-
-    /* Get the X server configuration */
-    if (config_section)
-        xserver_section = config_get_string (config_get_instance (), config_section, "xserver");
-    if (!xserver_section)
-        xserver_section = config_get_string (config_get_instance (), "LightDM", "xserver");
-
-    if (xserver_section)
-    {
-        gchar *xserver_command, *xserver_layout, *xserver_config_file;
-
-        g_debug ("Using X server configuration '%s' for display '%s'", xserver_section, config_section ? config_section : "<anonymous>");
-
-        xserver_command = config_get_string (config_get_instance (), xserver_section, "command");
-        if (xserver_command)
-            xserver_set_command (xserver, xserver_command);
-        g_free (xserver_command);
-
-        xserver_layout = config_get_string (config_get_instance (), xserver_section, "layout");
-        if (xserver_layout)
-            xserver_set_layout (xserver, xserver_layout);
-        g_free (xserver_layout);
-
-        xserver_config_file = config_get_string (config_get_instance (), xserver_section, "config-file");
-        if (xserver_config_file)
-            xserver_set_config_file (xserver, xserver_config_file);
-        g_free (xserver_config_file);
-
-        g_free (xserver_section);
-    }
-
-    if (config_get_boolean (config_get_instance (), "LightDM", "use-xephyr"))
-        xserver_set_command (xserver, "Xephyr");
-
-    return xserver;
-}
-
-static Display *
-add_display (DisplayManager *manager, XServer *xserver)
-{
-    Display *display;
-    gchar *value;
-
-    display = display_new (xserver);
-    g_signal_connect (display, "start-greeter", G_CALLBACK (start_greeter_cb), manager);
-    g_signal_connect (display, "activate-user", G_CALLBACK (activate_user_cb), manager);
-    g_signal_connect (display, "start-session", G_CALLBACK (start_session_cb), manager);
-    g_signal_connect (display, "end-session", G_CALLBACK (end_session_cb), manager);
-    g_signal_connect (display, "stopped", G_CALLBACK (stopped_cb), manager);
-
-    value = config_get_string (config_get_instance (), "LightDM", "session-wrapper");
-    if (value)
-        display_set_session_wrapper (display, value);
-    g_free (value);
-
-    if (getuid () != 0)
-        display_set_greeter_user (display, NULL);
-
-    manager->priv->displays = g_list_append (manager->priv->displays, display);
-
-    g_signal_emit (manager, signals[DISPLAY_ADDED], 0, display);
-
-    return display;
-}
-
-static gboolean
-switch_to_user (DisplayManager *manager, const gchar *username, gboolean is_guest)
-{
-    GList *link;
-    Display *display = NULL;
-    XServer *xserver;
-
-    /* Switch to active display if it exists */
-    for (link = manager->priv->displays; link; link = link->next)
-    {
-        display = link->data;
- 
-        /* Shouldn't be any other greeters running, close them if so */
-        if (display_get_greeter (display))
-        {
-            display_stop (display);
-            continue;
-        }
-
-        if (g_strcmp0 (display_get_session_user (display), username) == 0)
-        {
-            g_debug ("Switching to user %s session on display %s", username, xserver_get_address (display_get_xserver (display)));
-            display_show (display);
-            return TRUE;
-        }
-    }
-
-    g_debug ("Starting new display to switch user");
-  
-    xserver = make_xserver (manager, NULL);
-    display = add_display (manager, xserver);
-    if (is_guest)
-        display_set_default_user (display, NULL, TRUE, FALSE, 0);
-    else if (username)
-        display_set_default_user (display, username, FALSE, TRUE, 0);    
-    g_object_unref (xserver);
-    display_start (display);
-
-    return FALSE;
-}
-
-void
-display_manager_show_greeter (DisplayManager *manager)
-{
-    g_return_if_fail (manager != NULL);
-
-    g_debug ("Showing greeter");
-    switch_to_user (manager, NULL, FALSE);
-}
-
-gboolean
-display_manager_switch_to_user (DisplayManager *manager, const gchar *username)
-{
-    g_return_val_if_fail (manager != NULL, FALSE);
-    g_return_val_if_fail (username != NULL, FALSE);
-
-    g_debug ("Switching to user %s", username);
-    return switch_to_user (manager, username, FALSE);
-}
-
-gboolean
-display_manager_switch_to_guest (DisplayManager *manager)
-{
-    g_return_val_if_fail (manager != NULL, FALSE);
-  
-    if (!guest_account_get_is_enabled ())
-        return FALSE;
-
-    g_debug ("Switching to guest account");
-    return switch_to_user (manager, guest_account_get_username (), TRUE);
+    return result;
 }
 
 static gboolean
 xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *manager)
 {
-    Display *display;
-    gchar *address;
-    XServer *xserver;
+    SeatXDMCPSession *seat;
     gboolean result;
 
-    // FIXME: Try IPv6 then fallback to IPv4
-
-    address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (session)));
-    xserver = xserver_new (XSERVER_TYPE_REMOTE, address, xdmcp_session_get_display_number (session));
-    display = add_display (manager, xserver);
-    g_object_unref (xserver);
-    if (strcmp (xdmcp_session_get_authorization_name (session), "") != 0)
-    {
-        XAuthorization *authorization = NULL;
-        gchar *number;
-
-        number = g_strdup_printf ("%d", xdmcp_session_get_display_number (session));
-        authorization = xauth_new (XAUTH_FAMILY_INTERNET, // FIXME: Handle IPv6
-                                   address,
-                                   number,
-                                   xdmcp_session_get_authorization_name (session),
-                                   xdmcp_session_get_authorization_data (session),
-                                   xdmcp_session_get_authorization_data_length (session));
-        g_free (number);
-
-        xserver_set_authorization (xserver, authorization);
-        g_object_unref (authorization);
-    }
-
-    result = display_start (display);
-    g_free (address);
+    seat = seat_xdmcp_session_new (session);  
+    result = add_seat (manager, SEAT (seat));
     if (!result)
-       g_object_unref (display);
-
+       g_object_unref (seat);
+  
     return result;
-}
-
-static gboolean
-plymouth_run_command (const gchar *command, gint *exit_status)
-{
-    gchar *command_line;
-    gboolean result;
-    GError *error = NULL;
-
-    command_line = g_strdup_printf ("/bin/plymouth %s", command);  
-    result = g_spawn_command_line_sync (command_line, NULL, NULL, exit_status, &error);
-    g_free (command_line);
-
-    if (!result)
-        g_debug ("Could not run %s: %s", command_line, error->message);
-    g_clear_error (&error);
-
-    return result;
-}
-
-static gboolean
-plymouth_command_returns_true (gchar *command)
-{
-    gint exit_status;
-    if (!plymouth_run_command (command, &exit_status))
-        return FALSE;
-    return WIFEXITED (exit_status) && WEXITSTATUS (exit_status) == 0;
-}
-
-static void
-stop_plymouth_cb (XServer *xserver, DisplayManager *manager)
-{
-    g_debug ("Stopping Plymouth, display replacing it has started");
-    plymouth_run_command ("quit --retain-splash", NULL);
-}
-
-static void
-stop_plymouth_due_to_failure_cb (XServer *xserver, int status_of_signum, DisplayManager *manager)
-{
-    /* Check if Plymouth is even running (we may have already transitioned to it */
-    if (!plymouth_command_returns_true ("--ping"))
-        return;
-
-    g_debug ("Stopping Plymouth, error starting display");
-    plymouth_run_command ("quit", NULL);   
 }
 
 void
@@ -533,7 +88,6 @@ display_manager_start (DisplayManager *manager)
 {
     gchar *seats;
     gchar **tokens, **i;
-    gboolean plymouth_is_running, plymouth_on_active_vt = FALSE, plymouth_being_replaced = FALSE;
 
     g_return_if_fail (manager != NULL);
 
@@ -547,118 +101,24 @@ display_manager_start (DisplayManager *manager)
     tokens = g_strsplit (seats, " ", -1);
     g_free (seats);
 
-    /* Check if Plymouth is running and start to deactivate it */
-    plymouth_is_running = plymouth_command_returns_true ("--ping");
-    if (plymouth_is_running)
-    {
-        /* Check if running on the active VT */
-        plymouth_on_active_vt = plymouth_command_returns_true ("--has-active-vt");
-
-        /* Deactivate stops Plymouth from drawing, as we are about to start an X server to replace it */
-        plymouth_run_command ("deactivate", NULL);
-    }
-
     /* Start each static display */
     for (i = tokens; *i; i++)
     {
-        Display *display;
-        gchar *value, *default_user, *display_name;
-        gint vt = -1, user_timeout;
-        XServer *xserver;
-        gboolean replaces_plymouth = FALSE;
+        gchar *seat_name = *i;
+        SeatLocal *seat;
 
-        display_name = *i;
-        g_debug ("Loading display %s", display_name);
+        g_debug ("Loading seat %s", seat_name);
 
-        xserver = make_xserver (manager, display_name);
-        display = add_display (manager, xserver);
-        g_object_unref (xserver);
+        seat = seat_local_new (seat_name);
 
-        /* Replace Plymouth */
-        if (plymouth_on_active_vt && !plymouth_being_replaced)
-        {
-            vt = vt_get_active ();
-            if (vt > 0 && vt < vt_get_min ())
-            {
-                g_debug ("Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", vt, vt_get_min ());
-                vt = -1;
-            }
-            else if (vt > 0)
-            {              
-                g_debug ("Display %s will replace Plymouth on VT %d", display_name, vt);
-                plymouth_being_replaced = TRUE;
-                replaces_plymouth = TRUE;
-                vt_release (xserver_get_vt (xserver));
-                xserver_set_vt (xserver, vt);
-            }
-        }
-
-        value = config_get_string (config_get_instance (), display_name, "session");
-        if (value)
-            display_set_default_session (display, value);
-        g_free (value);
-        value = config_get_string (config_get_instance (), display_name, "greeter-user");
-        if (value)
-            display_set_greeter_user (display, value);
-        g_free (value);
-        value = config_get_string (config_get_instance (), display_name, "greeter-theme");
-        if (value)
-            display_set_greeter_theme (display, value);
-        g_free (value);
-        value = config_get_string (config_get_instance (), display_name, "pam-service");
-        if (value)
-            display_set_pam_service (display, value);
-        g_free (value);
-        value = config_get_string (config_get_instance (), display_name, "pam-autologin-service");
-        if (value)
-            display_set_pam_autologin_service (display, value);
-        g_free (value);
-
-        /* Automatically log in or start a greeter session */
-        default_user = config_get_string (config_get_instance (), display_name, "default-user");
-        user_timeout = config_get_integer (config_get_instance (), display_name, "default-user-timeout");
-        if (user_timeout < 0)
-            user_timeout = 0;
-
-        if (default_user)
-            display_set_default_user (display, default_user, FALSE, FALSE, user_timeout);
-
-        /* Stop Plymouth when the X server starts/fails */
-        if (replaces_plymouth)
-        {
-            XServer *xserver = display_get_xserver (display);
-
-            xserver_set_no_root (xserver, TRUE);
-            g_signal_connect (xserver, "ready", G_CALLBACK (stop_plymouth_cb), manager);
-            g_signal_connect (xserver, "exited", G_CALLBACK (stop_plymouth_due_to_failure_cb), manager);
-            g_signal_connect (xserver, "terminated", G_CALLBACK (stop_plymouth_due_to_failure_cb), manager);
-        }
-
-        /* Start it up! */
-        if (!display_start (display))
-        {
-            g_warning ("Failed to start static display %s", display_name);
-            if (replaces_plymouth)
-            {
-                g_debug ("Stopping Plymouth, display failed to start");
-                plymouth_run_command ("quit", NULL);
-            }
-        }
-
-        g_free (default_user);
+        if (!add_seat (manager, SEAT (seat)))
+            g_warning ("Failed to start seat %s", seat_name);
     }
     g_strfreev (tokens);
 
-    /* Stop Plymouth if we're not expecting an X server to replace it */
-    if (plymouth_is_running && !plymouth_being_replaced)
-    {
-        g_debug ("Stopping Plymouth, no displays replace it");
-        plymouth_run_command ("quit", NULL);
-    }
-
     if (config_get_boolean (config_get_instance (), "xdmcp", "enabled"))
     {
-        gchar *key;
+        //gchar *key;
 
         manager->priv->xdmcp_server = xdmcp_server_new ();
         if (config_has_key (config_get_instance (), "xdmcp", "port"))
@@ -670,7 +130,7 @@ display_manager_start (DisplayManager *manager)
         }
         g_signal_connect (manager->priv->xdmcp_server, "new-session", G_CALLBACK (xdmcp_session_cb), manager);
 
-        key = config_get_string (config_get_instance (), "xdmcp", "key");
+        /*key = config_get_string (config_get_instance (), "xdmcp", "key");
         if (key)
         {
             guchar data[8];
@@ -679,7 +139,7 @@ display_manager_start (DisplayManager *manager)
             xdmcp_server_set_authorization (manager->priv->xdmcp_server, "XDM-AUTHORIZATION-1", data, 8);
             g_free (key);
         }
-        else
+        else*/
             xdmcp_server_set_authorization (manager->priv->xdmcp_server, "MIT-MAGIC-COOKIE-1", NULL, 0);
 
         g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (manager->priv->xdmcp_server));
@@ -687,6 +147,25 @@ display_manager_start (DisplayManager *manager)
     }
 
     g_signal_emit (manager, signals[STARTED], 0);
+}
+
+static gboolean
+check_stopped (DisplayManager *manager)
+{
+    if (g_list_length (manager->priv->seats) == 0)
+    {
+        g_debug ("Display manager stopped");
+        g_signal_emit (manager, signals[STOPPED], 0);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static void
+seat_stopped_cb (Seat *seat, DisplayManager *manager)
+{
+    manager->priv->seats = g_list_remove (manager->priv->seats, seat);
+    check_stopped (manager);
 }
 
 void
@@ -699,14 +178,22 @@ display_manager_stop (DisplayManager *manager)
     g_debug ("Stopping display manager");
 
     manager->priv->stopping = TRUE;
-  
+
+    if (manager->priv->xdmcp_server)
+    {
+        // FIXME: xdmcp_server_stop
+        g_object_unref (manager->priv->xdmcp_server);
+        manager->priv->xdmcp_server = NULL;
+    }
+
     if (check_stopped (manager))
         return;
 
-    for (link = manager->priv->displays; link; link = link->next)
+    for (link = manager->priv->seats; link; link = link->next)
     {
-        Display *display = link->data;
-        display_stop (display);
+        Seat *seat = link->data;
+        g_signal_connect (seat, "stopped", G_CALLBACK (seat_stopped_cb), manager);
+        seat_stop (seat);
     }
 }
   
@@ -726,9 +213,9 @@ display_manager_finalize (GObject *object)
 
     if (self->priv->xdmcp_server)
         g_object_unref (self->priv->xdmcp_server);
-    for (link = self->priv->displays; link; link = link->next)
+    for (link = self->priv->seats; link; link = link->next)
         g_object_unref (link->data);
-    g_list_free (self->priv->displays);
+    g_list_free (self->priv->seats);
 
     G_OBJECT_CLASS (display_manager_parent_class)->finalize (object);
 }
@@ -750,14 +237,6 @@ display_manager_class_init (DisplayManagerClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
-    signals[DISPLAY_ADDED] =
-        g_signal_new ("display-added",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (DisplayManagerClass, display_added),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
-                      G_TYPE_NONE, 1, DISPLAY_TYPE);
     signals[STOPPED] =
         g_signal_new ("stopped",
                       G_TYPE_FROM_CLASS (klass),

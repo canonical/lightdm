@@ -115,7 +115,7 @@ signal_cb (ChildProcess *process, int signum)
 static void
 display_manager_stopped_cb (DisplayManager *display_manager)
 {
-    g_debug ("All processes complete, exiting");
+    g_debug ("Stopping Light Display Manager");
     exit (EXIT_SUCCESS);
 }
 
@@ -134,7 +134,7 @@ handle_display_manager_call (GDBusConnection       *connection,
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
             return;
 
-        display_manager_show_greeter (display_manager);
+        seat_switch_to_greeter (display_manager_get_seat (display_manager));
         g_dbus_method_invocation_return_value (invocation, NULL);
     }
     else if (g_strcmp0 (method_name, "SwitchToUser") == 0)
@@ -145,7 +145,7 @@ handle_display_manager_call (GDBusConnection       *connection,
             return;
 
         g_variant_get (parameters, "(s)", &username);
-        display_manager_switch_to_user (display_manager, username);
+        seat_switch_to_user (display_manager_get_seat (display_manager), username);
         g_dbus_method_invocation_return_value (invocation, NULL);
         g_free (username);
     }
@@ -154,7 +154,7 @@ handle_display_manager_call (GDBusConnection       *connection,
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
             return;
 
-        display_manager_switch_to_guest (display_manager);
+        seat_switch_to_guest (display_manager_get_seat (display_manager));
         g_dbus_method_invocation_return_value (invocation, NULL);
     }
 }
