@@ -593,8 +593,6 @@ display_manager_start (DisplayManager *manager)
             }
         }
 
-        g_debug ("Starting on /dev/tty%d", xserver_get_vt (xserver));
-
         value = config_get_string (config_get_instance (), display_name, "session");
         if (value)
             display_set_default_session (display, value);
