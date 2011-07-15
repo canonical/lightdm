@@ -358,7 +358,10 @@ xserver_connect (XServer *server)
 
     if (server->priv->authorization_file)
     {
-        setenv ("XAUTHORITY", xauthority, TRUE);
+        if (xauthority)
+            setenv ("XAUTHORITY", xauthority, TRUE);
+        else
+            unsetenv ("XAUTHORITY");
         g_free (xauthority);
     }
 
