@@ -74,7 +74,7 @@ seat_local_add_display (Seat *seat)
     g_object_unref (authorization);
 
     filename = g_strdup_printf ("%s.log", xserver_get_address (xserver));
-    dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
+    dir = config_get_string (config_get_instance (), "directories", "log-directory");
     path = g_build_filename (dir, filename, NULL);
     g_debug ("Logging to %s", path);
     child_process_set_log_file (CHILD_PROCESS (xserver), path);

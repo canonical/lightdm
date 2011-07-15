@@ -5,6 +5,8 @@ Overview of changes in lightdm 0.4.5
     * Release a VT when the X server on it stops
     * D-Bus API changes:
       - Rename ShowGreeter() to SwitchToGreeter()
+    * Config changes:
+      - Move directories into their own section
 
 Overview of changes in lightdm 0.4.4
 

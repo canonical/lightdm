@@ -91,7 +91,7 @@ log_init (void)
     log_timer = g_timer_new ();
 
     /* Log to a file */
-    log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
+    log_dir = config_get_string (config_get_instance (), "directories", "log-directory");
     g_mkdir_with_parents (log_dir, 0755);
     path = g_build_filename (log_dir, "lightdm.log", NULL);
     g_free (log_dir);
@@ -418,15 +418,15 @@ main(int argc, char **argv)
     g_clear_error (&error);
 
     /* Set default values */
-    config_set_string (config_get_instance (), "LightDM", "log-directory", LOG_DIR);
     config_set_string (config_get_instance (), "LightDM", "default-xserver-command", default_xserver_command);
-    config_set_string (config_get_instance (), "LightDM", "theme-directory", theme_dir);
-    config_set_string (config_get_instance (), "LightDM", "theme-engine-directory", theme_engine_dir);
     config_set_string (config_get_instance (), "LightDM", "default-greeter-theme", default_greeter_theme);
-    config_set_string (config_get_instance (), "LightDM", "run-directory", run_dir);
-    config_set_string (config_get_instance (), "LightDM", "cache-directory", cache_dir);
-    config_set_string (config_get_instance (), "LightDM", "xsessions-directory", xsessions_dir);
     config_set_string (config_get_instance (), "LightDM", "default-xsession", default_xsession);
+    config_set_string (config_get_instance (), "directories", "log-directory", LOG_DIR);
+    config_set_string (config_get_instance (), "directories", "theme-directory", theme_dir);
+    config_set_string (config_get_instance (), "directories", "theme-engine-directory", theme_engine_dir);
+    config_set_string (config_get_instance (), "directories", "run-directory", run_dir);
+    config_set_string (config_get_instance (), "directories", "cache-directory", cache_dir);
+    config_set_string (config_get_instance (), "directories", "xsessions-directory", xsessions_dir);
 
     if (minimum_display_number)
         config_set_integer (config_get_instance (), "LightDM", "minimum-display-number", atoi (minimum_display_number));
@@ -436,15 +436,15 @@ main(int argc, char **argv)
         gchar *path;
 
         path = g_build_filename (g_get_user_cache_dir (), "lightdm", "run", NULL);
-        config_set_string (config_get_instance (), "LightDM", "run-directory", path);
+        config_set_string (config_get_instance (), "directories", "run-directory", path);
         g_free (path);
 
         path = g_build_filename (g_get_user_cache_dir (), "lightdm", "cache", NULL);
-        config_set_string (config_get_instance (), "LightDM", "cache-directory", path);
+        config_set_string (config_get_instance (), "directories", "cache-directory", path);
         g_free (path);
 
         path = g_build_filename (g_get_user_cache_dir (), "lightdm", "log", NULL);
-        config_set_string (config_get_instance (), "LightDM", "log-directory", path);
+        config_set_string (config_get_instance (), "directories", "log-directory", path);
         g_free (path);
     }
     config_set_boolean (config_get_instance (), "LightDM", "use-xephyr", use_xephyr);
