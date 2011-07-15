@@ -45,6 +45,8 @@ typedef struct
 
 GType seat_get_type (void);
 
+void seat_load_config (Seat *seat, const gchar *config_section);
+
 void seat_set_can_switch (Seat *seat, gboolean can_switch);
 
 void seat_set_autologin_user (Seat *seat, const gchar *username, guint timeout);

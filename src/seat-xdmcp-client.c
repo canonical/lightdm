@@ -34,6 +34,7 @@ seat_xdmcp_client_new (const gchar *config_section)
 
     seat = g_object_new (SEAT_XDMCP_CLIENT_TYPE, NULL);
     seat->priv->config_section = g_strdup (config_section);
+    seat_load_config (SEAT (seat), config_section);
 
     return seat;
 }
@@ -44,7 +45,6 @@ seat_xdmcp_client_add_display (Seat *seat)
     XServer *xserver;
     XAuthorization *authorization = NULL;
     gchar *xdmcp_manager, *dir, *filename, *path;
-    gchar *xserver_command, *xserver_layout, *xserver_config;
     gint port;
     //gchar *key;
   
@@ -53,7 +53,7 @@ seat_xdmcp_client_add_display (Seat *seat)
     g_debug ("Starting seat %s", SEAT_XDMCP_CLIENT (seat)->priv->config_section);
 
     xdmcp_manager = config_get_string (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "xdmcp-manager");
-    xserver = xserver_new (XSERVER_TYPE_LOCAL_TERMINAL, xdmcp_manager, xserver_get_free_display_number ());
+    xserver = xserver_new (SEAT_XDMCP_CLIENT (seat)->priv->config_section, XSERVER_TYPE_LOCAL_TERMINAL, xdmcp_manager, xserver_get_free_display_number ());
     g_free (xdmcp_manager);
 
     port = config_get_integer (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "xdmcp-port");
@@ -83,30 +83,10 @@ seat_xdmcp_client_add_display (Seat *seat)
     g_free (dir);
     g_free (path);
 
-    xserver_command = config_get_string (config_get_instance (), "Defaults", "xserver-command");
-    if (!xserver_command)
-        xserver_command = config_get_string (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "xserver-command");
-    if (xserver_command)
-        xserver_set_command (xserver, xserver_command);
-    g_free (xserver_command);
     if (config_get_boolean (config_get_instance (), "LightDM", "use-xephyr"))
         xserver_set_command (xserver, "Xephyr");
 
-    xserver_layout = config_get_string (config_get_instance (), "Defaults", "layout");
-    if (!xserver_layout)
-        xserver_layout = config_get_string (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "xserver-layout");
-    if (xserver_layout)
-        xserver_set_layout (xserver, xserver_layout);
-    g_free (xserver_layout);
-
-    xserver_config = config_get_string (config_get_instance (), "Defaults", "xserver-config");
-    if (!xserver_config)
-        xserver_config = config_get_string (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "xserver-config");
-    if (xserver_config)
-        xserver_set_config_file (xserver, xserver_config);
-    g_free (xserver_config);
-
-    SEAT_XDMCP_CLIENT (seat)->priv->display = g_object_ref (display_new (xserver));
+    SEAT_XDMCP_CLIENT (seat)->priv->display = g_object_ref (display_new (SEAT_XDMCP_CLIENT (seat)->priv->config_section, xserver));
     g_object_unref (xserver);
 
     return SEAT_XDMCP_CLIENT (seat)->priv->display;

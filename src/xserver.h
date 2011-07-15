@@ -53,7 +53,7 @@ void xserver_release_display_number (guint number);
 
 GType xserver_get_type (void);
 
-XServer *xserver_new (XServerType type, const gchar *hostname, gint display_number);
+XServer *xserver_new (const gchar *config_section, XServerType type, const gchar *hostname, gint display_number);
 
 XServerType xserver_get_server_type (XServer *server);
 

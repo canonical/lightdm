@@ -78,7 +78,7 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
     SeatXDMCPSession *seat;
     gboolean result;
 
-    seat = seat_xdmcp_session_new (session);  
+    seat = seat_xdmcp_session_new ("XDMCPServer", session);
     result = add_seat (manager, SEAT (seat));
     g_object_unref (seat);
   

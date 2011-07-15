@@ -28,19 +28,11 @@ SeatLocal *
 seat_local_new (const gchar *config_section)
 {
     SeatLocal *seat;
-    gchar *username;
-    guint timeout;
 
     seat = g_object_new (SEAT_LOCAL_TYPE, NULL);
     seat->priv->config_section = g_strdup (config_section);
-
+    seat_load_config (SEAT (seat), config_section);
     seat_set_can_switch (SEAT (seat), TRUE);
-    username = config_get_string (config_get_instance (), config_section, "autologin-user");
-    timeout = config_get_integer (config_get_instance (), config_section, "autologin-user-timeout");
-    if (timeout < 0)
-        timeout = 0;
-    if (username)
-        seat_set_autologin_user (SEAT (seat), username, timeout);
 
     return seat;
 }
@@ -51,14 +43,13 @@ seat_local_add_display (Seat *seat)
     XServer *xserver;
     XAuthorization *authorization = NULL;
     gchar *dir, *filename, *path;
-    gchar *xserver_command, *xserver_layout, *xserver_config;
     gchar *number;
     gchar hostname[1024];
     Display *display;
 
     g_debug ("Starting display");
 
-    xserver = xserver_new (XSERVER_TYPE_LOCAL, NULL, xserver_get_free_display_number ());
+    xserver = xserver_new (SEAT_LOCAL (seat)->priv->config_section, XSERVER_TYPE_LOCAL, NULL, xserver_get_free_display_number ());
     number = g_strdup_printf ("%d", xserver_get_display_number (xserver));
     gethostname (hostname, 1024);
     authorization = xauth_new_cookie (XAUTH_FAMILY_LOCAL, hostname, number);
@@ -78,30 +69,10 @@ seat_local_add_display (Seat *seat)
     g_free (dir);
     g_free (path);
 
-    xserver_command = config_get_string (config_get_instance (), "Defaults", "xserver-command");
-    if (!xserver_command)
-        xserver_command = config_get_string (config_get_instance (), SEAT_LOCAL (seat)->priv->config_section, "xserver-command");
-    if (xserver_command)
-        xserver_set_command (xserver, xserver_command);
-    g_free (xserver_command);
     if (config_get_boolean (config_get_instance (), "LightDM", "use-xephyr"))
         xserver_set_command (xserver, "Xephyr");
 
-    xserver_layout = config_get_string (config_get_instance (), "Defaults", "layout");
-    if (!xserver_layout)
-        xserver_layout = config_get_string (config_get_instance (), SEAT_LOCAL (seat)->priv->config_section, "xserver-layout");
-    if (xserver_layout)
-        xserver_set_layout (xserver, xserver_layout);
-    g_free (xserver_layout);
-
-    xserver_config = config_get_string (config_get_instance (), "Defaults", "xserver-config");
-    if (!xserver_config)
-        xserver_config = config_get_string (config_get_instance (), SEAT_LOCAL (seat)->priv->config_section, "xserver-config");
-    if (xserver_config)
-        xserver_set_config_file (xserver, xserver_config);
-    g_free (xserver_config);
-
-    display = display_new (xserver);
+    display = display_new (SEAT_LOCAL (seat)->priv->config_section, xserver);
     g_object_unref (xserver);
 
     return display;

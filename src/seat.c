@@ -45,6 +45,24 @@ struct SeatPrivate
 G_DEFINE_TYPE (Seat, seat, G_TYPE_OBJECT);
 
 void
+seat_load_config (Seat *seat, const gchar *config_section)
+{
+    gchar *username;
+    guint timeout;
+
+    username = config_get_string (config_get_instance (), config_section, "autologin-user");
+    if (!username)
+        username = config_get_string (config_get_instance (), "Defaults", "autologin-user");
+    if (config_has_key (config_get_instance (), config_section, "autologin-user-timeout"))
+        timeout = config_get_integer (config_get_instance (), config_section, "autologin-user-timeout");
+    else
+        timeout = config_get_integer (config_get_instance (), "Defaults", "autologin-user-timeout");
+    if (timeout < 0)
+        timeout = 0;
+    seat_set_autologin_user (SEAT (seat), username, timeout);
+}
+
+void
 seat_set_can_switch (Seat *seat, gboolean can_switch)
 {
     g_return_if_fail (seat != NULL);

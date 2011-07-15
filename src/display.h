@@ -42,7 +42,7 @@ typedef struct
 
 GType display_get_type (void);
 
-Display *display_new (XServer *xserver);
+Display *display_new (const gchar *config_section, XServer *xserver);
 
 XServer *display_get_xserver (Display *display);
 

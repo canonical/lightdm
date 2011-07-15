@@ -98,7 +98,7 @@ G_DEFINE_TYPE (Display, display, G_TYPE_OBJECT);
 static gboolean start_greeter (Display *display);
 
 Display *
-display_new (XServer *xserver)
+display_new (const gchar *config_section, XServer *xserver)
 {
     Display *self = g_object_new (DISPLAY_TYPE, NULL);
 
@@ -107,6 +107,19 @@ display_new (XServer *xserver)
     self->priv->pam_service = g_strdup (DEFAULT_PAM_SERVICE);
     self->priv->pam_autologin_service = g_strdup (DEFAULT_PAM_AUTOLOGIN_SERVICE);
     self->priv->xserver = g_object_ref (xserver);
+
+    self->priv->greeter_user = config_get_string (config_get_instance (), config_section, "greeter-user");
+    if (!self->priv->greeter_user)
+        self->priv->greeter_user = config_get_string (config_get_instance (), "Defaults", "greeter-user");
+    self->priv->greeter_theme = config_get_string (config_get_instance (), config_section, "greeter-theme");
+    if (!self->priv->greeter_theme)
+        self->priv->greeter_theme = config_get_string (config_get_instance (), "Defaults", "greeter-theme");
+    self->priv->default_session = config_get_string (config_get_instance (), config_section, "xsession");
+    if (!self->priv->default_session)
+        self->priv->default_session = config_get_string (config_get_instance (), "Defaults", "xsession");
+    self->priv->session_wrapper = config_get_string (config_get_instance (), config_section, "xsession-wrapper");
+    if (!self->priv->session_wrapper)
+        self->priv->session_wrapper = config_get_string (config_get_instance (), "Defaults", "xsession-wrapper");
 
     return self;
 }
@@ -967,10 +980,6 @@ static void
 display_init (Display *display)
 {
     display->priv = G_TYPE_INSTANCE_GET_PRIVATE (display, DISPLAY_TYPE, DisplayPrivate);
-    if (strcmp (GREETER_USER, "") != 0)
-        display->priv->greeter_user = g_strdup (GREETER_USER);
-    display->priv->greeter_theme = config_get_string (config_get_instance (), "LightDM", "default-greeter-theme");
-    display->priv->default_session = config_get_string (config_get_instance (), "LightDM", "default-xsession");
 }
 
 static void

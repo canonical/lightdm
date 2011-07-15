@@ -110,13 +110,25 @@ xserver_release_display_number (guint number)
 }
 
 XServer *
-xserver_new (XServerType type, const gchar *hostname, gint display_number)
+xserver_new (const gchar *config_section, XServerType type, const gchar *hostname, gint display_number)
 {
     XServer *self = g_object_new (XSERVER_TYPE, NULL);
 
     self->priv->type = type;
     self->priv->hostname = g_strdup (hostname);
     self->priv->display_number = display_number;
+
+    self->priv->command = config_get_string (config_get_instance (), "Defaults", "xserver-command");
+    if (!self->priv->command)
+        self->priv->command = config_get_string (config_get_instance (), config_section, "xserver-command");
+
+    self->priv->layout = config_get_string (config_get_instance (), "Defaults", "layout");
+    if (!self->priv->layout)
+        self->priv->layout = config_get_string (config_get_instance (), config_section, "xserver-layout");
+
+    self->priv->config_file = config_get_string (config_get_instance (), "Defaults", "xserver-config");
+    if (!self->priv->config_file)
+        self->priv->config_file = config_get_string (config_get_instance (), config_section, "xserver-config");
   
     return self;
 }

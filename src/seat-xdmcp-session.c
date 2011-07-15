@@ -16,6 +16,9 @@
 
 struct SeatXDMCPSessionPrivate
 {
+    /* The section in the config for this seat */
+    gchar *config_section;
+
     /* Session being serviced */
     XDMCPSession *session;
 };
@@ -23,12 +26,13 @@ struct SeatXDMCPSessionPrivate
 G_DEFINE_TYPE (SeatXDMCPSession, seat_xdmcp_session, SEAT_TYPE);
 
 SeatXDMCPSession *
-seat_xdmcp_session_new (XDMCPSession *session)
+seat_xdmcp_session_new (const gchar *config_section, XDMCPSession *session)
 {
     SeatXDMCPSession *seat;
 
     seat = g_object_new (SEAT_XDMCP_SESSION_TYPE, NULL);
     seat->priv->session = g_object_ref (session);
+    seat_load_config (SEAT (seat), config_section);
 
     return seat;
 }
@@ -42,7 +46,7 @@ seat_xdmcp_session_add_display (Seat *seat)
 
     // FIXME: Try IPv6 then fallback to IPv4
     address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (SEAT_XDMCP_SESSION (seat)->priv->session)));
-    xserver = xserver_new (XSERVER_TYPE_REMOTE, address, xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session));
+    xserver = xserver_new (SEAT_XDMCP_SESSION (seat)->priv->config_section, XSERVER_TYPE_REMOTE, address, xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session));
 
     if (strcmp (xdmcp_session_get_authorization_name (SEAT_XDMCP_SESSION (seat)->priv->session), "") != 0)
     {
@@ -63,7 +67,7 @@ seat_xdmcp_session_add_display (Seat *seat)
     }
     g_free (address);
 
-    display = display_new (xserver);
+    display = display_new (SEAT_XDMCP_SESSION (seat)->priv->config_section, xserver);
     g_object_unref (xserver);
 
     return display;
@@ -78,9 +82,11 @@ seat_xdmcp_session_init (SeatXDMCPSession *seat)
 static void
 seat_xdmcp_session_finalize (GObject *object)
 {
-    //SeatXDMCPSession *self;
+    SeatXDMCPSession *self;
 
-    //self = SEAT_XDMCP_SESSION (object);
+    self = SEAT_XDMCP_SESSION (object);
+
+    g_free (self->priv->config_section);
 
     G_OBJECT_CLASS (seat_xdmcp_session_parent_class)->finalize (object);
 }

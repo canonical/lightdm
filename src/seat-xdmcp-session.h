@@ -35,7 +35,7 @@ typedef struct
 
 GType seat_xdmcp_session_get_type (void);
 
-SeatXDMCPSession *seat_xdmcp_session_new (XDMCPSession *session);
+SeatXDMCPSession *seat_xdmcp_session_new (const gchar *config_section, XDMCPSession *session);
 
 G_END_DECLS
 
