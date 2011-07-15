@@ -119,21 +119,21 @@ display_manager_start (DisplayManager *manager)
     }
     g_strfreev (tokens);
 
-    if (config_get_boolean (config_get_instance (), "xdmcp", "enabled"))
+    if (config_get_boolean (config_get_instance (), "XDMCPServer", "enabled"))
     {
         //gchar *key;
 
         manager->priv->xdmcp_server = xdmcp_server_new ();
-        if (config_has_key (config_get_instance (), "xdmcp", "port"))
+        if (config_has_key (config_get_instance (), "XDMCPServer", "port"))
         {
             gint port;
-            port = config_get_integer (config_get_instance (), "xdmcp", "port");
+            port = config_get_integer (config_get_instance (), "XDMCPServer", "port");
             if (port > 0)
                 xdmcp_server_set_port (manager->priv->xdmcp_server, port);
         }
         g_signal_connect (manager->priv->xdmcp_server, "new-session", G_CALLBACK (xdmcp_session_cb), manager);
 
-        /*key = config_get_string (config_get_instance (), "xdmcp", "key");
+        /*key = config_get_string (config_get_instance (), "XDMCPServer", "key");
         if (key)
         {
             guchar data[8];

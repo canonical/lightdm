@@ -280,7 +280,7 @@ write_authorization_file (XServer *server)
     if (!server->priv->authorization || server->priv->authorization_file)
         return;
 
-    run_dir = config_get_string (config_get_instance (), "directories", "run-directory");
+    run_dir = config_get_string (config_get_instance (), "Directories", "run-directory");
     dir = g_build_filename (run_dir, "root", NULL);
     g_free (run_dir);
     g_mkdir_with_parents (dir, S_IRWXU);

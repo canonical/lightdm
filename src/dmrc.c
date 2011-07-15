@@ -46,7 +46,7 @@ dmrc_load (const gchar *username)
         gchar *filename, *cache_dir;
 
         filename = g_strdup_printf ("%s.dmrc", user_get_name (user));
-        cache_dir = config_get_string (config_get_instance (), "directories", "cache-directory");
+        cache_dir = config_get_string (config_get_instance (), "Directories", "cache-directory");
         path = g_build_filename (cache_dir, "dmrc", filename, NULL);
         g_free (filename);
         g_free (cache_dir);
@@ -88,7 +88,7 @@ dmrc_save (GKeyFile *dmrc_file, const gchar *username)
     }
 
     /* Update the .dmrc cache */
-    cache_dir = config_get_string (config_get_instance (), "directories", "cache-directory");
+    cache_dir = config_get_string (config_get_instance (), "Directories", "cache-directory");
     dmrc_cache_dir = g_build_filename (cache_dir, "dmrc", NULL);
     g_mkdir_with_parents (dmrc_cache_dir, 0700);
 

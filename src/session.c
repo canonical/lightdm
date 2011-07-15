@@ -141,7 +141,7 @@ session_start (Session *session, gboolean create_pipe)
         {
             gchar *run_dir, *dir;
 
-            run_dir = config_get_string (config_get_instance (), "directories", "run-directory");          
+            run_dir = config_get_string (config_get_instance (), "Directories", "run-directory");          
             dir = g_build_filename (run_dir, user_get_name (session->priv->user), NULL);
             g_free (run_dir);
 

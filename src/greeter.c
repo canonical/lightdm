@@ -196,7 +196,7 @@ handle_connect (Greeter *greeter)
         g_debug ("Greeter connected");
     }
 
-    theme_dir = config_get_string (config_get_instance (), "directories", "theme-directory");  
+    theme_dir = config_get_string (config_get_instance (), "Directories", "theme-directory");  
     theme = g_build_filename (theme_dir, greeter->priv->theme, "index.theme", NULL);
     g_free (theme_dir);
 

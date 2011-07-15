@@ -535,7 +535,7 @@ start_user_session (Display *display, const gchar *session)
     /* Update the .dmrc with changed settings */
     g_key_file_set_string (dmrc_file, "Desktop", "Session", session);
 
-    xsessions_dir = config_get_string (config_get_instance (), "directories", "xsessions-directory");
+    xsessions_dir = config_get_string (config_get_instance (), "Directories", "xsessions-directory");
     filename = g_strdup_printf ("%s.desktop", session);
     path = g_build_filename (xsessions_dir, filename, NULL);
     g_free (xsessions_dir);
@@ -818,7 +818,7 @@ start_greeter (Display *display)
     if (authorization)
         session_set_authorization (SESSION (display->priv->greeter_session), authorization);
 
-    log_dir = config_get_string (config_get_instance (), "directories", "log-directory");
+    log_dir = config_get_string (config_get_instance (), "Directories", "log-directory");
     filename = g_strdup_printf ("%s-greeter.log", xserver_get_address (display_get_xserver (display)));
     log_filename = g_build_filename (log_dir, filename, NULL);
     g_free (log_dir);
