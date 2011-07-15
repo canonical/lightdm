@@ -106,15 +106,18 @@ display_manager_start (DisplayManager *manager)
     /* Start each static display */
     for (i = tokens; *i; i++)
     {
-        gchar *seat_name = *i;
-        SeatLocal *seat;
+        gchar *config_section = *i;
+        Seat *seat;
 
-        g_debug ("Loading seat %s", seat_name);
+        g_debug ("Loading seat %s", config_section);
 
-        seat = seat_local_new (seat_name);
+        if (config_has_key (config_get_instance (), config_section, "xdmcp-manager"))
+            seat = SEAT (seat_xdmcp_client_new (config_section));
+        else
+            seat = SEAT (seat_local_new (config_section));
 
-        if (!add_seat (manager, SEAT (seat)))
-            g_warning ("Failed to start seat %s", seat_name);
+        if (!add_seat (manager, seat))
+            g_warning ("Failed to start seat %s", config_section);
         g_object_unref (seat);
     }
     g_strfreev (tokens);
