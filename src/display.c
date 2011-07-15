@@ -607,6 +607,7 @@ start_user_session (Display *display, const gchar *session)
         child_process_set_env (CHILD_PROCESS (display->priv->user_session), "LIGHTDM_TEST_STATUS_SOCKET", getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
         child_process_set_env (CHILD_PROCESS (display->priv->user_session), "LIGHTDM_TEST_CONFIG", getenv ("LIGHTDM_TEST_CONFIG"));
         child_process_set_env (CHILD_PROCESS (display->priv->user_session), "LIGHTDM_TEST_HOME_DIR", getenv ("LIGHTDM_TEST_HOME_DIR"));
+        child_process_set_env (CHILD_PROCESS (display->priv->user_session), "LD_LIBRARY_PATH", getenv ("LD_LIBRARY_PATH"));
     }
 
     g_object_unref (user);
@@ -808,6 +809,7 @@ start_greeter (Display *display)
         child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "LIGHTDM_TEST_STATUS_SOCKET", getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
         child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "LIGHTDM_TEST_CONFIG", getenv ("LIGHTDM_TEST_CONFIG"));
         child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "LIGHTDM_TEST_HOME_DIR", getenv ("LIGHTDM_TEST_HOME_DIR"));
+        child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "LD_LIBRARY_PATH", getenv ("LD_LIBRARY_PATH"));
     }
 
     g_signal_emit (display, signals[START_GREETER], 0, display->priv->greeter_session);

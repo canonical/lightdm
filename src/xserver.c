@@ -456,6 +456,7 @@ xserver_start (XServer *server)
         child_process_set_env (CHILD_PROCESS (server), "LIGHTDM_TEST_STATUS_SOCKET", getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
         child_process_set_env (CHILD_PROCESS (server), "LIGHTDM_TEST_CONFIG", getenv ("LIGHTDM_TEST_CONFIG"));
         child_process_set_env (CHILD_PROCESS (server), "LIGHTDM_TEST_HOME_DIR", getenv ("LIGHTDM_TEST_HOME_DIR"));
+        child_process_set_env (CHILD_PROCESS (server), "LD_LIBRARY_PATH", getenv ("LD_LIBRARY_PATH"));
     }
 
     result = child_process_start (CHILD_PROCESS (server),
