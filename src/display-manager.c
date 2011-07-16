@@ -21,6 +21,7 @@
 #include "seat-local.h"
 #include "seat-xdmcp-client.h"
 #include "seat-xdmcp-session.h"
+#include "plymouth.h"
 
 enum {
     STARTED,
@@ -121,6 +122,13 @@ display_manager_start (DisplayManager *manager)
         g_object_unref (seat);
     }
     g_strfreev (tokens);
+
+    /* Disable Plymouth if no X servers are replacing it */
+    if (plymouth_get_is_active ())
+    {
+        g_debug ("Stopping Plymouth, no displays replace it");      
+        plymouth_quit (FALSE);
+    }
 
     if (config_get_boolean (config_get_instance (), "XDMCPServer", "enabled"))
     {

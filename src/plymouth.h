@@ -16,7 +16,9 @@
 
 G_BEGIN_DECLS
 
-gboolean plymouth_is_running (void);
+gboolean plymouth_get_is_running (void);
+
+gboolean plymouth_get_is_active (void);
 
 gboolean plymouth_has_active_vt (void);
 

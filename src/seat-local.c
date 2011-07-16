@@ -55,8 +55,6 @@ seat_local_add_display (Seat *seat)
     authorization = xauth_new_cookie (XAUTH_FAMILY_LOCAL, hostname, number);
     g_free (number);
 
-    xserver_set_vt (xserver, vt_get_unused ());
-
     xserver_set_authorization (xserver, authorization);
     g_object_unref (authorization);
 

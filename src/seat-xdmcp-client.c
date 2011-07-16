@@ -14,7 +14,6 @@
 #include "seat-xdmcp-client.h"
 #include "configuration.h"
 #include "xserver.h"
-#include "vt.h"
 
 struct SeatXDMCPClientPrivate
 {
@@ -68,8 +67,6 @@ seat_xdmcp_client_add_display (Seat *seat)
         xserver_set_authentication (xserver, "XDM-AUTHENTICATION-1", data, 8);
         authorization = xauth_new (XAUTH_FAMILY_WILD, "", "", "XDM-AUTHORIZATION-1", data, 8);
     }*/
-
-    xserver_set_vt (xserver, vt_get_unused ());
 
     xserver_set_authorization (xserver, authorization);
     g_object_unref (authorization);

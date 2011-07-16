@@ -13,6 +13,13 @@
 
 #include "plymouth.h"
 
+static gboolean have_pinged = FALSE;
+static gboolean have_checked_active_vt = FALSE;
+
+static gboolean is_running = FALSE;
+static gboolean is_active = FALSE;
+static gboolean has_active_vt = FALSE;
+
 static gboolean
 plymouth_run_command (const gchar *command, gint *exit_status)
 {
@@ -41,26 +48,48 @@ plymouth_command_returns_true (gchar *command)
 }
 
 gboolean
-plymouth_is_running (void)
+plymouth_get_is_running (void)
 {
-    return plymouth_command_returns_true ("--ping");
+    if (!have_pinged)
+    {
+        have_pinged = TRUE;
+        is_running = plymouth_command_returns_true ("--ping");
+        is_active = is_running;
+    }
+
+    return is_running;
+}
+
+gboolean
+plymouth_get_is_active (void)
+{
+    return plymouth_get_is_running () && is_active;
 }
 
 gboolean
 plymouth_has_active_vt (void)
 {
-    return plymouth_command_returns_true ("--has-active-vt");
+    if (!have_checked_active_vt)
+    {
+        have_checked_active_vt = TRUE;
+        has_active_vt = plymouth_command_returns_true ("--has-active-vt");
+    }
+
+    return has_active_vt;
 }
 
 void
 plymouth_deactivate (void)
 {
+    is_active = FALSE;
     plymouth_run_command ("deactivate", NULL);
 }
 
 void
 plymouth_quit (gboolean retain_splash)
 {
+    have_pinged = TRUE;
+    is_running = FALSE;
     if (retain_splash)
         plymouth_run_command ("quit --retain-splash", NULL);
     else

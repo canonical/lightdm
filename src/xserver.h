@@ -95,11 +95,7 @@ void xserver_set_authorization (XServer *server, XAuthorization *authorization);
 
 XAuthorization *xserver_get_authorization (XServer *server);
 
-void xserver_set_vt (XServer *server, gint vt);
-
 gint xserver_get_vt (XServer *server);
-
-void xserver_set_no_root (XServer *server, gboolean no_root);
 
 gboolean xserver_start (XServer *server);
 

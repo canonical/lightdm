@@ -23,7 +23,6 @@
 #include "ldm-marshal.h"
 #include "greeter.h"
 #include "guest-account.h"
-#include "vt.h"
 
 /* Length of time in milliseconds to wait for a session to load */
 #define USER_SESSION_TIMEOUT 5000

@@ -15,7 +15,6 @@
 #include "configuration.h"
 #include "display.h"
 #include "xserver.h"
-#include "vt.h"
 #include "guest-account.h"
 
 enum {

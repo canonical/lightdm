@@ -23,6 +23,7 @@
 #include "xserver.h"
 #include "configuration.h"
 #include "vt.h"
+#include "plymouth.h"
 
 enum {
     READY,  
@@ -71,9 +72,9 @@ struct XServerPrivate
 
     /* VT to run on */
     gint vt;
-
-    /* TRUE to disable setting the root window */
-    gboolean no_root;
+  
+    /* TRUE if replacing Plymouth */
+    gboolean replacing_plymouth;
 
     /* Display number */
     gint display_number;
@@ -109,6 +110,16 @@ xserver_release_display_number (guint number)
     display_numbers = g_list_remove (display_numbers, GINT_TO_POINTER (number));
 }
 
+static void
+stopped_cb (XServer *server)
+{
+    if (server->priv->replacing_plymouth)
+    {
+        g_debug ("Stopping Plymouth, X server failed to start");
+        plymouth_quit (FALSE);
+    }
+}
+
 XServer *
 xserver_new (const gchar *config_section, XServerType type, const gchar *hostname, gint display_number)
 {
@@ -129,7 +140,27 @@ xserver_new (const gchar *config_section, XServerType type, const gchar *hostnam
     self->priv->config_file = config_get_string (config_get_instance (), "Defaults", "xserver-config");
     if (!self->priv->config_file)
         self->priv->config_file = config_get_string (config_get_instance (), config_section, "xserver-config");
-  
+
+    if (type != XSERVER_TYPE_REMOTE)
+    {
+        /* Replace Plymouth if it is running */
+        if (plymouth_get_is_active () && plymouth_has_active_vt ())
+        {
+            gint active_vt = vt_get_active ();
+            if (active_vt >= vt_get_min ())
+            {
+                g_debug ("X server %s will replace Plymouth", xserver_get_address (self));
+                self->priv->vt = active_vt;
+                plymouth_deactivate ();
+                g_signal_connect (self, "stopped", G_CALLBACK (stopped_cb), NULL);
+            }
+            else
+                g_debug ("Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());
+        }
+        if (self->priv->vt < 0)
+            self->priv->vt = vt_get_unused ();
+    }
+
     return self;
 }
 
@@ -343,25 +374,11 @@ xserver_get_authorization (XServer *server)
     return server->priv->authorization;
 }
 
-void
-xserver_set_vt (XServer *server, gint vt)
-{
-    g_return_if_fail (server != NULL);
-    server->priv->vt = vt;
-}
-
 gint
 xserver_get_vt (XServer *server)
 {
     g_return_val_if_fail (server != NULL, 0);
     return server->priv->vt;
-}
-
-void
-xserver_set_no_root (XServer *server, gboolean no_root)
-{
-    g_return_if_fail (server != NULL);
-    server->priv->no_root = no_root;
 }
 
 static gboolean
@@ -433,9 +450,9 @@ xserver_start (XServer *server)
 
     g_return_val_if_fail (server != NULL, FALSE);
     //g_return_val_if_fail (server->priv->pid == 0, FALSE);
-  
+
     server->priv->ready = FALSE;
- 
+
     /* Check if we can connect to the remote server */
     if (server->priv->type == XSERVER_TYPE_REMOTE)
     {
@@ -453,6 +470,7 @@ xserver_start (XServer *server)
     if (!absolute_command)
     {
         g_debug ("Can't launch X server %s, not found in path", server->priv->command);
+        stopped_cb (server);
         return FALSE;
     }
     command = g_string_new (absolute_command);
@@ -499,7 +517,7 @@ xserver_start (XServer *server)
     if (server->priv->vt >= 0)
         g_string_append_printf (command, " vt%d", server->priv->vt);
 
-    if (server->priv->no_root)
+    if (server->priv->replacing_plymouth)
         g_string_append (command, " -background none");
 
     g_debug ("Launching X Server");
@@ -531,6 +549,9 @@ xserver_start (XServer *server)
     else
         g_debug ("Waiting for ready signal from X server :%d", server->priv->display_number);
     g_clear_error (&error);
+
+    if (!result)
+        stopped_cb (server);
 
     return result;
 }
@@ -612,6 +633,12 @@ xserver_got_signal (ChildProcess *process, int signum)
         g_debug ("Got signal from X server :%d", server->priv->display_number);
 
         xserver_connect (server);
+
+        if (server->priv->replacing_plymouth)
+        {
+            g_debug ("Stopping Plymouth, X server is ready");
+            plymouth_quit (TRUE);
+        }
 
         g_signal_emit (server, signals[READY], 0);
     }
