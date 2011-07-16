@@ -238,7 +238,7 @@ path_make_absolute (gchar *path)
 }
 
 int
-main(int argc, char **argv)
+main (int argc, char **argv)
 {
     FILE *pid_file;
     GOptionContext *option_context;
@@ -246,7 +246,7 @@ main(int argc, char **argv)
     gboolean test_mode = FALSE;
     gboolean no_root = FALSE;
     gboolean use_xephyr = FALSE;
-    gchar *default_xserver_command = g_strdup (XSERVER_BINARY);
+    gchar *default_xserver_command = g_strdup ("X");
     gchar *passwd_path = NULL;
     gchar *pid_path = "/var/run/lightdm.pid";
     gchar *theme_dir = g_strdup (GREETER_THEME_DIR), *theme_engine_dir = g_strdup (GREETER_THEME_ENGINE_DIR);

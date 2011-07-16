@@ -4,7 +4,7 @@ libdir=@libdir@
 includedir=@includedir@
 
 themedir=@GREETER_THEME_DIR@
-greeterdir=@libexecdir@
+greeterdir=@GREETER_THEME_ENGINE_DIR@
 
 Name: liblightdm-gobject
 Description: LightDM client library

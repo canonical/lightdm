@@ -126,81 +126,15 @@ AC_PATH_PROG(GLIB_GENMARSHAL, glib-genmarshal)
 AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)
 AC_SUBST(DBUSBINDINGTOOL)
 
+GREETER_THEME_DIR=${datarootdir}/lightdm/themes
+AC_SUBST(GREETER_THEME_DIR)
+
+GREETER_THEME_ENGINE_DIR=${libexecdir}
+AC_SUBST(GREETER_THEME_ENGINE_DIR)
+
 dnl ###########################################################################
 dnl Configurable values
 dnl ###########################################################################
-
-DEFAULT_CONFIG_FILE=${sysconfdir}/lightdm/lightdm.conf
-AC_ARG_WITH(config-file,
-            AS_HELP_STRING(--with-config-file=<file>,
-                           Configuration file to load),
-    if test x$withval != x; then
-        DEFAULT_CONFIG_FILE="$withval"
-    fi
-)
-AC_SUBST(DEFAULT_CONFIG_FILE)
-
-LOG_DIR=${localstatedir}/log/lightdm
-AC_ARG_WITH(log-dir,
-            AS_HELP_STRING(--with-log-dir=<dir>,
-                           Directory to write logs to),
-    if test x$withval != x; then
-        LOG_DIR="$withval"
-    fi
-)
-AC_SUBST(LOG_DIR)
-
-RUN_DIR=$localstatedir/run/lightdm
-AC_ARG_WITH(xauth-dir,
-            AS_HELP_STRING(--with-run-dir=<dir>,
-                           Directory to put running state in),
-    if test x$withval != x; then
-        RUN_DIR="$withval"
-    fi
-)
-AC_SUBST(RUN_DIR)
-
-CACHE_DIR=${localstatedir}/cache/lightdm
-AC_ARG_WITH(cache-dir,
-            AS_HELP_STRING(--with-cache-dir=<dir>,
-                           Directory to cache information in),
-    if test x$withval != x; then
-        CACHE_DIR="$withval"
-    fi
-)
-AC_SUBST(CACHE_DIR)
-
-DBUS_SYS_DIR="${sysconfdir}/dbus-1/system.d"
-AC_ARG_WITH(dbus-sys,
-            AS_HELP_STRING(--with-dbus-sys=<dir>,
-                           Where D-BUS system.d directory is),
-    if test x$withval != x ; then
-        DBUS_SYS_DIR="$withval"
-    fi
-)
-AC_SUBST(DBUS_SYS_DIR)
-
-XSERVER_BINARY=/usr/bin/X
-AC_ARG_WITH(xserver-binary,
-            AS_HELP_STRING(--with-xserver-binary=<binary>,
-                           X server binary name),
-    if test x$withval != x; then
-        XSERVER_BINARY="$withval"
-    fi
-)
-AC_SUBST(XSERVER_BINARY)
-AC_DEFINE_UNQUOTED(XSERVER_BINARY, "$XSERVER_BINARY", X server binary name)
-
-XSESSIONS_DIR=/usr/share/xsessions
-AC_ARG_WITH(xsession-dir,
-            AS_HELP_STRING(--with-xsession-dir=<dir>,
-                           X session directory),
-    if test x$withval != x; then
-        XSESSIONS_DIR="$withval"
-    fi
-)
-AC_SUBST(XSESSIONS_DIR)
-AC_DEFINE_UNQUOTED(XSESSIONS_DIR, "$XSESSIONS_DIR", X session directory)
 
 DEFAULT_XSESSION=gnome
 AC_ARG_WITH(default-xsession,
@@ -212,38 +146,6 @@ AC_ARG_WITH(default-xsession,
 )
 AC_SUBST(DEFAULT_XSESSION)
 AC_DEFINE_UNQUOTED(DEFAULT_XSESSION, "$DEFAULT_XSESSION", Default X session)
-
-DEFAULT_PAM_SERVICE=lightdm
-AC_ARG_WITH(default-pam-service,
-            AS_HELP_STRING(--with-default-pam-service=<name>,
-                           Default PAM service to use),
-    if test x$withval != x; then
-        DEFAULT_PAM_SERVICE="$withval"
-    fi
-)
-AC_SUBST(DEFAULT_PAM_SERVICE)
-AC_DEFINE_UNQUOTED(DEFAULT_PAM_SERVICE, "$DEFAULT_PAM_SERVICE", Default PAM service to use)
-
-DEFAULT_PAM_AUTOLOGIN_SERVICE=lightdm-autologin
-AC_ARG_WITH(default-pam-autologin-service,
-            AS_HELP_STRING(--with-default-pam-autologin-service=<name>,
-                           Default PAM service to use for automatic logins),
-    if test x$withval != x; then
-        DEFAULT_PAM_AUTOLOGIN_SERVICE="$withval"
-    fi
-)
-AC_SUBST(DEFAULT_PAM_AUTOLOGIN_SERVICE)
-AC_DEFINE_UNQUOTED(DEFAULT_PAM_AUTOLOGIN_SERVICE, "$DEFAULT_PAM_AUTOLOGIN_SERVICE", Default PAM service to use for automatic logins)
-
-GREETER_THEME_DIR=${datarootdir}/lightdm/themes
-AC_ARG_WITH(greeter-theme-dir,
-            AS_HELP_STRING(--with-greeter-theme-dir=<dir>,
-                           Directory containing greeter themes),
-    if test x$withval != x; then
-        GREETER_THEME_DIR="$withval"
-    fi
-)
-AC_SUBST(GREETER_THEME_DIR)
 
 DEFAULT_GREETER_THEME=example-gtk-gnome
 AC_ARG_WITH(theme,
@@ -312,17 +214,7 @@ echo "
                     ===========================
 
         prefix:                   $prefix
-        Config file:              $DEFAULT_CONFIG_FILE
-        Log directory:            $LOG_DIR        
-        D-Bus system directory:   $DBUS_SYS_DIR
-        X server binary:          $XSERVER_BINARY
-        Run dir:                  $RUN_DIR
-        Cache dir:                $CACHE_DIR
-        X session dir:            $XSESSIONS_DIR
         Default X session:        $DEFAULT_XSESSION
-        PAM service:              $DEFAULT_PAM_SERVICE
-        PAM service (autologins): $DEFAULT_PAM_AUTOLOGIN_SERVICE
-        Greeter theme directory:  $GREETER_THEME_DIR
         Default greeter theme:    $DEFAULT_GREETER_THEME
 
         Greeters:

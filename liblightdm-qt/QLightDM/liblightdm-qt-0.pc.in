@@ -3,8 +3,8 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-themedir=@THEME_DIR@
-greeterdir=@libexecdir@
+themedir=@GREETER_THEME_DIR@
+greeterdir=@GREETER_THEME_ENGINE_DIR@
 
 Name: liblightdm-qt
 Description: LightDM client library

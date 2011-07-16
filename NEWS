@@ -10,6 +10,7 @@ Overview of changes in lightdm 0.4.5
         understand.  Users should set [SeatDefaults] section with settings for
         all seats, and can override each setting in a per seat configuration.
       - Support setting autologin user to guest account
+    * Drop most of the configure options, they aren't necessary
 
 Overview of changes in lightdm 0.4.4
 

@@ -64,13 +64,14 @@ BUILT_SOURCES = \
 lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
 	$(WARN_CFLAGS) \
-	-DDEFAULT_CONFIG_FILE=\"$(DEFAULT_CONFIG_FILE)\" \
-	-DLOG_DIR=\"$(LOG_DIR)\" \
-	-DGREETER_THEME_ENGINE_DIR=\"$(libexecdir)\" \
-	-DRUN_DIR=\"$(RUN_DIR)\" \
-	-DCACHE_DIR=\"$(CACHE_DIR)\" \
+	-DLIGHTDM_BINARY=\"lightdm\" \
+	-DDEFAULT_CONFIG_FILE=\"$(sysconfdir)/lightdm/lightdm.conf\" \
+	-DRUN_DIR=\"$(localstatedir)/run/lightdm\" \
+	-DCACHE_DIR=\"$(localstatedir)/cache/lightdm\" \
+	-DLOG_DIR=\"$(localstatedir)/log/lightdm\" \
+	-DGREETER_THEME_ENGINE_DIR=\"$(GREETER_THEME_ENGINE_DIR)\" \
 	-DGREETER_THEME_DIR=\"$(GREETER_THEME_DIR)\" \
-	-DLIGHTDM_BINARY=\"lightdm\"
+	-DXSESSIONS_DIR=\"/usr/share/xsessions\"
 
 lightdm_LDADD = \
 	$(LIGHTDM_LIBS) \

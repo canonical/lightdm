@@ -103,8 +103,8 @@ display_new (const gchar *config_section, XServer *xserver)
 
     g_return_val_if_fail (xserver != NULL, NULL);
 
-    self->priv->pam_service = g_strdup (DEFAULT_PAM_SERVICE);
-    self->priv->pam_autologin_service = g_strdup (DEFAULT_PAM_AUTOLOGIN_SERVICE);
+    self->priv->pam_service = g_strdup ("lightdm");
+    self->priv->pam_autologin_service = g_strdup ("lightdm-autologin");
     self->priv->xserver = g_object_ref (xserver);
 
     self->priv->greeter_user = config_get_string (config_get_instance (), config_section, "greeter-user");
