@@ -25,6 +25,8 @@
 
 enum {
     STARTED,
+    SEAT_ADDED,
+    SEAT_REMOVED,
     STOPPED,
     LAST_SIGNAL
 };
@@ -62,6 +64,8 @@ add_seat (DisplayManager *manager, Seat *seat)
     gboolean result;
 
     manager->priv->seats = g_list_append (manager->priv->seats, g_object_ref (seat));
+    g_signal_emit (manager, signals[SEAT_ADDED], 0, seat);
+  
     result = seat_start (SEAT (seat));
 
     if (!result)
@@ -177,7 +181,11 @@ static void
 seat_stopped_cb (Seat *seat, DisplayManager *manager)
 {
     manager->priv->seats = g_list_remove (manager->priv->seats, seat);
-    check_stopped (manager);
+
+    if (manager->priv->stopping)
+        check_stopped (manager);
+    else
+        g_signal_emit (manager, signals[SEAT_REMOVED], 0, seat);
 }
 
 void
@@ -249,6 +257,22 @@ display_manager_class_init (DisplayManagerClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
+    signals[SEAT_ADDED] =
+        g_signal_new ("seat-added",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (DisplayManagerClass, seat_added),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__OBJECT,
+                      G_TYPE_NONE, 1, SEAT_TYPE);
+    signals[SEAT_REMOVED] =
+        g_signal_new ("seat-removed",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (DisplayManagerClass, seat_removed),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__OBJECT,
+                      G_TYPE_NONE, 1, SEAT_TYPE);
     signals[STOPPED] =
         g_signal_new ("stopped",
                       G_TYPE_FROM_CLASS (klass),

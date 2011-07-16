@@ -20,7 +20,6 @@
 
 #include "configuration.h"
 #include "display-manager.h"
-#include "seat.h"
 #include "xserver.h"
 #include "user.h"
 #include "pam-session.h"
@@ -37,6 +36,14 @@ static DisplayManager *display_manager = NULL;
 static GDBusConnection *bus = NULL;
 static guint bus_id;
 static GDBusNodeInfo *seat_info;
+static GHashTable *seat_bus_entries;
+static guint seat_index = 0;
+
+typedef struct
+{
+    gchar *path;
+    guint bus_id;
+} SeatBusEntry;
 
 #define LDM_BUS_NAME "org.freedesktop.DisplayManager"
 
@@ -110,7 +117,7 @@ signal_cb (ChildProcess *process, int signum)
 {
     /* Quit when all child processes have ended */
     g_debug ("Caught %s signal, shutting down", g_strsignal (signum));
-    g_dbus_connection_unregister_object (bus, bus_id);
+
     display_manager_stop (display_manager);
 }
 
@@ -119,6 +126,27 @@ display_manager_stopped_cb (DisplayManager *display_manager)
 {
     g_debug ("Stopping Light Display Manager");
     exit (EXIT_SUCCESS);
+}
+
+static Seat *
+get_seat_for_cookie (const gchar *cookie)
+{
+    GList *link;
+
+    for (link = display_manager_get_seats (display_manager); link; link = link->next)
+    {
+        Seat *seat = link->data;
+        GList *l;
+      
+        for (l = seat_get_displays (seat); l; l = l->next)
+        {
+            Display *display = l->data;
+            if (g_strcmp0 (display_get_session_cookie (display), cookie) == 0)
+                return seat;
+        }
+    }
+
+    return NULL;
 }
 
 static void
@@ -133,17 +161,45 @@ handle_display_manager_call (GDBusConnection       *connection,
 {
     if (g_strcmp0 (method_name, "GetSeats") == 0)
     {
+        GList *link;
+        GVariantBuilder *builder;
+
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
             return;
 
-        g_dbus_method_invocation_return_value (invocation, NULL); // FIXME
+        builder = g_variant_builder_new (G_VARIANT_TYPE_ARRAY);
+        for (link = display_manager_get_seats (display_manager); link; link = link->next)
+        {
+            Seat *seat = link->data;
+            SeatBusEntry *entry;
+
+            entry = g_hash_table_lookup (seat_bus_entries, seat);
+            g_variant_builder_add_value (builder, g_variant_new_object_path (entry->path));
+        }
+
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(ao)", builder, NULL));
+        g_variant_builder_unref (builder);
     }
     else if (g_strcmp0 (method_name, "GetSeatForCookie") == 0)
     {
+        gchar *cookie;
+        Seat *seat;
+
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(s)")))
             return;
 
-        g_dbus_method_invocation_return_value (invocation, NULL); // FIXME
+        g_variant_get (parameters, "(s)", &cookie);
+
+        seat = get_seat_for_cookie (cookie);
+        g_free (cookie);
+
+        if (seat)
+        {
+            SeatBusEntry *entry = g_hash_table_lookup (seat_bus_entries, seat);
+            g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", entry->path));
+        }
+        else // FIXME: Need to make proper error
+            g_dbus_method_invocation_return_error_literal (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Unable to find seat for cookie");
     }
 }
 
@@ -214,12 +270,50 @@ seat_added_cb (Seat *seat)
         handle_seat_call,
         handle_seat_get_property
     };
-    bus_id = g_dbus_connection_register_object (bus,
-                                                "/org/freedesktop/DisplayManager/Seat0",
-                                                seat_info->interfaces[0],
-                                                &seat_vtable,
-                                                g_object_ref (seat), g_object_unref,
-                                                NULL);
+    SeatBusEntry *entry;
+
+    entry = g_malloc (sizeof (SeatBusEntry));
+    entry->path = g_strdup_printf ("/org/freedesktop/DisplayManager/Seat%d", seat_index);
+    seat_index++;
+    g_hash_table_insert (seat_bus_entries, seat, entry);
+
+    entry->bus_id = g_dbus_connection_register_object (bus,
+                                                       entry->path,
+                                                       seat_info->interfaces[0],
+                                                       &seat_vtable,
+                                                       g_object_ref (seat), g_object_unref,
+                                                       NULL);
+    g_dbus_connection_emit_signal (bus,
+                                   NULL,
+                                   "/org/freedesktop/DisplayManager",
+                                   "org.freedesktop.DisplayManager.Seat",
+                                   "SeatAdded",
+                                   g_variant_new ("(o)", entry->path),
+                                   NULL);
+}
+
+static void
+seat_removed_cb (Seat *seat)
+{
+    g_hash_table_remove (seat_bus_entries, seat);
+}
+
+static void
+seat_bus_entry_unref (gpointer data)
+{
+    SeatBusEntry *entry = data;
+    g_dbus_connection_unregister_object (bus, entry->bus_id);
+
+    g_dbus_connection_emit_signal (bus,
+                                   NULL,
+                                   "/org/freedesktop/DisplayManager",
+                                   "org.freedesktop.DisplayManager.Seat",
+                                   "SeatRemoved",
+                                   g_variant_new ("(o)", entry->path),
+                                   NULL);
+
+    g_free (entry->path);
+    g_free (entry);
 }
 
 static void
@@ -277,6 +371,10 @@ bus_acquired_cb (GDBusConnection *connection,
                                                 NULL, NULL,
                                                 NULL);
 
+    seat_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, seat_bus_entry_unref);
+
+    g_signal_connect (display_manager, "seat-added", G_CALLBACK (seat_added_cb), NULL);
+    g_signal_connect (display_manager, "seat-removed", G_CALLBACK (seat_removed_cb), NULL);
     for (link = display_manager_get_seats (display_manager); link; link = link->next)
         seat_added_cb ((Seat *) link->data);
 }

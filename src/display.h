@@ -48,39 +48,11 @@ XServer *display_get_xserver (Display *display);
 
 Greeter *display_get_greeter (Display *display);
 
-void display_set_session_wrapper (Display *display, const gchar *session_wrapper);
-
-const gchar *display_get_session_wrapper (Display *display);
-
 void display_set_default_user (Display *display, const gchar *username, gboolean is_guest, gboolean requires_password, gint timeout);
-
-const gchar *display_get_default_user (Display *display);
-
-gboolean display_get_default_user_requires_password (Display *display);
-
-gint display_get_default_user_timeout (Display *display);
-
-void display_set_greeter_user (Display *display, const gchar *username);
-
-const gchar *display_get_greeter_user (Display *display);
 
 const gchar *display_get_session_user (Display *display);
 
-void display_set_default_session (Display *display, const gchar *session);
-
-const gchar *display_get_default_session (Display *display);
-
-void display_set_pam_service (Display *display, const gchar *service);
-
-const gchar *display_get_pam_service (Display *display);
-
-void display_set_pam_autologin_service (Display *display, const gchar *service);
-
-const gchar *display_get_pam_autologin_service (Display *display);
-
-void display_set_vt (Display *display, gint vt);
-
-gint display_get_vt (Display *display);
+const gchar *display_get_session_cookie (Display *display);
 
 gboolean display_start (Display *display);
 

@@ -142,22 +142,6 @@ display_get_greeter (Display *display)
 }
 
 void
-display_set_session_wrapper (Display *display, const gchar *session_wrapper)
-{
-    g_return_if_fail (display != NULL);
-
-    g_free (display->priv->session_wrapper);
-    display->priv->session_wrapper = g_strdup (session_wrapper);  
-}
-
-const gchar *
-display_get_session_wrapper (Display *display)
-{
-    g_return_val_if_fail (display != NULL, NULL);
-    return display->priv->session_wrapper;
-}
-
-void
 display_set_default_user (Display *display, const gchar *username, gboolean is_guest, gboolean requires_password, gint timeout)
 {
     g_return_if_fail (display != NULL);
@@ -169,46 +153,6 @@ display_set_default_user (Display *display, const gchar *username, gboolean is_g
 }
 
 const gchar *
-display_get_default_user (Display *display)
-{
-    g_return_val_if_fail (display != NULL, NULL);
-    return display->priv->default_user;
-}
-
-gboolean
-display_get_default_user_requires_password (Display *display)
-{
-    g_return_val_if_fail (display != NULL, FALSE);
-    return display->priv->default_user_requires_password;
-}
-
-gint
-display_get_default_user_timeout (Display *display)
-{
-    g_return_val_if_fail (display != NULL, 0);
-    return display->priv->default_user_timeout;
-}
-
-void
-display_set_greeter_user (Display *display, const gchar *username)
-{
-    g_return_if_fail (display != NULL);
-
-    g_free (display->priv->greeter_user);
-    if (username && username[0] != '\0')
-        display->priv->greeter_user = g_strdup (username);
-    else
-        display->priv->greeter_user = NULL;
-}
-
-const gchar *
-display_get_greeter_user (Display *display)
-{
-    g_return_val_if_fail (display != NULL, NULL);
-    return display->priv->greeter_user;  
-}
-
-const gchar *
 display_get_session_user (Display *display)
 {
     g_return_val_if_fail (display != NULL, NULL);
@@ -217,54 +161,6 @@ display_get_session_user (Display *display)
         return pam_session_get_username (display->priv->user_pam_session);
     else
         return NULL;
-}
-
-void
-display_set_default_session (Display *display, const gchar *session)
-{
-    g_return_if_fail (display != NULL);
-
-    g_free (display->priv->default_session);
-    display->priv->default_session = g_strdup (session);
-}
-
-const gchar *
-display_get_default_session (Display *display)
-{
-    g_return_val_if_fail (display != NULL, NULL);
-    return display->priv->default_session;
-}
-
-void
-display_set_pam_service (Display *display, const gchar *service)
-{
-    g_return_if_fail (display != NULL);
-
-    g_free (display->priv->pam_service);
-    display->priv->pam_service = g_strdup (service);
-}
-
-const gchar *
-display_get_pam_service (Display *display)
-{
-    g_return_val_if_fail (display != NULL, NULL);
-    return display->priv->pam_service;
-}
-
-void
-display_set_pam_autologin_service (Display *display, const gchar *service)
-{
-    g_return_if_fail (display != NULL);
-
-    g_free (display->priv->pam_autologin_service);
-    display->priv->pam_autologin_service = g_strdup (service);
-}
-
-const gchar *
-display_get_pam_autologin_service (Display *display)
-{
-    g_return_val_if_fail (display != NULL, NULL);
-    return display->priv->pam_autologin_service;
 }
 
 static gchar *
@@ -927,6 +823,16 @@ xserver_ready_cb (XServer *xserver, Display *display)
     }
 
     start_greeter (display);
+}
+
+const gchar *
+display_get_session_cookie (Display *display)
+{
+    g_return_val_if_fail (display != NULL, NULL);
+    if (display->priv->user_ck_cookie)
+        return display->priv->user_ck_cookie;
+    else
+        return display->priv->greeter_ck_cookie;
 }
 
 gboolean
