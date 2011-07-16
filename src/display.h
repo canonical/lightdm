@@ -66,10 +66,6 @@ const gchar *display_get_greeter_user (Display *display);
 
 const gchar *display_get_session_user (Display *display);
 
-void display_set_greeter_theme (Display *display, const gchar *greeter_theme);
-
-const gchar *display_get_greeter_theme (Display *display);
-
 void display_set_default_session (Display *display, const gchar *session);
 
 const gchar *display_get_default_session (Display *display);

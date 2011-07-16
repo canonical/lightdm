@@ -133,17 +133,20 @@ xserver_new (const gchar *config_section, XServerType type, const gchar *hostnam
     if (type == XSERVER_TYPE_REMOTE)
         return self;
 
-    self->priv->command = config_get_string (config_get_instance (), "SeatDefaults", "xserver-command");
-    if (!self->priv->command)
+    if (config_section)
         self->priv->command = config_get_string (config_get_instance (), config_section, "xserver-command");
+    if (!self->priv->command)
+        self->priv->command = config_get_string (config_get_instance (), "SeatDefaults", "xserver-command");
 
-    self->priv->layout = config_get_string (config_get_instance (), "SeatDefaults", "layout");
-    if (!self->priv->layout)
+    if (config_section)
         self->priv->layout = config_get_string (config_get_instance (), config_section, "xserver-layout");
+    if (!self->priv->layout)
+        self->priv->layout = config_get_string (config_get_instance (), "SeatDefaults", "layout");
 
-    self->priv->config_file = config_get_string (config_get_instance (), "SeatDefaults", "xserver-config");
-    if (!self->priv->config_file)
+    if (config_section)
         self->priv->config_file = config_get_string (config_get_instance (), config_section, "xserver-config");
+    if (!self->priv->config_file)
+        self->priv->config_file = config_get_string (config_get_instance (), "SeatDefaults", "xserver-config");
 
     /* Replace Plymouth if it is running */
     if (plymouth_get_is_active () && plymouth_has_active_vt ())
@@ -182,38 +185,6 @@ xserver_set_command (XServer *server, const gchar *command)
     server->priv->command = g_strdup (command);
 }
 
-void
-xserver_set_config_file (XServer *server, const gchar *config_file)
-{
-    g_return_if_fail (server != NULL);
-
-    g_free (server->priv->config_file);
-    server->priv->config_file = g_strdup (config_file);
-}
-
-const gchar *
-xserver_get_config_file (XServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->config_file;
-}
-
-void
-xserver_set_layout (XServer *server, const gchar *layout)
-{
-    g_return_if_fail (server != NULL);
-
-    g_free (server->priv->layout);
-    server->priv->layout = g_strdup (layout);
-}
-
-const gchar *
-xserver_get_layout (XServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->layout;
-}
-
 const gchar *
 xserver_get_command (XServer *server)
 {
@@ -221,22 +192,6 @@ xserver_get_command (XServer *server)
     return server->priv->command;
 }
 
-void
-xserver_set_log_file (XServer *server, const gchar *log_file)
-{
-    g_return_if_fail (server != NULL);
-
-    g_free (server->priv->log_file);
-    server->priv->log_file = g_strdup (log_file);
-}
-
-const gchar *
-xserver_get_log_file (XServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->log_file;
-}
-  
 void
 xserver_set_port (XServer *server, guint port)
 {

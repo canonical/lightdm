@@ -46,14 +46,15 @@ G_DEFINE_TYPE (Seat, seat, G_TYPE_OBJECT);
 void
 seat_load_config (Seat *seat, const gchar *config_section)
 {
-    if (config_has_key (config_get_instance (), config_section, "autologin-guest"))
+    if (config_section && config_has_key (config_get_instance (), config_section, "autologin-guest"))
         seat->priv->autologin_guest = config_get_boolean (config_get_instance (), config_section, "autologin-guest");
     else if (config_has_key (config_get_instance (), "SeatDefaults", "autologin-guest"))
         seat->priv->autologin_guest = config_get_boolean (config_get_instance (), "SeatDefaults", "autologin-guest");
-    seat->priv->autologin_username = config_get_string (config_get_instance (), config_section, "autologin-user");
+    if (config_section)
+        seat->priv->autologin_username = config_get_string (config_get_instance (), config_section, "autologin-user");
     if (!seat->priv->autologin_username)
         seat->priv->autologin_username = config_get_string (config_get_instance (), "SeatDefaults", "autologin-user");
-    if (config_has_key (config_get_instance (), config_section, "autologin-user-timeout"))
+    if (config_section && config_has_key (config_get_instance (), config_section, "autologin-user-timeout"))
         seat->priv->autologin_timeout = config_get_integer (config_get_instance (), config_section, "autologin-user-timeout");
     else
         seat->priv->autologin_timeout = config_get_integer (config_get_instance (), "SeatDefaults", "autologin-user-timeout");
