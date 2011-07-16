@@ -20,6 +20,7 @@ TESTS = \
 	test-login-gobject-guest-fail-setup-script \
 	test-plymouth-active-vt \
 	test-plymouth-inactive-vt \
+	test-plymouth-xserver-fail-start \
 	test-switch-to-greeter \
 	test-switch-to-guest \
 	test-switch-to-user \
@@ -71,6 +72,8 @@ EXTRA_DIST = \
 	scripts/plymouth-active-vt.script \
 	scripts/plymouth-inactive-vt.conf \
 	scripts/plymouth-inactive-vt.script \
+	scripts/plymouth-xserver-fail-start.conf \
+	scripts/plymouth-xserver-fail-start.script \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-greeter.script \
 	scripts/switch-to-guest.conf \

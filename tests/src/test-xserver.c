@@ -827,9 +827,10 @@ int
 main (int argc, char **argv)
 {
     int i;
-    char *pid_string;
+    char *pid_string, *return_lock;
     GMainLoop *loop;
     int lock_file;
+    FILE *f;
     GError *error = NULL;
 
     signal (SIGINT, signal_cb);
@@ -911,12 +912,20 @@ main (int argc, char **argv)
     if (g_getenv ("LIGHTDM_TEST_CONFIG"))
         g_key_file_load_from_file (config, g_getenv ("LIGHTDM_TEST_CONFIG"), G_KEY_FILE_NONE, NULL);
 
-    if (g_key_file_has_key (config, "test-xserver-config", "return-value", NULL))
+    return_lock = g_build_filename (g_getenv ("LIGHTDM_TEST_HOME_DIR"), ".xserver-returned", NULL);
+    f = fopen (return_lock, "r");
+    if (f == NULL && g_key_file_has_key (config, "test-xserver-config", "return-value", NULL))
     {
         int return_value = g_key_file_get_integer (config, "test-xserver-config", "return-value", NULL);
         notify_status ("XSERVER :%d EXIT CODE=%d", display_number, return_value);
+
+        /* Write lock to stop repeatedly exiting */
+        f = fopen (return_lock, "w");
+        fclose (f);
+
         return return_value;
     }
+    fclose (f);
 
     loop = g_main_loop_new (NULL, FALSE);
 

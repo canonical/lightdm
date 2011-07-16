@@ -116,6 +116,7 @@ stopped_cb (XServer *server)
     if (server->priv->replacing_plymouth && plymouth_get_is_running ())
     {
         g_debug ("Stopping Plymouth, X server failed to start");
+        server->priv->replacing_plymouth = FALSE;
         plymouth_quit (FALSE);
     }
 }
@@ -636,6 +637,7 @@ xserver_got_signal (ChildProcess *process, int signum)
         if (server->priv->replacing_plymouth)
         {
             g_debug ("Stopping Plymouth, X server is ready");
+            server->priv->replacing_plymouth = FALSE;
             plymouth_quit (TRUE);
         }
 

@@ -1,5 +1,5 @@
 #
-# Check Plymouth quits when X server is started.  Plymouth is on an inactive VT so it quits immediately.
+# Check Plymouth quits when X server is started.  Plymouth is on an active VT so it handshakes with the X server.
 #
 
 RUNNER DAEMON-START
