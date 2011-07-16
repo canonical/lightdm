@@ -113,7 +113,7 @@ xserver_release_display_number (guint number)
 static void
 stopped_cb (XServer *server)
 {
-    if (server->priv->replacing_plymouth)
+    if (server->priv->replacing_plymouth && plymouth_get_is_running ())
     {
         g_debug ("Stopping Plymouth, X server failed to start");
         plymouth_quit (FALSE);
@@ -150,6 +150,7 @@ xserver_new (const gchar *config_section, XServerType type, const gchar *hostnam
             if (active_vt >= vt_get_min ())
             {
                 g_debug ("X server %s will replace Plymouth", xserver_get_address (self));
+                self->priv->replacing_plymouth = TRUE;
                 self->priv->vt = active_vt;
                 plymouth_deactivate ();
                 g_signal_connect (self, "stopped", G_CALLBACK (stopped_cb), NULL);
@@ -632,13 +633,13 @@ xserver_got_signal (ChildProcess *process, int signum)
         server->priv->ready = TRUE;
         g_debug ("Got signal from X server :%d", server->priv->display_number);
 
-        xserver_connect (server);
-
         if (server->priv->replacing_plymouth)
         {
             g_debug ("Stopping Plymouth, X server is ready");
             plymouth_quit (TRUE);
         }
+
+        xserver_connect (server);
 
         g_signal_emit (server, signals[READY], 0);
     }

@@ -27,7 +27,7 @@ plymouth_run_command (const gchar *command, gint *exit_status)
     gboolean result;
     GError *error = NULL;
 
-    command_line = g_strdup_printf ("/bin/plymouth %s", command);  
+    command_line = g_strdup_printf ("plymouth %s", command);
     result = g_spawn_command_line_sync (command_line, NULL, NULL, exit_status, &error);
     g_free (command_line);
 

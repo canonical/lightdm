@@ -55,6 +55,7 @@ src/ldm-marshal.c
 src/ldm-marshal.h
 src/lightdm
 tests/data/passwd
+tests/src/plymouth
 tests/src/test-gobject-greeter
 tests/src/test-runner
 tests/src/test-session

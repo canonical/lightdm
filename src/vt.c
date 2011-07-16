@@ -30,9 +30,6 @@ open_console (void)
 {
     int fd;
 
-    if (getuid () != 0)
-        return -1;
-
     fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
     if (fd < 0)
         g_warning ("Error opening /dev/console: %s", strerror (errno));
@@ -45,6 +42,10 @@ vt_get_active (void)
 #ifdef __linux__
     gint console_fd;
     gint active = -1;
+
+    /* Pretend always active */
+    if (getuid () != 0)
+        return 1;
 
     console_fd = open_console ();
     if (console_fd >= 0)
@@ -70,6 +71,10 @@ vt_set_active (gint number)
     gint console_fd;
 
     g_debug ("Activating VT %d", number);
+  
+    /* Pretend always active */
+    if (getuid () != 0)
+        return;   
 
     console_fd = open_console ();
     if (console_fd >= 0)

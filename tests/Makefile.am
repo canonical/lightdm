@@ -3,9 +3,6 @@ SUBDIRS = src
 TESTS = \
 	test-no-config \
 	test-headless \
-	test-switch-to-greeter \
-	test-switch-to-guest \
-	test-switch-to-user \
 	test-autologin \
 	test-autologin-logout \
 	test-login-gobject \
@@ -21,6 +18,11 @@ TESTS = \
 	test-login-gobject-guest-disabled \
 	test-login-gobject-guest-no-setup-script \
 	test-login-gobject-guest-fail-setup-script \
+	test-plymouth-active-vt \
+	test-plymouth-inactive-vt \
+	test-switch-to-greeter \
+	test-switch-to-guest \
+	test-switch-to-user \
 	test-xdmcp-login
 
 # In progress
@@ -65,6 +67,10 @@ EXTRA_DIST = \
 	scripts/login-gobject-xserver-crash.conf \
 	scripts/login-gobject-xserver-crash.script \
 	scripts/no-config.script \
+	scripts/plymouth-active-vt.conf \
+	scripts/plymouth-active-vt.script \
+	scripts/plymouth-inactive-vt.conf \
+	scripts/plymouth-inactive-vt.script \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-greeter.script \
 	scripts/switch-to-guest.conf \

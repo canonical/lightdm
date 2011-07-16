@@ -1,4 +1,4 @@
-noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-session
+noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-session plymouth
 dist_noinst_SCRIPTS = test-setup-guest test-cleanup-guest
 
 test_runner_CFLAGS = \
@@ -46,3 +46,10 @@ test_session_CFLAGS = \
 test_session_LDADD = \
 	$(GLIB_LIBS) \
 	$(XCB_LIBS)
+
+plymouth_SOURCES = plymouth.c status.c status.h
+plymouth_CFLAGS = \
+	$(WARN_CFLAGS) \
+	$(GLIB_CFLAGS)
+plymouth_LDADD = \
+	$(GLIB_LIBS)
