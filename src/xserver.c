@@ -130,6 +130,9 @@ xserver_new (const gchar *config_section, XServerType type, const gchar *hostnam
     self->priv->hostname = g_strdup (hostname);
     self->priv->display_number = display_number;
 
+    if (type == XSERVER_TYPE_REMOTE)
+        return self;
+
     self->priv->command = config_get_string (config_get_instance (), "SeatDefaults", "xserver-command");
     if (!self->priv->command)
         self->priv->command = config_get_string (config_get_instance (), config_section, "xserver-command");
@@ -142,26 +145,23 @@ xserver_new (const gchar *config_section, XServerType type, const gchar *hostnam
     if (!self->priv->config_file)
         self->priv->config_file = config_get_string (config_get_instance (), config_section, "xserver-config");
 
-    if (type != XSERVER_TYPE_REMOTE)
+    /* Replace Plymouth if it is running */
+    if (plymouth_get_is_active () && plymouth_has_active_vt ())
     {
-        /* Replace Plymouth if it is running */
-        if (plymouth_get_is_active () && plymouth_has_active_vt ())
+        gint active_vt = vt_get_active ();
+        if (active_vt >= vt_get_min ())
         {
-            gint active_vt = vt_get_active ();
-            if (active_vt >= vt_get_min ())
-            {
-                g_debug ("X server %s will replace Plymouth", xserver_get_address (self));
-                self->priv->replacing_plymouth = TRUE;
-                self->priv->vt = active_vt;
-                plymouth_deactivate ();
-                g_signal_connect (self, "stopped", G_CALLBACK (stopped_cb), NULL);
-            }
-            else
-                g_debug ("Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());
+            g_debug ("X server %s will replace Plymouth", xserver_get_address (self));
+            self->priv->replacing_plymouth = TRUE;
+            self->priv->vt = active_vt;
+            plymouth_deactivate ();
+            g_signal_connect (self, "stopped", G_CALLBACK (stopped_cb), NULL);
         }
-        if (self->priv->vt < 0)
-            self->priv->vt = vt_get_unused ();
+        else
+            g_debug ("Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());
     }
+    if (self->priv->vt < 0)
+        self->priv->vt = vt_get_unused ();
 
     return self;
 }
