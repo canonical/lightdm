@@ -51,11 +51,16 @@ seat_xdmcp_client_add_display (Seat *seat)
 
     g_debug ("Starting seat %s", SEAT_XDMCP_CLIENT (seat)->priv->config_section);
 
-    xdmcp_manager = config_get_string (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "xdmcp-manager");
+    xdmcp_manager = config_get_string (config_get_instance (), "SeatDefaults", "xdmcp-manager");
+    if (!xdmcp_manager)
+        xdmcp_manager = config_get_string (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "xdmcp-manager");
     xserver = xserver_new (SEAT_XDMCP_CLIENT (seat)->priv->config_section, XSERVER_TYPE_LOCAL_TERMINAL, xdmcp_manager, xserver_get_free_display_number ());
     g_free (xdmcp_manager);
 
-    port = config_get_integer (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "xdmcp-port");
+    if (config_has_key (config_get_instance (), "SeatDefaults", "xdmcp-port"))
+        port = config_get_integer (config_get_instance (), "SeatDefaults", "xdmcp-port");
+    else
+        port = config_get_integer (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "xdmcp-port");
     if (port > 0)
         xserver_set_port (xserver, port);
     /*key = config_get_string (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "key");
