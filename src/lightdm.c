@@ -418,9 +418,9 @@ main(int argc, char **argv)
     g_clear_error (&error);
 
     /* Set default values */
-    config_set_string (config_get_instance (), "Defaults", "xserver-command", default_xserver_command);
-    config_set_string (config_get_instance (), "Defaults", "greeter-theme", default_greeter_theme);
-    config_set_string (config_get_instance (), "Defaults", "xsession", default_xsession);
+    config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", default_xserver_command);
+    config_set_string (config_get_instance (), "SeatDefaults", "greeter-theme", default_greeter_theme);
+    config_set_string (config_get_instance (), "SeatDefaults", "xsession", default_xsession);
     config_set_string (config_get_instance (), "Directories", "log-directory", LOG_DIR);
     config_set_string (config_get_instance (), "Directories", "theme-directory", theme_dir);
     config_set_string (config_get_instance (), "Directories", "theme-engine-directory", theme_engine_dir);

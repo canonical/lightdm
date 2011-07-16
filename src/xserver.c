@@ -130,15 +130,15 @@ xserver_new (const gchar *config_section, XServerType type, const gchar *hostnam
     self->priv->hostname = g_strdup (hostname);
     self->priv->display_number = display_number;
 
-    self->priv->command = config_get_string (config_get_instance (), "Defaults", "xserver-command");
+    self->priv->command = config_get_string (config_get_instance (), "SeatDefaults", "xserver-command");
     if (!self->priv->command)
         self->priv->command = config_get_string (config_get_instance (), config_section, "xserver-command");
 
-    self->priv->layout = config_get_string (config_get_instance (), "Defaults", "layout");
+    self->priv->layout = config_get_string (config_get_instance (), "SeatDefaults", "layout");
     if (!self->priv->layout)
         self->priv->layout = config_get_string (config_get_instance (), config_section, "xserver-layout");
 
-    self->priv->config_file = config_get_string (config_get_instance (), "Defaults", "xserver-config");
+    self->priv->config_file = config_get_string (config_get_instance (), "SeatDefaults", "xserver-config");
     if (!self->priv->config_file)
         self->priv->config_file = config_get_string (config_get_instance (), config_section, "xserver-config");
 

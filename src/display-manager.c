@@ -112,7 +112,7 @@ display_manager_start (DisplayManager *manager)
 
         g_debug ("Loading seat %s", config_section);
 
-        if (config_has_key (config_get_instance (), "Defaults", "xdmcp-manager") ||
+        if (config_has_key (config_get_instance (), "SeatDefaults", "xdmcp-manager") ||
             config_has_key (config_get_instance (), config_section, "xdmcp-manager"))
             seat = SEAT (seat_xdmcp_client_new (config_section));
         else

@@ -109,16 +109,16 @@ display_new (const gchar *config_section, XServer *xserver)
 
     self->priv->greeter_user = config_get_string (config_get_instance (), config_section, "greeter-user");
     if (!self->priv->greeter_user)
-        self->priv->greeter_user = config_get_string (config_get_instance (), "Defaults", "greeter-user");
+        self->priv->greeter_user = config_get_string (config_get_instance (), "SeatDefaults", "greeter-user");
     self->priv->greeter_theme = config_get_string (config_get_instance (), config_section, "greeter-theme");
     if (!self->priv->greeter_theme)
-        self->priv->greeter_theme = config_get_string (config_get_instance (), "Defaults", "greeter-theme");
+        self->priv->greeter_theme = config_get_string (config_get_instance (), "SeatDefaults", "greeter-theme");
     self->priv->default_session = config_get_string (config_get_instance (), config_section, "xsession");
     if (!self->priv->default_session)
-        self->priv->default_session = config_get_string (config_get_instance (), "Defaults", "xsession");
+        self->priv->default_session = config_get_string (config_get_instance (), "SeatDefaults", "xsession");
     self->priv->session_wrapper = config_get_string (config_get_instance (), config_section, "xsession-wrapper");
     if (!self->priv->session_wrapper)
-        self->priv->session_wrapper = config_get_string (config_get_instance (), "Defaults", "xsession-wrapper");
+        self->priv->session_wrapper = config_get_string (config_get_instance (), "SeatDefaults", "xsession-wrapper");
 
     return self;
 }
