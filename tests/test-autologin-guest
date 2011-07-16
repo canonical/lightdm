@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/test-runner autologin-guest

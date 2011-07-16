@@ -6,7 +6,7 @@ Overview of changes in lightdm 0.4.5
     * D-Bus API changes:
       - Rename ShowGreeter() to SwitchToGreeter()
     * Config changes:
-      - Move directories into their own section
+      - Support setting autologin user to guest account
 
 Overview of changes in lightdm 0.4.4
 

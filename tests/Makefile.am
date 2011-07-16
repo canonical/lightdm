@@ -4,6 +4,7 @@ TESTS = \
 	test-no-config \
 	test-headless \
 	test-autologin \
+	test-autologin-guest \
 	test-autologin-logout \
 	test-login-gobject \
 	test-login-gobject-manual \
@@ -37,6 +38,8 @@ EXTRA_DIST = \
 	data/xsessions/test-session.desktop \
 	scripts/autologin.conf \
 	scripts/autologin.script \
+	scripts/autologin-guest.conf \
+	scripts/autologin-guest.script \
 	scripts/autologin-logout.conf \
 	scripts/autologin-logout.script \
 	scripts/headless.conf \
