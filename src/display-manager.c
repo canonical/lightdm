@@ -96,9 +96,6 @@ display_manager_start (DisplayManager *manager)
 
     /* Load the static display entries */
     seats = config_get_string (config_get_instance (), "LightDM", "seats");
-    /* Fallback to the old name for seats, this will be removed before 1.0 */
-    if (!seats)
-        seats = config_get_string (config_get_instance (), "LightDM", "displays");
     if (!seats)
         seats = g_strdup ("");
     tokens = g_strsplit (seats, " ", -1);
