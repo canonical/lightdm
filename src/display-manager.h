@@ -27,8 +27,6 @@ typedef struct
     DisplayManagerPrivate *priv;
 } DisplayManager;
 
-#include "seat.h"
-
 typedef struct
 {
     GObjectClass parent_class;
@@ -41,7 +39,7 @@ GType display_manager_get_type (void);
 
 DisplayManager *display_manager_new (void);
 
-Seat *display_manager_get_seat (DisplayManager *manager);
+GList *display_manager_get_seats (DisplayManager *manager);
 
 void display_manager_start (DisplayManager *manager);
 

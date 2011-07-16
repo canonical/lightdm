@@ -20,6 +20,7 @@
 
 #include "configuration.h"
 #include "display-manager.h"
+#include "seat.h"
 #include "xserver.h"
 #include "user.h"
 #include "pam-session.h"
@@ -35,6 +36,7 @@ static DisplayManager *display_manager = NULL;
 
 static GDBusConnection *bus = NULL;
 static guint bus_id;
+static GDBusNodeInfo *seat_info;
 
 #define LDM_BUS_NAME "org.freedesktop.DisplayManager"
 
@@ -129,12 +131,57 @@ handle_display_manager_call (GDBusConnection       *connection,
                              GDBusMethodInvocation *invocation,
                              gpointer               user_data)
 {
+    if (g_strcmp0 (method_name, "GetSeats") == 0)
+    {
+        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
+            return;
+
+        g_dbus_method_invocation_return_value (invocation, NULL); // FIXME
+    }
+    else if (g_strcmp0 (method_name, "GetSeatForCookie") == 0)
+    {
+        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(s)")))
+            return;
+
+        g_dbus_method_invocation_return_value (invocation, NULL); // FIXME
+    }
+}
+
+static GVariant *
+handle_seat_get_property (GDBusConnection       *connection,
+                          const gchar           *sender,
+                          const gchar           *object_path,
+                          const gchar           *interface_name,
+                          const gchar           *property_name,
+                          GError               **error,
+                          gpointer               user_data)
+{
+    Seat *seat = user_data;
+
+    if (g_strcmp0 (property_name, "CanSwitch") == 0)
+        return g_variant_new_boolean (seat_get_can_switch (seat));
+  
+    return NULL;
+}
+
+static void
+handle_seat_call (GDBusConnection       *connection,
+                  const gchar           *sender,
+                  const gchar           *object_path,
+                  const gchar           *interface_name,
+                  const gchar           *method_name,
+                  GVariant              *parameters,
+                  GDBusMethodInvocation *invocation,
+                  gpointer               user_data)
+{
+    Seat *seat = user_data;
+
     if (g_strcmp0 (method_name, "SwitchToGreeter") == 0)
     {
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
             return;
 
-        seat_switch_to_greeter (display_manager_get_seat (display_manager));
+        seat_switch_to_greeter (seat);
         g_dbus_method_invocation_return_value (invocation, NULL);
     }
     else if (g_strcmp0 (method_name, "SwitchToUser") == 0)
@@ -145,7 +192,7 @@ handle_display_manager_call (GDBusConnection       *connection,
             return;
 
         g_variant_get (parameters, "(s)", &username);
-        seat_switch_to_user (display_manager_get_seat (display_manager), username);
+        seat_switch_to_user (seat, username);
         g_dbus_method_invocation_return_value (invocation, NULL);
         g_free (username);
     }
@@ -154,24 +201,25 @@ handle_display_manager_call (GDBusConnection       *connection,
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
             return;
 
-        seat_switch_to_guest (display_manager_get_seat (display_manager));
+        seat_switch_to_guest (seat);
         g_dbus_method_invocation_return_value (invocation, NULL);
     }
 }
 
-static GVariant *
-handle_display_manager_get_property (GDBusConnection       *connection,
-                                     const gchar           *sender,
-                                     const gchar           *object_path,
-                                     const gchar           *interface_name,
-                                     const gchar           *property_name,
-                                     GError               **error,
-                                     gpointer               user_data)
+static void
+seat_added_cb (Seat *seat)
 {
-    if (g_strcmp0 (property_name, "ConfigFile") == 0)
-        return g_variant_new_string (config_path);
-
-    return NULL;
+    static const GDBusInterfaceVTable seat_vtable =
+    {
+        handle_seat_call,
+        handle_seat_get_property
+    };
+    bus_id = g_dbus_connection_register_object (bus,
+                                                "/org/freedesktop/DisplayManager/Seat0",
+                                                seat_info->interfaces[0],
+                                                &seat_vtable,
+                                                g_object_ref (seat), g_object_unref,
+                                                NULL);
 }
 
 static void
@@ -182,7 +230,29 @@ bus_acquired_cb (GDBusConnection *connection,
     const gchar *display_manager_interface =
         "<node>"
         "  <interface name='org.freedesktop.DisplayManager'>"
-        "    <property name='ConfigFile' type='s' access='read'/>"
+        "    <method name='GetSeats'>"
+        "      <arg name='seats' direction='out' type='ao'/>"
+        "    </method>"
+        "    <method name='GetSeatForCookie'>"
+        "      <arg name='cookie' direction='in' type='s'/>"
+        "      <arg name='seat' direction='out' type='o'/>"
+        "    </method>"
+        "    <signal name='SeatAdded'>"
+        "      <arg name='seat' type='o'/>"
+        "    </signal>"
+        "    <signal name='SeatRemoved'>"
+        "      <arg name='seat' type='o'/>"
+        "    </signal>"
+        "  </interface>"
+        "</node>";
+    static const GDBusInterfaceVTable display_manager_vtable =
+    {
+        handle_display_manager_call,
+    };
+    const gchar *seat_interface =
+        "<node>"
+        "  <interface name='org.freedesktop.DisplayManager.Seat'>"
+        "    <property name='CanSwitch' type='b' access='read'/>"
         "    <method name='SwitchToGreeter'/>"
         "    <method name='SwitchToUser'>"
         "      <arg name='username' direction='in' type='s'/>"
@@ -190,23 +260,25 @@ bus_acquired_cb (GDBusConnection *connection,
         "    <method name='SwitchToGuest'/>"
         "  </interface>"
         "</node>";
-    static const GDBusInterfaceVTable display_manager_vtable =
-    {
-        handle_display_manager_call,
-        handle_display_manager_get_property
-    };
     GDBusNodeInfo *display_manager_info;
+    GList *link;
 
     bus = connection;
 
     display_manager_info = g_dbus_node_info_new_for_xml (display_manager_interface, NULL);
     g_assert (display_manager_info != NULL);
+    seat_info = g_dbus_node_info_new_for_xml (seat_interface, NULL);
+    g_assert (display_manager_info != NULL);
+
     bus_id = g_dbus_connection_register_object (connection,
                                                 "/org/freedesktop/DisplayManager",
                                                 display_manager_info->interfaces[0],
                                                 &display_manager_vtable,
                                                 NULL, NULL,
                                                 NULL);
+
+    for (link = display_manager_get_seats (display_manager); link; link = link->next)
+        seat_added_cb ((Seat *) link->data);
 }
 
 static void

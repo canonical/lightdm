@@ -4,6 +4,8 @@ Overview of changes in lightdm 0.4.5
     * Fix bug where switching users created X servers without VTs
     * Release a VT when the X server on it stops
     * D-Bus API changes:
+      - Make an object per seat
+      - Add a CanSwitch property
       - Rename ShowGreeter() to SwitchToGreeter()
     * Config changes:
       - Major reorginisation of configuration to make it easier to configure and

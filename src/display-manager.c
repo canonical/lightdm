@@ -50,10 +50,10 @@ display_manager_new (void)
     return g_object_new (DISPLAY_MANAGER_TYPE, NULL);
 }
 
-Seat *
-display_manager_get_seat (DisplayManager *manager)
+GList *
+display_manager_get_seats (DisplayManager *manager)
 {
-    return manager->priv->seats->data;
+    return manager->priv->seats;
 }
 
 static gboolean

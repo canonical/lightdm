@@ -224,8 +224,8 @@ run_commands ()
         {
             g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL),
                                          "org.freedesktop.DisplayManager",
-                                         "/org/freedesktop/DisplayManager",                                         
-                                         "org.freedesktop.DisplayManager",
+                                         "/org/freedesktop/DisplayManager/Seat0",
+                                         "org.freedesktop.DisplayManager.Seat",
                                          "SwitchToGreeter",
                                          g_variant_new ("()"),
                                          G_VARIANT_TYPE ("()"),
@@ -242,8 +242,8 @@ run_commands ()
             username = g_hash_table_lookup (params, "USERNAME");
             g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL),
                                          "org.freedesktop.DisplayManager",
-                                         "/org/freedesktop/DisplayManager",                                         
-                                         "org.freedesktop.DisplayManager",
+                                         "/org/freedesktop/DisplayManager/Seat0",
+                                         "org.freedesktop.DisplayManager.Seat",
                                          "SwitchToUser",
                                          g_variant_new ("(s)", username),
                                          G_VARIANT_TYPE ("()"),
@@ -259,8 +259,8 @@ run_commands ()
         {
             g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL),
                                          "org.freedesktop.DisplayManager",
-                                         "/org/freedesktop/DisplayManager",                                         
-                                         "org.freedesktop.DisplayManager",
+                                         "/org/freedesktop/DisplayManager/Seat0",
+                                         "org.freedesktop.DisplayManager.Seat",
                                          "SwitchToGuest",
                                          g_variant_new ("()"),
                                          G_VARIANT_TYPE ("()"),
