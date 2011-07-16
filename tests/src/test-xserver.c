@@ -925,7 +925,8 @@ main (int argc, char **argv)
 
         return return_value;
     }
-    fclose (f);
+    if (f != NULL)
+        fclose (f);
 
     loop = g_main_loop_new (NULL, FALSE);
 
