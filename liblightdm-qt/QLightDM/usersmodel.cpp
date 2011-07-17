@@ -11,7 +11,6 @@
 
 #include "usersmodel.h"
 #include "user.h"
-#include "config.h"
 
 #include <pwd.h>
 #include <errno.h>
@@ -20,6 +19,7 @@
 #include <QtCore/QFileSystemWatcher>
 #include <QtCore/QFile>
 #include <QtCore/QDir>
+#include <QtCore/QSettings>
 #include <QtCore/QDebug>
 
 #include <QtGui/QPixmap>
@@ -29,23 +29,18 @@ using namespace QLightDM;
 class UsersModelPrivate {
 public:
     QList<User> users;
-    QLightDM::Config *config;
 };
 
-UsersModel::UsersModel(QLightDM::Config *config, QObject *parent) :
+UsersModel::UsersModel(QObject *parent) :
     QAbstractListModel(parent),
     d (new UsersModelPrivate())
 {
-    d->config = config;
+    //load users on startup and if the password file changes.
+    QFileSystemWatcher *watcher = new QFileSystemWatcher(this);
+    watcher->addPath("/etc/passwd"); //FIXME harcoded path
+    connect(watcher, SIGNAL(fileChanged(QString)), SLOT(loadUsers()));
 
-    if (d->config->loadUsers()) {
-        //load users on startup and if the password file changes.
-        QFileSystemWatcher *watcher = new QFileSystemWatcher(this);
-        watcher->addPath("/etc/passwd"); //FIXME harcoded path
-        connect(watcher, SIGNAL(fileChanged(QString)), SLOT(loadUsers()));
-
-        loadUsers();
-    }
+    loadUsers();
 }
 
 UsersModel::~UsersModel()
@@ -85,9 +80,21 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
 
 QList<User> UsersModel::getUsers()
 {
-    int minimumUid = d->config->minimumUid();
-    QStringList hiddenUsers = d->config->hiddenUsers();
-    QStringList hiddenShells = d->config->hiddenShells();
+    QString file = "/etc/lightdm/users.conf";
+    qDebug() << "Loading user configuration from " << file;
+    QSettings *settings = new QSettings(file, QSettings::IniFormat);
+
+    int minimumUid = settings->value("UserAccounts/minimum-uid", QVariant(500)).toInt();
+    QStringList hiddenShells;
+    if (settings->contains("UserAccounts/hidden-shells")) 
+        hiddenShells = settings->value("UserAccounts/hidden-shells").toString().split(" ");
+    else
+        hiddenShells = QStringList() << "/bin/false" << "/usr/sbin/nologin";
+    QStringList hiddenUsers;
+    if (settings->contains("UserAccounts/hidden-users")) 
+        hiddenUsers = settings->value("UserAccounts/hidden-users").toString().split(" ");
+    else 
+        hiddenUsers = QStringList() << "nobody" << "nobody4" << "noaccess";
 
     QList<User> users;
 
@@ -145,8 +152,10 @@ QList<User> UsersModel::getUsers()
     if(errno != 0) {
         qDebug() << "Failed to read password database: " << strerror(errno);
     }
-
     endpwent();
+
+    delete settings;
+
     return users;
 }
 
@@ -157,7 +166,6 @@ void UsersModel::loadUsers()
     //FIXME accidently not got the "if contact removed" code. Need to restore that.
     //should call beginRemoveRows, and then remove the row from the model.
     //might get rid of "User" object, keep as private object (like sessionsmodel) - or make it copyable.
-
 
     //loop through all the new list of users, if it's in the list already update it (or do nothing) otherwise append to list of new users
     QList<User> newUserList = getUsers();

@@ -19,7 +19,6 @@ class UsersModelPrivate;
 namespace QLightDM
 {
 
-class Config;
 class User;
 
 class Q_DECL_EXPORT UsersModel : public QAbstractListModel
@@ -31,7 +30,7 @@ public:
                          LoggedInRole
                         };
 
-    explicit UsersModel(QLightDM::Config *config, QObject *parent = 0);
+    explicit UsersModel(QObject *parent = 0);
     ~UsersModel();
     int rowCount(const QModelIndex &parent) const;
     QVariant data(const QModelIndex &index, int role) const;

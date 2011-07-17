@@ -24,8 +24,6 @@ class GreeterPrivate;
 
 namespace QLightDM
 {
-  class Config;
-  
   class Q_DECL_EXPORT Greeter : public QObject
   {
     Q_OBJECT
@@ -54,8 +52,6 @@ namespace QLightDM
 
 	//QList<LdmLayout> layouts() const;
 	QString layout() const;
-
-        QLightDM::Config *config() const;
 
 	QString defaultSession() const;
         bool guestAccountSupported() const;

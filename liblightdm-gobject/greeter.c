@@ -64,8 +64,6 @@ struct _LdmGreeterPrivate
 
     GDBusConnection *system_bus;
 
-    GDBusProxy *lightdm_proxy;
-
     GIOChannel *to_server_channel, *from_server_channel;
     guint8 *read_buffer;
     gsize n_read;
@@ -74,21 +72,18 @@ struct _LdmGreeterPrivate
 
     gchar *hostname;
 
-    /* Configuration file */
-    GKeyFile *config;
-
     gchar *theme;
     GKeyFile *theme_file;
 
     /* File monitor for password file */
     GFileMonitor *passwd_monitor;
-
+  
     /* TRUE if have scanned users */
     gboolean have_users;
 
     /* List of users */
     GList *users;
-
+  
     gboolean have_languages;
     GList *languages;
 
@@ -118,6 +113,8 @@ G_DEFINE_TYPE (LdmGreeter, ldm_greeter, G_TYPE_OBJECT);
 
 #define HEADER_SIZE 8
 #define MAX_MESSAGE_LENGTH 1024
+
+#define USER_CONFIG_FILE "/etc/lightdm/users.conf"
 
 /**
  * ldm_greeter_new:
@@ -485,14 +482,6 @@ ldm_greeter_connect_to_server (LdmGreeter *greeter)
     g_io_channel_set_encoding (greeter->priv->from_server_channel, NULL, NULL);
     g_io_add_watch (greeter->priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
 
-    greeter->priv->lightdm_proxy = g_dbus_proxy_new_sync (greeter->priv->lightdm_bus,
-                                                          G_DBUS_PROXY_FLAGS_NONE,
-                                                          NULL,
-                                                          "org.freedesktop.DisplayManager",
-                                                          "/org/freedesktop/DisplayManager",
-                                                          "org.freedesktop.DisplayManager",
-                                                          NULL, NULL);
-
     g_debug ("Connecting to display manager...");
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECT, 0, &offset);
     write_message (greeter, message, offset);
@@ -649,68 +638,40 @@ compare_user (gconstpointer a, gconstpointer b)
 }
 
 static void
-load_config (LdmGreeter *greeter)
-{
-    GVariant *result;
-    const gchar *config_path = NULL;
-
-    if (greeter->priv->config)
-        return;
-
-    result = g_dbus_proxy_get_cached_property (greeter->priv->lightdm_proxy,
-                                               "ConfigFile");
-    if (!result)
-    {
-        g_warning ("No ConfigFile property");
-        return;
-    }
-
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE_STRING))
-        config_path = g_variant_get_string (result, NULL);
-    else
-        g_warning ("Invalid type for config file: %s, expected string", g_variant_get_type_string (result));
-
-    if (config_path)
-    {
-        GError *error = NULL;
-
-        g_debug ("Loading config from %s", config_path);
-
-        greeter->priv->config = g_key_file_new ();
-        if (!g_key_file_load_from_file (greeter->priv->config, config_path, G_KEY_FILE_NONE, &error))
-            g_warning ("Failed to load configuration from %s: %s", config_path, error->message); // FIXME: Don't make warning on no file, just info
-        g_clear_error (&error);
-    }
-
-    g_variant_unref (result);
-}
-  
-static void
 load_users (LdmGreeter *greeter)
 {
-    gchar **hidden_users, **hidden_shells;
+    GKeyFile *config;
     gchar *value;
     gint minimum_uid;
+    gchar **hidden_users, **hidden_shells;
     GList *users = NULL, *old_users, *new_users = NULL, *changed_users = NULL, *link;
+    GError *error;
 
-    load_config (greeter);
+    g_debug ("Loading user config from %s", USER_CONFIG_FILE);
 
-    if (g_key_file_has_key (greeter->priv->config, "UserManager", "minimum-uid", NULL))
-        minimum_uid = g_key_file_get_integer (greeter->priv->config, "UserManager", "minimum-uid", NULL);
+    config = g_key_file_new ();
+    if (!g_key_file_load_from_file (config, USER_CONFIG_FILE, G_KEY_FILE_NONE, &error))
+        g_warning ("Failed to load configuration from %s: %s", USER_CONFIG_FILE, error->message); // FIXME: Don't make warning on no file, just info
+    g_clear_error (&error);
+
+    if (g_key_file_has_key (config, "UserAccounts", "minimum-uid", NULL))
+        minimum_uid = g_key_file_get_integer (config, "UserAccounts", "minimum-uid", NULL);
     else
         minimum_uid = 500;
 
-    value = g_key_file_get_string (greeter->priv->config, "UserManager", "hidden-users", NULL);
+    value = g_key_file_get_string (config, "UserAccounts", "hidden-users", NULL);
     if (!value)
         value = g_strdup ("nobody nobody4 noaccess");
     hidden_users = g_strsplit (value, " ", -1);
     g_free (value);
 
-    value = g_key_file_get_string (greeter->priv->config, "UserManager", "hidden-shells", NULL);
+    value = g_key_file_get_string (config, "UserAccounts", "hidden-shells", NULL);
     if (!value)
         value = g_strdup ("/bin/false /usr/sbin/nologin");
     hidden_shells = g_strsplit (value, " ", -1);
     g_free (value);
+
+    g_key_file_free (config);
 
     setpwent ();
 
@@ -860,16 +821,6 @@ update_users (LdmGreeter *greeter)
 
     if (greeter->priv->have_users)
         return;
-
-    load_config (greeter);
-
-    /* User listing is disabled */
-    if (g_key_file_has_key (greeter->priv->config, "UserManager", "load-users", NULL) &&
-        !g_key_file_get_boolean (greeter->priv->config, "UserManager", "load-users", NULL))
-    {
-        greeter->priv->have_users = TRUE;
-        return;
-    }
 
     load_users (greeter);
 

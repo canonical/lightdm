@@ -30,7 +30,7 @@ LoginPrompt::LoginPrompt(QLightDM::Greeter *greeter, QWidget *parent) :
     
     ui->hostnameLabel->setText(m_greeter->hostname());
     
-    QLightDM::UsersModel *usersModel = new QLightDM::UsersModel(greeter->config(), this);
+    QLightDM::UsersModel *usersModel = new QLightDM::UsersModel(this);
     ui->userListView->setModel(usersModel);
 
     connect(ui->loginButton, SIGNAL(released()), SLOT(onLoginButtonClicked()));

@@ -61,7 +61,6 @@ public:
     bool guestAccountSupported;
 
     SessionsModel *sessionsModel;
-    Config *config;
 
     QDBusInterface* lightdmInterface;
     QDBusInterface* powerManagementInterface;
@@ -86,7 +85,6 @@ Greeter::Greeter(QObject *parent) :
 {
     d->readBuffer = (char *)malloc (HEADER_SIZE);
     d->nRead = 0;
-    d->config = 0;
     d->sessionsModel = new SessionsModel(this);
     d->authenticateSequenceNumber = 0;
 }
@@ -183,18 +181,12 @@ void Greeter::connectToServer()
     d->powerManagementInterface = new QDBusInterface("org.freedesktop.PowerManagement","/org/freedesktop/PowerManagement", "org.freedesktop.PowerManagement");
     d->consoleKitInterface = new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit");
 
-    QString file;
-    file = d->lightdmInterface->property("ConfigFile").toString();
-    qDebug() << "Loading configuration from " << file;
-    d->config = new Config(file, this);
-
     char* fd = getenv("LDM_TO_SERVER_FD");
     if(!fd) {
        qDebug() << "No LDM_TO_SERVER_FD environment variable";
        return;
     }
     d->toServerFd = atoi(fd);
-
 
     qDebug() << "***connecting to server";
     QFile toServer;
@@ -448,11 +440,6 @@ int Greeter::timedLoginDelay() const
 void Greeter::cancelTimedLogin() 
 {
     //FIXME TODO
-}
-
-Config* Greeter::config() const
-{
-    return d->config;
 }
 
 bool Greeter::canSuspend() const
