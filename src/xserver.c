@@ -186,20 +186,6 @@ xserver_set_port (XServer *server, guint port)
     server->priv->port = port;
 }
 
-guint
-xserver_get_port (XServer *server)
-{
-    g_return_val_if_fail (server != NULL, 0);
-    return server->priv->port;
-}
-
-const gchar *
-xserver_get_hostname (XServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->hostname;
-}
-
 gint
 xserver_get_display_number (XServer *server)
 {
@@ -234,27 +220,6 @@ xserver_set_authentication (XServer *server, const gchar *name, const guchar *da
     server->priv->authentication_data = g_malloc (data_length);
     server->priv->authentication_data_length = data_length;
     memcpy (server->priv->authentication_data, data, data_length);
-}
-
-const gchar *
-xserver_get_authentication_name (XServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->authentication_name;
-}
-
-const guchar *
-xserver_get_authentication_data (XServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->authentication_data;
-}
-
-gsize
-xserver_get_authentication_data_length (XServer *server)
-{
-    g_return_val_if_fail (server != NULL, 0);
-    return server->priv->authentication_data_length;
 }
 
 static void
