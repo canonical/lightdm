@@ -411,7 +411,6 @@ start_user_session (Display *display, const gchar *session)
     User *user;
     gboolean supports_transitions;
     GKeyFile *dmrc_file, *session_desktop_file;
-    XAuthorization *authorization;
     gboolean result;
     GError *error = NULL;
 
@@ -483,12 +482,8 @@ start_user_session (Display *display, const gchar *session)
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "SHELL", user_get_shell (user));
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDMSESSION", session); // FIXME: Not cross-desktop
-    child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DISPLAY", xserver_get_address (display->priv->xserver));
     set_env_from_pam_session (display->priv->user_session, display->priv->user_pam_session);
-
-    authorization = xserver_get_authorization (display_get_xserver (display));
-    if (authorization)
-        session_set_authorization (display->priv->user_session, authorization);
+    xserver_setup_session (display->priv->xserver, display->priv->user_session);
 
     // FIXME: Copy old error file  
     log_filename = g_build_filename (user_get_home_directory (user), ".xsession-errors", NULL);
@@ -657,7 +652,6 @@ start_greeter (Display *display)
     GKeyFile *theme;
     gchar *command, *log_dir, *filename, *log_filename;
     User *user;
-    XAuthorization *authorization;
     gboolean result;
     GError *error = NULL;
 
@@ -704,14 +698,10 @@ start_greeter (Display *display)
     child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "USER", user_get_name (user));
     child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "HOME", user_get_home_directory (user));
     child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "SHELL", user_get_shell (user));
-    child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "DISPLAY", xserver_get_address (display->priv->xserver));
     if (display->priv->greeter_ck_cookie)
         child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "XDG_SESSION_COOKIE", display->priv->greeter_ck_cookie);
     set_env_from_pam_session (SESSION (display->priv->greeter_session), display->priv->greeter_pam_session);
-
-    authorization = xserver_get_authorization (display_get_xserver (display));
-    if (authorization)
-        session_set_authorization (SESSION (display->priv->greeter_session), authorization);
+    xserver_setup_session (display->priv->xserver, SESSION (display->priv->greeter_session));
 
     log_dir = config_get_string (config_get_instance (), "Directories", "log-directory");
     filename = g_strdup_printf ("%s-greeter.log", xserver_get_address (display_get_xserver (display)));

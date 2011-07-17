@@ -216,6 +216,26 @@ xserver_get_authority_file (XServer *server)
     return server->priv->authority_file;
 }
 
+static void
+xserver_real_setup_session (XServer *server, Session *session)
+{
+}
+
+void
+xserver_setup_session (XServer *server, Session *session)
+{
+    XAuthorization *authorization;
+
+    g_return_if_fail (server != NULL);
+
+    child_process_set_env (CHILD_PROCESS (session), "DISPLAY", xserver_get_address (server));
+    authorization = xserver_get_authorization (server);
+    if (authorization)
+        session_set_authorization (session, authorization);
+
+    //XSERVER_GET_CLASS (server)->setup_session (server, session);
+}
+
 static gboolean
 xserver_real_start (XServer *server)
 {
@@ -357,6 +377,7 @@ xserver_class_init (XServerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
+    klass->setup_session = xserver_real_setup_session;  
     klass->start = xserver_real_start;
     klass->restart = xserver_real_restart;
     klass->stop = xserver_real_stop;

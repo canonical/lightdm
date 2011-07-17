@@ -13,6 +13,7 @@
 #define _XSERVER_H_
 
 #include <glib-object.h>
+#include "session.h"
 #include "xauth.h"
 
 G_BEGIN_DECLS
@@ -37,6 +38,7 @@ typedef struct
     void (*ready)(XServer *server);
     void (*stopped)(XServer *server);
 
+    void (*setup_session)(XServer *server, Session *session);
     gboolean (*start)(XServer *server);
     gboolean (*restart)(XServer *server);
     void (*stop)(XServer *server);
@@ -67,6 +69,8 @@ void xserver_set_authorization (XServer *server, XAuthorization *authorization);
 XAuthorization *xserver_get_authorization (XServer *server);
 
 GFile *xserver_get_authority_file (XServer *server);
+
+void xserver_setup_session (XServer *server, Session *session);
 
 gboolean xserver_start (XServer *server);
 
