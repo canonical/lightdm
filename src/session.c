@@ -28,19 +28,12 @@ struct SessionPrivate
   
     /* Command to run for this session */
     gchar *command;
-
-    /* X authorization */
-    XAuthorization *authorization;
-    GFile *authorization_file;
+  
+    /* TRUE if has a communication pipe */
+    gboolean has_pipe;
 };
 
 G_DEFINE_TYPE (Session, session, CHILD_PROCESS_TYPE);
-
-Session *
-session_new ()
-{
-    return g_object_new (SESSION_TYPE, NULL);
-}
 
 void
 session_set_user (Session *session, User *user)
@@ -76,20 +69,10 @@ session_get_command (Session *session)
 }
 
 void
-session_set_authorization (Session *session, XAuthorization *authorization)
+session_set_has_pipe (Session *session, gboolean has_pipe)
 {
     g_return_if_fail (session != NULL);
-
-    if (session->priv->authorization)
-        g_object_unref (session->priv->authorization);
-    session->priv->authorization = g_object_ref (authorization);
-}
-
-XAuthorization *
-session_get_authorization (Session *session)
-{
-    g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->authorization;
+    session->priv->has_pipe = has_pipe;
 }
 
 static gchar *
@@ -114,15 +97,14 @@ get_absolute_command (const gchar *command)
     return absolute_command;
 }
 
-gboolean
-session_start (Session *session, gboolean create_pipe)
+static gboolean
+session_real_start (Session *session)
 {
     //gint session_stdin, session_stdout, session_stderr;
     gboolean result;
     GError *error = NULL;
     gchar *absolute_command;
 
-    g_return_val_if_fail (session != NULL, FALSE);
     g_return_val_if_fail (session->priv->user != NULL, FALSE);
     g_return_val_if_fail (session->priv->command != NULL, FALSE);
 
@@ -133,49 +115,13 @@ session_start (Session *session, gboolean create_pipe)
         return FALSE;
     }
 
-    if (session->priv->authorization)
-    {
-        gchar *path;
-      
-        if (config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"))
-        {
-            gchar *run_dir, *dir;
-
-            run_dir = config_get_string (config_get_instance (), "Directories", "run-directory");          
-            dir = g_build_filename (run_dir, user_get_name (session->priv->user), NULL);
-            g_free (run_dir);
-
-            g_mkdir_with_parents (dir, S_IRWXU);
-            if (getuid () == 0)
-            {
-                if (chown (dir, user_get_uid (session->priv->user), user_get_gid (session->priv->user)) < 0)
-                    g_warning ("Failed to set ownership of user authorization dir: %s", strerror (errno));
-            }
-
-            path = g_build_filename (dir, "xauthority", NULL);
-            g_free (dir);
-
-            child_process_set_env (CHILD_PROCESS (session), "XAUTHORITY", path);
-        }
-        else
-            path = g_build_filename (user_get_home_directory (session->priv->user), ".Xauthority", NULL);
-
-        session->priv->authorization_file = g_file_new_for_path (path);
-        g_free (path);
-
-        g_debug ("Adding session authority to %s", g_file_get_path (session->priv->authorization_file));
-        if (!xauth_write (session->priv->authorization, XAUTH_WRITE_MODE_REPLACE, session->priv->user, session->priv->authorization_file, &error))
-            g_warning ("Failed to write authorization: %s", error->message);
-        g_clear_error (&error);
-    }
-
     g_debug ("Launching session");
 
     result = child_process_start (CHILD_PROCESS (session),
                                   session->priv->user,
                                   user_get_home_directory (session->priv->user),
                                   absolute_command,
-                                  create_pipe,
+                                  session->priv->has_pipe,
                                   &error);
     g_free (absolute_command);
 
@@ -186,11 +132,24 @@ session_start (Session *session, gboolean create_pipe)
     return result;
 }
 
+gboolean
+session_start (Session *session)
+{
+    g_return_val_if_fail (session != NULL, FALSE); 
+    return SESSION_GET_CLASS (session)->start (session);
+}
+
+static void
+session_real_stop (Session *session)
+{
+    child_process_signal (CHILD_PROCESS (session), SIGTERM);
+}
+
 void
 session_stop (Session *session)
 {
     g_return_if_fail (session != NULL);
-    child_process_signal (CHILD_PROCESS (session), SIGTERM);
+    SESSION_GET_CLASS (session)->stop (session);
 }
 
 static void
@@ -206,18 +165,9 @@ session_finalize (GObject *object)
 
     self = SESSION (object);
 
-    if (self->priv->authorization_file)
-    {
-        g_debug ("Removing session authority from %s", g_file_get_path (self->priv->authorization_file));
-        xauth_write (self->priv->authorization, XAUTH_WRITE_MODE_REMOVE, self->priv->user, self->priv->authorization_file, NULL);
-        g_object_unref (self->priv->authorization_file);
-    }
-
     if (self->priv->user)
         g_object_unref (self->priv->user);
     g_free (self->priv->command);
-    if (self->priv->authorization)
-        g_object_unref (self->priv->authorization);
 
     G_OBJECT_CLASS (session_parent_class)->finalize (object);
 }
@@ -227,6 +177,8 @@ session_class_init (SessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
+    klass->start = session_real_start;
+    klass->stop = session_real_stop;
     object_class->finalize = session_finalize;
 
     g_type_class_add_private (klass, sizeof (SessionPrivate));

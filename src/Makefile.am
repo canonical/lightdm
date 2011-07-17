@@ -49,6 +49,8 @@ lightdm_SOURCES = \
 	vt.h \
 	xauth.c \
 	xauth.h \
+	xdisplay.c \
+	xdisplay.h \
 	xdmcp-protocol.c \
 	xdmcp-protocol.h \
 	xdmcp-server.c \
@@ -61,7 +63,9 @@ lightdm_SOURCES = \
 	xserver-remote.c \
 	xserver-remote.h \
 	xserver.c \
-	xserver.h
+	xserver.h \
+	xsession.c \
+	xsession.h
 
 BUILT_SOURCES = \
 	ldm-marshal.c \

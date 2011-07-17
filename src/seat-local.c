@@ -13,6 +13,7 @@
 
 #include "seat-local.h"
 #include "configuration.h"
+#include "xdisplay.h"
 #include "xserver-local.h"
 #include "vt.h"
 
@@ -44,7 +45,7 @@ seat_local_add_display (Seat *seat)
     XAuthorization *authorization = NULL;
     gchar *number;
     gchar hostname[1024];
-    Display *display;
+    XDisplay *display;
 
     g_debug ("Starting display");
 
@@ -57,10 +58,10 @@ seat_local_add_display (Seat *seat)
     xserver_set_authorization (XSERVER (xserver), authorization);
     g_object_unref (authorization);
 
-    display = display_new (SEAT_LOCAL (seat)->priv->config_section, DISPLAY_SERVER (xserver));
+    display = xdisplay_new (SEAT_LOCAL (seat)->priv->config_section, XSERVER (xserver));
     g_object_unref (xserver);
 
-    return display;
+    return DISPLAY (display);
 }
 
 static void

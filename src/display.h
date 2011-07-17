@@ -20,8 +20,10 @@
 
 G_BEGIN_DECLS
 
-#define DISPLAY_TYPE (display_get_type())
-#define DISPLAY(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), DISPLAY_TYPE, Display));
+#define DISPLAY_TYPE           (display_get_type())
+#define DISPLAY(obj)           (G_TYPE_CHECK_INSTANCE_CAST ((obj), DISPLAY_TYPE, Display))
+#define DISPLAY_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST ((klass), DISPLAY_TYPE, DisplayClass))
+#define DISPLAY_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), DISPLAY_TYPE, DisplayClass))
 
 typedef struct DisplayPrivate DisplayPrivate;
 
@@ -38,11 +40,15 @@ typedef struct
     void (*started)(Display *display);
     gboolean (*activate_user)(Display *display, const gchar *username);
     void (*stopped)(Display *display);
+
+    Session *(*start_session) (Display *display);
 } DisplayClass;
 
 GType display_get_type (void);
 
-Display *display_new (const gchar *config_section, DisplayServer *server);
+void display_load_config (Display *display, const gchar *config_section);
+
+void display_set_display_server (Display *display, DisplayServer *display_server);
 
 DisplayServer *display_get_display_server (Display *display);
 

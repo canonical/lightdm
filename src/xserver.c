@@ -16,6 +16,7 @@
 
 #include "xserver.h"
 #include "configuration.h"
+#include "xsession.h"
 
 struct XServerPrivate
 {  
@@ -206,17 +207,6 @@ xserver_get_authority_file (XServer *server)
 }
 
 static void
-xserver_setup_session (DisplayServer *server, Session *session)
-{
-    XAuthorization *authorization;
-
-    child_process_set_env (CHILD_PROCESS (session), "DISPLAY", xserver_get_address (XSERVER (server)));
-    authorization = xserver_get_authorization (XSERVER (server));
-    if (authorization)
-        session_set_authorization (session, authorization);
-}
-
-static void
 xserver_init (XServer *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_TYPE, XServerPrivate);
@@ -249,9 +239,7 @@ static void
 xserver_class_init (XServerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-    DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);  
 
-    display_server_class->setup_session = xserver_setup_session;  
     object_class->finalize = xserver_finalize;
 
     g_type_class_add_private (klass, sizeof (XServerPrivate));

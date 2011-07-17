@@ -13,7 +13,6 @@
 #define _DISPLAY_SERVER_H_
 
 #include <glib-object.h>
-#include "session.h"
 
 G_BEGIN_DECLS
 
@@ -37,15 +36,12 @@ typedef struct
     void (*ready)(DisplayServer *server);
     void (*stopped)(DisplayServer *server);
 
-    void (*setup_session)(DisplayServer *server, Session *session);
     gboolean (*start)(DisplayServer *server);
     gboolean (*restart)(DisplayServer *server);
     void (*stop)(DisplayServer *server);
 } DisplayServerClass;
 
 GType display_server_get_type (void);
-
-void display_server_setup_session (DisplayServer *server, Session *session);
 
 gboolean display_server_start (DisplayServer *server);
 

@@ -14,12 +14,13 @@
 
 #include "child-process.h"
 #include "user.h"
-#include "xauth.h"
 
 G_BEGIN_DECLS
 
-#define SESSION_TYPE (session_get_type())
-#define SESSION(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), SESSION_TYPE, Session))
+#define SESSION_TYPE           (session_get_type())
+#define SESSION(obj)           (G_TYPE_CHECK_INSTANCE_CAST ((obj), SESSION_TYPE, Session))
+#define SESSION_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST ((klass), SESSION_TYPE, SessionClass))
+#define SESSION_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), SESSION_TYPE, SessionClass))
 
 typedef struct SessionPrivate SessionPrivate;
 
@@ -32,11 +33,12 @@ typedef struct
 typedef struct
 {
     ChildProcessClass parent_class;
+
+    gboolean (*start)(Session *session);
+    void     (*stop)(Session *session);
 } SessionClass;
 
 GType session_get_type (void);
-
-Session *session_new (void);
 
 void session_set_user (Session *session, User *user);
 
@@ -46,11 +48,9 @@ void session_set_command (Session *session, const gchar *command);
 
 const gchar *session_get_command (Session *session);
 
-void session_set_authorization (Session *session, XAuthorization *authorization);
+void session_set_has_pipe (Session *session, gboolean has_pipe);
 
-XAuthorization *session_get_authorization (Session *session);
-
-gboolean session_start (Session *session, gboolean create_pipe);
+gboolean session_start (Session *session);
 
 void session_stop (Session *session);
 

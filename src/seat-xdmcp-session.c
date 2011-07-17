@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "seat-xdmcp-session.h"
+#include "xdisplay.h"
 #include "xserver-remote.h"
 
 struct SeatXDMCPSessionPrivate
@@ -42,7 +43,7 @@ seat_xdmcp_session_add_display (Seat *seat)
 {
     XServerRemote *xserver;
     gchar *address;
-    Display *display;
+    XDisplay *display;
 
     // FIXME: Try IPv6 then fallback to IPv4
     address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (SEAT_XDMCP_SESSION (seat)->priv->session)));
@@ -67,10 +68,10 @@ seat_xdmcp_session_add_display (Seat *seat)
     }
     g_free (address);
 
-    display = display_new (SEAT_XDMCP_SESSION (seat)->priv->config_section, DISPLAY_SERVER (xserver));
+    display = xdisplay_new (SEAT_XDMCP_SESSION (seat)->priv->config_section, XSERVER (xserver));
     g_object_unref (xserver);
 
-    return display;
+    return DISPLAY (display);
 }
 
 static void

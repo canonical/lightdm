@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "seat-xdmcp-client.h"
+#include "xdisplay.h"
 #include "configuration.h"
 #include "xserver-local.h"
 
@@ -21,7 +22,7 @@ struct SeatXDMCPClientPrivate
     gchar *config_section;
 
     /* The display we are running */
-    Display *display;
+    XDisplay *display;
 };
 
 G_DEFINE_TYPE (SeatXDMCPClient, seat_xdmcp_client, SEAT_TYPE);
@@ -78,10 +79,10 @@ seat_xdmcp_client_add_display (Seat *seat)
     xserver_set_authorization (XSERVER (xserver), authorization);
     g_object_unref (authorization);
 
-    SEAT_XDMCP_CLIENT (seat)->priv->display = g_object_ref (display_new (SEAT_XDMCP_CLIENT (seat)->priv->config_section, DISPLAY_SERVER (xserver)));
+    SEAT_XDMCP_CLIENT (seat)->priv->display = g_object_ref (xdisplay_new (SEAT_XDMCP_CLIENT (seat)->priv->config_section, XSERVER (xserver)));
     g_object_unref (xserver);
 
-    return SEAT_XDMCP_CLIENT (seat)->priv->display;
+    return DISPLAY (SEAT_XDMCP_CLIENT (seat)->priv->display);
 }
 
 static void

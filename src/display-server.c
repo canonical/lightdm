@@ -22,19 +22,6 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 G_DEFINE_TYPE (DisplayServer, display_server, G_TYPE_OBJECT);
 
-static void
-display_server_real_setup_session (DisplayServer *server, Session *session)
-{
-}
-
-void
-display_server_setup_session (DisplayServer *server, Session *session)
-{
-    g_return_if_fail (server != NULL);
-
-    DISPLAY_SERVER_GET_CLASS (server)->setup_session (server, session);
-}
-
 static gboolean
 display_server_real_start (DisplayServer *server)
 {
@@ -95,7 +82,6 @@ display_server_init (DisplayServer *server)
 static void
 display_server_class_init (DisplayServerClass *klass)
 {
-    klass->setup_session = display_server_real_setup_session;  
     klass->start = display_server_real_start;
     klass->restart = display_server_real_restart;
     klass->stop = display_server_real_stop;

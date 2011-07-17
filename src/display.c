@@ -23,7 +23,7 @@
 #include "ldm-marshal.h"
 #include "greeter.h"
 #include "guest-account.h"
-#include "xserver-local.h"
+#include "xserver-local.h" // FIXME
 
 /* Length of time in milliseconds to wait for a session to load */
 #define USER_SESSION_TIMEOUT 5000
@@ -97,35 +97,37 @@ G_DEFINE_TYPE (Display, display, G_TYPE_OBJECT);
 
 static gboolean start_greeter (Display *display);
 
-Display *
-display_new (const gchar *config_section, DisplayServer *display_server)
+// FIXME: Should be a construct property
+void
+display_load_config (Display *display, const gchar *config_section)
 {
-    Display *self = g_object_new (DISPLAY_TYPE, NULL);
-
-    g_return_val_if_fail (display_server != NULL, NULL);
-
-    self->priv->pam_service = g_strdup ("lightdm");
-    self->priv->pam_autologin_service = g_strdup ("lightdm-autologin");
-    self->priv->display_server = g_object_ref (display_server);
-
+    g_return_if_fail (display != NULL);
+    
     if (config_section)
-        self->priv->greeter_user = config_get_string (config_get_instance (), config_section, "greeter-user");
-    if (!self->priv->greeter_user)
-        self->priv->greeter_user = config_get_string (config_get_instance (), "SeatDefaults", "greeter-user");
+        display->priv->greeter_user = config_get_string (config_get_instance (), config_section, "greeter-user");
+    if (!display->priv->greeter_user)
+        display->priv->greeter_user = config_get_string (config_get_instance (), "SeatDefaults", "greeter-user");
     if (config_section)
-        self->priv->greeter_theme = config_get_string (config_get_instance (), config_section, "greeter-theme");
-    if (!self->priv->greeter_theme)
-        self->priv->greeter_theme = config_get_string (config_get_instance (), "SeatDefaults", "greeter-theme");
+        display->priv->greeter_theme = config_get_string (config_get_instance (), config_section, "greeter-theme");
+    if (!display->priv->greeter_theme)
+        display->priv->greeter_theme = config_get_string (config_get_instance (), "SeatDefaults", "greeter-theme");
     if (config_section)
-        self->priv->default_session = config_get_string (config_get_instance (), config_section, "xsession");
-    if (!self->priv->default_session)
-        self->priv->default_session = config_get_string (config_get_instance (), "SeatDefaults", "xsession");
+        display->priv->default_session = config_get_string (config_get_instance (), config_section, "xsession");
+    if (!display->priv->default_session)
+        display->priv->default_session = config_get_string (config_get_instance (), "SeatDefaults", "xsession");
     if (config_section)
-        self->priv->session_wrapper = config_get_string (config_get_instance (), config_section, "xsession-wrapper");
-    if (!self->priv->session_wrapper)
-        self->priv->session_wrapper = config_get_string (config_get_instance (), "SeatDefaults", "xsession-wrapper");
+        display->priv->session_wrapper = config_get_string (config_get_instance (), config_section, "xsession-wrapper");
+    if (!display->priv->session_wrapper)
+        display->priv->session_wrapper = config_get_string (config_get_instance (), "SeatDefaults", "xsession-wrapper");
+}
 
-    return self;
+// FIXME: Should be a construct property
+void
+display_set_display_server (Display *display, DisplayServer *display_server)
+{
+    g_return_if_fail (display != NULL);
+    g_return_if_fail (display->priv->display_server == NULL);
+    display->priv->display_server = g_object_ref (display_server);
 }
 
 DisplayServer *
@@ -399,13 +401,26 @@ really_start_user_session (Display *display)
     if (display->priv->user_ck_cookie)
         child_process_set_env (CHILD_PROCESS (display->priv->user_session), "XDG_SESSION_COOKIE", display->priv->user_ck_cookie);
 
-    result = session_start (display->priv->user_session, FALSE);
+    session_set_has_pipe (SESSION (display->priv->greeter_session), FALSE);
+    result = session_start (display->priv->user_session);
 
     /* Create guest account */
     if (result && display->priv->using_guest_account)
         guest_account_ref ();
 
     return result;
+}
+
+static Session *
+display_start_session (Display *display)
+{
+    return NULL;
+}
+
+static Session *
+start_session (Display *display)
+{
+    return DISPLAY_GET_CLASS (display)->start_session (display);
 }
 
 static gboolean
@@ -473,7 +488,7 @@ start_user_session (Display *display, const gchar *session)
     }
 
     display->priv->supports_transitions = supports_transitions;
-    display->priv->user_session = session_new ();
+    display->priv->user_session = start_session (display);
     g_signal_connect (G_OBJECT (display->priv->user_session), "exited", G_CALLBACK (user_session_exited_cb), display);
     g_signal_connect (G_OBJECT (display->priv->user_session), "terminated", G_CALLBACK (user_session_terminated_cb), display);
     g_signal_connect (G_OBJECT (display->priv->user_session), "stopped", G_CALLBACK (user_session_stopped_cb), display);
@@ -488,7 +503,6 @@ start_user_session (Display *display, const gchar *session)
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDMSESSION", session); // FIXME: Not cross-desktop
     set_env_from_pam_session (display->priv->user_session, display->priv->user_pam_session);
-    display_server_setup_session (display->priv->display_server, display->priv->user_session);
 
     // FIXME: Copy old error file  
     log_filename = g_build_filename (user_get_home_directory (user), ".xsession-errors", NULL);
@@ -686,6 +700,7 @@ start_greeter (Display *display)
 
     display->priv->greeter_ck_cookie = start_ck_session (display, "LoginWindow", user);
 
+    // FIXME: Need to create based on the display type
     display->priv->greeter_session = greeter_new (display->priv->greeter_theme);
     if (display->priv->default_user)
         greeter_set_selected_user (display->priv->greeter_session, display->priv->default_user, display->priv->default_user_timeout);
@@ -706,7 +721,6 @@ start_greeter (Display *display)
     if (display->priv->greeter_ck_cookie)
         child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "XDG_SESSION_COOKIE", display->priv->greeter_ck_cookie);
     set_env_from_pam_session (SESSION (display->priv->greeter_session), display->priv->greeter_pam_session);
-    display_server_setup_session (display->priv->display_server, SESSION (display->priv->greeter_session));
 
     log_dir = config_get_string (config_get_instance (), "Directories", "log-directory");
     // FIXME: May not be an X server
@@ -735,7 +749,8 @@ start_greeter (Display *display)
         child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "LD_LIBRARY_PATH", getenv ("LD_LIBRARY_PATH"));
     }
 
-    result = session_start (SESSION (display->priv->greeter_session), TRUE);
+    session_set_has_pipe (SESSION (display->priv->greeter_session), TRUE);
+    result = session_start (SESSION (display->priv->greeter_session));
 
     g_key_file_free (theme);
     g_object_unref (user);
@@ -862,6 +877,8 @@ static void
 display_init (Display *display)
 {
     display->priv = G_TYPE_INSTANCE_GET_PRIVATE (display, DISPLAY_TYPE, DisplayPrivate);
+    display->priv->pam_service = g_strdup ("lightdm");
+    display->priv->pam_autologin_service = g_strdup ("lightdm-autologin");
 }
 
 static void
@@ -902,6 +919,7 @@ display_class_init (DisplayClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
+    klass->start_session = display_start_session;
     object_class->finalize = display_finalize;
 
     g_type_class_add_private (klass, sizeof (DisplayPrivate));
