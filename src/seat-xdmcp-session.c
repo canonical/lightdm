@@ -12,7 +12,7 @@
 #include <string.h>
 
 #include "seat-xdmcp-session.h"
-#include "xserver.h"
+#include "xserver-remote.h"
 
 struct SeatXDMCPSessionPrivate
 {
@@ -40,13 +40,13 @@ seat_xdmcp_session_new (const gchar *config_section, XDMCPSession *session)
 static Display *
 seat_xdmcp_session_add_display (Seat *seat)
 {
-    XServer *xserver;
+    XServerRemote *xserver;
     gchar *address;
     Display *display;
 
     // FIXME: Try IPv6 then fallback to IPv4
     address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (SEAT_XDMCP_SESSION (seat)->priv->session)));
-    xserver = xserver_new (SEAT_XDMCP_SESSION (seat)->priv->config_section, XSERVER_TYPE_REMOTE, address, xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session));
+    xserver = xserver_remote_new (address, xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session));
 
     if (strcmp (xdmcp_session_get_authorization_name (SEAT_XDMCP_SESSION (seat)->priv->session), "") != 0)
     {
@@ -62,12 +62,12 @@ seat_xdmcp_session_add_display (Seat *seat)
                                    xdmcp_session_get_authorization_data_length (SEAT_XDMCP_SESSION (seat)->priv->session));
         g_free (number);
 
-        xserver_set_authorization (xserver, authorization);
+        xserver_set_authorization (XSERVER (xserver), authorization);
         g_object_unref (authorization);
     }
     g_free (address);
 
-    display = display_new (SEAT_XDMCP_SESSION (seat)->priv->config_section, xserver);
+    display = display_new (SEAT_XDMCP_SESSION (seat)->priv->config_section, XSERVER (xserver));
     g_object_unref (xserver);
 
     return display;

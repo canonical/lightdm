@@ -13,7 +13,7 @@
 
 #include "seat-xdmcp-client.h"
 #include "configuration.h"
-#include "xserver.h"
+#include "xserver-local.h"
 
 struct SeatXDMCPClientPrivate
 {
@@ -41,9 +41,9 @@ seat_xdmcp_client_new (const gchar *config_section)
 static Display *
 seat_xdmcp_client_add_display (Seat *seat)
 {
-    XServer *xserver;
+    XServerLocal *xserver;
     XAuthorization *authorization = NULL;
-    gchar *xdmcp_manager, *dir, *filename, *path;
+    gchar *xdmcp_manager;
     gint port;
     //gchar *key;
   
@@ -51,10 +51,12 @@ seat_xdmcp_client_add_display (Seat *seat)
 
     g_debug ("Starting seat %s", SEAT_XDMCP_CLIENT (seat)->priv->config_section);
 
+    xserver = xserver_local_new (SEAT_XDMCP_CLIENT (seat)->priv->config_section);
+
     xdmcp_manager = config_get_string (config_get_instance (), "SeatDefaults", "xdmcp-manager");
     if (!xdmcp_manager)
         xdmcp_manager = config_get_string (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "xdmcp-manager");
-    xserver = xserver_new (SEAT_XDMCP_CLIENT (seat)->priv->config_section, XSERVER_TYPE_LOCAL_TERMINAL, xdmcp_manager, xserver_get_free_display_number ());
+    xserver_local_set_xdmcp_server (xserver, xdmcp_manager);
     g_free (xdmcp_manager);
 
     if (config_has_key (config_get_instance (), "SeatDefaults", "xdmcp-port"))
@@ -62,7 +64,7 @@ seat_xdmcp_client_add_display (Seat *seat)
     else
         port = config_get_integer (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "xdmcp-port");
     if (port > 0)
-        xserver_set_port (xserver, port);
+        xserver_local_set_xdmcp_port (xserver, port);
     /*key = config_get_string (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "key");
     if (key)
     {
@@ -73,19 +75,10 @@ seat_xdmcp_client_add_display (Seat *seat)
         authorization = xauth_new (XAUTH_FAMILY_WILD, "", "", "XDM-AUTHORIZATION-1", data, 8);
     }*/
 
-    xserver_set_authorization (xserver, authorization);
+    xserver_set_authorization (XSERVER (xserver), authorization);
     g_object_unref (authorization);
 
-    filename = g_strdup_printf ("%s.log", xserver_get_address (xserver));
-    dir = config_get_string (config_get_instance (), "Directories", "log-directory");
-    path = g_build_filename (dir, filename, NULL);
-    g_debug ("Logging to %s", path);
-    child_process_set_log_file (CHILD_PROCESS (xserver), path);
-    g_free (filename);
-    g_free (dir);
-    g_free (path);
-
-    SEAT_XDMCP_CLIENT (seat)->priv->display = g_object_ref (display_new (SEAT_XDMCP_CLIENT (seat)->priv->config_section, xserver));
+    SEAT_XDMCP_CLIENT (seat)->priv->display = g_object_ref (display_new (SEAT_XDMCP_CLIENT (seat)->priv->config_section, XSERVER (xserver)));
     g_object_unref (xserver);
 
     return SEAT_XDMCP_CLIENT (seat)->priv->display;

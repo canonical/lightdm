@@ -13,7 +13,7 @@
 
 #include "seat-local.h"
 #include "configuration.h"
-#include "xserver.h"
+#include "xserver-local.h"
 #include "vt.h"
 
 struct SeatLocalPrivate
@@ -40,34 +40,24 @@ seat_local_new (const gchar *config_section)
 static Display *
 seat_local_add_display (Seat *seat)
 {
-    XServer *xserver;
+    XServerLocal *xserver;
     XAuthorization *authorization = NULL;
-    gchar *dir, *filename, *path;
     gchar *number;
     gchar hostname[1024];
     Display *display;
 
     g_debug ("Starting display");
 
-    xserver = xserver_new (SEAT_LOCAL (seat)->priv->config_section, XSERVER_TYPE_LOCAL, NULL, xserver_get_free_display_number ());
-    number = g_strdup_printf ("%d", xserver_get_display_number (xserver));
+    xserver = xserver_local_new (SEAT_LOCAL (seat)->priv->config_section);
+    number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (xserver)));
     gethostname (hostname, 1024);
     authorization = xauth_new_cookie (XAUTH_FAMILY_LOCAL, hostname, number);
     g_free (number);
 
-    xserver_set_authorization (xserver, authorization);
+    xserver_set_authorization (XSERVER (xserver), authorization);
     g_object_unref (authorization);
 
-    filename = g_strdup_printf ("%s.log", xserver_get_address (xserver));
-    dir = config_get_string (config_get_instance (), "Directories", "log-directory");
-    path = g_build_filename (dir, filename, NULL);
-    g_debug ("Logging to %s", path);
-    child_process_set_log_file (CHILD_PROCESS (xserver), path);
-    g_free (filename);
-    g_free (dir);
-    g_free (path);
-
-    display = display_new (SEAT_LOCAL (seat)->priv->config_section, xserver);
+    display = display_new (SEAT_LOCAL (seat)->priv->config_section, XSERVER (xserver));
     g_object_unref (xserver);
 
     return display;
@@ -76,7 +66,7 @@ seat_local_add_display (Seat *seat)
 static void
 seat_local_set_active_display (Seat *seat, Display *display)
 {
-    gint number = xserver_get_vt (display_get_xserver (display));
+    gint number = xserver_local_get_vt (XSERVER_LOCAL (display_get_xserver (display)));
     if (number >= 0)
         vt_set_active (number);
 }

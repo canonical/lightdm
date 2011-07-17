@@ -54,6 +54,10 @@ lightdm_SOURCES = \
 	xdmcp-session.c \
 	xdmcp-session.h \
 	xdmcp-session-private.h \
+	xserver-local.c \
+	xserver-local.h \
+	xserver-remote.c \
+	xserver-remote.h \
 	xserver.c \
 	xserver.h
 

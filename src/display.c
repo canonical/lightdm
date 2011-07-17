@@ -23,6 +23,7 @@
 #include "ldm-marshal.h"
 #include "greeter.h"
 #include "guest-account.h"
+#include "xserver-local.h"
 
 /* Length of time in milliseconds to wait for a session to load */
 #define USER_SESSION_TIMEOUT 5000
@@ -178,8 +179,8 @@ start_ck_session (Display *display, const gchar *session_type, User *user)
     if (getuid () != 0)
         return NULL;
 
-    if (xserver_get_vt (display->priv->xserver) >= 0)
-        display_device = g_strdup_printf ("/dev/tty%d", xserver_get_vt (display->priv->xserver));
+    if (xserver_local_get_vt (XSERVER_LOCAL (display->priv->xserver)) >= 0)
+        display_device = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (XSERVER_LOCAL (display->priv->xserver)));
     address = xserver_get_address (display->priv->xserver);
 
     proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
@@ -304,7 +305,7 @@ static void
 check_stopped (Display *display)
 {
     if (display->priv->stopping &&
-        !xserver_get_is_running (display->priv->xserver) &&
+        display->priv->xserver == NULL &&
         display->priv->greeter_session == NULL &&
         display->priv->user_session == NULL)
     {
@@ -345,9 +346,7 @@ user_session_stopped_cb (Session *session, Display *display)
         display->priv->user_ck_cookie = NULL;
 
         /* Restart the X server or start a new one if it failed */
-        if (xserver_get_is_running (display->priv->xserver))
-            xserver_disconnect_clients (display->priv->xserver);
-        else
+        if (!xserver_restart (display->priv->xserver))
         {
             g_debug ("Starting new X server");
             xserver_start (display->priv->xserver);
@@ -749,24 +748,17 @@ start_greeter (Display *display)
 }
 
 static void
-xserver_exit_cb (XServer *server, int status, Display *display)
-{
-    if (status != 0)
-        g_debug ("X server exited with value %d", status);
-}
-
-static void
-xserver_terminated_cb (XServer *server, int signum, Display *display)
-{
-    g_debug ("X server terminated with signal %d", signum);
-}
-
-static void
 xserver_stopped_cb (XServer *server, Display *display)
 {
-    /* If display is not being shutdown, stop the user session then start a new X server */
-    if (!display->priv->stopping)
+    if (display->priv->stopping)
     {
+        g_object_unref (display->priv->xserver);
+        display->priv->xserver = NULL;
+        check_stopped (display);
+    }
+    else
+    {
+        /* Stop the user session then start a new X server */
         if (display->priv->user_session)
             child_process_stop (CHILD_PROCESS (display->priv->user_session));
         else
@@ -775,8 +767,6 @@ xserver_stopped_cb (XServer *server, Display *display)
             xserver_start (display->priv->xserver);
         }
     }
-  
-    check_stopped (display);
 }
 
 static void
@@ -787,8 +777,8 @@ xserver_ready_cb (XServer *xserver, Display *display)
     run_script ("Init"); // FIXME: Async
 
     /* Don't run any sessions on local terminals */
-    if (xserver_get_server_type (xserver) == XSERVER_TYPE_LOCAL_TERMINAL)
-        return;
+    //FIXMEif (xserver_get_server_type (xserver) == XSERVER_TYPE_LOCAL_TERMINAL)
+    //    return;
 
     /* If have user then automatically login the first time */
     if (display->priv->default_user_is_guest)
@@ -843,9 +833,7 @@ display_start (Display *display)
     g_return_val_if_fail (display != NULL, FALSE);
 
     g_signal_connect (G_OBJECT (display->priv->xserver), "ready", G_CALLBACK (xserver_ready_cb), display);
-    g_signal_connect (G_OBJECT (display->priv->xserver), "exited", G_CALLBACK (xserver_exit_cb), display);
     g_signal_connect (G_OBJECT (display->priv->xserver), "stopped", G_CALLBACK (xserver_stopped_cb), display);
-    g_signal_connect (G_OBJECT (display->priv->xserver), "terminated", G_CALLBACK (xserver_terminated_cb), display);
     result = xserver_start (display->priv->xserver);
   
     g_signal_emit (display, signals[STARTED], 0);
