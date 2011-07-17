@@ -415,7 +415,6 @@ main (int argc, char **argv)
     gboolean explicit_config = FALSE;
     gboolean test_mode = FALSE;
     gboolean no_root = FALSE;
-    gboolean use_xephyr = FALSE;
     gchar *default_xserver_command = g_strdup ("X");
     gchar *passwd_path = NULL;
     gchar *pid_path = "/var/run/lightdm.pid";
@@ -437,13 +436,10 @@ main (int argc, char **argv)
           N_("Print debugging messages"), NULL },
         { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
           /* Help string for command line --test-mode flag */
-          N_("Alias for --no-root --use-xephyr --minimum-display-number=50"), NULL },
+          N_("Alias for --no-root --minimum-display-number=50"), NULL },
         { "no-root", 0, 0, G_OPTION_ARG_NONE, &no_root,
           /* Help string for command line --no-root flag */
           N_("Run as unprivileged user, skipping things that require root access"), NULL },
-        { "use-xephyr", 0, 0, G_OPTION_ARG_NONE, &use_xephyr,
-          /* Help string for command line --xephyr flag */
-          N_("Use Xephyr as an X server for testing (use with --no-root)"), NULL },
         { "passwd-file", 0, 0, G_OPTION_ARG_STRING, &passwd_path,
           /* Help string for command line --use-passwd flag */
           N_("Use the given password file for authentication (for testing, requires --no-root)"), "FILE" },
@@ -508,7 +504,6 @@ main (int argc, char **argv)
     if (test_mode)
     {
         no_root = TRUE;
-        use_xephyr = TRUE;
         minimum_display_number = g_strdup ("50");
     }
     if (show_version)
@@ -531,14 +526,14 @@ main (int argc, char **argv)
     }
 
     /* Check if requiring Xephyr */
-    if (use_xephyr)
+    if (getenv ("DISPLAY"))
     {
         gchar *xserver_path;
 
         xserver_path = g_find_program_in_path ("Xephyr");
         if (!xserver_path)
         {
-            g_printerr ("Test mode requires Xephyr to be installed but it cannot be found.  Please install it or update your PATH environment variable.\n");
+            g_printerr ("Running inside an X server requires Xephyr to be installed but it cannot be found.  Please install it or update your PATH environment variable.\n");
             return EXIT_FAILURE;
         }
         g_free (xserver_path);
@@ -617,7 +612,6 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "Directories", "log-directory", path);
         g_free (path);
     }
-    config_set_boolean (config_get_instance (), "LightDM", "use-xephyr", use_xephyr);
 
     log_init ();
 
@@ -631,7 +625,7 @@ main (int argc, char **argv)
         user_set_use_passwd_file (passwd_path);
         pam_session_set_use_passwd_file (passwd_path);
     }
-    if (use_xephyr)
+    if (getenv ("DISPLAY"))
         g_debug ("Using Xephyr for X servers");
 
     g_debug ("Loaded configuration from %s", config_path);

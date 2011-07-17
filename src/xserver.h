@@ -57,10 +57,6 @@ XServer *xserver_new (const gchar *config_section, XServerType type, const gchar
 
 XServerType xserver_get_server_type (XServer *server);
 
-void xserver_set_command (XServer *server, const gchar *command);
-
-const gchar *xserver_get_command (XServer *server);
-
 void xserver_set_port (XServer *server, guint port);
 
 guint xserver_get_port (XServer *server);

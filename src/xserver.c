@@ -133,7 +133,10 @@ xserver_new (const gchar *config_section, XServerType type, const gchar *hostnam
     if (type == XSERVER_TYPE_REMOTE)
         return self;
 
-    if (config_section)
+    /* If running inside an X server use Xephyr instead */
+    if (getenv ("DISPLAY"))
+        self->priv->command = g_strdup ("Xephyr");
+    if (!self->priv->command && config_section)
         self->priv->command = config_get_string (config_get_instance (), config_section, "xserver-command");
     if (!self->priv->command)
         self->priv->command = config_get_string (config_get_instance (), "SeatDefaults", "xserver-command");
@@ -174,22 +177,6 @@ xserver_get_server_type (XServer *server)
 {
     g_return_val_if_fail (server != NULL, 0);
     return server->priv->type;
-}
-
-void
-xserver_set_command (XServer *server, const gchar *command)
-{
-    g_return_if_fail (server != NULL);
-
-    g_free (server->priv->command);
-    server->priv->command = g_strdup (command);
-}
-
-const gchar *
-xserver_get_command (XServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->command;
 }
 
 void

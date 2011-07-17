@@ -67,9 +67,6 @@ seat_local_add_display (Seat *seat)
     g_free (dir);
     g_free (path);
 
-    if (config_get_boolean (config_get_instance (), "LightDM", "use-xephyr"))
-        xserver_set_command (xserver, "Xephyr");
-
     display = display_new (SEAT_LOCAL (seat)->priv->config_section, xserver);
     g_object_unref (xserver);
 

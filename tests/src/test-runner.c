@@ -472,6 +472,9 @@ main (int argc, char **argv)
         g_critical ("Error getting current directory: %s", strerror (errno));
         quit (EXIT_FAILURE);
     }
+  
+    /* Don't contact our X server */
+    g_unsetenv ("DISPLAY");
 
     /* Use locally built libraries and binaries */
     path = g_strdup_printf ("%s/tests/src/.libs:%s/tests/src:%s/tests/src:%s", BUILDDIR, BUILDDIR, SRCDIR, g_getenv ("PATH"));

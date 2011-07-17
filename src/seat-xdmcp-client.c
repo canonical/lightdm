@@ -85,9 +85,6 @@ seat_xdmcp_client_add_display (Seat *seat)
     g_free (dir);
     g_free (path);
 
-    if (config_get_boolean (config_get_instance (), "LightDM", "use-xephyr"))
-        xserver_set_command (xserver, "Xephyr");
-
     SEAT_XDMCP_CLIENT (seat)->priv->display = g_object_ref (display_new (SEAT_XDMCP_CLIENT (seat)->priv->config_section, xserver));
     g_object_unref (xserver);
 
