@@ -57,7 +57,7 @@ seat_local_add_display (Seat *seat)
     xserver_set_authorization (XSERVER (xserver), authorization);
     g_object_unref (authorization);
 
-    display = display_new (SEAT_LOCAL (seat)->priv->config_section, XSERVER (xserver));
+    display = display_new (SEAT_LOCAL (seat)->priv->config_section, DISPLAY_SERVER (xserver));
     g_object_unref (xserver);
 
     return display;
@@ -66,7 +66,7 @@ seat_local_add_display (Seat *seat)
 static void
 seat_local_set_active_display (Seat *seat, Display *display)
 {
-    gint number = xserver_local_get_vt (XSERVER_LOCAL (display_get_xserver (display)));
+    gint number = xserver_local_get_vt (XSERVER_LOCAL (XSERVER (display_get_display_server (display))));
     if (number >= 0)
         vt_set_active (number);
 }

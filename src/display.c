@@ -47,8 +47,8 @@ typedef enum
 
 struct DisplayPrivate
 {
-    /* X server */
-    XServer *xserver;
+    /* Display server */
+    DisplayServer *display_server;
 
     /* User to run greeter as */
     gchar *greeter_user;
@@ -89,7 +89,7 @@ struct DisplayPrivate
     /* Default session */
     gchar *default_session;
 
-    /* TRUE if stopping the display (waiting for xserver, greeter and session to stop) */
+    /* TRUE if stopping the display (waiting for dispaly server, greeter and session to stop) */
     gboolean stopping;    
 };
 
@@ -98,15 +98,15 @@ G_DEFINE_TYPE (Display, display, G_TYPE_OBJECT);
 static gboolean start_greeter (Display *display);
 
 Display *
-display_new (const gchar *config_section, XServer *xserver)
+display_new (const gchar *config_section, DisplayServer *display_server)
 {
     Display *self = g_object_new (DISPLAY_TYPE, NULL);
 
-    g_return_val_if_fail (xserver != NULL, NULL);
+    g_return_val_if_fail (display_server != NULL, NULL);
 
     self->priv->pam_service = g_strdup ("lightdm");
     self->priv->pam_autologin_service = g_strdup ("lightdm-autologin");
-    self->priv->xserver = g_object_ref (xserver);
+    self->priv->display_server = g_object_ref (display_server);
 
     if (config_section)
         self->priv->greeter_user = config_get_string (config_get_instance (), config_section, "greeter-user");
@@ -128,11 +128,11 @@ display_new (const gchar *config_section, XServer *xserver)
     return self;
 }
 
-XServer *
-display_get_xserver (Display *display)
+DisplayServer *
+display_get_display_server (Display *display)
 {
     g_return_val_if_fail (display != NULL, NULL);
-    return display->priv->xserver;
+    return display->priv->display_server;
 }
 
 Greeter *
@@ -168,8 +168,7 @@ static gchar *
 start_ck_session (Display *display, const gchar *session_type, User *user)
 {
     GDBusProxy *proxy;
-    char *display_device = NULL;
-    const gchar *address, *hostname = "";
+    const gchar *hostname = "";
     GVariantBuilder arg_builder;
     GVariant *result;
     gchar *cookie = NULL;
@@ -178,10 +177,6 @@ start_ck_session (Display *display, const gchar *session_type, User *user)
     /* Only start ConsoleKit sessions when running as root */
     if (getuid () != 0)
         return NULL;
-
-    if (IS_XSERVER_LOCAL (display->priv->xserver) && xserver_local_get_vt (XSERVER_LOCAL (display->priv->xserver)) >= 0)
-        display_device = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (XSERVER_LOCAL (display->priv->xserver)));
-    address = xserver_get_address (display->priv->xserver);
 
     proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
                                            G_DBUS_PROXY_FLAGS_NONE,
@@ -200,13 +195,23 @@ start_ck_session (Display *display, const gchar *session_type, User *user)
     g_variant_builder_open (&arg_builder, G_VARIANT_TYPE ("a(sv)"));
     g_variant_builder_add (&arg_builder, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
     g_variant_builder_add (&arg_builder, "(sv)", "session-type", g_variant_new_string (session_type));
-    g_variant_builder_add (&arg_builder, "(sv)", "x11-display", g_variant_new_string (address));
-    if (display_device)
-        g_variant_builder_add (&arg_builder, "(sv)", "x11-display-device", g_variant_new_string (display_device));
+    if (IS_XSERVER (display->priv->display_server))
+    {
+        g_variant_builder_add (&arg_builder, "(sv)", "x11-display",
+                               g_variant_new_string (xserver_get_address (XSERVER (display->priv->display_server))));
+
+        if (IS_XSERVER_LOCAL (display->priv->display_server) && xserver_local_get_vt (XSERVER_LOCAL (display->priv->display_server)) >= 0)
+        {
+            gchar *display_device;
+            display_device = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (XSERVER_LOCAL (display->priv->display_server)));
+            g_variant_builder_add (&arg_builder, "(sv)", "x11-display-device", g_variant_new_string (display_device));
+            g_free (display_device);
+        }
+    }
+
     g_variant_builder_add (&arg_builder, "(sv)", "remote-host-name", g_variant_new_string (hostname));
     g_variant_builder_add (&arg_builder, "(sv)", "is-local", g_variant_new_boolean (TRUE));
     g_variant_builder_close (&arg_builder);
-    g_free (display_device);
 
     result = g_dbus_proxy_call_sync (proxy,
                                      "OpenSessionWithParameters",
@@ -305,7 +310,7 @@ static void
 check_stopped (Display *display)
 {
     if (display->priv->stopping &&
-        display->priv->xserver == NULL &&
+        display->priv->display_server == NULL &&
         display->priv->greeter_session == NULL &&
         display->priv->user_session == NULL)
     {
@@ -346,10 +351,10 @@ user_session_stopped_cb (Session *session, Display *display)
         display->priv->user_ck_cookie = NULL;
 
         /* Restart the X server or start a new one if it failed */
-        if (!xserver_restart (display->priv->xserver))
+        if (!display_server_restart (display->priv->display_server))
         {
             g_debug ("Starting new X server");
-            xserver_start (display->priv->xserver);
+            display_server_start (display->priv->display_server);
         }
     }
 }
@@ -483,7 +488,7 @@ start_user_session (Display *display, const gchar *session)
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "DESKTOP_SESSION", session); // FIXME: Apparently deprecated?
     child_process_set_env (CHILD_PROCESS (display->priv->user_session), "GDMSESSION", session); // FIXME: Not cross-desktop
     set_env_from_pam_session (display->priv->user_session, display->priv->user_pam_session);
-    xserver_setup_session (display->priv->xserver, display->priv->user_session);
+    display_server_setup_session (display->priv->display_server, display->priv->user_session);
 
     // FIXME: Copy old error file  
     log_filename = g_build_filename (user_get_home_directory (user), ".xsession-errors", NULL);
@@ -701,10 +706,11 @@ start_greeter (Display *display)
     if (display->priv->greeter_ck_cookie)
         child_process_set_env (CHILD_PROCESS (display->priv->greeter_session), "XDG_SESSION_COOKIE", display->priv->greeter_ck_cookie);
     set_env_from_pam_session (SESSION (display->priv->greeter_session), display->priv->greeter_pam_session);
-    xserver_setup_session (display->priv->xserver, SESSION (display->priv->greeter_session));
+    display_server_setup_session (display->priv->display_server, SESSION (display->priv->greeter_session));
 
     log_dir = config_get_string (config_get_instance (), "Directories", "log-directory");
-    filename = g_strdup_printf ("%s-greeter.log", xserver_get_address (display_get_xserver (display)));
+    // FIXME: May not be an X server
+    filename = g_strdup_printf ("%s-greeter.log", xserver_get_address (XSERVER (display->priv->display_server)));
     log_filename = g_build_filename (log_dir, filename, NULL);
     g_free (log_dir);
     g_free (filename);
@@ -738,14 +744,14 @@ start_greeter (Display *display)
 }
 
 static void
-xserver_stopped_cb (XServer *server, Display *display)
+display_server_stopped_cb (DisplayServer *server, Display *display)
 {
     g_debug ("X server stopped");
 
     if (display->priv->stopping)
     {
-        g_object_unref (display->priv->xserver);
-        display->priv->xserver = NULL;
+        g_object_unref (display->priv->display_server);
+        display->priv->display_server = NULL;
         check_stopped (display);
     }
     else
@@ -759,20 +765,20 @@ xserver_stopped_cb (XServer *server, Display *display)
         else
         {
             g_debug ("Starting new X server");
-            xserver_start (display->priv->xserver);
+            display_server_start (display->priv->display_server);
         }
     }
 }
 
 static void
-xserver_ready_cb (XServer *xserver, Display *display)
+display_server_ready_cb (DisplayServer *display_server, Display *display)
 {
     const gchar *autologin_user = NULL;
 
     run_script ("Init"); // FIXME: Async
 
     /* Don't run any sessions on local terminals */
-    if (IS_XSERVER_LOCAL (xserver) && xserver_local_get_xdmcp_server (XSERVER_LOCAL (xserver)))
+    if (IS_XSERVER_LOCAL (display_server) && xserver_local_get_xdmcp_server (XSERVER_LOCAL (display_server)))
         return;
 
     /* If have user then automatically login the first time */
@@ -827,9 +833,9 @@ display_start (Display *display)
 
     g_return_val_if_fail (display != NULL, FALSE);
 
-    g_signal_connect (G_OBJECT (display->priv->xserver), "ready", G_CALLBACK (xserver_ready_cb), display);
-    g_signal_connect (G_OBJECT (display->priv->xserver), "stopped", G_CALLBACK (xserver_stopped_cb), display);
-    result = xserver_start (display->priv->xserver);
+    g_signal_connect (G_OBJECT (display->priv->display_server), "ready", G_CALLBACK (display_server_ready_cb), display);
+    g_signal_connect (G_OBJECT (display->priv->display_server), "stopped", G_CALLBACK (display_server_stopped_cb), display);
+    result = display_server_start (display->priv->display_server);
   
     g_signal_emit (display, signals[STARTED], 0);
 
@@ -845,7 +851,7 @@ display_stop (Display *display)
 
     display->priv->stopping = TRUE;
 
-    xserver_stop (display->priv->xserver);
+    display_server_stop (display->priv->display_server);
     if (display->priv->greeter_session)
         child_process_stop (CHILD_PROCESS (display->priv->greeter_session));
     if (display->priv->user_session)
@@ -865,7 +871,7 @@ display_finalize (GObject *object)
 
     self = DISPLAY (object);
 
-    g_object_unref (self->priv->xserver);
+    g_object_unref (self->priv->display_server);
     g_free (self->priv->greeter_user);
     g_free (self->priv->greeter_theme);
     g_free (self->priv->session_wrapper);

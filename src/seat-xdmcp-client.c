@@ -78,7 +78,7 @@ seat_xdmcp_client_add_display (Seat *seat)
     xserver_set_authorization (XSERVER (xserver), authorization);
     g_object_unref (authorization);
 
-    SEAT_XDMCP_CLIENT (seat)->priv->display = g_object_ref (display_new (SEAT_XDMCP_CLIENT (seat)->priv->config_section, XSERVER (xserver)));
+    SEAT_XDMCP_CLIENT (seat)->priv->display = g_object_ref (display_new (SEAT_XDMCP_CLIENT (seat)->priv->config_section, DISPLAY_SERVER (xserver)));
     g_object_unref (xserver);
 
     return SEAT_XDMCP_CLIENT (seat)->priv->display;

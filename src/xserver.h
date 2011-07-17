@@ -13,7 +13,7 @@
 #define _XSERVER_H_
 
 #include <glib-object.h>
-#include "session.h"
+#include "display-server.h"
 #include "xauth.h"
 
 G_BEGIN_DECLS
@@ -22,26 +22,19 @@ G_BEGIN_DECLS
 #define XSERVER(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), XSERVER_TYPE, XServer))
 #define XSERVER_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST ((klass), XSERVER_TYPE, XServerClass))
 #define XSERVER_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), XSERVER_TYPE, XServerClass))
+#define IS_XSERVER(obj) (G_TYPE_CHECK_INSTANCE_TYPE ((obj), XSERVER_TYPE))
 
 typedef struct XServerPrivate XServerPrivate;
 
 typedef struct
 {
-    GObject         parent_instance;
+    DisplayServer   parent_instance;
     XServerPrivate *priv;
 } XServer;
 
 typedef struct
 {
-    GObjectClass parent_class;
-
-    void (*ready)(XServer *server);
-    void (*stopped)(XServer *server);
-
-    void (*setup_session)(XServer *server, Session *session);
-    gboolean (*start)(XServer *server);
-    gboolean (*restart)(XServer *server);
-    void (*stop)(XServer *server);
+    DisplayServerClass parent_class;
 } XServerClass;
 
 GType xserver_get_type (void);
@@ -69,18 +62,6 @@ void xserver_set_authorization (XServer *server, XAuthorization *authorization);
 XAuthorization *xserver_get_authorization (XServer *server);
 
 GFile *xserver_get_authority_file (XServer *server);
-
-void xserver_setup_session (XServer *server, Session *session);
-
-gboolean xserver_start (XServer *server);
-
-gboolean xserver_connect (XServer *server);
-
-gboolean xserver_restart (XServer *server);
-
-void xserver_disconnect (XServer *server);
-
-void xserver_stop (XServer *server);
 
 G_END_DECLS
 

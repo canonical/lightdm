@@ -193,7 +193,7 @@ got_signal_cb (ChildProcess *process, int signum, XServerLocal *server)
             plymouth_quit (TRUE);
         }
 
-        xserver_connect (XSERVER (server));
+        display_server_set_ready (DISPLAY_SERVER (server));
     }
 }
 
@@ -225,11 +225,11 @@ stopped_cb (ChildProcess *process, XServerLocal *server)
         plymouth_quit (FALSE);
     }
 
-    xserver_disconnect (XSERVER (server));
+    display_server_set_stopped (DISPLAY_SERVER (server));
 }
 
 static gboolean
-xserver_local_start (XServer *server)
+xserver_local_start (DisplayServer *server)
 {
     GError *error = NULL;
     gboolean result;
@@ -269,7 +269,7 @@ xserver_local_start (XServer *server)
     command = g_string_new (absolute_command);
     g_free (absolute_command);
 
-    g_string_append_printf (command, " :%d", xserver_get_display_number (server));
+    g_string_append_printf (command, " :%d", xserver_get_display_number (XSERVER (server)));
 
     if (XSERVER_LOCAL (server)->priv->config_file)
         g_string_append_printf (command, " -config %s", XSERVER_LOCAL (server)->priv->config_file);
@@ -277,7 +277,7 @@ xserver_local_start (XServer *server)
     if (XSERVER_LOCAL (server)->priv->layout)
         g_string_append_printf (command, " -layout %s", XSERVER_LOCAL (server)->priv->layout);
 
-    auth_file = xserver_get_authority_file (server);
+    auth_file = xserver_get_authority_file (XSERVER (server));
     if (auth_file)
     {
         gchar *path = g_file_get_path (auth_file);
@@ -291,14 +291,14 @@ xserver_local_start (XServer *server)
         if (XSERVER_LOCAL (server)->priv->xdmcp_port != 0)
             g_string_append_printf (command, " -port %d", XSERVER_LOCAL (server)->priv->xdmcp_port);
         g_string_append_printf (command, " -query %s", XSERVER_LOCAL (server)->priv->xdmcp_server);
-        if (g_strcmp0 (xserver_get_authentication_name (server), "XDM-AUTHENTICATION-1") == 0)
+        if (g_strcmp0 (xserver_get_authentication_name (XSERVER (server)), "XDM-AUTHENTICATION-1") == 0)
         {
             GString *cookie;
             const guint8 *data;
             gsize data_length, i;
 
-            data = xserver_get_authentication_data (server);
-            data_length = xserver_get_authentication_data_length (server);
+            data = xserver_get_authentication_data (XSERVER (server));
+            data_length = xserver_get_authentication_data_length (XSERVER (server));
             cookie = g_string_new ("0x");
             for (i = 0; i < data_length; i++)
                 g_string_append_printf (cookie, "%02X", data[i]);
@@ -342,7 +342,7 @@ xserver_local_start (XServer *server)
     if (!result)
         g_warning ("Unable to create display: %s", error->message);
     else
-        g_debug ("Waiting for ready signal from X server :%d", xserver_get_display_number (server));
+        g_debug ("Waiting for ready signal from X server :%d", xserver_get_display_number (XSERVER (server)));
     g_clear_error (&error);
 
     if (!result)
@@ -352,7 +352,7 @@ xserver_local_start (XServer *server)
 }
  
 static gboolean
-xserver_local_restart (XServer *server)
+xserver_local_restart (DisplayServer *server)
 {
     /* Not running */
     if (!XSERVER_LOCAL (server)->priv->xserver_process)
@@ -367,7 +367,7 @@ xserver_local_restart (XServer *server)
 }
 
 static void
-xserver_local_stop (XServer *server)
+xserver_local_stop (DisplayServer *server)
 {
     child_process_stop (XSERVER_LOCAL (server)->priv->xserver_process);
 }
@@ -403,11 +403,11 @@ static void
 xserver_local_class_init (XServerLocalClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-    XServerClass *xserver_class = XSERVER_CLASS (klass);
+    DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
-    xserver_class->start = xserver_local_start;
-    xserver_class->restart = xserver_local_restart;
-    xserver_class->stop = xserver_local_stop;
+    display_server_class->start = xserver_local_start;
+    display_server_class->restart = xserver_local_restart;
+    display_server_class->stop = xserver_local_stop;
     object_class->finalize = xserver_local_finalize;
 
     g_type_class_add_private (klass, sizeof (XServerLocalPrivate));

@@ -27,15 +27,16 @@ xserver_remote_new (const gchar *hostname, guint number)
 }
 
 static gboolean
-xserver_remote_start (XServer *server)
+xserver_remote_start (DisplayServer *server)
 {
-    return xserver_connect (server);
+    display_server_set_ready (DISPLAY_SERVER (server));
+    return TRUE;
 }
 
 static void
-xserver_remote_stop (XServer *server)
+xserver_remote_stop (DisplayServer *server)
 {
-    xserver_disconnect (server);
+    display_server_set_stopped (DISPLAY_SERVER (server));
 }
 
 static void
@@ -46,8 +47,8 @@ xserver_remote_init (XServerRemote *server)
 static void
 xserver_remote_class_init (XServerRemoteClass *klass)
 {
-    XServerClass *xserver_class = XSERVER_CLASS (klass);
+    DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
-    xserver_class->start = xserver_remote_start;
-    xserver_class->stop = xserver_remote_stop;
+    display_server_class->start = xserver_remote_start;
+    display_server_class->stop = xserver_remote_stop;
 }

@@ -67,7 +67,7 @@ seat_xdmcp_session_add_display (Seat *seat)
     }
     g_free (address);
 
-    display = display_new (SEAT_XDMCP_SESSION (seat)->priv->config_section, XSERVER (xserver));
+    display = display_new (SEAT_XDMCP_SESSION (seat)->priv->config_section, DISPLAY_SERVER (xserver));
     g_object_unref (xserver);
 
     return display;

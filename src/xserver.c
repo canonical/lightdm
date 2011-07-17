@@ -12,18 +12,10 @@
 #include <config.h>
 
 #include <string.h>
-#include <xcb/xcb.h>
 #include <fcntl.h>
 
 #include "xserver.h"
 #include "configuration.h"
-
-enum {
-    READY,
-    STOPPED,
-    LAST_SIGNAL
-};
-static guint signals[LAST_SIGNAL] = { 0 };
 
 struct XServerPrivate
 {  
@@ -48,12 +40,9 @@ struct XServerPrivate
 
     /* Authority file */
     GFile *authority_file;
-
-    /* Connection to X server */
-    xcb_connection_t *connection;
 };
 
-G_DEFINE_TYPE (XServer, xserver, G_TYPE_OBJECT);
+G_DEFINE_TYPE (XServer, xserver, DISPLAY_SERVER_TYPE);
 
 void
 xserver_set_hostname (XServer *server, const gchar *hostname)
@@ -217,127 +206,14 @@ xserver_get_authority_file (XServer *server)
 }
 
 static void
-xserver_real_setup_session (XServer *server, Session *session)
-{
-}
-
-void
-xserver_setup_session (XServer *server, Session *session)
+xserver_setup_session (DisplayServer *server, Session *session)
 {
     XAuthorization *authorization;
 
-    g_return_if_fail (server != NULL);
-
-    child_process_set_env (CHILD_PROCESS (session), "DISPLAY", xserver_get_address (server));
-    authorization = xserver_get_authorization (server);
+    child_process_set_env (CHILD_PROCESS (session), "DISPLAY", xserver_get_address (XSERVER (server)));
+    authorization = xserver_get_authorization (XSERVER (server));
     if (authorization)
         session_set_authorization (session, authorization);
-
-    //XSERVER_GET_CLASS (server)->setup_session (server, session);
-}
-
-static gboolean
-xserver_real_start (XServer *server)
-{
-    return FALSE;
-}
-
-gboolean
-xserver_start (XServer *server)
-{
-    g_return_val_if_fail (server != NULL, FALSE);
-    return XSERVER_GET_CLASS (server)->start (server);
-}
-
-gboolean
-xserver_connect (XServer *server)
-{
-    gchar *xauthority = NULL;
-
-    g_return_val_if_fail (server != NULL, FALSE);
-
-    /* Write the authorization file */
-    write_authority_file (server);
-
-    /* NOTE: We have to do this hack as xcb_connect_to_display_with_auth_info can't be used
-     * for XDM-AUTHORIZATION-1 and the authorization data requires to know the source port */
-    // FIXME: Make xcb_connect_with_authority
-    if (server->priv->authority_file)
-    {
-        gchar *path = g_file_get_path (server->priv->authority_file);
-        xauthority = g_strdup (g_getenv ("XAUTHORITY"));
-        g_setenv ("XAUTHORITY", path, TRUE);
-        g_free (path);
-    }
-
-    // FIXME: Needs to be done in a separate thread, this could block
-    g_debug ("Connecting to XServer %s", xserver_get_address (server));
-    server->priv->connection = xcb_connect (xserver_get_address (server), NULL);
-    if (xcb_connection_has_error (server->priv->connection))
-    {
-        xcb_disconnect (server->priv->connection);
-        server->priv->connection = NULL;
-        g_debug ("Error connecting to XServer %s", xserver_get_address (server));
-    }
-
-    // FIXME: Need to detect when connection is dropped
-    //xcb_get_file_descriptor(xcb_connection_t *c);
-
-    if (server->priv->authority_file)
-    {
-        if (xauthority)
-            g_setenv ("XAUTHORITY", xauthority, TRUE);
-        else
-            g_unsetenv ("XAUTHORITY");
-        g_free (xauthority);
-    }
-
-    if (server->priv->connection)
-    {
-        g_signal_emit (server, signals[READY], 0);
-        return TRUE;
-    }
-    else
-        return FALSE;
-}
-
-static gboolean
-xserver_real_restart (XServer *server)
-{
-    return FALSE;
-}
-
-gboolean
-xserver_restart (XServer *server)
-{
-    g_return_val_if_fail (server != NULL, FALSE);
-    return XSERVER_GET_CLASS (server)->restart (server);
-}
-
-void
-xserver_disconnect (XServer *server)
-{
-    g_return_if_fail (server != NULL);
-
-    if (server->priv->connection)
-    {
-        xcb_disconnect (server->priv->connection);
-        server->priv->connection = NULL;
-    }
-
-    g_signal_emit (server, signals[STOPPED], 0);
-}
-
-static void
-xserver_real_stop (XServer *server)
-{
-}
-
-void
-xserver_stop (XServer *server)
-{
-    g_return_if_fail (server != NULL);
-    XSERVER_GET_CLASS (server)->stop (server);
 }
 
 static void
@@ -354,9 +230,6 @@ xserver_finalize (GObject *object)
   
     self = XSERVER (object);
 
-    if (self->priv->connection)
-        xcb_disconnect (self->priv->connection);
-  
     g_free (self->priv->hostname);
     g_free (self->priv->authentication_name);
     g_free (self->priv->authentication_data);
@@ -376,29 +249,10 @@ static void
 xserver_class_init (XServerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);  
 
-    klass->setup_session = xserver_real_setup_session;  
-    klass->start = xserver_real_start;
-    klass->restart = xserver_real_restart;
-    klass->stop = xserver_real_stop;
+    display_server_class->setup_session = xserver_setup_session;  
     object_class->finalize = xserver_finalize;
 
     g_type_class_add_private (klass, sizeof (XServerPrivate));
-
-    signals[READY] =
-        g_signal_new ("ready",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (XServerClass, ready),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
-    signals[STOPPED] =
-        g_signal_new ("stopped",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (XServerClass, stopped),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
 }

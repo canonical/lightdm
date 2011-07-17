@@ -14,7 +14,7 @@
 
 #include <glib-object.h>
 
-#include "xserver.h"
+#include "display-server.h"
 #include "session.h"
 #include "greeter.h"
 
@@ -42,9 +42,9 @@ typedef struct
 
 GType display_get_type (void);
 
-Display *display_new (const gchar *config_section, XServer *xserver);
+Display *display_new (const gchar *config_section, DisplayServer *server);
 
-XServer *display_get_xserver (Display *display);
+DisplayServer *display_get_display_server (Display *display);
 
 Greeter *display_get_greeter (Display *display);
 
