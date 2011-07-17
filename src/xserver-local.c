@@ -213,6 +213,11 @@ terminated_cb (ChildProcess *process, int signum, XServerLocal *server)
 static void
 stopped_cb (ChildProcess *process, XServerLocal *server)
 {
+    g_debug ("stopped");
+
+    g_object_unref (server->priv->xserver_process);
+    server->priv->xserver_process = NULL;
+
     if (server->priv->replacing_plymouth && plymouth_get_is_running ())
     {
         g_debug ("Stopping Plymouth, X server failed to start");
@@ -349,6 +354,10 @@ xserver_local_start (XServer *server)
 static gboolean
 xserver_local_restart (XServer *server)
 {
+    /* Not running */
+    if (!XSERVER_LOCAL (server)->priv->xserver_process)
+        return FALSE;
+
     g_debug ("Sending signal to X server to disconnect clients");
 
     XSERVER_LOCAL (server)->priv->got_signal = FALSE;

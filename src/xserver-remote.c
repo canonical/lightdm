@@ -13,10 +13,6 @@
 
 #include "xserver-remote.h"
 
-struct XServerRemotePrivate
-{
-};
-
 G_DEFINE_TYPE (XServerRemote, xserver_remote, XSERVER_TYPE);
 
 XServerRemote *
@@ -45,7 +41,6 @@ xserver_remote_stop (XServer *server)
 static void
 xserver_remote_init (XServerRemote *server)
 {
-    server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_REMOTE_TYPE, XServerRemotePrivate);
 }
 
 static void
@@ -55,6 +50,4 @@ xserver_remote_class_init (XServerRemoteClass *klass)
 
     xserver_class->start = xserver_remote_start;
     xserver_class->stop = xserver_remote_stop;
-
-    g_type_class_add_private (klass, sizeof (XServerRemotePrivate));
 }

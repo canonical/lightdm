@@ -27,9 +27,6 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct XServerPrivate
 {  
-    /* TRUE if the xserver has started */
-    gboolean ready;
-
     /* Host running the server */
     gchar *hostname;
 
@@ -302,11 +299,12 @@ xserver_disconnect (XServer *server)
 {
     g_return_if_fail (server != NULL);
 
-    if (!server->priv->connection)
-        return;
+    if (server->priv->connection)
+    {
+        xcb_disconnect (server->priv->connection);
+        server->priv->connection = NULL;
+    }
 
-    xcb_disconnect (server->priv->connection);
-    server->priv->connection = NULL;
     g_signal_emit (server, signals[STOPPED], 0);
 }
 

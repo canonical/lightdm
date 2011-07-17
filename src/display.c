@@ -23,7 +23,7 @@
 #include "ldm-marshal.h"
 #include "greeter.h"
 #include "guest-account.h"
-#include "xserver-local.h"
+#include "xserver-local.h" // FIXME: Can't assume are local
 
 /* Length of time in milliseconds to wait for a session to load */
 #define USER_SESSION_TIMEOUT 5000
@@ -750,6 +750,8 @@ start_greeter (Display *display)
 static void
 xserver_stopped_cb (XServer *server, Display *display)
 {
+    g_debug ("X server stopped");
+
     if (display->priv->stopping)
     {
         g_object_unref (display->priv->xserver);
@@ -760,7 +762,10 @@ xserver_stopped_cb (XServer *server, Display *display)
     {
         /* Stop the user session then start a new X server */
         if (display->priv->user_session)
+        {
+            g_debug ("Stopping session");
             child_process_stop (CHILD_PROCESS (display->priv->user_session));
+        }
         else
         {
             g_debug ("Starting new X server");
