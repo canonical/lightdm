@@ -23,7 +23,7 @@
 #include "ldm-marshal.h"
 #include "greeter.h"
 #include "guest-account.h"
-#include "xserver-local.h" // FIXME: Can't assume are local
+#include "xserver-local.h"
 
 /* Length of time in milliseconds to wait for a session to load */
 #define USER_SESSION_TIMEOUT 5000
@@ -179,7 +179,7 @@ start_ck_session (Display *display, const gchar *session_type, User *user)
     if (getuid () != 0)
         return NULL;
 
-    if (xserver_local_get_vt (XSERVER_LOCAL (display->priv->xserver)) >= 0)
+    if (IS_XSERVER_LOCAL (display->priv->xserver) && xserver_local_get_vt (XSERVER_LOCAL (display->priv->xserver)) >= 0)
         display_device = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (XSERVER_LOCAL (display->priv->xserver)));
     address = xserver_get_address (display->priv->xserver);
 
@@ -782,8 +782,8 @@ xserver_ready_cb (XServer *xserver, Display *display)
     run_script ("Init"); // FIXME: Async
 
     /* Don't run any sessions on local terminals */
-    //FIXMEif (xserver_get_server_type (xserver) == XSERVER_TYPE_LOCAL_TERMINAL)
-    //    return;
+    if (IS_XSERVER_LOCAL (xserver) && xserver_local_get_xdmcp_server (XSERVER_LOCAL (xserver)))
+        return;
 
     /* If have user then automatically login the first time */
     if (display->priv->default_user_is_guest)

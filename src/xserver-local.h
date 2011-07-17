@@ -16,8 +16,9 @@
 
 G_BEGIN_DECLS
 
-#define XSERVER_LOCAL_TYPE (xserver_local_get_type())
-#define XSERVER_LOCAL(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), XSERVER_LOCAL_TYPE, XServerLocal))
+#define XSERVER_LOCAL_TYPE    (xserver_local_get_type())
+#define XSERVER_LOCAL(obj)    (G_TYPE_CHECK_INSTANCE_CAST ((obj), XSERVER_LOCAL_TYPE, XServerLocal))
+#define IS_XSERVER_LOCAL(obj) (G_TYPE_CHECK_INSTANCE_TYPE ((obj), XSERVER_LOCAL_TYPE))
 
 typedef struct XServerLocalPrivate XServerLocalPrivate;
 
