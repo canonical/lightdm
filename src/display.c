@@ -108,9 +108,9 @@ display_load_config (Display *display, const gchar *config_section)
     if (!display->priv->greeter_session)
         display->priv->greeter_session = config_get_string (config_get_instance (), "SeatDefaults", "greeter-session");
     if (config_section)
-        display->priv->default_session = config_get_string (config_get_instance (), config_section, "default-session");
+        display->priv->default_session = config_get_string (config_get_instance (), config_section, "user-session");
     if (!display->priv->default_session)
-        display->priv->default_session = config_get_string (config_get_instance (), "SeatDefaults", "default-session");
+        display->priv->default_session = config_get_string (config_get_instance (), "SeatDefaults", "user-session");
     if (config_section)
         display->priv->session_wrapper = config_get_string (config_get_instance (), config_section, "session-wrapper");
     if (!display->priv->session_wrapper)

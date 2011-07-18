@@ -421,14 +421,14 @@ main (int argc, char **argv)
     gboolean explicit_config = FALSE;
     gboolean test_mode = FALSE;
     gboolean no_root = FALSE;
-    gchar *default_xserver_command = g_strdup ("X");
+    gchar *xserver_command = g_strdup ("X");
     gchar *passwd_path = NULL;
     gchar *pid_path = "/var/run/lightdm.pid";
     gchar *greeter_session = g_strdup (GREETER_SESSION);
     gchar *xsessions_dir = g_strdup (XSESSIONS_DIR);
     gchar *run_dir = g_strdup (RUN_DIR);
     gchar *cache_dir = g_strdup (CACHE_DIR);
-    gchar *default_session = g_strdup (DEFAULT_SESSION);
+    gchar *user_session = g_strdup (user_session);
     gchar *minimum_display_number = NULL;
     gboolean show_version = FALSE;
     GOptionEntry options[] = 
@@ -451,15 +451,15 @@ main (int argc, char **argv)
         { "pid-file", 0, 0, G_OPTION_ARG_STRING, &pid_path,
           /* Help string for command line --pid-file flag */
           N_("File to write PID into"), "FILE" },
-        { "default-xserver-command", 0, 0, G_OPTION_ARG_STRING, &default_xserver_command,
-          /* Help string for command line --default-xserver-command flag */
-          N_("Default command to run X servers"), "COMMAND" },
+        { "xserver-command", 0, 0, G_OPTION_ARG_STRING, &xserver_command,
+          /* Help string for command line --xserver-command flag */
+          N_("Command to run X servers"), "COMMAND" },
         { "greeter-session", 0, 0, G_OPTION_ARG_STRING, &greeter_session,
           /* Help string for command line --greeter-session flag */
-          N_("Default greeter theme"), "THEME" },
-        { "default-session", 0, 0, G_OPTION_ARG_STRING, &default_session,
-          /* Help string for command line --default-session flag */
-          N_("Default session"), "SESSION" },
+          N_("Greeter session"), "SESSION" },
+        { "user-session", 0, 0, G_OPTION_ARG_STRING, &user_session,
+          /* Help string for command line --user-session flag */
+          N_("User session"), "SESSION" },
         { "minimum-display-number", 0, 0, G_OPTION_ARG_STRING, &minimum_display_number,
           /* Help string for command line --minimum-display-number flag */
           N_("Minimum display number to use for X servers"), "NUMBER" },
@@ -580,9 +580,9 @@ main (int argc, char **argv)
     g_clear_error (&error);
 
     /* Set default values */
-    config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", default_xserver_command);
+    config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", xserver_command);
     config_set_string (config_get_instance (), "SeatDefaults", "greeter-session", greeter_session);
-    config_set_string (config_get_instance (), "SeatDefaults", "default-session", default_session);
+    config_set_string (config_get_instance (), "SeatDefaults", "user-session", user_session);
     config_set_string (config_get_instance (), "Directories", "log-directory", LOG_DIR);
     config_set_string (config_get_instance (), "Directories", "run-directory", run_dir);
     config_set_string (config_get_instance (), "Directories", "cache-directory", cache_dir);
