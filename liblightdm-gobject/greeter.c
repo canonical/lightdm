@@ -1155,7 +1155,9 @@ ldm_greeter_get_show_users_hint (LdmGreeter *greeter)
 
     g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
     value = ldm_greeter_get_hint (greeter, "show-users");
-  
+    if (!value)
+        value = "true";
+
     return g_strcmp0 (value, "true") == 0;
 }
 
