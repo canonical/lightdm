@@ -283,12 +283,6 @@ end_ck_session (const gchar *cookie)
 }
 
 static void
-run_script (const gchar *script)
-{
-    // FIXME
-}
-
-static void
 set_env_from_pam_session (Session *session, PAMSession *pam_session)
 {
     gchar **pam_env;
@@ -376,8 +370,6 @@ session_stopped_cb (Session *session, Display *display)
         check_stopped (display);
         return;
     }
-
-    run_script ("PostSession");
 
     g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
 
@@ -747,8 +739,6 @@ display_server_stopped_cb (DisplayServer *server, Display *display)
 static void
 display_server_ready_cb (DisplayServer *display_server, Display *display)
 {
-    run_script ("Init"); // FIXME: Async
-
     /* Don't run any sessions on local terminals */
     // FIXME: Make display_server_get_has_local_session
     if (IS_XSERVER_LOCAL (display_server) && xserver_local_get_xdmcp_server (XSERVER_LOCAL (display_server)))
