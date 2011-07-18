@@ -111,6 +111,7 @@ G_DEFINE_TYPE (LdmGreeter, ldm_greeter, G_TYPE_OBJECT);
 #define HEADER_SIZE 8
 #define MAX_MESSAGE_LENGTH 1024
 
+#define PASSWD_FILE      "/etc/passwd"
 #define USER_CONFIG_FILE "/etc/lightdm/users.conf"
 
 /**
@@ -724,11 +725,11 @@ update_users (LdmGreeter *greeter)
     load_users (greeter);
 
     /* Watch for changes to user list */
-    passwd_file = g_file_new_for_path ("/etc/passwd");
+    passwd_file = g_file_new_for_path (PASSWD_FILE);
     greeter->priv->passwd_monitor = g_file_monitor (passwd_file, G_FILE_MONITOR_NONE, NULL, &error);
     g_object_unref (passwd_file);
     if (!greeter->priv->passwd_monitor)
-        g_warning ("Error monitoring /etc/passwd: %s", error->message);
+        g_warning ("Error monitoring %s: %s", PASSWD_FILE, error->message);
     else
         g_signal_connect (greeter->priv->passwd_monitor, "changed", G_CALLBACK (passwd_changed_cb), greeter);
     g_clear_error (&error);
