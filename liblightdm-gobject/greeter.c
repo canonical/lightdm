@@ -550,7 +550,8 @@ load_users (LdmGreeter *greeter)
     g_debug ("Loading user config from %s", USER_CONFIG_FILE);
 
     config = g_key_file_new ();
-    if (!g_key_file_load_from_file (config, USER_CONFIG_FILE, G_KEY_FILE_NONE, &error))
+    if (!g_key_file_load_from_file (config, USER_CONFIG_FILE, G_KEY_FILE_NONE, &error) &&
+        !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
         g_warning ("Failed to load configuration from %s: %s", USER_CONFIG_FILE, error->message); // FIXME: Don't make warning on no file, just info
     g_clear_error (&error);
 
