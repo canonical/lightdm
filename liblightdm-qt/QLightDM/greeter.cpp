@@ -54,7 +54,6 @@ using namespace QLightDM;
 class GreeterPrivate
 {
 public:
-    QString theme;
     QString defaultSession;
     QString timedUser;
     int loginDelay;
@@ -317,16 +316,16 @@ void Greeter::onRead(int fd)
     int id = readInt(&offset);
     readInt(&offset);
     int nMessages, sequenceNumber, returnCode;
-    QString username;
+    QString version, username;
     switch(id)
     {
     case GREETER_MESSAGE_CONNECTED:
-        d->theme = readString(&offset);
+        version = readString(&offset);
         d->defaultSession = readString(&offset);
         d->timedUser = readString(&offset);
         d->loginDelay = readInt(&offset);
         d->guestAccountSupported = readInt(&offset) != 0;
-        qDebug() << "Connected theme=" << d->theme << " default-session=" << d->defaultSession << " timed-user=" << d->timedUser << " login-delay" << d->loginDelay << " guestAccountSupported" << d->guestAccountSupported;
+        qDebug() << "Connected version=" << version << " default-session=" << d->defaultSession << " timed-user=" << d->timedUser << " login-delay" << d->loginDelay << " guestAccountSupported" << d->guestAccountSupported;
 
         /* Set timeout for default login */
         if(d->timedUser != "" && d->loginDelay > 0)
@@ -398,18 +397,6 @@ void Greeter::onRead(int fd)
 QString Greeter::hostname() const
 {
     return QHostInfo::localHostName();
-}
-
-QString Greeter::theme() const
-{
-    return d->theme;
-}
-
-QVariant Greeter::getProperty(const QString &name) const
-{
-    QUrl themeUrl(d->theme);
-    QSettings themeInfo(themeUrl.path(), QSettings::IniFormat);
-    return themeInfo.value(name);
 }
 
 QString Greeter::defaultLanguage() const

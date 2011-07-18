@@ -40,9 +40,6 @@ namespace QLightDM
 
 	/** The hostname of the machine */
 	QString hostname() const;
-	QString theme() const;
-
-	Q_INVOKABLE QVariant getProperty(const QString &name) const;
 
 	QString timedLoginUser() const;
 	int timedLoginDelay() const;

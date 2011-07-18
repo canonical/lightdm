@@ -432,7 +432,7 @@ connected_cb (LdmGreeter *greeter)
     GtkTreeModel *model;
     GtkTreeIter iter;
     GtkCellRenderer *renderer;
-    gchar *theme_dir, *rc_file, *background_image;
+    gchar *rc_file, *background_image;
     GError *error = NULL;
 
     display = gdk_display_get_default ();
@@ -441,18 +441,17 @@ connected_cb (LdmGreeter *greeter)
     screen_height = gdk_screen_get_height (screen);
 
     g_object_get (gtk_settings_get_default (), "gtk-theme-name", &theme_name, NULL);
-    theme_dir = g_path_get_dirname (ldm_greeter_get_theme (greeter));
-    rc_file = ldm_greeter_get_string_property (greeter, "gtkrc");
+    rc_file = NULL; // FIXME
     if (rc_file)
     {
-        gchar *path = g_build_filename (theme_dir, rc_file, NULL);
+        gchar *path = g_build_filename (GREETER_DATA_DIR, rc_file, NULL);
         g_free (rc_file);
         gtk_rc_add_default_file (path);
         g_free (path);
     }
 
     builder = gtk_builder_new ();
-    if (!gtk_builder_add_from_file (builder, UI_DIR "/greeter.ui", &error))
+    if (!gtk_builder_add_from_file (builder, GREETER_DATA_DIR "/greeter.ui", &error))
     {
         g_warning ("Error loading UI: %s", error->message);
         return;
@@ -467,14 +466,14 @@ connected_cb (LdmGreeter *greeter)
   
     gtk_label_set_text (GTK_LABEL (gtk_builder_get_object (builder, "hostname_label")), ldm_greeter_get_hostname (greeter));
 
-    background_image = ldm_greeter_get_string_property (greeter, "background-image");
+    background_image = NULL; // FIXME
     if (background_image)
     {
         gchar *path;
         GdkPixbuf *pixbuf;
         GError *error = NULL;
 
-        path = g_build_filename (theme_dir, background_image, NULL);
+        path = g_build_filename (GREETER_DATA_DIR, background_image, NULL);
         g_free (background_image);
         pixbuf = gdk_pixbuf_new_from_file (path, &error);
         if (!pixbuf)

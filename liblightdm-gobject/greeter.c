@@ -72,9 +72,6 @@ struct _LdmGreeterPrivate
 
     gchar *hostname;
 
-    gchar *theme;
-    GKeyFile *theme_file;
-
     /* File monitor for password file */
     GFileMonitor *passwd_monitor;
   
@@ -238,17 +235,20 @@ static guint32 get_packet_length (LdmGreeter *greeter)
 static void
 handle_connected (LdmGreeter *greeter, gsize *offset)
 {
-    greeter->priv->theme = read_string (greeter, offset);
+    gchar *version;
+
+    version = read_string (greeter, offset);
     greeter->priv->default_session = read_string (greeter, offset);
     greeter->priv->selected_user = read_string (greeter, offset);
     greeter->priv->login_delay = read_int (greeter, offset);
     greeter->priv->guest_account_supported = read_int (greeter, offset) != 0;
 
-    g_debug ("Connected theme=%s default-session=%s timed-user=%s login-delay=%d guest-account-supported=%s",
-             greeter->priv->theme,
+    g_debug ("Connected version=%s default-session=%s timed-user=%s login-delay=%d guest-account-supported=%s",
+             version,
              greeter->priv->default_session,
              greeter->priv->selected_user, greeter->priv->login_delay,
              greeter->priv->guest_account_supported ? "true" : "false");
+    g_free (version);
 
     if (greeter->priv->selected_user[0] == '\0')
         greeter->priv->selected_user = NULL;
@@ -508,111 +508,6 @@ ldm_greeter_get_hostname (LdmGreeter *greeter)
     }
 
     return greeter->priv->hostname;
-}
-
-/**
- * ldm_greeter_get_theme:
- * @greeter: a #LdmGreeter
- *
- * Return value: The theme this greeter is using
- **/
-const gchar *
-ldm_greeter_get_theme (LdmGreeter *greeter)
-{
-    g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
-    return greeter->priv->theme;
-}
-
-static void
-load_theme (LdmGreeter *greeter)
-{
-    GError *error = NULL;
-
-    if (greeter->priv->theme_file)
-        return;
-
-    greeter->priv->theme_file = g_key_file_new ();
-    if (!g_key_file_load_from_file (greeter->priv->theme_file, greeter->priv->theme, G_KEY_FILE_NONE, &error))
-        g_warning ("Failed to read theme file: %s", error->message);
-    g_clear_error (&error);
-}
-
-/**
- * ldm_greeter_get_string_property:
- * @greeter: a #LdmGreeter
- * @name: the name of the property to get
- *
- * Return value: The value of this property or NULL if it is not defined
- **/
-gchar *
-ldm_greeter_get_string_property (LdmGreeter *greeter, const gchar *name)
-{
-    GError *error = NULL;
-    gchar *result;
-
-    g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
-    g_return_val_if_fail (name != NULL, NULL);
-
-    load_theme (greeter);
-
-    result = g_key_file_get_string (greeter->priv->theme_file, "theme", name, &error);
-    if (!result)
-        g_warning ("Error reading theme property: %s", error->message); // FIXME: Can handle G_KEY_FILE_ERROR_KEY_NOT_FOUND and G_KEY_FILE_ERROR_GROUP_NOT_FOUND
-    g_clear_error (&error);
-
-    return result;
-}
-
-/**
- * ldm_greeter_get_integer_property:
- * @greeter: a #LdmGreeter
- * @name: the name of the property to get
- *
- * Return value: The value of this property or 0 if it is not defined
- **/
-gint
-ldm_greeter_get_integer_property (LdmGreeter *greeter, const gchar *name)
-{
-    GError *error = NULL;
-    gint result;
-
-    g_return_val_if_fail (LDM_IS_GREETER (greeter), 0);
-    g_return_val_if_fail (name != NULL, 0);
-
-    load_theme (greeter);
-
-    result = g_key_file_get_integer (greeter->priv->theme_file, "theme", name, &error);
-    if (!result)
-        g_warning ("Error reading theme property: %s", error->message); // FIXME: Can handle G_KEY_FILE_ERROR_KEY_NOT_FOUND and G_KEY_FILE_ERROR_GROUP_NOT_FOUND
-    g_clear_error (&error);
-
-    return result;
-}
-
-/**
- * ldm_greeter_get_boolean_property:
- * @greeter: a #LdmGreeter
- * @name: the name of the property to get
- *
- * Return value: The value of this property or FALSE if it is not defined
- **/
-gboolean
-ldm_greeter_get_boolean_property (LdmGreeter *greeter, const gchar *name)
-{
-    GError *error = NULL;
-    gboolean result;
-
-    g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
-    g_return_val_if_fail (name != NULL, FALSE);
-
-    load_theme (greeter);
-
-    result = g_key_file_get_boolean (greeter->priv->theme_file, "theme", name, &error);
-    if (!result)
-        g_warning ("Error reading theme property: %s", error->message); // FIXME: Can handle G_KEY_FILE_ERROR_KEY_NOT_FOUND and G_KEY_FILE_ERROR_GROUP_NOT_FOUND
-    g_clear_error (&error);
-
-    return result;
 }
 
 static LdmUser *

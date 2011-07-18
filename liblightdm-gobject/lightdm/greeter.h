@@ -74,14 +74,6 @@ gboolean ldm_greeter_connect_to_server (LdmGreeter *greeter);
 
 const gchar *ldm_greeter_get_hostname (LdmGreeter *greeter);
 
-const gchar *ldm_greeter_get_theme (LdmGreeter *greeter);
-
-gchar *ldm_greeter_get_string_property (LdmGreeter *greeter, const gchar *name);
-
-gint ldm_greeter_get_integer_property (LdmGreeter *greeter, const gchar *name);
-
-gboolean ldm_greeter_get_boolean_property (LdmGreeter *greeter, const gchar *name);
-
 gint ldm_greeter_get_num_users (LdmGreeter *greeter);
 
 GList *ldm_greeter_get_users (LdmGreeter *greeter);

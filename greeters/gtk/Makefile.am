@@ -1,7 +1,7 @@
 bin_PROGRAMS = lightdm-gtk-greeter
 
-uidir = $(datadir)/lightdm-gtk-greeter
-dist_ui_DATA = greeter.ui
+greeterdatadir = $(datadir)/lightdm-gtk-greeter
+dist_greeterdata_DATA = greeter.ui
 
 xsessiondir = $(datadir)/xsessions
 dist_xsession_DATA = lightdm-gtk-greeter.desktop
@@ -10,7 +10,7 @@ lightdm_gtk_greeter_SOURCES = \
 	lightdm-gtk-greeter.c
 
 lightdm_gtk_greeter_CFLAGS = \
-	-DUI_DIR=\""$(uidir)"\" \
+	-DGREETER_DATA_DIR=\""$(greeterdatadir)"\" \
 	-I$(top_srcdir)/liblightdm-gobject \
 	$(LIGHTDM_GTK_GREETER_CFLAGS) \
 	$(WARN_CFLAGS)
