@@ -500,7 +500,7 @@ start_session (Display *display, Session *session, PAMSession *pam_session)
 static void
 autologin_pam_message_cb (PAMSession *session, int num_msg, const struct pam_message **msg, Display *display)
 {
-    g_debug ("Aborting automatic login and starting greeter, PAM requests input");
+    g_debug ("Aborting automatic login as PAM requests input");
     pam_session_cancel (session);
 }
 
@@ -521,7 +521,10 @@ autologin_authentication_result_cb (PAMSession *session, int result, Display *di
         }
         else
         {
+            g_debug ("Autologin failed authorization, starting greeter");
+
             /* Start greeter and select user that failed */
+            display->priv->default_user_requires_password = TRUE;
             start_greeter_session (display);
         }
     }
@@ -606,21 +609,15 @@ start_greeter_session (Display *display)
     else if (display->priv->default_user)
         autologin_user = display->priv->default_user;
 
-    if (autologin_user)
+    if (autologin_user && !display->priv->default_user_requires_password)
     {
         GError *error = NULL;
-        gchar *pam_service;
         PAMSession *autologin_pam_session;
  
         /* Run using autologin PAM session, abort if get asked any questions */      
         g_debug ("Automatically logging in user %s", autologin_user);
 
-        if (display->priv->default_user_requires_password)
-            pam_service = display->priv->pam_service;
-        else
-            pam_service = display->priv->pam_autologin_service;
-
-        autologin_pam_session = pam_session_new (pam_service, autologin_user);
+        autologin_pam_session = pam_session_new (display->priv->pam_autologin_service, autologin_user);
         g_signal_connect (autologin_pam_session, "got-messages", G_CALLBACK (autologin_pam_message_cb), display);
         g_signal_connect (autologin_pam_session, "authentication-result", G_CALLBACK (autologin_authentication_result_cb), display);
         if (pam_session_start (autologin_pam_session, &error))

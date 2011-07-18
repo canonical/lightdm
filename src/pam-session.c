@@ -400,7 +400,7 @@ pam_session_cancel (PAMSession *session)
 {
     g_return_if_fail (session != NULL);
 
-    if (!passwd_file)
+    if (passwd_file)
     {
         g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_CONV_ERR);
     }
