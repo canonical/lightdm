@@ -20,9 +20,6 @@
 #include "greeter-protocol.h"
 #include "guest-account.h"
 
-/* Length of time in milliseconds to wait for a greeter to quit */
-#define GREETER_QUIT_TIMEOUT 1000
-
 enum {
     START_SESSION,
     LAST_SIGNAL
@@ -49,9 +46,6 @@ struct GreeterPrivate
 
     /* Time in seconds to wait until logging in as default user */
     gint autologin_timeout;
-
-    /* Timeout for greeter to respond to quit request */
-    guint quit_timeout;
 
     /* Sequence number of current PAM session */
     guint32 authentication_sequence_number;
@@ -394,16 +388,6 @@ handle_cancel_authentication (Greeter *greeter)
     pam_session_cancel (greeter->priv->pam_session);
 }
 
-static gboolean
-quit_greeter_cb (gpointer data)
-{
-    Greeter *greeter = data;
-    g_warning ("Greeter did not quit, sending kill signal");
-    session_stop (SESSION (greeter));
-    greeter->priv->quit_timeout = 0;
-    return TRUE;
-}
-
 void
 greeter_quit (Greeter *greeter)
 {
@@ -414,10 +398,6 @@ greeter_quit (Greeter *greeter)
 
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_QUIT, 0, &offset);
     write_message (greeter, message, offset);
-
-    if (greeter->priv->quit_timeout)
-        g_source_remove (greeter->priv->quit_timeout);
-    greeter->priv->quit_timeout = g_timeout_add (GREETER_QUIT_TIMEOUT, quit_greeter_cb, greeter);
 }
 
 static void
