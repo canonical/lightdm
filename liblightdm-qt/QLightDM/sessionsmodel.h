@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 David Edmundson.
  * Author: David Edmundson <kde@davidedmundson.co.uk>
- * 
+ *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
  * Software Foundation; either version 3 of the License, or (at your option) any
@@ -25,7 +25,7 @@ namespace QLightDM {
 
         explicit SessionsModel(QObject *parent = 0);
         virtual ~SessionsModel();
-        
+
         int rowCount(const QModelIndex &parent) const;
         QVariant data(const QModelIndex &index, int role=Qt::DisplayRole) const;
 
@@ -35,4 +35,4 @@ namespace QLightDM {
     };
 };
 
-#endif // LDMSESSIONSMODEL_H
+#endif // QLIGHTDM_SESSIONSMODEL_H

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 David Edmundson.
  * Author: David Edmundson <kde@davidedmundson.co.uk>
- * 
+ *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
  * Software Foundation; either version 3 of the License, or (at your option) any
@@ -11,6 +11,7 @@
 
 #ifndef QLIGTHDM_LANGUAGE_H
 #define QLIGTHDM_LANGUAGE_H
+
 #include <QString>
 
 class LanguagePrivate;
@@ -32,4 +33,4 @@ namespace QLightDM {
     };
 };
 
-#endif // LDMLANGUAGE_H
+#endif // QLIGHTDM_LANGUAGE_H

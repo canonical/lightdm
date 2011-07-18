@@ -2,7 +2,7 @@
  * Copyright (C) 2010-2011 David Edmundson
  * Copyright (C) 2010-2011 Robert Ancell
  * Author: David Edmundson <kde@davidedmundson.co.uk>
- * 
+ *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
  * Software Foundation; either version 3 of the License, or (at your option) any
@@ -64,7 +64,7 @@ public:
     QDBusInterface* lightdmInterface;
     QDBusInterface* powerManagementInterface;
     QDBusInterface* consoleKitInterface;
-  
+
     QHash<QString, QString> hints;
 
     int toServerFd;
@@ -103,7 +103,7 @@ static int intLength()
 
 static int stringLength(QString value)
 {
-    QByteArray a = value.toUtf8();  
+    QByteArray a = value.toUtf8();
     return intLength() + a.size();
 }
 
@@ -113,7 +113,7 @@ void Greeter::writeInt(int value)
     buffer[0] = value >> 24;
     buffer[1] = (value >> 16) & 0xFF;
     buffer[2] = (value >> 8) & 0xFF;
-    buffer[3] = value & 0xFF;   
+    buffer[3] = value & 0xFF;
     if (write(d->toServerFd, buffer, intLength()) != intLength()) {
         qDebug() << "Error writing to server";
     }
@@ -233,7 +233,7 @@ void Greeter::loginAsGuest()
     qDebug() << "Starting authentication for guest account";
     writeHeader(GREETER_MESSAGE_LOGIN_AS_GUEST, intLength());
     writeInt(d->authenticateSequenceNumber);
-    flush();     
+    flush();
 }
 
 void Greeter::respond(const QString &response)
@@ -251,7 +251,7 @@ void Greeter::cancelAuthentication()
     qDebug() << "Cancelling authentication";
     d->cancellingAuthentication = true;
     writeHeader(GREETER_MESSAGE_CANCEL_AUTHENTICATION, 0);
-    flush();  
+    flush();
 }
 
 bool Greeter::inAuthentication() const
@@ -284,7 +284,7 @@ void Greeter::onRead(int fd)
     int nToRead = HEADER_SIZE;
     if(d->nRead >= HEADER_SIZE)
         nToRead += getPacketLength();
-  
+
     ssize_t nRead;
     nRead = read(fd, d->readBuffer + d->nRead, nToRead - d->nRead);
     if(nRead < 0)
@@ -296,13 +296,13 @@ void Greeter::onRead(int fd)
     {
         qDebug() << "EOF reading from server";
         return;
-    }  
+    }
 
     //qDebug() << "Read " << nRead << "octets";
     d->nRead += nRead;
     if(d->nRead != nToRead)
         return;
-  
+
     /* If have header, rerun for content */
     if(d->nRead == HEADER_SIZE)
     {

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 David Edmundson.
  * Author: David Edmundson <kde@davidedmundson.co.uk>
- * 
+ *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
  * Software Foundation; either version 3 of the License, or (at your option) any
@@ -86,14 +86,14 @@ QList<User> UsersModel::getUsers()
 
     int minimumUid = settings->value("UserAccounts/minimum-uid", QVariant(500)).toInt();
     QStringList hiddenShells;
-    if (settings->contains("UserAccounts/hidden-shells")) 
+    if (settings->contains("UserAccounts/hidden-shells"))
         hiddenShells = settings->value("UserAccounts/hidden-shells").toString().split(" ");
     else
         hiddenShells = QStringList() << "/bin/false" << "/usr/sbin/nologin";
     QStringList hiddenUsers;
-    if (settings->contains("UserAccounts/hidden-users")) 
+    if (settings->contains("UserAccounts/hidden-users"))
         hiddenUsers = settings->value("UserAccounts/hidden-users").toString().split(" ");
-    else 
+    else
         hiddenUsers = QStringList() << "nobody" << "nobody4" << "noaccess";
 
     QList<User> users;

@@ -2,7 +2,7 @@
  * Copyright (C) 2010-2011 David Edmundson.
  * Copyright (C) 2010-2011 Robert Ancell
  * Author: David Edmundson <kde@davidedmundson.co.uk>
- * 
+ *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
  * Software Foundation; either version 3 of the License, or (at your option) any
@@ -18,7 +18,7 @@
 
 #include "user.h"
 #include "language.h"
-//#include "ldmlayout.h"
+//#include "layout.h"
 
 class GreeterPrivate;
 
@@ -36,44 +36,44 @@ namespace QLightDM
         Q_PROPERTY(bool canShutdown READ canShutdown);
         Q_PROPERTY(bool canRestart READ canRestart);
 
-	Q_PROPERTY(QString hostname READ hostname CONSTANT);
+        Q_PROPERTY(QString hostname READ hostname CONSTANT);
 
-	/** The hostname of the machine */
-	QString hostname() const;
+        /** The hostname of the machine */
+        QString hostname() const;
 
-	QString timedLoginUser() const;
-	int timedLoginDelay() const;
+        QString timedLoginUser() const;
+        int timedLoginDelay() const;
 
-	QList<QLightDM::Language> languages() const;
-	QString defaultLanguage() const;
+        QList<QLightDM::Language> languages() const;
+        QString defaultLanguage() const;
 
-	//QList<LdmLayout> layouts() const;
-	QString layout() const;
+        //QList<LdmLayout> layouts() const;
+        QString layout() const;
 
-    QString getHint(QString name) const;
-    QString defaultSessionHint() const;
-    bool showUsersHint() const;
-    bool hasGuestAccountHint() const;
-    QString selectUserHint() const;
-    bool selectGuestHint() const;
-    QString autologinUserHint() const;
-    bool autologinGuestHint() const;
-    int autologinTimeoutHint() const;
+        QString getHint(QString name) const;
+        QString defaultSessionHint() const;
+        bool showUsersHint() const;
+        bool hasGuestAccountHint() const;
+        QString selectUserHint() const;
+        bool selectGuestHint() const;
+        QString autologinUserHint() const;
+        bool autologinGuestHint() const;
+        int autologinTimeoutHint() const;
 
-	bool inAuthentication() const;
-	bool isAuthenticated() const;
-	QString authenticationUser() const;
+        bool inAuthentication() const;
+        bool isAuthenticated() const;
+        QString authenticationUser() const;
 
-	bool canSuspend() const;
-	bool canHibernate() const;
-	bool canShutdown() const;
-	bool canRestart() const;
+        bool canSuspend() const;
+        bool canHibernate() const;
+        bool canShutdown() const;
+        bool canRestart() const;
 
     public slots:
-	void suspend();
-	void hibernate();
-	void shutdown();
-	void restart();
+        void suspend();
+        void hibernate();
+        void shutdown();
+        void restart();
 
         void connectToServer();
         void login(const QString &username);
@@ -81,31 +81,31 @@ namespace QLightDM
         void respond(const QString &response);
         void cancelAuthentication();
         void startSession(const QString &session=QString());
-        
+
     signals:
-	void connected();
-	void showPrompt(QString prompt);
-	void showMessage(QString message);
-	void showError(QString message);
-	void authenticationComplete(bool isAuthenticated);
-	void sessionFailed();
-	void timedLogin(QString username);
-	void quit();
-    
-    private slots:  
-	void onRead(int fd);
+        void connected();
+        void showPrompt(QString prompt);
+        void showMessage(QString message);
+        void showError(QString message);
+        void authenticationComplete(bool isAuthenticated);
+        void sessionFailed();
+        void timedLogin(QString username);
+        void quit();
+
+    private slots:
+        void onRead(int fd);
 
     private:
-	GreeterPrivate *d;
-	void writeInt(int value);
-	void writeString(QString value);
-	void writeHeader(int id, int length);
-	void flush();
-	int getPacketLength();
-	int readInt(int *offset);
-	QString readString(int *offset);
+        GreeterPrivate *d;
+        void writeInt(int value);
+        void writeString(QString value);
+        void writeHeader(int id, int length);
+        void flush();
+        int getPacketLength();
+        int readInt(int *offset);
+        QString readString(int *offset);
     };
 
 };//end namespace
 
-#endif // LDMGREETER_H
+#endif // QLIGHDM_GREETER_H
