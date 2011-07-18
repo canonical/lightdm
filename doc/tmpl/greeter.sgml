@@ -243,45 +243,6 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_theme ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION ldm_greeter_get_string_property ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@name: 
-@Returns: 
-
-
-<!-- ##### FUNCTION ldm_greeter_get_integer_property ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@name: 
-@Returns: 
-
-
-<!-- ##### FUNCTION ldm_greeter_get_boolean_property ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@name: 
-@Returns: 
-
-
 <!-- ##### FUNCTION ldm_greeter_get_num_users ##### -->
 <para>
 

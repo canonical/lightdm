@@ -104,10 +104,6 @@ LdmGreeter
 ldm_greeter_new
 ldm_greeter_connect_to_server
 ldm_greeter_get_hostname
-ldm_greeter_get_theme
-ldm_greeter_get_string_property
-ldm_greeter_get_integer_property
-ldm_greeter_get_boolean_property
 ldm_greeter_get_num_users
 ldm_greeter_get_users
 ldm_greeter_get_user_by_name
