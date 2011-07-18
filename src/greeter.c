@@ -596,12 +596,12 @@ greeter_start (Greeter *greeter)
 
     fd = from_greeter_pipe[1];
     value = g_strdup_printf ("%d", fd);
-    child_process_set_env (CHILD_PROCESS (greeter->priv->session), "LDM_TO_SERVER_FD", value);
+    child_process_set_env (CHILD_PROCESS (greeter->priv->session), "LIGHTDM_TO_SERVER_FD", value);
     g_free (value);
 
     fd = to_greeter_pipe[0];
     value = g_strdup_printf ("%d", fd);
-    child_process_set_env (CHILD_PROCESS (greeter->priv->session), "LDM_FROM_SERVER_FD", value);
+    child_process_set_env (CHILD_PROCESS (greeter->priv->session), "LIGHTDM_FROM_SERVER_FD", value);
     g_free (value);
 
     return TRUE;

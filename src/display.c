@@ -652,13 +652,18 @@ start_greeter_session (Display *display)
         else if (display->priv->default_user_is_guest)
             greeter_set_selected_user (display->priv->greeter, guest_account_get_username (), 0);
         greeter_set_default_session (display->priv->greeter, display->priv->default_session);
+
+        result = greeter_start (display->priv->greeter);
+        if (!result)
+        {
+            g_debug ("Failed to start greeter protocol");
+            g_signal_handlers_disconnect_matched (display->priv->greeter, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
+            g_object_unref (display->priv->greeter);
+            display->priv->greeter = NULL;
+        }
     }
     else
-    {
-        g_signal_handlers_disconnect_matched (display->priv->greeter, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-        g_object_unref (display->priv->greeter);
-        display->priv->greeter = NULL;
-    }
+        g_debug ("Failed to start greeter session");
 
     g_free (log_filename);
     g_object_unref (user);

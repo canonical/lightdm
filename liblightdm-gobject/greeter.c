@@ -463,19 +463,19 @@ ldm_greeter_connect_to_server (LdmGreeter *greeter)
     if (!greeter->priv->lightdm_bus)
         return FALSE;
 
-    fd = getenv ("LDM_TO_SERVER_FD");
+    fd = getenv ("LIGHTDM_TO_SERVER_FD");
     if (!fd)
     {
-        g_warning ("No LDM_TO_SERVER_FD environment variable");
+        g_warning ("No LIGHTDM_TO_SERVER_FD environment variable");
         return FALSE;
     }
     greeter->priv->to_server_channel = g_io_channel_unix_new (atoi (fd));
     g_io_channel_set_encoding (greeter->priv->to_server_channel, NULL, NULL);
 
-    fd = getenv ("LDM_FROM_SERVER_FD");
+    fd = getenv ("LIGHTDM_FROM_SERVER_FD");
     if (!fd)
     {
-        g_warning ("No LDM_FROM_SERVER_FD environment variable");
+        g_warning ("No LIGHTDM_FROM_SERVER_FD environment variable");
         return FALSE;
     }
     greeter->priv->from_server_channel = g_io_channel_unix_new (atoi (fd));

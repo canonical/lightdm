@@ -180,9 +180,9 @@ void Greeter::connectToServer()
     d->powerManagementInterface = new QDBusInterface("org.freedesktop.PowerManagement","/org/freedesktop/PowerManagement", "org.freedesktop.PowerManagement");
     d->consoleKitInterface = new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit");
 
-    char* fd = getenv("LDM_TO_SERVER_FD");
+    char* fd = getenv("LIGHTDM_TO_SERVER_FD");
     if(!fd) {
-       qDebug() << "No LDM_TO_SERVER_FD environment variable";
+       qDebug() << "No LIGHTDM_TO_SERVER_FD environment variable";
        return;
     }
     d->toServerFd = atoi(fd);
@@ -191,9 +191,9 @@ void Greeter::connectToServer()
     QFile toServer;
     qDebug() << toServer.open(d->toServerFd, QIODevice::WriteOnly);
 
-    fd = getenv("LDM_FROM_SERVER_FD");
+    fd = getenv("LIGHTDM_FROM_SERVER_FD");
     if(!fd) {
-       qDebug() << "No LDM_FROM_SERVER_FD environment variable";
+       qDebug() << "No LIGHTDM_FROM_SERVER_FD environment variable";
        return;
     }
     d->fromServerFd = atoi(fd);
