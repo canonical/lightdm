@@ -411,8 +411,10 @@ draw_background_cb (GtkWidget *widget, GdkEventExpose *event)
     context = gdk_cairo_create (GDK_DRAWABLE (gtk_widget_get_window (widget)));
 
     gtk_widget_get_allocation (GTK_WIDGET (window), &allocation);
-    gdk_cairo_set_source_pixbuf (context, background_pixbuf, 0.0, 0.0);
-    gdk_cairo_region (context, event->region);
+    if (background_pixbuf)
+        gdk_cairo_set_source_pixbuf (context, background_pixbuf, 0.0, 0.0);
+    else
+        cairo_set_source_rgb (context, 0, 0, 0);
     cairo_fill (context);
 
     cairo_destroy (context);
