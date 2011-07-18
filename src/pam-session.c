@@ -476,7 +476,7 @@ pam_session_finalize (GObject *object)
     PAMSession *self;
 
     self = PAM_SESSION (object);
-  
+
     pam_session_end (self);
 
     g_free (self->priv->username);

@@ -500,24 +500,27 @@ autologin_pam_message_cb (PAMSession *session, int num_msg, const struct pam_mes
 static void
 autologin_authentication_result_cb (PAMSession *session, int result, Display *display)
 {
-    if (result == PAM_SUCCESS)
+    if (!display->priv->stopping)
     {
-        g_debug ("User %s authorized", pam_session_get_username (session));
+        if (result == PAM_SUCCESS)
+        {
+            g_debug ("User %s authorized", pam_session_get_username (session));
 
-        if (activate_user (display, pam_session_get_username (session)))
-            return;
+            if (activate_user (display, pam_session_get_username (session)))
+                return;
 
-        pam_session_authorize (session);
-        start_user_session (display, session, display->priv->default_session);
-    }
-    else
-    {
-        /* Start greeter and select user that failed */
-        start_greeter_session (display);
+            pam_session_authorize (session);
+            start_user_session (display, session, display->priv->default_session);
+        }
+        else
+        {
+            /* Start greeter and select user that failed */
+            start_greeter_session (display);
+        }
     }
 
     g_object_unref (session);
-}
+ }
 
 static void
 greeter_start_session_cb (Greeter *greeter, const gchar *session, gboolean is_guest, Display *display)
