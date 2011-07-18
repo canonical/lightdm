@@ -87,6 +87,13 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
 @ldmgreeter: the object which received the signal.
 
+<!-- ##### SIGNAL LdmGreeter::autologin-timer-expired ##### -->
+<para>
+
+</para>
+
+@ldmgreeter: the object which received the signal.
+
 <!-- ##### SIGNAL LdmGreeter::connected ##### -->
 <para>
 
@@ -126,14 +133,6 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @arg1: 
 @Param3: 
 
-<!-- ##### SIGNAL LdmGreeter::timed-login ##### -->
-<para>
-
-</para>
-
-@ldmgreeter: the object which received the signal.
-@arg1: 
-
 <!-- ##### SIGNAL LdmGreeter::user-added ##### -->
 <para>
 
@@ -163,6 +162,21 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
 </para>
 
+<!-- ##### ARG LdmGreeter:autologin-guest-hint ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:autologin-timeout-hint ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:autologin-user-hint ##### -->
+<para>
+
+</para>
+
 <!-- ##### ARG LdmGreeter:can-hibernate ##### -->
 <para>
 
@@ -183,7 +197,12 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
 </para>
 
-<!-- ##### ARG LdmGreeter:default-session ##### -->
+<!-- ##### ARG LdmGreeter:default-session-hint ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:has-guest-account-hint ##### -->
 <para>
 
 </para>
@@ -208,17 +227,22 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
 </para>
 
-<!-- ##### ARG LdmGreeter:login-delay ##### -->
-<para>
-
-</para>
-
 <!-- ##### ARG LdmGreeter:num-users ##### -->
 <para>
 
 </para>
 
-<!-- ##### ARG LdmGreeter:timed-login-user ##### -->
+<!-- ##### ARG LdmGreeter:select-guest-hint ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:select-user-hint ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG LdmGreeter:show-users-hint ##### -->
 <para>
 
 </para>
@@ -332,7 +356,7 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_default_session ##### -->
+<!-- ##### FUNCTION ldm_greeter_get_default_session_hint ##### -->
 <para>
 
 </para>
@@ -341,7 +365,17 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_has_guest_session ##### -->
+<!-- ##### FUNCTION ldm_greeter_get_hint ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@name: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_has_guest_account_hint ##### -->
 <para>
 
 </para>
@@ -350,7 +384,7 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_timed_login_user ##### -->
+<!-- ##### FUNCTION ldm_greeter_get_show_users_hint ##### -->
 <para>
 
 </para>
@@ -359,7 +393,43 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_timed_login_delay ##### -->
+<!-- ##### FUNCTION ldm_greeter_get_select_user_hint ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_select_guest_hint ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_autologin_user_hint ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_autologin_guest_hint ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION ldm_greeter_get_autologin_timeout_hint ##### -->
 <para>
 
 </para>

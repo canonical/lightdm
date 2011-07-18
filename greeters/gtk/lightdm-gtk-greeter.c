@@ -31,7 +31,7 @@ get_session ()
     gchar *session;
 
     if (!gtk_combo_box_get_active_iter (GTK_COMBO_BOX (session_combo), &iter))
-        return g_strdup (ldm_greeter_get_default_session (greeter));
+        return g_strdup (ldm_greeter_get_default_session_hint (greeter));
 
     gtk_tree_model_get (gtk_combo_box_get_model (GTK_COMBO_BOX (session_combo)), &iter, 1, &session, -1);
 
@@ -83,7 +83,7 @@ start_authentication (const gchar *username)
         if (user)
             set_session (ldm_user_get_session (user));
         else
-            set_session (ldm_greeter_get_default_session (greeter));
+            set_session (ldm_greeter_get_default_session_hint (greeter));
 
         ldm_greeter_login (greeter, username);
     }
@@ -194,10 +194,13 @@ authentication_complete_cb (LdmGreeter *greeter)
 }
 
 static void
-timed_login_cb (LdmGreeter *greeter, const gchar *username)
+autologin_timer_expired_cb (LdmGreeter *greeter)
 {
-    set_session (ldm_greeter_get_default_session (greeter));
-    ldm_greeter_login (greeter, ldm_greeter_get_timed_login_user (greeter));
+    set_session (ldm_greeter_get_default_session_hint (greeter));
+    if (ldm_greeter_get_autologin_guest_hint (greeter))
+        ldm_greeter_login_as_guest (greeter);
+    else if (ldm_greeter_get_autologin_user_hint (greeter))
+        ldm_greeter_login (greeter, ldm_greeter_get_autologin_user_hint (greeter));
 }
 
 void suspend_cb (GtkWidget *widget, LdmGreeter *greeter);
@@ -551,7 +554,7 @@ connected_cb (LdmGreeter *greeter)
                             2, pixbuf,
                             -1);
     }
-    if (ldm_greeter_get_has_guest_session (greeter))
+    if (ldm_greeter_get_has_guest_account_hint (greeter))
     {
         gtk_list_store_append (GTK_LIST_STORE (model), &iter);
         gtk_list_store_set (GTK_LIST_STORE (model), &iter,
@@ -585,7 +588,7 @@ connected_cb (LdmGreeter *greeter)
                             1, ldm_session_get_key (session),
                             -1);
     }
-    set_session (ldm_greeter_get_default_session (greeter));
+    set_session (ldm_greeter_get_default_session_hint (greeter));
 
     gtk_window_set_default_size (GTK_WINDOW (window), screen_width, screen_height);
     gtk_builder_connect_signals(builder, greeter);
@@ -609,7 +612,7 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "show-prompt", G_CALLBACK (show_prompt_cb), NULL);  
     g_signal_connect (G_OBJECT (greeter), "show-message", G_CALLBACK (show_message_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
-    g_signal_connect (G_OBJECT (greeter), "timed-login", G_CALLBACK (timed_login_cb), NULL);
+    g_signal_connect (G_OBJECT (greeter), "autologin-timer-expired", G_CALLBACK (autologin_timer_expired_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "user-added", G_CALLBACK (user_added_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "user-changed", G_CALLBACK (user_changed_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "user-removed", G_CALLBACK (user_removed_cb), NULL);

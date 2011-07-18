@@ -50,8 +50,15 @@ namespace QLightDM
 	//QList<LdmLayout> layouts() const;
 	QString layout() const;
 
-	QString defaultSession() const;
-        bool guestAccountSupported() const;
+    QString getHint(QString name) const;
+    QString defaultSessionHint() const;
+    bool showUsersHint() const;
+    bool hasGuestAccountHint() const;
+    QString selectUserHint() const;
+    bool selectGuestHint() const;
+    QString autologinUserHint() const;
+    bool autologinGuestHint() const;
+    int autologinTimeoutHint() const;
 
 	bool inAuthentication() const;
 	bool isAuthenticated() const;
@@ -69,7 +76,6 @@ namespace QLightDM
 	void restart();
 
         void connectToServer();
-        void cancelTimedLogin();  
         void login(const QString &username);
         void loginAsGuest();
         void respond(const QString &response);

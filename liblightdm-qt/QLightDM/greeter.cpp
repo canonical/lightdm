@@ -25,6 +25,7 @@
 #include <QtCore/QSettings>
 #include <QtCore/QUrl>
 #include <QtCore/QFile>
+#include <QtCore/QHash>
 #include <QtCore/QSocketNotifier>
 #include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusInterface>
@@ -58,16 +59,13 @@ using namespace QLightDM;
 class GreeterPrivate
 {
 public:
-    QString defaultSession;
-    QString timedUser;
-    int loginDelay;
-    bool guestAccountSupported;
-
     SessionsModel *sessionsModel;
 
     QDBusInterface* lightdmInterface;
     QDBusInterface* powerManagementInterface;
     QDBusInterface* consoleKitInterface;
+  
+    QHash<QString, QString> hints;
 
     int toServerFd;
     int fromServerFd;
@@ -319,25 +317,26 @@ void Greeter::onRead(int fd)
 
     int offset = 0;
     int id = readInt(&offset);
-    readInt(&offset);
+    int length = readInt(&offset);
     int nMessages, sequenceNumber, returnCode;
     QString version, username;
+    QString hintString = "";
     switch(id)
     {
     case SERVER_MESSAGE_CONNECTED:
         version = readString(&offset);
-        d->defaultSession = readString(&offset);
-        d->timedUser = readString(&offset);
-        d->loginDelay = readInt(&offset);
-        d->guestAccountSupported = readInt(&offset) != 0;
-        qDebug() << "Connected version=" << version << " default-session=" << d->defaultSession << " timed-user=" << d->timedUser << " login-delay" << d->loginDelay << " guestAccountSupported" << d->guestAccountSupported;
-
-        /* Set timeout for default login */
-        if(d->timedUser != "" && d->loginDelay > 0)
+        while (offset < length)
         {
-            qDebug() << "Logging in as " << d->timedUser << " in " << d->loginDelay << " seconds";
-            //FIXME: d->login_timeout = g_timeout_add (d->login_delay * 1000, timed_login_cb, greeter);
+            QString name = readString(&offset);
+            QString value = readString(&offset);
+            hintString.append (" ");
+            hintString.append (name);
+            hintString.append ("=");
+            hintString.append (value);
         }
+
+        qDebug() << "Connected version=" << version << hintString;
+
         emit connected();
         break;
     case SERVER_MESSAGE_QUIT:
@@ -413,29 +412,49 @@ QString Greeter::defaultLanguage() const
     return getenv("LANG");
 }
 
-QString Greeter::defaultSession() const
+QString Greeter::getHint(QString name) const
 {
-    return d->defaultSession;
+    return d->hints.value (name);
 }
 
-bool Greeter::guestAccountSupported() const
+QString Greeter::defaultSessionHint() const
 {
-    return d->guestAccountSupported;
+    return getHint ("default-session");
 }
 
-QString Greeter::timedLoginUser() const
+bool Greeter::showUsersHint() const
 {
-    return d->timedUser;
+    return d->hints.value ("show-users", "false") == "true";
 }
 
-int Greeter::timedLoginDelay() const
+bool Greeter::hasGuestAccountHint() const
 {
-    return d->loginDelay;
+    return d->hints.value ("has-guest-account", "false") == "true";
 }
 
-void Greeter::cancelTimedLogin() 
+QString Greeter::selectUserHint() const
 {
-    //FIXME TODO
+    return getHint ("select-user");
+}
+
+bool Greeter::selectGuestHint() const
+{
+    return d->hints.value ("select-guest", "false") == "true";
+}
+
+QString Greeter::autologinUserHint() const
+{
+    return getHint ("autologin-user");
+}
+
+bool Greeter::autologinGuestHint() const
+{
+    return d->hints.value ("autologin-guest", "false") == "true";
+}
+
+int Greeter::autologinTimeoutHint() const
+{
+    return d->hints.value ("autologin-timeout", "0").toInt ();
 }
 
 bool Greeter::canSuspend() const

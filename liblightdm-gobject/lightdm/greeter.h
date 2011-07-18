@@ -60,7 +60,7 @@ struct _LdmGreeterClass
     void (*show_message)(LdmGreeter *greeter, const gchar *text, LdmMessageType type);
     void (*authentication_complete)(LdmGreeter *greeter);
     void (*session_failed)(LdmGreeter *greeter);
-    void (*timed_login)(LdmGreeter *greeter, const gchar *username);
+    void (*autologin_timer_expired)(LdmGreeter *greeter);
     void (*user_added)(LdmGreeter *greeter, LdmUser *user);
     void (*user_changed)(LdmGreeter *greeter, LdmUser *user);
     void (*user_removed)(LdmGreeter *greeter, LdmUser *user);
@@ -93,13 +93,23 @@ const gchar *ldm_greeter_get_layout (LdmGreeter *greeter);
 
 GList *ldm_greeter_get_sessions (LdmGreeter *greeter);
 
-const gchar *ldm_greeter_get_default_session (LdmGreeter *greeter);
+const gchar *ldm_greeter_get_hint (LdmGreeter *greeter, const gchar *name);
 
-gboolean ldm_greeter_get_has_guest_session (LdmGreeter *greeter);
+const gchar *ldm_greeter_get_default_session_hint (LdmGreeter *greeter);
 
-const gchar *ldm_greeter_get_timed_login_user (LdmGreeter *greeter);
+gboolean ldm_greeter_get_show_users_hint (LdmGreeter *greeter);
 
-gint ldm_greeter_get_timed_login_delay (LdmGreeter *greeter);
+gboolean ldm_greeter_get_has_guest_account_hint (LdmGreeter *greeter);
+
+const gchar *ldm_greeter_get_select_user_hint (LdmGreeter *greeter);
+
+gboolean ldm_greeter_get_select_guest_hint (LdmGreeter *greeter);
+
+const gchar *ldm_greeter_get_autologin_user_hint (LdmGreeter *greeter);
+
+gboolean ldm_greeter_get_autologin_guest_hint (LdmGreeter *greeter);
+
+gint ldm_greeter_get_autologin_timeout_hint (LdmGreeter *greeter);
 
 void ldm_greeter_cancel_timed_login (LdmGreeter *greeter);
 

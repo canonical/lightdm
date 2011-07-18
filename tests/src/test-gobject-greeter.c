@@ -26,10 +26,10 @@ connected_cb (LdmGreeter *greeter)
     }
 
     /* Automatically log in as requested user */
-    if (ldm_greeter_get_timed_login_user (greeter) && ldm_greeter_get_timed_login_delay (greeter) == 0)
+    if (ldm_greeter_get_select_user_hint (greeter))
     {
-        notify_status ("GREETER LOGIN-SELECTED USERNAME=%s", ldm_greeter_get_timed_login_user (greeter));
-        ldm_greeter_login (greeter, ldm_greeter_get_timed_login_user (greeter));
+        notify_status ("GREETER LOGIN-SELECTED USERNAME=%s", ldm_greeter_get_select_user_hint (greeter));
+        ldm_greeter_login (greeter, ldm_greeter_get_select_user_hint (greeter));
         return;
     }
 

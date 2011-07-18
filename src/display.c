@@ -465,6 +465,8 @@ create_session (Display *display, PAMSession *pam_session, const gchar *session_
     {
         child_process_set_env (CHILD_PROCESS (session), "DBUS_SESSION_BUS_ADDRESS", g_getenv ("DBUS_SESSION_BUS_ADDRESS"));
         child_process_set_env (CHILD_PROCESS (session), "LDM_BUS", "SESSION");
+        child_process_set_env (CHILD_PROCESS (session), "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+        child_process_set_env (CHILD_PROCESS (session), "PATH", g_getenv ("PATH"));
     }
 
     /* Variables required for regression tests */
@@ -657,11 +659,22 @@ start_greeter_session (Display *display)
 
     display->priv->greeter = greeter_new (session);
     g_signal_connect (G_OBJECT (display->priv->greeter), "start-session", G_CALLBACK (greeter_start_session_cb), display);
-    if (display->priv->default_user)
-        greeter_set_selected_user (display->priv->greeter, display->priv->default_user, display->priv->default_user_timeout);
+    if (display->priv->default_user_timeout)
+    {
+        gchar *value = g_strdup_printf ("%d", display->priv->default_user_timeout);
+        greeter_set_hint (display->priv->greeter, "autologin-timeout", value);
+        g_free (value);
+        if (display->priv->default_user)
+            greeter_set_hint (display->priv->greeter, "autologin-user", display->priv->default_user);
+        else if (display->priv->default_user_is_guest)
+            greeter_set_hint (display->priv->greeter, "autologin-guest", "true");        
+    }
+    else if (display->priv->default_user)
+        greeter_set_hint (display->priv->greeter, "select-user", display->priv->default_user);
     else if (display->priv->default_user_is_guest)
-        greeter_set_selected_user (display->priv->greeter, guest_account_get_username (), 0);
-    greeter_set_default_session (display->priv->greeter, display->priv->default_session);
+        greeter_set_hint (display->priv->greeter, "select-guest", "true");
+    greeter_set_hint (display->priv->greeter, "default-session", display->priv->default_session);
+    greeter_set_hint (display->priv->greeter, "has-guest-account", guest_account_get_is_enabled () ? "true" : "false");
 
     result = greeter_start (display->priv->greeter);
     if (result)

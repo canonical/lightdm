@@ -38,15 +38,11 @@ GType greeter_get_type (void);
 
 Greeter *greeter_new (Session *session);
 
-void greeter_set_selected_user (Greeter *greeter, const gchar *username, gint timeout);
-
-void greeter_set_default_session (Greeter *greeter, const gchar *session);
-
-const gchar *greeter_get_default_session (Greeter *greeter);
-
-PAMSession *greeter_get_pam_session (Greeter *greeter);
+void greeter_set_hint (Greeter *greeter, const gchar *name, const gchar *value);
 
 gboolean greeter_start (Greeter *greeter);
+
+PAMSession *greeter_get_pam_session (Greeter *greeter);
 
 void greeter_quit (Greeter *greeter);
 

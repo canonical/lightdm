@@ -121,16 +121,16 @@ dnl ###########################################################################
 dnl Configurable values
 dnl ###########################################################################
 
-DEFAULT_SESSION=gnome
-AC_ARG_WITH(default-session,
-            AS_HELP_STRING(--with-default-session=<name>,
-                           Default session to launch for users),
+USER_SESSION=gnome
+AC_ARG_WITH(user-session,
+            AS_HELP_STRING(--with-user-session=<name>,
+                           Session to use for user accounts),
     if test x$withval != x; then
-        DEFAULT_SESSION="$withval"
+        USER_SESSION="$withval"
     fi
 )
-AC_SUBST(DEFAULT_SESSION)
-AC_DEFINE_UNQUOTED(DEFAULT_SESSION, "$DEFAULT_SESSION", Default session)
+AC_SUBST(USER_SESSION)
+AC_DEFINE_UNQUOTED(USER_SESSION, "$USER_SESSION", User session)
 
 if test $have_gtk = yes; then
 GREETER_SESSION=lightdm-gtk-greeter
@@ -199,7 +199,7 @@ echo "
 
         prefix:                   $prefix
         Greeter session:          $GREETER_SESSION
-        Default session:          $DEFAULT_SESSION
+        User session:             $USER_SESSION
         liblightdm-gobject:       $compile_liblightdm_gobject
         GObject introspection:    $found_introspection
         liblightdm-qt:            $compile_liblightdm_qt

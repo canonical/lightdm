@@ -33,9 +33,14 @@ enum {
     PROP_LAYOUTS,
     PROP_LAYOUT,
     PROP_SESSIONS,
-    PROP_DEFAULT_SESSION,
-    PROP_TIMED_LOGIN_USER,
-    PROP_TIMED_LOGIN_DELAY,
+    PROP_DEFAULT_SESSION_HINT,
+    PROP_SHOW_USERS_HINT,
+    PROP_HAS_GUEST_ACCOUNT_HINT,
+    PROP_SELECT_USER_HINT,
+    PROP_SELECT_GUEST_HINT,
+    PROP_AUTOLOGIN_USER_HINT,
+    PROP_AUTOLOGIN_GUEST_HINT,
+    PROP_AUTOLOGIN_TIMEOUT_HINT,
     PROP_AUTHENTICATION_USER,
     PROP_IN_AUTHENTICATION,
     PROP_IS_AUTHENTICATED,
@@ -51,7 +56,7 @@ enum {
     SHOW_MESSAGE,
     AUTHENTICATION_COMPLETE,
     SESSION_FAILED,
-    TIMED_LOGIN,
+    AUTOLOGIN_TIMER_EXPIRED,
     USER_ADDED,
     USER_CHANGED,
     USER_REMOVED,
@@ -94,18 +99,16 @@ struct _LdmGreeterPrivate
 
     gboolean have_sessions;
     GList *sessions;
-    gchar *default_session;
 
     gchar *authentication_user;
     gboolean in_authentication;
     gboolean is_authenticated;
     guint32 authenticate_sequence_number;
     gboolean cancelling_authentication;
+  
+    GHashTable *hints;
 
-    gchar *selected_user;
-    gint login_delay;
     guint login_timeout;
-    gboolean guest_account_supported;
 };
 
 G_DEFINE_TYPE (LdmGreeter, ldm_greeter, G_TYPE_OBJECT);
@@ -156,7 +159,7 @@ timed_login_cb (gpointer data)
     LdmGreeter *greeter = data;
 
     greeter->priv->login_timeout = 0;
-    g_signal_emit (G_OBJECT (greeter), signals[TIMED_LOGIN], 0, greeter->priv->selected_user);
+    g_signal_emit (G_OBJECT (greeter), signals[AUTOLOGIN_TIMER_EXPIRED], 0);
 
     return FALSE;
 }
@@ -259,31 +262,34 @@ static guint32 get_packet_length (LdmGreeter *greeter)
 }
 
 static void
-handle_connected (LdmGreeter *greeter, gsize *offset)
+handle_connected (LdmGreeter *greeter, guint32 length, gsize *offset)
 {
     gchar *version;
+    GString *hint_string;
+    int timeout;
 
     version = read_string (greeter, offset);
-    greeter->priv->default_session = read_string (greeter, offset);
-    greeter->priv->selected_user = read_string (greeter, offset);
-    greeter->priv->login_delay = read_int (greeter, offset);
-    greeter->priv->guest_account_supported = read_int (greeter, offset) != 0;
+    hint_string = g_string_new ("");
+    while (*offset < length)
+    {
+        gchar *name, *value;
+      
+        name = read_string (greeter, offset);
+        value = read_string (greeter, offset);
+        g_hash_table_insert (greeter->priv->hints, name, value);
+        g_string_append_printf (hint_string, " %s=%s", name, value);
+    }
 
-    g_debug ("Connected version=%s default-session=%s timed-user=%s login-delay=%d guest-account-supported=%s",
-             version,
-             greeter->priv->default_session,
-             greeter->priv->selected_user, greeter->priv->login_delay,
-             greeter->priv->guest_account_supported ? "true" : "false");
+    g_debug ("Connected version=%s%s", version, hint_string->str);
     g_free (version);
-
-    if (greeter->priv->selected_user[0] == '\0')
-        greeter->priv->selected_user = NULL;
+    g_string_free (hint_string, TRUE);
 
     /* Set timeout for default login */
-    if (greeter->priv->selected_user && greeter->priv->login_delay > 0)
+    timeout = ldm_greeter_get_autologin_timeout_hint (greeter);
+    if (timeout)
     {
-        g_debug ("Logging in as %s in %d seconds", greeter->priv->selected_user, greeter->priv->login_delay);
-        greeter->priv->login_timeout = g_timeout_add (greeter->priv->login_delay * 1000, timed_login_cb, greeter);
+        g_debug ("Setting autologin timer for %d seconds", timeout);
+        greeter->priv->login_timeout = g_timeout_add (timeout * 1000, timed_login_cb, greeter);
     }
     g_signal_emit (G_OBJECT (greeter), signals[CONNECTED], 0);
 }
@@ -431,18 +437,18 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 {
     LdmGreeter *greeter = data;
     gsize offset;
-    guint32 id;
-  
+    guint32 id, length;
+
     if (!read_packet (greeter, FALSE))
         return TRUE;
 
     offset = 0;
     id = read_int (greeter, &offset);
-    read_int (greeter, &offset);
+    length = read_int (greeter, &offset);
     switch (id)
     {
     case SERVER_MESSAGE_CONNECTED:
-        handle_connected (greeter, &offset);
+        handle_connected (greeter, length, &offset);
         break;
     case SERVER_MESSAGE_PROMPT_AUTHENTICATION:
         handle_prompt_authentication (greeter, &offset);
@@ -1104,7 +1110,23 @@ ldm_greeter_get_sessions (LdmGreeter *greeter)
 }
 
 /**
- * ldm_greeter_get_default_session:
+ * ldm_greeter_get_hint:
+ * @greeter: A #LdmGreeter
+ * @name: The hint name to query.
+ *
+ * Get a hint.
+ *
+ * Return value: The value for this hint or NULL if not set.
+ **/
+const gchar *
+ldm_greeter_get_hint (LdmGreeter *greeter, const gchar *name)
+{
+    g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
+    return g_hash_table_lookup (greeter->priv->hints, name);
+}
+
+/**
+ * ldm_greeter_get_default_session_hint:
  * @greeter: A #LdmGreeter
  *
  * Get the default session to use.
@@ -1112,14 +1134,33 @@ ldm_greeter_get_sessions (LdmGreeter *greeter)
  * Return value: The session name
  **/
 const gchar *
-ldm_greeter_get_default_session (LdmGreeter *greeter)
+ldm_greeter_get_default_session_hint (LdmGreeter *greeter)
 {
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
-    return greeter->priv->default_session;
+    return ldm_greeter_get_hint (greeter, "default-session");
 }
 
 /**
- * ldm_greeter_get_has_guest_session:
+ * ldm_greeter_get_show_users_hint:
+ * @greeter: A #LdmGreeter
+ *
+ * Check if user accounts should be shown.
+ *
+ * Return value: TRUE if all the user accounts should be shown.
+ */
+gboolean
+ldm_greeter_get_show_users_hint (LdmGreeter *greeter)
+{
+    const gchar *value;
+
+    g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
+    value = ldm_greeter_get_hint (greeter, "show-users");
+  
+    return g_strcmp0 (value, "true") == 0;
+}
+
+/**
+ * ldm_greeter_get_has_guest_account_hint:
  * @greeter: A #LdmGreeter
  *
  * Check if guest sessions are supported.
@@ -1127,40 +1168,105 @@ ldm_greeter_get_default_session (LdmGreeter *greeter)
  * Return value: TRUE if guest sessions are supported.
  */
 gboolean
-ldm_greeter_get_has_guest_session (LdmGreeter *greeter)
+ldm_greeter_get_has_guest_account_hint (LdmGreeter *greeter)
 {
+    const gchar *value;
+
     g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
-    return greeter->priv->guest_account_supported;
+    value = ldm_greeter_get_hint (greeter, "has-guest-account");
+  
+    return g_strcmp0 (value, "true") == 0;
 }
 
 /**
- * ldm_greeter_get_timed_login_user:
+ * ldm_greeter_get_select_user_hint:
  * @greeter: A #LdmGreeter
  *
- * Get the user to log in by as default.
+ * Get the user to select by default.
  *
  * Return value: A username
  */
 const gchar *
-ldm_greeter_get_timed_login_user (LdmGreeter *greeter)
+ldm_greeter_get_select_user_hint (LdmGreeter *greeter)
 {
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
-    return greeter->priv->selected_user;
+    return ldm_greeter_get_hint (greeter, "select-user");
 }
 
 /**
- * ldm_greeter_get_timed_login_delay:
+ * ldm_greeter_get_select_guest_hint:
  * @greeter: A #LdmGreeter
  *
- * Get the number of seconds to wait until logging in as the default user.
+ * Check if the guest account should be selected by default.
  *
- * Return value: The number of seconds before logging in as the default user
+ * Return value: TRUE if the guest account should be selected by default.
+ */
+gboolean
+ldm_greeter_get_select_guest_hint (LdmGreeter *greeter)
+{
+    const gchar *value;
+
+    g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
+    value = ldm_greeter_get_hint (greeter, "select-guest");
+  
+    return g_strcmp0 (value, "true") == 0;
+}
+
+/**
+ * ldm_greeter_get_autologin_user_hint:
+ * @greeter: A #LdmGreeter
+ *
+ * Get the user account to automatically logg into when the timer expires.
+ *
+ * Return value: The user account to automatically log into.
+ */
+const gchar *
+ldm_greeter_get_autologin_user_hint (LdmGreeter *greeter)
+{
+    g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
+    return ldm_greeter_get_hint (greeter, "autologin-user");
+}
+
+/**
+ * ldm_greeter_get_autologin_guest_hint:
+ * @greeter: A #LdmGreeter
+ *
+ * Check if the guest account should be automatically logged into when the timer expires.
+ *
+ * Return value: TRUE if the guest account should be automatically logged into.
+ */
+gboolean
+ldm_greeter_get_autologin_guest_hint (LdmGreeter *greeter)
+{
+    const gchar *value;
+
+    g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
+    value = ldm_greeter_get_hint (greeter, "autologin-guest");
+  
+    return g_strcmp0 (value, "true") == 0;
+}
+
+/**
+ * ldm_greeter_get_autologin_timeout_hint:
+ * @greeter: A #LdmGreeter
+ *
+ * Get the number of seconds to wait before automaitcally logging in.
+ *
+ * Return value: The number of seconds to wait before automatically logging in or 0 for no timeout.
  */
 gint
-ldm_greeter_get_timed_login_delay (LdmGreeter *greeter)
+ldm_greeter_get_autologin_timeout_hint (LdmGreeter *greeter)
 {
-    g_return_val_if_fail (LDM_IS_GREETER (greeter), 0);
-    return greeter->priv->login_delay;
+    const gchar *value;
+    gint timeout;
+
+    g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
+    value = ldm_greeter_get_hint (greeter, "autologin-timeout");
+    timeout = atoi (value);
+    if (timeout < 0)
+        timeout = 0;
+
+    return timeout;
 }
 
 /**
@@ -1571,6 +1677,7 @@ ldm_greeter_init (LdmGreeter *greeter)
 {
     greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, LDM_TYPE_GREETER, LdmGreeterPrivate);
     greeter->priv->read_buffer = g_malloc (HEADER_SIZE);
+    greeter->priv->hints = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 
     g_debug ("default-language=%s", ldm_greeter_get_default_language (greeter));
 }
@@ -1624,14 +1731,29 @@ ldm_greeter_get_property (GObject    *object,
         break;
     case PROP_SESSIONS:
         break;
-    case PROP_DEFAULT_SESSION:
-        g_value_set_string (value, ldm_greeter_get_default_session (self));
+    case PROP_DEFAULT_SESSION_HINT:
+        g_value_set_string (value, ldm_greeter_get_default_session_hint (self));
         break;
-    case PROP_TIMED_LOGIN_USER:
-        g_value_set_string (value, ldm_greeter_get_timed_login_user (self));
+    case PROP_SHOW_USERS_HINT:
+        g_value_set_boolean (value, ldm_greeter_get_show_users_hint (self));
         break;
-    case PROP_TIMED_LOGIN_DELAY:
-        g_value_set_int (value, ldm_greeter_get_timed_login_delay (self));
+    case PROP_HAS_GUEST_ACCOUNT_HINT:
+        g_value_set_boolean (value, ldm_greeter_get_has_guest_account_hint (self));
+        break;
+    case PROP_SELECT_USER_HINT:
+        g_value_set_string (value, ldm_greeter_get_select_user_hint (self));
+        break;
+    case PROP_SELECT_GUEST_HINT:
+        g_value_set_boolean (value, ldm_greeter_get_select_guest_hint (self));
+        break;
+    case PROP_AUTOLOGIN_USER_HINT:
+        g_value_set_string (value, ldm_greeter_get_autologin_user_hint (self));
+        break;
+    case PROP_AUTOLOGIN_GUEST_HINT:
+        g_value_set_boolean (value, ldm_greeter_get_autologin_guest_hint (self));
+        break;
+    case PROP_AUTOLOGIN_TIMEOUT_HINT:
+        g_value_set_int (value, ldm_greeter_get_autologin_timeout_hint (self));
         break;
     case PROP_AUTHENTICATION_USER:
         g_value_set_string (value, ldm_greeter_get_authentication_user (self));
@@ -1697,6 +1819,16 @@ marshal_VOID__STRING_INT (GClosure     *closure,
 }
 
 static void
+ldm_greeter_finalize (GObject *object)
+{
+    LdmGreeter *self = LDM_GREETER (object);
+
+    g_hash_table_unref (self->priv->hints);
+
+    G_OBJECT_CLASS (ldm_greeter_parent_class)->finalize (object);
+}
+
+static void
 ldm_greeter_class_init (LdmGreeterClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
@@ -1705,6 +1837,7 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
 
     object_class->set_property = ldm_greeter_set_property;
     object_class->get_property = ldm_greeter_get_property;
+    object_class->finalize = ldm_greeter_finalize;
 
     g_object_class_install_property (object_class,
                                      PROP_NUM_USERS,
@@ -1750,26 +1883,69 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                                                         "sessions",
                                                         "Available sessions"));*/
     g_object_class_install_property (object_class,
-                                     PROP_DEFAULT_SESSION,
-                                     g_param_spec_string ("default-session",
-                                                          "default-session",
-                                                          "Default session",
+                                     PROP_DEFAULT_SESSION_HINT,
+                                     g_param_spec_string ("default-session-hint",
+                                                          "default-session-hint",
+                                                          "Default session hint",
                                                           NULL,
                                                           G_PARAM_READWRITE));
+
     g_object_class_install_property (object_class,
-                                     PROP_TIMED_LOGIN_USER,
-                                     g_param_spec_string ("timed-login-user",
-                                                          "timed-login-user",
-                                                          "User to login as when timed expires",
+                                     PROP_SHOW_USERS_HINT,
+                                     g_param_spec_boolean ("show-users-hint",
+                                                           "show-users-hint",
+                                                           "Show users hint",
+                                                           FALSE,
+                                                           G_PARAM_READABLE));
+
+    g_object_class_install_property (object_class,
+                                     PROP_HAS_GUEST_ACCOUNT_HINT,
+                                     g_param_spec_boolean ("has-guest-account-hint",
+                                                           "has-guest-account-hint",
+                                                           "Has guest account hint",
+                                                           FALSE,
+                                                           G_PARAM_READABLE));
+
+    g_object_class_install_property (object_class,
+                                     PROP_SELECT_USER_HINT,
+                                     g_param_spec_string ("select-user-hint",
+                                                          "select-user-hint",
+                                                          "Select user hint",
                                                           NULL,
                                                           G_PARAM_READABLE));
+
     g_object_class_install_property (object_class,
-                                     PROP_TIMED_LOGIN_DELAY,
-                                     g_param_spec_int ("login-delay",
-                                                       "login-delay",
-                                                       "Number of seconds until logging in as default user",
-                                                       G_MININT, G_MAXINT, 0,
+                                     PROP_SELECT_GUEST_HINT,
+                                     g_param_spec_boolean ("select-guest-hint",
+                                                           "select-guest-hint",
+                                                           "Select guest account hint",
+                                                           FALSE,
+                                                           G_PARAM_READABLE));
+
+    g_object_class_install_property (object_class,
+                                     PROP_AUTOLOGIN_USER_HINT,
+                                     g_param_spec_string ("autologin-user-hint",
+                                                          "autologin-user-hint",
+                                                          "Autologin user hint",
+                                                          NULL,
+                                                          G_PARAM_READABLE));
+
+    g_object_class_install_property (object_class,
+                                     PROP_AUTOLOGIN_GUEST_HINT,
+                                     g_param_spec_boolean ("autologin-guest-hint",
+                                                           "autologin-guest-hint",
+                                                           "Autologin guest account hint",
+                                                           FALSE,
+                                                           G_PARAM_READABLE));
+
+    g_object_class_install_property (object_class,
+                                     PROP_AUTOLOGIN_TIMEOUT_HINT,
+                                     g_param_spec_int ("autologin-timeout-hint",
+                                                       "autologin-timeout-hint",
+                                                       "Autologin timeout hint",
+                                                       0, G_MAXINT, 0,
                                                        G_PARAM_READABLE));
+
     g_object_class_install_property (object_class,
                                      PROP_AUTHENTICATION_USER,
                                      g_param_spec_string ("authentication-user",
@@ -1912,21 +2088,21 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                       G_TYPE_NONE, 0);
 
     /**
-     * LdmGreeter::timed-login:
+     * LdmGreeter::autologin-timer-expired:
      * @greeter: A #LdmGreeter
      * @username: A username
      *
-     * The ::timed-login signal gets emitted when the default user timer
-     * has expired.
+     * The ::timed-login signal gets emitted when the automatic login timer has expired.
+     * The application should then call ldm_greeter_login().
      **/
-    signals[TIMED_LOGIN] =
-        g_signal_new ("timed-login",
+    signals[AUTOLOGIN_TIMER_EXPIRED] =
+        g_signal_new ("autologin-timer-expired",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (LdmGreeterClass, timed_login),
+                      G_STRUCT_OFFSET (LdmGreeterClass, autologin_timer_expired),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__STRING,
-                      G_TYPE_NONE, 1, G_TYPE_STRING);
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
 
     /**
      * LdmGreeter::user-added:

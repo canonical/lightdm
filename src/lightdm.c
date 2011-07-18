@@ -428,7 +428,7 @@ main (int argc, char **argv)
     gchar *xsessions_dir = g_strdup (XSESSIONS_DIR);
     gchar *run_dir = g_strdup (RUN_DIR);
     gchar *cache_dir = g_strdup (CACHE_DIR);
-    gchar *user_session = g_strdup (user_session);
+    gchar *user_session = g_strdup (USER_SESSION);
     gchar *minimum_display_number = NULL;
     gboolean show_version = FALSE;
     GOptionEntry options[] = 
