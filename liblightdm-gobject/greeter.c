@@ -545,7 +545,7 @@ load_users (LdmGreeter *greeter)
     gint minimum_uid;
     gchar **hidden_users, **hidden_shells;
     GList *users = NULL, *old_users, *new_users = NULL, *changed_users = NULL, *link;
-    GError *error;
+    GError *error = NULL;
 
     g_debug ("Loading user config from %s", USER_CONFIG_FILE);
 
