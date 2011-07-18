@@ -12,7 +12,7 @@
 #ifndef _SESSION_H_
 #define _SESSION_H_
 
-#include "child-process.h"
+#include "process.h"
 #include "user.h"
 
 G_BEGIN_DECLS
@@ -26,13 +26,13 @@ typedef struct SessionPrivate SessionPrivate;
 
 typedef struct
 {
-    ChildProcess    parent_instance;
+    Process         parent_instance;
     SessionPrivate *priv;
 } Session;
 
 typedef struct
 {
-    ChildProcessClass parent_class;
+    ProcessClass parent_class;
 
     gboolean (*start)(Session *session);
     void     (*stop)(Session *session);

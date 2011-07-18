@@ -11,17 +11,16 @@
 
 #include <config.h>
 
-
 #include "xserver-local.h"
 #include "configuration.h"
-#include "child-process.h"
+#include "process.h"
 #include "vt.h"
 #include "plymouth.h"
 
 struct XServerLocalPrivate
 {
     /* X server process */
-    ChildProcess *xserver_process;
+    Process *xserver_process;
 
     /* Path of file to log to */
     gchar *log_file;
@@ -179,7 +178,7 @@ get_absolute_command (const gchar *command)
 }
 
 static void
-got_signal_cb (ChildProcess *process, int signum, XServerLocal *server)
+got_signal_cb (Process *process, int signum, XServerLocal *server)
 {
     if (signum == SIGUSR1 && !server->priv->got_signal)
     {
@@ -198,20 +197,20 @@ got_signal_cb (ChildProcess *process, int signum, XServerLocal *server)
 }
 
 static void
-exit_cb (ChildProcess *process, int status, XServerLocal *server)
+exit_cb (Process *process, int status, XServerLocal *server)
 {
     if (status != 0)
         g_debug ("X server exited with value %d", status);
 }
 
 static void
-terminated_cb (ChildProcess *process, int signum, XServerLocal *server)
+terminated_cb (Process *process, int signum, XServerLocal *server)
 {
     g_debug ("X server terminated with signal %d", signum);
 }
 
 static void
-stopped_cb (ChildProcess *process, XServerLocal *server)
+stopped_cb (Process *process, XServerLocal *server)
 {
     g_debug ("X server stopped");
 
@@ -243,7 +242,7 @@ xserver_local_start (DisplayServer *server)
 
     g_return_val_if_fail (XSERVER_LOCAL (server)->priv->command != NULL, FALSE);
 
-    XSERVER_LOCAL (server)->priv->xserver_process = child_process_new ();
+    XSERVER_LOCAL (server)->priv->xserver_process = process_new ();
     g_signal_connect (XSERVER_LOCAL (server)->priv->xserver_process, "got-signal", G_CALLBACK (got_signal_cb), server);
     g_signal_connect (XSERVER_LOCAL (server)->priv->xserver_process, "exited", G_CALLBACK (exit_cb), server);
     g_signal_connect (XSERVER_LOCAL (server)->priv->xserver_process, "terminated", G_CALLBACK (terminated_cb), server);
@@ -254,7 +253,7 @@ xserver_local_start (DisplayServer *server)
     dir = config_get_string (config_get_instance (), "Directories", "log-directory");
     path = g_build_filename (dir, filename, NULL);
     g_debug ("Logging to %s", path);
-    child_process_set_log_file (XSERVER_LOCAL (server)->priv->xserver_process, path);
+    process_set_log_file (XSERVER_LOCAL (server)->priv->xserver_process, path);
     g_free (filename);
     g_free (dir);
     g_free (path);
@@ -319,24 +318,24 @@ xserver_local_start (DisplayServer *server)
 
     /* If running inside another display then pass through those variables */
     if (g_getenv ("DISPLAY"))
-        child_process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "DISPLAY", g_getenv ("DISPLAY"));
+        process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "DISPLAY", g_getenv ("DISPLAY"));
     if (g_getenv ("XAUTHORITY"))
-        child_process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "XAUTHORITY", g_getenv ("XAUTHORITY"));
+        process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "XAUTHORITY", g_getenv ("XAUTHORITY"));
 
     /* Variable required for regression tests */
     if (g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"))
     {
-        child_process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
-        child_process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "LIGHTDM_TEST_CONFIG", g_getenv ("LIGHTDM_TEST_CONFIG"));
-        child_process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "LIGHTDM_TEST_HOME_DIR", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
-        child_process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+        process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
+        process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "LIGHTDM_TEST_CONFIG", g_getenv ("LIGHTDM_TEST_CONFIG"));
+        process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "LIGHTDM_TEST_HOME_DIR", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
+        process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }
 
-    result = child_process_start (XSERVER_LOCAL (server)->priv->xserver_process,
-                                  user_get_current (),
-                                  NULL,
-                                  command->str,
-                                  &error);
+    result = process_start (XSERVER_LOCAL (server)->priv->xserver_process,
+                            user_get_current (),
+                            NULL,
+                            command->str,
+                            &error);
     g_string_free (command, TRUE);
     if (!result)
         g_warning ("Unable to create display: %s", error->message);
@@ -360,7 +359,7 @@ xserver_local_restart (DisplayServer *server)
     g_debug ("Sending signal to X server to disconnect clients");
 
     XSERVER_LOCAL (server)->priv->got_signal = FALSE;
-    child_process_signal (XSERVER_LOCAL (server)->priv->xserver_process, SIGHUP);
+    process_signal (XSERVER_LOCAL (server)->priv->xserver_process, SIGHUP);
 
     return TRUE;
 }
@@ -368,7 +367,7 @@ xserver_local_restart (DisplayServer *server)
 static void
 xserver_local_stop (DisplayServer *server)
 {
-    child_process_stop (XSERVER_LOCAL (server)->priv->xserver_process);
+    process_stop (XSERVER_LOCAL (server)->priv->xserver_process);
 }
 
 static void

@@ -36,7 +36,7 @@ struct SessionPrivate
     gboolean is_greeter;
 };
 
-G_DEFINE_TYPE (Session, session, CHILD_PROCESS_TYPE);
+G_DEFINE_TYPE (Session, session, PROCESS_TYPE);
 
 void
 session_set_user (Session *session, User *user)
@@ -47,11 +47,11 @@ session_set_user (Session *session, User *user)
         g_object_unref (session->priv->user);
     session->priv->user = g_object_ref (user);
 
-    child_process_set_env (CHILD_PROCESS (session), "PATH", "/usr/local/bin:/usr/bin:/bin");
-    child_process_set_env (CHILD_PROCESS (session), "USER", user_get_name (user));
-    child_process_set_env (CHILD_PROCESS (session), "USERNAME", user_get_name (user)); // FIXME: Is this required?
-    child_process_set_env (CHILD_PROCESS (session), "HOME", user_get_home_directory (user));
-    child_process_set_env (CHILD_PROCESS (session), "SHELL", user_get_shell (user));
+    process_set_env (PROCESS (session), "PATH", "/usr/local/bin:/usr/bin:/bin");
+    process_set_env (PROCESS (session), "USER", user_get_name (user));
+    process_set_env (PROCESS (session), "USERNAME", user_get_name (user)); // FIXME: Is this required?
+    process_set_env (PROCESS (session), "HOME", user_get_home_directory (user));
+    process_set_env (PROCESS (session), "SHELL", user_get_shell (user));
 }
 
 User *
@@ -150,13 +150,13 @@ session_real_start (Session *session)
     g_debug ("Launching session");
 
     if (session->priv->cookie)
-        child_process_set_env (CHILD_PROCESS (session), "XDG_SESSION_COOKIE", session->priv->cookie);
+        process_set_env (PROCESS (session), "XDG_SESSION_COOKIE", session->priv->cookie);
 
-    result = child_process_start (CHILD_PROCESS (session),
-                                  session->priv->user,
-                                  user_get_home_directory (session->priv->user),
-                                  absolute_command,
-                                  &error);
+    result = process_start (PROCESS (session),
+                            session->priv->user,
+                            user_get_home_directory (session->priv->user),
+                            absolute_command,
+                            &error);
     g_free (absolute_command);
 
     if (!result)
@@ -176,7 +176,7 @@ session_start (Session *session)
 static void
 session_real_stop (Session *session)
 {
-    child_process_signal (CHILD_PROCESS (session), SIGTERM);
+    process_signal (PROCESS (session), SIGTERM);
 }
 
 void

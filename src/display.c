@@ -311,7 +311,7 @@ set_env_from_pam_session (Session *session, PAMSession *pam_session)
         {
             gchar **pam_env_vars = g_strsplit (pam_env[i], "=", 2);
             if (pam_env_vars && pam_env_vars[0] && pam_env_vars[1])
-                child_process_set_env (CHILD_PROCESS (session), pam_env_vars[0], pam_env_vars[1]);
+                process_set_env (PROCESS (session), pam_env_vars[0], pam_env_vars[1]);
             else
                 g_warning ("Can't parse PAM environment variable %s", pam_env[i]);
             g_strfreev (pam_env_vars);
@@ -449,13 +449,13 @@ create_session (Display *display, PAMSession *pam_session, const gchar *session_
     session_set_user (session, user);
     session_set_command (session, command);
 
-    child_process_set_env (CHILD_PROCESS (session), "DESKTOP_SESSION", session_name); // FIXME: Apparently deprecated?
-    child_process_set_env (CHILD_PROCESS (session), "GDMSESSION", session_name); // FIXME: Not cross-desktop
+    process_set_env (PROCESS (session), "DESKTOP_SESSION", session_name); // FIXME: Apparently deprecated?
+    process_set_env (PROCESS (session), "GDMSESSION", session_name); // FIXME: Not cross-desktop
 
     pam_session_authorize (pam_session);
     set_env_from_pam_session (session, pam_session);
 
-    child_process_set_log_file (CHILD_PROCESS (session), log_filename);
+    process_set_log_file (PROCESS (session), log_filename);
 
     /* Open ConsoleKit session */
     if (getuid () == 0)
@@ -470,19 +470,19 @@ create_session (Display *display, PAMSession *pam_session, const gchar *session_
     /* Connect using the session bus */
     if (getuid () != 0)
     {
-        child_process_set_env (CHILD_PROCESS (session), "DBUS_SESSION_BUS_ADDRESS", g_getenv ("DBUS_SESSION_BUS_ADDRESS"));
-        child_process_set_env (CHILD_PROCESS (session), "LDM_BUS", "SESSION");
-        child_process_set_env (CHILD_PROCESS (session), "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
-        child_process_set_env (CHILD_PROCESS (session), "PATH", g_getenv ("PATH"));
+        process_set_env (PROCESS (session), "DBUS_SESSION_BUS_ADDRESS", g_getenv ("DBUS_SESSION_BUS_ADDRESS"));
+        process_set_env (PROCESS (session), "LDM_BUS", "SESSION");
+        process_set_env (PROCESS (session), "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+        process_set_env (PROCESS (session), "PATH", g_getenv ("PATH"));
     }
 
     /* Variables required for regression tests */
     if (g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"))
     {
-        child_process_set_env (CHILD_PROCESS (session), "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
-        child_process_set_env (CHILD_PROCESS (session), "LIGHTDM_TEST_CONFIG", g_getenv ("LIGHTDM_TEST_CONFIG"));
-        child_process_set_env (CHILD_PROCESS (session), "LIGHTDM_TEST_HOME_DIR", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
-        child_process_set_env (CHILD_PROCESS (session), "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+        process_set_env (PROCESS (session), "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
+        process_set_env (PROCESS (session), "LIGHTDM_TEST_CONFIG", g_getenv ("LIGHTDM_TEST_CONFIG"));
+        process_set_env (PROCESS (session), "LIGHTDM_TEST_HOME_DIR", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
+        process_set_env (PROCESS (session), "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }
  
     return session;
@@ -776,7 +776,7 @@ display_server_stopped_cb (DisplayServer *server, Display *display)
         if (display->priv->session)
         {
             g_debug ("Stopping session");
-            child_process_stop (CHILD_PROCESS (display->priv->session));
+            process_stop (PROCESS (display->priv->session));
         }
         else
         {

@@ -19,7 +19,7 @@
 #include <grp.h>
 #include <glib/gstdio.h>
 
-#include "child-process.h"
+#include "process.h"
 
 enum {
     STARTED,
@@ -32,7 +32,7 @@ enum {
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
-struct ChildProcessPrivate
+struct ProcessPrivate
 {  
     /* Environment variables */
     GHashTable *env;
@@ -50,32 +50,32 @@ struct ChildProcessPrivate
     GPid pid;
 };
 
-G_DEFINE_TYPE (ChildProcess, child_process, G_TYPE_OBJECT);
+G_DEFINE_TYPE (Process, process, G_TYPE_OBJECT);
 
-static ChildProcess *parent_process = NULL;
+static Process *current_process = NULL;
 static GHashTable *processes = NULL;
 static int signal_pipe[2];
 
-ChildProcess *
-child_process_get_parent (void)
+Process *
+process_get_current (void)
 {
-    if (parent_process)
-        return parent_process;
+    if (current_process)
+        return current_process;
 
-    parent_process = child_process_new ();
-    parent_process->priv->pid = getpid ();
+    current_process = process_new ();
+    current_process->priv->pid = getpid ();
 
-    return parent_process;
+    return current_process;
 }
 
-ChildProcess *
-child_process_new (void)
+Process *
+process_new (void)
 {
-    return g_object_new (CHILD_PROCESS_TYPE, NULL);
+    return g_object_new (PROCESS_TYPE, NULL);
 }
 
 void
-child_process_set_log_file (ChildProcess *process, const gchar *log_file)
+process_set_log_file (Process *process, const gchar *log_file)
 {
     g_return_if_fail (process != NULL);
 
@@ -84,23 +84,23 @@ child_process_set_log_file (ChildProcess *process, const gchar *log_file)
 }
 
 const gchar *
-child_process_get_log_file (ChildProcess *process)
+process_get_log_file (Process *process)
 {
     g_return_val_if_fail (process != NULL, NULL);
     return process->priv->log_file;
 }
   
 void
-child_process_set_env (ChildProcess *process, const gchar *name, const gchar *value)
+process_set_env (Process *process, const gchar *name, const gchar *value)
 {
     g_return_if_fail (process != NULL);
     g_hash_table_insert (process->priv->env, g_strdup (name), g_strdup (value));
 }
 
 static void
-child_process_watch_cb (GPid pid, gint status, gpointer data)
+process_watch_cb (GPid pid, gint status, gpointer data)
 {
-    ChildProcess *process = data;
+    Process *process = data;
 
     if (WIFEXITED (status))
     {
@@ -123,7 +123,7 @@ child_process_watch_cb (GPid pid, gint status, gpointer data)
 }
 
 static void
-run_child_process (ChildProcess *process, char *const argv[])
+run_process (Process *process, char *const argv[])
 {
     GHashTableIter iter;
     gpointer key, value;
@@ -206,7 +206,7 @@ run_child_process (ChildProcess *process, char *const argv[])
 }
 
 gboolean
-child_process_start (ChildProcess *process,
+process_start (Process *process,
                      User *user,
                      const gchar *working_dir,
                      const gchar *command,
@@ -246,7 +246,7 @@ child_process_start (ChildProcess *process,
     }
 
     if (pid == 0)
-        run_child_process (process, argv);
+        run_process (process, argv);
     g_strfreev (argv);
 
     string = g_string_new ("");
@@ -260,7 +260,7 @@ child_process_start (ChildProcess *process,
     process->priv->pid = pid;
 
     g_hash_table_insert (processes, GINT_TO_POINTER (process->priv->pid), g_object_ref (process));
-    g_child_watch_add (process->priv->pid, child_process_watch_cb, process);
+    g_child_watch_add (process->priv->pid, process_watch_cb, process);
 
     g_signal_emit (process, signals[STARTED], 0);  
 
@@ -268,21 +268,21 @@ child_process_start (ChildProcess *process,
 }
 
 gboolean
-child_process_get_is_running (ChildProcess *process)
+process_get_is_running (Process *process)
 {
     g_return_val_if_fail (process != NULL, FALSE);
     return process->priv->pid != 0;
 }
 
 GPid
-child_process_get_pid (ChildProcess *process)
+process_get_pid (Process *process)
 {
     g_return_val_if_fail (process != NULL, 0);
     return process->priv->pid;
 }
 
 void
-child_process_signal (ChildProcess *process, int signum)
+process_signal (Process *process, int signum)
 {
     g_return_if_fail (process != NULL);
 
@@ -296,34 +296,34 @@ child_process_signal (ChildProcess *process, int signum)
 }
 
 static gboolean
-quit_timeout_cb (ChildProcess *process)
+quit_timeout_cb (Process *process)
 {
     process->priv->quit_timeout = 0;
-    child_process_signal (process, SIGKILL);
+    process_signal (process, SIGKILL);
     return FALSE;
 }
 
 void
-child_process_stop (ChildProcess *process)
+process_stop (Process *process)
 {
     /* Send SIGTERM, and then SIGKILL if no response */
     process->priv->quit_timeout = g_timeout_add (5000, (GSourceFunc) quit_timeout_cb, process);
-    child_process_signal (process, SIGTERM);
+    process_signal (process, SIGTERM);
 }
 
 static void
-child_process_init (ChildProcess *process)
+process_init (Process *process)
 {
-    process->priv = G_TYPE_INSTANCE_GET_PRIVATE (process, CHILD_PROCESS_TYPE, ChildProcessPrivate);
+    process->priv = G_TYPE_INSTANCE_GET_PRIVATE (process, PROCESS_TYPE, ProcessPrivate);
     process->priv->env = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 }
 
 static void
-child_process_finalize (GObject *object)
+process_finalize (GObject *object)
 {
-    ChildProcess *self;
+    Process *self;
 
-    self = CHILD_PROCESS (object);
+    self = PROCESS (object);
   
     if (self->priv->user)
         g_object_unref (self->priv->user);
@@ -336,7 +336,7 @@ child_process_finalize (GObject *object)
 
     g_hash_table_unref (self->priv->env);
 
-    G_OBJECT_CLASS (child_process_parent_class)->finalize (object);
+    G_OBJECT_CLASS (process_parent_class)->finalize (object);
 }
 
 static void
@@ -353,7 +353,7 @@ handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
 {
     int signo;
     pid_t pid;
-    ChildProcess *process;
+    Process *process;
 
     if (read (signal_pipe[0], &signo, sizeof (int)) < 0 || 
         read (signal_pipe[0], &pid, sizeof (pid_t)) < 0)
@@ -366,7 +366,7 @@ handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
 
     process = g_hash_table_lookup (processes, GINT_TO_POINTER (pid));
     if (process == NULL)
-        process = child_process_get_parent ();
+        process = process_get_current ();
     if (process)
         g_signal_emit (process, signals[GOT_SIGNAL], 0, signo);
 
@@ -374,20 +374,20 @@ handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
 }
 
 static void
-child_process_class_init (ChildProcessClass *klass)
+process_class_init (ProcessClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     struct sigaction action;
 
-    object_class->finalize = child_process_finalize;  
+    object_class->finalize = process_finalize;  
 
-    g_type_class_add_private (klass, sizeof (ChildProcessPrivate));
+    g_type_class_add_private (klass, sizeof (ProcessPrivate));
 
     signals[STARTED] =
         g_signal_new ("started",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (ChildProcessClass, started),
+                      G_STRUCT_OFFSET (ProcessClass, started),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0); 
@@ -395,7 +395,7 @@ child_process_class_init (ChildProcessClass *klass)
         g_signal_new ("got-data",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (ChildProcessClass, got_data),
+                      G_STRUCT_OFFSET (ProcessClass, got_data),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0); 
@@ -403,7 +403,7 @@ child_process_class_init (ChildProcessClass *klass)
         g_signal_new ("got-signal",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (ChildProcessClass, got_signal),
+                      G_STRUCT_OFFSET (ProcessClass, got_signal),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__INT,
                       G_TYPE_NONE, 1, G_TYPE_INT);
@@ -411,7 +411,7 @@ child_process_class_init (ChildProcessClass *klass)
         g_signal_new ("exited",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (ChildProcessClass, exited),
+                      G_STRUCT_OFFSET (ProcessClass, exited),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__INT,
                       G_TYPE_NONE, 1, G_TYPE_INT);
@@ -419,7 +419,7 @@ child_process_class_init (ChildProcessClass *klass)
         g_signal_new ("terminated",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (ChildProcessClass, terminated),
+                      G_STRUCT_OFFSET (ProcessClass, terminated),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__INT,
                       G_TYPE_NONE, 1, G_TYPE_INT);
@@ -427,7 +427,7 @@ child_process_class_init (ChildProcessClass *klass)
         g_signal_new ("stopped",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (ChildProcessClass, stopped),
+                      G_STRUCT_OFFSET (ProcessClass, stopped),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);

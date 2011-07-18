@@ -23,7 +23,7 @@
 #include "xserver.h"
 #include "user.h"
 #include "pam-session.h"
-#include "child-process.h"
+#include "process.h"
 
 static gchar *config_path = NULL;
 static GMainLoop *loop = NULL;
@@ -113,11 +113,9 @@ log_init (void)
 }
 
 static void
-signal_cb (ChildProcess *process, int signum)
+signal_cb (Process *process, int signum)
 {
-    /* Quit when all child processes have ended */
     g_debug ("Caught %s signal, shutting down", g_strsignal (signum));
-
     display_manager_stop (display_manager);
 }
 
@@ -482,7 +480,7 @@ main (int argc, char **argv)
     g_thread_init (NULL);
     g_type_init ();
 
-    g_signal_connect (child_process_get_parent (), "got-signal", G_CALLBACK (signal_cb), NULL);
+    g_signal_connect (process_get_current (), "got-signal", G_CALLBACK (signal_cb), NULL);
 
     option_context = g_option_context_new (/* Arguments and description for --help test */
                                            _("- Display Manager"));

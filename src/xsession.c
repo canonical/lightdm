@@ -66,7 +66,7 @@ xsession_start (Session *session)
             path = g_build_filename (dir, "xauthority", NULL);
             g_free (dir);
 
-            child_process_set_env (CHILD_PROCESS (session), "XAUTHORITY", path);
+            process_set_env (PROCESS (session), "XAUTHORITY", path);
         }
         else
             path = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
@@ -80,7 +80,7 @@ xsession_start (Session *session)
         g_clear_error (&error);
     }
 
-    child_process_set_env (CHILD_PROCESS (session), "DISPLAY", xserver_get_address (XSESSION (session)->priv->xserver));
+    process_set_env (PROCESS (session), "DISPLAY", xserver_get_address (XSESSION (session)->priv->xserver));
 
     return SESSION_CLASS (xsession_parent_class)->start (session);
 }

@@ -7,8 +7,6 @@ ldm-marshal.h: ldm-marshal.list
 	@GLIB_GENMARSHAL@ --prefix=ldm_marshal $(srcdir)/ldm-marshal.list --header > ldm-marshal.h
 
 lightdm_SOURCES = \
-	child-process.c \
-	child-process.h \
 	configuration.c \
 	configuration.h \
 	display.c \
@@ -30,6 +28,8 @@ lightdm_SOURCES = \
 	pam-session.h \
 	plymouth.c \
 	plymouth.h \
+	process.c \
+	process.h \
 	seat.c \
 	seat.h \
 	seat-local.c \
