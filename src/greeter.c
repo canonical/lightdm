@@ -573,39 +573,6 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     return TRUE;
 }
 
-static void
-end_session (Greeter *greeter, gboolean clean_exit)
-{  
-    if (greeter->priv->quit_timeout)
-    {
-        g_source_remove (greeter->priv->quit_timeout);
-        greeter->priv->quit_timeout = 0;
-    }
-
-    /*if (!clean_exit)
-        g_warning ("Greeter failed");
-    else if (!greeter_connected)
-        g_warning ("Greeter quit before connecting");
-    else if (!display->priv->user_session)
-        g_warning ("Greeter quit before session started");
-    else
-        return;*/
-
-    // FIXME: Issue with greeter, don't want to start a new one, report error to user
-}
-
-static void
-session_exited_cb (Greeter *greeter, gint status)
-{
-    end_session (greeter, status == 0);
-}
-
-static void
-session_terminated_cb (Greeter *greeter, gint signum)
-{
-    end_session (greeter, FALSE);
-}
-
 gboolean
 greeter_start (Greeter *greeter)
 {
@@ -645,8 +612,6 @@ greeter_init (Greeter *greeter)
 {
     greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, GREETER_TYPE, GreeterPrivate);
     greeter->priv->read_buffer = g_malloc (HEADER_SIZE);
-    g_signal_connect (G_OBJECT (greeter), "exited", G_CALLBACK (session_exited_cb), NULL);
-    g_signal_connect (G_OBJECT (greeter), "terminated", G_CALLBACK (session_terminated_cb), NULL);
 }
 
 static void

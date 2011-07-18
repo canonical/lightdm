@@ -22,7 +22,7 @@
 #include "ldm-marshal.h"
 #include "greeter.h"
 #include "guest-account.h"
-#include "xserver-local.h" // FIXME
+#include "xserver-local.h" // FIXME: Shouldn't know if it's an xserver
 
 enum {
     STARTED,
@@ -365,15 +365,10 @@ session_stopped_cb (Session *session, Display *display)
         guest_account_unref ();
     }
 
-    if (display->priv->stopping)
-    {
-        check_stopped (display);
-        return;
-    }
-
     g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
 
-    end_ck_session (session_get_cookie (display->priv->session));
+    if (getuid () == 0)
+        end_ck_session (session_get_cookie (display->priv->session));
 
     pam_session_end (display->priv->pam_session);
     g_object_unref (display->priv->pam_session);
@@ -381,6 +376,12 @@ session_stopped_cb (Session *session, Display *display)
 
     g_object_unref (display->priv->session);
     display->priv->session = NULL;
+
+    if (display->priv->stopping)
+    {
+        check_stopped (display);
+        return;
+    }
 
     /* Restart the X server or start a new one if it failed */
     if (!display_server_restart (display->priv->display_server))
@@ -712,8 +713,6 @@ start_user_session (Display *display, PAMSession *pam_session, const gchar *name
 static void
 display_server_stopped_cb (DisplayServer *server, Display *display)
 {
-    g_debug ("X server stopped");
-
     if (display->priv->stopping)
     {
         g_object_unref (display->priv->display_server);
@@ -730,7 +729,7 @@ display_server_stopped_cb (DisplayServer *server, Display *display)
         }
         else
         {
-            g_debug ("Starting new X server");
+            g_debug ("Starting new display server");
             display_server_start (display->priv->display_server);
         }
     }
@@ -775,9 +774,12 @@ display_stop (Display *display)
 
     display->priv->stopping = TRUE;
 
-    display_server_stop (display->priv->display_server);
+    if (display->priv->display_server)
+        display_server_stop (display->priv->display_server);
     if (display->priv->session)
-        child_process_stop (CHILD_PROCESS (display->priv->session));
+        session_stop (display->priv->session);
+
+    check_stopped (display);
 }
 
 static void

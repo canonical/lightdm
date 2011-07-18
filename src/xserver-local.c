@@ -213,7 +213,7 @@ terminated_cb (ChildProcess *process, int signum, XServerLocal *server)
 static void
 stopped_cb (ChildProcess *process, XServerLocal *server)
 {
-    g_debug ("stopped");
+    g_debug ("X server stopped");
 
     g_object_unref (server->priv->xserver_process);
     server->priv->xserver_process = NULL;
