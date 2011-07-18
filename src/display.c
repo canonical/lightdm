@@ -436,9 +436,9 @@ start_session (Display *display, PAMSession *pam_session, const gchar *session_n
 
     session_desktop_file = g_key_file_new ();
     result = g_key_file_load_from_file (session_desktop_file, path, G_KEY_FILE_NONE, &error);
-    g_free (path);
     if (!result)
         g_warning ("Failed to load session file %s: %s:", path, error->message);
+    g_free (path);
     g_clear_error (&error);
     if (!result)
         return FALSE;
