@@ -121,12 +121,13 @@ int_length ()
 #define MAX_MESSAGE_LENGTH 1024
 
 static void
-write_message (Greeter *greeter, guint8 *message, gint message_length)
+write_message (Greeter *greeter, guint8 *message, gsize message_length)
 {
     GError *error = NULL;
-    g_debug ("Wrote %d bytes to greeter", message_length);
     if (g_io_channel_write_chars (greeter->priv->to_greeter_channel, (gchar *) message, message_length, NULL, &error) != G_IO_STATUS_NORMAL)
         g_warning ("Error writing to greeter: %s", error->message);
+    else
+        g_debug ("Wrote %zi bytes to greeter", message_length);
     g_clear_error (&error);
     g_io_channel_flush (greeter->priv->to_greeter_channel, NULL);
 }

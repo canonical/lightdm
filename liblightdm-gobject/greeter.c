@@ -149,6 +149,8 @@ write_message (LdmGreeter *greeter, guint8 *message, gint message_length)
     GError *error = NULL;
     if (g_io_channel_write_chars (greeter->priv->to_server_channel, (gchar *) message, message_length, NULL, NULL) != G_IO_STATUS_NORMAL)
         g_warning ("Error writing to daemon: %s", error->message);
+    else
+        g_debug ("Wrote %zi bytes to daemon", message_length);
     g_clear_error (&error);
     g_io_channel_flush (greeter->priv->to_server_channel, NULL);
 }
@@ -369,6 +371,8 @@ read_packet (LdmGreeter *greeter, gboolean block)
         g_clear_error (&error);
         if (status != G_IO_STATUS_NORMAL)
             break;
+
+        g_debug ("Read %zi bytes from daemon", n_read);
 
         greeter->priv->n_read += n_read;
     } while (greeter->priv->n_read < n_to_read && block);

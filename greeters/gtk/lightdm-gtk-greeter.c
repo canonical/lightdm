@@ -20,7 +20,7 @@
 
 static LdmGreeter *greeter;
 static GtkWidget *window, *message_label, *user_view;
-static GdkPixbuf *background_pixbuf;
+static GdkPixbuf *background_pixbuf = NULL;
 static GtkWidget *prompt_box, *prompt_label, *prompt_entry, *session_combo;
 static gchar *theme_name;
 
