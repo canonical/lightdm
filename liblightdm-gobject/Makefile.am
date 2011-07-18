@@ -11,7 +11,6 @@ liblightdm_gobject_0_la_CFLAGS = $(LIBLIGHTDM_GOBJECT_CFLAGS) \
 
 liblightdm_gobject_0_la_SOURCES= \
 	greeter.c \
-	greeter-protocol.h \
 	language.c \
 	layout.c \
 	session.c \

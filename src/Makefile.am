@@ -21,7 +21,6 @@ lightdm_SOURCES = \
 	dmrc.h \
 	greeter.c \
 	greeter.h \
-	greeter-protocol.h \
 	guest-account.c \
 	guest-account.h \
 	lightdm.c \

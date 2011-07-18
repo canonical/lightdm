@@ -17,7 +17,6 @@
 
 #include "greeter.h"
 #include "ldm-marshal.h"
-#include "greeter-protocol.h"
 #include "guest-account.h"
 
 enum {
@@ -30,9 +29,6 @@ struct GreeterPrivate
 {
     /* Session running on */
     Session *session;
-
-    /* TRUE if the greeter has connected to the daemon pipe */
-    gboolean connected;
 
     /* Buffer for data read from greeter */
     guint8 *read_buffer;
@@ -61,6 +57,27 @@ struct GreeterPrivate
 };
 
 G_DEFINE_TYPE (Greeter, greeter, G_TYPE_OBJECT);
+
+/* Messages from the greeter to the server */
+typedef enum
+{
+    GREETER_MESSAGE_CONNECT = 0,
+    GREETER_MESSAGE_LOGIN,
+    GREETER_MESSAGE_LOGIN_AS_GUEST,
+    GREETER_MESSAGE_CONTINUE_AUTHENTICATION,
+    GREETER_MESSAGE_START_SESSION,
+    GREETER_MESSAGE_CANCEL_AUTHENTICATION
+} GreeterMessage;
+
+/* Messages from the server to the greeter */
+typedef enum
+{
+    SERVER_MESSAGE_CONNECTED = 0,
+    SERVER_MESSAGE_QUIT,
+    SERVER_MESSAGE_PROMPT_AUTHENTICATION,
+    SERVER_MESSAGE_END_AUTHENTICATION,
+    SERVER_MESSAGE_SESSION_FAILED,
+} ServerMessage;
 
 Greeter *
 greeter_new (Session *session)
@@ -174,18 +191,14 @@ string_length (const gchar *value)
 }
 
 static void
-handle_connect (Greeter *greeter)
+handle_connect (Greeter *greeter, const gchar *version)
 {
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
 
-    if (!greeter->priv->connected)
-    {
-        greeter->priv->connected = TRUE;
-        g_debug ("Greeter connected");
-    }
+    g_debug ("Greeter connected version=%s", version);
 
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECTED, string_length (VERSION) + string_length (greeter->priv->default_session) + string_length (greeter->priv->selected_user) + int_length () + int_length (), &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_CONNECTED, string_length (VERSION) + string_length (greeter->priv->default_session) + string_length (greeter->priv->selected_user) + int_length () + int_length (), &offset);
     write_string (message, MAX_MESSAGE_LENGTH, VERSION, &offset);
     write_string (message, MAX_MESSAGE_LENGTH, greeter->priv->default_session, &offset);
     write_string (message, MAX_MESSAGE_LENGTH, greeter->priv->selected_user, &offset);
@@ -207,7 +220,7 @@ pam_messages_cb (PAMSession *session, int num_msg, const struct pam_message **ms
     size = int_length () + int_length ();
     for (i = 0; i < num_msg; i++)
         size += int_length () + string_length (msg[i]->msg);
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_PROMPT_AUTHENTICATION, size, &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_PROMPT_AUTHENTICATION, size, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->authentication_sequence_number, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, num_msg, &offset);
     for (i = 0; i < num_msg; i++)
@@ -224,7 +237,7 @@ send_end_authentication (Greeter *greeter, guint32 sequence_number, int result)
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
 
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_END_AUTHENTICATION, int_length () + int_length (), &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_END_AUTHENTICATION, int_length () + int_length (), &offset);
     write_int (message, MAX_MESSAGE_LENGTH, sequence_number, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, result, &offset);
     write_message (greeter, message, offset); 
@@ -314,10 +327,6 @@ handle_continue_authentication (Greeter *greeter, gchar **secrets)
     struct pam_response *response;
     int i, j, n_secrets = 0;
 
-    /* Not connected */
-    if (!greeter->priv->connected)
-        return;
-
     /* Not in authorization */
     if (greeter->priv->pam_session == NULL)
         return;
@@ -358,10 +367,6 @@ handle_continue_authentication (Greeter *greeter, gchar **secrets)
 static void
 handle_cancel_authentication (Greeter *greeter)
 {
-    /* Not connected */
-    if (!greeter->priv->connected)
-        return;
-
     /* Not in authorization */
     if (greeter->priv->pam_session == NULL)
         return;
@@ -379,7 +384,7 @@ greeter_quit (Greeter *greeter)
 
     g_return_if_fail (greeter != NULL);
 
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_QUIT, 0, &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_QUIT, 0, &offset);
     write_message (greeter, message, offset);
 }
 
@@ -398,7 +403,7 @@ handle_start_session (Greeter *greeter, gchar *session)
         guint8 message[MAX_MESSAGE_LENGTH];
         gsize offset = 0;
 
-        write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_SESSION_FAILED, 0, &offset);
+        write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_SESSION_FAILED, 0, &offset);
         write_message (greeter, message, offset);
     }
 }
@@ -448,7 +453,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     GIOStatus status;
     int id, n_secrets, i;
     guint32 sequence_number;
-    gchar *username, *session_name;
+    gchar *version, *username, *session_name;
     gchar **secrets;
     GError *error = NULL;
 
@@ -503,7 +508,9 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     switch (id)
     {
     case GREETER_MESSAGE_CONNECT:
-        handle_connect (greeter);
+        version = read_string (greeter, &offset);
+        handle_connect (greeter, version);
+        g_free (version);
         break;
     case GREETER_MESSAGE_LOGIN:
         sequence_number = read_int (greeter, &offset);

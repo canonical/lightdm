@@ -30,23 +30,26 @@
 #include <QtDBus/QDBusInterface>
 #include <QtDBus/QDBusReply>
 
+/* Messages from the greeter to the server */
 typedef enum
 {
-    /* Messages from the greeter to the server */
-    GREETER_MESSAGE_CONNECT                 = 1,
-    GREETER_MESSAGE_LOGIN                   = 2,
-    GREETER_MESSAGE_LOGIN_AS_GUEST          = 3,
-    GREETER_MESSAGE_CONTINUE_AUTHENTICATION = 4,
-    GREETER_MESSAGE_START_SESSION           = 5,
-    GREETER_MESSAGE_CANCEL_AUTHENTICATION   = 6,
-
-    /* Messages from the server to the greeter */
-    GREETER_MESSAGE_CONNECTED               = 101,
-    GREETER_MESSAGE_QUIT                    = 102,
-    GREETER_MESSAGE_PROMPT_AUTHENTICATION   = 103,
-    GREETER_MESSAGE_END_AUTHENTICATION      = 104,
-    GREETER_MESSAGE_SESSION_FAILED          = 105
+    GREETER_MESSAGE_CONNECT = 0,
+    GREETER_MESSAGE_LOGIN,
+    GREETER_MESSAGE_LOGIN_AS_GUEST,
+    GREETER_MESSAGE_CONTINUE_AUTHENTICATION,
+    GREETER_MESSAGE_START_SESSION,
+    GREETER_MESSAGE_CANCEL_AUTHENTICATION
 } GreeterMessage;
+
+/* Messages from the server to the greeter */
+typedef enum
+{
+    SERVER_MESSAGE_CONNECTED = 0,
+    SERVER_MESSAGE_QUIT,
+    SERVER_MESSAGE_PROMPT_AUTHENTICATION,
+    SERVER_MESSAGE_END_AUTHENTICATION,
+    SERVER_MESSAGE_SESSION_FAILED,
+} ServerMessage;
 
 #define HEADER_SIZE 8
 
@@ -203,7 +206,8 @@ void Greeter::connectToServer()
     connect(d->n, SIGNAL(activated(int)), this, SLOT(onRead(int)));
 
     qDebug() << "Connecting to display manager...";
-    writeHeader(GREETER_MESSAGE_CONNECT, 0);
+    writeHeader(GREETER_MESSAGE_CONNECT, stringLength(VERSION));
+    writeString(VERSION);
     flush();
 }
 
@@ -320,7 +324,7 @@ void Greeter::onRead(int fd)
     QString version, username;
     switch(id)
     {
-    case GREETER_MESSAGE_CONNECTED:
+    case SERVER_MESSAGE_CONNECTED:
         version = readString(&offset);
         d->defaultSession = readString(&offset);
         d->timedUser = readString(&offset);
@@ -336,11 +340,11 @@ void Greeter::onRead(int fd)
         }
         emit connected();
         break;
-    case GREETER_MESSAGE_QUIT:
+    case SERVER_MESSAGE_QUIT:
         qDebug() << "Got quit request from server";
         emit quit();
         break;
-    case GREETER_MESSAGE_PROMPT_AUTHENTICATION:
+    case SERVER_MESSAGE_PROMPT_AUTHENTICATION:
         sequenceNumber = readInt(&offset);
 
         if (sequenceNumber == d->authenticateSequenceNumber &&
@@ -370,7 +374,7 @@ void Greeter::onRead(int fd)
             }
         }
         break;
-    case GREETER_MESSAGE_END_AUTHENTICATION:
+    case SERVER_MESSAGE_END_AUTHENTICATION:
         sequenceNumber = readInt(&offset);
         returnCode = readInt(&offset);
 
@@ -388,7 +392,7 @@ void Greeter::onRead(int fd)
         else
             qDebug () << "Ignoring end authentication with invalid sequence number " << sequenceNumber;
         break;
-    case GREETER_MESSAGE_SESSION_FAILED:
+    case SERVER_MESSAGE_SESSION_FAILED:
         qDebug() << "Session failed to start";
         emit sessionFailed();
         break;

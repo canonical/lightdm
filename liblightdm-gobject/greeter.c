@@ -9,6 +9,8 @@
  * license.
  */
 
+#include <config.h>
+
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
@@ -21,7 +23,6 @@
 
 #include "lightdm/greeter.h"
 #include "user-private.h"
-#include "greeter-protocol.h"
 
 enum {
     PROP_0,
@@ -114,6 +115,27 @@ G_DEFINE_TYPE (LdmGreeter, ldm_greeter, G_TYPE_OBJECT);
 
 #define PASSWD_FILE      "/etc/passwd"
 #define USER_CONFIG_FILE "/etc/lightdm/users.conf"
+
+/* Messages from the greeter to the server */
+typedef enum
+{
+    GREETER_MESSAGE_CONNECT = 0,
+    GREETER_MESSAGE_LOGIN,
+    GREETER_MESSAGE_LOGIN_AS_GUEST,
+    GREETER_MESSAGE_CONTINUE_AUTHENTICATION,
+    GREETER_MESSAGE_START_SESSION,
+    GREETER_MESSAGE_CANCEL_AUTHENTICATION
+} GreeterMessage;
+
+/* Messages from the server to the greeter */
+typedef enum
+{
+    SERVER_MESSAGE_CONNECTED = 0,
+    SERVER_MESSAGE_QUIT,
+    SERVER_MESSAGE_PROMPT_AUTHENTICATION,
+    SERVER_MESSAGE_END_AUTHENTICATION,
+    SERVER_MESSAGE_SESSION_FAILED,
+} ServerMessage;
 
 /**
  * ldm_greeter_new:
@@ -419,19 +441,19 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     read_int (greeter, &offset);
     switch (id)
     {
-    case GREETER_MESSAGE_CONNECTED:
+    case SERVER_MESSAGE_CONNECTED:
         handle_connected (greeter, &offset);
         break;
-    case GREETER_MESSAGE_PROMPT_AUTHENTICATION:
+    case SERVER_MESSAGE_PROMPT_AUTHENTICATION:
         handle_prompt_authentication (greeter, &offset);
         break;
-    case GREETER_MESSAGE_END_AUTHENTICATION:
+    case SERVER_MESSAGE_END_AUTHENTICATION:
         handle_end_authentication (greeter, &offset);
         break;
-    case GREETER_MESSAGE_SESSION_FAILED:
+    case SERVER_MESSAGE_SESSION_FAILED:
         handle_session_failed (greeter, &offset);
         break;
-    case GREETER_MESSAGE_QUIT:
+    case SERVER_MESSAGE_QUIT:
         handle_quit (greeter, &offset);
         break;
     default:
@@ -499,7 +521,8 @@ ldm_greeter_connect_to_server (LdmGreeter *greeter)
     g_io_add_watch (greeter->priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
 
     g_debug ("Connecting to display manager...");
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECT, 0, &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECT, string_length (VERSION), &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, VERSION, &offset);
     write_message (greeter, message, offset);
 
     return TRUE;
