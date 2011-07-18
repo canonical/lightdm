@@ -3,7 +3,6 @@
 <SECTION>
 <FILE>language</FILE>
 <TITLE>LdmLanguage</TITLE>
-LdmLanguage
 ldm_language_get_code
 ldm_language_get_name
 ldm_language_get_territory
@@ -17,15 +16,12 @@ LDM_LANGUAGE_GET_CLASS
 LDM_TYPE_LANGUAGE
 ldm_language_get_type
 <SUBSECTION Private>
-LdmLanguageClass
-LdmLanguagePrivate
 ldm_language_new
 </SECTION>
 
 <SECTION>
 <FILE>layout</FILE>
 <TITLE>LdmLayout</TITLE>
-LdmLayout
 ldm_layout_get_name
 ldm_layout_get_short_description
 ldm_layout_get_description
@@ -38,15 +34,12 @@ LDM_LAYOUT_GET_CLASS
 LDM_TYPE_LAYOUT
 ldm_layout_get_type
 <SUBSECTION Private>
-LdmLayoutClass
-LdmLayoutPrivate
 ldm_layout_new
 </SECTION>
 
 <SECTION>
 <FILE>user</FILE>
 <TITLE>LdmUser</TITLE>
-LdmUser
 ldm_user_get_name
 ldm_user_get_real_name
 ldm_user_get_display_name
@@ -65,8 +58,6 @@ LDM_USER_CLASS
 LDM_IS_USER_CLASS
 LDM_USER_GET_CLASS
 <SUBSECTION Private>
-LdmUserClass
-LdmUserPrivate
 ldm_user_new
 ldm_user_set_name
 ldm_user_set_real_name
@@ -79,7 +70,6 @@ ldm_user_update
 <SECTION>
 <FILE>session</FILE>
 <TITLE>LdmSession</TITLE>
-LdmSession
 ldm_session_get_key
 ldm_session_get_name
 ldm_session_get_comment
@@ -92,15 +82,12 @@ LDM_SESSION_CLASS
 LDM_IS_SESSION_CLASS
 LDM_SESSION_GET_CLASS
 <SUBSECTION Private>
-LdmSessionClass
-LdmSessionPrivate
 ldm_session_new
 </SECTION>
 
 <SECTION>
 <FILE>greeter</FILE>
 <TITLE>LdmGreeter</TITLE>
-LdmGreeter
 ldm_greeter_new
 ldm_greeter_connect_to_server
 ldm_greeter_get_hostname
@@ -150,6 +137,4 @@ LDM_GREETER_CLASS
 LDM_IS_GREETER_CLASS
 LDM_GREETER_GET_CLASS
 <SUBSECTION Private>
-LdmGreeterClass
-LdmGreeterPrivate
 </SECTION>

@@ -23,21 +23,15 @@ G_BEGIN_DECLS
 #define LDM_IS_LAYOUT_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LDM_TYPE_LAYOUT))
 #define LDM_LAYOUT_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LDM_TYPE_LAYOUT, LdmLayoutClass))
 
-typedef struct _LdmLayout        LdmLayout;
-typedef struct _LdmLayoutClass   LdmLayoutClass;
-typedef struct _LdmLayoutPrivate LdmLayoutPrivate;
-
-struct _LdmLayout
+typedef struct
 {
-    GObject         parent_instance;
-    /*<private>*/
-    LdmLayoutPrivate *priv;
-};
+    GObject parent_instance;
+} LdmLayout;
 
-struct _LdmLayoutClass
+typedef struct
 {
     GObjectClass parent_class;
-};
+} LdmLayoutClass;
 
 GType ldm_layout_get_type (void);
 

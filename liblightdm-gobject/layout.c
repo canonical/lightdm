@@ -18,14 +18,16 @@ enum {
     PROP_DESCRIPTION
 };
 
-struct _LdmLayoutPrivate
+typedef struct
 {
     gchar *name;
     gchar *short_description;
     gchar *description;
-};
+} LdmLayoutPrivate;
 
 G_DEFINE_TYPE (LdmLayout, ldm_layout, G_TYPE_OBJECT);
+
+#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LDM_TYPE_LAYOUT, LdmLayoutPrivate)
 
 /**
  * ldm_layout_new:
@@ -55,7 +57,7 @@ const gchar *
 ldm_layout_get_name (LdmLayout *layout)
 {
     g_return_val_if_fail (LDM_IS_LAYOUT (layout), NULL);
-    return layout->priv->name;
+    return GET_PRIVATE (layout)->name;
 }
 
 /**
@@ -70,7 +72,7 @@ const gchar *
 ldm_layout_get_short_description (LdmLayout *layout)
 {
     g_return_val_if_fail (LDM_IS_LAYOUT (layout), NULL);
-    return layout->priv->short_description;
+    return GET_PRIVATE (layout)->short_description;
 }
 
 /**
@@ -85,13 +87,12 @@ const gchar *
 ldm_layout_get_description (LdmLayout *layout)
 {
     g_return_val_if_fail (LDM_IS_LAYOUT (layout), NULL);
-    return layout->priv->description;
+    return GET_PRIVATE (layout)->description;
 }
 
 static void
 ldm_layout_init (LdmLayout *layout)
 {
-    layout->priv = G_TYPE_INSTANCE_GET_PRIVATE (layout, LDM_TYPE_LAYOUT, LdmLayoutPrivate);
 }
 
 static void
@@ -100,22 +101,21 @@ ldm_layout_set_property (GObject      *object,
                          const GValue *value,
                          GParamSpec   *pspec)
 {
-    LdmLayout *self;
-
-    self = LDM_LAYOUT (object);
+    LdmLayout *self = LDM_LAYOUT (object);
+    LdmLayoutPrivate *priv = GET_PRIVATE (self);
 
     switch (prop_id) {
     case PROP_NAME:
-        g_free (self->priv->name);
-        self->priv->name = g_strdup (g_value_get_string (value));
+        g_free (priv->name);
+        priv->name = g_strdup (g_value_get_string (value));
         break;
     case PROP_SHORT_DESCRIPTION:
-        g_free (self->priv->short_description);
-        self->priv->short_description = g_strdup (g_value_get_string (value));
+        g_free (priv->short_description);
+        priv->short_description = g_strdup (g_value_get_string (value));
         break;
     case PROP_DESCRIPTION:
-        g_free (self->priv->description);
-        self->priv->description = g_strdup (g_value_get_string (value));
+        g_free (priv->description);
+        priv->description = g_strdup (g_value_get_string (value));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

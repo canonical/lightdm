@@ -65,7 +65,7 @@ enum {
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
-struct _LdmGreeterPrivate
+typedef struct
 {
     GDBusConnection *lightdm_bus;
 
@@ -109,9 +109,11 @@ struct _LdmGreeterPrivate
     GHashTable *hints;
 
     guint login_timeout;
-};
+} LdmGreeterPrivate;
 
 G_DEFINE_TYPE (LdmGreeter, ldm_greeter, G_TYPE_OBJECT);
+
+#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LDM_TYPE_GREETER, LdmGreeterPrivate)
 
 #define HEADER_SIZE 8
 #define MAX_MESSAGE_LENGTH 1024
@@ -157,8 +159,9 @@ static gboolean
 timed_login_cb (gpointer data)
 {
     LdmGreeter *greeter = data;
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
 
-    greeter->priv->login_timeout = 0;
+    priv->login_timeout = 0;
     g_signal_emit (G_OBJECT (greeter), signals[AUTOLOGIN_TIMER_EXPIRED], 0);
 
     return FALSE;
@@ -173,13 +176,15 @@ int_length ()
 static void
 write_message (LdmGreeter *greeter, guint8 *message, gsize message_length)
 {
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     GError *error = NULL;
-    if (g_io_channel_write_chars (greeter->priv->to_server_channel, (gchar *) message, message_length, NULL, NULL) != G_IO_STATUS_NORMAL)
+
+    if (g_io_channel_write_chars (priv->to_server_channel, (gchar *) message, message_length, NULL, NULL) != G_IO_STATUS_NORMAL)
         g_warning ("Error writing to daemon: %s", error->message);
     else
         g_debug ("Wrote %zi bytes to daemon", message_length);
     g_clear_error (&error);
-    g_io_channel_flush (greeter->priv->to_server_channel, NULL);
+    g_io_channel_flush (priv->to_server_channel, NULL);
 }
 
 static void
@@ -208,34 +213,39 @@ write_string (guint8 *buffer, gint buffer_length, const gchar *value, gsize *off
 static guint32
 read_int (LdmGreeter *greeter, gsize *offset)
 {
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     guint32 value;
     guint8 *buffer;
-    if (greeter->priv->n_read - *offset < int_length ())
+
+    if (priv->n_read - *offset < int_length ())
     {
-        g_warning ("Not enough space for int, need %i, got %zi", int_length (), greeter->priv->n_read - *offset);
+        g_warning ("Not enough space for int, need %i, got %zi", int_length (), priv->n_read - *offset);
         return 0;
     }
-    buffer = greeter->priv->read_buffer + *offset;
+
+    buffer = priv->read_buffer + *offset;
     value = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
     *offset += int_length ();
+
     return value;
 }
 
 static gchar *
 read_string (LdmGreeter *greeter, gsize *offset)
 {
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     guint32 length;
     gchar *value;
 
     length = read_int (greeter, offset);
-    if (greeter->priv->n_read - *offset < length)
+    if (priv->n_read - *offset < length)
     {
-        g_warning ("Not enough space for string, need %u, got %zu", length, greeter->priv->n_read - *offset);
+        g_warning ("Not enough space for string, need %u, got %zu", length, priv->n_read - *offset);
         return g_strdup ("");
     }
 
     value = g_malloc (sizeof (gchar) * (length + 1));
-    memcpy (value, greeter->priv->read_buffer + *offset, length);
+    memcpy (value, priv->read_buffer + *offset, length);
     value[length] = '\0';
     *offset += length;
 
@@ -264,6 +274,7 @@ static guint32 get_packet_length (LdmGreeter *greeter)
 static void
 handle_connected (LdmGreeter *greeter, guint32 length, gsize *offset)
 {
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     gchar *version;
     GString *hint_string;
     int timeout;
@@ -276,7 +287,7 @@ handle_connected (LdmGreeter *greeter, guint32 length, gsize *offset)
       
         name = read_string (greeter, offset);
         value = read_string (greeter, offset);
-        g_hash_table_insert (greeter->priv->hints, name, value);
+        g_hash_table_insert (priv->hints, name, value);
         g_string_append_printf (hint_string, " %s=%s", name, value);
     }
 
@@ -289,7 +300,7 @@ handle_connected (LdmGreeter *greeter, guint32 length, gsize *offset)
     if (timeout)
     {
         g_debug ("Setting autologin timer for %d seconds", timeout);
-        greeter->priv->login_timeout = g_timeout_add (timeout * 1000, timed_login_cb, greeter);
+        priv->login_timeout = g_timeout_add (timeout * 1000, timed_login_cb, greeter);
     }
     g_signal_emit (G_OBJECT (greeter), signals[CONNECTED], 0);
 }
@@ -297,16 +308,17 @@ handle_connected (LdmGreeter *greeter, guint32 length, gsize *offset)
 static void
 handle_prompt_authentication (LdmGreeter *greeter, gsize *offset)
 {
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     guint32 sequence_number, n_messages, i;
 
     sequence_number = read_int (greeter, offset);
-    if (sequence_number != greeter->priv->authenticate_sequence_number)
+    if (sequence_number != priv->authenticate_sequence_number)
     {
         g_debug ("Ignoring prompt authentication with invalid sequence number %d", sequence_number);
         return;
     }
 
-    if (greeter->priv->cancelling_authentication)
+    if (priv->cancelling_authentication)
     {
         g_debug ("Ignoring prompt authentication as waiting for it to cancel");
         return;
@@ -346,28 +358,29 @@ handle_prompt_authentication (LdmGreeter *greeter, gsize *offset)
 
 static void
 handle_end_authentication (LdmGreeter *greeter, gsize *offset)
-{ 
+{
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     guint32 sequence_number, return_code;
 
     sequence_number = read_int (greeter, offset);
     return_code = read_int (greeter, offset);
 
-    if (sequence_number != greeter->priv->authenticate_sequence_number)
+    if (sequence_number != priv->authenticate_sequence_number)
     {
         g_debug ("Ignoring end authentication with invalid sequence number %d", sequence_number);
         return;
     }
 
     g_debug ("Authentication complete with return code %d", return_code);
-    greeter->priv->cancelling_authentication = FALSE;
-    greeter->priv->is_authenticated = (return_code == 0);
-    if (!greeter->priv->is_authenticated)
+    priv->cancelling_authentication = FALSE;
+    priv->is_authenticated = (return_code == 0);
+    if (!priv->is_authenticated)
     {
-        g_free (greeter->priv->authentication_user);
-        greeter->priv->authentication_user = NULL;
+        g_free (priv->authentication_user);
+        priv->authentication_user = NULL;
     }
     g_signal_emit (G_OBJECT (greeter), signals[AUTHENTICATION_COMPLETE], 0);
-    greeter->priv->in_authentication = FALSE;
+    priv->in_authentication = FALSE;
 }
 
 static void
@@ -387,20 +400,21 @@ handle_quit (LdmGreeter *greeter, gsize *offset)
 static gboolean
 read_packet (LdmGreeter *greeter, gboolean block)
 {
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     gsize n_to_read, n_read;
     GError *error = NULL;
 
     /* Read the header, or the whole packet if we already have that */
     n_to_read = HEADER_SIZE;
-    if (greeter->priv->n_read >= HEADER_SIZE)
+    if (priv->n_read >= HEADER_SIZE)
         n_to_read += get_packet_length (greeter);
 
     do
     {
         GIOStatus status;
-        status = g_io_channel_read_chars (greeter->priv->from_server_channel,
-                                          (gchar *) greeter->priv->read_buffer + greeter->priv->n_read,
-                                          n_to_read - greeter->priv->n_read,
+        status = g_io_channel_read_chars (priv->from_server_channel,
+                                          (gchar *) priv->read_buffer + priv->n_read,
+                                          n_to_read - priv->n_read,
                                           &n_read,
                                           &error);
         if (status == G_IO_STATUS_ERROR)
@@ -411,20 +425,20 @@ read_packet (LdmGreeter *greeter, gboolean block)
 
         g_debug ("Read %zi bytes from daemon", n_read);
 
-        greeter->priv->n_read += n_read;
-    } while (greeter->priv->n_read < n_to_read && block);
+        priv->n_read += n_read;
+    } while (priv->n_read < n_to_read && block);
 
     /* Stop if haven't got all the data we want */
-    if (greeter->priv->n_read != n_to_read)
+    if (priv->n_read != n_to_read)
         return FALSE;
 
     /* If have header, rerun for content */
-    if (greeter->priv->n_read == HEADER_SIZE)
+    if (priv->n_read == HEADER_SIZE)
     {
         n_to_read = get_packet_length (greeter);
         if (n_to_read > 0)
         {
-            greeter->priv->read_buffer = g_realloc (greeter->priv->read_buffer, HEADER_SIZE + n_to_read);
+            priv->read_buffer = g_realloc (priv->read_buffer, HEADER_SIZE + n_to_read);
             return read_packet (greeter, block);
         }
     }
@@ -436,6 +450,7 @@ static gboolean
 from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 {
     LdmGreeter *greeter = data;
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     gsize offset;
     guint32 id, length;
 
@@ -467,7 +482,7 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         break;
     }
 
-    greeter->priv->n_read = 0;
+    priv->n_read = 0;
 
     return TRUE;
 }
@@ -483,6 +498,7 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 gboolean
 ldm_greeter_connect_to_server (LdmGreeter *greeter)
 {
+    LdmGreeterPrivate *priv;
     GError *error = NULL;
     const gchar *bus_address, *fd;
     guint8 message[MAX_MESSAGE_LENGTH];
@@ -491,8 +507,10 @@ ldm_greeter_connect_to_server (LdmGreeter *greeter)
 
     g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
 
-    greeter->priv->system_bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
-    if (!greeter->priv->system_bus)
+    priv = GET_PRIVATE (greeter);
+
+    priv->system_bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
+    if (!priv->system_bus)
         g_warning ("Failed to connect to system bus: %s", error->message);
     g_clear_error (&error);
 
@@ -500,11 +518,11 @@ ldm_greeter_connect_to_server (LdmGreeter *greeter)
     if (bus_address && strcmp (bus_address, "SESSION") == 0)
         bus_type = G_BUS_TYPE_SESSION;
 
-    greeter->priv->lightdm_bus = g_bus_get_sync (bus_type, NULL, &error);
-    if (!greeter->priv->lightdm_bus)
+    priv->lightdm_bus = g_bus_get_sync (bus_type, NULL, &error);
+    if (!priv->lightdm_bus)
         g_warning ("Failed to connect to LightDM bus: %s", error->message);
     g_clear_error (&error);
-    if (!greeter->priv->lightdm_bus)
+    if (!priv->lightdm_bus)
         return FALSE;
 
     fd = getenv ("LIGHTDM_TO_SERVER_FD");
@@ -513,8 +531,8 @@ ldm_greeter_connect_to_server (LdmGreeter *greeter)
         g_warning ("No LIGHTDM_TO_SERVER_FD environment variable");
         return FALSE;
     }
-    greeter->priv->to_server_channel = g_io_channel_unix_new (atoi (fd));
-    g_io_channel_set_encoding (greeter->priv->to_server_channel, NULL, NULL);
+    priv->to_server_channel = g_io_channel_unix_new (atoi (fd));
+    g_io_channel_set_encoding (priv->to_server_channel, NULL, NULL);
 
     fd = getenv ("LIGHTDM_FROM_SERVER_FD");
     if (!fd)
@@ -522,9 +540,9 @@ ldm_greeter_connect_to_server (LdmGreeter *greeter)
         g_warning ("No LIGHTDM_FROM_SERVER_FD environment variable");
         return FALSE;
     }
-    greeter->priv->from_server_channel = g_io_channel_unix_new (atoi (fd));
-    g_io_channel_set_encoding (greeter->priv->from_server_channel, NULL, NULL);
-    g_io_add_watch (greeter->priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
+    priv->from_server_channel = g_io_channel_unix_new (atoi (fd));
+    g_io_channel_set_encoding (priv->from_server_channel, NULL, NULL);
+    g_io_add_watch (priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
 
     g_debug ("Connecting to display manager...");
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECT, string_length (VERSION), &offset);
@@ -543,24 +561,29 @@ ldm_greeter_connect_to_server (LdmGreeter *greeter)
 const gchar *
 ldm_greeter_get_hostname (LdmGreeter *greeter)
 {
+    LdmGreeterPrivate *priv;
+
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
 
-    if (!greeter->priv->hostname)
+    priv = GET_PRIVATE (greeter);
+
+    if (!priv->hostname)
     {
         struct utsname info;
         uname (&info);
-        greeter->priv->hostname = g_strdup (info.nodename);
+        priv->hostname = g_strdup (info.nodename);
     }
 
-    return greeter->priv->hostname;
+    return priv->hostname;
 }
 
 static LdmUser *
 get_user_by_name (LdmGreeter *greeter, const gchar *username)
 {
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     GList *link;
   
-    for (link = greeter->priv->users; link; link = link->next)
+    for (link = priv->users; link; link = link->next)
     {
         LdmUser *user = link->data;
         if (strcmp (ldm_user_get_name (user), username) == 0)
@@ -580,6 +603,7 @@ compare_user (gconstpointer a, gconstpointer b)
 static void
 load_users (LdmGreeter *greeter)
 {
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     GKeyFile *config;
     gchar *value;
     gint minimum_uid;
@@ -675,7 +699,7 @@ load_users (LdmGreeter *greeter)
         g_free (image);
 
         /* Update existing users if have them */
-        for (link = greeter->priv->users; link; link = link->next)
+        for (link = priv->users; link; link = link->next)
         {
             LdmUser *info = link->data;
             if (strcmp (ldm_user_get_name (info), ldm_user_get_name (user)) == 0)
@@ -690,7 +714,7 @@ load_users (LdmGreeter *greeter)
         if (!link)
         {
             /* Only notify once we have loaded the user list */
-            if (greeter->priv->have_users)
+            if (priv->have_users)
                 new_users = g_list_insert_sorted (new_users, user, compare_user);
         }
         users = g_list_insert_sorted (users, user, compare_user);
@@ -704,8 +728,8 @@ load_users (LdmGreeter *greeter)
     endpwent ();
 
     /* Use new user list */
-    old_users = greeter->priv->users;
-    greeter->priv->users = users;
+    old_users = priv->users;
+    priv->users = users;
   
     /* Notify of changes */
     for (link = new_users; link; link = link->next)
@@ -727,7 +751,7 @@ load_users (LdmGreeter *greeter)
         GList *new_link;
 
         /* See if this user is in the current list */
-        for (new_link = greeter->priv->users; new_link; new_link = new_link->next)
+        for (new_link = priv->users; new_link; new_link = new_link->next)
         {
             if (new_link->data == link->data)
                 break;
@@ -757,25 +781,26 @@ passwd_changed_cb (GFileMonitor *monitor, GFile *file, GFile *other_file, GFileM
 static void
 update_users (LdmGreeter *greeter)
 {
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     GFile *passwd_file;
     GError *error = NULL;
 
-    if (greeter->priv->have_users)
+    if (priv->have_users)
         return;
 
     load_users (greeter);
 
     /* Watch for changes to user list */
     passwd_file = g_file_new_for_path (PASSWD_FILE);
-    greeter->priv->passwd_monitor = g_file_monitor (passwd_file, G_FILE_MONITOR_NONE, NULL, &error);
+    priv->passwd_monitor = g_file_monitor (passwd_file, G_FILE_MONITOR_NONE, NULL, &error);
     g_object_unref (passwd_file);
-    if (!greeter->priv->passwd_monitor)
+    if (!priv->passwd_monitor)
         g_warning ("Error monitoring %s: %s", PASSWD_FILE, error->message);
     else
-        g_signal_connect (greeter->priv->passwd_monitor, "changed", G_CALLBACK (passwd_changed_cb), greeter);
+        g_signal_connect (priv->passwd_monitor, "changed", G_CALLBACK (passwd_changed_cb), greeter);
     g_clear_error (&error);
 
-    greeter->priv->have_users = TRUE;
+    priv->have_users = TRUE;
 }
 
 /**
@@ -789,7 +814,7 @@ ldm_greeter_get_num_users (LdmGreeter *greeter)
 {
     g_return_val_if_fail (LDM_IS_GREETER (greeter), 0);
     update_users (greeter);
-    return g_list_length (greeter->priv->users);
+    return g_list_length (GET_PRIVATE (greeter)->users);
 }
 
 /**
@@ -806,7 +831,7 @@ ldm_greeter_get_users (LdmGreeter *greeter)
 {
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
     update_users (greeter);
-    return greeter->priv->users;
+    return GET_PRIVATE (greeter)->users;
 }
 
 /**
@@ -832,12 +857,13 @@ ldm_greeter_get_user_by_name (LdmGreeter *greeter, const gchar *username)
 static void
 update_languages (LdmGreeter *greeter)
 {
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     gchar *stdout_text = NULL, *stderr_text = NULL;
     gint exit_status;
     gboolean result;
     GError *error = NULL;
 
-    if (greeter->priv->have_languages)
+    if (priv->have_languages)
         return;
 
     result = g_spawn_command_line_sync ("locale -a", &stdout_text, &stderr_text, &exit_status, &error);
@@ -863,7 +889,7 @@ update_languages (LdmGreeter *greeter)
                 continue;
 
             language = ldm_language_new (code);
-            greeter->priv->languages = g_list_append (greeter->priv->languages, language);
+            priv->languages = g_list_append (priv->languages, language);
         }
 
         g_strfreev (tokens);
@@ -873,7 +899,7 @@ update_languages (LdmGreeter *greeter)
     g_free (stdout_text);
     g_free (stderr_text);
 
-    greeter->priv->have_languages = TRUE;
+    priv->have_languages = TRUE;
 }
 
 /**
@@ -909,7 +935,7 @@ ldm_greeter_get_languages (LdmGreeter *greeter)
 {
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
     update_languages (greeter);
-    return greeter->priv->languages;
+    return GET_PRIVATE (greeter)->languages;
 }
 
 static void
@@ -918,28 +944,33 @@ layout_cb (XklConfigRegistry *config,
            gpointer data)
 {
     LdmGreeter *greeter = data;
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     LdmLayout *layout;
 
     layout = ldm_layout_new (item->name, item->short_description, item->description);
-    greeter->priv->layouts = g_list_append (greeter->priv->layouts, layout);
+    priv->layouts = g_list_append (priv->layouts, layout);
 }
 
 static void
 setup_display (LdmGreeter *greeter)
 {
-    if (!greeter->priv->display)
-        greeter->priv->display = XOpenDisplay (NULL);
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
+    if (!priv->display)
+        priv->display = XOpenDisplay (NULL);
 }
 
 static void
 setup_xkl (LdmGreeter *greeter)
 {
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
+
     setup_display (greeter);
-    greeter->priv->xkl_engine = xkl_engine_get_instance (greeter->priv->display);
-    greeter->priv->xkl_config = xkl_config_rec_new ();
-    if (!xkl_config_rec_get_from_server (greeter->priv->xkl_config, greeter->priv->xkl_engine))
+
+    priv->xkl_engine = xkl_engine_get_instance (priv->display);
+    priv->xkl_config = xkl_config_rec_new ();
+    if (!xkl_config_rec_get_from_server (priv->xkl_config, priv->xkl_engine))
         g_warning ("Failed to get Xkl configuration from server");
-    greeter->priv->layout = g_strdup (greeter->priv->xkl_config->layouts[0]);
+    priv->layout = g_strdup (priv->xkl_config->layouts[0]);
 }
 
 /**
@@ -953,22 +984,25 @@ setup_xkl (LdmGreeter *greeter)
 GList *
 ldm_greeter_get_layouts (LdmGreeter *greeter)
 {
+    LdmGreeterPrivate *priv;
     XklConfigRegistry *registry;
 
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
 
-    if (greeter->priv->have_layouts)
-        return greeter->priv->layouts;
+    priv = GET_PRIVATE (greeter);
+
+    if (priv->have_layouts)
+        return priv->layouts;
 
     setup_xkl (greeter);
 
-    registry = xkl_config_registry_get_instance (greeter->priv->xkl_engine);
+    registry = xkl_config_registry_get_instance (priv->xkl_engine);
     xkl_config_registry_load (registry, FALSE);
     xkl_config_registry_foreach_layout (registry, layout_cb, greeter);
     g_object_unref (registry);
-    greeter->priv->have_layouts = TRUE;
+    priv->have_layouts = TRUE;
 
-    return greeter->priv->layouts;
+    return priv->layouts;
 }
 
 /**
@@ -981,10 +1015,13 @@ ldm_greeter_get_layouts (LdmGreeter *greeter)
 void
 ldm_greeter_set_layout (LdmGreeter *greeter, const gchar *layout)
 {
+    LdmGreeterPrivate *priv;
     XklConfigRec *config;
 
     g_return_if_fail (LDM_IS_GREETER (greeter));
     g_return_if_fail (layout != NULL);
+
+    priv = GET_PRIVATE (greeter);
 
     g_debug ("Setting keyboard layout to %s", layout);
 
@@ -992,13 +1029,13 @@ ldm_greeter_set_layout (LdmGreeter *greeter, const gchar *layout)
 
     config = xkl_config_rec_new ();
     config->layouts = g_malloc (sizeof (gchar *) * 2);
-    config->model = g_strdup (greeter->priv->xkl_config->model);
+    config->model = g_strdup (priv->xkl_config->model);
     config->layouts[0] = g_strdup (layout);
     config->layouts[1] = NULL;
-    if (!xkl_config_rec_activate (config, greeter->priv->xkl_engine))
+    if (!xkl_config_rec_activate (config, priv->xkl_engine))
         g_warning ("Failed to activate XKL config");
     else
-        greeter->priv->layout = g_strdup (layout);
+        priv->layout = g_strdup (layout);
     g_object_unref (config);
 }
 
@@ -1015,16 +1052,17 @@ ldm_greeter_get_layout (LdmGreeter *greeter)
 {
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
     setup_xkl (greeter);
-    return greeter->priv->layout;
+    return GET_PRIVATE (greeter)->layout;
 }
 
 static void
 update_sessions (LdmGreeter *greeter)
 {
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     GDir *directory;
     GError *error = NULL;
 
-    if (greeter->priv->have_sessions)
+    if (priv->have_sessions)
         return;
 
     directory = g_dir_open (XSESSIONS_DIR, 0, &error);
@@ -1074,7 +1112,7 @@ update_sessions (LdmGreeter *greeter)
             if (name)
             {
                 g_debug ("Loaded session %s (%s, %s)", key, name, comment);
-                greeter->priv->sessions = g_list_append (greeter->priv->sessions, ldm_session_new (key, name, comment));
+                priv->sessions = g_list_append (priv->sessions, ldm_session_new (key, name, comment));
             }
             else
                 g_warning ("Invalid session %s: %s", path, error->message);
@@ -1090,7 +1128,7 @@ update_sessions (LdmGreeter *greeter)
 
     g_dir_close (directory);
 
-    greeter->priv->have_sessions = TRUE;
+    priv->have_sessions = TRUE;
 }
 
 /**
@@ -1106,7 +1144,7 @@ ldm_greeter_get_sessions (LdmGreeter *greeter)
 {
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
     update_sessions (greeter);
-    return greeter->priv->sessions;
+    return GET_PRIVATE (greeter)->sessions;
 }
 
 /**
@@ -1122,7 +1160,7 @@ const gchar *
 ldm_greeter_get_hint (LdmGreeter *greeter, const gchar *name)
 {
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
-    return g_hash_table_lookup (greeter->priv->hints, name);
+    return g_hash_table_lookup (GET_PRIVATE (greeter)->hints, name);
 }
 
 /**
@@ -1279,11 +1317,15 @@ ldm_greeter_get_autologin_timeout_hint (LdmGreeter *greeter)
 void
 ldm_greeter_cancel_timed_login (LdmGreeter *greeter)
 {
+    LdmGreeterPrivate *priv;
+
     g_return_if_fail (LDM_IS_GREETER (greeter));
 
-    if (greeter->priv->login_timeout)
-       g_source_remove (greeter->priv->login_timeout);
-    greeter->priv->login_timeout = 0;
+    priv = GET_PRIVATE (greeter);
+
+    if (priv->login_timeout)
+       g_source_remove (priv->login_timeout);
+    priv->login_timeout = 0;
 }
 
 /**
@@ -1296,6 +1338,7 @@ ldm_greeter_cancel_timed_login (LdmGreeter *greeter)
 void
 ldm_greeter_login (LdmGreeter *greeter, const char *username)
 {
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
 
@@ -1304,16 +1347,16 @@ ldm_greeter_login (LdmGreeter *greeter, const char *username)
     if (!username)
         username = "";
 
-    greeter->priv->cancelling_authentication = FALSE;
-    greeter->priv->authenticate_sequence_number++;
-    greeter->priv->in_authentication = TRUE;  
-    greeter->priv->is_authenticated = FALSE;
-    g_free (greeter->priv->authentication_user);
-    greeter->priv->authentication_user = g_strdup (username);
+    priv->cancelling_authentication = FALSE;
+    priv->authenticate_sequence_number++;
+    priv->in_authentication = TRUE;  
+    priv->is_authenticated = FALSE;
+    g_free (priv->authentication_user);
+    priv->authentication_user = g_strdup (username);
 
     g_debug ("Starting authentication for user %s...", username);
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_LOGIN, int_length () + string_length (username), &offset);
-    write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->authenticate_sequence_number, &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, priv->authenticate_sequence_number, &offset);
     write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
     write_message (greeter, message, offset);
 }
@@ -1339,21 +1382,24 @@ ldm_greeter_login_with_user_prompt (LdmGreeter *greeter)
 void
 ldm_greeter_login_as_guest (LdmGreeter *greeter)
 {
+    LdmGreeterPrivate *priv;
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
 
     g_return_if_fail (LDM_IS_GREETER (greeter));
 
-    greeter->priv->cancelling_authentication = FALSE;
-    greeter->priv->authenticate_sequence_number++;
-    greeter->priv->in_authentication = TRUE;
-    greeter->priv->is_authenticated = FALSE;
-    g_free (greeter->priv->authentication_user);
-    greeter->priv->authentication_user = NULL;
+    priv = GET_PRIVATE (greeter);
+
+    priv->cancelling_authentication = FALSE;
+    priv->authenticate_sequence_number++;
+    priv->in_authentication = TRUE;
+    priv->is_authenticated = FALSE;
+    g_free (priv->authentication_user);
+    priv->authentication_user = NULL;
 
     g_debug ("Starting authentication for guest account...");
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_LOGIN_AS_GUEST, int_length (), &offset);
-    write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->authenticate_sequence_number, &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, priv->authenticate_sequence_number, &offset);
     write_message (greeter, message, offset);
 }
 
@@ -1390,12 +1436,15 @@ ldm_greeter_respond (LdmGreeter *greeter, const gchar *response)
 void
 ldm_greeter_cancel_authentication (LdmGreeter *greeter)
 {
+    LdmGreeterPrivate *priv;
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
 
     g_return_if_fail (LDM_IS_GREETER (greeter));
 
-    greeter->priv->cancelling_authentication = TRUE;
+    priv = GET_PRIVATE (greeter);
+
+    priv->cancelling_authentication = TRUE;
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CANCEL_AUTHENTICATION, 0, &offset);
     write_message (greeter, message, offset);
 }
@@ -1412,7 +1461,7 @@ gboolean
 ldm_greeter_get_in_authentication (LdmGreeter *greeter)
 {
     g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
-    return greeter->priv->in_authentication;
+    return GET_PRIVATE (greeter)->in_authentication;
 }
 
 /**
@@ -1427,7 +1476,7 @@ gboolean
 ldm_greeter_get_is_authenticated (LdmGreeter *greeter)
 {
     g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
-    return greeter->priv->is_authenticated;
+    return GET_PRIVATE (greeter)->is_authenticated;
 }
 
 /**
@@ -1442,7 +1491,7 @@ const gchar *
 ldm_greeter_get_authentication_user (LdmGreeter *greeter)
 {
     g_return_val_if_fail (LDM_IS_GREETER (greeter), NULL);
-    return greeter->priv->authentication_user;
+    return GET_PRIVATE (greeter)->authentication_user;
 }
 
 /**
@@ -1484,15 +1533,16 @@ ldm_greeter_start_default_session (LdmGreeter *greeter)
 static gboolean
 upower_call_function (LdmGreeter *greeter, const gchar *function, gboolean has_result)
 {
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     GDBusProxy *proxy;
     GVariant *result;
     GError *error = NULL;
     gboolean function_result = FALSE;
   
-    if (!greeter->priv->system_bus)
+    if (!priv->system_bus)
         return FALSE;
 
-    proxy = g_dbus_proxy_new_sync (greeter->priv->system_bus,
+    proxy = g_dbus_proxy_new_sync (priv->system_bus,
                                    G_DBUS_PROXY_FLAGS_NONE,
                                    NULL,
                                    "org.freedesktop.UPower",
@@ -1580,15 +1630,16 @@ ldm_greeter_hibernate (LdmGreeter *greeter)
 static gboolean
 ck_call_function (LdmGreeter *greeter, const gchar *function, gboolean has_result)
 {
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
     GDBusProxy *proxy;
     GVariant *result;
     GError *error = NULL;
     gboolean function_result = FALSE;
 
-    if (!greeter->priv->system_bus)
+    if (!priv->system_bus)
         return FALSE;
 
-    proxy = g_dbus_proxy_new_sync (greeter->priv->system_bus,
+    proxy = g_dbus_proxy_new_sync (priv->system_bus,
                                    G_DBUS_PROXY_FLAGS_NONE,
                                    NULL,
                                    "org.freedesktop.ConsoleKit",
@@ -1676,9 +1727,10 @@ ldm_greeter_shutdown (LdmGreeter *greeter)
 static void
 ldm_greeter_init (LdmGreeter *greeter)
 {
-    greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, LDM_TYPE_GREETER, LdmGreeterPrivate);
-    greeter->priv->read_buffer = g_malloc (HEADER_SIZE);
-    greeter->priv->hints = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+    LdmGreeterPrivate *priv = GET_PRIVATE (greeter);
+
+    priv->read_buffer = g_malloc (HEADER_SIZE);
+    priv->hints = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 
     g_debug ("default-language=%s", ldm_greeter_get_default_language (greeter));
 }
@@ -1823,8 +1875,9 @@ static void
 ldm_greeter_finalize (GObject *object)
 {
     LdmGreeter *self = LDM_GREETER (object);
+    LdmGreeterPrivate *priv = GET_PRIVATE (self);
 
-    g_hash_table_unref (self->priv->hints);
+    g_hash_table_unref (priv->hints);
 
     G_OBJECT_CLASS (ldm_greeter_parent_class)->finalize (object);
 }

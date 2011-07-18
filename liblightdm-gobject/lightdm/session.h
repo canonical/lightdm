@@ -23,21 +23,15 @@ G_BEGIN_DECLS
 #define LDM_IS_SESSION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LDM_TYPE_SESSION))
 #define LDM_SESSION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LDM_TYPE_SESSION, LdmSessionClass))
 
-typedef struct _LdmSession        LdmSession;
-typedef struct _LdmSessionClass   LdmSessionClass;
-typedef struct _LdmSessionPrivate LdmSessionPrivate;
-
-struct _LdmSession
+typedef struct
 {
-    GObject            parent_instance;
-    /*<private>*/
-    LdmSessionPrivate *priv;
-};
+    GObject parent_instance;
+} LdmSession;
 
-struct _LdmSessionClass
+typedef struct
 {
     GObjectClass parent_class;
-};
+} LdmSessionClass;
 
 GType ldm_session_get_type (void);
 

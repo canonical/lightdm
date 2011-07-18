@@ -25,7 +25,6 @@ G_BEGIN_DECLS
 
 typedef struct _LdmGreeter        LdmGreeter;
 typedef struct _LdmGreeterClass   LdmGreeterClass;
-typedef struct _LdmGreeterPrivate LdmGreeterPrivate;
 
 #include "user.h"
 #include "language.h"
@@ -46,9 +45,7 @@ typedef enum
 
 struct _LdmGreeter
 {
-    GObject            parent_instance;
-    /*<private>*/
-    LdmGreeterPrivate *priv;
+    GObject parent_instance;
 };
 
 struct _LdmGreeterClass

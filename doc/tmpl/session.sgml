@@ -20,27 +20,6 @@ Object containing information about a session type. #LdmSession objects are not 
 <!-- ##### SECTION Image ##### -->
 
 
-<!-- ##### STRUCT LdmSession ##### -->
-<para>
-
-</para>
-
-
-<!-- ##### ARG LdmSession:comment ##### -->
-<para>
-
-</para>
-
-<!-- ##### ARG LdmSession:key ##### -->
-<para>
-
-</para>
-
-<!-- ##### ARG LdmSession:name ##### -->
-<para>
-
-</para>
-
 <!-- ##### FUNCTION ldm_session_get_key ##### -->
 <para>
 

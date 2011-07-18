@@ -18,14 +18,16 @@ enum {
     PROP_COMMENT
 };
 
-struct _LdmSessionPrivate
+typedef struct
 {
     gchar *key;
     gchar *name;
     gchar *comment;
-};
+} LdmSessionPrivate;
 
 G_DEFINE_TYPE (LdmSession, ldm_session, G_TYPE_OBJECT);
+
+#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LDM_TYPE_SESSION, LdmSessionPrivate)
 
 /**
  * ldm_session_new:
@@ -55,7 +57,7 @@ const gchar *
 ldm_session_get_key (LdmSession *session)
 {
     g_return_val_if_fail (LDM_IS_SESSION (session), NULL);
-    return session->priv->key;
+    return GET_PRIVATE (session)->key;
 }
 
 /**
@@ -70,7 +72,7 @@ const gchar *
 ldm_session_get_name (LdmSession *session)
 {
     g_return_val_if_fail (LDM_IS_SESSION (session), NULL);
-    return session->priv->name;
+    return GET_PRIVATE (session)->name;
 }
 
 /**
@@ -85,13 +87,12 @@ const gchar *
 ldm_session_get_comment (LdmSession *session)
 {
     g_return_val_if_fail (LDM_IS_SESSION (session), NULL);
-    return session->priv->comment;
+    return GET_PRIVATE (session)->comment;
 }
 
 static void
 ldm_session_init (LdmSession *session)
 {
-    session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, LDM_TYPE_SESSION, LdmSessionPrivate);
 }
 
 static void
@@ -100,22 +101,21 @@ ldm_session_set_property (GObject      *object,
                           const GValue *value,
                           GParamSpec   *pspec)
 {
-    LdmSession *self;
-
-    self = LDM_SESSION (object);
+    LdmSession *self = LDM_SESSION (object);
+    LdmSessionPrivate *priv = GET_PRIVATE (self);
 
     switch (prop_id) {
     case PROP_KEY:
-        g_free (self->priv->key);
-        self->priv->key = g_strdup (g_value_get_string (value));
+        g_free (priv->key);
+        priv->key = g_strdup (g_value_get_string (value));
         break;
     case PROP_NAME:
-        g_free (self->priv->name);
-        self->priv->name = g_strdup (g_value_get_string (value));
+        g_free (priv->name);
+        priv->name = g_strdup (g_value_get_string (value));
         break;
     case PROP_COMMENT:
-        g_free (self->priv->comment);
-        self->priv->comment = g_strdup (g_value_get_string (value));
+        g_free (priv->comment);
+        priv->comment = g_strdup (g_value_get_string (value));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

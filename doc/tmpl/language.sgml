@@ -20,27 +20,6 @@ Information about an available language
 <!-- ##### SECTION Image ##### -->
 
 
-<!-- ##### STRUCT LdmLanguage ##### -->
-<para>
-
-</para>
-
-
-<!-- ##### ARG LdmLanguage:code ##### -->
-<para>
-
-</para>
-
-<!-- ##### ARG LdmLanguage:name ##### -->
-<para>
-
-</para>
-
-<!-- ##### ARG LdmLanguage:territory ##### -->
-<para>
-
-</para>
-
 <!-- ##### FUNCTION ldm_language_get_code ##### -->
 <para>
 

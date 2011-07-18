@@ -21,14 +21,16 @@ enum {
     PROP_TERRITORY
 };
 
-struct _LdmLanguagePrivate
+typedef struct
 {
     gchar *code;
     gchar *name;
     gchar *territory;
-};
+} LdmLanguagePrivate;
 
 G_DEFINE_TYPE (LdmLanguage, ldm_language, G_TYPE_OBJECT);
+
+#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LDM_TYPE_LANGUAGE, LdmLanguagePrivate)
 
 /**
  * ldm_language_new:
@@ -56,7 +58,7 @@ const gchar *
 ldm_language_get_code (LdmLanguage *language)
 {
     g_return_val_if_fail (LDM_IS_LANGUAGE (language), NULL);
-    return language->priv->code;
+    return GET_PRIVATE (language)->code;
 }
 
 /**
@@ -70,21 +72,25 @@ ldm_language_get_code (LdmLanguage *language)
 const gchar *
 ldm_language_get_name (LdmLanguage *language)
 {
+    LdmLanguagePrivate *priv;
+
     g_return_val_if_fail (LDM_IS_LANGUAGE (language), NULL);
 
-    if (!language->priv->name)
+    priv = GET_PRIVATE (language);
+
+    if (!priv->name)
     {
         char *current = setlocale(LC_ALL, NULL);
-        setlocale(LC_ALL, language->priv->code);
+        setlocale(LC_ALL, priv->code);
 #ifdef _NL_IDENTIFICATION_LANGUAGE
-        language->priv->name = g_strdup (nl_langinfo (_NL_IDENTIFICATION_LANGUAGE));
+        priv->name = g_strdup (nl_langinfo (_NL_IDENTIFICATION_LANGUAGE));
 #else
-        language->priv->name = g_strdup ("Unknown");
+        priv->name = g_strdup ("Unknown");
 #endif
         setlocale(LC_ALL, current);
     }
 
-    return language->priv->name;
+    return priv->name;
 }
 
 /**
@@ -98,21 +104,25 @@ ldm_language_get_name (LdmLanguage *language)
 const gchar *
 ldm_language_get_territory (LdmLanguage *language)
 {
+    LdmLanguagePrivate *priv;
+
     g_return_val_if_fail (LDM_IS_LANGUAGE (language), NULL);
 
-    if (!language->priv->territory)
+    priv = GET_PRIVATE (language);
+
+    if (!priv->territory)
     {
         char *current = setlocale(LC_ALL, NULL);
-        setlocale(LC_ALL, language->priv->code);
+        setlocale(LC_ALL, priv->code);
 #ifdef _NL_IDENTIFICATION_TERRITORY
-        language->priv->territory = g_strdup (nl_langinfo (_NL_IDENTIFICATION_TERRITORY));
+        priv->territory = g_strdup (nl_langinfo (_NL_IDENTIFICATION_TERRITORY));
 #else
-        language->priv->territory = g_strdup ("Unknown");
+        priv->territory = g_strdup ("Unknown");
 #endif
         setlocale(LC_ALL, current);
     }
 
-    return language->priv->territory;
+    return priv->territory;
 }
 
 static gboolean
@@ -133,25 +143,28 @@ is_utf8 (const gchar *code)
 gboolean
 ldm_language_matches (LdmLanguage *language, const gchar *code)
 {
+    LdmLanguagePrivate *priv;
+
     g_return_val_if_fail (LDM_IS_LANGUAGE (language), FALSE);
     g_return_val_if_fail (code != NULL, FALSE);
 
+    priv = GET_PRIVATE (language);
+
     /* Handle the fact the UTF-8 is specified both as '.utf8' and '.UTF-8' */
-    if (is_utf8 (language->priv->code) && is_utf8 (code))
+    if (is_utf8 (priv->code) && is_utf8 (code))
     {
         /* Match the characters before the '.' */
         int i;
-        for (i = 0; language->priv->code[i] && code[i] && language->priv->code[i] == code[i] && code[i] != '.' ; i++);
-        return language->priv->code[i] == '.' && code[i] == '.';
+        for (i = 0; priv->code[i] && code[i] && priv->code[i] == code[i] && code[i] != '.' ; i++);
+        return priv->code[i] == '.' && code[i] == '.';
     }
 
-    return g_str_equal (language->priv->code, code);
+    return g_str_equal (priv->code, code);
 }
 
 static void
 ldm_language_init (LdmLanguage *language)
 {
-    language->priv = G_TYPE_INSTANCE_GET_PRIVATE (language, LDM_TYPE_LANGUAGE, LdmLanguagePrivate);
 }
 
 static void
@@ -160,14 +173,13 @@ ldm_language_set_property (GObject      *object,
                            const GValue *value,
                            GParamSpec   *pspec)
 {
-    LdmLanguage *self;
-
-    self = LDM_LANGUAGE (object);
+    LdmLanguage *self = LDM_LANGUAGE (object);
+    LdmLanguagePrivate *priv = GET_PRIVATE (self);
 
     switch (prop_id) {
     case PROP_CODE:
-        g_free (self->priv->name);
-        self->priv->code = g_strdup (g_value_get_string (value));
+        g_free (priv->name);
+        priv->code = g_strdup (g_value_get_string (value));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

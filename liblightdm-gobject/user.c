@@ -25,7 +25,7 @@ enum {
     PROP_LOGGED_IN
 };
 
-struct _LdmUserPrivate
+typedef struct
 {
     LdmGreeter *greeter;
 
@@ -39,9 +39,11 @@ struct _LdmUserPrivate
     gchar *language;
     gchar *layout;
     gchar *session;
-};
+} LdmUserPrivate;
 
 G_DEFINE_TYPE (LdmUser, ldm_user, G_TYPE_OBJECT);
+
+#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LDM_TYPE_USER, LdmUserPrivate)
 
 /**
  * ldm_user_new:
@@ -65,19 +67,21 @@ ldm_user_new (LdmGreeter *greeter, const gchar *name, const gchar *real_name, co
 gboolean
 ldm_user_update (LdmUser *user, const gchar *real_name, const gchar *home_directory, const gchar *image, gboolean logged_in)
 {
-    if (g_strcmp0 (user->priv->real_name, real_name) == 0 &&
-        g_strcmp0 (user->priv->home_directory, home_directory) == 0 &&
-        g_strcmp0 (user->priv->image, image) == 0 &&
-        user->priv->logged_in == logged_in)
+    LdmUserPrivate *priv = GET_PRIVATE (user);
+
+    if (g_strcmp0 (priv->real_name, real_name) == 0 &&
+        g_strcmp0 (priv->home_directory, home_directory) == 0 &&
+        g_strcmp0 (priv->image, image) == 0 &&
+        priv->logged_in == logged_in)
         return FALSE;
   
-    g_free (user->priv->real_name);
-    user->priv->real_name = g_strdup (real_name);
-    g_free (user->priv->home_directory);
-    user->priv->home_directory = g_strdup (home_directory);
-    g_free (user->priv->image);
-    user->priv->image = g_strdup (image);
-    user->priv->logged_in = logged_in;
+    g_free (priv->real_name);
+    priv->real_name = g_strdup (real_name);
+    g_free (priv->home_directory);
+    priv->home_directory = g_strdup (home_directory);
+    g_free (priv->image);
+    priv->image = g_strdup (image);
+    priv->logged_in = logged_in;
 
     return TRUE;
 }
@@ -94,15 +98,19 @@ const gchar *
 ldm_user_get_name (LdmUser *user)
 {
     g_return_val_if_fail (LDM_IS_USER (user), NULL);
-    return user->priv->name;
+    return GET_PRIVATE (user)->name;
 }
 
 void
 ldm_user_set_name (LdmUser *user, const gchar *name)
 {
+    LdmUserPrivate *priv;
+
     g_return_if_fail (LDM_IS_USER (user));
-    g_free (user->priv->name);
-    user->priv->name = g_strdup (name);
+
+    priv = GET_PRIVATE (user);
+    g_free (priv->name);
+    priv->name = g_strdup (name);
 }
 
 /**
@@ -117,15 +125,19 @@ const gchar *
 ldm_user_get_real_name (LdmUser *user)
 {
     g_return_val_if_fail (LDM_IS_USER (user), NULL);
-    return user->priv->real_name;
+    return GET_PRIVATE (user)->real_name;
 }
 
 void
 ldm_user_set_real_name (LdmUser *user, const gchar *real_name)
 {
+    LdmUserPrivate *priv;
+
     g_return_if_fail (LDM_IS_USER (user));
-    g_free (user->priv->real_name);
-    user->priv->real_name = g_strdup (real_name);
+
+    priv = GET_PRIVATE (user);
+    g_free (priv->real_name);
+    priv->real_name = g_strdup (real_name);
 }
 
 /**
@@ -139,12 +151,15 @@ ldm_user_set_real_name (LdmUser *user, const gchar *real_name)
 const gchar *
 ldm_user_get_display_name (LdmUser *user)
 {
+    LdmUserPrivate *priv;
+
     g_return_val_if_fail (LDM_IS_USER (user), NULL);
 
-    if (user->priv->real_name)
-        return user->priv->real_name;
+    priv = GET_PRIVATE (user);
+    if (priv->real_name)
+        return priv->real_name;
     else
-        return user->priv->name;
+        return priv->name;
 }
 
 /**
@@ -159,15 +174,19 @@ const gchar *
 ldm_user_get_home_directory (LdmUser *user)
 {
     g_return_val_if_fail (LDM_IS_USER (user), NULL);
-    return user->priv->home_directory;
+    return GET_PRIVATE (user)->home_directory;
 }
 
 void
 ldm_user_set_home_directory (LdmUser *user, const gchar *home_directory)
 {
+    LdmUserPrivate *priv;
+
     g_return_if_fail (LDM_IS_USER (user));
-    g_free (user->priv->home_directory);
-    user->priv->home_directory = g_strdup (home_directory);
+
+    priv = GET_PRIVATE (user);
+    g_free (priv->home_directory);
+    priv->home_directory = g_strdup (home_directory);
 }
 
 /**
@@ -182,28 +201,33 @@ const gchar *
 ldm_user_get_image (LdmUser *user)
 {
     g_return_val_if_fail (LDM_IS_USER (user), NULL);
-    return user->priv->image;
+    return GET_PRIVATE (user)->image;
 }
 
 void
 ldm_user_set_image (LdmUser *user, const gchar *image)
 {
+    LdmUserPrivate *priv;
+
     g_return_if_fail (LDM_IS_USER (user));
-    g_free (user->priv->image);
-    user->priv->image = g_strdup (image);
+
+    priv = GET_PRIVATE (user);
+    g_free (priv->image);
+    priv->image = g_strdup (image);
 }
 
 static void
 load_dmrc (LdmUser *user)
 {
+    LdmUserPrivate *priv = GET_PRIVATE (user);
     gchar *path;
     gboolean have_dmrc;
 
-    user->priv->dmrc_file = g_key_file_new ();
+    priv->dmrc_file = g_key_file_new ();
 
     /* Load from the user directory */  
-    path = g_build_filename (user->priv->home_directory, ".dmrc", NULL);
-    have_dmrc = g_key_file_load_from_file (user->priv->dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, NULL);
+    path = g_build_filename (priv->home_directory, ".dmrc", NULL);
+    have_dmrc = g_key_file_load_from_file (priv->dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, NULL);
     g_free (path);
 
     /* If no ~/.dmrc, then load from the cache */
@@ -211,9 +235,9 @@ load_dmrc (LdmUser *user)
 
     // FIXME: Watch for changes
 
-    user->priv->language = g_key_file_get_string (user->priv->dmrc_file, "Desktop", "Language", NULL);
-    user->priv->layout = g_key_file_get_string (user->priv->dmrc_file, "Desktop", "Layout", NULL);
-    user->priv->session = g_key_file_get_string (user->priv->dmrc_file, "Desktop", "Session", NULL);
+    priv->language = g_key_file_get_string (priv->dmrc_file, "Desktop", "Language", NULL);
+    priv->layout = g_key_file_get_string (priv->dmrc_file, "Desktop", "Layout", NULL);
+    priv->session = g_key_file_get_string (priv->dmrc_file, "Desktop", "Session", NULL);
 }
 
 /**
@@ -229,7 +253,7 @@ ldm_user_get_language (LdmUser *user)
 {
     g_return_val_if_fail (LDM_IS_USER (user), NULL);
     load_dmrc (user);
-    return user->priv->language;
+    return GET_PRIVATE (user)->language;
 }
 
 /**
@@ -245,7 +269,7 @@ ldm_user_get_layout (LdmUser *user)
 {
     g_return_val_if_fail (LDM_IS_USER (user), NULL);
     load_dmrc (user);
-    return user->priv->layout;
+    return GET_PRIVATE (user)->layout;
 }
 
 /**
@@ -261,7 +285,7 @@ ldm_user_get_session (LdmUser *user)
 {
     g_return_val_if_fail (LDM_IS_USER (user), NULL);
     load_dmrc (user);
-    return user->priv->session; 
+    return GET_PRIVATE (user)->session; 
 }
 
 /**
@@ -276,20 +300,19 @@ gboolean
 ldm_user_get_logged_in (LdmUser *user)
 {
     g_return_val_if_fail (LDM_IS_USER (user), FALSE);
-    return user->priv->logged_in;
+    return GET_PRIVATE (user)->logged_in;
 }
 
 void
 ldm_user_set_logged_in (LdmUser *user, gboolean logged_in)
 {
     g_return_if_fail (LDM_IS_USER (user));
-    user->priv->logged_in = logged_in;
+    GET_PRIVATE (user)->logged_in = logged_in;
 }
 
 static void
 ldm_user_init (LdmUser *user)
 {
-    user->priv = G_TYPE_INSTANCE_GET_PRIVATE (user, LDM_TYPE_USER, LdmUserPrivate);
 }
 
 static void
@@ -298,13 +321,12 @@ ldm_user_set_property (GObject      *object,
                        const GValue *value,
                        GParamSpec   *pspec)
 {
-    LdmUser *self;
-
-    self = LDM_USER (object);
+    LdmUser *self = LDM_USER (object);
+    LdmUserPrivate *priv = GET_PRIVATE (self);
 
     switch (prop_id) {
     case PROP_GREETER:
-        self->priv->greeter = g_object_ref (g_value_get_object (value));
+        priv->greeter = g_object_ref (g_value_get_object (value));
         break;
     case PROP_NAME:
         ldm_user_set_name (self, g_value_get_string (value));
@@ -374,16 +396,15 @@ ldm_user_get_property (GObject    *object,
 static void
 ldm_user_finalize (GObject *object)
 {
-    LdmUser *self;
+    LdmUser *self = LDM_USER (object);
+    LdmUserPrivate *priv = GET_PRIVATE (self);
 
-    self = LDM_USER (object);
-
-    g_free (self->priv->name);
-    g_free (self->priv->real_name);
-    g_free (self->priv->home_directory);
-    g_free (self->priv->image);
-    if (self->priv->dmrc_file)
-        g_key_file_free (self->priv->dmrc_file);
+    g_free (priv->name);
+    g_free (priv->real_name);
+    g_free (priv->home_directory);
+    g_free (priv->image);
+    if (priv->dmrc_file)
+        g_key_file_free (priv->dmrc_file);
 }
 
 static void

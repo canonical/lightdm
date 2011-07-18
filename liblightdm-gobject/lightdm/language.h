@@ -23,21 +23,15 @@ G_BEGIN_DECLS
 #define LDM_IS_LANGUAGE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LDM_TYPE_LANGUAGE))
 #define LDM_LANGUAGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LDM_TYPE_LANGUAGE, LdmLanguageClass))
 
-typedef struct _LdmLanguage        LdmLanguage;
-typedef struct _LdmLanguageClass   LdmLanguageClass;
-typedef struct _LdmLanguagePrivate LdmLanguagePrivate;
-
-struct _LdmLanguage
+typedef struct
 {
-    GObject         parent_instance;
-    /*<private>*/
-    LdmLanguagePrivate *priv;
-};
+    GObject parent_instance;
+} LdmLanguage;
 
-struct _LdmLanguageClass
+typedef struct
 {
     GObjectClass parent_class;
-};
+} LdmLanguageClass;
 
 GType ldm_language_get_type (void);
 
