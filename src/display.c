@@ -706,8 +706,6 @@ start_user_session (Display *display, PAMSession *pam_session, const gchar *name
         g_object_unref (session);
     }
 
-    g_object_unref (pam_session);
-
     return result;
 }
 
