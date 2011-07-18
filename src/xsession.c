@@ -86,6 +86,30 @@ xsession_start (Session *session)
 }
 
 static void
+xsession_remove_authority (XSession *session)
+{
+    if (session->priv->authorization_file)
+    {
+        g_debug ("Removing session authority from %s", g_file_get_path (session->priv->authorization_file));
+        xauth_write (session->priv->authorization, XAUTH_WRITE_MODE_REMOVE, session_get_user (SESSION (session)), session->priv->authorization_file, NULL);
+        g_object_unref (session->priv->authorization_file);
+        session->priv->authorization_file = NULL;
+    }
+    if (session->priv->authorization)
+    {
+        g_object_unref (session->priv->authorization);
+        session->priv->authorization = NULL;
+    }
+}
+
+static void
+xsession_stop (Session *session)
+{
+    xsession_remove_authority (XSESSION (session));
+    SESSION_CLASS (xsession_parent_class)->stop (session);
+}
+
+static void
 xsession_init (XSession *session)
 {
     session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, XSESSION_TYPE, XSessionPrivate);
@@ -98,13 +122,7 @@ xsession_finalize (GObject *object)
 
     self = XSESSION (object);
 
-    if (self->priv->authorization_file)
-    {
-        g_debug ("Removing session authority from %s", g_file_get_path (self->priv->authorization_file));
-        xauth_write (self->priv->authorization, XAUTH_WRITE_MODE_REMOVE, session_get_user (SESSION (self)), self->priv->authorization_file, NULL);
-        g_object_unref (self->priv->authorization_file);
-    }
-
+    xsession_remove_authority (self);
     if (self->priv->xserver)
         g_object_unref (self->priv->xserver);
 
@@ -118,6 +136,7 @@ xsession_class_init (XSessionClass *klass)
     SessionClass *session_class = SESSION_CLASS (klass);
 
     session_class->start = xsession_start;
+    session_class->stop = xsession_stop;
     object_class->finalize = xsession_finalize;
 
     g_type_class_add_private (klass, sizeof (XSessionPrivate));
