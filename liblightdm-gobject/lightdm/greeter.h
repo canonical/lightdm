@@ -97,7 +97,7 @@ const gchar *ldm_greeter_get_hint (LdmGreeter *greeter, const gchar *name);
 
 const gchar *ldm_greeter_get_default_session_hint (LdmGreeter *greeter);
 
-gboolean ldm_greeter_get_show_users_hint (LdmGreeter *greeter);
+gboolean ldm_greeter_get_hide_users_hint (LdmGreeter *greeter);
 
 gboolean ldm_greeter_get_has_guest_account_hint (LdmGreeter *greeter);
 

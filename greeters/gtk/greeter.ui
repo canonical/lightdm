@@ -165,7 +165,6 @@
                     </child>
                     <child>
                       <object class="GtkTreeView" id="user_treeview">
-                        <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="model">user_liststore</property>
                         <property name="headers_visible">False</property>

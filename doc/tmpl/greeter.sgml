@@ -207,6 +207,11 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
 </para>
 
+<!-- ##### ARG LdmGreeter:hide-users-hint ##### -->
+<para>
+
+</para>
+
 <!-- ##### ARG LdmGreeter:hostname ##### -->
 <para>
 
@@ -238,11 +243,6 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 </para>
 
 <!-- ##### ARG LdmGreeter:select-user-hint ##### -->
-<para>
-
-</para>
-
-<!-- ##### ARG LdmGreeter:show-users-hint ##### -->
 <para>
 
 </para>
@@ -384,7 +384,7 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_show_users_hint ##### -->
+<!-- ##### FUNCTION ldm_greeter_get_hide_users_hint ##### -->
 <para>
 
 </para>

@@ -34,7 +34,7 @@ enum {
     PROP_LAYOUT,
     PROP_SESSIONS,
     PROP_DEFAULT_SESSION_HINT,
-    PROP_SHOW_USERS_HINT,
+    PROP_HIDE_USERS_HINT,
     PROP_HAS_GUEST_ACCOUNT_HINT,
     PROP_SELECT_USER_HINT,
     PROP_SELECT_GUEST_HINT,
@@ -1141,22 +1141,20 @@ ldm_greeter_get_default_session_hint (LdmGreeter *greeter)
 }
 
 /**
- * ldm_greeter_get_show_users_hint:
+ * ldm_greeter_get_hide_users_hint:
  * @greeter: A #LdmGreeter
  *
  * Check if user accounts should be shown.
  *
- * Return value: TRUE if all the user accounts should be shown.
+ * Return value: TRUE if the available users should not be shown.
  */
 gboolean
-ldm_greeter_get_show_users_hint (LdmGreeter *greeter)
+ldm_greeter_get_hide_users_hint (LdmGreeter *greeter)
 {
     const gchar *value;
 
     g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
-    value = ldm_greeter_get_hint (greeter, "show-users");
-    if (!value)
-        value = "true";
+    value = ldm_greeter_get_hint (greeter, "hide-users");
 
     return g_strcmp0 (value, "true") == 0;
 }
@@ -1737,8 +1735,8 @@ ldm_greeter_get_property (GObject    *object,
     case PROP_DEFAULT_SESSION_HINT:
         g_value_set_string (value, ldm_greeter_get_default_session_hint (self));
         break;
-    case PROP_SHOW_USERS_HINT:
-        g_value_set_boolean (value, ldm_greeter_get_show_users_hint (self));
+    case PROP_HIDE_USERS_HINT:
+        g_value_set_boolean (value, ldm_greeter_get_hide_users_hint (self));
         break;
     case PROP_HAS_GUEST_ACCOUNT_HINT:
         g_value_set_boolean (value, ldm_greeter_get_has_guest_account_hint (self));
@@ -1894,10 +1892,10 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                                                           G_PARAM_READWRITE));
 
     g_object_class_install_property (object_class,
-                                     PROP_SHOW_USERS_HINT,
-                                     g_param_spec_boolean ("show-users-hint",
-                                                           "show-users-hint",
-                                                           "Show users hint",
+                                     PROP_HIDE_USERS_HINT,
+                                     g_param_spec_boolean ("hide-users-hint",
+                                                           "hide-users-hint",
+                                                           "hide users hint",
                                                            FALSE,
                                                            G_PARAM_READABLE));
 

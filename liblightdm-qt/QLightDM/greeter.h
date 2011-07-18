@@ -52,7 +52,7 @@ namespace QLightDM
 
         QString getHint(QString name) const;
         QString defaultSessionHint() const;
-        bool showUsersHint() const;
+        bool hideUsersHint() const;
         bool hasGuestAccountHint() const;
         QString selectUserHint() const;
         bool selectGuestHint() const;

@@ -190,6 +190,8 @@ authentication_complete_cb (LdmGreeter *greeter)
     {
         gtk_label_set_text (GTK_LABEL (message_label), "Failed to authenticate");
         gtk_widget_show (message_label);
+        if (ldm_greeter_get_hide_users_hint (greeter))
+            ldm_greeter_login_with_user_prompt (greeter);
     }
 }
 
@@ -426,6 +428,71 @@ draw_background_cb (GtkWidget *widget, GdkEventExpose *event)
 }
 
 static void
+load_user_list ()
+{
+    const GList *items, *item;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+
+    g_signal_connect (greeter, "user-added", G_CALLBACK (user_added_cb), NULL);
+    g_signal_connect (greeter, "user-changed", G_CALLBACK (user_changed_cb), NULL);  
+    items = ldm_greeter_get_users (greeter);
+
+    model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
+    for (item = items; item; item = item->next)
+    {
+        LdmUser *user = item->data;
+        const gchar *image;
+        GdkPixbuf *pixbuf = NULL;
+
+        image = ldm_user_get_image (user);
+        if (image)
+        {
+            gchar *path;
+
+            path = g_filename_from_uri (image, NULL, NULL);
+            if (path)
+                pixbuf = gdk_pixbuf_new_from_file_at_scale (path, 64, 64, TRUE, NULL);
+            g_free (path);
+        }
+        if (!pixbuf)
+            pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
+                                               "stock_person",
+                                               64,
+                                               GTK_ICON_LOOKUP_USE_BUILTIN,
+                                               NULL);
+        /*if (!pixbuf)
+        {
+            pixbuf = gdk_pixbuf_new (GDK_COLORSPACE_RGB, FALSE, 8, 64, 64);
+            memset (gdk_pixbuf_get_pixels (pixbuf), 0, gdk_pixbuf_get_height (pixbuf) * gdk_pixbuf_get_rowstride (pixbuf) * gdk_pixbuf_get_n_channels (pixbuf));
+        }*/
+
+        gtk_list_store_append (GTK_LIST_STORE (model), &iter);
+        gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+                            0, ldm_user_get_name (user),
+                            1, ldm_user_get_display_name (user),
+                            2, pixbuf,
+                            -1);
+    }
+    if (ldm_greeter_get_has_guest_account_hint (greeter))
+    {
+        gtk_list_store_append (GTK_LIST_STORE (model), &iter);
+        gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+                            0, "*guest",
+                            1, "Guest Account",
+                            2, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
+                            -1);
+    }
+
+    gtk_list_store_append (GTK_LIST_STORE (model), &iter);
+    gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+                        0, "*other",
+                        1, "Other...",
+                        2, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
+                        -1);
+}
+
+static void
 connected_cb (LdmGreeter *greeter)
 {
     GdkWindow *root;
@@ -433,8 +500,8 @@ connected_cb (LdmGreeter *greeter)
     GdkScreen *screen;
     gint screen_width, screen_height;
     GtkBuilder *builder;
-    const GList *items, *item;
     GtkTreeModel *model;
+    const GList *items, *item;
     GtkTreeIter iter;
     GtkCellRenderer *renderer;
     gchar *rc_file, *background_image;
@@ -517,59 +584,13 @@ connected_cb (LdmGreeter *greeter)
     gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 0, "Face", gtk_cell_renderer_pixbuf_new(), "pixbuf", 2, NULL);
     gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 1, "Name", gtk_cell_renderer_text_new(), "text", 1, NULL);
 
-    model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
-    items = ldm_greeter_get_users (greeter);
-    for (item = items; item; item = item->next)
+    if (ldm_greeter_get_hide_users_hint (greeter))
+        ldm_greeter_login_with_user_prompt (greeter);
+    else
     {
-        LdmUser *user = item->data;
-        const gchar *image;
-        GdkPixbuf *pixbuf = NULL;
-
-        image = ldm_user_get_image (user);
-        if (image)
-        {
-            gchar *path;
-
-            path = g_filename_from_uri (image, NULL, NULL);
-            if (path)
-                pixbuf = gdk_pixbuf_new_from_file_at_scale (path, 64, 64, TRUE, NULL);
-            g_free (path);
-        }
-        if (!pixbuf)
-            pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
-                                               "stock_person",
-                                               64,
-                                               GTK_ICON_LOOKUP_USE_BUILTIN,
-                                               NULL);
-        /*if (!pixbuf)
-        {
-            pixbuf = gdk_pixbuf_new (GDK_COLORSPACE_RGB, FALSE, 8, 64, 64);
-            memset (gdk_pixbuf_get_pixels (pixbuf), 0, gdk_pixbuf_get_height (pixbuf) * gdk_pixbuf_get_rowstride (pixbuf) * gdk_pixbuf_get_n_channels (pixbuf));
-        }*/
-
-        gtk_list_store_append (GTK_LIST_STORE (model), &iter);
-        gtk_list_store_set (GTK_LIST_STORE (model), &iter,
-                            0, ldm_user_get_name (user),
-                            1, ldm_user_get_display_name (user),
-                            2, pixbuf,
-                            -1);
+        load_user_list ();
+        gtk_widget_show (user_view);
     }
-    if (ldm_greeter_get_has_guest_account_hint (greeter))
-    {
-        gtk_list_store_append (GTK_LIST_STORE (model), &iter);
-        gtk_list_store_set (GTK_LIST_STORE (model), &iter,
-                            0, "*guest",
-                            1, "Guest Account",
-                            2, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
-                            -1);
-    }
-
-    gtk_list_store_append (GTK_LIST_STORE (model), &iter);
-    gtk_list_store_set (GTK_LIST_STORE (model), &iter,
-                        0, "*other",
-                        1, "Other...",
-                        2, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
-                        -1);
   
     // FIXME: Select the requested user if ldm_greeter_get_timed_login_user () && ldm_greeter_get_timed_login_delay () == 0
 
@@ -613,8 +634,6 @@ main(int argc, char **argv)
     g_signal_connect (G_OBJECT (greeter), "show-message", G_CALLBACK (show_message_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "autologin-timer-expired", G_CALLBACK (autologin_timer_expired_cb), NULL);
-    g_signal_connect (G_OBJECT (greeter), "user-added", G_CALLBACK (user_added_cb), NULL);
-    g_signal_connect (G_OBJECT (greeter), "user-changed", G_CALLBACK (user_changed_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "user-removed", G_CALLBACK (user_removed_cb), NULL);
     g_signal_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
     ldm_greeter_connect_to_server (greeter);

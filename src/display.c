@@ -52,6 +52,9 @@ struct DisplayPrivate
     /* Greeter session */
     gchar *greeter_session;
 
+    /* TRUE if the user list should be shown */
+    gboolean greeter_hide_users;
+
     /* Default session for users */
     gchar *default_session;
 
@@ -110,6 +113,10 @@ display_load_config (Display *display, const gchar *config_section)
         display->priv->greeter_session = config_get_string (config_get_instance (), config_section, "greeter-session");
     if (!display->priv->greeter_session)
         display->priv->greeter_session = config_get_string (config_get_instance (), "SeatDefaults", "greeter-session");
+    if (config_section && config_has_key (config_get_instance (), config_section, "greeter-hide-users"))
+        display->priv->greeter_hide_users = config_get_boolean (config_get_instance (), config_section, "greeter-hide-users");
+    else if (config_has_key (config_get_instance (), "SeatDefaults", "greeter-hide-users"))
+        display->priv->greeter_hide_users = config_get_boolean (config_get_instance (), "SeatDefaults", "greeter-hide-users");
     if (config_section)
         display->priv->default_session = config_get_string (config_get_instance (), config_section, "user-session");
     if (!display->priv->default_session)
@@ -675,6 +682,7 @@ start_greeter_session (Display *display)
         greeter_set_hint (display->priv->greeter, "select-guest", "true");
     greeter_set_hint (display->priv->greeter, "default-session", display->priv->default_session);
     greeter_set_hint (display->priv->greeter, "has-guest-account", guest_account_get_is_enabled () ? "true" : "false");
+    greeter_set_hint (display->priv->greeter, "hide-users", display->priv->greeter_hide_users ? "true" : "false");
 
     result = greeter_start (display->priv->greeter);
     if (result)

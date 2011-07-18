@@ -422,9 +422,9 @@ QString Greeter::defaultSessionHint() const
     return getHint ("default-session");
 }
 
-bool Greeter::showUsersHint() const
+bool Greeter::hideUsersHint() const
 {
-    return d->hints.value ("show-users", "true") == "true";
+    return d->hints.value ("hide-users", "true") == "true";
 }
 
 bool Greeter::hasGuestAccountHint() const
