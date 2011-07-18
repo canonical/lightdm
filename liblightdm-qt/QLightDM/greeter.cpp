@@ -44,7 +44,8 @@ typedef enum
     GREETER_MESSAGE_CONNECTED               = 101,
     GREETER_MESSAGE_QUIT                    = 102,
     GREETER_MESSAGE_PROMPT_AUTHENTICATION   = 103,
-    GREETER_MESSAGE_END_AUTHENTICATION      = 104
+    GREETER_MESSAGE_END_AUTHENTICATION      = 104,
+    GREETER_MESSAGE_SESSION_FAILED          = 105
 } GreeterMessage;
 
 #define HEADER_SIZE 8
@@ -386,6 +387,10 @@ void Greeter::onRead(int fd)
         }
         else
             qDebug () << "Ignoring end authentication with invalid sequence number " << sequenceNumber;
+        break;
+    case GREETER_MESSAGE_SESSION_FAILED:
+        qDebug() << "Session failed to start";
+        emit sessionFailed();
         break;
     default:
         qDebug() << "Unknown message from server: " << id;

@@ -49,6 +49,7 @@ enum {
     SHOW_PROMPT,
     SHOW_MESSAGE,
     AUTHENTICATION_COMPLETE,
+    SESSION_FAILED,
     TIMED_LOGIN,
     USER_ADDED,
     USER_CHANGED,
@@ -342,6 +343,13 @@ handle_end_authentication (LdmGreeter *greeter, gsize *offset)
 }
 
 static void
+handle_session_failed (LdmGreeter *greeter, gsize *offset)
+{ 
+    g_debug ("Session failed to start");
+    g_signal_emit (G_OBJECT (greeter), signals[SESSION_FAILED], 0);
+}
+
+static void
 handle_quit (LdmGreeter *greeter, gsize *offset)
 {
     g_debug ("Got quit request from server");
@@ -419,6 +427,9 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         break;
     case GREETER_MESSAGE_END_AUTHENTICATION:
         handle_end_authentication (greeter, &offset);
+        break;
+    case GREETER_MESSAGE_SESSION_FAILED:
+        handle_session_failed (greeter, &offset);
         break;
     case GREETER_MESSAGE_QUIT:
         handle_quit (greeter, &offset);
@@ -1857,6 +1868,22 @@ ldm_greeter_class_init (LdmGreeterClass *klass)
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LdmGreeterClass, authentication_complete),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
+
+    /**
+     * LdmGreeter::session-failed:
+     * @greeter: A #LdmGreeter
+     *
+     * The ::session-failed signal gets emitted when the deamon has failed
+     * to start the requested session.
+     **/
+    signals[SESSION_FAILED] =
+        g_signal_new ("session-failed",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (LdmGreeterClass, session_failed),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);

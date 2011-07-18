@@ -238,7 +238,6 @@ authentication_result_cb (PAMSession *session, int result, Greeter *greeter)
     if (result == PAM_SUCCESS)
     {
         g_debug ("User %s authorized", pam_session_get_username (session));
-        //run_script ("PostLogin");
         pam_session_authorize (session);
     }
 
@@ -393,9 +392,14 @@ handle_start_session (Greeter *greeter, gchar *session)
         session = NULL;
 
     g_signal_emit (greeter, signals[START_SESSION], 0, session, greeter->priv->using_guest_account, &result);
+
     if (!result)
     {
-        // FIXME: Write back to greeter
+        guint8 message[MAX_MESSAGE_LENGTH];
+        gsize offset = 0;
+
+        write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_SESSION_FAILED, 0, &offset);
+        write_message (greeter, message, offset);
     }
 }
 

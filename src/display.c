@@ -559,7 +559,7 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session, gboolean is_gu
     {
         if (!guest_account_ref ())
         {
-            g_debug ("Failed to create guest account");
+            g_debug ("Failed to create guest account, aborting login");
             return FALSE;
         }
     }

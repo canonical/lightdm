@@ -14,6 +14,9 @@ Overview of changes in lightdm 0.4.5
       - Support setting autologin user to guest account
       - Split the user accounts configuration into /etc/lightdm/users.conf so the
         main config can be private.
+    * liblightdm API changes:
+      - Added a session-failed signal to indicate if the session didn't start
+        and the greeter should try authorizing again.
     * Drop most of the configure options, they aren't necessary
     * Removed the Vala and Python GTK+ greeters, they weren't being well
       maintained.

@@ -82,6 +82,7 @@ namespace QLightDM
 	void showMessage(QString message);
 	void showError(QString message);
 	void authenticationComplete(bool isAuthenticated);
+	void sessionFailed();
 	void timedLogin(QString username);
 	void quit();
     
