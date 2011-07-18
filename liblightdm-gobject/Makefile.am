@@ -7,7 +7,7 @@ CLEANFILES =
 liblightdm_gobject_0_la_LIBADD = $(LIBLIGHTDM_GOBJECT_LIBS)
 liblightdm_gobject_0_la_CFLAGS = $(LIBLIGHTDM_GOBJECT_CFLAGS) \
 	$(WARN_CFLAGS) \
-	-DXSESSIONS_DIR=\"$(XSESSIONS_DIR)\"
+	-DXSESSIONS_DIR=\"$(datadir)/xsessions\"
 
 liblightdm_gobject_0_la_SOURCES= \
 	greeter.c \

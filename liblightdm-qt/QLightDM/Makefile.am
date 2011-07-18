@@ -30,7 +30,7 @@ liblightdm_qt_0includedir=$(includedir)/lightdm-qt-0/QLightDM
 
 liblightdm_qt_0_la_LIBADD = $(LIBLIGHTDM_QT_LIBS)
 liblightdm_qt_0_la_CXXFLAGS = $(LIBLIGHTDM_QT_CFLAGS) \
-	-DXSESSIONS_DIR=\"$(XSESSIONS_DIR)\"
+	-DXSESSIONS_DIR=\"$(datadir)/xsessions\"
 
 liblightdm_qt_0_la_SOURCES = \
 	greeter.cpp \
