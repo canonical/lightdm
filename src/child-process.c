@@ -43,10 +43,6 @@ struct ChildProcessPrivate
     /* Path of file to log to */
     gchar *log_file;
   
-    /* Pipes to communicate with */
-    GIOChannel *to_child_channel;
-    GIOChannel *from_child_channel;
-
     /* Timeout waiting for process to quit */
     guint quit_timeout;
 
@@ -209,27 +205,11 @@ run_child_process (ChildProcess *process, char *const argv[])
     _exit (EXIT_FAILURE);
 }
 
-static gboolean
-from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
-{
-    ChildProcess *process = data;
-
-    if (condition == G_IO_HUP)
-    {
-        g_debug ("Process %d closed communication channel", process->priv->pid);
-        return FALSE;
-    }
-
-    g_signal_emit (process, signals[GOT_DATA], 0);
-    return TRUE;
-}
-
 gboolean
 child_process_start (ChildProcess *process,
                      User *user,
                      const gchar *working_dir,
                      const gchar *command,
-                     gboolean create_pipe,
                      GError **error)
 {
     gboolean result;
@@ -239,7 +219,6 @@ child_process_start (ChildProcess *process,
     gpointer key, value;
     GHashTableIter iter;
     pid_t pid;
-    int from_server_fd = -1, to_server_fd = -1;
 
     g_return_val_if_fail (process != NULL, FALSE);
     g_return_val_if_fail (process->priv->pid == 0, FALSE);
@@ -255,40 +234,6 @@ child_process_start (ChildProcess *process,
             g_warning ("Failed to set process log file ownership: %s", strerror (errno));
     }
 
-    if (create_pipe)
-    {
-        gchar *fd;
-        int to_child_pipe[2];
-        int from_child_pipe[2];
-
-        if (pipe (to_child_pipe) != 0 || 
-            pipe (from_child_pipe) != 0)
-        {
-            g_warning ("Failed to create pipes: %s", strerror (errno));            
-            return FALSE;
-        }
-
-        process->priv->to_child_channel = g_io_channel_unix_new (to_child_pipe[1]);
-        g_io_channel_set_encoding (process->priv->to_child_channel, NULL, NULL);
-
-        /* Watch for data from the child process */
-        process->priv->from_child_channel = g_io_channel_unix_new (from_child_pipe[0]);
-        g_io_channel_set_encoding (process->priv->from_child_channel, NULL, NULL);
-        g_io_channel_set_buffered (process->priv->from_child_channel, FALSE);
-
-        g_io_add_watch (process->priv->from_child_channel, G_IO_IN | G_IO_HUP, from_child_cb, process);
-
-        to_server_fd = from_child_pipe[1];
-        from_server_fd = to_child_pipe[0];
-
-        fd = g_strdup_printf ("%d", to_server_fd);
-        child_process_set_env (process, "LDM_TO_SERVER_FD", fd);
-        g_free (fd);
-        fd = g_strdup_printf ("%d", from_server_fd);
-        child_process_set_env (process, "LDM_FROM_SERVER_FD", fd);
-        g_free (fd);
-    }
-
     result = g_shell_parse_argv (command, &argc, &argv, error);
     if (!result)
         return FALSE;
@@ -301,18 +246,7 @@ child_process_start (ChildProcess *process,
     }
 
     if (pid == 0)
-    {
-        /* Close pipes */
-        // TEMP: Remove this when have more generic file closing
-        if (process->priv->to_child_channel)
-            close (g_io_channel_unix_get_fd (process->priv->to_child_channel));
-        if (process->priv->from_child_channel)
-            close (g_io_channel_unix_get_fd (process->priv->from_child_channel));
-
         run_child_process (process, argv);
-    }
-    close (from_server_fd);
-    close (to_server_fd);
     g_strfreev (argv);
 
     string = g_string_new ("");
@@ -359,20 +293,6 @@ child_process_signal (ChildProcess *process, int signum)
 
     if (kill (process->priv->pid, signum) < 0)
         g_warning ("Error sending signal %d to process %d: %s", signum, process->priv->pid, strerror (errno));
-}
-
-GIOChannel *
-child_process_get_to_child_channel (ChildProcess *process)
-{
-    g_return_val_if_fail (process != NULL, NULL);
-    return process->priv->to_child_channel;
-}
-
-GIOChannel *
-child_process_get_from_child_channel (ChildProcess *process)
-{
-    g_return_val_if_fail (process != NULL, NULL);
-    return process->priv->from_child_channel;
 }
 
 static gboolean

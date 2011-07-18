@@ -141,7 +141,13 @@ get_seat_for_cookie (const gchar *cookie)
         for (l = seat_get_displays (seat); l; l = l->next)
         {
             Display *display = l->data;
-            if (g_strcmp0 (display_get_session_cookie (display), cookie) == 0)
+            Session *session;
+          
+            session = display_get_session (display);
+            if (!session)
+                continue;
+          
+            if (g_strcmp0 (session_get_cookie (session), cookie) == 0)
                 return seat;
         }
     }
@@ -418,12 +424,11 @@ main (int argc, char **argv)
     gchar *default_xserver_command = g_strdup ("X");
     gchar *passwd_path = NULL;
     gchar *pid_path = "/var/run/lightdm.pid";
-    gchar *theme_dir = g_strdup (GREETER_THEME_DIR), *theme_engine_dir = g_strdup (GREETER_THEME_ENGINE_DIR);
-    gchar *default_greeter_theme = g_strdup (DEFAULT_GREETER_THEME);
+    gchar *greeter_session = g_strdup (GREETER_SESSION);
     gchar *xsessions_dir = g_strdup (XSESSIONS_DIR);
     gchar *run_dir = g_strdup (RUN_DIR);
     gchar *cache_dir = g_strdup (CACHE_DIR);
-    gchar *default_xsession = g_strdup (DEFAULT_XSESSION);
+    gchar *default_session = g_strdup (DEFAULT_SESSION);
     gchar *minimum_display_number = NULL;
     gboolean show_version = FALSE;
     GOptionEntry options[] = 
@@ -455,21 +460,15 @@ main (int argc, char **argv)
         { "cache-dir", 0, 0, G_OPTION_ARG_STRING, &cache_dir,
           /* Help string for command line --cache-dir flag */
           N_("Directory to cache information"), "DIRECTORY" },
-        { "theme-dir", 0, 0, G_OPTION_ARG_STRING, &theme_dir,
-          /* Help string for command line --theme-dir flag */
-          N_("Directory to load themes from"), "DIRECTORY" },
-        { "theme-engine-dir", 0, 0, G_OPTION_ARG_STRING, &theme_engine_dir,
-          /* Help string for command line --theme-engine-dir flag */
-          N_("Directory to load theme engines from"), "DIRECTORY" },
-        { "default-greeter-theme", 0, 0, G_OPTION_ARG_STRING, &default_greeter_theme,
+        { "default-greeter-theme", 0, 0, G_OPTION_ARG_STRING, &greeter_session,
           /* Help string for command line --default-greeter-theme flag */
           N_("Default greeter theme"), "THEME" },
         { "xsessions-dir", 0, 0, G_OPTION_ARG_STRING, &xsessions_dir,
           /* Help string for command line --xsessions-dir flag */
           N_("Directory to load X sessions from"), "DIRECTORY" },
-        { "default-xsession", 0, 0, G_OPTION_ARG_STRING, &default_xsession,
-          /* Help string for command line --default-xsession flag */
-          N_("Default X session"), "XSESSION" },
+        { "default-session", 0, 0, G_OPTION_ARG_STRING, &default_session,
+          /* Help string for command line --default-session flag */
+          N_("Default session"), "SESSION" },
         { "minimum-display-number", 0, 0, G_OPTION_ARG_STRING, &minimum_display_number,
           /* Help string for command line --minimum-display-number flag */
           N_("Minimum display number to use for X servers"), "NUMBER" },
@@ -514,8 +513,6 @@ main (int argc, char **argv)
     }
 
     /* Always use absolute directories as child processes may run from different locations */
-    theme_dir = path_make_absolute (theme_dir);
-    theme_engine_dir = path_make_absolute (theme_engine_dir);
     xsessions_dir = path_make_absolute (xsessions_dir);
 
     /* Check if root */
@@ -584,11 +581,9 @@ main (int argc, char **argv)
 
     /* Set default values */
     config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", default_xserver_command);
-    config_set_string (config_get_instance (), "SeatDefaults", "greeter-theme", default_greeter_theme);
-    config_set_string (config_get_instance (), "SeatDefaults", "xsession", default_xsession);
+    config_set_string (config_get_instance (), "SeatDefaults", "greeter-session", greeter_session);
+    config_set_string (config_get_instance (), "SeatDefaults", "default-session", default_session);
     config_set_string (config_get_instance (), "Directories", "log-directory", LOG_DIR);
-    config_set_string (config_get_instance (), "Directories", "theme-directory", theme_dir);
-    config_set_string (config_get_instance (), "Directories", "theme-engine-directory", theme_engine_dir);
     config_set_string (config_get_instance (), "Directories", "run-directory", run_dir);
     config_set_string (config_get_instance (), "Directories", "cache-directory", cache_dir);
     config_set_string (config_get_instance (), "Directories", "xsessions-directory", xsessions_dir);

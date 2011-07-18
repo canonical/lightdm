@@ -136,27 +136,27 @@ dnl ###########################################################################
 dnl Configurable values
 dnl ###########################################################################
 
-DEFAULT_XSESSION=gnome
-AC_ARG_WITH(default-xsession,
-            AS_HELP_STRING(--with-default-xsession=<name>,
-                           Default X session to launch),
+DEFAULT_SESSION=gnome
+AC_ARG_WITH(default-session,
+            AS_HELP_STRING(--with-default-session=<name>,
+                           Default session to launch for users),
     if test x$withval != x; then
-        DEFAULT_XSESSION="$withval"
+        DEFAULT_SESSION="$withval"
     fi
 )
-AC_SUBST(DEFAULT_XSESSION)
-AC_DEFINE_UNQUOTED(DEFAULT_XSESSION, "$DEFAULT_XSESSION", Default X session)
+AC_SUBST(DEFAULT_SESSION)
+AC_DEFINE_UNQUOTED(DEFAULT_SESSION, "$DEFAULT_SESSION", Default session)
 
-DEFAULT_GREETER_THEME=example-gtk-gnome
+GREETER_SESSION=example-gtk-gnome
 AC_ARG_WITH(theme,
-            AS_HELP_STRING(--with-theme=<theme>,
-                           Default theme),
+            AS_HELP_STRING(--with-greeter-session=<session>,
+                           Greeter session),
     if test x$withval != x; then
-        DEFAULT_GREETER_THEME="$withval"
+        GREETER_SESSION="$withval"
     fi
 )
-AC_SUBST(DEFAULT_GREETER_THEME)
-AC_DEFINE_UNQUOTED(DEFAULT_GREETER_THEME, "$DEFAULT_GREETER_THEME", Default greeter theme)
+AC_SUBST(GREETER_SESSION)
+AC_DEFINE_UNQUOTED(GREETER_SESSION, "$GREETER_SESSION", Greeter session)
 
 dnl ###########################################################################
 dnl Documentation
@@ -214,8 +214,8 @@ echo "
                     ===========================
 
         prefix:                   $prefix
-        Default X session:        $DEFAULT_XSESSION
-        Default greeter theme:    $DEFAULT_GREETER_THEME
+        Greeter session:          $GREETER_SESSION
+        Default session:          $DEFAULT_SESSION
 
         Greeters:
         liblightdm-gobject:       $compile_liblightdm_gobject

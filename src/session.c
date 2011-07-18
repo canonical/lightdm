@@ -28,9 +28,12 @@ struct SessionPrivate
   
     /* Command to run for this session */
     gchar *command;
-  
-    /* TRUE if has a communication pipe */
-    gboolean has_pipe;
+
+    /* Cookie for the session */
+    gchar *cookie;
+
+    /* TRUE if this is a greeter session */
+    gboolean is_greeter;
 };
 
 G_DEFINE_TYPE (Session, session, CHILD_PROCESS_TYPE);
@@ -43,6 +46,12 @@ session_set_user (Session *session, User *user)
     if (session->priv->user)
         g_object_unref (session->priv->user);
     session->priv->user = g_object_ref (user);
+
+    child_process_set_env (CHILD_PROCESS (session), "PATH", "/usr/local/bin:/usr/bin:/bin");
+    child_process_set_env (CHILD_PROCESS (session), "USER", user_get_name (user));
+    child_process_set_env (CHILD_PROCESS (session), "USERNAME", user_get_name (user)); // FIXME: Is this required?
+    child_process_set_env (CHILD_PROCESS (session), "HOME", user_get_home_directory (user));
+    child_process_set_env (CHILD_PROCESS (session), "SHELL", user_get_shell (user));
 }
 
 User *
@@ -50,6 +59,20 @@ session_get_user (Session *session)
 {
     g_return_val_if_fail (session != NULL, NULL);
     return session->priv->user;
+}
+
+void
+session_set_is_greeter (Session *session, gboolean is_greeter)
+{
+    g_return_if_fail (session != NULL);
+    session->priv->is_greeter = is_greeter;
+}
+
+gboolean
+session_get_is_greeter (Session *session)
+{
+    g_return_val_if_fail (session != NULL, FALSE);
+    return session->priv->is_greeter;
 }
 
 void
@@ -69,10 +92,19 @@ session_get_command (Session *session)
 }
 
 void
-session_set_has_pipe (Session *session, gboolean has_pipe)
+session_set_cookie (Session *session, const gchar *cookie)
 {
     g_return_if_fail (session != NULL);
-    session->priv->has_pipe = has_pipe;
+
+    g_free (session->priv->cookie);
+    session->priv->cookie = g_strdup (cookie);
+}
+
+const gchar *
+session_get_cookie (Session *session)
+{
+    g_return_val_if_fail (session != NULL, NULL);  
+    return session->priv->cookie;
 }
 
 static gchar *
@@ -117,11 +149,13 @@ session_real_start (Session *session)
 
     g_debug ("Launching session");
 
+    if (session->priv->cookie)
+        child_process_set_env (CHILD_PROCESS (session), "XDG_SESSION_COOKIE", session->priv->cookie);
+
     result = child_process_start (CHILD_PROCESS (session),
                                   session->priv->user,
                                   user_get_home_directory (session->priv->user),
                                   absolute_command,
-                                  session->priv->has_pipe,
                                   &error);
     g_free (absolute_command);
 
@@ -168,6 +202,7 @@ session_finalize (GObject *object)
     if (self->priv->user)
         g_object_unref (self->priv->user);
     g_free (self->priv->command);
+    g_free (self->priv->cookie);
 
     G_OBJECT_CLASS (session_parent_class)->finalize (object);
 }

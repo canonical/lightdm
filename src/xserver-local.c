@@ -336,7 +336,6 @@ xserver_local_start (DisplayServer *server)
                                   user_get_current (),
                                   NULL,
                                   command->str,
-                                  FALSE,
                                   &error);
     g_string_free (command, TRUE);
     if (!result)

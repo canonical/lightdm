@@ -44,11 +44,17 @@ void session_set_user (Session *session, User *user);
 
 User *session_get_user (Session *session);
 
+void session_set_is_greeter (Session *session, gboolean is_greeter);
+
+gboolean session_get_is_greeter (Session *session);
+
 void session_set_command (Session *session, const gchar *command);
 
 const gchar *session_get_command (Session *session);
 
-void session_set_has_pipe (Session *session, gboolean has_pipe);
+void session_set_cookie (Session *session, const gchar *cookie);
+
+const gchar *session_get_cookie (Session *session);
 
 gboolean session_start (Session *session);
 

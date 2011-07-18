@@ -29,7 +29,7 @@ xdisplay_new (const gchar *config_section, XServer *server)
 }
 
 static Session *
-xdisplay_start_session (Display *display)
+xdisplay_create_session (Display *display)
 {
     return SESSION (xsession_new (XSERVER (display_get_display_server (display))));
 }
@@ -44,5 +44,5 @@ xdisplay_class_init (XDisplayClass *klass)
 {
     DisplayClass *display_class = DISPLAY_CLASS (klass);
 
-    display_class->start_session = xdisplay_start_session;
+    display_class->create_session = xdisplay_create_session;
 }

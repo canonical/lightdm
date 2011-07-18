@@ -41,8 +41,6 @@ lightdm_SOURCES = \
 	seat-xdmcp-session.h \
 	session.c \
 	session.h \
-	theme.c \
-	theme.h \
 	user.c \
 	user.h \
 	vt.c \

@@ -100,12 +100,17 @@ display_activate_user_cb (Display *display, const gchar *username, Seat *seat)
     for (link = seat->priv->displays; link; link = link->next)
     {
         Display *d = link->data;
+        Session *session;
 
         if (d == display)
             continue;
+      
+        session = display_get_session (d);
+        if (!session)
+            continue;
  
         /* If already logged in, then switch to that display and stop the greeter display */
-        if (g_strcmp0 (display_get_session_user (d), username) == 0)
+        if (g_strcmp0 (user_get_name (session_get_user (session)), username) == 0)
         {
             // FIXME: Use display_get_name
             g_debug ("Switching to user %s session on display %s", username, xserver_get_address (XSERVER (display_get_display_server (display))));
@@ -161,16 +166,21 @@ switch_to_user (Seat *seat, const gchar *username, gboolean is_guest)
     for (link = seat->priv->displays; link; link = link->next)
     {
         display = link->data;
+        Session *session;
+
+        session = display_get_session (display);
+        if (!session)
+            continue;
  
         /* Shouldn't be any other greeters running, close them if so */
-        if (display_get_greeter (display))
+        if (!session || session_get_is_greeter (session))
         {
             display_stop (display);
             continue;
         }
 
         /* If already logged in, then switch to that display */
-        if (g_strcmp0 (display_get_session_user (display), username) == 0)
+        if (g_strcmp0 (user_get_name (session_get_user (session)), username) == 0)
         {
             // FIXME: Use display_get_name
             g_debug ("Switching to user %s session on display %s", username, xserver_get_address (XSERVER (display_get_display_server (display))));
