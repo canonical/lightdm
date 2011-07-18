@@ -145,7 +145,7 @@ int_length ()
 }
 
 static void
-write_message (LdmGreeter *greeter, guint8 *message, gint message_length)
+write_message (LdmGreeter *greeter, guint8 *message, gsize message_length)
 {
     GError *error = NULL;
     if (g_io_channel_write_chars (greeter->priv->to_server_channel, (gchar *) message, message_length, NULL, NULL) != G_IO_STATUS_NORMAL)
