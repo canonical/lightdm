@@ -31,7 +31,7 @@ typedef struct
 typedef struct
 {
     GObjectClass parent_class;
-    void (*start_session)(Greeter *greeter, const gchar *session);
+    gboolean (*start_session)(Greeter *greeter, const gchar *session, gboolean is_guest);
 } GreeterClass;
 
 GType greeter_get_type (void);

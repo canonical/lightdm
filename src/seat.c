@@ -104,7 +104,7 @@ display_activate_user_cb (Display *display, const gchar *username, Seat *seat)
 
         if (d == display)
             continue;
-      
+
         session = display_get_session (d);
         if (!session)
             continue;

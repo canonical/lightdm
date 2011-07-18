@@ -255,21 +255,25 @@ reset_session (Greeter *greeter)
     pam_session_end (greeter->priv->pam_session);
     g_object_unref (greeter->priv->pam_session);
 
-    if (greeter->priv->using_guest_account)
-        guest_account_unref ();
     greeter->priv->using_guest_account = FALSE;
 }
 
 static void
-start_authentication (Greeter *greeter, guint32 sequence_number, PAMSession *session)
+handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
 {
     GError *error = NULL;
 
-    // FIXME
-    //if (greeter->priv->user_session)
-    //    return;
+    if (username[0] == '\0')
+    {
+        g_debug ("Greeter start authentication");
+        username = NULL;
+    }
+    else
+        g_debug ("Greeter start authentication for %s", username);        
 
-    greeter->priv->pam_session = session;
+    reset_session (greeter);
+
+    greeter->priv->pam_session = pam_session_new ("lightdm"/*FIXMEgreeter->priv->pam_service*/, username);
     greeter->priv->authentication_sequence_number = sequence_number;
 
     g_signal_connect (G_OBJECT (greeter->priv->pam_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
@@ -280,22 +284,7 @@ start_authentication (Greeter *greeter, guint32 sequence_number, PAMSession *ses
         g_warning ("Failed to start authentication: %s", error->message);
         send_end_authentication (greeter, sequence_number, PAM_SYSTEM_ERR);
     }
-}
-
-static void
-handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
-{
-    if (username[0] == '\0')
-    {
-        g_debug ("Greeter start authentication");
-        username = NULL;
-    }
-    else
-        g_debug ("Greeter start authentication for %s", username);        
-
-    reset_session (greeter);
-    greeter->priv->using_guest_account = FALSE;
-    start_authentication (greeter, sequence_number, pam_session_new ("lightdm"/*FIXMEgreeter->priv->pam_service*/, username));
+    g_clear_error (&error);
 }
 
 static void
@@ -312,15 +301,10 @@ handle_login_as_guest (Greeter *greeter, guint32 sequence_number)
         return;
     }
 
-    if (!guest_account_ref ())
-    {
-        g_debug ("Unable to create guest account");
-        send_end_authentication (greeter, sequence_number, PAM_USER_UNKNOWN);
-        return;
-    }
     greeter->priv->using_guest_account = TRUE;
-
-    start_authentication (greeter, sequence_number, pam_session_new ("lightdm-autologin"/*FIXMEgreeter->priv->pam_service*/, guest_account_get_username ()));
+    greeter->priv->pam_session = pam_session_new ("lightdm-autologin" /*FIXME*/, guest_account_get_username ());
+    pam_session_authorize (greeter->priv->pam_session);
+    send_end_authentication (greeter, sequence_number, PAM_SUCCESS);
 }
 
 static void
@@ -403,16 +387,16 @@ greeter_quit (Greeter *greeter)
 static void
 handle_start_session (Greeter *greeter, gchar *session)
 {
-    /*if (greeter->priv->user_session != NULL)
-    {
-        g_warning ("Ignoring request to log in when already logged in");
-        return;
-    }*/
+    gboolean result;
 
     if (strcmp (session, "") == 0)
         session = NULL;
 
-    g_signal_emit (greeter, signals[START_SESSION], 0, session, greeter->priv->using_guest_account);
+    g_signal_emit (greeter, signals[START_SESSION], 0, session, greeter->priv->using_guest_account, &result);
+    if (!result)
+    {
+        // FIXME: Write back to greeter
+    }
 }
 
 static guint32
@@ -606,8 +590,6 @@ greeter_finalize (GObject *object)
     g_free (self->priv->read_buffer);
     g_free (self->priv->default_session);
     g_free (self->priv->selected_user);
-    if (self->priv->using_guest_account)
-        guest_account_unref ();
     if (self->priv->to_greeter_channel)
         g_io_channel_unref (self->priv->to_greeter_channel);
     if (self->priv->from_greeter_channel)
@@ -629,8 +611,8 @@ greeter_class_init (GreeterClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (GreeterClass, start_session),
                       NULL, NULL,
-                      ldm_marshal_VOID__STRING_BOOLEAN,
-                      G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_BOOLEAN);
+                      ldm_marshal_BOOLEAN__STRING_BOOLEAN,
+                      G_TYPE_BOOLEAN, 2, G_TYPE_STRING, G_TYPE_BOOLEAN);
 
     g_type_class_add_private (klass, sizeof (GreeterPrivate));
 }

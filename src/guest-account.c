@@ -13,7 +13,7 @@
 #include "configuration.h"
 
 /* Reference count */
-static gint ref_count;
+static gint ref_count = 0;
 
 /* Username of guest account */
 static gchar *username = NULL;

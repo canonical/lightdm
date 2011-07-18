@@ -76,9 +76,6 @@ struct DisplayPrivate
     /* Timeout for greeter to respond to quit request */
     guint greeter_quit_timeout;
 
-    // FIXME: Handle in Session?
-    gboolean using_guest_account;
-
     PAMSession *pam_session;
 
     /* User that should be automatically logged in */
@@ -358,12 +355,8 @@ session_stopped_cb (Session *session, Display *display)
         g_signal_handlers_disconnect_matched (display->priv->greeter, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
 
     /* If a guest account, remove the account on exit */
-    // FIXME: Move into Session
-    if (display->priv->using_guest_account) // FIXME: Not set
-    {
-        display->priv->using_guest_account = FALSE;
+    if (g_strcmp0 (pam_session_get_username (display->priv->pam_session), guest_account_get_username ()) == 0)
         guest_account_unref ();
-    }
 
     g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
 
@@ -548,10 +541,28 @@ quit_timeout_cb (gpointer data)
     return TRUE;
 }
 
-static void
+static gboolean
 greeter_start_session_cb (Greeter *greeter, const gchar *session, gboolean is_guest, Display *display)
 {
     PAMSession *pam_session;
+    const gchar *username = NULL;
+
+    pam_session = greeter_get_pam_session (display->priv->greeter);
+    if (!is_guest && !pam_session_get_in_session (pam_session))
+    {
+        g_warning ("Ignoring request for login with unauthenticated user");
+        return FALSE;
+    }
+
+    /* Open guest account */
+    if (is_guest)
+    {
+        if (!guest_account_ref ())
+        {
+            g_debug ("Failed to create guest account");
+            return FALSE;
+        }
+    }
 
     /* Default session requested */
     if (!session)
@@ -559,25 +570,19 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session, gboolean is_gu
     g_free (display->priv->user_session);
     display->priv->user_session = g_strdup (session);
 
-    pam_session = greeter_get_pam_session (display->priv->greeter);
-
-    if (!pam_session || !pam_session_get_in_session (pam_session))
-    {
-        g_warning ("Ignoring request for login with unauthenticated user");
-        return;
-    }
-
     /* Stop this display if can switch to that user */
-    if (activate_user (display, pam_session_get_username (pam_session)))
-    {
+    username = pam_session_get_username (pam_session);
+    if (activate_user (display, username))
         display_stop (display);
-        return;
+    else
+    {
+        greeter_quit (display->priv->greeter);
+        if (display->priv->greeter_quit_timeout)
+            g_source_remove (display->priv->greeter_quit_timeout);
+        display->priv->greeter_quit_timeout = g_timeout_add (GREETER_QUIT_TIMEOUT, quit_timeout_cb, display);
     }
 
-    greeter_quit (display->priv->greeter);
-    if (display->priv->greeter_quit_timeout)
-        g_source_remove (display->priv->greeter_quit_timeout);
-    display->priv->greeter_quit_timeout = g_timeout_add (GREETER_QUIT_TIMEOUT, quit_timeout_cb, display);
+    return TRUE;
 }
 
 static gboolean
@@ -767,6 +772,7 @@ static void
 display_server_ready_cb (DisplayServer *display_server, Display *display)
 {
     PAMSession *pam_session = NULL;
+    gboolean result = FALSE;
 
     /* Don't run any sessions on local terminals */
     // FIXME: Make display_server_get_has_local_session
@@ -789,10 +795,13 @@ display_server_ready_cb (DisplayServer *display_server, Display *display)
 
     if (pam_session)
     {
-        start_user_session (display, pam_session, display->priv->user_session);
+        result = start_user_session (display, pam_session, display->priv->user_session);
+        if (!result)
+            g_debug ("Failed to start user session, starting greeter");
         g_object_unref (pam_session);
     }
-    else
+
+    if (!result)
         start_greeter_session (display);
 
     g_free (display->priv->user_session);
