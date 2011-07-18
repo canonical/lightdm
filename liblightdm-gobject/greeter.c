@@ -1258,11 +1258,12 @@ gint
 ldm_greeter_get_autologin_timeout_hint (LdmGreeter *greeter)
 {
     const gchar *value;
-    gint timeout;
+    gint timeout = 0;
 
     g_return_val_if_fail (LDM_IS_GREETER (greeter), FALSE);
     value = ldm_greeter_get_hint (greeter, "autologin-timeout");
-    timeout = atoi (value);
+    if (value)
+        timeout = atoi (value);
     if (timeout < 0)
         timeout = 0;
 
