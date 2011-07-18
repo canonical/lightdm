@@ -99,7 +99,7 @@ pam_session_authorize (PAMSession *session)
 
     session->priv->in_session = TRUE;
 
-    if (!passwd_file)
+    if (!passwd_file && getuid () == 0)
     {
         int result;
 
@@ -450,7 +450,7 @@ pam_session_end (PAMSession *session)
     {
         int result;
 
-        if (!passwd_file && session->priv->pam_handle)
+        if (!passwd_file && session->priv->pam_handle && getuid () == 0)
         {
             result = pam_close_session (session->priv->pam_handle, 0);
             g_debug ("pam_close_session -> %s", pam_strerror (session->priv->pam_handle, result));
