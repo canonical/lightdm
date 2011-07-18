@@ -454,24 +454,24 @@ main (int argc, char **argv)
         { "default-xserver-command", 0, 0, G_OPTION_ARG_STRING, &default_xserver_command,
           /* Help string for command line --default-xserver-command flag */
           N_("Default command to run X servers"), "COMMAND" },
-        { "run-dir", 0, 0, G_OPTION_ARG_STRING, &run_dir,
-          /* Help string for command line --run-dir flag */
-          N_("Directory to store run information"), "DIRECTORY" },
-        { "cache-dir", 0, 0, G_OPTION_ARG_STRING, &cache_dir,
-          /* Help string for command line --cache-dir flag */
-          N_("Directory to cache information"), "DIRECTORY" },
-        { "default-greeter-theme", 0, 0, G_OPTION_ARG_STRING, &greeter_session,
-          /* Help string for command line --default-greeter-theme flag */
+        { "greeter-session", 0, 0, G_OPTION_ARG_STRING, &greeter_session,
+          /* Help string for command line --greeter-session flag */
           N_("Default greeter theme"), "THEME" },
-        { "xsessions-dir", 0, 0, G_OPTION_ARG_STRING, &xsessions_dir,
-          /* Help string for command line --xsessions-dir flag */
-          N_("Directory to load X sessions from"), "DIRECTORY" },
         { "default-session", 0, 0, G_OPTION_ARG_STRING, &default_session,
           /* Help string for command line --default-session flag */
           N_("Default session"), "SESSION" },
         { "minimum-display-number", 0, 0, G_OPTION_ARG_STRING, &minimum_display_number,
           /* Help string for command line --minimum-display-number flag */
           N_("Minimum display number to use for X servers"), "NUMBER" },
+        { "run-dir", 0, 0, G_OPTION_ARG_STRING, &run_dir,
+          /* Help string for command line --run-dir flag */
+          N_("Directory to store run information"), "DIRECTORY" },
+        { "cache-dir", 0, 0, G_OPTION_ARG_STRING, &cache_dir,
+          /* Help string for command line --cache-dir flag */
+          N_("Directory to cache information"), "DIRECTORY" },
+        { "xsessions-dir", 0, 0, G_OPTION_ARG_STRING, &xsessions_dir,
+          /* Help string for command line --xsessions-dir flag */
+          N_("Directory to load X sessions from"), "DIRECTORY" },
         { "version", 'v', 0, G_OPTION_ARG_NONE, &show_version,
           /* Help string for command line --version flag */
           N_("Show release version"), NULL },
