@@ -31,12 +31,22 @@ typedef struct _LdmGreeterClass   LdmGreeterClass;
 #include "layout.h"
 #include "session.h"
 
+/**
+ * LdmPromptType:
+ * @LDM_PROMPT_TYPE_QUESTION: Prompt is a question.  The information can be shown as it is entered.
+ * @LDM_PROMPT_TYPE_SECRET: Prompt is for secret information.  The entered information should be obscured so it can't be publically visible.
+ */
 typedef enum
 {
     LDM_PROMPT_TYPE_QUESTION,
     LDM_PROMPT_TYPE_SECRET
 } LdmPromptType;
 
+/**
+ * LdmMessageType:
+ * @LDM_MESSAGE_TYPE_INFO: Informational message.
+ * @LDM_MESSAGE_TYPE_ERROR: Error message.
+ */
 typedef enum
 {
     LDM_MESSAGE_TYPE_INFO,
