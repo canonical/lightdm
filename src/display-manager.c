@@ -195,6 +195,9 @@ display_manager_stop (DisplayManager *manager)
 
     g_return_if_fail (manager != NULL);
 
+    if (manager->priv->stopping)
+        return;
+
     g_debug ("Stopping display manager");
 
     manager->priv->stopping = TRUE;

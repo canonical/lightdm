@@ -768,6 +768,9 @@ display_stop (Display *display)
 {
     g_return_if_fail (display != NULL);
 
+    if (display->priv->stopping)
+        return;
+
     g_debug ("Stopping display");
 
     display->priv->stopping = TRUE;

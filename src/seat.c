@@ -244,6 +244,9 @@ seat_stop (Seat *seat)
 {
     g_return_if_fail (seat != NULL);
 
+    if (seat->priv->stopping)
+        return;
+
     g_debug ("Stopping seat");
     seat->priv->stopping = TRUE;
     SEAT_GET_CLASS (seat)->stop (seat);
