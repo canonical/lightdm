@@ -1,0 +1,4 @@
+[Desktop Entry]
+Name=Test Greeter
+Comment=LightDM test greeter
+Exec=test-gobject-greeter

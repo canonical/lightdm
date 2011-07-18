@@ -581,13 +581,11 @@ main (int argc, char **argv)
     if (fopen (config_path, "r"))
         g_string_append_printf (command_line, " --config %s", config_path);
     g_string_append (command_line, " --no-root");
-    g_string_append(command_line, " --default-xserver-command=test-xserver");
-    g_string_append (command_line, " --default-xsession=test-session");
-    g_string_append_printf (command_line, " --default-greeter-theme=test-theme");
+    g_string_append(command_line, " --xserver-command=test-xserver");
+    g_string_append (command_line, " --greeter-session=test-greeter");
+    g_string_append (command_line, " --user-session=test-session");
     g_string_append_printf (command_line, " --passwd-file %s/passwd", temp_dir);
     g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
-    g_string_append_printf (command_line, " --theme-dir=%s/tests/data/themes", SRCDIR);
-    g_string_append_printf (command_line, " --theme-engine-dir=%s/tests/src/.libs", BUILDDIR);
     g_string_append_printf (command_line, " --xsessions-dir=%s/tests/data/xsessions", SRCDIR);
     g_string_append (command_line, " --minimum-display-number=50");
 

@@ -34,7 +34,7 @@ TESTS = \
 
 EXTRA_DIST = \
 	$(TESTS) \
-	data/themes/test-theme/index.theme \
+	data/xsessions/test-greeter.desktop \
 	data/xsessions/test-session.desktop \
 	scripts/autologin.conf \
 	scripts/autologin.script \
