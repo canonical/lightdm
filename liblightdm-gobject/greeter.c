@@ -1032,7 +1032,6 @@ update_sessions (LdmGreeter *greeter)
             }
             else
                 g_warning ("Invalid session %s: %s", path, error->message);
-            g_clear_error (&error);
             g_free (domain);
             g_free (name);
             g_free (comment);
