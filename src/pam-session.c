@@ -133,6 +133,9 @@ pam_conv_cb (int num_msg, const struct pam_message **msg,
     PAMSession *session = app_data;
     struct pam_response *response;
 
+    if (session->priv->cancel)
+        return PAM_CONV_ERR;  
+
     /* Notify user */
     session->priv->num_messages = num_msg;
     session->priv->messages = msg;
@@ -145,10 +148,7 @@ pam_conv_cb (int num_msg, const struct pam_message **msg,
 
     /* Cancelled by user */
     if (session->priv->stop || session->priv->cancel)
-    {
-        session->priv->cancel = FALSE;
         return PAM_CONV_ERR;
-    }
 
     *resp = response;
 
@@ -191,7 +191,9 @@ authenticate_cb (gpointer data)
 
     session->priv->result = pam_authenticate (session->priv->pam_handle, 0);
     g_debug ("pam_authenticate -> %s", pam_strerror (session->priv->pam_handle, session->priv->result));
-  
+
+    session->priv->cancel = FALSE;
+
     if (session->priv->result == PAM_SUCCESS)
     {
         session->priv->result = pam_acct_mgmt (session->priv->pam_handle, 0);
