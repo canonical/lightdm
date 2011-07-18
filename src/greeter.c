@@ -628,9 +628,9 @@ greeter_finalize (GObject *object)
     if (self->priv->using_guest_account)
         guest_account_unref ();
     if (self->priv->to_greeter_channel)
-        g_object_unref (self->priv->to_greeter_channel);
+        g_io_channel_unref (self->priv->to_greeter_channel);
     if (self->priv->from_greeter_channel)
-        g_object_unref (self->priv->from_greeter_channel);
+        g_io_channel_unref (self->priv->from_greeter_channel);
 
     G_OBJECT_CLASS (greeter_parent_class)->finalize (object);
 }
