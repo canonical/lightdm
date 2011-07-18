@@ -9,43 +9,56 @@ Manages connection to LightDM server and provides greeter functionality
 #LdmGreeter is an object that manages the connection to the LightDM server and provides common greeter functionality.
 </para>
 <para>
-To connect to the display manager instanciate a #LdmGreeter object from inside the greeter process:
 <example>
-<title>Connecting to the display manager</title>
+<title>Example Greeter</title>
 <programlisting><![CDATA[
-LdmGreeter *greeter = ldm_greeter_new ();
-if (!ldm_greeter_connect (LDM_GREETER (greeter))) {
-    // Log an error
-    exit (0);
+int main ()
+{
+    LdmGreeter *greeter = ldm_greeter_new ();
+
+    g_object_connect (greeter, "connected", G_CALLBACK (connected_cb), NULL);
+    g_object_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
+    g_object_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
+    g_object_connect (greeter, "session-failed", G_CALLBACK (session_failed_cb), NULL);
+    g_object_connect (greeter, "quit", G_CALLBACK (quit_cb), NULL);
+
+    if (!ldm_greeter_connect_to_server (LDM_GREETER (greeter))) {
+        // Log an error
+        return 0;
+    }
 }
-]]></programlisting>
-</example>
-Information on how to connect to the display manager is passed using environment variables.
-</para>
-<para>
-Once connected, start an authentication conversation like this:
-<example>
-<title>Example Authorization Conversation</title>
-<programlisting><![CDATA[
-static void show_prompt_cb (LdmGreeter *greeter, const char *text)
+
+static void connected_cb (LdmGreeter *greeter)
+{
+    // Start authentication
+    ldm_greeter_login_with_user_prompt (greeter);
+}
+
+static void show_prompt_cb (LdmGreeter *greeter, const char *text, LdmPromptType type)
 {
     // Show the user the message and prompt for some response
-    gchar *secret = prompt_user (text);
+    gchar *secret = prompt_user (text, type);
 
     // Give the result to the user
-    ldm_greeter_respond (greeter, secret);
+    ldm_greeter_respond (greeter, response);
 }
 
 static void authentication_complete_cb (LdmGreeter *greeter)
 {
     if (ldm_greeter_get_is_authenticated (greeter)) {
-        // Log in to this session.
-        ldm_greeter_login (greeter, ldm_greeter_get_authentication_user (greeter), ldm_greeter_get_default_session (greeter));
+        // Start the user session
+        ldm_greeter_start_default_session (greeter);
     }
     else {
         // Display a warning and reset the greeter
-        reset_login_screen ();
+        reset_login_screen (``Incorrect password, please try again'');
     }
+}
+
+static void session_failed_cb (LdmGreeter *greeter)
+{
+    // Display a warning and reset the greeter
+    reset_login_screen (``Failed to login'');
 }
 
 static void quit_cb (LdmGreeter *greeter)
@@ -55,10 +68,6 @@ static void quit_cb (LdmGreeter *greeter)
     
     exit (0);
 }
-
-g_object_connect (G_OBJECT (greeter), "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
-g_object_connect (G_OBJECT (greeter), "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
-g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 ]]></programlisting>
 </example>
 </para>
@@ -73,6 +82,22 @@ g_object_connect (G_OBJECT (greeter), "quit", G_CALLBACK (quit_cb), NULL);
 
 <!-- ##### SECTION Image ##### -->
 
+
+<!-- ##### ENUM LdmMessageType ##### -->
+<para>
+
+</para>
+
+@LDM_MESSAGE_TYPE_INFO: 
+@LDM_MESSAGE_TYPE_ERROR: 
+
+<!-- ##### ENUM LdmPromptType ##### -->
+<para>
+
+</para>
+
+@LDM_PROMPT_TYPE_QUESTION: 
+@LDM_PROMPT_TYPE_SECRET: 
 
 <!-- ##### FUNCTION ldm_greeter_new ##### -->
 <para>

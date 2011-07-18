@@ -138,7 +138,7 @@ is_utf8 (const gchar *code)
  * 
  * Check if a language code matches this language.
  * 
- * Return value: TRUE if the code matches this language.
+ * Return value: #TRUE if the code matches this language.
  **/
 gboolean
 ldm_language_matches (LdmLanguage *language, const gchar *code)

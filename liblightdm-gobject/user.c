@@ -54,7 +54,7 @@ G_DEFINE_TYPE (LdmUser, ldm_user, G_TYPE_OBJECT);
  * @real_name: The real name of the user
  * @home_directory: The home directory of the user
  * @image: The image URI
- * @logged_in: TRUE if this user is currently logged in
+ * @logged_in: #TRUE if this user is currently logged in
  * 
  * Return value: the new #LdmUser
  **/
@@ -195,7 +195,7 @@ ldm_user_set_home_directory (LdmUser *user, const gchar *home_directory)
  * 
  * Get the image URI for a user.
  * 
- * Return value: The image URI for the given user or NULL if no URI
+ * Return value: The image URI for the given user or #NULL if no URI
  **/
 const gchar *
 ldm_user_get_image (LdmUser *user)
@@ -246,7 +246,7 @@ load_dmrc (LdmUser *user)
  * 
  * Get the language for a user.
  * 
- * Return value: The language for the given user or NULL if using system defaults.
+ * Return value: The language for the given user or #NULL if using system defaults.
  **/
 const gchar *
 ldm_user_get_language (LdmUser *user)
@@ -262,7 +262,7 @@ ldm_user_get_language (LdmUser *user)
  * 
  * Get the keyboard layout for a user.
  * 
- * Return value: The keyboard layoyt for the given user or NULL if using system defaults.
+ * Return value: The keyboard layoyt for the given user or #NULL if using system defaults.
  **/
 const gchar *
 ldm_user_get_layout (LdmUser *user)
@@ -278,7 +278,7 @@ ldm_user_get_layout (LdmUser *user)
  * 
  * Get the session for a user.
  * 
- * Return value: The session for the given user or NULL if using system defaults.
+ * Return value: The session for the given user or #NULL if using system defaults.
  **/
 const gchar *
 ldm_user_get_session (LdmUser *user)
@@ -294,7 +294,7 @@ ldm_user_get_session (LdmUser *user)
  * 
  * Check if a user is logged in.
  * 
- * Return value: TRUE if the user is currently logged in.
+ * Return value: #TRUE if the user is currently logged in.
  **/
 gboolean
 ldm_user_get_logged_in (LdmUser *user)

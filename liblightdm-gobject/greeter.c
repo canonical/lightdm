@@ -493,7 +493,7 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
  *
  * Connects the greeter to the display manager.
  *
- * Return value: TRUE if successfully connected
+ * Return value: #TRUE if successfully connected
  **/
 gboolean
 ldm_greeter_connect_to_server (LdmGreeter *greeter)
@@ -839,7 +839,7 @@ ldm_greeter_get_users (LdmGreeter *greeter)
  * @greeter: A #LdmGreeter
  * @username: Name of user to get.
  *
- * Get infomation about a given user or NULL if this user doesn't exist.
+ * Get infomation about a given user or #NULL if this user doesn't exist.
  *
  * Return value: (transfer none): A #LdmUser entry for the given user.
  **/
@@ -1154,7 +1154,7 @@ ldm_greeter_get_sessions (LdmGreeter *greeter)
  *
  * Get a hint.
  *
- * Return value: The value for this hint or NULL if not set.
+ * Return value: The value for this hint or #NULL if not set.
  **/
 const gchar *
 ldm_greeter_get_hint (LdmGreeter *greeter, const gchar *name)
@@ -1184,7 +1184,7 @@ ldm_greeter_get_default_session_hint (LdmGreeter *greeter)
  *
  * Check if user accounts should be shown.
  *
- * Return value: TRUE if the available users should not be shown.
+ * Return value: #TRUE if the available users should not be shown.
  */
 gboolean
 ldm_greeter_get_hide_users_hint (LdmGreeter *greeter)
@@ -1203,7 +1203,7 @@ ldm_greeter_get_hide_users_hint (LdmGreeter *greeter)
  *
  * Check if guest sessions are supported.
  *
- * Return value: TRUE if guest sessions are supported.
+ * Return value: #TRUE if guest sessions are supported.
  */
 gboolean
 ldm_greeter_get_has_guest_account_hint (LdmGreeter *greeter)
@@ -1237,7 +1237,7 @@ ldm_greeter_get_select_user_hint (LdmGreeter *greeter)
  *
  * Check if the guest account should be selected by default.
  *
- * Return value: TRUE if the guest account should be selected by default.
+ * Return value: #TRUE if the guest account should be selected by default.
  */
 gboolean
 ldm_greeter_get_select_guest_hint (LdmGreeter *greeter)
@@ -1271,7 +1271,7 @@ ldm_greeter_get_autologin_user_hint (LdmGreeter *greeter)
  *
  * Check if the guest account should be automatically logged into when the timer expires.
  *
- * Return value: TRUE if the guest account should be automatically logged into.
+ * Return value: #TRUE if the guest account should be automatically logged into.
  */
 gboolean
 ldm_greeter_get_autologin_guest_hint (LdmGreeter *greeter)
@@ -1331,7 +1331,7 @@ ldm_greeter_cancel_timed_login (LdmGreeter *greeter)
 /**
  * ldm_greeter_login:
  * @greeter: A #LdmGreeter
- * @username: (allow-none): A username or NULL to prompt for a username.
+ * @username: (allow-none): A username or #NULL to prompt for a username.
  *
  * Starts the authentication procedure for a user.
  **/
@@ -1455,7 +1455,7 @@ ldm_greeter_cancel_authentication (LdmGreeter *greeter)
  *
  * Checks if the greeter is in the process of authenticating.
  *
- * Return value: TRUE if the greeter is authenticating a user.
+ * Return value: #TRUE if the greeter is authenticating a user.
  **/
 gboolean
 ldm_greeter_get_in_authentication (LdmGreeter *greeter)
@@ -1470,7 +1470,7 @@ ldm_greeter_get_in_authentication (LdmGreeter *greeter)
  *
  * Checks if the greeter has successfully authenticated.
  *
- * Return value: TRUE if the greeter is authenticated for login.
+ * Return value: #TRUE if the greeter is authenticated for login.
  **/
 gboolean
 ldm_greeter_get_is_authenticated (LdmGreeter *greeter)
@@ -1485,7 +1485,7 @@ ldm_greeter_get_is_authenticated (LdmGreeter *greeter)
  *
  * Get the user that is being authenticated.
  *
- * Return value: The username of the authentication user being authenticated or NULL if no authentication in progress.
+ * Return value: The username of the authentication user being authenticated or #NULL if no authentication in progress.
  */
 const gchar *
 ldm_greeter_get_authentication_user (LdmGreeter *greeter)
@@ -1497,7 +1497,7 @@ ldm_greeter_get_authentication_user (LdmGreeter *greeter)
 /**
  * ldm_greeter_start_session:
  * @greeter: A #LdmGreeter
- * @session: (allow-none): The session to log into or NULL to use the default
+ * @session: (allow-none): The session to log into or #NULL to use the default
  *
  * Start a session for the logged in user.
  **/
@@ -1577,7 +1577,7 @@ upower_call_function (LdmGreeter *greeter, const gchar *function, gboolean has_r
  *
  * Checks if the greeter is authorized to do a system suspend.
  *
- * Return value: TRUE if the greeter can suspend the system
+ * Return value: #TRUE if the greeter can suspend the system
  **/
 gboolean
 ldm_greeter_get_can_suspend (LdmGreeter *greeter)
@@ -1605,7 +1605,7 @@ ldm_greeter_suspend (LdmGreeter *greeter)
  *
  * Checks if the greeter is authorized to do a system hibernate.
  *
- * Return value: TRUE if the greeter can hibernate the system
+ * Return value: #TRUE if the greeter can hibernate the system
  **/
 gboolean
 ldm_greeter_get_can_hibernate (LdmGreeter *greeter)
@@ -1674,7 +1674,7 @@ ck_call_function (LdmGreeter *greeter, const gchar *function, gboolean has_resul
  *
  * Checks if the greeter is authorized to do a system restart.
  *
- * Return value: TRUE if the greeter can restart the system
+ * Return value: #TRUE if the greeter can restart the system
  **/
 gboolean
 ldm_greeter_get_can_restart (LdmGreeter *greeter)
@@ -1702,7 +1702,7 @@ ldm_greeter_restart (LdmGreeter *greeter)
  *
  * Checks if the greeter is authorized to do a system shutdown.
  *
- * Return value: TRUE if the greeter can shutdown the system
+ * Return value: #TRUE if the greeter can shutdown the system
  **/
 gboolean
 ldm_greeter_get_can_shutdown (LdmGreeter *greeter)
