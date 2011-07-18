@@ -77,9 +77,7 @@ lightdm_CFLAGS = \
 	-DRUN_DIR=\"$(localstatedir)/run/lightdm\" \
 	-DCACHE_DIR=\"$(localstatedir)/cache/lightdm\" \
 	-DLOG_DIR=\"$(localstatedir)/log/lightdm\" \
-	-DGREETER_THEME_ENGINE_DIR=\"$(GREETER_THEME_ENGINE_DIR)\" \
-	-DGREETER_THEME_DIR=\"$(GREETER_THEME_DIR)\" \
-	-DXSESSIONS_DIR=\"/usr/share/xsessions\"
+	-DXSESSIONS_DIR=\"$(datadir)/xsessions\"
 
 lightdm_LDADD = \
 	$(LIGHTDM_LIBS) \

@@ -1,4 +1,7 @@
-libexec_PROGRAMS = lightdm-example-qt-greeter
+bin_PROGRAMS = lightdm-qt-greeter
+
+xsessiondir = $(datadir)/xsessions
+dist_xsession_DATA = lightdm-qt-greeter.desktop
 
 greeter_moc.cpp: greeter.h
 	moc $< -o $@
@@ -15,7 +18,7 @@ ui_panel.h: panel.ui
 loginprompt.cpp: ui_loginprompt.h
 panel.cpp: ui_panel.h
 
-lightdm_example_qt_greeter_SOURCES = \
+lightdm_qt_greeter_SOURCES = \
 	greeter.cpp \
 	greeter.h \
 	loginprompt.cpp \
@@ -27,14 +30,14 @@ lightdm_example_qt_greeter_SOURCES = \
 	loginprompt_moc.cpp \
 	panel_moc.cpp
 
-lightdm_example_qt_greeter_CXXFLAGS = \
+lightdm_qt_greeter_CXXFLAGS = \
 	-I$(top_srcdir)/liblightdm-qt \
-	$(LIGHTDM_EXAMPLE_QT_GREETER_CFLAGS)
+	$(LIGHTDM_QT_GREETER_CFLAGS)
 
-lightdm_example_qt_greeter_LDADD = \
+lightdm_qt_greeter_LDADD = \
 	-L$(top_builddir)/liblightdm-qt/QLightDM \
 	-llightdm-qt-0 \
-	$(LIGHTDM_EXAMPLE_QT_GREETER_LIBS)
+	$(LIGHTDM_QT_GREETER_LIBS)
 
 CLEANFILES = \
 	greeter_moc.cpp \

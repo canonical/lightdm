@@ -15,6 +15,11 @@ Overview of changes in lightdm 0.4.5
       - Split the user accounts configuration into /etc/lightdm/users.conf so the
         main config can be private.
     * Drop most of the configure options, they aren't necessary
+    * Removed the Vala and Python GTK+ greeters, they weren't being well
+      maintained.
+    * Drop "example" from the name of the GTK+ and Qt greeters and make them
+      official default greeters.
+    * Greeters are now just standard X sessions
 
 Overview of changes in lightdm 0.4.4
 

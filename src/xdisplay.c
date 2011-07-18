@@ -23,6 +23,7 @@ xdisplay_new (const gchar *config_section, XServer *server)
 
     g_return_val_if_fail (server != NULL, NULL);
 
+    display_load_config (DISPLAY (self), config_section);
     display_set_display_server (DISPLAY (self), DISPLAY_SERVER (server));
 
     return self;

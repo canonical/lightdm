@@ -1,21 +1,24 @@
-libexec_PROGRAMS = lightdm-example-gtk-greeter
+bin_PROGRAMS = lightdm-gtk-greeter
 
-uidir = $(datadir)/lightdm-example-gtk-greeter
+uidir = $(datadir)/lightdm-gtk-greeter
 dist_ui_DATA = greeter.ui
 
-lightdm_example_gtk_greeter_SOURCES = \
-	lightdm-example-gtk-greeter.c
+xsessiondir = $(datadir)/xsessions
+dist_xsession_DATA = lightdm-gtk-greeter.desktop
 
-lightdm_example_gtk_greeter_CFLAGS = \
+lightdm_gtk_greeter_SOURCES = \
+	lightdm-gtk-greeter.c
+
+lightdm_gtk_greeter_CFLAGS = \
 	-DUI_DIR=\""$(uidir)"\" \
 	-I$(top_srcdir)/liblightdm-gobject \
-	$(LIGHTDM_EXAMPLE_GTK_GREETER_CFLAGS) \
+	$(LIGHTDM_GTK_GREETER_CFLAGS) \
 	$(WARN_CFLAGS)
 
-lightdm_example_gtk_greeter_LDADD = \
+lightdm_gtk_greeter_LDADD = \
 	-L$(top_builddir)/liblightdm-gobject \
 	-llightdm-gobject-0 \
-	$(LIGHTDM_EXAMPLE_GTK_GREETER_LIBS)
+	$(LIGHTDM_GTK_GREETER_LIBS)
 
 DISTCLEANFILES = \
 	Makefile.in

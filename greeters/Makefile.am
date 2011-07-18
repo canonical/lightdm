@@ -1,11 +1,7 @@
-SUBDIRS = python-gtk
+SUBDIRS =
 
 if HAVE_GTK_GREETER
 SUBDIRS += gtk
-endif
-
-if HAVE_VALA_GTK_GREETER
-SUBDIRS += vala-gtk
 endif
 
 if HAVE_QT_GREETER

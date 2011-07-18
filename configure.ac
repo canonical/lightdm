@@ -6,7 +6,6 @@ AC_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE
 LT_INIT
 AM_PROG_CC_C_O
-AM_PROG_VALAC
 AC_PROG_CXX
 AC_PROG_LIBTOOL
 AM_MAINTAINER_MODE
@@ -28,7 +27,6 @@ PKG_CHECK_MODULES(LIGHTDM, [
     glib-2.0
     gio-2.0 >= 2.26
     gio-unix-2.0
-    xcb
     xdmcp
 ])
 
@@ -79,13 +77,6 @@ elif test x"$enable_liblightdm_gobject" = "xyes"; then
 fi
 AM_CONDITIONAL(COMPILE_LIBLIGHTDM_GOBJECT, test x"$compile_liblightdm_gobject" != "xno")
 
-if test x"$VALAC" = "x"; then
-    have_vala=no
-else
-    have_vala=yes
-fi
-AM_CONDITIONAL(HAVE_VALA_GTK_GREETER, test $have_vala = yes)
-
 AC_ARG_ENABLE(liblightdm-qt,
 	AS_HELP_STRING([--enable-liblightdm-qt],[Enable LightDM client QT libraries [[default=auto]]]),
 	[enable_liblightdm_qt=$enableval],
@@ -109,14 +100,14 @@ AM_CONDITIONAL(COMPILE_LIBLIGHTDM_QT, test x"$compile_liblightdm_qt" != "xno")
 
 have_qt=no
 if test x"$compile_liblightdm_qt" = "xyes"; then
-    PKG_CHECK_MODULES(LIGHTDM_EXAMPLE_QT_GREETER, [
+    PKG_CHECK_MODULES(LIGHTDM_QT_GREETER, [
         QtCore
         QtGui
     ], have_qt=yes, have_qt=no)
 fi
 AM_CONDITIONAL(HAVE_QT_GREETER, test $have_qt = yes)
 
-PKG_CHECK_MODULES(LIGHTDM_EXAMPLE_GTK_GREETER, [
+PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
     gtk+-2.0
     gmodule-export-2.0
 ], have_gtk=yes, have_gtk=no)
@@ -125,12 +116,6 @@ AM_CONDITIONAL(HAVE_GTK_GREETER, test $have_gtk = yes)
 AC_PATH_PROG(GLIB_GENMARSHAL, glib-genmarshal)
 AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)
 AC_SUBST(DBUSBINDINGTOOL)
-
-GREETER_THEME_DIR=${datarootdir}/lightdm/themes
-AC_SUBST(GREETER_THEME_DIR)
-
-GREETER_THEME_ENGINE_DIR=${libexecdir}
-AC_SUBST(GREETER_THEME_ENGINE_DIR)
 
 dnl ###########################################################################
 dnl Configurable values
@@ -147,7 +132,13 @@ AC_ARG_WITH(default-session,
 AC_SUBST(DEFAULT_SESSION)
 AC_DEFINE_UNQUOTED(DEFAULT_SESSION, "$DEFAULT_SESSION", Default session)
 
-GREETER_SESSION=example-gtk-gnome
+if test $have_gtk = yes; then
+GREETER_SESSION=lightdm-gtk-greeter
+elif test $have_qt = yes; then
+GREETER_SESSION=lightdm-qt-greeter
+else
+GREETER_SESSION=
+fi
 AC_ARG_WITH(theme,
             AS_HELP_STRING(--with-greeter-session=<session>,
                            Greeter session),
@@ -183,9 +174,7 @@ data/init/Makefile
 doc/Makefile
 greeters/Makefile
 greeters/gtk/Makefile
-greeters/python-gtk/Makefile
 greeters/qt/Makefile
-greeters/vala-gtk/Makefile
 liblightdm-gobject/liblightdm-gobject-0.pc
 liblightdm-gobject/Makefile
 liblightdm-gobject/lightdm/Makefile
@@ -196,11 +185,6 @@ po/Makefile.in
 src/Makefile
 tests/Makefile
 tests/src/Makefile
-themes/Makefile
-themes/example-gtk-gnome/Makefile
-themes/example-python-gtk-gnome/Makefile
-themes/example-qt-kde/Makefile
-themes/example-vala-gtk-gnome/Makefile
 ],
 [chmod +x tests/src/test-setup-guest tests/src/test-cleanup-guest])
 AC_OUTPUT
@@ -216,12 +200,9 @@ echo "
         prefix:                   $prefix
         Greeter session:          $GREETER_SESSION
         Default session:          $DEFAULT_SESSION
-
-        Greeters:
         liblightdm-gobject:       $compile_liblightdm_gobject
         GObject introspection:    $found_introspection
         liblightdm-qt:            $compile_liblightdm_qt
         GTK+ Greeter:             $have_gtk
-        Vala Greeter:             $have_vala
         Qt Greeter:               $have_qt
 "
