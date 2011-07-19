@@ -118,7 +118,7 @@ ck_call_function (const gchar *function, gboolean has_result)
     gboolean function_result = FALSE;
     GError *error = NULL;
 
-    if (!upower_proxy)
+    if (!ck_proxy)
     {
         ck_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
                                                   G_DBUS_PROXY_FLAGS_NONE,
