@@ -13,14 +13,12 @@
 #define QLIGHTDM_USERSMODEL_H
 
 #include <QAbstractListModel>
+#include <QLightDM/User>
 
 class UsersModelPrivate;
 
 namespace QLightDM
 {
-
-class User;
-
 class Q_DECL_EXPORT UsersModel : public QAbstractListModel
 {
     Q_OBJECT

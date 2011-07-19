@@ -179,7 +179,7 @@ liblightdm-gobject/liblightdm-gobject-1.pc
 liblightdm-gobject/Makefile
 liblightdm-gobject/lightdm/Makefile
 liblightdm-qt/Makefile
-liblightdm-qt/QLightDM/liblightdm-qt-1.pc
+liblightdm-qt/liblightdm-qt-1.pc
 liblightdm-qt/QLightDM/Makefile
 po/Makefile.in
 src/Makefile

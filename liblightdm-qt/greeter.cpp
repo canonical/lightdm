@@ -10,11 +10,11 @@
  * license.
  */
 
-#include "greeter.h"
-
-#include "user.h"
-#include "sessionsmodel.h"
 #include "config.h"
+
+#include "QLightDM/Greeter"
+#include "QLightDM/User"
+#include "QLightDM/SessionsModel"
 
 #include <security/pam_appl.h>
 

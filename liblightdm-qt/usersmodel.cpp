@@ -9,8 +9,7 @@
  * license.
  */
 
-#include "usersmodel.h"
-#include "user.h"
+#include "QLightDM/UsersModel"
 
 #include <pwd.h>
 #include <errno.h>

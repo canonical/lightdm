@@ -9,7 +9,7 @@
  * license.
  */
 
-#include "user.h"
+#include "QLightDM/User"
 
 #include <QtCore/QSharedData>
 

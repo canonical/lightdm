@@ -9,7 +9,7 @@
  * license.
  */
 
-#include "sessionsmodel.h"
+#include "QLightDM/SessionsModel"
 
 #include <QtCore/QList>
 #include <QtCore/QDir>
