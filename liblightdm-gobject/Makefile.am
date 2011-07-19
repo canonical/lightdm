@@ -1,15 +1,15 @@
 SUBDIRS = lightdm
 
-lib_LTLIBRARIES = liblightdm-gobject-0.la
+lib_LTLIBRARIES = liblightdm-gobject-1.la
 
 CLEANFILES =
 
-liblightdm_gobject_0_la_LIBADD = $(LIBLIGHTDM_GOBJECT_LIBS)
-liblightdm_gobject_0_la_CFLAGS = $(LIBLIGHTDM_GOBJECT_CFLAGS) \
+liblightdm_gobject_1_la_LIBADD = $(LIBLIGHTDM_GOBJECT_LIBS)
+liblightdm_gobject_1_la_CFLAGS = $(LIBLIGHTDM_GOBJECT_CFLAGS) \
 	$(WARN_CFLAGS) \
 	-DXSESSIONS_DIR=\"$(datadir)/xsessions\"
 
-liblightdm_gobject_0_la_SOURCES= \
+liblightdm_gobject_1_la_SOURCES= \
 	greeter.c \
 	language.c \
 	layout.c \
@@ -28,27 +28,27 @@ if HAVE_INTROSPECTION
 INTROSPECTION_SCANNER_ARGS = --add-include-path=$(srcdir)
 INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
 
-INTROSPECTION_GIRS = LightDM-0.gir
+INTROSPECTION_GIRS = LightDM-1.gir
 
-LightDM-0.gir: liblightdm-gobject-0.la
-LightDM_0_gir_INCLUDES = GObject-2.0
-LightDM_0_gir_CFLAGS = $(INCLUDES) --identifier-prefix=LightDM
-LightDM_0_gir_LIBS = liblightdm-gobject-0.la
-LightDM_0_gir_FILES = $(liblightdm_gobject_0_la_SOURCES)
+LightDM-1.gir: liblightdm-gobject-1.la
+LightDM_1_gir_INCLUDES = GObject-2.0
+LightDM_1_gir_CFLAGS = $(INCLUDES) --identifier-prefix=LightDM
+LightDM_1_gir_LIBS = liblightdm-gobject-1.la
+LightDM_1_gir_FILES = $(liblightdm_gobject_1_la_SOURCES)
 
 girdir = $(datadir)/gir-1.0
-gir_DATA = LightDM-0.gir
+gir_DATA = LightDM-1.gir
 
 typelibdir = $(libdir)/girepository-1.0
-typelib_DATA = LightDM-0.typelib
+typelib_DATA = LightDM-1.typelib
 
 endif
 
 vapidir = $(datadir)/vala/vapi
-dist_vapi_DATA = liblightdm-gobject-0.vapi
+dist_vapi_DATA = liblightdm-gobject-1.vapi
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = liblightdm-gobject-0.pc
+pkgconfig_DATA = liblightdm-gobject-1.pc
 
 DISTCLEANFILES = \
 	Makefile.in \

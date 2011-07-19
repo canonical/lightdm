@@ -33,7 +33,7 @@ test_gobject_greeter_CFLAGS = \
 	$(XCB_CFLAGS)
 test_gobject_greeter_LDADD = \
 	-L$(top_builddir)/liblightdm-gobject \
-	-llightdm-gobject-0 \
+	-llightdm-gobject-1 \
 	$(GLIB_LIBS) \
 	$(GOBJECT_LIBS) \
 	$(XCB_LIBS)

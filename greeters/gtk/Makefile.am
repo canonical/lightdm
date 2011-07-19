@@ -17,7 +17,7 @@ lightdm_gtk_greeter_CFLAGS = \
 
 lightdm_gtk_greeter_LDADD = \
 	-L$(top_builddir)/liblightdm-gobject \
-	-llightdm-gobject-0 \
+	-llightdm-gobject-1 \
 	$(LIGHTDM_GTK_GREETER_LIBS)
 
 DISTCLEANFILES = \

@@ -36,7 +36,7 @@ lightdm_qt_greeter_CXXFLAGS = \
 
 lightdm_qt_greeter_LDADD = \
 	-L$(top_builddir)/liblightdm-qt/QLightDM \
-	-llightdm-qt-0 \
+	-llightdm-qt-1 \
 	$(LIGHTDM_QT_GREETER_LIBS)
 
 CLEANFILES = \
