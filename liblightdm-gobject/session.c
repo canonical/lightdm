@@ -23,86 +23,86 @@ typedef struct
     gchar *key;
     gchar *name;
     gchar *comment;
-} LdmSessionPrivate;
+} LightDMSessionPrivate;
 
-G_DEFINE_TYPE (LdmSession, ldm_session, G_TYPE_OBJECT);
+G_DEFINE_TYPE (LightDMSession, lightdm_session, G_TYPE_OBJECT);
 
-#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LDM_TYPE_SESSION, LdmSessionPrivate)
+#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_SESSION, LightDMSessionPrivate)
 
 /**
- * ldm_session_new:
+ * lightdm_session_new:
  * 
  * Create a new session.
  * @key: The unique key for this session
  * @name: The name of this session
  * @comment: The comment for this session
  * 
- * Return value: the new #LdmSession
+ * Return value: the new #LightDMSession
  **/
-LdmSession *
-ldm_session_new (const gchar *key, const gchar *name, const gchar *comment)
+LightDMSession *
+lightdm_session_new (const gchar *key, const gchar *name, const gchar *comment)
 {
-    return g_object_new (LDM_TYPE_SESSION, "key", key, "name", name, "comment", comment, NULL);
+    return g_object_new (LIGHTDM_TYPE_SESSION, "key", key, "name", name, "comment", comment, NULL);
 }
 
 /**
- * ldm_session_get_key
- * @session: A #LdmSession
+ * lightdm_session_get_key
+ * @session: A #LightDMSession
  * 
  * Get the key for a session
  * 
  * Return value: The session key
  **/
 const gchar *
-ldm_session_get_key (LdmSession *session)
+lightdm_session_get_key (LightDMSession *session)
 {
-    g_return_val_if_fail (LDM_IS_SESSION (session), NULL);
+    g_return_val_if_fail (LIGHTDM_IS_SESSION (session), NULL);
     return GET_PRIVATE (session)->key;
 }
 
 /**
- * ldm_session_get_name
- * @session: A #LdmSession
+ * lightdm_session_get_name
+ * @session: A #LightDMSession
  * 
  * Get the name for a session
  * 
  * Return value: The session name
  **/
 const gchar *
-ldm_session_get_name (LdmSession *session)
+lightdm_session_get_name (LightDMSession *session)
 {
-    g_return_val_if_fail (LDM_IS_SESSION (session), NULL);
+    g_return_val_if_fail (LIGHTDM_IS_SESSION (session), NULL);
     return GET_PRIVATE (session)->name;
 }
 
 /**
- * ldm_session_get_comment
- * @session: A #LdmSession
+ * lightdm_session_get_comment
+ * @session: A #LightDMSession
  * 
  * Get the comment for a session
  * 
  * Return value: The session comment
  **/
 const gchar *
-ldm_session_get_comment (LdmSession *session)
+lightdm_session_get_comment (LightDMSession *session)
 {
-    g_return_val_if_fail (LDM_IS_SESSION (session), NULL);
+    g_return_val_if_fail (LIGHTDM_IS_SESSION (session), NULL);
     return GET_PRIVATE (session)->comment;
 }
 
 static void
-ldm_session_init (LdmSession *session)
+lightdm_session_init (LightDMSession *session)
 {
 }
 
 static void
-ldm_session_set_property (GObject      *object,
+lightdm_session_set_property (GObject      *object,
                           guint         prop_id,
                           const GValue *value,
                           GParamSpec   *pspec)
 {
-    LdmSession *self = LDM_SESSION (object);
-    LdmSessionPrivate *priv = GET_PRIVATE (self);
+    LightDMSession *self = LIGHTDM_SESSION (object);
+    LightDMSessionPrivate *priv = GET_PRIVATE (self);
 
     switch (prop_id) {
     case PROP_KEY:
@@ -124,24 +124,24 @@ ldm_session_set_property (GObject      *object,
 }
 
 static void
-ldm_session_get_property (GObject    *object,
+lightdm_session_get_property (GObject    *object,
                           guint       prop_id,
                           GValue     *value,
                           GParamSpec *pspec)
 {
-    LdmSession *self;
+    LightDMSession *self;
 
-    self = LDM_SESSION (object);
+    self = LIGHTDM_SESSION (object);
 
     switch (prop_id) {
     case PROP_KEY:
-        g_value_set_string (value, ldm_session_get_key (self));
+        g_value_set_string (value, lightdm_session_get_key (self));
         break;
     case PROP_NAME:
-        g_value_set_string (value, ldm_session_get_name (self));
+        g_value_set_string (value, lightdm_session_get_name (self));
         break;
     case PROP_COMMENT:
-        g_value_set_string (value, ldm_session_get_comment (self));
+        g_value_set_string (value, lightdm_session_get_comment (self));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -150,14 +150,14 @@ ldm_session_get_property (GObject    *object,
 }
 
 static void
-ldm_session_class_init (LdmSessionClass *klass)
+lightdm_session_class_init (LightDMSessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
   
-    g_type_class_add_private (klass, sizeof (LdmSessionPrivate));
+    g_type_class_add_private (klass, sizeof (LightDMSessionPrivate));
 
-    object_class->set_property = ldm_session_set_property;
-    object_class->get_property = ldm_session_get_property;
+    object_class->set_property = lightdm_session_set_property;
+    object_class->get_property = lightdm_session_get_property;
 
     g_object_class_install_property(object_class,
                                     PROP_KEY,

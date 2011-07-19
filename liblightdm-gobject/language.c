@@ -26,55 +26,55 @@ typedef struct
     gchar *code;
     gchar *name;
     gchar *territory;
-} LdmLanguagePrivate;
+} LightDMLanguagePrivate;
 
-G_DEFINE_TYPE (LdmLanguage, ldm_language, G_TYPE_OBJECT);
+G_DEFINE_TYPE (LightDMLanguage, lightdm_language, G_TYPE_OBJECT);
 
-#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LDM_TYPE_LANGUAGE, LdmLanguagePrivate)
+#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_LANGUAGE, LightDMLanguagePrivate)
 
 /**
- * ldm_language_new:
+ * lightdm_language_new:
  * 
  * Create a new language.
  * @code: The language code
  * 
- * Return value: the new #LdmLanguage
+ * Return value: the new #LightDMLanguage
  **/
-LdmLanguage *
-ldm_language_new (const gchar *code)
+LightDMLanguage *
+lightdm_language_new (const gchar *code)
 {
-    return g_object_new (LDM_TYPE_LANGUAGE, "code", code, NULL);
+    return g_object_new (LIGHTDM_TYPE_LANGUAGE, "code", code, NULL);
 }
 
 /**
- * ldm_language_get_code:
- * @language: A #LdmLanguage
+ * lightdm_language_get_code:
+ * @language: A #LightDMLanguage
  * 
  * Get the code of a language.
  * 
  * Return value: The code of the language
  **/
 const gchar *
-ldm_language_get_code (LdmLanguage *language)
+lightdm_language_get_code (LightDMLanguage *language)
 {
-    g_return_val_if_fail (LDM_IS_LANGUAGE (language), NULL);
+    g_return_val_if_fail (LIGHTDM_IS_LANGUAGE (language), NULL);
     return GET_PRIVATE (language)->code;
 }
 
 /**
- * ldm_language_get_name:
- * @language: A #LdmLanguage
+ * lightdm_language_get_name:
+ * @language: A #LightDMLanguage
  * 
  * Get the name of a language.
  *
  * Return value: The name of the language
  **/
 const gchar *
-ldm_language_get_name (LdmLanguage *language)
+lightdm_language_get_name (LightDMLanguage *language)
 {
-    LdmLanguagePrivate *priv;
+    LightDMLanguagePrivate *priv;
 
-    g_return_val_if_fail (LDM_IS_LANGUAGE (language), NULL);
+    g_return_val_if_fail (LIGHTDM_IS_LANGUAGE (language), NULL);
 
     priv = GET_PRIVATE (language);
 
@@ -94,19 +94,19 @@ ldm_language_get_name (LdmLanguage *language)
 }
 
 /**
- * ldm_language_get_territory:
- * @language: A #LdmLanguage
+ * lightdm_language_get_territory:
+ * @language: A #LightDMLanguage
  * 
  * Get the territory the language is used in.
  * 
  * Return value: The territory the language is used in.
  **/
 const gchar *
-ldm_language_get_territory (LdmLanguage *language)
+lightdm_language_get_territory (LightDMLanguage *language)
 {
-    LdmLanguagePrivate *priv;
+    LightDMLanguagePrivate *priv;
 
-    g_return_val_if_fail (LDM_IS_LANGUAGE (language), NULL);
+    g_return_val_if_fail (LIGHTDM_IS_LANGUAGE (language), NULL);
 
     priv = GET_PRIVATE (language);
 
@@ -132,8 +132,8 @@ is_utf8 (const gchar *code)
 }
 
 /**
- * ldm_language_matches:
- * @language: A #LdmLanguage
+ * lightdm_language_matches:
+ * @language: A #LightDMLanguage
  * @code: A language code
  * 
  * Check if a language code matches this language.
@@ -141,11 +141,11 @@ is_utf8 (const gchar *code)
  * Return value: #TRUE if the code matches this language.
  **/
 gboolean
-ldm_language_matches (LdmLanguage *language, const gchar *code)
+lightdm_language_matches (LightDMLanguage *language, const gchar *code)
 {
-    LdmLanguagePrivate *priv;
+    LightDMLanguagePrivate *priv;
 
-    g_return_val_if_fail (LDM_IS_LANGUAGE (language), FALSE);
+    g_return_val_if_fail (LIGHTDM_IS_LANGUAGE (language), FALSE);
     g_return_val_if_fail (code != NULL, FALSE);
 
     priv = GET_PRIVATE (language);
@@ -163,18 +163,18 @@ ldm_language_matches (LdmLanguage *language, const gchar *code)
 }
 
 static void
-ldm_language_init (LdmLanguage *language)
+lightdm_language_init (LightDMLanguage *language)
 {
 }
 
 static void
-ldm_language_set_property (GObject      *object,
+lightdm_language_set_property (GObject      *object,
                            guint         prop_id,
                            const GValue *value,
                            GParamSpec   *pspec)
 {
-    LdmLanguage *self = LDM_LANGUAGE (object);
-    LdmLanguagePrivate *priv = GET_PRIVATE (self);
+    LightDMLanguage *self = LIGHTDM_LANGUAGE (object);
+    LightDMLanguagePrivate *priv = GET_PRIVATE (self);
 
     switch (prop_id) {
     case PROP_CODE:
@@ -188,24 +188,24 @@ ldm_language_set_property (GObject      *object,
 }
 
 static void
-ldm_language_get_property (GObject    *object,
+lightdm_language_get_property (GObject    *object,
                            guint       prop_id,
                            GValue     *value,
                            GParamSpec *pspec)
 {
-    LdmLanguage *self;
+    LightDMLanguage *self;
 
-    self = LDM_LANGUAGE (object);
+    self = LIGHTDM_LANGUAGE (object);
 
     switch (prop_id) {
     case PROP_CODE:
-        g_value_set_string (value, ldm_language_get_code (self));
+        g_value_set_string (value, lightdm_language_get_code (self));
         break;
     case PROP_NAME:
-        g_value_set_string (value, ldm_language_get_name (self));
+        g_value_set_string (value, lightdm_language_get_name (self));
         break;
     case PROP_TERRITORY:
-        g_value_set_string (value, ldm_language_get_territory (self));
+        g_value_set_string (value, lightdm_language_get_territory (self));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -214,14 +214,14 @@ ldm_language_get_property (GObject    *object,
 }
 
 static void
-ldm_language_class_init (LdmLanguageClass *klass)
+lightdm_language_class_init (LightDMLanguageClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
   
-    g_type_class_add_private (klass, sizeof (LdmLanguagePrivate));
+    g_type_class_add_private (klass, sizeof (LightDMLanguagePrivate));
 
-    object_class->set_property = ldm_language_set_property;
-    object_class->get_property = ldm_language_get_property;
+    object_class->set_property = lightdm_language_set_property;
+    object_class->get_property = lightdm_language_get_property;
 
     g_object_class_install_property(object_class,
                                     PROP_CODE,

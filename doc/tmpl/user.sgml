@@ -1,12 +1,12 @@
 <!-- ##### SECTION Title ##### -->
-LdmUser
+LightDMUser
 
 <!-- ##### SECTION Short_Description ##### -->
 Information about a user account
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
-Object containing information about a user present on this system. #LdmUser objects are not created by the user, but provided by the #LdmGreeter object.
+Object containing information about a user present on this system. #LightDMUser objects are not created by the user, but provided by the #LightDMGreeter object.
 </para>
 <para>
 A user has the following properties:
@@ -36,7 +36,7 @@ A user has the following properties:
 <!-- ##### SECTION Image ##### -->
 
 
-<!-- ##### FUNCTION ldm_user_get_name ##### -->
+<!-- ##### FUNCTION lightdm_user_get_name ##### -->
 <para>
 
 </para>
@@ -45,7 +45,7 @@ A user has the following properties:
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_user_get_real_name ##### -->
+<!-- ##### FUNCTION lightdm_user_get_real_name ##### -->
 <para>
 
 </para>
@@ -54,7 +54,7 @@ A user has the following properties:
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_user_get_display_name ##### -->
+<!-- ##### FUNCTION lightdm_user_get_display_name ##### -->
 <para>
 
 </para>
@@ -63,7 +63,7 @@ A user has the following properties:
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_user_get_home_directory ##### -->
+<!-- ##### FUNCTION lightdm_user_get_home_directory ##### -->
 <para>
 
 </para>
@@ -72,7 +72,7 @@ A user has the following properties:
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_user_get_image ##### -->
+<!-- ##### FUNCTION lightdm_user_get_image ##### -->
 <para>
 
 </para>
@@ -81,7 +81,7 @@ A user has the following properties:
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_user_get_language ##### -->
+<!-- ##### FUNCTION lightdm_user_get_language ##### -->
 <para>
 
 </para>
@@ -90,7 +90,7 @@ A user has the following properties:
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_user_get_layout ##### -->
+<!-- ##### FUNCTION lightdm_user_get_layout ##### -->
 <para>
 
 </para>
@@ -99,7 +99,7 @@ A user has the following properties:
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_user_get_session ##### -->
+<!-- ##### FUNCTION lightdm_user_get_session ##### -->
 <para>
 
 </para>
@@ -108,7 +108,7 @@ A user has the following properties:
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_user_get_logged_in ##### -->
+<!-- ##### FUNCTION lightdm_user_get_logged_in ##### -->
 <para>
 
 </para>

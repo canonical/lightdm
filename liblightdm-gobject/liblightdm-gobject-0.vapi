@@ -1,4 +1,4 @@
-[CCode (cprefix = "Ldm", lower_case_cprefix = "ldm_", cheader_filename = "lightdm/greeter.h")]
+[CCode (cprefix = "LightDM", lower_case_cprefix = "lightdm_", cheader_filename = "lightdm/greeter.h")]
 namespace LightDM {
     public class Greeter : GLib.Object {
         public Greeter ();

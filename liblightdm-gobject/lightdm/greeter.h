@@ -9,22 +9,22 @@
  * license.
  */
 
-#ifndef _LDM_GREETER_H_
-#define _LDM_GREETER_H_
+#ifndef _LIGHTDM_GREETER_H_
+#define _LIGHTDM_GREETER_H_
 
 #include <glib-object.h>
 
 G_BEGIN_DECLS
 
-#define LDM_TYPE_GREETER            (ldm_greeter_get_type())
-#define LDM_GREETER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), LDM_TYPE_GREETER, LdmGreeter));
-#define LDM_GREETER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), LDM_TYPE_GREETER, LdmGreeterClass))
-#define LDM_IS_GREETER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), LDM_TYPE_GREETER))
-#define LDM_IS_GREETER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LDM_TYPE_GREETER))
-#define LDM_GREETER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LDM_TYPE_GREETER, LdmGreeterClass))
+#define LIGHTDM_TYPE_GREETER            (lightdm_greeter_get_type())
+#define LIGHTDM_GREETER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), LIGHTDM_TYPE_GREETER, LightDMGreeter));
+#define LIGHTDM_GREETER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), LIGHTDM_TYPE_GREETER, LightDMGreeterClass))
+#define LIGHTDM_IS_GREETER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), LIGHTDM_TYPE_GREETER))
+#define LIGHTDM_IS_GREETER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LIGHTDM_TYPE_GREETER))
+#define LIGHTDM_GREETER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LIGHTDM_TYPE_GREETER, LightDMGreeterClass))
 
-typedef struct _LdmGreeter        LdmGreeter;
-typedef struct _LdmGreeterClass   LdmGreeterClass;
+typedef struct _LightDMGreeter        LightDMGreeter;
+typedef struct _LightDMGreeterClass   LightDMGreeterClass;
 
 #include "user.h"
 #include "language.h"
@@ -32,130 +32,130 @@ typedef struct _LdmGreeterClass   LdmGreeterClass;
 #include "session.h"
 
 /**
- * LdmPromptType:
- * @LDM_PROMPT_TYPE_QUESTION: Prompt is a question.  The information can be shown as it is entered.
- * @LDM_PROMPT_TYPE_SECRET: Prompt is for secret information.  The entered information should be obscured so it can't be publically visible.
+ * LightDMPromptType:
+ * @LIGHTDM_PROMPT_TYPE_QUESTION: Prompt is a question.  The information can be shown as it is entered.
+ * @LIGHTDM_PROMPT_TYPE_SECRET: Prompt is for secret information.  The entered information should be obscured so it can't be publically visible.
  */
 typedef enum
 {
-    LDM_PROMPT_TYPE_QUESTION,
-    LDM_PROMPT_TYPE_SECRET
-} LdmPromptType;
+    LIGHTDM_PROMPT_TYPE_QUESTION,
+    LIGHTDM_PROMPT_TYPE_SECRET
+} LightDMPromptType;
 
 /**
- * LdmMessageType:
- * @LDM_MESSAGE_TYPE_INFO: Informational message.
- * @LDM_MESSAGE_TYPE_ERROR: Error message.
+ * LightDMMessageType:
+ * @LIGHTDM_MESSAGE_TYPE_INFO: Informational message.
+ * @LIGHTDM_MESSAGE_TYPE_ERROR: Error message.
  */
 typedef enum
 {
-    LDM_MESSAGE_TYPE_INFO,
-    LDM_MESSAGE_TYPE_ERROR
-} LdmMessageType;
+    LIGHTDM_MESSAGE_TYPE_INFO,
+    LIGHTDM_MESSAGE_TYPE_ERROR
+} LightDMMessageType;
 
-struct _LdmGreeter
+struct _LightDMGreeter
 {
     GObject parent_instance;
 };
 
-struct _LdmGreeterClass
+struct _LightDMGreeterClass
 {
     GObjectClass parent_class;
 
-    void (*connected)(LdmGreeter *greeter);
-    void (*show_prompt)(LdmGreeter *greeter, const gchar *text, LdmPromptType type);
-    void (*show_message)(LdmGreeter *greeter, const gchar *text, LdmMessageType type);
-    void (*authentication_complete)(LdmGreeter *greeter);
-    void (*session_failed)(LdmGreeter *greeter);
-    void (*autologin_timer_expired)(LdmGreeter *greeter);
-    void (*user_added)(LdmGreeter *greeter, LdmUser *user);
-    void (*user_changed)(LdmGreeter *greeter, LdmUser *user);
-    void (*user_removed)(LdmGreeter *greeter, LdmUser *user);
-    void (*quit)(LdmGreeter *greeter);
+    void (*connected)(LightDMGreeter *greeter);
+    void (*show_prompt)(LightDMGreeter *greeter, const gchar *text, LightDMPromptType type);
+    void (*show_message)(LightDMGreeter *greeter, const gchar *text, LightDMMessageType type);
+    void (*authentication_complete)(LightDMGreeter *greeter);
+    void (*session_failed)(LightDMGreeter *greeter);
+    void (*autologin_timer_expired)(LightDMGreeter *greeter);
+    void (*user_added)(LightDMGreeter *greeter, LightDMUser *user);
+    void (*user_changed)(LightDMGreeter *greeter, LightDMUser *user);
+    void (*user_removed)(LightDMGreeter *greeter, LightDMUser *user);
+    void (*quit)(LightDMGreeter *greeter);
 };
 
-GType ldm_greeter_get_type (void);
+GType lightdm_greeter_get_type (void);
 
-LdmGreeter *ldm_greeter_new (void);
+LightDMGreeter *lightdm_greeter_new (void);
 
-gboolean ldm_greeter_connect_to_server (LdmGreeter *greeter);
+gboolean lightdm_greeter_connect_to_server (LightDMGreeter *greeter);
 
-const gchar *ldm_greeter_get_hostname (LdmGreeter *greeter);
+const gchar *lightdm_greeter_get_hostname (LightDMGreeter *greeter);
 
-gint ldm_greeter_get_num_users (LdmGreeter *greeter);
+gint lightdm_greeter_get_num_users (LightDMGreeter *greeter);
 
-GList *ldm_greeter_get_users (LdmGreeter *greeter);
+GList *lightdm_greeter_get_users (LightDMGreeter *greeter);
 
-LdmUser *ldm_greeter_get_user_by_name (LdmGreeter *greeter, const gchar *username);
+LightDMUser *lightdm_greeter_get_user_by_name (LightDMGreeter *greeter, const gchar *username);
 
-const gchar *ldm_greeter_get_default_language (LdmGreeter *greeter);
+const gchar *lightdm_greeter_get_default_language (LightDMGreeter *greeter);
 
-GList *ldm_greeter_get_languages (LdmGreeter *greeter);
+GList *lightdm_greeter_get_languages (LightDMGreeter *greeter);
 
-GList *ldm_greeter_get_layouts (LdmGreeter *greeter);
+GList *lightdm_greeter_get_layouts (LightDMGreeter *greeter);
 
-void ldm_greeter_set_layout (LdmGreeter *greeter, const gchar *layout);
+void lightdm_greeter_set_layout (LightDMGreeter *greeter, const gchar *layout);
 
-const gchar *ldm_greeter_get_layout (LdmGreeter *greeter);
+const gchar *lightdm_greeter_get_layout (LightDMGreeter *greeter);
 
-GList *ldm_greeter_get_sessions (LdmGreeter *greeter);
+GList *lightdm_greeter_get_sessions (LightDMGreeter *greeter);
 
-const gchar *ldm_greeter_get_hint (LdmGreeter *greeter, const gchar *name);
+const gchar *lightdm_greeter_get_hint (LightDMGreeter *greeter, const gchar *name);
 
-const gchar *ldm_greeter_get_default_session_hint (LdmGreeter *greeter);
+const gchar *lightdm_greeter_get_default_session_hint (LightDMGreeter *greeter);
 
-gboolean ldm_greeter_get_hide_users_hint (LdmGreeter *greeter);
+gboolean lightdm_greeter_get_hide_users_hint (LightDMGreeter *greeter);
 
-gboolean ldm_greeter_get_has_guest_account_hint (LdmGreeter *greeter);
+gboolean lightdm_greeter_get_has_guest_account_hint (LightDMGreeter *greeter);
 
-const gchar *ldm_greeter_get_select_user_hint (LdmGreeter *greeter);
+const gchar *lightdm_greeter_get_select_user_hint (LightDMGreeter *greeter);
 
-gboolean ldm_greeter_get_select_guest_hint (LdmGreeter *greeter);
+gboolean lightdm_greeter_get_select_guest_hint (LightDMGreeter *greeter);
 
-const gchar *ldm_greeter_get_autologin_user_hint (LdmGreeter *greeter);
+const gchar *lightdm_greeter_get_autologin_user_hint (LightDMGreeter *greeter);
 
-gboolean ldm_greeter_get_autologin_guest_hint (LdmGreeter *greeter);
+gboolean lightdm_greeter_get_autologin_guest_hint (LightDMGreeter *greeter);
 
-gint ldm_greeter_get_autologin_timeout_hint (LdmGreeter *greeter);
+gint lightdm_greeter_get_autologin_timeout_hint (LightDMGreeter *greeter);
 
-void ldm_greeter_cancel_timed_login (LdmGreeter *greeter);
+void lightdm_greeter_cancel_timed_login (LightDMGreeter *greeter);
 
-void ldm_greeter_login (LdmGreeter *greeter, const char *username);
+void lightdm_greeter_login (LightDMGreeter *greeter, const char *username);
 
-void ldm_greeter_login_with_user_prompt (LdmGreeter *greeter);
+void lightdm_greeter_login_with_user_prompt (LightDMGreeter *greeter);
 
-void ldm_greeter_login_as_guest (LdmGreeter *greeter);
+void lightdm_greeter_login_as_guest (LightDMGreeter *greeter);
 
-void ldm_greeter_respond (LdmGreeter *greeter, const gchar *response);
+void lightdm_greeter_respond (LightDMGreeter *greeter, const gchar *response);
 
-void ldm_greeter_cancel_authentication (LdmGreeter *greeter);
+void lightdm_greeter_cancel_authentication (LightDMGreeter *greeter);
 
-gboolean ldm_greeter_get_in_authentication (LdmGreeter *greeter);
+gboolean lightdm_greeter_get_in_authentication (LightDMGreeter *greeter);
 
-gboolean ldm_greeter_get_is_authenticated (LdmGreeter *greeter);
+gboolean lightdm_greeter_get_is_authenticated (LightDMGreeter *greeter);
 
-const gchar *ldm_greeter_get_authentication_user (LdmGreeter *greeter);
+const gchar *lightdm_greeter_get_authentication_user (LightDMGreeter *greeter);
 
-void ldm_greeter_start_session (LdmGreeter *greeter, const gchar *session);
+void lightdm_greeter_start_session (LightDMGreeter *greeter, const gchar *session);
 
-void ldm_greeter_start_default_session (LdmGreeter *greeter);
+void lightdm_greeter_start_default_session (LightDMGreeter *greeter);
 
-gboolean ldm_greeter_get_can_suspend (LdmGreeter *greeter);
+gboolean lightdm_greeter_get_can_suspend (LightDMGreeter *greeter);
 
-void ldm_greeter_suspend (LdmGreeter *greeter);
+void lightdm_greeter_suspend (LightDMGreeter *greeter);
 
-gboolean ldm_greeter_get_can_hibernate (LdmGreeter *greeter);
+gboolean lightdm_greeter_get_can_hibernate (LightDMGreeter *greeter);
 
-void ldm_greeter_hibernate (LdmGreeter *greeter);
+void lightdm_greeter_hibernate (LightDMGreeter *greeter);
 
-gboolean ldm_greeter_get_can_restart (LdmGreeter *greeter);
+gboolean lightdm_greeter_get_can_restart (LightDMGreeter *greeter);
 
-void ldm_greeter_restart (LdmGreeter *greeter);
+void lightdm_greeter_restart (LightDMGreeter *greeter);
 
-gboolean ldm_greeter_get_can_shutdown (LdmGreeter *greeter);
+gboolean lightdm_greeter_get_can_shutdown (LightDMGreeter *greeter);
 
-void ldm_greeter_shutdown (LdmGreeter *greeter);
+void lightdm_greeter_shutdown (LightDMGreeter *greeter);
 
 G_END_DECLS
 
-#endif /* _LDM_GREETER_H_ */
+#endif /* _LIGHTDM_GREETER_H_ */

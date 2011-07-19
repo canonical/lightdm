@@ -27,7 +27,7 @@ enum {
 
 typedef struct
 {
-    LdmGreeter *greeter;
+    LightDMGreeter *greeter;
 
     gchar *name;
     gchar *real_name;
@@ -39,14 +39,14 @@ typedef struct
     gchar *language;
     gchar *layout;
     gchar *session;
-} LdmUserPrivate;
+} LightDMUserPrivate;
 
-G_DEFINE_TYPE (LdmUser, ldm_user, G_TYPE_OBJECT);
+G_DEFINE_TYPE (LightDMUser, lightdm_user, G_TYPE_OBJECT);
 
-#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LDM_TYPE_USER, LdmUserPrivate)
+#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_USER, LightDMUserPrivate)
 
 /**
- * ldm_user_new:
+ * lightdm_user_new:
  * 
  * Create a new user.
  * @greeter: The greeter the user is connected to
@@ -56,18 +56,18 @@ G_DEFINE_TYPE (LdmUser, ldm_user, G_TYPE_OBJECT);
  * @image: The image URI
  * @logged_in: #TRUE if this user is currently logged in
  * 
- * Return value: the new #LdmUser
+ * Return value: the new #LightDMUser
  **/
-LdmUser *
-ldm_user_new (LdmGreeter *greeter, const gchar *name, const gchar *real_name, const gchar *home_directory, const gchar *image, gboolean logged_in)
+LightDMUser *
+lightdm_user_new (LightDMGreeter *greeter, const gchar *name, const gchar *real_name, const gchar *home_directory, const gchar *image, gboolean logged_in)
 {
-    return g_object_new (LDM_TYPE_USER, "greeter", greeter, "name", name, "real-name", real_name, "home-directory", home_directory, "image", image, "logged-in", logged_in, NULL);
+    return g_object_new (LIGHTDM_TYPE_USER, "greeter", greeter, "name", name, "real-name", real_name, "home-directory", home_directory, "image", image, "logged-in", logged_in, NULL);
 }
 
 gboolean
-ldm_user_update (LdmUser *user, const gchar *real_name, const gchar *home_directory, const gchar *image, gboolean logged_in)
+lightdm_user_update (LightDMUser *user, const gchar *real_name, const gchar *home_directory, const gchar *image, gboolean logged_in)
 {
-    LdmUserPrivate *priv = GET_PRIVATE (user);
+    LightDMUserPrivate *priv = GET_PRIVATE (user);
 
     if (g_strcmp0 (priv->real_name, real_name) == 0 &&
         g_strcmp0 (priv->home_directory, home_directory) == 0 &&
@@ -87,26 +87,26 @@ ldm_user_update (LdmUser *user, const gchar *real_name, const gchar *home_direct
 }
 
 /**
- * ldm_user_get_name:
- * @user: A #LdmUser
+ * lightdm_user_get_name:
+ * @user: A #LightDMUser
  * 
  * Get the name of a user.
  * 
  * Return value: The name of the given user
  **/
 const gchar *
-ldm_user_get_name (LdmUser *user)
+lightdm_user_get_name (LightDMUser *user)
 {
-    g_return_val_if_fail (LDM_IS_USER (user), NULL);
+    g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
     return GET_PRIVATE (user)->name;
 }
 
 void
-ldm_user_set_name (LdmUser *user, const gchar *name)
+lightdm_user_set_name (LightDMUser *user, const gchar *name)
 {
-    LdmUserPrivate *priv;
+    LightDMUserPrivate *priv;
 
-    g_return_if_fail (LDM_IS_USER (user));
+    g_return_if_fail (LIGHTDM_IS_USER (user));
 
     priv = GET_PRIVATE (user);
     g_free (priv->name);
@@ -114,26 +114,26 @@ ldm_user_set_name (LdmUser *user, const gchar *name)
 }
 
 /**
- * ldm_user_get_real_name:
- * @user: A #LdmUser
+ * lightdm_user_get_real_name:
+ * @user: A #LightDMUser
  * 
  * Get the real name of a user.
  *
  * Return value: The real name of the given user (may be blank)
  **/
 const gchar *
-ldm_user_get_real_name (LdmUser *user)
+lightdm_user_get_real_name (LightDMUser *user)
 {
-    g_return_val_if_fail (LDM_IS_USER (user), NULL);
+    g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
     return GET_PRIVATE (user)->real_name;
 }
 
 void
-ldm_user_set_real_name (LdmUser *user, const gchar *real_name)
+lightdm_user_set_real_name (LightDMUser *user, const gchar *real_name)
 {
-    LdmUserPrivate *priv;
+    LightDMUserPrivate *priv;
 
-    g_return_if_fail (LDM_IS_USER (user));
+    g_return_if_fail (LIGHTDM_IS_USER (user));
 
     priv = GET_PRIVATE (user);
     g_free (priv->real_name);
@@ -141,19 +141,19 @@ ldm_user_set_real_name (LdmUser *user, const gchar *real_name)
 }
 
 /**
- * ldm_user_get_display_name:
- * @user: A #LdmUser
+ * lightdm_user_get_display_name:
+ * @user: A #LightDMUser
  * 
  * Get the display name of a user.
  * 
  * Return value: The display name of the given user
  **/
 const gchar *
-ldm_user_get_display_name (LdmUser *user)
+lightdm_user_get_display_name (LightDMUser *user)
 {
-    LdmUserPrivate *priv;
+    LightDMUserPrivate *priv;
 
-    g_return_val_if_fail (LDM_IS_USER (user), NULL);
+    g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
 
     priv = GET_PRIVATE (user);
     if (priv->real_name)
@@ -163,26 +163,26 @@ ldm_user_get_display_name (LdmUser *user)
 }
 
 /**
- * ldm_user_get_home_directory:
- * @user: A #LdmUser
+ * lightdm_user_get_home_directory:
+ * @user: A #LightDMUser
  * 
  * Get the home directory for a user.
  * 
  * Return value: The users home directory
  */
 const gchar *
-ldm_user_get_home_directory (LdmUser *user)
+lightdm_user_get_home_directory (LightDMUser *user)
 {
-    g_return_val_if_fail (LDM_IS_USER (user), NULL);
+    g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
     return GET_PRIVATE (user)->home_directory;
 }
 
 void
-ldm_user_set_home_directory (LdmUser *user, const gchar *home_directory)
+lightdm_user_set_home_directory (LightDMUser *user, const gchar *home_directory)
 {
-    LdmUserPrivate *priv;
+    LightDMUserPrivate *priv;
 
-    g_return_if_fail (LDM_IS_USER (user));
+    g_return_if_fail (LIGHTDM_IS_USER (user));
 
     priv = GET_PRIVATE (user);
     g_free (priv->home_directory);
@@ -190,26 +190,26 @@ ldm_user_set_home_directory (LdmUser *user, const gchar *home_directory)
 }
 
 /**
- * ldm_user_get_image:
- * @user: A #LdmUser
+ * lightdm_user_get_image:
+ * @user: A #LightDMUser
  * 
  * Get the image URI for a user.
  * 
  * Return value: The image URI for the given user or #NULL if no URI
  **/
 const gchar *
-ldm_user_get_image (LdmUser *user)
+lightdm_user_get_image (LightDMUser *user)
 {
-    g_return_val_if_fail (LDM_IS_USER (user), NULL);
+    g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
     return GET_PRIVATE (user)->image;
 }
 
 void
-ldm_user_set_image (LdmUser *user, const gchar *image)
+lightdm_user_set_image (LightDMUser *user, const gchar *image)
 {
-    LdmUserPrivate *priv;
+    LightDMUserPrivate *priv;
 
-    g_return_if_fail (LDM_IS_USER (user));
+    g_return_if_fail (LIGHTDM_IS_USER (user));
 
     priv = GET_PRIVATE (user);
     g_free (priv->image);
@@ -217,9 +217,9 @@ ldm_user_set_image (LdmUser *user, const gchar *image)
 }
 
 static void
-load_dmrc (LdmUser *user)
+load_dmrc (LightDMUser *user)
 {
-    LdmUserPrivate *priv = GET_PRIVATE (user);
+    LightDMUserPrivate *priv = GET_PRIVATE (user);
     gchar *path;
     gboolean have_dmrc;
 
@@ -241,107 +241,107 @@ load_dmrc (LdmUser *user)
 }
 
 /**
- * ldm_user_get_language
- * @user: A #LdmUser
+ * lightdm_user_get_language
+ * @user: A #LightDMUser
  * 
  * Get the language for a user.
  * 
  * Return value: The language for the given user or #NULL if using system defaults.
  **/
 const gchar *
-ldm_user_get_language (LdmUser *user)
+lightdm_user_get_language (LightDMUser *user)
 {
-    g_return_val_if_fail (LDM_IS_USER (user), NULL);
+    g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
     load_dmrc (user);
     return GET_PRIVATE (user)->language;
 }
 
 /**
- * ldm_user_get_layout
- * @user: A #LdmUser
+ * lightdm_user_get_layout
+ * @user: A #LightDMUser
  * 
  * Get the keyboard layout for a user.
  * 
  * Return value: The keyboard layoyt for the given user or #NULL if using system defaults.
  **/
 const gchar *
-ldm_user_get_layout (LdmUser *user)
+lightdm_user_get_layout (LightDMUser *user)
 {
-    g_return_val_if_fail (LDM_IS_USER (user), NULL);
+    g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
     load_dmrc (user);
     return GET_PRIVATE (user)->layout;
 }
 
 /**
- * ldm_user_get_session
- * @user: A #LdmUser
+ * lightdm_user_get_session
+ * @user: A #LightDMUser
  * 
  * Get the session for a user.
  * 
  * Return value: The session for the given user or #NULL if using system defaults.
  **/
 const gchar *
-ldm_user_get_session (LdmUser *user)
+lightdm_user_get_session (LightDMUser *user)
 {
-    g_return_val_if_fail (LDM_IS_USER (user), NULL);
+    g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
     load_dmrc (user);
     return GET_PRIVATE (user)->session; 
 }
 
 /**
- * ldm_user_get_logged_in:
- * @user: A #LdmUser
+ * lightdm_user_get_logged_in:
+ * @user: A #LightDMUser
  * 
  * Check if a user is logged in.
  * 
  * Return value: #TRUE if the user is currently logged in.
  **/
 gboolean
-ldm_user_get_logged_in (LdmUser *user)
+lightdm_user_get_logged_in (LightDMUser *user)
 {
-    g_return_val_if_fail (LDM_IS_USER (user), FALSE);
+    g_return_val_if_fail (LIGHTDM_IS_USER (user), FALSE);
     return GET_PRIVATE (user)->logged_in;
 }
 
 void
-ldm_user_set_logged_in (LdmUser *user, gboolean logged_in)
+lightdm_user_set_logged_in (LightDMUser *user, gboolean logged_in)
 {
-    g_return_if_fail (LDM_IS_USER (user));
+    g_return_if_fail (LIGHTDM_IS_USER (user));
     GET_PRIVATE (user)->logged_in = logged_in;
 }
 
 static void
-ldm_user_init (LdmUser *user)
+lightdm_user_init (LightDMUser *user)
 {
 }
 
 static void
-ldm_user_set_property (GObject      *object,
+lightdm_user_set_property (GObject      *object,
                        guint         prop_id,
                        const GValue *value,
                        GParamSpec   *pspec)
 {
-    LdmUser *self = LDM_USER (object);
-    LdmUserPrivate *priv = GET_PRIVATE (self);
+    LightDMUser *self = LIGHTDM_USER (object);
+    LightDMUserPrivate *priv = GET_PRIVATE (self);
 
     switch (prop_id) {
     case PROP_GREETER:
         priv->greeter = g_object_ref (g_value_get_object (value));
         break;
     case PROP_NAME:
-        ldm_user_set_name (self, g_value_get_string (value));
+        lightdm_user_set_name (self, g_value_get_string (value));
         break;
     case PROP_REAL_NAME:
-        ldm_user_set_real_name (self, g_value_get_string (value));
+        lightdm_user_set_real_name (self, g_value_get_string (value));
         break;
     case PROP_HOME_DIRECTORY:
-        ldm_user_set_home_directory (self, g_value_get_string (value));
+        lightdm_user_set_home_directory (self, g_value_get_string (value));
         break;
     case PROP_IMAGE:
-        ldm_user_set_image (self, g_value_get_string (value));
+        lightdm_user_set_image (self, g_value_get_string (value));
         break;
     case PROP_LOGGED_IN:
-        ldm_user_set_logged_in (self, g_value_get_boolean (value));
+        lightdm_user_set_logged_in (self, g_value_get_boolean (value));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -350,42 +350,42 @@ ldm_user_set_property (GObject      *object,
 }
 
 static void
-ldm_user_get_property (GObject    *object,
+lightdm_user_get_property (GObject    *object,
                        guint       prop_id,
                        GValue     *value,
                        GParamSpec *pspec)
 {
-    LdmUser *self;
+    LightDMUser *self;
 
-    self = LDM_USER (object);
+    self = LIGHTDM_USER (object);
 
     switch (prop_id) {
     case PROP_NAME:
-        g_value_set_string (value, ldm_user_get_name (self));
+        g_value_set_string (value, lightdm_user_get_name (self));
         break;
     case PROP_REAL_NAME:
-        g_value_set_string (value, ldm_user_get_real_name (self));
+        g_value_set_string (value, lightdm_user_get_real_name (self));
         break;
     case PROP_DISPLAY_NAME:
-        g_value_set_string (value, ldm_user_get_display_name (self));
+        g_value_set_string (value, lightdm_user_get_display_name (self));
         break;
     case PROP_HOME_DIRECTORY:
-        g_value_set_string (value, ldm_user_get_home_directory (self));
+        g_value_set_string (value, lightdm_user_get_home_directory (self));
         break;
     case PROP_IMAGE:
-        g_value_set_string (value, ldm_user_get_image (self));
+        g_value_set_string (value, lightdm_user_get_image (self));
         break;
     case PROP_LANGUAGE:
-        g_value_set_string (value, ldm_user_get_language (self));
+        g_value_set_string (value, lightdm_user_get_language (self));
         break;
     case PROP_LAYOUT:
-        g_value_set_string (value, ldm_user_get_layout (self));
+        g_value_set_string (value, lightdm_user_get_layout (self));
         break;
     case PROP_SESSION:
-        g_value_set_string (value, ldm_user_get_session (self));
+        g_value_set_string (value, lightdm_user_get_session (self));
         break;
     case PROP_LOGGED_IN:
-        g_value_set_boolean (value, ldm_user_get_logged_in (self));
+        g_value_set_boolean (value, lightdm_user_get_logged_in (self));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -394,10 +394,10 @@ ldm_user_get_property (GObject    *object,
 }
 
 static void
-ldm_user_finalize (GObject *object)
+lightdm_user_finalize (GObject *object)
 {
-    LdmUser *self = LDM_USER (object);
-    LdmUserPrivate *priv = GET_PRIVATE (self);
+    LightDMUser *self = LIGHTDM_USER (object);
+    LightDMUserPrivate *priv = GET_PRIVATE (self);
 
     g_free (priv->name);
     g_free (priv->real_name);
@@ -408,22 +408,22 @@ ldm_user_finalize (GObject *object)
 }
 
 static void
-ldm_user_class_init (LdmUserClass *klass)
+lightdm_user_class_init (LightDMUserClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
   
-    g_type_class_add_private (klass, sizeof (LdmUserPrivate));
+    g_type_class_add_private (klass, sizeof (LightDMUserPrivate));
 
-    object_class->set_property = ldm_user_set_property;
-    object_class->get_property = ldm_user_get_property;
-    object_class->finalize = ldm_user_finalize;
+    object_class->set_property = lightdm_user_set_property;
+    object_class->get_property = lightdm_user_get_property;
+    object_class->finalize = lightdm_user_finalize;
 
     g_object_class_install_property(object_class,
                                     PROP_GREETER,
                                     g_param_spec_object("greeter",
                                                         "greeter",
                                                         "Greeter",
-                                                        LDM_TYPE_GREETER,
+                                                        LIGHTDM_TYPE_GREETER,
                                                         G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
     g_object_class_install_property(object_class,
                                     PROP_NAME,

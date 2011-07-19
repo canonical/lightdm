@@ -1,12 +1,12 @@
 <!-- ##### SECTION Title ##### -->
-LdmLayout
+LightDMLayout
 
 <!-- ##### SECTION Short_Description ##### -->
 Information about an available keyboard layout
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
-#LdmLayout is an object that describes a keyboard that is available on the system.
+#LightDMLayout is an object that describes a keyboard that is available on the system.
 </para>
 
 <!-- ##### SECTION See_Also ##### -->
@@ -20,7 +20,7 @@ Information about an available keyboard layout
 <!-- ##### SECTION Image ##### -->
 
 
-<!-- ##### FUNCTION ldm_layout_get_name ##### -->
+<!-- ##### FUNCTION lightdm_layout_get_name ##### -->
 <para>
 
 </para>
@@ -29,7 +29,7 @@ Information about an available keyboard layout
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_layout_get_short_description ##### -->
+<!-- ##### FUNCTION lightdm_layout_get_short_description ##### -->
 <para>
 
 </para>
@@ -38,7 +38,7 @@ Information about an available keyboard layout
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_layout_get_description ##### -->
+<!-- ##### FUNCTION lightdm_layout_get_description ##### -->
 <para>
 
 </para>

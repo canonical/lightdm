@@ -1,12 +1,12 @@
 <!-- ##### SECTION Title ##### -->
-LdmLanguage
+LightDMLanguage
 
 <!-- ##### SECTION Short_Description ##### -->
 Information about an available language
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
-#LdmLanguage is an object that describes a language that is available on the system.
+#LightDMLanguage is an object that describes a language that is available on the system.
 </para>
 
 <!-- ##### SECTION See_Also ##### -->
@@ -20,7 +20,7 @@ Information about an available language
 <!-- ##### SECTION Image ##### -->
 
 
-<!-- ##### FUNCTION ldm_language_get_code ##### -->
+<!-- ##### FUNCTION lightdm_language_get_code ##### -->
 <para>
 
 </para>
@@ -29,7 +29,7 @@ Information about an available language
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_language_get_name ##### -->
+<!-- ##### FUNCTION lightdm_language_get_name ##### -->
 <para>
 
 </para>
@@ -38,7 +38,7 @@ Information about an available language
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_language_get_territory ##### -->
+<!-- ##### FUNCTION lightdm_language_get_territory ##### -->
 <para>
 
 </para>
@@ -47,7 +47,7 @@ Information about an available language
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_language_matches ##### -->
+<!-- ##### FUNCTION lightdm_language_matches ##### -->
 <para>
 
 </para>

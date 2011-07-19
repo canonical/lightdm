@@ -32,7 +32,7 @@ INTROSPECTION_GIRS = LightDM-0.gir
 
 LightDM-0.gir: liblightdm-gobject-0.la
 LightDM_0_gir_INCLUDES = GObject-2.0
-LightDM_0_gir_CFLAGS = $(INCLUDES) --identifier-prefix=Ldm
+LightDM_0_gir_CFLAGS = $(INCLUDES) --identifier-prefix=LightDM
 LightDM_0_gir_LIBS = liblightdm-gobject-0.la
 LightDM_0_gir_FILES = $(liblightdm_gobject_0_la_SOURCES)
 

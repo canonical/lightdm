@@ -1,12 +1,12 @@
 <!-- ##### SECTION Title ##### -->
-LdmGreeter
+LightDMGreeter
 
 <!-- ##### SECTION Short_Description ##### -->
 Manages connection to LightDM server and provides greeter functionality
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
-#LdmGreeter is an object that manages the connection to the LightDM server and provides common greeter functionality.
+#LightDMGreeter is an object that manages the connection to the LightDM server and provides common greeter functionality.
 </para>
 <para>
 <example>
@@ -14,7 +14,7 @@ Manages connection to LightDM server and provides greeter functionality
 <programlisting><![CDATA[
 int main ()
 {
-    LdmGreeter *greeter = ldm_greeter_new ();
+    LightDMGreeter *greeter = lightdm_greeter_new ();
 
     g_object_connect (greeter, "connected", G_CALLBACK (connected_cb), NULL);
     g_object_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
@@ -22,32 +22,32 @@ int main ()
     g_object_connect (greeter, "session-failed", G_CALLBACK (session_failed_cb), NULL);
     g_object_connect (greeter, "quit", G_CALLBACK (quit_cb), NULL);
 
-    if (!ldm_greeter_connect_to_server (LDM_GREETER (greeter))) {
+    if (!lightdm_greeter_connect_to_server (LIGHTDM_GREETER (greeter))) {
         // Log an error
         return 0;
     }
 }
 
-static void connected_cb (LdmGreeter *greeter)
+static void connected_cb (LightDMGreeter *greeter)
 {
     // Start authentication
-    ldm_greeter_login_with_user_prompt (greeter);
+    lightdm_greeter_login_with_user_prompt (greeter);
 }
 
-static void show_prompt_cb (LdmGreeter *greeter, const char *text, LdmPromptType type)
+static void show_prompt_cb (LightDMGreeter *greeter, const char *text, LightDMPromptType type)
 {
     // Show the user the message and prompt for some response
     gchar *secret = prompt_user (text, type);
 
     // Give the result to the user
-    ldm_greeter_respond (greeter, response);
+    lightdm_greeter_respond (greeter, response);
 }
 
-static void authentication_complete_cb (LdmGreeter *greeter)
+static void authentication_complete_cb (LightDMGreeter *greeter)
 {
-    if (ldm_greeter_get_is_authenticated (greeter)) {
+    if (lightdm_greeter_get_is_authenticated (greeter)) {
         // Start the user session
-        ldm_greeter_start_default_session (greeter);
+        lightdm_greeter_start_default_session (greeter);
     }
     else {
         // Display a warning and reset the greeter
@@ -55,13 +55,13 @@ static void authentication_complete_cb (LdmGreeter *greeter)
     }
 }
 
-static void session_failed_cb (LdmGreeter *greeter)
+static void session_failed_cb (LightDMGreeter *greeter)
 {
     // Display a warning and reset the greeter
     reset_login_screen (``Failed to login'');
 }
 
-static void quit_cb (LdmGreeter *greeter)
+static void quit_cb (LightDMGreeter *greeter)
 {
     // Clean up
     // ...
@@ -83,23 +83,23 @@ static void quit_cb (LdmGreeter *greeter)
 <!-- ##### SECTION Image ##### -->
 
 
-<!-- ##### ENUM LdmMessageType ##### -->
+<!-- ##### ENUM LightDMMessageType ##### -->
 <para>
 
 </para>
 
-@LDM_MESSAGE_TYPE_INFO: 
-@LDM_MESSAGE_TYPE_ERROR: 
+@LIGHTDM_MESSAGE_TYPE_INFO: 
+@LIGHTDM_MESSAGE_TYPE_ERROR: 
 
-<!-- ##### ENUM LdmPromptType ##### -->
+<!-- ##### ENUM LightDMPromptType ##### -->
 <para>
 
 </para>
 
-@LDM_PROMPT_TYPE_QUESTION: 
-@LDM_PROMPT_TYPE_SECRET: 
+@LIGHTDM_PROMPT_TYPE_QUESTION: 
+@LIGHTDM_PROMPT_TYPE_SECRET: 
 
-<!-- ##### FUNCTION ldm_greeter_new ##### -->
+<!-- ##### FUNCTION lightdm_greeter_new ##### -->
 <para>
 
 </para>
@@ -108,7 +108,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_connect_to_server ##### -->
+<!-- ##### FUNCTION lightdm_greeter_connect_to_server ##### -->
 <para>
 
 </para>
@@ -117,7 +117,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_hostname ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_hostname ##### -->
 <para>
 
 </para>
@@ -126,7 +126,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_num_users ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_num_users ##### -->
 <para>
 
 </para>
@@ -135,7 +135,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_users ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_users ##### -->
 <para>
 
 </para>
@@ -144,7 +144,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_user_by_name ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_user_by_name ##### -->
 <para>
 
 </para>
@@ -154,7 +154,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_default_language ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_default_language ##### -->
 <para>
 
 </para>
@@ -163,7 +163,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_languages ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_languages ##### -->
 <para>
 
 </para>
@@ -172,7 +172,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_layouts ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_layouts ##### -->
 <para>
 
 </para>
@@ -181,7 +181,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_layout ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_layout ##### -->
 <para>
 
 </para>
@@ -190,7 +190,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_set_layout ##### -->
+<!-- ##### FUNCTION lightdm_greeter_set_layout ##### -->
 <para>
 
 </para>
@@ -199,7 +199,7 @@ static void quit_cb (LdmGreeter *greeter)
 @layout: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_sessions ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_sessions ##### -->
 <para>
 
 </para>
@@ -208,7 +208,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_default_session_hint ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_default_session_hint ##### -->
 <para>
 
 </para>
@@ -217,7 +217,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_hint ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_hint ##### -->
 <para>
 
 </para>
@@ -227,7 +227,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_has_guest_account_hint ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_has_guest_account_hint ##### -->
 <para>
 
 </para>
@@ -236,7 +236,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_hide_users_hint ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_hide_users_hint ##### -->
 <para>
 
 </para>
@@ -245,7 +245,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_select_user_hint ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_select_user_hint ##### -->
 <para>
 
 </para>
@@ -254,7 +254,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_select_guest_hint ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_select_guest_hint ##### -->
 <para>
 
 </para>
@@ -263,7 +263,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_autologin_user_hint ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_autologin_user_hint ##### -->
 <para>
 
 </para>
@@ -272,7 +272,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_autologin_guest_hint ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_autologin_guest_hint ##### -->
 <para>
 
 </para>
@@ -281,7 +281,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_autologin_timeout_hint ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_autologin_timeout_hint ##### -->
 <para>
 
 </para>
@@ -290,7 +290,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_cancel_timed_login ##### -->
+<!-- ##### FUNCTION lightdm_greeter_cancel_timed_login ##### -->
 <para>
 
 </para>
@@ -298,7 +298,7 @@ static void quit_cb (LdmGreeter *greeter)
 @greeter: 
 
 
-<!-- ##### FUNCTION ldm_greeter_login ##### -->
+<!-- ##### FUNCTION lightdm_greeter_login ##### -->
 <para>
 
 </para>
@@ -307,7 +307,7 @@ static void quit_cb (LdmGreeter *greeter)
 @username: 
 
 
-<!-- ##### FUNCTION ldm_greeter_login_with_user_prompt ##### -->
+<!-- ##### FUNCTION lightdm_greeter_login_with_user_prompt ##### -->
 <para>
 
 </para>
@@ -315,7 +315,7 @@ static void quit_cb (LdmGreeter *greeter)
 @greeter: 
 
 
-<!-- ##### FUNCTION ldm_greeter_login_as_guest ##### -->
+<!-- ##### FUNCTION lightdm_greeter_login_as_guest ##### -->
 <para>
 
 </para>
@@ -323,7 +323,7 @@ static void quit_cb (LdmGreeter *greeter)
 @greeter: 
 
 
-<!-- ##### FUNCTION ldm_greeter_respond ##### -->
+<!-- ##### FUNCTION lightdm_greeter_respond ##### -->
 <para>
 
 </para>
@@ -332,7 +332,7 @@ static void quit_cb (LdmGreeter *greeter)
 @response: 
 
 
-<!-- ##### FUNCTION ldm_greeter_cancel_authentication ##### -->
+<!-- ##### FUNCTION lightdm_greeter_cancel_authentication ##### -->
 <para>
 
 </para>
@@ -340,16 +340,7 @@ static void quit_cb (LdmGreeter *greeter)
 @greeter: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_in_authentication ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION ldm_greeter_get_is_authenticated ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_in_authentication ##### -->
 <para>
 
 </para>
@@ -358,7 +349,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_authentication_user ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_is_authenticated ##### -->
 <para>
 
 </para>
@@ -367,7 +358,16 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_start_session ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_authentication_user ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_greeter_start_session ##### -->
 <para>
 
 </para>
@@ -376,7 +376,7 @@ static void quit_cb (LdmGreeter *greeter)
 @session: 
 
 
-<!-- ##### FUNCTION ldm_greeter_start_default_session ##### -->
+<!-- ##### FUNCTION lightdm_greeter_start_default_session ##### -->
 <para>
 
 </para>
@@ -384,24 +384,7 @@ static void quit_cb (LdmGreeter *greeter)
 @greeter: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_can_suspend ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION ldm_greeter_suspend ##### -->
-<para>
-
-</para>
-
-@greeter: 
-
-
-<!-- ##### FUNCTION ldm_greeter_get_can_hibernate ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_can_suspend ##### -->
 <para>
 
 </para>
@@ -410,7 +393,7 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_hibernate ##### -->
+<!-- ##### FUNCTION lightdm_greeter_suspend ##### -->
 <para>
 
 </para>
@@ -418,24 +401,7 @@ static void quit_cb (LdmGreeter *greeter)
 @greeter: 
 
 
-<!-- ##### FUNCTION ldm_greeter_get_can_restart ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION ldm_greeter_restart ##### -->
-<para>
-
-</para>
-
-@greeter: 
-
-
-<!-- ##### FUNCTION ldm_greeter_get_can_shutdown ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_can_hibernate ##### -->
 <para>
 
 </para>
@@ -444,7 +410,41 @@ static void quit_cb (LdmGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION ldm_greeter_shutdown ##### -->
+<!-- ##### FUNCTION lightdm_greeter_hibernate ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
+<!-- ##### FUNCTION lightdm_greeter_get_can_restart ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_greeter_restart ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
+<!-- ##### FUNCTION lightdm_greeter_get_can_shutdown ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_greeter_shutdown ##### -->
 <para>
 
 </para>

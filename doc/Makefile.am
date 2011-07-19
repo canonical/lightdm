@@ -15,7 +15,7 @@ GTKDOC_LIBS = \
 	$(LIBLIGHTDM_GOBJECT_LIBS) \
 	$(top_builddir)/liblightdm-gobject/liblightdm-gobject-0.la
 
-MKDB_OPTIONS=--sgml-mode --output-format=xml --name-space=ldm
+MKDB_OPTIONS=--sgml-mode --output-format=xml --name-space=LightDM
 
 DISTCLEANFILES = \
 	$(DOC_MODULE)-docs.xml \

@@ -10,7 +10,7 @@ static xcb_connection_t *connection = NULL;
 static GKeyFile *config;
 
 static void
-connected_cb (LdmGreeter *greeter)
+connected_cb (LightDMGreeter *greeter)
 {
     gchar *login_lock;
     FILE *f;
@@ -26,10 +26,10 @@ connected_cb (LdmGreeter *greeter)
     }
 
     /* Automatically log in as requested user */
-    if (ldm_greeter_get_select_user_hint (greeter))
+    if (lightdm_greeter_get_select_user_hint (greeter))
     {
-        notify_status ("GREETER LOGIN-SELECTED USERNAME=%s", ldm_greeter_get_select_user_hint (greeter));
-        ldm_greeter_login (greeter, ldm_greeter_get_select_user_hint (greeter));
+        notify_status ("GREETER LOGIN-SELECTED USERNAME=%s", lightdm_greeter_get_select_user_hint (greeter));
+        lightdm_greeter_login (greeter, lightdm_greeter_get_select_user_hint (greeter));
         return;
     }
 
@@ -40,12 +40,12 @@ connected_cb (LdmGreeter *greeter)
         if (g_key_file_get_boolean (config, "test-greeter-config", "login-guest", NULL))
         {
             notify_status ("GREETER LOGIN-GUEST");
-            ldm_greeter_login_as_guest (greeter);
+            lightdm_greeter_login_as_guest (greeter);
         }
         else if (g_key_file_get_boolean (config, "test-greeter-config", "prompt-username", NULL))
         {
             notify_status ("GREETER LOGIN");
-            ldm_greeter_login (greeter, NULL);
+            lightdm_greeter_login (greeter, NULL);
         }
         else
         {
@@ -56,7 +56,7 @@ connected_cb (LdmGreeter *greeter)
                 return;
 
             notify_status ("GREETER LOGIN USERNAME=%s", username);
-            ldm_greeter_login (greeter, username);
+            lightdm_greeter_login (greeter, username);
             g_free (username);
         }
 
@@ -72,13 +72,13 @@ connected_cb (LdmGreeter *greeter)
 }
 
 static void
-show_message_cb (LdmGreeter *greeter, const gchar *text, LdmMessageType type)
+show_message_cb (LightDMGreeter *greeter, const gchar *text, LightDMMessageType type)
 {
     notify_status ("GREETER SHOW-MESSAGE TEXT=\"%s\"", text);
 }
 
 static void
-show_prompt_cb (LdmGreeter *greeter, const gchar *text, LdmPromptType type)
+show_prompt_cb (LightDMGreeter *greeter, const gchar *text, LightDMPromptType type)
 {
     gchar *username, *password, *response = NULL;
 
@@ -98,7 +98,7 @@ show_prompt_cb (LdmGreeter *greeter, const gchar *text, LdmPromptType type)
     if (response)
     {
         notify_status ("GREETER RESPOND TEXT=\"%s\"", response);
-        ldm_greeter_respond (greeter, response);
+        lightdm_greeter_respond (greeter, response);
     }
 
     g_free (username);
@@ -106,21 +106,21 @@ show_prompt_cb (LdmGreeter *greeter, const gchar *text, LdmPromptType type)
 }
 
 static void
-authentication_complete_cb (LdmGreeter *greeter)
+authentication_complete_cb (LightDMGreeter *greeter)
 {
-    notify_status ("GREETER AUTHENTICATION-COMPLETE AUTHENTICATED=%s", ldm_greeter_get_is_authenticated (greeter) ? "TRUE" : "FALSE");
-    if (ldm_greeter_get_is_authenticated (greeter))
-        ldm_greeter_start_default_session (greeter);
+    notify_status ("GREETER AUTHENTICATION-COMPLETE AUTHENTICATED=%s", lightdm_greeter_get_is_authenticated (greeter) ? "TRUE" : "FALSE");
+    if (lightdm_greeter_get_is_authenticated (greeter))
+        lightdm_greeter_start_default_session (greeter);
 }
 
 static void
-session_failed_cb (LdmGreeter *greeter)
+session_failed_cb (LightDMGreeter *greeter)
 {
     notify_status ("GREETER SESSION-FAILED");
 }
 
 static void
-quit_cb (LdmGreeter *greeter)
+quit_cb (LightDMGreeter *greeter)
 {
     notify_status ("GREETER QUIT");
     exit (EXIT_SUCCESS);
@@ -136,7 +136,7 @@ signal_cb (int signum)
 int
 main (int argc, char **argv)
 {
-    LdmGreeter *greeter;
+    LightDMGreeter *greeter;
 
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
@@ -159,7 +159,7 @@ main (int argc, char **argv)
 
     notify_status ("GREETER CONNECT-XSERVER %s", getenv ("DISPLAY"));
 
-    greeter = ldm_greeter_new ();
+    greeter = lightdm_greeter_new ();
     g_signal_connect (greeter, "connected", G_CALLBACK (connected_cb), NULL);
     g_signal_connect (greeter, "show-message", G_CALLBACK (show_message_cb), NULL);
     g_signal_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
@@ -168,7 +168,7 @@ main (int argc, char **argv)
     g_signal_connect (greeter, "quit", G_CALLBACK (quit_cb), NULL);
 
     notify_status ("GREETER CONNECT-TO-DAEMON");
-    ldm_greeter_connect_to_server (greeter);
+    lightdm_greeter_connect_to_server (greeter);
 
     g_main_loop_run (g_main_loop_new (NULL, FALSE));
 
