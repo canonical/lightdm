@@ -3,10 +3,6 @@ Overview of changes in lightdm 0.9.0
     * Fix invalid XAUTHORITY variable being set for second X server.
     * Fix bug where switching users created X servers without VTs
     * Release a VT when the X server on it stops
-    * D-Bus API changes:
-      - Make an object per seat
-      - Add a CanSwitch property
-      - Rename ShowGreeter() to SwitchToGreeter()
     * Config changes:
       - Major reorginisation of configuration to make it easier to configure and
         understand.  Users should set [SeatDefaults] section with settings for
@@ -18,7 +14,12 @@ Overview of changes in lightdm 0.9.0
       - Both libraries are now version 1 and have API and ABI guarantees.
       - Added a session-failed signal to indicate if the session didn't start
         and the greeter should try authorizing again.
+      - Face images are now local paths not URIs
       - liblightdm-gobject now uses lightdm_ prefix instead of ldm_
+    * D-Bus API changes:
+      - Make an object per seat
+      - Add a CanSwitch property
+      - Rename ShowGreeter() to SwitchToGreeter()
     * Drop most of the configure options, they aren't necessary
     * Removed the Vala and Python GTK+ greeters, they weren't being well
       maintained.

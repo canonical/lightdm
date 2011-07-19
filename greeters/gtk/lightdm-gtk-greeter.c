@@ -447,14 +447,7 @@ load_user_list ()
 
         image = lightdm_user_get_image (user);
         if (image)
-        {
-            gchar *path;
-
-            path = g_filename_from_uri (image, NULL, NULL);
-            if (path)
-                pixbuf = gdk_pixbuf_new_from_file_at_scale (path, 64, 64, TRUE, NULL);
-            g_free (path);
-        }
+            pixbuf = gdk_pixbuf_new_from_file_at_scale (image, 64, 64, TRUE, NULL);
         if (!pixbuf)
             pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
                                                "stock_person",

@@ -645,7 +645,7 @@ load_users (LightDMGreeter *greeter)
         struct passwd *entry;
         LightDMUser *user;
         char **tokens;
-        gchar *real_name, *image_path, *image;
+        gchar *real_name, *image;
         int i;
 
         errno = 0;
@@ -677,22 +677,17 @@ load_users (LightDMGreeter *greeter)
             real_name = NULL;
         g_strfreev (tokens);
       
-        image_path = g_build_filename (entry->pw_dir, ".face", NULL);
-        if (!g_file_test (image_path, G_FILE_TEST_EXISTS))
+        image = g_build_filename (entry->pw_dir, ".face", NULL);
+        if (!g_file_test (image, G_FILE_TEST_EXISTS))
         {
-            g_free (image_path);
-            image_path = g_build_filename (entry->pw_dir, ".face.icon", NULL);
-            if (!g_file_test (image_path, G_FILE_TEST_EXISTS))
+            g_free (image);
+            image = g_build_filename (entry->pw_dir, ".face.icon", NULL);
+            if (!g_file_test (image, G_FILE_TEST_EXISTS))
             {
-                g_free (image_path);
-                image_path = NULL;
+                g_free (image);
+                image = NULL;
             }
         }
-        if (image_path)
-            image = g_filename_to_uri (image_path, NULL, NULL);
-        else
-            image = NULL;
-        g_free (image_path);
 
         user = lightdm_user_new (greeter, entry->pw_name, real_name, entry->pw_dir, image, FALSE);
         g_free (real_name);

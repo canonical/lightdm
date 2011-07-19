@@ -140,12 +140,13 @@ QList<User> UsersModel::getUsers()
             delete imageFile;
             imageFile = new QFile(homeDir.filePath(".face.icon"));
         }
-        if(imageFile->exists()) {
-            image = "file://" + imageFile->fileName();
+        if(imageFile->exists())
+        {
+            delete imageFile;
+            imageFile = NULL;
         }
-        delete imageFile;
 
-        User user(entry->pw_name, realName, entry->pw_dir, image, false);
+        User user(entry->pw_name, realName, entry->pw_dir, imageFile->fileName(), false);
         users.append(user);
     }
 
