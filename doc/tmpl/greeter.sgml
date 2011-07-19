@@ -186,15 +186,6 @@ static void quit_cb (LightDMGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION lightdm_greeter_get_user_list ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
 <!-- ##### FUNCTION lightdm_greeter_get_default_language ##### -->
 <para>
 

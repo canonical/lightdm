@@ -85,8 +85,7 @@ namespace QLightDM
         void restart();
 
         void connectToServer();
-        void login(const QString &username);
-        void loginWithUserPrompt();
+        void login(const QString &username=QString());
         void loginAsGuest();
         void respond(const QString &response);
         void cancelAuthentication();
