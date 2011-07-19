@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef QLIGHTDM_SESSIONSMODEL_H
-#define QLIGHTDM_SESSIONSMODEL_H
+#ifndef QLIGHTDM_SESSION_H
+#define QLIGHTDM_SESSION_H
 
 #include <QtCore/QAbstractListModel>
 
@@ -35,4 +35,4 @@ namespace QLightDM {
     };
 };
 
-#endif // QLIGHTDM_SESSIONSMODEL_H
+#endif // QLIGHTDM_SESSION_H
