@@ -35,6 +35,16 @@ public:
     QString comment;
 };
 
+static SessionsModel *session_model = NULL;
+
+SessionsModel *QLightDM::sessions()
+{
+    if (!session_model)
+        session_model = new SessionsModel ();
+
+    return session_model;
+}
+
 SessionsModel::SessionsModel(QObject *parent) :
     QAbstractListModel(parent),
     d(new SessionsModelPrivate())

@@ -62,12 +62,13 @@ namespace QLightDM
     {
         Q_OBJECT
     public:
+        explicit UsersModel(QObject *parent = 0);
+        ~UsersModel();
+
         enum UserModelRoles {NameRole = Qt::UserRole,
                              RealNameRole,
                              LoggedInRole};
 
-        explicit UsersModel(QObject *parent = 0);
-        ~UsersModel();
         int rowCount(const QModelIndex &parent) const;
         QVariant data(const QModelIndex &index, int role) const;
 
@@ -84,6 +85,8 @@ namespace QLightDM
         QList<User> getUsers();
         UsersModelPrivate *d;
     };
+
+    UsersModel *users();
 }
 
 #endif // QLIGHTDM_USER_H

@@ -25,6 +25,16 @@
 
 using namespace QLightDM;
 
+static UsersModel *user_model = NULL;
+
+UsersModel *QLightDM::users()
+{
+    if (!user_model)
+        user_model = new UsersModel ();
+
+    return user_model;
+}
+
 class UserPrivate : public QSharedData
 {
 public:

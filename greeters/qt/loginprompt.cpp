@@ -15,7 +15,7 @@
 #include <QLightDM/Greeter>
 #include <QLightDM/User>
 #include <QLightDM/Language>
-#include <QLightDM/UsersModel>
+#include <QLightDM/User>
 #include <QLightDM/System>
 
 #include <QtCore/QDebug>
@@ -31,8 +31,7 @@ LoginPrompt::LoginPrompt(QLightDM::Greeter *greeter, QWidget *parent) :
     
     ui->hostnameLabel->setText(QLightDM::hostname());
     
-    QLightDM::UsersModel *usersModel = new QLightDM::UsersModel(this);
-    ui->userListView->setModel(usersModel);
+    ui->userListView->setModel(QLightDM::users());
 
     connect(ui->loginButton, SIGNAL(released()), SLOT(onLoginButtonClicked()));
     connect(m_greeter, SIGNAL(authenticationComplete(bool)), SLOT(onAuthenticationComplete(bool)));

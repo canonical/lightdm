@@ -13,7 +13,7 @@
 #include "ui_panel.h"
 
 #include <QLightDM/Greeter>
-#include <QLightDM/SessionsModel>
+#include <QLightDM/Session>
 #include <QLightDM/Power>
 
 #include <QMenu>
@@ -52,11 +52,8 @@ Panel::Panel(QLightDM::Greeter *greeter, QWidget *parent):
     hibernateAction->setEnabled(QLightDM::canHibernate());
     powerMenu->addAction(hibernateAction);
 
-    ui->powerOptionsButton->setMenu(powerMenu);
-
-    
-    QLightDM::SessionsModel* sessionsModel = new QLightDM::SessionsModel(this);
-    ui->sessionCombo->setModel(sessionsModel);
+    ui->powerOptionsButton->setMenu(powerMenu);    
+    ui->sessionCombo->setModel(QLightDM::sessions());
 }
 
 QString Panel::session() const{
