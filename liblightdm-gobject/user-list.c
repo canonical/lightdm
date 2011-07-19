@@ -560,13 +560,13 @@ update_users (LightDMUserList *user_list)
 }
 
 /**
- * lightdm_user_list_get_num_users:
+ * lightdm_user_list_get_length:
  * @user_list: a #LightDMUserList
  *
  * Return value: The number of users able to log in
  **/
 gint
-lightdm_user_list_get_num_users (LightDMUserList *user_list)
+lightdm_user_list_get_length (LightDMUserList *user_list)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER_LIST (user_list), 0);
     update_users (user_list);
@@ -636,7 +636,7 @@ lightdm_user_list_get_property (GObject    *object,
 
     switch (prop_id) {
     case PROP_NUM_USERS:
-        g_value_set_int (value, lightdm_user_list_get_num_users (self));
+        g_value_set_int (value, lightdm_user_list_get_length (self));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

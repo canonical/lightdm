@@ -1,8 +1,8 @@
 <!-- ##### SECTION Title ##### -->
-LightDMGreeter
+Greeter Interface
 
 <!-- ##### SECTION Short_Description ##### -->
-Manages connection to LightDM server and provides greeter functionality
+Make a connection to the LightDM daemon and authenticate users
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
@@ -31,7 +31,7 @@ int main ()
 static void connected_cb (LightDMGreeter *greeter)
 {
     // Start authentication
-    lightdm_greeter_login_with_user_prompt (greeter);
+    lightdm_greeter_authenticate (greeter, NULL);
 }
 
 static void show_prompt_cb (LightDMGreeter *greeter, const char *text, LightDMPromptType type)
@@ -177,69 +177,6 @@ static void quit_cb (LightDMGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION lightdm_greeter_get_hostname ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_get_default_language ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_get_languages ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_get_layouts ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_get_layout ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_set_layout ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@layout: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_get_sessions ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
 <!-- ##### FUNCTION lightdm_greeter_get_default_session_hint ##### -->
 <para>
 
@@ -322,7 +259,7 @@ static void quit_cb (LightDMGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION lightdm_greeter_cancel_timed_login ##### -->
+<!-- ##### FUNCTION lightdm_greeter_cancel_autologin ##### -->
 <para>
 
 </para>
@@ -330,7 +267,7 @@ static void quit_cb (LightDMGreeter *greeter)
 @greeter: 
 
 
-<!-- ##### FUNCTION lightdm_greeter_login ##### -->
+<!-- ##### FUNCTION lightdm_greeter_authenticate ##### -->
 <para>
 
 </para>
@@ -339,15 +276,7 @@ static void quit_cb (LightDMGreeter *greeter)
 @username: 
 
 
-<!-- ##### FUNCTION lightdm_greeter_login_with_user_prompt ##### -->
-<para>
-
-</para>
-
-@greeter: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_login_as_guest ##### -->
+<!-- ##### FUNCTION lightdm_greeter_authenticate_as_guest ##### -->
 <para>
 
 </para>
@@ -409,74 +338,6 @@ static void quit_cb (LightDMGreeter *greeter)
 
 
 <!-- ##### FUNCTION lightdm_greeter_start_default_session ##### -->
-<para>
-
-</para>
-
-@greeter: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_get_can_suspend ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_suspend ##### -->
-<para>
-
-</para>
-
-@greeter: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_get_can_hibernate ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_hibernate ##### -->
-<para>
-
-</para>
-
-@greeter: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_get_can_restart ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_restart ##### -->
-<para>
-
-</para>
-
-@greeter: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_get_can_shutdown ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_shutdown ##### -->
 <para>
 
 </para>

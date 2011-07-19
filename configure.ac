@@ -177,7 +177,6 @@ greeters/gtk/Makefile
 greeters/qt/Makefile
 liblightdm-gobject/liblightdm-gobject-1.pc
 liblightdm-gobject/Makefile
-liblightdm-gobject/lightdm/Makefile
 liblightdm-qt/Makefile
 liblightdm-qt/liblightdm-qt-1.pc
 liblightdm-qt/QLightDM/Makefile

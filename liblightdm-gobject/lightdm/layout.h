@@ -35,6 +35,12 @@ typedef struct
 
 GType lightdm_layout_get_type (void);
 
+GList *lightdm_get_layouts (void);
+
+void lightdm_set_layout (LightDMLayout *layout);
+
+LightDMLayout *lightdm_get_layout (void);
+
 const gchar *lightdm_layout_get_name (LightDMLayout *layout);
 
 const gchar *lightdm_layout_get_short_description (LightDMLayout *layout);

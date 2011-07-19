@@ -1,8 +1,8 @@
 <!-- ##### SECTION Title ##### -->
-LightDMUser
+User Accounts
 
 <!-- ##### SECTION Short_Description ##### -->
-Information about a user account
+Get information on user accounts on this system
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
@@ -42,24 +42,6 @@ A user has the following properties:
 </para>
 
 @user: 
-
-
-<!-- ##### FUNCTION lightdm_user_get_name ##### -->
-<para>
-
-</para>
-
-@user: 
-@Returns: 
-
-
-<!-- ##### FUNCTION lightdm_user_get_real_name ##### -->
-<para>
-
-</para>
-
-@user: 
-@Returns: 
 
 
 <!-- ##### FUNCTION lightdm_user_get_display_name ##### -->
@@ -107,6 +89,33 @@ A user has the following properties:
 @Returns: 
 
 
+<!-- ##### FUNCTION lightdm_user_get_logged_in ##### -->
+<para>
+
+</para>
+
+@user: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_user_get_name ##### -->
+<para>
+
+</para>
+
+@user: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_user_get_real_name ##### -->
+<para>
+
+</para>
+
+@user: 
+@Returns: 
+
+
 <!-- ##### FUNCTION lightdm_user_get_session ##### -->
 <para>
 
@@ -116,12 +125,67 @@ A user has the following properties:
 @Returns: 
 
 
-<!-- ##### FUNCTION lightdm_user_get_logged_in ##### -->
+<!-- ##### USER_FUNCTION user_added ##### -->
 <para>
 
 </para>
 
+@user_list: 
 @user: 
+
+
+<!-- ##### USER_FUNCTION user_changed ##### -->
+<para>
+
+</para>
+
+@user_list: 
+@user: 
+
+
+<!-- ##### USER_FUNCTION user_removed ##### -->
+<para>
+
+</para>
+
+@user_list: 
+@user: 
+
+
+<!-- ##### FUNCTION lightdm_user_list_get_instance ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_user_list_get_length ##### -->
+<para>
+
+</para>
+
+@user_list: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_user_list_get_user_by_name ##### -->
+<para>
+
+</para>
+
+@user_list: 
+@username: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_user_list_get_users ##### -->
+<para>
+
+</para>
+
+@user_list: 
 @Returns: 
 
 

@@ -1,8 +1,8 @@
 <!-- ##### SECTION Title ##### -->
-LightDMLanguage
+Languages
 
 <!-- ##### SECTION Short_Description ##### -->
-Information about an available language
+Get information on available languges
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
@@ -18,6 +18,24 @@ Information about an available language
 
 
 <!-- ##### SECTION Image ##### -->
+
+
+<!-- ##### FUNCTION lightdm_get_languages ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_get_language ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
 
 
 <!-- ##### FUNCTION lightdm_language_get_code ##### -->

@@ -16,10 +16,9 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gdk-pixbuf-xlib/gdk-pixbuf-xlib.h>
 
-#include "lightdm/greeter.h"
+#include "lightdm.h"
 
 static LightDMGreeter *greeter;
-static LightDMUserList *user_list;
 static GtkWidget *window, *message_label, *user_view;
 static GdkPixbuf *background_pixbuf = NULL;
 static GtkWidget *prompt_box, *prompt_label, *prompt_entry, *session_combo;
@@ -71,22 +70,22 @@ start_authentication (const gchar *username)
 
     if (strcmp (username, "*other") == 0)
     {
-        lightdm_greeter_login_with_user_prompt (greeter);
+        lightdm_greeter_authenticate (greeter, NULL);
     }
     else if (strcmp (username, "*guest") == 0)
     {
-        lightdm_greeter_login_as_guest (greeter);
+        lightdm_greeter_authenticate_as_guest (greeter);
     }
     else
     {
         LightDMUser *user;
-        user = lightdm_user_list_get_user_by_name (user_list, username);
+        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         if (user)
             set_session (lightdm_user_get_session (user));
         else
             set_session (lightdm_greeter_get_default_session_hint (greeter));
 
-        lightdm_greeter_login (greeter, username);
+        lightdm_greeter_authenticate (greeter, username);
     }
 }
 
@@ -192,7 +191,7 @@ authentication_complete_cb (LightDMGreeter *greeter)
         gtk_label_set_text (GTK_LABEL (message_label), "Failed to authenticate");
         gtk_widget_show (message_label);
         if (lightdm_greeter_get_hide_users_hint (greeter))
-            lightdm_greeter_login_with_user_prompt (greeter);
+            lightdm_greeter_authenticate (greeter, NULL);
     }
 }
 
@@ -201,9 +200,9 @@ autologin_timer_expired_cb (LightDMGreeter *greeter)
 {
     set_session (lightdm_greeter_get_default_session_hint (greeter));
     if (lightdm_greeter_get_autologin_guest_hint (greeter))
-        lightdm_greeter_login_as_guest (greeter);
+        lightdm_greeter_authenticate_as_guest (greeter);
     else if (lightdm_greeter_get_autologin_user_hint (greeter))
-        lightdm_greeter_login (greeter, lightdm_greeter_get_autologin_user_hint (greeter));
+        lightdm_greeter_authenticate (greeter, lightdm_greeter_get_autologin_user_hint (greeter));
 }
 
 void suspend_cb (GtkWidget *widget, LightDMGreeter *greeter);
@@ -211,7 +210,7 @@ G_MODULE_EXPORT
 void
 suspend_cb (GtkWidget *widget, LightDMGreeter *greeter)
 {
-    lightdm_greeter_suspend (greeter);
+    lightdm_suspend ();
 }
 
 void hibernate_cb (GtkWidget *widget, LightDMGreeter *greeter);
@@ -219,7 +218,7 @@ G_MODULE_EXPORT
 void
 hibernate_cb (GtkWidget *widget, LightDMGreeter *greeter)
 {
-    lightdm_greeter_hibernate (greeter);
+    lightdm_hibernate ();
 }
 
 static void
@@ -258,7 +257,7 @@ restart_cb (GtkWidget *widget, LightDMGreeter *greeter)
     center_window (GTK_WINDOW (dialog));
 
     if (gtk_dialog_run (GTK_DIALOG (dialog)))
-        lightdm_greeter_restart (greeter);
+        lightdm_restart ();
     gtk_widget_destroy (dialog);
 }
 
@@ -280,7 +279,7 @@ shutdown_cb (GtkWidget *widget, LightDMGreeter *greeter)
     center_window (GTK_WINDOW (dialog));
 
     if (gtk_dialog_run (GTK_DIALOG (dialog)))
-        lightdm_greeter_shutdown (greeter);
+        lightdm_shutdown ();
     gtk_widget_destroy (dialog);
 }
 
@@ -435,12 +434,11 @@ load_user_list ()
     GtkTreeModel *model;
     GtkTreeIter iter;
 
-    user_list = lightdm_user_list_new ();
-    g_signal_connect (user_list, "user-added", G_CALLBACK (user_added_cb), NULL);
-    g_signal_connect (user_list, "user-changed", G_CALLBACK (user_changed_cb), NULL);
-    g_signal_connect (user_list, "user-removed", G_CALLBACK (user_removed_cb), NULL);
+    g_signal_connect (lightdm_user_list_get_instance (), "user-added", G_CALLBACK (user_added_cb), NULL);
+    g_signal_connect (lightdm_user_list_get_instance (), "user-changed", G_CALLBACK (user_changed_cb), NULL);
+    g_signal_connect (lightdm_user_list_get_instance (), "user-removed", G_CALLBACK (user_removed_cb), NULL);
 
-    items = lightdm_user_list_get_users (user_list);
+    items = lightdm_user_list_get_users (lightdm_user_list_get_instance ());
 
     model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
     for (item = items; item; item = item->next)
@@ -533,7 +531,7 @@ connected_cb (LightDMGreeter *greeter)
     message_label = GTK_WIDGET (gtk_builder_get_object (builder, "message_label"));
     session_combo = GTK_WIDGET (gtk_builder_get_object (builder, "session_combobox"));
   
-    gtk_label_set_text (GTK_LABEL (gtk_builder_get_object (builder, "hostname_label")), lightdm_greeter_get_hostname (greeter));
+    gtk_label_set_text (GTK_LABEL (gtk_builder_get_object (builder, "hostname_label")), lightdm_get_hostname ());
 
     background_image = NULL; // FIXME
     if (background_image)
@@ -568,13 +566,13 @@ connected_cb (LightDMGreeter *greeter)
         gdk_window_set_back_pixmap (root, pixmap, FALSE);
     }
 
-    if (!lightdm_greeter_get_can_suspend (greeter))
+    if (!lightdm_get_can_suspend ())
         gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (builder, "suspend_menuitem")));
-    if (!lightdm_greeter_get_can_hibernate (greeter))
+    if (!lightdm_get_can_hibernate ())
         gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (builder, "hibernate_menuitem")));
-    if (!lightdm_greeter_get_can_restart (greeter))
+    if (!lightdm_get_can_restart ())
         gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (builder, "restart_menuitem")));
-    if (!lightdm_greeter_get_can_shutdown (greeter))
+    if (!lightdm_get_can_shutdown ())
         gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (builder, "shutdown_menuitem")));
 
     user_view = GTK_WIDGET (gtk_builder_get_object (builder, "user_treeview"));
@@ -582,20 +580,20 @@ connected_cb (LightDMGreeter *greeter)
     gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 1, "Name", gtk_cell_renderer_text_new(), "text", 1, NULL);
 
     if (lightdm_greeter_get_hide_users_hint (greeter))
-        lightdm_greeter_login_with_user_prompt (greeter);
+        lightdm_greeter_authenticate (greeter, NULL);
     else
     {
         load_user_list ();
         gtk_widget_show (user_view);
     }
   
-    // FIXME: Select the requested user if lightdm_greeter_get_timed_login_user () && lightdm_greeter_get_timed_login_delay () == 0
+    // FIXME: Select the requested user if lightdm_greeter_get_select_user_hint () set
 
     renderer = gtk_cell_renderer_text_new();
     gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (session_combo), renderer, TRUE);
     gtk_cell_layout_add_attribute (GTK_CELL_LAYOUT (session_combo), renderer, "text", 0);
     model = gtk_combo_box_get_model (GTK_COMBO_BOX (session_combo));
-    items = lightdm_greeter_get_sessions (greeter);
+    items = lightdm_get_sessions ();
     for (item = items; item; item = item->next)
     {
         LightDMSession *session = item->data;

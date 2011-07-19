@@ -12,24 +12,13 @@
 #include <config.h>
 
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
-#include <locale.h>
-#include <sys/utsname.h>
-#include <pwd.h>
-#include <gio/gdesktopappinfo.h>
 #include <security/pam_appl.h>
-#include <libxklavier/xklavier.h>
 
 #include "lightdm/greeter.h"
 
 enum {
     PROP_0,
-    PROP_HOSTNAME,
-    PROP_DEFAULT_LANGUAGE,
-    PROP_LAYOUTS,
-    PROP_LAYOUT,
-    PROP_SESSIONS,
     PROP_DEFAULT_SESSION_HINT,
     PROP_HIDE_USERS_HINT,
     PROP_HAS_GUEST_ACCOUNT_HINT,
@@ -41,10 +30,6 @@ enum {
     PROP_AUTHENTICATION_USER,
     PROP_IN_AUTHENTICATION,
     PROP_IS_AUTHENTICATED,
-    PROP_CAN_SUSPEND,
-    PROP_CAN_HIBERNATE,
-    PROP_CAN_RESTART,
-    PROP_CAN_SHUTDOWN
 };
 
 enum {
@@ -61,39 +46,18 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 typedef struct
 {
-    GDBusConnection *system_bus;
-
     GIOChannel *to_server_channel, *from_server_channel;
     guint8 *read_buffer;
     gsize n_read;
 
-    Display *display;
-
-    gchar *hostname;
-
-    LightDMUserList *user_list;
-  
-    gboolean have_languages;
-    GList *languages;
-
-    XklEngine *xkl_engine;
-    XklConfigRec *xkl_config;
-    gboolean have_layouts;
-    GList *layouts;
-    gchar *layout;
-
-    gboolean have_sessions;
-    GList *sessions;
+    GHashTable *hints;
+    guint autologin_timeout;
 
     gchar *authentication_user;
     gboolean in_authentication;
     gboolean is_authenticated;
     guint32 authenticate_sequence_number;
     gboolean cancelling_authentication;
-  
-    GHashTable *hints;
-
-    guint login_timeout;
 } LightDMGreeterPrivate;
 
 G_DEFINE_TYPE (LightDMGreeter, lightdm_greeter, G_TYPE_OBJECT);
@@ -107,8 +71,8 @@ G_DEFINE_TYPE (LightDMGreeter, lightdm_greeter, G_TYPE_OBJECT);
 typedef enum
 {
     GREETER_MESSAGE_CONNECT = 0,
-    GREETER_MESSAGE_LOGIN,
-    GREETER_MESSAGE_LOGIN_AS_GUEST,
+    GREETER_MESSAGE_AUTHENTICATE,
+    GREETER_MESSAGE_AUTHENTICATE_AS_GUEST,
     GREETER_MESSAGE_CONTINUE_AUTHENTICATION,
     GREETER_MESSAGE_START_SESSION,
     GREETER_MESSAGE_CANCEL_AUTHENTICATION
@@ -143,7 +107,7 @@ timed_login_cb (gpointer data)
     LightDMGreeter *greeter = data;
     LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
 
-    priv->login_timeout = 0;
+    priv->autologin_timeout = 0;
     g_signal_emit (G_OBJECT (greeter), signals[AUTOLOGIN_TIMER_EXPIRED], 0);
 
     return FALSE;
@@ -282,7 +246,7 @@ handle_connected (LightDMGreeter *greeter, guint32 length, gsize *offset)
     if (timeout)
     {
         g_debug ("Setting autologin timer for %d seconds", timeout);
-        priv->login_timeout = g_timeout_add (timeout * 1000, timed_login_cb, greeter);
+        priv->autologin_timeout = g_timeout_add (timeout * 1000, timed_login_cb, greeter);
     }
     g_signal_emit (G_OBJECT (greeter), signals[CONNECTED], 0);
 }
@@ -481,7 +445,6 @@ gboolean
 lightdm_greeter_connect_to_server (LightDMGreeter *greeter)
 {
     LightDMGreeterPrivate *priv;
-    GError *error = NULL;
     const gchar *fd;
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
@@ -490,12 +453,7 @@ lightdm_greeter_connect_to_server (LightDMGreeter *greeter)
 
     priv = GET_PRIVATE (greeter);
 
-    priv->system_bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
-    if (!priv->system_bus)
-        g_warning ("Failed to connect to system bus: %s", error->message);
-    g_clear_error (&error);
-
-    fd = getenv ("LIGHTDM_TO_SERVER_FD");
+    fd = g_getenv ("LIGHTDM_TO_SERVER_FD");
     if (!fd)
     {
         g_warning ("No LIGHTDM_TO_SERVER_FD environment variable");
@@ -504,7 +462,7 @@ lightdm_greeter_connect_to_server (LightDMGreeter *greeter)
     priv->to_server_channel = g_io_channel_unix_new (atoi (fd));
     g_io_channel_set_encoding (priv->to_server_channel, NULL, NULL);
 
-    fd = getenv ("LIGHTDM_FROM_SERVER_FD");
+    fd = g_getenv ("LIGHTDM_FROM_SERVER_FD");
     if (!fd)
     {
         g_warning ("No LIGHTDM_FROM_SERVER_FD environment variable");
@@ -520,324 +478,6 @@ lightdm_greeter_connect_to_server (LightDMGreeter *greeter)
     write_message (greeter, message, offset);
 
     return TRUE;
-}
-
-/**
- * lightdm_greeter_get_hostname:
- * @greeter: a #LightDMGreeter
- *
- * Return value: The host this greeter is displaying
- **/
-const gchar *
-lightdm_greeter_get_hostname (LightDMGreeter *greeter)
-{
-    LightDMGreeterPrivate *priv;
-
-    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
-
-    priv = GET_PRIVATE (greeter);
-
-    if (!priv->hostname)
-    {
-        struct utsname info;
-        uname (&info);
-        priv->hostname = g_strdup (info.nodename);
-    }
-
-    return priv->hostname;
-}
-
-static void
-update_languages (LightDMGreeter *greeter)
-{
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-    gchar *stdout_text = NULL, *stderr_text = NULL;
-    gint exit_status;
-    gboolean result;
-    GError *error = NULL;
-
-    if (priv->have_languages)
-        return;
-
-    result = g_spawn_command_line_sync ("locale -a", &stdout_text, &stderr_text, &exit_status, &error);
-    if (!result || exit_status != 0)
-        g_warning ("Failed to get languages, locale -a returned %d: %s", exit_status, error->message);
-    else
-    {
-        gchar **tokens;
-        int i;
-
-        tokens = g_strsplit_set (stdout_text, "\n\r", -1);
-        for (i = 0; tokens[i]; i++)
-        {
-            LightDMLanguage *language;
-            gchar *code;
-
-            code = g_strchug (tokens[i]);
-            if (code[0] == '\0')
-                continue;
-
-            /* Ignore the non-interesting languages */
-            if (strcmp (code, "C") == 0 || strcmp (code, "POSIX") == 0)
-                continue;
-
-            language = g_object_new (LIGHTDM_TYPE_LANGUAGE, "code", code, NULL);
-            priv->languages = g_list_append (priv->languages, language);
-        }
-
-        g_strfreev (tokens);
-    }
-
-    g_clear_error (&error);
-    g_free (stdout_text);
-    g_free (stderr_text);
-
-    priv->have_languages = TRUE;
-}
-
-/**
- * lightdm_greeter_get_default_language:
- * @greeter: A #LightDMGreeter
- *
- * Get the default language.
- *
- * Return value: The default language.
- **/
-const gchar *
-lightdm_greeter_get_default_language (LightDMGreeter *greeter)
-{
-    gchar *lang;
-    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
-    lang = getenv ("LANG");
-    if (lang)
-        return lang;
-    else
-        return "C";
-}
-
-/**
- * lightdm_greeter_get_languages:
- * @greeter: A #LightDMGreeter
- *
- * Get a list of languages to present to the user.
- *
- * Return value: (element-type LightDMLanguage) (transfer none): A list of #LightDMLanguage that should be presented to the user.
- **/
-GList *
-lightdm_greeter_get_languages (LightDMGreeter *greeter)
-{
-    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
-    update_languages (greeter);
-    return GET_PRIVATE (greeter)->languages;
-}
-
-static void
-layout_cb (XklConfigRegistry *config,
-           const XklConfigItem *item,
-           gpointer data)
-{
-    LightDMGreeter *greeter = data;
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-    LightDMLayout *layout;
-
-    layout = g_object_new (LIGHTDM_TYPE_LAYOUT, "name", item->name, "short-description", item->short_description, "description", item->description, NULL);
-    priv->layouts = g_list_append (priv->layouts, layout);
-}
-
-static void
-setup_display (LightDMGreeter *greeter)
-{
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-    if (!priv->display)
-        priv->display = XOpenDisplay (NULL);
-}
-
-static void
-setup_xkl (LightDMGreeter *greeter)
-{
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-
-    setup_display (greeter);
-
-    priv->xkl_engine = xkl_engine_get_instance (priv->display);
-    priv->xkl_config = xkl_config_rec_new ();
-    if (!xkl_config_rec_get_from_server (priv->xkl_config, priv->xkl_engine))
-        g_warning ("Failed to get Xkl configuration from server");
-    priv->layout = g_strdup (priv->xkl_config->layouts[0]);
-}
-
-/**
- * lightdm_greeter_get_layouts:
- * @greeter: A #LightDMGreeter
- *
- * Get a list of keyboard layouts to present to the user.
- *
- * Return value: (element-type LightDMLayout) (transfer none): A list of #LightDMLayout that should be presented to the user.
- **/
-GList *
-lightdm_greeter_get_layouts (LightDMGreeter *greeter)
-{
-    LightDMGreeterPrivate *priv;
-    XklConfigRegistry *registry;
-
-    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
-
-    priv = GET_PRIVATE (greeter);
-
-    if (priv->have_layouts)
-        return priv->layouts;
-
-    setup_xkl (greeter);
-
-    registry = xkl_config_registry_get_instance (priv->xkl_engine);
-    xkl_config_registry_load (registry, FALSE);
-    xkl_config_registry_foreach_layout (registry, layout_cb, greeter);
-    g_object_unref (registry);
-    priv->have_layouts = TRUE;
-
-    return priv->layouts;
-}
-
-/**
- * lightdm_greeter_set_layout:
- * @greeter: A #LightDMGreeter
- * @layout: The layout to use
- *
- * Set the layout for this session.
- **/
-void
-lightdm_greeter_set_layout (LightDMGreeter *greeter, const gchar *layout)
-{
-    LightDMGreeterPrivate *priv;
-    XklConfigRec *config;
-
-    g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
-    g_return_if_fail (layout != NULL);
-
-    priv = GET_PRIVATE (greeter);
-
-    g_debug ("Setting keyboard layout to %s", layout);
-
-    setup_xkl (greeter);
-
-    config = xkl_config_rec_new ();
-    config->layouts = g_malloc (sizeof (gchar *) * 2);
-    config->model = g_strdup (priv->xkl_config->model);
-    config->layouts[0] = g_strdup (layout);
-    config->layouts[1] = NULL;
-    if (!xkl_config_rec_activate (config, priv->xkl_engine))
-        g_warning ("Failed to activate XKL config");
-    else
-        priv->layout = g_strdup (layout);
-    g_object_unref (config);
-}
-
-/**
- * lightdm_greeter_get_layout:
- * @greeter: A #LightDMGreeter
- *
- * Get the current keyboard layout.
- *
- * Return value: The currently active layout for this user.
- **/
-const gchar *
-lightdm_greeter_get_layout (LightDMGreeter *greeter)
-{
-    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
-    setup_xkl (greeter);
-    return GET_PRIVATE (greeter)->layout;
-}
-
-static void
-update_sessions (LightDMGreeter *greeter)
-{
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-    GDir *directory;
-    GError *error = NULL;
-
-    if (priv->have_sessions)
-        return;
-
-    directory = g_dir_open (XSESSIONS_DIR, 0, &error);
-    if (!directory)
-        g_warning ("Failed to open sessions directory: %s", error->message);
-    g_clear_error (&error);
-    if (!directory)
-        return;
-
-    while (TRUE)
-    {
-        const gchar *filename;
-        GKeyFile *key_file;
-        gchar *key, *path;
-        gboolean result;
-
-        filename = g_dir_read_name (directory);
-        if (filename == NULL)
-            break;
-
-        if (!g_str_has_suffix (filename, ".desktop"))
-            continue;
-
-        key = g_strndup (filename, strlen (filename) - strlen (".desktop"));
-        path = g_build_filename (XSESSIONS_DIR, filename, NULL);
-        g_debug ("Loading session %s", path);
-
-        key_file = g_key_file_new ();
-        result = g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, &error);
-        if (!result)
-            g_warning ("Failed to load session file %s: %s:", path, error->message);
-        g_clear_error (&error);
-
-        if (result && !g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY, NULL))
-        {
-            gchar *domain, *name, *comment;
-
-#ifdef G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN
-            domain = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN, NULL);
-#else
-            domain = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, "X-GNOME-Gettext-Domain", NULL);
-#endif
-            name = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NAME, domain, NULL);
-            comment = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_COMMENT, domain, NULL);
-            if (!comment)
-                comment = g_strdup ("");
-            if (name)
-            {
-                g_debug ("Loaded session %s (%s, %s)", key, name, comment);
-                priv->sessions = g_list_append (priv->sessions, g_object_new (LIGHTDM_TYPE_SESSION, "key", key, "name", name, "comment", comment, NULL));
-            }
-            else
-                g_warning ("Invalid session %s: %s", path, error->message);
-            g_free (domain);
-            g_free (name);
-            g_free (comment);
-        }
-
-        g_free (key);
-        g_free (path);
-        g_key_file_free (key_file);
-    }
-
-    g_dir_close (directory);
-
-    priv->have_sessions = TRUE;
-}
-
-/**
- * lightdm_greeter_get_sessions:
- * @greeter: A #LightDMGreeter
- *
- * Get the available sessions.
- *
- * Return value: (element-type LightDMSession) (transfer none): A list of #LightDMSession
- **/
-GList *
-lightdm_greeter_get_sessions (LightDMGreeter *greeter)
-{
-    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
-    update_sessions (greeter);
-    return GET_PRIVATE (greeter)->sessions;
 }
 
 /**
@@ -1002,13 +642,13 @@ lightdm_greeter_get_autologin_timeout_hint (LightDMGreeter *greeter)
 }
 
 /**
- * lightdm_greeter_cancel_timed_login:
+ * lightdm_greeter_cancel_autologin:
  * @greeter: A #LightDMGreeter
  *
- * Cancel the login as the default user.
+ * Cancel the automatic login.
  */
 void
-lightdm_greeter_cancel_timed_login (LightDMGreeter *greeter)
+lightdm_greeter_cancel_autologin (LightDMGreeter *greeter)
 {
     LightDMGreeterPrivate *priv;
 
@@ -1016,20 +656,20 @@ lightdm_greeter_cancel_timed_login (LightDMGreeter *greeter)
 
     priv = GET_PRIVATE (greeter);
 
-    if (priv->login_timeout)
-       g_source_remove (priv->login_timeout);
-    priv->login_timeout = 0;
+    if (priv->autologin_timeout)
+       g_source_remove (priv->autologin_timeout);
+    priv->autologin_timeout = 0;
 }
 
 /**
- * lightdm_greeter_login:
+ * lightdm_greeter_authenticate:
  * @greeter: A #LightDMGreeter
  * @username: (allow-none): A username or #NULL to prompt for a username.
  *
  * Starts the authentication procedure for a user.
  **/
 void
-lightdm_greeter_login (LightDMGreeter *greeter, const char *username)
+lightdm_greeter_authenticate (LightDMGreeter *greeter, const char *username)
 {
     LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
     guint8 message[MAX_MESSAGE_LENGTH];
@@ -1048,32 +688,20 @@ lightdm_greeter_login (LightDMGreeter *greeter, const char *username)
     priv->authentication_user = g_strdup (username);
 
     g_debug ("Starting authentication for user %s...", username);
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_LOGIN, int_length () + string_length (username), &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_AUTHENTICATE, int_length () + string_length (username), &offset);
     write_int (message, MAX_MESSAGE_LENGTH, priv->authenticate_sequence_number, &offset);
     write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
     write_message (greeter, message, offset);
 }
 
 /**
- * lightdm_greeter_login_with_user_prompt:
- * @greeter: A #LightDMGreeter
- *
- * Starts the authentication procedure, prompting the greeter for a username.
- **/
-void
-lightdm_greeter_login_with_user_prompt (LightDMGreeter *greeter)
-{
-    lightdm_greeter_login (greeter, NULL);
-}
-
-/**
- * lightdm_greeter_login_as_guest:
+ * lightdm_greeter_authenticate_as_guest:
  * @greeter: A #LightDMGreeter
  *
  * Starts the authentication procedure for the guest user.
  **/
 void
-lightdm_greeter_login_as_guest (LightDMGreeter *greeter)
+lightdm_greeter_authenticate_as_guest (LightDMGreeter *greeter)
 {
     LightDMGreeterPrivate *priv;
     guint8 message[MAX_MESSAGE_LENGTH];
@@ -1091,7 +719,7 @@ lightdm_greeter_login_as_guest (LightDMGreeter *greeter)
     priv->authentication_user = NULL;
 
     g_debug ("Starting authentication for guest account...");
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_LOGIN_AS_GUEST, int_length (), &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_AUTHENTICATE_AS_GUEST, int_length (), &offset);
     write_int (message, MAX_MESSAGE_LENGTH, priv->authenticate_sequence_number, &offset);
     write_message (greeter, message, offset);
 }
@@ -1212,209 +840,15 @@ lightdm_greeter_start_session (LightDMGreeter *greeter, const gchar *session)
 }
 
 /**
- * lightdm_greeter_start_session_with_defaults:
+ * lightdm_greeter_start_default_session:
  * @greeter: A #LightDMGreeter
  *
- * Login a user to a session using default settings for that user.
+ * Start the default session for the authenticated user.
  **/
 void
 lightdm_greeter_start_default_session (LightDMGreeter *greeter)
 {
     lightdm_greeter_start_session (greeter, NULL);
-}
-
-static gboolean
-upower_call_function (LightDMGreeter *greeter, const gchar *function, gboolean has_result)
-{
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-    GDBusProxy *proxy;
-    GVariant *result;
-    GError *error = NULL;
-    gboolean function_result = FALSE;
-  
-    if (!priv->system_bus)
-        return FALSE;
-
-    proxy = g_dbus_proxy_new_sync (priv->system_bus,
-                                   G_DBUS_PROXY_FLAGS_NONE,
-                                   NULL,
-                                   "org.freedesktop.UPower",
-                                   "/org/freedesktop/UPower",
-                                   "org.freedesktop.UPower",
-                                   NULL, NULL);
-    result = g_dbus_proxy_call_sync (proxy,
-                                     function,
-                                     NULL,
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     -1,
-                                     NULL,
-                                     &error);
-    g_object_unref (proxy);
-
-    if (!result)
-        g_warning ("Error calling UPower function %s: %s", function, error->message);
-    g_clear_error (&error);
-    if (!result)
-        return FALSE;
-
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(b)")))
-        g_variant_get (result, "(b)", &function_result);
-
-    g_variant_unref (result);
-    return function_result;
-}
-
-/**
- * lightdm_greeter_get_can_suspend:
- * @greeter: A #LightDMGreeter
- *
- * Checks if the greeter is authorized to do a system suspend.
- *
- * Return value: #TRUE if the greeter can suspend the system
- **/
-gboolean
-lightdm_greeter_get_can_suspend (LightDMGreeter *greeter)
-{
-    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
-    return upower_call_function (greeter, "SuspendAllowed", TRUE);
-}
-
-/**
- * lightdm_greeter_suspend:
- * @greeter: A #LightDMGreeter
- *
- * Triggers a system suspend.
- **/
-void
-lightdm_greeter_suspend (LightDMGreeter *greeter)
-{
-    g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
-    upower_call_function (greeter, "Suspend", FALSE);
-}
-
-/**
- * lightdm_greeter_get_can_hibernate:
- * @greeter: A #LightDMGreeter
- *
- * Checks if the greeter is authorized to do a system hibernate.
- *
- * Return value: #TRUE if the greeter can hibernate the system
- **/
-gboolean
-lightdm_greeter_get_can_hibernate (LightDMGreeter *greeter)
-{
-    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
-    return upower_call_function (greeter, "HibernateAllowed", TRUE);
-}
-
-/**
- * lightdm_greeter_hibernate:
- * @greeter: A #LightDMGreeter
- *
- * Triggers a system hibernate.
- **/
-void
-lightdm_greeter_hibernate (LightDMGreeter *greeter)
-{
-    g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
-    upower_call_function (greeter, "Hibernate", FALSE);
-}
-
-static gboolean
-ck_call_function (LightDMGreeter *greeter, const gchar *function, gboolean has_result)
-{
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-    GDBusProxy *proxy;
-    GVariant *result;
-    GError *error = NULL;
-    gboolean function_result = FALSE;
-
-    if (!priv->system_bus)
-        return FALSE;
-
-    proxy = g_dbus_proxy_new_sync (priv->system_bus,
-                                   G_DBUS_PROXY_FLAGS_NONE,
-                                   NULL,
-                                   "org.freedesktop.ConsoleKit",
-                                   "/org/freedesktop/ConsoleKit/Manager",
-                                   "org.freedesktop.ConsoleKit.Manager",
-                                   NULL, NULL);
-    result = g_dbus_proxy_call_sync (proxy,
-                                     function,
-                                     NULL,
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     -1,
-                                     NULL,
-                                     &error);
-    g_object_unref (proxy);
-
-    if (!result)
-        g_warning ("Error calling ConsoleKit function %s: %s", function, error->message);
-    g_clear_error (&error);
-    if (!result)
-        return FALSE;
-
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(b)")))
-        g_variant_get (result, "(b)", &function_result);
-
-    g_variant_unref (result);
-    return function_result;
-}
-
-/**
- * lightdm_greeter_get_can_restart:
- * @greeter: A #LightDMGreeter
- *
- * Checks if the greeter is authorized to do a system restart.
- *
- * Return value: #TRUE if the greeter can restart the system
- **/
-gboolean
-lightdm_greeter_get_can_restart (LightDMGreeter *greeter)
-{
-    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
-    return ck_call_function (greeter, "CanRestart", TRUE);
-}
-
-/**
- * lightdm_greeter_restart:
- * @greeter: A #LightDMGreeter
- *
- * Triggers a system restart.
- **/
-void
-lightdm_greeter_restart (LightDMGreeter *greeter)
-{
-    g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
-    ck_call_function (greeter, "Restart", FALSE);
-}
-
-/**
- * lightdm_greeter_get_can_shutdown:
- * @greeter: A #LightDMGreeter
- *
- * Checks if the greeter is authorized to do a system shutdown.
- *
- * Return value: #TRUE if the greeter can shutdown the system
- **/
-gboolean
-lightdm_greeter_get_can_shutdown (LightDMGreeter *greeter)
-{
-    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
-    return ck_call_function (greeter, "CanStop", TRUE);
-}
-
-/**
- * lightdm_greeter_shutdown:
- * @greeter: A #LightDMGreeter
- *
- * Triggers a system shutdown.
- **/
-void
-lightdm_greeter_shutdown (LightDMGreeter *greeter)
-{
-    g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
-    ck_call_function (greeter, "Stop", FALSE);
 }
 
 static void
@@ -1432,18 +866,7 @@ lightdm_greeter_set_property (GObject      *object,
                           const GValue *value,
                           GParamSpec   *pspec)
 {
-    LightDMGreeter *self;
-
-    self = LIGHTDM_GREETER (object);
-
-    switch (prop_id) {
-    case PROP_LAYOUT:
-        lightdm_greeter_set_layout(self, g_value_get_string (value));
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 }
 
 static void
@@ -1457,19 +880,6 @@ lightdm_greeter_get_property (GObject    *object,
     self = LIGHTDM_GREETER (object);
 
     switch (prop_id) {
-    case PROP_HOSTNAME:
-        g_value_set_string (value, lightdm_greeter_get_hostname (self));
-        break;
-    case PROP_DEFAULT_LANGUAGE:
-        g_value_set_string (value, lightdm_greeter_get_default_language (self));
-        break;
-    case PROP_LAYOUTS:
-        break;
-    case PROP_LAYOUT:
-        g_value_set_string (value, lightdm_greeter_get_layout (self));
-        break;
-    case PROP_SESSIONS:
-        break;
     case PROP_DEFAULT_SESSION_HINT:
         g_value_set_string (value, lightdm_greeter_get_default_session_hint (self));
         break;
@@ -1502,18 +912,6 @@ lightdm_greeter_get_property (GObject    *object,
         break;
     case PROP_IS_AUTHENTICATED:
         g_value_set_boolean (value, lightdm_greeter_get_is_authenticated (self));
-        break;
-    case PROP_CAN_SUSPEND:
-        g_value_set_boolean (value, lightdm_greeter_get_can_suspend (self));
-        break;
-    case PROP_CAN_HIBERNATE:
-        g_value_set_boolean (value, lightdm_greeter_get_can_hibernate (self));
-        break;
-    case PROP_CAN_RESTART:
-        g_value_set_boolean (value, lightdm_greeter_get_can_restart (self));
-        break;
-    case PROP_CAN_SHUTDOWN:
-        g_value_set_boolean (value, lightdm_greeter_get_can_shutdown (self));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1563,25 +961,10 @@ lightdm_greeter_finalize (GObject *object)
     LightDMGreeter *self = LIGHTDM_GREETER (object);
     LightDMGreeterPrivate *priv = GET_PRIVATE (self);
 
-    if (priv->system_bus)
-        g_object_unref (priv->system_bus);
     if (priv->to_server_channel)
         g_io_channel_unref (priv->to_server_channel);
     if (priv->from_server_channel)
         g_io_channel_unref (priv->from_server_channel);
-    if (priv->display)
-        XCloseDisplay (priv->display);
-    g_free (priv->hostname);
-    if (priv->user_list)
-        g_object_unref (priv->user_list);
-    g_list_free_full (priv->languages, g_object_unref);
-    if (priv->xkl_engine)
-        g_object_unref (priv->xkl_engine);
-    if (priv->xkl_config)
-        g_object_unref (priv->xkl_config);
-    g_list_free_full (priv->layouts, g_object_unref);
-    g_free (priv->layout);
-    g_list_free_full (priv->sessions, g_object_unref);
     g_free (priv->authentication_user);
     g_hash_table_unref (priv->hints);
 
@@ -1599,37 +982,6 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
     object_class->get_property = lightdm_greeter_get_property;
     object_class->finalize = lightdm_greeter_finalize;
 
-    g_object_class_install_property (object_class,
-                                     PROP_HOSTNAME,
-                                     g_param_spec_string ("hostname",
-                                                          "hostname",
-                                                          "Hostname displaying greeter for",
-                                                          NULL,
-                                                          G_PARAM_READABLE));
-    g_object_class_install_property (object_class,
-                                     PROP_DEFAULT_LANGUAGE,
-                                     g_param_spec_string ("default-language",
-                                                          "default-language",
-                                                          "Default language",
-                                                          NULL,
-                                                          G_PARAM_READWRITE));
-    /*g_object_class_install_property (object_class,
-                                     PROP_LAYOUTS,
-                                     g_param_spec_list ("layouts",
-                                                        "layouts",
-                                                        "Available keyboard layouts"));*/
-    g_object_class_install_property (object_class,
-                                     PROP_LAYOUT,
-                                     g_param_spec_string ("layout",
-                                                          "layout",
-                                                          "Current keyboard layout",
-                                                          NULL,
-                                                          G_PARAM_READWRITE));
-    /*g_object_class_install_property (object_class,
-                                     PROP_SESSIONS,
-                                     g_param_spec_list ("sessions",
-                                                        "sessions",
-                                                        "Available sessions"));*/
     g_object_class_install_property (object_class,
                                      PROP_DEFAULT_SESSION_HINT,
                                      g_param_spec_string ("default-session-hint",
@@ -1713,34 +1065,6 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
                                      g_param_spec_boolean ("is-authenticated",
                                                            "is-authenticated",
                                                            "TRUE if the selected user is authenticated",
-                                                           FALSE,
-                                                           G_PARAM_READABLE));
-    g_object_class_install_property (object_class,
-                                     PROP_CAN_SUSPEND,
-                                     g_param_spec_boolean ("can-suspend",
-                                                           "can-suspend",
-                                                           "TRUE if allowed to suspend the system",
-                                                           FALSE,
-                                                           G_PARAM_READABLE));
-    g_object_class_install_property (object_class,
-                                     PROP_CAN_HIBERNATE,
-                                     g_param_spec_boolean ("can-hibernate",
-                                                           "can-hibernate",
-                                                           "TRUE if allowed to hibernate the system",
-                                                           FALSE,
-                                                           G_PARAM_READABLE));
-    g_object_class_install_property (object_class,
-                                     PROP_CAN_RESTART,
-                                     g_param_spec_boolean ("can-restart",
-                                                           "can-restart",
-                                                           "TRUE if allowed to restart the system",
-                                                           FALSE,
-                                                           G_PARAM_READABLE));
-    g_object_class_install_property (object_class,
-                                     PROP_CAN_SHUTDOWN,
-                                     g_param_spec_boolean ("can-shutdown",
-                                                           "can-shutdown",
-                                                           "TRUE if allowed to shutdown the system",
                                                            FALSE,
                                                            G_PARAM_READABLE));
 

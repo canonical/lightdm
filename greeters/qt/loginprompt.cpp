@@ -49,7 +49,7 @@ void LoginPrompt::onLoginButtonClicked()
     ui->feedbackLabel->setText(QString());
     QModelIndex currentIndex = ui->userListView->currentIndex();
     if (currentIndex.isValid()) {
-        m_greeter->login(currentIndex.data(QLightDM::UsersModel::NameRole).toString());
+        m_greeter->authenticate(currentIndex.data(QLightDM::UsersModel::NameRole).toString());
     }
 }
 

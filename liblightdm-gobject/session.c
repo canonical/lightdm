@@ -9,6 +9,9 @@
  * license.
  */
 
+#include <string.h>
+#include <gio/gdesktopappinfo.h>
+
 #include "lightdm/session.h"
 
 enum {
@@ -28,6 +31,98 @@ typedef struct
 G_DEFINE_TYPE (LightDMSession, lightdm_session, G_TYPE_OBJECT);
 
 #define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_SESSION, LightDMSessionPrivate)
+
+static gboolean have_sessions = FALSE;
+static GList *sessions = NULL;
+
+static void
+update_sessions (void)
+{
+    GDir *directory;
+    GError *error = NULL;
+
+    if (have_sessions)
+        return;
+
+    directory = g_dir_open (XSESSIONS_DIR, 0, &error);
+    if (!directory)
+        g_warning ("Failed to open sessions directory: %s", error->message);
+    g_clear_error (&error);
+    if (!directory)
+        return;
+
+    while (TRUE)
+    {
+        const gchar *filename;
+        GKeyFile *key_file;
+        gchar *key, *path;
+        gboolean result;
+
+        filename = g_dir_read_name (directory);
+        if (filename == NULL)
+            break;
+
+        if (!g_str_has_suffix (filename, ".desktop"))
+            continue;
+
+        key = g_strndup (filename, strlen (filename) - strlen (".desktop"));
+        path = g_build_filename (XSESSIONS_DIR, filename, NULL);
+        g_debug ("Loading session %s", path);
+
+        key_file = g_key_file_new ();
+        result = g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, &error);
+        if (!result)
+            g_warning ("Failed to load session file %s: %s:", path, error->message);
+        g_clear_error (&error);
+
+        if (result && !g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY, NULL))
+        {
+            gchar *domain, *name, *comment;
+
+#ifdef G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN
+            domain = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN, NULL);
+#else
+            domain = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, "X-GNOME-Gettext-Domain", NULL);
+#endif
+            name = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NAME, domain, NULL);
+            comment = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_COMMENT, domain, NULL);
+            if (!comment)
+                comment = g_strdup ("");
+            if (name)
+            {
+                g_debug ("Loaded session %s (%s, %s)", key, name, comment);
+                sessions = g_list_append (sessions, g_object_new (LIGHTDM_TYPE_SESSION, "key", key, "name", name, "comment", comment, NULL));
+            }
+            else
+                g_warning ("Invalid session %s: %s", path, error->message);
+            g_free (domain);
+            g_free (name);
+            g_free (comment);
+        }
+
+        g_free (key);
+        g_free (path);
+        g_key_file_free (key_file);
+    }
+
+    g_dir_close (directory);
+
+    have_sessions = TRUE;
+}
+
+/**
+ * lightdm_get_sessions:
+ *
+ * Get the available sessions.
+ *
+ * Return value: (element-type LightDMSession) (transfer none): A list of #LightDMSession
+ **/
+GList *
+lightdm_get_sessions (void)
+{
+    update_sessions ();
+    return sessions;
+}
 
 /**
  * lightdm_session_get_key

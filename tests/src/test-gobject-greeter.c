@@ -28,8 +28,8 @@ connected_cb (LightDMGreeter *greeter)
     /* Automatically log in as requested user */
     if (lightdm_greeter_get_select_user_hint (greeter))
     {
-        notify_status ("GREETER LOGIN-SELECTED USERNAME=%s", lightdm_greeter_get_select_user_hint (greeter));
-        lightdm_greeter_login (greeter, lightdm_greeter_get_select_user_hint (greeter));
+        notify_status ("GREETER AUTHENTICATE-SELECTED USERNAME=%s", lightdm_greeter_get_select_user_hint (greeter));
+        lightdm_greeter_authenticate (greeter, lightdm_greeter_get_select_user_hint (greeter));
         return;
     }
 
@@ -39,13 +39,13 @@ connected_cb (LightDMGreeter *greeter)
     {
         if (g_key_file_get_boolean (config, "test-greeter-config", "login-guest", NULL))
         {
-            notify_status ("GREETER LOGIN-GUEST");
-            lightdm_greeter_login_as_guest (greeter);
+            notify_status ("GREETER AUTHENTICATE-GUEST");
+            lightdm_greeter_authenticate_as_guest (greeter);
         }
         else if (g_key_file_get_boolean (config, "test-greeter-config", "prompt-username", NULL))
         {
-            notify_status ("GREETER LOGIN");
-            lightdm_greeter_login (greeter, NULL);
+            notify_status ("GREETER AUTHENTICATE");
+            lightdm_greeter_authenticate (greeter, NULL);
         }
         else
         {
@@ -55,8 +55,8 @@ connected_cb (LightDMGreeter *greeter)
             if (!username)
                 return;
 
-            notify_status ("GREETER LOGIN USERNAME=%s", username);
-            lightdm_greeter_login (greeter, username);
+            notify_status ("GREETER AUTHENTICATE USERNAME=%s", username);
+            lightdm_greeter_authenticate (greeter, username);
             g_free (username);
         }
 

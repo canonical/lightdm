@@ -1,0 +1,90 @@
+<!-- ##### SECTION Title ##### -->
+Power Management
+
+<!-- ##### SECTION Short_Description ##### -->
+Shutdown, restart, sleep the system
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### SECTION Image ##### -->
+
+
+<!-- ##### FUNCTION lightdm_get_can_suspend ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_suspend ##### -->
+<para>
+
+</para>
+
+@void: 
+
+
+<!-- ##### FUNCTION lightdm_get_can_hibernate ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_hibernate ##### -->
+<para>
+
+</para>
+
+@void: 
+
+
+<!-- ##### FUNCTION lightdm_get_can_restart ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_restart ##### -->
+<para>
+
+</para>
+
+@void: 
+
+
+<!-- ##### FUNCTION lightdm_get_can_shutdown ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_shutdown ##### -->
+<para>
+
+</para>
+
+@void: 
+
+

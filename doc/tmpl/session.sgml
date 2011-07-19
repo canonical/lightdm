@@ -1,8 +1,8 @@
 <!-- ##### SECTION Title ##### -->
-LightDMSession
+User Sessions
 
 <!-- ##### SECTION Short_Description ##### -->
-Information about an available session
+Choose the session to use
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
@@ -18,6 +18,15 @@ Object containing information about a session type. #LightDMSession objects are 
 
 
 <!-- ##### SECTION Image ##### -->
+
+
+<!-- ##### FUNCTION lightdm_get_sessions ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
 
 
 <!-- ##### FUNCTION lightdm_session_get_key ##### -->

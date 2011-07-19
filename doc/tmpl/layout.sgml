@@ -1,8 +1,8 @@
 <!-- ##### SECTION Title ##### -->
-LightDMLayout
+Keyboard Layouts
 
 <!-- ##### SECTION Short_Description ##### -->
-Information about an available keyboard layout
+Control the keyboard layout
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
@@ -18,6 +18,32 @@ Information about an available keyboard layout
 
 
 <!-- ##### SECTION Image ##### -->
+
+
+<!-- ##### FUNCTION lightdm_get_layouts ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_get_layout ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_set_layout ##### -->
+<para>
+
+</para>
+
+@layout: 
 
 
 <!-- ##### FUNCTION lightdm_layout_get_name ##### -->

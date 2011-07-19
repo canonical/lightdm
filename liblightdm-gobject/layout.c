@@ -9,6 +9,8 @@
  * license.
  */
 
+#include <libxklavier/xklavier.h>
+
 #include "lightdm/layout.h"
 
 enum {
@@ -28,6 +30,96 @@ typedef struct
 G_DEFINE_TYPE (LightDMLayout, lightdm_layout, G_TYPE_OBJECT);
 
 #define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_LAYOUT, LightDMLayoutPrivate)
+
+static gboolean have_layouts = FALSE;
+static Display *display = NULL;
+static XklEngine *xkl_engine = NULL;
+static XklConfigRec *xkl_config = NULL;
+static GList *layouts = NULL;
+
+static void
+layout_cb (XklConfigRegistry *config,
+           const XklConfigItem *item,
+           gpointer data)
+{
+    LightDMLayout *layout;
+
+    layout = g_object_new (LIGHTDM_TYPE_LAYOUT, "name", item->name, "short-description", item->short_description, "description", item->description, NULL);
+    layouts = g_list_append (layouts, layout);
+}
+
+/**
+ * lightdm_get_layouts:
+ *
+ * Get a list of keyboard layouts to present to the user.
+ *
+ * Return value: (element-type LightDMLayout) (transfer none): A list of #LightDMLayout that should be presented to the user.
+ **/
+GList *
+lightdm_get_layouts (void)
+{
+    XklConfigRegistry *registry;
+
+    if (have_layouts)
+        return layouts;
+
+    display = XOpenDisplay (NULL);
+    xkl_engine = xkl_engine_get_instance (display);
+    xkl_config = xkl_config_rec_new ();
+    if (!xkl_config_rec_get_from_server (xkl_config, xkl_engine))
+        g_warning ("Failed to get Xkl configuration from server");
+
+    registry = xkl_config_registry_get_instance (xkl_engine);
+    xkl_config_registry_load (registry, FALSE);
+    xkl_config_registry_foreach_layout (registry, layout_cb, NULL);
+    g_object_unref (registry);
+
+    have_layouts = TRUE;
+
+    return layouts;
+}
+
+/**
+ * lightdm_set_layout:
+ * @layout: The layout to use
+ *
+ * Set the layout for this session.
+ **/
+void
+lightdm_set_layout (LightDMLayout *layout)
+{
+    XklConfigRec *config;
+
+    g_return_if_fail (layout != NULL);
+
+    g_debug ("Setting keyboard layout to %s", lightdm_layout_get_name (layout));
+
+    config = xkl_config_rec_new ();
+    config->layouts = g_malloc (sizeof (gchar *) * 2);
+    config->model = g_strdup (xkl_config->model);
+    config->layouts[0] = g_strdup (lightdm_layout_get_name (layout));
+    config->layouts[1] = NULL;
+    if (!xkl_config_rec_activate (config, xkl_engine))
+        g_warning ("Failed to activate XKL config");
+    g_object_unref (config);
+}
+
+/**
+ * lightdm_get_layout:
+ *
+ * Get the current keyboard layout.
+ *
+ * Return value: (transfer none): The currently active layout for this user.
+ **/
+LightDMLayout *
+lightdm_get_layout (void)
+{
+    lightdm_get_layouts ();
+    if (layouts)
+        return (LightDMLayout *) g_list_first (layouts);
+    else
+        return NULL;
+}
 
 /**
  * lightdm_layout_get_name:

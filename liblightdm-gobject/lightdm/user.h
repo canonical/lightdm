@@ -16,6 +16,13 @@
 
 G_BEGIN_DECLS
 
+#define LIGHTDM_TYPE_USER_LIST            (lightdm_user_list_get_type())
+#define LIGHTDM_USER_LIST(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), LIGHTDM_TYPE_USER_LIST, LightDMUserList));
+#define LIGHTDM_USER_LIST_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), LIGHTDM_TYPE_USER_LIST, LightDMUserListClass))
+#define LIGHTDM_IS_USER_LIST(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), LIGHTDM_TYPE_USER_LIST))
+#define LIGHTDM_IS_USER_LIST_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LIGHTDM_TYPE_USER_LIST))
+#define LIGHTDM_USER_LIST_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LIGHTDM_TYPE_USER_LIST, LightDMUserListClass))
+
 #define LIGHTDM_TYPE_USER            (lightdm_user_get_type())
 #define LIGHTDM_USER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), LIGHTDM_TYPE_USER, LightDMUser));
 #define LIGHTDM_USER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), LIGHTDM_TYPE_USER, LightDMUserClass))
@@ -34,7 +41,31 @@ typedef struct
     void (*changed)(LightDMUser *user);
 } LightDMUserClass;
 
+typedef struct
+{
+    GObject parent_instance;
+} LightDMUserList;
+
+typedef struct
+{
+    GObjectClass parent_class;
+
+    void (*user_added)(LightDMUserList *user_list, LightDMUser *user);
+    void (*user_changed)(LightDMUserList *user_list, LightDMUser *user);
+    void (*user_removed)(LightDMUserList *user_list, LightDMUser *user);
+} LightDMUserListClass;
+
+GType lightdm_user_list_get_type (void);
+
 GType lightdm_user_get_type (void);
+
+LightDMUserList *lightdm_user_list_get_instance (void);
+
+gint lightdm_user_list_get_length (LightDMUserList *user_list);
+
+LightDMUser *lightdm_user_list_get_user_by_name (LightDMUserList *user_list, const gchar *username);
+
+GList *lightdm_user_list_get_users (LightDMUserList *user_list);
 
 const gchar *lightdm_user_get_name (LightDMUser *user);
 

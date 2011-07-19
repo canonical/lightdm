@@ -60,8 +60,8 @@ G_DEFINE_TYPE (Greeter, greeter, G_TYPE_OBJECT);
 typedef enum
 {
     GREETER_MESSAGE_CONNECT = 0,
-    GREETER_MESSAGE_LOGIN,
-    GREETER_MESSAGE_LOGIN_AS_GUEST,
+    GREETER_MESSAGE_AUTHENTICATE,
+    GREETER_MESSAGE_AUTHENTICATE_AS_GUEST,
     GREETER_MESSAGE_CONTINUE_AUTHENTICATION,
     GREETER_MESSAGE_START_SESSION,
     GREETER_MESSAGE_CANCEL_AUTHENTICATION
@@ -485,13 +485,13 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         handle_connect (greeter, version);
         g_free (version);
         break;
-    case GREETER_MESSAGE_LOGIN:
+    case GREETER_MESSAGE_AUTHENTICATE:
         sequence_number = read_int (greeter, &offset);
         username = read_string (greeter, &offset);
         handle_login (greeter, sequence_number, username);
         g_free (username);
         break;
-    case GREETER_MESSAGE_LOGIN_AS_GUEST:
+    case GREETER_MESSAGE_AUTHENTICATE_AS_GUEST:
         sequence_number = read_int (greeter, &offset);
         handle_login_as_guest (greeter, sequence_number);
         break;

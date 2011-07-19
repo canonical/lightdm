@@ -35,6 +35,10 @@ typedef struct
 
 GType lightdm_language_get_type (void);
 
+GList *lightdm_get_languages (void);
+
+const LightDMLanguage *lightdm_get_language (void);
+
 const gchar *lightdm_language_get_code (LightDMLanguage *language);
 
 const gchar *lightdm_language_get_name (LightDMLanguage *language);

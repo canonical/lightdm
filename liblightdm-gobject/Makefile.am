@@ -1,5 +1,3 @@
-SUBDIRS = lightdm
-
 lib_LTLIBRARIES = liblightdm-gobject-1.la
 
 CLEANFILES =
@@ -9,19 +7,28 @@ liblightdm_gobject_1_la_CFLAGS = $(LIBLIGHTDM_GOBJECT_CFLAGS) \
 	$(WARN_CFLAGS) \
 	-DXSESSIONS_DIR=\"$(datadir)/xsessions\"
 
-liblightdm_gobject_1_la_SOURCES= \
-	greeter.c \
-	language.c \
-	layout.c \
-	session.c \
-	user.c \
-	user-list.c \
+mainheader_HEADERS = lightdm.h
+mainheaderdir=$(includedir)/lightdm-gobject-1
+
+liblightdm_gobject_1include_HEADERS = \
 	lightdm/greeter.h \
+	lightdm/system.h \
 	lightdm/language.h \
 	lightdm/layout.h \
+	lightdm/power.h \
 	lightdm/session.h \
-	lightdm/user-list.h \
 	lightdm/user.h
+liblightdm_gobject_1includedir=$(mainheaderdir)/lightdm
+
+liblightdm_gobject_1_la_SOURCES= \
+	greeter.c \
+	system.c \
+	language.c \
+	layout.c \
+	power.c \
+	session.c \
+	user.c \
+	$(liblightdm_gobject_1include_HEADERS)
 
 if HAVE_INTROSPECTION
 

@@ -14,11 +14,6 @@
 
 #include <glib-object.h>
 
-#include "user-list.h"
-#include "language.h"
-#include "layout.h"
-#include "session.h"
-
 G_BEGIN_DECLS
 
 #define LIGHTDM_TYPE_GREETER            (lightdm_greeter_get_type())
@@ -74,20 +69,6 @@ LightDMGreeter *lightdm_greeter_new (void);
 
 gboolean lightdm_greeter_connect_to_server (LightDMGreeter *greeter);
 
-const gchar *lightdm_greeter_get_hostname (LightDMGreeter *greeter);
-
-const gchar *lightdm_greeter_get_default_language (LightDMGreeter *greeter);
-
-GList *lightdm_greeter_get_languages (LightDMGreeter *greeter);
-
-GList *lightdm_greeter_get_layouts (LightDMGreeter *greeter);
-
-void lightdm_greeter_set_layout (LightDMGreeter *greeter, const gchar *layout);
-
-const gchar *lightdm_greeter_get_layout (LightDMGreeter *greeter);
-
-GList *lightdm_greeter_get_sessions (LightDMGreeter *greeter);
-
 const gchar *lightdm_greeter_get_hint (LightDMGreeter *greeter, const gchar *name);
 
 const gchar *lightdm_greeter_get_default_session_hint (LightDMGreeter *greeter);
@@ -106,13 +87,11 @@ gboolean lightdm_greeter_get_autologin_guest_hint (LightDMGreeter *greeter);
 
 gint lightdm_greeter_get_autologin_timeout_hint (LightDMGreeter *greeter);
 
-void lightdm_greeter_cancel_timed_login (LightDMGreeter *greeter);
+void lightdm_greeter_cancel_autologin (LightDMGreeter *greeter);
 
-void lightdm_greeter_login (LightDMGreeter *greeter, const char *username);
+void lightdm_greeter_authenticate (LightDMGreeter *greeter, const char *username);
 
-void lightdm_greeter_login_with_user_prompt (LightDMGreeter *greeter);
-
-void lightdm_greeter_login_as_guest (LightDMGreeter *greeter);
+void lightdm_greeter_authenticate_as_guest (LightDMGreeter *greeter);
 
 void lightdm_greeter_respond (LightDMGreeter *greeter, const gchar *response);
 
@@ -127,22 +106,6 @@ const gchar *lightdm_greeter_get_authentication_user (LightDMGreeter *greeter);
 void lightdm_greeter_start_session (LightDMGreeter *greeter, const gchar *session);
 
 void lightdm_greeter_start_default_session (LightDMGreeter *greeter);
-
-gboolean lightdm_greeter_get_can_suspend (LightDMGreeter *greeter);
-
-void lightdm_greeter_suspend (LightDMGreeter *greeter);
-
-gboolean lightdm_greeter_get_can_hibernate (LightDMGreeter *greeter);
-
-void lightdm_greeter_hibernate (LightDMGreeter *greeter);
-
-gboolean lightdm_greeter_get_can_restart (LightDMGreeter *greeter);
-
-void lightdm_greeter_restart (LightDMGreeter *greeter);
-
-gboolean lightdm_greeter_get_can_shutdown (LightDMGreeter *greeter);
-
-void lightdm_greeter_shutdown (LightDMGreeter *greeter);
 
 G_END_DECLS
 

@@ -1,8 +1,29 @@
-<INCLUDE>lightdm/greeter.h</INCLUDE>
+<INCLUDE>lightdm.h</INCLUDE>
+
+<SECTION>
+<FILE>system</FILE>
+<TITLE>System Information</TITLE>
+lightdm_get_hostname
+</SECTION>
+
+<SECTION>
+<FILE>power</FILE>
+<TITLE>Power Management</TITLE>
+lightdm_get_can_suspend
+lightdm_suspend
+lightdm_get_can_hibernate
+lightdm_hibernate
+lightdm_get_can_restart
+lightdm_restart
+lightdm_get_can_shutdown
+lightdm_shutdown
+</SECTION>
 
 <SECTION>
 <FILE>language</FILE>
-<TITLE>LightDMLanguage</TITLE>
+<TITLE>Languages</TITLE>
+lightdm_get_languages
+lightdm_get_language
 lightdm_language_get_code
 lightdm_language_get_name
 lightdm_language_get_territory
@@ -20,7 +41,10 @@ lightdm_language_get_type
 
 <SECTION>
 <FILE>layout</FILE>
-<TITLE>LightDMLayout</TITLE>
+<TITLE>Keyboard Layout</TITLE>
+lightdm_get_layouts
+lightdm_get_layout
+lightdm_set_layout
 lightdm_layout_get_name
 lightdm_layout_get_short_description
 lightdm_layout_get_description
@@ -36,32 +60,9 @@ lightdm_layout_get_type
 </SECTION>
 
 <SECTION>
-<FILE>user</FILE>
-<TITLE>LightDMUser</TITLE>
-changed
-lightdm_user_get_name
-lightdm_user_get_real_name
-lightdm_user_get_display_name
-lightdm_user_get_home_directory
-lightdm_user_get_image
-lightdm_user_get_language
-lightdm_user_get_layout
-lightdm_user_get_session
-lightdm_user_get_logged_in
-<SUBSECTION Standard>
-LIGHTDM_USER
-LIGHTDM_IS_USER
-LIGHTDM_TYPE_USER
-lightdm_user_get_type
-LIGHTDM_USER_CLASS
-LIGHTDM_IS_USER_CLASS
-LIGHTDM_USER_GET_CLASS
-<SUBSECTION Private>
-</SECTION>
-
-<SECTION>
 <FILE>session</FILE>
-<TITLE>LightDMSession</TITLE>
+<TITLE>Sessions</TITLE>
+lightdm_get_sessions
 lightdm_session_get_key
 lightdm_session_get_name
 lightdm_session_get_comment
@@ -77,16 +78,33 @@ LIGHTDM_SESSION_GET_CLASS
 </SECTION>
 
 <SECTION>
-<FILE>user-list</FILE>
-<TITLE>LightDMUserList</TITLE>
+<FILE>user</FILE>
+<TITLE>User Accounts</TITLE>
+changed
+lightdm_user_get_display_name
+lightdm_user_get_home_directory
+lightdm_user_get_image
+lightdm_user_get_language
+lightdm_user_get_layout
+lightdm_user_get_logged_in
+lightdm_user_get_name
+lightdm_user_get_real_name
+lightdm_user_get_session
 user_added
 user_changed
 user_removed
-lightdm_user_list_new
-lightdm_user_list_get_num_users
+lightdm_user_list_get_instance
+lightdm_user_list_get_length
 lightdm_user_list_get_user_by_name
 lightdm_user_list_get_users
 <SUBSECTION Standard>
+LIGHTDM_IS_USER
+LIGHTDM_IS_USER_CLASS
+LIGHTDM_TYPE_USER
+lightdm_user_get_type
+LIGHTDM_USER
+LIGHTDM_USER_CLASS
+LIGHTDM_USER_GET_CLASS
 LIGHTDM_USER_LIST
 LIGHTDM_IS_USER_LIST
 LIGHTDM_TYPE_USER_LIST
@@ -99,7 +117,7 @@ LIGHTDM_USER_LIST_GET_CLASS
 
 <SECTION>
 <FILE>greeter</FILE>
-<TITLE>LightDMGreeter</TITLE>
+<TITLE>Greeter Interface</TITLE>
 connected
 autologin_timer_expired
 show_message
@@ -111,13 +129,6 @@ LightDMMessageType
 LightDMPromptType
 lightdm_greeter_new
 lightdm_greeter_connect_to_server
-lightdm_greeter_get_hostname
-lightdm_greeter_get_default_language
-lightdm_greeter_get_languages
-lightdm_greeter_get_layouts
-lightdm_greeter_get_layout
-lightdm_greeter_set_layout
-lightdm_greeter_get_sessions
 lightdm_greeter_get_default_session_hint
 lightdm_greeter_get_hint
 lightdm_greeter_get_has_guest_account_hint
@@ -127,10 +138,9 @@ lightdm_greeter_get_select_guest_hint
 lightdm_greeter_get_autologin_user_hint
 lightdm_greeter_get_autologin_guest_hint
 lightdm_greeter_get_autologin_timeout_hint
-lightdm_greeter_cancel_timed_login
-lightdm_greeter_login
-lightdm_greeter_login_with_user_prompt
-lightdm_greeter_login_as_guest
+lightdm_greeter_cancel_autologin
+lightdm_greeter_authenticate
+lightdm_greeter_authenticate_as_guest
 lightdm_greeter_respond
 lightdm_greeter_cancel_authentication
 lightdm_greeter_get_in_authentication
@@ -138,14 +148,6 @@ lightdm_greeter_get_is_authenticated
 lightdm_greeter_get_authentication_user
 lightdm_greeter_start_session
 lightdm_greeter_start_default_session
-lightdm_greeter_get_can_suspend
-lightdm_greeter_suspend
-lightdm_greeter_get_can_hibernate
-lightdm_greeter_hibernate
-lightdm_greeter_get_can_restart
-lightdm_greeter_restart
-lightdm_greeter_get_can_shutdown
-lightdm_greeter_shutdown
 <SUBSECTION Standard>
 LIGHTDM_GREETER
 LIGHTDM_IS_GREETER

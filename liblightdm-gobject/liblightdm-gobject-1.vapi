@@ -1,24 +1,30 @@
 [CCode (cprefix = "LightDM", lower_case_cprefix = "lightdm_", cheader_filename = "lightdm/greeter.h")]
 namespace LightDM {
+    public unowned string hostname { get; }
+    public unowned string default_language { get; }
+    public unowned GLib.List<weak LightDM.Language> get_languages ();
+    public unowned GLib.List<weak LightDM.Layout> get_layouts ();
+    public unowned string layout { get; set; }
+    public bool can_suspend { get; }
+    public void suspend ();
+    public bool can_hibernate { get; }
+    public void hibernate ();
+    public bool can_restart { get; }
+    public void restart ();
+    public bool can_shutdown { get; }
+    public void shutdown ();
+
     public class Greeter : GLib.Object {
         public Greeter ();
-        public virtual signal void connected ();
-        public virtual signal void show_message (string text, MessageType type);
-        public virtual signal void show_prompt (string text, PromptType type);
-        public virtual signal void authentication_complete ();
-        public virtual signal void session_failed ();
-        public virtual signal void autologin_timer_expired ();
-        public virtual signal void user_added ();
-        public virtual signal void user_changed ();
-        public virtual signal void user_removed ();
-        public virtual signal void quit ();
+        public signal void connected ();
+        public signal void show_message (string text, MessageType type);
+        public signal void show_prompt (string text, PromptType type);
+        public signal void authentication_complete ();
+        public signal void session_failed ();
+        public signal void autologin_timer_expired ();
+        public signal void quit ();
 
         public bool connect_to_server ();
-        public unowned string hostname { get; }
-        public unowned string default_language { get; }
-        public unowned GLib.List<weak LightDM.Language> get_languages ();
-        public unowned GLib.List<weak LightDM.Layout> get_layouts ();
-        public unowned string layout { get; set; }
         public unowned string get_hint (string name);
         public unowned string default_session_hint { get; };
         public bool hide_users_hint { get; };
@@ -29,9 +35,8 @@ namespace LightDM {
         public bool autologin_guest_hint { get; };
         public int autologin_timeout_hint { get; };
         public void cancel_timed_login ();
-        public void login (string username);
-        public void login_with_user_prompt ();
-        public void login_as_guest ();
+        public void authenticate (string? username = null);
+        public void authenticate_as_guest ();
         public void respond (string response);
         public void cancel_authentication ();
         public bool in_authentication { get; }
@@ -39,14 +44,6 @@ namespace LightDM {
         public unowned string authentication_user { get; }
         public void start_session (string? session);
         public void start_default_session ();
-        public bool can_suspend { get; }
-        public void suspend ();
-        public bool can_hibernate { get; }
-        public void hibernate ();
-        public bool can_restart { get; }
-        public void restart ();
-        public bool can_shutdown { get; }
-        public void shutdown ();
     }
     public enum MessageType {
         INFO,
@@ -72,12 +69,18 @@ namespace LightDM {
         public unowned string name { get; }
     }
     public class UserList : GLib.Object {
+        public signal void user_added (User user);
+        public signal void user_changed (User user);
+        public signal void user_removed (User user);
+
         public UserList ();
         public int num_users { get; }
         public unowned GLib.List<weak LightDM.User> get_users ();
         public unowned LightDM.User get_user_by_name (string username);
     }
     public class User : GLib.Object {
+        public signal void changed ();
+
         public unowned string display_name { get; }
         public unowned string image { get; }
         public unowned string language { get; }

@@ -35,8 +35,8 @@
 typedef enum
 {
     GREETER_MESSAGE_CONNECT = 0,
-    GREETER_MESSAGE_LOGIN,
-    GREETER_MESSAGE_LOGIN_AS_GUEST,
+    GREETER_MESSAGE_AUTHENTICATE,
+    GREETER_MESSAGE_AUTHENTICATE_AS_GUEST,
     GREETER_MESSAGE_CONTINUE_AUTHENTICATION,
     GREETER_MESSAGE_START_SESSION,
     GREETER_MESSAGE_CANCEL_AUTHENTICATION
@@ -209,21 +209,21 @@ void Greeter::connectToServer()
     flush();
 }
 
-void Greeter::login(const QString &username)
+void Greeter::authenticate(const QString &username)
 {
     d->inAuthentication = true;
     d->isAuthenticated = false;
     d->cancellingAuthentication = false;
     d->authenticationUser = username;
     qDebug() << "Starting authentication for user " << username << "...";
-    writeHeader(GREETER_MESSAGE_LOGIN, intLength() + stringLength(username));
+    writeHeader(GREETER_MESSAGE_AUTHENTICATE, intLength() + stringLength(username));
     d->authenticateSequenceNumber++;
     writeInt(d->authenticateSequenceNumber);
     writeString(username);
     flush();
 }
 
-void Greeter::loginAsGuest()
+void Greeter::authenticateAsGuest()
 {
     d->authenticateSequenceNumber++;
     d->inAuthentication = true;
@@ -231,7 +231,7 @@ void Greeter::loginAsGuest()
     d->cancellingAuthentication = false;
     d->authenticationUser = "";
     qDebug() << "Starting authentication for guest account";
-    writeHeader(GREETER_MESSAGE_LOGIN_AS_GUEST, intLength());
+    writeHeader(GREETER_MESSAGE_AUTHENTICATE_AS_GUEST, intLength());
     writeInt(d->authenticateSequenceNumber);
     flush();
 }
