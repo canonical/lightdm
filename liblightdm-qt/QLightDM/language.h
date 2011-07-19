@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef QLIGTHDM_LANGUAGE_H
-#define QLIGTHDM_LANGUAGE_H
+#ifndef QLIGHTDM_LANGUAGE_H
+#define QLIGHTDM_LANGUAGE_H
 
 #include <QString>
 

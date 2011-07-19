@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef QLIGTHDM_SESSIONSMODEL_H
-#define QLIGTHDM_SESSIONSMODEL_H
+#ifndef QLIGHTDM_SESSIONSMODEL_H
+#define QLIGHTDM_SESSIONSMODEL_H
 
 #include <QtCore/QAbstractListModel>
 

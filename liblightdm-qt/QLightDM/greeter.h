@@ -10,20 +10,30 @@
  * license.
  */
 
-#ifndef QLIGTHDM_GREETER_H
-#define QLIGTHDM_GREETER_H
+#ifndef QLIGHTDM_GREETER_H
+#define QLIGHTDM_GREETER_H
 
 #include <QtCore/QObject>
 #include <QtCore/QVariant>
-
-#include "user.h"
-#include "language.h"
-//#include "layout.h"
+#include "QLightDM/User"
+#include "QLightDM/Language"
 
 class GreeterPrivate;
 
 namespace QLightDM
 {
+  typedef enum
+  {
+    PROMPT_TYPE_QUESTION,
+    PROMPT_TYPE_SECRET
+  } PromptType;
+
+  typedef enum
+  {
+    MESSAGE_TYPE_INFO,
+    MESSAGE_TYPE_ERROR
+  } MessageType;
+
   class Q_DECL_EXPORT Greeter : public QObject
   {
     Q_OBJECT
@@ -47,7 +57,6 @@ namespace QLightDM
         QList<QLightDM::Language> languages() const;
         QString defaultLanguage() const;
 
-        //QList<LdmLayout> layouts() const;
         QString layout() const;
 
         QString getHint(QString name) const;
@@ -77,6 +86,7 @@ namespace QLightDM
 
         void connectToServer();
         void login(const QString &username);
+        void loginWithUserPrompt();
         void loginAsGuest();
         void respond(const QString &response);
         void cancelAuthentication();
@@ -84,12 +94,11 @@ namespace QLightDM
 
     signals:
         void connected();
-        void showPrompt(QString prompt);
-        void showMessage(QString message);
-        void showError(QString message);
-        void authenticationComplete(bool isAuthenticated);
+        void showPrompt(QString prompt, PromptType type);
+        void showMessage(QString message, MessageType type);
+        void authenticationComplete();
         void sessionFailed();
-        void timedLogin(QString username);
+        void autologinTimerExpired();
         void quit();
 
     private slots:
@@ -105,7 +114,6 @@ namespace QLightDM
         int readInt(int *offset);
         QString readString(int *offset);
     };
+};
 
-};//end namespace
-
-#endif // QLIGHDM_GREETER_H
+#endif // QLIGHTDM_GREETER_H

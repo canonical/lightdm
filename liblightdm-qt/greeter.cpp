@@ -173,7 +173,7 @@ QString Greeter::readString(int *offset)
 void Greeter::connectToServer()
 {
     QDBusConnection busType = QDBusConnection::systemBus();
-    QString ldmBus(qgetenv("LDM_BUS"));
+    QString ldmBus(qgetenv("LIGHTDM_BUS"));
     if(ldmBus == QLatin1String("SESSION")) {
         busType = QDBusConnection::sessionBus();
     }
@@ -360,14 +360,16 @@ void Greeter::onRead(int fd)
                 switch (msg_style)
                 {
                 case PAM_PROMPT_ECHO_OFF:
+                    emit showPrompt(msg, PROMPT_TYPE_SECRET);
+                    break;
                 case PAM_PROMPT_ECHO_ON:
-                    emit showPrompt(msg);
+                    emit showPrompt(msg, PROMPT_TYPE_QUESTION);
                     break;
                 case PAM_ERROR_MSG:
-                    emit showError(msg);
+                    emit showMessage(msg, MESSAGE_TYPE_ERROR);
                     break;
                 case PAM_TEXT_INFO:
-                    emit showMessage(msg);
+                    emit showMessage(msg, MESSAGE_TYPE_INFO);
                     break;
                 }
             }
@@ -385,7 +387,7 @@ void Greeter::onRead(int fd)
             if(!d->isAuthenticated) {
                 d->authenticationUser = "";
             }
-            emit authenticationComplete(d->isAuthenticated);
+            emit authenticationComplete();
             d->inAuthentication = false;
         }
         else

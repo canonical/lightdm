@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef QLIGTHDM_USER_H
-#define QLIGTHDM_USER_H
+#ifndef QLIGHTDM_USER_H
+#define QLIGHTDM_USER_H
 
 #include <QtCore/QString>
 #include <QtCore/QSharedDataPointer>
@@ -57,4 +57,4 @@ namespace QLightDM
     };
 }
 
-#endif // LDMUSER_H
+#endif // QLIGHTDM_USER_H
