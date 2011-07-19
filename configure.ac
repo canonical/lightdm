@@ -108,7 +108,7 @@ fi
 AM_CONDITIONAL(HAVE_QT_GREETER, test $have_qt = yes)
 
 PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
-    gtk+-2.0
+    gtk+-3.0
     gmodule-export-2.0
 ], have_gtk=yes, have_gtk=no)
 AM_CONDITIONAL(HAVE_GTK_GREETER, test $have_gtk = yes)

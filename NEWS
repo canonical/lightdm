@@ -3,6 +3,8 @@ Overview of changes in lightdm 0.9.0
     * Fix invalid XAUTHORITY variable being set for second X server.
     * Fix bug where switching users created X servers without VTs
     * Release a VT when the X server on it stops
+    * Greeters are now just standard X sessions
+    * Drop most of the configure options, they aren't necessary
     * Config changes:
       - Major reorginisation of configuration to make it easier to configure and
         understand.  Users should set [SeatDefaults] section with settings for
@@ -25,12 +27,12 @@ Overview of changes in lightdm 0.9.0
       - Make an object per seat
       - Add a CanSwitch property
       - Rename ShowGreeter() to SwitchToGreeter()
-    * Drop most of the configure options, they aren't necessary
-    * Removed the Vala and Python GTK+ greeters, they weren't being well
-      maintained.
-    * Drop "example" from the name of the GTK+ and Qt greeters and make them
-      official default greeters.
-    * Greeters are now just standard X sessions
+    * Greeter changes:
+      - Drop "example" from the name of the GTK+ and Qt greeters and make them
+        official default greeters.
+      - Use GTK3 for GTK+ greeter.
+      - Removed the Vala and Python GTK+ greeters, they weren't being well
+        maintained.
 
 Overview of changes in lightdm 0.4.4
 

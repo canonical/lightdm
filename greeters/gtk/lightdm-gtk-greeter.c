@@ -247,7 +247,7 @@ restart_cb (GtkWidget *widget, LightDMGreeter *greeter)
     GtkWidget *dialog;
 
     dialog = gtk_message_dialog_new (NULL,
-                                     GTK_DIALOG_MODAL | GTK_DIALOG_NO_SEPARATOR,
+                                     GTK_DIALOG_MODAL,
                                      GTK_MESSAGE_OTHER,
                                      GTK_BUTTONS_NONE,
                                      "%s", _("Are you sure you want to close all programs and restart the computer?"));
@@ -269,7 +269,7 @@ shutdown_cb (GtkWidget *widget, LightDMGreeter *greeter)
     GtkWidget *dialog;
 
     dialog = gtk_message_dialog_new (NULL,
-                                     GTK_DIALOG_MODAL | GTK_DIALOG_NO_SEPARATOR,
+                                     GTK_DIALOG_MODAL,
                                      GTK_MESSAGE_OTHER,
                                      GTK_BUTTONS_NONE,
                                      "%s", _("Are you sure you want to close all programs and shutdown the computer?"));
@@ -405,24 +405,16 @@ sigterm_cb (int signum)
     exit (0);
 }
 
-gboolean draw_background_cb (GtkWidget *widget, GdkEventExpose *event);
+gboolean draw_background_cb (GtkWidget *widget, cairo_t *context);
 G_MODULE_EXPORT
 gboolean
-draw_background_cb (GtkWidget *widget, GdkEventExpose *event)
+draw_background_cb (GtkWidget *widget, cairo_t *context)
 {
-    cairo_t *context;
-    GtkAllocation allocation;
-
-    context = gdk_cairo_create (GDK_DRAWABLE (gtk_widget_get_window (widget)));
-
-    gtk_widget_get_allocation (GTK_WIDGET (window), &allocation);
     if (background_pixbuf)
         gdk_cairo_set_source_pixbuf (context, background_pixbuf, 0.0, 0.0);
     else
         cairo_set_source_rgb (context, 0, 0, 0);
     cairo_fill (context);
-
-    cairo_destroy (context);
 
     return FALSE;
 }
@@ -560,10 +552,10 @@ connected_cb (LightDMGreeter *greeter)
     gdk_window_set_cursor (root, gdk_cursor_new (GDK_LEFT_PTR));
     if (background_pixbuf)
     {
-        GdkPixmap *pixmap;
+        //GdkPixmap *pixmap;
 
-        gdk_pixbuf_render_pixmap_and_mask_for_colormap (background_pixbuf, gdk_window_get_colormap (root), &pixmap, NULL, 0);
-        gdk_window_set_back_pixmap (root, pixmap, FALSE);
+        //gdk_pixbuf_render_pixmap_and_mask_for_colormap (background_pixbuf, gdk_window_get_colormap (root), &pixmap, NULL, 0);
+        //gdk_window_set_back_pixmap (root, pixmap, FALSE);
     }
 
     if (!lightdm_get_can_suspend ())
