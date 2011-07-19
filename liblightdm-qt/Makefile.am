@@ -25,6 +25,7 @@ liblightdm_qt_1_la_CXXFLAGS = $(LIBLIGHTDM_QT_CFLAGS) \
 liblightdm_qt_1_la_SOURCES = \
 	greeter.cpp \
 	language.cpp \
+	power.cpp \
 	sessionsmodel.cpp \
 	user.cpp \
 	usersmodel.cpp \

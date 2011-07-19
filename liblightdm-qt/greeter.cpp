@@ -61,10 +61,6 @@ class GreeterPrivate
 public:
     SessionsModel *sessionsModel;
 
-    QDBusInterface* lightdmInterface;
-    QDBusInterface* powerManagementInterface;
-    QDBusInterface* consoleKitInterface;
-
     QHash<QString, QString> hints;
 
     int toServerFd;
@@ -177,10 +173,6 @@ void Greeter::connectToServer()
     if(ldmBus == QLatin1String("SESSION")) {
         busType = QDBusConnection::sessionBus();
     }
-
-    d->lightdmInterface = new QDBusInterface("org.freedesktop.DisplayManager", "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", busType);
-    d->powerManagementInterface = new QDBusInterface("org.freedesktop.PowerManagement","/org/freedesktop/PowerManagement", "org.freedesktop.PowerManagement");
-    d->consoleKitInterface = new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit");
 
     char* fd = getenv("LIGHTDM_TO_SERVER_FD");
     if(!fd) {
@@ -457,60 +449,4 @@ bool Greeter::autologinGuestHint() const
 int Greeter::autologinTimeoutHint() const
 {
     return d->hints.value ("autologin-timeout", "0").toInt ();
-}
-
-bool Greeter::canSuspend() const
-{
-    QDBusReply<bool> reply = d->powerManagementInterface->call("CanSuspend");
-    if (reply.isValid())
-        return reply.value();
-    else
-        return false;
-}
-
-void Greeter::suspend()
-{
-    d->powerManagementInterface->call("Suspend");
-}
-
-bool Greeter::canHibernate() const
-{
-    QDBusReply<bool> reply = d->powerManagementInterface->call("CanHibernate");
-    if (reply.isValid())
-        return reply.value();
-    else
-        return false;
-}
-
-void Greeter::hibernate()
-{
-    d->powerManagementInterface->call("Hibernate");
-}
-
-bool Greeter::canShutdown() const
-{
-    QDBusReply<bool> reply = d->consoleKitInterface->call("CanStop");
-    if (reply.isValid())
-        return reply.value();
-    else
-        return false;
-}
-
-void Greeter::shutdown()
-{
-    d->consoleKitInterface->call("stop");
-}
-
-bool Greeter::canRestart() const
-{
-    QDBusReply<bool> reply = d->consoleKitInterface->call("CanRestart");
-    if (reply.isValid())
-        return reply.value();
-    else
-        return false;
-}
-
-void Greeter::restart()
-{
-    d->consoleKitInterface->call("Restart");
 }
