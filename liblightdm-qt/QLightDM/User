@@ -14,8 +14,10 @@
 
 #include <QtCore/QString>
 #include <QtCore/QSharedDataPointer>
+#include <QAbstractListModel>
 
 class UserPrivate;
+class UsersModelPrivate;
 
 namespace QLightDM
 {
@@ -54,6 +56,33 @@ namespace QLightDM
     //    LdmUser &operator=(const LdmUser user);
     private:
         QSharedDataPointer<UserPrivate> d;
+    };
+
+    class Q_DECL_EXPORT UsersModel : public QAbstractListModel
+    {
+        Q_OBJECT
+    public:
+        enum UserModelRoles {NameRole = Qt::UserRole,
+                             RealNameRole,
+                             LoggedInRole};
+
+        explicit UsersModel(QObject *parent = 0);
+        ~UsersModel();
+        int rowCount(const QModelIndex &parent) const;
+        QVariant data(const QModelIndex &index, int role) const;
+
+    signals:
+
+    public slots:
+
+    private slots:
+        /** Updates the model with new changes in the password file*/
+        void loadUsers();
+
+    private:
+        /** Returns a list of all users in the password file*/
+        QList<User> getUsers();
+        UsersModelPrivate *d;
     };
 }
 

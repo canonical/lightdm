@@ -7,13 +7,13 @@ lib_LTLIBRARIES = liblightdm-qt-1.la
 MOC_FILES = \
 	greeter_moc.cpp \
 	sessionsmodel_moc.cpp \
-	usersmodel_moc.cpp 
+	user_moc.cpp 
 
 greeter_moc.cpp: QLightDM/Greeter
 	moc $< -o $@
 sessionsmodel_moc.cpp: QLightDM/SessionsModel
 	moc $< -o $@
-usersmodel_moc.cpp: QLightDM/UsersModel
+user_moc.cpp: QLightDM/User
 	moc $< -o $@
 
 liblightdm_qt_1_la_LIBADD = $(LIBLIGHTDM_QT_LIBS)
@@ -26,8 +26,7 @@ liblightdm_qt_1include_HEADERS = \
 	QLightDM/Power \
 	QLightDM/SessionsModel \
 	QLightDM/System \
-	QLightDM/User \
-	QLightDM/UsersModel
+	QLightDM/User
 liblightdm_qt_1includedir=$(includedir)/lightdm-qt-1/QLightDM
 
 liblightdm_qt_1_la_SOURCES = \
@@ -37,7 +36,6 @@ liblightdm_qt_1_la_SOURCES = \
 	sessionsmodel.cpp \
 	system.cpp \
 	user.cpp \
-	usersmodel.cpp \
 	$(MOC_FILES) \
 	$(liblightdm_qt_1include_HEADERS)
 
