@@ -9,11 +9,11 @@ MOC_FILES = \
 	sessionsmodel_moc.cpp \
 	usersmodel_moc.cpp 
 
-greeter_moc.cpp: QLightDM/greeter.h
+greeter_moc.cpp: QLightDM/Greeter
 	moc $< -o $@
-sessionsmodel_moc.cpp: QLightDM/sessionsmodel.h
+sessionsmodel_moc.cpp: QLightDM/SessionsModel
 	moc $< -o $@
-usersmodel_moc.cpp: QLightDM/usersmodel.h
+usersmodel_moc.cpp: QLightDM/UsersModel
 	moc $< -o $@
 
 liblightdm_qt_1_la_LIBADD = $(LIBLIGHTDM_QT_LIBS)
@@ -21,13 +21,6 @@ liblightdm_qt_1_la_CXXFLAGS = $(LIBLIGHTDM_QT_CFLAGS) \
 	-DXSESSIONS_DIR=\"$(datadir)/xsessions\"
 
 liblightdm_qt_1include_HEADERS = \
-	QLightDM/greeter.h \
-	QLightDM/language.h \
-	QLightDM/power.h \
-	QLightDM/sessionsmodel.h \
-	QLightDM/system.h \
-	QLightDM/user.h \
-	QLightDM/usersmodel.h \
 	QLightDM/Greeter \
 	QLightDM/Language \
 	QLightDM/Power \
