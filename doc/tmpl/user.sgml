@@ -36,6 +36,14 @@ A user has the following properties:
 <!-- ##### SECTION Image ##### -->
 
 
+<!-- ##### USER_FUNCTION changed ##### -->
+<para>
+
+</para>
+
+@user: 
+
+
 <!-- ##### FUNCTION lightdm_user_get_name ##### -->
 <para>
 

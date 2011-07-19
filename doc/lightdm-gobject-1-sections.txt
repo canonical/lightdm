@@ -38,6 +38,7 @@ lightdm_layout_get_type
 <SECTION>
 <FILE>user</FILE>
 <TITLE>LightDMUser</TITLE>
+changed
 lightdm_user_get_name
 lightdm_user_get_real_name
 lightdm_user_get_display_name

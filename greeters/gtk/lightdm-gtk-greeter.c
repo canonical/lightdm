@@ -623,7 +623,7 @@ main(int argc, char **argv)
 
     signal (SIGTERM, sigterm_cb);
   
-    g_type_init ();
+    gtk_init (&argc, &argv);
 
     greeter = lightdm_greeter_new ();
     g_signal_connect (greeter, "connected", G_CALLBACK (connected_cb), NULL);
@@ -633,8 +633,6 @@ main(int argc, char **argv)
     g_signal_connect (greeter, "autologin-timer-expired", G_CALLBACK (autologin_timer_expired_cb), NULL);
     g_signal_connect (greeter, "quit", G_CALLBACK (quit_cb), NULL);
     lightdm_greeter_connect_to_server (greeter);
-
-    gtk_init (&argc, &argv);
 
     gtk_main ();
 

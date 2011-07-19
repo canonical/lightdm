@@ -9,6 +9,8 @@
  * license.
  */
 
+#include <string.h>
+
 #include "lightdm/user.h"
 
 enum {
@@ -23,6 +25,12 @@ enum {
     PROP_SESSION,
     PROP_LOGGED_IN
 };
+
+enum {
+    CHANGED,
+    LAST_SIGNAL
+};
+static guint signals[LAST_SIGNAL] = { 0 };
 
 typedef struct
 {
@@ -63,7 +71,7 @@ lightdm_user_get_name (LightDMUser *user)
  * 
  * Get the real name of a user.
  *
- * Return value: The real name of the given user (may be blank)
+ * Return value: The real name of the given user
  **/
 const gchar *
 lightdm_user_get_real_name (LightDMUser *user)
@@ -88,7 +96,7 @@ lightdm_user_get_display_name (LightDMUser *user)
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
 
     priv = GET_PRIVATE (user);
-    if (priv->real_name)
+    if (strcmp (priv->real_name, ""))
         return priv->real_name;
     else
         return priv->name;
@@ -214,13 +222,22 @@ lightdm_user_get_logged_in (LightDMUser *user)
 static void
 lightdm_user_init (LightDMUser *user)
 {
+    LightDMUserPrivate *priv = GET_PRIVATE (user);
+
+    priv->name = g_strdup ("");
+    priv->real_name = g_strdup ("");
+    priv->home_directory = g_strdup ("");
+    priv->image = g_strdup ("");
+    priv->language = g_strdup ("");
+    priv->layout = g_strdup ("");
+    priv->session = g_strdup ("");
 }
 
 static void
 lightdm_user_set_property (GObject      *object,
-                       guint         prop_id,
-                       const GValue *value,
-                       GParamSpec   *pspec)
+                           guint         prop_id,
+                           const GValue *value,
+                           GParamSpec   *pspec)
 {
     LightDMUser *self = LIGHTDM_USER (object);
     LightDMUserPrivate *priv = GET_PRIVATE (self);
@@ -253,9 +270,9 @@ lightdm_user_set_property (GObject      *object,
 
 static void
 lightdm_user_get_property (GObject    *object,
-                       guint       prop_id,
-                       GValue     *value,
-                       GParamSpec *pspec)
+                           guint       prop_id,
+                           GValue     *value,
+                           GParamSpec *pspec)
 {
     LightDMUser *self;
 
@@ -326,14 +343,14 @@ lightdm_user_class_init (LightDMUserClass *klass)
                                                         "name",
                                                         "Username",
                                                         NULL,
-                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+                                                        G_PARAM_READWRITE));
     g_object_class_install_property(object_class,
                                     PROP_REAL_NAME,
                                     g_param_spec_string("real-name",
                                                         "real-name",
                                                         "Users real name",
                                                         NULL,
-                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+                                                        G_PARAM_READWRITE));
     g_object_class_install_property(object_class,
                                     PROP_DISPLAY_NAME,
                                     g_param_spec_string("display-name",
@@ -347,14 +364,14 @@ lightdm_user_class_init (LightDMUserClass *klass)
                                                         "home-directory",
                                                         "Home directory",
                                                         NULL,
-                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+                                                        G_PARAM_READWRITE));
     g_object_class_install_property(object_class,
                                     PROP_IMAGE,
                                     g_param_spec_string("image",
                                                         "image",
                                                         "Avatar image",
                                                         NULL,
-                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+                                                        G_PARAM_READWRITE));
     g_object_class_install_property(object_class,
                                     PROP_LANGUAGE,
                                     g_param_spec_string("language",
@@ -382,5 +399,20 @@ lightdm_user_class_init (LightDMUserClass *klass)
                                                          "logged-in",
                                                          "TRUE if the user is currently in a session",
                                                          FALSE,
-                                                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+                                                         G_PARAM_READWRITE));
+
+    /**
+     * LightDMUser::changed:
+     * @user: A #LightDMUser
+     *
+     * The ::changed signal gets emitted this user account is modified.
+     **/
+    signals[CHANGED] =
+        g_signal_new ("changed",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (LightDMUserClass, changed),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
 }
