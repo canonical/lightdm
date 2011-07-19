@@ -772,6 +772,8 @@ display_server_stopped_cb (DisplayServer *server, Display *display)
     }
     else
     {
+        g_debug ("Display server stopped");
+       
         /* Stop the session then start a new X server */
         if (display->priv->session)
         {
