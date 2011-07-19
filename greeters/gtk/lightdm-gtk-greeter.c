@@ -301,7 +301,7 @@ fade_timer_cb (gpointer data)
 }
 
 static void
-user_added_cb (LightDMGreeter *greeter, LightDMUser *user)
+user_added_cb (LightDMUserList *user_list, LightDMUser *user)
 {
     GtkTreeModel *model;
     GtkTreeIter iter;
@@ -341,7 +341,7 @@ get_user_iter (const gchar *username, GtkTreeIter *iter)
 }
 
 static void
-user_changed_cb (LightDMGreeter *greeter, LightDMUser *user)
+user_changed_cb (LightDMUserList *user_list, LightDMUser *user)
 {
     GtkTreeModel *model;
     GtkTreeIter iter;
@@ -358,7 +358,7 @@ user_changed_cb (LightDMGreeter *greeter, LightDMUser *user)
 }
 
 static void
-user_removed_cb (LightDMGreeter *greeter, LightDMUser *user)
+user_removed_cb (LightDMUserList *user_list, LightDMUser *user)
 {
     GtkTreeModel *model;
     GtkTreeIter iter;
@@ -430,13 +430,17 @@ draw_background_cb (GtkWidget *widget, GdkEventExpose *event)
 static void
 load_user_list ()
 {
+    LightDMUserList *user_list;
     const GList *items, *item;
     GtkTreeModel *model;
     GtkTreeIter iter;
 
-    g_signal_connect (greeter, "user-added", G_CALLBACK (user_added_cb), NULL);
-    g_signal_connect (greeter, "user-changed", G_CALLBACK (user_changed_cb), NULL);  
-    items = lightdm_user_list_get_users (lightdm_greeter_get_user_list (greeter));
+    user_list = lightdm_greeter_get_user_list (greeter);
+    g_signal_connect (user_list, "user-added", G_CALLBACK (user_added_cb), NULL);
+    g_signal_connect (user_list, "user-changed", G_CALLBACK (user_changed_cb), NULL);
+    g_signal_connect (user_list, "user-removed", G_CALLBACK (user_removed_cb), NULL);
+
+    items = lightdm_user_list_get_users (user_list);
 
     model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
     for (item = items; item; item = item->next)
@@ -627,7 +631,6 @@ main(int argc, char **argv)
     g_signal_connect (greeter, "show-message", G_CALLBACK (show_message_cb), NULL);
     g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
     g_signal_connect (greeter, "autologin-timer-expired", G_CALLBACK (autologin_timer_expired_cb), NULL);
-    g_signal_connect (greeter, "user-removed", G_CALLBACK (user_removed_cb), NULL);
     g_signal_connect (greeter, "quit", G_CALLBACK (quit_cb), NULL);
     lightdm_greeter_connect_to_server (greeter);
 
