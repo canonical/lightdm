@@ -112,7 +112,6 @@ LightDMPromptType
 lightdm_greeter_new
 lightdm_greeter_connect_to_server
 lightdm_greeter_get_hostname
-lightdm_greeter_get_user_list
 lightdm_greeter_get_default_language
 lightdm_greeter_get_languages
 lightdm_greeter_get_layouts

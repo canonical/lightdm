@@ -15,9 +15,6 @@ namespace LightDM {
 
         public bool connect_to_server ();
         public unowned string hostname { get; }
-        public int num_users { get; }
-        public unowned GLib.List<weak LightDM.User> get_users ();
-        public unowned LightDM.User get_user_by_name (string username);
         public unowned string default_language { get; }
         public unowned GLib.List<weak LightDM.Language> get_languages ();
         public unowned GLib.List<weak LightDM.Layout> get_layouts ();
@@ -73,6 +70,12 @@ namespace LightDM {
         public unowned string comment { get; }
         public unowned string key { get; }
         public unowned string name { get; }
+    }
+    public class UserList : GLib.Object {
+        public UserList ();
+        public int num_users { get; }
+        public unowned GLib.List<weak LightDM.User> get_users ();
+        public unowned LightDM.User get_user_by_name (string username);
     }
     public class User : GLib.Object {
         public unowned string display_name { get; }

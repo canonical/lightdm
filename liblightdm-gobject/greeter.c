@@ -547,28 +547,6 @@ lightdm_greeter_get_hostname (LightDMGreeter *greeter)
     return priv->hostname;
 }
 
-/**
- * lightdm_greeter_get_user_list:
- * @greeter: A #LightDMGreeter
- *
- * Get a list of users to present to the user.  This list contains users that can login.
- *
- * Return value: (transfer none): A #LightDMUserList object that contains the user list.
- **/
-LightDMUserList *
-lightdm_greeter_get_user_list (LightDMGreeter *greeter)
-{
-    LightDMGreeterPrivate *priv;
-
-    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
-
-    priv = GET_PRIVATE (greeter);
-
-    if (!priv->user_list)
-        priv->user_list = lightdm_user_list_new ();
-    return priv->user_list;
-}
-
 static void
 update_languages (LightDMGreeter *greeter)
 {

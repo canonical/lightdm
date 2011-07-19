@@ -19,6 +19,7 @@
 #include "lightdm/greeter.h"
 
 static LightDMGreeter *greeter;
+static LightDMUserList *user_list;
 static GtkWidget *window, *message_label, *user_view;
 static GdkPixbuf *background_pixbuf = NULL;
 static GtkWidget *prompt_box, *prompt_label, *prompt_entry, *session_combo;
@@ -79,7 +80,7 @@ start_authentication (const gchar *username)
     else
     {
         LightDMUser *user;
-        user = lightdm_user_list_get_user_by_name (lightdm_greeter_get_user_list (greeter), username);
+        user = lightdm_user_list_get_user_by_name (user_list, username);
         if (user)
             set_session (lightdm_user_get_session (user));
         else
@@ -430,12 +431,11 @@ draw_background_cb (GtkWidget *widget, GdkEventExpose *event)
 static void
 load_user_list ()
 {
-    LightDMUserList *user_list;
     const GList *items, *item;
     GtkTreeModel *model;
     GtkTreeIter iter;
 
-    user_list = lightdm_greeter_get_user_list (greeter);
+    user_list = lightdm_user_list_new ();
     g_signal_connect (user_list, "user-added", G_CALLBACK (user_added_cb), NULL);
     g_signal_connect (user_list, "user-changed", G_CALLBACK (user_changed_cb), NULL);
     g_signal_connect (user_list, "user-removed", G_CALLBACK (user_removed_cb), NULL);

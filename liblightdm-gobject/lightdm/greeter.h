@@ -76,8 +76,6 @@ gboolean lightdm_greeter_connect_to_server (LightDMGreeter *greeter);
 
 const gchar *lightdm_greeter_get_hostname (LightDMGreeter *greeter);
 
-LightDMUserList *lightdm_greeter_get_user_list (LightDMGreeter *greeter);
-
 const gchar *lightdm_greeter_get_default_language (LightDMGreeter *greeter);
 
 GList *lightdm_greeter_get_languages (LightDMGreeter *greeter);
