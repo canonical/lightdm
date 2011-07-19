@@ -1,5 +1,3 @@
-SUBDIRS = QLightDM
-
 DISTCLEANFILES = \
         Makefile.in
 
@@ -22,6 +20,23 @@ liblightdm_qt_1_la_LIBADD = $(LIBLIGHTDM_QT_LIBS)
 liblightdm_qt_1_la_CXXFLAGS = $(LIBLIGHTDM_QT_CFLAGS) \
 	-DXSESSIONS_DIR=\"$(datadir)/xsessions\"
 
+liblightdm_qt_1include_HEADERS = \
+	QLightDM/greeter.h \
+	QLightDM/language.h \
+	QLightDM/power.h \
+	QLightDM/sessionsmodel.h \
+	QLightDM/system.h \
+	QLightDM/user.h \
+	QLightDM/usersmodel.h \
+	QLightDM/Greeter \
+	QLightDM/Language \
+	QLightDM/Power \
+	QLightDM/SessionsModel \
+	QLightDM/System \
+	QLightDM/User \
+	QLightDM/UsersModel
+liblightdm_qt_1includedir=$(includedir)/lightdm-qt-1/QLightDM
+
 liblightdm_qt_1_la_SOURCES = \
 	greeter.cpp \
 	language.cpp \
@@ -30,7 +45,8 @@ liblightdm_qt_1_la_SOURCES = \
 	system.cpp \
 	user.cpp \
 	usersmodel.cpp \
-	$(MOC_FILES)
+	$(MOC_FILES) \
+	$(liblightdm_qt_1include_HEADERS)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = liblightdm-qt-1.pc
