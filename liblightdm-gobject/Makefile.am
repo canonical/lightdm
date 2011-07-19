@@ -15,11 +15,12 @@ liblightdm_gobject_1_la_SOURCES= \
 	layout.c \
 	session.c \
 	user.c \
-	user-private.h \
+	user-list.c \
 	lightdm/greeter.h \
 	lightdm/language.h \
 	lightdm/layout.h \
 	lightdm/session.h \
+	lightdm/user-list.h \
 	lightdm/user.h
 
 if HAVE_INTROSPECTION

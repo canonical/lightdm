@@ -30,22 +30,6 @@ G_DEFINE_TYPE (LightDMSession, lightdm_session, G_TYPE_OBJECT);
 #define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_SESSION, LightDMSessionPrivate)
 
 /**
- * lightdm_session_new:
- * 
- * Create a new session.
- * @key: The unique key for this session
- * @name: The name of this session
- * @comment: The comment for this session
- * 
- * Return value: the new #LightDMSession
- **/
-LightDMSession *
-lightdm_session_new (const gchar *key, const gchar *name, const gchar *comment)
-{
-    return g_object_new (LIGHTDM_TYPE_SESSION, "key", key, "name", name, "comment", comment, NULL);
-}
-
-/**
  * lightdm_session_get_key
  * @session: A #LightDMSession
  * 

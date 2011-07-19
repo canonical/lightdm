@@ -35,8 +35,6 @@ typedef struct
 
 GType lightdm_session_get_type (void);
 
-LightDMSession *lightdm_session_new (const gchar *key, const gchar *name, const gchar *comment);
-
 const gchar *lightdm_session_get_key (LightDMSession *session);
 
 const gchar *lightdm_session_get_name (LightDMSession *session);

@@ -79,7 +79,7 @@ start_authentication (const gchar *username)
     else
     {
         LightDMUser *user;
-        user = lightdm_greeter_get_user_by_name (greeter, username);
+        user = lightdm_user_list_get_user_by_name (lightdm_greeter_get_user_list (greeter), username);
         if (user)
             set_session (lightdm_user_get_session (user));
         else
@@ -436,7 +436,7 @@ load_user_list ()
 
     g_signal_connect (greeter, "user-added", G_CALLBACK (user_added_cb), NULL);
     g_signal_connect (greeter, "user-changed", G_CALLBACK (user_changed_cb), NULL);  
-    items = lightdm_greeter_get_users (greeter);
+    items = lightdm_user_list_get_users (lightdm_greeter_get_user_list (greeter));
 
     model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
     for (item = items; item; item = item->next)

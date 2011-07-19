@@ -83,6 +83,66 @@ static void quit_cb (LightDMGreeter *greeter)
 <!-- ##### SECTION Image ##### -->
 
 
+<!-- ##### USER_FUNCTION connected ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
+<!-- ##### USER_FUNCTION autologin_timer_expired ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
+<!-- ##### USER_FUNCTION show_message ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@text: 
+@type: 
+
+
+<!-- ##### USER_FUNCTION show_prompt ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@text: 
+@type: 
+
+
+<!-- ##### USER_FUNCTION authentication_complete ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
+<!-- ##### USER_FUNCTION session_failed ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
+<!-- ##### USER_FUNCTION quit ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
 <!-- ##### ENUM LightDMMessageType ##### -->
 <para>
 
@@ -126,31 +186,12 @@ static void quit_cb (LightDMGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION lightdm_greeter_get_num_users ##### -->
+<!-- ##### FUNCTION lightdm_greeter_get_user_list ##### -->
 <para>
 
 </para>
 
 @greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_get_users ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@Returns: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_get_user_by_name ##### -->
-<para>
-
-</para>
-
-@greeter: 
-@username: 
 @Returns: 
 
 

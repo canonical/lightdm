@@ -16,6 +16,7 @@ Overview of changes in lightdm 0.9.0
         and the greeter should try authorizing again.
       - Face images are now local paths not URIs
       - liblightdm-gobject now uses lightdm_ prefix instead of ldm_
+      - liblightdm-gobject splits UserList into its own class
     * D-Bus API changes:
       - Make an object per seat
       - Add a CanSwitch property

@@ -22,13 +22,10 @@
 #include <libxklavier/xklavier.h>
 
 #include "lightdm/greeter.h"
-#include "user-private.h"
 
 enum {
     PROP_0,
     PROP_HOSTNAME,
-    PROP_NUM_USERS,
-    PROP_USERS,
     PROP_DEFAULT_LANGUAGE,
     PROP_LAYOUTS,
     PROP_LAYOUT,
@@ -57,9 +54,6 @@ enum {
     AUTHENTICATION_COMPLETE,
     SESSION_FAILED,
     AUTOLOGIN_TIMER_EXPIRED,
-    USER_ADDED,
-    USER_CHANGED,
-    USER_REMOVED,
     QUIT,
     LAST_SIGNAL
 };
@@ -67,8 +61,6 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 typedef struct
 {
-    GDBusConnection *lightdm_bus;
-
     GDBusConnection *system_bus;
 
     GIOChannel *to_server_channel, *from_server_channel;
@@ -79,14 +71,7 @@ typedef struct
 
     gchar *hostname;
 
-    /* File monitor for password file */
-    GFileMonitor *passwd_monitor;
-  
-    /* TRUE if have scanned users */
-    gboolean have_users;
-
-    /* List of users */
-    GList *users;
+    LightDMUserList *user_list;
   
     gboolean have_languages;
     GList *languages;
@@ -117,9 +102,6 @@ G_DEFINE_TYPE (LightDMGreeter, lightdm_greeter, G_TYPE_OBJECT);
 
 #define HEADER_SIZE 8
 #define MAX_MESSAGE_LENGTH 1024
-
-#define PASSWD_FILE      "/etc/passwd"
-#define USER_CONFIG_FILE "/etc/lightdm/users.conf"
 
 /* Messages from the greeter to the server */
 typedef enum
@@ -500,10 +482,9 @@ lightdm_greeter_connect_to_server (LightDMGreeter *greeter)
 {
     LightDMGreeterPrivate *priv;
     GError *error = NULL;
-    const gchar *bus_address, *fd;
+    const gchar *fd;
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
-    GBusType bus_type = G_BUS_TYPE_SYSTEM;
 
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
 
@@ -513,17 +494,6 @@ lightdm_greeter_connect_to_server (LightDMGreeter *greeter)
     if (!priv->system_bus)
         g_warning ("Failed to connect to system bus: %s", error->message);
     g_clear_error (&error);
-
-    bus_address = getenv ("LIGHTDM_BUS");
-    if (bus_address && strcmp (bus_address, "SESSION") == 0)
-        bus_type = G_BUS_TYPE_SESSION;
-
-    priv->lightdm_bus = g_bus_get_sync (bus_type, NULL, &error);
-    if (!priv->lightdm_bus)
-        g_warning ("Failed to connect to LightDM bus: %s", error->message);
-    g_clear_error (&error);
-    if (!priv->lightdm_bus)
-        return FALSE;
 
     fd = getenv ("LIGHTDM_TO_SERVER_FD");
     if (!fd)
@@ -577,276 +547,26 @@ lightdm_greeter_get_hostname (LightDMGreeter *greeter)
     return priv->hostname;
 }
 
-static LightDMUser *
-get_user_by_name (LightDMGreeter *greeter, const gchar *username)
-{
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-    GList *link;
-  
-    for (link = priv->users; link; link = link->next)
-    {
-        LightDMUser *user = link->data;
-        if (strcmp (lightdm_user_get_name (user), username) == 0)
-            return user;
-    }
-
-    return NULL;
-}
-  
-static gint
-compare_user (gconstpointer a, gconstpointer b)
-{
-    LightDMUser *user_a = (LightDMUser *) a, *user_b = (LightDMUser *) b;
-    return strcmp (lightdm_user_get_display_name (user_a), lightdm_user_get_display_name (user_b));
-}
-
-static void
-load_users (LightDMGreeter *greeter)
-{
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-    GKeyFile *config;
-    gchar *value;
-    gint minimum_uid;
-    gchar **hidden_users, **hidden_shells;
-    GList *users = NULL, *old_users, *new_users = NULL, *changed_users = NULL, *link;
-    GError *error = NULL;
-
-    g_debug ("Loading user config from %s", USER_CONFIG_FILE);
-
-    config = g_key_file_new ();
-    if (!g_key_file_load_from_file (config, USER_CONFIG_FILE, G_KEY_FILE_NONE, &error) &&
-        !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
-        g_warning ("Failed to load configuration from %s: %s", USER_CONFIG_FILE, error->message); // FIXME: Don't make warning on no file, just info
-    g_clear_error (&error);
-
-    if (g_key_file_has_key (config, "UserAccounts", "minimum-uid", NULL))
-        minimum_uid = g_key_file_get_integer (config, "UserAccounts", "minimum-uid", NULL);
-    else
-        minimum_uid = 500;
-
-    value = g_key_file_get_string (config, "UserAccounts", "hidden-users", NULL);
-    if (!value)
-        value = g_strdup ("nobody nobody4 noaccess");
-    hidden_users = g_strsplit (value, " ", -1);
-    g_free (value);
-
-    value = g_key_file_get_string (config, "UserAccounts", "hidden-shells", NULL);
-    if (!value)
-        value = g_strdup ("/bin/false /usr/sbin/nologin");
-    hidden_shells = g_strsplit (value, " ", -1);
-    g_free (value);
-
-    g_key_file_free (config);
-
-    setpwent ();
-
-    while (TRUE)
-    {
-        struct passwd *entry;
-        LightDMUser *user;
-        char **tokens;
-        gchar *real_name, *image;
-        int i;
-
-        errno = 0;
-        entry = getpwent ();
-        if (!entry)
-            break;
-
-        /* Ignore system users */
-        if (entry->pw_uid < minimum_uid)
-            continue;
-
-        /* Ignore users disabled by shell */
-        if (entry->pw_shell)
-        {
-            for (i = 0; hidden_shells[i] && strcmp (entry->pw_shell, hidden_shells[i]) != 0; i++);
-            if (hidden_shells[i])
-                continue;
-        }
-
-        /* Ignore certain users */
-        for (i = 0; hidden_users[i] && strcmp (entry->pw_name, hidden_users[i]) != 0; i++);
-        if (hidden_users[i])
-            continue;
-
-        tokens = g_strsplit (entry->pw_gecos, ",", -1);
-        if (tokens[0] != NULL && tokens[0][0] != '\0')
-            real_name = g_strdup (tokens[0]);
-        else
-            real_name = NULL;
-        g_strfreev (tokens);
-      
-        image = g_build_filename (entry->pw_dir, ".face", NULL);
-        if (!g_file_test (image, G_FILE_TEST_EXISTS))
-        {
-            g_free (image);
-            image = g_build_filename (entry->pw_dir, ".face.icon", NULL);
-            if (!g_file_test (image, G_FILE_TEST_EXISTS))
-            {
-                g_free (image);
-                image = NULL;
-            }
-        }
-
-        user = lightdm_user_new (greeter, entry->pw_name, real_name, entry->pw_dir, image, FALSE);
-        g_free (real_name);
-        g_free (image);
-
-        /* Update existing users if have them */
-        for (link = priv->users; link; link = link->next)
-        {
-            LightDMUser *info = link->data;
-            if (strcmp (lightdm_user_get_name (info), lightdm_user_get_name (user)) == 0)
-            {
-                if (lightdm_user_update (info, lightdm_user_get_real_name (user), lightdm_user_get_home_directory (user), lightdm_user_get_image (user), lightdm_user_get_logged_in (user)))
-                    changed_users = g_list_insert_sorted (changed_users, info, compare_user);
-                g_object_unref (user);
-                user = info;
-                break;
-            }
-        }
-        if (!link)
-        {
-            /* Only notify once we have loaded the user list */
-            if (priv->have_users)
-                new_users = g_list_insert_sorted (new_users, user, compare_user);
-        }
-        users = g_list_insert_sorted (users, user, compare_user);
-    }
-    g_strfreev (hidden_users);
-    g_strfreev (hidden_shells);
-
-    if (errno != 0)
-        g_warning ("Failed to read password database: %s", strerror (errno));
-
-    endpwent ();
-
-    /* Use new user list */
-    old_users = priv->users;
-    priv->users = users;
-  
-    /* Notify of changes */
-    for (link = new_users; link; link = link->next)
-    {
-        LightDMUser *info = link->data;
-        g_debug ("User %s added", lightdm_user_get_name (info));
-        g_signal_emit (greeter, signals[USER_ADDED], 0, info);
-    }
-    g_list_free (new_users);
-    for (link = changed_users; link; link = link->next)
-    {
-        LightDMUser *info = link->data;
-        g_debug ("User %s changed", lightdm_user_get_name (info));
-        g_signal_emit (greeter, signals[USER_CHANGED], 0, info);
-    }
-    g_list_free (changed_users);
-    for (link = old_users; link; link = link->next)
-    {
-        GList *new_link;
-
-        /* See if this user is in the current list */
-        for (new_link = priv->users; new_link; new_link = new_link->next)
-        {
-            if (new_link->data == link->data)
-                break;
-        }
-
-        if (!new_link)
-        {
-            LightDMUser *info = link->data;
-            g_debug ("User %s removed", lightdm_user_get_name (info));
-            g_signal_emit (greeter, signals[USER_REMOVED], 0, info);
-            g_object_unref (info);
-        }
-    }
-    g_list_free (old_users);
-}
-
-static void
-passwd_changed_cb (GFileMonitor *monitor, GFile *file, GFile *other_file, GFileMonitorEvent event_type, LightDMGreeter *greeter)
-{
-    if (event_type == G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT)
-    {
-        g_debug ("%s changed, reloading user list", g_file_get_path (file));
-        load_users (greeter);
-    }
-}
-
-static void
-update_users (LightDMGreeter *greeter)
-{
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-    GFile *passwd_file;
-    GError *error = NULL;
-
-    if (priv->have_users)
-        return;
-
-    load_users (greeter);
-
-    /* Watch for changes to user list */
-    passwd_file = g_file_new_for_path (PASSWD_FILE);
-    priv->passwd_monitor = g_file_monitor (passwd_file, G_FILE_MONITOR_NONE, NULL, &error);
-    g_object_unref (passwd_file);
-    if (!priv->passwd_monitor)
-        g_warning ("Error monitoring %s: %s", PASSWD_FILE, error->message);
-    else
-        g_signal_connect (priv->passwd_monitor, "changed", G_CALLBACK (passwd_changed_cb), greeter);
-    g_clear_error (&error);
-
-    priv->have_users = TRUE;
-}
-
 /**
- * lightdm_greeter_get_num_users:
- * @greeter: a #LightDMGreeter
- *
- * Return value: The number of users able to log in
- **/
-gint
-lightdm_greeter_get_num_users (LightDMGreeter *greeter)
-{
-    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), 0);
-    update_users (greeter);
-    return g_list_length (GET_PRIVATE (greeter)->users);
-}
-
-/**
- * lightdm_greeter_get_users:
+ * lightdm_greeter_get_user_list:
  * @greeter: A #LightDMGreeter
  *
- * Get a list of users to present to the user.  This list may be a subset of the
- * available users and may be empty depending on the server configuration.
+ * Get a list of users to present to the user.  This list contains users that can login.
  *
- * Return value: (element-type LightDMUser) (transfer none): A list of #LightDMUser that should be presented to the user.
+ * Return value: (transfer none): A #LightDMUserList object that contains the user list.
  **/
-GList *
-lightdm_greeter_get_users (LightDMGreeter *greeter)
+LightDMUserList *
+lightdm_greeter_get_user_list (LightDMGreeter *greeter)
 {
+    LightDMGreeterPrivate *priv;
+
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
-    update_users (greeter);
-    return GET_PRIVATE (greeter)->users;
-}
 
-/**
- * lightdm_greeter_get_user_by_name:
- * @greeter: A #LightDMGreeter
- * @username: Name of user to get.
- *
- * Get infomation about a given user or #NULL if this user doesn't exist.
- *
- * Return value: (transfer none): A #LightDMUser entry for the given user.
- **/
-LightDMUser *
-lightdm_greeter_get_user_by_name (LightDMGreeter *greeter, const gchar *username)
-{
-    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
-    g_return_val_if_fail (username != NULL, NULL);
+    priv = GET_PRIVATE (greeter);
 
-    update_users (greeter);
-
-    return get_user_by_name (greeter, username);
+    if (!priv->user_list)
+        priv->user_list = lightdm_user_list_new ();
+    return priv->user_list;
 }
 
 static void
@@ -883,7 +603,7 @@ update_languages (LightDMGreeter *greeter)
             if (strcmp (code, "C") == 0 || strcmp (code, "POSIX") == 0)
                 continue;
 
-            language = lightdm_language_new (code);
+            language = g_object_new (LIGHTDM_TYPE_LANGUAGE, "code", code, NULL);
             priv->languages = g_list_append (priv->languages, language);
         }
 
@@ -942,7 +662,7 @@ layout_cb (XklConfigRegistry *config,
     LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
     LightDMLayout *layout;
 
-    layout = lightdm_layout_new (item->name, item->short_description, item->description);
+    layout = g_object_new (LIGHTDM_TYPE_LAYOUT, "name", item->name, "short-description", item->short_description, "description", item->description, NULL);
     priv->layouts = g_list_append (priv->layouts, layout);
 }
 
@@ -1107,7 +827,7 @@ update_sessions (LightDMGreeter *greeter)
             if (name)
             {
                 g_debug ("Loaded session %s (%s, %s)", key, name, comment);
-                priv->sessions = g_list_append (priv->sessions, lightdm_session_new (key, name, comment));
+                priv->sessions = g_list_append (priv->sessions, g_object_new (LIGHTDM_TYPE_SESSION, "key", key, "name", name, "comment", comment, NULL));
             }
             else
                 g_warning ("Invalid session %s: %s", path, error->message);
@@ -1764,11 +1484,6 @@ lightdm_greeter_get_property (GObject    *object,
     case PROP_HOSTNAME:
         g_value_set_string (value, lightdm_greeter_get_hostname (self));
         break;
-    case PROP_NUM_USERS:
-        g_value_set_int (value, lightdm_greeter_get_num_users (self));
-        break;
-    case PROP_USERS:
-        break;
     case PROP_DEFAULT_LANGUAGE:
         g_value_set_string (value, lightdm_greeter_get_default_language (self));
         break;
@@ -1872,6 +1587,26 @@ lightdm_greeter_finalize (GObject *object)
     LightDMGreeter *self = LIGHTDM_GREETER (object);
     LightDMGreeterPrivate *priv = GET_PRIVATE (self);
 
+    if (priv->system_bus)
+        g_object_unref (priv->system_bus);
+    if (priv->to_server_channel)
+        g_io_channel_unref (priv->to_server_channel);
+    if (priv->from_server_channel)
+        g_io_channel_unref (priv->from_server_channel);
+    if (priv->display)
+        XCloseDisplay (priv->display);
+    g_free (priv->hostname);
+    if (priv->user_list)
+        g_object_unref (priv->user_list);
+    g_list_free_full (priv->languages, g_object_unref);
+    if (priv->xkl_engine)
+        g_object_unref (priv->xkl_engine);
+    if (priv->xkl_config)
+        g_object_unref (priv->xkl_config);
+    g_list_free_full (priv->layouts, g_object_unref);
+    g_free (priv->layout);
+    g_list_free_full (priv->sessions, g_object_unref);
+    g_free (priv->authentication_user);
     g_hash_table_unref (priv->hints);
 
     G_OBJECT_CLASS (lightdm_greeter_parent_class)->finalize (object);
@@ -1889,24 +1624,12 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
     object_class->finalize = lightdm_greeter_finalize;
 
     g_object_class_install_property (object_class,
-                                     PROP_NUM_USERS,
+                                     PROP_HOSTNAME,
                                      g_param_spec_string ("hostname",
                                                           "hostname",
                                                           "Hostname displaying greeter for",
                                                           NULL,
                                                           G_PARAM_READABLE));
-    g_object_class_install_property (object_class,
-                                     PROP_NUM_USERS,
-                                     g_param_spec_int ("num-users",
-                                                       "num-users",
-                                                       "Number of login users",
-                                                       0, G_MAXINT, 0,
-                                                       G_PARAM_READABLE));
-    /*g_object_class_install_property (object_class,
-                                     PROP_USERS,
-                                     g_param_spec_list ("users",
-                                                        "users",
-                                                        "Users that can login"));
     g_object_class_install_property (object_class,
                                      PROP_DEFAULT_LANGUAGE,
                                      g_param_spec_string ("default-language",
@@ -1914,7 +1637,7 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
                                                           "Default language",
                                                           NULL,
                                                           G_PARAM_READWRITE));
-    g_object_class_install_property (object_class,
+    /*g_object_class_install_property (object_class,
                                      PROP_LAYOUTS,
                                      g_param_spec_list ("layouts",
                                                         "layouts",
@@ -2139,7 +1862,6 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
     /**
      * LightDMGreeter::autologin-timer-expired:
      * @greeter: A #LightDMGreeter
-     * @username: A username
      *
      * The ::timed-login signal gets emitted when the automatic login timer has expired.
      * The application should then call lightdm_greeter_login().
@@ -2152,51 +1874,6 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
-
-    /**
-     * LightDMGreeter::user-added:
-     * @greeter: A #LightDMGreeter
-     *
-     * The ::user-added signal gets emitted when a user account is created.
-     **/
-    signals[USER_ADDED] =
-        g_signal_new ("user-added",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (LightDMGreeterClass, user_added),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
-                      G_TYPE_NONE, 1, LIGHTDM_TYPE_USER);
-
-    /**
-     * LightDMGreeter::user-changed:
-     * @greeter: A #LightDMGreeter
-     *
-     * The ::user-changed signal gets emitted when a user account is modified.
-     **/
-    signals[USER_CHANGED] =
-        g_signal_new ("user-changed",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (LightDMGreeterClass, user_changed),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
-                      G_TYPE_NONE, 1, LIGHTDM_TYPE_USER);
-
-    /**
-     * LightDMGreeter::user-removed:
-     * @greeter: A #LightDMGreeter
-     *
-     * The ::user-removed signal gets emitted when a user account is removed.
-     **/
-    signals[USER_REMOVED] =
-        g_signal_new ("user-removed",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (LightDMGreeterClass, user_removed),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
-                      G_TYPE_NONE, 1, LIGHTDM_TYPE_USER);
 
     /**
      * LightDMGreeter::quit:

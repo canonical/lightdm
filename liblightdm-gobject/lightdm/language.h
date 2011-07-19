@@ -35,8 +35,6 @@ typedef struct
 
 GType lightdm_language_get_type (void);
 
-LightDMLanguage *lightdm_language_new (const gchar *code);
-
 const gchar *lightdm_language_get_code (LightDMLanguage *language);
 
 const gchar *lightdm_language_get_name (LightDMLanguage *language);

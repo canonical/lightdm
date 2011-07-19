@@ -14,6 +14,11 @@
 
 #include <glib-object.h>
 
+#include "user-list.h"
+#include "language.h"
+#include "layout.h"
+#include "session.h"
+
 G_BEGIN_DECLS
 
 #define LIGHTDM_TYPE_GREETER            (lightdm_greeter_get_type())
@@ -22,14 +27,6 @@ G_BEGIN_DECLS
 #define LIGHTDM_IS_GREETER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), LIGHTDM_TYPE_GREETER))
 #define LIGHTDM_IS_GREETER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LIGHTDM_TYPE_GREETER))
 #define LIGHTDM_GREETER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LIGHTDM_TYPE_GREETER, LightDMGreeterClass))
-
-typedef struct _LightDMGreeter        LightDMGreeter;
-typedef struct _LightDMGreeterClass   LightDMGreeterClass;
-
-#include "user.h"
-#include "language.h"
-#include "layout.h"
-#include "session.h"
 
 /**
  * LightDMPromptType:
@@ -53,12 +50,12 @@ typedef enum
     LIGHTDM_MESSAGE_TYPE_ERROR
 } LightDMMessageType;
 
-struct _LightDMGreeter
+typedef struct
 {
     GObject parent_instance;
-};
+} LightDMGreeter;
 
-struct _LightDMGreeterClass
+typedef struct
 {
     GObjectClass parent_class;
 
@@ -68,11 +65,8 @@ struct _LightDMGreeterClass
     void (*authentication_complete)(LightDMGreeter *greeter);
     void (*session_failed)(LightDMGreeter *greeter);
     void (*autologin_timer_expired)(LightDMGreeter *greeter);
-    void (*user_added)(LightDMGreeter *greeter, LightDMUser *user);
-    void (*user_changed)(LightDMGreeter *greeter, LightDMUser *user);
-    void (*user_removed)(LightDMGreeter *greeter, LightDMUser *user);
     void (*quit)(LightDMGreeter *greeter);
-};
+} LightDMGreeterClass;
 
 GType lightdm_greeter_get_type (void);
 
@@ -82,11 +76,7 @@ gboolean lightdm_greeter_connect_to_server (LightDMGreeter *greeter);
 
 const gchar *lightdm_greeter_get_hostname (LightDMGreeter *greeter);
 
-gint lightdm_greeter_get_num_users (LightDMGreeter *greeter);
-
-GList *lightdm_greeter_get_users (LightDMGreeter *greeter);
-
-LightDMUser *lightdm_greeter_get_user_by_name (LightDMGreeter *greeter, const gchar *username);
+LightDMUserList *lightdm_greeter_get_user_list (LightDMGreeter *greeter);
 
 const gchar *lightdm_greeter_get_default_language (LightDMGreeter *greeter);
 

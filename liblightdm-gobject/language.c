@@ -33,20 +33,6 @@ G_DEFINE_TYPE (LightDMLanguage, lightdm_language, G_TYPE_OBJECT);
 #define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_LANGUAGE, LightDMLanguagePrivate)
 
 /**
- * lightdm_language_new:
- * 
- * Create a new language.
- * @code: The language code
- * 
- * Return value: the new #LightDMLanguage
- **/
-LightDMLanguage *
-lightdm_language_new (const gchar *code)
-{
-    return g_object_new (LIGHTDM_TYPE_LANGUAGE, "code", code, NULL);
-}
-
-/**
  * lightdm_language_get_code:
  * @language: A #LightDMLanguage
  * 

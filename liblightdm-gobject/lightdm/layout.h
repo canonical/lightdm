@@ -35,8 +35,6 @@ typedef struct
 
 GType lightdm_layout_get_type (void);
 
-LightDMLayout *lightdm_layout_new (const gchar *name, const gchar *short_description, const gchar *description);
-
 const gchar *lightdm_layout_get_name (LightDMLayout *layout);
 
 const gchar *lightdm_layout_get_short_description (LightDMLayout *layout);

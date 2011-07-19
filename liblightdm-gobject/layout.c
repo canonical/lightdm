@@ -30,22 +30,6 @@ G_DEFINE_TYPE (LightDMLayout, lightdm_layout, G_TYPE_OBJECT);
 #define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_LAYOUT, LightDMLayoutPrivate)
 
 /**
- * lightdm_layout_new:
- * 
- * Create a new layout.
- * @name: The layout name
- * @short_description: Short description for the layout
- * @description: Long description for the layout
- * 
- * Return value: the new #LightDMLayout
- **/
-LightDMLayout *
-lightdm_layout_new (const gchar *name, const gchar *short_description, const gchar *description)
-{
-    return g_object_new (LIGHTDM_TYPE_LAYOUT, "name", name, "short-description", short_description, "description", description, NULL);
-}
-
-/**
  * lightdm_layout_get_name:
  * @layout: A #LightDMLayout
  * 

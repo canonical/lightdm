@@ -16,7 +16,6 @@ LIGHTDM_LANGUAGE_GET_CLASS
 LIGHTDM_TYPE_LANGUAGE
 lightdm_language_get_type
 <SUBSECTION Private>
-lightdm_language_new
 </SECTION>
 
 <SECTION>
@@ -34,7 +33,6 @@ LIGHTDM_LAYOUT_GET_CLASS
 LIGHTDM_TYPE_LAYOUT
 lightdm_layout_get_type
 <SUBSECTION Private>
-lightdm_layout_new
 </SECTION>
 
 <SECTION>
@@ -58,13 +56,6 @@ LIGHTDM_USER_CLASS
 LIGHTDM_IS_USER_CLASS
 LIGHTDM_USER_GET_CLASS
 <SUBSECTION Private>
-lightdm_user_new
-lightdm_user_set_name
-lightdm_user_set_real_name
-lightdm_user_set_home_directory
-lightdm_user_set_image
-lightdm_user_set_logged_in
-lightdm_user_update
 </SECTION>
 
 <SECTION>
@@ -82,20 +73,45 @@ LIGHTDM_SESSION_CLASS
 LIGHTDM_IS_SESSION_CLASS
 LIGHTDM_SESSION_GET_CLASS
 <SUBSECTION Private>
-lightdm_session_new
+</SECTION>
+
+<SECTION>
+<FILE>user-list</FILE>
+<TITLE>LightDMUserList</TITLE>
+user_added
+user_changed
+user_removed
+lightdm_user_list_new
+lightdm_user_list_get_num_users
+lightdm_user_list_get_user_by_name
+lightdm_user_list_get_users
+<SUBSECTION Standard>
+LIGHTDM_USER_LIST
+LIGHTDM_IS_USER_LIST
+LIGHTDM_TYPE_USER_LIST
+lightdm_user_list_get_type
+LIGHTDM_USER_LIST_CLASS
+LIGHTDM_IS_USER_LIST_CLASS
+LIGHTDM_USER_LIST_GET_CLASS
+<SUBSECTION Private>
 </SECTION>
 
 <SECTION>
 <FILE>greeter</FILE>
 <TITLE>LightDMGreeter</TITLE>
+connected
+autologin_timer_expired
+show_message
+show_prompt
+authentication_complete
+session_failed
+quit
 LightDMMessageType
 LightDMPromptType
 lightdm_greeter_new
 lightdm_greeter_connect_to_server
 lightdm_greeter_get_hostname
-lightdm_greeter_get_num_users
-lightdm_greeter_get_users
-lightdm_greeter_get_user_by_name
+lightdm_greeter_get_user_list
 lightdm_greeter_get_default_language
 lightdm_greeter_get_languages
 lightdm_greeter_get_layouts

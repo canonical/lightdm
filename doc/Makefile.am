@@ -4,7 +4,7 @@ DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
 
 DOC_SOURCE_DIR=$(top_srcdir)/liblightdm-gobject
 
-HFILE_GLOB=$(top_srcdir)/liblightdm-gobject/*.h
+HFILE_GLOB=$(top_srcdir)/liblightdm-gobject/lightdm/*.h
 CFILE_GLOB=$(top_srcdir)/liblightdm-gobject/*.c
 
 INCLUDES = \

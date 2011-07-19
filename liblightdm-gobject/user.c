@@ -9,11 +9,10 @@
  * license.
  */
 
-#include "user-private.h"
+#include "lightdm/user.h"
 
 enum {
     PROP_0,
-    PROP_GREETER,
     PROP_NAME,
     PROP_REAL_NAME,
     PROP_DISPLAY_NAME,
@@ -27,8 +26,6 @@ enum {
 
 typedef struct
 {
-    LightDMGreeter *greeter;
-
     gchar *name;
     gchar *real_name;
     gchar *home_directory;
@@ -46,47 +43,6 @@ G_DEFINE_TYPE (LightDMUser, lightdm_user, G_TYPE_OBJECT);
 #define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_USER, LightDMUserPrivate)
 
 /**
- * lightdm_user_new:
- * 
- * Create a new user.
- * @greeter: The greeter the user is connected to
- * @name: The username
- * @real_name: The real name of the user
- * @home_directory: The home directory of the user
- * @image: The image URI
- * @logged_in: #TRUE if this user is currently logged in
- * 
- * Return value: the new #LightDMUser
- **/
-LightDMUser *
-lightdm_user_new (LightDMGreeter *greeter, const gchar *name, const gchar *real_name, const gchar *home_directory, const gchar *image, gboolean logged_in)
-{
-    return g_object_new (LIGHTDM_TYPE_USER, "greeter", greeter, "name", name, "real-name", real_name, "home-directory", home_directory, "image", image, "logged-in", logged_in, NULL);
-}
-
-gboolean
-lightdm_user_update (LightDMUser *user, const gchar *real_name, const gchar *home_directory, const gchar *image, gboolean logged_in)
-{
-    LightDMUserPrivate *priv = GET_PRIVATE (user);
-
-    if (g_strcmp0 (priv->real_name, real_name) == 0 &&
-        g_strcmp0 (priv->home_directory, home_directory) == 0 &&
-        g_strcmp0 (priv->image, image) == 0 &&
-        priv->logged_in == logged_in)
-        return FALSE;
-  
-    g_free (priv->real_name);
-    priv->real_name = g_strdup (real_name);
-    g_free (priv->home_directory);
-    priv->home_directory = g_strdup (home_directory);
-    g_free (priv->image);
-    priv->image = g_strdup (image);
-    priv->logged_in = logged_in;
-
-    return TRUE;
-}
-
-/**
  * lightdm_user_get_name:
  * @user: A #LightDMUser
  * 
@@ -99,18 +55,6 @@ lightdm_user_get_name (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
     return GET_PRIVATE (user)->name;
-}
-
-void
-lightdm_user_set_name (LightDMUser *user, const gchar *name)
-{
-    LightDMUserPrivate *priv;
-
-    g_return_if_fail (LIGHTDM_IS_USER (user));
-
-    priv = GET_PRIVATE (user);
-    g_free (priv->name);
-    priv->name = g_strdup (name);
 }
 
 /**
@@ -126,18 +70,6 @@ lightdm_user_get_real_name (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
     return GET_PRIVATE (user)->real_name;
-}
-
-void
-lightdm_user_set_real_name (LightDMUser *user, const gchar *real_name)
-{
-    LightDMUserPrivate *priv;
-
-    g_return_if_fail (LIGHTDM_IS_USER (user));
-
-    priv = GET_PRIVATE (user);
-    g_free (priv->real_name);
-    priv->real_name = g_strdup (real_name);
 }
 
 /**
@@ -177,18 +109,6 @@ lightdm_user_get_home_directory (LightDMUser *user)
     return GET_PRIVATE (user)->home_directory;
 }
 
-void
-lightdm_user_set_home_directory (LightDMUser *user, const gchar *home_directory)
-{
-    LightDMUserPrivate *priv;
-
-    g_return_if_fail (LIGHTDM_IS_USER (user));
-
-    priv = GET_PRIVATE (user);
-    g_free (priv->home_directory);
-    priv->home_directory = g_strdup (home_directory);
-}
-
 /**
  * lightdm_user_get_image:
  * @user: A #LightDMUser
@@ -202,18 +122,6 @@ lightdm_user_get_image (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
     return GET_PRIVATE (user)->image;
-}
-
-void
-lightdm_user_set_image (LightDMUser *user, const gchar *image)
-{
-    LightDMUserPrivate *priv;
-
-    g_return_if_fail (LIGHTDM_IS_USER (user));
-
-    priv = GET_PRIVATE (user);
-    g_free (priv->image);
-    priv->image = g_strdup (image);
 }
 
 static void
@@ -303,13 +211,6 @@ lightdm_user_get_logged_in (LightDMUser *user)
     return GET_PRIVATE (user)->logged_in;
 }
 
-void
-lightdm_user_set_logged_in (LightDMUser *user, gboolean logged_in)
-{
-    g_return_if_fail (LIGHTDM_IS_USER (user));
-    GET_PRIVATE (user)->logged_in = logged_in;
-}
-
 static void
 lightdm_user_init (LightDMUser *user)
 {
@@ -325,23 +226,24 @@ lightdm_user_set_property (GObject      *object,
     LightDMUserPrivate *priv = GET_PRIVATE (self);
 
     switch (prop_id) {
-    case PROP_GREETER:
-        priv->greeter = g_object_ref (g_value_get_object (value));
-        break;
     case PROP_NAME:
-        lightdm_user_set_name (self, g_value_get_string (value));
+        g_free (priv->name);
+        priv->name = g_strdup (g_value_get_string (value));
         break;
     case PROP_REAL_NAME:
-        lightdm_user_set_real_name (self, g_value_get_string (value));
+        g_free (priv->real_name);
+        priv->real_name = g_strdup (g_value_get_string (value));
         break;
     case PROP_HOME_DIRECTORY:
-        lightdm_user_set_home_directory (self, g_value_get_string (value));
+        g_free (priv->home_directory);
+        priv->home_directory = g_strdup (g_value_get_string (value));
         break;
     case PROP_IMAGE:
-        lightdm_user_set_image (self, g_value_get_string (value));
+        g_free (priv->image);
+        priv->image = g_strdup (g_value_get_string (value));
         break;
     case PROP_LOGGED_IN:
-        lightdm_user_set_logged_in (self, g_value_get_boolean (value));
+        priv->logged_in = g_value_get_boolean (value);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -418,13 +320,6 @@ lightdm_user_class_init (LightDMUserClass *klass)
     object_class->get_property = lightdm_user_get_property;
     object_class->finalize = lightdm_user_finalize;
 
-    g_object_class_install_property(object_class,
-                                    PROP_GREETER,
-                                    g_param_spec_object("greeter",
-                                                        "greeter",
-                                                        "Greeter",
-                                                        LIGHTDM_TYPE_GREETER,
-                                                        G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
     g_object_class_install_property(object_class,
                                     PROP_NAME,
                                     g_param_spec_string("name",
