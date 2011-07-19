@@ -5,51 +5,51 @@ namespace LightDM {
         public virtual signal void connected ();
         public virtual signal void show_message (string text, MessageType type);
         public virtual signal void show_prompt (string text, PromptType type);
-        public virtual signal void timed_login (string username);
         public virtual signal void authentication_complete ();
+        public virtual signal void session_failed ();
+        public virtual signal void autologin_timer_expired ();
+        public virtual signal void user_added ();
+        public virtual signal void user_changed ();
+        public virtual signal void user_removed ();
         public virtual signal void quit ();
 
         public bool connect_to_server ();
-
         public unowned string hostname { get; }
-        public unowned string theme { get; }
-        public bool get_boolean_property (string name);
-        public int get_integer_property (string name);
-        public string get_string_property (string name);
-        public unowned GLib.List<weak LightDM.Language> get_languages ();
-        public unowned string default_language { get; }
-        public unowned GLib.List<weak LightDM.Layout> get_layouts ();
-        public unowned string layout { get; set; }
-        public unowned string default_layout { get; }
-        public unowned GLib.List<weak LightDM.Session> get_sessions ();
-        public unowned string default_session { get; }
-        public bool has_guest_session { get; }
         public int num_users { get; }
         public unowned GLib.List<weak LightDM.User> get_users ();
         public unowned LightDM.User get_user_by_name (string username);
-        public unowned string timed_login_user { get; }
-        public int timed_login_delay { get; }
-
-        public bool can_hibernate { get; }
-        public bool can_restart { get; }
-        public bool can_shutdown { get; }
-        public bool can_suspend { get; }
-        public void restart ();
-        public void shutdown ();
-        public void suspend ();
-        public void hibernate ();
-
+        public unowned string default_language { get; }
+        public unowned GLib.List<weak LightDM.Language> get_languages ();
+        public unowned GLib.List<weak LightDM.Layout> get_layouts ();
+        public unowned string layout { get; set; }
+        public unowned string get_hint (string name);
+        public unowned string default_session_hint { get; };
+        public bool hide_users_hint { get; };
+        public bool has_guest_account_hint { get; };
+        public unowned string select_user_hint { get; };
+        public bool select_guest_hint { get; };
+        public unowned string autologin_user_hint { get; };
+        public bool autologin_guest_hint { get; };
+        public int autologin_timeout_hint { get; };
         public void cancel_timed_login ();
         public void login (string username);
         public void login_with_user_prompt ();
         public void login_as_guest ();
-        public unowned string authentication_user { get; }
         public void respond (string response);
+        public void cancel_authentication ();
         public bool in_authentication { get; }
         public bool is_authenticated { get; }
-        public void cancel_authentication ();
+        public unowned string authentication_user { get; }
         public void start_session (string? session);
         public void start_default_session ();
+        public bool can_suspend { get; }
+        public void suspend ();
+        public bool can_hibernate { get; }
+        public void hibernate ();
+        public bool can_restart { get; }
+        public void restart ();
+        public bool can_shutdown { get; }
+        public void shutdown ();
     }
     public enum MessageType {
         INFO,
