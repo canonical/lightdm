@@ -16,7 +16,10 @@ Overview of changes in lightdm 0.9.0
         and the greeter should try authorizing again.
       - Face images are now local paths not URIs
       - liblightdm-gobject now uses lightdm_ prefix instead of ldm_
-      - liblightdm-gobject splits UserList into its own class
+      - Non-greeter functions are now moved out of the Greeter class
+      - login() is now called authenticate()
+      - Greeters now have hints instead of configuration (greeters should load their
+        own configuration from /etc/lightdm if they need it).
       - liblightdm-gobject uses AccountsService if it is available
     * D-Bus API changes:
       - Make an object per seat
