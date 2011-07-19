@@ -14,7 +14,7 @@
 
 #include "QLightDM/System"
 
-QString hostname()
+QString QLightDM::hostname()
 {
     return QHostInfo::localHostName();
 }

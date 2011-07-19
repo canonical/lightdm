@@ -37,7 +37,7 @@ static bool setupConsoleKitInterface ()
     return consoleKitInterface != NULL;
 }
 
-bool canSuspend()
+bool QLightDM::canSuspend()
 {
     if (!setupPowerManagementInterface())
         return false;
@@ -49,13 +49,13 @@ bool canSuspend()
         return false;
 }
 
-void suspend()
+void QLightDM::suspend()
 {
     if (setupPowerManagementInterface())
         powerManagementInterface->call("Suspend");
 }
 
-bool canHibernate()
+bool QLightDM::canHibernate()
 {
     if (!setupPowerManagementInterface())
         return false;
@@ -67,13 +67,13 @@ bool canHibernate()
         return false;
 }
 
-void hibernate()
+void QLightDM::hibernate()
 {
     if (setupConsoleKitInterface())
         powerManagementInterface->call("Hibernate");
 }
 
-bool canShutdown()
+bool QLightDM::canShutdown()
 {
     if (!setupConsoleKitInterface())
         return false;
@@ -85,13 +85,13 @@ bool canShutdown()
         return false;
 }
 
-void shutdown()
+void QLightDM::shutdown()
 {
     if (setupConsoleKitInterface())
         consoleKitInterface->call("stop");
 }
 
-bool canRestart()
+bool QLightDM::canRestart()
 {
     if (!setupConsoleKitInterface())
         return false;
@@ -103,7 +103,7 @@ bool canRestart()
         return false;
 }
 
-void restart()
+void QLightDM::restart()
 {
     if (setupConsoleKitInterface())
         consoleKitInterface->call("Restart");

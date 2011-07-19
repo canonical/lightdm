@@ -14,6 +14,7 @@
 
 #include <QLightDM/Greeter>
 #include <QLightDM/SessionsModel>
+#include <QLightDM/Power>
 
 #include <QMenu>
 #include <QAction>
@@ -33,22 +34,22 @@ Panel::Panel(QLightDM::Greeter *greeter, QWidget *parent):
 
     QAction *shutDownAction = new QAction(QIcon::fromTheme("system-shutdown"), "Shutdown", this);
     connect(shutDownAction, SIGNAL(triggered()), m_greeter, SLOT(shutdown()));
-    shutDownAction->setEnabled(m_greeter->canShutdown());
+    shutDownAction->setEnabled(QLightDM::canShutdown());
     powerMenu->addAction(shutDownAction);
 
     QAction *restartAction = new QAction(QIcon::fromTheme("system-reboot"), "Restart", this);
     connect(restartAction, SIGNAL(triggered()), m_greeter, SLOT(restart()));
-    restartAction->setEnabled(m_greeter->canRestart());
+    restartAction->setEnabled(QLightDM::canRestart());
     powerMenu->addAction(restartAction);
 
     QAction* suspendAction = new QAction(QIcon::fromTheme("system-suspend"), "Suspend", this);
     connect(suspendAction, SIGNAL(triggered()), m_greeter, SLOT(suspend()));
-    suspendAction->setEnabled(m_greeter->canSuspend());
+    suspendAction->setEnabled(QLightDM::canSuspend());
     powerMenu->addAction(suspendAction);
 
     QAction* hibernateAction = new QAction(QIcon::fromTheme("system-suspend-hibernate"), "Hibernate", this);
     connect(hibernateAction, SIGNAL(triggered()), m_greeter, SLOT(hibernate()));
-    hibernateAction->setEnabled(m_greeter->canHibernate());
+    hibernateAction->setEnabled(QLightDM::canHibernate());
     powerMenu->addAction(hibernateAction);
 
     ui->powerOptionsButton->setMenu(powerMenu);

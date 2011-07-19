@@ -16,6 +16,7 @@
 #include <QLightDM/User>
 #include <QLightDM/Language>
 #include <QLightDM/UsersModel>
+#include <QLightDM/System>
 
 #include <QtCore/QDebug>
 #include <QtGui/QListWidgetItem>
@@ -28,7 +29,7 @@ LoginPrompt::LoginPrompt(QLightDM::Greeter *greeter, QWidget *parent) :
     ui->setupUi(this);
     ui->feedbackLabel->setText(QString());
     
-    ui->hostnameLabel->setText(m_greeter->hostname());
+    ui->hostnameLabel->setText(QLightDM::hostname());
     
     QLightDM::UsersModel *usersModel = new QLightDM::UsersModel(this);
     ui->userListView->setModel(usersModel);
