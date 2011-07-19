@@ -41,23 +41,8 @@ namespace QLightDM
         explicit Greeter(QObject* parent=0);
         virtual ~Greeter();
 
-        Q_PROPERTY(bool canSuspend READ canSuspend);
-        Q_PROPERTY(bool canHibernate READ canHibernate);
-        Q_PROPERTY(bool canShutdown READ canShutdown);
-        Q_PROPERTY(bool canRestart READ canRestart);
-
-        Q_PROPERTY(QString hostname READ hostname CONSTANT);
-
-        /** The hostname of the machine */
-        QString hostname() const;
-
         QString timedLoginUser() const;
         int timedLoginDelay() const;
-
-        QList<QLightDM::Language> languages() const;
-        QString defaultLanguage() const;
-
-        QString layout() const;
 
         QString getHint(QString name) const;
         QString defaultSessionHint() const;
@@ -73,17 +58,7 @@ namespace QLightDM
         bool isAuthenticated() const;
         QString authenticationUser() const;
 
-        bool canSuspend() const;
-        bool canHibernate() const;
-        bool canShutdown() const;
-        bool canRestart() const;
-
     public slots:
-        void suspend();
-        void hibernate();
-        void shutdown();
-        void restart();
-
         void connectToServer();
         void authenticate(const QString &username=QString());
         void authenticateAsGuest();

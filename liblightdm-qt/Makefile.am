@@ -27,6 +27,7 @@ liblightdm_qt_1_la_SOURCES = \
 	language.cpp \
 	power.cpp \
 	sessionsmodel.cpp \
+	system.cpp \
 	user.cpp \
 	usersmodel.cpp \
 	$(MOC_FILES)

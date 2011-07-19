@@ -13,12 +13,8 @@
 #include "config.h"
 
 #include "QLightDM/Greeter"
-#include "QLightDM/User"
-#include "QLightDM/SessionsModel"
 
 #include <security/pam_appl.h>
-
-#include <QtNetwork/QHostInfo> //needed for localHostName
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
 #include <QtCore/QVariant>
@@ -59,8 +55,6 @@ using namespace QLightDM;
 class GreeterPrivate
 {
 public:
-    SessionsModel *sessionsModel;
-
     QHash<QString, QString> hints;
 
     int toServerFd;
@@ -82,7 +76,6 @@ Greeter::Greeter(QObject *parent) :
 {
     d->readBuffer = (char *)malloc (HEADER_SIZE);
     d->nRead = 0;
-    d->sessionsModel = new SessionsModel(this);
     d->authenticateSequenceNumber = 0;
 }
 
@@ -394,16 +387,6 @@ void Greeter::onRead(int fd)
     }
 
     d->nRead = 0;
-}
-
-QString Greeter::hostname() const
-{
-    return QHostInfo::localHostName();
-}
-
-QString Greeter::defaultLanguage() const
-{
-    return getenv("LANG");
 }
 
 QString Greeter::getHint(QString name) const
