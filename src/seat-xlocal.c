@@ -30,12 +30,9 @@ static Display *
 seat_xlocal_add_display (Seat *seat)
 {
     XServerLocal *xserver;
-    XAuthority *authority = NULL;
-    gchar *number;
-    gchar hostname[1024];
     XDisplay *display;
     const gchar *config_section;
-    gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL;
+    gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key = NULL;
     gint port = 0;
 
     g_debug ("Starting Local X Display");
@@ -85,22 +82,14 @@ seat_xlocal_add_display (Seat *seat)
         port = config_get_integer (config_get_instance (), "SeatDefaults", "xdmcp-port");
     if (port > 0)
         xserver_local_set_xdmcp_port (xserver, port);
-    /*FIXME key = config_get_string (config_get_instance (), config_section, "key");
+
+    if (config_section)
+        key = config_get_string (config_get_instance (), config_section, "xdmcp-key");
+    if (!key)
+        key = config_get_string (config_get_instance (), "SeatDefaults", "xdmcp-key");
     if (key)
-    {
-        guint8 data[8];
-
-        string_to_xdm_auth_key (key, data);
-        xserver_set_authentication (xserver, "XDM-AUTHENTICATION-1", data, 8);
-        authority = xauth_new (XAUTH_FAMILY_WILD, "", "", "XDM-AUTHORIZATION-1", data, 8);
-    }*/
-
-    number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (xserver)));
-    gethostname (hostname, 1024);
-    authority = xauth_new_cookie (XAUTH_FAMILY_LOCAL, hostname, number);
-    g_free (number);
-    xserver_set_authority (XSERVER (xserver), authority);
-    g_object_unref (authority);
+        xserver_local_set_xdmcp_key (xserver, key);
+    g_free (key);
 
     display = xdisplay_new (XSERVER (xserver));
     g_object_unref (xserver);

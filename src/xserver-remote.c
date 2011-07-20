@@ -16,12 +16,13 @@
 G_DEFINE_TYPE (XServerRemote, xserver_remote, XSERVER_TYPE);
 
 XServerRemote *
-xserver_remote_new (const gchar *hostname, guint number)
+xserver_remote_new (const gchar *hostname, guint number, XAuthority *authority)
 {
     XServerRemote *self = g_object_new (XSERVER_REMOTE_TYPE, NULL);
 
     xserver_set_hostname (XSERVER (self), hostname);
     xserver_set_display_number (XSERVER (self), number);
+    xserver_set_authority (XSERVER (self), authority);
 
     return self;
 }

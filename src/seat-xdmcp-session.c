@@ -42,8 +42,7 @@ seat_xdmcp_session_add_display (Seat *seat)
     XDisplay *display;
 
     authority = xdmcp_session_get_authority (SEAT_XDMCP_SESSION (seat)->priv->session);
-    xserver = xserver_remote_new (xauth_get_address (authority), xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session));
-    xserver_set_authority (XSERVER (xserver), authority);
+    xserver = xserver_remote_new (xauth_get_address (authority), xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session), authority);
 
     display = xdisplay_new (XSERVER (xserver));
     g_object_unref (xserver);

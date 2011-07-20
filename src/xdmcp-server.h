@@ -52,7 +52,7 @@ void xdmcp_server_set_status (XDMCPServer *server, const gchar *status);
 
 const gchar *xdmcp_server_get_status (XDMCPServer *server);
 
-void xdmcp_server_set_authentication (XDMCPServer *server, const gchar *name, const guint8 *data, gsize data_length);
+void xdmcp_server_set_key (XDMCPServer *server, const gchar *key);
 
 gboolean xdmcp_server_start (XDMCPServer *server);
 

@@ -143,7 +143,7 @@ display_manager_start (DisplayManager *manager)
 
     if (config_get_boolean (config_get_instance (), "XDMCPServer", "enabled"))
     {
-        //gchar *key;
+        gchar *key;
 
         manager->priv->xdmcp_server = xdmcp_server_new ();
         if (config_has_key (config_get_instance (), "XDMCPServer", "port"))
@@ -155,14 +155,10 @@ display_manager_start (DisplayManager *manager)
         }
         g_signal_connect (manager->priv->xdmcp_server, "new-session", G_CALLBACK (xdmcp_session_cb), manager);
 
-        /*FIXME key = config_get_string (config_get_instance (), "XDMCPServer", "key");
+        key = config_get_string (config_get_instance (), "XDMCPServer", "key");
         if (key)
-        {
-            guint8 data[8];
-            string_to_xdm_auth_key (key, data);
-            xdmcp_server_set_authentication (manager->priv->xdmcp_server, "XDM-AUTHENTICATION-1", data, 8);
-            g_free (key);
-        }*/
+            xdmcp_server_set_key (manager->priv->xdmcp_server, key);
+        g_free (key);
 
         g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (manager->priv->xdmcp_server));
         xdmcp_server_start (manager->priv->xdmcp_server); 

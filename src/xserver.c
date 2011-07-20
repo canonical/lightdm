@@ -11,10 +11,6 @@
 
 #include <config.h>
 
-#include <string.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-
 #include "xserver.h"
 #include "configuration.h"
 #include "xsession.h"
@@ -30,16 +26,8 @@ struct XServerPrivate
     /* Cached server address */
     gchar *address;
 
-    /* Auhentication scheme to use */
-    gchar *authentication_name;
-
-    /* Auhentication data */  
-    guint8 *authentication_data;
-    gsize authentication_data_length;
-
     /* Authority */
     XAuthority *authority;
-    GFile *authority_file;
 };
 
 G_DEFINE_TYPE (XServer, xserver, DISPLAY_SERVER_TYPE);
@@ -94,99 +82,12 @@ xserver_get_address (XServer *server)
 }
 
 void
-xserver_set_authentication (XServer *server, const gchar *name, const guint8 *data, gsize data_length)
-{
-    g_return_if_fail (server != NULL);
-
-    g_free (server->priv->authentication_name);
-    server->priv->authentication_name = g_strdup (name);
-    g_free (server->priv->authentication_data);
-    server->priv->authentication_data = g_malloc (data_length);
-    server->priv->authentication_data_length = data_length;
-    memcpy (server->priv->authentication_data, data, data_length);
-}
-
-const gchar *
-xserver_get_authentication_name (XServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->authentication_name;
-}
-
-const guint8 *
-xserver_get_authentication_data (XServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->authentication_data;
-}
-
-gsize
-xserver_get_authentication_data_length (XServer *server)
-{
-    g_return_val_if_fail (server != NULL, 0);
-    return server->priv->authentication_data_length;
-}
-
-static void
-write_authority_file (XServer *server)
-{
-    gchar *path;
-    GError *error = NULL;
-
-    /* Get file to write to if have authority */
-    if (server->priv->authority && !server->priv->authority_file)
-    {
-        gchar *run_dir, *dir;
-      
-        run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
-        dir = g_build_filename (run_dir, "root", NULL);
-        g_free (run_dir);
-        g_mkdir_with_parents (dir, S_IRWXU);
-
-        path = g_build_filename (dir, xserver_get_address (server), NULL);
-        g_free (dir);
-        server->priv->authority_file = g_file_new_for_path (path);
-        g_free (path);
-    }
-
-    /* Delete existing file if no authority */
-    if (!server->priv->authority)
-    {
-        if (server->priv->authority_file)
-        {
-            path = g_file_get_path (server->priv->authority_file);
-            g_debug ("Deleting X server authority %s", path);
-            g_free (path);
-
-            g_file_delete (server->priv->authority_file, NULL, NULL);
-            g_object_unref (server->priv->authority_file);
-            server->priv->authority_file = NULL;
-        }
-        return;
-    }
-
-    path = g_file_get_path (server->priv->authority_file);
-    g_debug ("Writing X server authority to %s", path);
-    g_free (path);
-
-    if (!xauth_write (server->priv->authority, XAUTH_WRITE_MODE_SET, NULL, server->priv->authority_file, &error))
-        g_warning ("Failed to write authority: %s", error->message);
-    g_clear_error (&error);
-}
-
-void
 xserver_set_authority (XServer *server, XAuthority *authority)
 {
     g_return_if_fail (server != NULL);
-
     if (server->priv->authority)
         g_object_unref (server->priv->authority);
-    if (authority)
-        server->priv->authority = g_object_ref (authority);
-    else
-        server->priv->authority = NULL;
-
-    write_authority_file (server);
+    server->priv->authority = g_object_ref (authority);
 }
 
 XAuthority *
@@ -196,20 +97,10 @@ xserver_get_authority (XServer *server)
     return server->priv->authority;
 }
 
-GFile *
-xserver_get_authority_file (XServer *server)
-{
-    if (!server->priv->authority_file)
-        write_authority_file (server);
-  
-    return server->priv->authority_file;
-}
-
 static void
 xserver_init (XServer *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_TYPE, XServerPrivate);
-    server->priv->authentication_name = g_strdup ("");
 }
 
 static void
@@ -220,16 +111,9 @@ xserver_finalize (GObject *object)
     self = XSERVER (object);
 
     g_free (self->priv->hostname);
-    g_free (self->priv->authentication_name);
-    g_free (self->priv->authentication_data);
     g_free (self->priv->address);
     if (self->priv->authority)
         g_object_unref (self->priv->authority);
-    if (self->priv->authority_file)
-    {
-        g_file_delete (self->priv->authority_file, NULL, NULL);
-        g_object_unref (self->priv->authority_file);
-    }
 
     G_OBJECT_CLASS (xserver_parent_class)->finalize (object);
 }

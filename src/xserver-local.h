@@ -53,6 +53,8 @@ void xserver_local_set_xdmcp_port (XServerLocal *server, guint port);
 
 guint xserver_local_get_xdmcp_port (XServerLocal *server);
 
+void xserver_local_set_xdmcp_key (XServerLocal *server, const gchar *key);
+
 gint xserver_local_get_vt (XServerLocal *server);
 
 G_END_DECLS

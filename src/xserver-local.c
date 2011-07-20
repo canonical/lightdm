@@ -10,6 +10,9 @@
  */
 
 #include <config.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #include "xserver-local.h"
 #include "configuration.h"
@@ -33,12 +36,18 @@ struct XServerLocalPrivate
 
     /* Server layout to use */
     gchar *layout;
+  
+    /* Authority file */
+    GFile *authority_file;
 
     /* XDMCP server to connect to */
     gchar *xdmcp_server;
 
     /* XDMCP port to connect to */
     guint xdmcp_port;
+
+    /* XDMCP key to use */
+    gchar *xdmcp_key;
 
     /* TRUE when received ready signal */
     gboolean got_signal;
@@ -154,6 +163,14 @@ xserver_local_get_xdmcp_port (XServerLocal *server)
     return server->priv->xdmcp_port;
 }
 
+void
+xserver_local_set_xdmcp_key (XServerLocal *server, const gchar *key)
+{
+    g_return_if_fail (server != NULL);
+    g_free (server->priv->xdmcp_key);
+    server->priv->xdmcp_key = g_strdup (key);
+}
+
 gint
 xserver_local_get_vt (XServerLocal *server)
 {
@@ -233,42 +250,93 @@ stopped_cb (Process *process, XServerLocal *server)
     display_server_set_stopped (DISPLAY_SERVER (server));
 }
 
-static gboolean
-xserver_local_start (DisplayServer *server)
+static void
+write_authority_file (XServerLocal *server)
 {
+    XAuthority *authority;
+    gchar *path;
     GError *error = NULL;
+
+    authority = xserver_get_authority (XSERVER (server));
+
+    /* Get file to write to if have authority */
+    if (authority && !server->priv->authority_file)
+    {
+        gchar *run_dir, *dir;
+      
+        run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
+        dir = g_build_filename (run_dir, "root", NULL);
+        g_free (run_dir);
+        g_mkdir_with_parents (dir, S_IRWXU);
+
+        path = g_build_filename (dir, xserver_get_address (XSERVER (server)), NULL);
+        g_free (dir);
+        server->priv->authority_file = g_file_new_for_path (path);
+        g_free (path);
+    }
+
+    /* Delete existing file if no authority */
+    if (!authority)
+    {
+        if (server->priv->authority_file)
+        {
+            path = g_file_get_path (server->priv->authority_file);
+            g_debug ("Deleting X server authority %s", path);
+            g_free (path);
+
+            g_file_delete (server->priv->authority_file, NULL, NULL);
+            g_object_unref (server->priv->authority_file);
+            server->priv->authority_file = NULL;
+        }
+        return;
+    }
+
+    path = g_file_get_path (server->priv->authority_file);
+    g_debug ("Writing X server authority to %s", path);
+    g_free (path);
+
+    if (!xauth_write (authority, XAUTH_WRITE_MODE_SET, NULL, server->priv->authority_file, &error))
+        g_warning ("Failed to write authority: %s", error->message);
+    g_clear_error (&error);
+}
+
+static gboolean
+xserver_local_start (DisplayServer *display_server)
+{
+    XServerLocal *server = XSERVER_LOCAL (display_server);
     gboolean result;
     gchar *filename, *dir, *path, *absolute_command;
-    GFile *auth_file;
+    gchar hostname[1024], *number;
     GString *command;
+    GError *error = NULL;
 
-    g_return_val_if_fail (XSERVER_LOCAL (server)->priv->xserver_process == NULL, FALSE);
+    g_return_val_if_fail (server->priv->xserver_process == NULL, FALSE);
 
-    XSERVER_LOCAL (server)->priv->got_signal = FALSE;
+    server->priv->got_signal = FALSE;
 
-    g_return_val_if_fail (XSERVER_LOCAL (server)->priv->command != NULL, FALSE);
+    g_return_val_if_fail (server->priv->command != NULL, FALSE);
 
-    XSERVER_LOCAL (server)->priv->xserver_process = process_new ();
-    g_signal_connect (XSERVER_LOCAL (server)->priv->xserver_process, "got-signal", G_CALLBACK (got_signal_cb), server);
-    g_signal_connect (XSERVER_LOCAL (server)->priv->xserver_process, "exited", G_CALLBACK (exit_cb), server);
-    g_signal_connect (XSERVER_LOCAL (server)->priv->xserver_process, "terminated", G_CALLBACK (terminated_cb), server);
-    g_signal_connect (XSERVER_LOCAL (server)->priv->xserver_process, "stopped", G_CALLBACK (stopped_cb), server);
+    server->priv->xserver_process = process_new ();
+    g_signal_connect (server->priv->xserver_process, "got-signal", G_CALLBACK (got_signal_cb), server);
+    g_signal_connect (server->priv->xserver_process, "exited", G_CALLBACK (exit_cb), server);
+    g_signal_connect (server->priv->xserver_process, "terminated", G_CALLBACK (terminated_cb), server);
+    g_signal_connect (server->priv->xserver_process, "stopped", G_CALLBACK (stopped_cb), server);
 
     /* Setup logging */
     filename = g_strdup_printf ("%s.log", xserver_get_address (XSERVER (server)));
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
     path = g_build_filename (dir, filename, NULL);
     g_debug ("Logging to %s", path);
-    process_set_log_file (XSERVER_LOCAL (server)->priv->xserver_process, path);
+    process_set_log_file (server->priv->xserver_process, path);
     g_free (filename);
     g_free (dir);
     g_free (path);
 
-    absolute_command = get_absolute_command (XSERVER_LOCAL (server)->priv->command);
+    absolute_command = get_absolute_command (server->priv->command);
     if (!absolute_command)
     {
-        g_debug ("Can't launch X server %s, not found in path", XSERVER_LOCAL (server)->priv->command);
-        stopped_cb (XSERVER_LOCAL (server)->priv->xserver_process, XSERVER_LOCAL (server));
+        g_debug ("Can't launch X server %s, not found in path", server->priv->command);
+        stopped_cb (server->priv->xserver_process, XSERVER_LOCAL (server));
         return FALSE;
     }
     command = g_string_new (absolute_command);
@@ -276,68 +344,61 @@ xserver_local_start (DisplayServer *server)
 
     g_string_append_printf (command, " :%d", xserver_get_display_number (XSERVER (server)));
 
-    if (XSERVER_LOCAL (server)->priv->config_file)
-        g_string_append_printf (command, " -config %s", XSERVER_LOCAL (server)->priv->config_file);
+    if (server->priv->config_file)
+        g_string_append_printf (command, " -config %s", server->priv->config_file);
 
-    if (XSERVER_LOCAL (server)->priv->layout)
-        g_string_append_printf (command, " -layout %s", XSERVER_LOCAL (server)->priv->layout);
+    if (server->priv->layout)
+        g_string_append_printf (command, " -layout %s", server->priv->layout);
 
-    auth_file = xserver_get_authority_file (XSERVER (server));
-    if (auth_file)
+    gethostname (hostname, 1024);
+    number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (server)));
+    if (!server->priv->xdmcp_key)
+        xserver_set_authority (XSERVER (server), xauth_new_cookie (XAUTH_FAMILY_LOCAL, hostname, number));
+    g_free (number);
+    write_authority_file (server);
+    if (server->priv->authority_file)
     {
-        gchar *path = g_file_get_path (auth_file);
+        gchar *path = g_file_get_path (server->priv->authority_file);
         g_string_append_printf (command, " -auth %s", path);
         g_free (path);
     }
 
     /* Connect to a remote server using XDMCP */
-    if (XSERVER_LOCAL (server)->priv->xdmcp_server != NULL)
+    if (server->priv->xdmcp_server != NULL)
     {
-        if (XSERVER_LOCAL (server)->priv->xdmcp_port != 0)
-            g_string_append_printf (command, " -port %d", XSERVER_LOCAL (server)->priv->xdmcp_port);
-        g_string_append_printf (command, " -query %s", XSERVER_LOCAL (server)->priv->xdmcp_server);
-        if (g_strcmp0 (xserver_get_authentication_name (XSERVER (server)), "XDM-AUTHENTICATION-1") == 0)
-        {
-            GString *cookie;
-            const guint8 *data;
-            gsize data_length, i;
-
-            data = xserver_get_authentication_data (XSERVER (server));
-            data_length = xserver_get_authentication_data_length (XSERVER (server));
-            cookie = g_string_new ("0x");
-            for (i = 0; i < data_length; i++)
-                g_string_append_printf (cookie, "%02X", data[i]);
-            g_string_append_printf (command, " -cookie %s", cookie->str);
-            g_string_free (cookie, TRUE);
-        }
+        if (server->priv->xdmcp_port != 0)
+            g_string_append_printf (command, " -port %d", server->priv->xdmcp_port);
+        g_string_append_printf (command, " -query %s", server->priv->xdmcp_server);
+        if (server->priv->xdmcp_key)
+            g_string_append_printf (command, " -cookie %s", server->priv->xdmcp_key);
     }
     else
         g_string_append (command, " -nolisten tcp");
 
-    if (XSERVER_LOCAL (server)->priv->vt >= 0)
-        g_string_append_printf (command, " vt%d", XSERVER_LOCAL (server)->priv->vt);
+    if (server->priv->vt >= 0)
+        g_string_append_printf (command, " vt%d", server->priv->vt);
 
-    if (XSERVER_LOCAL (server)->priv->replacing_plymouth)
+    if (server->priv->replacing_plymouth)
         g_string_append (command, " -background none");
 
     g_debug ("Launching X Server");
 
     /* If running inside another display then pass through those variables */
     if (g_getenv ("DISPLAY"))
-        process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "DISPLAY", g_getenv ("DISPLAY"));
+        process_set_env (server->priv->xserver_process, "DISPLAY", g_getenv ("DISPLAY"));
     if (g_getenv ("XAUTHORITY"))
-        process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "XAUTHORITY", g_getenv ("XAUTHORITY"));
+        process_set_env (server->priv->xserver_process, "XAUTHORITY", g_getenv ("XAUTHORITY"));
 
     /* Variable required for regression tests */
     if (g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"))
     {
-        process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
-        process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "LIGHTDM_TEST_CONFIG", g_getenv ("LIGHTDM_TEST_CONFIG"));
-        process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "LIGHTDM_TEST_HOME_DIR", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
-        process_set_env (XSERVER_LOCAL (server)->priv->xserver_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+        process_set_env (server->priv->xserver_process, "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
+        process_set_env (server->priv->xserver_process, "LIGHTDM_TEST_CONFIG", g_getenv ("LIGHTDM_TEST_CONFIG"));
+        process_set_env (server->priv->xserver_process, "LIGHTDM_TEST_HOME_DIR", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
+        process_set_env (server->priv->xserver_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }
 
-    result = process_start (XSERVER_LOCAL (server)->priv->xserver_process,
+    result = process_start (server->priv->xserver_process,
                             user_get_current (),
                             NULL,
                             command->str,
@@ -350,22 +411,36 @@ xserver_local_start (DisplayServer *server)
     g_clear_error (&error);
 
     if (!result)
-        stopped_cb (XSERVER_LOCAL (server)->priv->xserver_process, XSERVER_LOCAL (server));
+        stopped_cb (server->priv->xserver_process, XSERVER_LOCAL (server));
 
     return result;
 }
  
 static gboolean
-xserver_local_restart (DisplayServer *server)
+xserver_local_restart (DisplayServer *display_server)
 {
+    XServerLocal *server = XSERVER_LOCAL (display_server);
+    gchar hostname[1024], *number;
+
     /* Not running */
-    if (!XSERVER_LOCAL (server)->priv->xserver_process)
+    if (!server->priv->xserver_process)
         return FALSE;
+
+    /* Can only restart with not using authentication */
+    if (server->priv->xdmcp_key)
+        return FALSE;
+
+    g_debug ("Generating new cookie for X server");
+    gethostname (hostname, 1024);
+    number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (server)));
+    xserver_set_authority (XSERVER (server), xauth_new_cookie (XAUTH_FAMILY_LOCAL, hostname, number));
+    g_free (number);
+    write_authority_file (server);
 
     g_debug ("Sending signal to X server to disconnect clients");
 
-    XSERVER_LOCAL (server)->priv->got_signal = FALSE;
-    process_signal (XSERVER_LOCAL (server)->priv->xserver_process, SIGHUP);
+    server->priv->got_signal = FALSE;
+    process_signal (server->priv->xserver_process, SIGHUP);
 
     return TRUE;
 }
@@ -400,6 +475,12 @@ xserver_local_finalize (GObject *object)
     g_free (self->priv->config_file);
     g_free (self->priv->layout);
     g_free (self->priv->xdmcp_server);
+    g_free (self->priv->xdmcp_key);
+    if (self->priv->authority_file)
+    {
+        g_file_delete (self->priv->authority_file, NULL, NULL);
+        g_object_unref (self->priv->authority_file);
+    }
 
     G_OBJECT_CLASS (xserver_local_parent_class)->finalize (object);
 }

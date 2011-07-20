@@ -49,8 +49,6 @@ guint xserver_get_display_number (XServer *server);
 
 const gchar *xserver_get_address (XServer *server);
 
-void xserver_set_authentication (XServer *server, const gchar *name, const guint8 *data, gsize data_length);
-
 const gchar *xserver_get_authentication_name (XServer *server);
 
 const guint8 *xserver_get_authentication_data (XServer *server);
@@ -60,8 +58,6 @@ gsize xserver_get_authentication_data_length (XServer *server);
 void xserver_set_authority (XServer *server, XAuthority *authority);
 
 XAuthority *xserver_get_authority (XServer *server);
-
-GFile *xserver_get_authority_file (XServer *server);
 
 G_END_DECLS
 
