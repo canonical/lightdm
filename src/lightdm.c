@@ -628,6 +628,7 @@ main (int argc, char **argv)
     gchar *xgreeters_dir = NULL;
     gchar *greeter_session = NULL;
     gchar *user_session = NULL;
+    gchar *config_dir;
     gchar *log_dir = NULL;
     gchar *run_dir = NULL;
     gchar *cache_dir = NULL;
@@ -707,10 +708,21 @@ main (int argc, char **argv)
         return EXIT_FAILURE;
     }
     g_clear_error (&error);
+
     if (config_path)
+    {
+        config_dir = g_path_get_basename (config_path);
+        config_dir = path_make_absolute (config_dir);
         explicit_config = TRUE;
+    }
     else
-        config_path = g_strdup (CONFIG_FILE);
+    {
+        config_dir = g_strdup (CONFIG_DIR);
+        config_path = g_build_filename (config_dir, "lightdm.conf", NULL);
+    }
+    config_set_string (config_get_instance (), "LightDM", "config-directory", config_dir);
+    g_free (config_dir);
+
     if (test_mode)
     {
         no_root = TRUE;
@@ -748,7 +760,7 @@ main (int argc, char **argv)
     if (show_version)
     {
         /* NOTE: Is not translated so can be easily parsed */
-        g_printerr ("%s %s\n", LIGHTDM_BINARY, VERSION);
+        g_printerr ("lightdm %s\n", VERSION);
         return EXIT_SUCCESS;
     }
 
@@ -852,6 +864,9 @@ main (int argc, char **argv)
 
     g_debug ("Starting Light Display Manager %s, UID=%i PID=%i", VERSION, getuid (), getpid ());
 
+    g_debug ("Loaded configuration from %s", config_path);
+    g_free (config_path);
+
     g_bus_own_name (getuid () == 0 ? G_BUS_TYPE_SYSTEM : G_BUS_TYPE_SESSION,
                     LDM_BUS_NAME,
                     G_BUS_NAME_OWNER_FLAGS_NONE,
@@ -871,8 +886,6 @@ main (int argc, char **argv)
     }
     if (getenv ("DISPLAY"))
         g_debug ("Using Xephyr for X servers");
-
-    g_debug ("Loaded configuration from %s", config_path);
 
     display_manager = display_manager_new ();
     g_signal_connect (display_manager, "stopped", G_CALLBACK (display_manager_stopped_cb), NULL);

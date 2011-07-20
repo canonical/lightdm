@@ -89,11 +89,16 @@ seat_xlocal_add_display (Seat *seat)
         key_name = config_get_string (config_get_instance (), "SeatDefaults", "xdmcp-key");
     if (key_name)
     {
+        gchar *dir, *path;
         GKeyFile *keys;
         GError *error = NULL;
 
+        dir = config_get_string (config_get_instance (), "LightDM", "config-directory");
+        path = g_build_filename (dir, "keys.conf", NULL);
+        g_free (dir);
+
         keys = g_key_file_new ();
-        if (g_key_file_load_from_file (keys, KEY_FILE, G_KEY_FILE_NONE, &error))
+        if (g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error))
         {
             if (g_key_file_has_key (keys, "keyring", key_name, NULL))
                 key = g_key_file_get_string (keys, "keyring", key_name, NULL);
@@ -102,6 +107,7 @@ seat_xlocal_add_display (Seat *seat)
         }
         else
             g_debug ("Error getting key %s", error->message);
+        g_free (path);
         g_clear_error (&error);
         g_key_file_free (keys);
     }
