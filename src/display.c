@@ -399,7 +399,7 @@ static Session *
 create_session (Display *display, PAMSession *pam_session, const gchar *session_name, gboolean is_greeter, const gchar *log_filename)
 {
     User *user;
-    gchar *sessions_dir, *filename, *path, *command;
+    gchar *sessions_dir, *filename, *path, *command = NULL;
     GKeyFile *session_desktop_file;
     Session *session;
     gchar *cookie;
@@ -429,18 +429,17 @@ create_session (Display *display, PAMSession *pam_session, const gchar *session_
     result = g_key_file_load_from_file (session_desktop_file, path, G_KEY_FILE_NONE, &error);
     if (!result)
         g_warning ("Failed to load session file %s: %s:", path, error->message);
-    g_free (path);
     g_clear_error (&error);
-    if (!result)
-        return NULL;
-    command = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
-    g_key_file_free (session_desktop_file);
-
-    if (!command)
+    if (result)
     {
-        g_warning ("No command in session file %s", path);
-        return NULL;
+        command = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
+        g_key_file_free (session_desktop_file);
+        if (!command)
+            g_warning ("No command in session file %s", path);
     }
+    g_free (path);     
+    if (!command)
+        return NULL;
     if (display->priv->session_wrapper)
     {
         gchar *t = command;

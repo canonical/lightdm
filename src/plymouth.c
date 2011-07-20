@@ -30,10 +30,10 @@ plymouth_run_command (const gchar *command, gint *exit_status)
 
     command_line = g_strdup_printf ("plymouth %s", command);
     result = g_spawn_command_line_sync (command_line, NULL, NULL, exit_status, &error);
-    g_free (command_line);
 
     if (!result)
         g_debug ("Could not run %s: %s", command_line, error->message);
+    g_free (command_line);
     g_clear_error (&error);
 
     return result;
