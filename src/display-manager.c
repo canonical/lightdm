@@ -62,19 +62,15 @@ static gboolean
 add_seat (DisplayManager *manager, Seat *seat)
 {
     gboolean result;
+  
+    result = seat_start (SEAT (seat));
+    if (!result)
+        return FALSE;
 
     manager->priv->seats = g_list_append (manager->priv->seats, g_object_ref (seat));
     g_signal_emit (manager, signals[SEAT_ADDED], 0, seat);
-  
-    result = seat_start (SEAT (seat));
 
-    if (!result)
-    {
-        manager->priv->seats = g_list_remove (manager->priv->seats, seat);
-        g_object_unref (seat);
-    }
-
-    return result;
+    return TRUE;
 }
 
 static gboolean
@@ -181,11 +177,15 @@ static void
 seat_stopped_cb (Seat *seat, DisplayManager *manager)
 {
     manager->priv->seats = g_list_remove (manager->priv->seats, seat);
+    g_signal_handlers_disconnect_matched (seat, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, manager);
 
     if (manager->priv->stopping)
+    {      
         check_stopped (manager);
-    else
-        g_signal_emit (manager, signals[SEAT_REMOVED], 0, seat);
+        return;
+    }
+
+    g_signal_emit (manager, signals[SEAT_REMOVED], 0, seat);
 }
 
 void

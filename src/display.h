@@ -35,12 +35,14 @@ typedef struct
 typedef struct
 {
     GObjectClass parent_class;
-  
-    void (*started)(Display *display);
-    gboolean (*activate_user)(Display *display, const gchar *username);
-    void (*stopped)(Display *display);
 
     Session *(*create_session) (Display *display);
+
+    void (*started)(Display *display);
+    gboolean (*activate_user)(Display *display, const gchar *username);
+    void (*session_started)(Display *display);
+    void (*session_stopped)(Display *display);
+    void (*stopped)(Display *display);
 } DisplayClass;
 
 GType display_get_type (void);

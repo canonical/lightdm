@@ -37,13 +37,14 @@ static GDBusConnection *bus = NULL;
 static guint bus_id;
 static GDBusNodeInfo *seat_info;
 static GHashTable *seat_bus_entries;
+static GHashTable *session_bus_entries;
 static guint seat_index = 0;
 
 typedef struct
 {
     gchar *path;
     guint bus_id;
-} SeatBusEntry;
+} BusEntry;
 
 #define LDM_BUS_NAME "org.freedesktop.DisplayManager"
 
@@ -175,7 +176,7 @@ handle_display_manager_call (GDBusConnection       *connection,
         for (link = display_manager_get_seats (display_manager); link; link = link->next)
         {
             Seat *seat = link->data;
-            SeatBusEntry *entry;
+            BusEntry *entry;
 
             entry = g_hash_table_lookup (seat_bus_entries, seat);
             g_variant_builder_add_value (builder, g_variant_new_object_path (entry->path));
@@ -199,7 +200,7 @@ handle_display_manager_call (GDBusConnection       *connection,
 
         if (seat)
         {
-            SeatBusEntry *entry = g_hash_table_lookup (seat_bus_entries, seat);
+            BusEntry *entry = g_hash_table_lookup (seat_bus_entries, seat);
             g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", entry->path));
         }
         else // FIXME: Need to make proper error
@@ -274,9 +275,9 @@ seat_added_cb (Seat *seat)
         handle_seat_call,
         handle_seat_get_property
     };
-    SeatBusEntry *entry;
+    BusEntry *entry;
 
-    entry = g_malloc (sizeof (SeatBusEntry));
+    entry = g_malloc (sizeof (BusEntry));
     entry->path = g_strdup_printf ("/org/freedesktop/DisplayManager/Seat%d", seat_index);
     seat_index++;
     g_hash_table_insert (seat_bus_entries, seat, entry);
@@ -303,9 +304,9 @@ seat_removed_cb (Seat *seat)
 }
 
 static void
-seat_bus_entry_unref (gpointer data)
+bus_entry_free (gpointer data)
 {
-    SeatBusEntry *entry = data;
+    BusEntry *entry = data;
     g_dbus_connection_unregister_object (bus, entry->bus_id);
 
     g_dbus_connection_emit_signal (bus,
@@ -375,7 +376,8 @@ bus_acquired_cb (GDBusConnection *connection,
                                                 NULL, NULL,
                                                 NULL);
 
-    seat_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, seat_bus_entry_unref);
+    seat_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, bus_entry_free);
+    session_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, bus_entry_free);
 
     g_signal_connect (display_manager, "seat-added", G_CALLBACK (seat_added_cb), NULL);
     g_signal_connect (display_manager, "seat-removed", G_CALLBACK (seat_removed_cb), NULL);

@@ -19,6 +19,8 @@
 
 enum {
     STARTED,
+    DISPLAY_ADDED,
+    DISPLAY_REMOVED,
     STOPPED,
     LAST_SIGNAL
 };
@@ -106,7 +108,7 @@ display_activate_user_cb (Display *display, const gchar *username, Seat *seat)
             continue;
 
         session = display_get_session (d);
-        if (!session)
+        if (!session || session_get_is_greeter (session))
             continue;
  
         /* If already logged in, then switch to that display and stop the greeter display */
@@ -139,6 +141,10 @@ static void
 display_stopped_cb (Display *display, Seat *seat)
 {
     seat->priv->displays = g_list_remove (seat->priv->displays, display);
+    g_signal_handlers_disconnect_matched (display, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
+    g_signal_emit (seat, signals[DISPLAY_REMOVED], 0, display);
+    g_object_unref (display);
+
     if (seat->priv->stopping)
         check_stopped (seat);
 }
@@ -151,7 +157,8 @@ add_display (Seat *seat)
     display = SEAT_GET_CLASS (seat)->add_display (seat);
     g_signal_connect (display, "activate-user", G_CALLBACK (display_activate_user_cb), seat);
     g_signal_connect (display, "stopped", G_CALLBACK (display_stopped_cb), seat);
-    seat->priv->displays = g_list_append (seat->priv->displays, display);
+    seat->priv->displays = g_list_append (seat->priv->displays, g_object_ref (display));
+    g_signal_emit (seat, signals[DISPLAY_ADDED], 0, display);
   
     return display;
 }
@@ -303,13 +310,10 @@ static void
 seat_finalize (GObject *object)
 {
     Seat *self;
-    GList *link;
 
     self = SEAT (object);
-  
-    for (link = self->priv->displays; link; link = link->next)
-        g_object_unref (link->data);
-    g_list_free (self->priv->displays);
+
+    g_list_free_full (self->priv->displays, g_object_unref);
 
     G_OBJECT_CLASS (seat_parent_class)->finalize (object);
 }
@@ -336,6 +340,22 @@ seat_class_init (SeatClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
+    signals[DISPLAY_ADDED] =
+        g_signal_new ("display-added",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (SeatClass, display_added),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__OBJECT,
+                      G_TYPE_NONE, 1, DISPLAY_TYPE);
+    signals[DISPLAY_REMOVED] =
+        g_signal_new ("display-removed",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (SeatClass, display_removed),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__OBJECT,
+                      G_TYPE_NONE, 1, DISPLAY_TYPE);
     signals[STOPPED] =
         g_signal_new ("stopped",
                       G_TYPE_FROM_CLASS (klass),

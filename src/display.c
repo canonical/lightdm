@@ -27,6 +27,8 @@
 enum {
     STARTED,
     ACTIVATE_USER,
+    SESSION_STARTED,
+    SESSION_STOPPED,
     STOPPED,
     LAST_SIGNAL
 };
@@ -348,10 +350,10 @@ check_stopped (Display *display)
 static void
 session_stopped_cb (Session *session, Display *display)
 {
-    if (display->priv->greeter)
+    if (session_get_is_greeter (display->priv->session))
         g_debug ("Greeter quit");
     else
-        g_debug ("Session quit");
+        g_debug ("User session quit");
 
     if (display->priv->greeter_quit_timeout)
         g_source_remove (display->priv->greeter_quit_timeout);
@@ -373,6 +375,8 @@ session_stopped_cb (Session *session, Display *display)
     pam_session_end (display->priv->pam_session);
     g_object_unref (display->priv->pam_session);
     display->priv->pam_session = NULL;
+
+    g_signal_emit (display, signals[SESSION_STOPPED], 0);
 
     g_object_unref (display->priv->session);
     display->priv->session = NULL;
@@ -494,16 +498,14 @@ start_session (Display *display, Session *session, PAMSession *pam_session)
     gboolean result;
 
     result = session_start (SESSION (session));
+    if (!result)
+        return FALSE;
 
-    if (result)
-    {
-        display->priv->session = g_object_ref (session);
-        display->priv->pam_session = g_object_ref (pam_session);
-    }
-    else
-        g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
+    display->priv->session = g_object_ref (session);
+    display->priv->pam_session = g_object_ref (pam_session);
+    g_signal_emit (display, signals[SESSION_STARTED], 0);
 
-    return result;
+    return TRUE;
 }
 
 static void
@@ -937,6 +939,22 @@ display_class_init (DisplayClass *klass)
                       NULL,
                       ldm_marshal_BOOLEAN__STRING,
                       G_TYPE_BOOLEAN, 1, G_TYPE_STRING);
+    signals[SESSION_STARTED] =
+        g_signal_new ("session-started",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (DisplayClass, session_started),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
+    signals[SESSION_STOPPED] =
+        g_signal_new ("session-stopped",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (DisplayClass, session_stopped),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
     signals[STOPPED] =
         g_signal_new ("stopped",
                       G_TYPE_FROM_CLASS (klass),
