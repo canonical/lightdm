@@ -32,7 +32,7 @@ seat_xlocal_add_display (Seat *seat)
     XServerLocal *xserver;
     XDisplay *display;
     const gchar *config_section;
-    gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key = NULL;
+    gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL, *key = NULL;
     gint port = 0;
 
     g_debug ("Starting Local X Display");
@@ -84,11 +84,30 @@ seat_xlocal_add_display (Seat *seat)
         xserver_local_set_xdmcp_port (xserver, port);
 
     if (config_section)
-        key = config_get_string (config_get_instance (), config_section, "xdmcp-key");
-    if (!key)
-        key = config_get_string (config_get_instance (), "SeatDefaults", "xdmcp-key");
+        key_name = config_get_string (config_get_instance (), config_section, "xdmcp-key");
+    if (!key_name)
+        key_name = config_get_string (config_get_instance (), "SeatDefaults", "xdmcp-key");
+    if (key_name)
+    {
+        GKeyFile *keys;
+        GError *error = NULL;
+
+        keys = g_key_file_new ();
+        if (g_key_file_load_from_file (keys, KEY_FILE, G_KEY_FILE_NONE, &error))
+        {
+            if (g_key_file_has_key (keys, "keyring", key_name, NULL))
+                key = g_key_file_get_string (keys, "keyring", key_name, NULL);
+            else
+                g_debug ("Key %s not defined", error->message);
+        }
+        else
+            g_debug ("Error getting key %s", error->message);
+        g_clear_error (&error);
+        g_key_file_free (keys);
+    }
     if (key)
         xserver_local_set_xdmcp_key (xserver, key);
+    g_free (key_name);
     g_free (key);
 
     display = xdisplay_new (XSERVER (xserver));

@@ -70,7 +70,8 @@ lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
 	$(WARN_CFLAGS) \
 	-DLIGHTDM_BINARY=\"lightdm\" \
-	-DDEFAULT_CONFIG_FILE=\"$(sysconfdir)/lightdm/lightdm.conf\" \
+	-DCONFIG_FILE=\"$(sysconfdir)/lightdm/lightdm.conf\" \
+	-DKEY_FILE=\"$(sysconfdir)/lightdm/keys.conf\" \
 	-DLOG_DIR=\"$(localstatedir)/log/lightdm\" \
 	-DRUN_DIR=\"$(localstatedir)/run/lightdm\" \
 	-DCACHE_DIR=\"$(localstatedir)/cache/lightdm\" \

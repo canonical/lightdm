@@ -15,6 +15,7 @@ Overview of changes in lightdm 0.9.0
         main config can be private.
       - The default user session is now "default".  Distributions should put a
         symlink to their chosen default or set one in lightdm.conf.
+      - XDMCP keys now stored in keys.conf
     * liblightdm API changes:
       - Both libraries are now version 1 and have API and ABI guarantees.
       - Added a session-failed signal to indicate if the session didn't start

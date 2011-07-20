@@ -143,7 +143,7 @@ display_manager_start (DisplayManager *manager)
 
     if (config_get_boolean (config_get_instance (), "XDMCPServer", "enabled"))
     {
-        gchar *key;
+        gchar *key_name, *key = NULL;
 
         manager->priv->xdmcp_server = xdmcp_server_new ();
         if (config_has_key (config_get_instance (), "XDMCPServer", "port"))
@@ -155,9 +155,28 @@ display_manager_start (DisplayManager *manager)
         }
         g_signal_connect (manager->priv->xdmcp_server, "new-session", G_CALLBACK (xdmcp_session_cb), manager);
 
-        key = config_get_string (config_get_instance (), "XDMCPServer", "key");
+        key_name = config_get_string (config_get_instance (), "XDMCPServer", "key");
+        if (key_name)
+        {
+            GKeyFile *keys;
+            GError *error = NULL;
+
+            keys = g_key_file_new ();
+            if (g_key_file_load_from_file (keys, KEY_FILE, G_KEY_FILE_NONE, &error))
+            {
+                if (g_key_file_has_key (keys, "keyring", key_name, NULL))
+                    key = g_key_file_get_string (keys, "keyring", key_name, NULL);
+                else
+                    g_debug ("Key %s not defined", error->message);
+            }
+            else
+                g_debug ("Error getting key %s", error->message);
+            g_clear_error (&error);
+            g_key_file_free (keys);
+        }
         if (key)
             xdmcp_server_set_key (manager->priv->xdmcp_server, key);
+        g_free (key_name);
         g_free (key);
 
         g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (manager->priv->xdmcp_server));

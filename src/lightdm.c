@@ -710,7 +710,7 @@ main (int argc, char **argv)
     if (config_path)
         explicit_config = TRUE;
     else
-        config_path = g_strdup (DEFAULT_CONFIG_FILE);
+        config_path = g_strdup (CONFIG_FILE);
     if (test_mode)
     {
         no_root = TRUE;
