@@ -507,7 +507,7 @@ handle_keep_alive (XDMCPServer *server, GSocket *socket, GSocketAddress *address
 
     session = get_session (server, packet->KeepAlive.session_id);
     if (session)
-        alive = TRUE; //xdmcp_session_get_alive (session);
+        alive = TRUE; // FIXME: xdmcp_session_get_alive (session);
 
     response = xdmcp_packet_alloc (XDMCP_Alive);
     response->Alive.session_running = alive;
