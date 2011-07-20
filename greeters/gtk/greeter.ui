@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <requires lib="gtk+" version="2.24"/>
-  <!-- interface-naming-policy project-wide -->
   <object class="GtkImage" id="a11y_menuitem_image">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -172,6 +171,9 @@
                         <property name="enable_grid_lines">horizontal</property>
                         <signal name="button-press-event" handler="user_treeview_button_press_event_cb" swapped="no"/>
                         <signal name="row-activated" handler="user_treeview_row_activated_cb" swapped="no"/>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection" id="treeview-selection1"/>
+                        </child>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -207,8 +209,6 @@
                                 <property name="invisible_char">•</property>
                                 <property name="primary_icon_activatable">False</property>
                                 <property name="secondary_icon_activatable">False</property>
-                                <property name="primary_icon_sensitive">True</property>
-                                <property name="secondary_icon_sensitive">True</property>
                                 <signal name="activate" handler="login_cb" swapped="no"/>
                               </object>
                               <packing>
@@ -242,7 +242,6 @@
                             <property name="spacing">6</property>
                             <child>
                               <object class="GtkComboBox" id="session_combobox">
-                                <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="model">session_liststore</property>
                               </object>
@@ -250,21 +249,6 @@
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkButton" id="cancel_button">
-                                <property name="label" translatable="yes">Cancel</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="receives_default">True</property>
-                                <property name="use_action_appearance">False</property>
-                                <signal name="clicked" handler="cancel_cb" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
                               </packing>
                             </child>
                             <child>
@@ -279,6 +263,23 @@
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
+                                <property name="pack_type">end</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="cancel_button">
+                                <property name="label" translatable="yes">Cancel</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="receives_default">True</property>
+                                <property name="use_action_appearance">False</property>
+                                <signal name="clicked" handler="cancel_cb" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="pack_type">end</property>
                                 <property name="position">2</property>
                               </packing>
                             </child>

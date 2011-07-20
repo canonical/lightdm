@@ -590,6 +590,7 @@ connected_cb (LightDMGreeter *greeter)
     {
         LightDMSession *session = item->data;
 
+        gtk_widget_show (session_combo);
         gtk_list_store_append (GTK_LIST_STORE (model), &iter);
         gtk_list_store_set (GTK_LIST_STORE (model), &iter,
                             0, lightdm_session_get_name (session),
