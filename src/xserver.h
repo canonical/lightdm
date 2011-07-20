@@ -14,7 +14,7 @@
 
 #include <glib-object.h>
 #include "display-server.h"
-#include "xauth.h"
+#include "xauthority.h"
 
 G_BEGIN_DECLS
 
@@ -57,9 +57,9 @@ const guint8 *xserver_get_authentication_data (XServer *server);
 
 gsize xserver_get_authentication_data_length (XServer *server);
 
-void xserver_set_authorization (XServer *server, XAuthorization *authorization);
+void xserver_set_authority (XServer *server, XAuthority *authority);
 
-XAuthorization *xserver_get_authorization (XServer *server);
+XAuthority *xserver_get_authority (XServer *server);
 
 GFile *xserver_get_authority_file (XServer *server);
 

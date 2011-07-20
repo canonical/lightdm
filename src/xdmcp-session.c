@@ -45,25 +45,11 @@ xdmcp_session_get_address (XDMCPSession *session)
     return session->priv->address;
 }
 
-const gchar *
-xdmcp_session_get_authorization_name (XDMCPSession *session)
+XAuthority *
+xdmcp_session_get_authority (XDMCPSession *session)
 {
     g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->authorization_name;
-}
-
-const guchar *
-xdmcp_session_get_authorization_data (XDMCPSession *session)
-{
-    g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->authorization_data;
-}
-
-const gsize
-xdmcp_session_get_authorization_data_length (XDMCPSession *session)
-{
-    g_return_val_if_fail (session != NULL, 0);
-    return session->priv->authorization_data_length;
+    return session->priv->authority;
 }
 
 guint16
@@ -85,7 +71,6 @@ xdmcp_session_init (XDMCPSession *session)
 {
     session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, XDMCP_SESSION_TYPE, XDMCPSessionPrivate);
     session->priv->manufacturer_display_id = g_strdup ("");
-    session->priv->authorization_name = g_strdup ("");
     session->priv->display_class = g_strdup ("");
 }
 
@@ -101,7 +86,8 @@ xdmcp_session_finalize (GObject *object)
         g_object_unref (self->priv->address);
     if (self->priv->address6)
         g_object_unref (self->priv->address6);
-    g_free (self->priv->authorization_name);
+    if (self->priv->authority)
+        g_object_unref (self->priv->authority);
     g_free (self->priv->display_class);
 
     G_OBJECT_CLASS (xdmcp_session_parent_class)->finalize (object);

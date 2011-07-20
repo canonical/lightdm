@@ -41,32 +41,13 @@ seat_xdmcp_session_new (const gchar *config_section, XDMCPSession *session)
 static Display *
 seat_xdmcp_session_add_display (Seat *seat)
 {
+    XAuthority *authority;
     XServerRemote *xserver;
-    gchar *address;
     XDisplay *display;
 
-    // FIXME: Try IPv6 then fallback to IPv4
-    address = g_inet_address_to_string (G_INET_ADDRESS (xdmcp_session_get_address (SEAT_XDMCP_SESSION (seat)->priv->session)));
-    xserver = xserver_remote_new (address, xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session));
-
-    if (strcmp (xdmcp_session_get_authorization_name (SEAT_XDMCP_SESSION (seat)->priv->session), "") != 0)
-    {
-        XAuthorization *authorization = NULL;
-        gchar *number;
-
-        number = g_strdup_printf ("%d", xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session));
-        authorization = xauth_new (XAUTH_FAMILY_INTERNET, // FIXME: Handle IPv6
-                                   address,
-                                   number,
-                                   xdmcp_session_get_authorization_name (SEAT_XDMCP_SESSION (seat)->priv->session),
-                                   xdmcp_session_get_authorization_data (SEAT_XDMCP_SESSION (seat)->priv->session),
-                                   xdmcp_session_get_authorization_data_length (SEAT_XDMCP_SESSION (seat)->priv->session));
-        g_free (number);
-
-        xserver_set_authorization (XSERVER (xserver), authorization);
-        g_object_unref (authorization);
-    }
-    g_free (address);
+    authority = xdmcp_session_get_authority (SEAT_XDMCP_SESSION (seat)->priv->session);
+    xserver = xserver_remote_new (xauth_get_address (authority), xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session));
+    xserver_set_authority (XSERVER (xserver), authority);
 
     display = xdisplay_new (SEAT_XDMCP_SESSION (seat)->priv->config_section, XSERVER (xserver));
     g_object_unref (xserver);

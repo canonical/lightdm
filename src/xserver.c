@@ -37,10 +37,8 @@ struct XServerPrivate
     guint8 *authentication_data;
     gsize authentication_data_length;
 
-    /* Authorization */
-    XAuthorization *authorization;
-
-    /* Authority file */
+    /* Authority */
+    XAuthority *authority;
     GFile *authority_file;
 };
 
@@ -135,8 +133,8 @@ write_authority_file (XServer *server)
     gchar *path;
     GError *error = NULL;
 
-    /* Get file to write to if have authorization */
-    if (server->priv->authorization && !server->priv->authority_file)
+    /* Get file to write to if have authority */
+    if (server->priv->authority && !server->priv->authority_file)
     {
         gchar *run_dir, *dir;
       
@@ -151,8 +149,8 @@ write_authority_file (XServer *server)
         g_free (path);
     }
 
-    /* Delete existing file if no authorization */
-    if (!server->priv->authorization)
+    /* Delete existing file if no authority */
+    if (!server->priv->authority)
     {
         if (server->priv->authority_file)
         {
@@ -171,31 +169,31 @@ write_authority_file (XServer *server)
     g_debug ("Writing X server authority to %s", path);
     g_free (path);
 
-    if (!xauth_write (server->priv->authorization, XAUTH_WRITE_MODE_SET, NULL, server->priv->authority_file, &error))
+    if (!xauth_write (server->priv->authority, XAUTH_WRITE_MODE_SET, NULL, server->priv->authority_file, &error))
         g_warning ("Failed to write authority: %s", error->message);
     g_clear_error (&error);
 }
 
 void
-xserver_set_authorization (XServer *server, XAuthorization *authorization)
+xserver_set_authority (XServer *server, XAuthority *authority)
 {
     g_return_if_fail (server != NULL);
 
-    if (server->priv->authorization)
-        g_object_unref (server->priv->authorization);
-    if (authorization)
-        server->priv->authorization = g_object_ref (authorization);
+    if (server->priv->authority)
+        g_object_unref (server->priv->authority);
+    if (authority)
+        server->priv->authority = g_object_ref (authority);
     else
-        server->priv->authorization = NULL;
+        server->priv->authority = NULL;
 
     write_authority_file (server);
 }
 
-XAuthorization *
-xserver_get_authorization (XServer *server)
+XAuthority *
+xserver_get_authority (XServer *server)
 {
     g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->authorization;
+    return server->priv->authority;
 }
 
 GFile *
@@ -225,8 +223,8 @@ xserver_finalize (GObject *object)
     g_free (self->priv->authentication_name);
     g_free (self->priv->authentication_data);
     g_free (self->priv->address);
-    if (self->priv->authorization)
-        g_object_unref (self->priv->authorization);
+    if (self->priv->authority)
+        g_object_unref (self->priv->authority);
     if (self->priv->authority_file)
     {
         g_file_delete (self->priv->authority_file, NULL, NULL);

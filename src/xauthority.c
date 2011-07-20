@@ -14,9 +14,9 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include "xauth.h"
+#include "xauthority.h"
 
-struct XAuthorizationPrivate
+struct XAuthorityPrivate
 {
     /* Protocol family */
     guint16 family;
@@ -35,12 +35,12 @@ struct XAuthorizationPrivate
     gsize authorization_data_length;
 };
 
-G_DEFINE_TYPE (XAuthorization, xauth, G_TYPE_OBJECT);
+G_DEFINE_TYPE (XAuthority, xauth, G_TYPE_OBJECT);
 
-XAuthorization *
+XAuthority *
 xauth_new (guint16 family, const gchar *address, const gchar *number, const gchar *name, const guint8 *data, gsize data_length)
 {
-    XAuthorization *auth = g_object_new (XAUTH_TYPE, NULL);
+    XAuthority *auth = g_object_new (XAUTHORITY_TYPE, NULL);
 
     xauth_set_family (auth, family);  
     xauth_set_address (auth, address);
@@ -51,7 +51,7 @@ xauth_new (guint16 family, const gchar *address, const gchar *number, const gcha
     return auth;
 }
 
-XAuthorization *
+XAuthority *
 xauth_new_cookie (guint16 family, const gchar *address, const gchar *number)
 {
     guint8 cookie[16];
@@ -64,21 +64,21 @@ xauth_new_cookie (guint16 family, const gchar *address, const gchar *number)
 }
 
 void
-xauth_set_family (XAuthorization *auth, guint16 family)
+xauth_set_family (XAuthority *auth, guint16 family)
 {
     g_return_if_fail (auth != NULL);
     auth->priv->family = family;
 }
 
 guint16
-xauth_get_family (XAuthorization *auth)
+xauth_get_family (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, 0);
     return auth->priv->family;
 }
 
 void
-xauth_set_address (XAuthorization *auth, const gchar *address)
+xauth_set_address (XAuthority *auth, const gchar *address)
 {
     g_return_if_fail (auth != NULL);
     g_free (auth->priv->address);
@@ -86,14 +86,14 @@ xauth_set_address (XAuthorization *auth, const gchar *address)
 }
 
 const gchar *
-xauth_get_address (XAuthorization *auth)
+xauth_get_address (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, NULL);
     return auth->priv->address;
 }
 
 void
-xauth_set_number (XAuthorization *auth, const gchar *number)
+xauth_set_number (XAuthority *auth, const gchar *number)
 {
     g_return_if_fail (auth != NULL);
     g_free (auth->priv->number);
@@ -101,14 +101,14 @@ xauth_set_number (XAuthorization *auth, const gchar *number)
 }
 
 const gchar *
-xauth_get_number (XAuthorization *auth)
+xauth_get_number (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, NULL);
     return auth->priv->number;
 }
 
 void
-xauth_set_authorization_name (XAuthorization *auth, const gchar *name)
+xauth_set_authorization_name (XAuthority *auth, const gchar *name)
 {
     g_return_if_fail (auth != NULL);
     g_free (auth->priv->authorization_name);
@@ -116,14 +116,14 @@ xauth_set_authorization_name (XAuthorization *auth, const gchar *name)
 }
 
 const gchar *
-xauth_get_authorization_name (XAuthorization *auth)
+xauth_get_authorization_name (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, NULL);
     return auth->priv->authorization_name;
 }
 
 void
-xauth_set_authorization_data (XAuthorization *auth, const guint8 *data, gsize data_length)
+xauth_set_authorization_data (XAuthority *auth, const guint8 *data, gsize data_length)
 {
     g_return_if_fail (auth != NULL);
     g_free (auth->priv->authorization_data);
@@ -133,14 +133,14 @@ xauth_set_authorization_data (XAuthorization *auth, const guint8 *data, gsize da
 }
 
 const guint8 *
-xauth_get_authorization_data (XAuthorization *auth)
+xauth_get_authorization_data (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, NULL);
     return auth->priv->authorization_data;
 }
 
 guint8 *
-xauth_copy_authorization_data (XAuthorization *auth)
+xauth_copy_authorization_data (XAuthority *auth)
 {
     guint8 *data;
 
@@ -152,7 +152,7 @@ xauth_copy_authorization_data (XAuthorization *auth)
 }
 
 gsize
-xauth_get_authorization_data_length (XAuthorization *auth)
+xauth_get_authorization_data_length (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, 0);
     return auth->priv->authorization_data_length;
@@ -232,12 +232,12 @@ write_string (GOutputStream *stream, const gchar *value, GError **error)
 }
 
 gboolean
-xauth_write (XAuthorization *auth, XAuthWriteMode mode, User *user, GFile *file, GError **error)
+xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GError **error)
 {
     GList *link, *records = NULL;
     GFileInputStream *input_stream = NULL;
     GFileOutputStream *output_stream;
-    XAuthorization *a;
+    XAuthority *a;
     gboolean matched = FALSE;
   
     /* Read out existing records */
@@ -257,7 +257,7 @@ xauth_write (XAuthorization *auth, XAuthWriteMode mode, User *user, GFile *file,
         if (eof)
             break;
 
-        a = g_object_new (XAUTH_TYPE, NULL);
+        a = g_object_new (XAUTHORITY_TYPE, NULL);
         a->priv->family = family;
         a->priv->address = read_string (G_INPUT_STREAM (input_stream), error);
         a->priv->number = read_string (G_INPUT_STREAM (input_stream), error);
@@ -310,7 +310,7 @@ xauth_write (XAuthorization *auth, XAuthWriteMode mode, User *user, GFile *file,
     /* Write records back */
     for (link = records; link; link = link->next)
     {
-        XAuthorization *a = link->data;
+        XAuthority *a = link->data;
 
         write_uint16 (G_OUTPUT_STREAM (output_stream), a->priv->family, error);
         write_string (G_OUTPUT_STREAM (output_stream), a->priv->address, error);
@@ -341,9 +341,9 @@ xauth_write (XAuthorization *auth, XAuthWriteMode mode, User *user, GFile *file,
 }
 
 static void
-xauth_init (XAuthorization *auth)
+xauth_init (XAuthority *auth)
 {
-    auth->priv = G_TYPE_INSTANCE_GET_PRIVATE (auth, XAUTH_TYPE, XAuthorizationPrivate);
+    auth->priv = G_TYPE_INSTANCE_GET_PRIVATE (auth, XAUTHORITY_TYPE, XAuthorityPrivate);
     auth->priv->address = g_strdup ("");
     auth->priv->number = g_strdup ("");
 }
@@ -351,9 +351,9 @@ xauth_init (XAuthorization *auth)
 static void
 xauth_finalize (GObject *object)
 {
-    XAuthorization *self;
+    XAuthority *self;
 
-    self = XAUTH (object);
+    self = XAUTHORITY (object);
 
     g_free (self->priv->address);
     g_free (self->priv->number);
@@ -364,11 +364,11 @@ xauth_finalize (GObject *object)
 }
 
 static void
-xauth_class_init (XAuthorizationClass *klass)
+xauth_class_init (XAuthorityClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->finalize = xauth_finalize;  
+    object_class->finalize = xauth_finalize;
 
-    g_type_class_add_private (klass, sizeof (XAuthorizationPrivate));
+    g_type_class_add_private (klass, sizeof (XAuthorityPrivate));
 }

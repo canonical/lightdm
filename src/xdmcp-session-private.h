@@ -13,6 +13,7 @@
 #define _XDMCP_SESSION_PRIVATE_H_
 
 #include "xdmcp-server.h"
+#include "xauthority.h"
 
 struct XDMCPSessionPrivate
 {
@@ -27,10 +28,7 @@ struct XDMCPSessionPrivate
 
     guint inactive_timeout;
 
-    gchar *authorization_name;
-  
-    guchar *authorization_data;
-    gsize authorization_data_length;
+    XAuthority *authority;
   
     gboolean started;
 

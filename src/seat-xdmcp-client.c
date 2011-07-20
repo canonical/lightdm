@@ -43,7 +43,7 @@ static Display *
 seat_xdmcp_client_add_display (Seat *seat)
 {
     XServerLocal *xserver;
-    XAuthorization *authorization = NULL;
+    XAuthority *authority = NULL;
     gchar *xdmcp_manager;
     gint port;
     //gchar *key;
@@ -66,18 +66,18 @@ seat_xdmcp_client_add_display (Seat *seat)
         port = config_get_integer (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "xdmcp-port");
     if (port > 0)
         xserver_local_set_xdmcp_port (xserver, port);
-    /*key = config_get_string (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "key");
+    /*FIXME key = config_get_string (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "key");
     if (key)
     {
         guchar data[8];
 
         string_to_xdm_auth_key (key, data);
         xserver_set_authentication (xserver, "XDM-AUTHENTICATION-1", data, 8);
-        authorization = xauth_new (XAUTH_FAMILY_WILD, "", "", "XDM-AUTHORIZATION-1", data, 8);
+        authority = xauth_new (XAUTH_FAMILY_WILD, "", "", "XDM-AUTHORIZATION-1", data, 8);
     }*/
 
-    xserver_set_authorization (XSERVER (xserver), authorization);
-    g_object_unref (authorization);
+    xserver_set_authority (XSERVER (xserver), authority);
+    g_object_unref (authority);
 
     SEAT_XDMCP_CLIENT (seat)->priv->display = g_object_ref (xdisplay_new (SEAT_XDMCP_CLIENT (seat)->priv->config_section, XSERVER (xserver)));
     g_object_unref (xserver);

@@ -22,9 +22,9 @@ struct XSessionPrivate
     /* X server connected to */
     XServer *xserver;
 
-    /* X authorization */
-    XAuthorization *authorization;
-    GFile *authorization_file;
+    /* X Authority */
+    XAuthority *authority;
+    GFile *authority_file;
 };
 
 G_DEFINE_TYPE (XSession, xsession, SESSION_TYPE);
@@ -42,12 +42,12 @@ xsession_new (XServer *xserver)
 static gboolean
 xsession_start (Session *session)
 {
-    if (xserver_get_authorization (XSESSION (session)->priv->xserver))
+    if (xserver_get_authority (XSESSION (session)->priv->xserver))
     {
         gchar *path;
         GError *error = NULL;
 
-        XSESSION (session)->priv->authorization = g_object_ref (xserver_get_authorization (XSESSION (session)->priv->xserver));
+        XSESSION (session)->priv->authority = g_object_ref (xserver_get_authority (XSESSION (session)->priv->xserver));
       
         if (config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"))
         {
@@ -61,7 +61,7 @@ xsession_start (Session *session)
             if (getuid () == 0)
             {
                 if (chown (dir, user_get_uid (session_get_user (session)), user_get_gid (session_get_user (session))) < 0)
-                    g_warning ("Failed to set ownership of user authorization dir: %s", strerror (errno));
+                    g_warning ("Failed to set ownership of user authority dir: %s", strerror (errno));
             }
 
             path = g_build_filename (dir, "xauthority", NULL);
@@ -72,12 +72,12 @@ xsession_start (Session *session)
         else
             path = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
 
-        XSESSION (session)->priv->authorization_file = g_file_new_for_path (path);
+        XSESSION (session)->priv->authority_file = g_file_new_for_path (path);
         g_free (path);
 
-        g_debug ("Adding session authority to %s", g_file_get_path (XSESSION (session)->priv->authorization_file));
-        if (!xauth_write (XSESSION (session)->priv->authorization, XAUTH_WRITE_MODE_REPLACE, session_get_user (session), XSESSION (session)->priv->authorization_file, &error))
-            g_warning ("Failed to write authorization: %s", error->message);
+        g_debug ("Adding session authority to %s", g_file_get_path (XSESSION (session)->priv->authority_file));
+        if (!xauth_write (XSESSION (session)->priv->authority, XAUTH_WRITE_MODE_REPLACE, session_get_user (session), XSESSION (session)->priv->authority_file, &error))
+            g_warning ("Failed to write authority: %s", error->message);
         g_clear_error (&error);
     }
 
@@ -89,17 +89,17 @@ xsession_start (Session *session)
 static void
 xsession_remove_authority (XSession *session)
 {
-    if (session->priv->authorization_file)
+    if (session->priv->authority_file)
     {
-        g_debug ("Removing session authority from %s", g_file_get_path (session->priv->authorization_file));
-        xauth_write (session->priv->authorization, XAUTH_WRITE_MODE_REMOVE, session_get_user (SESSION (session)), session->priv->authorization_file, NULL);
-        g_object_unref (session->priv->authorization_file);
-        session->priv->authorization_file = NULL;
+        g_debug ("Removing session authority from %s", g_file_get_path (session->priv->authority_file));
+        xauth_write (session->priv->authority, XAUTH_WRITE_MODE_REMOVE, session_get_user (SESSION (session)), session->priv->authority_file, NULL);
+        g_object_unref (session->priv->authority_file);
+        session->priv->authority_file = NULL;
     }
-    if (session->priv->authorization)
+    if (session->priv->authority)
     {
-        g_object_unref (session->priv->authorization);
-        session->priv->authorization = NULL;
+        g_object_unref (session->priv->authority);
+        session->priv->authority = NULL;
     }
 }
 

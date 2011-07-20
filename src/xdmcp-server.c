@@ -20,7 +20,7 @@
 #include "xdmcp-server.h"
 #include "xdmcp-protocol.h"
 #include "xdmcp-session-private.h"
-#include "xauth.h"
+#include "xauthority.h"
 
 enum {
     NEW_SESSION,
@@ -294,6 +294,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     gsize session_authorization_data_length = 0;
     gchar **j;
     GInetAddress *address4 = NULL, *address6 = NULL;
+    gchar *host, *display_number;
     XdmAuthKeyRec rho;
 
     for (i = 0; i < packet->Request.n_connections; i++)
@@ -388,7 +389,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     /* Perform requested authorization */
     if (strcmp (server->priv->authorization_name, "MIT-MAGIC-COOKIE-1") == 0)
     {
-        XAuthorization *auth;
+        XAuthority *auth;
 
         /* Data is the cookie */
         auth = xauth_new_cookie (XAUTH_FAMILY_WILD, "", "");
@@ -430,9 +431,17 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     session = add_session (server);
     session->priv->address = address4;
     session->priv->address6 = address6;
-    session->priv->authorization_name = g_strdup (server->priv->authorization_name);
-    session->priv->authorization_data = session_authorization_data;
-    session->priv->authorization_data_length = session_authorization_data_length;
+    session->priv->display_number = packet->Request.display_number;
+    host = g_inet_address_to_string (G_INET_ADDRESS (address4)); // FIXME: IPv6
+    display_number = g_strdup_printf ("%d", packet->Request.display_number);
+    session->priv->authority = xauth_new (XAUTH_FAMILY_INTERNET, // FIXME: IPv6
+                                          host,
+                                          display_number,
+                                          server->priv->authorization_name,
+                                          session_authorization_data,
+                                          session_authorization_data_length);
+    g_free (host);
+    g_free (display_number);
 
     response = xdmcp_packet_alloc (XDMCP_Accept);
     response->Accept.session_id = xdmcp_session_get_id (session);
@@ -461,11 +470,22 @@ handle_manage (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XD
         {
             if (session->priv->display_number != packet->Manage.display_number ||
                 strcmp (session->priv->display_class, packet->Manage.display_class) != 0)
-                g_warning ("Duplicate Manage received with different data");
+                g_debug ("Ignoring duplicate Manage with different data");
             return;
         }
 
-        session->priv->display_number = packet->Manage.display_number;  
+        /* Reject if has changed display number */
+        if (packet->Manage.display_number != session->priv->display_number)
+        {
+            XDMCPPacket *response;
+
+            g_debug ("Received Manage for display number %d, but Request was %d", packet->Manage.display_number, session->priv->display_number);
+            response = xdmcp_packet_alloc (XDMCP_Refuse);
+            response->Refuse.session_id = packet->Manage.session_id;
+            send_packet (socket, address, response);
+            xdmcp_packet_free (response);
+        }
+
         session->priv->display_class = g_strdup (packet->Manage.display_class);
 
         g_signal_emit (server, signals[NEW_SESSION], 0, session, &result);

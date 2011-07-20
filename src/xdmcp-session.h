@@ -15,6 +15,8 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
+#include "xauthority.h"
+
 G_BEGIN_DECLS
 
 #define XDMCP_SESSION_TYPE (xdmcp_session_get_type())
@@ -45,11 +47,7 @@ const GInetAddress *xdmcp_session_get_address (XDMCPSession *session);
 
 const GInetAddress *xdmcp_session_get_address6 (XDMCPSession *session);
 
-const gchar *xdmcp_session_get_authorization_name (XDMCPSession *session);
-
-const guchar *xdmcp_session_get_authorization_data (XDMCPSession *session);
-
-const gsize xdmcp_session_get_authorization_data_length (XDMCPSession *session);
+XAuthority *xdmcp_session_get_authority (XDMCPSession *session);
 
 guint16 xdmcp_session_get_display_number (XDMCPSession *session);
 

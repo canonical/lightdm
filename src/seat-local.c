@@ -42,7 +42,7 @@ static Display *
 seat_local_add_display (Seat *seat)
 {
     XServerLocal *xserver;
-    XAuthorization *authorization = NULL;
+    XAuthority *authority = NULL;
     gchar *number;
     gchar hostname[1024];
     XDisplay *display;
@@ -52,11 +52,11 @@ seat_local_add_display (Seat *seat)
     xserver = xserver_local_new (SEAT_LOCAL (seat)->priv->config_section);
     number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (xserver)));
     gethostname (hostname, 1024);
-    authorization = xauth_new_cookie (XAUTH_FAMILY_LOCAL, hostname, number);
+    authority = xauth_new_cookie (XAUTH_FAMILY_LOCAL, hostname, number);
     g_free (number);
 
-    xserver_set_authorization (XSERVER (xserver), authorization);
-    g_object_unref (authorization);
+    xserver_set_authority (XSERVER (xserver), authority);
+    g_object_unref (authority);
 
     display = xdisplay_new (SEAT_LOCAL (seat)->priv->config_section, XSERVER (xserver));
     g_object_unref (xserver);
