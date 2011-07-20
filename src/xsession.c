@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 #include "xsession.h"
 #include "configuration.h"

@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/wait.h>
 
 /* For some reason sys/un.h doesn't define this */
 #ifndef UNIX_PATH_MAX

@@ -13,6 +13,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 
 #include "display-manager.h"
 #include "configuration.h"

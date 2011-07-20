@@ -13,6 +13,7 @@
 
 #include <string.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 #include "xserver.h"
 #include "configuration.h"

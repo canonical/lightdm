@@ -13,6 +13,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include <glib.h>
 #include <glib/gi18n.h>
 #include <unistd.h>
