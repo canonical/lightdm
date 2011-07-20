@@ -590,7 +590,7 @@ name_lost_cb (GDBusConnection *connection,
     if (connection)
         g_printerr ("Failed to use bus name " LDM_BUS_NAME ", do you have appropriate permissions?\n");
     else
-        g_printerr ("Failed to get system bus\n"); // FIXME: Could be session bus
+        g_printerr ("Failed to get D-Bus connection\n");
 
     exit (EXIT_FAILURE);
 }

@@ -103,7 +103,7 @@ pam_session_authorize (PAMSession *session)
     {
         int result;
 
-        // FIXME:-
+        // FIXME: Set X items
         //pam_set_item (session->priv->pam_handle, PAM_TTY, &tty);
         //pam_set_item (session->priv->pam_handle, PAM_XDISPLAY, &display);
         result = pam_open_session (session->priv->pam_handle, 0);
