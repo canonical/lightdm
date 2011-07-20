@@ -359,7 +359,6 @@ update_user (UserAccountObject *object)
     g_variant_get (result, "(a{sv})", &iter);
     while (g_variant_iter_loop (iter, "{&sv}", &name, &value))
     {
-        g_debug ("%s=?", name);
         if (strcmp (name, "UserName") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
         {
             gchar *user_name;
@@ -385,12 +384,9 @@ update_user (UserAccountObject *object)
             g_object_set (object->user, "image", icon_file, NULL);
         }
     }
-    g_debug ("!1");
     g_variant_iter_free (iter);
-    g_debug ("!2");
 
     g_variant_unref (result);
-    g_debug ("!3");
 
     return TRUE;
 }
