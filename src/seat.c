@@ -45,6 +45,45 @@ struct SeatPrivate
 
 G_DEFINE_TYPE (Seat, seat, G_TYPE_OBJECT);
 
+typedef struct
+{
+    const gchar *name;
+    GType type;
+} SeatModule;
+static GHashTable *seat_modules = NULL;
+
+void
+seat_register_module (const gchar *name, GType type)
+{
+    SeatModule *module;
+
+    if (!seat_modules)
+        seat_modules = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+
+    g_debug ("Registered seat module %s", name);
+
+    module = g_malloc0 (sizeof (SeatModule));
+    module->name = g_strdup (name);
+    module->type = type;
+    g_hash_table_insert (seat_modules, g_strdup (name), module);
+}
+
+Seat *
+seat_new (const gchar *module, const gchar *config_section)
+{
+    Seat *seat;
+    SeatModule *m = NULL;
+
+    if (seat_modules)
+        m = g_hash_table_lookup (seat_modules, module);
+    if (!m)
+        return NULL;
+
+    seat = g_object_new (m->type, NULL);
+
+    return seat;
+}
+
 void
 seat_load_config (Seat *seat, const gchar *config_section)
 {

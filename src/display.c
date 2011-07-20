@@ -62,6 +62,12 @@ struct DisplayPrivate
 
     /* Session requested to log into */
     gchar *user_session;
+  
+    /* Directory to load X sessions from */
+    gchar *xsessions_dir;
+
+    /* Directory to load X greeters from */
+    gchar *xgreeters_dir;
 
     /* Program to run sessions through */
     gchar *session_wrapper;
@@ -123,6 +129,14 @@ display_load_config (Display *display, const gchar *config_section)
         display->priv->default_session = config_get_string (config_get_instance (), config_section, "user-session");
     if (!display->priv->default_session)
         display->priv->default_session = config_get_string (config_get_instance (), "SeatDefaults", "user-session");
+    if (config_section)
+        display->priv->xsessions_dir = config_get_string (config_get_instance (), config_section, "xsessions-directory");
+    if (!display->priv->xsessions_dir)
+        display->priv->xsessions_dir = config_get_string (config_get_instance (), "SeatDefaults", "xsessions-directory");
+    if (config_section)
+        display->priv->xgreeters_dir = config_get_string (config_get_instance (), config_section, "xgreeters-directory");
+    if (!display->priv->xgreeters_dir)
+        display->priv->xgreeters_dir = config_get_string (config_get_instance (), "SeatDefaults", "xgreeters-directory");
     if (config_section)
         display->priv->session_wrapper = config_get_string (config_get_instance (), config_section, "session-wrapper");
     if (!display->priv->session_wrapper)
@@ -415,11 +429,12 @@ create_session (Display *display, PAMSession *pam_session, const gchar *session_
 
     g_debug ("Starting session %s as user %s logging to %s", session_name, user_get_name (user), log_filename);
 
-    // FIXME: This is X specific, move into xsession.c
+    // FIXME: This is X specific, move into xsession.c  
     if (is_greeter)
-        sessions_dir = config_get_string (config_get_instance (), "Directories", "xgreeters-directory");
+        sessions_dir = display->priv->xgreeters_dir;
     else
-        sessions_dir = config_get_string (config_get_instance (), "Directories", "xsessions-directory");
+        sessions_dir = display->priv->xsessions_dir;    
+
     filename = g_strdup_printf ("%s.desktop", session_name);
     path = g_build_filename (sessions_dir, filename, NULL);
     g_free (sessions_dir);
@@ -659,7 +674,7 @@ start_greeter_session (Display *display)
     pam_session_authorize (pam_session);
     g_object_unref (user);
 
-    log_dir = config_get_string (config_get_instance (), "Directories", "log-directory");
+    log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
     // FIXME: May not be an X server
     filename = g_strdup_printf ("%s-greeter.log", xserver_get_address (XSERVER (display->priv->display_server)));
     log_filename = g_build_filename (log_dir, filename, NULL);
@@ -897,6 +912,8 @@ display_finalize (GObject *object)
         g_source_remove (self->priv->greeter_quit_timeout);
     if (self->priv->greeter)
         g_object_unref (self->priv->greeter);
+    g_free (self->priv->xsessions_dir);
+    g_free (self->priv->xgreeters_dir);
     g_free (self->priv->session_wrapper);
     g_free (self->priv->pam_service);
     g_free (self->priv->pam_autologin_service);

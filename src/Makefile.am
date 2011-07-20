@@ -73,9 +73,9 @@ lightdm_CFLAGS = \
 	$(WARN_CFLAGS) \
 	-DLIGHTDM_BINARY=\"lightdm\" \
 	-DDEFAULT_CONFIG_FILE=\"$(sysconfdir)/lightdm/lightdm.conf\" \
+	-DLOG_DIR=\"$(localstatedir)/log/lightdm\" \
 	-DRUN_DIR=\"$(localstatedir)/run/lightdm\" \
 	-DCACHE_DIR=\"$(localstatedir)/cache/lightdm\" \
-	-DLOG_DIR=\"$(localstatedir)/log/lightdm\" \
 	-DXSESSIONS_DIR=\"$(datadir)/xsessions\" \
 	-DXGREETERS_DIR=\"$(datadir)/xgreeters\"
 

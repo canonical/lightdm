@@ -250,7 +250,7 @@ xserver_local_start (DisplayServer *server)
 
     /* Setup logging */
     filename = g_strdup_printf ("%s.log", xserver_get_address (XSERVER (server)));
-    dir = config_get_string (config_get_instance (), "Directories", "log-directory");
+    dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
     path = g_build_filename (dir, filename, NULL);
     g_debug ("Logging to %s", path);
     process_set_log_file (XSERVER_LOCAL (server)->priv->xserver_process, path);

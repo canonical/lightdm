@@ -47,6 +47,10 @@ typedef struct
 
 GType seat_get_type (void);
 
+void seat_register_module (const gchar *name, GType type);
+
+Seat *seat_new (const gchar *module, const gchar *config_section);
+
 void seat_load_config (Seat *seat, const gchar *config_section);
 
 void seat_set_can_switch (Seat *seat, gboolean can_switch);

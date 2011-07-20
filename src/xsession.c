@@ -53,7 +53,7 @@ xsession_start (Session *session)
         {
             gchar *run_dir, *dir;
 
-            run_dir = config_get_string (config_get_instance (), "Directories", "run-directory");          
+            run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");          
             dir = g_build_filename (run_dir, user_get_name (session_get_user (session)), NULL);
             g_free (run_dir);
 

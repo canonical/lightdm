@@ -106,8 +106,7 @@ log_init (void)
     log_timer = g_timer_new ();
 
     /* Log to a file */
-    log_dir = config_get_string (config_get_instance (), "Directories", "log-directory");
-    g_mkdir_with_parents (log_dir, 0755);
+    log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
     path = g_build_filename (log_dir, "lightdm.log", NULL);
     g_free (log_dir);
 
@@ -600,6 +599,9 @@ static gchar *
 path_make_absolute (gchar *path)
 {
     gchar *cwd, *abs_path;
+  
+    if (!path)
+        return NULL;
 
     if (g_path_is_absolute (path))
         return path;
@@ -619,15 +621,19 @@ main (int argc, char **argv)
     gboolean explicit_config = FALSE;
     gboolean test_mode = FALSE;
     gboolean no_root = FALSE;
-    gchar *xserver_command = g_strdup ("X");
-    gchar *passwd_path = NULL;
     gchar *pid_path = "/var/run/lightdm.pid";
-    gchar *greeter_session = g_strdup (GREETER_SESSION);
-    gchar *xsessions_dir = g_strdup (XSESSIONS_DIR);
-    gchar *xgreeters_dir = g_strdup (XGREETERS_DIR);
-    gchar *run_dir = g_strdup (RUN_DIR);
-    gchar *cache_dir = g_strdup (CACHE_DIR);
-    gchar *user_session = g_strdup (USER_SESSION);
+    gchar *xserver_command = NULL;
+    gchar *passwd_path = NULL;
+    gchar *xsessions_dir = NULL;
+    gchar *xgreeters_dir = NULL;
+    gchar *greeter_session = NULL;
+    gchar *user_session = NULL;
+    gchar *log_dir = NULL;
+    gchar *run_dir = NULL;
+    gchar *cache_dir = NULL;
+    gchar *default_log_dir = g_strdup (LOG_DIR);
+    gchar *default_run_dir = g_strdup (RUN_DIR);
+    gchar *default_cache_dir = g_strdup (CACHE_DIR);
     gchar *minimum_display_number = NULL;
     gboolean show_version = FALSE;
     GOptionEntry options[] = 
@@ -662,18 +668,21 @@ main (int argc, char **argv)
         { "minimum-display-number", 0, 0, G_OPTION_ARG_STRING, &minimum_display_number,
           /* Help string for command line --minimum-display-number flag */
           N_("Minimum display number to use for X servers"), "NUMBER" },
-        { "run-dir", 0, 0, G_OPTION_ARG_STRING, &run_dir,
-          /* Help string for command line --run-dir flag */
-          N_("Directory to store run information"), "DIRECTORY" },
-        { "cache-dir", 0, 0, G_OPTION_ARG_STRING, &cache_dir,
-          /* Help string for command line --cache-dir flag */
-          N_("Directory to cache information"), "DIRECTORY" },
         { "xsessions-dir", 0, 0, G_OPTION_ARG_STRING, &xsessions_dir,
           /* Help string for command line --xsessions-dir flag */
           N_("Directory to load X sessions from"), "DIRECTORY" },
         { "xgreeters-dir", 0, 0, G_OPTION_ARG_STRING, &xgreeters_dir,
           /* Help string for command line --xgreeters-dir flag */
           N_("Directory to load X greeters from"), "DIRECTORY" },
+        { "log-dir", 0, 0, G_OPTION_ARG_STRING, &log_dir,
+          /* Help string for command line --log-dir flag */
+          N_("Directory to write logs to"), "DIRECTORY" },
+        { "run-dir", 0, 0, G_OPTION_ARG_STRING, &run_dir,
+          /* Help string for command line --run-dir flag */
+          N_("Directory to store running state"), "DIRECTORY" },
+        { "cache-dir", 0, 0, G_OPTION_ARG_STRING, &cache_dir,
+          /* Help string for command line --cache-dir flag */
+          N_("Directory to cached information"), "DIRECTORY" },
         { "version", 'v', 0, G_OPTION_ARG_NONE, &show_version,
           /* Help string for command line --version flag */
           N_("Show release version"), NULL },
@@ -708,26 +717,15 @@ main (int argc, char **argv)
         g_free (minimum_display_number);
         minimum_display_number = g_strdup ("50");
     }
-    if (show_version)
-    {
-        /* NOTE: Is not translated so can be easily parsed */
-        g_printerr ("%s %s\n", LIGHTDM_BINARY, VERSION);
-        return EXIT_SUCCESS;
-    }
 
-    /* Always use absolute directories as child processes may run from different locations */
-    xsessions_dir = path_make_absolute (xsessions_dir);
-    xgreeters_dir = path_make_absolute (xgreeters_dir);
-
-    /* Check if root */
     if (!no_root && getuid () != 0)
     {
         g_printerr ("Only root can run Light Display Manager.  To run as a regular user for testing run with the --test-mode flag.\n");
         return EXIT_FAILURE;
     }
 
-    /* Check if requiring Xephyr */
-    if (getenv ("DISPLAY"))
+    /* If running inside an X server use Xephyr for display */
+    if (getenv ("DISPLAY") && getuid () != 0)
     {
         gchar *xserver_path;
 
@@ -741,10 +739,17 @@ main (int argc, char **argv)
     }
 
     /* Don't allow to be run as root and use a password file (asking for danger!) */
-    if (!no_root && passwd_path)
+    if (getuid () == 0 && passwd_path)
     {
         g_printerr ("Only allowed to use --passwd-file when running with --no-root.\n"); 
         return EXIT_FAILURE;
+    }
+
+    if (show_version)
+    {
+        /* NOTE: Is not translated so can be easily parsed */
+        g_printerr ("%s %s\n", LIGHTDM_BINARY, VERSION);
+        return EXIT_SUCCESS;
     }
 
     /* Write PID file */
@@ -755,21 +760,22 @@ main (int argc, char **argv)
         fclose (pid_file);
     }
 
-    /* Create run and cache directories */
-    g_mkdir_with_parents (run_dir, S_IRWXU | S_IXGRP | S_IXOTH);
-    g_mkdir_with_parents (cache_dir, S_IRWXU | S_IXGRP | S_IXOTH);
+    /* Always use absolute directories as child processes may run from different locations */
+    xsessions_dir = path_make_absolute (xsessions_dir);
+    xgreeters_dir = path_make_absolute (xgreeters_dir);
 
-    loop = g_main_loop_new (NULL, FALSE);
+    /* If not running as root write output to directories we control */
+    if (getuid () != 0)
+    {
+        g_free (default_log_dir);
+        default_log_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "log", NULL);
+        g_free (default_run_dir);
+        default_run_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "run", NULL);
+        g_free (default_cache_dir);
+        default_cache_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "cache", NULL);
+    }
 
-    g_bus_own_name (no_root ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM,
-                    LDM_BUS_NAME,
-                    G_BUS_NAME_OWNER_FLAGS_NONE,
-                    bus_acquired_cb,
-                    NULL,
-                    name_lost_cb,
-                    NULL,
-                    NULL);
-
+    /* Load config file */
     if (!config_load_from_file (config_get_instance (), config_path, &error))
     {
         if (explicit_config || !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
@@ -784,40 +790,78 @@ main (int argc, char **argv)
     g_clear_error (&error);
 
     /* Set default values */
-    config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", xserver_command);
-    config_set_string (config_get_instance (), "SeatDefaults", "greeter-session", greeter_session);
-    config_set_string (config_get_instance (), "SeatDefaults", "user-session", user_session);
-    config_set_string (config_get_instance (), "Directories", "log-directory", LOG_DIR);
-    config_set_string (config_get_instance (), "Directories", "run-directory", run_dir);
-    config_set_string (config_get_instance (), "Directories", "cache-directory", cache_dir);
-    config_set_string (config_get_instance (), "Directories", "xsessions-directory", xsessions_dir);
-    config_set_string (config_get_instance (), "Directories", "xgreeters-directory", xgreeters_dir);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "type"))
+        config_set_string (config_get_instance (), "SeatDefaults", "type", "xlocal");
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-command"))
+        config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", "X");
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "xsessions-directory"))
+        config_set_string (config_get_instance (), "SeatDefaults", "xsessions-directory", XSESSIONS_DIR);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "xgreeters-directory"))
+        config_set_string (config_get_instance (), "SeatDefaults", "xgreeters-directory", XGREETERS_DIR);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-session"))
+        config_set_string (config_get_instance (), "SeatDefaults", "greeter-session", GREETER_SESSION);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "user-session"))
+        config_set_string (config_get_instance (), "SeatDefaults", "user-session", USER_SESSION);
+    if (!config_has_key (config_get_instance (), "LightDM", "log-directory"))
+        config_set_string (config_get_instance (), "LightDM", "log-directory", default_log_dir);    
+    g_free (default_log_dir);
+    if (!config_has_key (config_get_instance (), "LightDM", "run-directory"))
+        config_set_string (config_get_instance (), "LightDM", "run-directory", default_run_dir);
+    g_free (default_run_dir);
+    if (!config_has_key (config_get_instance (), "LightDM", "cache-directory"))
+        config_set_string (config_get_instance (), "LightDM", "cache-directory", default_cache_dir);
+    g_free (default_cache_dir);
 
+    /* Override defaults */
     if (minimum_display_number)
         config_set_integer (config_get_instance (), "LightDM", "minimum-display-number", atoi (minimum_display_number));
+    g_free (minimum_display_number);
+    if (log_dir)
+        config_set_string (config_get_instance (), "LightDM", "log-directory", log_dir);
+    g_free (log_dir);
+    if (run_dir)
+        config_set_string (config_get_instance (), "LightDM", "run-directory", run_dir);
+    g_free (run_dir);
+    if (cache_dir)
+        config_set_string (config_get_instance (), "LightDM", "cache-directory", cache_dir);
+    g_free (cache_dir);
+    if (xserver_command)
+        config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", xserver_command);
+    g_free (xserver_command);
+    if (greeter_session)
+        config_set_string (config_get_instance (), "SeatDefaults", "greeter-session", greeter_session);
+    g_free (greeter_session);
+    if (user_session)
+        config_set_string (config_get_instance (), "SeatDefaults", "user-session", user_session);
+    g_free (user_session);
+    if (xsessions_dir)
+        config_set_string (config_get_instance (), "SeatDefaults", "xsessions-directory", xsessions_dir);
+    g_free (xsessions_dir);
+    if (xgreeters_dir)
+        config_set_string (config_get_instance (), "SeatDefaults", "xgreeters-directory", xgreeters_dir);
+    g_free (xgreeters_dir);
 
-    if (no_root)
-    {
-        gchar *path;
+    /* Create run and cache directories */
+    g_mkdir_with_parents (config_get_string (config_get_instance (), "LightDM", "log-directory"), S_IRWXU | S_IXGRP | S_IXOTH);  
+    g_mkdir_with_parents (config_get_string (config_get_instance (), "LightDM", "run-directory"), S_IRWXU | S_IXGRP | S_IXOTH);
+    g_mkdir_with_parents (config_get_string (config_get_instance (), "LightDM", "cache-directory"), S_IRWXU | S_IXGRP | S_IXOTH);
 
-        path = g_build_filename (g_get_user_cache_dir (), "lightdm", "run", NULL);
-        config_set_string (config_get_instance (), "Directories", "run-directory", path);
-        g_free (path);
-
-        path = g_build_filename (g_get_user_cache_dir (), "lightdm", "cache", NULL);
-        config_set_string (config_get_instance (), "Directories", "cache-directory", path);
-        g_free (path);
-
-        path = g_build_filename (g_get_user_cache_dir (), "lightdm", "log", NULL);
-        config_set_string (config_get_instance (), "Directories", "log-directory", path);
-        g_free (path);
-    }
+    loop = g_main_loop_new (NULL, FALSE);
 
     log_init ();
 
     g_debug ("Starting Light Display Manager %s, UID=%i PID=%i", VERSION, getuid (), getpid ());
 
-    if (no_root)
+    g_bus_own_name (getuid () == 0 ? G_BUS_TYPE_SYSTEM : G_BUS_TYPE_SESSION,
+                    LDM_BUS_NAME,
+                    G_BUS_NAME_OWNER_FLAGS_NONE,
+                    bus_acquired_cb,
+                    NULL,
+                    name_lost_cb,
+                    NULL,
+                    NULL);
+
+    if (getuid () != 0)
         g_debug ("Running in user mode");
     if (passwd_path)
     {

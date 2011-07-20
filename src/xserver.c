@@ -140,7 +140,7 @@ write_authority_file (XServer *server)
     {
         gchar *run_dir, *dir;
       
-        run_dir = config_get_string (config_get_instance (), "Directories", "run-directory");
+        run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
         dir = g_build_filename (run_dir, "root", NULL);
         g_free (run_dir);
         g_mkdir_with_parents (dir, S_IRWXU);

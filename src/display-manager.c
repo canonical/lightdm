@@ -95,6 +95,9 @@ display_manager_start (DisplayManager *manager)
 
     g_return_if_fail (manager != NULL);
 
+    /* Load the seat modules */
+    seat_register_module ("xlocal", SEAT_LOCAL_TYPE);
+
     /* Load the static display entries */
     seats = config_get_string (config_get_instance (), "LightDM", "seats");
     if (!seats)
@@ -106,19 +109,29 @@ display_manager_start (DisplayManager *manager)
     for (i = tokens; *i; i++)
     {
         gchar *config_section = *i;
+        gchar *type;
         Seat *seat;
 
         g_debug ("Loading seat %s", config_section);
 
-        if (config_has_key (config_get_instance (), "SeatDefaults", "xdmcp-manager") ||
-            config_has_key (config_get_instance (), config_section, "xdmcp-manager"))
-            seat = SEAT (seat_xdmcp_client_new (config_section));
-        else
-            seat = SEAT (seat_local_new (config_section));
+        type = config_get_string (config_get_instance (), config_section, "type");
+        if (!type)
+            type = config_get_string (config_get_instance (), "SeatDefaults", "type");
+        if (!type)
+        {
+            g_debug ("Seat missing type field");
+            continue;
+        }
 
-        if (!add_seat (manager, seat))
-            g_warning ("Failed to start seat %s", config_section);
-        g_object_unref (seat);
+        seat = seat_new (type, config_section);
+        if (seat)
+        {
+            if (!add_seat (manager, seat))
+                g_warning ("Failed to start seat %s", config_section);
+            g_object_unref (seat);
+        }
+        else
+            g_debug ("Unknown seat type %s", type);        
     }
     g_strfreev (tokens);
 
