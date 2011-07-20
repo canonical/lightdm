@@ -49,13 +49,6 @@ struct XDMCPServerPrivate
     guchar *authentication_data;
     gsize authentication_data_length;
 
-    /* Authorization scheme to use */
-    gchar *authorization_name;
-
-    /* Authorization data */
-    guchar *authorization_data;
-    gsize authorization_data_length;
-
     /* Active XDMCP sessions */
     GHashTable *sessions;
 };
@@ -146,40 +139,6 @@ xdmcp_server_get_authentication_data_length (XDMCPServer *server)
 {
     g_return_val_if_fail (server != NULL, 0);
     return server->priv->authentication_data_length;
-}
-
-void
-xdmcp_server_set_authorization (XDMCPServer *server, const gchar *name, const guchar *data, gsize data_length)
-{
-    g_return_if_fail (server != NULL);
-
-    g_free (server->priv->authorization_name);
-    server->priv->authorization_name = g_strdup (name);
-    g_free (server->priv->authorization_data);
-    server->priv->authorization_data = g_malloc (data_length);
-    server->priv->authorization_data_length = data_length;
-    memcpy (server->priv->authorization_data, data, data_length);
-}
-
-const gchar *
-xdmcp_server_get_authorization_name (XDMCPServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->authorization_name;
-}
-
-const guchar *
-xdmcp_server_get_authorization_data (XDMCPServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->authorization_data;
-}
-
-gsize
-xdmcp_server_get_authorization_data_length (XDMCPServer *server)
-{
-    g_return_val_if_fail (server != NULL, 0);
-    return server->priv->authorization_data_length;
 }
 
 static gboolean
@@ -288,6 +247,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     guchar *authentication_data = NULL;
     gsize authentication_data_length = 0;
     gboolean match_authorization = FALSE;
+    gchar *authorization_name;
     guchar *authorization_data = NULL;
     gsize authorization_data_length = 0;
     guchar *session_authorization_data = NULL;
@@ -359,12 +319,16 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
         XdmcpUnwrap (input, key, rho.data, authentication_data_length);
         XdmcpIncrementKey (&rho);
         XdmcpWrap (rho.data, key, authentication_data, authentication_data_length);
+
+        authorization_name = g_strdup ("XDM-AUTHORIZATION-1");
     }
+    else
+        authorization_name = g_strdup ("MIT-MAGIC-COOKIE-1");
 
     /* Check if they support our authorization */
     for (j = packet->Request.authorization_names; *j; j++)
     {
-        if (strcmp (*j, server->priv->authorization_name) == 0)
+        if (strcmp (*j, authorization_name) == 0)
         {
              match_authorization = TRUE;
              break;
@@ -374,10 +338,8 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     if (!match_authorization)
     {
         response = xdmcp_packet_alloc (XDMCP_Decline);
-        if (strcmp (server->priv->authorization_name, "") == 0)
-            response->Decline.status = g_strdup ("Server does not support authorization");
-        else
-            response->Decline.status = g_strdup_printf ("Server only supports %s authorization", server->priv->authorization_name);
+        response->Decline.status = g_strdup_printf ("Server requires %s authorization", authorization_name);
+        g_free (authorization_name);
         response->Decline.authentication_name = g_strdup (packet->Request.authentication_name);
         response->Decline.authentication_data.data = authentication_data;
         response->Decline.authentication_data.length = authentication_data_length;
@@ -387,7 +349,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     }
 
     /* Perform requested authorization */
-    if (strcmp (server->priv->authorization_name, "MIT-MAGIC-COOKIE-1") == 0)
+    if (strcmp (server->priv->authentication_name, "") == 0)
     {
         XAuthority *auth;
 
@@ -400,7 +362,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
       
         g_object_unref (auth);
     }
-    else if (strcmp (server->priv->authorization_name, "XDM-AUTHORIZATION-1") == 0)
+    else if (strcmp (server->priv->authentication_name, "XDM-AUTHENTICATION-1") == 0)
     {
         gint i;
         guchar key[8], session_key[8];
@@ -437,7 +399,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     session->priv->authority = xauth_new (XAUTH_FAMILY_INTERNET, // FIXME: IPv6
                                           host,
                                           display_number,
-                                          server->priv->authorization_name,
+                                          authorization_name,
                                           session_authorization_data,
                                           session_authorization_data_length);
     g_free (host);
@@ -448,7 +410,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     response->Accept.authentication_name = g_strdup (packet->Request.authentication_name);
     response->Accept.authentication_data.data = authentication_data;
     response->Accept.authentication_data.length = authentication_data_length;
-    response->Accept.authorization_name = g_strdup (server->priv->authorization_name);
+    response->Accept.authorization_name = authorization_name;
     response->Accept.authorization_data.data = authorization_data;
     response->Accept.authorization_data.length = authorization_data_length;
     send_packet (socket, address, response);
@@ -653,7 +615,6 @@ xdmcp_server_init (XDMCPServer *server)
     server->priv->status = g_strdup ("");
     server->priv->sessions = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_object_unref);
     server->priv->authentication_name = g_strdup ("");
-    server->priv->authorization_name = g_strdup ("");
 }
 
 static void
@@ -671,8 +632,6 @@ xdmcp_server_finalize (GObject *object)
     g_free (self->priv->status);
     g_free (self->priv->authentication_name);
     g_free (self->priv->authentication_data);
-    g_free (self->priv->authorization_name);
-    g_free (self->priv->authorization_data);
     g_hash_table_unref (self->priv->sessions);
   
     G_OBJECT_CLASS (xdmcp_server_parent_class)->finalize (object);  

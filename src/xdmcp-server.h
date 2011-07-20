@@ -60,14 +60,6 @@ const guchar *xdmcp_server_get_authentication_data (XDMCPServer *server);
 
 gsize xdmcp_server_get_authentication_data_length (XDMCPServer *server);
 
-void xdmcp_server_set_authorization (XDMCPServer *server, const gchar *name, const guchar *data, gsize data_length);
-
-const gchar *xdmcp_server_get_authorization_name (XDMCPServer *server);
-
-const guchar *xdmcp_server_get_authorization_data (XDMCPServer *server);
-
-gsize xdmcp_server_get_authorization_data_length (XDMCPServer *server);
-
 gboolean xdmcp_server_start (XDMCPServer *server);
 
 G_END_DECLS

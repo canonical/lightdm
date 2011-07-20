@@ -162,11 +162,8 @@ display_manager_start (DisplayManager *manager)
             guchar data[8];
             string_to_xdm_auth_key (key, data);
             xdmcp_server_set_authentication (manager->priv->xdmcp_server, "XDM-AUTHENTICATION-1", data, 8);
-            xdmcp_server_set_authorization (manager->priv->xdmcp_server, "XDM-AUTHORIZATION-1", data, 8);
             g_free (key);
-        }
-        else*/
-            xdmcp_server_set_authorization (manager->priv->xdmcp_server, "MIT-MAGIC-COOKIE-1", NULL, 0);
+        }*/
 
         g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (manager->priv->xdmcp_server));
         xdmcp_server_start (manager->priv->xdmcp_server); 
