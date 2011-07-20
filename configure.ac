@@ -121,7 +121,7 @@ dnl ###########################################################################
 dnl Configurable values
 dnl ###########################################################################
 
-USER_SESSION=gnome
+USER_SESSION=default
 AC_ARG_WITH(user-session,
             AS_HELP_STRING(--with-user-session=<name>,
                            Session to use for user accounts),
@@ -139,7 +139,7 @@ GREETER_SESSION=lightdm-qt-greeter
 else
 GREETER_SESSION=
 fi
-AC_ARG_WITH(theme,
+AC_ARG_WITH(greeter-session,
             AS_HELP_STRING(--with-greeter-session=<session>,
                            Greeter session),
     if test x$withval != x; then
