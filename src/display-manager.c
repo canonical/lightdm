@@ -156,10 +156,10 @@ display_manager_start (DisplayManager *manager)
         }
         g_signal_connect (manager->priv->xdmcp_server, "new-session", G_CALLBACK (xdmcp_session_cb), manager);
 
-        /*key = config_get_string (config_get_instance (), "XDMCPServer", "key");
+        /*FIXME key = config_get_string (config_get_instance (), "XDMCPServer", "key");
         if (key)
         {
-            guchar data[8];
+            guint8 data[8];
             string_to_xdm_auth_key (key, data);
             xdmcp_server_set_authentication (manager->priv->xdmcp_server, "XDM-AUTHENTICATION-1", data, 8);
             g_free (key);

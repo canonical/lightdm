@@ -69,7 +69,7 @@ seat_xdmcp_client_add_display (Seat *seat)
     /*FIXME key = config_get_string (config_get_instance (), SEAT_XDMCP_CLIENT (seat)->priv->config_section, "key");
     if (key)
     {
-        guchar data[8];
+        guint8 data[8];
 
         string_to_xdm_auth_key (key, data);
         xserver_set_authentication (xserver, "XDM-AUTHENTICATION-1", data, 8);

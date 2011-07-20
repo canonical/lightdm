@@ -15,7 +15,7 @@
 
 typedef struct
 {
-    const guchar *data;
+    const guint8 *data;
     guint16 remaining;
     gboolean overflow;
 } PacketReader;
@@ -56,7 +56,7 @@ read_data (PacketReader *reader, XDMCPData *data)
     guint16 i;
 
     data->length = read_card16 (reader);
-    data->data = g_malloc (sizeof (guchar) * data->length);
+    data->data = g_malloc (sizeof (guint8) * data->length);
     for (i = 0; i < data->length; i++)
         data->data[i] = read_card8 (reader);
 }
@@ -93,7 +93,7 @@ read_string_array (PacketReader *reader)
 
 typedef struct
 {
-    guchar *data;
+    guint8 *data;
     guint16 remaining;
     gboolean overflow;
 } PacketWriter;
@@ -170,7 +170,7 @@ xdmcp_packet_alloc (XDMCPOpcode opcode)
 }
 
 XDMCPPacket *
-xdmcp_packet_decode (const guchar *data, gsize data_length)
+xdmcp_packet_decode (const guint8 *data, gsize data_length)
 {
     XDMCPPacket *packet;
     guint16 version, opcode, length;
@@ -303,7 +303,7 @@ xdmcp_packet_decode (const guchar *data, gsize data_length)
 }
 
 gssize
-xdmcp_packet_encode (XDMCPPacket *packet, guchar *data, gsize max_length)
+xdmcp_packet_encode (XDMCPPacket *packet, guint8 *data, gsize max_length)
 {
     guint16 length;
     PacketWriter writer;
