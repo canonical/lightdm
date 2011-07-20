@@ -1,7 +1,7 @@
 bin_PROGRAMS = lightdm-qt-greeter
 
-xsessiondir = $(datadir)/xsessions
-dist_xsession_DATA = lightdm-qt-greeter.desktop
+xgreetersdir = $(datadir)/xgreeters
+dist_xgreeters_DATA = lightdm-qt-greeter.desktop
 
 greeter_moc.cpp: greeter.h
 	moc $< -o $@

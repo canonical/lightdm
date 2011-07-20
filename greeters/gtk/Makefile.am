@@ -3,8 +3,8 @@ bin_PROGRAMS = lightdm-gtk-greeter
 greeterdatadir = $(datadir)/lightdm-gtk-greeter
 dist_greeterdata_DATA = greeter.ui
 
-xsessiondir = $(datadir)/xsessions
-dist_xsession_DATA = lightdm-gtk-greeter.desktop
+xgreetersdir = $(datadir)/xgreeters
+dist_xgreeters_DATA = lightdm-gtk-greeter.desktop
 
 lightdm_gtk_greeter_SOURCES = \
 	lightdm-gtk-greeter.c

@@ -399,7 +399,7 @@ static Session *
 create_session (Display *display, PAMSession *pam_session, const gchar *session_name, gboolean is_greeter, const gchar *log_filename)
 {
     User *user;
-    gchar *xsessions_dir, *filename, *path, *command;
+    gchar *sessions_dir, *filename, *path, *command;
     GKeyFile *session_desktop_file;
     Session *session;
     gchar *cookie;
@@ -415,10 +415,14 @@ create_session (Display *display, PAMSession *pam_session, const gchar *session_
 
     g_debug ("Starting session %s as user %s logging to %s", session_name, user_get_name (user), log_filename);
 
-    xsessions_dir = config_get_string (config_get_instance (), "Directories", "xsessions-directory");
+    // FIXME: This is X specific, move into xsession.c
+    if (is_greeter)
+        sessions_dir = config_get_string (config_get_instance (), "Directories", "xgreeters-directory");
+    else
+        sessions_dir = config_get_string (config_get_instance (), "Directories", "xsessions-directory");
     filename = g_strdup_printf ("%s.desktop", session_name);
-    path = g_build_filename (xsessions_dir, filename, NULL);
-    g_free (xsessions_dir);
+    path = g_build_filename (sessions_dir, filename, NULL);
+    g_free (sessions_dir);
     g_free (filename);
 
     session_desktop_file = g_key_file_new ();

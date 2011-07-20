@@ -623,6 +623,7 @@ main (int argc, char **argv)
     gchar *pid_path = "/var/run/lightdm.pid";
     gchar *greeter_session = g_strdup (GREETER_SESSION);
     gchar *xsessions_dir = g_strdup (XSESSIONS_DIR);
+    gchar *xgreeters_dir = g_strdup (XGREETERS_DIR);
     gchar *run_dir = g_strdup (RUN_DIR);
     gchar *cache_dir = g_strdup (CACHE_DIR);
     gchar *user_session = g_strdup (USER_SESSION);
@@ -669,6 +670,9 @@ main (int argc, char **argv)
         { "xsessions-dir", 0, 0, G_OPTION_ARG_STRING, &xsessions_dir,
           /* Help string for command line --xsessions-dir flag */
           N_("Directory to load X sessions from"), "DIRECTORY" },
+        { "xgreeters-dir", 0, 0, G_OPTION_ARG_STRING, &xgreeters_dir,
+          /* Help string for command line --xgreeters-dir flag */
+          N_("Directory to load X greeters from"), "DIRECTORY" },
         { "version", 'v', 0, G_OPTION_ARG_NONE, &show_version,
           /* Help string for command line --version flag */
           N_("Show release version"), NULL },
@@ -711,6 +715,7 @@ main (int argc, char **argv)
 
     /* Always use absolute directories as child processes may run from different locations */
     xsessions_dir = path_make_absolute (xsessions_dir);
+    xgreeters_dir = path_make_absolute (xgreeters_dir);
 
     /* Check if root */
     if (!no_root && getuid () != 0)
@@ -784,6 +789,7 @@ main (int argc, char **argv)
     config_set_string (config_get_instance (), "Directories", "run-directory", run_dir);
     config_set_string (config_get_instance (), "Directories", "cache-directory", cache_dir);
     config_set_string (config_get_instance (), "Directories", "xsessions-directory", xsessions_dir);
+    config_set_string (config_get_instance (), "Directories", "xgreeters-directory", xgreeters_dir);
 
     if (minimum_display_number)
         config_set_integer (config_get_instance (), "LightDM", "minimum-display-number", atoi (minimum_display_number));
