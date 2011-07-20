@@ -9,34 +9,29 @@
  * license.
  */
 
-#ifndef _SEAT_LOCAL_H_
-#define _SEAT_LOCAL_H_
+#ifndef _SEAT_XLOCAL_H_
+#define _SEAT_XLOCAL_H_
 
 #include <glib-object.h>
 #include "seat.h"
 
 G_BEGIN_DECLS
 
-#define SEAT_LOCAL_TYPE (seat_local_get_type())
-#define SEAT_LOCAL(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), SEAT_LOCAL_TYPE, SeatLocal))
-
-typedef struct SeatLocalPrivate SeatLocalPrivate;
+#define SEAT_XLOCAL_TYPE (seat_xlocal_get_type())
+#define SEAT_XLOCAL(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), SEAT_XLOCAL_TYPE, SeatXLocal))
 
 typedef struct
 {
-    Seat         parent_instance;
-    SeatLocalPrivate *priv;
-} SeatLocal;
+    Seat parent_instance;
+} SeatXLocal;
 
 typedef struct
 {
     SeatClass parent_class;
-} SeatLocalClass;
+} SeatXLocalClass;
 
-GType seat_local_get_type (void);
-
-SeatLocal *seat_local_new (const gchar *config_section);
+GType seat_xlocal_get_type (void);
 
 G_END_DECLS
 
-#endif /* _SEAT_LOCAL_H_ */
+#endif /* _SEAT_XLOCAL_H_ */

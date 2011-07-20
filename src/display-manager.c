@@ -19,8 +19,7 @@
 #include "configuration.h"
 #include "display.h"
 #include "xdmcp-server.h"
-#include "seat-local.h"
-#include "seat-xdmcp-client.h"
+#include "seat-xlocal.h"
 #include "seat-xdmcp-session.h"
 #include "plymouth.h"
 
@@ -80,7 +79,7 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
     SeatXDMCPSession *seat;
     gboolean result;
 
-    seat = seat_xdmcp_session_new ("XDMCPServer", session);
+    seat = seat_xdmcp_session_new (session);
     result = add_seat (manager, SEAT (seat));
     g_object_unref (seat);
   
@@ -96,7 +95,7 @@ display_manager_start (DisplayManager *manager)
     g_return_if_fail (manager != NULL);
 
     /* Load the seat modules */
-    seat_register_module ("xlocal", SEAT_LOCAL_TYPE);
+    seat_register_module ("xlocal", SEAT_XLOCAL_TYPE);
 
     /* Load the static display entries */
     seats = config_get_string (config_get_instance (), "LightDM", "seats");
@@ -131,7 +130,7 @@ display_manager_start (DisplayManager *manager)
             g_object_unref (seat);
         }
         else
-            g_debug ("Unknown seat type %s", type);        
+            g_debug ("Unknown seat type %s", type);
     }
     g_strfreev (tokens);
 

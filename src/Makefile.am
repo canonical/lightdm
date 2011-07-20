@@ -32,12 +32,10 @@ lightdm_SOURCES = \
 	process.h \
 	seat.c \
 	seat.h \
-	seat-local.c \
-	seat-local.h \
-	seat-xdmcp-client.c \
-	seat-xdmcp-client.h \
 	seat-xdmcp-session.c \
 	seat-xdmcp-session.h \
+	seat-xlocal.c \
+	seat-xlocal.h \
 	session.c \
 	session.h \
 	user.c \

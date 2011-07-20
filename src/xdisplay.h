@@ -32,7 +32,7 @@ typedef struct
 
 GType xdisplay_get_type (void);
 
-XDisplay *xdisplay_new (const gchar *config_section, XServer *server);
+XDisplay *xdisplay_new (XServer *server);
 
 G_END_DECLS
 

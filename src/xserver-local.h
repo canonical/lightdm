@@ -37,7 +37,13 @@ typedef struct
 
 GType xserver_local_get_type (void);
 
-XServerLocal *xserver_local_new (const gchar *config_section);
+XServerLocal *xserver_local_new (void);
+
+void xserver_local_set_command (XServerLocal *server, const gchar *command);
+
+void xserver_local_set_config (XServerLocal *server, const gchar *path);
+
+void xserver_local_set_layout (XServerLocal *server, const gchar *layout);
 
 void xserver_local_set_xdmcp_server (XServerLocal *server, const gchar *hostname);
 

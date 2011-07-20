@@ -34,6 +34,7 @@ typedef struct
 {
     GObjectClass parent_class;
 
+    void (*setup)(Seat *seat);    
     gboolean (*start)(Seat *seat);
     Display *(*add_display)(Seat *seat);
     void (*set_active_display)(Seat *seat, Display *display);
@@ -51,7 +52,7 @@ void seat_register_module (const gchar *name, GType type);
 
 Seat *seat_new (const gchar *module, const gchar *config_section);
 
-void seat_load_config (Seat *seat, const gchar *config_section);
+const gchar *seat_get_config_section (Seat *seat);
 
 void seat_set_can_switch (Seat *seat, gboolean can_switch);
 

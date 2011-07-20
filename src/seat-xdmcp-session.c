@@ -17,9 +17,6 @@
 
 struct SeatXDMCPSessionPrivate
 {
-    /* The section in the config for this seat */
-    gchar *config_section;
-
     /* Session being serviced */
     XDMCPSession *session;
 };
@@ -27,13 +24,12 @@ struct SeatXDMCPSessionPrivate
 G_DEFINE_TYPE (SeatXDMCPSession, seat_xdmcp_session, SEAT_TYPE);
 
 SeatXDMCPSession *
-seat_xdmcp_session_new (const gchar *config_section, XDMCPSession *session)
+seat_xdmcp_session_new (XDMCPSession *session)
 {
     SeatXDMCPSession *seat;
 
     seat = g_object_new (SEAT_XDMCP_SESSION_TYPE, NULL);
     seat->priv->session = g_object_ref (session);
-    seat_load_config (SEAT (seat), config_section);
 
     return seat;
 }
@@ -49,7 +45,7 @@ seat_xdmcp_session_add_display (Seat *seat)
     xserver = xserver_remote_new (xauth_get_address (authority), xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session));
     xserver_set_authority (XSERVER (xserver), authority);
 
-    display = xdisplay_new (SEAT_XDMCP_SESSION (seat)->priv->config_section, XSERVER (xserver));
+    display = xdisplay_new (XSERVER (xserver));
     g_object_unref (xserver);
 
     return DISPLAY (display);
@@ -62,25 +58,11 @@ seat_xdmcp_session_init (SeatXDMCPSession *seat)
 }
 
 static void
-seat_xdmcp_session_finalize (GObject *object)
-{
-    SeatXDMCPSession *self;
-
-    self = SEAT_XDMCP_SESSION (object);
-
-    g_free (self->priv->config_section);
-
-    G_OBJECT_CLASS (seat_xdmcp_session_parent_class)->finalize (object);
-}
-
-static void
 seat_xdmcp_session_class_init (SeatXDMCPSessionClass *klass)
 {
-    GObjectClass *object_class = G_OBJECT_CLASS (klass);
     SeatClass *seat_class = SEAT_CLASS (klass);
 
     seat_class->add_display = seat_xdmcp_session_add_display;
-    object_class->finalize = seat_xdmcp_session_finalize;
 
     g_type_class_add_private (klass, sizeof (SeatXDMCPSessionPrivate));
 }

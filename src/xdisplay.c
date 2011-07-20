@@ -17,13 +17,12 @@
 G_DEFINE_TYPE (XDisplay, xdisplay, DISPLAY_TYPE);
 
 XDisplay *
-xdisplay_new (const gchar *config_section, XServer *server)
+xdisplay_new (XServer *server)
 {
     XDisplay *self = g_object_new (XDISPLAY_TYPE, NULL);
 
     g_return_val_if_fail (server != NULL, NULL);
 
-    display_load_config (DISPLAY (self), config_section);
     display_set_display_server (DISPLAY (self), DISPLAY_SERVER (server));
 
     return self;

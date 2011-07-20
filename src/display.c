@@ -117,6 +117,7 @@ display_load_config (Display *display, const gchar *config_section)
         display->priv->greeter_user = config_get_string (config_get_instance (), config_section, "greeter-user");
     if (!display->priv->greeter_user)
         display->priv->greeter_user = config_get_string (config_get_instance (), "SeatDefaults", "greeter-user");
+
     if (config_section)
         display->priv->greeter_session = config_get_string (config_get_instance (), config_section, "greeter-session");
     if (!display->priv->greeter_session)
@@ -437,7 +438,6 @@ create_session (Display *display, PAMSession *pam_session, const gchar *session_
 
     filename = g_strdup_printf ("%s.desktop", session_name);
     path = g_build_filename (sessions_dir, filename, NULL);
-    g_free (sessions_dir);
     g_free (filename);
 
     session_desktop_file = g_key_file_new ();

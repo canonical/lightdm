@@ -24,7 +24,7 @@ struct XServerLocalPrivate
 
     /* Path of file to log to */
     gchar *log_file;
-
+  
     /* Command to run the X server */
     gchar *command;
 
@@ -75,29 +75,11 @@ release_display_number (guint number)
 }
 
 XServerLocal *
-xserver_local_new (const gchar *config_section)
+xserver_local_new (void)
 {
     XServerLocal *self = g_object_new (XSERVER_LOCAL_TYPE, NULL);
 
     xserver_set_display_number (XSERVER (self), get_free_display_number ());
-
-    /* If running inside an X server use Xephyr instead */
-    if (g_getenv ("DISPLAY"))
-        self->priv->command = g_strdup ("Xephyr");
-    if (!self->priv->command && config_section)
-        self->priv->command = config_get_string (config_get_instance (), config_section, "xserver-command");
-    if (!self->priv->command)
-        self->priv->command = config_get_string (config_get_instance (), "SeatDefaults", "xserver-command");
-
-    if (config_section)
-        self->priv->layout = config_get_string (config_get_instance (), config_section, "xserver-layout");
-    if (!self->priv->layout)
-        self->priv->layout = config_get_string (config_get_instance (), "SeatDefaults", "layout");
-
-    if (config_section)
-        self->priv->config_file = config_get_string (config_get_instance (), config_section, "xserver-config");
-    if (!self->priv->config_file)
-        self->priv->config_file = config_get_string (config_get_instance (), "SeatDefaults", "xserver-config");
   
     /* Replace Plymouth if it is running */
     if (plymouth_get_is_active () && plymouth_has_active_vt ())
@@ -117,6 +99,30 @@ xserver_local_new (const gchar *config_section)
         self->priv->vt = vt_get_unused ();
 
     return self;
+}
+
+void
+xserver_local_set_command (XServerLocal *server, const gchar *command)
+{
+    g_return_if_fail (server != NULL);
+    g_free (server->priv->command);
+    server->priv->command = g_strdup (command);
+}
+
+void
+xserver_local_set_config (XServerLocal *server, const gchar *path)
+{
+    g_return_if_fail (server != NULL);
+    g_free (server->priv->config_file);
+    server->priv->config_file = g_strdup (path);
+}
+
+void
+xserver_local_set_layout (XServerLocal *server, const gchar *layout)
+{
+    g_return_if_fail (server != NULL);
+    g_free (server->priv->layout);
+    server->priv->layout = g_strdup (layout);
 }
 
 void
@@ -375,6 +381,7 @@ xserver_local_init (XServerLocal *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_LOCAL_TYPE, XServerLocalPrivate);
     server->priv->vt = -1;
+    server->priv->command = g_strdup ("X");
 }
 
 static void

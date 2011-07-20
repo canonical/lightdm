@@ -28,6 +28,9 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct SeatPrivate
 {
+    /* Configuration for this seat */
+    gchar *config_section;
+
     /* True if able to switch users */
     gboolean can_switch;
 
@@ -80,27 +83,16 @@ seat_new (const gchar *module, const gchar *config_section)
         return NULL;
 
     seat = g_object_new (m->type, NULL);
+    seat->priv->config_section = g_strdup (config_section);
 
     return seat;
 }
 
-void
-seat_load_config (Seat *seat, const gchar *config_section)
+const gchar *
+seat_get_config_section (Seat *seat)
 {
-    if (config_section && config_has_key (config_get_instance (), config_section, "autologin-guest"))
-        seat->priv->autologin_guest = config_get_boolean (config_get_instance (), config_section, "autologin-guest");
-    else if (config_has_key (config_get_instance (), "SeatDefaults", "autologin-guest"))
-        seat->priv->autologin_guest = config_get_boolean (config_get_instance (), "SeatDefaults", "autologin-guest");
-    if (config_section)
-        seat->priv->autologin_username = config_get_string (config_get_instance (), config_section, "autologin-user");
-    if (!seat->priv->autologin_username)
-        seat->priv->autologin_username = config_get_string (config_get_instance (), "SeatDefaults", "autologin-user");
-    if (config_section && config_has_key (config_get_instance (), config_section, "autologin-user-timeout"))
-        seat->priv->autologin_timeout = config_get_integer (config_get_instance (), config_section, "autologin-user-timeout");
-    else
-        seat->priv->autologin_timeout = config_get_integer (config_get_instance (), "SeatDefaults", "autologin-user-timeout");
-    if (seat->priv->autologin_timeout < 0)
-        seat->priv->autologin_timeout = 0;
+    g_return_val_if_fail (seat != NULL, NULL);
+    return seat->priv->config_section;
 }
 
 void
@@ -115,6 +107,8 @@ gboolean
 seat_start (Seat *seat)
 {
     g_return_val_if_fail (seat != NULL, FALSE);
+  
+    SEAT_GET_CLASS (seat)->setup (seat);
     return SEAT_GET_CLASS (seat)->start (seat);
 }
 
@@ -194,6 +188,7 @@ add_display (Seat *seat)
     Display *display;
 
     display = SEAT_GET_CLASS (seat)->add_display (seat);
+    display_load_config (DISPLAY (display), seat->priv->config_section);
     g_signal_connect (display, "activate-user", G_CALLBACK (display_activate_user_cb), seat);
     g_signal_connect (display, "stopped", G_CALLBACK (display_stopped_cb), seat);
     seat->priv->displays = g_list_append (seat->priv->displays, g_object_ref (display));
@@ -298,6 +293,25 @@ seat_stop (Seat *seat)
     SEAT_GET_CLASS (seat)->stop (seat);
 }
 
+static void
+seat_real_setup (Seat *seat)
+{
+    if (seat->priv->config_section && config_has_key (config_get_instance (), seat->priv->config_section, "autologin-guest"))
+        seat->priv->autologin_guest = config_get_boolean (config_get_instance (), seat->priv->config_section, "autologin-guest");
+    else if (config_has_key (config_get_instance (), "SeatDefaults", "autologin-guest"))
+        seat->priv->autologin_guest = config_get_boolean (config_get_instance (), "SeatDefaults", "autologin-guest");
+    if (seat->priv->config_section)
+        seat->priv->autologin_username = config_get_string (config_get_instance (), seat->priv->config_section, "autologin-user");
+    if (!seat->priv->autologin_username)
+        seat->priv->autologin_username = config_get_string (config_get_instance (), "SeatDefaults", "autologin-user");
+    if (seat->priv->config_section && config_has_key (config_get_instance (), seat->priv->config_section, "autologin-user-timeout"))
+        seat->priv->autologin_timeout = config_get_integer (config_get_instance (), seat->priv->config_section, "autologin-user-timeout");
+    else
+        seat->priv->autologin_timeout = config_get_integer (config_get_instance (), "SeatDefaults", "autologin-user-timeout");
+    if (seat->priv->autologin_timeout < 0)
+        seat->priv->autologin_timeout = 0;
+}
+
 static gboolean
 seat_real_start (Seat *seat)
 {
@@ -352,6 +366,7 @@ seat_finalize (GObject *object)
 
     self = SEAT (object);
 
+    g_free (self->priv->config_section);
     g_list_free_full (self->priv->displays, g_object_unref);
 
     G_OBJECT_CLASS (seat_parent_class)->finalize (object);
@@ -362,6 +377,7 @@ seat_class_init (SeatClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
+    klass->setup = seat_real_setup;
     klass->start = seat_real_start;
     klass->add_display = seat_real_add_display;
     klass->set_active_display = seat_real_set_active_display;
