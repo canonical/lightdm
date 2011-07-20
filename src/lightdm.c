@@ -704,6 +704,7 @@ main (int argc, char **argv)
     if (test_mode)
     {
         no_root = TRUE;
+        g_free (minimum_display_number);
         minimum_display_number = g_strdup ("50");
     }
     if (show_version)

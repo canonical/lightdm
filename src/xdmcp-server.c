@@ -295,6 +295,35 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     gchar **j;
     GInetAddress *address4 = NULL, *address6 = NULL;
     XdmAuthKeyRec rho;
+
+    for (i = 0; i < packet->Request.n_connections; i++)
+    {
+        XDMCPConnection *connection;
+
+        connection = &packet->Request.connections[i];
+        switch (connection->type)
+        {
+        case FamilyInternet:
+            if (connection->address.length == 4)
+                address4 = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV4);
+            break;
+        /*case FamilyInternet6:
+            if (connection->address.length == 16)
+                address6 = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV6);          
+            break;*/
+        }
+    }
+    if (!address4) // FIXME: && !address6)
+    {
+        response = xdmcp_packet_alloc (XDMCP_Decline);
+        response->Decline.status = g_strdup ("No valid address found");
+        response->Decline.authentication_name = g_strdup (packet->Request.authentication_name);
+        response->Decline.authentication_data.data = authentication_data;
+        response->Decline.authentication_data.length = authentication_data_length;
+        send_packet (socket, address, response);
+        xdmcp_packet_free (response);
+        return;
+    }
   
     /* Must be using our authentication scheme */
     if (strcmp (packet->Request.authentication_name, server->priv->authentication_name) != 0)
@@ -396,36 +425,6 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
         XdmcpDecrementKey (&rho);
         memcpy (session_authorization_data, rho.data, 8);
         memcpy (session_authorization_data + 8, session_key, 8);
-    }
-
-    for (i = 0; i < packet->Request.n_connections; i++)
-    {
-        XDMCPConnection *connection;
-
-        connection = &packet->Request.connections[i];
-        switch (connection->type)
-        {
-        case FamilyInternet:
-            if (connection->address.length == 4)
-                address4 = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV4);
-            break;
-        case FamilyInternet6:
-            if (connection->address.length == 16)
-                address6 = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV6);          
-            break;
-        }
-    }
-
-    if (!address4) // FIXME: && !address6)
-    {
-        response = xdmcp_packet_alloc (XDMCP_Decline);
-        response->Decline.status = g_strdup ("No valid address found");
-        response->Decline.authentication_name = g_strdup (packet->Request.authentication_name);
-        response->Decline.authentication_data.data = authentication_data;
-        response->Decline.authentication_data.length = authentication_data_length;
-        send_packet (socket, address, response);
-        xdmcp_packet_free (response);
-        return;
     }
 
     session = add_session (server);
