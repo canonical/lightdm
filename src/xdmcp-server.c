@@ -46,7 +46,7 @@ struct XDMCPServerPrivate
     gchar *authentication_name;
 
     /* Auhentication data */  
-    guchar *authentication_data;
+    guint8 *authentication_data;
     gsize authentication_data_length;
 
     /* Active XDMCP sessions */
@@ -108,7 +108,7 @@ xdmcp_server_get_status (XDMCPServer *server)
 }
 
 void
-xdmcp_server_set_authentication (XDMCPServer *server, const gchar *name, const guchar *data, gsize data_length)
+xdmcp_server_set_authentication (XDMCPServer *server, const gchar *name, const guint8 *data, gsize data_length)
 {
     g_return_if_fail (server != NULL);
 
@@ -118,27 +118,6 @@ xdmcp_server_set_authentication (XDMCPServer *server, const gchar *name, const g
     server->priv->authentication_data = g_malloc (data_length);
     server->priv->authentication_data_length = data_length;
     memcpy (server->priv->authentication_data, data, data_length);
-}
-
-const gchar *
-xdmcp_server_get_authentication_name (XDMCPServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->authentication_name;
-}
-
-const guchar *
-xdmcp_server_get_authentication_data (XDMCPServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->authentication_data;
-}
-
-gsize
-xdmcp_server_get_authentication_data_length (XDMCPServer *server)
-{
-    g_return_val_if_fail (server != NULL, 0);
-    return server->priv->authentication_data_length;
 }
 
 static gboolean
@@ -177,7 +156,7 @@ get_session (XDMCPServer *server, guint16 id)
 static void
 send_packet (GSocket *socket, GSocketAddress *address, XDMCPPacket *packet)
 {
-    guchar data[1024];
+    guint8 data[1024];
     gssize n_written;
 
     g_debug ("Send %s", xdmcp_packet_tostring (packet));
@@ -244,13 +223,13 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     int i;
     XDMCPPacket *response;
     XDMCPSession *session;
-    guchar *authentication_data = NULL;
+    guint8 *authentication_data = NULL;
     gsize authentication_data_length = 0;
     gboolean match_authorization = FALSE;
     gchar *authorization_name;
-    guchar *authorization_data = NULL;
+    guint8 *authorization_data = NULL;
     gsize authorization_data_length = 0;
-    guchar *session_authorization_data = NULL;
+    guint8 *session_authorization_data = NULL;
     gsize session_authorization_data_length = 0;
     gchar **j;
     GInetAddress *address4 = NULL, *address6 = NULL;
@@ -303,7 +282,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     /* Perform requested authentication */
     if (strcmp (server->priv->authentication_name, "XDM-AUTHENTICATION-1") == 0)
     {
-        guchar input[8], key[8];
+        guint8 input[8], key[8];
 
         memset (input, 0, 8);
         memcpy (input, packet->Request.authentication_data.data, packet->Request.authentication_data.length > 8 ? 8 : packet->Request.authentication_data.length);
@@ -313,7 +292,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
         memcpy (key, server->priv->authentication_data, server->priv->authentication_data_length > 8 ? 8 : server->priv->authentication_data_length);
 
         /* Decode message from server */
-        authentication_data = g_malloc (sizeof (guchar) * 8);
+        authentication_data = g_malloc (sizeof (guint8) * 8);
         authentication_data_length = 8;
 
         XdmcpUnwrap (input, key, rho.data, authentication_data_length);
@@ -365,7 +344,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     else if (strcmp (server->priv->authentication_name, "XDM-AUTHENTICATION-1") == 0)
     {
         gint i;
-        guchar key[8], session_key[8];
+        guint8 key[8], session_key[8];
 
         /* Setup key */
         memset (key, 0, 8);
@@ -511,7 +490,7 @@ read_cb (GSocket *socket, GIOCondition condition, XDMCPServer *server)
     {
         XDMCPPacket *packet;
 
-        packet = xdmcp_packet_decode ((guchar *)data, n_read);
+        packet = xdmcp_packet_decode ((guint8 *)data, n_read);
         if (packet)
         {        
             g_debug ("Got %s", xdmcp_packet_tostring (packet));
