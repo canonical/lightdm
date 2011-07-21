@@ -54,20 +54,17 @@ typedef struct
 {
     GObjectClass parent_class;
 
-    void (*connected)(LightDMGreeter *greeter);
     void (*show_prompt)(LightDMGreeter *greeter, const gchar *text, LightDMPromptType type);
     void (*show_message)(LightDMGreeter *greeter, const gchar *text, LightDMMessageType type);
     void (*authentication_complete)(LightDMGreeter *greeter);
-    void (*session_failed)(LightDMGreeter *greeter);
     void (*autologin_timer_expired)(LightDMGreeter *greeter);
-    void (*quit)(LightDMGreeter *greeter);
 } LightDMGreeterClass;
 
 GType lightdm_greeter_get_type (void);
 
 LightDMGreeter *lightdm_greeter_new (void);
 
-gboolean lightdm_greeter_connect_to_server (LightDMGreeter *greeter);
+gboolean lightdm_greeter_connect_sync (LightDMGreeter *greeter);
 
 const gchar *lightdm_greeter_get_hint (LightDMGreeter *greeter, const gchar *name);
 
@@ -103,9 +100,7 @@ gboolean lightdm_greeter_get_is_authenticated (LightDMGreeter *greeter);
 
 const gchar *lightdm_greeter_get_authentication_user (LightDMGreeter *greeter);
 
-void lightdm_greeter_start_session (LightDMGreeter *greeter, const gchar *session);
-
-void lightdm_greeter_start_default_session (LightDMGreeter *greeter);
+gboolean lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *session);
 
 G_END_DECLS
 

@@ -118,17 +118,14 @@ LIGHTDM_USER_LIST_GET_CLASS
 <SECTION>
 <FILE>greeter</FILE>
 <TITLE>Greeter Interface</TITLE>
-connected
 autologin_timer_expired
 show_message
 show_prompt
 authentication_complete
-session_failed
-quit
 LightDMMessageType
 LightDMPromptType
 lightdm_greeter_new
-lightdm_greeter_connect_to_server
+lightdm_greeter_connect_sync
 lightdm_greeter_get_default_session_hint
 lightdm_greeter_get_hint
 lightdm_greeter_get_has_guest_account_hint
@@ -146,8 +143,7 @@ lightdm_greeter_cancel_authentication
 lightdm_greeter_get_in_authentication
 lightdm_greeter_get_is_authenticated
 lightdm_greeter_get_authentication_user
-lightdm_greeter_start_session
-lightdm_greeter_start_default_session
+lightdm_greeter_start_session_sync
 <SUBSECTION Standard>
 LIGHTDM_GREETER
 LIGHTDM_IS_GREETER

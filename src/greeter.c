@@ -71,10 +71,9 @@ typedef enum
 typedef enum
 {
     SERVER_MESSAGE_CONNECTED = 0,
-    SERVER_MESSAGE_QUIT,
     SERVER_MESSAGE_PROMPT_AUTHENTICATION,
     SERVER_MESSAGE_END_AUTHENTICATION,
-    SERVER_MESSAGE_SESSION_FAILED,
+    SERVER_MESSAGE_SESSION_RESULT
 } ServerMessage;
 
 Greeter *
@@ -376,7 +375,8 @@ handle_start_session (Greeter *greeter, gchar *session)
         guint8 message[MAX_MESSAGE_LENGTH];
         gsize offset = 0;
 
-        write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_SESSION_FAILED, 0, &offset);
+        write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_SESSION_RESULT, int_length (), &offset);
+        write_int (message, MAX_MESSAGE_LENGTH, 1, &offset);
         write_message (greeter, message, offset);
     }
 }
@@ -571,7 +571,8 @@ greeter_quit (Greeter *greeter)
 
     g_return_if_fail (greeter != NULL);
 
-    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_QUIT, 0, &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_SESSION_RESULT, int_length (), &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, 0, &offset);
     write_message (greeter, message, offset);
 }
 

@@ -16,22 +16,25 @@ int main ()
 {
     LightDMGreeter *greeter = lightdm_greeter_new ();
 
-    g_object_connect (greeter, "connected", G_CALLBACK (connected_cb), NULL);
     g_object_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
     g_object_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
-    g_object_connect (greeter, "session-failed", G_CALLBACK (session_failed_cb), NULL);
-    g_object_connect (greeter, "quit", G_CALLBACK (quit_cb), NULL);
 
-    if (!lightdm_greeter_connect_to_server (LIGHTDM_GREETER (greeter))) {
+    if (!lightdm_greeter_connect_sync (LIGHTDM_GREETER (greeter))) {
         // Log an error
-        return 0;
+        return EXIT_FAILURE;
     }
-}
 
-static void connected_cb (LightDMGreeter *greeter)
-{
-    // Start authentication
-    lightdm_greeter_authenticate (greeter, NULL);
+    while (TRUE)
+    {
+        // Start authentication
+        while (!lightdm_greeter_get_is_authenticated (greeter))
+            lightdm_greeter_authenticate (greeter, NULL);
+
+        if (lightdm_greeter_start_session_sync (greeter, NULL))
+            return EXIT_SUCCESS;
+    }
+
+    return EXIT_SUCCESS;
 }
 
 static void show_prompt_cb (LightDMGreeter *greeter, const char *text, LightDMPromptType type)
@@ -55,12 +58,6 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
     }
 }
 
-static void session_failed_cb (LightDMGreeter *greeter)
-{
-    // Display a warning and reset the greeter
-    reset_login_screen (``Failed to login'');
-}
-
 static void quit_cb (LightDMGreeter *greeter)
 {
     // Clean up
@@ -81,14 +78,6 @@ static void quit_cb (LightDMGreeter *greeter)
 
 
 <!-- ##### SECTION Image ##### -->
-
-
-<!-- ##### USER_FUNCTION connected ##### -->
-<para>
-
-</para>
-
-@greeter: 
 
 
 <!-- ##### USER_FUNCTION autologin_timer_expired ##### -->
@@ -127,22 +116,6 @@ static void quit_cb (LightDMGreeter *greeter)
 @greeter: 
 
 
-<!-- ##### USER_FUNCTION session_failed ##### -->
-<para>
-
-</para>
-
-@greeter: 
-
-
-<!-- ##### USER_FUNCTION quit ##### -->
-<para>
-
-</para>
-
-@greeter: 
-
-
 <!-- ##### ENUM LightDMMessageType ##### -->
 <para>
 
@@ -168,7 +141,7 @@ static void quit_cb (LightDMGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION lightdm_greeter_connect_to_server ##### -->
+<!-- ##### FUNCTION lightdm_greeter_connect_sync ##### -->
 <para>
 
 </para>
@@ -328,20 +301,13 @@ static void quit_cb (LightDMGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION lightdm_greeter_start_session ##### -->
+<!-- ##### FUNCTION lightdm_greeter_start_session_sync ##### -->
 <para>
 
 </para>
 
 @greeter: 
 @session: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_start_default_session ##### -->
-<para>
-
-</para>
-
-@greeter: 
+@Returns: 
 
 

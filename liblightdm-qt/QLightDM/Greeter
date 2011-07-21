@@ -59,21 +59,18 @@ namespace QLightDM
         QString authenticationUser() const;
 
     public slots:
-        void connectToServer();
+        bool connectSync();
         void authenticate(const QString &username=QString());
         void authenticateAsGuest();
         void respond(const QString &response);
         void cancelAuthentication();
-        void startSession(const QString &session=QString());
+        bool startSessionSync(const QString &session=QString());
 
     signals:
-        void connected();
         void showPrompt(QString prompt, PromptType type);
         void showMessage(QString message, MessageType type);
         void authenticationComplete();
-        void sessionFailed();
         void autologinTimerExpired();
-        void quit();
 
     private slots:
         void onRead(int fd);
@@ -84,9 +81,7 @@ namespace QLightDM
         void writeString(QString value);
         void writeHeader(int id, int length);
         void flush();
-        int getPacketLength();
-        int readInt(int *offset);
-        QString readString(int *offset);
+        char *readMessage(int *length, bool block);
     };
 };
 

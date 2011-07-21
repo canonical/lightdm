@@ -42,10 +42,9 @@ typedef enum
 typedef enum
 {
     SERVER_MESSAGE_CONNECTED = 0,
-    SERVER_MESSAGE_QUIT,
     SERVER_MESSAGE_PROMPT_AUTHENTICATION,
     SERVER_MESSAGE_END_AUTHENTICATION,
-    SERVER_MESSAGE_SESSION_FAILED,
+    SERVER_MESSAGE_SESSION_RESULT
 } ServerMessage;
 
 #define HEADER_SIZE 8
@@ -69,12 +68,11 @@ public:
     bool cancellingAuthentication;
 };
 
-
 Greeter::Greeter(QObject *parent) :
     QObject(parent),
     d(new GreeterPrivate)
 {
-    d->readBuffer = (char *)malloc (HEADER_SIZE);
+    d->readBuffer = (char *)malloc(HEADER_SIZE);
     d->nRead = 0;
     d->authenticateSequenceNumber = 0;
 }
@@ -128,38 +126,38 @@ void Greeter::flush()
     fsync(d->toServerFd);
 }
 
-int Greeter::getPacketLength()
+static int readInt(char *message, int messageLength, int *offset)
 {
-    int offset = intLength();
-    return readInt(&offset);
-}
-
-int Greeter::readInt(int *offset)
-{
-    if(d->nRead - *offset < intLength()) {
-        qDebug() << "Not enough space for int, need " << intLength() << ", got " << (d->nRead - *offset);
+    if(messageLength - *offset < intLength()) {
+        qDebug() << "Not enough space for int, need " << intLength() << ", got " << (messageLength - *offset);
         return 0;
     }
 
-    char *buffer = d->readBuffer + *offset;
+    char *buffer = message + *offset;
     int value = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
     *offset += intLength();
     return value;
 }
 
-QString Greeter::readString(int *offset)
+static int getMessageLength(char *message, int messageLength)
 {
-    int length = readInt(offset);
-    if(d->nRead - *offset < length) {
-        qDebug() << "Not enough space for string, need " << length << ", got " << (d->nRead - *offset);
+    int offset = intLength();
+    return readInt(message, messageLength, &offset);
+}
+
+static QString readString(char *message, int messageLength, int *offset)
+{
+    int length = readInt(message, messageLength, offset);
+    if(messageLength - *offset < length) {
+        qDebug() << "Not enough space for string, need " << length << ", got " << (messageLength - *offset);
         return "";
     }
-    char *start = d->readBuffer + *offset;
+    char *start = message + *offset;
     *offset += length;
     return QString::fromUtf8(start, length);
 }
 
-void Greeter::connectToServer()
+bool Greeter::connectSync()
 {
     QDBusConnection busType = QDBusConnection::systemBus();
     QString ldmBus(qgetenv("LIGHTDM_BUS"));
@@ -170,7 +168,7 @@ void Greeter::connectToServer()
     char* fd = getenv("LIGHTDM_TO_SERVER_FD");
     if(!fd) {
        qDebug() << "No LIGHTDM_TO_SERVER_FD environment variable";
-       return;
+       return false;
     }
     d->toServerFd = atoi(fd);
 
@@ -181,7 +179,7 @@ void Greeter::connectToServer()
     fd = getenv("LIGHTDM_FROM_SERVER_FD");
     if(!fd) {
        qDebug() << "No LIGHTDM_FROM_SERVER_FD environment variable";
-       return;
+       return false;
     }
     d->fromServerFd = atoi(fd);
 
@@ -192,6 +190,38 @@ void Greeter::connectToServer()
     writeHeader(GREETER_MESSAGE_CONNECT, stringLength(VERSION));
     writeString(VERSION);
     flush();
+
+    int responseLength;
+    char *response = readMessage(&responseLength, false);
+    if (!response)
+        return false;
+
+    int offset = 0;
+    int id = readInt(response, responseLength, &offset);
+    int length = readInt(response, responseLength, &offset);
+    bool connected = false;
+    if (id == SERVER_MESSAGE_CONNECTED)
+    {
+        QString version = readString(response, responseLength, &offset);
+        QString hintString = "";
+        while (offset < length)
+        {
+            QString name = readString(response, responseLength, &offset);
+            QString value = readString(response, responseLength, &offset);
+            hintString.append (" ");
+            hintString.append (name);
+            hintString.append ("=");
+            hintString.append (value);
+        }
+
+        qDebug() << "Connected version=" << version << hintString;
+        connected = true;
+    }
+    else
+        qDebug() << "Expected CONNECTED message, got " << id;
+    free(response);
+
+    return connected;
 }
 
 void Greeter::authenticate(const QString &username)
@@ -254,95 +284,115 @@ QString Greeter::authenticationUser() const
     return d->authenticationUser;
 }
 
-void Greeter::startSession(const QString &session)
+bool Greeter::startSessionSync(const QString &session)
 {
-    qDebug() << "Starting session " << session;
+    if (session == "")
+        qDebug() << "Starting default session";
+    else
+        qDebug() << "Starting session " << session;
+
     writeHeader(GREETER_MESSAGE_START_SESSION, stringLength(session));
     writeString(session);
     flush();
+
+    int responseLength;
+    char *response = readMessage(&responseLength, false);
+    if (!response)
+        return false;
+
+    int offset = 0;
+    int id = readInt(response, responseLength, &offset);
+    readInt(response, responseLength, &offset);
+    int returnCode = -1;
+    if (id == SERVER_MESSAGE_SESSION_RESULT)
+        returnCode = readInt(response, responseLength, &offset);
+    else
+        qDebug() << "Expected SESSION_RESULT message, got " << id;
+    free(response);
+
+    return returnCode == 0;
 }
 
-void Greeter::onRead(int fd)
+char *Greeter::readMessage(int *length, bool block)
 {
-    //qDebug() << "Reading from server";
-
+    /* Read the header, or the whole message if we already have that */
     int nToRead = HEADER_SIZE;
     if(d->nRead >= HEADER_SIZE)
-        nToRead += getPacketLength();
+        nToRead += getMessageLength(d->readBuffer, d->nRead);
 
-    ssize_t nRead;
-    nRead = read(fd, d->readBuffer + d->nRead, nToRead - d->nRead);
-    if(nRead < 0)
-    {
-        qDebug() << "Error reading from server";
-        return;
-    }
-    if (nRead == 0)
-    {
-        qDebug() << "EOF reading from server";
-        return;
-    }
+    do
+    {      
+        ssize_t nRead = read(d->fromServerFd, d->readBuffer + d->nRead, nToRead - d->nRead);
+        if(nRead < 0)
+        {
+            qDebug() << "Error reading from server";
+            return NULL;
+        }
+        if (nRead == 0)
+        {
+            qDebug() << "EOF reading from server";
+            return NULL;
+        }
 
-    //qDebug() << "Read " << nRead << "octets";
-    d->nRead += nRead;
+        qDebug() << "Read " << nRead << " octets from daemon";
+        d->nRead += nRead;
+    } while(d->nRead < nToRead && block);
+
+    /* Stop if haven't got all the data we want */  
     if(d->nRead != nToRead)
-        return;
+        return NULL;
 
     /* If have header, rerun for content */
     if(d->nRead == HEADER_SIZE)
     {
-        nToRead = getPacketLength();
+        nToRead = getMessageLength(d->readBuffer, d->nRead);
         if(nToRead > 0)
         {
             d->readBuffer = (char *)realloc(d->readBuffer, HEADER_SIZE + nToRead);
-            onRead(fd);
-            return;
+            return readMessage(length, block);
         }
     }
 
+    char *buffer = d->readBuffer;
+    *length = d->nRead;
+
+    d->readBuffer = (char *)malloc(d->nRead);
+    d->nRead = 0;
+
+    return buffer;
+}
+
+void Greeter::onRead(int fd)
+{
+    qDebug() << "Reading from server";
+
+    int messageLength;
+    char *message = readMessage(&messageLength, false);
+    if (!message)
+        return;
+
     int offset = 0;
-    int id = readInt(&offset);
-    int length = readInt(&offset);
+    int id = readInt(message, messageLength, &offset);
+    int length = readInt(message, messageLength, &offset);
     int nMessages, sequenceNumber, returnCode;
     QString version, username;
-    QString hintString = "";
     switch(id)
     {
-    case SERVER_MESSAGE_CONNECTED:
-        version = readString(&offset);
-        while (offset < length)
-        {
-            QString name = readString(&offset);
-            QString value = readString(&offset);
-            hintString.append (" ");
-            hintString.append (name);
-            hintString.append ("=");
-            hintString.append (value);
-        }
-
-        qDebug() << "Connected version=" << version << hintString;
-
-        emit connected();
-        break;
-    case SERVER_MESSAGE_QUIT:
-        qDebug() << "Got quit request from server";
-        emit quit();
-        break;
     case SERVER_MESSAGE_PROMPT_AUTHENTICATION:
-        sequenceNumber = readInt(&offset);
+        sequenceNumber = readInt(message, messageLength, &offset);
 
         if (sequenceNumber == d->authenticateSequenceNumber &&
             !d->cancellingAuthentication)
         {
-            nMessages = readInt(&offset);
+            nMessages = readInt(message, messageLength, &offset);
             qDebug() << "Prompt user with " << nMessages << " message(s)";
             for(int i = 0; i < nMessages; i++)
             {
-                int msg_style = readInt (&offset);
-                QString msg = readString (&offset);
+                int msgStyle = readInt(message, messageLength, &offset);
+                QString msg = readString(message, messageLength, &offset);
 
                 // FIXME: Should stop on prompts?
-                switch (msg_style)
+                switch (msgStyle)
                 {
                 case PAM_PROMPT_ECHO_OFF:
                     emit showPrompt(msg, PROMPT_TYPE_SECRET);
@@ -361,8 +411,8 @@ void Greeter::onRead(int fd)
         }
         break;
     case SERVER_MESSAGE_END_AUTHENTICATION:
-        sequenceNumber = readInt(&offset);
-        returnCode = readInt(&offset);
+        sequenceNumber = readInt(message, messageLength, &offset);
+        returnCode = readInt(message, messageLength, &offset);
 
         if (sequenceNumber == d->authenticateSequenceNumber)
         {
@@ -378,15 +428,10 @@ void Greeter::onRead(int fd)
         else
             qDebug () << "Ignoring end authentication with invalid sequence number " << sequenceNumber;
         break;
-    case SERVER_MESSAGE_SESSION_FAILED:
-        qDebug() << "Session failed to start";
-        emit sessionFailed();
-        break;
     default:
         qDebug() << "Unknown message from server: " << id;
     }
-
-    d->nRead = 0;
+    free(message);
 }
 
 QString Greeter::getHint(QString name) const

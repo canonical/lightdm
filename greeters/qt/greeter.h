@@ -30,7 +30,7 @@ public:
     ~Greeter();
 
 private slots:
-    void onStartSession();
+    bool onStartSession();
     
 private:
     QLightDM::Greeter *m_greeter;

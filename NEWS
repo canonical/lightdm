@@ -18,11 +18,14 @@ Overview of changes in lightdm 0.9.0
       - XDMCP keys now stored in keys.conf
     * liblightdm API changes:
       - Both libraries are now version 1 and have API and ABI guarantees.
-      - Added a session-failed signal to indicate if the session didn't start
-        and the greeter should try authorizing again.
       - Face images are now local paths not URIs
       - liblightdm-gobject now uses lightdm_ prefix instead of ldm_
       - Non-greeter functions are now moved out of the Greeter class
+      - connect_to_server() is now called connect_sync and blocks until
+        completion.
+      - start_session() is now called start_session_sync and blocks until
+        completion. The quit signal is removed, and the greeter should quit if
+        this method returns TRUE.
       - login() is now called authenticate()
       - Greeters now have hints instead of configuration (greeters should load their
         own configuration from /etc/lightdm if they need it).

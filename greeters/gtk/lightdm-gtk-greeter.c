@@ -183,16 +183,18 @@ authentication_complete_cb (LightDMGreeter *greeter)
     if (lightdm_greeter_get_is_authenticated (greeter))
     {
         gchar *session = get_session ();
-        lightdm_greeter_start_session (greeter, session);
+        if (lightdm_greeter_start_session_sync (greeter, session))
+            exit (EXIT_SUCCESS);
+        else
+            gtk_label_set_text (GTK_LABEL (message_label), "Failed to authenticate");
         g_free (session);
     }
     else
-    {
         gtk_label_set_text (GTK_LABEL (message_label), "Failed to authenticate");
-        gtk_widget_show (message_label);
-        if (lightdm_greeter_get_hide_users_hint (greeter))
-            lightdm_greeter_authenticate (greeter, NULL);
-    }
+
+    gtk_widget_show (message_label);
+    if (lightdm_greeter_get_hide_users_hint (greeter))
+        lightdm_greeter_authenticate (greeter, NULL);
 }
 
 static void
@@ -283,23 +285,6 @@ shutdown_cb (GtkWidget *widget, LightDMGreeter *greeter)
     gtk_widget_destroy (dialog);
 }
 
-static gboolean
-fade_timer_cb (gpointer data)
-{
-    gdouble opacity;
-
-    opacity = gtk_window_get_opacity (GTK_WINDOW (window));
-    opacity -= 0.1;
-    if (opacity <= 0)
-    {
-        gtk_main_quit ();
-        return FALSE;
-    }
-    gtk_window_set_opacity (GTK_WINDOW (window), opacity);
-
-    return TRUE;
-}
-
 static void
 user_added_cb (LightDMUserList *user_list, LightDMUser *user)
 {
@@ -368,13 +353,6 @@ user_removed_cb (LightDMUserList *user_list, LightDMUser *user)
 
     model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));  
     gtk_list_store_remove (GTK_LIST_STORE (model), &iter);
-}
-
-static void
-quit_cb (LightDMGreeter *greeter, const gchar *username)
-{
-    /* Fade out the greeter */
-    g_timeout_add (40, (GSourceFunc) fade_timer_cb, NULL);
 }
 
 void a11y_font_cb (GtkWidget *widget);
@@ -479,8 +457,8 @@ load_user_list ()
                         -1);
 }
 
-static void
-connected_cb (LightDMGreeter *greeter)
+int
+main(int argc, char **argv)
 {
     GdkWindow *root;
     GdkDisplay *display;
@@ -493,6 +471,21 @@ connected_cb (LightDMGreeter *greeter)
     GtkCellRenderer *renderer;
     gchar *rc_file, *background_image;
     GError *error = NULL;
+
+    /* Disable global menus */
+    unsetenv ("UBUNTU_MENUPROXY");
+
+    signal (SIGTERM, sigterm_cb);
+  
+    gtk_init (&argc, &argv);
+
+    greeter = lightdm_greeter_new ();
+    g_signal_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);  
+    g_signal_connect (greeter, "show-message", G_CALLBACK (show_message_cb), NULL);
+    g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
+    g_signal_connect (greeter, "autologin-timer-expired", G_CALLBACK (autologin_timer_expired_cb), NULL);
+    if (!lightdm_greeter_connect_sync (greeter))
+        return EXIT_FAILURE;
 
     display = gdk_display_get_default ();
     screen = gdk_display_get_default_screen (display);
@@ -513,7 +506,7 @@ connected_cb (LightDMGreeter *greeter)
     if (!gtk_builder_add_from_file (builder, GREETER_DATA_DIR "/greeter.ui", &error))
     {
         g_warning ("Error loading UI: %s", error->message);
-        return;
+        return EXIT_FAILURE;
     }
     g_clear_error (&error);
     window = GTK_WIDGET (gtk_builder_get_object (builder, "greeter_window"));
@@ -604,28 +597,8 @@ connected_cb (LightDMGreeter *greeter)
     gtk_widget_show (window);
 
     gtk_widget_grab_focus (user_view);
-}
-
-int
-main(int argc, char **argv)
-{
-    /* Disable global menus */
-    unsetenv ("UBUNTU_MENUPROXY");
-
-    signal (SIGTERM, sigterm_cb);
-  
-    gtk_init (&argc, &argv);
-
-    greeter = lightdm_greeter_new ();
-    g_signal_connect (greeter, "connected", G_CALLBACK (connected_cb), NULL);
-    g_signal_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);  
-    g_signal_connect (greeter, "show-message", G_CALLBACK (show_message_cb), NULL);
-    g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
-    g_signal_connect (greeter, "autologin-timer-expired", G_CALLBACK (autologin_timer_expired_cb), NULL);
-    g_signal_connect (greeter, "quit", G_CALLBACK (quit_cb), NULL);
-    lightdm_greeter_connect_to_server (greeter);
 
     gtk_main ();
 
-    return 0;
+    return EXIT_SUCCESS;
 }
