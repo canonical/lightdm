@@ -39,7 +39,11 @@ case "$1" in
     add_account
     ;;
   remove)
-    remove_account
+    if [ -z $2 ] ; then
+      echo "Usage: $0 remove [account]"
+      exit 1
+    fi
+    remove_account $2
     ;;
   *)
     echo "Usage: $0 add|remove"

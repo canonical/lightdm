@@ -187,7 +187,7 @@ display_get_guest_username_cb (Display *display, Seat *seat)
         return seat->priv->guest_username;
 
     seat->priv->guest_username = guest_account_setup ();
-    return seat->priv->guest_username;
+    return g_strdup (seat->priv->guest_username);
 }
 
 static void
@@ -315,7 +315,10 @@ seat_switch_to_guest (Seat *seat)
     if (!seat->priv->can_switch || !seat_get_allow_guest (seat))
         return FALSE;
 
-    g_debug ("Switching to guest account");
+    if (seat->priv->guest_username)
+        g_debug ("Switching to existing guest account %s", seat->priv->guest_username);
+    else
+        g_debug ("Switching to new guest account");
     return switch_to_user (seat, seat->priv->guest_username, TRUE, TRUE);
 }
 
