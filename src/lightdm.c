@@ -809,6 +809,8 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "SeatDefaults", "xsessions-directory", XSESSIONS_DIR);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "xgreeters-directory"))
         config_set_string (config_get_instance (), "SeatDefaults", "xgreeters-directory", XGREETERS_DIR);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "allow-guest"))
+        config_set_boolean (config_get_instance (), "SeatDefaults", "allow-guest", TRUE);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-session"))
         config_set_string (config_get_instance (), "SeatDefaults", "greeter-session", GREETER_SESSION);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "user-session"))

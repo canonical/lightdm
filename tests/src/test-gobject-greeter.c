@@ -25,11 +25,8 @@ show_prompt_cb (LightDMGreeter *greeter, const gchar *text, LightDMPromptType ty
     username = g_key_file_get_string (config, "test-greeter-config", "username", NULL);
     password = g_key_file_get_string (config, "test-greeter-config", "password", NULL);
 
-    if (g_key_file_get_boolean (config, "test-greeter-config", "prompt-username", NULL))
-    {
-        g_key_file_set_boolean (config, "test-greeter-config", "prompt-username", FALSE);
+    if (g_key_file_get_boolean (config, "test-greeter-config", "prompt-username", NULL) && strcmp (text, "login:") == 0)
         response = username;
-    }
     else if (password)
         response = password;
 

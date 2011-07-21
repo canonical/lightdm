@@ -32,11 +32,8 @@ void TestGreeter::showPrompt (QString text, QLightDM::PromptType type)
     QString password = config->value ("test-greeter-config/password").toString ();
 
     QString response;
-    if (config->value ("test-greeter-config/prompt-username", "false") == "true")
-    {
-        config->setValue ("test-greeter-config/prompt-username", "false");
+    if (config->value ("test-greeter-config/prompt-username", "false") == "true" && text == "login:")
         response = username;
-    }
     else if (password != "")
         response = password;
 

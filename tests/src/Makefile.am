@@ -1,5 +1,5 @@
 noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-session plymouth
-dist_noinst_SCRIPTS = test-setup-guest test-cleanup-guest
+dist_noinst_SCRIPTS = test-guest-account
 
 if COMPILE_LIBLIGHTDM_QT
 noinst_PROGRAMS += test-qt-greeter

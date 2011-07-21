@@ -1,0 +1,48 @@
+#!/bin/sh
+
+add_account ()
+{
+  HOME_DIR=`mktemp -d $LIGHTDM_TEST_HOME_DIR/guest-XXXXX`
+  USERNAME=`echo $HOME_DIR | sed 's/\(.*\)guest/guest/'`
+
+  # Stop if already in passwd file
+  ACC=`grep $USERNAME $LIGHTDM_TEST_PASSWD_FILE`
+  if [ -n "$ACC" ] ; then
+     exit 0
+  fi
+
+  # Add account to password file
+  echo "$USERNAME::1003:1003:Guest Account:$HOME_DIR:/bin/sh" >> $LIGHTDM_TEST_PASSWD_FILE
+
+  echo $USERNAME
+}
+
+remove_account ()
+{
+  USERNAME=$1
+
+  LINE=`grep $USERNAME $LIGHTDM_TEST_PASSWD_FILE`
+  if [ -z "$LINE" ] ; then
+      echo "Error: guest account does not exist"
+      exit 1
+  fi
+
+  # Remove account from password file
+  sed -i "/^$USERNAME:/c\\" $LIGHTDM_TEST_PASSWD_FILE
+
+  # Delete home directory
+  rm -rf $LIGHTDM_TEST_HOME_DIR/$USERNAME
+}
+
+case "$1" in
+  add)
+    add_account
+    ;;
+  remove)
+    remove_account
+    ;;
+  *)
+    echo "Usage: $0 add|remove"
+    exit 1
+esac
+

@@ -31,12 +31,15 @@ typedef struct
 typedef struct
 {
     GObjectClass parent_class;
+    PAMSession *(*start_authentication)(Greeter *greeter, const gchar *username);
     gboolean (*start_session)(Greeter *greeter, const gchar *session, gboolean is_guest);
 } GreeterClass;
 
 GType greeter_get_type (void);
 
 Greeter *greeter_new (Session *session);
+
+void greeter_set_allow_guest (Greeter *greeter, gboolean allow_guest);
 
 void greeter_set_hint (Greeter *greeter, const gchar *name, const gchar *value);
 

@@ -39,7 +39,9 @@ typedef struct
     Session *(*create_session) (Display *display);
 
     void (*started)(Display *display);
-    gboolean (*activate_user)(Display *display, const gchar *username);
+    gboolean (*switch_to_user)(Display *display, const gchar *username);
+    gboolean (*switch_to_guest)(Display *display);
+    gchar *(*get_guest_username)(Display *display);
     void (*session_started)(Display *display);
     void (*session_stopped)(Display *display);
     void (*stopped)(Display *display);
@@ -55,7 +57,11 @@ DisplayServer *display_get_display_server (Display *display);
 
 Session *display_get_session (Display *display);
 
-void display_set_default_user (Display *display, const gchar *username, gboolean is_guest, gboolean requires_password, gint timeout);
+void display_set_allow_guest (Display *display, gboolean allow_guest);
+
+void display_set_default_user (Display *display, const gchar *username, gboolean is_guest, gboolean autologin, gint timeout);
+
+void display_start_guest_session (Display *display, const gchar *username);
 
 gboolean display_start (Display *display);
 

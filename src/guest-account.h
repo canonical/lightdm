@@ -16,13 +16,11 @@
 
 G_BEGIN_DECLS
 
-gboolean guest_account_get_is_enabled (void);
+gboolean guest_account_is_installed (void);
 
-const gchar *guest_account_get_username (void);
+gchar *guest_account_setup (void);
 
-gboolean guest_account_ref (void);
-
-void guest_account_unref (void);
+void guest_account_cleanup (const gchar *username);
 
 G_END_DECLS
 

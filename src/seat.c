@@ -31,8 +31,14 @@ struct SeatPrivate
     /* Configuration for this seat */
     gchar *config_section;
 
-    /* True if able to switch users */
+    /* TRUE if able to switch users */
     gboolean can_switch;
+
+    /* TRUE if allowed to log into guest account */
+    gboolean allow_guest;
+
+    /* Name of guest account */
+    gchar *guest_username;
 
     /* User to automatically log in as */
     gchar *autologin_username;
@@ -126,8 +132,15 @@ seat_get_can_switch (Seat *seat)
     return seat->priv->can_switch;
 }
 
+gboolean
+seat_get_allow_guest (Seat *seat)
+{
+    g_return_val_if_fail (seat != NULL, FALSE);  
+    return seat->priv->allow_guest && guest_account_is_installed ();
+}
+
 static gboolean
-display_activate_user_cb (Display *display, const gchar *username, Seat *seat)
+display_switch_to_user_cb (Display *display, const gchar *username, Seat *seat)
 {
     GList *link;
 
@@ -154,8 +167,41 @@ display_activate_user_cb (Display *display, const gchar *username, Seat *seat)
         }
     }
 
-    /* Otherwise start on this display */
     return FALSE;
+}
+
+static gboolean
+display_switch_to_guest_cb (Display *display, Seat *seat)
+{
+    /* No guest account */
+    if (!seat->priv->guest_username)
+        return FALSE;
+
+    return display_switch_to_user_cb (display, seat->priv->guest_username, seat);
+}
+
+static gchar *
+display_get_guest_username_cb (Display *display, Seat *seat)
+{
+    if (seat->priv->guest_username)
+        return seat->priv->guest_username;
+
+    seat->priv->guest_username = guest_account_setup ();
+    return seat->priv->guest_username;
+}
+
+static void
+display_session_stopped_cb (Display *display, Seat *seat)
+{
+    Session *session;
+
+    session = display_get_session (display);
+    if (seat->priv->guest_username && strcmp (user_get_name (session_get_user (session)), seat->priv->guest_username) == 0)
+    {
+        guest_account_cleanup (seat->priv->guest_username);
+        g_free (seat->priv->guest_username);
+        seat->priv->guest_username = NULL;
+    }
 }
 
 static gboolean
@@ -182,23 +228,8 @@ display_stopped_cb (Display *display, Seat *seat)
         check_stopped (seat);
 }
 
-static Display *
-add_display (Seat *seat)
-{
-    Display *display;
-
-    display = SEAT_GET_CLASS (seat)->add_display (seat);
-    display_load_config (DISPLAY (display), seat->priv->config_section);
-    g_signal_connect (display, "activate-user", G_CALLBACK (display_activate_user_cb), seat);
-    g_signal_connect (display, "stopped", G_CALLBACK (display_stopped_cb), seat);
-    seat->priv->displays = g_list_append (seat->priv->displays, g_object_ref (display));
-    g_signal_emit (seat, signals[DISPLAY_ADDED], 0, display);
-  
-    return display;
-}
-
 static gboolean
-switch_to_user (Seat *seat, const gchar *username, gboolean is_guest)
+switch_to_user (Seat *seat, const gchar *username, gboolean is_guest, gboolean autologin)
 {
     Display *display;
     GList *link;
@@ -230,11 +261,22 @@ switch_to_user (Seat *seat, const gchar *username, gboolean is_guest)
         }
     }
 
-    display = add_display (seat);
+    /* They don't exist, so start a greeter */
+    display = SEAT_GET_CLASS (seat)->add_display (seat);
+    display_load_config (DISPLAY (display), seat->priv->config_section);
+    g_signal_connect (display, "switch-to-user", G_CALLBACK (display_switch_to_user_cb), seat);
+    g_signal_connect (display, "switch-to-guest", G_CALLBACK (display_switch_to_guest_cb), seat);
+    g_signal_connect (display, "get-guest-username", G_CALLBACK (display_get_guest_username_cb), seat);
+    g_signal_connect (display, "session-stopped", G_CALLBACK (display_session_stopped_cb), seat);
+    g_signal_connect (display, "stopped", G_CALLBACK (display_stopped_cb), seat);
+    display_set_allow_guest (display, seat_get_allow_guest (seat));
     if (is_guest)
-        display_set_default_user (display, NULL, TRUE, FALSE, 0);
+        display_set_default_user (display, NULL, TRUE, autologin, 0);
     else if (username)
-        display_set_default_user (display, username, FALSE, TRUE, 0);
+        display_set_default_user (display, username, FALSE, autologin, 0);
+
+    seat->priv->displays = g_list_append (seat->priv->displays, g_object_ref (display));
+    g_signal_emit (seat, signals[DISPLAY_ADDED], 0, display);
 
     return display_start (display);
 }
@@ -249,7 +291,7 @@ seat_switch_to_greeter (Seat *seat)
 
     g_debug ("Showing greeter");
   
-    return switch_to_user (seat, NULL, FALSE);
+    return switch_to_user (seat, NULL, FALSE, FALSE);
 }
 
 gboolean
@@ -262,7 +304,7 @@ seat_switch_to_user (Seat *seat, const gchar *username)
         return FALSE;
 
     g_debug ("Switching to user %s", username);
-    return switch_to_user (seat, username, FALSE);
+    return switch_to_user (seat, username, FALSE, FALSE);
 }
 
 gboolean
@@ -270,14 +312,11 @@ seat_switch_to_guest (Seat *seat)
 {
     g_return_val_if_fail (seat != NULL, FALSE);
 
-    if (!seat->priv->can_switch)
+    if (!seat->priv->can_switch || !seat_get_allow_guest (seat))
         return FALSE;
 
-    if (!guest_account_get_is_enabled ())
-        return FALSE;
-
-    g_debug ("Switching to guest account");  
-    return switch_to_user (seat, guest_account_get_username (), TRUE);
+    g_debug ("Switching to guest account");
+    return switch_to_user (seat, seat->priv->guest_username, TRUE, TRUE);
 }
 
 void
@@ -296,6 +335,10 @@ seat_stop (Seat *seat)
 static void
 seat_real_setup (Seat *seat)
 {
+    if (seat->priv->config_section && config_has_key (config_get_instance (), seat->priv->config_section, "allow-guest"))
+        seat->priv->allow_guest = config_get_boolean (config_get_instance (), seat->priv->config_section, "allow-guest");
+    else if (config_has_key (config_get_instance (), "SeatDefaults", "allow-guest"))
+        seat->priv->allow_guest = config_get_boolean (config_get_instance (), "SeatDefaults", "allow-guest");
     if (seat->priv->config_section && config_has_key (config_get_instance (), seat->priv->config_section, "autologin-guest"))
         seat->priv->autologin_guest = config_get_boolean (config_get_instance (), seat->priv->config_section, "autologin-guest");
     else if (config_has_key (config_get_instance (), "SeatDefaults", "autologin-guest"))
@@ -315,16 +358,13 @@ seat_real_setup (Seat *seat)
 static gboolean
 seat_real_start (Seat *seat)
 {
-    Display *display;
-
-    display = add_display (seat);
-
+    /* Start showing a greeter */
     if (seat->priv->autologin_username)
-        display_set_default_user (display, seat->priv->autologin_username, FALSE, FALSE, seat->priv->autologin_timeout);
+        return switch_to_user (seat, seat->priv->autologin_username, FALSE, TRUE);
     else if (seat->priv->autologin_guest)
-        display_set_default_user (display, NULL, TRUE, FALSE, seat->priv->autologin_timeout);
-
-    return display_start (display);
+        return switch_to_user (seat, NULL, TRUE, TRUE);
+    else
+        return switch_to_user (seat, NULL, FALSE, FALSE);
 }
 
 static Display *
