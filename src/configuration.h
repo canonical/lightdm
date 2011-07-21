@@ -38,6 +38,8 @@ Configuration *config_get_instance (void);
 
 gboolean config_load_from_file (Configuration *config, const gchar *path, GError **error);
 
+gchar **config_get_groups (Configuration *config);
+
 gboolean config_has_key (Configuration *config, const gchar *section, const gchar *key);
 
 void config_set_string (Configuration *config, const gchar *section, const gchar *key, const gchar *value);

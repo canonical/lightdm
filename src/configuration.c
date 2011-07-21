@@ -34,6 +34,12 @@ config_load_from_file (Configuration *config, const gchar *path, GError **error)
     return g_key_file_load_from_file (config->priv->key_file, path, G_KEY_FILE_NONE, error);
 }
 
+gchar **
+config_get_groups (Configuration *config)
+{
+    return g_key_file_get_groups (config->priv->key_file, NULL);
+}
+
 gboolean
 config_has_key (Configuration *config, const gchar *section, const gchar *key)
 {

@@ -86,11 +86,37 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *ma
     return result;
 }
 
+static void
+add_static_seat (DisplayManager *manager, const gchar *config_section)
+{
+    gchar *type = NULL;
+    Seat *seat;
+
+    if (config_section)
+        type = config_get_string (config_get_instance (), config_section, "type");
+    if (!type)
+        type = config_get_string (config_get_instance (), "SeatDefaults", "type");
+    if (!type)
+    {
+        g_debug ("Seat missing type field");
+        return;
+    }
+
+    seat = seat_new (type, config_section);
+    if (seat)
+    {
+        if (!add_seat (manager, seat))
+            g_warning ("Failed to start seat %s", config_section);
+        g_object_unref (seat);
+    }
+    else
+        g_debug ("Unknown seat type %s", type);
+}
+
 void
 display_manager_start (DisplayManager *manager)
 {
-    gchar *seats;
-    gchar **tokens, **i;
+    gchar **groups, **i;
 
     g_return_if_fail (manager != NULL);
 
@@ -98,41 +124,25 @@ display_manager_start (DisplayManager *manager)
     seat_register_module ("xlocal", SEAT_XLOCAL_TYPE);
 
     /* Load the static display entries */
-    seats = config_get_string (config_get_instance (), "LightDM", "seats");
-    if (!seats)
-        seats = g_strdup ("");
-    tokens = g_strsplit (seats, " ", -1);
-    g_free (seats);
-
-    /* Start each static display */
-    for (i = tokens; *i; i++)
+    groups = config_get_groups (config_get_instance ());
+    for (i = groups; *i; i++)
     {
         gchar *config_section = *i;
-        gchar *type;
-        Seat *seat;
+
+        if (!g_str_has_prefix (config_section, "Seat:"))
+            continue;
 
         g_debug ("Loading seat %s", config_section);
-
-        type = config_get_string (config_get_instance (), config_section, "type");
-        if (!type)
-            type = config_get_string (config_get_instance (), "SeatDefaults", "type");
-        if (!type)
-        {
-            g_debug ("Seat missing type field");
-            continue;
-        }
-
-        seat = seat_new (type, config_section);
-        if (seat)
-        {
-            if (!add_seat (manager, seat))
-                g_warning ("Failed to start seat %s", config_section);
-            g_object_unref (seat);
-        }
-        else
-            g_debug ("Unknown seat type %s", type);
+        add_static_seat (manager, config_section);
     }
-    g_strfreev (tokens);
+    g_strfreev (groups);
+
+    /* If no seats start a default one */
+    if (!manager->priv->seats && config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
+    {
+        g_debug ("Adding default seat");
+        add_static_seat (manager, NULL);
+    }
 
     /* Disable Plymouth if no X servers are replacing it */
     if (plymouth_get_is_active ())
@@ -141,6 +151,7 @@ display_manager_start (DisplayManager *manager)
         plymouth_quit (FALSE);
     }
 
+    /* Start the XDMCP server */
     if (config_get_boolean (config_get_instance (), "XDMCPServer", "enabled"))
     {
         gchar *key_name, *key = NULL;
