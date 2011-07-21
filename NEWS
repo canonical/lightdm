@@ -30,8 +30,9 @@ Overview of changes in lightdm 0.9.0
       - Greeters now have hints instead of configuration (greeters should load their
         own configuration from /etc/lightdm if they need it).
       - liblightdm-gobject uses AccountsService if it is available
+      - Added regression tests for liblightdm-qt
     * D-Bus API changes:
-      - Make an object per seat
+      - Expose Seats and Sessions on org.freedesktop.DisplayManager
       - Add a CanSwitch property
       - Rename ShowGreeter() to SwitchToGreeter()
     * Greeter changes:
