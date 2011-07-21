@@ -54,8 +54,8 @@ typedef struct
 {
     GObjectClass parent_class;
 
-    void (*show_prompt)(LightDMGreeter *greeter, const gchar *text, LightDMPromptType type);
     void (*show_message)(LightDMGreeter *greeter, const gchar *text, LightDMMessageType type);
+    void (*show_prompt)(LightDMGreeter *greeter, const gchar *text, LightDMPromptType type);
     void (*authentication_complete)(LightDMGreeter *greeter);
     void (*autologin_timer_expired)(LightDMGreeter *greeter);
 } LightDMGreeterClass;

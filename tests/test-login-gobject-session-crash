@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/test-runner login-gobject-session-crash
+./src/test-runner login-session-crash test-gobject-greeter

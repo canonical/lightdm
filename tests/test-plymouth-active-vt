@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/test-runner plymouth-active-vt
+./src/test-runner plymouth-active-vt test-gobject-greeter

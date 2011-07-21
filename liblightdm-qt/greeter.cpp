@@ -388,23 +388,23 @@ void Greeter::onRead(int fd)
             qDebug() << "Prompt user with " << nMessages << " message(s)";
             for(int i = 0; i < nMessages; i++)
             {
-                int msgStyle = readInt(message, messageLength, &offset);
-                QString msg = readString(message, messageLength, &offset);
+                int style = readInt(message, messageLength, &offset);
+                QString text = readString(message, messageLength, &offset);
 
                 // FIXME: Should stop on prompts?
-                switch (msgStyle)
+                switch (style)
                 {
                 case PAM_PROMPT_ECHO_OFF:
-                    emit showPrompt(msg, PROMPT_TYPE_SECRET);
+                    emit showPrompt(text, PROMPT_TYPE_SECRET);
                     break;
                 case PAM_PROMPT_ECHO_ON:
-                    emit showPrompt(msg, PROMPT_TYPE_QUESTION);
+                    emit showPrompt(text, PROMPT_TYPE_QUESTION);
                     break;
                 case PAM_ERROR_MSG:
-                    emit showMessage(msg, MESSAGE_TYPE_ERROR);
+                    emit showMessage(text, MESSAGE_TYPE_ERROR);
                     break;
                 case PAM_TEXT_INFO:
-                    emit showMessage(msg, MESSAGE_TYPE_INFO);
+                    emit showMessage(text, MESSAGE_TYPE_INFO);
                     break;
                 }
             }

@@ -269,30 +269,30 @@ handle_prompt_authentication (LightDMGreeter *greeter, guint8 *message, gsize me
 
     for (i = 0; i < n_messages; i++)
     {
-        int msg_style;
-        gchar *msg;
+        int style;
+        gchar *text;
 
-        msg_style = read_int (message, message_length, offset);
-        msg = read_string (message, message_length, offset);
+        style = read_int (message, message_length, offset);
+        text = read_string (message, message_length, offset);
 
         // FIXME: Should stop on prompts?
-        switch (msg_style)
+        switch (style)
         {
         case PAM_PROMPT_ECHO_OFF:
-            g_signal_emit (G_OBJECT (greeter), signals[SHOW_PROMPT], 0, msg, LIGHTDM_PROMPT_TYPE_SECRET);
+            g_signal_emit (G_OBJECT (greeter), signals[SHOW_PROMPT], 0, text, LIGHTDM_PROMPT_TYPE_SECRET);
             break;
         case PAM_PROMPT_ECHO_ON:
-            g_signal_emit (G_OBJECT (greeter), signals[SHOW_PROMPT], 0, msg, LIGHTDM_PROMPT_TYPE_QUESTION);
+            g_signal_emit (G_OBJECT (greeter), signals[SHOW_PROMPT], 0, text, LIGHTDM_PROMPT_TYPE_QUESTION);
             break;
         case PAM_ERROR_MSG:
-            g_signal_emit (G_OBJECT (greeter), signals[SHOW_MESSAGE], 0, msg, LIGHTDM_MESSAGE_TYPE_ERROR);
+            g_signal_emit (G_OBJECT (greeter), signals[SHOW_MESSAGE], 0, text, LIGHTDM_MESSAGE_TYPE_ERROR);
             break;
         case PAM_TEXT_INFO:
-            g_signal_emit (G_OBJECT (greeter), signals[SHOW_MESSAGE], 0, msg, LIGHTDM_MESSAGE_TYPE_INFO);
+            g_signal_emit (G_OBJECT (greeter), signals[SHOW_MESSAGE], 0, text, LIGHTDM_MESSAGE_TYPE_INFO);
             break;
         }
 
-        g_free (msg);
+        g_free (text);
     }
 }
 

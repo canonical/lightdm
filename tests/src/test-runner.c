@@ -433,7 +433,7 @@ int
 main (int argc, char **argv)
 {
     GMainLoop *loop;
-    gchar *script_name, *config_file, *config_path, *path, *path1, *path2, *ld_library_path, *home_dir;
+    gchar *greeter = NULL, *script_name, *config_file, *config_path, *path, *path1, *path2, *ld_library_path, *home_dir;
     GString *passwd_data;
     int status_socket;
     gchar *dbus_command, dbus_address[1024];
@@ -453,15 +453,18 @@ main (int argc, char **argv)
 
     loop = g_main_loop_new (NULL, FALSE);
 
-    if (argc != 2)
+    if (argc != 2 && argc != 3)
     {
-        g_printerr ("Usage %s SCRIPT-NAME\n", argv[0]);
+        g_printerr ("Usage %s SCRIPT-NAME [GREETER]\n", argv[0]);
         quit (EXIT_FAILURE);
     }
     script_name = argv[1];
     config_file = g_strdup_printf ("%s.conf", script_name);
     config_path = g_build_filename (SRCDIR, "tests", "scripts", config_file, NULL);
     g_free (config_file);
+
+    if (argc == 3)
+        greeter = argv[2];
 
     load_script (script_name);
     
@@ -583,7 +586,8 @@ main (int argc, char **argv)
         g_string_append_printf (command_line, " --config %s", config_path);
     g_string_append (command_line, " --no-root");
     g_string_append(command_line, " --xserver-command=test-xserver");
-    g_string_append (command_line, " --greeter-session=test-greeter");
+    if (greeter)
+        g_string_append_printf (command_line, " --greeter-session=%s", greeter);
     g_string_append (command_line, " --user-session=test-session");
     g_string_append_printf (command_line, " --passwd-file %s/passwd", temp_dir);
     g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);

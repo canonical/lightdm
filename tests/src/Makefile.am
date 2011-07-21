@@ -1,6 +1,10 @@
 noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-session plymouth
 dist_noinst_SCRIPTS = test-setup-guest test-cleanup-guest
 
+if COMPILE_LIBLIGHTDM_QT
+noinst_PROGRAMS += test-qt-greeter
+endif
+
 test_runner_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
@@ -38,6 +42,17 @@ test_gobject_greeter_LDADD = \
 	$(GOBJECT_LIBS) \
 	$(XCB_LIBS)
 
+test-qt-greeter_moc.cpp: test-qt-greeter.h
+	moc $< -o $@
+test_qt_greeter_SOURCES = test-qt-greeter.cpp test-qt-greeter_moc.cpp status.c status.h
+test_qt_greeter_CXXFLAGS = \
+	-I$(top_srcdir)/liblightdm-qt \
+	$(LIGHTDM_QT_GREETER_CFLAGS)
+test_qt_greeter_LDADD = \
+	-L$(top_builddir)/liblightdm-qt \
+	-llightdm-qt-1 \
+	$(LIGHTDM_QT_GREETER_LIBS)
+
 test_session_SOURCES = test-session.c status.c status.h
 test_session_CFLAGS = \
 	$(WARN_CFLAGS) \
@@ -53,3 +68,6 @@ plymouth_CFLAGS = \
 	$(GLIB_CFLAGS)
 plymouth_LDADD = \
 	$(GLIB_LIBS)
+
+CLEANFILES = \
+	test-qt-greeter_moc.cpp

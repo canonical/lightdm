@@ -19,6 +19,7 @@ TESTS = \
 	test-login-gobject-guest-disabled \
 	test-login-gobject-guest-no-setup-script \
 	test-login-gobject-guest-fail-setup-script \
+	test-login-qt \
 	test-plymouth-active-vt \
 	test-plymouth-inactive-vt \
 	test-plymouth-xserver-fail-start \
@@ -46,30 +47,30 @@ EXTRA_DIST = \
 	scripts/headless.script \
 	scripts/login-gobject.conf \
 	scripts/login-gobject.script \
-	scripts/login-gobject-guest.conf \
-	scripts/login-gobject-guest.script \
-	scripts/login-gobject-guest-disabled.conf \
-	scripts/login-gobject-guest-disabled.script \
-	scripts/login-gobject-guest-fail-setup-script.conf \
-	scripts/login-gobject-guest-fail-setup-script.script \
-	scripts/login-gobject-guest-no-config.conf \
-	scripts/login-gobject-guest-no-config.script \
-	scripts/login-gobject-guest-no-setup-script.conf \
-	scripts/login-gobject-guest-no-setup-script.script \
-	scripts/login-gobject-invalid-user.conf \
-	scripts/login-gobject-invalid-user.script \
-	scripts/login-gobject-logout.conf \
-	scripts/login-gobject-logout.script \
-	scripts/login-gobject-manual.conf \
-	scripts/login-gobject-manual.script \
-	scripts/login-gobject-no-password.conf \
-	scripts/login-gobject-no-password.script \
-	scripts/login-gobject-session-crash.conf \
-	scripts/login-gobject-session-crash.script \
-	scripts/login-gobject-wrong-password.conf \
-	scripts/login-gobject-wrong-password.script \
-	scripts/login-gobject-xserver-crash.conf \
-	scripts/login-gobject-xserver-crash.script \
+	scripts/login-guest.conf \
+	scripts/login-guest.script \
+	scripts/login-guest-disabled.conf \
+	scripts/login-guest-disabled.script \
+	scripts/login-guest-fail-setup-script.conf \
+	scripts/login-guest-fail-setup-script.script \
+	scripts/login-guest-no-config.conf \
+	scripts/login-guest-no-config.script \
+	scripts/login-guest-no-setup-script.conf \
+	scripts/login-guest-no-setup-script.script \
+	scripts/login-invalid-user.conf \
+	scripts/login-invalid-user.script \
+	scripts/login-logout.conf \
+	scripts/login-logout.script \
+	scripts/login-manual.conf \
+	scripts/login-manual.script \
+	scripts/login-no-password.conf \
+	scripts/login-no-password.script \
+	scripts/login-session-crash.conf \
+	scripts/login-session-crash.script \
+	scripts/login-wrong-password.conf \
+	scripts/login-wrong-password.script \
+	scripts/login-xserver-crash.conf \
+	scripts/login-xserver-crash.script \
 	scripts/no-config.script \
 	scripts/plymouth-active-vt.conf \
 	scripts/plymouth-active-vt.script \

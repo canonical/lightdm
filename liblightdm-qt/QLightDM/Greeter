@@ -67,8 +67,8 @@ namespace QLightDM
         bool startSessionSync(const QString &session=QString());
 
     signals:
-        void showPrompt(QString prompt, PromptType type);
-        void showMessage(QString message, MessageType type);
+        void showMessage(QString text, QLightDM::MessageType type);
+        void showPrompt(QString text, QLightDM::PromptType type);
         void authenticationComplete();
         void autologinTimerExpired();
 

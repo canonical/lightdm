@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/test-runner xserver-fail-start
+./src/test-runner xserver-fail-start test-gobject-greeter

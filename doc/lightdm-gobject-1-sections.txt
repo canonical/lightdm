@@ -118,10 +118,10 @@ LIGHTDM_USER_LIST_GET_CLASS
 <SECTION>
 <FILE>greeter</FILE>
 <TITLE>Greeter Interface</TITLE>
-autologin_timer_expired
 show_message
 show_prompt
 authentication_complete
+autologin_timer_expired
 LightDMMessageType
 LightDMPromptType
 lightdm_greeter_new

@@ -80,14 +80,6 @@ static void quit_cb (LightDMGreeter *greeter)
 <!-- ##### SECTION Image ##### -->
 
 
-<!-- ##### USER_FUNCTION autologin_timer_expired ##### -->
-<para>
-
-</para>
-
-@greeter: 
-
-
 <!-- ##### USER_FUNCTION show_message ##### -->
 <para>
 
@@ -109,6 +101,14 @@ static void quit_cb (LightDMGreeter *greeter)
 
 
 <!-- ##### USER_FUNCTION authentication_complete ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
+<!-- ##### USER_FUNCTION autologin_timer_expired ##### -->
 <para>
 
 </para>

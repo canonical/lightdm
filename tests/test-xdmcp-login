@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/test-runner xdmcp-login
+./src/test-runner xdmcp-login test-gobject-greeter

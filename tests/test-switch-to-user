@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/test-runner switch-to-user
+./src/test-runner switch-to-user test-gobject-greeter
