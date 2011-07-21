@@ -206,15 +206,13 @@ pam_messages_cb (PAMSession *session, int num_msg, const struct pam_message **ms
 
     /* Respond to d-bus query with messages */
     g_debug ("Prompt greeter with %d message(s)", num_msg);
-    size = int_length () + int_length ();
+    size = int_length () + string_length (pam_session_get_username (session)) + int_length ();
     for (i = 0; i < num_msg; i++)
-    {
-      g_debug ("%s", msg[i]->msg);
         size += int_length () + string_length (msg[i]->msg);
-    }
   
     write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_PROMPT_AUTHENTICATION, size, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->authentication_sequence_number, &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, pam_session_get_username (session), &offset);
     write_int (message, MAX_MESSAGE_LENGTH, num_msg, &offset);
     for (i = 0; i < num_msg; i++)
     {
@@ -225,13 +223,14 @@ pam_messages_cb (PAMSession *session, int num_msg, const struct pam_message **ms
 }
 
 static void
-send_end_authentication (Greeter *greeter, guint32 sequence_number, int result)
+send_end_authentication (Greeter *greeter, guint32 sequence_number, const gchar *username, int result)
 {
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
 
-    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_END_AUTHENTICATION, int_length () + int_length (), &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_END_AUTHENTICATION, int_length () + string_length (username) + int_length (), &offset);
     write_int (message, MAX_MESSAGE_LENGTH, sequence_number, &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, result, &offset);
     write_message (greeter, message, offset); 
 }
@@ -247,7 +246,7 @@ authentication_result_cb (PAMSession *session, int result, Greeter *greeter)
         pam_session_authorize (session);
     }
 
-    send_end_authentication (greeter, greeter->priv->authentication_sequence_number, result);
+    send_end_authentication (greeter, greeter->priv->authentication_sequence_number, pam_session_get_username (session), result);
 }
 
 static void
@@ -286,7 +285,7 @@ handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
     if (!pam_session_start (greeter->priv->pam_session, &error))
     {
         g_warning ("Failed to start authentication: %s", error->message);
-        send_end_authentication (greeter, sequence_number, PAM_SYSTEM_ERR);
+        send_end_authentication (greeter, sequence_number, "", PAM_SYSTEM_ERR);
     }
     g_clear_error (&error);
 }
@@ -301,12 +300,12 @@ handle_login_as_guest (Greeter *greeter, guint32 sequence_number)
     if (!greeter->priv->allow_guest)
     {
         g_debug ("Guest account is disabled");
-        send_end_authentication (greeter, sequence_number, PAM_USER_UNKNOWN);
+        send_end_authentication (greeter, sequence_number, "", PAM_USER_UNKNOWN);
         return;
     }
 
     greeter->priv->using_guest_account = TRUE;  
-    send_end_authentication (greeter, sequence_number, PAM_SUCCESS);
+    send_end_authentication (greeter, sequence_number, "", PAM_SUCCESS);
 }
 
 static void

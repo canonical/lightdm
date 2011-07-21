@@ -46,7 +46,11 @@ void TestGreeter::showPrompt (QString text, QLightDM::PromptType type)
 
 void TestGreeter::authenticationComplete ()
 {
-    notify_status ("GREETER AUTHENTICATION-COMPLETE AUTHENTICATED=%s", isAuthenticated () ? "TRUE" : "FALSE");
+    if (authenticationUser () != "")
+        notify_status ("GREETER AUTHENTICATION-COMPLETE USERNAME=%s AUTHENTICATED=%s",
+                       authenticationUser ().toAscii ().constData (), isAuthenticated () ? "TRUE" : "FALSE");
+    else
+        notify_status ("GREETER AUTHENTICATION-COMPLETE AUTHENTICATED=%s", isAuthenticated () ? "TRUE" : "FALSE");
     if (!isAuthenticated ())
         return;
 

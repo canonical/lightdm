@@ -43,7 +43,13 @@ show_prompt_cb (LightDMGreeter *greeter, const gchar *text, LightDMPromptType ty
 static void
 authentication_complete_cb (LightDMGreeter *greeter)
 {
-    notify_status ("GREETER AUTHENTICATION-COMPLETE AUTHENTICATED=%s", lightdm_greeter_get_is_authenticated (greeter) ? "TRUE" : "FALSE");
+    if (lightdm_greeter_get_authentication_user (greeter))
+        notify_status ("GREETER AUTHENTICATION-COMPLETE USERNAME=%s AUTHENTICATED=%s",
+                       lightdm_greeter_get_authentication_user (greeter),
+                       lightdm_greeter_get_is_authenticated (greeter) ? "TRUE" : "FALSE");
+    else
+        notify_status ("GREETER AUTHENTICATION-COMPLETE AUTHENTICATED=%s",
+                       lightdm_greeter_get_is_authenticated (greeter) ? "TRUE" : "FALSE");
     if (!lightdm_greeter_get_is_authenticated (greeter))
         return;
 

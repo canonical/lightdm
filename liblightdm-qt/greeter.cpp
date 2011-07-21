@@ -380,6 +380,9 @@ void Greeter::onRead(int fd)
     {
     case SERVER_MESSAGE_PROMPT_AUTHENTICATION:
         sequenceNumber = readInt(message, messageLength, &offset);
+        username = readString(message, messageLength, &offset);
+
+        d->authenticationUser = username;
 
         if (sequenceNumber == d->authenticateSequenceNumber &&
             !d->cancellingAuthentication)
@@ -412,16 +415,16 @@ void Greeter::onRead(int fd)
         break;
     case SERVER_MESSAGE_END_AUTHENTICATION:
         sequenceNumber = readInt(message, messageLength, &offset);
+        username = readString(message, messageLength, &offset);
         returnCode = readInt(message, messageLength, &offset);
 
         if (sequenceNumber == d->authenticateSequenceNumber)
         {
             qDebug() << "Authentication complete with return code " << returnCode;
+
             d->cancellingAuthentication = false;
             d->isAuthenticated = (returnCode == 0);
-            if(!d->isAuthenticated) {
-                d->authenticationUser = "";
-            }
+            d->authenticationUser = username;
             emit authenticationComplete();
             d->inAuthentication = false;
         }

@@ -250,6 +250,7 @@ handle_prompt_authentication (LightDMGreeter *greeter, guint8 *message, gsize me
 {
     LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
     guint32 sequence_number, n_messages, i;
+    gchar *username;
 
     sequence_number = read_int (message, message_length, offset);
     if (sequence_number != priv->authenticate_sequence_number)
@@ -263,6 +264,17 @@ handle_prompt_authentication (LightDMGreeter *greeter, guint8 *message, gsize me
         g_debug ("Ignoring prompt authentication as waiting for it to cancel");
         return;
     }
+
+    /* Update username */
+    username = read_string (message, message_length, offset);
+    if (strcmp (username, "") == 0)
+    {
+        g_free (username);
+        username = NULL;
+    }
+    else
+    g_free (priv->authentication_user);
+    priv->authentication_user = username;
 
     n_messages = read_int (message, message_length, offset);
     g_debug ("Prompt user with %d message(s)", n_messages);
@@ -301,9 +313,9 @@ handle_end_authentication (LightDMGreeter *greeter, guint8 *message, gsize messa
 {
     LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
     guint32 sequence_number, return_code;
+    gchar *username;
 
     sequence_number = read_int (message, message_length, offset);
-    return_code = read_int (message, message_length, offset);
 
     if (sequence_number != priv->authenticate_sequence_number)
     {
@@ -311,14 +323,22 @@ handle_end_authentication (LightDMGreeter *greeter, guint8 *message, gsize messa
         return;
     }
 
-    g_debug ("Authentication complete with return code %d", return_code);
+    username = read_string (message, message_length, offset);
+    return_code = read_int (message, message_length, offset);
+
+    g_debug ("Authentication complete for user %s with return code %d", username, return_code);
+
+    /* Update username */
+    if (strcmp (username, "") == 0)
+    {
+        g_free (username);
+        username = NULL;
+    }
+    g_free (priv->authentication_user);
+    priv->authentication_user = username;
+
     priv->cancelling_authentication = FALSE;
     priv->is_authenticated = (return_code == 0);
-    if (!priv->is_authenticated)
-    {
-        g_free (priv->authentication_user);
-        priv->authentication_user = NULL;
-    }
 
     g_signal_emit (G_OBJECT (greeter), signals[AUTHENTICATION_COMPLETE], 0);
     priv->in_authentication = FALSE;
