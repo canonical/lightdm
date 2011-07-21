@@ -20,6 +20,18 @@ TESTS = \
 	test-login-gobject-guest-no-setup-script \
 	test-login-gobject-guest-fail-setup-script \
 	test-login-qt \
+	test-login-qt-manual \
+	test-login-qt-no-password \
+	test-login-qt-wrong-password \
+	test-login-qt-invalid-user \
+	test-login-qt-logout \
+	test-login-qt-xserver-crash \
+	test-login-qt-session-crash \
+	test-login-qt-guest \
+	test-login-qt-guest-no-config \
+	test-login-qt-guest-disabled \
+	test-login-qt-guest-no-setup-script \
+	test-login-qt-guest-fail-setup-script \
 	test-plymouth-active-vt \
 	test-plymouth-inactive-vt \
 	test-plymouth-xserver-fail-start \
@@ -45,8 +57,8 @@ EXTRA_DIST = \
 	scripts/autologin-logout.script \
 	scripts/headless.conf \
 	scripts/headless.script \
-	scripts/login-gobject.conf \
-	scripts/login-gobject.script \
+	scripts/login.conf \
+	scripts/login.script \
 	scripts/login-guest.conf \
 	scripts/login-guest.script \
 	scripts/login-guest-disabled.conf \
