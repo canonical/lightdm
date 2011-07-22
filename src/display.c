@@ -473,15 +473,15 @@ create_session (Display *display, PAMSession *pam_session, const gchar *session_
     session_desktop_file = g_key_file_new ();
     result = g_key_file_load_from_file (session_desktop_file, path, G_KEY_FILE_NONE, &error);
     if (!result)
-        g_warning ("Failed to load session file %s: %s:", path, error->message);
+        g_debug ("Failed to load session file %s: %s:", path, error->message);
     g_clear_error (&error);
     if (result)
     {
         command = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
-        g_key_file_free (session_desktop_file);
         if (!command)
             g_warning ("No command in session file %s", path);
     }
+    g_key_file_free (session_desktop_file);
     g_free (path);     
     if (!command)
         return NULL;
@@ -681,6 +681,11 @@ start_greeter_session (Display *display)
 
     session = create_session (display, pam_session, display->priv->greeter_session, TRUE, log_filename);
     g_free (log_filename);
+    if (!session)
+    {
+        g_object_unref (pam_session);
+        return FALSE;
+    }
 
     display->priv->greeter = greeter_new (session);
     g_signal_connect (G_OBJECT (display->priv->greeter), "start-authentication", G_CALLBACK (greeter_start_authentication_cb), display);
@@ -764,14 +769,14 @@ start_user_session (Display *display, PAMSession *pam_session, const gchar *name
 
     session = create_session (display, pam_session, name, FALSE, log_filename);
     g_free (log_filename);
-  
+
     if (session)
-        result = start_session (display, session, pam_session);
-    else
     {
-        result = FALSE;
+        result = start_session (display, session, pam_session);
         g_object_unref (session);
     }
+    else
+        result = FALSE;
 
     return result;
 }
