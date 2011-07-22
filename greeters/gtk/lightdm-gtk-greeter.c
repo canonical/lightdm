@@ -497,7 +497,7 @@ main(int argc, char **argv)
     const GList *items, *item;
     GtkTreeIter iter;
     GtkCellRenderer *renderer;
-    gchar *theme_name, *background;
+    gchar *value;
     GdkPixbuf *background_pixbuf = NULL;
     GdkColor background_color;
     gint i;
@@ -528,17 +528,18 @@ main(int argc, char **argv)
     gdk_window_set_cursor (gdk_get_default_root_window (), gdk_cursor_new (GDK_LEFT_PTR));
 
     /* Load background */
-    background = g_key_file_get_value (config, "greeter", "background", NULL);
-    gdk_color_parse ("#000000", &background_color);
-    if (background && !gdk_color_parse (background, &background_color))
+    value = g_key_file_get_value (config, "greeter", "background", NULL);
+    if (!value)
+        value = g_strdup ("#000000");
+    if (!gdk_color_parse (value, &background_color))
     {
         gchar *path;
         GError *error = NULL;
 
-        if (g_path_is_absolute (background))
-            path = g_strdup (background);
+        if (g_path_is_absolute (value))
+            path = g_strdup (value);
         else
-            path = g_build_filename (GREETER_DATA_DIR, background, NULL);
+            path = g_build_filename (GREETER_DATA_DIR, value, NULL);
 
         g_debug ("Loading background %s", path);
         background_pixbuf = gdk_pixbuf_new_from_file (path, &error);
@@ -547,6 +548,9 @@ main(int argc, char **argv)
         g_clear_error (&error);
         g_free (path);
     }
+    else
+        g_debug ("Using background color %s", value);
+    g_free (value);
 
     /* Set the background */
     for (i = 0; i < gdk_display_get_n_screens (gdk_display_get_default ()); i++)
@@ -563,7 +567,6 @@ main(int argc, char **argv)
         for (monitor = 0; monitor < gdk_screen_get_n_monitors (screen); monitor++)
         {
             gdk_screen_get_monitor_geometry (screen, monitor, &monitor_geometry);
-            g_debug ("%p", background_pixbuf);
 
             if (background_pixbuf)
             {
@@ -585,12 +588,40 @@ main(int argc, char **argv)
     if (background_pixbuf)
         g_object_unref (background_pixbuf);
 
-    /* Set GTK+ theme to use */
-    theme_name = g_key_file_get_value (config, "greeter", "theme", NULL);
-    if (theme_name)
-        g_object_set (gtk_settings_get_default (), "gtk-theme-name", theme_name, NULL);  
+    /* Set GTK+ settings */
+    value = g_key_file_get_value (config, "greeter", "theme-name", NULL);
+    if (value)
+    {
+        g_debug ("Using theme %s", value);
+        g_object_set (gtk_settings_get_default (), "gtk-theme-name", value, NULL);
+    }
+    g_free (value);
     g_object_get (gtk_settings_get_default (), "gtk-theme-name", &default_theme_name, NULL);
+    g_debug ("Default theme is '%s'", default_theme_name);
 
+    value = g_key_file_get_value (config, "greeter", "font-name", NULL);
+    if (value)
+    {
+        g_debug ("Using font %s", value);
+        g_object_set (gtk_settings_get_default (), "gtk-font-name", value, NULL);
+    }
+    value = g_key_file_get_value (config, "greeter", "xft-dpi", NULL);
+    if (value)
+        g_object_set (gtk_settings_get_default (), "gtk-xft-dpi", (int) (1024 * atof (value)), NULL);
+    value = g_key_file_get_value (config, "greeter", "xft-antialias", NULL);
+    if (value)
+        g_object_set (gtk_settings_get_default (), "gtk-xft-antialias", strcmp (value, "true") == 0, NULL);
+    g_free (value);
+    value = g_key_file_get_value (config, "greeter", "xft-hintstyle", NULL);
+    if (value)
+        g_object_set (gtk_settings_get_default (), "gtk-xft-hintstyle", value, NULL);
+    g_free (value);
+    value = g_key_file_get_value (config, "greeter", "xft-rgba", NULL);
+    if (value)
+        g_object_set (gtk_settings_get_default (), "gtk-xft-rgba", value, NULL);
+    g_free (value);
+
+    /* Load out installed icons */
     gtk_icon_theme_append_search_path (gtk_icon_theme_get_default (), GREETER_DATA_DIR);
     gchar **path;
     gtk_icon_theme_get_search_path (gtk_icon_theme_get_default (), &path, NULL);
