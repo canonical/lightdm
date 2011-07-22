@@ -302,6 +302,8 @@ restart_cb (GtkWidget *widget, LightDMGreeter *greeter)
 {
     GtkWidget *dialog;
 
+    gtk_widget_hide (GTK_WIDGET (login_window));
+
     dialog = gtk_message_dialog_new (NULL,
                                      GTK_DIALOG_MODAL,
                                      GTK_MESSAGE_OTHER,
@@ -314,7 +316,9 @@ restart_cb (GtkWidget *widget, LightDMGreeter *greeter)
 
     if (gtk_dialog_run (GTK_DIALOG (dialog)))
         lightdm_restart ();
+
     gtk_widget_destroy (dialog);
+    gtk_widget_show (GTK_WIDGET (login_window));
 }
 
 void shutdown_cb (GtkWidget *widget, LightDMGreeter *greeter);
@@ -323,6 +327,8 @@ void
 shutdown_cb (GtkWidget *widget, LightDMGreeter *greeter)
 {
     GtkWidget *dialog;
+
+    gtk_widget_hide (GTK_WIDGET (login_window));
 
     dialog = gtk_message_dialog_new (NULL,
                                      GTK_DIALOG_MODAL,
@@ -336,7 +342,9 @@ shutdown_cb (GtkWidget *widget, LightDMGreeter *greeter)
 
     if (gtk_dialog_run (GTK_DIALOG (dialog)))
         lightdm_shutdown ();
+
     gtk_widget_destroy (dialog);
+    gtk_widget_show (GTK_WIDGET (login_window));
 }
 
 static void
