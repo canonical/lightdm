@@ -309,8 +309,7 @@ restart_cb (GtkWidget *widget, LightDMGreeter *greeter)
                                      GTK_MESSAGE_OTHER,
                                      GTK_BUTTONS_NONE,
                                      "%s", _("Are you sure you want to close all programs and restart the computer?"));
-    gtk_message_dialog_set_image (GTK_MESSAGE_DIALOG (dialog), gtk_image_new_from_icon_name ("system-restart", GTK_ICON_SIZE_DIALOG));
-    gtk_dialog_add_buttons (GTK_DIALOG (dialog), _("Cancel"), FALSE, _("Restart"), TRUE, NULL);
+    gtk_dialog_add_buttons (GTK_DIALOG (dialog), _("Return To Login"), FALSE, _("Restart"), TRUE, NULL);
     gtk_widget_show_all (dialog);
     center_window (GTK_WINDOW (dialog));
 
@@ -335,8 +334,7 @@ shutdown_cb (GtkWidget *widget, LightDMGreeter *greeter)
                                      GTK_MESSAGE_OTHER,
                                      GTK_BUTTONS_NONE,
                                      "%s", _("Are you sure you want to close all programs and shutdown the computer?"));
-    gtk_message_dialog_set_image (GTK_MESSAGE_DIALOG (dialog), gtk_image_new_from_icon_name ("system-shutdown", GTK_ICON_SIZE_DIALOG));
-    gtk_dialog_add_buttons (GTK_DIALOG (dialog), _("Cancel"), FALSE, _("Shutdown"), TRUE, NULL);
+    gtk_dialog_add_buttons (GTK_DIALOG (dialog), _("Return To Login"), FALSE, _("Shutdown"), TRUE, NULL);
     gtk_widget_show_all (dialog);
     center_window (GTK_WINDOW (dialog));
 
