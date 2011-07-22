@@ -19,6 +19,16 @@ TESTS = \
 	test-login-gobject-guest-disabled \
 	test-login-gobject-guest-no-setup-script \
 	test-login-gobject-guest-fail-setup-script \
+	test-plymouth-active-vt \
+	test-plymouth-inactive-vt \
+	test-plymouth-xserver-fail-start \
+	test-switch-to-greeter \
+	test-switch-to-guest \
+	test-switch-to-user \
+	test-xdmcp-login
+
+if COMPILE_LIBLIGHTDM_QT
+TESTS += \
 	test-login-qt \
 	test-login-qt-manual \
 	test-login-qt-no-password \
@@ -31,14 +41,8 @@ TESTS = \
 	test-login-qt-guest-no-config \
 	test-login-qt-guest-disabled \
 	test-login-qt-guest-no-setup-script \
-	test-login-qt-guest-fail-setup-script \
-	test-plymouth-active-vt \
-	test-plymouth-inactive-vt \
-	test-plymouth-xserver-fail-start \
-	test-switch-to-greeter \
-	test-switch-to-guest \
-	test-switch-to-user \
-	test-xdmcp-login
+	test-login-qt-guest-fail-setup-script
+endif
 
 # In progress
 #	test-autologin-xserver-crash
