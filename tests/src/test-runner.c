@@ -485,7 +485,7 @@ main (int argc, char **argv)
     g_setenv ("PATH", path, TRUE);
     g_free (path);
     path1 = g_build_filename (BUILDDIR, "liblightdm-gobject", ".libs", NULL);  
-    path2 = g_build_filename (BUILDDIR, "liblightdm-qt", "QLightDM", ".libs", NULL);
+    path2 = g_build_filename (BUILDDIR, "liblightdm-qt", ".libs", NULL);
     ld_library_path = g_strdup_printf ("%s:%s", path1, path2);
     g_free (path1);
     g_free (path2);
