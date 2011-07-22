@@ -47,7 +47,6 @@ Greeter::Greeter() :
     m_panel->setAutoFillBackground(true);
 }
 
-
 Greeter::~Greeter()
 {
 }

@@ -36,7 +36,7 @@ signals:
     
 private slots:
     void onLoginButtonClicked();
-    void onAuthenticationComplete(bool success);
+    void onAuthenticationComplete();
     void prompt(const QString &message);
 
 private:

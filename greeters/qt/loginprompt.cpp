@@ -34,7 +34,7 @@ LoginPrompt::LoginPrompt(QLightDM::Greeter *greeter, QWidget *parent) :
     ui->userListView->setModel(QLightDM::users());
 
     connect(ui->loginButton, SIGNAL(released()), SLOT(onLoginButtonClicked()));
-    connect(m_greeter, SIGNAL(authenticationComplete(bool)), SLOT(onAuthenticationComplete(bool)));
+    connect(m_greeter, SIGNAL(authenticationComplete()), SLOT(onAuthenticationComplete()));
     connect(m_greeter, SIGNAL(showPrompt(QString)), SLOT(prompt(QString)));
 }
 
@@ -42,7 +42,6 @@ LoginPrompt::~LoginPrompt()
 {
     delete ui;
 }
-
 
 void LoginPrompt::onLoginButtonClicked()
 {
@@ -53,9 +52,9 @@ void LoginPrompt::onLoginButtonClicked()
     }
 }
 
-void LoginPrompt::onAuthenticationComplete(bool success)
+void LoginPrompt::onAuthenticationComplete()
 {
-    if (success) {
+    if (m_greeter->isAuthenticated()) {
         emit startSession();
     } else {
         ui->feedbackLabel->setText("Sorry, you suck. Try again.");
