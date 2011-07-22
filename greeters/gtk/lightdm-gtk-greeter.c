@@ -20,9 +20,11 @@
 
 static LightDMGreeter *greeter;
 static GtkWindow *login_window, *panel_window;
-static GtkLabel *message_label;
+static GtkLabel *message_label, *prompt_label;
 static GtkTreeView *user_view;
-static GtkWidget *prompt_box, *prompt_label, *prompt_entry, *session_combo;
+static GtkWidget *prompt_box;
+static GtkEntry *prompt_entry;
+static GtkComboBox *session_combo;
 static gchar *default_font_name, *default_theme_name;
 
 static gchar *
@@ -31,10 +33,10 @@ get_session ()
     GtkTreeIter iter;
     gchar *session;
 
-    if (!gtk_combo_box_get_active_iter (GTK_COMBO_BOX (session_combo), &iter))
+    if (!gtk_combo_box_get_active_iter (session_combo, &iter))
         return g_strdup (lightdm_greeter_get_default_session_hint (greeter));
 
-    gtk_tree_model_get (gtk_combo_box_get_model (GTK_COMBO_BOX (session_combo)), &iter, 1, &session, -1);
+    gtk_tree_model_get (gtk_combo_box_get_model (session_combo), &iter, 1, &session, -1);
 
     return session;
 }
@@ -42,7 +44,7 @@ get_session ()
 static void
 set_session (const gchar *session)
 {
-    GtkTreeModel *model = gtk_combo_box_get_model (GTK_COMBO_BOX (session_combo));
+    GtkTreeModel *model = gtk_combo_box_get_model (session_combo);
     GtkTreeIter iter;
 
     if (!gtk_tree_model_get_iter_first (model, &iter))
@@ -57,7 +59,7 @@ set_session (const gchar *session)
         g_free (s);
         if (matched)
         {
-            gtk_combo_box_set_active_iter (GTK_COMBO_BOX (session_combo), &iter);
+            gtk_combo_box_set_active_iter (session_combo, &iter);
             return;
         }
     } while (gtk_tree_model_iter_next (model, &iter));
@@ -138,12 +140,12 @@ G_MODULE_EXPORT
 void
 login_cb (GtkWidget *widget)
 {
-    gtk_widget_set_sensitive (prompt_entry, FALSE);
+    gtk_widget_set_sensitive (GTK_WIDGET (prompt_entry), FALSE);
     if (!lightdm_greeter_get_in_authentication (greeter))
-        start_authentication (gtk_entry_get_text (GTK_ENTRY (prompt_entry)));
+        start_authentication (gtk_entry_get_text (prompt_entry));
     else
-        lightdm_greeter_respond (greeter, gtk_entry_get_text (GTK_ENTRY (prompt_entry)));
-    gtk_entry_set_text (GTK_ENTRY (prompt_entry), "");
+        lightdm_greeter_respond (greeter, gtk_entry_get_text (prompt_entry));
+    gtk_entry_set_text (prompt_entry, "");
 }
 
 void cancel_cb (GtkWidget *widget);
@@ -157,12 +159,12 @@ cancel_cb (GtkWidget *widget)
 static void
 show_prompt_cb (LightDMGreeter *greeter, const gchar *text, LightDMPromptType type)
 {
-    gtk_label_set_text (GTK_LABEL (prompt_label), text);
-    gtk_widget_set_sensitive (prompt_entry, TRUE);
-    gtk_entry_set_text (GTK_ENTRY (prompt_entry), "");
-    gtk_entry_set_visibility (GTK_ENTRY (prompt_entry), type != LIGHTDM_PROMPT_TYPE_SECRET);
-    gtk_widget_show (prompt_box);
-    gtk_widget_grab_focus (prompt_entry);
+    gtk_label_set_text (prompt_label, text);
+    gtk_widget_set_sensitive (GTK_WIDGET (prompt_entry), TRUE);
+    gtk_entry_set_text (prompt_entry, "");
+    gtk_entry_set_visibility (prompt_entry, type != LIGHTDM_PROMPT_TYPE_SECRET);
+    gtk_widget_show (GTK_WIDGET (prompt_box));
+    gtk_widget_grab_focus (GTK_WIDGET (prompt_entry));
 }
 
 static void
@@ -176,8 +178,8 @@ static void
 authentication_complete_cb (LightDMGreeter *greeter)
 {
     gtk_widget_hide (prompt_box);
-    gtk_label_set_text (GTK_LABEL (prompt_label), "");
-    gtk_entry_set_text (GTK_ENTRY (prompt_entry), "");
+    gtk_label_set_text (prompt_label, "");
+    gtk_entry_set_text (prompt_entry, "");
 
     gtk_widget_grab_focus (GTK_WIDGET (user_view));
 
@@ -658,10 +660,10 @@ main(int argc, char **argv)
 
     login_window = GTK_WINDOW (gtk_builder_get_object (builder, "login_window"));
     prompt_box = GTK_WIDGET (gtk_builder_get_object (builder, "prompt_box"));
-    prompt_label = GTK_WIDGET (gtk_builder_get_object (builder, "prompt_label"));
-    prompt_entry = GTK_WIDGET (gtk_builder_get_object (builder, "prompt_entry"));
+    prompt_label = GTK_LABEL (gtk_builder_get_object (builder, "prompt_label"));
+    prompt_entry = GTK_ENTRY (gtk_builder_get_object (builder, "prompt_entry"));
     message_label = GTK_LABEL (gtk_builder_get_object (builder, "message_label"));
-    session_combo = GTK_WIDGET (gtk_builder_get_object (builder, "session_combobox"));
+    session_combo = GTK_COMBO_BOX (gtk_builder_get_object (builder, "session_combobox"));
     panel_window = GTK_WINDOW (gtk_builder_get_object (builder, "panel_window"));
 
     gtk_label_set_text (GTK_LABEL (gtk_builder_get_object (builder, "hostname_label")), lightdm_get_hostname ());
@@ -690,13 +692,13 @@ main(int argc, char **argv)
     renderer = gtk_cell_renderer_text_new();
     gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (session_combo), renderer, TRUE);
     gtk_cell_layout_add_attribute (GTK_CELL_LAYOUT (session_combo), renderer, "text", 0);
-    model = gtk_combo_box_get_model (GTK_COMBO_BOX (session_combo));
+    model = gtk_combo_box_get_model (session_combo);
     items = lightdm_get_sessions ();
     for (item = items; item; item = item->next)
     {
         LightDMSession *session = item->data;
 
-        gtk_widget_show (session_combo);
+        gtk_widget_show (GTK_WIDGET (session_combo));
         gtk_list_store_append (GTK_LIST_STORE (model), &iter);
         gtk_list_store_set (GTK_LIST_STORE (model), &iter,
                             0, lightdm_session_get_name (session),
