@@ -1,2 +1,0 @@
-#!/bin/sh
-./src/test-runner login-guest-no-config test-qt-greeter

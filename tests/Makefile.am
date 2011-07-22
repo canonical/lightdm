@@ -15,7 +15,6 @@ TESTS = \
 	test-login-gobject-xserver-crash \
 	test-login-gobject-session-crash \
 	test-login-gobject-guest \
-	test-login-gobject-guest-no-config \
 	test-login-gobject-guest-disabled \
 	test-login-gobject-guest-no-setup-script \
 	test-login-gobject-guest-fail-setup-script \
@@ -38,7 +37,6 @@ TESTS += \
 	test-login-qt-xserver-crash \
 	test-login-qt-session-crash \
 	test-login-qt-guest \
-	test-login-qt-guest-no-config \
 	test-login-qt-guest-disabled \
 	test-login-qt-guest-no-setup-script \
 	test-login-qt-guest-fail-setup-script
@@ -70,8 +68,6 @@ EXTRA_DIST = \
 	scripts/login-guest-disabled.script \
 	scripts/login-guest-fail-setup-script.conf \
 	scripts/login-guest-fail-setup-script.script \
-	scripts/login-guest-no-config.conf \
-	scripts/login-guest-no-config.script \
 	scripts/login-guest-no-setup-script.conf \
 	scripts/login-guest-no-setup-script.script \
 	scripts/login-invalid-user.conf \
