@@ -477,9 +477,16 @@ create_session (Display *display, PAMSession *pam_session, const gchar *session_
         return NULL;
     if (display->priv->session_wrapper)
     {
-        gchar *t = command;
-        command = g_strdup_printf ("%s '%s'", display->priv->session_wrapper, command);
-        g_free (t);
+        gchar *wrapper;
+
+        wrapper = g_find_program_in_path (display->priv->session_wrapper);
+        if (wrapper)
+        {
+            gchar *t = command;
+            command = g_strdup_printf ("%s '%s'", wrapper, command);
+            g_free (t);
+            g_free (wrapper);
+        }
     }
 
     session = DISPLAY_GET_CLASS (display)->create_session (display);

@@ -823,8 +823,10 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "SeatDefaults", "greeter-session", GREETER_SESSION);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "user-session"))
         config_set_string (config_get_instance (), "SeatDefaults", "user-session", USER_SESSION);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "session-wrapper"))
+        config_set_string (config_get_instance (), "SeatDefaults", "session-wrapper", "lightdm-session");
     if (!config_has_key (config_get_instance (), "LightDM", "log-directory"))
-        config_set_string (config_get_instance (), "LightDM", "log-directory", default_log_dir);    
+        config_set_string (config_get_instance (), "LightDM", "log-directory", default_log_dir);
     g_free (default_log_dir);
     if (!config_has_key (config_get_instance (), "LightDM", "run-directory"))
         config_set_string (config_get_instance (), "LightDM", "run-directory", default_run_dir);
