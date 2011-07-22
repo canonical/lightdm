@@ -22,7 +22,7 @@ static LightDMGreeter *greeter;
 static GtkWindow *login_window, *panel_window;
 static GtkWidget *message_label, *user_view;
 static GtkWidget *prompt_box, *prompt_label, *prompt_entry, *session_combo;
-static gchar *default_theme_name;
+static gchar *default_font_name, *default_theme_name;
 
 static gchar *
 get_session ()
@@ -366,9 +366,26 @@ void
 a11y_font_cb (GtkWidget *widget)
 {
     if (gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (widget)))
-        g_object_set (gtk_settings_get_default (), "gtk-font-name", "Ubuntu 20", NULL);
+    {
+        gchar *font_name, **tokens;
+
+        g_object_get (gtk_settings_get_default (), "gtk-font-name", &font_name, NULL);
+        tokens = g_strsplit (font_name, " ", 2);
+        if (g_strv_length (tokens) == 2)
+        {
+            gint size = atoi (tokens[1]);
+            if (size > 0)
+            {
+                g_free (font_name);
+                font_name = g_strdup_printf ("%s %d", tokens[0], size + 10);
+            }
+        }
+        g_strfreev (tokens);
+
+        g_object_set (gtk_settings_get_default (), "gtk-font-name", font_name, NULL);
+    }
     else
-        g_object_set (gtk_settings_get_default (), "gtk-font-name", "Ubuntu 10", NULL);
+        g_object_set (gtk_settings_get_default (), "gtk-font-name", default_font_name, NULL);
 }
 
 void a11y_contrast_cb (GtkWidget *widget);
@@ -605,6 +622,7 @@ main(int argc, char **argv)
         g_debug ("Using font %s", value);
         g_object_set (gtk_settings_get_default (), "gtk-font-name", value, NULL);
     }
+    g_object_get (gtk_settings_get_default (), "gtk-font-name", &default_font_name, NULL);  
     value = g_key_file_get_value (config, "greeter", "xft-dpi", NULL);
     if (value)
         g_object_set (gtk_settings_get_default (), "gtk-xft-dpi", (int) (1024 * atof (value)), NULL);
