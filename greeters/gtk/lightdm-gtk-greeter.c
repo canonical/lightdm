@@ -482,6 +482,7 @@ create_root_surface (GdkScreen *screen)
 int
 main(int argc, char **argv)
 {
+    GKeyFile *config;
     GdkDisplay *display;
     GdkScreen *screen;
     gint screen_width, screen_height;
@@ -501,7 +502,13 @@ main(int argc, char **argv)
     unsetenv ("UBUNTU_MENUPROXY");
 
     signal (SIGTERM, sigterm_cb);
-  
+
+    config = g_key_file_new ();
+    if (!g_key_file_load_from_file (config, CONFIG_FILE, G_KEY_FILE_NONE, &error) &&
+        !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+        g_warning ("Failed to load configuration from %s: %s\n", CONFIG_FILE, error->message);
+    g_clear_error (&error);
+
     gtk_init (&argc, &argv);
 
     greeter = lightdm_greeter_new ();
@@ -521,7 +528,7 @@ main(int argc, char **argv)
     gdk_window_set_cursor (gdk_get_default_root_window (), gdk_cursor_new (GDK_LEFT_PTR));
 
     /* Load background */
-    background = g_strdup ("/usr/share/backgrounds/White_flowers_by_Garuna_bor-bor.jpg"); // FIXME
+    background = g_key_file_get_value (config, "greeter", "background", NULL);
     gdk_color_parse ("#000000", &background_color);
     if (background && !gdk_color_parse (background, &background_color))
     {
@@ -575,7 +582,7 @@ main(int argc, char **argv)
         g_object_unref (background_pixbuf);
 
     /* Set GTK+ theme to use */
-    theme_name = NULL; // FIXME
+    theme_name = g_key_file_get_value (config, "greeter", "theme", NULL);
     if (theme_name)
         g_object_set (gtk_settings_get_default (), "gtk-theme-name", theme_name, NULL);  
     g_object_get (gtk_settings_get_default (), "gtk-theme-name", &default_theme_name, NULL);
