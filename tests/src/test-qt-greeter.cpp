@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 
     if (xcb_connection_has_error (connection))
     {
-        fprintf (stderr, "Error connecting to X server\n");
+        notify_status ("GREETER FAIL-CONNECT-XSERVER %s", getenv ("DISPLAY"));
         return EXIT_FAILURE;
     }
 
@@ -93,7 +93,10 @@ int main(int argc, char *argv[])
   
     notify_status ("GREETER CONNECT-TO-DAEMON");  
     if (!greeter->connectSync())
+    {
+        notify_status ("GREETER FAIL-CONNECT-DAEMON");
         return EXIT_FAILURE;
+    }
 
     notify_status ("GREETER CONNECTED-TO-DAEMON");
 
