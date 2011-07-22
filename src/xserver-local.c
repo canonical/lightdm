@@ -385,9 +385,17 @@ xserver_local_start (DisplayServer *display_server)
 
     /* If running inside another display then pass through those variables */
     if (g_getenv ("DISPLAY"))
+    {
         process_set_env (server->priv->xserver_process, "DISPLAY", g_getenv ("DISPLAY"));
-    if (g_getenv ("XAUTHORITY"))
-        process_set_env (server->priv->xserver_process, "XAUTHORITY", g_getenv ("XAUTHORITY"));
+        if (g_getenv ("XAUTHORITY"))
+            process_set_env (server->priv->xserver_process, "XAUTHORITY", g_getenv ("XAUTHORITY"));
+        else
+        {
+            gchar *path;
+            path = g_build_filename (g_get_home_dir (), ".Xauthority", NULL);
+            process_set_env (server->priv->xserver_process, "XAUTHORITY", path);
+        }
+    }
 
     /* Variable required for regression tests */
     if (g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"))
