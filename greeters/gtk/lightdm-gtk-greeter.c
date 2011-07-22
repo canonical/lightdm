@@ -26,7 +26,7 @@ static GtkWidget *prompt_box;
 static GtkEntry *prompt_entry;
 static GtkComboBox *session_combo;
 static gchar *default_font_name, *default_theme_name;
-static gboolean cancelling = FALSE;
+static gboolean cancelling = FALSE, prompted = FALSE;
 
 static gchar *
 get_session ()
@@ -71,7 +71,9 @@ start_authentication (const gchar *username)
 {
     gtk_widget_hide (GTK_WIDGET (message_label));
     gtk_label_set_text (message_label, "");
+
     cancelling = FALSE;
+    prompted = FALSE;
 
     if (strcmp (username, "*other") == 0)
     {
@@ -162,6 +164,7 @@ cancel_cb (GtkWidget *widget)
 static void
 show_prompt_cb (LightDMGreeter *greeter, const gchar *text, LightDMPromptType type)
 {
+    prompted = TRUE;
     gtk_label_set_text (prompt_label, text);
     gtk_widget_set_sensitive (GTK_WIDGET (prompt_entry), TRUE);
     gtk_entry_set_text (prompt_entry, "");
@@ -197,16 +200,16 @@ authentication_complete_cb (LightDMGreeter *greeter)
         }
         g_free (session);
     }
-    else if (cancelling)
-    {
-        cancelling = FALSE;
-        gtk_widget_hide (prompt_box);
-    }
-    else
+    else if (prompted && !cancelling)
     {
         gtk_label_set_text (message_label, _("Incorrect password, please try again"));
         gtk_widget_show (GTK_WIDGET (message_label));
         lightdm_greeter_authenticate (greeter, lightdm_greeter_get_authentication_user (greeter));
+    }
+    else
+    {
+        cancelling = FALSE;
+        gtk_widget_hide (prompt_box);
     }
 }
 
