@@ -144,7 +144,10 @@ write_int (guint8 *buffer, gint buffer_length, guint32 value, gsize *offset)
 static void
 write_string (guint8 *buffer, gint buffer_length, const gchar *value, gsize *offset)
 {
-    gint length = strlen (value);
+    gint length = 0;
+
+    if (value)
+        length = strlen (value);
     write_int (buffer, buffer_length, length, offset);
     if (*offset + length >= buffer_length)
         return;
@@ -195,7 +198,10 @@ read_string (guint8 *message, gsize message_length, gsize *offset)
 static guint32
 string_length (const gchar *value)
 {
-    return int_length () + strlen (value);
+    if (value)
+        return int_length () + strlen (value);
+    else
+        return int_length ();
 }
 
 static void
@@ -272,7 +278,6 @@ handle_prompt_authentication (LightDMGreeter *greeter, guint8 *message, gsize me
         g_free (username);
         username = NULL;
     }
-    else
     g_free (priv->authentication_user);
     priv->authentication_user = username;
 
@@ -340,8 +345,8 @@ handle_end_authentication (LightDMGreeter *greeter, guint8 *message, gsize messa
     priv->cancelling_authentication = FALSE;
     priv->is_authenticated = (return_code == 0);
 
-    g_signal_emit (G_OBJECT (greeter), signals[AUTHENTICATION_COMPLETE], 0);
     priv->in_authentication = FALSE;
+    g_signal_emit (G_OBJECT (greeter), signals[AUTHENTICATION_COMPLETE], 0);
 }
 
 static guint8 *
@@ -686,21 +691,23 @@ lightdm_greeter_cancel_autologin (LightDMGreeter *greeter)
 void
 lightdm_greeter_authenticate (LightDMGreeter *greeter, const char *username)
 {
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv;
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
 
     g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
 
-    if (!username)
-        username = "";
+    priv = GET_PRIVATE (greeter);
 
     priv->cancelling_authentication = FALSE;
     priv->authenticate_sequence_number++;
     priv->in_authentication = TRUE;  
     priv->is_authenticated = FALSE;
-    g_free (priv->authentication_user);
-    priv->authentication_user = g_strdup (username);
+    if (username != priv->authentication_user)
+    {
+        g_free (priv->authentication_user);
+        priv->authentication_user = g_strdup (username);
+    }
 
     g_debug ("Starting authentication for user %s...", username);
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_AUTHENTICATE, int_length () + string_length (username), &offset);
@@ -842,22 +849,21 @@ lightdm_greeter_get_authentication_user (LightDMGreeter *greeter)
 gboolean
 lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *session)
 {
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv;
     guint8 message[MAX_MESSAGE_LENGTH];
     guint8 *response;
     gsize response_length, offset = 0;
     guint32 id, return_code = 1;
 
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
+
+    priv = GET_PRIVATE (greeter);
     g_return_val_if_fail (priv->is_authenticated, FALSE);
 
-    if (!session)
-    {
-        session = "";
-        g_debug ("Starting default session");
-    }
-    else
+    if (session)
         g_debug ("Starting session %s", session);
+    else
+        g_debug ("Starting default session");
 
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_START_SESSION, string_length (session), &offset);
     write_string (message, MAX_MESSAGE_LENGTH, session, &offset);

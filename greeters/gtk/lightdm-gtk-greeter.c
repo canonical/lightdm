@@ -26,6 +26,7 @@ static GtkWidget *prompt_box;
 static GtkEntry *prompt_entry;
 static GtkComboBox *session_combo;
 static gchar *default_font_name, *default_theme_name;
+static gboolean cancelling = FALSE;
 
 static gchar *
 get_session ()
@@ -70,6 +71,7 @@ start_authentication (const gchar *username)
 {
     gtk_widget_hide (GTK_WIDGET (message_label));
     gtk_label_set_text (message_label, "");
+    cancelling = FALSE;
 
     if (strcmp (username, "*other") == 0)
     {
@@ -154,6 +156,7 @@ void
 cancel_cb (GtkWidget *widget)
 {
     lightdm_greeter_cancel_authentication (greeter);
+    cancelling = TRUE;
 }
 
 static void
@@ -177,8 +180,6 @@ show_message_cb (LightDMGreeter *greeter, const gchar *text, LightDMMessageType 
 static void
 authentication_complete_cb (LightDMGreeter *greeter)
 {
-    gtk_widget_hide (prompt_box);
-    gtk_label_set_text (prompt_label, "");
     gtk_entry_set_text (prompt_entry, "");
 
     gtk_widget_grab_focus (GTK_WIDGET (user_view));
@@ -186,16 +187,27 @@ authentication_complete_cb (LightDMGreeter *greeter)
     if (lightdm_greeter_get_is_authenticated (greeter))
     {
         gchar *session = get_session ();
+
+        gtk_widget_hide (prompt_box);
+
         if (!lightdm_greeter_start_session_sync (greeter, session))
-            gtk_label_set_text (message_label, _("Failed to authenticate"));
+        {
+            gtk_label_set_text (message_label, _("Failed to start session"));
+            gtk_widget_show (GTK_WIDGET (message_label));
+        }
         g_free (session);
     }
+    else if (cancelling)
+    {
+        cancelling = FALSE;
+        gtk_widget_hide (prompt_box);
+    }
     else
-        gtk_label_set_text (message_label, _("Failed to authenticate"));
-
-    gtk_widget_show (GTK_WIDGET (message_label));
-    if (lightdm_greeter_get_hide_users_hint (greeter))
-        lightdm_greeter_authenticate (greeter, NULL);
+    {
+        gtk_label_set_text (message_label, _("Incorrect password, please try again"));
+        gtk_widget_show (GTK_WIDGET (message_label));
+        lightdm_greeter_authenticate (greeter, lightdm_greeter_get_authentication_user (greeter));
+    }
 }
 
 static void
@@ -719,7 +731,7 @@ main(int argc, char **argv)
     gtk_window_resize (panel_window, monitor_geometry.width, allocation.height);
     gtk_window_move (panel_window, monitor_geometry.x, monitor_geometry.y);
 
-    gtk_widget_grab_focus (GTK_WIDGET (user_view));
+    gtk_widget_grab_focus (GTK_WIDGET (login_window));
 
     gtk_main ();
 

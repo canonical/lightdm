@@ -425,8 +425,8 @@ void Greeter::onRead(int fd)
             d->cancellingAuthentication = false;
             d->isAuthenticated = (returnCode == 0);
             d->authenticationUser = username;
-            emit authenticationComplete();
             d->inAuthentication = false;
+            emit authenticationComplete();
         }
         else
             qDebug () << "Ignoring end authentication with invalid sequence number " << sequenceNumber;
