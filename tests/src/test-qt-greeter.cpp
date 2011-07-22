@@ -54,12 +54,7 @@ void TestGreeter::authenticationComplete ()
     if (!isAuthenticated ())
         return;
 
-    if (startSessionSync ())
-    {
-        notify_status ("GREETER QUIT");
-        exit (EXIT_SUCCESS);
-    }
-    else
+    if (!startSessionSync ())
         notify_status ("GREETER SESSION-FAILED");
 }
 

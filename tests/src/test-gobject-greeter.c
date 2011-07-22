@@ -53,12 +53,7 @@ authentication_complete_cb (LightDMGreeter *greeter)
     if (!lightdm_greeter_get_is_authenticated (greeter))
         return;
 
-    if (lightdm_greeter_start_session_sync (greeter, NULL))
-    {
-        notify_status ("GREETER QUIT");
-        exit (EXIT_SUCCESS);
-    }
-    else
+    if (!lightdm_greeter_start_session_sync (greeter, NULL))
         notify_status ("GREETER SESSION-FAILED");
 }
 

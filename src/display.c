@@ -85,9 +85,6 @@ struct DisplayPrivate
     /* Communication link to greeter */
     Greeter *greeter;
   
-    /* Timeout for greeter to respond to quit request */
-    guint greeter_quit_timeout;
-
     /* Current PAM session */
     PAMSession *pam_session;
 
@@ -105,9 +102,6 @@ struct DisplayPrivate
 };
 
 G_DEFINE_TYPE (Display, display, G_TYPE_OBJECT);
-
-/* Length of time in milliseconds to wait for a greeter to quit */
-#define GREETER_QUIT_TIMEOUT 1000
 
 static gboolean start_greeter_session (Display *display);
 static gboolean start_user_session (Display *display, PAMSession *pam_session, const gchar *name);
@@ -399,10 +393,6 @@ session_stopped_cb (Session *session, Display *display)
     else
         g_debug ("User session quit");
 
-    if (display->priv->greeter_quit_timeout)
-        g_source_remove (display->priv->greeter_quit_timeout);
-    display->priv->greeter_quit_timeout = 0;
-
     /* Stop listening to events from the greeter */
     if (display->priv->greeter)
         g_signal_handlers_disconnect_matched (display->priv->greeter, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
@@ -584,18 +574,6 @@ autologin_authentication_result_cb (PAMSession *session, int result, Display *di
     g_object_unref (session);
 }
 
-static gboolean
-quit_timeout_cb (gpointer data)
-{
-    Display *display = data;
-
-    g_debug ("Greeter did not quit, sending kill signal");
-    session_stop (display->priv->session);
-
-    display->priv->greeter_quit_timeout = 0;
-    return TRUE;
-}
-
 static PAMSession *
 greeter_start_authentication_cb (Greeter *greeter, const gchar *username, Display *display)
 {
@@ -637,11 +615,9 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session, gboolean is_gu
         username = pam_session_get_username (pam_session);
     }
 
-    /* Stop the greeter, and start the session when it has quit */
-    greeter_quit (display->priv->greeter);
-    if (display->priv->greeter_quit_timeout)
-        g_source_remove (display->priv->greeter_quit_timeout);
-    display->priv->greeter_quit_timeout = g_timeout_add (GREETER_QUIT_TIMEOUT, quit_timeout_cb, display);
+    /* Stop the greeter */
+    g_debug ("Stopping greeter");
+    session_stop (display->priv->session);  
 
     return TRUE;
 }
@@ -966,8 +942,6 @@ display_finalize (GObject *object)
     g_object_unref (self->priv->display_server);
     g_free (self->priv->greeter_user);
     g_free (self->priv->greeter_session);
-    if (self->priv->greeter_quit_timeout)
-        g_source_remove (self->priv->greeter_quit_timeout);
     if (self->priv->greeter)
         g_object_unref (self->priv->greeter);
     g_free (self->priv->xsessions_dir);
