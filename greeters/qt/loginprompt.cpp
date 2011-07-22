@@ -12,7 +12,6 @@
 #include "loginprompt.h"
 #include "ui_loginprompt.h"
 
-#include <QLightDM/Greeter>
 #include <QLightDM/User>
 #include <QLightDM/Language>
 #include <QLightDM/User>
@@ -35,7 +34,7 @@ LoginPrompt::LoginPrompt(QLightDM::Greeter *greeter, QWidget *parent) :
 
     connect(ui->loginButton, SIGNAL(released()), SLOT(onLoginButtonClicked()));
     connect(m_greeter, SIGNAL(authenticationComplete()), SLOT(onAuthenticationComplete()));
-    connect(m_greeter, SIGNAL(showPrompt(QString)), SLOT(prompt(QString)));
+    connect(m_greeter, SIGNAL(showPrompt(QString, QLightDM::PromptType)), SLOT(prompt(QString, QLightDM::PromptType)));
 }
 
 LoginPrompt::~LoginPrompt()
@@ -57,11 +56,11 @@ void LoginPrompt::onAuthenticationComplete()
     if (m_greeter->isAuthenticated()) {
         emit startSession();
     } else {
-        ui->feedbackLabel->setText("Sorry, you suck. Try again.");
+        ui->feedbackLabel->setText("Incorrect password, please try again");
     }
 }
 
-void LoginPrompt::prompt(const QString &message) {
-    qDebug() << message;
+void LoginPrompt::prompt(const QString &text, QLightDM::PromptType type) {
+    qDebug() << text;
     m_greeter->respond(ui->password->text());
 }

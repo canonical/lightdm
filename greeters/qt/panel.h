@@ -32,8 +32,13 @@ public:
     
     /** Returns the currently selected session*/
     QString session() const;
-    
-    
+
+private slots:
+    void shutdown() const;
+    void restart() const;
+    void suspend() const;
+    void hibernate() const;
+
 private:
     Ui::Panel *ui;
     QLightDM::Greeter *m_greeter;

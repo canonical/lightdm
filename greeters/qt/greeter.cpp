@@ -40,7 +40,7 @@ Greeter::Greeter() :
     m_prompt = new LoginPrompt(m_greeter, this);
     m_prompt->move(this->width()/2 - m_prompt->width()/2, this->height()/2 - m_prompt->height()/2);
     m_prompt->setAutoFillBackground(true);
-    connect(m_prompt, SIGNAL(startSessionSync()), SLOT(onStartSession()));
+    connect(m_prompt, SIGNAL(startSession()), SLOT(onStartSession()));
 
     m_panel = new Panel(m_greeter, this);
     m_panel->setGeometry(QRect(QPoint(0, screen.height() - m_panel->height()), screen.bottomRight()));
