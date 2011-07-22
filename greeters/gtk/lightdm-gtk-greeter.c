@@ -22,7 +22,7 @@ static LightDMGreeter *greeter;
 static GtkWindow *login_window, *panel_window;
 static GtkLabel *message_label, *prompt_label;
 static GtkTreeView *user_view;
-static GtkWidget *prompt_box;
+static GtkWidget *login_box, *prompt_box;
 static GtkEntry *prompt_entry;
 static GtkComboBox *session_combo;
 static gchar *default_font_name, *default_theme_name;
@@ -116,7 +116,7 @@ cancel_authentication (void)
         cancelling = FALSE;
         if (!lightdm_greeter_get_hide_users_hint (greeter))
         {
-            gtk_widget_hide (prompt_box);
+            gtk_widget_hide (login_box);
             gtk_widget_grab_focus (GTK_WIDGET (user_view));
         }
     }
@@ -206,6 +206,7 @@ show_prompt_cb (LightDMGreeter *greeter, const gchar *text, LightDMPromptType ty
 
     set_message_label ("");
 
+    gtk_widget_show (GTK_WIDGET (login_box));
     gtk_label_set_text (prompt_label, text);
     gtk_widget_set_sensitive (GTK_WIDGET (prompt_entry), TRUE);
     gtk_entry_set_text (prompt_entry, "");
@@ -231,7 +232,8 @@ authentication_complete_cb (LightDMGreeter *greeter)
         return;
     }
 
-    gtk_widget_show (prompt_box);
+    gtk_widget_hide (prompt_box);
+    gtk_widget_show (login_box);
 
     if (lightdm_greeter_get_is_authenticated (greeter))
     {
@@ -716,6 +718,7 @@ main(int argc, char **argv)
     g_clear_error (&error);
 
     login_window = GTK_WINDOW (gtk_builder_get_object (builder, "login_window"));
+    login_box = GTK_WIDGET (gtk_builder_get_object (builder, "login_box"));
     prompt_box = GTK_WIDGET (gtk_builder_get_object (builder, "prompt_box"));
     prompt_label = GTK_LABEL (gtk_builder_get_object (builder, "prompt_label"));
     prompt_entry = GTK_ENTRY (gtk_builder_get_object (builder, "prompt_entry"));
