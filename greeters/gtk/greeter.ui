@@ -5,13 +5,7 @@
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="pixel_size">24</property>
-    <property name="icon_name">preferences-desktop-accessibility</property>
-  </object>
-  <object class="GtkImage" id="language_menuitem_image">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="pixel_size">24</property>
-    <property name="icon_name">preferences-desktop-locale</property>
+    <property name="icon_name">accessibility</property>
   </object>
   <object class="GtkWindow" id="login_window">
     <property name="can_focus">False</property>
@@ -224,6 +218,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="use_action_appearance">False</property>
+                    <property name="label" translatable="yes">Suspend</property>
                     <signal name="activate" handler="suspend_cb" swapped="no"/>
                   </object>
                 </child>
@@ -232,6 +227,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="use_action_appearance">False</property>
+                    <property name="label" translatable="yes">Hibernate</property>
                     <signal name="activate" handler="hibernate_cb" swapped="no"/>
                   </object>
                 </child>
@@ -240,6 +236,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="use_action_appearance">False</property>
+                    <property name="label" translatable="yes">Restart...</property>
                     <signal name="activate" handler="restart_cb" swapped="no"/>
                   </object>
                 </child>
@@ -248,6 +245,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="use_action_appearance">False</property>
+                    <property name="label" translatable="yes">Shutdown...</property>
                     <signal name="activate" handler="shutdown_cb" swapped="no"/>
                   </object>
                 </child>
@@ -272,6 +270,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="use_action_appearance">False</property>
+                    <property name="label" translatable="yes">Large Font</property>
                     <signal name="toggled" handler="a11y_font_cb" swapped="no"/>
                   </object>
                 </child>
@@ -280,6 +279,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="use_action_appearance">False</property>
+                    <property name="label" translatable="yes">High Contrast</property>
                     <signal name="toggled" handler="a11y_contrast_cb" swapped="no"/>
                   </object>
                 </child>

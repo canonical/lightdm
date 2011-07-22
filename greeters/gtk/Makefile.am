@@ -6,6 +6,9 @@ dist_greeterdata_DATA = greeter.ui
 xgreetersdir = $(datadir)/xgreeters
 dist_xgreeters_DATA = lightdm-gtk-greeter.desktop
 
+icondir = $(greeterdatadir)/hicolor/scalable/apps
+icon_DATA = accessibility.svg system-shutdown.svg
+
 lightdm_gtk_greeter_SOURCES = \
 	lightdm-gtk-greeter.c
 
