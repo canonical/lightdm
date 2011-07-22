@@ -1,4 +1,4 @@
-bin_PROGRAMS = lightdm-qt-greeter
+sbin_PROGRAMS = lightdm-qt-greeter
 
 xgreetersdir = $(datadir)/xgreeters
 dist_xgreeters_DATA = lightdm-qt-greeter.desktop

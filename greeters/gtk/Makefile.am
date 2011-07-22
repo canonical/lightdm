@@ -1,4 +1,4 @@
-bin_PROGRAMS = lightdm-gtk-greeter
+sbin_PROGRAMS = lightdm-gtk-greeter
 
 greeterdatadir = $(datadir)/lightdm-gtk-greeter
 dist_greeterdata_DATA = greeter.ui

@@ -1,4 +1,4 @@
-bin_PROGRAMS = lightdm
+sbin_PROGRAMS = lightdm
 
 ldm-marshal.c: ldm-marshal.list
 	@GLIB_GENMARSHAL@ --prefix=ldm_marshal $(srcdir)/ldm-marshal.list --header --body > ldm-marshal.c

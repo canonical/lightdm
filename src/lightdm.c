@@ -635,6 +635,7 @@ main (int argc, char **argv)
     gchar *default_log_dir = g_strdup (LOG_DIR);
     gchar *default_run_dir = g_strdup (RUN_DIR);
     gchar *default_cache_dir = g_strdup (CACHE_DIR);
+    gchar *minimum_vt = NULL;
     gchar *minimum_display_number = NULL;
     gboolean show_version = FALSE;
     GOptionEntry options[] = 
@@ -666,6 +667,9 @@ main (int argc, char **argv)
         { "user-session", 0, 0, G_OPTION_ARG_STRING, &user_session,
           /* Help string for command line --user-session flag */
           N_("User session"), "SESSION" },
+        { "minimum-vt", 0, 0, G_OPTION_ARG_STRING, &minimum_vt,
+          /* Help string for command line --minimum-vt flag */
+          N_("Minimum VT to use for X servers"), "NUMBER" },
         { "minimum-display-number", 0, 0, G_OPTION_ARG_STRING, &minimum_display_number,
           /* Help string for command line --minimum-display-number flag */
           N_("Minimum display number to use for X servers"), "NUMBER" },
@@ -830,6 +834,9 @@ main (int argc, char **argv)
     g_free (default_cache_dir);
 
     /* Override defaults */
+    if (minimum_vt)
+        config_set_integer (config_get_instance (), "LightDM", "minimum-vt", atoi (minimum_vt));
+    g_free (minimum_vt);
     if (minimum_display_number)
         config_set_integer (config_get_instance (), "LightDM", "minimum-display-number", atoi (minimum_display_number));
     g_free (minimum_display_number);
