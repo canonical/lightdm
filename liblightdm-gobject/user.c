@@ -849,13 +849,13 @@ load_dmrc (LightDMUser *user)
 {
     LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
     gchar *path;
-    gboolean have_dmrc;
+    //gboolean have_dmrc;
 
     priv->dmrc_file = g_key_file_new ();
 
     /* Load from the user directory */  
     path = g_build_filename (priv->home_directory, ".dmrc", NULL);
-    have_dmrc = g_key_file_load_from_file (priv->dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, NULL);
+    /*have_dmrc = */g_key_file_load_from_file (priv->dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, NULL);
     g_free (path);
 
     /* If no ~/.dmrc, then load from the cache */
