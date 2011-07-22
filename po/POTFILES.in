@@ -1,25 +1,6 @@
 # List of source files containing translatable strings.
 # Please keep this file sorted alphabetically.
 [encoding: UTF-8]
-greeters/gtk/lightdm-example-gtk-greeter.c
 [type: gettext/glade]greeters/gtk/greeter.ui
-greeters/python-gtk/lightdm-example-python-gtk-greeter
-greeters/vala-gtk/lightdm-example-vala-gtk-greeter.vala
-liblightdm-gobject/greeter.c
-liblightdm-gobject/language.c
-liblightdm-gobject/layout.c
-liblightdm-gobject/session.c
-liblightdm-gobject/user.c
-src/child-process.c
-src/display.c
-src/display-manager.c
-src/greeter.c
+greeters/gtk/lightdm-gtk-greeter.c
 src/lightdm.c
-src/pam-session.c
-src/session.c
-src/theme.c
-src/xauth.c
-src/xdmcp-protocol.c
-src/xdmcp-server.c
-src/xdmcp-session.c
-src/xserver.c

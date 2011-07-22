@@ -47,7 +47,8 @@ TESTS = \
 
 EXTRA_DIST = \
 	$(TESTS) \
-	data/xsessions/test-greeter.desktop \
+	data/xgreeters/test-gobject-greeter.desktop \
+	data/xgreeters/test-qt-greeter.desktop \
 	data/xsessions/test-session.desktop \
 	scripts/autologin.conf \
 	scripts/autologin.script \
