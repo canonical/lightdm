@@ -58,6 +58,14 @@ typedef struct
     void (*show_prompt)(LightDMGreeter *greeter, const gchar *text, LightDMPromptType type);
     void (*authentication_complete)(LightDMGreeter *greeter);
     void (*autologin_timer_expired)(LightDMGreeter *greeter);
+
+	/* Reserved */
+	void (*reserved1) (void);
+	void (*reserved2) (void);
+	void (*reserved3) (void);
+	void (*reserved4) (void);
+	void (*reserved5) (void);
+	void (*reserved6) (void);
 } LightDMGreeterClass;
 
 GType lightdm_greeter_get_type (void);
