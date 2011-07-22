@@ -9,8 +9,6 @@
  * license.
  */
 
-// FIXME: gdk_screen_get_monitor_geometry (screen, monitor, &rect);
-
 #include <stdlib.h>
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
@@ -214,12 +212,14 @@ center_window (GtkWindow *window)
 {
     GdkScreen *screen;
     GtkAllocation allocation;
+    GdkRectangle monitor_geometry;
 
     screen = gtk_window_get_screen (window);
+    gdk_screen_get_monitor_geometry (screen, gdk_screen_get_primary_monitor (screen), &monitor_geometry);
     gtk_widget_get_allocation (GTK_WIDGET (window), &allocation);
     gtk_window_move (window,
-                     (gdk_screen_get_width (screen) - allocation.width) / 2,
-                     (gdk_screen_get_height (screen) - allocation.height) / 2);
+                     monitor_geometry.x + (monitor_geometry.width - allocation.width) / 2,
+                     monitor_geometry.y + (monitor_geometry.height - allocation.height) / 2);
 }
 
 void login_window_size_allocate_cb (GtkWidget *widget, GdkRectangle *allocation);
@@ -491,9 +491,7 @@ int
 main(int argc, char **argv)
 {
     GKeyFile *config;
-    GdkDisplay *display;
-    GdkScreen *screen;
-    gint screen_width, screen_height;
+    GdkRectangle monitor_geometry;
     GtkBuilder *builder;
     GtkTreeModel *model;
     const GList *items, *item;
@@ -502,7 +500,6 @@ main(int argc, char **argv)
     gchar *theme_name, *background;
     GdkPixbuf *background_pixbuf = NULL;
     GdkColor background_color;
-    cairo_surface_t **background_surfaces;
     gint i;
     GError *error = NULL;
 
@@ -527,11 +524,6 @@ main(int argc, char **argv)
     if (!lightdm_greeter_connect_sync (greeter))
         return EXIT_FAILURE;
 
-    display = gdk_display_get_default ();
-    screen = gdk_display_get_default_screen (display);
-    screen_width = gdk_screen_get_width (screen);
-    screen_height = gdk_screen_get_height (screen);
-
     /* Set default cursor */
     gdk_window_set_cursor (gdk_get_default_root_window (), gdk_cursor_new (GDK_LEFT_PTR));
 
@@ -541,7 +533,6 @@ main(int argc, char **argv)
     if (background && !gdk_color_parse (background, &background_color))
     {
         gchar *path;
-        GdkPixbuf *pixbuf;
         GError *error = NULL;
 
         if (g_path_is_absolute (background))
@@ -550,42 +541,47 @@ main(int argc, char **argv)
             path = g_build_filename (GREETER_DATA_DIR, background, NULL);
 
         g_debug ("Loading background %s", path);
-        pixbuf = gdk_pixbuf_new_from_file (path, &error);
-        if (!pixbuf)
+        background_pixbuf = gdk_pixbuf_new_from_file (path, &error);
+        if (!background_pixbuf)
            g_warning ("Failed to load background: %s", error->message);
         g_clear_error (&error);
         g_free (path);
-
-        if (pixbuf)
-        {
-            background_pixbuf = gdk_pixbuf_scale_simple (pixbuf, screen_width, screen_height, GDK_INTERP_BILINEAR);
-            g_object_unref (pixbuf);
-        }
     }
 
     /* Set the background */
-    background_surfaces = calloc (gdk_display_get_n_screens (display) + 1, sizeof (cairo_surface_t *));
-    for (i = 0; i < gdk_display_get_n_screens (display); i++)
+    for (i = 0; i < gdk_display_get_n_screens (gdk_display_get_default ()); i++)
     {
+        GdkScreen *screen;
+        cairo_surface_t *surface;
         cairo_t *c;
+        int monitor;
 
-        background_surfaces[i] = create_root_surface (gdk_display_get_screen (display, i));
-        c = cairo_create (background_surfaces[i]);
+        screen = gdk_display_get_screen (gdk_display_get_default (), i);
+        surface = create_root_surface (screen);
+        c = cairo_create (surface);
 
-        if (background_pixbuf)
-            gdk_cairo_set_source_pixbuf (c, background_pixbuf, 0.0, 0.0);
-        else
-            gdk_cairo_set_source_color (c, &background_color);
-        cairo_paint (c);
+        for (monitor = 0; monitor < gdk_screen_get_n_monitors (screen); monitor++)
+        {
+            gdk_screen_get_monitor_geometry (screen, monitor, &monitor_geometry);
+            g_debug ("%p", background_pixbuf);
+
+            if (background_pixbuf)
+            {
+                GdkPixbuf *pixbuf = gdk_pixbuf_scale_simple (background_pixbuf, monitor_geometry.width, monitor_geometry.height, GDK_INTERP_BILINEAR);
+                gdk_cairo_set_source_pixbuf (c, pixbuf, monitor_geometry.x, monitor_geometry.y);
+                g_object_unref (pixbuf);
+            }
+            else
+                gdk_cairo_set_source_color (c, &background_color);
+            cairo_paint (c);
+        }
 
         cairo_destroy (c);
 
+        /* Refresh background */
         gdk_flush ();
-
-
         XClearWindow (GDK_SCREEN_XDISPLAY (screen), RootWindow (GDK_SCREEN_XDISPLAY (screen), i));
     }
-    background_surfaces[i] = NULL;
     if (background_pixbuf)
         g_object_unref (background_pixbuf);
 
@@ -667,7 +663,9 @@ main(int argc, char **argv)
     gtk_widget_show (GTK_WIDGET (panel_window));
     GtkAllocation allocation;
     gtk_widget_get_allocation (GTK_WIDGET (panel_window), &allocation);
-    gtk_window_resize (panel_window, gdk_screen_get_width (screen), allocation.height);
+    gdk_screen_get_monitor_geometry (gdk_screen_get_default (), gdk_screen_get_primary_monitor (gdk_screen_get_default ()), &monitor_geometry);
+    gtk_window_resize (panel_window, monitor_geometry.width, allocation.height);
+    gtk_window_move (panel_window, monitor_geometry.x, monitor_geometry.y);
 
     gtk_widget_grab_focus (user_view);
 
