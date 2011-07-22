@@ -184,7 +184,7 @@ src/Makefile
 tests/Makefile
 tests/src/Makefile
 ],
-[chmod +x tests/src/test-setup-guest tests/src/test-cleanup-guest])
+[chmod +x tests/src/test-guest-account])
 AC_OUTPUT
 
 dnl ###########################################################################
