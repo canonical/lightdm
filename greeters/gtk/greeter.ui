@@ -12,6 +12,7 @@
     <property name="resizable">False</property>
     <property name="decorated">False</property>
     <property name="has_resize_grip">False</property>
+    <signal name="size-allocate" handler="login_window_size_allocate_cb" swapped="no"/>
     <child>
       <object class="GtkNotebook" id="login_notebook">
         <property name="width_request">400</property>

@@ -209,6 +209,27 @@ autologin_timer_expired_cb (LightDMGreeter *greeter)
         lightdm_greeter_authenticate (greeter, lightdm_greeter_get_autologin_user_hint (greeter));
 }
 
+static void
+center_window (GtkWindow *window)
+{
+    GdkScreen *screen;
+    GtkAllocation allocation;
+
+    screen = gtk_window_get_screen (window);
+    gtk_widget_get_allocation (GTK_WIDGET (window), &allocation);
+    gtk_window_move (window,
+                     (gdk_screen_get_width (screen) - allocation.width) / 2,
+                     (gdk_screen_get_height (screen) - allocation.height) / 2);
+}
+
+void login_window_size_allocate_cb (GtkWidget *widget, GdkRectangle *allocation);
+G_MODULE_EXPORT
+void
+login_window_size_allocate_cb (GtkWidget *widget, GdkRectangle *allocation)
+{
+    center_window (GTK_WINDOW (widget));
+}
+
 void suspend_cb (GtkWidget *widget, LightDMGreeter *greeter);
 G_MODULE_EXPORT
 void
@@ -223,19 +244,6 @@ void
 hibernate_cb (GtkWidget *widget, LightDMGreeter *greeter)
 {
     lightdm_hibernate ();
-}
-
-static void
-center_window (GtkWindow *window)
-{
-    GdkScreen *screen;
-    GtkAllocation allocation;
-
-    screen = gtk_window_get_screen (window);
-    gtk_widget_get_allocation (GTK_WIDGET (window), &allocation);
-    gtk_window_move (window,
-                     (gdk_screen_get_width (screen) - allocation.width) / 2,
-                     (gdk_screen_get_height (screen) - allocation.height) / 2);
 }
 
 void restart_cb (GtkWidget *widget, LightDMGreeter *greeter);
