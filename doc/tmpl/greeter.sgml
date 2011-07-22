@@ -14,25 +14,23 @@ Make a connection to the LightDM daemon and authenticate users
 <programlisting><![CDATA[
 int main ()
 {
-    LightDMGreeter *greeter = lightdm_greeter_new ();
+    GMainLoop *main_loop;
+    LightDMGreeter *greeter
 
+    main_loop = g_main_loop_new ();
+
+    greeter = lightdm_greeter_new ();
     g_object_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
     g_object_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
 
-    if (!lightdm_greeter_connect_sync (LIGHTDM_GREETER (greeter))) {
-        // Log an error
+    // Connect to LightDM daemon
+    if (!lightdm_greeter_connect_sync (LIGHTDM_GREETER (greeter)))
         return EXIT_FAILURE;
-    }
 
-    while (TRUE)
-    {
-        // Start authentication
-        while (!lightdm_greeter_get_is_authenticated (greeter))
-            lightdm_greeter_authenticate (greeter, NULL);
+    // Start authentication
+    lightdm_greeter_authenticate (greeter, NULL);
 
-        if (lightdm_greeter_start_session_sync (greeter, NULL))
-            return EXIT_SUCCESS;
-    }
+    g_main_loop_run (main_loop);
 
     return EXIT_SUCCESS;
 }
@@ -48,22 +46,13 @@ static void show_prompt_cb (LightDMGreeter *greeter, const char *text, LightDMPr
 
 static void authentication_complete_cb (LightDMGreeter *greeter)
 {
-    if (lightdm_greeter_get_is_authenticated (greeter)) {
-        // Start the user session
-        lightdm_greeter_start_default_session (greeter);
+    // Start the session
+    if (!lightdm_greeter_get_is_authenticated (greeter) ||
+        !lightdm_greeter_start_session_sync (greeter))
+    {
+        // Failed authentication, try again
+        lightdm_greeter_authenticate (greeter, NULL);
     }
-    else {
-        // Display a warning and reset the greeter
-        reset_login_screen (``Incorrect password, please try again'');
-    }
-}
-
-static void quit_cb (LightDMGreeter *greeter)
-{
-    // Clean up
-    // ...
-    
-    exit (0);
 }
 ]]></programlisting>
 </example>
