@@ -67,15 +67,19 @@ set_session (const gchar *session)
 }
 
 static void
+set_message_label (const gchar *text)
+{
+    gtk_widget_set_visible (GTK_WIDGET (message_label), strcmp (text, "") != 0);
+    gtk_label_set_text (message_label, text);
+}
+
+static void
 start_authentication (const gchar *username)
 {
-    gtk_widget_hide (GTK_WIDGET (message_label));
-    gtk_label_set_text (message_label, "");
-
     cancelling = FALSE;
     prompted = FALSE;
 
-    if (strcmp (username, "*other") == 0)
+    if (!username)
     {
         lightdm_greeter_authenticate (greeter, NULL);
     }
@@ -86,14 +90,45 @@ start_authentication (const gchar *username)
     else
     {
         LightDMUser *user;
+        const gchar *session = NULL;
+
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         if (user)
-            set_session (lightdm_user_get_session (user));
-        else
-            set_session (lightdm_greeter_get_default_session_hint (greeter));
+            session = lightdm_user_get_session (user);
+        if (!session)
+            session = lightdm_greeter_get_default_session_hint (greeter);
+        set_session (session);
 
         lightdm_greeter_authenticate (greeter, username);
     }
+}
+
+static void
+cancel_authentication (void)
+{
+    if (lightdm_greeter_get_in_authentication (greeter))
+    {
+        cancelling = TRUE;
+        lightdm_greeter_cancel_authentication (greeter);
+    }
+    else
+    {
+        cancelling = FALSE;
+        gtk_widget_hide (prompt_box);
+        gtk_widget_grab_focus (GTK_WIDGET (user_view));
+    }
+}
+
+static void
+start_session (void)
+{
+    gchar *session = get_session ();
+    if (!lightdm_greeter_start_session_sync (greeter, session))
+    {
+        set_message_label (_("Failed to start session"));
+        start_authentication (lightdm_greeter_get_authentication_user (greeter));
+    }
+    g_free (session);
 }
 
 void user_treeview_row_activated_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *column);
@@ -145,11 +180,12 @@ void
 login_cb (GtkWidget *widget)
 {
     gtk_widget_set_sensitive (GTK_WIDGET (prompt_entry), FALSE);
-    if (!lightdm_greeter_get_in_authentication (greeter))
-        start_authentication (gtk_entry_get_text (prompt_entry));
-    else
+    if (lightdm_greeter_get_is_authenticated (greeter))
+        start_session ();
+    else if (lightdm_greeter_get_in_authentication (greeter))
         lightdm_greeter_respond (greeter, gtk_entry_get_text (prompt_entry));
-    gtk_entry_set_text (prompt_entry, "");
+    else
+        start_authentication (lightdm_greeter_get_authentication_user (greeter));
 }
 
 void cancel_cb (GtkWidget *widget);
@@ -157,14 +193,16 @@ G_MODULE_EXPORT
 void
 cancel_cb (GtkWidget *widget)
 {
-    lightdm_greeter_cancel_authentication (greeter);
-    cancelling = TRUE;
+    cancel_authentication ();
 }
 
 static void
 show_prompt_cb (LightDMGreeter *greeter, const gchar *text, LightDMPromptType type)
 {
     prompted = TRUE;
+
+    set_message_label ("");
+
     gtk_label_set_text (prompt_label, text);
     gtk_widget_set_sensitive (GTK_WIDGET (prompt_entry), TRUE);
     gtk_entry_set_text (prompt_entry, "");
@@ -176,8 +214,7 @@ show_prompt_cb (LightDMGreeter *greeter, const gchar *text, LightDMPromptType ty
 static void
 show_message_cb (LightDMGreeter *greeter, const gchar *text, LightDMMessageType type)
 {
-    gtk_label_set_text (message_label, text);
-    gtk_widget_show (GTK_WIDGET (message_label));
+    set_message_label (text);
 }
 
 static void
@@ -185,42 +222,38 @@ authentication_complete_cb (LightDMGreeter *greeter)
 {
     gtk_entry_set_text (prompt_entry, "");
 
-    gtk_widget_grab_focus (GTK_WIDGET (user_view));
+    if (cancelling)
+    {
+        cancel_authentication ();
+        return;
+    }
+
+    gtk_widget_show (prompt_box);
 
     if (lightdm_greeter_get_is_authenticated (greeter))
     {
-        gchar *session = get_session ();
-
-        gtk_widget_hide (prompt_box);
-
-        if (!lightdm_greeter_start_session_sync (greeter, session))
-        {
-            gtk_label_set_text (message_label, _("Failed to start session"));
-            gtk_widget_show (GTK_WIDGET (message_label));
-        }
-        g_free (session);
-    }
-    else if (prompted && !cancelling)
-    {
-        gtk_label_set_text (message_label, _("Incorrect password, please try again"));
-        gtk_widget_show (GTK_WIDGET (message_label));
-        lightdm_greeter_authenticate (greeter, lightdm_greeter_get_authentication_user (greeter));
+        if (prompted)
+            start_session ();
     }
     else
     {
-        cancelling = FALSE;
-        gtk_widget_hide (prompt_box);
+        if (prompted)
+        {
+            set_message_label (_("Incorrect password, please try again"));
+            start_authentication (lightdm_greeter_get_authentication_user (greeter));
+        }
+        else
+            set_message_label (_("Failed to authenticate"));
     }
 }
 
 static void
 autologin_timer_expired_cb (LightDMGreeter *greeter)
 {
-    set_session (lightdm_greeter_get_default_session_hint (greeter));
     if (lightdm_greeter_get_autologin_guest_hint (greeter))
-        lightdm_greeter_authenticate_as_guest (greeter);
+        start_authentication ("*guest");
     else if (lightdm_greeter_get_autologin_user_hint (greeter))
-        lightdm_greeter_authenticate (greeter, lightdm_greeter_get_autologin_user_hint (greeter));
+        start_authentication (lightdm_greeter_get_autologin_user_hint (greeter));
 }
 
 static void
@@ -480,7 +513,7 @@ load_user_list ()
 
     gtk_list_store_append (GTK_LIST_STORE (model), &iter);
     gtk_list_store_set (GTK_LIST_STORE (model), &iter,
-                        0, "*other",
+                        0, NULL,
                         1, "Other...",
                         2, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
                         -1);
@@ -697,7 +730,7 @@ main(int argc, char **argv)
     gtk_tree_view_insert_column_with_attributes (user_view, 1, "Name", gtk_cell_renderer_text_new(), "text", 1, NULL);
 
     if (lightdm_greeter_get_hide_users_hint (greeter))
-        lightdm_greeter_authenticate (greeter, NULL);
+        start_authentication (NULL);
     else
     {
         load_user_list ();
