@@ -114,8 +114,11 @@ cancel_authentication (void)
     else
     {
         cancelling = FALSE;
-        gtk_widget_hide (prompt_box);
-        gtk_widget_grab_focus (GTK_WIDGET (user_view));
+        if (!lightdm_greeter_get_hide_users_hint (greeter))
+        {
+            gtk_widget_hide (prompt_box);
+            gtk_widget_grab_focus (GTK_WIDGET (user_view));
+        }
     }
 }
 
