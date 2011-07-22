@@ -20,7 +20,8 @@
 
 static LightDMGreeter *greeter;
 static GtkWindow *login_window, *panel_window;
-static GtkWidget *message_label, *user_view;
+static GtkLabel *message_label;
+static GtkTreeView *user_view;
 static GtkWidget *prompt_box, *prompt_label, *prompt_entry, *session_combo;
 static gchar *default_font_name, *default_theme_name;
 
@@ -65,8 +66,8 @@ set_session (const gchar *session)
 static void
 start_authentication (const gchar *username)
 {
-    gtk_widget_hide (message_label);
-    gtk_label_set_text (GTK_LABEL (message_label), "");
+    gtk_widget_hide (GTK_WIDGET (message_label));
+    gtk_label_set_text (message_label, "");
 
     if (strcmp (username, "*other") == 0)
     {
@@ -94,7 +95,7 @@ G_MODULE_EXPORT
 void
 user_treeview_row_activated_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *column)
 {
-    GtkTreeModel *model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));  
+    GtkTreeModel *model = gtk_tree_view_get_model (user_view);  
     GtkTreeIter iter;
     gchar *user;
 
@@ -107,11 +108,11 @@ user_treeview_row_activated_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeVie
 static gboolean
 idle_select_cb ()
 {
-    GtkTreeModel *model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
+    GtkTreeModel *model = gtk_tree_view_get_model (user_view);
     GtkTreeIter iter;
     gchar *user;
 
-    if (gtk_tree_selection_get_selected (gtk_tree_view_get_selection (GTK_TREE_VIEW (user_view)),
+    if (gtk_tree_selection_get_selected (gtk_tree_view_get_selection (user_view),
                                          NULL, &iter))
     {
         gtk_tree_model_get (GTK_TREE_MODEL (model), &iter, 0, &user, -1);
@@ -167,8 +168,8 @@ show_prompt_cb (LightDMGreeter *greeter, const gchar *text, LightDMPromptType ty
 static void
 show_message_cb (LightDMGreeter *greeter, const gchar *text, LightDMMessageType type)
 {
-    gtk_label_set_text (GTK_LABEL (message_label), text);
-    gtk_widget_show (message_label);
+    gtk_label_set_text (message_label, text);
+    gtk_widget_show (GTK_WIDGET (message_label));
 }
 
 static void
@@ -178,21 +179,19 @@ authentication_complete_cb (LightDMGreeter *greeter)
     gtk_label_set_text (GTK_LABEL (prompt_label), "");
     gtk_entry_set_text (GTK_ENTRY (prompt_entry), "");
 
-    gtk_widget_grab_focus (user_view);
+    gtk_widget_grab_focus (GTK_WIDGET (user_view));
 
     if (lightdm_greeter_get_is_authenticated (greeter))
     {
         gchar *session = get_session ();
-        if (lightdm_greeter_start_session_sync (greeter, session))
-            exit (EXIT_SUCCESS);
-        else
-            gtk_label_set_text (GTK_LABEL (message_label), _("Failed to authenticate"));
+        if (!lightdm_greeter_start_session_sync (greeter, session))
+            gtk_label_set_text (message_label, _("Failed to authenticate"));
         g_free (session);
     }
     else
-        gtk_label_set_text (GTK_LABEL (message_label), _("Failed to authenticate"));
+        gtk_label_set_text (message_label, _("Failed to authenticate"));
 
-    gtk_widget_show (message_label);
+    gtk_widget_show (GTK_WIDGET (message_label));
     if (lightdm_greeter_get_hide_users_hint (greeter))
         lightdm_greeter_authenticate (greeter, NULL);
 }
@@ -296,7 +295,7 @@ user_added_cb (LightDMUserList *user_list, LightDMUser *user)
     GtkTreeModel *model;
     GtkTreeIter iter;
 
-    model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
+    model = gtk_tree_view_get_model (user_view);
 
     gtk_list_store_append (GTK_LIST_STORE (model), &iter);
     gtk_list_store_set (GTK_LIST_STORE (model), &iter,
@@ -311,7 +310,7 @@ get_user_iter (const gchar *username, GtkTreeIter *iter)
 {
     GtkTreeModel *model;
 
-    model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
+    model = gtk_tree_view_get_model (user_view);
   
     if (!gtk_tree_model_get_iter_first (model, iter))
         return FALSE;
@@ -339,7 +338,7 @@ user_changed_cb (LightDMUserList *user_list, LightDMUser *user)
     if (!get_user_iter (lightdm_user_get_name (user), &iter))
         return;
 
-    model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
+    model = gtk_tree_view_get_model (user_view);
     gtk_list_store_set (GTK_LIST_STORE (model), &iter,
                         0, lightdm_user_get_name (user),
                         1, lightdm_user_get_display_name (user),
@@ -356,7 +355,7 @@ user_removed_cb (LightDMUserList *user_list, LightDMUser *user)
     if (!get_user_iter (lightdm_user_get_name (user), &iter))
         return;
 
-    model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));  
+    model = gtk_tree_view_get_model (user_view);  
     gtk_list_store_remove (GTK_LIST_STORE (model), &iter);
 }
 
@@ -416,9 +415,8 @@ load_user_list ()
     g_signal_connect (lightdm_user_list_get_instance (), "user-changed", G_CALLBACK (user_changed_cb), NULL);
     g_signal_connect (lightdm_user_list_get_instance (), "user-removed", G_CALLBACK (user_removed_cb), NULL);
 
+    model = gtk_tree_view_get_model (user_view);
     items = lightdm_user_list_get_users (lightdm_user_list_get_instance ());
-
-    model = gtk_tree_view_get_model (GTK_TREE_VIEW (user_view));
     for (item = items; item; item = item->next)
     {
         LightDMUser *user = item->data;
@@ -446,6 +444,10 @@ load_user_list ()
                             1, lightdm_user_get_display_name (user),
                             2, pixbuf,
                             -1);
+
+        if (lightdm_greeter_get_select_user_hint (greeter) &&
+            strcmp (lightdm_greeter_get_select_user_hint (greeter), lightdm_user_get_name (user)) == 0)
+            gtk_tree_selection_select_iter (gtk_tree_view_get_selection (user_view), &iter);
     }
     if (lightdm_greeter_get_has_guest_account_hint (greeter))
     {
@@ -455,6 +457,8 @@ load_user_list ()
                             1, "Guest Account",
                             2, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
                             -1);
+        if (lightdm_greeter_get_select_guest_hint (greeter))
+            gtk_tree_selection_select_iter (gtk_tree_view_get_selection (user_view), &iter);
     }
 
     gtk_list_store_append (GTK_LIST_STORE (model), &iter);
@@ -656,7 +660,7 @@ main(int argc, char **argv)
     prompt_box = GTK_WIDGET (gtk_builder_get_object (builder, "prompt_box"));
     prompt_label = GTK_WIDGET (gtk_builder_get_object (builder, "prompt_label"));
     prompt_entry = GTK_WIDGET (gtk_builder_get_object (builder, "prompt_entry"));
-    message_label = GTK_WIDGET (gtk_builder_get_object (builder, "message_label"));
+    message_label = GTK_LABEL (gtk_builder_get_object (builder, "message_label"));
     session_combo = GTK_WIDGET (gtk_builder_get_object (builder, "session_combobox"));
     panel_window = GTK_WINDOW (gtk_builder_get_object (builder, "panel_window"));
 
@@ -671,20 +675,17 @@ main(int argc, char **argv)
     if (!lightdm_get_can_shutdown ())
         gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (builder, "shutdown_menuitem")));
 
-    user_view = GTK_WIDGET (gtk_builder_get_object (builder, "user_treeview"));
-    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 0, "Face", gtk_cell_renderer_pixbuf_new(), "pixbuf", 2, NULL);
-    gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (user_view), 1, "Name", gtk_cell_renderer_text_new(), "text", 1, NULL);
+    user_view = GTK_TREE_VIEW (gtk_builder_get_object (builder, "user_treeview"));
+    gtk_tree_view_insert_column_with_attributes (user_view, 0, "Face", gtk_cell_renderer_pixbuf_new(), "pixbuf", 2, NULL);
+    gtk_tree_view_insert_column_with_attributes (user_view, 1, "Name", gtk_cell_renderer_text_new(), "text", 1, NULL);
 
     if (lightdm_greeter_get_hide_users_hint (greeter))
         lightdm_greeter_authenticate (greeter, NULL);
     else
     {
         load_user_list ();
-        gtk_widget_show (user_view);
+        gtk_widget_show (GTK_WIDGET (user_view));
     }
-
-    // FIXME: Select the requested user if lightdm_greeter_get_select_user_hint () set
-    // FIXME: But don't start session if no user response
 
     renderer = gtk_cell_renderer_text_new();
     gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (session_combo), renderer, TRUE);
@@ -716,7 +717,7 @@ main(int argc, char **argv)
     gtk_window_resize (panel_window, monitor_geometry.width, allocation.height);
     gtk_window_move (panel_window, monitor_geometry.x, monitor_geometry.y);
 
-    gtk_widget_grab_focus (user_view);
+    gtk_widget_grab_focus (GTK_WIDGET (user_view));
 
     gtk_main ();
 
