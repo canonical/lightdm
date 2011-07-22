@@ -186,11 +186,11 @@ authentication_complete_cb (LightDMGreeter *greeter)
         if (lightdm_greeter_start_session_sync (greeter, session))
             exit (EXIT_SUCCESS);
         else
-            gtk_label_set_text (GTK_LABEL (message_label), "Failed to authenticate");
+            gtk_label_set_text (GTK_LABEL (message_label), _("Failed to authenticate"));
         g_free (session);
     }
     else
-        gtk_label_set_text (GTK_LABEL (message_label), "Failed to authenticate");
+        gtk_label_set_text (GTK_LABEL (message_label), _("Failed to authenticate"));
 
     gtk_widget_show (message_label);
     if (lightdm_greeter_get_hide_users_hint (greeter))
@@ -521,7 +521,7 @@ main(int argc, char **argv)
     GError *error = NULL;
 
     /* Disable global menus */
-    unsetenv ("UBUNTU_MENUPROXY");
+    g_unsetenv ("UBUNTU_MENUPROXY");
 
     signal (SIGTERM, sigterm_cb);
 
