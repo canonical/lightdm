@@ -475,7 +475,7 @@ create_session (Display *display, PAMSession *pam_session, const gchar *session_
     g_free (path);     
     if (!command)
         return NULL;
-    if (display->priv->session_wrapper)
+    if (display->priv->session_wrapper && !is_greeter)
     {
         gchar *wrapper;
 
