@@ -370,6 +370,8 @@ handle_start_session (Greeter *greeter, gchar *session)
 {
     gboolean result;
 
+    g_debug ("Start session session=%s", session);
+
     if (strcmp (session, "") == 0)
         session = NULL;
 
