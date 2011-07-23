@@ -63,13 +63,29 @@ G_DEFINE_TYPE (XServerLocal, xserver_local, XSERVER_TYPE);
 
 static GList *display_numbers = NULL;
 
+static gboolean
+display_number_used (guint number)
+{
+    gchar *path;
+    gboolean result;
+  
+    if (g_list_find (display_numbers, GINT_TO_POINTER (number)))
+        return TRUE;
+  
+    path = g_strdup_printf ("/tmp/.X%d-lock", number);
+    result = g_file_test (path, G_FILE_TEST_EXISTS);
+    g_free (path);
+
+    return result;
+}
+
 static guint
 get_free_display_number (void)
 {
     guint number;
 
     number = config_get_integer (config_get_instance (), "LightDM", "minimum-display-number");
-    while (g_list_find (display_numbers, GINT_TO_POINTER (number)))
+    while (display_number_used (number))
         number++;
 
     display_numbers = g_list_append (display_numbers, GINT_TO_POINTER (number));

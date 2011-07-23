@@ -620,7 +620,6 @@ main (int argc, char **argv)
     GOptionContext *option_context;
     gboolean explicit_config = FALSE;
     gboolean test_mode = FALSE;
-    gboolean no_root = FALSE;
     gchar *pid_path = "/var/run/lightdm.pid";
     gchar *xserver_command = NULL;
     gchar *passwd_path = NULL;
@@ -649,9 +648,6 @@ main (int argc, char **argv)
           N_("Print debugging messages"), NULL },
         { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
           /* Help string for command line --test-mode flag */
-          N_("Alias for --no-root --minimum-display-number=50"), NULL },
-        { "no-root", 0, 0, G_OPTION_ARG_NONE, &no_root,
-          /* Help string for command line --no-root flag */
           N_("Run as unprivileged user, skipping things that require root access"), NULL },
         { "passwd-file", 0, 0, G_OPTION_ARG_STRING, &passwd_path,
           /* Help string for command line --use-passwd flag */
@@ -731,14 +727,7 @@ main (int argc, char **argv)
     config_set_string (config_get_instance (), "LightDM", "config-directory", config_dir);
     g_free (config_dir);
 
-    if (test_mode)
-    {
-        no_root = TRUE;
-        g_free (minimum_display_number);
-        minimum_display_number = g_strdup ("50");
-    }
-
-    if (!no_root && getuid () != 0)
+    if (!test_mode && getuid () != 0)
     {
         g_printerr ("Only root can run Light Display Manager.  To run as a regular user for testing run with the --test-mode flag.\n");
         return EXIT_FAILURE;

@@ -584,7 +584,7 @@ main (int argc, char **argv)
         g_string_append (command_line, " --debug");
     if (fopen (config_path, "r"))
         g_string_append_printf (command_line, " --config %s", config_path);
-    g_string_append (command_line, " --no-root");
+    g_string_append (command_line, " --test-mode");
     g_string_append(command_line, " --xserver-command=test-xserver");
     if (greeter)
         g_string_append_printf (command_line, " --greeter-session=%s", greeter);
