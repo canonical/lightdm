@@ -181,7 +181,7 @@ display_switch_to_guest_cb (Display *display, Seat *seat)
     return display_switch_to_user_cb (display, seat->priv->guest_username, seat);
 }
 
-static gchar *
+static const gchar *
 display_get_guest_username_cb (Display *display, Seat *seat)
 {
     if (seat->priv->guest_username)
