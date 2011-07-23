@@ -62,7 +62,7 @@ run_script (const gchar *script, gchar **stdout_text, gint *exit_status, GError 
 gchar *
 guest_account_setup (void)
 {
-    gchar *command, *stdout_text, *username, *start, *c;
+    gchar *command, *stdout_text, *username, **lines;
     gint exit_status;
     gboolean result;
     GError *error = NULL;
@@ -83,21 +83,19 @@ guest_account_setup (void)
         g_free (stdout_text);
         return NULL;
     }
-  
-    /* Use the first line and trim whitespace */
-    start = stdout_text;
-    while (isspace (*start))
-       start++;
-    c = start;
-    while (!isspace (*c))
-       c++;
-    *c = '\0';
-    username = g_strdup (start);
+
+    /* Use the last line and trim whitespace */
+    lines = g_strsplit (g_strstrip (stdout_text), "\n", -1);
+    if (lines)
+        username = g_strdup (g_strstrip (lines[g_strv_length (lines) - 1]));
+    else
+        username = g_strdup ("");
     g_free (stdout_text);
 
     if (strcmp (username, "") == 0)
     {
         g_free (username);
+        g_debug ("Guest account setup script didn't return a username");
         return NULL;
     }
   
