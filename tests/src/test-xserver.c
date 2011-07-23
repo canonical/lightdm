@@ -895,7 +895,11 @@ main (int argc, char **argv)
         }
         else if (g_str_has_prefix (arg, "vt"))
         {
-            /* Ignore VT arg */
+            /* Ignore VT args */
+        }
+        else if (g_str_has_prefix (arg, "-novtswitch"))
+        {
+            /* Ignore VT args */
         }
         else
         {
