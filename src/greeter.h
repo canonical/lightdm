@@ -45,6 +45,8 @@ void greeter_set_hint (Greeter *greeter, const gchar *name, const gchar *value);
 
 gboolean greeter_start (Greeter *greeter);
 
+gboolean greeter_get_guest_authenticated (Greeter *greeter);
+
 PAMSession *greeter_get_pam_session (Greeter *greeter);
 
 void greeter_quit (Greeter *greeter);

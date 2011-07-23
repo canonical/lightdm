@@ -50,7 +50,7 @@ struct GreeterPrivate
     gboolean allow_guest;
 
     /* TRUE if logging into guest session */
-    gboolean using_guest_account;
+    gboolean guest_account_authenticated;
 
     /* Communication channels to communicate with */
     GIOChannel *to_greeter_channel;
@@ -259,7 +259,7 @@ reset_session (Greeter *greeter)
         g_object_unref (greeter->priv->pam_session);
     }
 
-    greeter->priv->using_guest_account = FALSE;
+    greeter->priv->guest_account_authenticated = FALSE;
 }
 
 static void
@@ -304,7 +304,7 @@ handle_login_as_guest (Greeter *greeter, guint32 sequence_number)
         return;
     }
 
-    greeter->priv->using_guest_account = TRUE;  
+    greeter->priv->guest_account_authenticated = TRUE;  
     send_end_authentication (greeter, sequence_number, "", PAM_SUCCESS);
 }
 
@@ -366,7 +366,7 @@ handle_cancel_authentication (Greeter *greeter)
 }
 
 static void
-handle_start_session (Greeter *greeter, gchar *session)
+handle_start_session (Greeter *greeter, const gchar *session)
 {
     gboolean result;
 
@@ -375,7 +375,13 @@ handle_start_session (Greeter *greeter, gchar *session)
     if (strcmp (session, "") == 0)
         session = NULL;
 
-    g_signal_emit (greeter, signals[START_SESSION], 0, session, greeter->priv->using_guest_account, &result);
+    if (greeter->priv->guest_account_authenticated || pam_session_get_in_session (greeter->priv->pam_session))
+        g_signal_emit (greeter, signals[START_SESSION], 0, session, &result);
+    else
+    {
+        g_debug ("Ignoring start session request, user is not authorized");
+        result = FALSE;
+    }
 
     if (!result)
     {
@@ -563,6 +569,13 @@ greeter_start (Greeter *greeter)
     return TRUE;
 }
 
+gboolean
+greeter_get_guest_authenticated (Greeter *greeter)
+{
+    g_return_val_if_fail (greeter != NULL, FALSE);
+    return greeter->priv->guest_account_authenticated;
+}
+
 PAMSession *
 greeter_get_pam_session (Greeter *greeter)
 {
@@ -637,8 +650,8 @@ greeter_class_init (GreeterClass *klass)
                       G_STRUCT_OFFSET (GreeterClass, start_session),
                       g_signal_accumulator_true_handled,
                       NULL,
-                      ldm_marshal_BOOLEAN__STRING_BOOLEAN,
-                      G_TYPE_BOOLEAN, 2, G_TYPE_STRING, G_TYPE_BOOLEAN);
+                      ldm_marshal_BOOLEAN__STRING,
+                      G_TYPE_BOOLEAN, 1, G_TYPE_STRING);
 
     signals[START_AUTHENTICATION] =
         g_signal_new ("start-authentication",

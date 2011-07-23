@@ -104,7 +104,7 @@ struct DisplayPrivate
 G_DEFINE_TYPE (Display, display, G_TYPE_OBJECT);
 
 static gboolean start_greeter_session (Display *display);
-static gboolean start_user_session (Display *display, PAMSession *pam_session, const gchar *name);
+static gboolean start_user_session (Display *display, PAMSession *pam_session);
 
 // FIXME: Should be a construct property
 // FIXME: Move into seat.c
@@ -582,7 +582,7 @@ autologin_authentication_result_cb (PAMSession *session, int result, Display *di
         {
             g_debug ("User %s authorized", pam_session_get_username (session));
             pam_session_authorize (session);
-            start_user_session (display, session, display->priv->default_session);
+            start_user_session (display, session);
         }
         else
         {
@@ -601,41 +601,32 @@ greeter_start_authentication_cb (Greeter *greeter, const gchar *username, Displa
 }
 
 static gboolean
-greeter_start_session_cb (Greeter *greeter, const gchar *session, gboolean is_guest, Display *display)
+greeter_start_session_cb (Greeter *greeter, const gchar *session_name, Display *display)
 {
-    const gchar *username = NULL;
+    PAMSession *pam_session;
+  
+    /* Store the session to use, use the default if none was requested */
+    g_free (display->priv->user_session);
+    display->priv->user_session = g_strdup (session_name); 
+
+    pam_session = greeter_get_pam_session (display->priv->greeter);
 
     /* Stop this display if that session already exists and can switch to it */
-    if ((!is_guest && switch_to_user (display, username)) ||
-        (is_guest && switch_to_guest (display)))
+    if (greeter_get_guest_authenticated (greeter))
     {
-        display_stop (display);
-        return TRUE;
-    }
+        if (switch_to_guest (display))
+            return TRUE;
 
-    /* Store the session to use, use the default if none was requested */
-    if (!session)
-        session = display->priv->default_session;
-    g_free (display->priv->user_session);
-    display->priv->user_session = g_strdup (session);
-
-    /* Set guest to autologin when the display is ready or use the authentication from the greeter */
-    if (is_guest)
+        /* Set to login as guest */
         display_set_default_user (display, NULL, TRUE, TRUE, 0);
+    }
     else
     {
-        PAMSession *pam_session;
-
-        pam_session = greeter_get_pam_session (display->priv->greeter);
-        if (!pam_session_get_in_session (pam_session))
-        {
-            g_warning ("Ignoring request for login with unauthenticated user");
-            return FALSE;
-        }
-        username = pam_session_get_username (pam_session);
+       if (switch_to_user (display, pam_session_get_username (pam_session)))
+           return TRUE;
     }
 
-    /* Stop the greeter */
+    /* Stop the greeter, the session will start when the greeter has quit */
     g_debug ("Stopping greeter");
     session_stop (display->priv->session);  
 
@@ -732,11 +723,11 @@ start_greeter_session (Display *display)
 }
 
 static gboolean
-start_user_session (Display *display, PAMSession *pam_session, const gchar *name)
+start_user_session (Display *display, PAMSession *pam_session)
 {
     GKeyFile *dmrc_file;
     User *user;
-    gchar *log_filename;
+    gchar *session_name, *log_filename;
     Session *session;
     gboolean result;
 
@@ -749,13 +740,15 @@ start_user_session (Display *display, PAMSession *pam_session, const gchar *name
         return FALSE;
     }
 
+    session_name = display->priv->user_session;
+    if (!session_name)
+        session_name = display->priv->default_session;
+
     /* Load the users login settings (~/.dmrc) */
     dmrc_file = dmrc_load (user_get_name (user));
 
     /* Update the .dmrc with changed settings */
-    g_key_file_set_string (dmrc_file, "Desktop", "Session", name);
-
-    /* Save modified DMRC */
+    g_key_file_set_string (dmrc_file, "Desktop", "Session", session_name);
     dmrc_save (dmrc_file, pam_session_get_username (pam_session));
     g_key_file_free (dmrc_file);
 
@@ -763,7 +756,7 @@ start_user_session (Display *display, PAMSession *pam_session, const gchar *name
     log_filename = g_build_filename (user_get_home_directory (user), ".xsession-errors", NULL);
     g_object_unref (user);
 
-    session = create_session (display, pam_session, name, FALSE, log_filename);
+    session = create_session (display, pam_session, session_name, FALSE, log_filename);
     g_free (log_filename);
 
     if (session)
@@ -820,7 +813,7 @@ display_server_ready_cb (DisplayServer *display_server, Display *display)
     /* Start the session for the authenticated user */
     if (pam_session)
     {
-        result = start_user_session (display, pam_session, display->priv->user_session);
+        result = start_user_session (display, pam_session);
         if (!result)
             g_debug ("Failed to start user session, returning to greeter");
         g_object_unref (pam_session);
