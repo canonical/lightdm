@@ -45,9 +45,6 @@ struct SeatPrivate
     gboolean autologin_guest;
     guint autologin_timeout;
 
-    /* Display running greeter */
-    Display *greeter_display;
-
     /* The displays for this seat */
     GList *displays;
 

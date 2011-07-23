@@ -879,7 +879,7 @@ display_start (Display *display)
     g_signal_connect (G_OBJECT (display->priv->display_server), "ready", G_CALLBACK (display_server_ready_cb), display);
     g_signal_connect (G_OBJECT (display->priv->display_server), "stopped", G_CALLBACK (display_server_stopped_cb), display);
     result = display_server_start (display->priv->display_server);
-  
+
     g_signal_emit (display, signals[STARTED], 0);
 
     return result;
@@ -944,7 +944,8 @@ display_finalize (GObject *object)
 
     self = DISPLAY (object);
 
-    g_object_unref (self->priv->display_server);
+    if (self->priv->display_server)
+        g_object_unref (self->priv->display_server);
     g_free (self->priv->greeter_user);
     g_free (self->priv->greeter_session);
     if (self->priv->greeter)
