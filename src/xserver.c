@@ -10,6 +10,8 @@
  */
 
 #include <config.h>
+#include <string.h>
+#include <xcb/xcb.h>
 
 #include "xserver.h"
 #include "configuration.h"
@@ -28,6 +30,9 @@ struct XServerPrivate
 
     /* Authority */
     XAuthority *authority;
+
+    /* Connection to this X server */
+    xcb_connection_t *connection;
 };
 
 G_DEFINE_TYPE (XServer, xserver, DISPLAY_SERVER_TYPE);
@@ -97,6 +102,33 @@ xserver_get_authority (XServer *server)
     return server->priv->authority;
 }
 
+static gboolean
+xserver_start (DisplayServer *display_server)
+{
+    XServer *server = XSERVER (display_server);
+    xcb_auth_info_t *auth = NULL, a;
+
+    if (server->priv->authority)
+    {
+        a.namelen = strlen (xauth_get_authorization_name (server->priv->authority));
+        a.name = (char *) xauth_get_authorization_name (server->priv->authority);
+        a.datalen = xauth_get_authorization_data_length (server->priv->authority);
+        a.data = (char *) xauth_get_authorization_data (server->priv->authority);
+        auth = &a;
+    }
+
+    /* Open connection */  
+    g_debug ("Connecting to XServer %s", xserver_get_address (server));
+    server->priv->connection = xcb_connect_to_display_with_auth_info (xserver_get_address (server), auth, NULL);
+    if (xcb_connection_has_error (server->priv->connection))
+    {
+        g_debug ("Error connecting to XServer %s", xserver_get_address (server));
+        return FALSE;
+    }
+
+    return DISPLAY_SERVER_CLASS (xserver_parent_class)->start (display_server);
+}
+
 static void
 xserver_init (XServer *server)
 {
@@ -114,6 +146,8 @@ xserver_finalize (GObject *object)
     g_free (self->priv->address);
     if (self->priv->authority)
         g_object_unref (self->priv->authority);
+    if (self->priv->connection)
+        xcb_disconnect (self->priv->connection);
 
     G_OBJECT_CLASS (xserver_parent_class)->finalize (object);
 }
@@ -122,7 +156,9 @@ static void
 xserver_class_init (XServerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
+    display_server_class->start = xserver_start;
     object_class->finalize = xserver_finalize;
 
     g_type_class_add_private (klass, sizeof (XServerPrivate));

@@ -27,19 +27,6 @@ xserver_remote_new (const gchar *hostname, guint number, XAuthority *authority)
     return self;
 }
 
-static gboolean
-xserver_remote_start (DisplayServer *server)
-{
-    display_server_set_ready (DISPLAY_SERVER (server));
-    return TRUE;
-}
-
-static void
-xserver_remote_stop (DisplayServer *server)
-{
-    display_server_set_stopped (DISPLAY_SERVER (server));
-}
-
 static void
 xserver_remote_init (XServerRemote *server)
 {
@@ -48,8 +35,4 @@ xserver_remote_init (XServerRemote *server)
 static void
 xserver_remote_class_init (XServerRemoteClass *klass)
 {
-    DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
-
-    display_server_class->start = xserver_remote_start;
-    display_server_class->stop = xserver_remote_stop;
 }

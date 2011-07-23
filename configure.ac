@@ -28,6 +28,7 @@ PKG_CHECK_MODULES(LIGHTDM, [
     gio-2.0 >= 2.26
     gio-unix-2.0
     xdmcp
+    xcb
 ])
 
 PKG_CHECK_MODULES(GLIB, [

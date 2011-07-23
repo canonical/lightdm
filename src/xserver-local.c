@@ -215,7 +215,8 @@ got_signal_cb (Process *process, int signum, XServerLocal *server)
             plymouth_quit (TRUE);
         }
 
-        display_server_set_ready (DISPLAY_SERVER (server));
+        // FIXME: Check return value
+        DISPLAY_SERVER_CLASS (xserver_local_parent_class)->start (DISPLAY_SERVER (server));
     }
 }
 
@@ -240,6 +241,28 @@ stopped_cb (Process *process, XServerLocal *server)
     g_object_unref (server->priv->xserver_process);
     server->priv->xserver_process = NULL;
 
+    if (xserver_get_authority (XSERVER (server)) && server->priv->authority_file)
+    {
+        GError *error = NULL;
+        gchar *path;
+
+        path = g_file_get_path (server->priv->authority_file);      
+        g_debug ("Removing X server authority from %s", path);
+        g_free (path);
+
+        if (!xauth_write (xserver_get_authority (XSERVER (server)), XAUTH_WRITE_MODE_REMOVE, NULL, server->priv->authority_file, &error))
+            g_debug ("Error removing authority: %s", error->message);
+        g_clear_error (&error);
+
+        g_object_unref (server->priv->authority_file);
+        server->priv->authority_file = NULL;
+    }
+
+    release_display_number (xserver_get_display_number (XSERVER (server)));
+
+    if (server->priv->vt >= 0)
+        vt_release (server->priv->vt);
+
     if (server->priv->replacing_plymouth && plymouth_get_is_running ())
     {
         g_debug ("Stopping Plymouth, X server failed to start");
@@ -247,7 +270,7 @@ stopped_cb (Process *process, XServerLocal *server)
         plymouth_quit (FALSE);
     }
 
-    display_server_set_stopped (DISPLAY_SERVER (server));
+    DISPLAY_SERVER_CLASS (xserver_local_parent_class)->stop (DISPLAY_SERVER (server));
 }
 
 static void
@@ -258,9 +281,11 @@ write_authority_file (XServerLocal *server)
     GError *error = NULL;
 
     authority = xserver_get_authority (XSERVER (server));
+    if (!authority)
+        return;
 
     /* Get file to write to if have authority */
-    if (authority && !server->priv->authority_file)
+    if (!server->priv->authority_file)
     {
         gchar *run_dir, *dir;
       
@@ -275,27 +300,11 @@ write_authority_file (XServerLocal *server)
         g_free (path);
     }
 
-    /* Delete existing file if no authority */
-    if (!authority)
-    {
-        if (server->priv->authority_file)
-        {
-            path = g_file_get_path (server->priv->authority_file);
-            g_debug ("Deleting X server authority %s", path);
-            g_free (path);
-
-            g_file_delete (server->priv->authority_file, NULL, NULL);
-            g_object_unref (server->priv->authority_file);
-            server->priv->authority_file = NULL;
-        }
-        return;
-    }
-
     path = g_file_get_path (server->priv->authority_file);
     g_debug ("Writing X server authority to %s", path);
     g_free (path);
 
-    if (!xauth_write (authority, XAUTH_WRITE_MODE_SET, NULL, server->priv->authority_file, &error))
+    if (!xauth_write (authority, XAUTH_WRITE_MODE_REPLACE, NULL, server->priv->authority_file, &error))
         g_warning ("Failed to write authority: %s", error->message);
     g_clear_error (&error);
 }
@@ -424,35 +433,6 @@ xserver_local_start (DisplayServer *display_server)
     return result;
 }
  
-static gboolean
-xserver_local_restart (DisplayServer *display_server)
-{
-    XServerLocal *server = XSERVER_LOCAL (display_server);
-    gchar hostname[1024], *number;
-
-    /* Not running */
-    if (!server->priv->xserver_process)
-        return FALSE;
-
-    /* Can only restart with not using authentication */
-    if (server->priv->xdmcp_key)
-        return FALSE;
-
-    g_debug ("Generating new cookie for X server");
-    gethostname (hostname, 1024);
-    number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (server)));
-    xserver_set_authority (XSERVER (server), xauth_new_cookie (XAUTH_FAMILY_LOCAL, hostname, number));
-    g_free (number);
-    write_authority_file (server);
-
-    g_debug ("Sending signal to X server to disconnect clients");
-
-    server->priv->got_signal = FALSE;
-    process_signal (server->priv->xserver_process, SIGHUP);
-
-    return TRUE;
-}
-
 static void
 xserver_local_stop (DisplayServer *server)
 {
@@ -474,21 +454,15 @@ xserver_local_finalize (GObject *object)
 
     self = XSERVER_LOCAL (object);
 
-    release_display_number (xserver_get_display_number (XSERVER (self)));
-
-    if (self->priv->vt >= 0)
-        vt_release (self->priv->vt);
-
+    if (self->priv->xserver_process)
+        g_object_unref (self->priv->xserver_process);
     g_free (self->priv->command);
     g_free (self->priv->config_file);
     g_free (self->priv->layout);
     g_free (self->priv->xdmcp_server);
     g_free (self->priv->xdmcp_key);
     if (self->priv->authority_file)
-    {
-        g_file_delete (self->priv->authority_file, NULL, NULL);
         g_object_unref (self->priv->authority_file);
-    }
 
     G_OBJECT_CLASS (xserver_local_parent_class)->finalize (object);
 }
@@ -500,7 +474,6 @@ xserver_local_class_init (XServerLocalClass *klass)
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
     display_server_class->start = xserver_local_start;
-    display_server_class->restart = xserver_local_restart;
     display_server_class->stop = xserver_local_stop;
     object_class->finalize = xserver_local_finalize;
 

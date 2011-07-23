@@ -25,7 +25,8 @@ G_DEFINE_TYPE (DisplayServer, display_server, G_TYPE_OBJECT);
 static gboolean
 display_server_real_start (DisplayServer *server)
 {
-    return FALSE;
+    g_signal_emit (server, signals[READY], 0);
+    return TRUE;
 }
 
 gboolean
@@ -35,29 +36,10 @@ display_server_start (DisplayServer *server)
     return DISPLAY_SERVER_GET_CLASS (server)->start (server);
 }
 
-void
-display_server_set_ready (DisplayServer *server)
-{
-    g_return_if_fail (server != NULL);
-    g_signal_emit (server, signals[READY], 0);
-}
-
-static gboolean
-display_server_real_restart (DisplayServer *server)
-{
-    return FALSE;
-}
-
-gboolean
-display_server_restart (DisplayServer *server)
-{
-    g_return_val_if_fail (server != NULL, FALSE);
-    return DISPLAY_SERVER_GET_CLASS (server)->restart (server);
-}
-
 static void
 display_server_real_stop (DisplayServer *server)
 {
+    g_signal_emit (server, signals[STOPPED], 0);
 }
 
 void
@@ -65,13 +47,6 @@ display_server_stop (DisplayServer *server)
 {
     g_return_if_fail (server != NULL);
     DISPLAY_SERVER_GET_CLASS (server)->stop (server);
-}
-
-void
-display_server_set_stopped (DisplayServer *server)
-{
-    g_return_if_fail (server != NULL);
-    g_signal_emit (server, signals[STOPPED], 0);
 }
 
 static void
@@ -83,7 +58,6 @@ static void
 display_server_class_init (DisplayServerClass *klass)
 {
     klass->start = display_server_real_start;
-    klass->restart = display_server_real_restart;
     klass->stop = display_server_real_stop;
 
     signals[READY] =

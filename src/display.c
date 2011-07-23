@@ -385,28 +385,18 @@ check_stopped (Display *display)
     }
 }
 
-static void
-session_stopped_cb (Session *session, Display *display)
+static void display_server_ready_cb (DisplayServer *display_server, Display *display);
+
+static gboolean
+cleanup_after_session (Display *display)
 {
-    if (session_get_is_greeter (display->priv->session))
-        g_debug ("Greeter quit");
-    else
-        g_debug ("User session quit");
+    g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
 
-    /* Stop listening to events from the greeter */
-    if (display->priv->greeter)
-        g_signal_handlers_disconnect_matched (display->priv->greeter, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-
-    /* If a guest account, remove the account on exit */
-    // FIXME
-    //if (g_strcmp0 (pam_session_get_username (display->priv->pam_session), guest_account_get_username ()) == 0)
-    //    guest_account_unref ();
-
-    g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-
+    /* Close ConsoleKit session */
     if (getuid () == 0)
-        end_ck_session (session_get_cookie (session));
+        end_ck_session (session_get_cookie (display->priv->session));
 
+    /* Close PAM session */
     pam_session_end (display->priv->pam_session);
     g_object_unref (display->priv->pam_session);
     display->priv->pam_session = NULL;
@@ -419,15 +409,35 @@ session_stopped_cb (Session *session, Display *display)
     if (display->priv->stopping)
     {
         check_stopped (display);
-        return;
+        return TRUE;
     }
 
-    /* Restart the X server or start a new one if it failed */
-    if (!display_server_restart (display->priv->display_server))
-    {
-        g_debug ("Starting new display server");
-        display_server_start (display->priv->display_server);
-    }
+    return FALSE;
+}
+
+static void
+greeter_session_stopped_cb (Session *session, Display *display)
+{
+    g_debug ("Greeter quit");
+
+    if (cleanup_after_session (display))
+        return;
+
+    /* Start the session */
+    if (display->priv->display_server)
+        display_server_ready_cb (display->priv->display_server, display);
+}
+
+static void
+user_session_stopped_cb (Session *session, Display *display)
+{
+    g_debug ("User session quit");
+
+    if (cleanup_after_session (display))
+        return;
+
+    /* This display has ended */
+    display_stop (display);
 }
 
 static Session *
@@ -493,7 +503,10 @@ create_session (Display *display, PAMSession *pam_session, const gchar *session_
     g_return_val_if_fail (session != NULL, NULL);
     g_signal_connect (session, "exited", G_CALLBACK (session_exited_cb), display);
     g_signal_connect (session, "terminated", G_CALLBACK (session_terminated_cb), display);
-    g_signal_connect (session, "stopped", G_CALLBACK (session_stopped_cb), display);
+    if (is_greeter)
+        g_signal_connect (session, "stopped", G_CALLBACK (greeter_session_stopped_cb), display);
+    else
+        g_signal_connect (session, "stopped", G_CALLBACK (user_session_stopped_cb), display);
     session_set_is_greeter (session, is_greeter);
     session_set_user (session, user);
     session_set_command (session, command);
@@ -767,28 +780,13 @@ start_user_session (Display *display, PAMSession *pam_session, const gchar *name
 static void
 display_server_stopped_cb (DisplayServer *server, Display *display)
 {
-    if (display->priv->stopping)
-    {
-        g_object_unref (display->priv->display_server);
-        display->priv->display_server = NULL;
-        check_stopped (display);
-    }
-    else
-    {
-        g_debug ("Display server stopped");
-       
-        /* Stop the session then start a new X server */
-        if (display->priv->session)
-        {
-            g_debug ("Stopping session");
-            process_stop (PROCESS (display->priv->session));
-        }
-        else
-        {
-            g_debug ("Starting new display server");
-            display_server_start (display->priv->display_server);
-        }
-    }
+    g_debug ("Display server stopped");
+
+    g_object_unref (display->priv->display_server);
+    display->priv->display_server = NULL;
+
+    /* Stop this display, it will be restarted by the seat if necessary */
+    display_stop (display);
 }
 
 static void
@@ -811,7 +809,7 @@ display_server_ready_cb (DisplayServer *display_server, Display *display)
         pam_session_get_in_session (greeter_get_pam_session (display->priv->greeter)))
         pam_session = g_object_ref (greeter_get_pam_session (display->priv->greeter));
 
-    /* Stop any existing greeter */
+    /* Stop the greeter connection */
     if (display->priv->greeter)
     {
         g_signal_handlers_disconnect_matched (display->priv->greeter, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
@@ -892,17 +890,17 @@ display_stop (Display *display)
 {
     g_return_if_fail (display != NULL);
 
-    if (display->priv->stopping)
-        return;
+    if (!display->priv->stopping)
+    {
+        g_debug ("Stopping display");
 
-    g_debug ("Stopping display");
+        display->priv->stopping = TRUE;
 
-    display->priv->stopping = TRUE;
-
-    if (display->priv->display_server)
-        display_server_stop (display->priv->display_server);
-    if (display->priv->session)
-        session_stop (display->priv->session);
+        if (display->priv->display_server)
+            display_server_stop (display->priv->display_server);
+        if (display->priv->session)
+            session_stop (display->priv->session);
+    }
 
     check_stopped (display);
 }

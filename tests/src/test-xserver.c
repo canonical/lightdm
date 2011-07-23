@@ -519,27 +519,48 @@ decode_request (Connection *connection, const guint8 *buffer, gssize buffer_leng
     }
 }
 
+static void
+indicate_ready ()
+{
+    void *handler;  
+    handler = signal (SIGUSR1, SIG_IGN);
+    if (handler == SIG_IGN)
+    {
+        notify_status ("XSERVER :%d INDICATE-READY", display_number);
+        kill (getppid (), SIGUSR1);
+    }
+    signal (SIGUSR1, handler);
+}
+
 static gboolean
 socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 {
+    Connection *connection;
     guint8 buffer[MAXIMUM_REQUEST_LENGTH];
     gssize n_read;
+
+    connection = g_hash_table_lookup (connections, channel);
 
     n_read = recv (g_io_channel_unix_get_fd (channel), buffer, MAXIMUM_REQUEST_LENGTH, 0);
     if (n_read < 0)
         g_warning ("Error reading from socket: %s", strerror (errno));
     else if (n_read == 0)
     {
-        g_debug ("EOF");
+        if (connection)
+        {
+            g_debug ("Client disconnected");
+            g_hash_table_remove (connections, connection->channel);
+            if (g_hash_table_size (connections) == 0)
+                indicate_ready ();
+        }
+        else
+            g_debug ("EOF before connection made");
         return FALSE;
     }
     else
     {
-        Connection *connection;
-
         log_buffer ("Read X", buffer, n_read);
 
-        connection = g_hash_table_lookup (connections, channel);
         if (connection)
             decode_request (connection, buffer, n_read);
         else
@@ -564,19 +585,6 @@ socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
         g_io_add_watch (g_io_channel_unix_new (data_socket), G_IO_IN, socket_data_cb, NULL);
 
     return TRUE;
-}
-
-static void
-indicate_ready ()
-{
-    void *handler;  
-    handler = signal (SIGUSR1, SIG_IGN);
-    if (handler == SIG_IGN)
-    {
-        notify_status ("XSERVER :%d INDICATE-READY", display_number);
-        kill (getppid (), SIGUSR1);
-    }
-    signal (SIGUSR1, handler);
 }
 
 static void

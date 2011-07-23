@@ -37,7 +37,6 @@ typedef struct
     void (*stopped)(DisplayServer *server);
 
     gboolean (*start)(DisplayServer *server);
-    gboolean (*restart)(DisplayServer *server);
     void (*stop)(DisplayServer *server);
 } DisplayServerClass;
 
@@ -45,13 +44,7 @@ GType display_server_get_type (void);
 
 gboolean display_server_start (DisplayServer *server);
 
-void display_server_set_ready (DisplayServer *server);
-
-gboolean display_server_restart (DisplayServer *server);
-
 void display_server_stop (DisplayServer *server);
-
-void display_server_set_stopped (DisplayServer *server);
 
 G_END_DECLS
 

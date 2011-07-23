@@ -17,6 +17,9 @@
 
 struct SeatXDMCPSessionPrivate
 {
+    /* Remote display */
+    XDisplay *display;
+  
     /* Session being serviced */
     XDMCPSession *session;
 };
@@ -39,15 +42,20 @@ seat_xdmcp_session_add_display (Seat *seat)
 {
     XAuthority *authority;
     XServerRemote *xserver;
-    XDisplay *display;
 
     authority = xdmcp_session_get_authority (SEAT_XDMCP_SESSION (seat)->priv->session);
     xserver = xserver_remote_new (xauth_get_address (authority), xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session), authority);
 
-    display = xdisplay_new (XSERVER (xserver));
+    SEAT_XDMCP_SESSION (seat)->priv->display = xdisplay_new (XSERVER (xserver));
     g_object_unref (xserver);
 
-    return DISPLAY (display);
+    return DISPLAY (SEAT_XDMCP_SESSION (seat)->priv->display);
+}
+
+static void
+seat_xdmcp_session_display_removed (Seat *seat, Display *display)
+{
+   seat_stop (seat);
 }
 
 static void
@@ -57,11 +65,28 @@ seat_xdmcp_session_init (SeatXDMCPSession *seat)
 }
 
 static void
+seat_xdmcp_session_finalize (GObject *object)
+{
+    SeatXDMCPSession *self;
+
+    self = SEAT_XDMCP_SESSION (object);
+
+    if (self->priv->display)
+        g_object_unref (self->priv->display);
+    g_object_unref (self->priv->session);
+
+    G_OBJECT_CLASS (seat_xdmcp_session_parent_class)->finalize (object);
+}
+
+static void
 seat_xdmcp_session_class_init (SeatXDMCPSessionClass *klass)
 {
     SeatClass *seat_class = SEAT_CLASS (klass);
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     seat_class->add_display = seat_xdmcp_session_add_display;
+    seat_class->display_removed = seat_xdmcp_session_display_removed;
+    object_class->finalize = seat_xdmcp_session_finalize;
 
     g_type_class_add_private (klass, sizeof (SeatXDMCPSessionPrivate));
 }
