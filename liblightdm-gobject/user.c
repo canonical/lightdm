@@ -446,6 +446,22 @@ user_account_object_free (UserAccountObject *object)
     g_free (object);
 }
 
+static UserAccountObject *
+find_user_account_object (LightDMUserList *user_list, const gchar *path)
+{
+    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
+    GList *link;
+
+    for (link = priv->user_account_objects; link; link = link->next)
+    {
+        UserAccountObject *object = link->data;
+        if (strcmp (g_dbus_proxy_get_object_path (object->proxy), path) == 0)
+            return object;
+    }
+
+    return NULL;
+}
+
 static void
 user_accounts_signal_cb (GDBusProxy *proxy, gchar *sender_name, gchar *signal_name, GVariant *parameters, LightDMUserList *user_list)
 {
@@ -459,11 +475,15 @@ user_accounts_signal_cb (GDBusProxy *proxy, gchar *sender_name, gchar *signal_na
             UserAccountObject *object;
 
             g_variant_get (parameters, "(&o)", &path);
-            g_debug ("User %s added", path);
+
+            object = find_user_account_object (user_list, path);
+            if (object && update_user (object))
+                return;
 
             object = user_account_object_new (path);
             if (object && update_user (object))
             {
+                g_debug ("User %s added", path);
                 priv->user_account_objects = g_list_append (priv->user_account_objects, object);
                 priv->users = g_list_insert_sorted (priv->users, g_object_ref (object->user), compare_user);
                 g_signal_connect (object->user, "changed", G_CALLBACK (user_changed_cb), user_list);
