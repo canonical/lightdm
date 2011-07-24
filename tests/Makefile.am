@@ -5,8 +5,8 @@ TESTS = \
 	test-headless \
 	test-autologin \
 	test-autologin-guest \
-	test-autologin-gobject-guest-fail-setup-script \
-	test-autologin-gobject-invalid-user \
+	test-autologin-guest-fail-setup-script \
+	test-autologin-invalid-user \
 	test-autologin-logout \
 	test-login-gobject \
 	test-login-gobject-manual \
