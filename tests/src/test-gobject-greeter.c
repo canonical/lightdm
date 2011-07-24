@@ -53,7 +53,7 @@ authentication_complete_cb (LightDMGreeter *greeter)
     if (!lightdm_greeter_get_is_authenticated (greeter))
         return;
 
-    if (!lightdm_greeter_start_session_sync (greeter, NULL))
+    if (!lightdm_greeter_start_session_sync (greeter, NULL, NULL))
         notify_status ("GREETER SESSION-FAILED");
 }
 
@@ -98,7 +98,7 @@ main (int argc, char **argv)
     g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
 
     notify_status ("GREETER CONNECT-TO-DAEMON");
-    if (!lightdm_greeter_connect_sync (greeter))
+    if (!lightdm_greeter_connect_sync (greeter, NULL))
     {
         notify_status ("GREETER FAIL-CONNECT-DAEMON");
         return EXIT_FAILURE;

@@ -14,19 +14,19 @@
 
 gboolean lightdm_get_can_suspend (void);
 
-void lightdm_suspend (void);
+gboolean lightdm_suspend (GError **error);
 
 gboolean lightdm_get_can_hibernate (void);
 
-void lightdm_hibernate (void);
+gboolean lightdm_hibernate (GError **error);
 
 gboolean lightdm_get_can_restart (void);
 
-void lightdm_restart (void);
+gboolean lightdm_restart (GError **error);
 
 gboolean lightdm_get_can_shutdown (void);
 
-void lightdm_shutdown (void);
+gboolean lightdm_shutdown (GError **error);
 
 G_END_DECLS
 

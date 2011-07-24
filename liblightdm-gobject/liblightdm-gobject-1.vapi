@@ -8,13 +8,13 @@ namespace LightDM {
     public static void set_layout (Layout layout);
     public static unowned Layout get_layout ();
     public static bool get_can_suspend ();
-    public static void suspend ();
+    public static bool suspend () throws GLib.Error;
     public static bool get_can_hibernate ();
-    public static void hibernate ();
+    public static bool hibernate () throws GLib.Error;
     public static bool get_can_restart ();
-    public static void restart ();
+    public static bool restart () throws GLib.Error;
     public static bool get_can_shutdown ();
-    public static void shutdown ();
+    public static bool shutdown () throws GLib.Error;
 
     public class Greeter : GLib.Object {
         public Greeter ();
@@ -23,7 +23,7 @@ namespace LightDM {
         public signal void authentication_complete ();
         public signal void autologin_timer_expired ();
 
-        public bool connect_sync ();
+        public bool connect_sync () throws GLib.Error;
         public unowned string get_hint (string name);
         public unowned string default_session_hint { get; }
         public bool hide_users_hint { get; }
@@ -41,7 +41,7 @@ namespace LightDM {
         public bool in_authentication { get; }
         public bool is_authenticated { get; }
         public unowned string authentication_user { get; }
-        public void start_session_sync (string? session = null);
+        public void start_session_sync (string? session = null) throws GLib.Error;
     }
     public enum MessageType {
         INFO,

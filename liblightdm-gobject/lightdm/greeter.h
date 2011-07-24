@@ -72,7 +72,7 @@ GType lightdm_greeter_get_type (void);
 
 LightDMGreeter *lightdm_greeter_new (void);
 
-gboolean lightdm_greeter_connect_sync (LightDMGreeter *greeter);
+gboolean lightdm_greeter_connect_sync (LightDMGreeter *greeter, GError **error);
 
 const gchar *lightdm_greeter_get_hint (LightDMGreeter *greeter, const gchar *name);
 
@@ -108,7 +108,7 @@ gboolean lightdm_greeter_get_is_authenticated (LightDMGreeter *greeter);
 
 const gchar *lightdm_greeter_get_authentication_user (LightDMGreeter *greeter);
 
-gboolean lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *session);
+gboolean lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *session, GError **error);
 
 G_END_DECLS
 

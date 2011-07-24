@@ -34,7 +34,8 @@ Shutdown, restart, sleep the system
 
 </para>
 
-@void: 
+@error: 
+@Returns: 
 
 
 <!-- ##### FUNCTION lightdm_get_can_hibernate ##### -->
@@ -51,7 +52,8 @@ Shutdown, restart, sleep the system
 
 </para>
 
-@void: 
+@error: 
+@Returns: 
 
 
 <!-- ##### FUNCTION lightdm_get_can_restart ##### -->
@@ -68,7 +70,8 @@ Shutdown, restart, sleep the system
 
 </para>
 
-@void: 
+@error: 
+@Returns: 
 
 
 <!-- ##### FUNCTION lightdm_get_can_shutdown ##### -->
@@ -85,6 +88,7 @@ Shutdown, restart, sleep the system
 
 </para>
 
-@void: 
+@error: 
+@Returns: 
 
 

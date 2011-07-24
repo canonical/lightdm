@@ -125,8 +125,10 @@ cancel_authentication (void)
 static void
 start_session (void)
 {
-    gchar *session = get_session ();
-    if (!lightdm_greeter_start_session_sync (greeter, session))
+    gchar *session;
+
+    session = get_session ();
+    if (!lightdm_greeter_start_session_sync (greeter, session, NULL))
     {
         set_message_label (_("Failed to start session"));
         start_authentication (lightdm_greeter_get_authentication_user (greeter));
@@ -289,7 +291,7 @@ G_MODULE_EXPORT
 void
 suspend_cb (GtkWidget *widget, LightDMGreeter *greeter)
 {
-    lightdm_suspend ();
+    lightdm_suspend (NULL);
 }
 
 void hibernate_cb (GtkWidget *widget, LightDMGreeter *greeter);
@@ -297,7 +299,7 @@ G_MODULE_EXPORT
 void
 hibernate_cb (GtkWidget *widget, LightDMGreeter *greeter)
 {
-    lightdm_hibernate ();
+    lightdm_hibernate (NULL);
 }
 
 void restart_cb (GtkWidget *widget, LightDMGreeter *greeter);
@@ -319,7 +321,7 @@ restart_cb (GtkWidget *widget, LightDMGreeter *greeter)
     center_window (GTK_WINDOW (dialog));
 
     if (gtk_dialog_run (GTK_DIALOG (dialog)))
-        lightdm_restart ();
+        lightdm_restart (NULL);
 
     gtk_widget_destroy (dialog);
     gtk_widget_show (GTK_WIDGET (login_window));
@@ -344,7 +346,7 @@ shutdown_cb (GtkWidget *widget, LightDMGreeter *greeter)
     center_window (GTK_WINDOW (dialog));
 
     if (gtk_dialog_run (GTK_DIALOG (dialog)))
-        lightdm_shutdown ();
+        lightdm_shutdown (NULL);
 
     gtk_widget_destroy (dialog);
     gtk_widget_show (GTK_WIDGET (login_window));
@@ -603,7 +605,7 @@ main(int argc, char **argv)
     g_signal_connect (greeter, "show-message", G_CALLBACK (show_message_cb), NULL);
     g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
     g_signal_connect (greeter, "autologin-timer-expired", G_CALLBACK (autologin_timer_expired_cb), NULL);
-    if (!lightdm_greeter_connect_sync (greeter))
+    if (!lightdm_greeter_connect_sync (greeter, NULL))
         return EXIT_FAILURE;
 
     /* Set default cursor */

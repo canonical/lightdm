@@ -440,13 +440,14 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 /**
  * lightdm_greeter_connect_sync:
  * @greeter: The greeter to connect
+ * @error: return location for a #GError, or %NULL
  *
  * Connects the greeter to the display manager.  Will block until connected.
  *
  * Return value: #TRUE if successfully connected
  **/
 gboolean
-lightdm_greeter_connect_sync (LightDMGreeter *greeter)
+lightdm_greeter_connect_sync (LightDMGreeter *greeter, GError **error)
 {
     LightDMGreeterPrivate *priv;
     const gchar *fd;
@@ -841,13 +842,14 @@ lightdm_greeter_get_authentication_user (LightDMGreeter *greeter)
  * lightdm_greeter_start_session_sync:
  * @greeter: A #LightDMGreeter
  * @session: (allow-none): The session to log into or #NULL to use the default.
+ * @error: return location for a #GError, or %NULL
  *
  * Start a session for the authenticated user.
  *
  * Return value: TRUE if the session was started.
  **/
 gboolean
-lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *session)
+lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *session, GError **error)
 {
     LightDMGreeterPrivate *priv;
     guint8 message[MAX_MESSAGE_LENGTH];

@@ -20,11 +20,10 @@ static GDBusProxy *upower_proxy = NULL;
 static GDBusProxy *ck_proxy = NULL;
 
 static gboolean
-upower_call_function (const gchar *function, gboolean has_result)
+upower_call_function (const gchar *function, gboolean default_result, GError **error)
 {
     GVariant *result;
     gboolean function_result = FALSE;
-    GError *error = NULL;
 
     if (!upower_proxy)
     {
@@ -35,10 +34,7 @@ upower_call_function (const gchar *function, gboolean has_result)
                                                       "/org/freedesktop/UPower",
                                                       "org.freedesktop.UPower",
                                                       NULL,
-                                                      &error);
-        if (!upower_proxy)
-            g_warning ("Error getting UPower proxy: %s", error->message);
-        g_clear_error (&error);
+                                                      error);
         if (!upower_proxy)
             return FALSE;
     }
@@ -49,12 +45,9 @@ upower_call_function (const gchar *function, gboolean has_result)
                                      G_DBUS_CALL_FLAGS_NONE,
                                      -1,
                                      NULL,
-                                     &error);
+                                     error);
     if (!result)
-        g_warning ("Error calling UPower function %s: %s", function, error->message);
-    g_clear_error (&error);
-    if (!result)
-        return FALSE;
+        return default_result;
 
     if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(b)")))
         g_variant_get (result, "(b)", &function_result);
@@ -73,18 +66,21 @@ upower_call_function (const gchar *function, gboolean has_result)
 gboolean
 lightdm_get_can_suspend (void)
 {
-    return upower_call_function ("SuspendAllowed", TRUE);
+    return upower_call_function ("SuspendAllowed", FALSE, NULL);
 }
 
 /**
  * lightdm_suspend:
+ * @error: return location for a #GError, or %NULL
  *
  * Triggers a system suspend.
+ * 
+ * Return value: #TRUE if suspend initiated.
  **/
-void
-lightdm_suspend (void)
+gboolean
+lightdm_suspend (GError **error)
 {
-    upower_call_function ("Suspend", FALSE);
+    return upower_call_function ("Suspend", TRUE, error);
 }
 
 /**
@@ -97,26 +93,28 @@ lightdm_suspend (void)
 gboolean
 lightdm_get_can_hibernate (void)
 {
-    return upower_call_function ("HibernateAllowed", TRUE);
+    return upower_call_function ("HibernateAllowed", FALSE, NULL);
 }
 
 /**
  * lightdm_hibernate:
+ * @error: return location for a #GError, or %NULL
  *
  * Triggers a system hibernate.
+ * 
+ * Return value: #TRUE if hibernate initiated.
  **/
-void
-lightdm_hibernate (void)
+gboolean
+lightdm_hibernate (GError **error)
 {
-    upower_call_function ("Hibernate", FALSE);
+    return upower_call_function ("Hibernate", TRUE, error);
 }
 
 static gboolean
-ck_call_function (const gchar *function, gboolean has_result)
+ck_call_function (const gchar *function, gboolean default_result, GError **error)
 {
     GVariant *result;
     gboolean function_result = FALSE;
-    GError *error = NULL;
 
     if (!ck_proxy)
     {
@@ -127,10 +125,7 @@ ck_call_function (const gchar *function, gboolean has_result)
                                                   "/org/freedesktop/ConsoleKit/Manager",
                                                   "org.freedesktop.ConsoleKit.Manager",
                                                   NULL,
-                                                  &error);
-        if (!ck_proxy)
-            g_warning ("Error getting ConsoleKit proxy: %s", error->message);
-        g_clear_error (&error);
+                                                  error);
         if (!ck_proxy)
             return FALSE;
     }
@@ -141,13 +136,10 @@ ck_call_function (const gchar *function, gboolean has_result)
                                      G_DBUS_CALL_FLAGS_NONE,
                                      -1,
                                      NULL,
-                                     &error);
+                                     error);
 
     if (!result)
-        g_warning ("Error calling ConsoleKit function %s: %s", function, error->message);
-    g_clear_error (&error);
-    if (!result)
-        return FALSE;
+        return default_result;
 
     if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(b)")))
         g_variant_get (result, "(b)", &function_result);
@@ -166,18 +158,21 @@ ck_call_function (const gchar *function, gboolean has_result)
 gboolean
 lightdm_get_can_restart (void)
 {
-    return ck_call_function ("CanRestart", TRUE);
+    return ck_call_function ("CanRestart", FALSE, NULL);
 }
 
 /**
  * lightdm_restart:
+ * @error: return location for a #GError, or %NULL
  *
  * Triggers a system restart.
+ *
+ * Return value: #TRUE if restart initiated.
  **/
-void
-lightdm_restart (void)
+gboolean
+lightdm_restart (GError **error)
 {
-    ck_call_function ("Restart", FALSE);
+    return ck_call_function ("Restart", TRUE, error);
 }
 
 /**
@@ -190,16 +185,19 @@ lightdm_restart (void)
 gboolean
 lightdm_get_can_shutdown (void)
 {
-    return ck_call_function ("CanStop", TRUE);
+    return ck_call_function ("CanStop", FALSE, NULL);
 }
 
 /**
  * lightdm_shutdown:
+ * @error: return location for a #GError, or %NULL
  *
  * Triggers a system shutdown.
+ * 
+ * Return value: #TRUE if shutdown initiated.
  **/
-void
-lightdm_shutdown (void)
+gboolean
+lightdm_shutdown (GError **error)
 {
-    ck_call_function ("Stop", FALSE);
+    return ck_call_function ("Stop", TRUE, error);
 }
