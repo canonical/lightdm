@@ -277,7 +277,10 @@ stopped_cb (Process *process, XServerLocal *server)
     release_display_number (xserver_get_display_number (XSERVER (server)));
 
     if (server->priv->vt >= 0)
+    {
+        g_debug ("Releasing VT %d", server->priv->vt);
         vt_release (server->priv->vt);
+    }
 
     if (server->priv->replacing_plymouth && plymouth_get_is_running ())
     {
