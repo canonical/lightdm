@@ -28,6 +28,10 @@ TESTS = \
 	test-switch-to-user \
 	test-xdmcp-login
 
+#	test-autologin-invalid-session
+#	test-autologin-session-crash
+#	test-autologin-session-exit-error
+
 if COMPILE_LIBLIGHTDM_QT
 TESTS += \
 	test-login-qt \
