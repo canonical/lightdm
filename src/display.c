@@ -622,13 +622,13 @@ autologin_authentication_result_cb (PAMSession *session, int result, Display *di
             if (start_user_session (display, session))
                 started_session = TRUE;
             else
-                g_debug ("Failed to start autologin session, starting greeter");
+                g_debug ("Failed to start autologin session");
         }
         else
-            g_debug ("Autologin failed authentication, starting greeter");
+            g_debug ("Autologin failed authentication");
 
         if (!started_session)
-            start_greeter_session (display);
+            display_stop (display);
     }
 
     g_object_unref (session);
@@ -829,7 +829,7 @@ display_server_ready_cb (DisplayServer *display_server, Display *display)
     PAMSession *pam_session = NULL;
     gchar *username = NULL;
     PAMSession *autologin_pam_session;
-    gboolean result;
+    gboolean result, started_session = FALSE;
     GError *error = NULL;
 
     /* Don't run any sessions on local terminals */
@@ -887,20 +887,22 @@ display_server_ready_cb (DisplayServer *display_server, Display *display)
 
         g_signal_connect (autologin_pam_session, "got-messages", G_CALLBACK (autologin_pam_message_cb), display);
         g_signal_connect (autologin_pam_session, "authentication-result", G_CALLBACK (autologin_authentication_result_cb), display);
-        result = pam_session_start (autologin_pam_session, &error);
-        if (!result)
-            g_warning ("Failed to autologin user %s, starting greeter instead: %s", pam_session_get_username (autologin_pam_session), error->message);
+        if (pam_session_start (autologin_pam_session, &error))
+            started_session = TRUE;
+        else
+            g_warning ("Failed to autologin user %s: %s", pam_session_get_username (autologin_pam_session), error->message);
         g_clear_error (&error);
-        if (result)
-            return;
+    }
+    else
+    {
+        if (start_greeter_session (display))
+            started_session = TRUE;
+        else
+            g_debug ("Failed to start greeter");
     }
 
-    /* If haven't started anything, then start a greeter */
-    if (!start_greeter_session (display))
-    {
-        g_debug ("Failed to start greeter");
+    if (!started_session)
         display_stop (display);
-    }
 }
 
 gboolean
