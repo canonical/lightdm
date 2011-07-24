@@ -435,7 +435,7 @@ session_started_cb (Display *display, Seat *seat)
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
     entry = bus_entry_new (path, seat_entry ? seat_entry->path : NULL, "SessionRemoved");
     g_free (path);
-    g_hash_table_insert (session_bus_entries, session, entry);
+    g_hash_table_insert (session_bus_entries, g_object_ref (session), entry);
 
     entry->bus_id = g_dbus_connection_register_object (bus,
                                                        entry->path,
@@ -488,7 +488,7 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
 
     entry = bus_entry_new (path, NULL, "SeatRemoved");
     g_free (path);
-    g_hash_table_insert (seat_bus_entries, seat, entry);
+    g_hash_table_insert (seat_bus_entries, g_object_ref (seat), entry);
 
     entry->bus_id = g_dbus_connection_register_object (bus,
                                                        entry->path,
