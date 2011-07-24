@@ -778,7 +778,7 @@ start_greeter_session (Display *display)
         user = user_get_by_name (display->priv->greeter_user);
         if (!user)
         {
-            g_warning ("Unable to start greeter, user %s does not exist", display->priv->greeter_user);
+            g_debug ("Unable to start greeter, user %s does not exist", display->priv->greeter_user);
             return FALSE;
         }
     }
@@ -865,7 +865,7 @@ start_user_session (Display *display, PAMSession *pam_session)
     user = user_get_by_name (pam_session_get_username (pam_session));
     if (!user)
     {
-        g_warning ("Unable to start session, user %s does not exist", pam_session_get_username (pam_session));
+        g_debug ("Unable to start session, user %s does not exist", pam_session_get_username (pam_session));
         return FALSE;
     }
 
