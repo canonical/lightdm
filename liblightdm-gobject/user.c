@@ -476,8 +476,9 @@ user_accounts_signal_cb (GDBusProxy *proxy, gchar *sender_name, gchar *signal_na
 
             g_variant_get (parameters, "(&o)", &path);
 
+            /* Ignore duplicate requests */
             object = find_user_account_object (user_list, path);
-            if (object && update_user (object))
+            if (object)
                 return;
 
             object = user_account_object_new (path);
@@ -500,26 +501,22 @@ user_accounts_signal_cb (GDBusProxy *proxy, gchar *sender_name, gchar *signal_na
         if (g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
         {
             gchar *path;
-            GList *link;
+            UserAccountObject *object;
 
             g_variant_get (parameters, "(&o)", &path);
+
+            object = find_user_account_object (user_list, path);
+            if (!object)
+                return;
+
             g_debug ("User %s deleted", path);
+            priv->users = g_list_remove (priv->users, object->user);
+            g_object_unref (object->user);
 
-            for (link = priv->user_account_objects; link; link = link->next)
-            {
-                UserAccountObject *object = link->data;
-                if (strcmp (g_dbus_proxy_get_object_path (object->proxy), path) == 0)
-                {
-                    priv->users = g_list_remove (priv->users, object->user);
-                    g_object_unref (object->user);
+            g_signal_emit (user_list, list_signals[USER_REMOVED], 0, object->user);
 
-                    g_signal_emit (user_list, list_signals[USER_REMOVED], 0, object->user);
-
-                    priv->user_account_objects = g_list_remove (priv->user_account_objects, object);
-                    user_account_object_free (object);
-                    break;
-                }
-            }
+            priv->user_account_objects = g_list_remove (priv->user_account_objects, object);
+            user_account_object_free (object);
         }
         else
             g_warning ("Got UserAccounts signal UserDeleted with unknown parameters %s", g_variant_get_type_string (parameters));
