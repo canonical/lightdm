@@ -63,14 +63,11 @@ gint pam_session_get_num_messages (PAMSession *session);
 
 void pam_session_respond (PAMSession *session, struct pam_response *response);
 
-void pam_session_cancel (PAMSession *session);
-
 const gchar *pam_session_getenv (PAMSession *session, const gchar *name);
 
 gchar **pam_session_get_envlist(PAMSession *session);
 
-// FIXME: Do in unref
-void pam_session_end (PAMSession *session);
+void pam_session_stop (PAMSession *session);
 
 G_END_DECLS
 

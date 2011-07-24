@@ -429,7 +429,7 @@ static void
 autologin_pam_message_cb (PAMSession *session, int num_msg, const struct pam_message **msg, Display *display)
 {
     g_debug ("Aborting automatic login as PAM requests input");
-    pam_session_cancel (session);
+    pam_session_stop (session);
 }
 
 static void
@@ -508,14 +508,13 @@ autologin_guest (Display *display, gboolean start_greeter_if_fail)
 static gboolean
 cleanup_after_session (Display *display)
 {
-    g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-
     /* Close ConsoleKit session */
     if (getuid () == 0)
         end_ck_session (session_get_cookie (display->priv->session));
 
     /* Close PAM session */
-    pam_session_end (display->priv->pam_session);
+    g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
+    pam_session_stop (display->priv->pam_session);
     g_object_unref (display->priv->pam_session);
     display->priv->pam_session = NULL;
 

@@ -238,7 +238,7 @@ send_end_authentication (Greeter *greeter, guint32 sequence_number, const gchar 
 static void
 authentication_result_cb (PAMSession *session, int result, Greeter *greeter)
 {
-    g_debug ("Authenticate result for user %s: %s", pam_session_get_username (greeter->priv->pam_session), pam_session_strerror (greeter->priv->pam_session, result));
+    g_debug ("Authenticate result for user %s: %s", pam_session_get_username (session), pam_session_strerror (session, result));
 
     if (result == PAM_SUCCESS)
     {
@@ -255,8 +255,9 @@ reset_session (Greeter *greeter)
     if (greeter->priv->pam_session)
     {
         g_signal_handlers_disconnect_matched (greeter->priv->pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
-        pam_session_end (greeter->priv->pam_session);
+        pam_session_stop (greeter->priv->pam_session);
         g_object_unref (greeter->priv->pam_session);
+        greeter->priv->pam_session = NULL;
     }
 
     greeter->priv->guest_account_authenticated = FALSE;
@@ -332,7 +333,7 @@ handle_continue_authentication (Greeter *greeter, gchar **secrets)
     }
     if (g_strv_length (secrets) != n_secrets)
     {
-        pam_session_end (greeter->priv->pam_session);
+        pam_session_stop (greeter->priv->pam_session);
         return;
     }
 
@@ -362,7 +363,7 @@ handle_cancel_authentication (Greeter *greeter)
 
     g_debug ("Cancel authentication");
 
-    pam_session_cancel (greeter->priv->pam_session);
+    pam_session_stop (greeter->priv->pam_session);
 }
 
 static void

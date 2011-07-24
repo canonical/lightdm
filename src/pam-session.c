@@ -9,6 +9,7 @@
  * license.
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "ldm-marshal.h"
@@ -37,10 +38,7 @@ struct PAMSessionPrivate
     GThread *authentication_thread;
   
     /* TRUE if the thread is being intentionally stopped */
-    gboolean stop;
-
-    /* TRUE if the conversation should be cancelled */
-    gboolean cancel;
+    gboolean stop_thread;
 
     /* Messages requested */
     int num_messages;
@@ -133,7 +131,8 @@ pam_conv_cb (int num_msg, const struct pam_message **msg,
     PAMSession *session = app_data;
     struct pam_response *response;
 
-    if (session->priv->cancel)
+    /* For some reason after cancelling we still end up here so check for stop as well */
+    if (session->priv->stop_thread)
         return PAM_CONV_ERR;  
 
     /* Notify user */
@@ -147,7 +146,7 @@ pam_conv_cb (int num_msg, const struct pam_message **msg,
     session->priv->messages = NULL;
 
     /* Cancelled by user */
-    if (session->priv->stop || session->priv->cancel)
+    if (session->priv->stop_thread)
         return PAM_CONV_ERR;
 
     *resp = response;
@@ -169,11 +168,11 @@ notify_auth_complete_cb (gpointer data)
     g_async_queue_unref (session->priv->authentication_response_queue);
     session->priv->authentication_response_queue = NULL;
 
+    g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, result);
+
     /* Authentication was cancelled */
-    if (session->priv->stop)
-        pam_session_end (session);
-    else
-        g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, result);
+    if (session->priv->stop_thread)
+        pam_session_stop (session);
 
     /* The thread is complete, drop the reference */
     g_object_unref (session);
@@ -191,8 +190,6 @@ authenticate_cb (gpointer data)
 
     session->priv->result = pam_authenticate (session->priv->pam_handle, 0);
     g_debug ("pam_authenticate -> %s", pam_strerror (session->priv->pam_handle, session->priv->result));
-
-    session->priv->cancel = FALSE;
 
     if (session->priv->result == PAM_SUCCESS)
     {
@@ -397,22 +394,6 @@ pam_session_respond (PAMSession *session, struct pam_response *response)
     }
 }
 
-void
-pam_session_cancel (PAMSession *session)
-{
-    g_return_if_fail (session != NULL);
-
-    if (passwd_file)
-    {
-        g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_CONV_ERR);
-    }
-    else if (session->priv->authentication_thread)
-    {
-        session->priv->cancel = TRUE;
-        g_async_queue_push (session->priv->authentication_response_queue, GINT_TO_POINTER (-1));
-    }
-}
-
 const gchar *
 pam_session_getenv (PAMSession *session, const gchar *name)
 {
@@ -438,27 +419,35 @@ pam_session_get_envlist (PAMSession *session)
 }
 
 void
-pam_session_end (PAMSession *session)
+pam_session_stop (PAMSession *session)
 {
     g_return_if_fail (session != NULL);
 
     /* If authenticating cancel first */
     if (session->priv->authentication_thread)
     {
-        session->priv->stop = TRUE;
+        session->priv->stop_thread = TRUE;
         g_async_queue_push (session->priv->authentication_response_queue, GINT_TO_POINTER (-1));
     }
     else if (session->priv->in_session)
     {
         int result;
 
-        if (!passwd_file && session->priv->pam_handle && getuid () == 0)
+        if (passwd_file)
+        {
+            g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_CONV_ERR);
+        }
+        else if (session->priv->pam_handle && getuid () == 0)
         {
             result = pam_close_session (session->priv->pam_handle, 0);
             g_debug ("pam_close_session -> %s", pam_strerror (session->priv->pam_handle, result));
 
-            pam_setcred (session->priv->pam_handle, PAM_DELETE_CRED);
+            result = pam_setcred (session->priv->pam_handle, PAM_DELETE_CRED);
             g_debug ("pam_setcred(PAM_DELETE_CRED) -> %s", pam_strerror (session->priv->pam_handle, result));
+
+            result = pam_end (session->priv->pam_handle, PAM_SUCCESS);
+            session->priv->pam_handle = NULL;
+            g_debug ("pam_end");
         }
 
         session->priv->in_session = FALSE;
@@ -479,12 +468,9 @@ pam_session_finalize (GObject *object)
 
     self = PAM_SESSION (object);
 
-    pam_session_end (self);
-
+    g_free (self->priv->service);  
     g_free (self->priv->username);
-    if (self->priv->pam_handle)
-        pam_end (self->priv->pam_handle, PAM_SUCCESS);
-  
+
     G_OBJECT_CLASS (pam_session_parent_class)->finalize (object);
 }
 
