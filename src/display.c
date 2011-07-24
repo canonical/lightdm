@@ -516,7 +516,7 @@ create_session (Display *display, PAMSession *pam_session, const gchar *session_
             g_warning ("No command in session file %s", path);
     }
     g_key_file_free (session_desktop_file);
-    g_free (path);     
+    g_free (path);
     if (!command)
         return NULL;
     if (display->priv->session_wrapper && !is_greeter)
@@ -613,17 +613,22 @@ autologin_authentication_result_cb (PAMSession *session, int result, Display *di
 {
     if (!display->priv->stopping)
     {
+        gboolean started_session = FALSE;
+
         if (result == PAM_SUCCESS)
         {
             g_debug ("User %s authorized", pam_session_get_username (session));
             pam_session_authorize (session);
-            start_user_session (display, session);
+            if (start_user_session (display, session))
+                started_session = TRUE;
+            else
+                g_debug ("Failed to start autologin session, starting greeter");
         }
         else
-        {
             g_debug ("Autologin failed authentication, starting greeter");
+
+        if (!started_session)
             start_greeter_session (display);
-        }
     }
 
     g_object_unref (session);
