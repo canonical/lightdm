@@ -36,7 +36,6 @@ typedef struct
     void (*got_messages)(PAMSession *pam_session, int num_msg, const struct pam_message **msg);
     void (*authentication_result)(PAMSession *pam_session, int result);
     void (*started)(PAMSession *pam_session);
-    void (*ended)(PAMSession *pam_session);
 } PAMSessionClass;
 
 GType pam_session_get_type (void);

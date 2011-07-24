@@ -16,7 +16,6 @@
 
 #include "display-server.h"
 #include "session.h"
-#include "pam-session.h"
 
 G_BEGIN_DECLS
 

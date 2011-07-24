@@ -21,7 +21,6 @@ enum {
     STARTED,
     GOT_MESSAGES,
     AUTHENTICATION_RESULT,
-    ENDED,
     LAST_SIGNAL
 };
 static guint signals[LAST_SIGNAL] = { 0 };
@@ -435,7 +434,7 @@ pam_session_stop (PAMSession *session)
 
         if (passwd_file)
         {
-            g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_CONV_ERR);
+            g_signal_emit (session, signals[AUTHENTICATION_RESULT], 0, PAM_CONV_ERR);
         }
         else if (session->priv->pam_handle && getuid () == 0)
         {
@@ -451,7 +450,6 @@ pam_session_stop (PAMSession *session)
         }
 
         session->priv->in_session = FALSE;
-        g_signal_emit (G_OBJECT (session), signals[ENDED], 0);
     }
 }
 
@@ -518,13 +516,4 @@ pam_session_class_init (PAMSessionClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__INT,
                       G_TYPE_NONE, 1, G_TYPE_INT);
-
-    signals[ENDED] =
-        g_signal_new ("ended",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (PAMSessionClass, ended),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
 }

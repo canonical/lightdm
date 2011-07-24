@@ -371,10 +371,13 @@ handle_start_session (Greeter *greeter, const gchar *session)
 {
     gboolean result;
 
-    g_debug ("Start session session=%s", session);
-
     if (strcmp (session, "") == 0)
         session = NULL;
+
+    if (session)
+        g_debug ("Start session %s", session);
+    else
+        g_debug ("Start default session");
 
     if (greeter->priv->guest_account_authenticated || pam_session_get_in_session (greeter->priv->pam_session))
         g_signal_emit (greeter, signals[START_SESSION], 0, session, &result);
@@ -625,8 +628,14 @@ greeter_finalize (GObject *object)
     self = GREETER (object);
 
     g_object_unref (self->priv->session);
-    g_hash_table_unref (self->priv->hints);
     g_free (self->priv->read_buffer);
+    g_hash_table_unref (self->priv->hints);
+    if (self->priv->pam_session)
+    {
+        g_signal_handlers_disconnect_matched (self->priv->pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
+        pam_session_stop (self->priv->pam_session);
+        g_object_unref (self->priv->pam_session);
+    }
     if (self->priv->to_greeter_channel)
         g_io_channel_unref (self->priv->to_greeter_channel);
     if (self->priv->from_greeter_channel)

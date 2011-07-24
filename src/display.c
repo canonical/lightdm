@@ -482,6 +482,7 @@ autologin (Display *display, const gchar *username, gboolean start_greeter_if_fa
     {
         g_debug ("Failed to start autologin session for %s: %s", username, error->message);
         g_signal_handlers_disconnect_matched (display->priv->pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
+        pam_session_stop (display->priv->pam_session);
         g_object_unref (display->priv->pam_session);
         display->priv->pam_session = NULL;
     }
@@ -513,11 +514,12 @@ cleanup_after_session (Display *display)
         end_ck_session (session_get_cookie (display->priv->session));
 
     /* Close PAM session */
-    g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
+    g_signal_handlers_disconnect_matched (display->priv->pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
     pam_session_stop (display->priv->pam_session);
     g_object_unref (display->priv->pam_session);
     display->priv->pam_session = NULL;
 
+    g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
     g_object_unref (display->priv->session);
     display->priv->session = NULL;
 
@@ -544,27 +546,24 @@ greeter_session_stopped_cb (Session *session, Display *display)
         return;
 
     /* Start the session for the authenticated user */  
-    if (display->priv->greeter)
+    if (greeter_get_guest_authenticated (display->priv->greeter))
     {
-        if (greeter_get_guest_authenticated (display->priv->greeter))
-        {
-            started_session = autologin_guest (display, FALSE);
-            if (!started_session)
-                g_debug ("Failed to start guest session");
-        }
-        else
-        {
-            display->priv->in_user_session = TRUE;
-            display->priv->pam_session = g_object_ref (greeter_get_pam_session (display->priv->greeter));
-            started_session = start_user_session (display);
-            if (!started_session)
-                g_debug ("Failed to start user session");
-        }
-
-        g_signal_handlers_disconnect_matched (display->priv->greeter, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-        g_object_unref (display->priv->greeter);
-        display->priv->greeter = NULL;
+        started_session = autologin_guest (display, FALSE);
+        if (!started_session)
+            g_debug ("Failed to start guest session");
     }
+    else
+    {
+        display->priv->in_user_session = TRUE;
+        display->priv->pam_session = g_object_ref (greeter_get_pam_session (display->priv->greeter));
+        started_session = start_user_session (display);
+        if (!started_session)
+            g_debug ("Failed to start user session");
+    }
+
+    g_signal_handlers_disconnect_matched (display->priv->greeter, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
+    g_object_unref (display->priv->greeter);
+    display->priv->greeter = NULL;
 
     if (!started_session)
         display_stop (display);
@@ -698,16 +697,12 @@ greeter_start_authentication_cb (Greeter *greeter, const gchar *username, Displa
 static gboolean
 greeter_start_session_cb (Greeter *greeter, const gchar *session_name, Display *display)
 {
-    PAMSession *pam_session;
-  
     /* Store the session to use, use the default if none was requested */
     if (session_name)
     {
         g_free (display->priv->user_session);
         display->priv->user_session = g_strdup (session_name);
     }
-
-    pam_session = greeter_get_pam_session (display->priv->greeter);
 
     /* Stop this display if that session already exists and can switch to it */
     if (greeter_get_guest_authenticated (greeter))
@@ -720,7 +715,7 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session_name, Display *
     }
     else
     {
-       if (switch_to_user (display, pam_session_get_username (pam_session)))
+       if (switch_to_user (display, pam_session_get_username (greeter_get_pam_session (display->priv->greeter))))
            return TRUE;
     }
 
