@@ -319,22 +319,30 @@ handle_seat_call (GDBusConnection       *connection,
     }
     else if (g_strcmp0 (method_name, "SwitchToUser") == 0)
     {
-        gchar *username;
+        const gchar *username, *session_name;
+
+        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(ss)")))
+            return;
+
+        g_variant_get (parameters, "(&s&s)", &username, &session_name);
+        if (strcmp (session_name, "") == 0)
+            session_name = NULL;
+
+        seat_switch_to_user (seat, username, session_name);
+        g_dbus_method_invocation_return_value (invocation, NULL);
+    }
+    else if (g_strcmp0 (method_name, "SwitchToGuest") == 0)
+    {
+        const gchar *session_name;
 
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(s)")))
             return;
 
-        g_variant_get (parameters, "(s)", &username);
-        seat_switch_to_user (seat, username);
-        g_dbus_method_invocation_return_value (invocation, NULL);
-        g_free (username);
-    }
-    else if (g_strcmp0 (method_name, "SwitchToGuest") == 0)
-    {
-        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
-            return;
+        g_variant_get (parameters, "(&s)", &session_name);
+        if (strcmp (session_name, "") == 0)
+            session_name = NULL;
 
-        seat_switch_to_guest (seat);
+        seat_switch_to_guest (seat, session_name);
         g_dbus_method_invocation_return_value (invocation, NULL);
     }
 }
@@ -543,8 +551,11 @@ bus_acquired_cb (GDBusConnection *connection,
         "    <method name='SwitchToGreeter'/>"
         "    <method name='SwitchToUser'>"
         "      <arg name='username' direction='in' type='s'/>"
+        "      <arg name='session-name' direction='in' type='s'/>"
         "    </method>"
-        "    <method name='SwitchToGuest'/>"
+        "    <method name='SwitchToGuest'>"
+        "      <arg name='session-name' direction='in' type='s'/>"
+        "    </method>"
         "  </interface>"
         "</node>";
     const gchar *session_interface =

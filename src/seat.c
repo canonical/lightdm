@@ -251,7 +251,7 @@ display_stopped_cb (Display *display, Seat *seat)
 }
 
 static gboolean
-switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_guest, gboolean autologin)
+switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_guest, const gchar *session_name, gboolean autologin)
 {
     GList *link;
     Display *new_display = NULL;
@@ -315,11 +315,11 @@ seat_switch_to_greeter (Seat *seat)
         return FALSE;
 
     g_debug ("Switching to greeter");
-    return switch_to_user_or_start_greeter (seat, NULL, FALSE, FALSE);
+    return switch_to_user_or_start_greeter (seat, NULL, FALSE, NULL, FALSE);
 }
 
 gboolean
-seat_switch_to_user (Seat *seat, const gchar *username)
+seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_name)
 {
     g_return_val_if_fail (seat != NULL, FALSE);
     g_return_val_if_fail (username != NULL, FALSE);
@@ -328,11 +328,11 @@ seat_switch_to_user (Seat *seat, const gchar *username)
         return FALSE;
 
     g_debug ("Switching to user %s", username);
-    return switch_to_user_or_start_greeter (seat, username, FALSE, FALSE);
+    return switch_to_user_or_start_greeter (seat, username, FALSE, session_name, FALSE);
 }
 
 gboolean
-seat_switch_to_guest (Seat *seat)
+seat_switch_to_guest (Seat *seat, const gchar *session_name)
 {
     g_return_val_if_fail (seat != NULL, FALSE);
 
@@ -343,7 +343,7 @@ seat_switch_to_guest (Seat *seat)
         g_debug ("Switching to existing guest account %s", seat->priv->guest_username);
     else
         g_debug ("Switching to new guest account");
-    return switch_to_user_or_start_greeter (seat, seat->priv->guest_username, TRUE, TRUE);
+    return switch_to_user_or_start_greeter (seat, seat->priv->guest_username, TRUE, session_name, TRUE);
 }
 
 void
@@ -389,11 +389,11 @@ seat_real_start (Seat *seat)
 
     /* Start showing a greeter */
     if (seat->priv->autologin_username)
-        return switch_to_user_or_start_greeter (seat, seat->priv->autologin_username, FALSE, TRUE);
+        return switch_to_user_or_start_greeter (seat, seat->priv->autologin_username, FALSE, NULL, TRUE);
     else if (seat->priv->autologin_guest)
-        return switch_to_user_or_start_greeter (seat, NULL, TRUE, TRUE);
+        return switch_to_user_or_start_greeter (seat, NULL, TRUE, NULL, TRUE);
     else
-        return switch_to_user_or_start_greeter (seat, NULL, FALSE, FALSE);
+        return switch_to_user_or_start_greeter (seat, NULL, FALSE, NULL, FALSE);
 }
 
 static Display *
