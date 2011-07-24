@@ -48,6 +48,9 @@ struct SeatPrivate
     /* The displays for this seat */
     GList *displays;
 
+    /* The active display */
+    Display *active_display;
+
     /* TRUE if stopping this seat (waiting for displays to stop) */
     gboolean stopping;
 };
@@ -125,6 +128,20 @@ seat_get_displays (Seat *seat)
     return seat->priv->displays;
 }
 
+void
+seat_set_active_display (Seat *seat, Display *display)
+{
+    g_return_if_fail (seat != NULL);
+    SEAT_GET_CLASS (seat)->set_active_display (seat, display);
+}
+
+Display *
+seat_get_active_display (Seat *seat)
+{
+    g_return_val_if_fail (seat != NULL, NULL);
+    return seat->priv->active_display;
+}
+
 gboolean
 seat_get_can_switch (Seat *seat)
 {
@@ -148,16 +165,13 @@ switch_to_user (Seat *seat, const gchar *username)
     for (link = seat->priv->displays; link; link = link->next)
     {
         Display *display = link->data;
-        Session *session;
 
-        /* If already logged in, then switch to that display and stop the greeter display */
-        session = display_get_session (display);
-        if (session && !session_get_is_greeter (session) &&
-            g_strcmp0 (user_get_name (session_get_user (session)), username) == 0)
+        /* If already logged in, then switch to that display */
+        if (g_strcmp0 (display_get_username (display), username) == 0)
         {
             // FIXME: Use display_get_name
             g_debug ("Switching to user %s session on display %s", username, xserver_get_address (XSERVER (display_get_display_server (display))));
-            SEAT_GET_CLASS (seat)->set_active_display (seat, display);
+            seat_set_active_display (seat, display);
             return TRUE;
         }
     }
@@ -194,29 +208,8 @@ display_get_guest_username_cb (Display *display, Seat *seat)
 static void
 display_session_started_cb (Display *display, Seat *seat)
 {
-    GList *link;
-
     /* Switch to this new display */
     SEAT_GET_CLASS (seat)->set_active_display (seat, display);
-
-    /* Stop any other greeters */
-    // FIXME: Do this when the switch is complete
-    for (link = seat->priv->displays; link; link = link->next)
-    {
-        Display *d = link->data;
-        Session *session;
-
-        if (d == display)
-            continue;
-
-        /* Must be a user session */
-        session = display_get_session (d);
-        if (session && session_get_is_greeter (session))
-        {
-            g_debug ("Stopping existing greeter");
-            display_stop (d);
-        }
-    }
 }
 
 static void
@@ -267,22 +260,16 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
     for (link = seat->priv->displays; link; link = link->next)
     {
         Display *display = link->data;
-        Session *session;
-        const gchar *session_username = NULL;
-
-        session = display_get_session (display);
-        if (session && !session_get_is_greeter (session))
-            session_username = user_get_name (session_get_user (session));
 
         /* If already logged in, then switch to that display and stop the greeter display */
-        if (g_strcmp0 (session_username, username) == 0)
+        if (g_strcmp0 (display_get_username (display), username) == 0)
         {
             // FIXME: Use display_get_name
             if (username)
                 g_debug ("Switching to user %s session on display %s", username, xserver_get_address (XSERVER (display_get_display_server (display))));
             else
                 g_debug ("Switching to greeter on display %s", xserver_get_address (XSERVER (display_get_display_server (display))));
-            SEAT_GET_CLASS (seat)->set_active_display (seat, display);
+            seat_set_active_display (seat, display);
             return TRUE;
         }
     }
@@ -312,6 +299,10 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
     seat->priv->displays = g_list_append (seat->priv->displays, new_display);
     g_signal_emit (seat, signals[DISPLAY_ADDED], 0, new_display);
 
+    /* Switch to this new display */
+    if (!seat->priv->active_display)
+        seat_set_active_display (seat, new_display);
+
     return display_start (new_display);
 }
 
@@ -323,7 +314,7 @@ seat_switch_to_greeter (Seat *seat)
     if (!seat->priv->can_switch)
         return FALSE;
 
-    g_debug ("Showing greeter");
+    g_debug ("Switching to greeter");
     return switch_to_user_or_start_greeter (seat, NULL, FALSE, FALSE);
 }
 
@@ -414,6 +405,20 @@ seat_real_add_display (Seat *seat)
 static void
 seat_real_set_active_display (Seat *seat, Display *display)
 {
+    if (display == seat->priv->active_display)
+        return;
+
+    if (seat->priv->active_display)
+    {
+        /* Stop the existing display if it is a greeter */
+        if (!display_get_username (seat->priv->active_display))
+        {
+            g_debug ("Stopping greeter display being switched from");
+            display_stop (seat->priv->active_display);
+        }
+        g_object_unref (seat->priv->active_display);
+    }
+    seat->priv->active_display = g_object_ref (display);
 }
 
 static void
@@ -446,6 +451,8 @@ seat_finalize (GObject *object)
 
     g_free (self->priv->config_section);
     g_list_free_full (self->priv->displays, g_object_unref);
+    if (self->priv->active_display)
+        g_object_unref (self->priv->active_display);
 
     G_OBJECT_CLASS (seat_parent_class)->finalize (object);
 }

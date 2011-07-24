@@ -134,17 +134,21 @@ seat_xlocal_set_active_display (Seat *seat, Display *display)
     gint number = xserver_local_get_vt (XSERVER_LOCAL (XSERVER (display_get_display_server (display))));
     if (number >= 0)
         vt_set_active (number);
+  
+    SEAT_CLASS (seat_xlocal_parent_class)->set_active_display (seat, display);
 }
 
 static void
 seat_xlocal_display_removed (Seat *seat, Display *display)
 {
-    if (SEAT_XLOCAL (seat)->priv->stopping)
-        return;
+    SeatXLocalPrivate *priv = SEAT_XLOCAL (seat)->priv;
 
     /* Show a new greeter */
-    g_debug ("Display stopped, switching to greeter");
-    seat_switch_to_greeter (seat);
+    if (!priv->stopping && display == seat_get_active_display (seat))
+    {
+        g_debug ("Active display stopped, switching to greeter");
+        seat_switch_to_greeter (seat);
+    }
 }
 
 static void

@@ -60,6 +60,10 @@ gboolean seat_start (Seat *seat);
 
 GList *seat_get_displays (Seat *seat);
 
+void seat_set_active_display (Seat *seat, Display *display);
+
+Display *seat_get_active_display (Seat *seat);
+
 gboolean seat_get_can_switch (Seat *seat);
 
 gboolean seat_get_allow_guest (Seat *seat);

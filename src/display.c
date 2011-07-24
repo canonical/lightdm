@@ -78,13 +78,16 @@ struct DisplayPrivate
 
     /* PAM service to authenticate against for automatic logins */
     gchar *pam_autologin_service;
+
+    /* TRUE if in a user session */
+    gboolean in_user_session;
   
     /* Session process */
     Session *session;
 
     /* Communication link to greeter */
     Greeter *greeter;
-  
+
     /* Current PAM session */
     PAMSession *pam_session;
 
@@ -158,6 +161,29 @@ display_get_display_server (Display *display)
 {
     g_return_val_if_fail (display != NULL, NULL);
     return display->priv->display_server;
+}
+
+const gchar *
+display_get_username (Display *display)
+{
+    g_return_val_if_fail (display != NULL, NULL);
+
+    /* If have logged in, then we know our user */
+    if (display->priv->in_user_session)
+    {
+        /* If we are still in this session then get the username */
+        if (display->priv->pam_session)
+            return pam_session_get_username (display->priv->pam_session);
+        else
+            return NULL;
+    }
+
+    /* If not logged in, then the user we will autologin as */
+    if (display->priv->default_user_autologin)
+        return display->priv->default_user;
+
+    /* Otherwise we haven't picked one yet */
+    return NULL;
 }
 
 Session *
@@ -561,6 +587,7 @@ start_session (Display *display, Session *session, PAMSession *pam_session)
 
     display->priv->session = g_object_ref (session);
     display->priv->pam_session = g_object_ref (pam_session);
+
     g_signal_emit (display, signals[SESSION_STARTED], 0);
 
     return TRUE;
@@ -739,6 +766,8 @@ start_user_session (Display *display, PAMSession *pam_session)
         g_warning ("Unable to start session, user %s does not exist", pam_session_get_username (pam_session));
         return FALSE;
     }
+
+    display->priv->in_user_session = TRUE;
 
     session_name = display->priv->user_session;
     if (!session_name)

@@ -16,6 +16,7 @@
 
 #include "display-server.h"
 #include "session.h"
+#include "pam-session.h"
 
 G_BEGIN_DECLS
 
@@ -54,6 +55,8 @@ void display_load_config (Display *display, const gchar *config_section);
 void display_set_display_server (Display *display, DisplayServer *display_server);
 
 DisplayServer *display_get_display_server (Display *display);
+
+const gchar *display_get_username (Display *display);
 
 Session *display_get_session (Display *display);
 
