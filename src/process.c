@@ -207,10 +207,10 @@ run_process (Process *process, char *const argv[])
 
 gboolean
 process_start (Process *process,
-                     User *user,
-                     const gchar *working_dir,
-                     const gchar *command,
-                     GError **error)
+               User *user,
+               const gchar *working_dir,
+               const gchar *command,
+               GError **error)
 {
     gboolean result;
     gint argc;
@@ -324,7 +324,7 @@ process_finalize (GObject *object)
     Process *self;
 
     self = PROCESS (object);
-  
+
     if (self->priv->user)
         g_object_unref (self->priv->user);
 
