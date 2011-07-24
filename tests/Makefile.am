@@ -5,6 +5,7 @@ TESTS = \
 	test-headless \
 	test-autologin \
 	test-autologin-guest \
+	test-autologin-gobject-guest-fail-setup-script \
 	test-autologin-logout \
 	test-login-gobject \
 	test-login-gobject-manual \
@@ -56,6 +57,8 @@ EXTRA_DIST = \
 	scripts/autologin.script \
 	scripts/autologin-guest.conf \
 	scripts/autologin-guest.script \
+	scripts/autologin-guest-fail-setup-script.conf \
+	scripts/autologin-guest-fail-setup-script.script \
 	scripts/autologin-logout.conf \
 	scripts/autologin-logout.script \
 	scripts/headless.conf \

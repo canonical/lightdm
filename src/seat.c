@@ -275,12 +275,24 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
     }
 
     /* They don't exist, so start a greeter */
-    if (is_guest)
-        g_debug ("Starting new greeter to authenticate guest");        
-    else if (username)
-        g_debug ("Starting new greeter to authenticate user %s", username);
+    if (autologin)
+    {
+        if (is_guest)
+            g_debug ("Starting new display for automatic guest login");
+        else if (username)
+            g_debug ("Starting new display for automatic login as user %s", username);
+        else
+            g_debug ("Starting new display for greeter");
+    }
     else
-        g_debug ("Starting new greeter");
+    {
+        if (is_guest)
+            g_debug ("Starting new display for greeter with guest selected");
+        else if (username)
+            g_debug ("Starting new display for greeter with user %s selected", username);
+        else
+            g_debug ("Starting new display for greeter");
+    }
 
     new_display = SEAT_GET_CLASS (seat)->add_display (seat);
     display_load_config (DISPLAY (new_display), seat->priv->config_section);
@@ -291,10 +303,10 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
     g_signal_connect (new_display, "session-stopped", G_CALLBACK (display_session_stopped_cb), seat);
     g_signal_connect (new_display, "stopped", G_CALLBACK (display_stopped_cb), seat);
     display_set_allow_guest (new_display, seat_get_allow_guest (seat));
-    if (is_guest)
-        display_set_default_user (new_display, NULL, TRUE, autologin, 0);
-    else if (username)
-        display_set_default_user (new_display, username, FALSE, autologin, 0);
+    if (autologin)
+        display_set_autologin_user (new_display, username, is_guest, 0);
+    else
+        display_set_select_user_hint (new_display, username, is_guest);
     display_set_user_session (new_display, session_name);
 
     seat->priv->displays = g_list_append (seat->priv->displays, new_display);
