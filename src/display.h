@@ -64,7 +64,7 @@ void display_set_allow_guest (Display *display, gboolean allow_guest);
 
 void display_set_default_user (Display *display, const gchar *username, gboolean is_guest, gboolean autologin, gint timeout);
 
-void display_start_guest_session (Display *display, const gchar *username);
+void display_set_user_session (Display *display, const gchar *session_name);
 
 gboolean display_start (Display *display);
 

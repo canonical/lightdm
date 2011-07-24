@@ -58,9 +58,6 @@ struct DisplayPrivate
     /* TRUE if the user list should be shown */
     gboolean greeter_hide_users;
 
-    /* Default session for users */
-    gchar *default_session;
-
     /* Session requested to log into */
     gchar *user_session;
   
@@ -130,9 +127,9 @@ display_load_config (Display *display, const gchar *config_section)
     else if (config_has_key (config_get_instance (), "SeatDefaults", "greeter-hide-users"))
         display->priv->greeter_hide_users = config_get_boolean (config_get_instance (), "SeatDefaults", "greeter-hide-users");
     if (config_section)
-        display->priv->default_session = config_get_string (config_get_instance (), config_section, "user-session");
-    if (!display->priv->default_session)
-        display->priv->default_session = config_get_string (config_get_instance (), "SeatDefaults", "user-session");
+        display->priv->user_session = config_get_string (config_get_instance (), config_section, "user-session");
+    if (!display->priv->user_session)
+        display->priv->user_session = config_get_string (config_get_instance (), "SeatDefaults", "user-session");
     if (config_section)
         display->priv->xsessions_dir = config_get_string (config_get_instance (), config_section, "xsessions-directory");
     if (!display->priv->xsessions_dir)
@@ -209,6 +206,17 @@ display_set_default_user (Display *display, const gchar *username, gboolean is_g
     display->priv->default_user_is_guest = is_guest;
     display->priv->default_user_autologin = autologin;
     display->priv->default_user_timeout = timeout;
+}
+
+void
+display_set_user_session (Display *display, const gchar *session_name)
+{
+    g_return_if_fail (display != NULL);
+    if (session_name)
+    {
+        g_free (display->priv->user_session);
+        display->priv->user_session = g_strdup (session_name);
+    }
 }
 
 static gboolean
@@ -633,8 +641,11 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session_name, Display *
     PAMSession *pam_session;
   
     /* Store the session to use, use the default if none was requested */
-    g_free (display->priv->user_session);
-    display->priv->user_session = g_strdup (session_name); 
+    if (session_name)
+    {
+        g_free (display->priv->user_session);
+        display->priv->user_session = g_strdup (session_name);
+    }
 
     pam_session = greeter_get_pam_session (display->priv->greeter);
 
@@ -718,7 +729,7 @@ start_greeter_session (Display *display)
         greeter_set_hint (display->priv->greeter, "select-user", display->priv->default_user);
     else if (display->priv->default_user_is_guest)
         greeter_set_hint (display->priv->greeter, "select-guest", "true");
-    greeter_set_hint (display->priv->greeter, "default-session", display->priv->default_session);
+    greeter_set_hint (display->priv->greeter, "default-session", display->priv->user_session);
     greeter_set_allow_guest (display->priv->greeter, display->priv->allow_guest);
     greeter_set_hint (display->priv->greeter, "has-guest-account", display->priv->allow_guest ? "true" : "false");
     greeter_set_hint (display->priv->greeter, "hide-users", display->priv->greeter_hide_users ? "true" : "false");
@@ -754,7 +765,7 @@ start_user_session (Display *display, PAMSession *pam_session)
 {
     GKeyFile *dmrc_file;
     User *user;
-    gchar *session_name, *log_filename;
+    gchar *log_filename;
     Session *session;
     gboolean result;
 
@@ -769,15 +780,11 @@ start_user_session (Display *display, PAMSession *pam_session)
 
     display->priv->in_user_session = TRUE;
 
-    session_name = display->priv->user_session;
-    if (!session_name)
-        session_name = display->priv->default_session;
-
     /* Load the users login settings (~/.dmrc) */
     dmrc_file = dmrc_load (user_get_name (user));
 
     /* Update the .dmrc with changed settings */
-    g_key_file_set_string (dmrc_file, "Desktop", "Session", session_name);
+    g_key_file_set_string (dmrc_file, "Desktop", "Session", display->priv->user_session);
     dmrc_save (dmrc_file, pam_session_get_username (pam_session));
     g_key_file_free (dmrc_file);
 
@@ -785,7 +792,7 @@ start_user_session (Display *display, PAMSession *pam_session)
     log_filename = g_build_filename (user_get_home_directory (user), ".xsession-errors", NULL);
     g_object_unref (user);
 
-    session = create_session (display, pam_session, session_name, FALSE, log_filename);
+    session = create_session (display, pam_session, display->priv->user_session, FALSE, log_filename);
     g_free (log_filename);
 
     if (session)
@@ -986,7 +993,6 @@ display_finalize (GObject *object)
     if (self->priv->pam_session)
         g_object_unref (self->priv->pam_session);
     g_free (self->priv->default_user);
-    g_free (self->priv->default_session);
     g_free (self->priv->user_session);
 
     G_OBJECT_CLASS (display_parent_class)->finalize (object);

@@ -295,6 +295,7 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
         display_set_default_user (new_display, NULL, TRUE, autologin, 0);
     else if (username)
         display_set_default_user (new_display, username, FALSE, autologin, 0);
+    display_set_user_session (new_display, session_name);
 
     seat->priv->displays = g_list_append (seat->priv->displays, new_display);
     g_signal_emit (seat, signals[DISPLAY_ADDED], 0, new_display);
