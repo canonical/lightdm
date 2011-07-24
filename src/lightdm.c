@@ -426,8 +426,6 @@ session_started_cb (Display *display, Seat *seat)
     BusEntry *seat_entry, *entry;
 
     session = display_get_session (display);
-    if (session_get_is_greeter (session))
-        return;
 
     path = g_strdup_printf ("/org/freedesktop/DisplayManager/Session%d", session_index);
     session_index++;

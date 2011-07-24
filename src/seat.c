@@ -206,7 +206,7 @@ display_get_guest_username_cb (Display *display, Seat *seat)
 }
 
 static void
-display_session_started_cb (Display *display, Seat *seat)
+display_ready_cb (Display *display, Seat *seat)
 {
     /* Switch to this new display */
     SEAT_GET_CLASS (seat)->set_active_display (seat, display);
@@ -299,7 +299,7 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
     g_signal_connect (new_display, "switch-to-user", G_CALLBACK (display_switch_to_user_cb), seat);
     g_signal_connect (new_display, "switch-to-guest", G_CALLBACK (display_switch_to_guest_cb), seat);
     g_signal_connect (new_display, "get-guest-username", G_CALLBACK (display_get_guest_username_cb), seat);
-    g_signal_connect (new_display, "session-started", G_CALLBACK (display_session_started_cb), seat);
+    g_signal_connect (new_display, "ready", G_CALLBACK (display_ready_cb), seat);
     g_signal_connect (new_display, "session-stopped", G_CALLBACK (display_session_stopped_cb), seat);
     g_signal_connect (new_display, "stopped", G_CALLBACK (display_stopped_cb), seat);
     display_set_allow_guest (new_display, seat_get_allow_guest (seat));

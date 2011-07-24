@@ -40,6 +40,7 @@ typedef struct
     Session *(*create_session) (Display *display);
 
     void (*started)(Display *display);
+    void (*ready)(Display *display);
     gboolean (*switch_to_user)(Display *display, const gchar *username);
     gboolean (*switch_to_guest)(Display *display);
     gchar *(*get_guest_username)(Display *display);
