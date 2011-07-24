@@ -902,6 +902,7 @@ display_server_stopped_cb (DisplayServer *server, Display *display)
 {
     g_debug ("Display server stopped");
 
+    g_signal_handlers_disconnect_matched (display->priv->display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
     g_object_unref (display->priv->display_server);
     display->priv->display_server = NULL;
 
