@@ -126,6 +126,7 @@ vt_get_unused (void)
     while (vt_is_used (number))
         number++;
 
+    g_debug ("Using VT %d", number);
     used_vts = g_list_append (used_vts, GINT_TO_POINTER (number));
  
     return number;
@@ -134,5 +135,6 @@ vt_get_unused (void)
 void
 vt_release (gint number)
 {
-    used_vts = g_list_remove (used_vts, GINT_TO_POINTER (link));
+    g_debug ("Releasing VT %d", number);
+    used_vts = g_list_remove (used_vts, GINT_TO_POINTER (number));
 }
