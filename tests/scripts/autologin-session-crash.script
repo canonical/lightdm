@@ -1,10 +1,10 @@
 #
-# Check LightDM returns to the greeter if the X server crashes inside a session
+# Check if session crashes then returned to greeter
 #
 
 RUNNER DAEMON-START
 
-# XServer starts
+# X server starts
 XSERVER :50 START
 XSERVER :50 INDICATE-READY
 
@@ -16,16 +16,17 @@ SESSION START USER=alice
 XSERVER :50 ACCEPT-CONNECT
 SESSION CONNECT-XSERVER
 
-# X server crashes (triggered by user session)
-SESSION CRASH-XSERVER
-XSERVER :50 CRASH
+# Session crashes
+SESSION CRASH
 
-# User session is terminated
-SESSION TERMINATE SIGNAL=15
+# X server stops
+XSERVER :50 TERMINATE SIGNAL=15
 
-# X server restarts
+# X server starts
 XSERVER :50 START
 XSERVER :50 INDICATE-READY
+
+# LightDM connects to X server
 XSERVER :50 ACCEPT-CONNECT
 
 # Greeter starts
@@ -35,6 +36,7 @@ GREETER CONNECT-XSERVER :50
 GREETER CONNECT-TO-DAEMON
 GREETER CONNECTED-TO-DAEMON
 
+# Cleanup
 *STOP-DAEMON
 # Don't know what order they will terminate
 (GREETER TERMINATE SIGNAL=15|XSERVER :50 TERMINATE SIGNAL=15)

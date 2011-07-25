@@ -4,15 +4,19 @@ TESTS = \
 	test-no-config \
 	test-headless \
 	test-autologin \
+	test-autologin-invalid-user \
+	test-autologin-invalid-session \
+	test-autologin-xserver-crash \
+	test-autologin-session-crash \
+	test-autologin-logout \
 	test-autologin-guest \
 	test-autologin-guest-fail-setup-script \
-	test-autologin-invalid-user \
-	test-autologin-logout \
 	test-login-gobject \
 	test-login-gobject-manual \
 	test-login-gobject-no-password \
 	test-login-gobject-wrong-password \
 	test-login-gobject-invalid-user \
+	test-login-gobject-invalid-session \
 	test-login-gobject-logout \
 	test-login-gobject-xserver-crash \
 	test-login-gobject-session-crash \
@@ -28,9 +32,9 @@ TESTS = \
 	test-switch-to-user \
 	test-xdmcp-login
 
-#	test-autologin-invalid-session
-#	test-autologin-session-crash
 #	test-autologin-session-exit-error
+#	test-login-gobject-session-exit-error
+#	test-login-qt-session-exit-error
 
 if COMPILE_LIBLIGHTDM_QT
 TESTS += \
@@ -39,6 +43,7 @@ TESTS += \
 	test-login-qt-no-password \
 	test-login-qt-wrong-password \
 	test-login-qt-invalid-user \
+	test-login-qt-invalid-session \
 	test-login-qt-logout \
 	test-login-qt-xserver-crash \
 	test-login-qt-session-crash \
@@ -64,10 +69,16 @@ EXTRA_DIST = \
 	scripts/autologin-guest.script \
 	scripts/autologin-guest-fail-setup-script.conf \
 	scripts/autologin-guest-fail-setup-script.script \
+	scripts/autologin-invalid-session.conf \
+	scripts/autologin-invalid-session.script \
 	scripts/autologin-invalid-user.conf \
 	scripts/autologin-invalid-user.script \
 	scripts/autologin-logout.conf \
 	scripts/autologin-logout.script \
+	scripts/autologin-session-crash.conf \
+	scripts/autologin-session-crash.script \
+	scripts/autologin-xserver-crash.conf \
+	scripts/autologin-xserver-crash.script \
 	scripts/headless.conf \
 	scripts/headless.script \
 	scripts/login.conf \
@@ -80,6 +91,8 @@ EXTRA_DIST = \
 	scripts/login-guest-fail-setup-script.script \
 	scripts/login-guest-no-setup-script.conf \
 	scripts/login-guest-no-setup-script.script \
+	scripts/login-invalid-session.conf \
+	scripts/login-invalid-session.script \
 	scripts/login-invalid-user.conf \
 	scripts/login-invalid-user.script \
 	scripts/login-logout.conf \

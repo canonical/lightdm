@@ -588,7 +588,6 @@ main (int argc, char **argv)
     g_string_append(command_line, " --xserver-command=test-xserver");
     if (greeter)
         g_string_append_printf (command_line, " --greeter-session=%s", greeter);
-    g_string_append (command_line, " --user-session=test-session");
     g_string_append (command_line, " --session-wrapper=");
     g_string_append_printf (command_line, " --passwd-file %s/passwd", temp_dir);
     g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);

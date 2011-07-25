@@ -56,9 +56,8 @@ tests/data/passwd
 tests/src/*_moc.cpp
 tests/src/plymouth
 tests/src/test-gobject-greeter
+tests/src/test-guest-account
 tests/src/test-qt-greeter
 tests/src/test-runner
 tests/src/test-session
 tests/src/test-xserver
-tests/src/test-cleanup-guest
-tests/src/test-setup-guest

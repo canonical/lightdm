@@ -54,7 +54,7 @@ void TestGreeter::authenticationComplete ()
     if (!isAuthenticated ())
         return;
 
-    if (!startSessionSync ())
+    if (!startSessionSync (config->value ("test-greeter-config/session").toString ()))
         notify_status ("GREETER SESSION-FAILED");
 }
 

@@ -53,7 +53,7 @@ authentication_complete_cb (LightDMGreeter *greeter)
     if (!lightdm_greeter_get_is_authenticated (greeter))
         return;
 
-    if (!lightdm_greeter_start_session_sync (greeter, NULL, NULL))
+    if (!lightdm_greeter_start_session_sync (greeter, g_key_file_get_string (config, "test-greeter-config", "session", NULL), NULL))
         notify_status ("GREETER SESSION-FAILED");
 }
 
