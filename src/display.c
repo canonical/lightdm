@@ -615,7 +615,7 @@ create_session (Display *display, PAMSession *pam_session, const gchar *session_
     {
         command = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
         if (!command)
-            g_warning ("No command in session file %s", path);
+            g_debug ("No command in session file %s", path);
     }
     g_key_file_free (session_desktop_file);
     g_free (path);
