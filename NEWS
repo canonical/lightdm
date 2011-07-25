@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.9.2
+
+    * Fix annotation and Vala bindings for getting the UserList singleton
+
 Overview of changes in lightdm 0.9.1
 
     * Fix up translation build system

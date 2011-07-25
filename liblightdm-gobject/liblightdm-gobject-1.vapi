@@ -68,7 +68,7 @@ namespace LightDM {
         public unowned string name { get; }
     }
     public class UserList : GLib.Object {
-        public static UserList get_instance ();
+        public static unowned UserList get_instance ();
 
         public signal void user_added (User user);
         public signal void user_changed (User user);
