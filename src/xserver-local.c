@@ -122,7 +122,8 @@ xserver_local_new (void)
     }
     if (self->priv->vt < 0)
         self->priv->vt = vt_get_unused ();
-    vt_ref (self->priv->vt);
+    if (self->priv->vt >= 0)
+        vt_ref (self->priv->vt);
 
     return self;
 }
