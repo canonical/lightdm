@@ -47,28 +47,29 @@ set_session (const gchar *session)
 {
     GtkTreeModel *model = gtk_combo_box_get_model (session_combo);
     GtkTreeIter iter;
+    const gchar *default_session;
 
-    if (!session)
-        session = lightdm_greeter_get_default_session_hint (greeter);
-    if (!session)
-        return;
-
-    if (!gtk_tree_model_get_iter_first (model, &iter))
-        return;
-
-    do
+    if (session && gtk_tree_model_get_iter_first (model, &iter))
     {
-        gchar *s;
-        gboolean matched;
-        gtk_tree_model_get (model, &iter, 1, &s, -1);
-        matched = strcmp (s, session) == 0;
-        g_free (s);
-        if (matched)
+        do
         {
-            gtk_combo_box_set_active_iter (session_combo, &iter);
-            return;
-        }
-    } while (gtk_tree_model_iter_next (model, &iter));
+            gchar *s;
+            gboolean matched;
+            gtk_tree_model_get (model, &iter, 1, &s, -1);
+            matched = strcmp (s, session) == 0;
+            g_free (s);
+            if (matched)
+            {
+                gtk_combo_box_set_active_iter (session_combo, &iter);
+                return;
+            }
+        } while (gtk_tree_model_iter_next (model, &iter));
+    }
+
+    /* If failed to find this session, then try the default */
+    default_session = lightdm_greeter_get_default_session_hint (greeter);
+    if (default_session && g_strcmp0 (session, default_session) != 0)
+        set_session (lightdm_greeter_get_default_session_hint (greeter));
 }
 
 static void
@@ -95,12 +96,12 @@ start_authentication (const gchar *username)
     else
     {
         LightDMUser *user;
-        const gchar *session = NULL;
 
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         if (user)
-            session = lightdm_user_get_session (user);
-        set_session (session);
+            set_session (lightdm_user_get_session (user));
+        else
+            set_session (NULL);
 
         lightdm_greeter_authenticate (greeter, username);
     }
