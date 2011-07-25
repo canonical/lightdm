@@ -48,9 +48,14 @@ set_session (const gchar *session)
     GtkTreeModel *model = gtk_combo_box_get_model (session_combo);
     GtkTreeIter iter;
 
+    if (!session)
+        session = lightdm_greeter_get_default_session_hint (greeter);
+    if (!session)
+        return;
+
     if (!gtk_tree_model_get_iter_first (model, &iter))
         return;
-  
+
     do
     {
         gchar *s;
@@ -95,8 +100,6 @@ start_authentication (const gchar *username)
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         if (user)
             session = lightdm_user_get_session (user);
-        if (!session)
-            session = lightdm_greeter_get_default_session_hint (greeter);
         set_session (session);
 
         lightdm_greeter_authenticate (greeter, username);
@@ -767,7 +770,7 @@ main(int argc, char **argv)
                             1, lightdm_session_get_key (session),
                             -1);
     }
-    set_session (lightdm_greeter_get_default_session_hint (greeter));
+    set_session (NULL);
 
     gtk_builder_connect_signals(builder, greeter);
 
