@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/test-runner login-guest-logout test-gobject-greeter

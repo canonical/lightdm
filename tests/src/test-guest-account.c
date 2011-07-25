@@ -25,29 +25,32 @@ main (int argc, char **argv)
         home_dir = g_strdup_printf ("%s/guest-XXXXXX", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
         if (!mkdtemp (home_dir))
         {
-            g_printerr ("Failed to create home directory: %s\n", strerror (errno));
+            g_printerr ("Failed to create home directory %s: %s\n", home_dir, strerror (errno));
             return EXIT_FAILURE;
         }
         username = strrchr (home_dir, '/') + 1;
 
         /* Get the largest UID */
         passwd = fopen (g_getenv ("LIGHTDM_TEST_PASSWD_FILE"), "r");
-        while (fgets (line, 1024, passwd))
+        if (passwd)
         {
-            gchar **tokens = g_strsplit (line, ":", -1);
-            if (g_strv_length (tokens) >= 3)
+            while (fgets (line, 1024, passwd))
             {
-                gint uid = atoi (tokens[2]);
-                if (uid > max_uid)
-                    max_uid = uid;
+                gchar **tokens = g_strsplit (line, ":", -1);
+                if (g_strv_length (tokens) >= 3)
+                {
+                    gint uid = atoi (tokens[2]);
+                    if (uid > max_uid)
+                        max_uid = uid;
+                }
+                g_strfreev (tokens);
             }
-            g_strfreev (tokens);
+            fclose (passwd);
         }
-        fclose (passwd);
 
         /* Add a new account to the passwd file */
-        passwd = fopen (g_getenv ("LIGHTDM_TEST_PASSWD_FILE"), "wa");
-        fprintf (passwd, "%s::%d:%d:Guest Account:%s:/bin/sh", username, max_uid+1, max_uid+1, home_dir);
+        passwd = fopen (g_getenv ("LIGHTDM_TEST_PASSWD_FILE"), "a");
+        fprintf (passwd, "%s::%d:%d:Guest Account:%s:/bin/sh\n", username, max_uid+1, max_uid+1, home_dir);
         fclose (passwd);
 
         notify_status ("GUEST-ACCOUNT ADD USERNAME=%s", username);
@@ -79,6 +82,7 @@ main (int argc, char **argv)
                 fprintf (new_passwd, "%s", line);
         }
         fclose (passwd);
+        fclose (new_passwd);
 
         /* Move the new file on the old one */
         rename (path, g_getenv ("LIGHTDM_TEST_PASSWD_FILE"));

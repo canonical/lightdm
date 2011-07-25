@@ -11,6 +11,7 @@ TESTS = \
 	test-autologin-logout \
 	test-autologin-guest \
 	test-autologin-guest-fail-setup-script \
+	test-autologin-guest-logout \
 	test-login-gobject \
 	test-login-gobject-manual \
 	test-login-gobject-no-password \
@@ -24,6 +25,7 @@ TESTS = \
 	test-login-gobject-guest-disabled \
 	test-login-gobject-guest-no-setup-script \
 	test-login-gobject-guest-fail-setup-script \
+	test-login-gobject-guest-logout \
 	test-plymouth-active-vt \
 	test-plymouth-inactive-vt \
 	test-plymouth-xserver-fail-start \
@@ -50,7 +52,8 @@ TESTS += \
 	test-login-qt-guest \
 	test-login-qt-guest-disabled \
 	test-login-qt-guest-no-setup-script \
-	test-login-qt-guest-fail-setup-script
+	test-login-qt-guest-fail-setup-script \
+	test-login-qt-guest-logout
 endif
 
 # In progress
@@ -69,6 +72,8 @@ EXTRA_DIST = \
 	scripts/autologin-guest.script \
 	scripts/autologin-guest-fail-setup-script.conf \
 	scripts/autologin-guest-fail-setup-script.script \
+	scripts/autologin-guest-logout.conf \
+	scripts/autologin-guest-logout.script \
 	scripts/autologin-invalid-session.conf \
 	scripts/autologin-invalid-session.script \
 	scripts/autologin-invalid-user.conf \
@@ -89,6 +94,8 @@ EXTRA_DIST = \
 	scripts/login-guest-disabled.script \
 	scripts/login-guest-fail-setup-script.conf \
 	scripts/login-guest-fail-setup-script.script \
+	scripts/login-guest-logout.conf \
+	scripts/login-guest-logout.script \
 	scripts/login-guest-no-setup-script.conf \
 	scripts/login-guest-no-setup-script.script \
 	scripts/login-invalid-session.conf \
