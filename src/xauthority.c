@@ -32,7 +32,7 @@ struct XAuthorityPrivate
 
     /* Authorization data */
     guint8 *authorization_data;
-    gsize authorization_data_length;
+    guint16 authorization_data_length;
 };
 
 G_DEFINE_TYPE (XAuthority, xauth, G_TYPE_OBJECT);
@@ -158,77 +158,71 @@ xauth_get_authorization_data_length (XAuthority *auth)
     return auth->priv->authorization_data_length;
 }
 
-static guint16
-read_uint16 (GInputStream *stream, gboolean *eof, GError **error)
+static gboolean
+read_uint16 (GInputStream *stream, guint16 *value, gboolean *eof, GError **error)
 {
     guint8 data[2] = {0, 0};
     gsize n_read;
 
-    if (error && *error)
-        return 0;
-  
     if (g_input_stream_read_all (stream, data, 2, &n_read, NULL, error) < 0)
-        return 0;
+        return FALSE;
   
     if (n_read == 0 && eof)
        *eof = TRUE;
 
-    return data[0] << 8 | data[1];
-}
-
-static guint8 *
-read_data (GInputStream *stream, guint16 length, GError **error)
-{
-    guint8 *data;
+    *value = data[0] << 8 | data[1];
   
-    if (error && *error)
-        return NULL;
-
-    data = g_malloc0 (length + 1);
-    if (g_input_stream_read_all (stream, data, length, NULL, NULL, error) < 0)
-    {
-        g_free (data);
-        return NULL;
-    }
-    data[length] = 0;
-
-    return data;
+    return TRUE;
 }
 
-static gchar *
-read_string (GInputStream *stream, GError **error)
+static gboolean
+read_data (GInputStream *stream, guint16 length, guint8 **value, GError **error)
+{
+    *value = g_malloc0 (length + 1);
+    if (g_input_stream_read_all (stream, *value, length, NULL, NULL, error) < 0)
+    {
+        g_free (*value);
+        *value = NULL;
+        return FALSE;
+    }
+    (*value)[length] = 0;
+
+    return TRUE;
+}
+
+static gboolean
+read_string (GInputStream *stream, gchar **value, GError **error)
 {
     guint16 length;
-    length = read_uint16 (stream, NULL, error);
-    return (gchar *) read_data (stream, length, error);
+    if (!read_uint16 (stream, &length, NULL, error))
+        return FALSE;
+    return read_data (stream, length, (guint8 **) value, error);
 }
 
-static void
+static gboolean
 write_uint16 (GOutputStream *stream, guint16 value, GError **error)
 {
     guint8 data[2];
 
-    if (error && *error)
-        return;
-
     data[0] = value >> 8;
     data[1] = value & 0xFF;
-    g_output_stream_write (stream, data, 2, NULL, error);
+    return g_output_stream_write (stream, data, 2, NULL, error);
 }
 
-static void
+static gboolean
 write_data (GOutputStream *stream, const guint8 *data, gsize data_length, GError **error)
 {
-    if (error && *error)
-        return;
-    g_output_stream_write (stream, data, data_length, NULL, error);
+    return g_output_stream_write (stream, data, data_length, NULL, error);
 }
 
-static void
+static gboolean
 write_string (GOutputStream *stream, const gchar *value, GError **error)
 {
-    write_uint16 (stream, strlen (value), error);
-    write_data (stream, (guint8 *) value, strlen (value), error);
+    if (!write_uint16 (stream, strlen (value), error) ||
+        !write_data (stream, (guint8 *) value, strlen (value), error))
+        return FALSE;
+  
+    return TRUE;
 }
 
 gboolean
@@ -238,43 +232,42 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GEr
     GFileInputStream *input_stream = NULL;
     GFileOutputStream *output_stream;
     XAuthority *a;
+    gboolean result;
     gboolean matched = FALSE;
-  
+
     /* Read out existing records */
     if (mode != XAUTH_WRITE_MODE_SET)
     {
-        input_stream = g_file_read (file, NULL, error);
-        if (!input_stream && error && !g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
-            return FALSE;
-    }
+        GError *read_error = NULL;
 
+        input_stream = g_file_read (file, NULL, &read_error);
+        if (!input_stream && !g_error_matches (read_error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+            g_warning ("Error reading existing Xauthority: %s", read_error->message);
+        g_clear_error (&read_error);
+    }
     while (input_stream)
     {
-        guint16 family;
         gboolean eof = FALSE;
-
-        family = read_uint16 (G_INPUT_STREAM (input_stream), &eof, error);
-        if (eof)
-            break;
+        GError *read_error = NULL;
 
         a = g_object_new (XAUTHORITY_TYPE, NULL);
-        a->priv->family = family;
-        a->priv->address = read_string (G_INPUT_STREAM (input_stream), error);
-        a->priv->number = read_string (G_INPUT_STREAM (input_stream), error);
-        a->priv->authorization_name = read_string (G_INPUT_STREAM (input_stream), error);
-        a->priv->authorization_data_length = read_uint16 (G_INPUT_STREAM (input_stream), NULL, error);
-        a->priv->authorization_data = read_data (G_INPUT_STREAM (input_stream), a->priv->authorization_data_length, error);
 
-        if (error && *error)
-        {
-            g_warning ("Error reading X authority %s: %s", g_file_get_path (file), (*error)->message);
-            g_clear_error (error);
+        result = read_uint16 (G_INPUT_STREAM (input_stream), &a->priv->family, &eof, &read_error) &&
+                 read_string (G_INPUT_STREAM (input_stream), &a->priv->address, &read_error) &&
+                 read_string (G_INPUT_STREAM (input_stream), &a->priv->number, &read_error) &&
+                 read_string (G_INPUT_STREAM (input_stream), &a->priv->authorization_name, &read_error) &&
+                 read_uint16 (G_INPUT_STREAM (input_stream), &a->priv->authorization_data_length, NULL, &read_error) &&
+                 read_data (G_INPUT_STREAM (input_stream), a->priv->authorization_data_length, &a->priv->authorization_data, &read_error);
+        if (!result)
+            g_warning ("Error reading X authority %s: %s", g_file_get_path (file), read_error->message);
+        g_clear_error (&read_error);
+
+        if (eof || !result)
             break;
-        }
 
         /* If this record matches, then update or delete it */
         if (!matched &&
-            auth->priv->family == family &&
+            auth->priv->family == a->priv->family &&
             strcmp (auth->priv->address, a->priv->address) == 0 &&
             strcmp (auth->priv->number, a->priv->number) == 0)
         {
@@ -292,7 +285,10 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GEr
     }
     if (input_stream)
     {
-        g_input_stream_close (G_INPUT_STREAM (input_stream), NULL, error);
+        GError *close_error = NULL;
+        if (!g_input_stream_close (G_INPUT_STREAM (input_stream), NULL, &close_error))
+            g_warning ("Error closing Xauthority: %s", close_error->message);
+        g_clear_error (&close_error);
         g_object_unref (input_stream);
     }
 
@@ -308,24 +304,27 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GEr
     g_clear_error (error);
 
     /* Write records back */
-    for (link = records; link; link = link->next)
+    result = TRUE;
+    for (link = records; link && result; link = link->next)
     {
         XAuthority *a = link->data;
 
-        write_uint16 (G_OUTPUT_STREAM (output_stream), a->priv->family, error);
-        write_string (G_OUTPUT_STREAM (output_stream), a->priv->address, error);
-        write_string (G_OUTPUT_STREAM (output_stream), a->priv->number, error);
-        write_string (G_OUTPUT_STREAM (output_stream), a->priv->authorization_name, error);
-        write_uint16 (G_OUTPUT_STREAM (output_stream), a->priv->authorization_data_length, error);
-        write_data (G_OUTPUT_STREAM (output_stream), a->priv->authorization_data, a->priv->authorization_data_length, error);
+        result = write_uint16 (G_OUTPUT_STREAM (output_stream), a->priv->family, error) &&
+                 write_string (G_OUTPUT_STREAM (output_stream), a->priv->address, error) &&
+                 write_string (G_OUTPUT_STREAM (output_stream), a->priv->number, error) &&
+                 write_string (G_OUTPUT_STREAM (output_stream), a->priv->authorization_name, error) &&
+                 write_uint16 (G_OUTPUT_STREAM (output_stream), a->priv->authorization_data_length, error) &&
+                 write_data (G_OUTPUT_STREAM (output_stream), a->priv->authorization_data, a->priv->authorization_data_length, error);
 
         g_object_unref (a);
     }
     g_list_free (records);
-    g_output_stream_close (G_OUTPUT_STREAM (output_stream), NULL, error);
+
+    if (result)
+        result = g_output_stream_close (G_OUTPUT_STREAM (output_stream), NULL, error);
     g_object_unref (output_stream);
 
-    if (error && *error)
+    if (!result)
         return FALSE;
 
     /* NOTE: Would like to do:
