@@ -122,6 +122,7 @@ xserver_local_new (void)
     }
     if (self->priv->vt < 0)
         self->priv->vt = vt_get_unused ();
+    vt_ref (self->priv->vt);
 
     return self;
 }
@@ -278,7 +279,7 @@ stopped_cb (Process *process, XServerLocal *server)
 
     if (server->priv->vt >= 0)
     {
-        vt_release (server->priv->vt);
+        vt_unref (server->priv->vt);
         server->priv->vt = -1;
     }
 
@@ -483,7 +484,7 @@ xserver_local_finalize (GObject *object)
     if (self->priv->authority_file)
         g_object_unref (self->priv->authority_file);
     if (self->priv->vt >= 0)
-        vt_release (self->priv->vt);
+        vt_unref (self->priv->vt);
 
     G_OBJECT_CLASS (xserver_local_parent_class)->finalize (object);
 }
