@@ -43,6 +43,8 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 typedef struct
 {
+    gboolean connected;
+
     GIOChannel *to_server_channel, *from_server_channel;
     guint8 *read_buffer;
     gsize n_read;
@@ -493,10 +495,14 @@ lightdm_greeter_connect_sync (LightDMGreeter *greeter, GError **error)
     read_int (response, response_length, &offset);
     if (id == SERVER_MESSAGE_CONNECTED)
         handle_connected (greeter, response, response_length, &offset);
-    else
-        g_warning ("Expected CONNECTED message, got %d", id);
-  
     g_free (response);
+    if (id != SERVER_MESSAGE_CONNECTED)
+    {
+        g_warning ("Expected CONNECTED message, got %d", id);
+        return FALSE;
+    }
+
+    priv->connected = TRUE;
 
     return TRUE;
 }
@@ -700,6 +706,8 @@ lightdm_greeter_authenticate (LightDMGreeter *greeter, const char *username)
 
     priv = GET_PRIVATE (greeter);
 
+    g_return_if_fail (priv->connected);
+
     priv->cancelling_authentication = FALSE;
     priv->authenticate_sequence_number++;
     priv->in_authentication = TRUE;  
@@ -734,6 +742,8 @@ lightdm_greeter_authenticate_as_guest (LightDMGreeter *greeter)
 
     priv = GET_PRIVATE (greeter);
 
+    g_return_if_fail (priv->connected);
+
     priv->cancelling_authentication = FALSE;
     priv->authenticate_sequence_number++;
     priv->in_authentication = TRUE;
@@ -757,11 +767,16 @@ lightdm_greeter_authenticate_as_guest (LightDMGreeter *greeter)
 void
 lightdm_greeter_respond (LightDMGreeter *greeter, const gchar *response)
 {
+    LightDMGreeterPrivate *priv;
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
 
     g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
     g_return_if_fail (response != NULL);
+
+    priv = GET_PRIVATE (greeter);
+
+    g_return_if_fail (priv->connected);
 
     g_debug ("Providing response to display manager");
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONTINUE_AUTHENTICATION, int_length () + string_length (response), &offset);
@@ -787,6 +802,8 @@ lightdm_greeter_cancel_authentication (LightDMGreeter *greeter)
     g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
 
     priv = GET_PRIVATE (greeter);
+
+    g_return_if_fail (priv->connected);
 
     priv->cancelling_authentication = TRUE;
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CANCEL_AUTHENTICATION, 0, &offset);
@@ -860,6 +877,8 @@ lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *sessio
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
 
     priv = GET_PRIVATE (greeter);
+
+    g_return_val_if_fail (priv->connected, FALSE);
     g_return_val_if_fail (priv->is_authenticated, FALSE);
 
     if (session)
