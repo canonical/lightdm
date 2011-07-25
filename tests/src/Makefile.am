@@ -1,5 +1,4 @@
-noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-session plymouth
-dist_noinst_SCRIPTS = test-guest-account
+noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-guest-account test-session plymouth
 
 if COMPILE_LIBLIGHTDM_QT
 noinst_PROGRAMS += test-qt-greeter
@@ -41,6 +40,13 @@ test_gobject_greeter_LDADD = \
 	$(GLIB_LIBS) \
 	$(GOBJECT_LIBS) \
 	$(XCB_LIBS)
+
+test_guest_account_SOURCES = test-guest-account.c status.c status.h
+test_guest_account_CFLAGS = \
+	$(WARN_CFLAGS) \
+	$(GLIB_CFLAGS)
+test_guest_account_LDADD = \
+	$(GLIB_LIBS)
 
 test-qt-greeter_moc.cpp: test-qt-greeter.h
 	moc $< -o $@
