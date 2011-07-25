@@ -732,7 +732,9 @@ start_greeter_session (Display *display)
 
     g_debug ("Starting greeter session");
 
-    if (display->priv->greeter_user)
+    if (getuid () != 0)
+        user = user_get_current ();
+    else if (display->priv->greeter_user)
     {
         user = user_get_by_name (display->priv->greeter_user);
         if (!user)
@@ -741,8 +743,6 @@ start_greeter_session (Display *display)
             return FALSE;
         }
     }
-    else if (getuid () != 0)
-        user = user_get_current ();
     else
     {
         g_warning ("Greeter must not be run as root");
