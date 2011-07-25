@@ -189,6 +189,8 @@ void
 login_cb (GtkWidget *widget)
 {
     gtk_widget_set_sensitive (GTK_WIDGET (prompt_entry), FALSE);
+    set_message_label ("");
+
     if (lightdm_greeter_get_is_authenticated (greeter))
         start_session ();
     else if (lightdm_greeter_get_in_authentication (greeter))
@@ -209,8 +211,6 @@ static void
 show_prompt_cb (LightDMGreeter *greeter, const gchar *text, LightDMPromptType type)
 {
     prompted = TRUE;
-
-    set_message_label ("");
 
     gtk_widget_show (GTK_WIDGET (login_box));
     gtk_label_set_text (prompt_label, text);
