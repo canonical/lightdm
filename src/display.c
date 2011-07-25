@@ -744,8 +744,13 @@ start_greeter_session (Display *display)
             return FALSE;
         }
     }
-    else
+    else if (getuid () != 0)
         user = user_get_current ();
+    else
+    {
+        g_warning ("Greeter must not be run as root");
+        return FALSE;
+    }
     display->priv->in_user_session = FALSE;
     display->priv->pam_session = pam_session_new (display->priv->pam_service, user_get_name (user));
     pam_session_authorize (display->priv->pam_session);

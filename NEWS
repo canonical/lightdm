@@ -2,6 +2,7 @@ Overview of changes in lightdm 0.9.1
 
     * Fix up translation build system
     * Add a --with-greeter-user configure option
+    * Abort greeter if attempted to be run as root and greeter-user set
 
 Overview of changes in lightdm 0.9.0
 
