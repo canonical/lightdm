@@ -123,10 +123,7 @@ display_load_config (Display *display, const gchar *config_section)
 {
     g_return_if_fail (display != NULL);
     
-    if (config_section)
-        display->priv->greeter_user = config_get_string (config_get_instance (), config_section, "greeter-user");
-    if (!display->priv->greeter_user)
-        display->priv->greeter_user = config_get_string (config_get_instance (), "SeatDefaults", "greeter-user");
+    display->priv->greeter_user = config_get_string (config_get_instance (), "LightDM", "greeter-user");
 
     if (config_section)
         display->priv->greeter_session = config_get_string (config_get_instance (), config_section, "greeter-session");
