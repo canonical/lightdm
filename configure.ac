@@ -161,7 +161,7 @@ dnl Internationalization
 dnl ###########################################################################
 
 IT_PROG_INTLTOOL(0.35.0)
-GETTEXT_PACKAGE=lightdm
+AC_SUBST(GETTEXT_PACKAGE, lightdm)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", Gettext package)
 
 dnl ###########################################################################
