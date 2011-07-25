@@ -150,6 +150,17 @@ AC_ARG_WITH(greeter-session,
 AC_SUBST(GREETER_SESSION)
 AC_DEFINE_UNQUOTED(GREETER_SESSION, "$GREETER_SESSION", Greeter session)
 
+GREETER_USER=lightdm
+AC_ARG_WITH(greeter-user,
+            AS_HELP_STRING(--with-greeter-user=<username>,
+                           User to run greeter as),
+    if test x$withval != x; then
+        GREETER_USER="$withval"
+    fi
+)
+AC_SUBST(GREETER_USER)
+AC_DEFINE_UNQUOTED(GREETER_USER, "$GREETER_USER", User to run greeter as)
+
 dnl ###########################################################################
 dnl Documentation
 dnl ###########################################################################
@@ -198,6 +209,7 @@ echo "
 
         prefix:                   $prefix
         Greeter session:          $GREETER_SESSION
+        Greeter user:             $GREETER_USER
         User session:             $USER_SESSION
         liblightdm-gobject:       $compile_liblightdm_gobject
         GObject introspection:    $found_introspection

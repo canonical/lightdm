@@ -816,6 +816,8 @@ main (int argc, char **argv)
         config_set_integer (config_get_instance (), "LightDM", "minimum-vt", 7);
     if (!config_has_key (config_get_instance (), "LightDM", "guest-account-script"))
         config_set_string (config_get_instance (), "LightDM", "guest-account-script", "guest-account");
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-user"))
+        config_set_string (config_get_instance (), "SeatDefaults", "greeter-user", GREETER_USER);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "type"))
         config_set_string (config_get_instance (), "SeatDefaults", "type", "xlocal");
     if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-command"))
