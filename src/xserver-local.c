@@ -406,7 +406,8 @@ xserver_local_start (DisplayServer *display_server)
     if (server->priv->vt >= 0)
         g_string_append_printf (command, " vt%d -novtswitch", server->priv->vt);
 
-    g_string_append (command, " -background none");
+    if (server->priv->replacing_plymouth)
+        g_string_append (command, " -background none");
 
     g_debug ("Launching X Server");
 
