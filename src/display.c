@@ -426,7 +426,7 @@ static void
 autologin_pam_message_cb (PAMSession *session, int num_msg, const struct pam_message **msg, Display *display)
 {
     g_debug ("Aborting automatic login as PAM requests input");
-    pam_session_stop (session);
+    pam_session_cancel (session);
 }
 
 static void
@@ -441,7 +441,7 @@ autologin_authentication_result_cb (PAMSession *session, int result, Display *di
     if (result == PAM_SUCCESS)
     {
         g_debug ("User %s authorized", pam_session_get_username (display->priv->pam_session));
-        pam_session_authorize (display->priv->pam_session);
+        pam_session_open (display->priv->pam_session);
         started_session = start_user_session (display);
         if (!started_session)
             g_debug ("Failed to start autologin session");
@@ -474,12 +474,11 @@ autologin (Display *display, const gchar *username, gboolean start_greeter_if_fa
     g_signal_connect (display->priv->pam_session, "got-messages", G_CALLBACK (autologin_pam_message_cb), display);
     g_signal_connect (display->priv->pam_session, "authentication-result", G_CALLBACK (autologin_authentication_result_cb), display);
 
-    result = pam_session_start (display->priv->pam_session, &error);
+    result = pam_session_authenticate (display->priv->pam_session, &error);
     if (!result)
     {
         g_debug ("Failed to start autologin session for %s: %s", username, error->message);
         g_signal_handlers_disconnect_matched (display->priv->pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-        pam_session_stop (display->priv->pam_session);
         g_object_unref (display->priv->pam_session);
         display->priv->pam_session = NULL;
     }
@@ -512,7 +511,7 @@ cleanup_after_session (Display *display)
 
     /* Close PAM session */
     g_signal_handlers_disconnect_matched (display->priv->pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-    pam_session_stop (display->priv->pam_session);
+    pam_session_close (display->priv->pam_session);
     g_object_unref (display->priv->pam_session);
     display->priv->pam_session = NULL;
 
@@ -553,6 +552,7 @@ greeter_session_stopped_cb (Session *session, Display *display)
     {
         display->priv->in_user_session = TRUE;
         display->priv->pam_session = g_object_ref (greeter_get_pam_session (display->priv->greeter));
+        pam_session_open (display->priv->pam_session);
         started_session = start_user_session (display);
         if (!started_session)
             g_debug ("Failed to start user session");
@@ -750,7 +750,7 @@ start_greeter_session (Display *display)
     }
     display->priv->in_user_session = FALSE;
     display->priv->pam_session = pam_session_new (display->priv->pam_service, user_get_name (user));
-    pam_session_authorize (display->priv->pam_session);
+    pam_session_open (display->priv->pam_session);
     g_object_unref (user);
 
     log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");

@@ -42,7 +42,7 @@ struct PAMSessionPrivate
     /* Messages requested */
     int num_messages;
     const struct pam_message **messages;
-    int result;
+    int authentication_result;
 
     /* Queue to feed responses to the authentication thread */
     GAsyncQueue *authentication_response_queue;
@@ -50,6 +50,12 @@ struct PAMSessionPrivate
     /* Authentication handle */
     pam_handle_t *pam_handle;
   
+    /* TRUE if in an authentication */
+    gboolean in_authentication;
+
+    /* TRUE if is authenticated */
+    gboolean is_authenticated;
+
     /* TRUE if in a session */
     gboolean in_session;
 };
@@ -71,15 +77,71 @@ pam_session_set_use_passwd_file (gchar *passwd_file_)
     passwd_file = g_strdup (passwd_file_);
 }
 
+static int pam_conv_cb (int num_msg, const struct pam_message **msg, struct pam_response **resp, void *app_data);
+
 PAMSession *
 pam_session_new (const gchar *service, const gchar *username)
 {
     PAMSession *self = g_object_new (PAM_SESSION_TYPE, NULL);
+    struct pam_conv conversation = { pam_conv_cb, self };
+    int result;
 
     self->priv->service = g_strdup (service);
     self->priv->username = g_strdup (username);
 
+    if (!passwd_file)
+    {
+        result = pam_start (self->priv->service, self->priv->username, &conversation, &self->priv->pam_handle);
+        g_debug ("pam_start(\"%s\", \"%s\") -> (%p, %d)",
+                 self->priv->service,
+                 self->priv->username,
+                 self->priv->pam_handle,
+                 result);
+    }
+
     return self;
+}
+
+gboolean
+pam_session_get_is_authenticated (PAMSession *session)
+{
+    g_return_val_if_fail (session != NULL, FALSE);
+    return session->priv->is_authenticated;
+}
+
+gboolean
+pam_session_open (PAMSession *session)
+{
+    int result = PAM_SUCCESS;
+
+    g_return_val_if_fail (session != NULL, FALSE);
+
+    session->priv->in_session = TRUE;
+
+    if (!passwd_file && getuid () == 0)
+    {
+        // FIXME: Set X items
+        //pam_set_item (session->priv->pam_handle, PAM_TTY, &tty);
+        //pam_set_item (session->priv->pam_handle, PAM_XDISPLAY, &display);
+        result = pam_open_session (session->priv->pam_handle, 0);
+        g_debug ("pam_open_session(%p, 0) -> %d (%s)",
+                 session->priv->pam_handle,
+                 result,
+                 pam_strerror (session->priv->pam_handle, result));
+
+        if (result == PAM_SUCCESS)
+        {          
+            result = pam_setcred (session->priv->pam_handle, PAM_ESTABLISH_CRED);
+            g_debug ("pam_setcred(%p, PAM_ESTABLISH_CRED) -> %d (%s)",
+                     session->priv->pam_handle,
+                     result,
+                     pam_strerror (session->priv->pam_handle, result));
+        }
+    }
+
+    g_signal_emit (G_OBJECT (session), signals[STARTED], 0);
+  
+    return result == PAM_SUCCESS;
 }
 
 gboolean
@@ -87,30 +149,6 @@ pam_session_get_in_session (PAMSession *session)
 {
     g_return_val_if_fail (session != NULL, FALSE);
     return session->priv->in_session;
-}
-
-void
-pam_session_authorize (PAMSession *session)
-{
-    g_return_if_fail (session != NULL);
-
-    session->priv->in_session = TRUE;
-
-    if (!passwd_file && getuid () == 0)
-    {
-        int result;
-
-        // FIXME: Set X items
-        //pam_set_item (session->priv->pam_handle, PAM_TTY, &tty);
-        //pam_set_item (session->priv->pam_handle, PAM_XDISPLAY, &display);
-        result = pam_open_session (session->priv->pam_handle, 0);
-        g_debug ("pam_open_session -> %s", pam_strerror (session->priv->pam_handle, result));
-
-        result = pam_setcred (session->priv->pam_handle, PAM_ESTABLISH_CRED);
-        g_debug ("pam_setcred(PAM_ESTABLISH_CRED) -> %s", pam_strerror (session->priv->pam_handle, result));
-    }
-
-    g_signal_emit (G_OBJECT (session), signals[STARTED], 0);
 }
 
 static gboolean
@@ -153,25 +191,33 @@ pam_conv_cb (int num_msg, const struct pam_message **msg,
     return PAM_SUCCESS;
 }
 
+static void
+report_result (PAMSession *session, int result)
+{
+    session->priv->in_authentication = FALSE;
+    session->priv->is_authenticated = result == PAM_SUCCESS;
+    g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, result);
+}
+
 static gboolean
 notify_auth_complete_cb (gpointer data)
 {
     PAMSession *session = data;
     int result;
 
-    result = session->priv->result;
-    session->priv->result = 0;
+    result = session->priv->authentication_result;
+    session->priv->authentication_result = 0;
 
     g_thread_join (session->priv->authentication_thread);
     session->priv->authentication_thread = NULL;
     g_async_queue_unref (session->priv->authentication_response_queue);
     session->priv->authentication_response_queue = NULL;
 
-    g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, result);
+    report_result (session, result);
 
     /* Authentication was cancelled */
     if (session->priv->stop_thread)
-        pam_session_stop (session);
+        pam_session_cancel (session);
 
     /* The thread is complete, drop the reference */
     g_object_unref (session);
@@ -183,22 +229,28 @@ static gpointer
 authenticate_cb (gpointer data)
 {
     PAMSession *session = data;
-    struct pam_conv conversation = { pam_conv_cb, session };
 
-    pam_start (session->priv->service, session->priv->username, &conversation, &session->priv->pam_handle);
+    session->priv->authentication_result = pam_authenticate (session->priv->pam_handle, 0);
+    g_debug ("pam_authenticate(%p, 0) -> %d (%s)",
+             session->priv->pam_handle,
+             session->priv->authentication_result,
+             pam_strerror (session->priv->pam_handle, session->priv->authentication_result));
 
-    session->priv->result = pam_authenticate (session->priv->pam_handle, 0);
-    g_debug ("pam_authenticate -> %s", pam_strerror (session->priv->pam_handle, session->priv->result));
-
-    if (session->priv->result == PAM_SUCCESS)
+    if (session->priv->authentication_result == PAM_SUCCESS)
     {
-        session->priv->result = pam_acct_mgmt (session->priv->pam_handle, 0);
-        g_debug ("pam_acct_mgmt -> %s", pam_strerror (session->priv->pam_handle, session->priv->result));
+        session->priv->authentication_result = pam_acct_mgmt (session->priv->pam_handle, 0);
+        g_debug ("pam_acct_mgmt(%p, 0) -> %d (%s)",
+                 session->priv->pam_handle,
+                 session->priv->authentication_result,
+                 pam_strerror (session->priv->pam_handle, session->priv->authentication_result));
 
-        if (session->priv->result == PAM_NEW_AUTHTOK_REQD)
+        if (session->priv->authentication_result == PAM_NEW_AUTHTOK_REQD)
         {
-            session->priv->result = pam_chauthtok (session->priv->pam_handle, PAM_CHANGE_EXPIRED_AUTHTOK);
-            g_debug ("pam_chauthtok -> %s", pam_strerror (session->priv->pam_handle, session->priv->result));
+            session->priv->authentication_result = pam_chauthtok (session->priv->pam_handle, PAM_CHANGE_EXPIRED_AUTHTOK);
+            g_debug ("pam_chauthtok(%p, PAM_CHANGE_EXPIRED_AUTHTOK) -> %d (%s)",
+                     session->priv->pam_handle,
+                     session->priv->authentication_result,
+                     pam_strerror (session->priv->pam_handle, session->priv->authentication_result));
         }
     }
 
@@ -256,11 +308,13 @@ send_message (PAMSession *session, gint style, const gchar *text)
 }
 
 gboolean
-pam_session_start (PAMSession *session, GError **error)
+pam_session_authenticate (PAMSession *session, GError **error)
 {
     g_return_val_if_fail (session != NULL, FALSE);
-    g_return_val_if_fail (session->priv->authentication_thread == NULL, FALSE);
+    g_return_val_if_fail (session->priv->in_authentication == FALSE, FALSE);
+    g_return_val_if_fail (session->priv->is_authenticated == FALSE, FALSE);
 
+    session->priv->in_authentication = TRUE;
     g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_STARTED], 0);
 
     if (passwd_file)
@@ -273,9 +327,8 @@ pam_session_start (PAMSession *session, GError **error)
 
             password = get_password (session->priv->username);
             /* Always succeed with autologin, or no password on account otherwise prompt for a password */
-            if (strcmp (session->priv->service, "lightdm-autologin") == 0 ||
-                g_strcmp0 (password, "") == 0)
-                g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_SUCCESS);
+            if (strcmp (session->priv->service, "lightdm-autologin") == 0 || g_strcmp0 (password, "") == 0)
+                report_result (session, PAM_SUCCESS);
             else
                 send_message (session, PAM_PROMPT_ECHO_OFF, "Password:");
             g_free (password);
@@ -310,7 +363,7 @@ pam_session_get_username (PAMSession *session)
 
     g_return_val_if_fail (session != NULL, NULL);
 
-    if (session->priv->pam_handle)
+    if (!passwd_file && session->priv->pam_handle)
     {
         g_free (session->priv->username);
         pam_get_item (session->priv->pam_handle, PAM_USER, (const void **) &username);
@@ -358,13 +411,12 @@ pam_session_respond (PAMSession *session, struct pam_response *response)
             session->priv->num_messages = 0;
         }
 
-
         if (session->priv->username == NULL)
         {
             session->priv->username = g_strdup (response->resp);
             password = get_password (session->priv->username);
             if (g_strcmp0 (password, "") == 0)
-                g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_SUCCESS);
+                report_result (session, PAM_SUCCESS);
             else
                 send_message (session, PAM_PROMPT_ECHO_OFF, "Password:");
         }
@@ -375,9 +427,9 @@ pam_session_respond (PAMSession *session, struct pam_response *response)
             user = user_get_by_name (session->priv->username);
             password = get_password (session->priv->username);
             if (user && g_strcmp0 (response->resp, password) == 0)
-                g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_SUCCESS);
+                report_result (session, PAM_SUCCESS);
             else
-                g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_RESULT], 0, PAM_AUTH_ERR);
+                report_result (session, PAM_AUTH_ERR);
 
             if (user)
                 g_object_unref (user);
@@ -390,6 +442,25 @@ pam_session_respond (PAMSession *session, struct pam_response *response)
     {
         g_return_if_fail (session->priv->authentication_thread != NULL);
         g_async_queue_push (session->priv->authentication_response_queue, response);
+    }
+}
+
+void
+pam_session_cancel (PAMSession *session)
+{
+    g_return_if_fail (session != NULL);
+
+    /* If authenticating cancel first */
+    if (passwd_file)
+    {
+        if (session->priv->in_authentication)
+            report_result (session, PAM_CONV_ERR);
+
+    }
+    else if (session->priv->authentication_thread)
+    {
+        session->priv->stop_thread = TRUE;
+        g_async_queue_push (session->priv->authentication_response_queue, GINT_TO_POINTER (-1));
     }
 }
 
@@ -418,38 +489,36 @@ pam_session_get_envlist (PAMSession *session)
 }
 
 void
-pam_session_stop (PAMSession *session)
+pam_session_close (PAMSession *session)
 {
+    int result;
+
     g_return_if_fail (session != NULL);
 
-    /* If authenticating cancel first */
-    if (session->priv->authentication_thread)
+    session->priv->in_session = FALSE;
+
+    if (!passwd_file && getuid () == 0)
     {
-        session->priv->stop_thread = TRUE;
-        g_async_queue_push (session->priv->authentication_response_queue, GINT_TO_POINTER (-1));
-    }
-    else if (session->priv->in_session)
-    {
-        int result;
+        g_return_if_fail (session->priv->pam_handle != NULL);
 
-        if (passwd_file)
-        {
-            g_signal_emit (session, signals[AUTHENTICATION_RESULT], 0, PAM_CONV_ERR);
-        }
-        else if (session->priv->pam_handle && getuid () == 0)
-        {
-            result = pam_close_session (session->priv->pam_handle, 0);
-            g_debug ("pam_close_session -> %s", pam_strerror (session->priv->pam_handle, result));
+        result = pam_close_session (session->priv->pam_handle, 0);
+        g_debug ("pam_close_session(%p) -> %d (%s)",
+                 session->priv->pam_handle,
+                 result,
+                 pam_strerror (session->priv->pam_handle, result));
 
-            result = pam_setcred (session->priv->pam_handle, PAM_DELETE_CRED);
-            g_debug ("pam_setcred(PAM_DELETE_CRED) -> %s", pam_strerror (session->priv->pam_handle, result));
+        result = pam_setcred (session->priv->pam_handle, PAM_DELETE_CRED);
+        g_debug ("pam_setcred(%p, PAM_DELETE_CRED) -> %d (%s)",
+                 session->priv->pam_handle,
+                 result,
+                 pam_strerror (session->priv->pam_handle, result));
 
-            result = pam_end (session->priv->pam_handle, PAM_SUCCESS);
-            session->priv->pam_handle = NULL;
-            g_debug ("pam_end");
-        }
+        result = pam_end (session->priv->pam_handle, PAM_SUCCESS);
+        g_debug ("pam_end(%p) -> %d",
+                 session->priv->pam_handle,
+                 result);
 
-        session->priv->in_session = FALSE;
+        session->priv->pam_handle = NULL;
     }
 }
 
@@ -468,6 +537,8 @@ pam_session_finalize (GObject *object)
 
     g_free (self->priv->service);  
     g_free (self->priv->username);
+    if (self->priv->pam_handle)
+        pam_end (self->priv->pam_handle, PAM_SUCCESS);
 
     G_OBJECT_CLASS (pam_session_parent_class)->finalize (object);
 }

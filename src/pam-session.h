@@ -46,11 +46,13 @@ void pam_session_set_use_passwd_file (gchar *passwd_file);
 
 PAMSession *pam_session_new (const gchar *service, const gchar *username);
 
+gboolean pam_session_authenticate (PAMSession *session, GError **error);
+
+gboolean pam_session_get_is_authenticated (PAMSession *session);
+
+gboolean pam_session_open (PAMSession *session);
+
 gboolean pam_session_get_in_session (PAMSession *session);
-
-void pam_session_authorize (PAMSession *session);
-
-gboolean pam_session_start (PAMSession *session, GError **error);
 
 const gchar *pam_session_strerror (PAMSession *session, int error);
 
@@ -62,11 +64,13 @@ gint pam_session_get_num_messages (PAMSession *session);
 
 void pam_session_respond (PAMSession *session, struct pam_response *response);
 
+void pam_session_cancel (PAMSession *session);
+
 const gchar *pam_session_getenv (PAMSession *session, const gchar *name);
 
 gchar **pam_session_get_envlist(PAMSession *session);
 
-void pam_session_stop (PAMSession *session);
+void pam_session_close (PAMSession *session);
 
 G_END_DECLS
 

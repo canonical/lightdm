@@ -241,10 +241,7 @@ authentication_result_cb (PAMSession *session, int result, Greeter *greeter)
     g_debug ("Authenticate result for user %s: %s", pam_session_get_username (session), pam_session_strerror (session, result));
 
     if (result == PAM_SUCCESS)
-    {
         g_debug ("User %s authorized", pam_session_get_username (session));
-        pam_session_authorize (session);
-    }
 
     send_end_authentication (greeter, greeter->priv->authentication_sequence_number, pam_session_get_username (session), result);
 }
@@ -255,7 +252,7 @@ reset_session (Greeter *greeter)
     if (greeter->priv->pam_session)
     {
         g_signal_handlers_disconnect_matched (greeter->priv->pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
-        pam_session_stop (greeter->priv->pam_session);
+        pam_session_cancel (greeter->priv->pam_session);
         g_object_unref (greeter->priv->pam_session);
         greeter->priv->pam_session = NULL;
     }
@@ -283,7 +280,7 @@ handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
     g_signal_connect (G_OBJECT (greeter->priv->pam_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
     g_signal_connect (G_OBJECT (greeter->priv->pam_session), "authentication-result", G_CALLBACK (authentication_result_cb), greeter);
 
-    if (!pam_session_start (greeter->priv->pam_session, &error))
+    if (!pam_session_authenticate (greeter->priv->pam_session, &error))
     {
         g_warning ("Failed to start authentication: %s", error->message);
         send_end_authentication (greeter, sequence_number, "", PAM_SYSTEM_ERR);
@@ -333,7 +330,7 @@ handle_continue_authentication (Greeter *greeter, gchar **secrets)
     }
     if (g_strv_length (secrets) != n_secrets)
     {
-        pam_session_stop (greeter->priv->pam_session);
+        pam_session_cancel (greeter->priv->pam_session);
         return;
     }
 
@@ -363,7 +360,7 @@ handle_cancel_authentication (Greeter *greeter)
 
     g_debug ("Cancel authentication");
 
-    pam_session_stop (greeter->priv->pam_session);
+    pam_session_cancel (greeter->priv->pam_session);
 }
 
 static void
@@ -379,7 +376,7 @@ handle_start_session (Greeter *greeter, const gchar *session)
     else
         g_debug ("Start default session");
 
-    if (greeter->priv->guest_account_authenticated || pam_session_get_in_session (greeter->priv->pam_session))
+    if (greeter->priv->guest_account_authenticated || pam_session_get_is_authenticated (greeter->priv->pam_session))
         g_signal_emit (greeter, signals[START_SESSION], 0, session, &result);
     else
     {
@@ -633,7 +630,7 @@ greeter_finalize (GObject *object)
     if (self->priv->pam_session)
     {
         g_signal_handlers_disconnect_matched (self->priv->pam_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
-        pam_session_stop (self->priv->pam_session);
+        pam_session_cancel (self->priv->pam_session);
         g_object_unref (self->priv->pam_session);
     }
     if (self->priv->to_greeter_channel)

@@ -3,6 +3,8 @@ Overview of changes in lightdm 0.9.2
     * Fix annotation and Vala bindings for getting the UserList singleton
     * Fix GTK+ greeter error label not being shown
     * Don't set SIGQUIT to ignore in child processes
+    * Reworked the PAM code as ecryptfs users weren't able to log in.  They
+      can now but not sure what changed to fix that!?
 
 Overview of changes in lightdm 0.9.1
 
