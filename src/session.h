@@ -14,6 +14,7 @@
 
 #include "process.h"
 #include "user.h"
+#include "pam-session.h"
 
 G_BEGIN_DECLS
 
@@ -40,7 +41,9 @@ typedef struct
 
 GType session_get_type (void);
 
-void session_set_user (Session *session, User *user);
+void session_set_authentication (Session *session, PAMSession *authentication);
+
+PAMSession *session_get_authentication (Session *session);
 
 User *session_get_user (Session *session);
 

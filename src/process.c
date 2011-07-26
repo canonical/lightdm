@@ -316,6 +316,11 @@ process_init (Process *process)
 }
 
 static void
+process_stopped (Process *process)
+{
+}
+
+static void
 process_finalize (GObject *object)
 {
     Process *self;
@@ -376,6 +381,7 @@ process_class_init (ProcessClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     struct sigaction action;
 
+    klass->stopped = process_stopped;
     object_class->finalize = process_finalize;  
 
     g_type_class_add_private (klass, sizeof (ProcessPrivate));

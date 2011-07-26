@@ -15,6 +15,8 @@
 #include <glib-object.h>
 #include <security/pam_appl.h>
 
+#include "user.h"
+
 G_BEGIN_DECLS
 
 #define PAM_SESSION_TYPE (pam_session_get_type())
@@ -44,7 +46,7 @@ void pam_session_set_use_pam (void);
 
 void pam_session_set_use_passwd_file (gchar *passwd_file);
 
-PAMSession *pam_session_new (const gchar *service, const gchar *username);
+PAMSession *pam_session_new (const gchar *service, User *user);
 
 gboolean pam_session_authenticate (PAMSession *session, GError **error);
 
@@ -56,7 +58,7 @@ gboolean pam_session_get_in_session (PAMSession *session);
 
 const gchar *pam_session_strerror (PAMSession *session, int error);
 
-const gchar *pam_session_get_username (PAMSession *session);
+User *pam_session_get_user (PAMSession *session);
 
 const struct pam_message **pam_session_get_messages (PAMSession *session);
 

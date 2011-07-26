@@ -23,8 +23,8 @@
 
 struct SessionPrivate
 {
-    /* User running this session */
-    User *user;
+    /* Authentication for this session */
+    PAMSession *authentication;
   
     /* Command to run for this session */
     gchar *command;
@@ -39,26 +39,24 @@ struct SessionPrivate
 G_DEFINE_TYPE (Session, session, PROCESS_TYPE);
 
 void
-session_set_user (Session *session, User *user)
+session_set_authentication (Session *session, PAMSession *authentication)
 {
     g_return_if_fail (session != NULL);
+    session->priv->authentication = g_object_ref (authentication);
+}
 
-    if (session->priv->user)
-        g_object_unref (session->priv->user);
-    session->priv->user = g_object_ref (user);
-
-    process_set_env (PROCESS (session), "PATH", "/usr/local/bin:/usr/bin:/bin");
-    process_set_env (PROCESS (session), "USER", user_get_name (user));
-    process_set_env (PROCESS (session), "USERNAME", user_get_name (user)); // FIXME: Is this required?
-    process_set_env (PROCESS (session), "HOME", user_get_home_directory (user));
-    process_set_env (PROCESS (session), "SHELL", user_get_shell (user));
+PAMSession *
+session_get_authentication (Session *session)
+{
+    g_return_val_if_fail (session != NULL, NULL);
+    return session->priv->authentication;
 }
 
 User *
 session_get_user (Session *session)
 {
     g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->user;
+    return pam_session_get_user (session->priv->authentication);
 }
 
 void
@@ -129,15 +127,44 @@ get_absolute_command (const gchar *command)
     return absolute_command;
 }
 
+static void
+set_env_from_authentication (Session *session, PAMSession *authentication)
+{
+    gchar **pam_env;
+
+    pam_env = pam_session_get_envlist (authentication);
+    if (pam_env)
+    {
+        gchar *env_string;      
+        int i;
+
+        env_string = g_strjoinv (" ", pam_env);
+        g_debug ("PAM returns environment '%s'", env_string);
+        g_free (env_string);
+
+        for (i = 0; pam_env[i]; i++)
+        {
+            gchar **pam_env_vars = g_strsplit (pam_env[i], "=", 2);
+            if (pam_env_vars && pam_env_vars[0] && pam_env_vars[1])
+                process_set_env (PROCESS (session), pam_env_vars[0], pam_env_vars[1]);
+            else
+                g_warning ("Can't parse PAM environment variable %s", pam_env[i]);
+            g_strfreev (pam_env_vars);
+        }
+        g_strfreev (pam_env);
+    }
+}
+
 static gboolean
 session_real_start (Session *session)
 {
     //gint session_stdin, session_stdout, session_stderr;
     gboolean result;
-    GError *error = NULL;
+    User *user;
     gchar *absolute_command;
+    GError *error = NULL;
 
-    g_return_val_if_fail (session->priv->user != NULL, FALSE);
+    g_return_val_if_fail (session->priv->authentication != NULL, FALSE);
     g_return_val_if_fail (session->priv->command != NULL, FALSE);
 
     absolute_command = get_absolute_command (session->priv->command);
@@ -147,14 +174,24 @@ session_real_start (Session *session)
         return FALSE;
     }
 
+    pam_session_open (session->priv->authentication);
+
     g_debug ("Launching session");
+
+    user = pam_session_get_user (session->priv->authentication);
+    process_set_env (PROCESS (session), "PATH", "/usr/local/bin:/usr/bin:/bin");
+    process_set_env (PROCESS (session), "USER", user_get_name (user));
+    process_set_env (PROCESS (session), "USERNAME", user_get_name (user)); // FIXME: Is this required?
+    process_set_env (PROCESS (session), "HOME", user_get_home_directory (user));
+    process_set_env (PROCESS (session), "SHELL", user_get_shell (user));
+    set_env_from_authentication (session, session->priv->authentication);
 
     if (session->priv->cookie)
         process_set_env (PROCESS (session), "XDG_SESSION_COOKIE", session->priv->cookie);
 
     result = process_start (PROCESS (session),
-                            session->priv->user,
-                            user_get_home_directory (session->priv->user),
+                            user,
+                            user_get_home_directory (user),
                             absolute_command,
                             &error);
     g_free (absolute_command);
@@ -187,6 +224,16 @@ session_stop (Session *session)
 }
 
 static void
+session_stopped (Process *process)
+{
+    Session *session = SESSION (process);
+
+    pam_session_close (session->priv->authentication);
+
+    PROCESS_CLASS (session_parent_class)->stopped (process);
+}
+
+static void
 session_init (Session *session)
 {
     session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, SESSION_TYPE, SessionPrivate);
@@ -199,8 +246,8 @@ session_finalize (GObject *object)
 
     self = SESSION (object);
 
-    if (self->priv->user)
-        g_object_unref (self->priv->user);
+    if (self->priv->authentication)
+        g_object_unref (self->priv->authentication);
     g_free (self->priv->command);
     g_free (self->priv->cookie);
 
@@ -211,9 +258,11 @@ static void
 session_class_init (SessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    ProcessClass *process_class = PROCESS_CLASS (klass);
 
     klass->start = session_real_start;
     klass->stop = session_real_stop;
+    process_class->stopped = session_stopped;
     object_class->finalize = session_finalize;
 
     g_type_class_add_private (klass, sizeof (SessionPrivate));

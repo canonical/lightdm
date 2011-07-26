@@ -16,6 +16,7 @@
 
 #include "display-server.h"
 #include "session.h"
+#include "user.h"
 
 G_BEGIN_DECLS
 
@@ -40,7 +41,7 @@ typedef struct
 
     void (*started)(Display *display);
     void (*ready)(Display *display);
-    gboolean (*switch_to_user)(Display *display, const gchar *username);
+    gboolean (*switch_to_user)(Display *display, User *user);
     gboolean (*switch_to_guest)(Display *display);
     gchar *(*get_guest_username)(Display *display);
     void (*session_started)(Display *display);
