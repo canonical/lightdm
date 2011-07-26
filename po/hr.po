@@ -1,0 +1,120 @@
+# Croatian translation for lightdm
+# Copyright (c) 2011 Rosetta Contributors and Canonical Ltd 2011
+# This file is distributed under the same license as the lightdm package.
+# gogo <trebelnik2@gmail.com>, 2011.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: lightdm\n"
+"Report-Msgid-Bugs-To: gogo <trebelnik2@gmail.com>\n"
+"POT-Creation-Date: 2010-12-06 11:05+0000\n"
+"PO-Revision-Date: 2011-06-11 07:49+0000\n"
+"Last-Translator: gogo <trebelnik2@gmail.com>\n"
+"Language-Team: Croatian <hr@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2011-07-26 04:51+0000\n"
+"X-Generator: Launchpad (build 13405)\n"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:248
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:248
+msgid "Are you sure you want to close all programs and restart the computer?"
+msgstr ""
+"Jeste li sigurni da želite zatvoriti sve programe i ponovno pokrenuti "
+"računalo?"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../greeters/gtk/greeter.ui.h:1
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+msgid "Cancel"
+msgstr "Otkaži"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+msgid "Restart"
+msgstr "Ponovno pokretanje"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:270
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:270
+msgid ""
+"Are you sure you want to close all programs and shutdown the computer?"
+msgstr ""
+"Jeste li sigurni da želite zatvoriti sve programe i isključiti računalo?"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+msgid "Shutdown"
+msgstr "Isključivanje"
+
+#: ../greeters/gtk/greeter.ui.h:4
+msgid "Large Font"
+msgstr "Velika slova"
+
+#: ../greeters/ldm-gtk-greeter.c:611
+msgid "High Constrast"
+msgstr "Visoki kontrast"
+
+#: ../greeters/ldm-gtk-greeter.c:615
+msgid "Options"
+msgstr "Opcije"
+
+#: ../greeters/ldm-gtk-greeter.c:620
+msgid "Language"
+msgstr "Jezik"
+
+#: ../greeters/ldm-gtk-greeter.c:646
+msgid "Keyboard Layout"
+msgstr "Raspored tipkovnice"
+
+#: ../greeters/ldm-gtk-greeter.c:668
+msgid "Session"
+msgstr "Sesija"
+
+#: ../greeters/gtk/greeter.ui.h:8
+msgid "Suspend"
+msgstr "Suspenzija"
+
+#: ../greeters/gtk/greeter.ui.h:2
+msgid "Hibernate"
+msgstr "Hibernacija"
+
+#: ../greeters/gtk/greeter.ui.h:6
+msgid "Restart..."
+msgstr "Ponovno pokretanje..."
+
+#: ../greeters/gtk/greeter.ui.h:7
+msgid "Shutdown..."
+msgstr "Isključivanje..."
+
+#. Description on how to use Light Display Manager displayed on command-line
+#: ../src/lightdm.c:100
+#, c-format
+msgid ""
+"Usage:\n"
+"  %s - Display Manager"
+msgstr ""
+"Upotreba:\n"
+"  %s - Upravitelj zaslona"
+
+#. Description on how to use Light Display Manager displayed on command-line
+#: ../src/lightdm.c:106
+#, c-format
+msgid ""
+"Help Options:\n"
+"  -c, --config <file>             Use configuration file\n"
+"      --pid-file <file>           File to write PID into\n"
+"  -d, --debug                     Print debugging messages\n"
+"      --test-mode                 Run as unprivileged user\n"
+"  -v, --version                   Show release version\n"
+"  -h, --help                      Show help options"
+msgstr ""
+"Opcije pomoći:\n"
+"  -c, --config <datoteka> koristi konfiguracijsku datoteku\n"
+"      --pid-file <datoteka> Datoteka u koju se zapisuje PID\n"
+"  -d, --debug Ispiši debug poruke\n"
+"      --test-mode Pokreni kao neprivilegirani korisnik\n"
+"  -v, --version Prikaži inačicu softvera\n"
+"  -h, --help Prikaži opcije pomoći"

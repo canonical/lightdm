@@ -1,0 +1,120 @@
+# Hungarian translation for lightdm
+# Copyright (c) 2010 Rosetta Contributors and Canonical Ltd 2010
+# This file is distributed under the same license as the lightdm package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2010.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: lightdm\n"
+"Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2010-12-06 11:05+0000\n"
+"PO-Revision-Date: 2011-05-12 10:25+0000\n"
+"Last-Translator: Richard Somlói <ricsipontaz@gmail.com>\n"
+"Language-Team: Hungarian <hu@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2011-07-26 04:51+0000\n"
+"X-Generator: Launchpad (build 13405)\n"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:248
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:248
+msgid "Are you sure you want to close all programs and restart the computer?"
+msgstr ""
+"Biztos benne, hogy bezárja az összes programot, és újraindítja a "
+"számítógépet?"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../greeters/gtk/greeter.ui.h:1
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+msgid "Cancel"
+msgstr "Mégse"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+msgid "Restart"
+msgstr "Újraindítás"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:270
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:270
+msgid ""
+"Are you sure you want to close all programs and shutdown the computer?"
+msgstr ""
+"Biztos benne, hogy bezárja az összes programot, és leállítja a számítógépet?"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+msgid "Shutdown"
+msgstr "Leállítás"
+
+#: ../greeters/gtk/greeter.ui.h:4
+msgid "Large Font"
+msgstr "Nagy betűméret"
+
+#: ../greeters/ldm-gtk-greeter.c:611
+msgid "High Constrast"
+msgstr "Magas kontraszt"
+
+#: ../greeters/ldm-gtk-greeter.c:615
+msgid "Options"
+msgstr "Beállítások"
+
+#: ../greeters/ldm-gtk-greeter.c:620
+msgid "Language"
+msgstr "Nyelv"
+
+#: ../greeters/ldm-gtk-greeter.c:646
+msgid "Keyboard Layout"
+msgstr "Billentyűzetkiosztás"
+
+#: ../greeters/ldm-gtk-greeter.c:668
+msgid "Session"
+msgstr "Munkamenet"
+
+#: ../greeters/gtk/greeter.ui.h:8
+msgid "Suspend"
+msgstr "Felfüggesztés"
+
+#: ../greeters/gtk/greeter.ui.h:2
+msgid "Hibernate"
+msgstr "Hibernálás"
+
+#: ../greeters/gtk/greeter.ui.h:6
+msgid "Restart..."
+msgstr "Újraindítás…"
+
+#: ../greeters/gtk/greeter.ui.h:7
+msgid "Shutdown..."
+msgstr "Leállítás…"
+
+#. Description on how to use Light Display Manager displayed on command-line
+#: ../src/lightdm.c:100
+#, c-format
+msgid ""
+"Usage:\n"
+"  %s - Display Manager"
+msgstr ""
+"Használat:\n"
+"  %s - Display Manager"
+
+#. Description on how to use Light Display Manager displayed on command-line
+#: ../src/lightdm.c:106
+#, c-format
+msgid ""
+"Help Options:\n"
+"  -c, --config <file>             Use configuration file\n"
+"      --pid-file <file>           File to write PID into\n"
+"  -d, --debug                     Print debugging messages\n"
+"      --test-mode                 Run as unprivileged user\n"
+"  -v, --version                   Show release version\n"
+"  -h, --help                      Show help options"
+msgstr ""
+"Súgó beállításokhoz:\n"
+"  -c, --config <fájl> Használjon konfigurációs fájlt\n"
+"      --pid-file <fálj> Ebbe a fájlba írja a PID-et\n"
+"  -d, --debug Írja ki a hibakereső üzeneteket\n"
+"      --test-mode Futtassa root jogok nélkül\n"
+"  -v, --version Verziószám megjelenítése\n"
+"  -h, --help Ennek a súgónak a megjelenítése"

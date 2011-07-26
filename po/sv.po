@@ -1,0 +1,117 @@
+# Swedish translation for lightdm
+# Copyright (c) 2011 Rosetta Contributors and Canonical Ltd 2011
+# This file is distributed under the same license as the lightdm package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2011.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: lightdm\n"
+"Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2010-12-06 11:05+0000\n"
+"PO-Revision-Date: 2011-03-09 23:25+0000\n"
+"Last-Translator: Daniel Nylander <yeager@ubuntu.com>\n"
+"Language-Team: Swedish <sv@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2011-07-26 04:51+0000\n"
+"X-Generator: Launchpad (build 13405)\n"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:248
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:248
+msgid "Are you sure you want to close all programs and restart the computer?"
+msgstr "Är du säker på att du vill stänga alla program och starta om datorn?"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../greeters/gtk/greeter.ui.h:1
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+msgid "Cancel"
+msgstr "Avbryt"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+msgid "Restart"
+msgstr "Starta om"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:270
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:270
+msgid ""
+"Are you sure you want to close all programs and shutdown the computer?"
+msgstr "Är du säker på att du vill stänga alla program och stänga av datorn?"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+msgid "Shutdown"
+msgstr "Stäng av"
+
+#: ../greeters/gtk/greeter.ui.h:4
+msgid "Large Font"
+msgstr "Stort typsnitt"
+
+#: ../greeters/ldm-gtk-greeter.c:611
+msgid "High Constrast"
+msgstr "Hög kontrast"
+
+#: ../greeters/ldm-gtk-greeter.c:615
+msgid "Options"
+msgstr "Alternativ"
+
+#: ../greeters/ldm-gtk-greeter.c:620
+msgid "Language"
+msgstr "Språk"
+
+#: ../greeters/ldm-gtk-greeter.c:646
+msgid "Keyboard Layout"
+msgstr "Tangentbordslayout"
+
+#: ../greeters/ldm-gtk-greeter.c:668
+msgid "Session"
+msgstr "Session"
+
+#: ../greeters/gtk/greeter.ui.h:8
+msgid "Suspend"
+msgstr "Vänteläge"
+
+#: ../greeters/gtk/greeter.ui.h:2
+msgid "Hibernate"
+msgstr "Viloläge"
+
+#: ../greeters/gtk/greeter.ui.h:6
+msgid "Restart..."
+msgstr "Starta om..."
+
+#: ../greeters/gtk/greeter.ui.h:7
+msgid "Shutdown..."
+msgstr "Stäng av..."
+
+#. Description on how to use Light Display Manager displayed on command-line
+#: ../src/lightdm.c:100
+#, c-format
+msgid ""
+"Usage:\n"
+"  %s - Display Manager"
+msgstr ""
+"Användning:\n"
+"  %s - Display Manager"
+
+#. Description on how to use Light Display Manager displayed on command-line
+#: ../src/lightdm.c:106
+#, c-format
+msgid ""
+"Help Options:\n"
+"  -c, --config <file>             Use configuration file\n"
+"      --pid-file <file>           File to write PID into\n"
+"  -d, --debug                     Print debugging messages\n"
+"      --test-mode                 Run as unprivileged user\n"
+"  -v, --version                   Show release version\n"
+"  -h, --help                      Show help options"
+msgstr ""
+"Hjälpflaggor:\n"
+"  -c, --config <fil>              Använd konfigurationsfil\n"
+"      --pid-file <fil>            Fil att skriva PID till\n"
+"  -d, --debug                     Skriv ut felsökningsmeddelanden\n"
+"      --test-mode                 Kör som opriviligerad användare\n"
+"  -v, --version                   Visa utgåvans version\n"
+"  -h, --help                      Visa hjälpflaggor"
