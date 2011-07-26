@@ -142,12 +142,9 @@ run_process (Process *process, char *const argv[])
     while (g_hash_table_iter_next (&iter, &key, &value))
         g_setenv ((gchar *)key, (gchar *)value, TRUE);
 
-    /* Clear signal handlers so we don't handle them here */
-    signal (SIGTERM, SIG_IGN);
-    signal (SIGINT, SIG_IGN);
-    signal (SIGHUP, SIG_IGN);
+    /* Set SIGUSR1 to ignore so the child process can indicate it when it is ready */
+    // FIXME: Should be in the xserver only
     signal (SIGUSR1, SIG_IGN);
-    signal (SIGUSR2, SIG_IGN);
 
     /* Make this process its own session so */
     if (setsid () < 0)
