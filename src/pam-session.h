@@ -46,7 +46,7 @@ void pam_session_set_use_pam (void);
 
 void pam_session_set_use_passwd_file (gchar *passwd_file);
 
-PAMSession *pam_session_new (const gchar *service, User *user);
+PAMSession *pam_session_new (const gchar *service, const gchar *username);
 
 gboolean pam_session_authenticate (PAMSession *session, GError **error);
 
@@ -57,6 +57,8 @@ gboolean pam_session_open (PAMSession *session);
 gboolean pam_session_get_in_session (PAMSession *session);
 
 const gchar *pam_session_strerror (PAMSession *session, int error);
+
+const gchar *pam_session_get_username (PAMSession *session);
 
 User *pam_session_get_user (PAMSession *session);
 

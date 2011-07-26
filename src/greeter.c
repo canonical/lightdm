@@ -199,26 +199,20 @@ handle_connect (Greeter *greeter, const gchar *version)
 static void
 pam_messages_cb (PAMSession *authentication, int num_msg, const struct pam_message **msg, Greeter *greeter)
 {
-    User *user;
-    const gchar *username = NULL;
     int i;
     guint32 size;
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
 
-    user = pam_session_get_user (authentication);
-    if (user)
-        username = user_get_name (user);
-
     /* Respond to d-bus query with messages */
     g_debug ("Prompt greeter with %d message(s)", num_msg);
-    size = int_length () + string_length (username) + int_length ();
+    size = int_length () + string_length (pam_session_get_username (authentication)) + int_length ();
     for (i = 0; i < num_msg; i++)
         size += int_length () + string_length (msg[i]->msg);
   
     write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_PROMPT_AUTHENTICATION, size, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->authentication_sequence_number, &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, pam_session_get_username (authentication), &offset);
     write_int (message, MAX_MESSAGE_LENGTH, num_msg, &offset);
     for (i = 0; i < num_msg; i++)
     {
@@ -244,15 +238,12 @@ send_end_authentication (Greeter *greeter, guint32 sequence_number, const gchar 
 static void
 authentication_result_cb (PAMSession *authentication, int result, Greeter *greeter)
 {
-    const gchar *username;
-
-    username = user_get_name (pam_session_get_user (authentication));
-    g_debug ("Authenticate result for user %s: %s", username, pam_session_strerror (authentication, result));
+    g_debug ("Authenticate result for user %s: %s", pam_session_get_username (authentication), pam_session_strerror (authentication, result));
 
     if (result == PAM_SUCCESS)
-        g_debug ("User %s authorized", username);
+        g_debug ("User %s authorized", pam_session_get_username (authentication));
 
-    send_end_authentication (greeter, greeter->priv->authentication_sequence_number, username, result);
+    send_end_authentication (greeter, greeter->priv->authentication_sequence_number, pam_session_get_username (authentication), result);
 }
 
 static void

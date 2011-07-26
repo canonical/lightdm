@@ -167,18 +167,12 @@ display_get_display_server (Display *display)
 const gchar *
 display_get_username (Display *display)
 {
-    User *user;
-
     g_return_val_if_fail (display != NULL, NULL);
 
     if (!display->priv->session || !display->priv->in_user_session)
         return NULL;
 
-    user = pam_session_get_user (session_get_authentication (display->priv->session));
-    if (!user)
-        return NULL;
-
-    return user_get_name (user);
+    return user_get_name (session_get_user (display->priv->session));
 }
 
 Session *
@@ -415,7 +409,7 @@ autologin_authentication_result_cb (PAMSession *authentication, int result, Disp
 
     if (result == PAM_SUCCESS)
     {
-        g_debug ("User %s authorized", user_get_name (pam_session_get_user (authentication)));
+        g_debug ("User %s authorized", pam_session_get_username (authentication));
         started_session = start_user_session (display, authentication);
         if (!started_session)
             g_debug ("Failed to start autologin session");
@@ -436,7 +430,7 @@ autologin_authentication_result_cb (PAMSession *authentication, int result, Disp
 }
 
 static gboolean
-autologin (Display *display, User *user, gboolean start_greeter_if_fail)
+autologin (Display *display, const gchar *username, gboolean start_greeter_if_fail)
 {
     gboolean result;
     PAMSession *authentication;
@@ -445,14 +439,14 @@ autologin (Display *display, User *user, gboolean start_greeter_if_fail)
     display->priv->start_greeter_if_fail = start_greeter_if_fail;
 
     display->priv->in_user_session = TRUE;
-    authentication = pam_session_new (display->priv->pam_autologin_service, user);
+    authentication = pam_session_new (display->priv->pam_autologin_service, username);
     g_signal_connect (authentication, "got-messages", G_CALLBACK (autologin_pam_message_cb), display);
     g_signal_connect (authentication, "authentication-result", G_CALLBACK (autologin_authentication_result_cb), display);
 
     result = pam_session_authenticate (authentication, &error);
     if (!result)
     {
-        g_debug ("Failed to start autologin session for %s: %s", user_get_name (user), error->message);
+        g_debug ("Failed to start autologin session for %s: %s", username, error->message);
         g_signal_handlers_disconnect_matched (authentication, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
         g_object_unref (authentication);
     }
@@ -465,7 +459,6 @@ static gboolean
 autologin_guest (Display *display, gboolean start_greeter_if_fail)
 {
     gchar *username;
-    User *user;
     gboolean result;
 
     username = get_guest_username (display);
@@ -475,16 +468,8 @@ autologin_guest (Display *display, gboolean start_greeter_if_fail)
         return FALSE;
     }
 
-    user = user_get_by_name (username);
-    if (!user)
-    {
-        g_debug ("Can't autologin guest, guest account %s does not exist", username);
-        return FALSE;
-    }
+    result = autologin (display, username, start_greeter_if_fail);
     g_free (username);
-
-    result = autologin (display, user, start_greeter_if_fail);
-    g_object_unref (user);
 
     return result;
 }
@@ -569,7 +554,7 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     gboolean result;
     GError *error = NULL;
 
-    g_debug ("Starting session %s as user %s logging to %s", session_name, user_get_name (pam_session_get_user (authentication)), log_filename);
+    g_debug ("Starting session %s as user %s logging to %s", session_name, pam_session_get_username (authentication), log_filename);
 
     // FIXME: This is X specific, move into xsession.c
     if (is_greeter)
@@ -661,25 +646,7 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
 static PAMSession *
 greeter_start_authentication_cb (Greeter *greeter, const gchar *username, Display *display)
 {
-    User *user = NULL;
-    PAMSession *result;
-
-    if (username)
-    {
-        user = user_get_by_name (username);
-        if (!user)
-        {
-            g_debug ("Can't start authentication for user %s, they do not exist", username);
-            return NULL;
-        }
-    }
-
-    result = pam_session_new (display->priv->pam_service, user);
-
-    if (user)
-        g_object_unref (user);
-
-    return result;
+    return pam_session_new (display->priv->pam_service, username);
 }
 
 static gboolean
@@ -749,7 +716,7 @@ start_greeter_session (Display *display)
     g_free (log_dir);
     g_free (filename);
 
-    authentication = pam_session_new (display->priv->pam_service, user);
+    authentication = pam_session_new (display->priv->pam_service, user_get_name (user));
     g_object_unref (user);
 
     display->priv->session = create_session (display, authentication, display->priv->greeter_session, TRUE, log_filename);
@@ -809,25 +776,25 @@ start_greeter_session (Display *display)
 static gboolean
 start_user_session (Display *display, PAMSession *authentication)
 {
-    const gchar *username;
+    User *user;
     GKeyFile *dmrc_file;
     gchar *log_filename;
     gboolean result = FALSE;
 
     g_debug ("Starting user session");
   
-    username = user_get_name (pam_session_get_user (authentication));
+    user = pam_session_get_user (authentication);
 
     /* Load the users login settings (~/.dmrc) */
-    dmrc_file = dmrc_load (username);
+    dmrc_file = dmrc_load (user_get_name (user));
 
     /* Update the .dmrc with changed settings */
     g_key_file_set_string (dmrc_file, "Desktop", "Session", display->priv->user_session);
-    dmrc_save (dmrc_file, username);
+    dmrc_save (dmrc_file, user_get_name (user));
     g_key_file_free (dmrc_file);
 
     // FIXME: Copy old error file
-    log_filename = g_build_filename (user_get_home_directory (pam_session_get_user (authentication)), ".xsession-errors", NULL);
+    log_filename = g_build_filename (user_get_home_directory (user), ".xsession-errors", NULL);
 
     display->priv->session = create_session (display, authentication, display->priv->user_session, FALSE, log_filename);
     g_free (log_filename);
@@ -878,19 +845,10 @@ display_server_ready_cb (DisplayServer *display_server, Display *display)
     }
     else if (display->priv->autologin_user)
     {
-        User *user;
-      
-        user = user_get_by_name (display->priv->autologin_user);
-        if (user)
-        {
-            g_debug ("Automatically logging in user %s", display->priv->autologin_user);
-            started_session = autologin (display, user, TRUE);
-            g_object_unref (user);
-            if (!started_session)
-                g_debug ("Failed to autologin user %s", display->priv->autologin_user);
-        }
-        else
-            g_debug ("Failed to autologin user %s, they do not exist", display->priv->autologin_user);
+        g_debug ("Automatically logging in user %s", display->priv->autologin_user);
+        started_session = autologin (display, display->priv->autologin_user, TRUE);
+        if (!started_session)
+            g_debug ("Failed to autologin user %s", display->priv->autologin_user);
     }
 
     /* Finally start a greeter */
