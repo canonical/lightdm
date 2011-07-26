@@ -1,0 +1,119 @@
+# Basque translation for lightdm
+# Copyright (c) 2011 Rosetta Contributors and Canonical Ltd 2011
+# This file is distributed under the same license as the lightdm package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2011.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: lightdm\n"
+"Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2010-12-06 11:05+0000\n"
+"PO-Revision-Date: 2011-05-17 18:49+0000\n"
+"Last-Translator: Asier Sarasua Garmendia <Unknown>\n"
+"Language-Team: Basque <eu@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2011-07-26 04:51+0000\n"
+"X-Generator: Launchpad (build 13405)\n"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:248
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:248
+msgid "Are you sure you want to close all programs and restart the computer?"
+msgstr ""
+"Seguru programa guztiak itxi eta ordenagailua berrabiarazi nahi duzula?"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../greeters/gtk/greeter.ui.h:1
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+msgid "Cancel"
+msgstr "Utzi"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+msgid "Restart"
+msgstr "Berrabiarazi"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:270
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:270
+msgid ""
+"Are you sure you want to close all programs and shutdown the computer?"
+msgstr "Seguru programa guztiak itxi eta ordenagailua itzali nahi duzula?"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+msgid "Shutdown"
+msgstr "Itzali"
+
+#: ../greeters/gtk/greeter.ui.h:4
+msgid "Large Font"
+msgstr "Letra-tipo handia"
+
+#: ../greeters/ldm-gtk-greeter.c:611
+msgid "High Constrast"
+msgstr "Kontraste handia"
+
+#: ../greeters/ldm-gtk-greeter.c:615
+msgid "Options"
+msgstr "Aukerak"
+
+#: ../greeters/ldm-gtk-greeter.c:620
+msgid "Language"
+msgstr "Hizkuntza"
+
+#: ../greeters/ldm-gtk-greeter.c:646
+msgid "Keyboard Layout"
+msgstr "Teklatu-diseinua"
+
+#: ../greeters/ldm-gtk-greeter.c:668
+msgid "Session"
+msgstr "Saioa"
+
+#: ../greeters/gtk/greeter.ui.h:8
+msgid "Suspend"
+msgstr "Eseki"
+
+#: ../greeters/gtk/greeter.ui.h:2
+msgid "Hibernate"
+msgstr "Hibernatu"
+
+#: ../greeters/gtk/greeter.ui.h:6
+msgid "Restart..."
+msgstr "Berrabiarazi..."
+
+#: ../greeters/gtk/greeter.ui.h:7
+msgid "Shutdown..."
+msgstr "Itzali..."
+
+#. Description on how to use Light Display Manager displayed on command-line
+#: ../src/lightdm.c:100
+#, c-format
+msgid ""
+"Usage:\n"
+"  %s - Display Manager"
+msgstr ""
+"Erabilera:\n"
+"  %s - Display Manager"
+
+#. Description on how to use Light Display Manager displayed on command-line
+#: ../src/lightdm.c:106
+#, c-format
+msgid ""
+"Help Options:\n"
+"  -c, --config <file>             Use configuration file\n"
+"      --pid-file <file>           File to write PID into\n"
+"  -d, --debug                     Print debugging messages\n"
+"      --test-mode                 Run as unprivileged user\n"
+"  -v, --version                   Show release version\n"
+"  -h, --help                      Show help options"
+msgstr ""
+"Laguntza-aukerak:\n"
+"  -c, --config <file>             Erabili konfigurazio-fitxategia\n"
+"      --pid-file <file>           PID idatziko den fitxategia\n"
+"  -d, --debug                     Inprimatu arazketa-mezuak\n"
+"      --test-mode                 Exekutatu pribilegiorik gabeko "
+"erabiltzaile gisa\n"
+"  -v, --version                   Erakutsi bertsioa\n"
+"  -h, --help                      Erakutsi laguntza-aukerak"

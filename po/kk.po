@@ -1,0 +1,118 @@
+# Kazakh translation for lightdm
+# Copyright (c) 2011 Rosetta Contributors and Canonical Ltd 2011
+# This file is distributed under the same license as the lightdm package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2011.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: lightdm\n"
+"Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2010-12-06 11:05+0000\n"
+"PO-Revision-Date: 2011-07-12 04:35+0000\n"
+"Last-Translator: Baurzhan Muftakhidinov <Unknown>\n"
+"Language-Team: Kazakh <kk@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2011-07-26 04:51+0000\n"
+"X-Generator: Launchpad (build 13405)\n"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:248
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:248
+msgid "Are you sure you want to close all programs and restart the computer?"
+msgstr ""
+"Барлық бағдарламаларды жауып, компьютеріңізді қайта жүктеуді қалайсыз ба?"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../greeters/gtk/greeter.ui.h:1
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+msgid "Cancel"
+msgstr "Бас тарту"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+msgid "Restart"
+msgstr "Қайта жүктеу"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:270
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:270
+msgid ""
+"Are you sure you want to close all programs and shutdown the computer?"
+msgstr "Барлық бағдарламаларды жауып, компьютеріңізді сөндіруді қалайсыз ба?"
+
+#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+msgid "Shutdown"
+msgstr "Сөндіру"
+
+#: ../greeters/gtk/greeter.ui.h:4
+msgid "Large Font"
+msgstr "Үлкен қаріп"
+
+#: ../greeters/ldm-gtk-greeter.c:611
+msgid "High Constrast"
+msgstr "Жоғары контраст"
+
+#: ../greeters/ldm-gtk-greeter.c:615
+msgid "Options"
+msgstr "Опциялар"
+
+#: ../greeters/ldm-gtk-greeter.c:620
+msgid "Language"
+msgstr "Тіл"
+
+#: ../greeters/ldm-gtk-greeter.c:646
+msgid "Keyboard Layout"
+msgstr "Пернетақта жаймасы"
+
+#: ../greeters/ldm-gtk-greeter.c:668
+msgid "Session"
+msgstr "Сессия"
+
+#: ../greeters/gtk/greeter.ui.h:8
+msgid "Suspend"
+msgstr "Ұйықтату"
+
+#: ../greeters/gtk/greeter.ui.h:2
+msgid "Hibernate"
+msgstr "Гибернация"
+
+#: ../greeters/gtk/greeter.ui.h:6
+msgid "Restart..."
+msgstr "Қайта жүктеу..."
+
+#: ../greeters/gtk/greeter.ui.h:7
+msgid "Shutdown..."
+msgstr "Сөндіру..."
+
+#. Description on how to use Light Display Manager displayed on command-line
+#: ../src/lightdm.c:100
+#, c-format
+msgid ""
+"Usage:\n"
+"  %s - Display Manager"
+msgstr ""
+"Қолданылуы:\n"
+"  %s - Display Manager"
+
+#. Description on how to use Light Display Manager displayed on command-line
+#: ../src/lightdm.c:106
+#, c-format
+msgid ""
+"Help Options:\n"
+"  -c, --config <file>             Use configuration file\n"
+"      --pid-file <file>           File to write PID into\n"
+"  -d, --debug                     Print debugging messages\n"
+"      --test-mode                 Run as unprivileged user\n"
+"  -v, --version                   Show release version\n"
+"  -h, --help                      Show help options"
+msgstr ""
+"Көмек опциялары:\n"
+"  -c, --config <file>             Баптаулар файлын қолдану\n"
+"      --pid-file <file>           PID жазылатын файл\n"
+"  -d, --debug                     Жөндеу хабарламаларын шығару\n"
+"      --test-mode                 Привилегиясыз пайдаланушыдан орындау\n"
+"  -v, --version                   Шығарылым нұсқасын көрсету\n"
+"  -h, --help                      Көмек опцияларын көрсету"
