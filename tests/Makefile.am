@@ -37,6 +37,9 @@ TESTS = \
 #	test-autologin-session-exit-error
 #	test-login-gobject-session-exit-error
 #	test-login-qt-session-exit-error
+#	test-greeter-no-start
+#	test-xserver-no-start
+#	test-greeter-no-exit
 
 if COMPILE_LIBLIGHTDM_QT
 TESTS += \
