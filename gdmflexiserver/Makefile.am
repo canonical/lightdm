@@ -1,0 +1,1 @@
+pkglibexec_SCRIPTS = gdmflexiserver

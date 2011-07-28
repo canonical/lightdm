@@ -184,6 +184,7 @@ Makefile
 data/Makefile
 data/init/Makefile
 doc/Makefile
+gdmflexiserver/Makefile
 greeters/Makefile
 greeters/gtk/Makefile
 greeters/qt/Makefile
