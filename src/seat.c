@@ -132,6 +132,7 @@ void
 seat_set_active_display (Seat *seat, Display *display)
 {
     g_return_if_fail (seat != NULL);
+    display_unlock (display);
     SEAT_GET_CLASS (seat)->set_active_display (seat, display);
 }
 
