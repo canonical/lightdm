@@ -97,6 +97,13 @@ process_set_env (Process *process, const gchar *name, const gchar *value)
     g_hash_table_insert (process->priv->env, g_strdup (name), g_strdup (value));
 }
 
+gchar *
+process_get_env (Process *process, const gchar *name)
+{
+    g_return_if_fail (process != NULL);
+    return g_strdup (g_hash_table_lookup (process->priv->env, name));
+}
+
 static void
 process_watch_cb (GPid pid, gint status, gpointer data)
 {

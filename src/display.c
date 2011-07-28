@@ -584,7 +584,7 @@ static Session *
 create_session (Display *display, PAMSession *pam_session, const gchar *session_name, gboolean is_greeter, const gchar *log_filename)
 {
     User *user;
-    gchar *sessions_dir, *filename, *path, *command = NULL;
+    gchar *sessions_dir, *filename, *path, *orig_path, *command = NULL;
     GKeyFile *session_desktop_file;
     Session *session;
     gchar *cookie;
@@ -651,6 +651,13 @@ create_session (Display *display, PAMSession *pam_session, const gchar *session_
     process_set_env (PROCESS (session), "GDMSESSION", session_name); // FIXME: Not cross-desktop
 
     set_env_from_pam_session (session, pam_session);
+
+    /* Insert our own utility directory to PATH */
+    orig_path = process_get_env (PROCESS (session), "PATH");
+    path = g_strdup_printf ("%s:%s", PKGLIBEXEC_DIR, orig_path);
+    process_set_env (PROCESS (session), "PATH", path);
+    g_free (path);
+    g_free (orig_path);
 
     process_set_log_file (PROCESS (session), log_filename);
 
