@@ -1,4 +1,4 @@
-# Estonian translation for lightdm
+# Vietnamese translation for lightdm
 # Copyright (c) 2011 Rosetta Contributors and Canonical Ltd 2011
 # This file is distributed under the same license as the lightdm package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2011.
@@ -8,9 +8,9 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-12-06 11:05+0000\n"
-"PO-Revision-Date: 2011-07-31 19:42+0000\n"
-"Last-Translator: Jalakas <Unknown>\n"
-"Language-Team: Estonian <et@li.org>\n"
+"PO-Revision-Date: 2011-07-31 12:25+0000\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: Vietnamese <vi@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -19,30 +19,28 @@ msgstr ""
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:322
 msgid "Are you sure you want to close all programs and restart the computer?"
-msgstr ""
-"Kas oled kindel, et tahad kõik programmid sulgeda ja arvuti taaskäivitada?"
+msgstr "Bạn có chắc muốn đóng tất cả chương trình và khởi động lại máy tính?"
 
 #: ../greeters/gtk/greeter.ui.h:1
 msgid "Cancel"
-msgstr "Tühista"
+msgstr "Hủy bỏ"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:323
 msgid "Restart"
-msgstr "Taaskäivita"
+msgstr "Khởi động lại"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:347
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
-msgstr ""
-"Kas oled kindel, et tahad kõik programmid sulgeda ja arvuti välja lülitada?"
+msgstr "Bạn có chắc muốn đóng tất cả chương trình và tắt máy tính?"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:348
 msgid "Shutdown"
-msgstr "Lülita välja"
+msgstr "Tắt máy"
 
 #: ../greeters/gtk/greeter.ui.h:4
 msgid "Large Font"
-msgstr "Suur kiri"
+msgstr "Phông chữ Lớn"
 
 #: ../greeters/ldm-gtk-greeter.c:611
 msgid "High Constrast"
@@ -66,19 +64,19 @@ msgstr ""
 
 #: ../greeters/gtk/greeter.ui.h:8
 msgid "Suspend"
-msgstr ""
+msgstr "Tạm ngưng"
 
 #: ../greeters/gtk/greeter.ui.h:2
 msgid "Hibernate"
-msgstr "Talveunne"
+msgstr "Ngủ đông"
 
 #: ../greeters/gtk/greeter.ui.h:6
 msgid "Restart..."
-msgstr "Taaskäivitamine..."
+msgstr "Khởi động lại..."
 
 #: ../greeters/gtk/greeter.ui.h:7
 msgid "Shutdown..."
-msgstr ""
+msgstr "Tắt máy..."
 
 #. Description on how to use Light Display Manager displayed on command-line
 #: ../src/lightdm.c:100
