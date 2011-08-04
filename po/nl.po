@@ -8,45 +8,37 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-12-06 11:05+0000\n"
-"PO-Revision-Date: 2011-06-09 12:56+0000\n"
-"Last-Translator: Tom De Caluwé <decaluwe.t@gmail.com>\n"
+"PO-Revision-Date: 2011-08-03 10:10+0000\n"
+"Last-Translator: Redmar <redmar@ubuntu-nl.org>\n"
 "Language-Team: Dutch <nl@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2011-07-27 04:42+0000\n"
-"X-Generator: Launchpad (build 13405)\n"
+"X-Launchpad-Export-Date: 2011-08-04 04:43+0000\n"
+"X-Generator: Launchpad (build 13573)\n"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:248
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:248
+#: ../greeters/gtk/lightdm-gtk-greeter.c:322
 msgid "Are you sure you want to close all programs and restart the computer?"
 msgstr ""
 "Weet u zeker dat u alle programma's wilt afsluiten en de computer wilt "
 "herstarten?"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
 #: ../greeters/gtk/greeter.ui.h:1
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
 msgid "Cancel"
 msgstr "Annuleren"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../greeters/gtk/lightdm-gtk-greeter.c:323
 msgid "Restart"
 msgstr "Herstarten"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:270
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:270
+#: ../greeters/gtk/lightdm-gtk-greeter.c:347
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
 msgstr ""
 "Weet u zeker dat u alle programma's wilt afsluiten en de computer wilt "
 "uitschakelen?"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../greeters/gtk/lightdm-gtk-greeter.c:348
 msgid "Shutdown"
 msgstr "Uitschakelen"
 
@@ -88,7 +80,7 @@ msgstr "Herstarten…"
 
 #: ../greeters/gtk/greeter.ui.h:7
 msgid "Shutdown..."
-msgstr "Uitschakelen..."
+msgstr "Afsluiten..."
 
 #. Description on how to use Light Display Manager displayed on command-line
 #: ../src/lightdm.c:100
@@ -113,9 +105,9 @@ msgid ""
 "  -h, --help                      Show help options"
 msgstr ""
 "Hulp Opties:\n"
-"  -c, --config <bestand> Gebruik configuratie bestand\n"
+"  -c, --config <bestand> Gebruik configuratiebestand\n"
 "      --pid-file < file> Bestand om PID weg te schrijven\n"
-"  --d, --debug Print debug berichten\n"
-"      --test-mode Voer uit als normale gebruiker\n"
+"  --d, --debug Print debug-berichten\n"
+"      --test-mode Voer als normale gebruiker uit\n"
 "  -v, --version Toon versienummer\n"
 "  -h, --help Toon hulp opties"
