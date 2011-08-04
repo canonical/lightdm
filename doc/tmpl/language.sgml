@@ -1,0 +1,77 @@
+<!-- ##### SECTION Title ##### -->
+Languages
+
+<!-- ##### SECTION Short_Description ##### -->
+Get information on available languges
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+#LightDMLanguage is an object that describes a language that is available on the system.
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### SECTION Image ##### -->
+
+
+<!-- ##### FUNCTION lightdm_get_languages ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_get_language ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_language_get_code ##### -->
+<para>
+
+</para>
+
+@language: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_language_get_name ##### -->
+<para>
+
+</para>
+
+@language: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_language_get_territory ##### -->
+<para>
+
+</para>
+
+@language: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_language_matches ##### -->
+<para>
+
+</para>
+
+@language: 
+@code: 
+@Returns: 
+
+
