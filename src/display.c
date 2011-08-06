@@ -966,6 +966,9 @@ display_unlock (Display *display)
     const gchar *cookie;
     const gchar *session_path;
 
+    if (!display->priv->session)
+        return;
+
     cookie = session_get_cookie (display->priv->session);
     if (!cookie)
         return;
