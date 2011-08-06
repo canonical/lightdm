@@ -117,6 +117,8 @@ user_get_by_name (const gchar *username)
 {
     User *user = NULL;
 
+    g_return_val_if_fail (username != NULL, NULL);
+
     errno = 0;
     if (passwd_file)
     {
