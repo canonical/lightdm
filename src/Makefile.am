@@ -1,5 +1,7 @@
 sbin_PROGRAMS = lightdm
 
+dist_pkglibexec_SCRIPTS = gdmflexiserver
+
 ldm-marshal.c: ldm-marshal.list
 	@GLIB_GENMARSHAL@ --prefix=ldm_marshal $(srcdir)/ldm-marshal.list --header --body > ldm-marshal.c
 
@@ -69,6 +71,7 @@ BUILT_SOURCES = \
 lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
 	$(WARN_CFLAGS) \
+	-DPKGLIBEXEC_DIR=\"$(pkglibexecdir)\" \
 	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\" \
 	-DLOG_DIR=\"$(localstatedir)/log/lightdm\" \
 	-DRUN_DIR=\"$(localstatedir)/run/lightdm\" \
