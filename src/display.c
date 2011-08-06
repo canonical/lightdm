@@ -944,6 +944,87 @@ display_stop (Display *display)
     check_stopped (display);
 }
 
+void
+display_unlock (Display *display)
+{
+    GDBusProxy *proxy;
+    GVariant *result;
+    GError *error = NULL;
+    const gchar *cookie;
+    const gchar *session_path;
+
+    cookie = session_get_cookie (display->priv->session);
+    if (!cookie)
+        return;
+
+    proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                           G_DBUS_PROXY_FLAGS_NONE,
+                                           NULL,
+                                           "org.freedesktop.ConsoleKit",
+                                           "/org/freedesktop/ConsoleKit/Manager",
+                                           "org.freedesktop.ConsoleKit.Manager", 
+                                           NULL, &error);
+    if (!proxy)
+        g_warning ("Unable to get connection to ConsoleKit: %s", error->message);
+    g_clear_error (&error);
+    if (!proxy)
+        return;
+
+    result = g_dbus_proxy_call_sync (proxy,
+                                     "GetSessionForCookie",
+                                     g_variant_new ("(s)", cookie),
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     -1,
+                                     NULL,
+                                     &error);
+    g_object_unref (proxy);
+
+    if (!result)
+        g_warning ("Error getting ConsoleKit session: %s", error->message);
+    g_clear_error (&error);
+    if (!result)
+        return;
+
+    if (!g_variant_is_of_type (result, G_VARIANT_TYPE ("(o)")))
+    {
+        g_warning ("Unexpected response from GetSessionForCookie: %s", g_variant_get_type_string (result));
+        g_variant_unref (result);
+    }
+
+    g_variant_get (result, "(&o)", &session_path);
+
+    proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                           G_DBUS_PROXY_FLAGS_NONE,
+                                           NULL,
+                                           "org.freedesktop.ConsoleKit",
+                                           session_path,
+                                           "org.freedesktop.ConsoleKit.Session", 
+                                           NULL, &error);
+    if (!proxy)
+        g_warning ("Unable to get connection to ConsoleKit session: %s", error->message);
+    g_variant_unref (result);
+    g_clear_error (&error);
+    if (!proxy)
+        return;
+
+    result = g_dbus_proxy_call_sync (proxy,
+                                     "Unlock",
+                                     NULL,
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     -1,
+                                     NULL,
+                                     &error);
+    g_object_unref (proxy);
+
+    if (!result)
+        g_warning ("Error unlocking ConsoleKit session: %s", error->message);
+    g_clear_error (&error);
+    if (!result)
+        return;
+
+    g_variant_unref (result);
+}
+
 static gboolean
 display_real_switch_to_user (Display *display, const gchar *username)
 {
