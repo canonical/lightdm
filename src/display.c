@@ -611,8 +611,6 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     process_set_env (PROCESS (session), "DESKTOP_SESSION", session_name); // FIXME: Apparently deprecated?
     process_set_env (PROCESS (session), "GDMSESSION", session_name); // FIXME: Not cross-desktop
 
-    set_env_from_pam_session (session, pam_session);
-
     /* Insert our own utility directory to PATH
      * This is to provide gdmflexiserver which provides backwards compatibility with GDM.
      * This can be removed when this is no longer required.
