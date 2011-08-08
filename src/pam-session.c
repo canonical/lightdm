@@ -436,7 +436,7 @@ pam_session_respond (PAMSession *session, struct pam_response *response)
         }
         else
         {
-            if (session->priv->user && g_strcmp0 (response->resp, get_password (session->priv->username)) == 0)
+            if (g_strcmp0 (response->resp, get_password (session->priv->username)) == 0)
                 report_result (session, PAM_SUCCESS);
             else
                 report_result (session, PAM_AUTH_ERR);
