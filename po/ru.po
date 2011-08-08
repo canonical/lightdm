@@ -8,13 +8,13 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-12-06 11:05+0000\n"
-"PO-Revision-Date: 2011-07-04 15:49+0000\n"
-"Last-Translator: Nick Becker <Unknown>\n"
+"PO-Revision-Date: 2011-07-26 18:23+0000\n"
+"Last-Translator: Alexey Ivanov <alexey.ivanes@gmail.com>\n"
 "Language-Team: Russian <ru@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2011-07-26 04:51+0000\n"
+"X-Launchpad-Export-Date: 2011-07-27 04:42+0000\n"
 "X-Generator: Launchpad (build 13405)\n"
 
 #: ../greeters/gtk/lightdm-example-gtk-greeter.c:248
@@ -34,7 +34,7 @@ msgstr "Отмена"
 #: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
 #: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
 msgid "Restart"
-msgstr "Перезагрузить"
+msgstr "Перезагрузка"
 
 #: ../greeters/gtk/lightdm-example-gtk-greeter.c:270
 #: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:270

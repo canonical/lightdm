@@ -8,45 +8,37 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-12-06 11:05+0000\n"
-"PO-Revision-Date: 2010-12-31 11:35+0000\n"
-"Last-Translator: Sergio <ikisham@gmail.com>\n"
+"PO-Revision-Date: 2011-08-05 20:50+0000\n"
+"Last-Translator: André Gondim <Unknown>\n"
 "Language-Team: Brazilian Portuguese <pt_BR@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2011-07-26 04:51+0000\n"
-"X-Generator: Launchpad (build 13405)\n"
+"X-Launchpad-Export-Date: 2011-08-06 05:04+0000\n"
+"X-Generator: Launchpad (build 13613)\n"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:248
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:248
+#: ../greeters/gtk/lightdm-gtk-greeter.c:322
 msgid "Are you sure you want to close all programs and restart the computer?"
 msgstr ""
 "Você tem certeza de que deseja fechar todos os programas e reiniciar o "
 "computador?"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
 #: ../greeters/gtk/greeter.ui.h:1
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
 msgid "Cancel"
 msgstr "Cancelar"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../greeters/gtk/lightdm-gtk-greeter.c:323
 msgid "Restart"
 msgstr "Reiniciar"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:270
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:270
+#: ../greeters/gtk/lightdm-gtk-greeter.c:347
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
 msgstr ""
 "Você tem certeza de que deseja fechar todos os programas e desligar o "
 "computador?"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../greeters/gtk/lightdm-gtk-greeter.c:348
 msgid "Shutdown"
 msgstr "Desligar"
 
@@ -68,7 +60,7 @@ msgstr "Idioma"
 
 #: ../greeters/ldm-gtk-greeter.c:646
 msgid "Keyboard Layout"
-msgstr "Layout do teclado"
+msgstr "Disposição de teclado"
 
 #: ../greeters/ldm-gtk-greeter.c:668
 msgid "Session"
@@ -119,22 +111,3 @@ msgstr ""
 "      --test-mode          Executar como um usuário sem privilégios\n"
 "  -v, --version            Exibir versão de lançamento\n"
 "  -h, --help               Exibir opções de ajuda"
-
-#, c-format
-#~ msgid ""
-#~ "Help Options:\n"
-#~ "  -c, --config <file>             Use configuration file\n"
-#~ "  -d, --debug                     Print debugging messages\n"
-#~ "      --test-mode                 Run as unprivileged user\n"
-#~ "  -v, --version                   Show release version\n"
-#~ "  -h, --help                      Show help options"
-#~ msgstr ""
-#~ "Opções de Ajuda:\n"
-#~ "  -c, --config <arquivo> Usa arquivo de configuração\n"
-#~ "  -d, --debug Imprime mensagens de debugging\n"
-#~ "      --test-mode Executa como usuário sem privilégios\n"
-#~ "  -v, --version Mostra versão\n"
-#~ "  -h, --help Mostra opções de ajuda"
-
-#~ msgid "Previous language"
-#~ msgstr "Idioma Anterior"

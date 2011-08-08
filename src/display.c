@@ -548,6 +548,7 @@ static Session *
 create_session (Display *display, PAMSession *authentication, const gchar *session_name, gboolean is_greeter, const gchar *log_filename)
 {
     gchar *sessions_dir, *filename, *path, *command = NULL;
+    const gchar *orig_path;
     GKeyFile *session_desktop_file;
     Session *session;
     gchar *cookie;
@@ -609,6 +610,20 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
 
     process_set_env (PROCESS (session), "DESKTOP_SESSION", session_name); // FIXME: Apparently deprecated?
     process_set_env (PROCESS (session), "GDMSESSION", session_name); // FIXME: Not cross-desktop
+
+    set_env_from_pam_session (session, pam_session);
+
+    /* Insert our own utility directory to PATH
+     * This is to provide gdmflexiserver which provides backwards compatibility with GDM.
+     * This can be removed when this is no longer required.
+     */
+    orig_path = process_get_env (PROCESS (session), "PATH");
+    if (orig_path)
+    {
+        path = g_strdup_printf ("%s:%s", PKGLIBEXEC_DIR, orig_path);
+        process_set_env (PROCESS (session), "PATH", path);
+        g_free (path);
+    }
 
     process_set_log_file (PROCESS (session), log_filename);
 
@@ -897,6 +912,90 @@ display_stop (Display *display)
     }
 
     check_stopped (display);
+}
+
+void
+display_unlock (Display *display)
+{
+    GDBusProxy *proxy;
+    GVariant *result;
+    GError *error = NULL;
+    const gchar *cookie;
+    const gchar *session_path;
+
+    if (!display->priv->session)
+        return;
+
+    cookie = session_get_cookie (display->priv->session);
+    if (!cookie)
+        return;
+
+    proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                           G_DBUS_PROXY_FLAGS_NONE,
+                                           NULL,
+                                           "org.freedesktop.ConsoleKit",
+                                           "/org/freedesktop/ConsoleKit/Manager",
+                                           "org.freedesktop.ConsoleKit.Manager", 
+                                           NULL, &error);
+    if (!proxy)
+        g_warning ("Unable to get connection to ConsoleKit: %s", error->message);
+    g_clear_error (&error);
+    if (!proxy)
+        return;
+
+    result = g_dbus_proxy_call_sync (proxy,
+                                     "GetSessionForCookie",
+                                     g_variant_new ("(s)", cookie),
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     -1,
+                                     NULL,
+                                     &error);
+    g_object_unref (proxy);
+
+    if (!result)
+        g_warning ("Error getting ConsoleKit session: %s", error->message);
+    g_clear_error (&error);
+    if (!result)
+        return;
+
+    if (!g_variant_is_of_type (result, G_VARIANT_TYPE ("(o)")))
+    {
+        g_warning ("Unexpected response from GetSessionForCookie: %s", g_variant_get_type_string (result));
+        g_variant_unref (result);
+    }
+
+    g_variant_get (result, "(&o)", &session_path);
+
+    proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                           G_DBUS_PROXY_FLAGS_NONE,
+                                           NULL,
+                                           "org.freedesktop.ConsoleKit",
+                                           session_path,
+                                           "org.freedesktop.ConsoleKit.Session", 
+                                           NULL, &error);
+    if (!proxy)
+        g_warning ("Unable to get connection to ConsoleKit session: %s", error->message);
+    g_variant_unref (result);
+    g_clear_error (&error);
+    if (!proxy)
+        return;
+
+    result = g_dbus_proxy_call_sync (proxy,
+                                     "Unlock",
+                                     NULL,
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     -1,
+                                     NULL,
+                                     &error);
+    g_object_unref (proxy);
+
+    if (!result)
+        g_warning ("Error unlocking ConsoleKit session: %s", error->message);
+    g_clear_error (&error);
+    if (!result)
+        return;
+
+    g_variant_unref (result);
 }
 
 static gboolean

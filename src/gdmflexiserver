@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# Copyright (C) 2011 Canonical Ltd
+# Author: Michael Terry <michael.terry@canonical.com>
+# 
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, version 3 of the License.
+#
+# See http://www.gnu.org/copyleft/gpl.html for the full text of the license.
+
+SEAT=$(dbus-send --system --type=method_call --print-reply --dest=org.freedesktop.DisplayManager /org/freedesktop/DisplayManager org.freedesktop.DisplayManager.GetSeatForCookie string:"$XDG_SESSION_COOKIE" 2>/dev/null)
+
+# Pull out seat path
+SEAT=$(echo $SEAT | sed 's/.* object path "\(.*\)"/\1/')
+
+if [ -z "$SEAT" ]; then
+  # something went wrong
+  exit 1
+fi
+
+dbus-send --system --type=method_call --print-reply --dest=org.freedesktop.DisplayManager $SEAT org.freedesktop.DisplayManager.Seat.SwitchToGreeter

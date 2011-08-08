@@ -71,6 +71,8 @@ void display_set_user_session (Display *display, const gchar *session_name);
 
 gboolean display_start (Display *display);
 
+void display_unlock (Display *display);
+
 void display_stop (Display *display);
 
 G_END_DECLS
