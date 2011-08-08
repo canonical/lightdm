@@ -9,14 +9,9 @@
 #
 # See http://www.gnu.org/copyleft/gpl.html for the full text of the license.
 
-SEAT=$(dbus-send --system --type=method_call --print-reply --dest=org.freedesktop.DisplayManager /org/freedesktop/DisplayManager org.freedesktop.DisplayManager.GetSeatForCookie string:"$XDG_SESSION_COOKIE" 2>/dev/null)
-
-# Pull out seat path
-SEAT=$(echo $SEAT | sed 's/.* object path "\(.*\)"/\1/')
-
-if [ -z "$SEAT" ]; then
+if [ -z "$XDG_SEAT_PATH" ]; then
   # something went wrong
   exit 1
 fi
 
-dbus-send --system --type=method_call --print-reply --dest=org.freedesktop.DisplayManager $SEAT org.freedesktop.DisplayManager.Seat.SwitchToGreeter
+dbus-send --system --type=method_call --print-reply --dest=org.freedesktop.DisplayManager $XDG_SEAT_PATH org.freedesktop.DisplayManager.Seat.SwitchToGreeter
