@@ -92,12 +92,15 @@ pam_session_new (const gchar *service, const gchar *username)
     self->priv->service = g_strdup (service);
     self->priv->username = g_strdup (username);
 
-    result = pam_start (self->priv->service, username, &conversation, &self->priv->pam_handle);
-    g_debug ("pam_start(\"%s\", \"%s\") -> (%p, %d)",
-             self->priv->service,
-             username,
-             self->priv->pam_handle,
-             result);
+    if (!passwd_file)
+    {      
+        result = pam_start (self->priv->service, username, &conversation, &self->priv->pam_handle);
+        g_debug ("pam_start(\"%s\", \"%s\") -> (%p, %d)",
+                 self->priv->service,
+                 username,
+                 self->priv->pam_handle,
+                 result);
+    }
 
     return self;
 }
@@ -328,7 +331,12 @@ pam_session_authenticate (PAMSession *session, GError **error)
             password = get_password (session->priv->username);
             /* Always succeed with autologin, or no password on account otherwise prompt for a password */
             if (strcmp (session->priv->service, "lightdm-autologin") == 0 || g_strcmp0 (password, "") == 0)
-                report_result (session, PAM_SUCCESS);
+            {
+                if (password)
+                    report_result (session, PAM_SUCCESS);
+                else
+                    report_result (session, PAM_USER_UNKNOWN);
+            }
             else
                 send_message (session, PAM_PROMPT_ECHO_OFF, "Password:");
             g_free (password);
