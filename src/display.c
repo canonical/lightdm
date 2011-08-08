@@ -29,6 +29,7 @@ enum {
     SWITCH_TO_USER,
     SWITCH_TO_GUEST,
     GET_GUEST_USERNAME,
+    SESSION_CREATED,
     SESSION_STARTED,
     SESSION_STOPPED,
     STOPPED,
@@ -598,6 +599,7 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
 
     session = DISPLAY_GET_CLASS (display)->create_session (display);
     g_return_val_if_fail (session != NULL, NULL);
+
     g_signal_connect (session, "exited", G_CALLBACK (session_exited_cb), display);
     g_signal_connect (session, "terminated", G_CALLBACK (session_terminated_cb), display);
     if (is_greeter)
@@ -813,7 +815,10 @@ start_user_session (Display *display, PAMSession *authentication)
     g_free (log_filename);
 
     if (display->priv->session)
+    {
+        g_signal_emit (display, signals[SESSION_CREATED], 0, display->priv->session);
         result = session_start (SESSION (display->priv->session));
+    }
 
     if (result)
     {
@@ -1115,6 +1120,14 @@ display_class_init (DisplayClass *klass)
                       NULL,
                       ldm_marshal_STRING__VOID,
                       G_TYPE_STRING, 0);
+    signals[SESSION_CREATED] =
+        g_signal_new ("session-created",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (DisplayClass, session_created),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__OBJECT,
+                      G_TYPE_NONE, 1, SESSION_TYPE);
     signals[SESSION_STARTED] =
         g_signal_new ("session-started",
                       G_TYPE_FROM_CLASS (klass),

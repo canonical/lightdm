@@ -414,6 +414,21 @@ bus_entry_free (gpointer data)
 }
 
 static void
+session_created_cb (Display *display, Session *session, Seat *seat)
+{
+    BusEntry *seat_entry;
+    gchar *path;
+
+    seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
+    process_set_env (PROCESS (session), "XDG_SEAT_PATH", seat_entry->path);
+
+    path = g_strdup_printf ("/org/freedesktop/DisplayManager/Session%d", session_index);
+    session_index++;
+    process_set_env (PROCESS (session), "XDG_SESSION_PATH", path);
+    g_free (path);
+}
+
+static void
 session_started_cb (Display *display, Seat *seat)
 {
     static const GDBusInterfaceVTable session_vtable =
@@ -422,17 +437,12 @@ session_started_cb (Display *display, Seat *seat)
         handle_session_get_property
     };
     Session *session;
-    gchar *path;
     BusEntry *seat_entry, *entry;
 
     session = display_get_session (display);
 
-    path = g_strdup_printf ("/org/freedesktop/DisplayManager/Session%d", session_index);
-    session_index++;
-
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
-    entry = bus_entry_new (path, seat_entry ? seat_entry->path : NULL, "SessionRemoved");
-    g_free (path);
+    entry = bus_entry_new (process_get_env (PROCESS (session), "XDG_SEAT_PATH"), seat_entry ? seat_entry->path : NULL, "SessionRemoved");
     g_hash_table_insert (session_bus_entries, g_object_ref (session), entry);
 
     entry->bus_id = g_dbus_connection_register_object (bus,
@@ -459,10 +469,9 @@ session_stopped_cb (Display *display)
 static void
 display_added_cb (Seat *seat, Display *display)
 {
+    g_signal_connect (display, "session-created", G_CALLBACK (session_created_cb), seat);  
     g_signal_connect (display, "session-started", G_CALLBACK (session_started_cb), seat);
     g_signal_connect (display, "session-stopped", G_CALLBACK (session_stopped_cb), NULL);
-    if (display_get_session (display))
-        session_started_cb (display, seat);
 }
 
 static void

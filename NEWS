@@ -3,6 +3,7 @@ Overview of changes in lightdm 0.9.3
     * Unlock ConsoleKit sessions when switching to them
     * Add a gdmflexiserver binary that provides backwards compatibility with
       existing sessions
+    * Set XDG_SEAT_PATH and XDG_SESSION_PATH environment variables for sessions.
 
 Overview of changes in lightdm 0.9.2
 
