@@ -310,6 +310,8 @@
       <column type="gchararray"/>
       <!-- column-name label -->
       <column type="gchararray"/>
+      <!-- column-name weight -->
+      <column type="gint"/>
       <!-- column-name image -->
       <column type="GdkPixbuf"/>
     </columns>

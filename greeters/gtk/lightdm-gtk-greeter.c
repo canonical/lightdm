@@ -368,7 +368,8 @@ user_added_cb (LightDMUserList *user_list, LightDMUser *user)
     gtk_list_store_set (GTK_LIST_STORE (model), &iter,
                         0, lightdm_user_get_name (user),
                         1, lightdm_user_get_display_name (user),
-                        /*2, pixbuf,*/
+                        2, lightdm_user_get_logged_in (user) ? PANGO_WEIGHT_BOLD : PANGO_WEIGHT_NORMAL,
+                        /*3, pixbuf,*/
                         -1);
 }
 
@@ -409,7 +410,8 @@ user_changed_cb (LightDMUserList *user_list, LightDMUser *user)
     gtk_list_store_set (GTK_LIST_STORE (model), &iter,
                         0, lightdm_user_get_name (user),
                         1, lightdm_user_get_display_name (user),
-                        /*2, pixbuf,*/
+                        2, lightdm_user_get_logged_in (user) ? PANGO_WEIGHT_BOLD : PANGO_WEIGHT_NORMAL,
+                        /*3, pixbuf,*/
                         -1);
 }
 
@@ -509,7 +511,8 @@ load_user_list ()
         gtk_list_store_set (GTK_LIST_STORE (model), &iter,
                             0, lightdm_user_get_name (user),
                             1, lightdm_user_get_display_name (user),
-                            2, pixbuf,
+                            2, lightdm_user_get_logged_in (user) ? PANGO_WEIGHT_BOLD : PANGO_WEIGHT_NORMAL,
+                            3, pixbuf,
                             -1);
 
         if (lightdm_greeter_get_select_user_hint (greeter) &&
@@ -522,7 +525,8 @@ load_user_list ()
         gtk_list_store_set (GTK_LIST_STORE (model), &iter,
                             0, "*guest",
                             1, "Guest Account",
-                            2, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
+                            2, PANGO_WEIGHT_NORMAL,
+                            3, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
                             -1);
         if (lightdm_greeter_get_select_guest_hint (greeter))
             gtk_tree_selection_select_iter (gtk_tree_view_get_selection (user_view), &iter);
@@ -532,7 +536,8 @@ load_user_list ()
     gtk_list_store_set (GTK_LIST_STORE (model), &iter,
                         0, NULL,
                         1, "Other...",
-                        2, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
+                        2, PANGO_WEIGHT_NORMAL,
+                        3, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
                         -1);
 }
 
@@ -744,8 +749,8 @@ main(int argc, char **argv)
         gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (builder, "shutdown_menuitem")));
 
     user_view = GTK_TREE_VIEW (gtk_builder_get_object (builder, "user_treeview"));
-    gtk_tree_view_insert_column_with_attributes (user_view, 0, "Face", gtk_cell_renderer_pixbuf_new(), "pixbuf", 2, NULL);
-    gtk_tree_view_insert_column_with_attributes (user_view, 1, "Name", gtk_cell_renderer_text_new(), "text", 1, NULL);
+    gtk_tree_view_insert_column_with_attributes (user_view, 0, "Face", gtk_cell_renderer_pixbuf_new(), "pixbuf", 3, NULL);
+    gtk_tree_view_insert_column_with_attributes (user_view, 1, "Name", gtk_cell_renderer_text_new(), "text", 1, "weight", 2, NULL);
 
     if (lightdm_greeter_get_hide_users_hint (greeter))
         start_authentication (NULL);

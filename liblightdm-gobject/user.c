@@ -58,6 +58,9 @@ typedef struct
     GDBusProxy *accounts_service_proxy;
     GList *user_account_objects;
 
+    /* Connection to DisplayManager */
+    GDBusProxy *display_manager_proxy;
+
     /* File monitor for password file */
     GFileMonitor *passwd_monitor;
   
@@ -66,6 +69,9 @@ typedef struct
 
     /* List of users */
     GList *users;
+
+    /* List of sessions */
+    GList *sessions;
 } LightDMUserListPrivate;
 
 typedef struct
@@ -76,11 +82,12 @@ typedef struct
 
 typedef struct
 {
+    LightDMUserList *user_list;
+
     gchar *name;
     gchar *real_name;
     gchar *home_directory;
     gchar *image;
-    gboolean logged_in;
 
     GKeyFile *dmrc_file;
     gchar *language;
@@ -88,8 +95,23 @@ typedef struct
     gchar *session;
 } LightDMUserPrivate;
 
+typedef struct
+{
+    GObject parent_instance;
+    gchar *path;
+    gchar *username;
+} Session;
+
+typedef struct
+{
+    GObjectClass parent_class;
+} SessionClass;
+
 G_DEFINE_TYPE (LightDMUserList, lightdm_user_list, G_TYPE_OBJECT);
 G_DEFINE_TYPE (LightDMUser, lightdm_user, G_TYPE_OBJECT);
+#define SESSION(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), session_get_type (), Session))
+GType session_get_type (void);
+G_DEFINE_TYPE (Session, session, G_TYPE_OBJECT);
 
 #define GET_LIST_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_USER_LIST, LightDMUserListPrivate)
 #define GET_USER_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_USER, LightDMUserPrivate)
@@ -138,15 +160,21 @@ compare_user (gconstpointer a, gconstpointer b)
 }
 
 static gboolean
-update_passwd_user (LightDMUser *user, const gchar *real_name, const gchar *home_directory, const gchar *image, gboolean logged_in)
+update_passwd_user (LightDMUser *user, const gchar *real_name, const gchar *home_directory, const gchar *image)
 {
+    LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
+
     if (g_strcmp0 (lightdm_user_get_real_name (user), real_name) == 0 &&
         g_strcmp0 (lightdm_user_get_home_directory (user), home_directory) == 0 &&
-        g_strcmp0 (lightdm_user_get_image (user), image) == 0 &&
-        lightdm_user_get_logged_in (user) == logged_in)
+        g_strcmp0 (lightdm_user_get_image (user), image) == 0)
         return FALSE;
 
-    g_object_set (user, "real-name", real_name, "home-directory", home_directory, "image", image, "logged-in", logged_in, NULL);
+    g_free (priv->real_name);
+    priv->real_name = g_strdup (real_name);
+    g_free (priv->home_directory);
+    priv->home_directory = g_strdup (home_directory);
+    g_free (priv->image);
+    priv->image = g_strdup (image);
 
     return TRUE;
 }
@@ -201,6 +229,7 @@ load_passwd_file (LightDMUserList *user_list)
     {
         struct passwd *entry;
         LightDMUser *user;
+        LightDMUserPrivate *user_priv;
         char **tokens;
         gchar *real_name, *image;
         int i;
@@ -231,9 +260,9 @@ load_passwd_file (LightDMUserList *user_list)
         if (tokens[0] != NULL && tokens[0][0] != '\0')
             real_name = g_strdup (tokens[0]);
         else
-            real_name = NULL;
+            real_name = g_strdup ("");
         g_strfreev (tokens);
-      
+
         image = g_build_filename (entry->pw_dir, ".face", NULL);
         if (!g_file_test (image, G_FILE_TEST_EXISTS))
         {
@@ -246,9 +275,17 @@ load_passwd_file (LightDMUserList *user_list)
             }
         }
 
-        user = g_object_new (LIGHTDM_TYPE_USER, "name", entry->pw_name, "real-name", real_name, "home-directory", entry->pw_dir, "image", image, "logged-in", FALSE, NULL);
-        g_free (real_name);
-        g_free (image);
+        user = g_object_new (LIGHTDM_TYPE_USER, NULL);
+        user_priv = GET_USER_PRIVATE (user);
+        user_priv->user_list = user_list;
+        g_free (user_priv->name);
+        user_priv->name = g_strdup (entry->pw_name);
+        g_free (user_priv->real_name);
+        user_priv->real_name = real_name;
+        g_free (user_priv->home_directory);
+        user_priv->home_directory = g_strdup (entry->pw_dir);
+        g_free (user_priv->image);
+        user_priv->image = image;
 
         /* Update existing users if have them */
         for (link = priv->users; link; link = link->next)
@@ -256,7 +293,7 @@ load_passwd_file (LightDMUserList *user_list)
             LightDMUser *info = link->data;
             if (strcmp (lightdm_user_get_name (info), lightdm_user_get_name (user)) == 0)
             {
-                if (update_passwd_user (info, lightdm_user_get_real_name (user), lightdm_user_get_home_directory (user), lightdm_user_get_image (user), lightdm_user_get_logged_in (user)))
+                if (update_passwd_user (info, lightdm_user_get_real_name (user), lightdm_user_get_home_directory (user), lightdm_user_get_image (user)))
                     changed_users = g_list_insert_sorted (changed_users, info, compare_user);
                 g_object_unref (user);
                 user = info;
@@ -296,7 +333,7 @@ load_passwd_file (LightDMUserList *user_list)
     {
         LightDMUser *info = link->data;
         g_debug ("User %s changed", lightdm_user_get_name (info));
-        g_signal_emit_by_name (info, "changed");
+        g_signal_emit (info, user_signals[CHANGED], 0);
     }
     g_list_free (changed_users);
     for (link = old_users; link; link = link->next)
@@ -334,6 +371,7 @@ passwd_changed_cb (GFileMonitor *monitor, GFile *file, GFile *other_file, GFileM
 static gboolean
 update_user (UserAccountObject *object)
 {
+    LightDMUserPrivate *priv = GET_USER_PRIVATE (object->user);
     GVariant *result, *value;
     GVariantIter *iter;
     gchar *name;
@@ -363,25 +401,32 @@ update_user (UserAccountObject *object)
         {
             gchar *user_name;
             g_variant_get (value, "&s", &user_name);
-            g_object_set (object->user, "name", user_name, NULL);
+            g_free (priv->name);
+            priv->name = g_strdup (user_name);
         }
         else if (strcmp (name, "RealName") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
         {
             gchar *real_name;
             g_variant_get (value, "&s", &real_name);
-            g_object_set (object->user, "real-name", real_name, NULL);
+            g_free (priv->real_name);
+            priv->real_name = g_strdup (real_name);
         }
         else if (strcmp (name, "HomeDirectory") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
         {
             gchar *home_directory;
             g_variant_get (value, "&s", &home_directory);
-            g_object_set (object->user, "home-directory", home_directory, NULL);
+            g_free (priv->home_directory);
+            priv->home_directory = g_strdup (home_directory);
         }
         else if (strcmp (name, "IconFile") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
         {
             gchar *icon_file;
             g_variant_get (value, "&s", &icon_file);
-            g_object_set (object->user, "image", icon_file, NULL);
+            g_free (priv->image);
+            if (strcmp (icon_file, "") == 0)
+                priv->image = NULL;
+            else
+                priv->image = g_strdup (icon_file);
         }
     }
     g_variant_iter_free (iter);
@@ -400,7 +445,7 @@ user_signal_cb (GDBusProxy *proxy, gchar *sender_name, gchar *signal_name, GVari
         {
             g_debug ("User %s changed", g_dbus_proxy_get_object_path (object->proxy));
             update_user (object);
-            g_signal_emit_by_name (object->user, "changed");
+            g_signal_emit (object->user, user_signals[CHANGED], 0);
         }
         else
             g_warning ("Got org.freedesktop.Accounts.User signal Changed with unknown parameters %s", g_variant_get_type_string (parameters));
@@ -408,7 +453,7 @@ user_signal_cb (GDBusProxy *proxy, gchar *sender_name, gchar *signal_name, GVari
 }
 
 static UserAccountObject *
-user_account_object_new (const gchar *path)
+user_account_object_new (LightDMUserList *user_list, const gchar *path)
 {
     GDBusProxy *proxy;
     UserAccountObject *object;
@@ -430,6 +475,7 @@ user_account_object_new (const gchar *path)
 
     object = g_malloc0 (sizeof (UserAccountObject));  
     object->user = g_object_new (LIGHTDM_TYPE_USER, NULL);
+    GET_USER_PRIVATE (object->user)->user_list = user_list;
     object->proxy = proxy;
     g_signal_connect (proxy, "g-signal", G_CALLBACK (user_signal_cb), object);
   
@@ -481,7 +527,7 @@ user_accounts_signal_cb (GDBusProxy *proxy, gchar *sender_name, gchar *signal_na
             if (object)
                 return;
 
-            object = user_account_object_new (path);
+            object = user_account_object_new (user_list, path);
             if (object && update_user (object))
             {
                 g_debug ("User %s added", path);
@@ -523,6 +569,100 @@ user_accounts_signal_cb (GDBusProxy *proxy, gchar *sender_name, gchar *signal_na
     }
 }
 
+static Session *
+load_session (LightDMUserList *user_list, const gchar *path)
+{
+    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
+    Session *session = NULL;
+    GVariant *result, *username;
+    GError *error = NULL;
+
+    result = g_dbus_connection_call_sync (g_dbus_proxy_get_connection (priv->display_manager_proxy),
+                                          "org.freedesktop.DisplayManager",
+                                          path,
+                                          "org.freedesktop.DBus.Properties",
+                                          "Get",
+                                          g_variant_new ("(ss)", "org.freedesktop.DisplayManager.Session", "UserName"),
+                                          G_VARIANT_TYPE ("(v)"),
+                                          G_DBUS_CALL_FLAGS_NONE,
+                                          -1,
+                                          NULL,
+                                          &error);
+    if (!result)
+        g_warning ("Error getting UserName from org.freedesktop.DisplayManager.Session: %s", error->message);
+    g_clear_error (&error);
+    if (!result)
+        return NULL;
+
+    g_variant_get (result, "(v)", &username);
+    if (g_variant_is_of_type (username, G_VARIANT_TYPE_STRING))
+    {
+        gchar *name;
+
+        g_variant_get (username, "&s", &name);
+
+        g_debug ("Loaded session %s (%s)", path, name);
+        session = g_object_new (session_get_type (), NULL);
+        session->username = g_strdup (name);
+        session->path = g_strdup (path);
+        priv->sessions = g_list_append (priv->sessions, session);
+    }
+    g_variant_unref (username);
+    g_variant_unref (result);
+
+    return session;
+}
+
+static void
+display_manager_signal_cb (GDBusProxy *proxy, gchar *sender_name, gchar *signal_name, GVariant *parameters, LightDMUserList *user_list)
+{
+    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
+
+    if (strcmp (signal_name, "SessionAdded") == 0)
+    {
+        if (g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
+        {
+            gchar *path;
+            Session *session;
+            LightDMUser *user = NULL;
+
+            g_variant_get (parameters, "(&o)", &path);
+            session = load_session (user_list, path);
+            if (session)
+                user = get_user_by_name (user_list, session->username);
+            if (user)
+                g_signal_emit (user, user_signals[CHANGED], 0);
+        }
+    }
+    else if (strcmp (signal_name, "SessionRemoved") == 0)
+    {
+        if (g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
+        {
+            gchar *path;
+            GList *link;
+
+            g_variant_get (parameters, "(&o)", &path);
+
+            for (link = priv->sessions; link; link = link->next)
+            {
+                Session *session = link->data;
+                if (strcmp (session->path, path) == 0)
+                {
+                    LightDMUser *user;
+
+                    g_debug ("Session %s removed", path);
+                    priv->sessions = g_list_remove_link (priv->sessions, link);
+                    user = get_user_by_name (user_list, session->username);
+                    if (user)
+                        g_signal_emit (user, user_signals[CHANGED], 0);
+                    g_object_unref (session);
+                    break;
+                }
+            }
+        }
+    }
+}
+
 static void
 update_users (LightDMUserList *user_list)
 {
@@ -543,7 +683,7 @@ update_users (LightDMUserList *user_list)
                                                                   NULL,
                                                                   &error);
     if (!priv->accounts_service_proxy)
-        g_warning ("Error contacting AccountsService: %s", error->message);
+        g_warning ("Error contacting org.freedesktop.Accounts: %s", error->message);
     g_clear_error (&error);
 
     if (priv->accounts_service_proxy)
@@ -560,7 +700,7 @@ update_users (LightDMUserList *user_list)
                                          NULL,
                                          &error);
         if (!result)
-            g_warning ("Error getting user list from AccountsService: %s", error->message);
+            g_warning ("Error getting user list from org.freedesktop.Accounts: %s", error->message);
         g_clear_error (&error);
         if (!result)
             return;
@@ -570,7 +710,7 @@ update_users (LightDMUserList *user_list)
             GVariantIter *iter;
             const gchar *path;
 
-            g_debug ("Loading users from AccountsService");
+            g_debug ("Loading users from org.freedesktop.Accounts");
             g_variant_get (result, "(ao)", &iter);
             while (g_variant_iter_loop (iter, "&o", &path))
             {
@@ -578,7 +718,7 @@ update_users (LightDMUserList *user_list)
 
                 g_debug ("Loading user %s", path);
 
-                object = user_account_object_new (path);
+                object = user_account_object_new (user_list, path);
                 if (object && update_user (object))
                 {
                     priv->user_account_objects = g_list_append (priv->user_account_objects, object);
@@ -608,6 +748,63 @@ update_users (LightDMUserList *user_list)
         else
             g_signal_connect (priv->passwd_monitor, "changed", G_CALLBACK (passwd_changed_cb), user_list);
         g_clear_error (&error);
+    }
+
+    priv->display_manager_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                                                 G_DBUS_PROXY_FLAGS_NONE,
+                                                                 NULL,
+                                                                 "org.freedesktop.DisplayManager",
+                                                                 "/org/freedesktop/DisplayManager",
+                                                                 "org.freedesktop.DisplayManager",
+                                                                 NULL,
+                                                                 &error);
+    if (!priv->display_manager_proxy)
+        g_warning ("Error contacting org.freedesktop.DisplayManager: %s", error->message);
+    g_clear_error (&error);
+
+    if (priv->display_manager_proxy)
+    {
+        GVariant *result;
+
+        g_signal_connect (priv->display_manager_proxy, "g-signal", G_CALLBACK (display_manager_signal_cb), user_list);
+
+        result = g_dbus_connection_call_sync (g_dbus_proxy_get_connection (priv->display_manager_proxy),
+                                              "org.freedesktop.DisplayManager",
+                                              "/org/freedesktop/DisplayManager",
+                                              "org.freedesktop.DBus.Properties",
+                                              "Get",
+                                              g_variant_new ("(ss)", "org.freedesktop.DisplayManager", "Sessions"),
+                                              G_VARIANT_TYPE ("(v)"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              -1,
+                                              NULL,
+                                              &error);
+        if (!result)
+            g_warning ("Error getting session list from org.freedesktop.DisplayManager: %s", error->message);
+        g_clear_error (&error);
+        if (!result)
+            return;
+
+        if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(v)")))
+        {
+            GVariant *value;
+            GVariantIter *iter;
+            const gchar *path;
+
+            g_variant_get (result, "(v)", &value);
+
+            g_debug ("Loading sessions from org.freedesktop.DisplayManager");
+            g_variant_get (value, "ao", &iter);
+            while (g_variant_iter_loop (iter, "&o", &path))
+                load_session (user_list, path);
+            g_variant_iter_free (iter);
+
+            g_variant_unref (value);
+        }
+        else
+            g_warning ("Unexpected type from org.freedesktop.DisplayManager.Sessions: %s", g_variant_get_type_string (result));
+
+        g_variant_unref (result);
     }
 }
 
@@ -668,19 +865,19 @@ lightdm_user_list_init (LightDMUserList *user_list)
 }
 
 static void
-lightdm_user_list_set_property (GObject      *object,
-                          guint         prop_id,
-                          const GValue *value,
-                          GParamSpec   *pspec)
+lightdm_user_list_set_property (GObject    *object,
+                                guint       prop_id,
+                                const GValue *value,
+                                GParamSpec *pspec)
 {
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 }
 
 static void
 lightdm_user_list_get_property (GObject    *object,
-                          guint       prop_id,
-                          GValue     *value,
-                          GParamSpec *pspec)
+                                guint       prop_id,
+                                GValue     *value,
+                                GParamSpec *pspec)
 {
     LightDMUserList *self;
 
@@ -708,6 +905,7 @@ lightdm_user_list_finalize (GObject *object)
     if (priv->passwd_monitor)
         g_object_unref (priv->passwd_monitor);
     g_list_free_full (priv->users, g_object_unref);
+    g_list_free_full (priv->sessions, g_object_unref);
 
     G_OBJECT_CLASS (lightdm_user_list_parent_class)->finalize (object);
 }
@@ -944,8 +1142,20 @@ lightdm_user_get_session (LightDMUser *user)
 gboolean
 lightdm_user_get_logged_in (LightDMUser *user)
 {
+    LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
+    LightDMUserListPrivate *list_priv = GET_LIST_PRIVATE (priv->user_list);
+    GList *link;
+
     g_return_val_if_fail (LIGHTDM_IS_USER (user), FALSE);
-    return GET_USER_PRIVATE (user)->logged_in;
+
+    for (link = list_priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+        if (strcmp (session->username, priv->name) == 0)
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 static void
@@ -963,38 +1173,12 @@ lightdm_user_init (LightDMUser *user)
 }
 
 static void
-lightdm_user_set_property (GObject      *object,
-                           guint         prop_id,
+lightdm_user_set_property (GObject    *object,
+                           guint       prop_id,
                            const GValue *value,
-                           GParamSpec   *pspec)
+                           GParamSpec *pspec)
 {
-    LightDMUser *self = LIGHTDM_USER (object);
-    LightDMUserPrivate *priv = GET_USER_PRIVATE (self);
-
-    switch (prop_id) {
-    case USER_PROP_NAME:
-        g_free (priv->name);
-        priv->name = g_strdup (g_value_get_string (value));
-        break;
-    case USER_PROP_REAL_NAME:
-        g_free (priv->real_name);
-        priv->real_name = g_strdup (g_value_get_string (value));
-        break;
-    case USER_PROP_HOME_DIRECTORY:
-        g_free (priv->home_directory);
-        priv->home_directory = g_strdup (g_value_get_string (value));
-        break;
-    case USER_PROP_IMAGE:
-        g_free (priv->image);
-        priv->image = g_strdup (g_value_get_string (value));
-        break;
-    case USER_PROP_LOGGED_IN:
-        priv->logged_in = g_value_get_boolean (value);
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 }
 
 static void
@@ -1144,4 +1328,25 @@ lightdm_user_class_init (LightDMUserClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
+}
+
+static void
+session_init (Session *session)
+{
+}
+
+static void
+session_finalize (GObject *object)
+{
+    Session *self = SESSION (object);
+
+    g_free (self->path);
+    g_free (self->username);
+}
+
+static void
+session_class_init (SessionClass *klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    object_class->finalize = session_finalize;
 }
