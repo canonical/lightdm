@@ -43,6 +43,68 @@ compare_session (gconstpointer a, gconstpointer b)
     return strcmp (priv_a->name, priv_b->name);
 }
 
+static LightDMSession *
+load_session (GKeyFile *key_file, const gchar *key)
+{
+    gchar *domain, *name;
+    LightDMSession *session;
+    LightDMSessionPrivate *priv;
+    gchar *try_exec;
+  
+    if (g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY, NULL) ||
+        g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_HIDDEN, NULL))
+        return NULL;
+
+#ifdef G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN
+    domain = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN, NULL);
+#else
+    domain = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, "X-GNOME-Gettext-Domain", NULL);
+#endif
+    name = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NAME, domain, NULL);
+    if (!name)
+    {
+        g_warning ("Ignoring session without name");
+        g_free (domain);
+        return NULL;
+    }
+
+    try_exec = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_TRY_EXEC, domain, NULL);
+    if (try_exec)
+    {
+        gchar *full_path;
+
+        full_path = g_find_program_in_path (try_exec);
+        g_free (try_exec);
+
+        if (!full_path)
+        {
+            g_free (domain);
+            return NULL;
+        }
+        g_free (full_path);
+    }
+
+    session = g_object_new (LIGHTDM_TYPE_SESSION, NULL);
+    priv = GET_PRIVATE (session);
+
+    g_free (priv->key);
+    priv->key = g_strdup (key);
+
+    g_free (priv->name);
+    priv->name = name;
+
+    g_free (priv->comment);
+    priv->comment = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_COMMENT, domain, NULL);
+    if (!priv->comment)
+        priv->comment = g_strdup ("");
+
+    sessions = g_list_insert_sorted (sessions, session, compare_session);
+
+    g_free (domain);
+
+    return session;
+}
+
 static void
 update_sessions (void)
 {
@@ -62,8 +124,8 @@ update_sessions (void)
     while (TRUE)
     {
         const gchar *filename;
+        gchar *path;
         GKeyFile *key_file;
-        gchar *key, *path;
         gboolean result;
 
         filename = g_dir_read_name (directory);
@@ -73,9 +135,7 @@ update_sessions (void)
         if (!g_str_has_suffix (filename, ".desktop"))
             continue;
 
-        key = g_strndup (filename, strlen (filename) - strlen (".desktop"));
         path = g_build_filename (XSESSIONS_DIR, filename, NULL);
-        g_debug ("Loading session %s", path);
 
         key_file = g_key_file_new ();
         result = g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, &error);
@@ -83,48 +143,20 @@ update_sessions (void)
             g_warning ("Failed to load session file %s: %s:", path, error->message);
         g_clear_error (&error);
 
-        if (result && !g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY, NULL))
+        if (result)
         {
-            gchar *domain, *name, *comment;
+            gchar *key;
+            LightDMSession *session;
 
-#ifdef G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN
-            domain = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN, NULL);
-#else
-            domain = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, "X-GNOME-Gettext-Domain", NULL);
-#endif
-            name = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NAME, domain, NULL);
-            comment = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_COMMENT, domain, NULL);
-            if (!comment)
-                comment = g_strdup ("");
-            g_free (domain);
-
-            if (name)
-            {
-                LightDMSession *session;
-                LightDMSessionPrivate *priv;
-
-                g_debug ("Loaded session %s (%s, %s)", key, name, comment);
-
-                session = g_object_new (LIGHTDM_TYPE_SESSION, NULL);
-                priv = GET_PRIVATE (session);
-                g_free (priv->key);
-                priv->key = g_strdup (key);
-                g_free (priv->name);
-                priv->name = name;
-                g_free (priv->comment);
-                priv->comment = comment;
-
-                sessions = g_list_insert_sorted (sessions, session, compare_session);
-            }
+            key = g_strndup (filename, strlen (filename) - strlen (".desktop"));
+            session = load_session (key_file, key);
+            if (session)
+                g_debug ("Loaded session %s (%s, %s)", path, GET_PRIVATE (session)->name, GET_PRIVATE (session)->comment);
             else
-            {
-                g_warning ("Invalid session %s: %s", path, error->message);
-                g_free (name);
-                g_free (comment);
-            }
+                g_debug ("Ignoring session %s", path);
+            g_free (key);
         }
 
-        g_free (key);
         g_free (path);
         g_key_file_free (key_file);
     }
@@ -245,23 +277,23 @@ lightdm_session_class_init (LightDMSessionClass *klass)
 
     g_object_class_install_property(object_class,
                                     PROP_KEY,
-                                    g_param_spec_string("key",
-                                                        "key",
-                                                        "Session key",
-                                                        NULL,
-                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+                                    g_param_spec_string ("key",
+                                                         "key",
+                                                         "Session key",
+                                                         NULL,
+                                                         G_PARAM_READABLE));
     g_object_class_install_property(object_class,
                                     PROP_NAME,
-                                    g_param_spec_string("name",
-                                                        "name",
-                                                        "Session name",
-                                                        NULL,
-                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+                                    g_param_spec_string ("name",
+                                                         "name",
+                                                         "Session name",
+                                                         NULL,
+                                                         G_PARAM_READABLE));
     g_object_class_install_property(object_class,
                                     PROP_COMMENT,
-                                    g_param_spec_string("comment",
-                                                        "comment",
-                                                        "Session comment",
-                                                        NULL,
-                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+                                    g_param_spec_string ("comment",
+                                                         "comment",
+                                                         "Session comment",
+                                                         NULL,
+                                                         G_PARAM_READABLE));
 }
