@@ -14,35 +14,27 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2011-07-27 04:42+0000\n"
-"X-Generator: Launchpad (build 13405)\n"
+"X-Launchpad-Export-Date: 2011-08-09 04:56+0000\n"
+"X-Generator: Launchpad (build 13628)\n"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:248
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:248
+#: ../greeters/gtk/lightdm-gtk-greeter.c:322
 msgid "Are you sure you want to close all programs and restart the computer?"
 msgstr "Voulez-vous fermer tous les programmes et redémarrer l'ordinateur ?"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
 #: ../greeters/gtk/greeter.ui.h:1
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
 msgid "Cancel"
 msgstr "Annuler"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../greeters/gtk/lightdm-gtk-greeter.c:323
 msgid "Restart"
 msgstr "Redémarrer"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:270
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:270
+#: ../greeters/gtk/lightdm-gtk-greeter.c:347
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
 msgstr "Voulez-vous fermer tous les programmes et éteindre l'ordinateur ?"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../greeters/gtk/lightdm-gtk-greeter.c:348
 msgid "Shutdown"
 msgstr "Eteindre"
 
@@ -115,27 +107,3 @@ msgstr ""
 "      --test-mode Lancement en tant qu'utilisateur sans privilèges\n"
 "  -v, --version  Affiche la version\n"
 "  -h, --help Affiche l'aide des options"
-
-#~ msgid "Select Session..."
-#~ msgstr "Sélectionnez la session..."
-
-#~ msgid "Select Keyboard Layout..."
-#~ msgstr "Sélectionnez l'agencement du clavier..."
-
-#~ msgid "Select Language..."
-#~ msgstr "Sélectionnez la langue..."
-
-#, c-format
-#~ msgid ""
-#~ "Help Options:\n"
-#~ "  -d, --debug                     Print debugging messages\n"
-#~ "  -v, --version                   Show release version\n"
-#~ "  -h, --help                      Show help options"
-#~ msgstr ""
-#~ "Options d'aide :\n"
-#~ "  -d, --debug                    Affiche les messages de débuggage\n"
-#~ "  -v, --version                   Montre la version\n"
-#~ "  -h, --help                       Montre les options d'aide"
-
-#~ msgid "Previous language"
-#~ msgstr "Page précédente"

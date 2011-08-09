@@ -14,35 +14,27 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2011-07-27 04:42+0000\n"
-"X-Generator: Launchpad (build 13405)\n"
+"X-Launchpad-Export-Date: 2011-08-09 04:56+0000\n"
+"X-Generator: Launchpad (build 13628)\n"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:248
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:248
+#: ../greeters/gtk/lightdm-gtk-greeter.c:322
 msgid "Are you sure you want to close all programs and restart the computer?"
 msgstr "Ви дійсно бажаєте закрити всі програми та перезавантажити комп'ютер?"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
 #: ../greeters/gtk/greeter.ui.h:1
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
 msgid "Cancel"
 msgstr "Скасувати"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../greeters/gtk/lightdm-gtk-greeter.c:323
 msgid "Restart"
 msgstr "Перезапустити"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:270
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:270
+#: ../greeters/gtk/lightdm-gtk-greeter.c:347
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
 msgstr "Ви дійсно бажаєте закрити всі програми та вимкнути комп'ютер?"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../greeters/gtk/lightdm-gtk-greeter.c:348
 msgid "Shutdown"
 msgstr "Вимкнути"
 
@@ -115,49 +107,3 @@ msgstr ""
 "      --test-mode                 Виконати як непривілейований користувач\n"
 "  -v, --version                   Показати версію випуску\n"
 "  -h, --help                      Показати параметри довідки"
-
-#~ msgid "Select Language..."
-#~ msgstr "Вибрати мову..."
-
-#, c-format
-#~ msgid ""
-#~ "Help Options:\n"
-#~ "  -c, --config <file>             Use configuration file\n"
-#~ "  -d, --debug                     Print debugging messages\n"
-#~ "      --no-root-check             Don't check if root user\n"
-#~ "      --use-session-bus           Use the session D-Bus\n"
-#~ "  -v, --version                   Show release version\n"
-#~ "  -h, --help                      Show help options"
-#~ msgstr ""
-#~ "Довідкові параметри:\n"
-#~ "  -c, --config <file>             Відкрити конфігураційний файл\n"
-#~ "  -d, --debug                     Вивести налагоджувальні повідомлення\n"
-#~ "      --no-root-check             Не перевіряти, якщо користувач root\n"
-#~ "      --use-session-bus           Використовувати сеанс D-Bus\n"
-#~ "  -v, --version                   Показати версію випуску\n"
-#~ "  -h, --help                      Показати довідкові параметри"
-
-#~ msgid "Select Session"
-#~ msgstr "Вибрати сеанс"
-
-#~ msgid "Select Keyboard Layout..."
-#~ msgstr "Вибрати розкладку клавіатури"
-
-#, c-format
-#~ msgid ""
-#~ "Help Options:\n"
-#~ "  -c, --config <file>             Use configuration file\n"
-#~ "  -d, --debug                     Print debugging messages\n"
-#~ "      --test-mode                 Run as unprivileged user\n"
-#~ "  -v, --version                   Show release version\n"
-#~ "  -h, --help                      Show help options"
-#~ msgstr ""
-#~ "Параметри довідки:\n"
-#~ "  -c, --config <file>             Застосувати конфігураційний файл\n"
-#~ "  -d, --debug                     Вивести повідомлення налагодження\n"
-#~ "      --test-mode                 виконати як непривілейований користувач\n"
-#~ "  -v, --version                   Показати версію випуску\n"
-#~ "  -h, --help                      Показати параметри довідки"
-
-#~ msgid "Previous language"
-#~ msgstr "Попередня мова"

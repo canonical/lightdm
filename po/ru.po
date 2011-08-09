@@ -14,37 +14,29 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2011-07-27 04:42+0000\n"
-"X-Generator: Launchpad (build 13405)\n"
+"X-Launchpad-Export-Date: 2011-08-09 04:56+0000\n"
+"X-Generator: Launchpad (build 13628)\n"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:248
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:248
+#: ../greeters/gtk/lightdm-gtk-greeter.c:322
 msgid "Are you sure you want to close all programs and restart the computer?"
 msgstr ""
 "Вы действительно хотите закрыть все приложения и перезагрузить компьютер?"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
 #: ../greeters/gtk/greeter.ui.h:1
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
 msgid "Cancel"
 msgstr "Отмена"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../greeters/gtk/lightdm-gtk-greeter.c:323
 msgid "Restart"
 msgstr "Перезагрузка"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:270
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:270
+#: ../greeters/gtk/lightdm-gtk-greeter.c:347
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
 msgstr ""
 "Вы действительно хотите закрыть все приложения и выключить компьютер?"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../greeters/gtk/lightdm-gtk-greeter.c:348
 msgid "Shutdown"
 msgstr "Выключить компьютер"
 
@@ -117,59 +109,3 @@ msgstr ""
 "      --test-mode Запустить от пользователя без привилегий\n"
 "  -v, --version Показать версию релиза\n"
 "  -h, --help Показать справку по опциям"
-
-#~ msgid "Select Session..."
-#~ msgstr "Выберите сессию..."
-
-#~ msgid "Select Keyboard Layout..."
-#~ msgstr "Выберите раскладку клавиатуры..."
-
-#~ msgid "Select Language..."
-#~ msgstr "Выберите язык..."
-
-#, c-format
-#~ msgid ""
-#~ "Help Options:\n"
-#~ "  -d, --debug                     Print debugging messages\n"
-#~ "  -v, --version                   Show release version\n"
-#~ "  -h, --help                      Show help options"
-#~ msgstr ""
-#~ "Параметры справки:\n"
-#~ "  -d, --debug Выводить отладочные сообщения\n"
-#~ "  -v, --version Вывести информацию о версии\n"
-#~ "  -h, --help Показать это сообщение"
-
-#, c-format
-#~ msgid ""
-#~ "Help Options:\n"
-#~ "  -c, --config <file>             Use configuration file\n"
-#~ "  -d, --debug                     Print debugging messages\n"
-#~ "  -v, --version                   Show release version\n"
-#~ "  -h, --help                      Show help options"
-#~ msgstr ""
-#~ "Параметры справки:\n"
-#~ "  -c, --config <file>             Использование файла конфигурации\n"
-#~ "  -d, --debug                     Печатать отладочные сообщения\n"
-#~ "  -v, --version                   Показать версию\n"
-#~ "  -h, --help                      Показать параметры справки"
-
-#~ msgid "Select Session"
-#~ msgstr "Выберите сессию"
-
-#, c-format
-#~ msgid ""
-#~ "Help Options:\n"
-#~ "  -c, --config <file>             Use configuration file\n"
-#~ "  -d, --debug                     Print debugging messages\n"
-#~ "      --no-root-check             Don't check if root user\n"
-#~ "      --use-session-bus           Use the session D-Bus\n"
-#~ "  -v, --version                   Show release version\n"
-#~ "  -h, --help                      Show help options"
-#~ msgstr ""
-#~ "Описание параметров:\n"
-#~ "  -c, --config <файл>             Выбрать файл конфигурации\n"
-#~ "  -d, --debug                     Показывать сообщения отладчика\n"
-#~ "      --no-root-check             Не проверять наличие прав администратора\n"
-#~ "      --use-session-bus           Использовать сессию D-Bus\n"
-#~ "  -v, --version                   Показать версию релиза\n"
-#~ "  -h, --help                      Показать эту справку"

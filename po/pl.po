@@ -14,36 +14,28 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2011-07-27 04:42+0000\n"
-"X-Generator: Launchpad (build 13405)\n"
+"X-Launchpad-Export-Date: 2011-08-09 04:56+0000\n"
+"X-Generator: Launchpad (build 13628)\n"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:248
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:248
+#: ../greeters/gtk/lightdm-gtk-greeter.c:322
 msgid "Are you sure you want to close all programs and restart the computer?"
 msgstr ""
 "Zakończyć działanie wszystkich programów i ponownie uruchomić komputer?"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
 #: ../greeters/gtk/greeter.ui.h:1
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
 msgid "Cancel"
 msgstr "Anuluj"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:250
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:250
+#: ../greeters/gtk/lightdm-gtk-greeter.c:323
 msgid "Restart"
 msgstr "Uruchom ponownie"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:270
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:270
+#: ../greeters/gtk/lightdm-gtk-greeter.c:347
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
 msgstr "Zakończyć działanie wszystkich programów i wyłączyć komputer?"
 
-#: ../greeters/gtk/lightdm-example-gtk-greeter.c:272
-#: ../.pc/01_resize_grip.patch/greeters/gtk/lightdm-example-gtk-greeter.c:272
+#: ../greeters/gtk/lightdm-gtk-greeter.c:348
 msgid "Shutdown"
 msgstr "Wyłącz"
 
@@ -116,6 +108,3 @@ msgstr ""
 "      --test-mode                 Uruchamia jako zwykły użytkownik\n"
 "  -v, --version                   Wypisuje informacje o wersji\n"
 "  -h, --help                      Wypisuje komunikat pomocy"
-
-#~ msgid "Previous language"
-#~ msgstr "Poprzedni język"
