@@ -35,6 +35,14 @@ G_DEFINE_TYPE (LightDMSession, lightdm_session, G_TYPE_OBJECT);
 static gboolean have_sessions = FALSE;
 static GList *sessions = NULL;
 
+static gint 
+compare_session (gconstpointer a, gconstpointer b)
+{
+    LightDMSessionPrivate *priv_a = GET_PRIVATE (a);
+    LightDMSessionPrivate *priv_b = GET_PRIVATE (b);
+    return strcmp (priv_a->name, priv_b->name);
+}
+
 static void
 update_sessions (void)
 {
@@ -88,16 +96,32 @@ update_sessions (void)
             comment = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_COMMENT, domain, NULL);
             if (!comment)
                 comment = g_strdup ("");
+            g_free (domain);
+
             if (name)
             {
+                LightDMSession *session;
+                LightDMSessionPrivate *priv;
+
                 g_debug ("Loaded session %s (%s, %s)", key, name, comment);
-                sessions = g_list_append (sessions, g_object_new (LIGHTDM_TYPE_SESSION, "key", key, "name", name, "comment", comment, NULL));
+
+                session = g_object_new (LIGHTDM_TYPE_SESSION, NULL);
+                priv = GET_PRIVATE (session);
+                g_free (priv->key);
+                priv->key = g_strdup (key);
+                g_free (priv->name);
+                priv->name = name;
+                g_free (priv->comment);
+                priv->comment = comment;
+
+                sessions = g_list_insert_sorted (sessions, session, compare_session);
             }
             else
+            {
                 g_warning ("Invalid session %s: %s", path, error->message);
-            g_free (domain);
-            g_free (name);
-            g_free (comment);
+                g_free (name);
+                g_free (comment);
+            }
         }
 
         g_free (key);
@@ -180,26 +204,7 @@ lightdm_session_set_property (GObject      *object,
                           const GValue *value,
                           GParamSpec   *pspec)
 {
-    LightDMSession *self = LIGHTDM_SESSION (object);
-    LightDMSessionPrivate *priv = GET_PRIVATE (self);
-
-    switch (prop_id) {
-    case PROP_KEY:
-        g_free (priv->key);
-        priv->key = g_strdup (g_value_get_string (value));
-        break;
-    case PROP_NAME:
-        g_free (priv->name);
-        priv->name = g_strdup (g_value_get_string (value));
-        break;
-    case PROP_COMMENT:
-        g_free (priv->comment);
-        priv->comment = g_strdup (g_value_get_string (value));
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 }
 
 static void
