@@ -2,6 +2,7 @@ lib_LTLIBRARIES = liblightdm-gobject-1.la
 
 CLEANFILES =
 
+liblightdm_gobject_1_la_LDFLAGS = -export-symbols-regex \^lightdm_.*
 liblightdm_gobject_1_la_LIBADD = $(LIBLIGHTDM_GOBJECT_LIBS)
 liblightdm_gobject_1_la_CFLAGS = $(LIBLIGHTDM_GOBJECT_CFLAGS) \
 	$(WARN_CFLAGS) \
