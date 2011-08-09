@@ -13,8 +13,6 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES(yes)])
 
 GOBJECT_INTROSPECTION_CHECK(0.9.5)
 
-AC_PATH_PROG([VALA_API_GEN], [vapigen])
-
 GNOME_COMPILE_WARNINGS(maximum)
 
 dnl ###########################################################################
