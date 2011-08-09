@@ -4,6 +4,8 @@ Overview of changes in lightdm 0.9.3
     * Add a gdmflexiserver binary that provides backwards compatibility with
       existing sessions
     * Set XDG_SEAT_PATH and XDG_SESSION_PATH environment variables for sessions.
+    * Always set XAUTHORITY environment variable so sudo keeps accessing the
+      correct X authority.
 
 Overview of changes in lightdm 0.9.2
 

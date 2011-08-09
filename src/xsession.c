@@ -66,11 +66,11 @@ xsession_start (Session *session)
 
             path = g_build_filename (dir, "xauthority", NULL);
             g_free (dir);
-
-            process_set_env (PROCESS (session), "XAUTHORITY", path);
         }
         else
             path = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
+
+        process_set_env (PROCESS (session), "XAUTHORITY", path);
 
         XSESSION (session)->priv->authority_file = g_file_new_for_path (path);
         g_free (path);
