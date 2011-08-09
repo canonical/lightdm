@@ -193,6 +193,7 @@ po/Makefile.in
 src/Makefile
 tests/Makefile
 tests/src/Makefile
+utils/Makefile
 ])
 AC_OUTPUT
 

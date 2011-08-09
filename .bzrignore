@@ -62,3 +62,4 @@ tests/src/test-qt-greeter
 tests/src/test-runner
 tests/src/test-session
 tests/src/test-xserver
+utils/lightdm-set-defaults
