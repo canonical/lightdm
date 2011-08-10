@@ -4,3 +4,4 @@
 [type: gettext/glade]greeters/gtk/greeter.ui
 greeters/gtk/lightdm-gtk-greeter.c
 src/lightdm.c
+utils/lightdm-set-defaults.c
