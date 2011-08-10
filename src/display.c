@@ -549,7 +549,6 @@ static Session *
 create_session (Display *display, PAMSession *authentication, const gchar *session_name, gboolean is_greeter, const gchar *log_filename)
 {
     gchar *sessions_dir, *filename, *path, *command = NULL;
-    const gchar *orig_path;
     GKeyFile *session_desktop_file;
     Session *session;
     gchar *cookie;
@@ -612,18 +611,6 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
 
     process_set_env (PROCESS (session), "DESKTOP_SESSION", session_name); // FIXME: Apparently deprecated?
     process_set_env (PROCESS (session), "GDMSESSION", session_name); // FIXME: Not cross-desktop
-
-    /* Insert our own utility directory to PATH
-     * This is to provide gdmflexiserver which provides backwards compatibility with GDM.
-     * This can be removed when this is no longer required.
-     */
-    orig_path = process_get_env (PROCESS (session), "PATH");
-    if (orig_path)
-    {
-        path = g_strdup_printf ("%s:%s", PKGLIBEXEC_DIR, orig_path);
-        process_set_env (PROCESS (session), "PATH", path);
-        g_free (path);
-    }
 
     process_set_log_file (PROCESS (session), log_filename);
 
