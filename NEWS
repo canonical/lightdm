@@ -3,6 +3,7 @@ Overview of changes in lightdm 0.9.4
     * lightdm-set-defaults enables tweaking the default session and chosen
       greeter for lightdm. This is useful for derivatives waiting to not ship
       the whole configuration file of lightdm
+    * Fix crash in GTK+ greeter when a user is added
 
 Overview of changes in lightdm 0.9.3
 

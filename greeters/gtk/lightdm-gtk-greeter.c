@@ -388,7 +388,7 @@ get_user_iter (const gchar *username, GtkTreeIter *iter)
         gboolean matched;
 
         gtk_tree_model_get (model, iter, 0, &name, -1);
-        matched = strcmp (name, username) == 0;
+        matched = g_strcmp0 (name, username) == 0;
         g_free (name);
         if (matched)
             return TRUE;
