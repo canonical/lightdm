@@ -21,6 +21,8 @@
 
 #include "configuration.h"
 #include "display-manager.h"
+#include "xdmcp-server.h"
+#include "seat-xdmcp-session.h"
 #include "xserver.h"
 #include "user.h"
 #include "pam-session.h"
@@ -33,7 +35,7 @@ static FILE *log_file;
 static gboolean debug = FALSE;
 
 static DisplayManager *display_manager = NULL;
-
+static XDMCPServer *xdmcp_server = NULL;
 static GDBusConnection *bus = NULL;
 static guint bus_id;
 static GDBusNodeInfo *seat_info;
@@ -122,6 +124,7 @@ signal_cb (Process *process, int signum)
 {
     g_debug ("Caught %s signal, shutting down", g_strsignal (signum));
     display_manager_stop (display_manager);
+    // FIXME: Stop XDMCP server
 }
 
 static void
@@ -636,11 +639,55 @@ path_make_absolute (gchar *path)
     return abs_path;
 }
 
+static void
+set_seat_properties (Seat *seat, const gchar *config_section)
+{
+    gchar **keys;
+    gint i;
+
+    keys = config_get_keys (config_get_instance (), "SeatDefaults");
+    for (i = 0; keys[i]; i++)
+    {
+        gchar *value = config_get_string (config_get_instance (), "SeatDefaults", keys[i]);
+        seat_set_property (seat, keys[i], value);
+        g_free (value);
+    }
+    g_strfreev (keys);
+
+    if (config_section)
+    {
+        keys = config_get_keys (config_get_instance (), config_section);
+        for (i = 0; keys[i]; i++)
+        {
+            gchar *value = config_get_string (config_get_instance (), config_section, keys[i]);
+            seat_set_property (seat, keys[i], value);
+            g_free (value);
+        }
+        g_strfreev (keys);
+    }
+}
+
+static gboolean
+xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
+{
+    SeatXDMCPSession *seat;
+    gboolean result;
+
+    seat = seat_xdmcp_session_new (session);
+    set_seat_properties (SEAT (seat), NULL);
+    result = display_manager_add_seat (display_manager, SEAT (seat));
+    g_object_unref (seat);
+  
+    return result;
+}
+
 int
 main (int argc, char **argv)
 {
     FILE *pid_file;
     GOptionContext *option_context;
+    gchar **groups, **i;
+    gint n_seats = 0;
     gboolean explicit_config = FALSE;
     gboolean test_mode = FALSE;
     gchar *pid_path = "/var/run/lightdm.pid";
@@ -831,10 +878,6 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "SeatDefaults", "type", "xlocal");
     if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-command"))
         config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", "X");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "xsessions-directory"))
-        config_set_string (config_get_instance (), "SeatDefaults", "xsessions-directory", XSESSIONS_DIR);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "xgreeters-directory"))
-        config_set_string (config_get_instance (), "SeatDefaults", "xgreeters-directory", XGREETERS_DIR);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "allow-guest"))
         config_set_boolean (config_get_instance (), "SeatDefaults", "allow-guest", TRUE);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-session"))
@@ -852,6 +895,10 @@ main (int argc, char **argv)
     if (!config_has_key (config_get_instance (), "LightDM", "cache-directory"))
         config_set_string (config_get_instance (), "LightDM", "cache-directory", default_cache_dir);
     g_free (default_cache_dir);
+    if (!config_has_key (config_get_instance (), "LightDM", "xsessions-directory"))
+        config_set_string (config_get_instance (), "LightDM", "xsessions-directory", XSESSIONS_DIR);
+    if (!config_has_key (config_get_instance (), "LightDM", "xgreeters-directory"))
+        config_set_string (config_get_instance (), "LightDM", "xgreeters-directory", XGREETERS_DIR);
 
     /* Override defaults */
     if (minimum_vt)
@@ -869,6 +916,12 @@ main (int argc, char **argv)
     if (cache_dir)
         config_set_string (config_get_instance (), "LightDM", "cache-directory", cache_dir);
     g_free (cache_dir);
+    if (xsessions_dir)
+        config_set_string (config_get_instance (), "LightDM", "xsessions-directory", xsessions_dir);
+    g_free (xsessions_dir);
+    if (xgreeters_dir)
+        config_set_string (config_get_instance (), "LightDM", "xgreeters-directory", xgreeters_dir);
+    g_free (xgreeters_dir);
     if (xserver_command)
         config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", xserver_command);
     g_free (xserver_command);
@@ -881,12 +934,6 @@ main (int argc, char **argv)
     if (session_wrapper)
         config_set_string (config_get_instance (), "SeatDefaults", "session-wrapper", session_wrapper);
     g_free (session_wrapper);
-    if (xsessions_dir)
-        config_set_string (config_get_instance (), "SeatDefaults", "xsessions-directory", xsessions_dir);
-    g_free (xsessions_dir);
-    if (xgreeters_dir)
-        config_set_string (config_get_instance (), "SeatDefaults", "xgreeters-directory", xgreeters_dir);
-    g_free (xgreeters_dir);
 
     /* Create run and cache directories */
     g_mkdir_with_parents (config_get_string (config_get_instance (), "LightDM", "log-directory"), S_IRWXU | S_IXGRP | S_IXOTH);  
@@ -925,7 +972,104 @@ main (int argc, char **argv)
     display_manager = display_manager_new ();
     g_signal_connect (display_manager, "stopped", G_CALLBACK (display_manager_stopped_cb), NULL);
 
+    /* Load the static display entries */
+    groups = config_get_groups (config_get_instance ());
+    for (i = groups; *i; i++)
+    {
+        gchar *config_section = *i;
+        gchar *type;
+        Seat *seat;
+
+        if (!g_str_has_prefix (config_section, "Seat:"))
+            continue;
+
+        g_debug ("Loading seat %s", config_section);
+        type = config_get_string (config_get_instance (), config_section, "type");
+        if (!type)
+            type = config_get_string (config_get_instance (), config_section, "type");
+        seat = seat_new (type);
+        g_free (type);
+        if (seat)
+        {
+            set_seat_properties (seat, config_section);
+            display_manager_add_seat (display_manager, seat);
+            n_seats++;
+        }
+        else
+            g_warning ("Failed to create seat %s", config_section);
+    }
+    g_strfreev (groups);
+
+    /* If no seats start a default one */
+    if (n_seats == 0 && config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
+    {
+        gchar *type;
+        Seat *seat;
+
+        g_debug ("Adding default seat");
+
+        type = config_get_string (config_get_instance (), "SeatDefaults", "type");
+        seat = seat_new (type);
+        g_free (type);
+        if (seat)
+        {
+            set_seat_properties (seat, NULL);
+            display_manager_add_seat (display_manager, seat);
+        }
+        else
+            g_warning ("Failed to create default seat");
+    }
+
     display_manager_start (display_manager);
+
+    /* Start the XDMCP server */
+    if (config_get_boolean (config_get_instance (), "XDMCPServer", "enabled"))
+    {
+        gchar *key_name, *key = NULL;
+
+        xdmcp_server = xdmcp_server_new ();
+        if (config_has_key (config_get_instance (), "XDMCPServer", "port"))
+        {
+            gint port;
+            port = config_get_integer (config_get_instance (), "XDMCPServer", "port");
+            if (port > 0)
+                xdmcp_server_set_port (xdmcp_server, port);
+        }
+        g_signal_connect (xdmcp_server, "new-session", G_CALLBACK (xdmcp_session_cb), NULL);
+
+        key_name = config_get_string (config_get_instance (), "XDMCPServer", "key");
+        if (key_name)
+        {
+            gchar *dir, *path;
+            GKeyFile *keys;
+            GError *error = NULL;
+
+            dir = config_get_string (config_get_instance (), "LightDM", "config-directory");
+            path = g_build_filename (dir, "keys.conf", NULL);
+            g_free (dir);
+
+            keys = g_key_file_new ();
+            if (g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error))
+            {
+                if (g_key_file_has_key (keys, "keyring", key_name, NULL))
+                    key = g_key_file_get_string (keys, "keyring", key_name, NULL);
+                else
+                    g_debug ("Key %s not defined", error->message);
+            }
+            else
+                g_debug ("Error getting key %s", error->message);
+            g_clear_error (&error);
+            g_free (path);
+            g_key_file_free (keys);
+        }
+        if (key)
+            xdmcp_server_set_key (xdmcp_server, key);
+        g_free (key_name);
+        g_free (key);
+
+        g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (xdmcp_server));
+        xdmcp_server_start (xdmcp_server);
+    }
 
     g_main_loop_run (loop);
 

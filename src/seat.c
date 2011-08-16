@@ -9,10 +9,10 @@
  * license.
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "seat.h"
-#include "configuration.h"
 #include "display.h"
 #include "xserver.h"
 #include "guest-account.h"
@@ -29,21 +29,13 @@ static guint signals[LAST_SIGNAL] = { 0 };
 struct SeatPrivate
 {
     /* Configuration for this seat */
-    gchar *config_section;
+    GHashTable *properties;
 
     /* TRUE if able to switch users */
     gboolean can_switch;
 
-    /* TRUE if allowed to log into guest account */
-    gboolean allow_guest;
-
     /* Name of guest account */
     gchar *guest_username;
-
-    /* User to automatically log in as */
-    gchar *autologin_username;
-    gboolean autologin_guest;
-    guint autologin_timeout;
 
     /* The displays for this seat */
     GList *displays;
@@ -81,27 +73,57 @@ seat_register_module (const gchar *name, GType type)
 }
 
 Seat *
-seat_new (const gchar *module, const gchar *config_section)
+seat_new (const gchar *module_name)
 {
     Seat *seat;
     SeatModule *m = NULL;
+  
+    g_return_val_if_fail (module_name != NULL, NULL);
 
     if (seat_modules)
-        m = g_hash_table_lookup (seat_modules, module);
+        m = g_hash_table_lookup (seat_modules, module_name);
     if (!m)
         return NULL;
 
     seat = g_object_new (m->type, NULL);
-    seat->priv->config_section = g_strdup (config_section);
 
     return seat;
 }
 
+void
+seat_set_property (Seat *seat, const gchar *name, const gchar *value)
+{
+    g_return_if_fail (seat != NULL);
+    g_hash_table_insert (seat->priv->properties, g_strdup (name), g_strdup (value));
+}
+
+gboolean
+seat_has_property (Seat *seat, const gchar *name)
+{
+    g_return_val_if_fail (seat != NULL, FALSE);
+    return g_hash_table_lookup (seat->priv->properties, name) != NULL;
+}
+
 const gchar *
-seat_get_config_section (Seat *seat)
+seat_get_string_property (Seat *seat, const gchar *name)
 {
     g_return_val_if_fail (seat != NULL, NULL);
-    return seat->priv->config_section;
+    return g_hash_table_lookup (seat->priv->properties, name);
+}
+
+gboolean
+seat_get_boolean_property (Seat *seat, const gchar *name)
+{
+    return g_strcmp0 (seat_get_string_property (seat, name), "true") == 0;
+}
+
+gint
+seat_get_integer_property (Seat *seat, const gchar *name)
+{
+    const gchar *value;
+
+    value = seat_get_string_property (seat, name);
+    return value ? atoi (value) : 0;
 }
 
 void
@@ -154,7 +176,7 @@ gboolean
 seat_get_allow_guest (Seat *seat)
 {
     g_return_val_if_fail (seat != NULL, FALSE);  
-    return seat->priv->allow_guest && guest_account_is_installed ();
+    return seat_get_boolean_property (seat, "allow-guest") && guest_account_is_installed ();
 }
 
 static gboolean
@@ -296,18 +318,22 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
     }
 
     new_display = SEAT_GET_CLASS (seat)->add_display (seat);
-    display_load_config (DISPLAY (new_display), seat->priv->config_section);
     g_signal_connect (new_display, "switch-to-user", G_CALLBACK (display_switch_to_user_cb), seat);
     g_signal_connect (new_display, "switch-to-guest", G_CALLBACK (display_switch_to_guest_cb), seat);
     g_signal_connect (new_display, "get-guest-username", G_CALLBACK (display_get_guest_username_cb), seat);
     g_signal_connect (new_display, "ready", G_CALLBACK (display_ready_cb), seat);
     g_signal_connect (new_display, "session-stopped", G_CALLBACK (display_session_stopped_cb), seat);
     g_signal_connect (new_display, "stopped", G_CALLBACK (display_stopped_cb), seat);
+    display_set_greeter_session (new_display, seat_get_string_property (seat, "greeter-session"));
+    display_set_session_wrapper (new_display, seat_get_string_property (seat, "session-wrapper"));
+    display_set_hide_users_hint (new_display, seat_get_boolean_property (seat, "greeter-hide-users"));
     display_set_allow_guest (new_display, seat_get_allow_guest (seat));
     if (autologin)
         display_set_autologin_user (new_display, username, is_guest, 0);
     else
         display_set_select_user_hint (new_display, username, is_guest);
+    if (!session_name)
+        session_name = seat_get_string_property (seat, "user-session");
     display_set_user_session (new_display, session_name);
 
     seat->priv->displays = g_list_append (seat->priv->displays, new_display);
@@ -376,35 +402,20 @@ seat_stop (Seat *seat)
 static void
 seat_real_setup (Seat *seat)
 {
-    if (seat->priv->config_section && config_has_key (config_get_instance (), seat->priv->config_section, "allow-guest"))
-        seat->priv->allow_guest = config_get_boolean (config_get_instance (), seat->priv->config_section, "allow-guest");
-    else if (config_has_key (config_get_instance (), "SeatDefaults", "allow-guest"))
-        seat->priv->allow_guest = config_get_boolean (config_get_instance (), "SeatDefaults", "allow-guest");
-    if (seat->priv->config_section && config_has_key (config_get_instance (), seat->priv->config_section, "autologin-guest"))
-        seat->priv->autologin_guest = config_get_boolean (config_get_instance (), seat->priv->config_section, "autologin-guest");
-    else if (config_has_key (config_get_instance (), "SeatDefaults", "autologin-guest"))
-        seat->priv->autologin_guest = config_get_boolean (config_get_instance (), "SeatDefaults", "autologin-guest");
-    if (seat->priv->config_section)
-        seat->priv->autologin_username = config_get_string (config_get_instance (), seat->priv->config_section, "autologin-user");
-    if (!seat->priv->autologin_username)
-        seat->priv->autologin_username = config_get_string (config_get_instance (), "SeatDefaults", "autologin-user");
-    if (seat->priv->config_section && config_has_key (config_get_instance (), seat->priv->config_section, "autologin-user-timeout"))
-        seat->priv->autologin_timeout = config_get_integer (config_get_instance (), seat->priv->config_section, "autologin-user-timeout");
-    else
-        seat->priv->autologin_timeout = config_get_integer (config_get_instance (), "SeatDefaults", "autologin-user-timeout");
-    if (seat->priv->autologin_timeout < 0)
-        seat->priv->autologin_timeout = 0;
 }
 
 static gboolean
 seat_real_start (Seat *seat)
 {
+    const gchar *autologin_username;
+
     g_debug ("Starting seat");
 
     /* Start showing a greeter */
-    if (seat->priv->autologin_username)
-        return switch_to_user_or_start_greeter (seat, seat->priv->autologin_username, FALSE, NULL, TRUE);
-    else if (seat->priv->autologin_guest)
+    autologin_username = seat_get_string_property (seat, "autologin-user");
+    if (autologin_username)
+        return switch_to_user_or_start_greeter (seat, autologin_username, FALSE, NULL, TRUE);
+    else if (seat_get_boolean_property (seat, "autologin-guest"))
         return switch_to_user_or_start_greeter (seat, NULL, TRUE, NULL, TRUE);
     else
         return switch_to_user_or_start_greeter (seat, NULL, FALSE, NULL, FALSE);
@@ -454,6 +465,7 @@ static void
 seat_init (Seat *seat)
 {
     seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_TYPE, SeatPrivate);
+    seat->priv->properties = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 }
 
 static void
@@ -463,7 +475,8 @@ seat_finalize (GObject *object)
 
     self = SEAT (object);
 
-    g_free (self->priv->config_section);
+    g_hash_table_unref (self->priv->properties);
+    g_free (self->priv->guest_username);
     g_list_free_full (self->priv->displays, g_object_unref);
     if (self->priv->active_display)
         g_object_unref (self->priv->active_display);

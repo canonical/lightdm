@@ -18,9 +18,7 @@
 #include "display-manager.h"
 #include "configuration.h"
 #include "display.h"
-#include "xdmcp-server.h"
 #include "seat-xlocal.h"
-#include "seat-xdmcp-session.h"
 #include "plymouth.h"
 
 enum {
@@ -36,9 +34,6 @@ struct DisplayManagerPrivate
 {
     /* The seats available */
     GList *seats;
-
-    /* XDMCP server */
-    XDMCPServer *xdmcp_server;
 
     /* TRUE if stopping the display manager (waiting for seats to stop) */
     gboolean stopping;
@@ -58,11 +53,11 @@ display_manager_get_seats (DisplayManager *manager)
     return manager->priv->seats;
 }
 
-static gboolean
-add_seat (DisplayManager *manager, Seat *seat)
+gboolean
+display_manager_add_seat (DisplayManager *manager, Seat *seat)
 {
     gboolean result;
-  
+
     result = seat_start (SEAT (seat));
     if (!result)
         return FALSE;
@@ -73,131 +68,16 @@ add_seat (DisplayManager *manager, Seat *seat)
     return TRUE;
 }
 
-static gboolean
-xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session, DisplayManager *manager)
-{
-    SeatXDMCPSession *seat;
-    gboolean result;
-
-    seat = seat_xdmcp_session_new (session);
-    result = add_seat (manager, SEAT (seat));
-    g_object_unref (seat);
-  
-    return result;
-}
-
-static void
-add_static_seat (DisplayManager *manager, const gchar *config_section)
-{
-    gchar *type = NULL;
-    Seat *seat;
-
-    if (config_section)
-        type = config_get_string (config_get_instance (), config_section, "type");
-    if (!type)
-        type = config_get_string (config_get_instance (), "SeatDefaults", "type");
-    if (!type)
-    {
-        g_debug ("Seat missing type field");
-        return;
-    }
-
-    seat = seat_new (type, config_section);
-    if (seat)
-    {
-        if (!add_seat (manager, seat))
-            g_warning ("Failed to start seat %s", config_section);
-        g_object_unref (seat);
-    }
-    else
-        g_debug ("Unknown seat type %s", type);
-}
-
 void
 display_manager_start (DisplayManager *manager)
 {
-    gchar **groups, **i;
-
     g_return_if_fail (manager != NULL);
-
-    /* Load the seat modules */
-    seat_register_module ("xlocal", SEAT_XLOCAL_TYPE);
-
-    /* Load the static display entries */
-    groups = config_get_groups (config_get_instance ());
-    for (i = groups; *i; i++)
-    {
-        gchar *config_section = *i;
-
-        if (!g_str_has_prefix (config_section, "Seat:"))
-            continue;
-
-        g_debug ("Loading seat %s", config_section);
-        add_static_seat (manager, config_section);
-    }
-    g_strfreev (groups);
-
-    /* If no seats start a default one */
-    if (!manager->priv->seats && config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
-    {
-        g_debug ("Adding default seat");
-        add_static_seat (manager, NULL);
-    }
 
     /* Disable Plymouth if no X servers are replacing it */
     if (plymouth_get_is_active ())
     {
         g_debug ("Stopping Plymouth, no displays replace it");      
         plymouth_quit (FALSE);
-    }
-
-    /* Start the XDMCP server */
-    if (config_get_boolean (config_get_instance (), "XDMCPServer", "enabled"))
-    {
-        gchar *key_name, *key = NULL;
-
-        manager->priv->xdmcp_server = xdmcp_server_new ();
-        if (config_has_key (config_get_instance (), "XDMCPServer", "port"))
-        {
-            gint port;
-            port = config_get_integer (config_get_instance (), "XDMCPServer", "port");
-            if (port > 0)
-                xdmcp_server_set_port (manager->priv->xdmcp_server, port);
-        }
-        g_signal_connect (manager->priv->xdmcp_server, "new-session", G_CALLBACK (xdmcp_session_cb), manager);
-
-        key_name = config_get_string (config_get_instance (), "XDMCPServer", "key");
-        if (key_name)
-        {
-            gchar *dir, *path;
-            GKeyFile *keys;
-            GError *error = NULL;
-
-            dir = config_get_string (config_get_instance (), "LightDM", "config-directory");
-            path = g_build_filename (dir, "keys.conf", NULL);
-            g_free (dir);
-
-            keys = g_key_file_new ();
-            if (g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error))
-            {
-                if (g_key_file_has_key (keys, "keyring", key_name, NULL))
-                    key = g_key_file_get_string (keys, "keyring", key_name, NULL);
-                else
-                    g_debug ("Key %s not defined", error->message);
-            }
-            else
-                g_debug ("Error getting key %s", error->message);
-            g_clear_error (&error);
-            g_free (path);
-            g_key_file_free (keys);
-        }
-        if (key)
-            xdmcp_server_set_key (manager->priv->xdmcp_server, key);
-        g_free (key_name);
-        g_free (key);
-
-        g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (manager->priv->xdmcp_server));
-        xdmcp_server_start (manager->priv->xdmcp_server); 
     }
 
     g_signal_emit (manager, signals[STARTED], 0);
@@ -244,13 +124,6 @@ display_manager_stop (DisplayManager *manager)
 
     manager->priv->stopping = TRUE;
 
-    if (manager->priv->xdmcp_server)
-    {
-        // FIXME: xdmcp_server_stop
-        g_object_unref (manager->priv->xdmcp_server);
-        manager->priv->xdmcp_server = NULL;
-    }
-
     if (check_stopped (manager))
         return;
 
@@ -266,6 +139,9 @@ static void
 display_manager_init (DisplayManager *manager)
 {
     manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, DISPLAY_MANAGER_TYPE, DisplayManagerPrivate);
+
+    /* Load the seat modules */
+    seat_register_module ("xlocal", SEAT_XLOCAL_TYPE);
 }
 
 static void
@@ -276,8 +152,6 @@ display_manager_finalize (GObject *object)
 
     self = DISPLAY_MANAGER (object);
 
-    if (self->priv->xdmcp_server)
-        g_object_unref (self->priv->xdmcp_server);
     for (link = self->priv->seats; link; link = link->next)
         g_object_unref (link->data);
     g_list_free (self->priv->seats);

@@ -50,9 +50,17 @@ GType seat_get_type (void);
 
 void seat_register_module (const gchar *name, GType type);
 
-Seat *seat_new (const gchar *module, const gchar *config_section);
+Seat *seat_new (const gchar *module_name);
 
-const gchar *seat_get_config_section (Seat *seat);
+void seat_set_property (Seat *seat, const gchar *name, const gchar *value);
+
+gboolean seat_has_property (Seat *seat, const gchar *name);
+
+const gchar *seat_get_string_property (Seat *seat, const gchar *name);
+
+gboolean seat_get_boolean_property (Seat *seat, const gchar *name);
+
+gint seat_get_integer_property (Seat *seat, const gchar *name);
 
 void seat_set_can_switch (Seat *seat, gboolean can_switch);
 

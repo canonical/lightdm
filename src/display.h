@@ -52,8 +52,6 @@ typedef struct
 
 GType display_get_type (void);
 
-void display_load_config (Display *display, const gchar *config_section);
-
 void display_set_display_server (Display *display, DisplayServer *display_server);
 
 DisplayServer *display_get_display_server (Display *display);
@@ -62,11 +60,17 @@ const gchar *display_get_username (Display *display);
 
 Session *display_get_session (Display *display);
 
+void display_set_greeter_session (Display *display, const gchar *greeter_session);
+
+void display_set_session_wrapper (Display *display, const gchar *session_wrapper);
+
 void display_set_allow_guest (Display *display, gboolean allow_guest);
 
 void display_set_autologin_user (Display *display, const gchar *username, gboolean is_guest, gint timeout);
 
 void display_set_select_user_hint (Display *display, const gchar *username, gboolean is_guest);
+
+void display_set_hide_users_hint (Display *display, gboolean hide_users);
 
 void display_set_user_session (Display *display, const gchar *session_name);
 

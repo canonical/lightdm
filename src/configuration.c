@@ -40,6 +40,12 @@ config_get_groups (Configuration *config)
     return g_key_file_get_groups (config->priv->key_file, NULL);
 }
 
+gchar **
+config_get_keys (Configuration *config, const gchar *group_name)
+{
+    return g_key_file_get_keys (config->priv->key_file, group_name, NULL, NULL);
+}
+
 gboolean
 config_has_key (Configuration *config, const gchar *section, const gchar *key)
 {

@@ -51,9 +51,6 @@ struct DisplayPrivate
     /* Display server */
     DisplayServer *display_server;
 
-    /* User to run greeter as */
-    gchar *greeter_user;
-
     /* Greeter session */
     gchar *greeter_session;
 
@@ -63,12 +60,6 @@ struct DisplayPrivate
     /* Session requested to log into */
     gchar *user_session;
   
-    /* Directory to load X sessions from */
-    gchar *xsessions_dir;
-
-    /* Directory to load X greeters from */
-    gchar *xgreeters_dir;
-
     /* Program to run sessions through */
     gchar *session_wrapper;
 
@@ -115,41 +106,6 @@ static gboolean start_greeter_session (Display *display);
 static gboolean start_user_session (Display *display, PAMSession *authentication);
 
 // FIXME: Should be a construct property
-// FIXME: Move into seat.c
-void
-display_load_config (Display *display, const gchar *config_section)
-{
-    g_return_if_fail (display != NULL);
-    
-    display->priv->greeter_user = config_get_string (config_get_instance (), "LightDM", "greeter-user");
-
-    if (config_section)
-        display->priv->greeter_session = config_get_string (config_get_instance (), config_section, "greeter-session");
-    if (!display->priv->greeter_session)
-        display->priv->greeter_session = config_get_string (config_get_instance (), "SeatDefaults", "greeter-session");
-    if (config_section && config_has_key (config_get_instance (), config_section, "greeter-hide-users"))
-        display->priv->greeter_hide_users = config_get_boolean (config_get_instance (), config_section, "greeter-hide-users");
-    else if (config_has_key (config_get_instance (), "SeatDefaults", "greeter-hide-users"))
-        display->priv->greeter_hide_users = config_get_boolean (config_get_instance (), "SeatDefaults", "greeter-hide-users");
-    if (config_section)
-        display->priv->user_session = config_get_string (config_get_instance (), config_section, "user-session");
-    if (!display->priv->user_session)
-        display->priv->user_session = config_get_string (config_get_instance (), "SeatDefaults", "user-session");
-    if (config_section)
-        display->priv->xsessions_dir = config_get_string (config_get_instance (), config_section, "xsessions-directory");
-    if (!display->priv->xsessions_dir)
-        display->priv->xsessions_dir = config_get_string (config_get_instance (), "SeatDefaults", "xsessions-directory");
-    if (config_section)
-        display->priv->xgreeters_dir = config_get_string (config_get_instance (), config_section, "xgreeters-directory");
-    if (!display->priv->xgreeters_dir)
-        display->priv->xgreeters_dir = config_get_string (config_get_instance (), "SeatDefaults", "xgreeters-directory");
-    if (config_section)
-        display->priv->session_wrapper = config_get_string (config_get_instance (), config_section, "session-wrapper");
-    if (!display->priv->session_wrapper)
-        display->priv->session_wrapper = config_get_string (config_get_instance (), "SeatDefaults", "session-wrapper");
-}
-
-// FIXME: Should be a construct property
 void
 display_set_display_server (Display *display, DisplayServer *display_server)
 {
@@ -184,6 +140,22 @@ display_get_session (Display *display)
 }
 
 void
+display_set_greeter_session (Display *display, const gchar *greeter_session)
+{
+    g_return_if_fail (display != NULL);
+    g_free (display->priv->greeter_session);
+    display->priv->greeter_session = g_strdup (greeter_session);
+}
+
+void
+display_set_session_wrapper (Display *display, const gchar *session_wrapper)
+{
+    g_return_if_fail (display != NULL);
+    g_free (display->priv->session_wrapper);
+    display->priv->session_wrapper = g_strdup (session_wrapper);
+}
+
+void
 display_set_allow_guest (Display *display, gboolean allow_guest)
 {
     g_return_if_fail (display != NULL);
@@ -210,14 +182,18 @@ display_set_select_user_hint (Display *display, const gchar *username, gboolean 
 }
 
 void
+display_set_hide_users_hint (Display *display, gboolean hide_users)
+{
+    g_return_if_fail (display != NULL);
+    display->priv->greeter_hide_users = hide_users;
+}
+
+void
 display_set_user_session (Display *display, const gchar *session_name)
 {
     g_return_if_fail (display != NULL);
-    if (session_name)
-    {
-        g_free (display->priv->user_session);
-        display->priv->user_session = g_strdup (session_name);
-    }
+    g_free (display->priv->user_session);
+    display->priv->user_session = g_strdup (session_name);
 }
 
 static gboolean
@@ -560,12 +536,12 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
 
     // FIXME: This is X specific, move into xsession.c
     if (is_greeter)
-        sessions_dir = display->priv->xgreeters_dir;
+        sessions_dir = config_get_string (config_get_instance (), "LightDM", "xgreeters-directory");
     else
-        sessions_dir = display->priv->xsessions_dir;    
-
+        sessions_dir = config_get_string (config_get_instance (), "LightDM", "xsessions-directory");
     filename = g_strdup_printf ("%s.desktop", session_name);
     path = g_build_filename (sessions_dir, filename, NULL);
+    g_free (sessions_dir);
     g_free (filename);
 
     session_desktop_file = g_key_file_new ();
@@ -708,19 +684,23 @@ start_greeter_session (Display *display)
 
     if (getuid () != 0)
         user = user_get_current ();
-    else if (display->priv->greeter_user)
-    {
-        user = user_get_by_name (display->priv->greeter_user);
-        if (!user)
-        {
-            g_debug ("Unable to start greeter, user %s does not exist", display->priv->greeter_user);
-            return FALSE;
-        }
-    }
     else
     {
-        g_warning ("Greeter must not be run as root");
-        return FALSE;
+        gchar *greeter_user;
+
+        greeter_user = config_get_string (config_get_instance (), "LightDM", "greeter-user");
+        if (!greeter_user)
+        {
+            g_warning ("Greeter must not be run as root");
+            return FALSE;
+        }
+
+        user = user_get_by_name (greeter_user);
+        if (!user)
+            g_debug ("Unable to start greeter, user %s does not exist", greeter_user);
+        g_free (greeter_user);
+        if (!user)
+            return FALSE;
     }
     display->priv->in_user_session = FALSE;
 
@@ -1042,12 +1022,9 @@ display_finalize (GObject *object)
 
     if (self->priv->display_server)
         g_object_unref (self->priv->display_server);
-    g_free (self->priv->greeter_user);
     g_free (self->priv->greeter_session);
     if (self->priv->greeter)
         g_object_unref (self->priv->greeter);
-    g_free (self->priv->xsessions_dir);
-    g_free (self->priv->xgreeters_dir);
     g_free (self->priv->session_wrapper);
     g_free (self->priv->pam_service);
     g_free (self->priv->pam_autologin_service);

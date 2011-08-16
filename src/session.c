@@ -19,7 +19,6 @@
 #include <grp.h>
 
 #include "session.h"
-#include "configuration.h"
 
 struct SessionPrivate
 {

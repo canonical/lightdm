@@ -14,7 +14,6 @@
 #include <xcb/xcb.h>
 
 #include "xserver.h"
-#include "configuration.h"
 #include "xsession.h"
 
 struct XServerPrivate

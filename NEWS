@@ -4,6 +4,9 @@ Overview of changes in lightdm 0.9.4
       greeter for lightdm. This is useful for derivatives waiting to not ship
       the whole configuration file of lightdm
     * Fix crash in GTK+ greeter when a user is added
+    * Move xsessions-directory and xgreeters-directory from [SeatDefaults] to
+      [LightDM].  This is a configuration break, but making it on the assumption
+      that these settings are not likely to have been overridden.
 
 Overview of changes in lightdm 0.9.3
 

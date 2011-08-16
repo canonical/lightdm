@@ -43,6 +43,8 @@ GType display_manager_get_type (void);
 
 DisplayManager *display_manager_new (void);
 
+gboolean display_manager_add_seat (DisplayManager *manager, Seat *seat);
+
 GList *display_manager_get_seats (DisplayManager *manager);
 
 void display_manager_start (DisplayManager *manager);
