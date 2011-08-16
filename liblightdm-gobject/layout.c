@@ -235,25 +235,25 @@ lightdm_layout_class_init (LightDMLayoutClass *klass)
     object_class->set_property = lightdm_layout_set_property;
     object_class->get_property = lightdm_layout_get_property;
 
-    g_object_class_install_property(object_class,
-                                    PROP_NAME,
-                                    g_param_spec_string("name",
-                                                        "name",
-                                                        "Name of the layout",
-                                                        NULL,
-                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-    g_object_class_install_property(object_class,
-                                    PROP_SHORT_DESCRIPTION,
-                                    g_param_spec_string("short-description",
-                                                        "short-description",
-                                                        "Short description of the layout",
-                                                        NULL,
-                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-    g_object_class_install_property(object_class,
-                                    PROP_DESCRIPTION,
-                                    g_param_spec_string("description",
-                                                        "description",
-                                                        "Long description of the layout",
-                                                        NULL,
-                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+    g_object_class_install_property (object_class,
+                                     PROP_NAME,
+                                     g_param_spec_string ("name",
+                                                          "name",
+                                                          "Name of the layout",
+                                                          NULL,
+                                                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+    g_object_class_install_property (object_class,
+                                     PROP_SHORT_DESCRIPTION,
+                                     g_param_spec_string ("short-description",
+                                                          "short-description",
+                                                          "Short description of the layout",
+                                                          NULL,
+                                                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+    g_object_class_install_property (object_class,
+                                     PROP_DESCRIPTION,
+                                     g_param_spec_string ("description",
+                                                          "description",
+                                                          "Long description of the layout",
+                                                          NULL,
+                                                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }

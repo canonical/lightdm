@@ -298,25 +298,25 @@ lightdm_language_class_init (LightDMLanguageClass *klass)
     object_class->set_property = lightdm_language_set_property;
     object_class->get_property = lightdm_language_get_property;
 
-    g_object_class_install_property(object_class,
-                                    PROP_CODE,
-                                    g_param_spec_string("code",
-                                                        "code",
-                                                        "Language code",
-                                                        NULL,
-                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-    g_object_class_install_property(object_class,
-                                    PROP_NAME,
-                                    g_param_spec_string("name",
-                                                        "name",
-                                                        "Name of the language",
-                                                        NULL,
-                                                        G_PARAM_READABLE));
-    g_object_class_install_property(object_class,
-                                    PROP_TERRITORY,
-                                    g_param_spec_string("territory",
-                                                        "territory",
-                                                        "Territory the language is from",
-                                                        NULL,
-                                                        G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     PROP_CODE,
+                                     g_param_spec_string ("code",
+                                                          "code",
+                                                          "Language code",
+                                                          NULL,
+                                                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+    g_object_class_install_property (object_class,
+                                     PROP_NAME,
+                                     g_param_spec_string ("name",
+                                                          "name",
+                                                          "Name of the language",
+                                                          NULL,
+                                                          G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     PROP_TERRITORY,
+                                     g_param_spec_string ("territory",
+                                                          "territory",
+                                                          "Territory the language is from",
+                                                          NULL,
+                                                          G_PARAM_READABLE));
 }

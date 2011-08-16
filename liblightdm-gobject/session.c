@@ -275,25 +275,25 @@ lightdm_session_class_init (LightDMSessionClass *klass)
     object_class->set_property = lightdm_session_set_property;
     object_class->get_property = lightdm_session_get_property;
 
-    g_object_class_install_property(object_class,
-                                    PROP_KEY,
-                                    g_param_spec_string ("key",
-                                                         "key",
-                                                         "Session key",
-                                                         NULL,
-                                                         G_PARAM_READABLE));
-    g_object_class_install_property(object_class,
-                                    PROP_NAME,
-                                    g_param_spec_string ("name",
-                                                         "name",
-                                                         "Session name",
-                                                         NULL,
-                                                         G_PARAM_READABLE));
-    g_object_class_install_property(object_class,
-                                    PROP_COMMENT,
-                                    g_param_spec_string ("comment",
-                                                         "comment",
-                                                         "Session comment",
-                                                         NULL,
-                                                         G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     PROP_KEY,
+                                     g_param_spec_string ("key",
+                                                          "key",
+                                                          "Session key",
+                                                          NULL,
+                                                          G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     PROP_NAME,
+                                     g_param_spec_string ("name",
+                                                          "name",
+                                                          "Session name",
+                                                          NULL,
+                                                          G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     PROP_COMMENT,
+                                     g_param_spec_string ("comment",
+                                                          "comment",
+                                                          "Session comment",
+                                                          NULL,
+                                                          G_PARAM_READABLE));
 }
