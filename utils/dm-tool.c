@@ -108,6 +108,7 @@ main (int argc, char **argv)
                         "  switch-to-greeter                   Switch to the greeter\n"
                         "  switch-to-user USERNAME [SESSION]   Switch to a user session\n"
                         "  switch-to-guest [SESSION]           Switch to a guest session\n"
+                        "  list-seats                          List the active seats\n"
                         "  add-nested-seat                     Start a nested display\n"
                         "  add-seat TYPE [NAME=VALUE...]       Add a dynamic seat\n");
             return EXIT_SUCCESS;
@@ -246,6 +247,110 @@ main (int argc, char **argv)
         }
         return EXIT_SUCCESS;
     }
+    else if (strcmp (command, "list-seats") == 0)
+    {
+        GVariant *seats, *sessions;
+        GVariantIter *seat_iter;
+        gchar *seat_path;
+
+        if (!g_dbus_proxy_get_name_owner (dm_proxy))
+        {
+            g_printerr ("Unable to contact display manager\n");
+            return EXIT_FAILURE;
+        }
+        seats = g_dbus_proxy_get_cached_property (dm_proxy, "Seats");
+
+        g_variant_get (seats, "ao", &seat_iter);
+        while (g_variant_iter_loop (seat_iter, "&o", &seat_path))
+        {
+            gchar *seat_name;
+            GDBusProxy *seat_proxy;
+            gchar **property_names;
+            GVariant *sessions;
+            GVariantIter *session_iter;
+            gchar *session_path;
+            gint i;
+
+            if (g_str_has_prefix (seat_path, "/org/freedesktop/DisplayManager/"))
+                seat_name = seat_path + strlen ("/org/freedesktop/DisplayManager/");
+            else
+                seat_name = seat_path;
+
+            seat_proxy = g_dbus_proxy_new_sync (g_dbus_proxy_get_connection (dm_proxy),
+                                                G_DBUS_PROXY_FLAGS_NONE,
+                                                NULL,
+                                                "org.freedesktop.DisplayManager",
+                                                seat_path,
+                                                "org.freedesktop.DisplayManager.Seat",
+                                                NULL,
+                                                NULL);
+            if (!seat_proxy || !g_dbus_proxy_get_name_owner (seat_proxy))
+                continue;
+
+            g_print ("%s\n", seat_name);
+            property_names = g_dbus_proxy_get_cached_property_names (seat_proxy);
+            for (i = 0; property_names[i]; i++)
+            {
+                GVariant *value;
+
+                if (strcmp (property_names[i], "Sessions") == 0)
+                    continue;
+
+                value = g_dbus_proxy_get_cached_property (seat_proxy, property_names[i]);
+                g_print ("  %s=%s\n", property_names[i], g_variant_print (value, FALSE));
+                g_variant_unref (value);
+            }
+
+            sessions = g_dbus_proxy_get_cached_property (seat_proxy, "Sessions");
+            if (!sessions)
+                continue;
+
+            g_variant_get (sessions, "ao", &session_iter);
+            while (g_variant_iter_loop (session_iter, "&o", &session_path))
+            {
+                GDBusProxy *session_proxy;
+                gchar *session_name;
+
+                if (g_str_has_prefix (session_path, "/org/freedesktop/DisplayManager/"))
+                    session_name = session_path + strlen ("/org/freedesktop/DisplayManager/");
+                else
+                    session_name = session_path;
+
+                session_proxy = g_dbus_proxy_new_sync (g_dbus_proxy_get_connection (dm_proxy),
+                                                       G_DBUS_PROXY_FLAGS_NONE,
+                                                       NULL,
+                                                       "org.freedesktop.DisplayManager",
+                                                       session_path,
+                                                       "org.freedesktop.DisplayManager.Session",
+                                                       NULL,
+                                                       NULL);
+                if (!session_proxy || !g_dbus_proxy_get_name_owner (session_proxy))
+                    continue;
+
+                g_print ("  %s\n", session_name);
+                property_names = g_dbus_proxy_get_cached_property_names (session_proxy);
+                for (i = 0; property_names[i]; i++)
+                {
+                    GVariant *value;
+
+                    if (strcmp (property_names[i], "Seat") == 0)
+                        continue;
+
+                    value = g_dbus_proxy_get_cached_property (session_proxy, property_names[i]);
+                    g_print ("    %s=%s\n", property_names[i], g_variant_print (value, FALSE));
+                    g_variant_unref (value);
+                }
+
+                g_object_unref (session_proxy);
+            }
+            g_variant_iter_free (session_iter);
+
+            g_object_unref (seat_proxy);
+        }
+        g_variant_iter_free (seat_iter);
+
+        return EXIT_SUCCESS;
+    }
     else if (strcmp (command, "add-nested-seat") == 0)
     {
         gchar *path, *xephyr_command, **xephyr_argv;
@@ -254,7 +359,7 @@ main (int argc, char **argv)
         path = g_find_program_in_path ("Xephyr");
         if (!path)
         {
-            g_printerr ("Unable to find Xephry, please install it\n");
+            g_printerr ("Unable to find Xephyr, please install it\n");
             return EXIT_FAILURE;
         }
 
