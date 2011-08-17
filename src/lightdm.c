@@ -510,7 +510,7 @@ session_started_cb (Display *display, Seat *seat)
     session = display_get_session (display);
 
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
-    entry = bus_entry_new (process_get_env (PROCESS (session), "XDG_SEAT_PATH"), seat_entry ? seat_entry->path : NULL, "SessionRemoved");
+    entry = bus_entry_new (process_get_env (PROCESS (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL, "SessionRemoved");
     g_hash_table_insert (session_bus_entries, g_object_ref (session), entry);
 
     entry->bus_id = g_dbus_connection_register_object (bus,
