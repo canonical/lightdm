@@ -54,36 +54,6 @@ display_manager_get_seats (DisplayManager *manager)
     return manager->priv->seats;
 }
 
-gboolean
-display_manager_add_seat (DisplayManager *manager, Seat *seat)
-{
-    gboolean result;
-
-    result = seat_start (SEAT (seat));
-    if (!result)
-        return FALSE;
-
-    manager->priv->seats = g_list_append (manager->priv->seats, g_object_ref (seat));
-    g_signal_emit (manager, signals[SEAT_ADDED], 0, seat);
-
-    return TRUE;
-}
-
-void
-display_manager_start (DisplayManager *manager)
-{
-    g_return_if_fail (manager != NULL);
-
-    /* Disable Plymouth if no X servers are replacing it */
-    if (plymouth_get_is_active ())
-    {
-        g_debug ("Stopping Plymouth, no displays replace it");      
-        plymouth_quit (FALSE);
-    }
-
-    g_signal_emit (manager, signals[STARTED], 0);
-}
-
 static gboolean
 check_stopped (DisplayManager *manager)
 {
@@ -111,6 +81,37 @@ seat_stopped_cb (Seat *seat, DisplayManager *manager)
     g_signal_emit (manager, signals[SEAT_REMOVED], 0, seat);
 }
 
+gboolean
+display_manager_add_seat (DisplayManager *manager, Seat *seat)
+{
+    gboolean result;
+
+    result = seat_start (SEAT (seat));
+    if (!result)
+        return FALSE;
+
+    manager->priv->seats = g_list_append (manager->priv->seats, g_object_ref (seat));
+    g_signal_connect (seat, "stopped", G_CALLBACK (seat_stopped_cb), manager);
+    g_signal_emit (manager, signals[SEAT_ADDED], 0, seat);
+
+    return TRUE;
+}
+
+void
+display_manager_start (DisplayManager *manager)
+{
+    g_return_if_fail (manager != NULL);
+
+    /* Disable Plymouth if no X servers are replacing it */
+    if (plymouth_get_is_active ())
+    {
+        g_debug ("Stopping Plymouth, no displays replace it");      
+        plymouth_quit (FALSE);
+    }
+
+    g_signal_emit (manager, signals[STARTED], 0);
+}
+
 void
 display_manager_stop (DisplayManager *manager)
 {
@@ -131,7 +132,6 @@ display_manager_stop (DisplayManager *manager)
     for (link = manager->priv->seats; link; link = link->next)
     {
         Seat *seat = link->data;
-        g_signal_connect (seat, "stopped", G_CALLBACK (seat_stopped_cb), manager);
         seat_stop (seat);
     }
 }

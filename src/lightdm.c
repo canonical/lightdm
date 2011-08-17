@@ -465,6 +465,7 @@ static void
 bus_entry_free (gpointer data)
 {
     BusEntry *entry = data;
+
     g_dbus_connection_unregister_object (bus, entry->bus_id);
 
     g_dbus_connection_emit_signal (bus,
@@ -581,7 +582,7 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
 }
 
 static void
-seat_removed_cb (Seat *seat)
+seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
     g_hash_table_remove (seat_bus_entries, seat);
 }

@@ -21,8 +21,8 @@ G_DEFINE_TYPE (SeatXRemote, seat_xremote, SEAT_TYPE);
 
 struct SeatXRemotePrivate
 {
-    /* TRUE if stopping this seat (waiting for displays to stop) */
-    gboolean stopping;
+    /* Display being controlled by this seat */
+    XDisplay *display;
 };
 
 static void
@@ -36,9 +36,12 @@ static Display *
 seat_xremote_add_display (Seat *seat)
 {
     XServerRemote *xserver;
-    XDisplay *display;
     const gchar *hostname;
     gint number;
+
+    /* Can only have one display */
+    if (SEAT_XREMOTE (seat)->priv->display)
+        return NULL;
 
     hostname = seat_get_string_property (seat, "xserver-hostname");
     if (!hostname)
@@ -49,30 +52,17 @@ seat_xremote_add_display (Seat *seat)
 
     xserver = xserver_remote_new (hostname, number, NULL);
 
-    display = xdisplay_new (XSERVER (xserver));
+    SEAT_XREMOTE (seat)->priv->display = xdisplay_new (XSERVER (xserver));
     g_object_unref (xserver);
   
-    return DISPLAY (display);
+    return DISPLAY (SEAT_XREMOTE (seat)->priv->display);
 }
 
 static void
 seat_xremote_display_removed (Seat *seat, Display *display)
 {
-    SeatXRemotePrivate *priv = SEAT_XREMOTE (seat)->priv;
-
-    /* Show a new greeter */
-    if (!priv->stopping && display == seat_get_active_display (seat))
-    {
-        g_debug ("Active display stopped, switching to greeter");
-        seat_switch_to_greeter (seat);
-    }
-}
-
-static void
-seat_xremote_stop (Seat *seat)
-{
-    SEAT_XREMOTE (seat)->priv->stopping = TRUE;
-    SEAT_CLASS (seat_xremote_parent_class)->stop (seat);
+    /* Can't restart the display, so remote this seat */
+    seat_stop (seat);
 }
 
 static void
@@ -89,7 +79,6 @@ seat_xremote_class_init (SeatXRemoteClass *klass)
     seat_class->setup = seat_xremote_setup;
     seat_class->add_display = seat_xremote_add_display;
     seat_class->display_removed = seat_xremote_display_removed;
-    seat_class->stop = seat_xremote_stop;
 
     g_type_class_add_private (klass, sizeof (SeatXRemotePrivate));
 }
