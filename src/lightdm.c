@@ -253,8 +253,8 @@ handle_display_manager_call (GDBusConnection       *connection,
     if (g_strcmp0 (method_name, "AddSeat") == 0)
     {
         gchar *type;
-        GVariantIter property_iter;
-        GVariant *property;
+        GVariantIter *property_iter;
+        gchar *name, *value;
         Seat *seat;
         BusEntry *entry;
 
@@ -266,22 +266,19 @@ handle_display_manager_call (GDBusConnection       *connection,
         g_debug ("Adding seat of type %s", type);
 
         seat = seat_new (type);
+        if (seat)
+        {
+            set_seat_properties (seat, NULL);
+            while (g_variant_iter_loop (property_iter, "(&s&s)", &name, &value))
+                seat_set_property (seat, name, value);
+        }
+        g_variant_iter_free (property_iter);
+
         if (!seat)
         {
             // FIXME: Need to make proper error
             g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Unable to create seat of type %s", type);
             return;
-        }
-
-        set_seat_properties (seat, NULL);
-        while ((property = g_variant_iter_next_value (&property_iter)))
-        {
-            gchar *name, *value;
-
-            g_variant_get (parameters, "(&s&s)", &name, &value);
-            seat_set_property (seat, name, value);
-
-            g_variant_unref (property);
         }
 
         display_manager_add_seat (display_manager, seat);
