@@ -11,6 +11,7 @@ Overview of changes in lightdm 0.9.4
     * Fix duplicate user entries being shown when using passwd file
     * Add AddSeat D-Bus method for adding dynamic seats
     * Added a dm-tool program that allows user switching and adding seats
+    * Allow remote X servers, e.g. launched using dm-tool add-nested-seat
 
 Overview of changes in lightdm 0.9.3
 
