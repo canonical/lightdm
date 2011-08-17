@@ -40,7 +40,7 @@ seat_xlocal_add_display (Seat *seat)
     const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
     gint port = 0;
 
-    g_debug ("Starting Local X Display");
+    g_debug ("Starting local X display");
   
     xserver = xserver_local_new ();
 
