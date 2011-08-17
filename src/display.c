@@ -101,6 +101,9 @@ struct DisplayPrivate
 
     /* TRUE if stopping the display (waiting for dispaly server, greeter and session to stop) */
     gboolean stopping;
+
+    /* TRUE if stopped */
+    gboolean stopped;
 };
 
 G_DEFINE_TYPE (Display, display, G_TYPE_OBJECT);
@@ -363,9 +366,11 @@ static void
 check_stopped (Display *display)
 {
     if (display->priv->stopping &&
+        !display->priv->stopped &&
         display->priv->display_server == NULL &&
         display->priv->session == NULL)
     {
+        display->priv->stopped = TRUE;
         g_debug ("Display stopped");
         g_signal_emit (display, signals[STOPPED], 0);
     }

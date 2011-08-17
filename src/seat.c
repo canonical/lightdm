@@ -45,6 +45,9 @@ struct SeatPrivate
 
     /* TRUE if stopping this seat (waiting for displays to stop) */
     gboolean stopping;
+
+    /* TRUE if stopped */
+    gboolean stopped;
 };
 
 G_DEFINE_TYPE (Seat, seat, G_TYPE_OBJECT);
@@ -249,16 +252,17 @@ display_session_stopped_cb (Display *display, Seat *seat)
     }
 }
 
-static gboolean
+static void
 check_stopped (Seat *seat)
 {
-    if (g_list_length (seat->priv->displays) == 0)
+    if (seat->priv->stopping &&
+        !seat->priv->stopped &&
+        g_list_length (seat->priv->displays) == 0)
     {
+        seat->priv->stopped = TRUE;
         g_debug ("Seat stopped");
         g_signal_emit (seat, signals[STOPPED], 0);
-        return TRUE;
     }
-    return FALSE;
 }
 
 static void
@@ -269,8 +273,7 @@ display_stopped_cb (Display *display, Seat *seat)
     g_signal_emit (seat, signals[DISPLAY_REMOVED], 0, display);
     g_object_unref (display);
 
-    if (seat->priv->stopping)
-        check_stopped (seat);
+    check_stopped (seat);
 }
 
 static gboolean
@@ -399,6 +402,13 @@ seat_stop (Seat *seat)
     SEAT_GET_CLASS (seat)->stop (seat);
 }
 
+gboolean
+seat_get_is_stopping (Seat *seat)
+{
+    g_return_val_if_fail (seat != NULL, FALSE);
+    return seat->priv->stopping;
+}
+
 static void
 seat_real_setup (Seat *seat)
 {
@@ -451,7 +461,8 @@ seat_real_stop (Seat *seat)
 {
     GList *link;
 
-    if (check_stopped (seat))
+    check_stopped (seat);
+    if (seat->priv->stopped)
         return;
 
     for (link = seat->priv->displays; link; link = link->next)

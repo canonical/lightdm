@@ -19,12 +19,6 @@
 
 G_DEFINE_TYPE (SeatXLocal, seat_xlocal, SEAT_TYPE);
 
-struct SeatXLocalPrivate
-{
-    /* TRUE if stopping this seat (waiting for displays to stop) */
-    gboolean stopping;
-};
-
 static void
 seat_xlocal_setup (Seat *seat)
 {
@@ -119,10 +113,8 @@ seat_xlocal_set_active_display (Seat *seat, Display *display)
 static void
 seat_xlocal_display_removed (Seat *seat, Display *display)
 {
-    SeatXLocalPrivate *priv = SEAT_XLOCAL (seat)->priv;
-
     /* Show a new greeter */
-    if (!priv->stopping && display == seat_get_active_display (seat))
+    if (!seat_get_is_stopping (seat) && display == seat_get_active_display (seat))
     {
         g_debug ("Active display stopped, switching to greeter");
         seat_switch_to_greeter (seat);
@@ -130,16 +122,8 @@ seat_xlocal_display_removed (Seat *seat, Display *display)
 }
 
 static void
-seat_xlocal_stop (Seat *seat)
-{
-    SEAT_XLOCAL (seat)->priv->stopping = TRUE;
-    SEAT_CLASS (seat_xlocal_parent_class)->stop (seat);
-}
-
-static void
 seat_xlocal_init (SeatXLocal *seat)
 {
-    seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_XLOCAL_TYPE, SeatXLocalPrivate);
 }
 
 static void
@@ -151,7 +135,4 @@ seat_xlocal_class_init (SeatXLocalClass *klass)
     seat_class->add_display = seat_xlocal_add_display;
     seat_class->set_active_display = seat_xlocal_set_active_display;
     seat_class->display_removed = seat_xlocal_display_removed;
-    seat_class->stop = seat_xlocal_stop;
-
-    g_type_class_add_private (klass, sizeof (SeatXLocalPrivate));
 }

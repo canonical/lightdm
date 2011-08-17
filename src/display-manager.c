@@ -38,6 +38,9 @@ struct DisplayManagerPrivate
 
     /* TRUE if stopping the display manager (waiting for seats to stop) */
     gboolean stopping;
+
+    /* TRUE if stopped */
+    gboolean stopped;
 };
 
 G_DEFINE_TYPE (DisplayManager, display_manager, G_TYPE_OBJECT);
@@ -54,16 +57,17 @@ display_manager_get_seats (DisplayManager *manager)
     return manager->priv->seats;
 }
 
-static gboolean
+static void
 check_stopped (DisplayManager *manager)
 {
-    if (g_list_length (manager->priv->seats) == 0)
+    if (manager->priv->stopping &&
+        !manager->priv->stopped &&
+        g_list_length (manager->priv->seats) == 0)
     {
+        manager->priv->stopped = TRUE;
         g_debug ("Display manager stopped");
         g_signal_emit (manager, signals[STOPPED], 0);
-        return TRUE;
     }
-    return FALSE;
 }
 
 static void
@@ -72,13 +76,10 @@ seat_stopped_cb (Seat *seat, DisplayManager *manager)
     manager->priv->seats = g_list_remove (manager->priv->seats, seat);
     g_signal_handlers_disconnect_matched (seat, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, manager);
 
-    if (manager->priv->stopping)
-    {      
-        check_stopped (manager);
-        return;
-    }
+    check_stopped (manager);
 
-    g_signal_emit (manager, signals[SEAT_REMOVED], 0, seat);
+    if (!manager->priv->stopping)
+        g_signal_emit (manager, signals[SEAT_REMOVED], 0, seat);
 }
 
 gboolean
@@ -126,9 +127,7 @@ display_manager_stop (DisplayManager *manager)
 
     manager->priv->stopping = TRUE;
 
-    if (check_stopped (manager))
-        return;
-
+    check_stopped (manager);
     for (link = manager->priv->seats; link; link = link->next)
     {
         Seat *seat = link->data;

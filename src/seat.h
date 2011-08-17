@@ -84,6 +84,8 @@ gboolean seat_switch_to_guest (Seat *seat, const gchar *session_name);
 
 void seat_stop (Seat *seat);
 
+gboolean seat_get_is_stopping (Seat *seat);
+
 G_END_DECLS
 
 #endif /* _SEAT_H_ */
