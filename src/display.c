@@ -18,7 +18,7 @@
 #include "configuration.h"
 #include "user.h"
 #include "pam-session.h"
-#include "dmrc.h"
+#include "accounts.h"
 #include "ldm-marshal.h"
 #include "greeter.h"
 #include "xserver-local.h" // FIXME: Shouldn't know if it's an xserver
@@ -779,7 +779,7 @@ static gboolean
 start_user_session (Display *display, PAMSession *authentication)
 {
     User *user;
-    GKeyFile *dmrc_file;
+    Accounts *accounts;
     gchar *log_filename;
     gboolean result = FALSE;
 
@@ -787,13 +787,10 @@ start_user_session (Display *display, PAMSession *authentication)
 
     user = pam_session_get_user (authentication);
 
-    /* Load the users login settings (~/.dmrc) */
-    dmrc_file = dmrc_load (user_get_name (user));
-
-    /* Update the .dmrc with changed settings */
-    g_key_file_set_string (dmrc_file, "Desktop", "Session", display->priv->user_session);
-    dmrc_save (dmrc_file, user_get_name (user));
-    g_key_file_free (dmrc_file);
+    /* Update user's xsession setting */
+    accounts = accounts_new (user_get_name (user));
+    accounts_set_session (accounts, display->priv->user_session);
+    g_object_unref (accounts);
 
     // FIXME: Copy old error file
     log_filename = g_build_filename (user_get_home_directory (user), ".xsession-errors", NULL);

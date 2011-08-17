@@ -7,6 +7,8 @@ ldm-marshal.h: ldm-marshal.list
 	@GLIB_GENMARSHAL@ --prefix=ldm_marshal $(srcdir)/ldm-marshal.list --header > ldm-marshal.h
 
 lightdm_SOURCES = \
+	accounts.c \
+	accounts.h \
 	configuration.c \
 	configuration.h \
 	display.c \
@@ -15,8 +17,6 @@ lightdm_SOURCES = \
 	display-manager.h \
 	display-server.c \
 	display-server.h \
-	dmrc.c \
-	dmrc.h \
 	greeter.c \
 	greeter.h \
 	guest-account.c \
