@@ -256,7 +256,6 @@ handle_display_manager_call (GDBusConnection       *connection,
         GVariantIter *property_iter;
         gchar *name, *value;
         Seat *seat;
-        BusEntry *entry;
 
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(sa(ss))")))
             return;
@@ -281,10 +280,15 @@ handle_display_manager_call (GDBusConnection       *connection,
             return;
         }
 
-        display_manager_add_seat (display_manager, seat);
-        entry = g_hash_table_lookup (seat_bus_entries, seat);
+        if (display_manager_add_seat (display_manager, seat))
+        {
+            BusEntry *entry;
 
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", entry->path));
+            entry = g_hash_table_lookup (seat_bus_entries, seat);
+            g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", entry->path));
+        }
+        else// FIXME: Need to make proper error
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Failed to start seat");
     }
     else if (g_strcmp0 (method_name, "GetSeatForCookie") == 0)
     {
