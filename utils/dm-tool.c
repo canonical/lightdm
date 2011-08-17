@@ -251,7 +251,7 @@ main (int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        g_variant_get (result, "(&o)", path);
+        g_variant_get (result, "(&o)", &path);
         g_print ("%s\n", path);
 
         return EXIT_SUCCESS;
