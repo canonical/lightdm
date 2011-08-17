@@ -89,9 +89,13 @@ void
 xserver_set_authority (XServer *server, XAuthority *authority)
 {
     g_return_if_fail (server != NULL);
+
     if (server->priv->authority)
         g_object_unref (server->priv->authority);
-    server->priv->authority = g_object_ref (authority);
+    if (authority)
+        server->priv->authority = g_object_ref (authority);
+    else
+        server->priv->authority = NULL;
 }
 
 XAuthority *
