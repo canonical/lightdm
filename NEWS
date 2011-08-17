@@ -9,6 +9,7 @@ Overview of changes in lightdm 0.9.4
       that these settings are not likely to have been overridden.
     * Fix fallback from org.freedesktop.Accounts to passwd format
     * Fix duplicate user entries being shown when using passwd file
+    * Add AddSeat D-Bus method for adding dynamic seats
 
 Overview of changes in lightdm 0.9.3
 

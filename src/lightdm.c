@@ -213,6 +213,34 @@ handle_display_manager_get_property (GDBusConnection       *connection,
 }
 
 static void
+set_seat_properties (Seat *seat, const gchar *config_section)
+{
+    gchar **keys;
+    gint i;
+
+    keys = config_get_keys (config_get_instance (), "SeatDefaults");
+    for (i = 0; keys[i]; i++)
+    {
+        gchar *value = config_get_string (config_get_instance (), "SeatDefaults", keys[i]);
+        seat_set_property (seat, keys[i], value);
+        g_free (value);
+    }
+    g_strfreev (keys);
+
+    if (config_section)
+    {
+        keys = config_get_keys (config_get_instance (), config_section);
+        for (i = 0; keys[i]; i++)
+        {
+            gchar *value = config_get_string (config_get_instance (), config_section, keys[i]);
+            seat_set_property (seat, keys[i], value);
+            g_free (value);
+        }
+        g_strfreev (keys);
+    }
+}
+
+static void
 handle_display_manager_call (GDBusConnection       *connection,
                              const gchar           *sender,
                              const gchar           *object_path,
@@ -222,7 +250,46 @@ handle_display_manager_call (GDBusConnection       *connection,
                              GDBusMethodInvocation *invocation,
                              gpointer               user_data)
 {
-    if (g_strcmp0 (method_name, "GetSeatForCookie") == 0)
+    if (g_strcmp0 (method_name, "AddSeat") == 0)
+    {
+        gchar *type;
+        GVariantIter property_iter;
+        GVariant *property;
+        Seat *seat;
+        BusEntry *entry;
+
+        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(sa(ss))")))
+            return;
+
+        g_variant_get (parameters, "(&sa(ss))", &type, &property_iter);
+
+        g_debug ("Adding seat of type %s", type);
+
+        seat = seat_new (type);
+        if (!seat)
+        {
+            // FIXME: Need to make proper error
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Unable to create seat of type %s", type);
+            return;
+        }
+
+        set_seat_properties (seat, NULL);
+        while ((property = g_variant_iter_next_value (&property_iter)))
+        {
+            gchar *name, *value;
+
+            g_variant_get (parameters, "(&s&s)", &name, &value);
+            seat_set_property (seat, name, value);
+
+            g_variant_unref (property);
+        }
+
+        display_manager_add_seat (display_manager, seat);
+        entry = g_hash_table_lookup (seat_bus_entries, seat);
+
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", entry->path));
+    }
+    else if (g_strcmp0 (method_name, "GetSeatForCookie") == 0)
     {
         gchar *cookie;
         Seat *seat = NULL;
@@ -231,11 +298,9 @@ handle_display_manager_call (GDBusConnection       *connection,
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(s)")))
             return;
 
-        g_variant_get (parameters, "(s)", &cookie);
+        g_variant_get (parameters, "(&s)", &cookie);
 
         get_session_for_cookie (cookie, &seat);
-        g_free (cookie);
-
         if (seat)
             entry = g_hash_table_lookup (seat_bus_entries, seat);
         if (entry)
@@ -252,10 +317,9 @@ handle_display_manager_call (GDBusConnection       *connection,
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(s)")))
             return;
 
-        g_variant_get (parameters, "(s)", &cookie);
+        g_variant_get (parameters, "(&s)", &cookie);
 
         session = get_session_for_cookie (cookie, NULL);
-        g_free (cookie);
         if (session)
             entry = g_hash_table_lookup (session_bus_entries, session);
         if (entry)
@@ -531,6 +595,11 @@ bus_acquired_cb (GDBusConnection *connection,
         "  <interface name='org.freedesktop.DisplayManager'>"
         "    <property name='Seats' type='ao' access='read'/>"
         "    <property name='Sessions' type='ao' access='read'/>"
+        "    <method name='AddSeat'>"
+        "      <arg name='type' direction='in' type='s'/>"
+        "      <arg name='properties' direction='in' type='a(ss)'/>"
+        "      <arg name='seat' direction='out' type='o'/>"
+        "    </method>"
         "    <method name='GetSeatForCookie'>"
         "      <arg name='cookie' direction='in' type='s'/>"
         "      <arg name='seat' direction='out' type='o'/>"
@@ -637,34 +706,6 @@ path_make_absolute (gchar *path)
     g_free (path);
 
     return abs_path;
-}
-
-static void
-set_seat_properties (Seat *seat, const gchar *config_section)
-{
-    gchar **keys;
-    gint i;
-
-    keys = config_get_keys (config_get_instance (), "SeatDefaults");
-    for (i = 0; keys[i]; i++)
-    {
-        gchar *value = config_get_string (config_get_instance (), "SeatDefaults", keys[i]);
-        seat_set_property (seat, keys[i], value);
-        g_free (value);
-    }
-    g_strfreev (keys);
-
-    if (config_section)
-    {
-        keys = config_get_keys (config_get_instance (), config_section);
-        for (i = 0; keys[i]; i++)
-        {
-            gchar *value = config_get_string (config_get_instance (), config_section, keys[i]);
-            seat_set_property (seat, keys[i], value);
-            g_free (value);
-        }
-        g_strfreev (keys);
-    }
 }
 
 static gboolean
