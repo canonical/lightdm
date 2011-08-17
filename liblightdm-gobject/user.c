@@ -186,7 +186,7 @@ user_changed_cb (LightDMUser *user, LightDMUserList *user_list)
 }
 
 static void
-load_passwd_file (LightDMUserList *user_list)
+load_passwd_file (LightDMUserList *user_list, gboolean emit_add_signal)
 {
     LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
     GKeyFile *config;
@@ -326,7 +326,8 @@ load_passwd_file (LightDMUserList *user_list)
         LightDMUser *info = link->data;
         g_debug ("User %s added", lightdm_user_get_name (info));
         g_signal_connect (info, "changed", G_CALLBACK (user_changed_cb), user_list);
-        g_signal_emit (user_list, list_signals[USER_ADDED], 0, info);
+        if (emit_add_signal)
+            g_signal_emit (user_list, list_signals[USER_ADDED], 0, info);
     }
     g_list_free (new_users);
     for (link = changed_users; link; link = link->next)
@@ -364,7 +365,7 @@ passwd_changed_cb (GFileMonitor *monitor, GFile *file, GFile *other_file, GFileM
     if (event_type == G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT)
     {
         g_debug ("%s changed, reloading user list", g_file_get_path (file));
-        load_passwd_file (user_list);
+        load_passwd_file (user_list, TRUE);
     }
 }
 
@@ -667,7 +668,6 @@ static void
 update_users (LightDMUserList *user_list)
 {
     LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
-    GFile *passwd_file;
     GError *error = NULL;
 
     if (priv->have_users)
@@ -685,6 +685,21 @@ update_users (LightDMUserList *user_list)
     if (!priv->accounts_service_proxy)
         g_warning ("Error contacting org.freedesktop.Accounts: %s", error->message);
     g_clear_error (&error);
+
+    /* Check if the service exists */
+    if (priv->accounts_service_proxy)
+    {
+        gchar *name;
+
+        name = g_dbus_proxy_get_name_owner (priv->accounts_service_proxy);
+        if (!name)
+        {
+            g_debug ("org.freedesktop.Accounts does not exist, falling back to passwd file");
+            g_object_unref (priv->accounts_service_proxy);
+            priv->accounts_service_proxy = NULL;
+        }
+        g_free (name);
+    }
 
     if (priv->accounts_service_proxy)
     {
@@ -737,7 +752,9 @@ update_users (LightDMUserList *user_list)
     }
     else
     {
-        load_passwd_file (user_list);
+        GFile *passwd_file;
+
+        load_passwd_file (user_list, FALSE);
 
         /* Watch for changes to user list */
         passwd_file = g_file_new_for_path (PASSWD_FILE);

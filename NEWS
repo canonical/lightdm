@@ -7,6 +7,8 @@ Overview of changes in lightdm 0.9.4
     * Move xsessions-directory and xgreeters-directory from [SeatDefaults] to
       [LightDM].  This is a configuration break, but making it on the assumption
       that these settings are not likely to have been overridden.
+    * Fix fallback from org.freedesktop.Accounts to passwd format
+    * Fix duplicate user entries being shown when using passwd file
 
 Overview of changes in lightdm 0.9.3
 
