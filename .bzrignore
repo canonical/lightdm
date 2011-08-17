@@ -63,3 +63,4 @@ tests/src/test-runner
 tests/src/test-session
 tests/src/test-xserver
 utils/lightdm-set-defaults
+utils/dm-tool
