@@ -43,7 +43,7 @@ seat_xremote_add_display (Seat *seat)
     hostname = seat_get_string_property (seat, "xserver-hostname");
     if (!hostname)
         hostname = "localhost";
-    number = seat_get_integer_property (seat, "xserver-number");
+    number = seat_get_integer_property (seat, "xserver-display-number");
 
     g_debug ("Starting Remote X Display %s:%d", hostname, number);
 
