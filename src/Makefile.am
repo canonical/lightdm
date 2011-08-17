@@ -36,6 +36,8 @@ lightdm_SOURCES = \
 	seat-xdmcp-session.h \
 	seat-xlocal.c \
 	seat-xlocal.h \
+	seat-xremote.c \
+	seat-xremote.h \
 	session.c \
 	session.h \
 	user.c \
