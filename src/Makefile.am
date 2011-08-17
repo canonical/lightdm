@@ -1,7 +1,5 @@
 sbin_PROGRAMS = lightdm
 
-dist_pkglibexec_SCRIPTS = gdmflexiserver
-
 ldm-marshal.c: ldm-marshal.list
 	@GLIB_GENMARSHAL@ --prefix=ldm_marshal $(srcdir)/ldm-marshal.list --header --body > ldm-marshal.c
 
