@@ -238,6 +238,8 @@ main (int argc, char **argv)
                                          -1,
                                          NULL,
                                          &error);
+        g_variant_builder_unref (properties);
+        if (!result)
         {
             g_printerr ("Unable to add seat: %s\n", error->message);
             return EXIT_FAILURE;
