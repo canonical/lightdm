@@ -12,6 +12,8 @@ Overview of changes in lightdm 0.9.4
     * Add AddSeat D-Bus method for adding dynamic seats
     * Added a dm-tool program that allows user switching and adding seats
     * Allow remote X servers, e.g. launched using dm-tool add-nested-seat
+    * Fix bug where sessions were started when the greeter quit and the user
+      hadn't been authorized.
 
 Overview of changes in lightdm 0.9.3
 

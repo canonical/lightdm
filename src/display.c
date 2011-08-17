@@ -68,6 +68,9 @@ struct DisplayPrivate
 
     /* PAM service to authenticate against for automatic logins */
     gchar *pam_autologin_service;
+  
+    /* TRUE if a session should be started on greeter quit */
+    gboolean start_session_on_greeter_quit;
 
     /* TRUE if in a user session */
     gboolean in_user_session;
@@ -403,7 +406,7 @@ autologin_authentication_result_cb (PAMSession *authentication, int result, Disp
     }
 
     if (!started_session)
-       display_stop (display);
+        display_stop (display);
 }
 
 static gboolean
@@ -485,18 +488,21 @@ greeter_session_stopped_cb (Session *session, Display *display)
         return;
 
     /* Start the session for the authenticated user */
-    if (greeter_get_guest_authenticated (display->priv->greeter))
+    if (display->priv->start_session_on_greeter_quit)
     {
-        started_session = autologin_guest (display, FALSE);
-        if (!started_session)
-            g_debug ("Failed to start guest session");
-    }
-    else
-    {
-        display->priv->in_user_session = TRUE;
-        started_session = start_user_session (display, greeter_get_authentication (display->priv->greeter));
-        if (!started_session)
-            g_debug ("Failed to start user session");
+        if (greeter_get_guest_authenticated (display->priv->greeter))
+        {
+            started_session = autologin_guest (display, FALSE);
+            if (!started_session)
+                g_debug ("Failed to start guest session");
+        }
+        else
+        {
+            display->priv->in_user_session = TRUE;
+            started_session = start_user_session (display, greeter_get_authentication (display->priv->greeter));
+            if (!started_session)
+                g_debug ("Failed to start user session");
+        }
     }
 
     g_signal_handlers_disconnect_matched (display->priv->greeter, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
@@ -667,6 +673,7 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session_name, Display *
 
     /* Stop the greeter, the session will start when the greeter has quit */
     g_debug ("Stopping greeter");
+    display->priv->start_session_on_greeter_quit = TRUE;
     session_stop (display->priv->session);
 
     return TRUE;

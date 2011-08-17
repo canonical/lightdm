@@ -376,13 +376,14 @@ handle_start_session (Greeter *greeter, const gchar *session)
     if (strcmp (session, "") == 0)
         session = NULL;
 
-    if (session)
-        g_debug ("Start session %s", session);
-    else
-        g_debug ("Start default session");
-
     if (greeter->priv->guest_account_authenticated || pam_session_get_is_authenticated (greeter->priv->authentication))
+    {
+        if (session)
+            g_debug ("Start session %s", session);
+        else
+            g_debug ("Start default session");     
         g_signal_emit (greeter, signals[START_SESSION], 0, session, &result);
+    }
     else
     {
         g_debug ("Ignoring start session request, user is not authorized");
