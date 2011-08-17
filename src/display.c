@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -59,7 +59,7 @@ struct DisplayPrivate
 
     /* Session requested to log into */
     gchar *user_session;
-  
+
     /* Program to run sessions through */
     gchar *session_wrapper;
 
@@ -71,10 +71,10 @@ struct DisplayPrivate
 
     /* TRUE if in a user session */
     gboolean in_user_session;
-  
+
     /* TRUE if have emitted ready signal */
     gboolean indicated_ready;
-  
+
     /* Session process */
     Session *session;
 
@@ -88,16 +88,16 @@ struct DisplayPrivate
 
     /* TRUE if start greeter if fail to login */
     gboolean start_greeter_if_fail;
-  
+
     /* Hint to select user in greeter */
     gchar *select_user_hint;
     gboolean select_guest_hint;
-  
+
     /* TRUE if allowed to log into guest account */
     gboolean allow_guest;
 
     /* TRUE if stopping the display (waiting for dispaly server, greeter and session to stop) */
-    gboolean stopping;    
+    gboolean stopping;
 };
 
 G_DEFINE_TYPE (Display, display, G_TYPE_OBJECT);
@@ -239,7 +239,7 @@ start_ck_session (Display *display, const gchar *session_type, User *user)
                                            NULL,
                                            "org.freedesktop.ConsoleKit",
                                            "/org/freedesktop/ConsoleKit/Manager",
-                                           "org.freedesktop.ConsoleKit.Manager", 
+                                           "org.freedesktop.ConsoleKit.Manager",
                                            NULL, &error);
     if (!proxy)
         g_warning ("Unable to get connection to ConsoleKit: %s", error->message);
@@ -313,7 +313,7 @@ end_ck_session (const gchar *cookie)
                                            NULL,
                                            "org.freedesktop.ConsoleKit",
                                            "/org/freedesktop/ConsoleKit/Manager",
-                                           "org.freedesktop.ConsoleKit.Manager", 
+                                           "org.freedesktop.ConsoleKit.Manager",
                                            NULL, NULL);
     result = g_dbus_proxy_call_sync (proxy,
                                      "CloseSession",
@@ -484,7 +484,7 @@ greeter_session_stopped_cb (Session *session, Display *display)
     if (!display->priv->display_server)
         return;
 
-    /* Start the session for the authenticated user */  
+    /* Start the session for the authenticated user */
     if (greeter_get_guest_authenticated (display->priv->greeter))
     {
         started_session = autologin_guest (display, FALSE);
@@ -630,7 +630,7 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
         process_set_env (PROCESS (session), "LIGHTDM_TEST_HOME_DIR", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
         process_set_env (PROCESS (session), "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }
- 
+
     return session;
 }
 
@@ -667,7 +667,7 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session_name, Display *
 
     /* Stop the greeter, the session will start when the greeter has quit */
     g_debug ("Stopping greeter");
-    session_stop (display->priv->session);  
+    session_stop (display->priv->session);
 
     return TRUE;
 }
@@ -732,7 +732,7 @@ start_greeter_session (Display *display)
         if (display->priv->autologin_user)
             greeter_set_hint (display->priv->greeter, "autologin-user", display->priv->autologin_user);
         else if (display->priv->autologin_guest)
-            greeter_set_hint (display->priv->greeter, "autologin-guest", "true");        
+            greeter_set_hint (display->priv->greeter, "autologin-guest", "true");
     }
     if (display->priv->select_user_hint)
         greeter_set_hint (display->priv->greeter, "select-user", display->priv->select_user_hint);
@@ -777,7 +777,7 @@ start_user_session (Display *display, PAMSession *authentication)
     gboolean result = FALSE;
 
     g_debug ("Starting user session");
-  
+
     user = pam_session_get_user (authentication);
 
     /* Load the users login settings (~/.dmrc) */
@@ -918,7 +918,7 @@ display_unlock (Display *display)
                                            NULL,
                                            "org.freedesktop.ConsoleKit",
                                            "/org/freedesktop/ConsoleKit/Manager",
-                                           "org.freedesktop.ConsoleKit.Manager", 
+                                           "org.freedesktop.ConsoleKit.Manager",
                                            NULL, &error);
     if (!proxy)
         g_warning ("Unable to get connection to ConsoleKit: %s", error->message);
@@ -954,7 +954,7 @@ display_unlock (Display *display)
                                            NULL,
                                            "org.freedesktop.ConsoleKit",
                                            session_path,
-                                           "org.freedesktop.ConsoleKit.Session", 
+                                           "org.freedesktop.ConsoleKit.Session",
                                            NULL, &error);
     if (!proxy)
         g_warning ("Unable to get connection to ConsoleKit session: %s", error->message);
