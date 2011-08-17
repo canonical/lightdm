@@ -212,7 +212,7 @@ main (int argc, char **argv)
         type = options[0];
         properties = g_variant_builder_new (G_VARIANT_TYPE ("a(ss)"));
       
-        for (i = 0; i < n_options; i++)
+        for (i = 1; i < n_options; i++)
         {
             gchar *property, *name, *value;
 
@@ -227,7 +227,7 @@ main (int argc, char **argv)
             else
                value = "";
 
-            g_variant_builder_add_value (properties, g_variant_new ("(ss)", "name", "value"));
+            g_variant_builder_add_value (properties, g_variant_new ("(ss)", name, value));
             g_free (property);
         }
 
