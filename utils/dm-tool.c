@@ -33,6 +33,7 @@ main (int argc, char **argv)
     GDBusProxy *dm_proxy, *seat_proxy;
     GError *error = NULL;
     gint arg_index;
+    GBusType bus_type = G_BUS_TYPE_SYSTEM;
 
     g_type_init ();
 
@@ -51,6 +52,7 @@ main (int argc, char **argv)
                         "Options:\n"
                         "  -h, --help        Show help options\n"
                         "  -v, --version     Show release version\n"
+                        "  --session-bus     Use session D-Bus\n"
                         "\n"
                         "Commands:\n"
                         "  switch-to-greeter                   Switch to the greeter\n"
@@ -65,6 +67,8 @@ main (int argc, char **argv)
             g_printerr ("lightdm %s\n", VERSION);
             return EXIT_SUCCESS;
         }
+        else if (strcmp (arg, "--session-bus") == 0)
+            bus_type = G_BUS_TYPE_SESSION;
         else
         {
             g_printerr ("Unknown option %s\n", arg);
@@ -80,7 +84,7 @@ main (int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    dm_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+    dm_proxy = g_dbus_proxy_new_for_bus_sync (bus_type,
                                               G_DBUS_PROXY_FLAGS_NONE,
                                               NULL,
                                               "org.freedesktop.DisplayManager",
@@ -95,7 +99,7 @@ main (int argc, char **argv)
     }
     g_clear_error (&error);
 
-    seat_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+    seat_proxy = g_dbus_proxy_new_for_bus_sync (bus_type,
                                                 G_DBUS_PROXY_FLAGS_NONE,
                                                 NULL,
                                                 "org.freedesktop.DisplayManager",
