@@ -161,6 +161,7 @@ session_real_start (Session *session)
     gboolean result;
     User *user;
     gchar *absolute_command;
+    const gchar *orig_path;
     GError *error = NULL;
 
     g_return_val_if_fail (session->priv->authentication != NULL, FALSE);
@@ -184,6 +185,19 @@ session_real_start (Session *session)
     process_set_env (PROCESS (session), "HOME", user_get_home_directory (user));
     process_set_env (PROCESS (session), "SHELL", user_get_shell (user));
     set_env_from_authentication (session, session->priv->authentication);
+
+    /* Insert our own utility directory to PATH
+     * This is to provide gdmflexiserver which provides backwards compatibility with GDM.
+     * Must be done after set_env_from_authentication because that often sets PATH.
+     * This can be removed when this is no longer required.
+     */
+    orig_path = process_get_env (PROCESS (session), "PATH");
+    if (orig_path)
+    {
+        gchar *path = g_strdup_printf ("%s:%s", PKGLIBEXEC_DIR, orig_path);
+        process_set_env (PROCESS (session), "PATH", path);
+        g_free (path);
+    }
 
     if (session->priv->cookie)
         process_set_env (PROCESS (session), "XDG_SESSION_COOKIE", session->priv->cookie);
