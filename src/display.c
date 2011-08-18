@@ -1,4 +1,5 @@
-/*
+/* -*- Mode: C; indent-tabs-mode: nil; tab-width: 4 -*-
+ *
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
  *
@@ -18,7 +19,6 @@
 #include "configuration.h"
 #include "user.h"
 #include "pam-session.h"
-#include "accounts.h"
 #include "ldm-marshal.h"
 #include "greeter.h"
 #include "xserver-local.h" // FIXME: Shouldn't know if it's an xserver
@@ -779,7 +779,6 @@ static gboolean
 start_user_session (Display *display, PAMSession *authentication)
 {
     User *user;
-    Accounts *accounts;
     gchar *log_filename;
     gboolean result = FALSE;
 
@@ -788,9 +787,7 @@ start_user_session (Display *display, PAMSession *authentication)
     user = pam_session_get_user (authentication);
 
     /* Update user's xsession setting */
-    accounts = accounts_new (user_get_name (user));
-    accounts_set_session (accounts, display->priv->user_session);
-    g_object_unref (accounts);
+    user_set_session (user, display->priv->user_session);
 
     // FIXME: Copy old error file
     log_filename = g_build_filename (user_get_home_directory (user), ".xsession-errors", NULL);
