@@ -423,6 +423,9 @@ seat_real_start (Seat *seat)
 
     /* Start showing a greeter */
     autologin_username = seat_get_string_property (seat, "autologin-user");
+    if (g_strcmp0 (autologin_username, "") == 0)
+        autologin_username = NULL;
+
     if (autologin_username)
         return switch_to_user_or_start_greeter (seat, autologin_username, FALSE, NULL, TRUE);
     else if (seat_get_boolean_property (seat, "autologin-guest"))

@@ -15,6 +15,7 @@ Overview of changes in lightdm 0.9.4
     * Fix bug where sessions were started when the greeter quit and the user
       hadn't been authorized.
     * Fix bug where sessions used the seat bus name
+    * Don't allow autologin-username to be set to empty
 
 Overview of changes in lightdm 0.9.3
 
