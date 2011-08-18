@@ -16,6 +16,7 @@ Overview of changes in lightdm 0.9.4
       hadn't been authorized.
     * Fix bug where sessions used the seat bus name
     * Don't allow autologin-username to be set to empty
+    * Fix bug where PAM session was not opened before writing to home directory
 
 Overview of changes in lightdm 0.9.3
 

@@ -157,15 +157,10 @@ set_env_from_authentication (Session *session, PAMSession *authentication)
 static gboolean
 session_real_start (Session *session)
 {
-    //gint session_stdin, session_stdout, session_stderr;
-    gboolean result;
     User *user;
+    gboolean result;
     gchar *absolute_command;
-    const gchar *orig_path;
     GError *error = NULL;
-
-    g_return_val_if_fail (session->priv->authentication != NULL, FALSE);
-    g_return_val_if_fail (session->priv->command != NULL, FALSE);
 
     absolute_command = get_absolute_command (session->priv->command);
     if (!absolute_command)
@@ -174,9 +169,35 @@ session_real_start (Session *session)
         return FALSE;
     }
 
-    pam_session_open (session->priv->authentication);
+    user = pam_session_get_user (session->priv->authentication);
+    result = process_start (PROCESS (session),
+                            user,
+                            user_get_home_directory (user),
+                            absolute_command,
+                            &error);
+    g_free (absolute_command);
+
+    if (!result)
+        g_warning ("Failed to spawn session: %s", error->message);
+    g_clear_error (&error);
+
+    return result;
+}
+
+gboolean
+session_start (Session *session)
+{
+    User *user;
+    const gchar *orig_path;
+    gboolean result;
+
+    g_return_val_if_fail (session != NULL, FALSE);
+    g_return_val_if_fail (session->priv->authentication != NULL, FALSE);
+    g_return_val_if_fail (session->priv->command != NULL, FALSE);
 
     g_debug ("Launching session");
+
+    pam_session_open (session->priv->authentication);
 
     user = pam_session_get_user (session->priv->authentication);
     process_set_env (PROCESS (session), "PATH", "/usr/local/bin:/usr/bin:/bin");
@@ -202,25 +223,12 @@ session_real_start (Session *session)
     if (session->priv->cookie)
         process_set_env (PROCESS (session), "XDG_SESSION_COOKIE", session->priv->cookie);
 
-    result = process_start (PROCESS (session),
-                            user,
-                            user_get_home_directory (user),
-                            absolute_command,
-                            &error);
-    g_free (absolute_command);
+    result = SESSION_GET_CLASS (session)->start (session);
 
     if (!result)
-        g_warning ("Failed to spawn session: %s", error->message);
-    g_clear_error (&error);
+        pam_session_close (session->priv->authentication);
 
     return result;
-}
-
-gboolean
-session_start (Session *session)
-{
-    g_return_val_if_fail (session != NULL, FALSE); 
-    return SESSION_GET_CLASS (session)->start (session);
 }
 
 static void
