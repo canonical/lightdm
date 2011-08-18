@@ -5,3 +5,4 @@
 greeters/gtk/lightdm-gtk-greeter.c
 src/lightdm.c
 utils/lightdm-set-defaults.c
+utils/dm-tool.c
