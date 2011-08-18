@@ -17,6 +17,8 @@ lightdm_SOURCES = \
 	display-manager.h \
 	display-server.c \
 	display-server.h \
+	dmrc.c \
+	dmrc.h \
 	greeter.c \
 	greeter.h \
 	guest-account.c \
