@@ -206,13 +206,13 @@ write_uint16 (GOutputStream *stream, guint16 value, GError **error)
 
     data[0] = value >> 8;
     data[1] = value & 0xFF;
-    return g_output_stream_write (stream, data, 2, NULL, error);
+    return g_output_stream_write (stream, data, 2, NULL, error) >= 0;
 }
 
 static gboolean
 write_data (GOutputStream *stream, const guint8 *data, gsize data_length, GError **error)
 {
-    return g_output_stream_write (stream, data, data_length, NULL, error);
+    return g_output_stream_write (stream, data, data_length, NULL, error) >= 0;
 }
 
 static gboolean
