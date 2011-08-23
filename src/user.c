@@ -40,6 +40,12 @@ struct UserPrivate
 
     /* Shell */
     gchar *shell;
+
+    /* Language */
+    gchar *language;
+
+    /* X session */
+    gchar *xsession;
 };
 
 G_DEFINE_TYPE (User, user, G_TYPE_OBJECT);
@@ -394,37 +400,73 @@ user_get_shell (User *user)
 }
 
 void
-user_set_xsession (User *user, const gchar *session)
+user_set_language (User *user, const gchar *language)
 {
     g_return_if_fail (user != NULL);
 
-    call_method (user->priv->proxy, "SetXSession",
-                 g_variant_new ("(s)", session), "()", NULL);
-
-    save_string_to_dmrc (user->priv->name, "Desktop", "Session", session);
+    call_method (user->priv->proxy, "SetLanguage", g_variant_new ("(s)", language), "()", NULL);
+    save_string_to_dmrc (user->priv->name, "Desktop", "Language", language);
 }
 
-gchar *
-user_get_xsession (User *user)
+const gchar *
+user_get_language (User *user)
 {
+    GVariant *result;
+
     g_return_val_if_fail (user != NULL, NULL);
 
-    GVariant *result;
-    gchar *session;
+    g_free (user->priv->language);
 
-    if (!get_property (user->priv->proxy, "XSession",
-                       "s", &result))
-        return get_string_from_dmrc (user->priv->name, "Desktop", "Session");
+    if (get_property (user->priv->proxy, "Language", "s", &result))
+    {
+        g_variant_get (result, "s", &user->priv->language);
+        g_variant_unref (result);
+    }
+    else
+        user->priv->language = get_string_from_dmrc (user->priv->name, "Desktop", "Language");
 
-    g_variant_get (result, "s", &session);
-    g_variant_unref (result);
-
-    if (g_strcmp0 (session, "") == 0) {
-        g_free (session);
-        return NULL;
+    if (g_strcmp0 (user->priv->language, "") == 0)
+    {
+        g_free (user->priv->language);
+        user->priv->language = NULL;
     }
 
-    return session;
+    return user->priv->language;
+}
+
+void
+user_set_xsession (User *user, const gchar *xsession)
+{
+    g_return_if_fail (user != NULL);
+
+    call_method (user->priv->proxy, "SetXSession", g_variant_new ("(s)", xsession), "()", NULL);
+    save_string_to_dmrc (user->priv->name, "Desktop", "Session", xsession);
+}
+
+const gchar *
+user_get_xsession (User *user)
+{
+    GVariant *result;
+
+    g_return_val_if_fail (user != NULL, NULL);
+
+    g_free (user->priv->xsession);
+
+    if (get_property (user->priv->proxy, "XSession", "s", &result))
+    {
+        g_variant_get (result, "s", &user->priv->xsession);
+        g_variant_unref (result);
+    }
+    else
+        user->priv->xsession = get_string_from_dmrc (user->priv->name, "Desktop", "Session");
+
+    if (g_strcmp0 (user->priv->xsession, "") == 0)
+    {
+        g_free (user->priv->xsession);
+        user->priv->xsession = NULL;
+    }
+
+    return user->priv->xsession;
 }
 
 static void

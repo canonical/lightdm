@@ -58,9 +58,13 @@ const gchar *user_get_home_directory (User *user);
 
 const gchar *user_get_shell (User *user);
 
-gchar *user_get_xsession (User *user);
+const gchar *user_get_xsession (User *user);
 
 void user_set_xsession (User *user, const gchar *session);
+
+const gchar *user_get_language (User *user);
+
+void user_set_language (User *user, const gchar *language);
 
 G_END_DECLS
 
