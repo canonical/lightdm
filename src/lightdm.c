@@ -1029,7 +1029,7 @@ main (int argc, char **argv)
         g_debug ("Loading seat %s", config_section);
         type = config_get_string (config_get_instance (), config_section, "type");
         if (!type)
-            type = config_get_string (config_get_instance (), config_section, "type");
+            type = config_get_string (config_get_instance (), "SeatDefaults", "type");
         seat = seat_new (type);
         g_free (type);
         if (seat)
