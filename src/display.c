@@ -22,6 +22,7 @@
 #include "ldm-marshal.h"
 #include "greeter.h"
 #include "xserver-local.h" // FIXME: Shouldn't know if it's an xserver
+#include "console-kit.h"
 
 enum {
     STARTED,
@@ -226,129 +227,6 @@ get_guest_username (Display *display)
     return username;
 }
 
-static gchar *
-start_ck_session (Display *display, const gchar *session_type, User *user)
-{
-    GDBusProxy *proxy;
-    const gchar *hostname = "";
-    GVariantBuilder arg_builder;
-    GVariant *result;
-    gchar *cookie = NULL;
-    GError *error = NULL;
-
-    /* Only start ConsoleKit sessions when running as root */
-    if (getuid () != 0)
-        return NULL;
-
-    proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                           G_DBUS_PROXY_FLAGS_NONE,
-                                           NULL,
-                                           "org.freedesktop.ConsoleKit",
-                                           "/org/freedesktop/ConsoleKit/Manager",
-                                           "org.freedesktop.ConsoleKit.Manager",
-                                           NULL, &error);
-    if (!proxy)
-        g_warning ("Unable to get connection to ConsoleKit: %s", error->message);
-    g_clear_error (&error);
-    if (!proxy)
-        return NULL;
-
-    g_variant_builder_init (&arg_builder, G_VARIANT_TYPE ("(a(sv))"));
-    g_variant_builder_open (&arg_builder, G_VARIANT_TYPE ("a(sv)"));
-    g_variant_builder_add (&arg_builder, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
-    g_variant_builder_add (&arg_builder, "(sv)", "session-type", g_variant_new_string (session_type));
-    if (IS_XSERVER (display->priv->display_server))
-    {
-        g_variant_builder_add (&arg_builder, "(sv)", "x11-display",
-                               g_variant_new_string (xserver_get_address (XSERVER (display->priv->display_server))));
-
-        if (IS_XSERVER_LOCAL (display->priv->display_server) && xserver_local_get_vt (XSERVER_LOCAL (display->priv->display_server)) >= 0)
-        {
-            gchar *display_device;
-            display_device = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (XSERVER_LOCAL (display->priv->display_server)));
-            g_variant_builder_add (&arg_builder, "(sv)", "x11-display-device", g_variant_new_string (display_device));
-            g_free (display_device);
-        }
-    }
-
-    g_variant_builder_add (&arg_builder, "(sv)", "remote-host-name", g_variant_new_string (hostname));
-    g_variant_builder_add (&arg_builder, "(sv)", "is-local", g_variant_new_boolean (TRUE));
-    g_variant_builder_close (&arg_builder);
-
-    result = g_dbus_proxy_call_sync (proxy,
-                                     "OpenSessionWithParameters",
-                                     g_variant_builder_end (&arg_builder),
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     -1,
-                                     NULL,
-                                     &error);
-    g_object_unref (proxy);
-
-    if (!result)
-        g_warning ("Failed to open CK session: %s", error->message);
-    g_clear_error (&error);
-    if (!result)
-        return NULL;
-
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(s)")))
-        g_variant_get (result, "(s)", &cookie);
-    else
-        g_warning ("Unexpected response from OpenSessionWithParameters: %s", g_variant_get_type_string (result));
-    g_variant_unref (result);
-
-    if (cookie)
-        g_debug ("Opened ConsoleKit session %s", cookie);
-
-    return cookie;
-}
-
-static void
-end_ck_session (const gchar *cookie)
-{
-    GDBusProxy *proxy;
-    GVariant *result;
-    GError *error = NULL;
-
-    if (!cookie)
-        return;
-
-    g_debug ("Ending ConsoleKit session %s", cookie);
-
-    proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                           G_DBUS_PROXY_FLAGS_NONE,
-                                           NULL,
-                                           "org.freedesktop.ConsoleKit",
-                                           "/org/freedesktop/ConsoleKit/Manager",
-                                           "org.freedesktop.ConsoleKit.Manager",
-                                           NULL, NULL);
-    result = g_dbus_proxy_call_sync (proxy,
-                                     "CloseSession",
-                                     g_variant_new ("(s)", cookie),
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     -1,
-                                     NULL,
-                                     &error);
-    g_object_unref (proxy);
-
-    if (!result)
-        g_warning ("Error ending ConsoleKit session: %s", error->message);
-    g_clear_error (&error);
-    if (!result)
-        return;
-
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(b)")))
-    {
-        gboolean is_closed;
-        g_variant_get (result, "(b)", &is_closed);
-        if (!is_closed)
-            g_warning ("ConsoleKit.Manager.CloseSession() returned false");
-    }
-    else
-        g_warning ("Unexpected response from CloseSession: %s", g_variant_get_type_string (result));
-
-    g_variant_unref (result);
-}
-
 static void
 session_exited_cb (Session *session, gint status, Display *display)
 {
@@ -464,7 +342,7 @@ cleanup_after_session (Display *display)
 {
     /* Close ConsoleKit session */
     if (getuid () == 0)
-        end_ck_session (session_get_cookie (display->priv->session));
+        ck_end_session (session_get_cookie (display->priv->session));
 
     g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
     g_object_unref (display->priv->session);
@@ -604,7 +482,35 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     /* Open ConsoleKit session */
     if (getuid () == 0)
     {
-        cookie = start_ck_session (display, is_greeter ? "LoginWindow" : "", pam_session_get_user (authentication));
+        GVariantBuilder arg_builder;
+        GVariant *parameters;
+        User *user;
+
+        user = pam_session_get_user (authentication);
+
+        g_variant_builder_init (&arg_builder, G_VARIANT_TYPE ("(a(sv))"));
+        g_variant_builder_open (&arg_builder, G_VARIANT_TYPE ("a(sv)"));
+        g_variant_builder_add (&arg_builder, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
+        g_variant_builder_add (&arg_builder, "(sv)", "session-type", g_variant_new_string (is_greeter ? "LoginWindow" : ""));
+        if (IS_XSERVER (display->priv->display_server))
+        {
+            g_variant_builder_add (&arg_builder, "(sv)", "x11-display",
+                                   g_variant_new_string (xserver_get_address (XSERVER (display->priv->display_server))));
+
+            if (IS_XSERVER_LOCAL (display->priv->display_server) && xserver_local_get_vt (XSERVER_LOCAL (display->priv->display_server)) >= 0)
+            {
+                gchar *display_device;
+                display_device = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (XSERVER_LOCAL (display->priv->display_server)));
+                g_variant_builder_add (&arg_builder, "(sv)", "x11-display-device", g_variant_new_string (display_device));
+                g_free (display_device);
+            }
+        }
+        g_variant_builder_add (&arg_builder, "(sv)", "remote-host-name", g_variant_new_string (""));
+        g_variant_builder_add (&arg_builder, "(sv)", "is-local", g_variant_new_boolean (TRUE));
+        parameters = g_variant_builder_end (&arg_builder);
+
+        cookie = ck_start_session (parameters);
+        g_variant_unref (parameters);
         session_set_cookie (session, cookie);
         g_free (cookie);
     }
@@ -893,11 +799,7 @@ display_stop (Display *display)
 void
 display_unlock (Display *display)
 {
-    GDBusProxy *proxy;
-    GVariant *result;
-    GError *error = NULL;
     const gchar *cookie;
-    const gchar *session_path;
 
     if (!display->priv->session)
         return;
@@ -906,72 +808,7 @@ display_unlock (Display *display)
     if (!cookie)
         return;
 
-    proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                           G_DBUS_PROXY_FLAGS_NONE,
-                                           NULL,
-                                           "org.freedesktop.ConsoleKit",
-                                           "/org/freedesktop/ConsoleKit/Manager",
-                                           "org.freedesktop.ConsoleKit.Manager",
-                                           NULL, &error);
-    if (!proxy)
-        g_warning ("Unable to get connection to ConsoleKit: %s", error->message);
-    g_clear_error (&error);
-    if (!proxy)
-        return;
-
-    result = g_dbus_proxy_call_sync (proxy,
-                                     "GetSessionForCookie",
-                                     g_variant_new ("(s)", cookie),
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     -1,
-                                     NULL,
-                                     &error);
-    g_object_unref (proxy);
-
-    if (!result)
-        g_warning ("Error getting ConsoleKit session: %s", error->message);
-    g_clear_error (&error);
-    if (!result)
-        return;
-
-    if (!g_variant_is_of_type (result, G_VARIANT_TYPE ("(o)")))
-    {
-        g_warning ("Unexpected response from GetSessionForCookie: %s", g_variant_get_type_string (result));
-        g_variant_unref (result);
-    }
-
-    g_variant_get (result, "(&o)", &session_path);
-
-    proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                           G_DBUS_PROXY_FLAGS_NONE,
-                                           NULL,
-                                           "org.freedesktop.ConsoleKit",
-                                           session_path,
-                                           "org.freedesktop.ConsoleKit.Session",
-                                           NULL, &error);
-    if (!proxy)
-        g_warning ("Unable to get connection to ConsoleKit session: %s", error->message);
-    g_variant_unref (result);
-    g_clear_error (&error);
-    if (!proxy)
-        return;
-
-    result = g_dbus_proxy_call_sync (proxy,
-                                     "Unlock",
-                                     NULL,
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     -1,
-                                     NULL,
-                                     &error);
-    g_object_unref (proxy);
-
-    if (!result)
-        g_warning ("Error unlocking ConsoleKit session: %s", error->message);
-    g_clear_error (&error);
-    if (!result)
-        return;
-
-    g_variant_unref (result);
+    ck_unlock_session (cookie);
 }
 
 static gboolean
@@ -1024,7 +861,7 @@ display_finalize (GObject *object)
     if (self->priv->session)
     {
         if (session_get_cookie (self->priv->session))
-            end_ck_session (session_get_cookie (self->priv->session));
+            ck_end_session (session_get_cookie (self->priv->session));
         g_object_unref (self->priv->session);
     }
     g_free (self->priv->autologin_user);

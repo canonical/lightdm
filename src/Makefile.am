@@ -9,6 +9,8 @@ ldm-marshal.h: ldm-marshal.list
 lightdm_SOURCES = \
 	configuration.c \
 	configuration.h \
+	console-kit.c \
+	console-kit.h \
 	display.c \
 	display.h \
 	display-manager.c \
