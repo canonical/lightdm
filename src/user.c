@@ -394,7 +394,7 @@ user_get_shell (User *user)
 }
 
 void
-user_set_session (User *user, const gchar *session)
+user_set_xsession (User *user, const gchar *session)
 {
     g_return_if_fail (user != NULL);
 
@@ -405,7 +405,7 @@ user_set_session (User *user, const gchar *session)
 }
 
 gchar *
-user_get_session (User *user)
+user_get_xsession (User *user)
 {
     g_return_val_if_fail (user != NULL, NULL);
 

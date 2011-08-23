@@ -779,7 +779,7 @@ start_user_session (Display *display, PAMSession *authentication)
     user = pam_session_get_user (authentication);
 
     /* Update user's xsession setting */
-    user_set_session (user, display->priv->user_session);
+    user_set_xsession (user, display->priv->user_session);
 
     // FIXME: Copy old error file
     log_filename = g_build_filename (user_get_home_directory (user), ".xsession-errors", NULL);

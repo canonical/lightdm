@@ -58,9 +58,9 @@ const gchar *user_get_home_directory (User *user);
 
 const gchar *user_get_shell (User *user);
 
-gchar *user_get_session (User *user);
+gchar *user_get_xsession (User *user);
 
-void user_set_session (User *user, const gchar *session);
+void user_set_xsession (User *user, const gchar *session);
 
 G_END_DECLS
 
