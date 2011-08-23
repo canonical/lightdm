@@ -1095,9 +1095,82 @@ load_dmrc (LightDMUser *user)
 
     // FIXME: Watch for changes
 
+    if (priv->language)
+        g_free (priv->language);
+    if (priv->layout)
+        g_free (priv->layout);
+    if (priv->session)
+        g_free (priv->session);
+
     priv->language = g_key_file_get_string (priv->dmrc_file, "Desktop", "Language", NULL);
     priv->layout = g_key_file_get_string (priv->dmrc_file, "Desktop", "Layout", NULL);
     priv->session = g_key_file_get_string (priv->dmrc_file, "Desktop", "Session", NULL);
+}
+
+static gchar *
+get_string_property (GDBusProxy *proxy, const gchar *property)
+{
+    GVariant *answer;
+    gchar *rv;
+
+    if (!proxy)
+        return NULL;
+
+    answer = g_dbus_proxy_get_cached_property (proxy, property);
+
+    if (!answer) {
+        g_warning ("Could not get accounts property %s", property);
+        return NULL;
+    }
+
+    if (!g_variant_is_of_type (answer, G_VARIANT_TYPE ("s"))) {
+        g_warning ("Unexpected accounts property type for %s: %s",
+                   property, g_variant_get_type_string (answer));
+        g_variant_unref (answer);
+        return NULL;
+    }
+
+    g_variant_get (answer, "s", &rv);
+
+    g_variant_unref (answer);
+    return rv;
+}
+
+static gboolean
+load_accounts_service (LightDMUser *user)
+{
+    LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
+    LightDMUserListPrivate *list_priv = GET_LIST_PRIVATE (priv->user_list);
+
+    /* First, find AccountObject proxy */
+    UserAccountObject *account = NULL;
+    GList *iter;
+    for (iter = list_priv->user_account_objects; iter; iter = iter->next) {
+        if (((UserAccountObject *)iter->data)->user == user) {
+            account = (UserAccountObject *)iter->data;
+            break;
+        }
+    }
+    if (!account)
+        return FALSE;
+
+    /* We have proxy, let's grab some properties */
+    if (priv->language)
+        g_free (priv->language);
+    if (priv->session)
+        g_free (priv->session);
+    priv->language = get_string_property (account->proxy, "Language");
+    priv->session = get_string_property (account->proxy, "XSession");
+
+    return TRUE;
+}
+
+/* Loads language/layout/session info for user */
+static void
+load_user_values (LightDMUser *user)
+{
+    load_dmrc (user);
+    load_accounts_service (user); // overrides dmrc values
 }
 
 /**
@@ -1112,7 +1185,7 @@ const gchar *
 lightdm_user_get_language (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    load_dmrc (user);
+    load_user_values (user);
     return GET_USER_PRIVATE (user)->language;
 }
 
@@ -1128,7 +1201,7 @@ const gchar *
 lightdm_user_get_layout (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    load_dmrc (user);
+    load_user_values (user);
     return GET_USER_PRIVATE (user)->layout;
 }
 
@@ -1144,7 +1217,7 @@ const gchar *
 lightdm_user_get_session (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    load_dmrc (user);
+    load_user_values (user);
     return GET_USER_PRIVATE (user)->session; 
 }
 
