@@ -8,14 +8,14 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-12-06 11:05+0000\n"
-"PO-Revision-Date: 2011-06-24 00:10+0000\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"PO-Revision-Date: 2011-08-24 14:34+0000\n"
+"Last-Translator: Fran Diéguez <Unknown>\n"
 "Language-Team: Galician <gl@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2011-08-10 04:40+0000\n"
-"X-Generator: Launchpad (build 13636)\n"
+"X-Launchpad-Export-Date: 2011-08-25 04:50+0000\n"
+"X-Generator: Launchpad (build 13727)\n"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:322
 msgid "Are you sure you want to close all programs and restart the computer?"
@@ -46,23 +46,23 @@ msgstr "Letras grandes"
 
 #: ../greeters/ldm-gtk-greeter.c:611
 msgid "High Constrast"
-msgstr ""
+msgstr "Contraste alto"
 
 #: ../greeters/ldm-gtk-greeter.c:615
 msgid "Options"
-msgstr ""
+msgstr "Opcións"
 
 #: ../greeters/ldm-gtk-greeter.c:620
 msgid "Language"
-msgstr ""
+msgstr "Idioma"
 
 #: ../greeters/ldm-gtk-greeter.c:646
 msgid "Keyboard Layout"
-msgstr ""
+msgstr "Disposición de teclado"
 
 #: ../greeters/ldm-gtk-greeter.c:668
 msgid "Session"
-msgstr ""
+msgstr "Sesión"
 
 #: ../greeters/gtk/greeter.ui.h:8
 msgid "Suspend"
@@ -87,6 +87,8 @@ msgid ""
 "Usage:\n"
 "  %s - Display Manager"
 msgstr ""
+"Uso:\n"
+"  %s - Xestor de pantalla"
 
 #. Description on how to use Light Display Manager displayed on command-line
 #: ../src/lightdm.c:106
@@ -100,3 +102,10 @@ msgid ""
 "  -v, --version                   Show release version\n"
 "  -h, --help                      Show help options"
 msgstr ""
+"Opcións de axuda:\n"
+"  -c, --config <ficheiro>             Usar un ficheiro de configuración\n"
+"      --pid-file <archivo>           Escribir o PID nun ficheiro\n"
+"  -d, --debug                     Mostrar mensaxes de depuración\n"
+"      --test-mode                 Executar como un usuario sen privilexios\n"
+"  -v, --version                   Mostrar a versión\n"
+"  -h, --help                      Mostrar as opcións de axuda"
