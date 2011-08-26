@@ -110,19 +110,22 @@ start_authentication (const gchar *username)
 static void
 cancel_authentication (void)
 {
+    /* If in authentication then stop that first */
+    cancelling = FALSE;
     if (lightdm_greeter_get_in_authentication (greeter))
     {
         cancelling = TRUE;
         lightdm_greeter_cancel_authentication (greeter);
+        return;
     }
+
+    /* Start a new login or return to the user list */
+    if (lightdm_greeter_get_hide_users_hint (greeter))
+        start_authentication (NULL);
     else
     {
-        cancelling = FALSE;
-        if (!lightdm_greeter_get_hide_users_hint (greeter))
-        {
-            gtk_widget_hide (login_box);
-            gtk_widget_grab_focus (GTK_WIDGET (user_view));
-        }
+        gtk_widget_hide (login_box);
+        gtk_widget_grab_focus (GTK_WIDGET (user_view));
     }
 }
 
