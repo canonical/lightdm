@@ -410,6 +410,17 @@ user_session_stopped_cb (Session *session, Display *display)
     display_stop (display);
 }
 
+static void
+emit_upstart_signal (const gchar *signal)
+{
+    g_return_if_fail (signal != NULL);
+    g_return_if_fail (signal[0] != 0);
+
+    gchar *cmd = g_strdup_printf ("/sbin/initctl -q emit %s DISPLAY_MANAGER=lightdm", signal);
+    g_spawn_command_line_async (cmd, NULL); /* OK if it fails, probably not installed */
+    g_free (cmd);
+}
+
 static Session *
 create_session (Display *display, PAMSession *authentication, const gchar *session_name, gboolean is_greeter, const gchar *log_filename)
 {
@@ -666,6 +677,7 @@ start_greeter_session (Display *display)
 
     if (result)
     {
+        emit_upstart_signal ("login-session-start");
         display->priv->indicated_ready = TRUE;
         g_signal_emit (display, signals[READY], 0);
     }
@@ -702,7 +714,11 @@ start_user_session (Display *display, PAMSession *authentication)
     if (result)
     {
         if (!display->priv->indicated_ready)
+        {
+            emit_upstart_signal ("login-session-start");
             g_signal_emit (display, signals[READY], 0);
+        }
+        emit_upstart_signal ("user-session-start");
         g_signal_emit (display, signals[SESSION_STARTED], 0);
     }
 
