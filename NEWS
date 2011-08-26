@@ -1,6 +1,7 @@
 Overview of changes in lightdm 0.9.5
 
     * Use accounts service in the daemon if it is available
+    * Correctly load seat type in multi seat configuration
 
 Overview of changes in lightdm 0.9.4
 
