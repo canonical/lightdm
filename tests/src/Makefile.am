@@ -53,11 +53,13 @@ test-qt-greeter_moc.cpp: test-qt-greeter.h
 test_qt_greeter_SOURCES = test-qt-greeter.cpp test-qt-greeter.h test-qt-greeter_moc.cpp status.c status.h
 test_qt_greeter_CXXFLAGS = \
 	-I$(top_srcdir)/liblightdm-qt \
-	$(LIGHTDM_QT_GREETER_CFLAGS)
+	$(LIGHTDM_QT_GREETER_CFLAGS) \
+	$(XCB_CFLAGS)
 test_qt_greeter_LDADD = \
 	-L$(top_builddir)/liblightdm-qt \
 	-llightdm-qt-1 \
-	$(LIGHTDM_QT_GREETER_LIBS)
+	$(LIGHTDM_QT_GREETER_LIBS) \
+	$(XCB_LIBS)
 
 test_session_SOURCES = test-session.c status.c status.h
 test_session_CFLAGS = \
