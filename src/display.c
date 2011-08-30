@@ -482,35 +482,32 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     /* Open ConsoleKit session */
     if (getuid () == 0)
     {
-        GVariantBuilder arg_builder;
-        GVariant *parameters;
+        GVariantBuilder parameters;
         User *user;
 
         user = pam_session_get_user (authentication);
 
-        g_variant_builder_init (&arg_builder, G_VARIANT_TYPE ("(a(sv))"));
-        g_variant_builder_open (&arg_builder, G_VARIANT_TYPE ("a(sv)"));
-        g_variant_builder_add (&arg_builder, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
-        g_variant_builder_add (&arg_builder, "(sv)", "session-type", g_variant_new_string (is_greeter ? "LoginWindow" : ""));
+        g_variant_builder_init (&parameters, G_VARIANT_TYPE ("(a(sv))"));
+        g_variant_builder_open (&parameters, G_VARIANT_TYPE ("a(sv)"));
+        g_variant_builder_add (&parameters, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
+        g_variant_builder_add (&parameters, "(sv)", "session-type", g_variant_new_string (is_greeter ? "LoginWindow" : ""));
         if (IS_XSERVER (display->priv->display_server))
         {
-            g_variant_builder_add (&arg_builder, "(sv)", "x11-display",
+            g_variant_builder_add (&parameters, "(sv)", "x11-display",
                                    g_variant_new_string (xserver_get_address (XSERVER (display->priv->display_server))));
 
             if (IS_XSERVER_LOCAL (display->priv->display_server) && xserver_local_get_vt (XSERVER_LOCAL (display->priv->display_server)) >= 0)
             {
                 gchar *display_device;
                 display_device = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (XSERVER_LOCAL (display->priv->display_server)));
-                g_variant_builder_add (&arg_builder, "(sv)", "x11-display-device", g_variant_new_string (display_device));
+                g_variant_builder_add (&parameters, "(sv)", "x11-display-device", g_variant_new_string (display_device));
                 g_free (display_device);
             }
         }
-        g_variant_builder_add (&arg_builder, "(sv)", "remote-host-name", g_variant_new_string (""));
-        g_variant_builder_add (&arg_builder, "(sv)", "is-local", g_variant_new_boolean (TRUE));
-        parameters = g_variant_builder_end (&arg_builder);
+        g_variant_builder_add (&parameters, "(sv)", "remote-host-name", g_variant_new_string (""));
+        g_variant_builder_add (&parameters, "(sv)", "is-local", g_variant_new_boolean (TRUE));
 
-        cookie = ck_start_session (parameters);
-        g_variant_unref (parameters);
+        cookie = ck_start_session (&parameters);
         session_set_cookie (session, cookie);
         g_free (cookie);
     }

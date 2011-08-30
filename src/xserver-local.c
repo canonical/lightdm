@@ -196,6 +196,15 @@ xserver_local_get_vt (XServerLocal *server)
     return server->priv->vt;
 }
 
+gchar *
+xserver_local_get_authority_file_path (XServerLocal *server)
+{
+    g_return_val_if_fail (server != NULL, 0);
+    if (server->priv->authority_file)
+        return g_file_get_path (server->priv->authority_file);
+    return NULL;
+}
+
 static gchar *
 get_absolute_command (const gchar *command)
 {

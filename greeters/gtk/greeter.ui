@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <requires lib="gtk+" version="2.24"/>
-  <object class="GtkImage" id="a11y_menuitem_image">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="pixel_size">24</property>
-    <property name="icon_name">accessibility</property>
-  </object>
   <object class="GtkWindow" id="login_window">
     <property name="can_focus">False</property>
     <property name="resizable">False</property>
@@ -202,13 +196,30 @@
         <property name="can_focus">False</property>
         <property name="pack_direction">rtl</property>
         <child>
-          <object class="GtkImageMenuItem" id="power_menuitem">
+          <object class="GtkMenuItem" id="power_menuitem">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="use_action_appearance">False</property>
-            <property name="image">power_menuitem_image</property>
-            <property name="use_stock">False</property>
-            <property name="always_show_image">True</property>
+            <child>
+              <object class="GtkHBox" id="power_menuitem_box">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="spacing">3</property>
+                <child>
+                  <object class="GtkImage" id="power_menuitem_image">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="pixel_size">24</property>
+                    <property name="icon_name">system-shutdown</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
             <child type="submenu">
               <object class="GtkMenu" id="power_menu">
                 <property name="visible">True</property>
@@ -254,13 +265,30 @@
           </object>
         </child>
         <child>
-          <object class="GtkImageMenuItem" id="a11y_menuitem">
+          <object class="GtkMenuItem" id="a11y_menuitem">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="use_action_appearance">False</property>
-            <property name="image">a11y_menuitem_image</property>
-            <property name="use_stock">False</property>
-            <property name="always_show_image">True</property>
+            <child>
+              <object class="GtkHBox" id="a11y_menuitem_box">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="spacing">3</property>
+                <child>
+                  <object class="GtkImage" id="a11y_menuitem_image">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="pixel_size">24</property>
+                    <property name="icon_name">accessibility</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
             <child type="submenu">
               <object class="GtkMenu" id="a11y_menu">
                 <property name="visible">True</property>
@@ -289,12 +317,6 @@
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkImage" id="power_menuitem_image">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="pixel_size">24</property>
-    <property name="icon_name">system-shutdown</property>
   </object>
   <object class="GtkListStore" id="session_liststore">
     <columns>

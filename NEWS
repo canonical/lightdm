@@ -1,6 +1,10 @@
 Overview of changes in lightdm 0.9.5
 
     * Use accounts service in the daemon if it is available
+    * Correctly load seat type in multi seat configuration
+    * Add display-setup, session-setup and session-cleanup scripting hooks
+    * Fix cancel button in GTK greeter
+    * Fix line through GTK greeter menu items
 
 Overview of changes in lightdm 0.9.4
 

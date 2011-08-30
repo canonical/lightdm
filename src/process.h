@@ -57,10 +57,10 @@ void process_set_env (Process *process, const gchar *name, const gchar *value);
 const gchar *process_get_env (Process *process, const gchar *name);
 
 gboolean process_start (Process *process,
-                              User *user,
-                              const gchar *working_dir,
-                              const gchar *command,
-                              GError **error);
+                        User *user,
+                        const gchar *working_dir,
+                        const gchar *command,
+                        GError **error);
 
 gboolean process_get_is_running (Process *process);
 

@@ -38,7 +38,7 @@ load_ck_proxy (void)
 }
 
 gchar *
-ck_start_session (GVariant *parameters)
+ck_start_session (GVariantBuilder *parameters)
 {
     GVariant *result;
     gchar *cookie = NULL;
@@ -53,7 +53,7 @@ ck_start_session (GVariant *parameters)
 
     result = g_dbus_proxy_call_sync (ck_proxy,
                                      "OpenSessionWithParameters",
-                                     g_variant_ref (parameters),
+                                     g_variant_new ("(a(sv))", parameters),
                                      G_DBUS_CALL_FLAGS_NONE,
                                      -1,
                                      NULL,

@@ -16,7 +16,7 @@
 
 G_BEGIN_DECLS
 
-gchar *ck_start_session (GVariant *parameters);
+gchar *ck_start_session (GVariantBuilder *parameters);
 
 void ck_unlock_session (const gchar *cookie);
 
