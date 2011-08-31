@@ -40,7 +40,7 @@ namespace LightDM {
         public void cancel_authentication ();
         public bool in_authentication { get; }
         public bool is_authenticated { get; }
-        public unowned string authentication_user { get; }
+        public unowned string? authentication_user { get; }
         public void start_session_sync (string? session = null) throws GLib.Error;
     }
     public enum MessageType {
