@@ -335,6 +335,17 @@ run_script (Display *display, const gchar *script_name, User *user)
 }
 
 static void
+emit_upstart_signal (const gchar *signal)
+{
+    g_return_if_fail (signal != NULL);
+    g_return_if_fail (signal[0] != 0);
+
+    gchar *cmd = g_strdup_printf ("/sbin/initctl -q emit %s DISPLAY_MANAGER=lightdm", signal);
+    g_spawn_command_line_async (cmd, NULL); /* OK if it fails, probably not installed */
+    g_free (cmd);
+}
+
+static void
 display_ready_cb (Display *display, Seat *seat)
 {
     const gchar *script;
@@ -346,6 +357,8 @@ display_ready_cb (Display *display, Seat *seat)
 
     /* Switch to this new display */
     SEAT_GET_CLASS (seat)->set_active_display (seat, display);
+
+    emit_upstart_signal ("login-session-start");
 }
 
 static void
@@ -359,6 +372,12 @@ display_session_created_cb (Display *display, Seat *seat)
     script = seat_get_string_property (seat, "session-setup-script");
     if (script)
         run_script (display, script, session_get_user (session));
+}
+
+static void
+display_session_started_cb (Display *display, Seat *seat)
+{
+    emit_upstart_signal ("desktop-session-start");
 }
 
 static void
@@ -456,6 +475,7 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
     g_signal_connect (new_display, "get-guest-username", G_CALLBACK (display_get_guest_username_cb), seat);
     g_signal_connect (new_display, "ready", G_CALLBACK (display_ready_cb), seat);
     g_signal_connect (new_display, "session-created", G_CALLBACK (display_session_created_cb), seat);
+    g_signal_connect (new_display, "session-started", G_CALLBACK (display_session_started_cb), seat);
     g_signal_connect (new_display, "session-stopped", G_CALLBACK (display_session_stopped_cb), seat);
     g_signal_connect (new_display, "stopped", G_CALLBACK (display_stopped_cb), seat);
     display_set_greeter_session (new_display, seat_get_string_property (seat, "greeter-session"));
