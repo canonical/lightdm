@@ -91,6 +91,9 @@ ck_unlock_session (const gchar *cookie)
     if (!load_ck_proxy ())
         return;
 
+    if (getuid () != 0)
+        return;
+
     result = g_dbus_proxy_call_sync (ck_proxy,
                                      "GetSessionForCookie",
                                      g_variant_new ("(s)", cookie),
