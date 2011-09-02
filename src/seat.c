@@ -362,6 +362,19 @@ display_ready_cb (Display *display, Seat *seat)
 }
 
 static void
+display_greeter_started_cb (Display *display, Seat *seat)
+{
+    Session *session;
+    const gchar *script;
+
+    session = display_get_session (display);
+
+    script = seat_get_string_property (seat, "greeter-setup-script");
+    if (script)
+        run_script (display, script, session_get_user (session)); 
+}
+
+static void
 display_session_created_cb (Display *display, Seat *seat)
 {
     Session *session;
@@ -474,6 +487,7 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
     g_signal_connect (new_display, "switch-to-guest", G_CALLBACK (display_switch_to_guest_cb), seat);
     g_signal_connect (new_display, "get-guest-username", G_CALLBACK (display_get_guest_username_cb), seat);
     g_signal_connect (new_display, "ready", G_CALLBACK (display_ready_cb), seat);
+    g_signal_connect (new_display, "greeter-started", G_CALLBACK (display_greeter_started_cb), seat);
     g_signal_connect (new_display, "session-created", G_CALLBACK (display_session_created_cb), seat);
     g_signal_connect (new_display, "session-started", G_CALLBACK (display_session_started_cb), seat);
     g_signal_connect (new_display, "session-stopped", G_CALLBACK (display_session_stopped_cb), seat);

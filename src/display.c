@@ -30,6 +30,7 @@ enum {
     SWITCH_TO_USER,
     SWITCH_TO_GUEST,
     GET_GUEST_USERNAME,
+    GREETER_STARTED,
     SESSION_CREATED,
     SESSION_STARTED,
     SESSION_STOPPED,
@@ -664,6 +665,7 @@ start_greeter_session (Display *display)
     if (result)
     {
         display->priv->indicated_ready = TRUE;
+        g_signal_emit (display, signals[GREETER_STARTED], 0);
         g_signal_emit (display, signals[READY], 0);
     }
 
@@ -924,6 +926,14 @@ display_class_init (DisplayClass *klass)
                       NULL,
                       ldm_marshal_STRING__VOID,
                       G_TYPE_STRING, 0);
+    signals[GREETER_STARTED] =
+        g_signal_new ("greeter-started",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (DisplayClass, greeter_started),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
     signals[SESSION_CREATED] =
         g_signal_new ("session-created",
                       G_TYPE_FROM_CLASS (klass),
