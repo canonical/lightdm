@@ -482,11 +482,14 @@ bus_entry_free (gpointer data)
     g_free (entry);
 }
 
-static void
-session_created_cb (Display *display, Session *session, Seat *seat)
+static gboolean
+start_session_cb (Display *display, Seat *seat)
 {
+    Session *session;
     BusEntry *seat_entry;
     gchar *path;
+
+    session = display_get_session (display);
 
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
     process_set_env (PROCESS (session), "XDG_SEAT_PATH", seat_entry->path);
@@ -495,9 +498,17 @@ session_created_cb (Display *display, Session *session, Seat *seat)
     session_index++;
     process_set_env (PROCESS (session), "XDG_SESSION_PATH", path);
     g_free (path);
+
+    return FALSE;
 }
 
 static void
+session_stopped_cb (Session *session, Seat *seat)
+{
+    g_hash_table_remove (session_bus_entries, session);
+}
+
+static gboolean
 session_started_cb (Display *display, Seat *seat)
 {
     static const GDBusInterfaceVTable session_vtable =
@@ -509,6 +520,8 @@ session_started_cb (Display *display, Seat *seat)
     BusEntry *seat_entry, *entry;
 
     session = display_get_session (display);
+
+    g_signal_connect (session, "stopped", G_CALLBACK (session_stopped_cb), seat);
 
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
     entry = bus_entry_new (process_get_env (PROCESS (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL, "SessionRemoved");
@@ -527,20 +540,15 @@ session_started_cb (Display *display, Seat *seat)
                                    "SessionAdded",
                                    g_variant_new ("(o)", entry->path),
                                    NULL);
-}
 
-static void
-session_stopped_cb (Display *display)
-{
-    g_hash_table_remove (session_bus_entries, display_get_session (display));
+    return FALSE;
 }
 
 static void
 display_added_cb (Seat *seat, Display *display)
 {
-    g_signal_connect (display, "session-created", G_CALLBACK (session_created_cb), seat);  
-    g_signal_connect (display, "session-started", G_CALLBACK (session_started_cb), seat);
-    g_signal_connect (display, "session-stopped", G_CALLBACK (session_stopped_cb), NULL);
+    g_signal_connect (display, "start-session", G_CALLBACK (start_session_cb), seat);
+    g_signal_connect_after (display, "start-session", G_CALLBACK (session_started_cb), seat);
 }
 
 static void

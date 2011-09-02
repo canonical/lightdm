@@ -361,8 +361,8 @@ display_ready_cb (Display *display, Seat *seat)
     emit_upstart_signal ("login-session-start");
 }
 
-static void
-display_greeter_started_cb (Display *display, Seat *seat)
+static gboolean
+display_start_greeter_cb (Display *display, Seat *seat)
 {
     Session *session;
     const gchar *script;
@@ -371,11 +371,13 @@ display_greeter_started_cb (Display *display, Seat *seat)
 
     script = seat_get_string_property (seat, "greeter-setup-script");
     if (script)
-        run_script (display, script, session_get_user (session)); 
+        return !run_script (display, script, session_get_user (session));
+    else
+        return FALSE;
 }
 
-static void
-display_session_created_cb (Display *display, Seat *seat)
+static gboolean
+display_start_session_cb (Display *display, Seat *seat)
 {
     Session *session;
     const gchar *script;
@@ -384,22 +386,29 @@ display_session_created_cb (Display *display, Seat *seat)
 
     script = seat_get_string_property (seat, "session-setup-script");
     if (script)
-        run_script (display, script, session_get_user (session));
+        return !run_script (display, script, session_get_user (session));
+    else
+        return FALSE;
 }
 
 static void
-display_session_started_cb (Display *display, Seat *seat)
+session_stopped_cb (Session *session, Seat *seat)
 {
-    emit_upstart_signal ("desktop-session-start");
-}
-
-static void
-display_session_stopped_cb (Display *display, Seat *seat)
-{
-    Session *session;
+    Display *display = NULL;
+    GList *link;
     const gchar *script;
-
-    session = display_get_session (display);
+  
+    /* Work out what display this session is on, it's a bit hacky because we really should know already... */
+    for (link = seat->priv->displays; link; link = link->next)
+    {
+        Display *d = link->data;
+        if (display_get_session (d) == session)
+        {
+            display = d;
+            break;
+        }
+    }
+    g_return_if_fail (display != NULL);
 
     /* Cleanup */
     script = seat_get_string_property (seat, "session-cleanup-script");
@@ -412,6 +421,14 @@ display_session_stopped_cb (Display *display, Seat *seat)
         g_free (seat->priv->guest_username);
         seat->priv->guest_username = NULL;
     }
+}
+
+static gboolean
+display_session_started_cb (Display *display, Seat *seat)
+{
+    g_signal_connect (display_get_session (display), "stopped", G_CALLBACK (session_stopped_cb), seat);
+    emit_upstart_signal ("desktop-session-start");
+    return FALSE;
 }
 
 static void
@@ -487,10 +504,9 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
     g_signal_connect (new_display, "switch-to-guest", G_CALLBACK (display_switch_to_guest_cb), seat);
     g_signal_connect (new_display, "get-guest-username", G_CALLBACK (display_get_guest_username_cb), seat);
     g_signal_connect (new_display, "ready", G_CALLBACK (display_ready_cb), seat);
-    g_signal_connect (new_display, "greeter-started", G_CALLBACK (display_greeter_started_cb), seat);
-    g_signal_connect (new_display, "session-created", G_CALLBACK (display_session_created_cb), seat);
-    g_signal_connect (new_display, "session-started", G_CALLBACK (display_session_started_cb), seat);
-    g_signal_connect (new_display, "session-stopped", G_CALLBACK (display_session_stopped_cb), seat);
+    g_signal_connect (new_display, "start-greeter", G_CALLBACK (display_start_greeter_cb), seat);
+    g_signal_connect (new_display, "start-session", G_CALLBACK (display_start_session_cb), seat);
+    g_signal_connect_after (new_display, "start-session", G_CALLBACK (display_session_started_cb), seat);
     g_signal_connect (new_display, "stopped", G_CALLBACK (display_stopped_cb), seat);
     display_set_greeter_session (new_display, seat_get_string_property (seat, "greeter-session"));
     display_set_session_wrapper (new_display, seat_get_string_property (seat, "session-wrapper"));

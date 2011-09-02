@@ -30,10 +30,8 @@ enum {
     SWITCH_TO_USER,
     SWITCH_TO_GUEST,
     GET_GUEST_USERNAME,
-    GREETER_STARTED,
-    SESSION_CREATED,
-    SESSION_STARTED,
-    SESSION_STOPPED,
+    START_GREETER,
+    START_SESSION,
     STOPPED,
     LAST_SIGNAL
 };
@@ -402,8 +400,6 @@ user_session_stopped_cb (Session *session, Display *display)
 {
     g_debug ("User session quit");
 
-    g_signal_emit (display, signals[SESSION_STOPPED], 0);
-
     if (cleanup_after_session (display))
         return;
 
@@ -468,9 +464,9 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     g_signal_connect (session, "exited", G_CALLBACK (session_exited_cb), display);
     g_signal_connect (session, "terminated", G_CALLBACK (session_terminated_cb), display);
     if (is_greeter)
-        g_signal_connect (session, "stopped", G_CALLBACK (greeter_session_stopped_cb), display);
+        g_signal_connect_after (session, "stopped", G_CALLBACK (greeter_session_stopped_cb), display);
     else
-        g_signal_connect (session, "stopped", G_CALLBACK (user_session_stopped_cb), display);
+        g_signal_connect_after (session, "stopped", G_CALLBACK (user_session_stopped_cb), display);
     session_set_is_greeter (session, is_greeter);
     session_set_authentication (session, authentication);
     session_set_command (session, command);
@@ -646,30 +642,35 @@ start_greeter_session (Display *display)
     greeter_set_hint (display->priv->greeter, "has-guest-account", display->priv->allow_guest ? "true" : "false");
     greeter_set_hint (display->priv->greeter, "hide-users", display->priv->greeter_hide_users ? "true" : "false");
 
-    result = greeter_start (display->priv->greeter);
-    if (result)
-    {
-        result = session_start (SESSION (display->priv->session));
-        if (!result)
-            g_debug ("Failed to start greeter session");
-    }
-    else
+    g_signal_emit (display, signals[START_GREETER], 0, &result);
+
+    return !result;
+}
+
+static gboolean
+display_start_greeter (Display *display)
+{
+    if (!greeter_start (display->priv->greeter))
     {
         g_debug ("Failed to start greeter protocol");
 
         g_signal_handlers_disconnect_matched (display->priv->greeter, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
         g_object_unref (display->priv->greeter);
         display->priv->greeter = NULL;
+
+        return TRUE;
+    }
+  
+    if (!session_start (SESSION (display->priv->session)))
+    {     
+        g_debug ("Failed to start greeter session");
+        return TRUE;
     }
 
-    if (result)
-    {
-        display->priv->indicated_ready = TRUE;
-        g_signal_emit (display, signals[GREETER_STARTED], 0);
-        g_signal_emit (display, signals[READY], 0);
-    }
+    display->priv->indicated_ready = TRUE;
+    g_signal_emit (display, signals[READY], 0);
 
-    return result;
+    return FALSE;
 }
 
 static gboolean
@@ -677,7 +678,7 @@ start_user_session (Display *display, PAMSession *authentication)
 {
     User *user;
     gchar *log_filename;
-    gboolean result = FALSE;
+    gboolean result;
 
     g_debug ("Starting user session");
 
@@ -692,20 +693,24 @@ start_user_session (Display *display, PAMSession *authentication)
     display->priv->session = create_session (display, authentication, display->priv->user_session, FALSE, log_filename);
     g_free (log_filename);
 
-    if (display->priv->session)
-    {
-        g_signal_emit (display, signals[SESSION_CREATED], 0, display->priv->session);
-        result = session_start (SESSION (display->priv->session));
-    }
+    if (!display->priv->session)
+        return FALSE;
 
-    if (result)
-    {
-        if (!display->priv->indicated_ready)
-            g_signal_emit (display, signals[READY], 0);
-        g_signal_emit (display, signals[SESSION_STARTED], 0);
-    }
+    g_signal_emit (display, signals[START_SESSION], 0, &result);
 
-    return result;
+    return !result;
+}
+
+static gboolean
+display_start_session (Display *display)
+{
+    if (!session_start (SESSION (display->priv->session)))
+        return TRUE;
+
+    if (!display->priv->indicated_ready)
+        g_signal_emit (display, signals[READY], 0);
+
+    return FALSE;
 }
 
 static void
@@ -879,6 +884,8 @@ display_class_init (DisplayClass *klass)
     klass->switch_to_guest = display_real_switch_to_guest;
     klass->get_guest_username = display_real_get_guest_username;
     klass->create_session = display_create_session;
+    klass->start_greeter = display_start_greeter;
+    klass->start_session = display_start_session;
     object_class->finalize = display_finalize;
 
     g_type_class_add_private (klass, sizeof (DisplayPrivate));
@@ -926,38 +933,22 @@ display_class_init (DisplayClass *klass)
                       NULL,
                       ldm_marshal_STRING__VOID,
                       G_TYPE_STRING, 0);
-    signals[GREETER_STARTED] =
-        g_signal_new ("greeter-started",
+    signals[START_GREETER] =
+        g_signal_new ("start-greeter",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (DisplayClass, greeter_started),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
-    signals[SESSION_CREATED] =
-        g_signal_new ("session-created",
+                      G_STRUCT_OFFSET (DisplayClass, start_greeter),
+                      g_signal_accumulator_true_handled, NULL,
+                      ldm_marshal_BOOLEAN__VOID,
+                      G_TYPE_BOOLEAN, 0);
+    signals[START_SESSION] =
+        g_signal_new ("start-session",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (DisplayClass, session_created),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
-                      G_TYPE_NONE, 1, SESSION_TYPE);
-    signals[SESSION_STARTED] =
-        g_signal_new ("session-started",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (DisplayClass, session_started),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
-    signals[SESSION_STOPPED] =
-        g_signal_new ("session-stopped",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (DisplayClass, session_stopped),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
+                      G_STRUCT_OFFSET (DisplayClass, start_session),
+                      g_signal_accumulator_true_handled, NULL,
+                      ldm_marshal_BOOLEAN__VOID,
+                      G_TYPE_BOOLEAN, 0);
     signals[STOPPED] =
         g_signal_new ("stopped",
                       G_TYPE_FROM_CLASS (klass),

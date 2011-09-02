@@ -44,10 +44,8 @@ typedef struct
     gboolean (*switch_to_user)(Display *display, User *user);
     gboolean (*switch_to_guest)(Display *display);
     gchar *(*get_guest_username)(Display *display);
-    void (*greeter_started)(Display *display);
-    void (*session_created)(Display *display, Session *session);
-    void (*session_started)(Display *display);
-    void (*session_stopped)(Display *display);
+    gboolean (*start_greeter)(Display *display);
+    gboolean (*start_session)(Display *display);
     void (*stopped)(Display *display);
 } DisplayClass;
 
