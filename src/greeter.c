@@ -19,6 +19,7 @@
 #include "ldm-marshal.h"
 
 enum {
+    CONNECTED,
     START_AUTHENTICATION,
     START_SESSION,
     LAST_SIGNAL
@@ -194,6 +195,8 @@ handle_connect (Greeter *greeter, const gchar *version)
         write_string (message, MAX_MESSAGE_LENGTH, value, &offset);
     }
     write_message (greeter, message, offset);
+
+    g_signal_emit (greeter, signals[CONNECTED], 0);
 }
 
 static void
@@ -656,15 +659,14 @@ greeter_class_init (GreeterClass *klass)
     klass->start_session = greeter_real_start_session;
     object_class->finalize = greeter_finalize;
 
-    signals[START_SESSION] =
-        g_signal_new ("start-session",
+    signals[CONNECTED] =
+        g_signal_new ("connected",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (GreeterClass, start_session),
-                      g_signal_accumulator_true_handled,
-                      NULL,
-                      ldm_marshal_BOOLEAN__STRING,
-                      G_TYPE_BOOLEAN, 1, G_TYPE_STRING);
+                      G_STRUCT_OFFSET (GreeterClass, connected),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
 
     signals[START_AUTHENTICATION] =
         g_signal_new ("start-authentication",
@@ -675,6 +677,16 @@ greeter_class_init (GreeterClass *klass)
                       NULL,
                       ldm_marshal_OBJECT__STRING,
                       PAM_SESSION_TYPE, 1, G_TYPE_STRING);
+
+    signals[START_SESSION] =
+        g_signal_new ("start-session",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (GreeterClass, start_session),
+                      g_signal_accumulator_true_handled,
+                      NULL,
+                      ldm_marshal_BOOLEAN__STRING,
+                      G_TYPE_BOOLEAN, 1, G_TYPE_STRING);
 
     g_type_class_add_private (klass, sizeof (GreeterPrivate));
 }

@@ -437,6 +437,7 @@ static void
 display_ready_cb (Display *display, Seat *seat)
 {
     /* Switch to this new display */
+    g_debug ("New display ready, switching to it");
     SEAT_GET_CLASS (seat)->set_active_display (seat, display);
 }
 

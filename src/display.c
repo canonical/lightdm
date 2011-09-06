@@ -533,6 +533,24 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     return session;
 }
 
+static void
+display_set_is_ready (Display *display)
+{
+    if (display->priv->is_ready)
+        return;
+
+    display->priv->is_ready = TRUE;
+    g_signal_emit (display, signals[READY], 0);
+}
+
+static void
+greeter_connected_cb (Greeter *greeter, Display *display)
+{
+    // FIXME: Should wait for greeter to signal completely ready if it supports it
+    g_debug ("Greeter connected, display is ready");
+    display_set_is_ready (display);
+}
+
 static PAMSession *
 greeter_start_authentication_cb (Greeter *greeter, const gchar *username, Display *display)
 {
@@ -622,6 +640,7 @@ start_greeter_session (Display *display)
         return FALSE;
 
     display->priv->greeter = greeter_new (display->priv->session);
+    g_signal_connect (G_OBJECT (display->priv->greeter), "connected", G_CALLBACK (greeter_connected_cb), display);
     g_signal_connect (G_OBJECT (display->priv->greeter), "start-authentication", G_CALLBACK (greeter_start_authentication_cb), display);
     g_signal_connect (G_OBJECT (display->priv->greeter), "start-session", G_CALLBACK (greeter_start_session_cb), display);
     if (display->priv->autologin_timeout)
@@ -648,16 +667,6 @@ start_greeter_session (Display *display)
     return !result;
 }
 
-static void
-display_set_is_ready (Display *display)
-{
-    if (display->priv->is_ready)
-        return;
-
-    display->priv->is_ready = TRUE;
-    g_signal_emit (display, signals[READY], 0);
-}
-
 static gboolean
 display_start_greeter (Display *display)
 {
@@ -677,9 +686,6 @@ display_start_greeter (Display *display)
         g_debug ("Failed to start greeter session");
         return TRUE;
     }
-
-    // FIXME: Wait for greeter to start
-    display_set_is_ready (display);
 
     return FALSE;
 }

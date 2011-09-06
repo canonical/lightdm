@@ -2,6 +2,8 @@ SUBDIRS = src
 
 TESTS = \
 	test-xserver-fail-start \
+	test-greeter-fail-start \
+	test-greeter-not-installed \
 	test-no-config \
 	test-headless \
 	test-autologin \
@@ -38,7 +40,6 @@ TESTS = \
 #	test-autologin-session-exit-error
 #	test-login-gobject-session-exit-error
 #	test-login-qt-session-exit-error
-#	test-greeter-no-start
 #	test-greeter-no-exit
 
 if COMPILE_LIBLIGHTDM_QT
@@ -61,7 +62,6 @@ endif
 
 # In progress
 #	test-autologin-xserver-crash
-#	test-xserver-fail-start
 #	test-greeter-xserver-crash
 
 EXTRA_DIST = \
@@ -87,6 +87,10 @@ EXTRA_DIST = \
 	scripts/autologin-session-crash.script \
 	scripts/autologin-xserver-crash.conf \
 	scripts/autologin-xserver-crash.script \
+	scripts/greeter-fail-start.conf \
+	scripts/greeter-fail-start.script \
+	scripts/greeter-not-installed.conf \
+	scripts/greeter-not-installed.script \
 	scripts/headless.conf \
 	scripts/headless.script \
 	scripts/login.conf \
@@ -122,8 +126,8 @@ EXTRA_DIST = \
 	scripts/plymouth-active-vt.script \
 	scripts/plymouth-inactive-vt.conf \
 	scripts/plymouth-inactive-vt.script \
-	scripts/plymouth-xserver-fail-start.conf \
-	scripts/plymouth-xserver-fail-start.script \
+	scripts/plymouth-no-seat.conf \
+	scripts/plymouth-no-seat.script \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-greeter.script \
 	scripts/switch-to-guest.conf \
@@ -131,4 +135,6 @@ EXTRA_DIST = \
 	scripts/switch-to-user.conf \
 	scripts/switch-to-user.script \
 	scripts/xdmcp-login.conf \
-	scripts/xdmcp-login.script
+	scripts/xdmcp-login.script \
+	scripts/xserver-fail-start.conf \
+	scripts/xserver-fail-start.script

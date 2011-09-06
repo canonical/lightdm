@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/test-runner greeter-fail-start test-gobject-greeter

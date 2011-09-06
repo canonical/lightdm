@@ -79,6 +79,13 @@ main (int argc, char **argv)
     if (g_getenv ("LIGHTDM_TEST_CONFIG"))
         g_key_file_load_from_file (config, g_getenv ("LIGHTDM_TEST_CONFIG"), G_KEY_FILE_NONE, NULL);
 
+    if (g_key_file_has_key (config, "test-greeter-config", "return-value", NULL))
+    {
+        int return_value = g_key_file_get_integer (config, "test-greeter-config", "return-value", NULL);
+        notify_status ("GREETER EXIT CODE=%d", return_value);
+        return return_value;
+    }
+
     g_type_init ();
     main_loop = g_main_loop_new (NULL, FALSE);
 

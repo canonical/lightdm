@@ -1,0 +1,19 @@
+#
+# Check that LightDM quits when the greeter does not exist
+#
+RUNNER DAEMON-START
+
+# X server starts
+XSERVER :50 START
+XSERVER :50 INDICATE-READY
+
+# LightDM connects to X server
+XSERVER :50 ACCEPT-CONNECT
+
+# Invalid greeter attempted, fails to start
+
+# X server stopped
+XSERVER :50 TERMINATE SIGNAL=15
+
+# Daemon stops with error
+RUNNER DAEMON-EXIT STATUS=1
