@@ -23,8 +23,10 @@ static gchar *auth_path = NULL;
 
 typedef struct
 {
+    GIOChannel *parent_channel;
     GIOChannel *channel;
     guint8 byte_order;
+    gboolean connected;
 } Connection;
 static GHashTable *connections;
 
@@ -368,7 +370,7 @@ log_buffer (const gchar *text, const guint8 *buffer, gsize buffer_length)
 }
 
 static void
-decode_connection_request (GIOChannel *channel, const guint8 *buffer, gssize buffer_length)
+decode_connection_request (Connection *connection, const guint8 *buffer, gssize buffer_length)
 {
     guint8 byte_order;
     guint16 protocol_major_version, protocol_minor_version;
@@ -389,7 +391,10 @@ decode_connection_request (GIOChannel *channel, const guint8 *buffer, gssize buf
     g_debug ("Got connect request using protocol %d.%d and authorization '%s' with data '%s'", protocol_major_version, protocol_minor_version, authorization_protocol_name, hex);
     g_free (hex);
 
-    notify_status ("XSERVER :%d ACCEPT-CONNECT", display_number);
+    if (connection->parent_channel == tcp_channel)
+        notify_status ("XSERVER :%d TCP-ACCEPT-CONNECT", display_number);
+    else
+        notify_status ("XSERVER :%d ACCEPT-CONNECT", display_number);
 
     if (auth_path)
     {
@@ -462,19 +467,13 @@ decode_connection_request (GIOChannel *channel, const guint8 *buffer, gssize buf
     }
     else
     {
-        Connection *connection;
-
         g_debug ("Sending Success");
-        n_written = encode_accept (response_buffer, MAXIMUM_REQUEST_LENGTH, byte_order);
-
-        /* Store connection */
-        connection = g_malloc0 (sizeof (Connection));
-        connection->channel = g_io_channel_ref (channel);
+        connection->connected = TRUE;
         connection->byte_order = byte_order;
-        g_hash_table_insert (connections, channel, connection);
+        n_written = encode_accept (response_buffer, MAXIMUM_REQUEST_LENGTH, byte_order);
     }
 
-    send (g_io_channel_unix_get_fd (channel), response_buffer, n_written, 0);
+    send (g_io_channel_unix_get_fd (connection->channel), response_buffer, n_written, 0);
     log_buffer ("Wrote X", response_buffer, n_written);
 }
 
@@ -546,7 +545,7 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
         g_warning ("Error reading from socket: %s", strerror (errno));
     else if (n_read == 0)
     {
-        if (connection)
+        if (connection->connected)
         {
             g_debug ("Client disconnected");
             g_hash_table_remove (connections, connection->channel);
@@ -561,10 +560,10 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     {
         log_buffer ("Read X", buffer, n_read);
 
-        if (connection)
+        if (connection->connected)
             decode_request (connection, buffer, n_read);
         else
-            decode_connection_request (channel, buffer, n_read);
+            decode_connection_request (connection, buffer, n_read);
     }
 
     return TRUE;
@@ -582,7 +581,15 @@ socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     if (data_socket < 0)
         g_warning ("Error accepting connection: %s", strerror (errno));
     else
-        g_io_add_watch (g_io_channel_unix_new (data_socket), G_IO_IN, socket_data_cb, NULL);
+    {
+        Connection *connection;
+
+        connection = g_malloc0 (sizeof (Connection));
+        connection->parent_channel = g_io_channel_ref (channel);
+        connection->channel = g_io_channel_unix_new (data_socket);
+        g_hash_table_insert (connections, connection->channel, connection);
+        g_io_add_watch (connection->channel, G_IO_IN, socket_data_cb, NULL);
+    }
 
     return TRUE;
 }
@@ -963,11 +970,13 @@ main (int argc, char **argv)
     }
     g_free (pid_string);
 
-    connections = g_hash_table_new (g_direct_hash, g_direct_equal);
+    connections = g_hash_table_new_full (g_direct_hash, g_direct_equal, (GDestroyNotify) g_io_channel_unref, g_free);
 
     if (listen_unix)
     {
         socket_path = g_strdup_printf ("/tmp/.X11-unix/X%d", display_number);
+        g_debug ("Opening Unix socket %s", socket_path);
+
         unix_socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
         if (!unix_socket ||
             !g_socket_bind (unix_socket, g_unix_socket_address_new (socket_path), TRUE, &error) ||
@@ -982,9 +991,13 @@ main (int argc, char **argv)
 
     if (listen_tcp)
     {
+        gint port = 6000 + display_number;
+
+        g_debug ("Opening TCP/IP socket on port %d", port);
+
         tcp_socket = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_TCP, &error);
         if (!tcp_socket ||
-            !g_socket_bind (tcp_socket, g_inet_socket_address_new (g_inet_address_new_any (G_SOCKET_FAMILY_IPV4), 6000 + display_number), TRUE, &error) ||
+            !g_socket_bind (tcp_socket, g_inet_socket_address_new (g_inet_address_new_any (G_SOCKET_FAMILY_IPV4), port), TRUE, &error) ||
             !g_socket_listen (tcp_socket, &error))
         {
             g_warning ("Error creating TCP/IP X socket: %s", error->message);
@@ -1001,7 +1014,7 @@ main (int argc, char **argv)
         GSocketAddress *socket_address;
 
         xdmcp_socket = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_DATAGRAM, G_SOCKET_PROTOCOL_UDP, &error);
-      
+
         address = g_network_address_new (xdmcp_host, xdmcp_port);
         socket_address = g_socket_address_enumerator_next (g_socket_connectable_enumerate (address), NULL, NULL);
 
