@@ -1,6 +1,3 @@
-DISTCLEANFILES = \
-        Makefile.in
-
 lib_LTLIBRARIES = liblightdm-qt-1.la
 
 # Generate metadata for QObjects
