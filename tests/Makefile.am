@@ -86,6 +86,8 @@ EXTRA_DIST = \
 	scripts/greeter-fail-start.script \
 	scripts/greeter-not-installed.conf \
 	scripts/greeter-not-installed.script \
+	scripts/greeter-xserver-crash.conf \
+	scripts/greeter-xserver-crash.script \
 	scripts/headless.conf \
 	scripts/headless.script \
 	scripts/login.conf \
