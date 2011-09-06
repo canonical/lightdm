@@ -1,2 +1,0 @@
-#!/bin/sh
-./src/test-runner login-session-crash test-qt-greeter

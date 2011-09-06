@@ -23,13 +23,13 @@ TESTS = \
 	test-login-gobject-invalid-user \
 	test-login-gobject-invalid-session \
 	test-login-gobject-logout \
-	test-login-gobject-xserver-crash \
-	test-login-gobject-session-crash \
 	test-login-gobject-guest \
 	test-login-gobject-guest-disabled \
 	test-login-gobject-guest-no-setup-script \
 	test-login-gobject-guest-fail-setup-script \
 	test-login-gobject-guest-logout \
+	test-login-session-crash \
+	test-login-xserver-crash \
 	test-plymouth-active-vt \
 	test-plymouth-inactive-vt \
 	test-plymouth-no-seat \
@@ -52,8 +52,6 @@ TESTS += \
 	test-login-qt-invalid-user \
 	test-login-qt-invalid-session \
 	test-login-qt-logout \
-	test-login-qt-xserver-crash \
-	test-login-qt-session-crash \
 	test-login-qt-guest \
 	test-login-qt-guest-disabled \
 	test-login-qt-guest-no-setup-script \
