@@ -7,7 +7,7 @@ Overview of changes in lightdm 0.9.5
     * Fix line through GTK greeter menu items
     * Exit daemon if a seat fails which has exit-on-failure set to true
     * Add HasGuestAccount property to seat D-Bus interface
-    * Fix up XDMCP authorization
+    * Fix XDMCP authorization
 
 Overview of changes in lightdm 0.9.4
 
