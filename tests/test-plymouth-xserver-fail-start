@@ -1,2 +1,0 @@
-#!/bin/sh
-./src/test-runner plymouth-xserver-fail-start test-gobject-greeter

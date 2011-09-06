@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/test-runner plymouth-no-seat test-gobject-greeter

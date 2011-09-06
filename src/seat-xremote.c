@@ -61,7 +61,7 @@ seat_xremote_add_display (Seat *seat)
 static void
 seat_xremote_display_removed (Seat *seat, Display *display)
 {
-    /* Can't restart the display, so remote this seat */
+    /* Can't restart the display, so remove this seat */
     seat_stop (seat);
 }
 

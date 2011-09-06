@@ -30,6 +30,7 @@ enum {
     SWITCH_TO_USER,
     SWITCH_TO_GUEST,
     GET_GUEST_USERNAME,
+    START_DISPLAY_SERVER,
     START_GREETER,
     START_SESSION,
     STOPPED,
@@ -75,8 +76,8 @@ struct DisplayPrivate
     /* TRUE if in a user session */
     gboolean in_user_session;
 
-    /* TRUE if have emitted ready signal */
-    gboolean indicated_ready;
+    /* TRUE if have got an X server / started a greeter */
+    gboolean is_ready;
 
     /* Session process */
     Session *session;
@@ -647,6 +648,16 @@ start_greeter_session (Display *display)
     return !result;
 }
 
+static void
+display_set_is_ready (Display *display)
+{
+    if (display->priv->is_ready)
+        return;
+
+    display->priv->is_ready = TRUE;
+    g_signal_emit (display, signals[READY], 0);
+}
+
 static gboolean
 display_start_greeter (Display *display)
 {
@@ -667,8 +678,8 @@ display_start_greeter (Display *display)
         return TRUE;
     }
 
-    display->priv->indicated_ready = TRUE;
-    g_signal_emit (display, signals[READY], 0);
+    // FIXME: Wait for greeter to start
+    display_set_is_ready (display);
 
     return FALSE;
 }
@@ -707,8 +718,8 @@ display_start_session (Display *display)
     if (!session_start (SESSION (display->priv->session)))
         return TRUE;
 
-    if (!display->priv->indicated_ready)
-        g_signal_emit (display, signals[READY], 0);
+    // FIXME: Wait for session to indicate it is ready (maybe)
+    display_set_is_ready (display);
 
     return FALSE;
 }
@@ -773,11 +784,20 @@ display_start (Display *display)
 
     g_signal_connect (G_OBJECT (display->priv->display_server), "ready", G_CALLBACK (display_server_ready_cb), display);
     g_signal_connect (G_OBJECT (display->priv->display_server), "stopped", G_CALLBACK (display_server_stopped_cb), display);
-    result = display_server_start (display->priv->display_server);
+  
+    g_signal_emit (display, signals[START_DISPLAY_SERVER], 0, &result);
+    if (result)
+        return FALSE;
 
     g_signal_emit (display, signals[STARTED], 0);
 
-    return result;
+    return TRUE;
+}
+
+static gboolean
+display_start_display_server (Display *display)
+{
+    return !display_server_start (display->priv->display_server);
 }
 
 void
@@ -800,10 +820,20 @@ display_stop (Display *display)
     check_stopped (display);
 }
 
+gboolean
+display_get_is_ready (Display *display)
+{
+    g_return_val_if_fail (display != NULL, FALSE);
+
+    return display->priv->is_ready;
+}
+
 void
 display_unlock (Display *display)
 {
     const gchar *cookie;
+
+    g_return_if_fail (display != NULL);
 
     if (!display->priv->session)
         return;
@@ -884,6 +914,7 @@ display_class_init (DisplayClass *klass)
     klass->switch_to_guest = display_real_switch_to_guest;
     klass->get_guest_username = display_real_get_guest_username;
     klass->create_session = display_create_session;
+    klass->start_display_server = display_start_display_server;
     klass->start_greeter = display_start_greeter;
     klass->start_session = display_start_session;
     object_class->finalize = display_finalize;
@@ -933,6 +964,14 @@ display_class_init (DisplayClass *klass)
                       NULL,
                       ldm_marshal_STRING__VOID,
                       G_TYPE_STRING, 0);
+    signals[START_DISPLAY_SERVER] =
+        g_signal_new ("start-display-server",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (DisplayClass, start_display_server),
+                      g_signal_accumulator_true_handled, NULL,
+                      ldm_marshal_BOOLEAN__VOID,
+                      G_TYPE_BOOLEAN, 0);
     signals[START_GREETER] =
         g_signal_new ("start-greeter",
                       G_TYPE_FROM_CLASS (klass),

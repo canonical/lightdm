@@ -44,6 +44,7 @@ static guint seat_index = 0;
 static GDBusNodeInfo *session_info;
 static GHashTable *session_bus_entries;
 static guint session_index = 0;
+static gint exit_code = EXIT_SUCCESS;
 
 typedef struct
 {
@@ -131,7 +132,7 @@ static void
 display_manager_stopped_cb (DisplayManager *display_manager)
 {
     g_debug ("Stopping Light Display Manager");
-    exit (EXIT_SUCCESS);
+    exit (exit_code);
 }
 
 static Session *
@@ -593,6 +594,13 @@ static void
 seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
     g_hash_table_remove (seat_bus_entries, seat);
+
+    if (seat_get_boolean_property (seat, "exit-on-failure"))
+    {
+        g_debug ("Stopping lightdm, required seat has stopped");
+        exit_code = EXIT_FAILURE;
+        display_manager_stop (display_manager);
+    }
 }
 
 static void
@@ -1065,6 +1073,7 @@ main (int argc, char **argv)
         if (seat)
         {
             set_seat_properties (seat, NULL);
+            seat_set_property (seat, "exit-on-failure", "true");
             display_manager_add_seat (display_manager, seat);
         }
         else

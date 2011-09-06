@@ -1,6 +1,7 @@
 SUBDIRS = src
 
 TESTS = \
+	test-xserver-fail-start \
 	test-no-config \
 	test-headless \
 	test-autologin \
@@ -28,7 +29,7 @@ TESTS = \
 	test-login-gobject-guest-logout \
 	test-plymouth-active-vt \
 	test-plymouth-inactive-vt \
-	test-plymouth-xserver-fail-start \
+	test-plymouth-no-seat \
 	test-switch-to-greeter \
 	test-switch-to-guest \
 	test-switch-to-user \
@@ -38,7 +39,6 @@ TESTS = \
 #	test-login-gobject-session-exit-error
 #	test-login-qt-session-exit-error
 #	test-greeter-no-start
-#	test-xserver-no-start
 #	test-greeter-no-exit
 
 if COMPILE_LIBLIGHTDM_QT

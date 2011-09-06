@@ -113,8 +113,19 @@ seat_xlocal_set_active_display (Seat *seat, Display *display)
 static void
 seat_xlocal_display_removed (Seat *seat, Display *display)
 {
-    /* Show a new greeter */
-    if (!seat_get_is_stopping (seat) && display == seat_get_active_display (seat))
+    if (seat_get_is_stopping (seat))
+        return;
+
+    /* If this is the only display and it failed to start then stop this seat */
+    if (g_list_length (seat_get_displays (seat)) == 0 && !display_get_is_ready (display))
+    {
+        g_debug ("Stopping X local seat, failed to start a display");
+        seat_stop (seat);
+        return;
+    }
+
+    /* Show a new greeter */  
+    if (display == seat_get_active_display (seat))
     {
         g_debug ("Active display stopped, switching to greeter");
         seat_switch_to_greeter (seat);

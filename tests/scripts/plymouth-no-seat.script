@@ -1,0 +1,15 @@
+#
+# Check Plymouth quits when the X server fails to start.
+#
+
+RUNNER DAEMON-START
+
+# Check if Plymouth is running
+PLYMOUTH PING ACTIVE=TRUE
+
+# Plymouth quits
+PLYMOUTH QUIT RETAIN-SPLASH=FALSE
+
+# Cleanup
+*STOP-DAEMON
+RUNNER DAEMON-EXIT STATUS=0
