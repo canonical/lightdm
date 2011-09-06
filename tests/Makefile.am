@@ -4,6 +4,7 @@ TESTS = \
 	test-xserver-fail-start \
 	test-greeter-fail-start \
 	test-greeter-not-installed \
+	test-greeter-xserver-crash \
 	test-no-config \
 	test-headless \
 	test-autologin \
@@ -59,10 +60,6 @@ TESTS += \
 	test-login-qt-guest-fail-setup-script \
 	test-login-qt-guest-logout
 endif
-
-# In progress
-#	test-autologin-xserver-crash
-#	test-greeter-xserver-crash
 
 EXTRA_DIST = \
 	$(TESTS) \

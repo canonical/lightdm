@@ -115,10 +115,23 @@ main (int argc, char **argv)
 
     if (g_key_file_get_boolean (config, "test-greeter-config", "crash-xserver", NULL))
     {
-        const gchar *name = "SIGSEGV";
-        notify_status ("GREETER CRASH-XSERVER");
-        xcb_intern_atom (connection, FALSE, strlen (name), name);
-        xcb_flush (connection);
+        gchar *crash_lock;
+        FILE *f;
+
+        crash_lock = g_build_filename (g_getenv ("LIGHTDM_TEST_HOME_DIR"), ".greeter-crashed-xserver", NULL);
+        f = fopen (crash_lock, "r");
+
+        if (f == NULL)
+        {
+            const gchar *name = "SIGSEGV";
+            notify_status ("GREETER CRASH-XSERVER");
+            xcb_intern_atom (connection, FALSE, strlen (name), name);
+            xcb_flush (connection);
+
+            /* Write lock to stop repeatedly logging in */
+            f = fopen (crash_lock, "w");
+            fclose (f);
+        }
     }
 
     /* Automatically log in as requested user */

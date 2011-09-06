@@ -1,5 +1,5 @@
 #
-# Check X server crashing while running greeter is handled
+# Check X server crashing while running greeter returns to the greeter
 #
 
 RUNNER DAEMON-START
@@ -18,9 +18,12 @@ GREETER CONNECT-XSERVER :50
 GREETER CONNECT-TO-DAEMON
 GREETER CONNECTED-TO-DAEMON
 
-# X server crashes (triggered by user session)
+# X server crashes (triggered by greeter)
 GREETER CRASH-XSERVER
 XSERVER :50 CRASH
+
+# Greeter quits
+GREETER TERMINATE SIGNAL=15
 
 # X server restarts
 XSERVER :50 START
