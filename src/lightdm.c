@@ -739,7 +739,7 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
     set_seat_properties (SEAT (seat), NULL);
     result = display_manager_add_seat (display_manager, SEAT (seat));
     g_object_unref (seat);
-  
+
     return result;
 }
 

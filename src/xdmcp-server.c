@@ -282,6 +282,15 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
         {
             family = connection->type;
             xserver_address = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV6);
+
+            /* We can't use link-local addresses, as we need to know what interface it is on */
+            if (g_inet_address_get_is_link_local (xserver_address))
+            {
+                g_object_unref (xserver_address);
+                xserver_address = NULL;
+            }
+            else
+                break;
         }
     }
 
@@ -295,6 +304,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
             {
                 family = connection->type;
                 xserver_address = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV4);
+                break;
             }
         }
     }
@@ -462,60 +472,59 @@ static void
 handle_manage (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XDMCPPacket *packet)
 {
     XDMCPSession *session;
+    gboolean result;
 
     session = get_session (server, packet->Manage.session_id);
-    if (session)
-    {
-        gboolean result;
-
-        /* Ignore duplicate requests */
-        if (session->priv->started)
-        {
-            if (session->priv->display_number != packet->Manage.display_number ||
-                strcmp (session->priv->display_class, packet->Manage.display_class) != 0)
-                g_debug ("Ignoring duplicate Manage with different data");
-            return;
-        }
-
-        /* Reject if has changed display number */
-        if (packet->Manage.display_number != session->priv->display_number)
-        {
-            XDMCPPacket *response;
-
-            g_debug ("Received Manage for display number %d, but Request was %d", packet->Manage.display_number, session->priv->display_number);
-            response = xdmcp_packet_alloc (XDMCP_Refuse);
-            response->Refuse.session_id = packet->Manage.session_id;
-            send_packet (socket, address, response);
-            xdmcp_packet_free (response);
-        }
-
-        session->priv->display_class = g_strdup (packet->Manage.display_class);
-
-        g_signal_emit (server, signals[NEW_SESSION], 0, session, &result);
-        if (result)
-        {
-            /* Cancel the inactive timer */
-            g_source_remove (session->priv->inactive_timeout);
-
-            session->priv->started = TRUE;
-        }
-        else
-        {
-            XDMCPPacket *response;
-
-            response = xdmcp_packet_alloc (XDMCP_Failed);
-            response->Failed.session_id = packet->Manage.session_id;
-            response->Failed.status = g_strdup_printf ("Failed to connect to display :%d", packet->Manage.display_number);
-            send_packet (socket, address, response);
-            xdmcp_packet_free (response);
-        }
-    }
-    else
+    if (!session)
     {
         XDMCPPacket *response;
 
         response = xdmcp_packet_alloc (XDMCP_Refuse);
         response->Refuse.session_id = packet->Manage.session_id;
+        send_packet (socket, address, response);
+        xdmcp_packet_free (response);
+
+        return;
+    }
+
+    /* Ignore duplicate requests */
+    if (session->priv->started)
+    {
+        if (session->priv->display_number != packet->Manage.display_number ||
+            strcmp (session->priv->display_class, packet->Manage.display_class) != 0)
+            g_debug ("Ignoring duplicate Manage with different data");
+        return;
+    }
+
+    /* Reject if has changed display number */
+    if (packet->Manage.display_number != session->priv->display_number)
+    {
+        XDMCPPacket *response;
+
+        g_debug ("Received Manage for display number %d, but Request was %d", packet->Manage.display_number, session->priv->display_number);
+        response = xdmcp_packet_alloc (XDMCP_Refuse);
+        response->Refuse.session_id = packet->Manage.session_id;
+        send_packet (socket, address, response);
+        xdmcp_packet_free (response);
+    }
+
+    session->priv->display_class = g_strdup (packet->Manage.display_class);
+
+    g_signal_emit (server, signals[NEW_SESSION], 0, session, &result);
+    if (result)
+    {
+        /* Cancel the inactive timer */
+        g_source_remove (session->priv->inactive_timeout);
+
+        session->priv->started = TRUE;
+    }
+    else
+    {
+        XDMCPPacket *response;
+
+        response = xdmcp_packet_alloc (XDMCP_Failed);
+        response->Failed.session_id = packet->Manage.session_id;
+        response->Failed.status = g_strdup_printf ("Failed to connect to display :%d", packet->Manage.display_number);
         send_packet (socket, address, response);
         xdmcp_packet_free (response);
     }
