@@ -55,17 +55,19 @@ typedef enum
 
 GType xauth_get_type (void);
 
-XAuthority *xauth_new (guint16 family, const gchar *address, const gchar *number, const gchar *name, const guint8 *data, gsize data_length);
+XAuthority *xauth_new (guint16 family, const guint8 *address, guint16 address_length, const gchar *number, const gchar *name, const guint8 *data, gsize data_length);
 
-XAuthority *xauth_new_cookie (guint16 family, const gchar *address, const gchar *number);
+XAuthority *xauth_new_cookie (guint16 family, const guint8 *address, guint16 address_length, const gchar *number);
 
 void xauth_set_family (XAuthority *auth, guint16 family);
 
 guint16 xauth_get_family (XAuthority *auth);
 
-void xauth_set_address (XAuthority *auth, const gchar *address);
+void xauth_set_address (XAuthority *auth, const guint8 *address, guint16 address_length);
 
-const gchar *xauth_get_address (XAuthority *auth);
+const guint8 *xauth_get_address (XAuthority *auth);
+
+const guint16 xauth_get_address_length (XAuthority *auth);
 
 void xauth_set_number (XAuthority *auth, const gchar *number);
 

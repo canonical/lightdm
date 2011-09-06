@@ -21,8 +21,9 @@ struct XAuthorityPrivate
     /* Protocol family */
     guint16 family;
 
-    /* Host address of X server */
-    gchar *address;
+    /* Address of the X server (format dependent on family) */
+    guint8 *address;
+    guint16 address_length;
   
     /* Display number of X server */
     gchar *number;
@@ -38,12 +39,12 @@ struct XAuthorityPrivate
 G_DEFINE_TYPE (XAuthority, xauth, G_TYPE_OBJECT);
 
 XAuthority *
-xauth_new (guint16 family, const gchar *address, const gchar *number, const gchar *name, const guint8 *data, gsize data_length)
+xauth_new (guint16 family, const guint8 *address, guint16 address_length, const gchar *number, const gchar *name, const guint8 *data, gsize data_length)
 {
     XAuthority *auth = g_object_new (XAUTHORITY_TYPE, NULL);
 
     xauth_set_family (auth, family);  
-    xauth_set_address (auth, address);
+    xauth_set_address (auth, address, address_length);
     xauth_set_number (auth, number);
     xauth_set_authorization_name (auth, name);
     xauth_set_authorization_data (auth, data, data_length);
@@ -52,7 +53,7 @@ xauth_new (guint16 family, const gchar *address, const gchar *number, const gcha
 }
 
 XAuthority *
-xauth_new_cookie (guint16 family, const gchar *address, const gchar *number)
+xauth_new_cookie (guint16 family, const guint8 *address, guint16 address_length, const gchar *number)
 {
     guint8 cookie[16];
     gint i;
@@ -60,7 +61,7 @@ xauth_new_cookie (guint16 family, const gchar *address, const gchar *number)
     for (i = 0; i < 16; i++)
         cookie[i] = g_random_int () & 0xFF;
 
-    return xauth_new (family, address, number, "MIT-MAGIC-COOKIE-1", cookie, 16);
+    return xauth_new (family, address, address_length, number, "MIT-MAGIC-COOKIE-1", cookie, 16);
 }
 
 void
@@ -78,18 +79,27 @@ xauth_get_family (XAuthority *auth)
 }
 
 void
-xauth_set_address (XAuthority *auth, const gchar *address)
+xauth_set_address (XAuthority *auth, const guint8 *address, guint16 address_length)
 {
     g_return_if_fail (auth != NULL);
     g_free (auth->priv->address);
-    auth->priv->address = g_strdup (address);
+    auth->priv->address = g_malloc (address_length);
+    memcpy (auth->priv->address, address, address_length);
+    auth->priv->address_length = address_length;
 }
 
-const gchar *
+const guint8 *
 xauth_get_address (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, NULL);
     return auth->priv->address;
+}
+
+const guint16
+xauth_get_address_length (XAuthority *auth)
+{
+    g_return_val_if_fail (auth != NULL, 0);
+    return auth->priv->address_length;
 }
 
 void
@@ -247,13 +257,14 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GEr
     }
     while (input_stream)
     {
-        gboolean eof = FALSE;
+        gboolean eof = FALSE, address_matches = FALSE;
         GError *read_error = NULL;
 
         a = g_object_new (XAUTHORITY_TYPE, NULL);
 
         result = read_uint16 (G_INPUT_STREAM (input_stream), &a->priv->family, &eof, &read_error) &&
-                 read_string (G_INPUT_STREAM (input_stream), &a->priv->address, &read_error) &&
+                 read_uint16 (G_INPUT_STREAM (input_stream), &a->priv->address_length, NULL, &read_error) &&
+                 read_data (G_INPUT_STREAM (input_stream), a->priv->address_length, &a->priv->address, &read_error) &&
                  read_string (G_INPUT_STREAM (input_stream), &a->priv->number, &read_error) &&
                  read_string (G_INPUT_STREAM (input_stream), &a->priv->authorization_name, &read_error) &&
                  read_uint16 (G_INPUT_STREAM (input_stream), &a->priv->authorization_data_length, NULL, &read_error) &&
@@ -265,10 +276,17 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GEr
         if (eof || !result)
             break;
 
+        if (auth->priv->address_length == a->priv->address_length)
+        {
+            guint16 i;
+            for (i = 0; i < auth->priv->address_length && auth->priv->address[i] == a->priv->address[i]; i++);
+            address_matches = i == auth->priv->address_length;
+        }
+
         /* If this record matches, then update or delete it */
         if (!matched &&
             auth->priv->family == a->priv->family &&
-            strcmp (auth->priv->address, a->priv->address) == 0 &&
+            address_matches &&
             strcmp (auth->priv->number, a->priv->number) == 0)
         {
             matched = TRUE;
@@ -310,7 +328,8 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GEr
         XAuthority *a = link->data;
 
         result = write_uint16 (G_OUTPUT_STREAM (output_stream), a->priv->family, error) &&
-                 write_string (G_OUTPUT_STREAM (output_stream), a->priv->address, error) &&
+                 write_uint16 (G_OUTPUT_STREAM (output_stream), a->priv->address_length, error) &&
+                 write_data (G_OUTPUT_STREAM (output_stream), a->priv->address, a->priv->address_length, error) &&
                  write_string (G_OUTPUT_STREAM (output_stream), a->priv->number, error) &&
                  write_string (G_OUTPUT_STREAM (output_stream), a->priv->authorization_name, error) &&
                  write_uint16 (G_OUTPUT_STREAM (output_stream), a->priv->authorization_data_length, error) &&
@@ -343,7 +362,6 @@ static void
 xauth_init (XAuthority *auth)
 {
     auth->priv = G_TYPE_INSTANCE_GET_PRIVATE (auth, XAUTHORITY_TYPE, XAuthorityPrivate);
-    auth->priv->address = g_strdup ("");
     auth->priv->number = g_strdup ("");
 }
 

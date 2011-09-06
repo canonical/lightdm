@@ -38,7 +38,7 @@ xdmcp_session_get_manufacturer_display_id (XDMCPSession *session)
     return session->priv->manufacturer_display_id;
 }
 
-const GInetAddress *
+GInetAddress *
 xdmcp_session_get_address (XDMCPSession *session)
 {
     g_return_val_if_fail (session != NULL, NULL);
@@ -84,8 +84,6 @@ xdmcp_session_finalize (GObject *object)
     g_free (self->priv->manufacturer_display_id);
     if (self->priv->address)
         g_object_unref (self->priv->address);
-    if (self->priv->address6)
-        g_object_unref (self->priv->address6);
     if (self->priv->authority)
         g_object_unref (self->priv->authority);
     g_free (self->priv->display_class);

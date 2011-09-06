@@ -41,10 +41,13 @@ static Display *
 seat_xdmcp_session_add_display (Seat *seat)
 {
     XAuthority *authority;
+    gchar *host;
     XServerRemote *xserver;
 
     authority = xdmcp_session_get_authority (SEAT_XDMCP_SESSION (seat)->priv->session);
-    xserver = xserver_remote_new (xauth_get_address (authority), xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session), authority);
+    host = g_inet_address_to_string (xdmcp_session_get_address (SEAT_XDMCP_SESSION (seat)->priv->session));
+    xserver = xserver_remote_new (host, xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session), authority);
+    g_free (host);
 
     SEAT_XDMCP_SESSION (seat)->priv->display = xdisplay_new (XSERVER (xserver));
     g_object_unref (xserver);

@@ -269,28 +269,38 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     guint8 *session_authorization_data = NULL;
     gsize session_authorization_data_length = 0;
     gchar **j;
-    GInetAddress *address4 = NULL, *address6 = NULL;
-    gchar *host, *display_number;
+    guint16 family;
+    GInetAddress *xserver_address = NULL;
+    gchar *display_number;
     XdmAuthKeyRec rho;
 
+    /* Try and find an IPv6 address */
     for (i = 0; i < packet->Request.n_connections; i++)
     {
-        XDMCPConnection *connection;
-
-        connection = &packet->Request.connections[i];
-        switch (connection->type)
+        XDMCPConnection *connection = &packet->Request.connections[i];
+        if (connection->type == XAUTH_FAMILY_INTERNET6 && connection->address.length == 16)
         {
-        case FamilyInternet:
-            if (connection->address.length == 4)
-                address4 = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV4);
-            break;
-        /*case FamilyInternet6:
-            if (connection->address.length == 16)
-                address6 = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV6);          
-            break;*/
+            family = connection->type;
+            xserver_address = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV6);
         }
     }
-    if (!address4) // FIXME: && !address6)
+
+    /* If no IPv6 address, then try and find an IPv4 one */
+    if (!xserver_address)
+    {
+        for (i = 0; i < packet->Request.n_connections; i++)
+        {
+            XDMCPConnection *connection = &packet->Request.connections[i];
+            if (connection->type == XAUTH_FAMILY_INTERNET && connection->address.length == 4)
+            {
+                family = connection->type;
+                xserver_address = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV4);
+            }
+        }
+    }
+
+    /* Decline if haven't got an address we can connect on */
+    if (!xserver_address)
     {
         response = xdmcp_packet_alloc (XDMCP_Decline);
         response->Decline.status = g_strdup ("No valid address found");
@@ -349,7 +359,8 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
              break;
         }
     }
-  
+
+    /* Decline if don't support out authorization */
     if (!match_authorization)
     {
         response = xdmcp_packet_alloc (XDMCP_Decline);
@@ -395,28 +406,44 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
         XAuthority *auth;
 
         /* Data is the cookie */
-        auth = xauth_new_cookie (XAUTH_FAMILY_WILD, "", "");
+        auth = xauth_new_cookie (XAUTH_FAMILY_WILD, NULL, 0, "");
         authorization_data = xauth_copy_authorization_data (auth);
         authorization_data_length = xauth_get_authorization_data_length (auth);
         session_authorization_data = xauth_copy_authorization_data (auth);
         session_authorization_data_length = xauth_get_authorization_data_length (auth);
-      
+
         g_object_unref (auth);
     }
 
     session = add_session (server);
-    session->priv->address = address4;
-    session->priv->address6 = address6;
+    session->priv->address = xserver_address;
     session->priv->display_number = packet->Request.display_number;
-    host = g_inet_address_to_string (G_INET_ADDRESS (address4)); // FIXME: IPv6
     display_number = g_strdup_printf ("%d", packet->Request.display_number);
-    session->priv->authority = xauth_new (XAUTH_FAMILY_INTERNET, // FIXME: IPv6
-                                          host,
-                                          display_number,
-                                          authorization_name,
-                                          session_authorization_data,
-                                          session_authorization_data_length);
-    g_free (host);
+
+    /* We need to check if this is the loopback address and set the authority
+     * for a local connection if this is so as XCB treats "127.0.0.1" as local
+     * always */
+    if (g_inet_address_get_is_loopback (xserver_address))
+    {
+        gchar hostname[1024];
+        gethostname (hostname, 1024);
+
+        session->priv->authority = xauth_new (XAUTH_FAMILY_LOCAL,
+                                              (guint8 *) hostname,
+                                              strlen (hostname),
+                                              display_number,
+                                              authorization_name,
+                                              session_authorization_data,
+                                              session_authorization_data_length);
+    }
+    else
+        session->priv->authority = xauth_new (family,
+                                              g_inet_address_to_bytes (G_INET_ADDRESS (xserver_address)),
+                                              g_inet_address_get_native_size (G_INET_ADDRESS (xserver_address)),
+                                              display_number,
+                                              authorization_name,
+                                              session_authorization_data,
+                                              session_authorization_data_length);
     g_free (display_number);
 
     response = xdmcp_packet_alloc (XDMCP_Accept);

@@ -24,7 +24,6 @@ struct XDMCPSessionPrivate
     gchar *manufacturer_display_id;
 
     GInetAddress *address;
-    GInetAddress *address6;  
 
     guint inactive_timeout;
 

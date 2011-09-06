@@ -392,7 +392,7 @@ xserver_local_start (DisplayServer *display_server)
     gethostname (hostname, 1024);
     number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (server)));
     if (!server->priv->xdmcp_key)
-        xserver_set_authority (XSERVER (server), xauth_new_cookie (XAUTH_FAMILY_LOCAL, hostname, number));
+        xserver_set_authority (XSERVER (server), xauth_new_cookie (XAUTH_FAMILY_LOCAL, (guint8*) hostname, strlen (hostname), number));
     g_free (number);
     write_authority_file (server);
     if (server->priv->authority_file)
