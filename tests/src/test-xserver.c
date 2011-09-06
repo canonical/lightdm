@@ -44,6 +44,9 @@ static gboolean do_xdmcp = FALSE;
 static gchar *xdmcp_host = NULL;
 static GSocket *xdmcp_socket = NULL;
 static guint xdmcp_query_timer = 0;
+static gchar *xdmcp_authorization_name = NULL;
+static gint xdmcp_authorization_data_length = 0;
+static guint8 *xdmcp_authorization_data = NULL;
 
 #define BYTE_ORDER_MSB 'B'
 #define BYTE_ORDER_LSB 'l'
@@ -61,6 +64,17 @@ static guint xdmcp_query_timer = 0;
 #define MIN_KEYCODE 8
 #define MAX_KEYCODE 255
 #define VENDOR "LightDM"
+
+#define XAUTH_FAMILY_INTERNET 0
+#define XAUTH_FAMILY_DECNET 1
+#define XAUTH_FAMILY_CHAOS 2
+#define XAUTH_FAMILY_SERVER_INTERPRETED 5
+#define XAUTH_FAMILY_INTERNET6 6
+#define XAUTH_FAMILY_LOCALHOST 252
+#define XAUTH_FAMILY_KRB5_PRINCIPAL 253
+#define XAUTH_FAMILY_NETNAME 254
+#define XAUTH_FAMILY_LOCAL 256
+#define XAUTH_FAMILY_WILD 65535
 
 enum
 {
@@ -396,7 +410,34 @@ decode_connection_request (Connection *connection, const guint8 *buffer, gssize 
     else
         notify_status ("XSERVER :%d ACCEPT-CONNECT", display_number);
 
-    if (auth_path)
+    if (do_xdmcp)
+    {
+        if (strcmp (xdmcp_authorization_name, "") == 0)
+        {
+            if (strcmp (authorization_protocol_name, "") != 0)
+                auth_error = g_strdup ("Authorization provided but none needed");
+        }
+        else if (strcmp (xdmcp_authorization_name, "MIT-MAGIC-COOKIE-1") == 0)
+        {
+            gboolean matches = TRUE;
+            if (authorization_protocol_data_length == xdmcp_authorization_data_length)
+            {
+                guint16 i;
+                for (i = 0; i < xdmcp_authorization_data_length && authorization_protocol_data[i] == xdmcp_authorization_data[i]; i++);
+                matches = i == xdmcp_authorization_data_length;
+            }
+            else
+                matches = FALSE;
+
+            if (strcmp (authorization_protocol_name, "MIT-MAGIC-COOKIE-1") != 0)
+                auth_error = g_strdup ("Authorization required");
+            else if (!matches)
+                auth_error = g_strdup_printf ("Invalid MIT-MAGIC-COOKIE key");
+        }
+        else
+            auth_error = g_strdup_printf ("Unknown authorization: '%s'", authorization_protocol_name);
+    }
+    else if (auth_path)
     {
         gchar *xauth_data;
         gsize xauth_length;
@@ -405,11 +446,11 @@ decode_connection_request (Connection *connection, const guint8 *buffer, gssize 
         if (g_file_get_contents (auth_path, &xauth_data, &xauth_length, &error))
         {
             gsize offset = 0;
-            guint16 length, data_length;
+            guint16 family, length, data_length;
             gchar *address, *number, *name;
             guint8 *data;
 
-            /*family =*/ read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
+            family = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
             length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
             address = (gchar *) read_string8 ((guint8 *) xauth_data, xauth_length, length, &offset);
             length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
@@ -419,7 +460,11 @@ decode_connection_request (Connection *connection, const guint8 *buffer, gssize 
             data_length = read_card16 ((guint8 *) xauth_data, xauth_length, BYTE_ORDER_MSB, &offset);
             data = read_string8 ((guint8 *) xauth_data, xauth_length, data_length, &offset);
 
-            if (strcmp (authorization_protocol_name, "") == 0)
+            if (connection->parent_channel == unix_channel && !(family == XAUTH_FAMILY_LOCAL || family == XAUTH_FAMILY_WILD))
+                auth_error = g_strdup ("Authorization not valid for Unix connection");
+            else if (connection->parent_channel == tcp_channel && !(family == XAUTH_FAMILY_INTERNET || family == XAUTH_FAMILY_WILD))
+                auth_error = g_strdup ("Authorization not valid for TCP/IP connection");
+            else if (strcmp (authorization_protocol_name, "") == 0)
                 auth_error = g_strdup ("Authorization required");
             else if (strcmp (authorization_protocol_name, "MIT-MAGIC-COOKIE-1") == 0)
             {
@@ -580,6 +625,11 @@ socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     data_socket = accept (s, NULL, NULL);
     if (data_socket < 0)
         g_warning ("Error accepting connection: %s", strerror (errno));
+    else if (do_xdmcp && !xdmcp_authorization_name)
+    {
+        /* Decline if haven't connected yet */
+        close (data_socket);
+    }
     else
     {
         Connection *connection;
@@ -691,7 +741,7 @@ decode_accept (const guint8 *buffer, gssize buffer_length)
     gsize offset = 0;
     guint16 length;
     guint32 session_id;
-    gchar *authentication_name, *authorization_name;
+    gchar *authentication_name;
     guint8 response[MAXIMUM_REQUEST_LENGTH];
 
     session_id = read_card32 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
@@ -699,11 +749,12 @@ decode_accept (const guint8 *buffer, gssize buffer_length)
     authentication_name = read_string (buffer, buffer_length, length, &offset);
     length = read_card16 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
     read_string8 (buffer, buffer_length, length, &offset);
-    authorization_name = read_string (buffer, buffer_length, length, &offset);
     length = read_card16 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
-    read_string8 (buffer, buffer_length, length, &offset);
+    xdmcp_authorization_name = read_string (buffer, buffer_length, length, &offset);
+    xdmcp_authorization_data_length = read_card16 (buffer, buffer_length, BYTE_ORDER_MSB, &offset);
+    xdmcp_authorization_data = read_string8 (buffer, buffer_length, length, &offset);
 
-    notify_status ("XSERVER :%d GOT-ACCEPT SESSION-ID=%d AUTHENTICATION-NAME=\"%s\" AUTHORIZATION-NAME=\"%s\"", display_number, session_id, authentication_name, authorization_name);
+    notify_status ("XSERVER :%d GOT-ACCEPT SESSION-ID=%d AUTHENTICATION-NAME=\"%s\" AUTHORIZATION-NAME=\"%s\"", display_number, session_id, authentication_name, xdmcp_authorization_name);
 
     offset = 0;
     write_card16 (response, MAXIMUM_REQUEST_LENGTH, BYTE_ORDER_MSB, 1, &offset); /* version = 1 */
