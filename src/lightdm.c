@@ -345,6 +345,8 @@ handle_seat_get_property (GDBusConnection       *connection,
 
     if (g_strcmp0 (property_name, "CanSwitch") == 0)
         result = g_variant_new_boolean (seat_get_can_switch (seat));
+    if (g_strcmp0 (property_name, "AllowGuest") == 0)
+        result = g_variant_new_boolean (seat_get_allow_guest (seat));
     else if (g_strcmp0 (property_name, "Sessions") == 0)
     {
         GVariantBuilder *builder;
@@ -649,6 +651,7 @@ bus_acquired_cb (GDBusConnection *connection,
         "<node>"
         "  <interface name='org.freedesktop.DisplayManager.Seat'>"
         "    <property name='CanSwitch' type='b' access='read'/>"
+        "    <property name='AllowGuest' type='b' access='read'/>"
         "    <property name='Sessions' type='ao' access='read'/>"
         "    <method name='SwitchToGreeter'/>"
         "    <method name='SwitchToUser'>"

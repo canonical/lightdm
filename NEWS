@@ -6,6 +6,7 @@ Overview of changes in lightdm 0.9.5
     * Fix cancel button in GTK greeter
     * Fix line through GTK greeter menu items
     * Exit daemon if a seat fails which has exit-on-failure set to true
+    * Add AllowGuest property to seat D-Bus interface
 
 Overview of changes in lightdm 0.9.4
 
