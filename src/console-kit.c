@@ -102,7 +102,7 @@ ck_unlock_session (const gchar *cookie)
         return;
 
     if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(o)")))
-        g_variant_get (result, "(o)", session_path);
+        g_variant_get (result, "(o)", &session_path);
     else
         g_warning ("Unexpected response from GetSessionForCookie: %s", g_variant_get_type_string (result));
     g_variant_unref (result);
