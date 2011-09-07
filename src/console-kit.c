@@ -140,38 +140,6 @@ ck_unlock_session (const gchar *cookie)
     g_clear_error (&error);
     if (!result)
         return;
-
-    g_variant_unref (result);
-    proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                           G_DBUS_PROXY_FLAGS_NONE,
-                                           NULL,
-                                           "org.freedesktop.ConsoleKit",
-                                           session_path,
-                                           "org.freedesktop.ConsoleKit.Session",
-                                           NULL, &error);
-    if (error)
-        g_warning ("Unable to get connection to ConsoleKit session: %s", error->message);
-    g_variant_unref (result);
-    g_clear_error (&error);
-    if (!proxy)
-        return;
-
-    result = g_dbus_proxy_call_sync (proxy,
-                                     "Unlock",
-                                     NULL,
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     -1,
-                                     NULL,
-                                     &error);
-    g_object_unref (proxy);
-
-    if (error)
-        g_warning ("Error unlocking ConsoleKit session: %s", error->message);
-    g_clear_error (&error);
-    if (!result)
-        return;
-
-    g_variant_unref (result);
 }
 
 void
