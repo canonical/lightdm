@@ -82,7 +82,7 @@ ck_unlock_session (const gchar *cookie)
 {
     GVariant *result;
     GDBusProxy *proxy;
-    const gchar *session_path;
+    gchar *session_path = NULL;
     GError *error = NULL;
 
     if (!cookie)
@@ -107,13 +107,13 @@ ck_unlock_session (const gchar *cookie)
     if (!result)
         return;
 
-    if (!g_variant_is_of_type (result, G_VARIANT_TYPE ("(o)")))
-    {
+    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(o)")))
+        g_variant_get (result, "(o)", session_path);
+    else
         g_warning ("Unexpected response from GetSessionForCookie: %s", g_variant_get_type_string (result));
-        g_variant_unref (result);
-    }
-
-    g_variant_get (result, "(&o)", &session_path);
+    g_variant_unref (result);
+    if (!session_path)
+        return;
 
     proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
                                            G_DBUS_PROXY_FLAGS_NONE,
@@ -122,9 +122,10 @@ ck_unlock_session (const gchar *cookie)
                                            session_path,
                                            "org.freedesktop.ConsoleKit.Session",
                                            NULL, &error);
+    g_free (session_path);
+  
     if (!proxy)
         g_warning ("Unable to get connection to ConsoleKit session: %s", error->message);
-    g_variant_unref (result);
     g_clear_error (&error);
     if (!proxy)
         return;
