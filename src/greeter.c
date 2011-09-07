@@ -382,9 +382,9 @@ handle_start_session (Greeter *greeter, const gchar *session)
     if (greeter->priv->guest_account_authenticated || pam_session_get_is_authenticated (greeter->priv->authentication))
     {
         if (session)
-            g_debug ("Start session %s", session);
+            g_debug ("Greeter requests session %s", session);
         else
-            g_debug ("Start default session");     
+            g_debug ("Greeter requests default session");     
         g_signal_emit (greeter, signals[START_SESSION], 0, session, &result);
     }
     else
