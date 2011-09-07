@@ -307,9 +307,10 @@ autologin (Display *display, const gchar *username, gboolean start_greeter_if_fa
     g_signal_connect (authentication, "authentication-result", G_CALLBACK (autologin_authentication_result_cb), display);
 
     result = pam_session_authenticate (authentication, &error);
+    if (error)
+        g_debug ("Failed to start autologin session for %s: %s", username, error->message);
     if (!result)
     {
-        g_debug ("Failed to start autologin session for %s: %s", username, error->message);
         g_signal_handlers_disconnect_matched (authentication, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
         g_object_unref (authentication);
     }
@@ -434,7 +435,7 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
 
     session_desktop_file = g_key_file_new ();
     result = g_key_file_load_from_file (session_desktop_file, path, G_KEY_FILE_NONE, &error);
-    if (!result)
+    if (error)
         g_debug ("Failed to load session file %s: %s:", path, error->message);
     g_clear_error (&error);
     if (result)

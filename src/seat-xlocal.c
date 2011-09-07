@@ -67,6 +67,7 @@ seat_xlocal_add_display (Seat *seat)
     {
         gchar *dir, *path;
         GKeyFile *keys;
+        gboolean result;
         GError *error = NULL;
 
         dir = config_get_string (config_get_instance (), "LightDM", "config-directory");
@@ -74,23 +75,26 @@ seat_xlocal_add_display (Seat *seat)
         g_free (dir);
 
         keys = g_key_file_new ();
-        if (g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error))
+        result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
+        if (error)
+            g_debug ("Error getting key %s", error->message);
+        g_clear_error (&error);      
+
+        if (result)
         {
             gchar *key = NULL;
 
             if (g_key_file_has_key (keys, "keyring", key_name, NULL))
                 key = g_key_file_get_string (keys, "keyring", key_name, NULL);
             else
-                g_debug ("Key %s not defined", error->message);
+                g_debug ("Key %s not defined", key_name);
 
             if (key)
                 xserver_local_set_xdmcp_key (xserver, key);
             g_free (key);
         }
-        else
-            g_debug ("Error getting key %s", error->message);
+
         g_free (path);
-        g_clear_error (&error);
         g_key_file_free (keys);
     }
 

@@ -29,7 +29,7 @@ load_ck_proxy (void)
                                                   "/org/freedesktop/ConsoleKit/Manager",
                                                   "org.freedesktop.ConsoleKit.Manager",
                                                   NULL, &error);
-        if (!ck_proxy)
+        if (error)
             g_warning ("Unable to get connection to ConsoleKit: %s", error->message);
         g_clear_error (&error);
     }
@@ -57,7 +57,7 @@ ck_open_session (GVariantBuilder *parameters)
                                      NULL,
                                      &error);
 
-    if (!result)
+    if (error)
         g_warning ("Failed to open CK session: %s", error->message);
     g_clear_error (&error);
     if (!result)
@@ -97,7 +97,7 @@ ck_unlock_session (const gchar *cookie)
                                      -1,
                                      NULL,
                                      &error);
-    if (!result)
+    if (error)
         g_warning ("Error getting ConsoleKit session: %s", error->message);
     g_clear_error (&error);
     if (!result)
@@ -120,7 +120,7 @@ ck_unlock_session (const gchar *cookie)
                                            NULL, &error);
     g_free (session_path);
   
-    if (!proxy)
+    if (error)
         g_warning ("Unable to get connection to ConsoleKit session: %s", error->message);
     g_clear_error (&error);
     if (!proxy)
@@ -135,7 +135,7 @@ ck_unlock_session (const gchar *cookie)
                                      &error);
     g_object_unref (proxy);
 
-    if (!result)
+    if (error)
         g_warning ("Error unlocking ConsoleKit session: %s", error->message);
     g_clear_error (&error);
     if (!result)
@@ -149,7 +149,7 @@ ck_unlock_session (const gchar *cookie)
                                            session_path,
                                            "org.freedesktop.ConsoleKit.Session",
                                            NULL, &error);
-    if (!proxy)
+    if (error)
         g_warning ("Unable to get connection to ConsoleKit session: %s", error->message);
     g_variant_unref (result);
     g_clear_error (&error);
@@ -165,7 +165,7 @@ ck_unlock_session (const gchar *cookie)
                                      &error);
     g_object_unref (proxy);
 
-    if (!result)
+    if (error)
         g_warning ("Error unlocking ConsoleKit session: %s", error->message);
     g_clear_error (&error);
     if (!result)
@@ -195,7 +195,7 @@ ck_close_session (const gchar *cookie)
                                      NULL,
                                      &error);
 
-    if (!result)
+    if (error)
         g_warning ("Error ending ConsoleKit session: %s", error->message);
     g_clear_error (&error);
     if (!result)

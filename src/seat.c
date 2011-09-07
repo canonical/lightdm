@@ -237,6 +237,7 @@ display_get_guest_username_cb (Display *display, Seat *seat)
 static gboolean
 run_script (Display *display, const gchar *script_name, User *user)
 {
+    gboolean result;
     GPtrArray *env_array;
     gchar **argv, **envp;
     gchar *env, *command;
@@ -254,12 +255,11 @@ run_script (Display *display, const gchar *script_name, User *user)
         return FALSE;
     }
 
-    if (!g_shell_parse_argv (script_name, NULL, &argv, &error))
-    {
+    result = g_shell_parse_argv (script_name, NULL, &argv, &error);
+    if (error)
         g_warning ("Could not parse %s: %s", script_name, error->message);
-        g_error_free (error);
+    if (!result)
         return FALSE;
-    }
 
     env_array = g_ptr_array_sized_new (10);
     if (!env_array)
@@ -310,24 +310,27 @@ run_script (Display *display, const gchar *script_name, User *user)
     g_debug ("Executing script: %s", command);
     g_free (env);
     g_free (command);
-    if (!g_spawn_sync (NULL,
-                       argv,
-                       envp,
-                       G_SPAWN_SEARCH_PATH,
-                       NULL,
-                       NULL,
-                       NULL,
-                       NULL,
-                       &exit_status,
-                       &error))
-    {
+    result = g_spawn_sync (NULL,
+                           argv,
+                           envp,
+                           G_SPAWN_SEARCH_PATH,
+                           NULL,
+                           NULL,
+                           NULL,
+                           NULL,
+                           &exit_status,
+                           &error);
+    if (error)
         g_warning ("Error executing %s: %s", script_name, error->message);
-        g_error_free (error);
-    }
+    g_clear_error (&error);
     g_strfreev (argv);
     g_strfreev (envp);
+  
+    if (!result)
+        return FALSE;
 
-    if (WIFEXITED (exit_status)) {
+    if (WIFEXITED (exit_status))
+    {
         g_debug ("Exit status of %s: %d", script_name, WEXITSTATUS (exit_status));
         return WEXITSTATUS (exit_status) == EXIT_SUCCESS;
     }

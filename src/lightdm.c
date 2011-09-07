@@ -843,7 +843,8 @@ main (int argc, char **argv)
     g_option_context_add_main_entries (option_context, options, GETTEXT_PACKAGE);
     if (!g_option_context_parse (option_context, &argc, &argv, &error))
     {
-        fprintf (stderr, "%s\n", error->message);
+        if (error)
+            fprintf (stderr, "%s\n", error->message);
         fprintf (stderr, /* Text printed out when an unknown command-line argument provided */
                  _("Run '%s --help' to see a full list of available command line options."), argv[0]);
         fprintf (stderr, "\n");
@@ -925,9 +926,14 @@ main (int argc, char **argv)
     /* Load config file */
     if (!config_load_from_file (config_get_instance (), config_path, &error))
     {
-        if (explicit_config || !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+        gboolean is_empty;
+
+        is_empty = error && g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
+      
+        if (explicit_config || !is_empty)      
         {
-            g_printerr ("Failed to load configuration from %s: %s\n", config_path, error->message);
+            if (error)
+                g_printerr ("Failed to load configuration from %s: %s\n", config_path, error->message);
             exit (EXIT_FAILURE);
         }
     }
@@ -1112,6 +1118,7 @@ main (int argc, char **argv)
         {
             gchar *dir, *path;
             GKeyFile *keys;
+            gboolean result;
             GError *error = NULL;
 
             dir = config_get_string (config_get_instance (), "LightDM", "config-directory");
@@ -1119,16 +1126,18 @@ main (int argc, char **argv)
             g_free (dir);
 
             keys = g_key_file_new ();
-            if (g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error))
+            result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
+            if (error)
+                g_debug ("Error getting key %s", error->message);
+            g_clear_error (&error);
+
+            if (result)
             {
                 if (g_key_file_has_key (keys, "keyring", key_name, NULL))
                     key = g_key_file_get_string (keys, "keyring", key_name, NULL);
                 else
-                    g_debug ("Key %s not defined", error->message);
+                    g_debug ("Key %s not defined", key_name);
             }
-            else
-                g_debug ("Error getting key %s", error->message);
-            g_clear_error (&error);
             g_free (path);
             g_key_file_free (keys);
         }

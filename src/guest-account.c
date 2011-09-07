@@ -71,7 +71,7 @@ guest_account_setup (void)
     g_debug ("Opening guest account with command '%s'", command);
     result = run_script (command, &stdout_text, &exit_status, &error);
     g_free (command);
-    if (!result)
+    if (error)
         g_warning ("Error running guest account setup script '%s': %s", get_setup_script (), error->message);
     g_clear_error (&error);
     if (!result)
@@ -108,19 +108,20 @@ void
 guest_account_cleanup (const gchar *username)
 {
     gchar *command;
+    gboolean result;
     gint exit_status;
     GError *error = NULL;
 
     command = g_strdup_printf ("%s remove %s", get_setup_script (), username);
     g_debug ("Closing guest account %s with command '%s'", username, command);
-    if (run_script (command, NULL, &exit_status, &error))
-    {
-        if (exit_status != 0)
-            g_debug ("Guest account cleanup script returns %d", exit_status);
-    }
-    else
+
+    result = run_script (command, NULL, &exit_status, &error);
+    g_free (command);
+
+    if (error)
         g_warning ("Error running guest account cleanup script '%s': %s", get_setup_script (), error->message);
     g_clear_error (&error);
 
-    g_free (command);
+    if (result && exit_status != 0)
+        g_debug ("Guest account cleanup script returns %d", exit_status);
 }

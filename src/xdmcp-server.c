@@ -159,9 +159,9 @@ send_packet (GSocket *socket, GSocketAddress *address, XDMCPPacket *packet)
     {
         GError *error = NULL;
 
-        if (g_socket_send_to (socket, address, (gchar *) data, n_written, NULL, &error) < 0)
+        g_socket_send_to (socket, address, (gchar *) data, n_written, NULL, &error);
+        if (error)
             g_warning ("Error sending packet: %s", error->message);
-
         g_clear_error (&error);
     }
 }
@@ -557,6 +557,10 @@ read_cb (GSocket *socket, GIOCondition condition, XDMCPServer *server)
     gssize n_read;
 
     n_read = g_socket_receive_from (socket, &address, data, 1024, NULL, &error);
+    if (error)
+        g_warning ("Failed to read from XDMCP socket: %s", error->message);
+    g_clear_error (&error);
+
     if (n_read > 0)
     {
         XDMCPPacket *packet;
@@ -590,10 +594,6 @@ read_cb (GSocket *socket, GIOCondition condition, XDMCPServer *server)
             xdmcp_packet_free (packet);
         }
     }
-    else
-        g_warning ("Failed to read from XDMCP socket: %s", error->message);
-
-    g_clear_error (&error);
 
     return TRUE;
 }
@@ -629,25 +629,28 @@ xdmcp_server_start (XDMCPServer *server)
     g_return_val_if_fail (server != NULL, FALSE);
   
     server->priv->socket = open_udp_socket (G_SOCKET_FAMILY_IPV4, server->priv->port, &error);
+    if (error)
+        g_warning ("Failed to create IPv4 XDMCP socket: %s", error->message);
+    g_clear_error (&error);
+  
     if (server->priv->socket)
     {
         source = g_socket_create_source (server->priv->socket, G_IO_IN, NULL);
         g_source_set_callback (source, (GSourceFunc) read_cb, server, NULL);
         g_source_attach (source, NULL);
     }
-    else
-        g_warning ("Failed to create IPv4 XDMCP socket: %s", error->message);
+    
+    server->priv->socket6 = open_udp_socket (G_SOCKET_FAMILY_IPV6, server->priv->port, &error);
+    if (error)
+        g_warning ("Failed to create IPv6 XDMCP socket: %s", error->message);
     g_clear_error (&error);
-    server->priv->socket6 = open_udp_socket (G_SOCKET_FAMILY_IPV6, server->priv->port, &error);  
+
     if (server->priv->socket6)
     {
         source = g_socket_create_source (server->priv->socket6, G_IO_IN, NULL);
         g_source_set_callback (source, (GSourceFunc) read_cb, server, NULL);
         g_source_attach (source, NULL);
     }
-    else
-        g_warning ("Failed to create IPv6 XDMCP socket: %s", error->message);
-    g_clear_error (&error);
 
     if (!server->priv->socket && !server->priv->socket6)
         return FALSE;

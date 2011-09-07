@@ -175,11 +175,10 @@ session_real_start (Session *session)
                             user_get_home_directory (user),
                             absolute_command,
                             &error);
-    g_free (absolute_command);
-
-    if (!result)
+    if (error)
         g_warning ("Failed to spawn session: %s", error->message);
     g_clear_error (&error);
+    g_free (absolute_command);
 
     return result;
 }

@@ -114,12 +114,15 @@ int_length ()
 static void
 write_message (Greeter *greeter, guint8 *message, gsize message_length)
 {
+    GIOStatus status;
     GError *error = NULL;
-    if (g_io_channel_write_chars (greeter->priv->to_greeter_channel, (gchar *) message, message_length, NULL, &error) != G_IO_STATUS_NORMAL)
+
+    status = g_io_channel_write_chars (greeter->priv->to_greeter_channel, (gchar *) message, message_length, NULL, &error);
+    if (error)
         g_warning ("Error writing to greeter: %s", error->message);
-    else
-        g_debug ("Wrote %zi bytes to greeter", message_length);
     g_clear_error (&error);
+    if (status == G_IO_STATUS_NORMAL)
+        g_debug ("Wrote %zi bytes to greeter", message_length);
     g_io_channel_flush (greeter->priv->to_greeter_channel, NULL);
 }
 
@@ -266,6 +269,7 @@ reset_session (Greeter *greeter)
 static void
 handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
 {
+    gboolean result;
     GError *error = NULL;
 
     if (username[0] == '\0')
@@ -288,11 +292,11 @@ handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
 
     g_signal_connect (G_OBJECT (greeter->priv->authentication), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
     g_signal_connect (G_OBJECT (greeter->priv->authentication), "authentication-result", G_CALLBACK (authentication_result_cb), greeter);
-    if (!pam_session_authenticate (greeter->priv->authentication, &error))
-    {
+    result = pam_session_authenticate (greeter->priv->authentication, &error);
+    if (error)
         g_debug ("Failed to start authentication: %s", error->message);
+    if (!result)
         send_end_authentication (greeter, sequence_number, "", PAM_SYSTEM_ERR);
-    }
     g_clear_error (&error);
 }
 
@@ -471,7 +475,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
                                       n_to_read - greeter->priv->n_read,
                                       &n_read,
                                       &error);
-    if (status != G_IO_STATUS_NORMAL)
+    if (error)
         g_warning ("Error reading from greeter: %s", error->message);
     g_clear_error (&error);
     if (status != G_IO_STATUS_NORMAL)

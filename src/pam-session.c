@@ -270,7 +270,8 @@ get_password (const gchar *username)
     gint i;
     GError *error = NULL;
 
-    if (!g_file_get_contents (passwd_file, &data, NULL, &error))
+    g_file_get_contents (passwd_file, &data, NULL, &error);
+    if (error)
         g_warning ("Error loading passwd file: %s", error->message);
     g_clear_error (&error);
 

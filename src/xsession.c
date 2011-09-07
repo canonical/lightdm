@@ -76,7 +76,8 @@ xsession_start (Session *session)
         g_free (path);
 
         g_debug ("Adding session authority to %s", g_file_get_path (XSESSION (session)->priv->authority_file));
-        if (!xauth_write (XSESSION (session)->priv->authority, XAUTH_WRITE_MODE_REPLACE, session_get_user (session), XSESSION (session)->priv->authority_file, &error))
+        xauth_write (XSESSION (session)->priv->authority, XAUTH_WRITE_MODE_REPLACE, session_get_user (session), XSESSION (session)->priv->authority_file, &error);
+        if (error)
             g_warning ("Failed to write authority: %s", error->message);
         g_clear_error (&error);
     }

@@ -251,7 +251,7 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GEr
         GError *read_error = NULL;
 
         input_stream = g_file_read (file, NULL, &read_error);
-        if (!input_stream && !g_error_matches (read_error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+        if (read_error && !g_error_matches (read_error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
             g_warning ("Error reading existing Xauthority: %s", read_error->message);
         g_clear_error (&read_error);
     }
@@ -269,7 +269,7 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GEr
                  read_string (G_INPUT_STREAM (input_stream), &a->priv->authorization_name, &read_error) &&
                  read_uint16 (G_INPUT_STREAM (input_stream), &a->priv->authorization_data_length, NULL, &read_error) &&
                  read_data (G_INPUT_STREAM (input_stream), a->priv->authorization_data_length, &a->priv->authorization_data, &read_error);
-        if (!result)
+        if (read_error)
             g_warning ("Error reading X authority %s: %s", g_file_get_path (file), read_error->message);
         g_clear_error (&read_error);
 
@@ -304,7 +304,8 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GEr
     if (input_stream)
     {
         GError *close_error = NULL;
-        if (!g_input_stream_close (G_INPUT_STREAM (input_stream), NULL, &close_error))
+        g_input_stream_close (G_INPUT_STREAM (input_stream), NULL, &close_error);
+        if (close_error)
             g_warning ("Error closing Xauthority: %s", close_error->message);
         g_clear_error (&close_error);
         g_object_unref (input_stream);
