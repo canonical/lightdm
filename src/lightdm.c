@@ -18,6 +18,7 @@
 #include <glib/gi18n.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 #include "configuration.h"
 #include "display-manager.h"
