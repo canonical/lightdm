@@ -254,7 +254,8 @@ run_script (Display *display, const gchar *script_name, User *user)
         return FALSE;
     }
 
-    if (!g_shell_parse_argv (script_name, NULL, &argv, &error)) {
+    if (!g_shell_parse_argv (script_name, NULL, &argv, &error))
+    {
         g_warning ("Could not parse %s: %s", script_name, error->message);
         g_error_free (error);
         return FALSE;
@@ -275,9 +276,7 @@ run_script (Display *display, const gchar *script_name, User *user)
         g_ptr_array_add (env_array, g_strdup_printf ("HOME=%s", user_get_home_directory (user)));
     }
     else
-    {
         g_ptr_array_add (env_array, g_strdup ("HOME=/"));
-    }
 
     display_server = display_get_display_server (display);
     // FIXME: This should be done in a different layer
