@@ -16,6 +16,7 @@
 #define UNIX_PATH_MAX 108
 #endif
 
+static GKeyFile *config;
 static GPid lightdm_pid = 0;
 static gchar *status_socket_name = NULL;
 static gboolean expect_exit = FALSE;
@@ -396,34 +397,26 @@ signal_cb (int signum)
 }
 
 static void
-load_script (const gchar *name)
+load_script (const gchar *filename)
 {
     int i;
-    gchar *filename, *path, *data, **lines;
+    gchar *data, **lines;
 
-    filename = g_strdup_printf ("%s.script", name);
-    path = g_build_filename (SRCDIR, "tests", "scripts", filename, NULL);
-    g_free (filename);
-
-    if (!g_file_get_contents (path, &data, NULL, NULL))
+    if (!g_file_get_contents (filename, &data, NULL, NULL))
     {
-        g_printerr ("Unable to load script: %s\n", path);
+        g_printerr ("Unable to load script: %s\n", filename);
         quit (EXIT_FAILURE);
     }
-    g_free (path);
 
     lines = g_strsplit (data, "\n", -1);
     g_free (data);
 
+    /* Load lines with #? prefix as expected behaviour */
     for (i = 0; lines[i]; i++)
     {
         gchar *line = g_strstrip (lines[i]);
-
-        /* Skip empty lines and comments */
-        if (line[0] == '\0' || line[0] == '#')
-            continue;
-
-        script = g_list_append (script, g_strdup (line));
+        if (g_str_has_prefix (line, "#?"))
+            script = g_list_append (script, g_strdup (line+2));
     }
     script_iter = script;
     g_strfreev (lines);
@@ -466,8 +459,16 @@ main (int argc, char **argv)
     if (argc == 3)
         greeter = argv[2];
 
-    load_script (script_name);
-    
+    config = g_key_file_new ();
+    g_key_file_load_from_file (config, config_path, G_KEY_FILE_NONE, NULL);
+
+    load_script (config_path);
+
+    /* Disable config if requested */
+    if (g_key_file_has_key (config, "test-runner-config", "have-config", NULL) &&
+        !g_key_file_get_boolean (config, "test-runner-config", "have-config", NULL))
+        config_path = NULL;
+
     g_print ("----------------------------------------\n");
     g_print ("Running script %s\n", script_name);
 
@@ -582,7 +583,7 @@ main (int argc, char **argv)
     command_line = g_string_new ("../src/lightdm");
     if (getenv ("DEBUG"))
         g_string_append (command_line, " --debug");
-    if (fopen (config_path, "r"))
+    if (config_path)
         g_string_append_printf (command_line, " --config %s", config_path);
     g_string_append (command_line, " --test-mode");
     g_string_append(command_line, " --xserver-command=test-xserver");
