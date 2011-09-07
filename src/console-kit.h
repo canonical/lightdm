@@ -16,11 +16,11 @@
 
 G_BEGIN_DECLS
 
-gchar *ck_start_session (GVariantBuilder *parameters);
+gchar *ck_open_session (GVariantBuilder *parameters);
 
 void ck_unlock_session (const gchar *cookie);
 
-void ck_end_session (const gchar *cookie);
+void ck_close_session (const gchar *cookie);
 
 G_END_DECLS
 

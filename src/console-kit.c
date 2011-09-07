@@ -38,7 +38,7 @@ load_ck_proxy (void)
 }
 
 gchar *
-ck_start_session (GVariantBuilder *parameters)
+ck_open_session (GVariantBuilder *parameters)
 {
     GVariant *result;
     gchar *cookie = NULL;
@@ -231,7 +231,7 @@ ck_unlock_session (const gchar *cookie)
 }
 
 void
-ck_end_session (const gchar *cookie)
+ck_close_session (const gchar *cookie)
 {
     GVariant *result;
     GError *error = NULL;

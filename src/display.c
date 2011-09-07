@@ -345,7 +345,7 @@ cleanup_after_session (Display *display)
     /* Close ConsoleKit session */
     cookie = session_get_cookie (display->priv->session);
     if (getuid () == 0 && cookie)
-        ck_end_session (cookie);
+        ck_close_session (cookie);
 
     g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
     g_object_unref (display->priv->session);
@@ -509,10 +509,11 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
         g_variant_builder_add (&parameters, "(sv)", "is-local", g_variant_new_boolean (TRUE));
 
         if (getuid () == 0)
-            cookie = ck_start_session (&parameters);
-
-        session_set_cookie (session, cookie);
-        g_free (cookie);
+        {
+            cookie = ck_open_session (&parameters);
+            session_set_cookie (session, cookie);
+            g_free (cookie);
+        }
     }
     else
         session_set_cookie (session, g_getenv ("XDG_SESSION_COOKIE"));
