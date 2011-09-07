@@ -417,7 +417,6 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     gchar *sessions_dir, *filename, *path, *command = NULL;
     GKeyFile *session_desktop_file;
     Session *session;
-    gchar *cookie;
     gboolean result;
     GError *error = NULL;
 
@@ -485,6 +484,7 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     {
         GVariantBuilder parameters;
         User *user;
+        gchar *cookie = NULL;
 
         user = pam_session_get_user (authentication);
 
@@ -508,7 +508,9 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
         g_variant_builder_add (&parameters, "(sv)", "remote-host-name", g_variant_new_string (""));
         g_variant_builder_add (&parameters, "(sv)", "is-local", g_variant_new_boolean (TRUE));
 
-        cookie = ck_start_session (&parameters);
+        if (getuid () == 0)
+            cookie = ck_start_session (&parameters);
+
         session_set_cookie (session, cookie);
         g_free (cookie);
     }
@@ -853,7 +855,8 @@ display_unlock (Display *display)
 
     g_debug ("Unlocking display");
 
-    ck_unlock_session (cookie);
+    if (getuid () == 0)
+        ck_unlock_session (cookie);
 }
 
 static gboolean

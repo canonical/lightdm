@@ -46,10 +46,6 @@ ck_start_session (GVariantBuilder *parameters)
 
     g_return_val_if_fail (parameters != NULL, NULL);
 
-    /* Only start ConsoleKit sessions when running as root */
-    if (getuid () != 0)
-        return NULL;
-  
     if (!load_ck_proxy ())
         return FALSE;
 
@@ -90,9 +86,6 @@ ck_unlock_session (const gchar *cookie)
     g_return_if_fail (cookie != NULL);
 
     if (!load_ck_proxy ())
-        return;
-
-    if (getuid () != 0)
         return;
 
     result = g_dbus_proxy_call_sync (ck_proxy,
