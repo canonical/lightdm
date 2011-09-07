@@ -54,7 +54,7 @@ typedef struct
     guint bus_id;
 } BusEntry;
 
-#define LDM_BUS_NAME "org.freedesktop.DisplayManager"
+#define LIGHTDM_BUS_NAME "org.freedesktop.DisplayManager"
 
 static void
 log_cb (const gchar *log_domain, GLogLevelFlags log_level,
@@ -530,6 +530,8 @@ session_started_cb (Display *display, Seat *seat)
     entry = bus_entry_new (process_get_env (PROCESS (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL, "SessionRemoved");
     g_hash_table_insert (session_bus_entries, g_object_ref (session), entry);
 
+    g_debug ("Registering session with bus path %s", entry->path);
+
     entry->bus_id = g_dbus_connection_register_object (bus,
                                                        entry->path,
                                                        session_info->interfaces[0],
@@ -576,6 +578,8 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
     entry = bus_entry_new (path, NULL, "SeatRemoved");
     g_free (path);
     g_hash_table_insert (seat_bus_entries, g_object_ref (seat), entry);
+
+    g_debug ("Registering seat with bus path %s", entry->path);
 
     entry->bus_id = g_dbus_connection_register_object (bus,
                                                        entry->path,
@@ -672,6 +676,8 @@ bus_acquired_cb (GDBusConnection *connection,
         "</node>";
     GDBusNodeInfo *display_manager_info;
     GList *link;
+  
+    g_debug ("Acquired bus name");
 
     bus = connection;
 
@@ -704,7 +710,7 @@ name_lost_cb (GDBusConnection *connection,
               gpointer user_data)
 {
     if (connection)
-        g_printerr ("Failed to use bus name " LDM_BUS_NAME ", do you have appropriate permissions?\n");
+        g_printerr ("Failed to use bus name " LIGHTDM_BUS_NAME ", do you have appropriate permissions?\n");
     else
         g_printerr ("Failed to get D-Bus connection\n");
 
@@ -1011,8 +1017,9 @@ main (int argc, char **argv)
     g_debug ("Loaded configuration from %s", config_path);
     g_free (config_path);
 
+    g_debug ("Using D-Bus name %s", LIGHTDM_BUS_NAME);
     g_bus_own_name (getuid () == 0 ? G_BUS_TYPE_SYSTEM : G_BUS_TYPE_SESSION,
-                    LDM_BUS_NAME,
+                    LIGHTDM_BUS_NAME,
                     G_BUS_NAME_OWNER_FLAGS_NONE,
                     bus_acquired_cb,
                     NULL,
