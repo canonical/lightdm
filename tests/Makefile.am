@@ -65,73 +65,38 @@ EXTRA_DIST = \
 	data/xgreeters/test-qt-greeter.desktop \
 	data/xsessions/default.desktop \
 	scripts/autologin.conf \
-	scripts/autologin.script \
 	scripts/autologin-guest.conf \
-	scripts/autologin-guest.script \
 	scripts/autologin-guest-fail-setup-script.conf \
-	scripts/autologin-guest-fail-setup-script.script \
 	scripts/autologin-guest-logout.conf \
-	scripts/autologin-guest-logout.script \
 	scripts/autologin-invalid-session.conf \
-	scripts/autologin-invalid-session.script \
 	scripts/autologin-invalid-user.conf \
-	scripts/autologin-invalid-user.script \
 	scripts/autologin-logout.conf \
-	scripts/autologin-logout.script \
 	scripts/autologin-session-crash.conf \
-	scripts/autologin-session-crash.script \
 	scripts/autologin-xserver-crash.conf \
-	scripts/autologin-xserver-crash.script \
 	scripts/greeter-fail-start.conf \
-	scripts/greeter-fail-start.script \
 	scripts/greeter-not-installed.conf \
-	scripts/greeter-not-installed.script \
 	scripts/greeter-xserver-crash.conf \
-	scripts/greeter-xserver-crash.script \
 	scripts/headless.conf \
-	scripts/headless.script \
 	scripts/login.conf \
-	scripts/login.script \
 	scripts/login-guest.conf \
-	scripts/login-guest.script \
 	scripts/login-guest-disabled.conf \
-	scripts/login-guest-disabled.script \
 	scripts/login-guest-fail-setup-script.conf \
-	scripts/login-guest-fail-setup-script.script \
 	scripts/login-guest-logout.conf \
-	scripts/login-guest-logout.script \
 	scripts/login-guest-no-setup-script.conf \
-	scripts/login-guest-no-setup-script.script \
 	scripts/login-invalid-session.conf \
-	scripts/login-invalid-session.script \
 	scripts/login-invalid-user.conf \
-	scripts/login-invalid-user.script \
 	scripts/login-logout.conf \
-	scripts/login-logout.script \
 	scripts/login-manual.conf \
-	scripts/login-manual.script \
 	scripts/login-no-password.conf \
-	scripts/login-no-password.script \
 	scripts/login-session-crash.conf \
-	scripts/login-session-crash.script \
 	scripts/login-wrong-password.conf \
-	scripts/login-wrong-password.script \
 	scripts/login-xserver-crash.conf \
-	scripts/login-xserver-crash.script \
-	scripts/no-config.script \
+	scripts/no-config.conf \
 	scripts/plymouth-active-vt.conf \
-	scripts/plymouth-active-vt.script \
 	scripts/plymouth-inactive-vt.conf \
-	scripts/plymouth-inactive-vt.script \
 	scripts/plymouth-no-seat.conf \
-	scripts/plymouth-no-seat.script \
 	scripts/switch-to-greeter.conf \
-	scripts/switch-to-greeter.script \
 	scripts/switch-to-guest.conf \
-	scripts/switch-to-guest.script \
 	scripts/switch-to-user.conf \
-	scripts/switch-to-user.script \
 	scripts/xdmcp-login.conf \
-	scripts/xdmcp-login.script \
-	scripts/xserver-fail-start.conf \
-	scripts/xserver-fail-start.script
+	scripts/xserver-fail-start.conf
