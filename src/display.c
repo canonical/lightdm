@@ -340,9 +340,12 @@ autologin_guest (Display *display, gboolean start_greeter_if_fail)
 static gboolean
 cleanup_after_session (Display *display)
 {
+    const gchar *cookie;
+
     /* Close ConsoleKit session */
-    if (getuid () == 0)
-        ck_end_session (session_get_cookie (display->priv->session));
+    cookie = session_get_cookie (display->priv->session);
+    if (getuid () == 0 && cookie)
+        ck_end_session (cookie);
 
     g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
     g_object_unref (display->priv->session);
@@ -848,6 +851,8 @@ display_unlock (Display *display)
     if (!cookie)
         return;
 
+    g_debug ("Unlocking display");
+
     ck_unlock_session (cookie);
 }
 
@@ -899,11 +904,7 @@ display_finalize (GObject *object)
     g_free (self->priv->pam_service);
     g_free (self->priv->pam_autologin_service);
     if (self->priv->session)
-    {
-        if (session_get_cookie (self->priv->session))
-            ck_end_session (session_get_cookie (self->priv->session));
         g_object_unref (self->priv->session);
-    }
     g_free (self->priv->autologin_user);
     g_free (self->priv->select_user_hint);
     g_free (self->priv->user_session);

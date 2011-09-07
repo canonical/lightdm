@@ -44,6 +44,8 @@ ck_start_session (GVariantBuilder *parameters)
     gchar *cookie = NULL;
     GError *error = NULL;
 
+    g_return_val_if_fail (parameters != NULL, NULL);
+
     /* Only start ConsoleKit sessions when running as root */
     if (getuid () != 0)
         return NULL;
@@ -85,8 +87,7 @@ ck_unlock_session (const gchar *cookie)
     gchar *session_path = NULL;
     GError *error = NULL;
 
-    if (!cookie)
-        return;
+    g_return_if_fail (cookie != NULL);
 
     if (!load_ck_proxy ())
         return;
@@ -242,8 +243,7 @@ ck_end_session (const gchar *cookie)
     GVariant *result;
     GError *error = NULL;
 
-    if (!cookie)
-        return;
+    g_return_if_fail (cookie != NULL);
 
     if (!load_ck_proxy ())
         return;
