@@ -774,7 +774,7 @@ main (int argc, char **argv)
     {
         { "config", 'c', 0, G_OPTION_ARG_STRING, &config_path,
           /* Help string for command line --config flag */
-          N_("Use configuration file"), NULL },
+          N_("Use configuration file"), "FILE" },
         { "debug", 'd', 0, G_OPTION_ARG_NONE, &debug,
           /* Help string for command line --debug flag */
           N_("Print debugging messages"), NULL },
