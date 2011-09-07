@@ -6,33 +6,77 @@ lightdm \- a display manager
 .B lightdm
 [
 .I OPTION
-] ...
+]
 .SH DESCRIPTION
 .B lightdm
 is a display manager.
 .SH OPTIONS
 .TP
-.B \-c, \-\-config <file>
+.B \-h, \-\-help
+Show help options
+.TP
+.B \-c, \-\-config=FILE
 Use configuration file
 .TP
 .B \-d, \-\-debug
 Print debugging messages
 .TP
-.B \-\-no\-root\-check
-Don't check if root user
+.B \-\-test\-mode
+Run as unprivileged user, skipping things that require root access
 .TP
-.B \-\-use\-session\-bus
-Use the session D\-Bus
+.B \-\-passwd\-file=FILE
+Use the given password file for authentication (for testing, requires \-\-no\-root)
+.TP
+.B \-\-pid\-file=FILE
+File to write PID into
+.TP
+.B \-\-xserver\-command=COMMAND
+Command to run X servers
+.TP
+.B \-\-greeter\-session=SESSION
+Greeter session
+.TP
+.B \-\-user\-session=SESSION
+User session
+.TP
+.B \-\-session\-wrapper=SESSION
+Session wrapper
+.TP
+.B \-\-minimum\-vt=NUMBER
+Minimum VT to use for X servers
+.TP
+.B \-\-minimum\-display\-number=NUMBER
+Minimum display number to use for X servers
+.TP
+.B \-\-xsessions\-dir=DIRECTORY
+Directory to load X sessions from
+.TP
+.B \-\-xgreeters\-dir=DIRECTORY
+Directory to load X greeters from
+.TP
+.B \-\-log\-dir=DIRECTORY
+Directory to write logs to
+.TP
+.B \-\-run\-dir=DIRECTORY
+Directory to store running state
+.TP
+.B \-\-cache\-dir=DIRECTORY
+Directory to cached information
 .TP
 .B \-v, \-\-version
 Show release version
-.TP
-.B \-h, \-\-help
-Show help options
 .SH FILES
 .PD 0
-.TP 18
+.TP
 .B /etc/lightdm/lightdm.conf
 Configuration
+.TP
+
+.B /etc/lightdm/users.conf
+User list configuration (if not using Accounts Service)
+.TP
+
+.B /etc/lightdm/keys.conf
+XDMCP keys
 .sp
 .LP

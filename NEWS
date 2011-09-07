@@ -8,6 +8,7 @@ Overview of changes in lightdm 0.9.5
     * Exit daemon if a seat fails which has exit-on-failure set to true
     * Add HasGuestAccount property to seat D-Bus interface
     * Fix XDMCP authorization
+    * Update man file
 
 Overview of changes in lightdm 0.9.4
 
