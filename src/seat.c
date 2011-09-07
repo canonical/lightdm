@@ -479,11 +479,10 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
         /* If already logged in, then switch to that display and stop the greeter display */
         if (g_strcmp0 (display_get_username (display), username) == 0)
         {
-            // FIXME: Use display_get_name
             if (username)
-                g_debug ("Switching to user %s session on display %s", username, xserver_get_address (XSERVER (display_get_display_server (display))));
+                g_debug ("Switching to existing session for user %s", username);
             else
-                g_debug ("Switching to greeter on display %s", xserver_get_address (XSERVER (display_get_display_server (display))));
+                g_debug ("Switching to existing greeter");
             seat_set_active_display (seat, display);
             return TRUE;
         }
