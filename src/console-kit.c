@@ -19,21 +19,21 @@ static GDBusProxy *ck_proxy = NULL;
 static gboolean
 load_ck_proxy (void)
 {
-    GError *error = NULL;
-
-    if (ck_proxy)
-        return TRUE;
-
-    ck_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                              G_DBUS_PROXY_FLAGS_NONE,
-                                              NULL,
-                                              "org.freedesktop.ConsoleKit",
-                                              "/org/freedesktop/ConsoleKit/Manager",
-                                              "org.freedesktop.ConsoleKit.Manager",
-                                              NULL, &error);
     if (!ck_proxy)
-        g_warning ("Unable to get connection to ConsoleKit: %s", error->message);
-    g_clear_error (&error);
+    {
+        GError *error = NULL;
+        ck_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                                  G_DBUS_PROXY_FLAGS_NONE,
+                                                  NULL,
+                                                  "org.freedesktop.ConsoleKit",
+                                                  "/org/freedesktop/ConsoleKit/Manager",
+                                                  "org.freedesktop.ConsoleKit.Manager",
+                                                  NULL, &error);
+        if (!ck_proxy)
+            g_warning ("Unable to get connection to ConsoleKit: %s", error->message);
+        g_clear_error (&error);
+    }
+
     return ck_proxy != NULL;
 }
 
