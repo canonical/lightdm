@@ -82,6 +82,12 @@ struct DisplayPrivate
     /* Session process */
     Session *session;
 
+    /* The X display */
+    gchar *xdisplay;
+
+    /* TTY */
+    gchar *tty;
+
     /* Communication link to greeter */
     Greeter *greeter;
 
@@ -119,6 +125,12 @@ display_set_display_server (Display *display, DisplayServer *display_server)
     g_return_if_fail (display != NULL);
     g_return_if_fail (display->priv->display_server == NULL);
     display->priv->display_server = g_object_ref (display_server);
+    if (IS_XSERVER (display->priv->display_server))
+    {
+        display->priv->xdisplay = g_strdup (xserver_get_address (XSERVER (display->priv->display_server)));
+        if (IS_XSERVER_LOCAL (display->priv->display_server) && xserver_local_get_vt (XSERVER_LOCAL (display->priv->display_server)) >= 0)
+            display->priv->tty = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (XSERVER_LOCAL (display->priv->display_server)));
+    }
 }
 
 DisplayServer *
@@ -302,7 +314,7 @@ autologin (Display *display, const gchar *username, gboolean start_greeter_if_fa
     display->priv->start_greeter_if_fail = start_greeter_if_fail;
 
     display->priv->in_user_session = TRUE;
-    authentication = pam_session_new (display->priv->pam_autologin_service, username);
+    authentication = pam_session_new (display->priv->pam_autologin_service, username, display->priv->tty, display->priv->xdisplay);
     g_signal_connect (authentication, "got-messages", G_CALLBACK (autologin_pam_message_cb), display);
     g_signal_connect (authentication, "authentication-result", G_CALLBACK (autologin_authentication_result_cb), display);
 
@@ -493,18 +505,14 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
         g_variant_builder_open (&parameters, G_VARIANT_TYPE ("a(sv)"));
         g_variant_builder_add (&parameters, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
         g_variant_builder_add (&parameters, "(sv)", "session-type", g_variant_new_string (is_greeter ? "LoginWindow" : ""));
-        if (IS_XSERVER (display->priv->display_server))
+        if (display->priv->xdisplay)
         {
             g_variant_builder_add (&parameters, "(sv)", "x11-display",
-                                   g_variant_new_string (xserver_get_address (XSERVER (display->priv->display_server))));
+                                   g_variant_new_string (display->priv->xdisplay));
 
-            if (IS_XSERVER_LOCAL (display->priv->display_server) && xserver_local_get_vt (XSERVER_LOCAL (display->priv->display_server)) >= 0)
-            {
-                gchar *display_device;
-                display_device = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (XSERVER_LOCAL (display->priv->display_server)));
-                g_variant_builder_add (&parameters, "(sv)", "x11-display-device", g_variant_new_string (display_device));
-                g_free (display_device);
-            }
+            if (display->priv->tty)
+                g_variant_builder_add (&parameters, "(sv)", "x11-display-device",
+                                       g_variant_new_string (display->priv->tty));
         }
         g_variant_builder_add (&parameters, "(sv)", "remote-host-name", g_variant_new_string (""));
         g_variant_builder_add (&parameters, "(sv)", "is-local", g_variant_new_boolean (TRUE));
@@ -561,7 +569,7 @@ greeter_connected_cb (Greeter *greeter, Display *display)
 static PAMSession *
 greeter_start_authentication_cb (Greeter *greeter, const gchar *username, Display *display)
 {
-    return pam_session_new (display->priv->pam_service, username);
+    return pam_session_new (display->priv->pam_service, username, display->priv->tty, display->priv->xdisplay);
 }
 
 static gboolean
@@ -630,13 +638,15 @@ start_greeter_session (Display *display)
     display->priv->in_user_session = FALSE;
 
     log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    // FIXME: May not be an X server
-    filename = g_strdup_printf ("%s-greeter.log", xserver_get_address (XSERVER (display->priv->display_server)));
+    if (display->priv->xdisplay)
+        filename = g_strdup_printf ("%s-greeter.log", display->priv->xdisplay);
+    else
+        filename = g_strdup ("other-greeter.log");
     log_filename = g_build_filename (log_dir, filename, NULL);
     g_free (log_dir);
     g_free (filename);
 
-    authentication = pam_session_new (display->priv->pam_service, user_get_name (user));
+    authentication = pam_session_new (display->priv->pam_service, user_get_name (user), display->priv->tty, display->priv->xdisplay);
     g_object_unref (user);
 
     display->priv->session = create_session (display, authentication, display->priv->greeter_session, TRUE, log_filename);
@@ -913,6 +923,8 @@ display_finalize (GObject *object)
     g_free (self->priv->autologin_user);
     g_free (self->priv->select_user_hint);
     g_free (self->priv->user_session);
+    g_free (self->priv->tty);
+    g_free (self->priv->xdisplay);
 
     G_OBJECT_CLASS (display_parent_class)->finalize (object);
 }

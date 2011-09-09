@@ -36,6 +36,12 @@ struct PAMSessionPrivate
     /* Username when using passwd module */
     gchar *username;
 
+    /* TTY */
+    gchar *tty;
+
+    /* X Display */
+    gchar *xdisplay;
+
     /* Authentication thread */
     GThread *authentication_thread;
   
@@ -83,7 +89,7 @@ pam_session_set_use_passwd_file (gchar *passwd_file_)
 static int pam_conv_cb (int num_msg, const struct pam_message **msg, struct pam_response **resp, void *app_data);
 
 PAMSession *
-pam_session_new (const gchar *service, const gchar *username)
+pam_session_new (const gchar *service, const gchar *username, const gchar *tty, const gchar *xdisplay)
 {
     PAMSession *self = g_object_new (PAM_SESSION_TYPE, NULL);
     struct pam_conv conversation = { pam_conv_cb, self };
@@ -91,6 +97,8 @@ pam_session_new (const gchar *service, const gchar *username)
 
     self->priv->service = g_strdup (service);
     self->priv->username = g_strdup (username);
+    self->priv->tty = g_strdup (tty ? tty : "");
+    self->priv->xdisplay = g_strdup (xdisplay ? xdisplay : "");
 
     if (!passwd_file)
     {      
@@ -123,9 +131,8 @@ pam_session_open (PAMSession *session)
 
     if (!passwd_file && getuid () == 0)
     {
-        // FIXME: Set X items
-        //pam_set_item (session->priv->pam_handle, PAM_TTY, &tty);
-        //pam_set_item (session->priv->pam_handle, PAM_XDISPLAY, &display);
+        pam_set_item (session->priv->pam_handle, PAM_TTY, session->priv->tty);
+        pam_set_item (session->priv->pam_handle, PAM_XDISPLAY, session->priv->xdisplay);
         result = pam_open_session (session->priv->pam_handle, 0);
         g_debug ("pam_open_session(%p, 0) -> %d (%s)",
                  session->priv->pam_handle,
@@ -544,6 +551,8 @@ pam_session_finalize (GObject *object)
 
     g_free (self->priv->service);
     g_free (self->priv->username);
+    g_free (self->priv->tty);
+    g_free (self->priv->xdisplay);
     if (self->priv->user)
         g_object_unref (self->priv->user);
     if (self->priv->pam_handle)
