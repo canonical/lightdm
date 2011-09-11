@@ -40,10 +40,14 @@ lightdm_SOURCES = \
 	seat-xlocal.h \
 	seat-xremote.c \
 	seat-xremote.h \
+	seat-xvnc.c \
+	seat-xvnc.h \
 	session.c \
 	session.h \
 	user.c \
 	user.h \
+	vnc-server.c \
+	vnc-server.h \
 	vt.c \
 	vt.h \
 	xauthority.c \
@@ -61,6 +65,8 @@ lightdm_SOURCES = \
 	xserver-local.h \
 	xserver-remote.c \
 	xserver-remote.h \
+	xserver-xvnc.c \
+	xserver-xvnc.h \
 	xserver.c \
 	xserver.h \
 	xsession.c \

@@ -34,6 +34,7 @@ typedef struct
 typedef struct
 {
     GObjectClass parent_class;
+    void (*run)(Process *process);
     void (*started)(Process *process);
     void (*got_data)(Process *process);
     void (*got_signal)(Process *process, int signum);
@@ -48,19 +49,27 @@ Process *process_get_current (void);
 
 Process *process_new (void);
 
+void process_set_command (Process *process, const gchar *command);
+
+const gchar *process_get_command (Process *process);
+
 void process_set_log_file (Process *process, const gchar *log_file);
 
 const gchar *process_get_log_file (Process *process);
+
+void process_set_working_directory (Process *process, const gchar *working_directory);
+
+const gchar *process_get_working_directory (Process *process);
+
+void process_set_user (Process *process, User *user);
+
+User *process_get_user (Process *process);
 
 void process_set_env (Process *process, const gchar *name, const gchar *value);
 
 const gchar *process_get_env (Process *process, const gchar *name);
 
-gboolean process_start (Process *process,
-                        User *user,
-                        const gchar *working_dir,
-                        const gchar *command,
-                        GError **error);
+gboolean process_start (Process *process);
 
 gboolean process_get_is_running (Process *process);
 
@@ -68,8 +77,10 @@ GPid process_get_pid (Process *process);
 
 void process_signal (Process *process, int signum);
 
+// FIXME: Move out of here
 GIOChannel *process_get_to_child_channel (Process *process);
 
+// FIXME: Move out of here
 GIOChannel *process_get_from_child_channel (Process *process);
 
 void process_stop (Process *process);

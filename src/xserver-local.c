@@ -25,9 +25,6 @@ struct XServerLocalPrivate
     /* X server process */
     Process *xserver_process;
 
-    /* Path of file to log to */
-    gchar *log_file;
-  
     /* Command to run the X server */
     gchar *command;
 
@@ -61,42 +58,28 @@ struct XServerLocalPrivate
 
 G_DEFINE_TYPE (XServerLocal, xserver_local, XSERVER_TYPE);
 
-static GList *display_numbers = NULL;
-
-static gboolean
-display_number_used (guint number)
-{
-    gchar *path;
-    gboolean result;
-  
-    if (g_list_find (display_numbers, GINT_TO_POINTER (number)))
-        return TRUE;
-  
-    path = g_strdup_printf ("/tmp/.X%d-lock", number);
-    result = g_file_test (path, G_FILE_TEST_EXISTS);
-    g_free (path);
-
-    return result;
-}
-
 static guint
 get_free_display_number (void)
 {
     guint number;
 
     number = config_get_integer (config_get_instance (), "LightDM", "minimum-display-number");
-    while (display_number_used (number))
+    while (TRUE)
+    {
+        gchar *path;
+        gboolean result;
+  
+        path = g_strdup_printf ("/tmp/.X%d-lock", number);
+        result = g_file_test (path, G_FILE_TEST_EXISTS);
+        g_free (path);
+
+        if (!result)
+            break;
+
         number++;
-
-    display_numbers = g_list_append (display_numbers, GINT_TO_POINTER (number));
-
+    }
+  
     return number;
-}
-
-static void
-release_display_number (guint number)
-{
-    display_numbers = g_list_remove (display_numbers, GINT_TO_POINTER (number));
 }
 
 XServerLocal *
@@ -228,6 +211,20 @@ get_absolute_command (const gchar *command)
 }
 
 static void
+run_cb (Process *process, XServerLocal *server)
+{
+    int fd;
+
+    /* Make input non-blocking */
+    fd = open ("/dev/null", O_RDONLY);
+    dup2 (fd, STDIN_FILENO);
+    close (fd);
+
+    /* Set SIGUSR1 to ignore so the X server can indicate it when it is ready */
+    signal (SIGUSR1, SIG_IGN);
+}
+
+static void
 got_signal_cb (Process *process, int signum, XServerLocal *server)
 {
     if (signum == SIGUSR1 && !server->priv->got_signal)
@@ -245,19 +242,6 @@ got_signal_cb (Process *process, int signum, XServerLocal *server)
         // FIXME: Check return value
         DISPLAY_SERVER_CLASS (xserver_local_parent_class)->start (DISPLAY_SERVER (server));
     }
-}
-
-static void
-exit_cb (Process *process, int status, XServerLocal *server)
-{
-    if (status != 0)
-        g_debug ("X server exited with value %d", status);
-}
-
-static void
-terminated_cb (Process *process, int signum, XServerLocal *server)
-{
-    g_debug ("X server terminated with signal %d", signum);
 }
 
 static void
@@ -285,8 +269,6 @@ stopped_cb (Process *process, XServerLocal *server)
         g_object_unref (server->priv->authority_file);
         server->priv->authority_file = NULL;
     }
-
-    release_display_number (xserver_get_display_number (XSERVER (server)));
 
     if (server->priv->vt >= 0)
     {
@@ -349,7 +331,6 @@ xserver_local_start (DisplayServer *display_server)
     gchar *filename, *dir, *path, *absolute_command;
     gchar hostname[1024], *number;
     GString *command;
-    GError *error = NULL;
 
     g_return_val_if_fail (server->priv->xserver_process == NULL, FALSE);
 
@@ -358,9 +339,8 @@ xserver_local_start (DisplayServer *display_server)
     g_return_val_if_fail (server->priv->command != NULL, FALSE);
 
     server->priv->xserver_process = process_new ();
+    g_signal_connect (server->priv->xserver_process, "run", G_CALLBACK (run_cb), server);  
     g_signal_connect (server->priv->xserver_process, "got-signal", G_CALLBACK (got_signal_cb), server);
-    g_signal_connect (server->priv->xserver_process, "exited", G_CALLBACK (exit_cb), server);
-    g_signal_connect (server->priv->xserver_process, "terminated", G_CALLBACK (terminated_cb), server);
     g_signal_connect (server->priv->xserver_process, "stopped", G_CALLBACK (stopped_cb), server);
 
     /* Setup logging */
@@ -421,6 +401,8 @@ xserver_local_start (DisplayServer *display_server)
 
     if (server->priv->replacing_plymouth)
         g_string_append (command, " -background none");
+    process_set_command (server->priv->xserver_process, command->str);
+    g_string_free (command, TRUE);
 
     g_debug ("Launching X Server");
 
@@ -447,15 +429,8 @@ xserver_local_start (DisplayServer *display_server)
         process_set_env (server->priv->xserver_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }
 
-    result = process_start (server->priv->xserver_process,
-                            user_get_current (),
-                            NULL,
-                            command->str,
-                            &error);
-    if (error)
-        g_warning ("Unable to create display: %s", error->message);
-    g_clear_error (&error);
-    g_string_free (command, TRUE);
+    process_set_user (server->priv->xserver_process, user_get_current ());
+    result = process_start (server->priv->xserver_process);
 
     if (result)
         g_debug ("Waiting for ready signal from X server :%d", xserver_get_display_number (XSERVER (server)));

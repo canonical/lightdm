@@ -23,7 +23,9 @@
 #include "configuration.h"
 #include "display-manager.h"
 #include "xdmcp-server.h"
+#include "vnc-server.h"
 #include "seat-xdmcp-session.h"
+#include "seat-xvnc.h"
 #include "xserver.h"
 #include "user.h"
 #include "pam-session.h"
@@ -37,6 +39,7 @@ static gboolean debug = FALSE;
 
 static DisplayManager *display_manager = NULL;
 static XDMCPServer *xdmcp_server = NULL;
+static VNCServer *vnc_server = NULL;
 static GDBusConnection *bus = NULL;
 static guint bus_id;
 static GDBusNodeInfo *seat_info;
@@ -750,6 +753,17 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
     return result;
 }
 
+static void
+vnc_connection_cb (VNCServer *server, GSocket *connection)
+{
+    SeatXVNC *seat;
+
+    seat = seat_xvnc_new (connection);
+    set_seat_properties (SEAT (seat), NULL);
+    display_manager_add_seat (display_manager, SEAT (seat));
+    g_object_unref (seat);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1149,6 +1163,23 @@ main (int argc, char **argv)
 
         g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (xdmcp_server));
         xdmcp_server_start (xdmcp_server);
+    }
+
+    /* Start the VNC server */
+    if (config_get_boolean (config_get_instance (), "VNCServer", "enabled"))
+    {
+        vnc_server = vnc_server_new ();
+        if (config_has_key (config_get_instance (), "VNCServer", "port"))
+        {
+            gint port;
+            port = config_get_integer (config_get_instance (), "VNCServer", "port");
+            if (port > 0)
+                vnc_server_set_port (vnc_server, port);
+        }
+        g_signal_connect (vnc_server, "new-connection", G_CALLBACK (vnc_connection_cb), NULL);
+
+        g_debug ("Starting VNC server on TCP/IP port %d", vnc_server_get_port (vnc_server));
+        vnc_server_start (vnc_server);
     }
 
     g_main_loop_run (loop);

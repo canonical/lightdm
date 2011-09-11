@@ -160,7 +160,6 @@ session_real_start (Session *session)
     User *user;
     gboolean result;
     gchar *absolute_command;
-    GError *error = NULL;
 
     absolute_command = get_absolute_command (session->priv->command);
     if (!absolute_command)
@@ -168,17 +167,13 @@ session_real_start (Session *session)
         g_debug ("Can't launch session %s, not found in path", session->priv->command);
         return FALSE;
     }
+    process_set_command (PROCESS (session), absolute_command);
+    g_free (absolute_command);
 
     user = pam_session_get_user (session->priv->authentication);
-    result = process_start (PROCESS (session),
-                            user,
-                            user_get_home_directory (user),
-                            absolute_command,
-                            &error);
-    if (error)
-        g_warning ("Failed to spawn session: %s", error->message);
-    g_clear_error (&error);
-    g_free (absolute_command);
+    process_set_user (PROCESS (session), user);
+    process_set_working_directory (PROCESS (session), user_get_home_directory (user));
+    result = process_start (PROCESS (session));
 
     return result;
 }
@@ -244,6 +239,17 @@ session_stop (Session *session)
 }
 
 static void
+session_run (Process *process)
+{
+    int fd;
+
+    /* Make input non-blocking */
+    fd = g_open ("/dev/null", O_RDONLY);
+    dup2 (fd, STDIN_FILENO);
+    close (fd);
+}
+
+static void
 session_stopped (Process *process)
 {
     Session *session = SESSION (process);
@@ -282,6 +288,7 @@ session_class_init (SessionClass *klass)
 
     klass->start = session_real_start;
     klass->stop = session_real_stop;
+    process_class->run = session_run;
     process_class->stopped = session_stopped;
     object_class->finalize = session_finalize;
 

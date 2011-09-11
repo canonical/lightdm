@@ -22,6 +22,7 @@
 #include "process.h"
 
 enum {
+    RUN,
     STARTED,
     GOT_DATA,
     GOT_SIGNAL,  
@@ -37,17 +38,23 @@ struct ProcessPrivate
     /* Environment variables */
     GHashTable *env;
 
+    /* Command to run */
+    gchar *command;
+
+    /* Working directory */
+    gchar *working_directory;
+
     /* User to run as */
     User *user;
 
     /* Path of file to log to */
-    gchar *log_file;
-  
-    /* Timeout waiting for process to quit */
-    guint quit_timeout;
-
+    gchar *log_file; 
+ 
     /* Process ID */
     GPid pid;
+
+    /* Timeout waiting for process to quit */
+    guint quit_timeout;
 };
 
 G_DEFINE_TYPE (Process, process, G_TYPE_OBJECT);
@@ -75,6 +82,22 @@ process_new (void)
 }
 
 void
+process_set_command (Process *process, const gchar *command)
+{
+    g_return_if_fail (process != NULL);
+
+    g_free (process->priv->command);
+    process->priv->command = g_strdup (command);
+}
+
+const gchar *
+process_get_command (Process *process)
+{
+    g_return_val_if_fail (process != NULL, NULL);
+    return process->priv->command;
+}
+
+void
 process_set_log_file (Process *process, const gchar *log_file)
 {
     g_return_if_fail (process != NULL);
@@ -89,7 +112,40 @@ process_get_log_file (Process *process)
     g_return_val_if_fail (process != NULL, NULL);
     return process->priv->log_file;
 }
-  
+
+void
+process_set_working_directory (Process *process, const gchar *working_directory)
+{
+    g_return_if_fail (process != NULL);
+
+    g_free (process->priv->working_directory);
+    process->priv->working_directory = g_strdup (working_directory);
+}
+
+const gchar *
+process_get_working_directory (Process *process)
+{
+    g_return_val_if_fail (process != NULL, NULL);
+    return process->priv->working_directory;
+}
+
+void
+process_set_user (Process *process, User *user)
+{
+    g_return_if_fail (process != NULL);
+
+    if (process->priv->user)
+        g_object_unref (process->priv->user);
+    process->priv->user = g_object_ref (user);
+}
+
+User *
+process_get_user (Process *process)
+{
+    g_return_val_if_fail (process != NULL, NULL);
+    return process->priv->user;
+}
+
 void
 process_set_env (Process *process, const gchar *name, const gchar *value)
 {
@@ -130,18 +186,31 @@ process_watch_cb (GPid pid, gint status, gpointer data)
 }
 
 static void
-run_process (Process *process, char *const argv[])
+process_run (Process *process)
+{
+    gint argc;
+    gchar **argv;
+    GError *error = NULL;
+
+    if (!g_shell_parse_argv (process->priv->command, &argc, &argv, &error))
+    {
+        g_warning ("Error parsing command %s: %s", process->priv->command, error->message);
+        _exit (EXIT_FAILURE);
+    }
+
+    execv (argv[0], argv);
+
+    g_warning ("Error executing child process %s: %s", argv[0], g_strerror (errno));
+    _exit (EXIT_FAILURE);
+}
+
+static void
+run (Process *process)
 {
     GHashTableIter iter;
     gpointer key, value;
-    int fd;
 
     /* FIXME: Close existing file descriptors */
-
-    /* Make input non-blocking */
-    fd = g_open ("/dev/null", O_RDONLY);
-    dup2 (fd, STDIN_FILENO);
-    close (fd);
 
     /* Set environment */
     clearenv ();
@@ -149,11 +218,7 @@ run_process (Process *process, char *const argv[])
     while (g_hash_table_iter_next (&iter, &key, &value))
         g_setenv ((gchar *)key, (gchar *)value, TRUE);
 
-    /* Set SIGUSR1 to ignore so the child process can indicate it when it is ready */
-    // FIXME: Should be in the xserver only
-    signal (SIGUSR1, SIG_IGN);
-
-    /* Make this process its own session so */
+    /* Make this process its own session */
     if (setsid () < 0)
         g_warning ("Failed to make process a new session: %s", strerror (errno));
 
@@ -203,31 +268,20 @@ run_process (Process *process, char *const argv[])
          }
     }
 
-    execv (argv[0], argv);
-
-    g_warning ("Error executing child process %s: %s", argv[0], g_strerror (errno));
-    _exit (EXIT_FAILURE);
+    g_signal_emit (process, signals[RUN], 0); 
 }
 
 gboolean
-process_start (Process *process,
-               User *user,
-               const gchar *working_dir,
-               const gchar *command,
-               GError **error)
+process_start (Process *process)
 {
-    gboolean result;
-    gint argc;
-    gchar **argv;
     GString *string;
     gpointer key, value;
     GHashTableIter iter;
     pid_t pid;
 
     g_return_val_if_fail (process != NULL, FALSE);
+    g_return_val_if_fail (process->priv->command != NULL, FALSE);  
     g_return_val_if_fail (process->priv->pid == 0, FALSE);
-
-    process->priv->user = g_object_ref (user);
 
     /* Create the log file owned by the target user */
     if (process->priv->log_file)
@@ -238,10 +292,6 @@ process_start (Process *process,
             g_warning ("Failed to set process log file ownership: %s", strerror (errno));
     }
 
-    result = g_shell_parse_argv (command, &argc, &argv, error);
-    if (!result)
-        return FALSE;
-
     pid = fork ();
     if (pid < 0)
     {
@@ -250,14 +300,13 @@ process_start (Process *process,
     }
 
     if (pid == 0)
-        run_process (process, argv);
-    g_strfreev (argv);
+        run (process);
 
     string = g_string_new ("");
     g_hash_table_iter_init (&iter, process->priv->env);
     while (g_hash_table_iter_next (&iter, &key, &value))
         g_string_append_printf (string, "%s=%s ", (gchar *)key, (gchar *)value);
-    g_string_append (string, command);
+    g_string_append (string, process->priv->command);
     g_debug ("Launching process %d: %s", pid, string->str);
     g_string_free (string, TRUE);
 
@@ -334,11 +383,14 @@ process_finalize (GObject *object)
 
     self = PROCESS (object);
 
-    if (self->priv->user)
-        g_object_unref (self->priv->user);
-
     if (self->priv->pid > 0)
         g_hash_table_remove (processes, GINT_TO_POINTER (self->priv->pid));
+
+    g_free (self->priv->command);
+    g_free (self->priv->working_directory);
+    g_free (self->priv->log_file);
+    if (self->priv->user)
+        g_object_unref (self->priv->user);
 
     if (self->priv->pid)
         kill (self->priv->pid, SIGTERM);
@@ -388,11 +440,20 @@ process_class_init (ProcessClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     struct sigaction action;
 
+    klass->run = process_run;
     klass->stopped = process_stopped;
     object_class->finalize = process_finalize;  
 
     g_type_class_add_private (klass, sizeof (ProcessPrivate));
 
+    signals[RUN] =
+        g_signal_new ("run",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (ProcessClass, run),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0); 
     signals[STARTED] =
         g_signal_new ("started",
                       G_TYPE_FROM_CLASS (klass),
