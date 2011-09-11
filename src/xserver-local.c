@@ -258,10 +258,10 @@ stopped_cb (Process *process, XServerLocal *server)
         gchar *path;
 
         path = g_file_get_path (server->priv->authority_file);      
-        g_debug ("Removing X server authority from %s", path);
+        g_debug ("Removing X server authority %s", path);
         g_free (path);
 
-        xauth_write (xserver_get_authority (XSERVER (server)), XAUTH_WRITE_MODE_REMOVE, NULL, server->priv->authority_file, &error);
+        g_file_delete (server->priv->authority_file, NULL, &error);
         if (error)
             g_debug ("Error removing authority: %s", error->message);
         g_clear_error (&error);
