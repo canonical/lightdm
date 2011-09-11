@@ -247,6 +247,8 @@ session_run (Process *process)
     fd = g_open ("/dev/null", O_RDONLY);
     dup2 (fd, STDIN_FILENO);
     close (fd);
+
+    PROCESS_CLASS (session_parent_class)->run (process);
 }
 
 static void
