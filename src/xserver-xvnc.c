@@ -214,7 +214,7 @@ xserver_xvnc_start (DisplayServer *display_server)
         g_warning ("Failed to write authority: %s", error->message);
     g_clear_error (&error);
 
-    command = g_strdup_printf ("%s :%d -auth %s -inetd -nolisten tcp -nolisten unix",
+    command = g_strdup_printf ("%s :%d -auth %s -inetd -nolisten tcp",
                                absolute_command,
                                xserver_get_display_number (XSERVER (server)),
                                path);
