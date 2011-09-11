@@ -522,10 +522,13 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     /* Connect using the session bus */
     if (getuid () != 0)
     {
-        process_set_env (PROCESS (session), "DBUS_SESSION_BUS_ADDRESS", g_getenv ("DBUS_SESSION_BUS_ADDRESS"));
+        if (g_getenv ("DBUS_SESSION_BUS_ADDRESS"))
+            process_set_env (PROCESS (session), "DBUS_SESSION_BUS_ADDRESS", g_getenv ("DBUS_SESSION_BUS_ADDRESS"));
         process_set_env (PROCESS (session), "LDM_BUS", "SESSION");
-        process_set_env (PROCESS (session), "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
-        process_set_env (PROCESS (session), "PATH", g_getenv ("PATH"));
+        if (g_getenv ("LD_LIBRARY_PATH"))
+            process_set_env (PROCESS (session), "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+        if (g_getenv ("PATH"))
+            process_set_env (PROCESS (session), "PATH", g_getenv ("PATH"));
     }
 
     /* Variables required for regression tests */
