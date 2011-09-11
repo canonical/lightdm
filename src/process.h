@@ -77,12 +77,6 @@ GPid process_get_pid (Process *process);
 
 void process_signal (Process *process, int signum);
 
-// FIXME: Move out of here
-GIOChannel *process_get_to_child_channel (Process *process);
-
-// FIXME: Move out of here
-GIOChannel *process_get_from_child_channel (Process *process);
-
 void process_stop (Process *process);
 
 G_END_DECLS
