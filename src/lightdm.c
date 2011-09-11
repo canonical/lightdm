@@ -1168,18 +1168,28 @@ main (int argc, char **argv)
     /* Start the VNC server */
     if (config_get_boolean (config_get_instance (), "VNCServer", "enabled"))
     {
-        vnc_server = vnc_server_new ();
-        if (config_has_key (config_get_instance (), "VNCServer", "port"))
-        {
-            gint port;
-            port = config_get_integer (config_get_instance (), "VNCServer", "port");
-            if (port > 0)
-                vnc_server_set_port (vnc_server, port);
-        }
-        g_signal_connect (vnc_server, "new-connection", G_CALLBACK (vnc_connection_cb), NULL);
+        gchar *path;
 
-        g_debug ("Starting VNC server on TCP/IP port %d", vnc_server_get_port (vnc_server));
-        vnc_server_start (vnc_server);
+        path = g_find_program_in_path ("Xvnc");
+        if (path)
+        {
+            vnc_server = vnc_server_new ();
+            if (config_has_key (config_get_instance (), "VNCServer", "port"))
+            {
+                gint port;
+                port = config_get_integer (config_get_instance (), "VNCServer", "port");
+                if (port > 0)
+                    vnc_server_set_port (vnc_server, port);
+            }
+            g_signal_connect (vnc_server, "new-connection", G_CALLBACK (vnc_connection_cb), NULL);
+
+            g_debug ("Starting VNC server on TCP/IP port %d", vnc_server_get_port (vnc_server));
+            vnc_server_start (vnc_server);
+
+            g_free (path);
+        }
+        else
+            g_warning ("Can't start VNC server, Xvn is not in the path");
     }
 
     g_main_loop_run (loop);
