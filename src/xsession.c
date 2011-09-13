@@ -23,6 +23,7 @@ struct XSessionPrivate
     XServer *xserver;
 
     /* X Authority */
+    gboolean authority_in_system_dir;
     XAuthority *authority;
     GFile *authority_file;
 };
@@ -39,17 +40,30 @@ xsession_new (XServer *xserver)
     return session;
 }
 
+static void
+write_authority (XSession *session)
+{
+    GError *error = NULL;
+
+    xauth_write (session->priv->authority, XAUTH_WRITE_MODE_REPLACE, session_get_user (SESSION (session)), session->priv->authority_file, &error);
+    if (error)
+        g_warning ("Failed to write authority: %s", error->message);
+    g_clear_error (&error); 
+}
+
 static gboolean
 xsession_start (Session *session)
 {
-    if (xserver_get_authority (XSESSION (session)->priv->xserver))
+    XSession *xsession = XSESSION (session);
+
+    if (xserver_get_authority (xsession->priv->xserver))
     {
         gchar *path;
-        GError *error = NULL;
 
-        XSESSION (session)->priv->authority = g_object_ref (xserver_get_authority (XSESSION (session)->priv->xserver));
+        xsession->priv->authority = g_object_ref (xserver_get_authority (xsession->priv->xserver));
       
-        if (config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"))
+        xsession->priv->authority_in_system_dir = config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir");
+        if (xsession->priv->authority_in_system_dir)
         {
             gchar *run_dir, *dir;
 
@@ -71,18 +85,18 @@ xsession_start (Session *session)
             path = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
 
         process_set_env (PROCESS (session), "XAUTHORITY", path);
-
-        XSESSION (session)->priv->authority_file = g_file_new_for_path (path);
+        xsession->priv->authority_file = g_file_new_for_path (path);
+        if (xsession->priv->authority_in_system_dir)
+        {
+            g_debug ("Adding session authority to %s", path);
+            write_authority (xsession);
+        }
+        else
+            g_debug ("Adding session authority to %s (written in session process)", path);
         g_free (path);
-
-        g_debug ("Adding session authority to %s", g_file_get_path (XSESSION (session)->priv->authority_file));
-        xauth_write (XSESSION (session)->priv->authority, XAUTH_WRITE_MODE_REPLACE, session_get_user (session), XSESSION (session)->priv->authority_file, &error);
-        if (error)
-            g_warning ("Failed to write authority: %s", error->message);
-        g_clear_error (&error);
     }
 
-    process_set_env (PROCESS (session), "DISPLAY", xserver_get_address (XSESSION (session)->priv->xserver));
+    process_set_env (PROCESS (session), "DISPLAY", xserver_get_address (xsession->priv->xserver));
 
     return SESSION_CLASS (xsession_parent_class)->start (session);
 }
@@ -102,6 +116,17 @@ xsession_remove_authority (XSession *session)
         g_object_unref (session->priv->authority);
         session->priv->authority = NULL;
     }
+}
+
+static void
+xsession_run (Process *process)
+{
+    XSession *xsession = XSESSION (process);
+
+    if (!xsession->priv->authority_in_system_dir)
+        write_authority (xsession);
+
+    PROCESS_CLASS (xsession_parent_class)->run (process);
 }
 
 static void
@@ -135,10 +160,12 @@ static void
 xsession_class_init (XSessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    ProcessClass *process_class = PROCESS_CLASS (klass);
     SessionClass *session_class = SESSION_CLASS (klass);
 
     session_class->start = xsession_start;
     session_class->stop = xsession_stop;
+    process_class->run = xsession_run;
     object_class->finalize = xsession_finalize;
 
     g_type_class_add_private (klass, sizeof (XSessionPrivate));
