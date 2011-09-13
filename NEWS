@@ -2,6 +2,7 @@ Overview of changes in lightdm 0.9.6
 
     * Only unlock displays if switched to from greeter
     * Add VNC server support
+    * Do not write ~/.dmrc and ~/.Xauthority as root. [CVE-2011-3349]
 
 Overview of changes in lightdm 0.9.5
 

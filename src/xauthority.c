@@ -9,6 +9,8 @@
  * license.
  */
 
+/* for setres*id() */
+#define _GNU_SOURCE
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
@@ -244,6 +246,16 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GEr
     XAuthority *a;
     gboolean result;
     gboolean matched = FALSE;
+    gboolean drop_privs = (user && geteuid () == 0);
+    gboolean retval = FALSE;
+
+    /* Guard against privilege escalation through symlinks, etc. */
+    if (drop_privs)
+    {
+	g_debug ("Dropping privileges to uid %i", user_get_uid (user));
+	g_assert (setresgid (user_get_gid (user), user_get_gid (user), -1) == 0);
+	g_assert (setresuid (user_get_uid (user), user_get_uid (user), -1) == 0);
+    }
 
     /* Read out existing records */
     if (mode != XAUTH_WRITE_MODE_SET)
@@ -317,7 +329,7 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GEr
 
     output_stream = g_file_replace (file, NULL, FALSE, G_FILE_CREATE_PRIVATE, NULL, error);
     if (!output_stream)
-        return FALSE;
+        goto out;
 
     /* Workaround because g_file_replace () generates a file does not exist error even though it can replace it */
     g_clear_error (error);
@@ -345,18 +357,18 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GEr
     g_object_unref (output_stream);
 
     if (!result)
-        return FALSE;
+        goto out;
 
-    /* NOTE: Would like to do:
-     * g_file_set_attribute_string (file, G_FILE_ATTRIBUTE_OWNER_USER, username, G_FILE_QUERY_INFO_NONE, NULL, error))
-     * but not supported. */
-    if (user && getuid () == 0)
-    {
-        if (chown (g_file_get_path (file), user_get_uid (user), user_get_gid (user)) < 0)
-            g_warning ("Failed to set authorization owner: %s", strerror (errno));
-    }
+    retval = TRUE;
   
-    return TRUE;
+out:
+    /* reclaim privileges */
+    if (drop_privs)
+    {
+	g_assert (setresuid (0, 0, -1) == 0);
+	g_assert (setresgid (0, 0, -1) == 0);
+    }
+    return retval;
 }
 
 static void
