@@ -34,7 +34,7 @@
 static gchar *config_path = NULL;
 static GMainLoop *loop = NULL;
 static GTimer *log_timer;
-static FILE *log_file;
+static int log_fd = -1;
 static gboolean debug = FALSE;
 
 static DisplayManager *display_manager = NULL;
@@ -65,8 +65,10 @@ log_cb (const gchar *log_domain, GLogLevelFlags log_level,
         const gchar *message, gpointer data)
 {
     /* Log everything to a file */
-    if (log_file) {
+    if (log_fd >= 0)
+    {
         const gchar *prefix;
+        gchar *text;
 
         switch (log_level & G_LOG_LEVEL_MASK) {
         case G_LOG_LEVEL_ERROR:
@@ -92,8 +94,10 @@ log_cb (const gchar *log_domain, GLogLevelFlags log_level,
             break;
         }
 
-        fprintf (log_file, "[%+.2fs] %s %s\n", g_timer_elapsed (log_timer, NULL), prefix, message);
-        fflush (log_file);
+        text = g_strdup_printf ("[%+.2fs] %s %s\n", g_timer_elapsed (log_timer, NULL), prefix, message);
+        if (write (log_fd, text, strlen (text)) < 0);
+        fsync (log_fd);
+        g_free (text);
     }
 
     /* Only show debug if requested */
@@ -117,7 +121,7 @@ log_init (void)
     path = g_build_filename (log_dir, "lightdm.log", NULL);
     g_free (log_dir);
 
-    log_file = fopen (path, "w");
+    log_fd = open (path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
     g_log_set_default_handler (log_cb, NULL);
 
     g_debug ("Logging to %s", path);
