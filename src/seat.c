@@ -159,7 +159,6 @@ void
 seat_set_active_display (Seat *seat, Display *display)
 {
     g_return_if_fail (seat != NULL);
-    display_unlock (display);
     SEAT_GET_CLASS (seat)->set_active_display (seat, display);
 }
 
@@ -185,7 +184,7 @@ seat_get_allow_guest (Seat *seat)
 }
 
 static gboolean
-switch_to_user (Seat *seat, const gchar *username)
+switch_to_user (Seat *seat, const gchar *username, gboolean unlock)
 {
     GList *link;
 
@@ -201,6 +200,8 @@ switch_to_user (Seat *seat, const gchar *username)
                 g_debug ("Switching to existing session for user %s", username);
             else
                 g_debug ("Switching to existing greeter");
+            if (unlock)
+                display_unlock (display);
             seat_set_active_display (seat, display);
             return TRUE;
         }
@@ -212,7 +213,7 @@ switch_to_user (Seat *seat, const gchar *username)
 static gboolean
 display_switch_to_user_cb (Display *display, User *user, Seat *seat)
 {
-    return switch_to_user (seat, user_get_name (user));
+    return switch_to_user (seat, user_get_name (user), TRUE);
 }
 
 static gboolean
@@ -222,7 +223,7 @@ display_switch_to_guest_cb (Display *display, Seat *seat)
     if (!seat->priv->guest_username)
         return FALSE;
 
-    return switch_to_user (seat, seat->priv->guest_username);
+    return switch_to_user (seat, seat->priv->guest_username, TRUE);
 }
 
 static const gchar *
@@ -476,7 +477,7 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
     Display *display = NULL;
 
     /* Switch to existing if it exists */
-    if (switch_to_user (seat, username))
+    if (switch_to_user (seat, username, FALSE))
         return TRUE;
 
     /* If one don't exist then start a greeter */

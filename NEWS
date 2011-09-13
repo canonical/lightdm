@@ -1,5 +1,6 @@
 Overview of changes in lightdm 0.9.6
 
+    * Only unlock displays if switched to from greeter
     * Add VNC server support
 
 Overview of changes in lightdm 0.9.5
