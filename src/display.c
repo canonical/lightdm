@@ -314,7 +314,7 @@ autologin (Display *display, const gchar *username, gboolean start_greeter_if_fa
     display->priv->start_greeter_if_fail = start_greeter_if_fail;
 
     display->priv->in_user_session = TRUE;
-    authentication = pam_session_new (display->priv->pam_autologin_service, username, display->priv->tty, display->priv->xdisplay);
+    authentication = pam_session_new (display->priv->pam_autologin_service, username, display->priv->xdisplay);
     g_signal_connect (authentication, "got-messages", G_CALLBACK (autologin_pam_message_cb), display);
     g_signal_connect (authentication, "authentication-result", G_CALLBACK (autologin_authentication_result_cb), display);
 
@@ -572,7 +572,7 @@ greeter_connected_cb (Greeter *greeter, Display *display)
 static PAMSession *
 greeter_start_authentication_cb (Greeter *greeter, const gchar *username, Display *display)
 {
-    return pam_session_new (display->priv->pam_service, username, display->priv->tty, display->priv->xdisplay);
+    return pam_session_new (display->priv->pam_service, username, display->priv->xdisplay);
 }
 
 static gboolean
@@ -649,7 +649,7 @@ start_greeter_session (Display *display)
     g_free (log_dir);
     g_free (filename);
 
-    authentication = pam_session_new (display->priv->pam_service, user_get_name (user), display->priv->tty, display->priv->xdisplay);
+    authentication = pam_session_new (display->priv->pam_service, user_get_name (user), display->priv->xdisplay);
     g_object_unref (user);
 
     display->priv->session = create_session (display, authentication, display->priv->greeter_session, TRUE, log_filename);

@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.9.7
+
+    * Set PAM_TTY to the display name, not the tty device
+
 Overview of changes in lightdm 0.9.6
 
     * Only unlock displays if switched to from greeter

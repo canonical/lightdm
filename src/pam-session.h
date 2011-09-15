@@ -46,7 +46,7 @@ void pam_session_set_use_pam (void);
 
 void pam_session_set_use_passwd_file (gchar *passwd_file);
 
-PAMSession *pam_session_new (const gchar *service, const gchar *username, const gchar *tty, const gchar *xdisplay);
+PAMSession *pam_session_new (const gchar *service, const gchar *username, const gchar *xdisplay);
 
 gboolean pam_session_authenticate (PAMSession *session, GError **error);
 
