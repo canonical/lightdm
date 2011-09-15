@@ -69,6 +69,7 @@ log_cb (const gchar *log_domain, GLogLevelFlags log_level,
     {
         const gchar *prefix;
         gchar *text;
+        ssize_t n_written;
 
         switch (log_level & G_LOG_LEVEL_MASK) {
         case G_LOG_LEVEL_ERROR:
@@ -95,7 +96,9 @@ log_cb (const gchar *log_domain, GLogLevelFlags log_level,
         }
 
         text = g_strdup_printf ("[%+.2fs] %s %s\n", g_timer_elapsed (log_timer, NULL), prefix, message);
-        if (write (log_fd, text, strlen (text)) < 0);
+        n_written = write (log_fd, text, strlen (text));
+        if (n_written < 0)
+            ; /* Check result so compiler doesn't warn about it */
         g_free (text);
     }
 
