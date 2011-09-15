@@ -5,6 +5,7 @@ Overview of changes in lightdm 0.9.6
     * Write ~/.Xauthority inside the session process so it cannot be hijacked
     * Set PAM_TTY and PAM_XDISPLAY when opening PAM session
     * Add VNC server support
+    * Do not write ~/.dmrc and ~/.Xauthority as root. [CVE-2011-3349]
 
 Overview of changes in lightdm 0.9.5
 
