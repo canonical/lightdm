@@ -96,7 +96,6 @@ log_cb (const gchar *log_domain, GLogLevelFlags log_level,
 
         text = g_strdup_printf ("[%+.2fs] %s %s\n", g_timer_elapsed (log_timer, NULL), prefix, message);
         if (write (log_fd, text, strlen (text)) < 0);
-        fsync (log_fd);
         g_free (text);
     }
 
