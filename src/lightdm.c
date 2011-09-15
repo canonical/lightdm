@@ -71,7 +71,8 @@ log_cb (const gchar *log_domain, GLogLevelFlags log_level,
         gchar *text;
         ssize_t n_written;
 
-        switch (log_level & G_LOG_LEVEL_MASK) {
+        switch (log_level & G_LOG_LEVEL_MASK)
+        {
         case G_LOG_LEVEL_ERROR:
             prefix = "ERROR:";
             break;
