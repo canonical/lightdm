@@ -8,14 +8,14 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-12-06 11:05+0000\n"
-"PO-Revision-Date: 2011-09-07 14:49+0000\n"
-"Last-Translator: Olivier FEBWIN <Unknown>\n"
+"PO-Revision-Date: 2011-09-13 08:33+0000\n"
+"Last-Translator: Alexandre Patenaude <Unknown>\n"
 "Language-Team: French <fr@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2011-09-08 04:47+0000\n"
-"X-Generator: Launchpad (build 13891)\n"
+"X-Launchpad-Export-Date: 2011-09-14 04:57+0000\n"
+"X-Generator: Launchpad (build 13921)\n"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:325
 msgid "Are you sure you want to close all programs and restart the computer?"
@@ -36,7 +36,7 @@ msgstr "Voulez-vous fermer tous les programmes et éteindre l'ordinateur ?"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:351
 msgid "Shutdown"
-msgstr "Eteindre"
+msgstr "Éteindre"
 
 #: ../greeters/gtk/greeter.ui.h:4
 msgid "Large Font"
@@ -64,7 +64,7 @@ msgstr "Session"
 
 #: ../greeters/gtk/greeter.ui.h:8
 msgid "Suspend"
-msgstr "Mettre en Veille"
+msgstr "Mettre en veille"
 
 #: ../greeters/gtk/greeter.ui.h:2
 msgid "Hibernate"

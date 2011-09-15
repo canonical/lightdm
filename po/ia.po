@@ -8,33 +8,34 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-12-06 11:05+0000\n"
-"PO-Revision-Date: 2011-08-11 05:03+0000\n"
+"PO-Revision-Date: 2011-09-13 17:57+0000\n"
 "Last-Translator: Emilio Sepulveda <emilio@chilemoz.org>\n"
 "Language-Team: Interlingua <ia@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2011-08-12 04:45+0000\n"
-"X-Generator: Launchpad (build 13662)\n"
+"X-Launchpad-Export-Date: 2011-09-14 04:57+0000\n"
+"X-Generator: Launchpad (build 13921)\n"
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:322
+#: ../greeters/gtk/lightdm-gtk-greeter.c:325
 msgid "Are you sure you want to close all programs and restart the computer?"
 msgstr ""
+"Secur que tu vole clauder tote le programmas e reinitiar le computator?"
 
 #: ../greeters/gtk/greeter.ui.h:1
 msgid "Cancel"
 msgstr "Cancellar"
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:323
+#: ../greeters/gtk/lightdm-gtk-greeter.c:326
 msgid "Restart"
 msgstr "Re-initiar"
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:347
+#: ../greeters/gtk/lightdm-gtk-greeter.c:350
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
 msgstr ""
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:348
+#: ../greeters/gtk/lightdm-gtk-greeter.c:351
 msgid "Shutdown"
 msgstr ""
 
@@ -76,7 +77,7 @@ msgstr "Reinitiar..."
 
 #: ../greeters/gtk/greeter.ui.h:7
 msgid "Shutdown..."
-msgstr ""
+msgstr "Clauder omne..."
 
 #. Description on how to use Light Display Manager displayed on command-line
 #: ../src/lightdm.c:100
