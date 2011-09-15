@@ -16,6 +16,7 @@
 
 #include "xsession.h"
 #include "configuration.h"
+#include "privileges.h"
 
 struct XSessionPrivate
 {
@@ -45,7 +46,7 @@ write_authority (XSession *session)
 {
     GError *error = NULL;
 
-    xauth_write (session->priv->authority, XAUTH_WRITE_MODE_REPLACE, session_get_user (SESSION (session)), session->priv->authority_file, &error);
+    xauth_write (session->priv->authority, XAUTH_WRITE_MODE_REPLACE, session->priv->authority_file, &error);
     if (error)
         g_warning ("Failed to write authority: %s", error->message);
     g_clear_error (&error); 
@@ -89,7 +90,9 @@ xsession_start (Session *session)
         if (xsession->priv->authority_in_system_dir)
         {
             g_debug ("Adding session authority to %s", path);
+            privileges_drop (session_get_user (SESSION (session)));
             write_authority (xsession);
+            privileges_reclaim ();
         }
         else
             g_debug ("Adding session authority to %s (written in session process)", path);
@@ -107,7 +110,9 @@ xsession_remove_authority (XSession *session)
     if (session->priv->authority_file)
     {
         g_debug ("Removing session authority from %s", g_file_get_path (session->priv->authority_file));
-        xauth_write (session->priv->authority, XAUTH_WRITE_MODE_REMOVE, session_get_user (SESSION (session)), session->priv->authority_file, NULL);
+        privileges_drop (session_get_user (SESSION (session)));
+        xauth_write (session->priv->authority, XAUTH_WRITE_MODE_REMOVE, session->priv->authority_file, NULL);
+        privileges_reclaim ();
         g_object_unref (session->priv->authority_file);
         session->priv->authority_file = NULL;
     }

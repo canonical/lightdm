@@ -9,8 +9,6 @@
  * license.
  */
 
-/* for setres*id() */
-#define _GNU_SOURCE
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
@@ -238,7 +236,7 @@ write_string (GOutputStream *stream, const gchar *value, GError **error)
 }
 
 gboolean
-xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GError **error)
+xauth_write (XAuthority *auth, XAuthWriteMode mode, GFile *file, GError **error)
 {
     GList *link, *records = NULL;
     GFileInputStream *input_stream = NULL;
@@ -246,16 +244,6 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GEr
     XAuthority *a;
     gboolean result;
     gboolean matched = FALSE;
-    gboolean drop_privs = (user && geteuid () == 0);
-    gboolean retval = FALSE;
-
-    /* Guard against privilege escalation through symlinks, etc. */
-    if (drop_privs)
-    {
-	g_debug ("Dropping privileges to uid %i", user_get_uid (user));
-	g_assert (setresgid (user_get_gid (user), user_get_gid (user), -1) == 0);
-	g_assert (setresuid (user_get_uid (user), user_get_uid (user), -1) == 0);
-    }
 
     /* Read out existing records */
     if (mode != XAUTH_WRITE_MODE_SET)
@@ -329,7 +317,7 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GEr
 
     output_stream = g_file_replace (file, NULL, FALSE, G_FILE_CREATE_PRIVATE, NULL, error);
     if (!output_stream)
-        goto out;
+        return FALSE;
 
     /* Workaround because g_file_replace () generates a file does not exist error even though it can replace it */
     g_clear_error (error);
@@ -356,20 +344,8 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GEr
         result = g_output_stream_close (G_OUTPUT_STREAM (output_stream), NULL, error);
     g_object_unref (output_stream);
 
-    if (!result)
-        goto out;
-
-    retval = TRUE;
-  
-out:
-    /* reclaim privileges */
-    if (drop_privs)
-    {
-	g_assert (setresuid (0, 0, -1) == 0);
-	g_assert (setresgid (0, 0, -1) == 0);
-    }
-    return retval;
-}
+    return result;
+}    
 
 static void
 xauth_init (XAuthority *auth)

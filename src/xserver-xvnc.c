@@ -209,7 +209,7 @@ xserver_xvnc_start (DisplayServer *display_server)
     path = g_file_get_path (server->priv->authority_file);
     g_debug ("Writing X server authority to %s", path);
 
-    xauth_write (authority, XAUTH_WRITE_MODE_REPLACE, NULL, server->priv->authority_file, &error);
+    xauth_write (authority, XAUTH_WRITE_MODE_REPLACE, server->priv->authority_file, &error);
     if (error)
         g_warning ("Failed to write authority: %s", error->message);
     g_clear_error (&error);

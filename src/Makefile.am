@@ -30,6 +30,8 @@ lightdm_SOURCES = \
 	pam-session.h \
 	plymouth.c \
 	plymouth.h \
+	privileges.c \
+	privileges.h \
 	process.c \
 	process.h \
 	seat.c \

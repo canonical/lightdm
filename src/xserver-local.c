@@ -317,7 +317,7 @@ write_authority_file (XServerLocal *server)
     g_debug ("Writing X server authority to %s", path);
     g_free (path);
 
-    xauth_write (authority, XAUTH_WRITE_MODE_REPLACE, NULL, server->priv->authority_file, &error);
+    xauth_write (authority, XAUTH_WRITE_MODE_REPLACE, server->priv->authority_file, &error);
     if (error)
         g_warning ("Failed to write authority: %s", error->message);
     g_clear_error (&error);

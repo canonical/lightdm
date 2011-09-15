@@ -15,8 +15,6 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
-#include "user.h"
-
 G_BEGIN_DECLS
 
 #define XAUTHORITY_TYPE (xauth_get_type())
@@ -85,7 +83,7 @@ guint8 *xauth_copy_authorization_data (XAuthority *auth);
 
 gsize xauth_get_authorization_data_length (XAuthority *auth);
 
-gboolean xauth_write (XAuthority *auth, XAuthWriteMode mode, User *user, GFile *file, GError **error);
+gboolean xauth_write (XAuthority *auth, XAuthWriteMode mode, GFile *file, GError **error);
 
 G_END_DECLS
 

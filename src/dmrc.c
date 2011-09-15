@@ -9,8 +9,6 @@
  * license.
  */
 
-/* for setres*id() */
-#define _GNU_SOURCE
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
@@ -18,6 +16,7 @@
 #include "dmrc.h"
 #include "configuration.h"
 #include "user.h"
+#include "privileges.h"
 
 GKeyFile *
 dmrc_load (const gchar *username)
@@ -82,22 +81,14 @@ dmrc_save (GKeyFile *dmrc_file, const gchar *username)
     /* Update the users .dmrc */
     if (user)
     {
-	gboolean drop_privs = (geteuid () == 0);
-
-	/* Guard against privilege escalation through symlinks, etc. */
-	if (drop_privs)
-	{
-	    g_assert (setresgid (user_get_gid (user), user_get_gid (user), -1) == 0);
-	    g_assert (setresuid (user_get_uid (user), user_get_uid (user), -1) == 0);
-	}
         path = g_build_filename (user_get_home_directory (user), ".dmrc", NULL);
+
+        /* Guard against privilege escalation through symlinks, etc. */
+        privileges_drop (user);
         g_file_set_contents (path, data, length, NULL);
+        privileges_reclaim ();
+
         g_free (path);
-	if (drop_privs)
-	{
-	    g_assert (setresuid (0, 0, -1) == 0);
-	    g_assert (setresgid (0, 0, -1) == 0);
-	}
     }
 
     /* Update the .dmrc cache */
