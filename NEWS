@@ -3,6 +3,7 @@ Overview of changes in lightdm 0.9.6
     * Only unlock displays if switched to from greeter
     * Make log file not system readable
     * Write ~/.Xauthority inside the session process so it cannot be hijacked
+    * Set PAM_TTY and PAM_XDISPLAY when opening PAM session
     * Add VNC server support
 
 Overview of changes in lightdm 0.9.5
