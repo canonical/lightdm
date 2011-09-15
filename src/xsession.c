@@ -89,10 +89,15 @@ xsession_start (Session *session)
         xsession->priv->authority_file = g_file_new_for_path (path);
         if (xsession->priv->authority_in_system_dir)
         {
+            gboolean drop_privileges;
+
             g_debug ("Adding session authority to %s", path);
-            privileges_drop (session_get_user (SESSION (session)));
+            drop_privileges = geteuid () == 0;
+            if (drop_privileges)
+                privileges_drop (session_get_user (SESSION (session)));
             write_authority (xsession);
-            privileges_reclaim ();
+            if (drop_privileges)
+                privileges_reclaim ();
         }
         else
             g_debug ("Adding session authority to %s (written in session process)", path);
@@ -109,10 +114,16 @@ xsession_remove_authority (XSession *session)
 {
     if (session->priv->authority_file)
     {
+        gboolean drop_privileges;
+      
         g_debug ("Removing session authority from %s", g_file_get_path (session->priv->authority_file));
-        privileges_drop (session_get_user (SESSION (session)));
+      
+        drop_privileges = geteuid () == 0;
+        if (drop_privileges)
+            privileges_drop (session_get_user (SESSION (session)));
         xauth_write (session->priv->authority, XAUTH_WRITE_MODE_REMOVE, session->priv->authority_file, NULL);
-        privileges_reclaim ();
+        if (drop_privileges)
+            privileges_reclaim ();
         g_object_unref (session->priv->authority_file);
         session->priv->authority_file = NULL;
     }

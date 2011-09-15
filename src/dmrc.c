@@ -81,12 +81,17 @@ dmrc_save (GKeyFile *dmrc_file, const gchar *username)
     /* Update the users .dmrc */
     if (user)
     {
+        gboolean drop_privileges;
+
         path = g_build_filename (user_get_home_directory (user), ".dmrc", NULL);
 
         /* Guard against privilege escalation through symlinks, etc. */
-        privileges_drop (user);
+        drop_privileges = geteuid () == 0;
+        if (drop_privileges)
+            privileges_drop (user);
         g_file_set_contents (path, data, length, NULL);
-        privileges_reclaim ();
+        if (drop_privileges)
+            privileges_reclaim ();
 
         g_free (path);
     }
