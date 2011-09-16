@@ -27,7 +27,7 @@ Makefile.in.in
 ./mkinstalldirs
 ./omf.make
 ./xmldocs.make
-doc/html/*
+doc/html
 doc/lightdm-gobject-*.*
 doc/*.stamp
 doc/tmpl/*-unused.sgml
