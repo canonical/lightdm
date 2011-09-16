@@ -1,9 +1,10 @@
 *.bak
 *.la
 *.lo
+*_vala.stamp
 .deps
 .libs
-*_vala.stamp
+stamp-h1
 Makefile
 Makefile.in
 Makefile.in.in
