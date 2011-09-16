@@ -120,13 +120,16 @@ pam_session_set_item (PAMSession *session, int item_type, const gchar *value)
     g_return_val_if_fail (session != NULL, FALSE);
     g_return_val_if_fail (value != NULL, FALSE);
 
-    result = pam_set_item (session->priv->pam_handle, item_type, value);
-    g_debug ("pam_set_item(%p, %d, \"%s\") -> %d (%s)",
-             session->priv->pam_handle,
-             item_type,
-             value,
-             result,
-             pam_strerror (session->priv->pam_handle, result));
+    if (!passwd_file)
+    {
+        result = pam_set_item (session->priv->pam_handle, item_type, value);
+        g_debug ("pam_set_item(%p, %d, \"%s\") -> %d (%s)",
+                 session->priv->pam_handle,
+                 item_type,
+                 value,
+                 result,
+                 pam_strerror (session->priv->pam_handle, result));
+    }
 
     return result == PAM_SUCCESS;
 }
