@@ -154,12 +154,38 @@ set_env_from_authentication (Session *session, PAMSession *authentication)
     }
 }
 
+gboolean
+session_start (Session *session)
+{
+    User *user;
+
+    g_return_val_if_fail (session != NULL, FALSE);
+    g_return_val_if_fail (session->priv->authentication != NULL, FALSE);
+    g_return_val_if_fail (session->priv->command != NULL, FALSE);
+
+    g_debug ("Launching session");
+
+    user = pam_session_get_user (session->priv->authentication);
+    process_set_env (PROCESS (session), "PATH", "/usr/local/bin:/usr/bin:/bin");
+    process_set_env (PROCESS (session), "USER", user_get_name (user));
+    process_set_env (PROCESS (session), "USERNAME", user_get_name (user)); // FIXME: Is this required?
+    process_set_env (PROCESS (session), "HOME", user_get_home_directory (user));
+    process_set_env (PROCESS (session), "SHELL", user_get_shell (user));
+    set_env_from_authentication (session, session->priv->authentication);
+
+    if (session->priv->cookie)
+        process_set_env (PROCESS (session), "XDG_SESSION_COOKIE", session->priv->cookie);
+
+    return SESSION_GET_CLASS (session)->start (session);
+}
+
 static gboolean
 session_real_start (Session *session)
 {
     User *user;
     gboolean result;
     gchar *absolute_command;
+    const gchar *orig_path;
 
     absolute_command = get_absolute_command (session->priv->command);
     if (!absolute_command)
@@ -169,37 +195,6 @@ session_real_start (Session *session)
     }
     process_set_command (PROCESS (session), absolute_command);
     g_free (absolute_command);
-
-    user = pam_session_get_user (session->priv->authentication);
-    process_set_user (PROCESS (session), user);
-    process_set_working_directory (PROCESS (session), user_get_home_directory (user));
-    result = process_start (PROCESS (session));
-
-    return result;
-}
-
-gboolean
-session_start (Session *session)
-{
-    User *user;
-    const gchar *orig_path;
-    gboolean result;
-
-    g_return_val_if_fail (session != NULL, FALSE);
-    g_return_val_if_fail (session->priv->authentication != NULL, FALSE);
-    g_return_val_if_fail (session->priv->command != NULL, FALSE);
-
-    g_debug ("Launching session");
-
-    pam_session_open (session->priv->authentication);
-
-    user = pam_session_get_user (session->priv->authentication);
-    process_set_env (PROCESS (session), "PATH", "/usr/local/bin:/usr/bin:/bin");
-    process_set_env (PROCESS (session), "USER", user_get_name (user));
-    process_set_env (PROCESS (session), "USERNAME", user_get_name (user)); // FIXME: Is this required?
-    process_set_env (PROCESS (session), "HOME", user_get_home_directory (user));
-    process_set_env (PROCESS (session), "SHELL", user_get_shell (user));
-    set_env_from_authentication (session, session->priv->authentication);
 
     /* Insert our own utility directory to PATH
      * This is to provide gdmflexiserver which provides backwards compatibility with GDM.
@@ -214,11 +209,13 @@ session_start (Session *session)
         g_free (path);
     }
 
-    if (session->priv->cookie)
-        process_set_env (PROCESS (session), "XDG_SESSION_COOKIE", session->priv->cookie);
+    pam_session_open (session->priv->authentication);
 
-    result = SESSION_GET_CLASS (session)->start (session);
-
+    user = pam_session_get_user (session->priv->authentication);
+    process_set_user (PROCESS (session), user);
+    process_set_working_directory (PROCESS (session), user_get_home_directory (user));
+    result = process_start (PROCESS (session));
+  
     if (!result)
         pam_session_close (session->priv->authentication);
 

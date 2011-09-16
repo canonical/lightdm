@@ -56,6 +56,10 @@ static gboolean
 xsession_start (Session *session)
 {
     XSession *xsession = XSESSION (session);
+    PAMSession *authentication;
+
+    authentication = session_get_authentication (session);
+    pam_session_set_item (authentication, PAM_TTY, xserver_get_address (xsession->priv->xserver));
 
     if (xserver_get_authority (xsession->priv->xserver))
     {
