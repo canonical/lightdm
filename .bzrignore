@@ -43,6 +43,7 @@ liblightdm-gobject/*.vapi
 liblightdm-gobject/liblightdm-gobject-1.pc
 liblightdm-qt/liblightdm-qt-1.pc
 liblightdm-qt/*_moc.cpp
+m4/*
 po/*.gmo
 po/POTFILES
 po/stamp-it
