@@ -60,13 +60,6 @@ display_server_get_start_local_sessions (DisplayServer *server)
     return server->priv->start_local_sessions;
 }
 
-static gboolean
-display_server_real_start (DisplayServer *server)
-{
-    g_signal_emit (server, signals[READY], 0);
-    return TRUE;
-}
-
 gboolean
 display_server_start (DisplayServer *server)
 {
@@ -74,10 +67,11 @@ display_server_start (DisplayServer *server)
     return DISPLAY_SERVER_GET_CLASS (server)->start (server);
 }
 
-static void
-display_server_real_stop (DisplayServer *server)
+static gboolean
+display_server_real_start (DisplayServer *server)
 {
-    g_signal_emit (server, signals[STOPPED], 0);
+    g_signal_emit (server, signals[READY], 0);
+    return TRUE;
 }
 
 void
@@ -85,6 +79,12 @@ display_server_stop (DisplayServer *server)
 {
     g_return_if_fail (server != NULL);
     DISPLAY_SERVER_GET_CLASS (server)->stop (server);
+}
+
+static void
+display_server_real_stop (DisplayServer *server)
+{
+    g_signal_emit (server, signals[STOPPED], 0);
 }
 
 static void
