@@ -60,6 +60,7 @@ tests/src/test-gobject-greeter
 tests/src/test-guest-account
 tests/src/test-qt-greeter
 tests/src/test-runner
+tests/src/test-script-hook
 tests/src/test-session
 tests/src/test-xserver
 utils/lightdm-set-defaults

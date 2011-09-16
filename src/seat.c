@@ -260,6 +260,7 @@ run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
         process_set_env (process, "LIGHTDM_TEST_CONFIG", g_getenv ("LIGHTDM_TEST_CONFIG"));
         process_set_env (process, "LIGHTDM_TEST_HOME_DIR", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
         process_set_env (process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+        process_set_env (process, "PATH", g_getenv ("PATH"));
     }
 
     SEAT_GET_CLASS (seat)->run_script (seat, display, process);

@@ -1,4 +1,4 @@
-noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-guest-account test-session plymouth
+noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-guest-account test-session test-script-hook plymouth
 
 if COMPILE_LIBLIGHTDM_QT
 noinst_PROGRAMS += test-qt-greeter
@@ -46,6 +46,13 @@ test_guest_account_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS)
 test_guest_account_LDADD = \
+	$(GLIB_LIBS)
+
+test_script_hook_SOURCES = test-script-hook.c status.c status.h
+test_script_hook_CFLAGS = \
+	$(WARN_CFLAGS) \
+	$(GLIB_CFLAGS)
+test_script_hook_LDADD = \
 	$(GLIB_LIBS)
 
 test-qt-greeter_moc.cpp: test-qt-greeter.h
