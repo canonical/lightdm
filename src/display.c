@@ -28,7 +28,7 @@ enum {
     SWITCH_TO_USER,
     SWITCH_TO_GUEST,
     GET_GUEST_USERNAME,
-    START_DISPLAY_SERVER,
+    DISPLAY_SERVER_READY,
     START_GREETER,
     START_SESSION,
     STOPPED,
@@ -693,7 +693,15 @@ display_server_stopped_cb (DisplayServer *server, Display *display)
 static void
 display_server_ready_cb (DisplayServer *display_server, Display *display)
 {
+    gboolean result;
     gboolean started_session = FALSE;
+
+    g_signal_emit (display, signals[DISPLAY_SERVER_READY], 0, &result);
+    if (!result)
+    {
+        display_stop (display);
+        return;
+    }
 
     /* Don't run any sessions on local terminals */
     if (!display_server_get_start_local_sessions (display_server))
@@ -730,26 +738,17 @@ display_server_ready_cb (DisplayServer *display_server, Display *display)
 gboolean
 display_start (Display *display)
 {
-    gboolean result;
-
     g_return_val_if_fail (display != NULL, FALSE);
 
     g_signal_connect (G_OBJECT (display->priv->display_server), "ready", G_CALLBACK (display_server_ready_cb), display);
     g_signal_connect (G_OBJECT (display->priv->display_server), "stopped", G_CALLBACK (display_server_stopped_cb), display);
-  
-    g_signal_emit (display, signals[START_DISPLAY_SERVER], 0, &result);
-    if (result)
+
+    if (!display_server_start (display->priv->display_server))
         return FALSE;
 
     g_signal_emit (display, signals[STARTED], 0);
 
     return TRUE;
-}
-
-static gboolean
-display_start_display_server (Display *display)
-{
-    return !display_server_start (display->priv->display_server);
 }
 
 void
@@ -851,7 +850,6 @@ display_class_init (DisplayClass *klass)
     klass->switch_to_user = display_real_switch_to_user;
     klass->switch_to_guest = display_real_switch_to_guest;
     klass->get_guest_username = display_real_get_guest_username;
-    klass->start_display_server = display_start_display_server;
     klass->start_greeter = display_start_greeter;
     klass->start_session = display_start_session;
     object_class->finalize = display_finalize;
@@ -909,12 +907,12 @@ display_class_init (DisplayClass *klass)
                       NULL,
                       ldm_marshal_STRING__VOID,
                       G_TYPE_STRING, 0);
-    signals[START_DISPLAY_SERVER] =
-        g_signal_new ("start-display-server",
+    signals[DISPLAY_SERVER_READY] =
+        g_signal_new ("display-server-ready",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (DisplayClass, start_display_server),
-                      g_signal_accumulator_true_handled, NULL,
+                      G_STRUCT_OFFSET (DisplayClass, display_server_ready),
+                      NULL, NULL,
                       ldm_marshal_BOOLEAN__VOID,
                       G_TYPE_BOOLEAN, 0);
     signals[START_GREETER] =

@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/test-runner script-display-setup test-gobject-greeter

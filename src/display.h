@@ -37,15 +37,15 @@ typedef struct
 {
     GObjectClass parent_class;
 
+    gboolean (*display_server_ready)(Display *display);
+    gboolean (*start_greeter)(Display *display);
+    gboolean (*start_session)(Display *display);
     Session *(*create_session) (Display *display);
     void (*started)(Display *display);
     void (*ready)(Display *display);
     gboolean (*switch_to_user)(Display *display, User *user);
     gboolean (*switch_to_guest)(Display *display);
     gchar *(*get_guest_username)(Display *display);
-    gboolean (*start_display_server)(Display *display);
-    gboolean (*start_greeter)(Display *display);
-    gboolean (*start_session)(Display *display);
     void (*stopped)(Display *display);
 } DisplayClass;
 

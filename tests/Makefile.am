@@ -33,6 +33,8 @@ TESTS = \
 	test-plymouth-active-vt \
 	test-plymouth-inactive-vt \
 	test-plymouth-no-seat \
+	test-script-display-setup \
+	test-script-fail-display-setup \
 	test-switch-to-greeter \
 	test-switch-to-guest \
 	test-switch-to-user \
@@ -95,6 +97,8 @@ EXTRA_DIST = \
 	scripts/plymouth-active-vt.conf \
 	scripts/plymouth-inactive-vt.conf \
 	scripts/plymouth-no-seat.conf \
+	scripts/script-display-setup.conf \
+	scripts/script-fail-display-setup.conf \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \

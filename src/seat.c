@@ -294,18 +294,18 @@ emit_upstart_signal (const gchar *signal)
 }
 
 static gboolean
-display_start_display_server_cb (Display *display, Seat *seat)
+display_display_server_ready_cb (Display *display, Seat *seat)
 {
     const gchar *script;
 
     /* Run setup script */
     script = seat_get_string_property (seat, "display-setup-script");
     if (script && !run_script (seat, display, script, NULL))
-        return TRUE;
+        return FALSE;
 
     emit_upstart_signal ("login-session-start");
 
-    return FALSE;
+    return TRUE;
 }
 
 static Session *
@@ -450,10 +450,10 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
     display = display_new (display_server);
     g_object_unref (display_server);
 
+    g_signal_connect (display, "display-server-ready", G_CALLBACK (display_display_server_ready_cb), seat);  
     g_signal_connect (display, "switch-to-user", G_CALLBACK (display_switch_to_user_cb), seat);
     g_signal_connect (display, "switch-to-guest", G_CALLBACK (display_switch_to_guest_cb), seat);
     g_signal_connect (display, "get-guest-username", G_CALLBACK (display_get_guest_username_cb), seat);
-    g_signal_connect (display, "start-display-server", G_CALLBACK (display_start_display_server_cb), seat);
     g_signal_connect (display, "create-session", G_CALLBACK (display_create_session_cb), seat);
     g_signal_connect (display, "start-greeter", G_CALLBACK (display_start_greeter_cb), seat);
     g_signal_connect (display, "start-session", G_CALLBACK (display_start_session_cb), seat);
