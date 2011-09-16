@@ -765,7 +765,15 @@ display_stop (Display *display)
         if (display->priv->display_server)
             display_server_stop (display->priv->display_server);
         if (display->priv->session)
-            session_stop (display->priv->session);
+        {
+            if (process_get_is_running (PROCESS (display->priv->session)))
+                session_stop (display->priv->session);
+            else
+            {
+                g_object_unref (display->priv->session);
+                display->priv->session = NULL;
+            }
+        }
     }
 
     check_stopped (display);
