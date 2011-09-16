@@ -369,6 +369,12 @@ display_start_display_server_cb (Display *display, Seat *seat)
     return FALSE;
 }
 
+static Session *
+display_create_session_cb (Display *display, Seat *seat)
+{
+    return SEAT_GET_CLASS (seat)->create_session (seat, display);
+}
+
 static gboolean
 display_start_greeter_cb (Display *display, Seat *seat)
 {
@@ -474,7 +480,8 @@ display_stopped_cb (Display *display, Seat *seat)
 static gboolean
 switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_guest, const gchar *session_name, gboolean autologin)
 {
-    Display *display = NULL;
+    Display *display;
+    DisplayServer *display_server;
 
     /* Switch to existing if it exists */
     if (switch_to_user (seat, username, FALSE))
@@ -500,11 +507,15 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
             g_debug ("Starting new display for greeter");
     }
 
-    display = SEAT_GET_CLASS (seat)->add_display (seat);
+    display_server = SEAT_GET_CLASS (seat)->create_display_server (seat);
+    display = display_new (display_server);
+    g_object_unref (display_server);
+
     g_signal_connect (display, "switch-to-user", G_CALLBACK (display_switch_to_user_cb), seat);
     g_signal_connect (display, "switch-to-guest", G_CALLBACK (display_switch_to_guest_cb), seat);
     g_signal_connect (display, "get-guest-username", G_CALLBACK (display_get_guest_username_cb), seat);
     g_signal_connect (display, "start-display-server", G_CALLBACK (display_start_display_server_cb), seat);
+    g_signal_connect (display, "create-session", G_CALLBACK (display_create_session_cb), seat);
     g_signal_connect (display, "start-greeter", G_CALLBACK (display_start_greeter_cb), seat);
     g_signal_connect (display, "start-session", G_CALLBACK (display_start_session_cb), seat);
     g_signal_connect_after (display, "start-session", G_CALLBACK (display_session_started_cb), seat);
@@ -617,12 +628,6 @@ seat_real_start (Seat *seat)
         return switch_to_user_or_start_greeter (seat, NULL, FALSE, NULL, FALSE);
 }
 
-static Display *
-seat_real_add_display (Seat *seat)
-{
-    return NULL;
-}
-
 static void
 seat_real_set_active_display (Seat *seat, Display *display)
 {
@@ -688,7 +693,6 @@ seat_class_init (SeatClass *klass)
 
     klass->setup = seat_real_setup;
     klass->start = seat_real_start;
-    klass->add_display = seat_real_add_display;
     klass->set_active_display = seat_real_set_active_display;
     klass->stop = seat_real_stop;
 

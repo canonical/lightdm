@@ -86,9 +86,14 @@ XServerLocal *
 xserver_local_new (void)
 {
     XServerLocal *self = g_object_new (XSERVER_LOCAL_TYPE, NULL);
+    gchar *name;
 
     xserver_set_display_number (XSERVER (self), get_free_display_number ());
-  
+
+    name = g_strdup_printf ("x-%d", xserver_get_display_number (XSERVER (self)));
+    display_server_set_name (DISPLAY_SERVER (self), name);
+    g_free (name);
+
     /* Replace Plymouth if it is running */
     if (plymouth_get_is_active () && plymouth_has_active_vt ())
     {
@@ -141,6 +146,7 @@ xserver_local_set_xdmcp_server (XServerLocal *server, const gchar *hostname)
     g_return_if_fail (server != NULL);
     g_free (server->priv->xdmcp_server);
     server->priv->xdmcp_server = g_strdup (hostname);
+    display_server_set_start_local_sessions (DISPLAY_SERVER (server), hostname == NULL);
 }
 
 const gchar *

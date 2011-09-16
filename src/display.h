@@ -38,7 +38,6 @@ typedef struct
     GObjectClass parent_class;
 
     Session *(*create_session) (Display *display);
-
     void (*started)(Display *display);
     void (*ready)(Display *display);
     gboolean (*switch_to_user)(Display *display, User *user);
@@ -52,7 +51,7 @@ typedef struct
 
 GType display_get_type (void);
 
-void display_set_display_server (Display *display, DisplayServer *display_server);
+Display *display_new (DisplayServer *display_server);
 
 DisplayServer *display_get_display_server (Display *display);
 

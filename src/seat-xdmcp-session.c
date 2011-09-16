@@ -12,14 +12,11 @@
 #include <string.h>
 
 #include "seat-xdmcp-session.h"
-#include "xdisplay.h"
 #include "xserver-remote.h"
+#include "xsession.h"
 
 struct SeatXDMCPSessionPrivate
 {
-    /* Remote display */
-    XDisplay *display;
-  
     /* Session being serviced */
     XDMCPSession *session;
 };
@@ -37,8 +34,8 @@ seat_xdmcp_session_new (XDMCPSession *session)
     return seat;
 }
 
-static Display *
-seat_xdmcp_session_add_display (Seat *seat)
+static DisplayServer *
+seat_xdmcp_session_create_display_server (Seat *seat)
 {
     XAuthority *authority;
     gchar *host;
@@ -49,10 +46,23 @@ seat_xdmcp_session_add_display (Seat *seat)
     xserver = xserver_remote_new (host, xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session), authority);
     g_free (host);
 
-    SEAT_XDMCP_SESSION (seat)->priv->display = xdisplay_new (XSERVER (xserver));
-    g_object_unref (xserver);
+    return DISPLAY_SERVER (xserver);
+}
 
-    return DISPLAY (SEAT_XDMCP_SESSION (seat)->priv->display);
+static Session *
+seat_xdmcp_session_create_session (Seat *seat, Display *display)
+{
+    XServerRemote *xserver;
+    XSession *session;
+
+    xserver = XSERVER_REMOTE (display_get_display_server (display));
+
+    session = xsession_new (XSERVER (xserver));
+    session_set_console_kit_parameter (SESSION (session), "remote-host-name", g_variant_new_string (xserver_get_hostname (XSERVER (xserver))));
+    // FIXME: Mark local seats as such
+    session_set_console_kit_parameter (SESSION (session), "is-local", g_variant_new_boolean (FALSE));
+
+    return SESSION (session);
 }
 
 static void
@@ -74,8 +84,6 @@ seat_xdmcp_session_finalize (GObject *object)
 
     self = SEAT_XDMCP_SESSION (object);
 
-    if (self->priv->display)
-        g_object_unref (self->priv->display);
     g_object_unref (self->priv->session);
 
     G_OBJECT_CLASS (seat_xdmcp_session_parent_class)->finalize (object);
@@ -87,7 +95,8 @@ seat_xdmcp_session_class_init (SeatXDMCPSessionClass *klass)
     SeatClass *seat_class = SEAT_CLASS (klass);
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    seat_class->add_display = seat_xdmcp_session_add_display;
+    seat_class->create_display_server = seat_xdmcp_session_create_display_server;
+    seat_class->create_session = seat_xdmcp_session_create_session;
     seat_class->display_removed = seat_xdmcp_session_display_removed;
     object_class->finalize = seat_xdmcp_session_finalize;
 

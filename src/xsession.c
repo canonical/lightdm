@@ -57,9 +57,18 @@ xsession_start (Session *session)
 {
     XSession *xsession = XSESSION (session);
     PAMSession *authentication;
+    gchar *hostname;
 
     authentication = session_get_authentication (session);
     pam_session_set_item (authentication, PAM_TTY, xserver_get_address (xsession->priv->xserver));
+
+    session_set_console_kit_parameter (session, "x11-display", g_variant_new_string (xserver_get_address (xsession->priv->xserver)));
+    hostname = xserver_get_hostname (xsession->priv->xserver);
+    if (hostname)
+    {
+        session_set_console_kit_parameter (session, "remote-host-name", g_variant_new_string (hostname));
+        session_set_console_kit_parameter (session, "is-local", g_variant_new_boolean (FALSE));
+    }
 
     if (xserver_get_authority (xsession->priv->xserver))
     {

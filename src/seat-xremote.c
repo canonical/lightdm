@@ -13,17 +13,10 @@
 
 #include "seat-xremote.h"
 #include "configuration.h"
-#include "xdisplay.h"
 #include "xserver-remote.h"
-#include "vt.h"
+#include "xsession.h"
 
 G_DEFINE_TYPE (SeatXRemote, seat_xremote, SEAT_TYPE);
-
-struct SeatXRemotePrivate
-{
-    /* Display being controlled by this seat */
-    XDisplay *display;
-};
 
 static void
 seat_xremote_setup (Seat *seat)
@@ -32,16 +25,12 @@ seat_xremote_setup (Seat *seat)
     SEAT_CLASS (seat_xremote_parent_class)->setup (seat);
 }
 
-static Display *
-seat_xremote_add_display (Seat *seat)
+static DisplayServer *
+seat_xremote_create_display_server (Seat *seat)
 {
     XServerRemote *xserver;
     const gchar *hostname;
     gint number;
-
-    /* Can only have one display */
-    if (SEAT_XREMOTE (seat)->priv->display)
-        return NULL;
 
     hostname = seat_get_string_property (seat, "xserver-hostname");
     if (!hostname)
@@ -52,10 +41,22 @@ seat_xremote_add_display (Seat *seat)
 
     xserver = xserver_remote_new (hostname, number, NULL);
 
-    SEAT_XREMOTE (seat)->priv->display = xdisplay_new (XSERVER (xserver));
-    g_object_unref (xserver);
-  
-    return DISPLAY (SEAT_XREMOTE (seat)->priv->display);
+    return DISPLAY_SERVER (xserver);
+}
+
+static Session *
+seat_xremote_create_session (Seat *seat, Display *display)
+{
+    XServerRemote *xserver;
+    XSession *session;
+
+    xserver = XSERVER_REMOTE (display_get_display_server (display));
+
+    session = xsession_new (XSERVER (xserver));
+    session_set_console_kit_parameter (SESSION (session), "remote-host-name", g_variant_new_string (xserver_get_hostname (XSERVER (xserver))));
+    session_set_console_kit_parameter (SESSION (session), "is-local", g_variant_new_boolean (FALSE));
+
+    return SESSION (session);
 }
 
 static void
@@ -68,7 +69,6 @@ seat_xremote_display_removed (Seat *seat, Display *display)
 static void
 seat_xremote_init (SeatXRemote *seat)
 {
-    seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_XREMOTE_TYPE, SeatXRemotePrivate);
 }
 
 static void
@@ -77,8 +77,7 @@ seat_xremote_class_init (SeatXRemoteClass *klass)
     SeatClass *seat_class = SEAT_CLASS (klass);
 
     seat_class->setup = seat_xremote_setup;
-    seat_class->add_display = seat_xremote_add_display;
+    seat_class->create_display_server = seat_xremote_create_display_server;
+    seat_class->create_session = seat_xremote_create_session;
     seat_class->display_removed = seat_xremote_display_removed;
-
-    g_type_class_add_private (klass, sizeof (SeatXRemotePrivate));
 }

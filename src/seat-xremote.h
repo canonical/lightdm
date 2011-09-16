@@ -20,12 +20,9 @@ G_BEGIN_DECLS
 #define SEAT_XREMOTE_TYPE (seat_xremote_get_type())
 #define SEAT_XREMOTE(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), SEAT_XREMOTE_TYPE, SeatXRemote))
 
-typedef struct SeatXRemotePrivate SeatXRemotePrivate;
-
 typedef struct
 {
     Seat               parent_instance;
-    SeatXRemotePrivate *priv;
 } SeatXRemote;
 
 typedef struct

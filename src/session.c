@@ -19,17 +19,21 @@
 #include <grp.h>
 
 #include "session.h"
+#include "console-kit.h"
 
 struct SessionPrivate
 {
     /* Authentication for this session */
     PAMSession *authentication;
-  
+
     /* Command to run for this session */
     gchar *command;
 
-    /* Cookie for the session */
-    gchar *cookie;
+    /* ConsoleKit parameters for this session */
+    GHashTable *console_kit_parameters;
+
+    /* ConsoleKit cookie for the session */
+    gchar *console_kit_cookie;
 
     /* TRUE if this is a greeter session */
     gboolean is_greeter;
@@ -84,24 +88,8 @@ session_set_command (Session *session, const gchar *command)
 const gchar *
 session_get_command (Session *session)
 {
-    g_return_val_if_fail (session != NULL, NULL);  
+    g_return_val_if_fail (session != NULL, NULL);
     return session->priv->command;
-}
-
-void
-session_set_cookie (Session *session, const gchar *cookie)
-{
-    g_return_if_fail (session != NULL);
-
-    g_free (session->priv->cookie);
-    session->priv->cookie = g_strdup (cookie);
-}
-
-const gchar *
-session_get_cookie (Session *session)
-{
-    g_return_val_if_fail (session != NULL, NULL);  
-    return session->priv->cookie;
 }
 
 static gchar *
@@ -154,6 +142,15 @@ set_env_from_authentication (Session *session, PAMSession *authentication)
     }
 }
 
+void
+session_set_console_kit_parameter (Session *session, const gchar *name, GVariant *value)
+{
+    g_return_if_fail (session != NULL);
+    g_return_if_fail (name != NULL);
+
+    g_hash_table_insert (session->priv->console_kit_parameters, g_strdup (name), value);
+}
+
 gboolean
 session_start (Session *session)
 {
@@ -173,8 +170,8 @@ session_start (Session *session)
     process_set_env (PROCESS (session), "SHELL", user_get_shell (user));
     set_env_from_authentication (session, session->priv->authentication);
 
-    if (session->priv->cookie)
-        process_set_env (PROCESS (session), "XDG_SESSION_COOKIE", session->priv->cookie);
+    if (session->priv->console_kit_cookie)
+        process_set_env (PROCESS (session), "XDG_SESSION_COOKIE", session->priv->console_kit_cookie);
 
     return SESSION_GET_CLASS (session)->start (session);
 }
@@ -210,6 +207,34 @@ session_real_start (Session *session)
     }
 
     pam_session_open (session->priv->authentication);
+  
+    /* Open ConsoleKit session */
+    if (getuid () == 0)
+    {
+        GVariantBuilder parameters;
+        User *user;
+        GHashTableIter iter;
+        gpointer key, value;
+
+        user = pam_session_get_user (session->priv->authentication);
+
+        g_variant_builder_init (&parameters, G_VARIANT_TYPE ("(a(sv))"));
+        g_variant_builder_open (&parameters, G_VARIANT_TYPE ("a(sv)"));
+        g_variant_builder_add (&parameters, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
+        if (session->priv->is_greeter)
+            g_variant_builder_add (&parameters, "(sv)", "session-type", g_variant_new_string ("LoginWindow"));
+        g_hash_table_iter_init (&iter, session->priv->console_kit_parameters);
+        while (g_hash_table_iter_next (&iter, &key, &value))
+            g_variant_builder_add (&parameters, "(sv)", (gchar *) key, (GVariant *) value);
+
+        g_free (session->priv->console_kit_cookie);
+        session->priv->console_kit_cookie = ck_open_session (&parameters);
+    }
+    else
+    {
+        g_free (session->priv->console_kit_cookie);
+        session->priv->console_kit_cookie = g_strdup (g_getenv ("XDG_SESSION_COOKIE"));
+    }
 
     user = pam_session_get_user (session->priv->authentication);
     process_set_user (PROCESS (session), user);
@@ -218,6 +243,8 @@ session_real_start (Session *session)
   
     if (!result)
         pam_session_close (session->priv->authentication);
+    if (getuid () == 0 && session->priv->console_kit_cookie)
+        ck_close_session (session->priv->console_kit_cookie);
 
     return result;
 }
@@ -226,6 +253,14 @@ static void
 session_real_stop (Session *session)
 {
     process_signal (PROCESS (session), SIGTERM);
+}
+
+void
+session_unlock (Session *session)
+{    
+    g_return_if_fail (session != NULL);
+    if (getuid () == 0)
+        ck_unlock_session (session->priv->console_kit_cookie);
 }
 
 void
@@ -254,6 +289,8 @@ session_stopped (Process *process)
     Session *session = SESSION (process);
 
     pam_session_close (session->priv->authentication);
+    if (getuid () == 0 && session->priv->console_kit_cookie)
+        ck_close_session (session->priv->console_kit_cookie);
 
     PROCESS_CLASS (session_parent_class)->stopped (process);
 }
@@ -262,6 +299,7 @@ static void
 session_init (Session *session)
 {
     session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, SESSION_TYPE, SessionPrivate);
+    session->priv->console_kit_parameters = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, (GDestroyNotify) g_variant_unref);
 }
 
 static void
@@ -274,7 +312,8 @@ session_finalize (GObject *object)
     if (self->priv->authentication)
         g_object_unref (self->priv->authentication);
     g_free (self->priv->command);
-    g_free (self->priv->cookie);
+    g_hash_table_unref (self->priv->console_kit_parameters);
+    g_free (self->priv->console_kit_cookie);
 
     G_OBJECT_CLASS (session_parent_class)->finalize (object);
 }

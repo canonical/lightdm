@@ -19,10 +19,15 @@ XServerRemote *
 xserver_remote_new (const gchar *hostname, guint number, XAuthority *authority)
 {
     XServerRemote *self = g_object_new (XSERVER_REMOTE_TYPE, NULL);
+    gchar *name;
 
     xserver_set_hostname (XSERVER (self), hostname);
     xserver_set_display_number (XSERVER (self), number);
     xserver_set_authority (XSERVER (self), authority);
+
+    name = g_strdup_printf ("x-%s-%d", hostname, number);
+    display_server_set_name (DISPLAY_SERVER (self), name);
+    g_free (name);
 
     return self;
 }

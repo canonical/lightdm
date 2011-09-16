@@ -13,8 +13,8 @@
 
 #include "seat-xlocal.h"
 #include "configuration.h"
-#include "xdisplay.h"
 #include "xserver-local.h"
+#include "xsession.h"
 #include "vt.h"
 
 G_DEFINE_TYPE (SeatXLocal, seat_xlocal, SEAT_TYPE);
@@ -26,11 +26,10 @@ seat_xlocal_setup (Seat *seat)
     SEAT_CLASS (seat_xlocal_parent_class)->setup (seat);
 }
 
-static Display *
-seat_xlocal_add_display (Seat *seat)
+static DisplayServer *
+seat_xlocal_create_display_server (Seat *seat)
 {
     XServerLocal *xserver;
-    XDisplay *display;
     const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
     gint port = 0;
 
@@ -98,10 +97,25 @@ seat_xlocal_add_display (Seat *seat)
         g_key_file_free (keys);
     }
 
-    display = xdisplay_new (XSERVER (xserver));
-    g_object_unref (xserver);
+    return DISPLAY_SERVER (xserver);
+}
 
-    return DISPLAY (display);
+static Session *
+seat_xlocal_create_session (Seat *seat, Display *display)
+{
+    XServerLocal *xserver;
+    XSession *session;
+    gchar *tty;
+
+    xserver = XSERVER_LOCAL (display_get_display_server (display));
+
+    session = xsession_new (XSERVER (xserver));
+    tty = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (xserver));
+    session_set_console_kit_parameter (SESSION (session), "x11-display-device", g_variant_new_string (tty));
+    g_free (tty);
+    session_set_console_kit_parameter (SESSION (session), "is-local", g_variant_new_boolean (TRUE));
+
+    return SESSION (session);
 }
 
 static void
@@ -147,7 +161,8 @@ seat_xlocal_class_init (SeatXLocalClass *klass)
     SeatClass *seat_class = SEAT_CLASS (klass);
 
     seat_class->setup = seat_xlocal_setup;
-    seat_class->add_display = seat_xlocal_add_display;
+    seat_class->create_display_server = seat_xlocal_create_display_server;
+    seat_class->create_session = seat_xlocal_create_session;
     seat_class->set_active_display = seat_xlocal_set_active_display;
     seat_class->display_removed = seat_xlocal_display_removed;
 }

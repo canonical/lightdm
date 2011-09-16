@@ -42,6 +42,14 @@ typedef struct
 
 GType display_server_get_type (void);
 
+void display_server_set_name (DisplayServer *server, const gchar *name);
+
+const gchar *display_server_get_name (DisplayServer *server);
+
+void display_server_set_start_local_sessions (DisplayServer *server, gboolean start_local_sessions);
+
+gboolean display_server_get_start_local_sessions (DisplayServer *server);
+
 gboolean display_server_start (DisplayServer *server);
 
 void display_server_stop (DisplayServer *server);

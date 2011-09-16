@@ -63,9 +63,14 @@ XServerXVNC *
 xserver_xvnc_new (void)
 {
     XServerXVNC *self = g_object_new (XSERVER_XVNC_TYPE, NULL);
+    gchar *name;
 
     xserver_set_display_number (XSERVER (self), get_free_display_number ());
-  
+
+    name = g_strdup_printf ("xvnc-%d", xserver_get_display_number (XSERVER (self)));
+    display_server_set_name (DISPLAY_SERVER (self), name);
+    g_free (name);
+
     return self;
 }
 

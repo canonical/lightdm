@@ -54,8 +54,6 @@ lightdm_SOURCES = \
 	vt.h \
 	xauthority.c \
 	xauthority.h \
-	xdisplay.c \
-	xdisplay.h \
 	xdmcp-protocol.c \
 	xdmcp-protocol.h \
 	xdmcp-server.c \

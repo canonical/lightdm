@@ -146,37 +146,6 @@ display_manager_stopped_cb (DisplayManager *display_manager)
     exit (exit_code);
 }
 
-static Session *
-get_session_for_cookie (const gchar *cookie, Seat **seat)
-{
-    GList *link;
-
-    for (link = display_manager_get_seats (display_manager); link; link = link->next)
-    {
-        Seat *s = link->data;
-        GList *l;
-
-        for (l = seat_get_displays (s); l; l = l->next)
-        {
-            Display *display = l->data;
-            Session *session;
-
-            session = display_get_session (display);
-            if (!session)
-                continue;
-
-            if (g_strcmp0 (session_get_cookie (session), cookie) == 0)
-            {
-                if (seat)
-                    *seat = s;
-                return session;
-            }
-        }
-    }
-
-    return NULL;
-}
-
 static GVariant *
 handle_display_manager_get_property (GDBusConnection       *connection,
                                      const gchar           *sender,
@@ -301,44 +270,6 @@ handle_display_manager_call (GDBusConnection       *connection,
         }
         else// FIXME: Need to make proper error
             g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Failed to start seat");
-    }
-    else if (g_strcmp0 (method_name, "GetSeatForCookie") == 0)
-    {
-        gchar *cookie;
-        Seat *seat = NULL;
-        BusEntry *entry = NULL;
-
-        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(s)")))
-            return;
-
-        g_variant_get (parameters, "(&s)", &cookie);
-
-        get_session_for_cookie (cookie, &seat);
-        if (seat)
-            entry = g_hash_table_lookup (seat_bus_entries, seat);
-        if (entry)
-            g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", entry->path));
-        else // FIXME: Need to make proper error
-            g_dbus_method_invocation_return_error_literal (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Unable to find seat for cookie");
-    }
-    else if (g_strcmp0 (method_name, "GetSessionForCookie") == 0)
-    {
-        gchar *cookie;
-        Session *session;
-        BusEntry *entry = NULL;
-
-        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(s)")))
-            return;
-
-        g_variant_get (parameters, "(&s)", &cookie);
-
-        session = get_session_for_cookie (cookie, NULL);
-        if (session)
-            entry = g_hash_table_lookup (session_bus_entries, session);
-        if (entry)
-            g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", entry->path));
-        else // FIXME: Need to make proper error
-            g_dbus_method_invocation_return_error_literal (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Unable to find session for cookie");
     }
 }
 
@@ -634,14 +565,6 @@ bus_acquired_cb (GDBusConnection *connection,
         "      <arg name='type' direction='in' type='s'/>"
         "      <arg name='properties' direction='in' type='a(ss)'/>"
         "      <arg name='seat' direction='out' type='o'/>"
-        "    </method>"
-        "    <method name='GetSeatForCookie'>"
-        "      <arg name='cookie' direction='in' type='s'/>"
-        "      <arg name='seat' direction='out' type='o'/>"
-        "    </method>"
-        "    <method name='GetSessionForCookie'>"
-        "      <arg name='cookie' direction='in' type='s'/>"
-        "      <arg name='session' direction='out' type='o'/>"
         "    </method>"
         "    <signal name='SeatAdded'>"
         "      <arg name='seat' type='o'/>"
@@ -974,6 +897,8 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "SeatDefaults", "type", "xlocal");
     if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-command"))
         config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", "X");
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "start-session"))
+        config_set_boolean (config_get_instance (), "SeatDefaults", "start-session", TRUE);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "allow-guest"))
         config_set_boolean (config_get_instance (), "SeatDefaults", "allow-guest", TRUE);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-session"))
