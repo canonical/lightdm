@@ -249,12 +249,6 @@ session_real_start (Session *session)
     return result;
 }
 
-static void
-session_real_stop (Session *session)
-{
-    process_signal (PROCESS (session), SIGTERM);
-}
-
 void
 session_unlock (Session *session)
 {    
@@ -268,6 +262,12 @@ session_stop (Session *session)
 {
     g_return_if_fail (session != NULL);
     SESSION_GET_CLASS (session)->stop (session);
+}
+
+static void
+session_real_stop (Session *session)
+{
+    process_signal (PROCESS (session), SIGTERM);
 }
 
 static void
