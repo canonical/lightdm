@@ -115,7 +115,7 @@ pam_session_get_is_authenticated (PAMSession *session)
 gboolean
 pam_session_set_item (PAMSession *session, int item_type, const gchar *value)
 {
-    int result;
+    int result = PAM_SUCCESS;
 
     g_return_val_if_fail (session != NULL, FALSE);
     g_return_val_if_fail (value != NULL, FALSE);
