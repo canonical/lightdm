@@ -246,10 +246,10 @@ run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
     process_set_env (process, "PATH", "/usr/local/bin:/usr/bin:/bin");
     if (user)
     {
-        process_set_env (process, "USER=%s", user_get_name (user));
-        process_set_env (process, "USERNAME=%s", user_get_name (user));
-        process_set_env (process, "LOGNAME=%s", user_get_name (user));
-        process_set_env (process, "HOME=%s", user_get_home_directory (user));
+        process_set_env (process, "USER", user_get_name (user));
+        process_set_env (process, "USERNAME", user_get_name (user));
+        process_set_env (process, "LOGNAME", user_get_name (user));
+        process_set_env (process, "HOME", user_get_home_directory (user));
     }
     else
         process_set_env (process, "HOME", "/");
