@@ -237,7 +237,6 @@ static gboolean
 run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
 {
     Process *process;
-    int exit_status;
     gboolean result = FALSE;
 
     process = process_new ();
@@ -258,8 +257,11 @@ run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
 
     if (process_start (process))
     {
-        waitpid (process_get_pid (process), &exit_status, 0);
+        int exit_status;
 
+        process_wait (process);
+
+        exit_status = process_get_exit_status (process);
         if (WIFEXITED (exit_status))
         {
             g_debug ("Exit status of %s: %d", script_name, WEXITSTATUS (exit_status));

@@ -227,19 +227,6 @@ get_guest_username (Display *display)
 }
 
 static void
-session_exited_cb (Session *session, gint status, Display *display)
-{
-    if (status != 0)
-        g_debug ("Session exited with value %d", status);
-}
-
-static void
-session_terminated_cb (Session *session, gint signum, Display *display)
-{
-    g_debug ("Session terminated with signal %d", signum);
-}
-
-static void
 check_stopped (Display *display)
 {
     if (display->priv->stopping &&
@@ -457,8 +444,6 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     g_signal_emit (display, signals[CREATE_SESSION], 0, &session);
     g_return_val_if_fail (session != NULL, NULL);
 
-    g_signal_connect (session, "exited", G_CALLBACK (session_exited_cb), display);
-    g_signal_connect (session, "terminated", G_CALLBACK (session_terminated_cb), display);
     if (is_greeter)
         g_signal_connect_after (session, "stopped", G_CALLBACK (greeter_session_stopped_cb), display);
     else

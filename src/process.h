@@ -38,8 +38,6 @@ typedef struct
     void (*started)(Process *process);
     void (*got_data)(Process *process);
     void (*got_signal)(Process *process, int signum);
-    void (*exited)(Process *process, int status);
-    void (*terminated)(Process *process, int signum);
     void (*stopped)(Process *process);
 } ProcessClass;
 
@@ -78,6 +76,10 @@ GPid process_get_pid (Process *process);
 void process_signal (Process *process, int signum);
 
 void process_stop (Process *process);
+
+void process_wait (Process *process);
+
+int process_get_exit_status (Process *process);
 
 G_END_DECLS
 

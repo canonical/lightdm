@@ -26,8 +26,6 @@ enum {
     STARTED,
     GOT_DATA,
     GOT_SIGNAL,  
-    EXITED,
-    TERMINATED,
     STOPPED,
     LAST_SIGNAL
 };
@@ -52,6 +50,9 @@ struct ProcessPrivate
  
     /* Process ID */
     GPid pid;
+  
+    /* Exit status of process */
+    int exit_status;
 
     /* Timeout waiting for process to quit */
     guint quit_timeout;
@@ -165,16 +166,12 @@ process_watch_cb (GPid pid, gint status, gpointer data)
 {
     Process *process = data;
 
+    process->priv->exit_status = status;
+
     if (WIFEXITED (status))
-    {
         g_debug ("Process %d exited with return value %d", pid, WEXITSTATUS (status));
-        g_signal_emit (process, signals[EXITED], 0, WEXITSTATUS (status));
-    }
     else if (WIFSIGNALED (status))
-    {
         g_debug ("Process %d terminated with signal %d", pid, WTERMSIG (status));
-        g_signal_emit (process, signals[TERMINATED], 0, WTERMSIG (status));
-    }
 
     if (process->priv->quit_timeout)
         g_source_remove (process->priv->quit_timeout);
@@ -359,9 +356,25 @@ quit_timeout_cb (Process *process)
 void
 process_stop (Process *process)
 {
+    g_return_if_fail (process != NULL);
+
     /* Send SIGTERM, and then SIGKILL if no response */
     process->priv->quit_timeout = g_timeout_add (5000, (GSourceFunc) quit_timeout_cb, process);
     process_signal (process, SIGTERM);
+}
+
+void
+process_wait (Process *process)
+{
+    g_return_if_fail (process != NULL);
+    waitpid (process->priv->pid, NULL, 0);
+}
+
+int
+process_get_exit_status (Process *process)
+{
+    g_return_val_if_fail (process != NULL, -1);
+    return process->priv->exit_status;
 }
 
 static void
@@ -475,22 +488,6 @@ process_class_init (ProcessClass *klass)
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (ProcessClass, got_signal),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__INT,
-                      G_TYPE_NONE, 1, G_TYPE_INT);
-    signals[EXITED] =
-        g_signal_new ("exited",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (ProcessClass, exited),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__INT,
-                      G_TYPE_NONE, 1, G_TYPE_INT);
-    signals[TERMINATED] =
-        g_signal_new ("terminated",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (ProcessClass, terminated),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__INT,
                       G_TYPE_NONE, 1, G_TYPE_INT);
