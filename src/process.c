@@ -366,8 +366,12 @@ process_stop (Process *process)
 void
 process_wait (Process *process)
 {
+    int exit_status;
+
     g_return_if_fail (process != NULL);
-    waitpid (process->priv->pid, NULL, 0);
+
+    waitpid (process->priv->pid, &exit_status, 0);
+    process_watch_cb (process->priv->pid, exit_status, process);
 }
 
 int
