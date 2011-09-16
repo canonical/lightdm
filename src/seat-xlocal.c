@@ -129,6 +129,21 @@ seat_xlocal_set_active_display (Seat *seat, Display *display)
 }
 
 static void
+seat_xlocal_run_script (Seat *seat, Display *display, Process *script)
+{
+    gchar *path;
+    XServerLocal *xserver;
+
+    xserver = XSERVER_LOCAL (display_get_display_server (display));
+    path = xserver_local_get_authority_file_path (xserver);
+    process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));
+    process_set_env (script, "XAUTHORITY", path);
+    g_free (path);
+
+    SEAT_CLASS (seat_xlocal_parent_class)->run_script (seat, display, script);
+}
+
+static void
 seat_xlocal_display_removed (Seat *seat, Display *display)
 {
     if (seat_get_is_stopping (seat))
@@ -164,5 +179,6 @@ seat_xlocal_class_init (SeatXLocalClass *klass)
     seat_class->create_display_server = seat_xlocal_create_display_server;
     seat_class->create_session = seat_xlocal_create_session;
     seat_class->set_active_display = seat_xlocal_set_active_display;
+    seat_class->run_script = seat_xlocal_run_script;
     seat_class->display_removed = seat_xlocal_display_removed;
 }

@@ -60,6 +60,18 @@ seat_xremote_create_session (Seat *seat, Display *display)
 }
 
 static void
+seat_xremote_run_script (Seat *seat, Display *display, Process *script)
+{
+    XServerRemote *xserver;
+
+    xserver = XSERVER_REMOTE (display_get_display_server (display));
+    process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));  
+    process_set_env (script, "REMOTE_HOST", xserver_get_hostname (XSERVER (xserver)));
+
+    SEAT_CLASS (seat_xremote_parent_class)->run_script (seat, display, script);
+}
+
+static void
 seat_xremote_display_removed (Seat *seat, Display *display)
 {
     /* Can't restart the display, so remove this seat */
@@ -79,5 +91,6 @@ seat_xremote_class_init (SeatXRemoteClass *klass)
     seat_class->setup = seat_xremote_setup;
     seat_class->create_display_server = seat_xremote_create_display_server;
     seat_class->create_session = seat_xremote_create_session;
+    seat_class->run_script = seat_xremote_run_script;
     seat_class->display_removed = seat_xremote_display_removed;
 }

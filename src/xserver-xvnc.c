@@ -88,6 +88,15 @@ xserver_xvnc_get_stdin (XServerXVNC *server)
     return server->priv->stdin_fd;
 }
 
+gchar *
+xserver_xvnc_get_authority_file_path (XServerXVNC *server)
+{
+    g_return_val_if_fail (server != NULL, 0);
+    if (server->priv->authority_file)
+        return g_file_get_path (server->priv->authority_file);
+    return NULL;
+}
+
 static gchar *
 get_absolute_command (const gchar *command)
 {

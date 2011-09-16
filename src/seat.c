@@ -14,9 +14,6 @@
 #include <sys/wait.h>
 
 #include "seat.h"
-#include "display.h"
-#include "xserver.h" // FIXME: Shouldn't know if it's an xserver
-#include "xserver-local.h" // FIXME: Shouldn't know if it's an xserver
 #include "guest-account.h"
 
 enum {
@@ -237,107 +234,42 @@ display_get_guest_username_cb (Display *display, Seat *seat)
 }
 
 static gboolean
-run_script (Display *display, const gchar *script_name, User *user)
+run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
 {
-    gboolean result;
-    GPtrArray *env_array;
-    gchar **argv, **envp;
-    gchar *env, *command;
-    gint exit_status;
-    DisplayServer *display_server;
-    GError *error = NULL;
+    Process *process;
+    int exit_status;
+    gboolean result = FALSE;
 
-    if (getuid () != 0)
-        return TRUE;
-
-    if (!(g_file_test (script_name, G_FILE_TEST_IS_REGULAR) &&
-          g_file_test (script_name, G_FILE_TEST_IS_EXECUTABLE)))
-    {
-        g_warning ("Could not execute %s", script_name);
-        return FALSE;
-    }
-
-    result = g_shell_parse_argv (script_name, NULL, &argv, &error);
-    if (error)
-        g_warning ("Could not parse %s: %s", script_name, error->message);
-    if (!result)
-        return FALSE;
-
-    env_array = g_ptr_array_sized_new (10);
-    if (!env_array)
-        return FALSE;
-
-    g_ptr_array_add (env_array, g_strdup ("SHELL=/bin/sh"));
-    g_ptr_array_add (env_array, g_strdup ("PATH=/usr/local/bin:/usr/bin:/bin"));
-
+    process = process_new ();
+    process_set_command (process, script_name);
+    process_set_env (process, "SHELL", "/bin/sh");
+    process_set_env (process, "PATH", "/usr/local/bin:/usr/bin:/bin");
     if (user)
     {
-        g_ptr_array_add (env_array, g_strdup_printf ("USER=%s", user_get_name (user)));
-        g_ptr_array_add (env_array, g_strdup_printf ("USERNAME=%s", user_get_name (user)));
-        g_ptr_array_add (env_array, g_strdup_printf ("LOGNAME=%s", user_get_name (user)));
-        g_ptr_array_add (env_array, g_strdup_printf ("HOME=%s", user_get_home_directory (user)));
+        process_set_env (process, "USER=%s", user_get_name (user));
+        process_set_env (process, "USERNAME=%s", user_get_name (user));
+        process_set_env (process, "LOGNAME=%s", user_get_name (user));
+        process_set_env (process, "HOME=%s", user_get_home_directory (user));
     }
     else
-        g_ptr_array_add (env_array, g_strdup ("HOME=/"));
+        process_set_env (process, "HOME", "/");
 
-    display_server = display_get_display_server (display);
-    // FIXME: This should be done in a different layer
-    if (IS_XSERVER (display_server))
+    SEAT_GET_CLASS (seat)->run_script (seat, display, process);
+
+    if (process_start (process))
     {
-        XServer *xserver = XSERVER (display_server);
-        gchar *hostname, *xauthority_path;
+        waitpid (process_get_pid (process), &exit_status, 0);
 
-        g_ptr_array_add (env_array, g_strdup_printf ("DISPLAY=%s", xserver_get_address (xserver)));
-
-        if (!IS_XSERVER_LOCAL (xserver) &&
-            (hostname = xserver_get_hostname (xserver)))
+        if (WIFEXITED (exit_status))
         {
-            g_ptr_array_add (env_array, g_strdup_printf ("REMOTE_HOST=%s", hostname));
-            g_free (hostname);
-        }
-
-        if (IS_XSERVER_LOCAL (xserver) &&
-            (xauthority_path = xserver_local_get_authority_file_path (XSERVER_LOCAL (xserver))))
-        {
-            g_ptr_array_add (env_array, g_strdup_printf ("XAUTHORITY=%s", xauthority_path));
-            g_free (xauthority_path);
+            g_debug ("Exit status of %s: %d", script_name, WEXITSTATUS (exit_status));
+            result = WEXITSTATUS (exit_status) == EXIT_SUCCESS;
         }
     }
 
-    g_ptr_array_add (env_array, NULL);
-    envp = (gchar **) g_ptr_array_free (env_array, FALSE);
+    g_object_unref (process);
 
-    env = g_strjoinv (" ", envp);
-    command = g_strjoin (" ", env, script_name, NULL);
-    g_debug ("Executing script: %s", command);
-    g_free (env);
-    g_free (command);
-    result = g_spawn_sync (NULL,
-                           argv,
-                           envp,
-                           G_SPAWN_SEARCH_PATH,
-                           NULL,
-                           NULL,
-                           NULL,
-                           NULL,
-                           &exit_status,
-                           &error);
-    if (error)
-        g_warning ("Error executing %s: %s", script_name, error->message);
-    g_clear_error (&error);
-    g_strfreev (argv);
-    g_strfreev (envp);
-  
-    if (!result)
-        return FALSE;
-
-    if (WIFEXITED (exit_status))
-    {
-        g_debug ("Exit status of %s: %d", script_name, WEXITSTATUS (exit_status));
-        return WEXITSTATUS (exit_status) == EXIT_SUCCESS;
-    }
-
-    return FALSE;
+    return result;
 }
 
 static void
@@ -361,7 +293,7 @@ display_start_display_server_cb (Display *display, Seat *seat)
 
     /* Run setup script */
     script = seat_get_string_property (seat, "display-setup-script");
-    if (script && !run_script (display, script, NULL))
+    if (script && !run_script (seat, display, script, NULL))
         return TRUE;
 
     emit_upstart_signal ("login-session-start");
@@ -385,7 +317,7 @@ display_start_greeter_cb (Display *display, Seat *seat)
 
     script = seat_get_string_property (seat, "greeter-setup-script");
     if (script)
-        return !run_script (display, script, session_get_user (session));
+        return !run_script (seat, display, script, session_get_user (session));
     else
         return FALSE;
 }
@@ -400,7 +332,7 @@ display_start_session_cb (Display *display, Seat *seat)
 
     script = seat_get_string_property (seat, "session-setup-script");
     if (script)
-        return !run_script (display, script, session_get_user (session));
+        return !run_script (seat, display, script, session_get_user (session));
     else
         return FALSE;
 }
@@ -427,7 +359,7 @@ session_stopped_cb (Session *session, Seat *seat)
     /* Cleanup */
     script = seat_get_string_property (seat, "session-cleanup-script");
     if (script)
-        run_script (display, script, session_get_user (session));
+        run_script (seat, display, script, session_get_user (session));
 
     if (seat->priv->guest_username && strcmp (user_get_name (session_get_user (session)), seat->priv->guest_username) == 0)
     {

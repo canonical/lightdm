@@ -63,6 +63,30 @@ seat_xvnc_create_session (Seat *seat, Display *display)
 }
 
 static void
+seat_xvnc_run_script (Seat *seat, Display *display, Process *script)
+{
+    XServerXVNC *xserver;
+    GInetSocketAddress *address;
+    gchar *hostname;
+    gchar *path;
+
+    xserver = XSERVER_XVNC (display_get_display_server (display));
+
+    address = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (SEAT_XVNC (seat)->priv->connection, NULL));
+    hostname = g_inet_address_to_string (g_inet_socket_address_get_address (address));
+    path = xserver_xvnc_get_authority_file_path (xserver);
+
+    process_set_env (script, "REMOTE_HOST", hostname);
+    process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));
+    process_set_env (script, "XAUTHORITY", path);
+
+    g_free (hostname);
+    g_free (path);
+
+    SEAT_CLASS (seat_xvnc_parent_class)->run_script (seat, display, script);
+}
+
+static void
 seat_xvnc_display_removed (Seat *seat, Display *display)
 {
     seat_stop (seat);
@@ -94,6 +118,7 @@ seat_xvnc_class_init (SeatXVNCClass *klass)
 
     seat_class->create_display_server = seat_xvnc_create_display_server;
     seat_class->create_session = seat_xvnc_create_session;
+    seat_class->run_script = seat_xvnc_run_script;
     seat_class->display_removed = seat_xvnc_display_removed;
     object_class->finalize = seat_xdmcp_session_finalize;
 
