@@ -35,6 +35,7 @@ TESTS = \
 	test-plymouth-no-seat \
 	test-script-hooks \
 	test-script-hook-fail-display-setup \
+	test-script-hook-fail-greeter-setup \
 	test-switch-to-greeter \
 	test-switch-to-guest \
 	test-switch-to-user \
@@ -99,6 +100,7 @@ EXTRA_DIST = \
 	scripts/plymouth-no-seat.conf \
 	scripts/script-hooks.conf \
 	scripts/script-hook-fail-display-setup.conf \
+	scripts/script-hook-fail-greeter-setup.conf \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \
