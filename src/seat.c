@@ -275,6 +275,11 @@ run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
 }
 
 static void
+seat_real_run_script (Seat *seat, Display *display, Process *process)
+{  
+}
+
+static void
 emit_upstart_signal (const gchar *signal)
 {
     g_return_if_fail (signal != NULL);
@@ -628,6 +633,7 @@ seat_class_init (SeatClass *klass)
     klass->setup = seat_real_setup;
     klass->start = seat_real_start;
     klass->set_active_display = seat_real_set_active_display;
+    klass->run_script = seat_real_run_script;
     klass->stop = seat_real_stop;
 
     object_class->finalize = seat_finalize;
