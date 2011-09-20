@@ -16,7 +16,7 @@
 
 #include "display-server.h"
 #include "session.h"
-#include "user.h"
+#include "accounts.h"
 
 G_BEGIN_DECLS
 

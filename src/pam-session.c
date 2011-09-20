@@ -14,7 +14,6 @@
 
 #include "ldm-marshal.h"
 #include "pam-session.h"
-#include "user.h"
 
 enum {
     AUTHENTICATION_STARTED,

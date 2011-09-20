@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "user.h"
+#include "accounts.h"
 #include "dmrc.h"
 
 struct UserPrivate

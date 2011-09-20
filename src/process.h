@@ -14,7 +14,7 @@
 
 #include <glib-object.h>
 #include "process.h"
-#include "user.h"
+#include "accounts.h"
 
 G_BEGIN_DECLS
 

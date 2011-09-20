@@ -12,7 +12,7 @@
 #ifndef _PRIVILEGES_H_
 #define _PRIVILEGES_H_
 
-#include "user.h"
+#include "accounts.h"
 
 void privileges_drop (User *user);
 

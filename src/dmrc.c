@@ -15,7 +15,7 @@
 
 #include "dmrc.h"
 #include "configuration.h"
-#include "user.h"
+#include "accounts.h"
 #include "privileges.h"
 
 GKeyFile *

@@ -27,7 +27,6 @@
 #include "seat-xdmcp-session.h"
 #include "seat-xvnc.h"
 #include "xserver.h"
-#include "user.h"
 #include "pam-session.h"
 #include "process.h"
 

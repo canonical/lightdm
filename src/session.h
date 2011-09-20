@@ -13,7 +13,7 @@
 #define _SESSION_H_
 
 #include "process.h"
-#include "user.h"
+#include "accounts.h"
 #include "pam-session.h"
 
 G_BEGIN_DECLS

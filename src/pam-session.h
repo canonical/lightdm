@@ -15,7 +15,7 @@
 #include <glib-object.h>
 #include <security/pam_appl.h>
 
-#include "user.h"
+#include "accounts.h"
 
 G_BEGIN_DECLS
 
