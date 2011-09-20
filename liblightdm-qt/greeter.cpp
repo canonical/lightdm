@@ -287,7 +287,7 @@ QString Greeter::authenticationUser() const
 
 void Greeter::setLanguage (QString language)
 {
-    writeHeader(GREETER_MESSAGE_SET_LANGUAGE, 0);
+    writeHeader(GREETER_MESSAGE_SET_LANGUAGE, stringLength(language));
     writeString (language);
     flush();
 }

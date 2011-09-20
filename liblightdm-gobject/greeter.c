@@ -876,7 +876,7 @@ lightdm_greeter_set_language (LightDMGreeter *greeter, const gchar *language)
 
     g_return_if_fail (priv->connected);
 
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_SET_LANGUAGE, 0, &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_SET_LANGUAGE, string_length (language), &offset);
     write_string (message, MAX_MESSAGE_LENGTH, language, &offset);
     write_message (greeter, message, offset);
 }

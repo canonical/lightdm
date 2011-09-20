@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <requires lib="gtk+" version="2.24"/>
+  <object class="GtkListStore" id="language_liststore">
+    <columns>
+      <!-- column-name label -->
+      <column type="gchararray"/>
+      <!-- column-name key -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkWindow" id="login_window">
     <property name="can_focus">False</property>
     <property name="resizable">False</property>
@@ -133,6 +141,17 @@
                       </packing>
                     </child>
                     <child>
+                      <object class="GtkComboBox" id="language_combobox">
+                        <property name="can_focus">False</property>
+                        <property name="model">language_liststore</property>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
                       <object class="GtkButton" id="login_button">
                         <property name="label" translatable="yes">Login</property>
                         <property name="visible">True</property>
@@ -145,7 +164,7 @@
                         <property name="expand">False</property>
                         <property name="fill">True</property>
                         <property name="pack_type">end</property>
-                        <property name="position">1</property>
+                        <property name="position">2</property>
                       </packing>
                     </child>
                     <child>
@@ -161,7 +180,7 @@
                         <property name="expand">False</property>
                         <property name="fill">True</property>
                         <property name="pack_type">end</property>
-                        <property name="position">2</property>
+                        <property name="position">3</property>
                       </packing>
                     </child>
                   </object>
@@ -200,26 +219,6 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="use_action_appearance">False</property>
-            <child>
-              <object class="GtkHBox" id="power_menuitem_box">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="spacing">3</property>
-                <child>
-                  <object class="GtkImage" id="power_menuitem_image">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="pixel_size">24</property>
-                    <property name="icon_name">system-shutdown</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-              </object>
-            </child>
             <child type="submenu">
               <object class="GtkMenu" id="power_menu">
                 <property name="visible">True</property>
@@ -269,26 +268,6 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="use_action_appearance">False</property>
-            <child>
-              <object class="GtkHBox" id="a11y_menuitem_box">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="spacing">3</property>
-                <child>
-                  <object class="GtkImage" id="a11y_menuitem_image">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="pixel_size">24</property>
-                    <property name="icon_name">accessibility</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-              </object>
-            </child>
             <child type="submenu">
               <object class="GtkMenu" id="a11y_menu">
                 <property name="visible">True</property>

@@ -427,6 +427,7 @@ handle_set_language (Greeter *greeter, const gchar *language)
         return;
     }
 
+    g_debug ("Greeter sets language %s", language);
     user = pam_session_get_user (greeter->priv->authentication);
     user_set_language (user, language);
 }

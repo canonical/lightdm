@@ -25,6 +25,7 @@ static GtkTreeView *user_view;
 static GtkWidget *login_box, *prompt_box;
 static GtkEntry *prompt_entry;
 static GtkComboBox *session_combo;
+static GtkComboBox *language_combo;
 static gchar *default_font_name, *default_theme_name;
 static gboolean cancelling = FALSE, prompted = FALSE;
 
@@ -72,6 +73,51 @@ set_session (const gchar *session)
         set_session (lightdm_greeter_get_default_session_hint (greeter));
 }
 
+static gchar *
+get_language ()
+{
+    GtkTreeIter iter;
+    gchar *language;
+
+    if (!gtk_combo_box_get_active_iter (language_combo, &iter))
+        return NULL;
+
+    gtk_tree_model_get (gtk_combo_box_get_model (language_combo), &iter, 1, &language, -1);
+
+    return language;
+}
+
+static void
+set_language (const gchar *language)
+{
+    GtkTreeModel *model = gtk_combo_box_get_model (language_combo);
+    GtkTreeIter iter;
+    const gchar *default_language = NULL;
+
+    if (language && gtk_tree_model_get_iter_first (model, &iter))
+    {
+        do
+        {
+            gchar *s;
+            gboolean matched;
+            gtk_tree_model_get (model, &iter, 1, &s, -1);
+            matched = strcmp (s, language) == 0;
+            g_free (s);
+            if (matched)
+            {
+                gtk_combo_box_set_active_iter (language_combo, &iter);
+                return;
+            }
+        } while (gtk_tree_model_iter_next (model, &iter));
+    }
+
+    /* If failed to find this language, then try the default */
+    if (lightdm_get_language ())
+        default_language = lightdm_language_get_code (lightdm_get_language ());
+    if (default_language && g_strcmp0 (default_language, language) != 0)
+        set_language (default_language);
+}
+
 static void
 set_message_label (const gchar *text)
 {
@@ -99,9 +145,15 @@ start_authentication (const gchar *username)
 
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         if (user)
+        {
             set_session (lightdm_user_get_session (user));
+            set_language (lightdm_user_get_language (user));
+        }
         else
+        {
             set_session (NULL);
+            set_language (NULL);
+        }
 
         lightdm_greeter_authenticate (greeter, username);
     }
@@ -132,7 +184,13 @@ cancel_authentication (void)
 static void
 start_session (void)
 {
+    gchar *language;
     gchar *session;
+
+    language = get_language ();
+    if (language)
+        lightdm_greeter_set_language (greeter, language);
+    g_free (language);
 
     session = get_session ();
     if (!lightdm_greeter_start_session_sync (greeter, session, NULL))
@@ -584,7 +642,7 @@ create_root_surface (GdkScreen *screen)
 }
 
 int
-main(int argc, char **argv)
+main (int argc, char **argv)
 {
     GKeyFile *config;
     GdkRectangle monitor_geometry;
@@ -738,6 +796,7 @@ main(int argc, char **argv)
     prompt_entry = GTK_ENTRY (gtk_builder_get_object (builder, "prompt_entry"));
     message_label = GTK_LABEL (gtk_builder_get_object (builder, "message_label"));
     session_combo = GTK_COMBO_BOX (gtk_builder_get_object (builder, "session_combobox"));
+    language_combo = GTK_COMBO_BOX (gtk_builder_get_object (builder, "language_combobox"));  
     panel_window = GTK_WINDOW (gtk_builder_get_object (builder, "panel_window"));
 
     gtk_label_set_text (GTK_LABEL (gtk_builder_get_object (builder, "hostname_label")), lightdm_get_hostname ());
@@ -780,6 +839,33 @@ main(int argc, char **argv)
                             -1);
     }
     set_session (NULL);
+
+    if (g_key_file_get_boolean (config, "greeter", "show-language-selector", NULL))
+    {
+        gtk_widget_show (GTK_WIDGET (language_combo));
+
+        renderer = gtk_cell_renderer_text_new();
+        gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (language_combo), renderer, TRUE);
+        gtk_cell_layout_add_attribute (GTK_CELL_LAYOUT (language_combo), renderer, "text", 0);
+        model = gtk_combo_box_get_model (language_combo);
+        items = lightdm_get_languages ();
+        for (item = items; item; item = item->next)
+        {
+            LightDMLanguage *language = item->data;
+            gchar *label;
+
+            label = g_strdup_printf ("%s - %s", lightdm_language_get_name (language), lightdm_language_get_territory (language));
+
+            gtk_widget_show (GTK_WIDGET (language_combo));
+            gtk_list_store_append (GTK_LIST_STORE (model), &iter);
+            gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+                                0, label,
+                                1, lightdm_language_get_code (language),
+                                -1);
+            g_free (label);
+        }
+        set_language (NULL);
+    }
 
     gtk_builder_connect_signals(builder, greeter);
 
