@@ -8,39 +8,41 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-12-06 11:05+0000\n"
-"PO-Revision-Date: 2011-07-30 12:47+0000\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"PO-Revision-Date: 2011-09-20 00:15+0000\n"
+"Last-Translator: Eric Oberlander <eric@oberlander.co.uk>\n"
 "Language-Team: English (United Kingdom) <en_GB@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2011-08-10 04:41+0000\n"
-"X-Generator: Launchpad (build 13636)\n"
+"X-Launchpad-Export-Date: 2011-09-20 05:14+0000\n"
+"X-Generator: Launchpad (build 13980)\n"
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:322
+#: ../greeters/gtk/lightdm-gtk-greeter.c:325
 msgid "Are you sure you want to close all programs and restart the computer?"
 msgstr ""
+"Are you sure you want to close all programs and restart the computer?"
 
 #: ../greeters/gtk/greeter.ui.h:1
 msgid "Cancel"
-msgstr ""
+msgstr "Cancel"
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:323
+#: ../greeters/gtk/lightdm-gtk-greeter.c:326
 msgid "Restart"
-msgstr ""
+msgstr "Restart"
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:347
+#: ../greeters/gtk/lightdm-gtk-greeter.c:350
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
 msgstr ""
+"Are you sure you want to close all programs and shutdown the computer?"
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:348
+#: ../greeters/gtk/lightdm-gtk-greeter.c:351
 msgid "Shutdown"
-msgstr ""
+msgstr "Shutdown"
 
 #: ../greeters/gtk/greeter.ui.h:4
 msgid "Large Font"
-msgstr ""
+msgstr "Large Font"
 
 #: ../greeters/ldm-gtk-greeter.c:611
 msgid "High Constrast"
@@ -64,19 +66,19 @@ msgstr ""
 
 #: ../greeters/gtk/greeter.ui.h:8
 msgid "Suspend"
-msgstr ""
+msgstr "Suspend"
 
 #: ../greeters/gtk/greeter.ui.h:2
 msgid "Hibernate"
-msgstr ""
+msgstr "Hibernate"
 
 #: ../greeters/gtk/greeter.ui.h:6
 msgid "Restart..."
-msgstr ""
+msgstr "Restart..."
 
 #: ../greeters/gtk/greeter.ui.h:7
 msgid "Shutdown..."
-msgstr ""
+msgstr "Shutdown..."
 
 #. Description on how to use Light Display Manager displayed on command-line
 #: ../src/lightdm.c:100
