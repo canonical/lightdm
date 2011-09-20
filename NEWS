@@ -9,6 +9,7 @@ Overview of changes in lightdm 0.9.8
     * Add ability to set the language of a user from the greeter
     * Set LANG variable based on the user language
     * Add language selector into GTK greeter (disabled by default)
+    * Allow TCP/IP connections if xserver-allow-tcp is true
 
 Overview of changes in lightdm 0.9.7
 

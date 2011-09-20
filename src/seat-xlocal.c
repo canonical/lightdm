@@ -31,6 +31,7 @@ seat_xlocal_create_display_server (Seat *seat)
 {
     XServerLocal *xserver;
     const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
+    gboolean allow_tcp;
     gint port = 0;
 
     g_debug ("Starting local X display");
@@ -52,6 +53,9 @@ seat_xlocal_create_display_server (Seat *seat)
     config_file = seat_get_string_property (seat, "xserver-config");
     if (config_file)
         xserver_local_set_config (xserver, config_file);
+  
+    allow_tcp = seat_get_boolean_property (seat, "xserver-allow-tcp");
+    xserver_local_set_allow_tcp (xserver, allow_tcp);    
 
     xdmcp_manager = seat_get_string_property (seat, "xdmcp-manager");
     if (xdmcp_manager)

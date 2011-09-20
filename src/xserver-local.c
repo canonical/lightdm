@@ -33,7 +33,10 @@ struct XServerLocalPrivate
 
     /* Server layout to use */
     gchar *layout;
-  
+
+    /* TRUE if TCP/IP connections are allowed */
+    gboolean allow_tcp;
+
     /* Authority file */
     GFile *authority_file;
 
@@ -138,6 +141,13 @@ xserver_local_set_layout (XServerLocal *server, const gchar *layout)
     g_return_if_fail (server != NULL);
     g_free (server->priv->layout);
     server->priv->layout = g_strdup (layout);
+}
+
+void
+xserver_local_set_allow_tcp (XServerLocal *server, gboolean allow_tcp)
+{
+    g_return_if_fail (server != NULL);
+    server->priv->allow_tcp = allow_tcp;
 }
 
 void
@@ -399,7 +409,7 @@ xserver_local_start (DisplayServer *display_server)
         if (server->priv->xdmcp_key)
             g_string_append_printf (command, " -cookie %s", server->priv->xdmcp_key);
     }
-    else
+    else if (!server->priv->allow_tcp)
         g_string_append (command, " -nolisten tcp");
 
     if (server->priv->vt >= 0)
