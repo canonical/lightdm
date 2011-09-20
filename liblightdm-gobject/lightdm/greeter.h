@@ -108,6 +108,8 @@ gboolean lightdm_greeter_get_is_authenticated (LightDMGreeter *greeter);
 
 const gchar *lightdm_greeter_get_authentication_user (LightDMGreeter *greeter);
 
+void lightdm_greeter_set_language (LightDMGreeter *greeter, const gchar *language);
+
 gboolean lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *session, GError **error);
 
 G_END_DECLS

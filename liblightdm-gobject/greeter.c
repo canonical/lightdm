@@ -74,7 +74,8 @@ typedef enum
     GREETER_MESSAGE_AUTHENTICATE_AS_GUEST,
     GREETER_MESSAGE_CONTINUE_AUTHENTICATION,
     GREETER_MESSAGE_START_SESSION,
-    GREETER_MESSAGE_CANCEL_AUTHENTICATION
+    GREETER_MESSAGE_CANCEL_AUTHENTICATION,
+    GREETER_MESSAGE_SET_LANGUAGE
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -853,6 +854,31 @@ lightdm_greeter_get_authentication_user (LightDMGreeter *greeter)
 {
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
     return GET_PRIVATE (greeter)->authentication_user;
+}
+
+/**
+ * lightdm_greeter_set_language:
+ * @greeter: A #LightDMGreeter
+ * @language: The language to use for this user.
+ *
+ * Set the language for the currently authenticated user.
+ **/
+void
+lightdm_greeter_set_language (LightDMGreeter *greeter, const gchar *language)
+{
+    LightDMGreeterPrivate *priv;
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+
+    g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
+
+    priv = GET_PRIVATE (greeter);
+
+    g_return_if_fail (priv->connected);
+
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_SET_LANGUAGE, 0, &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, language, &offset);
+    write_message (greeter, message, offset);
 }
 
 /**

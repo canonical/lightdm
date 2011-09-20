@@ -68,7 +68,8 @@ typedef enum
     GREETER_MESSAGE_AUTHENTICATE_AS_GUEST,
     GREETER_MESSAGE_CONTINUE_AUTHENTICATION,
     GREETER_MESSAGE_START_SESSION,
-    GREETER_MESSAGE_CANCEL_AUTHENTICATION
+    GREETER_MESSAGE_CANCEL_AUTHENTICATION,
+    GREETER_MESSAGE_SET_LANGUAGE
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -408,6 +409,28 @@ handle_start_session (Greeter *greeter, const gchar *session)
     }
 }
 
+static void
+handle_set_language (Greeter *greeter, const gchar *language)
+{
+    User *user;
+
+    if (!greeter->priv->guest_account_authenticated && !pam_session_get_is_authenticated (greeter->priv->authentication))
+    {
+        g_debug ("Ignoring set language request, user is not authorized");
+        return;
+    }
+
+    // FIXME: Could use this
+    if (greeter->priv->guest_account_authenticated)
+    {
+        g_debug ("Ignoring set language request for guest user");
+        return;
+    }
+
+    user = pam_session_get_user (greeter->priv->authentication);
+    user_set_language (user, language);
+}
+
 static guint32
 read_int (Greeter *greeter, gsize *offset)
 {
@@ -453,7 +476,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     GIOStatus status;
     int id, n_secrets, i;
     guint32 sequence_number;
-    gchar *version, *username, *session_name;
+    gchar *version, *username, *session_name, *language;
     gchar **secrets;
     GError *error = NULL;
 
@@ -538,6 +561,11 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         session_name = read_string (greeter, &offset);
         handle_start_session (greeter, session_name);
         g_free (session_name);
+        break;
+    case GREETER_MESSAGE_SET_LANGUAGE:
+        language = read_string (greeter, &offset);
+        handle_set_language (greeter, language);
+        g_free (language);
         break;
     default:
         g_warning ("Unknown message from greeter: %d", id);

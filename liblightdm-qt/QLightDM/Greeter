@@ -64,6 +64,7 @@ namespace QLightDM
         void authenticateAsGuest();
         void respond(const QString &response);
         void cancelAuthentication();
+        void setLanguage (QString language);
         bool startSessionSync(const QString &session=QString());
 
     signals:

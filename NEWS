@@ -6,6 +6,7 @@ Overview of changes in lightdm 0.9.8
     * Fix up script hooks, add regression tests for them
     * Complete removal of X code from the core of LightDM, so it can better
       support various display types
+    * Add ability to set the language of a user from the greeter
 
 Overview of changes in lightdm 0.9.7
 

@@ -35,7 +35,8 @@ typedef enum
     GREETER_MESSAGE_AUTHENTICATE_AS_GUEST,
     GREETER_MESSAGE_CONTINUE_AUTHENTICATION,
     GREETER_MESSAGE_START_SESSION,
-    GREETER_MESSAGE_CANCEL_AUTHENTICATION
+    GREETER_MESSAGE_CANCEL_AUTHENTICATION,
+    GREETER_MESSAGE_SET_LANGUAGE
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -282,6 +283,13 @@ bool Greeter::isAuthenticated() const
 QString Greeter::authenticationUser() const
 {
     return d->authenticationUser;
+}
+
+void Greeter::setLanguage (QString language)
+{
+    writeHeader(GREETER_MESSAGE_SET_LANGUAGE, 0);
+    writeString (language);
+    flush();
 }
 
 bool Greeter::startSessionSync(const QString &session)
