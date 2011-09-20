@@ -404,7 +404,7 @@ pam_session_get_user (PAMSession *session)
     g_return_val_if_fail (session != NULL, NULL);
 
     if (!session->priv->user && pam_session_get_username (session))
-        session->priv->user = user_get_by_name (pam_session_get_username (session));
+        session->priv->user = accounts_get_user_by_name (pam_session_get_username (session));
 
     return session->priv->user;
 }

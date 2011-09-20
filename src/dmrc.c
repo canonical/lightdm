@@ -28,7 +28,7 @@ dmrc_load (const gchar *username)
 
     dmrc_file = g_key_file_new ();
 
-    user = user_get_by_name (username);
+    user = accounts_get_user_by_name (username);
     if (!user)
     {
         g_warning ("Cannot load .dmrc file, unable to get information on user %s", username);      
@@ -69,7 +69,7 @@ dmrc_save (GKeyFile *dmrc_file, const gchar *username)
     gchar *data;
     gsize length;
 
-    user = user_get_by_name (username);
+    user = accounts_get_user_by_name (username);
     if (!user)
     {
         g_warning ("Not saving DMRC file - unable to get information on user %s", username);

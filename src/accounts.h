@@ -34,17 +34,17 @@ typedef struct
     GObjectClass parent_class;
 } UserClass;
 
+User *accounts_get_user_by_name (const gchar *username);
+
+User *accounts_get_user_by_uid (uid_t uid);
+
+User *accounts_get_current_user (void);
+
 GType user_get_type (void);
 
 void user_set_use_pam (void);
 
 void user_set_use_passwd_file (gchar *passwd_file);
-
-User *user_get_by_name (const gchar *username);
-
-User *user_get_by_uid (uid_t uid);
-
-User *user_get_current (void);
 
 const gchar *user_get_name (User *user);
 

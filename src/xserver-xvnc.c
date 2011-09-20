@@ -240,7 +240,7 @@ xserver_xvnc_start (DisplayServer *display_server)
 
     g_debug ("Launching Xvnc server");
 
-    process_set_user (server->priv->xserver_process, user_get_current ());
+    process_set_user (server->priv->xserver_process, accounts_get_current_user ());
     result = process_start (server->priv->xserver_process);
 
     if (result)

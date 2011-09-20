@@ -549,7 +549,7 @@ start_greeter_session (Display *display)
     g_debug ("Starting greeter session");
 
     if (getuid () != 0)
-        user = user_get_current ();
+        user = accounts_get_current_user ();
     else
     {
         gchar *greeter_user;
@@ -561,7 +561,7 @@ start_greeter_session (Display *display)
             return FALSE;
         }
 
-        user = user_get_by_name (greeter_user);
+        user = accounts_get_user_by_name (greeter_user);
         if (!user)
             g_debug ("Unable to start greeter, user %s does not exist", greeter_user);
         g_free (greeter_user);

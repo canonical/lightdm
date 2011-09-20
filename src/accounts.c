@@ -276,7 +276,7 @@ load_passwd_file ()
 }
 
 User *
-user_get_by_name (const gchar *username)
+accounts_get_user_by_name (const gchar *username)
 {
     User *user = NULL;
 
@@ -315,7 +315,7 @@ user_get_by_name (const gchar *username)
 }
 
 User *
-user_get_by_uid (uid_t uid)
+accounts_get_user_by_uid (uid_t uid)
 {
     User *user = NULL;
 
@@ -352,7 +352,7 @@ user_get_by_uid (uid_t uid)
 }
 
 User *
-user_get_current ()
+accounts_get_current_user ()
 {
     return user_from_passwd (getpwuid (getuid ()));
 }

@@ -435,7 +435,7 @@ xserver_local_start (DisplayServer *display_server)
         process_set_env (server->priv->xserver_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }
 
-    process_set_user (server->priv->xserver_process, user_get_current ());
+    process_set_user (server->priv->xserver_process, accounts_get_current_user ());
     result = process_start (server->priv->xserver_process);
 
     if (result)
