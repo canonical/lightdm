@@ -7,6 +7,7 @@ Overview of changes in lightdm 0.9.8
     * Complete removal of X code from the core of LightDM, so it can better
       support various display types
     * Add ability to set the language of a user from the greeter
+    * Set LANG variable based on the user language
 
 Overview of changes in lightdm 0.9.7
 

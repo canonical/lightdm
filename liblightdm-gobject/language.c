@@ -48,9 +48,14 @@ update_languages (void)
         return;
 
     result = g_spawn_command_line_sync ("locale -a", &stdout_text, &stderr_text, &exit_status, &error);
-    if (!result || exit_status != 0)
-        g_warning ("Failed to get languages, locale -a returned %d: %s", exit_status, error->message);
-    else
+    if (error)
+    {
+        g_warning ("Failed to run 'locale -a': %s", error->message);
+        g_clear_error (&error);
+    }
+    else if (exit_status != 0)
+        g_warning ("Failed to get languages, locale -a returned %d", exit_status);
+    else if (result)
     {
         gchar **tokens;
         int i;
@@ -76,7 +81,6 @@ update_languages (void)
         g_strfreev (tokens);
     }
 
-    g_clear_error (&error);
     g_free (stdout_text);
     g_free (stderr_text);
 
