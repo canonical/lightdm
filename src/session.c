@@ -133,13 +133,29 @@ set_env_from_authentication (Session *session, PAMSession *authentication)
         {
             gchar **pam_env_vars = g_strsplit (pam_env[i], "=", 2);
             if (pam_env_vars && pam_env_vars[0] && pam_env_vars[1])
-                process_set_env (PROCESS (session), pam_env_vars[0], pam_env_vars[1]);
+                session_set_env (session, pam_env_vars[0], pam_env_vars[1]);
             else
                 g_warning ("Can't parse PAM environment variable %s", pam_env[i]);
             g_strfreev (pam_env_vars);
         }
         g_strfreev (pam_env);
     }
+}
+
+void
+session_set_env (Session *session, const gchar *name, const gchar *value)
+{
+    g_return_if_fail (session != NULL);
+    g_return_if_fail (name != NULL);
+    process_set_env (PROCESS (session), name, value);
+}
+
+const gchar *
+session_get_env (Session *session, const gchar *name)
+{
+    g_return_val_if_fail (session != NULL, NULL);
+    g_return_val_if_fail (name != NULL, NULL);
+    return process_get_env (PROCESS (session), name);
 }
 
 void
@@ -202,7 +218,7 @@ set_language (Session *session)
             {
                 g_debug ("Using locale %s for language %s", code, language);
                 found_code = TRUE;
-                process_set_env (PROCESS (session), "LANG", code);
+                session_set_env (session, "LANG", code);
                 break;
             }
         }
@@ -228,11 +244,11 @@ session_start (Session *session)
     g_debug ("Launching session");
 
     user = pam_session_get_user (session->priv->authentication);
-    process_set_env (PROCESS (session), "PATH", "/usr/local/bin:/usr/bin:/bin");
-    process_set_env (PROCESS (session), "USER", user_get_name (user));
-    process_set_env (PROCESS (session), "USERNAME", user_get_name (user)); // FIXME: Is this required?
-    process_set_env (PROCESS (session), "HOME", user_get_home_directory (user));
-    process_set_env (PROCESS (session), "SHELL", user_get_shell (user));
+    session_set_env (session, "PATH", "/usr/local/bin:/usr/bin:/bin");
+    session_set_env (session, "USER", user_get_name (user));
+    session_set_env (session, "USERNAME", user_get_name (user)); // FIXME: Is this required?
+    session_set_env (session, "HOME", user_get_home_directory (user));
+    session_set_env (session, "SHELL", user_get_shell (user));
     set_env_from_authentication (session, session->priv->authentication);
     set_language (session);
 
@@ -261,11 +277,11 @@ session_real_start (Session *session)
      * Must be done after set_env_from_authentication because that often sets PATH.
      * This can be removed when this is no longer required.
      */
-    orig_path = process_get_env (PROCESS (session), "PATH");
+    orig_path = session_get_env (session, "PATH");
     if (orig_path)
     {
         gchar *path = g_strdup_printf ("%s:%s", PKGLIBEXEC_DIR, orig_path);
-        process_set_env (PROCESS (session), "PATH", path);
+        session_set_env (session, "PATH", path);
         g_free (path);
     }
 
@@ -300,7 +316,7 @@ session_real_start (Session *session)
     }
 
     if (session->priv->console_kit_cookie)
-        process_set_env (PROCESS (session), "XDG_SESSION_COOKIE", session->priv->console_kit_cookie);
+        session_set_env (session, "XDG_SESSION_COOKIE", session->priv->console_kit_cookie);
 
     user = pam_session_get_user (session->priv->authentication);
     process_set_user (PROCESS (session), user);

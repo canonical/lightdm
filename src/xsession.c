@@ -89,7 +89,7 @@ xsession_start (Session *session)
         else
             path = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
 
-        process_set_env (PROCESS (session), "XAUTHORITY", path);
+        session_set_env (session, "XAUTHORITY", path);
         xsession->priv->authority_file = g_file_new_for_path (path);
 
         g_debug ("Adding session authority to %s", path);
@@ -108,7 +108,7 @@ xsession_start (Session *session)
             return FALSE;
     }
 
-    process_set_env (PROCESS (session), "DISPLAY", xserver_get_address (xsession->priv->xserver));
+    session_set_env (session, "DISPLAY", xserver_get_address (xsession->priv->xserver));
 
     return SESSION_CLASS (xsession_parent_class)->start (session);
 }

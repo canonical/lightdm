@@ -55,6 +55,10 @@ void session_set_command (Session *session, const gchar *command);
 
 const gchar *session_get_command (Session *session);
 
+void session_set_env (Session *process, const gchar *name, const gchar *value);
+
+const gchar *session_get_env (Session *session, const gchar *name);
+
 void session_set_console_kit_parameter (Session *session, const gchar *name, GVariant *value);
 
 gboolean session_start (Session *session);

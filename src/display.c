@@ -452,8 +452,8 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     session_set_authentication (session, authentication);
     session_set_command (session, command);
 
-    process_set_env (PROCESS (session), "DESKTOP_SESSION", session_name); // FIXME: Apparently deprecated?
-    process_set_env (PROCESS (session), "GDMSESSION", session_name); // FIXME: Not cross-desktop
+    session_set_env (session, "DESKTOP_SESSION", session_name); // FIXME: Apparently deprecated?
+    session_set_env (session, "GDMSESSION", session_name); // FIXME: Not cross-desktop
 
     process_set_log_file (PROCESS (session), log_filename);
 
@@ -461,21 +461,21 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     if (getuid () != 0)
     {
         if (g_getenv ("DBUS_SESSION_BUS_ADDRESS"))
-            process_set_env (PROCESS (session), "DBUS_SESSION_BUS_ADDRESS", g_getenv ("DBUS_SESSION_BUS_ADDRESS"));
-        process_set_env (PROCESS (session), "LDM_BUS", "SESSION");
+            session_set_env (session, "DBUS_SESSION_BUS_ADDRESS", g_getenv ("DBUS_SESSION_BUS_ADDRESS"));
+        session_set_env (session, "LDM_BUS", "SESSION");
         if (g_getenv ("LD_LIBRARY_PATH"))
-            process_set_env (PROCESS (session), "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+            session_set_env (session, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
         if (g_getenv ("PATH"))
-            process_set_env (PROCESS (session), "PATH", g_getenv ("PATH"));
+            session_set_env (session, "PATH", g_getenv ("PATH"));
     }
 
     /* Variables required for regression tests */
     if (g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"))
     {
-        process_set_env (PROCESS (session), "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
-        process_set_env (PROCESS (session), "LIGHTDM_TEST_CONFIG", g_getenv ("LIGHTDM_TEST_CONFIG"));
-        process_set_env (PROCESS (session), "LIGHTDM_TEST_HOME_DIR", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
-        process_set_env (PROCESS (session), "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+        session_set_env (session, "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
+        session_set_env (session, "LIGHTDM_TEST_CONFIG", g_getenv ("LIGHTDM_TEST_CONFIG"));
+        session_set_env (session, "LIGHTDM_TEST_HOME_DIR", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
+        session_set_env (session, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }
 
     return session;

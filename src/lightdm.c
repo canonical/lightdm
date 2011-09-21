@@ -471,11 +471,11 @@ start_session_cb (Display *display, Seat *seat)
     session = display_get_session (display);
 
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
-    process_set_env (PROCESS (session), "XDG_SEAT_PATH", seat_entry->path);
+    session_set_env (session, "XDG_SEAT_PATH", seat_entry->path);
 
     path = g_strdup_printf ("/org/freedesktop/DisplayManager/Session%d", session_index);
     session_index++;
-    process_set_env (PROCESS (session), "XDG_SESSION_PATH", path);
+    session_set_env (session, "XDG_SESSION_PATH", path);
     g_free (path);
 
     return FALSE;
@@ -503,7 +503,7 @@ session_started_cb (Display *display, Seat *seat)
     g_signal_connect (session, "stopped", G_CALLBACK (session_stopped_cb), seat);
 
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
-    entry = bus_entry_new (process_get_env (PROCESS (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL, "SessionRemoved");
+    entry = bus_entry_new (session_get_env (session, "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL, "SessionRemoved");
     g_hash_table_insert (session_bus_entries, g_object_ref (session), entry);
 
     g_debug ("Registering session with bus path %s", entry->path);
