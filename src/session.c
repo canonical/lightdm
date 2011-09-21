@@ -308,9 +308,11 @@ session_real_start (Session *session)
     result = process_start (PROCESS (session));
   
     if (!result)
+    {
         pam_session_close (session->priv->authentication);
-    if (getuid () == 0 && session->priv->console_kit_cookie)
-        ck_close_session (session->priv->console_kit_cookie);
+        if (getuid () == 0 && session->priv->console_kit_cookie)
+            ck_close_session (session->priv->console_kit_cookie);
+    }  
 
     return result;
 }
