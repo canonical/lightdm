@@ -210,6 +210,7 @@ pam_messages_cb (PAMSession *authentication, int num_msg, const struct pam_messa
     guint32 size;
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
+    int n_prompts = 0;
 
     /* Respond to d-bus query with messages */
     g_debug ("Prompt greeter with %d message(s)", num_msg);
@@ -225,8 +226,20 @@ pam_messages_cb (PAMSession *authentication, int num_msg, const struct pam_messa
     {
         write_int (message, MAX_MESSAGE_LENGTH, msg[i]->msg_style, &offset);
         write_string (message, MAX_MESSAGE_LENGTH, msg[i]->msg, &offset);
+
+        if (msg[i]->msg_style == PAM_PROMPT_ECHO_OFF || msg[i]->msg_style == PAM_PROMPT_ECHO_ON)
+            n_prompts++;
     }
-    write_message (greeter, message, offset);  
+    write_message (greeter, message, offset);
+
+    /* Continue immediately if nothing to respond with */
+    // FIXME: Should probably give the greeter a chance to ack the message
+    if (n_prompts == 0)
+    {
+        struct pam_response *response;
+        response = calloc (num_msg, sizeof (struct pam_response));
+        pam_session_respond (greeter->priv->authentication, response);
+    }
 }
 
 static void
@@ -325,7 +338,7 @@ handle_continue_authentication (Greeter *greeter, gchar **secrets)
     int num_messages;
     const struct pam_message **messages;
     struct pam_response *response;
-    int i, j, n_secrets = 0;
+    int i, j, n_prompts = 0;
 
     /* Not in authentication */
     if (greeter->priv->authentication == NULL)
@@ -339,9 +352,9 @@ handle_continue_authentication (Greeter *greeter, gchar **secrets)
     {
         int msg_style = messages[i]->msg_style;
         if (msg_style == PAM_PROMPT_ECHO_OFF || msg_style == PAM_PROMPT_ECHO_ON)
-            n_secrets++;
+            n_prompts++;
     }
-    if (g_strv_length (secrets) != n_secrets)
+    if (g_strv_length (secrets) != n_prompts)
     {
         pam_session_cancel (greeter->priv->authentication);
         return;
@@ -350,7 +363,7 @@ handle_continue_authentication (Greeter *greeter, gchar **secrets)
     g_debug ("Continue authentication");
 
     /* Build response */
-    response = calloc (num_messages, sizeof (struct pam_response));  
+    response = calloc (num_messages, sizeof (struct pam_response));
     for (i = 0, j = 0; i < num_messages; i++)
     {
         int msg_style = messages[i]->msg_style;

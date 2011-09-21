@@ -11,6 +11,7 @@ Overview of changes in lightdm 0.9.8
     * Add language selector into GTK greeter (disabled by default)
     * Allow TCP/IP connections if xserver-allow-tcp is true
     * Allow lightdm --version to be run as non-root
+    * Automatically respond to PAM messages without prompts
 
 Overview of changes in lightdm 0.9.7
 
