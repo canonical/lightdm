@@ -256,8 +256,6 @@ session_start (Session *session)
     session_set_env (session, "USERNAME", user_get_name (user)); // FIXME: Is this required?
     session_set_env (session, "HOME", user_get_home_directory (user));
     session_set_env (session, "SHELL", user_get_shell (user));
-    set_env_from_authentication (session, session->priv->authentication);
-    set_language (session);
 
     return SESSION_GET_CLASS (session)->start (session);
 }
@@ -293,7 +291,10 @@ session_real_start (Session *session)
     }
 
     pam_session_open (session->priv->authentication);
-  
+    set_env_from_authentication (session, session->priv->authentication);
+
+    set_language (session);
+
     /* Open ConsoleKit session */
     if (getuid () == 0)
     {
