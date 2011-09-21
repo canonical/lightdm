@@ -12,6 +12,7 @@ Overview of changes in lightdm 0.9.8
     * Allow TCP/IP connections if xserver-allow-tcp is true
     * Allow lightdm --version to be run as non-root
     * Automatically respond to PAM messages without prompts
+    * Create 'AddLocalXSeat' D-Bus method, and require root to use 'AddSeat'
 
 Overview of changes in lightdm 0.9.7
 

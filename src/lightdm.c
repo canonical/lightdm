@@ -270,6 +270,41 @@ handle_display_manager_call (GDBusConnection       *connection,
         else// FIXME: Need to make proper error
             g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Failed to start seat");
     }
+    else if (g_strcmp0 (method_name, "AddLocalXSeat") == 0)
+    {
+        gint display_number;
+        gchar *display_number_string;
+        Seat *seat;
+
+        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(i)")))
+            return;
+
+        g_variant_get (parameters, "(i)", &display_number);
+
+        g_debug ("Adding local X seat :%d", display_number);
+
+        seat = seat_new ("xremote");
+        display_number_string = g_strdup_printf ("%d", display_number);
+        seat_set_property (seat, "xserver-display-number", display_number_string);
+        g_free (display_number_string);
+
+        if (!seat)
+        {
+            // FIXME: Need to make proper error
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Unable to create local X seat");
+            return;
+        }
+
+        if (display_manager_add_seat (display_manager, seat))
+        {
+            BusEntry *entry;
+
+            entry = g_hash_table_lookup (seat_bus_entries, seat);
+            g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", entry->path));
+        }
+        else// FIXME: Need to make proper error
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Failed to start seat");
+    }
 }
 
 static GVariant *
@@ -563,6 +598,10 @@ bus_acquired_cb (GDBusConnection *connection,
         "    <method name='AddSeat'>"
         "      <arg name='type' direction='in' type='s'/>"
         "      <arg name='properties' direction='in' type='a(ss)'/>"
+        "      <arg name='seat' direction='out' type='o'/>"
+        "    </method>"
+        "    <method name='AddLocalXSeat'>"
+        "      <arg name='display-number' direction='in' type='i'/>"
         "      <arg name='seat' direction='out' type='o'/>"
         "    </method>"
         "    <signal name='SeatAdded'>"

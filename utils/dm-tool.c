@@ -38,24 +38,17 @@ xephyr_setup_cb (gpointer user_data)
 static void
 xephyr_signal_cb (int signum)
 {
-    gchar *display_number_string, *path;
-    GVariantBuilder *properties;
+    gchar *path;
     GVariant *result;
     GError *error = NULL;
 
-    properties = g_variant_builder_new (G_VARIANT_TYPE ("a(ss)"));
-    display_number_string = g_strdup_printf ("%d", xephyr_display_number);
-    g_variant_builder_add_value (properties, g_variant_new ("(ss)", "xserver-display-number", display_number_string));
-    g_free (display_number_string);
-
     result = g_dbus_proxy_call_sync (dm_proxy,
-                                     "AddSeat",
-                                     g_variant_new ("(sa(ss))", "xremote", properties),
+                                     "AddLocalXSeat",
+                                     g_variant_new ("(i)", xephyr_display_number),
                                      G_DBUS_CALL_FLAGS_NONE,
                                      -1,
                                      NULL,
                                      &error);
-    g_variant_builder_unref (properties);
     if (!result)
     {
         g_printerr ("Unable to add seat: %s\n", error->message);
@@ -110,6 +103,7 @@ main (int argc, char **argv)
                         "  switch-to-guest [SESSION]           Switch to a guest session\n"
                         "  list-seats                          List the active seats\n"
                         "  add-nested-seat                     Start a nested display\n"
+                        "  add-local-x-seat DISPLAY_NUMBER     Add a local X seat\n"
                         "  add-seat TYPE [NAME=VALUE...]       Add a dynamic seat\n");
             return EXIT_SUCCESS;
         }
@@ -398,6 +392,45 @@ main (int argc, char **argv)
         /* Block until ready */
         loop = g_main_loop_new (NULL, FALSE);
         g_main_loop_run (loop);
+    }
+    else if (strcmp (command, "add-local-x-seat") == 0)
+    {
+        GVariant *result;
+        gint display_number;
+        const gchar *path;
+
+        if (n_options != 1)
+        {
+            g_printerr ("Usage add-seat DISPLAY_NUMBER\n");
+            usage ();
+            return EXIT_FAILURE;
+        }
+
+        display_number = atoi (options[0]);
+
+        result = g_dbus_proxy_call_sync (dm_proxy,
+                                         "AddLocalXSeat",
+                                         g_variant_new ("(i)", display_number),
+                                         G_DBUS_CALL_FLAGS_NONE,
+                                         -1,
+                                         NULL,
+                                         &error);
+        if (!result)
+        {
+            g_printerr ("Unable to add local X seat: %s\n", error->message);
+            return EXIT_FAILURE;
+        }
+
+        if (!g_variant_is_of_type (result, G_VARIANT_TYPE ("(o)")))
+        {
+            g_printerr ("Unexpected response to AddLocalXSeat: %s\n", g_variant_get_type_string (result));
+            return EXIT_FAILURE;
+        }
+
+        g_variant_get (result, "(&o)", &path);
+        g_print ("%s\n", path);
+
+        return EXIT_SUCCESS; 
     }
     else if (strcmp (command, "add-seat") == 0)
     {
