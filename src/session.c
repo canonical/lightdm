@@ -236,9 +236,6 @@ session_start (Session *session)
     set_env_from_authentication (session, session->priv->authentication);
     set_language (session);
 
-    if (session->priv->console_kit_cookie)
-        process_set_env (PROCESS (session), "XDG_SESSION_COOKIE", session->priv->console_kit_cookie);
-
     return SESSION_GET_CLASS (session)->start (session);
 }
 
@@ -301,6 +298,9 @@ session_real_start (Session *session)
         g_free (session->priv->console_kit_cookie);
         session->priv->console_kit_cookie = g_strdup (g_getenv ("XDG_SESSION_COOKIE"));
     }
+
+    if (session->priv->console_kit_cookie)
+        process_set_env (PROCESS (session), "XDG_SESSION_COOKIE", session->priv->console_kit_cookie);
 
     user = pam_session_get_user (session->priv->authentication);
     process_set_user (PROCESS (session), user);
