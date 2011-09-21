@@ -16,6 +16,7 @@
 
 #include "xserver-xvnc.h"
 #include "configuration.h"
+#include "xserver-local.h"
 #include "process.h"
 
 struct XServerXVNCPrivate
@@ -35,37 +36,13 @@ struct XServerXVNCPrivate
 
 G_DEFINE_TYPE (XServerXVNC, xserver_xvnc, XSERVER_TYPE);
 
-static guint
-get_free_display_number (void)
-{
-    guint number;
-
-    number = config_get_integer (config_get_instance (), "LightDM", "minimum-display-number");
-    while (TRUE)
-    {
-        gchar *path;
-        gboolean result;
-  
-        path = g_strdup_printf ("/tmp/.X%d-lock", number);
-        result = g_file_test (path, G_FILE_TEST_EXISTS);
-        g_free (path);
-
-        if (!result)
-            break;
-
-        number++;
-    }
-  
-    return number;
-}
-
 XServerXVNC *
 xserver_xvnc_new (void)
 {
     XServerXVNC *self = g_object_new (XSERVER_XVNC_TYPE, NULL);
     gchar *name;
 
-    xserver_set_display_number (XSERVER (self), get_free_display_number ());
+    xserver_set_display_number (XSERVER (self), xserver_local_get_unused_display_number ());
 
     name = g_strdup_printf ("xvnc-%d", xserver_get_display_number (XSERVER (self)));
     display_server_set_name (DISPLAY_SERVER (self), name);
@@ -152,6 +129,8 @@ stopped_cb (Process *process, XServerXVNC *server)
 
     g_object_unref (server->priv->xserver_process);
     server->priv->xserver_process = NULL;
+
+    xserver_local_release_display_number (xserver_get_display_number (XSERVER (server)));
 
     path = g_file_get_path (server->priv->authority_file);
     g_debug ("Removing X server authority %s", path);

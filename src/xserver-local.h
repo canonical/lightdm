@@ -35,6 +35,10 @@ typedef struct
     void (*ready)(XServerLocal *server);
 } XServerLocalClass;
 
+guint xserver_local_get_unused_display_number (void);
+
+void xserver_local_release_display_number (guint display_number);
+
 GType xserver_local_get_type (void);
 
 XServerLocal *xserver_local_new (void);
