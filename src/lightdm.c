@@ -796,6 +796,13 @@ main (int argc, char **argv)
     }
     g_clear_error (&error);
 
+    if (show_version)
+    {
+        /* NOTE: Is not translated so can be easily parsed */
+        g_printerr ("lightdm %s\n", VERSION);
+        return EXIT_SUCCESS;
+    }
+
     if (config_path)
     {
         config_dir = g_path_get_basename (config_path);
@@ -835,13 +842,6 @@ main (int argc, char **argv)
     {
         g_printerr ("Only allowed to use --passwd-file when running with --no-root.\n"); 
         return EXIT_FAILURE;
-    }
-
-    if (show_version)
-    {
-        /* NOTE: Is not translated so can be easily parsed */
-        g_printerr ("lightdm %s\n", VERSION);
-        return EXIT_SUCCESS;
     }
 
     /* Write PID file */
