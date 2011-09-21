@@ -304,7 +304,6 @@ handle_display_manager_call (GDBusConnection       *connection,
     else if (g_strcmp0 (method_name, "AddLocalXSeat") == 0)
     {
         gint display_number;
-        gchar *display_number_string;
         Seat *seat;
 
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(i)")))
@@ -315,9 +314,15 @@ handle_display_manager_call (GDBusConnection       *connection,
         g_debug ("Adding local X seat :%d", display_number);
 
         seat = seat_new ("xremote");
-        display_number_string = g_strdup_printf ("%d", display_number);
-        seat_set_property (seat, "xserver-display-number", display_number_string);
-        g_free (display_number_string);
+        if (seat)
+        {
+            gchar *display_number_string;
+
+            set_seat_properties (seat, NULL);
+            display_number_string = g_strdup_printf ("%d", display_number);
+            seat_set_property (seat, "xserver-display-number", display_number_string);
+            g_free (display_number_string);
+        }
 
         if (!seat)
         {
