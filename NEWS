@@ -1,7 +1,8 @@
 Overview of changes in lightdm 0.9.8
 
-    * Remove GetSeatForCookie and GetSessionForCookie now XDG_SEAT_PATH and
-      XDG_SESSION_PATH exist.
+    * GetSeatForCookie and GetSessionForCookie are now deprecated.  They
+      remain for now but use the XDG_SEAT_PATH and XDG_SESSION_PATH
+      environment variables instead.
     * Change log filenames to be unique across different display types.
     * Fix up script hooks, add regression tests for them
     * Complete removal of X code from the core of LightDM, so it can better

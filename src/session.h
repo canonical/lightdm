@@ -61,6 +61,8 @@ const gchar *session_get_env (Session *session, const gchar *name);
 
 void session_set_console_kit_parameter (Session *session, const gchar *name, GVariant *value);
 
+const gchar *session_get_console_kit_cookie (Session *session);
+
 gboolean session_start (Session *session);
 
 void session_unlock (Session *session);

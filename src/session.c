@@ -167,6 +167,13 @@ session_set_console_kit_parameter (Session *session, const gchar *name, GVariant
     g_hash_table_insert (session->priv->console_kit_parameters, g_strdup (name), value);
 }
 
+const gchar *
+session_get_console_kit_cookie (Session *session)
+{
+    g_return_val_if_fail (session != NULL, NULL);
+    return session->priv->console_kit_cookie;
+}
+
 /* Set the LANG variable based on the chosen language.  This is not a great
  * solution, as it will override the language set in PAM (which is where it
  * should be set).  It's also overly simplistic to set all the locale
