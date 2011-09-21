@@ -245,6 +245,9 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, GFile *file, GError **error)
     gboolean result;
     gboolean matched = FALSE;
 
+    g_return_val_if_fail (auth != NULL, FALSE);
+    g_return_val_if_fail (file != NULL, FALSE);
+
     /* Read out existing records */
     if (mode != XAUTH_WRITE_MODE_SET)
     {
