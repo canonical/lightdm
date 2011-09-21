@@ -14,8 +14,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2011-09-20 05:14+0000\n"
-"X-Generator: Launchpad (build 13980)\n"
+"X-Launchpad-Export-Date: 2011-09-21 05:21+0000\n"
+"X-Generator: Launchpad (build 13996)\n"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:325
 msgid "Are you sure you want to close all programs and restart the computer?"
