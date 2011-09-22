@@ -326,6 +326,9 @@ session_real_start (Session *session)
     if (session->priv->console_kit_cookie)
         session_set_env (session, "XDG_SESSION_COOKIE", session->priv->console_kit_cookie);
 
+    if (!SESSION_GET_CLASS (session)->setup (session))
+        return FALSE;
+
     user = pam_session_get_user (session->priv->authentication);
     process_set_user (PROCESS (session), user);
     process_set_working_directory (PROCESS (session), user_get_home_directory (user));
@@ -353,13 +356,19 @@ void
 session_stop (Session *session)
 {
     g_return_if_fail (session != NULL);
-    SESSION_GET_CLASS (session)->stop (session);
+    SESSION_GET_CLASS (session)->cleanup (session);
+    process_signal (PROCESS (session), SIGTERM);
+}
+
+static gboolean
+session_setup (Session *session)
+{
+    return TRUE;
 }
 
 static void
-session_real_stop (Session *session)
+session_cleanup (Session *session)
 {
-    process_signal (PROCESS (session), SIGTERM);
 }
 
 static void
@@ -417,7 +426,8 @@ session_class_init (SessionClass *klass)
     ProcessClass *process_class = PROCESS_CLASS (klass);
 
     klass->start = session_real_start;
-    klass->stop = session_real_stop;
+    klass->setup = session_setup;
+    klass->cleanup = session_cleanup;
     process_class->run = session_run;
     process_class->stopped = session_stopped;
     object_class->finalize = session_finalize;

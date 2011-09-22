@@ -36,7 +36,8 @@ typedef struct
     ProcessClass parent_class;
 
     gboolean (*start)(Session *session);
-    void     (*stop)(Session *session);
+    gboolean (*setup)(Session *session);
+    void     (*cleanup)(Session *session);
 } SessionClass;
 
 GType session_get_type (void);

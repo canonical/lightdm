@@ -59,6 +59,16 @@ xsession_start (Session *session)
         session_set_console_kit_parameter (session, "is-local", g_variant_new_boolean (FALSE));
     }
 
+    session_set_env (session, "DISPLAY", xserver_get_address (xsession->priv->xserver));
+
+    return SESSION_CLASS (xsession_parent_class)->start (session);
+}
+
+static gboolean
+xsession_setup (Session *session)
+{
+    XSession *xsession = XSESSION (session);
+
     if (xserver_get_authority (xsession->priv->xserver))
     {
         gchar *path;
@@ -108,9 +118,7 @@ xsession_start (Session *session)
             return FALSE;
     }
 
-    session_set_env (session, "DISPLAY", xserver_get_address (xsession->priv->xserver));
-
-    return SESSION_CLASS (xsession_parent_class)->start (session);
+    return SESSION_CLASS (xsession_parent_class)->setup (session);  
 }
 
 static void
@@ -139,10 +147,10 @@ xsession_remove_authority (XSession *session)
 }
 
 static void
-xsession_stop (Session *session)
+xsession_cleanup (Session *session)
 {
     xsession_remove_authority (XSESSION (session));
-    SESSION_CLASS (xsession_parent_class)->stop (session);
+    SESSION_CLASS (xsession_parent_class)->cleanup (session);
 }
 
 static void
@@ -172,7 +180,8 @@ xsession_class_init (XSessionClass *klass)
     SessionClass *session_class = SESSION_CLASS (klass);
 
     session_class->start = xsession_start;
-    session_class->stop = xsession_stop;
+    session_class->setup = xsession_setup;
+    session_class->cleanup = xsession_cleanup;
     object_class->finalize = xsession_finalize;
 
     g_type_class_add_private (klass, sizeof (XSessionPrivate));
