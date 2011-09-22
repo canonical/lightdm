@@ -17,6 +17,7 @@ Overview of changes in lightdm 0.9.8
     * Fix multi-seat configuration picking the same display number
     * Use correct D-Bus and power interface in liblightdm-qt
     * Run pam_setcred inside the session process so pam_group works
+    * Make sure one session is always selected in the GTK greeter
 
 Overview of changes in lightdm 0.9.7
 

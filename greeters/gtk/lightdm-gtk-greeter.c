@@ -70,7 +70,13 @@ set_session (const gchar *session)
     /* If failed to find this session, then try the default */
     default_session = lightdm_greeter_get_default_session_hint (greeter);
     if (default_session && g_strcmp0 (session, default_session) != 0)
+    {
         set_session (lightdm_greeter_get_default_session_hint (greeter));
+        return;
+    }
+
+    /* Otherwise just pick the first session */
+    gtk_combo_box_set_active (session_combo, 0);
 }
 
 static gchar *
