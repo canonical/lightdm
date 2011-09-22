@@ -149,19 +149,24 @@ pam_session_open (PAMSession *session)
                  session->priv->pam_handle,
                  result,
                  pam_strerror (session->priv->pam_handle, result));
-
-        if (result == PAM_SUCCESS)
-        {          
-            result = pam_setcred (session->priv->pam_handle, PAM_ESTABLISH_CRED);
-            g_debug ("pam_setcred(%p, PAM_ESTABLISH_CRED) -> %d (%s)",
-                     session->priv->pam_handle,
-                     result,
-                     pam_strerror (session->priv->pam_handle, result));
-        }
     }
 
     g_signal_emit (G_OBJECT (session), signals[STARTED], 0);
-  
+
+    return result == PAM_SUCCESS;
+}
+
+gboolean
+pam_session_setup (PAMSession *session)
+{
+    int result;
+
+    result = pam_setcred (session->priv->pam_handle, PAM_ESTABLISH_CRED);
+    g_debug ("pam_setcred(%p, PAM_ESTABLISH_CRED) -> %d (%s)",
+             session->priv->pam_handle,
+             result,
+             pam_strerror (session->priv->pam_handle, result));
+
     return result == PAM_SUCCESS;
 }
 

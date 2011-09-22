@@ -56,6 +56,8 @@ gboolean pam_session_set_item (PAMSession *session, int item_type, const gchar *
 
 gboolean pam_session_open (PAMSession *session);
 
+gboolean pam_session_setup (PAMSession *session);
+
 gboolean pam_session_get_in_session (PAMSession *session);
 
 const gchar *pam_session_strerror (PAMSession *session, int error);

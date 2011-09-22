@@ -184,25 +184,6 @@ process_watch_cb (GPid pid, gint status, gpointer data)
 }
 
 static void
-process_run (Process *process)
-{
-    gint argc;
-    gchar **argv;
-    GError *error = NULL;
-
-    if (!g_shell_parse_argv (process->priv->command, &argc, &argv, &error))
-    {
-        g_warning ("Error parsing command %s: %s", process->priv->command, error->message);
-        _exit (EXIT_FAILURE);
-    }
-
-    execvp (argv[0], argv);
-
-    g_warning ("Error executing child process %s: %s", argv[0], g_strerror (errno));
-    _exit (EXIT_FAILURE);
-}
-
-static void
 run (Process *process)
 {
     GHashTableIter iter;
@@ -227,18 +208,6 @@ run (Process *process)
             if (initgroups (user_get_name (process->priv->user), user_get_gid (process->priv->user)) < 0)
             {
                 g_warning ("Failed to initialize supplementary groups for %s: %s", user_get_name (process->priv->user), strerror (errno));
-                _exit (EXIT_FAILURE);
-            }
-
-            if (setgid (user_get_gid (process->priv->user)) != 0)
-            {
-                g_warning ("Failed to set group ID to %d: %s", user_get_gid (process->priv->user), strerror (errno));
-                _exit (EXIT_FAILURE);
-            }
-
-            if (setuid (user_get_uid (process->priv->user)) != 0)
-            {
-                g_warning ("Failed to set user ID to %d: %s", user_get_uid (process->priv->user), strerror (errno));
                 _exit (EXIT_FAILURE);
             }
         }
@@ -267,6 +236,41 @@ run (Process *process)
     }
 
     g_signal_emit (process, signals[RUN], 0); 
+}
+
+static void
+process_run (Process *process)
+{
+    gint argc;
+    gchar **argv;
+    GError *error = NULL;
+
+    if (!g_shell_parse_argv (process->priv->command, &argc, &argv, &error))
+    {
+        g_warning ("Error parsing command %s: %s", process->priv->command, error->message);
+        _exit (EXIT_FAILURE);
+    }
+
+    /* Drop privileges */
+    if (process->priv->user && getuid () == 0)
+    {
+        if (setgid (user_get_gid (process->priv->user)) != 0)
+        {
+            g_warning ("Failed to set group ID to %d: %s", user_get_gid (process->priv->user), strerror (errno));
+            _exit (EXIT_FAILURE);
+        }
+
+        if (setuid (user_get_uid (process->priv->user)) != 0)
+        {
+            g_warning ("Failed to set user ID to %d: %s", user_get_uid (process->priv->user), strerror (errno));
+            _exit (EXIT_FAILURE);
+        }
+    }
+  
+    execvp (argv[0], argv);
+
+    g_warning ("Error executing child process %s: %s", argv[0], g_strerror (errno));
+    _exit (EXIT_FAILURE);
 }
 
 gboolean

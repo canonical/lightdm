@@ -16,6 +16,7 @@ Overview of changes in lightdm 0.9.8
     * Create 'AddLocalXSeat' D-Bus method, and require root to use 'AddSeat'
     * Fix multi-seat configuration picking the same display number
     * Use correct D-Bus and power interface in liblightdm-qt
+    * Run pam_setcred inside the session process so pam_group works
 
 Overview of changes in lightdm 0.9.7
 

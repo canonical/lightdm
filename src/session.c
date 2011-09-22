@@ -374,12 +374,16 @@ session_cleanup (Session *session)
 static void
 session_run (Process *process)
 {
+    Session *session = SESSION (process);
     int fd;
 
     /* Make input non-blocking */
     fd = g_open ("/dev/null", O_RDONLY);
     dup2 (fd, STDIN_FILENO);
     close (fd);
+
+    /* Do PAM actions requiring session process */
+    pam_session_setup (session->priv->authentication);
 
     PROCESS_CLASS (session_parent_class)->run (process);
 }
