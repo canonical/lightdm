@@ -26,14 +26,14 @@ static QDBusInterface* consoleKitInterface = NULL;
 static bool setupPowerManagementInterface ()
 {
     if (!powerManagementInterface)
-        powerManagementInterface = new QDBusInterface("org.freedesktop.PowerManagement","/org/freedesktop/PowerManagement", "org.freedesktop.PowerManagement");
+        powerManagementInterface = new QDBusInterface("org.freedesktop.UPower","/org/freedesktop/UPower", "org.freedesktop.UPower", QDBusConnection::systemBus());
     return powerManagementInterface != NULL;
 }
 
 static bool setupConsoleKitInterface ()
 {
     if (!consoleKitInterface)
-        consoleKitInterface = new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit");
+        consoleKitInterface = new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit.Manager", QDBusConnection::systemBus());
     return consoleKitInterface != NULL;
 }
 
@@ -42,7 +42,7 @@ bool QLightDM::canSuspend()
     if (!setupPowerManagementInterface())
         return false;
 
-    QDBusReply<bool> reply = powerManagementInterface->call("CanSuspend");
+    QDBusReply<bool> reply = powerManagementInterface->call("SuspendAllowed");
     if (reply.isValid())
         return reply.value();
     else
@@ -60,7 +60,7 @@ bool QLightDM::canHibernate()
     if (!setupPowerManagementInterface())
         return false;
 
-    QDBusReply<bool> reply = powerManagementInterface->call("CanHibernate");
+    QDBusReply<bool> reply = powerManagementInterface->call("HibernateAllowed");
     if (reply.isValid())
         return reply.value();
     else
@@ -88,7 +88,7 @@ bool QLightDM::canShutdown()
 void QLightDM::shutdown()
 {
     if (setupConsoleKitInterface())
-        consoleKitInterface->call("stop");
+        consoleKitInterface->call("Stop");
 }
 
 bool QLightDM::canRestart()
