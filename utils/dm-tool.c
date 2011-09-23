@@ -144,6 +144,12 @@ main (int argc, char **argv)
         return EXIT_FAILURE;
     }
     g_clear_error (&error);
+  
+    if (!g_getenv ("XDG_SEAT_PATH"))
+    {
+        g_printerr ("Not running inside a display manager, XDG_SEAT_PATH not defined\n");
+        return EXIT_FAILURE;
+    }
 
     seat_proxy = g_dbus_proxy_new_for_bus_sync (bus_type,
                                                 G_DBUS_PROXY_FLAGS_NONE,
@@ -467,7 +473,7 @@ main (int argc, char **argv)
             g_variant_builder_add_value (properties, g_variant_new ("(ss)", name, value));
             g_free (property);
         }
-
+      
         result = g_dbus_proxy_call_sync (dm_proxy,
                                          "AddSeat",
                                          g_variant_new ("(sa(ss))", type, properties),
