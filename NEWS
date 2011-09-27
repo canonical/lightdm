@@ -1,3 +1,7 @@
+Overview of changes in lightdm 0.9.9
+
+    * Explicitly grab keyboard focus in GTK greeter
+
 Overview of changes in lightdm 0.9.8
 
     * GetSeatForCookie and GetSessionForCookie are now deprecated.  They

@@ -885,7 +885,8 @@ main (int argc, char **argv)
     gtk_window_resize (panel_window, monitor_geometry.width, allocation.height);
     gtk_window_move (panel_window, monitor_geometry.x, monitor_geometry.y);
 
-    gtk_window_present (login_window);
+    gtk_widget_show (GTK_WIDGET (login_window));
+    gdk_window_focus (gtk_widget_get_window (GTK_WIDGET (login_window)), GDK_CURRENT_TIME);
 
     gtk_main ();
 
