@@ -1,6 +1,7 @@
 Overview of changes in lightdm 0.9.9
 
     * Explicitly grab keyboard focus in GTK greeter
+    * Fix removed power and a11y menu items in GTK greeter
 
 Overview of changes in lightdm 0.9.8
 
