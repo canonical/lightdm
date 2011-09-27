@@ -80,6 +80,7 @@ lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
 	$(WARN_CFLAGS) \
 	-DPKGLIBEXEC_DIR=\"$(pkglibexecdir)\" \
+	-DSBIN_DIR=\"$(sbindir)\" \
 	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\" \
 	-DLOG_DIR=\"$(localstatedir)/log/lightdm\" \
 	-DRUN_DIR=\"$(localstatedir)/run/lightdm\" \

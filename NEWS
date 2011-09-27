@@ -2,6 +2,7 @@ Overview of changes in lightdm 0.9.9
 
     * Explicitly grab keyboard focus in GTK greeter
     * Fix removed power and a11y menu items in GTK greeter
+    * Put system binary directory into path when running in test mode
 
 Overview of changes in lightdm 0.9.8
 

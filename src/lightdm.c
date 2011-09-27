@@ -968,6 +968,20 @@ main (int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    /* Make sure the system binary directory (where the greeters are installed) is in the path */
+    if (test_mode)
+    {
+        const gchar *path = g_getenv ("PATH");
+        gchar *new_path;
+
+        if (path)
+            new_path = g_strdup_printf ("%s:%s", path, SBIN_DIR);
+        else
+            new_path = g_strdup (SBIN_DIR);
+        g_setenv ("PATH", new_path, TRUE);
+        g_free (new_path);
+    }
+
     /* Write PID file */
     pid_file = fopen (pid_path, "w");
     if (pid_file)
