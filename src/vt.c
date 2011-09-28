@@ -71,7 +71,7 @@ vt_set_active (gint number)
     gint console_fd;
 
     g_debug ("Activating VT %d", number);
-  
+
     /* Pretend always active */
     if (getuid () != 0)
         return;   
