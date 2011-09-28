@@ -89,6 +89,7 @@ dmrc_save (GKeyFile *dmrc_file, const gchar *username)
         drop_privileges = geteuid () == 0;
         if (drop_privileges)
             privileges_drop (user);
+        g_debug ("Writing %s", path);
         g_file_set_contents (path, data, length, NULL);
         if (drop_privileges)
             privileges_reclaim ();
