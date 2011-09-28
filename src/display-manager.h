@@ -33,7 +33,6 @@ typedef struct
 {
     GObjectClass parent_class;
 
-    void (*started)(DisplayManager *manager);
     void (*seat_added)(DisplayManager *manager, Seat *seat);
     void (*seat_removed)(DisplayManager *manager, Seat *seat);
     void (*stopped)(DisplayManager *manager);

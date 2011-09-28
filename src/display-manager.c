@@ -23,7 +23,6 @@
 #include "plymouth.h"
 
 enum {
-    STARTED,
     SEAT_ADDED,
     SEAT_REMOVED,
     STOPPED,
@@ -109,8 +108,6 @@ display_manager_start (DisplayManager *manager)
         g_debug ("Stopping Plymouth, no displays replace it");      
         plymouth_quit (FALSE);
     }
-
-    g_signal_emit (manager, signals[STARTED], 0);
 }
 
 void
@@ -169,14 +166,6 @@ display_manager_class_init (DisplayManagerClass *klass)
 
     g_type_class_add_private (klass, sizeof (DisplayManagerPrivate));
 
-    signals[STARTED] =
-        g_signal_new ("started",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (DisplayManagerClass, started),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
     signals[SEAT_ADDED] =
         g_signal_new ("seat-added",
                       G_TYPE_FROM_CLASS (klass),

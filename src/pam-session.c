@@ -17,7 +17,6 @@
 
 enum {
     AUTHENTICATION_STARTED,
-    STARTED,
     GOT_MESSAGES,
     AUTHENTICATION_RESULT,
     LAST_SIGNAL
@@ -150,8 +149,6 @@ pam_session_open (PAMSession *session)
                  result,
                  pam_strerror (session->priv->pam_handle, result));
     }
-
-    g_signal_emit (G_OBJECT (session), signals[STARTED], 0);
 
     return result == PAM_SUCCESS;
 }
@@ -589,15 +586,6 @@ pam_session_class_init (PAMSessionClass *klass)
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (PAMSessionClass, authentication_started),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
-
-    signals[STARTED] =
-        g_signal_new ("started",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (PAMSessionClass, started),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
