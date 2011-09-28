@@ -3,6 +3,7 @@ Overview of changes in lightdm 1.0.0
     * Explicitly grab keyboard focus in GTK greeter
     * Fix removed power and a11y menu items in GTK greeter
     * Put system binary directory into path when running in test mode
+    * Call pam_getenvlist after pam_setcred
 
 Overview of changes in lightdm 0.9.8
 
