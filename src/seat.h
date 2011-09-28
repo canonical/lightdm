@@ -42,7 +42,6 @@ typedef struct
     void (*run_script)(Seat *seat, Display *display, Process *script);
     void (*stop)(Seat *seat);
 
-    void (*started)(Seat *seat);
     void (*display_added)(Seat *seat, Display *display);
     void (*display_removed)(Seat *seat, Display *display);
     void (*stopped)(Seat *seat);

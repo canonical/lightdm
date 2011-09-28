@@ -17,7 +17,6 @@
 #include "guest-account.h"
 
 enum {
-    STARTED,
     DISPLAY_ADDED,
     DISPLAY_REMOVED,
     STOPPED,
@@ -236,42 +235,46 @@ display_get_guest_username_cb (Display *display, Seat *seat)
 static gboolean
 run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
 {
-    Process *process;
+    Process *script;
     gboolean result = FALSE;
+  
+    script = process_new ();
 
-    process = process_new ();
-    process_set_command (process, script_name);
-    process_set_env (process, "SHELL", "/bin/sh");
-    process_set_env (process, "PATH", "/usr/local/bin:/usr/bin:/bin");
-    if (user)
-    {
-        process_set_env (process, "USER", user_get_name (user));
-        process_set_env (process, "USERNAME", user_get_name (user));
-        process_set_env (process, "LOGNAME", user_get_name (user));
-        process_set_env (process, "HOME", user_get_home_directory (user));
-    }
-    else
-        process_set_env (process, "HOME", "/");
+    process_set_command (script, script_name);
+    process_set_clear_environment (script, TRUE);
+    process_set_env (script, "SHELL", "/bin/sh");
 
     /* Variables required for regression tests */
     if (g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"))
     {
-        process_set_env (process, "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
-        process_set_env (process, "LIGHTDM_TEST_CONFIG", g_getenv ("LIGHTDM_TEST_CONFIG"));
-        process_set_env (process, "LIGHTDM_TEST_HOME_DIR", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
-        process_set_env (process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
-        process_set_env (process, "PATH", g_getenv ("PATH"));
+        process_set_env (script, "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
+        process_set_env (script, "LIGHTDM_TEST_CONFIG", g_getenv ("LIGHTDM_TEST_CONFIG"));
+        process_set_env (script, "LIGHTDM_TEST_HOME_DIR", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
+        process_set_env (script, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+        process_set_env (script, "PATH", g_getenv ("PATH"));
     }
+    else
+        process_set_env (script, "PATH", "/usr/local/bin:/usr/bin:/bin");
 
-    SEAT_GET_CLASS (seat)->run_script (seat, display, process);
+    if (user)
+    {
+        process_set_env (script, "USER", user_get_name (user));
+        process_set_env (script, "USERNAME", user_get_name (user));
+        process_set_env (script, "LOGNAME", user_get_name (user));
+        process_set_env (script, "HOME", user_get_home_directory (user));
+    }
+    else
+        process_set_env (script, "HOME", "/");
 
-    if (process_start (process))
+    SEAT_GET_CLASS (seat)->run_script (seat, display, script);
+
+    if (process_start (script))
     {
         int exit_status;
 
-        process_wait (process);
+        process_wait (script);
 
-        exit_status = process_get_exit_status (process);
+        exit_status = process_get_exit_status (script);
         if (WIFEXITED (exit_status))
         {
             g_debug ("Exit status of %s: %d", script_name, WEXITSTATUS (exit_status));
@@ -279,7 +282,7 @@ run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
         }
     }
 
-    g_object_unref (process);
+    g_object_unref (script);
 
     return result;
 }
@@ -650,14 +653,6 @@ seat_class_init (SeatClass *klass)
 
     g_type_class_add_private (klass, sizeof (SeatPrivate));
 
-    signals[STARTED] =
-        g_signal_new ("started",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (SeatClass, started),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
     signals[DISPLAY_ADDED] =
         g_signal_new ("display-added",
                       G_TYPE_FROM_CLASS (klass),

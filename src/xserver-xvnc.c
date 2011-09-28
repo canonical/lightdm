@@ -13,6 +13,8 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <glib/gstdio.h>
 
 #include "xserver-xvnc.h"
 #include "configuration.h"
@@ -23,6 +25,9 @@ struct XServerXVNCPrivate
 {
     /* X server process */
     Process *xserver_process;
+  
+    /* File to log to */
+    gchar *log_file;  
 
     /* Authority file */
     GFile *authority_file;
@@ -102,6 +107,22 @@ run_cb (Process *process, XServerXVNC *server)
     /* Connect input */
     dup2 (server->priv->stdin_fd, STDIN_FILENO);
 
+    /* Redirect output to logfile */
+    if (server->priv->log_file)
+    {
+         int fd;
+
+         fd = g_open (server->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+         if (fd < 0)
+             g_warning ("Failed to open log file %s: %s", server->priv->log_file, g_strerror (errno));
+         else
+         {
+             dup2 (fd, STDOUT_FILENO);
+             dup2 (fd, STDERR_FILENO);
+             close (fd);
+         }
+    }
+
     /* Set SIGUSR1 to ignore so the X server can indicate it when it is ready */
     signal (SIGUSR1, SIG_IGN);
 }
@@ -161,6 +182,7 @@ xserver_xvnc_start (DisplayServer *display_server)
     server->priv->got_signal = FALSE;
 
     server->priv->xserver_process = process_new ();
+    process_set_clear_environment (server->priv->xserver_process, TRUE);
     g_signal_connect (server->priv->xserver_process, "run", G_CALLBACK (run_cb), server);  
     g_signal_connect (server->priv->xserver_process, "got-signal", G_CALLBACK (got_signal_cb), server);
     g_signal_connect (server->priv->xserver_process, "stopped", G_CALLBACK (stopped_cb), server);
@@ -168,12 +190,10 @@ xserver_xvnc_start (DisplayServer *display_server)
     /* Setup logging */
     filename = g_strdup_printf ("%s.log", display_server_get_name (display_server));
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    path = g_build_filename (dir, filename, NULL);
-    g_debug ("Logging to %s", path);
-    process_set_log_file (server->priv->xserver_process, path);
+    server->priv->log_file = g_build_filename (dir, filename, NULL);
+    g_debug ("Logging to %s", server->priv->log_file);
     g_free (filename);
     g_free (dir);
-    g_free (path);
 
     absolute_command = get_absolute_command ("Xvnc");
     if (!absolute_command)
@@ -219,7 +239,6 @@ xserver_xvnc_start (DisplayServer *display_server)
 
     g_debug ("Launching Xvnc server");
 
-    process_set_user (server->priv->xserver_process, accounts_get_current_user ());
     result = process_start (server->priv->xserver_process);
 
     if (result)
@@ -254,6 +273,7 @@ xserver_xvnc_finalize (GObject *object)
         g_object_unref (self->priv->xserver_process);
     if (self->priv->authority_file)
         g_object_unref (self->priv->authority_file);
+    g_free (self->priv->log_file);
 
     G_OBJECT_CLASS (xserver_xvnc_parent_class)->finalize (object);
 }

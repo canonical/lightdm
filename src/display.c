@@ -23,7 +23,6 @@
 
 enum {
     CREATE_SESSION,
-    STARTED,
     READY,
     SWITCH_TO_USER,
     SWITCH_TO_GUEST,
@@ -455,7 +454,7 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     session_set_env (session, "DESKTOP_SESSION", session_name); // FIXME: Apparently deprecated?
     session_set_env (session, "GDMSESSION", session_name); // FIXME: Not cross-desktop
 
-    process_set_log_file (PROCESS (session), log_filename);
+    session_set_log_file (session, log_filename);
 
     /* Connect using the session bus */
     if (getuid () != 0)
@@ -538,6 +537,27 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session_name, Display *
     return TRUE;
 }
 
+static void
+greeter_pam_messages_cb (PAMSession *authentication, int num_msg, const struct pam_message **msg, Display *display)
+{
+    g_debug ("Greeter user got prompt, aborting authentication");
+    pam_session_cancel (authentication);
+}
+
+static void
+greeter_authentication_result_cb (PAMSession *authentication, int result, Display *display)
+{
+    gboolean start_result = FALSE;
+
+    if (result == PAM_SUCCESS)
+        g_signal_emit (display, signals[START_GREETER], 0, &start_result);
+    else
+        g_debug ("Greeter user failed authentication");
+
+    if (start_result)
+        display_stop (display);
+}
+
 static gboolean
 start_greeter_session (Display *display)
 {
@@ -545,6 +565,7 @@ start_greeter_session (Display *display)
     gchar *log_dir, *filename, *log_filename;
     PAMSession *authentication;
     gboolean result;
+    GError *error = NULL;
 
     g_debug ("Starting greeter session");
 
@@ -575,8 +596,11 @@ start_greeter_session (Display *display)
     log_filename = g_build_filename (log_dir, filename, NULL);
     g_free (log_dir);
     g_free (filename);
-
-    authentication = pam_session_new (display->priv->pam_service, user_get_name (user));
+  
+    /* Authenticate as the requested user */
+    authentication = pam_session_new (display->priv->pam_autologin_service, user_get_name (user));
+    g_signal_connect (G_OBJECT (authentication), "got-messages", G_CALLBACK (greeter_pam_messages_cb), display);
+    g_signal_connect (G_OBJECT (authentication), "authentication-result", G_CALLBACK (greeter_authentication_result_cb), display);
     g_object_unref (user);
 
     display->priv->session = create_session (display, authentication, display->priv->greeter_session, TRUE, log_filename);
@@ -609,9 +633,12 @@ start_greeter_session (Display *display)
     greeter_set_hint (display->priv->greeter, "has-guest-account", display->priv->allow_guest ? "true" : "false");
     greeter_set_hint (display->priv->greeter, "hide-users", display->priv->greeter_hide_users ? "true" : "false");
 
-    g_signal_emit (display, signals[START_GREETER], 0, &result);
+    result = pam_session_authenticate (session_get_authentication (display->priv->session), &error);
+    if (error)
+        g_debug ("Error authenticating greeter user: %s", error->message);
+    g_clear_error (&error);
 
-    return !result;
+    return result;
 }
 
 static gboolean
@@ -746,8 +773,6 @@ display_start (Display *display)
     if (!display_server_start (display->priv->display_server))
         return FALSE;
 
-    g_signal_emit (display, signals[STARTED], 0);
-
     return TRUE;
 }
 
@@ -766,9 +791,7 @@ display_stop (Display *display)
             display_server_stop (display->priv->display_server);
         if (display->priv->session)
         {
-            if (process_get_is_running (PROCESS (display->priv->session)))
-                session_stop (display->priv->session);
-            else
+            if (session_stop (display->priv->session))
             {
                 g_object_unref (display->priv->session);
                 display->priv->session = NULL;
@@ -872,14 +895,6 @@ display_class_init (DisplayClass *klass)
                       NULL, NULL,
                       ldm_marshal_OBJECT__VOID,
                       SESSION_TYPE, 0);
-    signals[STARTED] =
-        g_signal_new ("started",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (DisplayClass, started),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
-                      G_TYPE_NONE, 0);
     signals[READY] =
         g_signal_new ("ready",
                       G_TYPE_FROM_CLASS (klass),

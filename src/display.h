@@ -41,7 +41,6 @@ typedef struct
     gboolean (*start_greeter)(Display *display);
     gboolean (*start_session)(Display *display);
     Session *(*create_session) (Display *display);
-    void (*started)(Display *display);
     void (*ready)(Display *display);
     gboolean (*switch_to_user)(Display *display, User *user);
     gboolean (*switch_to_guest)(Display *display);

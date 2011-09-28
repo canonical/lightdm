@@ -13,8 +13,6 @@
 #define _PROCESS_H_
 
 #include <glib-object.h>
-#include "process.h"
-#include "accounts.h"
 
 G_BEGIN_DECLS
 
@@ -35,7 +33,6 @@ typedef struct
 {
     GObjectClass parent_class;
     void (*run)(Process *process);
-    void (*started)(Process *process);
     void (*got_data)(Process *process);
     void (*got_signal)(Process *process, int signum);
     void (*stopped)(Process *process);
@@ -47,25 +44,17 @@ Process *process_get_current (void);
 
 Process *process_new (void);
 
-void process_set_command (Process *process, const gchar *command);
+void process_set_clear_environment (Process *process, gboolean clear_environment);
 
-const gchar *process_get_command (Process *process);
-
-void process_set_log_file (Process *process, const gchar *log_file);
-
-const gchar *process_get_log_file (Process *process);
-
-void process_set_working_directory (Process *process, const gchar *working_directory);
-
-const gchar *process_get_working_directory (Process *process);
-
-void process_set_user (Process *process, User *user);
-
-User *process_get_user (Process *process);
+gboolean process_get_clear_environment (Process *process);
 
 void process_set_env (Process *process, const gchar *name, const gchar *value);
 
 const gchar *process_get_env (Process *process, const gchar *name);
+
+void process_set_command (Process *process, const gchar *command);
+
+const gchar *process_get_command (Process *process);
 
 gboolean process_start (Process *process);
 

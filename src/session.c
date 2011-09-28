@@ -23,6 +23,9 @@
 
 struct SessionPrivate
 {
+    /* File to log to */
+    gchar *log_file;
+
     /* Authentication for this session */
     PAMSession *authentication;
 
@@ -40,6 +43,21 @@ struct SessionPrivate
 };
 
 G_DEFINE_TYPE (Session, session, PROCESS_TYPE);
+
+void
+session_set_log_file (Session *session, const gchar *filename)
+{
+    g_return_if_fail (session != NULL);
+    g_free (session->priv->log_file);
+    session->priv->log_file = g_strdup (filename);
+}
+
+const gchar *
+session_get_log_file (Session *session)
+{
+    g_return_val_if_fail (session != NULL, NULL);
+    return session->priv->log_file;
+}
 
 void
 session_set_authentication (Session *session, PAMSession *authentication)
@@ -195,7 +213,7 @@ set_language (Session *session)
     language = user_get_language (user);
     if (!language)
         return;
-  
+
     language_dot = g_strdup_printf ("%s.", language);
 
     /* Find a locale that matches the language code */
@@ -263,7 +281,6 @@ session_start (Session *session)
 static gboolean
 session_real_start (Session *session)
 {
-    User *user;
     gboolean result;
     gchar *absolute_command;
     const gchar *orig_path;
@@ -291,9 +308,6 @@ session_real_start (Session *session)
     }
 
     pam_session_open (session->priv->authentication);
-    set_env_from_authentication (session, session->priv->authentication);
-
-    set_language (session);
 
     /* Open ConsoleKit session */
     if (getuid () == 0)
@@ -329,9 +343,6 @@ session_real_start (Session *session)
     if (!SESSION_GET_CLASS (session)->setup (session))
         return FALSE;
 
-    user = pam_session_get_user (session->priv->authentication);
-    process_set_user (PROCESS (session), user);
-    process_set_working_directory (PROCESS (session), user_get_home_directory (user));
     result = process_start (PROCESS (session));
   
     if (!result)
@@ -352,12 +363,18 @@ session_unlock (Session *session)
         ck_unlock_session (session->priv->console_kit_cookie);
 }
 
-void
+gboolean
 session_stop (Session *session)
 {
-    g_return_if_fail (session != NULL);
+    g_return_val_if_fail (session != NULL, TRUE);
+
+    if (!process_get_is_running (PROCESS (session)))
+        return TRUE;
+
     SESSION_GET_CLASS (session)->cleanup (session);
     process_signal (PROCESS (session), SIGTERM);
+
+    return FALSE;
 }
 
 static gboolean
@@ -375,6 +392,7 @@ static void
 session_run (Process *process)
 {
     Session *session = SESSION (process);
+    User *user;
     int fd;
 
     /* Make input non-blocking */
@@ -382,8 +400,61 @@ session_run (Process *process)
     dup2 (fd, STDIN_FILENO);
     close (fd);
 
+    /* Redirect output to logfile */
+    if (session->priv->log_file)
+    {
+         int fd;
+
+         fd = g_open (session->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+         if (fd < 0)
+             g_warning ("Failed to open log file %s: %s", session->priv->log_file, g_strerror (errno));
+         else
+         {
+             dup2 (fd, STDOUT_FILENO);
+             dup2 (fd, STDERR_FILENO);
+             close (fd);
+         }
+    }
+
+    /* Make this process its own session */
+    if (setsid () < 0)
+        g_warning ("Failed to make process a new session: %s", strerror (errno));
+
+    user = pam_session_get_user (session->priv->authentication);
+
+    /* Change working directory */
+    if (chdir (user_get_home_directory (user)) != 0)
+    {
+        g_warning ("Failed to change to home directory %s: %s", user_get_home_directory (user), strerror (errno));
+        _exit (EXIT_FAILURE);
+    }
+
+    /* Change to this user */
+    if (getuid () == 0)
+    {
+        if (initgroups (user_get_name (user), user_get_gid (user)) < 0)
+        {
+            g_warning ("Failed to initialize supplementary groups for %s: %s", user_get_name (user), strerror (errno));
+            _exit (EXIT_FAILURE);
+        }
+
+        if (setgid (user_get_gid (user)) != 0)
+        {
+            g_warning ("Failed to set group ID to %d: %s", user_get_gid (user), strerror (errno));
+            _exit (EXIT_FAILURE);
+        }
+
+        if (setuid (user_get_uid (user)) != 0)
+        {
+            g_warning ("Failed to set user ID to %d: %s", user_get_uid (user), strerror (errno));
+            _exit (EXIT_FAILURE);
+        }
+    }
+
     /* Do PAM actions requiring session process */
     pam_session_setup (session->priv->authentication);
+    set_env_from_authentication (session, session->priv->authentication);
+    set_language (session);
 
     PROCESS_CLASS (session_parent_class)->run (process);
 }
@@ -405,6 +476,7 @@ session_init (Session *session)
 {
     session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, SESSION_TYPE, SessionPrivate);
     session->priv->console_kit_parameters = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, (GDestroyNotify) g_variant_unref);
+    process_set_clear_environment (PROCESS (session), TRUE);
 }
 
 static void
@@ -414,6 +486,7 @@ session_finalize (GObject *object)
 
     self = SESSION (object);
 
+    g_free (self->priv->log_file);
     if (self->priv->authentication)
         g_object_unref (self->priv->authentication);
     g_free (self->priv->command);

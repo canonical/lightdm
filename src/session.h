@@ -42,6 +42,10 @@ typedef struct
 
 GType session_get_type (void);
 
+void session_set_log_file (Session *session, const gchar *filename);
+
+const gchar *session_get_log_file (Session *session);
+
 void session_set_authentication (Session *session, PAMSession *authentication);
 
 PAMSession *session_get_authentication (Session *session);
@@ -68,7 +72,7 @@ gboolean session_start (Session *session);
 
 void session_unlock (Session *session);
 
-void session_stop (Session *session);
+gboolean session_stop (Session *session);
 
 G_END_DECLS
 
