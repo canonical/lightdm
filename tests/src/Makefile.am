@@ -1,4 +1,4 @@
-noinst_PROGRAMS = test-runner X test-gobject-greeter test-guest-account test-session test-script-hook initctl plymouth
+noinst_PROGRAMS = test-runner X test-gobject-greeter test-session test-script-hook guest-account initctl plymouth
 noinst_SCRIPTS = lightdm-session
 lib_LTLIBRARIES = libsystem.la
 
@@ -47,11 +47,11 @@ test_gobject_greeter_LDADD = \
 	$(GOBJECT_LIBS) \
 	$(XCB_LIBS)
 
-test_guest_account_SOURCES = test-guest-account.c status.c status.h
-test_guest_account_CFLAGS = \
+guest_account_SOURCES = guest-account.c status.c status.h
+guest_account_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS)
-test_guest_account_LDADD = \
+guest_account_LDADD = \
 	$(GLIB_LIBS)
 
 test_script_hook_SOURCES = test-script-hook.c status.c status.h
