@@ -220,37 +220,6 @@ set_seat_properties (Seat *seat, const gchar *config_section)
     }
 }
 
-static Session *
-get_session_for_cookie (const gchar *cookie, Seat **seat)
-{
-    GList *link;
- 
-    for (link = display_manager_get_seats (display_manager); link; link = link->next)
-    {
-        Seat *s = link->data;
-        GList *l;
-         
-        for (l = seat_get_displays (s); l; l = l->next)
-        {
-            Display *display = l->data;
-            Session *session;
-
-            session = display_get_session (display);
-            if (!session)
-                continue;
-
-            if (g_strcmp0 (session_get_console_kit_cookie (session), cookie) == 0)
-            {
-                if (seat)
-                    *seat = s;
-                return session;
-            }
-        }
-    }
-
-    return NULL;
-}
-
 static void
 handle_display_manager_call (GDBusConnection       *connection,
                              const gchar           *sender,
