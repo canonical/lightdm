@@ -87,7 +87,7 @@ ioctl (int d, int request, void *data)
         {
         case VT_GETSTATE:
             console_state = data;
-            console_state->v_active = 1;
+            console_state->v_active = 7;
             break;          
         case VT_ACTIVATE:
             break;

@@ -611,7 +611,6 @@ main (int argc, char **argv)
     g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
     g_string_append_printf (command_line, " --xsessions-dir=%s/tests/data/xsessions", SRCDIR);
     g_string_append_printf (command_line, " --xgreeters-dir=%s/tests/data/xgreeters", SRCDIR);
-    g_string_append (command_line, " --minimum-vt=0");
     g_string_append (command_line, " --minimum-display-number=50");
 
     g_print ("Start daemon with command: PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_STATUS_SOCKET=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
