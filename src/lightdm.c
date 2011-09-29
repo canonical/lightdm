@@ -751,7 +751,6 @@ main (int argc, char **argv)
     gchar *xgreeters_dir = NULL;
     gchar *greeter_session = NULL;
     gchar *user_session = NULL;
-    gchar *session_wrapper = NULL;
     gchar *config_dir;
     gchar *log_dir = NULL;
     gchar *run_dir = NULL;
@@ -782,9 +781,6 @@ main (int argc, char **argv)
         { "user-session", 0, 0, G_OPTION_ARG_STRING, &user_session,
           /* Help string for command line --user-session flag */
           N_("User session"), "SESSION" },
-        { "session-wrapper", 0, 0, G_OPTION_ARG_STRING, &session_wrapper,
-          /* Help string for command line --session-wrapper flag */
-          N_("Session wrapper"), "SESSION" },
         { "minimum-vt", 0, 0, G_OPTION_ARG_STRING, &minimum_vt,
           /* Help string for command line --minimum-vt flag */
           N_("Minimum VT to use for X servers"), "NUMBER" },
@@ -991,9 +987,6 @@ main (int argc, char **argv)
     if (user_session)
         config_set_string (config_get_instance (), "SeatDefaults", "user-session", user_session);
     g_free (user_session);
-    if (session_wrapper)
-        config_set_string (config_get_instance (), "SeatDefaults", "session-wrapper", session_wrapper);
-    g_free (session_wrapper);
 
     /* Create run and cache directories */
     g_mkdir_with_parents (config_get_string (config_get_instance (), "LightDM", "log-directory"), S_IRWXU | S_IXGRP | S_IXOTH);  

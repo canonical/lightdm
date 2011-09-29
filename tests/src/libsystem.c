@@ -351,16 +351,25 @@ pam_getenv (pam_handle_t *pamh, const char *name)
     if (pamh == NULL || name == NULL)
         return NULL;
 
+    if (strcmp (name, "PATH") == 0)
+        return getenv ("PATH");
+
     return NULL;
 }
 
 char **
 pam_getenvlist (pam_handle_t *pamh)
 {
+    char **envlist;
+
     if (pamh == NULL)
         return NULL;
 
-    return NULL;
+    envlist = malloc (sizeof (char *) * 2);
+    envlist[0] = g_strdup_printf ("PATH=%s", getenv ("PATH"));
+    envlist[1] = NULL;
+
+    return envlist;
 }
 
 int

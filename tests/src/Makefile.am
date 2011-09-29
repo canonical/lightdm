@@ -1,4 +1,5 @@
 noinst_PROGRAMS = test-runner X test-gobject-greeter test-guest-account test-session test-script-hook initctl plymouth
+noinst_SCRIPTS = lightdm-session
 lib_LTLIBRARIES = libsystem.la
 
 libsystem_la_SOURCES = libsystem.c
