@@ -44,10 +44,11 @@ TESTS = \
 	test-switch-to-user-no-password \
 	test-xdmcp-login
 
-#	test-autologin-session-exit-error
-#	test-login-gobject-session-exit-error
-#	test-login-qt-session-exit-error
+#	test-session-exit-error
 #	test-greeter-no-exit
+#   test-gobject-change-password
+#   test-qt-change-password
+#   test-autologin-create-directory
 
 if COMPILE_LIBLIGHTDM_QT
 TESTS += \
