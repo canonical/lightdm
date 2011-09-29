@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/test-runner headless
+./src/test-runner headless test-gobject-greeter

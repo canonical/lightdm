@@ -481,9 +481,9 @@ main (int argc, char **argv)
 
     loop = g_main_loop_new (NULL, FALSE);
 
-    if (argc != 2 && argc != 3)
+    if (argc != 3)
     {
-        g_printerr ("Usage %s SCRIPT-NAME [GREETER]\n", argv[0]);
+        g_printerr ("Usage %s SCRIPT-NAME GREETER\n", argv[0]);
         quit (EXIT_FAILURE);
     }
     script_name = argv[1];
@@ -491,8 +491,17 @@ main (int argc, char **argv)
     config_path = g_build_filename (SRCDIR, "tests", "scripts", config_file, NULL);
     g_free (config_file);
 
-    if (argc == 3)
-        greeter = argv[2];
+    /* Link to the correct greeter */
+    greeter = argv[2];
+    path = g_build_filename (SRCDIR, "tests", "data", "xgreeters", "default.desktop", NULL);
+    path1 = g_strdup_printf ("%s.desktop", greeter);
+    if (unlink (path) < 0 || symlink (path1, path) < 0)
+    {
+        g_printerr ("Failed to make greeter symlink %s->%s: %s\n", path, path1, strerror (errno));
+        quit (EXIT_FAILURE);
+    }
+    g_free (path);
+    g_free (path1);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, config_path, G_KEY_FILE_NONE, NULL);
@@ -606,8 +615,6 @@ main (int argc, char **argv)
         g_string_append (command_line, " --debug");
     if (config_path)
         g_string_append_printf (command_line, " --config %s", config_path);
-    if (greeter)
-        g_string_append_printf (command_line, " --greeter-session=%s", greeter);
     g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
     g_string_append_printf (command_line, " --xsessions-dir=%s/tests/data/xsessions", SRCDIR);
     g_string_append_printf (command_line, " --xgreeters-dir=%s/tests/data/xgreeters", SRCDIR);

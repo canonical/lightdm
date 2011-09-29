@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/test-runner autologin
+./src/test-runner autologin test-gobject-greeter

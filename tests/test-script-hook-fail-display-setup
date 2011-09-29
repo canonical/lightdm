@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/test-runner script-hook-fail-display-setup
+./src/test-runner script-hook-fail-display-setup test-gobject-greeter

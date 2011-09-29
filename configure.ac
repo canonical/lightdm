@@ -131,13 +131,7 @@ AC_ARG_WITH(user-session,
 AC_SUBST(USER_SESSION)
 AC_DEFINE_UNQUOTED(USER_SESSION, "$USER_SESSION", User session)
 
-if test $have_gtk = yes; then
-GREETER_SESSION=lightdm-gtk-greeter
-elif test $have_qt = yes; then
-GREETER_SESSION=lightdm-qt-greeter
-else
-GREETER_SESSION=
-fi
+GREETER_SESSION=default
 AC_ARG_WITH(greeter-session,
             AS_HELP_STRING(--with-greeter-session=<session>,
                            Greeter session),
