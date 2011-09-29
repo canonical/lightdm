@@ -422,19 +422,54 @@ load_script (const gchar *filename)
     g_strfreev (lines);
 }
 
+static gchar *
+create_bus (void)
+{
+    int name_pipe[2];
+    gchar *command, address[1024];
+    gchar **argv;
+    GPid pid;
+    ssize_t n_read;
+    GError *error = NULL;
+
+    if (pipe (name_pipe) < 0)
+    {
+        g_warning ("Error creating pipe: %s", strerror (errno));
+        quit (EXIT_FAILURE);
+    }
+    command = g_strdup_printf ("dbus-daemon --session --print-address=%d", name_pipe[1]);
+    if (!g_shell_parse_argv (command, NULL, &argv, &error))
+    {
+        g_warning ("Error parsing command line: %s", error->message);
+        quit (EXIT_FAILURE);
+    }
+    g_clear_error (&error);
+    if (!g_spawn_async (NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_LEAVE_DESCRIPTORS_OPEN, NULL, NULL, &pid, &error))
+    {
+        g_warning ("Error launching LightDM: %s", error->message);
+        quit (EXIT_FAILURE);
+    }
+    children = g_list_append (children, GINT_TO_POINTER (pid));
+    n_read = read (name_pipe[0], address, 1023);
+    if (n_read < 0)
+    {
+        g_warning ("Error reading D-Bus address: %s", strerror (errno));
+        quit (EXIT_FAILURE);
+    }
+    address[n_read] = '\0';
+
+    return g_strdup (address);
+}
+
 int
 main (int argc, char **argv)
 {
     GMainLoop *loop;
-    gchar *greeter = NULL, *script_name, *config_file, *config_path, *path, *path1, *path2, *ld_library_path, *home_dir;
+    gchar *greeter = NULL, *script_name, *config_file, *config_path, *path, *path1, *path2, *ld_preload, *ld_library_path, *home_dir;
     GString *passwd_data;
     int status_socket;
-    gchar *dbus_command, dbus_address[1024];
-    GPid pid;
+    gchar *bus_address;
     GString *command_line;
-    int dbus_pipe[2];
-    ssize_t n_read;
-    gchar **dbus_argv;
     gchar **lightdm_argv;
     gchar cwd[1024];
     GError *error = NULL;
@@ -481,10 +516,22 @@ main (int argc, char **argv)
     /* Don't contact our X server */
     g_unsetenv ("DISPLAY");
 
-    /* Use locally built libraries and binaries */
+    /* Run local D-Bus daemons */
+    bus_address = create_bus ();
+    g_setenv ("DBUS_SYSTEM_BUS_ADDRESS", bus_address, TRUE);
+    g_setenv ("DBUS_SESSION_BUS_ADDRESS", bus_address, TRUE);
+
+    /* Override system calls */
+    ld_preload = g_build_filename (BUILDDIR, "tests", "src", ".libs", "libsystem.so", NULL);
+    g_setenv ("LD_PRELOAD", ld_preload, TRUE);
+    g_free (ld_preload);
+
+    /* Run test programs */
     path = g_strdup_printf ("%s/tests/src/.libs:%s/tests/src:%s/tests/src:%s", BUILDDIR, BUILDDIR, SRCDIR, g_getenv ("PATH"));
     g_setenv ("PATH", path, TRUE);
     g_free (path);
+
+    /* Use locally built libraries */
     path1 = g_build_filename (BUILDDIR, "liblightdm-gobject", ".libs", NULL);  
     path2 = g_build_filename (BUILDDIR, "liblightdm-qt", ".libs", NULL);
     ld_library_path = g_strdup_printf ("%s:%s", path1, path2);
@@ -496,34 +543,6 @@ main (int argc, char **argv)
     /* Set config for child processes to read */
     if (config_path)
         g_setenv ("LIGHTDM_TEST_CONFIG", config_path, TRUE);
-
-    /* Run local D-Bus daemon */
-    if (pipe (dbus_pipe) < 0)
-    {
-        g_warning ("Error creating pipe: %s", strerror (errno));
-        quit (EXIT_FAILURE);
-    }
-    dbus_command = g_strdup_printf ("dbus-daemon --session --print-address=%d", dbus_pipe[1]);
-    if (!g_shell_parse_argv (dbus_command, NULL, &dbus_argv, &error))
-    {
-        g_warning ("Error parsing command line: %s", error->message);
-        quit (EXIT_FAILURE);
-    }
-    g_clear_error (&error);
-    if (!g_spawn_async (NULL, dbus_argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_LEAVE_DESCRIPTORS_OPEN, NULL, NULL, &pid, &error))
-    {
-        g_warning ("Error launching LightDM: %s", error->message);
-        quit (EXIT_FAILURE);
-    }
-    children = g_list_append (children, GINT_TO_POINTER (pid));
-    n_read = read (dbus_pipe[0], dbus_address, 1023);
-    if (n_read < 0)
-    {
-        g_warning ("Error reading D-Bus address: %s", strerror (errno));
-        quit (EXIT_FAILURE);
-    }
-    dbus_address[n_read] = '\0';
-    g_setenv ("DBUS_SESSION_BUS_ADDRESS", dbus_address, TRUE);
 
     /* Open socket for status */
     status_socket_name = g_build_filename (cwd, ".status-socket", NULL);
@@ -537,7 +556,7 @@ main (int argc, char **argv)
     }
     g_io_add_watch (g_io_channel_unix_new (status_socket), G_IO_IN, status_message_cb, NULL);
 
-    /* Make fake users */
+    /* Run from a temporary directory */
     temp_dir = g_build_filename (cwd, "lightdm-test-XXXXXX", NULL);
     if (!mkdtemp (temp_dir))
     {
@@ -548,6 +567,7 @@ main (int argc, char **argv)
     g_setenv ("LIGHTDM_TEST_HOME_DIR", home_dir, TRUE);
     passwd_data = g_string_new ("");
 
+    /* Make fake users */
     struct
     {
         gchar *user_name;
@@ -556,8 +576,10 @@ main (int argc, char **argv)
         gint uid;
     } users[] =
     {
-        {"alice", "password", "Alice User", 1000},
-        {"bob", "", "Bob User", 1001},
+        {"root",    "",         "root",          0},
+        {"lightdm", "",         "",            100},
+        {"alice",   "password", "Alice User", 1000},
+        {"bob",     "",         "Bob User",   1001},
         {NULL, NULL, 0}
     };
     int i;
@@ -569,7 +591,6 @@ main (int argc, char **argv)
 
         g_string_append_printf (passwd_data, "%s:%s:%d:%d:%s:%s/home/%s:/bin/sh\n", users[i].user_name, users[i].password, users[i].uid, users[i].uid, users[i].real_name, temp_dir, users[i].user_name);
     }
-
     path = g_build_filename (temp_dir, "passwd", NULL);
     g_setenv ("LIGHTDM_TEST_PASSWD_FILE", path, TRUE);
     g_file_set_contents (path, passwd_data->str, -1, NULL);
@@ -577,7 +598,7 @@ main (int argc, char **argv)
     g_string_free (passwd_data, TRUE);
 
     run_commands ();
-  
+
     status_timeout = g_timeout_add (2000, status_timeout_cb, NULL);
 
     command_line = g_string_new ("../src/lightdm");
@@ -585,20 +606,18 @@ main (int argc, char **argv)
         g_string_append (command_line, " --debug");
     if (config_path)
         g_string_append_printf (command_line, " --config %s", config_path);
-    g_string_append (command_line, " --test-mode");
     g_string_append(command_line, " --xserver-command=test-xserver");
     if (greeter)
         g_string_append_printf (command_line, " --greeter-session=%s", greeter);
     g_string_append (command_line, " --session-wrapper=");
-    g_string_append_printf (command_line, " --passwd-file %s/passwd", temp_dir);
     g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
     g_string_append_printf (command_line, " --xsessions-dir=%s/tests/data/xsessions", SRCDIR);
     g_string_append_printf (command_line, " --xgreeters-dir=%s/tests/data/xgreeters", SRCDIR);
     g_string_append (command_line, " --minimum-vt=0");
     g_string_append (command_line, " --minimum-display-number=50");
 
-    g_print ("Start daemon with command: PATH=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_STATUS_SOCKET=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
-             g_getenv ("PATH"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
+    g_print ("Start daemon with command: PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_STATUS_SOCKET=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
+             g_getenv ("PATH"), g_getenv ("LD_PRELOAD"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
              command_line->str);
 
     if (!g_shell_parse_argv (command_line->str, NULL, &lightdm_argv, &error))

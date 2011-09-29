@@ -15,13 +15,16 @@
 #include "console-kit.h"
 
 static GDBusProxy *ck_proxy = NULL;
+static gboolean have_ck_proxy = FALSE;
 
 static gboolean
 load_ck_proxy (void)
 {
-    if (!ck_proxy)
+    if (!have_ck_proxy)
     {
+        gchar *name;
         GError *error = NULL;
+
         ck_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
                                                   G_DBUS_PROXY_FLAGS_NONE,
                                                   NULL,
@@ -32,6 +35,15 @@ load_ck_proxy (void)
         if (error)
             g_warning ("Unable to get connection to ConsoleKit: %s", error->message);
         g_clear_error (&error);
+
+        name = g_dbus_proxy_get_name_owner (ck_proxy);
+        if (!name)
+        {
+            g_debug ("org.freedesktop.ConsoleKit does not exist, not registering with ConsoleKit");
+            g_object_unref (ck_proxy);
+            ck_proxy = NULL;
+        }
+        g_free (name);
     }
 
     return ck_proxy != NULL;

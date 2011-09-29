@@ -1,4 +1,9 @@
-noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-guest-account test-session test-script-hook plymouth
+noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-guest-account test-session test-script-hook initctl plymouth
+lib_LTLIBRARIES = libsystem.la
+
+libsystem_la_SOURCES = libsystem.c
+libsystem_la_CFLAGS = $(GLIB_CFLAGS)
+libsystem_la_LIBADD = -ldl
 
 if COMPILE_LIBLIGHTDM_QT
 noinst_PROGRAMS += test-qt-greeter
@@ -76,6 +81,13 @@ test_session_CFLAGS = \
 test_session_LDADD = \
 	$(GLIB_LIBS) \
 	$(XCB_LIBS)
+
+initctl_SOURCES = initctl.c status.c status.h
+initctl_CFLAGS = \
+	$(WARN_CFLAGS) \
+	$(GLIB_CFLAGS)
+initctl_LDADD = \
+	$(GLIB_LIBS)
 
 plymouth_SOURCES = plymouth.c status.c status.h
 plymouth_CFLAGS = \

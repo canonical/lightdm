@@ -250,6 +250,7 @@ run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
         process_set_env (script, "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
         process_set_env (script, "LIGHTDM_TEST_CONFIG", g_getenv ("LIGHTDM_TEST_CONFIG"));
         process_set_env (script, "LIGHTDM_TEST_HOME_DIR", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
+        process_set_env (script, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
         process_set_env (script, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
         process_set_env (script, "PATH", g_getenv ("PATH"));
     }
@@ -301,7 +302,7 @@ emit_upstart_signal (const gchar *signal)
     if (getuid () != 0)
         return;
 
-    gchar *cmd = g_strdup_printf ("/sbin/initctl -q emit %s DISPLAY_MANAGER=lightdm", signal);
+    gchar *cmd = g_strdup_printf ("initctl -q emit %s DISPLAY_MANAGER=lightdm", signal);
     g_spawn_command_line_async (cmd, NULL); /* OK if it fails, probably not installed */
     g_free (cmd);
 }

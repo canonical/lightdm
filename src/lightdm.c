@@ -748,7 +748,6 @@ main (int argc, char **argv)
     gboolean test_mode = FALSE;
     gchar *pid_path = "/var/run/lightdm.pid";
     gchar *xserver_command = NULL;
-    gchar *passwd_path = NULL;
     gchar *xsessions_dir = NULL;
     gchar *xgreeters_dir = NULL;
     gchar *greeter_session = NULL;
@@ -775,9 +774,6 @@ main (int argc, char **argv)
         { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
           /* Help string for command line --test-mode flag */
           N_("Run as unprivileged user, skipping things that require root access"), NULL },
-        { "passwd-file", 0, 0, G_OPTION_ARG_STRING, &passwd_path,
-          /* Help string for command line --use-passwd flag */
-          N_("Use the given password file for authentication (for testing, requires --no-root)"), "FILE" },
         { "pid-file", 0, 0, G_OPTION_ARG_STRING, &pid_path,
           /* Help string for command line --pid-file flag */
           N_("File to write PID into"), "FILE" },
@@ -879,13 +875,6 @@ main (int argc, char **argv)
             return EXIT_FAILURE;
         }
         g_free (xserver_path);
-    }
-
-    /* Don't allow to be run as root and use a password file (asking for danger!) */
-    if (getuid () == 0 && passwd_path)
-    {
-        g_printerr ("Only allowed to use --passwd-file when running with --no-root.\n"); 
-        return EXIT_FAILURE;
     }
 
     /* Make sure the system binary directory (where the greeters are installed) is in the path */
@@ -1039,12 +1028,6 @@ main (int argc, char **argv)
 
     if (getuid () != 0)
         g_debug ("Running in user mode");
-    if (passwd_path)
-    {
-        g_debug ("Using password file '%s' for authentication", passwd_path);
-        user_set_use_passwd_file (passwd_path);
-        pam_session_set_use_passwd_file (passwd_path);
-    }
     if (getenv ("DISPLAY"))
         g_debug ("Using Xephyr for X servers");
 

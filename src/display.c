@@ -455,6 +455,8 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
         if (g_getenv ("DBUS_SESSION_BUS_ADDRESS"))
             session_set_env (session, "DBUS_SESSION_BUS_ADDRESS", g_getenv ("DBUS_SESSION_BUS_ADDRESS"));
         session_set_env (session, "LDM_BUS", "SESSION");
+        if (g_getenv ("LD_PRELOAD"))
+            session_set_env (session, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
         if (g_getenv ("LD_LIBRARY_PATH"))
             session_set_env (session, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
         if (g_getenv ("PATH"))
@@ -467,6 +469,7 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
         session_set_env (session, "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
         session_set_env (session, "LIGHTDM_TEST_CONFIG", g_getenv ("LIGHTDM_TEST_CONFIG"));
         session_set_env (session, "LIGHTDM_TEST_HOME_DIR", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
+        session_set_env (session, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
         session_set_env (session, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }
 
