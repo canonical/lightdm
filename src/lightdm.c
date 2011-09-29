@@ -757,7 +757,6 @@ main (int argc, char **argv)
     gchar *default_log_dir = g_strdup (LOG_DIR);
     gchar *default_run_dir = g_strdup (RUN_DIR);
     gchar *default_cache_dir = g_strdup (CACHE_DIR);
-    gchar *minimum_display_number = NULL;
     gboolean show_version = FALSE;
     GOptionEntry options[] = 
     {
@@ -776,9 +775,6 @@ main (int argc, char **argv)
         { "greeter-session", 0, 0, G_OPTION_ARG_STRING, &greeter_session,
           /* Help string for command line --greeter-session flag */
           N_("Greeter session"), "SESSION" },
-        { "minimum-display-number", 0, 0, G_OPTION_ARG_STRING, &minimum_display_number,
-          /* Help string for command line --minimum-display-number flag */
-          N_("Minimum display number to use for X servers"), "NUMBER" },
         { "xsessions-dir", 0, 0, G_OPTION_ARG_STRING, &xsessions_dir,
           /* Help string for command line --xsessions-dir flag */
           N_("Directory to load X sessions from"), "DIRECTORY" },
@@ -952,9 +948,6 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "LightDM", "xgreeters-directory", XGREETERS_DIR);
 
     /* Override defaults */
-    if (minimum_display_number)
-        config_set_integer (config_get_instance (), "LightDM", "minimum-display-number", atoi (minimum_display_number));
-    g_free (minimum_display_number);
     if (log_dir)
         config_set_string (config_get_instance (), "LightDM", "log-directory", log_dir);
     g_free (log_dir);

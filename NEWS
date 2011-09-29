@@ -6,7 +6,8 @@ Overview of changes in lightdm 1.1.0
     * Removed the --passwd-file option as not required for testing anymore
     * Rename test-xserver to X and remove --xserver-command option
     * Make a test session wrapper and remove --session-wrapper option
-    * Remove unused --user-session, --minimum-vt options
+    * Remove unused --user-session, --minimum-vt, --minimum-display-number
+      options
 
 Overview of changes in lightdm 1.0.0
 
