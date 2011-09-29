@@ -750,7 +750,6 @@ main (int argc, char **argv)
     gchar *xsessions_dir = NULL;
     gchar *xgreeters_dir = NULL;
     gchar *greeter_session = NULL;
-    gchar *user_session = NULL;
     gchar *config_dir;
     gchar *log_dir = NULL;
     gchar *run_dir = NULL;
@@ -778,9 +777,6 @@ main (int argc, char **argv)
         { "greeter-session", 0, 0, G_OPTION_ARG_STRING, &greeter_session,
           /* Help string for command line --greeter-session flag */
           N_("Greeter session"), "SESSION" },
-        { "user-session", 0, 0, G_OPTION_ARG_STRING, &user_session,
-          /* Help string for command line --user-session flag */
-          N_("User session"), "SESSION" },
         { "minimum-vt", 0, 0, G_OPTION_ARG_STRING, &minimum_vt,
           /* Help string for command line --minimum-vt flag */
           N_("Minimum VT to use for X servers"), "NUMBER" },
@@ -984,9 +980,6 @@ main (int argc, char **argv)
     if (greeter_session)
         config_set_string (config_get_instance (), "SeatDefaults", "greeter-session", greeter_session);
     g_free (greeter_session);
-    if (user_session)
-        config_set_string (config_get_instance (), "SeatDefaults", "user-session", user_session);
-    g_free (user_session);
 
     /* Create run and cache directories */
     g_mkdir_with_parents (config_get_string (config_get_instance (), "LightDM", "log-directory"), S_IRWXU | S_IXGRP | S_IXOTH);  
