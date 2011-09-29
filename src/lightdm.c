@@ -747,7 +747,6 @@ main (int argc, char **argv)
     gboolean explicit_config = FALSE;
     gboolean test_mode = FALSE;
     gchar *pid_path = "/var/run/lightdm.pid";
-    gchar *xserver_command = NULL;
     gchar *xsessions_dir = NULL;
     gchar *xgreeters_dir = NULL;
     gchar *greeter_session = NULL;
@@ -777,9 +776,6 @@ main (int argc, char **argv)
         { "pid-file", 0, 0, G_OPTION_ARG_STRING, &pid_path,
           /* Help string for command line --pid-file flag */
           N_("File to write PID into"), "FILE" },
-        { "xserver-command", 0, 0, G_OPTION_ARG_STRING, &xserver_command,
-          /* Help string for command line --xserver-command flag */
-          N_("Command to run X servers"), "COMMAND" },
         { "greeter-session", 0, 0, G_OPTION_ARG_STRING, &greeter_session,
           /* Help string for command line --greeter-session flag */
           N_("Greeter session"), "SESSION" },
@@ -989,9 +985,6 @@ main (int argc, char **argv)
     if (xgreeters_dir)
         config_set_string (config_get_instance (), "LightDM", "xgreeters-directory", xgreeters_dir);
     g_free (xgreeters_dir);
-    if (xserver_command)
-        config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", xserver_command);
-    g_free (xserver_command);
     if (greeter_session)
         config_set_string (config_get_instance (), "SeatDefaults", "greeter-session", greeter_session);
     g_free (greeter_session);

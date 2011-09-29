@@ -4,6 +4,7 @@ Overview of changes in lightdm 1.1.0
     * Switching to a user without a password bypasses the greeter
     * Use LD_PRELOAD to intercept system calls for testing
     * Removed the --passwd-file option as not required for testing anymore
+    * Rename test-xserver to X and remove --xserver-command option
 
 Overview of changes in lightdm 1.0.0
 

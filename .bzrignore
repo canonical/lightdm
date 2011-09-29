@@ -65,6 +65,6 @@ tests/src/test-qt-greeter
 tests/src/test-runner
 tests/src/test-script-hook
 tests/src/test-session
-tests/src/test-xserver
+tests/src/X
 utils/lightdm-set-defaults
 utils/dm-tool
