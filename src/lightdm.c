@@ -793,7 +793,7 @@ main (int argc, char **argv)
           N_("Directory to store running state"), "DIRECTORY" },
         { "cache-dir", 0, 0, G_OPTION_ARG_STRING, &cache_dir,
           /* Help string for command line --cache-dir flag */
-          N_("Directory to cached information"), "DIRECTORY" },
+          N_("Directory to cache information"), "DIRECTORY" },
         { "version", 'v', 0, G_OPTION_ARG_NONE, &show_version,
           /* Help string for command line --version flag */
           N_("Show release version"), NULL },
