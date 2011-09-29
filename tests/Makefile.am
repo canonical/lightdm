@@ -40,6 +40,8 @@ TESTS = \
 	test-switch-to-greeter \
 	test-switch-to-guest \
 	test-switch-to-user \
+	test-switch-to-user-existing-session \
+	test-switch-to-user-no-password \
 	test-xdmcp-login
 
 #	test-autologin-session-exit-error
@@ -106,5 +108,7 @@ EXTRA_DIST = \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \
+	scripts/test-switch-to-user-existing-session.conf \
+	scripts/test-switch-to-user-no-password.conf \
 	scripts/xdmcp-login.conf \
 	scripts/xserver-fail-start.conf

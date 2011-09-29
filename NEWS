@@ -1,6 +1,7 @@
 Overview of changes in lightdm 1.1.0
 
     * Remove GetSeatForCookie and GetSessionForCookie D-Bus methods
+    * Switching to a user without a password bypasses the greeter
 
 Overview of changes in lightdm 1.0.0
 

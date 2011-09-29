@@ -33,6 +33,9 @@ struct PAMSessionPrivate
   
     /* Username when using passwd module */
     gchar *username;
+  
+    /* TRUE if can handle provide interaction with PAM */
+    gboolean interactive;
 
     /* Authentication thread */
     GThread *authentication_thread;
@@ -101,6 +104,20 @@ pam_session_new (const gchar *service, const gchar *username)
     }
 
     return self;
+}
+
+void
+pam_session_set_interactive (PAMSession *session, gboolean interactive)
+{
+    g_return_if_fail (session != NULL);
+    session->priv->interactive = interactive;
+}
+
+gboolean
+pam_session_get_interactive (PAMSession *session)
+{
+    g_return_val_if_fail (session != NULL, FALSE);
+    return session->priv->interactive;
 }
 
 gboolean
@@ -193,7 +210,11 @@ pam_conv_cb (int num_msg, const struct pam_message **msg,
 
     /* For some reason after cancelling we still end up here so check for stop as well */
     if (session->priv->stop_thread)
-        return PAM_CONV_ERR;  
+        return PAM_CONV_ERR;
+
+    /* If not interactive then fail the authentication */
+    if (!session->priv->interactive)
+        return PAM_CONV_ERR;
 
     /* Notify user */
     session->priv->num_messages = num_msg;
@@ -344,7 +365,12 @@ pam_session_authenticate (PAMSession *session, GError **error)
     if (passwd_file)
     {
         if (session->priv->username == NULL)
-            send_message (session, PAM_PROMPT_ECHO_ON, "login:");
+        {
+            if (session->priv->interactive)
+                send_message (session, PAM_PROMPT_ECHO_ON, "login:");
+            else
+                report_result (session, PAM_CONV_ERR);
+        }
         else
         {
             gchar *password;
@@ -359,7 +385,12 @@ pam_session_authenticate (PAMSession *session, GError **error)
                     report_result (session, PAM_USER_UNKNOWN);
             }
             else
-                send_message (session, PAM_PROMPT_ECHO_OFF, "Password:");
+            {
+                if (session->priv->interactive)
+                    send_message (session, PAM_PROMPT_ECHO_OFF, "Password:");
+                else
+                    report_result (session, PAM_CONV_ERR);
+            }
             g_free (password);
         }      
     }
@@ -553,6 +584,7 @@ static void
 pam_session_init (PAMSession *session)
 {
     session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, PAM_SESSION_TYPE, PAMSessionPrivate);
+    session->priv->interactive = TRUE;
 }
 
 static void
