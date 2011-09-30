@@ -3,6 +3,7 @@ Overview of changes in lightdm 1.0.1
     * GTK greeter now remembers last user
     * GTK greeter now initializes i18n
     * Start authentication for automtically selected user in GTK greeter
+    * Link liblightdm-qt against QtGui
 
 Overview of changes in lightdm 1.0.0
 
