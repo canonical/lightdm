@@ -19,6 +19,7 @@ Overview of changes in lightdm 1.1.0
     * Introduce a lightdm-guest-session-wrapper session command which MAC
       systems like AppArmor and SELinux can use for attaching a restrictive
       policy to guest sessions.
+    * Provide an AppArmor profile for guest session lockdown.
 
 Overview of changes in lightdm 1.0.0
 
