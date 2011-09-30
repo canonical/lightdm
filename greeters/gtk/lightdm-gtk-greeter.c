@@ -634,7 +634,7 @@ load_user_list ()
     else
         selected_user = NULL;
 
-    if (gtk_tree_model_get_iter_first (model, &iter))
+    if (selected_user && gtk_tree_model_get_iter_first (model, &iter))
     {
         do
         {
@@ -646,6 +646,7 @@ load_user_list ()
             if (matched)
             {
                 gtk_tree_selection_select_iter (gtk_tree_view_get_selection (user_view), &iter);
+                start_authentication (selected_user);
                 break;
             }
         } while (gtk_tree_model_iter_next (model, &iter));
@@ -721,9 +722,11 @@ main (int argc, char **argv)
 
     signal (SIGTERM, sigterm_cb);
 
+    gtk_init (&argc, &argv);
+
     config = g_key_file_new ();
-    if (!g_key_file_load_from_file (config, CONFIG_FILE, G_KEY_FILE_NONE, &error) &&
-        !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+    g_key_file_load_from_file (config, CONFIG_FILE, G_KEY_FILE_NONE, &error);
+    if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
         g_warning ("Failed to load configuration from %s: %s\n", CONFIG_FILE, error->message);
     g_clear_error (&error);
 
@@ -737,8 +740,6 @@ main (int argc, char **argv)
     if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
         g_warning ("Failed to load state from %s: %s\n", state_filename, error->message);
     g_clear_error (&error);
-
-    gtk_init (&argc, &argv);
 
     greeter = lightdm_greeter_new ();
     g_signal_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);  
