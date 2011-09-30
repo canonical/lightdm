@@ -898,18 +898,6 @@ main (int argc, char **argv)
     if (!lightdm_get_can_shutdown ())
         gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (builder, "shutdown_menuitem")));
 
-    user_view = GTK_TREE_VIEW (gtk_builder_get_object (builder, "user_treeview"));
-    gtk_tree_view_insert_column_with_attributes (user_view, 0, "Face", gtk_cell_renderer_pixbuf_new(), "pixbuf", 3, NULL);
-    gtk_tree_view_insert_column_with_attributes (user_view, 1, "Name", gtk_cell_renderer_text_new(), "text", 1, "weight", 2, NULL);
-
-    if (lightdm_greeter_get_hide_users_hint (greeter))
-        start_authentication ("*other");
-    else
-    {
-        load_user_list ();
-        gtk_widget_show (GTK_WIDGET (user_view));
-    }
-
     renderer = gtk_cell_renderer_text_new();
     gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (session_combo), renderer, TRUE);
     gtk_cell_layout_add_attribute (GTK_CELL_LAYOUT (session_combo), renderer, "text", 0);
@@ -954,6 +942,18 @@ main (int argc, char **argv)
         }
         set_language (NULL);
     }
+
+    user_view = GTK_TREE_VIEW (gtk_builder_get_object (builder, "user_treeview"));
+    gtk_tree_view_insert_column_with_attributes (user_view, 0, "Face", gtk_cell_renderer_pixbuf_new(), "pixbuf", 3, NULL);
+    gtk_tree_view_insert_column_with_attributes (user_view, 1, "Name", gtk_cell_renderer_text_new(), "text", 1, "weight", 2, NULL);
+
+    if (lightdm_greeter_get_hide_users_hint (greeter))
+        start_authentication ("*other");
+    else
+    {
+        load_user_list ();
+        gtk_widget_show (GTK_WIDGET (user_view));
+    } 
 
     gtk_builder_connect_signals(builder, greeter);
 
