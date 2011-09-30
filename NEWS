@@ -1,6 +1,7 @@
 Overview of changes in lightdm 1.0.1
 
     * GTK greeter now remembers last user
+    * GTK greeter now initializes i18n
 
 Overview of changes in lightdm 1.0.0
 

@@ -713,6 +713,12 @@ main (int argc, char **argv)
     /* Disable global menus */
     g_unsetenv ("UBUNTU_MENUPROXY");
 
+    /* Initialize i18n */
+    setlocale (LC_ALL, "");
+    bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+    bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+    textdomain (GETTEXT_PACKAGE);
+
     signal (SIGTERM, sigterm_cb);
 
     config = g_key_file_new ();
