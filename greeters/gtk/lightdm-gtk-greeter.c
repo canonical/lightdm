@@ -727,7 +727,7 @@ main (int argc, char **argv)
         g_warning ("Failed to load configuration from %s: %s\n", CONFIG_FILE, error->message);
     g_clear_error (&error);
 
-    state_dir = g_build_filename (g_get_user_cache_dir (), "unity-greeter", NULL);
+    state_dir = g_build_filename (g_get_user_cache_dir (), "lightdm-gtk-greeter", NULL);
     g_mkdir_with_parents (state_dir, 0775);
     state_filename = g_build_filename (state_dir, "state", NULL);
     g_free (state_dir);
