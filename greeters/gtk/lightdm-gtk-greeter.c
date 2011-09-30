@@ -19,6 +19,8 @@
 #include "lightdm.h"
 
 static LightDMGreeter *greeter;
+static GKeyFile *state;
+static gchar *state_filename;
 static GtkWindow *login_window, *panel_window;
 static GtkLabel *message_label, *prompt_label;
 static GtkTreeView *user_view;
@@ -134,10 +136,28 @@ set_message_label (const gchar *text)
 static void
 start_authentication (const gchar *username)
 {
+    gchar *data;
+    gsize data_length;
+    GError *error = NULL;
+
     cancelling = FALSE;
     prompted = FALSE;
 
-    if (!username)
+    g_key_file_set_value (state, "greeter", "last-user", username);
+    data = g_key_file_to_data (state, &data_length, &error);
+    if (error)
+        g_warning ("Failed to save state file: %s", error->message);
+    g_clear_error (&error);
+    if (data)
+    {
+        g_file_set_contents (state_filename, data, data_length, &error);
+        if (error)
+            g_warning ("Failed to save state file: %s", error->message);
+        g_clear_error (&error);
+    }
+    g_free (data);
+
+    if (strcmp (username, "*other") == 0)
     {
         lightdm_greeter_authenticate (greeter, NULL);
     }
@@ -179,7 +199,7 @@ cancel_authentication (void)
 
     /* Start a new login or return to the user list */
     if (lightdm_greeter_get_hide_users_hint (greeter))
-        start_authentication (NULL);
+        start_authentication ("*other");
     else
     {
         gtk_widget_hide (login_box);
@@ -546,6 +566,8 @@ load_user_list ()
     const GList *items, *item;
     GtkTreeModel *model;
     GtkTreeIter iter;
+    gchar *last_user;
+    const gchar *selected_user;
 
     g_signal_connect (lightdm_user_list_get_instance (), "user-added", G_CALLBACK (user_added_cb), NULL);
     g_signal_connect (lightdm_user_list_get_instance (), "user-changed", G_CALLBACK (user_changed_cb), NULL);
@@ -581,10 +603,6 @@ load_user_list ()
                             2, lightdm_user_get_logged_in (user) ? PANGO_WEIGHT_BOLD : PANGO_WEIGHT_NORMAL,
                             3, pixbuf,
                             -1);
-
-        if (lightdm_greeter_get_select_user_hint (greeter) &&
-            strcmp (lightdm_greeter_get_select_user_hint (greeter), lightdm_user_get_name (user)) == 0)
-            gtk_tree_selection_select_iter (gtk_tree_view_get_selection (user_view), &iter);
     }
     if (lightdm_greeter_get_has_guest_account_hint (greeter))
     {
@@ -595,17 +613,45 @@ load_user_list ()
                             2, PANGO_WEIGHT_NORMAL,
                             3, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
                             -1);
-        if (lightdm_greeter_get_select_guest_hint (greeter))
-            gtk_tree_selection_select_iter (gtk_tree_view_get_selection (user_view), &iter);
     }
 
     gtk_list_store_append (GTK_LIST_STORE (model), &iter);
     gtk_list_store_set (GTK_LIST_STORE (model), &iter,
-                        0, NULL,
+                        0, "*other",
                         1, "Other...",
                         2, PANGO_WEIGHT_NORMAL,
                         3, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
                         -1);
+
+    last_user = g_key_file_get_value (state, "greeter", "last-user", NULL);
+
+    if (lightdm_greeter_get_select_user_hint (greeter))
+        selected_user = lightdm_greeter_get_select_user_hint (greeter);
+    else if (lightdm_greeter_get_select_guest_hint (greeter))
+        selected_user = "*guest";
+    else if (last_user)
+        selected_user = last_user;
+    else
+        selected_user = NULL;
+
+    if (gtk_tree_model_get_iter_first (model, &iter))
+    {
+        do
+        {
+            gchar *name;
+            gboolean matched;
+            gtk_tree_model_get (model, &iter, 0, &name, -1);
+            matched = strcmp (name, selected_user) == 0;
+            g_free (name);
+            if (matched)
+            {
+                gtk_tree_selection_select_iter (gtk_tree_view_get_selection (user_view), &iter);
+                break;
+            }
+        } while (gtk_tree_model_iter_next (model, &iter));
+    }
+
+    g_free (last_user);
 }
 
 static cairo_surface_t *
@@ -658,7 +704,7 @@ main (int argc, char **argv)
     GtkTreeIter iter;
     GtkCellRenderer *renderer;
     GtkWidget *menuitem, *hbox, *image;
-    gchar *value;
+    gchar *value, *state_dir;
     GdkPixbuf *background_pixbuf = NULL;
     GdkColor background_color;
     gint i;
@@ -673,6 +719,17 @@ main (int argc, char **argv)
     if (!g_key_file_load_from_file (config, CONFIG_FILE, G_KEY_FILE_NONE, &error) &&
         !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
         g_warning ("Failed to load configuration from %s: %s\n", CONFIG_FILE, error->message);
+    g_clear_error (&error);
+
+    state_dir = g_build_filename (g_get_user_cache_dir (), "unity-greeter", NULL);
+    g_mkdir_with_parents (state_dir, 0775);
+    state_filename = g_build_filename (state_dir, "state", NULL);
+    g_free (state_dir);
+
+    state = g_key_file_new ();
+    g_key_file_load_from_file (state, state_filename, G_KEY_FILE_NONE, &error);
+    if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+        g_warning ("Failed to load state from %s: %s\n", state_filename, error->message);
     g_clear_error (&error);
 
     gtk_init (&argc, &argv);
@@ -839,7 +896,7 @@ main (int argc, char **argv)
     gtk_tree_view_insert_column_with_attributes (user_view, 1, "Name", gtk_cell_renderer_text_new(), "text", 1, "weight", 2, NULL);
 
     if (lightdm_greeter_get_hide_users_hint (greeter))
-        start_authentication (NULL);
+        start_authentication ("*other");
     else
     {
         load_user_list ();
