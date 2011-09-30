@@ -10,6 +10,8 @@ Overview of changes in lightdm 1.1.0
       --minimum-display-number options
     * Use 'default' as the default greeter (make a symlink)
     * GTK greeter now initializes i18n
+    * GTK greeter now remembers last user
+    * Start authentication for automtically selected user in GTK greeter
 
 Overview of changes in lightdm 1.0.0
 
