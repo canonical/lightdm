@@ -199,15 +199,9 @@ QList<User> UsersModel::getUsers()
 
     setpwent();
     while(TRUE)
-    {
-        struct passwd *entry;
-        QStringList tokens;
-        QString realName, image;
-        QFile *imageFile;
-        int i;
-
+    {        
         errno = 0;
-        entry = getpwent();
+        struct passwd *entry = getpwent();
         if(!entry) {
             break;
         }
@@ -228,24 +222,20 @@ QList<User> UsersModel::getUsers()
             continue;
         }
 
-        tokens = QString(entry->pw_gecos).split(",");
-        if(tokens.size() > 0 && tokens.at(i) != "")
-            realName = tokens.at(i);
+        QStringList tokens = QString(entry->pw_gecos).split(",");
+        QString realName;
+        if(tokens.size() > 0 && tokens.at(0) != "")
+            realName = tokens.at(0);
 
-        //replace this with QFile::exists();
         QDir homeDir(entry->pw_dir);
-        imageFile = new QFile(homeDir.filePath(".face"));
-        if(!imageFile->exists()) {
-            delete imageFile;
-            imageFile = new QFile(homeDir.filePath(".face.icon"));
-        }
-        if(imageFile->exists())
-        {
-            delete imageFile;
-            imageFile = NULL;
+        QString image = homeDir.filePath(".face");
+        if(!QFile::exists (image)) {
+            image = homeDir.filePath(".face.icon");
+            if(!QFile::exists (image))
+                image = "";
         }
 
-        User user(entry->pw_name, realName, entry->pw_dir, imageFile->fileName(), false);
+        User user(entry->pw_name, realName, entry->pw_dir, image, false);
         users.append(user);
     }
 
