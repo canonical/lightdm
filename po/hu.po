@@ -14,10 +14,10 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2011-09-28 05:54+0000\n"
-"X-Generator: Launchpad (build 14049)\n"
+"X-Launchpad-Export-Date: 2011-09-30 04:49+0000\n"
+"X-Generator: Launchpad (build 14071)\n"
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:325
+#: ../greeters/gtk/lightdm-gtk-greeter.c:389
 msgid "Are you sure you want to close all programs and restart the computer?"
 msgstr ""
 "Biztos benne, hogy bezárja az összes programot, és újraindítja a "
@@ -27,17 +27,17 @@ msgstr ""
 msgid "Cancel"
 msgstr "Mégse"
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:326
+#: ../greeters/gtk/lightdm-gtk-greeter.c:390
 msgid "Restart"
 msgstr "Újraindítás"
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:350
+#: ../greeters/gtk/lightdm-gtk-greeter.c:414
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
 msgstr ""
 "Biztos benne, hogy bezárja az összes programot, és leállítja a számítógépet?"
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:351
+#: ../greeters/gtk/lightdm-gtk-greeter.c:415
 msgid "Shutdown"
 msgstr "Leállítás"
 
