@@ -47,5 +47,6 @@ LIBEXECDIR/lightdm-guest-session-wrapper {
   /var/guest-data/** rw, # allow to store files permanently
   /var/tmp/ rw,
   owner /var/tmp/** rwlkm,
+  /{,var/}run/ r,
   /{,var/}run/** rmwkix, # necessary for writing to sockets, etc.
 }
