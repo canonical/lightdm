@@ -12,6 +12,8 @@ Overview of changes in lightdm 1.1.0
     * GTK greeter now initializes i18n
     * GTK greeter now remembers last user
     * Start authentication for automtically selected user in GTK greeter
+    * Don't resize GTK greeter on each click
+    * Start authentication when scrolling through GTK greeter entries
 
 Overview of changes in lightdm 1.0.0
 

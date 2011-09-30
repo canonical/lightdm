@@ -227,47 +227,22 @@ start_session (void)
     g_free (session);
 }
 
-void user_treeview_row_activated_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *column);
+void user_treeview_selection_changed_cb (GtkTreeSelection *selection);
 G_MODULE_EXPORT
 void
-user_treeview_row_activated_cb (GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *column)
+user_treeview_selection_changed_cb (GtkTreeSelection *selection)
 {
-    GtkTreeModel *model = gtk_tree_view_get_model (user_view);  
+    GtkTreeModel *model;
     GtkTreeIter iter;
-    gchar *user;
 
-    gtk_tree_model_get_iter (GTK_TREE_MODEL (model), &iter, path);
-    gtk_tree_model_get (GTK_TREE_MODEL (model), &iter, 0, &user, -1);
-    start_authentication (user);
-    g_free (user);
-}
-
-static gboolean
-idle_select_cb ()
-{
-    GtkTreeModel *model = gtk_tree_view_get_model (user_view);
-    GtkTreeIter iter;
-    gchar *user;
-
-    if (gtk_tree_selection_get_selected (gtk_tree_view_get_selection (user_view),
-                                         NULL, &iter))
+    if (gtk_tree_selection_get_selected (selection, &model, &iter))
     {
+        gchar *user;
+
         gtk_tree_model_get (GTK_TREE_MODEL (model), &iter, 0, &user, -1);
         start_authentication (user);
         g_free (user);
     }
-
-    return FALSE;
-}
-
-gboolean user_treeview_button_press_event_cb (GtkWidget *widget, GdkEventButton *event);
-G_MODULE_EXPORT
-gboolean
-user_treeview_button_press_event_cb (GtkWidget *widget, GdkEventButton *event)
-{
-    /* Do it in the idle loop so the selection is done first */
-    g_idle_add (idle_select_cb, NULL);
-    return FALSE;
 }
 
 void login_cb (GtkWidget *widget);
@@ -367,14 +342,6 @@ center_window (GtkWindow *window)
     gtk_window_move (window,
                      monitor_geometry.x + (monitor_geometry.width - allocation.width) / 2,
                      monitor_geometry.y + (monitor_geometry.height - allocation.height) / 2);
-}
-
-void login_window_size_allocate_cb (GtkWidget *widget, GdkRectangle *allocation);
-G_MODULE_EXPORT
-void
-login_window_size_allocate_cb (GtkWidget *widget, GdkRectangle *allocation)
-{
-    center_window (GTK_WINDOW (widget));
 }
 
 void suspend_cb (GtkWidget *widget, LightDMGreeter *greeter);
