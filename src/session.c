@@ -406,7 +406,7 @@ session_run (Process *process)
 
     user = pam_session_get_user (session->priv->authentication);
   
-    /* Delete exsting log file if it exists - a bug in 1.0.0 would cause this file to be written as root */
+    /* Delete existing log file if it exists - a bug in 1.0.0 would cause this file to be written as root */
     if (session->priv->log_file)
         unlink (session->priv->log_file);
 
