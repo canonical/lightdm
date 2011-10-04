@@ -7,6 +7,7 @@ Overview of changes in lightdm 1.0.1
     * Fix liblightdm-qt crashing when face images are installed
     * Set correct permissions on session log files
     * Prefer a locale with a codeset over one without for setting LANG 
+    * Provide an AppArmor profile for guest session lockdown.
 
 Overview of changes in lightdm 1.0.0
 

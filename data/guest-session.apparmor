@@ -1,0 +1,52 @@
+# vim:syntax=apparmor
+# Profile for restricting lightdm guest session 
+# Author: Martin Pitt <martin.pitt@ubuntu.com>
+
+#include <tunables/global>
+
+LIBEXECDIR/lightdm-guest-session-wrapper {
+  #include <abstractions/authentication>
+  #include <abstractions/nameservice>
+  #include <abstractions/wutmp>
+  /etc/compizconfig/config rw, # bug in compiz https://launchpad.net/bugs/697678
+ 
+  / r,
+  /bin/ rmix,
+  /bin/** rmix,
+  /cdrom/ rmix,
+  /cdrom/** rmix,
+  /dev/ r,
+  /dev/** rmw, # audio devices etc.
+  owner /dev/shm/** rmw,
+  /etc/ r,
+  /etc/** rmk,
+  /etc/gdm/Xsession ix,
+  /lib/ r,
+  /lib/** rmixk,
+  /lib32/ r,
+  /lib32/** rmixk,
+  /media/ r,
+  /media/** rmwlixk,  # we want access to USB sticks and the like
+  /opt/ r,
+  /opt/** rmixk,
+  @{PROC}/ r,
+  @{PROC}/* rm,
+  @{PROC}/asound rm,
+  @{PROC}/asound/** rm,
+  owner @{PROC}/** rm,
+  /sbin/ r,
+  /sbin/** rmixk,
+  /sys/ r,
+  /sys/** rm,
+  /tmp/ rw,
+  owner /tmp/** rwlkmix,
+  /usr/ r,
+  /usr/** rmixk,
+  /var/ r,
+  /var/** rmixk,
+  /var/guest-data/** rw, # allow to store files permanently
+  /var/tmp/ rw,
+  owner /var/tmp/** rwlkm,
+  /{,var/}run/ r,
+  /{,var/}run/** rmwkix, # necessary for writing to sockets, etc.
+}
