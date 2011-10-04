@@ -400,27 +400,15 @@ session_run (Process *process)
     dup2 (fd, STDIN_FILENO);
     close (fd);
 
-    /* Redirect output to logfile */
-    if (session->priv->log_file)
-    {
-         int fd;
-
-         fd = g_open (session->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-         if (fd < 0)
-             g_warning ("Failed to open log file %s: %s", session->priv->log_file, g_strerror (errno));
-         else
-         {
-             dup2 (fd, STDOUT_FILENO);
-             dup2 (fd, STDERR_FILENO);
-             close (fd);
-         }
-    }
-
     /* Make this process its own session */
     if (setsid () < 0)
         g_warning ("Failed to make process a new session: %s", strerror (errno));
 
     user = pam_session_get_user (session->priv->authentication);
+  
+    /* Delete existing log file if it exists - a bug in 1.0.0 would cause this file to be written as root */
+    if (session->priv->log_file)
+        unlink (session->priv->log_file);
 
     /* Change working directory */
     if (chdir (user_get_home_directory (user)) != 0)
@@ -449,6 +437,22 @@ session_run (Process *process)
             g_warning ("Failed to set user ID to %d: %s", user_get_uid (user), strerror (errno));
             _exit (EXIT_FAILURE);
         }
+    }
+
+    /* Redirect output to logfile */
+    if (session->priv->log_file)
+    {
+         int fd;
+
+         fd = g_open (session->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+         if (fd < 0)
+             g_warning ("Failed to open log file %s: %s", session->priv->log_file, g_strerror (errno));
+         else
+         {
+             dup2 (fd, STDOUT_FILENO);
+             dup2 (fd, STDERR_FILENO);
+             close (fd);
+         }
     }
 
     /* Do PAM actions requiring session process */
