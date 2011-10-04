@@ -7,6 +7,9 @@ Overview of changes in lightdm 1.0.1
     * Fix liblightdm-qt crashing when face images are installed
     * Set correct permissions on session log files
     * Prefer a locale with a codeset over one without for setting LANG 
+    * Introduce a lightdm-guest-session-wrapper session command which MAC
+      systems like AppArmor and SELinux can use for attaching a restrictive
+      policy to guest sessions.
     * Provide an AppArmor profile for guest session lockdown.
 
 Overview of changes in lightdm 1.0.0
