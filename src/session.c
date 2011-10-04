@@ -206,12 +206,11 @@ set_language (Session *session)
     gboolean result;
     gchar *stdout_text = NULL;
     int exit_status;
-    gboolean found_code = FALSE;
     GError *error = NULL;
 
     user = pam_session_get_user (session->priv->authentication);
     language = user_get_language (user);
-    if (!language)
+    if (!language || language[0] == '\0')
         return;
 
     language_dot = g_strdup_printf ("%s.", language);
@@ -227,34 +226,48 @@ set_language (Session *session)
         g_warning ("Failed to get languages, locale -a returned %d", exit_status);
     else if (result)
     {
-        gchar **tokens;
+        gchar **tokens, *matched_code = NULL;
         int i;
 
         tokens = g_strsplit_set (stdout_text, "\n\r", -1);
+
+        /* Look for a locale with an encoding */
         for (i = 0; tokens[i]; i++)
         {
-            gchar *code;
-
-            code = g_strchug (tokens[i]);
-            if (code[0] == '\0')
-                continue;
-
-            if (strcmp (code, language) == 0 || g_str_has_prefix (code, language_dot))
+            gchar *code = g_strchug (tokens[i]);
+            if (g_str_has_prefix (code, language_dot))
             {
-                g_debug ("Using locale %s for language %s", code, language);
-                found_code = TRUE;
-                session_set_env (session, "LANG", code);
+                matched_code = code;
                 break;
             }
         }
+
+        /* Fall back to a locale without an encoding */
+        if (!matched_code)
+        {
+            for (i = 0; tokens[i]; i++)
+            {
+                gchar *code = g_strchug (tokens[i]);
+                if (strcmp (code, language) == 0)
+                {
+                    matched_code = code;
+                    break;
+                }
+            }
+        }
+
+        if (matched_code)
+        {
+            g_debug ("Using locale %s for language %s", matched_code, language);
+            session_set_env (session, "LANG", matched_code);
+        }
+        else
+            g_debug ("Failed to find locale for language %s", language);
 
         g_strfreev (tokens);
     }
     g_free (language_dot);
     g_free (stdout_text);
-  
-    if (!found_code)
-        g_debug ("Failed to find locale for language %s", language);
 }
 
 gboolean
