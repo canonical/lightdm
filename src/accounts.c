@@ -101,9 +101,6 @@ get_property (GDBusProxy *proxy, const gchar *property,
 {
     GVariant *answer;
 
-    if (!proxy)
-        return FALSE;
-
     answer = g_dbus_proxy_get_cached_property (proxy, property);
 
     if (!answer) {
@@ -400,33 +397,6 @@ user_get_shell (User *user)
 {
     g_return_val_if_fail (user != NULL, NULL);
     return user->priv->shell;
-}
-
-const gchar *
-user_get_language (User *user)
-{
-    GVariant *result;
-
-    g_return_val_if_fail (user != NULL, NULL);
-
-    g_free (user->priv->language);
-    if (get_property (user->priv->proxy, "Language", "s", &result))
-    {
-        g_variant_get (result, "s", &user->priv->language);
-        g_variant_unref (result);
-    }
-    else
-    {
-        user->priv->language = NULL;
-    }
-
-    if (g_strcmp0 (user->priv->language, "") == 0)
-    {
-        g_free (user->priv->language);
-        user->priv->language = NULL;
-    }
-
-    return user->priv->language;
 }
 
 const gchar *
