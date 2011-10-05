@@ -270,6 +270,26 @@ set_language (Session *session)
     g_free (stdout_text);
 }
 
+/* Insert our own utility directory to PATH
+ * This is to provide gdmflexiserver which provides backwards compatibility
+ * with GDM.
+ * Must be done after set_env_from_authentication because PAM sets PATH.
+ * This can be removed when this is no longer required.
+ */
+static void
+insert_utility_path (Session *session)
+{
+    const gchar *orig_path;
+
+    orig_path = session_get_env (session, "PATH");
+    if (orig_path)
+    {
+        gchar *path = g_strdup_printf ("%s:%s", PKGLIBEXEC_DIR, orig_path);
+        session_set_env (session, "PATH", path);
+        g_free (path);
+    }
+}
+
 gboolean
 session_start (Session *session)
 {
@@ -296,7 +316,6 @@ session_real_start (Session *session)
 {
     gboolean result;
     gchar *absolute_command;
-    const gchar *orig_path;
 
     absolute_command = get_absolute_command (session->priv->command);
     if (!absolute_command)
@@ -306,19 +325,6 @@ session_real_start (Session *session)
     }
     process_set_command (PROCESS (session), absolute_command);
     g_free (absolute_command);
-
-    /* Insert our own utility directory to PATH
-     * This is to provide gdmflexiserver which provides backwards compatibility with GDM.
-     * Must be done after set_env_from_authentication because that often sets PATH.
-     * This can be removed when this is no longer required.
-     */
-    orig_path = session_get_env (session, "PATH");
-    if (orig_path)
-    {
-        gchar *path = g_strdup_printf ("%s:%s", PKGLIBEXEC_DIR, orig_path);
-        session_set_env (session, "PATH", path);
-        g_free (path);
-    }
 
     pam_session_open (session->priv->authentication);
 
@@ -472,6 +478,7 @@ session_run (Process *process)
     pam_session_setup (session->priv->authentication);
     set_env_from_authentication (session, session->priv->authentication);
     set_language (session);
+    insert_utility_path (session);
 
     PROCESS_CLASS (session_parent_class)->run (process);
 }
