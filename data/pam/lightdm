@@ -1,0 +1,19 @@
+#%PAM-1.0
+
+# Block login if they are disabled
+auth      required pam_nologin.so
+
+# Load environment from /etc/environment and ~/.pam_environment
+auth      required pam_env.so
+
+# Use /etc/passwd and /etc/shadow for passwords
+auth      required pam_unix.so
+
+# Check account is active, change password if required
+account   required pam_unix.so
+
+# Allow password to be changed
+password  required pam_unix.so
+
+# Setup session
+session   required pam_unix.so
