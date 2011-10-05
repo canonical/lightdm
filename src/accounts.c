@@ -44,6 +44,9 @@ struct UserPrivate
     /* Language */
     gchar *language;
 
+    /* Locale */
+    gchar *locale;
+
     /* X session */
     gchar *xsession;
 };
@@ -399,15 +402,6 @@ user_get_shell (User *user)
     return user->priv->shell;
 }
 
-void
-user_set_language (User *user, const gchar *language)
-{
-    g_return_if_fail (user != NULL);
-
-    call_method (user->priv->proxy, "SetLanguage", g_variant_new ("(s)", language), "()", NULL);
-    save_string_to_dmrc (user->priv->name, "Desktop", "Language", language);
-}
-
 const gchar *
 user_get_language (User *user)
 {
@@ -416,14 +410,15 @@ user_get_language (User *user)
     g_return_val_if_fail (user != NULL, NULL);
 
     g_free (user->priv->language);
-
     if (get_property (user->priv->proxy, "Language", "s", &result))
     {
         g_variant_get (result, "s", &user->priv->language);
         g_variant_unref (result);
     }
     else
-        user->priv->language = get_string_from_dmrc (user->priv->name, "Desktop", "Language");
+    {
+        user->priv->language = NULL;
+    }
 
     if (g_strcmp0 (user->priv->language, "") == 0)
     {
@@ -432,6 +427,35 @@ user_get_language (User *user)
     }
 
     return user->priv->language;
+}
+
+const gchar *
+user_get_locale (User *user)
+{
+    g_return_val_if_fail (user != NULL, NULL);
+
+    g_free (user->priv->locale);
+    if (user->priv->proxy)
+        user->priv->locale = NULL;
+    else
+        user->priv->locale = get_string_from_dmrc (user->priv->name, "Desktop", "Language");
+
+    /* Treat a blank locale as unset */
+    if (g_strcmp0 (user->priv->locale, "") == 0)
+    {
+        g_free (user->priv->locale);
+        user->priv->locale = NULL;
+    }
+
+    return user->priv->locale;
+}
+
+void
+user_set_locale (User *user, const gchar *locale)
+{
+    g_return_if_fail (user != NULL);
+    if (!user->priv->proxy)
+        save_string_to_dmrc (user->priv->name, "Desktop", "Language", locale);
 }
 
 void
@@ -482,7 +506,8 @@ user_dispose (GObject *object)
 
     self = USER (object);
 
-    if (self->priv->proxy) {
+    if (self->priv->proxy)
+    {
         g_object_unref (self->priv->proxy);
         self->priv->proxy = NULL;
     }

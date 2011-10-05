@@ -192,82 +192,23 @@ session_get_console_kit_cookie (Session *session)
     return session->priv->console_kit_cookie;
 }
 
-/* Set the LANG variable based on the chosen language.  This is not a great
- * solution, as it will override the language set in PAM (which is where it
- * should be set).  It's also overly simplistic to set all the locale
- * settings based on one language.  In the case of Ubuntu these will be
- * overridden by setting these variables in ~/.profile */
+/* Set the LANG variable based on the chosen locale.  This is not a great
+ * solution, as it will override the locale set in PAM (which is where it
+ * should be set).  In the case of Ubuntu these will be overridden by setting
+ * these variables in ~/.profile */
 static void
-set_language (Session *session)
+set_locale (Session *session)
 {
     User *user;
-    const gchar *language;
-    gchar *language_dot;
-    gboolean result;
-    gchar *stdout_text = NULL;
-    int exit_status;
-    GError *error = NULL;
+    const gchar *locale;
 
     user = pam_session_get_user (session->priv->authentication);
-    language = user_get_language (user);
-    if (!language || language[0] == '\0')
-        return;
-
-    language_dot = g_strdup_printf ("%s.", language);
-
-    /* Find a locale that matches the language code */
-    result = g_spawn_command_line_sync ("locale -a", &stdout_text, NULL, &exit_status, &error);
-    if (error)
+    locale = user_get_locale (user);
+    if (locale)
     {
-        g_warning ("Failed to run 'locale -a': %s", error->message);
-        g_clear_error (&error);
+        g_debug ("Using locale %s", locale);
+        session_set_env (session, "LANG", locale);
     }
-    else if (exit_status != 0)
-        g_warning ("Failed to get languages, locale -a returned %d", exit_status);
-    else if (result)
-    {
-        gchar **tokens, *matched_code = NULL;
-        int i;
-
-        tokens = g_strsplit_set (stdout_text, "\n\r", -1);
-
-        /* Look for a locale with an encoding */
-        for (i = 0; tokens[i]; i++)
-        {
-            gchar *code = g_strchug (tokens[i]);
-            if (g_str_has_prefix (code, language_dot))
-            {
-                matched_code = code;
-                break;
-            }
-        }
-
-        /* Fall back to a locale without an encoding */
-        if (!matched_code)
-        {
-            for (i = 0; tokens[i]; i++)
-            {
-                gchar *code = g_strchug (tokens[i]);
-                if (strcmp (code, language) == 0)
-                {
-                    matched_code = code;
-                    break;
-                }
-            }
-        }
-
-        if (matched_code)
-        {
-            g_debug ("Using locale %s for language %s", matched_code, language);
-            session_set_env (session, "LANG", matched_code);
-        }
-        else
-            g_debug ("Failed to find locale for language %s", language);
-
-        g_strfreev (tokens);
-    }
-    g_free (language_dot);
-    g_free (stdout_text);
 }
 
 /* Insert our own utility directory to PATH
@@ -477,7 +418,7 @@ session_run (Process *process)
     /* Do PAM actions requiring session process */
     pam_session_setup (session->priv->authentication);
     set_env_from_authentication (session, session->priv->authentication);
-    set_language (session);
+    set_locale (session);
     insert_utility_path (session);
 
     PROCESS_CLASS (session_parent_class)->run (process);
