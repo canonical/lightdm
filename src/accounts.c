@@ -445,11 +445,15 @@ user_get_xsession (User *user)
     g_return_val_if_fail (user != NULL, NULL);
 
     g_free (user->priv->xsession);
-
-    if (get_property (user->priv->proxy, "XSession", "s", &result))
+    if (user->priv->proxy)
     {
-        g_variant_get (result, "s", &user->priv->xsession);
-        g_variant_unref (result);
+        if (get_property (user->priv->proxy, "XSession", "s", &result))
+        {
+            g_variant_get (result, "s", &user->priv->xsession);
+            g_variant_unref (result);
+        }
+        else
+            user->priv->xsession = NULL;
     }
     else
         user->priv->xsession = get_string_from_dmrc (user->priv->name, "Desktop", "Session");
