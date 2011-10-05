@@ -19,13 +19,15 @@
 
 #include "lightdm/user.h"
 
-enum {
+enum
+{
     LIST_PROP_0,
     LIST_PROP_NUM_USERS,
     LIST_PROP_USERS,
 };
 
-enum {
+enum
+{
     USER_PROP_0,
     USER_PROP_NAME,
     USER_PROP_REAL_NAME,
@@ -38,7 +40,8 @@ enum {
     USER_PROP_LOGGED_IN
 };
 
-enum {
+enum
+{
     USER_ADDED,
     USER_CHANGED,
     USER_REMOVED,
@@ -46,7 +49,8 @@ enum {
 };
 static guint list_signals[LAST_LIST_SIGNAL] = { 0 };
 
-enum {
+enum
+{
     CHANGED,
     LAST_USER_SIGNAL
 };
@@ -900,7 +904,8 @@ lightdm_user_list_get_property (GObject    *object,
 
     self = LIGHTDM_USER_LIST (object);
 
-    switch (prop_id) {
+    switch (prop_id)
+    {
     case LIST_PROP_NUM_USERS:
         g_value_set_int (value, lightdm_user_list_get_length (self));
         break;
@@ -1126,12 +1131,14 @@ get_string_property (GDBusProxy *proxy, const gchar *property)
 
     answer = g_dbus_proxy_get_cached_property (proxy, property);
 
-    if (!answer) {
+    if (!answer)
+    {
         g_warning ("Could not get accounts property %s", property);
         return NULL;
     }
 
-    if (!g_variant_is_of_type (answer, G_VARIANT_TYPE ("s"))) {
+    if (!g_variant_is_of_type (answer, G_VARIANT_TYPE ("s")))
+    {
         g_warning ("Unexpected accounts property type for %s: %s",
                    property, g_variant_get_type_string (answer));
         g_variant_unref (answer);
@@ -1153,8 +1160,10 @@ load_accounts_service (LightDMUser *user)
     /* First, find AccountObject proxy */
     UserAccountObject *account = NULL;
     GList *iter;
-    for (iter = list_priv->user_account_objects; iter; iter = iter->next) {
-        if (((UserAccountObject *)iter->data)->user == user) {
+    for (iter = list_priv->user_account_objects; iter; iter = iter->next)
+    {
+        if (((UserAccountObject *)iter->data)->user == user)
+        {
             account = (UserAccountObject *)iter->data;
             break;
         }
@@ -1289,7 +1298,8 @@ lightdm_user_get_property (GObject    *object,
 
     self = LIGHTDM_USER (object);
 
-    switch (prop_id) {
+    switch (prop_id)
+    {
     case USER_PROP_NAME:
         g_value_set_string (value, lightdm_user_get_name (self));
         break;
