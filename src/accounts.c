@@ -55,6 +55,10 @@ G_DEFINE_TYPE (User, user, G_TYPE_OBJECT);
 
 static gchar *passwd_file = NULL;
 
+/* Connection to AccountsService */
+static GDBusProxy *accounts_service_proxy = NULL;
+static gboolean have_accounts_service_proxy = FALSE;
+
 static gboolean
 call_method (GDBusProxy *proxy, const gchar *method, GVariant *args,
              const gchar *expected, GVariant **result)
@@ -152,6 +156,42 @@ get_string_from_dmrc (const gchar *username, const gchar *group,
 }
 
 static GDBusProxy *
+get_accounts_service_proxy ()
+{
+    GError *error = NULL;
+
+    if (have_accounts_service_proxy)
+        return accounts_service_proxy;
+  
+    have_accounts_service_proxy = TRUE;
+    accounts_service_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                                            G_DBUS_PROXY_FLAGS_NONE,
+                                                            NULL,
+                                                            "org.freedesktop.Accounts",
+                                                            "/org/freedesktop/Accounts",
+                                                            "org.freedesktop.Accounts",
+                                                            NULL, &error);
+    if (error)
+        g_warning ("Could not get accounts proxy: %s", error->message);
+    g_clear_error (&error);
+
+    if (accounts_service_proxy)
+    {
+        gchar *name;
+        name = g_dbus_proxy_get_name_owner (accounts_service_proxy);
+        if (!name)
+        {
+            g_debug ("org.freedesktop.Accounts does not exist, falling back to passwd file");
+            g_object_unref (accounts_service_proxy);
+            accounts_service_proxy = NULL;
+        }
+        g_free (name);
+    }  
+
+    return accounts_service_proxy;
+}
+
+static GDBusProxy *
 get_accounts_proxy_for_user (const gchar *user)
 {
     GDBusProxy *proxy;
@@ -162,22 +202,11 @@ get_accounts_proxy_for_user (const gchar *user)
 
     g_return_val_if_fail (user != NULL, NULL);  
 
-    proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                           G_DBUS_PROXY_FLAGS_NONE,
-                                           NULL,
-                                           "org.freedesktop.Accounts",
-                                           "/org/freedesktop/Accounts",
-                                           "org.freedesktop.Accounts",
-                                           NULL, &error);
-    if (error)
-        g_warning ("Could not get accounts proxy: %s", error->message);
-    g_clear_error (&error);
-
+    proxy = get_accounts_service_proxy ();
     if (!proxy)
         return NULL;
 
-    success = call_method (proxy, "FindUserByName", g_variant_new ("(s)", user),
-                           "(o)", &result);
+    success = call_method (proxy, "FindUserByName", g_variant_new ("(s)", user), "(o)", &result);
     g_object_unref (proxy);
 
     if (!success)
