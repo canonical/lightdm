@@ -675,8 +675,15 @@ start_user_session (Display *display, PAMSession *authentication)
     g_free (log_filename);
 
     g_signal_emit (display, signals[START_SESSION], 0, &result);
+    result = !result;
 
-    return !result;
+    if (!result)
+    {
+        g_object_unref (display->priv->session);
+        display->priv->session = NULL;
+    }
+
+    return result;
 }
 
 static gboolean
