@@ -188,6 +188,7 @@ read_uint16 (GInputStream *stream, guint16 *value, gboolean *eof, GError **error
 static gboolean
 read_data (GInputStream *stream, guint16 length, guint8 **value, GError **error)
 {
+    g_free (*value);
     *value = g_malloc0 (length + 1);
     if (g_input_stream_read_all (stream, *value, length, NULL, NULL, error) < 0)
     {
@@ -277,7 +278,10 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, GFile *file, GError **error)
         g_clear_error (&read_error);
 
         if (eof || !result)
+        {
+            g_object_unref (a);
             break;
+        }
 
         if (auth->priv->address_length == a->priv->address_length)
         {

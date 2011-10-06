@@ -142,7 +142,7 @@ static void
 xserver_finalize (GObject *object)
 {
     XServer *self;
-  
+
     self = XSERVER (object);
 
     g_free (self->priv->hostname);

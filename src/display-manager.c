@@ -79,6 +79,8 @@ seat_stopped_cb (Seat *seat, DisplayManager *manager)
 
     if (!manager->priv->stopping)
         g_signal_emit (manager, signals[SEAT_REMOVED], 0, seat);
+
+    g_object_unref (seat);
 }
 
 gboolean
@@ -146,13 +148,10 @@ static void
 display_manager_finalize (GObject *object)
 {
     DisplayManager *self;
-    GList *link;
 
     self = DISPLAY_MANAGER (object);
 
-    for (link = self->priv->seats; link; link = link->next)
-        g_object_unref (link->data);
-    g_list_free (self->priv->seats);
+    g_list_free_full (self->priv->seats, g_object_unref);
 
     G_OBJECT_CLASS (display_manager_parent_class)->finalize (object);
 }

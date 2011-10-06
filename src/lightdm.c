@@ -42,10 +42,10 @@ static VNCServer *vnc_server = NULL;
 static GDBusConnection *bus = NULL;
 static guint bus_id;
 static GDBusNodeInfo *seat_info;
-static GHashTable *seat_bus_entries;
+static GHashTable *seat_bus_entries = NULL;
 static guint seat_index = 0;
 static GDBusNodeInfo *session_info;
-static GHashTable *session_bus_entries;
+static GHashTable *session_bus_entries = NULL;
 static guint session_index = 0;
 static gint exit_code = EXIT_SUCCESS;
 
@@ -138,11 +138,25 @@ signal_cb (Process *process, int signum)
     // FIXME: Stop XDMCP server
 }
 
+static gboolean
+exit_cb (gpointer data)
+{
+    exit (exit_code);
+}
+
 static void
 display_manager_stopped_cb (DisplayManager *display_manager)
 {
     g_debug ("Stopping Light Display Manager");
-    exit (exit_code);
+
+    /* Cleanup */
+    if (seat_bus_entries)
+        g_hash_table_unref (seat_bus_entries);
+    if (session_bus_entries)
+        g_hash_table_unref (session_bus_entries);
+    g_object_unref (display_manager);
+
+    g_idle_add (exit_cb, NULL);
 }
 
 static GVariant *
@@ -300,6 +314,7 @@ handle_display_manager_call (GDBusConnection       *connection,
         }
         else// FIXME: Need to make proper error
             g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Failed to start seat");
+        g_object_unref (seat);
     }
     else if (g_strcmp0 (method_name, "AddLocalXSeat") == 0)
     {
@@ -340,6 +355,7 @@ handle_display_manager_call (GDBusConnection       *connection,
         }
         else// FIXME: Need to make proper error
             g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Failed to start seat");
+        g_object_unref (seat);
     }
     /* NOTE: This method is deprecated, use the XSG_SEAT_PATH environment variable instead */
     else if (g_strcmp0 (method_name, "GetSeatForCookie") == 0)
@@ -751,6 +767,7 @@ bus_acquired_cb (GDBusConnection *connection,
                                                 &display_manager_vtable,
                                                 NULL, NULL,
                                                 NULL);
+    g_dbus_node_info_unref  (display_manager_info);
 
     seat_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, bus_entry_free);
     session_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, bus_entry_free);
@@ -822,7 +839,8 @@ main (int argc, char **argv)
 {
     FILE *pid_file;
     GOptionContext *option_context;
-    gchar **groups, **i;
+    gboolean result;
+    gchar **groups, **i, *dir;
     gint n_seats = 0;
     gboolean explicit_config = FALSE;
     gboolean test_mode = FALSE;
@@ -909,16 +927,18 @@ main (int argc, char **argv)
     option_context = g_option_context_new (/* Arguments and description for --help test */
                                            _("- Display Manager"));
     g_option_context_add_main_entries (option_context, options, GETTEXT_PACKAGE);
-    if (!g_option_context_parse (option_context, &argc, &argv, &error))
+    result = g_option_context_parse (option_context, &argc, &argv, &error);
+    if (error)
+        g_printerr ("%s\n", error->message);
+    g_clear_error (&error);
+    g_option_context_free (option_context);
+    if (!result)
     {
-        if (error)
-            fprintf (stderr, "%s\n", error->message);
-        fprintf (stderr, /* Text printed out when an unknown command-line argument provided */
-                 _("Run '%s --help' to see a full list of available command line options."), argv[0]);
-        fprintf (stderr, "\n");
+        g_printerr (/* Text printed out when an unknown command-line argument provided */
+                    _("Run '%s --help' to see a full list of available command line options."), argv[0]);
+        g_printerr ("\n");
         return EXIT_FAILURE;
     }
-    g_clear_error (&error);
 
     if (show_version)
     {
@@ -1094,9 +1114,15 @@ main (int argc, char **argv)
     g_free (session_wrapper);
 
     /* Create run and cache directories */
-    g_mkdir_with_parents (config_get_string (config_get_instance (), "LightDM", "log-directory"), S_IRWXU | S_IXGRP | S_IXOTH);  
-    g_mkdir_with_parents (config_get_string (config_get_instance (), "LightDM", "run-directory"), S_IRWXU | S_IXGRP | S_IXOTH);
-    g_mkdir_with_parents (config_get_string (config_get_instance (), "LightDM", "cache-directory"), S_IRWXU | S_IXGRP | S_IXOTH);
+    dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
+    g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH);
+    g_free (dir);
+    dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
+    g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH);
+    g_free (dir);
+    dir = config_get_string (config_get_instance (), "LightDM", "cache-directory");
+    g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH);
+    g_free (dir);
 
     loop = g_main_loop_new (NULL, FALSE);
 
@@ -1152,6 +1178,7 @@ main (int argc, char **argv)
         {
             set_seat_properties (seat, config_section);
             display_manager_add_seat (display_manager, seat);
+            g_object_unref (seat);
             n_seats++;
         }
         else
@@ -1175,6 +1202,7 @@ main (int argc, char **argv)
             set_seat_properties (seat, NULL);
             seat_set_property (seat, "exit-on-failure", "true");
             display_manager_add_seat (display_manager, seat);
+            g_object_unref (seat);
         }
         else
             g_warning ("Failed to create default seat");
