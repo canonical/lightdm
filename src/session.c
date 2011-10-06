@@ -26,6 +26,9 @@ struct SessionPrivate
     /* File to log to */
     gchar *log_file;
 
+    /* TRUE if the log file should be owned by the user */
+    gboolean log_file_as_user;
+
     /* Authentication for this session */
     PAMSession *authentication;
 
@@ -45,11 +48,12 @@ struct SessionPrivate
 G_DEFINE_TYPE (Session, session, PROCESS_TYPE);
 
 void
-session_set_log_file (Session *session, const gchar *filename)
+session_set_log_file (Session *session, const gchar *filename, gboolean as_user)
 {
     g_return_if_fail (session != NULL);
     g_free (session->priv->log_file);
     session->priv->log_file = g_strdup (filename);
+    session->priv->log_file_as_user = as_user;
 }
 
 const gchar *
@@ -349,6 +353,27 @@ session_cleanup (Session *session)
 }
 
 static void
+setup_log_file (Session *session)
+{
+    int fd;
+
+    /* Redirect output to logfile */
+    if (!session->priv->log_file)
+        return;
+
+    g_printerr ("%d\n", getuid ());
+    fd = g_open (session->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    if (fd < 0)
+        g_warning ("Failed to open log file %s: %s", session->priv->log_file, g_strerror (errno));
+    else
+    {
+        dup2 (fd, STDOUT_FILENO);
+        dup2 (fd, STDERR_FILENO);
+        close (fd);
+    }
+}
+
+static void
 session_run (Process *process)
 {
     Session *session = SESSION (process);
@@ -360,15 +385,15 @@ session_run (Process *process)
     dup2 (fd, STDIN_FILENO);
     close (fd);
 
+    /* Redirect output to logfile */
+    if (!session->priv->log_file_as_user)
+        setup_log_file (session);
+
     /* Make this process its own session */
     if (setsid () < 0)
         g_warning ("Failed to make process a new session: %s", strerror (errno));
 
     user = pam_session_get_user (session->priv->authentication);
-  
-    /* Delete existing log file if it exists - a bug in 1.0.0 would cause this file to be written as root */
-    if (session->priv->log_file)
-        unlink (session->priv->log_file);
 
     /* Change working directory */
     if (chdir (user_get_home_directory (user)) != 0)
@@ -400,20 +425,8 @@ session_run (Process *process)
     }
 
     /* Redirect output to logfile */
-    if (session->priv->log_file)
-    {
-         int fd;
-
-         fd = g_open (session->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-         if (fd < 0)
-             g_warning ("Failed to open log file %s: %s", session->priv->log_file, g_strerror (errno));
-         else
-         {
-             dup2 (fd, STDOUT_FILENO);
-             dup2 (fd, STDERR_FILENO);
-             close (fd);
-         }
-    }
+    if (session->priv->log_file_as_user)
+        setup_log_file (session);
 
     /* Do PAM actions requiring session process */
     pam_session_setup (session->priv->authentication);
