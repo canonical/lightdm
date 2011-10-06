@@ -42,7 +42,7 @@ typedef struct
 
 GType session_get_type (void);
 
-void session_set_log_file (Session *session, const gchar *filename);
+void session_set_log_file (Session *session, const gchar *filename, gboolean as_user);
 
 const gchar *session_get_log_file (Session *session);
 

@@ -26,6 +26,9 @@ struct SessionPrivate
     /* File to log to */
     gchar *log_file;
 
+    /* TRUE if the log file should be owned by the user */
+    gboolean log_file_as_user;
+
     /* Authentication for this session */
     PAMSession *authentication;
 
@@ -45,11 +48,12 @@ struct SessionPrivate
 G_DEFINE_TYPE (Session, session, PROCESS_TYPE);
 
 void
-session_set_log_file (Session *session, const gchar *filename)
+session_set_log_file (Session *session, const gchar *filename, gboolean as_user)
 {
     g_return_if_fail (session != NULL);
     g_free (session->priv->log_file);
     session->priv->log_file = g_strdup (filename);
+    session->priv->log_file_as_user = as_user;
 }
 
 const gchar *
@@ -192,69 +196,23 @@ session_get_console_kit_cookie (Session *session)
     return session->priv->console_kit_cookie;
 }
 
-/* Set the LANG variable based on the chosen language.  This is not a great
- * solution, as it will override the language set in PAM (which is where it
- * should be set).  It's also overly simplistic to set all the locale
- * settings based on one language.  In the case of Ubuntu these will be
- * overridden by setting these variables in ~/.profile */
+/* Set the LANG variable based on the chosen locale.  This is not a great
+ * solution, as it will override the locale set in PAM (which is where it
+ * should be set).  In the case of Ubuntu these will be overridden by setting
+ * these variables in ~/.profile */
 static void
-set_language (Session *session)
+set_locale (Session *session)
 {
     User *user;
-    const gchar *language;
-    gchar *language_dot;
-    gboolean result;
-    gchar *stdout_text = NULL;
-    int exit_status;
-    gboolean found_code = FALSE;
-    GError *error = NULL;
+    const gchar *locale;
 
     user = pam_session_get_user (session->priv->authentication);
-    language = user_get_language (user);
-    if (!language)
-        return;
-
-    language_dot = g_strdup_printf ("%s.", language);
-
-    /* Find a locale that matches the language code */
-    result = g_spawn_command_line_sync ("locale -a", &stdout_text, NULL, &exit_status, &error);
-    if (error)
+    locale = user_get_locale (user);
+    if (locale)
     {
-        g_warning ("Failed to run 'locale -a': %s", error->message);
-        g_clear_error (&error);
+        g_debug ("Using locale %s", locale);
+        session_set_env (session, "LANG", locale);
     }
-    else if (exit_status != 0)
-        g_warning ("Failed to get languages, locale -a returned %d", exit_status);
-    else if (result)
-    {
-        gchar **tokens;
-        int i;
-
-        tokens = g_strsplit_set (stdout_text, "\n\r", -1);
-        for (i = 0; tokens[i]; i++)
-        {
-            gchar *code;
-
-            code = g_strchug (tokens[i]);
-            if (code[0] == '\0')
-                continue;
-
-            if (strcmp (code, language) == 0 || g_str_has_prefix (code, language_dot))
-            {
-                g_debug ("Using locale %s for language %s", code, language);
-                found_code = TRUE;
-                session_set_env (session, "LANG", code);
-                break;
-            }
-        }
-
-        g_strfreev (tokens);
-    }
-    g_free (language_dot);
-    g_free (stdout_text);
-  
-    if (!found_code)
-        g_debug ("Failed to find locale for language %s", language);
 }
 
 /* Insert our own utility directory to PATH
@@ -395,6 +353,26 @@ session_cleanup (Session *session)
 }
 
 static void
+setup_log_file (Session *session)
+{
+    int fd;
+
+    /* Redirect output to logfile */
+    if (!session->priv->log_file)
+        return;
+
+    fd = g_open (session->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    if (fd < 0)
+        g_warning ("Failed to open log file %s: %s", session->priv->log_file, g_strerror (errno));
+    else
+    {
+        dup2 (fd, STDOUT_FILENO);
+        dup2 (fd, STDERR_FILENO);
+        close (fd);
+    }
+}
+
+static void
 session_run (Process *process)
 {
     Session *session = SESSION (process);
@@ -406,15 +384,15 @@ session_run (Process *process)
     dup2 (fd, STDIN_FILENO);
     close (fd);
 
+    /* Redirect output to logfile */
+    if (!session->priv->log_file_as_user)
+        setup_log_file (session);
+
     /* Make this process its own session */
     if (setsid () < 0)
         g_warning ("Failed to make process a new session: %s", strerror (errno));
 
     user = pam_session_get_user (session->priv->authentication);
-  
-    /* Delete existing log file if it exists - a bug in 1.0.0 would cause this file to be written as root */
-    if (session->priv->log_file)
-        unlink (session->priv->log_file);
 
     /* Change working directory */
     if (chdir (user_get_home_directory (user)) != 0)
@@ -446,25 +424,13 @@ session_run (Process *process)
     }
 
     /* Redirect output to logfile */
-    if (session->priv->log_file)
-    {
-         int fd;
-
-         fd = g_open (session->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-         if (fd < 0)
-             g_warning ("Failed to open log file %s: %s", session->priv->log_file, g_strerror (errno));
-         else
-         {
-             dup2 (fd, STDOUT_FILENO);
-             dup2 (fd, STDERR_FILENO);
-             close (fd);
-         }
-    }
+    if (session->priv->log_file_as_user)
+        setup_log_file (session);
 
     /* Do PAM actions requiring session process */
     pam_session_setup (session->priv->authentication);
     set_env_from_authentication (session, session->priv->authentication);
-    set_language (session);
+    set_locale (session);
     insert_utility_path (session);
 
     PROCESS_CLASS (session_parent_class)->run (process);

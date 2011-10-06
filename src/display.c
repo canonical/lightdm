@@ -384,7 +384,7 @@ user_session_stopped_cb (Session *session, Display *display)
 }
 
 static Session *
-create_session (Display *display, PAMSession *authentication, const gchar *session_name, gboolean is_greeter, const gchar *log_filename)
+create_session (Display *display, PAMSession *authentication, const gchar *session_name, gboolean is_greeter)
 {
     gchar *sessions_dir, *filename, *path, *command = NULL;
     GKeyFile *session_desktop_file;
@@ -392,7 +392,7 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     gboolean result;
     GError *error = NULL;
 
-    g_debug ("Starting session %s as user %s logging to %s", session_name, pam_session_get_username (authentication), log_filename);
+    g_debug ("Starting session %s as user %s", session_name, pam_session_get_username (authentication));
 
     // FIXME: This is X specific, move into xsession.c
     if (is_greeter)
@@ -455,8 +455,6 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
 
     session_set_env (session, "DESKTOP_SESSION", session_name); // FIXME: Apparently deprecated?
     session_set_env (session, "GDMSESSION", session_name); // FIXME: Not cross-desktop
-
-    session_set_log_file (session, log_filename);
 
     /* Connect using the session bus */
     if (getuid () != 0)
@@ -589,24 +587,27 @@ start_greeter_session (Display *display)
     }
     display->priv->in_user_session = FALSE;
 
-    log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    filename = g_strdup_printf ("%s-greeter.log", display_server_get_name (display->priv->display_server));
-    log_filename = g_build_filename (log_dir, filename, NULL);
-    g_free (log_dir);
-    g_free (filename);
-  
     /* Authenticate as the requested user */
     authentication = pam_session_new (display->priv->pam_autologin_service, user_get_name (user));
     pam_session_set_interactive (authentication, FALSE);
     g_signal_connect (G_OBJECT (authentication), "authentication-result", G_CALLBACK (greeter_authentication_result_cb), display);
     g_object_unref (user);
 
-    display->priv->session = create_session (display, authentication, display->priv->greeter_session, TRUE, log_filename);
+    display->priv->session = create_session (display, authentication, display->priv->greeter_session, TRUE);
     g_object_unref (authentication);
-    g_free (log_filename);
-
+  
     if (!display->priv->session)
         return FALSE;
+
+    log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
+    filename = g_strdup_printf ("%s-greeter.log", display_server_get_name (display->priv->display_server));
+    log_filename = g_build_filename (log_dir, filename, NULL);
+    g_free (log_dir);
+    g_free (filename);
+
+    g_debug ("Logging to %s", log_filename);
+    session_set_log_file (display->priv->session, log_filename, FALSE);
+    g_free (log_filename);
 
     display->priv->greeter = greeter_new (display->priv->session);
     g_signal_connect (G_OBJECT (display->priv->greeter), "connected", G_CALLBACK (greeter_connected_cb), display);
@@ -675,15 +676,21 @@ start_user_session (Display *display, PAMSession *authentication)
 
     /* Update user's xsession setting */
     user_set_xsession (user, display->priv->user_session);
-
-    // FIXME: Copy old error file
-    log_filename = g_build_filename (user_get_home_directory (user), ".xsession-errors", NULL);
-
-    display->priv->session = create_session (display, authentication, display->priv->user_session, FALSE, log_filename);
-    g_free (log_filename);
+ 
+    display->priv->session = create_session (display, authentication, display->priv->user_session, FALSE);
 
     if (!display->priv->session)
         return FALSE;
+
+    // FIXME: Copy old error file
+    log_filename = g_build_filename (user_get_home_directory (user), ".xsession-errors", NULL);
+  
+    /* Delete existing log file if it exists - a bug in 1.0.0 would cause this file to be written as root */
+    unlink (log_filename);
+
+    g_debug ("Logging to %s", log_filename);    
+    session_set_log_file (display->priv->session, log_filename, TRUE);
+    g_free (log_filename);
 
     g_signal_emit (display, signals[START_SESSION], 0, &result);
 

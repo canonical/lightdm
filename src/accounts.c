@@ -44,14 +44,18 @@ struct UserPrivate
     /* Language */
     gchar *language;
 
+    /* Locale */
+    gchar *locale;
+
     /* X session */
     gchar *xsession;
 };
 
 G_DEFINE_TYPE (User, user, G_TYPE_OBJECT);
 
-static GDBusProxy *accounts_proxy = NULL;
-static gboolean have_accounts_proxy = FALSE;
+/* Connection to AccountsService */
+static GDBusProxy *accounts_service_proxy = NULL;
+static gboolean have_accounts_service_proxy = FALSE;
 
 static gboolean
 call_method (GDBusProxy *proxy, const gchar *method, GVariant *args,
@@ -99,17 +103,16 @@ get_property (GDBusProxy *proxy, const gchar *property,
 {
     GVariant *answer;
 
-    if (!proxy)
-        return FALSE;
-
     answer = g_dbus_proxy_get_cached_property (proxy, property);
 
-    if (!answer) {
+    if (!answer)
+    {
         g_warning ("Could not get accounts property %s", property);
         return FALSE;
     }
 
-    if (!g_variant_is_of_type (answer, G_VARIANT_TYPE (expected))) {
+    if (!g_variant_is_of_type (answer, G_VARIANT_TYPE (expected)))
+    {
         g_warning ("Unexpected accounts property type for %s: %s",
                    property, g_variant_get_type_string (answer));
         g_variant_unref (answer);
@@ -151,47 +154,58 @@ get_string_from_dmrc (const gchar *username, const gchar *group,
 }
 
 static GDBusProxy *
+get_accounts_service_proxy ()
+{
+    GError *error = NULL;
+
+    if (have_accounts_service_proxy)
+        return accounts_service_proxy;
+  
+    have_accounts_service_proxy = TRUE;
+    accounts_service_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                                            G_DBUS_PROXY_FLAGS_NONE,
+                                                            NULL,
+                                                            "org.freedesktop.Accounts",
+                                                            "/org/freedesktop/Accounts",
+                                                            "org.freedesktop.Accounts",
+                                                            NULL, &error);
+    if (error)
+        g_warning ("Could not get accounts proxy: %s", error->message);
+    g_clear_error (&error);
+
+    if (accounts_service_proxy)
+    {
+        gchar *name;
+        name = g_dbus_proxy_get_name_owner (accounts_service_proxy);
+        if (!name)
+        {
+            g_debug ("org.freedesktop.Accounts does not exist, falling back to passwd file");
+            g_object_unref (accounts_service_proxy);
+            accounts_service_proxy = NULL;
+        }
+        g_free (name);
+    }  
+
+    return accounts_service_proxy;
+}
+
+static GDBusProxy *
 get_accounts_proxy_for_user (const gchar *user)
 {
+    GDBusProxy *proxy;
     GError *error = NULL;
     GVariant *result;
     gboolean success;
-    GDBusProxy *proxy;
     gchar *user_path = NULL;
 
     g_return_val_if_fail (user != NULL, NULL);  
 
-    if (!have_accounts_proxy)
-    {
-        gchar *name;
-
-        accounts_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                                        G_DBUS_PROXY_FLAGS_NONE,
-                                                        NULL,
-                                                        "org.freedesktop.Accounts",
-                                                        "/org/freedesktop/Accounts",
-                                                        "org.freedesktop.Accounts",
-                                                        NULL, &error);
-        if (error)
-            g_warning ("Could not get accounts proxy: %s", error->message);
-        g_clear_error (&error);
-
-        name = g_dbus_proxy_get_name_owner (accounts_proxy);
-        if (!name)
-        {
-            g_debug ("org.freedesktop.Accounts does not exist, falling back to passwd file");
-            g_object_unref (accounts_proxy);
-            accounts_proxy = NULL;
-        }
-        g_free (name);
-
-        have_accounts_proxy = TRUE;
-    }
-
-    if (!accounts_proxy)
+    proxy = get_accounts_service_proxy ();
+    if (!proxy)
         return NULL;
 
-    success = call_method (accounts_proxy, "FindUserByName", g_variant_new ("(s)", user), "(o)", &result);
+    success = call_method (proxy, "FindUserByName", g_variant_new ("(s)", user), "(o)", &result);
+    g_object_unref (proxy);
 
     if (!success)
         return NULL;
@@ -319,39 +333,33 @@ user_get_shell (User *user)
     return user->priv->shell;
 }
 
-void
-user_set_language (User *user, const gchar *language)
-{
-    g_return_if_fail (user != NULL);
-
-    call_method (user->priv->proxy, "SetLanguage", g_variant_new ("(s)", language), "()", NULL);
-    save_string_to_dmrc (user->priv->name, "Desktop", "Language", language);
-}
-
 const gchar *
-user_get_language (User *user)
+user_get_locale (User *user)
 {
-    GVariant *result;
-
     g_return_val_if_fail (user != NULL, NULL);
 
-    g_free (user->priv->language);
-
-    if (get_property (user->priv->proxy, "Language", "s", &result))
-    {
-        g_variant_get (result, "s", &user->priv->language);
-        g_variant_unref (result);
-    }
+    g_free (user->priv->locale);
+    if (user->priv->proxy)
+        user->priv->locale = NULL;
     else
-        user->priv->language = get_string_from_dmrc (user->priv->name, "Desktop", "Language");
+        user->priv->locale = get_string_from_dmrc (user->priv->name, "Desktop", "Language");
 
-    if (g_strcmp0 (user->priv->language, "") == 0)
+    /* Treat a blank locale as unset */
+    if (g_strcmp0 (user->priv->locale, "") == 0)
     {
-        g_free (user->priv->language);
-        user->priv->language = NULL;
+        g_free (user->priv->locale);
+        user->priv->locale = NULL;
     }
 
-    return user->priv->language;
+    return user->priv->locale;
+}
+
+void
+user_set_locale (User *user, const gchar *locale)
+{
+    g_return_if_fail (user != NULL);
+    if (!user->priv->proxy)
+        save_string_to_dmrc (user->priv->name, "Desktop", "Language", locale);
 }
 
 void
@@ -371,11 +379,15 @@ user_get_xsession (User *user)
     g_return_val_if_fail (user != NULL, NULL);
 
     g_free (user->priv->xsession);
-
-    if (get_property (user->priv->proxy, "XSession", "s", &result))
+    if (user->priv->proxy)
     {
-        g_variant_get (result, "s", &user->priv->xsession);
-        g_variant_unref (result);
+        if (get_property (user->priv->proxy, "XSession", "s", &result))
+        {
+            g_variant_get (result, "s", &user->priv->xsession);
+            g_variant_unref (result);
+        }
+        else
+            user->priv->xsession = NULL;
     }
     else
         user->priv->xsession = get_string_from_dmrc (user->priv->name, "Desktop", "Session");
@@ -402,7 +414,8 @@ user_dispose (GObject *object)
 
     self = USER (object);
 
-    if (self->priv->proxy) {
+    if (self->priv->proxy)
+    {
         g_object_unref (self->priv->proxy);
         self->priv->proxy = NULL;
     }
