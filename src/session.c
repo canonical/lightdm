@@ -361,7 +361,6 @@ setup_log_file (Session *session)
     if (!session->priv->log_file)
         return;
 
-    g_printerr ("%d\n", getuid ());
     fd = g_open (session->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
     if (fd < 0)
         g_warning ("Failed to open log file %s: %s", session->priv->log_file, g_strerror (errno));
