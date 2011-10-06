@@ -50,9 +50,9 @@ PKG_CHECK_MODULES(XCB, [
 ])    
 
 AC_ARG_ENABLE(liblightdm-gobject,
-	AS_HELP_STRING([--enable-liblightdm-gobject],[Enable LightDM client gobject libraries [[default=yes]]]),
+	AS_HELP_STRING([--enable-liblightdm-gobject],[Enable LightDM client gobject libraries [[default=auto]]]),
 	[enable_liblightdm_gobject=$enableval],
-	[enable_liblightdm_gobject="yes"])
+	[enable_liblightdm_gobject="auto"])
 compile_liblightdm_gobject=no
 if test x"$enable_liblightdm_gobject" = "xauto"; then
     PKG_CHECK_MODULES(LIBLIGHTDM_GOBJECT, [
@@ -98,20 +98,43 @@ elif test x"$enable_liblightdm_qt" = "xyes"; then
 fi
 AM_CONDITIONAL(COMPILE_LIBLIGHTDM_QT, test x"$compile_liblightdm_qt" != "xno")
 
-have_qt=no
-if test x"$compile_liblightdm_qt" = "xyes"; then
+AC_ARG_ENABLE(qt-greeter,
+	AS_HELP_STRING([--enable-qt-greeter],[Build QT greeter [[default=auto]]]),
+	[enable_qt_greeter=$enableval],
+	[enable_qt_greeter="auto"])
+compile_qt_greeter=no
+if test x"$enable_qt_greeter" = "xauto"; then
     PKG_CHECK_MODULES(LIGHTDM_QT_GREETER, [
         QtCore
         QtGui
-    ], have_qt=yes, have_qt=no)
+    ], compile_qt_greeter=yes, compile_qt_greeter=no)
+elif test x"$enable_qt_greeter" = "xyes"; then
+    PKG_CHECK_MODULES(LIGHTDM_QT_GREETER, [
+        QtCore
+        QtGui
+    ])
+    compile_qt_greeter=yes
 fi
-AM_CONDITIONAL(HAVE_QT_GREETER, test $have_qt = yes)
+AM_CONDITIONAL(COMPILE_QT_GREETER, test $compile_qt_greeter = yes)
 
-PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
-    gtk+-3.0
-    gmodule-export-2.0
-], have_gtk=yes, have_gtk=no)
-AM_CONDITIONAL(HAVE_GTK_GREETER, test $have_gtk = yes)
+AC_ARG_ENABLE(gtk-greeter,
+	AS_HELP_STRING([--enable-gtk-greeter],[Build GTK greeter [[default=auto]]]),
+	[enable_gtk_greeter=$enableval],
+	[enable_gtk_greeter="auto"])
+compile_gtk_greeter=no
+if test x"$enable_gtk_greeter" = "xauto"; then
+    PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
+        gtk+-3.0
+        gmodule-export-2.0
+    ], compile_gtk_greeter=yes, compile_gtk_greeter=no)
+elif test x"enable_gtk_greeter" = "xyes"; then
+    PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
+        gtk+-3.0
+        gmodule-export-2.0
+    ])
+    compile_gtk_greeter=yes
+fi
+AM_CONDITIONAL(COMPILE_GTK_GREETER, test $compile_gtk_greeter = yes)
 
 AC_PATH_PROG(GLIB_GENMARSHAL, glib-genmarshal)
 AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)
@@ -207,6 +230,6 @@ echo "
         liblightdm-gobject:       $compile_liblightdm_gobject
         GObject introspection:    $found_introspection
         liblightdm-qt:            $compile_liblightdm_qt
-        GTK+ Greeter:             $have_gtk
-        Qt Greeter:               $have_qt
+        GTK+ Greeter:             $compile_gtk_greeter
+        Qt Greeter:               $compile_qt_greeter
 "
