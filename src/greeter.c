@@ -530,7 +530,8 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     /* If have header, rerun for content */
     if (greeter->priv->n_read == HEADER_SIZE)
     {
-        n_to_read = ((guint32 *) greeter->priv->read_buffer)[1];
+        gsize offset = int_length ();
+        n_to_read = read_int (greeter, &offset);
         if (n_to_read > 0)
         {
             greeter->priv->read_buffer = g_realloc (greeter->priv->read_buffer, HEADER_SIZE + n_to_read);
