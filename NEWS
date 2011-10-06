@@ -5,6 +5,7 @@ Overview of changes in lightdm 1.0.2
     * Don't set LANG environment variable if using Accounts Service.
     * Fix gdmflexiserver not working due to it not being in PATH
     * Don't authenticate the greeter user
+    * Allow greeters to be disabled in configure flags
 
 Overview of changes in lightdm 1.0.1
 
