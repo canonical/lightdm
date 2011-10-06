@@ -21,6 +21,10 @@ Overview of changes in lightdm 1.1.0
       systems like AppArmor and SELinux can use for attaching a restrictive
       policy to guest sessions.
     * Provide an AppArmor profile for guest session lockdown.
+    * Fix daemon from blocking if Accounts Service does not exist
+    * Fix greeter log file not being written
+    * Don't set LANG environment variable if using Accounts Service.
+    * Fix gdmflexiserver not working due to it not being in PATH
 
 Overview of changes in lightdm 1.0.0
 
