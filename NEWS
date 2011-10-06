@@ -6,6 +6,7 @@ Overview of changes in lightdm 1.0.2
     * Fix gdmflexiserver not working due to it not being in PATH
     * Don't authenticate the greeter user
     * Allow greeters to be disabled in configure flags
+    * Fix over allocation of read buffer in greeter protocol
 
 Overview of changes in lightdm 1.0.1
 
