@@ -103,12 +103,14 @@ get_property (GDBusProxy *proxy, const gchar *property,
 
     answer = g_dbus_proxy_get_cached_property (proxy, property);
 
-    if (!answer) {
+    if (!answer)
+    {
         g_warning ("Could not get accounts property %s", property);
         return FALSE;
     }
 
-    if (!g_variant_is_of_type (answer, G_VARIANT_TYPE (expected))) {
+    if (!g_variant_is_of_type (answer, G_VARIANT_TYPE (expected)))
+    {
         g_warning ("Unexpected accounts property type for %s: %s",
                    property, g_variant_get_type_string (answer));
         g_variant_unref (answer);
