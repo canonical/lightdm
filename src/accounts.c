@@ -205,7 +205,6 @@ get_accounts_proxy_for_user (const gchar *user)
         return NULL;
 
     success = call_method (proxy, "FindUserByName", g_variant_new ("(s)", user), "(o)", &result);
-    g_object_unref (proxy);
 
     if (!success)
         return NULL;

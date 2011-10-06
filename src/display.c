@@ -540,28 +540,13 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session_name, Display *
     return TRUE;
 }
 
-static void
-greeter_authentication_result_cb (PAMSession *authentication, int result, Display *display)
-{
-    gboolean start_result = FALSE;
-
-    if (result == PAM_SUCCESS)
-        g_signal_emit (display, signals[START_GREETER], 0, &start_result);
-    else
-        g_debug ("Greeter user failed authentication");
-
-    if (start_result)
-        display_stop (display);
-}
-
 static gboolean
 start_greeter_session (Display *display)
 {
     User *user;
     gchar *log_dir, *filename, *log_filename;
     PAMSession *authentication;
-    gboolean result;
-    GError *error = NULL;
+    gboolean start_result;
 
     g_debug ("Starting greeter session");
 
@@ -588,9 +573,7 @@ start_greeter_session (Display *display)
     display->priv->in_user_session = FALSE;
 
     /* Authenticate as the requested user */
-    authentication = pam_session_new (display->priv->pam_autologin_service, user_get_name (user));
-    pam_session_set_interactive (authentication, FALSE);
-    g_signal_connect (G_OBJECT (authentication), "authentication-result", G_CALLBACK (greeter_authentication_result_cb), display);
+    authentication = pam_session_new (display->priv->pam_service, user_get_name (user));
     g_object_unref (user);
 
     display->priv->session = create_session (display, authentication, display->priv->greeter_session, TRUE);
@@ -632,12 +615,10 @@ start_greeter_session (Display *display)
     greeter_set_hint (display->priv->greeter, "has-guest-account", display->priv->allow_guest ? "true" : "false");
     greeter_set_hint (display->priv->greeter, "hide-users", display->priv->greeter_hide_users ? "true" : "false");
 
-    result = pam_session_authenticate (session_get_authentication (display->priv->session), &error);
-    if (error)
-        g_debug ("Error authenticating greeter user: %s", error->message);
-    g_clear_error (&error);
+    start_result = FALSE;
+    g_signal_emit (display, signals[START_GREETER], 0, &start_result);
 
-    return result;
+    return !start_result;
 }
 
 static gboolean
