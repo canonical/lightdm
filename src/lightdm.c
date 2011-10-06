@@ -35,10 +35,12 @@ static GMainLoop *loop = NULL;
 static GTimer *log_timer;
 static int log_fd = -1;
 static gboolean debug = FALSE;
+static gboolean stopping = FALSE;
 
 static DisplayManager *display_manager = NULL;
 static XDMCPServer *xdmcp_server = NULL;
 static VNCServer *vnc_server = NULL;
+static guint bus_id = 0;
 static GDBusConnection *bus = NULL;
 static guint bus_id;
 static GDBusNodeInfo *seat_info;
@@ -149,12 +151,21 @@ display_manager_stopped_cb (DisplayManager *display_manager)
 {
     g_debug ("Stopping Light Display Manager");
 
-    /* Cleanup */
+    /* Mark as stopping because bus_acquired_cb can be called after this function, and even
+     * more weirdly display_manager is not NULL even though the following lines set it to
+     * be! */
+    stopping = TRUE;
+
+    /* Clean up display manager */
+    g_object_unref (display_manager);
+    display_manager = NULL;
+
+    /* Remove D-Bus interface */
+    g_bus_unown_name (bus_id);
     if (seat_bus_entries)
         g_hash_table_unref (seat_bus_entries);
     if (session_bus_entries)
         g_hash_table_unref (session_bus_entries);
-    g_object_unref (display_manager);
 
     g_idle_add (exit_cb, NULL);
 }
@@ -669,8 +680,11 @@ bus_acquired_cb (GDBusConnection *connection,
         "</node>";
     GDBusNodeInfo *display_manager_info;
     GList *link;
-  
-    g_debug ("Acquired bus name");
+
+    if (stopping)
+        return;
+
+    g_debug ("Acquired bus name %s", name);
 
     bus = connection;
 
@@ -813,6 +827,7 @@ main (int argc, char **argv)
 
     g_thread_init (NULL);
     g_type_init ();
+    loop = g_main_loop_new (NULL, FALSE);
 
     g_signal_connect (process_get_current (), "got-signal", G_CALLBACK (signal_cb), NULL);
 
@@ -991,8 +1006,6 @@ main (int argc, char **argv)
     g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH);
     g_free (dir);
 
-    loop = g_main_loop_new (NULL, FALSE);
-
     log_init ();
 
     g_debug ("Starting Light Display Manager %s, UID=%i PID=%i", VERSION, getuid (), getpid ());
@@ -1001,14 +1014,14 @@ main (int argc, char **argv)
     g_free (config_path);
 
     g_debug ("Using D-Bus name %s", LIGHTDM_BUS_NAME);
-    g_bus_own_name (getuid () == 0 ? G_BUS_TYPE_SYSTEM : G_BUS_TYPE_SESSION,
-                    LIGHTDM_BUS_NAME,
-                    G_BUS_NAME_OWNER_FLAGS_NONE,
-                    bus_acquired_cb,
-                    NULL,
-                    name_lost_cb,
-                    NULL,
-                    NULL);
+    bus_id = g_bus_own_name (getuid () == 0 ? G_BUS_TYPE_SYSTEM : G_BUS_TYPE_SESSION,
+                             LIGHTDM_BUS_NAME,
+                             G_BUS_NAME_OWNER_FLAGS_NONE,
+                             bus_acquired_cb,
+                             NULL,
+                             name_lost_cb,
+                             NULL,
+                             NULL);
 
     if (getuid () != 0)
         g_debug ("Running in user mode");
