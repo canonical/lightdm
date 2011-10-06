@@ -9,6 +9,8 @@ Overview of changes in lightdm 1.0.2
     * Fix over allocation of read buffer in greeter protocol
     * Make sure objects are cleaned up on exit
     * Fix minor memory leaks
+    * Fix hugely oversized allocation in greeter buffer.  Can trigger
+      crashes when entering very long passwords.
 
 Overview of changes in lightdm 1.0.1
 
