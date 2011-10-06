@@ -253,6 +253,7 @@ get_absolute_command (const gchar *command)
         else
             absolute_command = g_strdup (absolute_binary);
     }
+    g_free (absolute_binary);
 
     g_strfreev (tokens);
 
@@ -526,7 +527,7 @@ xserver_local_finalize (GObject *object)
 {
     XServerLocal *self;
 
-    self = XSERVER_LOCAL (object);
+    self = XSERVER_LOCAL (object);  
 
     if (self->priv->xserver_process)
         g_object_unref (self->priv->xserver_process);

@@ -452,6 +452,7 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     session_set_is_greeter (session, is_greeter);
     session_set_authentication (session, authentication);
     session_set_command (session, command);
+    g_free (command);
 
     session_set_env (session, "DESKTOP_SESSION", session_name); // FIXME: Apparently deprecated?
     session_set_env (session, "GDMSESSION", session_name); // FIXME: Not cross-desktop
@@ -547,6 +548,9 @@ start_greeter_session (Display *display)
     gchar *log_dir, *filename, *log_filename;
     PAMSession *authentication;
     gboolean start_result;
+
+    g_return_val_if_fail (display->priv->session == NULL, FALSE);
+    g_return_val_if_fail (display->priv->greeter == NULL, FALSE);
 
     g_debug ("Starting greeter session");
 
@@ -650,6 +654,8 @@ start_user_session (Display *display, PAMSession *authentication)
     User *user;
     gchar *log_filename;
     gboolean result;
+
+    g_return_val_if_fail (display->priv->session == NULL, FALSE);
 
     g_debug ("Starting user session");
 

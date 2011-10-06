@@ -130,6 +130,7 @@ get_absolute_command (const gchar *command)
         else
             absolute_command = g_strdup (absolute_binary);
     }
+    g_free (absolute_binary);
 
     g_strfreev (tokens);
 
