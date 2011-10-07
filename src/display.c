@@ -440,6 +440,15 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
         }
     }
 
+    /* for a guest session, run command through the wrapper covered by MAC */
+    if (display->priv->autologin_guest)
+    {
+        gchar *t = command;
+        command = g_strdup_printf (LIBEXEC_DIR "/lightdm-guest-session-wrapper %s", command);
+        g_debug("Guest session, running session command through wrapper: %s", command);
+        g_free (t);
+    }
+
     g_signal_emit (display, signals[CREATE_SESSION], 0, &session);
     g_return_val_if_fail (session != NULL, NULL);
 
