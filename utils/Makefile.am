@@ -1,5 +1,5 @@
 bin_PROGRAMS = dm-tool
-libexec_PROGRAMS = lightdm-set-defaults
+pkglibexec_PROGRAMS = lightdm-set-defaults
 dist_pkglibexec_SCRIPTS = gdmflexiserver
 
 dm_tool_SOURCES = \
