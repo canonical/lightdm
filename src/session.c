@@ -187,7 +187,8 @@ session_set_console_kit_parameter (Session *session, const gchar *name, GVariant
     g_return_if_fail (session != NULL);
     g_return_if_fail (name != NULL);
 
-    g_hash_table_insert (session->priv->console_kit_parameters, g_strdup (name), value);
+    g_hash_table_insert (session->priv->console_kit_parameters,
+                         g_strdup (name), g_variant_ref_sink (value));
 }
 
 const gchar *

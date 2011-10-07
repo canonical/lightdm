@@ -30,6 +30,7 @@ Overview of changes in lightdm 1.1.0
     * Fix over allocation of read buffer in greeter protocol
     * Make sure objects are cleaned up on exit
     * Fix minor memory leaks
+    * Fix reference counting issue in ConsoleKit code
 
 Overview of changes in lightdm 1.0.0
 
