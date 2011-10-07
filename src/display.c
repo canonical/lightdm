@@ -393,7 +393,7 @@ user_session_stopped_cb (Session *session, Display *display)
 static Session *
 create_session (Display *display, PAMSession *authentication, const gchar *session_name, gboolean is_greeter)
 {
-    gchar *sessions_dir, *filename, *path, *command = NULL;
+    gchar *sessions_dir, *filename, *path, *command = NULL, *t;
     GKeyFile *session_desktop_file;
     Session *session;
     gboolean result;
@@ -426,6 +426,11 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     g_free (path);
     if (!command)
         return NULL;
+
+    t = command;
+    command = g_find_program_in_path (command);
+    g_free (t);
+
     if (display->priv->session_wrapper && !is_greeter)
     {
         gchar *wrapper;
