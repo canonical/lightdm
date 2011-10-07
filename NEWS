@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.0.3
+
+    * Fix reference counting issue in ConsoleKit code
+
 Overview of changes in lightdm 1.0.2
 
     * Fix daemon from blocking if Accounts Service does not exist
