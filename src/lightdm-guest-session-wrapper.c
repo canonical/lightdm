@@ -14,12 +14,24 @@
  * arguments. This allows MAC systems like AppArmor or SELinux to apply a
  * policy on this wrapper which applies to guest sessions only. */
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #include <unistd.h>
 
 int
 main (int argc, char *argv[], char *envp[])
 {
     if (argc < 2)
-	return 1;
+    {
+        fprintf (stderr, "Usage: %s COMMAND [ARGS]\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
     execve (argv[1], argv+1, envp);
+
+    fprintf (stderr, "Failed to run guest session '%s': %s\n", argv[1], strerror (errno));
+
+    return EXIT_FAILURE;
 }
