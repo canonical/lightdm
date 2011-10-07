@@ -122,13 +122,15 @@ static void
 write_message (LightDMGreeter *greeter, guint8 *message, gsize message_length)
 {
     LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    GIOStatus status;
     GError *error = NULL;
 
-    if (g_io_channel_write_chars (priv->to_server_channel, (gchar *) message, message_length, NULL, NULL) != G_IO_STATUS_NORMAL)
+    status = g_io_channel_write_chars (priv->to_server_channel, (gchar *) message, message_length, NULL, &error);
+    if (error)
         g_warning ("Error writing to daemon: %s", error->message);
-    else
-        g_debug ("Wrote %zi bytes to daemon", message_length);
     g_clear_error (&error);
+    if (status == G_IO_STATUS_NORMAL)
+        g_debug ("Wrote %zi bytes to daemon", message_length);
     g_io_channel_flush (priv->to_server_channel, NULL);
 }
 
@@ -373,7 +375,7 @@ read_message (LightDMGreeter *greeter, gsize *length, gboolean block)
                                           n_to_read - priv->n_read,
                                           &n_read,
                                           &error);
-        if (status == G_IO_STATUS_ERROR)
+        if (error)
             g_warning ("Error reading from server: %s", error->message);
         g_clear_error (&error);
         if (status != G_IO_STATUS_NORMAL)
