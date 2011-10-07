@@ -115,7 +115,7 @@ update_sessions (void)
         return;
 
     directory = g_dir_open (XSESSIONS_DIR, 0, &error);
-    if (!directory)
+    if (error)
         g_warning ("Failed to open sessions directory: %s", error->message);
     g_clear_error (&error);
     if (!directory)
@@ -139,7 +139,7 @@ update_sessions (void)
 
         key_file = g_key_file_new ();
         result = g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, &error);
-        if (!result)
+        if (error)
             g_warning ("Failed to load session file %s: %s:", path, error->message);
         g_clear_error (&error);
 

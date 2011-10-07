@@ -203,8 +203,8 @@ load_passwd_file (LightDMUserList *user_list, gboolean emit_add_signal)
     g_debug ("Loading user config from %s", USER_CONFIG_FILE);
 
     config = g_key_file_new ();
-    if (!g_key_file_load_from_file (config, USER_CONFIG_FILE, G_KEY_FILE_NONE, &error) &&
-        !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+    g_key_file_load_from_file (config, USER_CONFIG_FILE, G_KEY_FILE_NONE, &error);
+    if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
         g_warning ("Failed to load configuration from %s: %s", USER_CONFIG_FILE, error->message); // FIXME: Don't make warning on no file, just info
     g_clear_error (&error);
 
@@ -393,7 +393,7 @@ update_user (UserAccountObject *object)
                                           -1,
                                           NULL,
                                           &error);
-    if (!result)
+    if (error)
         g_warning ("Error updating user %s: %s", g_dbus_proxy_get_object_path (object->proxy), error->message);
     g_clear_error (&error);
     if (!result)
@@ -472,7 +472,7 @@ user_account_object_new (LightDMUserList *user_list, const gchar *path)
                                            "org.freedesktop.Accounts.User",
                                            NULL,
                                            &error);
-    if (!proxy)
+    if (error)
         g_warning ("Error getting user %s: %s", path, error->message);
     g_clear_error (&error);
     if (!proxy)
@@ -593,7 +593,7 @@ load_session (LightDMUserList *user_list, const gchar *path)
                                           -1,
                                           NULL,
                                           &error);
-    if (!result)
+    if (error)
         g_warning ("Error getting UserName from org.freedesktop.DisplayManager.Session: %s", error->message);
     g_clear_error (&error);
     if (!result)
@@ -686,7 +686,7 @@ update_users (LightDMUserList *user_list)
                                                                   "org.freedesktop.Accounts",
                                                                   NULL,
                                                                   &error);
-    if (!priv->accounts_service_proxy)
+    if (error)
         g_warning ("Error contacting org.freedesktop.Accounts: %s", error->message);
     g_clear_error (&error);
 
@@ -718,7 +718,7 @@ update_users (LightDMUserList *user_list)
                                          -1,
                                          NULL,
                                          &error);
-        if (!result)
+        if (error)
             g_warning ("Error getting user list from org.freedesktop.Accounts: %s", error->message);
         g_clear_error (&error);
         if (!result)
@@ -764,7 +764,7 @@ update_users (LightDMUserList *user_list)
         passwd_file = g_file_new_for_path (PASSWD_FILE);
         priv->passwd_monitor = g_file_monitor (passwd_file, G_FILE_MONITOR_NONE, NULL, &error);
         g_object_unref (passwd_file);
-        if (!priv->passwd_monitor)
+        if (error)
             g_warning ("Error monitoring %s: %s", PASSWD_FILE, error->message);
         else
             g_signal_connect (priv->passwd_monitor, "changed", G_CALLBACK (passwd_changed_cb), user_list);
@@ -779,7 +779,7 @@ update_users (LightDMUserList *user_list)
                                                                  "org.freedesktop.DisplayManager",
                                                                  NULL,
                                                                  &error);
-    if (!priv->display_manager_proxy)
+    if (error)
         g_warning ("Error contacting org.freedesktop.DisplayManager: %s", error->message);
     g_clear_error (&error);
 
@@ -800,7 +800,7 @@ update_users (LightDMUserList *user_list)
                                               -1,
                                               NULL,
                                               &error);
-        if (!result)
+        if (error)
             g_warning ("Error getting session list from org.freedesktop.DisplayManager: %s", error->message);
         g_clear_error (&error);
         if (!result)
