@@ -109,7 +109,7 @@ EXTRA_DIST = \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \
-	scripts/test-switch-to-user-existing-session.conf \
-	scripts/test-switch-to-user-no-password.conf \
+	scripts/switch-to-user-existing-session.conf \
+	scripts/switch-to-user-no-password.conf \
 	scripts/xdmcp-login.conf \
 	scripts/xserver-fail-start.conf
