@@ -127,7 +127,7 @@ if test x"$enable_gtk_greeter" = "xauto"; then
         gtk+-3.0
         gmodule-export-2.0
     ], compile_gtk_greeter=yes, compile_gtk_greeter=no)
-elif test x"enable_gtk_greeter" = "xyes"; then
+elif test x"$enable_gtk_greeter" = "xyes"; then
     PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
         gtk+-3.0
         gmodule-export-2.0

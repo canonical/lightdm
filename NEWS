@@ -31,6 +31,7 @@ Overview of changes in lightdm 1.1.0
     * Make sure objects are cleaned up on exit
     * Fix minor memory leaks
     * Fix reference counting issue in ConsoleKit code
+    * Fix --enable-gtk-greeter=yes not working
 
 Overview of changes in lightdm 1.0.0
 
