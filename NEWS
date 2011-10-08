@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.0.4
+
+    * Fix --enable-gtk-greeter=yes not working
+
 Overview of changes in lightdm 1.0.3
 
     * Fix reference counting issue in ConsoleKit code
