@@ -136,6 +136,12 @@ elif test x"$enable_gtk_greeter" = "xyes"; then
 fi
 AM_CONDITIONAL(COMPILE_GTK_GREETER, test $compile_gtk_greeter = yes)
 
+AC_MSG_CHECKING(whether to build tests)
+AC_ARG_ENABLE(tests,
+        AS_HELP_STRING([--disable-tests], [Disable tests building]),
+        [], [enable_tests="yes"])
+AM_CONDITIONAL(COMPILE_TESTS, test x"$enable_tests" != "xno")
+
 AC_PATH_PROG(GLIB_GENMARSHAL, glib-genmarshal)
 AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)
 AC_SUBST(DBUSBINDINGTOOL)
@@ -232,4 +238,5 @@ echo "
         liblightdm-qt:            $compile_liblightdm_qt
         GTK+ Greeter:             $compile_gtk_greeter
         Qt Greeter:               $compile_qt_greeter
+        Enable tests:             $enable_tests
 "
