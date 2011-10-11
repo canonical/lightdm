@@ -7,11 +7,11 @@ MOC_FILES = \
 	user_moc.cpp 
 
 greeter_moc.cpp: QLightDM/Greeter
-	moc $< -o $@
+	$(MOC) $< -o $@
 session_moc.cpp: QLightDM/Session
-	moc $< -o $@
+	$(MOC) $< -o $@
 user_moc.cpp: QLightDM/User
-	moc $< -o $@
+	$(MOC) $< -o $@
 
 liblightdm_qt_1_la_LIBADD = $(LIBLIGHTDM_QT_LIBS)
 liblightdm_qt_1_la_CXXFLAGS = $(LIBLIGHTDM_QT_CFLAGS) \

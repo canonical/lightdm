@@ -1,6 +1,8 @@
 Overview of changes in lightdm 1.1.1
 
     * Add a --disable-tests option
+    * Add note to AUTHORS file where to find author list
+    * Update build system to find moc/uic
 
 Overview of changes in lightdm 1.1.0
 

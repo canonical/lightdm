@@ -4,16 +4,16 @@ xgreetersdir = $(datadir)/xgreeters
 dist_xgreeters_DATA = lightdm-qt-greeter.desktop
 
 greeter_moc.cpp: greeter.h
-	moc $< -o $@
+	$(MOC) $< -o $@
 loginprompt_moc.cpp: loginprompt.h
-	moc $< -o $@
+	$(MOC) $< -o $@
 panel_moc.cpp: panel.h
-	moc $< -o $@
+	$(MOC) $< -o $@
 
 ui_loginprompt.h: loginprompt.ui
-	uic $< -o $@
+	$(UIC) $< -o $@
 ui_panel.h: panel.ui
-	uic $< -o $@
+	$(UIC) $< -o $@
 
 loginprompt.cpp: ui_loginprompt.h
 panel.cpp: ui_panel.h
