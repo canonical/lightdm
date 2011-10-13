@@ -99,3 +99,5 @@ plymouth_LDADD = \
 
 CLEANFILES = \
 	test-qt-greeter_moc.cpp
+
+EXTRA_DIST = lightdm-session
