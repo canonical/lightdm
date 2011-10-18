@@ -545,6 +545,15 @@ greeter_start_authentication_cb (Greeter *greeter, const gchar *username, Displa
 static gboolean
 greeter_start_session_cb (Greeter *greeter, const gchar *session_name, Display *display)
 {
+    /* If no session requested, use the previous one */
+    if (!session_name && !greeter_get_guest_authenticated (greeter))
+    {
+        User *user;
+
+        user = pam_session_get_user (greeter_get_authentication (greeter));
+        session_name = user_get_xsession (user);
+    }
+
     /* If a session was requested, override the default */
     if (session_name)
     {

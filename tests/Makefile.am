@@ -19,8 +19,10 @@ TESTS = \
 	test-autologin-guest-logout \
 	test-login-gobject \
 	test-login-gobject-manual \
+	test-login-gobject-manual-previous-session \
 	test-login-gobject-no-password \
 	test-login-gobject-pick-session \
+	test-login-gobject-previous-session \
 	test-login-gobject-wrong-password \
 	test-login-gobject-invalid-user \
 	test-login-gobject-invalid-session \
@@ -53,7 +55,9 @@ if COMPILE_LIBLIGHTDM_QT
 TESTS += \
 	test-login-qt \
 	test-login-qt-manual \
+	test-login-qt-manual-previous-session \
 	test-login-qt-no-password \
+	test-login-qt-previous-session \
 	test-login-qt-wrong-password \
 	test-login-qt-invalid-user \
 	test-login-qt-invalid-session \
@@ -97,7 +101,9 @@ EXTRA_DIST = \
 	scripts/login-invalid-user.conf \
 	scripts/login-logout.conf \
 	scripts/login-manual.conf \
+	scripts/login-manual-previous-session.conf \
 	scripts/login-no-password.conf \
+	scripts/login-previous-session.conf \
 	scripts/login-session-crash.conf \
 	scripts/login-wrong-password.conf \
 	scripts/login-xserver-crash.conf \
