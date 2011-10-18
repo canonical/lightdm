@@ -97,7 +97,19 @@ xsession_setup (Session *session)
             g_free (dir);
         }
         else
+        {          
             path = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
+
+            /* Workaround the case where the authority file might have been
+             * incorrectly written as root in a buggy version of LightDM */
+            if (getuid () == 0)
+            {
+                int result;
+                result = chown (path, user_get_uid (session_get_user (session)), user_get_gid (session_get_user (session)));
+                if (result < 0 && errno != ENOENT)
+                    g_warning ("Failed to correct ownership of %s: %s", path, strerror (errno));                
+            }
+        }
 
         session_set_env (session, "XAUTHORITY", path);
         xsession->priv->authority_file = g_file_new_for_path (path);
