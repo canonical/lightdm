@@ -13,6 +13,7 @@ TESTS = \
 	test-autologin-xserver-crash \
 	test-autologin-session-crash \
 	test-autologin-logout \
+	test-autologin-previous-session \
 	test-autologin-guest \
 	test-autologin-guest-fail-setup-script \
 	test-autologin-guest-logout \
@@ -70,6 +71,7 @@ EXTRA_DIST = \
 	$(TESTS) \
 	data/xgreeters/test-gobject-greeter.desktop \
 	data/xgreeters/test-qt-greeter.desktop \
+	data/xsessions/alternative.desktop \
 	data/xsessions/default.desktop \
 	scripts/autologin.conf \
 	scripts/autologin-guest.conf \
@@ -78,6 +80,7 @@ EXTRA_DIST = \
 	scripts/autologin-invalid-session.conf \
 	scripts/autologin-invalid-user.conf \
 	scripts/autologin-logout.conf \
+	scripts/autologin-previous-session.conf \
 	scripts/autologin-session-crash.conf \
 	scripts/autologin-xserver-crash.conf \
 	scripts/greeter-fail-start.conf \

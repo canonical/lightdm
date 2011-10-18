@@ -582,13 +582,15 @@ main (int argc, char **argv)
         gchar *user_name;
         gchar *password;
         gchar *real_name;
+        gchar *dmrc;
         gint uid;
     } users[] =
     {
-        {"root",    "",         "root",          0},
-        {"lightdm", "",         "",            100},
-        {"alice",   "password", "Alice User", 1000},
-        {"bob",     "",         "Bob User",   1001},
+        {"root",    "",         "root",       NULL,  0},
+        {"lightdm", "",         "",           NULL, 100},
+        {"alice",   "password", "Alice User", NULL, 1000},
+        {"bob",     "",         "Bob User",   NULL, 1001},
+        {"carol",   "",         "Carol User", "[Desktop]\nSession=alternative\n", 1002},
         {NULL, NULL, 0}
     };
     int i;
@@ -597,6 +599,13 @@ main (int argc, char **argv)
         path = g_build_filename (home_dir, users[i].user_name, NULL);
         g_mkdir_with_parents (path, 0755);
         g_free (path);
+
+        if (users[i].dmrc)
+        {
+            path = g_build_filename (home_dir, users[i].user_name, ".dmrc", NULL);
+            g_file_set_contents (path, users[i].dmrc, -1, NULL);
+            g_free (path);
+        }
 
         g_string_append_printf (passwd_data, "%s:%s:%d:%d:%s:%s/home/%s:/bin/sh\n", users[i].user_name, users[i].password, users[i].uid, users[i].uid, users[i].real_name, temp_dir, users[i].user_name);
     }
