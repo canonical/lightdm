@@ -20,6 +20,7 @@ TESTS = \
 	test-login-gobject \
 	test-login-gobject-manual \
 	test-login-gobject-no-password \
+	test-login-gobject-pick-session \
 	test-login-gobject-wrong-password \
 	test-login-gobject-invalid-user \
 	test-login-gobject-invalid-session \
@@ -60,6 +61,7 @@ TESTS += \
 	test-login-qt-invalid-user \
 	test-login-qt-invalid-session \
 	test-login-qt-logout \
+	test-login-qt-pick-session \
 	test-login-qt-guest \
 	test-login-qt-guest-disabled \
 	test-login-qt-guest-no-setup-script \
@@ -80,6 +82,7 @@ EXTRA_DIST = \
 	scripts/autologin-invalid-session.conf \
 	scripts/autologin-invalid-user.conf \
 	scripts/autologin-logout.conf \
+	scripts/autologin-pick-session.conf \
 	scripts/autologin-previous-session.conf \
 	scripts/autologin-session-crash.conf \
 	scripts/autologin-xserver-crash.conf \
