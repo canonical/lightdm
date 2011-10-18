@@ -287,7 +287,7 @@ run_commands ()
             xserver_args = g_hash_table_lookup (params, "ARGS");
             if (!xserver_args)
                 xserver_args = "";
-            command_line = g_strdup_printf ("%s/tests/src/test-xserver %s", BUILDDIR, xserver_args);
+            command_line = g_strdup_printf ("%s/tests/src/X %s", BUILDDIR, xserver_args);
 
             g_debug ("Run %s", command_line);
             if (!g_shell_parse_argv (command_line, NULL, &argv, &error) ||
@@ -595,7 +595,6 @@ main (int argc, char **argv)
     if (config_path)
         g_string_append_printf (command_line, " --config %s", config_path);
     g_string_append (command_line, " --test-mode");
-    g_string_append(command_line, " --xserver-command=test-xserver");
     if (greeter)
         g_string_append_printf (command_line, " --greeter-session=%s", greeter);
     g_string_append (command_line, " --session-wrapper=");

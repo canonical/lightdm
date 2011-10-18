@@ -1,4 +1,4 @@
-noinst_PROGRAMS = test-runner test-xserver test-gobject-greeter test-guest-account test-session test-script-hook plymouth
+noinst_PROGRAMS = test-runner X test-gobject-greeter test-guest-account test-session test-script-hook plymouth
 
 if COMPILE_LIBLIGHTDM_QT
 noinst_PROGRAMS += test-qt-greeter
@@ -14,14 +14,14 @@ test_runner_LDADD = \
 	$(GLIB_LIBS) \
 	$(GIO_LIBS)
 
-test_xserver_SOURCES = test-xserver.c status.c status.h
-test_xserver_CFLAGS = \
+X_SOURCES = X.c status.c status.h
+X_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GOBJECT_CFLAGS) \
 	$(GLIB_CFLAGS) \
 	$(GIO_CFLAGS) \
 	$(GIO_UNIX_CFLAGS)
-test_xserver_LDADD = \
+X_LDADD = \
 	$(GOBJECT_LIBS) \
 	$(GLIB_LIBS) \
 	$(GIO_LIBS) \
