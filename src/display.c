@@ -386,8 +386,10 @@ user_session_stopped_cb (Session *session, Display *display)
 static Session *
 create_session (Display *display, PAMSession *authentication, const gchar *session_name, gboolean is_greeter)
 {
-    gchar *sessions_dir, *filename, *path, *command = NULL, *t;
+    gchar *sessions_dir, *filename, *path, *command = NULL;
     GKeyFile *session_desktop_file;
+    gint argc;
+    gchar **argv;
     Session *session;
     gboolean result;
     GError *error = NULL;
@@ -420,9 +422,22 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     if (!command)
         return NULL;
 
-    t = command;
-    command = g_find_program_in_path (command);
-    g_free (t);
+    result = g_shell_parse_argv (command, &argc, &argv, &error);
+    if (error)
+        g_debug ("Invalid session command '%s': %s", command, error->message);
+    g_clear_error (&error);
+    g_free (command);
+    if (!result)
+        return NULL;
+
+    /* Convert to full path */
+    path = g_find_program_in_path (argv[0]);
+    if (path)
+    {
+        g_free (argv[0]);
+        argv[0] = path;
+    }
+    command = g_strjoinv (" ", argv);
 
     if (display->priv->session_wrapper && !is_greeter)
     {
