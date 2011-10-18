@@ -50,6 +50,7 @@ po/POTFILES
 po/stamp-it
 src/display-glue.h
 src/display-manager-glue.h
+src/lightdm-guest-session-wrapper
 src/session-manager-glue.h
 src/user-manager-glue.h
 src/ldm-marshal.c
