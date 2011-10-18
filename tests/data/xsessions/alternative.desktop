@@ -1,0 +1,4 @@
+[Desktop Entry]
+Name=Alternative Test Session
+Comment=LightDM alternative test session
+Exec=test-session alternative

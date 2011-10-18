@@ -2,6 +2,7 @@ Overview of changes in lightdm 1.0.4
 
     * Fix --enable-gtk-greeter=yes not working
     * Fix X sessions with arguments in Exec not working
+    * Use previous session for automatic login users
 
 Overview of changes in lightdm 1.0.3
 

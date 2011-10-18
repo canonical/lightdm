@@ -26,8 +26,11 @@ main (int argc, char **argv)
 
     signal (SIGINT, quit_cb);
     signal (SIGTERM, quit_cb);
-  
-    notify_status ("SESSION START USER=%s", getenv ("USER"));
+
+    if (argc > 1)
+        notify_status ("SESSION START NAME=%s USER=%s", argv[1], getenv ("USER"));
+    else
+        notify_status ("SESSION START USER=%s", getenv ("USER"));
 
     config = g_key_file_new ();
     if (g_getenv ("LIGHTDM_TEST_CONFIG"))

@@ -257,7 +257,17 @@ autologin_authentication_result_cb (PAMSession *authentication, int result, Disp
 
     if (result == PAM_SUCCESS)
     {
+        const gchar *session_name;
+     
         g_debug ("User %s authorized", pam_session_get_username (authentication));
+
+        session_name = user_get_xsession (pam_session_get_user (authentication));
+        if (session_name)
+        {
+            g_debug ("Using session %s", session_name);
+            display_set_user_session (display, session_name);
+        }
+
         started_session = start_user_session (display, authentication);
         if (!started_session)
             g_debug ("Failed to start autologin session");
@@ -535,11 +545,11 @@ greeter_start_authentication_cb (Greeter *greeter, const gchar *username, Displa
 static gboolean
 greeter_start_session_cb (Greeter *greeter, const gchar *session_name, Display *display)
 {
-    /* Store the session to use, use the default if none was requested */
+    /* If a session was requested, override the default */
     if (session_name)
     {
-        g_free (display->priv->user_session);
-        display->priv->user_session = g_strdup (session_name);
+        g_debug ("Using session %s", session_name);
+        display_set_user_session (display, session_name);
     }
 
     /* Stop this display if that session already exists and can switch to it */
