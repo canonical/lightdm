@@ -7,6 +7,8 @@ Overview of changes in lightdm 1.1.1
     * Fix X sessions with arguments in Exec not working
     * Use previous session for automatic login or if greeter does not request
       one.
+    * Set default resolution of VNC to 1024x768, add settings for width, height,
+      depth into lightdm.conf.
 
 Overview of changes in lightdm 1.1.0
 

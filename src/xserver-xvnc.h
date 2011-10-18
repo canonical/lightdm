@@ -45,6 +45,10 @@ void xserver_xvnc_set_stdin (XServerXVNC *server, int fd);
 
 int xserver_xvnc_get_stdin (XServerXVNC *server);
 
+void xserver_xvnc_set_geometry (XServerXVNC *server, gint width, gint height);
+
+void xserver_xvnc_set_depth (XServerXVNC *server, gint depth);
+
 gchar *xserver_xvnc_get_authority_file_path (XServerXVNC *server);
 
 G_END_DECLS
