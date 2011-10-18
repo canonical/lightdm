@@ -34,6 +34,9 @@ struct XServerXVNCPrivate
 
     /* File descriptor to use for standard input */
     gint stdin_fd;
+  
+    /* Geometry and colour depth */
+    gint width, height, depth;
 
     /* TRUE when received ready signal */
     gboolean got_signal;
@@ -68,6 +71,21 @@ xserver_xvnc_get_stdin (XServerXVNC *server)
 {
     g_return_val_if_fail (server != NULL, 0);
     return server->priv->stdin_fd;
+}
+
+void
+xserver_xvnc_set_geometry (XServerXVNC *server, gint width, gint height)
+{
+    g_return_if_fail (server != NULL);
+    server->priv->width = width;
+    server->priv->height = height;
+}
+
+void
+xserver_xvnc_set_depth (XServerXVNC *server, gint depth)
+{
+    g_return_if_fail (server != NULL);
+    server->priv->depth = depth;
 }
 
 gchar *
@@ -173,7 +191,8 @@ xserver_xvnc_start (DisplayServer *display_server)
     XServerXVNC *server = XSERVER_XVNC (display_server);
     XAuthority *authority;
     gboolean result;
-    gchar *filename, *run_dir, *dir, *path, *absolute_command, *command;
+    gchar *filename, *run_dir, *dir, *path, *absolute_command;
+    GString *command;
     gchar hostname[1024], *number;
     GError *error = NULL;
 
@@ -226,16 +245,21 @@ xserver_xvnc_start (DisplayServer *display_server)
     if (error)
         g_warning ("Failed to write authority: %s", error->message);
     g_clear_error (&error);
-
-    command = g_strdup_printf ("%s :%d -auth %s -inetd -nolisten tcp",
-                               absolute_command,
-                               xserver_get_display_number (XSERVER (server)),
-                               path);
+  
+    command = g_string_new (absolute_command);
     g_free (absolute_command);
+  
+    g_string_append_printf (command, " :%d", xserver_get_display_number (XSERVER (server)));
+    g_string_append_printf (command, " -auth %s ", path);
     g_free (path);
+    g_string_append (command, " -inetd -nolisten tcp");
+    if (server->priv->width > 0 && server->priv->height > 0)
+        g_string_append_printf (command, " -geometry %dx%d ", server->priv->width, server->priv->height);
+    if (server->priv->depth > 0)
+        g_string_append_printf (command, " -depth %d ", server->priv->depth);
 
-    process_set_command (server->priv->xserver_process, command);
-    g_free (command);
+    process_set_command (server->priv->xserver_process, command->str);
+    g_string_free (command, TRUE);
 
     g_debug ("Launching Xvnc server");
 
@@ -260,6 +284,9 @@ static void
 xserver_xvnc_init (XServerXVNC *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_XVNC_TYPE, XServerXVNCPrivate);
+    server->priv->width = 1024;
+    server->priv->height = 768;
+    server->priv->depth = 8;
 }
 
 static void
