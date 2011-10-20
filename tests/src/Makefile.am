@@ -1,4 +1,4 @@
-noinst_PROGRAMS = test-runner X test-gobject-greeter test-session test-script-hook guest-account initctl plymouth
+noinst_PROGRAMS = test-runner X Xvnc test-gobject-greeter test-session test-script-hook guest-account initctl plymouth vnc-client
 noinst_SCRIPTS = lightdm-session
 lib_LTLIBRARIES = libsystem.la
 
@@ -20,7 +20,7 @@ test_runner_LDADD = \
 	$(GLIB_LIBS) \
 	$(GIO_LIBS)
 
-X_SOURCES = X.c status.c status.h
+X_SOURCES = X.c x-authority.c x-authority.h x-common.c x-common.h x-server.c x-server.h xdmcp-client.c xdmcp-client.h status.c status.h
 X_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GOBJECT_CFLAGS) \
@@ -28,6 +28,19 @@ X_CFLAGS = \
 	$(GIO_CFLAGS) \
 	$(GIO_UNIX_CFLAGS)
 X_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GLIB_LIBS) \
+	$(GIO_LIBS) \
+	$(GIO_UNIX_LIBS)
+
+Xvnc_SOURCES = Xvnc.c x-authority.c x-authority.h x-common.c x-common.h x-server.c x-server.h status.c status.h
+Xvnc_CFLAGS = \
+	$(WARN_CFLAGS) \
+	$(GOBJECT_CFLAGS) \
+	$(GLIB_CFLAGS) \
+	$(GIO_CFLAGS) \
+	$(GIO_UNIX_CFLAGS)
+Xvnc_LDADD = \
 	$(GOBJECT_LIBS) \
 	$(GLIB_LIBS) \
 	$(GIO_LIBS) \
@@ -96,6 +109,15 @@ plymouth_CFLAGS = \
 	$(GLIB_CFLAGS)
 plymouth_LDADD = \
 	$(GLIB_LIBS)
+
+vnc_client_SOURCES = vnc-client.c status.c status.h
+vnc_client_CFLAGS = \
+	$(WARN_CFLAGS) \
+	$(GLIB_CFLAGS) \
+	$(GIO_CFLAGS)
+vnc_client_LDADD = \
+	$(GLIB_LIBS) \
+	$(GIO_LIBS)
 
 CLEANFILES = \
 	test-qt-greeter_moc.cpp

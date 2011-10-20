@@ -41,9 +41,9 @@ gboolean xserver_xvnc_check_available (void);
 
 XServerXVNC *xserver_xvnc_new (void);
 
-void xserver_xvnc_set_stdin (XServerXVNC *server, int fd);
+void xserver_xvnc_set_socket (XServerXVNC *server, int fd);
 
-int xserver_xvnc_get_stdin (XServerXVNC *server);
+int xserver_xvnc_get_socket (XServerXVNC *server);
 
 void xserver_xvnc_set_geometry (XServerXVNC *server, gint width, gint height);
 

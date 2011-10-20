@@ -277,6 +277,7 @@ run_commands ()
             expect_exit = TRUE;
             stop_daemon ();
         }
+        // FIXME: Make generic RUN-COMMAND
         else if (strcmp (name, "START-XSERVER") == 0)
         {
             gchar *xserver_args, *command_line;
@@ -289,11 +290,31 @@ run_commands ()
                 xserver_args = "";
             command_line = g_strdup_printf ("%s/tests/src/X %s", BUILDDIR, xserver_args);
 
-            g_debug ("Run %s", command_line);
             if (!g_shell_parse_argv (command_line, NULL, &argv, &error) ||
                 !g_spawn_async (NULL, argv, NULL, 0, NULL, NULL, &pid, &error))
             {
                 g_printerr ("Error starting X server: %s", error->message);
+                quit (EXIT_FAILURE);
+                return;
+            }
+            children = g_list_append (children, GINT_TO_POINTER (pid));
+        }
+        else if (strcmp (name, "START-VNC-CLIENT") == 0)
+        {
+            gchar *vnc_client_args, *command_line;
+            gchar **argv;
+            GPid pid;
+            GError *error = NULL;
+
+            vnc_client_args = g_hash_table_lookup (params, "ARGS");
+            if (!vnc_client_args)
+                vnc_client_args = "";
+            command_line = g_strdup_printf ("%s/tests/src/vnc-client %s", BUILDDIR, vnc_client_args);
+
+            if (!g_shell_parse_argv (command_line, NULL, &argv, &error) ||
+                !g_spawn_async (NULL, argv, NULL, 0, NULL, NULL, &pid, &error))
+            {
+                g_printerr ("Error starting VNC client: %s", error->message);
                 quit (EXIT_FAILURE);
                 return;
             }

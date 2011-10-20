@@ -46,6 +46,7 @@ TESTS = \
 	test-switch-to-user \
 	test-switch-to-user-existing-session \
 	test-switch-to-user-no-password \
+	test-vnc-login \
 	test-xdmcp-login
 
 #	test-session-exit-error
@@ -123,5 +124,6 @@ EXTRA_DIST = \
 	scripts/switch-to-user.conf \
 	scripts/switch-to-user-existing-session.conf \
 	scripts/switch-to-user-no-password.conf \
+	scripts/vnc-login.conf \
 	scripts/xdmcp-login.conf \
 	scripts/xserver-fail-start.conf

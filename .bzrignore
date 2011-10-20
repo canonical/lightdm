@@ -65,6 +65,8 @@ tests/src/test-qt-greeter
 tests/src/test-runner
 tests/src/test-script-hook
 tests/src/test-session
+tests/src/vnc-client
 tests/src/X
+tests/src/Xvnc
 utils/lightdm-set-defaults
 utils/dm-tool

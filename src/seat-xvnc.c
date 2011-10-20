@@ -37,7 +37,7 @@ seat_xvnc_create_display_server (Seat *seat)
     XServerXVNC *xserver;
 
     xserver = xserver_xvnc_new ();
-    xserver_xvnc_set_stdin (xserver, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
+    xserver_xvnc_set_socket (xserver, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
 
     return DISPLAY_SERVER (xserver);
 }
