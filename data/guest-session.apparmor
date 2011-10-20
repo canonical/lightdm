@@ -33,6 +33,8 @@ LIBEXECDIR/lightdm-guest-session-wrapper {
   @{PROC}/* rm,
   @{PROC}/asound rm,
   @{PROC}/asound/** rm,
+  @{PROC}/ati rm,
+  @{PROC}/ati/** rm,
   owner @{PROC}/** rm,
   /sbin/ r,
   /sbin/** rmixk,
