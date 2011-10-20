@@ -289,7 +289,6 @@ run_commands ()
                 xserver_args = "";
             command_line = g_strdup_printf ("%s/tests/src/X %s", BUILDDIR, xserver_args);
 
-            g_debug ("Run %s", command_line);
             if (!g_shell_parse_argv (command_line, NULL, &argv, &error) ||
                 !g_spawn_async (NULL, argv, NULL, 0, NULL, NULL, &pid, &error))
             {

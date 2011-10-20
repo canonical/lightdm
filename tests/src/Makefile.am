@@ -14,7 +14,7 @@ test_runner_LDADD = \
 	$(GLIB_LIBS) \
 	$(GIO_LIBS)
 
-X_SOURCES = X.c status.c status.h
+X_SOURCES = X.c x-authority.c x-authority.h x-common.c x-common.h x-server.c x-server.h xdmcp-client.c xdmcp-client.h status.c status.h
 X_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GOBJECT_CFLAGS) \
