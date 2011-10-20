@@ -8,6 +8,9 @@ Overview of changes in lightdm 1.0.4
       LightDM that had it root owned.
     * Set default resolution of VNC to 1024x768, add settings for width, height,
       depth into lightdm.conf.
+    * AppArmor profile: Fix broken gnome-keyring and dbus/gwibber, and quiesce
+      annoying kernel audit messages for privileges that we definitively do not
+      want to grant.
 
 Overview of changes in lightdm 1.0.3
 

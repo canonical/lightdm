@@ -25,6 +25,8 @@ LIBEXECDIR/lightdm-guest-session-wrapper {
   /lib/** rmixk,
   /lib32/ r,
   /lib32/** rmixk,
+  /lib64/ r,
+  /lib64/** rmixk,
   /media/ r,
   /media/** rmwlixk,  # we want access to USB sticks and the like
   /opt/ r,
@@ -36,6 +38,8 @@ LIBEXECDIR/lightdm-guest-session-wrapper {
   @{PROC}/ati rm,
   @{PROC}/ati/** rm,
   owner @{PROC}/** rm,
+  # needed for gnome-keyring-daemon
+  @{PROC}/*/status r,
   /sbin/ r,
   /sbin/** rmixk,
   /sys/ r,
@@ -50,5 +54,16 @@ LIBEXECDIR/lightdm-guest-session-wrapper {
   /var/tmp/ rw,
   owner /var/tmp/** rwlkm,
   /{,var/}run/ r,
-  /{,var/}run/** rmwkix, # necessary for writing to sockets, etc.
+  # necessary for writing to sockets, etc.
+  /{,var/}run/** rmkix,
+  /{,var/}run/shm/** wl,
+
+  capability ipc_lock,
+
+  # silence warnings for stuff that we really don't want to grant
+  deny capability dac_override,
+  deny capability dac_read_search,
+  deny /etc/** w,
+  deny /usr/** w,
+  deny /var/crash/ w,
 }
