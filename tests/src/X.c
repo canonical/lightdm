@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <signal.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -207,6 +208,7 @@ x_client_connect_cb (XClient *client, XConnect *message)
         x_client_send_failed (client, auth_error);
     else
         x_client_send_success (client);
+    g_free (auth_error);
 }
 
 static void

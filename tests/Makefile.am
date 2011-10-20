@@ -44,6 +44,7 @@ TESTS = \
 	test-switch-to-greeter \
 	test-switch-to-guest \
 	test-switch-to-user \
+	test-vnc-login \
 	test-xdmcp-login
 
 #	test-autologin-session-exit-error
@@ -118,5 +119,6 @@ EXTRA_DIST = \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \
+	scripts/vnc-login.conf \
 	scripts/xdmcp-login.conf \
 	scripts/xserver-fail-start.conf

@@ -33,7 +33,7 @@ struct XServerXVNCPrivate
     GFile *authority_file;
 
     /* File descriptor to use for standard input */
-    gint stdin_fd;
+    gint socket_fd;
   
     /* Geometry and colour depth */
     gint width, height, depth;
@@ -60,17 +60,17 @@ xserver_xvnc_new (void)
 }
 
 void
-xserver_xvnc_set_stdin (XServerXVNC *server, int fd)
+xserver_xvnc_set_socket (XServerXVNC *server, int fd)
 {
     g_return_if_fail (server != NULL);
-    server->priv->stdin_fd = fd;
+    server->priv->socket_fd = fd;
 }
 
 int
-xserver_xvnc_get_stdin (XServerXVNC *server)
+xserver_xvnc_get_socket (XServerXVNC *server)
 {
     g_return_val_if_fail (server != NULL, 0);
-    return server->priv->stdin_fd;
+    return server->priv->socket_fd;
 }
 
 void
@@ -123,7 +123,9 @@ static void
 run_cb (Process *process, XServerXVNC *server)
 {
     /* Connect input */
-    dup2 (server->priv->stdin_fd, STDIN_FILENO);
+    dup2 (server->priv->socket_fd, STDIN_FILENO);
+    dup2 (server->priv->socket_fd, STDOUT_FILENO);
+    close (server->priv->socket_fd);
 
     /* Redirect output to logfile */
     if (server->priv->log_file)
@@ -135,7 +137,6 @@ run_cb (Process *process, XServerXVNC *server)
              g_warning ("Failed to open log file %s: %s", server->priv->log_file, g_strerror (errno));
          else
          {
-             dup2 (fd, STDOUT_FILENO);
              dup2 (fd, STDERR_FILENO);
              close (fd);
          }
@@ -250,18 +251,27 @@ xserver_xvnc_start (DisplayServer *display_server)
     g_free (absolute_command);
   
     g_string_append_printf (command, " :%d", xserver_get_display_number (XSERVER (server)));
-    g_string_append_printf (command, " -auth %s ", path);
+    g_string_append_printf (command, " -auth %s", path);
     g_free (path);
     g_string_append (command, " -inetd -nolisten tcp");
     if (server->priv->width > 0 && server->priv->height > 0)
-        g_string_append_printf (command, " -geometry %dx%d ", server->priv->width, server->priv->height);
+        g_string_append_printf (command, " -geometry %dx%d", server->priv->width, server->priv->height);
     if (server->priv->depth > 0)
-        g_string_append_printf (command, " -depth %d ", server->priv->depth);
+        g_string_append_printf (command, " -depth %d", server->priv->depth);
 
     process_set_command (server->priv->xserver_process, command->str);
     g_string_free (command, TRUE);
 
     g_debug ("Launching Xvnc server");
+
+    /* Variable required for regression tests */
+    if (g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"))
+    {
+        process_set_env (server->priv->xserver_process, "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
+        process_set_env (server->priv->xserver_process, "LIGHTDM_TEST_CONFIG", g_getenv ("LIGHTDM_TEST_CONFIG"));
+        process_set_env (server->priv->xserver_process, "LIGHTDM_TEST_HOME_DIR", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
+        process_set_env (server->priv->xserver_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+    }
 
     result = process_start (server->priv->xserver_process);
 

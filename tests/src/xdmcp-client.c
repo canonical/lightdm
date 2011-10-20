@@ -5,7 +5,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <gio/gio.h>
-#include <gio/gunixsocketaddress.h>
 
 #include "x-common.h"
 #include "xdmcp-client.h"
