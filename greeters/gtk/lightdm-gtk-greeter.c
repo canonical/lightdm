@@ -609,7 +609,7 @@ load_user_list ()
         gtk_list_store_append (GTK_LIST_STORE (model), &iter);
         gtk_list_store_set (GTK_LIST_STORE (model), &iter,
                             0, "*guest",
-                            1, "Guest Account",
+                            1, _("Guest Account"),
                             2, PANGO_WEIGHT_NORMAL,
                             3, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
                             -1);
@@ -618,7 +618,7 @@ load_user_list ()
     gtk_list_store_append (GTK_LIST_STORE (model), &iter);
     gtk_list_store_set (GTK_LIST_STORE (model), &iter,
                         0, "*other",
-                        1, "Other...",
+                        1, _("Other..."),
                         2, PANGO_WEIGHT_NORMAL,
                         3, gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), "stock_person", 64, 0, NULL),
                         -1);
