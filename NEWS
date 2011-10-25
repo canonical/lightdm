@@ -11,6 +11,7 @@ Overview of changes in lightdm 1.0.4
     * AppArmor profile: Fix broken gnome-keyring and dbus/gwibber, and quiesce
       annoying kernel audit messages for privileges that we definitively do not
       want to grant.
+    * Set LOGNAME environment variable
 
 Overview of changes in lightdm 1.0.3
 
