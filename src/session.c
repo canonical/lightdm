@@ -249,11 +249,15 @@ session_start (Session *session)
     g_debug ("Launching session");
 
     user = pam_session_get_user (session->priv->authentication);
+  
+    /* Set POSIX variables */
     session_set_env (session, "PATH", "/usr/local/bin:/usr/bin:/bin");
     session_set_env (session, "USER", user_get_name (user));
-    session_set_env (session, "USERNAME", user_get_name (user)); // FIXME: Is this required?
+    session_set_env (session, "LOGNAME", user_get_name (user));
     session_set_env (session, "HOME", user_get_home_directory (user));
     session_set_env (session, "SHELL", user_get_shell (user));
+
+    session_set_env (session, "USERNAME", user_get_name (user)); // FIXME: Is this required?
 
     return SESSION_GET_CLASS (session)->start (session);
 }

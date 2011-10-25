@@ -241,6 +241,8 @@ run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
     script = process_new ();
 
     process_set_command (script, script_name);
+
+    /* Set POSIX variables */
     process_set_clear_environment (script, TRUE);
     process_set_env (script, "SHELL", "/bin/sh");
 
@@ -260,9 +262,11 @@ run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
     if (user)
     {
         process_set_env (script, "USER", user_get_name (user));
-        process_set_env (script, "USERNAME", user_get_name (user));
         process_set_env (script, "LOGNAME", user_get_name (user));
         process_set_env (script, "HOME", user_get_home_directory (user));
+
+        /* Set other common environment variables */
+        process_set_env (script, "USERNAME", user_get_name (user));
     }
     else
         process_set_env (script, "HOME", "/");
