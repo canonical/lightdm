@@ -264,9 +264,6 @@ run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
         process_set_env (script, "USER", user_get_name (user));
         process_set_env (script, "LOGNAME", user_get_name (user));
         process_set_env (script, "HOME", user_get_home_directory (user));
-
-        /* Set other common environment variables */
-        process_set_env (script, "USERNAME", user_get_name (user));
     }
     else
         process_set_env (script, "HOME", "/");

@@ -13,6 +13,8 @@ Overview of changes in lightdm 1.1.1
       annoying kernel audit messages for privileges that we definitively do not
       want to grant.
     * Set LOGNAME environment variable
+    * Don't set USERNAME environment variable - this is not specified in POSIX,
+      please report if this causes any major problems.
 
 Overview of changes in lightdm 1.1.0
 

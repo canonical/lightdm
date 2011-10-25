@@ -257,8 +257,6 @@ session_start (Session *session)
     session_set_env (session, "HOME", user_get_home_directory (user));
     session_set_env (session, "SHELL", user_get_shell (user));
 
-    session_set_env (session, "USERNAME", user_get_name (user)); // FIXME: Is this required?
-
     return SESSION_GET_CLASS (session)->start (session);
 }
 
