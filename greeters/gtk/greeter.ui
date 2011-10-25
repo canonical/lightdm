@@ -44,7 +44,7 @@
               <object class="GtkLabel" id="hostname_label">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label">hostname</property>
+                <property name="label" comments="This is a placeholder string and will be replaced with the hostname of the system">[hostname]</property>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -83,7 +83,7 @@
                       <object class="GtkLabel" id="prompt_label">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label">Prompt:</property>
+                        <property name="label" comments="This is a placeholder string and will be replaced by the greeter with a prompt string from PAM.">[prompt]</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -116,7 +116,7 @@
                 <child>
                   <object class="GtkLabel" id="message_label">
                     <property name="can_focus">False</property>
-                    <property name="label">Message</property>
+                    <property name="label" comments="This is a placeholder string and will be replaced with a message from PAM">[message]</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
