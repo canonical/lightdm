@@ -84,7 +84,6 @@ EXTRA_DIST = \
 	scripts/autologin-invalid-session.conf \
 	scripts/autologin-invalid-user.conf \
 	scripts/autologin-logout.conf \
-	scripts/autologin-pick-session.conf \
 	scripts/autologin-previous-session.conf \
 	scripts/autologin-session-crash.conf \
 	scripts/autologin-xserver-crash.conf \
@@ -104,6 +103,7 @@ EXTRA_DIST = \
 	scripts/login-manual.conf \
 	scripts/login-manual-previous-session.conf \
 	scripts/login-no-password.conf \
+	scripts/login-pick-session.conf \
 	scripts/login-previous-session.conf \
 	scripts/login-session-crash.conf \
 	scripts/login-wrong-password.conf \
