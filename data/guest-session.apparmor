@@ -12,6 +12,7 @@ LIBEXECDIR/lightdm-guest-session-wrapper {
  
   / r,
   /bin/ rmix,
+  /bin/fusermount Px,
   /bin/** rmix,
   /cdrom/ rmix,
   /cdrom/** rmix,
@@ -63,7 +64,7 @@ LIBEXECDIR/lightdm-guest-session-wrapper {
   # silence warnings for stuff that we really don't want to grant
   deny capability dac_override,
   deny capability dac_read_search,
-  deny /etc/** w,
+  #deny /etc/** w, # re-enable once LP#697678 is fixed
   deny /usr/** w,
   deny /var/crash/ w,
 }
