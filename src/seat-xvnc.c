@@ -39,6 +39,23 @@ seat_xvnc_create_display_server (Seat *seat)
     xserver = xserver_xvnc_new ();
     xserver_xvnc_set_socket (xserver, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
 
+    if (config_has_key (config_get_instance (), "VNCServer", "width") &&
+        config_has_key (config_get_instance (), "VNCServer", "height"))
+    {
+        gint width, height;
+        width = config_get_integer (config_get_instance (), "VNCServer", "width");
+        height = config_get_integer (config_get_instance (), "VNCServer", "height");
+        if (height > 0 && width > 0)
+            xserver_xvnc_set_geometry (xserver, width, height);
+    }
+    if (config_has_key (config_get_instance (), "VNCServer", "depth"))
+    {
+        gint depth;
+        depth = config_get_integer (config_get_instance (), "VNCServer", "depth");
+        if (depth == 8 || depth == 16 || depth == 24 || depth == 32)
+            xserver_xvnc_set_depth (xserver, depth);
+    }
+
     return DISPLAY_SERVER (xserver);
 }
 
