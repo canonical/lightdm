@@ -28,8 +28,8 @@ LIBEXECDIR/lightdm-guest-session-wrapper {
   /lib32/** rmixk,
   /lib64/ r,
   /lib64/** rmixk,
-  /media/ r,
-  /media/** rmwlixk,  # we want access to USB sticks and the like
+  owner /media/ r,
+  owner /media/** rmwlixk,  # we want access to USB sticks and the like
   /opt/ r,
   /opt/** rmixk,
   @{PROC}/ r,
