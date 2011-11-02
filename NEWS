@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.0.6
+
+    * Use lchown for correcting ownership of ~/.Xauthority instead of chown
+
 Overview of changes in lightdm 1.0.5
 
     * Relax AppArmor guest profile to allow compiz to start

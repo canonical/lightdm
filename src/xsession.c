@@ -105,7 +105,7 @@ xsession_setup (Session *session)
             if (getuid () == 0)
             {
                 int result;
-                result = chown (path, user_get_uid (session_get_user (session)), user_get_gid (session_get_user (session)));
+                result = lchown (path, user_get_uid (session_get_user (session)), user_get_gid (session_get_user (session)));
                 if (result < 0 && errno != ENOENT)
                     g_warning ("Failed to correct ownership of %s: %s", path, strerror (errno));                
             }
