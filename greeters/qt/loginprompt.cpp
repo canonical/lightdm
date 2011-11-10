@@ -28,7 +28,7 @@ LoginPrompt::LoginPrompt(QLightDM::Greeter *greeter, QWidget *parent) :
     ui->setupUi(this);
     ui->feedbackLabel->setText(QString());
     
-    ui->hostnameLabel->setText(QLightDM::hostname());
+    ui->hostnameLabel->setText(QLightDM::System::hostname());
     
     ui->userListView->setModel(QLightDM::users());
 

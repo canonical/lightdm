@@ -10,11 +10,13 @@
  * license.
  */
 
+#include "QLightDM/system.h"
+
 #include <QtNetwork/QHostInfo>
 
-#include "QLightDM/System"
+using namespace QLightDM;
 
-QString QLightDM::hostname()
+QString System::hostname()
 {
     return QHostInfo::localHostName();
 }

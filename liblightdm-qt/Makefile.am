@@ -1,16 +1,10 @@
 lib_LTLIBRARIES = liblightdm-qt-1.la
 
-# Generate metadata for QObjects
-MOC_FILES = \
-	greeter_moc.cpp \
-	session_moc.cpp \
-	user_moc.cpp 
-
-greeter_moc.cpp: QLightDM/Greeter
+greeter_moc.cpp: QLightDM/greeter.h
 	$(MOC) $< -o $@
-session_moc.cpp: QLightDM/Session
+session_moc.cpp: QLightDM/session.h
 	$(MOC) $< -o $@
-user_moc.cpp: QLightDM/User
+user_moc.cpp: QLightDM/user.h
 	$(MOC) $< -o $@
 
 liblightdm_qt_1_la_LIBADD = $(LIBLIGHTDM_QT_LIBS)
@@ -23,7 +17,14 @@ liblightdm_qt_1include_HEADERS = \
 	QLightDM/Power \
 	QLightDM/Session \
 	QLightDM/System \
-	QLightDM/User
+	QLightDM/User \
+	QLightDM/greeter.h \
+	QLightDM/language.h \
+	QLightDM/power.h \
+	QLightDM/session.h \
+	QLightDM/system.h \
+	QLightDM/user.h
+
 liblightdm_qt_1includedir=$(includedir)/lightdm-qt-1/QLightDM
 
 liblightdm_qt_1_la_SOURCES = \
@@ -33,14 +34,13 @@ liblightdm_qt_1_la_SOURCES = \
 	session.cpp \
 	system.cpp \
 	user.cpp \
-	$(MOC_FILES) \
 	$(liblightdm_qt_1include_HEADERS)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = liblightdm-qt-1.pc
 
 CLEANFILES = \
-	$(MOC_FILES)
+	*_moc.cpp
 
 DISTCLEANFILES = \
 	Makefile.in \

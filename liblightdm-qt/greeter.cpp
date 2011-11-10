@@ -10,11 +10,11 @@
  * license.
  */
 
+
+#include "QLightDM/greeter.h"
+
 #include "config.h"
 
-#include "QLightDM/Greeter"
-
-#include <security/pam_appl.h>
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
 #include <QtCore/QVariant>
@@ -26,6 +26,9 @@
 #include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusInterface>
 #include <QtDBus/QDBusReply>
+
+#include <security/pam_appl.h>
+
 
 /* Messages from the greeter to the server */
 typedef enum
@@ -489,3 +492,5 @@ int Greeter::autologinTimeoutHint() const
 {
     return d->hints.value ("autologin-timeout", "0").toInt ();
 }
+
+#include "greeter_moc.cpp"

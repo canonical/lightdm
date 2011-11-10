@@ -9,10 +9,11 @@
  * license.
  */
 
-#include "QLightDM/User"
+#include "QLightDM/user.h"
 
 #include <pwd.h>
 #include <errno.h>
+
 #include <QtCore/QSharedData>
 #include <QtCore/QString>
 #include <QtCore/QFileSystemWatcher>
@@ -20,7 +21,6 @@
 #include <QtCore/QDir>
 #include <QtCore/QSettings>
 #include <QtCore/QDebug>
-
 #include <QtGui/QPixmap>
 
 using namespace QLightDM;
@@ -301,3 +301,5 @@ void UsersModel::loadUsers()
         endInsertRows();
     }
 }
+
+#include "user_moc.cpp"

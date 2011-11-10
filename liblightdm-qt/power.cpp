@@ -10,13 +10,14 @@
  * license.
  */
 
-#include "config.h"
 
-#include "QLightDM/Power"
+#include "QLightDM/power.h"
 
 #include <QtCore/QVariant>
 #include <QtDBus/QDBusInterface>
 #include <QtDBus/QDBusReply>
+
+#include "config.h"
 
 using namespace QLightDM;
 

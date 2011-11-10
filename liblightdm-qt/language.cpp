@@ -9,7 +9,7 @@
  * license.
  */
 
-#include "QLightDM/Language"
+#include "QLightDM/language.h"
 
 using namespace QLightDM;
 

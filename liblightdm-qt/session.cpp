@@ -9,7 +9,7 @@
  * license.
  */
 
-#include "QLightDM/Session"
+#include "QLightDM/session.h"
 
 #include <QtCore/QList>
 #include <QtCore/QDir>
@@ -111,3 +111,5 @@ void SessionsModel::buildList()
     d->items.append(items);
     endInsertRows();
 }
+
+#include "session_moc.cpp"
