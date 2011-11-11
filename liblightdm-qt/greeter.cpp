@@ -302,10 +302,12 @@ void Greeter::setLanguage (QString language)
 
 bool Greeter::startSessionSync(const QString &session)
 {
-    if (session == "")
+    if (session.isEmpty()) {
         qDebug() << "Starting default session";
-    else
+    }
+    else {
         qDebug() << "Starting session " << session;
+    }
 
     d->writeHeader(GREETER_MESSAGE_START_SESSION, stringLength(session));
     d->writeString(session);
@@ -313,17 +315,20 @@ bool Greeter::startSessionSync(const QString &session)
 
     int responseLength;
     char *response = d->readMessage(&responseLength, false);
-    if (!response)
+    if (!response) {
         return false;
+    }
 
     int offset = 0;
     int id = readInt(response, responseLength, &offset);
     readInt(response, responseLength, &offset);
     int returnCode = -1;
-    if (id == SERVER_MESSAGE_SESSION_RESULT)
+    if (id == SERVER_MESSAGE_SESSION_RESULT) {
         returnCode = readInt(response, responseLength, &offset);
-    else
+    }
+    else {
         qDebug() << "Expected SESSION_RESULT message, got " << id;
+    }
     free(response);
 
     return returnCode == 0;
@@ -333,19 +338,18 @@ char* GreeterPrivate::readMessage(int *length, bool block)
 {
     /* Read the header, or the whole message if we already have that */
     int nToRead = HEADER_SIZE;
-    if(nRead >= HEADER_SIZE)
+    if(nRead >= HEADER_SIZE) {
         nToRead += getMessageLength(readBuffer, nRead);
+    }
 
-    do
-    {      
+    do {
         ssize_t nRead = read(fromServerFd, readBuffer + nRead, nToRead - nRead);
-        if(nRead < 0)
-        {
+        if(nRead < 0) {
             qDebug() << "Error reading from server";
             return NULL;
         }
-        if (nRead == 0)
-        {
+
+        if (nRead == 0) {
             qDebug() << "EOF reading from server";
             return NULL;
         }
@@ -355,15 +359,14 @@ char* GreeterPrivate::readMessage(int *length, bool block)
     } while(nRead < nToRead && block);
 
     /* Stop if haven't got all the data we want */  
-    if(nRead != nToRead)
+    if(nRead != nToRead) {
         return NULL;
+    }
 
     /* If have header, rerun for content */
-    if(nRead == HEADER_SIZE)
-    {
+    if(nRead == HEADER_SIZE) {
         nToRead = getMessageLength(readBuffer, nRead);
-        if(nToRead > 0)
-        {
+        if(nToRead > 0) {
             readBuffer = (char *)realloc(readBuffer, HEADER_SIZE + nToRead);
             return readMessage(length, block);
         }
@@ -384,16 +387,16 @@ void Greeter::onRead(int fd)
 
     int messageLength;
     char *message = d->readMessage(&messageLength, false);
-    if (!message)
+    if (!message) {
         return;
+    }
 
     int offset = 0;
     int id = readInt(message, messageLength, &offset);
     int length = readInt(message, messageLength, &offset);
     int nMessages, sequenceNumber, returnCode;
     QString version, username;
-    switch(id)
-    {
+    switch(id) {
     case SERVER_MESSAGE_PROMPT_AUTHENTICATION:
         sequenceNumber = readInt(message, messageLength, &offset);
         username = readString(message, messageLength, &offset);
