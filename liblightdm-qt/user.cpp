@@ -181,25 +181,27 @@ QList<User> UsersModel::getUsers()
 {
     QString file = "/etc/lightdm/users.conf";
     qDebug() << "Loading user configuration from " << file;
-    QSettings *settings = new QSettings(file, QSettings::IniFormat);
+    QSettings settings(file, QSettings::IniFormat);
 
-    int minimumUid = settings->value("UserAccounts/minimum-uid", QVariant(500)).toInt();
+    int minimumUid = settings.value("UserAccounts/minimum-uid", QVariant(500)).toInt();
     QStringList hiddenShells;
-    if (settings->contains("UserAccounts/hidden-shells"))
-        hiddenShells = settings->value("UserAccounts/hidden-shells").toString().split(" ");
-    else
+    if (settings.contains("UserAccounts/hidden-shells")) {
+        hiddenShells = settings.value("UserAccounts/hidden-shells").toString().split(" ");
+    }
+    else {
         hiddenShells = QStringList() << "/bin/false" << "/usr/sbin/nologin";
+    }
     QStringList hiddenUsers;
-    if (settings->contains("UserAccounts/hidden-users"))
-        hiddenUsers = settings->value("UserAccounts/hidden-users").toString().split(" ");
-    else
+    if (settings.contains("UserAccounts/hidden-users")) {
+        hiddenUsers = settings.value("UserAccounts/hidden-users").toString().split(" ");
+    }
+    else {
         hiddenUsers = QStringList() << "nobody" << "nobody4" << "noaccess";
-
+    }
     QList<User> users;
 
     setpwent();
-    while(TRUE)
-    {        
+    Q_FOREVER {
         errno = 0;
         struct passwd *entry = getpwent();
         if(!entry) {
@@ -244,7 +246,6 @@ QList<User> UsersModel::getUsers()
     }
     endpwent();
 
-    delete settings;
 
     return users;
 }
@@ -253,8 +254,6 @@ void UsersModel::loadUsers()
 {
     QList<User> usersToAdd;
 
-    //FIXME accidently not got the "if contact removed" code. Need to restore that.
-    //should call beginRemoveRows, and then remove the row from the model.
     //might get rid of "User" object, keep as private object (like sessionsmodel) - or make it copyable.
 
     //loop through all the new list of users, if it's in the list already update it (or do nothing) otherwise append to list of new users
