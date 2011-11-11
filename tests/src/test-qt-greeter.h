@@ -8,7 +8,7 @@ public:
     TestGreeter ();
 
 private slots:
-    void showMessage(QString text, QLightDM::MessageType type);
-    void showPrompt(QString text, QLightDM::PromptType type);
+    void showMessage(QString text, Greeter::MessageType type);
+    void showPrompt(QString text, Greeter::PromptType type);
     void authenticationComplete();
 };

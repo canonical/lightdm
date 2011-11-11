@@ -414,16 +414,16 @@ void Greeter::onRead(int fd)
                 switch (style)
                 {
                 case PAM_PROMPT_ECHO_OFF:
-                    emit showPrompt(text, PROMPT_TYPE_SECRET);
+                    emit showPrompt(text, Greeter::PromptTypeSecret);
                     break;
                 case PAM_PROMPT_ECHO_ON:
-                    emit showPrompt(text, PROMPT_TYPE_QUESTION);
+                    emit showPrompt(text, Greeter::PromptTypeQuestion);
                     break;
                 case PAM_ERROR_MSG:
-                    emit showMessage(text, MESSAGE_TYPE_ERROR);
+                    emit showMessage(text, Greeter::MessageTypeError);
                     break;
                 case PAM_TEXT_INFO:
-                    emit showMessage(text, MESSAGE_TYPE_INFO);
+                    emit showMessage(text, Greeter::MessageTypeInfo);
                     break;
                 }
             }

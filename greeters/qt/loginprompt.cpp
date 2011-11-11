@@ -34,7 +34,7 @@ LoginPrompt::LoginPrompt(QLightDM::Greeter *greeter, QWidget *parent) :
 
     connect(ui->loginButton, SIGNAL(released()), SLOT(onLoginButtonClicked()));
     connect(m_greeter, SIGNAL(authenticationComplete()), SLOT(onAuthenticationComplete()));
-    connect(m_greeter, SIGNAL(showPrompt(QString, QLightDM::PromptType)), SLOT(prompt(QString, QLightDM::PromptType)));
+    connect(m_greeter, SIGNAL(showPrompt(QString, QLightDM::Greeter::PromptType)), SLOT(prompt(QString, QLightDM::Greeter::PromptType)));
 }
 
 LoginPrompt::~LoginPrompt()
@@ -60,7 +60,7 @@ void LoginPrompt::onAuthenticationComplete()
     }
 }
 
-void LoginPrompt::prompt(const QString &text, QLightDM::PromptType type) {
+void LoginPrompt::prompt(const QString &text, QLightDM::Greeter::PromptType type) {
     qDebug() << text;
     m_greeter->respond(ui->password->text());
 }

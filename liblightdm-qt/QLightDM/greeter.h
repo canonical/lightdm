@@ -22,27 +22,27 @@ class GreeterPrivate;
 
 namespace QLightDM
 {
-  typedef enum
-  {
-    PROMPT_TYPE_QUESTION,
-    PROMPT_TYPE_SECRET
-  } PromptType;
-
-  typedef enum
-  {
-    MESSAGE_TYPE_INFO,
-    MESSAGE_TYPE_ERROR
-  } MessageType;
 
   class Q_DECL_EXPORT Greeter : public QObject
   {
-    Q_OBJECT
-    public:
-        explicit Greeter(QObject* parent=0);
-        virtual ~Greeter();
+      Q_OBJECT
+  public:
 
-        QString timedLoginUser() const;
-        int timedLoginDelay() const;
+      enum PromptType {
+          PromptTypeQuestion,
+          PromptTypeSecret
+      };
+
+      enum MessageType {
+          MessageTypeInfo,
+          MessageTypeError
+      };
+
+      explicit Greeter(QObject* parent=0);
+      virtual ~Greeter();
+
+      QString timedLoginUser() const;
+      int timedLoginDelay() const;
 
         QString getHint(QString name) const;
         QString defaultSessionHint() const;
@@ -67,8 +67,8 @@ namespace QLightDM
         bool startSessionSync(const QString &session=QString());
 
     signals:
-        void showMessage(QString text, QLightDM::MessageType type);
-        void showPrompt(QString text, QLightDM::PromptType type);
+        void showMessage(QString text, Greeter::MessageType type);
+        void showPrompt(QString text, Greeter::PromptType type);
         void authenticationComplete();
         void autologinTimerExpired();
 

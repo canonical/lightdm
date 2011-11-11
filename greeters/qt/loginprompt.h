@@ -38,7 +38,7 @@ signals:
 private slots:
     void onLoginButtonClicked();
     void onAuthenticationComplete();
-    void prompt(const QString &message, QLightDM::PromptType);
+    void prompt(const QString &message, QLightDM::Greeter::PromptType);
 
 private:
     QLightDM::Greeter *m_greeter;
