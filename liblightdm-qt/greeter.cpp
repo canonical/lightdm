@@ -59,7 +59,6 @@ class GreeterPrivate
 {
 public:
     QHash<QString, QString> hints;
-
     int toServerFd;
     int fromServerFd;
     QSocketNotifier *n;
@@ -70,6 +69,12 @@ public:
     QString authenticationUser;
     int authenticateSequenceNumber;
     bool cancellingAuthentication;
+
+    void writeInt(int value);
+    void writeString(QString value);
+    void writeHeader(int id, int length);
+    void flush();
+    char *readMessage(int *length, bool block);
 };
 
 Greeter::Greeter(QObject *parent) :
@@ -98,36 +103,36 @@ static int stringLength(QString value)
     return intLength() + a.size();
 }
 
-void Greeter::writeInt(int value)
+void GreeterPrivate::writeInt(int value)
 {
     char buffer[4];
     buffer[0] = value >> 24;
     buffer[1] = (value >> 16) & 0xFF;
     buffer[2] = (value >> 8) & 0xFF;
     buffer[3] = value & 0xFF;
-    if (write(d->toServerFd, buffer, intLength()) != intLength()) {
+    if (write(toServerFd, buffer, intLength()) != intLength()) {
         qDebug() << "Error writing to server";
     }
 }
 
-void Greeter::writeString(QString value)
+void GreeterPrivate::writeString(QString value)
 {
     QByteArray a = value.toUtf8();
     writeInt(a.size());
-    if (write(d->toServerFd, a.data(), a.size()) != a.size()) {
+    if (write(toServerFd, a.data(), a.size()) != a.size()) {
         qDebug() << "Error writing to server";
     }
 }
 
-void Greeter::writeHeader(int id, int length)
+void GreeterPrivate::writeHeader(int id, int length)
 {
     writeInt(id);
     writeInt(length);
 }
 
-void Greeter::flush()
+void GreeterPrivate::flush()
 {
-    fsync(d->toServerFd);
+    fsync(toServerFd);
 }
 
 static int readInt(char *message, int messageLength, int *offset)
@@ -191,12 +196,12 @@ bool Greeter::connectSync()
     connect(d->n, SIGNAL(activated(int)), this, SLOT(onRead(int)));
 
     qDebug() << "Connecting to display manager...";
-    writeHeader(GREETER_MESSAGE_CONNECT, stringLength(VERSION));
-    writeString(VERSION);
-    flush();
+    d->writeHeader(GREETER_MESSAGE_CONNECT, stringLength(VERSION));
+    d->writeString(VERSION);
+    d->flush();
 
     int responseLength;
-    char *response = readMessage(&responseLength, false);
+    char *response = d->readMessage(&responseLength, false);
     if (!response)
         return false;
 
@@ -235,11 +240,11 @@ void Greeter::authenticate(const QString &username)
     d->cancellingAuthentication = false;
     d->authenticationUser = username;
     qDebug() << "Starting authentication for user " << username << "...";
-    writeHeader(GREETER_MESSAGE_AUTHENTICATE, intLength() + stringLength(username));
+    d->writeHeader(GREETER_MESSAGE_AUTHENTICATE, intLength() + stringLength(username));
     d->authenticateSequenceNumber++;
-    writeInt(d->authenticateSequenceNumber);
-    writeString(username);
-    flush();
+    d->writeInt(d->authenticateSequenceNumber);
+    d->writeString(username);
+    d->flush();
 }
 
 void Greeter::authenticateAsGuest()
@@ -250,27 +255,27 @@ void Greeter::authenticateAsGuest()
     d->cancellingAuthentication = false;
     d->authenticationUser = "";
     qDebug() << "Starting authentication for guest account";
-    writeHeader(GREETER_MESSAGE_AUTHENTICATE_AS_GUEST, intLength());
-    writeInt(d->authenticateSequenceNumber);
-    flush();
+    d->writeHeader(GREETER_MESSAGE_AUTHENTICATE_AS_GUEST, intLength());
+    d->writeInt(d->authenticateSequenceNumber);
+    d->flush();
 }
 
 void Greeter::respond(const QString &response)
 {
     qDebug() << "Providing response to display manager";
-    writeHeader(GREETER_MESSAGE_CONTINUE_AUTHENTICATION, intLength() + stringLength(response));
+    d->writeHeader(GREETER_MESSAGE_CONTINUE_AUTHENTICATION, intLength() + stringLength(response));
     // FIXME: Could be multiple response required
-    writeInt(1);
-    writeString(response);
-    flush();
+    d->writeInt(1);
+    d->writeString(response);
+    d->flush();
 }
 
 void Greeter::cancelAuthentication()
 {
     qDebug() << "Cancelling authentication";
     d->cancellingAuthentication = true;
-    writeHeader(GREETER_MESSAGE_CANCEL_AUTHENTICATION, 0);
-    flush();
+    d->writeHeader(GREETER_MESSAGE_CANCEL_AUTHENTICATION, 0);
+    d->flush();
 }
 
 bool Greeter::inAuthentication() const
@@ -290,9 +295,9 @@ QString Greeter::authenticationUser() const
 
 void Greeter::setLanguage (QString language)
 {
-    writeHeader(GREETER_MESSAGE_SET_LANGUAGE, stringLength(language));
-    writeString (language);
-    flush();
+    d->writeHeader(GREETER_MESSAGE_SET_LANGUAGE, stringLength(language));
+    d->writeString (language);
+    d->flush();
 }
 
 bool Greeter::startSessionSync(const QString &session)
@@ -302,12 +307,12 @@ bool Greeter::startSessionSync(const QString &session)
     else
         qDebug() << "Starting session " << session;
 
-    writeHeader(GREETER_MESSAGE_START_SESSION, stringLength(session));
-    writeString(session);
-    flush();
+    d->writeHeader(GREETER_MESSAGE_START_SESSION, stringLength(session));
+    d->writeString(session);
+    d->flush();
 
     int responseLength;
-    char *response = readMessage(&responseLength, false);
+    char *response = d->readMessage(&responseLength, false);
     if (!response)
         return false;
 
@@ -324,16 +329,16 @@ bool Greeter::startSessionSync(const QString &session)
     return returnCode == 0;
 }
 
-char *Greeter::readMessage(int *length, bool block)
+char* GreeterPrivate::readMessage(int *length, bool block)
 {
     /* Read the header, or the whole message if we already have that */
     int nToRead = HEADER_SIZE;
-    if(d->nRead >= HEADER_SIZE)
-        nToRead += getMessageLength(d->readBuffer, d->nRead);
+    if(nRead >= HEADER_SIZE)
+        nToRead += getMessageLength(readBuffer, nRead);
 
     do
     {      
-        ssize_t nRead = read(d->fromServerFd, d->readBuffer + d->nRead, nToRead - d->nRead);
+        ssize_t nRead = read(fromServerFd, readBuffer + nRead, nToRead - nRead);
         if(nRead < 0)
         {
             qDebug() << "Error reading from server";
@@ -346,29 +351,29 @@ char *Greeter::readMessage(int *length, bool block)
         }
 
         qDebug() << "Read " << nRead << " octets from daemon";
-        d->nRead += nRead;
-    } while(d->nRead < nToRead && block);
+        nRead += nRead;
+    } while(nRead < nToRead && block);
 
     /* Stop if haven't got all the data we want */  
-    if(d->nRead != nToRead)
+    if(nRead != nToRead)
         return NULL;
 
     /* If have header, rerun for content */
-    if(d->nRead == HEADER_SIZE)
+    if(nRead == HEADER_SIZE)
     {
-        nToRead = getMessageLength(d->readBuffer, d->nRead);
+        nToRead = getMessageLength(readBuffer, nRead);
         if(nToRead > 0)
         {
-            d->readBuffer = (char *)realloc(d->readBuffer, HEADER_SIZE + nToRead);
+            readBuffer = (char *)realloc(readBuffer, HEADER_SIZE + nToRead);
             return readMessage(length, block);
         }
     }
 
-    char *buffer = d->readBuffer;
-    *length = d->nRead;
+    char *buffer = readBuffer;
+    *length = nRead;
 
-    d->readBuffer = (char *)malloc(d->nRead);
-    d->nRead = 0;
+    readBuffer = (char *)malloc(nRead);
+    nRead = 0;
 
     return buffer;
 }
@@ -378,7 +383,7 @@ void Greeter::onRead(int fd)
     qDebug() << "Reading from server";
 
     int messageLength;
-    char *message = readMessage(&messageLength, false);
+    char *message = d->readMessage(&messageLength, false);
     if (!message)
         return;
 
