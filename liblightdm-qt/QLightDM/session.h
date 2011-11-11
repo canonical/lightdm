@@ -21,10 +21,13 @@ namespace QLightDM {
     {
         Q_OBJECT
     public:
+        enum SessionModelRoles {
+            IdRole = Qt::UserRole
+        };
+
         explicit SessionsModel(QObject *parent = 0);
         virtual ~SessionsModel();
 
-        enum SessionModelRoles {IdRole = Qt::UserRole};
         int rowCount(const QModelIndex &parent) const;
         QVariant data(const QModelIndex &index, int role=Qt::DisplayRole) const;
 

@@ -35,7 +35,8 @@ UsersModel *QLightDM::users()
     return user_model;
 }
 
-class UserPrivate : public QSharedData
+
+class UserItem
 {
 public:
     QString name;
@@ -43,91 +44,22 @@ public:
     QString homeDirectory;
     QString image;
     bool isLoggedIn;
+    QString displayName() const;
 };
 
-User::User():
-    d(new UserPrivate)
-{
-}
-
-User::User(const QString& name, const QString& realName, const QString& homeDirectory, const QString& image, bool isLoggedIn) :
-    d(new UserPrivate)
-{
-    d->name = name;
-    d->realName = realName;
-    d->homeDirectory = homeDirectory;
-    d->image = image;
-    d->isLoggedIn = isLoggedIn;
-}
-
-User::User(const User &other)
-    : d(other.d)
-{
-}
-
-User::~User()
-{
-}
-
-
-User& User::operator=(const User& other)
-{
-    d = other.d;
-    return *this;
-}
-
-bool User::update(const QString& realName, const QString& homeDirectory, const QString& image, bool isLoggedIn)
-{
-    if (d->realName == realName && d->homeDirectory == homeDirectory && d->image == image && d->isLoggedIn == isLoggedIn) {
-        return false;
-    }
-
-    d->realName = realName;
-    d->homeDirectory = homeDirectory;
-    d->image = image;
-    d->isLoggedIn = isLoggedIn;
-
-    return true;
-}
-
-QString User::displayName() const
-{
-    if (!d->realName.isEmpty()) {
-        return d->realName;
+QString UserItem::displayName() const {
+    if (realName.isEmpty()){
+        return name;
     }
     else {
-        return d->name;
+        return realName;
     }
 }
 
-QString User::name() const
-{
-    return d->name;
-}
-
-QString User::realName() const
-{
-    return d->realName;
-}
-
-QString User::homeDirectory() const
-{
-    return d->homeDirectory;
-}
-
-QString User::image() const
-{
-    return d->image;
-}
-
-bool User::isLoggedIn() const
-{
-    return d->isLoggedIn;
-}
 
 class UsersModelPrivate {
 public:
-    QList<User> users;
+    QList<UserItem> users;
 };
 
 UsersModel::UsersModel(QObject *parent) :
@@ -164,22 +96,23 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
     case Qt::DisplayRole:
         return d->users[row].displayName();
     case Qt::DecorationRole:
-        return QPixmap(d->users[row].image());
+        return QPixmap(d->users[row].image);
     case UsersModel::NameRole:
-        return d->users[row].name();
+        return d->users[row].name;
     case UsersModel::RealNameRole:
-        return d->users[row].realName();
+        return d->users[row].realName;
     case UsersModel::LoggedInRole:
-        return d->users[row].isLoggedIn();
+        return d->users[row].isLoggedIn;
     }
 
     return QVariant();
 }
 
 
-QList<User> UsersModel::getUsers()
+QList<UserItem> UsersModel::getUsers() const
 {
-    QString file = "/etc/lightdm/users.conf";
+    QString file = "/etc/lightdm/users.conf"; //FIXME hardcoded path!!
+
     qDebug() << "Loading user configuration from " << file;
     QSettings settings(file, QSettings::IniFormat);
 
@@ -198,7 +131,7 @@ QList<User> UsersModel::getUsers()
     else {
         hiddenUsers = QStringList() << "nobody" << "nobody4" << "noaccess";
     }
-    QList<User> users;
+    QList<UserItem> users;
 
     setpwent();
     Q_FOREVER {
@@ -226,18 +159,25 @@ QList<User> UsersModel::getUsers()
 
         QStringList tokens = QString(entry->pw_gecos).split(",");
         QString realName;
-        if(tokens.size() > 0 && tokens.at(0) != "")
+        if(tokens.size() > 0 && tokens.at(0) != "") {
             realName = tokens.at(0);
+        }
 
         QDir homeDir(entry->pw_dir);
         QString image = homeDir.filePath(".face");
         if(!QFile::exists (image)) {
             image = homeDir.filePath(".face.icon");
-            if(!QFile::exists (image))
+            if(!QFile::exists (image)) {
                 image = "";
+            }
         }
 
-        User user(entry->pw_name, realName, entry->pw_dir, image, false);
+        UserItem user;
+        user.name = entry->pw_name;
+        user.realName = realName;
+        user.homeDirectory = entry->pw_dir;
+        user.image = image;
+        user.isLoggedIn = false;
         users.append(user);
     }
 
@@ -252,19 +192,19 @@ QList<User> UsersModel::getUsers()
 
 void UsersModel::loadUsers()
 {
-    QList<User> usersToAdd;
+    QList<UserItem> usersToAdd;
 
     //might get rid of "User" object, keep as private object (like sessionsmodel) - or make it copyable.
 
     //loop through all the new list of users, if it's in the list already update it (or do nothing) otherwise append to list of new users
-    QList<User> newUserList = getUsers();
+    QList<UserItem> newUserList = getUsers();
 
-    foreach(const User &user, newUserList) {
+    Q_FOREACH(const UserItem &user, newUserList) {
         bool alreadyInList = false;
         for(int i=0; i < d->users.size(); i++) {
-            if (user.name() == d->users[i].name()) {
+            if (user.name == d->users[i].name) {
                 alreadyInList = true;
-                d->users[i].update(user.name(), user.homeDirectory(), user.image(), user.isLoggedIn());
+//                d->users[i].update(user.name(), user.homeDirectory(), user.image(), user.isLoggedIn());
                 QModelIndex index = createIndex(i,0);
                 dataChanged(index, index);
             }
@@ -280,8 +220,8 @@ void UsersModel::loadUsers()
     //FIXME this isn't perfect, looping like this in a mutating list - use mutable iterator.
     for (int i=0; i < d->users.size() ; i++) {
         bool found = false;
-        foreach(const User &user, newUserList) {
-            if (d->users[i].name() == user.name()) {
+        foreach(const UserItem &user, newUserList) {
+            if (d->users[i].name == user.name) {
                 found = true;
             }
         }
