@@ -24,7 +24,7 @@ dmrc_load (const gchar *username)
     User *user;
     GKeyFile *dmrc_file;
     gchar *path;
-    gboolean have_dmrc;
+    gboolean have_dmrc, drop_privileges;
 
     dmrc_file = g_key_file_new ();
 
@@ -38,7 +38,14 @@ dmrc_load (const gchar *username)
     /* Load from the user directory, if this fails (e.g. the user directory
      * is not yet mounted) then load from the cache */
     path = g_build_filename (user_get_home_directory (user), ".dmrc", NULL);
+
+    /* Guard against privilege escalation through symlinks, etc. */
+    drop_privileges = geteuid () == 0;
+    if (drop_privileges)
+        privileges_drop (user);
     have_dmrc = g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, NULL);
+    if (drop_privileges)
+        privileges_reclaim ();
     g_free (path);
 
     /* If no ~/.dmrc, then load from the cache */  
