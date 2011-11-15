@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.0.7
+
+    * Drop privileges when reading ~/.dmrc
+
 Overview of changes in lightdm 1.0.6
 
     * Use lchown for correcting ownership of ~/.Xauthority instead of chown
