@@ -13,7 +13,6 @@
 #include "ui_loginprompt.h"
 
 #include <QLightDM/User>
-#include <QLightDM/Language>
 #include <QLightDM/User>
 #include <QLightDM/System>
 

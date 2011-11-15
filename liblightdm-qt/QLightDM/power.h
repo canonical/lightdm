@@ -13,16 +13,38 @@
 #ifndef QLIGHTDM_POWER_H
 #define QLIGHTDM_POWER_H
 
+#include <QObject>
+
 namespace QLightDM
 {
-    bool canSuspend();
-    bool canHibernate();
-    bool canShutdown();
-    bool canRestart();
-    void suspend();
-    void hibernate();
-    void shutdown();
-    void restart();
+    class PowerInterface : public QObject
+    {
+        Q_OBJECT
+    public:
+        Q_PROPERTY(bool canSuspend READ canSuspend() CONSTANT)
+        Q_PROPERTY(bool canHibernate READ canHibernate() CONSTANT)
+        Q_PROPERTY(bool canShutdown READ canShutdown() CONSTANT)
+        Q_PROPERTY(bool canRestart READ canRestart() CONSTANT)
+
+        PowerInterface(QObject *parent);
+        virtual ~PowerInterface();
+
+        bool canSuspend();
+        bool canHibernate();
+        bool canShutdown();
+        bool canRestart();
+
+    public Q_SLOTS:
+        void suspend();
+        void hibernate();
+        void shutdown();
+        void restart();
+
+    private:
+        class PowerInterfacePrivate;
+        PowerInterfacePrivate * const d;
+
+    };
 };
 
 #endif // QLIGHTDM_POWER_H

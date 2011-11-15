@@ -1,11 +1,15 @@
 lib_LTLIBRARIES = liblightdm-qt-1.la
 
-greeter_moc.cpp: QLightDM/greeter.h
-	$(MOC) $< -o $@
-session_moc.cpp: QLightDM/session.h
-	$(MOC) $< -o $@
-user_moc.cpp: QLightDM/user.h
-	$(MOC) $< -o $@
+power.cpp: QLightDM/power.h
+	$(MOC) $< -o power_moc.cpp
+greeter.cpp: QLightDM/greeter.h
+	$(MOC) $< -o greeter_moc.cpp
+session.cpp: QLightDM/session.h
+	$(MOC) $< -o session_moc.cpp
+user.cpp: QLightDM/user.h
+	$(MOC) $< -o user_moc.cpp
+
+
 
 liblightdm_qt_1_la_LIBADD = $(LIBLIGHTDM_QT_LIBS)
 liblightdm_qt_1_la_CXXFLAGS = $(LIBLIGHTDM_QT_CFLAGS) \
