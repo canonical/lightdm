@@ -13,13 +13,11 @@ liblightdm_qt_1_la_CXXFLAGS = $(LIBLIGHTDM_QT_CFLAGS) \
 
 liblightdm_qt_1include_HEADERS = \
 	QLightDM/Greeter \
-	QLightDM/Language \
 	QLightDM/Power \
 	QLightDM/Session \
 	QLightDM/System \
 	QLightDM/User \
 	QLightDM/greeter.h \
-	QLightDM/language.h \
 	QLightDM/power.h \
 	QLightDM/session.h \
 	QLightDM/system.h \
@@ -29,7 +27,6 @@ liblightdm_qt_1includedir=$(includedir)/lightdm-qt-1/QLightDM
 
 liblightdm_qt_1_la_SOURCES = \
 	greeter.cpp \
-	language.cpp \
 	power.cpp \
 	session.cpp \
 	system.cpp \
