@@ -16,7 +16,6 @@
 #include <QtCore/QSharedDataPointer>
 #include <QAbstractListModel>
 
-class UserPrivate;
 class UsersModelPrivate;
 class UserItem;
 

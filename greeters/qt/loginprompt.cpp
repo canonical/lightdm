@@ -12,8 +12,7 @@
 #include "loginprompt.h"
 #include "ui_loginprompt.h"
 
-#include <QLightDM/User>
-#include <QLightDM/User>
+#include <QLightDM/UsersModel>
 #include <QLightDM/System>
 
 #include <QtCore/QDebug>

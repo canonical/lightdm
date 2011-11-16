@@ -6,8 +6,8 @@ greeter.cpp: QLightDM/greeter.h
 	$(MOC) $< -o greeter_moc.cpp
 session.cpp: QLightDM/session.h
 	$(MOC) $< -o session_moc.cpp
-user.cpp: QLightDM/user.h
-	$(MOC) $< -o user_moc.cpp
+usersmodel.cpp: QLightDM/usersmodel.h
+	$(MOC) $< -o usermodel_moc.cpp
 
 
 
@@ -20,12 +20,12 @@ liblightdm_qt_1include_HEADERS = \
 	QLightDM/Power \
 	QLightDM/Session \
 	QLightDM/System \
-	QLightDM/User \
+	QLightDM/UsersModel \
 	QLightDM/greeter.h \
 	QLightDM/power.h \
 	QLightDM/session.h \
 	QLightDM/system.h \
-	QLightDM/user.h
+	QLightDM/usersmodel.h
 
 liblightdm_qt_1includedir=$(includedir)/lightdm-qt-1/QLightDM
 
@@ -34,7 +34,7 @@ liblightdm_qt_1_la_SOURCES = \
 	power.cpp \
 	session.cpp \
 	system.cpp \
-	user.cpp \
+	usersmodel.cpp \
 	$(liblightdm_qt_1include_HEADERS)
 
 pkgconfigdir = $(libdir)/pkgconfig

@@ -15,7 +15,6 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QVariant>
-#include "QLightDM/User"
 
 class GreeterPrivate;
 

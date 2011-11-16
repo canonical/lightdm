@@ -9,7 +9,7 @@
  * license.
  */
 
-#include "QLightDM/user.h"
+#include "QLightDM/usersmodel.h"
 
 #include <pwd.h>
 #include <errno.h>
@@ -230,4 +230,4 @@ void UsersModel::loadUsers()
     }
 }
 
-#include "user_moc.cpp"
+#include "usersmodel_moc.cpp"
