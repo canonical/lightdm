@@ -15,12 +15,6 @@
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
-    <widget class="QComboBox" name="languageCombo"/>
-   </item>
-   <item>
-    <widget class="QComboBox" name="layoutCombo"/>
-   </item>
-   <item>
     <widget class="QComboBox" name="sessionCombo"/>
    </item>
    <item>

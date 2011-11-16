@@ -55,7 +55,7 @@ Panel::Panel(QLightDM::Greeter *greeter, QWidget *parent):
     powerMenu->addAction(hibernateAction);
 
     ui->powerOptionsButton->setMenu(powerMenu);    
-    ui->sessionCombo->setModel(QLightDM::sessions());
+    ui->sessionCombo->setModel(new QLightDM::SessionsModel(this));
 }
 
 QString Panel::session() const

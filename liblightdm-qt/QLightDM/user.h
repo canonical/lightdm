@@ -45,7 +45,6 @@ private:
     QList<UserItem> getUsers() const;
 };
 
-UsersModel *users();
-}
+};
 
 #endif // QLIGHTDM_USER_H

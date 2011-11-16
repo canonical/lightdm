@@ -29,21 +29,10 @@ public:
 class SessionItem
 {
 public:
-    //FIXME can I make these consts, if I set them in a lovely constructor?
     QString id;
     QString name;
     QString comment;
 };
-
-static SessionsModel *session_model = NULL;
-
-SessionsModel *QLightDM::sessions()
-{
-    if (!session_model)
-        session_model = new SessionsModel ();
-
-    return session_model;
-}
 
 SessionsModel::SessionsModel(QObject *parent) :
     QAbstractListModel(parent),

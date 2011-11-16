@@ -35,8 +35,6 @@ namespace QLightDM {
         SessionsModelPrivate *d;
         void buildList(); //maybe make this a public slot, which apps can call only if they give a care about the session.
     };
-
-    SessionsModel *sessions();
 };
 
 #endif // QLIGHTDM_SESSION_H

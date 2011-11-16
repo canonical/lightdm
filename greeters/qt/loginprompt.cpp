@@ -29,7 +29,7 @@ LoginPrompt::LoginPrompt(QLightDM::Greeter *greeter, QWidget *parent) :
     
     ui->hostnameLabel->setText(QLightDM::System::hostname());
     
-    ui->userListView->setModel(QLightDM::users());
+    ui->userListView->setModel(new QLightDM::UsersModel(this));
 
     connect(ui->loginButton, SIGNAL(released()), SLOT(onLoginButtonClicked()));
     connect(m_greeter, SIGNAL(authenticationComplete()), SLOT(onAuthenticationComplete()));
