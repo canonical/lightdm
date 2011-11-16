@@ -43,7 +43,7 @@ public:
     QString timedLoginUser() const;
     int timedLoginDelay() const;
 
-    QString getHint(QString name) const;
+    QString getHint(const QString &name) const;
     QString defaultSessionHint() const;
     bool hideUsersHint() const;
     bool hasGuestAccountHint() const;
@@ -62,7 +62,7 @@ public slots:
     void authenticateAsGuest();
     void respond(const QString &response);
     void cancelAuthentication();
-    void setLanguage (QString language);
+    void setLanguage (const QString &language);
     bool startSessionSync(const QString &session=QString());
 
 signals:

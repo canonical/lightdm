@@ -293,7 +293,7 @@ QString Greeter::authenticationUser() const
     return d->authenticationUser;
 }
 
-void Greeter::setLanguage (QString language)
+void Greeter::setLanguage (const QString &language)
 {
     d->writeHeader(GREETER_MESSAGE_SET_LANGUAGE, stringLength(language));
     d->writeString (language);
@@ -456,7 +456,7 @@ void Greeter::onRead(int fd)
     free(message);
 }
 
-QString Greeter::getHint(QString name) const
+QString Greeter::getHint(const QString &name) const
 {
     return d->hints.value (name);
 }
