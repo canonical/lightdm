@@ -11,8 +11,9 @@ usersmodel.cpp: QLightDM/usersmodel.h
 
 
 
-liblightdm_qt_1_la_LIBADD = $(LIBLIGHTDM_QT_LIBS)
+liblightdm_qt_1_la_LIBADD = $(LIBLIGHTDM_QT_LIBS) -llightdm-gobject-1
 liblightdm_qt_1_la_CXXFLAGS = $(LIBLIGHTDM_QT_CFLAGS) \
+	$(LIBLIGHTDM_GOBJECT_CFLAGS)
 	-DXSESSIONS_DIR=\"$(datadir)/xsessions\"
 
 liblightdm_qt_1include_HEADERS = \

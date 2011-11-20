@@ -12,6 +12,8 @@
 #ifndef _LIGHTDM_POWER_H_
 #define _LIGHTDM_POWER_H_
 
+G_BEGIN_DECLS
+
 gboolean lightdm_get_can_suspend (void);
 
 gboolean lightdm_suspend (GError **error);

@@ -14,6 +14,8 @@
 
 #include <glib-object.h>
 
+G_BEGIN_DECLS
+
 const gchar *lightdm_get_hostname (void);
 
 G_END_DECLS

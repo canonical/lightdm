@@ -16,11 +16,11 @@
 #include <QtCore/QSharedDataPointer>
 #include <QAbstractListModel>
 
-class UsersModelPrivate;
-class UserItem;
 
 namespace QLightDM
 {
+class UsersModelPrivate;
+
 class Q_DECL_EXPORT UsersModel : public QAbstractListModel
 {
     Q_OBJECT
@@ -35,13 +35,12 @@ public:
     int rowCount(const QModelIndex &parent) const;
     QVariant data(const QModelIndex &index, int role) const;
 
-private slots:
-    /** Updates the model with new changes in the password file*/
-    void loadUsers();
+protected:
+    UsersModelPrivate * const d_ptr;
 
 private:
-    UsersModelPrivate *d;
-    QList<UserItem> getUsers() const;
+    Q_DECLARE_PRIVATE(UsersModel)
+
 };
 
 };

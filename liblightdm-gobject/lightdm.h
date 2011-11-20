@@ -20,6 +20,4 @@
 #include "lightdm/system.h"
 #include "lightdm/user.h"
 
-G_END_DECLS
-
 #endif /* _LIGHTDM_H_ */

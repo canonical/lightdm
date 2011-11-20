@@ -11,17 +11,11 @@
 
 #include "QLightDM/usersmodel.h"
 
-#include <pwd.h>
-#include <errno.h>
-
-#include <QtCore/QSharedData>
 #include <QtCore/QString>
-#include <QtCore/QFileSystemWatcher>
-#include <QtCore/QFile>
-#include <QtCore/QDir>
-#include <QtCore/QSettings>
 #include <QtCore/QDebug>
 #include <QtGui/QPixmap>
+
+#include <lightdm-gobject-1/lightdm.h>
 
 using namespace QLightDM;
 
@@ -45,37 +39,152 @@ QString UserItem::displayName() const {
     }
 }
 
-
+namespace QLightDM {
 class UsersModelPrivate {
 public:
+    UsersModelPrivate(UsersModel *parent);
     QList<UserItem> users;
+
+    protected:
+        UsersModel * const q_ptr;
+
+        void loadUsers();
+
+        static void cb_userAdded(LightDMUserList *user_list, LightDMUser *user, gpointer data);
+        static void cb_userChanged(LightDMUserList *user_list, LightDMUser *user, gpointer data);
+        static void cb_userRemoved(LightDMUserList *user_list, LightDMUser *user, gpointer data);
+    private:
+        Q_DECLARE_PUBLIC(UsersModel)
 };
+}
+
+UsersModelPrivate::UsersModelPrivate(UsersModel* parent) :
+    q_ptr(parent)
+{
+    g_type_init();
+    loadUsers();
+    g_signal_connect(lightdm_user_list_get_instance(), "user-added", G_CALLBACK (cb_userAdded), this);
+    g_signal_connect(lightdm_user_list_get_instance(), "user-changed", G_CALLBACK (cb_userChanged), this);
+    g_signal_connect(lightdm_user_list_get_instance(), "user-removed", G_CALLBACK (cb_userRemoved), this);
+
+}
+
+void UsersModelPrivate::loadUsers()
+{
+    Q_Q(UsersModel);
+
+    int rowCount = lightdm_user_list_get_length(lightdm_user_list_get_instance());
+
+    if (rowCount == 0) {
+        return;
+    } else {
+        q->beginInsertRows(QModelIndex(), 0, rowCount-1);
+
+        const GList *items, *item;
+        items = lightdm_user_list_get_users(lightdm_user_list_get_instance());
+        for (item = items; item; item = item->next) {
+            LightDMUser *ldmUser = static_cast<LightDMUser*>(item->data);
+
+            UserItem user;
+            user.name = QString::fromLocal8Bit(lightdm_user_get_name(ldmUser));
+            user.homeDirectory = QString::fromLocal8Bit(lightdm_user_get_home_directory(ldmUser));
+            user.realName = QString::fromLocal8Bit(lightdm_user_get_real_name(ldmUser));
+            user.image = QString::fromLocal8Bit(lightdm_user_get_image(ldmUser));
+            user.isLoggedIn = lightdm_user_get_logged_in(ldmUser);
+            users.append(user);
+        }
+
+        q->endInsertRows();
+    }
+}
+
+void UsersModelPrivate::cb_userAdded(LightDMUserList *user_list, LightDMUser *ldmUser, gpointer data)
+{
+    Q_UNUSED(user_list)
+    UsersModelPrivate *that = static_cast<UsersModelPrivate*>(data);
+
+    that->q_ptr->beginInsertRows(QModelIndex(), that->users.size(), that->users.size());
+
+    UserItem user;
+    user.name = QString::fromLocal8Bit(lightdm_user_get_name(ldmUser));
+    user.homeDirectory = QString::fromLocal8Bit(lightdm_user_get_home_directory(ldmUser));
+    user.realName = QString::fromLocal8Bit(lightdm_user_get_real_name(ldmUser));
+    user.image = QString::fromLocal8Bit(lightdm_user_get_image(ldmUser));
+    user.isLoggedIn = lightdm_user_get_logged_in(ldmUser);
+    that->users.append(user);
+
+    that->q_ptr->endRemoveRows();
+
+}
+
+void UsersModelPrivate::cb_userChanged(LightDMUserList *user_list, LightDMUser *ldmUser, gpointer data)
+{
+    Q_UNUSED(user_list)
+    UsersModelPrivate *that = static_cast<UsersModelPrivate*>(data);
+
+    QString userToChange = QString::fromLocal8Bit(lightdm_user_get_name(ldmUser));
+
+    for (int i=0;i<that->users.size();i++) {
+        if (that->users[i].name == userToChange) {
+
+            that->users[i].homeDirectory = QString::fromLocal8Bit(lightdm_user_get_home_directory(ldmUser));
+            that->users[i].realName = QString::fromLocal8Bit(lightdm_user_get_real_name(ldmUser));
+            that->users[i].image = QString::fromLocal8Bit(lightdm_user_get_image(ldmUser));
+            that->users[i].isLoggedIn = lightdm_user_get_logged_in(ldmUser);
+
+            QModelIndex index = that->q_ptr->createIndex(i, 0);
+            that->q_ptr->dataChanged(index, index);
+            break;
+        }
+    }
+}
+
+
+void UsersModelPrivate::cb_userRemoved(LightDMUserList *user_list, LightDMUser *ldmUser, gpointer data)
+{
+    Q_UNUSED(user_list)
+
+    UsersModelPrivate *that = static_cast<UsersModelPrivate*>(data);
+    QString userToRemove = QString::fromLocal8Bit(lightdm_user_get_name(ldmUser));
+
+    QList<UserItem>::iterator i;
+    for (int i=0;i<that->users.size();i++) {
+        if (that->users[i].name == userToRemove) {
+            that->q_ptr->beginRemoveRows(QModelIndex(), i, i);
+            that->users.removeAt(i);
+            that->q_ptr->endMoveRows();
+            break;
+        }
+    }
+}
 
 UsersModel::UsersModel(QObject *parent) :
     QAbstractListModel(parent),
-    d (new UsersModelPrivate())
+    d_ptr(new UsersModelPrivate(this))
 {
-    //load users on startup and if the password file changes.
-    QFileSystemWatcher *watcher = new QFileSystemWatcher(this);
-    watcher->addPath("/etc/passwd"); //FIXME harcoded path
-    connect(watcher, SIGNAL(fileChanged(QString)), SLOT(loadUsers()));
 
-    loadUsers();
 }
 
 UsersModel::~UsersModel()
 {
-    delete d;
+    delete d_ptr;
 }
 
 
 int UsersModel::rowCount(const QModelIndex &parent) const
 {
-    return d->users.count();
+    Q_D(const UsersModel);
+    if (parent == QModelIndex()) {
+        return d->users.size();
+    }
+
+    return 0;
 }
 
 QVariant UsersModel::data(const QModelIndex &index, int role) const
 {
+    Q_D(const UsersModel);
+
     if (!index.isValid()) {
         return QVariant();
     }
@@ -97,137 +206,5 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
     return QVariant();
 }
 
-
-QList<UserItem> UsersModel::getUsers() const
-{
-    QString file = "/etc/lightdm/users.conf"; //FIXME hardcoded path!!
-
-    qDebug() << "Loading user configuration from " << file;
-    QSettings settings(file, QSettings::IniFormat);
-
-    int minimumUid = settings.value("UserAccounts/minimum-uid", QVariant(500)).toInt();
-    QStringList hiddenShells;
-    if (settings.contains("UserAccounts/hidden-shells")) {
-        hiddenShells = settings.value("UserAccounts/hidden-shells").toString().split(" ");
-    }
-    else {
-        hiddenShells = QStringList() << "/bin/false" << "/usr/sbin/nologin";
-    }
-    QStringList hiddenUsers;
-    if (settings.contains("UserAccounts/hidden-users")) {
-        hiddenUsers = settings.value("UserAccounts/hidden-users").toString().split(" ");
-    }
-    else {
-        hiddenUsers = QStringList() << "nobody" << "nobody4" << "noaccess";
-    }
-    QList<UserItem> users;
-
-    setpwent();
-    Q_FOREVER {
-        errno = 0;
-        struct passwd *entry = getpwent();
-        if(!entry) {
-            break;
-        }
-
-        /* Ignore system users */
-        if(entry->pw_uid < minimumUid) {
-            continue;
-        }
-
-        /* Ignore users disabled by shell */
-        if(entry->pw_shell) {
-            if (hiddenShells.contains(entry->pw_shell)) {
-                continue;
-            }
-        }
-
-        if (hiddenUsers.contains(entry->pw_name)) {
-            continue;
-        }
-
-        QStringList tokens = QString(entry->pw_gecos).split(",");
-        QString realName;
-        if(tokens.size() > 0 && tokens.at(0) != "") {
-            realName = tokens.at(0);
-        }
-
-        QDir homeDir(entry->pw_dir);
-        QString image = homeDir.filePath(".face");
-        if(!QFile::exists (image)) {
-            image = homeDir.filePath(".face.icon");
-            if(!QFile::exists (image)) {
-                image = "";
-            }
-        }
-
-        UserItem user;
-        user.name = entry->pw_name;
-        user.realName = realName;
-        user.homeDirectory = entry->pw_dir;
-        user.image = image;
-        user.isLoggedIn = false;
-        users.append(user);
-    }
-
-    if(errno != 0) {
-        qDebug() << "Failed to read password database: " << strerror(errno);
-    }
-    endpwent();
-
-
-    return users;
-}
-
-void UsersModel::loadUsers()
-{
-    QList<UserItem> usersToAdd;
-
-    //might get rid of "User" object, keep as private object (like sessionsmodel) - or make it copyable.
-
-    //loop through all the new list of users, if it's in the list already update it (or do nothing) otherwise append to list of new users
-    QList<UserItem> newUserList = getUsers();
-
-    Q_FOREACH(const UserItem &user, newUserList) {
-        bool alreadyInList = false;
-        for(int i=0; i < d->users.size(); i++) {
-            if (user.name == d->users[i].name) {
-                alreadyInList = true;
-//                d->users[i].update(user.name(), user.homeDirectory(), user.image(), user.isLoggedIn());
-                QModelIndex index = createIndex(i,0);
-                dataChanged(index, index);
-            }
-        }
-
-        if (!alreadyInList) {
-            usersToAdd.append(user);
-        }
-    }
-
-    //loop through all the existing users, if they're not in the newly gathered list, remove them.
-
-    //FIXME this isn't perfect, looping like this in a mutating list - use mutable iterator.
-    for (int i=0; i < d->users.size() ; i++) {
-        bool found = false;
-        foreach(const UserItem &user, newUserList) {
-            if (d->users[i].name == user.name) {
-                found = true;
-            }
-        }
-
-        if (!found) {
-            beginRemoveRows(QModelIndex(), i, i);
-            d->users.removeAt(i);
-            endRemoveRows();
-        }
-    }
-
-    //append new users
-    if (usersToAdd.size() > 0) {
-        beginInsertRows(QModelIndex(), d->users.size(), d->users.size() + usersToAdd.size() -1);
-        d->users.append(usersToAdd);
-        endInsertRows();
-    }
-}
 
 #include "usersmodel_moc.cpp"
