@@ -69,23 +69,22 @@ enum
 
 typedef enum
 {
-    X_CREATE_WINDOW_VALUE_MASK_background_pixmap     = 0x00000001,
-    X_CREATE_WINDOW_VALUE_MASK_background_pixel      = 0x00000002,
-    X_CREATE_WINDOW_VALUE_MASK_border_pixmap         = 0x00000004,
-    X_CREATE_WINDOW_VALUE_MASK_border_pixel          = 0x00000008,
-    X_CREATE_WINDOW_VALUE_MASK_bit_gravity           = 0x00000010,
-    X_CREATE_WINDOW_VALUE_MASK_win_gravity           = 0x00000020,
-    X_CREATE_WINDOW_VALUE_MASK_backing_store         = 0x00000040,
-    X_CREATE_WINDOW_VALUE_MASK_backing_planes        = 0x00000080,
-    X_CREATE_WINDOW_VALUE_MASK_backing_pixel         = 0x00000100,
-    X_CREATE_WINDOW_VALUE_MASK_override_redirect     = 0x00000200,
-    X_CREATE_WINDOW_VALUE_MASK_save_under            = 0x00000400,
-    X_CREATE_WINDOW_VALUE_MASK_event_mask            = 0x00000800,
-    X_CREATE_WINDOW_VALUE_MASK_do_not_propagate_mask = 0x00001000,
-    X_CREATE_WINDOW_VALUE_MASK_colormap              = 0x00002000,
-    X_CREATE_WINDOW_VALUE_MASK_cursor                = 0x00004000
+    X_WINDOW_VALUE_MASK_background_pixmap     = 0x00000001,
+    X_WINDOW_VALUE_MASK_background_pixel      = 0x00000002,
+    X_WINDOW_VALUE_MASK_border_pixmap         = 0x00000004,
+    X_WINDOW_VALUE_MASK_border_pixel          = 0x00000008,
+    X_WINDOW_VALUE_MASK_bit_gravity           = 0x00000010,
+    X_WINDOW_VALUE_MASK_win_gravity           = 0x00000020,
+    X_WINDOW_VALUE_MASK_backing_store         = 0x00000040,
+    X_WINDOW_VALUE_MASK_backing_planes        = 0x00000080,
+    X_WINDOW_VALUE_MASK_backing_pixel         = 0x00000100,
+    X_WINDOW_VALUE_MASK_override_redirect     = 0x00000200,
+    X_WINDOW_VALUE_MASK_save_under            = 0x00000400,
+    X_WINDOW_VALUE_MASK_event_mask            = 0x00000800,
+    X_WINDOW_VALUE_MASK_do_not_propagate_mask = 0x00001000,
+    X_WINDOW_VALUE_MASK_colormap              = 0x00002000,
+    X_WINDOW_VALUE_MASK_cursor                = 0x00004000
 } XCreateWindowValueMask;
-
 
 typedef enum {
     X_CONFIGURE_WINDOW_VALUE_MASK_x            = 0x0001,
@@ -135,6 +134,32 @@ typedef struct
     guint32 colormap;
     guint32 cursor;
 } XCreateWindow;
+
+typedef struct
+{
+    guint32 window;
+    guint32 value_mask;
+    guint32 background_pixmap;
+    guint32 background_pixel;
+    guint32 border_pixmap;
+    guint32 border_pixel;
+    guint8 bit_gravity;
+    guint8 win_gravity;
+    guint8 backing_store;
+    guint32 backing_planes;
+    guint32 backing_pixel;
+    gboolean override_redirect;
+    gboolean save_under;
+    guint32 event_mask;
+    guint32 do_not_propogate_mask;
+    guint32 colormap;
+    guint32 cursor;
+} XChangeWindowAttributes;
+
+typedef struct
+{
+    guint32 window;    
+} XGetWindowAttributes;
 
 typedef struct
 {
@@ -228,6 +253,8 @@ typedef struct
    GObjectClass parent_class;
    void (*connect)(XClient *client, XConnect *message);
    void (*create_window)(XClient *client, XCreateWindow *message);
+   void (*change_window_attributes)(XClient *client, XChangeWindowAttributes *message);
+   void (*get_window_attributes)(XClient *client, XGetWindowAttributes *message);
    void (*destroy_window)(XClient *client, XDestroyWindow *message);
    void (*map_window)(XClient *client, XMapWindow *message);
    void (*unmap_window)(XClient *client, XUnmapWindow *message);
