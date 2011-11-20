@@ -203,6 +203,11 @@ typedef struct
 typedef struct
 {
     guint32 window;
+} XUnmapSubwindows;
+
+typedef struct
+{
+    guint32 window;
     guint16 value_mask;
     gint16 x;
     gint16 y;
@@ -286,6 +291,7 @@ typedef struct
    void (*map_window)(XClient *client, XMapWindow *message);
    void (*map_subwindows)(XClient *client, XMapSubwindows *message);
    void (*unmap_window)(XClient *client, XUnmapWindow *message);
+   void (*unmap_subwindows)(XClient *client, XUnmapSubwindows *message);
    void (*configure_window)(XClient *client, XConfigureWindow *message);
    void (*intern_atom)(XClient *client, XInternAtom *message);
    void (*get_property)(XClient *client, XGetProperty *message);

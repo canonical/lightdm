@@ -73,6 +73,7 @@ enum
     X_CLIENT_MAP_WINDOW,
     X_CLIENT_MAP_SUBWINDOWS,
     X_CLIENT_UNMAP_WINDOW,
+    X_CLIENT_UNMAP_SUBWINDOWS,
     X_CLIENT_CONFIGURE_WINDOW,
     X_CLIENT_INTERN_ATOM,
     X_CLIENT_GET_PROPERTY,
@@ -382,6 +383,14 @@ x_client_class_init (XClientClass *klass)
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XClientClass, unmap_window),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_UNMAP_SUBWINDOWS] =
+        g_signal_new ("unmap-subwindows",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, unmap_subwindows),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__POINTER,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
@@ -701,6 +710,19 @@ decode_unmap_window (XClient *client, guint16 sequence_number, guint8 data, cons
 }
 
 static void
+decode_unmap_subwindows (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XUnmapSubwindows *message;
+
+    message = g_malloc0 (sizeof (XUnmapSubwindows));
+    message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+
+    g_signal_emit (client, x_client_signals [X_CLIENT_UNMAP_SUBWINDOWS], 0, message);
+  
+    g_free (message);
+}
+
+static void
 decode_configure_window (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
 {
     XConfigureWindow *message;
@@ -950,6 +972,9 @@ decode_request (XClient *client, guint16 sequence_number, const guint8 *buffer, 
             break;
         case 10:
             decode_unmap_window (client, sequence_number, data, buffer, remaining, &offset);
+            break;
+        case 11:
+            decode_unmap_subwindows (client, sequence_number, data, buffer, remaining, &offset);
             break;
         case 12:
             decode_configure_window (client, sequence_number, data, buffer, remaining, &offset);
