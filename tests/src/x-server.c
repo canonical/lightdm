@@ -67,7 +67,11 @@ enum
     X_CLIENT_CHANGE_WINDOW_ATTRIBUTES,
     X_CLIENT_GET_WINDOW_ATTRIBUTES,
     X_CLIENT_DESTROY_WINDOW,
+    X_CLIENT_DESTROY_SUBWINDOWS,
+    X_CLIENT_CHANGE_SET_SAVE,
+    X_CLIENT_REPARENT_WINDOW,
     X_CLIENT_MAP_WINDOW,
+    X_CLIENT_MAP_SUBWINDOWS,
     X_CLIENT_UNMAP_WINDOW,
     X_CLIENT_CONFIGURE_WINDOW,
     X_CLIENT_INTERN_ATOM,
@@ -333,11 +337,43 @@ x_client_class_init (XClientClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__POINTER,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_DESTROY_SUBWINDOWS] =
+        g_signal_new ("destroy-subwindows",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, destroy_subwindows),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_CHANGE_SET_SAVE] =
+        g_signal_new ("change-set-save",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, change_set_save),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_REPARENT_WINDOW] =
+        g_signal_new ("reparent-window",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, reparent_window),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
     x_client_signals[X_CLIENT_MAP_WINDOW] =
         g_signal_new ("map-window",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XClientClass, map_window),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_MAP_SUBWINDOWS] =
+        g_signal_new ("map-subwindows",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, map_subwindows),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__POINTER,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
@@ -583,6 +619,49 @@ decode_destroy_window (XClient *client, guint16 sequence_number, guint8 data, co
 }
 
 static void
+decode_destroy_subwindows (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XDestroySubwindows *message;
+
+    message = g_malloc0 (sizeof (XDestroySubwindows));
+    message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+  
+    g_signal_emit (client, x_client_signals [X_CLIENT_DESTROY_SUBWINDOWS], 0, message);
+
+    g_free (message);
+}
+
+static void
+decode_change_set_save (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XChangeSetSave *message;
+
+    message = g_malloc (sizeof (XChangeSetSave));
+    message->mode = data;
+    message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+
+    g_signal_emit (client, x_client_signals [X_CLIENT_CHANGE_SET_SAVE], 0, message);
+
+    g_free (message);
+}
+
+static void
+decode_reparent_window (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XReparentWindow *message;
+
+    message = g_malloc (sizeof (XReparentWindow));
+    message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->parent = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->x = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->y = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+
+    g_signal_emit (client, x_client_signals [X_CLIENT_REPARENT_WINDOW], 0, message);
+
+    g_free (message);
+}
+
+static void
 decode_map_window (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
 {
     XMapWindow *message;
@@ -591,6 +670,19 @@ decode_map_window (XClient *client, guint16 sequence_number, guint8 data, const 
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
 
     g_signal_emit (client, x_client_signals [X_CLIENT_MAP_WINDOW], 0, message);
+
+    g_free (message);
+}
+
+static void
+decode_map_subwindows (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XMapSubwindows *message;
+
+    message = g_malloc0 (sizeof (XMapSubwindows));
+    message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+
+    g_signal_emit (client, x_client_signals [X_CLIENT_MAP_SUBWINDOWS], 0, message);
 
     g_free (message);
 }
@@ -841,8 +933,20 @@ decode_request (XClient *client, guint16 sequence_number, const guint8 *buffer, 
         case 4:
             decode_destroy_window (client, sequence_number, data, buffer, remaining, &offset);
             break;
+        case 5:
+            decode_destroy_subwindows (client, sequence_number, data, buffer, remaining, &offset);
+            break;
+        case 6:
+            decode_change_set_save (client, sequence_number, data, buffer, remaining, &offset);
+            break;
+        case 7:
+            decode_reparent_window (client, sequence_number, data, buffer, remaining, &offset);
+            break;
         case 8:
             decode_map_window (client, sequence_number, data, buffer, remaining, &offset);
+            break;
+        case 9:
+            decode_map_subwindows (client, sequence_number, data, buffer, remaining, &offset);
             break;
         case 10:
             decode_unmap_window (client, sequence_number, data, buffer, remaining, &offset);
