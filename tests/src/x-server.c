@@ -63,6 +63,11 @@ struct XClientPrivate
 enum
 {
     X_CLIENT_CONNECT,
+    X_CLIENT_CREATE_WINDOW,
+    X_CLIENT_DESTROY_WINDOW,
+    X_CLIENT_MAP_WINDOW,
+    X_CLIENT_UNMAP_WINDOW,
+    X_CLIENT_CONFIGURE_WINDOW,
     X_CLIENT_INTERN_ATOM,
     X_CLIENT_GET_PROPERTY,
     X_CLIENT_CREATE_GC,
@@ -294,6 +299,46 @@ x_client_class_init (XClientClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__POINTER,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_CREATE_WINDOW] = 
+        g_signal_new ("create-window",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, create_window),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_DESTROY_WINDOW] =
+        g_signal_new ("destroy-window",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, destroy_window),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_MAP_WINDOW] =
+        g_signal_new ("map-window",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, map_window),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_UNMAP_WINDOW] =
+        g_signal_new ("unmap-window",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, unmap_window),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_CONFIGURE_WINDOW] =
+        g_signal_new ("configure-window",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, configure_window),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
     x_client_signals[X_CLIENT_INTERN_ATOM] =
         g_signal_new ("intern-atom",
                       G_TYPE_FROM_CLASS (klass),
@@ -393,6 +438,126 @@ decode_connection_request (XClient *client, const guint8 *buffer, gssize buffer_
 
     g_free (message->authorization_protocol_name);
     g_free (message->authorization_protocol_data);
+    g_free (message);
+}
+
+static void
+decode_create_window (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XCreateWindow *message;
+
+    message = g_malloc0 (sizeof (XCreateWindow));
+    message->depth = data;
+    message->wid = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->parent = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->x = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->y = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->width = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->height = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->border_width = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->class = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->visual = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->value_mask = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CREATE_WINDOW_VALUE_MASK_background_pixmap) != 0)
+        message->background_pixmap = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CREATE_WINDOW_VALUE_MASK_background_pixel) != 0)
+        message->background_pixel = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CREATE_WINDOW_VALUE_MASK_border_pixmap) != 0)
+        message->border_pixmap = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CREATE_WINDOW_VALUE_MASK_border_pixel) != 0)
+        message->border_pixel = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CREATE_WINDOW_VALUE_MASK_bit_gravity) != 0)
+        message->bit_gravity = read_card8 (buffer, buffer_length, offset);
+    if ((message->value_mask & X_CREATE_WINDOW_VALUE_MASK_win_gravity) != 0)
+        message->win_gravity = read_card8 (buffer, buffer_length, offset);
+    if ((message->value_mask & X_CREATE_WINDOW_VALUE_MASK_backing_store) != 0)
+        message->backing_store = read_card8 (buffer, buffer_length, offset);
+    if ((message->value_mask & X_CREATE_WINDOW_VALUE_MASK_backing_planes) != 0)
+        message->backing_planes = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CREATE_WINDOW_VALUE_MASK_backing_pixel) != 0)
+        message->backing_pixel = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CREATE_WINDOW_VALUE_MASK_override_redirect) != 0)
+        message->override_redirect = read_card8 (buffer, buffer_length, offset) != 0;
+    if ((message->value_mask & X_CREATE_WINDOW_VALUE_MASK_save_under) != 0)
+        message->save_under = read_card8 (buffer, buffer_length, offset) != 0;
+    if ((message->value_mask & X_CREATE_WINDOW_VALUE_MASK_event_mask) != 0)
+        message->event_mask = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CREATE_WINDOW_VALUE_MASK_do_not_propagate_mask) != 0)
+        message->do_not_propogate_mask = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CREATE_WINDOW_VALUE_MASK_colormap) != 0)
+        message->colormap = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CREATE_WINDOW_VALUE_MASK_cursor) != 0)
+        message->cursor = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+
+    g_signal_emit (client, x_client_signals [X_CLIENT_CREATE_WINDOW], 0, message);
+
+    g_free (message);
+}
+
+static void
+decode_destroy_window (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XDestroyWindow *message;
+
+    message = g_malloc0 (sizeof (XDestroyWindow));
+    message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+  
+    g_signal_emit (client, x_client_signals [X_CLIENT_DESTROY_WINDOW], 0, message);
+
+    g_free (message);
+}
+
+static void
+decode_map_window (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XMapWindow *message;
+
+    message = g_malloc0 (sizeof (XMapWindow));
+    message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+
+    g_signal_emit (client, x_client_signals [X_CLIENT_MAP_WINDOW], 0, message);
+
+    g_free (message);
+}
+
+static void
+decode_unmap_window (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XUnmapWindow *message;
+
+    message = g_malloc0 (sizeof (XUnmapWindow));
+    message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+
+    g_signal_emit (client, x_client_signals [X_CLIENT_UNMAP_WINDOW], 0, message);
+  
+    g_free (message);
+}
+
+static void
+decode_configure_window (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XConfigureWindow *message;
+
+    message = g_malloc0 (sizeof (XConfigureWindow));
+    message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->value_mask = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CONFIGURE_WINDOW_VALUE_MASK_x) != 0)
+        message->x = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CONFIGURE_WINDOW_VALUE_MASK_y) != 0)
+        message->y = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CONFIGURE_WINDOW_VALUE_MASK_width) != 0)
+        message->width = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CONFIGURE_WINDOW_VALUE_MASK_height) != 0)
+        message->height = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CONFIGURE_WINDOW_VALUE_MASK_border_width) != 0)
+        message->border_width = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CONFIGURE_WINDOW_VALUE_MASK_sibling) != 0)
+        message->sibling = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_CONFIGURE_WINDOW_VALUE_MASK_stack_mode) != 0)
+        message->stack_mode = read_card8 (buffer, buffer_length, offset);
+
+    g_signal_emit (client, x_client_signals [X_CLIENT_CONFIGURE_WINDOW], 0, message);
+  
     g_free (message);
 }
 
@@ -589,21 +754,21 @@ decode_request (XClient *client, guint16 sequence_number, const guint8 *buffer, 
 
         switch (opcode)
         {
-        /*case 1:
+        case 1:
             decode_create_window (client, sequence_number, data, buffer, remaining, &offset);
-            break;*/
-        /*case 4:
+            break;
+        case 4:
             decode_destroy_window (client, sequence_number, data, buffer, remaining, &offset);
-            break;*/
-        /*case 8:
+            break;
+        case 8:
             decode_map_window (client, sequence_number, data, buffer, remaining, &offset);
-            break;*/
-        /*case 10:
+            break;
+        case 10:
             decode_unmap_window (client, sequence_number, data, buffer, remaining, &offset);
-            break;*/
-        /*case 12:
+            break;
+        case 12:
             decode_configure_window (client, sequence_number, data, buffer, remaining, &offset);
-            break;*/
+            break;
         case 16:
             decode_intern_atom (client, sequence_number, data, buffer, remaining, &offset);
             break;
