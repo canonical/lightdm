@@ -468,6 +468,32 @@ typedef struct
    void (*disconnected)(XClient *client);
 } XClientClass;
 
+typedef struct XScreenPrivate XScreenPrivate;
+
+typedef struct
+{
+   GObject         parent_instance;
+   XScreenPrivate *priv;
+} XScreen;
+
+typedef struct
+{
+   GObjectClass parent_class;
+} XScreenClass;
+
+typedef struct XVisualPrivate XVisualPrivate;
+
+typedef struct
+{
+   GObject         parent_instance;
+   XVisualPrivate *priv;
+} XVisual;
+
+typedef struct
+{
+   GObjectClass parent_class;
+} XVisualClass;
+
 typedef struct XServerPrivate XServerPrivate;
 
 typedef struct
@@ -485,9 +511,11 @@ typedef struct
 
 GType x_server_get_type (void);
 
-GType x_client_get_type (void);
-
 XServer *x_server_new (gint display_number);
+
+XScreen *x_server_add_screen (XServer *server, guint32 white_pixel, guint32 black_pixel, guint32 current_input_masks, guint16 width_in_pixels, guint16 height_in_pixels, guint16 width_in_millimeters, guint16 height_in_millimeters);
+
+void x_server_add_pixmap_format (XServer *server, guint8 depth, guint8 bits_per_pixel, guint8 scanline_pad);
 
 void x_server_set_listen_unix (XServer *server, gboolean listen_unix);
 
@@ -496,6 +524,14 @@ void x_server_set_listen_tcp (XServer *server, gboolean listen_tcp);
 gboolean x_server_start (XServer *server);
 
 gsize x_server_get_n_clients (XServer *server);
+
+GType x_screen_get_type (void);
+
+XVisual *x_screen_add_visual (XScreen *screen, guint8 depth, guint8 class, guint8 bits_per_rgb_value, guint16 colormap_entries, guint32 red_mask, guint32 green_mask, guint32 blue_mask);
+
+GType x_visual_get_type (void);
+
+GType x_client_get_type (void);
 
 GInetAddress *x_client_get_address (XClient *client);
 

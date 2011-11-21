@@ -11,10 +11,11 @@
 #include "x-server.h"
 
 G_DEFINE_TYPE (XServer, x_server, G_TYPE_OBJECT);
+G_DEFINE_TYPE (XScreen, x_screen, G_TYPE_OBJECT);
+G_DEFINE_TYPE (XVisual, x_visual, G_TYPE_OBJECT);
 G_DEFINE_TYPE (XClient, x_client, G_TYPE_OBJECT);
 
 #define MAXIMUM_REQUEST_LENGTH 65535
-#define VENDOR "LightDM"
 
 enum
 {
@@ -35,9 +36,29 @@ enum {
 };
 static guint x_server_signals[X_SERVER_LAST_SIGNAL] = { 0 };
 
+typedef struct
+{
+    guint8 depth;
+    guint8 bits_per_pixel;
+    guint8 scanline_pad;
+} PixmapFormat;
+
 struct XServerPrivate
 {
+    gchar *vendor;
+
     gint display_number;
+  
+    guint32 motion_buffer_size;
+    guint8 image_byte_order;
+    guint8 bitmap_format_bit_order;
+  
+    guint8 min_keycode;
+    guint8 max_keycode;
+
+    GList *pixmap_formats;  
+    GList *screens;
+
     gboolean listen_unix;
     gboolean listen_tcp;
     gint tcp_port;
@@ -47,17 +68,40 @@ struct XServerPrivate
     GSocket *tcp_socket;
     GIOChannel *tcp_channel;
     GHashTable *clients;
-
-    GList *screens;
 };
 
 struct XClientPrivate
 {
+    XServer *server;
     GSocket *socket;  
     GIOChannel *channel;
     guint8 byte_order;
     gboolean connected;
     guint16 sequence_number;
+};
+
+struct XScreenPrivate
+{
+    guint32 white_pixel;
+    guint32 black_pixel;
+    guint32 current_input_masks;
+    guint16 width_in_pixels;
+    guint16 height_in_pixels;
+    guint16 width_in_millimeters;
+    guint16 height_in_millimeters;
+    GList *visuals;
+};
+
+struct XVisualPrivate
+{
+    guint32 id;
+    guint8 depth;
+    guint8 class;
+    guint8 bits_per_rgb_value;
+    guint16 colormap_entries;
+    guint32 red_mask;
+    guint32 green_mask;
+    guint32 blue_mask;
 };
 
 enum
@@ -138,9 +182,10 @@ x_client_send_failed (XClient *client, const gchar *reason)
 void 
 x_client_send_success (XClient *client)
 {
+    XServer *server = client->priv->server;
     guint8 buffer[MAXIMUM_REQUEST_LENGTH];
     gsize n_written = 0, length_offset;
-    int i;
+    GList *link;
 
     write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, Success, &n_written);
     write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written);
@@ -151,116 +196,104 @@ x_client_send_success (XClient *client)
     write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, X_RELEASE_NUMBER, &n_written);
     write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0x00a00000, &n_written); // resource-id-base
     write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0x001fffff, &n_written); // resource-id-mask
-    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written); // motion-buffer-size
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, strlen (VENDOR), &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, server->priv->motion_buffer_size, &n_written);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, strlen (client->priv->server->priv->vendor), &n_written);
     write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, MAXIMUM_REQUEST_LENGTH, &n_written);
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written); // number of screens
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 7, &n_written); // number of pixmap formats
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 0, &n_written); // image-byte-order
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 0, &n_written); // bitmap-format-bit-order
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, g_list_length (server->priv->screens), &n_written);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, g_list_length (server->priv->pixmap_formats), &n_written);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, server->priv->image_byte_order, &n_written);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, server->priv->bitmap_format_bit_order, &n_written);
     write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 32, &n_written); // bitmap-format-scanline-unit
     write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 32, &n_written); // bitmap-format-scanline-pad
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 8, &n_written); // min-keycode
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 255, &n_written); // max-keycode
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, server->priv->min_keycode, &n_written);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, server->priv->max_keycode, &n_written);
     write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 4, &n_written);
-    write_padded_string (buffer, MAXIMUM_REQUEST_LENGTH, VENDOR, &n_written);
+    write_padded_string (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->server->priv->vendor, &n_written);
 
-    // LISTofFORMAT
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written); // depth
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written); // bits-per-pixel
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 32, &n_written); // scanline-pad
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 5, &n_written);
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 4, &n_written); // depth
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 8, &n_written); // bits-per-pixel
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 32, &n_written); // scanline-pad
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 5, &n_written);
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 8, &n_written); // depth
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 8, &n_written); // bits-per-pixel
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 32, &n_written); // scanline-pad
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 5, &n_written);
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 15, &n_written); // depth
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 16, &n_written); // bits-per-pixel
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 32, &n_written); // scanline-pad
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 5, &n_written);
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 16, &n_written); // depth
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 16, &n_written); // bits-per-pixel
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 32, &n_written); // scanline-pad
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 5, &n_written);
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 24, &n_written); // depth
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 32, &n_written); // bits-per-pixel
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 32, &n_written); // scanline-pad
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 5, &n_written);
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 32, &n_written); // depth
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 32, &n_written); // bits-per-pixel
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 32, &n_written); // scanline-pad
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 5, &n_written);
-
-    // LISTofSCREEN
-    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 87, &n_written); // root
-    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 32, &n_written); // default-colormap
-    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0x00FFFFFF, &n_written); // white-pixel
-    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0x00000000, &n_written); // black-pixel
-    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, X_EVENT_StructureNotify | X_EVENT_SubstructureNotify | X_EVENT_SubstructureRedirect, &n_written); // SETofEVENT
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 1680, &n_written); // width-in-pixels
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 1050, &n_written); // height-in-pixels
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 569, &n_written); // width-in-millimeters
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 356, &n_written); // height-in-millimeters
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 1, &n_written); // min-installed-maps
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 1, &n_written); // max-installed-maps
-    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 34, &n_written); // root-visual
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 0, &n_written); // backing-stores
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 0, &n_written); // save-unders
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 24, &n_written); // root-depth
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 7, &n_written); // number of depths
-
-    // LISTofDEPTH
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 24, &n_written); // depth
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written);
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 32, &n_written); // number of VISUALTYPES in visuals
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 4, &n_written);
-  
-    // LISTofVISUALTYPE
-    for (i = 0; i < 32; i++)
+    for (link = server->priv->pixmap_formats; link; link = link->next)
     {
-        write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 34 + i, &n_written); // visual-id
-        write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 4, &n_written); // class
-        write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 8, &n_written); // bits-per-rgb-value
-        write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 1, &n_written); // colormap-entries
-        write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0x00FF0000, &n_written); // red-mask
-        write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0x0000FF00, &n_written); // green-mask
-        write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0x000000FF, &n_written); // blue-mask
-        write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 4, &n_written);
+        PixmapFormat *format = link->data;
+        write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, format->depth, &n_written);
+        write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, format->bits_per_pixel, &n_written);
+        write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, format->scanline_pad, &n_written);
+        write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 5, &n_written);
     }
 
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written); // depth
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written);
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written); // number of VISUALTYPES in visuals
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 4, &n_written);
+    for (link = server->priv->screens; link; link = link->next)
+    {
+        XScreen *screen = link->data;
+        guint8 depth, n_depths = 0;
+        gsize n_depths_offset;
 
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 4, &n_written); // depth
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written);
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written); // number of VISUALTYPES in visuals
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 4, &n_written);
+        write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 87, &n_written); // root
+        write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 32, &n_written); // default-colormap
+        write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, screen->priv->white_pixel, &n_written);
+        write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, screen->priv->black_pixel, &n_written);
+        write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, screen->priv->current_input_masks, &n_written);
+        write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, screen->priv->width_in_pixels, &n_written);
+        write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, screen->priv->height_in_pixels, &n_written);
+        write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, screen->priv->width_in_millimeters, &n_written);
+        write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, screen->priv->height_in_millimeters, &n_written);
+        write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 1, &n_written); // min-installed-maps
+        write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 1, &n_written); // max-installed-maps
+        write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 34, &n_written); // root-visual
+        write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 0, &n_written); // backing-stores
+        write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 0, &n_written); // save-unders
+        write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 24, &n_written); // root-depth
+        n_depths_offset = n_written;
+        write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 0, &n_written);
 
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 8, &n_written); // depth
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written);
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written); // number of VISUALTYPES in visuals
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 4, &n_written);
+        depth = 0;
+        while (TRUE)
+        {
+            GList *visual_link;
+            guint16 n_visuals = 0;
 
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 15, &n_written); // depth
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written);
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written); // number of VISUALTYPES in visuals
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 4, &n_written);
+            /* Find the next depth to this one */
+            guint8 next_depth = 255;
+            for (visual_link = screen->priv->visuals; visual_link; visual_link = visual_link->next)
+            {
+                XVisual *visual = visual_link->data;
+                if (visual->priv->depth > depth && visual->priv->depth < next_depth)
+                    next_depth = visual->priv->depth;
+            }
+            if (next_depth == 255)
+                break;
+            depth = next_depth;
+            n_depths++;
 
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 16, &n_written); // depth
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written);
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written); // number of VISUALTYPES in visuals
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 4, &n_written);
+            for (visual_link = screen->priv->visuals; visual_link; visual_link = visual_link->next)
+            {
+                XVisual *visual = visual_link->data;
+                if (visual->priv->depth == depth)
+                    n_visuals++;
+            }
 
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 32, &n_written); // depth
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written);
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written); // number of VISUALTYPES in visuals
-    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 4, &n_written);
+            write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, depth, &n_written);
+            write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written);
+            write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, n_visuals, &n_written);
+            write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 4, &n_written);
+
+            for (visual_link = screen->priv->visuals; visual_link; visual_link = visual_link->next)
+            {
+                XVisual *visual = visual_link->data;
+
+                if (visual->priv->depth != depth)
+                    continue;
+
+                write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, visual->priv->id, &n_written);
+                write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, visual->priv->class, &n_written);
+                write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, visual->priv->bits_per_rgb_value, &n_written);
+                write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, visual->priv->colormap_entries, &n_written);
+                write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, visual->priv->red_mask, &n_written);
+                write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, visual->priv->green_mask, &n_written);
+                write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, visual->priv->blue_mask, &n_written);
+                write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 4, &n_written);
+            }
+        }
+
+        write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, n_depths, &n_depths_offset);
+    }
 
     write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, (n_written - length_offset) / 4, &length_offset);
 
@@ -677,6 +710,38 @@ x_server_new (gint display_number)
     return server;
 }
 
+XScreen *
+x_server_add_screen (XServer *server, guint32 white_pixel, guint32 black_pixel, guint32 current_input_masks, guint16 width_in_pixels, guint16 height_in_pixels, guint16 width_in_millimeters, guint16 height_in_millimeters)
+{
+    XScreen *screen;
+
+    screen = g_object_new (x_screen_get_type (), NULL);
+
+    screen->priv->white_pixel = white_pixel;
+    screen->priv->black_pixel = black_pixel;
+    screen->priv->current_input_masks = current_input_masks;
+    screen->priv->width_in_pixels = width_in_pixels;
+    screen->priv->height_in_pixels = height_in_pixels;
+    screen->priv->width_in_millimeters = width_in_millimeters;
+    screen->priv->height_in_millimeters = height_in_millimeters;
+  
+    server->priv->screens = g_list_append (server->priv->screens, screen);
+
+    return screen;
+}
+
+void
+x_server_add_pixmap_format (XServer *server, guint8 depth, guint8 bits_per_pixel, guint8 scanline_pad)
+{
+    PixmapFormat *format;
+  
+    format = g_malloc0 (sizeof (PixmapFormat));
+    format->depth = depth;
+    format->bits_per_pixel = bits_per_pixel;
+    format->scanline_pad = scanline_pad;
+    server->priv->pixmap_formats = g_list_append (server->priv->pixmap_formats, format);
+}
+
 void
 x_server_set_listen_unix (XServer *server, gboolean listen_unix)
 {
@@ -687,6 +752,24 @@ void
 x_server_set_listen_tcp (XServer *server, gboolean listen_tcp)
 {
     server->priv->listen_tcp = listen_tcp;
+}
+
+XVisual *
+x_screen_add_visual (XScreen *screen, guint8 depth, guint8 class, guint8 bits_per_rgb_value, guint16 colormap_entries, guint32 red_mask, guint32 green_mask, guint32 blue_mask)
+{
+    XVisual *visual;
+
+    visual = g_object_new (x_visual_get_type (), NULL);
+    visual->priv->id = 0; // FIXME
+    visual->priv->depth = depth;
+    visual->priv->class = class;
+    visual->priv->bits_per_rgb_value = bits_per_rgb_value;
+    visual->priv->colormap_entries = colormap_entries;
+    visual->priv->red_mask = red_mask;
+    visual->priv->green_mask = green_mask;
+    visual->priv->blue_mask = blue_mask;
+    
+    return visual;
 }
 
 static void
@@ -1732,6 +1815,7 @@ socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
         return FALSE;
 
     client = g_object_new (x_client_get_type (), NULL);
+    client->priv->server = server;
     g_signal_connect (client, "disconnected", G_CALLBACK (x_client_disconnected_cb), server);
     client->priv->socket = data_socket;
     client->priv->channel = g_io_channel_unix_new (g_socket_get_fd (data_socket));
@@ -1793,15 +1877,20 @@ static void
 x_server_init (XServer *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, x_server_get_type (), XServerPrivate);
-    server->priv->clients = g_hash_table_new_full (g_direct_hash, g_direct_equal, (GDestroyNotify) g_io_channel_unref, g_object_unref);
+    server->priv->vendor = g_strdup ("");
+    server->priv->min_keycode = 8;
+    server->priv->min_keycode = 255;
+    server->priv->screens = NULL;
     server->priv->listen_unix = TRUE;
     server->priv->listen_tcp = TRUE;
+    server->priv->clients = g_hash_table_new_full (g_direct_hash, g_direct_equal, (GDestroyNotify) g_io_channel_unref, g_object_unref);
 }
 
 static void
 x_server_finalize (GObject *object)
 {
     XServer *server = (XServer *) object;
+    g_free (server->priv->vendor);
     if (server->priv->socket_path)
         unlink (server->priv->socket_path);
 }
@@ -1828,4 +1917,28 @@ x_server_class_init (XServerClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__OBJECT,
                       G_TYPE_NONE, 1, x_client_get_type ());
+}
+
+static void
+x_screen_init (XScreen *screen)
+{
+    screen->priv = G_TYPE_INSTANCE_GET_PRIVATE (screen, x_screen_get_type (), XScreenPrivate);
+}
+
+static void
+x_screen_class_init (XScreenClass *klass)
+{
+    g_type_class_add_private (klass, sizeof (XScreenPrivate));
+}
+
+static void
+x_visual_init (XVisual *visual)
+{
+    visual->priv = G_TYPE_INSTANCE_GET_PRIVATE (visual, x_visual_get_type (), XVisualPrivate);
+}
+
+static void
+x_visual_class_init (XVisualClass *klass)
+{
+    g_type_class_add_private (klass, sizeof (XVisualPrivate));
 }
