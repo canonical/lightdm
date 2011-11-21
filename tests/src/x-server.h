@@ -107,6 +107,7 @@ typedef struct
 
 typedef struct
 {
+    guint16 sequence_number;
     guint8 depth;
     guint32 wid;
     guint32 parent;
@@ -137,6 +138,7 @@ typedef struct
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 window;
     guint32 value_mask;
     guint32 background_pixmap;
@@ -158,27 +160,32 @@ typedef struct
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 window;    
 } XGetWindowAttributes;
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 window;
 } XDestroyWindow;
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 window;
 } XDestroySubwindows;
 
 typedef struct
 {
+    guint16 sequence_number;
     guint8 mode;
     guint32 window;
 } XChangeSetSave;
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 window;
     guint32 parent;
     gint16 x;
@@ -187,26 +194,31 @@ typedef struct
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 window;
 } XMapWindow;
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 window;
 } XMapSubwindows;
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 window;
 } XUnmapWindow;
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 window;
 } XUnmapSubwindows;
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 window;
     guint16 value_mask;
     gint16 x;
@@ -220,33 +232,39 @@ typedef struct
 
 typedef struct
 {
+    guint16 sequence_number;
     guint8 direction;
     guint32 window;
 } XCirculateWindow;
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 drawable;
 } XGetGeometry;
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 window;
 } XQueryTree;
 
 typedef struct
 {
+    guint16 sequence_number;
     gboolean only_if_exists;
     gchar *name;
 } XInternAtom;
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 atom;
 } XGetAtomName;
 
 typedef struct
 {
+    guint16 sequence_number;
     guint8 mode;
     guint32 window;
     guint32 property;
@@ -258,12 +276,14 @@ typedef struct
 
 typedef struct
 {
-    guint32 window;  
+    guint16 sequence_number;
+    guint32 window;
     guint32 property;
 } XDeleteProperty;
 
 typedef struct
 {
+    guint16 sequence_number;
     gboolean delete;
     guint32 window;
     guint32 property;
@@ -274,11 +294,13 @@ typedef struct
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 window;
 } XListProperties;
 
 typedef struct
 {
+    guint16 sequence_number;
     guint8 depth;
     guint32 pid;
     guint32 drawable;
@@ -288,11 +310,13 @@ typedef struct
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 pixmap;
 } XFreePixmap;
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 cid;
     guint32 drawable;
     guint32 value_mask;
@@ -323,6 +347,7 @@ typedef struct
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 gc;
     guint32 value_mask;
     guint8 function;
@@ -352,6 +377,7 @@ typedef struct
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 src_gc;
     guint32 dst_gc;
     guint32 value_mask;
@@ -382,16 +408,19 @@ typedef struct
 
 typedef struct
 {
+    guint16 sequence_number;
     guint32 gc;
 } XFreeGC;
 
 typedef struct
 {
+    guint16 sequence_number;
     gchar *name;
 } XQueryExtension;
 
 typedef struct
 {
+    guint16 sequence_number;
     guint8 percent;
 } XBell;
 
@@ -473,6 +502,16 @@ GInetAddress *x_client_get_address (XClient *client);
 void x_client_send_failed (XClient *client, const gchar *reason);
 
 void x_client_send_success (XClient *client);
+
+void x_client_send_get_window_attributes_response (XClient *client, guint16 sequence_number, guint8 backing_store, guint32 visual, guint16 class, guint8 bit_gravity, guint8 win_gravity, guint32 backing_planes, guint32 backing_pixel, gboolean save_under, gboolean map_is_installed, guint8 map_state, gboolean override_redirect, guint32 colormap, guint32 all_event_masks, guint32 your_event_mask, guint16 do_not_propogate_mask);
+
+void x_client_send_get_geometry_response (XClient *client, guint16 sequence_number, guint8 depth, guint32 root, gint16 x, gint16 y, guint16 width, guint16 height, guint16 border_width);
+
+void x_client_send_query_tree_response (XClient *client, guint16 sequence_number, guint32 root, guint32 parent, guint32* children, guint16 children_length);
+
+void x_client_send_intern_atom_response (XClient *client, guint16 sequence_number, guint32 atom);
+
+void x_client_send_get_property_response (XClient *client, guint16 sequence_number, guint8 format, guint32 type, guint32 bytes_after, const guint8 *data, guint32 length);
 
 void x_client_send_query_extension_response (XClient *client, guint16 sequence_number, gboolean present, guint8 major_opcode, guint8 first_event, guint8 first_error);
 

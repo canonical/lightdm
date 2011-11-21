@@ -268,6 +268,113 @@ x_client_send_success (XClient *client)
 }
 
 void
+x_client_send_get_window_attributes_response (XClient *client, guint16 sequence_number, guint8 backing_store, guint32 visual, guint16 class, guint8 bit_gravity, guint8 win_gravity, guint32 backing_planes, guint32 backing_pixel, gboolean save_under, gboolean map_is_installed, guint8 map_state, gboolean override_redirect, guint32 colormap, guint32 all_event_mask, guint32 your_event_mask, guint16 do_not_propogate_mask)
+{
+    guint8 buffer[MAXIMUM_REQUEST_LENGTH];
+    gsize n_written = 0;
+
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, Reply, &n_written);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, backing_store, &n_written);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, sequence_number, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 3, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, visual, &n_written);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, class, &n_written);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, bit_gravity, &n_written);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, win_gravity, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, backing_planes, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, backing_pixel, &n_written);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, save_under ? 1 : 0, &n_written);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, map_is_installed ? 1 : 0, &n_written);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, map_state, &n_written);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, override_redirect ? 1 : 0, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, colormap, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, all_event_mask, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, your_event_mask, &n_written);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, do_not_propogate_mask, &n_written);
+    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 2, &n_written);
+
+    send (g_io_channel_unix_get_fd (client->priv->channel), buffer, n_written, 0);
+}
+
+void
+x_client_send_get_geometry_response (XClient *client, guint16 sequence_number, guint8 depth, guint32 root, gint16 x, gint16 y, guint16 width, guint16 height, guint16 border_width)
+{
+    guint8 buffer[MAXIMUM_REQUEST_LENGTH];
+    gsize n_written = 0;
+
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, Reply, &n_written);
+    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, depth, &n_written);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, sequence_number, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, root, &n_written);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, x, &n_written);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, y, &n_written);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, width, &n_written);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, height, &n_written);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, border_width, &n_written);
+    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 10, &n_written);
+
+    send (g_io_channel_unix_get_fd (client->priv->channel), buffer, n_written, 0);
+}
+
+void
+x_client_send_query_tree_response (XClient *client, guint16 sequence_number, guint32 root, guint32 parent, guint32* children, guint16 children_length)
+{
+    guint8 buffer[MAXIMUM_REQUEST_LENGTH];
+    gsize n_written = 0, i;
+
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, Reply, &n_written);
+    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, sequence_number, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, children_length, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, root, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, parent, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, children_length, &n_written);
+    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 14, &n_written);
+    for (i = 0; i < children_length; i++)
+        write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, children[i], &n_written);
+
+    send (g_io_channel_unix_get_fd (client->priv->channel), buffer, n_written, 0);
+}
+
+void
+x_client_send_intern_atom_response (XClient *client, guint16 sequence_number, guint32 atom)
+{
+    guint8 buffer[MAXIMUM_REQUEST_LENGTH];
+    gsize n_written = 0;
+
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, Reply, &n_written);
+    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, sequence_number, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, atom, &n_written);
+    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 20, &n_written);
+
+    send (g_io_channel_unix_get_fd (client->priv->channel), buffer, n_written, 0);
+}
+
+void
+x_client_send_get_property_response (XClient *client, guint16 sequence_number, guint8 format, guint32 type, guint32 bytes_after, const guint8 *data, guint32 length)
+{
+    guint8 buffer[MAXIMUM_REQUEST_LENGTH];
+    gsize n_written = 0;
+
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, Reply, &n_written);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, format, &n_written);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, sequence_number, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, type, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, bytes_after, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, length, &n_written);
+    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 12, &n_written);
+    write_string8 (buffer, MAXIMUM_REQUEST_LENGTH, data, length, &n_written);
+    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, pad (n_written), &n_written);
+    // FIXME: Update length field
+
+    send (g_io_channel_unix_get_fd (client->priv->channel), buffer, n_written, 0);
+}
+
+void
 x_client_send_query_extension_response (XClient *client, guint16 sequence_number, gboolean present, guint8 major_opcode, guint8 first_event, guint8 first_error)
 {
     guint8 buffer[MAXIMUM_REQUEST_LENGTH];
@@ -275,7 +382,7 @@ x_client_send_query_extension_response (XClient *client, guint16 sequence_number
 
     write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, Reply, &n_written);
     write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written);
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, sequence_number, &n_written); // sequence-number
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, sequence_number, &n_written);
     write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written);
     write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, present ? 1 : 0, &n_written);
     write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, major_opcode, &n_written);
@@ -283,7 +390,7 @@ x_client_send_query_extension_response (XClient *client, guint16 sequence_number
     write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, first_error, &n_written);
     write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 20, &n_written);
 
-    send (g_io_channel_unix_get_fd (client->priv->channel), buffer, n_written, 0);    
+    send (g_io_channel_unix_get_fd (client->priv->channel), buffer, n_written, 0);
 }
 
 void
@@ -627,6 +734,7 @@ decode_create_window (XClient *client, guint16 sequence_number, guint8 data, con
     XCreateWindow *message;
 
     message = g_malloc0 (sizeof (XCreateWindow));
+    message->sequence_number = sequence_number;
     message->depth = data;
     message->wid = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
     message->parent = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
@@ -680,6 +788,7 @@ decode_change_window_attributes (XClient *client, guint16 sequence_number, guint
     XChangeWindowAttributes *message;
 
     message = g_malloc0 (sizeof (XChangeWindowAttributes));
+    message->sequence_number = sequence_number;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
     message->value_mask = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
     if ((message->value_mask & X_WINDOW_VALUE_MASK_background_pixmap) != 0)
@@ -724,6 +833,7 @@ decode_get_window_attributes (XClient *client, guint16 sequence_number, guint8 d
     XGetWindowAttributes *message;
 
     message = g_malloc0 (sizeof (XGetWindowAttributes));
+    message->sequence_number = sequence_number;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
 
     g_signal_emit (client, x_client_signals [X_CLIENT_GET_WINDOW_ATTRIBUTES], 0, message);
@@ -737,6 +847,7 @@ decode_destroy_window (XClient *client, guint16 sequence_number, guint8 data, co
     XDestroyWindow *message;
 
     message = g_malloc0 (sizeof (XDestroyWindow));
+    message->sequence_number = sequence_number;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
   
     g_signal_emit (client, x_client_signals [X_CLIENT_DESTROY_WINDOW], 0, message);
@@ -750,6 +861,7 @@ decode_destroy_subwindows (XClient *client, guint16 sequence_number, guint8 data
     XDestroySubwindows *message;
 
     message = g_malloc0 (sizeof (XDestroySubwindows));
+    message->sequence_number = sequence_number;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
   
     g_signal_emit (client, x_client_signals [X_CLIENT_DESTROY_SUBWINDOWS], 0, message);
@@ -763,6 +875,7 @@ decode_change_set_save (XClient *client, guint16 sequence_number, guint8 data, c
     XChangeSetSave *message;
 
     message = g_malloc (sizeof (XChangeSetSave));
+    message->sequence_number = sequence_number;
     message->mode = data;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
 
@@ -777,6 +890,7 @@ decode_reparent_window (XClient *client, guint16 sequence_number, guint8 data, c
     XReparentWindow *message;
 
     message = g_malloc (sizeof (XReparentWindow));
+    message->sequence_number = sequence_number;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
     message->parent = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
     message->x = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
@@ -793,6 +907,7 @@ decode_map_window (XClient *client, guint16 sequence_number, guint8 data, const 
     XMapWindow *message;
 
     message = g_malloc0 (sizeof (XMapWindow));
+    message->sequence_number = sequence_number;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
 
     g_signal_emit (client, x_client_signals [X_CLIENT_MAP_WINDOW], 0, message);
@@ -806,6 +921,7 @@ decode_map_subwindows (XClient *client, guint16 sequence_number, guint8 data, co
     XMapSubwindows *message;
 
     message = g_malloc0 (sizeof (XMapSubwindows));
+    message->sequence_number = sequence_number;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
 
     g_signal_emit (client, x_client_signals [X_CLIENT_MAP_SUBWINDOWS], 0, message);
@@ -819,6 +935,7 @@ decode_unmap_window (XClient *client, guint16 sequence_number, guint8 data, cons
     XUnmapWindow *message;
 
     message = g_malloc0 (sizeof (XUnmapWindow));
+    message->sequence_number = sequence_number;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
 
     g_signal_emit (client, x_client_signals [X_CLIENT_UNMAP_WINDOW], 0, message);
@@ -832,6 +949,7 @@ decode_unmap_subwindows (XClient *client, guint16 sequence_number, guint8 data, 
     XUnmapSubwindows *message;
 
     message = g_malloc0 (sizeof (XUnmapSubwindows));
+    message->sequence_number = sequence_number;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
 
     g_signal_emit (client, x_client_signals [X_CLIENT_UNMAP_SUBWINDOWS], 0, message);
@@ -845,6 +963,7 @@ decode_configure_window (XClient *client, guint16 sequence_number, guint8 data, 
     XConfigureWindow *message;
 
     message = g_malloc0 (sizeof (XConfigureWindow));
+    message->sequence_number = sequence_number;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
     message->value_mask = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
     if ((message->value_mask & X_CONFIGURE_WINDOW_VALUE_MASK_x) != 0)
@@ -873,6 +992,7 @@ decode_circulate_window (XClient *client, guint16 sequence_number, guint8 data, 
     XCirculateWindow *message;
 
     message = g_malloc0 (sizeof (XCirculateWindow));
+    message->sequence_number = sequence_number;
     message->direction = data;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
   
@@ -887,6 +1007,7 @@ decode_get_geometry (XClient *client, guint16 sequence_number, guint8 data, cons
     XGetGeometry *message;
 
     message = g_malloc0 (sizeof (XGetGeometry));
+    message->sequence_number = sequence_number;
     message->drawable = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
 
     g_signal_emit (client, x_client_signals[X_CLIENT_GET_GEOMETRY], 0, message);
@@ -900,6 +1021,7 @@ decode_query_tree (XClient *client, guint16 sequence_number, guint8 data, const 
     XQueryTree *message;
 
     message = g_malloc0 (sizeof (XQueryTree));
+    message->sequence_number = sequence_number;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
   
     g_signal_emit (client, x_client_signals[X_CLIENT_QUERY_TREE], 0, message);
@@ -914,6 +1036,7 @@ decode_intern_atom (XClient *client, guint16 sequence_number, guint8 data, const
     guint16 name_length;
   
     message = g_malloc0 (sizeof (XInternAtom));
+    message->sequence_number = sequence_number;
 
     message->only_if_exists = data != 0;
     name_length = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
@@ -932,6 +1055,7 @@ decode_get_atom_name (XClient *client, guint16 sequence_number, guint8 data, con
     XGetAtomName *message;
 
     message = g_malloc0 (sizeof (XGetAtomName));
+    message->sequence_number = sequence_number;
     message->atom = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
 
     g_signal_emit (client, x_client_signals[X_CLIENT_GET_ATOM_NAME], 0, message);
@@ -945,6 +1069,7 @@ decode_change_property (XClient *client, guint16 sequence_number, guint8 data, c
     XChangeProperty *message;
 
     message = g_malloc0 (sizeof (XChangeProperty));
+    message->sequence_number = sequence_number;
     message->mode = data;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
     message->property = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
@@ -966,6 +1091,7 @@ decode_delete_property (XClient *client, guint16 sequence_number, guint8 data, c
     XDeleteProperty *message;
 
     message = g_malloc0 (sizeof (XDeleteProperty));
+    message->sequence_number = sequence_number;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
     message->property = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
   
@@ -980,6 +1106,7 @@ decode_get_property (XClient *client, guint16 sequence_number, guint8 data, cons
     XGetProperty *message;
 
     message = g_malloc0 (sizeof (XGetProperty));
+    message->sequence_number = sequence_number;
 
     message->delete = data != 0;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
@@ -999,6 +1126,7 @@ decode_list_properties (XClient *client, guint16 sequence_number, guint8 data, c
     XListProperties *message;
 
     message = g_malloc0 (sizeof (XListProperties));
+    message->sequence_number = sequence_number;
     message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
 
     g_signal_emit (client, x_client_signals[X_CLIENT_LIST_PROPERTIES], 0, message);
@@ -1012,6 +1140,7 @@ decode_create_pixmap (XClient *client, guint16 sequence_number, guint8 data, con
     XCreatePixmap *message;
 
     message = g_malloc0 (sizeof (XCreatePixmap));
+    message->sequence_number = sequence_number;
     message->depth = data;
     message->pid = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
     message->drawable = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
@@ -1029,6 +1158,7 @@ decode_free_pixmap (XClient *client, guint16 sequence_number, guint8 data, const
     XFreePixmap *message;
 
     message = g_malloc0 (sizeof (XFreePixmap));
+    message->sequence_number = sequence_number;
     message->pixmap = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
 
     g_signal_emit (client, x_client_signals[X_CLIENT_FREE_PIXMAP], 0, message);
@@ -1042,6 +1172,7 @@ decode_create_gc (XClient *client, guint16 sequence_number, guint8 data, const g
     XCreateGC *message;
   
     message = g_malloc0 (sizeof (XCreateGC));
+    message->sequence_number = sequence_number;
 
     message->cid = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
     message->drawable = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
@@ -1152,6 +1283,7 @@ decode_change_gc (XClient *client, guint16 sequence_number, guint8 data, const g
     XChangeGC *message;
 
     message = g_malloc0 (sizeof (XChangeGC));
+    message->sequence_number = sequence_number;
     message->gc = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
     message->value_mask = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
     if ((message->value_mask & X_GC_VALUE_MASK_function) != 0)
@@ -1260,6 +1392,7 @@ decode_copy_gc (XClient *client, guint16 sequence_number, guint8 data, const gui
     XCopyGC *message;
 
     message = g_malloc0 (sizeof (XCopyGC));
+    message->sequence_number = sequence_number;
     message->src_gc = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
     message->dst_gc = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
     message->value_mask = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
@@ -1369,6 +1502,7 @@ decode_free_gc (XClient *client, guint16 sequence_number, guint8 data, const gui
     XFreeGC *message;
 
     message = g_malloc0 (sizeof (XFreeGC));
+    message->sequence_number = sequence_number;
     message->gc = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
 
     g_signal_emit (client, x_client_signals[X_CLIENT_FREE_GC], 0, message);
@@ -1383,6 +1517,7 @@ decode_query_extension (XClient *client, guint16 sequence_number, guint8 data, c
     guint16 name_length;
 
     message = g_malloc0 (sizeof (XQueryExtension));
+    message->sequence_number = sequence_number;
 
     name_length = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
     read_padding (2, offset);
@@ -1400,6 +1535,7 @@ decode_bell (XClient *client, guint16 sequence_number, guint8 data, const guint8
     XBell *message;
 
     message = g_malloc0 (sizeof (XBell));
+    message->sequence_number = sequence_number;
     message->percent = data;
 
     g_signal_emit (client, x_client_signals[X_CLIENT_BELL], 0, message);
@@ -1418,23 +1554,25 @@ decode_big_req_enable (XClient *client, guint16 sequence_number, guint8 data, co
 }
 
 static void
-decode_request (XClient *client, guint16 sequence_number, const guint8 *buffer, gssize buffer_length)
+decode_request (XClient *client, const guint8 *buffer, gssize buffer_length)
 {
     int opcode;
     gsize offset = 0;
 
     while (offset < buffer_length)
     {
+        gsize start_offset;
+        guint16 sequence_number;
         guint8 data;
         guint16 length, remaining;
-        gsize start_offset;
 
         start_offset = offset;
+        sequence_number = client->priv->sequence_number++;
         opcode = read_card8 (buffer, buffer_length, &offset);
         data = read_card8 (buffer, buffer_length, &offset);
         length = read_card16 (buffer, buffer_length, client->priv->byte_order, &offset) * 4;
         remaining = start_offset + length;
-      
+
         g_debug ("Got opcode=%d length=%d", opcode, length);
 
         switch (opcode)
@@ -1559,10 +1697,7 @@ socket_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     else
     {
         if (client->priv->connected)
-        {
-            decode_request (client, client->priv->sequence_number, buffer, n_read);
-            client->priv->sequence_number++;
-        }
+            decode_request (client, buffer, n_read);
         else
             decode_connection_request (client, buffer, n_read);
     }
