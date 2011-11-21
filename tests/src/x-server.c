@@ -75,10 +75,18 @@ enum
     X_CLIENT_UNMAP_WINDOW,
     X_CLIENT_UNMAP_SUBWINDOWS,
     X_CLIENT_CONFIGURE_WINDOW,
+    X_CLIENT_CIRCULATE_WINDOW,
+    X_CLIENT_GET_GEOMETRY,
+    X_CLIENT_QUERY_TREE,
     X_CLIENT_INTERN_ATOM,
+    X_CLIENT_GET_ATOM_NAME,
+    X_CLIENT_CHANGE_PROPERTY,
+    X_CLIENT_DELETE_PROPERTY,
     X_CLIENT_GET_PROPERTY,
+    X_CLIENT_LIST_PROPERTIES,
     X_CLIENT_CREATE_GC,
     X_CLIENT_QUERY_EXTENSION,
+    X_CLIENT_BELL,
     X_CLIENT_DISCONNECTED,
     X_CLIENT_LAST_SIGNAL
 };
@@ -402,6 +410,30 @@ x_client_class_init (XClientClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__POINTER,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_CIRCULATE_WINDOW] =
+        g_signal_new ("circulate-window",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, circulate_window),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_GET_GEOMETRY] =
+        g_signal_new ("get-geometry",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, get_geometry),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_QUERY_TREE] =
+        g_signal_new ("query-tree",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, query_tree),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
     x_client_signals[X_CLIENT_INTERN_ATOM] =
         g_signal_new ("intern-atom",
                       G_TYPE_FROM_CLASS (klass),
@@ -410,11 +442,43 @@ x_client_class_init (XClientClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__POINTER,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_GET_ATOM_NAME] =
+        g_signal_new ("get-atom-name",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, get_atom_name),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_CHANGE_PROPERTY] =
+        g_signal_new ("change-property",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, change_property),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_DELETE_PROPERTY] =
+        g_signal_new ("delete-property",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, delete_property),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
     x_client_signals[X_CLIENT_GET_PROPERTY] =
         g_signal_new ("get_property",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XClientClass, get_property),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_LIST_PROPERTIES] =
+        g_signal_new ("list-properties",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, list_properties),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__POINTER,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
@@ -431,6 +495,14 @@ x_client_class_init (XClientClass *klass)
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XClientClass, query_extension),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_BELL] =
+        g_signal_new ("bell",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, bell),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__POINTER,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
@@ -751,6 +823,46 @@ decode_configure_window (XClient *client, guint16 sequence_number, guint8 data, 
 }
 
 static void
+decode_circulate_window (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XCirculateWindow *message;
+
+    message = g_malloc0 (sizeof (XCirculateWindow));
+    message->direction = data;
+    message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+  
+    g_signal_emit (client, x_client_signals[X_CLIENT_CIRCULATE_WINDOW], 0, message);
+  
+    g_free (message);
+}
+
+static void
+decode_get_geometry (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XGetGeometry *message;
+
+    message = g_malloc0 (sizeof (XGetGeometry));
+    message->drawable = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+
+    g_signal_emit (client, x_client_signals[X_CLIENT_GET_GEOMETRY], 0, message);
+  
+    g_free (message);
+}
+
+static void
+decode_query_tree (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XQueryTree *message;
+
+    message = g_malloc0 (sizeof (XQueryTree));
+    message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+  
+    g_signal_emit (client, x_client_signals[X_CLIENT_QUERY_TREE], 0, message);
+  
+    g_free (message);
+}
+
+static void
 decode_intern_atom (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
 {
     XInternAtom *message;
@@ -770,6 +882,54 @@ decode_intern_atom (XClient *client, guint16 sequence_number, guint8 data, const
 }
 
 static void
+decode_get_atom_name (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XGetAtomName *message;
+
+    message = g_malloc0 (sizeof (XGetAtomName));
+    message->atom = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+
+    g_signal_emit (client, x_client_signals[X_CLIENT_GET_ATOM_NAME], 0, message);
+
+    g_free (message);
+}
+
+static void
+decode_change_property (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XChangeProperty *message;
+
+    message = g_malloc0 (sizeof (XChangeProperty));
+    message->mode = data;
+    message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->property = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->type = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->format = read_card8 (buffer, buffer_length, offset);
+    read_padding (3, offset);    
+    message->length = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->data = read_string8 (buffer, buffer_length, message->length * message->format / 8, offset);
+    read_padding (pad (message->length * message->format / 8), offset);
+
+    g_signal_emit (client, x_client_signals[X_CLIENT_CHANGE_PROPERTY], 0, message);
+
+    g_free (message);
+}
+
+static void
+decode_delete_property (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XDeleteProperty *message;
+
+    message = g_malloc0 (sizeof (XDeleteProperty));
+    message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->property = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+  
+    g_signal_emit (client, x_client_signals[X_CLIENT_DELETE_PROPERTY], 0, message);
+  
+    g_free (message);
+}
+
+static void
 decode_get_property (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
 {
     XGetProperty *message;
@@ -784,6 +944,19 @@ decode_get_property (XClient *client, guint16 sequence_number, guint8 data, cons
     message->long_length = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
 
     g_signal_emit (client, x_client_signals[X_CLIENT_GET_PROPERTY], 0, message);
+  
+    g_free (message);
+}
+
+static void
+decode_list_properties (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XListProperties *message;
+
+    message = g_malloc0 (sizeof (XListProperties));
+    message->window = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+
+    g_signal_emit (client, x_client_signals[X_CLIENT_LIST_PROPERTIES], 0, message);
   
     g_free (message);
 }
@@ -917,6 +1090,24 @@ decode_query_extension (XClient *client, guint16 sequence_number, guint8 data, c
 }
 
 static void
+decode_bell (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XBell *message;
+
+    message = g_malloc0 (sizeof (XBell));
+    message->percent = data;
+
+    g_signal_emit (client, x_client_signals[X_CLIENT_BELL], 0, message);
+
+    g_free (message);
+}
+
+static void
+decode_no_operation (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+}
+                     
+static void
 decode_big_req_enable (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
 {
 }
@@ -979,17 +1170,44 @@ decode_request (XClient *client, guint16 sequence_number, const guint8 *buffer, 
         case 12:
             decode_configure_window (client, sequence_number, data, buffer, remaining, &offset);
             break;
+        case 13:
+            decode_circulate_window (client, sequence_number, data, buffer, remaining, &offset);
+            break;
+        case 14:
+            decode_get_geometry (client, sequence_number, data, buffer, remaining, &offset);
+            break;
+        case 15:
+            decode_query_tree (client, sequence_number, data, buffer, remaining, &offset);
+            break;
         case 16:
             decode_intern_atom (client, sequence_number, data, buffer, remaining, &offset);
             break;
+        case 17:
+            decode_get_atom_name (client, sequence_number, data, buffer, remaining, &offset);
+            break;
+        case 18:
+            decode_change_property (client, sequence_number, data, buffer, remaining, &offset);
+            break;
+        case 19:
+            decode_delete_property (client, sequence_number, data, buffer, remaining, &offset);
+            break;
         case 20:
             decode_get_property (client, sequence_number, data, buffer, remaining, &offset);
+            break;
+        case 21:
+            decode_list_properties (client, sequence_number, data, buffer, remaining, &offset);
             break;
         case 55:
             decode_create_gc (client, sequence_number, data, buffer, remaining, &offset);
             break;
         case 98:
             decode_query_extension (client, sequence_number, data, buffer, remaining, &offset);
+            break;
+        case 104:
+            decode_bell (client, sequence_number, data, buffer, remaining, &offset);
+            break;
+        case 127:
+            decode_no_operation (client, sequence_number, data, buffer, remaining, &offset);
             break;
         case 135:
             decode_big_req_enable (client, sequence_number, data, buffer, remaining, &offset);

@@ -220,9 +220,47 @@ typedef struct
 
 typedef struct
 {
+    guint8 direction;
+    guint32 window;
+} XCirculateWindow;
+
+typedef struct
+{
+    guint32 drawable;
+} XGetGeometry;
+
+typedef struct
+{
+    guint32 window;
+} XQueryTree;
+
+typedef struct
+{
     gboolean only_if_exists;
     gchar *name;
 } XInternAtom;
+
+typedef struct
+{
+    guint32 atom;
+} XGetAtomName;
+
+typedef struct
+{
+    guint8 mode;
+    guint32 window;
+    guint32 property;
+    guint32 type;
+    guint8 format;
+    guint32 length;
+    guint8 *data;
+} XChangeProperty;
+
+typedef struct
+{
+    guint32 window;  
+    guint32 property;
+} XDeleteProperty;
 
 typedef struct
 {
@@ -233,6 +271,11 @@ typedef struct
     guint32 long_offset;
     guint32 long_length;
 } XGetProperty;
+
+typedef struct
+{
+    guint32 window;
+} XListProperties;
 
 typedef struct
 {
@@ -269,6 +312,11 @@ typedef struct
     gchar *name;
 } XQueryExtension;
 
+typedef struct
+{
+    guint8 percent;
+} XBell;
+
 typedef struct XClientPrivate XClientPrivate;
 
 typedef struct
@@ -293,10 +341,18 @@ typedef struct
    void (*unmap_window)(XClient *client, XUnmapWindow *message);
    void (*unmap_subwindows)(XClient *client, XUnmapSubwindows *message);
    void (*configure_window)(XClient *client, XConfigureWindow *message);
+   void (*circulate_window)(XClient *client, XCirculateWindow *message);
+   void (*get_geometry)(XClient *client, XGetGeometry *message);
+   void (*query_tree)(XClient *client, XQueryTree *message);
    void (*intern_atom)(XClient *client, XInternAtom *message);
+   void (*get_atom_name)(XClient *client, XGetAtomName *message);
+   void (*change_property)(XClient *client, XChangeProperty *message);
+   void (*delete_property)(XClient *client, XDeleteProperty *message);
    void (*get_property)(XClient *client, XGetProperty *message);
+   void (*list_properties)(XClient *client, XListProperties *message);
    void (*create_gc)(XClient *client, XCreateGC *message);
    void (*query_extension)(XClient *client, XQueryExtension *message);
+   void (*bell)(XClient *client, XBell *message);
    void (*disconnected)(XClient *client);
 } XClientClass;
 
