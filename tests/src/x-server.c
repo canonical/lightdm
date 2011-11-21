@@ -84,7 +84,12 @@ enum
     X_CLIENT_DELETE_PROPERTY,
     X_CLIENT_GET_PROPERTY,
     X_CLIENT_LIST_PROPERTIES,
+    X_CLIENT_CREATE_PIXMAP,
+    X_CLIENT_FREE_PIXMAP,
     X_CLIENT_CREATE_GC,
+    X_CLIENT_CHANGE_GC,
+    X_CLIENT_COPY_GC,
+    X_CLIENT_FREE_GC,
     X_CLIENT_QUERY_EXTENSION,
     X_CLIENT_BELL,
     X_CLIENT_DISCONNECTED,
@@ -482,11 +487,51 @@ x_client_class_init (XClientClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__POINTER,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_CREATE_PIXMAP] =
+        g_signal_new ("create_pixmap",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, create_pixmap),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_FREE_PIXMAP] =
+        g_signal_new ("free_pixmap",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, free_pixmap),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
     x_client_signals[X_CLIENT_CREATE_GC] =
         g_signal_new ("create-gc",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XClientClass, create_gc),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_CHANGE_GC] =
+        g_signal_new ("change-gc",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, change_gc),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_COPY_GC] =
+        g_signal_new ("copy-gc",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, copy_gc),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__POINTER,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    x_client_signals[X_CLIENT_FREE_GC] =
+        g_signal_new ("free-gc",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XClientClass, free_gc),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__POINTER,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
@@ -962,6 +1007,36 @@ decode_list_properties (XClient *client, guint16 sequence_number, guint8 data, c
 }
 
 static void
+decode_create_pixmap (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XCreatePixmap *message;
+
+    message = g_malloc0 (sizeof (XCreatePixmap));
+    message->depth = data;
+    message->pid = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->drawable = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->width = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->height = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+
+    g_signal_emit (client, x_client_signals[X_CLIENT_CREATE_PIXMAP], 0, message);
+
+    g_free (message);
+}
+
+static void
+decode_free_pixmap (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XFreePixmap *message;
+
+    message = g_malloc0 (sizeof (XFreePixmap));
+    message->pixmap = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+
+    g_signal_emit (client, x_client_signals[X_CLIENT_FREE_PIXMAP], 0, message);
+
+    g_free (message);
+}
+
+static void
 decode_create_gc (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
 {
     XCreateGC *message;
@@ -1068,6 +1143,236 @@ decode_create_gc (XClient *client, guint16 sequence_number, guint8 data, const g
 
     g_signal_emit (client, x_client_signals[X_CLIENT_CREATE_GC], 0, message);
   
+    g_free (message);
+}
+
+static void
+decode_change_gc (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XChangeGC *message;
+
+    message = g_malloc0 (sizeof (XChangeGC));
+    message->gc = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->value_mask = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_function) != 0)
+    {      
+        message->function = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_plane_mask) != 0)
+        message->plane_mask = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_foreground) != 0)
+        message->foreground = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_background) != 0)
+        message->background = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_line_width) != 0)
+    {
+        message->line_width = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+        read_padding (2, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_line_style) != 0)
+    {
+        message->line_style = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_cap_style) != 0)
+    {
+        message->cap_style = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_join_style) != 0)
+    {
+        message->join_style = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_fill_style) != 0)
+    {
+        message->fill_style = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_fill_rule) != 0)
+    {
+        message->fill_rule = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_tile) != 0)
+        message->tile = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_stipple) != 0)
+        message->stipple = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_tile_stipple_x_origin) != 0)
+    {
+        message->tile_stipple_x_origin = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+        read_padding (2, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_tile_stipple_y_origin) != 0)
+    {
+        message->tile_stipple_y_origin = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+        read_padding (2, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_font) != 0)
+        message->font = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_subwindow_mode) != 0)
+    {
+        message->subwindow_mode = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_graphics_exposures) != 0)
+    {
+        message->graphics_exposures = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_clip_x_origin) != 0)
+    {
+        message->clip_x_origin = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+        read_padding (2, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_clip_y_origin) != 0)
+    {
+        message->clip_y_origin = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+        read_padding (2, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_clip_mask) != 0)
+        message->clip_mask = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_dash_offset) != 0)
+    {
+        message->dash_offset = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+        read_padding (2, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_dashes) != 0)
+    {
+        message->dashes = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_arc_mode) != 0)
+    {
+        message->arc_mode = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+
+    g_signal_emit (client, x_client_signals[X_CLIENT_CHANGE_GC], 0, message);
+
+    g_free (message);
+}
+
+static void
+decode_copy_gc (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XCopyGC *message;
+
+    message = g_malloc0 (sizeof (XCopyGC));
+    message->src_gc = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->dst_gc = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    message->value_mask = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_function) != 0)
+    {      
+        message->function = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_plane_mask) != 0)
+        message->plane_mask = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_foreground) != 0)
+        message->foreground = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_background) != 0)
+        message->background = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_line_width) != 0)
+    {
+        message->line_width = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+        read_padding (2, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_line_style) != 0)
+    {
+        message->line_style = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_cap_style) != 0)
+    {
+        message->cap_style = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_join_style) != 0)
+    {
+        message->join_style = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_fill_style) != 0)
+    {
+        message->fill_style = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_fill_rule) != 0)
+    {
+        message->fill_rule = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_tile) != 0)
+        message->tile = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_stipple) != 0)
+        message->stipple = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_tile_stipple_x_origin) != 0)
+    {
+        message->tile_stipple_x_origin = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+        read_padding (2, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_tile_stipple_y_origin) != 0)
+    {
+        message->tile_stipple_y_origin = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+        read_padding (2, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_font) != 0)
+        message->font = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_subwindow_mode) != 0)
+    {
+        message->subwindow_mode = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_graphics_exposures) != 0)
+    {
+        message->graphics_exposures = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_clip_x_origin) != 0)
+    {
+        message->clip_x_origin = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+        read_padding (2, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_clip_y_origin) != 0)
+    {
+        message->clip_y_origin = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+        read_padding (2, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_clip_mask) != 0)
+        message->clip_mask = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+    if ((message->value_mask & X_GC_VALUE_MASK_dash_offset) != 0)
+    {
+        message->dash_offset = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
+        read_padding (2, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_dashes) != 0)
+    {
+        message->dashes = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+    if ((message->value_mask & X_GC_VALUE_MASK_arc_mode) != 0)
+    {
+        message->arc_mode = read_card8 (buffer, buffer_length, offset);
+        read_padding (3, offset);
+    }
+
+    g_signal_emit (client, x_client_signals[X_CLIENT_COPY_GC], 0, message);
+
+    g_free (message);
+}
+
+static void
+decode_free_gc (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
+{
+    XFreeGC *message;
+
+    message = g_malloc0 (sizeof (XFreeGC));
+    message->gc = read_card32 (buffer, buffer_length, client->priv->byte_order, offset);
+
+    g_signal_emit (client, x_client_signals[X_CLIENT_FREE_GC], 0, message);
+
     g_free (message);
 }
 
@@ -1197,8 +1502,23 @@ decode_request (XClient *client, guint16 sequence_number, const guint8 *buffer, 
         case 21:
             decode_list_properties (client, sequence_number, data, buffer, remaining, &offset);
             break;
+        case 53:
+            decode_create_pixmap (client, sequence_number, data, buffer, remaining, &offset);
+            break;
+        case 54:
+            decode_free_pixmap (client, sequence_number, data, buffer, remaining, &offset);
+            break;
         case 55:
             decode_create_gc (client, sequence_number, data, buffer, remaining, &offset);
+            break;
+        case 56:
+            decode_change_gc (client, sequence_number, data, buffer, remaining, &offset);
+            break;
+        case 57:
+            decode_copy_gc (client, sequence_number, data, buffer, remaining, &offset);
+            break;
+        case 60:
+            decode_free_gc (client, sequence_number, data, buffer, remaining, &offset);
             break;
         case 98:
             decode_query_extension (client, sequence_number, data, buffer, remaining, &offset);

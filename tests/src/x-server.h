@@ -279,6 +279,20 @@ typedef struct
 
 typedef struct
 {
+    guint8 depth;
+    guint32 pid;
+    guint32 drawable;
+    guint16 width;
+    guint16 height;
+} XCreatePixmap;
+
+typedef struct
+{
+    guint32 pixmap;
+} XFreePixmap;
+
+typedef struct
+{
     guint32 cid;
     guint32 drawable;
     guint32 value_mask;
@@ -306,6 +320,70 @@ typedef struct
     guint8 dashes;
     guint8 arc_mode;
 } XCreateGC;
+
+typedef struct
+{
+    guint32 gc;
+    guint32 value_mask;
+    guint8 function;
+    guint32 plane_mask;
+    guint32 foreground;
+    guint32 background;
+    guint16 line_width;
+    guint8 line_style;
+    guint8 cap_style;
+    guint8 join_style;
+    guint8 fill_style;
+    guint8 fill_rule;
+    guint32 tile;
+    guint32 stipple;
+    guint16 tile_stipple_x_origin;
+    guint16 tile_stipple_y_origin;
+    guint32 font;
+    guint8 subwindow_mode;
+    gboolean graphics_exposures;
+    guint16 clip_x_origin;
+    guint16 clip_y_origin;
+    guint32 clip_mask;
+    guint16 dash_offset;
+    guint8 dashes;
+    guint8 arc_mode;
+} XChangeGC;
+
+typedef struct
+{
+    guint32 src_gc;
+    guint32 dst_gc;
+    guint32 value_mask;
+    guint8 function;
+    guint32 plane_mask;
+    guint32 foreground;
+    guint32 background;
+    guint16 line_width;
+    guint8 line_style;
+    guint8 cap_style;
+    guint8 join_style;
+    guint8 fill_style;
+    guint8 fill_rule;
+    guint32 tile;
+    guint32 stipple;
+    guint16 tile_stipple_x_origin;
+    guint16 tile_stipple_y_origin;
+    guint32 font;
+    guint8 subwindow_mode;
+    gboolean graphics_exposures;
+    guint16 clip_x_origin;
+    guint16 clip_y_origin;
+    guint32 clip_mask;
+    guint16 dash_offset;
+    guint8 dashes;
+    guint8 arc_mode;
+} XCopyGC;
+
+typedef struct
+{
+    guint32 gc;
+} XFreeGC;
 
 typedef struct
 {
@@ -350,7 +428,12 @@ typedef struct
    void (*delete_property)(XClient *client, XDeleteProperty *message);
    void (*get_property)(XClient *client, XGetProperty *message);
    void (*list_properties)(XClient *client, XListProperties *message);
+   void (*create_pixmap)(XClient *client, XCreatePixmap *message);
+   void (*free_pixmap)(XClient *client, XFreePixmap *message);
    void (*create_gc)(XClient *client, XCreateGC *message);
+   void (*change_gc)(XClient *client, XChangeGC *message);
+   void (*copy_gc)(XClient *client, XCopyGC *message);
+   void (*free_gc)(XClient *client, XFreeGC *message);
    void (*query_extension)(XClient *client, XQueryExtension *message);
    void (*bell)(XClient *client, XBell *message);
    void (*disconnected)(XClient *client);
