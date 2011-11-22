@@ -16,16 +16,15 @@
 #include <QtCore/QObject>
 #include <QtCore/QVariant>
 
-class GreeterPrivate;
 
 namespace QLightDM
 {
+    class GreeterPrivate;
 
 class Q_DECL_EXPORT Greeter : public QObject
 {
     Q_OBJECT
 public:
-
     enum PromptType {
         PromptTypeQuestion,
         PromptTypeSecret
@@ -65,16 +64,14 @@ public slots:
     bool startSessionSync(const QString &session=QString());
 
 signals:
-    void showMessage(QString text, Greeter::MessageType type);
-    void showPrompt(QString text, Greeter::PromptType type);
+    void showMessage(QString text, QLightDM::Greeter::MessageType type);
+    void showPrompt(QString text, QLightDM::Greeter::PromptType type);
     void authenticationComplete();
     void autologinTimerExpired();
 
-private slots:
-    void onRead(int fd);
-
 private:
-    GreeterPrivate *d;
+    GreeterPrivate *d_ptr;
+    Q_DECLARE_PRIVATE(Greeter);
 
 };
 };
