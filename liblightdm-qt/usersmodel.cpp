@@ -62,11 +62,6 @@ UsersModelPrivate::UsersModelPrivate(UsersModel* parent) :
     q_ptr(parent)
 {
     g_type_init();
-    loadUsers();
-    g_signal_connect(lightdm_user_list_get_instance(), "user-added", G_CALLBACK (cb_userAdded), this);
-    g_signal_connect(lightdm_user_list_get_instance(), "user-changed", G_CALLBACK (cb_userChanged), this);
-    g_signal_connect(lightdm_user_list_get_instance(), "user-removed", G_CALLBACK (cb_userRemoved), this);
-
 }
 
 void UsersModelPrivate::loadUsers()
@@ -96,6 +91,10 @@ void UsersModelPrivate::loadUsers()
 
         q->endInsertRows();
     }
+    g_signal_connect(lightdm_user_list_get_instance(), "user-added", G_CALLBACK (cb_userAdded), this);
+    g_signal_connect(lightdm_user_list_get_instance(), "user-changed", G_CALLBACK (cb_userChanged), this);
+    g_signal_connect(lightdm_user_list_get_instance(), "user-removed", G_CALLBACK (cb_userRemoved), this);
+
 }
 
 void UsersModelPrivate::cb_userAdded(LightDMUserList *user_list, LightDMUser *ldmUser, gpointer data)
@@ -103,7 +102,7 @@ void UsersModelPrivate::cb_userAdded(LightDMUserList *user_list, LightDMUser *ld
     Q_UNUSED(user_list)
     UsersModelPrivate *that = static_cast<UsersModelPrivate*>(data);
 
-    that->q_ptr->beginInsertRows(QModelIndex(), that->users.size(), that->users.size());
+    that->q_func()->beginInsertRows(QModelIndex(), that->users.size(), that->users.size());
 
     UserItem user;
     user.name = QString::fromLocal8Bit(lightdm_user_get_name(ldmUser));
@@ -113,7 +112,7 @@ void UsersModelPrivate::cb_userAdded(LightDMUserList *user_list, LightDMUser *ld
     user.isLoggedIn = lightdm_user_get_logged_in(ldmUser);
     that->users.append(user);
 
-    that->q_ptr->endRemoveRows();
+    that->q_func()->endInsertRows();
 
 }
 
@@ -162,6 +161,8 @@ UsersModel::UsersModel(QObject *parent) :
     QAbstractListModel(parent),
     d_ptr(new UsersModelPrivate(this))
 {
+    Q_D(UsersModel);
+    d->loadUsers();
 
 }
 
