@@ -14,12 +14,12 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2011-10-05 04:51+0000\n"
-"X-Generator: Launchpad (build 14085)\n"
+"X-Launchpad-Export-Date: 2011-11-23 05:55+0000\n"
+"X-Generator: Launchpad (build 14336)\n"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:409
 msgid "Are you sure you want to close all programs and restart the computer?"
-msgstr "Alli programm gšliesse und de kompiuter niw štarte?"
+msgstr "Aḷi prograṃ gšlieṣe und de kompiuter niw štarte?"
 
 #: ../greeters/gtk/greeter.ui.h:1
 msgid "Cancel"
@@ -32,15 +32,15 @@ msgstr "Niwštart"
 #: ../greeters/gtk/lightdm-gtk-greeter.c:434
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
-msgstr "Alli programm gšliesse und de kompiuter abštelle?"
+msgstr "Aḷi prograṃ gšlieṣe und de kompiuter abšteḷe?"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:435
 msgid "Shutdown"
-msgstr "Abštelle"
+msgstr "Abšteḷe"
 
 #: ../greeters/gtk/greeter.ui.h:4
 msgid "Large Font"
-msgstr "Grosi šrift"
+msgstr "Groṣi šrift"
 
 #: ../greeters/ldm-gtk-greeter.c:611
 msgid "High Constrast"
@@ -76,7 +76,7 @@ msgstr "Niwštart..."
 
 #: ../greeters/gtk/greeter.ui.h:7
 msgid "Shutdown..."
-msgstr "Abštelle..."
+msgstr "Abšteḷe..."
 
 #. Description on how to use Light Display Manager displayed on command-line
 #: ../src/lightdm.c:100
