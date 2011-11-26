@@ -38,10 +38,7 @@ public:
     explicit Greeter(QObject* parent=0);
     virtual ~Greeter();
 
-    QString timedLoginUser() const;
-    int timedLoginDelay() const;
-
-    QString getHint(const QString &name) const;
+    QString getHint(const QString &name) const;   
     QString defaultSessionHint() const;
     bool hideUsersHint() const;
     bool hasGuestAccountHint() const;
@@ -50,6 +47,7 @@ public:
     QString autologinUserHint() const;
     bool autologinGuestHint() const;
     int autologinTimeoutHint() const;
+
     bool inAuthentication() const;
     bool isAuthenticated() const;
     QString authenticationUser() const;
@@ -71,7 +69,7 @@ signals:
 
 private:
     GreeterPrivate *d_ptr;
-    Q_DECLARE_PRIVATE(Greeter);
+    Q_DECLARE_PRIVATE(Greeter)
 
 };
 };

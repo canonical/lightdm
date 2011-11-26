@@ -147,13 +147,13 @@ bool Greeter::isAuthenticated() const
 QString Greeter::authenticationUser() const
 {
     Q_D(const Greeter);
-    const gchar* string = lightdm_greeter_get_authentication_user(d->ldmGreeter);
-    QString authenticationUser = QString::fromLocal8Bit(string);
-    return authenticationUser;
+    return QString::fromLocal8Bit(lightdm_greeter_get_authentication_user(d->ldmGreeter));
 }
 
 void Greeter::setLanguage (const QString &language)
 {
+    Q_D(Greeter);
+    lightdm_greeter_set_language(d->ldmGreeter, language.toLocal8Bit().constData());
 }
 
 bool Greeter::startSessionSync(const QString &session)
@@ -165,38 +165,56 @@ bool Greeter::startSessionSync(const QString &session)
 
 QString Greeter::getHint(const QString &name) const
 {
+    Q_D(Greeter());
+    return lightdm_greeter_get_hint(d->ldmGreeter, name.toLocal8Bit().constData());
 }
 
 QString Greeter::defaultSessionHint() const
 {
+    Q_D(const Greeter);
+    return QString::fromLocal8Bit(lightdm_greeter_get_default_session_hint(d->ldmGreeter));
 }
 
 bool Greeter::hideUsersHint() const
 {
+    Q_D(const Greeter);
+    return lightdm_greeter_get_hide_users_hint(d->ldmGreeter);
 }
 
 bool Greeter::hasGuestAccountHint() const
 {
+    Q_D(const Greeter);
+    return lightdm_greeter_get_has_guest_account_hint(d->ldmGreeter);
 }
 
 QString Greeter::selectUserHint() const
 {
+    Q_D(const Greeter);
+    return QString::fromLocal8Bit(lightdm_greeter_get_select_user_hint(d->ldmGreeter));
 }
 
 bool Greeter::selectGuestHint() const
 {
+    Q_D(const Greeter);
+    return lightdm_greeter_get_select_guest_hint(d->ldmGreeter);
 }
 
 QString Greeter::autologinUserHint() const
 {
+    Q_D(const Greeter);
+    return QString::fromLocal8Bit(lightdm_greeter_get_autologin_user_hint(d->ldmGreeter));
 }
 
 bool Greeter::autologinGuestHint() const
 {
+    Q_D(const Greeter);
+    return lightdm_greeter_get_autologin_guest_hint(d->ldmGreeter);
 }
 
 int Greeter::autologinTimeoutHint() const
 {
+    Q_D(const Greeter);
+    return lightdm_greeter_get_autologin_timeout_hint(d->ldmGreeter);
 }
 
 #include "greeter_moc.cpp"

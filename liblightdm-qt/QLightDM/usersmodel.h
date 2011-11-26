@@ -36,9 +36,10 @@ public:
     QVariant data(const QModelIndex &index, int role) const;
 
 protected:
-    UsersModelPrivate * const d_ptr;
 
 private:
+    UsersModelPrivate * const d_ptr;
+
     Q_DECLARE_PRIVATE(UsersModel)
 
 };
