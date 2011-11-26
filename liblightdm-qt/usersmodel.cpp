@@ -43,6 +43,7 @@ namespace QLightDM {
 class UsersModelPrivate {
 public:
     UsersModelPrivate(UsersModel *parent);
+    virtual ~UsersModelPrivate();
     QList<UserItem> users;
 
     protected:
@@ -62,6 +63,11 @@ UsersModelPrivate::UsersModelPrivate(UsersModel* parent) :
     q_ptr(parent)
 {
     g_type_init();
+}
+
+UsersModelPrivate::~UsersModelPrivate()
+{
+    g_signal_handlers_disconnect_by_func(lightdm_user_list_get_instance(), NULL, this);
 }
 
 void UsersModelPrivate::loadUsers()
@@ -94,8 +100,9 @@ void UsersModelPrivate::loadUsers()
     g_signal_connect(lightdm_user_list_get_instance(), "user-added", G_CALLBACK (cb_userAdded), this);
     g_signal_connect(lightdm_user_list_get_instance(), "user-changed", G_CALLBACK (cb_userChanged), this);
     g_signal_connect(lightdm_user_list_get_instance(), "user-removed", G_CALLBACK (cb_userRemoved), this);
-
 }
+
+
 
 void UsersModelPrivate::cb_userAdded(LightDMUserList *user_list, LightDMUser *ldmUser, gpointer data)
 {
