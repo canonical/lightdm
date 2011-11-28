@@ -13,7 +13,7 @@
 #include "ui_panel.h"
 
 #include <QLightDM/Greeter>
-#include <QLightDM/Session>
+#include <QLightDM/SessionsModel>
 #include <QLightDM/Power>
 
 #include <QMenu>

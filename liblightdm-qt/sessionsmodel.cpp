@@ -14,7 +14,7 @@
 #include <QtCore/QVariant>
 #include <QtCore/QDebug>
 
-#include <lightdm-gobject-1/lightdm.h>
+#include <lightdm.h>
 
 using namespace QLightDM;
 
