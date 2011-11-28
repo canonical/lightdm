@@ -15,7 +15,7 @@
 #include <QtCore/QDebug>
 #include <QtGui/QPixmap>
 
-#include <lightdm-gobject-1/lightdm.h>
+#include <lightdm.h>
 
 using namespace QLightDM;
 

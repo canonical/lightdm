@@ -18,7 +18,7 @@
 #include <QtCore/QVariant>
 #include <QtCore/QSettings>
 
-#include <lightdm-gobject-1/lightdm.h>
+#include <lightdm.h>
 
 using namespace QLightDM;
 
@@ -165,7 +165,7 @@ bool Greeter::startSessionSync(const QString &session)
 
 QString Greeter::getHint(const QString &name) const
 {
-    Q_D(Greeter());
+    Q_D(const Greeter);
     return lightdm_greeter_get_hint(d->ldmGreeter, name.toLocal8Bit().constData());
 }
 
