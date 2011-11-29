@@ -1,8 +1,0 @@
-SUBDIRS =
-
-if COMPILE_QT_GREETER
-SUBDIRS += qt
-endif
-
-DISTCLEANFILES = \
-	Makefile.in

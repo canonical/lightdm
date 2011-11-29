@@ -8,7 +8,7 @@ endif
 if COMPILE_TESTS
 SUBDIRS += tests
 endif
-SUBDIRS += data greeters po src doc utils
+SUBDIRS += data po src doc utils
 
 DISTCHECK_CONFIGURE_FLAGS = --enable-introspection --enable-gtk-doc
 

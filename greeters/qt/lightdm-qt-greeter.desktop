@@ -1,6 +1,0 @@
-[Desktop Entry]
-Name=LightDM Qt Greeter
-Comment=This runs the Qt greeter, it should only be run from LightDM
-Exec=lightdm-qt-greeter
-Type=Application
-X-Ubuntu-Gettext-Domain=lightdm
