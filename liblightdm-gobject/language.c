@@ -12,6 +12,8 @@
 #include <string.h>
 #include <locale.h>
 #include <langinfo.h>
+#include <stdio.h>
+#include <glib/gi18n.h>
 
 #include "lightdm/language.h"
 
@@ -39,6 +41,7 @@ static GList *languages = NULL;
 static void
 update_languages (void)
 {
+    gchar *command = "locale -a";
     gchar *stdout_text = NULL, *stderr_text = NULL;
     gint exit_status;
     gboolean result;
@@ -47,14 +50,14 @@ update_languages (void)
     if (have_languages)
         return;
 
-    result = g_spawn_command_line_sync ("locale -a", &stdout_text, &stderr_text, &exit_status, &error);
+    result = g_spawn_command_line_sync (command, &stdout_text, &stderr_text, &exit_status, &error);
     if (error)
     {
-        g_warning ("Failed to run 'locale -a': %s", error->message);
+        g_warning ("Failed to run '%s': %s", command, error->message);
         g_clear_error (&error);
     }
     else if (exit_status != 0)
-        g_warning ("Failed to get languages, locale -a returned %d", exit_status);
+        g_warning ("Failed to get languages, '%s' returned %d", command, exit_status);
     else if (result)
     {
         gchar **tokens;
@@ -71,7 +74,7 @@ update_languages (void)
                 continue;
 
             /* Ignore the non-interesting languages */
-            if (strcmp (code, "C") == 0 || g_str_has_prefix (code, "C.") || strcmp (code, "POSIX") == 0)
+            if (strcmp (command, "locale -a") == 0 && !g_strrstr (code, ".utf8"))
                 continue;
 
             language = g_object_new (LIGHTDM_TYPE_LANGUAGE, "code", code, NULL);
@@ -85,6 +88,66 @@ update_languages (void)
     g_free (stderr_text);
 
     have_languages = TRUE;
+}
+
+static gboolean
+is_utf8 (const gchar *code)
+{
+    return g_strrstr (code, ".utf8") || g_strrstr (code, ".UTF-8");
+}
+
+/* Get a valid locale name that can be passed to setlocale(), so we always can use nl_langinfo() to get language and country names. */
+static gchar *
+get_locale_name (const gchar *code)
+{
+    gchar *locale = NULL, *language;
+    char *at;
+    static gchar **avail_locales;
+    gint i;
+
+    if (is_utf8 (code))
+        return (gchar *) code;
+
+    if ((at = strchr (code, '@')))
+        language = g_strndup (code, at - code);
+    else
+        language = g_strdup (code);
+
+    if (!avail_locales)
+    {
+        gchar *locales;
+        GError *error = NULL;
+
+        if (g_spawn_command_line_sync ("locale -a", &locales, NULL, NULL, &error))
+        {
+            avail_locales = g_strsplit (g_strchomp (locales), "\n", -1);
+            g_free (locales);
+        }
+        else
+        {
+            g_warning ("Failed to run 'locale -a': %s", error->message);
+            g_clear_error (&error);
+        }
+    }
+
+    if (avail_locales)
+    {
+        for (i = 0; avail_locales[i]; i++)
+        {
+            gchar *loc = avail_locales[i];
+            if (!g_strrstr (loc, ".utf8"))
+                continue;
+            if (g_str_has_prefix (loc, language))
+            {
+                locale = g_strdup (loc);
+                break;
+            }
+        }
+    }
+
+    g_free (language);
+
+    return locale;
 }
 
 /**
@@ -162,16 +225,25 @@ lightdm_language_get_name (LightDMLanguage *language)
 
     if (!priv->name)
     {
-        char *current = setlocale(LC_ALL, NULL);
-        setlocale(LC_ALL, priv->code);
-#ifdef _NL_IDENTIFICATION_LANGUAGE
-        priv->name = g_strdup (nl_langinfo (_NL_IDENTIFICATION_LANGUAGE));
-#else
-        priv->name = g_strdup (priv->code);
-        if (strchr (priv->name, '_'))
-            *strchr (priv->name, '_') = '\0';
-#endif
-        setlocale(LC_ALL, current);
+        gchar *locale = get_locale_name (priv->code);
+        if (locale)
+        {
+            gchar *current = setlocale (LC_ALL, NULL);
+            setlocale (LC_IDENTIFICATION, locale);
+            setlocale (LC_MESSAGES, "");
+
+            gchar *language_en = nl_langinfo (_NL_IDENTIFICATION_LANGUAGE);
+            if (language_en && strlen (language_en) > 0)
+                priv->name = g_strdup (dgettext ("iso_639_3", language_en));
+
+            setlocale (LC_ALL, current);
+        }
+        if (!priv->name)
+        {
+            gchar **tokens = g_strsplit_set (priv->code, "_.@", 2);
+            priv->name = g_strdup (tokens[0]);
+            g_strfreev (tokens);
+        }
     }
 
     return priv->name;
@@ -194,32 +266,30 @@ lightdm_language_get_territory (LightDMLanguage *language)
 
     priv = GET_PRIVATE (language);
 
-    if (!priv->territory)
+    if (!priv->territory && strchr (priv->code, '_'))
     {
-        char *current = setlocale(LC_ALL, NULL);
-        setlocale(LC_ALL, priv->code);
-#ifdef _NL_IDENTIFICATION_TERRITORY
-        priv->territory = g_strdup (nl_langinfo (_NL_IDENTIFICATION_TERRITORY));
-#else
-        if (strchr (priv->code, '_'))
+        gchar *locale = get_locale_name (priv->code);
+        if (locale)
         {
-            priv->territory = g_strdup (strchr (priv->code, '_') + 1);
-            if (strchr (priv->territory, '.'))
-                *strchr (priv->territory, '.') = '\0';
-        }      
-        else
-            priv->territory = g_strdup ("");        
-#endif
-        setlocale(LC_ALL, current);
+            gchar *current = setlocale (LC_ALL, NULL);
+            setlocale (LC_IDENTIFICATION, locale);
+            setlocale (LC_MESSAGES, "");
+
+            gchar *country_en = nl_langinfo (_NL_IDENTIFICATION_TERRITORY);
+            if (country_en && strlen (country_en) > 0 && g_strcmp0 (country_en, "ISO") != 0)
+                priv->territory = g_strdup (dgettext ("iso_3166", country_en));
+
+            setlocale (LC_ALL, current);
+        }
+        if (!priv->territory)
+        {
+            gchar **tokens = g_strsplit_set (priv->code, "_.@", 3);
+            priv->territory = g_strdup (tokens[1]);
+            g_strfreev (tokens);
+        }
     }
 
     return priv->territory;
-}
-
-static gboolean
-is_utf8 (const gchar *code)
-{
-    return g_str_has_suffix (code, ".utf8") || g_str_has_suffix (code, ".UTF-8");
 }
 
 /**

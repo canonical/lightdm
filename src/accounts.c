@@ -354,11 +354,14 @@ user_get_locale (User *user)
 }
 
 void
-user_set_locale (User *user, const gchar *locale)
+user_set_language (User *user, const gchar *language)
 {
     g_return_if_fail (user != NULL);
-    if (!user->priv->proxy)
-        save_string_to_dmrc (user->priv->name, "Desktop", "Language", locale);
+
+    if (user->priv->proxy)
+        call_method (user->priv->proxy, "SetLanguage", g_variant_new ("(s)", language), "()", NULL);
+    else
+        save_string_to_dmrc (user->priv->name, "Desktop", "Language", language);
 }
 
 void
