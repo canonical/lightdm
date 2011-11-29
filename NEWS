@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.1.2
+
+    * Move the GTK+ and Qt greeters into their own projects
+
 Overview of changes in lightdm 1.1.1
 
     * Add a --disable-tests option
