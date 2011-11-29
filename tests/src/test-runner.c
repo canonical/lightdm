@@ -16,6 +16,12 @@
 #define UNIX_PATH_MAX 108
 #endif
 
+/* Timeout in ms waiting for the status we expect */
+#define STATUS_TIMEOUT 2000
+
+/* Timeout in ms to wait for SIGTERM to kill compiz */
+#define KILL_TIMEOUT 2000
+
 static GKeyFile *config;
 static GPid lightdm_pid = 0;
 static gchar *status_socket_name = NULL;
@@ -27,14 +33,30 @@ static guint status_timeout = 0;
 static gboolean failed = FALSE;
 static gchar *temp_dir = NULL;
 static GList *children = NULL;
+static guint lightdm_kill_timeout = 0;
 
 static void check_status (const gchar *status);
+
+static gboolean
+lightdm_kill_timeout_cb (gpointer data)
+{
+    if (getenv ("DEBUG"))
+        g_print ("Sending SIGKILL to LightDM\n");
+    kill (lightdm_pid, SIGKILL);
+    lightdm_kill_timeout = 0;
+    return FALSE;
+}
 
 static void
 stop_daemon ()
 {
-    if (lightdm_pid)
+    if (lightdm_pid && lightdm_kill_timeout == 0)
+    {
+        if (getenv ("DEBUG"))
+            g_print ("Sending SIGTERM to LightDM\n");  
         kill (lightdm_pid, SIGTERM);
+        lightdm_kill_timeout = g_timeout_add (KILL_TIMEOUT, lightdm_kill_timeout_cb, NULL);
+    }
 }
 
 static void
@@ -101,11 +123,15 @@ daemon_exit_cb (GPid pid, gint status, gpointer data)
 {
     gchar *status_text;
 
+    lightdm_pid = 0;
+
+    if (lightdm_kill_timeout)
+        g_source_remove (lightdm_kill_timeout);
+    lightdm_kill_timeout = 0;
+
     /* Quit when the daemon does */
     if (failed)
         quit (EXIT_FAILURE);
-
-    lightdm_pid = 0;
   
     if (WIFEXITED (status))
         status_text = g_strdup_printf ("RUNNER DAEMON-EXIT STATUS=%d", WEXITSTATUS (status));
@@ -375,7 +401,7 @@ check_status (const gchar *status)
 
     /* Restart timeout */
     g_source_remove (status_timeout);
-    status_timeout = g_timeout_add (2000, status_timeout_cb, NULL);
+    status_timeout = g_timeout_add (STATUS_TIMEOUT, status_timeout_cb, NULL);
 
     run_commands ();
 }
@@ -638,7 +664,7 @@ main (int argc, char **argv)
 
     run_commands ();
 
-    status_timeout = g_timeout_add (2000, status_timeout_cb, NULL);
+    status_timeout = g_timeout_add (STATUS_TIMEOUT, status_timeout_cb, NULL);
 
     command_line = g_string_new ("../src/lightdm");
     if (getenv ("DEBUG"))
