@@ -111,8 +111,6 @@ AC_ARG_ENABLE(tests,
 AM_CONDITIONAL(COMPILE_TESTS, test x"$enable_tests" != "xno")
 
 AC_PATH_PROG(GLIB_GENMARSHAL, glib-genmarshal)
-AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)
-AC_SUBST(DBUSBINDINGTOOL)
 
 dnl ###########################################################################
 dnl Configurable values
