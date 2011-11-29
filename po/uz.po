@@ -14,33 +14,33 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2011-11-23 05:54+0000\n"
-"X-Generator: Launchpad (build 14336)\n"
+"X-Launchpad-Export-Date: 2011-11-29 05:50+0000\n"
+"X-Generator: Launchpad (build 14399)\n"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:409
 msgid "Are you sure you want to close all programs and restart the computer?"
-msgstr ""
+msgstr "Ҳамма дастурларни ёпишга ва компьютерни ўчириб-ёқишга розимисиз?"
 
 #: ../greeters/gtk/greeter.ui.h:1
 msgid "Cancel"
-msgstr ""
+msgstr "Бекор қилиш"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:410
 msgid "Restart"
-msgstr ""
+msgstr "Ўчириб-ёқиш"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:434
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
-msgstr ""
+msgstr "Барча дастурларни ёпишни ва компьютерни ўчиришни хоҳлайсизми?"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:435
 msgid "Shutdown"
-msgstr ""
+msgstr "Ўчириш"
 
 #: ../greeters/gtk/greeter.ui.h:4
 msgid "Large Font"
-msgstr ""
+msgstr "Катта шрифт"
 
 #: ../greeters/ldm-gtk-greeter.c:611
 msgid "High Constrast"
@@ -64,19 +64,19 @@ msgstr ""
 
 #: ../greeters/gtk/greeter.ui.h:8
 msgid "Suspend"
-msgstr ""
+msgstr "Кутиш усули"
 
 #: ../greeters/gtk/greeter.ui.h:2
 msgid "Hibernate"
-msgstr ""
+msgstr "Уйқуга кетиш"
 
 #: ../greeters/gtk/greeter.ui.h:6
 msgid "Restart..."
-msgstr ""
+msgstr "Ўчириб-ёқиш"
 
 #: ../greeters/gtk/greeter.ui.h:7
 msgid "Shutdown..."
-msgstr ""
+msgstr "Ўчириш"
 
 #. Description on how to use Light Display Manager displayed on command-line
 #: ../src/lightdm.c:100
