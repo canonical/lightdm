@@ -23,56 +23,130 @@
 #define KILL_TIMEOUT 2000
 
 static GKeyFile *config;
-static GPid lightdm_pid = 0;
 static gchar *status_socket_name = NULL;
-static gboolean expect_exit = FALSE;
 static GList *statuses = NULL;
 static GList *script = NULL;
 static GList *script_iter = NULL;
 static guint status_timeout = 0;
 static gboolean failed = FALSE;
 static gchar *temp_dir = NULL;
-static GList *children = NULL;
-static guint lightdm_kill_timeout = 0;
+static GHashTable *processes = NULL;
+typedef struct
+{
+    pid_t pid;
+    guint kill_timeout;
+} Process;
+static Process *lightdm_process = NULL;
+static gboolean stop = FALSE;
+static gint exit_status = 0;
 
+static void quit (int status);
 static void check_status (const gchar *status);
 
 static gboolean
-lightdm_kill_timeout_cb (gpointer data)
+kill_timeout_cb (gpointer data)
 {
+    Process *process = data;
+
     if (getenv ("DEBUG"))
-        g_print ("Sending SIGKILL to LightDM\n");
-    kill (lightdm_pid, SIGKILL);
-    lightdm_kill_timeout = 0;
+        g_print ("Sending SIGKILL to process %d\n", process->pid);
+    kill (process->pid, SIGKILL);
     return FALSE;
 }
 
 static void
-stop_daemon ()
+stop_process (Process *process)
 {
-    if (lightdm_pid && lightdm_kill_timeout == 0)
+    if (process->kill_timeout != 0)
+        return;
+
+    if (getenv ("DEBUG"))
+        g_print ("Sending SIGTERM to process %d\n", process->pid);
+    kill (process->pid, SIGTERM);
+    process->kill_timeout = g_timeout_add (KILL_TIMEOUT, kill_timeout_cb, process);
+}
+
+static void
+process_exit_cb (GPid pid, gint status, gpointer data)
+{
+    Process *process;
+    gchar *status_text;
+  
+    if (getenv ("DEBUG"))
     {
-        if (getenv ("DEBUG"))
-            g_print ("Sending SIGTERM to LightDM\n");  
-        kill (lightdm_pid, SIGTERM);
-        lightdm_kill_timeout = g_timeout_add (KILL_TIMEOUT, lightdm_kill_timeout_cb, NULL);
+        if (WIFEXITED (status))
+            g_print ("Process %d exited with status %d\n", pid, WEXITSTATUS (status));
+        else
+            g_print ("Process %d terminated with signal %d\n", pid, WTERMSIG (status));
     }
+
+    process = g_hash_table_lookup (processes, GINT_TO_POINTER (pid));
+    if (!process)
+        return;
+    g_hash_table_remove (processes, GINT_TO_POINTER (pid));  
+
+    if (process->kill_timeout)
+        g_source_remove (process->kill_timeout);
+    process->kill_timeout = 0;
+
+    /* Quit once all processes have stopped */
+    if (stop)
+        quit (exit_status);
+
+    if (pid == lightdm_process->pid)
+    {
+        if (WIFEXITED (status))
+            status_text = g_strdup_printf ("RUNNER DAEMON-EXIT STATUS=%d", WEXITSTATUS (status));
+        else
+            status_text = g_strdup_printf ("RUNNER DAEMON-TERMINATE SIGNAL=%d", WTERMSIG (status));
+        check_status (status_text);
+    }
+}
+
+static Process *
+watch_process (pid_t pid)
+{
+    Process *process;
+  
+    if (getenv ("DEBUG"))
+        g_print ("Watching process %d\n", pid);
+
+    process = g_malloc0 (sizeof (Process));
+    process->pid = pid;
+    process->kill_timeout = 0;
+    g_child_watch_add (pid, process_exit_cb, NULL);
+
+    g_hash_table_insert (processes,  GINT_TO_POINTER (pid), process);
+  
+    return process;
 }
 
 static void
 quit (int status)
 {
-    GList *link;
+    GHashTableIter iter;
 
-    stop_daemon ();
+    stop = TRUE;
+    exit_status = status;
+
+    /* Stop all the processes */
+    g_hash_table_iter_init (&iter, processes);
+    while (TRUE)
+    {
+        gpointer key, value;
+
+        if (!g_hash_table_iter_next (&iter, &key, &value))
+            break;
+
+        stop_process ((Process *)value);
+    }
+
+    /* Don't quit until all processes are stopped */
+    if (g_hash_table_size (processes) > 0)
+        return;
+
     if (status_socket_name)
         unlink (status_socket_name);
-
-    for (link = children; link; link = link->next)
-    {
-        GPid pid = GPOINTER_TO_INT (link->data);
-        kill (pid, SIGTERM);
-    }
 
     if (temp_dir)
     {
@@ -103,11 +177,7 @@ fail (const gchar *event, const gchar *expected)
     else
         g_printerr ("^^^ expected nothing\n");
 
-    /* Either wait for the daemon to quit, or stop now if it already is */
-    if (lightdm_pid)
-        stop_daemon ();
-    else
-        quit (EXIT_FAILURE);
+    quit (EXIT_FAILURE);
 }
 
 static gchar *
@@ -116,28 +186,6 @@ get_script_line ()
     if (!script_iter)
         return NULL;
     return script_iter->data;
-}
-
-static void
-daemon_exit_cb (GPid pid, gint status, gpointer data)
-{
-    gchar *status_text;
-
-    lightdm_pid = 0;
-
-    if (lightdm_kill_timeout)
-        g_source_remove (lightdm_kill_timeout);
-    lightdm_kill_timeout = 0;
-
-    /* Quit when the daemon does */
-    if (failed)
-        quit (EXIT_FAILURE);
-  
-    if (WIFEXITED (status))
-        status_text = g_strdup_printf ("RUNNER DAEMON-EXIT STATUS=%d", WEXITSTATUS (status));
-    else
-        status_text = g_strdup_printf ("RUNNER DAEMON-TERMINATE SIGNAL=%d", WTERMSIG (status));
-    check_status (status_text);
 }
 
 static int
@@ -299,10 +347,7 @@ run_commands ()
             check_status ("RUNNER SWITCH-TO-GUEST");
         }
         else if (strcmp (name, "STOP-DAEMON") == 0)
-        {
-            expect_exit = TRUE;
-            stop_daemon ();
-        }
+            stop_process (lightdm_process);
         // FIXME: Make generic RUN-COMMAND
         else if (strcmp (name, "START-XSERVER") == 0)
         {
@@ -317,13 +362,13 @@ run_commands ()
             command_line = g_strdup_printf ("%s/tests/src/X %s", BUILDDIR, xserver_args);
 
             if (!g_shell_parse_argv (command_line, NULL, &argv, &error) ||
-                !g_spawn_async (NULL, argv, NULL, 0, NULL, NULL, &pid, &error))
+                !g_spawn_async (NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &pid, &error))
             {
                 g_printerr ("Error starting X server: %s", error->message);
                 quit (EXIT_FAILURE);
                 return;
             }
-            children = g_list_append (children, GINT_TO_POINTER (pid));
+            watch_process (pid);
         }
         else if (strcmp (name, "START-VNC-CLIENT") == 0)
         {
@@ -338,13 +383,13 @@ run_commands ()
             command_line = g_strdup_printf ("%s/tests/src/vnc-client %s", BUILDDIR, vnc_client_args);
 
             if (!g_shell_parse_argv (command_line, NULL, &argv, &error) ||
-                !g_spawn_async (NULL, argv, NULL, 0, NULL, NULL, &pid, &error))
+                !g_spawn_async (NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &pid, &error))
             {
                 g_printerr ("Error starting VNC client: %s", error->message);
                 quit (EXIT_FAILURE);
                 return;
             }
-            children = g_list_append (children, GINT_TO_POINTER (pid));
+            watch_process (pid);
         }
         else
         {
@@ -359,15 +404,7 @@ run_commands ()
 
     /* Stop at the end of the script */
     if (get_script_line () == NULL)
-    {
-        if (lightdm_pid)
-        {
-            expect_exit = TRUE;
-            stop_daemon ();
-        }
-        else
-            quit (EXIT_SUCCESS);
-    }
+        quit (EXIT_SUCCESS);
 }
 
 static gboolean
@@ -431,16 +468,8 @@ status_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 static void
 signal_cb (int signum)
 {
-    if (lightdm_pid != 0)
-    {
-        g_print ("Caught signal %d, killing daemon\n", signum);
-        stop_daemon ();
-    }
-    else
-    {
-        g_print ("Caught signal %d, quitting\n", signum);
-        quit (EXIT_FAILURE);
-    }
+    g_print ("Caught signal %d, quitting\n", signum);
+    quit (EXIT_FAILURE);
 }
 
 static void
@@ -491,12 +520,12 @@ create_bus (void)
         quit (EXIT_FAILURE);
     }
     g_clear_error (&error);
-    if (!g_spawn_async (NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_LEAVE_DESCRIPTORS_OPEN, NULL, NULL, &pid, &error))
+    if (!g_spawn_async (NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH | G_SPAWN_LEAVE_DESCRIPTORS_OPEN, NULL, NULL, &pid, &error))
     {
         g_warning ("Error launching LightDM: %s", error->message);
         quit (EXIT_FAILURE);
     }
-    children = g_list_append (children, GINT_TO_POINTER (pid));
+    watch_process (pid);
     n_read = read (name_pipe[0], address, 1023);
     if (n_read < 0)
     {
@@ -519,12 +548,15 @@ main (int argc, char **argv)
     GString *command_line;
     gchar **lightdm_argv;
     gchar cwd[1024];
+    pid_t lightdm_pid;
     GError *error = NULL;
 
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
 
     g_type_init ();
+  
+    processes = g_hash_table_new (g_direct_hash, g_direct_equal);
 
     loop = g_main_loop_new (NULL, FALSE);
 
@@ -692,10 +724,9 @@ main (int argc, char **argv)
         quit (EXIT_FAILURE);
     }
     g_clear_error (&error);
+    lightdm_process = watch_process (lightdm_pid);
 
     check_status ("RUNNER DAEMON-START");
-
-    g_child_watch_add (lightdm_pid, daemon_exit_cb, NULL);
 
     g_main_loop_run (loop);
 
