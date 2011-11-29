@@ -361,6 +361,36 @@ main (int argc, char **argv)
     lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
     if (lock_file < 0)
     {
+        char *lock_contents = NULL;
+
+        if (g_file_get_contents (lock_path, &lock_contents, NULL, NULL))
+        {
+            gchar *proc_filename;
+            pid_t pid;
+
+            pid = atol (lock_contents);
+            g_free (lock_contents);
+
+            proc_filename = g_strdup_printf ("/proc/%d", pid);
+            if (!g_file_test (proc_filename, G_FILE_TEST_EXISTS))
+            {
+                gchar *socket_path;
+
+                socket_path = g_strdup_printf ("/tmp/.X11-unix/X%d", display_number);
+
+                g_printerr ("Breaking lock on non-existant process %d\n", pid);
+                unlink (lock_path);
+                unlink (socket_path);
+
+                g_free (socket_path);
+            }
+            g_free (proc_filename);
+
+            lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
+        }
+    }
+    if (lock_file < 0)
+    {
         fprintf (stderr,
                  "Fatal server error:\n"
                  "Server is already active for display %d\n"
