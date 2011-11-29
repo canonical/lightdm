@@ -24,6 +24,9 @@ namespace QLightDM
 class Q_DECL_EXPORT Greeter : public QObject
 {
     Q_OBJECT
+    
+    Q_PROPERTY(bool authenticated READ isAuthenticated ); //NOTFIY authenticationComplete
+    
 public:
     enum PromptType {
         PromptTypeQuestion,
