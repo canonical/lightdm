@@ -1,9 +1,5 @@
 SUBDIRS =
 
-if COMPILE_GTK_GREETER
-SUBDIRS += gtk
-endif
-
 if COMPILE_QT_GREETER
 SUBDIRS += qt
 endif

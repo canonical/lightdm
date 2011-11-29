@@ -123,25 +123,6 @@ elif test x"$enable_qt_greeter" = "xyes"; then
 fi
 AM_CONDITIONAL(COMPILE_QT_GREETER, test $compile_qt_greeter = yes)
 
-AC_ARG_ENABLE(gtk-greeter,
-	AS_HELP_STRING([--enable-gtk-greeter],[Build GTK greeter [[default=auto]]]),
-	[enable_gtk_greeter=$enableval],
-	[enable_gtk_greeter="auto"])
-compile_gtk_greeter=no
-if test x"$enable_gtk_greeter" = "xauto"; then
-    PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
-        gtk+-3.0
-        gmodule-export-2.0
-    ], compile_gtk_greeter=yes, compile_gtk_greeter=no)
-elif test x"$enable_gtk_greeter" = "xyes"; then
-    PKG_CHECK_MODULES(LIGHTDM_GTK_GREETER, [
-        gtk+-3.0
-        gmodule-export-2.0
-    ])
-    compile_gtk_greeter=yes
-fi
-AM_CONDITIONAL(COMPILE_GTK_GREETER, test $compile_gtk_greeter = yes)
-
 AC_MSG_CHECKING(whether to build tests)
 AC_ARG_ENABLE(tests,
         AS_HELP_STRING([--disable-tests], [Disable tests building]),
@@ -213,7 +194,6 @@ data/Makefile
 data/init/Makefile
 doc/Makefile
 greeters/Makefile
-greeters/gtk/Makefile
 greeters/qt/Makefile
 liblightdm-gobject/liblightdm-gobject-1.pc
 liblightdm-gobject/Makefile
@@ -242,7 +222,6 @@ echo "
         liblightdm-gobject:       $compile_liblightdm_gobject
         GObject introspection:    $found_introspection
         liblightdm-qt:            $compile_liblightdm_qt
-        GTK+ Greeter:             $compile_gtk_greeter
         Qt Greeter:               $compile_qt_greeter
         Enable tests:             $enable_tests
 "
