@@ -10,101 +10,105 @@
  * license.
  */
 
-#include "config.h"
 
-#include "QLightDM/Power"
+#include "QLightDM/power.h"
 
 #include <QtCore/QVariant>
 #include <QtDBus/QDBusInterface>
 #include <QtDBus/QDBusReply>
 
+#include "config.h"
+
 using namespace QLightDM;
 
-static QDBusInterface* powerManagementInterface = NULL;
-static QDBusInterface* consoleKitInterface = NULL;
-
-static bool setupPowerManagementInterface ()
+class PowerInterface::PowerInterfacePrivate
 {
-    if (!powerManagementInterface)
-        powerManagementInterface = new QDBusInterface("org.freedesktop.UPower","/org/freedesktop/UPower", "org.freedesktop.UPower", QDBusConnection::systemBus());
-    return powerManagementInterface != NULL;
+public:
+    PowerInterfacePrivate();
+    QScopedPointer<QDBusInterface> powerManagementInterface;
+    QScopedPointer<QDBusInterface> consoleKitInterface;
+};
+
+PowerInterface::PowerInterfacePrivate::PowerInterfacePrivate() :
+    powerManagementInterface(new QDBusInterface("org.freedesktop.UPower","/org/freedesktop/UPower", "org.freedesktop.UPower", QDBusConnection::systemBus())),
+    consoleKitInterface(new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit.Manager", QDBusConnection::systemBus()))
+{
 }
 
-static bool setupConsoleKitInterface ()
+
+PowerInterface::PowerInterface(QObject *parent)
+    : QObject(parent),
+      d(new PowerInterfacePrivate)
 {
-    if (!consoleKitInterface)
-        consoleKitInterface = new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit.Manager", QDBusConnection::systemBus());
-    return consoleKitInterface != NULL;
 }
 
-bool QLightDM::canSuspend()
+PowerInterface::~PowerInterface()
 {
-    if (!setupPowerManagementInterface())
-        return false;
+    delete d;
+}
 
-    QDBusReply<bool> reply = powerManagementInterface->call("SuspendAllowed");
-    if (reply.isValid())
+bool PowerInterface::canSuspend()
+{
+    QDBusReply<bool> reply = d->powerManagementInterface->call("SuspendAllowed");
+    if (reply.isValid()) {
         return reply.value();
-    else
+    }
+    else {
         return false;
+    }
 }
 
-void QLightDM::suspend()
+void PowerInterface::suspend()
 {
-    if (setupPowerManagementInterface())
-        powerManagementInterface->call("Suspend");
+    d->powerManagementInterface->call("Suspend");
 }
 
-bool QLightDM::canHibernate()
+bool PowerInterface::canHibernate()
 {
-    if (!setupPowerManagementInterface())
-        return false;
-
-    QDBusReply<bool> reply = powerManagementInterface->call("HibernateAllowed");
-    if (reply.isValid())
+    QDBusReply<bool> reply = d->powerManagementInterface->call("HibernateAllowed");
+    if (reply.isValid()) {
         return reply.value();
-    else
+    }
+    else {
         return false;
+    }
 }
 
-void QLightDM::hibernate()
+void PowerInterface::hibernate()
 {
-    if (setupConsoleKitInterface())
-        powerManagementInterface->call("Hibernate");
+    d->powerManagementInterface->call("Hibernate");
 }
 
-bool QLightDM::canShutdown()
+bool PowerInterface::canShutdown()
 {
-    if (!setupConsoleKitInterface())
-        return false;
-
-    QDBusReply<bool> reply = consoleKitInterface->call("CanStop");
-    if (reply.isValid())
+    QDBusReply<bool> reply = d->consoleKitInterface->call("CanStop");
+    if (reply.isValid()) {
         return reply.value();
-    else
+    }
+    else {
         return false;
+    }
 }
 
-void QLightDM::shutdown()
+void PowerInterface::shutdown()
 {
-    if (setupConsoleKitInterface())
-        consoleKitInterface->call("Stop");
+    d->consoleKitInterface->call("Stop");
 }
 
-bool QLightDM::canRestart()
+bool PowerInterface::canRestart()
 {
-    if (!setupConsoleKitInterface())
-        return false;
-
-    QDBusReply<bool> reply = consoleKitInterface->call("CanRestart");
-    if (reply.isValid())
+    QDBusReply<bool> reply = d->consoleKitInterface->call("CanRestart");
+    if (reply.isValid()) {
         return reply.value();
-    else
+    }
+    else {
         return false;
+    }
 }
 
-void QLightDM::restart()
+void PowerInterface::restart()
 {
-    if (setupConsoleKitInterface())
-        consoleKitInterface->call("Restart");
+    d->consoleKitInterface->call("Restart");
 }
+
+#include "power_moc.cpp"

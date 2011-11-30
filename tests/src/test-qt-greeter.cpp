@@ -14,17 +14,17 @@ static QSettings *config = NULL;
 
 TestGreeter::TestGreeter ()
 {
-    connect (this, SIGNAL(showMessage(QString, QLightDM::MessageType)), SLOT(showMessage(QString, QLightDM::MessageType)));
-    connect (this, SIGNAL(showPrompt(QString, QLightDM::PromptType)), SLOT(showPrompt(QString, QLightDM::PromptType)));
+    connect (this, SIGNAL(showMessage(QString, QLightDM::Greeter::MessageType)), SLOT(showMessage(QString, QLightDM::Greeter::MessageType)));
+    connect (this, SIGNAL(showPrompt(QString, QLightDM::Greeter::PromptType)), SLOT(showPrompt(QString, QLightDM::Greeter::PromptType)));
     connect (this, SIGNAL(authenticationComplete()), SLOT(authenticationComplete()));
 }
 
-void TestGreeter::showMessage (QString text, QLightDM::MessageType type)
+void TestGreeter::showMessage (QString text, QLightDM::Greeter::MessageType type)
 {
     notify_status ("GREETER SHOW-MESSAGE TEXT=\"%s\"", text.toAscii ().constData ());
 }
 
-void TestGreeter::showPrompt (QString text, QLightDM::PromptType type)
+void TestGreeter::showPrompt (QString text, QLightDM::Greeter::PromptType type)
 {
     notify_status ("GREETER SHOW-PROMPT TEXT=\"%s\"", text.toAscii ().constData ());
 

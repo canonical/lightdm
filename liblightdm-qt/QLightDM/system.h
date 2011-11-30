@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011 David Edmundson
+ * Copyright (C) 2010-2011 David Edmundson.
  * Copyright (C) 2010-2011 Robert Ancell
  * Author: David Edmundson <kde@davidedmundson.co.uk>
  *
@@ -10,13 +10,18 @@
  * license.
  */
 
-#include "QLightDM/system.h"
+#ifndef QLIGHTDM_SYSTEM_H
+#define QLIGHTDM_SYSTEM_H
 
-#include <QtNetwork/QHostInfo>
+#include <QtCore/QString>
 
-using namespace QLightDM;
-
-QString System::hostname()
+namespace QLightDM
 {
-    return QHostInfo::localHostName();
-}
+    class System
+    {
+    public:
+        static QString hostname();
+    };
+};
+
+#endif // QLIGHTDM_SYSTEM_H

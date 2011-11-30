@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef QLIGHTDM_SESSION_H
-#define QLIGHTDM_SESSION_H
+#ifndef QLIGHTDM_SESSIONS_MODEL_H
+#define QLIGHTDM_SESSIONS_MODEL_H
 
 #include <QtCore/QAbstractListModel>
 
@@ -21,19 +21,24 @@ namespace QLightDM {
     {
         Q_OBJECT
     public:
+        enum SessionModelRoles {
+            //name is exposed as Qt::DisplayRole
+            //comment is exposed as Qt::TooltipRole
+            IdRole = Qt::UserRole
+        };
+
         explicit SessionsModel(QObject *parent = 0);
         virtual ~SessionsModel();
 
-        enum SessionModelRoles {IdRole = Qt::UserRole};
         int rowCount(const QModelIndex &parent) const;
         QVariant data(const QModelIndex &index, int role=Qt::DisplayRole) const;
 
+    protected:
+        SessionsModelPrivate *d_ptr;
+        
     private:
-        SessionsModelPrivate *d;
-        void buildList(); //maybe make this a public slot, which apps can call only if they give a care about the session.
+        Q_DECLARE_PRIVATE(SessionsModel)
     };
-
-    SessionsModel *sessions();
 };
 
 #endif // QLIGHTDM_SESSION_H

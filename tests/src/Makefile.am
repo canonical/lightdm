@@ -83,7 +83,7 @@ test_qt_greeter_CXXFLAGS = \
 	$(XCB_CFLAGS)
 test_qt_greeter_LDADD = \
 	-L$(top_builddir)/liblightdm-qt \
-	-llightdm-qt-1 \
+	-llightdm-qt-2 \
 	$(LIBLIGHTDM_QT_LIBS) \
 	$(XCB_LIBS)
 
