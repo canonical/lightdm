@@ -76,7 +76,8 @@ test_script_hook_LDADD = \
 
 test-qt-greeter_moc.cpp: test-qt-greeter.h
 	$(MOC) $< -o $@
-test_qt_greeter_SOURCES = test-qt-greeter.cpp test-qt-greeter.h test-qt-greeter_moc.cpp status.c status.h
+test_qt_greeter_SOURCES = test-qt-greeter.cpp test-qt-greeter.h status.c status.h
+nodist_test_qt_greeter_SOURCES = test-qt-greeter_moc.cpp
 test_qt_greeter_CXXFLAGS = \
 	-I$(top_srcdir)/liblightdm-qt \
 	$(LIBLIGHTDM_QT_CFLAGS) \
