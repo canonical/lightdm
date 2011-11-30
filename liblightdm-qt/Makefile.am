@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = liblightdm-qt-1.la
+lib_LTLIBRARIES = liblightdm-qt-2.la
 
 %_moc.cpp: QLightDM/%.h
 	$(MOC) $< -o $@
@@ -30,7 +30,7 @@ liblightdm_qt_1include_HEADERS = \
 	QLightDM/system.h \
 	QLightDM/usersmodel.h
 
-liblightdm_qt_1includedir=$(includedir)/lightdm-qt-1/QLightDM
+liblightdm_qt_1includedir=$(includedir)/lightdm-qt-2/QLightDM
 
 liblightdm_qt_1_la_SOURCES = \
 	greeter.cpp \
@@ -41,7 +41,7 @@ liblightdm_qt_1_la_SOURCES = \
 	$(liblightdm_qt_1include_HEADERS)
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = liblightdm-qt-1.pc
+pkgconfig_DATA = liblightdm-qt-2.pc
 
 CLEANFILES = \
 	*_moc.cpp
