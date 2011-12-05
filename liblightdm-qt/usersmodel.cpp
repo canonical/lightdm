@@ -169,6 +169,11 @@ UsersModel::UsersModel(QObject *parent) :
     d_ptr(new UsersModelPrivate(this))
 {
     Q_D(UsersModel);
+    QHash<int, QByteArray> roles;
+    roles[NameRole] = "name";
+    roles[RealNameRole] = "realName";
+    roles[LoggedInRole] = "loggedIn";
+    setRoleNames(roles);
     d->loadUsers();
 
 }
