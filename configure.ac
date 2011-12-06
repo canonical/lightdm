@@ -85,7 +85,6 @@ if test x"$enable_liblightdm_qt" = "xauto"; then
     PKG_CHECK_MODULES(LIBLIGHTDM_QT, [
         QtCore
         QtDBus
-        QtNetwork
         QtGui
     ], compile_liblightdm_qt=yes, compile_liblightdm_qt=no)
     QT4_BINDIR=`$PKG_CONFIG Qt --variable bindir`
@@ -94,7 +93,6 @@ elif test x"$enable_liblightdm_qt" = "xyes"; then
     PKG_CHECK_MODULES(LIBLIGHTDM_QT, [
         QtCore
         QtDBus
-        QtNetwork
     ])
     QT4_BINDIR=`$PKG_CONFIG Qt --variable bindir`
     AC_CHECK_TOOLS(MOC, [moc-qt4 moc],, [$QT4_BINDIR:$PATH])
