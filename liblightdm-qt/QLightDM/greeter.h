@@ -27,7 +27,7 @@ class Q_DECL_EXPORT Greeter : public QObject
     
     Q_PROPERTY(bool authenticated READ isAuthenticated ); //NOTFIY authenticationComplete
 
-    Q_PROPERTY(QString hostname READ hostname);
+    Q_PROPERTY(QString hostname READ hostname CONSTANT);
 
 public:
     enum PromptType {
