@@ -26,6 +26,7 @@ public:
     QString realName;
     QString homeDirectory;
     QString image;
+    QString background;
     bool isLoggedIn;
     QString displayName() const;
 };
@@ -91,6 +92,7 @@ void UsersModelPrivate::loadUsers()
             user.homeDirectory = QString::fromLocal8Bit(lightdm_user_get_home_directory(ldmUser));
             user.realName = QString::fromLocal8Bit(lightdm_user_get_real_name(ldmUser));
             user.image = QString::fromLocal8Bit(lightdm_user_get_image(ldmUser));
+            user.background = QString::fromLocal8Bit(lightdm_user_get_background(ldmUser));
             user.isLoggedIn = lightdm_user_get_logged_in(ldmUser);
             users.append(user);
         }
@@ -116,6 +118,7 @@ void UsersModelPrivate::cb_userAdded(LightDMUserList *user_list, LightDMUser *ld
     user.homeDirectory = QString::fromLocal8Bit(lightdm_user_get_home_directory(ldmUser));
     user.realName = QString::fromLocal8Bit(lightdm_user_get_real_name(ldmUser));
     user.image = QString::fromLocal8Bit(lightdm_user_get_image(ldmUser));
+    user.background = QString::fromLocal8Bit(lightdm_user_get_background(ldmUser));
     user.isLoggedIn = lightdm_user_get_logged_in(ldmUser);
     that->users.append(user);
 
@@ -136,6 +139,7 @@ void UsersModelPrivate::cb_userChanged(LightDMUserList *user_list, LightDMUser *
             that->users[i].homeDirectory = QString::fromLocal8Bit(lightdm_user_get_home_directory(ldmUser));
             that->users[i].realName = QString::fromLocal8Bit(lightdm_user_get_real_name(ldmUser));
             that->users[i].image = QString::fromLocal8Bit(lightdm_user_get_image(ldmUser));
+            that->users[i].background = QString::fromLocal8Bit(lightdm_user_get_background(ldmUser));
             that->users[i].isLoggedIn = lightdm_user_get_logged_in(ldmUser);
 
             QModelIndex index = that->q_ptr->createIndex(i, 0);
@@ -209,6 +213,8 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
         return d->users[row].realName;
     case UsersModel::LoggedInRole:
         return d->users[row].isLoggedIn;
+    case UsersModel::BackgroundRole:
+        return QPixmap(d->users[row].background);
     }
 
     return QVariant();
