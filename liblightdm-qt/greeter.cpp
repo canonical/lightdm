@@ -217,4 +217,9 @@ int Greeter::autologinTimeoutHint() const
     return lightdm_greeter_get_autologin_timeout_hint(d->ldmGreeter);
 }
 
+QString Greeter::hostname() const
+{
+    return QString::fromLocal8Bit(lightdm_get_hostname());
+}
+
 #include "greeter_moc.cpp"

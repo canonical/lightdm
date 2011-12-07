@@ -12,11 +12,11 @@
 
 #include "QLightDM/system.h"
 
-#include <QtNetwork/QHostInfo>
+#include <lightdm.h>
 
 using namespace QLightDM;
 
 QString System::hostname()
 {
-    return QHostInfo::localHostName();
+    return QString::fromLocal8Bit(lightdm_get_hostname());
 }

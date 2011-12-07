@@ -26,7 +26,9 @@ class Q_DECL_EXPORT Greeter : public QObject
     Q_OBJECT
     
     Q_PROPERTY(bool authenticated READ isAuthenticated ); //NOTFIY authenticationComplete
-    
+
+    Q_PROPERTY(QString hostname READ hostname CONSTANT);
+
 public:
     enum PromptType {
         PromptTypeQuestion,
@@ -54,6 +56,7 @@ public:
     bool inAuthentication() const;
     bool isAuthenticated() const;
     QString authenticationUser() const;
+    QString hostname() const;
 
 public slots:
     bool connectSync();
