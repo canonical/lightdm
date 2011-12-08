@@ -169,9 +169,9 @@ UsersModel::UsersModel(QObject *parent) :
     d_ptr(new UsersModelPrivate(this))
 {
     Q_D(UsersModel);
-    QHash<int, QByteArray> roles;
+    // Extend roleNames (we want to keep the "display" role)
+    QHash<int, QByteArray> roles = roleNames();
     roles[NameRole] = "name";
-    roles[RealNameRole] = "realName";
     roles[LoggedInRole] = "loggedIn";
     setRoleNames(roles);
     d->loadUsers();
