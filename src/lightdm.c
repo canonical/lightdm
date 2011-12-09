@@ -889,7 +889,7 @@ main (int argc, char **argv)
           N_("Run as unprivileged user, skipping things that require root access"), NULL },
         { "passwd-file", 0, 0, G_OPTION_ARG_STRING, &passwd_path,
           /* Help string for command line --use-passwd flag */
-          N_("Use the given password file for authentication (for testing, requires --no-root)"), "FILE" },
+          N_("Use the given password file for authentication (for testing, requires --test-mode)"), "FILE" },
         { "pid-file", 0, 0, G_OPTION_ARG_STRING, &pid_path,
           /* Help string for command line --pid-file flag */
           N_("File to write PID into"), "FILE" },
@@ -999,7 +999,7 @@ main (int argc, char **argv)
     /* Don't allow to be run as root and use a password file (asking for danger!) */
     if (getuid () == 0 && passwd_path)
     {
-        g_printerr ("Only allowed to use --passwd-file when running with --no-root.\n"); 
+        g_printerr ("Only allowed to use --passwd-file when running with --test-mode.\n"); 
         return EXIT_FAILURE;
     }
 
