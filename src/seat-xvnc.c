@@ -12,6 +12,7 @@
 #include "seat-xvnc.h"
 #include "xserver-xvnc.h"
 #include "xsession.h"
+#include "configuration.h"
 
 G_DEFINE_TYPE (SeatXVNC, seat_xvnc, SEAT_TYPE);
 
