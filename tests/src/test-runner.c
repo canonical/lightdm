@@ -596,10 +596,17 @@ main (int argc, char **argv)
     g_free (config_file);
 
     /* Link to the correct greeter */
-    greeter = argv[2];
-    path = g_build_filename (SRCDIR, "tests", "data", "xgreeters", "default.desktop", NULL);
-    path1 = g_strdup_printf ("%s.desktop", greeter);
-    if (unlink (path) < 0 || symlink (path1, path) < 0)
+    path = g_build_filename (BUILDDIR, "tests", "default.desktop", NULL);
+    if (unlink (path) < 0 && errno != ENOENT)
+    {
+        g_printerr ("Failed to rm greeter symlink %s: %s\n", path, strerror (errno));
+        quit (EXIT_FAILURE);
+    }
+
+    greeter = g_strdup_printf ("%s.desktop", argv[2]);
+    path1 = g_build_filename (SRCDIR, "tests", "data", "xgreeters", greeter, NULL);
+    g_free(greeter);
+    if (symlink (path1, path) < 0)
     {
         g_printerr ("Failed to make greeter symlink %s->%s: %s\n", path, path1, strerror (errno));
         quit (EXIT_FAILURE);
@@ -730,7 +737,7 @@ main (int argc, char **argv)
         g_string_append_printf (command_line, " --config %s", config_path);
     g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
     g_string_append_printf (command_line, " --xsessions-dir=%s/tests/data/xsessions", SRCDIR);
-    g_string_append_printf (command_line, " --xgreeters-dir=%s/tests/data/xgreeters", SRCDIR);
+    g_string_append_printf (command_line, " --xgreeters-dir=%s/tests", BUILDDIR);
 
     g_print ("Start daemon with command: PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_STATUS_SOCKET=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
              g_getenv ("PATH"), g_getenv ("LD_PRELOAD"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
