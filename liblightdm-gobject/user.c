@@ -34,6 +34,7 @@ enum
     USER_PROP_DISPLAY_NAME,
     USER_PROP_HOME_DIRECTORY,
     USER_PROP_IMAGE,
+    USER_PROP_BACKGROUND,
     USER_PROP_LANGUAGE,
     USER_PROP_LAYOUT,
     USER_PROP_SESSION,
@@ -92,6 +93,7 @@ typedef struct
     gchar *real_name;
     gchar *home_directory;
     gchar *image;
+    gchar *background;
 
     GKeyFile *dmrc_file;
     gchar *language;
@@ -432,6 +434,16 @@ update_user (UserAccountObject *object)
                 priv->image = NULL;
             else
                 priv->image = g_strdup (icon_file);
+        }
+        else if (strcmp (name, "BackgroundFile") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
+        {
+            gchar *background_file;
+            g_variant_get (value, "&s", &background_file);
+            g_free (priv->background);
+            if (strcmp (background_file, "") == 0)
+                priv->background = NULL;
+            else
+                priv->background = g_strdup (background_file);
         }
     }
     g_variant_iter_free (iter);
@@ -1081,6 +1093,21 @@ lightdm_user_get_image (LightDMUser *user)
     return GET_USER_PRIVATE (user)->image;
 }
 
+/**
+ * lightdm_user_get_background:
+ * @user: A #LightDMUser
+ * 
+ * Get the background file path for a user.
+ * 
+ * Return value: The background file path for the given user or #NULL if no path
+ **/
+const gchar *
+lightdm_user_get_background (LightDMUser *user)
+{
+    g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
+    return GET_USER_PRIVATE (user)->background;
+}
+
 static void
 load_dmrc (LightDMUser *user)
 {
@@ -1274,6 +1301,7 @@ lightdm_user_init (LightDMUser *user)
     priv->real_name = g_strdup ("");
     priv->home_directory = g_strdup ("");
     priv->image = g_strdup ("");
+    priv->background = g_strdup ("");
     priv->language = g_strdup ("");
     priv->layout = g_strdup ("");
     priv->session = g_strdup ("");
@@ -1315,6 +1343,9 @@ lightdm_user_get_property (GObject    *object,
     case USER_PROP_IMAGE:
         g_value_set_string (value, lightdm_user_get_image (self));
         break;
+    case USER_PROP_BACKGROUND:
+        g_value_set_string (value, lightdm_user_get_background (self));
+        break;
     case USER_PROP_LANGUAGE:
         g_value_set_string (value, lightdm_user_get_language (self));
         break;
@@ -1343,6 +1374,7 @@ lightdm_user_finalize (GObject *object)
     g_free (priv->real_name);
     g_free (priv->home_directory);
     g_free (priv->image);
+    g_free (priv->background);
     if (priv->dmrc_file)
         g_key_file_free (priv->dmrc_file);
 }
@@ -1391,6 +1423,13 @@ lightdm_user_class_init (LightDMUserClass *klass)
                                      g_param_spec_string ("image",
                                                           "image",
                                                           "Avatar image",
+                                                          NULL,
+                                                          G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
+                                     USER_PROP_BACKGROUND,
+                                     g_param_spec_string ("background",
+                                                          "background",
+                                                          "User background",
                                                           NULL,
                                                           G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
