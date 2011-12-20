@@ -116,7 +116,7 @@ lightdm_get_layout (void)
 {
     lightdm_get_layouts ();
     if (layouts)
-        return (LightDMLayout *) g_list_first (layouts);
+        return (LightDMLayout *) g_list_first (layouts)->data;
     else
         return NULL;
 }
