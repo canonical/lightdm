@@ -72,8 +72,6 @@ check_stopped (DisplayManager *manager)
 static void
 seat_stopped_cb (Seat *seat, DisplayManager *manager)
 {
-    g_debug ("seat-stopped");
-
     manager->priv->seats = g_list_remove (manager->priv->seats, seat);
     g_signal_handlers_disconnect_matched (seat, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, manager);
 
