@@ -62,55 +62,54 @@ typedef struct
 #define LIGHTDM_BUS_NAME "org.freedesktop.DisplayManager"
 
 static void
-log_cb (const gchar *log_domain, GLogLevelFlags log_level,
-        const gchar *message, gpointer data)
+log_cb (const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer data)
 {
+    const gchar *prefix;
+    gchar *text;
+
+    switch (log_level & G_LOG_LEVEL_MASK)
+    {
+    case G_LOG_LEVEL_ERROR:
+        prefix = "ERROR:";
+        break;
+    case G_LOG_LEVEL_CRITICAL:
+        prefix = "CRITICAL:";
+        break;
+    case G_LOG_LEVEL_WARNING:
+        prefix = "WARNING:";
+        break;
+    case G_LOG_LEVEL_MESSAGE:
+        prefix = "MESSAGE:";
+        break;
+    case G_LOG_LEVEL_INFO:
+        prefix = "INFO:";
+        break;
+    case G_LOG_LEVEL_DEBUG:
+        prefix = "DEBUG:";
+        break;
+    default:
+        prefix = "LOG:";
+        break;
+    }
+
+    text = g_strdup_printf ("[%+.2fs] %s %s\n", g_timer_elapsed (log_timer, NULL), prefix, message);
+
     /* Log everything to a file */
     if (log_fd >= 0)
     {
-        const gchar *prefix;
-        gchar *text;
         ssize_t n_written;
-
-        switch (log_level & G_LOG_LEVEL_MASK)
-        {
-        case G_LOG_LEVEL_ERROR:
-            prefix = "ERROR:";
-            break;
-        case G_LOG_LEVEL_CRITICAL:
-            prefix = "CRITICAL:";
-            break;
-        case G_LOG_LEVEL_WARNING:
-            prefix = "WARNING:";
-            break;
-        case G_LOG_LEVEL_MESSAGE:
-            prefix = "MESSAGE:";
-            break;
-        case G_LOG_LEVEL_INFO:
-            prefix = "INFO:";
-            break;
-        case G_LOG_LEVEL_DEBUG:
-            prefix = "DEBUG:";
-            break;
-        default:
-            prefix = "LOG:";
-            break;
-        }
-
-        text = g_strdup_printf ("[%+.2fs] %s %s\n", g_timer_elapsed (log_timer, NULL), prefix, message);
         n_written = write (log_fd, text, strlen (text));
         if (n_written < 0)
             ; /* Check result so compiler doesn't warn about it */
-        g_free (text);
     }
 
-    /* Only show debug if requested */
-    if (log_level & G_LOG_LEVEL_DEBUG) {
-        if (debug)
-            g_log_default_handler (log_domain, log_level, message, data);
-    }
+    /* Log to stderr if requested */
+    if (debug)
+        g_printerr ("%s", text);
     else
-        g_log_default_handler (log_domain, log_level, message, data);    
+        g_log_default_handler (log_domain, log_level, message, data);
+
+    g_free (text);
 }
 
 static void
