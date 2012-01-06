@@ -819,7 +819,6 @@ main (int argc, char **argv)
     };
     GError *error = NULL;
 
-    g_thread_init (NULL);
     g_type_init ();
     loop = g_main_loop_new (NULL, FALSE);
 

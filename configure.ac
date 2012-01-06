@@ -22,7 +22,7 @@ dnl ###########################################################################
 AC_CHECK_HEADERS(security/pam_appl.h, [], AC_MSG_ERROR(PAM not found))
 
 PKG_CHECK_MODULES(LIGHTDM, [
-    glib-2.0
+    glib-2.0 >= 2.24
     gio-2.0 >= 2.26
     gio-unix-2.0
     xdmcp
