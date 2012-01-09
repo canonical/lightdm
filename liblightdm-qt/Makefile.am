@@ -22,12 +22,10 @@ liblightdm_qt_2include_HEADERS = \
 	QLightDM/Greeter \
 	QLightDM/Power \
 	QLightDM/SessionsModel \
-	QLightDM/System \
 	QLightDM/UsersModel \
 	QLightDM/greeter.h \
 	QLightDM/power.h \
 	QLightDM/sessionsmodel.h \
-	QLightDM/system.h \
 	QLightDM/usersmodel.h
 
 liblightdm_qt_2includedir=$(includedir)/lightdm-qt-2/QLightDM
@@ -36,7 +34,6 @@ liblightdm_qt_2_la_SOURCES = \
 	greeter.cpp \
 	power.cpp \
 	sessionsmodel.cpp \
-	system.cpp \
 	usersmodel.cpp \
 	$(liblightdm_qt_2include_HEADERS)
 
