@@ -3,6 +3,7 @@ Overview of changes in lightdm 1.1.2
     * Move the GTK+ and Qt greeters into their own projects
     * Fix crash when quitting with newer GLib
     * Fix crash calling lightdm_get_layout
+    * Support PAM requesting a change of password
 
 Overview of changes in lightdm 1.1.1
 
