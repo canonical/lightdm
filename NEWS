@@ -21,6 +21,7 @@ Overview of changes in lightdm 1.1.1
     * Fix crash calling lightdm_get_layout
     * Support for reading users' backgrounds from Accounts Service
     * Fix --debug working with new glib
+    * Support PAM requesting a change of password
 
 Overview of changes in lightdm 1.1.0
 
