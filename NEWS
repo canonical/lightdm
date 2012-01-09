@@ -1,9 +1,3 @@
-Overview of changes in lightdm 1.1.2
-
-    * Move the GTK+ and Qt greeters into their own projects
-    * Fix crash when quitting with newer GLib
-    * Fix crash calling lightdm_get_layout
-
 Overview of changes in lightdm 1.1.1
 
     * Add a --disable-tests option
@@ -22,6 +16,11 @@ Overview of changes in lightdm 1.1.1
     * Don't set USERNAME environment variable - this is not specified in POSIX,
       please report if this causes any major problems.
     * Drop privileges when reading ~/.dmrc
+    * Move the GTK+ and Qt greeters into their own projects
+    * Fix crash when quitting with newer GLib
+    * Fix crash calling lightdm_get_layout
+    * Support for reading users' backgrounds from Accounts Service
+    * Fix --debug working with new glib
 
 Overview of changes in lightdm 1.1.0
 
