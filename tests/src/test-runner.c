@@ -562,6 +562,160 @@ create_bus (void)
     return g_strdup (address);
 }
 
+static void
+handle_ck_call (GDBusConnection       *connection,
+                const gchar           *sender,
+                const gchar           *object_path,
+                const gchar           *interface_name,
+                const gchar           *method_name,
+                GVariant              *parameters,
+                GDBusMethodInvocation *invocation,
+                gpointer               user_data)
+{
+    if (g_strcmp0 (method_name, "CanRestart") == 0)
+    {
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+    }
+    else if (g_strcmp0 (method_name, "CanStop") == 0)
+    {
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+    }
+    else if (g_strcmp0 (method_name, "CloseSession") == 0)
+    {
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+    }
+    else if (g_strcmp0 (method_name, "OpenSessionWithParameters") == 0)
+    {
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "deadbeef"));      
+    }
+    else if (g_strcmp0 (method_name, "Restart") == 0)
+    {
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (g_strcmp0 (method_name, "Stop") == 0)
+    {
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+}
+
+static void
+start_console_kit_daemon ()
+{
+    const gchar *ck_interface =
+        "<node>"
+        "  <interface name='org.freedesktop.ConsoleKit.Manager'>"
+        "    <method name='CanRestart'>"
+        "      <arg name='can_restart' direction='out' type='b'/>"
+        "    </method>"
+        "    <method name='CanStop'>"
+        "      <arg name='can_stop' direction='out' type='b'/>"
+        "    </method>"
+        "    <method name='CloseSession'>"
+        "      <arg name='cookie' direction='in' type='s'/>"
+        "      <arg name='result' direction='out' type='b'/>"
+        "    </method>"
+        "    <method name='OpenSessionWithParameters'>"
+        "      <arg name='parameters' direction='in' type='a(sv)'/>"
+        "      <arg name='cookie' direction='out' type='s'/>"
+        "    </method>"
+        "    <method name='Restart'/>"
+        "    <method name='Stop'/>"
+        "    <signal name='SeatAdded'>"
+        "      <arg name='seat' type='o'/>"
+        "    </signal>"
+        "    <signal name='SeatRemoved'>"
+        "      <arg name='seat' type='o'/>"
+        "    </signal>"
+        "  </interface>"
+        "</node>";
+    static const GDBusInterfaceVTable ck_vtable =
+    {
+        handle_ck_call,
+    };
+    GDBusConnection *bus;
+    GDBusNodeInfo *ck_info;
+    GError *error = NULL;
+
+    ck_info = g_dbus_node_info_new_for_xml (ck_interface, &error);
+    if (error)
+        g_warning ("Failed to parse D-Bus interface: %s", error->message);  
+    g_clear_error (&error);
+    if (!ck_info)
+        return;
+    bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
+    if (error)
+        g_warning ("Failed to get system bus: %s", error->message);
+    g_clear_error (&error);
+    g_dbus_connection_register_object (bus,
+                                       "/org/freedesktop/ConsoleKit/Manager",
+                                       ck_info->interfaces[0],
+                                       &ck_vtable,
+                                       NULL, NULL,
+                                       &error);
+    if (error)
+        g_warning ("Failed to register console kit service: %s", error->message);
+    g_clear_error (&error);
+    g_dbus_node_info_unref (ck_info);
+}
+
+static void
+handle_accounts_call (GDBusConnection       *connection,
+                      const gchar           *sender,
+                      const gchar           *object_path,
+                      const gchar           *interface_name,
+                      const gchar           *method_name,
+                      GVariant              *parameters,
+                      GDBusMethodInvocation *invocation,
+                      gpointer               user_data)
+{
+    if (g_strcmp0 (method_name, "FindUserByName") == 0)
+    {
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such user");
+    }
+}
+
+static void
+start_accounts_service_daemon ()
+{
+    const gchar *accounts_interface =
+        "<node>"
+        "  <interface name='org.freedesktop.Accounts'>"
+        "    <method name='FindUserByName'>"
+        "      <arg name='name' direction='in' type='s'/>"
+        "      <arg name='user' direction='out' type='o'/>"
+        "    </method>"
+        "  </interface>"
+        "</node>";
+    static const GDBusInterfaceVTable accounts_vtable =
+    {
+        handle_accounts_call,
+    };
+    GDBusConnection *bus;
+    GDBusNodeInfo *accounts_info;
+    GError *error = NULL;
+
+    accounts_info = g_dbus_node_info_new_for_xml (accounts_interface, &error);
+    if (error)
+        g_warning ("Failed to parse D-Bus interface: %s", error->message);  
+    g_clear_error (&error);
+    if (!accounts_info)
+        return;
+    bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
+    if (error)
+        g_warning ("Failed to get system bus: %s", error->message);
+    g_clear_error (&error);
+    g_dbus_connection_register_object (bus,
+                                       "/org/freedesktop/Accounts",
+                                       accounts_info->interfaces[0],
+                                       &accounts_vtable,
+                                       NULL, NULL,
+                                       &error);
+    if (error)
+        g_warning ("Failed to register accounts service: %s", error->message);
+    g_clear_error (&error);
+    g_dbus_node_info_unref (accounts_info); 
+}
+
 int
 main (int argc, char **argv)
 {
@@ -640,6 +794,10 @@ main (int argc, char **argv)
     bus_address = create_bus ();
     g_setenv ("DBUS_SYSTEM_BUS_ADDRESS", bus_address, TRUE);
     g_setenv ("DBUS_SESSION_BUS_ADDRESS", bus_address, TRUE);
+
+    /* Start D-Bus services */
+    start_console_kit_daemon ();
+    start_accounts_service_daemon ();
 
     /* Override system calls */
     ld_preload = g_build_filename (BUILDDIR, "tests", "src", ".libs", "libsystem.so", NULL);
