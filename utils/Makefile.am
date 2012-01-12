@@ -1,6 +1,7 @@
 bin_PROGRAMS = dm-tool
 pkglibexec_PROGRAMS = lightdm-set-defaults
-dist_pkglibexec_SCRIPTS = gdmflexiserver
+legacydir = $(libexecdir)/lightdm
+dist_legacy_SCRIPTS = gdmflexiserver
 
 dm_tool_SOURCES = \
 	dm-tool.c
