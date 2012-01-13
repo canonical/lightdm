@@ -6,6 +6,7 @@
 #include <glib.h>
 #include <gio/gio.h>
 #include <unistd.h>
+#include <pwd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -19,9 +20,10 @@
 /* Timeout in ms waiting for the status we expect */
 #define STATUS_TIMEOUT 2000
 
-/* Timeout in ms to wait for SIGTERM to kill compiz */
+/* Timeout in ms to wait for SIGTERM to be handled by a child process */
 #define KILL_TIMEOUT 2000
 
+static gchar *config_path;
 static GKeyFile *config;
 static gchar *status_socket_name = NULL;
 static GList *statuses = NULL;
@@ -29,16 +31,42 @@ static GList *script = NULL;
 static GList *script_iter = NULL;
 static guint status_timeout = 0;
 static gchar *temp_dir = NULL;
+static int service_count;
 typedef struct
 {
     pid_t pid;
     guint kill_timeout;
 } Process;
-static Process *lightdm_process = NULL, *bus_process = NULL;
+static Process *lightdm_process = NULL;
 static GHashTable *children = NULL;
 static gboolean stop = FALSE;
 static gint exit_status = 0;
+static gchar *carols_xsession = NULL;
+static GDBusConnection *accounts_connection = NULL;
+static GDBusNodeInfo *accounts_info;
+static GDBusNodeInfo *user_info;
+static void handle_user_call (GDBusConnection       *connection,
+                              const gchar           *sender,
+                              const gchar           *object_path,
+                              const gchar           *interface_name,
+                              const gchar           *method_name,
+                              GVariant              *parameters,
+                              GDBusMethodInvocation *invocation,
+                              gpointer               user_data);
+static GVariant *handle_user_get_property (GDBusConnection       *connection,
+                                           const gchar           *sender,
+                                           const gchar           *object_path,
+                                           const gchar           *interface_name,
+                                           const gchar           *property_name,
+                                           GError               **error,
+                                           gpointer               user_data);
+static const GDBusInterfaceVTable user_vtable =
+{
+    handle_user_call,
+    handle_user_get_property,
+};
 
+static void run_lightdm (void);
 static void quit (int status);
 static void check_status (const gchar *status);
 
@@ -78,7 +106,7 @@ process_exit_cb (GPid pid, gint status, gpointer data)
         else
             g_print ("Process %d terminated with signal %d\n", pid, WTERMSIG (status));
     }
-  
+
     if (lightdm_process && pid == lightdm_process->pid)
     {
         process = lightdm_process;
@@ -88,11 +116,6 @@ process_exit_cb (GPid pid, gint status, gpointer data)
         else
             status_text = g_strdup_printf ("RUNNER DAEMON-TERMINATE SIGNAL=%d", WTERMSIG (status));
         check_status (status_text);
-    }
-    else if (bus_process && pid == bus_process->pid)
-    {
-        process = bus_process;
-        bus_process = NULL;
     }
     else
     {
@@ -156,13 +179,6 @@ quit (int status)
     if (lightdm_process)
     {
         stop_process (lightdm_process);
-        return;
-    }
-
-    /* Stop the bus */
-    if (bus_process)
-    {
-        stop_process (bus_process);
         return;
     }
 
@@ -522,46 +538,6 @@ load_script (const gchar *filename)
     g_strfreev (lines);
 }
 
-static gchar *
-create_bus (void)
-{
-    int name_pipe[2];
-    gchar *command, address[1024];
-    gchar **argv;
-    GPid pid;
-    ssize_t n_read;
-    GError *error = NULL;
-
-    if (pipe (name_pipe) < 0)
-    {
-        g_warning ("Error creating pipe: %s", strerror (errno));
-        quit (EXIT_FAILURE);
-    }
-    command = g_strdup_printf ("dbus-daemon --session --print-address=%d", name_pipe[1]);
-    if (!g_shell_parse_argv (command, NULL, &argv, &error))
-    {
-        g_warning ("Error parsing command line: %s", error->message);
-        quit (EXIT_FAILURE);
-    }
-    g_clear_error (&error);
-    if (!g_spawn_async (NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH | G_SPAWN_LEAVE_DESCRIPTORS_OPEN, NULL, NULL, &pid, &error))
-    {
-        g_warning ("Error launching LightDM: %s", error->message);
-        quit (EXIT_FAILURE);
-    }
-    bus_process = watch_process (pid);
-
-    n_read = read (name_pipe[0], address, 1023);
-    if (n_read < 0)
-    {
-        g_warning ("Error reading D-Bus address: %s", strerror (errno));
-        quit (EXIT_FAILURE);
-    }
-    address[n_read] = '\0';
-
-    return g_strdup (address);
-}
-
 static void
 handle_ck_call (GDBusConnection       *connection,
                 const gchar           *sender,
@@ -572,34 +548,40 @@ handle_ck_call (GDBusConnection       *connection,
                 GDBusMethodInvocation *invocation,
                 gpointer               user_data)
 {
-    if (g_strcmp0 (method_name, "CanRestart") == 0)
+    if (strcmp (method_name, "CanRestart") == 0)
     {
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
     }
-    else if (g_strcmp0 (method_name, "CanStop") == 0)
+    else if (strcmp (method_name, "CanStop") == 0)
     {
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
     }
-    else if (g_strcmp0 (method_name, "CloseSession") == 0)
+    else if (strcmp (method_name, "CloseSession") == 0)
     {
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
     }
-    else if (g_strcmp0 (method_name, "OpenSessionWithParameters") == 0)
+    else if (strcmp (method_name, "OpenSession") == 0)
     {
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "deadbeef"));      
     }
-    else if (g_strcmp0 (method_name, "Restart") == 0)
+    else if (strcmp (method_name, "OpenSessionWithParameters") == 0)
+    {
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "deadbeef"));      
+    }
+    else if (strcmp (method_name, "Restart") == 0)
     {
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
-    else if (g_strcmp0 (method_name, "Stop") == 0)
+    else if (strcmp (method_name, "Stop") == 0)
     {
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
 }
 
 static void
-start_console_kit_daemon ()
+ck_name_acquired_cb (GDBusConnection *connection,
+                     const gchar     *name,
+                     gpointer         user_data)
 {
     const gchar *ck_interface =
         "<node>"
@@ -613,6 +595,9 @@ start_console_kit_daemon ()
         "    <method name='CloseSession'>"
         "      <arg name='cookie' direction='in' type='s'/>"
         "      <arg name='result' direction='out' type='b'/>"
+        "    </method>"
+        "    <method name='OpenSession'>"
+        "      <arg name='cookie' direction='out' type='s'/>"
         "    </method>"
         "    <method name='OpenSessionWithParameters'>"
         "      <arg name='parameters' direction='in' type='a(sv)'/>"
@@ -632,7 +617,6 @@ start_console_kit_daemon ()
     {
         handle_ck_call,
     };
-    GDBusConnection *bus;
     GDBusNodeInfo *ck_info;
     GError *error = NULL;
 
@@ -642,11 +626,7 @@ start_console_kit_daemon ()
     g_clear_error (&error);
     if (!ck_info)
         return;
-    bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
-    if (error)
-        g_warning ("Failed to get system bus: %s", error->message);
-    g_clear_error (&error);
-    g_dbus_connection_register_object (bus,
+    g_dbus_connection_register_object (connection,
                                        "/org/freedesktop/ConsoleKit/Manager",
                                        ck_info->interfaces[0],
                                        &ck_vtable,
@@ -656,6 +636,23 @@ start_console_kit_daemon ()
         g_warning ("Failed to register console kit service: %s", error->message);
     g_clear_error (&error);
     g_dbus_node_info_unref (ck_info);
+
+    service_count--;
+    if (service_count == 0)
+        run_lightdm ();
+}
+
+static void
+start_console_kit_daemon ()
+{  
+    g_bus_own_name (G_BUS_TYPE_SYSTEM,
+                    "org.freedesktop.ConsoleKit",
+                    G_BUS_NAME_OWNER_FLAGS_NONE,
+                    ck_name_acquired_cb,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL);
 }
 
 static void
@@ -668,14 +665,99 @@ handle_accounts_call (GDBusConnection       *connection,
                       GDBusMethodInvocation *invocation,
                       gpointer               user_data)
 {
-    if (g_strcmp0 (method_name, "FindUserByName") == 0)
+    if (strcmp (method_name, "FindUserByName") == 0)
     {
-        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such user");
+        gchar *name, *data, **lines;
+        int i;
+
+        g_variant_get (parameters, "(&s)", &name);
+
+        g_file_get_contents (g_getenv ("LIGHTDM_TEST_PASSWD_FILE"), &data, NULL, NULL);
+        lines = g_strsplit (data, "\n", -1);
+        g_free (data);
+
+        for (i = 0; lines[i]; i++)
+        {
+            gchar **fields;
+            fields = g_strsplit (lines[i], ":", -1);
+            if (strcmp (fields[0], name) == 0)
+            {
+                gchar *path;
+                GError *error = NULL;
+
+                path = g_strdup_printf ("/org/freedesktop/Accounts/User%d", atoi (fields[2]));
+
+                g_dbus_connection_register_object (accounts_connection,
+                                                   path,
+                                                   user_info->interfaces[0],
+                                                   &user_vtable,
+                                                   NULL,
+                                                   NULL,
+                                                   &error);
+                if (error)
+                    g_warning ("Failed to register user: %s", error->message);
+                g_clear_error (&error);
+
+                g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", path));
+                g_free (path);
+                return;
+            }
+        }
+      
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such user: %s", name);
     }
+    else
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);    
 }
 
 static void
-start_accounts_service_daemon ()
+handle_user_call (GDBusConnection       *connection,
+                  const gchar           *sender,
+                  const gchar           *object_path,
+                  const gchar           *interface_name,
+                  const gchar           *method_name,
+                  GVariant              *parameters,
+                  GDBusMethodInvocation *invocation,
+                  gpointer               user_data)
+{
+    if (strcmp (method_name, "SetXSession") == 0)
+    {
+        gchar *xsession;
+
+        g_variant_get (parameters, "(&s)", &xsession);
+
+        g_free (carols_xsession);
+        carols_xsession = g_strdup (xsession);
+
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
+}
+
+static GVariant *
+handle_user_get_property (GDBusConnection       *connection,
+                          const gchar           *sender,
+                          const gchar           *object_path,
+                          const gchar           *interface_name,
+                          const gchar           *property_name,
+                          GError               **error,
+                          gpointer               user_data)
+{
+    if (strcmp (property_name, "BackgroundFile") == 0)
+        return g_variant_new_string ("");
+    else if (strcmp (property_name, "Language") == 0)
+        return g_variant_new_string ("en_US");
+    else if (strcmp (property_name, "XSession") == 0)
+        return g_variant_new_string (carols_xsession ? carols_xsession : "");
+
+    return NULL;
+}
+
+static void
+accounts_name_acquired_cb (GDBusConnection *connection,
+                           const gchar     *name,
+                           gpointer         user_data)
 {
     const gchar *accounts_interface =
         "<node>"
@@ -690,9 +772,20 @@ start_accounts_service_daemon ()
     {
         handle_accounts_call,
     };
-    GDBusConnection *bus;
-    GDBusNodeInfo *accounts_info;
+    const gchar *user_interface =
+        "<node>"
+        "  <interface name='org.freedesktop.Accounts.User'>"
+        "    <method name='SetXSession'>"
+        "      <arg name='x_session' direction='in' type='s'/>"
+        "    </method>"
+        "    <property name='BackgroundFile' type='s' access='read'/>"
+        "    <property name='Language' type='s' access='read'/>"
+        "    <property name='XSession' type='s' access='read'/>"
+        "  </interface>"
+        "</node>";
     GError *error = NULL;
+
+    accounts_connection = connection;
 
     accounts_info = g_dbus_node_info_new_for_xml (accounts_interface, &error);
     if (error)
@@ -700,41 +793,106 @@ start_accounts_service_daemon ()
     g_clear_error (&error);
     if (!accounts_info)
         return;
-    bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
+    user_info = g_dbus_node_info_new_for_xml (user_interface, &error);
     if (error)
-        g_warning ("Failed to get system bus: %s", error->message);
+        g_warning ("Failed to parse D-Bus interface: %s", error->message);  
     g_clear_error (&error);
-    g_dbus_connection_register_object (bus,
+    if (!user_info)
+        return;
+    g_dbus_connection_register_object (connection,
                                        "/org/freedesktop/Accounts",
                                        accounts_info->interfaces[0],
                                        &accounts_vtable,
-                                       NULL, NULL,
+                                       NULL,
+                                       NULL,
                                        &error);
     if (error)
         g_warning ("Failed to register accounts service: %s", error->message);
     g_clear_error (&error);
-    g_dbus_node_info_unref (accounts_info); 
+    g_dbus_node_info_unref (accounts_info);
+
+    service_count--;
+    if (service_count == 0)
+        run_lightdm ();
+}
+
+static void
+start_accounts_service_daemon ()
+{
+    g_bus_own_name (G_BUS_TYPE_SYSTEM,
+                    "org.freedesktop.Accounts",
+                    G_BUS_NAME_OWNER_FLAGS_NONE,
+                    accounts_name_acquired_cb,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL);
+}
+
+static void
+run_lightdm ()
+{
+    GString *command_line;
+    gchar **lightdm_argv;
+    pid_t lightdm_pid;
+    GError *error = NULL;
+
+    run_commands ();
+
+    status_timeout = g_timeout_add (STATUS_TIMEOUT, status_timeout_cb, NULL);
+
+    command_line = g_string_new ("../src/lightdm");
+    if (getenv ("DEBUG"))
+        g_string_append (command_line, " --debug");
+    if (!g_key_file_has_key (config, "test-runner-config", "have-config", NULL) ||
+        g_key_file_get_boolean (config, "test-runner-config", "have-config", NULL))
+    {
+        g_string_append_printf (command_line, " --config %s", config_path);
+        g_setenv ("LIGHTDM_TEST_CONFIG", config_path, TRUE);
+    }
+    g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
+    g_string_append_printf (command_line, " --xsessions-dir=%s/tests/data/xsessions", SRCDIR);
+    g_string_append_printf (command_line, " --xgreeters-dir=%s/tests", BUILDDIR);
+
+    g_print ("Start daemon with command: PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_STATUS_SOCKET=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
+             g_getenv ("PATH"), g_getenv ("LD_PRELOAD"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
+             command_line->str);
+
+    if (!g_shell_parse_argv (command_line->str, NULL, &lightdm_argv, &error))
+    {
+        g_warning ("Error parsing command line: %s", error->message);
+        quit (EXIT_FAILURE);
+    }
+    g_clear_error (&error);
+
+    if (!g_spawn_async (NULL, lightdm_argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &lightdm_pid, &error))
+    {
+        g_warning ("Error launching LightDM: %s", error->message);
+        quit (EXIT_FAILURE);
+    }
+    g_clear_error (&error);
+    lightdm_process = watch_process (lightdm_pid);
+
+    check_status ("RUNNER DAEMON-START");
 }
 
 int
 main (int argc, char **argv)
 {
     GMainLoop *loop;
-    gchar *greeter = NULL, *script_name, *config_file, *config_path, *path, *path1, *path2, *ld_preload, *ld_library_path, *home_dir;
+    gchar *greeter = NULL, *script_name, *config_file, *path, *path1, *path2, *ld_preload, *ld_library_path, *home_dir;
     GString *passwd_data;
     int status_socket;
-    gchar *bus_address;
-    GString *command_line;
-    gchar **lightdm_argv;
     gchar cwd[1024];
-    pid_t lightdm_pid;
-    GError *error = NULL;
 
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
 
     g_type_init ();
-  
+
+    /* Use the session bus as the system bus */
+    g_setenv ("DBUS_SYSTEM_BUS_ADDRESS", g_getenv ("DBUS_SESSION_BUS_ADDRESS"), TRUE);
+
     children = g_hash_table_new (g_direct_hash, g_direct_equal);
 
     loop = g_main_loop_new (NULL, FALSE);
@@ -773,11 +931,6 @@ main (int argc, char **argv)
 
     load_script (config_path);
 
-    /* Disable config if requested */
-    if (g_key_file_has_key (config, "test-runner-config", "have-config", NULL) &&
-        !g_key_file_get_boolean (config, "test-runner-config", "have-config", NULL))
-        config_path = NULL;
-
     g_print ("----------------------------------------\n");
     g_print ("Running script %s\n", script_name);
 
@@ -790,12 +943,8 @@ main (int argc, char **argv)
     /* Don't contact our X server */
     g_unsetenv ("DISPLAY");
 
-    /* Run local D-Bus daemons */
-    bus_address = create_bus ();
-    g_setenv ("DBUS_SYSTEM_BUS_ADDRESS", bus_address, TRUE);
-    g_setenv ("DBUS_SESSION_BUS_ADDRESS", bus_address, TRUE);
-
     /* Start D-Bus services */
+    service_count = 2;
     start_console_kit_daemon ();
     start_accounts_service_daemon ();
 
@@ -817,10 +966,6 @@ main (int argc, char **argv)
     g_free (path2);
     g_setenv ("LD_LIBRARY_PATH", ld_library_path, TRUE);
     g_free (ld_library_path);
-
-    /* Set config for child processes to read */
-    if (config_path)
-        g_setenv ("LIGHTDM_TEST_CONFIG", config_path, TRUE);
 
     /* Open socket for status */
     status_socket_name = g_build_filename (cwd, ".status-socket", NULL);
@@ -851,16 +996,16 @@ main (int argc, char **argv)
         gchar *user_name;
         gchar *password;
         gchar *real_name;
-        gchar *dmrc;
+        gchar *xsession;
         gint uid;
     } users[] =
     {
-        {"root",    "",         "root",       NULL,  0},
-        {"lightdm", "",         "",           NULL, 100},
-        {"alice",   "password", "Alice User", NULL, 1000},
-        {"bob",     "",         "Bob User",   NULL, 1001},
-        {"carol",   "",         "Carol User", "[Desktop]\nSession=alternative\n", 1002},
-        {NULL, NULL, 0}
+        {"root",    "",         "root",       NULL,             0},
+        {"lightdm", "",         "",           NULL,           100},
+        {"alice",   "password", "Alice User", NULL,          1000},
+        {"bob",     "",         "Bob User",   NULL,          1001},
+        {"carol",   "",         "Carol User", "alternative", 1002},
+        {NULL,      NULL,       NULL,         NULL,             0}
     };
     int i;
     for (i = 0; users[i].user_name; i++)
@@ -869,10 +1014,10 @@ main (int argc, char **argv)
         g_mkdir_with_parents (path, 0755);
         g_free (path);
 
-        if (users[i].dmrc)
+        if (users[i].xsession)
         {
             path = g_build_filename (home_dir, users[i].user_name, ".dmrc", NULL);
-            g_file_set_contents (path, users[i].dmrc, -1, NULL);
+            g_file_set_contents (path, g_strdup_printf ("[Desktop]\nSession=%s", users[i].xsession), -1, NULL);
             g_free (path);
         }
 
@@ -883,40 +1028,6 @@ main (int argc, char **argv)
     g_file_set_contents (path, passwd_data->str, -1, NULL);
     g_free (path);
     g_string_free (passwd_data, TRUE);
-
-    run_commands ();
-
-    status_timeout = g_timeout_add (STATUS_TIMEOUT, status_timeout_cb, NULL);
-
-    command_line = g_string_new ("../src/lightdm");
-    if (getenv ("DEBUG"))
-        g_string_append (command_line, " --debug");
-    if (config_path)
-        g_string_append_printf (command_line, " --config %s", config_path);
-    g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
-    g_string_append_printf (command_line, " --xsessions-dir=%s/tests/data/xsessions", SRCDIR);
-    g_string_append_printf (command_line, " --xgreeters-dir=%s/tests", BUILDDIR);
-
-    g_print ("Start daemon with command: PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_STATUS_SOCKET=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
-             g_getenv ("PATH"), g_getenv ("LD_PRELOAD"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
-             command_line->str);
-
-    if (!g_shell_parse_argv (command_line->str, NULL, &lightdm_argv, &error))
-    {
-        g_warning ("Error parsing command line: %s", error->message);
-        quit (EXIT_FAILURE);
-    }
-    g_clear_error (&error);
-
-    if (!g_spawn_async (NULL, lightdm_argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &lightdm_pid, &error))
-    {
-        g_warning ("Error launching LightDM: %s", error->message);
-        quit (EXIT_FAILURE);
-    }
-    g_clear_error (&error);
-    lightdm_process = watch_process (lightdm_pid);
-
-    check_status ("RUNNER DAEMON-START");
 
     g_main_loop_run (loop);
 

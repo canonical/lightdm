@@ -160,7 +160,7 @@ get_accounts_service_proxy ()
 
     if (have_accounts_service_proxy)
         return accounts_service_proxy;
-  
+
     have_accounts_service_proxy = TRUE;
     accounts_service_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
                                                             G_DBUS_PROXY_FLAGS_NONE,
@@ -214,7 +214,7 @@ get_accounts_proxy_for_user (const gchar *user)
 
     if (!user_path)
         return NULL;
-
+  
     proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
                                            G_DBUS_PROXY_FLAGS_NONE,
                                            NULL,

@@ -57,6 +57,7 @@ src/ldm-marshal.h
 src/lightdm
 tests/data/passwd
 tests/src/*_moc.cpp
+tests/src/dbus-env
 tests/src/guest-account
 tests/src/initctl
 tests/src/plymouth

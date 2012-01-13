@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/test-runner switch-to-user test-gobject-greeter
+./src/dbus-env ./src/test-runner switch-to-user test-gobject-greeter

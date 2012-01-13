@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/test-runner greeter-fail-start test-gobject-greeter
+./src/dbus-env ./src/test-runner greeter-fail-start test-gobject-greeter

@@ -1,4 +1,4 @@
-noinst_PROGRAMS = test-runner X Xvnc test-gobject-greeter test-session test-script-hook guest-account initctl plymouth vnc-client
+noinst_PROGRAMS = dbus-env test-runner X Xvnc test-gobject-greeter test-session test-script-hook guest-account initctl plymouth vnc-client
 noinst_SCRIPTS = lightdm-session
 lib_LTLIBRARIES = libsystem.la
 
@@ -9,6 +9,13 @@ libsystem_la_LIBADD = -ldl
 if COMPILE_LIBLIGHTDM_QT
 noinst_PROGRAMS += test-qt-greeter
 endif
+
+dbus_env_CFLAGS = \
+	$(WARN_CFLAGS) \
+	$(GLIB_CFLAGS) \
+	-DSRCDIR=\"$(abs_srcdir)\"
+dbus_env_LDADD = \
+	$(GLIB_LIBS)
 
 test_runner_CFLAGS = \
 	$(WARN_CFLAGS) \
@@ -123,4 +130,4 @@ vnc_client_LDADD = \
 CLEANFILES = \
 	test-qt-greeter_moc.cpp
 
-EXTRA_DIST = lightdm-session
+EXTRA_DIST = lightdm-session system.conf session.conf

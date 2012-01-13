@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/test-runner script-hooks test-gobject-greeter
+./src/dbus-env ./src/test-runner script-hooks test-gobject-greeter

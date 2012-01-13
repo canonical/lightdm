@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/test-runner plymouth-active-vt test-gobject-greeter
+./src/dbus-env ./src/test-runner plymouth-active-vt test-gobject-greeter

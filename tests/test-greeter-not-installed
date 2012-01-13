@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/test-runner greeter-not-installed invalid-greeter
+./src/dbus-env ./src/test-runner greeter-not-installed invalid-greeter

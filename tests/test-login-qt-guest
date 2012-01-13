@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/test-runner login-guest test-qt-greeter
+./src/dbus-env ./src/test-runner login-guest test-qt-greeter
