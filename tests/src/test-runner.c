@@ -41,10 +41,17 @@ static Process *lightdm_process = NULL;
 static GHashTable *children = NULL;
 static gboolean stop = FALSE;
 static gint exit_status = 0;
-static gchar *carols_xsession = NULL;
 static GDBusConnection *accounts_connection = NULL;
 static GDBusNodeInfo *accounts_info;
 static GDBusNodeInfo *user_info;
+typedef struct
+{
+    guint uid;
+    gchar *username;
+    guint id;
+    gchar *xsession;
+} AccountsUser;
+static GList *accounts_users = NULL;
 static void handle_user_call (GDBusConnection       *connection,
                               const gchar           *sender,
                               const gchar           *object_path,
@@ -334,7 +341,7 @@ run_commands ()
         }
         else if (strcmp (name, "SWITCH-TO-GREETER") == 0)
         {
-            g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL),
+            g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
                                          "org.freedesktop.DisplayManager",
                                          "/org/freedesktop/DisplayManager/Seat0",
                                          "org.freedesktop.DisplayManager.Seat",
@@ -352,7 +359,7 @@ run_commands ()
             gchar *status_text, *username;
           
             username = g_hash_table_lookup (params, "USERNAME");
-            g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL),
+            g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
                                          "org.freedesktop.DisplayManager",
                                          "/org/freedesktop/DisplayManager/Seat0",
                                          "org.freedesktop.DisplayManager.Seat",
@@ -369,7 +376,7 @@ run_commands ()
         }
         else if (strcmp (name, "SWITCH-TO-GUEST") == 0)
         {
-            g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL),
+            g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
                                          "org.freedesktop.DisplayManager",
                                          "/org/freedesktop/DisplayManager/Seat0",
                                          "org.freedesktop.DisplayManager.Seat",
@@ -655,6 +662,21 @@ start_console_kit_daemon ()
                     NULL);
 }
 
+static AccountsUser *
+find_accounts_user (guint uid)
+{
+    GList *link;
+
+    for (link = accounts_users; link; link = link->next)
+    {
+        AccountsUser *user = link->data;
+        if (user->uid == uid)
+            return user;
+    }
+
+    return NULL;
+}
+
 static void
 handle_accounts_call (GDBusConnection       *connection,
                       const gchar           *sender,
@@ -684,19 +706,35 @@ handle_accounts_call (GDBusConnection       *connection,
             {
                 gchar *path;
                 GError *error = NULL;
+                guint uid;
+                AccountsUser *user;
 
-                path = g_strdup_printf ("/org/freedesktop/Accounts/User%d", atoi (fields[2]));
+                uid = atoi (fields[2]);
+                path = g_strdup_printf ("/org/freedesktop/Accounts/User%d", uid);
 
-                g_dbus_connection_register_object (accounts_connection,
-                                                   path,
-                                                   user_info->interfaces[0],
-                                                   &user_vtable,
-                                                   NULL,
-                                                   NULL,
-                                                   &error);
-                if (error)
-                    g_warning ("Failed to register user: %s", error->message);
-                g_clear_error (&error);
+                user = find_accounts_user (uid);
+                if (!user)
+                {
+                    user = g_malloc0 (sizeof (AccountsUser));
+                    accounts_users = g_list_append (accounts_users, user);
+
+                    user->uid = uid;
+                    user->username = g_strdup (name);
+                    if (strcmp (name, "carol") == 0)
+                        user->xsession = g_strdup ("alternative");
+                    else
+                        user->xsession = NULL;
+                    user->id = g_dbus_connection_register_object (accounts_connection,
+                                                                  path,
+                                                                  user_info->interfaces[0],
+                                                                  &user_vtable,
+                                                                  user,
+                                                                  NULL,
+                                                                  &error);
+                    if (error)
+                        g_warning ("Failed to register user: %s", error->message);
+                    g_clear_error (&error);
+                }              
 
                 g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", path));
                 g_free (path);
@@ -720,14 +758,16 @@ handle_user_call (GDBusConnection       *connection,
                   GDBusMethodInvocation *invocation,
                   gpointer               user_data)
 {
+    AccountsUser *user = user_data;
+
     if (strcmp (method_name, "SetXSession") == 0)
     {
         gchar *xsession;
 
         g_variant_get (parameters, "(&s)", &xsession);
 
-        g_free (carols_xsession);
-        carols_xsession = g_strdup (xsession);
+        g_free (user->xsession);
+        user->xsession = g_strdup (xsession);
 
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
@@ -744,12 +784,14 @@ handle_user_get_property (GDBusConnection       *connection,
                           GError               **error,
                           gpointer               user_data)
 {
+    AccountsUser *user = user_data;
+
     if (strcmp (property_name, "BackgroundFile") == 0)
         return g_variant_new_string ("");
     else if (strcmp (property_name, "Language") == 0)
         return g_variant_new_string ("en_US");
     else if (strcmp (property_name, "XSession") == 0)
-        return g_variant_new_string (carols_xsession ? carols_xsession : "");
+        return g_variant_new_string (user->xsession ? user->xsession : "");
 
     return NULL;
 }
@@ -890,9 +932,6 @@ main (int argc, char **argv)
 
     g_type_init ();
 
-    /* Use the session bus as the system bus */
-    g_setenv ("DBUS_SYSTEM_BUS_ADDRESS", g_getenv ("DBUS_SESSION_BUS_ADDRESS"), TRUE);
-
     children = g_hash_table_new (g_direct_hash, g_direct_equal);
 
     loop = g_main_loop_new (NULL, FALSE);
@@ -942,11 +981,6 @@ main (int argc, char **argv)
   
     /* Don't contact our X server */
     g_unsetenv ("DISPLAY");
-
-    /* Start D-Bus services */
-    service_count = 2;
-    start_console_kit_daemon ();
-    start_accounts_service_daemon ();
 
     /* Override system calls */
     ld_preload = g_build_filename (BUILDDIR, "tests", "src", ".libs", "libsystem.so", NULL);
@@ -1028,6 +1062,11 @@ main (int argc, char **argv)
     g_file_set_contents (path, passwd_data->str, -1, NULL);
     g_free (path);
     g_string_free (passwd_data, TRUE);
+
+    /* Start D-Bus services */
+    service_count = 2;
+    start_console_kit_daemon ();
+    start_accounts_service_daemon ();
 
     g_main_loop_run (loop);
 
