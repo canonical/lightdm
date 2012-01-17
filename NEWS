@@ -27,6 +27,7 @@ Overview of changes in lightdm 1.1.1
       AccountsService
     * Add regression test for users that have their home directory created after
       authentication.
+    * Move lightdm-guest-session from libexec to pkglibexec directory
 
 Overview of changes in lightdm 1.1.0
 
