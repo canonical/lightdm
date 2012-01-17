@@ -51,12 +51,12 @@ main (int argc, char **argv)
     GPid system_bus_pid, session_bus_pid, child_pid;
     int status;
 
-    conf_file = g_build_filename (SRCDIR, "system.conf", NULL);
+    conf_file = g_build_filename (DATADIR, "system.conf", NULL);
     system_bus_address = create_bus (conf_file, &system_bus_pid);
     g_free (conf_file);
     g_setenv ("DBUS_SYSTEM_BUS_ADDRESS", g_strstrip (system_bus_address), TRUE);
 
-    conf_file = g_build_filename (SRCDIR, "session.conf", NULL);
+    conf_file = g_build_filename (DATADIR, "session.conf", NULL);
     session_bus_address = create_bus (conf_file, &session_bus_pid);
     g_free (conf_file);
     g_setenv ("DBUS_SESSION_BUS_ADDRESS", g_strstrip (session_bus_address), TRUE);

@@ -13,7 +13,7 @@ endif
 dbus_env_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
-	-DSRCDIR=\"$(abs_srcdir)\"
+	-DDATADIR=\"$(abs_srcdir)/../data\"
 dbus_env_LDADD = \
 	$(GLIB_LIBS)
 
