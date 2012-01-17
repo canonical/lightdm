@@ -79,7 +79,6 @@ BUILT_SOURCES = \
 lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
 	$(WARN_CFLAGS) \
-	-DLIBEXEC_DIR=\"$(libexecdir)\" \
 	-DPKGLIBEXEC_DIR=\"$(pkglibexecdir)\" \
 	-DSBIN_DIR=\"$(sbindir)\" \
 	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\" \
@@ -93,7 +92,7 @@ lightdm_LDADD = \
 	$(LIGHTDM_LIBS) \
 	-lpam
 
-libexec_PROGRAMS = lightdm-guest-session-wrapper
+pkglibexec_PROGRAMS = lightdm-guest-session-wrapper
 
 lightdm_guest_session_wrapper_SOURCES = lightdm-guest-session-wrapper.c
 

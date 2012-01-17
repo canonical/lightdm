@@ -467,7 +467,7 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
     if (display->priv->autologin_guest)
     {
         gchar *t = command;
-        command = g_strdup_printf (LIBEXEC_DIR "/lightdm-guest-session-wrapper %s", command);
+        command = g_strdup_printf (PKGLIBEXEC_DIR "/lightdm-guest-session-wrapper %s", command);
         g_debug("Guest session, running session command through wrapper: %s", command);
         g_free (t);
     }
