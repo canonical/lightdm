@@ -47,7 +47,8 @@ TESTS = \
 	test-switch-to-user-existing-session \
 	test-switch-to-user-no-password \
 	test-vnc-login \
-	test-xdmcp-login
+	test-xdmcp-login \
+	test-no-console-kit
 
 #	test-session-exit-error
 #	test-greeter-no-exit
@@ -112,6 +113,7 @@ EXTRA_DIST = \
 	scripts/login-wrong-password.conf \
 	scripts/login-xserver-crash.conf \
 	scripts/no-config.conf \
+	scripts/no-console-kit.conf \
 	scripts/plymouth-active-vt.conf \
 	scripts/plymouth-inactive-vt.conf \
 	scripts/plymouth-no-seat.conf \

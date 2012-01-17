@@ -651,7 +651,8 @@ ck_name_acquired_cb (GDBusConnection *connection,
 
 static void
 start_console_kit_daemon ()
-{  
+{
+    service_count++;
     g_bus_own_name (G_BUS_TYPE_SYSTEM,
                     "org.freedesktop.ConsoleKit",
                     G_BUS_NAME_OWNER_FLAGS_NONE,
@@ -861,6 +862,7 @@ accounts_name_acquired_cb (GDBusConnection *connection,
 static void
 start_accounts_service_daemon ()
 {
+    service_count++;
     g_bus_own_name (G_BUS_TYPE_SYSTEM,
                     "org.freedesktop.Accounts",
                     G_BUS_NAME_OWNER_FLAGS_NONE,
@@ -1064,9 +1066,10 @@ main (int argc, char **argv)
     g_string_free (passwd_data, TRUE);
 
     /* Start D-Bus services */
-    service_count = 2;
-    start_console_kit_daemon ();
-    start_accounts_service_daemon ();
+    if (!g_key_file_get_boolean (config, "test-runner-config", "disable-console-kit", NULL))
+        start_console_kit_daemon ();
+    if (!g_key_file_get_boolean (config, "test-runner-config", "disable-accounts-service", NULL))
+        start_accounts_service_daemon ();
 
     g_main_loop_run (loop);
 
