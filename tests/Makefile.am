@@ -79,6 +79,8 @@ endif
 
 EXTRA_DIST = \
 	$(TESTS) \
+	data/system.conf \
+	data/session.conf \
 	data/xgreeters/test-gobject-greeter.desktop \
 	data/xgreeters/test-qt-greeter.desktop \
 	data/xsessions/alternative.desktop \

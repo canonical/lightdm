@@ -1,5 +1,5 @@
 noinst_PROGRAMS = dbus-env test-runner X Xvnc test-gobject-greeter test-session test-script-hook guest-account initctl plymouth vnc-client
-noinst_SCRIPTS = lightdm-session
+dist_noinst_SCRIPTS = lightdm-session
 lib_LTLIBRARIES = libsystem.la
 
 libsystem_la_SOURCES = libsystem.c
@@ -130,5 +130,3 @@ vnc_client_LDADD = \
 
 CLEANFILES = \
 	test-qt-greeter_moc.cpp
-
-EXTRA_DIST = lightdm-session system.conf session.conf
