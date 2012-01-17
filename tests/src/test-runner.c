@@ -1031,24 +1031,29 @@ main (int argc, char **argv)
     {
         gchar *user_name;
         gchar *password;
+        gboolean have_home_dir;
         gchar *real_name;
         gchar *xsession;
         gint uid;
     } users[] =
     {
-        {"root",    "",         "root",       NULL,             0},
-        {"lightdm", "",         "",           NULL,           100},
-        {"alice",   "password", "Alice User", NULL,          1000},
-        {"bob",     "",         "Bob User",   NULL,          1001},
-        {"carol",   "",         "Carol User", "alternative", 1002},
-        {NULL,      NULL,       NULL,         NULL,             0}
+        {"root",    "",         TRUE,  "root",       NULL,             0},
+        {"lightdm", "",         TRUE,  "",           NULL,           100},
+        {"alice",   "password", TRUE,  "Alice User", NULL,          1000},
+        {"bob",     "",         TRUE,  "Bob User",   NULL,          1001},
+        {"carol",   "",         TRUE,  "Carol User", "alternative", 1002},
+        {"dave",    "",         FALSE, "Dave User",  NULL,          1003},
+        {NULL,      NULL,       FALSE, NULL,         NULL,             0}
     };
     int i;
     for (i = 0; users[i].user_name; i++)
     {
-        path = g_build_filename (home_dir, users[i].user_name, NULL);
-        g_mkdir_with_parents (path, 0755);
-        g_free (path);
+        if (users[i].have_home_dir)
+        {
+            path = g_build_filename (home_dir, users[i].user_name, NULL);
+            g_mkdir_with_parents (path, 0755);
+            g_free (path);
+        }
 
         if (users[i].xsession)
         {

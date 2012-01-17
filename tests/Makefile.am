@@ -34,6 +34,7 @@ TESTS = \
 	test-login-gobject-guest-logout \
 	test-login-session-crash \
 	test-login-xserver-crash \
+	test-home-dir-on-authenticate \
 	test-plymouth-active-vt \
 	test-plymouth-inactive-vt \
 	test-plymouth-no-seat \
@@ -48,6 +49,7 @@ TESTS = \
 	test-switch-to-user-no-password \
 	test-vnc-login \
 	test-xdmcp-login \
+	test-no-accounts-service \
 	test-no-console-kit
 
 #	test-session-exit-error
@@ -95,6 +97,7 @@ EXTRA_DIST = \
 	scripts/greeter-not-installed.conf \
 	scripts/greeter-xserver-crash.conf \
 	scripts/headless.conf \
+	scripts/home-dir-on-authenticate.conf \
 	scripts/login.conf \
 	scripts/login-guest.conf \
 	scripts/login-guest-disabled.conf \
@@ -112,6 +115,7 @@ EXTRA_DIST = \
 	scripts/login-session-crash.conf \
 	scripts/login-wrong-password.conf \
 	scripts/login-xserver-crash.conf \
+	scripts/no-accounts-service.conf \
 	scripts/no-config.conf \
 	scripts/no-console-kit.conf \
 	scripts/plymouth-active-vt.conf \

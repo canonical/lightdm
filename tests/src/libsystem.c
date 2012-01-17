@@ -268,7 +268,7 @@ int
 pam_authenticate (pam_handle_t *pamh, int flags)
 {
     struct passwd *entry;
-    int password_matches = 0;
+    gboolean password_matches = FALSE;
 
     if (pamh == NULL)
         return PAM_SYSTEM_ERR;
@@ -308,7 +308,7 @@ pam_authenticate (pam_handle_t *pamh, int flags)
 
     /* Prompt for password if required */
     if (entry && (strcmp (pamh->service_name, "lightdm-autologin") == 0 || strcmp (entry->pw_passwd, "") == 0))
-        password_matches = 1;
+        password_matches = TRUE;
     else
     {
         int result;
@@ -337,7 +337,13 @@ pam_authenticate (pam_handle_t *pamh, int flags)
             password_matches = strcmp (entry->pw_passwd, resp[0].resp) == 0;
         free (resp[0].resp);  
         free (resp);
-    }  
+    }
+
+    /* Special user dave has his home directory created on login */
+    if (password_matches && strcmp (pamh->user, "dave") == 0)
+    {
+        g_mkdir_with_parents (entry->pw_dir, 0755);
+    }
 
     if (password_matches)
         return PAM_SUCCESS;
