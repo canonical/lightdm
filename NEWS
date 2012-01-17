@@ -23,6 +23,8 @@ Overview of changes in lightdm 1.1.1
     * Fix --debug working with new glib
     * Support PAM requesting a change of password
     * Update build system to work with automake 1.11.2
+    * Run tests inside their own system D-Bus, simulating ConsoleKit and
+      AccountsService
 
 Overview of changes in lightdm 1.1.0
 
