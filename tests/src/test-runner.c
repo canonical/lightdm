@@ -895,8 +895,8 @@ run_lightdm ()
         g_setenv ("LIGHTDM_TEST_CONFIG", config_path, TRUE);
     }
     g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
-    g_string_append_printf (command_line, " --xsessions-dir=%s/tests/data/xsessions", SRCDIR);
-    g_string_append_printf (command_line, " --xgreeters-dir=%s/tests", BUILDDIR);
+    g_string_append_printf (command_line, " --xsessions-dir=%s/usr/share/xsessions", temp_dir);
+    g_string_append_printf (command_line, " --xgreeters-dir=%s/usr/share/xgreeters", temp_dir);
 
     g_print ("Start daemon with command: PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_STATUS_SOCKET=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
              g_getenv ("PATH"), g_getenv ("LD_PRELOAD"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
@@ -947,25 +947,6 @@ main (int argc, char **argv)
     config_file = g_strdup_printf ("%s.conf", script_name);
     config_path = g_build_filename (SRCDIR, "tests", "scripts", config_file, NULL);
     g_free (config_file);
-
-    /* Link to the correct greeter */
-    path = g_build_filename (BUILDDIR, "tests", "default.desktop", NULL);
-    if (unlink (path) < 0 && errno != ENOENT)
-    {
-        g_printerr ("Failed to rm greeter symlink %s: %s\n", path, strerror (errno));
-        quit (EXIT_FAILURE);
-    }
-
-    greeter = g_strdup_printf ("%s.desktop", argv[2]);
-    path1 = g_build_filename (SRCDIR, "tests", "data", "xgreeters", greeter, NULL);
-    g_free(greeter);
-    if (symlink (path1, path) < 0)
-    {
-        g_printerr ("Failed to make greeter symlink %s->%s: %s\n", path, path1, strerror (errno));
-        quit (EXIT_FAILURE);
-    }
-    g_free (path);
-    g_free (path1);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, config_path, G_KEY_FILE_NONE, NULL);
@@ -1022,9 +1003,30 @@ main (int argc, char **argv)
         g_warning ("Error creating temporary directory: %s", strerror (errno));
         quit (EXIT_FAILURE);
     }
+
+    /* Set up a skeleton file system */
+    g_mkdir_with_parents (g_strdup_printf ("%s/etc", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share", temp_dir), 0755);
+
+    /* Copy over the greeter files */
+    if (system (g_strdup_printf ("cp -r %s/xsessions %s/usr/share", DATADIR, temp_dir)))
+        perror ("Failed to copy xsessions");
+    if (system (g_strdup_printf ("cp -r %s/xgreeters %s/usr/share", DATADIR, temp_dir)))
+        perror ("Failed to copy xgreeters");
+
+    /* Set up the default greeter */
+    path = g_build_filename (temp_dir, "usr", "share", "xgreeters", "default.desktop", NULL);
+    greeter = g_strdup_printf ("%s.desktop", argv[2]);
+    if (symlink (greeter, path) < 0)
+    {
+        g_printerr ("Failed to make greeter symlink %s->%s: %s\n", path, greeter, strerror (errno));
+        quit (EXIT_FAILURE);
+    }
+    g_free (path);
+    g_free (greeter);
+
     home_dir = g_build_filename (temp_dir, "home", NULL);
     g_setenv ("LIGHTDM_TEST_HOME_DIR", home_dir, TRUE);
-    passwd_data = g_string_new ("");
 
     /* Make fake users */
     struct
@@ -1045,6 +1047,7 @@ main (int argc, char **argv)
         {"dave",    "",         FALSE, "Dave User",  NULL,          1003},
         {NULL,      NULL,       FALSE, NULL,         NULL,             0}
     };
+    passwd_data = g_string_new ("");
     int i;
     for (i = 0; users[i].user_name; i++)
     {

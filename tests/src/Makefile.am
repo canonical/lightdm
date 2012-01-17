@@ -22,7 +22,8 @@ test_runner_CFLAGS = \
 	$(GLIB_CFLAGS) \
 	$(GIO_CFLAGS) \
 	-DSRCDIR=\"$(abs_top_srcdir)\" \
-	-DBUILDDIR=\"$(abs_top_builddir)\"
+	-DBUILDDIR=\"$(abs_top_builddir)\" \
+	-DDATADIR=\"$(abs_srcdir)/../data\"
 test_runner_LDADD = \
 	$(GLIB_LIBS) \
 	$(GIO_LIBS)
