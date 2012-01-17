@@ -91,5 +91,6 @@ namespace LightDM {
         public unowned string real_name { get; }
         public unowned string home_directory { get; }
         public unowned string session { get; }
+        public unowned string background { get; }
     }
 }
