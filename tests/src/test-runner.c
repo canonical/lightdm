@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <glib.h>
+#include <glib-unix.h>
 #include <gio/gio.h>
 #include <unistd.h>
 #include <pwd.h>
@@ -513,13 +514,6 @@ status_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 }
 
 static void
-signal_cb (int signum)
-{
-    g_print ("Caught signal %d, quitting\n", signum);
-    quit (EXIT_FAILURE);
-}
-
-static void
 load_script (const gchar *filename)
 {
     int i;
@@ -920,6 +914,14 @@ run_lightdm ()
     check_status ("RUNNER DAEMON-START");
 }
 
+static gboolean
+signal_cb (gpointer user_data)
+{
+    g_print ("Caught signal, quitting\n");
+    quit (EXIT_FAILURE);
+    return FALSE;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -929,14 +931,14 @@ main (int argc, char **argv)
     int status_socket;
     gchar cwd[1024];
 
-    signal (SIGINT, signal_cb);
-    signal (SIGTERM, signal_cb);
-
     g_type_init ();
 
-    children = g_hash_table_new (g_direct_hash, g_direct_equal);
-
     loop = g_main_loop_new (NULL, FALSE);
+
+    g_unix_signal_add (SIGINT, signal_cb, NULL);
+    g_unix_signal_add (SIGTERM, signal_cb, NULL);
+
+    children = g_hash_table_new (g_direct_hash, g_direct_equal);
 
     if (argc != 3)
     {
