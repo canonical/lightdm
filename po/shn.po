@@ -1,83 +1,82 @@
-# Slovak translation for lightdm
-# Copyright (c) 2011 Rosetta Contributors and Canonical Ltd 2011
+# Shan translation for lightdm
+# Copyright (c) 2012 Rosetta Contributors and Canonical Ltd 2012
 # This file is distributed under the same license as the lightdm package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2011.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2012.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-12-06 11:05+0000\n"
-"PO-Revision-Date: 2012-01-18 17:14+0000\n"
-"Last-Translator: Pavol Klacansky <pavol@klacansky.com>\n"
-"Language-Team: Slovak <sk@li.org>\n"
+"PO-Revision-Date: 2012-01-18 13:54+0000\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: Shan <shn@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2012-01-19 05:05+0000\n"
+"X-Launchpad-Export-Date: 2012-01-19 05:04+0000\n"
 "X-Generator: Launchpad (build 14692)\n"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:409
 msgid "Are you sure you want to close all programs and restart the computer?"
 msgstr ""
-"Ste si istý, že chcete zavrieť všetky programy a reštartovať počítač?"
 
 #: ../greeters/gtk/greeter.ui.h:1
 msgid "Cancel"
-msgstr "Zrušiť"
+msgstr ""
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:410
 msgid "Restart"
-msgstr "Reštartovať"
+msgstr ""
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:434
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
-msgstr "Ste si istý, že chcete zavrieť všetky programy a vypnúť počítač?"
+msgstr ""
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:435
 msgid "Shutdown"
-msgstr "Vypnúť"
+msgstr ""
 
 #: ../greeters/gtk/greeter.ui.h:4
 msgid "Large Font"
-msgstr "Veľké písmo"
+msgstr ""
 
 #: ../greeters/ldm-gtk-greeter.c:611
 msgid "High Constrast"
-msgstr "Vysoký kontrast"
+msgstr ""
 
 #: ../greeters/ldm-gtk-greeter.c:615
 msgid "Options"
-msgstr "Možnosti"
+msgstr ""
 
 #: ../greeters/ldm-gtk-greeter.c:620
 msgid "Language"
-msgstr "Jazyk"
+msgstr ""
 
 #: ../greeters/ldm-gtk-greeter.c:646
 msgid "Keyboard Layout"
-msgstr "Rozloženie klávesnice"
+msgstr ""
 
 #: ../greeters/ldm-gtk-greeter.c:668
 msgid "Session"
-msgstr "Relácia"
+msgstr ""
 
 #: ../greeters/gtk/greeter.ui.h:8
 msgid "Suspend"
-msgstr "Uspať"
+msgstr ""
 
 #: ../greeters/gtk/greeter.ui.h:2
 msgid "Hibernate"
-msgstr "Hibernovať"
+msgstr ""
 
 #: ../greeters/gtk/greeter.ui.h:6
 msgid "Restart..."
-msgstr "Reštartovať..."
+msgstr ""
 
 #: ../greeters/gtk/greeter.ui.h:7
 msgid "Shutdown..."
-msgstr "Vypnúť..."
+msgstr ""
 
 #. Description on how to use Light Display Manager displayed on command-line
 #: ../src/lightdm.c:100
@@ -86,8 +85,6 @@ msgid ""
 "Usage:\n"
 "  %s - Display Manager"
 msgstr ""
-"Použitie:\n"
-"  %s - Správca prihlásenia"
 
 #. Description on how to use Light Display Manager displayed on command-line
 #: ../src/lightdm.c:106
@@ -101,10 +98,3 @@ msgid ""
 "  -v, --version                   Show release version\n"
 "  -h, --help                      Show help options"
 msgstr ""
-"Možnosti pomocníka:\n"
-"  -c, --config <file>             Použije konfiguračný súbor\n"
-"      --pid-file <file>           Súbor, do ktorého sa zapíše PID\n"
-"  -d, --debug                     Vypíše ladiace správy\n"
-"      --test-mode                 Spustí ako neprivilegovaný používateľ\n"
-"  -v, --version                   Zobrazí verziu vydania \n"
-"  -h, --help                      Zobrazí možnosti pomocníka"
