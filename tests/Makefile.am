@@ -17,6 +17,8 @@ TESTS = \
 	test-autologin-guest \
 	test-autologin-guest-fail-setup-script \
 	test-autologin-guest-logout \
+	test-keyboard-layout \
+	test-no-keyboard-layout \
 	test-login-gobject \
 	test-login-gobject-manual \
 	test-login-gobject-manual-previous-session \
@@ -100,6 +102,8 @@ EXTRA_DIST = \
 	scripts/greeter-xserver-crash.conf \
 	scripts/headless.conf \
 	scripts/home-dir-on-authenticate.conf \
+	scripts/keyboard-layout.conf \
+	scripts/language.conf \
 	scripts/login.conf \
 	scripts/login-guest.conf \
 	scripts/login-guest-disabled.conf \
@@ -120,6 +124,8 @@ EXTRA_DIST = \
 	scripts/no-accounts-service.conf \
 	scripts/no-config.conf \
 	scripts/no-console-kit.conf \
+	scripts/no-keyboard-layout.conf \
+	scripts/no-language.conf \
 	scripts/plymouth-active-vt.conf \
 	scripts/plymouth-inactive-vt.conf \
 	scripts/plymouth-no-seat.conf \

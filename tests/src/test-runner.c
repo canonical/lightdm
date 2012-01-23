@@ -48,8 +48,12 @@ static GDBusNodeInfo *user_info;
 typedef struct
 {
     guint uid;
-    gchar *username;
+    gchar *user_name;
+    gchar *real_name;
+    gchar *home_directory;
+    gchar *path;
     guint id;
+    gchar *language;
     gchar *xsession;
 } AccountsUser;
 static GList *accounts_users = NULL;
@@ -657,19 +661,87 @@ start_console_kit_daemon ()
                     NULL);
 }
 
-static AccountsUser *
-find_accounts_user (guint uid)
+static void
+load_passwd_file ()
 {
-    GList *link;
+    gchar *data, **lines;
+    int i;
 
-    for (link = accounts_users; link; link = link->next)
+    g_file_get_contents (g_getenv ("LIGHTDM_TEST_PASSWD_FILE"), &data, NULL, NULL);
+    lines = g_strsplit (data, "\n", -1);
+    g_free (data);
+
+    for (i = 0; lines[i]; i++)
     {
-        AccountsUser *user = link->data;
-        if (user->uid == uid)
-            return user;
+        gchar **fields;
+        guint uid;
+        gchar *user_name, *real_name;
+        GList *link;
+        AccountsUser *user = NULL;
+        GError *error = NULL;
+
+        fields = g_strsplit (lines[i], ":", -1);
+        if (fields == NULL || g_strv_length (fields) < 7)
+            continue;
+
+        user_name = fields[0];
+        uid = atoi (fields[2]);
+        real_name = fields[4];
+
+        for (link = accounts_users; link; link = link->next)
+        {
+            AccountsUser *u = link->data;
+            if (u->uid == uid)
+            {
+                user = u;
+                break;
+            }
+        }
+        if (!user)
+        {
+            gchar *path;
+            GKeyFile *dmrc_file;
+
+            user = g_malloc0 (sizeof (AccountsUser));
+            accounts_users = g_list_append (accounts_users, user);
+
+            dmrc_file = g_key_file_new ();
+            path = g_build_filename (temp_dir, "home", user_name, ".dmrc", NULL);
+            g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_NONE, NULL);
+            g_free (path);
+
+            user->uid = uid;
+            user->user_name = g_strdup (user_name);
+            user->real_name = g_strdup (real_name);
+            user->home_directory = g_build_filename (temp_dir, "home", user_name, NULL);
+            user->language = g_key_file_get_string (dmrc_file, "Desktop", "Language", NULL);
+            /* DMRC contains a locale, strip the codeset off it to get the language */
+            if (user->language)
+            {
+                gchar *c = strchr (user->language, '.');
+                if (c)
+                    *c = '\0';
+            }
+            user->xsession = g_key_file_get_string (dmrc_file, "Desktop", "Session", NULL);
+            user->path = g_strdup_printf ("/org/freedesktop/Accounts/User%d", uid);
+            user->id = g_dbus_connection_register_object (accounts_connection,
+                                                          user->path,
+                                                          user_info->interfaces[0],
+                                                          &user_vtable,
+                                                          user,
+                                                          NULL,
+                                                          &error);
+            if (error)
+                g_warning ("Failed to register user: %s", error->message);
+            g_clear_error (&error);
+          
+            g_key_file_unref (dmrc_file);
+        }
+
+        g_strfreev (fields);
     }
 
-    return NULL;
+    g_strfreev (lines);
 }
 
 static void
@@ -682,62 +754,44 @@ handle_accounts_call (GDBusConnection       *connection,
                       GDBusMethodInvocation *invocation,
                       gpointer               user_data)
 {
-    if (strcmp (method_name, "FindUserByName") == 0)
+    if (strcmp (method_name, "ListCachedUsers") == 0)
     {
-        gchar *name, *data, **lines;
-        int i;
+        GVariantBuilder builder;
+        GList *link;
 
-        g_variant_get (parameters, "(&s)", &name);
+        g_variant_builder_init (&builder, G_VARIANT_TYPE ("ao"));
 
-        g_file_get_contents (g_getenv ("LIGHTDM_TEST_PASSWD_FILE"), &data, NULL, NULL);
-        lines = g_strsplit (data, "\n", -1);
-        g_free (data);
-
-        for (i = 0; lines[i]; i++)
+        load_passwd_file ();      
+        for (link = accounts_users; link; link = link->next)
         {
-            gchar **fields;
-            fields = g_strsplit (lines[i], ":", -1);
-            if (strcmp (fields[0], name) == 0)
+            AccountsUser *user = link->data;
+            g_variant_builder_add_value (&builder, g_variant_new_object_path (user->path));
+        }
+
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(ao)", &builder));
+    }
+    else if (strcmp (method_name, "FindUserByName") == 0)
+    {
+        GList *link;
+        AccountsUser *user = NULL;
+        gchar *user_name;
+
+        g_variant_get (parameters, "(&s)", &user_name);
+
+        load_passwd_file ();
+        for (link = accounts_users; link; link = link->next)
+        {
+            AccountsUser *u = link->data;
+            if (strcmp (u->user_name, user_name) == 0)
             {
-                gchar *path;
-                GError *error = NULL;
-                guint uid;
-                AccountsUser *user;
-
-                uid = atoi (fields[2]);
-                path = g_strdup_printf ("/org/freedesktop/Accounts/User%d", uid);
-
-                user = find_accounts_user (uid);
-                if (!user)
-                {
-                    user = g_malloc0 (sizeof (AccountsUser));
-                    accounts_users = g_list_append (accounts_users, user);
-
-                    user->uid = uid;
-                    user->username = g_strdup (name);
-                    if (strcmp (name, "carol") == 0)
-                        user->xsession = g_strdup ("alternative");
-                    else
-                        user->xsession = NULL;
-                    user->id = g_dbus_connection_register_object (accounts_connection,
-                                                                  path,
-                                                                  user_info->interfaces[0],
-                                                                  &user_vtable,
-                                                                  user,
-                                                                  NULL,
-                                                                  &error);
-                    if (error)
-                        g_warning ("Failed to register user: %s", error->message);
-                    g_clear_error (&error);
-                }              
-
-                g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", path));
-                g_free (path);
-                return;
+                user = u;
+                break;
             }
         }
-      
-        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such user: %s", name);
+        if (user)
+            g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", user->path));
+        else
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such user: %s", user_name);
     }
     else
         g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);    
@@ -781,10 +835,16 @@ handle_user_get_property (GDBusConnection       *connection,
 {
     AccountsUser *user = user_data;
 
-    if (strcmp (property_name, "BackgroundFile") == 0)
+    if (strcmp (property_name, "UserName") == 0)
+        return g_variant_new_string (user->user_name);
+    else if (strcmp (property_name, "RealName") == 0)
+        return g_variant_new_string (user->real_name);
+    else if (strcmp (property_name, "HomeDirectory") == 0)
+        return g_variant_new_string (user->home_directory);
+    else if (strcmp (property_name, "BackgroundFile") == 0)
         return g_variant_new_string ("");
     else if (strcmp (property_name, "Language") == 0)
-        return g_variant_new_string ("en_US");
+        return g_variant_new_string (user->language ? user->language : "");
     else if (strcmp (property_name, "XSession") == 0)
         return g_variant_new_string (user->xsession ? user->xsession : "");
 
@@ -799,6 +859,9 @@ accounts_name_acquired_cb (GDBusConnection *connection,
     const gchar *accounts_interface =
         "<node>"
         "  <interface name='org.freedesktop.Accounts'>"
+        "    <method name='ListCachedUsers'>"
+        "      <arg name='user' direction='out' type='ao'/>"
+        "    </method>"
         "    <method name='FindUserByName'>"
         "      <arg name='name' direction='in' type='s'/>"
         "      <arg name='user' direction='out' type='o'/>"
@@ -815,6 +878,9 @@ accounts_name_acquired_cb (GDBusConnection *connection,
         "    <method name='SetXSession'>"
         "      <arg name='x_session' direction='in' type='s'/>"
         "    </method>"
+        "    <property name='UserName' type='s' access='read'/>"
+        "    <property name='RealName' type='s' access='read'/>"
+        "    <property name='HomeDirectory' type='s' access='read'/>"
         "    <property name='BackgroundFile' type='s' access='read'/>"
         "    <property name='Language' type='s' access='read'/>"
         "    <property name='XSession' type='s' access='read'/>"
@@ -1038,21 +1104,26 @@ main (int argc, char **argv)
         gboolean have_home_dir;
         gchar *real_name;
         gchar *xsession;
+        gchar *layout;
+        gchar *language;
         gint uid;
     } users[] =
     {
-        {"root",    "",         TRUE,  "root",       NULL,             0},
-        {"lightdm", "",         TRUE,  "",           NULL,           100},
-        {"alice",   "password", TRUE,  "Alice User", NULL,          1000},
-        {"bob",     "",         TRUE,  "Bob User",   NULL,          1001},
-        {"carol",   "",         TRUE,  "Carol User", "alternative", 1002},
-        {"dave",    "",         FALSE, "Dave User",  NULL,          1003},
-        {NULL,      NULL,       FALSE, NULL,         NULL,             0}
+        {"root",    "",         TRUE,  "root",       NULL,          NULL, NULL,             0},
+        {"lightdm", "",         TRUE,  "",           NULL,          NULL, NULL,           100},
+        {"alice",   "password", TRUE,  "Alice User", NULL,          NULL, NULL,          1000},
+        {"bob",     "",         TRUE,  "Bob User",   NULL,          "us", "en_AU.utf8",  1001},
+        {"carol",   "",         TRUE,  "Carol User", "alternative", "fr", "fr_FR.UTF-8", 1002},
+        {"dave",    "",         FALSE, "Dave User",  NULL,          NULL, NULL,          1003},
+        {NULL,      NULL,       FALSE, NULL,         NULL,          NULL, NULL,             0}
     };
     passwd_data = g_string_new ("");
     int i;
     for (i = 0; users[i].user_name; i++)
     {
+        GKeyFile *dmrc_file;
+        gboolean save_dmrc = FALSE;
+
         if (users[i].have_home_dir)
         {
             path = g_build_filename (home_dir, users[i].user_name, NULL);
@@ -1060,11 +1131,32 @@ main (int argc, char **argv)
             g_free (path);
         }
 
+        dmrc_file = g_key_file_new ();
         if (users[i].xsession)
         {
+            g_key_file_set_string (dmrc_file, "Desktop", "Session", users[i].xsession);
+            save_dmrc = TRUE;
+        }
+        if (users[i].layout)
+        {
+            g_key_file_set_string (dmrc_file, "Desktop", "Layout", users[i].layout);
+            save_dmrc = TRUE;
+        }
+        if (users[i].language)
+        {
+            g_key_file_set_string (dmrc_file, "Desktop", "Language", users[i].language);
+            save_dmrc = TRUE;
+        }
+
+        if (save_dmrc)
+        {
+            gchar *data;
+
             path = g_build_filename (home_dir, users[i].user_name, ".dmrc", NULL);
-            g_file_set_contents (path, g_strdup_printf ("[Desktop]\nSession=%s", users[i].xsession), -1, NULL);
-            g_free (path);
+            data = g_key_file_to_data (dmrc_file, NULL, NULL);
+            g_file_set_contents (path, data, -1, NULL);
+            g_free (data);
+            g_free (path);         
         }
 
         g_string_append_printf (passwd_data, "%s:%s:%d:%d:%s:%s/home/%s:/bin/sh\n", users[i].user_name, users[i].password, users[i].uid, users[i].uid, users[i].real_name, temp_dir, users[i].user_name);

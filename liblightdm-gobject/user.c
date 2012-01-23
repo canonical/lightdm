@@ -1173,6 +1173,12 @@ get_string_property (GDBusProxy *proxy, const gchar *property)
     }
 
     g_variant_get (answer, "s", &rv);
+  
+    if (strcmp (rv, "") == 0)
+    {
+        g_free (rv);
+        rv = NULL;
+    }
 
     g_variant_unref (answer);
     return rv;
@@ -1295,16 +1301,6 @@ lightdm_user_get_logged_in (LightDMUser *user)
 static void
 lightdm_user_init (LightDMUser *user)
 {
-    LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
-
-    priv->name = g_strdup ("");
-    priv->real_name = g_strdup ("");
-    priv->home_directory = g_strdup ("");
-    priv->image = g_strdup ("");
-    priv->background = g_strdup ("");
-    priv->language = g_strdup ("");
-    priv->layout = g_strdup ("");
-    priv->session = g_strdup ("");
 }
 
 static void

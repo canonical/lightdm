@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <xcb/xcb.h>
-#include <lightdm/greeter.h>
+#include <lightdm.h>
 
 #include "status.h"
 
@@ -69,6 +69,7 @@ main (int argc, char **argv)
 {
     GMainLoop *main_loop;
     LightDMGreeter *greeter;
+    gchar *layout_username, *language_username;
 
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
@@ -112,6 +113,30 @@ main (int argc, char **argv)
     }
 
     notify_status ("GREETER CONNECTED-TO-DAEMON");
+
+    layout_username = g_key_file_get_string (config, "test-greeter-config", "log-keyboard-layout", NULL);
+    if (layout_username)
+    {
+        LightDMUser *user;
+        const gchar *layout;
+
+        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), layout_username);
+        layout = lightdm_user_get_layout (user);
+
+        notify_status ("GREETER GET-LAYOUT USERNAME=%s LAYOUT=%s", layout_username, layout ? layout : "");
+    }
+
+    language_username = g_key_file_get_string (config, "test-greeter-config", "log-language", NULL);
+    if (language_username)
+    {
+        LightDMUser *user;
+        const gchar *language;
+
+        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), language_username);
+        language = lightdm_user_get_language (user);
+
+        notify_status ("GREETER GET-LANGUAGE USERNAME=%s LANGUAGE=%s", language_username, language ? language : "");
+    }
 
     if (g_key_file_get_boolean (config, "test-greeter-config", "crash-xserver", NULL))
     {
