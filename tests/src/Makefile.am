@@ -1,6 +1,6 @@
 noinst_PROGRAMS = dbus-env test-runner X Xvnc test-gobject-greeter test-session test-script-hook guest-account initctl plymouth vnc-client
 dist_noinst_SCRIPTS = lightdm-session
-lib_LTLIBRARIES = libsystem.la
+noinst_LTLIBRARIES = libsystem.la
 
 libsystem_la_SOURCES = libsystem.c
 libsystem_la_CFLAGS = $(GLIB_CFLAGS)

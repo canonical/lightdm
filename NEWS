@@ -1,6 +1,7 @@
 Overview of changes in lightdm 1.1.2
 
     * Add regression tests for getting the user language and layout
+    * Stop accidentally distributing libsystem
 
 Overview of changes in lightdm 1.1.1
 
