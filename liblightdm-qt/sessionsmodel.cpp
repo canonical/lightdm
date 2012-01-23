@@ -21,7 +21,7 @@ using namespace QLightDM;
 class SessionItem
 {
 public:
-    QString id;
+    QString key;
     QString name;
     QString comment;
 };
@@ -60,11 +60,11 @@ void SessionsModelPrivate::loadSessions()
        Q_ASSERT(ldmSession);
 
        SessionItem session;
-       session.id = QString::fromLocal8Bit(lightdm_session_get_key(ldmSession));
+       session.key = QString::fromLocal8Bit(lightdm_session_get_key(ldmSession));
        session.name = QString::fromLocal8Bit(lightdm_session_get_name(ldmSession));
        session.comment = QString::fromLocal8Bit(lightdm_session_get_comment(ldmSession));
 
-       qDebug() << "adding session" << session.id;
+       qDebug() << "adding session" << session.key;
 
        items.append(session);
    }
@@ -77,6 +77,9 @@ SessionsModel::SessionsModel(QObject *parent) :
     QAbstractListModel(parent),
     d_ptr(new SessionsModelPrivate(this))
 {
+    QHash<int, QByteArray> roles = roleNames();
+    roles[KeyRole] = "key";
+    setRoleNames(roles);
 }
 
 SessionsModel::~SessionsModel()
@@ -106,8 +109,8 @@ QVariant SessionsModel::data(const QModelIndex &index, int role) const
     int row = index.row();
 
     switch (role) {
-    case SessionsModel::IdRole:
-        return d->items[row].id;
+    case SessionsModel::KeyRole:
+        return d->items[row].key;
     case Qt::DisplayRole:
         return d->items[row].name;
     case Qt::ToolTipRole:
