@@ -24,7 +24,8 @@ namespace QLightDM {
         enum SessionModelRoles {
             //name is exposed as Qt::DisplayRole
             //comment is exposed as Qt::TooltipRole
-            IdRole = Qt::UserRole
+            KeyRole = Qt::UserRole,
+            IdRole = KeyRole /** Deprecated */
         };
 
         explicit SessionsModel(QObject *parent = 0);

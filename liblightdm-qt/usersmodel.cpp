@@ -27,6 +27,7 @@ public:
     QString homeDirectory;
     QString image;
     QString background;
+    QString session;
     bool isLoggedIn;
     QString displayName() const;
 };
@@ -93,6 +94,7 @@ void UsersModelPrivate::loadUsers()
             user.realName = QString::fromLocal8Bit(lightdm_user_get_real_name(ldmUser));
             user.image = QString::fromLocal8Bit(lightdm_user_get_image(ldmUser));
             user.background = QString::fromLocal8Bit(lightdm_user_get_background(ldmUser));
+            user.session = QString::fromLocal8Bit(lightdm_user_get_session(ldmUser));
             user.isLoggedIn = lightdm_user_get_logged_in(ldmUser);
             users.append(user);
         }
@@ -177,6 +179,7 @@ UsersModel::UsersModel(QObject *parent) :
     QHash<int, QByteArray> roles = roleNames();
     roles[NameRole] = "name";
     roles[LoggedInRole] = "loggedIn";
+    roles[SessionRole] = "session";
     setRoleNames(roles);
     d->loadUsers();
 
@@ -216,6 +219,8 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
         return d->users[row].name;
     case UsersModel::RealNameRole:
         return d->users[row].realName;
+    case UsersModel::SessionRole:
+        return d->users[row].session;
     case UsersModel::LoggedInRole:
         return d->users[row].isLoggedIn;
     case UsersModel::BackgroundRole:

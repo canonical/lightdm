@@ -31,7 +31,8 @@ public:
     enum UserModelRoles {NameRole = Qt::UserRole,
                          RealNameRole,
                          LoggedInRole,
-                         BackgroundRole};
+                         BackgroundRole,
+                         SessionRole};
 
     int rowCount(const QModelIndex &parent) const;
     QVariant data(const QModelIndex &index, int role) const;
