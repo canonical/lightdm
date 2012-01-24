@@ -34,7 +34,7 @@ liblightdm_gobject_1_la_SOURCES= \
 if HAVE_INTROSPECTION
 
 -include $(INTROSPECTION_MAKEFILE)
-INTROSPECTION_SCANNER_ARGS = --add-include-path=$(srcdir)
+INTROSPECTION_SCANNER_ARGS = --add-include-path=$(srcdir) --warn-all
 INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
 
 INTROSPECTION_GIRS = LightDM-1.gir
