@@ -19,6 +19,9 @@ TESTS = \
 	test-autologin-guest-logout \
 	test-keyboard-layout \
 	test-no-keyboard-layout \
+	test-language \
+	test-no-language \
+	test-language-no-accounts-service \
 	test-login-gobject \
 	test-login-gobject-manual \
 	test-login-gobject-manual-previous-session \
@@ -104,6 +107,7 @@ EXTRA_DIST = \
 	scripts/home-dir-on-authenticate.conf \
 	scripts/keyboard-layout.conf \
 	scripts/language.conf \
+	scripts/language-no-accounts-service.conf \
 	scripts/login.conf \
 	scripts/login-guest.conf \
 	scripts/login-guest-disabled.conf \

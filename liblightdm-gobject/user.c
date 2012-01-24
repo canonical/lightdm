@@ -768,11 +768,16 @@ update_users (LightDMUserList *user_list)
     }
     else
     {
+        const gchar *passwd_filename;
         GFile *passwd_file;
 
         load_passwd_file (user_list, FALSE);
 
         /* Watch for changes to user list */
+
+        passwd_filename = g_getenv ("LIGHTDM_TEST_PASSWD_FILE");
+        if (!passwd_filename)
+            passwd_filename = PASSWD_FILE;
         passwd_file = g_file_new_for_path (PASSWD_FILE);
         priv->passwd_monitor = g_file_monitor (passwd_file, G_FILE_MONITOR_NONE, NULL, &error);
         g_object_unref (passwd_file);
@@ -1127,14 +1132,9 @@ load_dmrc (LightDMUser *user)
 
     // FIXME: Watch for changes
 
+    /* The Language field is actually a locale, strip the codeset off it to get the language */
     if (priv->language)
         g_free (priv->language);
-    if (priv->layout)
-        g_free (priv->layout);
-    if (priv->session)
-        g_free (priv->session);
-
-    /* The Language field is actually a locale, strip the codeset off it to get the language */
     priv->language = g_key_file_get_string (priv->dmrc_file, "Desktop", "Language", NULL);
     if (priv->language)
     {
@@ -1143,7 +1143,12 @@ load_dmrc (LightDMUser *user)
             *codeset = '\0';
     }
 
+    if (priv->layout)
+        g_free (priv->layout);
     priv->layout = g_key_file_get_string (priv->dmrc_file, "Desktop", "Layout", NULL);
+
+    if (priv->session)
+        g_free (priv->session);
     priv->session = g_key_file_get_string (priv->dmrc_file, "Desktop", "Session", NULL);
 }
 
@@ -1189,15 +1194,16 @@ load_accounts_service (LightDMUser *user)
 {
     LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
     LightDMUserListPrivate *list_priv = GET_LIST_PRIVATE (priv->user_list);
-
-    /* First, find AccountObject proxy */
     UserAccountObject *account = NULL;
     GList *iter;
+
+    /* First, find AccountObject proxy */
     for (iter = list_priv->user_account_objects; iter; iter = iter->next)
     {
-        if (((UserAccountObject *)iter->data)->user == user)
+        UserAccountObject *a = iter->data;
+        if (a->user == user)
         {
-            account = (UserAccountObject *)iter->data;
+            account = a;
             break;
         }
     }
@@ -1207,9 +1213,9 @@ load_accounts_service (LightDMUser *user)
     /* We have proxy, let's grab some properties */
     if (priv->language)
         g_free (priv->language);
+    priv->language = get_string_property (account->proxy, "Language");
     if (priv->session)
         g_free (priv->session);
-    priv->language = get_string_property (account->proxy, "Language");
     priv->session = get_string_property (account->proxy, "XSession");
 
     return TRUE;
