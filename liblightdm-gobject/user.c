@@ -132,7 +132,7 @@ static LightDMUserList *singleton = NULL;
  *
  * Get the user list.
  *
- * Return value: (tranfer none): the #LightDMUserList
+ * Return value: (transfer none): the #LightDMUserList
  **/
 LightDMUserList *
 lightdm_user_list_get_instance (void)
