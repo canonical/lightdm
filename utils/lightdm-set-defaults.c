@@ -22,6 +22,7 @@
 #define SEATDEFAULT_KEY_GROUP "SeatDefaults"
 #define SESSION_KEY_NAME  "user-session"
 #define GREETER_KEY_NAME  "greeter-session"
+#define AUTOLOGIN_KEY_NAME  "autologin-user"
 
 #define IS_STRING_EMPTY(x) ((x)==NULL||(x)[0]=='\0')
 
@@ -31,6 +32,7 @@ static gboolean remove = FALSE;
 
 static char    *session = NULL;
 static char    *greeter = NULL;
+static char    *autologin = NULL;
 
 static GOptionEntry entries[] =
 {
@@ -39,6 +41,7 @@ static GOptionEntry entries[] =
   { "remove",   'r', 0, G_OPTION_ARG_NONE, &remove, N_("Remove default value if it's the current one"), NULL },
   { "session",  's', 0, G_OPTION_ARG_STRING, &session, N_("Set default session"), NULL },
   { "greeter",  'g', 0, G_OPTION_ARG_STRING, &greeter, N_("Set default greeter"), NULL },
+  { "autologin",'a', 0, G_OPTION_ARG_STRING, &autologin, N_("Set autologin user"), NULL },
   { NULL }
 };
 
@@ -104,6 +107,7 @@ main (int argc, char *argv[])
 
     gchar          *default_session = NULL;
     gchar          *default_greeter = NULL;
+    gchar          *default_autologin = NULL;
     gint            return_code = 0;
 
     bindtextdomain (GETTEXT_PACKAGE, LOCALE_DIR);
@@ -120,7 +124,7 @@ main (int argc, char *argv[])
         g_error_free (error);
         return 1;
     }
-    if (IS_STRING_EMPTY (session) && IS_STRING_EMPTY (greeter)) {
+    if (IS_STRING_EMPTY (session) && IS_STRING_EMPTY (greeter) && IS_STRING_EMPTY (autologin)) {
         g_printerr (N_("Wrong usage of the command\n%s"), g_option_context_get_help (context, FALSE, NULL));
         g_option_context_free (context);
         return 1;
@@ -141,11 +145,14 @@ main (int argc, char *argv[])
     // try to get the right keys
     default_session = g_key_file_get_string (keyfile, SEATDEFAULT_KEY_GROUP, SESSION_KEY_NAME, NULL);
     default_greeter = g_key_file_get_string (keyfile, SEATDEFAULT_KEY_GROUP, GREETER_KEY_NAME, NULL);
+    default_autologin = g_key_file_get_string (keyfile, SEATDEFAULT_KEY_GROUP, AUTOLOGIN_KEY_NAME, NULL);
 
     if (!(IS_STRING_EMPTY (session)))
         return_code = update_string (default_session, session, keep_old, remove, SEATDEFAULT_KEY_GROUP, SESSION_KEY_NAME, keyfile);
     if (!(IS_STRING_EMPTY (greeter)) && (return_code == 0))
         return_code = update_string (default_greeter, greeter, keep_old, remove, SEATDEFAULT_KEY_GROUP, GREETER_KEY_NAME, keyfile);
+    if (!(IS_STRING_EMPTY (autologin)) && (return_code == 0))
+        return_code = update_string (default_autologin, autologin, keep_old, remove, SEATDEFAULT_KEY_GROUP, AUTOLOGIN_KEY_NAME, keyfile);
 
     if(return_code == 0) {
         s_data = g_key_file_to_data (keyfile, &size, &error);
@@ -170,6 +177,8 @@ main (int argc, char *argv[])
         g_free (default_session);
     if (default_greeter)
         g_free (default_greeter);
+    if (default_autologin)
+        g_free (default_autologin);
 
     return return_code;
 
