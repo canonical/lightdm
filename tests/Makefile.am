@@ -52,6 +52,7 @@ TESTS = \
 	test-switch-to-user \
 	test-switch-to-user-existing-session \
 	test-switch-to-user-no-password \
+	test-switch-to-user-logout \
 	test-vnc-login \
 	test-xdmcp-login \
 	test-no-accounts-service \
@@ -141,6 +142,7 @@ EXTRA_DIST = \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \
 	scripts/switch-to-user-existing-session.conf \
+	scripts/switch-to-user-logout.conf \
 	scripts/switch-to-user-no-password.conf \
 	scripts/vnc-login.conf \
 	scripts/xdmcp-login.conf \

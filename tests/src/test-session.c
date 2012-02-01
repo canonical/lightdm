@@ -23,6 +23,7 @@ main (int argc, char **argv)
 {
     GMainLoop *loop;
     xcb_connection_t *connection;
+    gchar *logout_display;
 
     signal (SIGINT, quit_cb);
     signal (SIGTERM, quit_cb);
@@ -56,7 +57,8 @@ main (int argc, char **argv)
         xcb_flush (connection);
     }
 
-    if (g_key_file_get_boolean (config, "test-session-config", "logout", NULL))
+    logout_display = g_key_file_get_string (config, "test-session-config", "logout-display", NULL);
+    if (logout_display && strcmp (logout_display, getenv ("DISPLAY")) == 0)
     {
         sleep (1);
         notify_status ("SESSION LOGOUT");
