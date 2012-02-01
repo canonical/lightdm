@@ -38,6 +38,17 @@ static XklConfigRec *xkl_config = NULL;
 static GList *layouts = NULL;
 
 static void
+variant_cb (XklConfigRegistry *config,
+           const XklConfigItem *item,
+           gpointer data)
+{
+    LightDMLayout *layout;
+
+    layout = g_object_new (LIGHTDM_TYPE_LAYOUT, "name", item->name, "short-description", item->short_description, "description", item->description, NULL);
+    layouts = g_list_append (layouts, layout);
+}
+
+static void
 layout_cb (XklConfigRegistry *config,
            const XklConfigItem *item,
            gpointer data)
@@ -46,6 +57,8 @@ layout_cb (XklConfigRegistry *config,
 
     layout = g_object_new (LIGHTDM_TYPE_LAYOUT, "name", item->name, "short-description", item->short_description, "description", item->description, NULL);
     layouts = g_list_append (layouts, layout);
+
+    xkl_config_registry_foreach_layout_variant (config, item->name, variant_cb, NULL);
 }
 
 /**
