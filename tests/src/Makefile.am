@@ -6,6 +6,10 @@ libsystem_la_SOURCES = libsystem.c
 libsystem_la_CFLAGS = $(GLIB_CFLAGS)
 libsystem_la_LIBADD = -ldl
 
+# This is required to have autotools generate a library that is not installed
+# but produces a shared library (instead of just a static library)
+libsystem_la_LDFLAGS = -rpath /nowhere
+
 if COMPILE_LIBLIGHTDM_QT
 noinst_PROGRAMS += test-qt-greeter
 endif
