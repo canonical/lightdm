@@ -12,7 +12,7 @@ static GKeyFile *config;
 static void
 show_message_cb (LightDMGreeter *greeter, const gchar *text, LightDMMessageType type)
 {
-    notify_status ("GREETER SHOW-MESSAGE TEXT=\"%s\"", text);
+    notify_status ("GREETER %s SHOW-MESSAGE TEXT=\"%s\"", getenv ("DISPLAY"), text);
 }
 
 static void
@@ -20,7 +20,7 @@ show_prompt_cb (LightDMGreeter *greeter, const gchar *text, LightDMPromptType ty
 {
     gchar *username, *password, *response = NULL;
 
-    notify_status ("GREETER SHOW-PROMPT TEXT=\"%s\"", text);
+    notify_status ("GREETER %s SHOW-PROMPT TEXT=\"%s\"", getenv ("DISPLAY"), text);
 
     username = g_key_file_get_string (config, "test-greeter-config", "username", NULL);
     password = g_key_file_get_string (config, "test-greeter-config", "password", NULL);
@@ -32,7 +32,7 @@ show_prompt_cb (LightDMGreeter *greeter, const gchar *text, LightDMPromptType ty
 
     if (response)
     {
-        notify_status ("GREETER RESPOND TEXT=\"%s\"", response);
+        notify_status ("GREETER %s RESPOND TEXT=\"%s\"", getenv ("DISPLAY"), response);
         lightdm_greeter_respond (greeter, response);
     }
 
@@ -44,23 +44,25 @@ static void
 authentication_complete_cb (LightDMGreeter *greeter)
 {
     if (lightdm_greeter_get_authentication_user (greeter))
-        notify_status ("GREETER AUTHENTICATION-COMPLETE USERNAME=%s AUTHENTICATED=%s",
+        notify_status ("GREETER %s AUTHENTICATION-COMPLETE USERNAME=%s AUTHENTICATED=%s",
+                       getenv ("DISPLAY"),
                        lightdm_greeter_get_authentication_user (greeter),
                        lightdm_greeter_get_is_authenticated (greeter) ? "TRUE" : "FALSE");
     else
-        notify_status ("GREETER AUTHENTICATION-COMPLETE AUTHENTICATED=%s",
+        notify_status ("GREETER %s AUTHENTICATION-COMPLETE AUTHENTICATED=%s",
+                       getenv ("DISPLAY"),
                        lightdm_greeter_get_is_authenticated (greeter) ? "TRUE" : "FALSE");
     if (!lightdm_greeter_get_is_authenticated (greeter))
         return;
 
     if (!lightdm_greeter_start_session_sync (greeter, g_key_file_get_string (config, "test-greeter-config", "session", NULL), NULL))
-        notify_status ("GREETER SESSION-FAILED");
+        notify_status ("GREETER %s SESSION-FAILED", getenv ("DISPLAY"));
 }
 
 static void
 signal_cb (int signum)
 {
-    notify_status ("GREETER TERMINATE SIGNAL=%d", signum);
+    notify_status ("GREETER %s TERMINATE SIGNAL=%d", getenv ("DISPLAY"), signum);
     exit (EXIT_SUCCESS);
 }
 
@@ -74,7 +76,7 @@ main (int argc, char **argv)
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
 
-    notify_status ("GREETER START");
+    notify_status ("GREETER %s START", getenv ("DISPLAY"));
 
     config = g_key_file_new ();
     if (g_getenv ("LIGHTDM_TEST_CONFIG"))
@@ -83,7 +85,7 @@ main (int argc, char **argv)
     if (g_key_file_has_key (config, "test-greeter-config", "return-value", NULL))
     {
         int return_value = g_key_file_get_integer (config, "test-greeter-config", "return-value", NULL);
-        notify_status ("GREETER EXIT CODE=%d", return_value);
+        notify_status ("GREETER %s EXIT CODE=%d", getenv ("DISPLAY"), return_value);
         return return_value;
     }
 
@@ -94,25 +96,25 @@ main (int argc, char **argv)
 
     if (xcb_connection_has_error (connection))
     {
-        notify_status ("GREETER FAIL-CONNECT-XSERVER %s", getenv ("DISPLAY"));
+        notify_status ("GREETER %s FAIL-CONNECT-XSERVER", getenv ("DISPLAY"));
         return EXIT_FAILURE;
     }
 
-    notify_status ("GREETER CONNECT-XSERVER %s", getenv ("DISPLAY"));
+    notify_status ("GREETER %s CONNECT-XSERVER", getenv ("DISPLAY"));
 
     greeter = lightdm_greeter_new ();
     g_signal_connect (greeter, "show-message", G_CALLBACK (show_message_cb), NULL);
     g_signal_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
     g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
 
-    notify_status ("GREETER CONNECT-TO-DAEMON");
+    notify_status ("GREETER %s CONNECT-TO-DAEMON", getenv ("DISPLAY"));
     if (!lightdm_greeter_connect_sync (greeter, NULL))
     {
-        notify_status ("GREETER FAIL-CONNECT-DAEMON");
+        notify_status ("GREETER %s FAIL-CONNECT-DAEMON", getenv ("DISPLAY"));
         return EXIT_FAILURE;
     }
 
-    notify_status ("GREETER CONNECTED-TO-DAEMON");
+    notify_status ("GREETER %s CONNECTED-TO-DAEMON", getenv ("DISPLAY"));
 
     layout_username = g_key_file_get_string (config, "test-greeter-config", "log-keyboard-layout", NULL);
     if (layout_username)
@@ -123,7 +125,7 @@ main (int argc, char **argv)
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), layout_username);
         layout = lightdm_user_get_layout (user);
 
-        notify_status ("GREETER GET-LAYOUT USERNAME=%s LAYOUT=%s", layout_username, layout ? layout : "");
+        notify_status ("GREETER %s GET-LAYOUT USERNAME=%s LAYOUT=%s", getenv ("DISPLAY"), layout_username, layout ? layout : "");
     }
 
     language_username = g_key_file_get_string (config, "test-greeter-config", "log-language", NULL);
@@ -135,7 +137,7 @@ main (int argc, char **argv)
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), language_username);
         language = lightdm_user_get_language (user);
 
-        notify_status ("GREETER GET-LANGUAGE USERNAME=%s LANGUAGE=%s", language_username, language ? language : "");
+        notify_status ("GREETER %s GET-LANGUAGE USERNAME=%s LANGUAGE=%s", getenv ("DISPLAY"), language_username, language ? language : "");
     }
 
     if (g_key_file_get_boolean (config, "test-greeter-config", "crash-xserver", NULL))
@@ -149,7 +151,7 @@ main (int argc, char **argv)
         if (f == NULL)
         {
             const gchar *name = "SIGSEGV";
-            notify_status ("GREETER CRASH-XSERVER");
+            notify_status ("GREETER %s CRASH-XSERVER", getenv ("DISPLAY"));
             xcb_intern_atom (connection, FALSE, strlen (name), name);
             xcb_flush (connection);
 
@@ -162,7 +164,7 @@ main (int argc, char **argv)
     /* Automatically log in as requested user */
     if (lightdm_greeter_get_select_user_hint (greeter))
     {
-        notify_status ("GREETER AUTHENTICATE-SELECTED USERNAME=%s", lightdm_greeter_get_select_user_hint (greeter));
+        notify_status ("GREETER %s AUTHENTICATE-SELECTED USERNAME=%s", getenv ("DISPLAY"), lightdm_greeter_get_select_user_hint (greeter));
         lightdm_greeter_authenticate (greeter, lightdm_greeter_get_select_user_hint (greeter));
     }
     else
@@ -176,12 +178,12 @@ main (int argc, char **argv)
         {
             if (g_key_file_get_boolean (config, "test-greeter-config", "login-guest", NULL))
             {
-                notify_status ("GREETER AUTHENTICATE-GUEST");
+                notify_status ("GREETER %s AUTHENTICATE-GUEST", getenv ("DISPLAY"));
                 lightdm_greeter_authenticate_as_guest (greeter);
             }
             else if (g_key_file_get_boolean (config, "test-greeter-config", "prompt-username", NULL))
             {
-                notify_status ("GREETER AUTHENTICATE");
+                notify_status ("GREETER %s AUTHENTICATE", getenv ("DISPLAY"));
                 lightdm_greeter_authenticate (greeter, NULL);
             }
             else
@@ -191,7 +193,7 @@ main (int argc, char **argv)
                 username = g_key_file_get_string (config, "test-greeter-config", "username", NULL);
                 if (username)
                 {
-                    notify_status ("GREETER AUTHENTICATE USERNAME=%s", username);
+                    notify_status ("GREETER %s AUTHENTICATE USERNAME=%s", getenv ("DISPLAY"), username);
                     lightdm_greeter_authenticate (greeter, username);
                     g_free (username);
                 }

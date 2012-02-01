@@ -21,12 +21,12 @@ TestGreeter::TestGreeter ()
 
 void TestGreeter::showMessage (QString text, QLightDM::Greeter::MessageType type)
 {
-    notify_status ("GREETER SHOW-MESSAGE TEXT=\"%s\"", text.toAscii ().constData ());
+    notify_status ("GREETER %s SHOW-MESSAGE TEXT=\"%s\"", getenv ("DISPLAY"), text.toAscii ().constData ());
 }
 
 void TestGreeter::showPrompt (QString text, QLightDM::Greeter::PromptType type)
 {
-    notify_status ("GREETER SHOW-PROMPT TEXT=\"%s\"", text.toAscii ().constData ());
+    notify_status ("GREETER %s SHOW-PROMPT TEXT=\"%s\"", getenv ("DISPLAY"), text.toAscii ().constData ());
 
     QString username = config->value ("test-greeter-config/username").toString ();
     QString password = config->value ("test-greeter-config/password").toString ();
@@ -39,7 +39,7 @@ void TestGreeter::showPrompt (QString text, QLightDM::Greeter::PromptType type)
 
     if (response != "")
     {
-        notify_status ("GREETER RESPOND TEXT=\"%s\"", response.toAscii ().constData ());
+        notify_status ("GREETER %s RESPOND TEXT=\"%s\"", getenv ("DISPLAY"), response.toAscii ().constData ());
         respond (response);
     }
 }
@@ -47,21 +47,22 @@ void TestGreeter::showPrompt (QString text, QLightDM::Greeter::PromptType type)
 void TestGreeter::authenticationComplete ()
 {
     if (authenticationUser () != "")
-        notify_status ("GREETER AUTHENTICATION-COMPLETE USERNAME=%s AUTHENTICATED=%s",
+        notify_status ("GREETER %s AUTHENTICATION-COMPLETE USERNAME=%s AUTHENTICATED=%s",
+                       getenv ("DISPLAY"),
                        authenticationUser ().toAscii ().constData (), isAuthenticated () ? "TRUE" : "FALSE");
     else
-        notify_status ("GREETER AUTHENTICATION-COMPLETE AUTHENTICATED=%s", isAuthenticated () ? "TRUE" : "FALSE");
+        notify_status ("GREETER %s AUTHENTICATION-COMPLETE AUTHENTICATED=%s", getenv ("DISPLAY"), isAuthenticated () ? "TRUE" : "FALSE");
     if (!isAuthenticated ())
         return;
 
     if (!startSessionSync (config->value ("test-greeter-config/session").toString ()))
-        notify_status ("GREETER SESSION-FAILED");
+        notify_status ("GREETER %s SESSION-FAILED", getenv ("DISPLAY"));
 }
 
 static void
 signal_cb (int signum)
 {
-    notify_status ("GREETER TERMINATE SIGNAL=%d", signum);
+    notify_status ("GREETER %s TERMINATE SIGNAL=%d", getenv ("DISPLAY"), signum);
     exit (EXIT_SUCCESS);
 }
 
@@ -72,7 +73,7 @@ int main(int argc, char *argv[])
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
 
-    notify_status ("GREETER START");
+    notify_status ("GREETER %s START", getenv ("DISPLAY"));
 
     if (getenv ("LIGHTDM_TEST_CONFIG"))
         config = new QSettings(getenv ("LIGHTDM_TEST_CONFIG"), QSettings::IniFormat);
@@ -83,26 +84,26 @@ int main(int argc, char *argv[])
 
     if (xcb_connection_has_error (connection))
     {
-        notify_status ("GREETER FAIL-CONNECT-XSERVER %s", getenv ("DISPLAY"));
+        notify_status ("GREETER %s FAIL-CONNECT-XSERVER", getenv ("DISPLAY"));
         return EXIT_FAILURE;
     }
 
-    notify_status ("GREETER CONNECT-XSERVER %s", getenv ("DISPLAY"));
+    notify_status ("GREETER %s CONNECT-XSERVER", getenv ("DISPLAY"));
 
     TestGreeter *greeter = new TestGreeter();
   
-    notify_status ("GREETER CONNECT-TO-DAEMON");  
+    notify_status ("GREETER %s CONNECT-TO-DAEMON", getenv ("DISPLAY"));
     if (!greeter->connectSync())
     {
-        notify_status ("GREETER FAIL-CONNECT-DAEMON");
+        notify_status ("GREETER %s FAIL-CONNECT-DAEMON", getenv ("DISPLAY"));
         return EXIT_FAILURE;
     }
 
-    notify_status ("GREETER CONNECTED-TO-DAEMON");
+    notify_status ("GREETER %s CONNECTED-TO-DAEMON", getenv ("DISPLAY"));
 
     if (greeter->selectUserHint() != "")
     {
-        notify_status ("GREETER AUTHENTICATE-SELECTED USERNAME=%s", greeter->selectUserHint ().toAscii ().constData ());
+        notify_status ("GREETER %s AUTHENTICATE-SELECTED USERNAME=%s", getenv ("DISPLAY"), greeter->selectUserHint ().toAscii ().constData ());
         greeter->authenticate (greeter->selectUserHint ());
     }
     else
@@ -113,12 +114,12 @@ int main(int argc, char *argv[])
         {
             if (config->value ("test-greeter-config/login-guest", "false") == "true")
             {
-                notify_status ("GREETER AUTHENTICATE-GUEST");
+                notify_status ("GREETER %s AUTHENTICATE-GUEST", getenv ("DISPLAY"));
                 greeter->authenticateAsGuest ();
             }
             else if (config->value ("test-greeter-config/prompt-username", "false") == "true")
             {
-                notify_status ("GREETER AUTHENTICATE");
+                notify_status ("GREETER %s AUTHENTICATE", getenv ("DISPLAY"));
                 greeter->authenticate ();
             }
             else
@@ -126,7 +127,7 @@ int main(int argc, char *argv[])
                 QString username = config->value ("test-greeter-config/username").toString ();
                 if (username != "")
                 {
-                    notify_status ("GREETER AUTHENTICATE USERNAME=%s", username.toAscii ().constData ());
+                    notify_status ("GREETER %s AUTHENTICATE USERNAME=%s", getenv ("DISPLAY"), username.toAscii ().constData ());
                     greeter->authenticate (username);
                 }
             }
