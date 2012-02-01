@@ -50,6 +50,7 @@ TESTS = \
 	test-switch-to-greeter \
 	test-switch-to-guest \
 	test-switch-to-user \
+	test-switch-to-users \
 	test-switch-to-user-existing-session \
 	test-switch-to-user-no-password \
 	test-switch-to-user-logout \
@@ -141,6 +142,7 @@ EXTRA_DIST = \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \
+	scripts/switch-to-users.conf \
 	scripts/switch-to-user-existing-session.conf \
 	scripts/switch-to-user-logout.conf \
 	scripts/switch-to-user-no-password.conf \
