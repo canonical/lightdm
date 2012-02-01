@@ -14,7 +14,7 @@ static GKeyFile *config;
 static void
 quit_cb (int signum)
 {
-    notify_status ("SESSION TERMINATE SIGNAL=%d", signum);
+    notify_status ("SESSION %s TERMINATE SIGNAL=%d", getenv ("DISPLAY"), signum);
     exit (EXIT_SUCCESS);
 }
 
@@ -29,9 +29,9 @@ main (int argc, char **argv)
     signal (SIGTERM, quit_cb);
 
     if (argc > 1)
-        notify_status ("SESSION START NAME=%s USER=%s", argv[1], getenv ("USER"));
+        notify_status ("SESSION %s START NAME=%s USER=%s", getenv ("DISPLAY"), argv[1], getenv ("USER"));
     else
-        notify_status ("SESSION START USER=%s", getenv ("USER"));
+        notify_status ("SESSION %s START USER=%s", getenv ("DISPLAY"), getenv ("USER"));
 
     config = g_key_file_new ();
     if (g_getenv ("LIGHTDM_TEST_CONFIG"))
@@ -43,16 +43,16 @@ main (int argc, char **argv)
 
     if (xcb_connection_has_error (connection))
     {
-        notify_status ("SESSION CONNECT-XSERVER-ERROR");
+        notify_status ("SESSION %s CONNECT-XSERVER-ERROR", getenv ("DISPLAY"));
         return EXIT_FAILURE;
     }
 
-    notify_status ("SESSION CONNECT-XSERVER");
+    notify_status ("SESSION %s CONNECT-XSERVER", getenv ("DISPLAY"));
 
     if (g_key_file_get_boolean (config, "test-session-config", "crash-xserver", NULL))
     {
         const gchar *name = "SIGSEGV";
-        notify_status ("SESSION CRASH-XSERVER");
+        notify_status ("SESSION %s CRASH-XSERVER", getenv ("DISPLAY"));
         xcb_intern_atom (connection, FALSE, strlen (name), name);
         xcb_flush (connection);
     }
@@ -61,13 +61,13 @@ main (int argc, char **argv)
     if (logout_display && strcmp (logout_display, getenv ("DISPLAY")) == 0)
     {
         sleep (1);
-        notify_status ("SESSION LOGOUT");
+        notify_status ("SESSION %s LOGOUT", getenv ("DISPLAY"));
         return EXIT_SUCCESS;
     }
 
     if (g_key_file_get_boolean (config, "test-session-config", "sigsegv", NULL))
     {
-        notify_status ("SESSION CRASH");
+        notify_status ("SESSION %s CRASH", getenv ("DISPLAY"));
         kill (getpid (), SIGSEGV);
     }
   
