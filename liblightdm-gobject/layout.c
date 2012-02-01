@@ -1,4 +1,5 @@
-/*
+/* -*- Mode: C; indent-tabs-mode:nil; tab-width:4 -*-
+ *
  * Copyright (C) 2010 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
  * 
@@ -36,6 +37,39 @@ static Display *display = NULL;
 static XklEngine *xkl_engine = NULL;
 static XklConfigRec *xkl_config = NULL;
 static GList *layouts = NULL;
+static LightDMLayout *default_layout = NULL;
+
+static gchar *
+make_layout_string (const gchar *layout, const gchar *variant)
+{
+    if (!layout || layout[0] == 0)
+        return NULL;
+    else if (!variant || variant[0] == 0)
+        return g_strdup (layout);
+    else
+        return g_strdup_printf ("%s\t%s", layout, variant);
+}
+
+static void
+parse_layout_string (const gchar *name, gchar **layout, gchar **variant)
+{
+    gchar **split;
+
+    *layout = NULL;
+    *variant = NULL;
+
+    if (!name)
+        return;
+
+    split = g_strsplit (name, "\t", 2);
+    if (split[0])
+    {
+        *layout = g_strdup (split[0]);
+        if (split[1])
+            *variant = g_strdup (split[1]);
+    }
+    g_strfreev (split);
+}
 
 static void
 variant_cb (XklConfigRegistry *config,
@@ -43,9 +77,14 @@ variant_cb (XklConfigRegistry *config,
            gpointer data)
 {
     LightDMLayout *layout;
+    gchar *full_name;
 
-    layout = g_object_new (LIGHTDM_TYPE_LAYOUT, "name", item->name, "short-description", item->short_description, "description", item->description, NULL);
+    full_name = make_layout_string (data, item->name);
+
+    layout = g_object_new (LIGHTDM_TYPE_LAYOUT, "name", full_name, "short-description", item->short_description, "description", item->description, NULL);
     layouts = g_list_append (layouts, layout);
+
+    g_free (full_name);
 }
 
 static void
@@ -58,7 +97,7 @@ layout_cb (XklConfigRegistry *config,
     layout = g_object_new (LIGHTDM_TYPE_LAYOUT, "name", item->name, "short-description", item->short_description, "description", item->description, NULL);
     layouts = g_list_append (layouts, layout);
 
-    xkl_config_registry_foreach_layout_variant (config, item->name, variant_cb, NULL);
+    xkl_config_registry_foreach_layout_variant (config, item->name, variant_cb, (gpointer) item->name);
 }
 
 /**
@@ -99,19 +138,25 @@ lightdm_get_layouts (void)
  * Set the layout for this session.
  **/
 void
-lightdm_set_layout (LightDMLayout *layout)
+lightdm_set_layout (LightDMLayout *dmlayout)
 {
     XklConfigRec *config;
+    gchar *layout, *variant;
 
-    g_return_if_fail (layout != NULL);
+    g_return_if_fail (dmlayout != NULL);
 
-    g_debug ("Setting keyboard layout to %s", lightdm_layout_get_name (layout));
+    g_debug ("Setting keyboard layout to '%s'", lightdm_layout_get_name (dmlayout));
+
+    parse_layout_string (lightdm_layout_get_name (dmlayout), &layout, &variant);
 
     config = xkl_config_rec_new ();
     config->layouts = g_malloc (sizeof (gchar *) * 2);
+    config->variants = g_malloc (sizeof (gchar *) * 2);
     config->model = g_strdup (xkl_config->model);
-    config->layouts[0] = g_strdup (lightdm_layout_get_name (layout));
+    config->layouts[0] = layout;
     config->layouts[1] = NULL;
+    config->variants[0] = variant;
+    config->variants[1] = NULL;
     if (!xkl_config_rec_activate (config, xkl_engine))
         g_warning ("Failed to activate XKL config");
     g_object_unref (config);
@@ -128,10 +173,29 @@ LightDMLayout *
 lightdm_get_layout (void)
 {
     lightdm_get_layouts ();
-    if (layouts)
-        return (LightDMLayout *) g_list_first (layouts)->data;
-    else
-        return NULL;
+
+    if (layouts && xkl_config && !default_layout)
+    {
+        gchar *full_name;
+        GList *item;
+
+        full_name = make_layout_string (xkl_config->layouts ? xkl_config->layouts[0] : NULL,
+                                        xkl_config->variants ? xkl_config->variants[0] : NULL);
+
+        for (item = layouts; item; item = item->next)
+        {
+            LightDMLayout *iter_layout = (LightDMLayout *) item->data;
+            if (g_strcmp0 (lightdm_layout_get_name (iter_layout), full_name) == 0)
+            {
+                default_layout = iter_layout;
+                break;
+            }
+        }
+
+        g_free (full_name);
+    }
+
+    return default_layout;
 }
 
 /**
