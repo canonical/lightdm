@@ -6,17 +6,9 @@
 #include <glib.h>
 #include <glib-unix.h>
 #include <gio/gio.h>
+#include <gio/gunixsocketaddress.h>
 #include <unistd.h>
 #include <pwd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/wait.h>
-
-/* For some reason sys/un.h doesn't define this */
-#ifndef UNIX_PATH_MAX
-#define UNIX_PATH_MAX 108
-#endif
 
 /* Timeout in ms waiting for the status we expect */
 #define STATUS_TIMEOUT 2000
@@ -26,6 +18,7 @@
 
 static gchar *config_path;
 static GKeyFile *config;
+static GSocket *status_socket = NULL;
 static gchar *status_socket_name = NULL;
 static GList *statuses = NULL;
 static GList *script = NULL;
@@ -236,19 +229,24 @@ get_script_line ()
     return script_iter->data;
 }
 
-static int
-open_unix_socket (const gchar *name)
+static GSocket *
+open_unix_socket (const gchar *path, GError **error)
 {
-    int s;
-    struct sockaddr_un address;
+    GSocket *s;
+    GSocketAddress *address;
+    gboolean result;
 
-    s = socket (AF_UNIX, SOCK_DGRAM, 0);
-    if (s < 0)
-        return -1;
-    address.sun_family = AF_UNIX;
-    strncpy (address.sun_path, name, UNIX_PATH_MAX);
-    if (bind (s, (struct sockaddr *) &address, sizeof (address)) < 0)
-        return -1;
+    s = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_DATAGRAM, G_SOCKET_PROTOCOL_DEFAULT, error);
+    if (!s)
+        return NULL;
+    address = g_unix_socket_address_new (path);
+    result = g_socket_bind (s, address, FALSE, error);
+    g_object_unref (address);
+    if (!result)
+    {
+        g_object_unref (s);
+        return NULL;
+    }
     return s;
 }
 
@@ -496,22 +494,22 @@ check_status (const gchar *status)
 }
 
 static gboolean
-status_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
+status_message_cb (gpointer data)
 {
-    int s;
-    guint8 buffer[1024];
+    gchar buffer[1024];
     ssize_t n_read;
+    GError *error = NULL;
 
-    s = g_io_channel_unix_get_fd (channel);
-    n_read = recv (s, buffer, 1023, 0);
-    if (n_read < 0)
-        g_warning ("Error reading from socket: %s", strerror (errno));
-    else if (n_read == 0)
+    n_read = g_socket_receive (status_socket, buffer, 1023, NULL, &error);
+    if (error)
+        g_warning ("Error reading from socket: %s", error->message);
+    g_clear_error (&error);
+    if (n_read == 0)
         return FALSE;
-    else
+    else if (n_read > 0)
     {
         buffer[n_read] = '\0';
-        check_status ((gchar *) buffer);
+        check_status (buffer);
     }
 
     return TRUE;
@@ -994,8 +992,9 @@ main (int argc, char **argv)
     GMainLoop *loop;
     gchar *greeter = NULL, *script_name, *config_file, *path, *path1, *path2, *ld_preload, *ld_library_path, *home_dir;
     GString *passwd_data;
-    int status_socket;
+    GSource *status_source;
     gchar cwd[1024];
+    GError *error = NULL;
 
     g_type_init ();
 
@@ -1056,13 +1055,15 @@ main (int argc, char **argv)
     status_socket_name = g_build_filename (cwd, ".status-socket", NULL);
     g_setenv ("LIGHTDM_TEST_STATUS_SOCKET", status_socket_name, TRUE);
     unlink (status_socket_name);  
-    status_socket = open_unix_socket (status_socket_name);
-    if (status_socket < 0)
-    {
-        g_warning ("Error opening status socket: %s", strerror (errno));
+    status_socket = open_unix_socket (status_socket_name, &error);
+    if (error)
+        g_warning ("Error opening status socket: %s", error->message);
+    g_clear_error (&error);
+    if (!status_socket)
         quit (EXIT_FAILURE);
-    }
-    g_io_add_watch (g_io_channel_unix_new (status_socket), G_IO_IN, status_message_cb, NULL);
+    status_source = g_socket_create_source (status_socket, G_IO_IN, NULL);
+    g_source_set_callback (status_source, status_message_cb, NULL, NULL);
+    g_source_attach (status_source, NULL);
 
     /* Run from a temporary directory */
     temp_dir = g_build_filename (cwd, "lightdm-test-XXXXXX", NULL);

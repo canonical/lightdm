@@ -25,12 +25,14 @@ test_runner_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
 	$(GIO_CFLAGS) \
+	$(GIO_UNIX_CFLAGS) \
 	-DSRCDIR=\"$(abs_top_srcdir)\" \
 	-DBUILDDIR=\"$(abs_top_builddir)\" \
 	-DDATADIR=\"$(abs_srcdir)/../data\"
 test_runner_LDADD = \
 	$(GLIB_LIBS) \
-	$(GIO_LIBS)
+	$(GIO_LIBS) \
+	$(GIO_UNIX_LIBS)
 
 X_SOURCES = X.c x-authority.c x-authority.h x-common.c x-common.h x-server.c x-server.h xdmcp-client.c xdmcp-client.h status.c status.h
 X_CFLAGS = \
