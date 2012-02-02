@@ -6,6 +6,7 @@
 
 #include "status.h"
 
+static LightDMGreeter *greeter;
 static xcb_connection_t *connection = NULL;
 static GKeyFile *config;
 
@@ -18,26 +19,7 @@ show_message_cb (LightDMGreeter *greeter, const gchar *text, LightDMMessageType 
 static void
 show_prompt_cb (LightDMGreeter *greeter, const gchar *text, LightDMPromptType type)
 {
-    gchar *username, *password, *response = NULL;
-
     status_notify ("GREETER %s SHOW-PROMPT TEXT=\"%s\"", getenv ("DISPLAY"), text);
-
-    username = g_key_file_get_string (config, "test-greeter-config", "username", NULL);
-    password = g_key_file_get_string (config, "test-greeter-config", "password", NULL);
-
-    if (g_key_file_get_boolean (config, "test-greeter-config", "prompt-username", NULL) && strcmp (text, "login:") == 0)
-        response = username;
-    else if (password)
-        response = password;
-
-    if (response)
-    {
-        status_notify ("GREETER %s RESPOND TEXT=\"%s\"", getenv ("DISPLAY"), response);
-        lightdm_greeter_respond (greeter, response);
-    }
-
-    g_free (username);
-    g_free (password);
 }
 
 static void
@@ -52,11 +34,6 @@ authentication_complete_cb (LightDMGreeter *greeter)
         status_notify ("GREETER %s AUTHENTICATION-COMPLETE AUTHENTICATED=%s",
                        getenv ("DISPLAY"),
                        lightdm_greeter_get_is_authenticated (greeter) ? "TRUE" : "FALSE");
-    if (!lightdm_greeter_get_is_authenticated (greeter))
-        return;
-
-    if (!lightdm_greeter_start_session_sync (greeter, g_key_file_get_string (config, "test-greeter-config", "session", NULL), NULL))
-        status_notify ("GREETER %s SESSION-FAILED", getenv ("DISPLAY"));
 }
 
 static void
@@ -67,16 +44,84 @@ signal_cb (int signum)
 }
 
 static void
-request_cb (const gchar *message)
+request_cb (const gchar *request)
 {
+    gchar *r;
+  
+    r = g_strdup_printf ("GREETER %s AUTHENTICATE", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+        lightdm_greeter_authenticate (greeter, NULL);
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s AUTHENTICATE USERNAME=", getenv ("DISPLAY"));
+    if (g_str_has_prefix (request, r))
+        lightdm_greeter_authenticate (greeter, request + strlen (r));
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s AUTHENTICATE-GUEST", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+        lightdm_greeter_authenticate_as_guest (greeter);
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s RESPOND TEXT=\"", getenv ("DISPLAY"));
+    if (g_str_has_prefix (request, r))
+    {
+        gchar *text = g_strdup (request + strlen (r));
+        text[strlen (text) - 1] = '\0';
+        lightdm_greeter_respond (greeter, text);
+        g_free (text);
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s START-SESSION", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        if (!lightdm_greeter_start_session_sync (greeter, NULL, NULL))
+            status_notify ("GREETER %s SESSION-FAILED", getenv ("DISPLAY")); 
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s START-SESSION SESSION=", getenv ("DISPLAY"));
+    if (g_str_has_prefix (request, r))
+    {
+        if (!lightdm_greeter_start_session_sync (greeter, request + strlen (r), NULL))
+            status_notify ("GREETER %s SESSION-FAILED", getenv ("DISPLAY")); 
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s LOG-LAYOUT USERNAME=", getenv ("DISPLAY"));
+    if (g_str_has_prefix (request, r))
+    {
+        LightDMUser *user;
+        const gchar *username, *layout;
+
+        username = request + strlen (r);
+        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
+        layout = lightdm_user_get_layout (user);
+
+        status_notify ("GREETER %s LOG-LAYOUT USERNAME=%s LAYOUT=%s", getenv ("DISPLAY"), username, layout ? layout : "");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s LOG-LANGUAGE USERNAME=", getenv ("DISPLAY"));  
+    if (g_str_has_prefix (request, r))
+    {
+        LightDMUser *user;
+        const gchar *username, *language;
+
+        username = request + strlen (r);
+        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
+        language = lightdm_user_get_language (user);
+
+        status_notify ("GREETER %s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s", getenv ("DISPLAY"), username, language ? language : "");
+    }
+    g_free (r);
 }
 
 int
 main (int argc, char **argv)
 {
     GMainLoop *main_loop;
-    LightDMGreeter *greeter;
-    gchar *layout_username, *language_username;
 
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
@@ -124,99 +169,9 @@ main (int argc, char **argv)
 
     status_notify ("GREETER %s CONNECTED-TO-DAEMON", getenv ("DISPLAY"));
 
-    layout_username = g_key_file_get_string (config, "test-greeter-config", "log-keyboard-layout", NULL);
-    if (layout_username)
-    {
-        LightDMUser *user;
-        const gchar *layout;
-
-        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), layout_username);
-        layout = lightdm_user_get_layout (user);
-
-        status_notify ("GREETER %s GET-LAYOUT USERNAME=%s LAYOUT=%s", getenv ("DISPLAY"), layout_username, layout ? layout : "");
-    }
-
-    language_username = g_key_file_get_string (config, "test-greeter-config", "log-language", NULL);
-    if (language_username)
-    {
-        LightDMUser *user;
-        const gchar *language;
-
-        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), language_username);
-        language = lightdm_user_get_language (user);
-
-        status_notify ("GREETER %s GET-LANGUAGE USERNAME=%s LANGUAGE=%s", getenv ("DISPLAY"), language_username, language ? language : "");
-    }
-
-    if (g_key_file_get_boolean (config, "test-greeter-config", "crash-xserver", NULL))
-    {
-        gchar *crash_lock;
-        FILE *f;
-
-        crash_lock = g_build_filename (g_getenv ("LIGHTDM_TEST_HOME_DIR"), ".greeter-crashed-xserver", NULL);
-        f = fopen (crash_lock, "r");
-
-        if (f == NULL)
-        {
-            const gchar *name = "SIGSEGV";
-            status_notify ("GREETER %s CRASH-XSERVER", getenv ("DISPLAY"));
-            xcb_intern_atom (connection, FALSE, strlen (name), name);
-            xcb_flush (connection);
-
-            /* Write lock to stop repeatedly logging in */
-            f = fopen (crash_lock, "w");
-            fclose (f);
-        }
-    }
-
     /* Automatically log in as requested user */
     if (lightdm_greeter_get_select_user_hint (greeter))
-    {
-        status_notify ("GREETER %s AUTHENTICATE-SELECTED USERNAME=%s", getenv ("DISPLAY"), lightdm_greeter_get_select_user_hint (greeter));
-        lightdm_greeter_authenticate (greeter, lightdm_greeter_get_select_user_hint (greeter));
-    }
-    else
-    {
-        gchar *login_lock;
-        FILE *f;
-
-        login_lock = g_build_filename (g_getenv ("LIGHTDM_TEST_HOME_DIR"), ".greeter-logged-in", NULL);
-        f = fopen (login_lock, "r");
-        if (f == NULL)
-        {
-            if (g_key_file_get_boolean (config, "test-greeter-config", "login-guest", NULL))
-            {
-                status_notify ("GREETER %s AUTHENTICATE-GUEST", getenv ("DISPLAY"));
-                lightdm_greeter_authenticate_as_guest (greeter);
-            }
-            else if (g_key_file_get_boolean (config, "test-greeter-config", "prompt-username", NULL))
-            {
-                status_notify ("GREETER %s AUTHENTICATE", getenv ("DISPLAY"));
-                lightdm_greeter_authenticate (greeter, NULL);
-            }
-            else
-            {
-                gchar *username;
-
-                username = g_key_file_get_string (config, "test-greeter-config", "username", NULL);
-                if (username)
-                {
-                    status_notify ("GREETER %s AUTHENTICATE USERNAME=%s", getenv ("DISPLAY"), username);
-                    lightdm_greeter_authenticate (greeter, username);
-                    g_free (username);
-                }
-            }
-
-            /* Write lock to stop repeatedly logging in */
-            f = fopen (login_lock, "w");
-            fclose (f);
-        }
-        else
-        {
-            g_debug ("Not logging in, lock file detected %s", login_lock);
-            fclose (f);
-        }
-    }
+        status_notify ("GREETER %s SELECT-USER-HINT USERNAME=%s", getenv ("DISPLAY"), lightdm_greeter_get_select_user_hint (greeter));
 
     g_main_loop_run (main_loop);
 

@@ -421,6 +421,7 @@ handle_command (const gchar *command)
     }
     /* Forward to external processes */
     else if (strcmp (name, "SESSION") == 0 ||
+             strcmp (name, "GREETER") == 0 ||
              strcmp (name, "XSERVER") == 0)
     {
         GList *link;
