@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <glib-unix.h>
 #include <gio/gio.h>
 #include <gio/gunixsocketaddress.h>
@@ -1139,12 +1140,13 @@ main (int argc, char **argv)
     g_source_attach (status_source, NULL);
 
     /* Run from a temporary directory */
-    temp_dir = g_build_filename (cwd, "lightdm-test-XXXXXX", NULL);
+    temp_dir = g_build_filename (g_get_tmp_dir (), "lightdm-test-XXXXXX", NULL);
     if (!mkdtemp (temp_dir))
     {
         g_warning ("Error creating temporary directory: %s", strerror (errno));
         quit (EXIT_FAILURE);
     }
+    g_chmod (temp_dir, 0755);
 
     /* Set up a skeleton file system */
     g_mkdir_with_parents (g_strdup_printf ("%s/etc", temp_dir), 0755);
@@ -1202,6 +1204,8 @@ main (int argc, char **argv)
         {
             path = g_build_filename (home_dir, users[i].user_name, NULL);
             g_mkdir_with_parents (path, 0755);
+            if (chown (path, users[i].uid, users[i].uid) < 0)
+              g_debug ("chown (%s) failed: %s", path, strerror (errno));
             g_free (path);
         }
 
