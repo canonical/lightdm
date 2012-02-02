@@ -3,14 +3,24 @@
 #include <errno.h>
 #include <string.h>
 #include <glib.h>
+#include <glib-object.h>
 
 #include "status.h"
 
 static GKeyFile *config;
 
+static void
+request_cb (const gchar *message)
+{
+}
+
 int
 main (int argc, char **argv)
 {
+    g_type_init ();
+
+    status_connect (request_cb);
+
     config = g_key_file_new ();
     if (g_getenv ("LIGHTDM_TEST_CONFIG"))
         g_key_file_load_from_file (config, g_getenv ("LIGHTDM_TEST_CONFIG"), G_KEY_FILE_NONE, NULL);
@@ -53,7 +63,7 @@ main (int argc, char **argv)
         fprintf (passwd, "%s::%d:%d:Guest Account:%s:/bin/sh\n", username, max_uid+1, max_uid+1, home_dir);
         fclose (passwd);
 
-        notify_status ("GUEST-ACCOUNT ADD USERNAME=%s", username);
+        status_notify ("GUEST-ACCOUNT ADD USERNAME=%s", username);
 
         /* Print out the username so LightDM picks it up */
         g_print ("%s\n", username);
@@ -67,7 +77,7 @@ main (int argc, char **argv)
 
         username = argv[2];
 
-        notify_status ("GUEST-ACCOUNT REMOVE USERNAME=%s", username);
+        status_notify ("GUEST-ACCOUNT REMOVE USERNAME=%s", username);
 
         /* Open a new file for writing */
         passwd = fopen (g_getenv ("LIGHTDM_TEST_PASSWD_FILE"), "r");

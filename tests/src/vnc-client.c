@@ -9,6 +9,11 @@
 
 static GKeyFile *config;
 
+static void
+request_cb (const gchar *message)
+{
+}
+
 int
 main (int argc, char **argv)
 {
@@ -25,7 +30,9 @@ main (int argc, char **argv)
 
     g_type_init ();
 
-    notify_status ("VNC-CLIENT START");
+    status_connect (request_cb);
+
+    status_notify ("VNC-CLIENT START");
 
     config = g_key_file_new ();
     if (g_getenv ("LIGHTDM_TEST_CONFIG"))
@@ -36,7 +43,7 @@ main (int argc, char **argv)
     else
         server_address = g_strdup (":0");
 
-    notify_status ("VNC-CLIENT CONNECT SERVER=%s", server_address);
+    status_notify ("VNC-CLIENT CONNECT SERVER=%s", server_address);
 
     socket = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_TCP, &error);
     if (error)
@@ -84,7 +91,7 @@ main (int argc, char **argv)
     buffer[n_read] = '\0';
     if (g_str_has_suffix (buffer, "\n"))
         buffer[n_read-1] = '\0';
-    notify_status ("VNC-CLIENT CONNECTED VERSION=\"%s\"", buffer);
+    status_notify ("VNC-CLIENT CONNECTED VERSION=\"%s\"", buffer);
 
     snprintf (buffer, 1024, "RFB 003.003\n");
     n_sent = g_socket_send (socket, buffer, strlen (buffer), NULL, &error);

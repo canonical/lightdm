@@ -65,74 +65,92 @@ test_gobject_greeter_CFLAGS = \
 	-I$(top_srcdir)/liblightdm-gobject \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
-	$(GOBJECT_CFLAGS) \
+	$(GIO_UNIX_CFLAGS) \
 	$(XCB_CFLAGS)
 test_gobject_greeter_LDADD = \
 	-L$(top_builddir)/liblightdm-gobject \
 	-llightdm-gobject-1 \
 	$(GLIB_LIBS) \
-	$(GOBJECT_LIBS) \
+	$(GIO_UNIX_LIBS) \
 	$(XCB_LIBS)
 
 guest_account_SOURCES = guest-account.c status.c status.h
 guest_account_CFLAGS = \
 	$(WARN_CFLAGS) \
-	$(GLIB_CFLAGS)
+	$(GLIB_CFLAGS) \
+	$(GIO_UNIX_CFLAGS)
 guest_account_LDADD = \
-	$(GLIB_LIBS)
+	$(GLIB_LIBS) \
+	$(GIO_UNIX_LIBS)
 
 test_script_hook_SOURCES = test-script-hook.c status.c status.h
 test_script_hook_CFLAGS = \
 	$(WARN_CFLAGS) \
-	$(GLIB_CFLAGS)
+	$(GLIB_CFLAGS) \
+	$(GIO_UNIX_CFLAGS)
 test_script_hook_LDADD = \
-	$(GLIB_LIBS)
+	$(GLIB_LIBS) \
+	$(GIO_UNIX_LIBS)
 
 test-qt-greeter_moc.cpp: test-qt-greeter.h
 	$(MOC) $< -o $@
 test_qt_greeter_SOURCES = test-qt-greeter.cpp test-qt-greeter.h status.c status.h
 nodist_test_qt_greeter_SOURCES = test-qt-greeter_moc.cpp
+test_qt_greeter_CFLAGS = \
+	$(GLIB_CFLAGS) \
+	$(GIO_UNIX_CFLAGS) \
+	$(XCB_CFLAGS)
 test_qt_greeter_CXXFLAGS = \
 	-I$(top_srcdir)/liblightdm-qt \
 	$(LIBLIGHTDM_QT_CFLAGS) \
-	$(XCB_CFLAGS)
+	$(GLIB_CFLAGS)
 test_qt_greeter_LDADD = \
 	-L$(top_builddir)/liblightdm-qt \
 	-llightdm-qt-2 \
 	$(LIBLIGHTDM_QT_LIBS) \
+	$(GLIB_LIBS) \
+	$(GIO_UNIX_LIBS) \
 	$(XCB_LIBS)
 
 test_session_SOURCES = test-session.c status.c status.h
 test_session_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
+	$(GIO_UNIX_CFLAGS) \
 	$(XCB_CFLAGS)
 test_session_LDADD = \
 	$(GLIB_LIBS) \
+	$(GIO_UNIX_LIBS) \
 	$(XCB_LIBS)
 
 initctl_SOURCES = initctl.c status.c status.h
 initctl_CFLAGS = \
 	$(WARN_CFLAGS) \
-	$(GLIB_CFLAGS)
+	$(GLIB_CFLAGS) \
+	$(GIO_UNIX_CFLAGS)
 initctl_LDADD = \
-	$(GLIB_LIBS)
+	$(GLIB_LIBS) \
+	$(GIO_UNIX_LIBS)
 
 plymouth_SOURCES = plymouth.c status.c status.h
 plymouth_CFLAGS = \
 	$(WARN_CFLAGS) \
-	$(GLIB_CFLAGS)
+	$(GLIB_CFLAGS) \
+	$(GIO_UNIX_CFLAGS)
 plymouth_LDADD = \
-	$(GLIB_LIBS)
+	$(GLIB_LIBS) \
+	$(GIO_UNIX_LIBS)
 
 vnc_client_SOURCES = vnc-client.c status.c status.h
 vnc_client_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
-	$(GIO_CFLAGS)
+	$(GIO_CFLAGS) \
+	$(GIO_UNIX_CFLAGS)
 vnc_client_LDADD = \
 	$(GLIB_LIBS) \
-	$(GIO_LIBS)
+	$(GIO_LIBS) \
+	$(GIO_UNIX_LIBS)
 
 CLEANFILES = \
 	test-qt-greeter_moc.cpp

@@ -4,8 +4,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+  
+#include <glib-object.h>
 
-void notify_status (const char *format, ...);
+typedef void (*StatusRequestFunc)(const gchar *message);
+
+void status_connect (StatusRequestFunc message_cb);
+
+void status_notify (const gchar *format, ...);
 
 #ifdef __cplusplus
 }
