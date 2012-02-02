@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <xcb/xcb.h>
 #include <glib.h>
+#include <glib-object.h>
 
 #include "status.h"
 
@@ -27,6 +28,8 @@ main (int argc, char **argv)
 
     signal (SIGINT, quit_cb);
     signal (SIGTERM, quit_cb);
+
+    g_type_init ();
 
     if (argc > 1)
         notify_status ("SESSION %s START NAME=%s USER=%s", getenv ("DISPLAY"), argv[1], getenv ("USER"));

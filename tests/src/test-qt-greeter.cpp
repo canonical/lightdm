@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
+#include <glib-object.h>
 #include <xcb/xcb.h>
 #include <QLightDM/Greeter>
 #include <QtCore/QSettings>
@@ -68,6 +69,8 @@ signal_cb (int signum)
 
 int main(int argc, char *argv[])
 {
+    g_type_init ();
+
     QCoreApplication app(argc, argv);
 
     signal (SIGINT, signal_cb);

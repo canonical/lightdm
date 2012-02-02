@@ -229,27 +229,6 @@ get_script_line ()
     return script_iter->data;
 }
 
-static GSocket *
-open_unix_socket (const gchar *path, GError **error)
-{
-    GSocket *s;
-    GSocketAddress *address;
-    gboolean result;
-
-    s = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_DATAGRAM, G_SOCKET_PROTOCOL_DEFAULT, error);
-    if (!s)
-        return NULL;
-    address = g_unix_socket_address_new (path);
-    result = g_socket_bind (s, address, FALSE, error);
-    g_object_unref (address);
-    if (!result)
-    {
-        g_object_unref (s);
-        return NULL;
-    }
-    return s;
-}
-
 static void
 run_commands ()
 {
@@ -496,11 +475,13 @@ check_status (const gchar *status)
 static gboolean
 status_message_cb (gpointer data)
 {
+    GSocket *socket = data;
     gchar buffer[1024];
     ssize_t n_read;
     GError *error = NULL;
+    GSocketAddress *address = NULL;
 
-    n_read = g_socket_receive (status_socket, buffer, 1023, NULL, &error);
+    n_read = g_socket_receive_from (socket, &address, buffer, 1023, NULL, &error);
     if (error)
         g_warning ("Error reading from socket: %s", error->message);
     g_clear_error (&error);
@@ -510,6 +491,28 @@ status_message_cb (gpointer data)
     {
         buffer[n_read] = '\0';
         check_status (buffer);
+    }
+
+    return TRUE;
+}
+
+static gboolean
+status_connect_cb (gpointer data)
+{
+    GSocket *socket;
+    GError *error = NULL;
+
+    socket = g_socket_accept (status_socket, NULL, &error);
+    if (error)
+        g_warning ("Failed to accept status connection: %s", error->message);
+    g_clear_error (&error);
+    if (socket)
+    {
+        GSource *source;
+
+        source = g_socket_create_source (socket, G_IO_IN, NULL);
+        g_source_set_callback (source, status_message_cb, socket, NULL);
+        g_source_attach (source, NULL);
     }
 
     return TRUE;
@@ -1054,15 +1057,39 @@ main (int argc, char **argv)
     /* Open socket for status */
     status_socket_name = g_build_filename (cwd, ".status-socket", NULL);
     g_setenv ("LIGHTDM_TEST_STATUS_SOCKET", status_socket_name, TRUE);
-    unlink (status_socket_name);  
-    status_socket = open_unix_socket (status_socket_name, &error);
+    unlink (status_socket_name);
+    status_socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
     if (error)
-        g_warning ("Error opening status socket: %s", error->message);
+        g_warning ("Error creating status socket: %s", error->message);
     g_clear_error (&error);
+    if (status_socket)
+    {
+        GSocketAddress *address;
+        gboolean result;
+
+        address = g_unix_socket_address_new (status_socket_name);
+        result = g_socket_bind (status_socket, address, FALSE, &error);
+        g_object_unref (address);
+        if (error)
+            g_warning ("Error binding status socket: %s", error->message);
+        g_clear_error (&error);
+        if (result)
+        {
+            result = g_socket_listen (status_socket, &error);
+            if (error)
+                g_warning ("Error listening on status socket: %s", error->message);
+            g_clear_error (&error);
+        }
+        if (!result)
+        {
+            g_object_unref (status_socket);
+            status_socket = NULL;
+        }
+    }
     if (!status_socket)
         quit (EXIT_FAILURE);
     status_source = g_socket_create_source (status_socket, G_IO_IN, NULL);
-    g_source_set_callback (status_source, status_message_cb, NULL, NULL);
+    g_source_set_callback (status_source, status_connect_cb, NULL, NULL);
     g_source_attach (status_source, NULL);
 
     /* Run from a temporary directory */

@@ -76,6 +76,8 @@ main (int argc, char **argv)
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
 
+    g_type_init ();
+
     notify_status ("GREETER %s START", getenv ("DISPLAY"));
 
     config = g_key_file_new ();
