@@ -70,6 +70,12 @@ static const GDBusInterfaceVTable user_vtable =
     handle_user_call,
     handle_user_get_property,
 };
+typedef struct
+{
+    GSocket *socket;
+    GSource *source;
+} StatusClient;
+static GList *status_clients = NULL;
 
 static void run_lightdm (void);
 static void quit (int status);
@@ -221,7 +227,7 @@ fail (const gchar *event, const gchar *expected)
     quit (EXIT_FAILURE);
 }
 
-static gchar *
+static const gchar *
 get_script_line ()
 {
     if (!script_iter)
@@ -230,205 +236,235 @@ get_script_line ()
 }
 
 static void
+handle_command (const gchar *command)
+{
+    const gchar *c;
+    gchar *name = NULL;
+    GHashTable *params;
+
+    c = command;
+    while (*c && !isspace (*c))
+        c++;
+    name = g_strdup_printf ("%.*s", (int) (c - command), command);
+
+    params = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+    while (TRUE)
+    {
+        const gchar *start;
+        gchar *param_name, *param_value;
+
+        while (isspace (*c))
+            c++;
+        start = c;
+        while (*c && !isspace (*c) && *c != '=')
+            c++;
+        if (*c == '\0')
+            break;
+
+        param_name = g_strdup_printf ("%.*s", (int) (c - start), start);
+
+        if (*c == '=')
+        {
+            c++;
+            while (isspace (*c))
+                c++;
+            if (*c == '\"')
+            {
+                gboolean escaped = FALSE;
+                GString *value;
+
+                c++;
+                value = g_string_new ("");
+                while (*c)
+                {
+                    if (*c == '\\')
+                    {
+                        if (escaped)
+                        {
+                            g_string_append_c (value, '\\');
+                            escaped = FALSE;
+                        }
+                        else
+                            escaped = TRUE;
+                    }
+                    else if (!escaped && *c == '\"')
+                        break;
+                    if (!escaped)
+                        g_string_append_c (value, *c);
+                    c++;
+                }
+                param_value = value->str;
+                g_string_free (value, FALSE);
+                if (*c == '\"')
+                    c++;
+            }
+            else
+            {
+                start = c;
+                while (*c && !isspace (*c))
+                    c++;
+                param_value = g_strdup_printf ("%.*s", (int) (c - start), start);
+            }
+        }
+        else
+            param_value = g_strdup ("");
+
+        g_hash_table_insert (params, param_name, param_value);
+    }
+
+    if (strcmp (name, "WAIT") == 0)
+    {
+        sleep (1);
+    }
+    else if (strcmp (name, "SWITCH-TO-GREETER") == 0)
+    {
+        g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                     "org.freedesktop.DisplayManager",
+                                     "/org/freedesktop/DisplayManager/Seat0",
+                                     "org.freedesktop.DisplayManager.Seat",
+                                     "SwitchToGreeter",
+                                     g_variant_new ("()"),
+                                     G_VARIANT_TYPE ("()"),
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     1000,
+                                     NULL,
+                                     NULL);
+        check_status ("RUNNER SWITCH-TO-GREETER");
+    }
+    else if (strcmp (name, "SWITCH-TO-USER") == 0)
+    {
+        gchar *status_text, *username;
+          
+        username = g_hash_table_lookup (params, "USERNAME");
+        g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                     "org.freedesktop.DisplayManager",
+                                     "/org/freedesktop/DisplayManager/Seat0",
+                                     "org.freedesktop.DisplayManager.Seat",
+                                     "SwitchToUser",
+                                     g_variant_new ("(ss)", username, ""),
+                                     G_VARIANT_TYPE ("()"),
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     1000,
+                                     NULL,
+                                     NULL);
+        status_text = g_strdup_printf ("RUNNER SWITCH-TO-USER USERNAME=%s", username);
+        check_status (status_text);
+        g_free (status_text);
+    }
+    else if (strcmp (name, "SWITCH-TO-GUEST") == 0)
+    {
+        g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                     "org.freedesktop.DisplayManager",
+                                     "/org/freedesktop/DisplayManager/Seat0",
+                                     "org.freedesktop.DisplayManager.Seat",
+                                     "SwitchToGuest",
+                                     g_variant_new ("(s)", ""),
+                                     G_VARIANT_TYPE ("()"),
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     1000,
+                                     NULL,
+                                     NULL);
+        check_status ("RUNNER SWITCH-TO-GUEST");
+    }
+    else if (strcmp (name, "STOP-DAEMON") == 0)
+        stop_process (lightdm_process);
+    // FIXME: Make generic RUN-COMMAND
+    else if (strcmp (name, "START-XSERVER") == 0)
+    {
+        gchar *xserver_args, *command_line;
+        gchar **argv;
+        GPid pid;
+        Process *process;
+        GError *error = NULL;
+
+        xserver_args = g_hash_table_lookup (params, "ARGS");
+        if (!xserver_args)
+            xserver_args = "";
+        command_line = g_strdup_printf ("%s/tests/src/X %s", BUILDDIR, xserver_args);
+
+        if (!g_shell_parse_argv (command_line, NULL, &argv, &error) ||
+            !g_spawn_async (NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &pid, &error))
+        {
+            g_printerr ("Error starting X server: %s", error->message);
+            quit (EXIT_FAILURE);
+        }
+        else
+        {
+            process = watch_process (pid);
+            g_hash_table_insert (children, GINT_TO_POINTER (process->pid), process);
+        }
+    }
+    else if (strcmp (name, "START-VNC-CLIENT") == 0)
+    {
+        gchar *vnc_client_args, *command_line;
+        gchar **argv;
+        GPid pid;
+        Process *process;
+        GError *error = NULL;
+
+        vnc_client_args = g_hash_table_lookup (params, "ARGS");
+        if (!vnc_client_args)
+            vnc_client_args = "";
+        command_line = g_strdup_printf ("%s/tests/src/vnc-client %s", BUILDDIR, vnc_client_args);
+
+        if (!g_shell_parse_argv (command_line, NULL, &argv, &error) ||
+            !g_spawn_async (NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &pid, &error))
+        {
+            g_printerr ("Error starting VNC client: %s", error->message);
+            quit (EXIT_FAILURE);
+        }
+        else
+        {
+            process = watch_process (pid);
+            g_hash_table_insert (children, GINT_TO_POINTER (process->pid), process);
+        }
+    }
+    /* Forward to external processes */
+    else if (strcmp (name, "SESSION") == 0 ||
+             strcmp (name, "XSERVER") == 0)
+    {
+        GList *link;
+        for (link = status_clients; link; link = link->next)
+        {
+            StatusClient *client = link->data;
+            int length;
+            GError *error = NULL;
+      
+            length = strlen (command);
+            g_socket_send (client->socket, (gchar *) &length, sizeof (length), NULL, &error);
+            g_socket_send (client->socket, command, strlen (command), NULL, &error);
+            if (error)
+                g_printerr ("Failed to write to client socket: %s\n", error->message);
+            g_clear_error (&error);
+        }     
+    }
+    else
+    {
+        g_printerr ("Unknown command '%s'\n", name);
+        quit (EXIT_FAILURE);
+    }
+  
+    g_free (name);
+    g_hash_table_unref (params);
+}
+
+static void
 run_commands ()
 {
     /* Stop daemon if requested */
     while (TRUE)
     {
-        gchar *command, *name = NULL, *c;
-        GHashTable *params;
-
-        command = get_script_line ();
-        if (!command)
-            break;
+        const gchar *command;
 
         /* Commands start with an asterisk */
-        if (command[0] != '*')
+        command = get_script_line ();
+        if (!command || command[0] != '*')
             break;
+
         statuses = g_list_append (statuses, g_strdup (command));
         script_iter = script_iter->next;
 
-        c = command + 1;
-        while (*c && !isspace (*c))
-            c++;
-        name = g_strdup_printf ("%.*s", (int) (c - command - 1), command + 1);
-
-        params = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-        while (TRUE)
-        {
-            gchar *start, *param_name, *param_value;
-          
-            while (isspace (*c))
-                c++;
-            start = c;
-            while (*c && !isspace (*c) && *c != '=')
-                c++;
-            if (*c == '\0')
-                break;
-
-            param_name = g_strdup_printf ("%.*s", (int) (c - start), start);
-
-            if (*c == '=')
-            {
-                c++;
-                while (isspace (*c))
-                    c++;
-                if (*c == '\"')
-                {
-                    gboolean escaped = FALSE;
-                    GString *value;
-
-                    c++;
-                    value = g_string_new ("");
-                    while (*c)
-                    {
-                        if (*c == '\\')
-                        {
-                            if (escaped)
-                            {
-                                g_string_append_c (value, '\\');
-                                escaped = FALSE;
-                            }
-                            else
-                                escaped = TRUE;
-                        }
-                        else if (!escaped && *c == '\"')
-                            break;
-                        if (!escaped)
-                            g_string_append_c (value, *c);
-                        c++;
-                    }
-                    param_value = value->str;
-                    g_string_free (value, FALSE);
-                    if (*c == '\"')
-                        c++;
-                }
-                else
-                {
-                    start = c;
-                    while (*c && !isspace (*c))
-                        c++;
-                    param_value = g_strdup_printf ("%.*s", (int) (c - start), start);
-                }
-            }
-            else
-                param_value = g_strdup ("");
-
-            g_hash_table_insert (params, param_name, param_value);
-        }
-
-        if (strcmp (name, "WAIT") == 0)
-        {
-            sleep (1);
-        }
-        else if (strcmp (name, "SWITCH-TO-GREETER") == 0)
-        {
-            g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
-                                         "org.freedesktop.DisplayManager",
-                                         "/org/freedesktop/DisplayManager/Seat0",
-                                         "org.freedesktop.DisplayManager.Seat",
-                                         "SwitchToGreeter",
-                                         g_variant_new ("()"),
-                                         G_VARIANT_TYPE ("()"),
-                                         G_DBUS_CALL_FLAGS_NONE,
-                                         1000,
-                                         NULL,
-                                         NULL);
-            check_status ("RUNNER SWITCH-TO-GREETER");
-        }
-        else if (strcmp (name, "SWITCH-TO-USER") == 0)
-        {
-            gchar *status_text, *username;
-          
-            username = g_hash_table_lookup (params, "USERNAME");
-            g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
-                                         "org.freedesktop.DisplayManager",
-                                         "/org/freedesktop/DisplayManager/Seat0",
-                                         "org.freedesktop.DisplayManager.Seat",
-                                         "SwitchToUser",
-                                         g_variant_new ("(ss)", username, ""),
-                                         G_VARIANT_TYPE ("()"),
-                                         G_DBUS_CALL_FLAGS_NONE,
-                                         1000,
-                                         NULL,
-                                         NULL);
-            status_text = g_strdup_printf ("RUNNER SWITCH-TO-USER USERNAME=%s", username);
-            check_status (status_text);
-            g_free (status_text);
-        }
-        else if (strcmp (name, "SWITCH-TO-GUEST") == 0)
-        {
-            g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
-                                         "org.freedesktop.DisplayManager",
-                                         "/org/freedesktop/DisplayManager/Seat0",
-                                         "org.freedesktop.DisplayManager.Seat",
-                                         "SwitchToGuest",
-                                         g_variant_new ("(s)", ""),
-                                         G_VARIANT_TYPE ("()"),
-                                         G_DBUS_CALL_FLAGS_NONE,
-                                         1000,
-                                         NULL,
-                                         NULL);
-            check_status ("RUNNER SWITCH-TO-GUEST");
-        }
-        else if (strcmp (name, "STOP-DAEMON") == 0)
-            stop_process (lightdm_process);
-        // FIXME: Make generic RUN-COMMAND
-        else if (strcmp (name, "START-XSERVER") == 0)
-        {
-            gchar *xserver_args, *command_line;
-            gchar **argv;
-            GPid pid;
-            Process *process;
-            GError *error = NULL;
-
-            xserver_args = g_hash_table_lookup (params, "ARGS");
-            if (!xserver_args)
-                xserver_args = "";
-            command_line = g_strdup_printf ("%s/tests/src/X %s", BUILDDIR, xserver_args);
-
-            if (!g_shell_parse_argv (command_line, NULL, &argv, &error) ||
-                !g_spawn_async (NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &pid, &error))
-            {
-                g_printerr ("Error starting X server: %s", error->message);
-                quit (EXIT_FAILURE);
-                return;
-            }
-            process = watch_process (pid);
-            g_hash_table_insert (children, GINT_TO_POINTER (process->pid), process);
-        }
-        else if (strcmp (name, "START-VNC-CLIENT") == 0)
-        {
-            gchar *vnc_client_args, *command_line;
-            gchar **argv;
-            GPid pid;
-            Process *process;
-            GError *error = NULL;
-
-            vnc_client_args = g_hash_table_lookup (params, "ARGS");
-            if (!vnc_client_args)
-                vnc_client_args = "";
-            command_line = g_strdup_printf ("%s/tests/src/vnc-client %s", BUILDDIR, vnc_client_args);
-
-            if (!g_shell_parse_argv (command_line, NULL, &argv, &error) ||
-                !g_spawn_async (NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &pid, &error))
-            {
-                g_printerr ("Error starting VNC client: %s", error->message);
-                quit (EXIT_FAILURE);
-                return;
-            }
-            process = watch_process (pid);
-            g_hash_table_insert (children, GINT_TO_POINTER (process->pid), process);
-        }
-        else
-        {
-            g_printerr ("Unknown command '%s'\n", name);
-            quit (EXIT_FAILURE);
-            return;
-        }
-
-        g_free (name);
-        g_hash_table_unref (params);
+        handle_command (command + 1);
     }
 
     /* Stop at the end of the script */
@@ -446,7 +482,7 @@ status_timeout_cb (gpointer data)
 static void
 check_status (const gchar *status)
 {
-    gchar *pattern;
+    const gchar *pattern;
 
     if (stop)
         return;
@@ -473,20 +509,26 @@ check_status (const gchar *status)
 }
 
 static gboolean
-status_message_cb (gpointer data)
+status_message_cb (GSocket *socket, GIOCondition condition, StatusClient *client)
 {
-    GSocket *socket = data;
+    int length;
     gchar buffer[1024];
     ssize_t n_read;
     GError *error = NULL;
-    GSocketAddress *address = NULL;
 
-    n_read = g_socket_receive_from (socket, &address, buffer, 1023, NULL, &error);
+    n_read = g_socket_receive (socket, (gchar *)&length, sizeof (length), NULL, &error);
+    if (n_read > 0)
+        n_read = g_socket_receive (socket, buffer, length, NULL, &error);
     if (error)
         g_warning ("Error reading from socket: %s", error->message);
     g_clear_error (&error);
     if (n_read == 0)
+    {
+        status_clients = g_list_remove (status_clients, client);
+        g_object_unref (client->socket);
+        g_free (client);
         return FALSE;
+    }
     else if (n_read > 0)
     {
         buffer[n_read] = '\0';
@@ -508,11 +550,15 @@ status_connect_cb (gpointer data)
     g_clear_error (&error);
     if (socket)
     {
-        GSource *source;
+        StatusClient *client;
 
-        source = g_socket_create_source (socket, G_IO_IN, NULL);
-        g_source_set_callback (source, status_message_cb, socket, NULL);
-        g_source_attach (source, NULL);
+        client = g_malloc0 (sizeof (StatusClient));
+        client->socket = socket;
+        client->source = g_socket_create_source (socket, G_IO_IN, NULL);
+        status_clients = g_list_append (status_clients, client);
+
+        g_source_set_callback (client->source, (GSourceFunc) status_message_cb, client, NULL);
+        g_source_attach (client->source, NULL);
     }
 
     return TRUE;

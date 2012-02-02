@@ -107,7 +107,6 @@ struct XVisualPrivate
 enum
 {
     X_CLIENT_CONNECT,
-    X_CLIENT_INTERN_ATOM,
     X_CLIENT_DISCONNECTED,
     X_CLIENT_LAST_SIGNAL
 };
@@ -305,14 +304,6 @@ x_client_class_init (XClientClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__POINTER,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
-    x_client_signals[X_CLIENT_INTERN_ATOM] =
-        g_signal_new ("intern-atom",
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (XClientClass, intern_atom),
-                      NULL, NULL,
-                      g_cclosure_marshal_VOID__POINTER,
-                      G_TYPE_NONE, 1, G_TYPE_POINTER);
     x_client_signals[X_CLIENT_DISCONNECTED] =
         g_signal_new ("disconnected",
                       G_TYPE_FROM_CLASS (klass),
@@ -434,26 +425,6 @@ decode_connection_request (XClient *client, const guint8 *buffer, gssize buffer_
 }
 
 static void
-decode_intern_atom (XClient *client, guint16 sequence_number, guint8 data, const guint8 *buffer, gssize buffer_length, gsize *offset)
-{
-    XInternAtom *message;
-    guint16 name_length;
-
-    message = g_malloc0 (sizeof (XInternAtom));
-    message->sequence_number = sequence_number;
-
-    message->only_if_exists = data != 0;
-    name_length = read_card16 (buffer, buffer_length, client->priv->byte_order, offset);
-    read_padding (2, offset);
-    message->name = read_padded_string (buffer, buffer_length, name_length, offset);
-
-    g_signal_emit (client, x_client_signals[X_CLIENT_INTERN_ATOM], 0, message);
-
-    g_free (message->name);
-    g_free (message);
-}
-
-static void
 decode_request (XClient *client, const guint8 *buffer, gssize buffer_length)
 {
     int opcode;
@@ -462,29 +433,15 @@ decode_request (XClient *client, const guint8 *buffer, gssize buffer_length)
     while (offset < buffer_length)
     {
         gsize start_offset;
-        guint16 sequence_number;
-        guint8 data;
-        guint16 length, remaining;
+        guint16 length;
 
         start_offset = offset;
-        sequence_number = client->priv->sequence_number++;
+        client->priv->sequence_number++;
         opcode = read_card8 (buffer, buffer_length, &offset);
-        data = read_card8 (buffer, buffer_length, &offset);
+        read_card8 (buffer, buffer_length, &offset);
         length = read_card16 (buffer, buffer_length, client->priv->byte_order, &offset) * 4;
-        remaining = start_offset + length;
 
         g_debug ("Got opcode=%d length=%d", opcode, length);
-
-        switch (opcode)
-        {
-        case 16:
-            decode_intern_atom (client, sequence_number, data, buffer, remaining, &offset);
-            break;
-        default:
-            g_debug ("Ignoring unknown opcode %d", opcode);
-            break;
-        }
-
         offset = start_offset + length;
     }
 }
