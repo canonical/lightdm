@@ -1,3 +1,5 @@
+/* -*- Mode: C; indent-tabs-mode: nil; tab-width: 4 -*- */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -26,7 +28,13 @@ enum
 
 enum
 {
+    Error = 0,
     Reply = 1,
+};
+
+enum
+{
+    BadImplementation = 17
 };
 
 enum {
@@ -272,6 +280,23 @@ x_client_send_success (XClient *client)
 }
 
 void
+x_client_send_error (XClient *client, int type, int major, int minor)
+{
+    guint8 buffer[MAXIMUM_REQUEST_LENGTH];
+    gsize n_written = 0;
+
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, Error, &n_written);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, type, &n_written);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, client->priv->sequence_number, &n_written);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written); /* resourceID */
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, minor, &n_written);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, major, &n_written);
+    write_padding (buffer, MAXIMUM_REQUEST_LENGTH, 21, &n_written);
+
+    send (g_io_channel_unix_get_fd (client->priv->channel), buffer, n_written, 0);
+}
+
+void
 x_client_disconnect (XClient *client)
 {
     g_io_channel_shutdown (client->priv->channel, TRUE, NULL);
@@ -436,13 +461,17 @@ decode_request (XClient *client, const guint8 *buffer, gssize buffer_length)
         guint16 length;
 
         start_offset = offset;
-        client->priv->sequence_number++;
         opcode = read_card8 (buffer, buffer_length, &offset);
         read_card8 (buffer, buffer_length, &offset);
         length = read_card16 (buffer, buffer_length, client->priv->byte_order, &offset) * 4;
 
         g_debug ("Got opcode=%d length=%d", opcode, length);
         offset = start_offset + length;
+
+        /* Send an error because we don't understand any opcodes yet */
+        x_client_send_error (client, BadImplementation, opcode, 0);
+
+        client->priv->sequence_number++;
     }
 }
 
