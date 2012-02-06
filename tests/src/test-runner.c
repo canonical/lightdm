@@ -1100,6 +1100,9 @@ main (int argc, char **argv)
     g_free (path2);
     g_setenv ("LD_LIBRARY_PATH", ld_library_path, TRUE);
     g_free (ld_library_path);
+    path1 = g_build_filename (BUILDDIR, "liblightdm-gobject", NULL);
+    g_setenv ("GI_TYPELIB_PATH", path1, TRUE);
+    g_free (path1);
 
     /* Open socket for status */
     status_socket_name = g_build_filename (cwd, ".status-socket", NULL);

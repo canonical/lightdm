@@ -18,10 +18,10 @@ status_request_cb (GSocket *socket, GIOCondition condition, gpointer data)
     GError *error = NULL;  
 
     n_read = g_socket_receive (socket, (gchar *)&length, sizeof (length), NULL, &error);
-    if (n_read == 0)
-        return FALSE;
     if (n_read > 0)
         n_read = g_socket_receive (socket, buffer, length, NULL, &error);
+    if (n_read == 0)
+        return FALSE;
     if (error)
         g_warning ("Error reading from socket: %s", error->message);
     g_clear_error (&error);

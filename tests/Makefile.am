@@ -37,6 +37,7 @@ TESTS = \
 	test-login-gobject-guest-no-setup-script \
 	test-login-gobject-guest-fail-setup-script \
 	test-login-gobject-guest-logout \
+	test-login-python \
 	test-login-session-crash \
 	test-login-xserver-crash \
 	test-home-dir-on-authenticate \
@@ -89,6 +90,7 @@ EXTRA_DIST = \
 	data/system.conf \
 	data/session.conf \
 	data/xgreeters/test-gobject-greeter.desktop \
+	data/xgreeters/test-python-greeter.desktop \    
 	data/xgreeters/test-qt-greeter.desktop \
 	data/xsessions/alternative.desktop \
 	data/xsessions/default.desktop \
