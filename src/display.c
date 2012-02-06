@@ -512,6 +512,7 @@ create_session (Display *display, PAMSession *authentication, const gchar *sessi
         session_set_env (session, "DBUS_SESSION_BUS_ADDRESS", g_getenv ("DBUS_SESSION_BUS_ADDRESS"));
         session_set_env (session, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
         session_set_env (session, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+        session_set_env (session, "GI_TYPELIB_PATH", g_getenv ("GI_TYPELIB_PATH"));
     }
 
     return session;
