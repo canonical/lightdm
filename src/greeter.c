@@ -397,6 +397,8 @@ static void
 handle_start_session (Greeter *greeter, const gchar *session)
 {
     gboolean result;
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
 
     if (strcmp (session, "") == 0)
         session = NULL;
@@ -415,15 +417,9 @@ handle_start_session (Greeter *greeter, const gchar *session)
         result = FALSE;
     }
 
-    if (!result)
-    {
-        guint8 message[MAX_MESSAGE_LENGTH];
-        gsize offset = 0;
-
-        write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_SESSION_RESULT, int_length (), &offset);
-        write_int (message, MAX_MESSAGE_LENGTH, 1, &offset);
-        write_message (greeter, message, offset);
-    }
+    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_SESSION_RESULT, int_length (), &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, result ? 0 : 1, &offset);
+    write_message (greeter, message, offset);
 }
 
 static void
@@ -642,19 +638,6 @@ greeter_get_authentication (Greeter *greeter)
 {
     g_return_val_if_fail (greeter != NULL, NULL);
     return greeter->priv->authentication;
-}
-
-void
-greeter_quit (Greeter *greeter)
-{
-    guint8 message[MAX_MESSAGE_LENGTH];
-    gsize offset = 0;
-
-    g_return_if_fail (greeter != NULL);
-
-    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_SESSION_RESULT, int_length (), &offset);
-    write_int (message, MAX_MESSAGE_LENGTH, 0, &offset);
-    write_message (greeter, message, offset);
 }
 
 static PAMSession *

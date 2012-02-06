@@ -50,8 +50,6 @@ gboolean greeter_get_guest_authenticated (Greeter *greeter);
 
 PAMSession *greeter_get_authentication (Greeter *greeter);
 
-void greeter_quit (Greeter *greeter);
-
 G_END_DECLS
 
 #endif /* _GREETER_H_ */
