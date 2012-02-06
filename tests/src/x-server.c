@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <glib.h>
 #include <gio/gio.h>
 #include <gio/gunixsocketaddress.h>
 
@@ -34,6 +35,15 @@ enum
 
 enum
 {
+    InternAtom = 16,
+    GetProperty = 20,
+    QueryExtension = 98,
+    kbUseExtension = 200
+};
+
+enum
+{
+    BadAtom = 5,
     BadImplementation = 17
 };
 
@@ -86,6 +96,7 @@ struct XClientPrivate
     guint8 byte_order;
     gboolean connected;
     guint16 sequence_number;
+    GHashTable *atoms;
 };
 
 struct XScreenPrivate
@@ -307,11 +318,16 @@ x_client_init (XClient *client)
 {
     client->priv = G_TYPE_INSTANCE_GET_PRIVATE (client, x_client_get_type (), XClientPrivate);
     client->priv->sequence_number = 1;
+    client->priv->atoms = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
 }
 
 static void
 x_client_finalize (GObject *object)
 {
+    XClient *client = (XClient *) object;
+
+    g_hash_table_unref (client->priv->atoms);
+    client->priv->atoms = NULL;
 }
 
 static void
@@ -450,6 +466,207 @@ decode_connection_request (XClient *client, const guint8 *buffer, gssize buffer_
 }
 
 static void
+process_intern_atom (XClient *client, const guint8 *buffer, gssize buffer_length)
+{
+    /* Decode */
+
+    gsize offset = 0;
+    guint8 onlyIfExists;
+    guint16 n;
+    gchar *name;
+    int atom;
+
+    read_padding (1, &offset); /* reqType */
+    onlyIfExists = read_card8 (buffer, buffer_length, &offset);
+    read_padding (2, &offset); /* length */
+    n = read_card16 (buffer, buffer_length, client->priv->byte_order, &offset);
+    read_padding (2, &offset);
+    name = read_padded_string (buffer, buffer_length, n, &offset);
+
+    /* Process */
+
+    atom = g_str_hash (name);
+
+    if (onlyIfExists)
+    {
+        g_free (name);
+        if (!g_hash_table_contains (client->priv->atoms, GINT_TO_POINTER (atom)))
+        {
+            x_client_send_error (client, BadAtom, InternAtom, 0);
+            return;
+        }
+    }
+    else
+        g_hash_table_insert (client->priv->atoms, GINT_TO_POINTER (atom), name);
+
+    /* Reply */
+
+    guint8 outBuffer[MAXIMUM_REQUEST_LENGTH];
+    gsize n_written = 0;
+
+    write_card8 (outBuffer, MAXIMUM_REQUEST_LENGTH, Reply, &n_written);
+    write_padding (outBuffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written);
+    write_card16 (outBuffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, client->priv->sequence_number, &n_written);
+    write_card32 (outBuffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written); /* length */
+    write_card32 (outBuffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, atom, &n_written);
+    write_padding (outBuffer, MAXIMUM_REQUEST_LENGTH, 20, &n_written);
+
+    send (g_io_channel_unix_get_fd (client->priv->channel), outBuffer, n_written, 0);
+}
+
+static void
+process_get_property (XClient *client, const guint8 *buffer, gssize buffer_length)
+{
+    /* Decode */
+
+    gsize offset = 0;
+    guint8 delete;
+    guint32 window;
+    guint32 property;
+    guint32 type;
+
+    read_padding (1, &offset); /* reqType */
+    delete = read_card8 (buffer, buffer_length, &offset);
+    read_padding (2, &offset); /* length */
+    window = read_card32 (buffer, buffer_length, client->priv->byte_order, &offset);
+    property = read_card32 (buffer, buffer_length, client->priv->byte_order, &offset);
+    type = read_card32 (buffer, buffer_length, client->priv->byte_order, &offset);
+    read_padding (4, &offset); /* longOffset */
+    read_padding (4, &offset); /* longLength */
+
+    /* Process */
+
+    gchar *name = g_hash_table_lookup (client->priv->atoms, GINT_TO_POINTER (property));
+    GString *reply = NULL;
+    guint8 format = 8;
+
+    if (g_strcmp0 (name, "_XKB_RULES_NAMES") == 0)
+    {
+        reply = g_string_new ("");
+
+        g_string_append (reply, "evdev"); /* rules file */
+        g_string_append_c (reply, 0); /* embedded null byte */
+
+        g_string_append (reply, "evdev"); /* model name */
+        g_string_append_c (reply, 0); /* embedded null byte */
+
+        if (g_getenv ("LIGHTDM_TEST_KEYBOARD_LAYOUT"))
+            g_string_append (reply, g_getenv ("LIGHTDM_TEST_KEYBOARD_LAYOUT"));
+        else
+            g_string_append (reply, "us");
+        g_string_append_c (reply, 0); /* embedded null byte */
+
+        if (g_getenv ("LIGHTDM_TEST_KEYBOARD_VARIANT"))
+            g_string_append (reply, g_getenv ("LIGHTDM_TEST_KEYBOARD_VARIANT"));
+        g_string_append_c (reply, 0); /* embedded null byte */
+
+        /* no xkb options */
+        g_string_append_c (reply, 0); /* embedded null byte */
+    }
+
+    if (name && delete)
+        g_hash_table_remove (client->priv->atoms, GINT_TO_POINTER (property));
+
+    /* Reply */
+
+    if (!reply)
+    {
+        x_client_send_error (client, BadImplementation, GetProperty, 0);
+        return;
+    }
+
+    guint8 outBuffer[MAXIMUM_REQUEST_LENGTH];
+    gsize n_written = 0, length_offset, packet_start;
+
+    write_card8 (outBuffer, MAXIMUM_REQUEST_LENGTH, Reply, &n_written);
+    write_card8 (outBuffer, MAXIMUM_REQUEST_LENGTH, format, &n_written);
+    write_card16 (outBuffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, client->priv->sequence_number, &n_written);
+    length_offset = n_written;
+    write_card32 (outBuffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written); /* length */
+    write_card32 (outBuffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, type, &n_written);
+    write_card32 (outBuffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written); /* bytesAfter */
+    write_card32 (outBuffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, reply->len, &n_written);
+    write_padding (outBuffer, MAXIMUM_REQUEST_LENGTH, 12, &n_written);
+    packet_start = n_written;
+
+    write_string8 (outBuffer, MAXIMUM_REQUEST_LENGTH, (guint8 *) reply->str, reply->len, &n_written);
+    write_padding (outBuffer, MAXIMUM_REQUEST_LENGTH, pad (reply->len), &n_written);
+
+    write_card32 (outBuffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, (n_written - packet_start) / 4, &length_offset);
+
+    send (g_io_channel_unix_get_fd (client->priv->channel), outBuffer, n_written, 0);
+
+    /* Cleanup */
+
+    g_string_free (reply, TRUE);
+}
+
+static void
+process_query_extension (XClient *client, const guint8 *buffer, gssize buffer_length)
+{
+    /* Decode */
+
+    gsize offset = 0;
+    guint8 n;
+    gchar *name;
+
+    read_padding (1, &offset); /* reqType */
+    read_padding (1, &offset); /* pad */
+    read_padding (2, &offset); /* length */
+    n = read_card16 (buffer, buffer_length, client->priv->byte_order, &offset);
+    read_padding (2, &offset); /* pad */
+    name = read_padded_string (buffer, buffer_length, n, &offset);
+
+    /* Process */
+
+    guint8 present = 0;
+    if (g_strcmp0 (name, "XKEYBOARD") == 0)
+        present = 1;
+
+    /* Reply */
+
+    guint8 outBuffer[MAXIMUM_REQUEST_LENGTH];
+    gsize n_written = 0;
+
+    write_card8 (outBuffer, MAXIMUM_REQUEST_LENGTH, Reply, &n_written);
+    write_padding (outBuffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written);
+    write_card16 (outBuffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, client->priv->sequence_number, &n_written);
+    write_card32 (outBuffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written); /* length */
+    write_card8 (outBuffer, MAXIMUM_REQUEST_LENGTH, present, &n_written);
+    write_card8 (outBuffer, MAXIMUM_REQUEST_LENGTH, kbUseExtension, &n_written); /* major_opcode */
+    write_card8 (outBuffer, MAXIMUM_REQUEST_LENGTH, 0, &n_written); /* first_event */
+    write_card8 (outBuffer, MAXIMUM_REQUEST_LENGTH, 0, &n_written); /* first_error */
+    write_padding (outBuffer, MAXIMUM_REQUEST_LENGTH, 20, &n_written);
+
+    send (g_io_channel_unix_get_fd (client->priv->channel), outBuffer, n_written, 0);
+
+    /* Cleanup */
+
+    g_free (name);
+}
+
+static void
+process_kb_use_extension (XClient *client, const guint8 *buffer, gssize buffer_length)
+{
+    /* Nothing to decode, we don't care about parameters */
+
+    /* Reply */
+
+    guint8 outBuffer[MAXIMUM_REQUEST_LENGTH];
+    gsize n_written = 0;
+
+    write_card8 (outBuffer, MAXIMUM_REQUEST_LENGTH, Reply, &n_written);
+    write_card8 (outBuffer, MAXIMUM_REQUEST_LENGTH, 1, &n_written); /* supported */
+    write_card16 (outBuffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, client->priv->sequence_number, &n_written);
+    write_card32 (outBuffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written); /* length */
+    write_card16 (outBuffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 1, &n_written); /* serverMajor */
+    write_card16 (outBuffer, MAXIMUM_REQUEST_LENGTH, client->priv->byte_order, 0, &n_written); /* serverMinor */
+    write_padding (outBuffer, MAXIMUM_REQUEST_LENGTH, 20, &n_written);
+
+    send (g_io_channel_unix_get_fd (client->priv->channel), outBuffer, n_written, 0);
+}
+
+static void
 decode_request (XClient *client, const guint8 *buffer, gssize buffer_length)
 {
     int opcode;
@@ -468,8 +685,25 @@ decode_request (XClient *client, const guint8 *buffer, gssize buffer_length)
         g_debug ("Got opcode=%d length=%d", opcode, length);
         offset = start_offset + length;
 
-        /* Send an error because we don't understand any opcodes yet */
-        x_client_send_error (client, BadImplementation, opcode, 0);
+        switch (opcode)
+        {
+        case InternAtom:
+            process_intern_atom (client, buffer + start_offset, length);
+            break;
+        case GetProperty:
+            process_get_property (client, buffer + start_offset, length);
+            break;
+        case QueryExtension:
+            process_query_extension (client, buffer + start_offset, length);
+            break;
+        case kbUseExtension:
+            process_kb_use_extension (client, buffer + start_offset, length);
+            break;
+        default:
+            /* Send an error because we don't understand the opcode yet */
+            x_client_send_error (client, BadImplementation, opcode, 0);
+            break;
+        }
 
         client->priv->sequence_number++;
     }
