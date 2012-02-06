@@ -4,6 +4,8 @@ Overview of changes in lightdm 1.1.2
     * Stop accidentally distributing libsystem
     * Fix introspection bindings not containing any methods
     * lightdm-set-defaults can now set the autologin user
+    * Add Python greeter regression tests (representative of all introspection
+      based greeters)
     * Wait for the VT to become active when switching to avoid a suspected
       race condition somewhere between LightDM, X, ConsoleKit and the kernel.
 
