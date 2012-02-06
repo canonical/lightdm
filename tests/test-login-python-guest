@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/dbus-env ./src/test-runner login-guest test-python-greeter

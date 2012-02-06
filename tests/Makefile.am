@@ -38,6 +38,20 @@ TESTS = \
 	test-login-gobject-guest-fail-setup-script \
 	test-login-gobject-guest-logout \
 	test-login-python \
+	test-login-python-manual \
+	test-login-python-manual-previous-session \
+	test-login-python-no-password \
+	test-login-python-previous-session \
+	test-login-python-wrong-password \
+	test-login-python-invalid-user \
+	test-login-python-invalid-session \
+	test-login-python-logout \
+	test-login-python-pick-session \
+	test-login-python-guest \
+	test-login-python-guest-disabled \
+	test-login-python-guest-no-setup-script \
+	test-login-python-guest-fail-setup-script \
+	test-login-python-guest-logout \
 	test-login-session-crash \
 	test-login-xserver-crash \
 	test-home-dir-on-authenticate \
