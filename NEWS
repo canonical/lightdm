@@ -8,6 +8,7 @@ Overview of changes in lightdm 1.1.2
       based greeters)
     * Wait for the VT to become active when switching to avoid a suspected
       race condition somewhere between LightDM, X, ConsoleKit and the kernel.
+    * Stop lightdm_greeter_start_session_sync() blocking on success.
 
 Overview of changes in lightdm 1.1.1
 
