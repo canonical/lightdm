@@ -521,14 +521,13 @@ process_get_property (XClient *client, const guint8 *buffer, gssize buffer_lengt
 
     gsize offset = 0;
     guint8 delete;
-    guint32 window;
     guint32 property;
     guint32 type;
 
     read_padding (1, &offset); /* reqType */
     delete = read_card8 (buffer, buffer_length, &offset);
     read_padding (2, &offset); /* length */
-    window = read_card32 (buffer, buffer_length, client->priv->byte_order, &offset);
+    read_padding (4, &offset); /* window */
     property = read_card32 (buffer, buffer_length, client->priv->byte_order, &offset);
     type = read_card32 (buffer, buffer_length, client->priv->byte_order, &offset);
     read_padding (4, &offset); /* longOffset */
@@ -542,26 +541,34 @@ process_get_property (XClient *client, const guint8 *buffer, gssize buffer_lengt
 
     if (g_strcmp0 (name, "_XKB_RULES_NAMES") == 0)
     {
+        GKeyFile *config;
+
+        config = g_key_file_new ();
+        if (g_getenv ("LIGHTDM_TEST_CONFIG"))
+            g_key_file_load_from_file (config, g_getenv ("LIGHTDM_TEST_CONFIG"), G_KEY_FILE_NONE, NULL);
+
         reply = g_string_new ("");
 
         g_string_append (reply, "evdev"); /* rules file */
         g_string_append_c (reply, 0); /* embedded null byte */
 
-        g_string_append (reply, "evdev"); /* model name */
+        g_string_append (reply, "pc105"); /* model name */
         g_string_append_c (reply, 0); /* embedded null byte */
 
-        if (g_getenv ("LIGHTDM_TEST_KEYBOARD_LAYOUT"))
-            g_string_append (reply, g_getenv ("LIGHTDM_TEST_KEYBOARD_LAYOUT"));
+        if (g_key_file_has_key (config, "test-xserver-config", "keyboard-layout", NULL))
+            g_string_append (reply, g_key_file_get_string (config, "test-xserver-config", "keyboard-layout", NULL));
         else
             g_string_append (reply, "us");
         g_string_append_c (reply, 0); /* embedded null byte */
 
-        if (g_getenv ("LIGHTDM_TEST_KEYBOARD_VARIANT"))
-            g_string_append (reply, g_getenv ("LIGHTDM_TEST_KEYBOARD_VARIANT"));
+        if (g_key_file_has_key (config, "test-xserver-config", "keyboard-variant", NULL))
+            g_string_append (reply, g_key_file_get_string (config, "test-xserver-config", "keyboard-variant", NULL));
         g_string_append_c (reply, 0); /* embedded null byte */
 
         /* no xkb options */
         g_string_append_c (reply, 0); /* embedded null byte */
+
+        g_key_file_free (config);
     }
 
     if (name && delete)

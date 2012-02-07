@@ -1,3 +1,5 @@
+/* -*- Mode: C; indent-tabs-mode: nil; tab-width: 4 -*- */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -130,10 +132,15 @@ main (int argc, char **argv)
         LightDMUser *user;
         const gchar *layout;
 
-        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), layout_username);
-        layout = lightdm_user_get_layout (user);
+        if (g_strcmp0 (layout_username, "%DEFAULT%") == 0) /* Grab system default layout */
+            layout = lightdm_layout_get_name (lightdm_get_layout ());
+        else
+        {
+            user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), layout_username);
+            layout = lightdm_user_get_layout (user);
+        }
 
-        status_notify ("GREETER %s GET-LAYOUT USERNAME=%s LAYOUT=%s", getenv ("DISPLAY"), layout_username, layout ? layout : "");
+        status_notify ("GREETER %s GET-LAYOUT USERNAME=%s LAYOUT='%s'", getenv ("DISPLAY"), layout_username, layout ? layout : "");
     }
 
     language_username = g_key_file_get_string (config, "test-greeter-config", "log-language", NULL);
