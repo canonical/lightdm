@@ -78,7 +78,7 @@ main (int argc, char **argv)
 {
     GMainLoop *main_loop;
     LightDMGreeter *greeter;
-    gchar *layout_username, *language_username;
+    gchar *layout_username, *language_username, *layout_prefix;
 
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
@@ -141,6 +141,28 @@ main (int argc, char **argv)
         }
 
         status_notify ("GREETER %s GET-LAYOUT USERNAME=%s LAYOUT='%s'", getenv ("DISPLAY"), layout_username, layout ? layout : "");
+    }
+
+    layout_prefix = g_key_file_get_string (config, "test-greeter-config", "log-keyboard-layouts", NULL);
+    if (layout_prefix)
+    {
+        GList *layouts, *iter;
+
+        layouts = lightdm_get_layouts ();
+
+        for (iter = layouts; iter; iter = iter->next)
+        {
+            LightDMLayout *layout;
+            const gchar *name;
+
+            layout = (LightDMLayout *) iter->data;
+            name = lightdm_layout_get_name (layout);
+
+            if (g_str_has_prefix (name, layout_prefix))
+            {
+                status_notify ("GREETER %s GET-LAYOUTS LAYOUT='%s'", getenv ("DISPLAY"), name);
+            }
+        }
     }
 
     language_username = g_key_file_get_string (config, "test-greeter-config", "log-language", NULL);
