@@ -129,18 +129,28 @@ main (int argc, char **argv)
     layout_username = g_key_file_get_string (config, "test-greeter-config", "log-keyboard-layout", NULL);
     if (layout_username)
     {
-        LightDMUser *user;
-        const gchar *layout;
+        gchar **users;
+        int i;
 
-        if (g_strcmp0 (layout_username, "%DEFAULT%") == 0) /* Grab system default layout */
-            layout = lightdm_layout_get_name (lightdm_get_layout ());
-        else
+        users = g_strsplit (layout_username, ",", 0);
+
+        for (i = 0; users[i]; i++)
         {
-            user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), layout_username);
-            layout = lightdm_user_get_layout (user);
+            LightDMUser *user;
+            const gchar *layout;
+
+            if (g_strcmp0 (users[i], "%DEFAULT%") == 0) /* Grab system default layout */
+                layout = lightdm_layout_get_name (lightdm_get_layout ());
+            else
+            {
+                user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), users[i]);
+                layout = lightdm_user_get_layout (user);
+            }
+
+            status_notify ("GREETER %s GET-LAYOUT USERNAME=%s LAYOUT='%s'", getenv ("DISPLAY"), users[i], layout ? layout : "");
         }
 
-        status_notify ("GREETER %s GET-LAYOUT USERNAME=%s LAYOUT='%s'", getenv ("DISPLAY"), layout_username, layout ? layout : "");
+        g_strfreev (users);
     }
 
     layout_prefix = g_key_file_get_string (config, "test-greeter-config", "log-keyboard-layouts", NULL);

@@ -49,6 +49,7 @@ typedef struct
     guint id;
     gchar *language;
     gchar *xsession;
+    gchar *layout;
 } AccountsUser;
 static GList *accounts_users = NULL;
 static void handle_user_call (GDBusConnection       *connection,
@@ -771,6 +772,7 @@ load_passwd_file ()
                     *c = '\0';
             }
             user->xsession = g_key_file_get_string (dmrc_file, "Desktop", "Session", NULL);
+            user->layout = g_key_file_get_string (dmrc_file, "X-Accounts", "Layout", NULL);
             user->path = g_strdup_printf ("/org/freedesktop/Accounts/User%d", uid);
             user->id = g_dbus_connection_register_object (accounts_connection,
                                                           user->path,
@@ -895,6 +897,8 @@ handle_user_get_property (GDBusConnection       *connection,
         return g_variant_new_string (user->language ? user->language : "");
     else if (strcmp (property_name, "XSession") == 0)
         return g_variant_new_string (user->xsession ? user->xsession : "");
+    else if (strcmp (property_name, "XKeyboardLayout") == 0)
+        return g_variant_new_string (user->layout ? user->layout : "");
 
     return NULL;
 }
@@ -932,6 +936,7 @@ accounts_name_acquired_cb (GDBusConnection *connection,
         "    <property name='BackgroundFile' type='s' access='read'/>"
         "    <property name='Language' type='s' access='read'/>"
         "    <property name='XSession' type='s' access='read'/>"
+        "    <property name='XKeyboardLayout' type='s' access='read'/>"
         "  </interface>"
         "</node>";
     GError *error = NULL;
@@ -1180,18 +1185,19 @@ main (int argc, char **argv)
         gboolean have_home_dir;
         gchar *real_name;
         gchar *xsession;
-        gchar *layout;
+        gchar *dmrc_layout;
+        gchar *dbus_layout;
         gchar *language;
         gint uid;
     } users[] =
     {
-        {"root",    "",         TRUE,  "root",       NULL,          NULL, NULL,             0},
-        {"lightdm", "",         TRUE,  "",           NULL,          NULL, NULL,           100},
-        {"alice",   "password", TRUE,  "Alice User", NULL,          NULL, NULL,          1000},
-        {"bob",     "",         TRUE,  "Bob User",   NULL,          "us", "en_AU.utf8",  1001},
-        {"carol",   "",         TRUE,  "Carol User", "alternative", "fr", "fr_FR.UTF-8", 1002},
-        {"dave",    "",         FALSE, "Dave User",  NULL,          NULL, NULL,          1003},
-        {NULL,      NULL,       FALSE, NULL,         NULL,          NULL, NULL,             0}
+        {"root",    "",         TRUE,  "root",       NULL,          NULL, NULL,      NULL,             0},
+        {"lightdm", "",         TRUE,  "",           NULL,          NULL, NULL,      NULL,           100},
+        {"alice",   "password", TRUE,  "Alice User", NULL,          NULL, NULL,      NULL,          1000},
+        {"bob",     "",         TRUE,  "Bob User",   NULL,          "us", NULL,      "en_AU.utf8",  1001},
+        {"carol",   "",         TRUE,  "Carol User", "alternative", "ru", "fr\toss", "fr_FR.UTF-8", 1002},
+        {"dave",    "",         FALSE, "Dave User",  NULL,          NULL, NULL,      NULL,          1003},
+        {NULL,      NULL,       FALSE, NULL,         NULL,          NULL, NULL,      NULL,             0}
     };
     passwd_data = g_string_new ("");
     int i;
@@ -1215,9 +1221,14 @@ main (int argc, char **argv)
             g_key_file_set_string (dmrc_file, "Desktop", "Session", users[i].xsession);
             save_dmrc = TRUE;
         }
-        if (users[i].layout)
+        if (users[i].dmrc_layout)
         {
-            g_key_file_set_string (dmrc_file, "Desktop", "Layout", users[i].layout);
+            g_key_file_set_string (dmrc_file, "Desktop", "Layout", users[i].dmrc_layout);
+            save_dmrc = TRUE;
+        }
+        if (users[i].dbus_layout)
+        {
+            g_key_file_set_string (dmrc_file, "X-Accounts", "Layout", users[i].dbus_layout);
             save_dmrc = TRUE;
         }
         if (users[i].language)
