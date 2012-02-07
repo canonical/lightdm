@@ -782,8 +782,8 @@ load_passwd_file ()
             if (error)
                 g_warning ("Failed to register user: %s", error->message);
             g_clear_error (&error);
-          
-            g_key_file_unref (dmrc_file);
+
+            g_key_file_free (dmrc_file);
         }
 
         g_strfreev (fields);
@@ -1236,6 +1236,8 @@ main (int argc, char **argv)
             g_free (data);
             g_free (path);         
         }
+
+        g_key_file_free (dmrc_file);
 
         g_string_append_printf (passwd_data, "%s:%s:%d:%d:%s:%s/home/%s:/bin/sh\n", users[i].user_name, users[i].password, users[i].uid, users[i].uid, users[i].real_name, temp_dir, users[i].user_name);
     }
