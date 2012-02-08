@@ -339,6 +339,9 @@ main (int argc, char **argv)
     x_server_set_listen_unix (xserver, listen_unix);
     x_server_set_listen_tcp (xserver, listen_tcp);
 
+    /* Add fake screen so that libx11 calls don't freak out when they can't find a screen */
+    x_server_add_screen (xserver, 0xffffff, 0x000000, 0, 1024, 768, 1000, 1000);
+
     status_notify ("XSERVER :%d START", display_number);
 
     config = g_key_file_new ();
