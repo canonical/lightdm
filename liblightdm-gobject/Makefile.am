@@ -1,7 +1,5 @@
 lib_LTLIBRARIES = liblightdm-gobject-1.la
 
-CLEANFILES =
-
 liblightdm_gobject_1_la_LDFLAGS = -export-symbols-regex \^lightdm_.*
 liblightdm_gobject_1_la_LIBADD = $(LIBLIGHTDM_GOBJECT_LIBS)
 liblightdm_gobject_1_la_CFLAGS = $(LIBLIGHTDM_GOBJECT_CFLAGS) \
@@ -58,6 +56,10 @@ dist_vapi_DATA = liblightdm-gobject-1.vapi
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = liblightdm-gobject-1.pc
+
+CLEANFILES = \
+	$(gir_DATA) \
+	$(typelib_DATA)
 
 DISTCLEANFILES = \
 	Makefile.in \
