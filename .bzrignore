@@ -40,7 +40,6 @@ greeters/qt/*_moc.cpp
 greeters/qt/ui_*.h
 liblightdm-gobject/*.gir
 liblightdm-gobject/*.typelib
-liblightdm-gobject/*.vapi
 liblightdm-gobject/liblightdm-gobject-1.pc
 liblightdm-qt/liblightdm-qt-1.pc
 liblightdm-qt/*_moc.cpp
