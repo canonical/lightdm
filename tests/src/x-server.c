@@ -86,6 +86,8 @@ struct XServerPrivate
     GSocket *tcp_socket;
     GIOChannel *tcp_channel;
     GHashTable *clients;
+    GHashTable *atoms;
+    gint next_atom_index;
 };
 
 struct XClientPrivate
@@ -96,7 +98,6 @@ struct XClientPrivate
     guint8 byte_order;
     gboolean connected;
     guint16 sequence_number;
-    GHashTable *atoms;
 };
 
 struct XScreenPrivate
@@ -318,23 +319,11 @@ x_client_init (XClient *client)
 {
     client->priv = G_TYPE_INSTANCE_GET_PRIVATE (client, x_client_get_type (), XClientPrivate);
     client->priv->sequence_number = 1;
-    client->priv->atoms = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
-}
-
-static void
-x_client_finalize (GObject *object)
-{
-    XClient *client = (XClient *) object;
-
-    g_hash_table_unref (client->priv->atoms);
-    client->priv->atoms = NULL;
 }
 
 static void
 x_client_class_init (XClientClass *klass)
 {
-    GObjectClass *object_class = G_OBJECT_CLASS (klass);
-    object_class->finalize = x_client_finalize;
     g_type_class_add_private (klass, sizeof (XClientPrivate));
 
     x_client_signals[X_CLIENT_CONNECT] =
@@ -485,19 +474,19 @@ process_intern_atom (XClient *client, const guint8 *buffer, gssize buffer_length
 
     /* Process */
 
-    atom = g_str_hash (name);
+    atom = client->priv->server->priv->next_atom_index++;
 
     if (onlyIfExists)
     {
         g_free (name);
-        if (!g_hash_table_contains (client->priv->atoms, GINT_TO_POINTER (atom)))
+        if (!g_hash_table_contains (client->priv->server->priv->atoms, GINT_TO_POINTER (atom)))
         {
             x_client_send_error (client, BadAtom, InternAtom, 0);
             return;
         }
     }
     else
-        g_hash_table_insert (client->priv->atoms, GINT_TO_POINTER (atom), name);
+        g_hash_table_insert (client->priv->server->priv->atoms, GINT_TO_POINTER (atom), name);
 
     /* Reply */
 
@@ -535,7 +524,7 @@ process_get_property (XClient *client, const guint8 *buffer, gssize buffer_lengt
 
     /* Process */
 
-    gchar *name = g_hash_table_lookup (client->priv->atoms, GINT_TO_POINTER (property));
+    gchar *name = g_hash_table_lookup (client->priv->server->priv->atoms, GINT_TO_POINTER (property));
     GString *reply = NULL;
     guint8 format = 8;
 
@@ -572,7 +561,7 @@ process_get_property (XClient *client, const guint8 *buffer, gssize buffer_lengt
     }
 
     if (name && delete)
-        g_hash_table_remove (client->priv->atoms, GINT_TO_POINTER (property));
+        g_hash_table_remove (client->priv->server->priv->atoms, GINT_TO_POINTER (property));
 
     /* Reply */
 
@@ -838,6 +827,76 @@ x_server_init (XServer *server)
     server->priv->listen_unix = TRUE;
     server->priv->listen_tcp = TRUE;
     server->priv->clients = g_hash_table_new_full (g_direct_hash, g_direct_equal, (GDestroyNotify) g_io_channel_unref, g_object_unref);
+    server->priv->atoms = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
+    server->priv->next_atom_index = 1;
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("PRIMARY"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("SECONDARY"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("ARC"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("ATOM"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("BITMAP"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("CARDINAL"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("COLORMAP"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("CURSOR"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("CUT_BUFFER0"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("CUT_BUFFER1"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("CUT_BUFFER2"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("CUT_BUFFER3"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("CUT_BUFFER4"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("CUT_BUFFER5"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("CUT_BUFFER6"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("CUT_BUFFER7"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("DRAWABLE"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("FONT"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("INTEGER"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("PIXMAP"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("POINT"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("RECTANGLE"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("RESOURCE_MANAGER"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("RGB_COLOR_MAP"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("RGB_BEST_MAP"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("RGB_BLUE_MAP"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("RGB_DEFAULT_MAP"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("RGB_GRAY_MAP"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("RGB_GREEN_MAP"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("RGB_RED_MAP"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("STRING"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("VISUALID"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("WINDOW"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("WM_COMMAND"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("WM_HINTS"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("WM_CLIENT_MACHINE"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("WM_ICON_NAME"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("WM_ICON_SIZE"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("WM_NAME"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("WM_NORMAL_HINTS"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("WM_SIZE_HINTS"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("WM_ZOOM_HINTS"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("MIN_SPACE"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("NORM_SPACE"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("MAX_SPACE"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("END_SPACE"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("SUPERSCRIPT_X"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("SUPERSCRIPT_Y"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("SUBSCRIPT_X"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("SUBSCRIPT_Y"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("UNDERLINE_POSITION"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("UNDERLINE_THICKNESS"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("STRIKEOUT_ASCENT"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("STRIKEOUT_DESCENT"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("ITALIC_ANGLE"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("X_HEIGHT"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("QUAD_WIDTH"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("WEIGHT"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("POINT_SIZE"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("RESOLUTION"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("COPYRIGHT"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("NOTICE"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("FONT_NAME"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("FAMILY_NAME"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("FULL_NAME"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("CAP_HEIGHT"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("WM_CLASS"));
+    g_hash_table_insert (server->priv->atoms, GINT_TO_POINTER (server->priv->next_atom_index++), g_strdup ("WM_TRANSIENT_FOR"));
 }
 
 static void
@@ -847,6 +906,8 @@ x_server_finalize (GObject *object)
     g_free (server->priv->vendor);
     if (server->priv->socket_path)
         unlink (server->priv->socket_path);
+    g_hash_table_unref (server->priv->atoms);
+    G_OBJECT_CLASS (x_server_parent_class)->finalize (object);
 }
 
 static void

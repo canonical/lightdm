@@ -64,13 +64,18 @@ def request_cb (channel, condition):
     r = 'GREETER %s START-SESSION SESSION=' % os.getenv ('DISPLAY')
     if request.startswith (r):
         if not greeter.start_session_sync (request[len(r):]):
-            status_notify ('GREETER %s SESSION-FAILED' % os.getenv ('DISPLAY')) 
+            status_notify ('GREETER %s SESSION-FAILED' % os.getenv ('DISPLAY'))
+
+    r = 'GREETER %s LOG-LAYOUT' % os.getenv ('DISPLAY')
+    if request == r:
+        layout = LightDM.get_layout ().get_name ()
+        status_notify ('GREETER %s LOG-LAYOUT LAYOUT=%s' % (os.getenv ('DISPLAY'), layout))
 
     r = 'GREETER %s LOG-LAYOUT USERNAME=' % os.getenv ('DISPLAY')
     if request.startswith (r):
         username = request[len(r):]
-        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username)
-        layout = lightdm_user_get_layout (user)
+        user = LightDM.UserList.get_instance ().get_user_by_name (username)
+        layout = user.get_layout ()
         if layout is None:
             layout = ''
         status_notify ('GREETER %s LOG-LAYOUT USERNAME=%s LAYOUT=%s' % (os.getenv ('DISPLAY'), username, layout))

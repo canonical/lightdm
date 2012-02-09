@@ -91,6 +91,14 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
+    r = g_strdup_printf ("GREETER %s LOG-LAYOUT", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        const gchar *layout;
+        layout = lightdm_layout_get_name (lightdm_get_layout ());
+        status_notify ("GREETER %s LOG-LAYOUT LAYOUT='%s'", getenv ("DISPLAY"), layout ? layout : "");
+    }
+
     r = g_strdup_printf ("GREETER %s LOG-LAYOUT USERNAME=", getenv ("DISPLAY"));
     if (g_str_has_prefix (request, r))
     {
@@ -98,14 +106,8 @@ request_cb (const gchar *request)
         const gchar *username, *layout;
 
         username = request + strlen (r);
-
-        if (g_strcmp0 (username, "%DEFAULT%") == 0) /* Grab system default layout */
-            layout = lightdm_layout_get_name (lightdm_get_layout ());
-        else
-        {
-            user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
-            layout = lightdm_user_get_layout (user);
-        }
+        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
+        layout = lightdm_user_get_layout (user);
 
         status_notify ("GREETER %s LOG-LAYOUT USERNAME=%s LAYOUT='%s'", getenv ("DISPLAY"), username, layout ? layout : "");
     }
