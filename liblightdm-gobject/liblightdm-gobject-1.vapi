@@ -27,6 +27,7 @@ namespace LightDM {
         public unowned string get_hint (string name);
         public unowned string default_session_hint { get; }
         public bool hide_users_hint { get; }
+        public bool lock_hint { get; }
         public bool has_guest_account_hint { get; }
         public unowned string select_user_hint { get; }
         public bool select_guest_hint { get; }

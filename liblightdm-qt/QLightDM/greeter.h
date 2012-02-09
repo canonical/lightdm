@@ -46,6 +46,7 @@ public:
     QString getHint(const QString &name) const;   
     QString defaultSessionHint() const;
     bool hideUsersHint() const;
+    bool lockHint () const;
     bool hasGuestAccountHint() const;
     QString selectUserHint() const;
     bool selectGuestHint() const;

@@ -157,5 +157,7 @@ status_notify ('GREETER %s CONNECTED-TO-DAEMON' % os.getenv ('DISPLAY'))
 
 if greeter.get_select_user_hint () is not None:
     status_notify ('GREETER %s SELECT-USER-HINT USERNAME=%s' % (os.getenv ('DISPLAY'), greeter.get_select_user_hint ()))
+if greeter.get_lock_hint ():
+        status_notify ('GREETER %s LOCK-HINT' % os.getenv ('DISPLAY'));
 
 loop.run ()

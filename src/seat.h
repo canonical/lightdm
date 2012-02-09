@@ -83,6 +83,8 @@ gboolean seat_switch_to_user (Seat *seat, const gchar *username, const gchar *se
 
 gboolean seat_switch_to_guest (Seat *seat, const gchar *session_name);
 
+gboolean seat_lock (Seat *seat);
+
 void seat_stop (Seat *seat);
 
 gboolean seat_get_is_stopping (Seat *seat);

@@ -137,6 +137,8 @@ main(int argc, char *argv[])
 
     if (greeter->selectUserHint() != "")
         status_notify ("GREETER %s SELECT-USER-HINT USERNAME=%s", getenv ("DISPLAY"), greeter->selectUserHint ().toAscii ().constData ());
+    if (greeter->lockHint())
+        status_notify ("GREETER %s LOCK-HINT", getenv ("DISPLAY"));
 
     return app.exec();
 }

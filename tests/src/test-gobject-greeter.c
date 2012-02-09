@@ -169,9 +169,10 @@ main (int argc, char **argv)
 
     status_notify ("GREETER %s CONNECTED-TO-DAEMON", getenv ("DISPLAY"));
 
-    /* Automatically log in as requested user */
     if (lightdm_greeter_get_select_user_hint (greeter))
         status_notify ("GREETER %s SELECT-USER-HINT USERNAME=%s", getenv ("DISPLAY"), lightdm_greeter_get_select_user_hint (greeter));
+    if (lightdm_greeter_get_lock_hint (greeter))
+        status_notify ("GREETER %s LOCK-HINT", getenv ("DISPLAY"));
 
     g_main_loop_run (main_loop);
 

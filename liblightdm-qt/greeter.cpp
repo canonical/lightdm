@@ -181,6 +181,12 @@ bool Greeter::hideUsersHint() const
     return lightdm_greeter_get_hide_users_hint(d->ldmGreeter);
 }
 
+bool Greeter::lockHint() const
+{
+    Q_D(const Greeter);
+    return lightdm_greeter_get_lock_hint(d->ldmGreeter);
+}
+
 bool Greeter::hasGuestAccountHint() const
 {
     Q_D(const Greeter);

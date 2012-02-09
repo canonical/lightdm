@@ -101,6 +101,7 @@ main (int argc, char **argv)
                         "  switch-to-greeter                   Switch to the greeter\n"
                         "  switch-to-user USERNAME [SESSION]   Switch to a user session\n"
                         "  switch-to-guest [SESSION]           Switch to a guest session\n"
+                        "  lock                                Lock the current seat\n"
                         "  list-seats                          List the active seats\n"
                         "  add-nested-seat                     Start a nested display\n"
                         "  add-local-x-seat DISPLAY_NUMBER     Add a local X seat\n"
@@ -243,6 +244,28 @@ main (int argc, char **argv)
                                      &error))
         {
             g_printerr ("Unable to switch to guest: %s\n", error->message);
+            return EXIT_FAILURE;
+        }
+        return EXIT_SUCCESS;
+    }
+    else if (strcmp (command, "lock") == 0)
+    {
+        if (n_options != 0)
+        {
+            g_printerr ("Usage lock\n");
+            usage ();
+            return EXIT_FAILURE;
+        }
+
+        if (!g_dbus_proxy_call_sync (seat_proxy,
+                                     "Lock",
+                                     g_variant_new ("()"),
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     -1,
+                                     NULL,
+                                     &error))
+        {
+            g_printerr ("Unable to lock seat: %s\n", error->message);
             return EXIT_FAILURE;
         }
         return EXIT_SUCCESS;

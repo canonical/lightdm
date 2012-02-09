@@ -316,6 +316,21 @@ handle_command (const gchar *command)
     {
         sleep (1);
     }
+    else if (strcmp (name, "LOCK-SEAT") == 0)
+    {
+        g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                     "org.freedesktop.DisplayManager",
+                                     "/org/freedesktop/DisplayManager/Seat0",
+                                     "org.freedesktop.DisplayManager.Seat",
+                                     "Lock",
+                                     g_variant_new ("()"),
+                                     G_VARIANT_TYPE ("()"),
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     1000,
+                                     NULL,
+                                     NULL);
+        check_status ("RUNNER LOCK-SEAT");
+    }
     else if (strcmp (name, "SWITCH-TO-GREETER") == 0)
     {
         g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),

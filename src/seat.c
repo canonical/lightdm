@@ -192,7 +192,7 @@ switch_to_user (Seat *seat, const gchar *username, gboolean unlock)
         /* If already logged in, then switch to that display */
         if (g_strcmp0 (display_get_username (display), username) == 0)        
         {
-           if (username)
+            if (username)
                 g_debug ("Switching to existing session for user %s", username);
             else
                 g_debug ("Switching to existing greeter");
@@ -432,7 +432,7 @@ display_stopped_cb (Display *display, Seat *seat)
 }
 
 static gboolean
-switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_guest, const gchar *session_name, gboolean autologin)
+switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_guest, const gchar *session_name, gboolean is_lock, gboolean autologin)
 {
     Display *display;
     DisplayServer *display_server;
@@ -457,6 +457,8 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
             g_debug ("Starting new display for greeter with guest selected");
         else if (username)
             g_debug ("Starting new display for greeter with user %s selected", username);
+        else if (is_lock)
+            g_debug ("Starting new display for greeter (lock screen)");
         else
             g_debug ("Starting new display for greeter");
     }
@@ -478,6 +480,8 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_
     display_set_greeter_session (display, seat_get_string_property (seat, "greeter-session"));
     display_set_session_wrapper (display, seat_get_string_property (seat, "session-wrapper"));
     display_set_hide_users_hint (display, seat_get_boolean_property (seat, "greeter-hide-users"));
+    if (is_lock)
+        display_set_lock_hint (display, TRUE);
     display_set_allow_guest (display, seat_get_allow_guest (seat));
     if (autologin)
         display_set_autologin_user (display, username, is_guest, 0);
@@ -506,7 +510,7 @@ seat_switch_to_greeter (Seat *seat)
         return FALSE;
 
     g_debug ("Switching to greeter");
-    return switch_to_user_or_start_greeter (seat, NULL, FALSE, NULL, FALSE);
+    return switch_to_user_or_start_greeter (seat, NULL, FALSE, NULL, FALSE, FALSE);
 }
 
 gboolean
@@ -519,7 +523,7 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
         return FALSE;
 
     g_debug ("Switching to user %s", username);
-    return switch_to_user_or_start_greeter (seat, username, FALSE, session_name, FALSE);
+    return switch_to_user_or_start_greeter (seat, username, FALSE, session_name, FALSE, FALSE);
 }
 
 gboolean
@@ -534,7 +538,19 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
         g_debug ("Switching to existing guest account %s", seat->priv->guest_username);
     else
         g_debug ("Switching to new guest account");
-    return switch_to_user_or_start_greeter (seat, seat->priv->guest_username, TRUE, session_name, TRUE);
+    return switch_to_user_or_start_greeter (seat, seat->priv->guest_username, TRUE, session_name, FALSE, TRUE);
+}
+
+gboolean
+seat_lock (Seat *seat)
+{
+    g_return_val_if_fail (seat != NULL, FALSE);
+
+    if (!seat->priv->can_switch)
+        return FALSE;
+
+    g_debug ("Locking seat");
+    return switch_to_user_or_start_greeter (seat, NULL, FALSE, NULL, TRUE, FALSE);
 }
 
 void
@@ -575,11 +591,11 @@ seat_real_start (Seat *seat)
         autologin_username = NULL;
 
     if (autologin_username)
-        return switch_to_user_or_start_greeter (seat, autologin_username, FALSE, NULL, TRUE);
+        return switch_to_user_or_start_greeter (seat, autologin_username, FALSE, NULL, FALSE, TRUE);
     else if (seat_get_boolean_property (seat, "autologin-guest"))
-        return switch_to_user_or_start_greeter (seat, NULL, TRUE, NULL, TRUE);
+        return switch_to_user_or_start_greeter (seat, NULL, TRUE, NULL, FALSE, TRUE);
     else
-        return switch_to_user_or_start_greeter (seat, NULL, FALSE, NULL, FALSE);
+        return switch_to_user_or_start_greeter (seat, NULL, FALSE, NULL, FALSE, FALSE);
 }
 
 static void

@@ -21,6 +21,7 @@ enum {
     PROP_0,
     PROP_DEFAULT_SESSION_HINT,
     PROP_HIDE_USERS_HINT,
+    PROP_LOCK_HINT,
     PROP_HAS_GUEST_ACCOUNT_HINT,
     PROP_SELECT_USER_HINT,
     PROP_SELECT_GUEST_HINT,
@@ -561,6 +562,25 @@ lightdm_greeter_get_hide_users_hint (LightDMGreeter *greeter)
 }
 
 /**
+ * lightdm_greeter_get_lock_hint:
+ * @greeter: A #LightDMGreeter
+ *
+ * Check if the greeter is acting as a lock screen.
+ *
+ * Return value: #TRUE if the greeter was triggered by locking the seat.
+ */
+gboolean
+lightdm_greeter_get_lock_hint (LightDMGreeter *greeter)
+{
+    const gchar *value;
+
+    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
+    value = lightdm_greeter_get_hint (greeter, "lock-screen");
+
+    return g_strcmp0 (value, "true") == 0;
+}
+
+/**
  * lightdm_greeter_get_has_guest_account_hint:
  * @greeter: A #LightDMGreeter
  *
@@ -970,6 +990,9 @@ lightdm_greeter_get_property (GObject    *object,
     case PROP_HIDE_USERS_HINT:
         g_value_set_boolean (value, lightdm_greeter_get_hide_users_hint (self));
         break;
+    case PROP_LOCK_HINT:
+        g_value_set_boolean (value, lightdm_greeter_get_lock_hint (self));
+        break;
     case PROP_HAS_GUEST_ACCOUNT_HINT:
         g_value_set_boolean (value, lightdm_greeter_get_has_guest_account_hint (self));
         break;
@@ -1078,7 +1101,15 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
                                      PROP_HIDE_USERS_HINT,
                                      g_param_spec_boolean ("hide-users-hint",
                                                            "hide-users-hint",
-                                                           "hide users hint",
+                                                           "Hide users hint",
+                                                           FALSE,
+                                                           G_PARAM_READABLE));
+
+    g_object_class_install_property (object_class,
+                                     PROP_LOCK_HINT,
+                                     g_param_spec_boolean ("lock-hint",
+                                                           "lock-hint",
+                                                           "Lock hint",
                                                            FALSE,
                                                            G_PARAM_READABLE));
 

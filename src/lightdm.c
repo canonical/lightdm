@@ -417,6 +417,12 @@ handle_seat_call (GDBusConnection       *connection,
         seat_switch_to_guest (seat, session_name);
         g_dbus_method_invocation_return_value (invocation, NULL);
     }
+    else if (g_strcmp0 (method_name, "Lock") == 0)
+    {
+        /* FIXME: Should only allow locks if have a session on this seat */
+        seat_lock (seat);
+        g_dbus_method_invocation_return_value (invocation, NULL);
+    }
 }
 
 static GVariant *
@@ -666,6 +672,7 @@ bus_acquired_cb (GDBusConnection *connection,
         "    <method name='SwitchToGuest'>"
         "      <arg name='session-name' direction='in' type='s'/>"
         "    </method>"
+        "    <method name='Lock'/>"    
         "  </interface>"
         "</node>";
     const gchar *session_interface =
