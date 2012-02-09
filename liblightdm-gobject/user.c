@@ -38,6 +38,7 @@ enum
     USER_PROP_BACKGROUND,
     USER_PROP_LANGUAGE,
     USER_PROP_LAYOUT,
+    USER_PROP_LAYOUTS,
     USER_PROP_SESSION,
     USER_PROP_LOGGED_IN
 };
@@ -1322,7 +1323,7 @@ lightdm_user_get_layout (LightDMUser *user)
  * 
  * Get the configured keyboard layouts for a user.
  * 
- * Return value: A NULL-terminated array of keyboard layouts for the given user.  Copy the values if you want to use them long term.
+ * Return value: (transfer none): A NULL-terminated array of keyboard layouts for the given user.  Copy the values if you want to use them long term.
  **/
 const gchar * const *
 lightdm_user_get_layouts (LightDMUser *user)
@@ -1425,6 +1426,9 @@ lightdm_user_get_property (GObject    *object,
     case USER_PROP_LAYOUT:
         g_value_set_string (value, lightdm_user_get_layout (self));
         break;
+    case USER_PROP_LAYOUTS:
+        g_value_set_boxed (value, g_strdupv ((gchar **) lightdm_user_get_layouts (self)));
+        break;
     case USER_PROP_SESSION:
         g_value_set_string (value, lightdm_user_get_session (self));
         break;
@@ -1520,6 +1524,13 @@ lightdm_user_class_init (LightDMUserClass *klass)
                                                           "Keyboard layout used by this user",
                                                           NULL,
                                                           G_PARAM_READABLE));
+    g_object_class_install_property (object_class,
+                                     USER_PROP_LAYOUTS,
+                                     g_param_spec_boxed ("layouts",
+                                                         "layouts",
+                                                         "Keyboard layouts used by this user",
+                                                         G_TYPE_STRV,
+                                                         G_PARAM_READABLE));
     g_object_class_install_property (object_class,
                                      USER_PROP_SESSION,
                                      g_param_spec_string ("session",

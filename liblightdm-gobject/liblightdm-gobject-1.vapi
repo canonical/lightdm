@@ -87,6 +87,8 @@ namespace LightDM {
         public unowned string image { get; }
         public unowned string language { get; }
         public unowned string layout { get; }
+        [CCode (array_length = false, array_null_terminated = true)]
+        public unowned string[] layouts { get; }
         public bool logged_in { get; }
         public unowned string name { get; }
         public unowned string real_name { get; }
