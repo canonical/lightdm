@@ -115,7 +115,7 @@ request_cb (const gchar *request)
     if (g_str_has_prefix (request, r))
     {
         GList *layouts, *iter;
-        gchar *layout_prefix;
+        const gchar *layout_prefix;
 
         layout_prefix = request + strlen (r);
         layouts = lightdm_get_layouts ();
