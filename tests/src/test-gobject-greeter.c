@@ -113,6 +113,23 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
+    r = g_strdup_printf ("GREETER %s LOG-LAYOUTS USERNAME=", getenv ("DISPLAY"));
+    if (g_str_has_prefix (request, r))
+    {
+        LightDMUser *user;
+        const gchar *username;
+        const gchar * const *layouts;
+        int i;
+
+        username = request + strlen (r);
+        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
+        layouts = lightdm_user_get_layouts (user);
+
+        for (i = 0; layouts[i]; i++)
+            status_notify ("GREETER %s LOG-LAYOUTS USERNAME=%s LAYOUT='%s'", getenv ("DISPLAY"), username, layouts[i]);
+    }
+    g_free (r);
+
     r = g_strdup_printf ("GREETER %s LOG-VARIANTS LAYOUT=", getenv ("DISPLAY"));
     if (g_str_has_prefix (request, r))
     {

@@ -98,7 +98,7 @@ typedef struct
 
     GKeyFile *dmrc_file;
     gchar *language;
-    gchar *layout;
+    gchar **layouts;
     gchar *session;
 } LightDMUserPrivate;
 
@@ -1144,9 +1144,17 @@ load_dmrc (LightDMUser *user)
             *codeset = '\0';
     }
 
-    if (priv->layout)
-        g_free (priv->layout);
-    priv->layout = g_key_file_get_string (priv->dmrc_file, "Desktop", "Layout", NULL);
+    if (priv->layouts)
+    {
+        g_strfreev (priv->layouts);
+        priv->layouts = NULL;
+    }
+    if (g_key_file_has_key (priv->dmrc_file, "Desktop", "Layout", NULL))
+    {
+        priv->layouts = g_malloc (sizeof (gchar *) * 2);
+        priv->layouts[0] = g_key_file_get_string (priv->dmrc_file, "Desktop", "Layout", NULL);
+        priv->layouts[1] = NULL;
+    }
 
     if (priv->session)
         g_free (priv->session);
@@ -1190,6 +1198,37 @@ get_string_property (GDBusProxy *proxy, const gchar *property)
     return rv;
 }
 
+static gchar **
+get_string_array_property (GDBusProxy *proxy, const gchar *property)
+{
+    GVariant *answer;
+    gchar **rv;
+
+    if (!proxy)
+        return NULL;
+
+    answer = g_dbus_proxy_get_cached_property (proxy, property);
+
+    if (!answer)
+    {
+        g_warning ("Could not get accounts property %s", property);
+        return NULL;
+    }
+
+    if (!g_variant_is_of_type (answer, G_VARIANT_TYPE ("as")))
+    {
+        g_warning ("Unexpected accounts property type for %s: %s",
+                   property, g_variant_get_type_string (answer));
+        g_variant_unref (answer);
+        return NULL;
+    }
+
+    rv = g_variant_dup_strv (answer, NULL);
+
+    g_variant_unref (answer);
+    return rv;
+}
+
 static gboolean
 load_accounts_service (LightDMUser *user)
 {
@@ -1197,7 +1236,7 @@ load_accounts_service (LightDMUser *user)
     LightDMUserListPrivate *list_priv = GET_LIST_PRIVATE (priv->user_list);
     UserAccountObject *account = NULL;
     GList *iter;
-    gchar *value;
+    gchar **value;
 
     /* First, find AccountObject proxy */
     for (iter = list_priv->user_account_objects; iter; iter = iter->next)
@@ -1220,11 +1259,11 @@ load_accounts_service (LightDMUser *user)
         g_free (priv->session);
     priv->session = get_string_property (account->proxy, "XSession");
 
-    value = get_string_property (account->proxy, "XKeyboardLayout");
+    value = get_string_array_property (account->proxy, "XKeyboardLayouts");
     if (value)
     {
-        g_free (priv->layout);
-        priv->layout = value;
+        g_strfreev (priv->layouts);
+        priv->layouts = value;
     }
 
     return TRUE;
@@ -1236,6 +1275,13 @@ load_user_values (LightDMUser *user)
 {
     load_dmrc (user);
     load_accounts_service (user); // overrides dmrc values
+
+    /* Ensure a few guarantees */
+    if (GET_USER_PRIVATE (user)->layouts == NULL)
+    {
+        GET_USER_PRIVATE (user)->layouts = g_malloc (sizeof (gchar));
+        GET_USER_PRIVATE (user)->layouts[0] = NULL;
+    }
 }
 
 /**
@@ -1260,14 +1306,30 @@ lightdm_user_get_language (LightDMUser *user)
  * 
  * Get the keyboard layout for a user.
  * 
- * Return value: The keyboard layoyt for the given user or #NULL if using system defaults.
+ * Return value: The keyboard layout for the given user or #NULL if using system defaults.  Copy the value if you want to use it long term.
  **/
 const gchar *
 lightdm_user_get_layout (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
     load_user_values (user);
-    return GET_USER_PRIVATE (user)->layout;
+    return GET_USER_PRIVATE (user)->layouts[0];
+}
+
+/**
+ * lightdm_user_get_layouts
+ * @user: A #LightDMUser
+ * 
+ * Get the configured keyboard layouts for a user.
+ * 
+ * Return value: A NULL-terminated array of keyboard layouts for the given user.  Copy the values if you want to use them long term.
+ **/
+const gchar * const *
+lightdm_user_get_layouts (LightDMUser *user)
+{
+    g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
+    load_user_values (user);
+    return (const gchar * const *) GET_USER_PRIVATE (user)->layouts;
 }
 
 /**
@@ -1386,6 +1448,7 @@ lightdm_user_finalize (GObject *object)
     g_free (priv->home_directory);
     g_free (priv->image);
     g_free (priv->background);
+    g_strfreev (priv->layouts);
     if (priv->dmrc_file)
         g_key_file_free (priv->dmrc_file);
 }
