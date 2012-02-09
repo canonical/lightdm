@@ -1,4 +1,5 @@
-/*
+/* -*- Mode: C; indent-tabs-mode:nil; tab-width:4 -*-
+ *
  * Copyright (C) 2010 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
  * 
@@ -1196,6 +1197,7 @@ load_accounts_service (LightDMUser *user)
     LightDMUserListPrivate *list_priv = GET_LIST_PRIVATE (priv->user_list);
     UserAccountObject *account = NULL;
     GList *iter;
+    gchar *value;
 
     /* First, find AccountObject proxy */
     for (iter = list_priv->user_account_objects; iter; iter = iter->next)
@@ -1217,6 +1219,13 @@ load_accounts_service (LightDMUser *user)
     if (priv->session)
         g_free (priv->session);
     priv->session = get_string_property (account->proxy, "XSession");
+
+    value = get_string_property (account->proxy, "XKeyboardLayout");
+    if (value)
+    {
+        g_free (priv->layout);
+        priv->layout = value;
+    }
 
     return TRUE;
 }

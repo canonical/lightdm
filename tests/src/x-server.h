@@ -106,6 +106,8 @@ void x_client_send_failed (XClient *client, const gchar *reason);
 
 void x_client_send_success (XClient *client);
 
+void x_client_send_error (XClient *client, int type, int major, int minor);
+
 void x_client_disconnect (XClient *client);
 
 G_END_DECLS

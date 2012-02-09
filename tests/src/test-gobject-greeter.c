@@ -1,3 +1,5 @@
+/* -*- Mode: C; indent-tabs-mode: nil; tab-width: 4 -*- */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -96,10 +98,39 @@ request_cb (const gchar *request)
         const gchar *username, *layout;
 
         username = request + strlen (r);
-        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
-        layout = lightdm_user_get_layout (user);
 
-        status_notify ("GREETER %s LOG-LAYOUT USERNAME=%s LAYOUT=%s", getenv ("DISPLAY"), username, layout ? layout : "");
+        if (g_strcmp0 (username, "%DEFAULT%") == 0) /* Grab system default layout */
+            layout = lightdm_layout_get_name (lightdm_get_layout ());
+        else
+        {
+            user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
+            layout = lightdm_user_get_layout (user);
+        }
+
+        status_notify ("GREETER %s LOG-LAYOUT USERNAME=%s LAYOUT='%s'", getenv ("DISPLAY"), username, layout ? layout : "");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s LOG-VARIANTS LAYOUT=", getenv ("DISPLAY"));
+    if (g_str_has_prefix (request, r))
+    {
+        GList *layouts, *iter;
+        gchar *layout_prefix;
+
+        layout_prefix = request + strlen (r);
+        layouts = lightdm_get_layouts ();
+
+        for (iter = layouts; iter; iter = iter->next)
+        {
+            LightDMLayout *layout;
+            const gchar *name;
+
+            layout = (LightDMLayout *) iter->data;
+            name = lightdm_layout_get_name (layout);
+
+            if (g_str_has_prefix (name, layout_prefix))
+                status_notify ("GREETER %s LOG-VARIANTS LAYOUT='%s'", getenv ("DISPLAY"), name);
+        }
     }
     g_free (r);
 
