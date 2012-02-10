@@ -70,6 +70,8 @@ const gchar *session_get_console_kit_cookie (Session *session);
 
 gboolean session_start (Session *session);
 
+void session_lock (Session *session);
+
 void session_unlock (Session *session);
 
 gboolean session_stop (Session *session);

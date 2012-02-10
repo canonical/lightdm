@@ -87,20 +87,15 @@ ck_open_session (GVariantBuilder *parameters)
     return cookie;
 }
 
-void
-ck_unlock_session (const gchar *cookie)
+static gchar *
+get_ck_session (const gchar *cookie)
 {
     GVariant *result;
-    GDBusProxy *proxy;
-    gchar *session_path = NULL;
+    gchar *session_path;
     GError *error = NULL;
 
-    g_return_if_fail (cookie != NULL);
-
     if (!load_ck_proxy ())
-        return;
-
-    g_debug ("Unlocking ConsoleKit session %s", cookie);
+        return NULL;
 
     result = g_dbus_proxy_call_sync (ck_proxy,
                                      "GetSessionForCookie",
@@ -113,13 +108,83 @@ ck_unlock_session (const gchar *cookie)
         g_warning ("Error getting ConsoleKit session: %s", error->message);
     g_clear_error (&error);
     if (!result)
-        return;
+        return NULL;
 
     if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(o)")))
         g_variant_get (result, "(o)", &session_path);
     else
         g_warning ("Unexpected response from GetSessionForCookie: %s", g_variant_get_type_string (result));
     g_variant_unref (result);
+
+    return session_path;
+}
+
+void
+ck_lock_session (const gchar *cookie)
+{
+    GVariant *result;
+    GDBusProxy *proxy;
+    gchar *session_path;
+    GError *error = NULL;
+
+    g_return_if_fail (cookie != NULL);
+
+    if (!load_ck_proxy ())
+        return;
+
+    g_debug ("Locking ConsoleKit session %s", cookie);
+
+    session_path = get_ck_session (cookie);
+    if (!session_path)
+        return;
+
+    proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                           G_DBUS_PROXY_FLAGS_NONE,
+                                           NULL,
+                                           "org.freedesktop.ConsoleKit",
+                                           session_path,
+                                           "org.freedesktop.ConsoleKit.Session",
+                                           NULL, &error);
+    g_free (session_path);
+  
+    if (error)
+        g_warning ("Unable to get connection to ConsoleKit session: %s", error->message);
+    g_clear_error (&error);
+    if (!proxy)
+        return;
+
+    result = g_dbus_proxy_call_sync (proxy,
+                                     "Lock",
+                                     NULL,
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     -1,
+                                     NULL,
+                                     &error);
+    g_object_unref (proxy);
+
+    if (error)
+        g_warning ("Error locking ConsoleKit session: %s", error->message);
+    g_clear_error (&error);
+    if (result)
+        g_variant_unref (result);
+}
+
+void
+ck_unlock_session (const gchar *cookie)
+{
+    GVariant *result;
+    GDBusProxy *proxy;
+    gchar *session_path;
+    GError *error = NULL;
+
+    g_return_if_fail (cookie != NULL);
+
+    if (!load_ck_proxy ())
+        return;
+
+    g_debug ("Unlocking ConsoleKit session %s", cookie);
+
+    session_path = get_ck_session (cookie);
     if (!session_path)
         return;
 
@@ -150,8 +215,8 @@ ck_unlock_session (const gchar *cookie)
     if (error)
         g_warning ("Error unlocking ConsoleKit session: %s", error->message);
     g_clear_error (&error);
-    if (!result)
-        return;
+    if (result)
+        g_variant_unref (result);
 }
 
 void

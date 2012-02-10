@@ -78,6 +78,8 @@ gboolean display_start (Display *display);
 
 gboolean display_get_is_ready (Display *display);
 
+void display_lock (Display *display);
+
 void display_unlock (Display *display);
 
 void display_stop (Display *display);

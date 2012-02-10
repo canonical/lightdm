@@ -612,6 +612,11 @@ seat_real_set_active_display (Seat *seat, Display *display)
             g_debug ("Stopping greeter display being switched from");
             display_stop (seat->priv->active_display);
         }
+        /* Otherwise lock it */
+        else
+        {
+            display_lock (seat->priv->active_display);
+        }
         g_object_unref (seat->priv->active_display);
     }
     seat->priv->active_display = g_object_ref (display);

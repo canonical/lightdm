@@ -324,6 +324,14 @@ session_real_start (Session *session)
 }
 
 void
+session_lock (Session *session)
+{    
+    g_return_if_fail (session != NULL);
+    if (getuid () == 0)
+        ck_lock_session (session->priv->console_kit_cookie);
+}
+
+void
 session_unlock (Session *session)
 {    
     g_return_if_fail (session != NULL);

@@ -18,6 +18,8 @@ G_BEGIN_DECLS
 
 gchar *ck_open_session (GVariantBuilder *parameters);
 
+void ck_lock_session (const gchar *cookie);
+
 void ck_unlock_session (const gchar *cookie);
 
 void ck_close_session (const gchar *cookie);

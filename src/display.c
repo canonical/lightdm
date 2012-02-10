@@ -879,6 +879,19 @@ display_get_is_ready (Display *display)
 }
 
 void
+display_lock (Display *display)
+{
+    g_return_if_fail (display != NULL);
+
+    if (!display->priv->session)
+        return;
+
+    g_debug ("Locking display");
+
+    session_lock (display->priv->session);
+}
+
+void
 display_unlock (Display *display)
 {
     g_return_if_fail (display != NULL);
