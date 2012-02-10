@@ -99,6 +99,8 @@ const gchar *lightdm_user_get_language (LightDMUser *user);
 
 const gchar *lightdm_user_get_layout (LightDMUser *user);
 
+const gchar * const *lightdm_user_get_layouts (LightDMUser *user);
+
 const gchar *lightdm_user_get_session (LightDMUser *user);
 
 gboolean lightdm_user_get_logged_in (LightDMUser *user);
