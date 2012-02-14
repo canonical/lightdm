@@ -13,7 +13,7 @@
 
 #include <QtCore/QString>
 #include <QtCore/QDebug>
-#include <QtGui/QPixmap>
+#include <QtGui/QIcon>
 
 #include <lightdm.h>
 
@@ -214,7 +214,7 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
     case Qt::DisplayRole:
         return d->users[row].displayName();
     case Qt::DecorationRole:
-        return QPixmap(d->users[row].image);
+        return QIcon(d->users[row].image);
     case UsersModel::NameRole:
         return d->users[row].name;
     case UsersModel::RealNameRole:
