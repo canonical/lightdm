@@ -479,7 +479,7 @@ process_intern_atom (XClient *client, const guint8 *buffer, gssize buffer_length
     if (onlyIfExists)
     {
         g_free (name);
-        if (!g_hash_table_contains (client->priv->server->priv->atoms, GINT_TO_POINTER (atom)))
+        if (!g_hash_table_lookup (client->priv->server->priv->atoms, GINT_TO_POINTER (atom)))
         {
             x_client_send_error (client, BadAtom, InternAtom, 0);
             return;
