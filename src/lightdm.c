@@ -420,9 +420,31 @@ handle_seat_call (GDBusConnection       *connection,
     else if (g_strcmp0 (method_name, "Lock") == 0)
     {
         /* FIXME: Should only allow locks if have a session on this seat */
-        seat_lock (seat);
+        seat_lock (seat, NULL);
         g_dbus_method_invocation_return_value (invocation, NULL);
     }
+}
+
+static Seat *
+get_seat_for_session (Session *session)
+{
+    GList *seat_link;
+
+    for (seat_link = display_manager_get_seats (display_manager); seat_link; seat_link = seat_link->next)
+    {
+        Seat *seat = seat_link->data;
+        GList *display_link;
+
+        for (display_link = seat_get_displays (seat); display_link; display_link = display_link->next)
+        {
+            Display *display = display_link->data;
+
+            if (display_get_session (display) == session)
+                return seat;
+        }
+    } 
+
+    return NULL;
 }
 
 static GVariant *
@@ -456,6 +478,17 @@ handle_session_call (GDBusConnection       *connection,
                      GDBusMethodInvocation *invocation,
                      gpointer               user_data)
 {
+    Session *session = user_data;
+
+    if (g_strcmp0 (method_name, "Lock") == 0)
+    {
+        Seat *seat;
+
+        seat = get_seat_for_session (session);
+        /* FIXME: Should only allow locks if have a session on this seat */
+        seat_lock (seat, user_get_name (session_get_user (session)));
+        g_dbus_method_invocation_return_value (invocation, NULL);
+    }
 }
 
 static BusEntry *
@@ -680,6 +713,7 @@ bus_acquired_cb (GDBusConnection *connection,
         "  <interface name='org.freedesktop.DisplayManager.Session'>"
         "    <property name='Seat' type='o' access='read'/>"
         "    <property name='UserName' type='s' access='read'/>"
+        "    <method name='Lock'/>"
         "  </interface>"
         "</node>";
     GDBusNodeInfo *display_manager_info;

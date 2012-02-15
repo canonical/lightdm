@@ -429,16 +429,17 @@ display_stopped_cb (Display *display, Seat *seat)
     g_object_unref (display);
 
     check_stopped (seat);
+
 }
 
 static gboolean
-switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean is_guest, const gchar *session_name, gboolean is_lock, gboolean autologin)
+switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean use_existing, gboolean is_guest, const gchar *session_name, gboolean is_lock, gboolean autologin)
 {
     Display *display;
     DisplayServer *display_server;
 
     /* Switch to existing if it exists */
-    if (switch_to_user (seat, username, FALSE))
+    if (use_existing && switch_to_user (seat, username, FALSE))
         return TRUE;
 
     /* If one don't exist then start a greeter */
@@ -510,7 +511,7 @@ seat_switch_to_greeter (Seat *seat)
         return FALSE;
 
     g_debug ("Switching to greeter");
-    return switch_to_user_or_start_greeter (seat, NULL, FALSE, NULL, FALSE, FALSE);
+    return switch_to_user_or_start_greeter (seat, NULL, TRUE, FALSE, NULL, FALSE, FALSE);
 }
 
 gboolean
@@ -523,7 +524,7 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
         return FALSE;
 
     g_debug ("Switching to user %s", username);
-    return switch_to_user_or_start_greeter (seat, username, FALSE, session_name, FALSE, FALSE);
+    return switch_to_user_or_start_greeter (seat, username, TRUE, FALSE, session_name, FALSE, FALSE);
 }
 
 gboolean
@@ -538,11 +539,11 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
         g_debug ("Switching to existing guest account %s", seat->priv->guest_username);
     else
         g_debug ("Switching to new guest account");
-    return switch_to_user_or_start_greeter (seat, seat->priv->guest_username, TRUE, session_name, FALSE, TRUE);
+    return switch_to_user_or_start_greeter (seat, seat->priv->guest_username, TRUE, TRUE, session_name, FALSE, TRUE);
 }
 
 gboolean
-seat_lock (Seat *seat)
+seat_lock (Seat *seat, const gchar *username)
 {
     g_return_val_if_fail (seat != NULL, FALSE);
 
@@ -550,7 +551,7 @@ seat_lock (Seat *seat)
         return FALSE;
 
     g_debug ("Locking seat");
-    return switch_to_user_or_start_greeter (seat, NULL, FALSE, NULL, TRUE, FALSE);
+    return switch_to_user_or_start_greeter (seat, username, FALSE, FALSE, NULL, TRUE, FALSE);
 }
 
 void
@@ -591,11 +592,11 @@ seat_real_start (Seat *seat)
         autologin_username = NULL;
 
     if (autologin_username)
-        return switch_to_user_or_start_greeter (seat, autologin_username, FALSE, NULL, FALSE, TRUE);
+        return switch_to_user_or_start_greeter (seat, autologin_username, TRUE, FALSE, NULL, FALSE, TRUE);
     else if (seat_get_boolean_property (seat, "autologin-guest"))
-        return switch_to_user_or_start_greeter (seat, NULL, TRUE, NULL, FALSE, TRUE);
+        return switch_to_user_or_start_greeter (seat, NULL, TRUE, TRUE, NULL, FALSE, TRUE);
     else
-        return switch_to_user_or_start_greeter (seat, NULL, FALSE, NULL, FALSE, FALSE);
+        return switch_to_user_or_start_greeter (seat, NULL, TRUE, FALSE, NULL, FALSE, FALSE);
 }
 
 static void

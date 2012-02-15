@@ -7,6 +7,7 @@
 #include <xcb/xcb.h>
 #include <glib.h>
 #include <glib-object.h>
+#include <gio/gio.h>
 
 #include "status.h"
 
@@ -32,6 +33,42 @@ request_cb (const gchar *request)
     r = g_strdup_printf ("SESSION %s CRASH", getenv ("DISPLAY"));
     if (strcmp (request, r) == 0)
         kill (getpid (), SIGSEGV);
+    g_free (r);
+
+    r = g_strdup_printf ("SESSION %s LOCK-SEAT", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                     "org.freedesktop.DisplayManager",
+                                     getenv ("XDG_SEAT_PATH"),
+                                     "org.freedesktop.DisplayManager.Seat",
+                                     "Lock",
+                                     g_variant_new ("()"),
+                                     G_VARIANT_TYPE ("()"),
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     1000,
+                                     NULL,
+                                     NULL);
+        status_notify ("SESSION %s LOCK-SEAT", getenv ("DISPLAY"));
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("SESSION %s LOCK-SESSION", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                     "org.freedesktop.DisplayManager",
+                                     getenv ("XDG_SESSION_PATH"),
+                                     "org.freedesktop.DisplayManager.Session",
+                                     "Lock",
+                                     g_variant_new ("()"),
+                                     G_VARIANT_TYPE ("()"),
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     1000,
+                                     NULL,
+                                     NULL);
+        status_notify ("SESSION %s LOCK-SESSION", getenv ("DISPLAY"));
+    }
     g_free (r);
 }
 
