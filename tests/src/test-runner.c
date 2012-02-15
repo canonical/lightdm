@@ -1217,6 +1217,8 @@ main (int argc, char **argv)
         {"bob",     "",         TRUE,  "Bob User",   NULL,          "us", NULL,          "en_AU.utf8",  1001},
         {"carol",   "",         TRUE,  "Carol User", "alternative", "ru", "fr\toss;ru;", "fr_FR.UTF-8", 1002},
         {"dave",    "",         FALSE, "Dave User",  NULL,          NULL, NULL,          NULL,          1003},
+        {"user0",   "",         TRUE,  "User 0",     NULL,          NULL, NULL,          NULL,          1004},
+        {"user1",   "",         TRUE,  "User 1",     NULL,          NULL, NULL,          NULL,          1005},
         {NULL,      NULL,       FALSE, NULL,         NULL,          NULL, NULL,          NULL,             0}
     };
     passwd_data = g_string_new ("");

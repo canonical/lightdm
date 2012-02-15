@@ -17,6 +17,7 @@ TESTS = \
 	test-autologin-guest \
 	test-autologin-guest-fail-setup-script \
 	test-autologin-guest-logout \
+	test-user-renamed \
 	test-keyboard-layout \
 	test-no-keyboard-layout \
 	test-default-keyboard-layout \
@@ -166,6 +167,7 @@ EXTRA_DIST = \
 	scripts/switch-to-user-existing-session.conf \
 	scripts/switch-to-user-logout.conf \
 	scripts/switch-to-user-no-password.conf \
+	scripts/user-renamed.conf \
 	scripts/vnc-login.conf \
 	scripts/xdmcp-login.conf \
 	scripts/xserver-fail-start.conf
