@@ -261,7 +261,15 @@ authentication_result_cb (PAMSession *authentication, int result, Greeter *greet
     g_debug ("Authenticate result for user %s: %s", pam_session_get_username (authentication), pam_session_strerror (authentication, result));
 
     if (result == PAM_SUCCESS)
-        g_debug ("User %s authorized", pam_session_get_username (authentication));
+    {
+        if (pam_session_get_user (authentication))
+            g_debug ("User %s authorized", pam_session_get_username (authentication));
+        else
+        {
+            g_debug ("User %s authorized, but no account of that name exists", pam_session_get_username (authentication));          
+            result = PAM_USER_UNKNOWN;
+        }
+    }
 
     send_end_authentication (greeter, greeter->priv->authentication_sequence_number, pam_session_get_username (authentication), result);
 }

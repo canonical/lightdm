@@ -350,6 +350,13 @@ pam_authenticate (pam_handle_t *pamh, int flags)
         pamh->user = g_strdup ("user1");
     }
 
+    /* Special user 'rename-user-invalid' changes to an invalid user on authentication */
+    if (password_matches && strcmp (pamh->user, "rename-user-invalid") == 0)
+    {
+        g_free (pamh->user);
+        pamh->user = g_strdup ("invalid-user");
+    }
+
     if (password_matches)
         return PAM_SUCCESS;
     else

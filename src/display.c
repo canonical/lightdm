@@ -260,20 +260,28 @@ autologin_authentication_result_cb (PAMSession *authentication, int result, Disp
 
     if (result == PAM_SUCCESS)
     {
+        User *user;
         const gchar *session_name;
-     
-        g_debug ("User %s authorized", pam_session_get_username (authentication));
 
-        session_name = user_get_xsession (pam_session_get_user (authentication));
-        if (session_name)
+        user = pam_session_get_user (authentication);
+
+        if (user)
         {
-            g_debug ("Using session %s", session_name);
-            display_set_user_session (display, session_name);
-        }
+            g_debug ("User %s authorized", pam_session_get_username (authentication));
 
-        started_session = start_user_session (display, authentication);
-        if (!started_session)
-            g_debug ("Failed to start autologin session");
+            session_name = user_get_xsession (user);
+            if (session_name)
+            {
+                g_debug ("Using session %s", session_name);
+                display_set_user_session (display, session_name);
+            }
+
+            started_session = start_user_session (display, authentication);
+            if (!started_session)
+                g_debug ("Failed to start autologin session");
+        }
+        else
+            g_debug ("User %s was authorized, but no account of that name exists", pam_session_get_username (authentication));
     }
     else
         g_debug ("Autologin failed authentication");
