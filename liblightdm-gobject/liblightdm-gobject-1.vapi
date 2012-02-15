@@ -96,5 +96,6 @@ namespace LightDM {
         public unowned string home_directory { get; }
         public unowned string session { get; }
         public unowned string background { get; }
+        public bool has_messages { get; }
     }
 }

@@ -105,6 +105,8 @@ const gchar *lightdm_user_get_session (LightDMUser *user);
 
 gboolean lightdm_user_get_logged_in (LightDMUser *user);
 
+gboolean lightdm_user_get_has_messages (LightDMUser *user);
+
 G_END_DECLS
 
 #endif /* _LIGHTDM_USER_H_ */

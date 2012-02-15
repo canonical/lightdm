@@ -32,7 +32,8 @@ public:
                          RealNameRole,
                          LoggedInRole,
                          BackgroundRole,
-                         SessionRole};
+                         SessionRole,
+                         HasMessagesRole};
 
     int rowCount(const QModelIndex &parent) const;
     QVariant data(const QModelIndex &index, int role) const;

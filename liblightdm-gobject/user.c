@@ -40,7 +40,8 @@ enum
     USER_PROP_LAYOUT,
     USER_PROP_LAYOUTS,
     USER_PROP_SESSION,
-    USER_PROP_LOGGED_IN
+    USER_PROP_LOGGED_IN,
+    USER_PROP_HAS_MESSAGES
 };
 
 enum
@@ -96,6 +97,7 @@ typedef struct
     gchar *home_directory;
     gchar *image;
     gchar *background;
+    gboolean has_messages;
 
     GKeyFile *dmrc_file;
     gchar *language;
@@ -1162,11 +1164,10 @@ load_dmrc (LightDMUser *user)
     priv->session = g_key_file_get_string (priv->dmrc_file, "Desktop", "Session", NULL);
 }
 
-static gchar *
-get_string_property (GDBusProxy *proxy, const gchar *property)
+static GVariant *
+get_property (GDBusProxy *proxy, const gchar *property)
 {
     GVariant *answer;
-    gchar *rv;
 
     if (!proxy)
         return NULL;
@@ -1179,7 +1180,38 @@ get_string_property (GDBusProxy *proxy, const gchar *property)
         return NULL;
     }
 
-    if (!g_variant_is_of_type (answer, G_VARIANT_TYPE ("s")))
+    return answer;
+}
+
+static gboolean
+get_boolean_property (GDBusProxy *proxy, const gchar *property)
+{
+    GVariant *answer;
+    gboolean rv;
+
+    answer = get_property (proxy, property);
+    if (!g_variant_is_of_type (answer, G_VARIANT_TYPE_BOOLEAN))
+    {
+        g_warning ("Unexpected accounts property type for %s: %s",
+                   property, g_variant_get_type_string (answer));
+        g_variant_unref (answer);
+        return FALSE;
+    }
+
+    rv = g_variant_get_boolean (answer);
+    g_variant_unref (answer);
+
+    return rv;
+}
+
+static gchar *
+get_string_property (GDBusProxy *proxy, const gchar *property)
+{
+    GVariant *answer;
+    gchar *rv;
+  
+    answer = get_property (proxy, property);
+    if (!g_variant_is_of_type (answer, G_VARIANT_TYPE_STRING))
     {
         g_warning ("Unexpected accounts property type for %s: %s",
                    property, g_variant_get_type_string (answer));
@@ -1187,15 +1219,14 @@ get_string_property (GDBusProxy *proxy, const gchar *property)
         return NULL;
     }
 
-    g_variant_get (answer, "s", &rv);
-  
+    rv = g_strdup (g_variant_get_string (answer, NULL));
     if (strcmp (rv, "") == 0)
     {
         g_free (rv);
         rv = NULL;
     }
-
     g_variant_unref (answer);
+
     return rv;
 }
 
@@ -1266,6 +1297,8 @@ load_accounts_service (LightDMUser *user)
         g_strfreev (priv->layouts);
         priv->layouts = value;
     }
+
+    priv->has_messages = get_boolean_property (account->proxy, "XHasMessages");
 
     return TRUE;
 }
@@ -1376,6 +1409,22 @@ lightdm_user_get_logged_in (LightDMUser *user)
     return FALSE;
 }
 
+/**
+ * lightdm_user_get_has_messages:
+ * @user: A #LightDMUser
+ * 
+ * Check if a user has waiting messages.
+ * 
+ * Return value: #TRUE if the user has waiting messages.
+ **/
+gboolean
+lightdm_user_get_has_messages (LightDMUser *user)
+{
+    g_return_val_if_fail (LIGHTDM_IS_USER (user), FALSE);
+    load_user_values (user);
+    return GET_USER_PRIVATE (user)->has_messages;
+}
+
 static void
 lightdm_user_init (LightDMUser *user)
 {
@@ -1434,6 +1483,9 @@ lightdm_user_get_property (GObject    *object,
         break;
     case USER_PROP_LOGGED_IN:
         g_value_set_boolean (value, lightdm_user_get_logged_in (self));
+        break;
+    case USER_PROP_HAS_MESSAGES:
+        g_value_set_boolean (value, lightdm_user_get_has_messages (self));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1543,6 +1595,13 @@ lightdm_user_class_init (LightDMUserClass *klass)
                                      g_param_spec_boolean ("logged-in",
                                                            "logged-in",
                                                            "TRUE if the user is currently in a session",
+                                                           FALSE,
+                                                           G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
+                                     USER_PROP_LOGGED_IN,
+                                     g_param_spec_boolean ("has-messages",
+                                                           "has-messages",
+                                                           "TRUE if the user is has waiting messages",
                                                            FALSE,
                                                            G_PARAM_READWRITE));
 

@@ -29,6 +29,7 @@ public:
     QString background;
     QString session;
     bool isLoggedIn;
+    bool hasMessages;
     QString displayName() const;
 };
 
@@ -96,6 +97,7 @@ void UsersModelPrivate::loadUsers()
             user.background = QString::fromLocal8Bit(lightdm_user_get_background(ldmUser));
             user.session = QString::fromLocal8Bit(lightdm_user_get_session(ldmUser));
             user.isLoggedIn = lightdm_user_get_logged_in(ldmUser);
+            user.hasMessages = lightdm_user_get_has_messages(ldmUser);
             users.append(user);
         }
 
@@ -122,6 +124,7 @@ void UsersModelPrivate::cb_userAdded(LightDMUserList *user_list, LightDMUser *ld
     user.image = QString::fromLocal8Bit(lightdm_user_get_image(ldmUser));
     user.background = QString::fromLocal8Bit(lightdm_user_get_background(ldmUser));
     user.isLoggedIn = lightdm_user_get_logged_in(ldmUser);
+    user.hasMessages = lightdm_user_get_has_messages(ldmUser);
     that->users.append(user);
 
     that->q_func()->endInsertRows();
@@ -143,6 +146,7 @@ void UsersModelPrivate::cb_userChanged(LightDMUserList *user_list, LightDMUser *
             that->users[i].image = QString::fromLocal8Bit(lightdm_user_get_image(ldmUser));
             that->users[i].background = QString::fromLocal8Bit(lightdm_user_get_background(ldmUser));
             that->users[i].isLoggedIn = lightdm_user_get_logged_in(ldmUser);
+            that->users[i].hasMessages = lightdm_user_get_has_messages(ldmUser);
 
             QModelIndex index = that->q_ptr->createIndex(i, 0);
             that->q_ptr->dataChanged(index, index);
@@ -180,6 +184,7 @@ UsersModel::UsersModel(QObject *parent) :
     roles[NameRole] = "name";
     roles[LoggedInRole] = "loggedIn";
     roles[SessionRole] = "session";
+    roles[HasMessagesRole] = "hasMessages";
     setRoleNames(roles);
     d->loadUsers();
 
@@ -225,6 +230,8 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
         return d->users[row].isLoggedIn;
     case UsersModel::BackgroundRole:
         return QPixmap(d->users[row].background);
+    case UsersModel::HasMessagesRole:
+        return d->users[row].hasMessages;
     }
 
     return QVariant();
