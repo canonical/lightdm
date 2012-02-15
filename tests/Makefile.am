@@ -110,7 +110,7 @@ EXTRA_DIST = \
 	data/system.conf \
 	data/session.conf \
 	data/xgreeters/test-gobject-greeter.desktop \
-	data/xgreeters/test-python-greeter.desktop \    
+	data/xgreeters/test-python-greeter.desktop \
 	data/xgreeters/test-qt-greeter.desktop \
 	data/xsessions/alternative.desktop \
 	data/xsessions/default.desktop \
