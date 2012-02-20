@@ -163,7 +163,6 @@ void UsersModelPrivate::cb_userRemoved(LightDMUserList *user_list, LightDMUser *
     UsersModelPrivate *that = static_cast<UsersModelPrivate*>(data);
     QString userToRemove = QString::fromLocal8Bit(lightdm_user_get_name(ldmUser));
 
-    QList<UserItem>::iterator i;
     for (int i=0;i<that->users.size();i++) {
         if (that->users[i].name == userToRemove) {
             that->q_ptr->beginRemoveRows(QModelIndex(), i, i);
