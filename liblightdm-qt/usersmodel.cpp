@@ -167,7 +167,7 @@ void UsersModelPrivate::cb_userRemoved(LightDMUserList *user_list, LightDMUser *
         if (that->users[i].name == userToRemove) {
             that->q_ptr->beginRemoveRows(QModelIndex(), i, i);
             that->users.removeAt(i);
-            that->q_ptr->endMoveRows();
+            that->q_ptr->endRemoveRows();
             break;
         }
     }
