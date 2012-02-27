@@ -41,6 +41,9 @@ create_bus (const gchar *config_file, GPid *pid)
     }
     address[n_read] = '\0';
 
+    if (n_read > 0 && address[n_read - 1] == '\n')
+        address[n_read - 1] = '\0';
+  
     return g_strdup (address);
 }
 
@@ -54,12 +57,12 @@ main (int argc, char **argv)
     conf_file = g_build_filename (DATADIR, "system.conf", NULL);
     system_bus_address = create_bus (conf_file, &system_bus_pid);
     g_free (conf_file);
-    g_setenv ("DBUS_SYSTEM_BUS_ADDRESS", g_strstrip (system_bus_address), TRUE);
+    g_setenv ("DBUS_SYSTEM_BUS_ADDRESS", system_bus_address, TRUE);
 
     conf_file = g_build_filename (DATADIR, "session.conf", NULL);
     session_bus_address = create_bus (conf_file, &session_bus_pid);
     g_free (conf_file);
-    g_setenv ("DBUS_SESSION_BUS_ADDRESS", g_strstrip (session_bus_address), TRUE);
+    g_setenv ("DBUS_SESSION_BUS_ADDRESS", session_bus_address, TRUE);
 
     child_pid = fork ();
     if (child_pid == 0)
