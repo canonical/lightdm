@@ -1008,7 +1008,7 @@ run_lightdm ()
 
     status_timeout = g_timeout_add (STATUS_TIMEOUT, status_timeout_cb, NULL);
 
-    command_line = g_string_new ("../src/lightdm");
+    command_line = g_string_new ("lightdm");
     if (getenv ("DEBUG"))
         g_string_append (command_line, " --debug");
     if (!g_key_file_has_key (config, "test-runner-config", "have-config", NULL) ||
@@ -1032,7 +1032,7 @@ run_lightdm ()
     }
     g_clear_error (&error);
 
-    if (!g_spawn_async (NULL, lightdm_argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &lightdm_pid, &error))
+    if (!g_spawn_async (NULL, lightdm_argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH, NULL, NULL, &lightdm_pid, &error))
     {
         g_warning ("Error launching LightDM: %s", error->message);
         quit (EXIT_FAILURE);
@@ -1103,7 +1103,7 @@ main (int argc, char **argv)
     g_free (ld_preload);
 
     /* Run test programs */
-    path = g_strdup_printf ("%s/tests/src/.libs:%s/tests/src:%s/tests/src:%s", BUILDDIR, BUILDDIR, SRCDIR, g_getenv ("PATH"));
+    path = g_strdup_printf ("%s/tests/src/.libs:%s/tests/src:%s/tests/src:%s/src:%s", BUILDDIR, BUILDDIR, SRCDIR, BUILDDIR, g_getenv ("PATH"));
     g_setenv ("PATH", path, TRUE);
     g_free (path);
 
