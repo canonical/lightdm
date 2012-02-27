@@ -486,6 +486,7 @@ static void
 check_status (const gchar *status)
 {
     const gchar *pattern;
+    gboolean result = FALSE;
 
     if (stop)
         return;
@@ -497,7 +498,14 @@ check_status (const gchar *status)
 
     /* Try and match against expected */
     pattern = get_script_line ();
-    if (!pattern || !g_regex_match_simple (pattern, status, 0, 0))
+    if (pattern)
+    {
+        gchar *full_pattern = g_strdup_printf ("^%s$", pattern);
+        result = g_regex_match_simple (full_pattern, status, 0, 0);
+        g_free (full_pattern);
+    }
+  
+    if (!result)
     {
         fail (NULL, pattern);
         return;
