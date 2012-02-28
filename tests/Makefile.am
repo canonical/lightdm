@@ -17,6 +17,8 @@ TESTS = \
 	test-autologin-guest \
 	test-autologin-guest-fail-setup-script \
 	test-autologin-guest-logout \
+	test-session-stdout \
+	test-session-stderr \
 	test-user-renamed \
 	test-user-renamed-invalid \
 	test-keyboard-layout \
@@ -163,6 +165,8 @@ EXTRA_DIST = \
 	scripts/script-hook-fail-display-setup.conf \
 	scripts/script-hook-fail-greeter-setup.conf \
 	scripts/script-hook-fail-session-setup.conf \
+	scripts/session-stdout.conf \
+	scripts/session-stderr.conf \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \

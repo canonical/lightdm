@@ -383,7 +383,6 @@ setup_log_file (Session *session)
         g_warning ("Failed to open log file %s: %s", session->priv->log_file, g_strerror (errno));
     else
     {
-        dup2 (fd, STDOUT_FILENO);
         dup2 (fd, STDERR_FILENO);
         close (fd);
     }
@@ -396,9 +395,10 @@ session_run (Process *process)
     User *user;
     int fd;
 
-    /* Make input non-blocking */
+    /* No input and output */
     fd = g_open ("/dev/null", O_RDONLY);
     dup2 (fd, STDIN_FILENO);
+    dup2 (fd, STDOUT_FILENO);
     close (fd);
 
     /* Redirect output to logfile */

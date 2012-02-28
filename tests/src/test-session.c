@@ -70,6 +70,30 @@ request_cb (const gchar *request)
         status_notify ("SESSION %s LOCK-SESSION", getenv ("DISPLAY"));
     }
     g_free (r);
+
+    r = g_strdup_printf ("SESSION %s WRITE-STDOUT TEXT=", getenv ("DISPLAY"));
+    if (g_str_has_prefix (request, r))
+        g_print ("%s\n", request + strlen (r));
+    g_free (r);
+
+    r = g_strdup_printf ("SESSION %s WRITE-STDERR TEXT=", getenv ("DISPLAY"));
+    if (g_str_has_prefix (request, r))
+        g_printerr ("%s\n", request + strlen (r));
+    g_free (r);
+
+    r = g_strdup_printf ("SESSION %s READ-XSESSION-ERRORS", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        gchar *contents;
+        GError *error = NULL;
+
+        if (g_file_get_contents (".xsession-errors", &contents, NULL, &error))
+            status_notify ("SESSION %s READ-XSESSION-ERRORS TEXT=%s", getenv ("DISPLAY"), contents);
+        else
+            status_notify ("SESSION %s READ-XSESSION-ERRORS ERROR=%s", getenv ("DISPLAY"), error->message);
+        g_clear_error (&error);
+    }
+    g_free (r);
 }
 
 int
