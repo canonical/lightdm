@@ -307,7 +307,7 @@ pam_authenticate (pam_handle_t *pamh, int flags)
     entry = getpwnam (pamh->user);
 
     /* Prompt for password if required */
-    if (entry && (strcmp (pamh->service_name, "lightdm-autologin") == 0 || strcmp (entry->pw_passwd, "") == 0))
+    if (entry && strcmp (pamh->user, "always-password") != 0 && (strcmp (pamh->service_name, "lightdm-autologin") == 0 || strcmp (entry->pw_passwd, "") == 0))
         password_matches = TRUE;
     else
     {

@@ -1312,32 +1312,34 @@ main (int argc, char **argv)
         {"have-password2",   "password", TRUE,  "Password User 2",    NULL,  NULL, NULL,          NULL,          1001},
         {"have-password3",   "password", TRUE,  "Password User 3",    NULL,  NULL, NULL,          NULL,          1002},
         {"have-password4",   "password", TRUE,  "Password User 4",    NULL,  NULL, NULL,          NULL,          1003},
+        /* This account always prompts for a password, even if using the lightdm-autologin service */
+        {"always-password",  "password", TRUE,  "Password User 4",    NULL,  NULL, NULL,          NULL,          1004},
         /* These accounts have no password */
-        {"no-password1",     "",         TRUE,  "No Password User 1", NULL,  NULL, NULL,          NULL,          1004},
-        {"no-password2",     "",         TRUE,  "No Password User 2", NULL,  NULL, NULL,          NULL,          1005},
-        {"no-password3",     "",         TRUE,  "No Password User 3", NULL,  NULL, NULL,          NULL,          1006},
-        {"no-password4",     "",         TRUE,  "No Password User 4", NULL,  NULL, NULL,          NULL,          1007},
+        {"no-password1",     "",         TRUE,  "No Password User 1", NULL,  NULL, NULL,          NULL,          1005},
+        {"no-password2",     "",         TRUE,  "No Password User 2", NULL,  NULL, NULL,          NULL,          1006},
+        {"no-password3",     "",         TRUE,  "No Password User 3", NULL,  NULL, NULL,          NULL,          1007},
+        {"no-password4",     "",         TRUE,  "No Password User 4", NULL,  NULL, NULL,          NULL,          1008},
         /* This account has a keyboard layout */
-        {"have-layout",      "",         TRUE,  "Layout User",        NULL,  "us", NULL,          NULL,          1008},
+        {"have-layout",      "",         TRUE,  "Layout User",        NULL,  "us", NULL,          NULL,          1009},
         /* This account has a set of keyboard layouts */
-        {"have-layouts",     "",         TRUE,  "Layouts User",       NULL,  "ru", "fr\toss;ru;", NULL,          1009},
+        {"have-layouts",     "",         TRUE,  "Layouts User",       NULL,  "ru", "fr\toss;ru;", NULL,          1010},
         /* This account has a language set */
-        {"have-language",    "",         TRUE,  "Language User",      NULL,  NULL, NULL,          "en_AU.utf8",  1010},      
+        {"have-language",    "",         TRUE,  "Language User",      NULL,  NULL, NULL,          "en_AU.utf8",  1011},      
         /* This account has a preconfigured session */
-        {"have-session",            "",  TRUE,  "Session User", "alternative", NULL, NULL,        NULL,          1011},
+        {"have-session",            "",  TRUE,  "Session User", "alternative", NULL, NULL,        NULL,          1012},
         /* This account has the home directory mounted on login */
-        {"mount-home-dir",   "",         FALSE, "Mounted Home Dir User", NULL, NULL, NULL,        NULL,          1012},
+        {"mount-home-dir",   "",         FALSE, "Mounted Home Dir User", NULL, NULL, NULL,        NULL,          1013},
         /* This account is denied access */
-        {"denied",           "",         TRUE,  "Denied User",        NULL,  NULL, NULL,          NULL,          1013},
+        {"denied",           "",         TRUE,  "Denied User",        NULL,  NULL, NULL,          NULL,          1014},
         /* This account has expired */
-        {"expired",          "",         TRUE,  "Expired User",       NULL,  NULL, NULL,          NULL,          1014},
+        {"expired",          "",         TRUE,  "Expired User",       NULL,  NULL, NULL,          NULL,          1015},
         /* This account needs a password change */
-        {"new-authtok",      "",         TRUE,  "New Token User",     NULL,  NULL, NULL,          NULL,          1015},
+        {"new-authtok",      "",         TRUE,  "New Token User",     NULL,  NULL, NULL,          NULL,          1016},
         /* change-user1 is switched to change-user2 when authentication succeeds */
-        {"change-user1",     "",         TRUE,  "Change User 1",      NULL,  NULL, NULL,          NULL,          1016},
-        {"change-user2",     "",         TRUE,  "Change User 2",      NULL,  NULL, NULL,          NULL,          1017},
+        {"change-user1",     "",         TRUE,  "Change User 1",      NULL,  NULL, NULL,          NULL,          1017},
+        {"change-user2",     "",         TRUE,  "Change User 2",      NULL,  NULL, NULL,          NULL,          1018},
         /* change-user-invalid switches to invalid-user when authentication succeeds */
-        {"change-user-invalid", "",      TRUE,  "Invalid Change User",NULL,  NULL, NULL,          NULL,          1018},
+        {"change-user-invalid", "",      TRUE,  "Invalid Change User",NULL,  NULL, NULL,          NULL,          1019},
         {NULL,               NULL,       FALSE, NULL,                 NULL,  NULL, NULL,          NULL,             0}
     };
     passwd_data = g_string_new ("");

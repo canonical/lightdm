@@ -12,6 +12,7 @@ TESTS = \
 	test-autologin-invalid-session \
 	test-autologin-xserver-crash \
 	test-autologin-session-crash \
+	test-autologin-password \
 	test-autologin-denied \
 	test-autologin-expired \
 	test-autologin-logout \
@@ -122,15 +123,16 @@ EXTRA_DIST = \
 	data/xsessions/alternative.desktop \
 	data/xsessions/default.desktop \
 	scripts/autologin.conf \
+	scripts/autologin-denied.conf \
+	scripts/autologin-expired.conf \
 	scripts/autologin-guest.conf \
 	scripts/autologin-guest-fail-setup-script.conf \
 	scripts/autologin-guest-logout.conf \
 	scripts/autologin-invalid-session.conf \
 	scripts/autologin-invalid-user.conf \
 	scripts/autologin-logout.conf \
-	scripts/autologin-denied.conf \
-	scripts/autologin-expired.conf \
 	scripts/autologin-new-authtok.conf \
+	scripts/autologin-password.conf \
 	scripts/autologin-previous-session.conf \
 	scripts/autologin-session-crash.conf \
 	scripts/autologin-xserver-crash.conf \
