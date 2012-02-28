@@ -38,6 +38,7 @@ typedef struct
 
     gboolean (*start)(DisplayServer *server);
     void (*stop)(DisplayServer *server);
+    gboolean (*get_is_stopped)(DisplayServer *server);
 } DisplayServerClass;
 
 GType display_server_get_type (void);
@@ -53,6 +54,8 @@ gboolean display_server_get_start_local_sessions (DisplayServer *server);
 gboolean display_server_start (DisplayServer *server);
 
 void display_server_stop (DisplayServer *server);
+
+gboolean display_server_get_is_stopped (DisplayServer *server);
 
 G_END_DECLS
 

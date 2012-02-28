@@ -339,18 +339,23 @@ session_unlock (Session *session)
         ck_unlock_session (session->priv->console_kit_cookie);
 }
 
-gboolean
+void
 session_stop (Session *session)
 {
+    g_return_if_fail (session != NULL);
+
+    if (process_get_is_running (PROCESS (session)))
+    {
+        SESSION_GET_CLASS (session)->cleanup (session);
+        process_signal (PROCESS (session), SIGTERM);
+    }
+}
+
+gboolean
+session_get_is_stopped (Session *session)
+{
     g_return_val_if_fail (session != NULL, TRUE);
-
-    if (!process_get_is_running (PROCESS (session)))
-        return TRUE;
-
-    SESSION_GET_CLASS (session)->cleanup (session);
-    process_signal (PROCESS (session), SIGTERM);
-
-    return FALSE;
+    return !process_get_is_running (PROCESS (session));
 }
 
 static gboolean

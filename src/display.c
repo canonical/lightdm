@@ -21,7 +21,8 @@
 #include "pam-session.h"
 #include "greeter.h"
 
-enum {
+enum
+{
     CREATE_SESSION,
     READY,
     SWITCH_TO_USER,
@@ -236,20 +237,6 @@ get_guest_username (Display *display)
 }
 
 static void
-check_stopped (Display *display)
-{
-    if (display->priv->stopping &&
-        !display->priv->stopped &&
-        display->priv->display_server == NULL &&
-        display->priv->session == NULL)
-    {
-        display->priv->stopped = TRUE;
-        g_debug ("Display stopped");
-        g_signal_emit (display, signals[STOPPED], 0);
-    }
-}
-
-static void
 autologin_authentication_result_cb (PAMSession *authentication, int result, Display *display)
 {
     g_signal_handlers_disconnect_matched (authentication, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
@@ -353,7 +340,7 @@ cleanup_after_session (Display *display)
 
     if (display->priv->stopping)
     {
-        check_stopped (display);
+        display_stop (display);
         return TRUE;
     }
 
@@ -857,25 +844,40 @@ display_stop (Display *display)
 {
     g_return_if_fail (display != NULL);
 
+    if (display->priv->stopped)
+        return;
+
     if (!display->priv->stopping)
     {
         g_debug ("Stopping display");
-
         display->priv->stopping = TRUE;
-
-        if (display->priv->display_server)
-            display_server_stop (display->priv->display_server);
-        if (display->priv->session)
-        {
-            if (session_stop (display->priv->session))
-            {
-                g_object_unref (display->priv->session);
-                display->priv->session = NULL;
-            }
-        }
     }
 
-    check_stopped (display);
+    /* Stop the session first */
+    if (display->priv->session)
+    {
+        session_stop (display->priv->session);
+        if (display->priv->session && !session_get_is_stopped (display->priv->session))
+            return;
+        g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
+        g_object_unref (display->priv->session);
+        display->priv->session = NULL;
+    }
+
+    /* Stop the display server after that */
+    if (display->priv->display_server)
+    {
+        display_server_stop (display->priv->display_server);
+        if (display->priv->display_server && !display_server_get_is_stopped (display->priv->display_server))
+            return;
+        g_signal_handlers_disconnect_matched (display->priv->display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
+        g_object_unref (display->priv->display_server);
+        display->priv->display_server = NULL;
+    }
+
+    display->priv->stopped = TRUE;
+    g_debug ("Display stopped");
+    g_signal_emit (display, signals[STOPPED], 0);
 }
 
 gboolean
