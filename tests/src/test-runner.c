@@ -1333,11 +1333,11 @@ main (int argc, char **argv)
         {"expired",          "",         TRUE,  "Expired User",       NULL,  NULL, NULL,          NULL,          1014},
         /* This account needs a password change */
         {"new-authtok",      "",         TRUE,  "New Token User",     NULL,  NULL, NULL,          NULL,          1015},
-        /* user0 is switched to user1 when authentication succeeds */
-        {"user0",            "",         TRUE,  "User 0",             NULL,  NULL, NULL,          NULL,          1016},
-        {"user1",            "",         TRUE,  "User 1",             NULL,  NULL, NULL,          NULL,          1017},
-        /* rename-user-invalid switches to invalid-user when authentication succeeds */
-        {"rename-user-invalid",   "",    TRUE,  "User 1",             NULL,  NULL, NULL,          NULL,          1018},
+        /* change-user1 is switched to change-user2 when authentication succeeds */
+        {"change-user1",     "",         TRUE,  "Change User 1",      NULL,  NULL, NULL,          NULL,          1016},
+        {"change-user2",     "",         TRUE,  "Change User 2",      NULL,  NULL, NULL,          NULL,          1017},
+        /* change-user-invalid switches to invalid-user when authentication succeeds */
+        {"change-user-invalid", "",      TRUE,  "Invalid Change User",NULL,  NULL, NULL,          NULL,          1018},
         {NULL,               NULL,       FALSE, NULL,                 NULL,  NULL, NULL,          NULL,             0}
     };
     passwd_data = g_string_new ("");

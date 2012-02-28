@@ -343,15 +343,15 @@ pam_authenticate (pam_handle_t *pamh, int flags)
     if (password_matches && strcmp (pamh->user, "mount-home-dir") == 0)
         g_mkdir_with_parents (entry->pw_dir, 0755);
 
-    /* Special user 'user0' changes user on authentication */
-    if (password_matches && strcmp (pamh->user, "user0") == 0)
+    /* Special user 'change-user1' changes user on authentication */
+    if (password_matches && strcmp (pamh->user, "change-user1") == 0)
     {
         g_free (pamh->user);
-        pamh->user = g_strdup ("user1");
+        pamh->user = g_strdup ("change-user2");
     }
 
-    /* Special user 'rename-user-invalid' changes to an invalid user on authentication */
-    if (password_matches && strcmp (pamh->user, "rename-user-invalid") == 0)
+    /* Special user 'change-user-invalid' changes to an invalid user on authentication */
+    if (password_matches && strcmp (pamh->user, "change-user-invalid") == 0)
     {
         g_free (pamh->user);
         pamh->user = g_strdup ("invalid-user");
