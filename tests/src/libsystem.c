@@ -465,6 +465,14 @@ pam_acct_mgmt (pam_handle_t *pamh, int flags)
 {
     if (pamh == NULL)
         return PAM_SYSTEM_ERR;
+  
+    if (!pamh->user)
+        return PAM_USER_UNKNOWN;
+
+    if (strcmp (pamh->user, "denied") == 0)
+        return PAM_PERM_DENIED;
+    if (strcmp (pamh->user, "expired") == 0)
+        return PAM_ACCT_EXPIRED;
 
     return PAM_SUCCESS;
 }

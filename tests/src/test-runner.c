@@ -1303,18 +1303,24 @@ main (int argc, char **argv)
         gint uid;
     } users[] =
     {
-        {"root",    "",         TRUE,  "root",       NULL,          NULL, NULL,          NULL,             0},
-        {"lightdm", "",         TRUE,  "",           NULL,          NULL, NULL,          NULL,           100},
-        {"alice",   "password", TRUE,  "Alice User", NULL,          NULL, NULL,          NULL,          1000},
-        {"bob",     "",         TRUE,  "Bob User",   NULL,          "us", NULL,          "en_AU.utf8",  1001},
-        {"carol",   "",         TRUE,  "Carol User", "alternative", "ru", "fr\toss;ru;", "fr_FR.UTF-8", 1002},
-        {"dave",    "",         FALSE, "Dave User",  NULL,          NULL, NULL,          NULL,          1003},
+        {"root",             "",         TRUE,  "root",       NULL,          NULL, NULL,          NULL,             0},
+        {"lightdm",          "",         TRUE,  "",           NULL,          NULL, NULL,          NULL,           100},
+        {"alice",            "password", TRUE,  "Alice User", NULL,          NULL, NULL,          NULL,          1000},
+        {"bob",              "",         TRUE,  "Bob User",   NULL,          "us", NULL,          "en_AU.utf8",  1001},
+        {"carol",            "",         TRUE,  "Carol User", "alternative", "ru", "fr\toss;ru;", "fr_FR.UTF-8", 1002},
+        {"dave",             "",         FALSE, "Dave User",  NULL,          NULL, NULL,          NULL,          1003},
+        /* This account is denied access */
+        {"denied",           "",         TRUE,  "Denied User", NULL,         NULL, NULL,          NULL,          1004},
+        /* This account has expired */
+        {"expired",          "",         TRUE,  "Expired User", NULL,        NULL, NULL,          NULL,          1005},
+        /* This account needs a password change */
+        {"new-authtok",      "",         TRUE,  "New Token User", NULL,      NULL, NULL,          NULL,          1006},
         /* user0 is switched to user1 when authentication succeeds */
-        {"user0",   "",         TRUE,  "User 0",     NULL,          NULL, NULL,          NULL,          1004},
-        {"user1",   "",         TRUE,  "User 1",     NULL,          NULL, NULL,          NULL,          1005},
+        {"user0",            "",         TRUE,  "User 0",     NULL,          NULL, NULL,          NULL,          1007},
+        {"user1",            "",         TRUE,  "User 1",     NULL,          NULL, NULL,          NULL,          1008},
         /* rename-user-invalid switches to invalid-user when authentication succeeds */
-        {"rename-user-invalid",   "",         TRUE,  "User 1",     NULL,          NULL, NULL,          NULL,          1006},
-        {NULL,      NULL,       FALSE, NULL,         NULL,          NULL, NULL,          NULL,             0}
+        {"rename-user-invalid",   "",    TRUE,  "User 1",     NULL,          NULL, NULL,          NULL,          1009},
+        {NULL,               NULL,       FALSE, NULL,         NULL,          NULL, NULL,          NULL,             0}
     };
     passwd_data = g_string_new ("");
     int i;

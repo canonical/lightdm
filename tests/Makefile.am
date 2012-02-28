@@ -12,6 +12,8 @@ TESTS = \
 	test-autologin-invalid-session \
 	test-autologin-xserver-crash \
 	test-autologin-session-crash \
+	test-autologin-denied \
+	test-autologin-expired \
 	test-autologin-logout \
 	test-autologin-previous-session \
 	test-autologin-guest \
@@ -82,6 +84,9 @@ TESTS = \
 	test-no-accounts-service \
 	test-no-console-kit
 
+# FIXME: Fails, needs fixing in the daemon
+#	test-autologin-new-authtok
+
 #	test-session-exit-error
 #	test-greeter-no-exit
 #   test-gobject-change-password
@@ -123,6 +128,9 @@ EXTRA_DIST = \
 	scripts/autologin-invalid-session.conf \
 	scripts/autologin-invalid-user.conf \
 	scripts/autologin-logout.conf \
+	scripts/autologin-denied.conf \
+	scripts/autologin-expired.conf \
+	scripts/autologin-new-authtok.conf \
 	scripts/autologin-previous-session.conf \
 	scripts/autologin-session-crash.conf \
 	scripts/autologin-xserver-crash.conf \
