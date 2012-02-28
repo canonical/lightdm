@@ -72,6 +72,28 @@ static const GDBusInterfaceVTable user_vtable =
     handle_user_call,
     handle_user_get_property,
 };
+static GDBusConnection *ck_connection = NULL;
+static GDBusNodeInfo *ck_session_info;
+typedef struct
+{
+    gchar *cookie;
+    gchar *path;
+    guint id;
+} CKSession;
+static GList *ck_sessions = NULL;
+static gint ck_session_index = 0;
+static void handle_ck_session_call (GDBusConnection       *connection,
+                                    const gchar           *sender,
+                                    const gchar           *object_path,
+                                    const gchar           *interface_name,
+                                    const gchar           *method_name,
+                                    GVariant              *parameters,
+                                    GDBusMethodInvocation *invocation,
+                                    gpointer               user_data);
+static const GDBusInterfaceVTable ck_session_vtable =
+{
+    handle_ck_session_call,
+};
 typedef struct
 {
     GSocket *socket;
@@ -601,6 +623,31 @@ load_script (const gchar *filename)
     g_strfreev (lines);
 }
 
+static CKSession *
+open_ck_session ()
+{
+    CKSession *session;
+    GError *error = NULL;
+  
+    session = g_malloc0 (sizeof (CKSession));
+    ck_sessions = g_list_append (ck_sessions, session);
+
+    session->cookie = g_dbus_generate_guid ();
+    session->path = g_strdup_printf ("/org/freedesktop/ConsoleKit/Session%d", ck_session_index++);
+    session->id = g_dbus_connection_register_object (ck_connection,
+                                                     session->path,
+                                                     ck_session_info->interfaces[0],
+                                                     &ck_session_vtable,
+                                                     session,
+                                                     NULL,
+                                                     &error);
+    if (error)
+        g_warning ("Failed to register CK Session: %s", error->message);
+    g_clear_error (&error);
+
+    return session;
+}
+
 static void
 handle_ck_call (GDBusConnection       *connection,
                 const gchar           *sender,
@@ -612,33 +659,59 @@ handle_ck_call (GDBusConnection       *connection,
                 gpointer               user_data)
 {
     if (strcmp (method_name, "CanRestart") == 0)
-    {
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
-    }
     else if (strcmp (method_name, "CanStop") == 0)
-    {
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
-    }
     else if (strcmp (method_name, "CloseSession") == 0)
-    {
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
-    }
-    else if (strcmp (method_name, "OpenSession") == 0)
+    else if (strcmp (method_name, "OpenSession") == 0 || strcmp (method_name, "OpenSessionWithParameters") == 0)
     {
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "deadbeef"));      
+        CKSession *session = open_ck_session ();
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", session->cookie));
     }
-    else if (strcmp (method_name, "OpenSessionWithParameters") == 0)
+    else if (strcmp (method_name, "GetSessionForCookie") == 0)
     {
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "deadbeef"));      
+        GList *link;
+        gchar *cookie;
+
+        g_variant_get (parameters, "(&s)", &cookie);
+
+        for (link = ck_sessions; link; link = link->next)
+        {
+            CKSession *session = link->data;
+            if (strcmp (session->cookie, cookie) != 0)
+            {
+                g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", session->path));
+                return;
+            }
+        }
+
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Unable to find session for cookie");
     }
     else if (strcmp (method_name, "Restart") == 0)
-    {
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
-    }
     else if (strcmp (method_name, "Stop") == 0)
-    {
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
-    }
+    else
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
+}
+
+static void
+handle_ck_session_call (GDBusConnection       *connection,
+                        const gchar           *sender,
+                        const gchar           *object_path,
+                        const gchar           *interface_name,
+                        const gchar           *method_name,
+                        GVariant              *parameters,
+                        GDBusMethodInvocation *invocation,
+                        gpointer               user_data)
+{
+    if (strcmp (method_name, "Lock") == 0)
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    else if (strcmp (method_name, "Unlock") == 0)
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    else
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
 }
 
 static void
@@ -666,6 +739,10 @@ ck_name_acquired_cb (GDBusConnection *connection,
         "      <arg name='parameters' direction='in' type='a(sv)'/>"
         "      <arg name='cookie' direction='out' type='s'/>"
         "    </method>"
+        "    <method name='GetSessionForCookie'>"
+        "      <arg name='cookie' direction='in' type='s'/>"
+        "      <arg name='ssid' direction='out' type='o'/>"
+        "    </method>"
         "    <method name='Restart'/>"
         "    <method name='Stop'/>"
         "    <signal name='SeatAdded'>"
@@ -680,14 +757,29 @@ ck_name_acquired_cb (GDBusConnection *connection,
     {
         handle_ck_call,
     };
+    const gchar *ck_session_interface =
+        "<node>"
+        "  <interface name='org.freedesktop.ConsoleKit.Session'>"
+        "    <method name='Lock'/>"
+        "    <method name='Unlock'/>"
+        "  </interface>"
+        "</node>";
     GDBusNodeInfo *ck_info;
     GError *error = NULL;
+
+    ck_connection = connection;
 
     ck_info = g_dbus_node_info_new_for_xml (ck_interface, &error);
     if (error)
         g_warning ("Failed to parse D-Bus interface: %s", error->message);  
     g_clear_error (&error);
     if (!ck_info)
+        return;
+    ck_session_info = g_dbus_node_info_new_for_xml (ck_session_interface, &error);
+    if (error)
+        g_warning ("Failed to parse D-Bus interface: %s", error->message);  
+    g_clear_error (&error);
+    if (!ck_session_info)
         return;
     g_dbus_connection_register_object (connection,
                                        "/org/freedesktop/ConsoleKit/Manager",
@@ -906,9 +998,15 @@ handle_user_get_property (GDBusConnection       *connection,
         return g_variant_new_string (user->language ? user->language : "");
     else if (strcmp (property_name, "XSession") == 0)
         return g_variant_new_string (user->xsession ? user->xsession : "");
-    else if (strcmp (property_name, "XKeyboardLayouts") == 0 &&
-             user->layouts != NULL && user->layouts[0] != NULL)
-        return g_variant_new_strv ((const gchar * const *) user->layouts, -1);
+    else if (strcmp (property_name, "XKeyboardLayouts") == 0)
+    {
+        if (user->layouts != NULL)
+            return g_variant_new_strv ((const gchar * const *) user->layouts, -1);
+        else
+            return g_variant_new_strv (NULL, 0);
+    }
+    else if (strcmp (property_name, "XHasMessages") == 0)
+        return g_variant_new_boolean (FALSE);
 
     return NULL;
 }
@@ -947,6 +1045,7 @@ accounts_name_acquired_cb (GDBusConnection *connection,
         "    <property name='Language' type='s' access='read'/>"
         "    <property name='XSession' type='s' access='read'/>"
         "    <property name='XKeyboardLayouts' type='as' access='read'/>"
+        "    <property name='XHasMessages' type='b' access='read'/>"
         "  </interface>"
         "</node>";
     GError *error = NULL;

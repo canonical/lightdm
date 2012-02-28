@@ -1294,8 +1294,13 @@ load_accounts_service (LightDMUser *user)
     value = get_string_array_property (account->proxy, "XKeyboardLayouts");
     if (value)
     {
-        g_strfreev (priv->layouts);
-        priv->layouts = value;
+        if (value[0])
+        {
+            g_strfreev (priv->layouts);
+            priv->layouts = value;
+        }
+        else
+            g_strfreev (value);
     }
 
     priv->has_messages = get_boolean_property (account->proxy, "XHasMessages");
