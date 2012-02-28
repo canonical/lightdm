@@ -1303,24 +1303,42 @@ main (int argc, char **argv)
         gint uid;
     } users[] =
     {
-        {"root",             "",         TRUE,  "root",       NULL,          NULL, NULL,          NULL,             0},
-        {"lightdm",          "",         TRUE,  "",           NULL,          NULL, NULL,          NULL,           100},
-        {"alice",            "password", TRUE,  "Alice User", NULL,          NULL, NULL,          NULL,          1000},
-        {"bob",              "",         TRUE,  "Bob User",   NULL,          "us", NULL,          "en_AU.utf8",  1001},
-        {"carol",            "",         TRUE,  "Carol User", "alternative", "ru", "fr\toss;ru;", "fr_FR.UTF-8", 1002},
-        {"dave",             "",         FALSE, "Dave User",  NULL,          NULL, NULL,          NULL,          1003},
+        /* Root account */
+        {"root",             "",         TRUE,  "root",               NULL,  NULL, NULL,          NULL,             0},
+        /* Unprivileged account for greeters */
+        {"lightdm",          "",         TRUE,  "",                   NULL,  NULL, NULL,          NULL,           100},
+        /* These accounts have a password */
+        {"have-password1",   "password", TRUE,  "Password User 1",    NULL,  NULL, NULL,          NULL,          1000},
+        {"have-password2",   "password", TRUE,  "Password User 2",    NULL,  NULL, NULL,          NULL,          1001},
+        {"have-password3",   "password", TRUE,  "Password User 3",    NULL,  NULL, NULL,          NULL,          1002},
+        {"have-password4",   "password", TRUE,  "Password User 4",    NULL,  NULL, NULL,          NULL,          1003},
+        /* These accounts have no password */
+        {"no-password1",     "",         TRUE,  "No Password User 1", NULL,  NULL, NULL,          NULL,          1004},
+        {"no-password2",     "",         TRUE,  "No Password User 2", NULL,  NULL, NULL,          NULL,          1005},
+        {"no-password3",     "",         TRUE,  "No Password User 3", NULL,  NULL, NULL,          NULL,          1006},
+        {"no-password4",     "",         TRUE,  "No Password User 4", NULL,  NULL, NULL,          NULL,          1007},
+        /* This account has a keyboard layout */
+        {"have-layout",      "",         TRUE,  "Layout User",        NULL,  "us", NULL,          NULL,          1008},
+        /* This account has a set of keyboard layouts */
+        {"have-layouts",     "",         TRUE,  "Layouts User",       NULL,  "ru", "fr\toss;ru;", NULL,          1009},
+        /* This account has a language set */
+        {"have-language",    "",         TRUE,  "Language User",      NULL,  NULL, NULL,          "en_AU.utf8",  1010},      
+        /* This account has a preconfigured session */
+        {"have-session",            "",  TRUE,  "Session User", "alternative", NULL, NULL,        NULL,          1011},
+        /* This account has the home directory mounted on login */
+        {"mount-home-dir",   "",         FALSE, "Mounted Home Dir User", NULL, NULL, NULL,        NULL,          1012},
         /* This account is denied access */
-        {"denied",           "",         TRUE,  "Denied User", NULL,         NULL, NULL,          NULL,          1004},
+        {"denied",           "",         TRUE,  "Denied User",        NULL,  NULL, NULL,          NULL,          1013},
         /* This account has expired */
-        {"expired",          "",         TRUE,  "Expired User", NULL,        NULL, NULL,          NULL,          1005},
+        {"expired",          "",         TRUE,  "Expired User",       NULL,  NULL, NULL,          NULL,          1014},
         /* This account needs a password change */
-        {"new-authtok",      "",         TRUE,  "New Token User", NULL,      NULL, NULL,          NULL,          1006},
+        {"new-authtok",      "",         TRUE,  "New Token User",     NULL,  NULL, NULL,          NULL,          1015},
         /* user0 is switched to user1 when authentication succeeds */
-        {"user0",            "",         TRUE,  "User 0",     NULL,          NULL, NULL,          NULL,          1007},
-        {"user1",            "",         TRUE,  "User 1",     NULL,          NULL, NULL,          NULL,          1008},
+        {"user0",            "",         TRUE,  "User 0",             NULL,  NULL, NULL,          NULL,          1016},
+        {"user1",            "",         TRUE,  "User 1",             NULL,  NULL, NULL,          NULL,          1017},
         /* rename-user-invalid switches to invalid-user when authentication succeeds */
-        {"rename-user-invalid",   "",    TRUE,  "User 1",     NULL,          NULL, NULL,          NULL,          1009},
-        {NULL,               NULL,       FALSE, NULL,         NULL,          NULL, NULL,          NULL,             0}
+        {"rename-user-invalid",   "",    TRUE,  "User 1",             NULL,  NULL, NULL,          NULL,          1018},
+        {NULL,               NULL,       FALSE, NULL,                 NULL,  NULL, NULL,          NULL,             0}
     };
     passwd_data = g_string_new ("");
     int i;

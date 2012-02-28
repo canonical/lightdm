@@ -339,8 +339,8 @@ pam_authenticate (pam_handle_t *pamh, int flags)
         free (resp);
     }
 
-    /* Special user 'dave' has his home directory created on login */
-    if (password_matches && strcmp (pamh->user, "dave") == 0)
+    /* Special user has home directory created on login */
+    if (password_matches && strcmp (pamh->user, "mount-home-dir") == 0)
         g_mkdir_with_parents (entry->pw_dir, 0755);
 
     /* Special user 'user0' changes user on authentication */
