@@ -23,6 +23,7 @@ struct pam_handle
     char *service_name;
     char *user;
     char *tty;
+    char **envlist;
     struct pam_conv conversation;
 };
 
@@ -260,6 +261,8 @@ pam_start (const char *service_name, const char *user, const struct pam_conv *co
     handle->tty = NULL;
     handle->conversation.conv = conversation->conv;
     handle->conversation.appdata_ptr = conversation->appdata_ptr;
+    handle->envlist = malloc (sizeof (char *) * 1);
+    handle->envlist[0] = NULL;
 
     return PAM_SUCCESS;
 }
@@ -367,14 +370,62 @@ pam_authenticate (pam_handle_t *pamh, int flags)
         return PAM_AUTH_ERR;
 }
 
+static const char *
+get_env_value (const char *name_value, const char *name)
+{
+    int j;
+
+    for (j = 0; name[j] && name[j] != '=' && name[j] == name_value[j]; j++);
+    if (name_value[j] == '=')
+        return &name_value[j + 1];
+
+    return NULL;
+}
+
+int
+pam_putenv (pam_handle_t *pamh, const char *name_value)
+{
+    int i;
+
+    if (pamh == NULL || name_value == NULL)
+        return PAM_SYSTEM_ERR;
+
+    for (i = 0; pamh->envlist[i]; i++)
+    {
+        if (get_env_value (pamh->envlist[i], name_value))
+            break;
+    }
+
+    if (pamh->envlist[i])
+    {
+        free (pamh->envlist[i]);
+        pamh->envlist[i] = strdup (name_value);
+    }
+    else
+    {
+        pamh->envlist = realloc (pamh->envlist, sizeof (char *) * (i + 2));
+        pamh->envlist[i] = strdup (name_value);
+        pamh->envlist[i + 1] = NULL;
+    }
+
+    return PAM_SUCCESS;
+}
+
 const char *
 pam_getenv (pam_handle_t *pamh, const char *name)
 {
+    int i;
+
     if (pamh == NULL || name == NULL)
         return NULL;
 
-    if (strcmp (name, "PATH") == 0)
-        return getenv ("PATH");
+    for (i = 0; pamh->envlist[i]; i++)
+    {
+        const char *value;
+        value = get_env_value (pamh->envlist[i], name);
+        if (value)
+            return value;
+    }
 
     return NULL;
 }
@@ -382,16 +433,10 @@ pam_getenv (pam_handle_t *pamh, const char *name)
 char **
 pam_getenvlist (pam_handle_t *pamh)
 {
-    char **envlist;
-
     if (pamh == NULL)
         return NULL;
 
-    envlist = malloc (sizeof (char *) * 2);
-    envlist[0] = g_strdup_printf ("PATH=%s", getenv ("PATH"));
-    envlist[1] = NULL;
-
-    return envlist;
+    return pamh->envlist;
 }
 
 int
