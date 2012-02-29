@@ -87,8 +87,10 @@ TESTS = \
 	test-no-accounts-service \
 	test-no-console-kit
 
-# FIXME: Fails, needs fixing in the daemon
+# FIXME: These fail, fixed in session-refactor3 branch
+#	test-autologin-crash-authenticate
 #	test-autologin-new-authtok
+#	test-login-crash-authenticate
 
 #	test-session-exit-error
 #	test-greeter-no-exit
@@ -126,6 +128,7 @@ EXTRA_DIST = \
 	data/xsessions/alternative.desktop \
 	data/xsessions/default.desktop \
 	scripts/autologin.conf \
+	scripts/autologin-crash-authenticate.conf \
 	scripts/autologin-denied.conf \
 	scripts/autologin-expired.conf \
 	scripts/autologin-guest.conf \
@@ -150,6 +153,7 @@ EXTRA_DIST = \
 	scripts/lock-seat.conf \
 	scripts/lock-session.conf \
 	scripts/login.conf \
+	scripts/login-crash-authenticate.conf \
 	scripts/login-guest.conf \
 	scripts/login-guest-disabled.conf \
 	scripts/login-guest-fail-setup-script.conf \

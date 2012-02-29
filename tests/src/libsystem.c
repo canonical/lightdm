@@ -303,6 +303,10 @@ pam_authenticate (pam_handle_t *pamh, int flags)
         free (resp);
     }
 
+    /* Crash on authenticate */
+    if (strcmp (pamh->user, "crash-authenticate") == 0)
+        kill (getpid (), SIGSEGV);
+
     /* Look up password database */
     entry = getpwnam (pamh->user);
 
