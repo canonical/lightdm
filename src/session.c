@@ -411,13 +411,6 @@ session_run (Process *process)
 
     user = pam_session_get_user (session->priv->authentication);
 
-    /* Change working directory */
-    if (chdir (user_get_home_directory (user)) != 0)
-    {
-        g_warning ("Failed to change to home directory %s: %s", user_get_home_directory (user), strerror (errno));
-        _exit (EXIT_FAILURE);
-    }
-
     /* Change to this user */
     if (getuid () == 0)
     {
@@ -438,6 +431,16 @@ session_run (Process *process)
             g_warning ("Failed to set user ID to %d: %s", user_get_uid (user), strerror (errno));
             _exit (EXIT_FAILURE);
         }
+    }
+
+    /* Change working directory */
+    /* NOTE: This must be done after the permissions are changed because NFS filesystems can
+     * be setup so the local root user accesses the NFS files as 'nobody'.  If the home directories
+     * are not system readable then the chdir can fail */
+    if (chdir (user_get_home_directory (user)) != 0)
+    {
+        g_warning ("Failed to change to home directory %s: %s", user_get_home_directory (user), strerror (errno));
+        _exit (EXIT_FAILURE);
     }
 
     /* Redirect output to logfile */
