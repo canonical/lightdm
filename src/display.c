@@ -101,6 +101,9 @@ struct DisplayPrivate
     /* TRUE if allowed to log into guest account */
     gboolean allow_guest;
 
+    /* TRUE if greeter is to show the guest account */
+    gboolean show_guest;
+
     /* TRUE if stopping the display (waiting for dispaly server, greeter and session to stop) */
     gboolean stopping;
 
@@ -169,6 +172,13 @@ display_set_allow_guest (Display *display, gboolean allow_guest)
 {
     g_return_if_fail (display != NULL);
     display->priv->allow_guest = allow_guest;
+}
+
+void
+display_set_show_guest (Display *display, gboolean show_guest)
+{
+    g_return_if_fail (display != NULL);
+    display->priv->show_guest = show_guest;
 }
 
 void
@@ -664,7 +674,7 @@ start_greeter_session (Display *display)
         greeter_set_hint (display->priv->greeter, "select-guest", "true");
     greeter_set_hint (display->priv->greeter, "default-session", display->priv->user_session);
     greeter_set_allow_guest (display->priv->greeter, display->priv->allow_guest);
-    greeter_set_hint (display->priv->greeter, "has-guest-account", display->priv->allow_guest ? "true" : "false");
+    greeter_set_hint (display->priv->greeter, "has-guest-account", (display->priv->allow_guest && display->priv->show_guest) ? "true" : "false");
     greeter_set_hint (display->priv->greeter, "hide-users", display->priv->greeter_hide_users ? "true" : "false");
     if (display->priv->greeter_is_lock)
         greeter_set_hint (display->priv->greeter, "lock-screen", "true");

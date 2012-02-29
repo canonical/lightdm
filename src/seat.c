@@ -179,6 +179,13 @@ seat_get_allow_guest (Seat *seat)
     return seat_get_boolean_property (seat, "allow-guest") && guest_account_is_installed ();
 }
 
+gboolean
+seat_get_show_guest (Seat *seat)
+{
+    g_return_val_if_fail (seat != NULL, FALSE);  
+    return seat_get_allow_guest (seat) && seat_get_boolean_property (seat, "show-guest");
+}
+
 static gboolean
 switch_to_user (Seat *seat, const gchar *username, gboolean unlock)
 {
@@ -484,6 +491,7 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean use
     if (is_lock)
         display_set_lock_hint (display, TRUE);
     display_set_allow_guest (display, seat_get_allow_guest (seat));
+    display_set_show_guest (display, seat_get_show_guest (seat));
     if (autologin)
         display_set_autologin_user (display, username, is_guest, 0);
     else
