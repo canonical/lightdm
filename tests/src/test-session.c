@@ -71,6 +71,15 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
+    r = g_strdup_printf ("SESSION %s READ-ENV NAME=", getenv ("DISPLAY"));
+    if (g_str_has_prefix (request, r))
+    {
+        const gchar *name = request + strlen (r);
+        const gchar *value = g_getenv (name);
+        status_notify ("SESSION %s READ-ENV NAME=%s VALUE=%s", getenv ("DISPLAY"), name, value ? value : "");
+    }
+    g_free (r);
+
     r = g_strdup_printf ("SESSION %s WRITE-STDOUT TEXT=", getenv ("DISPLAY"));
     if (g_str_has_prefix (request, r))
         g_print ("%s\n", request + strlen (r));

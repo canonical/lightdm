@@ -624,15 +624,32 @@ load_script (const gchar *filename)
 }
 
 static CKSession *
-open_ck_session ()
+open_ck_session (GVariant *params)
 {
     CKSession *session;
+    GString *cookie;
+    GVariantIter *iter;
+    const gchar *name;
+    GVariant *value;
     GError *error = NULL;
-  
+
     session = g_malloc0 (sizeof (CKSession));
     ck_sessions = g_list_append (ck_sessions, session);
 
-    session->cookie = g_dbus_generate_guid ();
+    cookie = g_string_new ("ck-cookie");
+    g_variant_get (params, "a(sv)", &iter);
+    while (g_variant_iter_loop (iter, "(&sv)", &name, &value))
+    {
+        if (strcmp (name, "x11-display") == 0)
+        {
+            const gchar *display;
+            g_variant_get (value, "&s", &display);
+            g_string_append_printf (cookie, "-x%s", display);
+        }
+    }
+
+    session->cookie = cookie->str;
+    g_string_free (cookie, FALSE);
     session->path = g_strdup_printf ("/org/freedesktop/ConsoleKit/Session%d", ck_session_index++);
     session->id = g_dbus_connection_register_object (ck_connection,
                                                      session->path,
@@ -664,9 +681,16 @@ handle_ck_call (GDBusConnection       *connection,
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
     else if (strcmp (method_name, "CloseSession") == 0)
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
-    else if (strcmp (method_name, "OpenSession") == 0 || strcmp (method_name, "OpenSessionWithParameters") == 0)
+    else if (strcmp (method_name, "OpenSession") == 0)
     {
-        CKSession *session = open_ck_session ();
+        GVariantBuilder params;
+        g_variant_builder_init (&params, G_VARIANT_TYPE ("a(sv)"));
+        CKSession *session = open_ck_session (g_variant_builder_end (&params));
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", session->cookie));
+    }
+    else if (strcmp (method_name, "OpenSessionWithParameters") == 0)
+    {
+        CKSession *session = open_ck_session (g_variant_get_child_value (parameters, 0));
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", session->cookie));
     }
     else if (strcmp (method_name, "GetSessionForCookie") == 0)

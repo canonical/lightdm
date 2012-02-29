@@ -85,6 +85,7 @@ TESTS = \
 	test-vnc-login \
 	test-xdmcp-login \
 	test-no-accounts-service \
+	test-console-kit \
 	test-no-console-kit
 
 # FIXME: These fail, fixed in session-refactor3 branch
@@ -142,6 +143,7 @@ EXTRA_DIST = \
 	scripts/autologin-previous-session.conf \
 	scripts/autologin-session-crash.conf \
 	scripts/autologin-xserver-crash.conf \
+	scripts/console-kit.conf \
 	scripts/greeter-fail-start.conf \
 	scripts/greeter-not-installed.conf \
 	scripts/greeter-xserver-crash.conf \
