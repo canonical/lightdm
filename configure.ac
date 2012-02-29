@@ -23,6 +23,7 @@ AC_CHECK_HEADERS(security/pam_appl.h, [], AC_MSG_ERROR(PAM not found))
 
 PKG_CHECK_MODULES(LIGHTDM, [
     glib-2.0
+    gthread-2.0
     gio-2.0 >= 2.26
     gio-unix-2.0
     xdmcp
