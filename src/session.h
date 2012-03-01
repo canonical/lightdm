@@ -12,9 +12,12 @@
 #ifndef _SESSION_H_
 #define _SESSION_H_
 
-#include "process.h"
+#include <glib-object.h>
+
+#include <security/pam_appl.h>
+
 #include "accounts.h"
-#include "pam-session.h"
+#include "xauthority.h"
 
 G_BEGIN_DECLS
 
@@ -27,48 +30,63 @@ typedef struct SessionPrivate SessionPrivate;
 
 typedef struct
 {
-    Process         parent_instance;
+    GObject         parent_instance;
     SessionPrivate *priv;
 } Session;
 
 typedef struct
 {
-    ProcessClass parent_class;
+    GObjectClass parent_class;
 
-    gboolean (*start)(Session *session);
-    gboolean (*setup)(Session *session);
-    void     (*cleanup)(Session *session);
+    void (*got_messages)(Session *session);
+    void (*authentication_complete)(Session *session);
+    void (*stopped)(Session *session);
 } SessionClass;
+
+#define XDG_SESSION_CLASS_USER        "user"
+#define XDG_SESSION_CLASS_GREETER     "greeter"
+#define XDG_SESSION_CLASS_LOCK_SCREEN "lock-screen"
 
 GType session_get_type (void);
 
-void session_set_log_file (Session *session, const gchar *filename, gboolean as_user);
+void session_set_log_file (Session *session, const gchar *filename);
 
-const gchar *session_get_log_file (Session *session);
+void session_set_class (Session *session, const gchar *class);
 
-void session_set_authentication (Session *session, PAMSession *authentication);
+void session_set_tty (Session *session, const gchar *tty);
 
-PAMSession *session_get_authentication (Session *session);
+void session_set_xdisplay (Session *session, const gchar *xdisplay);
 
+void session_set_xauthority (Session *session, XAuthority *authority, gboolean use_system_location);
+
+void session_set_remote_host_name (Session *session, const gchar *remote_host_name);
+
+void session_set_env (Session *session, const gchar *name, const gchar *value);
+
+// FIXME: Remove
 User *session_get_user (Session *session);
 
-void session_set_is_greeter (Session *session, gboolean is_greeter);
+gboolean session_start (Session *session, const gchar *service, const gchar *username, gboolean do_authenticate, gboolean is_interactive);
 
-gboolean session_get_is_greeter (Session *session);
-
-void session_set_command (Session *session, const gchar *command);
-
-const gchar *session_get_command (Session *session);
-
-void session_set_env (Session *process, const gchar *name, const gchar *value);
-
-const gchar *session_get_env (Session *session, const gchar *name);
-
-void session_set_console_kit_parameter (Session *session, const gchar *name, GVariant *value);
+const gchar *session_get_username (Session *session);
 
 const gchar *session_get_console_kit_cookie (Session *session);
 
-gboolean session_start (Session *session);
+void session_respond (Session *session, struct pam_response *response);
+
+void session_respond_error (Session *session, int error);
+
+int session_get_messages_length (Session *session);
+
+const struct pam_message *session_get_messages (Session *session);
+
+gboolean session_get_is_authenticated (Session *session);
+
+int session_get_authentication_result (Session *session);
+
+const gchar *session_get_authentication_result_string (Session *session);
+
+void session_run (Session *session, gchar **argv);
 
 void session_lock (Session *session);
 

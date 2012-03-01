@@ -10,9 +10,11 @@ TESTS = \
 	test-autologin \
 	test-autologin-invalid-user \
 	test-autologin-invalid-session \
+	test-autologin-crash-authenticate \
 	test-autologin-xserver-crash \
 	test-autologin-session-crash \
 	test-autologin-password \
+	test-autologin-new-authtok \
 	test-autologin-denied \
 	test-autologin-expired \
 	test-autologin-logout \
@@ -33,6 +35,7 @@ TESTS = \
 	test-language \
 	test-no-language \
 	test-language-no-accounts-service \
+	test-login-crash-authenticate \
 	test-login-gobject \
 	test-login-gobject-manual \
 	test-login-gobject-manual-previous-session \
@@ -89,11 +92,6 @@ TESTS = \
 	test-no-accounts-service \
 	test-console-kit \
 	test-no-console-kit
-
-# FIXME: These fail, fixed in session-refactor3 branch
-#	test-autologin-crash-authenticate
-#	test-autologin-new-authtok
-#	test-login-crash-authenticate
 
 #	test-session-exit-error
 #	test-greeter-no-exit

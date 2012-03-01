@@ -73,9 +73,8 @@ seat_xvnc_create_session (Seat *seat, Display *display)
     session = xsession_new (XSERVER (xserver));
     address = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (SEAT_XVNC (seat)->priv->connection, NULL));
     hostname = g_inet_address_to_string (g_inet_socket_address_get_address (address));
-    session_set_console_kit_parameter (SESSION (session), "remote-host-name", g_variant_new_string (hostname));
+    session_set_remote_host_name (SESSION (session), hostname);
     g_free (hostname);
-    session_set_console_kit_parameter (SESSION (session), "is-local", g_variant_new_boolean (FALSE));
 
     return SESSION (session);
 }

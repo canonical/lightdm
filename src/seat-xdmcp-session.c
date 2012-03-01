@@ -58,9 +58,7 @@ seat_xdmcp_session_create_session (Seat *seat, Display *display)
     xserver = XSERVER_REMOTE (display_get_display_server (display));
 
     session = xsession_new (XSERVER (xserver));
-    session_set_console_kit_parameter (SESSION (session), "remote-host-name", g_variant_new_string (xserver_get_hostname (XSERVER (xserver))));
-    // FIXME: Mark local seats as such
-    session_set_console_kit_parameter (SESSION (session), "is-local", g_variant_new_boolean (FALSE));
+    session_set_remote_host_name (SESSION (session), xserver_get_hostname (XSERVER (xserver)));
 
     return SESSION (session);
 }

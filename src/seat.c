@@ -383,7 +383,7 @@ session_stopped_cb (Session *session, Seat *seat)
     if (script)
         run_script (seat, display, script, session_get_user (session));
 
-    if (seat->priv->guest_username && strcmp (user_get_name (session_get_user (session)), seat->priv->guest_username) == 0)
+    if (seat->priv->guest_username && strcmp (session_get_username (session), seat->priv->guest_username) == 0)
     {
         guest_account_cleanup (seat->priv->guest_username);
         g_free (seat->priv->guest_username);
@@ -429,7 +429,6 @@ display_stopped_cb (Display *display, Seat *seat)
     g_object_unref (display);
 
     check_stopped (seat);
-
 }
 
 static gboolean

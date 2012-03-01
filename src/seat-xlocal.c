@@ -115,9 +115,8 @@ seat_xlocal_create_session (Seat *seat, Display *display)
 
     session = xsession_new (XSERVER (xserver));
     tty = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (xserver));
-    session_set_console_kit_parameter (SESSION (session), "x11-display-device", g_variant_new_string (tty));
+    session_set_tty (SESSION (session), tty);
     g_free (tty);
-    session_set_console_kit_parameter (SESSION (session), "is-local", g_variant_new_boolean (TRUE));
 
     return SESSION (session);
 }

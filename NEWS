@@ -2,6 +2,8 @@ Overview of changes in lightdm 1.1.4
 
     * Change session directory once user permissions are set so it works
       on NFS filesystems that don't allow root to access files.
+    * Restructure session code so the PAM authentication is run in it's
+      own process.
 
 Overview of changes in lightdm 1.1.3
 

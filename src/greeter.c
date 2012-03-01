@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "greeter.h"
 #include "ldm-marshal.h"
@@ -31,6 +32,9 @@ struct GreeterPrivate
     /* Session running on */
     Session *session;
 
+    /* PAM service to authenticate with */
+    gchar *pam_service;
+
     /* Buffer for data read from greeter */
     guint8 *read_buffer;
     gsize n_read;
@@ -45,7 +49,10 @@ struct GreeterPrivate
     guint32 authentication_sequence_number;
 
     /* PAM session being constructed by the greeter */
-    PAMSession *authentication;
+    Session *authentication_session;
+
+    /* TRUE if a user has been authenticated and the session requested to start */
+    gboolean start_session;
 
     /* TRUE if can log into guest accounts */
     gboolean allow_guest;
@@ -54,6 +61,8 @@ struct GreeterPrivate
     gboolean guest_account_authenticated;
 
     /* Communication channels to communicate with */
+    int to_greeter_pipe[2];
+    int from_greeter_pipe[2];
     GIOChannel *to_greeter_channel;
     GIOChannel *from_greeter_channel;
 };
@@ -81,12 +90,42 @@ typedef enum
     SERVER_MESSAGE_SESSION_RESULT
 } ServerMessage;
 
-Greeter *
-greeter_new (Session *session)
-{
-    Greeter *greeter = g_object_new (GREETER_TYPE, NULL);
+static gboolean read_cb (GIOChannel *source, GIOCondition condition, gpointer data);
 
+Greeter *
+greeter_new (Session *session, const gchar *pam_service)
+{
+    gchar *value;
+    Greeter *greeter;
+
+    greeter = g_object_new (GREETER_TYPE, NULL);
     greeter->priv->session = g_object_ref (session);
+    greeter->priv->pam_service = g_strdup (pam_service);
+
+    /* Create a pipe to talk with the greeter */
+    if (pipe (greeter->priv->to_greeter_pipe) != 0 || pipe (greeter->priv->from_greeter_pipe) != 0)
+    {
+        g_warning ("Failed to create pipes: %s", strerror (errno));
+        //return;
+    }
+    greeter->priv->to_greeter_channel = g_io_channel_unix_new (greeter->priv->to_greeter_pipe[1]);
+    g_io_channel_set_encoding (greeter->priv->to_greeter_channel, NULL, NULL);
+    greeter->priv->from_greeter_channel = g_io_channel_unix_new (greeter->priv->from_greeter_pipe[0]);
+    g_io_channel_set_encoding (greeter->priv->from_greeter_channel, NULL, NULL);
+    g_io_channel_set_buffered (greeter->priv->from_greeter_channel, FALSE);
+    g_io_add_watch (greeter->priv->from_greeter_channel, G_IO_IN | G_IO_HUP, read_cb, greeter);
+
+    /* Let the greeter session know how to communicate with the daemon */
+    value = g_strdup_printf ("%d", greeter->priv->from_greeter_pipe[1]);
+    session_set_env (greeter->priv->session, "LIGHTDM_TO_SERVER_FD", value);
+    g_free (value);
+    value = g_strdup_printf ("%d", greeter->priv->to_greeter_pipe[0]);
+    session_set_env (greeter->priv->session, "LIGHTDM_FROM_SERVER_FD", value);
+    g_free (value);
+
+    /* Don't allow the daemon end of the pipes to be accessed in child processes */
+    fcntl (greeter->priv->to_greeter_pipe[1], F_SETFD, FD_CLOEXEC);
+    fcntl (greeter->priv->from_greeter_pipe[0], F_SETFD, FD_CLOEXEC);
 
     return greeter;
 }
@@ -115,15 +154,12 @@ int_length ()
 static void
 write_message (Greeter *greeter, guint8 *message, gsize message_length)
 {
-    GIOStatus status;
     GError *error = NULL;
 
-    status = g_io_channel_write_chars (greeter->priv->to_greeter_channel, (gchar *) message, message_length, NULL, &error);
+    g_io_channel_write_chars (greeter->priv->to_greeter_channel, (gchar *) message, message_length, NULL, &error);
     if (error)
         g_warning ("Error writing to greeter: %s", error->message);
     g_clear_error (&error);
-    if (status == G_IO_STATUS_NORMAL)
-        g_debug ("Wrote %zi bytes to greeter", message_length);
     g_io_channel_flush (greeter->priv->to_greeter_channel, NULL);
 }
 
@@ -204,30 +240,35 @@ handle_connect (Greeter *greeter, const gchar *version)
 }
 
 static void
-pam_messages_cb (PAMSession *authentication, int num_msg, const struct pam_message **msg, Greeter *greeter)
+pam_messages_cb (Session *session, Greeter *greeter)
 {
     int i;
     guint32 size;
     guint8 message[MAX_MESSAGE_LENGTH];
+    const struct pam_message *messages;
+    int messages_length;
     gsize offset = 0;
     int n_prompts = 0;
 
+    messages = session_get_messages (session);
+    messages_length = session_get_messages_length (session);
+
     /* Respond to d-bus query with messages */
-    g_debug ("Prompt greeter with %d message(s)", num_msg);
-    size = int_length () + string_length (pam_session_get_username (authentication)) + int_length ();
-    for (i = 0; i < num_msg; i++)
-        size += int_length () + string_length (msg[i]->msg);
+    g_debug ("Prompt greeter with %d message(s)", messages_length);
+    size = int_length () + string_length (session_get_username (session)) + int_length ();
+    for (i = 0; i < messages_length; i++)
+        size += int_length () + string_length (messages[i].msg);
   
     write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_PROMPT_AUTHENTICATION, size, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->authentication_sequence_number, &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, pam_session_get_username (authentication), &offset);
-    write_int (message, MAX_MESSAGE_LENGTH, num_msg, &offset);
-    for (i = 0; i < num_msg; i++)
+    write_string (message, MAX_MESSAGE_LENGTH, session_get_username (session), &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, messages_length, &offset);
+    for (i = 0; i < messages_length; i++)
     {
-        write_int (message, MAX_MESSAGE_LENGTH, msg[i]->msg_style, &offset);
-        write_string (message, MAX_MESSAGE_LENGTH, msg[i]->msg, &offset);
+        write_int (message, MAX_MESSAGE_LENGTH, messages[i].msg_style, &offset);
+        write_string (message, MAX_MESSAGE_LENGTH, messages[i].msg, &offset);
 
-        if (msg[i]->msg_style == PAM_PROMPT_ECHO_OFF || msg[i]->msg_style == PAM_PROMPT_ECHO_ON)
+        if (messages[i].msg_style == PAM_PROMPT_ECHO_OFF || messages[i].msg_style == PAM_PROMPT_ECHO_ON)
             n_prompts++;
     }
     write_message (greeter, message, offset);
@@ -237,8 +278,8 @@ pam_messages_cb (PAMSession *authentication, int num_msg, const struct pam_messa
     if (n_prompts == 0)
     {
         struct pam_response *response;
-        response = calloc (num_msg, sizeof (struct pam_response));
-        pam_session_respond (greeter->priv->authentication, response);
+        response = calloc (messages_length, sizeof (struct pam_response));
+        session_respond (greeter->priv->authentication_session, response);
     }
 }
 
@@ -256,33 +297,36 @@ send_end_authentication (Greeter *greeter, guint32 sequence_number, const gchar 
 }
 
 static void
-authentication_result_cb (PAMSession *authentication, int result, Greeter *greeter)
+authentication_complete_cb (Session *session, Greeter *greeter)
 {
-    g_debug ("Authenticate result for user %s: %s", pam_session_get_username (authentication), pam_session_strerror (authentication, result));
+    int result;
 
-    if (result == PAM_SUCCESS)
+    g_debug ("Authenticate result for user %s: %s", session_get_username (session), session_get_authentication_result_string (session));
+
+    result = session_get_authentication_result (session);
+    if (session_get_is_authenticated (session))
     {
-        if (pam_session_get_user (authentication))
-            g_debug ("User %s authorized", pam_session_get_username (authentication));
+        if (session_get_user (session))
+            g_debug ("User %s authorized", session_get_username (session));
         else
         {
-            g_debug ("User %s authorized, but no account of that name exists", pam_session_get_username (authentication));          
+            g_debug ("User %s authorized, but no account of that name exists", session_get_username (session));          
             result = PAM_USER_UNKNOWN;
         }
     }
 
-    send_end_authentication (greeter, greeter->priv->authentication_sequence_number, pam_session_get_username (authentication), result);
+    send_end_authentication (greeter, greeter->priv->authentication_sequence_number, session_get_username (session), result);
 }
 
 static void
 reset_session (Greeter *greeter)
 {
-    if (greeter->priv->authentication)
+    if (greeter->priv->authentication_session)
     {
-        g_signal_handlers_disconnect_matched (greeter->priv->authentication, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
-        pam_session_cancel (greeter->priv->authentication);
-        g_object_unref (greeter->priv->authentication);
-        greeter->priv->authentication = NULL;
+        g_signal_handlers_disconnect_matched (greeter->priv->authentication_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
+        session_stop (greeter->priv->authentication_session);
+        g_object_unref (greeter->priv->authentication_session);
+        greeter->priv->authentication_session = NULL;
     }
 
     greeter->priv->guest_account_authenticated = FALSE;
@@ -291,9 +335,6 @@ reset_session (Greeter *greeter)
 static void
 handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
 {
-    gboolean result;
-    GError *error = NULL;
-
     if (username[0] == '\0')
     {
         g_debug ("Greeter start authentication");
@@ -305,25 +346,18 @@ handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
     reset_session (greeter);
 
     greeter->priv->authentication_sequence_number = sequence_number;
-    g_signal_emit (greeter, signals[START_AUTHENTICATION], 0, username, &greeter->priv->authentication);
-    if (!greeter->priv->authentication)
+    g_signal_emit (greeter, signals[START_AUTHENTICATION], 0, username, &greeter->priv->authentication_session);
+    if (!greeter->priv->authentication_session)
     {
         send_end_authentication (greeter, sequence_number, "", PAM_USER_UNKNOWN);
         return;
     }
 
-    g_signal_connect (G_OBJECT (greeter->priv->authentication), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
-    g_signal_connect (G_OBJECT (greeter->priv->authentication), "authentication-result", G_CALLBACK (authentication_result_cb), greeter);
+    g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
+    g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "authentication-complete", G_CALLBACK (authentication_complete_cb), greeter);
 
-    pam_session_set_item (greeter->priv->authentication, PAM_TTY,
-                          session_get_env (greeter->priv->session, "DISPLAY"));
-
-    result = pam_session_authenticate (greeter->priv->authentication, &error);
-    if (error)
-        g_debug ("Failed to start authentication: %s", error->message);
-    if (!result)
-        send_end_authentication (greeter, sequence_number, "", PAM_SYSTEM_ERR);
-    g_clear_error (&error);
+    /* Run the session process */
+    session_start (greeter->priv->authentication_session, greeter->priv->pam_service, username, TRUE, TRUE);
 }
 
 static void
@@ -347,38 +381,38 @@ handle_login_as_guest (Greeter *greeter, guint32 sequence_number)
 static void
 handle_continue_authentication (Greeter *greeter, gchar **secrets)
 {
-    int num_messages;
-    const struct pam_message **messages;
+    int messages_length;
+    const struct pam_message *messages;
     struct pam_response *response;
     int i, j, n_prompts = 0;
 
     /* Not in authentication */
-    if (greeter->priv->authentication == NULL)
+    if (greeter->priv->authentication_session == NULL)
         return;
 
-    num_messages = pam_session_get_num_messages (greeter->priv->authentication);
-    messages = pam_session_get_messages (greeter->priv->authentication);
+    messages_length = session_get_messages_length (greeter->priv->authentication_session);
+    messages = session_get_messages (greeter->priv->authentication_session);
 
     /* Check correct number of responses */
-    for (i = 0; i < num_messages; i++)
+    for (i = 0; i < messages_length; i++)
     {
-        int msg_style = messages[i]->msg_style;
+        int msg_style = messages[i].msg_style;
         if (msg_style == PAM_PROMPT_ECHO_OFF || msg_style == PAM_PROMPT_ECHO_ON)
             n_prompts++;
     }
     if (g_strv_length (secrets) != n_prompts)
     {
-        pam_session_cancel (greeter->priv->authentication);
+        session_respond_error (greeter->priv->authentication_session, PAM_CONV_ERR);
         return;
     }
 
     g_debug ("Continue authentication");
 
     /* Build response */
-    response = calloc (num_messages, sizeof (struct pam_response));
-    for (i = 0, j = 0; i < num_messages; i++)
+    response = calloc (messages_length, sizeof (struct pam_response));
+    for (i = 0, j = 0; i < messages_length; i++)
     {
-        int msg_style = messages[i]->msg_style;
+        int msg_style = messages[i].msg_style;
         if (msg_style == PAM_PROMPT_ECHO_OFF || msg_style == PAM_PROMPT_ECHO_ON)
         {
             response[i].resp = strdup (secrets[j]); // FIXME: Need to convert from UTF-8
@@ -386,19 +420,18 @@ handle_continue_authentication (Greeter *greeter, gchar **secrets)
         }
     }
 
-    pam_session_respond (greeter->priv->authentication, response);
+    session_respond (greeter->priv->authentication_session, response);
 }
 
 static void
 handle_cancel_authentication (Greeter *greeter)
 {
     /* Not in authentication */
-    if (greeter->priv->authentication == NULL)
+    if (greeter->priv->authentication_session == NULL)
         return;
 
     g_debug ("Cancel authentication");
-
-    pam_session_cancel (greeter->priv->authentication);
+    reset_session (greeter);
 }
 
 static void
@@ -411,12 +444,13 @@ handle_start_session (Greeter *greeter, const gchar *session)
     if (strcmp (session, "") == 0)
         session = NULL;
 
-    if (greeter->priv->guest_account_authenticated || pam_session_get_is_authenticated (greeter->priv->authentication))
+    if (greeter->priv->guest_account_authenticated || session_get_is_authenticated (greeter->priv->authentication_session))
     {
         if (session)
             g_debug ("Greeter requests session %s", session);
         else
-            g_debug ("Greeter requests default session");     
+            g_debug ("Greeter requests default session");
+        greeter->priv->start_session = TRUE;
         g_signal_emit (greeter, signals[START_SESSION], 0, session, &result);
     }
     else
@@ -435,7 +469,7 @@ handle_set_language (Greeter *greeter, const gchar *language)
 {
     User *user;
 
-    if (!greeter->priv->guest_account_authenticated && !pam_session_get_is_authenticated (greeter->priv->authentication))
+    if (!greeter->priv->guest_account_authenticated && !session_get_is_authenticated (greeter->priv->authentication_session))
     {
         g_debug ("Ignoring set language request, user is not authorized");
         return;
@@ -449,7 +483,7 @@ handle_set_language (Greeter *greeter, const gchar *language)
     }
 
     g_debug ("Greeter sets language %s", language);
-    user = pam_session_get_user (greeter->priv->authentication);
+    user = session_get_user (greeter->priv->authentication_session);
     user_set_language (user, language);
 }
 
@@ -526,11 +560,6 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     if (status != G_IO_STATUS_NORMAL)
         return TRUE;
 
-    g_debug ("Read %zi bytes from greeter", n_read);
-    /*for (i = 0; i < n_read; i++)
-       g_print ("%02X ", greeter->priv->read_buffer[greeter->priv->n_read+i]);
-    g_print ("\n");*/
-
     greeter->priv->n_read += n_read;
     if (greeter->priv->n_read != n_to_read)
         return TRUE;
@@ -601,54 +630,27 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 }
 
 gboolean
-greeter_start (Greeter *greeter)
-{
-    int to_greeter_pipe[2], from_greeter_pipe[2];
-    gint fd;
-    gchar *value;
-
-    if (pipe (to_greeter_pipe) != 0 || 
-        pipe (from_greeter_pipe) != 0)
-    {
-        g_warning ("Failed to create pipes: %s", strerror (errno));            
-        return FALSE;
-    }
-
-    greeter->priv->to_greeter_channel = g_io_channel_unix_new (to_greeter_pipe[1]);
-    g_io_channel_set_encoding (greeter->priv->to_greeter_channel, NULL, NULL);
-    greeter->priv->from_greeter_channel = g_io_channel_unix_new (from_greeter_pipe[0]);
-    g_io_channel_set_encoding (greeter->priv->from_greeter_channel, NULL, NULL);
-    g_io_channel_set_buffered (greeter->priv->from_greeter_channel, FALSE);
-    g_io_add_watch (greeter->priv->from_greeter_channel, G_IO_IN | G_IO_HUP, read_cb, greeter);
-
-    fd = from_greeter_pipe[1];
-    value = g_strdup_printf ("%d", fd);
-    session_set_env (greeter->priv->session, "LIGHTDM_TO_SERVER_FD", value);
-    g_free (value);
-
-    fd = to_greeter_pipe[0];
-    value = g_strdup_printf ("%d", fd);
-    session_set_env (greeter->priv->session, "LIGHTDM_FROM_SERVER_FD", value);
-    g_free (value);
-
-    return TRUE;
-}
-
-gboolean
 greeter_get_guest_authenticated (Greeter *greeter)
 {
     g_return_val_if_fail (greeter != NULL, FALSE);
     return greeter->priv->guest_account_authenticated;
 }
 
-PAMSession *
-greeter_get_authentication (Greeter *greeter)
+Session *
+greeter_get_authentication_session (Greeter *greeter)
 {
     g_return_val_if_fail (greeter != NULL, NULL);
-    return greeter->priv->authentication;
+    return greeter->priv->authentication_session;
 }
 
-static PAMSession *
+gboolean
+greeter_get_start_session (Greeter *greeter)
+{
+    g_return_val_if_fail (greeter != NULL, FALSE);
+    return greeter->priv->start_session;
+}
+
+static Session *
 greeter_real_start_authentication (Greeter *greeter, const gchar *username)
 {
     return NULL;
@@ -675,14 +677,15 @@ greeter_finalize (GObject *object)
 
     self = GREETER (object);
 
+    g_signal_handlers_disconnect_matched (self->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);    
     g_object_unref (self->priv->session);
+    g_free (self->priv->pam_service);
     g_free (self->priv->read_buffer);
     g_hash_table_unref (self->priv->hints);
-    if (self->priv->authentication)
+    if (self->priv->authentication_session)
     {
-        g_signal_handlers_disconnect_matched (self->priv->authentication, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
-        pam_session_cancel (self->priv->authentication);
-        g_object_unref (self->priv->authentication);
+        g_signal_handlers_disconnect_matched (self->priv->authentication_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
+        g_object_unref (self->priv->authentication_session);
     }
     if (self->priv->to_greeter_channel)
         g_io_channel_unref (self->priv->to_greeter_channel);
@@ -718,7 +721,7 @@ greeter_class_init (GreeterClass *klass)
                       g_signal_accumulator_first_wins,
                       NULL,
                       ldm_marshal_OBJECT__STRING,
-                      PAM_SESSION_TYPE, 1, G_TYPE_STRING);
+                      SESSION_TYPE, 1, G_TYPE_STRING);
 
     signals[START_SESSION] =
         g_signal_new ("start-session",

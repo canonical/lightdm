@@ -14,6 +14,7 @@
 
 #include <glib-object.h>
 #include "display.h"
+#include "process.h"
 
 G_BEGIN_DECLS
 

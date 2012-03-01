@@ -13,7 +13,6 @@
 #define _GREETER_H_
 
 #include "session.h"
-#include "pam-session.h"
 
 G_BEGIN_DECLS
 
@@ -32,23 +31,23 @@ typedef struct
 {
     GObjectClass parent_class;
     void (*connected)(Greeter *greeter);
-    PAMSession *(*start_authentication)(Greeter *greeter, const gchar *username);
+    Session *(*start_authentication)(Greeter *greeter, const gchar *username);
     gboolean (*start_session)(Greeter *greeter, const gchar *session, gboolean is_guest);
 } GreeterClass;
 
 GType greeter_get_type (void);
 
-Greeter *greeter_new (Session *session);
+Greeter *greeter_new (Session *session, const gchar *pam_service);
 
 void greeter_set_allow_guest (Greeter *greeter, gboolean allow_guest);
 
 void greeter_set_hint (Greeter *greeter, const gchar *name, const gchar *value);
 
-gboolean greeter_start (Greeter *greeter);
-
 gboolean greeter_get_guest_authenticated (Greeter *greeter);
 
-PAMSession *greeter_get_authentication (Greeter *greeter);
+Session *greeter_get_authentication_session (Greeter *greeter);
+
+gboolean greeter_get_start_session (Greeter *greeter);
 
 G_END_DECLS
 

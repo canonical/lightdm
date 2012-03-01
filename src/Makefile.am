@@ -28,8 +28,6 @@ lightdm_SOURCES = \
 	lightdm.c \
 	ldm-marshal.c \
 	ldm-marshal.h \
-	pam-session.c \
-	pam-session.h \
 	plymouth.c \
 	plymouth.h \
 	privileges.c \
@@ -48,6 +46,8 @@ lightdm_SOURCES = \
 	seat-xvnc.h \
 	session.c \
 	session.h \
+	session-child.c \
+	session-child.h \
 	vnc-server.c \
 	vnc-server.h \
 	vt.c \

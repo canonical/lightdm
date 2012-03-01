@@ -17,178 +17,401 @@
 #include <fcntl.h>
 #include <glib/gstdio.h>
 #include <grp.h>
+#include <pwd.h>
 
 #include "session.h"
+#include "configuration.h"
 #include "console-kit.h"
+
+enum {
+    GOT_MESSAGES,
+    AUTHENTICATION_COMPLETE,
+    STOPPED,
+    LAST_SIGNAL
+};
+static guint signals[LAST_SIGNAL] = { 0 };
 
 struct SessionPrivate
 {
+    /* PID of child process */
+    GPid pid;
+
+    /* Pipes to talk to child */
+    int to_child_input;
+    int from_child_output;
+    GIOChannel *from_child_channel;
+    guint from_child_watch;
+    guint child_watch;
+
+    /* User to authenticate as */
+    gchar *username;
+
+    /* User object that matches the current username */
+    User *user;
+
+    /* Messages being requested by PAM */
+    int messages_length;
+    struct pam_message *messages;
+
+    /* Authentication result from PAM */
+    gboolean authentication_started;
+    gboolean authentication_complete;
+    int authentication_result;
+    gchar *authentication_result_string;
+  
     /* File to log to */
-    gchar *log_file;
+    gchar *log_filename;
+  
+    /* Seat class */
+    gchar *class;
 
-    /* TRUE if the log file should be owned by the user */
-    gboolean log_file_as_user;
+    /* tty this session is running on */
+    gchar *tty;
+  
+    /* X display connected to */
+    gchar *xdisplay;
+    XAuthority *xauthority;
+    gboolean xauth_use_system_location;
 
-    /* Authentication for this session */
-    PAMSession *authentication;
+    /* Remote host this session is being controlled from */
+    gchar *remote_host_name;
 
-    /* Command to run for this session */
-    gchar *command;
-
-    /* ConsoleKit parameters for this session */
-    GHashTable *console_kit_parameters;
-
-    /* ConsoleKit cookie for the session */
+    /* Console kit cookie */
     gchar *console_kit_cookie;
 
-    /* TRUE if this is a greeter session */
-    gboolean is_greeter;
+    /* Environment to set in child */
+    GList *env;
 };
 
-G_DEFINE_TYPE (Session, session, PROCESS_TYPE);
+/* Maximum length of a string to pass between daemon and session */
+#define MAX_STRING_LENGTH 65535
+
+G_DEFINE_TYPE (Session, session, G_TYPE_OBJECT);
 
 void
-session_set_log_file (Session *session, const gchar *filename, gboolean as_user)
+session_set_log_file (Session *session, const gchar *filename)
 {
     g_return_if_fail (session != NULL);
-    g_free (session->priv->log_file);
-    session->priv->log_file = g_strdup (filename);
-    session->priv->log_file_as_user = as_user;
-}
-
-const gchar *
-session_get_log_file (Session *session)
-{
-    g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->log_file;
+    g_free (session->priv->log_filename);
+    session->priv->log_filename = g_strdup (filename);
 }
 
 void
-session_set_authentication (Session *session, PAMSession *authentication)
+session_set_class (Session *session, const gchar *class)
 {
     g_return_if_fail (session != NULL);
-    session->priv->authentication = g_object_ref (authentication);
-}
-
-PAMSession *
-session_get_authentication (Session *session)
-{
-    g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->authentication;
-}
-
-User *
-session_get_user (Session *session)
-{
-    g_return_val_if_fail (session != NULL, NULL);
-    return pam_session_get_user (session->priv->authentication);
+    g_free (session->priv->class);
+    session->priv->class = g_strdup (class);
 }
 
 void
-session_set_is_greeter (Session *session, gboolean is_greeter)
+session_set_tty (Session *session, const gchar *tty)
 {
     g_return_if_fail (session != NULL);
-    session->priv->is_greeter = is_greeter;
-}
-
-gboolean
-session_get_is_greeter (Session *session)
-{
-    g_return_val_if_fail (session != NULL, FALSE);
-    return session->priv->is_greeter;
+    g_free (session->priv->tty);
+    session->priv->tty = g_strdup (tty);
 }
 
 void
-session_set_command (Session *session, const gchar *command)
+session_set_xdisplay (Session *session, const gchar *xdisplay)
 {
     g_return_if_fail (session != NULL);
-
-    g_free (session->priv->command);
-    session->priv->command = g_strdup (command);
+    g_free (session->priv->xdisplay);
+    session->priv->xdisplay = g_strdup (xdisplay);
 }
 
-const gchar *
-session_get_command (Session *session)
+void
+session_set_xauthority (Session *session, XAuthority *authority, gboolean use_system_location)
 {
-    g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->command;
+    g_return_if_fail (session != NULL);
+    if (session->priv->xauthority)
+        g_object_unref (session->priv->xauthority);
+    session->priv->xauthority = g_object_ref (authority);
+    session->priv->xauth_use_system_location = use_system_location;
 }
 
-static gchar *
-get_absolute_command (const gchar *command)
+void
+session_set_remote_host_name (Session *session, const gchar *remote_host_name)
 {
-    gchar **tokens;
-    gchar *absolute_binary, *absolute_command = NULL;
-
-    tokens = g_strsplit (command, " ", 2);
-
-    absolute_binary = g_find_program_in_path (tokens[0]);
-    if (absolute_binary)
-    {
-        if (tokens[1])
-            absolute_command = g_strjoin (" ", absolute_binary, tokens[1], NULL);
-        else
-            absolute_command = g_strdup (absolute_binary);
-    }
-    g_free (absolute_binary);
-
-    g_strfreev (tokens);
-
-    return absolute_command;
-}
-
-static void
-set_env_from_authentication (Session *session, PAMSession *authentication)
-{
-    gchar **pam_env;
-
-    pam_env = pam_session_get_envlist (authentication);
-    if (pam_env)
-    {
-        gchar *env_string;      
-        int i;
-
-        env_string = g_strjoinv (" ", pam_env);
-        g_debug ("PAM returns environment '%s'", env_string);
-        g_free (env_string);
-
-        for (i = 0; pam_env[i]; i++)
-        {
-            gchar **pam_env_vars = g_strsplit (pam_env[i], "=", 2);
-            if (pam_env_vars && pam_env_vars[0] && pam_env_vars[1])
-                session_set_env (session, pam_env_vars[0], pam_env_vars[1]);
-            else
-                g_warning ("Can't parse PAM environment variable %s", pam_env[i]);
-            g_strfreev (pam_env_vars);
-        }
-        g_strfreev (pam_env);
-    }
+    g_return_if_fail (session != NULL);
+    g_free (session->priv->remote_host_name);
+    session->priv->remote_host_name = g_strdup (remote_host_name);
 }
 
 void
 session_set_env (Session *session, const gchar *name, const gchar *value)
 {
     g_return_if_fail (session != NULL);
-    g_return_if_fail (name != NULL);
-    process_set_env (PROCESS (session), name, value);
+    session->priv->env = g_list_append (session->priv->env, g_strdup_printf ("%s=%s", name, value));
+}
+
+User *
+session_get_user (Session *session)
+{
+    g_return_val_if_fail (session != NULL, NULL);
+
+    if (session->priv->username == NULL)
+        return NULL;
+
+    if (!session->priv->user)
+        session->priv->user = accounts_get_user_by_name (session->priv->username);
+
+    return session->priv->user;
+}
+
+static void
+write_data (Session *session, const void *buf, size_t count)
+{
+    if (write (session->priv->to_child_input, buf, count) != count)
+        g_warning ("Error writing to session: %s", strerror (errno));
+}
+
+static void
+write_string (Session *session, const char *value)
+{
+    int length;
+
+    length = value ? strlen (value) : -1;
+    write_data (session, &length, sizeof (length));
+    if (value)
+        write_data (session, value, sizeof (char) * length);
+}
+
+static ssize_t
+read_from_child (Session *session, void *buf, size_t count)
+{
+    ssize_t n_read;
+    n_read = read (session->priv->from_child_output, buf, count);
+    if (n_read < 0)
+        g_warning ("Error reading from session: %s", strerror (errno));
+    return n_read;
+}
+
+static gchar *
+read_string_from_child (Session *session)
+{
+    int length;
+    char *value;
+
+    if (read_from_child (session, &length, sizeof (length)) <= 0)
+        return NULL;
+    if (length < 0)
+        return NULL;
+    if (length > MAX_STRING_LENGTH)
+    {
+        g_warning ("Invalid string length %d from child", length);
+        return NULL;
+    }
+  
+    value = g_malloc (sizeof (char) * (length + 1));
+    read_from_child (session, value, length);
+    value[length] = '\0';      
+
+    return value;
+}
+
+static void
+session_watch_cb (GPid pid, gint status, gpointer data)
+{
+    Session *session = data;
+
+    session->priv->pid = 0;
+
+    if (WIFEXITED (status))
+        g_debug ("Session %d exited with return value %d", pid, WEXITSTATUS (status));
+    else if (WIFSIGNALED (status))
+        g_debug ("Session %d terminated with signal %d", pid, WTERMSIG (status));
+
+    /* If failed during authentication then report this as an authentication failure */
+    if (session->priv->authentication_started && !session->priv->authentication_complete)
+    {
+        g_debug ("Session %d failed during authentication", pid);
+        session->priv->authentication_complete = TRUE;
+        session->priv->authentication_result = PAM_CONV_ERR;
+        g_free (session->priv->authentication_result_string);
+        session->priv->authentication_result_string = g_strdup ("Authentication stopped before completion");
+        g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_COMPLETE], 0);      
+    } 
+
+    g_signal_emit (G_OBJECT (session), signals[STOPPED], 0);
+}
+
+static gboolean
+from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
+{
+    Session *session = data;
+    gchar *username;
+    ssize_t n_read;
+    gboolean auth_complete;
+
+    /* Remote end gone */
+    if (condition == G_IO_HUP)
+    {
+        session->priv->from_child_watch = 0;
+        return FALSE;
+    }
+
+    /* Get the username currently being authenticated (may change during authentication) */
+    username = read_string_from_child (session);
+    if (g_strcmp0 (username, session->priv->username) != 0)
+    {
+        g_free (session->priv->username);
+        session->priv->username = username;
+        if (session->priv->user)
+            g_object_unref (session->priv->user);
+        session->priv->user = NULL;
+    }
+    else
+        g_free (username);
+
+    /* Check if authentication completed */
+    n_read = read_from_child (session, &auth_complete, sizeof (auth_complete));
+    if (n_read < 0)
+        g_debug ("Error reading from child: %s", strerror (errno));
+    if (n_read <= 0)
+    {
+        session->priv->from_child_watch = 0;
+        return FALSE;
+    }
+
+    if (auth_complete)
+    {
+        session->priv->authentication_complete = TRUE;
+        read_from_child (session, &session->priv->authentication_result, sizeof (session->priv->authentication_result));
+        g_free (session->priv->authentication_result_string);
+        session->priv->authentication_result_string = read_string_from_child (session);
+
+        g_debug ("Session %d authentication complete with return value %d: %s", session->priv->pid, session->priv->authentication_result, session->priv->authentication_result_string);
+
+        /* No longer expect any more messages */
+        session->priv->from_child_watch = 0;
+
+        g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_COMPLETE], 0);
+
+        return FALSE;
+    }
+    else
+    {
+        int i;
+
+        session->priv->messages_length = 0;
+        read_from_child (session, &session->priv->messages_length, sizeof (session->priv->messages_length));
+        session->priv->messages = calloc (session->priv->messages_length, sizeof (struct pam_message));
+        for (i = 0; i < session->priv->messages_length; i++)
+        {
+            struct pam_message *m = &session->priv->messages[i];
+            read_from_child (session, &m->msg_style, sizeof (m->msg_style));          
+            m->msg = read_string_from_child (session);
+        }
+
+        g_debug ("Session %d got %d message(s) from PAM", session->priv->pid, session->priv->messages_length);
+
+        g_signal_emit (G_OBJECT (session), signals[GOT_MESSAGES], 0);
+    }    
+
+    return TRUE;
+}
+
+gboolean
+session_start (Session *session, const gchar *service, const gchar *username, gboolean do_authenticate, gboolean is_interactive)
+{
+    int version;
+    int to_child_pipe[2], from_child_pipe[2];
+    int to_child_output, from_child_input;
+
+    g_return_val_if_fail (session != NULL, FALSE);
+    g_return_val_if_fail (service != NULL, FALSE);
+    g_return_val_if_fail (session->priv->pid == 0, FALSE);
+
+    /* Create pipes to talk to the child */
+    if (pipe (to_child_pipe) < 0 || pipe (from_child_pipe) < 0)
+    {
+        g_warning ("Failed to create pipe to communicated with session process: %s", strerror (errno));
+        return FALSE;
+    }
+    to_child_output = to_child_pipe[0];
+    session->priv->to_child_input = to_child_pipe[1];
+    session->priv->from_child_output = from_child_pipe[0];
+    from_child_input = from_child_pipe[1];
+    session->priv->from_child_channel = g_io_channel_unix_new (session->priv->from_child_output);
+    session->priv->from_child_watch = g_io_add_watch (session->priv->from_child_channel, G_IO_IN | G_IO_HUP, from_child_cb, session);
+
+    /* Don't allow the daemon end of the pipes to be accessed in child processes */
+    fcntl (session->priv->to_child_input, F_SETFD, FD_CLOEXEC);
+    fcntl (session->priv->from_child_output, F_SETFD, FD_CLOEXEC);
+
+    /* Remember what username we started with - it will be updated by PAM during authentication */
+    session->priv->username = g_strdup (username);
+
+    /* Run the child */
+    session->priv->pid = fork ();
+    if (session->priv->pid < 0)
+    {
+        g_debug ("Failed to fork session child process: %s", strerror (errno));
+        return FALSE;
+    }
+    if (session->priv->pid == 0)
+    {
+        /* Run us again in session child mode */
+        execlp ("lightdm",
+                "lightdm",
+                "--session-child",
+                g_strdup_printf ("%d", to_child_output),
+                g_strdup_printf ("%d", from_child_input),
+                NULL);
+        _exit (EXIT_FAILURE);
+    }
+
+    /* Listen for session termination */
+    session->priv->authentication_started = TRUE;
+    session->priv->child_watch = g_child_watch_add (session->priv->pid, session_watch_cb, session);
+
+    /* Close the ends of the pipes we don't need */
+    close (to_child_output);
+    close (from_child_input);
+  
+    /* Indicate what version of the protocol we are using */
+    version = 0;
+    write_data (session, &version, sizeof (version));
+
+    /* Send configuration */
+    write_string (session, service);
+    write_string (session, username);
+    write_data (session, &do_authenticate, sizeof (do_authenticate));
+    write_data (session, &is_interactive, sizeof (is_interactive));
+    write_string (session, session->priv->class);
+    write_string (session, session->priv->tty);
+    write_string (session, session->priv->remote_host_name);
+    write_string (session, session->priv->xdisplay);
+    if (session->priv->xauthority)
+    {
+        guint16 family;
+        gsize length;
+
+        write_string (session, xauth_get_authorization_name (session->priv->xauthority));
+        family = xauth_get_family (session->priv->xauthority);
+        write_data (session, &family, sizeof (family));
+        length = xauth_get_address_length (session->priv->xauthority);
+        write_data (session, &length, sizeof (length));
+        write_data (session, xauth_get_address (session->priv->xauthority), length);
+        write_string (session, xauth_get_number (session->priv->xauthority));
+        length = xauth_get_authorization_data_length (session->priv->xauthority);
+        write_data (session, &length, sizeof (length));
+        write_data (session, xauth_get_authorization_data (session->priv->xauthority), length);
+    }
+    else
+        write_string (session, NULL);    
+
+    g_debug ("Started session %d with service '%s', username '%s'", session->priv->pid, service, username);
+
+    return TRUE;
 }
 
 const gchar *
-session_get_env (Session *session, const gchar *name)
+session_get_username (Session *session)
 {
     g_return_val_if_fail (session != NULL, NULL);
-    g_return_val_if_fail (name != NULL, NULL);
-    return process_get_env (PROCESS (session), name);
-}
-
-void
-session_set_console_kit_parameter (Session *session, const gchar *name, GVariant *value)
-{
-    g_return_if_fail (session != NULL);
-    g_return_if_fail (name != NULL);
-
-    g_hash_table_insert (session->priv->console_kit_parameters,
-                         g_strdup (name), g_variant_ref_sink (value));
+    return session->priv->username;
 }
 
 const gchar *
@@ -198,129 +421,122 @@ session_get_console_kit_cookie (Session *session)
     return session->priv->console_kit_cookie;
 }
 
-/* Set the LANG variable based on the chosen locale.  This is not a great
- * solution, as it will override the locale set in PAM (which is where it
- * should be set).  In the case of Ubuntu these will be overridden by setting
- * these variables in ~/.profile */
-static void
-set_locale (Session *session)
+void
+session_respond (Session *session, struct pam_response *response)
 {
-    User *user;
-    const gchar *locale;
+    int i;
 
-    user = pam_session_get_user (session->priv->authentication);
-    locale = user_get_locale (user);
-    if (locale)
+    g_return_if_fail (session != NULL);
+
+    for (i = 0; i < session->priv->messages_length; i++)
     {
-        g_debug ("Using locale %s", locale);
-        session_set_env (session, "LANG", locale);
+        int error = PAM_SUCCESS;
+        write_data (session, &error, sizeof (error));
+        write_string (session, response[i].resp);
+        write_data (session, &response[i].resp_retcode, sizeof (response[i].resp_retcode));
     }
+
+    /* Delete the old messages */
+    for (i = 0; i < session->priv->messages_length; i++)
+        g_free ((char *) session->priv->messages[i].msg);
+    g_free (session->priv->messages);
+    session->priv->messages = NULL;
+    session->priv->messages_length = 0;
 }
 
-/* Insert our own utility directory to PATH
- * This is to provide gdmflexiserver which provides backwards compatibility
- * with GDM.
- * Must be done after set_env_from_authentication because PAM sets PATH.
- * This can be removed when this is no longer required.
- */
-static void
-insert_utility_path (Session *session)
+void
+session_respond_error (Session *session, int error)
 {
-    const gchar *orig_path;
+    g_return_if_fail (session != NULL);
+    g_return_if_fail (error != PAM_SUCCESS);
 
-    orig_path = session_get_env (session, "PATH");
-    if (orig_path)
-    {
-        gchar *path = g_strdup_printf ("%s:%s", PKGLIBEXEC_DIR, orig_path);
-        session_set_env (session, "PATH", path);
-        g_free (path);
-    }
+    write_data (session, &error, sizeof (error));  
+}
+
+int
+session_get_messages_length (Session *session)
+{
+    g_return_val_if_fail (session != NULL, 0);
+    return session->priv->messages_length;
+}
+
+const struct pam_message *
+session_get_messages (Session *session)
+{
+    g_return_val_if_fail (session != NULL, NULL);
+    return session->priv->messages;
 }
 
 gboolean
-session_start (Session *session)
+session_get_is_authenticated (Session *session)
 {
-    User *user;
-
     g_return_val_if_fail (session != NULL, FALSE);
-    g_return_val_if_fail (session->priv->authentication != NULL, FALSE);
-    g_return_val_if_fail (session->priv->command != NULL, FALSE);
-
-    g_debug ("Launching session");
-
-    user = pam_session_get_user (session->priv->authentication);
-  
-    /* Set POSIX variables */
-    session_set_env (session, "PATH", "/usr/local/bin:/usr/bin:/bin");
-    session_set_env (session, "USER", user_get_name (user));
-    session_set_env (session, "LOGNAME", user_get_name (user));
-    session_set_env (session, "HOME", user_get_home_directory (user));
-    session_set_env (session, "SHELL", user_get_shell (user));
-
-    return SESSION_GET_CLASS (session)->start (session);
+    return session->priv->authentication_complete && session->priv->authentication_result == PAM_SUCCESS;
 }
 
-static gboolean
-session_real_start (Session *session)
+int
+session_get_authentication_result (Session *session)
 {
-    gboolean result;
-    gchar *absolute_command;
+    g_return_val_if_fail (session != NULL, 0);
+    return session->priv->authentication_result;
+}
 
-    absolute_command = get_absolute_command (session->priv->command);
-    if (!absolute_command)
+const gchar *
+session_get_authentication_result_string (Session *session)
+{
+    g_return_val_if_fail (session != NULL, NULL);
+    return session->priv->authentication_result_string;
+}
+
+void
+session_run (Session *session, gchar **argv)
+{
+    gsize i, argc;
+    gchar *command, *filename;
+    GList *link;
+
+    g_return_if_fail (session != NULL);
+    g_return_if_fail (session_get_is_authenticated (session));
+
+    command = g_strjoinv (" ", argv);
+    g_debug ("Session %d running command %s", session->priv->pid, command);
+    g_free (command);
+
+    /* Create authority location */
+    if (session->priv->xauth_use_system_location)
     {
-        g_debug ("Can't launch session %s, not found in path", session->priv->command);
-        return FALSE;
-    }
-    process_set_command (PROCESS (session), absolute_command);
-    g_free (absolute_command);
+        gchar *run_dir, *dir;
 
-    pam_session_open (session->priv->authentication);
+        run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");          
+        dir = g_build_filename (run_dir, session->priv->username, NULL);
+        g_free (run_dir);
 
-    /* Open ConsoleKit session */
-    if (getuid () == 0)
-    {
-        GVariantBuilder parameters;
-        User *user;
-        GHashTableIter iter;
-        gpointer key, value;
+        g_mkdir_with_parents (dir, S_IRWXU);
+        if (getuid () == 0)
+        {
+            if (chown (dir, user_get_uid (session_get_user (session)), user_get_gid (session_get_user (session))) < 0)
+                g_warning ("Failed to set ownership of user authority dir: %s", strerror (errno));
+        }
 
-        user = pam_session_get_user (session->priv->authentication);
-
-        g_variant_builder_init (&parameters, G_VARIANT_TYPE ("(a(sv))"));
-        g_variant_builder_open (&parameters, G_VARIANT_TYPE ("a(sv)"));
-        g_variant_builder_add (&parameters, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
-        if (session->priv->is_greeter)
-            g_variant_builder_add (&parameters, "(sv)", "session-type", g_variant_new_string ("LoginWindow"));
-        g_hash_table_iter_init (&iter, session->priv->console_kit_parameters);
-        while (g_hash_table_iter_next (&iter, &key, &value))
-            g_variant_builder_add (&parameters, "(sv)", (gchar *) key, (GVariant *) value);
-
-        g_free (session->priv->console_kit_cookie);
-        session->priv->console_kit_cookie = ck_open_session (&parameters);
+        filename = g_build_filename (dir, "xauthority", NULL);
+        g_free (dir);
     }
     else
-    {
-        g_free (session->priv->console_kit_cookie);
-        session->priv->console_kit_cookie = g_strdup (g_getenv ("XDG_SESSION_COOKIE"));
-    }
+        filename = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
 
-    if (session->priv->console_kit_cookie)
-        session_set_env (session, "XDG_SESSION_COOKIE", session->priv->console_kit_cookie);
+    write_string (session, session->priv->log_filename);
+    write_string (session, filename);
+    g_free (filename);
+    argc = g_list_length (session->priv->env);
+    write_data (session, &argc, sizeof (argc));
+    for (link = session->priv->env; link; link = link->next)
+        write_string (session, (gchar *) link->data);
+    argc = g_strv_length (argv);
+    write_data (session, &argc, sizeof (argc));
+    for (i = 0; i < argc; i++)
+        write_string (session, argv[i]);
 
-    if (!SESSION_GET_CLASS (session)->setup (session))
-        return FALSE;
-
-    result = process_start (PROCESS (session));
-  
-    if (!result)
-    {
-        pam_session_close (session->priv->authentication);
-        if (getuid () == 0 && session->priv->console_kit_cookie)
-            ck_close_session (session->priv->console_kit_cookie);
-    }  
-
-    return result;
+    session->priv->console_kit_cookie = read_string_from_child (session);
 }
 
 void
@@ -343,11 +559,12 @@ void
 session_stop (Session *session)
 {
     g_return_if_fail (session != NULL);
-
-    if (process_get_is_running (PROCESS (session)))
+  
+    if (session->priv->pid > 0)
     {
-        SESSION_GET_CLASS (session)->cleanup (session);
-        process_signal (PROCESS (session), SIGTERM);
+        g_debug ("Session %d: Sending SIGTERM", session->priv->pid);
+        kill (session->priv->pid, SIGTERM);
+        // FIXME: Handle timeout
     }
 }
 
@@ -355,140 +572,45 @@ gboolean
 session_get_is_stopped (Session *session)
 {
     g_return_val_if_fail (session != NULL, TRUE);
-    return !process_get_is_running (PROCESS (session));
-}
-
-static gboolean
-session_setup (Session *session)
-{
-    return TRUE;
-}
-
-static void
-session_cleanup (Session *session)
-{
-}
-
-static void
-setup_log_file (Session *session)
-{
-    int fd;
-
-    /* Redirect output to logfile */
-    if (!session->priv->log_file)
-        return;
-
-    fd = g_open (session->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-    if (fd < 0)
-        g_warning ("Failed to open log file %s: %s", session->priv->log_file, g_strerror (errno));
-    else
-    {
-        dup2 (fd, STDERR_FILENO);
-        close (fd);
-    }
-}
-
-static void
-session_run (Process *process)
-{
-    Session *session = SESSION (process);
-    User *user;
-    int fd;
-
-    /* No input and output */
-    fd = g_open ("/dev/null", O_RDONLY);
-    dup2 (fd, STDIN_FILENO);
-    dup2 (fd, STDOUT_FILENO);
-    close (fd);
-
-    /* Redirect output to logfile */
-    if (!session->priv->log_file_as_user)
-        setup_log_file (session);
-
-    /* Make this process its own session */
-    if (setsid () < 0)
-        g_warning ("Failed to make process a new session: %s", strerror (errno));
-
-    user = pam_session_get_user (session->priv->authentication);
-
-    /* Change to this user */
-    if (getuid () == 0)
-    {
-        if (initgroups (user_get_name (user), user_get_gid (user)) < 0)
-        {
-            g_warning ("Failed to initialize supplementary groups for %s: %s", user_get_name (user), strerror (errno));
-            _exit (EXIT_FAILURE);
-        }
-
-        if (setgid (user_get_gid (user)) != 0)
-        {
-            g_warning ("Failed to set group ID to %d: %s", user_get_gid (user), strerror (errno));
-            _exit (EXIT_FAILURE);
-        }
-
-        if (setuid (user_get_uid (user)) != 0)
-        {
-            g_warning ("Failed to set user ID to %d: %s", user_get_uid (user), strerror (errno));
-            _exit (EXIT_FAILURE);
-        }
-    }
-
-    /* Change working directory */
-    /* NOTE: This must be done after the permissions are changed because NFS filesystems can
-     * be setup so the local root user accesses the NFS files as 'nobody'.  If the home directories
-     * are not system readable then the chdir can fail */
-    if (chdir (user_get_home_directory (user)) != 0)
-    {
-        g_warning ("Failed to change to home directory %s: %s", user_get_home_directory (user), strerror (errno));
-        _exit (EXIT_FAILURE);
-    }
-
-    /* Redirect output to logfile */
-    if (session->priv->log_file_as_user)
-        setup_log_file (session);
-
-    /* Do PAM actions requiring session process */
-    pam_session_setup (session->priv->authentication);
-    set_env_from_authentication (session, session->priv->authentication);
-    set_locale (session);
-    insert_utility_path (session);
-
-    PROCESS_CLASS (session_parent_class)->run (process);
-}
-
-static void
-session_stopped (Process *process)
-{
-    Session *session = SESSION (process);
-
-    pam_session_close (session->priv->authentication);
-    if (getuid () == 0 && session->priv->console_kit_cookie)
-        ck_close_session (session->priv->console_kit_cookie);
-
-    PROCESS_CLASS (session_parent_class)->stopped (process);
+    return session->priv->pid == 0;
 }
 
 static void
 session_init (Session *session)
 {
     session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, SESSION_TYPE, SessionPrivate);
-    session->priv->console_kit_parameters = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, (GDestroyNotify) g_variant_unref);
-    process_set_clear_environment (PROCESS (session), TRUE);
 }
 
 static void
 session_finalize (GObject *object)
 {
-    Session *self;
-
-    self = SESSION (object);
-
-    g_free (self->priv->log_file);
-    if (self->priv->authentication)
-        g_object_unref (self->priv->authentication);
-    g_free (self->priv->command);
-    g_hash_table_unref (self->priv->console_kit_parameters);
+    Session *self = SESSION (object);
+    int i;
+  
+    if (self->priv->pid)
+        kill (self->priv->pid, SIGKILL);
+    if (self->priv->from_child_channel)
+        g_io_channel_unref (self->priv->from_child_channel);
+    if (self->priv->from_child_watch)
+        g_source_remove (self->priv->from_child_watch);
+    if (self->priv->child_watch)
+        g_source_remove (self->priv->child_watch);
+    g_free (self->priv->username);
+    if (self->priv->user)
+        g_object_unref (self->priv->user);
+    for (i = 0; i < self->priv->messages_length; i++)
+        g_free ((char *) self->priv->messages[i].msg);
+    g_free (self->priv->messages);
+    g_free (self->priv->authentication_result_string);
+    g_free (self->priv->log_filename);
+    g_free (self->priv->class);
+    g_free (self->priv->tty);
+    g_free (self->priv->xdisplay);
+    if (self->priv->xauthority)
+        g_object_unref (self->priv->xauthority);
+    g_free (self->priv->remote_host_name);
     g_free (self->priv->console_kit_cookie);
+    g_list_free_full (self->priv->env, g_free);
 
     G_OBJECT_CLASS (session_parent_class)->finalize (object);
 }
@@ -497,14 +619,35 @@ static void
 session_class_init (SessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-    ProcessClass *process_class = PROCESS_CLASS (klass);
 
-    klass->start = session_real_start;
-    klass->setup = session_setup;
-    klass->cleanup = session_cleanup;
-    process_class->run = session_run;
-    process_class->stopped = session_stopped;
     object_class->finalize = session_finalize;
 
     g_type_class_add_private (klass, sizeof (SessionPrivate));
+
+    signals[GOT_MESSAGES] =
+        g_signal_new ("got-messages",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (SessionClass, got_messages),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
+
+    signals[AUTHENTICATION_COMPLETE] =
+        g_signal_new ("authentication-complete",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (SessionClass, authentication_complete),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
+
+    signals[STOPPED] =
+        g_signal_new ("stopped",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (SessionClass, stopped),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__VOID,
+                      G_TYPE_NONE, 0);
 }

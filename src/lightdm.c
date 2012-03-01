@@ -27,8 +27,8 @@
 #include "seat-xdmcp-session.h"
 #include "seat-xvnc.h"
 #include "xserver.h"
-#include "pam-session.h"
 #include "process.h"
+#include "session-child.h"
 
 static gchar *config_path = NULL;
 static GMainLoop *loop = NULL;
@@ -463,7 +463,7 @@ handle_session_get_property (GDBusConnection       *connection,
     if (g_strcmp0 (property_name, "Seat") == 0)
         return g_variant_new_object_path (entry ? entry->parent_path : "");
     else if (g_strcmp0 (property_name, "UserName") == 0)
-        return g_variant_new_string (user_get_name (session_get_user (session)));
+        return g_variant_new_string (session_get_username (session));
 
     return NULL;
 }
@@ -486,7 +486,7 @@ handle_session_call (GDBusConnection       *connection,
 
         seat = get_seat_for_session (session);
         /* FIXME: Should only allow locks if have a session on this seat */
-        seat_lock (seat, user_get_name (session_get_user (session)));
+        seat_lock (seat, session_get_username (session));
         g_dbus_method_invocation_return_value (invocation, NULL);
     }
 }
@@ -534,13 +534,13 @@ start_session_cb (Display *display, Seat *seat)
 
     session = display_get_session (display);
 
+    /* Set environment variables when session runs */
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
     session_set_env (session, "XDG_SEAT_PATH", seat_entry->path);
-
     path = g_strdup_printf ("/org/freedesktop/DisplayManager/Session%d", session_index);
     session_index++;
     session_set_env (session, "XDG_SESSION_PATH", path);
-    g_free (path);
+    g_object_set_data_full (G_OBJECT (session), "XDG_SESSION_PATH", path, g_free);
 
     return FALSE;
 }
@@ -568,7 +568,7 @@ session_started_cb (Display *display, Seat *seat)
     g_signal_connect (session, "stopped", G_CALLBACK (session_stopped_cb), seat);
 
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
-    entry = bus_entry_new (session_get_env (session, "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL, "SessionRemoved");
+    entry = bus_entry_new (g_object_get_data (G_OBJECT (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL, "SessionRemoved");
     g_hash_table_insert (session_bus_entries, g_object_ref (session), entry);
 
     g_debug ("Registering session with bus path %s", entry->path);
@@ -859,6 +859,10 @@ main (int argc, char **argv)
         { NULL }
     };
     GError *error = NULL;
+
+    /* When lightdm starts sessions it needs to run itself in a new mode */
+    if (argc >= 2 && strcmp (argv[1], "--session-child") == 0)
+        return session_child_run (argc, argv);
 
     g_type_init ();
     loop = g_main_loop_new (NULL, FALSE);
