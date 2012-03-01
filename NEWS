@@ -4,6 +4,7 @@ Overview of changes in lightdm 1.1.4
       on NFS filesystems that don't allow root to access files.
     * Restructure session code so the PAM authentication is run in its
       own process.
+    * Set PAM_XDISPLAY and PAM_XAUTHDATA pam items
 
 Overview of changes in lightdm 1.1.3
 
