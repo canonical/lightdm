@@ -5,6 +5,8 @@ Overview of changes in lightdm 1.1.4
     * Restructure session code so the PAM authentication is run in its
       own process.
     * Set PAM_XDISPLAY and PAM_XAUTHDATA pam items
+    * Don't send session stdout to .xsession-errors
+    * Fix Qt bindings crash when removing a user
 
 Overview of changes in lightdm 1.1.3
 
