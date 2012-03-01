@@ -22,6 +22,8 @@ TESTS = \
 	test-autologin-guest-logout \
 	test-session-stdout \
 	test-session-stderr \
+	test-xauthority \
+	test-system-xauthority \
 	test-user-renamed \
 	test-user-renamed-invalid \
 	test-keyboard-layout \
@@ -194,8 +196,10 @@ EXTRA_DIST = \
 	scripts/switch-to-user-existing-session.conf \
 	scripts/switch-to-user-logout.conf \
 	scripts/switch-to-user-no-password.conf \
+	scripts/system-xauthority.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
 	scripts/vnc-login.conf \
+	scripts/xauthority.conf \
 	scripts/xdmcp-login.conf \
 	scripts/xserver-fail-start.conf
