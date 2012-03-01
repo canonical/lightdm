@@ -23,7 +23,7 @@ struct XAuthorityPrivate
 
     /* Address of the X server (format dependent on family) */
     guint8 *address;
-    guint16 address_length;
+    gsize address_length;
   
     /* Display number of X server */
     gchar *number;
@@ -33,13 +33,13 @@ struct XAuthorityPrivate
 
     /* Authorization data */
     guint8 *authorization_data;
-    guint16 authorization_data_length;
+    gsize authorization_data_length;
 };
 
 G_DEFINE_TYPE (XAuthority, xauth, G_TYPE_OBJECT);
 
 XAuthority *
-xauth_new (guint16 family, const guint8 *address, guint16 address_length, const gchar *number, const gchar *name, const guint8 *data, gsize data_length)
+xauth_new (guint16 family, const guint8 *address, gsize address_length, const gchar *number, const gchar *name, const guint8 *data, gsize data_length)
 {
     XAuthority *auth = g_object_new (XAUTHORITY_TYPE, NULL);
 
@@ -53,7 +53,7 @@ xauth_new (guint16 family, const guint8 *address, guint16 address_length, const 
 }
 
 XAuthority *
-xauth_new_cookie (guint16 family, const guint8 *address, guint16 address_length, const gchar *number)
+xauth_new_cookie (guint16 family, const guint8 *address, gsize address_length, const gchar *number)
 {
     guint8 cookie[16];
     gint i;
@@ -79,7 +79,7 @@ xauth_get_family (XAuthority *auth)
 }
 
 void
-xauth_set_address (XAuthority *auth, const guint8 *address, guint16 address_length)
+xauth_set_address (XAuthority *auth, const guint8 *address, gsize address_length)
 {
     g_return_if_fail (auth != NULL);
     g_free (auth->priv->address);
@@ -95,7 +95,7 @@ xauth_get_address (XAuthority *auth)
     return auth->priv->address;
 }
 
-const guint16
+const gsize
 xauth_get_address_length (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, 0);
@@ -262,17 +262,21 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, GFile *file, GError **error)
     while (input_stream)
     {
         gboolean eof = FALSE, address_matches = FALSE;
+        guint16 address_length = 0;
+        guint16 authorization_data_length = 0;
         GError *read_error = NULL;
 
         a = g_object_new (XAUTHORITY_TYPE, NULL);
 
         result = read_uint16 (G_INPUT_STREAM (input_stream), &a->priv->family, &eof, &read_error) &&
-                 read_uint16 (G_INPUT_STREAM (input_stream), &a->priv->address_length, NULL, &read_error) &&
-                 read_data (G_INPUT_STREAM (input_stream), a->priv->address_length, &a->priv->address, &read_error) &&
+                 read_uint16 (G_INPUT_STREAM (input_stream), &address_length, NULL, &read_error) &&
+                 read_data (G_INPUT_STREAM (input_stream), address_length, &a->priv->address, &read_error) &&
                  read_string (G_INPUT_STREAM (input_stream), &a->priv->number, &read_error) &&
                  read_string (G_INPUT_STREAM (input_stream), &a->priv->authorization_name, &read_error) &&
-                 read_uint16 (G_INPUT_STREAM (input_stream), &a->priv->authorization_data_length, NULL, &read_error) &&
-                 read_data (G_INPUT_STREAM (input_stream), a->priv->authorization_data_length, &a->priv->authorization_data, &read_error);
+                 read_uint16 (G_INPUT_STREAM (input_stream), &authorization_data_length, NULL, &read_error) &&
+                 read_data (G_INPUT_STREAM (input_stream), authorization_data_length, &a->priv->authorization_data, &read_error);
+        a->priv->address_length = address_length;
+        a->priv->authorization_data_length = authorization_data_length;
         if (read_error)
             g_warning ("Error reading X authority %s: %s", g_file_get_path (file), read_error->message);
         g_clear_error (&read_error);
