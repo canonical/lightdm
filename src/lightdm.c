@@ -35,7 +35,6 @@ static GMainLoop *loop = NULL;
 static GTimer *log_timer;
 static int log_fd = -1;
 static gboolean debug = FALSE;
-static gboolean stopping = FALSE;
 
 static DisplayManager *display_manager = NULL;
 static XDMCPServer *xdmcp_server = NULL;
@@ -143,19 +142,6 @@ signal_cb (Process *process, int signum)
 static gboolean
 exit_cb (gpointer data)
 {
-    exit (exit_code);
-}
-
-static void
-display_manager_stopped_cb (DisplayManager *display_manager)
-{
-    g_debug ("Stopping Light Display Manager");
-
-    /* Mark as stopping because bus_acquired_cb can be called after this function, and even
-     * more weirdly display_manager is not NULL even though the following lines set it to
-     * be! */
-    stopping = TRUE;
-
     /* Clean up display manager */
     g_object_unref (display_manager);
     display_manager = NULL;
@@ -167,6 +153,14 @@ display_manager_stopped_cb (DisplayManager *display_manager)
     if (session_bus_entries)
         g_hash_table_unref (session_bus_entries);
 
+    g_debug ("Exiting with return value %d", exit_code);
+    exit (exit_code);
+}
+
+static void
+display_manager_stopped_cb (DisplayManager *display_manager)
+{
+    g_debug ("Stopping daemon");
     g_idle_add (exit_cb, NULL);
 }
 
@@ -588,6 +582,7 @@ start_session_cb (Display *display, Seat *seat)
 static void
 session_stopped_cb (Session *session, Seat *seat)
 {
+    g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
     g_hash_table_remove (session_bus_entries, session);
 }
 
@@ -679,11 +674,14 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
 static void
 seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
+    gboolean exit_on_failure;
+
+    exit_on_failure = seat_get_boolean_property (seat, "exit-on-failure");
     g_hash_table_remove (seat_bus_entries, seat);
 
-    if (seat_get_boolean_property (seat, "exit-on-failure"))
+    if (exit_on_failure)
     {
-        g_debug ("Stopping lightdm, required seat has stopped");
+        g_debug ("Required seat has stopped");
         exit_code = EXIT_FAILURE;
         display_manager_stop (display_manager);
     }
@@ -760,9 +758,6 @@ bus_acquired_cb (GDBusConnection *connection,
         "</node>";
     GDBusNodeInfo *display_manager_info;
     GList *link;
-
-    if (stopping)
-        return;
 
     g_debug ("Acquired bus name %s", name);
 

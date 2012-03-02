@@ -75,18 +75,20 @@ seat_stopped_cb (Seat *seat, DisplayManager *manager)
     manager->priv->seats = g_list_remove (manager->priv->seats, seat);
     g_signal_handlers_disconnect_matched (seat, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, manager);
 
-    check_stopped (manager);
-
     if (!manager->priv->stopping)
         g_signal_emit (manager, signals[SEAT_REMOVED], 0, seat);
 
     g_object_unref (seat);
+
+    check_stopped (manager);
 }
 
 gboolean
 display_manager_add_seat (DisplayManager *manager, Seat *seat)
 {
     gboolean result;
+
+    g_return_val_if_fail (!manager->priv->stopping, FALSE);
 
     result = seat_start (SEAT (seat));
     if (!result)
@@ -126,12 +128,13 @@ display_manager_stop (DisplayManager *manager)
 
     manager->priv->stopping = TRUE;
 
-    check_stopped (manager);
     for (link = manager->priv->seats; link; link = link->next)
     {
         Seat *seat = link->data;
         seat_stop (seat);
     }
+
+    check_stopped (manager);
 }
   
 static void
@@ -148,9 +151,15 @@ static void
 display_manager_finalize (GObject *object)
 {
     DisplayManager *self;
+    GList *link;
 
     self = DISPLAY_MANAGER (object);
 
+    for (link = self->priv->seats; link; link = link->next)
+    {
+        Seat *seat = link->data;
+        g_signal_handlers_disconnect_matched (seat, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
+    }
     g_list_free_full (self->priv->seats, g_object_unref);
 
     G_OBJECT_CLASS (display_manager_parent_class)->finalize (object);
