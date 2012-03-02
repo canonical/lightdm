@@ -5,6 +5,7 @@ Overview of changes in lightdm 1.0.8
       on NFS filesystems that don't allow root to access files.
     * Fix object cleanup on exit
     * Fix lightdm --debug not working on newer GLib
+    * Fix liblightdm-qt-1.pc linking against the wrong libraries
 
 Overview of changes in lightdm 1.0.7
 
