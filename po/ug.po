@@ -8,14 +8,14 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-12-06 11:05+0000\n"
-"PO-Revision-Date: 2011-08-11 07:42+0000\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"PO-Revision-Date: 2012-03-02 04:52+0000\n"
+"Last-Translator: Gheyret T.Kenji <Unknown>\n"
 "Language-Team: Uyghur <ug@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2012-02-18 05:18+0000\n"
-"X-Generator: Launchpad (build 14814)\n"
+"X-Launchpad-Export-Date: 2012-03-02 04:52+0000\n"
+"X-Generator: Launchpad (build 14886)\n"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:409
 msgid "Are you sure you want to close all programs and restart the computer?"
@@ -44,23 +44,23 @@ msgstr "چوڭ خەت نۇسخىسى"
 
 #: ../greeters/ldm-gtk-greeter.c:611
 msgid "High Constrast"
-msgstr ""
+msgstr "يۇقىرى قېنىقلىق"
 
 #: ../greeters/ldm-gtk-greeter.c:615
 msgid "Options"
-msgstr ""
+msgstr "تاللانمىلار"
 
 #: ../greeters/ldm-gtk-greeter.c:620
 msgid "Language"
-msgstr ""
+msgstr "تىل"
 
 #: ../greeters/ldm-gtk-greeter.c:646
 msgid "Keyboard Layout"
-msgstr ""
+msgstr "ھەرپتاختا جايلاشتۇرۇلۇشى"
 
 #: ../greeters/ldm-gtk-greeter.c:668
 msgid "Session"
-msgstr ""
+msgstr "ئەڭگىمە"
 
 #: ../greeters/gtk/greeter.ui.h:8
 msgid "Suspend"
@@ -85,6 +85,8 @@ msgid ""
 "Usage:\n"
 "  %s - Display Manager"
 msgstr ""
+"ئىشلىتىش ئۇسۇلى:\n"
+"  %s - كۆرسەتكۈچ باشقۇرغۇ"
 
 #. Description on how to use Light Display Manager displayed on command-line
 #: ../src/lightdm.c:106
@@ -98,3 +100,12 @@ msgid ""
 "  -v, --version                   Show release version\n"
 "  -h, --help                      Show help options"
 msgstr ""
+"ياردەم تاللانمىلىرى:\n"
+"  -c, --config <file>             سەپلىمە ھۆججەت ئىشلىتىدۇ\n"
+"      --pid-file <file>           پروگرامما كىملىكى(PID) نى يازىدىغان "
+"ھۆججەت\n"
+"  -d, --debug                     سازلاش ئۇچۇرلىرىنى چىقىرىدۇ\n"
+"      --test-mode                 ئىمتىيازسىز ئىشلەتكۈچى سۈپىتىدە ئىجرا "
+"قىلىدۇ\n"
+"  -v, --version                   نەشر ئۇچۇرىنى چىقىرىدۇ\n"
+"  -h, --help                      ياردەم ئۇچۇرىنى چىقىرىدۇ"
