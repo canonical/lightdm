@@ -77,7 +77,7 @@ gboolean seat_get_can_switch (Seat *seat);
 
 gboolean seat_get_allow_guest (Seat *seat);
 
-gboolean seat_get_show_guest (Seat *seat);
+gboolean seat_get_greeter_allow_guest (Seat *seat);
 
 gboolean seat_switch_to_greeter (Seat *seat);
 
