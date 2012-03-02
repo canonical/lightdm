@@ -4,6 +4,7 @@ Overview of changes in lightdm 1.0.8
     * Change session directory once user permissions are set so it works
       on NFS filesystems that don't allow root to access files.
     * Fix object cleanup on exit
+    * Fix lightdm --debug not working on newer GLib
 
 Overview of changes in lightdm 1.0.7
 
