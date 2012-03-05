@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.0.9
+
+    * Don't distribute Qt moc files
+
 Overview of changes in lightdm 1.0.8
 
     * Stop file descriptors leaking into the session processes

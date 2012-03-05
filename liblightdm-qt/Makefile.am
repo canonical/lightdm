@@ -33,8 +33,10 @@ liblightdm_qt_1_la_SOURCES = \
 	session.cpp \
 	system.cpp \
 	user.cpp \
-	$(MOC_FILES) \
 	$(liblightdm_qt_1include_HEADERS)
+
+nodist_liblightdm_qt_1_la_SOURCES = \
+	$(MOC_FILES)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = liblightdm-qt-1.pc

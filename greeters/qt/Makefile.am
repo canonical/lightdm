@@ -25,7 +25,9 @@ lightdm_qt_greeter_SOURCES = \
 	loginprompt.h \
 	main.cpp \
 	panel.cpp \
-	panel.h \
+	panel.h
+
+nodist_lightdm_qt_greeter_SOURCES = \
 	greeter_moc.cpp \
 	loginprompt_moc.cpp \
 	panel_moc.cpp
