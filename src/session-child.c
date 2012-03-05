@@ -170,7 +170,7 @@ session_child_run (int argc, char **argv)
     GDBusConnection *bus;
     gchar *console_kit_cookie;
     GError *error = NULL;
-  
+
     g_type_init ();
 
     /* Make input non-blocking */
@@ -193,10 +193,13 @@ session_child_run (int argc, char **argv)
     to_daemon_input = atoi (argv[3]);
     if (from_daemon_output == 0 || to_daemon_input == 0)
     {
-        g_printerr ("Invalid LIGHTDM_DAEMON_PIPE\n");
+        g_printerr ("Invalid file descriptors %s %s\n", argv[2], argv[3]);
         return EXIT_FAILURE;
     }
-    g_unsetenv ("LIGHTDM_DAEMON_PIPE");
+
+    /* Don't let these pipes leak to the command we will run */
+    fcntl (from_daemon_output, F_SETFD, FD_CLOEXEC);
+    fcntl (to_daemon_input, F_SETFD, FD_CLOEXEC);
 
     /* Read a version number so we can handle upgrades (i.e. a newer version of session child is run for an old daemon */
     read_data (&version, sizeof (version));

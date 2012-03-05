@@ -91,7 +91,9 @@ TESTS = \
 	test-xdmcp-login \
 	test-no-accounts-service \
 	test-console-kit \
-	test-no-console-kit
+	test-no-console-kit \
+	test-open-file-descriptors \
+	test-xdmcp-open-file-descriptors
 
 #	test-session-exit-error
 #	test-greeter-no-exit

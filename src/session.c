@@ -326,7 +326,7 @@ session_start (Session *session, const gchar *service, const gchar *username, gb
     /* Create pipes to talk to the child */
     if (pipe (to_child_pipe) < 0 || pipe (from_child_pipe) < 0)
     {
-        g_warning ("Failed to create pipe to communicated with session process: %s", strerror (errno));
+        g_warning ("Failed to create pipe to communicate with session process: %s", strerror (errno));
         return FALSE;
     }
     to_child_output = to_child_pipe[0];

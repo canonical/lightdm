@@ -61,8 +61,6 @@ struct GreeterPrivate
     gboolean guest_account_authenticated;
 
     /* Communication channels to communicate with */
-    int to_greeter_pipe[2];
-    int from_greeter_pipe[2];
     GIOChannel *to_greeter_channel;
     GIOChannel *from_greeter_channel;
 };
@@ -95,37 +93,11 @@ static gboolean read_cb (GIOChannel *source, GIOCondition condition, gpointer da
 Greeter *
 greeter_new (Session *session, const gchar *pam_service)
 {
-    gchar *value;
     Greeter *greeter;
 
     greeter = g_object_new (GREETER_TYPE, NULL);
     greeter->priv->session = g_object_ref (session);
     greeter->priv->pam_service = g_strdup (pam_service);
-
-    /* Create a pipe to talk with the greeter */
-    if (pipe (greeter->priv->to_greeter_pipe) != 0 || pipe (greeter->priv->from_greeter_pipe) != 0)
-    {
-        g_warning ("Failed to create pipes: %s", strerror (errno));
-        //return;
-    }
-    greeter->priv->to_greeter_channel = g_io_channel_unix_new (greeter->priv->to_greeter_pipe[1]);
-    g_io_channel_set_encoding (greeter->priv->to_greeter_channel, NULL, NULL);
-    greeter->priv->from_greeter_channel = g_io_channel_unix_new (greeter->priv->from_greeter_pipe[0]);
-    g_io_channel_set_encoding (greeter->priv->from_greeter_channel, NULL, NULL);
-    g_io_channel_set_buffered (greeter->priv->from_greeter_channel, FALSE);
-    g_io_add_watch (greeter->priv->from_greeter_channel, G_IO_IN | G_IO_HUP, read_cb, greeter);
-
-    /* Let the greeter session know how to communicate with the daemon */
-    value = g_strdup_printf ("%d", greeter->priv->from_greeter_pipe[1]);
-    session_set_env (greeter->priv->session, "LIGHTDM_TO_SERVER_FD", value);
-    g_free (value);
-    value = g_strdup_printf ("%d", greeter->priv->to_greeter_pipe[0]);
-    session_set_env (greeter->priv->session, "LIGHTDM_FROM_SERVER_FD", value);
-    g_free (value);
-
-    /* Don't allow the daemon end of the pipes to be accessed in child processes */
-    fcntl (greeter->priv->to_greeter_pipe[1], F_SETFD, FD_CLOEXEC);
-    fcntl (greeter->priv->from_greeter_pipe[0], F_SETFD, FD_CLOEXEC);
 
     return greeter;
 }
@@ -648,6 +620,47 @@ greeter_get_start_session (Greeter *greeter)
 {
     g_return_val_if_fail (greeter != NULL, FALSE);
     return greeter->priv->start_session;
+}
+
+gboolean
+greeter_start (Greeter *greeter, const gchar *service, const gchar *username)
+{
+    int to_greeter_pipe[2], from_greeter_pipe[2];
+    gboolean result = FALSE;
+    gchar *value;
+
+    /* Create a pipe to talk with the greeter */
+    if (pipe (to_greeter_pipe) != 0 || pipe (from_greeter_pipe) != 0)
+    {
+        g_warning ("Failed to create pipes: %s", strerror (errno));
+        return FALSE;
+    }
+    greeter->priv->to_greeter_channel = g_io_channel_unix_new (to_greeter_pipe[1]);
+    g_io_channel_set_encoding (greeter->priv->to_greeter_channel, NULL, NULL);
+    greeter->priv->from_greeter_channel = g_io_channel_unix_new (from_greeter_pipe[0]);
+    g_io_channel_set_encoding (greeter->priv->from_greeter_channel, NULL, NULL);
+    g_io_channel_set_buffered (greeter->priv->from_greeter_channel, FALSE);
+    g_io_add_watch (greeter->priv->from_greeter_channel, G_IO_IN | G_IO_HUP, read_cb, greeter);
+
+    /* Let the greeter session know how to communicate with the daemon */
+    value = g_strdup_printf ("%d", from_greeter_pipe[1]);
+    session_set_env (greeter->priv->session, "LIGHTDM_TO_SERVER_FD", value);
+    g_free (value);
+    value = g_strdup_printf ("%d", to_greeter_pipe[0]);
+    session_set_env (greeter->priv->session, "LIGHTDM_FROM_SERVER_FD", value);
+    g_free (value);
+
+    /* Don't allow the daemon end of the pipes to be accessed in child processes */
+    fcntl (to_greeter_pipe[1], F_SETFD, FD_CLOEXEC);
+    fcntl (from_greeter_pipe[0], F_SETFD, FD_CLOEXEC);
+
+    result = session_start (greeter->priv->session, service, username, FALSE, FALSE);
+
+    /* Close the session ends of the pipe */
+    close (to_greeter_pipe[0]);
+    close (from_greeter_pipe[1]);
+
+    return result;
 }
 
 static Session *

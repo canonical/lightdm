@@ -49,6 +49,8 @@ Session *greeter_get_authentication_session (Greeter *greeter);
 
 gboolean greeter_get_start_session (Greeter *greeter);
 
+gboolean greeter_start (Greeter *greeter, const gchar *service, const gchar *username);
+
 G_END_DECLS
 
 #endif /* _GREETER_H_ */

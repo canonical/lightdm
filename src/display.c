@@ -430,7 +430,7 @@ start_greeter (Display *display)
     }
 
     g_signal_connect_after (display->priv->session, "stopped", G_CALLBACK (greeter_session_stopped_cb), display);
-    result = session_start (display->priv->session, display->priv->pam_service, greeter_user, FALSE, FALSE);
+    result = greeter_start (display->priv->greeter, display->priv->pam_service, greeter_user);
     g_free (greeter_user);
 
     if (!result)
