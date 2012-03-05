@@ -377,6 +377,8 @@ process_class_init (ProcessClass *klass)
     processes = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_object_unref);
     if (pipe (signal_pipe) != 0)
         g_critical ("Failed to create signal pipe");
+    fcntl (signal_pipe[0], F_SETFD, FD_CLOEXEC);
+    fcntl (signal_pipe[1], F_SETFD, FD_CLOEXEC);
     g_io_add_watch (g_io_channel_unix_new (signal_pipe[0]), G_IO_IN, handle_signal, NULL);
     action.sa_sigaction = signal_cb;
     sigemptyset (&action.sa_mask);

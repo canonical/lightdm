@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "greeter.h"
 #include "ldm-marshal.h"
@@ -598,6 +599,7 @@ greeter_start (Greeter *greeter)
     int to_greeter_pipe[2], from_greeter_pipe[2];
     gint fd;
     gchar *value;
+    gboolean result;
 
     if (pipe (to_greeter_pipe) != 0 || 
         pipe (from_greeter_pipe) != 0)
@@ -623,7 +625,17 @@ greeter_start (Greeter *greeter)
     session_set_env (greeter->priv->session, "LIGHTDM_FROM_SERVER_FD", value);
     g_free (value);
 
-    return TRUE;
+    /* Don't allow the daemon end of the pipes to be accessed in child processes */
+    fcntl (to_greeter_pipe[1], F_SETFD, FD_CLOEXEC);
+    fcntl (from_greeter_pipe[0], F_SETFD, FD_CLOEXEC);
+
+    result = session_start (greeter->priv->session);
+
+    /* Close the session ends of the pipe */
+    close (to_greeter_pipe[0]);
+    close (from_greeter_pipe[1]);
+
+    return result;
 }
 
 gboolean

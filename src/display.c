@@ -673,18 +673,12 @@ display_start_greeter (Display *display)
 {
     if (!greeter_start (display->priv->greeter))
     {
-        g_debug ("Failed to start greeter protocol");
+        g_debug ("Failed to start greeter");
 
         g_signal_handlers_disconnect_matched (display->priv->greeter, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
         g_object_unref (display->priv->greeter);
         display->priv->greeter = NULL;
 
-        return TRUE;
-    }
-  
-    if (!session_start (SESSION (display->priv->session)))
-    {     
-        g_debug ("Failed to start greeter session");
         return TRUE;
     }
 

@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <xcb/xcb.h>
 #include <glib.h>
 
@@ -23,6 +24,19 @@ main (int argc, char **argv)
 {
     GMainLoop *loop;
     xcb_connection_t *connection;
+    GString *open_fds;
+    int fd, open_max;
+
+    /* Work out the list of file descriptors we don't know about */
+    open_fds = g_string_new ("");
+    open_max = sysconf (_SC_OPEN_MAX);
+    for (fd = STDERR_FILENO + 1; fd < open_max; fd++)
+    {
+        if (fcntl (fd, F_GETFD) >= 0)
+            g_string_append_printf (open_fds, "%d,", fd);
+    }
+    if (g_str_has_suffix (open_fds->str, ","))
+        open_fds->str[strlen (open_fds->str) - 1] = '\0';
 
     signal (SIGINT, quit_cb);
     signal (SIGTERM, quit_cb);
@@ -68,6 +82,9 @@ main (int argc, char **argv)
         notify_status ("SESSION CRASH");
         kill (getpid (), SIGSEGV);
     }
+
+    if (g_key_file_get_boolean (config, "test-session-config", "list-unknown-file-descriptors", NULL))
+        notify_status ("SESSION LIST-UNKNOWN-FILE-DESCRIPTORS FDS=%s", open_fds->str);
   
     g_main_loop_run (loop);    
 

@@ -124,6 +124,7 @@ log_init (void)
     g_free (log_dir);
 
     log_fd = open (path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    fcntl (log_fd, F_SETFD, FD_CLOEXEC);
     g_log_set_default_handler (log_cb, NULL);
 
     g_debug ("Logging to %s", path);
@@ -926,7 +927,7 @@ main (int argc, char **argv)
         { NULL }
     };
     GError *error = NULL;
-
+ 
     g_thread_init (NULL);
     g_type_init ();
     loop = g_main_loop_new (NULL, FALSE);

@@ -1,5 +1,6 @@
 Overview of changes in lightdm 1.0.8
 
+    * Stop file descriptors leaking into the session processes
     * Change session directory once user permissions are set so it works
       on NFS filesystems that don't allow root to access files.
     * Fix liblightdm-qt-1.pc linking against the wrong libraries

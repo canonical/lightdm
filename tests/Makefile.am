@@ -45,7 +45,8 @@ TESTS = \
 	test-switch-to-guest \
 	test-switch-to-user \
 	test-vnc-login \
-	test-xdmcp-login
+	test-xdmcp-login \
+	test-open-file-descriptors
 
 #	test-autologin-session-exit-error
 #	test-login-gobject-session-exit-error
@@ -109,6 +110,7 @@ EXTRA_DIST = \
 	scripts/login-wrong-password.conf \
 	scripts/login-xserver-crash.conf \
 	scripts/no-config.conf \
+	scripts/open-file-descriptors.conf \
 	scripts/plymouth-active-vt.conf \
 	scripts/plymouth-inactive-vt.conf \
 	scripts/plymouth-no-seat.conf \

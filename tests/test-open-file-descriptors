@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/test-runner open-file-descriptors test-gobject-greeter
