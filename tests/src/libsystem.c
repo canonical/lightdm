@@ -582,8 +582,15 @@ pam_chauthtok (pam_handle_t *pamh, int flags)
 int
 pam_setcred (pam_handle_t *pamh, int flags)
 {
+    gchar *e;
+
     if (pamh == NULL)
         return PAM_SYSTEM_ERR;
+
+    /* Put the test directories into the path */
+    e = g_strdup_printf ("PATH=%s/tests/src/.libs:%s/tests/src:%s/tests/src:%s/src:%s", BUILDDIR, BUILDDIR, SRCDIR, BUILDDIR, pam_getenv (pamh, "PATH"));
+    pam_putenv (pamh, e);
+    g_free (e);
 
     return PAM_SUCCESS;
 }

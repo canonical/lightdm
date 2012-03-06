@@ -3,7 +3,10 @@ dist_noinst_SCRIPTS = lightdm-session
 noinst_LTLIBRARIES = libsystem.la
 
 libsystem_la_SOURCES = libsystem.c
-libsystem_la_CFLAGS = $(GLIB_CFLAGS)
+libsystem_la_CFLAGS = \
+	$(GLIB_CFLAGS) \
+	-DSRCDIR=\"$(abs_top_srcdir)\" \
+	-DBUILDDIR=\"$(abs_top_builddir)\"
 libsystem_la_LIBADD = -ldl $(GLIB_LIBS)
 
 # This is required to have autotools generate a library that is not installed

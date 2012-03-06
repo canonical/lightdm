@@ -508,7 +508,7 @@ autologin_guest (Display *display, const gchar *service, gboolean start_greeter_
 }
 
 static gchar **
-get_session_command (const gchar *filename)
+get_session_command (const gchar *filename, const gchar *session_wrapper)
 {
     GKeyFile *session_desktop_file;
     gboolean result;
@@ -532,6 +532,17 @@ get_session_command (const gchar *filename)
 
     if (!command)
         return NULL;
+
+    /* If configured, run sessions through a wrapper */
+    if (session_wrapper)
+    {
+        argv = g_malloc (sizeof (gchar *) * 3);
+        path = g_find_program_in_path (session_wrapper);
+        argv[0] = path ? path : g_strdup (session_wrapper);
+        argv[1] = command;
+        argv[2] = NULL;
+        return argv;
+    }
 
     /* Split command into an array listing and make command absolute */
     result = g_shell_parse_argv (command, &argc, &argv, &error);
@@ -623,7 +634,7 @@ display_start_greeter (Display *display)
     path = g_build_filename (sessions_dir, filename, NULL);
     g_free (sessions_dir);
     g_free (filename);
-    argv = get_session_command (path);
+    argv = get_session_command (path, NULL);
     g_free (path);
     if (!argv)
         return TRUE;
@@ -682,24 +693,13 @@ display_start_session (Display *display)
     path = g_build_filename (sessions_dir, filename, NULL);
     g_free (sessions_dir);
     g_free (filename);
-    argv = get_session_command (path);
+    argv = get_session_command (path, display->priv->session_wrapper);
     g_free (path);
     if (!argv)
         return TRUE;
   
     session_set_env (display->priv->session, "DESKTOP_SESSION", display->priv->user_session); // FIXME: Apparently deprecated?
     session_set_env (display->priv->session, "GDMSESSION", display->priv->user_session); // FIXME: Not cross-desktop
-
-    /* If configured, run sessions through a wrapper */
-    if (display->priv->session_wrapper)
-    {
-        gchar *wrapper = g_find_program_in_path (display->priv->session_wrapper);
-        if (wrapper)
-            prepend_argv (&argv, wrapper);
-        else
-            g_warning ("Session wrapper %s not in the path", display->priv->session_wrapper);
-        g_free (wrapper);
-    }
 
     /* Run a guest session through the wrapper covered by MAC */
     if (display->priv->autologin_guest)
