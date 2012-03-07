@@ -1,2 +1,5 @@
 #!/bin/sh
-exec $@
+
+# Run the session expecting the full command to be the first argument.  It has
+# to be like this for backwards compatibility instead of having a normal argument list
+exec $1
