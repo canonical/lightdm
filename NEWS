@@ -1,7 +1,9 @@
 Overview of changes in lightdm 1.1.7
 
-    * Add a seat option greeter-allow-guest which controls if the
-      greeter should show a guest option
+    * Add a seat option greeter-allow-guest which controls if the greeter should
+      provide an option to access the guest account.
+    * Add a seat option greeter-show-manual-login which hints to a greeter if it
+      should show a manual username entry if a user list is already present.
 
 Overview of changes in lightdm 1.1.6
 

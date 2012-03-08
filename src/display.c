@@ -55,6 +55,9 @@ struct DisplayPrivate
     /* TRUE if the user list should be shown */
     gboolean greeter_hide_users;
 
+    /* TRUE if a manual login option should be shown */
+    gboolean greeter_show_manual_login;
+
     /* TRUE if the greeter is a lock screen */
     gboolean greeter_is_lock;
 
@@ -201,6 +204,13 @@ display_set_hide_users_hint (Display *display, gboolean hide_users)
 {
     g_return_if_fail (display != NULL);
     display->priv->greeter_hide_users = hide_users;
+}
+
+void
+display_set_show_manual_login_hint (Display *display, gboolean show_manual_login)
+{
+    g_return_if_fail (display != NULL);
+    display->priv->greeter_show_manual_login = show_manual_login;
 }
 
 void
@@ -417,6 +427,7 @@ start_greeter (Display *display)
     greeter_set_allow_guest (display->priv->greeter, display->priv->allow_guest);
     greeter_set_hint (display->priv->greeter, "has-guest-account", (display->priv->allow_guest && display->priv->greeter_allow_guest) ? "true" : "false");
     greeter_set_hint (display->priv->greeter, "hide-users", display->priv->greeter_hide_users ? "true" : "false");
+    greeter_set_hint (display->priv->greeter, "show-manual-login", display->priv->greeter_show_manual_login ? "true" : "false");
     if (display->priv->greeter_is_lock)
         greeter_set_hint (display->priv->greeter, "lock-screen", "true");
 
