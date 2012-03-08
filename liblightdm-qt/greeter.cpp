@@ -181,6 +181,12 @@ bool Greeter::hideUsersHint() const
     return lightdm_greeter_get_hide_users_hint(d->ldmGreeter);
 }
 
+bool Greeter::showManualLoginHint() const
+{
+    Q_D(const Greeter);
+    return lightdm_greeter_get_show_manual_login_hint(d->ldmGreeter);
+}
+
 bool Greeter::lockHint() const
 {
     Q_D(const Greeter);
