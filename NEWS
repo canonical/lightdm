@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.1.7
+
+    * Add a seat option greeter-allow-guest which controls if the
+      greeter should show a guest option
+
 Overview of changes in lightdm 1.1.6
 
     * Fix session wrapper working the same as it did in 1.1.3

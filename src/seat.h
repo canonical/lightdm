@@ -78,6 +78,8 @@ gboolean seat_get_can_switch (Seat *seat);
 
 gboolean seat_get_allow_guest (Seat *seat);
 
+gboolean seat_get_greeter_allow_guest (Seat *seat);
+
 gboolean seat_switch_to_greeter (Seat *seat);
 
 gboolean seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_name);
