@@ -547,7 +547,13 @@ lightdm_greeter_get_default_session_hint (LightDMGreeter *greeter)
  * lightdm_greeter_get_hide_users_hint:
  * @greeter: A #LightDMGreeter
  *
- * Check if user accounts should be shown.
+ * Check if user accounts should be shown.  If this is TRUE then the list of
+ * accounts should be taken from #LightDMUserList and displayed in the greeter
+ * for the user to choose from.  Note that this list can be empty and it is
+ * recommended you show a method for the user to enter a username manually.
+ * 
+ * If this option is shown the greeter should only allow these users to be
+ * chosen for login unless the manual login hint is set.
  *
  * Return value: #TRUE if the available users should not be shown.
  */
