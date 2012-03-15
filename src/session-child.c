@@ -89,6 +89,7 @@ pam_conv_cb (int msg_length, const struct pam_message **msg, struct pam_response
 {
     int i, error;
     gboolean auth_complete = FALSE;
+    struct pam_response *response;
     gchar *username = NULL;
 
     /* Cancel authentication if requiring input */
@@ -119,17 +120,18 @@ pam_conv_cb (int msg_length, const struct pam_message **msg, struct pam_response
     }
 
     /* Get response */
-    *resp = calloc (msg_length, sizeof (struct pam_response));
     read_data (&error, sizeof (error));
     if (error != PAM_SUCCESS)
         return error;
+    response = calloc (msg_length, sizeof (struct pam_response));
     for (i = 0; i < msg_length; i++)
     {
-        struct pam_response *r = resp[i];
+        struct pam_response *r = &response[i];
         r->resp = read_string ();
         read_data (&r->resp_retcode, sizeof (r->resp_retcode));
     }
 
+    *resp = response;
     return PAM_SUCCESS;
 }
 

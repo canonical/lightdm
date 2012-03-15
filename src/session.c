@@ -424,14 +424,14 @@ session_get_console_kit_cookie (Session *session)
 void
 session_respond (Session *session, struct pam_response *response)
 {
+    int error = PAM_SUCCESS;
     int i;
 
     g_return_if_fail (session != NULL);
 
+    write_data (session, &error, sizeof (error));
     for (i = 0; i < session->priv->messages_length; i++)
     {
-        int error = PAM_SUCCESS;
-        write_data (session, &error, sizeof (error));
         write_string (session, response[i].resp);
         write_data (session, &response[i].resp_retcode, sizeof (response[i].resp_retcode));
     }
