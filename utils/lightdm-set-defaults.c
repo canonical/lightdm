@@ -23,12 +23,15 @@
 #define SESSION_KEY_NAME  "user-session"
 #define GREETER_KEY_NAME  "greeter-session"
 #define AUTOLOGIN_KEY_NAME  "autologin-user"
+#define HIDE_USERS_KEY_NAME  "greeter-hide-users"
 
 #define IS_STRING_EMPTY(x) ((x)==NULL||(x)[0]=='\0')
 
 static gboolean debug = FALSE;
 static gboolean keep_old = FALSE;
 static gboolean remove = FALSE;
+static gboolean hide_users = FALSE;
+static gboolean show_users = FALSE;
 
 static char    *session = NULL;
 static char    *greeter = NULL;
@@ -42,6 +45,8 @@ static GOptionEntry entries[] =
   { "session",  's', 0, G_OPTION_ARG_STRING, &session, N_("Set default session"), NULL },
   { "greeter",  'g', 0, G_OPTION_ARG_STRING, &greeter, N_("Set default greeter"), NULL },
   { "autologin",'a', 0, G_OPTION_ARG_STRING, &autologin, N_("Set autologin user"), NULL },
+  { "hide-users",'i', 0, G_OPTION_ARG_NONE, &hide_users, N_("Hide user list in greeter (exclusive to show-users)"), NULL },
+  { "show-users",'w', 0, G_OPTION_ARG_NONE, &show_users, N_("Show user list in greeter (exclusive to hide-users)"), NULL },
   { NULL }
 };
 
@@ -50,6 +55,26 @@ show_nothing(const gchar   *log_domain,
              GLogLevelFlags log_level,
              const gchar   *message,
              gpointer       unused_data) {};
+
+int
+update_boolean(const gboolean new_value,
+              gboolean     keep_old,
+              const gchar *key_group,
+              const gchar *key_name,
+              GKeyFile    *keyfile)
+{
+    gboolean success = TRUE;
+
+    if (keep_old)
+        g_debug ("keep-old mode: keep previous default value");
+    else {
+        g_debug ("Update to %d for %s", new_value, key_name);
+        g_key_file_set_boolean (keyfile, key_group, key_name, new_value);
+    }
+    if (!success)
+        return(2);
+    return(0);
+}
 
 int
 update_string(const gchar *default_value,
@@ -83,7 +108,7 @@ update_string(const gchar *default_value,
             if (keep_old)
                 g_debug ("keep-old mode: keep previous default value");
             else {
-                g_debug ("Update to %s for %s", default_value, key_name);
+                g_debug ("Update to %s for %s", new_value, key_name);
                 g_key_file_set_string (keyfile, key_group, key_name, new_value);
             }
         }
@@ -124,7 +149,12 @@ main (int argc, char *argv[])
         g_error_free (error);
         return 1;
     }
-    if (IS_STRING_EMPTY (session) && IS_STRING_EMPTY (greeter) && IS_STRING_EMPTY (autologin)) {
+    if (show_users && hide_users) {
+        g_printerr (N_("show-users and hide-users are mutually exclusive\n"));
+        g_option_context_free (context);
+        return 1;
+    }
+    if (IS_STRING_EMPTY (session) && IS_STRING_EMPTY (greeter) && IS_STRING_EMPTY (autologin) && !show_users && !hide_users) {
         g_printerr (N_("Wrong usage of the command\n%s"), g_option_context_get_help (context, FALSE, NULL));
         g_option_context_free (context);
         return 1;
@@ -153,6 +183,8 @@ main (int argc, char *argv[])
         return_code = update_string (default_greeter, greeter, keep_old, remove, SEATDEFAULT_KEY_GROUP, GREETER_KEY_NAME, keyfile);
     if (!(IS_STRING_EMPTY (autologin)) && (return_code == 0))
         return_code = update_string (default_autologin, autologin, keep_old, remove, SEATDEFAULT_KEY_GROUP, AUTOLOGIN_KEY_NAME, keyfile);
+    if ((show_users || hide_users) && (return_code == 0))
+        return_code = update_boolean (hide_users, keep_old, SEATDEFAULT_KEY_GROUP, HIDE_USERS_KEY_NAME, keyfile);
 
     if(return_code == 0) {
         s_data = g_key_file_to_data (keyfile, &size, &error);
