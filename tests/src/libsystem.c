@@ -331,31 +331,45 @@ pam_authenticate (pam_handle_t *pamh, int flags)
         password_matches = TRUE;
     else
     {
-        int result;
+        int i, n_messages = 0, password_index, result;
         struct pam_message **msg;
         struct pam_response *resp = NULL;
-    
-        msg = malloc (sizeof (struct pam_message *) * 1);
-        msg[0] = malloc (sizeof (struct pam_message));
-        msg[0]->msg_style = PAM_PROMPT_ECHO_OFF;
-        msg[0]->msg = "Password:";
-        result = pamh->conversation.conv (1, (const struct pam_message **) msg, &resp, pamh->conversation.appdata_ptr);
-        free (msg[0]);
+
+        msg = malloc (sizeof (struct pam_message *) * 2);
+        if (strcmp (pamh->user, "info-prompt") == 0)
+        {
+            msg[n_messages] = malloc (sizeof (struct pam_message));
+            msg[n_messages]->msg_style = PAM_TEXT_INFO;
+            msg[n_messages]->msg = "Welcome to LightDM";
+            n_messages++;
+        }
+        msg[n_messages] = malloc (sizeof (struct pam_message));
+        msg[n_messages]->msg_style = PAM_PROMPT_ECHO_OFF;
+        msg[n_messages]->msg = "Password:";
+        password_index = n_messages;
+        n_messages++;
+        result = pamh->conversation.conv (n_messages, (const struct pam_message **) msg, &resp, pamh->conversation.appdata_ptr);
+        for (i = 0; i < n_messages; i++)
+            free (msg[i]);
         free (msg);
         if (result != PAM_SUCCESS)
             return result;
 
         if (resp == NULL)
             return PAM_CONV_ERR;
-        if (resp[0].resp == NULL)
+        if (resp[password_index].resp == NULL)
         {
             free (resp);
             return PAM_CONV_ERR;
         }
 
         if (entry)
-            password_matches = strcmp (entry->pw_passwd, resp[0].resp) == 0;
-        free (resp[0].resp);  
+            password_matches = strcmp (entry->pw_passwd, resp[password_index].resp) == 0;
+        for (i = 0; i < n_messages; i++)
+        {
+            if (resp[i].resp)
+                free (resp[i].resp);
+        }
         free (resp);
     }
 

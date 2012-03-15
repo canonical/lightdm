@@ -1366,6 +1366,8 @@ main (int argc, char **argv)
         {"change-user-invalid", "",      TRUE,  "Invalid Change User",NULL,  NULL, NULL,          NULL,          1019},
         /* This account crashes on authentication */
         {"crash-authenticate", "",       TRUE,  "Crash Auth User",    NULL,  NULL, NULL,          NULL,          1020},
+        /* This account shows an informational prompt on login */
+        {"info-prompt",      "password", TRUE,  "Info Prompt",        NULL,  NULL, NULL,          NULL,          1021},
         {NULL,               NULL,       FALSE, NULL,                 NULL,  NULL, NULL,          NULL,             0}
     };
     passwd_data = g_string_new ("");

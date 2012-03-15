@@ -41,6 +41,7 @@ TESTS = \
 	test-login-gobject-manual-previous-session \
 	test-login-gobject-no-password \
 	test-login-gobject-new-authtok \
+	test-login-gobject-info-prompt \
 	test-login-gobject-pick-session \
 	test-login-gobject-previous-session \
 	test-login-gobject-wrong-password \
@@ -57,6 +58,7 @@ TESTS = \
 	test-login-python-manual-previous-session \
 	test-login-python-no-password \
 	test-login-python-new-authtok \
+	test-login-python-info-prompt \
 	test-login-python-previous-session \
 	test-login-python-wrong-password \
 	test-login-python-invalid-user \
@@ -108,6 +110,7 @@ TESTS += \
 	test-login-qt-manual-previous-session \
 	test-login-qt-no-password \
 	test-login-qt-new-authtok \
+	test-login-qt-info-prompt \
 	test-login-qt-previous-session \
 	test-login-qt-wrong-password \
 	test-login-qt-invalid-user \
@@ -163,6 +166,7 @@ EXTRA_DIST = \
 	scripts/login-guest-fail-setup-script.conf \
 	scripts/login-guest-logout.conf \
 	scripts/login-guest-no-setup-script.conf \
+	scripts/login-info-prompt.conf \
 	scripts/login-invalid-session.conf \
 	scripts/login-invalid-user.conf \
 	scripts/login-logout.conf \
