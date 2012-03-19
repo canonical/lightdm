@@ -1368,6 +1368,10 @@ main (int argc, char **argv)
         {"crash-authenticate", "",       TRUE,  "Crash Auth User",    NULL,  NULL, NULL,          NULL,          1020},
         /* This account shows an informational prompt on login */
         {"info-prompt",      "password", TRUE,  "Info Prompt",        NULL,  NULL, NULL,          NULL,          1021},
+        /* This account shows multiple informational prompts on login */
+        {"multi-info-prompt","password", TRUE,  "Multi Info Prompt",  NULL,  NULL, NULL,          NULL,          1022},
+        /* This account uses two factor authentication */
+        {"two-factor",       "password", TRUE,  "Two Factor",         NULL,  NULL, NULL,          NULL,          1023},
         {NULL,               NULL,       FALSE, NULL,                 NULL,  NULL, NULL,          NULL,             0}
     };
     passwd_data = g_string_new ("");

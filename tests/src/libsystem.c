@@ -335,12 +335,27 @@ pam_authenticate (pam_handle_t *pamh, int flags)
         struct pam_message **msg;
         struct pam_response *resp = NULL;
 
-        msg = malloc (sizeof (struct pam_message *) * 2);
+        msg = malloc (sizeof (struct pam_message *) * 5);
         if (strcmp (pamh->user, "info-prompt") == 0)
         {
             msg[n_messages] = malloc (sizeof (struct pam_message));
             msg[n_messages]->msg_style = PAM_TEXT_INFO;
             msg[n_messages]->msg = "Welcome to LightDM";
+            n_messages++;
+        }
+        if (strcmp (pamh->user, "multi-info-prompt") == 0)
+        {
+            msg[n_messages] = malloc (sizeof (struct pam_message));
+            msg[n_messages]->msg_style = PAM_TEXT_INFO;
+            msg[n_messages]->msg = "Welcome to LightDM";
+            n_messages++;
+            msg[n_messages] = malloc (sizeof (struct pam_message));
+            msg[n_messages]->msg_style = PAM_ERROR_MSG;
+            msg[n_messages]->msg = "This is an error";
+            n_messages++;
+            msg[n_messages] = malloc (sizeof (struct pam_message));
+            msg[n_messages]->msg_style = PAM_TEXT_INFO;
+            msg[n_messages]->msg = "You should have seen three messages";
             n_messages++;
         }
         msg[n_messages] = malloc (sizeof (struct pam_message));
@@ -371,6 +386,30 @@ pam_authenticate (pam_handle_t *pamh, int flags)
                 free (resp[i].resp);
         }
         free (resp);
+
+        /* Do two factor authentication */
+        if (password_matches && strcmp (pamh->user, "two-factor") == 0)
+        {
+            msg = malloc (sizeof (struct pam_message *) * 1);
+            msg[0] = malloc (sizeof (struct pam_message));
+            msg[0]->msg_style = PAM_PROMPT_ECHO_ON;
+            msg[0]->msg = "OTP:";
+            resp = NULL;
+            result = pamh->conversation.conv (1, (const struct pam_message **) msg, &resp, pamh->conversation.appdata_ptr);
+            free (msg[0]);
+            free (msg);
+
+            if (resp == NULL)
+                return PAM_CONV_ERR;
+            if (resp[0].resp == NULL)
+            {
+                free (resp);
+                return PAM_CONV_ERR;
+            }
+            password_matches = strcmp (resp[0].resp, "otp") == 0;
+            free (resp[0].resp);
+            free (resp);
+        }
     }
 
     /* Special user has home directory created on login */
