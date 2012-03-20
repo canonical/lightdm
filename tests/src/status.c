@@ -38,20 +38,13 @@ status_request_cb (GSocket *socket, GIOCondition condition, gpointer data)
 void
 status_connect (StatusRequestFunc request_cb)
 {
-    const gchar *path;
+    gchar *path;
     GSocketAddress *address;
     gboolean result;
     GSource *source;
     GError *error = NULL;
 
     request_func = request_cb;
-
-    path = g_getenv ("LIGHTDM_TEST_STATUS_SOCKET");
-    if (!path)
-    {
-        g_printerr ("LIGHTDM_TEST_STATUS_SOCKET not defined\n");
-        return;
-    }
 
     status_socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
     if (error)
@@ -60,12 +53,14 @@ status_connect (StatusRequestFunc request_cb)
     if (!status_socket)
         return;
 
+    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".status-socket", NULL);
     address = g_unix_socket_address_new (path);
     result = g_socket_connect (status_socket, address, NULL, &error);
     g_object_unref (address);
     if (error)
         g_printerr ("Failed to connect to status socket %s: %s\n", path, error->message);
     g_clear_error (&error);
+    g_free (path);
     if (!result)
         return;
 

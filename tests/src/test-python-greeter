@@ -92,13 +92,10 @@ def request_cb (channel, condition):
     sys.stderr.write ("request_cb end\n")
     return True
 
-path = os.getenv ('LIGHTDM_TEST_STATUS_SOCKET')
-if path is None:
-    sys.stderr.write ('LIGHTDM_TEST_STATUS_SOCKET not defined\n')
-else:
-    status_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
-    status_socket.connect (path)
-    GLib.io_add_watch (status_socket.fileno (), GLib.IO_IN, request_cb)
+path = os.getenv ('LIGHTDM_TEST_ROOT') + '/.status-socket'
+status_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
+status_socket.connect (path)
+GLib.io_add_watch (status_socket.fileno (), GLib.IO_IN, request_cb)
 
 status_notify ('GREETER %s START' % os.getenv ('DISPLAY'))
 

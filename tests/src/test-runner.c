@@ -1140,8 +1140,8 @@ run_lightdm ()
     g_string_append_printf (command_line, " --xsessions-dir=%s/usr/share/xsessions", temp_dir);
     g_string_append_printf (command_line, " --xgreeters-dir=%s/usr/share/xgreeters", temp_dir);
 
-    g_print ("Start daemon with command: PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_STATUS_SOCKET=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
-             g_getenv ("PATH"), g_getenv ("LD_PRELOAD"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
+    g_print ("Start daemon with command: PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_ROOT=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
+             g_getenv ("PATH"), g_getenv ("LD_PRELOAD"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_ROOT"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
              command_line->str);
 
     if (!g_shell_parse_argv (command_line->str, NULL, &lightdm_argv, &error))
@@ -1238,9 +1238,18 @@ main (int argc, char **argv)
     g_setenv ("GI_TYPELIB_PATH", path1, TRUE);
     g_free (path1);
 
+    /* Run from a temporary directory */
+    temp_dir = g_build_filename (g_get_tmp_dir (), "lightdm-test-XXXXXX", NULL);
+    if (!mkdtemp (temp_dir))
+    {
+        g_warning ("Error creating temporary directory: %s", strerror (errno));
+        quit (EXIT_FAILURE);
+    }
+    g_chmod (temp_dir, 0755);
+    g_setenv ("LIGHTDM_TEST_ROOT", temp_dir, TRUE);
+
     /* Open socket for status */
-    status_socket_name = g_build_filename (cwd, ".status-socket", NULL);
-    g_setenv ("LIGHTDM_TEST_STATUS_SOCKET", status_socket_name, TRUE);
+    status_socket_name = g_build_filename (temp_dir, ".status-socket", NULL);
     unlink (status_socket_name);
     status_socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
     if (error)
@@ -1275,16 +1284,6 @@ main (int argc, char **argv)
     status_source = g_socket_create_source (status_socket, G_IO_IN, NULL);
     g_source_set_callback (status_source, status_connect_cb, NULL, NULL);
     g_source_attach (status_source, NULL);
-
-    /* Run from a temporary directory */
-    temp_dir = g_build_filename (g_get_tmp_dir (), "lightdm-test-XXXXXX", NULL);
-    if (!mkdtemp (temp_dir))
-    {
-        g_warning ("Error creating temporary directory: %s", strerror (errno));
-        quit (EXIT_FAILURE);
-    }
-    g_chmod (temp_dir, 0755);
-    g_setenv ("LIGHTDM_TEST_ROOT", temp_dir, TRUE);
 
     /* Set up a skeleton file system */
     g_mkdir_with_parents (g_strdup_printf ("%s/etc", temp_dir), 0755);

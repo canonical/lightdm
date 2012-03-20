@@ -286,9 +286,8 @@ create_session (Display *display)
     }
 
     /* Variables required for regression tests */
-    if (g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"))
+    if (g_getenv ("LIGHTDM_TEST_ROOT"))
     {
-        session_set_env (session, "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
         session_set_env (session, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
         session_set_env (session, "DBUS_SYSTEM_BUS_ADDRESS", g_getenv ("DBUS_SYSTEM_BUS_ADDRESS"));
         session_set_env (session, "DBUS_SESSION_BUS_ADDRESS", g_getenv ("DBUS_SESSION_BUS_ADDRESS"));

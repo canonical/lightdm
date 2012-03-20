@@ -254,9 +254,8 @@ run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
     process_set_env (script, "SHELL", "/bin/sh");
 
     /* Variables required for regression tests */
-    if (g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"))
+    if (g_getenv ("LIGHTDM_TEST_ROOT"))
     {
-        process_set_env (script, "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
         process_set_env (script, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
         process_set_env (script, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
         process_set_env (script, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
