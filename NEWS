@@ -1,6 +1,8 @@
 Overview of changes in lightdm 1.1.9
 
     * Add --show-users/--hide-users to lightdm-set-defaults
+    * Call initgroups before pam_setcred - this allows pam_setcred to change
+      group membership correctly
 
 Overview of changes in lightdm 1.1.8
 

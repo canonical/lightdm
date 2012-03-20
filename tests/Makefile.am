@@ -22,6 +22,7 @@ TESTS = \
 	test-autologin-guest \
 	test-autologin-guest-fail-setup-script \
 	test-autologin-guest-logout \
+	test-group-membership \
 	test-session-stdout \
 	test-session-stderr \
 	test-xauthority \
@@ -158,6 +159,7 @@ EXTRA_DIST = \
 	scripts/greeter-fail-start.conf \
 	scripts/greeter-not-installed.conf \
 	scripts/greeter-xserver-crash.conf \
+	scripts/group-membership.conf \
 	scripts/headless.conf \
 	scripts/home-dir-on-authenticate.conf \
 	scripts/keyboard-layout.conf \

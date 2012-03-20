@@ -346,12 +346,22 @@ session_child_run (int argc, char **argv)
         fd = open (log_filename, O_WRONLY | O_CREAT, 0600);
         dup2 (fd, STDERR_FILENO);
         close (fd);
-    }   
+    }
+
+    /* Set group membership - these can be overriden in pam_setcred */
+    if (getuid () == 0)
+    {
+        if (initgroups (username, user_get_gid (user)) < 0)
+        {
+            g_printerr ("Failed to initialize supplementary groups for %s: %s\n", username, strerror (errno));
+            _exit (EXIT_FAILURE);
+        }
+    }
 
     /* Set credentials */
     result = pam_setcred (pam_handle, PAM_ESTABLISH_CRED);
-      
-    /* Open a the session */
+     
+    /* Open the session */
     result = pam_open_session (pam_handle, 0);
     if (result != PAM_SUCCESS)
     {
@@ -440,12 +450,6 @@ session_child_run (int argc, char **argv)
         /* Change to this user */
         if (getuid () == 0)
         {
-            if (initgroups (username, user_get_gid (user)) < 0)
-            {
-                g_printerr ("Failed to initialize supplementary groups for %s: %s\n", username, strerror (errno));
-                _exit (EXIT_FAILURE);
-            }
-
             if (setgid (user_get_gid (user)) != 0)
             {
                 g_printerr ("Failed to set group ID to %d: %s\n", user_get_gid (user), strerror (errno));

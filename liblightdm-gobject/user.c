@@ -772,16 +772,12 @@ update_users (LightDMUserList *user_list)
     }
     else
     {
-        const gchar *passwd_filename;
         GFile *passwd_file;
 
         load_passwd_file (user_list, FALSE);
 
         /* Watch for changes to user list */
 
-        passwd_filename = g_getenv ("LIGHTDM_TEST_PASSWD_FILE");
-        if (!passwd_filename)
-            passwd_filename = PASSWD_FILE;
         passwd_file = g_file_new_for_path (PASSWD_FILE);
         priv->passwd_monitor = g_file_monitor (passwd_file, G_FILE_MONITOR_NONE, NULL, &error);
         g_object_unref (passwd_file);

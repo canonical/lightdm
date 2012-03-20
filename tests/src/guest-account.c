@@ -17,6 +17,8 @@ request_cb (const gchar *message)
 int
 main (int argc, char **argv)
 {
+    gchar *passwd_path;
+
     g_type_init ();
 
     status_connect (request_cb);
@@ -25,6 +27,8 @@ main (int argc, char **argv)
     if (g_getenv ("LIGHTDM_TEST_CONFIG"))
         g_key_file_load_from_file (config, g_getenv ("LIGHTDM_TEST_CONFIG"), G_KEY_FILE_NONE, NULL);
 
+    passwd_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "passwd", NULL);
+
     if (argc == 2 && strcmp (argv[1], "add") == 0)
     {
         gchar *home_dir, *username, line[1024];
@@ -32,7 +36,7 @@ main (int argc, char **argv)
         FILE *passwd;
 
         /* Create a unique name */
-        home_dir = g_strdup_printf ("%s/guest-XXXXXX", g_getenv ("LIGHTDM_TEST_HOME_DIR"));
+        home_dir = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "home", "guest-XXXXXX", NULL);
         if (!mkdtemp (home_dir))
         {
             g_printerr ("Failed to create home directory %s: %s\n", home_dir, strerror (errno));
@@ -41,7 +45,7 @@ main (int argc, char **argv)
         username = strrchr (home_dir, '/') + 1;
 
         /* Get the largest UID */
-        passwd = fopen (g_getenv ("LIGHTDM_TEST_PASSWD_FILE"), "r");
+        passwd = fopen (passwd_path, "r");
         if (passwd)
         {
             while (fgets (line, 1024, passwd))
@@ -59,7 +63,7 @@ main (int argc, char **argv)
         }
 
         /* Add a new account to the passwd file */
-        passwd = fopen (g_getenv ("LIGHTDM_TEST_PASSWD_FILE"), "a");
+        passwd = fopen (passwd_path, "a");
         fprintf (passwd, "%s::%d:%d:Guest Account:%s:/bin/sh\n", username, max_uid+1, max_uid+1, home_dir);
         fclose (passwd);
 
@@ -80,8 +84,8 @@ main (int argc, char **argv)
         status_notify ("GUEST-ACCOUNT REMOVE USERNAME=%s", username);
 
         /* Open a new file for writing */
-        passwd = fopen (g_getenv ("LIGHTDM_TEST_PASSWD_FILE"), "r");
-        path = g_strdup_printf ("%s~", g_getenv ("LIGHTDM_TEST_PASSWD_FILE"));
+        passwd = fopen (passwd_path, "r");
+        path = g_strdup_printf ("%s~", passwd_path);
         new_passwd = fopen (path, "w");
 
         /* Copy the old file, omitting our entry */
@@ -95,10 +99,10 @@ main (int argc, char **argv)
         fclose (new_passwd);
 
         /* Move the new file on the old one */
-        rename (path, g_getenv ("LIGHTDM_TEST_PASSWD_FILE"));
+        rename (path, passwd_path);
 
         /* Delete home directory */
-        gchar *command = g_strdup_printf ("rm -r %s/%s", g_getenv ("LIGHTDM_TEST_HOME_DIR"), username);
+        gchar *command = g_strdup_printf ("rm -r %s/home/%s", g_getenv ("LIGHTDM_TEST_ROOT"), username);
         if (system (command))
             perror ("Failed to delete temp directory");
 

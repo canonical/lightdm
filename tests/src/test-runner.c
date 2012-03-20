@@ -838,10 +838,12 @@ start_console_kit_daemon ()
 static void
 load_passwd_file ()
 {
-    gchar *data, **lines;
+    gchar *path, *data, **lines;
     int i;
 
-    g_file_get_contents (g_getenv ("LIGHTDM_TEST_PASSWD_FILE"), &data, NULL, NULL);
+    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "passwd", NULL);
+    g_file_get_contents (path, &data, NULL, NULL);
+    g_free (path);
     lines = g_strsplit (data, "\n", -1);
     g_free (data);
 
@@ -1179,7 +1181,7 @@ main (int argc, char **argv)
 {
     GMainLoop *loop;
     gchar *greeter = NULL, *script_name, *config_file, *path, *path1, *path2, *ld_preload, *ld_library_path, *home_dir;
-    GString *passwd_data;
+    GString *passwd_data, *group_data;
     GSource *status_source;
     gchar cwd[1024];
     GError *error = NULL;
@@ -1288,6 +1290,7 @@ main (int argc, char **argv)
         quit (EXIT_FAILURE);
     }
     g_chmod (temp_dir, 0755);
+    g_setenv ("LIGHTDM_TEST_ROOT", temp_dir, TRUE);
 
     /* Set up a skeleton file system */
     g_mkdir_with_parents (g_strdup_printf ("%s/etc", temp_dir), 0755);
@@ -1311,7 +1314,6 @@ main (int argc, char **argv)
     g_free (greeter);
 
     home_dir = g_build_filename (temp_dir, "home", NULL);
-    g_setenv ("LIGHTDM_TEST_HOME_DIR", home_dir, TRUE);
 
     /* Make fake users */
     struct
@@ -1372,9 +1374,12 @@ main (int argc, char **argv)
         {"multi-info-prompt","password", TRUE,  "Multi Info Prompt",  NULL,  NULL, NULL,          NULL,          1022},
         /* This account uses two factor authentication */
         {"two-factor",       "password", TRUE,  "Two Factor",         NULL,  NULL, NULL,          NULL,          1023},
+        /* This account has a special group */
+        {"group-member",     "password", TRUE,  "Group Member",       NULL,  NULL, NULL,          NULL,          1024},
         {NULL,               NULL,       FALSE, NULL,                 NULL,  NULL, NULL,          NULL,             0}
     };
     passwd_data = g_string_new ("");
+    group_data = g_string_new ("");
     int i;
     for (i = 0; users[i].user_name; i++)
     {
@@ -1425,13 +1430,24 @@ main (int argc, char **argv)
 
         g_key_file_free (dmrc_file);
 
+        /* Add passwd file entry */
         g_string_append_printf (passwd_data, "%s:%s:%d:%d:%s:%s/home/%s:/bin/sh\n", users[i].user_name, users[i].password, users[i].uid, users[i].uid, users[i].real_name, temp_dir, users[i].user_name);
+
+        /* Add group file entry */
+        g_string_append_printf (group_data, "%s:x:%d:%s\n", users[i].user_name, users[i].uid, users[i].user_name);
     }
-    path = g_build_filename (temp_dir, "passwd", NULL);
-    g_setenv ("LIGHTDM_TEST_PASSWD_FILE", path, TRUE);
+    path = g_build_filename (temp_dir, "etc", "passwd", NULL);
     g_file_set_contents (path, passwd_data->str, -1, NULL);
     g_free (path);
     g_string_free (passwd_data, TRUE);
+
+    /* Add an extra test group */
+    g_string_append_printf (group_data, "test-group:x:111:\n");
+
+    path = g_build_filename (temp_dir, "etc", "group", NULL);
+    g_file_set_contents (path, group_data->str, -1, NULL);
+    g_free (path);
+    g_string_free (group_data, TRUE);
 
     /* Start D-Bus services */
     if (!g_key_file_get_boolean (config, "test-runner-config", "disable-console-kit", NULL))

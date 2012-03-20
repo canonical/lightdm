@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <grp.h>
 #include <xcb/xcb.h>
 #include <glib.h>
 #include <glib-object.h>
@@ -75,6 +76,34 @@ request_cb (const gchar *request)
         status_notify ("SESSION %s LOCK-SESSION", getenv ("DISPLAY"));
     }
     g_free (r);
+
+    r = g_strdup_printf ("SESSION %s LIST-GROUPS", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        int n_groups, i;
+        gid_t *groups;
+        GString *group_list;
+
+        n_groups = getgroups (0, NULL);
+        groups = malloc (sizeof (gid_t) * n_groups);
+        n_groups = getgroups (n_groups, groups);
+        group_list = g_string_new ("");
+        for (i = 0; i < n_groups; i++)
+        {
+            struct group *group;
+
+            if (i != 0)
+                g_string_append (group_list, ",");
+            group = getgrgid (groups[i]);
+            if (group)
+                g_string_append (group_list, group->gr_name);
+            else
+                g_string_append_printf (group_list, "%d", groups[i]);
+        }
+        status_notify ("SESSION %s LIST-GROUPS GROUPS=%s", getenv ("DISPLAY"), group_list->str);
+        g_string_free (group_list, TRUE);
+        free (groups);
+    }
 
     r = g_strdup_printf ("SESSION %s READ-ENV NAME=", getenv ("DISPLAY"));
     if (g_str_has_prefix (request, r))

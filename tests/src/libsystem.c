@@ -1,7 +1,9 @@
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <grp.h>
 #include <security/pam_appl.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -18,6 +20,8 @@ static int console_fd = -1;
 
 static GList *user_entries = NULL;
 static GList *getpwent_link = NULL;
+
+static GList *group_entries = NULL;
 
 struct pam_handle
 {
@@ -43,6 +47,61 @@ geteuid (void)
 int
 initgroups (const char *user, gid_t group)
 {
+    gid_t g[1];
+
+    g[0] = group;
+    setgroups (1, g);
+
+    return 0;
+}
+
+int
+getgroups (int size, gid_t list[])
+{
+    const gchar *group_list;
+    gchar **groups;
+    gint groups_length;
+
+    /* Get groups we are a member of */
+    group_list = g_getenv ("LIGHTDM_TEST_GROUPS");
+    if (!group_list)
+        group_list = "";
+    groups = g_strsplit (group_list, ",", -1);
+    groups_length = g_strv_length (groups);
+
+    if (size != 0)
+    {
+        int i;
+
+        if (groups_length > size)
+        {
+            errno = EINVAL;
+            return -1;
+        }
+        for (i = 0; groups[i]; i++)
+            list[i] = atoi (groups[i]);
+    }
+    g_free (groups);
+
+    return groups_length;
+}
+
+int
+setgroups (size_t size, const gid_t *list)
+{
+    size_t i;
+    GString *group_list;
+
+    group_list = g_string_new ("");
+    for (i = 0; i < size; i++)
+    {
+        if (i != 0)
+            g_string_append (group_list, ",");
+        g_string_append_printf (group_list, "%d", list[i]);
+    }
+    g_setenv ("LIGHTDM_TEST_GROUPS", group_list->str, TRUE);
+    g_string_free (group_list, TRUE);
+
     return 0;
 }
 
@@ -73,7 +132,7 @@ open (const char *pathname, int flags, ...)
         va_end (ap);
     }
 
-    _open = (int (*)(const char * pathname, int flags, mode_t mode)) dlsym (RTLD_NEXT, "open");      
+    _open = (int (*)(const char * pathname, int flags, mode_t mode)) dlsym (RTLD_NEXT, "open");
     if (strcmp (pathname, "/dev/console") == 0)
     {
         if (console_fd < 0)
@@ -141,7 +200,7 @@ free_user (gpointer data)
 static void
 load_passwd_file ()
 {
-    gchar *data = NULL, **lines;
+    gchar *path, *data = NULL, **lines;
     gint i;
     GError *error = NULL;
 
@@ -149,7 +208,9 @@ load_passwd_file ()
     user_entries = NULL;
     getpwent_link = NULL;
 
-    g_file_get_contents (g_getenv ("LIGHTDM_TEST_PASSWD_FILE"), &data, NULL, &error);
+    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "passwd", NULL);
+    g_file_get_contents (path, &data, NULL, &error);
+    g_free (path);
     if (error)
         g_warning ("Error loading passwd file: %s", error->message);
     g_clear_error (&error);
@@ -249,6 +310,99 @@ getpwuid (uid_t uid)
     {
         struct passwd *entry = link->data;
         if (entry->pw_uid == uid)
+            break;
+    }
+    if (!link)
+        return NULL;
+
+    return link->data;
+}
+
+static void
+free_group (gpointer data)
+{
+    struct group *entry = data;
+  
+    g_free (entry->gr_name);
+    g_free (entry->gr_passwd);
+    g_strfreev (entry->gr_mem);
+    g_free (entry);
+}
+
+static void
+load_group_file ()
+{
+    gchar *path, *data = NULL, **lines;
+    gint i;
+    GError *error = NULL;
+
+    g_list_free_full (group_entries, free_group);
+    group_entries = NULL;
+
+    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "group", NULL);
+    g_file_get_contents (path, &data, NULL, &error);
+    g_free (path);
+    if (error)
+        g_warning ("Error loading group file: %s", error->message);
+    g_clear_error (&error);
+
+    if (!data)
+        return;
+
+    lines = g_strsplit (data, "\n", -1);
+    g_free (data);
+
+    for (i = 0; lines[i]; i++)
+    {
+        gchar *line, **fields;
+
+        line = g_strstrip (lines[i]);
+        fields = g_strsplit (line, ":", -1);
+        if (g_strv_length (fields) == 4)
+        {
+            struct group *entry = malloc (sizeof (struct group));
+
+            entry->gr_name = g_strdup (fields[0]);
+            entry->gr_passwd = g_strdup (fields[1]);
+            entry->gr_gid = atoi (fields[2]);
+            entry->gr_mem = g_strsplit (fields[3], ",", -1);
+            group_entries = g_list_append (group_entries, entry);
+        }
+        g_strfreev (fields);
+    }
+    g_strfreev (lines);
+}
+
+struct group *
+getgrnam (const char *name)
+{
+    GList *link;
+
+    load_group_file ();
+
+    for (link = group_entries; link; link = link->next)
+    {
+        struct group *entry = link->data;
+        if (strcmp (entry->gr_name, name) == 0)
+            break;
+    }
+    if (!link)
+        return NULL;
+
+    return link->data;
+}
+
+struct group *
+getgrgid (gid_t gid)
+{
+    GList *link;
+
+    load_group_file ();
+
+    for (link = group_entries; link; link = link->next)
+    {
+        struct group *entry = link->data;
+        if (entry->gr_gid == gid)
             break;
     }
     if (!link)
@@ -644,6 +798,29 @@ pam_setcred (pam_handle_t *pamh, int flags)
     e = g_strdup_printf ("PATH=%s/tests/src/.libs:%s/tests/src:%s/tests/src:%s/src:%s", BUILDDIR, BUILDDIR, SRCDIR, BUILDDIR, pam_getenv (pamh, "PATH"));
     pam_putenv (pamh, e);
     g_free (e);
+
+    /* Join special groups if requested */
+    if (strcmp (pamh->user, "group-member") == 0 && flags & PAM_ESTABLISH_CRED)
+    {
+        struct group *group;
+        gid_t *groups;
+        int groups_length;
+
+        group = getgrnam ("test-group");
+        if (group)
+        {
+            groups_length = getgroups (0, NULL);
+            groups = malloc (sizeof (gid_t) * (groups_length + 1));
+            groups_length = getgroups (groups_length, groups);
+            groups[groups_length] = group->gr_gid;
+            groups_length++;
+            setgroups (groups_length, groups);
+            free (groups);
+        }
+
+        /* We need to pass our group overrides down the child process - the environment via PAM seems the only way to do it easily */
+        pam_putenv (pamh, g_strdup_printf ("LIGHTDM_TEST_GROUPS=%s", g_getenv ("LIGHTDM_TEST_GROUPS")));
+    }
 
     return PAM_SUCCESS;
 }
