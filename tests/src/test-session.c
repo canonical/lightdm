@@ -175,8 +175,7 @@ main (int argc, char **argv)
         status_notify ("SESSION %s START USER=%s", getenv ("DISPLAY"), getenv ("USER"));
 
     config = g_key_file_new ();
-    if (g_getenv ("LIGHTDM_TEST_CONFIG"))
-        g_key_file_load_from_file (config, g_getenv ("LIGHTDM_TEST_CONFIG"), G_KEY_FILE_NONE, NULL);
+    g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
 
     connection = xcb_connect (NULL, NULL);
 

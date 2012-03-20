@@ -6,7 +6,8 @@ libsystem_la_SOURCES = libsystem.c
 libsystem_la_CFLAGS = \
 	$(GLIB_CFLAGS) \
 	-DSRCDIR=\"$(abs_top_srcdir)\" \
-	-DBUILDDIR=\"$(abs_top_builddir)\"
+	-DBUILDDIR=\"$(abs_top_builddir)\" \
+	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\"
 libsystem_la_LIBADD = -ldl $(GLIB_LIBS)
 
 # This is required to have autotools generate a library that is not installed

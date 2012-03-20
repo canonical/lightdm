@@ -142,6 +142,17 @@ open (const char *pathname, int flags, ...)
         }
         return console_fd;
     }
+    else if (strcmp (pathname, CONFIG_DIR "/lightdm.conf") == 0)
+    {
+        gchar *path;
+        int fd;
+
+        path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "lightdm", "lightdm.conf", NULL);
+        fd = _open (path, flags, mode);
+        g_free (path);
+
+        return fd;
+    }
     else
         return _open (pathname, flags, mode);
 }

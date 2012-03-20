@@ -1136,12 +1136,6 @@ run_lightdm ()
     command_line = g_string_new ("lightdm");
     if (getenv ("DEBUG"))
         g_string_append (command_line, " --debug");
-    if (!g_key_file_has_key (config, "test-runner-config", "have-config", NULL) ||
-        g_key_file_get_boolean (config, "test-runner-config", "have-config", NULL))
-    {
-        g_string_append_printf (command_line, " --config %s", config_path);
-        g_setenv ("LIGHTDM_TEST_CONFIG", config_path, TRUE);
-    }
     g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
     g_string_append_printf (command_line, " --xsessions-dir=%s/usr/share/xsessions", temp_dir);
     g_string_append_printf (command_line, " --xgreeters-dir=%s/usr/share/xgreeters", temp_dir);
@@ -1295,6 +1289,16 @@ main (int argc, char **argv)
     /* Set up a skeleton file system */
     g_mkdir_with_parents (g_strdup_printf ("%s/etc", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/usr/share", temp_dir), 0755);
+
+    /* Copy over the configuration */
+    g_mkdir_with_parents (g_strdup_printf ("%s/etc/lightdm", temp_dir), 0755);
+    if (!g_key_file_has_key (config, "test-runner-config", "have-config", NULL) || g_key_file_get_boolean (config, "test-runner-config", "have-config", NULL))
+        if (system (g_strdup_printf ("cp %s %s/etc/lightdm/lightdm.conf", config_path, temp_dir)))
+            perror ("Failed to copy configuration");
+
+    /* Always copy the script */
+    if (system (g_strdup_printf ("cp %s %s/script", config_path, temp_dir)))
+        perror ("Failed to copy configuration");  
 
     /* Copy over the greeter files */
     if (system (g_strdup_printf ("cp -r %s/xsessions %s/usr/share", DATADIR, temp_dir)))

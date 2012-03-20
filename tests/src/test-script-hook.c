@@ -19,8 +19,7 @@ main (int argc, char **argv)
     status_connect (request_cb);
 
     config = g_key_file_new ();
-    if (g_getenv ("LIGHTDM_TEST_CONFIG"))
-        g_key_file_load_from_file (config, g_getenv ("LIGHTDM_TEST_CONFIG"), G_KEY_FILE_NONE, NULL);
+    g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
   
     if (argc < 2)
     {

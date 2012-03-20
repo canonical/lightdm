@@ -268,7 +268,6 @@ xserver_xvnc_start (DisplayServer *display_server)
     if (g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"))
     {
         process_set_env (server->priv->xserver_process, "LIGHTDM_TEST_STATUS_SOCKET", g_getenv ("LIGHTDM_TEST_STATUS_SOCKET"));
-        process_set_env (server->priv->xserver_process, "LIGHTDM_TEST_CONFIG", g_getenv ("LIGHTDM_TEST_CONFIG"));
         process_set_env (server->priv->xserver_process, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
         process_set_env (server->priv->xserver_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }

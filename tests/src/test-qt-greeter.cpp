@@ -109,10 +109,7 @@ main(int argc, char *argv[])
 
     status_notify ("GREETER %s START", getenv ("DISPLAY"));
 
-    if (getenv ("LIGHTDM_TEST_CONFIG"))
-        config = new QSettings (getenv ("LIGHTDM_TEST_CONFIG"), QSettings::IniFormat);
-    else
-        config = new QSettings();
+    config = new QSettings (g_build_filename (getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), QSettings::IniFormat);
 
     xcb_connection_t *connection = xcb_connect (NULL, NULL);
 
