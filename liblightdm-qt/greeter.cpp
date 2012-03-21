@@ -14,6 +14,8 @@
 
 #include "QLightDM/Greeter"
 
+#include <unistd.h>
+
 #include <security/pam_appl.h>
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
