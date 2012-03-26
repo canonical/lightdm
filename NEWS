@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.1.10
+
+    * Backup .xsession-errors on login
+
 Overview of changes in lightdm 1.1.9
 
     * Add --show-users/--hide-users to lightdm-set-defaults

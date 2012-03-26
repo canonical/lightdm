@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -152,7 +153,7 @@ session_child_run (int argc, char **argv)
     int i, version, fd, result;
     gboolean auth_complete = TRUE;
     User *user = NULL;
-    gchar *log_filename;
+    gchar *log_filename, *log_backup_filename = NULL;
     gsize env_length;
     gsize command_argc;
     gchar **command_argv;
@@ -335,6 +336,8 @@ session_child_run (int argc, char **argv)
     command_argv[i] = NULL;
 
     /* Redirect stderr to a log file */
+    if (log_filename)
+        log_backup_filename = g_strdup_printf ("%s.old", log_filename);
     if (!log_filename)
     {
         fd = open ("/dev/null", O_WRONLY);   
@@ -343,6 +346,7 @@ session_child_run (int argc, char **argv)
     }
     else if (g_path_is_absolute (log_filename))
     {
+        rename (log_filename, log_backup_filename);
         fd = open (log_filename, O_WRONLY | O_CREAT, 0600);
         dup2 (fd, STDERR_FILENO);
         close (fd);
@@ -476,6 +480,7 @@ session_child_run (int argc, char **argv)
         /* Redirect stderr to a log file */
         if (log_filename && !g_path_is_absolute (log_filename))
         {
+            rename (log_filename, log_backup_filename);
             fd = open (log_filename, O_WRONLY | O_CREAT, 0600);
             dup2 (fd, STDERR_FILENO);
             close (fd);

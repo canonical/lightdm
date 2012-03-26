@@ -116,24 +116,25 @@ request_cb (const gchar *request)
 
     r = g_strdup_printf ("SESSION %s WRITE-STDOUT TEXT=", getenv ("DISPLAY"));
     if (g_str_has_prefix (request, r))
-        g_print ("%s\n", request + strlen (r));
+        g_print ("%s", request + strlen (r));
     g_free (r);
 
     r = g_strdup_printf ("SESSION %s WRITE-STDERR TEXT=", getenv ("DISPLAY"));
     if (g_str_has_prefix (request, r))
-        g_printerr ("%s\n", request + strlen (r));
+        g_printerr ("%s", request + strlen (r));
     g_free (r);
 
-    r = g_strdup_printf ("SESSION %s READ-XSESSION-ERRORS", getenv ("DISPLAY"));
-    if (strcmp (request, r) == 0)
+    r = g_strdup_printf ("SESSION %s READ FILE=", getenv ("DISPLAY"));
+    if (g_str_has_prefix (request, r))
     {
+        const gchar *name = request + strlen (r);
         gchar *contents;
         GError *error = NULL;
 
-        if (g_file_get_contents (".xsession-errors", &contents, NULL, &error))
-            status_notify ("SESSION %s READ-XSESSION-ERRORS TEXT=%s", getenv ("DISPLAY"), contents);
+        if (g_file_get_contents (name, &contents, NULL, &error))
+            status_notify ("SESSION %s READ FILE=%s TEXT=%s", getenv ("DISPLAY"), name, contents);
         else
-            status_notify ("SESSION %s READ-XSESSION-ERRORS ERROR=%s", getenv ("DISPLAY"), error->message);
+            status_notify ("SESSION %s READ FILE=%s ERROR=%s", getenv ("DISPLAY"), name, error->message);
         g_clear_error (&error);
     }
     g_free (r);

@@ -25,6 +25,8 @@ TESTS = \
 	test-group-membership \
 	test-session-stdout \
 	test-session-stderr \
+	test-session-stderr-multi-write \
+	test-session-stderr-backup \
 	test-xauthority \
 	test-system-xauthority \
 	test-user-renamed \
@@ -203,6 +205,8 @@ EXTRA_DIST = \
 	scripts/script-hook-fail-session-setup.conf \
 	scripts/session-stdout.conf \
 	scripts/session-stderr.conf \
+	scripts/session-stderr-multi-write.conf \
+	scripts/session-stderr-backup.conf \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \
