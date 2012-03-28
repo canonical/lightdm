@@ -1358,6 +1358,8 @@ main (int argc, char **argv)
         {"have-session",            "",  TRUE,  "Session User", "alternative", NULL, NULL,        NULL,          1012},
         /* This account has the home directory mounted on login */
         {"mount-home-dir",   "",         FALSE, "Mounted Home Dir User", NULL, NULL, NULL,        NULL,          1013},
+        /* This account has the home directory created when the session starts */
+        {"make-home-dir",    "",         FALSE, "Make Home Dir User", NULL,  NULL, NULL,          NULL,          1025},
         /* This account is denied access */
         {"denied",           "",         TRUE,  "Denied User",        NULL,  NULL, NULL,          NULL,          1014},
         /* This account has expired */

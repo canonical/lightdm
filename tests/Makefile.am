@@ -80,6 +80,7 @@ TESTS = \
 	test-login-session-crash \
 	test-login-xserver-crash \
 	test-home-dir-on-authenticate \
+	test-home-dir-on-session \
 	test-plymouth-active-vt \
 	test-plymouth-inactive-vt \
 	test-plymouth-no-seat \
@@ -164,6 +165,7 @@ EXTRA_DIST = \
 	scripts/group-membership.conf \
 	scripts/headless.conf \
 	scripts/home-dir-on-authenticate.conf \
+	scripts/home-dir-on-session.conf \
 	scripts/keyboard-layout.conf \
 	scripts/language.conf \
 	scripts/language-no-accounts-service.conf \

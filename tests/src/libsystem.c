@@ -728,6 +728,13 @@ pam_open_session (pam_handle_t *pamh, int flags)
     if (pamh == NULL)
         return PAM_SYSTEM_ERR;
 
+    if (strcmp (pamh->user, "make-home-dir") == 0)
+    {
+        struct passwd *entry;
+        entry = getpwnam (pamh->user);
+        g_mkdir_with_parents (entry->pw_dir, 0755);
+    }
+
     return PAM_SUCCESS;
 }
 
