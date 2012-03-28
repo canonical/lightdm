@@ -17,6 +17,7 @@ TESTS = \
 	test-autologin-new-authtok \
 	test-autologin-denied \
 	test-autologin-expired \
+	test-autologin-session-error \
 	test-autologin-logout \
 	test-autologin-previous-session \
 	test-autologin-guest \
@@ -157,6 +158,7 @@ EXTRA_DIST = \
 	scripts/autologin-password.conf \
 	scripts/autologin-previous-session.conf \
 	scripts/autologin-session-crash.conf \
+	scripts/autologin-session-error.conf \
 	scripts/autologin-xserver-crash.conf \
 	scripts/console-kit.conf \
 	scripts/greeter-fail-start.conf \

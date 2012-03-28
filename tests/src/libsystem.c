@@ -735,6 +735,9 @@ pam_open_session (pam_handle_t *pamh, int flags)
         g_mkdir_with_parents (entry->pw_dir, 0755);
     }
 
+    if (strcmp (pamh->user, "session-error") == 0)
+        return PAM_SESSION_ERR;
+
     return PAM_SUCCESS;
 }
 

@@ -1358,8 +1358,6 @@ main (int argc, char **argv)
         {"have-session",            "",  TRUE,  "Session User", "alternative", NULL, NULL,        NULL,          1012},
         /* This account has the home directory mounted on login */
         {"mount-home-dir",   "",         FALSE, "Mounted Home Dir User", NULL, NULL, NULL,        NULL,          1013},
-        /* This account has the home directory created when the session starts */
-        {"make-home-dir",    "",         FALSE, "Make Home Dir User", NULL,  NULL, NULL,          NULL,          1025},
         /* This account is denied access */
         {"denied",           "",         TRUE,  "Denied User",        NULL,  NULL, NULL,          NULL,          1014},
         /* This account has expired */
@@ -1381,6 +1379,10 @@ main (int argc, char **argv)
         {"two-factor",       "password", TRUE,  "Two Factor",         NULL,  NULL, NULL,          NULL,          1023},
         /* This account has a special group */
         {"group-member",     "password", TRUE,  "Group Member",       NULL,  NULL, NULL,          NULL,          1024},
+        /* This account has the home directory created when the session starts */
+        {"make-home-dir",    "",         FALSE, "Make Home Dir User", NULL,  NULL, NULL,          NULL,          1025},
+        /* This account fails to open a session */
+        {"session-error",    "password", TRUE,  "Session Error",      NULL,  NULL, NULL,          NULL,          1026},
         {NULL,               NULL,       FALSE, NULL,                 NULL,  NULL, NULL,          NULL,             0}
     };
     passwd_data = g_string_new ("");
