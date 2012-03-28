@@ -364,6 +364,11 @@ session_child_run (int argc, char **argv)
 
     /* Set credentials */
     result = pam_setcred (pam_handle, PAM_ESTABLISH_CRED);
+    if (result != PAM_SUCCESS)
+    {
+        g_printerr ("Failed to establish PAM credentials: %s\n", pam_strerror (pam_handle, result));
+        return EXIT_FAILURE;
+    }
      
     /* Open the session */
     result = pam_open_session (pam_handle, 0);

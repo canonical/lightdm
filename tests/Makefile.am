@@ -17,6 +17,9 @@ TESTS = \
 	test-autologin-new-authtok \
 	test-autologin-denied \
 	test-autologin-expired \
+	test-autologin-cred-error \
+	test-autologin-cred-expired \
+	test-autologin-cred-unavail \
 	test-autologin-session-error \
 	test-autologin-logout \
 	test-autologin-previous-session \
@@ -146,6 +149,9 @@ EXTRA_DIST = \
 	data/xsessions/default.desktop \
 	scripts/autologin.conf \
 	scripts/autologin-crash-authenticate.conf \
+	scripts/autologin-cred-error.conf \
+	scripts/autologin-cred-expired.conf \
+	scripts/autologin-cred-unavail.conf \
 	scripts/autologin-denied.conf \
 	scripts/autologin-expired.conf \
 	scripts/autologin-guest.conf \

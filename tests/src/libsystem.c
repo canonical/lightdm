@@ -728,15 +728,15 @@ pam_open_session (pam_handle_t *pamh, int flags)
     if (pamh == NULL)
         return PAM_SYSTEM_ERR;
 
+    if (strcmp (pamh->user, "session-error") == 0)
+        return PAM_SESSION_ERR;
+
     if (strcmp (pamh->user, "make-home-dir") == 0)
     {
         struct passwd *entry;
         entry = getpwnam (pamh->user);
         g_mkdir_with_parents (entry->pw_dir, 0755);
     }
-
-    if (strcmp (pamh->user, "session-error") == 0)
-        return PAM_SESSION_ERR;
 
     return PAM_SUCCESS;
 }
@@ -819,6 +819,13 @@ pam_setcred (pam_handle_t *pamh, int flags)
     e = g_strdup_printf ("PATH=%s/tests/src/.libs:%s/tests/src:%s/tests/src:%s/src:%s", BUILDDIR, BUILDDIR, SRCDIR, BUILDDIR, pam_getenv (pamh, "PATH"));
     pam_putenv (pamh, e);
     g_free (e);
+
+    if (strcmp (pamh->user, "cred-error") == 0)
+        return PAM_CRED_ERR;
+    if (strcmp (pamh->user, "cred-expired") == 0)
+        return PAM_CRED_EXPIRED;
+    if (strcmp (pamh->user, "cred-unavail") == 0)
+        return PAM_CRED_UNAVAIL;
 
     /* Join special groups if requested */
     if (strcmp (pamh->user, "group-member") == 0 && flags & PAM_ESTABLISH_CRED)

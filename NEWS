@@ -1,6 +1,7 @@
 Overview of changes in lightdm 1.1.10
 
     * Backup .xsession-errors on login
+    * Handle failures in pam_setcred
 
 Overview of changes in lightdm 1.1.9
 
