@@ -121,22 +121,6 @@ int_length ()
 }
 
 static void
-write_message (LightDMGreeter *greeter, guint8 *message, gsize message_length)
-{
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-    GIOStatus status;
-    GError *error = NULL;
-
-    status = g_io_channel_write_chars (priv->to_server_channel, (gchar *) message, message_length, NULL, &error);
-    if (error)
-        g_warning ("Error writing to daemon: %s", error->message);
-    g_clear_error (&error);
-    if (status == G_IO_STATUS_NORMAL)
-        g_debug ("Wrote %zi bytes to daemon", message_length);
-    g_io_channel_flush (priv->to_server_channel, NULL);
-}
-
-static void
 write_int (guint8 *buffer, gint buffer_length, guint32 value, gsize *offset)
 {
     if (*offset + 4 >= buffer_length)
@@ -223,6 +207,35 @@ get_message_length (guint8 *message, gsize message_length)
 {
     gsize offset = 4;
     return read_int (message, message_length, &offset);
+}
+
+static void
+write_message (LightDMGreeter *greeter, guint8 *message, gsize message_length)
+{
+    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    GIOStatus status;
+    GError *error = NULL;
+    guint32 stated_length;
+
+    /* Double check that we're sending well-formed messages.  If we say we're
+       sending more than we do, we end up DOS'ing lightdm as it waits for the
+       rest.  If we say we're sending less than we do, we confuse the heck out
+       of lightdm, as it starts reading headers from the middle of our
+       messages. */
+    stated_length = HEADER_SIZE + get_message_length (message, message_length);
+    if (stated_length != message_length)
+    {
+        g_warning ("Refusing to write malformed packet to daemon: declared size is %u, but actual size is %zu", stated_length, message_length);
+        return;
+    }
+
+    status = g_io_channel_write_chars (priv->to_server_channel, (gchar *) message, message_length, NULL, &error);
+    if (error)
+        g_warning ("Error writing to daemon: %s", error->message);
+    g_clear_error (&error);
+    if (status == G_IO_STATUS_NORMAL)
+        g_debug ("Wrote %zi bytes to daemon", message_length);
+    g_io_channel_flush (priv->to_server_channel, NULL);
 }
 
 static void
