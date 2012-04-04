@@ -47,6 +47,8 @@ TESTS = \
 	test-login-gobject-manual \
 	test-login-gobject-manual-previous-session \
 	test-login-gobject-no-password \
+	test-login-gobject-long-username \
+	test-login-gobject-long-password \
 	test-login-gobject-two-factor \
 	test-login-gobject-new-authtok \
 	test-login-gobject-info-prompt \
@@ -66,6 +68,8 @@ TESTS = \
 	test-login-python-manual \
 	test-login-python-manual-previous-session \
 	test-login-python-no-password \
+	test-login-python-long-username \
+	test-login-python-long-password \
 	test-login-python-two-factor \
 	test-login-python-new-authtok \
 	test-login-python-info-prompt \
@@ -121,6 +125,8 @@ TESTS += \
 	test-login-qt-manual \
 	test-login-qt-manual-previous-session \
 	test-login-qt-no-password \
+	test-login-qt-long-username \
+	test-login-qt-long-password \
 	test-login-qt-two-factor \
 	test-login-qt-new-authtok \
 	test-login-qt-info-prompt \
@@ -190,6 +196,8 @@ EXTRA_DIST = \
 	scripts/login-invalid-session.conf \
 	scripts/login-invalid-user.conf \
 	scripts/login-logout.conf \
+	scripts/login-long-username.conf \
+	scripts/login-long-password.conf \
 	scripts/login-manual.conf \
 	scripts/login-manual-previous-session.conf \
 	scripts/login-multi-info-prompt.conf \
