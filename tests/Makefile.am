@@ -10,16 +10,16 @@ TESTS = \
 	test-autologin \
 	test-autologin-invalid-user \
 	test-autologin-invalid-session \
-	test-autologin-crash-authenticate \
+	test-crash-authenticate \
 	test-autologin-xserver-crash \
 	test-autologin-session-crash \
 	test-autologin-password \
 	test-autologin-new-authtok \
-	test-autologin-denied \
-	test-autologin-expired \
-	test-autologin-cred-error \
-	test-autologin-cred-expired \
-	test-autologin-cred-unavail \
+	test-denied \
+	test-expired \
+	test-cred-error \
+	test-cred-expired \
+	test-cred-unavail \
 	test-autologin-session-error \
 	test-autologin-logout \
 	test-autologin-previous-session \
@@ -148,12 +148,6 @@ EXTRA_DIST = \
 	data/xsessions/alternative.desktop \
 	data/xsessions/default.desktop \
 	scripts/autologin.conf \
-	scripts/autologin-crash-authenticate.conf \
-	scripts/autologin-cred-error.conf \
-	scripts/autologin-cred-expired.conf \
-	scripts/autologin-cred-unavail.conf \
-	scripts/autologin-denied.conf \
-	scripts/autologin-expired.conf \
 	scripts/autologin-guest.conf \
 	scripts/autologin-guest-fail-setup-script.conf \
 	scripts/autologin-guest-logout.conf \
@@ -167,6 +161,12 @@ EXTRA_DIST = \
 	scripts/autologin-session-error.conf \
 	scripts/autologin-xserver-crash.conf \
 	scripts/console-kit.conf \
+	scripts/crash-authenticate.conf \
+	scripts/cred-error.conf \
+	scripts/cred-expired.conf \
+	scripts/cred-unavail.conf \
+	scripts/denied.conf \
+	scripts/expired.conf \
 	scripts/greeter-fail-start.conf \
 	scripts/greeter-not-installed.conf \
 	scripts/greeter-xserver-crash.conf \
