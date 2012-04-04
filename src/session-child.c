@@ -172,6 +172,7 @@ session_child_run (int argc, char **argv)
     gchar *xauth_filename;
     GDBusConnection *bus;
     gchar *console_kit_cookie;
+    const gchar *path;
     GError *error = NULL;
 
     g_type_init ();
@@ -442,6 +443,11 @@ session_child_run (int argc, char **argv)
         pam_putenv (pam_handle, value);
         g_free (value);
     }
+
+    /* Put our tools directory in the path as a hack so we can use the legacy gdmflexiserver interface */
+    path = pam_getenv (pam_handle, "PATH");
+    if (path)
+        pam_putenv (pam_handle, g_strdup_printf ("PATH=%s:%s", PKGLIBEXEC_DIR, path));
 
     /* Catch terminate signal and pass it to the child */
     signal (SIGTERM, signal_cb);
