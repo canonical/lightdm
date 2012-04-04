@@ -27,6 +27,7 @@ TESTS = \
 	test-autologin-guest-fail-setup-script \
 	test-autologin-guest-logout \
 	test-group-membership \
+	test-util-path \
 	test-session-stdout \
 	test-session-stderr \
 	test-session-stderr-multi-write \
@@ -105,6 +106,7 @@ TESTS = \
 	test-switch-to-user-existing-session \
 	test-switch-to-user-no-password \
 	test-switch-to-user-logout \
+	scripts/util-path.conf \
 	test-vnc-login \
 	test-xdmcp-login \
 	test-no-accounts-service \
