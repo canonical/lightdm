@@ -51,6 +51,9 @@ struct XDMCPServerPrivate
 
 G_DEFINE_TYPE (XDMCPServer, xdmcp_server, G_TYPE_OBJECT);
 
+/* Maximum number of milliseconds client will resend manage requests before giving up */
+#define MANAGE_TIMEOUT 126000
+
 XDMCPServer *
 xdmcp_server_new (void)
 {
@@ -133,7 +136,7 @@ add_session (XDMCPServer *server)
     session = xdmcp_session_new (id);
     session->priv->server = server;
     g_hash_table_insert (server->priv->sessions, GINT_TO_POINTER ((gint) id), g_object_ref (session));
-    session->priv->inactive_timeout = g_timeout_add (10, (GSourceFunc) session_timeout_cb, session);
+    session->priv->inactive_timeout = g_timeout_add (MANAGE_TIMEOUT, (GSourceFunc) session_timeout_cb, session);
 
     return session;
 }

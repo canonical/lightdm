@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.0.11
+
+    * Change XDMCP manage timeout from 10ms to 126s (maximum specified in the
+      XDMCP specification)
+
 Overview of changes in lightdm 1.0.10
 
     * Fix compilation failure in liblightdm-qt with GCC 4.7
