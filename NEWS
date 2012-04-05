@@ -8,6 +8,8 @@ Overview of changes in lightdm 1.2.0
     * Fix gdmflexiserver not being added to the path (broken since 1.1.4)
     * Fix PAM conversations after authentication from locking up sessions
     * Fix PAM informational messages locking up autologin
+    * Change XDMCP manage timeout from 10ms to 126s (maximum specified in the
+      XDMCP specification)
 
 Overview of changes in lightdm 1.1.9
 
