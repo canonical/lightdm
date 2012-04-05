@@ -15,6 +15,8 @@ TESTS = \
 	test-autologin-session-crash \
 	test-autologin-password \
 	test-autologin-new-authtok \
+	test-pam \
+	test-login-pam \
 	test-denied \
 	test-expired \
 	test-cred-error \
@@ -106,7 +108,6 @@ TESTS = \
 	test-switch-to-user-existing-session \
 	test-switch-to-user-no-password \
 	test-switch-to-user-logout \
-	scripts/util-path.conf \
 	test-vnc-login \
 	test-xdmcp-login \
 	test-no-accounts-service \
@@ -205,6 +206,7 @@ EXTRA_DIST = \
 	scripts/login-multi-info-prompt.conf \
 	scripts/login-new-authtok.conf \
 	scripts/login-no-password.conf \
+	scripts/login-pam.conf \
 	scripts/login-pick-session.conf \
 	scripts/login-previous-session.conf \
 	scripts/login-two-factor.conf \
@@ -216,6 +218,7 @@ EXTRA_DIST = \
 	scripts/no-console-kit.conf \
 	scripts/no-keyboard-layout.conf \
 	scripts/no-language.conf \
+	scripts/pam.conf \
 	scripts/plymouth-active-vt.conf \
 	scripts/plymouth-inactive-vt.conf \
 	scripts/plymouth-no-seat.conf \
@@ -235,6 +238,7 @@ EXTRA_DIST = \
 	scripts/switch-to-user-logout.conf \
 	scripts/switch-to-user-no-password.conf \
 	scripts/system-xauthority.conf \
+	scripts/util-path.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
 	scripts/vnc-login.conf \

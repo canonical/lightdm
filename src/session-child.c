@@ -27,6 +27,7 @@ static int to_daemon_input = 0;
 
 static gboolean is_interactive;
 static gboolean do_authenticate;
+static gboolean authentication_complete = FALSE;
 static pam_handle_t *pam_handle;
 
 /* Maximum length of a string to pass between daemon and session */
@@ -93,6 +94,10 @@ pam_conv_cb (int msg_length, const struct pam_message **msg, struct pam_response
     struct pam_response *response;
     gchar *username = NULL;
 
+    /* FIXME: We don't support communication after pam_authenticate completes */
+    if (authentication_complete)
+        return PAM_SUCCESS;
+
     /* Cancel authentication if requiring input */
     if (!is_interactive)
     {
@@ -104,6 +109,9 @@ pam_conv_cb (int msg_length, const struct pam_message **msg, struct pam_response
                 return PAM_CONV_ERR;
             }
         }
+
+        /* Ignore informational messages */
+        return PAM_SUCCESS;
     }
 
     /* Check if we changed user */
@@ -284,6 +292,7 @@ session_child_run (int argc, char **argv)
     }
     else
         authentication_result = PAM_SUCCESS;
+    authentication_complete = TRUE;
 
     if (authentication_result == PAM_SUCCESS)
     {
