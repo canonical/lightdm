@@ -12,7 +12,7 @@ apparmor_profiledir = $(sysconfdir)/apparmor.d
 
 install-data-hook:
 	install -d $(DESTDIR)$(apparmor_profiledir)
-	sed 's!LIBEXECDIR!$(libexecdir)!g' < $(srcdir)/guest-session.apparmor \
+	sed 's!PKGLIBEXECDIR!$(pkglibexecdir)!g' < $(srcdir)/guest-session.apparmor \
 		> $(DESTDIR)$(apparmor_profiledir)/lightdm-guest-session
 
 dist_man1_MANS = lightdm.1

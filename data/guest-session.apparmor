@@ -4,7 +4,7 @@
 
 #include <tunables/global>
 
-LIBEXECDIR/lightdm-guest-session-wrapper {
+PKGLIBEXECDIR/lightdm-guest-session-wrapper {
   #include <abstractions/authentication>
   #include <abstractions/nameservice>
   #include <abstractions/wutmp>
