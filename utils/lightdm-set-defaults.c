@@ -24,6 +24,8 @@
 #define GREETER_KEY_NAME  "greeter-session"
 #define AUTOLOGIN_KEY_NAME  "autologin-user"
 #define HIDE_USERS_KEY_NAME  "greeter-hide-users"
+#define MANUAL_LOGIN_KEY_NAME  "greeter-show-manual-login"
+#define ALLOW_GUEST_KEY_NAME  "allow-guest"
 
 #define IS_STRING_EMPTY(x) ((x)==NULL||(x)[0]=='\0')
 
@@ -31,11 +33,15 @@ static gboolean debug = FALSE;
 static gboolean keep_old = FALSE;
 static gboolean remove = FALSE;
 static gboolean hide_users = FALSE;
-static gboolean show_users = FALSE;
+static gboolean show_manual_login = FALSE;
+static gboolean allow_guest = FALSE;
 
 static char    *session = NULL;
 static char    *greeter = NULL;
 static char    *autologin = NULL;
+static char    *str_hide_users = NULL;
+static char    *str_show_manual_login = NULL;
+static char    *str_allow_guest = NULL;
 
 static GOptionEntry entries[] =
 {
@@ -45,8 +51,9 @@ static GOptionEntry entries[] =
   { "session",  's', 0, G_OPTION_ARG_STRING, &session, N_("Set default session"), NULL },
   { "greeter",  'g', 0, G_OPTION_ARG_STRING, &greeter, N_("Set default greeter"), NULL },
   { "autologin",'a', 0, G_OPTION_ARG_STRING, &autologin, N_("Set autologin user"), NULL },
-  { "hide-users",'i', 0, G_OPTION_ARG_NONE, &hide_users, N_("Hide user list in greeter (exclusive to show-users)"), NULL },
-  { "show-users",'w', 0, G_OPTION_ARG_NONE, &show_users, N_("Show user list in greeter (exclusive to hide-users)"), NULL },
+  { "hide-users",'i', 0, G_OPTION_ARG_STRING, &str_hide_users, N_("Set greeter-hide-users to true or false"), NULL },
+  { "show-manual-login",'m', 0, G_OPTION_ARG_STRING, &str_show_manual_login, N_("Set show-manual-login to true or false"), NULL },
+  { "allow-guest",'l', 0, G_OPTION_ARG_STRING, &str_allow_guest, N_("Set allow-guest to true or false"), NULL },
   { NULL }
 };
 
@@ -119,6 +126,25 @@ update_string(const gchar *default_value,
 }
 
 int 
+str_to_bool(const gchar *str, gboolean *bool_out)
+{
+    if (IS_STRING_EMPTY(str)) {
+        return -1;
+    }
+    else if (strncasecmp(str, "true", 4)==0) {
+        *bool_out = TRUE;
+        return 0;
+    }
+    else if (strncasecmp(str, "false", 5)==0) {
+        *bool_out = FALSE;
+        return 0;
+    }
+    else {
+        return -2;
+    }
+}
+
+int 
 main (int argc, char *argv[])
 {
     GOptionContext *context = NULL;
@@ -149,12 +175,7 @@ main (int argc, char *argv[])
         g_error_free (error);
         return 1;
     }
-    if (show_users && hide_users) {
-        g_printerr (N_("show-users and hide-users are mutually exclusive\n"));
-        g_option_context_free (context);
-        return 1;
-    }
-    if (IS_STRING_EMPTY (session) && IS_STRING_EMPTY (greeter) && IS_STRING_EMPTY (autologin) && !show_users && !hide_users) {
+    if (IS_STRING_EMPTY (session) && IS_STRING_EMPTY (greeter) && IS_STRING_EMPTY (autologin) && IS_STRING_EMPTY(str_hide_users) && IS_STRING_EMPTY(str_show_manual_login) && IS_STRING_EMPTY(str_allow_guest)) {
         g_printerr (N_("Wrong usage of the command\n%s"), g_option_context_get_help (context, FALSE, NULL));
         g_option_context_free (context);
         return 1;
@@ -183,10 +204,35 @@ main (int argc, char *argv[])
         return_code = update_string (default_greeter, greeter, keep_old, remove, SEATDEFAULT_KEY_GROUP, GREETER_KEY_NAME, keyfile);
     if (!(IS_STRING_EMPTY (autologin)) && (return_code == 0))
         return_code = update_string (default_autologin, autologin, keep_old, remove, SEATDEFAULT_KEY_GROUP, AUTOLOGIN_KEY_NAME, keyfile);
-    if ((show_users || hide_users) && (return_code == 0))
-        return_code = update_boolean (hide_users, keep_old, SEATDEFAULT_KEY_GROUP, HIDE_USERS_KEY_NAME, keyfile);
+    if (!(IS_STRING_EMPTY(str_hide_users)) && (return_code == 0)) {
+        if (str_to_bool(str_hide_users, &hide_users) == 0) {
+            return_code = update_boolean (hide_users, keep_old, SEATDEFAULT_KEY_GROUP, HIDE_USERS_KEY_NAME, keyfile);
+        }
+        else {
+            g_printerr (N_("true and false are the only valid choices for hide-users\n"));
+            return 1;
+        }
+    }
+    if (!(IS_STRING_EMPTY(str_allow_guest)) && (return_code == 0)) {
+        if (str_to_bool(str_allow_guest, &allow_guest) == 0) {
+            return_code = update_boolean (allow_guest, keep_old, SEATDEFAULT_KEY_GROUP, ALLOW_GUEST_KEY_NAME, keyfile);
+        }
+        else {
+            g_printerr (N_("true and false are the only valid choices for allow-guest\n"));
+            return 1;
+        }
+    }
+    if (!(IS_STRING_EMPTY(str_show_manual_login)) && (return_code == 0)) {
+        if (str_to_bool(str_show_manual_login, &show_manual_login) == 0) {
+            return_code = update_boolean (show_manual_login, keep_old, SEATDEFAULT_KEY_GROUP, MANUAL_LOGIN_KEY_NAME, keyfile);
+        }
+        else {
+            g_printerr (N_("true and false are the only valid choices for show-manual-login\n"));
+            return 1;
+        }
+    }
 
-    if(return_code == 0) {
+    if (return_code == 0) {
         s_data = g_key_file_to_data (keyfile, &size, &error);
         if (!s_data) {
             g_debug ("Can't convert data to string: %s", error->message);
