@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.2.2
+
+    * Add missing regression test script
+
 Overview of changes in lightdm 1.2.1
 
     * Fix wrapper path in AppArmor profile (broken since 1.1.1)
