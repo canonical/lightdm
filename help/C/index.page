@@ -1,0 +1,39 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="index">
+
+<info>
+  <credit type="author">
+    <name>Robert Ancell</name>
+    <email>robert.ancell@gmail.com</email>
+  </credit>
+  <include href="legal.xml" xmlns="http://www.w3.org/2001/XInclude" />
+</info>
+  
+<title>LightDM Help</title>
+    
+<p>
+LightDM is a <em>display manager</em>.
+</p>
+    
+<section id="display-management" style="2column">
+  <title>LightDM for Display Management</title>
+</section>
+
+<section id="authentication" style="2column">
+  <title>Authentication</title>
+</section>
+
+<section id="greeters" style="2column">
+  <title>Greeters</title>
+</section>
+
+<section id="sessions" style="2column">
+  <title>Sessions</title>
+</section>
+
+<section id="remote-access" style="2column">
+  <title>Remote Access</title>
+</section>
+
+</page>

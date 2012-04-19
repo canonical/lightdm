@@ -150,6 +150,7 @@ dnl Documentation
 dnl ###########################################################################
 
 GTK_DOC_CHECK
+YELP_HELP_INIT
 
 dnl ###########################################################################
 dnl Internationalization
@@ -168,6 +169,7 @@ Makefile
 data/Makefile
 data/init/Makefile
 doc/Makefile
+help/Makefile
 liblightdm-gobject/liblightdm-gobject-1.pc
 liblightdm-gobject/Makefile
 liblightdm-qt/Makefile

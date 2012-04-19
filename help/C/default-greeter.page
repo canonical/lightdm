@@ -1,0 +1,14 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="default-greeter">
+
+<info>
+  <link type="guide" xref="index#greeters"/>
+</info>
+
+<title>Setting the greeter</title>
+
+<p>
+</p>
+
+</page>

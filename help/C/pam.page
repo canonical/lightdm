@@ -1,0 +1,14 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="pam">
+
+<info>
+  <link type="guide" xref="index#authentication"/>
+</info>
+
+<title>PAM</title>
+
+<p>
+</p>
+
+</page>

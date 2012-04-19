@@ -1,0 +1,16 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="introduction">
+
+<info>
+  <!-- Place this at the start of the section -->
+  <title type="sort">0</title>
+  <link type="guide" xref="index#display-management"/>
+</info>
+  
+<title>Introduction</title>
+
+<p>
+</p>
+
+</page>
