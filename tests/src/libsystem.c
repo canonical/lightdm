@@ -547,6 +547,13 @@ pam_authenticate (pam_handle_t *pamh, int flags)
             msg[n_messages]->msg = "You should have seen three messages";
             n_messages++;
         }
+        if (strcmp (pamh->user, "multi-prompt") == 0)
+        {
+            msg[n_messages] = malloc (sizeof (struct pam_message));
+            msg[n_messages]->msg_style = PAM_PROMPT_ECHO_ON;
+            msg[n_messages]->msg = "Favorite Color:";
+            n_messages++;
+        }
         msg[n_messages] = malloc (sizeof (struct pam_message));
         msg[n_messages]->msg_style = PAM_PROMPT_ECHO_OFF;
         msg[n_messages]->msg = "Password:";
@@ -569,6 +576,10 @@ pam_authenticate (pam_handle_t *pamh, int flags)
 
         if (entry)
             password_matches = strcmp (entry->pw_passwd, resp[password_index].resp) == 0;
+
+        if (password_matches && strcmp (pamh->user, "multi-prompt") == 0)
+            password_matches = strcmp ("blue", resp[0].resp) == 0;
+
         for (i = 0; i < n_messages; i++)
         {
             if (resp[i].resp)
