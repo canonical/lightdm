@@ -835,6 +835,9 @@ lightdm_greeter_respond (LightDMGreeter *greeter, const gchar *response)
     LightDMGreeterPrivate *priv;
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
+    gchar **responses;
+    gint n_responses, i;
+    guint32 msg_length;
 
     g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
     g_return_if_fail (response != NULL);
@@ -843,12 +846,27 @@ lightdm_greeter_respond (LightDMGreeter *greeter, const gchar *response)
 
     g_return_if_fail (priv->connected);
 
+    /* New lines separate distinct responses */
+    responses = g_strsplit (response, "\n", -1);
+    n_responses = g_strv_length (responses);
+
+    msg_length = int_length ();
+    for (i = 0; i < n_responses; i++)
+    {
+        msg_length += string_length (responses[i]);
+    }
+
     g_debug ("Providing response to display manager");
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONTINUE_AUTHENTICATION, int_length () + string_length (response), &offset);
-    // FIXME: Could be multiple responses required
-    write_int (message, MAX_MESSAGE_LENGTH, 1, &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, response, &offset);
+
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONTINUE_AUTHENTICATION, msg_length, &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, n_responses, &offset);
+    for (i = 0; i < n_responses; i++)
+    {
+        write_string (message, MAX_MESSAGE_LENGTH, responses[i], &offset);
+    }
     write_message (greeter, message, offset);
+
+    g_strfreev (responses);
 }
 
 /**
