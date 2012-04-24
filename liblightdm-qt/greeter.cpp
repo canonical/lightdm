@@ -56,7 +56,7 @@ void GreeterPrivate::cb_showPrompt(LightDMGreeter *greeter, const gchar *text, L
     Q_UNUSED(greeter);
     
     GreeterPrivate *that = static_cast<GreeterPrivate*>(data);
-    QString message = QString::fromLocal8Bit(text);
+    QString message = QString::fromUtf8(text);
     
     //FIXME prompt type
 
@@ -68,7 +68,7 @@ void GreeterPrivate::cb_showMessage(LightDMGreeter *greeter, const gchar *text, 
     Q_UNUSED(greeter);
 
     GreeterPrivate *that = static_cast<GreeterPrivate*>(data);
-    QString message = QString::fromLocal8Bit(text);
+    QString message = QString::fromUtf8(text);
 
     //FIXME prompt type
 
@@ -147,7 +147,7 @@ bool Greeter::isAuthenticated() const
 QString Greeter::authenticationUser() const
 {
     Q_D(const Greeter);
-    return QString::fromLocal8Bit(lightdm_greeter_get_authentication_user(d->ldmGreeter));
+    return QString::fromUtf8(lightdm_greeter_get_authentication_user(d->ldmGreeter));
 }
 
 void Greeter::setLanguage (const QString &language)
@@ -172,7 +172,7 @@ QString Greeter::getHint(const QString &name) const
 QString Greeter::defaultSessionHint() const
 {
     Q_D(const Greeter);
-    return QString::fromLocal8Bit(lightdm_greeter_get_default_session_hint(d->ldmGreeter));
+    return QString::fromUtf8(lightdm_greeter_get_default_session_hint(d->ldmGreeter));
 }
 
 bool Greeter::hideUsersHint() const
@@ -202,7 +202,7 @@ bool Greeter::hasGuestAccountHint() const
 QString Greeter::selectUserHint() const
 {
     Q_D(const Greeter);
-    return QString::fromLocal8Bit(lightdm_greeter_get_select_user_hint(d->ldmGreeter));
+    return QString::fromUtf8(lightdm_greeter_get_select_user_hint(d->ldmGreeter));
 }
 
 bool Greeter::selectGuestHint() const
@@ -214,7 +214,7 @@ bool Greeter::selectGuestHint() const
 QString Greeter::autologinUserHint() const
 {
     Q_D(const Greeter);
-    return QString::fromLocal8Bit(lightdm_greeter_get_autologin_user_hint(d->ldmGreeter));
+    return QString::fromUtf8(lightdm_greeter_get_autologin_user_hint(d->ldmGreeter));
 }
 
 bool Greeter::autologinGuestHint() const
@@ -231,7 +231,7 @@ int Greeter::autologinTimeoutHint() const
 
 QString Greeter::hostname() const
 {
-    return QString::fromLocal8Bit(lightdm_get_hostname());
+    return QString::fromUtf8(lightdm_get_hostname());
 }
 
 #include "greeter_moc.cpp"
