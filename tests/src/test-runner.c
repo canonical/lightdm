@@ -1139,6 +1139,7 @@ run_lightdm ()
     g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
     g_string_append_printf (command_line, " --xsessions-dir=%s/usr/share/xsessions", temp_dir);
     g_string_append_printf (command_line, " --xgreeters-dir=%s/usr/share/xgreeters", temp_dir);
+    g_string_append_printf (command_line, " --config=%s", config_path);
 
     g_print ("Start daemon with command: PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_ROOT=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
              g_getenv ("PATH"), g_getenv ("LD_PRELOAD"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_ROOT"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
