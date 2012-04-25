@@ -78,6 +78,7 @@ load_session (GKeyFile *key_file, const gchar *key)
 
         if (!full_path)
         {
+            g_free (name);
             g_free (domain);
             return NULL;
         }
@@ -266,6 +267,17 @@ lightdm_session_get_property (GObject    *object,
 }
 
 static void
+lightdm_session_finalize (GObject *object)
+{
+    LightDMSession *self = LIGHTDM_SESSION (object);
+    LightDMSessionPrivate *priv = GET_PRIVATE (self);
+
+    g_free (priv->key);
+    g_free (priv->name);
+    g_free (priv->comment);
+}
+
+static void
 lightdm_session_class_init (LightDMSessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
@@ -274,6 +286,7 @@ lightdm_session_class_init (LightDMSessionClass *klass)
 
     object_class->set_property = lightdm_session_set_property;
     object_class->get_property = lightdm_session_get_property;
+    object_class->finalize = lightdm_session_finalize;
 
     g_object_class_install_property (object_class,
                                      PROP_KEY,
