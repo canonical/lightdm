@@ -1120,7 +1120,8 @@ load_dmrc (LightDMUser *user)
     gchar *path;
     //gboolean have_dmrc;
 
-    priv->dmrc_file = g_key_file_new ();
+    if (!priv->dmrc_file)
+        priv->dmrc_file = g_key_file_new ();
 
     /* Load from the user directory */  
     path = g_build_filename (priv->home_directory, ".dmrc", NULL);
