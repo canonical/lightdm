@@ -14,8 +14,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2012-03-12 04:44+0000\n"
-"X-Generator: Launchpad (build 14933)\n"
+"X-Launchpad-Export-Date: 2012-04-26 04:59+0000\n"
+"X-Generator: Launchpad (build 15149)\n"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:409
 msgid "Are you sure you want to close all programs and restart the computer?"
@@ -33,11 +33,12 @@ msgstr "Reinicia"
 #: ../greeters/gtk/lightdm-gtk-greeter.c:434
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
-msgstr "Esteu segur que voleu tancar tots els programes i parar l'ordinador?"
+msgstr ""
+"Esteu segur que voleu tancar tots els programes i aturar l'ordinador?"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:435
 msgid "Shutdown"
-msgstr "Para"
+msgstr "Atura"
 
 #: ../greeters/gtk/greeter.ui.h:4
 msgid "Large Font"
@@ -65,7 +66,7 @@ msgstr ""
 
 #: ../greeters/gtk/greeter.ui.h:8
 msgid "Suspend"
-msgstr "Para temporalment"
+msgstr "Atura temporalment"
 
 #: ../greeters/gtk/greeter.ui.h:2
 msgid "Hibernate"
@@ -77,7 +78,7 @@ msgstr "Reinicia..."
 
 #: ../greeters/gtk/greeter.ui.h:7
 msgid "Shutdown..."
-msgstr "Para..."
+msgstr "Atura..."
 
 #. Description on how to use Light Display Manager displayed on command-line
 #: ../src/lightdm.c:100
