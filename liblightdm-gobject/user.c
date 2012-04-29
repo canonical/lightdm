@@ -1309,14 +1309,16 @@ load_accounts_service (LightDMUser *user)
 static void
 load_user_values (LightDMUser *user)
 {
+    LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
+
     load_dmrc (user);
     load_accounts_service (user); // overrides dmrc values
 
     /* Ensure a few guarantees */
-    if (GET_USER_PRIVATE (user)->layouts == NULL)
+    if (priv->layouts == NULL)
     {
-        GET_USER_PRIVATE (user)->layouts = g_malloc (sizeof (gchar));
-        GET_USER_PRIVATE (user)->layouts[0] = NULL;
+        priv->layouts = g_malloc (sizeof (gchar *) * 1);
+        priv->layouts[0] = NULL;
     }
 }
 
