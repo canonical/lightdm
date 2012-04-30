@@ -60,9 +60,9 @@ void SessionsModelPrivate::loadSessions()
        Q_ASSERT(ldmSession);
 
        SessionItem session;
-       session.key = QString::fromLocal8Bit(lightdm_session_get_key(ldmSession));
-       session.name = QString::fromLocal8Bit(lightdm_session_get_name(ldmSession));
-       session.comment = QString::fromLocal8Bit(lightdm_session_get_comment(ldmSession));
+       session.key = QString::fromUtf8(lightdm_session_get_key(ldmSession));
+       session.name = QString::fromUtf8(lightdm_session_get_name(ldmSession));
+       session.comment = QString::fromUtf8(lightdm_session_get_comment(ldmSession));
 
        qDebug() << "adding session" << session.key;
 
