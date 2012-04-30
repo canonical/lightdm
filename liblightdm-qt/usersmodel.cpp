@@ -90,12 +90,12 @@ void UsersModelPrivate::loadUsers()
             LightDMUser *ldmUser = static_cast<LightDMUser*>(item->data);
 
             UserItem user;
-            user.name = QString::fromLocal8Bit(lightdm_user_get_name(ldmUser));
-            user.homeDirectory = QString::fromLocal8Bit(lightdm_user_get_home_directory(ldmUser));
-            user.realName = QString::fromLocal8Bit(lightdm_user_get_real_name(ldmUser));
-            user.image = QString::fromLocal8Bit(lightdm_user_get_image(ldmUser));
-            user.background = QString::fromLocal8Bit(lightdm_user_get_background(ldmUser));
-            user.session = QString::fromLocal8Bit(lightdm_user_get_session(ldmUser));
+            user.name = QString::fromUtf8(lightdm_user_get_name(ldmUser));
+            user.homeDirectory = QString::fromUtf8(lightdm_user_get_home_directory(ldmUser));
+            user.realName = QString::fromUtf8(lightdm_user_get_real_name(ldmUser));
+            user.image = QString::fromUtf8(lightdm_user_get_image(ldmUser));
+            user.background = QString::fromUtf8(lightdm_user_get_background(ldmUser));
+            user.session = QString::fromUtf8(lightdm_user_get_session(ldmUser));
             user.isLoggedIn = lightdm_user_get_logged_in(ldmUser);
             user.hasMessages = lightdm_user_get_has_messages(ldmUser);
             users.append(user);
@@ -118,11 +118,11 @@ void UsersModelPrivate::cb_userAdded(LightDMUserList *user_list, LightDMUser *ld
     that->q_func()->beginInsertRows(QModelIndex(), that->users.size(), that->users.size());
 
     UserItem user;
-    user.name = QString::fromLocal8Bit(lightdm_user_get_name(ldmUser));
-    user.homeDirectory = QString::fromLocal8Bit(lightdm_user_get_home_directory(ldmUser));
-    user.realName = QString::fromLocal8Bit(lightdm_user_get_real_name(ldmUser));
-    user.image = QString::fromLocal8Bit(lightdm_user_get_image(ldmUser));
-    user.background = QString::fromLocal8Bit(lightdm_user_get_background(ldmUser));
+    user.name = QString::fromUtf8(lightdm_user_get_name(ldmUser));
+    user.homeDirectory = QString::fromUtf8(lightdm_user_get_home_directory(ldmUser));
+    user.realName = QString::fromUtf8(lightdm_user_get_real_name(ldmUser));
+    user.image = QString::fromUtf8(lightdm_user_get_image(ldmUser));
+    user.background = QString::fromUtf8(lightdm_user_get_background(ldmUser));
     user.isLoggedIn = lightdm_user_get_logged_in(ldmUser);
     user.hasMessages = lightdm_user_get_has_messages(ldmUser);
     that->users.append(user);
@@ -136,15 +136,15 @@ void UsersModelPrivate::cb_userChanged(LightDMUserList *user_list, LightDMUser *
     Q_UNUSED(user_list)
     UsersModelPrivate *that = static_cast<UsersModelPrivate*>(data);
 
-    QString userToChange = QString::fromLocal8Bit(lightdm_user_get_name(ldmUser));
+    QString userToChange = QString::fromUtf8(lightdm_user_get_name(ldmUser));
 
     for (int i=0;i<that->users.size();i++) {
         if (that->users[i].name == userToChange) {
 
-            that->users[i].homeDirectory = QString::fromLocal8Bit(lightdm_user_get_home_directory(ldmUser));
-            that->users[i].realName = QString::fromLocal8Bit(lightdm_user_get_real_name(ldmUser));
-            that->users[i].image = QString::fromLocal8Bit(lightdm_user_get_image(ldmUser));
-            that->users[i].background = QString::fromLocal8Bit(lightdm_user_get_background(ldmUser));
+            that->users[i].homeDirectory = QString::fromUtf8(lightdm_user_get_home_directory(ldmUser));
+            that->users[i].realName = QString::fromUtf8(lightdm_user_get_real_name(ldmUser));
+            that->users[i].image = QString::fromUtf8(lightdm_user_get_image(ldmUser));
+            that->users[i].background = QString::fromUtf8(lightdm_user_get_background(ldmUser));
             that->users[i].isLoggedIn = lightdm_user_get_logged_in(ldmUser);
             that->users[i].hasMessages = lightdm_user_get_has_messages(ldmUser);
 
@@ -161,7 +161,7 @@ void UsersModelPrivate::cb_userRemoved(LightDMUserList *user_list, LightDMUser *
     Q_UNUSED(user_list)
 
     UsersModelPrivate *that = static_cast<UsersModelPrivate*>(data);
-    QString userToRemove = QString::fromLocal8Bit(lightdm_user_get_name(ldmUser));
+    QString userToRemove = QString::fromUtf8(lightdm_user_get_name(ldmUser));
 
     for (int i=0;i<that->users.size();i++) {
         if (that->users[i].name == userToRemove) {
