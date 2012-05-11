@@ -8,14 +8,14 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-12-06 11:05+0000\n"
-"PO-Revision-Date: 2011-09-13 17:57+0000\n"
+"PO-Revision-Date: 2012-05-11 04:43+0000\n"
 "Last-Translator: Emilio Sepulveda <emilio@chilemoz.org>\n"
 "Language-Team: Interlingua <ia@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2012-05-07 04:48+0000\n"
-"X-Generator: Launchpad (build 15195)\n"
+"X-Launchpad-Export-Date: 2012-05-11 05:27+0000\n"
+"X-Generator: Launchpad (build 15225)\n"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:409
 msgid "Are you sure you want to close all programs and restart the computer?"
@@ -53,7 +53,7 @@ msgstr "Optiones"
 
 #: ../greeters/ldm-gtk-greeter.c:620
 msgid "Language"
-msgstr "Linguage"
+msgstr "Lingua"
 
 #: ../greeters/ldm-gtk-greeter.c:646
 msgid "Keyboard Layout"
