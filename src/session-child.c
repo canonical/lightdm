@@ -255,11 +255,15 @@ session_child_run (int argc, char **argv)
     }
     if (xdisplay)
     {
+#ifdef PAM_XDISPLAY
         pam_set_item (pam_handle, PAM_XDISPLAY, xdisplay);
+#endif
         pam_set_item (pam_handle, PAM_TTY, xdisplay);
     }
     else if (tty)
         pam_set_item (pam_handle, PAM_TTY, tty);    
+
+#ifdef PAM_XAUTHDATA
     if (xauthority)
     {
         struct pam_xauth_data value;
@@ -270,6 +274,7 @@ session_child_run (int argc, char **argv)
         value.datalen = xauth_get_authorization_data_length (xauthority);
         pam_set_item (pam_handle, PAM_XAUTHDATA, &value);
     }
+#endif
 
     /* Authenticate */
     if (do_authenticate)
