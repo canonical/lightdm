@@ -11,6 +11,7 @@
 #include <grp.h>
 #include <glib.h>
 #include <security/pam_appl.h>
+#include <utmpx.h>
 
 #include "session-child.h"
 #include "session.h"
@@ -182,6 +183,7 @@ session_child_run (int argc, char **argv)
     gchar *console_kit_cookie;
     const gchar *path;
     GError *error = NULL;
+    gboolean is_greeter = FALSE;
 
     g_type_init ();
 
@@ -334,6 +336,8 @@ session_child_run (int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    is_greeter = g_strcmp0 (class, XDG_SESSION_CLASS_GREETER) == 0;
+
     /* Stop if we didn't authenticated */
     if (authentication_result != PAM_SUCCESS)
         return EXIT_FAILURE;
@@ -384,13 +388,18 @@ session_child_run (int argc, char **argv)
         g_printerr ("Failed to establish PAM credentials: %s\n", pam_strerror (pam_handle, result));
         return EXIT_FAILURE;
     }
-     
-    /* Open the session */
-    result = pam_open_session (pam_handle, 0);
-    if (result != PAM_SUCCESS)
+
+    /* Don't open a PAM session for greeters. This way we can stack pam_lastlog
+     * as a session module to record wtmp and lastlog for user sessions. */
+    if (!is_greeter)
     {
-        g_printerr ("Failed to open PAM session: %s\n", pam_strerror (pam_handle, result));
-        return EXIT_FAILURE;
+        /* Open the session */
+        result = pam_open_session (pam_handle, 0);
+        if (result != PAM_SUCCESS)
+        {
+            g_printerr ("Failed to open PAM session: %s\n", pam_strerror (pam_handle, result));
+            return EXIT_FAILURE;
+        }
     }
 
     /* Open a connection to the system bus for ConsoleKit - we must keep it open or CK will close the session */
@@ -524,9 +533,33 @@ session_child_run (int argc, char **argv)
         return_code = EXIT_FAILURE;
     }
 
-    /* Wait for the command to complete (blocks) */
     if (child_pid > 0)
     {
+        if (!is_greeter)
+        {
+            /* This is a user session */
+            struct utmpx ut;
+            struct timeval tv;
+            /* Log to utmp */
+            ut.ut_type = USER_PROCESS;
+            ut.ut_pid = child_pid;
+            strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
+            strncpy (ut.ut_user, username, sizeof (ut.ut_user));
+            strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
+            if (remote_host_name)
+                strncpy (ut.ut_host, remote_host_name, sizeof (ut.ut_host));
+            else
+                memset (ut.ut_host, 0, sizeof (ut.ut_host));
+            gettimeofday (&tv, NULL);
+            ut.ut_tv.tv_sec = tv.tv_sec;
+            ut.ut_tv.tv_usec = tv.tv_usec;
+            setutxent ();
+            if (NULL == pututxline (&ut))
+                g_printerr ("Failed to write utmpx: %s\n", strerror (errno));
+            endutxent ();
+        }
+
+        /* Wait for the command to complete (blocks) */
         waitpid (child_pid, &return_code, 0);
         child_pid = 0;
     }
@@ -560,7 +593,8 @@ session_child_run (int argc, char **argv)
         ck_close_session (console_kit_cookie);
 
     /* Close the session */
-    pam_close_session (pam_handle, 0);
+    if (!is_greeter)
+        pam_close_session (pam_handle, 0);
 
     /* Remove credentials */
     result = pam_setcred (pam_handle, PAM_DELETE_CRED);
