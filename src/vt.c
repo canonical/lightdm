@@ -30,7 +30,7 @@ open_console (void)
 {
     int fd;
 
-    fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY);
+    fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY, 0);
     if (fd < 0)
         g_warning ("Error opening /dev/console: %s", strerror (errno));
     return fd;
