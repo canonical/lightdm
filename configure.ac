@@ -21,6 +21,8 @@ dnl ###########################################################################
 
 AC_CHECK_HEADERS(security/pam_appl.h, [], AC_MSG_ERROR(PAM not found))
 
+AC_CHECK_FUNCS(setresgid setresuid)
+
 PKG_CHECK_MODULES(LIGHTDM, [
     glib-2.0 >= 2.24
     gio-2.0 >= 2.26
