@@ -1323,7 +1323,7 @@ load_user_values (LightDMUser *user)
 }
 
 /**
- * lightdm_user_get_language
+ * lightdm_user_get_language:
  * @user: A #LightDMUser
  * 
  * Get the language for a user.
@@ -1339,7 +1339,7 @@ lightdm_user_get_language (LightDMUser *user)
 }
 
 /**
- * lightdm_user_get_layout
+ * lightdm_user_get_layout:
  * @user: A #LightDMUser
  * 
  * Get the keyboard layout for a user.
@@ -1355,7 +1355,7 @@ lightdm_user_get_layout (LightDMUser *user)
 }
 
 /**
- * lightdm_user_get_layouts
+ * lightdm_user_get_layouts:
  * @user: A #LightDMUser
  * 
  * Get the configured keyboard layouts for a user.
@@ -1371,7 +1371,7 @@ lightdm_user_get_layouts (LightDMUser *user)
 }
 
 /**
- * lightdm_user_get_session
+ * lightdm_user_get_session:
  * @user: A #LightDMUser
  * 
  * Get the session for a user.
