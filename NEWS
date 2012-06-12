@@ -8,6 +8,7 @@ Overview of changes in lightdm 1.3.1
     * Write utmp records for sessions
     * Install PAM configuration
     * Run greeters inside the "lightdm-greeter" PAM service
+    * Handle setresgid and setresuid not being available
 
 Overview of changes in lightdm 1.2.0
 
