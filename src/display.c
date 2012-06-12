@@ -67,12 +67,6 @@ struct DisplayPrivate
     /* Program to run sessions through */
     gchar *session_wrapper;
 
-    /* PAM service to authenticate against */
-    gchar *pam_service;
-
-    /* PAM service to authenticate against for automatic logins */
-    gchar *pam_autologin_service;
-  
     /* TRUE if in a user session */
     gboolean in_user_session;
 
@@ -109,6 +103,11 @@ struct DisplayPrivate
     /* TRUE if stopped */
     gboolean stopped;
 };
+
+/* PAM services to use */
+#define GREETER_SERVICE   "lightdm-greeter"
+#define USER_SERVICE      "lightdm"
+#define AUTOLOGIN_SERVICE "lightdm-autologin"
 
 G_DEFINE_TYPE (Display, display, G_TYPE_OBJECT);
 
@@ -402,7 +401,7 @@ start_greeter (Display *display)
     g_signal_connect (display->priv->session, "authentication-complete", G_CALLBACK (greeter_authentication_complete_cb), display);
 
     /* Make communication link to greeter that will run on this session */
-    display->priv->greeter = greeter_new (display->priv->session, display->priv->pam_service);
+    display->priv->greeter = greeter_new (display->priv->session, USER_SERVICE);
     g_signal_connect (G_OBJECT (display->priv->greeter), "connected", G_CALLBACK (greeter_connected_cb), display);
     g_signal_connect (G_OBJECT (display->priv->greeter), "start-authentication", G_CALLBACK (greeter_start_authentication_cb), display);
     g_signal_connect (G_OBJECT (display->priv->greeter), "start-session", G_CALLBACK (greeter_start_session_cb), display);
@@ -448,7 +447,7 @@ start_greeter (Display *display)
     }
 
     g_signal_connect_after (display->priv->session, "stopped", G_CALLBACK (greeter_session_stopped_cb), display);
-    result = greeter_start (display->priv->greeter, display->priv->pam_service, greeter_user);
+    result = greeter_start (display->priv->greeter, GREETER_SERVICE, greeter_user);
     g_free (greeter_user);
 
     if (!result)
@@ -605,7 +604,7 @@ greeter_session_stopped_cb (Session *session, Display *display)
     {
         /* If guest, then start a new autologin guest session (so can setup account) */
         if (greeter_get_guest_authenticated (display->priv->greeter))
-            result = autologin_guest (display, display->priv->pam_autologin_service, FALSE);
+            result = autologin_guest (display, AUTOLOGIN_SERVICE, FALSE);
         /* Otherwise, use the session the greeter has authenticated */
         else
         {
@@ -773,17 +772,17 @@ display_server_ready_cb (DisplayServer *display_server, Display *display)
     if (display->priv->autologin_guest)
     {
         g_debug ("Automatically logging in as guest");
-        result = autologin_guest (display, display->priv->pam_autologin_service, TRUE);
+        result = autologin_guest (display, AUTOLOGIN_SERVICE, TRUE);
     }
     else if (display->priv->autologin_user)
     {
         g_debug ("Automatically logging in user %s", display->priv->autologin_user);
-        result = autologin (display, display->priv->autologin_user, display->priv->pam_autologin_service, TRUE);
+        result = autologin (display, display->priv->autologin_user, AUTOLOGIN_SERVICE, TRUE);
     }
     else if (display->priv->select_user_hint)
     {
         g_debug ("Logging in user %s", display->priv->select_user_hint);
-        result = autologin (display, display->priv->select_user_hint, display->priv->pam_service, TRUE);
+        result = autologin (display, display->priv->select_user_hint, USER_SERVICE, TRUE);
     }
 
     /* If no session started, start a greeter */
@@ -909,8 +908,6 @@ static void
 display_init (Display *display)
 {
     display->priv = G_TYPE_INSTANCE_GET_PRIVATE (display, DISPLAY_TYPE, DisplayPrivate);
-    display->priv->pam_service = g_strdup ("lightdm");
-    display->priv->pam_autologin_service = g_strdup ("lightdm-autologin");
 }
 
 static void
@@ -932,8 +929,6 @@ display_finalize (GObject *object)
         g_object_unref (self->priv->greeter);
     }
     g_free (self->priv->session_wrapper);
-    g_free (self->priv->pam_service);
-    g_free (self->priv->pam_autologin_service);
     if (self->priv->session)
     {
         g_signal_handlers_disconnect_matched (self->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);      
