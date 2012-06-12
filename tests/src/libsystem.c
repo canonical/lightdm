@@ -984,3 +984,19 @@ pam_strerror (pam_handle_t *pamh, int errnum)
         return "Unknown PAM error";
     }
 }
+
+void
+setutxent (void)
+{
+}
+  
+struct utmp *
+pututxline (struct utmp *ut)
+{
+    return ut;
+}
+
+void
+endutxent (void)
+{
+}
