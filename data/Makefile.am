@@ -6,6 +6,11 @@ dist_conf_DATA = lightdm.conf users.conf keys.conf
 dbusconfdir = $(sysconfdir)/dbus-1/system.d
 dist_dbusconf_DATA = org.freedesktop.DisplayManager.conf
 
+pamdir = $(sysconfdir)/pam.d
+dist_pam_DATA = pam/lightdm \
+                pam/lightdm-autologin \
+                pam/lightdm-greeter
+
 EXTRA_DIST = guest-session.apparmor
 
 apparmor_profiledir = $(sysconfdir)/apparmor.d
