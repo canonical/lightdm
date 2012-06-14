@@ -110,17 +110,43 @@ static void
 update_sessions (void)
 {
     GDir *directory;
+    gboolean result;
     GError *error = NULL;
+
+    GKeyFile *config_key_file = NULL;
+    gchar *config_path = NULL;
+    gchar *xsessions_dir = g_strdup (XSESSIONS_DIR);
 
     if (have_sessions)
         return;
 
-    directory = g_dir_open (XSESSIONS_DIR, 0, &error);
+    config_path = g_build_filename (CONFIG_DIR, "lightdm.conf", NULL);
+    config_key_file = g_key_file_new ();
+    result = g_key_file_load_from_file (config_key_file, config_path, G_KEY_FILE_NONE, &error);
+    if (error)
+        g_warning ("Failed to open configuration file: %s", error->message);
+    g_clear_error (&error);
+    if (result)
+    {
+        gchar *xd_value = g_key_file_get_string (config_key_file, "LightDM", "xsessions-directory", NULL);
+        if (xd_value)
+        {
+            g_free (xsessions_dir);
+            xsessions_dir = xd_value;
+        }
+    }
+    g_key_file_free (config_key_file);
+    g_free (config_path);
+    
+    directory = g_dir_open (xsessions_dir, 0, &error);
     if (error)
         g_warning ("Failed to open sessions directory: %s", error->message);
     g_clear_error (&error);
     if (!directory)
+    {
+        g_free (xsessions_dir);
         return;
+    }
 
     while (TRUE)
     {
@@ -136,7 +162,7 @@ update_sessions (void)
         if (!g_str_has_suffix (filename, ".desktop"))
             continue;
 
-        path = g_build_filename (XSESSIONS_DIR, filename, NULL);
+        path = g_build_filename (xsessions_dir, filename, NULL);
 
         key_file = g_key_file_new ();
         result = g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, &error);
@@ -163,6 +189,7 @@ update_sessions (void)
     }
 
     g_dir_close (directory);
+    g_free (xsessions_dir);
 
     have_sessions = TRUE;
 }
