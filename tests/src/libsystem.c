@@ -5,7 +5,6 @@
 #include <pwd.h>
 #include <grp.h>
 #include <security/pam_appl.h>
-#include <unistd.h>
 #include <fcntl.h>
 #define __USE_GNU
 #include <dlfcn.h>
