@@ -54,6 +54,7 @@ src/user-manager-glue.h
 src/ldm-marshal.c
 src/ldm-marshal.h
 src/lightdm
+src/lightdm-guest-session-wrapper
 tests/data/passwd
 tests/src/*_moc.cpp
 tests/src/dbus-env
