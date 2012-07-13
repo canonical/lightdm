@@ -459,32 +459,6 @@ session_child_run (int argc, char **argv)
         g_free (value);
     }
 
-    /* Log to utmp */
-    if (g_strcmp0 (class, XDG_SESSION_CLASS_GREETER) != 0)
-    {
-        struct utmpx ut;
-        struct timeval tv;
-
-        memset (&ut, 0, sizeof (ut));
-        ut.ut_type = USER_PROCESS;
-        ut.ut_pid = child_pid;
-        strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
-        strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
-        strncpy (ut.ut_user, username, sizeof (ut.ut_user));
-        if (remote_host_name)
-            strncpy (ut.ut_host, remote_host_name, sizeof (ut.ut_host));
-        else
-            memset (ut.ut_host, 0, sizeof (ut.ut_host));
-        gettimeofday (&tv, NULL);
-        ut.ut_tv.tv_sec = tv.tv_sec;
-        ut.ut_tv.tv_usec = tv.tv_usec;
-
-        setutxent ();
-        if (!pututxline (&ut))
-            g_printerr ("Failed to write utmpx: %s\n", strerror (errno));
-        endutxent ();
-    }
-
     /* Put our tools directory in the path as a hack so we can use the legacy gdmflexiserver interface */
     path = pam_getenv (pam_handle, "PATH");
     if (path)
@@ -554,34 +528,56 @@ session_child_run (int argc, char **argv)
     /* Wait for the command to complete (blocks) */
     if (child_pid > 0)
     {
+        /* Log to utmp */
+        if (g_strcmp0 (class, XDG_SESSION_CLASS_GREETER) != 0)
+        {
+            struct utmpx ut;
+            struct timeval tv;
+
+            memset (&ut, 0, sizeof (ut));
+            ut.ut_type = USER_PROCESS;
+            ut.ut_pid = child_pid;
+            strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
+            strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
+            strncpy (ut.ut_user, username, sizeof (ut.ut_user));
+            if (remote_host_name)
+                strncpy (ut.ut_host, remote_host_name, sizeof (ut.ut_host));
+            gettimeofday (&tv, NULL);
+            ut.ut_tv.tv_sec = tv.tv_sec;
+            ut.ut_tv.tv_usec = tv.tv_usec;
+
+            setutxent ();
+            if (!pututxline (&ut))
+                g_printerr ("Failed to write utmpx: %s\n", strerror (errno));
+            endutxent ();
+        }
+
         waitpid (child_pid, &return_code, 0);
         child_pid = 0;
-    }
 
-    /* Log to utmp */
-    if (g_strcmp0 (class, XDG_SESSION_CLASS_GREETER) != 0)
-    {
-        struct utmpx ut;
-        struct timeval tv;
+        /* Log to utmp */
+        if (g_strcmp0 (class, XDG_SESSION_CLASS_GREETER) != 0)
+        {
+            struct utmpx ut;
+            struct timeval tv;
 
-        memset (&ut, 0, sizeof (ut));
-        ut.ut_type = DEAD_PROCESS;
-        ut.ut_pid = child_pid;
-        strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
-        strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
-        strncpy (ut.ut_user, username, sizeof (ut.ut_user));
-        if (remote_host_name)
-            strncpy (ut.ut_host, remote_host_name, sizeof (ut.ut_host));
-        else
-            memset (ut.ut_host, 0, sizeof (ut.ut_host));
-        gettimeofday (&tv, NULL);
-        ut.ut_tv.tv_sec = tv.tv_sec;
-        ut.ut_tv.tv_usec = tv.tv_usec;
+            memset (&ut, 0, sizeof (ut));
+            ut.ut_type = DEAD_PROCESS;
+            ut.ut_pid = child_pid;
+            strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
+            strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
+            strncpy (ut.ut_user, username, sizeof (ut.ut_user));
+            if (remote_host_name)
+                strncpy (ut.ut_host, remote_host_name, sizeof (ut.ut_host));
+            gettimeofday (&tv, NULL);
+            ut.ut_tv.tv_sec = tv.tv_sec;
+            ut.ut_tv.tv_usec = tv.tv_usec;
 
-        setutxent ();
-        if (!pututxline (&ut))
-            g_printerr ("Failed to write utmpx: %s\n", strerror (errno));
-        endutxent ();
+            setutxent ();
+            if (!pututxline (&ut))
+                g_printerr ("Failed to write utmpx: %s\n", strerror (errno));
+            endutxent ();
+        }
     }
 
     /* Remove X authority */
