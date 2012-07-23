@@ -540,7 +540,9 @@ session_child_run (int argc, char **argv)
             strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
             strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
             strncpy (ut.ut_user, username, sizeof (ut.ut_user));
-            if (remote_host_name)
+            if (xdisplay)
+                strncpy (ut.ut_host, xdisplay, sizeof (ut.ut_host));
+            else if (remote_host_name)
                 strncpy (ut.ut_host, remote_host_name, sizeof (ut.ut_host));
             gettimeofday (&tv, NULL);
             ut.ut_tv.tv_sec = tv.tv_sec;
@@ -567,7 +569,9 @@ session_child_run (int argc, char **argv)
             strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
             strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
             strncpy (ut.ut_user, username, sizeof (ut.ut_user));
-            if (remote_host_name)
+            if (xdisplay)
+                strncpy (ut.ut_host, xdisplay, sizeof (ut.ut_host));
+            else if (remote_host_name)
                 strncpy (ut.ut_host, remote_host_name, sizeof (ut.ut_host));
             gettimeofday (&tv, NULL);
             ut.ut_tv.tv_sec = tv.tv_sec;
