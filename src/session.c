@@ -234,6 +234,9 @@ session_watch_cb (GPid pid, gint status, gpointer data)
     } 
 
     g_signal_emit (G_OBJECT (session), signals[STOPPED], 0);
+
+    /* Drop our reference on the child process, it has terminated */
+    g_object_unref (session);
 }
 
 static gboolean
@@ -361,6 +364,11 @@ session_start (Session *session, const gchar *service, const gchar *username, gb
                 NULL);
         _exit (EXIT_FAILURE);
     }
+
+    /* Hold a reference on this object until the child process terminates so we
+     * can handle the watch callback even if it is no longer used. Otherwise a
+     * zombie process will remain */
+    g_object_ref (session);
 
     /* Listen for session termination */
     session->priv->authentication_started = TRUE;

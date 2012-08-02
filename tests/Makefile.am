@@ -15,6 +15,8 @@ TESTS = \
 	test-autologin-session-crash \
 	test-autologin-password \
 	test-autologin-new-authtok \
+	test-change-authentication \
+	test-restart-authentication \
 	test-pam \
 	test-login-pam \
 	test-denied \
@@ -169,6 +171,7 @@ EXTRA_DIST = \
 	scripts/autologin-session-crash.conf \
 	scripts/autologin-session-error.conf \
 	scripts/autologin-xserver-crash.conf \
+	scripts/change-authentication.conf \
 	scripts/console-kit.conf \
 	scripts/crash-authenticate.conf \
 	scripts/cred-error.conf \
@@ -222,6 +225,7 @@ EXTRA_DIST = \
 	scripts/plymouth-active-vt.conf \
 	scripts/plymouth-inactive-vt.conf \
 	scripts/plymouth-no-seat.conf \
+	scripts/restart-authentication.conf \
 	scripts/script-hooks.conf \
 	scripts/script-hook-fail-display-setup.conf \
 	scripts/script-hook-fail-greeter-setup.conf \
