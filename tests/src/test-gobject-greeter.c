@@ -68,15 +68,9 @@ request_cb (const gchar *request)
     r = g_strdup_printf ("GREETER %s RESPOND TEXT=\"", getenv ("DISPLAY"));
     if (g_str_has_prefix (request, r))
     {
-        gchar *text, *compressed;
-
-        text = g_strdup (request + strlen (r));
+        gchar *text = g_strdup (request + strlen (r));
         text[strlen (text) - 1] = '\0';
-        compressed = g_strcompress (text);
-
-        lightdm_greeter_respond (greeter, compressed);
-
-        g_free (compressed);
+        lightdm_greeter_respond (greeter, text);
         g_free (text);
     }
     g_free (r);
