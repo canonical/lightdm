@@ -78,6 +78,7 @@ load_session (GKeyFile *key_file, const gchar *key)
 
         if (!full_path)
         {
+            g_free (name);
             g_free (domain);
             return NULL;
         }
@@ -109,17 +110,43 @@ static void
 update_sessions (void)
 {
     GDir *directory;
+    gboolean result;
     GError *error = NULL;
+
+    GKeyFile *config_key_file = NULL;
+    gchar *config_path = NULL;
+    gchar *xsessions_dir = g_strdup (XSESSIONS_DIR);
 
     if (have_sessions)
         return;
 
-    directory = g_dir_open (XSESSIONS_DIR, 0, &error);
+    config_path = g_build_filename (CONFIG_DIR, "lightdm.conf", NULL);
+    config_key_file = g_key_file_new ();
+    result = g_key_file_load_from_file (config_key_file, config_path, G_KEY_FILE_NONE, &error);
+    if (error)
+        g_warning ("Failed to open configuration file: %s", error->message);
+    g_clear_error (&error);
+    if (result)
+    {
+        gchar *xd_value = g_key_file_get_string (config_key_file, "LightDM", "xsessions-directory", NULL);
+        if (xd_value)
+        {
+            g_free (xsessions_dir);
+            xsessions_dir = xd_value;
+        }
+    }
+    g_key_file_free (config_key_file);
+    g_free (config_path);
+    
+    directory = g_dir_open (xsessions_dir, 0, &error);
     if (error)
         g_warning ("Failed to open sessions directory: %s", error->message);
     g_clear_error (&error);
     if (!directory)
+    {
+        g_free (xsessions_dir);
         return;
+    }
 
     while (TRUE)
     {
@@ -135,7 +162,7 @@ update_sessions (void)
         if (!g_str_has_suffix (filename, ".desktop"))
             continue;
 
-        path = g_build_filename (XSESSIONS_DIR, filename, NULL);
+        path = g_build_filename (xsessions_dir, filename, NULL);
 
         key_file = g_key_file_new ();
         result = g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, &error);
@@ -162,6 +189,7 @@ update_sessions (void)
     }
 
     g_dir_close (directory);
+    g_free (xsessions_dir);
 
     have_sessions = TRUE;
 }
@@ -181,7 +209,7 @@ lightdm_get_sessions (void)
 }
 
 /**
- * lightdm_session_get_key
+ * lightdm_session_get_key:
  * @session: A #LightDMSession
  * 
  * Get the key for a session
@@ -196,7 +224,7 @@ lightdm_session_get_key (LightDMSession *session)
 }
 
 /**
- * lightdm_session_get_name
+ * lightdm_session_get_name:
  * @session: A #LightDMSession
  * 
  * Get the name for a session
@@ -211,7 +239,7 @@ lightdm_session_get_name (LightDMSession *session)
 }
 
 /**
- * lightdm_session_get_comment
+ * lightdm_session_get_comment:
  * @session: A #LightDMSession
  * 
  * Get the comment for a session
@@ -266,6 +294,17 @@ lightdm_session_get_property (GObject    *object,
 }
 
 static void
+lightdm_session_finalize (GObject *object)
+{
+    LightDMSession *self = LIGHTDM_SESSION (object);
+    LightDMSessionPrivate *priv = GET_PRIVATE (self);
+
+    g_free (priv->key);
+    g_free (priv->name);
+    g_free (priv->comment);
+}
+
+static void
 lightdm_session_class_init (LightDMSessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
@@ -274,6 +313,7 @@ lightdm_session_class_init (LightDMSessionClass *klass)
 
     object_class->set_property = lightdm_session_set_property;
     object_class->get_property = lightdm_session_get_property;
+    object_class->finalize = lightdm_session_finalize;
 
     g_object_class_install_property (object_class,
                                      PROP_KEY,

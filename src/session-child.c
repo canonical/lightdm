@@ -11,6 +11,7 @@
 #include <grp.h>
 #include <glib.h>
 #include <security/pam_appl.h>
+#include <utmpx.h>
 
 #include "session-child.h"
 #include "session.h"
@@ -255,11 +256,15 @@ session_child_run (int argc, char **argv)
     }
     if (xdisplay)
     {
+#ifdef PAM_XDISPLAY
         pam_set_item (pam_handle, PAM_XDISPLAY, xdisplay);
+#endif
         pam_set_item (pam_handle, PAM_TTY, xdisplay);
     }
     else if (tty)
         pam_set_item (pam_handle, PAM_TTY, tty);    
+
+#ifdef PAM_XAUTHDATA
     if (xauthority)
     {
         struct pam_xauth_data value;
@@ -270,6 +275,7 @@ session_child_run (int argc, char **argv)
         value.datalen = xauth_get_authorization_data_length (xauthority);
         pam_set_item (pam_handle, PAM_XAUTHDATA, &value);
     }
+#endif
 
     /* Authenticate */
     if (do_authenticate)
@@ -522,8 +528,60 @@ session_child_run (int argc, char **argv)
     /* Wait for the command to complete (blocks) */
     if (child_pid > 0)
     {
+        /* Log to utmp */
+        if (g_strcmp0 (class, XDG_SESSION_CLASS_GREETER) != 0)
+        {
+            struct utmpx ut;
+            struct timeval tv;
+
+            memset (&ut, 0, sizeof (ut));
+            ut.ut_type = USER_PROCESS;
+            ut.ut_pid = child_pid;
+            strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
+            strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
+            strncpy (ut.ut_user, username, sizeof (ut.ut_user));
+            if (xdisplay)
+                strncpy (ut.ut_host, xdisplay, sizeof (ut.ut_host));
+            else if (remote_host_name)
+                strncpy (ut.ut_host, remote_host_name, sizeof (ut.ut_host));
+            gettimeofday (&tv, NULL);
+            ut.ut_tv.tv_sec = tv.tv_sec;
+            ut.ut_tv.tv_usec = tv.tv_usec;
+
+            setutxent ();
+            if (!pututxline (&ut))
+                g_printerr ("Failed to write utmpx: %s\n", strerror (errno));
+            endutxent ();
+        }
+
         waitpid (child_pid, &return_code, 0);
         child_pid = 0;
+
+        /* Log to utmp */
+        if (g_strcmp0 (class, XDG_SESSION_CLASS_GREETER) != 0)
+        {
+            struct utmpx ut;
+            struct timeval tv;
+
+            memset (&ut, 0, sizeof (ut));
+            ut.ut_type = DEAD_PROCESS;
+            ut.ut_pid = child_pid;
+            strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
+            strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
+            strncpy (ut.ut_user, username, sizeof (ut.ut_user));
+            if (xdisplay)
+                strncpy (ut.ut_host, xdisplay, sizeof (ut.ut_host));
+            else if (remote_host_name)
+                strncpy (ut.ut_host, remote_host_name, sizeof (ut.ut_host));
+            gettimeofday (&tv, NULL);
+            ut.ut_tv.tv_sec = tv.tv_sec;
+            ut.ut_tv.tv_usec = tv.tv_usec;
+
+            setutxent ();
+            if (!pututxline (&ut))
+                g_printerr ("Failed to write utmpx: %s\n", strerror (errno));
+            endutxent ();
+        }
     }
 
     /* Remove X authority */

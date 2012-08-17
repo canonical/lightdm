@@ -26,7 +26,15 @@ class Q_DECL_EXPORT Greeter : public QObject
     Q_OBJECT
     
     Q_PROPERTY(bool authenticated READ isAuthenticated ); //NOTFIY authenticationComplete
+    Q_PROPERTY(QString authenticationUser READ authenticationUser );  
+    Q_PROPERTY(QString defaultSession READ defaultSessionHint CONSTANT);
+    Q_PROPERTY(QString selectUser READ selectUserHint CONSTANT);
+    Q_PROPERTY(bool selectGuest READ selectGuestHint CONSTANT);
 
+    Q_PROPERTY(QString hostname READ hostname CONSTANT);
+    Q_PROPERTY(bool hasGuestAccount READ hasGuestAccountHint CONSTANT);
+    Q_PROPERTY(bool locked READ lockHint CONSTANT);
+    
     Q_PROPERTY(QString hostname READ hostname CONSTANT);
 
 public:

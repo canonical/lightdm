@@ -5,7 +5,6 @@
 #include <pwd.h>
 #include <grp.h>
 #include <security/pam_appl.h>
-#include <unistd.h>
 #include <fcntl.h>
 #define __USE_GNU
 #include <dlfcn.h>
@@ -994,4 +993,20 @@ pam_strerror (pam_handle_t *pamh, int errnum)
     default:
         return "Unknown PAM error";
     }
+}
+
+void
+setutxent (void)
+{
+}
+  
+struct utmp *
+pututxline (struct utmp *ut)
+{
+    return ut;
+}
+
+void
+endutxent (void)
+{
 }

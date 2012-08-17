@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(lightdm, 1.3.1~bzr)
+AC_INIT(lightdm, 1.3.2)
 AC_CONFIG_MACRO_DIR(m4)
 AC_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE
@@ -20,6 +20,8 @@ dnl Dependencies
 dnl ###########################################################################
 
 AC_CHECK_HEADERS(security/pam_appl.h, [], AC_MSG_ERROR(PAM not found))
+
+AC_CHECK_FUNCS(setresgid setresuid clearenv)
 
 PKG_CHECK_MODULES(LIGHTDM, [
     glib-2.0 >= 2.24

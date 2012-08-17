@@ -18,6 +18,7 @@
 #include <signal.h>
 #include <grp.h>
 #include <glib/gstdio.h>
+#include <config.h>
 
 #include "process.h"
 
@@ -158,7 +159,11 @@ process_run (Process *process)
     }
 
     if (process->priv->clear_environment)
+#ifdef HAVE_CLEARENV
         clearenv ();
+#else
+        environ = NULL;
+#endif
 
     g_hash_table_iter_init (&iter, process->priv->env);
     while (g_hash_table_iter_next (&iter, &key, &value))

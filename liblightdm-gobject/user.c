@@ -1120,7 +1120,8 @@ load_dmrc (LightDMUser *user)
     gchar *path;
     //gboolean have_dmrc;
 
-    priv->dmrc_file = g_key_file_new ();
+    if (!priv->dmrc_file)
+        priv->dmrc_file = g_key_file_new ();
 
     /* Load from the user directory */  
     path = g_build_filename (priv->home_directory, ".dmrc", NULL);
@@ -1308,19 +1309,21 @@ load_accounts_service (LightDMUser *user)
 static void
 load_user_values (LightDMUser *user)
 {
+    LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
+
     load_dmrc (user);
     load_accounts_service (user); // overrides dmrc values
 
     /* Ensure a few guarantees */
-    if (GET_USER_PRIVATE (user)->layouts == NULL)
+    if (priv->layouts == NULL)
     {
-        GET_USER_PRIVATE (user)->layouts = g_malloc (sizeof (gchar));
-        GET_USER_PRIVATE (user)->layouts[0] = NULL;
+        priv->layouts = g_malloc (sizeof (gchar *) * 1);
+        priv->layouts[0] = NULL;
     }
 }
 
 /**
- * lightdm_user_get_language
+ * lightdm_user_get_language:
  * @user: A #LightDMUser
  * 
  * Get the language for a user.
@@ -1336,7 +1339,7 @@ lightdm_user_get_language (LightDMUser *user)
 }
 
 /**
- * lightdm_user_get_layout
+ * lightdm_user_get_layout:
  * @user: A #LightDMUser
  * 
  * Get the keyboard layout for a user.
@@ -1352,7 +1355,7 @@ lightdm_user_get_layout (LightDMUser *user)
 }
 
 /**
- * lightdm_user_get_layouts
+ * lightdm_user_get_layouts:
  * @user: A #LightDMUser
  * 
  * Get the configured keyboard layouts for a user.
@@ -1368,7 +1371,7 @@ lightdm_user_get_layouts (LightDMUser *user)
 }
 
 /**
- * lightdm_user_get_session
+ * lightdm_user_get_session:
  * @user: A #LightDMUser
  * 
  * Get the session for a user.

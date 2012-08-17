@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 
 #include "configuration.h"
 #include "display-manager.h"
@@ -989,6 +990,8 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "LightDM", "guest-account-script", "guest-account");
     if (!config_has_key (config_get_instance (), "LightDM", "greeter-user"))
         config_set_string (config_get_instance (), "LightDM", "greeter-user", GREETER_USER);
+    if (!config_has_key (config_get_instance (), "LightDM", "lock-memory"))
+        config_set_boolean (config_get_instance (), "LightDM", "lock-memory", TRUE);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "type"))
         config_set_string (config_get_instance (), "SeatDefaults", "type", "xlocal");
     if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-command"))
@@ -1063,6 +1066,12 @@ main (int argc, char **argv)
                              name_lost_cb,
                              NULL,
                              NULL);
+
+    if (config_get_boolean (config_get_instance (), "LightDM", "lock-memory"))
+    {
+        /* Protect memory from being paged to disk, as we deal with passwords */
+        mlockall (MCL_CURRENT | MCL_FUTURE);
+    }
 
     if (getuid () != 0)
         g_debug ("Running in user mode");
