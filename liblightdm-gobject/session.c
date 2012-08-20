@@ -34,6 +34,7 @@ G_DEFINE_TYPE (LightDMSession, lightdm_session, G_TYPE_OBJECT);
 
 static gboolean have_sessions = FALSE;
 static GList *sessions = NULL;
+static GList *remote_sessions = NULL;
 
 static gint 
 compare_session (gconstpointer a, gconstpointer b)
@@ -206,6 +207,20 @@ lightdm_get_sessions (void)
 {
     update_sessions ();
     return sessions;
+}
+
+/**
+ * lightdm_get_remote_sessions:
+ *
+ * Get the available remote sessions.
+ *
+ * Return value: (element-type LightDMSession) (transfer none): A list of #LightDMSession
+ **/
+GList *
+lightdm_get_remote_sessions (void)
+{
+    update_sessions ();
+    return remote_sessions;
 }
 
 /**

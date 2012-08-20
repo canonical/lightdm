@@ -98,9 +98,11 @@ gint lightdm_greeter_get_autologin_timeout_hint (LightDMGreeter *greeter);
 
 void lightdm_greeter_cancel_autologin (LightDMGreeter *greeter);
 
-void lightdm_greeter_authenticate (LightDMGreeter *greeter, const char *username);
+void lightdm_greeter_authenticate (LightDMGreeter *greeter, const gchar *username);
 
 void lightdm_greeter_authenticate_as_guest (LightDMGreeter *greeter);
+
+void lightdm_greeter_authenticate_remote (LightDMGreeter *greeter, const gchar *session, const gchar *username);
 
 void lightdm_greeter_respond (LightDMGreeter *greeter, const gchar *response);
 

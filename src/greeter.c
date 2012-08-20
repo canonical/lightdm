@@ -76,7 +76,8 @@ typedef enum
     GREETER_MESSAGE_CONTINUE_AUTHENTICATION,
     GREETER_MESSAGE_START_SESSION,
     GREETER_MESSAGE_CANCEL_AUTHENTICATION,
-    GREETER_MESSAGE_SET_LANGUAGE
+    GREETER_MESSAGE_SET_LANGUAGE,
+    GREETER_MESSAGE_AUTHENTICATE_REMOTE
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -350,6 +351,77 @@ handle_login_as_guest (Greeter *greeter, guint32 sequence_number)
     send_end_authentication (greeter, sequence_number, "", PAM_SUCCESS);
 }
 
+static gchar *
+get_remote_session_service (const gchar *session_name)
+{
+    GKeyFile *session_desktop_file;
+    gboolean result;
+    const gchar *c;
+    gchar *filename, *path, *service = NULL;
+    GError *error = NULL;
+
+    /* Validate session name doesn't contain directory separators */
+    for (c = session_name; *c; c++)
+    {
+        if (*c == '/')
+            return NULL;
+    }
+
+    /* Load the session file */
+    session_desktop_file = g_key_file_new ();
+    filename = g_strdup_printf ("%s.desktop", session_name);
+    path = g_build_filename (REMOTE_SESSION_DIR, filename);
+    g_free (filename);
+    result = g_key_file_load_from_file (session_desktop_file, path, G_KEY_FILE_NONE, &error);
+    g_free (path);
+    if (error)
+        g_debug ("Failed to load session file %s: %s", filename, error->message);
+    g_clear_error (&error);
+    if (result)
+        service = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-PAM-Service", NULL);
+    g_key_file_free (session_desktop_file);
+
+    return service;
+}
+
+static void
+handle_login_remote (Greeter *greeter, const gchar *session_name, const gchar *username, guint32 sequence_number)
+{
+    gchar *service;
+
+    if (username)
+        g_debug ("Greeter start authentication for remote session %s as user %s", session_name, username);
+    else
+        g_debug ("Greeter start authentication for remote session %s", session_name);
+
+    reset_session (greeter);
+
+    service = get_remote_session_service (session_name);
+    if (!service)
+    {
+        send_end_authentication (greeter, sequence_number, "", PAM_SYSTEM_ERR);
+        return;
+    }
+
+    g_signal_emit (greeter, signals[START_AUTHENTICATION], 0, username, &greeter->priv->authentication_session);
+    if (greeter->priv->authentication_session)
+    {
+        g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
+        g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "authentication-complete", G_CALLBACK (authentication_complete_cb), greeter);
+
+        /* Run the session process */
+        session_start (greeter->priv->authentication_session, service, username, TRUE, TRUE);
+    }
+
+    g_free (service);
+
+    if (!greeter->priv->authentication_session)
+    {
+        send_end_authentication (greeter, sequence_number, "", PAM_USER_UNKNOWN);
+        return;
+    }
+}
+
 static void
 handle_continue_authentication (Greeter *greeter, gchar **secrets)
 {
@@ -568,6 +640,12 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     case GREETER_MESSAGE_AUTHENTICATE_AS_GUEST:
         sequence_number = read_int (greeter, &offset);
         handle_login_as_guest (greeter, sequence_number);
+        break;
+    case GREETER_MESSAGE_AUTHENTICATE_REMOTE:
+        sequence_number = read_int (greeter, &offset);
+        session_name = read_string (greeter, &offset);
+        username = read_string (greeter, &offset);
+        handle_login_remote (greeter, session_name, username, sequence_number);
         break;
     case GREETER_MESSAGE_CONTINUE_AUTHENTICATION:
         n_secrets = read_int (greeter, &offset);

@@ -80,7 +80,8 @@ typedef enum
     GREETER_MESSAGE_CONTINUE_AUTHENTICATION,
     GREETER_MESSAGE_START_SESSION,
     GREETER_MESSAGE_CANCEL_AUTHENTICATION,
-    GREETER_MESSAGE_SET_LANGUAGE
+    GREETER_MESSAGE_SET_LANGUAGE,
+    GREETER_MESSAGE_AUTHENTICATE_REMOTE
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -770,7 +771,7 @@ lightdm_greeter_cancel_autologin (LightDMGreeter *greeter)
  * Starts the authentication procedure for a user.
  **/
 void
-lightdm_greeter_authenticate (LightDMGreeter *greeter, const char *username)
+lightdm_greeter_authenticate (LightDMGreeter *greeter, const gchar *username)
 {
     LightDMGreeterPrivate *priv;
     guint8 message[MAX_MESSAGE_LENGTH];
@@ -828,6 +829,45 @@ lightdm_greeter_authenticate_as_guest (LightDMGreeter *greeter)
     g_debug ("Starting authentication for guest account...");
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_AUTHENTICATE_AS_GUEST, int_length (), &offset);
     write_int (message, MAX_MESSAGE_LENGTH, priv->authenticate_sequence_number, &offset);
+    write_message (greeter, message, offset);
+}
+
+/**
+ * lightdm_greeter_authenticate_remote:
+ * @greeter: A #LightDMGreeter
+ * @session: The name of a remote session
+ * @username: (allow-none): A username of #NULL to prompt for a username.
+ *
+ * Start authentication for a remote session type.
+ **/
+void
+lightdm_greeter_authenticate_remote (LightDMGreeter *greeter, const gchar *session, const gchar *username)
+{
+    LightDMGreeterPrivate *priv;
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+
+    g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
+
+    priv = GET_PRIVATE (greeter);
+
+    g_return_if_fail (priv->connected);
+
+    priv->cancelling_authentication = FALSE;
+    priv->authenticate_sequence_number++;
+    priv->in_authentication = TRUE;
+    priv->is_authenticated = FALSE;
+    g_free (priv->authentication_user);
+    priv->authentication_user = NULL;
+
+    if (username)
+        g_debug ("Starting authentication for remote session %s as user %s...", session, username);
+    else
+        g_debug ("Starting authentication for remote session %s...", session);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_AUTHENTICATE_REMOTE, int_length () + string_length (session) + string_length (username), &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, priv->authenticate_sequence_number, &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, session, &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
     write_message (greeter, message, offset);
 }
 
