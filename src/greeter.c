@@ -18,6 +18,7 @@
 
 #include "greeter.h"
 #include "ldm-marshal.h"
+#include "configuration.h"
 
 enum {
     CONNECTED,
@@ -357,7 +358,7 @@ get_remote_session_service (const gchar *session_name)
     GKeyFile *session_desktop_file;
     gboolean result;
     const gchar *c;
-    gchar *filename, *path, *service = NULL;
+    gchar *remote_sessions_dir, *filename, *path, *service = NULL;
     GError *error = NULL;
 
     /* Validate session name doesn't contain directory separators */
@@ -370,12 +371,14 @@ get_remote_session_service (const gchar *session_name)
     /* Load the session file */
     session_desktop_file = g_key_file_new ();
     filename = g_strdup_printf ("%s.desktop", session_name);
-    path = g_build_filename (REMOTE_SESSION_DIR, filename);
+    remote_sessions_dir = config_get_string (config_get_instance (), "LightDM", "remote-sessions-directory");
+    path = g_build_filename (remote_sessions_dir, filename, NULL);
+    g_free (remote_sessions_dir);
     g_free (filename);
     result = g_key_file_load_from_file (session_desktop_file, path, G_KEY_FILE_NONE, &error);
-    g_free (path);
     if (error)
-        g_debug ("Failed to load session file %s: %s", filename, error->message);
+        g_debug ("Failed to load session file %s: %s", path, error->message);
+    g_free (path);
     g_clear_error (&error);
     if (result)
         service = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-PAM-Service", NULL);

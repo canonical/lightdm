@@ -26,6 +26,7 @@ struct pam_handle
 {
     char *service_name;
     char *user;
+    char *ruser;
     char *tty;
     char **envlist;
     struct pam_conv conversation;
@@ -473,6 +474,64 @@ pam_authenticate (pam_handle_t *pamh, int flags)
 
     if (pamh == NULL)
         return PAM_SYSTEM_ERR;
+  
+    if (strcmp (pamh->service_name, "test-remote") == 0)
+    {
+        int result;
+        struct pam_message **msg;
+        struct pam_response *resp = NULL;
+
+        msg = malloc (sizeof (struct pam_message *) * 1);
+        msg[0] = malloc (sizeof (struct pam_message));
+        msg[0]->msg_style = PAM_PROMPT_ECHO_ON; 
+        msg[0]->msg = "remote-login:";
+        result = pamh->conversation.conv (1, (const struct pam_message **) msg, &resp, pamh->conversation.appdata_ptr);
+        free (msg[0]);
+        free (msg);
+        if (result != PAM_SUCCESS)
+            return result;
+
+        if (resp == NULL)
+            return PAM_CONV_ERR;
+        if (resp[0].resp == NULL)
+        {
+            free (resp);
+            return PAM_CONV_ERR;
+        }
+
+        if (pamh->ruser)
+            free (pamh->ruser);
+        pamh->ruser = strdup (resp[0].resp);
+        free (resp[0].resp);
+        free (resp);
+
+        msg = malloc (sizeof (struct pam_message *) * 1);
+        msg[0] = malloc (sizeof (struct pam_message));
+        msg[0]->msg_style = PAM_PROMPT_ECHO_OFF;
+        msg[0]->msg = "remote-password:";
+        result = pamh->conversation.conv (1, (const struct pam_message **) msg, &resp, pamh->conversation.appdata_ptr);
+        free (msg[0]);
+        free (msg);
+        if (result != PAM_SUCCESS)
+            return result;
+
+        if (resp == NULL)
+            return PAM_CONV_ERR;
+        if (resp[0].resp == NULL)
+        {
+            free (resp);
+            return PAM_CONV_ERR;
+        }
+
+        password_matches = strcmp (pamh->ruser, "remote-user") == 0 && strcmp (resp[0].resp, "password") == 0;
+        free (resp[0].resp);
+        free (resp);
+
+        if (password_matches)
+            return PAM_SUCCESS;
+        else
+            return PAM_AUTH_ERR;
+    }
 
     /* Prompt for username */
     if (pamh->user == NULL)
@@ -738,7 +797,11 @@ pam_get_item (const pam_handle_t *pamh, int item_type, const void **item)
     case PAM_USER:
         *item = pamh->user;
         return PAM_SUCCESS;
-      
+
+    case PAM_RUSER:
+        *item = pamh->ruser;
+        return PAM_SUCCESS;
+     
     case PAM_USER_PROMPT:
         *item = LOGIN_PROMPT;
         return PAM_SUCCESS;
@@ -911,6 +974,8 @@ pam_end (pam_handle_t *pamh, int pam_status)
     free (pamh->service_name);
     if (pamh->user)
         free (pamh->user);
+    if (pamh->ruser)
+        free (pamh->ruser);
     if (pamh->tty)
         free (pamh->tty);
     free (pamh);

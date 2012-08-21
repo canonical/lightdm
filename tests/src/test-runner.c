@@ -1138,6 +1138,7 @@ run_lightdm ()
         g_string_append (command_line, " --debug");
     g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
     g_string_append_printf (command_line, " --xsessions-dir=%s/usr/share/xsessions", temp_dir);
+    g_string_append_printf (command_line, " --remote-sessions-dir=%s/usr/share/remote-sessions", temp_dir);
     g_string_append_printf (command_line, " --xgreeters-dir=%s/usr/share/xgreeters", temp_dir);
 
     g_print ("Start daemon with command: PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_ROOT=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
@@ -1302,6 +1303,8 @@ main (int argc, char **argv)
     /* Copy over the greeter files */
     if (system (g_strdup_printf ("cp -r %s/xsessions %s/usr/share", DATADIR, temp_dir)))
         perror ("Failed to copy xsessions");
+    if (system (g_strdup_printf ("cp -r %s/remote-sessions %s/usr/share", DATADIR, temp_dir)))
+        perror ("Failed to copy remote sessions");
     if (system (g_strdup_printf ("cp -r %s/xgreeters %s/usr/share", DATADIR, temp_dir)))
         perror ("Failed to copy xgreeters");
 
