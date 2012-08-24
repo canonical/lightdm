@@ -392,10 +392,13 @@ handle_login_remote (Greeter *greeter, const gchar *session_name, const gchar *u
 {
     gchar *service;
 
-    if (username)
-        g_debug ("Greeter start authentication for remote session %s as user %s", session_name, username);
-    else
+    if (username[0] == '\0')
+    {
         g_debug ("Greeter start authentication for remote session %s", session_name);
+        username = NULL;
+    }
+    else
+        g_debug ("Greeter start authentication for remote session %s as user %s", session_name, username);
 
     reset_session (greeter);
 
@@ -406,6 +409,7 @@ handle_login_remote (Greeter *greeter, const gchar *session_name, const gchar *u
         return;
     }
 
+    greeter->priv->authentication_sequence_number = sequence_number;  
     g_signal_emit (greeter, signals[START_AUTHENTICATION], 0, username, &greeter->priv->authentication_session);
     if (greeter->priv->authentication_session)
     {

@@ -26,6 +26,7 @@ struct pam_handle
 {
     char *service_name;
     char *user;
+    char *authtok;
     char *ruser;
     char *tty;
     char **envlist;
@@ -522,10 +523,13 @@ pam_authenticate (pam_handle_t *pamh, int flags)
             free (resp);
             return PAM_CONV_ERR;
         }
-
-        password_matches = strcmp (pamh->ruser, "remote-user") == 0 && strcmp (resp[0].resp, "password") == 0;
+        if (pamh->authtok)
+            free (pamh->authtok);
+        pamh->authtok = strdup (resp[0].resp);
         free (resp[0].resp);
         free (resp);
+
+        password_matches = strcmp (pamh->ruser, "remote-user") == 0 && strcmp (pamh->authtok, "password") == 0;
 
         if (password_matches)
             return PAM_SUCCESS;
@@ -798,6 +802,10 @@ pam_get_item (const pam_handle_t *pamh, int item_type, const void **item)
         *item = pamh->user;
         return PAM_SUCCESS;
 
+    case PAM_AUTHTOK:
+        *item = pamh->authtok;
+        return PAM_SUCCESS;
+
     case PAM_RUSER:
         *item = pamh->ruser;
         return PAM_SUCCESS;
@@ -974,6 +982,8 @@ pam_end (pam_handle_t *pamh, int pam_status)
     free (pamh->service_name);
     if (pamh->user)
         free (pamh->user);
+    if (pamh->authtok)
+        free (pamh->authtok);
     if (pamh->ruser)
         free (pamh->ruser);
     if (pamh->tty)
