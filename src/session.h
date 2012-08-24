@@ -66,7 +66,7 @@ void session_set_env (Session *session, const gchar *name, const gchar *value);
 // FIXME: Remove
 User *session_get_user (Session *session);
 
-gboolean session_start (Session *session, const gchar *service, const gchar *username, gboolean do_authenticate, gboolean is_interactive);
+gboolean session_start (Session *session, const gchar *service, const gchar *username, gboolean do_authenticate, gboolean is_interactive, gboolean is_guest);
 
 const gchar *session_get_username (Session *session);
 

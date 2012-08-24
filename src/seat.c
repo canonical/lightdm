@@ -390,7 +390,6 @@ session_stopped_cb (Session *session, Seat *seat)
 
     if (seat->priv->guest_username && strcmp (session_get_username (session), seat->priv->guest_username) == 0)
     {
-        guest_account_cleanup (seat->priv->guest_username);
         g_free (seat->priv->guest_username);
         seat->priv->guest_username = NULL;
     }

@@ -493,7 +493,7 @@ autologin_authentication_complete_cb (Session *session, Display *display)
 }
 
 static gboolean
-autologin (Display *display, const gchar *username, const gchar *service, gboolean start_greeter_if_fail)
+autologin (Display *display, const gchar *username, const gchar *service, gboolean start_greeter_if_fail, gboolean is_guest)
 {
     display->priv->start_greeter_if_fail = start_greeter_if_fail;
 
@@ -502,7 +502,7 @@ autologin (Display *display, const gchar *username, const gchar *service, gboole
     display->priv->session = create_session (display);
     g_signal_connect (display->priv->session, "authentication-complete", G_CALLBACK (autologin_authentication_complete_cb), display);
     g_signal_connect_after (display->priv->session, "stopped", G_CALLBACK (user_session_stopped_cb), display);
-    return session_start (display->priv->session, service, username, TRUE, FALSE);
+    return session_start (display->priv->session, service, username, TRUE, FALSE, is_guest);
 }
 
 static gboolean
@@ -518,7 +518,7 @@ autologin_guest (Display *display, const gchar *service, gboolean start_greeter_
         return FALSE;
     }
 
-    result = autologin (display, username, service, start_greeter_if_fail);
+    result = autologin (display, username, service, start_greeter_if_fail, TRUE);
     g_free (username);
 
     return result;
@@ -777,12 +777,12 @@ display_server_ready_cb (DisplayServer *display_server, Display *display)
     else if (display->priv->autologin_user)
     {
         g_debug ("Automatically logging in user %s", display->priv->autologin_user);
-        result = autologin (display, display->priv->autologin_user, AUTOLOGIN_SERVICE, TRUE);
+        result = autologin (display, display->priv->autologin_user, AUTOLOGIN_SERVICE, TRUE, FALSE);
     }
     else if (display->priv->select_user_hint)
     {
         g_debug ("Logging in user %s", display->priv->select_user_hint);
-        result = autologin (display, display->priv->select_user_hint, USER_SERVICE, TRUE);
+        result = autologin (display, display->priv->select_user_hint, USER_SERVICE, TRUE, FALSE);
     }
 
     /* If no session started, start a greeter */

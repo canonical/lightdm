@@ -437,6 +437,8 @@ pam_start (const char *service_name, const char *user, const struct pam_conv *co
 
     handle->service_name = strdup (service_name);
     handle->user = user ? strdup (user) : NULL;
+    handle->authtok = NULL;
+    handle->ruser = NULL;
     handle->tty = NULL;
     handle->conversation.conv = conversation->conv;
     handle->conversation.appdata_ptr = conversation->appdata_ptr;
@@ -523,6 +525,7 @@ pam_authenticate (pam_handle_t *pamh, int flags)
             free (resp);
             return PAM_CONV_ERR;
         }
+
         if (pamh->authtok)
             free (pamh->authtok);
         pamh->authtok = strdup (resp[0].resp);

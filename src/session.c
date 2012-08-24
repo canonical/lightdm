@@ -22,6 +22,7 @@
 #include "session.h"
 #include "configuration.h"
 #include "console-kit.h"
+#include "guest-account.h"
 
 enum {
     GOT_MESSAGES,
@@ -45,6 +46,9 @@ struct SessionPrivate
 
     /* User to authenticate as */
     gchar *username;
+
+    /* TRUE if is a guest account */
+    gboolean is_guest;
 
     /* User object that matches the current username */
     User *user;
@@ -235,6 +239,10 @@ session_watch_cb (GPid pid, gint status, gpointer data)
 
     g_signal_emit (G_OBJECT (session), signals[STOPPED], 0);
 
+    /* Delete account if it is a guest one */
+    if (session->priv->is_guest)
+        guest_account_cleanup (session->priv->username);
+
     /* Drop our reference on the child process, it has terminated */
     g_object_unref (session);
 }
@@ -316,7 +324,7 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 }
 
 gboolean
-session_start (Session *session, const gchar *service, const gchar *username, gboolean do_authenticate, gboolean is_interactive)
+session_start (Session *session, const gchar *service, const gchar *username, gboolean do_authenticate, gboolean is_interactive, gboolean is_guest)
 {
     int version;
     int to_child_pipe[2], from_child_pipe[2];
@@ -343,6 +351,11 @@ session_start (Session *session, const gchar *service, const gchar *username, gb
     fcntl (session->priv->to_child_input, F_SETFD, FD_CLOEXEC);
     fcntl (session->priv->from_child_output, F_SETFD, FD_CLOEXEC);
 
+    /* Create the guest account if it is one */
+    session->priv->is_guest = is_guest;
+    if (is_guest && username == NULL)
+        username = guest_account_setup ();
+
     /* Remember what username we started with - it will be updated by PAM during authentication */
     session->priv->username = g_strdup (username);
 
@@ -353,6 +366,7 @@ session_start (Session *session, const gchar *service, const gchar *username, gb
         g_debug ("Failed to fork session child process: %s", strerror (errno));
         return FALSE;
     }
+
     if (session->priv->pid == 0)
     {
         /* Run us again in session child mode */
