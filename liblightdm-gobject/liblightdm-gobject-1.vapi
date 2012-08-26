@@ -4,6 +4,7 @@ namespace LightDM {
     public static unowned GLib.List<weak LightDM.Session> get_sessions ();
     public static unowned GLib.List<weak LightDM.Language> get_languages ();
     public static unowned GLib.List<weak LightDM.Layout> get_layouts ();
+    public static unowned GLib.List<weak LightDM.Session> get_remote_sessions ();
     public static unowned Language get_language ();
     public static void set_layout (Layout layout);
     public static unowned Layout get_layout ();
@@ -38,6 +39,7 @@ namespace LightDM {
         public void cancel_autologin ();
         public void authenticate (string? username = null);
         public void authenticate_as_guest ();
+        public void authenticate_remote (string session, string? username);
         public void respond (string response);
         public void cancel_authentication ();
         public bool in_authentication { get; }
