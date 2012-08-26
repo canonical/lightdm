@@ -33,7 +33,7 @@ G_DEFINE_TYPE (LightDMSession, lightdm_session, G_TYPE_OBJECT);
 #define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_SESSION, LightDMSessionPrivate)
 
 static gboolean have_sessions = FALSE;
-static GList *sessions = NULL;
+static GList *local_sessions = NULL;
 static GList *remote_sessions = NULL;
 
 static gint 
@@ -100,54 +100,24 @@ load_session (GKeyFile *key_file, const gchar *key)
     if (!priv->comment)
         priv->comment = g_strdup ("");
 
-    sessions = g_list_insert_sorted (sessions, session, compare_session);
-
     g_free (domain);
 
     return session;
 }
 
-static void
-update_sessions (void)
+static GList *
+load_sessions (const gchar *sessions_dir)
 {
     GDir *directory;
-    gboolean result;
+    GList *sessions = NULL;
     GError *error = NULL;
 
-    GKeyFile *config_key_file = NULL;
-    gchar *config_path = NULL;
-    gchar *xsessions_dir = g_strdup (XSESSIONS_DIR);
-
-    if (have_sessions)
-        return;
-
-    config_path = g_build_filename (CONFIG_DIR, "lightdm.conf", NULL);
-    config_key_file = g_key_file_new ();
-    result = g_key_file_load_from_file (config_key_file, config_path, G_KEY_FILE_NONE, &error);
-    if (error)
-        g_warning ("Failed to open configuration file: %s", error->message);
-    g_clear_error (&error);
-    if (result)
-    {
-        gchar *xd_value = g_key_file_get_string (config_key_file, "LightDM", "xsessions-directory", NULL);
-        if (xd_value)
-        {
-            g_free (xsessions_dir);
-            xsessions_dir = xd_value;
-        }
-    }
-    g_key_file_free (config_key_file);
-    g_free (config_path);
-    
-    directory = g_dir_open (xsessions_dir, 0, &error);
+    directory = g_dir_open (sessions_dir, 0, &error);
     if (error)
         g_warning ("Failed to open sessions directory: %s", error->message);
     g_clear_error (&error);
     if (!directory)
-    {
-        g_free (xsessions_dir);
-        return;
-    }
+        return NULL;
 
     while (TRUE)
     {
@@ -163,7 +133,7 @@ update_sessions (void)
         if (!g_str_has_suffix (filename, ".desktop"))
             continue;
 
-        path = g_build_filename (xsessions_dir, filename, NULL);
+        path = g_build_filename (sessions_dir, filename, NULL);
 
         key_file = g_key_file_new ();
         result = g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, &error);
@@ -183,6 +153,8 @@ update_sessions (void)
             else
                 g_debug ("Ignoring session %s", path);
             g_free (key);
+
+            sessions = g_list_insert_sorted (sessions, session, compare_session);
         }
 
         g_free (path);
@@ -190,7 +162,51 @@ update_sessions (void)
     }
 
     g_dir_close (directory);
+  
+    return sessions;
+}
+
+static void
+update_sessions (void)
+{
+    GKeyFile *config_key_file = NULL;
+    gchar *config_path = NULL;
+    gchar *xsessions_dir;
+    gchar *remote_sessions_dir;
+    gboolean result;
+    GError *error = NULL;
+
+    if (have_sessions)
+        return;
+
+    xsessions_dir = g_strdup (XSESSIONS_DIR);
+    remote_sessions_dir = g_strdup (REMOTE_SESSIONS_DIR);
+
+    /* Use session directory from configuration */
+    /* FIXME: This should be sent in the greeter connection */
+    config_path = g_build_filename (CONFIG_DIR, "lightdm.conf", NULL);
+    config_key_file = g_key_file_new ();
+    result = g_key_file_load_from_file (config_key_file, config_path, G_KEY_FILE_NONE, &error);
+    if (error)
+        g_warning ("Failed to open configuration file: %s", error->message);
+    g_clear_error (&error);
+    if (result)
+    {
+        gchar *xd_value = g_key_file_get_string (config_key_file, "LightDM", "xsessions-directory", NULL);
+        if (xd_value)
+        {
+            g_free (xsessions_dir);
+            xsessions_dir = xd_value;
+        }
+    }
+    g_key_file_free (config_key_file);
+    g_free (config_path);
+
+    local_sessions = load_sessions (xsessions_dir);
+    remote_sessions = load_sessions (remote_sessions_dir);
+
     g_free (xsessions_dir);
+    g_free (remote_sessions_dir);
 
     have_sessions = TRUE;
 }
@@ -206,7 +222,7 @@ GList *
 lightdm_get_sessions (void)
 {
     update_sessions ();
-    return sessions;
+    return local_sessions;
 }
 
 /**
