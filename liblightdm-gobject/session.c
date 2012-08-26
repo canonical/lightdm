@@ -192,11 +192,20 @@ update_sessions (void)
     g_clear_error (&error);
     if (result)
     {
-        gchar *xd_value = g_key_file_get_string (config_key_file, "LightDM", "xsessions-directory", NULL);
-        if (xd_value)
+        gchar *value;
+      
+        value = g_key_file_get_string (config_key_file, "LightDM", "xsessions-directory", NULL);
+        if (value)
         {
             g_free (xsessions_dir);
-            xsessions_dir = xd_value;
+            xsessions_dir = value;
+        }
+
+        value = g_key_file_get_string (config_key_file, "LightDM", "remote-sessions-directory", NULL);
+        if (value)
+        {
+            g_free (remote_sessions_dir);
+            remote_sessions_dir = value;
         }
     }
     g_key_file_free (config_key_file);
