@@ -149,12 +149,13 @@ load_sessions (const gchar *sessions_dir)
             key = g_strndup (filename, strlen (filename) - strlen (".desktop"));
             session = load_session (key_file, key);
             if (session)
+            {
                 g_debug ("Loaded session %s (%s, %s)", path, GET_PRIVATE (session)->name, GET_PRIVATE (session)->comment);
+                sessions = g_list_insert_sorted (sessions, session, compare_session);
+            }
             else
                 g_debug ("Ignoring session %s", path);
             g_free (key);
-
-            sessions = g_list_insert_sorted (sessions, session, compare_session);
         }
 
         g_free (path);
