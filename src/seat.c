@@ -495,7 +495,7 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean use
         display_set_select_user_hint (display, username, is_guest);
     if (!session_name)
         session_name = seat_get_string_property (seat, "user-session");
-    display_set_user_session (display, session_name);
+    display_set_user_session (display, SESSION_TYPE_LOCAL, session_name);
 
     seat->priv->displays = g_list_append (seat->priv->displays, display);
     g_signal_emit (seat, signals[DISPLAY_ADDED], 0, display);

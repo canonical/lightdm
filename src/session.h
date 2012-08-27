@@ -43,6 +43,12 @@ typedef struct
     void (*stopped)(Session *session);
 } SessionClass;
 
+typedef enum
+{
+    SESSION_TYPE_LOCAL,
+    SESSION_TYPE_REMOTE
+} SessionType;
+
 #define XDG_SESSION_CLASS_USER        "user"
 #define XDG_SESSION_CLASS_GREETER     "greeter"
 #define XDG_SESSION_CLASS_LOCK_SCREEN "lock-screen"

@@ -49,6 +49,9 @@ struct GreeterPrivate
     /* Sequence number of current PAM session */
     guint32 authentication_sequence_number;
 
+    /* Remote session name */
+    gchar *remote_session;
+
     /* PAM session being constructed by the greeter */
     Session *authentication_session;
 
@@ -295,6 +298,8 @@ authentication_complete_cb (Session *session, Greeter *greeter)
 static void
 reset_session (Greeter *greeter)
 {
+    g_free (greeter->priv->remote_session);
+    greeter->priv->remote_session = NULL;
     if (greeter->priv->authentication_session)
     {
         g_signal_handlers_disconnect_matched (greeter->priv->authentication_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
@@ -409,7 +414,8 @@ handle_login_remote (Greeter *greeter, const gchar *session_name, const gchar *u
         return;
     }
 
-    greeter->priv->authentication_sequence_number = sequence_number;  
+    greeter->priv->authentication_sequence_number = sequence_number;
+    greeter->priv->remote_session = g_strdup (session_name);
     g_signal_emit (greeter, signals[START_AUTHENTICATION], 0, username, &greeter->priv->authentication_session);
     if (greeter->priv->authentication_session)
     {
@@ -491,9 +497,17 @@ handle_start_session (Greeter *greeter, const gchar *session)
     gboolean result;
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
+    SessionType session_type = SESSION_TYPE_LOCAL;
 
     if (strcmp (session, "") == 0)
         session = NULL;
+
+    /* Use session type chosen in remote session */
+    if (greeter->priv->remote_session)
+    {
+        session_type = SESSION_TYPE_REMOTE;
+        session = greeter->priv->remote_session;
+    }
 
     if (greeter->priv->guest_account_authenticated || session_get_is_authenticated (greeter->priv->authentication_session))
     {
@@ -502,7 +516,7 @@ handle_start_session (Greeter *greeter, const gchar *session)
         else
             g_debug ("Greeter requests default session");
         greeter->priv->start_session = TRUE;
-        g_signal_emit (greeter, signals[START_SESSION], 0, session, &result);
+        g_signal_emit (greeter, signals[START_SESSION], 0, session_type, session, &result);
     }
     else
     {
@@ -755,7 +769,7 @@ greeter_real_start_authentication (Greeter *greeter, const gchar *username)
 }
 
 static gboolean
-greeter_real_start_session (Greeter *greeter, const gchar *session, gboolean is_guest)
+greeter_real_start_session (Greeter *greeter, SessionType type, const gchar *session)
 {
     return FALSE;
 }
@@ -780,6 +794,7 @@ greeter_finalize (GObject *object)
     g_free (self->priv->pam_service);
     g_free (self->priv->read_buffer);
     g_hash_table_unref (self->priv->hints);
+    g_free (self->priv->remote_session);
     if (self->priv->authentication_session)
     {
         g_signal_handlers_disconnect_matched (self->priv->authentication_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
@@ -828,8 +843,8 @@ greeter_class_init (GreeterClass *klass)
                       G_STRUCT_OFFSET (GreeterClass, start_session),
                       g_signal_accumulator_true_handled,
                       NULL,
-                      ldm_marshal_BOOLEAN__STRING,
-                      G_TYPE_BOOLEAN, 1, G_TYPE_STRING);
+                      ldm_marshal_BOOLEAN__INT_STRING,
+                      G_TYPE_BOOLEAN, 2, G_TYPE_INT, G_TYPE_STRING);
 
     g_type_class_add_private (klass, sizeof (GreeterPrivate));
 }
