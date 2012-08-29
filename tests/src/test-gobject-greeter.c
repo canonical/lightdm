@@ -65,6 +65,11 @@ request_cb (const gchar *request)
         lightdm_greeter_authenticate_as_guest (greeter);
     g_free (r);
 
+    r = g_strdup_printf ("GREETER %s AUTHENTICATE-REMOTE SESSION=", getenv ("DISPLAY"));
+    if (g_str_has_prefix (request, r))
+        lightdm_greeter_authenticate_remote (greeter, request + strlen (r), NULL);
+    g_free (r);
+
     r = g_strdup_printf ("GREETER %s RESPOND TEXT=\"", getenv ("DISPLAY"));
     if (g_str_has_prefix (request, r))
     {

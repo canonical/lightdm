@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=Test Remote Session
+Comment=LightDM remote test session
+Exec=test-session
+X-LightDM-PAM-Service=test-remote

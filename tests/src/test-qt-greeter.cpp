@@ -68,6 +68,11 @@ request_cb (const gchar *request)
         greeter->authenticateAsGuest ();
     g_free (r);
 
+    r = g_strdup_printf ("GREETER %s AUTHENTICATE-REMOTE SESSION=", getenv ("DISPLAY"));
+    if (g_str_has_prefix (request, r))
+        greeter->authenticateRemote (request + strlen (r), NULL);
+    g_free (r);
+
     r = g_strdup_printf ("GREETER %s RESPOND TEXT=\"", getenv ("DISPLAY"));
     if (g_str_has_prefix (request, r))
     {

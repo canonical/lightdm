@@ -45,6 +45,8 @@ GType lightdm_session_get_type (void);
 
 GList *lightdm_get_sessions (void);
 
+GList *lightdm_get_remote_sessions (void);
+
 const gchar *lightdm_session_get_key (LightDMSession *session);
 
 const gchar *lightdm_session_get_name (LightDMSession *session);

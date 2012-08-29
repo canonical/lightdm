@@ -70,6 +70,7 @@ TESTS = \
 	test-login-gobject-guest-no-setup-script \
 	test-login-gobject-guest-fail-setup-script \
 	test-login-gobject-guest-logout \
+	test-login-gobject-remote-session \
 	test-login-python \
 	test-login-python-manual \
 	test-login-python-manual-previous-session \
@@ -91,6 +92,7 @@ TESTS = \
 	test-login-python-guest-no-setup-script \
 	test-login-python-guest-fail-setup-script \
 	test-login-python-guest-logout \
+	test-login-python-remote-session \
 	test-login-session-crash \
 	test-login-xserver-crash \
 	test-home-dir-on-authenticate \
@@ -147,7 +149,8 @@ TESTS += \
 	test-login-qt-guest-disabled \
 	test-login-qt-guest-no-setup-script \
 	test-login-qt-guest-fail-setup-script \
-	test-login-qt-guest-logout
+	test-login-qt-guest-logout \
+	test-login-qt-remote-session
 endif
 
 EXTRA_DIST = \
@@ -214,8 +217,9 @@ EXTRA_DIST = \
 	scripts/login-pam.conf \
 	scripts/login-pick-session.conf \
 	scripts/login-previous-session.conf \
-	scripts/login-two-factor.conf \
+	scripts/login-remote-session.conf \
 	scripts/login-session-crash.conf \
+	scripts/login-two-factor.conf \
 	scripts/login-wrong-password.conf \
 	scripts/login-xserver-crash.conf \
 	scripts/no-accounts-service.conf \

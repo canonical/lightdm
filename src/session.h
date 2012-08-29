@@ -43,6 +43,12 @@ typedef struct
     void (*stopped)(Session *session);
 } SessionClass;
 
+typedef enum
+{
+    SESSION_TYPE_LOCAL,
+    SESSION_TYPE_REMOTE
+} SessionType;
+
 #define XDG_SESSION_CLASS_USER        "user"
 #define XDG_SESSION_CLASS_GREETER     "greeter"
 #define XDG_SESSION_CLASS_LOCK_SCREEN "lock-screen"
@@ -66,7 +72,7 @@ void session_set_env (Session *session, const gchar *name, const gchar *value);
 // FIXME: Remove
 User *session_get_user (Session *session);
 
-gboolean session_start (Session *session, const gchar *service, const gchar *username, gboolean do_authenticate, gboolean is_interactive);
+gboolean session_start (Session *session, const gchar *service, const gchar *username, gboolean do_authenticate, gboolean is_interactive, gboolean is_guest);
 
 const gchar *session_get_username (Session *session);
 

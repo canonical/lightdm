@@ -32,7 +32,7 @@ typedef struct
     GObjectClass parent_class;
     void (*connected)(Greeter *greeter);
     Session *(*start_authentication)(Greeter *greeter, const gchar *username);
-    gboolean (*start_session)(Greeter *greeter, const gchar *session, gboolean is_guest);
+    gboolean (*start_session)(Greeter *greeter, SessionType type, const gchar *session);
 } GreeterClass;
 
 GType greeter_get_type (void);

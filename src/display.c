@@ -35,15 +35,6 @@ enum
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
-typedef enum
-{
-    SESSION_NONE = 0,
-    SESSION_GREETER_PRE_CONNECT,
-    SESSION_GREETER,
-    SESSION_GREETER_AUTHENTICATED,
-    SESSION_USER
-} SessionType;
-
 struct DisplayPrivate
 {
     /* Display server */
@@ -62,6 +53,7 @@ struct DisplayPrivate
     gboolean greeter_is_lock;
 
     /* Session requested to log into */
+    SessionType user_session_type;
     gchar *user_session;
 
     /* Program to run sessions through */
@@ -220,10 +212,11 @@ display_set_lock_hint (Display *display, gboolean is_lock)
 }
 
 void
-display_set_user_session (Display *display, const gchar *session_name)
+display_set_user_session (Display *display, SessionType type, const gchar *session_name)
 {
     g_return_if_fail (display != NULL);
     g_free (display->priv->user_session);
+    display->priv->user_session_type = type;
     display->priv->user_session = g_strdup (session_name);
 }
 
@@ -349,7 +342,7 @@ greeter_start_authentication_cb (Greeter *greeter, const gchar *username, Displa
 }
 
 static gboolean
-greeter_start_session_cb (Greeter *greeter, const gchar *session_name, Display *display)
+greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Display *display)
 {
     /* If no session requested, use the previous one */
     if (!session_name && !greeter_get_guest_authenticated (greeter))
@@ -357,6 +350,7 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session_name, Display *
         User *user;
 
         user = session_get_user (greeter_get_authentication_session (greeter));
+        type = SESSION_TYPE_LOCAL;
         session_name = user_get_xsession (user);
     }
 
@@ -364,7 +358,7 @@ greeter_start_session_cb (Greeter *greeter, const gchar *session_name, Display *
     if (session_name)
     {
         g_debug ("Using session %s", session_name);
-        display_set_user_session (display, session_name);
+        display_set_user_session (display, type, session_name);
     }
 
     /* Stop this display if that session already exists and can switch to it */
@@ -474,7 +468,7 @@ autologin_authentication_complete_cb (Session *session, Display *display)
         if (session_name)
         {
             g_debug ("Autologin using session %s", session_name);
-            display_set_user_session (display, session_name);
+            display_set_user_session (display, SESSION_TYPE_LOCAL, session_name);
         }
 
         g_signal_emit (display, signals[START_SESSION], 0, &result);
@@ -493,7 +487,7 @@ autologin_authentication_complete_cb (Session *session, Display *display)
 }
 
 static gboolean
-autologin (Display *display, const gchar *username, const gchar *service, gboolean start_greeter_if_fail)
+autologin (Display *display, const gchar *username, const gchar *service, gboolean start_greeter_if_fail, gboolean is_guest)
 {
     display->priv->start_greeter_if_fail = start_greeter_if_fail;
 
@@ -502,7 +496,7 @@ autologin (Display *display, const gchar *username, const gchar *service, gboole
     display->priv->session = create_session (display);
     g_signal_connect (display->priv->session, "authentication-complete", G_CALLBACK (autologin_authentication_complete_cb), display);
     g_signal_connect_after (display->priv->session, "stopped", G_CALLBACK (user_session_stopped_cb), display);
-    return session_start (display->priv->session, service, username, TRUE, FALSE);
+    return session_start (display->priv->session, service, username, TRUE, FALSE, is_guest);
 }
 
 static gboolean
@@ -518,7 +512,7 @@ autologin_guest (Display *display, const gchar *service, gboolean start_greeter_
         return FALSE;
     }
 
-    result = autologin (display, username, service, start_greeter_if_fail);
+    result = autologin (display, username, service, start_greeter_if_fail, TRUE);
     g_free (username);
 
     return result;
@@ -700,12 +694,16 @@ display_start_session (Display *display)
 
     user = session_get_user (display->priv->session);
 
-    /* Store this session name so we automatically use it next time */
-    user_set_xsession (user, display->priv->user_session);
-
     /* Find the command to run for the selected session */
-    // FIXME: This is X specific, move into xsession.c
-    sessions_dir = config_get_string (config_get_instance (), "LightDM", "xsessions-directory");
+    if (display->priv->user_session_type == SESSION_TYPE_LOCAL)
+    {
+        sessions_dir = config_get_string (config_get_instance (), "LightDM", "xsessions-directory");
+
+        /* Store this session name so we automatically use it next time */
+        user_set_xsession (user, display->priv->user_session);
+    }
+    else
+        sessions_dir = config_get_string (config_get_instance (), "LightDM", "remote-sessions-directory");
     filename = g_strdup_printf ("%s.desktop", display->priv->user_session);
     path = g_build_filename (sessions_dir, filename, NULL);
     g_free (sessions_dir);
@@ -777,12 +775,12 @@ display_server_ready_cb (DisplayServer *display_server, Display *display)
     else if (display->priv->autologin_user)
     {
         g_debug ("Automatically logging in user %s", display->priv->autologin_user);
-        result = autologin (display, display->priv->autologin_user, AUTOLOGIN_SERVICE, TRUE);
+        result = autologin (display, display->priv->autologin_user, AUTOLOGIN_SERVICE, TRUE, FALSE);
     }
     else if (display->priv->select_user_hint)
     {
         g_debug ("Logging in user %s", display->priv->select_user_hint);
-        result = autologin (display, display->priv->select_user_hint, USER_SERVICE, TRUE);
+        result = autologin (display, display->priv->select_user_hint, USER_SERVICE, TRUE, FALSE);
     }
 
     /* If no session started, start a greeter */

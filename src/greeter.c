@@ -18,6 +18,7 @@
 
 #include "greeter.h"
 #include "ldm-marshal.h"
+#include "configuration.h"
 
 enum {
     CONNECTED,
@@ -48,6 +49,9 @@ struct GreeterPrivate
     /* Sequence number of current PAM session */
     guint32 authentication_sequence_number;
 
+    /* Remote session name */
+    gchar *remote_session;
+
     /* PAM session being constructed by the greeter */
     Session *authentication_session;
 
@@ -76,7 +80,8 @@ typedef enum
     GREETER_MESSAGE_CONTINUE_AUTHENTICATION,
     GREETER_MESSAGE_START_SESSION,
     GREETER_MESSAGE_CANCEL_AUTHENTICATION,
-    GREETER_MESSAGE_SET_LANGUAGE
+    GREETER_MESSAGE_SET_LANGUAGE,
+    GREETER_MESSAGE_AUTHENTICATE_REMOTE
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -293,6 +298,8 @@ authentication_complete_cb (Session *session, Greeter *greeter)
 static void
 reset_session (Greeter *greeter)
 {
+    g_free (greeter->priv->remote_session);
+    greeter->priv->remote_session = NULL;
     if (greeter->priv->authentication_session)
     {
         g_signal_handlers_disconnect_matched (greeter->priv->authentication_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
@@ -329,7 +336,7 @@ handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
     g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "authentication-complete", G_CALLBACK (authentication_complete_cb), greeter);
 
     /* Run the session process */
-    session_start (greeter->priv->authentication_session, greeter->priv->pam_service, username, TRUE, TRUE);
+    session_start (greeter->priv->authentication_session, greeter->priv->pam_service, username, TRUE, TRUE, FALSE);
 }
 
 static void
@@ -348,6 +355,84 @@ handle_login_as_guest (Greeter *greeter, guint32 sequence_number)
 
     greeter->priv->guest_account_authenticated = TRUE;  
     send_end_authentication (greeter, sequence_number, "", PAM_SUCCESS);
+}
+
+static gchar *
+get_remote_session_service (const gchar *session_name)
+{
+    GKeyFile *session_desktop_file;
+    gboolean result;
+    const gchar *c;
+    gchar *remote_sessions_dir, *filename, *path, *service = NULL;
+    GError *error = NULL;
+
+    /* Validate session name doesn't contain directory separators */
+    for (c = session_name; *c; c++)
+    {
+        if (*c == '/')
+            return NULL;
+    }
+
+    /* Load the session file */
+    session_desktop_file = g_key_file_new ();
+    filename = g_strdup_printf ("%s.desktop", session_name);
+    remote_sessions_dir = config_get_string (config_get_instance (), "LightDM", "remote-sessions-directory");
+    path = g_build_filename (remote_sessions_dir, filename, NULL);
+    g_free (remote_sessions_dir);
+    g_free (filename);
+    result = g_key_file_load_from_file (session_desktop_file, path, G_KEY_FILE_NONE, &error);
+    if (error)
+        g_debug ("Failed to load session file %s: %s", path, error->message);
+    g_free (path);
+    g_clear_error (&error);
+    if (result)
+        service = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-PAM-Service", NULL);
+    g_key_file_free (session_desktop_file);
+
+    return service;
+}
+
+static void
+handle_login_remote (Greeter *greeter, const gchar *session_name, const gchar *username, guint32 sequence_number)
+{
+    gchar *service;
+
+    if (username[0] == '\0')
+    {
+        g_debug ("Greeter start authentication for remote session %s", session_name);
+        username = NULL;
+    }
+    else
+        g_debug ("Greeter start authentication for remote session %s as user %s", session_name, username);
+
+    reset_session (greeter);
+
+    service = get_remote_session_service (session_name);
+    if (!service)
+    {
+        send_end_authentication (greeter, sequence_number, "", PAM_SYSTEM_ERR);
+        return;
+    }
+
+    greeter->priv->authentication_sequence_number = sequence_number;
+    greeter->priv->remote_session = g_strdup (session_name);
+    g_signal_emit (greeter, signals[START_AUTHENTICATION], 0, username, &greeter->priv->authentication_session);
+    if (greeter->priv->authentication_session)
+    {
+        g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
+        g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "authentication-complete", G_CALLBACK (authentication_complete_cb), greeter);
+
+        /* Run the session process */
+        session_start (greeter->priv->authentication_session, service, username, TRUE, TRUE, TRUE);
+    }
+
+    g_free (service);
+
+    if (!greeter->priv->authentication_session)
+    {
+        send_end_authentication (greeter, sequence_number, "", PAM_USER_UNKNOWN);
+        return;
+    }
 }
 
 static void
@@ -412,9 +497,17 @@ handle_start_session (Greeter *greeter, const gchar *session)
     gboolean result;
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
+    SessionType session_type = SESSION_TYPE_LOCAL;
 
     if (strcmp (session, "") == 0)
         session = NULL;
+
+    /* Use session type chosen in remote session */
+    if (greeter->priv->remote_session)
+    {
+        session_type = SESSION_TYPE_REMOTE;
+        session = greeter->priv->remote_session;
+    }
 
     if (greeter->priv->guest_account_authenticated || session_get_is_authenticated (greeter->priv->authentication_session))
     {
@@ -423,7 +516,7 @@ handle_start_session (Greeter *greeter, const gchar *session)
         else
             g_debug ("Greeter requests default session");
         greeter->priv->start_session = TRUE;
-        g_signal_emit (greeter, signals[START_SESSION], 0, session, &result);
+        g_signal_emit (greeter, signals[START_SESSION], 0, session_type, session, &result);
     }
     else
     {
@@ -569,6 +662,12 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         sequence_number = read_int (greeter, &offset);
         handle_login_as_guest (greeter, sequence_number);
         break;
+    case GREETER_MESSAGE_AUTHENTICATE_REMOTE:
+        sequence_number = read_int (greeter, &offset);
+        session_name = read_string (greeter, &offset);
+        username = read_string (greeter, &offset);
+        handle_login_remote (greeter, session_name, username, sequence_number);
+        break;
     case GREETER_MESSAGE_CONTINUE_AUTHENTICATION:
         n_secrets = read_int (greeter, &offset);
         secrets = g_malloc (sizeof (gchar *) * (n_secrets + 1));
@@ -654,7 +753,7 @@ greeter_start (Greeter *greeter, const gchar *service, const gchar *username)
     fcntl (to_greeter_pipe[1], F_SETFD, FD_CLOEXEC);
     fcntl (from_greeter_pipe[0], F_SETFD, FD_CLOEXEC);
 
-    result = session_start (greeter->priv->session, service, username, FALSE, FALSE);
+    result = session_start (greeter->priv->session, service, username, FALSE, FALSE, FALSE);
 
     /* Close the session ends of the pipe */
     close (to_greeter_pipe[0]);
@@ -670,7 +769,7 @@ greeter_real_start_authentication (Greeter *greeter, const gchar *username)
 }
 
 static gboolean
-greeter_real_start_session (Greeter *greeter, const gchar *session, gboolean is_guest)
+greeter_real_start_session (Greeter *greeter, SessionType type, const gchar *session)
 {
     return FALSE;
 }
@@ -695,6 +794,7 @@ greeter_finalize (GObject *object)
     g_free (self->priv->pam_service);
     g_free (self->priv->read_buffer);
     g_hash_table_unref (self->priv->hints);
+    g_free (self->priv->remote_session);
     if (self->priv->authentication_session)
     {
         g_signal_handlers_disconnect_matched (self->priv->authentication_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
@@ -743,8 +843,8 @@ greeter_class_init (GreeterClass *klass)
                       G_STRUCT_OFFSET (GreeterClass, start_session),
                       g_signal_accumulator_true_handled,
                       NULL,
-                      ldm_marshal_BOOLEAN__STRING,
-                      G_TYPE_BOOLEAN, 1, G_TYPE_STRING);
+                      ldm_marshal_BOOLEAN__INT_STRING,
+                      G_TYPE_BOOLEAN, 2, G_TYPE_INT, G_TYPE_STRING);
 
     g_type_class_add_private (klass, sizeof (GreeterPrivate));
 }

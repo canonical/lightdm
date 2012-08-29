@@ -45,6 +45,10 @@ def request_cb (channel, condition):
     if request.startswith (r):
         greeter.authenticate (request[len(r):])
 
+    r = 'GREETER %s AUTHENTICATE-REMOTE SESSION=' % os.getenv ('DISPLAY')
+    if request.startswith (r):
+        greeter.authenticate_remote (request[len(r):], None)
+
     r = 'GREETER %s AUTHENTICATE-GUEST' % os.getenv ('DISPLAY')
     if request == r:
         greeter.authenticate_as_guest ()
