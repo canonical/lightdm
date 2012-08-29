@@ -3,6 +3,9 @@ Overview of changes in lightdm 1.3.3
     * Add a new remote session type. These sessions create a temporary local
       account and authenticate against a remote server. The session is an
       application that accesses that remote session (e.g. VNC, RDP etc)
+    * Support multiple simultaneous PAM prompts
+    * Set utmp ut_host field to the X display address
+    * Correctly reap unused authentication sessions
 
 Overview of changes in lightdm 1.3.2
 
