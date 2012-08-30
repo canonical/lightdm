@@ -47,10 +47,12 @@ namespace LightDM {
         public unowned string? authentication_user { get; }
         public void start_session_sync (string? session = null) throws GLib.Error;
     }
+    [CCode (type_id = "G_TYPE_INT")]
     public enum MessageType {
         INFO,
         ERROR
     }
+    [CCode (type_id = "G_TYPE_INT")]
     public enum PromptType {
         QUESTION,
         SECRET
