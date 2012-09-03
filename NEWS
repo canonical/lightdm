@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.3.4
+
+    * Correctly annotate enums in vapi file
+
 Overview of changes in lightdm 1.3.3
 
     * Add a new remote session type. These sessions create a temporary local
