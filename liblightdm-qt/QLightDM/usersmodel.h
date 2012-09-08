@@ -33,7 +33,9 @@ public:
                          LoggedInRole,
                          BackgroundRole,
                          SessionRole,
-                         HasMessagesRole};
+                         HasMessagesRole,
+                         ImagePathRole
+    };
 
     int rowCount(const QModelIndex &parent) const;
     QVariant data(const QModelIndex &index, int role) const;

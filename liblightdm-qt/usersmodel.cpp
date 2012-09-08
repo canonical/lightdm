@@ -231,6 +231,8 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
         return QPixmap(d->users[row].background);
     case UsersModel::HasMessagesRole:
         return d->users[row].hasMessages;
+    case UsersModel::ImagePathRole:
+        return d->users[row].image;
     }
 
     return QVariant();
