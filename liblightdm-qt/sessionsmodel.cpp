@@ -33,7 +33,7 @@ public:
     SessionsModelPrivate(SessionsModel *parent);
     QList<SessionItem> items;
     
-    void loadSessions();
+    void loadSessions(SessionsModel::SessionType sessionType);
     
 protected:
     SessionsModel* q_ptr;
@@ -47,14 +47,23 @@ SessionsModelPrivate::SessionsModelPrivate(SessionsModel *parent) :
     q_ptr(parent)
 {
     g_type_init();
-    loadSessions();
 }
 
-void SessionsModelPrivate::loadSessions()
+void SessionsModelPrivate::loadSessions(SessionsModel::SessionType sessionType)
 {
-    qDebug() << "loading sessions";
+   GList *ldmSessions;
 
-   GList *ldmSessions = lightdm_get_sessions();
+   switch (sessionType) {
+       case SessionsModel::RemoteSessions:
+           ldmSessions = lightdm_get_remote_sessions();
+           break;
+       case SessionsModel::LocalSessions:
+           /* Fall through*/
+       default:
+        ldmSessions = lightdm_get_sessions();
+        break;
+   }
+
    for (GList* item = ldmSessions; item; item = item->next) {
        LightDMSession *ldmSession = static_cast<LightDMSession*>(item->data);
        Q_ASSERT(ldmSession);
@@ -64,8 +73,6 @@ void SessionsModelPrivate::loadSessions()
        session.name = QString::fromUtf8(lightdm_session_get_name(ldmSession));
        session.comment = QString::fromUtf8(lightdm_session_get_comment(ldmSession));
 
-       qDebug() << "adding session" << session.key;
-
        items.append(session);
    }
 
@@ -73,13 +80,31 @@ void SessionsModelPrivate::loadSessions()
 }
 
 
+//deprecated constructor for ABI compatability. 
 SessionsModel::SessionsModel(QObject *parent) :
     QAbstractListModel(parent),
     d_ptr(new SessionsModelPrivate(this))
 {
+    Q_D(SessionsModel);
+
     QHash<int, QByteArray> roles = roleNames();
     roles[KeyRole] = "key";
     setRoleNames(roles);
+
+    d->loadSessions(SessionsModel::LocalSessions);
+}
+
+SessionsModel::SessionsModel(SessionsModel::SessionType sessionType, QObject *parent) :
+    QAbstractListModel(parent),
+    d_ptr(new SessionsModelPrivate(this))
+{
+    Q_D(SessionsModel);
+    
+    QHash<int, QByteArray> roles = roleNames();
+    roles[KeyRole] = "key";
+    setRoleNames(roles);
+
+    d->loadSessions(sessionType);
 }
 
 SessionsModel::~SessionsModel()

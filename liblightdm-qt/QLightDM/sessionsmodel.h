@@ -28,7 +28,13 @@ namespace QLightDM {
             IdRole = KeyRole /** Deprecated */
         };
 
-        explicit SessionsModel(QObject *parent = 0);
+        enum SessionType {
+            LocalSessions,
+            RemoteSessions
+        };
+
+        explicit SessionsModel(QObject *parent = 0); /** Deprecated. Loads local sessions*/
+        explicit SessionsModel(SessionsModel::SessionType, QObject *parent = 0);
         virtual ~SessionsModel();
 
         int rowCount(const QModelIndex &parent) const;
