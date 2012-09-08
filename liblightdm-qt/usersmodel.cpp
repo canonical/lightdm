@@ -184,6 +184,7 @@ UsersModel::UsersModel(QObject *parent) :
     roles[LoggedInRole] = "loggedIn";
     roles[SessionRole] = "session";
     roles[HasMessagesRole] = "hasMessages";
+    roles[ImagePathRole] = "imagePath";
     setRoleNames(roles);
     d->loadUsers();
 
