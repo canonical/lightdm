@@ -55,6 +55,7 @@ public:
     QString defaultSessionHint() const;
     bool hideUsersHint() const;
     bool showManualLoginHint() const;
+    bool showRemoteLoginHint() const;
     bool lockHint () const;
     bool hasGuestAccountHint() const;
     QString selectUserHint() const;

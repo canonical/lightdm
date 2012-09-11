@@ -82,6 +82,8 @@ gboolean lightdm_greeter_get_hide_users_hint (LightDMGreeter *greeter);
 
 gboolean lightdm_greeter_get_show_manual_login_hint (LightDMGreeter *greeter);
 
+gboolean lightdm_greeter_get_show_remote_login_hint (LightDMGreeter *greeter);
+
 gboolean lightdm_greeter_get_lock_hint (LightDMGreeter *greeter);
 
 gboolean lightdm_greeter_get_has_guest_account_hint (LightDMGreeter *greeter);

@@ -22,6 +22,7 @@ enum {
     PROP_DEFAULT_SESSION_HINT,
     PROP_HIDE_USERS_HINT,
     PROP_SHOW_MANUAL_LOGIN_HINT,
+    PROP_SHOW_REMOTE_LOGIN_HINT,
     PROP_LOCK_HINT,
     PROP_HAS_GUEST_ACCOUNT_HINT,
     PROP_SELECT_USER_HINT,
@@ -614,6 +615,26 @@ lightdm_greeter_get_show_manual_login_hint (LightDMGreeter *greeter)
 }
 
 /**
+ * lightdm_greeter_get_show_remote_login_hint:
+ * @greeter: A #LightDMGreeter
+ *
+ * Check if a remote login option should be shown.  If set the GUI
+ * should provide a way for a user to log into a remote desktop server.
+ *
+ * Return value: #TRUE if a remote login option should be shown.
+ */
+gboolean
+lightdm_greeter_get_show_remote_login_hint (LightDMGreeter *greeter)
+{
+    const gchar *value;
+
+    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
+    value = lightdm_greeter_get_hint (greeter, "show-remote-login");
+
+    return g_strcmp0 (value, "true") == 0;
+}
+
+/**
  * lightdm_greeter_get_lock_hint:
  * @greeter: A #LightDMGreeter
  *
@@ -1106,6 +1127,9 @@ lightdm_greeter_get_property (GObject    *object,
     case PROP_SHOW_MANUAL_LOGIN_HINT:
         g_value_set_boolean (value, lightdm_greeter_get_show_manual_login_hint (self));
         break;
+    case PROP_SHOW_REMOTE_LOGIN_HINT:
+        g_value_set_boolean (value, lightdm_greeter_get_show_remote_login_hint (self));
+        break;
     case PROP_LOCK_HINT:
         g_value_set_boolean (value, lightdm_greeter_get_lock_hint (self));
         break;
@@ -1226,6 +1250,14 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
                                      g_param_spec_boolean ("show-manual-login-hint",
                                                            "show-manual-login-hint",
                                                            "Show manual login hint",
+                                                           FALSE,
+                                                           G_PARAM_READABLE));
+
+    g_object_class_install_property (object_class,
+                                     PROP_SHOW_REMOTE_LOGIN_HINT,
+                                     g_param_spec_boolean ("show-remote-login-hint",
+                                                           "show-remote-login-hint",
+                                                           "Show remote login hint",
                                                            FALSE,
                                                            G_PARAM_READABLE));
 

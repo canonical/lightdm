@@ -49,6 +49,9 @@ struct DisplayPrivate
     /* TRUE if a manual login option should be shown */
     gboolean greeter_show_manual_login;
 
+    /* TRUE if a remote login option should be shown */
+    gboolean greeter_show_remote_login;
+
     /* TRUE if the greeter is a lock screen */
     gboolean greeter_is_lock;
 
@@ -202,6 +205,13 @@ display_set_show_manual_login_hint (Display *display, gboolean show_manual_login
 {
     g_return_if_fail (display != NULL);
     display->priv->greeter_show_manual_login = show_manual_login;
+}
+
+void
+display_set_show_remote_login_hint (Display *display, gboolean show_remote_login)
+{
+    g_return_if_fail (display != NULL);
+    display->priv->greeter_show_remote_login = show_remote_login;
 }
 
 void
@@ -418,6 +428,7 @@ start_greeter (Display *display)
     greeter_set_hint (display->priv->greeter, "has-guest-account", (display->priv->allow_guest && display->priv->greeter_allow_guest) ? "true" : "false");
     greeter_set_hint (display->priv->greeter, "hide-users", display->priv->greeter_hide_users ? "true" : "false");
     greeter_set_hint (display->priv->greeter, "show-manual-login", display->priv->greeter_show_manual_login ? "true" : "false");
+    greeter_set_hint (display->priv->greeter, "show-remote-login", display->priv->greeter_show_remote_login ? "true" : "false");
     if (display->priv->greeter_is_lock)
         greeter_set_hint (display->priv->greeter, "lock-screen", "true");
 

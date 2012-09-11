@@ -192,6 +192,12 @@ bool Greeter::showManualLoginHint() const
     return lightdm_greeter_get_show_manual_login_hint(d->ldmGreeter);
 }
 
+bool Greeter::showRemoteLoginHint() const
+{
+    Q_D(const Greeter);
+    return lightdm_greeter_get_show_remote_login_hint(d->ldmGreeter);
+}
+
 bool Greeter::lockHint() const
 {
     Q_D(const Greeter);
