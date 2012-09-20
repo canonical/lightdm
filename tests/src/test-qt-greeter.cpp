@@ -19,6 +19,7 @@ TestGreeter::TestGreeter ()
     connect (this, SIGNAL(showMessage(QString, QLightDM::Greeter::MessageType)), SLOT(showMessage(QString, QLightDM::Greeter::MessageType)));
     connect (this, SIGNAL(showPrompt(QString, QLightDM::Greeter::PromptType)), SLOT(showPrompt(QString, QLightDM::Greeter::PromptType)));
     connect (this, SIGNAL(authenticationComplete()), SLOT(authenticationComplete()));
+    connect (this, SIGNAL(autologinTimerExpired()), SLOT(autologinTimerExpired()));
 }
 
 void TestGreeter::showMessage (QString text, QLightDM::Greeter::MessageType type)
@@ -39,6 +40,11 @@ void TestGreeter::authenticationComplete ()
                        authenticationUser ().toAscii ().constData (), isAuthenticated () ? "TRUE" : "FALSE");
     else
         status_notify ("GREETER %s AUTHENTICATION-COMPLETE AUTHENTICATED=%s", getenv ("DISPLAY"), isAuthenticated () ? "TRUE" : "FALSE");
+}
+
+void TestGreeter::autologinTimerExpired ()
+{
+    status_notify ("GREETER %s AUTOLOGIN-TIMER-EXPIRED", getenv ("DISPLAY"));
 }
 
 static void
@@ -66,6 +72,11 @@ request_cb (const gchar *request)
     r = g_strdup_printf ("GREETER %s AUTHENTICATE-GUEST", getenv ("DISPLAY"));
     if (strcmp (request, r) == 0)
         greeter->authenticateAsGuest ();
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s AUTHENTICATE-AUTOLOGIN", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+        greeter->authenticateAutologin ();
     g_free (r);
 
     r = g_strdup_printf ("GREETER %s AUTHENTICATE-REMOTE SESSION=", getenv ("DISPLAY"));

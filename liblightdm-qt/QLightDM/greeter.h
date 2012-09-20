@@ -72,6 +72,7 @@ public slots:
     bool connectSync();
     void authenticate(const QString &username=QString());
     void authenticateAsGuest();
+    void authenticateAutologin();
     void authenticateRemote(const QString &session=QString(), const QString &username=QString());
     void respond(const QString &response);
     void cancelAuthentication();

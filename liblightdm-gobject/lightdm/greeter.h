@@ -102,6 +102,8 @@ void lightdm_greeter_authenticate (LightDMGreeter *greeter, const gchar *usernam
 
 void lightdm_greeter_authenticate_as_guest (LightDMGreeter *greeter);
 
+void lightdm_greeter_authenticate_autologin (LightDMGreeter *greeter);
+
 void lightdm_greeter_authenticate_remote (LightDMGreeter *greeter, const gchar *session, const gchar *username);
 
 void lightdm_greeter_respond (LightDMGreeter *greeter, const gchar *response);

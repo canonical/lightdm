@@ -11,4 +11,5 @@ private slots:
     void showMessage(QString text, QLightDM::Greeter::MessageType type);
     void showPrompt(QString text, QLightDM::Greeter::PromptType type);
     void authenticationComplete();
+    void autologinTimerExpired();
 };

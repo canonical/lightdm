@@ -119,6 +119,12 @@ void Greeter::authenticateAsGuest()
     lightdm_greeter_authenticate_as_guest(d->ldmGreeter);
 }
 
+void Greeter::authenticateAutologin()
+{
+    Q_D(Greeter);
+    lightdm_greeter_authenticate_autologin(d->ldmGreeter);
+}
+
 void Greeter::authenticateRemote(const QString &session, const QString &username)
 {
     Q_D(Greeter);

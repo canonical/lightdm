@@ -15,6 +15,10 @@ TESTS = \
 	test-autologin-session-crash \
 	test-autologin-password \
 	test-autologin-new-authtok \
+	test-autologin-gobject-timeout \
+	test-autologin-gobject-guest-timeout \
+	test-autologin-python-timeout \
+	test-autologin-python-guest-timeout \
 	test-change-authentication \
 	test-restart-authentication \
 	test-pam \
@@ -129,6 +133,8 @@ TESTS = \
 
 if COMPILE_LIBLIGHTDM_QT
 TESTS += \
+	test-autologin-qt-timeout \
+	test-autologin-qt-guest-timeout \
 	test-login-qt \
 	test-login-qt-manual \
 	test-login-qt-manual-previous-session \

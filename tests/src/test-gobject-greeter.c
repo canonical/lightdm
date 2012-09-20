@@ -39,6 +39,12 @@ authentication_complete_cb (LightDMGreeter *greeter)
 }
 
 static void
+autologin_timer_expired_cb (LightDMGreeter *greeter)
+{
+    status_notify ("GREETER %s AUTOLOGIN-TIMER-EXPIRED", getenv ("DISPLAY"));
+}
+
+static void
 signal_cb (int signum)
 {
     status_notify ("GREETER %s TERMINATE SIGNAL=%d", getenv ("DISPLAY"), signum);
@@ -63,6 +69,11 @@ request_cb (const gchar *request)
     r = g_strdup_printf ("GREETER %s AUTHENTICATE-GUEST", getenv ("DISPLAY"));
     if (strcmp (request, r) == 0)
         lightdm_greeter_authenticate_as_guest (greeter);
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s AUTHENTICATE-AUTOLOGIN", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+        lightdm_greeter_authenticate_autologin (greeter);
     g_free (r);
 
     r = g_strdup_printf ("GREETER %s AUTHENTICATE-REMOTE SESSION=", getenv ("DISPLAY"));
@@ -213,6 +224,7 @@ main (int argc, char **argv)
     g_signal_connect (greeter, "show-message", G_CALLBACK (show_message_cb), NULL);
     g_signal_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
     g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
+    g_signal_connect (greeter, "autologin-timer-expired", G_CALLBACK (autologin_timer_expired_cb), NULL);
 
     status_notify ("GREETER %s CONNECT-TO-DAEMON", getenv ("DISPLAY"));
     if (!lightdm_greeter_connect_sync (greeter, NULL))
