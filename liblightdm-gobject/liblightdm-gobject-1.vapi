@@ -39,6 +39,7 @@ namespace LightDM {
         public void cancel_autologin ();
         public void authenticate (string? username = null);
         public void authenticate_as_guest ();
+        public void authenticate_autologin ();
         public void authenticate_remote (string session, string? username);
         public void respond (string response);
         public void cancel_authentication ();
