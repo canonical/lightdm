@@ -172,6 +172,7 @@ EXTRA_DIST = \
 	scripts/autologin-guest.conf \
 	scripts/autologin-guest-fail-setup-script.conf \
 	scripts/autologin-guest-logout.conf \
+	scripts/autologin-guest-timeout.conf \
 	scripts/autologin-invalid-session.conf \
 	scripts/autologin-invalid-user.conf \
 	scripts/autologin-logout.conf \
@@ -180,6 +181,7 @@ EXTRA_DIST = \
 	scripts/autologin-previous-session.conf \
 	scripts/autologin-session-crash.conf \
 	scripts/autologin-session-error.conf \
+	scripts/autologin-timeout.conf \
 	scripts/autologin-xserver-crash.conf \
 	scripts/change-authentication.conf \
 	scripts/console-kit.conf \
