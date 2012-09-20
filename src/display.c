@@ -35,15 +35,6 @@ enum
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
-typedef enum
-{
-    SESSION_NONE = 0,
-    SESSION_GREETER_PRE_CONNECT,
-    SESSION_GREETER,
-    SESSION_GREETER_AUTHENTICATED,
-    SESSION_USER
-} SessionType;
-
 struct DisplayPrivate
 {
     /* Display server */
