@@ -1,6 +1,8 @@
 Overview of changes in lightdm 1.2.3
 
     * Correctly implement and test autologin timeouts
+    * Move from QString::fromLocal8Bit to QString::fromUtf8 when converting from
+      gchar
 
 Overview of changes in lightdm 1.2.2
 
