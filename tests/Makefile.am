@@ -15,6 +15,10 @@ TESTS = \
 	test-autologin-session-crash \
 	test-autologin-password \
 	test-autologin-new-authtok \
+	test-autologin-gobject-timeout \
+	test-autologin-gobject-guest-timeout \
+	test-autologin-python-timeout \
+	test-autologin-python-guest-timeout \
 	test-pam \
 	test-login-pam \
 	test-denied \
@@ -124,6 +128,8 @@ TESTS = \
 
 if COMPILE_LIBLIGHTDM_QT
 TESTS += \
+	test-autologin-qt-timeout \
+	test-autologin-qt-guest-timeout \
 	test-login-qt \
 	test-login-qt-manual \
 	test-login-qt-manual-previous-session \
@@ -160,6 +166,7 @@ EXTRA_DIST = \
 	scripts/autologin-guest.conf \
 	scripts/autologin-guest-fail-setup-script.conf \
 	scripts/autologin-guest-logout.conf \
+	scripts/autologin-guest-timeout.conf \
 	scripts/autologin-invalid-session.conf \
 	scripts/autologin-invalid-user.conf \
 	scripts/autologin-logout.conf \
@@ -168,6 +175,7 @@ EXTRA_DIST = \
 	scripts/autologin-previous-session.conf \
 	scripts/autologin-session-crash.conf \
 	scripts/autologin-session-error.conf \
+	scripts/autologin-timeout.conf \
 	scripts/autologin-xserver-crash.conf \
 	scripts/console-kit.conf \
 	scripts/crash-authenticate.conf \

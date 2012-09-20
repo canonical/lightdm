@@ -64,6 +64,7 @@ public slots:
     bool connectSync();
     void authenticate(const QString &username=QString());
     void authenticateAsGuest();
+    void authenticateAutologin();
     void respond(const QString &response);
     void cancelAuthentication();
     void setLanguage (const QString &language);

@@ -34,6 +34,7 @@ struct GreeterPrivate
 
     /* PAM service to authenticate with */
     gchar *pam_service;
+    gchar *autologin_pam_service;
 
     /* Buffer for data read from greeter */
     guint8 *read_buffer;
@@ -91,13 +92,14 @@ typedef enum
 static gboolean read_cb (GIOChannel *source, GIOCondition condition, gpointer data);
 
 Greeter *
-greeter_new (Session *session, const gchar *pam_service)
+greeter_new (Session *session, const gchar *pam_service, const gchar *autologin_pam_service)
 {
     Greeter *greeter;
 
     greeter = g_object_new (GREETER_TYPE, NULL);
     greeter->priv->session = g_object_ref (session);
     greeter->priv->pam_service = g_strdup (pam_service);
+    greeter->priv->autologin_pam_service = g_strdup (autologin_pam_service);
 
     return greeter;
 }
@@ -307,6 +309,9 @@ reset_session (Greeter *greeter)
 static void
 handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
 {
+    const gchar *autologin_username, *service;
+    gboolean is_interactive;
+
     if (username[0] == '\0')
     {
         g_debug ("Greeter start authentication");
@@ -328,8 +333,21 @@ handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
     g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
     g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "authentication-complete", G_CALLBACK (authentication_complete_cb), greeter);
 
+    /* Use non-interactive service for autologin user */
+    autologin_username = g_hash_table_lookup (greeter->priv->hints, "autologin-user");
+    if (autologin_username != NULL && g_strcmp0 (username, autologin_username) == 0)
+    {
+        service = greeter->priv->autologin_pam_service;
+        is_interactive = FALSE;
+    }
+    else
+    {
+        service = greeter->priv->pam_service;
+        is_interactive = TRUE;
+    }
+
     /* Run the session process */
-    session_start (greeter->priv->authentication_session, greeter->priv->pam_service, username, TRUE, TRUE);
+    session_start (greeter->priv->authentication_session, service, username, TRUE, is_interactive);
 }
 
 static void
@@ -693,6 +711,7 @@ greeter_finalize (GObject *object)
     g_signal_handlers_disconnect_matched (self->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);    
     g_object_unref (self->priv->session);
     g_free (self->priv->pam_service);
+    g_free (self->priv->autologin_pam_service);
     g_free (self->priv->read_buffer);
     g_hash_table_unref (self->priv->hints);
     if (self->priv->authentication_session)

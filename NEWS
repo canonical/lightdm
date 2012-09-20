@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.2.3
+
+    * Correctly implement and test autologin timeouts
+
 Overview of changes in lightdm 1.2.2
 
     * Add missing regression test script

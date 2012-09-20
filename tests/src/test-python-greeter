@@ -49,6 +49,10 @@ def request_cb (channel, condition):
     if request == r:
         greeter.authenticate_as_guest ()
 
+    r = 'GREETER %s AUTHENTICATE-AUTOLOGIN' % os.getenv ('DISPLAY')
+    if request == r:
+        greeter.authenticate_autologin ()
+
     r = 'GREETER %s RESPOND TEXT=\"' % os.getenv ('DISPLAY')
     if request.startswith (r):
         greeter.respond (request[len (r):-1])
@@ -145,10 +149,14 @@ def authentication_complete_cb (greeter):
     else:
         status_notify ('GREETER %s AUTHENTICATION-COMPLETE AUTHENTICATED=%s' % (os.getenv ('DISPLAY'), is_authenticated))
 
+def autologin_timer_expired_cb (greeter):
+    status_notify ('GREETER %s AUTOLOGIN-TIMER-EXPIRED' % os.getenv ('DISPLAY'))
+
 greeter = LightDM.Greeter ()
 greeter.connect ('show-message', show_message_cb)
 greeter.connect ('show-prompt', show_prompt_cb)
 greeter.connect ('authentication-complete', authentication_complete_cb)
+greeter.connect ('autologin-timer-expired', autologin_timer_expired_cb)
 
 status_notify ('GREETER %s CONNECT-TO-DAEMON' % os.getenv ('DISPLAY'))
 if not greeter.connect_sync ():
@@ -160,6 +168,6 @@ status_notify ('GREETER %s CONNECTED-TO-DAEMON' % os.getenv ('DISPLAY'))
 if greeter.get_select_user_hint () is not None:
     status_notify ('GREETER %s SELECT-USER-HINT USERNAME=%s' % (os.getenv ('DISPLAY'), greeter.get_select_user_hint ()))
 if greeter.get_lock_hint ():
-        status_notify ('GREETER %s LOCK-HINT' % os.getenv ('DISPLAY'));
+    status_notify ('GREETER %s LOCK-HINT' % os.getenv ('DISPLAY'));
 
 loop.run ()

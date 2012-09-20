@@ -402,7 +402,7 @@ start_greeter (Display *display)
     g_signal_connect (display->priv->session, "authentication-complete", G_CALLBACK (greeter_authentication_complete_cb), display);
 
     /* Make communication link to greeter that will run on this session */
-    display->priv->greeter = greeter_new (display->priv->session, display->priv->pam_service);
+    display->priv->greeter = greeter_new (display->priv->session, display->priv->pam_service, display->priv->pam_autologin_service);
     g_signal_connect (G_OBJECT (display->priv->greeter), "connected", G_CALLBACK (greeter_connected_cb), display);
     g_signal_connect (G_OBJECT (display->priv->greeter), "start-authentication", G_CALLBACK (greeter_start_authentication_cb), display);
     g_signal_connect (G_OBJECT (display->priv->greeter), "start-session", G_CALLBACK (greeter_start_session_cb), display);
@@ -770,12 +770,12 @@ display_server_ready_cb (DisplayServer *display_server, Display *display)
 
     /* Automatically start requested user session */
     result = FALSE;
-    if (display->priv->autologin_guest)
+    if (display->priv->autologin_timeout == 0 && display->priv->autologin_guest)
     {
         g_debug ("Automatically logging in as guest");
         result = autologin_guest (display, display->priv->pam_autologin_service, TRUE);
     }
-    else if (display->priv->autologin_user)
+    else if (display->priv->autologin_timeout == 0 && display->priv->autologin_user)
     {
         g_debug ("Automatically logging in user %s", display->priv->autologin_user);
         result = autologin (display, display->priv->autologin_user, display->priv->pam_autologin_service, TRUE);

@@ -37,7 +37,7 @@ typedef struct
 
 GType greeter_get_type (void);
 
-Greeter *greeter_new (Session *session, const gchar *pam_service);
+Greeter *greeter_new (Session *session, const gchar *pam_service, const gchar *autologin_pam_service);
 
 void greeter_set_allow_guest (Greeter *greeter, gboolean allow_guest);
 
