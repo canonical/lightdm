@@ -159,6 +159,45 @@ open (const char *pathname, int flags, ...)
 }
 
 int
+open64 (const char *pathname, int flags, ...)
+{
+    int (*_open64) (const char * pathname, int flags, mode_t mode);
+    int mode = 0;
+  
+    if (flags & O_CREAT)
+    {
+        va_list ap;
+        va_start (ap, flags);
+        mode = va_arg (ap, int);
+        va_end (ap);
+    }
+
+    _open64 = (int (*)(const char * pathname, int flags, mode_t mode)) dlsym (RTLD_NEXT, "open64");
+    if (strcmp (pathname, "/dev/console") == 0)
+    {
+        if (console_fd < 0)
+        {
+            console_fd = _open64 ("/dev/null", flags, mode);
+            fcntl (console_fd, F_SETFD, FD_CLOEXEC);
+        }
+        return console_fd;
+    }
+    else if (strcmp (pathname, CONFIG_DIR "/lightdm.conf") == 0)
+    {
+        gchar *path;
+        int fd;
+
+        path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "lightdm", "lightdm.conf", NULL);
+        fd = _open64 (path, flags, mode);
+        g_free (path);
+
+        return fd;
+    }
+    else
+        return _open64 (pathname, flags, mode);
+}
+
+int
 ioctl (int d, int request, void *data)
 {
     int (*_ioctl) (int d, int request, void *data);
