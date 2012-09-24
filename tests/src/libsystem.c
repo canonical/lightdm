@@ -119,21 +119,12 @@ setuid (uid_t uid)
 }
 
 #ifdef __linux__
-int
-open (const char *pathname, int flags, ...)
+static int
+open_wrapper (const char *func, const char *pathname, int flags, mode_t mode)
 {
     int (*_open) (const char * pathname, int flags, mode_t mode);
-    int mode = 0;
-  
-    if (flags & O_CREAT)
-    {
-        va_list ap;
-        va_start (ap, flags);
-        mode = va_arg (ap, int);
-        va_end (ap);
-    }
 
-    _open = (int (*)(const char * pathname, int flags, mode_t mode)) dlsym (RTLD_NEXT, "open");
+    _open = (int (*)(const char * pathname, int flags, mode_t mode)) dlsym (RTLD_NEXT, func);
     if (strcmp (pathname, "/dev/console") == 0)
     {
         if (console_fd < 0)
@@ -159,11 +150,9 @@ open (const char *pathname, int flags, ...)
 }
 
 int
-open64 (const char *pathname, int flags, ...)
+open (const char *pathname, int flags, ...)
 {
-    int (*_open64) (const char * pathname, int flags, mode_t mode);
     int mode = 0;
-  
     if (flags & O_CREAT)
     {
         va_list ap;
@@ -171,30 +160,21 @@ open64 (const char *pathname, int flags, ...)
         mode = va_arg (ap, int);
         va_end (ap);
     }
+    return open_wrapper ("open", pathname, flags, mode);
+}
 
-    _open64 = (int (*)(const char * pathname, int flags, mode_t mode)) dlsym (RTLD_NEXT, "open64");
-    if (strcmp (pathname, "/dev/console") == 0)
+int
+open64 (const char *pathname, int flags, ...)
+{
+    int mode = 0;
+    if (flags & O_CREAT)
     {
-        if (console_fd < 0)
-        {
-            console_fd = _open64 ("/dev/null", flags, mode);
-            fcntl (console_fd, F_SETFD, FD_CLOEXEC);
-        }
-        return console_fd;
+        va_list ap;
+        va_start (ap, flags);
+        mode = va_arg (ap, int);
+        va_end (ap);
     }
-    else if (strcmp (pathname, CONFIG_DIR "/lightdm.conf") == 0)
-    {
-        gchar *path;
-        int fd;
-
-        path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "lightdm", "lightdm.conf", NULL);
-        fd = _open64 (path, flags, mode);
-        g_free (path);
-
-        return fd;
-    }
-    else
-        return _open64 (pathname, flags, mode);
+    return open_wrapper ("open64", pathname, flags, mode);
 }
 
 int
