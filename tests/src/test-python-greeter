@@ -14,7 +14,7 @@ loop = GLib.MainLoop ()
 def sigterm_cb (signum, frame):
     sys.stderr.write ("sigterm\n")
     status_notify ('GREETER %s TERMINATE SIGNAL=%d' % (os.getenv ('DISPLAY'), signum))
-    loop.quit ();
+    sys.exit (0);
 signal.signal (signal.SIGTERM, sigterm_cb)
 
 status_socket = None
