@@ -118,21 +118,12 @@ setuid (uid_t uid)
 }
 
 #ifdef __linux__
-int
-open (const char *pathname, int flags, ...)
+static int
+open_wrapper (const char *func, const char *pathname, int flags, mode_t mode)
 {
     int (*_open) (const char * pathname, int flags, mode_t mode);
-    int mode = 0;
-  
-    if (flags & O_CREAT)
-    {
-        va_list ap;
-        va_start (ap, flags);
-        mode = va_arg (ap, int);
-        va_end (ap);
-    }
 
-    _open = (int (*)(const char * pathname, int flags, mode_t mode)) dlsym (RTLD_NEXT, "open");
+    _open = (int (*)(const char * pathname, int flags, mode_t mode)) dlsym (RTLD_NEXT, func);
     if (strcmp (pathname, "/dev/console") == 0)
     {
         if (console_fd < 0)
@@ -155,6 +146,34 @@ open (const char *pathname, int flags, ...)
     }
     else
         return _open (pathname, flags, mode);
+}
+
+int
+open (const char *pathname, int flags, ...)
+{
+    int mode = 0;
+    if (flags & O_CREAT)
+    {
+        va_list ap;
+        va_start (ap, flags);
+        mode = va_arg (ap, int);
+        va_end (ap);
+    }
+    return open_wrapper ("open", pathname, flags, mode);
+}
+
+int
+open64 (const char *pathname, int flags, ...)
+{
+    int mode = 0;
+    if (flags & O_CREAT)
+    {
+        va_list ap;
+        va_start (ap, flags);
+        mode = va_arg (ap, int);
+        va_end (ap);
+    }
+    return open_wrapper ("open64", pathname, flags, mode);
 }
 
 int
