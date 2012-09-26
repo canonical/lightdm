@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
@@ -51,7 +52,7 @@ static void
 signal_cb (int signum)
 {
     status_notify ("GREETER %s TERMINATE SIGNAL=%d", getenv ("DISPLAY"), signum);
-    QCoreApplication::quit ();
+    _exit (EXIT_SUCCESS);
 }
 
 static void
