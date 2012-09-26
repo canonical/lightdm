@@ -3,6 +3,7 @@
 #include <glib.h>
 #include <gio/gio.h>
 #include <gio/gunixsocketaddress.h>
+#include <unistd.h>
 
 #include "status.h"
 
@@ -90,6 +91,11 @@ status_notify (const gchar *format, ...)
         if (error)
             g_printerr ("Failed to write to status socket: %s\n", error->message);
         g_clear_error (&error);
+        /* We sync filesystem here, to guarantee that statuses sent from
+           multiple process (e.g. greeter and X) are all ordered correctly.
+           Without this, there is a race that manifests occasionally between
+           close status_notify calls.  fsync does not seem to do the trick. */
+        sync ();
     }
     else
         g_printerr ("%s\n", status);
