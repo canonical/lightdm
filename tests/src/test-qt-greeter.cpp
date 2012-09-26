@@ -51,7 +51,7 @@ static void
 signal_cb (int signum)
 {
     status_notify ("GREETER %s TERMINATE SIGNAL=%d", getenv ("DISPLAY"), signum);
-    exit (EXIT_SUCCESS);
+    QCoreApplication::quit ();
 }
 
 static void
