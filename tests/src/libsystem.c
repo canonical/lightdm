@@ -113,7 +113,31 @@ setgid (gid_t gid)
 }
 
 int
+setegid (gid_t gid)
+{
+    return 0;
+}
+
+int
+setresgid (gid_t rgid, gid_t ugid, gid_t sgid)
+{
+    return 0;
+}
+
+int
 setuid (uid_t uid)
+{
+    return 0;
+}
+
+int
+seteuid (uid_t uid)
+{
+    return 0;
+}
+
+int
+setresuid (uid_t ruid, uid_t uuid, uid_t suid)
 {
     return 0;
 }
