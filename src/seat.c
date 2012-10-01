@@ -485,6 +485,7 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean use
     display_set_session_wrapper (display, seat_get_string_property (seat, "session-wrapper"));
     display_set_hide_users_hint (display, seat_get_boolean_property (seat, "greeter-hide-users"));
     display_set_show_manual_login_hint (display, seat_get_boolean_property (seat, "greeter-show-manual-login"));
+    display_set_show_remote_login_hint (display, seat_get_boolean_property (seat, "greeter-show-remote-login"));
     if (is_lock)
         display_set_lock_hint (display, TRUE);
     display_set_allow_guest (display, seat_get_allow_guest (seat));

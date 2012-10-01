@@ -74,6 +74,8 @@ void display_set_hide_users_hint (Display *display, gboolean hide_users);
 
 void display_set_show_manual_login_hint (Display *display, gboolean show_manual);
 
+void display_set_show_remote_login_hint (Display *display, gboolean show_remote);
+
 void display_set_lock_hint (Display *display, gboolean is_lock);
 
 void display_set_user_session (Display *display, SessionType type, const gchar *session_name);
