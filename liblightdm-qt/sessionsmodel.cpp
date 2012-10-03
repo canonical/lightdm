@@ -32,15 +32,15 @@ class SessionsModelPrivate
 public:
     SessionsModelPrivate(SessionsModel *parent);
     QList<SessionItem> items;
-    
+
     void loadSessions(SessionsModel::SessionType sessionType);
-    
+
 protected:
     SessionsModel* q_ptr;
 
 private:
     Q_DECLARE_PUBLIC(SessionsModel)
-    
+
 };
 
 SessionsModelPrivate::SessionsModelPrivate(SessionsModel *parent) :
@@ -51,20 +51,20 @@ SessionsModelPrivate::SessionsModelPrivate(SessionsModel *parent) :
 
 void SessionsModelPrivate::loadSessions(SessionsModel::SessionType sessionType)
 {
-   GList *ldmSessions;
+    GList *ldmSessions;
 
-   switch (sessionType) {
-       case SessionsModel::RemoteSessions:
-           ldmSessions = lightdm_get_remote_sessions();
-           break;
-       case SessionsModel::LocalSessions:
-           /* Fall through*/
-       default:
+    switch (sessionType) {
+    case SessionsModel::RemoteSessions:
+        ldmSessions = lightdm_get_remote_sessions();
+        break;
+    case SessionsModel::LocalSessions:
+        /* Fall through*/
+    default:
         ldmSessions = lightdm_get_sessions();
         break;
-   }
+    }
 
-   for (GList* item = ldmSessions; item; item = item->next) {
+    for (GList* item = ldmSessions; item; item = item->next) {
        LightDMSession *ldmSession = static_cast<LightDMSession*>(item->data);
        Q_ASSERT(ldmSession);
 
@@ -80,7 +80,7 @@ void SessionsModelPrivate::loadSessions(SessionsModel::SessionType sessionType)
 }
 
 
-//deprecated constructor for ABI compatability. 
+//deprecated constructor for ABI compatability.
 SessionsModel::SessionsModel(QObject *parent) :
     QAbstractListModel(parent),
     d_ptr(new SessionsModelPrivate(this))
@@ -99,7 +99,7 @@ SessionsModel::SessionsModel(SessionsModel::SessionType sessionType, QObject *pa
     d_ptr(new SessionsModelPrivate(this))
 {
     Q_D(SessionsModel);
-    
+
     QHash<int, QByteArray> roles = roleNames();
     roles[KeyRole] = "key";
     setRoleNames(roles);
@@ -115,7 +115,7 @@ SessionsModel::~SessionsModel()
 int SessionsModel::rowCount(const QModelIndex &parent) const
 {
     Q_D(const SessionsModel);
-    
+
     if (parent == QModelIndex()) { //if top level
         return d->items.size();
     } else {
