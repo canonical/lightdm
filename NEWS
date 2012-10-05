@@ -3,6 +3,10 @@ Overview of changes in lightdm 1.4.0
     * Correctly implement and test autologin timeouts
     * Add greeter-show-remote-login hint
     * Correctly annotate enums in vapi file
+    * QLightDM: Add default constructor to Qt power interface
+    * QLightDM: Expose image path in UserModel
+    * QLightDM: Add parameter to session model to show either local or remote
+      sessions
 
 Overview of changes in lightdm 1.3.3
 
