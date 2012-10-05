@@ -7,6 +7,7 @@ Overview of changes in lightdm 1.4.0
     * QLightDM: Expose image path in UserModel
     * QLightDM: Add parameter to session model to show either local or remote
       sessions
+    * Fix race conditions in tests
 
 Overview of changes in lightdm 1.3.3
 
