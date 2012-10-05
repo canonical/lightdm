@@ -184,6 +184,7 @@ UsersModel::UsersModel(QObject *parent) :
     roles[LoggedInRole] = "loggedIn";
     roles[SessionRole] = "session";
     roles[HasMessagesRole] = "hasMessages";
+    roles[ImagePathRole] = "imagePath";
     setRoleNames(roles);
     d->loadUsers();
 
@@ -231,6 +232,8 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
         return QPixmap(d->users[row].background);
     case UsersModel::HasMessagesRole:
         return d->users[row].hasMessages;
+    case UsersModel::ImagePathRole:
+        return d->users[row].image;
     }
 
     return QVariant();

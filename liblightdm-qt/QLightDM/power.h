@@ -26,7 +26,7 @@ namespace QLightDM
         Q_PROPERTY(bool canShutdown READ canShutdown() CONSTANT)
         Q_PROPERTY(bool canRestart READ canRestart() CONSTANT)
 
-        PowerInterface(QObject *parent);
+        PowerInterface(QObject *parent=0);
         virtual ~PowerInterface();
 
         bool canSuspend();
