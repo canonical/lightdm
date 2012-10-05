@@ -14,7 +14,8 @@ DISTCHECK_CONFIGURE_FLAGS = --enable-introspection --enable-gtk-doc
 
 EXTRA_DIST = \
 	autogen.sh \
-	lightdm.doap
+	lightdm.doap \
+	NEWS
 
 DISTCLEANFILES = \
 	Makefile.in \
