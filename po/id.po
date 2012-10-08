@@ -8,18 +8,18 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-12-06 11:05+0000\n"
-"PO-Revision-Date: 2011-06-11 13:35+0000\n"
-"Last-Translator: Wayan Sudiarnata <Unknown>\n"
+"PO-Revision-Date: 2012-10-07 06:56+0000\n"
+"Last-Translator: Dirgita <Unknown>\n"
 "Language-Team: Indonesian <id@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2012-10-06 05:10+0000\n"
+"X-Launchpad-Export-Date: 2012-10-08 05:23+0000\n"
 "X-Generator: Launchpad (build 16061)\n"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:409
 msgid "Are you sure you want to close all programs and restart the computer?"
-msgstr "Anda yakin akan menutup semua program dan menyalakan ulang komputer?"
+msgstr "Tutup semua program dan nyalakan ulang komputer?"
 
 #: ../greeters/gtk/greeter.ui.h:1
 msgid "Cancel"
@@ -27,13 +27,12 @@ msgstr "Batal"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:410
 msgid "Restart"
-msgstr "Mulai Ulang"
+msgstr "Nyalakan Ulang"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:434
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
-msgstr ""
-"Apakah Anda yakin ingin menutup semua program dan mematikan komputer?"
+msgstr "Tutup semua program dan matikan komputer?"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:435
 msgid "Shutdown"
@@ -73,7 +72,7 @@ msgstr "Hibernasi"
 
 #: ../greeters/gtk/greeter.ui.h:6
 msgid "Restart..."
-msgstr "Mulai Ulang..."
+msgstr "Nyalakan Ulang..."
 
 #: ../greeters/gtk/greeter.ui.h:7
 msgid "Shutdown..."
@@ -86,11 +85,8 @@ msgid ""
 "Usage:\n"
 "  %s - Display Manager"
 msgstr ""
-"Usage:\n"
-"%s - Display Manager\n"
-"Uraian tentang bagaimana penggunaan Pengelola Tampilan Cahaya ditampilkan "
-"dalam command-line\n"
-"Menampilkan pembatas. Mulai garis baru yang sejajar"
+"Penggunaan:\n"
+"  %s - Manajer Tampilan"
 
 #. Description on how to use Light Display Manager displayed on command-line
 #: ../src/lightdm.c:106
@@ -104,10 +100,10 @@ msgid ""
 "  -v, --version                   Show release version\n"
 "  -h, --help                      Show help options"
 msgstr ""
-"Bantuan Pilihan:\n"
-"-c, - config <file> Gunakan berkas konfigurasi\n"
-"- pid-file <file> File untuk menulis PID ke\n"
-"-d, - debug Cetak pesan debug\n"
-"- test-mode Jalankan sebagai user biasa\n"
-"-v, - version Tampilkan versi rilis\n"
-"-h, - help Tampilkan pilihan bantuan"
+"Bantuan Opsi:\n"
+"  -c, --config <berkas>           Menggunakan berkas konfigurasi\n"
+"      --pid-file <berkas>         Berkas untuk menulis PID\n"
+"  -d, --debug                     Menampilkan pesan debug\n"
+"      --test-mode                 Menjalankan sebagai pengguna biasa\n"
+"  -v, --version                   Menampilkan versi rilis\n"
+"  -h, --help                      Menampilkan bantuan opsi"
