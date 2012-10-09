@@ -1,6 +1,6 @@
 #%PAM-1.0
 
-# Block login if they are disabled
+# Block login if they are globally disabled
 auth      required pam_nologin.so
 
 # Load environment from /etc/environment and ~/.pam_environment

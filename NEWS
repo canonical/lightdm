@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.4.1
+
+    * Fix autologin PAM configuration
+
 Overview of changes in lightdm 1.4.0
 
     * Correctly implement and test autologin timeouts

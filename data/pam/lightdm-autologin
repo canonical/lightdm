@@ -6,8 +6,8 @@ auth      required pam_nologin.so
 # Load environment from /etc/environment and ~/.pam_environment
 auth      required pam_env.so
 
-# Use /etc/passwd and /etc/shadow for passwords
-auth      required pam_unix.so
+# Allow access without authentication
+auth      required pam_permit.so
 
 # Stop autologin if account requires action
 account   required pam_unix.so
