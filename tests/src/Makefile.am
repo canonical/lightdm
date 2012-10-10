@@ -1,5 +1,5 @@
 noinst_PROGRAMS = dbus-env test-runner X Xvnc test-gobject-greeter test-session test-script-hook guest-account initctl plymouth vnc-client
-dist_noinst_SCRIPTS = lightdm-session
+dist_noinst_SCRIPTS = lightdm-session test-python-greeter
 noinst_LTLIBRARIES = libsystem.la
 
 libsystem_la_SOURCES = libsystem.c
