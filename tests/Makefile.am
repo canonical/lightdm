@@ -161,6 +161,7 @@ endif
 
 EXTRA_DIST = \
 	$(TESTS) \
+	data/remote-sessions/test-remote.desktop \
 	data/system.conf \
 	data/session.conf \
 	data/xgreeters/test-gobject-greeter.desktop \
@@ -189,6 +190,7 @@ EXTRA_DIST = \
 	scripts/cred-error.conf \
 	scripts/cred-expired.conf \
 	scripts/cred-unavail.conf \
+	scripts/default-keyboard-layout.conf \
 	scripts/denied.conf \
 	scripts/expired.conf \
 	scripts/greeter-fail-start.conf \
@@ -199,6 +201,7 @@ EXTRA_DIST = \
 	scripts/home-dir-on-authenticate.conf \
 	scripts/home-dir-on-session.conf \
 	scripts/keyboard-layout.conf \
+	scripts/keyboard-variants.conf \
 	scripts/language.conf \
 	scripts/language-no-accounts-service.conf \
 	scripts/lock-seat.conf \
@@ -235,6 +238,7 @@ EXTRA_DIST = \
 	scripts/no-console-kit.conf \
 	scripts/no-keyboard-layout.conf \
 	scripts/no-language.conf \
+	scripts/open-file-descriptors.conf \
 	scripts/pam.conf \
 	scripts/plymouth-active-vt.conf \
 	scripts/plymouth-inactive-vt.conf \
@@ -262,4 +266,5 @@ EXTRA_DIST = \
 	scripts/vnc-login.conf \
 	scripts/xauthority.conf \
 	scripts/xdmcp-login.conf \
+	scripts/xdmcp-open-file-descriptors.conf \
 	scripts/xserver-fail-start.conf
