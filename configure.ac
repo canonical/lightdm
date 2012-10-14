@@ -4,16 +4,14 @@ AC_INIT(lightdm, 1.4.0)
 AC_CONFIG_MACRO_DIR(m4)
 AC_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE([1.11 no-dist-gzip dist-xz foreign])
+AM_SILENT_RULES(yes)
 LT_INIT
 AM_PROG_CC_C_O
 AC_PROG_CXX
 AC_PROG_LIBTOOL
 AM_MAINTAINER_MODE
-m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES(yes)])
 
 GOBJECT_INTROSPECTION_CHECK(0.9.5)
-
-GNOME_COMPILE_WARNINGS(maximum)
 
 dnl ###########################################################################
 dnl Dependencies
