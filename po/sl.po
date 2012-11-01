@@ -8,14 +8,14 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-12-06 11:05+0000\n"
-"PO-Revision-Date: 2011-07-18 18:21+0000\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"PO-Revision-Date: 2012-10-31 17:34+0000\n"
+"Last-Translator: Matej Urbančič <mateju@svn.gnome.org>\n"
 "Language-Team: Slovenian <sl@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2012-10-18 04:47+0000\n"
-"X-Generator: Launchpad (build 16160)\n"
+"X-Launchpad-Export-Date: 2012-11-01 05:08+0000\n"
+"X-Generator: Launchpad (build 16218)\n"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:409
 msgid "Are you sure you want to close all programs and restart the computer?"
@@ -47,27 +47,27 @@ msgstr "Velika pisava"
 
 #: ../greeters/ldm-gtk-greeter.c:611
 msgid "High Constrast"
-msgstr ""
+msgstr "Visok kontrast"
 
 #: ../greeters/ldm-gtk-greeter.c:615
 msgid "Options"
-msgstr ""
+msgstr "Možnosti"
 
 #: ../greeters/ldm-gtk-greeter.c:620
 msgid "Language"
-msgstr ""
+msgstr "Jezik"
 
 #: ../greeters/ldm-gtk-greeter.c:646
 msgid "Keyboard Layout"
-msgstr ""
+msgstr "Razpored tipkovnice"
 
 #: ../greeters/ldm-gtk-greeter.c:668
 msgid "Session"
-msgstr ""
+msgstr "Seja"
 
 #: ../greeters/gtk/greeter.ui.h:8
 msgid "Suspend"
-msgstr "V stanje pripravljenosti"
+msgstr "V pripravljenost"
 
 #: ../greeters/gtk/greeter.ui.h:2
 msgid "Hibernate"
@@ -88,6 +88,8 @@ msgid ""
 "Usage:\n"
 "  %s - Display Manager"
 msgstr ""
+"Uporaba:\n"
+"  %s - upravljalnik zaslona"
 
 #. Description on how to use Light Display Manager displayed on command-line
 #: ../src/lightdm.c:106
@@ -101,3 +103,11 @@ msgid ""
 "  -v, --version                   Show release version\n"
 "  -h, --help                      Show help options"
 msgstr ""
+"Možnosti pomoči:\n"
+"  -c, --config <datoteka>             Uporabi nastavitveno datoteko\n"
+"      --pid-file <datoteka>           Datoteka v katero se zapišejo podatki "
+"PID\n"
+"  -d, --debug                     Izpis sporočil razhroščevanja\n"
+"      --test-mode                 Zaženi brez skrbniških dovoljenj\n"
+"  -v, --version                   Pokaži različico objave\n"
+"  -h, --help                      Pokaži možnosti pomoči"
