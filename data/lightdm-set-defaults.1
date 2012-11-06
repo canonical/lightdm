@@ -1,0 +1,55 @@
+.\" Copyright (c) 2012 - Matthew Fischer
+.TH LIGHT-SET-DEFAULTS 1 "13 October 2012"
+.SH NAME
+lightdm-set-defaults \- sets configuration options for lightdm
+.SH SYNOPSIS
+.B lightdm-set-defaults
+[
+.I OPTION
+]
+.SH DESCRIPTION
+.B lightdm-set-defaults
+sets configuration options for lightdm.  Requires root permissions to run.
+.SH OPTIONS
+.TP
+.B \-h, \-\-help
+Show help options
+.TP
+.B \-k, \-\-keep\-old
+Only update if no default already set
+.TP
+.B \-d, \-\-debug
+Enable debugging messages
+.TP
+.B \-r, \-\-remove
+Remove default value if it's the current one
+.TP
+.B \-s, \-\-session=SESSION_NAME
+Set the default session to SESSION_NAME
+.TP
+.B \-g, \-\-greeter=GREETER_NAME
+Set the default greeter to GREETER_NAME
+.TP
+.B \-a, \-\-autologin=USERNAME
+Set the autologin user to USERNAME
+.TP
+.B \-i, \-\-hide\-users=<true|false>
+Set greeter-hide-users to true or false.
+.TP
+.B \-m, \-\-show\-manual\-login=<true|false>
+Set show-manual-login to true or false.
+.TP
+.B \-R, \-\-show\-remote\-login=<true|false>
+Set show-manual-login to true or false.
+.TP
+.B \-l, \-\-allow\-guest=<true|false>
+Set allow-guest to true or false.
+.SH FILES
+.PD 0
+.TP
+.B /etc/lightdm/lightdm.conf
+Configuration
+.TP
+
+.sp
+.LP
