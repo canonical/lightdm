@@ -20,7 +20,8 @@ install-data-hook:
 	sed 's!PKGLIBEXECDIR!$(pkglibexecdir)!g' < $(srcdir)/guest-session.apparmor \
 		> $(DESTDIR)$(apparmor_profiledir)/lightdm-guest-session
 
-dist_man1_MANS = lightdm.1
+dist_man1_MANS = lightdm.1 \
+                 lightdm-set-defaults.1
 
 DISTCLEANFILES = \
 	Makefile.in
