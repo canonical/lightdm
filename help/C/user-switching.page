@@ -1,0 +1,38 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="multi-session">
+
+<info>
+  <link type="guide" xref="index#display-management"/>
+</info>
+
+<title>User Switching</title>
+
+<p>
+<em>User switching</em> is a method of running more than one session at a time on a <link xref="seat">seat</link> and switching between them.
+Only one session can be used at a time.
+The session is switched by contacting the display manager using D-Bus and calling the one of the following method on the Seat object:
+</p>
+<list>
+<item>
+<p>
+SwitchToGreeter - A greeter session is started. This allows the user to authenticate for a new session or authenticate to return to their current session.
+</p>
+</item>
+<item>
+<p>
+SwitchToUser - If there is a session for the given user then it is switched to, otherwise a greeter is started.
+</p>
+</item>
+<item>
+<p>
+SwitchToGuest - If a guest session is active it is switched to, otherwise a guest session is started.
+</p>
+</item>
+</list>
+<p>
+Switching is performed using <em>virtual terminals</em> in the kernel.
+Each session has a separate display server and the selected session is activated by changing the active virtual terminal.
+</p>
+
+</page>

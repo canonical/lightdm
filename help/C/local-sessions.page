@@ -1,0 +1,31 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="local-sessions">
+
+<info>
+  <link type="guide" xref="index#sessions"/>
+</info>
+
+<title>Local Sessions</title>
+
+<p>
+A local session allows a user to authenticate from a greeter and access their local system.
+</p>
+<p>
+Local sessions are registered with a desktop file in <file>/usr/share/xsessions/<em>name</em>.desktop</file>.
+The following keys are used:
+</p>
+<list>
+<item>
+<p>
+Name, Comment - May be used in the greeter to describe this session
+</p>
+</item>
+<item>
+<p>
+Exec - Command to run for this session
+</p>
+</item>
+</list>
+
+</page>

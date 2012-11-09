@@ -1,0 +1,26 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="auto-login">
+
+<info>
+  <link type="guide" xref="index#authentication"/>
+</info>
+  
+<title>Automatic/Timed Login</title>
+
+<p>
+Automatic and timed login allows a <link xref="index#sessions">user session</link> to be started without any authentication.
+This is useful for systems where security is not required (for example personal laptops) and kiosk type systems where the user session is considered secure.
+</p>
+<p>
+Automatic login is <link xref="config">configured</link> for a seat by setting the <code>autologin-user</code> setting to the name of the user account to automatically log into or setting <code>autologin-guest</code> to <code>true</code> to automatically log into a guest account.
+You can set <code>autologin-session</code> to set the session to override the <link xref="default-session">default</link>.
+</p>
+<p>
+Timed login is configured by setting <code>autologin-user-timeout</code> to the number of seconds to wait until performing the automatic login.
+During this time a greeter will be displayed allowing the user to pick another account before the timer expires.
+</p>
+<p>
+When performing an automatic login LightDM uses the <code>lightdm-autologin</code> PAM service.
+</p>
+</page>

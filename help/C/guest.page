@@ -3,12 +3,18 @@
       id="guest-account">
 
 <info>
-  <link type="guide" xref="index#authentication"/>
+  <link type="guide" xref="index#sessions"/>
 </info>
   
-<title>Guest Account</title>
+<title>Guest Sessions</title>
 
 <p>
+A guest session is a user session that doesn't require authentication.
+When selected a temporary user account is created with a default setup.
+When the guest session is exited the temporary account and its user data is removed.
+</p>
+<p>
+Guest sessions are enabled by default, though depending on what greeter is used they may not be made available to the user.
 </p>
 
 </page>

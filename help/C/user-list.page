@@ -1,0 +1,17 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="user-list">
+
+<info>
+  <link type="guide" xref="index#greeters"/>
+</info>
+
+<title>User List</title>
+
+<p>
+A greeter may choose to display a list of available users to choose from.
+This list can be accessed using <code>liblightdm</code> and the information is taken from AccountsService.
+If accounts service is not available, then the user list is obtained using the <code>getpwent</code> system call.
+</p>
+
+</page>

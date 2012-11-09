@@ -9,6 +9,35 @@
 <title>Configuration</title>
 
 <p>
+Configuration is in <file>/etc/lightdm</file>.
+The main configuration file is a keyfile called <file>lightdm.conf</file> containing the following sections:
 </p>
+<list>
+<item>
+<p>
+<code>[LightDM]</code> - Settings that applies to everything in LightDM.
+</p>
+</item>
+<item>
+<p>
+<code>[SeatDefaults]</code> - Settings that apply to all <link xref="seat">seats</link>.
+</p>
+</item>
+<item>
+<p>
+<code>[Seat:<em>name</em>]</code> - Settings for the named seat that overrides settings from <code>[SeatDefaults]</code>.
+</p>
+</item>
+<item>
+<p>
+<code>[XDMCPServer]</code> - Settings for <link xref="xdmcp">remote access using XDMCP</link>.
+</p>
+</item>
+<item>
+<p>
+<code>[VNCServer]</code> - Settings for <link xref="vnc">remote access using VNC</link>.
+</p>
+</item>
+</list>
 
 </page>

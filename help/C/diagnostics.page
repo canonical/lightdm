@@ -1,14 +1,15 @@
 <page xmlns="http://projectmallard.org/1.0/"
       type="guide"
-      id="multi-seat">
+      id="diagnostics">
 
 <info>
   <link type="guide" xref="index#display-management"/>
 </info>
-  
-<title>Multi Seat</title>
+
+<title>Diagnostics</title>
 
 <p>
+LightDM logs all activity into files in <file>/var/log/lightdm</file>.
 </p>
 
 </page>

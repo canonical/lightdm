@@ -1,0 +1,21 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="standard-authentication">
+
+<info>
+  <link type="guide" xref="index#authentication"/>
+</info>
+
+<title>Standard Authentication</title>
+
+<p>
+Authentication is performed using the <code>lightdm</code> PAM service.
+This service is configured by default to use the unix PAM modules and performs traditional password authentication.
+Authentication is initiated by the greeter and may involve informational messages and prompts to the user.
+Once authentication is complete the greeter is allowed to start a <link xref="index#sessions">user session</link>.
+</p>
+<p>
+If required this service can be modified to support any authentication scheme that is compatible with PAM.
+</p>
+
+</page>

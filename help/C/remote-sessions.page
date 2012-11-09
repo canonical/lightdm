@@ -1,0 +1,40 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="remote-sessions">
+
+<info>
+  <link type="guide" xref="index#sessions"/>
+</info>
+
+<title>Remote Sessions</title>
+
+<p>
+A remote session allows a user to authenticate from a greeter and access a remote system.
+</p>
+<p>
+Remote sessions are registered with a desktop file in <file>/usr/share/lightdm/remote-sessions/<em>name</em>.desktop</file>.
+The following keys are used:
+</p>
+<list>
+<item>
+<p>
+Name, Comment - May be used in the greeter to describe this session
+</p>
+</item>
+<item>
+<p>
+Exec - Command to run for this session
+</p>
+</item>
+<item>
+<p>
+X-LightDM-PAM-Service - PAM service to authenticate with
+</p>
+</item>
+</list>
+<p>
+Instead of using <link xref="standard-authentication">standard authentication</link> each remote session defines its own PAM service.
+This service should contact the server providing the session, perform authentication and then the command specified in <code>Exec</code> should run a program that displays the remote session.
+</p>
+
+</page>

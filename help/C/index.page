@@ -13,8 +13,27 @@
 <title>LightDM Help</title>
     
 <p>
-LightDM is a <em>display manager</em>.
+LightDM is a <em>Display Manager</em>.
+It is a long running process (daemon) that ensures that your graphical display is set up correctly.
 </p>
+<p>
+The LightDM daemon spawns and manages two types of processes:
+</p>
+<list>
+<item>
+<p>
+Display Servers - a process that combines graphical output from one or more process together to display on graphics hardware.
+Also provides input from mice / keyboards etc to the process. For example X is a display server.
+</p>
+</item>
+<item>
+<p>
+Sessions - a session is a process that has access to the display server and allows the user to perform tasks.
+Often a session will be made up of a core component, the shell, that allows the user to run applications.
+Both the shell and the applications communicate with the display server.
+</p>
+</item>
+</list>
     
 <section id="display-management" style="2column">
   <title>LightDM for Display Management</title>
@@ -22,18 +41,30 @@ LightDM is a <em>display manager</em>.
 
 <section id="authentication" style="2column">
   <title>Authentication</title>
+  <p>
+  Authentication is performed using PAM.
+  </p>
 </section>
 
 <section id="greeters" style="2column">
   <title>Greeters</title>
+  <p>
+  A greeter is a session that provides a mechanism for choosing and authentication users.
+  </p>
 </section>
 
 <section id="sessions" style="2column">
-  <title>Sessions</title>
+  <title>User Sessions</title>
+  <p>
+  A user session allows a user to interact with their computer and run applications.
+  </p>
 </section>
 
 <section id="remote-access" style="2column">
   <title>Remote Access</title>
+  <p>
+  You can allow remote computers to connect to LightDM and start sessions.
+  </p>
 </section>
 
 </page>
