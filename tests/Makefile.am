@@ -60,6 +60,7 @@ TESTS = \
 	test-login-gobject-new-authtok \
 	test-login-gobject-info-prompt \
 	test-login-gobject-multi-info-prompt \
+	test-login-gobject-multi-prompt \
 	test-login-gobject-pick-session \
 	test-login-gobject-previous-session \
 	test-login-gobject-wrong-password \
@@ -212,6 +213,7 @@ EXTRA_DIST = \
 	scripts/login-manual.conf \
 	scripts/login-manual-previous-session.conf \
 	scripts/login-multi-info-prompt.conf \
+	scripts/login-multi-prompt.conf \
 	scripts/login-new-authtok.conf \
 	scripts/login-no-password.conf \
 	scripts/login-pam.conf \

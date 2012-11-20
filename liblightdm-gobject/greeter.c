@@ -51,6 +51,9 @@ typedef struct
     guint8 *read_buffer;
     gsize n_read;
 
+    gsize n_responses_waiting;
+    GList *responses_received;
+
     GHashTable *hints;
     guint autologin_timeout;
 
@@ -301,6 +304,10 @@ handle_prompt_authentication (LightDMGreeter *greeter, guint8 *message, gsize me
     g_free (priv->authentication_user);
     priv->authentication_user = username;
 
+    g_list_free_full (priv->responses_received, g_free);
+    priv->responses_received = NULL;
+    priv->n_responses_waiting = 0;
+
     n_messages = read_int (message, message_length, offset);
     g_debug ("Prompt user with %d message(s)", n_messages);
 
@@ -316,9 +323,11 @@ handle_prompt_authentication (LightDMGreeter *greeter, guint8 *message, gsize me
         switch (style)
         {
         case PAM_PROMPT_ECHO_OFF:
+            priv->n_responses_waiting++;
             g_signal_emit (G_OBJECT (greeter), signals[SHOW_PROMPT], 0, text, LIGHTDM_PROMPT_TYPE_SECRET);
             break;
         case PAM_PROMPT_ECHO_ON:
+            priv->n_responses_waiting++;
             g_signal_emit (G_OBJECT (greeter), signals[SHOW_PROMPT], 0, text, LIGHTDM_PROMPT_TYPE_QUESTION);
             break;
         case PAM_ERROR_MSG:
@@ -846,7 +855,7 @@ lightdm_greeter_authenticate_autologin (LightDMGreeter *greeter)
  * @greeter: A #LightDMGreeter
  * @response: Response to a prompt
  *
- * Provide response to a prompt.
+ * Provide response to a prompt.  May be one in a series.
  **/
 void
 lightdm_greeter_respond (LightDMGreeter *greeter, const gchar *response)
@@ -861,13 +870,35 @@ lightdm_greeter_respond (LightDMGreeter *greeter, const gchar *response)
     priv = GET_PRIVATE (greeter);
 
     g_return_if_fail (priv->connected);
+    g_return_if_fail (priv->n_responses_waiting > 0);
 
-    g_debug ("Providing response to display manager");
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONTINUE_AUTHENTICATION, int_length () + string_length (response), &offset);
-    // FIXME: Could be multiple responses required
-    write_int (message, MAX_MESSAGE_LENGTH, 1, &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, response, &offset);
-    write_message (greeter, message, offset);
+    priv->n_responses_waiting--;
+    priv->responses_received = g_list_append (priv->responses_received, g_strdup (response));
+
+    if (priv->n_responses_waiting == 0)
+    {
+      guint32 msg_length;
+      GList *iter;
+
+      g_debug ("Providing response to display manager");
+
+      msg_length = int_length ();
+      for (iter = priv->responses_received; iter; iter = iter->next)
+      {
+          msg_length += string_length ((gchar *)iter->data);
+      }
+
+      write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONTINUE_AUTHENTICATION, msg_length, &offset);
+      write_int (message, MAX_MESSAGE_LENGTH, g_list_length (priv->responses_received), &offset);
+      for (iter = priv->responses_received; iter; iter = iter->next)
+      {
+          write_string (message, MAX_MESSAGE_LENGTH, (gchar *)iter->data, &offset);
+      }
+      write_message (greeter, message, offset);
+
+      g_list_free_full (priv->responses_received, g_free);
+      priv->responses_received = NULL;
+    }
 }
 
 /**
