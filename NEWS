@@ -4,6 +4,7 @@ Overview of changes in lightdm 1.2.3
     * Move from QString::fromLocal8Bit to QString::fromUtf8 when converting from
       gchar
     * Support multiple simultaneous PAM prompts
+    * Write utmp records for sessions
 
 Overview of changes in lightdm 1.2.2
 
