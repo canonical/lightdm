@@ -64,12 +64,6 @@ seat_xdmcp_session_create_session (Seat *seat, Display *display)
 }
 
 static void
-seat_xdmcp_session_display_removed (Seat *seat, Display *display)
-{
-   seat_stop (seat);
-}
-
-static void
 seat_xdmcp_session_init (SeatXDMCPSession *seat)
 {
     seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_XDMCP_SESSION_TYPE, SeatXDMCPSessionPrivate);
@@ -95,7 +89,6 @@ seat_xdmcp_session_class_init (SeatXDMCPSessionClass *klass)
 
     seat_class->create_display_server = seat_xdmcp_session_create_display_server;
     seat_class->create_session = seat_xdmcp_session_create_session;
-    seat_class->display_removed = seat_xdmcp_session_display_removed;
     object_class->finalize = seat_xdmcp_session_finalize;
 
     g_type_class_add_private (klass, sizeof (SeatXDMCPSessionPrivate));

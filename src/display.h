@@ -90,6 +90,8 @@ void display_unlock (Display *display);
 
 void display_stop (Display *display);
 
+gboolean display_get_is_stopped (Display *display);
+
 G_END_DECLS
 
 #endif /* _DISPLAY_H_ */

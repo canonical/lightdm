@@ -60,6 +60,9 @@ struct XServerLocalPrivate
     /* VT to run on */
     gint vt;
   
+    /* TRUE if holding a reference to the VT */
+    gboolean have_vt_ref;
+  
     /* TRUE if replacing Plymouth */
     gboolean replacing_plymouth;
 };
@@ -147,7 +150,10 @@ xserver_local_new (void)
     if (self->priv->vt < 0)
         self->priv->vt = vt_get_unused ();
     if (self->priv->vt >= 0)
+    {
         vt_ref (self->priv->vt);
+        self->priv->have_vt_ref = TRUE;
+    }
 
     return self;
 }
@@ -315,9 +321,6 @@ stopped_cb (Process *process, XServerLocal *server)
 {
     g_debug ("X server stopped");
 
-    g_object_unref (server->priv->xserver_process);
-    server->priv->xserver_process = NULL;
-
     xserver_local_release_display_number (xserver_get_display_number (XSERVER (server)));
   
     if (xserver_get_authority (XSERVER (server)) && server->priv->authority_file)
@@ -338,11 +341,11 @@ stopped_cb (Process *process, XServerLocal *server)
         server->priv->authority_file = NULL;
     }
 
-    if (server->priv->vt >= 0)
+    if (server->priv->have_vt_ref)
     {
         vt_unref (server->priv->vt);
-        server->priv->vt = -1;
-    }
+        server->priv->have_vt_ref = FALSE;
+    }  
 
     if (server->priv->replacing_plymouth && plymouth_get_is_running ())
     {
@@ -543,7 +546,7 @@ xserver_local_finalize (GObject *object)
     g_free (self->priv->xdmcp_key);
     if (self->priv->authority_file)
         g_object_unref (self->priv->authority_file);
-    if (self->priv->vt >= 0)
+    if (self->priv->have_vt_ref)
         vt_unref (self->priv->vt);
 
     G_OBJECT_CLASS (xserver_local_parent_class)->finalize (object);

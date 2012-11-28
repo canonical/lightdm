@@ -112,8 +112,11 @@ static void user_session_stopped_cb (Session *session, Display *display);
 Display *
 display_new (DisplayServer *display_server)
 {
-    Display *display = g_object_new (DISPLAY_TYPE, NULL);
+    Display *display;
 
+    g_return_val_if_fail (display_server != NULL, NULL);
+  
+    display = g_object_new (DISPLAY_TYPE, NULL);
     display->priv->display_server = g_object_ref (display_server);
 
     return display;
@@ -601,7 +604,7 @@ greeter_session_stopped_cb (Session *session, Display *display)
         return;
     }
 
-    if (!display->priv->display_server)
+    if (display_server_get_is_stopped (display->priv->display_server))
         return;
 
     /* Start the session for the authenticated user */
@@ -752,10 +755,6 @@ display_server_stopped_cb (DisplayServer *server, Display *display)
 {
     g_debug ("Display server stopped");
 
-    g_signal_handlers_disconnect_matched (display->priv->display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-    g_object_unref (display->priv->display_server);
-    display->priv->display_server = NULL;
-
     /* Stop this display, it will be restarted by the seat if necessary */
     display_stop (display);
 }
@@ -820,47 +819,6 @@ display_start (Display *display)
     return TRUE;
 }
 
-void
-display_stop (Display *display)
-{
-    g_return_if_fail (display != NULL);
-
-    if (display->priv->stopped)
-        return;
-
-    if (!display->priv->stopping)
-    {
-        g_debug ("Stopping display");
-        display->priv->stopping = TRUE;
-    }
-
-    /* Stop the session first */
-    if (display->priv->session)
-    {
-        session_stop (display->priv->session);
-        if (display->priv->session && !session_get_is_stopped (display->priv->session))
-            return;
-        g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-        g_object_unref (display->priv->session);
-        display->priv->session = NULL;
-    }
-
-    /* Stop the display server after that */
-    if (display->priv->display_server)
-    {
-        display_server_stop (display->priv->display_server);
-        if (display->priv->display_server && !display_server_get_is_stopped (display->priv->display_server))
-            return;
-        g_signal_handlers_disconnect_matched (display->priv->display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-        g_object_unref (display->priv->display_server);
-        display->priv->display_server = NULL;
-    }
-
-    display->priv->stopped = TRUE;
-    g_debug ("Display stopped");
-    g_signal_emit (display, signals[STOPPED], 0);
-}
-
 gboolean
 display_get_is_ready (Display *display)
 {
@@ -895,6 +853,51 @@ display_unlock (Display *display)
     session_unlock (display->priv->session);
 }
 
+void
+display_stop (Display *display)
+{
+    g_return_if_fail (display != NULL);
+
+    if (display->priv->stopped)
+        return;
+
+    if (!display->priv->stopping)
+    {
+        g_debug ("Stopping display");
+        display->priv->stopping = TRUE;
+    }
+
+    /* Stop the session first */
+    if (display->priv->session)
+    {
+        session_stop (display->priv->session);
+        if (display->priv->session && !session_get_is_stopped (display->priv->session))
+            return;
+        g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
+        g_object_unref (display->priv->session);
+        display->priv->session = NULL;
+    }
+
+    /* Stop the display server after that */
+    if (!display_server_get_is_stopped (display->priv->display_server))
+    {
+        display_server_stop (display->priv->display_server);
+        if (!display_server_get_is_stopped (display->priv->display_server))
+            return;
+    }
+
+    display->priv->stopped = TRUE;
+    g_debug ("Display stopped");
+    g_signal_emit (display, signals[STOPPED], 0);
+}
+
+gboolean
+display_get_is_stopped (Display *display)
+{
+    g_return_val_if_fail (display != NULL, FALSE);
+    return display->priv->stopped;
+}
+
 static gboolean
 display_real_switch_to_user (Display *display, User *user)
 {
@@ -926,11 +929,8 @@ display_finalize (GObject *object)
 
     self = DISPLAY (object);
 
-    if (self->priv->display_server)
-    {
-        g_signal_handlers_disconnect_matched (self->priv->display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
-        g_object_unref (self->priv->display_server);
-    }
+    g_signal_handlers_disconnect_matched (self->priv->display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
+    g_object_unref (self->priv->display_server);
     g_free (self->priv->greeter_session);
     if (self->priv->greeter)
     {

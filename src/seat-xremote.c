@@ -71,13 +71,6 @@ seat_xremote_run_script (Seat *seat, Display *display, Process *script)
 }
 
 static void
-seat_xremote_display_removed (Seat *seat, Display *display)
-{
-    /* Can't restart the display, so remove this seat */
-    seat_stop (seat);
-}
-
-static void
 seat_xremote_init (SeatXRemote *seat)
 {
 }
@@ -91,5 +84,4 @@ seat_xremote_class_init (SeatXRemoteClass *klass)
     seat_class->create_display_server = seat_xremote_create_display_server;
     seat_class->create_session = seat_xremote_create_session;
     seat_class->run_script = seat_xremote_run_script;
-    seat_class->display_removed = seat_xremote_display_removed;
 }

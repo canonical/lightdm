@@ -104,12 +104,6 @@ seat_xvnc_run_script (Seat *seat, Display *display, Process *script)
 }
 
 static void
-seat_xvnc_display_removed (Seat *seat, Display *display)
-{
-    seat_stop (seat);
-}
-
-static void
 seat_xvnc_init (SeatXVNC *seat)
 {
     seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_XVNC_TYPE, SeatXVNCPrivate);
@@ -136,7 +130,6 @@ seat_xvnc_class_init (SeatXVNCClass *klass)
     seat_class->create_display_server = seat_xvnc_create_display_server;
     seat_class->create_session = seat_xvnc_create_session;
     seat_class->run_script = seat_xvnc_run_script;
-    seat_class->display_removed = seat_xvnc_display_removed;
     object_class->finalize = seat_xdmcp_session_finalize;
 
     g_type_class_add_private (klass, sizeof (SeatXVNCPrivate));

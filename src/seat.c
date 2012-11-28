@@ -38,9 +38,6 @@ struct SeatPrivate
     /* The displays for this seat */
     GList *displays;
 
-    /* The active display */
-    Display *active_display;
-
     /* TRUE if stopping this seat (waiting for displays to stop) */
     gboolean stopping;
 
@@ -162,7 +159,7 @@ Display *
 seat_get_active_display (Seat *seat)
 {
     g_return_val_if_fail (seat != NULL, NULL);
-    return seat->priv->active_display;
+    return SEAT_GET_CLASS (seat)->get_active_display (seat);
 }
 
 gboolean
@@ -195,6 +192,9 @@ switch_to_user (Seat *seat, const gchar *username, gboolean unlock)
     for (link = seat->priv->displays; link; link = link->next)
     {
         Display *display = link->data;
+
+        if (display_get_is_stopped (display))
+            continue;
 
         /* If already logged in, then switch to that display */
         if (g_strcmp0 (display_get_username (display), username) == 0)        
@@ -427,11 +427,51 @@ check_stopped (Seat *seat)
 static void
 display_stopped_cb (Display *display, Seat *seat)
 {
-    seat->priv->displays = g_list_remove (seat->priv->displays, display);
+    gboolean is_active;
+
+    is_active = display == seat_get_active_display (seat);
+
     g_signal_handlers_disconnect_matched (display, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
-    g_signal_emit (seat, signals[DISPLAY_REMOVED], 0, display);
+    seat->priv->displays = g_list_remove (seat->priv->displays, display);
     g_object_unref (display);
 
+    g_signal_emit (seat, signals[DISPLAY_REMOVED], 0, display);
+
+    /* If no more displays running either start a greeter or stop the seat */
+    if (!seat->priv->stopping)
+    {
+        if (g_list_length (seat->priv->displays) == 0)
+        {
+            /* If failed to start then stop this seat */
+            if (!display_get_is_ready (display))
+            {
+                g_debug ("Stopping seat, failed to start a display");
+                seat_stop (seat);
+            }
+            /* Attempt to start a greeter */
+            else if (!seat->priv->can_switch)
+            {
+                g_debug ("Stopping seat, display stopped");
+                seat_stop (seat);             
+            }
+            
+            else if (!seat_switch_to_greeter (seat))
+            {
+                g_debug ("Stopping seat, unable to start greeter");
+                seat_stop (seat);
+            }        
+        }
+        else if (is_active)
+        {
+            g_debug ("Active display stopped, switching to greeter");
+            if (!seat_switch_to_greeter (seat))
+            {
+                g_debug ("Stopping seat, unable to start greeter");
+                seat_stop (seat);              
+            }
+        }
+    }
+  
     check_stopped (seat);
 }
 
@@ -502,7 +542,7 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean use
     g_signal_emit (seat, signals[DISPLAY_ADDED], 0, display);
 
     /* Switch to this display if currently not looking at anything */
-    if (!seat->priv->active_display)
+    if (seat_get_active_display (seat) == NULL)
         seat_set_active_display (seat, display);
 
     return display_start (display);
@@ -610,25 +650,30 @@ seat_real_start (Seat *seat)
 static void
 seat_real_set_active_display (Seat *seat, Display *display)
 {
-    if (display == seat->priv->active_display)
-        return;
+    GList *link;
 
-    if (seat->priv->active_display)
+    for (link = seat->priv->displays; link; link = link->next)
     {
-        /* Stop the existing display if it is a greeter */
-        if (!display_get_username (seat->priv->active_display))
+        Display *d = link->data;
+
+        if (d == display)
+            continue;
+
+        /* Stop any greeters and lock any other sessions */
+        if (!display_get_username (d))
         {
-            g_debug ("Stopping greeter display being switched from");
-            display_stop (seat->priv->active_display);
+            g_debug ("Stopping background greeter");
+            display_stop (d);
         }
-        /* Otherwise lock it */
         else
-        {
-            display_lock (seat->priv->active_display);
-        }
-        g_object_unref (seat->priv->active_display);
-    }
-    seat->priv->active_display = g_object_ref (display);
+            display_lock (d);
+    }  
+}
+
+static Display *
+seat_real_get_active_display (Seat *seat)
+{
+    return NULL;
 }
 
 static void
@@ -664,8 +709,6 @@ seat_finalize (GObject *object)
     g_hash_table_unref (self->priv->properties);
     g_free (self->priv->guest_username);
     g_list_free_full (self->priv->displays, g_object_unref);
-    if (self->priv->active_display)
-        g_object_unref (self->priv->active_display);
 
     G_OBJECT_CLASS (seat_parent_class)->finalize (object);
 }
@@ -678,6 +721,7 @@ seat_class_init (SeatClass *klass)
     klass->setup = seat_real_setup;
     klass->start = seat_real_start;
     klass->set_active_display = seat_real_set_active_display;
+    klass->get_active_display = seat_real_get_active_display;
     klass->run_script = seat_real_run_script;
     klass->stop = seat_real_stop;
 
