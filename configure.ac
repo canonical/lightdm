@@ -27,6 +27,7 @@ PKG_CHECK_MODULES(LIGHTDM, [
     gio-unix-2.0
     xdmcp
     xcb
+    mirclient
 ])
 
 PKG_CHECK_MODULES(GLIB, [

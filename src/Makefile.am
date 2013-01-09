@@ -36,6 +36,8 @@ lightdm_SOURCES = \
 	process.h \
 	seat.c \
 	seat.h \
+	seat-mir.c \
+	seat-mir.h \
 	seat-xdmcp-session.c \
 	seat-xdmcp-session.h \
 	seat-xlocal.c \

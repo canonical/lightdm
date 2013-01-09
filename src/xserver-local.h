@@ -61,6 +61,8 @@ guint xserver_local_get_xdmcp_port (XServerLocal *server);
 
 void xserver_local_set_xdmcp_key (XServerLocal *server, const gchar *key);
 
+void xserver_local_set_use_mir (XServerLocal *server, gboolean use_mir);
+
 gint xserver_local_get_vt (XServerLocal *server);
 
 gchar *xserver_local_get_authority_file_path (XServerLocal *server);
