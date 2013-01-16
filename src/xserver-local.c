@@ -54,8 +54,8 @@ struct XServerLocalPrivate
     /* XDMCP key to use */
     gchar *xdmcp_key;
 
-    /* TRUE if connecting to Mir */
-    gboolean use_mir;
+    /* ID to report to Mir */
+    gchar *mir_id;
 
     /* TRUE when received ready signal */
     gboolean got_signal;
@@ -231,10 +231,11 @@ xserver_local_set_xdmcp_key (XServerLocal *server, const gchar *key)
 }
 
 void
-xserver_local_set_use_mir (XServerLocal *server, gboolean use_mir)
+xserver_local_set_mir_id (XServerLocal *server, const gchar *id)
 {
     g_return_if_fail (server != NULL);
-    server->priv->use_mir = use_mir;
+    g_free (server->priv->mir_id);
+    server->priv->mir_id = g_strdup (id);
 }
 
 gint
@@ -465,8 +466,8 @@ xserver_local_start (DisplayServer *display_server)
     }
 
     /* Setup for running inside Mir */
-    if (server->priv->use_mir)
-        g_string_append (command, " -mir");
+    if (server->priv->mir_id != NULL)
+        g_string_append_printf (command, " -mir %s", server->priv->mir_id);
 
     /* Connect to a remote server using XDMCP */
     if (server->priv->xdmcp_server != NULL)

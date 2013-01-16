@@ -36,6 +36,12 @@ struct SeatMirPrivate
 
     /* Connection to the compositor */
     MirConnection *connection;
+
+    /* Number of X servers created */
+    guint x_server_count;
+
+    /* IDs for each display */
+    GHashTable *display_ids;
 };
 
 G_DEFINE_TYPE (SeatMir, seat_mir, SEAT_TYPE);
@@ -156,12 +162,16 @@ seat_mir_create_display_server (Seat *seat)
     const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
     gboolean allow_tcp;
     gint port = 0;
+    gchar *id;
 
     g_debug ("Starting X server on Mir compositor");
 
     xserver = xserver_local_new ();
 
-    xserver_local_set_use_mir (xserver, TRUE);
+    id = g_strdup_printf ("mir-%d", SEAT_MIR (seat)->priv->x_server_count);
+    SEAT_MIR (seat)->priv->x_server_count++;
+    xserver_local_set_mir_id (xserver, id);
+    g_hash_table_insert (SEAT_MIR (seat)->priv->display_ids, g_object_ref (xserver), id);
 
     command = seat_get_string_property (seat, "xserver-command");
     if (command)
@@ -245,7 +255,10 @@ seat_mir_create_session (Seat *seat, Display *display)
 static void
 seat_mir_set_active_display (Seat *seat, Display *display)
 {
-    //mir_connection_set_active_display (SEAT_MIR (seat), xserver_get_address (XSERVER (display))
+    gchar *id;
+
+    id = g_hash_table_lookup (SEAT_MIR (seat)->priv->display_ids, display_get_display_server (display));
+    mir_select_focus_by_lightdm_id (SEAT_MIR (seat)->priv->connection, id);
 
     SEAT_CLASS (seat_mir_parent_class)->set_active_display (seat, display);
 }
@@ -268,6 +281,8 @@ seat_mir_run_script (Seat *seat, Display *display, Process *script)
 static void
 seat_mir_display_removed (Seat *seat, Display *display)
 {
+    g_hash_table_remove (SEAT_MIR (seat)->priv->display_ids, display_get_display_server (display));
+
     if (seat_get_is_stopping (seat))
         return;
 
@@ -293,6 +308,8 @@ seat_mir_init (SeatMir *seat)
     seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_MIR_TYPE, SeatMirPrivate);
     seat->priv->vt = -1;
     seat->priv->compositor_process = process_new ();
+    seat->priv->x_server_count = 0;
+    seat->priv->display_ids = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, g_free);
 }
 
 static void

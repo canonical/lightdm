@@ -115,7 +115,7 @@ display_new (DisplayServer *display_server)
     Display *display;
 
     g_return_val_if_fail (display_server != NULL, NULL);
-  
+
     display = g_object_new (DISPLAY_TYPE, NULL);
     display->priv->display_server = g_object_ref (display_server);
 
