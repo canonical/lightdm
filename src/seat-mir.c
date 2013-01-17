@@ -195,6 +195,7 @@ seat_mir_create_display_server (Seat *seat)
     id = SEAT_MIR (seat)->priv->x_server_count;
     SEAT_MIR (seat)->priv->x_server_count++;
     xserver_local_set_mir_id (xserver, id);
+    xserver_local_set_mir_socket (xserver, SEAT_MIR (seat)->priv->mir_socket_filename);
     g_hash_table_insert (SEAT_MIR (seat)->priv->display_ids, g_object_ref (xserver), GINT_TO_POINTER (id));
 
     command = seat_get_string_property (seat, "xserver-command");

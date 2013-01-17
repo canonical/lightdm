@@ -57,6 +57,9 @@ struct XServerLocalPrivate
     /* ID to report to Mir */
     gint mir_id;
 
+    /* Filename of socket Mir is listening on */
+    gchar *mir_socket;
+
     /* TRUE when received ready signal */
     gboolean got_signal;
 
@@ -242,6 +245,14 @@ xserver_local_set_mir_id (XServerLocal *server, gint id)
         server->priv->have_vt_ref = FALSE;
     }
     server->priv->vt = -1;
+}
+
+void
+xserver_local_set_mir_socket (XServerLocal *server, const gchar *socket)
+{
+    g_return_if_fail (server != NULL);
+    g_free(server->priv->mir_socket);
+    server->priv->mir_socket = g_strdup(socket);
 }
 
 gint
@@ -474,6 +485,9 @@ xserver_local_start (DisplayServer *display_server)
     /* Setup for running inside Mir */
     if (server->priv->mir_id >= 0)
         g_string_append_printf (command, " -mir %d", server->priv->mir_id);
+
+    if (server->priv->mir_socket)
+        g_string_append_printf (command, " -mirSocket %s", server->priv->mir_socket);
 
     /* Connect to a remote server using XDMCP */
     if (server->priv->xdmcp_server != NULL)
