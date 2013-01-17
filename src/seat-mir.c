@@ -149,8 +149,20 @@ seat_mir_start (Seat *seat)
         return FALSE;
 
     /* Connect to the compositor */
+    g_debug ("Connecting to Mir");
     handle = mir_connect (NULL, "LightDM", connected_cb, seat);
     mir_wait_for (handle);
+    if (SEAT_MIR (seat)->priv->connection == NULL)
+    {
+        g_warning ("No connection from Mir");
+        return FALSE;
+    }
+    else if (!mir_connection_is_valid (SEAT_MIR (seat)->priv->connection))
+    {
+        g_warning ("Failed to connect to Mir: %s", mir_connection_get_error_message (SEAT_MIR (seat)->priv->connection));
+        return FALSE;
+    }
+    g_debug ("Connected to Mir");
 
     return TRUE;
 }
