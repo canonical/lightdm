@@ -142,7 +142,7 @@ seat_mir_start (Seat *seat)
     g_free (dir);
 
     /* Start the compositor */
-    SEAT_MIR (seat)->priv->mir_socket_filename = g_strdup ("/tmp/lightdm_mir_seat0");
+    SEAT_MIR (seat)->priv->mir_socket_filename = g_strdup ("/tmp/mir_socket"); // FIXME: Use this socket by default as XMir is hardcoded to this
     command = g_strdup_printf ("mir --file %s", SEAT_MIR (seat)->priv->mir_socket_filename);
     process_set_command (SEAT_MIR (seat)->priv->mir_process, command);
     g_free (command);
