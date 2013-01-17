@@ -55,7 +55,7 @@ struct XServerLocalPrivate
     gchar *xdmcp_key;
 
     /* ID to report to Mir */
-    gchar *mir_id;
+    gint mir_id;
 
     /* TRUE when received ready signal */
     gboolean got_signal;
@@ -231,11 +231,17 @@ xserver_local_set_xdmcp_key (XServerLocal *server, const gchar *key)
 }
 
 void
-xserver_local_set_mir_id (XServerLocal *server, const gchar *id)
+xserver_local_set_mir_id (XServerLocal *server, gint id)
 {
     g_return_if_fail (server != NULL);
-    g_free (server->priv->mir_id);
-    server->priv->mir_id = g_strdup (id);
+    server->priv->mir_id = id;
+
+    if (server->priv->have_vt_ref)
+    {
+        vt_unref (server->priv->vt);
+        server->priv->have_vt_ref = FALSE;
+    }
+    server->priv->vt = -1;
 }
 
 gint
@@ -466,8 +472,8 @@ xserver_local_start (DisplayServer *display_server)
     }
 
     /* Setup for running inside Mir */
-    if (server->priv->mir_id != NULL)
-        g_string_append_printf (command, " -mir %s", server->priv->mir_id);
+    if (server->priv->mir_id >= 0)
+        g_string_append_printf (command, " -mir %d", server->priv->mir_id);
 
     /* Connect to a remote server using XDMCP */
     if (server->priv->xdmcp_server != NULL)
@@ -542,6 +548,7 @@ xserver_local_init (XServerLocal *server)
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_LOCAL_TYPE, XServerLocalPrivate);
     server->priv->vt = -1;
     server->priv->command = g_strdup ("X");
+    server->priv->mir_id = -1;
 }
 
 static void

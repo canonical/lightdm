@@ -11,7 +11,7 @@
 
 #include <fcntl.h>
 #include <errno.h>
-#include <mir_client_library.h>
+#include <mir_client_library_lightdm.h>
 
 #include "seat-mir.h"
 #include "configuration.h"
@@ -30,12 +30,15 @@ struct SeatMirPrivate
 
     /* File to log to */
     gchar *log_file;
+  
+    /* Filename of Mir socket */
+    gchar *mir_socket_filename;
 
-    /* Compositor process */
-    Process *compositor_process;
+    /* Mir compositor process */
+    Process *mir_process;
 
     /* Connection to the compositor */
-    MirConnection *connection;
+    MirConnection *mir_connection;
 
     /* Number of X servers created */
     guint x_server_count;
@@ -99,7 +102,7 @@ static void
 connected_cb (MirConnection *connection, void *client_context)
 {
     SeatMir *seat = client_context;
-    seat->priv->connection = connection;
+    seat->priv->mir_connection = connection;
 }
 
 static gboolean
@@ -107,6 +110,7 @@ seat_mir_start (Seat *seat)
 {
     gchar *command, *dir;
     gboolean result;
+    guint wait_count;
     MirWaitHandle *handle;
 
     /* Replace Plymouth if it is running */
@@ -138,33 +142,41 @@ seat_mir_start (Seat *seat)
     g_free (dir);
 
     /* Start the compositor */
-    command = g_strdup_printf ("mir");
-    process_set_command (SEAT_MIR (seat)->priv->compositor_process, command);
+    SEAT_MIR (seat)->priv->mir_socket_filename = g_strdup ("/tmp/lightdm_mir_seat0");
+    command = g_strdup_printf ("mir --file %s", SEAT_MIR (seat)->priv->mir_socket_filename);
+    process_set_command (SEAT_MIR (seat)->priv->mir_process, command);
     g_free (command);
-    g_signal_connect (SEAT_MIR (seat)->priv->compositor_process, "stopped", G_CALLBACK (compositor_stopped_cb), seat);
-    g_signal_connect (SEAT_MIR (seat)->priv->compositor_process, "run", G_CALLBACK (compositor_run_cb), seat);
-    result = process_start (SEAT_MIR (seat)->priv->compositor_process);
+    g_signal_connect (SEAT_MIR (seat)->priv->mir_process, "stopped", G_CALLBACK (compositor_stopped_cb), seat);
+    g_signal_connect (SEAT_MIR (seat)->priv->mir_process, "run", G_CALLBACK (compositor_run_cb), seat);
+    result = process_start (SEAT_MIR (seat)->priv->mir_process);
 
     if (!result)
         return FALSE;
 
+    /* Wait for up to a second for the socket to appear */
+    for (wait_count = 0; wait_count < 10 && !g_file_test (SEAT_MIR (seat)->priv->mir_socket_filename, G_FILE_TEST_EXISTS); wait_count++)
+    {
+        g_debug ("Waiting for Mir socket %s...", SEAT_MIR (seat)->priv->mir_socket_filename);      
+        g_usleep (100000);
+    }
+
     /* Connect to the compositor */
     g_debug ("Connecting to Mir");
-    handle = mir_connect (NULL, "LightDM", connected_cb, seat);
+    handle = mir_connect (SEAT_MIR (seat)->priv->mir_socket_filename, "LightDM", connected_cb, seat);
     mir_wait_for (handle);
-    if (SEAT_MIR (seat)->priv->connection == NULL)
+    if (SEAT_MIR (seat)->priv->mir_connection == NULL)
     {
         g_warning ("No connection from Mir");
         return FALSE;
     }
-    else if (!mir_connection_is_valid (SEAT_MIR (seat)->priv->connection))
+    else if (!mir_connection_is_valid (SEAT_MIR (seat)->priv->mir_connection))
     {
-        g_warning ("Failed to connect to Mir: %s", mir_connection_get_error_message (SEAT_MIR (seat)->priv->connection));
+        g_warning ("Failed to connect to Mir: %s", mir_connection_get_error_message (SEAT_MIR (seat)->priv->mir_connection));
         return FALSE;
     }
     g_debug ("Connected to Mir");
 
-    return TRUE;
+    return SEAT_CLASS (seat_mir_parent_class)->start (SEAT (seat));
 }
 
 static DisplayServer *
@@ -174,16 +186,16 @@ seat_mir_create_display_server (Seat *seat)
     const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
     gboolean allow_tcp;
     gint port = 0;
-    gchar *id;
+    gint id;
 
     g_debug ("Starting X server on Mir compositor");
 
     xserver = xserver_local_new ();
 
-    id = g_strdup_printf ("mir-%d", SEAT_MIR (seat)->priv->x_server_count);
+    id = SEAT_MIR (seat)->priv->x_server_count;
     SEAT_MIR (seat)->priv->x_server_count++;
     xserver_local_set_mir_id (xserver, id);
-    g_hash_table_insert (SEAT_MIR (seat)->priv->display_ids, g_object_ref (xserver), id);
+    g_hash_table_insert (SEAT_MIR (seat)->priv->display_ids, g_object_ref (xserver), GINT_TO_POINTER (id));
 
     command = seat_get_string_property (seat, "xserver-command");
     if (command)
@@ -267,10 +279,10 @@ seat_mir_create_session (Seat *seat, Display *display)
 static void
 seat_mir_set_active_display (Seat *seat, Display *display)
 {
-    gchar *id;
+    gint id;
 
-    id = g_hash_table_lookup (SEAT_MIR (seat)->priv->display_ids, display_get_display_server (display));
-    mir_select_focus_by_lightdm_id (SEAT_MIR (seat)->priv->connection, id);
+    id = GPOINTER_TO_INT (g_hash_table_lookup (SEAT_MIR (seat)->priv->display_ids, display_get_display_server (display)));
+    mir_select_focus_by_lightdm_id (SEAT_MIR (seat)->priv->mir_connection, id);
 
     SEAT_CLASS (seat_mir_parent_class)->set_active_display (seat, display);
 }
@@ -319,9 +331,9 @@ seat_mir_init (SeatMir *seat)
 {
     seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_MIR_TYPE, SeatMirPrivate);
     seat->priv->vt = -1;
-    seat->priv->compositor_process = process_new ();
+    seat->priv->mir_process = process_new ();
     seat->priv->x_server_count = 0;
-    seat->priv->display_ids = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, g_free);
+    seat->priv->display_ids = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, NULL);
 }
 
 static void
@@ -332,7 +344,8 @@ seat_mir_finalize (GObject *object)
     if (seat->priv->vt >= 0)
        vt_unref (seat->priv->vt);
     g_free (seat->priv->log_file);
-    g_object_unref (seat->priv->compositor_process);
+    g_free (seat->priv->mir_socket_filename);
+    g_object_unref (seat->priv->mir_process);
 
     G_OBJECT_CLASS (seat_mir_parent_class)->finalize (object);
 }

@@ -61,7 +61,7 @@ guint xserver_local_get_xdmcp_port (XServerLocal *server);
 
 void xserver_local_set_xdmcp_key (XServerLocal *server, const gchar *key);
 
-void xserver_local_set_mir_id (XServerLocal *server, const gchar *id);
+void xserver_local_set_mir_id (XServerLocal *server, gint id);
 
 gint xserver_local_get_vt (XServerLocal *server);
 
