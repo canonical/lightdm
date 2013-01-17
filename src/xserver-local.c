@@ -251,8 +251,8 @@ void
 xserver_local_set_mir_socket (XServerLocal *server, const gchar *socket)
 {
     g_return_if_fail (server != NULL);
-    g_free(server->priv->mir_socket);
-    server->priv->mir_socket = g_strdup(socket);
+    g_free (server->priv->mir_socket);
+    server->priv->mir_socket = g_strdup (socket);
 }
 
 gint
