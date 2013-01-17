@@ -303,6 +303,14 @@ seat_mir_run_script (Seat *seat, Display *display, Process *script)
 }
 
 static void
+seat_mir_stop (Seat *seat)
+{
+    process_stop (SEAT_MIR (seat)->priv->mir_process);
+
+    SEAT_CLASS (seat_mir_parent_class)->stop (seat);
+}
+
+static void
 seat_mir_display_removed (Seat *seat, Display *display)
 {
     g_hash_table_remove (SEAT_MIR (seat)->priv->display_ids, display_get_display_server (display));
@@ -363,6 +371,7 @@ seat_mir_class_init (SeatMirClass *klass)
     seat_class->create_session = seat_mir_create_session;
     seat_class->set_active_display = seat_mir_set_active_display;
     seat_class->run_script = seat_mir_run_script;
+    seat_class->stop = seat_mir_stop;  
     seat_class->display_removed = seat_mir_display_removed;
 
     g_type_class_add_private (klass, sizeof (SeatMirPrivate));
