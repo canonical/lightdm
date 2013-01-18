@@ -19,7 +19,9 @@ main (int argc, char **argv)
 {
     gchar *passwd_path;
 
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
 
     status_connect (request_cb);
 

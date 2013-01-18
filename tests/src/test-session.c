@@ -164,7 +164,9 @@ main (int argc, char **argv)
     signal (SIGINT, quit_cb);
     signal (SIGTERM, quit_cb);
 
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
 
     loop = g_main_loop_new (NULL, FALSE);
 
