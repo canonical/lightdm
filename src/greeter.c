@@ -15,6 +15,7 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <gcrypt.h>
 
 #include "greeter.h"
 #include "ldm-marshal.h"
@@ -40,6 +41,7 @@ struct GreeterPrivate
     /* Buffer for data read from greeter */
     guint8 *read_buffer;
     gsize n_read;
+    gboolean use_secure_memory;
   
     /* Hints for the greeter */
     GHashTable *hints;
@@ -105,6 +107,7 @@ greeter_new (Session *session, const gchar *pam_service, const gchar *autologin_
     greeter->priv->session = g_object_ref (session);
     greeter->priv->pam_service = g_strdup (pam_service);
     greeter->priv->autologin_pam_service = g_strdup (autologin_pam_service);
+    greeter->priv->use_secure_memory = config_get_boolean (config_get_instance (), "LightDM", "lock-memory");
 
     return greeter;
 }
@@ -119,6 +122,33 @@ void
 greeter_set_hint (Greeter *greeter, const gchar *name, const gchar *value)
 {
     g_hash_table_insert (greeter->priv->hints, g_strdup (name), g_strdup (value));
+}
+
+static void *
+secure_malloc (Greeter *greeter, size_t n)
+{
+    if (greeter->priv->use_secure_memory)
+        return gcry_malloc_secure (n);
+    else
+        return g_malloc (n);
+}
+
+static void *
+secure_realloc (Greeter *greeter, void *ptr, size_t n)
+{
+    if (greeter->priv->use_secure_memory)
+        return gcry_realloc (ptr, n);
+    else
+        return g_realloc (ptr, n);
+}
+
+static void
+secure_free (Greeter *greeter, void *ptr)
+{
+    if (greeter->priv->use_secure_memory)
+        return gcry_free (ptr);
+    else
+        return g_free (ptr);
 }
 
 static guint32
@@ -259,6 +289,7 @@ pam_messages_cb (Session *session, Greeter *greeter)
         struct pam_response *response;
         response = calloc (messages_length, sizeof (struct pam_response));
         session_respond (greeter->priv->authentication_session, response);
+        free (response);
     }
 }
 
@@ -490,12 +521,18 @@ handle_continue_authentication (Greeter *greeter, gchar **secrets)
         int msg_style = messages[i].msg_style;
         if (msg_style == PAM_PROMPT_ECHO_OFF || msg_style == PAM_PROMPT_ECHO_ON)
         {
-            response[i].resp = strdup (secrets[j]); // FIXME: Need to convert from UTF-8
+            size_t secret_length = strlen (secrets[j]) + 1;
+            response[i].resp = secure_malloc (greeter, secret_length);
+            memcpy (response[i].resp, secrets[j], secret_length); // FIXME: Need to convert from UTF-8
             j++;
         }
     }
 
     session_respond (greeter->priv->authentication_session, response);
+
+    for (i = 0; i < messages_length; i++)
+        secure_free (greeter, response[i].resp);
+    free (response);
 }
 
 static void
@@ -587,7 +624,7 @@ read_int (Greeter *greeter, gsize *offset)
 }
 
 static gchar *
-read_string (Greeter *greeter, gsize *offset)
+read_string_full (Greeter *greeter, gsize *offset, void* (*alloc_fn)(size_t n))
 {
     guint32 length;
     gchar *value;
@@ -599,12 +636,27 @@ read_string (Greeter *greeter, gsize *offset)
         return g_strdup ("");
     }
 
-    value = g_malloc (sizeof (gchar *) * (length + 1));
+    value = (*alloc_fn) (sizeof (gchar *) * (length + 1));
     memcpy (value, greeter->priv->read_buffer + *offset, length);
     value[length] = '\0';
     *offset += length;
 
     return value;
+}
+
+static gchar *
+read_string (Greeter *greeter, gsize *offset)
+{
+    return read_string_full (greeter, offset, g_malloc);
+}
+
+static gchar *
+read_secret (Greeter *greeter, gsize *offset)
+{
+    if (greeter->priv->use_secure_memory)
+        return read_string_full (greeter, offset, gcry_malloc_secure);
+    else
+        return read_string_full (greeter, offset, g_malloc);
 }
 
 static gboolean
@@ -654,7 +706,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         n_to_read = read_int (greeter, &offset);
         if (n_to_read > 0)
         {
-            greeter->priv->read_buffer = g_realloc (greeter->priv->read_buffer, HEADER_SIZE + n_to_read);
+            greeter->priv->read_buffer = secure_realloc (greeter, greeter->priv->read_buffer, HEADER_SIZE + n_to_read);
             read_cb (source, condition, greeter);
             return TRUE;
         }
@@ -690,10 +742,12 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         n_secrets = read_int (greeter, &offset);
         secrets = g_malloc (sizeof (gchar *) * (n_secrets + 1));
         for (i = 0; i < n_secrets; i++)
-            secrets[i] = read_string (greeter, &offset);
+            secrets[i] = read_secret (greeter, &offset);
         secrets[i] = NULL;
         handle_continue_authentication (greeter, secrets);
-        g_strfreev (secrets);
+        for (i = 0; i < n_secrets; i++)
+            secure_free (greeter, secrets[i]);
+        g_free (secrets);
         break;
     case GREETER_MESSAGE_CANCEL_AUTHENTICATION:
         handle_cancel_authentication (greeter);
@@ -796,7 +850,7 @@ static void
 greeter_init (Greeter *greeter)
 {
     greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, GREETER_TYPE, GreeterPrivate);
-    greeter->priv->read_buffer = g_malloc (HEADER_SIZE);
+    greeter->priv->read_buffer = secure_malloc (greeter, HEADER_SIZE);
     greeter->priv->hints = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 }
 
@@ -811,7 +865,7 @@ greeter_finalize (GObject *object)
     g_object_unref (self->priv->session);
     g_free (self->priv->pam_service);
     g_free (self->priv->autologin_pam_service);
-    g_free (self->priv->read_buffer);
+    secure_free (self, self->priv->read_buffer);
     g_hash_table_unref (self->priv->hints);
     g_free (self->priv->remote_session);
     if (self->priv->authentication_session)

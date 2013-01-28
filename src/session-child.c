@@ -65,7 +65,7 @@ read_data (void *buf, size_t count)
 }
 
 static gchar *
-read_string ()
+read_string_full (void* (*alloc_fn)(size_t n))
 {
     int length;
     char *value;
@@ -80,11 +80,17 @@ read_string ()
         return NULL;
     }
   
-    value = g_malloc (sizeof (char) * (length + 1));
+    value = (*alloc_fn) (sizeof (char) * (length + 1));
     read_data (value, length);
     value[length] = '\0';      
 
     return value;
+}
+
+static gchar *
+read_string ()
+{
+    return read_string_full (g_malloc);
 }
 
 static int
@@ -137,7 +143,9 @@ pam_conv_cb (int msg_length, const struct pam_message **msg, struct pam_response
     for (i = 0; i < msg_length; i++)
     {
         struct pam_response *r = &response[i];
-        r->resp = read_string ();
+        // callers of this function inside pam will expect to be able to call
+        // free() on the strings we give back.  So alloc with malloc.
+        r->resp = read_string_full (malloc);
         read_data (&r->resp_retcode, sizeof (r->resp_retcode));
     }
 
