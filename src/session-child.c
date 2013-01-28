@@ -12,6 +12,7 @@
 #include <glib.h>
 #include <security/pam_appl.h>
 #include <utmpx.h>
+#include <sys/mman.h>
 
 #include "session-child.h"
 #include "session.h"
@@ -195,6 +196,12 @@ session_child_run (int argc, char **argv)
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
+
+    if (config_get_boolean (config_get_instance (), "LightDM", "lock-memory"))
+    {
+        /* Protect memory from being paged to disk, as we deal with passwords */
+        mlockall (MCL_CURRENT | MCL_FUTURE);
+    }
 
     /* Make input non-blocking */
     fd = open ("/dev/null", O_RDONLY);
