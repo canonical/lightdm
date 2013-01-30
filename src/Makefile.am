@@ -91,6 +91,7 @@ lightdm_CFLAGS = \
 
 lightdm_LDADD = \
 	$(LIGHTDM_LIBS) \
+	-lgcrypt \
 	-lpam
 
 pkglibexec_PROGRAMS = lightdm-guest-session-wrapper
