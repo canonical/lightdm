@@ -1,6 +1,10 @@
 Overview of changes in lightdm 1.5.0
 
     * Add man page for lightdm-set-defaults
+    * Use xzip for distribution, don't distribute old metadata
+    * Correctly check if display is active when session quits
+    * Relicense liblightdm to LGPL-2/LGPL-3 so GPL-2 code can link against it
+    * Selectively lock memory rather than calling mlockall for main daemon
 
 Overview of changes in lightdm 1.4.1
 
