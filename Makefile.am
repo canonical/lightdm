@@ -15,6 +15,9 @@ DISTCHECK_CONFIGURE_FLAGS = --enable-introspection --enable-gtk-doc
 EXTRA_DIST = \
 	autogen.sh \
 	lightdm.doap \
+	COPYING.GPL3 \
+	COPYING.LGPL2 \
+	COPYING.LGPL3 \
 	NEWS
 
 DISTCLEANFILES = \
