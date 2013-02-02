@@ -71,7 +71,7 @@ UsersModelPrivate::UsersModelPrivate(UsersModel* parent) :
 
 UsersModelPrivate::~UsersModelPrivate()
 {
-    g_signal_handlers_disconnect_by_func(lightdm_user_list_get_instance(), NULL, this);
+    g_signal_handlers_disconnect_by_data(lightdm_user_list_get_instance(), this);
 }
 
 void UsersModelPrivate::loadUsers()
