@@ -14,7 +14,7 @@ libsystem_la_LIBADD = -ldl $(GLIB_LIBS)
 # but produces a shared library (instead of just a static library)
 libsystem_la_LDFLAGS = -rpath /nowhere
 
-if COMPILE_LIBLIGHTDM_QT
+if COMPILE_LIBLIGHTDM_QT4
 noinst_PROGRAMS += test-qt-greeter
 endif
 
@@ -106,12 +106,12 @@ test_qt_greeter_CFLAGS = \
 	$(XCB_CFLAGS)
 test_qt_greeter_CXXFLAGS = \
 	-I$(top_srcdir)/liblightdm-qt \
-	$(LIBLIGHTDM_QT_CFLAGS) \
+	$(LIBLIGHTDM_QT4_CFLAGS) \
 	$(GLIB_CFLAGS)
 test_qt_greeter_LDADD = \
 	-L$(top_builddir)/liblightdm-qt \
 	-llightdm-qt-2 \
-	$(LIBLIGHTDM_QT_LIBS) \
+	$(LIBLIGHTDM_QT4_LIBS) \
 	$(GLIB_LIBS) \
 	$(GIO_UNIX_LIBS) \
 	$(XCB_LIBS)

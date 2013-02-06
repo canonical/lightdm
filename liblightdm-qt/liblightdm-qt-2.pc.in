@@ -4,7 +4,7 @@ libdir=@libdir@
 includedir=@includedir@
 
 Name: liblightdm-qt
-Description: LightDM client library
+Description: LightDM Qt4 client library
 Version: @VERSION@
 Requires: QtCore QtGui
 Libs: -L${libdir} -llightdm-qt-2

@@ -36,13 +36,13 @@ doc/*.txt
 doc/xml
 greeters/gtk/lightdm-gtk-greeter
 greeters/qt/lightdm-qt-greeter
-greeters/qt/*_moc.cpp
+greeters/qt/*_moc*.cpp
 greeters/qt/ui_*.h
 liblightdm-gobject/*.gir
 liblightdm-gobject/*.typelib
 liblightdm-gobject/liblightdm-gobject-1.pc
 liblightdm-qt/liblightdm-qt-2.pc
-liblightdm-qt/*_moc.cpp
+liblightdm-qt/*_moc*.cpp
 m4/*
 po/*.gmo
 po/POTFILES
@@ -56,7 +56,7 @@ src/ldm-marshal.h
 src/lightdm
 src/lightdm-guest-session-wrapper
 tests/data/passwd
-tests/src/*_moc.cpp
+tests/src/*_moc*.cpp
 tests/src/dbus-env
 tests/src/guest-account
 tests/src/initctl

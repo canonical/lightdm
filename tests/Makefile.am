@@ -131,7 +131,7 @@ TESTS = \
 #   test-qt-change-password
 #   test-autologin-create-directory
 
-if COMPILE_LIBLIGHTDM_QT
+if COMPILE_LIBLIGHTDM_QT4
 TESTS += \
 	test-autologin-qt-timeout \
 	test-autologin-qt-guest-timeout \

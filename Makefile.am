@@ -2,9 +2,7 @@ SUBDIRS =
 if COMPILE_LIBLIGHTDM_GOBJECT
 SUBDIRS += liblightdm-gobject
 endif
-if COMPILE_LIBLIGHTDM_QT
 SUBDIRS += liblightdm-qt
-endif
 if COMPILE_TESTS
 SUBDIRS += tests
 endif

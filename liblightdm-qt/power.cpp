@@ -110,4 +110,8 @@ void PowerInterface::restart()
     d->consoleKitInterface->call("Restart");
 }
 
-#include "power_moc.cpp"
+#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
+#include "power_moc5.cpp"
+#else
+#include "power_moc4.cpp"
+#endif

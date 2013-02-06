@@ -146,4 +146,8 @@ QVariant SessionsModel::data(const QModelIndex &index, int role) const
     return QVariant();
 }
 
-#include "sessionsmodel_moc.cpp"
+#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
+#include "sessionsmodel_moc5.cpp"
+#else
+#include "sessionsmodel_moc4.cpp"
+#endif
