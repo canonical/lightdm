@@ -182,7 +182,9 @@ UsersModel::UsersModel(QObject *parent) :
     // Extend roleNames (we want to keep the "display" role)
     QHash<int, QByteArray> roles = roleNames();
     roles[NameRole] = "name";
+    roles[RealNameRole] = "realName";
     roles[LoggedInRole] = "loggedIn";
+    roles[BackgroundRole] = "background";
     roles[SessionRole] = "session";
     roles[HasMessagesRole] = "hasMessages";
     roles[ImagePathRole] = "imagePath";
