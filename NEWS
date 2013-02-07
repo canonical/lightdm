@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.6.0
+
+    * QLightDM: Add some missing role names in UsersModel
+
 Overview of changes in lightdm 1.5.0
 
     * Add man page for lightdm-set-defaults
