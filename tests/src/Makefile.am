@@ -14,8 +14,12 @@ libsystem_la_LIBADD = -ldl $(GLIB_LIBS)
 # but produces a shared library (instead of just a static library)
 libsystem_la_LDFLAGS = -rpath /nowhere
 
-if COMPILE_LIBLIGHTDM_QT
-noinst_PROGRAMS += test-qt-greeter
+if COMPILE_LIBLIGHTDM_QT4
+noinst_PROGRAMS += test-qt4-greeter
+endif
+
+if COMPILE_LIBLIGHTDM_QT5
+noinst_PROGRAMS += test-qt5-greeter
 endif
 
 dbus_env_CFLAGS = \
@@ -96,25 +100,45 @@ test_script_hook_LDADD = \
 	$(GLIB_LIBS) \
 	$(GIO_UNIX_LIBS)
 
-test-qt-greeter_moc.cpp: test-qt-greeter.h
-	$(MOC) $< -o $@
-test_qt_greeter_SOURCES = test-qt-greeter.cpp test-qt-greeter.h status.c status.h
-nodist_test_qt_greeter_SOURCES = test-qt-greeter_moc.cpp
-test_qt_greeter_CFLAGS = \
+test-qt4-greeter_moc4.cpp: test-qt-greeter.h
+	$(MOC4) $< -o $@
+test-qt5-greeter_moc5.cpp: test-qt-greeter.h
+	$(MOC5) $< -o $@
+common_qt_sources = test-qt-greeter.cpp test-qt-greeter.h status.c status.h
+test_qt4_greeter_SOURCES = $(common_qt_sources)
+test_qt5_greeter_SOURCES = $(common_qt_sources)
+nodist_test_qt4_greeter_SOURCES = test-qt4-greeter_moc4.cpp
+nodist_test_qt5_greeter_SOURCES = test-qt5-greeter_moc5.cpp
+common_qt_cflags = \
 	$(GLIB_CFLAGS) \
 	$(GIO_UNIX_CFLAGS) \
 	$(XCB_CFLAGS)
-test_qt_greeter_CXXFLAGS = \
+test_qt4_greeter_CFLAGS = $(common_qt_cflags)
+test_qt5_greeter_CFLAGS = $(common_qt_cflags)
+common_qt_cxxflags = \
+	-fPIC \
+	-DQT_DISABLE_DEPRECATED_BEFORE="QT_VERSION_CHECK(4, 0, 0)" \
 	-I$(top_srcdir)/liblightdm-qt \
-	$(LIBLIGHTDM_QT_CFLAGS) \
 	$(GLIB_CFLAGS)
-test_qt_greeter_LDADD = \
+test_qt4_greeter_CXXFLAGS = \
+	$(common_qt_cxxflags) \
+	$(LIBLIGHTDM_QT4_CFLAGS)
+test_qt5_greeter_CXXFLAGS = \
+	$(common_qt_cxxflags) \
+	$(LIBLIGHTDM_QT5_CFLAGS)
+common_qt_ldadd = \
 	-L$(top_builddir)/liblightdm-qt \
-	-llightdm-qt-2 \
-	$(LIBLIGHTDM_QT_LIBS) \
 	$(GLIB_LIBS) \
 	$(GIO_UNIX_LIBS) \
 	$(XCB_LIBS)
+test_qt4_greeter_LDADD = \
+	$(common_qt_ldadd) \
+	-llightdm-qt-2 \
+	$(LIBLIGHTDM_QT4_LIBS)
+test_qt5_greeter_LDADD = \
+	$(common_qt_ldadd) \
+	-llightdm-qt5-2 \
+	$(LIBLIGHTDM_QT5_LIBS)
 
 test_session_SOURCES = test-session.c status.c status.h
 test_session_CFLAGS = \
@@ -157,4 +181,5 @@ vnc_client_LDADD = \
 	$(GIO_UNIX_LIBS)
 
 CLEANFILES = \
-	test-qt-greeter_moc.cpp
+	test-qt4-greeter_moc4.cpp \
+	test-qt5-greeter_moc5.cpp

@@ -252,4 +252,8 @@ QString Greeter::hostname() const
     return QString::fromUtf8(lightdm_get_hostname());
 }
 
-#include "greeter_moc.cpp"
+#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
+#include "greeter_moc5.cpp"
+#else
+#include "greeter_moc4.cpp"
+#endif
