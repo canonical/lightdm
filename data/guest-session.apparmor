@@ -1,75 +1,12 @@
 # vim:syntax=apparmor
-# Profile for restricting lightdm guest session 
-# Author: Martin Pitt <martin.pitt@ubuntu.com>
+# Profile for restricting lightdm guest session
 
 #include <tunables/global>
 
 PKGLIBEXECDIR/lightdm-guest-session-wrapper {
-  #include <abstractions/authentication>
-  #include <abstractions/nameservice>
-  #include <abstractions/wutmp>
-  /etc/compizconfig/config rw, # bug in compiz https://launchpad.net/bugs/697678
- 
-  / r,
-  /bin/ rmix,
-  /bin/fusermount Px,
-  /bin/** rmix,
-  /cdrom/ rmix,
-  /cdrom/** rmix,
-  /dev/ r,
-  /dev/** rmw, # audio devices etc.
-  owner /dev/shm/** rmw,
-  /etc/ r,
-  /etc/** rmk,
-  /etc/gdm/Xsession ix,
-  /lib/ r,
-  /lib/** rmixk,
-  /lib32/ r,
-  /lib32/** rmixk,
-  /lib64/ r,
-  /lib64/** rmixk,
-  owner /media/ r,
-  owner /media/** rmwlixk,  # we want access to USB sticks and the like
-  /opt/ r,
-  /opt/** rmixk,
-  @{PROC}/ r,
-  @{PROC}/* rm,
-  @{PROC}/asound rm,
-  @{PROC}/asound/** rm,
-  @{PROC}/ati rm,
-  @{PROC}/ati/** rm,
-  owner @{PROC}/** rm,
-  # needed for gnome-keyring-daemon
-  @{PROC}/*/status r,
-  /sbin/ r,
-  /sbin/** rmixk,
-  /sys/ r,
-  /sys/** rm,
-  /tmp/ rw,
-  owner /tmp/** rwlkmix,
-  /usr/ r,
-  /usr/** rmixk,
-  /var/ r,
-  /var/** rmixk,
-  /var/guest-data/** rw, # allow to store files permanently
-  /var/tmp/ rw,
-  owner /var/tmp/** rwlkm,
-  /{,var/}run/ r,
-  # necessary for writing to sockets, etc.
-  /{,var/}run/** rmkix,
-  /{,var/}run/shm/** wl,
-  # libpam-xdg-support
-  owner /{,var/}run/user/guest-*/dconf/ rw,
-  owner /{,var/}run/user/guest-*/dconf/user rw,
-  owner /{,var/}run/user/guest-*/keyring-*/ rw,
-  owner /{,var/}run/user/guest-*/keyring-*/{control,gpg,pkcs11,ssh} rw,
+  # Most applications are confined via the main abstraction
+  #include <abstractions/lightdm>
 
-  capability ipc_lock,
-
-  # silence warnings for stuff that we really don't want to grant
-  deny capability dac_override,
-  deny capability dac_read_search,
-  #deny /etc/** w, # re-enable once LP#697678 is fixed
-  deny /usr/** w,
-  deny /var/crash/ w,
+  # chromium-browser needs special confinement due to its sandboxing
+  #include <abstractions/lightdm_chromium-browser>
 }
