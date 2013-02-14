@@ -11,11 +11,10 @@ from gi.repository import LightDM
 
 loop = GLib.MainLoop ()
 
-def sigterm_cb (signum, frame):
-    sys.stderr.write ("sigterm\n")
+def sigterm_cb (data):
     status_notify ('GREETER %s TERMINATE SIGNAL=%d' % (os.getenv ('DISPLAY'), signum))
-    sys.exit (0);
-signal.signal (signal.SIGTERM, sigterm_cb)
+    loop.quit ()
+GLib.unix_signal_add (GLib.PRIORITY_DEFAULT, signal.SIGTERM, sigterm_cb, None)
 
 status_socket = None
 
