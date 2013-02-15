@@ -12,21 +12,19 @@ from gi.repository import LightDM
 loop = GLib.MainLoop ()
 
 def sigterm_cb (data):
-    status_notify ('GREETER %s TERMINATE SIGNAL=%d' % (os.getenv ('DISPLAY'), signum))
+    status_notify ('GREETER %s TERMINATE SIGNAL=%d' % (os.getenv ('DISPLAY'), signal.SIGTERM))
     loop.quit ()
 GLib.unix_signal_add (GLib.PRIORITY_DEFAULT, signal.SIGTERM, sigterm_cb, None)
 
 status_socket = None
 
 def status_notify (message):
-    sys.stderr.write ("status_notify\n");
     if status_socket is not None:
         status_socket.send (struct.pack ('i', len (message)) + message)
     else:
         sys.stderr.write ('%s\n' % message)
 
 def request_cb (channel, condition):
-    sys.stderr.write ("request_cb\n")
     length = status_socket.recv (4)
     if len (length) == 0:
         loop.quit ();
@@ -61,11 +59,8 @@ def request_cb (channel, condition):
 
     r = 'GREETER %s START-SESSION' % os.getenv ('DISPLAY')
     if request == r:
-        sys.stderr.write ("start-session\n");
         if not greeter.start_session_sync (None):
-            sys.stderr.write ("start-session-failed\n");
             status_notify ('GREETER %s SESSION-FAILED' % os.getenv ('DISPLAY'))
-        sys.stderr.write ("start-session ok\n");
 
     r = 'GREETER %s START-SESSION SESSION=' % os.getenv ('DISPLAY')
     if request.startswith (r):
@@ -95,7 +90,6 @@ def request_cb (channel, condition):
             language = ''
         status_notify ('GREETER %s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s' % (os.getenv ('DISPLAY'), username, language))
 
-    sys.stderr.write ("request_cb end\n")
     return True
 
 path = os.getenv ('LIGHTDM_TEST_ROOT') + '/.status-socket'
