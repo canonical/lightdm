@@ -233,6 +233,12 @@ request_cb (const gchar *request)
 {
     gchar *r;
   
+    if (!request)
+    {
+        g_main_loop_quit (loop);
+        return;
+    }
+
     r = g_strdup_printf ("XSERVER :%d CRASH", display_number);
     if (strcmp (request, r) == 0)
     {
