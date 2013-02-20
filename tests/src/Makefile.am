@@ -73,14 +73,12 @@ test_gobject_greeter_CFLAGS = \
 	-I$(top_srcdir)/liblightdm-gobject \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
-	$(GIO_UNIX_CFLAGS) \
-	$(XCB_CFLAGS)
+	$(GIO_UNIX_CFLAGS)
 test_gobject_greeter_LDADD = \
 	-L$(top_builddir)/liblightdm-gobject \
 	-llightdm-gobject-1 \
 	$(GLIB_LIBS) \
-	$(GIO_UNIX_LIBS) \
-	$(XCB_LIBS)
+	$(GIO_UNIX_LIBS)
 
 guest_account_SOURCES = guest-account.c status.c status.h
 guest_account_CFLAGS = \
@@ -111,8 +109,7 @@ nodist_test_qt4_greeter_SOURCES = test-qt4-greeter_moc4.cpp
 nodist_test_qt5_greeter_SOURCES = test-qt5-greeter_moc5.cpp
 common_qt_cflags = \
 	$(GLIB_CFLAGS) \
-	$(GIO_UNIX_CFLAGS) \
-	$(XCB_CFLAGS)
+	$(GIO_UNIX_CFLAGS)
 test_qt4_greeter_CFLAGS = $(common_qt_cflags)
 test_qt5_greeter_CFLAGS = $(common_qt_cflags)
 common_qt_cxxflags = \
@@ -129,8 +126,7 @@ test_qt5_greeter_CXXFLAGS = \
 common_qt_ldadd = \
 	-L$(top_builddir)/liblightdm-qt \
 	$(GLIB_LIBS) \
-	$(GIO_UNIX_LIBS) \
-	$(XCB_LIBS)
+	$(GIO_UNIX_LIBS)
 test_qt4_greeter_LDADD = \
 	$(common_qt_ldadd) \
 	-llightdm-qt-2 \
@@ -144,12 +140,10 @@ test_session_SOURCES = test-session.c status.c status.h
 test_session_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
-	$(GIO_UNIX_CFLAGS) \
-	$(XCB_CFLAGS)
+	$(GIO_UNIX_CFLAGS)
 test_session_LDADD = \
 	$(GLIB_LIBS) \
-	$(GIO_UNIX_LIBS) \
-	$(XCB_LIBS)
+	$(GIO_UNIX_LIBS)
 
 initctl_SOURCES = initctl.c
 initctl_CFLAGS = \

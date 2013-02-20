@@ -35,7 +35,7 @@ indicate_ready ()
     handler = signal (SIGUSR1, SIG_IGN);
     if (handler == SIG_IGN)
     {
-        status_notify ("XSERVER :%d INDICATE-READY", display_number);
+        status_notify ("XSERVER-%d INDICATE-READY", display_number);
         kill (getppid (), SIGUSR1);
     }
     signal (SIGUSR1, handler);
@@ -62,12 +62,12 @@ signal_cb (int signum)
 {
     if (signum == SIGHUP)
     {
-        status_notify ("XSERVER :%d DISCONNECT-CLIENTS", display_number);
+        status_notify ("XSERVER-%d DISCONNECT-CLIENTS", display_number);
         indicate_ready ();
     }
     else
     {
-        status_notify ("XSERVER :%d TERMINATE SIGNAL=%d", display_number, signum);
+        status_notify ("XSERVER-%d TERMINATE SIGNAL=%d", display_number, signum);
         quit (EXIT_SUCCESS);
     }
 }
@@ -78,9 +78,9 @@ x_client_connect_cb (XClient *client, XConnect *message)
     gchar *auth_error = NULL;
 
     if (x_client_get_address (client))
-        status_notify ("XSERVER :%d TCP-ACCEPT-CONNECT", display_number);
+        status_notify ("XSERVER-%d TCP-ACCEPT-CONNECT", display_number);
     else
-        status_notify ("XSERVER :%d ACCEPT-CONNECT", display_number);
+        status_notify ("XSERVER-%d ACCEPT-CONNECT", display_number);
 
     if (auth_path)
     {
@@ -151,7 +151,7 @@ vnc_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
         buffer[n_read] = '\0';
         if (g_str_has_suffix (buffer, "\n"))
             buffer[n_read-1] = '\0';
-        status_notify ("XSERVER :%d VNC-CLIENT-CONNECT VERSION=\"%s\"", display_number, buffer);
+        status_notify ("XSERVER-%d VNC-CLIENT-CONNECT VERSION=\"%s\"", display_number, buffer);
     }
   
     return TRUE;
@@ -176,6 +176,7 @@ main (int argc, char **argv)
     gboolean use_inetd = FALSE;
     gchar *geometry = g_strdup ("640x480");
     gint depth = 8;
+    gchar *lock_filename;
     int lock_file;
     int i;
 
@@ -248,7 +249,7 @@ main (int argc, char **argv)
     x_server_set_listen_unix (xserver, listen_unix);
     x_server_set_listen_tcp (xserver, listen_tcp);
 
-    status_notify ("XSERVER :%d START GEOMETRY=%s DEPTH=%d", display_number, geometry, depth);
+    status_notify ("XSERVER-%d START GEOMETRY=%s DEPTH=%d", display_number, geometry, depth);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
@@ -267,7 +268,9 @@ main (int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    lock_path = g_strdup_printf ("/tmp/.X%d-lock", display_number);
+    lock_filename = g_strdup_printf (".X%d-lock", display_number);
+    lock_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", lock_filename, NULL);
+    g_free (lock_filename);
     lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
     if (lock_file < 0)
     {

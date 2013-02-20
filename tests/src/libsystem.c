@@ -212,6 +212,22 @@ open64 (const char *pathname, int flags, ...)
 }
 
 int
+access (const char *pathname, int mode)
+{
+    int (*_access) (const char *pathname, int mode);
+    gchar *new_path = NULL;
+    int ret;
+
+    _access = (int (*)(const char *pathname, int mode)) dlsym (RTLD_NEXT, "access");
+
+    new_path = redirect_path (pathname);
+    ret = _access (new_path, mode);
+    g_free (new_path);
+
+    return ret;
+}
+
+int
 ioctl (int d, int request, void *data)
 {
     int (*_ioctl) (int d, int request, void *data);
