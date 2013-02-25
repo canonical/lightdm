@@ -61,10 +61,7 @@
   /{,var/}run/** rmkix,
   /{,var/}run/shm/** wl,
   # libpam-xdg-support
-  owner /{,var/}run/user/guest-*/dconf/ rw,
-  owner /{,var/}run/user/guest-*/dconf/user rw,
-  owner /{,var/}run/user/guest-*/keyring-*/ rw,
-  owner /{,var/}run/user/guest-*/keyring-*/{control,gpg,pkcs11,ssh} rw,
+  owner /{,var/}run/user/guest-*/** rw,
 
   capability ipc_lock,
 
