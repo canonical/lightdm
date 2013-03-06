@@ -13,6 +13,8 @@
 
 #include "status.h"
 
+static GMainLoop *loop;
+
 static GString *open_fds;
 
 static GKeyFile *config;
@@ -30,6 +32,12 @@ static void
 request_cb (const gchar *request)
 {
     gchar *r;
+
+    if (!request)
+    {
+        g_main_loop_quit (loop);
+        return;
+    }
   
     r = g_strdup_printf ("SESSION %s LOGOUT", getenv ("DISPLAY"));
     if (strcmp (request, r) == 0)
@@ -148,7 +156,6 @@ request_cb (const gchar *request)
 int
 main (int argc, char **argv)
 {
-    GMainLoop *loop;
     int fd, open_max;
 
     open_fds = g_string_new ("");
@@ -164,7 +171,9 @@ main (int argc, char **argv)
     signal (SIGINT, quit_cb);
     signal (SIGTERM, quit_cb);
 
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
 
     loop = g_main_loop_new (NULL, FALSE);
 

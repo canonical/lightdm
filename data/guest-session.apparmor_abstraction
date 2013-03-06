@@ -1,0 +1,73 @@
+# vim:syntax=apparmor
+# Profile for restricting lightdm guest session
+# Author: Martin Pitt <martin.pitt@ubuntu.com>
+
+# This abstraction provides the majority of the confinement for guest sessions.
+# It is in its own abstraction so we can have a centralized place for
+# confinement for the various lightdm sessions (guest, freerdp, uccsconfigure,
+# etc). Note that this profile intentionally omits chromium-browser.
+
+  #include <abstractions/authentication>
+  #include <abstractions/nameservice>
+  #include <abstractions/wutmp>
+  /etc/compizconfig/config rw, # bug in compiz https://launchpad.net/bugs/697678
+
+  / r,
+  /bin/ rmix,
+  /bin/fusermount Px,
+  /bin/** rmix,
+  /cdrom/ rmix,
+  /cdrom/** rmix,
+  /dev/ r,
+  /dev/** rmw, # audio devices etc.
+  owner /dev/shm/** rmw,
+  /etc/ r,
+  /etc/** rmk,
+  /etc/gdm/Xsession ix,
+  /lib/ r,
+  /lib/** rmixk,
+  /lib32/ r,
+  /lib32/** rmixk,
+  /lib64/ r,
+  /lib64/** rmixk,
+  owner /media/ r,
+  owner /media/** rmwlixk,  # we want access to USB sticks and the like
+  /opt/ r,
+  /opt/** rmixk,
+  @{PROC}/ r,
+  @{PROC}/* rm,
+  @{PROC}/asound rm,
+  @{PROC}/asound/** rm,
+  @{PROC}/ati rm,
+  @{PROC}/ati/** rm,
+  owner @{PROC}/** rm,
+  # needed for gnome-keyring-daemon
+  @{PROC}/*/status r,
+  /sbin/ r,
+  /sbin/** rmixk,
+  /sys/ r,
+  /sys/** rm,
+  /tmp/ rw,
+  owner /tmp/** rwlkmix,
+  /usr/ r,
+  /usr/** rmixk,
+  /var/ r,
+  /var/** rmixk,
+  /var/guest-data/** rw, # allow to store files permanently
+  /var/tmp/ rw,
+  owner /var/tmp/** rwlkm,
+  /{,var/}run/ r,
+  # necessary for writing to sockets, etc.
+  /{,var/}run/** rmkix,
+  /{,var/}run/shm/** wl,
+  # libpam-xdg-support
+  owner /{,var/}run/user/guest-*/** rw,
+
+  capability ipc_lock,
+
+  # silence warnings for stuff that we really don't want to grant
+  deny capability dac_override,
+  deny capability dac_read_search,
+  #deny /etc/** w, # re-enable once LP#697678 is fixed
+  deny /usr/** w,
+  deny /var/crash/ w,

@@ -8,4 +8,6 @@ aclocal
 autoconf
 autoheader
 automake --add-missing --copy --foreign
-./configure $@
+if [ -z "$NOCONFIGURE" ]; then
+    ./configure $@
+fi

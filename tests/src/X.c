@@ -13,6 +13,9 @@
 #include "x-authority.h"
 #include "xdmcp-client.h"
 
+static GMainLoop *loop;
+static int exit_status = EXIT_SUCCESS;
+
 static GKeyFile *config;
 
 /* Path to lock file */
@@ -48,8 +51,8 @@ cleanup ()
 static void
 quit (int status)
 {
-    cleanup ();
-    exit (status);
+    exit_status = status;
+    g_main_loop_quit (loop);
 }
 
 static void
@@ -230,6 +233,12 @@ request_cb (const gchar *request)
 {
     gchar *r;
   
+    if (!request)
+    {
+        g_main_loop_quit (loop);
+        return;
+    }
+
     r = g_strdup_printf ("XSERVER :%d CRASH", display_number);
     if (strcmp (request, r) == 0)
     {
@@ -244,7 +253,6 @@ main (int argc, char **argv)
 {
     int i;
     char *pid_string;
-    GMainLoop *loop;
     gboolean listen_tcp = TRUE;
     gboolean listen_unix = TRUE;
     gboolean do_xdmcp = FALSE;
@@ -255,8 +263,10 @@ main (int argc, char **argv)
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
     signal (SIGHUP, signal_cb);
-  
+
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
 
     loop = g_main_loop_new (NULL, FALSE);
 
@@ -430,5 +440,7 @@ main (int argc, char **argv)
 
     g_main_loop_run (loop);
 
-    return EXIT_SUCCESS;
+    cleanup ();
+
+    return exit_status;
 }

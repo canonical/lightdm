@@ -2,8 +2,6 @@
 #include <string.h>
 #include <glib.h>
 
-#include "status.h"
-
 int
 main (int argc, char **argv)
 {

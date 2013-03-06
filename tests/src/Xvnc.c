@@ -12,6 +12,8 @@
 #include "x-server.h"
 #include "x-authority.h"
 
+static GMainLoop *loop;
+
 static GKeyFile *config;
 
 /* Path to lock file */
@@ -156,14 +158,18 @@ vnc_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 }
 
 static void
-request_cb (const gchar *message)
+request_cb (const gchar *request)
 {
+    if (!request)
+    {
+        g_main_loop_quit (loop);
+        return;
+    }
 }
 
 int
 main (int argc, char **argv)
 {
-    GMainLoop *loop;
     char *pid_string;
     gboolean listen_tcp = TRUE;
     gboolean listen_unix = TRUE;
@@ -177,7 +183,9 @@ main (int argc, char **argv)
     signal (SIGTERM, signal_cb);
     signal (SIGHUP, signal_cb);
 
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
 
     loop = g_main_loop_new (NULL, FALSE);
 
@@ -287,6 +295,8 @@ main (int argc, char **argv)
     indicate_ready ();
 
     g_main_loop_run (loop);
+
+    cleanup ();
 
     return EXIT_SUCCESS;
 }

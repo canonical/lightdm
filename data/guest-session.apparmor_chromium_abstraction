@@ -1,0 +1,33 @@
+# vim:syntax=apparmor
+# Profile abstraction for restricting chromium-browser in the lightdm guest session
+# Author: Jamie Strandboge <jamie@canonical.com>
+
+# The abstraction provides the additional accesses required to launch
+# chromium-browser from within an lightdm session. Because AppArmor cannot yet
+# merge profiles and because we want to utilize the access rules provided in
+# abstractions/lightdm, this abstraction must be separate from
+# abstractions/lightdm.
+
+  /usr/lib/chromium-browser/chromium-browser Cx -> chromium_browser,
+  profile chromium_browser {
+    # Allow all the same accesses as other applications in the guest session
+    #include <abstractions/lightdm>
+
+    # but also allow a few things because of chromium-browser's sandboxing that
+    # are not appropriate to other guest session applications.
+    owner @{PROC}/[0-9]*/oom_{,score_}adj w,
+    @{PROC}/sys/kernel/shmmax r,
+    capability sys_admin,  # for sandbox to change namespaces
+    capability sys_chroot, # fod sandbox to chroot to a safe directory
+    capability setgid,     # for sandbox to drop privileges
+    capability setuid,     # for sandbox to drop privileges
+    capability sys_ptrace, # chromium needs this to keep track of itself
+
+    @{PROC}/[0-9]*/ r,                 # sandbox wants these
+    @{PROC}/[0-9]*/fd/ r,              # sandbox wants these
+    @{PROC}/[0-9]*/task/[0-9]*/stat r, # sandbox wants these
+
+    /selinux/ r,
+
+    /usr/lib/chromium-browser/chromium-browser-sandbox ix,
+  }

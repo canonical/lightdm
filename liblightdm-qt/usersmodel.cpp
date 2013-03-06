@@ -4,9 +4,8 @@
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option) any
- * later version. See http://www.gnu.org/copyleft/lgpl.html the full text of the
- * license.
+ * Software Foundation; either version 2 or version 3 of the License.
+ * See http://www.gnu.org/copyleft/lgpl.html the full text of the license.
  */
 
 #include "QLightDM/usersmodel.h"
@@ -65,12 +64,14 @@ public:
 UsersModelPrivate::UsersModelPrivate(UsersModel* parent) :
     q_ptr(parent)
 {
+#if !defined(GLIB_VERSION_2_36)
     g_type_init();
+#endif  
 }
 
 UsersModelPrivate::~UsersModelPrivate()
 {
-    g_signal_handlers_disconnect_by_func(lightdm_user_list_get_instance(), NULL, this);
+    g_signal_handlers_disconnect_by_data(lightdm_user_list_get_instance(), this);
 }
 
 void UsersModelPrivate::loadUsers()
@@ -181,7 +182,9 @@ UsersModel::UsersModel(QObject *parent) :
     // Extend roleNames (we want to keep the "display" role)
     QHash<int, QByteArray> roles = roleNames();
     roles[NameRole] = "name";
+    roles[RealNameRole] = "realName";
     roles[LoggedInRole] = "loggedIn";
+    roles[BackgroundRole] = "background";
     roles[SessionRole] = "session";
     roles[HasMessagesRole] = "hasMessages";
     roles[ImagePathRole] = "imagePath";
@@ -240,4 +243,8 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
 }
 
 
-#include "usersmodel_moc.cpp"
+#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
+#include "usersmodel_moc5.cpp"
+#else
+#include "usersmodel_moc4.cpp"
+#endif

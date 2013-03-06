@@ -9,19 +9,16 @@
 
 static GKeyFile *config;
 
-static void
-request_cb (const gchar *message)
-{
-}
-
 int
 main (int argc, char **argv)
 {
     gchar *passwd_path;
 
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
 
-    status_connect (request_cb);
+    status_connect (NULL);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);

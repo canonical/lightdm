@@ -11,31 +11,27 @@ from gi.repository import LightDM
 
 loop = GLib.MainLoop ()
 
-def sigterm_cb (signum, frame):
-    sys.stderr.write ("sigterm\n")
-    status_notify ('GREETER %s TERMINATE SIGNAL=%d' % (os.getenv ('DISPLAY'), signum))
-    sys.exit (0);
-signal.signal (signal.SIGTERM, sigterm_cb)
+def sigterm_cb (data):
+    status_notify ('GREETER %s TERMINATE SIGNAL=%d' % (os.getenv ('DISPLAY'), signal.SIGTERM))
+    loop.quit ()
+GLib.unix_signal_add (GLib.PRIORITY_DEFAULT, signal.SIGTERM, sigterm_cb, None)
 
 status_socket = None
 
 def status_notify (message):
-    sys.stderr.write ("status_notify\n");
     if status_socket is not None:
         status_socket.send (struct.pack ('i', len (message)) + message)
     else:
         sys.stderr.write ('%s\n' % message)
 
 def request_cb (channel, condition):
-    sys.stderr.write ("request_cb\n")
     length = status_socket.recv (4)
-    sys.stderr.write ("read %d\n" % len (length))
     if len (length) == 0:
+        loop.quit ();
         return False
     if len (length) > 0:
         (l,) = struct.unpack ('i', length)
         request = status_socket.recv (l)
-        sys.stderr.write ("read '%s' %d\n" % (request, len (request)))
 
     r = 'GREETER %s AUTHENTICATE' % os.getenv ('DISPLAY')
     if request == r:
@@ -63,11 +59,8 @@ def request_cb (channel, condition):
 
     r = 'GREETER %s START-SESSION' % os.getenv ('DISPLAY')
     if request == r:
-        sys.stderr.write ("start-session\n");
         if not greeter.start_session_sync (None):
-            sys.stderr.write ("start-session-failed\n");
             status_notify ('GREETER %s SESSION-FAILED' % os.getenv ('DISPLAY'))
-        sys.stderr.write ("start-session ok\n");
 
     r = 'GREETER %s START-SESSION SESSION=' % os.getenv ('DISPLAY')
     if request.startswith (r):
@@ -97,13 +90,12 @@ def request_cb (channel, condition):
             language = ''
         status_notify ('GREETER %s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s' % (os.getenv ('DISPLAY'), username, language))
 
-    sys.stderr.write ("request_cb end\n")
     return True
 
 path = os.getenv ('LIGHTDM_TEST_ROOT') + '/.status-socket'
 status_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
 status_socket.connect (path)
-GLib.io_add_watch (status_socket.fileno (), GLib.IO_IN, request_cb)
+GLib.io_add_watch (status_socket.fileno (), GLib.IO_IN | GLib.IO_HUP, request_cb)
 
 status_notify ('GREETER %s START' % os.getenv ('DISPLAY'))
 

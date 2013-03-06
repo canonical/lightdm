@@ -12,6 +12,7 @@
 #include <glib.h>
 #include <security/pam_appl.h>
 #include <utmpx.h>
+#include <sys/mman.h>
 
 #include "session-child.h"
 #include "session.h"
@@ -65,7 +66,7 @@ read_data (void *buf, size_t count)
 }
 
 static gchar *
-read_string ()
+read_string_full (void* (*alloc_fn)(size_t n))
 {
     int length;
     char *value;
@@ -80,11 +81,17 @@ read_string ()
         return NULL;
     }
   
-    value = g_malloc (sizeof (char) * (length + 1));
+    value = (*alloc_fn) (sizeof (char) * (length + 1));
     read_data (value, length);
     value[length] = '\0';      
 
     return value;
+}
+
+static gchar *
+read_string ()
+{
+    return read_string_full (g_malloc);
 }
 
 static int
@@ -137,7 +144,9 @@ pam_conv_cb (int msg_length, const struct pam_message **msg, struct pam_response
     for (i = 0; i < msg_length; i++)
     {
         struct pam_response *r = &response[i];
-        r->resp = read_string ();
+        // callers of this function inside pam will expect to be able to call
+        // free() on the strings we give back.  So alloc with malloc.
+        r->resp = read_string_full (malloc);
         read_data (&r->resp_retcode, sizeof (r->resp_retcode));
     }
 
@@ -184,7 +193,15 @@ session_child_run (int argc, char **argv)
     const gchar *path;
     GError *error = NULL;
 
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
+
+    if (config_get_boolean (config_get_instance (), "LightDM", "lock-memory"))
+    {
+        /* Protect memory from being paged to disk, as we deal with passwords */
+        mlockall (MCL_CURRENT | MCL_FUTURE);
+    }
 
     /* Make input non-blocking */
     fd = open ("/dev/null", O_RDONLY);

@@ -2,9 +2,7 @@ SUBDIRS =
 if COMPILE_LIBLIGHTDM_GOBJECT
 SUBDIRS += liblightdm-gobject
 endif
-if COMPILE_LIBLIGHTDM_QT
 SUBDIRS += liblightdm-qt
-endif
 if COMPILE_TESTS
 SUBDIRS += tests
 endif
@@ -15,6 +13,9 @@ DISTCHECK_CONFIGURE_FLAGS = --enable-introspection --enable-gtk-doc
 EXTRA_DIST = \
 	autogen.sh \
 	lightdm.doap \
+	COPYING.GPL3 \
+	COPYING.LGPL2 \
+	COPYING.LGPL3 \
 	NEWS
 
 DISTCLEANFILES = \

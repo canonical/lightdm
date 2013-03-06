@@ -19,7 +19,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
 
 #include "configuration.h"
 #include "display-manager.h"
@@ -870,7 +869,9 @@ main (int argc, char **argv)
     if (argc >= 2 && strcmp (argv[1], "--session-child") == 0)
         return session_child_run (argc, argv);
 
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
     loop = g_main_loop_new (NULL, FALSE);
 
     g_signal_connect (process_get_current (), "got-signal", G_CALLBACK (signal_cb), NULL);
@@ -1078,12 +1079,6 @@ main (int argc, char **argv)
                              name_lost_cb,
                              NULL,
                              NULL);
-
-    if (config_get_boolean (config_get_instance (), "LightDM", "lock-memory"))
-    {
-        /* Protect memory from being paged to disk, as we deal with passwords */
-        mlockall (MCL_CURRENT | MCL_FUTURE);
-    }
 
     if (getuid () != 0)
         g_debug ("Running in user mode");

@@ -1181,7 +1181,9 @@ main (int argc, char **argv)
     gchar cwd[1024];
     GError *error = NULL;
 
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
 
     loop = g_main_loop_new (NULL, FALSE);
 
@@ -1289,6 +1291,7 @@ main (int argc, char **argv)
     /* Set up a skeleton file system */
     g_mkdir_with_parents (g_strdup_printf ("%s/etc", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/usr/share", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/usr/tmp", temp_dir), 0755);
 
     /* Copy over the configuration */
     g_mkdir_with_parents (g_strdup_printf ("%s/etc/lightdm", temp_dir), 0755);
