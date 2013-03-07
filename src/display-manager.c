@@ -118,7 +118,7 @@ display_manager_start (DisplayManager *manager)
 void
 display_manager_stop (DisplayManager *manager)
 {
-    GList *link;
+    GList *seats, *link;
 
     g_return_if_fail (manager != NULL);
 
@@ -129,11 +129,14 @@ display_manager_stop (DisplayManager *manager)
 
     manager->priv->stopping = TRUE;
 
-    for (link = manager->priv->seats; link; link = link->next)
+    /* Stop all the seats. Copy the list as it might be modified if a seat stops during this loop */
+    seats = g_list_copy (manager->priv->seats);
+    for (link = seats; link; link = link->next)
     {
         Seat *seat = link->data;
         seat_stop (seat);
     }
+    g_list_free (seats);
 
     check_stopped (manager);
 }

@@ -222,7 +222,7 @@ quit (int status)
 
     if (temp_dir)
     {
-        gchar *command = g_strdup_printf ("rm -r %s", temp_dir);
+        gchar *command = g_strdup_printf ("rm -rf %s", temp_dir);
         if (system (command))
             perror ("Failed to delete temp directory");
     }
@@ -1291,7 +1291,7 @@ main (int argc, char **argv)
     /* Set up a skeleton file system */
     g_mkdir_with_parents (g_strdup_printf ("%s/etc", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/usr/share", temp_dir), 0755);
-    g_mkdir_with_parents (g_strdup_printf ("%s/usr/tmp", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/tmp", temp_dir), 0755);
 
     /* Copy over the configuration */
     g_mkdir_with_parents (g_strdup_printf ("%s/etc/lightdm", temp_dir), 0755);

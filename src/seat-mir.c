@@ -148,7 +148,7 @@ seat_mir_start (Seat *seat)
     g_free (command);
     g_signal_connect (SEAT_MIR (seat)->priv->mir_process, "stopped", G_CALLBACK (compositor_stopped_cb), seat);
     g_signal_connect (SEAT_MIR (seat)->priv->mir_process, "run", G_CALLBACK (compositor_run_cb), seat);
-    result = process_start (SEAT_MIR (seat)->priv->mir_process);
+    result = process_start (SEAT_MIR (seat)->priv->mir_process, FALSE);
 
     if (!result)
         return FALSE;

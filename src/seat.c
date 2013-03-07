@@ -275,11 +275,9 @@ run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
 
     SEAT_GET_CLASS (seat)->run_script (seat, display, script);
 
-    if (process_start (script))
+    if (process_start (script, TRUE))
     {
         int exit_status;
-
-        process_wait (script);
 
         exit_status = process_get_exit_status (script);
         if (WIFEXITED (exit_status))
@@ -433,7 +431,6 @@ display_stopped_cb (Display *display, Seat *seat)
 
     g_signal_handlers_disconnect_matched (display, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
     seat->priv->displays = g_list_remove (seat->priv->displays, display);
-    g_object_unref (display);
 
     g_signal_emit (seat, signals[DISPLAY_REMOVED], 0, display);
 
@@ -471,7 +468,9 @@ display_stopped_cb (Display *display, Seat *seat)
             }
         }
     }
-  
+
+    g_object_unref (display);
+
     check_stopped (seat);
 }
 
@@ -679,17 +678,20 @@ seat_real_get_active_display (Seat *seat)
 static void
 seat_real_stop (Seat *seat)
 {
-    GList *link;
+    GList *displays, *link;
 
     check_stopped (seat);
     if (seat->priv->stopped)
         return;
 
-    for (link = seat->priv->displays; link; link = link->next)
+    /* Stop all the displays on the seat. Copy the list as it might be modified if a display stops during this loop */
+    displays = g_list_copy (seat->priv->displays);
+    for (link = displays; link; link = link->next)
     {
         Display *display = link->data;
         display_stop (display);
     }
+    g_list_free (displays);
 }
 
 static void
@@ -703,11 +705,17 @@ static void
 seat_finalize (GObject *object)
 {
     Seat *self;
+    GList *link;
 
     self = SEAT (object);
 
     g_hash_table_unref (self->priv->properties);
     g_free (self->priv->guest_username);
+    for (link = self->priv->displays; link; link = link->next)
+    {
+        Display *display = link->data;
+        g_signal_handlers_disconnect_matched (display, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
+    }  
     g_list_free_full (self->priv->displays, g_object_unref);
 
     G_OBJECT_CLASS (seat_parent_class)->finalize (object);

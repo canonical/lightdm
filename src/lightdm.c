@@ -139,29 +139,11 @@ signal_cb (Process *process, int signum)
     // FIXME: Stop XDMCP server
 }
 
-static gboolean
-exit_cb (gpointer data)
-{
-    /* Clean up display manager */
-    g_object_unref (display_manager);
-    display_manager = NULL;
-
-    /* Remove D-Bus interface */
-    g_bus_unown_name (bus_id);
-    if (seat_bus_entries)
-        g_hash_table_unref (seat_bus_entries);
-    if (session_bus_entries)
-        g_hash_table_unref (session_bus_entries);
-
-    g_debug ("Exiting with return value %d", exit_code);
-    exit (exit_code);
-}
-
 static void
 display_manager_stopped_cb (DisplayManager *display_manager)
 {
     g_debug ("Stopping daemon");
-    g_idle_add (exit_cb, NULL);
+    g_main_loop_quit (loop);
 }
 
 static GVariant *
@@ -1222,5 +1204,17 @@ main (int argc, char **argv)
 
     g_main_loop_run (loop);
 
-    return EXIT_SUCCESS;
+    /* Clean up display manager */
+    g_object_unref (display_manager);
+    display_manager = NULL;
+
+    /* Remove D-Bus interface */
+    g_bus_unown_name (bus_id);
+    if (seat_bus_entries)
+        g_hash_table_unref (seat_bus_entries);
+    if (session_bus_entries)
+        g_hash_table_unref (session_bus_entries);
+
+    g_debug ("Exiting with return value %d", exit_code);
+    return exit_code;
 }

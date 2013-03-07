@@ -594,9 +594,7 @@ greeter_session_stopped_cb (Session *session, Display *display)
 
     g_debug ("Greeter quit");
 
-    g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-    g_object_unref (display->priv->session);
-    display->priv->session = NULL;
+    destroy_session (display);
 
     if (display->priv->stopping)
     {
@@ -674,9 +672,7 @@ user_session_stopped_cb (Session *session, Display *display)
 {
     g_debug ("User session quit");
 
-    g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-    g_object_unref (display->priv->session);
-    display->priv->session = NULL;
+    destroy_session (display);
 
     /* This display has ended */
     display_stop (display);
@@ -871,23 +867,17 @@ display_stop (Display *display)
     if (display->priv->session)
     {
         session_stop (display->priv->session);
-        if (display->priv->session && !session_get_is_stopped (display->priv->session))
-            return;
-        g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-        g_object_unref (display->priv->session);
-        display->priv->session = NULL;
+        return;
     }
 
     /* Stop the display server after that */
     if (!display_server_get_is_stopped (display->priv->display_server))
     {
         display_server_stop (display->priv->display_server);
-        if (!display_server_get_is_stopped (display->priv->display_server))
-            return;
+        return;
     }
 
     display->priv->stopped = TRUE;
-    g_debug ("Display stopped");
     g_signal_emit (display, signals[STOPPED], 0);
 }
 

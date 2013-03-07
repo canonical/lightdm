@@ -23,6 +23,8 @@ static GList *getpwent_link = NULL;
 
 static GList *group_entries = NULL;
 
+static int active_vt = 7;
+
 struct pam_handle
 {
     char *service_name;
@@ -220,14 +222,18 @@ ioctl (int d, int request, void *data)
     if (d > 0 && d == console_fd)
     {
         struct vt_stat *console_state;
+        int *n;
 
         switch (request)
         {
         case VT_GETSTATE:
             console_state = data;
-            console_state->v_active = 7;
-            break;          
+            console_state->v_active = active_vt;
+            break;
         case VT_ACTIVATE:
+            active_vt = GPOINTER_TO_INT (data);
+            break;
+        case VT_WAITACTIVE:
             break;
         }
         return 0;

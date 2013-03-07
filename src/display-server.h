@@ -38,7 +38,6 @@ typedef struct
 
     gboolean (*start)(DisplayServer *server);
     void (*stop)(DisplayServer *server);
-    gboolean (*get_is_stopped)(DisplayServer *server);
 } DisplayServerClass;
 
 GType display_server_get_type (void);
