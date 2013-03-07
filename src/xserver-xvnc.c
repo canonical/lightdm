@@ -288,12 +288,6 @@ xserver_xvnc_stop (DisplayServer *server)
     process_stop (XSERVER_XVNC (server)->priv->xserver_process);
 }
 
-static gboolean
-xserver_xvnc_get_is_stopped (DisplayServer *server)
-{
-    return process_get_pid (XSERVER_XVNC (server)->priv->xserver_process) == 0;
-}
-
 static void
 xserver_xvnc_init (XServerXVNC *server)
 {
@@ -327,7 +321,6 @@ xserver_xvnc_class_init (XServerXVNCClass *klass)
 
     display_server_class->start = xserver_xvnc_start;
     display_server_class->stop = xserver_xvnc_stop;
-    display_server_class->get_is_stopped = xserver_xvnc_get_is_stopped;
     object_class->finalize = xserver_xvnc_finalize;
 
     g_type_class_add_private (klass, sizeof (XServerXVNCPrivate));

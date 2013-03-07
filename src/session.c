@@ -220,7 +220,7 @@ session_watch_cb (GPid pid, gint status, gpointer data)
     Session *session = data;
 
     session->priv->pid = 0;
-
+  
     if (WIFEXITED (status))
         g_debug ("Session %d exited with return value %d", pid, WEXITSTATUS (status));
     else if (WIFSIGNALED (status))
@@ -235,7 +235,7 @@ session_watch_cb (GPid pid, gint status, gpointer data)
         g_free (session->priv->authentication_result_string);
         session->priv->authentication_result_string = g_strdup ("Authentication stopped before completion");
         g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_COMPLETE], 0);      
-    } 
+    }
 
     g_signal_emit (G_OBJECT (session), signals[STOPPED], 0);
 
@@ -608,7 +608,7 @@ session_finalize (GObject *object)
 {
     Session *self = SESSION (object);
     int i;
-  
+
     if (self->priv->pid)
         kill (self->priv->pid, SIGKILL);
     if (self->priv->from_child_channel)

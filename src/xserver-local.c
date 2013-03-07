@@ -515,12 +515,6 @@ xserver_local_stop (DisplayServer *server)
     process_stop (XSERVER_LOCAL (server)->priv->xserver_process);
 }
 
-static gboolean
-xserver_local_get_is_stopped (DisplayServer *server)
-{
-    return process_get_pid (XSERVER_LOCAL (server)->priv->xserver_process) == 0;
-}
-
 static void
 xserver_local_init (XServerLocal *server)
 {
@@ -560,7 +554,6 @@ xserver_local_class_init (XServerLocalClass *klass)
 
     display_server_class->start = xserver_local_start;
     display_server_class->stop = xserver_local_stop;
-    display_server_class->get_is_stopped = xserver_local_get_is_stopped;
     object_class->finalize = xserver_local_finalize;
 
     g_type_class_add_private (klass, sizeof (XServerLocalPrivate));
