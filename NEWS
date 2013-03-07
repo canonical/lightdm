@@ -2,6 +2,7 @@ Overview of changes in lightdm 1.5.1
 
     * QLightDM: Add Qt5 version of the library: liblightdm-qt5-2
     * QLightDM: Add some missing role names in UsersModel
+    * QLightDM: Add a backgroundPath role to UsersModel
     * QLightDM: Fix potential crash in QLightDM::UsersModel closedown.
     * Improve guest session apparmor
     * Run each test in its own /tmp dir so they can't interfere with eachother
