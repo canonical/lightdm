@@ -222,7 +222,7 @@ quit (int status)
 
     if (temp_dir)
     {
-        gchar *command = g_strdup_printf ("rm -r %s", temp_dir);
+        gchar *command = g_strdup_printf ("rm -rf %s", temp_dir);
         if (system (command))
             perror ("Failed to delete temp directory");
     }
