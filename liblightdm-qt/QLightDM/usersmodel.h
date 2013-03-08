@@ -31,10 +31,10 @@ public:
                          RealNameRole,
                          LoggedInRole,
                          BackgroundRole,
-                         BackgroundPathRole,
                          SessionRole,
                          HasMessagesRole,
-                         ImagePathRole
+                         ImagePathRole,
+                         BackgroundPathRole
     };
 
     int rowCount(const QModelIndex &parent) const;
