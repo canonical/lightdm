@@ -185,6 +185,7 @@ UsersModel::UsersModel(QObject *parent) :
     roles[RealNameRole] = "realName";
     roles[LoggedInRole] = "loggedIn";
     roles[BackgroundRole] = "background";
+    roles[BackgroundPathRole] = "backgroundPath";
     roles[SessionRole] = "session";
     roles[HasMessagesRole] = "hasMessages";
     roles[ImagePathRole] = "imagePath";
@@ -232,11 +233,9 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
     case UsersModel::LoggedInRole:
         return d->users[row].isLoggedIn;
     case UsersModel::BackgroundRole:
-#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
-        return d->users[row].background;
-#else
         return QPixmap(d->users[row].background);
-#endif
+    case UsersModel::BackgroundPathRole:
+        return d->users[row].background;
     case UsersModel::HasMessagesRole:
         return d->users[row].hasMessages;
     case UsersModel::ImagePathRole:

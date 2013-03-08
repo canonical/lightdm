@@ -31,6 +31,7 @@ public:
                          RealNameRole,
                          LoggedInRole,
                          BackgroundRole,
+                         BackgroundPathRole,
                          SessionRole,
                          HasMessagesRole,
                          ImagePathRole
