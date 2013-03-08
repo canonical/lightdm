@@ -232,7 +232,11 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
     case UsersModel::LoggedInRole:
         return d->users[row].isLoggedIn;
     case UsersModel::BackgroundRole:
+#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
+        return d->users[row].background;
+#else
         return QPixmap(d->users[row].background);
+#endif
     case UsersModel::HasMessagesRole:
         return d->users[row].hasMessages;
     case UsersModel::ImagePathRole:
