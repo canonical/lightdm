@@ -1,6 +1,7 @@
 Overview of changes in lightdm 1.4.1
 
-    * Fix script hooks no longer working with latest glib    
+    * Fix script hooks no longer working with latest glib
+    * Ensure test programs quit when the status socket closes
 
 Overview of changes in lightdm 1.4.0
 

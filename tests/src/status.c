@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <glib.h>
@@ -22,7 +23,11 @@ status_request_cb (GSocket *socket, GIOCondition condition, gpointer data)
     if (n_read > 0)
         n_read = g_socket_receive (socket, buffer, length, NULL, &error);
     if (n_read == 0)
+    {
+        if (request_func)
+            request_func (NULL);
         return FALSE;
+    }
     if (error)
         g_warning ("Error reading from socket: %s", error->message);
     g_clear_error (&error);

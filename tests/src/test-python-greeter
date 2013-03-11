@@ -29,13 +29,12 @@ def status_notify (message):
 def request_cb (channel, condition):
     sys.stderr.write ("request_cb\n")
     length = status_socket.recv (4)
-    sys.stderr.write ("read %d\n" % len (length))
     if len (length) == 0:
+        loop.quit ();
         return False
     if len (length) > 0:
         (l,) = struct.unpack ('i', length)
         request = status_socket.recv (l)
-        sys.stderr.write ("read '%s' %d\n" % (request, len (request)))
 
     r = 'GREETER %s AUTHENTICATE' % os.getenv ('DISPLAY')
     if request == r:
@@ -103,7 +102,7 @@ def request_cb (channel, condition):
 path = os.getenv ('LIGHTDM_TEST_ROOT') + '/.status-socket'
 status_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
 status_socket.connect (path)
-GLib.io_add_watch (status_socket.fileno (), GLib.IO_IN, request_cb)
+GLib.io_add_watch (status_socket.fileno (), GLib.IO_IN | GLib.IO_HUP, request_cb)
 
 status_notify ('GREETER %s START' % os.getenv ('DISPLAY'))
 
