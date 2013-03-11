@@ -1181,7 +1181,9 @@ main (int argc, char **argv)
     gchar cwd[1024];
     GError *error = NULL;
 
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
 
     loop = g_main_loop_new (NULL, FALSE);
 

@@ -14,7 +14,9 @@ request_cb (const gchar *message)
 int
 main (int argc, char **argv)
 {
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
 
     status_connect (request_cb);
 

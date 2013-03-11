@@ -870,7 +870,9 @@ main (int argc, char **argv)
     if (argc >= 2 && strcmp (argv[1], "--session-child") == 0)
         return session_child_run (argc, argv);
 
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
     loop = g_main_loop_new (NULL, FALSE);
 
     g_signal_connect (process_get_current (), "got-signal", G_CALLBACK (signal_cb), NULL);

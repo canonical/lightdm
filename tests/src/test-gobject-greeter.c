@@ -192,7 +192,9 @@ main (int argc, char **argv)
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
 
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
 
     main_loop = g_main_loop_new (NULL, FALSE);
 

@@ -184,7 +184,9 @@ session_child_run (int argc, char **argv)
     const gchar *path;
     GError *error = NULL;
 
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
 
     /* Make input non-blocking */
     fd = open ("/dev/null", O_RDONLY);

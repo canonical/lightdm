@@ -28,7 +28,9 @@ main (int argc, char **argv)
     gchar buffer[1024];
     gssize n_read, n_sent;
 
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
 
     status_connect (request_cb);
 
