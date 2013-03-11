@@ -275,11 +275,9 @@ run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
 
     SEAT_GET_CLASS (seat)->run_script (seat, display, script);
 
-    if (process_start (script))
+    if (process_start (script, TRUE))
     {
         int exit_status;
-
-        process_wait (script);
 
         exit_status = process_get_exit_status (script);
         if (WIFEXITED (exit_status))
