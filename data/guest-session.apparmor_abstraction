@@ -60,8 +60,8 @@
   # necessary for writing to sockets, etc.
   /{,var/}run/** rmkix,
   /{,var/}run/shm/** wl,
-  # libpam-xdg-support
-  owner /{,var/}run/user/guest-*/** rw,
+  # libpam-xdg-support/logind
+  owner /{,var/}run/user/*/** rw,
 
   capability ipc_lock,
 
