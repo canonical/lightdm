@@ -198,7 +198,7 @@ xdmcp_packet_decode (const guint8 *data, gsize data_length)
     }
     if (length != reader.remaining)
     {
-        g_warning ("Ignoring packet of wrong length");
+        g_warning ("Ignoring packet of wrong length. Opcode %d expected %d octets, got %d", opcode, length, reader.remaining);
         return NULL;
     }
 
