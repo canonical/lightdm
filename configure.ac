@@ -27,7 +27,6 @@ PKG_CHECK_MODULES(LIGHTDM, [
     gio-unix-2.0
     xdmcp
     xcb
-    mirclient
 ])
 
 PKG_CHECK_MODULES(GLIB, [
@@ -48,7 +47,24 @@ PKG_CHECK_MODULES(GOBJECT, [
 
 PKG_CHECK_MODULES(XCB, [
     xcb
-])    
+])
+
+AC_ARG_ENABLE(mir,
+	AS_HELP_STRING([--enable-mir],[Enable Mir support [[default=auto]]]),
+	[enable_mir=$enableval],
+	[enable_mir="auto"])
+compile_mir=no
+if test x"$enable_mir" = "xauto"; then
+    PKG_CHECK_MODULES(MIR, [
+        mirclient
+    ], compile_mir=yes, compile_mir=no)
+elif test x"$enable_mir" = "xyes"; then
+    PKG_CHECK_MODULES(MIR, [
+        mirclient
+    ])
+    compile_mir=yes
+fi
+AM_CONDITIONAL(COMPILE_MIR, test x"$compile_mir" != "xno")
 
 AC_ARG_ENABLE(liblightdm-gobject,
 	AS_HELP_STRING([--enable-liblightdm-gobject],[Enable LightDM client gobject libraries [[default=auto]]]),
@@ -222,6 +238,7 @@ echo "
         Greeter session:          $GREETER_SESSION
         Greeter user:             $GREETER_USER
         User session:             $USER_SESSION
+        Mir support:              $compile_mir
         liblightdm-gobject:       $compile_liblightdm_gobject
         GObject introspection:    $found_introspection
         liblightdm-qt:            $compile_liblightdm_qt4

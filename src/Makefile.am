@@ -36,8 +36,6 @@ lightdm_SOURCES = \
 	process.h \
 	seat.c \
 	seat.h \
-	seat-mir.c \
-	seat-mir.h \
 	seat-xdmcp-session.c \
 	seat-xdmcp-session.h \
 	seat-xlocal.c \
@@ -95,6 +93,17 @@ lightdm_LDADD = \
 	$(LIGHTDM_LIBS) \
 	-lgcrypt \
 	-lpam
+
+if COMPILE_MIR
+lightdm_SOURCES += \
+	seat-mir.c \
+	seat-mir.h
+lightdm_CFLAGS += \
+	-DHAVE_MIR \
+	$(MIR_CFLAGS)
+lightdm_LDADD += \
+	$(MIR_LIBS)
+endif
 
 pkglibexec_PROGRAMS = lightdm-guest-session-wrapper
 

@@ -20,8 +20,11 @@
 #include "display.h"
 #include "seat-xlocal.h"
 #include "seat-xremote.h"
-#include "seat-mir.h"
 #include "plymouth.h"
+
+#ifdef HAVE_MIR
+#include "seat-mir.h"
+#endif
 
 enum {
     SEAT_ADDED,
@@ -149,7 +152,9 @@ display_manager_init (DisplayManager *manager)
     /* Load the seat modules */
     seat_register_module ("xlocal", SEAT_XLOCAL_TYPE);
     seat_register_module ("xremote", SEAT_XREMOTE_TYPE);
+#ifdef HAVE_MIR
     seat_register_module ("mir", SEAT_MIR_TYPE);
+#endif
 }
 
 static void
