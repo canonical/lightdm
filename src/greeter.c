@@ -683,8 +683,8 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     Greeter *greeter = data;
     gsize n_to_read, n_read, offset;
     GIOStatus status;
-    int id, n_secrets, i;
-    guint32 sequence_number;
+    int id, i;
+    guint32 sequence_number, n_secrets;
     gchar *version, *username, *session_name, *language;
     gchar **secrets;
     GError *error = NULL;
