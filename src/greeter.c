@@ -684,7 +684,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     gsize n_to_read, n_read, offset;
     GIOStatus status;
     int id, i;
-    guint32 sequence_number, n_secrets;
+    guint32 sequence_number, n_secrets, max_secrets;
     gchar *version, *username, *session_name, *language;
     gchar **secrets;
     GError *error = NULL;
@@ -758,7 +758,8 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         break;
     case GREETER_MESSAGE_CONTINUE_AUTHENTICATION:
         n_secrets = read_int (greeter, &offset);
-        if (n_secrets + 1 < n_secrets)
+        max_secrets = (0xFFFFFFFF - 1) / sizeof (gchar *);
+        if (n_secrets > max_secrets)
         {
             g_warning ("Array length of %u elements too long", n_secrets);
             return FALSE;
