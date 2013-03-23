@@ -21,6 +21,7 @@
 
 #include "session.h"
 #include "configuration.h"
+#include "systemd-logind.h"
 #include "console-kit.h"
 #include "guest-account.h"
 
@@ -79,6 +80,9 @@ struct SessionPrivate
 
     /* Remote host this session is being controlled from */
     gchar *remote_host_name;
+
+    /* logind session */
+    gchar *systmed_logind_session;
 
     /* Console kit cookie */
     gchar *console_kit_cookie;
@@ -558,6 +562,7 @@ session_run (Session *session, gchar **argv)
     for (i = 0; i < argc; i++)
         write_string (session, argv[i]);
 
+    session->priv->systmed_logind_session = read_string_from_child (session);
     session->priv->console_kit_cookie = read_string_from_child (session);
 }
 
@@ -566,7 +571,12 @@ session_lock (Session *session)
 {    
     g_return_if_fail (session != NULL);
     if (getuid () == 0)
-        ck_lock_session (session->priv->console_kit_cookie);
+    {
+        if (session->priv->systmed_logind_session)
+            sl_lock_session (session->priv->systmed_logind_session);
+        if (session->priv->console_kit_cookie)
+            ck_lock_session (session->priv->console_kit_cookie);
+    }
 }
 
 void
@@ -574,7 +584,12 @@ session_unlock (Session *session)
 {    
     g_return_if_fail (session != NULL);
     if (getuid () == 0)
-        ck_unlock_session (session->priv->console_kit_cookie);
+    {
+        if (session->priv->systmed_logind_session)
+            sl_unlock_session (session->priv->systmed_logind_session);
+        if (session->priv->console_kit_cookie)
+            ck_unlock_session (session->priv->console_kit_cookie);
+    }
 }
 
 void
@@ -631,6 +646,7 @@ session_finalize (GObject *object)
     if (self->priv->xauthority)
         g_object_unref (self->priv->xauthority);
     g_free (self->priv->remote_host_name);
+    g_free (self->priv->systmed_logind_session);
     g_free (self->priv->console_kit_cookie);
     g_list_free_full (self->priv->env, g_free);
 
