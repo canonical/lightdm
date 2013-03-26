@@ -111,6 +111,7 @@ TESTS = \
 	test-lock-seat \
 	test-lock-seat-return-session \
 	test-lock-session \
+	test-lock-session-no-password \
 	test-lock-session-return-session \
 	test-switch-to-greeter \
 	test-switch-to-greeter-new-session \
@@ -243,6 +244,7 @@ EXTRA_DIST = \
 	scripts/lock-seat.conf \
 	scripts/lock-seat-return-session.conf \
 	scripts/lock-session.conf \
+	scripts/lock-session-no-password.conf \
 	scripts/lock-session-return-session.conf \
 	scripts/login.conf \
 	scripts/login-crash-authenticate.conf \
