@@ -28,6 +28,9 @@ struct DisplayServerPrivate
     /* TRUE if sessions should be automatically started on this display server */
     gboolean start_local_sessions;
 
+    /* TRUE when being stopped */
+    gboolean stopping;
+
     /* TRUE when the display server has stopped */
     gboolean stopped;
 };
@@ -81,6 +84,11 @@ void
 display_server_stop (DisplayServer *server)
 {
     g_return_if_fail (server != NULL);
+
+    if (server->priv->stopping)
+        return;
+    server->priv->stopping = TRUE;
+
     DISPLAY_SERVER_GET_CLASS (server)->stop (server);
 }
 
