@@ -112,7 +112,10 @@ TESTS = \
 	test-lock-session \
 	test-switch-to-greeter \
 	test-switch-to-greeter-new-session \
+	test-switch-to-greeter-new-session-logout-new \
+	test-switch-to-greeter-new-session-logout-old \
 	test-switch-to-greeter-return-session \
+	test-switch-to-greeter-return-session-logout \
 	test-switch-to-guest \
 	test-switch-to-user \
 	test-switch-to-users \
@@ -285,7 +288,10 @@ EXTRA_DIST = \
 	scripts/session-stderr-backup.conf \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-greeter-new-session.conf \
+	scripts/switch-to-greeter-new-session-logout-new.conf \
+	scripts/switch-to-greeter-new-session-logout-old.conf \
 	scripts/switch-to-greeter-return-session.conf \
+	scripts/switch-to-greeter-return-session-logout.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \
 	scripts/switch-to-users.conf \
