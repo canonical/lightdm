@@ -109,7 +109,9 @@ TESTS = \
 	test-script-hook-fail-greeter-setup \
 	test-script-hook-fail-session-setup \
 	test-lock-seat \
+	test-lock-seat-return-session \
 	test-lock-session \
+	test-lock-session-return-session \
 	test-switch-to-greeter \
 	test-switch-to-greeter-new-session \
 	test-switch-to-greeter-new-session-logout-new \
@@ -239,7 +241,9 @@ EXTRA_DIST = \
 	scripts/language.conf \
 	scripts/language-no-accounts-service.conf \
 	scripts/lock-seat.conf \
+	scripts/lock-seat-return-session.conf \
 	scripts/lock-session.conf \
+	scripts/lock-session-return-session.conf \
 	scripts/login.conf \
 	scripts/login-crash-authenticate.conf \
 	scripts/login-guest.conf \
