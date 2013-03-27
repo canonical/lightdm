@@ -11,7 +11,7 @@
 
 #include <fcntl.h>
 #include <errno.h>
-#include <mir_client_library_lightdm.h>
+#include <mir_toolkit/mir_client_library_lightdm.h>
 
 #include "seat-mir.h"
 #include "configuration.h"
@@ -291,14 +291,13 @@ seat_mir_set_active_display (Seat *seat, Display *display)
 static void
 seat_mir_run_script (Seat *seat, Display *display, Process *script)
 {
-    gchar *path;
+    const gchar *path;
     XServerLocal *xserver;
 
     xserver = XSERVER_LOCAL (display_get_display_server (display));
     path = xserver_local_get_authority_file_path (xserver);
     process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));
     process_set_env (script, "XAUTHORITY", path);
-    g_free (path);
 
     SEAT_CLASS (seat_mir_parent_class)->run_script (seat, display, script);
 }
