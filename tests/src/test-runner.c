@@ -17,6 +17,7 @@
 /* Timeout in ms to wait for SIGTERM to be handled by a child process */
 #define KILL_TIMEOUT 2000
 
+static gchar *test_runner_command;
 static gchar *config_path;
 static GKeyFile *config;
 static GSocket *status_socket = NULL;
@@ -238,7 +239,8 @@ fail (const gchar *event, const gchar *expected)
     if (stop)
         return;
 
-    g_printerr ("Test failed, got the following events:\n");
+    g_printerr ("Command line: %s", test_runner_command);
+    g_printerr ("Events:\n");
     for (link = statuses; link; link = link->next)
         g_printerr ("    %s\n", (gchar *)link->data);
     if (event)
@@ -1141,9 +1143,9 @@ run_lightdm ()
     g_string_append_printf (command_line, " --remote-sessions-dir=%s/usr/share/remote-sessions", temp_dir);
     g_string_append_printf (command_line, " --xgreeters-dir=%s/usr/share/xgreeters", temp_dir);
 
-    g_print ("Start daemon with command: PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_ROOT=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
-             g_getenv ("PATH"), g_getenv ("LD_PRELOAD"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_ROOT"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
-             command_line->str);
+    test_runner_command = g_strdup_printf ("PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_ROOT=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
+                                           g_getenv ("PATH"), g_getenv ("LD_PRELOAD"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_ROOT"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
+                                           command_line->str);
 
     if (!g_shell_parse_argv (command_line->str, NULL, &lightdm_argv, &error))
     {
@@ -1206,9 +1208,6 @@ main (int argc, char **argv)
     g_key_file_load_from_file (config, config_path, G_KEY_FILE_NONE, NULL);
 
     load_script (config_path);
-
-    g_print ("----------------------------------------\n");
-    g_print ("Running script %s\n", script_name);
 
     if (!getcwd (cwd, 1024))
     {
