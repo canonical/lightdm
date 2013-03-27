@@ -12,6 +12,7 @@
 #include <config.h>
 #include <string.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <glib/gstdio.h>
@@ -43,7 +44,7 @@ struct XServerLocalPrivate
     gboolean allow_tcp;
 
     /* Authority file */
-    GFile *authority_file;
+    gchar *authority_file;
 
     /* XDMCP server to connect to */
     gchar *xdmcp_server;
@@ -234,13 +235,11 @@ xserver_local_get_vt (XServerLocal *server)
     return server->priv->vt;
 }
 
-gchar *
+const gchar *
 xserver_local_get_authority_file_path (XServerLocal *server)
 {
     g_return_val_if_fail (server != NULL, 0);
-    if (server->priv->authority_file)
-        return g_file_get_path (server->priv->authority_file);
-    return NULL;
+    return server->priv->authority_file;
 }
 
 static gchar *
@@ -325,19 +324,11 @@ stopped_cb (Process *process, XServerLocal *server)
   
     if (xserver_get_authority (XSERVER (server)) && server->priv->authority_file)
     {
-        GError *error = NULL;
-        gchar *path;
+        g_debug ("Removing X server authority %s", server->priv->authority_file);
 
-        path = g_file_get_path (server->priv->authority_file);      
-        g_debug ("Removing X server authority %s", path);
-        g_free (path);
+        g_unlink (server->priv->authority_file);
 
-        g_file_delete (server->priv->authority_file, NULL, &error);
-        if (error)
-            g_debug ("Error removing authority: %s", error->message);
-        g_clear_error (&error);
-
-        g_object_unref (server->priv->authority_file);
+        g_free (server->priv->authority_file);
         server->priv->authority_file = NULL;
     }
 
@@ -361,7 +352,6 @@ static void
 write_authority_file (XServerLocal *server)
 {
     XAuthority *authority;
-    gchar *path;
     GError *error = NULL;
 
     authority = xserver_get_authority (XSERVER (server));
@@ -378,15 +368,11 @@ write_authority_file (XServerLocal *server)
         g_free (run_dir);
         g_mkdir_with_parents (dir, S_IRWXU);
 
-        path = g_build_filename (dir, xserver_get_address (XSERVER (server)), NULL);
+        server->priv->authority_file = g_build_filename (dir, xserver_get_address (XSERVER (server)), NULL);
         g_free (dir);
-        server->priv->authority_file = g_file_new_for_path (path);
-        g_free (path);
     }
 
-    path = g_file_get_path (server->priv->authority_file);
-    g_debug ("Writing X server authority to %s", path);
-    g_free (path);
+    g_debug ("Writing X server authority to %s", server->priv->authority_file);
 
     xauth_write (authority, XAUTH_WRITE_MODE_REPLACE, server->priv->authority_file, &error);
     if (error)
@@ -448,11 +434,7 @@ xserver_local_start (DisplayServer *display_server)
     g_free (number);
     write_authority_file (server);
     if (server->priv->authority_file)
-    {
-        gchar *path = g_file_get_path (server->priv->authority_file);
-        g_string_append_printf (command, " -auth %s", path);
-        g_free (path);
-    }
+        g_string_append_printf (command, " -auth %s", server->priv->authority_file);
 
     /* Connect to a remote server using XDMCP */
     if (server->priv->xdmcp_server != NULL)
@@ -538,8 +520,7 @@ xserver_local_finalize (GObject *object)
     g_free (self->priv->layout);
     g_free (self->priv->xdmcp_server);
     g_free (self->priv->xdmcp_key);
-    if (self->priv->authority_file)
-        g_object_unref (self->priv->authority_file);
+    g_free (self->priv->authority_file);
     if (self->priv->have_vt_ref)
         vt_unref (self->priv->vt);
 
