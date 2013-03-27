@@ -85,6 +85,7 @@ struct DisplayPrivate
     /* Hint to select user in greeter */
     gchar *select_user_hint;
     gboolean select_guest_hint;
+    gboolean select_user_attempt_login;
 
     /* TRUE if allowed to log into guest account */
     gboolean allow_guest;
@@ -188,12 +189,13 @@ display_set_autologin_user (Display *display, const gchar *username, gboolean is
 }
 
 void
-display_set_select_user_hint (Display *display, const gchar *username, gboolean is_guest)
+display_set_select_user_hint (Display *display, const gchar *username, gboolean is_guest, gboolean attempt_login)
 {
     g_return_if_fail (display != NULL);
     g_free (display->priv->select_user_hint);
     display->priv->select_user_hint = g_strdup (username);
     display->priv->select_guest_hint = is_guest;
+    display->priv->select_user_attempt_login = attempt_login;
 }
 
 void
@@ -783,7 +785,7 @@ display_server_ready_cb (DisplayServer *display_server, Display *display)
         g_debug ("Automatically logging in user %s", display->priv->autologin_user);
         result = autologin (display, display->priv->autologin_user, AUTOLOGIN_SERVICE, TRUE, FALSE);
     }
-    else if (display->priv->select_user_hint)
+    else if (display->priv->select_user_hint && display->priv->select_user_attempt_login)
     {
         g_debug ("Logging in user %s", display->priv->select_user_hint);
         result = autologin (display, display->priv->select_user_hint, USER_SERVICE, TRUE, FALSE);

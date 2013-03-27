@@ -1,3 +1,14 @@
+Overview of changes in lightdm 1.5.2
+
+    * Fix stale X server being left behind when using LockSession D-Bus API
+    * Adjust AppArmor profile to also work with logind
+    * Don't use GIO to access X authority files - it uses GVFS which is
+      unnecessary overhead/complexity
+    * Handle over/underflows when reading from greeter
+    * Improve warning message when XDMCP packet has length mismatch
+    * Only report test command line if it fails
+    * Add more regression tests
+
 Overview of changes in lightdm 1.5.1
 
     * QLightDM: Add Qt5 version of the library: liblightdm-qt5-2

@@ -108,9 +108,17 @@ TESTS = \
 	test-script-hook-fail-display-setup \
 	test-script-hook-fail-greeter-setup \
 	test-script-hook-fail-session-setup \
-    test-lock-seat \
-    test-lock-session \
+	test-lock-seat \
+	test-lock-seat-return-session \
+	test-lock-session \
+	test-lock-session-no-password \
+	test-lock-session-return-session \
 	test-switch-to-greeter \
+	test-switch-to-greeter-new-session \
+	test-switch-to-greeter-new-session-logout-new \
+	test-switch-to-greeter-new-session-logout-old \
+	test-switch-to-greeter-return-session \
+	test-switch-to-greeter-return-session-logout \
 	test-switch-to-guest \
 	test-switch-to-user \
 	test-switch-to-users \
@@ -234,7 +242,10 @@ EXTRA_DIST = \
 	scripts/language.conf \
 	scripts/language-no-accounts-service.conf \
 	scripts/lock-seat.conf \
+	scripts/lock-seat-return-session.conf \
 	scripts/lock-session.conf \
+	scripts/lock-session-no-password.conf \
+	scripts/lock-session-return-session.conf \
 	scripts/login.conf \
 	scripts/login-crash-authenticate.conf \
 	scripts/login-guest.conf \
@@ -282,6 +293,11 @@ EXTRA_DIST = \
 	scripts/session-stderr-multi-write.conf \
 	scripts/session-stderr-backup.conf \
 	scripts/switch-to-greeter.conf \
+	scripts/switch-to-greeter-new-session.conf \
+	scripts/switch-to-greeter-new-session-logout-new.conf \
+	scripts/switch-to-greeter-new-session-logout-old.conf \
+	scripts/switch-to-greeter-return-session.conf \
+	scripts/switch-to-greeter-return-session-logout.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \
 	scripts/switch-to-users.conf \

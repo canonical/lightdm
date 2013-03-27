@@ -68,7 +68,7 @@ void display_set_greeter_allow_guest (Display *display, gboolean greeter_allow_g
 
 void display_set_autologin_user (Display *display, const gchar *username, gboolean is_guest, gint timeout);
 
-void display_set_select_user_hint (Display *display, const gchar *username, gboolean is_guest);
+void display_set_select_user_hint (Display *display, const gchar *username, gboolean is_guest, gboolean attempt_login);
 
 void display_set_hide_users_hint (Display *display, gboolean hide_users);
 
