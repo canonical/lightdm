@@ -469,6 +469,7 @@ xserver_local_start (DisplayServer *display_server)
             gchar *path;
             path = g_build_filename (g_get_home_dir (), ".Xauthority", NULL);
             process_set_env (server->priv->xserver_process, "XAUTHORITY", path);
+            g_free (path);
         }
     }
 
