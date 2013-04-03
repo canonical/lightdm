@@ -102,6 +102,11 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
+    r = g_strdup_printf ("GREETER %s CANCEL-AUTHENTICATION", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+        greeter->cancelAuthentication ();
+    g_free (r);
+
     r = g_strdup_printf ("GREETER %s START-SESSION", getenv ("DISPLAY"));
     if (strcmp (request, r) == 0)
     {

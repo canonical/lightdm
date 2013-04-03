@@ -21,6 +21,8 @@ TESTS = \
 	test-autologin-python-guest-timeout \
 	test-change-authentication \
 	test-restart-authentication \
+	test-gobject-cancel-authentication \
+	test-python-cancel-authentication \
 	test-pam \
 	test-login-pam \
 	test-denied \
@@ -140,6 +142,7 @@ if COMPILE_LIBLIGHTDM_QT
 TESTS += \
 	test-autologin-qt-timeout \
 	test-autologin-qt-guest-timeout \
+	test-qt-cancel-authentication \
 	test-login-qt \
 	test-login-qt-manual \
 	test-login-qt-manual-previous-session \
@@ -189,6 +192,7 @@ EXTRA_DIST = \
 	scripts/autologin-timeout.conf \
 	scripts/autologin-xserver-crash.conf \
 	scripts/change-authentication.conf \
+	scripts/cancel-authentication.conf \
 	scripts/console-kit.conf \
 	scripts/crash-authenticate.conf \
 	scripts/cred-error.conf \
