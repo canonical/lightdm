@@ -57,6 +57,10 @@ def request_cb (channel, condition):
     if request.startswith (r):
         greeter.respond (request[len (r):-1])
 
+    r = 'GREETER %s CANCEL-AUTHENTICATION' % os.getenv ('DISPLAY')
+    if request == r:
+        greeter.cancel_authentication ()
+
     r = 'GREETER %s START-SESSION' % os.getenv ('DISPLAY')
     if request == r:
         if not greeter.start_session_sync (None):
