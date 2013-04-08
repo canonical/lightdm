@@ -635,7 +635,7 @@ get_message_length (Greeter *greeter)
     if (HEADER_SIZE + payload_length < HEADER_SIZE)
     {
         g_warning ("Payload length of %u octets too long", payload_length);
-        return 0;      
+        return HEADER_SIZE;
     }
 
     return HEADER_SIZE + payload_length;
@@ -699,7 +699,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     if (greeter->priv->n_read >= HEADER_SIZE)
     {
         n_to_read = get_message_length (greeter);
-        if (n_to_read == 0)
+        if (n_to_read <= HEADER_SIZE)
             return FALSE;
     }
 
@@ -722,12 +722,12 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     if (greeter->priv->n_read == HEADER_SIZE)
     {
         n_to_read = get_message_length (greeter);
-        if (n_to_read == 0)
-            return FALSE;
-
-        greeter->priv->read_buffer = secure_realloc (greeter, greeter->priv->read_buffer, n_to_read);
-        read_cb (source, condition, greeter);
-        return TRUE;
+        if (n_to_read > HEADER_SIZE)
+        {
+            greeter->priv->read_buffer = secure_realloc (greeter, greeter->priv->read_buffer, n_to_read);
+            read_cb (source, condition, greeter);
+            return TRUE;
+        }      
     }
   
     offset = 0;
