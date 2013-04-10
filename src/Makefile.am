@@ -94,15 +94,15 @@ lightdm_LDADD = \
 	-lgcrypt \
 	-lpam
 
-if COMPILE_MIR
+if COMPILE_UNITY
 lightdm_SOURCES += \
-	seat-mir.c \
-	seat-mir.h
+	seat-unity.c \
+	seat-unity.h
 lightdm_CFLAGS += \
-	-DHAVE_MIR \
-	$(MIR_CFLAGS)
+	-DHAVE_UNITY \
+	$(UNITY_CFLAGS)
 lightdm_LDADD += \
-	$(MIR_LIBS)
+	$(UNITY_LIBS)
 endif
 
 pkglibexec_PROGRAMS = lightdm-guest-session-wrapper

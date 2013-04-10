@@ -56,7 +56,7 @@ struct XServerLocalPrivate
     gchar *xdmcp_key;
 
     /* ID to report to Mir */
-    gint mir_id;
+    gchar *mir_id;
 
     /* Filename of socket Mir is listening on */
     gchar *mir_socket;
@@ -235,10 +235,11 @@ xserver_local_set_xdmcp_key (XServerLocal *server, const gchar *key)
 }
 
 void
-xserver_local_set_mir_id (XServerLocal *server, gint id)
+xserver_local_set_mir_id (XServerLocal *server, const gchar *id)
 {
     g_return_if_fail (server != NULL);
-    server->priv->mir_id = id;
+    g_free (server->priv->mir_id);
+    server->priv->mir_id = g_strdup (id);
 
     if (server->priv->have_vt_ref)
     {
@@ -465,8 +466,8 @@ xserver_local_start (DisplayServer *display_server)
         g_string_append_printf (command, " -auth %s", server->priv->authority_file);
 
     /* Setup for running inside Mir */
-    if (server->priv->mir_id >= 0)
-        g_string_append_printf (command, " -mir %d", server->priv->mir_id);
+    if (server->priv->mir_id)
+        g_string_append_printf (command, " -mir %s", server->priv->mir_id);
 
     if (server->priv->mir_socket)
         g_string_append_printf (command, " -mirSocket %s", server->priv->mir_socket);
@@ -539,7 +540,6 @@ xserver_local_init (XServerLocal *server)
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_LOCAL_TYPE, XServerLocalPrivate);
     server->priv->vt = -1;
     server->priv->command = g_strdup ("X");
-    server->priv->mir_id = -1;
 }
 
 static void
@@ -557,6 +557,8 @@ xserver_local_finalize (GObject *object)
     g_free (self->priv->layout);
     g_free (self->priv->xdmcp_server);
     g_free (self->priv->xdmcp_key);
+    g_free (self->priv->mir_id);
+    g_free (self->priv->mir_socket);
     g_free (self->priv->authority_file);
     if (self->priv->have_vt_ref)
         vt_unref (self->priv->vt);

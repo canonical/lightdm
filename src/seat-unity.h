@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Robert Ancell.
+ * Copyright (C) 2012-2013 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
  * 
  * This program is free software: you can redistribute it and/or modify it under
@@ -9,32 +9,32 @@
  * license.
  */
 
-#ifndef _SEAT_MIR_H_
-#define _SEAT_MIR_H_
+#ifndef _SEAT_UNITY_H_
+#define _SEAT_UNITY_H_
 
 #include <glib-object.h>
 #include "seat.h"
 
 G_BEGIN_DECLS
 
-#define SEAT_MIR_TYPE (seat_mir_get_type())
-#define SEAT_MIR(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), SEAT_MIR_TYPE, SeatMir))
+#define SEAT_UNITY_TYPE (seat_unity_get_type())
+#define SEAT_UNITY(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), SEAT_UNITY_TYPE, SeatUnity))
 
-typedef struct SeatMirPrivate SeatMirPrivate;
+typedef struct SeatUnityPrivate SeatUnityPrivate;
 
 typedef struct
 {
-    Seat               parent_instance;
-    SeatMirPrivate *priv;
-} SeatMir;
+    Seat              parent_instance;
+    SeatUnityPrivate *priv;
+} SeatUnity;
 
 typedef struct
 {
     SeatClass parent_class;
-} SeatMirClass;
+} SeatUnityClass;
 
-GType seat_mir_get_type (void);
+GType seat_unity_get_type (void);
 
 G_END_DECLS
 
-#endif /* _SEAT_MIR_H_ */
+#endif /* _SEAT_UNITY_H_ */
