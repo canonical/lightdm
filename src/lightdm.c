@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -348,7 +348,7 @@ handle_seat_get_property (GDBusConnection       *connection,
         result = g_variant_builder_end (builder);
         g_variant_builder_unref (builder);
     }
-  
+
     return result;
 }
 
@@ -363,7 +363,7 @@ handle_seat_call (GDBusConnection       *connection,
                   gpointer               user_data)
 {
     Seat *seat = user_data;
-  
+
     if (g_strcmp0 (method_name, "SwitchToGreeter") == 0)
     {
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
@@ -425,7 +425,7 @@ get_seat_for_session (Session *session)
             if (display_get_session (display) == session)
                 return seat;
         }
-    } 
+    }
 
     return NULL;
 }
@@ -688,7 +688,7 @@ bus_acquired_cb (GDBusConnection *connection,
         "    <method name='SwitchToGuest'>"
         "      <arg name='session-name' direction='in' type='s'/>"
         "    </method>"
-        "    <method name='Lock'/>"    
+        "    <method name='Lock'/>"
         "  </interface>"
         "</node>";
     const gchar *session_interface =
@@ -747,7 +747,7 @@ static gchar *
 path_make_absolute (gchar *path)
 {
     gchar *cwd, *abs_path;
-  
+
     if (!path)
         return NULL;
 
@@ -808,7 +808,7 @@ main (int argc, char **argv)
     gchar *default_run_dir = g_strdup (RUN_DIR);
     gchar *default_cache_dir = g_strdup (CACHE_DIR);
     gboolean show_version = FALSE;
-    GOptionEntry options[] = 
+    GOptionEntry options[] =
     {
         { "config", 'c', 0, G_OPTION_ARG_STRING, &config_path,
           /* Help string for command line --config flag */
@@ -959,8 +959,8 @@ main (int argc, char **argv)
         gboolean is_empty;
 
         is_empty = error && g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
-      
-        if (explicit_config || !is_empty)      
+
+        if (explicit_config || !is_empty)
         {
             if (error)
                 g_printerr ("Failed to load configuration from %s: %s\n", config_path, error->message);
