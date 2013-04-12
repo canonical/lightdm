@@ -41,7 +41,7 @@ seat_xvnc_create_display_server (Seat *seat)
     xserver = xserver_xvnc_new ();
     xserver_xvnc_set_socket (xserver, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
 
-    command = config_get_string (config_get_instance (), "VNCServer", "xserver-command");
+    command = config_get_string (config_get_instance (), "VNCServer", "command");
     if (command)
         xserver_xvnc_set_command (xserver, command);
 

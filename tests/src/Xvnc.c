@@ -174,6 +174,7 @@ main (int argc, char **argv)
     gboolean listen_tcp = TRUE;
     gboolean listen_unix = TRUE;
     gboolean use_inetd = FALSE;
+    gboolean has_option = FALSE;
     gchar *geometry = g_strdup ("640x480");
     gint depth = 8;
     int lock_file;
@@ -228,6 +229,10 @@ main (int argc, char **argv)
         {
             use_inetd = TRUE;
         }
+        else if (strcmp (arg, "-option") == 0)
+        {
+            has_option = TRUE;
+        }
         else
         {
             g_printerr ("Unrecognized option: %s\n"
@@ -248,7 +253,7 @@ main (int argc, char **argv)
     x_server_set_listen_unix (xserver, listen_unix);
     x_server_set_listen_tcp (xserver, listen_tcp);
 
-    status_notify ("XSERVER :%d START GEOMETRY=%s DEPTH=%d", display_number, geometry, depth);
+    status_notify ("XSERVER :%d START GEOMETRY=%s DEPTH=%d OPTION=%s", display_number, geometry, depth, has_option ? "TRUE" : "FALSE");
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
