@@ -36,6 +36,8 @@ class Q_DECL_EXPORT Greeter : public QObject
     
     Q_PROPERTY(QString hostname READ hostname CONSTANT);
 
+    Q_ENUMS(PromptType MessageType);
+
 public:
     enum PromptType {
         PromptTypeQuestion,
