@@ -28,7 +28,10 @@ struct XServerXVNCPrivate
     Process *xserver_process;
   
     /* File to log to */
-    gchar *log_file;  
+    gchar *log_file;
+
+    /* Command to run the X server */
+    gchar *command;
 
     /* Authority file */
     gchar *authority_file;
@@ -58,6 +61,14 @@ xserver_xvnc_new (void)
     g_free (name);
 
     return self;
+}
+
+void
+xserver_xvnc_set_command (XServerXVNC *server, const gchar *command)
+{
+    g_return_if_fail (server != NULL);
+    g_free (server->priv->command);
+    server->priv->command = g_strdup (command);
 }
 
 void
@@ -206,10 +217,10 @@ xserver_xvnc_start (DisplayServer *display_server)
     g_free (filename);
     g_free (dir);
 
-    absolute_command = get_absolute_command ("Xvnc");
+    absolute_command = get_absolute_command (server->priv->command);
     if (!absolute_command)
     {
-        g_debug ("Can't launch Xvnc, not found in path");
+        g_debug ("Can't launch X server %s, not found in path", server->priv->command);
         stopped_cb (server->priv->xserver_process, XSERVER_XVNC (server));
         return FALSE;
     }
@@ -279,6 +290,7 @@ static void
 xserver_xvnc_init (XServerXVNC *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_XVNC_TYPE, XServerXVNCPrivate);
+    server->priv->command = g_strdup ("Xvnc");
     server->priv->width = 1024;
     server->priv->height = 768;
     server->priv->depth = 8;
@@ -293,6 +305,7 @@ xserver_xvnc_finalize (GObject *object)
 
     if (self->priv->xserver_process)
         g_object_unref (self->priv->xserver_process);
+    g_free (self->priv->command);
     g_free (self->priv->authority_file);
     g_free (self->priv->log_file);
 
