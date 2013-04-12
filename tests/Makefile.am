@@ -128,6 +128,8 @@ TESTS = \
 	test-switch-to-user-no-password \
 	test-switch-to-user-logout \
 	test-vnc-login \
+	test-vnc-command \
+	test-vnc-open-file-descriptors \
 	test-xdmcp-login \
 	test-no-accounts-service \
 	test-console-kit \
@@ -313,7 +315,9 @@ EXTRA_DIST = \
 	scripts/util-path.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
+	scripts/vnc-command.conf \
 	scripts/vnc-login.conf \
+	scripts/vnc-open-file-descriptors.conf \
 	scripts/xauthority.conf \
 	scripts/xdmcp-login.conf \
 	scripts/xdmcp-open-file-descriptors.conf \

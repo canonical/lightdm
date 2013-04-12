@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.5.4
+
+    * Allow VNC command to be specified in lightdm.conf
+
 Overview of changes in lightdm 1.5.3
 
     * Fix build with gobject-introspection 1.35.9
