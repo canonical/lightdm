@@ -129,6 +129,7 @@ TESTS = \
 	test-switch-to-user-logout \
 	test-vnc-login \
 	test-vnc-command \
+	test-vnc-dimensions \
 	test-vnc-open-file-descriptors \
 	test-xdmcp-login \
 	test-no-accounts-service \
@@ -316,6 +317,7 @@ EXTRA_DIST = \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
 	scripts/vnc-command.conf \
+	scripts/vnc-dimensions.conf \
 	scripts/vnc-login.conf \
 	scripts/vnc-open-file-descriptors.conf \
 	scripts/xauthority.conf \
