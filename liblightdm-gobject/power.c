@@ -268,7 +268,7 @@ lightdm_shutdown (GError **error)
 {
     gboolean function_result;
 
-    function_result = login1_call_function ("PowerOff", g_variant_new("(b)",0), TRUE, error);
+    function_result = login1_call_function ("PowerOff", g_variant_new ("(b)", 0), TRUE, error);
     if (!function_result)
           function_result = ck_call_function ("Stop", TRUE, error);
 

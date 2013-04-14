@@ -100,7 +100,7 @@ bool PowerInterface::canShutdown()
 void PowerInterface::shutdown()
 {
     if (d->login1Interface->isValid())
-        d->login1Interface->call("PowerOff",false);
+        d->login1Interface->call("PowerOff", false);
     else
         d->consoleKitInterface->call("Stop");
 }
