@@ -135,6 +135,8 @@ TESTS = \
 	test-no-accounts-service \
 	test-console-kit \
 	test-no-console-kit \
+	test-no-login1 \
+	test-no-console-kit-or-login1 \
 	test-open-file-descriptors \
 	test-xdmcp-open-file-descriptors
 
@@ -284,8 +286,10 @@ EXTRA_DIST = \
 	scripts/no-accounts-service.conf \
 	scripts/no-config.conf \
 	scripts/no-console-kit.conf \
+	scripts/no-console-kit-or-login1.conf \
 	scripts/no-keyboard-layout.conf \
 	scripts/no-language.conf \
+	scripts/no-login1.conf \
 	scripts/open-file-descriptors.conf \
 	scripts/pam.conf \
 	scripts/plymouth-active-vt.conf \

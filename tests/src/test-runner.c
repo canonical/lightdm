@@ -838,6 +838,101 @@ start_console_kit_daemon ()
 }
 
 static void
+handle_login1_call (GDBusConnection       *connection,
+                    const gchar           *sender,
+                    const gchar           *object_path,
+                    const gchar           *interface_name,
+                    const gchar           *method_name,
+                    GVariant              *parameters,
+                    GDBusMethodInvocation *invocation,
+                    gpointer               user_data)
+{
+    if (strcmp (method_name, "CanReboot") == 0)
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "yes"));
+    else if (strcmp (method_name, "Reboot") == 0)
+    {
+        gboolean interactive;
+        g_variant_get (parameters, "(b)", &interactive);
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    if (strcmp (method_name, "CanPowerOff") == 0)
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "yes"));
+    else if (strcmp (method_name, "PowerOff") == 0)
+    {
+        gboolean interactive;
+        g_variant_get (parameters, "(b)", &interactive);
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
+}
+
+static void
+login1_name_acquired_cb (GDBusConnection *connection,
+                         const gchar     *name,
+                         gpointer         user_data)
+{
+    const gchar *login1_interface =
+        "<node>"
+        "  <interface name='org.freedesktop.login1.Manager'>"
+        "    <method name='CanReboot'>"
+        "      <arg name='result' direction='out' type='s'/>"
+        "    </method>"
+        "    <method name='Reboot'>"
+        "      <arg name='interactive' direction='in' type='b'/>"
+        "    </method>"
+        "    <method name='CanPowerOff'>"
+        "      <arg name='result' direction='out' type='s'/>"
+        "    </method>"
+        "    <method name='PowerOff'>"
+        "      <arg name='interactive' direction='in' type='b'/>"
+        "    </method>"
+        "  </interface>"
+        "</node>";
+    static const GDBusInterfaceVTable login1_vtable =
+    {
+        handle_login1_call,
+    };
+    GDBusNodeInfo *login1_info;
+    GError *error = NULL;
+
+    login1_info = g_dbus_node_info_new_for_xml (login1_interface, &error);
+    if (error)
+        g_warning ("Failed to parse D-Bus interface: %s", error->message);  
+    g_clear_error (&error);
+    if (!login1_info)
+        return;
+    g_dbus_connection_register_object (connection,
+                                       "/org/freedesktop/login1",
+                                       login1_info->interfaces[0],
+                                       &login1_vtable,
+                                       NULL, NULL,
+                                       &error);
+    if (error)
+        g_warning ("Failed to register login1 service: %s", error->message);
+    g_clear_error (&error);
+    g_dbus_node_info_unref (login1_info);
+
+    service_count--;
+    if (service_count == 0)
+        run_lightdm ();
+}
+
+static void
+start_login1_daemon ()
+{
+    service_count++;
+    g_bus_own_name (G_BUS_TYPE_SYSTEM,
+                    "org.freedesktop.login1",
+                    G_BUS_NAME_OWNER_FLAGS_NONE,
+                    login1_name_acquired_cb,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL);
+}
+
+static void
 load_passwd_file ()
 {
     gchar *path, *data, **lines;
@@ -1474,6 +1569,8 @@ main (int argc, char **argv)
     /* Start D-Bus services */
     if (!g_key_file_get_boolean (config, "test-runner-config", "disable-console-kit", NULL))
         start_console_kit_daemon ();
+    if (!g_key_file_get_boolean (config, "test-runner-config", "disable-login1", NULL))
+        start_login1_daemon ();
     if (!g_key_file_get_boolean (config, "test-runner-config", "disable-accounts-service", NULL))
         start_accounts_service_daemon ();
 
