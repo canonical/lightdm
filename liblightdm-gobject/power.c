@@ -153,19 +153,18 @@ login1_call_function (const gchar *function, GVariant *parameters, gboolean defa
 {
     GVariant *result;
     gboolean function_result = FALSE;
-    const gchar *true_result = "yes";
     gchar *str_result;
 
     if (!login1_proxy)
     {
         login1_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                                  G_DBUS_PROXY_FLAGS_NONE,
-                                                  NULL,
-                                                  "org.freedesktop.login1",
-                                                  "/org/freedesktop/login1",
-                                                  "org.freedesktop.login1.Manager",
-                                                  NULL,
-                                                  error);
+                                                      G_DBUS_PROXY_FLAGS_NONE,
+                                                      NULL,
+                                                      "org.freedesktop.login1",
+                                                      "/org/freedesktop/login1",
+                                                      "org.freedesktop.login1.Manager",
+                                                      NULL,
+                                                      error);
         if (!login1_proxy)
             return FALSE;
     }
@@ -184,20 +183,17 @@ login1_call_function (const gchar *function, GVariant *parameters, gboolean defa
     if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(b)")))
         g_variant_get (result, "(s)", &function_result);
 
-    /**
-    * CanReboot, CanPowerOff returns a string "yes", "no", or "challenge", not a boolean as ConsoleKit
-    **/
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(s)"))) {
+    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(s)")))
+    {
         g_variant_get (result, "(b)", str_result);
-        if(g_strcmp0(str_result,true_result) == 0) {
+        if (g_strcmp0 (str_result, "yes") == 0)
             function_result = TRUE;
-        }
-        else {
+        else
             function_result = default_result;
-        }
     }       
     
     g_variant_unref (result);
+
     return function_result;
 }
 
@@ -211,10 +207,12 @@ login1_call_function (const gchar *function, GVariant *parameters, gboolean defa
 gboolean
 lightdm_get_can_restart (void)
 {
-    gboolean function_result = FALSE;
+    gboolean function_result;
+
     function_result = login1_call_function ("CanReboot", NULL, FALSE, NULL);
     if (!function_result)
-          function_result = ck_call_function ("CanRestart", FALSE, NULL);
+        function_result = ck_call_function ("CanRestart", FALSE, NULL);
+
     return function_result;
 }
 
@@ -229,10 +227,12 @@ lightdm_get_can_restart (void)
 gboolean
 lightdm_restart (GError **error)
 {
-    gboolean function_result = FALSE;
+    gboolean function_result;
+
     function_result = login1_call_function ("Reboot", g_variant_new("(b)",0), TRUE, error);
     if (!function_result)
-          function_result = ck_call_function ("Restart", TRUE, error);
+        function_result = ck_call_function ("Restart", TRUE, error);
+
     return function_result;
 }
 
@@ -246,10 +246,12 @@ lightdm_restart (GError **error)
 gboolean
 lightdm_get_can_shutdown (void)
 {
-    gboolean function_result = FALSE; 
+    gboolean function_result;
+
     function_result = login1_call_function ("CanPowerOff", NULL, FALSE, NULL);
     if (!function_result)
-          function_result = ck_call_function ("CanStop", FALSE, NULL);
+        function_result = ck_call_function ("CanStop", FALSE, NULL);
+
     return function_result;
 }
 
@@ -264,9 +266,11 @@ lightdm_get_can_shutdown (void)
 gboolean
 lightdm_shutdown (GError **error)
 {
-    gboolean function_result = FALSE; 
+    gboolean function_result;
+
     function_result = login1_call_function ("PowerOff", g_variant_new("(b)",0), TRUE, error);
     if (!function_result)
           function_result = ck_call_function ("Stop", TRUE, error);
+
     return function_result;
 }

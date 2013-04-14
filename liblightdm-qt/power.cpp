@@ -68,12 +68,10 @@ void PowerInterface::suspend()
 bool PowerInterface::canHibernate()
 {
     QDBusReply<bool> reply = d->powerManagementInterface->call("HibernateAllowed");
-    if (reply.isValid()) {
+    if (reply.isValid())
         return reply.value();
-    }
-    else {
+    else
         return false;
-    }
 }
 
 void PowerInterface::hibernate()
@@ -83,11 +81,11 @@ void PowerInterface::hibernate()
 
 bool PowerInterface::canShutdown()
 {
-    if ( d->login1Interface->isValid() ) {
-      QDBusReply<QString> reply1 = d->login1Interface->call("CanPowerOff");
-      if (reply1.isValid()) {
-        return (reply1.value()=="yes");
-      }
+    if (d->login1Interface->isValid()) {
+        QDBusReply<QString> reply1 = d->login1Interface->call("CanPowerOff");
+        if (reply1.isValid()) {
+            return reply1.value() == "yes";
+        }
     }
     qWarning() << d->login1Interface->lastError();
 
@@ -95,12 +93,13 @@ bool PowerInterface::canShutdown()
     if (reply.isValid()) {
         return reply.value();
     }
+
     return false;
 }
 
 void PowerInterface::shutdown()
 {
-    if ( d->login1Interface->isValid() )
+    if (d->login1Interface->isValid())
         d->login1Interface->call("PowerOff",false);
     else
         d->consoleKitInterface->call("Stop");
@@ -108,11 +107,11 @@ void PowerInterface::shutdown()
 
 bool PowerInterface::canRestart()
 {
-    if ( d->login1Interface->isValid() ) {
-      QDBusReply<QString> reply1 = d->login1Interface->call("CanReboot");
-      if (reply1.isValid()) {
-        return (reply1.value()=="yes");
-      }
+    if (d->login1Interface->isValid()) {
+        QDBusReply<QString> reply1 = d->login1Interface->call("CanReboot");
+        if (reply1.isValid()) {
+            return reply1.value() == "yes";
+        }
     }
     qWarning() << d->login1Interface->lastError();
   
@@ -126,8 +125,8 @@ bool PowerInterface::canRestart()
 
 void PowerInterface::restart()
 {
-    if ( d->login1Interface->isValid() )
-        d->login1Interface->call("Reboot",false);
+    if (d->login1Interface->isValid())
+        d->login1Interface->call("Reboot", false);
     else
         d->consoleKitInterface->call("Restart");
 }
