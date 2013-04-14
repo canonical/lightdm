@@ -68,10 +68,12 @@ void PowerInterface::suspend()
 bool PowerInterface::canHibernate()
 {
     QDBusReply<bool> reply = d->powerManagementInterface->call("HibernateAllowed");
-    if (reply.isValid())
+    if (reply.isValid()) {
         return reply.value();
-    else
+    }
+    else {
         return false;
+    }
 }
 
 void PowerInterface::hibernate()
