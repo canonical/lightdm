@@ -17,6 +17,7 @@
 
 static GDBusProxy *upower_proxy = NULL;
 static GDBusProxy *ck_proxy = NULL;
+static GDBusProxy *login1_proxy = NULL;
 
 static gboolean
 upower_call_function (const gchar *function, gboolean default_result, GError **error)
@@ -147,6 +148,59 @@ ck_call_function (const gchar *function, gboolean default_result, GError **error
     return function_result;
 }
 
+static gboolean
+login1_call_function (const gchar *function, GVariant *parameters, gboolean default_result, GError **error)
+{
+    GVariant *result;
+    gboolean function_result = FALSE;
+    const gchar *true_result = "yes";
+    gchar *str_result;
+
+    if (!login1_proxy)
+    {
+        login1_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                                  G_DBUS_PROXY_FLAGS_NONE,
+                                                  NULL,
+                                                  "org.freedesktop.login1",
+                                                  "/org/freedesktop/login1",
+                                                  "org.freedesktop.login1.Manager",
+                                                  NULL,
+                                                  error);
+        if (!login1_proxy)
+            return FALSE;
+    }
+
+    result = g_dbus_proxy_call_sync (login1_proxy,
+                                     function,
+                                     parameters,
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     -1,
+                                     NULL,
+                                     error);
+
+    if (!result)
+        return default_result;
+
+    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(b)")))
+        g_variant_get (result, "(s)", &function_result);
+
+    /**
+    * CanReboot, CanPowerOff returns a string "yes", "no", or "challenge", not a boolean as ConsoleKit
+    **/
+    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(s)"))) {
+        g_variant_get (result, "(b)", str_result);
+        if(g_strcmp0(str_result,true_result) == 0) {
+            function_result = TRUE;
+        }
+        else {
+            function_result = default_result;
+        }
+    }       
+    
+    g_variant_unref (result);
+    return function_result;
+}
+
 /**
  * lightdm_get_can_restart:
  *
@@ -157,7 +211,11 @@ ck_call_function (const gchar *function, gboolean default_result, GError **error
 gboolean
 lightdm_get_can_restart (void)
 {
-    return ck_call_function ("CanRestart", FALSE, NULL);
+    gboolean function_result = FALSE;
+    function_result = login1_call_function ("CanReboot", NULL, FALSE, NULL);
+    if (!function_result)
+          function_result = ck_call_function ("CanRestart", FALSE, NULL);
+    return function_result;
 }
 
 /**
@@ -171,7 +229,11 @@ lightdm_get_can_restart (void)
 gboolean
 lightdm_restart (GError **error)
 {
-    return ck_call_function ("Restart", TRUE, error);
+    gboolean function_result = FALSE;
+    function_result = login1_call_function ("Reboot", g_variant_new("(b)",0), TRUE, error);
+    if (!function_result)
+          function_result = ck_call_function ("Restart", TRUE, error);
+    return function_result;
 }
 
 /**
@@ -184,7 +246,11 @@ lightdm_restart (GError **error)
 gboolean
 lightdm_get_can_shutdown (void)
 {
-    return ck_call_function ("CanStop", FALSE, NULL);
+    gboolean function_result = FALSE; 
+    function_result = login1_call_function ("CanPowerOff", NULL, FALSE, NULL);
+    if (!function_result)
+          function_result = ck_call_function ("CanStop", FALSE, NULL);
+    return function_result;
 }
 
 /**
@@ -198,5 +264,9 @@ lightdm_get_can_shutdown (void)
 gboolean
 lightdm_shutdown (GError **error)
 {
-    return ck_call_function ("Stop", TRUE, error);
+    gboolean function_result = FALSE; 
+    function_result = login1_call_function ("PowerOff", g_variant_new("(b)",0), TRUE, error);
+    if (!function_result)
+          function_result = ck_call_function ("Stop", TRUE, error);
+    return function_result;
 }
