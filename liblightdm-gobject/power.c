@@ -110,11 +110,10 @@ lightdm_hibernate (GError **error)
     return upower_call_function ("Hibernate", TRUE, error);
 }
 
-static gboolean
-ck_call_function (const gchar *function, gboolean default_result, GError **error)
+static GVariant *
+ck_call_function (const gchar *function, GError **error)
 {
-    GVariant *result;
-    gboolean function_result = FALSE;
+    GVariant *r;
 
     if (!ck_proxy)
     {
@@ -130,29 +129,21 @@ ck_call_function (const gchar *function, gboolean default_result, GError **error
             return FALSE;
     }
 
-    result = g_dbus_proxy_call_sync (ck_proxy,
-                                     function,
-                                     NULL,
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     -1,
-                                     NULL,
-                                     error);
+    r = g_dbus_proxy_call_sync (ck_proxy,
+                                function,
+                                NULL,
+                                G_DBUS_CALL_FLAGS_NONE,
+                                -1,
+                                NULL,
+                                error);
 
-    if (!result)
-        return default_result;
-
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(b)")))
-        g_variant_get (result, "(b)", &function_result);
-
-    g_variant_unref (result);
-    return function_result;
+    return r;
 }
 
-static gboolean
-login1_call_function (const gchar *function, GVariant *parameters, gboolean default_result, GError **error)
+static GVariant *
+login1_call_function (const gchar *function, GVariant *parameters, GError **error)
 {
-    GVariant *result;
-    gboolean function_result = FALSE;
+    GVariant *r;
     gchar *str_result;
 
     if (!login1_proxy)
@@ -166,35 +157,18 @@ login1_call_function (const gchar *function, GVariant *parameters, gboolean defa
                                                       NULL,
                                                       error);
         if (!login1_proxy)
-            return FALSE;
+            return NULL;
     }
 
-    result = g_dbus_proxy_call_sync (login1_proxy,
-                                     function,
-                                     parameters,
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     -1,
-                                     NULL,
-                                     error);
+    r = g_dbus_proxy_call_sync (login1_proxy,
+                                function,
+                                parameters,
+                                G_DBUS_CALL_FLAGS_NONE,
+                                -1,
+                                NULL,
+                                error);
 
-    if (!result)
-        return default_result;
-
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(b)")))
-        g_variant_get (result, "(s)", &function_result);
-
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(s)")))
-    {
-        g_variant_get (result, "(b)", str_result);
-        if (g_strcmp0 (str_result, "yes") == 0)
-            function_result = TRUE;
-        else
-            function_result = default_result;
-    }       
-    
-    g_variant_unref (result);
-
-    return function_result;
+    return r;
 }
 
 /**
@@ -207,13 +181,29 @@ login1_call_function (const gchar *function, GVariant *parameters, gboolean defa
 gboolean
 lightdm_get_can_restart (void)
 {
-    gboolean function_result;
+    gboolean can_restart = FALSE;
+    GVariant *r;
 
-    function_result = login1_call_function ("CanReboot", NULL, FALSE, NULL);
-    if (!function_result)
-        function_result = ck_call_function ("CanRestart", FALSE, NULL);
+    r = login1_call_function ("CanReboot", NULL, NULL);
+    if (r)
+    {
+        gchar *result;
+        if (g_variant_is_of_type (r, G_VARIANT_TYPE ("(s)")))
+        {
+            g_variant_get (r, "(&s)", &result);
+            can_restart = g_strcmp0 (result, "yes") == 0;
+        }
+    }
+    else
+    {
+        r = ck_call_function ("CanRestart", NULL);
+        if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
+            g_variant_get (r, "(b)", &can_restart);
+    }
+    if (r)
+        g_variant_unref (r);
 
-    return function_result;
+    return can_restart;
 }
 
 /**
@@ -227,13 +217,20 @@ lightdm_get_can_restart (void)
 gboolean
 lightdm_restart (GError **error)
 {
-    gboolean function_result;
+    GVariant *r;
+    gboolean restarted;
 
-    function_result = login1_call_function ("Reboot", g_variant_new("(b)",0), TRUE, error);
-    if (!function_result)
-        function_result = ck_call_function ("Restart", TRUE, error);
+    r = login1_call_function ("Reboot", g_variant_new("(b)", FALSE), error);
+    if (!r)
+    {
+        g_clear_error (error);
+        r = ck_call_function ("Restart", error);
+    }
+    restarted = r != NULL;
+    if (r)
+        g_variant_unref (r);
 
-    return function_result;
+    return restarted;
 }
 
 /**
@@ -246,13 +243,29 @@ lightdm_restart (GError **error)
 gboolean
 lightdm_get_can_shutdown (void)
 {
-    gboolean function_result;
+    gboolean can_shutdown = FALSE;
+    GVariant *r;
+  
+    r = login1_call_function ("CanPowerOff", NULL, NULL);
+    if (r)
+    {
+        gchar *result;
+        if (g_variant_is_of_type (r, G_VARIANT_TYPE ("(s)")))
+        {
+            g_variant_get (r, "(&s)", &result);
+            can_shutdown = g_strcmp0 (result, "yes") == 0;
+        }
+    }
+    else
+    {
+        r = ck_call_function ("CanStop", NULL);
+        if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
+            g_variant_get (r, "(b)", &can_shutdown);
+    }
+    if (r)
+        g_variant_unref (r);
 
-    function_result = login1_call_function ("CanPowerOff", NULL, FALSE, NULL);
-    if (!function_result)
-        function_result = ck_call_function ("CanStop", FALSE, NULL);
-
-    return function_result;
+    return can_shutdown;
 }
 
 /**
@@ -266,11 +279,18 @@ lightdm_get_can_shutdown (void)
 gboolean
 lightdm_shutdown (GError **error)
 {
-    gboolean function_result;
+    GVariant *r;
+    gboolean shutdown;
 
-    function_result = login1_call_function ("PowerOff", g_variant_new ("(b)", 0), TRUE, error);
-    if (!function_result)
-          function_result = ck_call_function ("Stop", TRUE, error);
+    r = login1_call_function ("PowerOff", g_variant_new("(b)", FALSE), error);
+    if (!r)
+    {
+        g_clear_error (error);
+        r = ck_call_function ("Stop", error);
+    }
+    shutdown = r != NULL;
+    if (r)
+        g_variant_unref (r);
 
-    return function_result;
+    return shutdown;
 }
