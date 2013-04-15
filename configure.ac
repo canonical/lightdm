@@ -246,6 +246,6 @@ echo "
         liblightdm-qt:            $compile_liblightdm_qt4
         liblightdm-qt5:           $compile_liblightdm_qt5
         Enable tests:             $enable_tests
-	ConsoleKit support:       $enable_consolekit
-	logind support:           $enable_logind	
+        ConsoleKit support:       $enable_consolekit
+        logind support:           $enable_logind
 "
