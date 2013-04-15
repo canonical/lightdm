@@ -94,6 +94,36 @@ def request_cb (channel, condition):
             language = ''
         status_notify ('GREETER %s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s' % (os.getenv ('DISPLAY'), username, language))
 
+    r = 'GREETER %s GET-CAN-SUSPEND' % os.getenv ('DISPLAY')
+    if request == r:
+        if LightDM.get_can_suspend ():
+            allowed = "TRUE"
+        else:
+            allowed = "FALSE"
+        status_notify ('GREETER %s CAN-SUSPEND ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+
+    r = 'GREETER %s SUSPEND' % os.getenv ('DISPLAY')
+    if request == r:
+        try:
+            LightDM.suspend ()
+        except:
+            status_notify ('GREETER %s FAIL-SUSPEND' % os.getenv ('DISPLAY'))
+
+    r = 'GREETER %s GET-CAN-HIBERNATE' % os.getenv ('DISPLAY')
+    if request == r:
+        if LightDM.get_can_hibernate ():
+            allowed = "TRUE"
+        else:
+            allowed = "FALSE"
+        status_notify ('GREETER %s CAN-HIBERNATE ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+
+    r = 'GREETER %s HIBERNATE' % os.getenv ('DISPLAY')
+    if request == r:
+        try:
+            LightDM.hibernate ()
+        except:
+            status_notify ('GREETER %s FAIL-HIBERNATE' % os.getenv ('DISPLAY'))
+
     r = 'GREETER %s GET-CAN-RESTART' % os.getenv ('DISPLAY')
     if request == r:
         if LightDM.get_can_restart ():

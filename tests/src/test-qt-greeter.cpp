@@ -125,6 +125,38 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
+    r = g_strdup_printf ("GREETER %s GET-CAN-SUSPEND", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        gboolean can_suspend = power->canSuspend ();
+        status_notify ("GREETER %s CAN-SUSPEND ALLOWED=%s", getenv ("DISPLAY"), can_suspend ? "TRUE" : "FALSE");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s SUSPEND", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        if (!power->suspend ())
+            status_notify ("GREETER %s FAIL-SUSPEND", getenv ("DISPLAY"));
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s GET-CAN-HIBERNATE", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        gboolean can_hibernate = power->canHibernate ();
+        status_notify ("GREETER %s CAN-HIBERNATE ALLOWED=%s", getenv ("DISPLAY"), can_hibernate ? "TRUE" : "FALSE");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s HIBERNATE", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        if (!power->hibernate ())
+            status_notify ("GREETER %s FAIL-HIBERNATE", getenv ("DISPLAY"));
+    }
+    g_free (r);
+
     r = g_strdup_printf ("GREETER %s GET-CAN-RESTART", getenv ("DISPLAY"));
     if (strcmp (request, r) == 0)
     {

@@ -625,6 +625,101 @@ load_script (const gchar *filename)
     g_strfreev (lines);
 }
 
+static void
+handle_upower_call (GDBusConnection       *connection,
+                    const gchar           *sender,
+                    const gchar           *object_path,
+                    const gchar           *interface_name,
+                    const gchar           *method_name,
+                    GVariant              *parameters,
+                    GDBusMethodInvocation *invocation,
+                    gpointer               user_data)
+{
+    if (strcmp (method_name, "SuspendAllowed") == 0)
+    {
+        check_status ("UPOWER SUSPEND-ALLOWED");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+    }
+    else if (strcmp (method_name, "Suspend") == 0)
+    {
+        check_status ("UPOWER SUSPEND");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "HibernateAllowed") == 0)
+    {
+        check_status ("UPOWER HIBERNATE-ALLOWED");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+    }
+    else if (strcmp (method_name, "Hibernate") == 0)
+    {
+        check_status ("UPOWER HIBERNATE");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
+}
+
+static void
+upower_name_acquired_cb (GDBusConnection *connection,
+                         const gchar     *name,
+                         gpointer         user_data)
+{
+    const gchar *upower_interface =
+        "<node>"
+        "  <interface name='org.freedesktop.UPower'>"
+        "    <method name='SuspendAllowed'>"
+        "      <arg name='allowed' direction='out' type='b'/>"
+        "    </method>"
+        "    <method name='Suspend'/>"
+        "    <method name='HibernateAllowed'>"
+        "      <arg name='allowed' direction='out' type='b'/>"
+        "    </method>"
+        "    <method name='Hibernate'/>"
+        "  </interface>"
+        "</node>";
+    static const GDBusInterfaceVTable upower_vtable =
+    {
+        handle_upower_call,
+    };
+    GDBusNodeInfo *upower_info;
+    GError *error = NULL;
+
+    upower_info = g_dbus_node_info_new_for_xml (upower_interface, &error);
+    if (error)
+        g_warning ("Failed to parse D-Bus interface: %s", error->message);  
+    g_clear_error (&error);
+    if (!upower_info)
+        return;
+    g_dbus_connection_register_object (connection,
+                                       "/org/freedesktop/UPower",
+                                       upower_info->interfaces[0],
+                                       &upower_vtable,
+                                       NULL, NULL,
+                                       &error);
+    if (error)
+        g_warning ("Failed to register UPower service: %s", error->message);
+    g_clear_error (&error);
+    g_dbus_node_info_unref (upower_info);
+
+    service_count--;
+    if (service_count == 0)
+        run_lightdm ();
+}
+
+static void
+start_upower_daemon ()
+{
+    service_count++;
+    g_bus_own_name (G_BUS_TYPE_SYSTEM,
+                    "org.freedesktop.UPower",
+                    G_BUS_NAME_OWNER_FLAGS_NONE,
+                    upower_name_acquired_cb,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL);
+}
+
 static CKSession *
 open_ck_session (GVariant *params)
 {
@@ -1587,6 +1682,8 @@ main (int argc, char **argv)
     g_string_free (group_data, TRUE);
 
     /* Start D-Bus services */
+    if (!g_key_file_get_boolean (config, "test-runner-config", "disable-upower", NULL))
+        start_upower_daemon ();
     if (!g_key_file_get_boolean (config, "test-runner-config", "disable-console-kit", NULL))
         start_console_kit_daemon ();
     if (!g_key_file_get_boolean (config, "test-runner-config", "disable-login1", NULL))

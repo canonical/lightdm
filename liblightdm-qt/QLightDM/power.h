@@ -34,8 +34,8 @@ namespace QLightDM
         bool canRestart();
 
     public Q_SLOTS:
-        void suspend();
-        void hibernate();
+        bool suspend();
+        bool hibernate();
         bool shutdown();
         bool restart();
 

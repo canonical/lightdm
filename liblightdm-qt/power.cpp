@@ -60,9 +60,10 @@ bool PowerInterface::canSuspend()
     }
 }
 
-void PowerInterface::suspend()
+bool PowerInterface::suspend()
 {
-    d->powerManagementInterface->call("Suspend");
+    QDBusReply<void> reply = d->powerManagementInterface->call("Suspend");
+    return reply.isValid ();
 }
 
 bool PowerInterface::canHibernate()
@@ -76,9 +77,10 @@ bool PowerInterface::canHibernate()
     }
 }
 
-void PowerInterface::hibernate()
+bool PowerInterface::hibernate()
 {
-    d->powerManagementInterface->call("Hibernate");
+    QDBusReply<void> reply = d->powerManagementInterface->call("Hibernate");
+    return reply.isValid ();
 }
 
 bool PowerInterface::canShutdown()
