@@ -20,7 +20,7 @@ namespace QLightDM {
     {
         Q_OBJECT
 
-        Q_ENUMS(SessionModelRoles SessionType);
+        Q_ENUMS(SessionModelRoles SessionType)
 
     public:
         enum SessionModelRoles {
