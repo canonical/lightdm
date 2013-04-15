@@ -25,6 +25,8 @@ lightdm_SOURCES = \
 	greeter.h \
 	guest-account.c \
 	guest-account.h \
+	logind.h \
+	logind.c \
 	lightdm.c \
 	ldm-marshal.c \
 	ldm-marshal.h \

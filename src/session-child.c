@@ -175,7 +175,9 @@ session_child_run (int argc, char **argv)
     gsize env_length;
     gsize command_argc;
     gchar **command_argv;
+#ifdef WITH_CONSOLE_KIT
     GVariantBuilder ck_parameters;
+#endif
     int return_code;
     int authentication_result;
     gchar *authentication_result_string;
@@ -189,7 +191,12 @@ session_child_run (int argc, char **argv)
     XAuthority *xauthority = NULL;
     gchar *xauth_filename;
     GDBusConnection *bus;
+#ifdef WITH_CONSOLE_KIT
     gchar *console_kit_cookie;
+#endif
+#ifdef WITH_LOGIND
+    gchar *logind_session;
+#endif
     const gchar *path;
     GError *error = NULL;
 
@@ -418,6 +425,12 @@ session_child_run (int argc, char **argv)
     if (!bus)
         return EXIT_FAILURE;
 
+#ifdef WITH_LOGIND
+    logind_session = logind_get_session_id ();
+    write_string (logind_session);
+#endif
+
+#ifdef WITH_CONSOLE_KIT
     /* Open a Console Kit session */
     g_variant_builder_init (&ck_parameters, G_VARIANT_TYPE ("(a(sv))"));
     g_variant_builder_open (&ck_parameters, G_VARIANT_TYPE ("a(sv)"));
@@ -446,6 +459,7 @@ session_child_run (int argc, char **argv)
         pam_putenv (pam_handle, value);
         g_free (value);
     }
+#endif
 
     /* Write X authority */
     if (xauthority)
@@ -617,9 +631,11 @@ session_child_run (int argc, char **argv)
             _exit (EXIT_FAILURE);
     }
 
+#ifdef WITH_CONSOLE_KIT
     /* Close the Console Kit session */
     if (console_kit_cookie)
         ck_close_session (console_kit_cookie);
+#endif
 
     /* Close the session */
     pam_close_session (pam_handle, 0);

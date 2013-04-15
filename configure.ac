@@ -171,6 +171,26 @@ AC_ARG_WITH(greeter-user,
 AC_SUBST(GREETER_USER)
 AC_DEFINE_UNQUOTED(GREETER_USER, "$GREETER_USER", User to run greeter as)
 
+AC_ARG_ENABLE(consolekit,
+              AS_HELP_STRING([--enable-consolekit],
+                                [Build with Console Kit support @<:@default=yes@:>@]),,
+                 enable_consolekit=yes)
+AM_CONDITIONAL(ENABLE_CONSOLEKIT, test x$enable_consolekit = xyes)
+
+if test x$enable_consolekit = xyes; then
+  AC_DEFINE(WITH_CONSOLE_KIT, 1, [Define if Console Kit support is enabled])
+fi
+
+AC_ARG_ENABLE(logind,
+              AS_HELP_STRING([--enable-logind],
+                                [Build with systemd logind support @<:@default=yes@:>@]),,
+                 enable_logind=yes)
+AM_CONDITIONAL(ENABLE_LOGIND, test x$enable_logind = xyes)
+
+if test x$enable_logind = xyes; then
+  AC_DEFINE(WITH_LOGIND, 1, [Define if systemd logind support is enabled])
+fi
+
 dnl ###########################################################################
 dnl Documentation
 dnl ###########################################################################
