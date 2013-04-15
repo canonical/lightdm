@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/dbus-env ./src/test-runner power-no-console-kit test-qt4-greeter

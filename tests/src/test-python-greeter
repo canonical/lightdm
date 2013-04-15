@@ -94,6 +94,36 @@ def request_cb (channel, condition):
             language = ''
         status_notify ('GREETER %s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s' % (os.getenv ('DISPLAY'), username, language))
 
+    r = 'GREETER %s GET-CAN-RESTART' % os.getenv ('DISPLAY')
+    if request == r:
+        if LightDM.get_can_restart ():
+            allowed = "TRUE"
+        else:
+            allowed = "FALSE"
+        status_notify ('GREETER %s CAN-RESTART ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+
+    r = 'GREETER %s RESTART' % os.getenv ('DISPLAY')
+    if request == r:
+        try:
+            LightDM.restart ()
+        except:
+            status_notify ('GREETER %s FAIL-RESTART' % os.getenv ('DISPLAY'))
+
+    r = 'GREETER %s GET-CAN-SHUTDOWN' % os.getenv ('DISPLAY')
+    if request == r:
+        if LightDM.get_can_shutdown ():
+            allowed = "TRUE"
+        else:
+            allowed = "FALSE"
+        status_notify ('GREETER %s CAN-SHUTDOWN ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+
+    r = 'GREETER %s SHUTDOWN' % os.getenv ('DISPLAY')
+    if request == r:
+        try:
+            LightDM.shutdown ()
+        except:
+            status_notify ('GREETER %s FAIL-SHUTDOWN' % os.getenv ('DISPLAY'))
+
     return True
 
 path = os.getenv ('LIGHTDM_TEST_ROOT') + '/.status-socket'

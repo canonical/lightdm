@@ -137,6 +137,14 @@ TESTS = \
 	test-no-console-kit \
 	test-no-login1 \
 	test-no-console-kit-or-login1 \
+	test-gobject-power \
+	test-gobject-power-no-console-kit \
+	test-gobject-power-no-login1 \
+	test-gobject-power-no-console-kit-or-login1 \
+	test-python-power \
+	test-python-power-no-console-kit \
+	test-python-power-no-login1 \
+	test-python-power-no-console-kit-or-login1 \
 	test-open-file-descriptors \
 	test-xdmcp-open-file-descriptors
 
@@ -172,7 +180,11 @@ TESTS += \
 	test-login-qt4-guest-no-setup-script \
 	test-login-qt4-guest-fail-setup-script \
 	test-login-qt4-guest-logout \
-	test-login-qt4-remote-session
+	test-login-qt4-remote-session \
+	test-qt4-power \
+	test-qt4-power-no-console-kit \
+	test-qt4-power-no-login1 \
+	test-qt4-power-no-console-kit-or-login1
 endif
 
 if COMPILE_LIBLIGHTDM_QT5
@@ -201,7 +213,11 @@ TESTS += \
 	test-login-qt5-guest-no-setup-script \
 	test-login-qt5-guest-fail-setup-script \
 	test-login-qt5-guest-logout \
-	test-login-qt5-remote-session
+	test-login-qt5-remote-session \
+	test-qt4-power \
+	test-qt4-power-no-console-kit \
+	test-qt4-power-no-login1 \
+	test-qt4-power-no-console-kit-or-login1
 endif
 
 EXTRA_DIST = \
@@ -292,6 +308,10 @@ EXTRA_DIST = \
 	scripts/no-login1.conf \
 	scripts/open-file-descriptors.conf \
 	scripts/pam.conf \
+	scripts/power.conf \
+	scripts/power-no-console-kit.conf \
+	scripts/power-no-console-kit-or-login1.conf \
+	scripts/power-no-login1.conf \
 	scripts/plymouth-active-vt.conf \
 	scripts/plymouth-inactive-vt.conf \
 	scripts/plymouth-no-seat.conf \

@@ -678,9 +678,15 @@ handle_ck_call (GDBusConnection       *connection,
                 gpointer               user_data)
 {
     if (strcmp (method_name, "CanRestart") == 0)
+    {
+        check_status ("CONSOLE-KIT CAN-RESTART");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+    }
     else if (strcmp (method_name, "CanStop") == 0)
+    {
+        check_status ("CONSOLE-KIT CAN-STOP");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+    }
     else if (strcmp (method_name, "CloseSession") == 0)
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
     else if (strcmp (method_name, "OpenSession") == 0)
@@ -715,9 +721,15 @@ handle_ck_call (GDBusConnection       *connection,
         g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Unable to find session for cookie");
     }
     else if (strcmp (method_name, "Restart") == 0)
+    {
+        check_status ("CONSOLE-KIT RESTART");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
     else if (strcmp (method_name, "Stop") == 0)
+    {
+        check_status ("CONSOLE-KIT STOP");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
     else
         g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
 }
@@ -848,19 +860,27 @@ handle_login1_call (GDBusConnection       *connection,
                     gpointer               user_data)
 {
     if (strcmp (method_name, "CanReboot") == 0)
+    {
+        check_status ("LOGIN1 CAN-REBOOT");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "yes"));
+    }
     else if (strcmp (method_name, "Reboot") == 0)
     {
         gboolean interactive;
         g_variant_get (parameters, "(b)", &interactive);
+        check_status ("LOGIN1 REBOOT");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
-    if (strcmp (method_name, "CanPowerOff") == 0)
+    else if (strcmp (method_name, "CanPowerOff") == 0)
+    {
+        check_status ("LOGIN1 CAN-POWER-OFF");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "yes"));
+    }
     else if (strcmp (method_name, "PowerOff") == 0)
     {
         gboolean interactive;
         g_variant_get (parameters, "(b)", &interactive);
+        check_status ("LOGIN1 POWER-OFF");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
     else

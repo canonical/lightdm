@@ -194,6 +194,42 @@ request_cb (const gchar *request)
         status_notify ("GREETER %s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s", getenv ("DISPLAY"), username, language ? language : "");
     }
     g_free (r);
+
+    r = g_strdup_printf ("GREETER %s GET-CAN-RESTART", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        gboolean can_restart = lightdm_get_can_restart ();
+        status_notify ("GREETER %s CAN-RESTART ALLOWED=%s", getenv ("DISPLAY"), can_restart ? "TRUE" : "FALSE");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s RESTART", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        GError *error = NULL;
+        if (!lightdm_restart (&error))
+            status_notify ("GREETER %s FAIL-RESTART", getenv ("DISPLAY"));
+        g_clear_error (&error);
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s GET-CAN-SHUTDOWN", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        gboolean can_shutdown = lightdm_get_can_shutdown ();
+        status_notify ("GREETER %s CAN-SHUTDOWN ALLOWED=%s", getenv ("DISPLAY"), can_shutdown ? "TRUE" : "FALSE");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s SHUTDOWN", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        GError *error = NULL;
+        if (!lightdm_shutdown (&error))
+            status_notify ("GREETER %s FAIL-SHUTDOWN", getenv ("DISPLAY"));
+        g_clear_error (&error);
+    }
+    g_free (r);
 }
 
 int

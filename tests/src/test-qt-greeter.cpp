@@ -5,6 +5,7 @@
 #include <glib-object.h>
 #include <xcb/xcb.h>
 #include <QLightDM/Greeter>
+#include <QLightDM/Power>
 #include <QtCore/QSettings>
 #include <QtCore/QDebug>
 #include <QtCore/QCoreApplication>
@@ -14,6 +15,7 @@
 
 static QCoreApplication *app = NULL;
 static QSettings *config = NULL;
+static QLightDM::PowerInterface *power = NULL;
 static TestGreeter *greeter = NULL;
 
 TestGreeter::TestGreeter ()
@@ -122,6 +124,38 @@ request_cb (const gchar *request)
             status_notify ("GREETER %s SESSION-FAILED", getenv ("DISPLAY"));
     }
     g_free (r);
+
+    r = g_strdup_printf ("GREETER %s GET-CAN-RESTART", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        gboolean can_restart = power->canRestart ();
+        status_notify ("GREETER %s CAN-RESTART ALLOWED=%s", getenv ("DISPLAY"), can_restart ? "TRUE" : "FALSE");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s RESTART", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        if (!power->restart ())
+            status_notify ("GREETER %s FAIL-RESTART", getenv ("DISPLAY"));
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s GET-CAN-SHUTDOWN", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        gboolean can_shutdown = power->canShutdown ();
+        status_notify ("GREETER %s CAN-SHUTDOWN ALLOWED=%s", getenv ("DISPLAY"), can_shutdown ? "TRUE" : "FALSE");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s SHUTDOWN", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        if (!power->shutdown ())
+            status_notify ("GREETER %s FAIL-SHUTDOWN", getenv ("DISPLAY"));
+    }
+    g_free (r);
 }
 
 int
@@ -151,6 +185,8 @@ main(int argc, char *argv[])
     }
 
     status_notify ("GREETER %s CONNECT-XSERVER", getenv ("DISPLAY"));
+
+    power = new QLightDM::PowerInterface();
 
     greeter = new TestGreeter();
   

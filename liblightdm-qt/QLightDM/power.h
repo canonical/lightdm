@@ -36,8 +36,8 @@ namespace QLightDM
     public Q_SLOTS:
         void suspend();
         void hibernate();
-        void shutdown();
-        void restart();
+        bool shutdown();
+        bool restart();
 
     private:
         class PowerInterfacePrivate;
