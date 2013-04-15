@@ -1,6 +1,7 @@
-Overview of changes in lightdm 1.5.4
+Overview of changes in lightdm 1.6.0
 
     * Allow VNC command to be specified in lightdm.conf
+    * Register enums with QObject meta type system.
 
 Overview of changes in lightdm 1.5.3
 

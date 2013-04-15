@@ -44,6 +44,6 @@ namespace QLightDM
         PowerInterfacePrivate * const d;
 
     };
-};
+}
 
 #endif // QLIGHTDM_POWER_H
