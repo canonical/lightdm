@@ -52,6 +52,6 @@ private:
 
 };
 
-};
+}
 
 #endif // QLIGHTDM_USER_H

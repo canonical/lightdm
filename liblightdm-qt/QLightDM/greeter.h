@@ -92,6 +92,6 @@ private:
     Q_DECLARE_PRIVATE(Greeter)
 
 };
-};
+}
 
 #endif // QLIGHTDM_GREETER_H

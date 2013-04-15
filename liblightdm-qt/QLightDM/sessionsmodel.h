@@ -48,6 +48,6 @@ namespace QLightDM {
     private:
         Q_DECLARE_PRIVATE(SessionsModel)
     };
-};
+}
 
 #endif // QLIGHTDM_SESSION_H
