@@ -20,7 +20,7 @@ namespace QLightDM {
     {
         Q_OBJECT
 
-        Q_ENUMS(SessionModelRoles SessionType);
+        Q_ENUMS(SessionModelRoles SessionType)
 
     public:
         enum SessionModelRoles {
@@ -48,6 +48,6 @@ namespace QLightDM {
     private:
         Q_DECLARE_PRIVATE(SessionsModel)
     };
-};
+}
 
 #endif // QLIGHTDM_SESSION_H
