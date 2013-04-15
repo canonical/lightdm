@@ -173,21 +173,21 @@ AC_DEFINE_UNQUOTED(GREETER_USER, "$GREETER_USER", User to run greeter as)
 
 AC_ARG_ENABLE(consolekit,
               AS_HELP_STRING([--enable-consolekit],
-                                [Build with Console Kit support @<:@default=yes@:>@]),,
+                                [Build with ConsoleKit support @<:@default=yes@:>@]),,
                  enable_consolekit=yes)
 AM_CONDITIONAL(ENABLE_CONSOLEKIT, test x$enable_consolekit = xyes)
 
 if test x$enable_consolekit = xyes; then
-  AC_DEFINE(WITH_CONSOLE_KIT, 1, [Define if Console Kit support is enabled])
+  AC_DEFINE(WITH_CONSOLEKIT, 1, [Define if ConsoleKit support is enabled])
 fi
 
 AC_ARG_ENABLE(logind,
               AS_HELP_STRING([--enable-logind],
-                                [Build with systemd logind support @<:@default=yes@:>@]),,
-                 enable_logind=yes)
+                                [Build with systemd logind support @<:@default=no@:>@]),,
+                 enable_logind=no)
 AM_CONDITIONAL(ENABLE_LOGIND, test x$enable_logind = xyes)
 
-if test x$enable_logind = xyes; then
+if test x$enable_logind != xyes; then
   AC_DEFINE(WITH_LOGIND, 1, [Define if systemd logind support is enabled])
 fi
 
@@ -246,4 +246,6 @@ echo "
         liblightdm-qt:            $compile_liblightdm_qt4
         liblightdm-qt5:           $compile_liblightdm_qt5
         Enable tests:             $enable_tests
+	ConsoleKit support:       $enable_consolekit
+	logind support:           $enable_logind	
 "

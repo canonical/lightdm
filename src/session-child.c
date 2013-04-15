@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -175,7 +177,7 @@ session_child_run (int argc, char **argv)
     gsize env_length;
     gsize command_argc;
     gchar **command_argv;
-#ifdef WITH_CONSOLE_KIT
+#ifdef WITH_CONSOLEKIT
     GVariantBuilder ck_parameters;
 #endif
     int return_code;
@@ -191,7 +193,7 @@ session_child_run (int argc, char **argv)
     XAuthority *xauthority = NULL;
     gchar *xauth_filename;
     GDBusConnection *bus;
-#ifdef WITH_CONSOLE_KIT
+#ifdef WITH_CONSOLEKIT
     gchar *console_kit_cookie;
 #endif
 #ifdef WITH_LOGIND
@@ -430,7 +432,7 @@ session_child_run (int argc, char **argv)
     write_string (logind_session);
 #endif
 
-#ifdef WITH_CONSOLE_KIT
+#ifdef WITH_CONSOLEKIT
     /* Open a Console Kit session */
     g_variant_builder_init (&ck_parameters, G_VARIANT_TYPE ("(a(sv))"));
     g_variant_builder_open (&ck_parameters, G_VARIANT_TYPE ("a(sv)"));
@@ -631,7 +633,7 @@ session_child_run (int argc, char **argv)
             _exit (EXIT_FAILURE);
     }
 
-#ifdef WITH_CONSOLE_KIT
+#ifdef WITH_CONSOLEKIT
     /* Close the Console Kit session */
     if (console_kit_cookie)
         ck_close_session (console_kit_cookie);

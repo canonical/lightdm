@@ -146,9 +146,3 @@ logind_unlock_session (const gchar *id)
 
     g_object_unref (bus);
 }
-
-void
-main ()
-{
-  g_printf ("%s\n", logind_get_session_id());
-}

@@ -9,6 +9,8 @@
  * license.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -21,7 +23,7 @@
 
 #include "session.h"
 #include "configuration.h"
-#ifdef WITH_CONSOLE_KIT
+#ifdef WITH_CONSOLEKIT
 #include "console-kit.h"
 #endif
 #ifdef WITH_LOGIND
@@ -87,7 +89,7 @@ struct SessionPrivate
     /* Remote host this session is being controlled from */
     gchar *remote_host_name;
 
-#ifdef WITH_CONSOLE_KIT
+#ifdef WITH_CONSOLEKIT
     /* Console kit cookie */
     gchar *console_kit_cookie;
 #endif
@@ -450,7 +452,7 @@ session_get_username (Session *session)
     return session->priv->username;
 }
 
-#ifdef WITH_CONSOLE_KIT
+#ifdef WITH_CONSOLEKIT
 const gchar *
 session_get_console_kit_cookie (Session *session)
 {
@@ -577,7 +579,7 @@ session_run (Session *session, gchar **argv)
 #ifdef WITH_LOGIND
     session->priv->logind_session = read_string_from_child (session);
 #endif
-#ifdef WITH_CONSOLE_KIT
+#ifdef WITH_CONSOLEKIT
     session->priv->console_kit_cookie = read_string_from_child (session);
 #endif
 }
@@ -670,8 +672,12 @@ session_finalize (GObject *object)
     if (self->priv->xauthority)
         g_object_unref (self->priv->xauthority);
     g_free (self->priv->remote_host_name);
+#ifdef WITH_LOGIND
     g_free (self->priv->logind_session);
+#endif
+#ifdef WITH_CONSOLEKIT
     g_free (self->priv->console_kit_cookie);
+#endif
     g_list_free_full (self->priv->env, g_free);
 
     G_OBJECT_CLASS (session_parent_class)->finalize (object);
