@@ -15,6 +15,7 @@
 #include <QtCore/QVariant>
 #include <QtDBus/QDBusInterface>
 #include <QtDBus/QDBusReply>
+#include <QDebug>
 
 #include "config.h"
 
@@ -26,11 +27,13 @@ public:
     PowerInterfacePrivate();
     QScopedPointer<QDBusInterface> powerManagementInterface;
     QScopedPointer<QDBusInterface> consoleKitInterface;
+    QScopedPointer<QDBusInterface> login1Interface;
 };
 
 PowerInterface::PowerInterfacePrivate::PowerInterfacePrivate() :
     powerManagementInterface(new QDBusInterface("org.freedesktop.UPower","/org/freedesktop/UPower", "org.freedesktop.UPower", QDBusConnection::systemBus())),
-    consoleKitInterface(new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit.Manager", QDBusConnection::systemBus()))
+    consoleKitInterface(new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit.Manager", QDBusConnection::systemBus())),
+    login1Interface(new QDBusInterface("org.freedesktop.login1", "/org/freedesktop/login1", "org.freedesktop.login1.Manager", QDBusConnection::systemBus()))
 {
 }
 
@@ -80,34 +83,54 @@ void PowerInterface::hibernate()
 
 bool PowerInterface::canShutdown()
 {
+    if (d->login1Interface->isValid()) {
+        QDBusReply<QString> reply1 = d->login1Interface->call("CanPowerOff");
+        if (reply1.isValid()) {
+            return reply1.value() == "yes";
+        }
+    }
+    qWarning() << d->login1Interface->lastError();
+
     QDBusReply<bool> reply = d->consoleKitInterface->call("CanStop");
     if (reply.isValid()) {
         return reply.value();
     }
-    else {
-        return false;
-    }
+
+    return false;
 }
 
 void PowerInterface::shutdown()
 {
-    d->consoleKitInterface->call("Stop");
+    if (d->login1Interface->isValid())
+        d->login1Interface->call("PowerOff", false);
+    else
+        d->consoleKitInterface->call("Stop");
 }
 
 bool PowerInterface::canRestart()
 {
+    if (d->login1Interface->isValid()) {
+        QDBusReply<QString> reply1 = d->login1Interface->call("CanReboot");
+        if (reply1.isValid()) {
+            return reply1.value() == "yes";
+        }
+    }
+    qWarning() << d->login1Interface->lastError();
+  
     QDBusReply<bool> reply = d->consoleKitInterface->call("CanRestart");
     if (reply.isValid()) {
         return reply.value();
     }
-    else {
-        return false;
-    }
+
+    return false;
 }
 
 void PowerInterface::restart()
 {
-    d->consoleKitInterface->call("Restart");
+    if (d->login1Interface->isValid())
+        d->login1Interface->call("Reboot", false);
+    else
+        d->consoleKitInterface->call("Restart");
 }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
