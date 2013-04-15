@@ -133,11 +133,11 @@ common_qt_ldadd = \
 	$(XCB_LIBS)
 test_qt4_greeter_LDADD = \
 	$(common_qt_ldadd) \
-	-llightdm-qt-2 \
+	-llightdm-qt-3 \
 	$(LIBLIGHTDM_QT4_LIBS)
 test_qt5_greeter_LDADD = \
 	$(common_qt_ldadd) \
-	-llightdm-qt5-2 \
+	-llightdm-qt5-3 \
 	$(LIBLIGHTDM_QT5_LIBS)
 
 test_session_SOURCES = test-session.c status.c status.h
