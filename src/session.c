@@ -575,10 +575,12 @@ session_run (Session *session, gchar **argv)
         write_string (session, argv[i]);
 
 #ifdef WITH_LOGIND
-    session->priv->systemd_logind_session = read_string_from_child (session);
+    if (LOGIND_RUNNING ())
+      session->priv->systemd_logind_session = read_string_from_child (session);
 #endif
 #ifdef WITH_CONSOLEKIT
-    session->priv->console_kit_cookie = read_string_from_child (session);
+    if (!LOGIND_RUNNING ())
+      session->priv->console_kit_cookie = read_string_from_child (session);
 #endif
 }
 
@@ -588,12 +590,13 @@ session_lock (Session *session)
     g_return_if_fail (session != NULL);
     if (getuid () == 0)
       {
-	if (LOGIND_RUNNING ())
+
 #ifdef WITH_LOGIND
+	if (LOGIND_RUNNING ())
 	  logind_lock_session (session->priv->systemd_logind_session);
-	else
 #endif
 #ifdef WITH_CONSOLEKIT
+	if (!LOGIND_RUNNING ())
 	  ck_lock_session (session->priv->console_kit_cookie);
 #endif
       }
@@ -608,9 +611,9 @@ session_unlock (Session *session)
 	if (LOGIND_RUNNING ())
 #ifdef WTIH_LOGIND
 	  logind_unlock_session (session->priv->systemd_logind_session);
-	else
 #endif
 #ifdef WITH_CONSOLEKIT
+	if (!LOGIND_RUNNING ())
 	  ck_unlock_session (session->priv->console_kit_cookie);
 #endif
       }

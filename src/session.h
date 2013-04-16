@@ -21,7 +21,11 @@
 
 G_BEGIN_DECLS
 
+#ifdef WITH_LOGIND
 #define LOGIND_RUNNING() (access("/run/systemd/seats/", F_OK) >= 0)
+#else
+#define LOGIND_RUNNING() (false)
+#endif
 
 #define SESSION_TYPE           (session_get_type())
 #define SESSION(obj)           (G_TYPE_CHECK_INSTANCE_CAST ((obj), SESSION_TYPE, Session))

@@ -429,8 +429,11 @@ session_child_run (int argc, char **argv)
         return EXIT_FAILURE;
 
 #ifdef WITH_LOGIND
-    *systemd_logind_session = logind_get_session_id ();
-    write_string (systemd_logind_session);
+    if (LOGIND_RUNNING ())
+    {
+        *systemd_logind_session = logind_get_session_id ();
+        write_string (systemd_logind_session);
+    }
 #endif
 #ifdef WITH_CONSOLEKIT
     /* Open a Console Kit session */
