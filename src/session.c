@@ -9,7 +9,7 @@
  * license.
  */
 
-#include "config.h"
+#include <config.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -590,7 +590,6 @@ session_lock (Session *session)
     g_return_if_fail (session != NULL);
     if (getuid () == 0)
       {
-
 #ifdef WITH_LOGIND
 	if (LOGIND_RUNNING ())
 	  logind_lock_session (session->priv->systemd_logind_session);
@@ -608,8 +607,8 @@ session_unlock (Session *session)
     g_return_if_fail (session != NULL);
     if (getuid () == 0)
       {
-	if (LOGIND_RUNNING ())
 #ifdef WTIH_LOGIND
+	if (LOGIND_RUNNING ())
 	  logind_unlock_session (session->priv->systemd_logind_session);
 #endif
 #ifdef WITH_CONSOLEKIT
