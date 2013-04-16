@@ -227,8 +227,8 @@ help/Makefile
 liblightdm-gobject/liblightdm-gobject-1.pc
 liblightdm-gobject/Makefile
 liblightdm-qt/Makefile
-liblightdm-qt/liblightdm-qt-2.pc
-liblightdm-qt/liblightdm-qt5-2.pc
+liblightdm-qt/liblightdm-qt-3.pc
+liblightdm-qt/liblightdm-qt5-3.pc
 po/Makefile.in
 src/Makefile
 tests/Makefile

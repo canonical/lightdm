@@ -15,6 +15,7 @@
 #include <QtCore/QVariant>
 #include <QtDBus/QDBusInterface>
 #include <QtDBus/QDBusReply>
+#include <QDebug>
 
 #include "config.h"
 
@@ -26,11 +27,13 @@ public:
     PowerInterfacePrivate();
     QScopedPointer<QDBusInterface> powerManagementInterface;
     QScopedPointer<QDBusInterface> consoleKitInterface;
+    QScopedPointer<QDBusInterface> login1Interface;
 };
 
 PowerInterface::PowerInterfacePrivate::PowerInterfacePrivate() :
     powerManagementInterface(new QDBusInterface("org.freedesktop.UPower","/org/freedesktop/UPower", "org.freedesktop.UPower", QDBusConnection::systemBus())),
-    consoleKitInterface(new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit.Manager", QDBusConnection::systemBus()))
+    consoleKitInterface(new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit.Manager", QDBusConnection::systemBus())),
+    login1Interface(new QDBusInterface("org.freedesktop.login1", "/org/freedesktop/login1", "org.freedesktop.login1.Manager", QDBusConnection::systemBus()))
 {
 }
 
@@ -57,9 +60,10 @@ bool PowerInterface::canSuspend()
     }
 }
 
-void PowerInterface::suspend()
+bool PowerInterface::suspend()
 {
-    d->powerManagementInterface->call("Suspend");
+    QDBusReply<void> reply = d->powerManagementInterface->call("Suspend");
+    return reply.isValid ();
 }
 
 bool PowerInterface::canHibernate()
@@ -73,41 +77,66 @@ bool PowerInterface::canHibernate()
     }
 }
 
-void PowerInterface::hibernate()
+bool PowerInterface::hibernate()
 {
-    d->powerManagementInterface->call("Hibernate");
+    QDBusReply<void> reply = d->powerManagementInterface->call("Hibernate");
+    return reply.isValid ();
 }
 
 bool PowerInterface::canShutdown()
 {
+    if (d->login1Interface->isValid()) {
+        QDBusReply<QString> reply1 = d->login1Interface->call("CanPowerOff");
+        if (reply1.isValid()) {
+            return reply1.value() == "yes";
+        }
+    }
+    qWarning() << d->login1Interface->lastError();
+
     QDBusReply<bool> reply = d->consoleKitInterface->call("CanStop");
     if (reply.isValid()) {
         return reply.value();
     }
-    else {
-        return false;
-    }
+
+    return false;
 }
 
-void PowerInterface::shutdown()
+bool PowerInterface::shutdown()
 {
-    d->consoleKitInterface->call("Stop");
+    QDBusReply<void> reply;
+    if (d->login1Interface->isValid())
+        reply = d->login1Interface->call("PowerOff", false);
+    else
+        reply = d->consoleKitInterface->call("Stop");
+    return reply.isValid();
 }
 
 bool PowerInterface::canRestart()
 {
+    if (d->login1Interface->isValid()) {
+        QDBusReply<QString> reply1 = d->login1Interface->call("CanReboot");
+        if (reply1.isValid()) {
+            return reply1.value() == "yes";
+        }
+    }
+    qWarning() << d->login1Interface->lastError();
+  
     QDBusReply<bool> reply = d->consoleKitInterface->call("CanRestart");
     if (reply.isValid()) {
         return reply.value();
     }
-    else {
-        return false;
-    }
+
+    return false;
 }
 
-void PowerInterface::restart()
+bool PowerInterface::restart()
 {
-    d->consoleKitInterface->call("Restart");
+    QDBusReply<void> reply;
+    if (d->login1Interface->isValid())
+        reply = d->login1Interface->call("Reboot", false);
+    else
+        reply = d->consoleKitInterface->call("Restart");
+    return reply.isValid();
 }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
