@@ -44,9 +44,6 @@ struct UserPrivate
     /* Language */
     gchar *language;
 
-    /* Locale */
-    gchar *locale;
-
     /* X session */
     gchar *xsession;
 };
@@ -332,36 +329,59 @@ user_get_shell (User *user)
     return user->priv->shell;
 }
 
-const gchar *
-user_get_locale (User *user)
-{
-    g_return_val_if_fail (user != NULL, NULL);
-
-    g_free (user->priv->locale);
-    if (user->priv->proxy)
-        user->priv->locale = NULL;
-    else
-        user->priv->locale = get_string_from_dmrc (user->priv->name, "Desktop", "Language");
-
-    /* Treat a blank locale as unset */
-    if (g_strcmp0 (user->priv->locale, "") == 0)
-    {
-        g_free (user->priv->locale);
-        user->priv->locale = NULL;
-    }
-
-    return user->priv->locale;
-}
-
 void
 user_set_language (User *user, const gchar *language)
 {
     g_return_if_fail (user != NULL);
 
+    call_method (user->priv->proxy, "SetLanguage", g_variant_new ("(s)", language), "()", NULL);
+    save_string_to_dmrc (user->priv->name, "Desktop", "Language", language);
+}
+
+const gchar *
+user_get_language (User *user)
+{
+    GVariant *variant, *inner;
+    gboolean success;
+
+    g_return_val_if_fail (user != NULL, NULL);
+
+    g_free (user->priv->language);
     if (user->priv->proxy)
-        call_method (user->priv->proxy, "SetLanguage", g_variant_new ("(s)", language), "()", NULL);
+    {
+        /* get_property () uses g_dbus_proxy_get_cached_property () which would
+         * return the previous (cached) value of the "Language" property */
+#if 0
+        if (get_property (user->priv->proxy, "Language", "s", &variant))
+        {
+            g_variant_get (variant, "s", &user->priv->language);
+            g_variant_unref (variant);
+        }
+        else
+            user->priv->language = NULL;
+#endif
+        success = call_method (user->priv->proxy, "org.freedesktop.DBus.Properties.Get", g_variant_new ("(ss)", g_dbus_proxy_get_interface_name(user->priv->proxy), "Language"), "(v)", &variant);
+        if (success)
+        {
+            g_variant_get (variant, "(v)", &inner);
+            user->priv->language = g_variant_dup_string (inner, NULL);
+            g_variant_unref (inner);
+            g_variant_unref (variant);
+        }
+        else
+            user->priv->language = NULL;
+    }
     else
-        save_string_to_dmrc (user->priv->name, "Desktop", "Language", language);
+        user->priv->language = get_string_from_dmrc (user->priv->name, "Desktop", "Language");
+
+    /* Treat a blank language as unset */
+    if (g_strcmp0 (user->priv->language, "") == 0)
+    {
+        g_free (user->priv->language);
+        user->priv->language = NULL;
+    }
+
+    return user->priv->language;
 }
 
 void
@@ -436,6 +456,7 @@ user_finalize (GObject *object)
     g_free (self->priv->gecos);
     g_free (self->priv->home_directory);
     g_free (self->priv->shell);
+    g_free (self->priv->language);
 
     G_OBJECT_CLASS (user_parent_class)->finalize (object);  
 }
