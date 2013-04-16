@@ -187,7 +187,7 @@ AC_ARG_ENABLE(logind,
                  enable_logind=no)
 AM_CONDITIONAL(ENABLE_LOGIND, test x$enable_logind = xyes)
 
-if test x$enable_logind != xyes; then
+if test x$enable_logind = xyes; then
   AC_DEFINE(WITH_LOGIND, 1, [Define if systemd logind support is enabled])
 fi
 
