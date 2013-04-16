@@ -135,6 +135,8 @@ TESTS = \
 	test-no-accounts-service \
 	test-console-kit \
 	test-no-console-kit \
+	test-systemd-logind \
+	test-no-systemd-logind \
 	test-open-file-descriptors \
 	test-xdmcp-open-file-descriptors
 

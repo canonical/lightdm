@@ -25,8 +25,6 @@ lightdm_SOURCES = \
 	greeter.h \
 	guest-account.c \
 	guest-account.h \
-	logind.h \
-	logind.c \
 	lightdm.c \
 	ldm-marshal.c \
 	ldm-marshal.h \
@@ -50,6 +48,8 @@ lightdm_SOURCES = \
 	session.h \
 	session-child.c \
 	session-child.h \
+	systemd-logind.c \
+	systemd-logind.h \
 	vnc-server.c \
 	vnc-server.h \
 	vt.c \
