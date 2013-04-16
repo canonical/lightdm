@@ -179,6 +179,8 @@ AM_CONDITIONAL(ENABLE_CONSOLEKIT, test x$enable_consolekit = xyes)
 
 if test x$enable_consolekit = xyes; then
   AC_DEFINE(WITH_CONSOLEKIT, 1, [Define if ConsoleKit support is enabled])
+  AC_DEFINE(LOGIND_RUNNING(), 0,
+		      [Define to a check for whether the system is running logind])
 fi
 
 AC_ARG_ENABLE(logind,
@@ -189,6 +191,8 @@ AM_CONDITIONAL(ENABLE_LOGIND, test x$enable_logind = xyes)
 
 if test x$enable_logind = xyes; then
   AC_DEFINE(WITH_LOGIND, 1, [Define if systemd logind support is enabled])
+  AC_DEFINE(LOGIND_RUNNING(), (access("/run/systemd/seats/", F_OK) >= 0),
+		      [Define to a check for whether the system is running logind])
 fi
 
 if test x$enable_consolekit = xno -a x$enable_logind = xno; then
