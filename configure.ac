@@ -191,6 +191,10 @@ if test x$enable_logind = xyes; then
   AC_DEFINE(WITH_LOGIND, 1, [Define if systemd logind support is enabled])
 fi
 
+if test x$enable_consolekit = xno -a x$enable_logind = xno; then
+   AC_MSG_ERROR(one of --enable-consolekit or --enable-logind must be supplied)
+fi
+
 dnl ###########################################################################
 dnl Documentation
 dnl ###########################################################################
