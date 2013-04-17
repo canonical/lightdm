@@ -19,6 +19,7 @@
 #include "console-kit.h"
 #include "privileges.h"
 #include "xauthority.h"
+#include "configuration.h"
 
 /* Child process being run */
 static GPid child_pid = 0;
@@ -89,7 +90,7 @@ read_string_full (void* (*alloc_fn)(size_t n))
 }
 
 static gchar *
-read_string ()
+read_string (void)
 {
     return read_string_full (g_malloc);
 }
