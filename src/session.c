@@ -23,12 +23,8 @@
 
 #include "session.h"
 #include "configuration.h"
-#ifdef WITH_CONSOLEKIT
 #include "console-kit.h"
-#endif
-#ifdef WITH_LOGIND
 #include "systemd-logind.h"
-#endif
 #include "guest-account.h"
 
 enum {
@@ -87,15 +83,11 @@ struct SessionPrivate
     /* Remote host this session is being controlled from */
     gchar *remote_host_name;
 
-#ifdef WITH_CONSOLEKIT
     /* Console kit cookie */
     gchar *console_kit_cookie;
-#endif
 
-#ifdef WITH_LOGIND
     /* logind session */
     gchar *systemd_logind_session;
-#endif
 
     /* Environment to set in child */
     GList *env;
@@ -450,14 +442,12 @@ session_get_username (Session *session)
     return session->priv->username;
 }
 
-#ifdef WITH_CONSOLEKIT
 const gchar *
 session_get_console_kit_cookie (Session *session)
 {
     g_return_val_if_fail (session != NULL, NULL);
     return session->priv->console_kit_cookie;
 }
-#endif
 
 void
 session_respond (Session *session, struct pam_response *response)
@@ -574,14 +564,10 @@ session_run (Session *session, gchar **argv)
     for (i = 0; i < argc; i++)
         write_string (session, argv[i]);
 
-#ifdef WITH_LOGIND
     if (LOGIND_RUNNING ())
       session->priv->systemd_logind_session = read_string_from_child (session);
-#endif
-#ifdef WITH_CONSOLEKIT
-    if (!LOGIND_RUNNING ())
+    else
       session->priv->console_kit_cookie = read_string_from_child (session);
-#endif
 }
 
 void
@@ -589,16 +575,12 @@ session_lock (Session *session)
 {    
     g_return_if_fail (session != NULL);
     if (getuid () == 0)
-      {
-#ifdef WITH_LOGIND
-	if (LOGIND_RUNNING ())
-	  logind_lock_session (session->priv->systemd_logind_session);
-#endif
-#ifdef WITH_CONSOLEKIT
-	if (!LOGIND_RUNNING ())
-	  ck_lock_session (session->priv->console_kit_cookie);
-#endif
-      }
+    {
+        if (LOGIND_RUNNING ())
+            logind_lock_session (session->priv->systemd_logind_session);
+        else
+            ck_lock_session (session->priv->console_kit_cookie);
+    }
 }
 
 void
@@ -606,16 +588,12 @@ session_unlock (Session *session)
 {    
     g_return_if_fail (session != NULL);
     if (getuid () == 0)
-      {
-#ifdef WTIH_LOGIND
-	if (LOGIND_RUNNING ())
-	  logind_unlock_session (session->priv->systemd_logind_session);
-#endif
-#ifdef WITH_CONSOLEKIT
-	if (!LOGIND_RUNNING ())
-	  ck_unlock_session (session->priv->console_kit_cookie);
-#endif
-      }
+    {
+        if (LOGIND_RUNNING ())
+            logind_unlock_session (session->priv->systemd_logind_session);
+        else
+            ck_unlock_session (session->priv->console_kit_cookie);
+    }
 }
 
 void
@@ -672,12 +650,8 @@ session_finalize (GObject *object)
     if (self->priv->xauthority)
         g_object_unref (self->priv->xauthority);
     g_free (self->priv->remote_host_name);
-#ifdef WITH_LOGIND
     g_free (self->priv->systemd_logind_session);
-#endif
-#ifdef WITH_CONSOLEKIT
     g_free (self->priv->console_kit_cookie);
-#endif
     g_list_free_full (self->priv->env, g_free);
 
     G_OBJECT_CLASS (session_parent_class)->finalize (object);

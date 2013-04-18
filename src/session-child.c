@@ -20,6 +20,7 @@
 #include "session-child.h"
 #include "session.h"
 #include "console-kit.h"
+#include "systemd-logind.h"
 #include "privileges.h"
 #include "xauthority.h"
 
@@ -178,9 +179,7 @@ session_child_run (int argc, char **argv)
     gsize env_length;
     gsize command_argc;
     gchar **command_argv;
-#ifdef WITH_CONSOLEKIT
     GVariantBuilder ck_parameters;
-#endif
     int return_code;
     int authentication_result;
     gchar *authentication_result_string;
@@ -194,12 +193,8 @@ session_child_run (int argc, char **argv)
     XAuthority *xauthority = NULL;
     gchar *xauth_filename;
     GDBusConnection *bus;
-#ifdef WITH_CONSOLEKIT
     gchar *console_kit_cookie = NULL;
-#endif
-#ifdef WITH_LOGIND
     gchar *systemd_logind_session = NULL;
-#endif
 
     const gchar *path;
     GError *error = NULL;
@@ -429,17 +424,14 @@ session_child_run (int argc, char **argv)
     if (!bus)
         return EXIT_FAILURE;
 
-#ifdef WITH_LOGIND
     if (LOGIND_RUNNING ())
     {
-        *systemd_logind_session = logind_get_session_id ();
+        systemd_logind_session = logind_get_session_id ();
         write_string (systemd_logind_session);
     }
-#endif
-#ifdef WITH_CONSOLEKIT
-    /* Open a Console Kit session */
-    if (!LOGIND_RUNNING())
+    else
     {
+        /* Open a Console Kit session */
         g_variant_builder_init (&ck_parameters, G_VARIANT_TYPE ("(a(sv))"));
         g_variant_builder_open (&ck_parameters, G_VARIANT_TYPE ("a(sv)"));
         g_variant_builder_add (&ck_parameters, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
@@ -468,7 +460,6 @@ session_child_run (int argc, char **argv)
             g_free (value);
         }
     }
-#endif
 
     /* Write X authority */
     if (xauthority)
@@ -640,11 +631,9 @@ session_child_run (int argc, char **argv)
             _exit (EXIT_FAILURE);
     }
 
-#ifdef WITH_CONSOLEKIT
     /* Close the Console Kit session */
     if (console_kit_cookie)
         ck_close_session (console_kit_cookie);
-#endif
 
     /* Close the session */
     pam_close_session (pam_handle, 0);
