@@ -16,6 +16,7 @@
 #include <utmpx.h>
 #include <sys/mman.h>
 
+#include "configuration.h"
 #include "session-child.h"
 #include "session.h"
 #include "console-kit.h"

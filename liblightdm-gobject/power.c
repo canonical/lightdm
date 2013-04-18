@@ -22,8 +22,6 @@ static GDBusProxy *login1_proxy = NULL;
 static GVariant *
 upower_call_function (const gchar *function, GError **error)
 {
-    GVariant *result;
-
     if (!upower_proxy)
     {
         upower_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
@@ -51,7 +49,6 @@ static GVariant *
 login1_call_function (const gchar *function, GVariant *parameters, GError **error)
 {
     GVariant *r;
-    gchar *str_result;
 
     if (!login1_proxy)
     {
