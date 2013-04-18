@@ -51,6 +51,17 @@ PowerInterface::~PowerInterface()
 
 bool PowerInterface::canSuspend()
 {
+    if (d->login1Interface->isValid())
+    {
+	QDBusReply<QString> reply = d->login1Interface->call("CanSuspend");
+	if (reply.isValid())
+	{
+	    return reply.value() == "yes";
+	}
+    }
+
+    qWarning() << d->login1Interface->lastError();
+
     QDBusReply<bool> reply = d->powerManagementInterface->call("SuspendAllowed");
     if (reply.isValid()) {
         return reply.value();
@@ -62,12 +73,28 @@ bool PowerInterface::canSuspend()
 
 bool PowerInterface::suspend()
 {
-    QDBusReply<void> reply = d->powerManagementInterface->call("Suspend");
+    QDBusReply<void> reply;
+    if (d->login1Interface->isValid())
+	reply = d->login1Interface->call("Hibernate", false);
+    else
+	reply = d->powerManagementInterface->call("Hibernate");
+
     return reply.isValid ();
 }
 
 bool PowerInterface::canHibernate()
 {
+    if (d->login1Interface->isValid())
+    {
+	QDBusReply<QString> reply = d->login1Interface->call("CanHibernate");
+	if (reply.isValid())
+	{
+	    return reply.value() == "yes";
+	}
+    }
+
+    qWarning() << d->login1Interface->lastError();
+
     QDBusReply<bool> reply = d->powerManagementInterface->call("HibernateAllowed");
     if (reply.isValid()) {
         return reply.value();
@@ -79,7 +106,12 @@ bool PowerInterface::canHibernate()
 
 bool PowerInterface::hibernate()
 {
-    QDBusReply<void> reply = d->powerManagementInterface->call("Hibernate");
+    QDBusReply<void> reply;
+    if (d->login1Interface->isValid())
+	reply = d->login1Interface->call("Hibernate", false);
+    else
+	reply = d->powerManagementInterface->call("Hibernate");
+
     return reply.isValid ();
 }
 
