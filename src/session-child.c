@@ -458,7 +458,7 @@ session_child_run (int argc, char **argv)
         else
             g_variant_builder_add (&ck_parameters, "(sv)", "is-local", g_variant_new_boolean (TRUE));
         console_kit_cookie = ck_open_session (&ck_parameters);
-	write_string (console_kit_cookie);
+        write_string (console_kit_cookie);
         if (console_kit_cookie)
         {
             gchar *value;
