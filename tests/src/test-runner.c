@@ -83,7 +83,7 @@ typedef struct
 } CKSession;
 static GList *ck_sessions = NULL;
 static gint ck_session_index = 0;
-static void handle_ck_session_call (GDBusConnection       *connection,
+static void handle_session_call (GDBusConnection       *connection,
                                     const gchar           *sender,
                                     const gchar           *object_path,
                                     const gchar           *interface_name,
@@ -93,8 +93,18 @@ static void handle_ck_session_call (GDBusConnection       *connection,
                                     gpointer               user_data);
 static const GDBusInterfaceVTable ck_session_vtable =
 {
-    handle_ck_session_call,
+    handle_session_call,
 };
+
+typedef struct
+{
+    gchar *path;
+    guint pid;
+} LogindSession;
+
+static GList *logind_sessions = NULL;
+static gint logind_session_index = 0;
+
 typedef struct
 {
     GSocket *socket;
@@ -829,8 +839,10 @@ handle_ck_call (GDBusConnection       *connection,
         g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
 }
 
+
+// Shared between CK and Logind - identical signatures
 static void
-handle_ck_session_call (GDBusConnection       *connection,
+handle_session_call (GDBusConnection       *connection,
                         const gchar           *sender,
                         const gchar           *object_path,
                         const gchar           *interface_name,
@@ -944,6 +956,59 @@ start_console_kit_daemon ()
                     NULL);
 }
 
+static LogindSession *
+open_logind_session (GDBusConnection *connection,
+		     GVariant *params)
+{
+    LogindSession *session;
+    GError *error = NULL;
+    GDBusNodeInfo *logind_session_info;
+
+    const gchar *logind_session_interface =
+        "<node>"
+        "  <interface name='org.freedesktop.login1.Session'>"
+        "    <method name='Lock'/>"
+        "    <method name='Unlock'/>"
+        "  </interface>"
+        "</node>";
+    static const GDBusInterfaceVTable logind_session_vtable =
+    {
+	handle_session_call,
+    };
+
+    session = g_malloc0 (sizeof (LogindSession));
+    logind_sessions = g_list_append (logind_sessions, session);
+
+    session->path = g_strdup_printf("/org/freedesktop/login1/Session/c%d",
+				    logind_session_index++);
+
+
+
+    logind_session_info = g_dbus_node_info_new_for_xml (logind_session_interface,
+							&error);
+    if (error)
+        g_warning ("Failed to parse logind session D-Bus interface: %s",
+		   error->message);  
+    g_clear_error (&error);
+    if (!logind_session_info)
+        return;
+
+    g_dbus_connection_register_object (connection,
+				       session->path,
+				       logind_session_info->interfaces[0],
+				       &logind_session_vtable,
+				       session,
+				       NULL,
+				       &error);
+    if (error)
+        g_warning ("Failed to register logind session: %s", error->message);
+    g_clear_error (&error);
+    g_dbus_node_info_unref (logind_session_info);
+
+    return session;
+}
+
+
 static void
 handle_login1_call (GDBusConnection       *connection,
                     const gchar           *sender,
@@ -954,7 +1019,36 @@ handle_login1_call (GDBusConnection       *connection,
                     GDBusMethodInvocation *invocation,
                     gpointer               user_data)
 {
-    if (strcmp (method_name, "CanReboot") == 0)
+
+    if (strcmp (method_name, "GetSessionByPID") == 0)
+    {
+	//Look for a session with our PID, and create one if we don't have one
+	//already.
+	GList *link;
+	guint pid;
+	LogindSession *ret = NULL;
+
+	g_variant_get (parameters, "(u)", &pid);
+
+	for (link = logind_sessions; link; link = link->next)
+	{
+	    LogindSession *session;
+	    session = link->data;
+	    if (session->pid == pid)
+	    {
+		ret = session;
+		break;
+	    }
+	}
+	// Not found
+	if (!ret)
+	    ret = open_logind_session (connection, parameters);
+
+	g_dbus_method_invocation_return_value (invocation,
+					       g_variant_new("(o)", ret->path));
+	
+    }
+    else if (strcmp (method_name, "CanReboot") == 0)
     {
         check_status ("LOGIN1 CAN-REBOOT");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "yes"));
@@ -990,6 +1084,10 @@ login1_name_acquired_cb (GDBusConnection *connection,
     const gchar *login1_interface =
         "<node>"
         "  <interface name='org.freedesktop.login1.Manager'>"
+        "    <method name='GetSessionByPID'>"
+        "      <arg name='pid' type='u' direction='in'/>"
+        "      <arg name='session' type='o' direction='out'/>"
+        "    </method>"
         "    <method name='CanReboot'>"
         "      <arg name='result' direction='out' type='s'/>"
         "    </method>"
@@ -1013,7 +1111,7 @@ login1_name_acquired_cb (GDBusConnection *connection,
 
     login1_info = g_dbus_node_info_new_for_xml (login1_interface, &error);
     if (error)
-        g_warning ("Failed to parse D-Bus interface: %s", error->message);  
+        g_warning ("Failed to parse logind D-Bus interface: %s", error->message);
     g_clear_error (&error);
     if (!login1_info)
         return;
