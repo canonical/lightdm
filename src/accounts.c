@@ -349,17 +349,10 @@ user_get_language (User *user)
     g_free (user->priv->language);
     if (user->priv->proxy)
     {
-        /* get_property () uses g_dbus_proxy_get_cached_property () which would
-         * return the previous (cached) value of the "Language" property */
-#if 0
-        if (get_property (user->priv->proxy, "Language", "s", &variant))
-        {
-            g_variant_get (variant, "s", &user->priv->language);
-            g_variant_unref (variant);
-        }
-        else
-            user->priv->language = NULL;
-#endif
+        /* the "Language" property cannot be retrieved with get_property () here since it
+         * uses g_dbus_proxy_get_cached_property () which would return the previous (cached) value
+         * of the "Language" property
+         */
         success = call_method (user->priv->proxy, "org.freedesktop.DBus.Properties.Get", g_variant_new ("(ss)", g_dbus_proxy_get_interface_name(user->priv->proxy), "Language"), "(v)", &variant);
         if (success)
         {
