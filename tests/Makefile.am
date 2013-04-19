@@ -134,10 +134,7 @@ TESTS = \
 	test-xdmcp-login \
 	test-no-accounts-service \
 	test-console-kit \
-	test-no-console-kit \
 	test-systemd-logind \
-	test-no-systemd-logind \
-	test-no-login1 \
 	test-no-console-kit-or-login1 \
 	test-gobject-power \
 	test-gobject-power-no-console-kit \
