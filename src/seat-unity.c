@@ -63,6 +63,8 @@ struct SeatUnityPrivate
 
     /* IDs for each display */
     GHashTable *display_ids;
+
+    gint next_id;
 };
 
 G_DEFINE_TYPE (SeatUnity, seat_unity, SEAT_TYPE);
@@ -86,7 +88,7 @@ compositor_stopped_cb (Process *process, SeatUnity *seat)
         seat->priv->stopping_plymouth = FALSE;
     }
 
-    seat_stop (SEAT (seat));
+    SEAT_CLASS (seat_unity_parent_class)->stop (SEAT (seat));
 }
 
 static void
@@ -140,7 +142,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     gsize n_to_read = 0;
     guint16 id, payload_length;
     guint8 *payload;
-
+  
     /* Work out how much required for a message */
     if (seat->priv->read_buffer_n_used < 4)
         n_to_read = 4 - seat->priv->read_buffer_n_used;
@@ -169,13 +171,18 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
             g_warning ("Failed to read from compositor: %s", error->message);
         g_clear_error (&error);
         seat->priv->read_buffer_n_used += n_read;
-        return TRUE;
     }
 
-    /* Handle message */
+    /* Read header */
+    if (seat->priv->read_buffer_n_used < 4)
+         return TRUE;
     id = seat->priv->read_buffer[0] << 8 | seat->priv->read_buffer[1];
-    payload = seat->priv->read_buffer + 4;
     payload_length = seat->priv->read_buffer[2] << 8 | seat->priv->read_buffer[3];
+
+    /* Read payload */
+    if (seat->priv->read_buffer_n_used < 4 + payload_length)
+        return TRUE;
+    payload = seat->priv->read_buffer + 4;        
 
     switch (id)
     {
@@ -203,13 +210,39 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         break;
     }
 
+    /* Clear buffer */
+    seat->priv->read_buffer_n_used = 0;
+
     return TRUE;
+}
+
+static gchar *
+get_absolute_command (const gchar *command)
+{
+    gchar **tokens;
+    gchar *absolute_binary, *absolute_command = NULL;
+
+    tokens = g_strsplit (command, " ", 2);
+
+    absolute_binary = g_find_program_in_path (tokens[0]);
+    if (absolute_binary)
+    {
+        if (tokens[1])
+            absolute_command = g_strjoin (" ", absolute_binary, tokens[1], NULL);
+        else
+            absolute_command = g_strdup (absolute_binary);
+    }
+    g_free (absolute_binary);
+
+    g_strfreev (tokens);
+
+    return absolute_command;
 }
 
 static gboolean
 seat_unity_start (Seat *seat)
 {
-    gchar *command, *dir;
+    gchar *command, *absolute_command, *dir;
     gboolean result;
 
     /* Replace Plymouth if it is running */
@@ -254,12 +287,21 @@ seat_unity_start (Seat *seat)
     SEAT_UNITY (seat)->priv->log_file = g_build_filename (dir, "unity-system-compositor.log", NULL);
     g_debug ("Logging to %s", SEAT_UNITY (seat)->priv->log_file);
     g_free (dir);
-
-    /* Start the compositor */
+  
     SEAT_UNITY (seat)->priv->mir_socket_filename = g_strdup ("/tmp/mir_socket"); // FIXME: Use this socket by default as XMir is hardcoded to this
     command = g_strdup_printf ("unity-system-compositor %d %d", SEAT_UNITY (seat)->priv->to_compositor_pipe[0], SEAT_UNITY (seat)->priv->from_compositor_pipe[1]);
-    process_set_command (SEAT_UNITY (seat)->priv->compositor_process, command);
+  
+    absolute_command = get_absolute_command (command);
     g_free (command);
+    if (!absolute_command)
+    {
+        g_debug ("Can't launch system compositor, not found in path");
+        return FALSE;
+    }
+
+    /* Start the compositor */
+    process_set_command (SEAT_UNITY (seat)->priv->compositor_process, absolute_command);
+    g_free (absolute_command);
     g_signal_connect (SEAT_UNITY (seat)->priv->compositor_process, "stopped", G_CALLBACK (compositor_stopped_cb), seat);
     g_signal_connect (SEAT_UNITY (seat)->priv->compositor_process, "run", G_CALLBACK (compositor_run_cb), seat);
     result = process_start (SEAT_UNITY (seat)->priv->compositor_process, FALSE);
@@ -292,9 +334,12 @@ seat_unity_create_display_server (Seat *seat)
 
     xserver = xserver_local_new ();
 
+    id = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->next_id);
+    SEAT_UNITY (seat)->priv->next_id++;
     xserver_local_set_mir_id (xserver, id);
     xserver_local_set_mir_socket (xserver, SEAT_UNITY (seat)->priv->mir_socket_filename);
     g_hash_table_insert (SEAT_UNITY (seat)->priv->display_ids, g_object_ref (xserver), g_strdup (id));
+    g_free (id);
 
     command = seat_get_string_property (seat, "xserver-command");
     if (command)
@@ -404,8 +449,6 @@ static void
 seat_unity_stop (Seat *seat)
 {
     process_stop (SEAT_UNITY (seat)->priv->compositor_process);
-
-    SEAT_CLASS (seat_unity_parent_class)->stop (seat);
 }
 
 static void
@@ -457,6 +500,7 @@ seat_unity_finalize (GObject *object)
     g_io_channel_unref (seat->priv->from_compositor_channel);
     g_free (seat->priv->read_buffer);
     g_object_unref (seat->priv->compositor_process);
+    g_hash_table_unref (seat->priv->display_ids);
 
     G_OBJECT_CLASS (seat_unity_parent_class)->finalize (object);
 }
