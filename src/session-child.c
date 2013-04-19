@@ -429,7 +429,8 @@ session_child_run (int argc, char **argv)
         systemd_logind_session = logind_get_session_id ();
         write_string (systemd_logind_session);
     }
-    else
+
+    if (!systemd_logind_session)
     {
         /* Open a Console Kit session */
         g_variant_builder_init (&ck_parameters, G_VARIANT_TYPE ("(a(sv))"));

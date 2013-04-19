@@ -566,7 +566,7 @@ session_run (Session *session, gchar **argv)
 
     if (LOGIND_RUNNING ())
       session->priv->systemd_logind_session = read_string_from_child (session);
-    else
+    if (!session->priv->systemd_logind_session)
       session->priv->console_kit_cookie = read_string_from_child (session);
 }
 
@@ -578,7 +578,7 @@ session_lock (Session *session)
     {
         if (LOGIND_RUNNING ())
             logind_lock_session (session->priv->systemd_logind_session);
-        else
+        if (!session->priv->systemd_logind_session)
             ck_lock_session (session->priv->console_kit_cookie);
     }
 }
@@ -591,7 +591,7 @@ session_unlock (Session *session)
     {
         if (LOGIND_RUNNING ())
             logind_unlock_session (session->priv->systemd_logind_session);
-        else
+        if (!session->priv->systemd_logind_session)
             ck_unlock_session (session->priv->console_kit_cookie);
     }
 }
