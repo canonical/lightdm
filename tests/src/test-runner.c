@@ -95,28 +95,6 @@ static const GDBusInterfaceVTable ck_session_vtable =
 {
     handle_ck_session_call,
 };
-static GDBusConnection *sl_connection = NULL;
-static GDBusNodeInfo *sl_session_info;
-typedef struct
-{
-    guint pid;
-    gchar *path;
-    guint id;
-} SLSession;
-static GList *sl_sessions = NULL;
-static gint sl_session_index = 0;
-static void handle_sl_session_call (GDBusConnection       *connection,
-                                    const gchar           *sender,
-                                    const gchar           *object_path,
-                                    const gchar           *interface_name,
-                                    const gchar           *method_name,
-                                    GVariant              *parameters,
-                                    GDBusMethodInvocation *invocation,
-                                    gpointer               user_data);
-static const GDBusInterfaceVTable sl_session_vtable =
-{
-    handle_sl_session_call,
-};
 typedef struct
 {
     GSocket *socket;
@@ -1355,158 +1333,6 @@ start_accounts_service_daemon ()
                     NULL);
 }
 
-static SLSession *
-open_sl_session (guint pid)
-{
-    SLSession *session;
-    GString *cookie;
-    GVariantIter *iter;
-    const gchar *name;
-    GVariant *value;
-    GError *error = NULL;
-
-    session = g_malloc0 (sizeof (SLSession));
-    sl_sessions = g_list_append (sl_sessions, session);
-
-    session->pid = pid;
-    session->path = g_strdup_printf ("/org/freedesktop/login1/session/_%d", sl_session_index++);
-    session->id = g_dbus_connection_register_object (sl_connection,
-                                                     session->path,
-                                                     sl_session_info->interfaces[0],
-                                                     &sl_session_vtable,
-                                                     session,
-                                                     NULL,
-                                                     &error);
-    if (error)
-        g_warning ("Failed to register systemd logind Session: %s", error->message);
-    g_clear_error (&error);
-
-    return session;
-}
-
-static void
-handle_sl_call (GDBusConnection       *connection,
-                const gchar           *sender,
-                const gchar           *object_path,
-                const gchar           *interface_name,
-                const gchar           *method_name,
-                GVariant              *parameters,
-                GDBusMethodInvocation *invocation,
-                gpointer               user_data)
-{
-    if (strcmp (method_name, "GetSessionByPID") == 0)
-    {
-        GList *link;
-        SLSession *session;
-        guint pid;
-
-        g_variant_get (parameters, "(&u)", &pid);
-
-        for (link = sl_sessions; link; link = link->next)
-        {
-            SLSession *session = link->data;
-            if (session->pid == pid)
-            {
-                g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", session->path));
-                return;
-            }
-        }
-
-        session = open_sl_session (pid);
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", session->path));
-    }
-}
-
-static void
-handle_sl_session_call (GDBusConnection       *connection,
-                        const gchar           *sender,
-                        const gchar           *object_path,
-                        const gchar           *interface_name,
-                        const gchar           *method_name,
-                        GVariant              *parameters,
-                        GDBusMethodInvocation *invocation,
-                        gpointer               user_data)
-{
-    if (strcmp (method_name, "Lock") == 0)
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
-    else if (strcmp (method_name, "Unlock") == 0)
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
-    else
-        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
-}
-
-static void
-sl_name_acquired_cb (GDBusConnection *connection,
-                     const gchar     *name,
-                     gpointer         user_data)
-{
-    const gchar *sl_interface =
-        "<node>"
-        "  <interface name='org.freedesktop.login1.Manager'>"
-        "    <method name='GetSessionByPID'>"
-        "      <arg name='pid' direction='in' type='u'/>"
-        "      <arg name='session' direction='out' type='o'/>"
-        "    </method>"
-        "  </interface>"
-        "</node>";
-    static const GDBusInterfaceVTable sl_vtable =
-    {
-        handle_sl_call,
-    };
-    const gchar *sl_session_interface =
-        "<node>"
-        "  <interface name='org.freedesktop.login1.Session'>"
-        "    <method name='Lock'/>"
-        "    <method name='Unlock'/>"
-        "  </interface>"
-        "</node>";
-    GDBusNodeInfo *sl_info;
-    GError *error = NULL;
-
-    sl_connection = connection;
-
-    sl_info = g_dbus_node_info_new_for_xml (sl_interface, &error);
-    if (error)
-        g_warning ("Failed to parse D-Bus interface: %s", error->message);  
-    g_clear_error (&error);
-    if (!sl_info)
-        return;
-    sl_session_info = g_dbus_node_info_new_for_xml (sl_session_interface, &error);
-    if (error)
-        g_warning ("Failed to parse D-Bus interface: %s", error->message);  
-    g_clear_error (&error);
-    if (!sl_session_info)
-        return;
-    g_dbus_connection_register_object (connection,
-                                       "/org/freedesktop/login1",
-                                       sl_info->interfaces[0],
-                                       &sl_vtable,
-                                       NULL, NULL,
-                                       &error);
-    if (error)
-        g_warning ("Failed to register systemd logind service: %s", error->message);
-    g_clear_error (&error);
-    g_dbus_node_info_unref (sl_info);
-
-    service_count--;
-    if (service_count == 0)
-        run_lightdm ();
-}
-
-static void
-start_systemd_logind_daemon ()
-{
-    service_count++;
-    g_bus_own_name (G_BUS_TYPE_SYSTEM,
-                    "org.freedesktop.login1",
-                    G_BUS_NAME_OWNER_FLAGS_NONE,
-                    sl_name_acquired_cb,
-                    NULL,
-                    NULL,
-                    NULL,
-                    NULL);
-}
-
 static void
 run_lightdm ()
 {
@@ -1864,8 +1690,6 @@ main (int argc, char **argv)
         start_login1_daemon ();
     if (!g_key_file_get_boolean (config, "test-runner-config", "disable-accounts-service", NULL))
         start_accounts_service_daemon ();
-    if (!g_key_file_get_boolean (config, "test-runner-config", "disable-systemd-logind", NULL))
-        start_systemd_logind_daemon ();
 
     g_main_loop_run (loop);
 
