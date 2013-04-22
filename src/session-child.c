@@ -20,7 +20,7 @@
 #include "session-child.h"
 #include "session.h"
 #include "console-kit.h"
-#include "systemd-logind.h"
+#include "login1.h"
 #include "privileges.h"
 #include "xauthority.h"
 
@@ -194,7 +194,7 @@ session_child_run (int argc, char **argv)
     gchar *xauth_filename;
     GDBusConnection *bus;
     gchar *console_kit_cookie = NULL;
-    gchar *systemd_logind_session = NULL;
+    gchar *login1_session = NULL;
 
     const gchar *path;
     GError *error = NULL;
@@ -426,11 +426,11 @@ session_child_run (int argc, char **argv)
 
     if (LOGIND_RUNNING ())
     {
-        systemd_logind_session = logind_get_session_id ();
-        write_string (systemd_logind_session);
+        login1_session = login1_get_session_id ();
+        write_string (login1_session);
     }
 
-    if (!systemd_logind_session)
+    if (!login1_session)
     {
         /* Open a Console Kit session */
         g_variant_builder_init (&ck_parameters, G_VARIANT_TYPE ("(a(sv))"));

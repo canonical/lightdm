@@ -9,19 +9,19 @@
  * license.
  */
 
-#ifndef _SYSTEMD_LOGIND_H_
-#define _SYSTEMD_LOGIND_H_
+#ifndef _LOGIN1_H_
+#define _LOGIN1_H_
 
 #include <glib-object.h>
 
 G_BEGIN_DECLS
 
-gchar *logind_get_session_id (void);
+gchar *login1_get_session_id (void);
 
-void logind_lock_session (const gchar *session_path);
+void login1_lock_session (const gchar *session_path);
 
-void logind_unlock_session (const gchar *session_path);
+void login1_unlock_session (const gchar *session_path);
 
 G_END_DECLS
 
-#endif /* _SYSTEMD_LOGIND_H_ */
+#endif /* _LOGIN1_H_ */

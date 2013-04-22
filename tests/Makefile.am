@@ -115,6 +115,7 @@ TESTS = \
 	test-lock-session \
 	test-lock-session-no-password \
 	test-lock-session-return-session \
+	test-login1 \
 	test-switch-to-greeter \
 	test-switch-to-greeter-new-session \
 	test-switch-to-greeter-new-session-logout-new \
@@ -134,7 +135,6 @@ TESTS = \
 	test-xdmcp-login \
 	test-no-accounts-service \
 	test-console-kit \
-	test-systemd-logind \
 	test-no-console-kit-or-login1 \
 	test-gobject-power \
 	test-gobject-power-no-console-kit \

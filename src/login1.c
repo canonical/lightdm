@@ -12,10 +12,10 @@
 
 #include <gio/gio.h>
 
-#include "systemd-logind.h"
+#include "login1.h"
 
 gchar *
-logind_get_session_id (void)
+login1_get_session_id (void)
 {
     GDBusConnection *bus;
     GVariant *result;
@@ -42,27 +42,27 @@ logind_get_session_id (void)
     g_object_unref (bus);
 
     if (error)
-        g_warning ("Failed to open logind session: %s", error->message);
+        g_warning ("Failed to open login1 session: %s", error->message);
     g_clear_error (&error);
     if (!result)
         return NULL;
 
     g_variant_get (result, "(o)", &session_path);
     g_variant_unref (result);
-    g_debug ("Got logind session id: %s", session_path);
+    g_debug ("Got login1 session id: %s", session_path);
 
     return session_path;
 }
 
 void
-logind_lock_session (const gchar *session_path)
+login1_lock_session (const gchar *session_path)
 {
     GDBusConnection *bus;
     GError *error = NULL;
 
     g_return_if_fail (session_path != NULL);
 
-    g_debug ("Locking logind session %s", session_path);
+    g_debug ("Locking login1 session %s", session_path);
 
     bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
     if (error)
@@ -87,7 +87,7 @@ logind_lock_session (const gchar *session_path)
                                               NULL,
                                               &error);
         if (error)
-            g_warning ("Error locking logind session: %s", error->message);
+            g_warning ("Error locking login1 session: %s", error->message);
         g_clear_error (&error);
         if (result)
             g_variant_unref (result);
@@ -96,14 +96,14 @@ logind_lock_session (const gchar *session_path)
 }
 
 void
-logind_unlock_session (const gchar *session_path)
+login1_unlock_session (const gchar *session_path)
 {
     GDBusConnection *bus;
     GError *error = NULL;
 
     g_return_if_fail (session_path != NULL);
 
-    g_debug ("Unlocking logind session %s", session_path);
+    g_debug ("Unlocking login1 session %s", session_path);
 
     bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
     if (error)
@@ -128,7 +128,7 @@ logind_unlock_session (const gchar *session_path)
                                               NULL,
                                               &error);
         if (error)
-            g_warning ("Error unlocking logind session: %s", error->message);
+            g_warning ("Error unlocking login1 session: %s", error->message);
         g_clear_error (&error);
         if (result)
             g_variant_unref (result);

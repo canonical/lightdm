@@ -24,7 +24,7 @@
 #include "session.h"
 #include "configuration.h"
 #include "console-kit.h"
-#include "systemd-logind.h"
+#include "login1.h"
 #include "guest-account.h"
 
 enum {
@@ -86,8 +86,8 @@ struct SessionPrivate
     /* Console kit cookie */
     gchar *console_kit_cookie;
 
-    /* logind session */
-    gchar *systemd_logind_session;
+    /* login1 session */
+    gchar *login1_session;
 
     /* Environment to set in child */
     GList *env;
@@ -565,8 +565,8 @@ session_run (Session *session, gchar **argv)
         write_string (session, argv[i]);
 
     if (LOGIND_RUNNING ())
-      session->priv->systemd_logind_session = read_string_from_child (session);
-    if (!session->priv->systemd_logind_session)
+      session->priv->login1_session = read_string_from_child (session);
+    if (!session->priv->login1_session)
       session->priv->console_kit_cookie = read_string_from_child (session);
 }
 
@@ -577,8 +577,8 @@ session_lock (Session *session)
     if (getuid () == 0)
     {
         if (LOGIND_RUNNING ())
-            logind_lock_session (session->priv->systemd_logind_session);
-        if (!session->priv->systemd_logind_session)
+            login1_lock_session (session->priv->login1_session);
+        if (!session->priv->login1_session)
             ck_lock_session (session->priv->console_kit_cookie);
     }
 }
@@ -590,8 +590,8 @@ session_unlock (Session *session)
     if (getuid () == 0)
     {
         if (LOGIND_RUNNING ())
-            logind_unlock_session (session->priv->systemd_logind_session);
-        if (!session->priv->systemd_logind_session)
+            login1_unlock_session (session->priv->login1_session);
+        if (!session->priv->login1_session)
             ck_unlock_session (session->priv->console_kit_cookie);
     }
 }
@@ -650,7 +650,7 @@ session_finalize (GObject *object)
     if (self->priv->xauthority)
         g_object_unref (self->priv->xauthority);
     g_free (self->priv->remote_host_name);
-    g_free (self->priv->systemd_logind_session);
+    g_free (self->priv->login1_session);
     g_free (self->priv->console_kit_cookie);
     g_list_free_full (self->priv->env, g_free);
 

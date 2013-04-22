@@ -100,10 +100,10 @@ typedef struct
 {
     gchar *path;
     guint pid;
-} LogindSession;
+} Login1Session;
 
-static GList *logind_sessions = NULL;
-static gint logind_session_index = 0;
+static GList *login1_sessions = NULL;
+static gint login1_session_index = 0;
 
 typedef struct
 {
@@ -840,7 +840,7 @@ handle_ck_call (GDBusConnection       *connection,
 }
 
 
-// Shared between CK and Logind - identical signatures
+// Shared between CK and Login1 - identical signatures
 static void
 handle_session_call (GDBusConnection       *connection,
                         const gchar           *sender,
@@ -956,54 +956,54 @@ start_console_kit_daemon ()
                     NULL);
 }
 
-static LogindSession *
-open_logind_session (GDBusConnection *connection,
+static Login1Session *
+open_login1_session (GDBusConnection *connection,
 		     GVariant *params)
 {
-    LogindSession *session;
+    Login1Session *session;
     GError *error = NULL;
-    GDBusNodeInfo *logind_session_info;
+    GDBusNodeInfo *login1_session_info;
 
-    const gchar *logind_session_interface =
+    const gchar *login1_session_interface =
         "<node>"
         "  <interface name='org.freedesktop.login1.Session'>"
         "    <method name='Lock'/>"
         "    <method name='Unlock'/>"
         "  </interface>"
         "</node>";
-    static const GDBusInterfaceVTable logind_session_vtable =
+    static const GDBusInterfaceVTable login1_session_vtable =
     {
 	handle_session_call,
     };
 
-    session = g_malloc0 (sizeof (LogindSession));
-    logind_sessions = g_list_append (logind_sessions, session);
+    session = g_malloc0 (sizeof (Login1Session));
+    login1_sessions = g_list_append (login1_sessions, session);
 
     session->path = g_strdup_printf("/org/freedesktop/login1/Session/c%d",
-				    logind_session_index++);
+				    login1_session_index++);
 
 
 
-    logind_session_info = g_dbus_node_info_new_for_xml (logind_session_interface,
+    login1_session_info = g_dbus_node_info_new_for_xml (login1_session_interface,
 							&error);
     if (error)
-        g_warning ("Failed to parse logind session D-Bus interface: %s",
+        g_warning ("Failed to parse login1 session D-Bus interface: %s",
 		   error->message);  
     g_clear_error (&error);
-    if (!logind_session_info)
+    if (!login1_session_info)
         return;
 
     g_dbus_connection_register_object (connection,
 				       session->path,
-				       logind_session_info->interfaces[0],
-				       &logind_session_vtable,
+				       login1_session_info->interfaces[0],
+				       &login1_session_vtable,
 				       session,
 				       NULL,
 				       &error);
     if (error)
-        g_warning ("Failed to register logind session: %s", error->message);
+        g_warning ("Failed to register login1 session: %s", error->message);
     g_clear_error (&error);
-    g_dbus_node_info_unref (logind_session_info);
+    g_dbus_node_info_unref (login1_session_info);
 
     return session;
 }
@@ -1026,13 +1026,13 @@ handle_login1_call (GDBusConnection       *connection,
 	//already.
 	GList *link;
 	guint pid;
-	LogindSession *ret = NULL;
+	Login1Session *ret = NULL;
 
 	g_variant_get (parameters, "(u)", &pid);
 
-	for (link = logind_sessions; link; link = link->next)
+	for (link = login1_sessions; link; link = link->next)
 	{
-	    LogindSession *session;
+	    Login1Session *session;
 	    session = link->data;
 	    if (session->pid == pid)
 	    {
@@ -1042,7 +1042,7 @@ handle_login1_call (GDBusConnection       *connection,
 	}
 	// Not found
 	if (!ret)
-	    ret = open_logind_session (connection, parameters);
+	    ret = open_login1_session (connection, parameters);
 
 	g_dbus_method_invocation_return_value (invocation,
 					       g_variant_new("(o)", ret->path));
@@ -1147,7 +1147,7 @@ login1_name_acquired_cb (GDBusConnection *connection,
 
     login1_info = g_dbus_node_info_new_for_xml (login1_interface, &error);
     if (error)
-        g_warning ("Failed to parse logind D-Bus interface: %s", error->message);
+        g_warning ("Failed to parse login1 D-Bus interface: %s", error->message);
     g_clear_error (&error);
     if (!login1_info)
         return;
