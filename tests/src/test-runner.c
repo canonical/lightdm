@@ -1065,11 +1065,35 @@ handle_login1_call (GDBusConnection       *connection,
         check_status ("LOGIN1 CAN-POWER-OFF");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "yes"));
     }
+    else if (strcmp (method_name, "Suspend") == 0)
+    {
+        gboolean interactive;
+        g_variant_get (parameters, "(b)", &interactive);
+        check_status ("LOGIN1 SUSPEND");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "CanSuspend") == 0)
+    {
+        check_status ("LOGIN1 CAN-SUSPEND");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "yes"));
+    }
     else if (strcmp (method_name, "PowerOff") == 0)
     {
         gboolean interactive;
         g_variant_get (parameters, "(b)", &interactive);
         check_status ("LOGIN1 POWER-OFF");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "CanHibernate") == 0)
+    {
+        check_status ("LOGIN1 CAN-HIBERNATE");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "yes"));
+    }
+    else if (strcmp (method_name, "Hibernate") == 0)
+    {
+        gboolean interactive;
+        g_variant_get (parameters, "(b)", &interactive);
+        check_status ("LOGIN1 HIBERNATE");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
     else
@@ -1098,6 +1122,18 @@ login1_name_acquired_cb (GDBusConnection *connection,
         "      <arg name='result' direction='out' type='s'/>"
         "    </method>"
         "    <method name='PowerOff'>"
+        "      <arg name='interactive' direction='in' type='b'/>"
+        "    </method>"
+        "    <method name='CanSuspend'>"
+        "      <arg name='result' direction='out' type='s'/>"
+        "    </method>"
+        "    <method name='Suspend'>"
+        "      <arg name='interactive' direction='in' type='b'/>"
+        "    </method>"
+        "    <method name='CanHibernate'>"
+        "      <arg name='result' direction='out' type='s'/>"
+        "    </method>"
+        "    <method name='Hibernate'>"
         "      <arg name='interactive' direction='in' type='b'/>"
         "    </method>"
         "  </interface>"
