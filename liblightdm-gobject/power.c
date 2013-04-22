@@ -100,7 +100,7 @@ lightdm_get_can_suspend (void)
     }
     else
     {
-        r = upower_call_function ("CanSuspend", NULL);
+        r = upower_call_function ("SuspendAllowed", NULL);
         if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
             g_variant_get (r, "(b)", &can_suspend);
     }
@@ -168,7 +168,7 @@ lightdm_get_can_hibernate (void)
     }
     else
     {
-        r = upower_call_function ("CanHibernate", NULL);
+        r = upower_call_function ("HibernateAllowed", NULL);
         if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
             g_variant_get (r, "(b)", &can_hibernate);
     }
