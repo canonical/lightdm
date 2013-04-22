@@ -23,6 +23,7 @@
 #include "login1.h"
 #include "privileges.h"
 #include "xauthority.h"
+#include "configuration.h"
 
 /* Child process being run */
 static GPid child_pid = 0;
@@ -93,7 +94,7 @@ read_string_full (void* (*alloc_fn)(size_t n))
 }
 
 static gchar *
-read_string ()
+read_string (void)
 {
     return read_string_full (g_malloc);
 }
@@ -198,6 +199,19 @@ session_child_run (int argc, char **argv)
 
     const gchar *path;
     GError *error = NULL;
+    const gchar *locale_value;
+    gchar *locale_var;
+    static const gchar * const locale_var_names[] = {
+        "LC_COLLATE",
+        "LC_CTYPE",
+        "LC_MONETARY",
+        "LC_NUMERIC",
+        "LC_TIME",
+        "LC_MESSAGES",
+        "LC_ALL",
+        "LANG",
+        NULL
+    };
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
@@ -340,6 +354,17 @@ session_child_run (int argc, char **argv)
             pam_putenv (pam_handle, g_strdup_printf ("LOGNAME=%s", username));
             pam_putenv (pam_handle, g_strdup_printf ("HOME=%s", user_get_home_directory (user)));
             pam_putenv (pam_handle, g_strdup_printf ("SHELL=%s", user_get_shell (user)));
+
+            /* Let the greeter and user session inherit the system default locale */
+            for (i = 0; locale_var_names[i] != NULL; i++)
+            {
+                if ((locale_value = g_getenv (locale_var_names[i])) != NULL)
+                {
+                    locale_var = g_strdup_printf ("%s=%s", locale_var_names[i], locale_value);
+                    pam_putenv (pam_handle, locale_var);
+                    g_free (locale_var);
+                }
+            }
         }
     }
 
