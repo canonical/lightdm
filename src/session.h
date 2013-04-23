@@ -19,8 +19,6 @@
 #include "accounts.h"
 #include "xauthority.h"
 
-#define LOGIND_RUNNING() (access ("/run/systemd/seats/", F_OK) >= 0)
-
 G_BEGIN_DECLS
 
 #define SESSION_TYPE           (session_get_type())
