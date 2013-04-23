@@ -564,7 +564,7 @@ session_run (Session *session, gchar **argv)
     for (i = 0; i < argc; i++)
         write_string (session, argv[i]);
 
-    if (LOGIND_RUNNING ())
+    if (login1_is_running ())
       session->priv->login1_session = read_string_from_child (session);
     if (!session->priv->login1_session)
       session->priv->console_kit_cookie = read_string_from_child (session);
@@ -576,7 +576,7 @@ session_lock (Session *session)
     g_return_if_fail (session != NULL);
     if (getuid () == 0)
     {
-        if (LOGIND_RUNNING ())
+        if (login1_is_running ())
             login1_lock_session (session->priv->login1_session);
         if (!session->priv->login1_session)
             ck_lock_session (session->priv->console_kit_cookie);
@@ -589,7 +589,7 @@ session_unlock (Session *session)
     g_return_if_fail (session != NULL);
     if (getuid () == 0)
     {
-        if (LOGIND_RUNNING ())
+        if (login1_is_running ())
             login1_unlock_session (session->priv->login1_session);
         if (!session->priv->login1_session)
             ck_unlock_session (session->priv->console_kit_cookie);

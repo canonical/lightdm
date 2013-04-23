@@ -124,24 +124,20 @@ lightdm_suspend (GError **error)
     GVariant *result;
     gboolean suspended;
 
-    result = login1_call_function ("Suspend", g_variant_new("(b)", FALSE),
-                                   error);
-
+    result = login1_call_function ("Suspend", g_variant_new("(b)", FALSE), error);
     if (!result)
     {
         if (error)
-            g_debug ("Can't suspend using logind; falling back to UPower: %s",
-                     (*error)->message);
+            g_debug ("Can't suspend using logind; falling back to UPower: %s", (*error)->message);
         g_clear_error (error);
         result = upower_call_function ("Suspend", error);
     }
 
     suspended = result != NULL;
     if (result)
-      g_variant_unref (result);
+        g_variant_unref (result);
 
     return suspended;
-
 }
 
 /**
@@ -193,14 +189,11 @@ lightdm_hibernate (GError **error)
     GVariant *result;
     gboolean hibernated;
 
-    result = login1_call_function ("Hibernate", g_variant_new("(b)", FALSE),
-                                   error);
-
+    result = login1_call_function ("Hibernate", g_variant_new("(b)", FALSE), error);
     if (!result)
     {
         if (error)
-            g_debug ("Can't hibernate using logind; falling back to UPower: %s",
-                     (*error)->message);
+            g_debug ("Can't hibernate using logind; falling back to UPower: %s", (*error)->message);
         g_clear_error (error);
         result = upower_call_function ("Hibernate", error);
     }
@@ -292,7 +285,6 @@ lightdm_restart (GError **error)
     gboolean restarted;
 
     r = login1_call_function ("Reboot", g_variant_new("(b)", FALSE), error);
-
     if (!r)
     {
         g_clear_error (error);
