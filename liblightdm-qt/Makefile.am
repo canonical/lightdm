@@ -17,6 +17,7 @@ liblightdm_qt5_2_la_LIBADD = \
 common_cflags = \
 	-I$(top_srcdir)/liblightdm-gobject \
 	$(LIBLIGHTDM_GOBJECT_CFLAGS) \
+	-DQT_NO_KEYWORDS \
 	-DXSESSIONS_DIR=\"$(datadir)/xsessions\"
 liblightdm_qt_2_la_CXXFLAGS = \
 	$(LIBLIGHTDM_QT4_CFLAGS) \

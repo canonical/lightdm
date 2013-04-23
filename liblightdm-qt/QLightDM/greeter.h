@@ -24,19 +24,19 @@ class Q_DECL_EXPORT Greeter : public QObject
 {
     Q_OBJECT
     
-    Q_PROPERTY(bool authenticated READ isAuthenticated ); //NOTFIY authenticationComplete
-    Q_PROPERTY(QString authenticationUser READ authenticationUser );  
-    Q_PROPERTY(QString defaultSession READ defaultSessionHint CONSTANT);
-    Q_PROPERTY(QString selectUser READ selectUserHint CONSTANT);
-    Q_PROPERTY(bool selectGuest READ selectGuestHint CONSTANT);
+    Q_PROPERTY(bool authenticated READ isAuthenticated ) //NOTFIY authenticationComplete
+    Q_PROPERTY(QString authenticationUser READ authenticationUser )
+    Q_PROPERTY(QString defaultSession READ defaultSessionHint CONSTANT)
+    Q_PROPERTY(QString selectUser READ selectUserHint CONSTANT)
+    Q_PROPERTY(bool selectGuest READ selectGuestHint CONSTANT)
 
-    Q_PROPERTY(QString hostname READ hostname CONSTANT);
-    Q_PROPERTY(bool hasGuestAccount READ hasGuestAccountHint CONSTANT);
-    Q_PROPERTY(bool locked READ lockHint CONSTANT);
+    Q_PROPERTY(QString hostname READ hostname CONSTANT)
+    Q_PROPERTY(bool hasGuestAccount READ hasGuestAccountHint CONSTANT)
+    Q_PROPERTY(bool locked READ lockHint CONSTANT)
     
-    Q_PROPERTY(QString hostname READ hostname CONSTANT);
+    Q_PROPERTY(QString hostname READ hostname CONSTANT)
 
-    Q_ENUMS(PromptType MessageType);
+    Q_ENUMS(PromptType MessageType)
 
 public:
     enum PromptType {
@@ -70,7 +70,7 @@ public:
     QString authenticationUser() const;
     QString hostname() const;
 
-public slots:
+public Q_SLOTS:
     bool connectSync();
     void authenticate(const QString &username=QString());
     void authenticateAsGuest();
@@ -81,7 +81,7 @@ public slots:
     void setLanguage (const QString &language);
     bool startSessionSync(const QString &session=QString());
 
-signals:
+Q_SIGNALS:
     void showMessage(QString text, QLightDM::Greeter::MessageType type);
     void showPrompt(QString text, QLightDM::Greeter::PromptType type);
     void authenticationComplete();
@@ -92,6 +92,6 @@ private:
     Q_DECLARE_PRIVATE(Greeter)
 
 };
-};
+}
 
 #endif // QLIGHTDM_GREETER_H
