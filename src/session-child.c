@@ -1,3 +1,5 @@
+#include <config.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -14,9 +16,11 @@
 #include <utmpx.h>
 #include <sys/mman.h>
 
+#include "configuration.h"
 #include "session-child.h"
 #include "session.h"
 #include "console-kit.h"
+#include "login1.h"
 #include "privileges.h"
 #include "xauthority.h"
 #include "configuration.h"
@@ -190,7 +194,9 @@ session_child_run (int argc, char **argv)
     XAuthority *xauthority = NULL;
     gchar *xauth_filename;
     GDBusConnection *bus;
-    gchar *console_kit_cookie;
+    gchar *console_kit_cookie = NULL;
+    gchar *login1_session = NULL;
+
     const gchar *path;
     GError *error = NULL;
     const gchar *locale_value;
@@ -443,33 +449,42 @@ session_child_run (int argc, char **argv)
     if (!bus)
         return EXIT_FAILURE;
 
-    /* Open a Console Kit session */
-    g_variant_builder_init (&ck_parameters, G_VARIANT_TYPE ("(a(sv))"));
-    g_variant_builder_open (&ck_parameters, G_VARIANT_TYPE ("a(sv)"));
-    g_variant_builder_add (&ck_parameters, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
-    if (g_strcmp0 (class, XDG_SESSION_CLASS_GREETER) == 0)
-        g_variant_builder_add (&ck_parameters, "(sv)", "session-type", g_variant_new_string ("LoginWindow"));
-    if (xdisplay)
+    if (LOGIND_RUNNING ())
     {
-        g_variant_builder_add (&ck_parameters, "(sv)", "x11-display", g_variant_new_string (xdisplay));
-        if (tty)
-            g_variant_builder_add (&ck_parameters, "(sv)", "x11-display-device", g_variant_new_string (tty));
+        login1_session = login1_get_session_id ();
+        write_string (login1_session);
     }
-    if (remote_host_name)
+
+    if (!login1_session)
     {
-        g_variant_builder_add (&ck_parameters, "(sv)", "is-local", g_variant_new_boolean (FALSE));
-        g_variant_builder_add (&ck_parameters, "(sv)", "remote-host-name", g_variant_new_string (remote_host_name));
-    }
-    else
-        g_variant_builder_add (&ck_parameters, "(sv)", "is-local", g_variant_new_boolean (TRUE));
-    console_kit_cookie = ck_open_session (&ck_parameters);
-    write_string (console_kit_cookie);
-    if (console_kit_cookie)
-    {
-        gchar *value;
-        value = g_strdup_printf ("XDG_SESSION_COOKIE=%s", console_kit_cookie);
-        pam_putenv (pam_handle, value);
-        g_free (value);
+        /* Open a Console Kit session */
+        g_variant_builder_init (&ck_parameters, G_VARIANT_TYPE ("(a(sv))"));
+        g_variant_builder_open (&ck_parameters, G_VARIANT_TYPE ("a(sv)"));
+        g_variant_builder_add (&ck_parameters, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
+        if (g_strcmp0 (class, XDG_SESSION_CLASS_GREETER) == 0)
+            g_variant_builder_add (&ck_parameters, "(sv)", "session-type", g_variant_new_string ("LoginWindow"));
+        if (xdisplay)
+        {
+            g_variant_builder_add (&ck_parameters, "(sv)", "x11-display", g_variant_new_string (xdisplay));
+            if (tty)
+                g_variant_builder_add (&ck_parameters, "(sv)", "x11-display-device", g_variant_new_string (tty));
+        }
+        if (remote_host_name)
+        {
+            g_variant_builder_add (&ck_parameters, "(sv)", "is-local", g_variant_new_boolean (FALSE));
+            g_variant_builder_add (&ck_parameters, "(sv)", "remote-host-name", g_variant_new_string (remote_host_name));
+        }
+        else
+            g_variant_builder_add (&ck_parameters, "(sv)", "is-local", g_variant_new_boolean (TRUE));
+        console_kit_cookie = ck_open_session (&ck_parameters);
+        write_string (console_kit_cookie);
+        if (console_kit_cookie)
+        {
+            gchar *value;
+            value = g_strdup_printf ("XDG_SESSION_COOKIE=%s", console_kit_cookie);
+            pam_putenv (pam_handle, value);
+            g_free (value);
+        }
     }
 
     /* Write X authority */

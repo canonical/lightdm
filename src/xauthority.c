@@ -329,7 +329,7 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GErro
     }
     g_list_free (records);
 
-    result = g_file_set_contents (filename, output->data, output->len, error);
+    result = g_file_set_contents (filename, (gchar *)output->data, output->len, error);
     g_byte_array_free (output, TRUE);
 
     return result;

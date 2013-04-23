@@ -83,7 +83,7 @@ typedef struct
 } CKSession;
 static GList *ck_sessions = NULL;
 static gint ck_session_index = 0;
-static void handle_ck_session_call (GDBusConnection       *connection,
+static void handle_session_call (GDBusConnection       *connection,
                                     const gchar           *sender,
                                     const gchar           *object_path,
                                     const gchar           *interface_name,
@@ -93,8 +93,18 @@ static void handle_ck_session_call (GDBusConnection       *connection,
                                     gpointer               user_data);
 static const GDBusInterfaceVTable ck_session_vtable =
 {
-    handle_ck_session_call,
+    handle_session_call,
 };
+
+typedef struct
+{
+    gchar *path;
+    guint pid;
+} Login1Session;
+
+static GList *login1_sessions = NULL;
+static gint login1_session_index = 0;
+
 typedef struct
 {
     GSocket *socket;
@@ -134,7 +144,7 @@ process_exit_cb (GPid pid, gint status, gpointer data)
 {
     Process *process;
     gchar *status_text;
-  
+
     if (getenv ("DEBUG"))
     {
         if (WIFEXITED (status))
@@ -173,7 +183,7 @@ process_exit_cb (GPid pid, gint status, gpointer data)
 static Process *
 watch_process (pid_t pid)
 {
-    Process *process;  
+    Process *process;
 
     process = g_malloc0 (sizeof (Process));
     process->pid = pid;
@@ -360,7 +370,7 @@ handle_command (const gchar *command)
     else if (strcmp (name, "SWITCH-TO-USER") == 0)
     {
         gchar *status_text, *username;
-          
+
         username = g_hash_table_lookup (params, "USERNAME");
         g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
                                      "org.freedesktop.DisplayManager",
@@ -456,21 +466,21 @@ handle_command (const gchar *command)
             StatusClient *client = link->data;
             int length;
             GError *error = NULL;
-      
+
             length = strlen (command);
             g_socket_send (client->socket, (gchar *) &length, sizeof (length), NULL, &error);
             g_socket_send (client->socket, command, strlen (command), NULL, &error);
             if (error)
                 g_printerr ("Failed to write to client socket: %s\n", error->message);
             g_clear_error (&error);
-        }     
+        }
     }
     else
     {
         g_printerr ("Unknown command '%s'\n", name);
         quit (EXIT_FAILURE);
     }
-  
+
     g_free (name);
     g_hash_table_unref (params);
 }
@@ -514,9 +524,9 @@ check_status (const gchar *status)
 
     if (stop)
         return;
-  
+
     statuses = g_list_append (statuses, g_strdup (status));
-  
+
     if (getenv ("DEBUG"))
         g_print ("%s\n", status);
 
@@ -528,7 +538,7 @@ check_status (const gchar *status)
         result = g_regex_match_simple (full_pattern, status, 0, 0);
         g_free (full_pattern);
     }
-  
+
     if (!result)
     {
         fail (NULL, pattern);
@@ -686,7 +696,7 @@ upower_name_acquired_cb (GDBusConnection *connection,
 
     upower_info = g_dbus_node_info_new_for_xml (upower_interface, &error);
     if (error)
-        g_warning ("Failed to parse D-Bus interface: %s", error->message);  
+        g_warning ("Failed to parse D-Bus interface: %s", error->message);
     g_clear_error (&error);
     if (!upower_info)
         return;
@@ -829,15 +839,17 @@ handle_ck_call (GDBusConnection       *connection,
         g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
 }
 
+
+/* Shared between CK and Login1 - identical signatures */
 static void
-handle_ck_session_call (GDBusConnection       *connection,
-                        const gchar           *sender,
-                        const gchar           *object_path,
-                        const gchar           *interface_name,
-                        const gchar           *method_name,
-                        GVariant              *parameters,
-                        GDBusMethodInvocation *invocation,
-                        gpointer               user_data)
+handle_session_call (GDBusConnection       *connection,
+                     const gchar           *sender,
+                     const gchar           *object_path,
+                     const gchar           *interface_name,
+                     const gchar           *method_name,
+                     GVariant              *parameters,
+                     GDBusMethodInvocation *invocation,
+                     gpointer               user_data)
 {
     if (strcmp (method_name, "Lock") == 0)
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
@@ -904,13 +916,13 @@ ck_name_acquired_cb (GDBusConnection *connection,
 
     ck_info = g_dbus_node_info_new_for_xml (ck_interface, &error);
     if (error)
-        g_warning ("Failed to parse D-Bus interface: %s", error->message);  
+        g_warning ("Failed to parse D-Bus interface: %s", error->message);
     g_clear_error (&error);
     if (!ck_info)
         return;
     ck_session_info = g_dbus_node_info_new_for_xml (ck_session_interface, &error);
     if (error)
-        g_warning ("Failed to parse D-Bus interface: %s", error->message);  
+        g_warning ("Failed to parse D-Bus interface: %s", error->message);
     g_clear_error (&error);
     if (!ck_session_info)
         return;
@@ -944,6 +956,59 @@ start_console_kit_daemon ()
                     NULL);
 }
 
+static Login1Session *
+open_login1_session (GDBusConnection *connection,
+                     GVariant *params)
+{
+    Login1Session *session;
+    GError *error = NULL;
+    GDBusNodeInfo *login1_session_info;
+
+    const gchar *login1_session_interface =
+        "<node>"
+        "  <interface name='org.freedesktop.login1.Session'>"
+        "    <method name='Lock'/>"
+        "    <method name='Unlock'/>"
+        "  </interface>"
+        "</node>";
+    static const GDBusInterfaceVTable login1_session_vtable =
+    {
+        handle_session_call,
+    };
+
+    session = g_malloc0 (sizeof (Login1Session));
+    login1_sessions = g_list_append (login1_sessions, session);
+
+    session->path = g_strdup_printf("/org/freedesktop/login1/Session/c%d",
+                                    login1_session_index++);
+
+
+
+    login1_session_info = g_dbus_node_info_new_for_xml (login1_session_interface,
+                                                        &error);
+    if (error)
+        g_warning ("Failed to parse login1 session D-Bus interface: %s",
+                   error->message);
+    g_clear_error (&error);
+    if (!login1_session_info)
+        return;
+
+    g_dbus_connection_register_object (connection,
+                                       session->path,
+                                       login1_session_info->interfaces[0],
+                                       &login1_session_vtable,
+                                       session,
+                                       NULL,
+                                       &error);
+    if (error)
+        g_warning ("Failed to register login1 session: %s", error->message);
+    g_clear_error (&error);
+    g_dbus_node_info_unref (login1_session_info);
+
+    return session;
+}
+
+
 static void
 handle_login1_call (GDBusConnection       *connection,
                     const gchar           *sender,
@@ -954,7 +1019,36 @@ handle_login1_call (GDBusConnection       *connection,
                     GDBusMethodInvocation *invocation,
                     gpointer               user_data)
 {
-    if (strcmp (method_name, "CanReboot") == 0)
+
+    if (strcmp (method_name, "GetSessionByPID") == 0)
+    {
+        /* Look for a session with our PID, and create one if we don't have one
+           already. */
+        GList *link;
+        guint pid;
+        Login1Session *ret = NULL;
+
+        g_variant_get (parameters, "(u)", &pid);
+
+        for (link = login1_sessions; link; link = link->next)
+        {
+            Login1Session *session;
+            session = link->data;
+            if (session->pid == pid)
+            {
+                ret = session;
+                break;
+            }
+        }
+        /* Not found */
+        if (!ret)
+            ret = open_login1_session (connection, parameters);
+
+        g_dbus_method_invocation_return_value (invocation,
+                                               g_variant_new("(o)", ret->path));
+
+    }
+    else if (strcmp (method_name, "CanReboot") == 0)
     {
         check_status ("LOGIN1 CAN-REBOOT");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "yes"));
@@ -971,11 +1065,35 @@ handle_login1_call (GDBusConnection       *connection,
         check_status ("LOGIN1 CAN-POWER-OFF");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "yes"));
     }
+    else if (strcmp (method_name, "Suspend") == 0)
+    {
+        gboolean interactive;
+        g_variant_get (parameters, "(b)", &interactive);
+        check_status ("LOGIN1 SUSPEND");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "CanSuspend") == 0)
+    {
+        check_status ("LOGIN1 CAN-SUSPEND");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "yes"));
+    }
     else if (strcmp (method_name, "PowerOff") == 0)
     {
         gboolean interactive;
         g_variant_get (parameters, "(b)", &interactive);
         check_status ("LOGIN1 POWER-OFF");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "CanHibernate") == 0)
+    {
+        check_status ("LOGIN1 CAN-HIBERNATE");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "yes"));
+    }
+    else if (strcmp (method_name, "Hibernate") == 0)
+    {
+        gboolean interactive;
+        g_variant_get (parameters, "(b)", &interactive);
+        check_status ("LOGIN1 HIBERNATE");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
     else
@@ -990,6 +1108,10 @@ login1_name_acquired_cb (GDBusConnection *connection,
     const gchar *login1_interface =
         "<node>"
         "  <interface name='org.freedesktop.login1.Manager'>"
+        "    <method name='GetSessionByPID'>"
+        "      <arg name='pid' type='u' direction='in'/>"
+        "      <arg name='session' type='o' direction='out'/>"
+        "    </method>"
         "    <method name='CanReboot'>"
         "      <arg name='result' direction='out' type='s'/>"
         "    </method>"
@@ -1000,6 +1122,18 @@ login1_name_acquired_cb (GDBusConnection *connection,
         "      <arg name='result' direction='out' type='s'/>"
         "    </method>"
         "    <method name='PowerOff'>"
+        "      <arg name='interactive' direction='in' type='b'/>"
+        "    </method>"
+        "    <method name='CanSuspend'>"
+        "      <arg name='result' direction='out' type='s'/>"
+        "    </method>"
+        "    <method name='Suspend'>"
+        "      <arg name='interactive' direction='in' type='b'/>"
+        "    </method>"
+        "    <method name='CanHibernate'>"
+        "      <arg name='result' direction='out' type='s'/>"
+        "    </method>"
+        "    <method name='Hibernate'>"
         "      <arg name='interactive' direction='in' type='b'/>"
         "    </method>"
         "  </interface>"
@@ -1013,7 +1147,7 @@ login1_name_acquired_cb (GDBusConnection *connection,
 
     login1_info = g_dbus_node_info_new_for_xml (login1_interface, &error);
     if (error)
-        g_warning ("Failed to parse D-Bus interface: %s", error->message);  
+        g_warning ("Failed to parse login1 D-Bus interface: %s", error->message);
     g_clear_error (&error);
     if (!login1_info)
         return;
@@ -1150,7 +1284,7 @@ handle_accounts_call (GDBusConnection       *connection,
 
         g_variant_builder_init (&builder, G_VARIANT_TYPE ("ao"));
 
-        load_passwd_file ();      
+        load_passwd_file ();
         for (link = accounts_users; link; link = link->next)
         {
             AccountsUser *user = link->data;
@@ -1183,7 +1317,7 @@ handle_accounts_call (GDBusConnection       *connection,
             g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such user: %s", user_name);
     }
     else
-        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);    
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
 }
 
 static void
@@ -1292,13 +1426,13 @@ accounts_name_acquired_cb (GDBusConnection *connection,
 
     accounts_info = g_dbus_node_info_new_for_xml (accounts_interface, &error);
     if (error)
-        g_warning ("Failed to parse D-Bus interface: %s", error->message);  
+        g_warning ("Failed to parse D-Bus interface: %s", error->message);
     g_clear_error (&error);
     if (!accounts_info)
         return;
     user_info = g_dbus_node_info_new_for_xml (user_interface, &error);
     if (error)
-        g_warning ("Failed to parse D-Bus interface: %s", error->message);  
+        g_warning ("Failed to parse D-Bus interface: %s", error->message);
     g_clear_error (&error);
     if (!user_info)
         return;
@@ -1424,7 +1558,7 @@ main (int argc, char **argv)
         g_critical ("Error getting current directory: %s", strerror (errno));
         quit (EXIT_FAILURE);
     }
-  
+
     /* Don't contact our X server */
     g_unsetenv ("DISPLAY");
 
@@ -1439,7 +1573,7 @@ main (int argc, char **argv)
     g_free (path);
 
     /* Use locally built libraries */
-    path1 = g_build_filename (BUILDDIR, "liblightdm-gobject", ".libs", NULL);  
+    path1 = g_build_filename (BUILDDIR, "liblightdm-gobject", ".libs", NULL);
     path2 = g_build_filename (BUILDDIR, "liblightdm-qt", ".libs", NULL);
     ld_library_path = g_strdup_printf ("%s:%s", path1, path2);
     g_free (path1);
@@ -1510,7 +1644,7 @@ main (int argc, char **argv)
 
     /* Always copy the script */
     if (system (g_strdup_printf ("cp %s %s/script", config_path, temp_dir)))
-        perror ("Failed to copy configuration");  
+        perror ("Failed to copy configuration");
 
     /* Copy over the greeter files */
     if (system (g_strdup_printf ("cp -r %s/xsessions %s/usr/share", DATADIR, temp_dir)))
@@ -1568,7 +1702,7 @@ main (int argc, char **argv)
         /* This account has a set of keyboard layouts */
         {"have-layouts",     "",         TRUE,  "Layouts User",       NULL,  "ru", "fr\toss;ru;", NULL,          1010},
         /* This account has a language set */
-        {"have-language",    "",         TRUE,  "Language User",      NULL,  NULL, NULL,          "en_AU.utf8",  1011},      
+        {"have-language",    "",         TRUE,  "Language User",      NULL,  NULL, NULL,          "en_AU.utf8",  1011},
         /* This account has a preconfigured session */
         {"have-session",            "",  TRUE,  "Session User", "alternative", NULL, NULL,        NULL,          1012},
         /* This account has the home directory mounted on login */
@@ -1642,6 +1776,7 @@ main (int argc, char **argv)
         {
             g_key_file_set_string (dmrc_file, "X-Accounts", "Layouts", users[i].dbus_layouts);
             save_dmrc = TRUE;
+
         }
         if (users[i].language)
         {
@@ -1657,7 +1792,7 @@ main (int argc, char **argv)
             data = g_key_file_to_data (dmrc_file, NULL, NULL);
             g_file_set_contents (path, data, -1, NULL);
             g_free (data);
-            g_free (path);         
+            g_free (path);
         }
 
         g_key_file_free (dmrc_file);

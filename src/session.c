@@ -1,13 +1,15 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
  * version. See http://www.gnu.org/copyleft/gpl.html the full text of the
  * license.
  */
+
+#include <config.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -22,6 +24,7 @@
 #include "session.h"
 #include "configuration.h"
 #include "console-kit.h"
+#include "login1.h"
 #include "guest-account.h"
 
 enum {
@@ -62,16 +65,16 @@ struct SessionPrivate
     gboolean authentication_complete;
     int authentication_result;
     gchar *authentication_result_string;
-  
+
     /* File to log to */
     gchar *log_filename;
-  
+
     /* Seat class */
     gchar *class;
 
     /* tty this session is running on */
     gchar *tty;
-  
+
     /* X display connected to */
     gchar *xdisplay;
     XAuthority *xauthority;
@@ -82,6 +85,9 @@ struct SessionPrivate
 
     /* Console kit cookie */
     gchar *console_kit_cookie;
+
+    /* login1 session */
+    gchar *login1_session;
 
     /* Environment to set in child */
     GList *env;
@@ -206,10 +212,10 @@ read_string_from_child (Session *session)
         g_warning ("Invalid string length %d from child", length);
         return NULL;
     }
-  
+
     value = g_malloc (sizeof (char) * (length + 1));
     read_from_child (session, value, length);
-    value[length] = '\0';      
+    value[length] = '\0';
 
     return value;
 }
@@ -220,7 +226,7 @@ session_watch_cb (GPid pid, gint status, gpointer data)
     Session *session = data;
 
     session->priv->pid = 0;
-  
+
     if (WIFEXITED (status))
         g_debug ("Session %d exited with return value %d", pid, WEXITSTATUS (status));
     else if (WIFSIGNALED (status))
@@ -234,7 +240,7 @@ session_watch_cb (GPid pid, gint status, gpointer data)
         session->priv->authentication_result = PAM_CONV_ERR;
         g_free (session->priv->authentication_result_string);
         session->priv->authentication_result_string = g_strdup ("Authentication stopped before completion");
-        g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_COMPLETE], 0);      
+        g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_COMPLETE], 0);
     }
 
     g_signal_emit (G_OBJECT (session), signals[STOPPED], 0);
@@ -311,14 +317,14 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         for (i = 0; i < session->priv->messages_length; i++)
         {
             struct pam_message *m = &session->priv->messages[i];
-            read_from_child (session, &m->msg_style, sizeof (m->msg_style));          
+            read_from_child (session, &m->msg_style, sizeof (m->msg_style));
             m->msg = read_string_from_child (session);
         }
 
         g_debug ("Session %d got %d message(s) from PAM", session->priv->pid, session->priv->messages_length);
 
         g_signal_emit (G_OBJECT (session), signals[GOT_MESSAGES], 0);
-    }    
+    }
 
     return TRUE;
 }
@@ -391,7 +397,7 @@ session_start (Session *session, const gchar *service, const gchar *username, gb
     /* Close the ends of the pipes we don't need */
     close (to_child_output);
     close (from_child_input);
-  
+
     /* Indicate what version of the protocol we are using */
     version = 0;
     write_data (session, &version, sizeof (version));
@@ -422,7 +428,7 @@ session_start (Session *session, const gchar *service, const gchar *username, gb
         write_data (session, xauth_get_authorization_data (session->priv->xauthority), length);
     }
     else
-        write_string (session, NULL);    
+        write_string (session, NULL);
 
     g_debug ("Started session %d with service '%s', username '%s'", session->priv->pid, service, username);
 
@@ -472,7 +478,7 @@ session_respond_error (Session *session, int error)
     g_return_if_fail (session != NULL);
     g_return_if_fail (error != PAM_SUCCESS);
 
-    write_data (session, &error, sizeof (error));  
+    write_data (session, &error, sizeof (error));
 }
 
 int
@@ -529,7 +535,7 @@ session_run (Session *session, gchar **argv)
     {
         gchar *run_dir, *dir;
 
-        run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");          
+        run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
         dir = g_build_filename (run_dir, session->priv->username, NULL);
         g_free (run_dir);
 
@@ -558,30 +564,43 @@ session_run (Session *session, gchar **argv)
     for (i = 0; i < argc; i++)
         write_string (session, argv[i]);
 
-    session->priv->console_kit_cookie = read_string_from_child (session);
+    if (LOGIND_RUNNING ())
+      session->priv->login1_session = read_string_from_child (session);
+    if (!session->priv->login1_session)
+      session->priv->console_kit_cookie = read_string_from_child (session);
 }
 
 void
 session_lock (Session *session)
-{    
+{
     g_return_if_fail (session != NULL);
     if (getuid () == 0)
-        ck_lock_session (session->priv->console_kit_cookie);
+    {
+        if (LOGIND_RUNNING ())
+            login1_lock_session (session->priv->login1_session);
+        if (!session->priv->login1_session)
+            ck_lock_session (session->priv->console_kit_cookie);
+    }
 }
 
 void
 session_unlock (Session *session)
-{    
+{
     g_return_if_fail (session != NULL);
     if (getuid () == 0)
-        ck_unlock_session (session->priv->console_kit_cookie);
+    {
+        if (LOGIND_RUNNING ())
+            login1_unlock_session (session->priv->login1_session);
+        if (!session->priv->login1_session)
+            ck_unlock_session (session->priv->console_kit_cookie);
+    }
 }
 
 void
 session_stop (Session *session)
 {
     g_return_if_fail (session != NULL);
-  
+
     if (session->priv->pid > 0)
     {
         g_debug ("Session %d: Sending SIGTERM", session->priv->pid);
@@ -631,6 +650,7 @@ session_finalize (GObject *object)
     if (self->priv->xauthority)
         g_object_unref (self->priv->xauthority);
     g_free (self->priv->remote_host_name);
+    g_free (self->priv->login1_session);
     g_free (self->priv->console_kit_cookie);
     g_list_free_full (self->priv->env, g_free);
 

@@ -22,8 +22,6 @@ static GDBusProxy *login1_proxy = NULL;
 static GVariant *
 upower_call_function (const gchar *function, GError **error)
 {
-    GVariant *result;
-
     if (!upower_proxy)
     {
         upower_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
@@ -47,6 +45,36 @@ upower_call_function (const gchar *function, GError **error)
                                    error);
 }
 
+static GVariant *
+login1_call_function (const gchar *function, GVariant *parameters, GError **error)
+{
+    GVariant *r;
+
+    if (!login1_proxy)
+    {
+        login1_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                                      G_DBUS_PROXY_FLAGS_NONE,
+                                                      NULL,
+                                                      "org.freedesktop.login1",
+                                                      "/org/freedesktop/login1",
+                                                      "org.freedesktop.login1.Manager",
+                                                      NULL,
+                                                      error);
+        if (!login1_proxy)
+            return NULL;
+    }
+
+    r = g_dbus_proxy_call_sync (login1_proxy,
+                                function,
+                                parameters,
+                                G_DBUS_CALL_FLAGS_NONE,
+                                -1,
+                                NULL,
+                                error);
+
+    return r;
+}
+
 /**
  * lightdm_get_can_suspend:
  *
@@ -57,16 +85,27 @@ upower_call_function (const gchar *function, GError **error)
 gboolean
 lightdm_get_can_suspend (void)
 {
-    GVariant *result;
     gboolean can_suspend = FALSE;
+    GVariant *r;
 
-    result = upower_call_function ("SuspendAllowed", NULL);
-    if (!result)
-        return FALSE;
-
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(b)")))
-        g_variant_get (result, "(b)", &can_suspend);
-    g_variant_unref (result);
+    r = login1_call_function ("CanSuspend", NULL, NULL);
+    if (r)
+    {
+        gchar *result;
+        if (g_variant_is_of_type (r, G_VARIANT_TYPE ("(s)")))
+        {
+            g_variant_get (r, "(&s)", &result);
+            can_suspend = g_strcmp0 (result, "yes") == 0;
+        }
+    }
+    else
+    {
+        r = upower_call_function ("SuspendAllowed", NULL);
+        if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
+            g_variant_get (r, "(b)", &can_suspend);
+    }
+    if (r)
+        g_variant_unref (r);
 
     return can_suspend;
 }
@@ -76,21 +115,33 @@ lightdm_get_can_suspend (void)
  * @error: return location for a #GError, or %NULL
  *
  * Triggers a system suspend.
- * 
+ *
  * Return value: #TRUE if suspend initiated.
  **/
 gboolean
 lightdm_suspend (GError **error)
 {
     GVariant *result;
-  
-    result = upower_call_function ("Suspend", error);
+    gboolean suspended;
+
+    result = login1_call_function ("Suspend", g_variant_new("(b)", FALSE),
+                                   error);
+
     if (!result)
-        return FALSE;
+    {
+        if (error)
+            g_debug ("Can't suspend using logind; falling back to UPower: %s",
+                     (*error)->message);
+        g_clear_error (error);
+        result = upower_call_function ("Suspend", error);
+    }
 
-    g_variant_unref (result);
+    suspended = result != NULL;
+    if (result)
+      g_variant_unref (result);
 
-    return TRUE;
+    return suspended;
+
 }
 
 /**
@@ -103,16 +154,27 @@ lightdm_suspend (GError **error)
 gboolean
 lightdm_get_can_hibernate (void)
 {
-    GVariant *result;
     gboolean can_hibernate = FALSE;
-  
-    result = upower_call_function ("HibernateAllowed", NULL);
-    if (!result)
-        return FALSE;
+    GVariant *r;
 
-    if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(b)")))
-        g_variant_get (result, "(b)", &can_hibernate);
-    g_variant_unref (result);
+    r = login1_call_function ("CanHibernate", NULL, NULL);
+    if (r)
+    {
+        gchar *result;
+        if (g_variant_is_of_type (r, G_VARIANT_TYPE ("(s)")))
+        {
+            g_variant_get (r, "(&s)", &result);
+            can_hibernate = g_strcmp0 (result, "yes") == 0;
+        }
+    }
+    else
+    {
+        r = upower_call_function ("HibernateAllowed", NULL);
+        if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
+            g_variant_get (r, "(b)", &can_hibernate);
+    }
+    if (r)
+        g_variant_unref (r);
 
     return can_hibernate;
 }
@@ -122,21 +184,32 @@ lightdm_get_can_hibernate (void)
  * @error: return location for a #GError, or %NULL
  *
  * Triggers a system hibernate.
- * 
+ *
  * Return value: #TRUE if hibernate initiated.
  **/
 gboolean
 lightdm_hibernate (GError **error)
 {
     GVariant *result;
-  
-    result = upower_call_function ("Hibernate", error);
+    gboolean hibernated;
+
+    result = login1_call_function ("Hibernate", g_variant_new("(b)", FALSE),
+                                   error);
+
     if (!result)
-        return FALSE;
+    {
+        if (error)
+            g_debug ("Can't hibernate using logind; falling back to UPower: %s",
+                     (*error)->message);
+        g_clear_error (error);
+        result = upower_call_function ("Hibernate", error);
+    }
 
-    g_variant_unref (result);
+    hibernated = result != NULL;
+    if (result)
+        g_variant_unref (result);
 
-    return TRUE;
+    return hibernated;
 }
 
 static GVariant *
@@ -161,37 +234,6 @@ ck_call_function (const gchar *function, GError **error)
     r = g_dbus_proxy_call_sync (ck_proxy,
                                 function,
                                 NULL,
-                                G_DBUS_CALL_FLAGS_NONE,
-                                -1,
-                                NULL,
-                                error);
-
-    return r;
-}
-
-static GVariant *
-login1_call_function (const gchar *function, GVariant *parameters, GError **error)
-{
-    GVariant *r;
-    gchar *str_result;
-
-    if (!login1_proxy)
-    {
-        login1_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                                      G_DBUS_PROXY_FLAGS_NONE,
-                                                      NULL,
-                                                      "org.freedesktop.login1",
-                                                      "/org/freedesktop/login1",
-                                                      "org.freedesktop.login1.Manager",
-                                                      NULL,
-                                                      error);
-        if (!login1_proxy)
-            return NULL;
-    }
-
-    r = g_dbus_proxy_call_sync (login1_proxy,
-                                function,
-                                parameters,
                                 G_DBUS_CALL_FLAGS_NONE,
                                 -1,
                                 NULL,
@@ -250,6 +292,7 @@ lightdm_restart (GError **error)
     gboolean restarted;
 
     r = login1_call_function ("Reboot", g_variant_new("(b)", FALSE), error);
+
     if (!r)
     {
         g_clear_error (error);
@@ -274,7 +317,7 @@ lightdm_get_can_shutdown (void)
 {
     gboolean can_shutdown = FALSE;
     GVariant *r;
-  
+
     r = login1_call_function ("CanPowerOff", NULL, NULL);
     if (r)
     {

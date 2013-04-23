@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pwd.h>
+#include <unistd.h>
 #include <grp.h>
 #include <security/pam_appl.h>
 #include <fcntl.h>
