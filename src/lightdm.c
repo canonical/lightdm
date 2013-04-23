@@ -146,6 +146,17 @@ display_manager_stopped_cb (DisplayManager *display_manager)
     g_main_loop_quit (loop);
 }
 
+static void
+display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
+{
+    if (seat_get_boolean_property (seat, "exit-on-failure"))
+    {
+        g_debug ("Required seat has stopped");
+        exit_code = EXIT_FAILURE;
+        display_manager_stop (display_manager);
+    }
+}
+
 static GVariant *
 handle_display_manager_get_property (GDBusConnection       *connection,
                                      const gchar           *sender,
@@ -623,17 +634,7 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
 static void
 seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
-    gboolean exit_on_failure;
-
-    exit_on_failure = seat_get_boolean_property (seat, "exit-on-failure");
     g_hash_table_remove (seat_bus_entries, seat);
-
-    if (exit_on_failure)
-    {
-        g_debug ("Required seat has stopped");
-        exit_code = EXIT_FAILURE;
-        display_manager_stop (display_manager);
-    }
 }
 
 static void
@@ -1069,6 +1070,7 @@ main (int argc, char **argv)
 
     display_manager = display_manager_new ();
     g_signal_connect (display_manager, "stopped", G_CALLBACK (display_manager_stopped_cb), NULL);
+    g_signal_connect (display_manager, "seat-removed", G_CALLBACK (display_manager_seat_removed_cb), NULL);
 
     /* Load the static display entries */
     groups = config_get_groups (config_get_instance ());
