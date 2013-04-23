@@ -115,7 +115,7 @@ lightdm_get_can_suspend (void)
  * @error: return location for a #GError, or %NULL
  *
  * Triggers a system suspend.
- * 
+ *
  * Return value: #TRUE if suspend initiated.
  **/
 gboolean
@@ -124,15 +124,16 @@ lightdm_suspend (GError **error)
     GVariant *result;
     gboolean suspended;
 
-    result = login1_call_function ("Suspend", g_variant_new("(b)", FALSE), error);
+    result = login1_call_function ("Suspend", g_variant_new("(b)", FALSE),
+                                   error);
 
     if (!result)
     {
-      if (error)
-	g_debug ("Can't suspend using logind; falling back to UPower: %s",
-		    (*error)->message);
-      g_clear_error (error);
-      result = upower_call_function ("Suspend", error);
+        if (error)
+            g_debug ("Can't suspend using logind; falling back to UPower: %s",
+                     (*error)->message);
+        g_clear_error (error);
+        result = upower_call_function ("Suspend", error);
     }
 
     suspended = result != NULL;
@@ -183,7 +184,7 @@ lightdm_get_can_hibernate (void)
  * @error: return location for a #GError, or %NULL
  *
  * Triggers a system hibernate.
- * 
+ *
  * Return value: #TRUE if hibernate initiated.
  **/
 gboolean
@@ -192,20 +193,21 @@ lightdm_hibernate (GError **error)
     GVariant *result;
     gboolean hibernated;
 
-    result = login1_call_function ("Hibernate", g_variant_new("(b)", FALSE), error);
+    result = login1_call_function ("Hibernate", g_variant_new("(b)", FALSE),
+                                   error);
 
     if (!result)
     {
-      if (error)
-	g_debug ("Can't hibernate using logind; falling back to UPower: %s",
-		    (*error)->message);
-      g_clear_error (error);
-      result = upower_call_function ("Hibernate", error);
+        if (error)
+            g_debug ("Can't hibernate using logind; falling back to UPower: %s",
+                     (*error)->message);
+        g_clear_error (error);
+        result = upower_call_function ("Hibernate", error);
     }
 
     hibernated = result != NULL;
     if (result)
-      g_variant_unref (result);
+        g_variant_unref (result);
 
     return hibernated;
 }
@@ -315,7 +317,7 @@ lightdm_get_can_shutdown (void)
 {
     gboolean can_shutdown = FALSE;
     GVariant *r;
-  
+
     r = login1_call_function ("CanPowerOff", NULL, NULL);
     if (r)
     {
