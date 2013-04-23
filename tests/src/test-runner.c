@@ -1040,7 +1040,7 @@ handle_login1_call (GDBusConnection       *connection,
                 break;
             }
         }
-        // Not found
+        /* Not found */
         if (!ret)
             ret = open_login1_session (connection, parameters);
 
