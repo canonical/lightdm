@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _DISPLAY_H_
-#define _DISPLAY_H_
+#ifndef DISPLAY_H_
+#define DISPLAY_H_
 
 #include <glib-object.h>
 
@@ -94,4 +94,4 @@ gboolean display_get_is_stopped (Display *display);
 
 G_END_DECLS
 
-#endif /* _DISPLAY_H_ */
+#endif /* DISPLAY_H_ */

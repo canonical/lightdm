@@ -8,8 +8,8 @@
  * See http://www.gnu.org/copyleft/lgpl.html the full text of the license.
  */
 
-#ifndef _LIGHTDM_HOSTNAME_H_
-#define _LIGHTDM_HOSTNAME_H_
+#ifndef LIGHTDM_HOSTNAME_H_
+#define LIGHTDM_HOSTNAME_H_
 
 #include <glib-object.h>
 
@@ -19,4 +19,4 @@ const gchar *lightdm_get_hostname (void);
 
 G_END_DECLS
 
-#endif /* _LIGHTDM_HOSTNAME_H_ */
+#endif /* LIGHTDM_HOSTNAME_H_ */

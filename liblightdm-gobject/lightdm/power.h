@@ -8,8 +8,8 @@
  * See http://www.gnu.org/copyleft/lgpl.html the full text of the license.
  */
 
-#ifndef _LIGHTDM_POWER_H_
-#define _LIGHTDM_POWER_H_
+#ifndef LIGHTDM_POWER_H_
+#define LIGHTDM_POWER_H_
 
 G_BEGIN_DECLS
 
@@ -31,4 +31,4 @@ gboolean lightdm_shutdown (GError **error);
 
 G_END_DECLS
 
-#endif /* _LIGHTDM_POWER_H_ */
+#endif /* LIGHTDM_POWER_H_ */

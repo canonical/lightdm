@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _CONSOLE_KIT_H_
-#define _CONSOLE_KIT_H_
+#ifndef CONSOLE_KIT_H_
+#define CONSOLE_KIT_H_
 
 #include <glib-object.h>
 
@@ -26,4 +26,4 @@ void ck_close_session (const gchar *cookie);
 
 G_END_DECLS
 
-#endif /* _CONSOLE_KIT_H_ */
+#endif /* CONSOLE_KIT_H_ */

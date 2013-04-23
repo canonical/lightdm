@@ -8,8 +8,8 @@
  * See http://www.gnu.org/copyleft/lgpl.html the full text of the license.
  */
 
-#ifndef _LIGHTDM_SESSION_H_
-#define _LIGHTDM_SESSION_H_
+#ifndef LIGHTDM_SESSION_H_
+#define LIGHTDM_SESSION_H_
 
 #include <glib-object.h>
 
@@ -54,4 +54,4 @@ const gchar *lightdm_session_get_comment (LightDMSession *session);
 
 G_END_DECLS
 
-#endif /* _LIGHTDM_SESSION_H_ */
+#endif /* LIGHTDM_SESSION_H_ */

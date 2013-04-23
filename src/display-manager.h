@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _DISPLAY_MANAGER_H_
-#define _DISPLAY_MANAGER_H_
+#ifndef DISPLAY_MANAGER_H_
+#define DISPLAY_MANAGER_H_
 
 #include <glib-object.h>
 
@@ -52,4 +52,4 @@ void display_manager_stop (DisplayManager *manager);
 
 G_END_DECLS
 
-#endif /* _DISPLAY_MANAGER_H_ */
+#endif /* DISPLAY_MANAGER_H_ */

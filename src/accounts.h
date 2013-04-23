@@ -10,8 +10,8 @@
  * license.
  */
 
-#ifndef _USER_H_
-#define _USER_H_
+#ifndef USER_H_
+#define USER_H_
 
 #include <glib-object.h>
 #include <gio/gio.h>
@@ -64,4 +64,4 @@ void user_set_language (User *user, const gchar *language);
 
 G_END_DECLS
 
-#endif /* _USER_H_ */
+#endif /* USER_H_ */

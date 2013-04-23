@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _PROCESS_H_
-#define _PROCESS_H_
+#ifndef PROCESS_H_
+#define PROCESS_H_
 
 #include <glib-object.h>
 
@@ -70,4 +70,4 @@ int process_get_exit_status (Process *process);
 
 G_END_DECLS
 
-#endif /* _PROCESS_H_ */
+#endif /* PROCESS_H_ */

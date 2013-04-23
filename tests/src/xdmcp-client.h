@@ -1,5 +1,5 @@
-#ifndef _XDMCP_CLIENT_H_
-#define _XDMCP_CLIENT_H_
+#ifndef XDMCP_CLIENT_H_
+#define XDMCP_CLIENT_H_
 
 #include <glib-object.h>
 #include <gio/gio.h>
@@ -78,4 +78,4 @@ void xdmcp_client_send_manage (XDMCPClient *client, guint32 session_id, guint16 
 
 G_END_DECLS
 
-#endif /* _XDMCP_CLIENT_H_ */
+#endif /* XDMCP_CLIENT_H_ */

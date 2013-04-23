@@ -8,8 +8,8 @@
  * See http://www.gnu.org/copyleft/lgpl.html the full text of the license.
  */
 
-#ifndef _LIGHTDM_LAYOUT_H_
-#define _LIGHTDM_LAYOUT_H_
+#ifndef LIGHTDM_LAYOUT_H_
+#define LIGHTDM_LAYOUT_H_
 
 #include <glib-object.h>
 
@@ -56,4 +56,4 @@ const gchar *lightdm_layout_get_description (LightDMLayout *layout);
 
 G_END_DECLS
 
-#endif /* _LIGHTDM_LAYOUT_H_ */
+#endif /* LIGHTDM_LAYOUT_H_ */

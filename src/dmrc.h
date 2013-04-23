@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _DMRC_H_
-#define _DMRC_H_
+#ifndef DMRC_H_
+#define DMRC_H_
 
 #include <glib.h>
 
@@ -22,4 +22,4 @@ void dmrc_save (GKeyFile *dmrc_file, const gchar *username);
 
 G_END_DECLS
 
-#endif /* _DMRC_H_ */
+#endif /* DMRC_H_ */
