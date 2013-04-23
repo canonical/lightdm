@@ -81,7 +81,7 @@ main (int argc, char **argv)
     if (error)
         g_warning ("Unable to receive on VNC socket: %s", error->message);
     g_clear_error (&error);
-    if (n_read < 0)
+    if (n_read <= 0)
         return EXIT_FAILURE;
 
     buffer[n_read] = '\0';

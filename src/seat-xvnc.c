@@ -36,9 +36,14 @@ static DisplayServer *
 seat_xvnc_create_display_server (Seat *seat)
 {
     XServerXVNC *xserver;
+    const gchar *command = NULL;
 
     xserver = xserver_xvnc_new ();
     xserver_xvnc_set_socket (xserver, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
+
+    command = config_get_string (config_get_instance (), "VNCServer", "command");
+    if (command)
+        xserver_xvnc_set_command (xserver, command);
 
     if (config_has_key (config_get_instance (), "VNCServer", "width") &&
         config_has_key (config_get_instance (), "VNCServer", "height"))

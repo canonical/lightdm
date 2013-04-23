@@ -23,6 +23,9 @@ class UsersModelPrivate;
 class Q_DECL_EXPORT UsersModel : public QAbstractListModel
 {
     Q_OBJECT
+
+    Q_ENUMS(UserModelRoles)
+
 public:
     explicit UsersModel(QObject *parent = 0);
     ~UsersModel();
@@ -49,6 +52,6 @@ private:
 
 };
 
-};
+}
 
 #endif // QLIGHTDM_USER_H

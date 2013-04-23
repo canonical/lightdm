@@ -83,8 +83,11 @@ display_number_in_use (guint display_number)
 {
     GList *link;
     gchar *path;
-    gboolean result;
+    gboolean exists;
+    gboolean stale = TRUE;
+    gchar *data;
 
+    /* See if we know we are managing a server with that number */
     for (link = display_numbers; link; link = link->next)
     {
         guint number = GPOINTER_TO_UINT (link->data);
@@ -92,11 +95,28 @@ display_number_in_use (guint display_number)
             return TRUE;
     }
 
+    /* See if an X server that we don't know of has a lock on that number */
     path = g_strdup_printf ("/tmp/.X%d-lock", display_number);
-    result = g_file_test (path, G_FILE_TEST_EXISTS);
+    exists = g_file_test (path, G_FILE_TEST_EXISTS);
     g_free (path);
+    if (!exists)
+        return FALSE;
 
-    return result;
+    /* See if that lock file is valid, ignore it if the contents are invalid or the process doesn't exist */
+    if (g_file_get_contents (path, &data, NULL, NULL))
+    {
+        int pid;
+
+        pid = atoi (g_strstrip (data));
+        if (pid <= 0)
+            return FALSE;
+
+        errno = 0;
+        if (kill (pid, 0) < 0 && errno == ESRCH)
+            return FALSE;
+    }
+  
+    return TRUE;
 }
 
 guint

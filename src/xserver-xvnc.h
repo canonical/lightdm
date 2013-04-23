@@ -41,6 +41,8 @@ gboolean xserver_xvnc_check_available (void);
 
 XServerXVNC *xserver_xvnc_new (void);
 
+void xserver_xvnc_set_command (XServerXVNC *server, const gchar *command);
+
 void xserver_xvnc_set_socket (XServerXVNC *server, int fd);
 
 int xserver_xvnc_get_socket (XServerXVNC *server);

@@ -128,10 +128,23 @@ TESTS = \
 	test-switch-to-user-no-password \
 	test-switch-to-user-logout \
 	test-vnc-login \
+	test-vnc-command \
+	test-vnc-dimensions \
+	test-vnc-open-file-descriptors \
 	test-xdmcp-login \
 	test-no-accounts-service \
 	test-console-kit \
 	test-no-console-kit \
+	test-no-login1 \
+	test-no-console-kit-or-login1 \
+	test-gobject-power \
+	test-gobject-power-no-console-kit \
+	test-gobject-power-no-login1 \
+	test-gobject-power-no-services \
+	test-python-power \
+	test-python-power-no-console-kit \
+	test-python-power-no-login1 \
+	test-python-power-no-services \
 	test-open-file-descriptors \
 	test-xdmcp-open-file-descriptors
 
@@ -167,7 +180,11 @@ TESTS += \
 	test-login-qt4-guest-no-setup-script \
 	test-login-qt4-guest-fail-setup-script \
 	test-login-qt4-guest-logout \
-	test-login-qt4-remote-session
+	test-login-qt4-remote-session \
+	test-qt4-power \
+	test-qt4-power-no-console-kit \
+	test-qt4-power-no-login1 \
+	test-qt4-power-no-services
 endif
 
 if COMPILE_LIBLIGHTDM_QT5
@@ -196,7 +213,11 @@ TESTS += \
 	test-login-qt5-guest-no-setup-script \
 	test-login-qt5-guest-fail-setup-script \
 	test-login-qt5-guest-logout \
-	test-login-qt5-remote-session
+	test-login-qt5-remote-session \
+	test-qt4-power \
+	test-qt4-power-no-console-kit \
+	test-qt4-power-no-login1 \
+	test-qt4-power-no-services
 endif
 
 EXTRA_DIST = \
@@ -281,10 +302,16 @@ EXTRA_DIST = \
 	scripts/no-accounts-service.conf \
 	scripts/no-config.conf \
 	scripts/no-console-kit.conf \
+	scripts/no-console-kit-or-login1.conf \
 	scripts/no-keyboard-layout.conf \
 	scripts/no-language.conf \
+	scripts/no-login1.conf \
 	scripts/open-file-descriptors.conf \
 	scripts/pam.conf \
+	scripts/power.conf \
+	scripts/power-no-console-kit.conf \
+	scripts/power-no-services.conf \
+	scripts/power-no-login1.conf \
 	scripts/plymouth-active-vt.conf \
 	scripts/plymouth-inactive-vt.conf \
 	scripts/plymouth-no-seat.conf \
@@ -313,7 +340,10 @@ EXTRA_DIST = \
 	scripts/util-path.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
+	scripts/vnc-command.conf \
+	scripts/vnc-dimensions.conf \
 	scripts/vnc-login.conf \
+	scripts/vnc-open-file-descriptors.conf \
 	scripts/xauthority.conf \
 	scripts/xdmcp-login.conf \
 	scripts/xdmcp-open-file-descriptors.conf \

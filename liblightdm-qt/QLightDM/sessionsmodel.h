@@ -19,6 +19,9 @@ namespace QLightDM {
     class Q_DECL_EXPORT SessionsModel : public QAbstractListModel
     {
         Q_OBJECT
+
+        Q_ENUMS(SessionModelRoles SessionType)
+
     public:
         enum SessionModelRoles {
             //name is exposed as Qt::DisplayRole
@@ -45,6 +48,6 @@ namespace QLightDM {
     private:
         Q_DECLARE_PRIVATE(SessionsModel)
     };
-};
+}
 
 #endif // QLIGHTDM_SESSION_H
