@@ -115,7 +115,6 @@ TESTS = \
 	test-lock-session \
 	test-lock-session-no-password \
 	test-lock-session-return-session \
-	test-login1 \
 	test-switch-to-greeter \
 	test-switch-to-greeter-new-session \
 	test-switch-to-greeter-new-session-logout-new \
@@ -135,6 +134,8 @@ TESTS = \
 	test-xdmcp-login \
 	test-no-accounts-service \
 	test-console-kit \
+	test-no-console-kit \
+	test-no-login1 \
 	test-no-console-kit-or-login1 \
 	test-gobject-power \
 	test-gobject-power-no-console-kit \
@@ -300,9 +301,11 @@ EXTRA_DIST = \
 	scripts/login-xserver-crash.conf \
 	scripts/no-accounts-service.conf \
 	scripts/no-config.conf \
+	scripts/no-console-kit.conf \
 	scripts/no-console-kit-or-login1.conf \
 	scripts/no-keyboard-layout.conf \
 	scripts/no-language.conf \
+	scripts/no-login1.conf \
 	scripts/open-file-descriptors.conf \
 	scripts/pam.conf \
 	scripts/power.conf \
