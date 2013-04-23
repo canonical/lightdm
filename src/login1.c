@@ -14,6 +14,12 @@
 
 #include "login1.h"
 
+gboolean
+login1_is_running (void)
+{
+    return access ("/run/systemd/seats/", F_OK) >= 0;
+}
+
 gchar *
 login1_get_session_id (void)
 {

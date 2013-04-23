@@ -14,9 +14,9 @@
 
 #include <glib-object.h>
 
-#define LOGIND_RUNNING() (access ("/run/systemd/seats/", F_OK) >= 0)
-
 G_BEGIN_DECLS
+
+gboolean login1_is_running (void);
 
 gchar *login1_get_session_id (void);
 

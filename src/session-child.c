@@ -449,7 +449,7 @@ session_child_run (int argc, char **argv)
     if (!bus)
         return EXIT_FAILURE;
 
-    if (LOGIND_RUNNING ())
+    if (login1_is_running ())
     {
         login1_session = login1_get_session_id ();
         write_string (login1_session);
