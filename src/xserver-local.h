@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _XSERVER_LOCAL_H_
-#define _XSERVER_LOCAL_H_
+#ifndef XSERVER_LOCAL_H_
+#define XSERVER_LOCAL_H_
 
 #include "xserver.h"
 
@@ -67,4 +67,4 @@ const gchar *xserver_local_get_authority_file_path (XServerLocal *server);
 
 G_END_DECLS
 
-#endif /* _XSERVER_LOCAL_H_ */
+#endif /* XSERVER_LOCAL_H_ */

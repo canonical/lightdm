@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _PLYMOUTH_H_
-#define _PLYMOUTH_H_
+#ifndef PLYMOUTH_H_
+#define PLYMOUTH_H_
 
 #include <glib-object.h>
 
@@ -28,4 +28,4 @@ void plymouth_quit (gboolean retain_splash);
 
 G_END_DECLS
 
-#endif /* _PLYMOUTH_H_ */
+#endif /* PLYMOUTH_H_ */

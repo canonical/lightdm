@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _XDMCP_SERVER_H_
-#define _XDMCP_SERVER_H_
+#ifndef XDMCP_SERVER_H_
+#define XDMCP_SERVER_H_
 
 #include <glib-object.h>
 
@@ -58,4 +58,4 @@ gboolean xdmcp_server_start (XDMCPServer *server);
 
 G_END_DECLS
 
-#endif /* _XDMCP_SERVER_H_ */
+#endif /* XDMCP_SERVER_H_ */

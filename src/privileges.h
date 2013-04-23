@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _PRIVILEGES_H_
-#define _PRIVILEGES_H_
+#ifndef PRIVILEGES_H_
+#define PRIVILEGES_H_
 
 #include "accounts.h"
 
@@ -18,4 +18,4 @@ void privileges_drop (User *user);
 
 void privileges_reclaim (void);
 
-#endif /* _PRIVILEGES_H_ */
+#endif /* PRIVILEGES_H_ */

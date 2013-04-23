@@ -8,8 +8,8 @@
  * See http://www.gnu.org/copyleft/lgpl.html the full text of the license.
  */
 
-#ifndef _LIGHTDM_LANGUAGE_H_
-#define _LIGHTDM_LANGUAGE_H_
+#ifndef LIGHTDM_LANGUAGE_H_
+#define LIGHTDM_LANGUAGE_H_
 
 #include <glib-object.h>
 
@@ -56,4 +56,4 @@ gboolean lightdm_language_matches (LightDMLanguage *language, const gchar *code)
 
 G_END_DECLS
 
-#endif /* _LIGHTDM_LANGUAGE_H_ */
+#endif /* LIGHTDM_LANGUAGE_H_ */

@@ -8,8 +8,8 @@
  * See http://www.gnu.org/copyleft/lgpl.html the full text of the license.
  */
 
-#ifndef _LIGHTDM_GREETER_H_
-#define _LIGHTDM_GREETER_H_
+#ifndef LIGHTDM_GREETER_H_
+#define LIGHTDM_GREETER_H_
 
 #include <glib-object.h>
 
@@ -123,4 +123,4 @@ gboolean lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gcha
 
 G_END_DECLS
 
-#endif /* _LIGHTDM_GREETER_H_ */
+#endif /* LIGHTDM_GREETER_H_ */

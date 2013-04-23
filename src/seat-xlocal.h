@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _SEAT_XLOCAL_H_
-#define _SEAT_XLOCAL_H_
+#ifndef SEAT_XLOCAL_H_
+#define SEAT_XLOCAL_H_
 
 #include <glib-object.h>
 #include "seat.h"
@@ -37,4 +37,4 @@ GType seat_xlocal_get_type (void);
 
 G_END_DECLS
 
-#endif /* _SEAT_XLOCAL_H_ */
+#endif /* SEAT_XLOCAL_H_ */

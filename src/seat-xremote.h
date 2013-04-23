@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _SEAT_XREMOTE_H_
-#define _SEAT_XREMOTE_H_
+#ifndef SEAT_XREMOTE_H_
+#define SEAT_XREMOTE_H_
 
 #include <glib-object.h>
 #include "seat.h"
@@ -34,4 +34,4 @@ GType seat_xremote_get_type (void);
 
 G_END_DECLS
 
-#endif /* _SEAT_XREMOTE_H_ */
+#endif /* SEAT_XREMOTE_H_ */

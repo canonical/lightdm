@@ -8,8 +8,8 @@
  * See http://www.gnu.org/copyleft/lgpl.html the full text of the license.
  */
 
-#ifndef _LIGHTDM_USER_H_
-#define _LIGHTDM_USER_H_
+#ifndef LIGHTDM_USER_H_
+#define LIGHTDM_USER_H_
 
 #include <glib-object.h>
 
@@ -108,4 +108,4 @@ gboolean lightdm_user_get_has_messages (LightDMUser *user);
 
 G_END_DECLS
 
-#endif /* _LIGHTDM_USER_H_ */
+#endif /* LIGHTDM_USER_H_ */
