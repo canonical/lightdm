@@ -129,7 +129,7 @@ lightdm_suspend (GError **error)
     if (!result)
     {
       if (error)
-	g_printerr ("Can't suspend using lightdm; falling back to UPower: %s",
+	g_debug ("Can't suspend using logind; falling back to UPower: %s",
 		    (*error)->message);
       g_clear_error (error);
       result = upower_call_function ("Suspend", error);
@@ -197,7 +197,7 @@ lightdm_hibernate (GError **error)
     if (!result)
     {
       if (error)
-	g_printerr ("Can't hibernate using lightdm; falling back to UPower: %s",
+	g_debug ("Can't hibernate using logind; falling back to UPower: %s",
 		    (*error)->message);
       g_clear_error (error);
       result = upower_call_function ("Hibernate", error);
