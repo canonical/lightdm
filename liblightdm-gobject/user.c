@@ -1321,7 +1321,7 @@ load_user_values (LightDMUser *user)
  * 
  * Get the language for a user.
  * 
- * Return value: The language for the given user or #NULL if using system defaults.
+ * Return value: The language in the form of a local specification (e.g. "de_DE.UTF-8") for the given user or #NULL if using the system default locale.
  **/
 const gchar *
 lightdm_user_get_language (LightDMUser *user)
