@@ -1132,16 +1132,10 @@ load_dmrc (LightDMUser *user)
 
     // FIXME: Watch for changes
 
-    /* The Language field is actually a locale, strip the codeset off it to get the language */
+    /* The Language field contains the locale */
     if (priv->language)
         g_free (priv->language);
     priv->language = g_key_file_get_string (priv->dmrc_file, "Desktop", "Language", NULL);
-    if (priv->language)
-    {
-        gchar *codeset = strchr (priv->language, '.');
-        if (codeset)
-            *codeset = '\0';
-    }
 
     if (priv->layouts)
     {

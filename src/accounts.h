@@ -58,7 +58,7 @@ const gchar *user_get_xsession (User *user);
 
 void user_set_xsession (User *user, const gchar *session);
 
-const gchar *user_get_locale (User *user);
+const gchar *user_get_language (User *user);
 
 void user_set_language (User *user, const gchar *language);
 
