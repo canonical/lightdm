@@ -61,6 +61,9 @@ struct SeatUnityPrivate
     /* Compositor process */
     Process *compositor_process;
 
+    /* Timeout when waiting for compositor to start */
+    guint compositor_timeout;
+
     /* IDs for each display */
     GHashTable *display_ids;
 
@@ -199,6 +202,8 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         {
             seat->priv->compositor_ready = TRUE;
             g_debug ("Compositor ready");
+            g_source_remove (seat->priv->compositor_timeout);
+            seat->priv->compositor_timeout = 0;
             SEAT_CLASS (seat_unity_parent_class)->start (SEAT (seat));
         }
         break;
@@ -237,6 +242,18 @@ get_absolute_command (const gchar *command)
     g_strfreev (tokens);
 
     return absolute_command;
+}
+
+static gboolean
+compositor_timeout_cb (gpointer data)
+{
+    Seat *seat = data;
+
+    g_debug ("Compositor failed to start");
+
+    seat_stop (seat);
+
+    return TRUE;
 }
 
 static gboolean
@@ -317,6 +334,7 @@ seat_unity_start (Seat *seat)
 
     /* Connect to the compositor */
     g_debug ("Waiting for system compositor");
+    SEAT_UNITY (seat)->priv->compositor_timeout = g_timeout_add (5000, compositor_timeout_cb, seat);
 
     return TRUE;
 }
