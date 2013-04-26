@@ -269,6 +269,12 @@ xserver_local_set_mir_id (XServerLocal *server, const gchar *id)
     server->priv->vt = -1;
 }
 
+const gchar *xserver_local_get_mir_id (XServerLocal *server)
+{
+    g_return_val_if_fail (server != NULL, NULL);
+    return server->priv->mir_id; 
+}
+
 void
 xserver_local_set_mir_socket (XServerLocal *server, const gchar *socket)
 {

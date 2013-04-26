@@ -64,9 +64,6 @@ struct SeatUnityPrivate
     /* Timeout when waiting for compositor to start */
     guint compositor_timeout;
 
-    /* IDs for each display */
-    GHashTable *display_ids;
-
     gint next_id;
 };
 
@@ -134,7 +131,8 @@ write_message (SeatUnity *seat, guint16 id, const guint8 *payload, guint16 paylo
     data[3] = payload_length & 0xFF;
     memcpy (data + 4, payload, payload_length);
 
-    if (write (seat->priv->to_compositor_pipe[1], data, data_length) < 0)
+    errno = 0;
+    if (write (seat->priv->to_compositor_pipe[1], data, data_length) != data_length)
         g_warning ("Failed to write to compositor: %s", strerror (errno));
 }
 
@@ -356,7 +354,6 @@ seat_unity_create_display_server (Seat *seat)
     SEAT_UNITY (seat)->priv->next_id++;
     xserver_local_set_mir_id (xserver, id);
     xserver_local_set_mir_socket (xserver, SEAT_UNITY (seat)->priv->mir_socket_filename);
-    g_hash_table_insert (SEAT_UNITY (seat)->priv->display_ids, g_object_ref (xserver), g_strdup (id));
     g_free (id);
 
     command = seat_get_string_property (seat, "xserver-command");
@@ -441,10 +438,14 @@ seat_unity_create_session (Seat *seat, Display *display)
 static void
 seat_unity_set_active_display (Seat *seat, Display *display)
 {
+    XServerLocal *xserver;
     const gchar *id;
 
-    id = g_hash_table_lookup (SEAT_UNITY (seat)->priv->display_ids, display_get_display_server (display));
-    write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_ACTIVE_SESSION, id, strlen (id));
+    xserver = XSERVER_LOCAL (display_get_display_server (display));
+    id = xserver_local_get_mir_id (xserver);
+
+    g_debug ("Switching to Mir session %s", id);
+    write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_ACTIVE_SESSION, id, strlen (id));  
 
     SEAT_CLASS (seat_unity_parent_class)->set_active_display (seat, display);
 }
@@ -472,8 +473,6 @@ seat_unity_stop (Seat *seat)
 static void
 seat_unity_display_removed (Seat *seat, Display *display)
 {
-    g_hash_table_remove (SEAT_UNITY (seat)->priv->display_ids, display_get_display_server (display));
-
     if (seat_get_is_stopping (seat))
         return;
 
@@ -499,7 +498,6 @@ seat_unity_init (SeatUnity *seat)
     seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_UNITY_TYPE, SeatUnityPrivate);
     seat->priv->vt = -1;
     seat->priv->compositor_process = process_new ();
-    seat->priv->display_ids = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, g_free);
 }
 
 static void
@@ -518,7 +516,6 @@ seat_unity_finalize (GObject *object)
     g_io_channel_unref (seat->priv->from_compositor_channel);
     g_free (seat->priv->read_buffer);
     g_object_unref (seat->priv->compositor_process);
-    g_hash_table_unref (seat->priv->display_ids);
 
     G_OBJECT_CLASS (seat_unity_parent_class)->finalize (object);
 }
