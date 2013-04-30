@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2012-2013 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -80,7 +80,7 @@ static void
 compositor_stopped_cb (Process *process, SeatUnity *seat)
 {
     g_debug ("Stopping Unity seat, compositor terminated");
-  
+
     if (seat->priv->stopping_plymouth)
     {
         g_debug ("Stopping Plymouth, compositor failed to start");
@@ -143,7 +143,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     gsize n_to_read = 0;
     guint16 id, payload_length;
     guint8 *payload;
-  
+
     /* Work out how much required for a message */
     if (seat->priv->read_buffer_n_used < 4)
         n_to_read = 4 - seat->priv->read_buffer_n_used;
@@ -183,7 +183,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     /* Read payload */
     if (seat->priv->read_buffer_n_used < 4 + payload_length)
         return TRUE;
-    payload = seat->priv->read_buffer + 4;        
+    payload = seat->priv->read_buffer + 4;
 
     switch (id)
     {
@@ -271,7 +271,7 @@ seat_unity_start (Seat *seat)
             plymouth_deactivate ();
         }
         else
-            g_debug ("Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());       
+            g_debug ("Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());
     }
     if (SEAT_UNITY (seat)->priv->vt < 0)
         SEAT_UNITY (seat)->priv->vt = vt_get_unused ();
@@ -302,10 +302,10 @@ seat_unity_start (Seat *seat)
     SEAT_UNITY (seat)->priv->log_file = g_build_filename (dir, "unity-system-compositor.log", NULL);
     g_debug ("Logging to %s", SEAT_UNITY (seat)->priv->log_file);
     g_free (dir);
-  
+
     SEAT_UNITY (seat)->priv->mir_socket_filename = g_strdup ("/tmp/mir_socket"); // FIXME: Use this socket by default as XMir is hardcoded to this
     command = g_strdup_printf ("unity-system-compositor %d %d", SEAT_UNITY (seat)->priv->to_compositor_pipe[0], SEAT_UNITY (seat)->priv->from_compositor_pipe[1]);
-  
+
     absolute_command = get_absolute_command (command);
     g_free (command);
     if (!absolute_command)
@@ -320,7 +320,7 @@ seat_unity_start (Seat *seat)
     g_signal_connect (SEAT_UNITY (seat)->priv->compositor_process, "stopped", G_CALLBACK (compositor_stopped_cb), seat);
     g_signal_connect (SEAT_UNITY (seat)->priv->compositor_process, "run", G_CALLBACK (compositor_run_cb), seat);
     result = process_start (SEAT_UNITY (seat)->priv->compositor_process, FALSE);
-  
+
     /* Close compostor ends of the pipes */
     close (SEAT_UNITY (seat)->priv->to_compositor_pipe[0]);
     SEAT_UNITY (seat)->priv->to_compositor_pipe[0] = 0;
@@ -367,9 +367,9 @@ seat_unity_create_display_server (Seat *seat)
     config_file = seat_get_string_property (seat, "xserver-config");
     if (config_file)
         xserver_local_set_config (xserver, config_file);
-  
+
     allow_tcp = seat_get_boolean_property (seat, "xserver-allow-tcp");
-    xserver_local_set_allow_tcp (xserver, allow_tcp);    
+    xserver_local_set_allow_tcp (xserver, allow_tcp);
 
     xdmcp_manager = seat_get_string_property (seat, "xdmcp-manager");
     if (xdmcp_manager)
@@ -395,7 +395,7 @@ seat_unity_create_display_server (Seat *seat)
         result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
         if (error)
             g_debug ("Error getting key %s", error->message);
-        g_clear_error (&error);      
+        g_clear_error (&error);
 
         if (result)
         {
@@ -445,7 +445,7 @@ seat_unity_set_active_display (Seat *seat, Display *display)
     id = xserver_local_get_mir_id (xserver);
 
     g_debug ("Switching to Mir session %s", id);
-    write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_ACTIVE_SESSION, id, strlen (id));  
+    write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_ACTIVE_SESSION, id, strlen (id));
 
     SEAT_CLASS (seat_unity_parent_class)->set_active_display (seat, display);
 }
@@ -484,7 +484,7 @@ seat_unity_display_removed (Seat *seat, Display *display)
         return;
     }
 
-    /* Show a new greeter */  
+    /* Show a new greeter */
     if (display == seat_get_active_display (seat))
     {
         g_debug ("Active display stopped, switching to greeter");
@@ -523,7 +523,7 @@ seat_unity_finalize (GObject *object)
 static void
 seat_unity_class_init (SeatUnityClass *klass)
 {
-    GObjectClass *object_class = G_OBJECT_CLASS (klass);  
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
     SeatClass *seat_class = SEAT_CLASS (klass);
 
     object_class->finalize = seat_unity_finalize;
@@ -533,7 +533,7 @@ seat_unity_class_init (SeatUnityClass *klass)
     seat_class->create_session = seat_unity_create_session;
     seat_class->set_active_display = seat_unity_set_active_display;
     seat_class->run_script = seat_unity_run_script;
-    seat_class->stop = seat_unity_stop;  
+    seat_class->stop = seat_unity_stop;
     seat_class->display_removed = seat_unity_display_removed;
 
     g_type_class_add_private (klass, sizeof (SeatUnityPrivate));
