@@ -9,32 +9,21 @@
  * license.
  */
 
-#ifndef SEAT_XLOCAL_H_
-#define SEAT_XLOCAL_H_
+#ifndef _LOGIN1_H_
+#define _LOGIN1_H_
 
 #include <glib-object.h>
-#include "seat.h"
 
 G_BEGIN_DECLS
 
-#define SEAT_XLOCAL_TYPE (seat_xlocal_get_type())
-#define SEAT_XLOCAL(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), SEAT_XLOCAL_TYPE, SeatXLocal))
+gboolean login1_is_running (void);
 
-typedef struct SeatXLocalPrivate SeatXLocalPrivate;
+gchar *login1_get_session_id (void);
 
-typedef struct
-{
-    Seat               parent_instance;
-    SeatXLocalPrivate *priv;
-} SeatXLocal;
+void login1_lock_session (const gchar *session_path);
 
-typedef struct
-{
-    SeatClass parent_class;
-} SeatXLocalClass;
-
-GType seat_xlocal_get_type (void);
+void login1_unlock_session (const gchar *session_path);
 
 G_END_DECLS
 
-#endif /* SEAT_XLOCAL_H_ */
+#endif /* _LOGIN1_H_ */

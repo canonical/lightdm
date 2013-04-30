@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _XAUTHORITY_H_
-#define _XAUTHORITY_H_
+#ifndef XAUTHORITY_H_
+#define XAUTHORITY_H_
 
 #include <glib-object.h>
 
@@ -86,4 +86,4 @@ gboolean xauth_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filena
 
 G_END_DECLS
 
-#endif /* _XAUTHORITY_H_ */
+#endif /* XAUTHORITY_H_ */

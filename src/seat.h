@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _SEAT_H_
-#define _SEAT_H_
+#ifndef SEAT_H_
+#define SEAT_H_
 
 #include <glib-object.h>
 #include "display.h"
@@ -95,4 +95,4 @@ gboolean seat_get_is_stopping (Seat *seat);
 
 G_END_DECLS
 
-#endif /* _SEAT_H_ */
+#endif /* SEAT_H_ */

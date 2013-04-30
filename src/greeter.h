@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _GREETER_H_
-#define _GREETER_H_
+#ifndef GREETER_H_
+#define GREETER_H_
 
 #include "session.h"
 
@@ -53,4 +53,4 @@ gboolean greeter_start (Greeter *greeter, const gchar *service, const gchar *use
 
 G_END_DECLS
 
-#endif /* _GREETER_H_ */
+#endif /* GREETER_H_ */

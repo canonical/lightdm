@@ -1,3 +1,11 @@
+Overview of changes in lightdm 1.7.0
+
+    * Use logind instead of ConsoleKit if it is available
+    * Use Q_SLOTS and Q_SIGNALS instead of slots and signals.
+    * Ignore stale X server locks
+    * Pass through system locale or set locale from AccountsService/.dmrc
+    * Fix bug where seat failure before D-Bus acquired would not stop daemon
+
 Overview of changes in lightdm 1.6.0
 
     * Allow VNC command to be specified in lightdm.conf

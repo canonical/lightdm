@@ -702,6 +702,7 @@ display_start_session (Display *display)
 {
     User *user;
     gchar *filename, *sessions_dir, *path;
+    const gchar *language;
     gchar **argv;
 
     user = session_get_user (display->priv->session);
@@ -725,6 +726,14 @@ display_start_session (Display *display)
     if (!argv)
         return TRUE;
   
+    /* Retrieve language setting */
+    language = user_get_language (user);
+    if (language != NULL && language != '\0')
+    {
+        session_set_env (display->priv->session, "LANG", language);
+        session_set_env (display->priv->session, "GDM_LANG", language);
+    }
+
     session_set_env (display->priv->session, "DESKTOP_SESSION", display->priv->user_session); // FIXME: Apparently deprecated?
     session_set_env (display->priv->session, "GDMSESSION", display->priv->user_session); // FIXME: Not cross-desktop
 

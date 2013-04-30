@@ -8,8 +8,8 @@
  * See http://www.gnu.org/copyleft/lgpl.html the full text of the license.
  */
 
-#ifndef _LIGHTDM_H_
-#define _LIGHTDM_H_
+#ifndef LIGHTDM_H_
+#define LIGHTDM_H_
 
 #include "lightdm/greeter.h"
 #include "lightdm/language.h"
@@ -19,4 +19,4 @@
 #include "lightdm/system.h"
 #include "lightdm/user.h"
 
-#endif /* _LIGHTDM_H_ */
+#endif /* LIGHTDM_H_ */

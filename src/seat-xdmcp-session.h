@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _SEAT_XDMCP_SESSION_H_
-#define _SEAT_XDMCP_SESSION_H_
+#ifndef SEAT_XDMCP_SESSION_H_
+#define SEAT_XDMCP_SESSION_H_
 
 #include "seat.h"
 #include "xdmcp-session.h"
@@ -39,4 +39,4 @@ SeatXDMCPSession *seat_xdmcp_session_new (XDMCPSession *session);
 
 G_END_DECLS
 
-#endif /* _SEAT_XDMCP_SESSION_H_ */
+#endif /* SEAT_XDMCP_SESSION_H_ */

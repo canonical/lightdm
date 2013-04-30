@@ -16,6 +16,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <glib/gstdio.h>
+#include <stdlib.h>
 
 #include "xserver-local.h"
 #include "configuration.h"

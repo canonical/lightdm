@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _XSERVER_H_
-#define _XSERVER_H_
+#ifndef XSERVER_H_
+#define XSERVER_H_
 
 #include <glib-object.h>
 #include "display-server.h"
@@ -61,4 +61,4 @@ XAuthority *xserver_get_authority (XServer *server);
 
 G_END_DECLS
 
-#endif /* _XSERVER_H_ */
+#endif /* XSERVER_H_ */

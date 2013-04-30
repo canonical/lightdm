@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _CONFIGURATION_H_
-#define _CONFIGURATION_H_
+#ifndef CONFIGURATION_H_
+#define CONFIGURATION_H_
 
 #include <glib-object.h>
 
@@ -58,4 +58,4 @@ gboolean config_get_boolean (Configuration *config, const gchar *section, const 
 
 G_END_DECLS
 
-#endif /* _CONFIGURATION_H_ */
+#endif /* CONFIGURATION_H_ */

@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _VT_H_
-#define _VT_H_
+#ifndef VT_H_
+#define VT_H_
 
 #include <glib-object.h>
 
@@ -26,4 +26,4 @@ void vt_unref (gint number);
 
 void vt_set_active (gint number);
 
-#endif /* _VT_H_ */
+#endif /* VT_H_ */

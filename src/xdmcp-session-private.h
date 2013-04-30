@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _XDMCP_SESSION_PRIVATE_H_
-#define _XDMCP_SESSION_PRIVATE_H_
+#ifndef XDMCP_SESSION_PRIVATE_H_
+#define XDMCP_SESSION_PRIVATE_H_
 
 #include "xdmcp-server.h"
 #include "xauthority.h"
@@ -36,4 +36,4 @@ struct XDMCPSessionPrivate
     gchar *display_class;
 };
 
-#endif /* _XDMCP_SESSION_PRIVATE_H_ */
+#endif /* XDMCP_SESSION_PRIVATE_H_ */

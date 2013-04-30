@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _XDMCP_SESSION_H_
-#define _XDMCP_SESSION_H_
+#ifndef XDMCP_SESSION_H_
+#define XDMCP_SESSION_H_
 
 #include <glib-object.h>
 #include <gio/gio.h>
@@ -53,4 +53,4 @@ const gchar *xdmcp_session_get_display_class (XDMCPSession *session);
 
 G_END_DECLS
 
-#endif /* _XDMCP_SESSION_H_ */
+#endif /* XDMCP_SESSION_H_ */

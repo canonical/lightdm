@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _SEAT_xvnc_H_
-#define _SEAT_xvnc_H_
+#ifndef SEAT_XVNC_H_
+#define SEAT_XVNC_H_
 
 #include <glib-object.h>
 #include "seat.h"
@@ -39,4 +39,4 @@ SeatXVNC *seat_xvnc_new (GSocket *connection);
 
 G_END_DECLS
 
-#endif /* _SEAT_xvnc_H_ */
+#endif /* SEAT_XVNC_H_ */
