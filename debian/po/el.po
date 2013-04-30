@@ -1,0 +1,113 @@
+# debconf templates for xorg-x11 package
+# Greek translation
+#
+# $Id: el.po 1042 2006-01-09 07:55:08Z ender $
+#
+# Copyrights:
+# Branden Robinson, 2000-2004
+# Konstantinos Margaritis <markos@debian.org>, 2004
+#
+# This file is distributed under the same license as the xorg-x11 package.
+# Please see debian/copyright.
+#
+#    Translators, if you are not familiar with the PO format, gettext
+#    documentation is worth reading, especially sections dedicated to
+#    this format, e.g. by running:
+#         info -n '(gettext)PO Files'
+#         info -n '(gettext)Header Entry'
+#
+#    Some information specific to po-debconf are available at
+#            /usr/share/doc/po-debconf/README-trans
+#         or http://www.debian.org/intl/l10n/po-debconf/README-trans
+#
+#    Developers do not need to manually edit POT or PO files.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: el\n"
+"Report-Msgid-Bugs-To: mmassonnet@gmail.com\n"
+"POT-Creation-Date: 2007-05-31 08:04+0200\n"
+"PO-Revision-Date: 2005-12-19 18:40+0200\n"
+"Last-Translator: Konstantinos Margaritis <markos@debian.org>\n"
+"Language-Team: Greek <debian-l10n-greek@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+#, fuzzy
+msgid "Default display manager:"
+msgstr "Επιλέξτε τον επιθυμητό διαχειριστή οθόνης."
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+msgid ""
+"A display manager is a program that provides graphical login capabilities "
+"for the X Window System."
+msgstr ""
+"Ο διαχειριστής οθόνης είναι ένα πρόγραμμα που προσφέρει τη δυνατότητα "
+"σύνδεσης στο σύστημα παραθύρων X μέσω γραφικού περιβάλλοντος."
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+#, fuzzy
+msgid ""
+"Only one display manager can manage a given X server, but multiple display "
+"manager packages are installed. Please select which display manager should "
+"run by default."
+msgstr ""
+"Μόνο ένας διαχειριστής οθόνης μπορεί να χειρίζεται ένα συγκεκριμένο "
+"εξυπηρετητή X, αλλά περισσότεροι από ένας είναι εγκατεστημένοι. Παρακαλώ "
+"επιλέξτε τον διαχειριστή οθόνης που θα εκτελείται ως προκαθορισμένος."
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+#, fuzzy
+msgid ""
+"Multiple display managers can run simultaneously if they are configured to "
+"manage different servers; to achieve this, configure the display managers "
+"accordingly, edit each of their init scripts in /etc/init.d, and disable the "
+"check for a default display manager."
+msgstr ""
+"Πολλαπλοί διαχειριστές οθόνης μπορούν να τρέχουν ταυτόχρονα, αν έχουν "
+"ρυθμιστεί να χειρίζονται διαφορετικούς διακομιστές X. Για να επιτευχθεί "
+"αυτό, ρυθμίστε τους διαχειριστές οθόνης κατάλληλα, επεξεργαστείτε τα αρχεία "
+"εκκίνησής τους στον κατάλογο /etc/init.d, και απενεργοποιήστε τον έλεγχο για "
+"προκαθορισμένο διαχειριστή οθόνης."
+
+#, fuzzy
+#~ msgid "Stop the xdm daemon?"
+#~ msgstr "Θέλετε να σταματήσετε να χρησιμοποιείτε τον δαίμονα xdm;"
+
+#, fuzzy
+#~ msgid ""
+#~ "The X display manager (xdm) daemon is typically stopped on package "
+#~ "upgrade and removal, but it appears to be managing at least one running X "
+#~ "session."
+#~ msgstr ""
+#~ "Κανονικά, η λειτουργία του δαίμονα του διαχειριστή οθόνης των X (xdm) "
+#~ "διακόπτεται με κάθε αναβάθμιση και διαγραφή του πακέτου, αλλά στη "
+#~ "συγκεκριμένη περίπτωση φαίνεται ότι διαχειρίζεται ήδη τουλάχιστον μια "
+#~ "συνεδρία των X (X session). Αν ο xdm τερματιστεί τώρα, οποιεσδήποτε "
+#~ "συνεδρίες των X χειρίζεται θα τερματιστούν επίσης. Διαφορετικά, μπορείτε "
+#~ "να αφήσετε τον xdm να συνεχίσει τη λειτουργία του και η νέα έκδοση να "
+#~ "χρησιμοποιηθεί την επόμενη φορά που θα τρέξει ο δαίμονας."
+
+#, fuzzy
+#~ msgid ""
+#~ "If xdm is stopped now, any X sessions it manages will be terminated. "
+#~ "Otherwise, the new version will take effect the next time the daemon is "
+#~ "restarted."
+#~ msgstr ""
+#~ "Κανονικά, η λειτουργία του δαίμονα του διαχειριστή οθόνης των X (xdm) "
+#~ "διακόπτεται με κάθε αναβάθμιση και διαγραφή του πακέτου, αλλά στη "
+#~ "συγκεκριμένη περίπτωση φαίνεται ότι διαχειρίζεται ήδη τουλάχιστον μια "
+#~ "συνεδρία των X (X session). Αν ο xdm τερματιστεί τώρα, οποιεσδήποτε "
+#~ "συνεδρίες των X χειρίζεται θα τερματιστούν επίσης. Διαφορετικά, μπορείτε "
+#~ "να αφήσετε τον xdm να συνεχίσει τη λειτουργία του και η νέα έκδοση να "
+#~ "χρησιμοποιηθεί την επόμενη φορά που θα τρέξει ο δαίμονας."

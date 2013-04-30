@@ -1,0 +1,4 @@
+01_transition_ubuntu2d_ubuntu_desktop.patch
+03_launch_dbus.patch
+04_language_options.patch
+05_add_xserver_core_option.patch

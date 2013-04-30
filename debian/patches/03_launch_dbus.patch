@@ -1,0 +1,23 @@
+=== modified file 'src/display.c'
+Index: lightdm-1.5.1/src/display.c
+===================================================================
+--- lightdm-1.5.1.orig/src/display.c	2013-03-08 11:18:24.497614682 +1300
++++ lightdm-1.5.1/src/display.c	2013-03-08 11:18:24.497614682 +1300
+@@ -635,6 +635,8 @@
+     }
+ }
+ 
++static void prepend_argv (gchar ***argv, const gchar *value);
++
+ static gboolean
+ display_start_greeter (Display *display)
+ {
+@@ -662,6 +664,8 @@
+     if (!argv)
+         return TRUE;
+ 
++    prepend_argv (&argv, "/usr/lib/lightdm/lightdm-greeter-session");
++
+     session_run (display->priv->session, argv);
+ 
+     return FALSE;

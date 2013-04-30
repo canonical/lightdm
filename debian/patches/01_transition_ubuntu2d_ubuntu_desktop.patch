@@ -1,0 +1,21 @@
+# Description: Remove unity-2d (not anymore supported) and transition to unity
+#              starting from quantal. llvmpipe is used in case no hardware
+#              acceleration is available.
+=== modified file 'liblightdm-gobject/user.c'
+Index: lightdm-1.5.1/liblightdm-gobject/user.c
+===================================================================
+--- lightdm-1.5.1.orig/liblightdm-gobject/user.c	2013-03-08 11:18:21.877614772 +1300
++++ lightdm-1.5.1/liblightdm-gobject/user.c	2013-03-08 11:18:21.873614772 +1300
+@@ -1313,6 +1313,12 @@
+     load_dmrc (user);
+     load_accounts_service (user); // overrides dmrc values
+ 
++    if (g_strcmp0 (priv->session, "ubuntu-2d") == 0)
++    {
++        g_free(priv->session);
++        priv->session = g_strdup ("ubuntu");
++    }
++
+     /* Ensure a few guarantees */
+     if (priv->layouts == NULL)
+     {

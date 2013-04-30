@@ -1,0 +1,136 @@
+Source: lightdm
+Section: x11
+Priority: optional
+Maintainer: Robert Ancell <robert.ancell@ubuntu.com>
+Uploaders: Julien Lavergne <gilir@ubuntu.com>
+Standards-Version: 3.9.4
+Build-Depends: debhelper (>= 7.0.50~),
+               gnome-common,
+               intltool (>= 0.35.0),
+               quilt,
+               libgcrypt11-dev,
+               libglib2.0-dev,
+               libmirclient-dev,
+               libpam0g-dev,
+               libxdmcp-dev,
+               libxcb1-dev,
+               libxklavier-dev,
+               libgtk-3-dev,
+               gobject-introspection,
+               libgirepository1.0-dev,
+               libqt4-dev,
+               qtbase5-dev,
+               dh-autoreconf,
+               dh-translations,
+               gtk-doc-tools,
+               yelp-tools,
+               dbus
+XS-Testsuite: autopkgtest
+Homepage: https://launchpad.net/lightdm
+
+Package: lightdm
+Architecture: any
+Pre-Depends: dpkg (>= 1.15.7.2)
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+         libpam-runtime (>= 0.76-14),
+         libpam-modules,
+         adduser,
+         libglib2.0-bin,
+         dbus,
+         plymouth (>= 0.8.8-0ubuntu6.1)
+Recommends: xserver-xorg,
+            unity-greeter | lightdm-greeter | lightdm-kde-greeter
+Conflicts: liblightdm-gobject-0-0,
+           liblightdm-qt-0-0
+Provides: x-display-manager
+Description: Display Manager
+ LightDM is a X display manager that:
+  * Has a lightweight codebase
+  * Is standards compliant (PAM, ConsoleKit, etc)
+  * Has a well defined interface between the server and user interface
+  * Cross-desktop (greeters can be written in any toolkit)
+
+Package: liblightdm-gobject-1-0
+Architecture: any
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
+Recommends: lightdm,
+            accountsservice
+Description: LightDM GObject client library
+ A GObject based library for LightDM clients to use to interface with LightDM.
+
+Package: gir1.2-lightdm-1
+Section: libs
+Architecture: any
+Depends: ${misc:Depends},
+         liblightdm-gobject-1-0 (= ${binary:Version})
+Description: Typelib file for liblightdm-1
+ A GObject based library for LightDM clients to use to interface with LightDM.
+
+Package: liblightdm-qt-3-0
+Architecture: any
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
+Recommends: lightdm         
+Conflicts: liblightdm-qt-1-0 (>= 1.1.1)
+Replaces: liblightdm-qt-1-0 (>= 1.1.1)
+Description: LightDM Qt client library
+ A Qt based library for LightDM clients to use to interface with LightDM.
+
+Package: liblightdm-qt5-3-0
+Architecture: any
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
+Recommends: lightdm         
+Description: LightDM Qt 5 client library
+ A Qt 5 based library for LightDM clients to use to interface with LightDM.
+
+Package: liblightdm-gobject-1-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends},
+         liblightdm-gobject-1-0 (= ${binary:Version}),
+         libglib2.0-dev,
+         libdbus-glib-1-dev,
+         libxklavier-dev
+Description: LightDM GObject client library (development files)
+ A GObject based library for LightDM clients to use to interface with LightDM.
+ .
+ This package contains header files and development information, which
+ is useful for building LightDM greeters and user switchers.
+
+Package: liblightdm-qt-3-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends},
+         liblightdm-qt-3-0 (= ${binary:Version}),
+         libqt4-dev
+Conflicts: liblightdm-qt-1-dev (>= 1.1.1)
+Replaces: liblightdm-qt-1-dev (>= 1.1.1)
+Description: LightDM Qt client library (development files)
+ A Qt based library for LightDM clients to use to interface with LightDM.
+ .
+ This package contains header files and development information, which
+ is useful for building LightDM greeters and user switchers.
+
+Package: liblightdm-qt5-3-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends},
+         liblightdm-qt5-3-0 (= ${binary:Version}),
+         libqt4-dev
+Description: LightDM Qt 5 client library (development files)
+ A Qt 5 based library for LightDM clients to use to interface with LightDM.
+ .
+ This package contains header files and development information, which
+ is useful for building LightDM greeters and user switchers.
+
+Package: liblightdm-gobject-1-doc
+Section: doc
+Architecture: all
+Depends: ${misc:Depends}
+Description: LightDM client library (documentation)
+ A GObject based library for LightDM clients to use to interface with LightDM.
+ .
+ This package contains HTML documentation.

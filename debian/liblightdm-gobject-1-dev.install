@@ -1,0 +1,5 @@
+usr/share/gir-1.0/LightDM-*.gir
+usr/include/lightdm-gobject-*
+usr/lib/pkgconfig/liblightdm-gobject-*.pc
+usr/lib/liblightdm-gobject-*.so
+usr/share/vala/vapi
