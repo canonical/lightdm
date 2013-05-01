@@ -506,7 +506,7 @@ seat_unity_finalize (GObject *object)
     SeatUnity *seat = SEAT_UNITY (object);
 
     if (seat->priv->vt >= 0)
-       vt_unref (seat->priv->vt);
+        vt_unref (seat->priv->vt);
     g_free (seat->priv->log_file);
     g_free (seat->priv->mir_socket_filename);
     close (seat->priv->to_compositor_pipe[0]);
