@@ -38,7 +38,8 @@ Depends: ${misc:Depends},
          adduser,
          libglib2.0-bin,
          dbus,
-         plymouth (>= 0.8.8-0ubuntu6.1)
+         plymouth (>= 0.8.8-0ubuntu6.1),
+         unity-system-compositor
 Recommends: xserver-xorg,
             unity-greeter | lightdm-greeter | lightdm-kde-greeter
 Conflicts: liblightdm-gobject-0-0,
