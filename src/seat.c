@@ -659,14 +659,15 @@ seat_start_with_autologin (Seat *seat, gboolean chained_autologin)
     in_background = do_autologin && !chained_autologin &&
                     seat_get_boolean_property (seat, "autologin-in-background");
 
-    if (in_background)
+    if (in_background && autologin_timeout == 0)
     {
         g_debug ("Autologin in background, opening greeter first");
         do_autologin = FALSE;
         autologin_username = NULL;
         autologin_guest = FALSE;
-        autologin_timeout = 0;
     }
+    if (chained_autologin)
+        autologin_timeout = 0;
 
     return switch_to_user_or_start_greeter (seat, autologin_username, TRUE,
                                             autologin_guest, NULL, FALSE,
