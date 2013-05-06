@@ -492,7 +492,9 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean use
     DisplayServer *display_server;
 
     /* Switch to existing if it exists */
-    if (use_existing && switch_to_user (seat, username, FALSE))
+    if (is_guest && !seat->priv->guest_username)
+        use_existing = FALSE; /* Else we might match to a greeter session */
+    if (use_existing && switch_to_user (seat, is_guest ? seat->priv->guest_username : username, FALSE))
         return TRUE;
 
     /* If one don't exist then start a greeter */
