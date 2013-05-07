@@ -7,5 +7,5 @@ Name: liblightdm-qt
 Description: LightDM Qt4 client library
 Version: @VERSION@
 Requires: QtCore QtGui
-Libs: -L${libdir} -llightdm-qt-2
-Cflags: -I${includedir}/lightdm-qt-2
+Libs: -L${libdir} -llightdm-qt-3
+Cflags: -I${includedir}/lightdm-qt-3
