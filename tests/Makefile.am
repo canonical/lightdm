@@ -8,6 +8,9 @@ TESTS = \
 	test-no-config \
 	test-headless \
 	test-autologin \
+	test-autologin-in-background \
+	test-autologin-guest-in-background \
+	test-autologin-timeout-in-background \
 	test-autologin-invalid-user \
 	test-autologin-invalid-session \
 	test-crash-authenticate \
@@ -236,6 +239,9 @@ EXTRA_DIST = \
 	scripts/autologin-guest-fail-setup-script.conf \
 	scripts/autologin-guest-logout.conf \
 	scripts/autologin-guest-timeout.conf \
+	scripts/autologin-in-background.conf \
+	scripts/autologin-guest-in-background.conf \
+	scripts/autologin-timeout-in-background.conf \
 	scripts/autologin-invalid-session.conf \
 	scripts/autologin-invalid-user.conf \
 	scripts/autologin-logout.conf \
