@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _XSERVER_REMOTE_H_
-#define _XSERVER_REMOTE_H_
+#ifndef XSERVER_REMOTE_H_
+#define XSERVER_REMOTE_H_
 
 #include "xserver.h"
 
@@ -35,4 +35,4 @@ XServerRemote *xserver_remote_new (const gchar *hostname, guint number, XAuthori
 
 G_END_DECLS
 
-#endif /* _XSERVER_REMOTE_H_ */
+#endif /* XSERVER_REMOTE_H_ */

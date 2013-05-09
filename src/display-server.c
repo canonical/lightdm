@@ -27,6 +27,12 @@ struct DisplayServerPrivate
 
     /* TRUE if sessions should be automatically started on this display server */
     gboolean start_local_sessions;
+
+    /* TRUE when being stopped */
+    gboolean stopping;
+
+    /* TRUE when the display server has stopped */
+    gboolean stopped;
 };
 
 G_DEFINE_TYPE (DisplayServer, display_server, G_TYPE_OBJECT);
@@ -78,6 +84,11 @@ void
 display_server_stop (DisplayServer *server)
 {
     g_return_if_fail (server != NULL);
+
+    if (server->priv->stopping)
+        return;
+    server->priv->stopping = TRUE;
+
     DISPLAY_SERVER_GET_CLASS (server)->stop (server);
 }
 
@@ -85,19 +96,20 @@ gboolean
 display_server_get_is_stopped (DisplayServer *server)
 {
     g_return_val_if_fail (server != NULL, TRUE);
-    return DISPLAY_SERVER_GET_CLASS (server)->get_is_stopped (server);
+    return server->priv->stopped;
 }
 
 static void
 display_server_real_stop (DisplayServer *server)
 {
+    server->priv->stopped = TRUE;
     g_signal_emit (server, signals[STOPPED], 0);
 }
 
 static gboolean
 display_server_real_get_is_stopped (DisplayServer *server)
 {
-    return TRUE;
+    return server->priv->stopped;
 }
 
 static void
@@ -112,7 +124,6 @@ display_server_class_init (DisplayServerClass *klass)
 {
     klass->start = display_server_real_start;
     klass->stop = display_server_real_stop;
-    klass->get_is_stopped = display_server_real_get_is_stopped;
 
     g_type_class_add_private (klass, sizeof (DisplayServerPrivate));
 

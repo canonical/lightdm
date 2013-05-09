@@ -194,7 +194,7 @@ lightdm_get_languages (void)
  * lightdm_language_get_code:
  * @language: A #LightDMLanguage
  * 
- * Get the code of a language.
+ * Get the code of a language (e.g. "de_DE.UTF-8")
  * 
  * Return value: The code of the language
  **/

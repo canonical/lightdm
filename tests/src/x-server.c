@@ -775,17 +775,8 @@ x_server_start (XServer *server)
     if (server->priv->listen_unix)
     {
         GError *error = NULL;
-        gchar *socket_dir;
-        gchar *socket_filename;
-
-        socket_dir = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", ".X11-unix", NULL);
-        g_mkdir_with_parents (socket_dir, 0755);
-
-        socket_filename = g_strdup_printf ("X%d", server->priv->display_number);
-        server->priv->socket_path = g_build_filename (socket_dir, socket_filename, NULL);
-
-        g_free (socket_dir);
-        g_free (socket_filename);
+      
+        server->priv->socket_path = g_strdup_printf ("/tmp/.X11-unix/X%d", server->priv->display_number);
 
         server->priv->unix_socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
         if (!server->priv->unix_socket ||

@@ -8,6 +8,9 @@ TESTS = \
 	test-no-config \
 	test-headless \
 	test-autologin \
+	test-autologin-in-background \
+	test-autologin-guest-in-background \
+	test-autologin-timeout-in-background \
 	test-autologin-invalid-user \
 	test-autologin-invalid-session \
 	test-crash-authenticate \
@@ -21,6 +24,8 @@ TESTS = \
 	test-autologin-python-guest-timeout \
 	test-change-authentication \
 	test-restart-authentication \
+	test-gobject-cancel-authentication \
+	test-python-cancel-authentication \
 	test-pam \
 	test-login-pam \
 	test-denied \
@@ -108,9 +113,17 @@ TESTS = \
 	test-script-hook-fail-display-setup \
 	test-script-hook-fail-greeter-setup \
 	test-script-hook-fail-session-setup \
-    test-lock-seat \
-    test-lock-session \
+	test-lock-seat \
+	test-lock-seat-return-session \
+	test-lock-session \
+	test-lock-session-no-password \
+	test-lock-session-return-session \
 	test-switch-to-greeter \
+	test-switch-to-greeter-new-session \
+	test-switch-to-greeter-new-session-logout-new \
+	test-switch-to-greeter-new-session-logout-old \
+	test-switch-to-greeter-return-session \
+	test-switch-to-greeter-return-session-logout \
 	test-switch-to-guest \
 	test-switch-to-user \
 	test-switch-to-users \
@@ -118,10 +131,23 @@ TESTS = \
 	test-switch-to-user-no-password \
 	test-switch-to-user-logout \
 	test-vnc-login \
+	test-vnc-command \
+	test-vnc-dimensions \
+	test-vnc-open-file-descriptors \
 	test-xdmcp-login \
 	test-no-accounts-service \
 	test-console-kit \
 	test-no-console-kit \
+	test-no-login1 \
+	test-no-console-kit-or-login1 \
+	test-gobject-power \
+	test-gobject-power-no-console-kit \
+	test-gobject-power-no-login1 \
+	test-gobject-power-no-services \
+	test-python-power \
+	test-python-power-no-console-kit \
+	test-python-power-no-login1 \
+	test-python-power-no-services \
 	test-open-file-descriptors \
 	test-xdmcp-open-file-descriptors
 
@@ -135,6 +161,7 @@ if COMPILE_LIBLIGHTDM_QT4
 TESTS += \
 	test-autologin-qt4-timeout \
 	test-autologin-qt4-guest-timeout \
+	test-qt4-cancel-authentication \
 	test-login-qt4 \
 	test-login-qt4-manual \
 	test-login-qt4-manual-previous-session \
@@ -156,13 +183,18 @@ TESTS += \
 	test-login-qt4-guest-no-setup-script \
 	test-login-qt4-guest-fail-setup-script \
 	test-login-qt4-guest-logout \
-	test-login-qt4-remote-session
+	test-login-qt4-remote-session \
+	test-qt4-power \
+	test-qt4-power-no-console-kit \
+	test-qt4-power-no-login1 \
+	test-qt4-power-no-services
 endif
 
 if COMPILE_LIBLIGHTDM_QT5
 TESTS += \
 	test-autologin-qt5-timeout \
 	test-autologin-qt5-guest-timeout \
+	test-qt5-cancel-authentication \
 	test-login-qt5 \
 	test-login-qt5-manual \
 	test-login-qt5-manual-previous-session \
@@ -184,7 +216,11 @@ TESTS += \
 	test-login-qt5-guest-no-setup-script \
 	test-login-qt5-guest-fail-setup-script \
 	test-login-qt5-guest-logout \
-	test-login-qt5-remote-session
+	test-login-qt5-remote-session \
+	test-qt4-power \
+	test-qt4-power-no-console-kit \
+	test-qt4-power-no-login1 \
+	test-qt4-power-no-services
 endif
 
 EXTRA_DIST = \
@@ -203,6 +239,9 @@ EXTRA_DIST = \
 	scripts/autologin-guest-fail-setup-script.conf \
 	scripts/autologin-guest-logout.conf \
 	scripts/autologin-guest-timeout.conf \
+	scripts/autologin-in-background.conf \
+	scripts/autologin-guest-in-background.conf \
+	scripts/autologin-timeout-in-background.conf \
 	scripts/autologin-invalid-session.conf \
 	scripts/autologin-invalid-user.conf \
 	scripts/autologin-logout.conf \
@@ -214,6 +253,7 @@ EXTRA_DIST = \
 	scripts/autologin-timeout.conf \
 	scripts/autologin-xserver-crash.conf \
 	scripts/change-authentication.conf \
+	scripts/cancel-authentication.conf \
 	scripts/console-kit.conf \
 	scripts/crash-authenticate.conf \
 	scripts/cred-error.conf \
@@ -234,7 +274,10 @@ EXTRA_DIST = \
 	scripts/language.conf \
 	scripts/language-no-accounts-service.conf \
 	scripts/lock-seat.conf \
+	scripts/lock-seat-return-session.conf \
 	scripts/lock-session.conf \
+	scripts/lock-session-no-password.conf \
+	scripts/lock-session-return-session.conf \
 	scripts/login.conf \
 	scripts/login-crash-authenticate.conf \
 	scripts/login-guest.conf \
@@ -265,10 +308,16 @@ EXTRA_DIST = \
 	scripts/no-accounts-service.conf \
 	scripts/no-config.conf \
 	scripts/no-console-kit.conf \
+	scripts/no-console-kit-or-login1.conf \
 	scripts/no-keyboard-layout.conf \
 	scripts/no-language.conf \
+	scripts/no-login1.conf \
 	scripts/open-file-descriptors.conf \
 	scripts/pam.conf \
+	scripts/power.conf \
+	scripts/power-no-console-kit.conf \
+	scripts/power-no-services.conf \
+	scripts/power-no-login1.conf \
 	scripts/plymouth-active-vt.conf \
 	scripts/plymouth-inactive-vt.conf \
 	scripts/plymouth-no-seat.conf \
@@ -282,6 +331,11 @@ EXTRA_DIST = \
 	scripts/session-stderr-multi-write.conf \
 	scripts/session-stderr-backup.conf \
 	scripts/switch-to-greeter.conf \
+	scripts/switch-to-greeter-new-session.conf \
+	scripts/switch-to-greeter-new-session-logout-new.conf \
+	scripts/switch-to-greeter-new-session-logout-old.conf \
+	scripts/switch-to-greeter-return-session.conf \
+	scripts/switch-to-greeter-return-session-logout.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \
 	scripts/switch-to-users.conf \
@@ -292,7 +346,10 @@ EXTRA_DIST = \
 	scripts/util-path.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
+	scripts/vnc-command.conf \
+	scripts/vnc-dimensions.conf \
 	scripts/vnc-login.conf \
+	scripts/vnc-open-file-descriptors.conf \
 	scripts/xauthority.conf \
 	scripts/xdmcp-login.conf \
 	scripts/xdmcp-open-file-descriptors.conf \

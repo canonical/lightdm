@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <grp.h>
+#include <xcb/xcb.h>
 #include <glib.h>
 #include <glib-object.h>
 #include <gio/gio.h>
@@ -19,6 +20,8 @@ static GMainLoop *loop;
 static GString *open_fds;
 
 static GKeyFile *config;
+
+static xcb_connection_t *connection;
 
 static void
 quit_cb (int signum)

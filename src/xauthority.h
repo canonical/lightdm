@@ -9,11 +9,10 @@
  * license.
  */
 
-#ifndef _XAUTHORITY_H_
-#define _XAUTHORITY_H_
+#ifndef XAUTHORITY_H_
+#define XAUTHORITY_H_
 
 #include <glib-object.h>
-#include <gio/gio.h>
 
 G_BEGIN_DECLS
 
@@ -83,8 +82,8 @@ guint8 *xauth_copy_authorization_data (XAuthority *auth);
 
 gsize xauth_get_authorization_data_length (XAuthority *auth);
 
-gboolean xauth_write (XAuthority *auth, XAuthWriteMode mode, GFile *file, GError **error);
+gboolean xauth_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GError **error);
 
 G_END_DECLS
 
-#endif /* _XAUTHORITY_H_ */
+#endif /* XAUTHORITY_H_ */

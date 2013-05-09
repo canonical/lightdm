@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _VNC_SERVER_H_
-#define _VNC_SERVER_H_
+#ifndef VNC_SERVER_H_
+#define VNC_SERVER_H_
 
 #include <glib-object.h>
 
@@ -46,4 +46,4 @@ gboolean vnc_server_start (VNCServer *server);
 
 G_END_DECLS
 
-#endif /* _VNC_SERVER_H_ */
+#endif /* VNC_SERVER_H_ */

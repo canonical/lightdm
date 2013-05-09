@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _XSESSION_H_
-#define _XSESSION_H_
+#ifndef XSESSION_H_
+#define XSESSION_H_
 
 #include "session.h"
 #include "xserver.h"
@@ -39,4 +39,4 @@ XSession *xsession_new (XServer *xserver);
 
 G_END_DECLS
 
-#endif /* _XSESSION_H_ */
+#endif /* XSESSION_H_ */

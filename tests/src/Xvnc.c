@@ -174,9 +174,9 @@ main (int argc, char **argv)
     gboolean listen_tcp = TRUE;
     gboolean listen_unix = TRUE;
     gboolean use_inetd = FALSE;
+    gboolean has_option = FALSE;
     gchar *geometry = g_strdup ("640x480");
     gint depth = 8;
-    gchar *lock_filename;
     int lock_file;
     int i;
 
@@ -229,6 +229,10 @@ main (int argc, char **argv)
         {
             use_inetd = TRUE;
         }
+        else if (strcmp (arg, "-option") == 0)
+        {
+            has_option = TRUE;
+        }
         else
         {
             g_printerr ("Unrecognized option: %s\n"
@@ -249,7 +253,7 @@ main (int argc, char **argv)
     x_server_set_listen_unix (xserver, listen_unix);
     x_server_set_listen_tcp (xserver, listen_tcp);
 
-    status_notify ("XSERVER-%d START GEOMETRY=%s DEPTH=%d", display_number, geometry, depth);
+    status_notify ("XSERVER-%d START GEOMETRY=%s DEPTH=%d OPTION=%s", display_number, geometry, depth, has_option ? "TRUE" : "FALSE");
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
@@ -268,9 +272,7 @@ main (int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    lock_filename = g_strdup_printf (".X%d-lock", display_number);
-    lock_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", lock_filename, NULL);
-    g_free (lock_filename);
+    lock_path = g_strdup_printf ("/tmp/.X%d-lock", display_number);
     lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
     if (lock_file < 0)
     {

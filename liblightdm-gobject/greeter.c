@@ -1032,7 +1032,7 @@ lightdm_greeter_get_authentication_user (LightDMGreeter *greeter)
 /**
  * lightdm_greeter_set_language:
  * @greeter: A #LightDMGreeter
- * @language: The language to use for this user.
+ * @language: The language to use for this user in the form of a locale specification (e.g. "de_DE.UTF-8").
  *
  * Set the language for the currently authenticated user.
  **/

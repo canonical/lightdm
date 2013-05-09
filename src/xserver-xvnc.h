@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _XSERVER_XVNC_H_
-#define _XSERVER_XVNC_H_
+#ifndef XSERVER_XVNC_H_
+#define XSERVER_XVNC_H_
 
 #include "xserver.h"
 
@@ -41,6 +41,8 @@ gboolean xserver_xvnc_check_available (void);
 
 XServerXVNC *xserver_xvnc_new (void);
 
+void xserver_xvnc_set_command (XServerXVNC *server, const gchar *command);
+
 void xserver_xvnc_set_socket (XServerXVNC *server, int fd);
 
 int xserver_xvnc_get_socket (XServerXVNC *server);
@@ -49,8 +51,8 @@ void xserver_xvnc_set_geometry (XServerXVNC *server, gint width, gint height);
 
 void xserver_xvnc_set_depth (XServerXVNC *server, gint depth);
 
-gchar *xserver_xvnc_get_authority_file_path (XServerXVNC *server);
+const gchar *xserver_xvnc_get_authority_file_path (XServerXVNC *server);
 
 G_END_DECLS
 
-#endif /* _XSERVER_XVNC_H_ */
+#endif /* XSERVER_XVNC_H_ */

@@ -1,5 +1,5 @@
-#ifndef _X_SERVER_H_
-#define _X_SERVER_H_
+#ifndef X_SERVER_H_
+#define X_SERVER_H_
 
 #include <glib-object.h>
 #include <gio/gio.h>
@@ -112,4 +112,4 @@ void x_client_disconnect (XClient *client);
 
 G_END_DECLS
 
-#endif /* _X_SERVER_H_ */
+#endif /* X_SERVER_H_ */

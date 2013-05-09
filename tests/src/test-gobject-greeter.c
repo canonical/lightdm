@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <xcb/xcb.h>
 #include <lightdm.h>
 
 #include "status.h"
@@ -98,6 +99,11 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
+    r = g_strdup_printf ("%s CANCEL-AUTHENTICATION", greeter_id);
+    if (strcmp (request, r) == 0)
+        lightdm_greeter_cancel_authentication (greeter);
+    g_free (r);
+
     r = g_strdup_printf ("%s START-SESSION", greeter_id);
     if (strcmp (request, r) == 0)
     {
@@ -187,6 +193,78 @@ request_cb (const gchar *request)
         language = lightdm_user_get_language (user);
 
         status_notify ("%s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s", greeter_id, username, language ? language : "");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s GET-CAN-SUSPEND", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        gboolean can_suspend = lightdm_get_can_suspend ();
+        status_notify ("GREETER %s CAN-SUSPEND ALLOWED=%s", getenv ("DISPLAY"), can_suspend ? "TRUE" : "FALSE");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s SUSPEND", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        GError *error = NULL;
+        if (!lightdm_suspend (&error))
+            status_notify ("GREETER %s FAIL-SUSPEND", getenv ("DISPLAY"));
+        g_clear_error (&error);
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s GET-CAN-HIBERNATE", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        gboolean can_hibernate = lightdm_get_can_hibernate ();
+        status_notify ("GREETER %s CAN-HIBERNATE ALLOWED=%s", getenv ("DISPLAY"), can_hibernate ? "TRUE" : "FALSE");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s HIBERNATE", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        GError *error = NULL;
+        if (!lightdm_hibernate (&error))
+            status_notify ("GREETER %s FAIL-HIBERNATE", getenv ("DISPLAY"));
+        g_clear_error (&error);
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s GET-CAN-RESTART", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        gboolean can_restart = lightdm_get_can_restart ();
+        status_notify ("GREETER %s CAN-RESTART ALLOWED=%s", getenv ("DISPLAY"), can_restart ? "TRUE" : "FALSE");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s RESTART", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        GError *error = NULL;
+        if (!lightdm_restart (&error))
+            status_notify ("GREETER %s FAIL-RESTART", getenv ("DISPLAY"));
+        g_clear_error (&error);
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s GET-CAN-SHUTDOWN", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        gboolean can_shutdown = lightdm_get_can_shutdown ();
+        status_notify ("GREETER %s CAN-SHUTDOWN ALLOWED=%s", getenv ("DISPLAY"), can_shutdown ? "TRUE" : "FALSE");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s SHUTDOWN", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        GError *error = NULL;
+        if (!lightdm_shutdown (&error))
+            status_notify ("GREETER %s FAIL-SHUTDOWN", getenv ("DISPLAY"));
+        g_clear_error (&error);
     }
     g_free (r);
 }

@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _SESSION_H_
-#define _SESSION_H_
+#ifndef SESSION_H_
+#define SESSION_H_
 
 #include <glib-object.h>
 
@@ -104,4 +104,4 @@ gboolean session_get_is_stopped (Session *session);
 
 G_END_DECLS
 
-#endif /* _SESSION_H_ */
+#endif /* SESSION_H_ */

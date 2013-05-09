@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _DISPLAY_SERVER_H_
-#define _DISPLAY_SERVER_H_
+#ifndef DISPLAY_SERVER_H_
+#define DISPLAY_SERVER_H_
 
 #include <glib-object.h>
 
@@ -38,7 +38,6 @@ typedef struct
 
     gboolean (*start)(DisplayServer *server);
     void (*stop)(DisplayServer *server);
-    gboolean (*get_is_stopped)(DisplayServer *server);
 } DisplayServerClass;
 
 GType display_server_get_type (void);
@@ -59,4 +58,4 @@ gboolean display_server_get_is_stopped (DisplayServer *server);
 
 G_END_DECLS
 
-#endif /* _DISPLAY_SERVER_H_ */
+#endif /* DISPLAY_SERVER_H_ */

@@ -34,16 +34,16 @@ namespace QLightDM
         bool canRestart();
 
     public Q_SLOTS:
-        void suspend();
-        void hibernate();
-        void shutdown();
-        void restart();
+        bool suspend();
+        bool hibernate();
+        bool shutdown();
+        bool restart();
 
     private:
         class PowerInterfacePrivate;
         PowerInterfacePrivate * const d;
 
     };
-};
+}
 
 #endif // QLIGHTDM_POWER_H

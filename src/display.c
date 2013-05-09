@@ -85,6 +85,7 @@ struct DisplayPrivate
     /* Hint to select user in greeter */
     gchar *select_user_hint;
     gboolean select_guest_hint;
+    gboolean select_user_attempt_login;
 
     /* TRUE if allowed to log into guest account */
     gboolean allow_guest;
@@ -188,12 +189,13 @@ display_set_autologin_user (Display *display, const gchar *username, gboolean is
 }
 
 void
-display_set_select_user_hint (Display *display, const gchar *username, gboolean is_guest)
+display_set_select_user_hint (Display *display, const gchar *username, gboolean is_guest, gboolean attempt_login)
 {
     g_return_if_fail (display != NULL);
     g_free (display->priv->select_user_hint);
     display->priv->select_user_hint = g_strdup (username);
     display->priv->select_guest_hint = is_guest;
+    display->priv->select_user_attempt_login = attempt_login;
 }
 
 void
@@ -594,9 +596,7 @@ greeter_session_stopped_cb (Session *session, Display *display)
 
     g_debug ("Greeter quit");
 
-    g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-    g_object_unref (display->priv->session);
-    display->priv->session = NULL;
+    destroy_session (display);
 
     if (display->priv->stopping)
     {
@@ -674,9 +674,7 @@ user_session_stopped_cb (Session *session, Display *display)
 {
     g_debug ("User session quit");
 
-    g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-    g_object_unref (display->priv->session);
-    display->priv->session = NULL;
+    destroy_session (display);
 
     /* This display has ended */
     display_stop (display);
@@ -704,6 +702,7 @@ display_start_session (Display *display)
 {
     User *user;
     gchar *filename, *sessions_dir, *path;
+    const gchar *language;
     gchar **argv;
 
     user = session_get_user (display->priv->session);
@@ -727,6 +726,14 @@ display_start_session (Display *display)
     if (!argv)
         return TRUE;
   
+    /* Retrieve language setting */
+    language = user_get_language (user);
+    if (language != NULL && language != '\0')
+    {
+        session_set_env (display->priv->session, "LANG", language);
+        session_set_env (display->priv->session, "GDM_LANG", language);
+    }
+
     session_set_env (display->priv->session, "DESKTOP_SESSION", display->priv->user_session); // FIXME: Apparently deprecated?
     session_set_env (display->priv->session, "GDMSESSION", display->priv->user_session); // FIXME: Not cross-desktop
 
@@ -787,7 +794,7 @@ display_server_ready_cb (DisplayServer *display_server, Display *display)
         g_debug ("Automatically logging in user %s", display->priv->autologin_user);
         result = autologin (display, display->priv->autologin_user, AUTOLOGIN_SERVICE, TRUE, FALSE);
     }
-    else if (display->priv->select_user_hint)
+    else if (display->priv->select_user_hint && display->priv->select_user_attempt_login)
     {
         g_debug ("Logging in user %s", display->priv->select_user_hint);
         result = autologin (display, display->priv->select_user_hint, USER_SERVICE, TRUE, FALSE);
@@ -871,23 +878,17 @@ display_stop (Display *display)
     if (display->priv->session)
     {
         session_stop (display->priv->session);
-        if (display->priv->session && !session_get_is_stopped (display->priv->session))
-            return;
-        g_signal_handlers_disconnect_matched (display->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, display);
-        g_object_unref (display->priv->session);
-        display->priv->session = NULL;
+        return;
     }
 
     /* Stop the display server after that */
     if (!display_server_get_is_stopped (display->priv->display_server))
     {
         display_server_stop (display->priv->display_server);
-        if (!display_server_get_is_stopped (display->priv->display_server))
-            return;
+        return;
     }
 
     display->priv->stopped = TRUE;
-    g_debug ("Display stopped");
     g_signal_emit (display, signals[STOPPED], 0);
 }
 

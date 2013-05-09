@@ -623,6 +623,24 @@ read_int (Greeter *greeter, gsize *offset)
     return value;
 }
 
+static int
+get_message_length (Greeter *greeter)
+{
+    gsize offset;
+    int payload_length;
+
+    offset = int_length ();
+    payload_length = read_int (greeter, &offset);
+
+    if (HEADER_SIZE + payload_length < HEADER_SIZE)
+    {
+        g_warning ("Payload length of %u octets too long", payload_length);
+        return HEADER_SIZE;
+    }
+
+    return HEADER_SIZE + payload_length;
+}
+
 static gchar *
 read_string_full (Greeter *greeter, gsize *offset, void* (*alloc_fn)(size_t n))
 {
@@ -665,8 +683,8 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     Greeter *greeter = data;
     gsize n_to_read, n_read, offset;
     GIOStatus status;
-    int id, n_secrets, i;
-    guint32 sequence_number;
+    int id, i;
+    guint32 sequence_number, n_secrets, max_secrets;
     gchar *version, *username, *session_name, *language;
     gchar **secrets;
     GError *error = NULL;
@@ -680,8 +698,9 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     n_to_read = HEADER_SIZE;
     if (greeter->priv->n_read >= HEADER_SIZE)
     {
-        offset = int_length ();
-        n_to_read += read_int (greeter, &offset);
+        n_to_read = get_message_length (greeter);
+        if (n_to_read <= HEADER_SIZE)
+            return FALSE;
     }
 
     status = g_io_channel_read_chars (greeter->priv->from_greeter_channel,
@@ -702,14 +721,13 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     /* If have header, rerun for content */
     if (greeter->priv->n_read == HEADER_SIZE)
     {
-        gsize offset = int_length ();
-        n_to_read = read_int (greeter, &offset);
-        if (n_to_read > 0)
+        n_to_read = get_message_length (greeter);
+        if (n_to_read > HEADER_SIZE)
         {
-            greeter->priv->read_buffer = secure_realloc (greeter, greeter->priv->read_buffer, HEADER_SIZE + n_to_read);
+            greeter->priv->read_buffer = secure_realloc (greeter, greeter->priv->read_buffer, n_to_read);
             read_cb (source, condition, greeter);
             return TRUE;
-        }
+        }      
     }
   
     offset = 0;
@@ -740,6 +758,12 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         break;
     case GREETER_MESSAGE_CONTINUE_AUTHENTICATION:
         n_secrets = read_int (greeter, &offset);
+        max_secrets = (G_MAXUINT32 - 1) / sizeof (gchar *);
+        if (n_secrets > max_secrets)
+        {
+            g_warning ("Array length of %u elements too long", n_secrets);
+            return FALSE;
+        }
         secrets = g_malloc (sizeof (gchar *) * (n_secrets + 1));
         for (i = 0; i < n_secrets; i++)
             secrets[i] = read_secret (greeter, &offset);

@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _XDMCP_PROTOCOL_H_
-#define _XDMCP_PROTOCOL_H_
+#ifndef XDMCP_PROTOCOL_H_
+#define XDMCP_PROTOCOL_H_
 
 #include <glib.h>
 
@@ -146,4 +146,4 @@ gchar *xdmcp_packet_tostring (XDMCPPacket *packet);
 
 void xdmcp_packet_free (XDMCPPacket *packet);
 
-#endif /* _XDMCP_PROTOCOL_H_ */
+#endif /* XDMCP_PROTOCOL_H_ */

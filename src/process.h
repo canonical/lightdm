@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _PROCESS_H_
-#define _PROCESS_H_
+#ifndef PROCESS_H_
+#define PROCESS_H_
 
 #include <glib-object.h>
 
@@ -56,7 +56,7 @@ void process_set_command (Process *process, const gchar *command);
 
 const gchar *process_get_command (Process *process);
 
-gboolean process_start (Process *process);
+gboolean process_start (Process *process, gboolean block);
 
 gboolean process_get_is_running (Process *process);
 
@@ -66,10 +66,8 @@ void process_signal (Process *process, int signum);
 
 void process_stop (Process *process);
 
-void process_wait (Process *process);
-
 int process_get_exit_status (Process *process);
 
 G_END_DECLS
 
-#endif /* _PROCESS_H_ */
+#endif /* PROCESS_H_ */

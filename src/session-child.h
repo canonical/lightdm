@@ -9,9 +9,9 @@
  * license.
  */
 
-#ifndef _SESSION_CHILD_H_
-#define _SESSION_CHILD_H_
+#ifndef SESSION_CHILD_H_
+#define SESSION_CHILD_H_
 
 int session_child_run (int argc, char **argv);
 
-#endif /* _SESSION_CHILD_H_ */
+#endif /* SESSION_CHILD_H_ */

@@ -12,9 +12,11 @@
 #include <config.h>
 #include <string.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <glib/gstdio.h>
+#include <stdlib.h>
 
 #include "xserver-local.h"
 #include "configuration.h"
@@ -43,7 +45,7 @@ struct XServerLocalPrivate
     gboolean allow_tcp;
 
     /* Authority file */
-    GFile *authority_file;
+    gchar *authority_file;
 
     /* XDMCP server to connect to */
     gchar *xdmcp_server;
@@ -76,8 +78,11 @@ display_number_in_use (guint display_number)
 {
     GList *link;
     gchar *path;
-    gboolean result;
+    gboolean exists;
+    gboolean stale = TRUE;
+    gchar *data;
 
+    /* See if we know we are managing a server with that number */
     for (link = display_numbers; link; link = link->next)
     {
         guint number = GPOINTER_TO_UINT (link->data);
@@ -85,11 +90,28 @@ display_number_in_use (guint display_number)
             return TRUE;
     }
 
+    /* See if an X server that we don't know of has a lock on that number */
     path = g_strdup_printf ("/tmp/.X%d-lock", display_number);
-    result = g_file_test (path, G_FILE_TEST_EXISTS);
+    exists = g_file_test (path, G_FILE_TEST_EXISTS);
     g_free (path);
+    if (!exists)
+        return FALSE;
 
-    return result;
+    /* See if that lock file is valid, ignore it if the contents are invalid or the process doesn't exist */
+    if (g_file_get_contents (path, &data, NULL, NULL))
+    {
+        int pid;
+
+        pid = atoi (g_strstrip (data));
+        if (pid <= 0)
+            return FALSE;
+
+        errno = 0;
+        if (kill (pid, 0) < 0 && errno == ESRCH)
+            return FALSE;
+    }
+  
+    return TRUE;
 }
 
 guint
@@ -234,13 +256,11 @@ xserver_local_get_vt (XServerLocal *server)
     return server->priv->vt;
 }
 
-gchar *
+const gchar *
 xserver_local_get_authority_file_path (XServerLocal *server)
 {
     g_return_val_if_fail (server != NULL, 0);
-    if (server->priv->authority_file)
-        return g_file_get_path (server->priv->authority_file);
-    return NULL;
+    return server->priv->authority_file;
 }
 
 static gchar *
@@ -325,19 +345,11 @@ stopped_cb (Process *process, XServerLocal *server)
   
     if (xserver_get_authority (XSERVER (server)) && server->priv->authority_file)
     {
-        GError *error = NULL;
-        gchar *path;
+        g_debug ("Removing X server authority %s", server->priv->authority_file);
 
-        path = g_file_get_path (server->priv->authority_file);      
-        g_debug ("Removing X server authority %s", path);
-        g_free (path);
+        g_unlink (server->priv->authority_file);
 
-        g_file_delete (server->priv->authority_file, NULL, &error);
-        if (error)
-            g_debug ("Error removing authority: %s", error->message);
-        g_clear_error (&error);
-
-        g_object_unref (server->priv->authority_file);
+        g_free (server->priv->authority_file);
         server->priv->authority_file = NULL;
     }
 
@@ -361,7 +373,6 @@ static void
 write_authority_file (XServerLocal *server)
 {
     XAuthority *authority;
-    gchar *path;
     GError *error = NULL;
 
     authority = xserver_get_authority (XSERVER (server));
@@ -378,15 +389,11 @@ write_authority_file (XServerLocal *server)
         g_free (run_dir);
         g_mkdir_with_parents (dir, S_IRWXU);
 
-        path = g_build_filename (dir, xserver_get_address (XSERVER (server)), NULL);
+        server->priv->authority_file = g_build_filename (dir, xserver_get_address (XSERVER (server)), NULL);
         g_free (dir);
-        server->priv->authority_file = g_file_new_for_path (path);
-        g_free (path);
     }
 
-    path = g_file_get_path (server->priv->authority_file);
-    g_debug ("Writing X server authority to %s", path);
-    g_free (path);
+    g_debug ("Writing X server authority to %s", server->priv->authority_file);
 
     xauth_write (authority, XAUTH_WRITE_MODE_REPLACE, server->priv->authority_file, &error);
     if (error)
@@ -448,11 +455,7 @@ xserver_local_start (DisplayServer *display_server)
     g_free (number);
     write_authority_file (server);
     if (server->priv->authority_file)
-    {
-        gchar *path = g_file_get_path (server->priv->authority_file);
-        g_string_append_printf (command, " -auth %s", path);
-        g_free (path);
-    }
+        g_string_append_printf (command, " -auth %s", server->priv->authority_file);
 
     /* Connect to a remote server using XDMCP */
     if (server->priv->xdmcp_server != NULL)
@@ -487,6 +490,7 @@ xserver_local_start (DisplayServer *display_server)
             gchar *path;
             path = g_build_filename (g_get_home_dir (), ".Xauthority", NULL);
             process_set_env (server->priv->xserver_process, "XAUTHORITY", path);
+            g_free (path);
         }
     }
 
@@ -498,7 +502,7 @@ xserver_local_start (DisplayServer *display_server)
         process_set_env (server->priv->xserver_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }
 
-    result = process_start (server->priv->xserver_process);
+    result = process_start (server->priv->xserver_process, FALSE);
 
     if (result)
         g_debug ("Waiting for ready signal from X server :%d", xserver_get_display_number (XSERVER (server)));
@@ -513,12 +517,6 @@ static void
 xserver_local_stop (DisplayServer *server)
 {
     process_stop (XSERVER_LOCAL (server)->priv->xserver_process);
-}
-
-static gboolean
-xserver_local_get_is_stopped (DisplayServer *server)
-{
-    return process_get_pid (XSERVER_LOCAL (server)->priv->xserver_process) == 0;
 }
 
 static void
@@ -544,8 +542,7 @@ xserver_local_finalize (GObject *object)
     g_free (self->priv->layout);
     g_free (self->priv->xdmcp_server);
     g_free (self->priv->xdmcp_key);
-    if (self->priv->authority_file)
-        g_object_unref (self->priv->authority_file);
+    g_free (self->priv->authority_file);
     if (self->priv->have_vt_ref)
         vt_unref (self->priv->vt);
 
@@ -560,7 +557,6 @@ xserver_local_class_init (XServerLocalClass *klass)
 
     display_server_class->start = xserver_local_start;
     display_server_class->stop = xserver_local_stop;
-    display_server_class->get_is_stopped = xserver_local_get_is_stopped;
     object_class->finalize = xserver_local_finalize;
 
     g_type_class_add_private (klass, sizeof (XServerLocalPrivate));

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -139,29 +139,22 @@ signal_cb (Process *process, int signum)
     // FIXME: Stop XDMCP server
 }
 
-static gboolean
-exit_cb (gpointer data)
-{
-    /* Clean up display manager */
-    g_object_unref (display_manager);
-    display_manager = NULL;
-
-    /* Remove D-Bus interface */
-    g_bus_unown_name (bus_id);
-    if (seat_bus_entries)
-        g_hash_table_unref (seat_bus_entries);
-    if (session_bus_entries)
-        g_hash_table_unref (session_bus_entries);
-
-    g_debug ("Exiting with return value %d", exit_code);
-    exit (exit_code);
-}
-
 static void
 display_manager_stopped_cb (DisplayManager *display_manager)
 {
     g_debug ("Stopping daemon");
-    g_idle_add (exit_cb, NULL);
+    g_main_loop_quit (loop);
+}
+
+static void
+display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
+{
+    if (seat_get_boolean_property (seat, "exit-on-failure"))
+    {
+        g_debug ("Required seat has stopped");
+        exit_code = EXIT_FAILURE;
+        display_manager_stop (display_manager);
+    }
 }
 
 static GVariant *
@@ -366,7 +359,7 @@ handle_seat_get_property (GDBusConnection       *connection,
         result = g_variant_builder_end (builder);
         g_variant_builder_unref (builder);
     }
-  
+
     return result;
 }
 
@@ -381,7 +374,7 @@ handle_seat_call (GDBusConnection       *connection,
                   gpointer               user_data)
 {
     Seat *seat = user_data;
-  
+
     if (g_strcmp0 (method_name, "SwitchToGreeter") == 0)
     {
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
@@ -443,7 +436,7 @@ get_seat_for_session (Session *session)
             if (display_get_session (display) == session)
                 return seat;
         }
-    } 
+    }
 
     return NULL;
 }
@@ -641,17 +634,7 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
 static void
 seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
-    gboolean exit_on_failure;
-
-    exit_on_failure = seat_get_boolean_property (seat, "exit-on-failure");
     g_hash_table_remove (seat_bus_entries, seat);
-
-    if (exit_on_failure)
-    {
-        g_debug ("Required seat has stopped");
-        exit_code = EXIT_FAILURE;
-        display_manager_stop (display_manager);
-    }
 }
 
 static void
@@ -706,7 +689,7 @@ bus_acquired_cb (GDBusConnection *connection,
         "    <method name='SwitchToGuest'>"
         "      <arg name='session-name' direction='in' type='s'/>"
         "    </method>"
-        "    <method name='Lock'/>"    
+        "    <method name='Lock'/>"
         "  </interface>"
         "</node>";
     const gchar *session_interface =
@@ -765,7 +748,7 @@ static gchar *
 path_make_absolute (gchar *path)
 {
     gchar *cwd, *abs_path;
-  
+
     if (!path)
         return NULL;
 
@@ -826,7 +809,7 @@ main (int argc, char **argv)
     gchar *default_run_dir = g_strdup (RUN_DIR);
     gchar *default_cache_dir = g_strdup (CACHE_DIR);
     gboolean show_version = FALSE;
-    GOptionEntry options[] = 
+    GOptionEntry options[] =
     {
         { "config", 'c', 0, G_OPTION_ARG_STRING, &config_path,
           /* Help string for command line --config flag */
@@ -977,8 +960,8 @@ main (int argc, char **argv)
         gboolean is_empty;
 
         is_empty = error && g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
-      
-        if (explicit_config || !is_empty)      
+
+        if (explicit_config || !is_empty)
         {
             if (error)
                 g_printerr ("Failed to load configuration from %s: %s\n", config_path, error->message);
@@ -1087,6 +1070,7 @@ main (int argc, char **argv)
 
     display_manager = display_manager_new ();
     g_signal_connect (display_manager, "stopped", G_CALLBACK (display_manager_stopped_cb), NULL);
+    g_signal_connect (display_manager, "seat-removed", G_CALLBACK (display_manager_seat_removed_cb), NULL);
 
     /* Load the static display entries */
     groups = config_get_groups (config_get_instance ());
@@ -1222,5 +1206,17 @@ main (int argc, char **argv)
 
     g_main_loop_run (loop);
 
-    return EXIT_SUCCESS;
+    /* Clean up display manager */
+    g_object_unref (display_manager);
+    display_manager = NULL;
+
+    /* Remove D-Bus interface */
+    g_bus_unown_name (bus_id);
+    if (seat_bus_entries)
+        g_hash_table_unref (seat_bus_entries);
+    if (session_bus_entries)
+        g_hash_table_unref (session_bus_entries);
+
+    g_debug ("Exiting with return value %d", exit_code);
+    return exit_code;
 }

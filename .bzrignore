@@ -40,8 +40,9 @@ greeters/qt/*_moc*.cpp
 greeters/qt/ui_*.h
 liblightdm-gobject/*.gir
 liblightdm-gobject/*.typelib
-liblightdm-gobject/liblightdm-gobject-1.pc
-liblightdm-qt/liblightdm-qt-2.pc
+liblightdm-gobject/liblightdm-gobject-*.pc
+liblightdm-qt/liblightdm-qt-*.pc
+liblightdm-qt/liblightdm-qt5-*.pc
 liblightdm-qt/*_moc*.cpp
 m4/*
 po/*.gmo
@@ -62,7 +63,8 @@ tests/src/guest-account
 tests/src/initctl
 tests/src/plymouth
 tests/src/test-gobject-greeter
-tests/src/test-qt-greeter
+tests/src/test-qt4-greeter
+tests/src/test-qt5-greeter
 tests/src/test-runner
 tests/src/test-script-hook
 tests/src/test-session

@@ -1,3 +1,5 @@
+#include <config.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -14,11 +16,14 @@
 #include <utmpx.h>
 #include <sys/mman.h>
 
+#include "configuration.h"
 #include "session-child.h"
 #include "session.h"
 #include "console-kit.h"
+#include "login1.h"
 #include "privileges.h"
 #include "xauthority.h"
+#include "configuration.h"
 
 /* Child process being run */
 static GPid child_pid = 0;
@@ -89,7 +94,7 @@ read_string_full (void* (*alloc_fn)(size_t n))
 }
 
 static gchar *
-read_string ()
+read_string (void)
 {
     return read_string_full (g_malloc);
 }
@@ -189,9 +194,24 @@ session_child_run (int argc, char **argv)
     XAuthority *xauthority = NULL;
     gchar *xauth_filename;
     GDBusConnection *bus;
-    gchar *console_kit_cookie;
+    gchar *console_kit_cookie = NULL;
+    gchar *login1_session = NULL;
+
     const gchar *path;
     GError *error = NULL;
+    const gchar *locale_value;
+    gchar *locale_var;
+    static const gchar * const locale_var_names[] = {
+        "LC_COLLATE",
+        "LC_CTYPE",
+        "LC_MONETARY",
+        "LC_NUMERIC",
+        "LC_TIME",
+        "LC_MESSAGES",
+        "LC_ALL",
+        "LANG",
+        NULL
+    };
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
@@ -334,6 +354,17 @@ session_child_run (int argc, char **argv)
             pam_putenv (pam_handle, g_strdup_printf ("LOGNAME=%s", username));
             pam_putenv (pam_handle, g_strdup_printf ("HOME=%s", user_get_home_directory (user)));
             pam_putenv (pam_handle, g_strdup_printf ("SHELL=%s", user_get_shell (user)));
+
+            /* Let the greeter and user session inherit the system default locale */
+            for (i = 0; locale_var_names[i] != NULL; i++)
+            {
+                if ((locale_value = g_getenv (locale_var_names[i])) != NULL)
+                {
+                    locale_var = g_strdup_printf ("%s=%s", locale_var_names[i], locale_value);
+                    pam_putenv (pam_handle, locale_var);
+                    g_free (locale_var);
+                }
+            }
         }
     }
 
@@ -418,53 +449,58 @@ session_child_run (int argc, char **argv)
     if (!bus)
         return EXIT_FAILURE;
 
-    /* Open a Console Kit session */
-    g_variant_builder_init (&ck_parameters, G_VARIANT_TYPE ("(a(sv))"));
-    g_variant_builder_open (&ck_parameters, G_VARIANT_TYPE ("a(sv)"));
-    g_variant_builder_add (&ck_parameters, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
-    if (g_strcmp0 (class, XDG_SESSION_CLASS_GREETER) == 0)
-        g_variant_builder_add (&ck_parameters, "(sv)", "session-type", g_variant_new_string ("LoginWindow"));
-    if (xdisplay)
+    if (login1_is_running ())
     {
-        g_variant_builder_add (&ck_parameters, "(sv)", "x11-display", g_variant_new_string (xdisplay));
-        if (tty)
-            g_variant_builder_add (&ck_parameters, "(sv)", "x11-display-device", g_variant_new_string (tty));
+        login1_session = login1_get_session_id ();
+        write_string (login1_session);
     }
-    if (remote_host_name)
+
+    if (!login1_session)
     {
-        g_variant_builder_add (&ck_parameters, "(sv)", "is-local", g_variant_new_boolean (FALSE));
-        g_variant_builder_add (&ck_parameters, "(sv)", "remote-host-name", g_variant_new_string (remote_host_name));
-    }
-    else
-        g_variant_builder_add (&ck_parameters, "(sv)", "is-local", g_variant_new_boolean (TRUE));
-    console_kit_cookie = ck_open_session (&ck_parameters);
-    write_string (console_kit_cookie);
-    if (console_kit_cookie)
-    {
-        gchar *value;
-        value = g_strdup_printf ("XDG_SESSION_COOKIE=%s", console_kit_cookie);
-        pam_putenv (pam_handle, value);
-        g_free (value);
+        /* Open a Console Kit session */
+        g_variant_builder_init (&ck_parameters, G_VARIANT_TYPE ("(a(sv))"));
+        g_variant_builder_open (&ck_parameters, G_VARIANT_TYPE ("a(sv)"));
+        g_variant_builder_add (&ck_parameters, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
+        if (g_strcmp0 (class, XDG_SESSION_CLASS_GREETER) == 0)
+            g_variant_builder_add (&ck_parameters, "(sv)", "session-type", g_variant_new_string ("LoginWindow"));
+        if (xdisplay)
+        {
+            g_variant_builder_add (&ck_parameters, "(sv)", "x11-display", g_variant_new_string (xdisplay));
+            if (tty)
+                g_variant_builder_add (&ck_parameters, "(sv)", "x11-display-device", g_variant_new_string (tty));
+        }
+        if (remote_host_name)
+        {
+            g_variant_builder_add (&ck_parameters, "(sv)", "is-local", g_variant_new_boolean (FALSE));
+            g_variant_builder_add (&ck_parameters, "(sv)", "remote-host-name", g_variant_new_string (remote_host_name));
+        }
+        else
+            g_variant_builder_add (&ck_parameters, "(sv)", "is-local", g_variant_new_boolean (TRUE));
+        console_kit_cookie = ck_open_session (&ck_parameters);
+        write_string (console_kit_cookie);
+        if (console_kit_cookie)
+        {
+            gchar *value;
+            value = g_strdup_printf ("XDG_SESSION_COOKIE=%s", console_kit_cookie);
+            pam_putenv (pam_handle, value);
+            g_free (value);
+        }
     }
 
     /* Write X authority */
     if (xauthority)
     {
-        GFile *file;
         gboolean drop_privileges, result;
         gchar *value;
         GError *error = NULL;
 
-        file = g_file_new_for_path (xauth_filename);
-
         drop_privileges = geteuid () == 0;
         if (drop_privileges)
             privileges_drop (user);
-        result = xauth_write (xauthority, XAUTH_WRITE_MODE_REPLACE, file, &error);
+        result = xauth_write (xauthority, XAUTH_WRITE_MODE_REPLACE, xauth_filename, &error);
         if (drop_privileges)
             privileges_reclaim ();
 
-        g_object_unref (file);
         if (error)
             g_printerr ("Error writing X authority: %s\n", error->message);
         g_clear_error (&error);
@@ -604,20 +640,16 @@ session_child_run (int argc, char **argv)
     /* Remove X authority */
     if (xauthority)
     {
-        GFile *file;
         gboolean drop_privileges, result;
         GError *error = NULL;
-
-        file = g_file_new_for_path (xauth_filename);
 
         drop_privileges = geteuid () == 0;
         if (drop_privileges)
             privileges_drop (user);
-        result = xauth_write (xauthority, XAUTH_WRITE_MODE_REMOVE, file, &error);
+        result = xauth_write (xauthority, XAUTH_WRITE_MODE_REMOVE, xauth_filename, &error);
         if (drop_privileges)
             privileges_reclaim ();
 
-        g_object_unref (file);
         if (error)
             g_printerr ("Error removing X authority: %s\n", error->message);
         g_clear_error (&error);

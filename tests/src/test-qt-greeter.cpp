@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include <signal.h>
 #include <glib-object.h>
+#include <xcb/xcb.h>
 #include <QLightDM/Greeter>
+#include <QLightDM/Power>
 #include <QtCore/QSettings>
 #include <QtCore/QDebug>
 #include <QtCore/QCoreApplication>
@@ -14,6 +16,7 @@
 static gchar *greeter_id;
 static QCoreApplication *app = NULL;
 static QSettings *config = NULL;
+static QLightDM::PowerInterface *power = NULL;
 static TestGreeter *greeter = NULL;
 
 TestGreeter::TestGreeter ()
@@ -102,6 +105,11 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
+    r = g_strdup_printf ("%s CANCEL-AUTHENTICATION", greeter_id);
+    if (strcmp (request, r) == 0)
+        greeter->cancelAuthentication ();
+    g_free (r);
+
     r = g_strdup_printf ("%s START-SESSION", greeter_id);
     if (strcmp (request, r) == 0)
     {
@@ -115,6 +123,70 @@ request_cb (const gchar *request)
     {
         if (!greeter->startSessionSync (request + strlen (r)))
             status_notify ("%s SESSION-FAILED", greeter_id);
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s GET-CAN-SUSPEND", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        gboolean can_suspend = power->canSuspend ();
+        status_notify ("GREETER %s CAN-SUSPEND ALLOWED=%s", getenv ("DISPLAY"), can_suspend ? "TRUE" : "FALSE");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s SUSPEND", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        if (!power->suspend ())
+            status_notify ("GREETER %s FAIL-SUSPEND", getenv ("DISPLAY"));
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s GET-CAN-HIBERNATE", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        gboolean can_hibernate = power->canHibernate ();
+        status_notify ("GREETER %s CAN-HIBERNATE ALLOWED=%s", getenv ("DISPLAY"), can_hibernate ? "TRUE" : "FALSE");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s HIBERNATE", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        if (!power->hibernate ())
+            status_notify ("GREETER %s FAIL-HIBERNATE", getenv ("DISPLAY"));
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s GET-CAN-RESTART", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        gboolean can_restart = power->canRestart ();
+        status_notify ("GREETER %s CAN-RESTART ALLOWED=%s", getenv ("DISPLAY"), can_restart ? "TRUE" : "FALSE");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s RESTART", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        if (!power->restart ())
+            status_notify ("GREETER %s FAIL-RESTART", getenv ("DISPLAY"));
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s GET-CAN-SHUTDOWN", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        gboolean can_shutdown = power->canShutdown ();
+        status_notify ("GREETER %s CAN-SHUTDOWN ALLOWED=%s", getenv ("DISPLAY"), can_shutdown ? "TRUE" : "FALSE");
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("GREETER %s SHUTDOWN", getenv ("DISPLAY"));
+    if (strcmp (request, r) == 0)
+    {
+        if (!power->shutdown ())
+            status_notify ("GREETER %s FAIL-SHUTDOWN", getenv ("DISPLAY"));
     }
     g_free (r);
 }
@@ -156,6 +228,8 @@ main(int argc, char *argv[])
     }
 
     status_notify ("%s CONNECT-XSERVER", greeter_id);
+
+    power = new QLightDM::PowerInterface();
 
     greeter = new TestGreeter();
   

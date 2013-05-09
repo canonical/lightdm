@@ -9,8 +9,8 @@
  * license.
  */
 
-#ifndef _GUEST_ACCOUNT_H_
-#define _GUEST_ACCOUNT_H_
+#ifndef GUEST_ACCOUNT_H_
+#define GUEST_ACCOUNT_H_
 
 #include <glib-object.h>
 
@@ -24,4 +24,4 @@ void guest_account_cleanup (const gchar *username);
 
 G_END_DECLS
 
-#endif /* _GUEST_ACCOUNT_H_ */
+#endif /* GUEST_ACCOUNT_H_ */

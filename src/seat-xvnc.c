@@ -36,9 +36,14 @@ static DisplayServer *
 seat_xvnc_create_display_server (Seat *seat)
 {
     XServerXVNC *xserver;
+    const gchar *command = NULL;
 
     xserver = xserver_xvnc_new ();
     xserver_xvnc_set_socket (xserver, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
+
+    command = config_get_string (config_get_instance (), "VNCServer", "command");
+    if (command)
+        xserver_xvnc_set_command (xserver, command);
 
     if (config_has_key (config_get_instance (), "VNCServer", "width") &&
         config_has_key (config_get_instance (), "VNCServer", "height"))
@@ -85,7 +90,7 @@ seat_xvnc_run_script (Seat *seat, Display *display, Process *script)
     XServerXVNC *xserver;
     GInetSocketAddress *address;
     gchar *hostname;
-    gchar *path;
+    const gchar *path;
 
     xserver = XSERVER_XVNC (display_get_display_server (display));
 
@@ -98,7 +103,6 @@ seat_xvnc_run_script (Seat *seat, Display *display, Process *script)
     process_set_env (script, "XAUTHORITY", path);
 
     g_free (hostname);
-    g_free (path);
 
     SEAT_CLASS (seat_xvnc_parent_class)->run_script (seat, display, script);
 }

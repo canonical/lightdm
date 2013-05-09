@@ -65,6 +65,10 @@ def request_cb (channel, condition):
     if request.startswith (r):
         greeter.respond (request[len (r):-1])
 
+    r = '%s CANCEL-AUTHENTICATION' % greeter_id
+    if request == r:
+        greeter.cancel_authentication ()
+
     r = '%s START-SESSION' % greeter_id
     if request == r:
         if not greeter.start_session_sync (None):
@@ -97,6 +101,66 @@ def request_cb (channel, condition):
         if language is None:
             language = ''
         status_notify ('%s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s' % (greeter_id, username, language))
+
+    r = 'GREETER %s GET-CAN-SUSPEND' % os.getenv ('DISPLAY')
+    if request == r:
+        if LightDM.get_can_suspend ():
+            allowed = "TRUE"
+        else:
+            allowed = "FALSE"
+        status_notify ('GREETER %s CAN-SUSPEND ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+
+    r = 'GREETER %s SUSPEND' % os.getenv ('DISPLAY')
+    if request == r:
+        try:
+            LightDM.suspend ()
+        except:
+            status_notify ('GREETER %s FAIL-SUSPEND' % os.getenv ('DISPLAY'))
+
+    r = 'GREETER %s GET-CAN-HIBERNATE' % os.getenv ('DISPLAY')
+    if request == r:
+        if LightDM.get_can_hibernate ():
+            allowed = "TRUE"
+        else:
+            allowed = "FALSE"
+        status_notify ('GREETER %s CAN-HIBERNATE ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+
+    r = 'GREETER %s HIBERNATE' % os.getenv ('DISPLAY')
+    if request == r:
+        try:
+            LightDM.hibernate ()
+        except:
+            status_notify ('GREETER %s FAIL-HIBERNATE' % os.getenv ('DISPLAY'))
+
+    r = 'GREETER %s GET-CAN-RESTART' % os.getenv ('DISPLAY')
+    if request == r:
+        if LightDM.get_can_restart ():
+            allowed = "TRUE"
+        else:
+            allowed = "FALSE"
+        status_notify ('GREETER %s CAN-RESTART ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+
+    r = 'GREETER %s RESTART' % os.getenv ('DISPLAY')
+    if request == r:
+        try:
+            LightDM.restart ()
+        except:
+            status_notify ('GREETER %s FAIL-RESTART' % os.getenv ('DISPLAY'))
+
+    r = 'GREETER %s GET-CAN-SHUTDOWN' % os.getenv ('DISPLAY')
+    if request == r:
+        if LightDM.get_can_shutdown ():
+            allowed = "TRUE"
+        else:
+            allowed = "FALSE"
+        status_notify ('GREETER %s CAN-SHUTDOWN ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+
+    r = 'GREETER %s SHUTDOWN' % os.getenv ('DISPLAY')
+    if request == r:
+        try:
+            LightDM.shutdown ()
+        except:
+            status_notify ('GREETER %s FAIL-SHUTDOWN' % os.getenv ('DISPLAY'))
 
     return True
 
