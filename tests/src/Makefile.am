@@ -101,9 +101,9 @@ test_script_hook_LDADD = \
 	$(GIO_UNIX_LIBS)
 
 test-qt4-greeter_moc4.cpp: test-qt-greeter.h
-	$(MOC4) $< -o $@
+	$(am__v_MOC4_$(V)) $(MOC4) $< -o $@
 test-qt5-greeter_moc5.cpp: test-qt-greeter.h
-	$(MOC5) $< -o $@
+	$(am__v_MOC5_$(V)) $(MOC5) $< -o $@
 common_qt_sources = test-qt-greeter.cpp test-qt-greeter.h status.c status.h
 test_qt4_greeter_SOURCES = $(common_qt_sources)
 test_qt5_greeter_SOURCES = $(common_qt_sources)

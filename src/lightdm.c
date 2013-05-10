@@ -1120,7 +1120,10 @@ main (int argc, char **argv)
             g_object_unref (seat);
         }
         else
-            g_warning ("Failed to create default seat");
+        {
+            g_warning ("Failed to create default seat %s", type);
+            return EXIT_FAILURE;
+        }
     }
 
     display_manager_start (display_manager);
