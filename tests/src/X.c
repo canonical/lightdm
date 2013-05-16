@@ -321,9 +321,19 @@ main (int argc, char **argv)
         {
             /* Ignore VT args */
         }
-        else if (g_str_has_prefix (arg, "-novtswitch"))
+        else if (strcmp (arg, "-novtswitch") == 0)
         {
             /* Ignore VT args */
+        }
+        else if (strcmp (arg, "-mir") == 0)
+        {
+            /* FIXME */
+            i++;
+        }
+        else if (strcmp (arg, "-mirSocket") == 0)
+        {
+            /* FIXME */
+            i++;
         }
         else
         {
@@ -336,6 +346,8 @@ main (int argc, char **argv)
                         "-query host-name       Contact named host for XDMCP\n"
                         "-broadcast             Broadcast for XDMCP\n"
                         "-port port-num         UDP port number to send messages to\n"
+                        "-mir id                Mir ID to use\n"
+                        "-mirSocket name        Mir socket to use\n"
                         "vtxx                   Use virtual terminal xx instead of the next available\n",
                         arg, argv[0]);
             return EXIT_FAILURE;
