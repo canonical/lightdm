@@ -9,10 +9,18 @@ import signal
 from gi.repository import GLib
 from gi.repository import LightDM
 
+display = os.getenv ('DISPLAY');
+if display is None:
+    greeter_id = 'GREETER-?'
+elif display.startswith (':'):
+    greeter_id = 'GREETER-X-%s' % display[1:]
+else:
+    greeter_id = 'GREETER-X-%s' % display
+
 loop = GLib.MainLoop ()
 
 def sigterm_cb (data):
-    status_notify ('GREETER %s TERMINATE SIGNAL=%d' % (os.getenv ('DISPLAY'), signal.SIGTERM))
+    status_notify ('%s TERMINATE SIGNAL=%d' % (greeter_id, signal.SIGTERM))
     loop.quit ()
 GLib.unix_signal_add (GLib.PRIORITY_DEFAULT, signal.SIGTERM, sigterm_cb, None)
 
@@ -33,126 +41,126 @@ def request_cb (channel, condition):
         (l,) = struct.unpack ('i', length)
         request = status_socket.recv (l)
 
-    r = 'GREETER %s AUTHENTICATE' % os.getenv ('DISPLAY')
+    r = '%s AUTHENTICATE' % greeter_id
     if request == r:
         greeter.authenticate (None)
 
-    r = 'GREETER %s AUTHENTICATE USERNAME=' % os.getenv ('DISPLAY')
+    r = '%s AUTHENTICATE USERNAME=' % greeter_id
     if request.startswith (r):
         greeter.authenticate (request[len(r):])
 
-    r = 'GREETER %s AUTHENTICATE-GUEST' % os.getenv ('DISPLAY')
+    r = '%s AUTHENTICATE-GUEST' % greeter_id
     if request == r:
         greeter.authenticate_as_guest ()
 
-    r = 'GREETER %s AUTHENTICATE-AUTOLOGIN' % os.getenv ('DISPLAY')
+    r = '%s AUTHENTICATE-AUTOLOGIN' % greeter_id
     if request == r:
         greeter.authenticate_autologin ()
 
-    r = 'GREETER %s AUTHENTICATE-REMOTE SESSION=' % os.getenv ('DISPLAY')
+    r = '%s AUTHENTICATE-REMOTE SESSION=' % greeter_id
     if request.startswith (r):
         greeter.authenticate_remote (request[len(r):], None)
 
-    r = 'GREETER %s RESPOND TEXT=\"' % os.getenv ('DISPLAY')
+    r = '%s RESPOND TEXT=\"' % greeter_id
     if request.startswith (r):
         greeter.respond (request[len (r):-1])
 
-    r = 'GREETER %s CANCEL-AUTHENTICATION' % os.getenv ('DISPLAY')
+    r = '%s CANCEL-AUTHENTICATION' % greeter_id
     if request == r:
         greeter.cancel_authentication ()
 
-    r = 'GREETER %s START-SESSION' % os.getenv ('DISPLAY')
+    r = '%s START-SESSION' % greeter_id
     if request == r:
         if not greeter.start_session_sync (None):
-            status_notify ('GREETER %s SESSION-FAILED' % os.getenv ('DISPLAY'))
+            status_notify ('%s SESSION-FAILED' % greeter_id)
 
-    r = 'GREETER %s START-SESSION SESSION=' % os.getenv ('DISPLAY')
+    r = '%s START-SESSION SESSION=' % greeter_id
     if request.startswith (r):
         if not greeter.start_session_sync (request[len(r):]):
-            status_notify ('GREETER %s SESSION-FAILED' % os.getenv ('DISPLAY'))
+            status_notify ('%s SESSION-FAILED' % greeter_id)
 
-    r = 'GREETER %s LOG-LAYOUT' % os.getenv ('DISPLAY')
+    r = '%s LOG-LAYOUT' % greeter_id
     if request == r:
         layout = LightDM.get_layout ().get_name ()
-        status_notify ('GREETER %s LOG-LAYOUT LAYOUT=%s' % (os.getenv ('DISPLAY'), layout))
+        status_notify ('%s LOG-LAYOUT LAYOUT=%s' % (greeter_id, layout))
 
-    r = 'GREETER %s LOG-LAYOUT USERNAME=' % os.getenv ('DISPLAY')
+    r = '%s LOG-LAYOUT USERNAME=' % greeter_id
     if request.startswith (r):
         username = request[len(r):]
         user = LightDM.UserList.get_instance ().get_user_by_name (username)
         layout = user.get_layout ()
         if layout is None:
             layout = ''
-        status_notify ('GREETER %s LOG-LAYOUT USERNAME=%s LAYOUT=%s' % (os.getenv ('DISPLAY'), username, layout))
+        status_notify ('%s LOG-LAYOUT USERNAME=%s LAYOUT=%s' % (greeter_id, username, layout))
 
-    r = 'GREETER %s LOG-LANGUAGE USERNAME=' % os.getenv ('DISPLAY')  
+    r = '%s LOG-LANGUAGE USERNAME=' % greeter_id
     if request.startswith (r):
         username = request[len(r):]
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username)
         language = lightdm_user_get_language (user)
         if language is None:
             language = ''
-        status_notify ('GREETER %s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s' % (os.getenv ('DISPLAY'), username, language))
+        status_notify ('%s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s' % (greeter_id, username, language))
 
-    r = 'GREETER %s GET-CAN-SUSPEND' % os.getenv ('DISPLAY')
+    r = '%s GET-CAN-SUSPEND' % greeter_id
     if request == r:
         if LightDM.get_can_suspend ():
             allowed = "TRUE"
         else:
             allowed = "FALSE"
-        status_notify ('GREETER %s CAN-SUSPEND ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+        status_notify ('%s CAN-SUSPEND ALLOWED=%s' % (greeter_id, allowed))
 
-    r = 'GREETER %s SUSPEND' % os.getenv ('DISPLAY')
+    r = '%s SUSPEND' % greeter_id
     if request == r:
         try:
             LightDM.suspend ()
         except:
-            status_notify ('GREETER %s FAIL-SUSPEND' % os.getenv ('DISPLAY'))
+            status_notify ('%s FAIL-SUSPEND' % greeter_id)
 
-    r = 'GREETER %s GET-CAN-HIBERNATE' % os.getenv ('DISPLAY')
+    r = '%s GET-CAN-HIBERNATE' % greeter_id
     if request == r:
         if LightDM.get_can_hibernate ():
             allowed = "TRUE"
         else:
             allowed = "FALSE"
-        status_notify ('GREETER %s CAN-HIBERNATE ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+        status_notify ('%s CAN-HIBERNATE ALLOWED=%s' % (greeter_id, allowed))
 
-    r = 'GREETER %s HIBERNATE' % os.getenv ('DISPLAY')
+    r = '%s HIBERNATE' % greeter_id
     if request == r:
         try:
             LightDM.hibernate ()
         except:
-            status_notify ('GREETER %s FAIL-HIBERNATE' % os.getenv ('DISPLAY'))
+            status_notify ('%s FAIL-HIBERNATE' % greeter_id)
 
-    r = 'GREETER %s GET-CAN-RESTART' % os.getenv ('DISPLAY')
+    r = '%s GET-CAN-RESTART' % greeter_id
     if request == r:
         if LightDM.get_can_restart ():
             allowed = "TRUE"
         else:
             allowed = "FALSE"
-        status_notify ('GREETER %s CAN-RESTART ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+        status_notify ('%s CAN-RESTART ALLOWED=%s' % (greeter_id, allowed))
 
-    r = 'GREETER %s RESTART' % os.getenv ('DISPLAY')
+    r = '%s RESTART' % greeter_id
     if request == r:
         try:
             LightDM.restart ()
         except:
-            status_notify ('GREETER %s FAIL-RESTART' % os.getenv ('DISPLAY'))
+            status_notify ('%s FAIL-RESTART' % greeter_id)
 
-    r = 'GREETER %s GET-CAN-SHUTDOWN' % os.getenv ('DISPLAY')
+    r = '%s GET-CAN-SHUTDOWN' % greeter_id
     if request == r:
         if LightDM.get_can_shutdown ():
             allowed = "TRUE"
         else:
             allowed = "FALSE"
-        status_notify ('GREETER %s CAN-SHUTDOWN ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+        status_notify ('%s CAN-SHUTDOWN ALLOWED=%s' % (greeter_id, allowed))
 
-    r = 'GREETER %s SHUTDOWN' % os.getenv ('DISPLAY')
+    r = '%s SHUTDOWN' % greeter_id
     if request == r:
         try:
             LightDM.shutdown ()
         except:
-            status_notify ('GREETER %s FAIL-SHUTDOWN' % os.getenv ('DISPLAY'))
+            status_notify ('%s FAIL-SHUTDOWN' % greeter_id)
 
     return True
 
@@ -161,16 +169,16 @@ status_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
 status_socket.connect (path)
 GLib.io_add_watch (status_socket.fileno (), GLib.IO_IN | GLib.IO_HUP, request_cb)
 
-status_notify ('GREETER %s START' % os.getenv ('DISPLAY'))
+status_notify ('%s START' % greeter_id)
 
 # NOTE: There don't seem to be any good X bindings so we have to mock up our own...
-(host, display) = os.getenv ('DISPLAY').split (':')
+(host, display_number) = display.split (':')
 if host == '':
     x_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
-    x_socket.connect ('/tmp/.X11-unix/X%s' % display)
+    x_socket.connect (os.getenv ('LIGHTDM_TEST_ROOT') + '/tmp/' + display)
 else:
     x_socket = socket.socket (socket.AF_INET, socket.SOCK_STREAM)
-    x_socket.connect ((host, 6000 + int (display)))
+    x_socket.connect ((host, 6000 + int (display_number)))
 authority = subprocess.check_output(['xauth', 'list']).split ()
 auth_name = ''
 auth_data = ''
@@ -185,19 +193,14 @@ def pad (value):
         return value + '\x00' * (4 - len (value) % 4)
     else:
         return value
-x_socket.send (struct.pack ('!cxHHHHxx', 'B', 11, 0, len (auth_name), len (auth_data)) + pad (auth_name) + pad (auth_data))
-data = x_socket.recv (1024)
-if ord (data[0]) != 1:
-    status_notify ('GREETER %s FAIL-CONNECT-XSERVER' % os.getenv ('DISPLAY'))
-    exit (1)
 
-status_notify ('GREETER %s CONNECT-XSERVER' % (os.getenv ('DISPLAY')))
+status_notify ('%s CONNECT-XSERVER' % (greeter_id))
 
 def show_message_cb (greeter, text, type):
-    status_notify ('GREETER %s SHOW-MESSAGE TEXT=\"%s\"' % (os.getenv ('DISPLAY'), text))
+    status_notify ('%s SHOW-MESSAGE TEXT=\"%s\"' % (greeter_id, text))
 
 def show_prompt_cb (greeter, text, type):
-    status_notify ('GREETER %s SHOW-PROMPT TEXT=\"%s\"' % (os.getenv ('DISPLAY'), text))
+    status_notify ('%s SHOW-PROMPT TEXT=\"%s\"' % (greeter_id, text))
 
 def authentication_complete_cb (greeter):
     if greeter.get_is_authenticated ():
@@ -205,12 +208,12 @@ def authentication_complete_cb (greeter):
     else:
         is_authenticated = 'FALSE'
     if greeter.get_authentication_user () is not None:
-        status_notify ('GREETER %s AUTHENTICATION-COMPLETE USERNAME=%s AUTHENTICATED=%s' % (os.getenv ('DISPLAY'), greeter.get_authentication_user (), is_authenticated))
+        status_notify ('%s AUTHENTICATION-COMPLETE USERNAME=%s AUTHENTICATED=%s' % (greeter_id, greeter.get_authentication_user (), is_authenticated))
     else:
-        status_notify ('GREETER %s AUTHENTICATION-COMPLETE AUTHENTICATED=%s' % (os.getenv ('DISPLAY'), is_authenticated))
+        status_notify ('%s AUTHENTICATION-COMPLETE AUTHENTICATED=%s' % (greeter_id, is_authenticated))
 
 def autologin_timer_expired_cb (greeter):
-    status_notify ('GREETER %s AUTOLOGIN-TIMER-EXPIRED' % os.getenv ('DISPLAY'))
+    status_notify ('%s AUTOLOGIN-TIMER-EXPIRED' % greeter_id)
 
 greeter = LightDM.Greeter ()
 greeter.connect ('show-message', show_message_cb)
@@ -218,16 +221,16 @@ greeter.connect ('show-prompt', show_prompt_cb)
 greeter.connect ('authentication-complete', authentication_complete_cb)
 greeter.connect ('autologin-timer-expired', autologin_timer_expired_cb)
 
-status_notify ('GREETER %s CONNECT-TO-DAEMON' % os.getenv ('DISPLAY'))
+status_notify ('%s CONNECT-TO-DAEMON' % greeter_id)
 if not greeter.connect_sync ():
-    status_notify ('GREETER %s FAIL-CONNECT-DAEMON' % os.getenv ('DISPLAY'))
+    status_notify ('%s FAIL-CONNECT-DAEMON' % greeter_id)
     exit (1)
 
-status_notify ('GREETER %s CONNECTED-TO-DAEMON' % os.getenv ('DISPLAY'))
+status_notify ('%s CONNECTED-TO-DAEMON' % greeter_id)
 
 if greeter.get_select_user_hint () is not None:
-    status_notify ('GREETER %s SELECT-USER-HINT USERNAME=%s' % (os.getenv ('DISPLAY'), greeter.get_select_user_hint ()))
+    status_notify ('%s SELECT-USER-HINT USERNAME=%s' % (greeter_id, greeter.get_select_user_hint ()))
 if greeter.get_lock_hint ():
-    status_notify ('GREETER %s LOCK-HINT' % os.getenv ('DISPLAY'));
+    status_notify ('%s LOCK-HINT' % greeter_id);
 
 loop.run ()
