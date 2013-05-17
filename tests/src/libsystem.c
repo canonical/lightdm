@@ -14,6 +14,8 @@
 #include <linux/vt.h>
 #endif
 #include <glib.h>
+#include <xcb/xcb.h>
+#include <gio/gunixsocketaddress.h>
 
 #define LOGIN_PROMPT "login:"
 
@@ -212,6 +214,22 @@ open64 (const char *pathname, int flags, ...)
         va_end (ap);
     }
     return open_wrapper ("open64", pathname, flags, mode);
+}
+
+int
+access (const char *pathname, int mode)
+{
+    int (*_access) (const char *pathname, int mode);
+    gchar *new_path = NULL;
+    int ret;
+
+    _access = (int (*)(const char *pathname, int mode)) dlsym (RTLD_NEXT, "access");
+
+    new_path = redirect_path (pathname);
+    ret = _access (new_path, mode);
+    g_free (new_path);
+
+    return ret;
 }
 
 int
@@ -1147,4 +1165,86 @@ pututxline (struct utmp *ut)
 void
 endutxent (void)
 {
+}
+
+struct xcb_connection_t
+{
+    gchar *display;
+    int error;
+    GSocket *socket;
+};
+
+xcb_connection_t *
+xcb_connect_to_display_with_auth_info (const char *display, xcb_auth_info_t *auth, int *screen)
+{
+    xcb_connection_t *c;
+    gchar *socket_path;
+    GSocketAddress *address;
+    GError *error = NULL;
+  
+    c = malloc (sizeof (xcb_connection_t));
+    c->display = g_strdup (display);
+    c->error = 0;
+
+    if (display == NULL)
+        display = getenv ("DISPLAY");
+    if (display == NULL)
+        c->error = XCB_CONN_CLOSED_PARSE_ERR;
+
+    if (c->error == 0)
+    {
+        c->socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
+        if (error)
+            g_printerr ("%s\n", error->message);
+        g_clear_error (&error);
+        if (c->socket == NULL)
+            c->error = XCB_CONN_ERROR;
+    }
+
+    if (c->error == 0)
+    {
+        const gchar *d;
+
+        /* Skip the hostname, we'll assume it's localhost */
+        d = strchr (display, ':');
+
+        socket_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", d, NULL);
+        address = g_unix_socket_address_new (socket_path);
+        g_free (socket_path);
+        if (!g_socket_connect (c->socket, address, NULL, &error))
+            c->error = XCB_CONN_ERROR;
+        if (error)
+            g_printerr ("%s\n", error->message);
+        g_clear_error (&error);
+    }
+
+    // FIXME: Send auth info
+    if (c->error == 0)
+    {
+    }
+
+    g_object_unref (address);
+
+    return c;
+}
+
+xcb_connection_t *
+xcb_connect (const char *displayname, int *screenp)
+{
+    return xcb_connect_to_display_with_auth_info(displayname, NULL, screenp);
+}
+
+int
+xcb_connection_has_error (xcb_connection_t *c)
+{
+    return c->error;
+}
+
+void
+xcb_disconnect (xcb_connection_t *c)
+{
+    free (c->display);
+    if (c->socket)
+        g_object_unref (c->socket);
+    free (c);
 }

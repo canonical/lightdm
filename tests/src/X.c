@@ -62,7 +62,7 @@ indicate_ready ()
     handler = signal (SIGUSR1, SIG_IGN);
     if (handler == SIG_IGN)
     {
-        status_notify ("XSERVER :%d INDICATE-READY", display_number);
+        status_notify ("XSERVER-%d INDICATE-READY", display_number);
         kill (getppid (), SIGUSR1);
     }
     signal (SIGUSR1, handler);
@@ -73,12 +73,12 @@ signal_cb (int signum)
 {
     if (signum == SIGHUP)
     {
-        status_notify ("XSERVER :%d DISCONNECT-CLIENTS", display_number);
+        status_notify ("XSERVER-%d DISCONNECT-CLIENTS", display_number);
         indicate_ready ();
     }
     else
     {
-        status_notify ("XSERVER :%d TERMINATE SIGNAL=%d", display_number, signum);
+        status_notify ("XSERVER-%d TERMINATE SIGNAL=%d", display_number, signum);
         quit (EXIT_SUCCESS);
     }
 }
@@ -90,7 +90,7 @@ xdmcp_query_cb (XDMCPClient *client)
 
     if (!notified_query)
     {
-        status_notify ("XSERVER :%d SEND-QUERY", display_number);
+        status_notify ("XSERVER-%d SEND-QUERY", display_number);
         notified_query = TRUE;
     }
 }
@@ -101,9 +101,9 @@ xdmcp_willing_cb (XDMCPClient *client, XDMCPWilling *message)
     gchar **authorization_names;
     GInetAddress *addresses[2];
 
-    status_notify ("XSERVER :%d GOT-WILLING AUTHENTICATION-NAME=\"%s\" HOSTNAME=\"%s\" STATUS=\"%s\"", display_number, message->authentication_name, message->hostname, message->status);
+    status_notify ("XSERVER-%d GOT-WILLING AUTHENTICATION-NAME=\"%s\" HOSTNAME=\"%s\" STATUS=\"%s\"", display_number, message->authentication_name, message->hostname, message->status);
 
-    status_notify ("XSERVER :%d SEND-REQUEST DISPLAY-NUMBER=%d AUTHORIZATION-NAME=\"%s\" MFID=\"%s\"", display_number, display_number, "MIT-MAGIC-COOKIE-1", "TEST XSERVER");
+    status_notify ("XSERVER-%d SEND-REQUEST DISPLAY-NUMBER=%d AUTHORIZATION-NAME=\"%s\" MFID=\"%s\"", display_number, display_number, "MIT-MAGIC-COOKIE-1", "TEST XSERVER");
 
     authorization_names = g_strsplit ("MIT-MAGIC-COOKIE-1", " ", -1);
     addresses[0] = xdmcp_client_get_local_address (client);
@@ -118,7 +118,7 @@ xdmcp_willing_cb (XDMCPClient *client, XDMCPWilling *message)
 static void
 xdmcp_accept_cb (XDMCPClient *client, XDMCPAccept *message)
 {
-    status_notify ("XSERVER :%d GOT-ACCEPT SESSION-ID=%d AUTHENTICATION-NAME=\"%s\" AUTHORIZATION-NAME=\"%s\"", display_number, message->session_id, message->authentication_name, message->authorization_name);
+    status_notify ("XSERVER-%d GOT-ACCEPT SESSION-ID=%d AUTHENTICATION-NAME=\"%s\" AUTHORIZATION-NAME=\"%s\"", display_number, message->session_id, message->authentication_name, message->authorization_name);
 
     /* Ignore if haven't picked a valid authorization */
     if (strcmp (message->authorization_name, "MIT-MAGIC-COOKIE-1") != 0)
@@ -129,95 +129,34 @@ xdmcp_accept_cb (XDMCPClient *client, XDMCPAccept *message)
     xdmcp_cookie = g_malloc (message->authorization_data_length);
     memcpy (xdmcp_cookie, message->authorization_data, message->authorization_data_length);
 
-    status_notify ("XSERVER :%d SEND-MANAGE SESSION-ID=%d DISPLAY-NUMBER=%d DISPLAY-CLASS=\"%s\"", display_number, message->session_id, display_number, "DISPLAY CLASS");
+    status_notify ("XSERVER-%d SEND-MANAGE SESSION-ID=%d DISPLAY-NUMBER=%d DISPLAY-CLASS=\"%s\"", display_number, message->session_id, display_number, "DISPLAY CLASS");
     xdmcp_client_send_manage (client, message->session_id, display_number, "DISPLAY CLASS");
 }
 
 static void
 xdmcp_decline_cb (XDMCPClient *client, XDMCPDecline *message)
 {
-    status_notify ("XSERVER :%d GOT-DECLINE STATUS=\"%s\" AUTHENTICATION-NAME=\"%s\"", display_number, message->status, message->authentication_name);  
+    status_notify ("XSERVER-%d GOT-DECLINE STATUS=\"%s\" AUTHENTICATION-NAME=\"%s\"", display_number, message->status, message->authentication_name);  
 }
 
 static void
 xdmcp_failed_cb (XDMCPClient *client, XDMCPFailed *message)
 {
-    status_notify ("XSERVER :%d GOT-FAILED SESSION-ID=%d STATUS=\"%s\"", display_number, message->session_id, message->status);
+    status_notify ("XSERVER-%d GOT-FAILED SESSION-ID=%d STATUS=\"%s\"", display_number, message->session_id, message->status);
 }
 
 static void
-x_client_connect_cb (XClient *client, XConnect *message)
+client_connected_cb (XServer *server, XClient *client)
 {
     gchar *auth_error = NULL;
 
-    if (x_client_get_address (client))
-        status_notify ("XSERVER :%d TCP-ACCEPT-CONNECT", display_number);
-    else
-        status_notify ("XSERVER :%d ACCEPT-CONNECT", display_number);
-
-    if (xdmcp_client)
-    {
-        if (!xdmcp_cookie)
-            auth_error = g_strdup ("Need to authenticate with XDMCP");
-        else
-        {
-            gboolean matches = TRUE;
-            if (message->authorization_protocol_data_length == xdmcp_cookie_length)
-            {
-                guint16 i;
-                for (i = 0; i < xdmcp_cookie_length && message->authorization_protocol_data[i] == xdmcp_cookie[i]; i++);
-                matches = i == xdmcp_cookie_length;
-            }
-            else
-                matches = FALSE;
-
-            if (strcmp (message->authorization_protocol_name, "MIT-MAGIC-COOKIE-1") != 0)
-                auth_error = g_strdup ("Authorization required");
-            else if (!matches)
-                auth_error = g_strdup_printf ("Invalid MIT-MAGIC-COOKIE key");
-        }
-    }
-    else if (auth_path)
-    {
-        XAuthority *authority;
-        XAuthorityRecord *record = NULL;
-        GError *error = NULL;
-
-        authority = x_authority_new ();
-        x_authority_load (authority, auth_path, &error);
-        if (error)
-            g_warning ("Error reading auth file: %s", error->message);
-        g_clear_error (&error);
-
-        if (x_client_get_address (client))
-            record = x_authority_match_localhost (authority, message->authorization_protocol_name); // FIXME: Should check if remote
-        else
-            record = x_authority_match_local (authority, message->authorization_protocol_name);
-        if (record)
-        {
-            if (strcmp (message->authorization_protocol_name, "MIT-MAGIC-COOKIE-1") == 0)
-            {
-                if (!x_authority_record_check_cookie (record, message->authorization_protocol_data, message->authorization_protocol_data_length))
-                    auth_error = g_strdup_printf ("Invalid MIT-MAGIC-COOKIE key");
-            }
-            else
-                auth_error = g_strdup_printf ("Unknown authorization: '%s'", message->authorization_protocol_name);
-        }
-        else
-            auth_error = g_strdup ("No authorization record");
-    }
+    status_notify ("XSERVER-%d ACCEPT-CONNECT", display_number);
 
     if (auth_error)
         x_client_send_failed (client, auth_error);
     else
         x_client_send_success (client);
     g_free (auth_error);
-}
-
-static void
-client_connected_cb (XServer *server, XClient *client)
-{
-    g_signal_connect (client, "connect", G_CALLBACK (x_client_connect_cb), NULL);
 }
 
 static void
@@ -239,7 +178,7 @@ request_cb (const gchar *request)
         return;
     }
 
-    r = g_strdup_printf ("XSERVER :%d CRASH", display_number);
+    r = g_strdup_printf ("XSERVER-%d CRASH", display_number);
     if (strcmp (request, r) == 0)
     {
         cleanup ();
@@ -258,6 +197,7 @@ main (int argc, char **argv)
     gboolean do_xdmcp = FALSE;
     guint xdmcp_port = 0;
     gchar *xdmcp_host = NULL;
+    gchar *lock_filename;
     int lock_file;
 
     signal (SIGINT, signal_cb);
@@ -357,13 +297,8 @@ main (int argc, char **argv)
     xserver = x_server_new (display_number);
     g_signal_connect (xserver, "client-connected", G_CALLBACK (client_connected_cb), NULL);
     g_signal_connect (xserver, "client-disconnected", G_CALLBACK (client_disconnected_cb), NULL);
-    x_server_set_listen_unix (xserver, listen_unix);
-    x_server_set_listen_tcp (xserver, listen_tcp);
 
-    /* Add fake screen so that libx11 calls don't freak out when they can't find a screen */
-    x_server_add_screen (xserver, 0xffffff, 0x000000, 0, 1024, 768, 1000, 1000);
-
-    status_notify ("XSERVER :%d START", display_number);
+    status_notify ("XSERVER-%d START", display_number);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
@@ -371,11 +306,13 @@ main (int argc, char **argv)
     if (g_key_file_has_key (config, "test-xserver-config", "return-value", NULL))
     {
         int return_value = g_key_file_get_integer (config, "test-xserver-config", "return-value", NULL);
-        status_notify ("XSERVER :%d EXIT CODE=%d", display_number, return_value);
+        status_notify ("XSERVER-%d EXIT CODE=%d", display_number, return_value);
         return return_value;
     }
 
-    lock_path = g_strdup_printf ("/tmp/.X%d-lock", display_number);
+    lock_filename = g_strdup_printf (".X%d-lock", display_number);
+    lock_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", lock_filename, NULL);
+    g_free (lock_filename);
     lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
     if (lock_file < 0)
     {
@@ -392,14 +329,22 @@ main (int argc, char **argv)
             proc_filename = g_strdup_printf ("/proc/%d", pid);
             if (!g_file_test (proc_filename, G_FILE_TEST_EXISTS))
             {
+                gchar *socket_dir;
+                gchar *socket_filename;
                 gchar *socket_path;
 
-                socket_path = g_strdup_printf ("/tmp/.X11-unix/X%d", display_number);
+                socket_dir = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", ".X11-unix", NULL);
+                g_mkdir_with_parents (socket_dir, 0755);                
+
+                socket_filename = g_strdup_printf ("X%d", display_number);
+                socket_path = g_build_filename (socket_dir, socket_filename, NULL);
 
                 g_printerr ("Breaking lock on non-existant process %d\n", pid);
                 unlink (lock_path);
                 unlink (socket_path);
 
+                g_free (socket_dir);
+                g_free (socket_filename);
                 g_free (socket_path);
             }
             g_free (proc_filename);

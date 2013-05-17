@@ -8,6 +8,7 @@
 
 #include "status.h"
 
+static gchar *greeter_id;
 static GMainLoop *loop;
 static LightDMGreeter *greeter;
 static xcb_connection_t *connection = NULL;
@@ -16,39 +17,39 @@ static GKeyFile *config;
 static void
 show_message_cb (LightDMGreeter *greeter, const gchar *text, LightDMMessageType type)
 {
-    status_notify ("GREETER %s SHOW-MESSAGE TEXT=\"%s\"", getenv ("DISPLAY"), text);
+    status_notify ("%s SHOW-MESSAGE TEXT=\"%s\"", greeter_id, text);
 }
 
 static void
 show_prompt_cb (LightDMGreeter *greeter, const gchar *text, LightDMPromptType type)
 {
-    status_notify ("GREETER %s SHOW-PROMPT TEXT=\"%s\"", getenv ("DISPLAY"), text);
+    status_notify ("%s SHOW-PROMPT TEXT=\"%s\"", greeter_id, text);
 }
 
 static void
 authentication_complete_cb (LightDMGreeter *greeter)
 {
     if (lightdm_greeter_get_authentication_user (greeter))
-        status_notify ("GREETER %s AUTHENTICATION-COMPLETE USERNAME=%s AUTHENTICATED=%s",
-                       getenv ("DISPLAY"),
+        status_notify ("%s AUTHENTICATION-COMPLETE USERNAME=%s AUTHENTICATED=%s",
+                       greeter_id,
                        lightdm_greeter_get_authentication_user (greeter),
                        lightdm_greeter_get_is_authenticated (greeter) ? "TRUE" : "FALSE");
     else
-        status_notify ("GREETER %s AUTHENTICATION-COMPLETE AUTHENTICATED=%s",
-                       getenv ("DISPLAY"),
+        status_notify ("%s AUTHENTICATION-COMPLETE AUTHENTICATED=%s",
+                       greeter_id,
                        lightdm_greeter_get_is_authenticated (greeter) ? "TRUE" : "FALSE");
 }
 
 static void
 autologin_timer_expired_cb (LightDMGreeter *greeter)
 {
-    status_notify ("GREETER %s AUTOLOGIN-TIMER-EXPIRED", getenv ("DISPLAY"));
+    status_notify ("%s AUTOLOGIN-TIMER-EXPIRED", greeter_id);
 }
 
 static void
 signal_cb (int signum)
 {
-    status_notify ("GREETER %s TERMINATE SIGNAL=%d", getenv ("DISPLAY"), signum);
+    status_notify ("%s TERMINATE SIGNAL=%d", greeter_id, signum);
     exit (EXIT_SUCCESS);
 }
 
@@ -63,32 +64,32 @@ request_cb (const gchar *request)
         return;
     }
   
-    r = g_strdup_printf ("GREETER %s AUTHENTICATE", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s AUTHENTICATE", greeter_id);
     if (strcmp (request, r) == 0)
         lightdm_greeter_authenticate (greeter, NULL);
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s AUTHENTICATE USERNAME=", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s AUTHENTICATE USERNAME=", greeter_id);
     if (g_str_has_prefix (request, r))
         lightdm_greeter_authenticate (greeter, request + strlen (r));
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s AUTHENTICATE-GUEST", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s AUTHENTICATE-GUEST", greeter_id);
     if (strcmp (request, r) == 0)
         lightdm_greeter_authenticate_as_guest (greeter);
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s AUTHENTICATE-AUTOLOGIN", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s AUTHENTICATE-AUTOLOGIN", greeter_id);
     if (strcmp (request, r) == 0)
         lightdm_greeter_authenticate_autologin (greeter);
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s AUTHENTICATE-REMOTE SESSION=", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s AUTHENTICATE-REMOTE SESSION=", greeter_id);
     if (g_str_has_prefix (request, r))
         lightdm_greeter_authenticate_remote (greeter, request + strlen (r), NULL);
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s RESPOND TEXT=\"", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s RESPOND TEXT=\"", greeter_id);
     if (g_str_has_prefix (request, r))
     {
         gchar *text = g_strdup (request + strlen (r));
@@ -98,36 +99,28 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s CANCEL-AUTHENTICATION", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s CANCEL-AUTHENTICATION", greeter_id);
     if (strcmp (request, r) == 0)
         lightdm_greeter_cancel_authentication (greeter);
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s START-SESSION", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s START-SESSION", greeter_id);
     if (strcmp (request, r) == 0)
     {
         if (!lightdm_greeter_start_session_sync (greeter, NULL, NULL))
-            status_notify ("GREETER %s SESSION-FAILED", getenv ("DISPLAY")); 
+            status_notify ("%s SESSION-FAILED", greeter_id); 
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s START-SESSION SESSION=", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s START-SESSION SESSION=", greeter_id);
     if (g_str_has_prefix (request, r))
     {
         if (!lightdm_greeter_start_session_sync (greeter, request + strlen (r), NULL))
-            status_notify ("GREETER %s SESSION-FAILED", getenv ("DISPLAY")); 
+            status_notify ("%s SESSION-FAILED", greeter_id); 
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s LOG-LAYOUT", getenv ("DISPLAY"));
-    if (strcmp (request, r) == 0)
-    {
-        const gchar *layout;
-        layout = lightdm_layout_get_name (lightdm_get_layout ());
-        status_notify ("GREETER %s LOG-LAYOUT LAYOUT='%s'", getenv ("DISPLAY"), layout ? layout : "");
-    }
-
-    r = g_strdup_printf ("GREETER %s LOG-LAYOUT USERNAME=", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s LOG-LAYOUT USERNAME=", greeter_id);
     if (g_str_has_prefix (request, r))
     {
         LightDMUser *user;
@@ -137,11 +130,11 @@ request_cb (const gchar *request)
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         layout = lightdm_user_get_layout (user);
 
-        status_notify ("GREETER %s LOG-LAYOUT USERNAME=%s LAYOUT='%s'", getenv ("DISPLAY"), username, layout ? layout : "");
+        status_notify ("%s LOG-LAYOUT USERNAME=%s LAYOUT='%s'", greeter_id, username, layout ? layout : "");
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s LOG-LAYOUTS USERNAME=", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s LOG-LAYOUTS USERNAME=", greeter_id);
     if (g_str_has_prefix (request, r))
     {
         LightDMUser *user;
@@ -154,34 +147,11 @@ request_cb (const gchar *request)
         layouts = lightdm_user_get_layouts (user);
 
         for (i = 0; layouts[i]; i++)
-            status_notify ("GREETER %s LOG-LAYOUTS USERNAME=%s LAYOUT='%s'", getenv ("DISPLAY"), username, layouts[i]);
+            status_notify ("%s LOG-LAYOUTS USERNAME=%s LAYOUT='%s'", greeter_id, username, layouts[i]);
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s LOG-VARIANTS LAYOUT=", getenv ("DISPLAY"));
-    if (g_str_has_prefix (request, r))
-    {
-        GList *layouts, *iter;
-        const gchar *layout_prefix;
-
-        layout_prefix = request + strlen (r);
-        layouts = lightdm_get_layouts ();
-
-        for (iter = layouts; iter; iter = iter->next)
-        {
-            LightDMLayout *layout;
-            const gchar *name;
-
-            layout = (LightDMLayout *) iter->data;
-            name = lightdm_layout_get_name (layout);
-
-            if (g_str_has_prefix (name, layout_prefix))
-                status_notify ("GREETER %s LOG-VARIANTS LAYOUT='%s'", getenv ("DISPLAY"), name);
-        }
-    }
-    g_free (r);
-
-    r = g_strdup_printf ("GREETER %s LOG-LANGUAGE USERNAME=", getenv ("DISPLAY"));  
+    r = g_strdup_printf ("%s LOG-LANGUAGE USERNAME=", greeter_id);  
     if (g_str_has_prefix (request, r))
     {
         LightDMUser *user;
@@ -191,78 +161,78 @@ request_cb (const gchar *request)
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         language = lightdm_user_get_language (user);
 
-        status_notify ("GREETER %s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s", getenv ("DISPLAY"), username, language ? language : "");
+        status_notify ("%s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s", greeter_id, username, language ? language : "");
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s GET-CAN-SUSPEND", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s GET-CAN-SUSPEND", greeter_id);
     if (strcmp (request, r) == 0)
     {
         gboolean can_suspend = lightdm_get_can_suspend ();
-        status_notify ("GREETER %s CAN-SUSPEND ALLOWED=%s", getenv ("DISPLAY"), can_suspend ? "TRUE" : "FALSE");
+        status_notify ("%s CAN-SUSPEND ALLOWED=%s", greeter_id, can_suspend ? "TRUE" : "FALSE");
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s SUSPEND", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s SUSPEND", greeter_id);
     if (strcmp (request, r) == 0)
     {
         GError *error = NULL;
         if (!lightdm_suspend (&error))
-            status_notify ("GREETER %s FAIL-SUSPEND", getenv ("DISPLAY"));
+            status_notify ("%s FAIL-SUSPEND", greeter_id);
         g_clear_error (&error);
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s GET-CAN-HIBERNATE", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s GET-CAN-HIBERNATE", greeter_id);
     if (strcmp (request, r) == 0)
     {
         gboolean can_hibernate = lightdm_get_can_hibernate ();
-        status_notify ("GREETER %s CAN-HIBERNATE ALLOWED=%s", getenv ("DISPLAY"), can_hibernate ? "TRUE" : "FALSE");
+        status_notify ("%s CAN-HIBERNATE ALLOWED=%s", greeter_id, can_hibernate ? "TRUE" : "FALSE");
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s HIBERNATE", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s HIBERNATE", greeter_id);
     if (strcmp (request, r) == 0)
     {
         GError *error = NULL;
         if (!lightdm_hibernate (&error))
-            status_notify ("GREETER %s FAIL-HIBERNATE", getenv ("DISPLAY"));
+            status_notify ("%s FAIL-HIBERNATE", greeter_id);
         g_clear_error (&error);
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s GET-CAN-RESTART", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s GET-CAN-RESTART", greeter_id);
     if (strcmp (request, r) == 0)
     {
         gboolean can_restart = lightdm_get_can_restart ();
-        status_notify ("GREETER %s CAN-RESTART ALLOWED=%s", getenv ("DISPLAY"), can_restart ? "TRUE" : "FALSE");
+        status_notify ("%s CAN-RESTART ALLOWED=%s", greeter_id, can_restart ? "TRUE" : "FALSE");
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s RESTART", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s RESTART", greeter_id);
     if (strcmp (request, r) == 0)
     {
         GError *error = NULL;
         if (!lightdm_restart (&error))
-            status_notify ("GREETER %s FAIL-RESTART", getenv ("DISPLAY"));
+            status_notify ("%s FAIL-RESTART", greeter_id);
         g_clear_error (&error);
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s GET-CAN-SHUTDOWN", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s GET-CAN-SHUTDOWN", greeter_id);
     if (strcmp (request, r) == 0)
     {
         gboolean can_shutdown = lightdm_get_can_shutdown ();
-        status_notify ("GREETER %s CAN-SHUTDOWN ALLOWED=%s", getenv ("DISPLAY"), can_shutdown ? "TRUE" : "FALSE");
+        status_notify ("%s CAN-SHUTDOWN ALLOWED=%s", greeter_id, can_shutdown ? "TRUE" : "FALSE");
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s SHUTDOWN", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s SHUTDOWN", greeter_id);
     if (strcmp (request, r) == 0)
     {
         GError *error = NULL;
         if (!lightdm_shutdown (&error))
-            status_notify ("GREETER %s FAIL-SHUTDOWN", getenv ("DISPLAY"));
+            status_notify ("%s FAIL-SHUTDOWN", greeter_id);
         g_clear_error (&error);
     }
     g_free (r);
@@ -271,6 +241,8 @@ request_cb (const gchar *request)
 int
 main (int argc, char **argv)
 {
+    gchar *display;
+
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
 
@@ -278,11 +250,19 @@ main (int argc, char **argv)
     g_type_init ();
 #endif
 
+    display = getenv ("DISPLAY");
+    if (display == NULL)
+        greeter_id = g_strdup ("GREETER-?");
+    else if (display[0] == ':')
+        greeter_id = g_strdup_printf ("GREETER-X-%s", display + 1);
+    else
+        greeter_id = g_strdup_printf ("GREETER-X-%s", display);
+
     loop = g_main_loop_new (NULL, FALSE);
 
     status_connect (request_cb);
 
-    status_notify ("GREETER %s START", getenv ("DISPLAY"));
+    status_notify ("%s START", greeter_id);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
@@ -290,7 +270,7 @@ main (int argc, char **argv)
     if (g_key_file_has_key (config, "test-greeter-config", "return-value", NULL))
     {
         int return_value = g_key_file_get_integer (config, "test-greeter-config", "return-value", NULL);
-        status_notify ("GREETER %s EXIT CODE=%d", getenv ("DISPLAY"), return_value);
+        status_notify ("%s EXIT CODE=%d", greeter_id, return_value);
         return return_value;
     }
 
@@ -298,11 +278,11 @@ main (int argc, char **argv)
 
     if (xcb_connection_has_error (connection))
     {
-        status_notify ("GREETER %s FAIL-CONNECT-XSERVER", getenv ("DISPLAY"));
+        status_notify ("%s FAIL-CONNECT-XSERVER", greeter_id);
         return EXIT_FAILURE;
     }
 
-    status_notify ("GREETER %s CONNECT-XSERVER", getenv ("DISPLAY"));
+    status_notify ("%s CONNECT-XSERVER", greeter_id);
 
     greeter = lightdm_greeter_new ();
     g_signal_connect (greeter, "show-message", G_CALLBACK (show_message_cb), NULL);
@@ -310,19 +290,19 @@ main (int argc, char **argv)
     g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
     g_signal_connect (greeter, "autologin-timer-expired", G_CALLBACK (autologin_timer_expired_cb), NULL);
 
-    status_notify ("GREETER %s CONNECT-TO-DAEMON", getenv ("DISPLAY"));
+    status_notify ("%s CONNECT-TO-DAEMON", greeter_id);
     if (!lightdm_greeter_connect_sync (greeter, NULL))
     {
-        status_notify ("GREETER %s FAIL-CONNECT-DAEMON", getenv ("DISPLAY"));
+        status_notify ("%s FAIL-CONNECT-DAEMON", greeter_id);
         return EXIT_FAILURE;
     }
 
-    status_notify ("GREETER %s CONNECTED-TO-DAEMON", getenv ("DISPLAY"));
+    status_notify ("%s CONNECTED-TO-DAEMON", greeter_id);
 
     if (lightdm_greeter_get_select_user_hint (greeter))
-        status_notify ("GREETER %s SELECT-USER-HINT USERNAME=%s", getenv ("DISPLAY"), lightdm_greeter_get_select_user_hint (greeter));
+        status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, lightdm_greeter_get_select_user_hint (greeter));
     if (lightdm_greeter_get_lock_hint (greeter))
-        status_notify ("GREETER %s LOCK-HINT", getenv ("DISPLAY"));
+        status_notify ("%s LOCK-HINT", greeter_id);
 
     g_main_loop_run (loop);
 
