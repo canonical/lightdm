@@ -16,6 +16,8 @@
 #include "seat.h"
 #include "guest-account.h"
 
+static gboolean seat_start_with_autologin (Seat *seat, gboolean chained_autologin);
+
 enum {
     DISPLAY_ADDED,
     DISPLAY_REMOVED,
@@ -410,6 +412,15 @@ display_ready_cb (Display *display, Seat *seat)
 }
 
 static void
+display_chain_ready_cb (Display *display, Seat *seat)
+{
+    /* Launch new autologin session, now that the greeter is ready */
+    g_debug ("Greeter ready, starting autologin session");
+
+    seat_start_with_autologin (seat, TRUE);
+}
+
+static void
 check_stopped (Seat *seat)
 {
     if (seat->priv->stopping &&
@@ -475,13 +486,15 @@ display_stopped_cb (Display *display, Seat *seat)
 }
 
 static gboolean
-switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean use_existing, gboolean is_guest, const gchar *session_name, gboolean is_lock, gboolean attempt_login, gboolean autologin, int autologin_timeout)
+switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean use_existing, gboolean is_guest, const gchar *session_name, gboolean is_lock, gboolean attempt_login, gboolean switch_to, gboolean autologin, gboolean chain_autologin, int autologin_timeout)
 {
     Display *display;
     DisplayServer *display_server;
 
     /* Switch to existing if it exists */
-    if (use_existing && switch_to_user (seat, username, FALSE))
+    if (is_guest && !seat->priv->guest_username)
+        use_existing = FALSE; /* Else we might match to a greeter session */
+    if (use_existing && switch_to_user (seat, is_guest ? seat->priv->guest_username : username, FALSE))
         return TRUE;
 
     /* If one don't exist then start a greeter */
@@ -518,7 +531,10 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean use
     g_signal_connect (display, "start-greeter", G_CALLBACK (display_start_greeter_cb), seat);
     g_signal_connect (display, "start-session", G_CALLBACK (display_start_session_cb), seat);
     g_signal_connect_after (display, "start-session", G_CALLBACK (display_session_started_cb), seat);
-    g_signal_connect (display, "ready", G_CALLBACK (display_ready_cb), seat);
+    if (switch_to)
+        g_signal_connect (display, "ready", G_CALLBACK (display_ready_cb), seat);
+    if (chain_autologin)
+        g_signal_connect (display, "ready", G_CALLBACK (display_chain_ready_cb), seat);
     g_signal_connect (display, "stopped", G_CALLBACK (display_stopped_cb), seat);
     display_set_greeter_session (display, seat_get_string_property (seat, "greeter-session"));
     display_set_session_wrapper (display, seat_get_string_property (seat, "session-wrapper"));
@@ -541,7 +557,7 @@ switch_to_user_or_start_greeter (Seat *seat, const gchar *username, gboolean use
     g_signal_emit (seat, signals[DISPLAY_ADDED], 0, display);
 
     /* Switch to this display if currently not looking at anything */
-    if (seat_get_active_display (seat) == NULL)
+    if (switch_to && seat_get_active_display (seat) == NULL)
         seat_set_active_display (seat, display);
 
     return display_start (display);
@@ -556,7 +572,7 @@ seat_switch_to_greeter (Seat *seat)
         return FALSE;
 
     g_debug ("Switching to greeter");
-    return switch_to_user_or_start_greeter (seat, NULL, TRUE, FALSE, NULL, FALSE, FALSE, FALSE, 0);
+    return switch_to_user_or_start_greeter (seat, NULL, TRUE, FALSE, NULL, FALSE, FALSE, TRUE, FALSE, FALSE, 0);
 }
 
 gboolean
@@ -569,7 +585,7 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
         return FALSE;
 
     g_debug ("Switching to user %s", username);
-    return switch_to_user_or_start_greeter (seat, username, TRUE, FALSE, session_name, FALSE, TRUE, FALSE, 0);
+    return switch_to_user_or_start_greeter (seat, username, TRUE, FALSE, session_name, FALSE, TRUE, TRUE, FALSE, FALSE, 0);
 }
 
 gboolean
@@ -584,7 +600,7 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
         g_debug ("Switching to existing guest account %s", seat->priv->guest_username);
     else
         g_debug ("Switching to new guest account");
-    return switch_to_user_or_start_greeter (seat, seat->priv->guest_username, TRUE, TRUE, session_name, FALSE, FALSE, TRUE, 0);
+    return switch_to_user_or_start_greeter (seat, seat->priv->guest_username, TRUE, TRUE, session_name, FALSE, FALSE, TRUE, TRUE, FALSE, 0);
 }
 
 gboolean
@@ -596,7 +612,7 @@ seat_lock (Seat *seat, const gchar *username)
         return FALSE;
 
     g_debug ("Locking seat");
-    return switch_to_user_or_start_greeter (seat, username, FALSE, FALSE, NULL, TRUE, FALSE, FALSE, 0);
+    return switch_to_user_or_start_greeter (seat, username, FALSE, FALSE, NULL, TRUE, FALSE, TRUE, FALSE, FALSE, 0);
 }
 
 void
@@ -625,25 +641,47 @@ seat_real_setup (Seat *seat)
 }
 
 static gboolean
-seat_real_start (Seat *seat)
+seat_start_with_autologin (Seat *seat, gboolean chained_autologin)
 {
     const gchar *autologin_username;
     int autologin_timeout;
-
-    g_debug ("Starting seat");
+    gboolean autologin_guest;
+    gboolean do_autologin;
+    gboolean in_background;
 
     /* Start showing a greeter */
     autologin_username = seat_get_string_property (seat, "autologin-user");
     if (g_strcmp0 (autologin_username, "") == 0)
         autologin_username = NULL;
     autologin_timeout = seat_get_integer_property (seat, "autologin-user-timeout");
+    autologin_guest = seat_get_boolean_property (seat, "autologin-guest");
+    do_autologin = autologin_username != NULL || autologin_guest;
+    in_background = do_autologin && !chained_autologin &&
+                    seat_get_boolean_property (seat, "autologin-in-background");
 
-    if (autologin_username)
-        return switch_to_user_or_start_greeter (seat, autologin_username, TRUE, FALSE, NULL, FALSE, FALSE, TRUE, autologin_timeout);
-    else if (seat_get_boolean_property (seat, "autologin-guest"))
-        return switch_to_user_or_start_greeter (seat, NULL, TRUE, TRUE, NULL, FALSE, FALSE, TRUE, autologin_timeout);
-    else
-        return switch_to_user_or_start_greeter (seat, NULL, TRUE, FALSE, NULL, FALSE, FALSE, FALSE, 0);
+    if (in_background && autologin_timeout == 0)
+    {
+        g_debug ("Autologin in background, opening greeter first");
+        do_autologin = FALSE;
+        autologin_username = NULL;
+        autologin_guest = FALSE;
+    }
+    if (chained_autologin)
+        autologin_timeout = 0;
+
+    return switch_to_user_or_start_greeter (seat, autologin_username, TRUE,
+                                            autologin_guest, NULL, FALSE,
+                                            FALSE, !chained_autologin,
+                                            do_autologin, in_background,
+                                            autologin_timeout);
+}
+
+static gboolean
+seat_real_start (Seat *seat)
+{
+    g_debug ("Starting seat");
+
+    return seat_start_with_autologin (seat, FALSE);
 }
 
 static void

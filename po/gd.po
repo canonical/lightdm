@@ -14,29 +14,33 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2013-04-25 05:38+0000\n"
-"X-Generator: Launchpad (build 16580)\n"
+"X-Launchpad-Export-Date: 2013-05-08 05:36+0000\n"
+"X-Generator: Launchpad (build 16598)\n"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:409
 msgid "Are you sure you want to close all programs and restart the computer?"
 msgstr ""
+"A bheil thu cinnteach gu bheil thu airson gach prògram a dhùnadh is an "
+"coimpiutair ath-thòiseachadh?"
 
 #: ../greeters/gtk/greeter.ui.h:1
 msgid "Cancel"
-msgstr ""
+msgstr "Sguir dheth"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:410
 msgid "Restart"
-msgstr ""
+msgstr "Ath-thòisich"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:434
 msgid ""
 "Are you sure you want to close all programs and shutdown the computer?"
 msgstr ""
+"A bheil thu cinnteach gu bheil thu airson gach prògram a dhùnadh agus an "
+"coimpiutair a chur dheth?"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:435
 msgid "Shutdown"
-msgstr ""
+msgstr "Dùin sìos"
 
 #: ../greeters/gtk/greeter.ui.h:4
 msgid "Large Font"
@@ -64,15 +68,15 @@ msgstr ""
 
 #: ../greeters/gtk/greeter.ui.h:8
 msgid "Suspend"
-msgstr ""
+msgstr "Cuir dàil ann"
 
 #: ../greeters/gtk/greeter.ui.h:2
 msgid "Hibernate"
-msgstr ""
+msgstr "Dèan cadal-geamhraidh"
 
 #: ../greeters/gtk/greeter.ui.h:6
 msgid "Restart..."
-msgstr ""
+msgstr "Ath-thòisich..."
 
 #: ../greeters/gtk/greeter.ui.h:7
 msgid "Shutdown..."

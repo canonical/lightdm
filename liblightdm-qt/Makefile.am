@@ -1,8 +1,14 @@
+AM_V_MOC4 = $(am__v_MOC4_$(V))
+am__v_MOC4_ = $(am__v_MOC4_$(AM_DEFAULT_VERBOSITY))
+am__v_MOC4_0 = @echo "  MOC4  " $@;
 %_moc4.cpp: QLightDM/%.h
-	$(MOC4) $< -o $@
+	$(AM_V_MOC4) $(MOC4) $< -o $@
 
+AM_V_MOC5 = $(am__v_MOC5_$(V))
+am__v_MOC5_ = $(am__v_MOC5_$(AM_DEFAULT_VERBOSITY))
+am__v_MOC5_0 = @echo "  MOC5  " $@;
 %_moc5.cpp: QLightDM/%.h
-	$(MOC5) $< -o $@
+	$(AM_V_MOC5) $(MOC5) $< -o $@
 
 common_libadd = \
 	-L$(top_builddir)/liblightdm-gobject \
