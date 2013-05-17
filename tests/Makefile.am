@@ -148,7 +148,8 @@ TESTS = \
 	test-python-power-no-services \
 	test-open-file-descriptors \
 	test-xdmcp-open-file-descriptors \
-	test-unity
+	test-unity-autologin \
+	test-unity-login
 
 #	test-session-exit-error
 #	test-greeter-no-exit
@@ -340,7 +341,8 @@ EXTRA_DIST = \
 	scripts/switch-to-user-logout.conf \
 	scripts/switch-to-user-no-password.conf \
 	scripts/system-xauthority.conf \
-	scripts/unity.conf \
+	scripts/unity-autologin.conf \
+	scripts/unity-login.conf \
 	scripts/util-path.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
