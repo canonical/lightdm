@@ -146,78 +146,17 @@ xdmcp_failed_cb (XDMCPClient *client, XDMCPFailed *message)
 }
 
 static void
-x_client_connect_cb (XClient *client, XConnect *message)
+client_connected_cb (XServer *server, XClient *client)
 {
     gchar *auth_error = NULL;
 
-    if (x_client_get_address (client))
-        status_notify ("XSERVER-%d TCP-ACCEPT-CONNECT", display_number);
-    else
-        status_notify ("XSERVER-%d ACCEPT-CONNECT", display_number);
-
-    if (xdmcp_client)
-    {
-        if (!xdmcp_cookie)
-            auth_error = g_strdup ("Need to authenticate with XDMCP");
-        else
-        {
-            gboolean matches = TRUE;
-            if (message->authorization_protocol_data_length == xdmcp_cookie_length)
-            {
-                guint16 i;
-                for (i = 0; i < xdmcp_cookie_length && message->authorization_protocol_data[i] == xdmcp_cookie[i]; i++);
-                matches = i == xdmcp_cookie_length;
-            }
-            else
-                matches = FALSE;
-
-            if (strcmp (message->authorization_protocol_name, "MIT-MAGIC-COOKIE-1") != 0)
-                auth_error = g_strdup ("Authorization required");
-            else if (!matches)
-                auth_error = g_strdup_printf ("Invalid MIT-MAGIC-COOKIE key");
-        }
-    }
-    else if (auth_path)
-    {
-        XAuthority *authority;
-        XAuthorityRecord *record = NULL;
-        GError *error = NULL;
-
-        authority = x_authority_new ();
-        x_authority_load (authority, auth_path, &error);
-        if (error)
-            g_warning ("Error reading auth file: %s", error->message);
-        g_clear_error (&error);
-
-        if (x_client_get_address (client))
-            record = x_authority_match_localhost (authority, message->authorization_protocol_name); // FIXME: Should check if remote
-        else
-            record = x_authority_match_local (authority, message->authorization_protocol_name);
-        if (record)
-        {
-            if (strcmp (message->authorization_protocol_name, "MIT-MAGIC-COOKIE-1") == 0)
-            {
-                if (!x_authority_record_check_cookie (record, message->authorization_protocol_data, message->authorization_protocol_data_length))
-                    auth_error = g_strdup_printf ("Invalid MIT-MAGIC-COOKIE key");
-            }
-            else
-                auth_error = g_strdup_printf ("Unknown authorization: '%s'", message->authorization_protocol_name);
-        }
-        else
-            auth_error = g_strdup ("No authorization record");
-    }
+    status_notify ("XSERVER-%d ACCEPT-CONNECT", display_number);
 
     if (auth_error)
         x_client_send_failed (client, auth_error);
     else
         x_client_send_success (client);
     g_free (auth_error);
-}
-
-static void
-client_connected_cb (XServer *server, XClient *client)
-{
-    g_signal_connect (client, "connect", G_CALLBACK (x_client_connect_cb), NULL);
 }
 
 static void
@@ -346,11 +285,6 @@ main (int argc, char **argv)
     xserver = x_server_new (display_number);
     g_signal_connect (xserver, "client-connected", G_CALLBACK (client_connected_cb), NULL);
     g_signal_connect (xserver, "client-disconnected", G_CALLBACK (client_disconnected_cb), NULL);
-    x_server_set_listen_unix (xserver, listen_unix);
-    x_server_set_listen_tcp (xserver, listen_tcp);
-
-    /* Add fake screen so that libx11 calls don't freak out when they can't find a screen */
-    x_server_add_screen (xserver, 0xffffff, 0x000000, 0, 1024, 768, 1000, 1000);
 
     status_notify ("XSERVER-%d START", display_number);
 

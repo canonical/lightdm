@@ -73,56 +73,17 @@ signal_cb (int signum)
 }
 
 static void
-x_client_connect_cb (XClient *client, XConnect *message)
+client_connected_cb (XServer *server, XClient *client)
 {
     gchar *auth_error = NULL;
 
-    if (x_client_get_address (client))
-        status_notify ("XSERVER-%d TCP-ACCEPT-CONNECT", display_number);
-    else
-        status_notify ("XSERVER-%d ACCEPT-CONNECT", display_number);
-
-    if (auth_path)
-    {
-        XAuthority *authority;
-        XAuthorityRecord *record = NULL;
-        GError *error = NULL;
-
-        authority = x_authority_new ();
-        x_authority_load (authority, auth_path, &error);
-        if (error)
-            g_warning ("Error reading auth file: %s", error->message);
-        g_clear_error (&error);
-
-        if (x_client_get_address (client))
-            record = x_authority_match_localhost (authority, message->authorization_protocol_name); // FIXME: Should check if remote
-        else
-            record = x_authority_match_local (authority, message->authorization_protocol_name);
-        if (record)
-        {
-            if (strcmp (message->authorization_protocol_name, "MIT-MAGIC-COOKIE-1") == 0)
-            {
-                if (!x_authority_record_check_cookie (record, message->authorization_protocol_data, message->authorization_protocol_data_length))
-                    auth_error = g_strdup_printf ("Invalid MIT-MAGIC-COOKIE key");
-            }
-            else
-                auth_error = g_strdup_printf ("Unknown authorization: '%s'", message->authorization_protocol_name);
-        }
-        else
-            auth_error = g_strdup ("No authorization record");
-    }
+    status_notify ("XSERVER-%d ACCEPT-CONNECT", display_number);
 
     if (auth_error)
         x_client_send_failed (client, auth_error);
     else
         x_client_send_success (client);
     g_free (auth_error);
-}
-
-static void
-client_connected_cb (XServer *server, XClient *client)
-{
-    g_signal_connect (client, "connect", G_CALLBACK (x_client_connect_cb), NULL);
 }
 
 static void
@@ -177,6 +138,7 @@ main (int argc, char **argv)
     gboolean has_option = FALSE;
     gchar *geometry = g_strdup ("640x480");
     gint depth = 8;
+    gchar *lock_filename;
     int lock_file;
     int i;
 
@@ -250,8 +212,6 @@ main (int argc, char **argv)
     xserver = x_server_new (display_number);
     g_signal_connect (xserver, "client-connected", G_CALLBACK (client_connected_cb), NULL);
     g_signal_connect (xserver, "client-disconnected", G_CALLBACK (client_disconnected_cb), NULL);
-    x_server_set_listen_unix (xserver, listen_unix);
-    x_server_set_listen_tcp (xserver, listen_tcp);
 
     status_notify ("XSERVER-%d START GEOMETRY=%s DEPTH=%d OPTION=%s", display_number, geometry, depth, has_option ? "TRUE" : "FALSE");
 
@@ -272,7 +232,9 @@ main (int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    lock_path = g_strdup_printf ("/tmp/.X%d-lock", display_number);
+    lock_filename = g_strdup_printf (".X%d-lock", display_number);
+    lock_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", lock_filename, NULL);
+    g_free (lock_filename);
     lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
     if (lock_file < 0)
     {

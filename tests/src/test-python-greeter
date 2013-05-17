@@ -93,7 +93,7 @@ def request_cb (channel, condition):
             layout = ''
         status_notify ('%s LOG-LAYOUT USERNAME=%s LAYOUT=%s' % (greeter_id, username, layout))
 
-    r = '%s LOG-LANGUAGE USERNAME=' % greeter_id  
+    r = '%s LOG-LANGUAGE USERNAME=' % greeter_id
     if request.startswith (r):
         username = request[len(r):]
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username)
@@ -102,65 +102,65 @@ def request_cb (channel, condition):
             language = ''
         status_notify ('%s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s' % (greeter_id, username, language))
 
-    r = 'GREETER %s GET-CAN-SUSPEND' % os.getenv ('DISPLAY')
+    r = '%s GET-CAN-SUSPEND' % greeter_id
     if request == r:
         if LightDM.get_can_suspend ():
             allowed = "TRUE"
         else:
             allowed = "FALSE"
-        status_notify ('GREETER %s CAN-SUSPEND ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+        status_notify ('%s CAN-SUSPEND ALLOWED=%s' % (greeter_id, allowed))
 
-    r = 'GREETER %s SUSPEND' % os.getenv ('DISPLAY')
+    r = '%s SUSPEND' % greeter_id
     if request == r:
         try:
             LightDM.suspend ()
         except:
-            status_notify ('GREETER %s FAIL-SUSPEND' % os.getenv ('DISPLAY'))
+            status_notify ('%s FAIL-SUSPEND' % greeter_id)
 
-    r = 'GREETER %s GET-CAN-HIBERNATE' % os.getenv ('DISPLAY')
+    r = '%s GET-CAN-HIBERNATE' % greeter_id
     if request == r:
         if LightDM.get_can_hibernate ():
             allowed = "TRUE"
         else:
             allowed = "FALSE"
-        status_notify ('GREETER %s CAN-HIBERNATE ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+        status_notify ('%s CAN-HIBERNATE ALLOWED=%s' % (greeter_id, allowed))
 
-    r = 'GREETER %s HIBERNATE' % os.getenv ('DISPLAY')
+    r = '%s HIBERNATE' % greeter_id
     if request == r:
         try:
             LightDM.hibernate ()
         except:
-            status_notify ('GREETER %s FAIL-HIBERNATE' % os.getenv ('DISPLAY'))
+            status_notify ('%s FAIL-HIBERNATE' % greeter_id)
 
-    r = 'GREETER %s GET-CAN-RESTART' % os.getenv ('DISPLAY')
+    r = '%s GET-CAN-RESTART' % greeter_id
     if request == r:
         if LightDM.get_can_restart ():
             allowed = "TRUE"
         else:
             allowed = "FALSE"
-        status_notify ('GREETER %s CAN-RESTART ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+        status_notify ('%s CAN-RESTART ALLOWED=%s' % (greeter_id, allowed))
 
-    r = 'GREETER %s RESTART' % os.getenv ('DISPLAY')
+    r = '%s RESTART' % greeter_id
     if request == r:
         try:
             LightDM.restart ()
         except:
-            status_notify ('GREETER %s FAIL-RESTART' % os.getenv ('DISPLAY'))
+            status_notify ('%s FAIL-RESTART' % greeter_id)
 
-    r = 'GREETER %s GET-CAN-SHUTDOWN' % os.getenv ('DISPLAY')
+    r = '%s GET-CAN-SHUTDOWN' % greeter_id
     if request == r:
         if LightDM.get_can_shutdown ():
             allowed = "TRUE"
         else:
             allowed = "FALSE"
-        status_notify ('GREETER %s CAN-SHUTDOWN ALLOWED=%s' % (os.getenv ('DISPLAY'), allowed))
+        status_notify ('%s CAN-SHUTDOWN ALLOWED=%s' % (greeter_id, allowed))
 
-    r = 'GREETER %s SHUTDOWN' % os.getenv ('DISPLAY')
+    r = '%s SHUTDOWN' % greeter_id
     if request == r:
         try:
             LightDM.shutdown ()
         except:
-            status_notify ('GREETER %s FAIL-SHUTDOWN' % os.getenv ('DISPLAY'))
+            status_notify ('%s FAIL-SHUTDOWN' % greeter_id)
 
     return True
 
@@ -175,7 +175,7 @@ status_notify ('%s START' % greeter_id)
 (host, display_number) = display.split (':')
 if host == '':
     x_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
-    x_socket.connect ('/tmp/.X11-unix/X%s' % display_number)
+    x_socket.connect (os.getenv ('LIGHTDM_TEST_ROOT') + '/tmp/' + display)
 else:
     x_socket = socket.socket (socket.AF_INET, socket.SOCK_STREAM)
     x_socket.connect ((host, 6000 + int (display_number)))
@@ -193,11 +193,6 @@ def pad (value):
         return value + '\x00' * (4 - len (value) % 4)
     else:
         return value
-x_socket.send (struct.pack ('!cxHHHHxx', 'B', 11, 0, len (auth_name), len (auth_data)) + pad (auth_name) + pad (auth_data))
-data = x_socket.recv (1024)
-if ord (data[0]) != 1:
-    status_notify ('%s FAIL-CONNECT-XSERVER' % greeter_id)
-    exit (1)
 
 status_notify ('%s CONNECT-XSERVER' % (greeter_id))
 

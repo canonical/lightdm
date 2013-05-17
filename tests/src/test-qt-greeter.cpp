@@ -126,67 +126,67 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s GET-CAN-SUSPEND", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s GET-CAN-SUSPEND", greeter_id);
     if (strcmp (request, r) == 0)
     {
         gboolean can_suspend = power->canSuspend ();
-        status_notify ("GREETER %s CAN-SUSPEND ALLOWED=%s", getenv ("DISPLAY"), can_suspend ? "TRUE" : "FALSE");
+        status_notify ("%s CAN-SUSPEND ALLOWED=%s", greeter_id, can_suspend ? "TRUE" : "FALSE");
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s SUSPEND", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s SUSPEND", greeter_id);
     if (strcmp (request, r) == 0)
     {
         if (!power->suspend ())
-            status_notify ("GREETER %s FAIL-SUSPEND", getenv ("DISPLAY"));
+            status_notify ("%s FAIL-SUSPEND", greeter_id);
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s GET-CAN-HIBERNATE", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s GET-CAN-HIBERNATE", greeter_id);
     if (strcmp (request, r) == 0)
     {
         gboolean can_hibernate = power->canHibernate ();
-        status_notify ("GREETER %s CAN-HIBERNATE ALLOWED=%s", getenv ("DISPLAY"), can_hibernate ? "TRUE" : "FALSE");
+        status_notify ("%s CAN-HIBERNATE ALLOWED=%s", greeter_id, can_hibernate ? "TRUE" : "FALSE");
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s HIBERNATE", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s HIBERNATE", greeter_id);
     if (strcmp (request, r) == 0)
     {
         if (!power->hibernate ())
-            status_notify ("GREETER %s FAIL-HIBERNATE", getenv ("DISPLAY"));
+            status_notify ("%s FAIL-HIBERNATE", greeter_id);
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s GET-CAN-RESTART", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s GET-CAN-RESTART", greeter_id);
     if (strcmp (request, r) == 0)
     {
         gboolean can_restart = power->canRestart ();
-        status_notify ("GREETER %s CAN-RESTART ALLOWED=%s", getenv ("DISPLAY"), can_restart ? "TRUE" : "FALSE");
+        status_notify ("%s CAN-RESTART ALLOWED=%s", greeter_id, can_restart ? "TRUE" : "FALSE");
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s RESTART", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s RESTART", greeter_id);
     if (strcmp (request, r) == 0)
     {
         if (!power->restart ())
-            status_notify ("GREETER %s FAIL-RESTART", getenv ("DISPLAY"));
+            status_notify ("%s FAIL-RESTART", greeter_id);
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s GET-CAN-SHUTDOWN", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s GET-CAN-SHUTDOWN", greeter_id);
     if (strcmp (request, r) == 0)
     {
         gboolean can_shutdown = power->canShutdown ();
-        status_notify ("GREETER %s CAN-SHUTDOWN ALLOWED=%s", getenv ("DISPLAY"), can_shutdown ? "TRUE" : "FALSE");
+        status_notify ("%s CAN-SHUTDOWN ALLOWED=%s", greeter_id, can_shutdown ? "TRUE" : "FALSE");
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s SHUTDOWN", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s SHUTDOWN", greeter_id);
     if (strcmp (request, r) == 0)
     {
         if (!power->shutdown ())
-            status_notify ("GREETER %s FAIL-SHUTDOWN", getenv ("DISPLAY"));
+            status_notify ("%s FAIL-SHUTDOWN", greeter_id);
     }
     g_free (r);
 }

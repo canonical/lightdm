@@ -12,7 +12,7 @@
 #include <pwd.h>
 
 /* Timeout in ms waiting for the status we expect */
-#define STATUS_TIMEOUT 2000
+#define STATUS_TIMEOUT 4000
 
 /* Timeout in ms to wait for SIGTERM to be handled by a child process */
 #define KILL_TIMEOUT 2000

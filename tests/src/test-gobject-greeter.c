@@ -120,14 +120,6 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
-    r = g_strdup_printf ("%s LOG-LAYOUT", greeter_id);
-    if (strcmp (request, r) == 0)
-    {
-        const gchar *layout;
-        layout = lightdm_layout_get_name (lightdm_get_layout ());
-        status_notify ("%s LOG-LAYOUT LAYOUT='%s'", greeter_id, layout ? layout : "");
-    }
-
     r = g_strdup_printf ("%s LOG-LAYOUT USERNAME=", greeter_id);
     if (g_str_has_prefix (request, r))
     {
@@ -159,29 +151,6 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
-    r = g_strdup_printf ("%s LOG-VARIANTS LAYOUT=", greeter_id);
-    if (g_str_has_prefix (request, r))
-    {
-        GList *layouts, *iter;
-        const gchar *layout_prefix;
-
-        layout_prefix = request + strlen (r);
-        layouts = lightdm_get_layouts ();
-
-        for (iter = layouts; iter; iter = iter->next)
-        {
-            LightDMLayout *layout;
-            const gchar *name;
-
-            layout = (LightDMLayout *) iter->data;
-            name = lightdm_layout_get_name (layout);
-
-            if (g_str_has_prefix (name, layout_prefix))
-                status_notify ("%s LOG-VARIANTS LAYOUT='%s'", greeter_id, name);
-        }
-    }
-    g_free (r);
-
     r = g_strdup_printf ("%s LOG-LANGUAGE USERNAME=", greeter_id);  
     if (g_str_has_prefix (request, r))
     {
@@ -196,74 +165,74 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s GET-CAN-SUSPEND", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s GET-CAN-SUSPEND", greeter_id);
     if (strcmp (request, r) == 0)
     {
         gboolean can_suspend = lightdm_get_can_suspend ();
-        status_notify ("GREETER %s CAN-SUSPEND ALLOWED=%s", getenv ("DISPLAY"), can_suspend ? "TRUE" : "FALSE");
+        status_notify ("%s CAN-SUSPEND ALLOWED=%s", greeter_id, can_suspend ? "TRUE" : "FALSE");
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s SUSPEND", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s SUSPEND", greeter_id);
     if (strcmp (request, r) == 0)
     {
         GError *error = NULL;
         if (!lightdm_suspend (&error))
-            status_notify ("GREETER %s FAIL-SUSPEND", getenv ("DISPLAY"));
+            status_notify ("%s FAIL-SUSPEND", greeter_id);
         g_clear_error (&error);
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s GET-CAN-HIBERNATE", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s GET-CAN-HIBERNATE", greeter_id);
     if (strcmp (request, r) == 0)
     {
         gboolean can_hibernate = lightdm_get_can_hibernate ();
-        status_notify ("GREETER %s CAN-HIBERNATE ALLOWED=%s", getenv ("DISPLAY"), can_hibernate ? "TRUE" : "FALSE");
+        status_notify ("%s CAN-HIBERNATE ALLOWED=%s", greeter_id, can_hibernate ? "TRUE" : "FALSE");
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s HIBERNATE", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s HIBERNATE", greeter_id);
     if (strcmp (request, r) == 0)
     {
         GError *error = NULL;
         if (!lightdm_hibernate (&error))
-            status_notify ("GREETER %s FAIL-HIBERNATE", getenv ("DISPLAY"));
+            status_notify ("%s FAIL-HIBERNATE", greeter_id);
         g_clear_error (&error);
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s GET-CAN-RESTART", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s GET-CAN-RESTART", greeter_id);
     if (strcmp (request, r) == 0)
     {
         gboolean can_restart = lightdm_get_can_restart ();
-        status_notify ("GREETER %s CAN-RESTART ALLOWED=%s", getenv ("DISPLAY"), can_restart ? "TRUE" : "FALSE");
+        status_notify ("%s CAN-RESTART ALLOWED=%s", greeter_id, can_restart ? "TRUE" : "FALSE");
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s RESTART", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s RESTART", greeter_id);
     if (strcmp (request, r) == 0)
     {
         GError *error = NULL;
         if (!lightdm_restart (&error))
-            status_notify ("GREETER %s FAIL-RESTART", getenv ("DISPLAY"));
+            status_notify ("%s FAIL-RESTART", greeter_id);
         g_clear_error (&error);
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s GET-CAN-SHUTDOWN", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s GET-CAN-SHUTDOWN", greeter_id);
     if (strcmp (request, r) == 0)
     {
         gboolean can_shutdown = lightdm_get_can_shutdown ();
-        status_notify ("GREETER %s CAN-SHUTDOWN ALLOWED=%s", getenv ("DISPLAY"), can_shutdown ? "TRUE" : "FALSE");
+        status_notify ("%s CAN-SHUTDOWN ALLOWED=%s", greeter_id, can_shutdown ? "TRUE" : "FALSE");
     }
     g_free (r);
 
-    r = g_strdup_printf ("GREETER %s SHUTDOWN", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s SHUTDOWN", greeter_id);
     if (strcmp (request, r) == 0)
     {
         GError *error = NULL;
         if (!lightdm_shutdown (&error))
-            status_notify ("GREETER %s FAIL-SHUTDOWN", getenv ("DISPLAY"));
+            status_notify ("%s FAIL-SHUTDOWN", greeter_id);
         g_clear_error (&error);
     }
     g_free (r);
