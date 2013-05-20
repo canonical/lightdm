@@ -65,6 +65,9 @@ struct SeatUnityPrivate
     guint compositor_timeout;
 
     gint next_id;
+
+    /* The currently visible display */
+    Display *active_display;
 };
 
 G_DEFINE_TYPE (SeatUnity, seat_unity, SEAT_TYPE);
@@ -79,6 +82,12 @@ seat_unity_setup (Seat *seat)
 static void
 compositor_stopped_cb (Process *process, SeatUnity *seat)
 {
+    if (seat_get_is_stopping (SEAT (seat)))
+    {
+        SEAT_CLASS (seat_unity_parent_class)->stop (SEAT (seat));
+        return;
+    }
+
     g_debug ("Stopping Unity seat, compositor terminated");
 
     if (seat->priv->stopping_plymouth)
@@ -88,7 +97,7 @@ compositor_stopped_cb (Process *process, SeatUnity *seat)
         seat->priv->stopping_plymouth = FALSE;
     }
 
-    SEAT_CLASS (seat_unity_parent_class)->stop (SEAT (seat));
+    seat_stop (SEAT (seat));
 }
 
 static void
@@ -441,6 +450,10 @@ seat_unity_set_active_display (Seat *seat, Display *display)
     XServerLocal *xserver;
     const gchar *id;
 
+    if (display == SEAT_UNITY (seat)->priv->active_display)
+        return;
+    SEAT_UNITY (seat)->priv->active_display = display;
+
     xserver = XSERVER_LOCAL (display_get_display_server (display));
     id = xserver_local_get_mir_id (xserver);
 
@@ -448,6 +461,12 @@ seat_unity_set_active_display (Seat *seat, Display *display)
     write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_ACTIVE_SESSION, id, strlen (id));
 
     SEAT_CLASS (seat_unity_parent_class)->set_active_display (seat, display);
+}
+
+static Display *
+seat_unity_get_active_display (Seat *seat)
+{
+    return SEAT_UNITY (seat)->priv->active_display;
 }
 
 static void
@@ -467,7 +486,14 @@ seat_unity_run_script (Seat *seat, Display *display, Process *script)
 static void
 seat_unity_stop (Seat *seat)
 {
-    process_stop (SEAT_UNITY (seat)->priv->compositor_process);
+    /* Stop the compositor first */
+    if (process_get_is_running (SEAT_UNITY (seat)->priv->compositor_process))
+    {
+        process_stop (SEAT_UNITY (seat)->priv->compositor_process);
+        return;
+    }
+
+    SEAT_CLASS (seat_unity_parent_class)->stop (seat);
 }
 
 static void
@@ -532,6 +558,7 @@ seat_unity_class_init (SeatUnityClass *klass)
     seat_class->create_display_server = seat_unity_create_display_server;
     seat_class->create_session = seat_unity_create_session;
     seat_class->set_active_display = seat_unity_set_active_display;
+    seat_class->get_active_display = seat_unity_get_active_display;
     seat_class->run_script = seat_unity_run_script;
     seat_class->stop = seat_unity_stop;
     seat_class->display_removed = seat_unity_display_removed;

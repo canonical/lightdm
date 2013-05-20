@@ -197,6 +197,7 @@ main (int argc, char **argv)
     gboolean do_xdmcp = FALSE;
     guint xdmcp_port = 0;
     gchar *xdmcp_host = NULL;
+    gchar *mir_id = NULL;
     gchar *lock_filename;
     int lock_file;
 
@@ -267,7 +268,7 @@ main (int argc, char **argv)
         }
         else if (strcmp (arg, "-mir") == 0)
         {
-            /* FIXME */
+            mir_id = argv[i+1];
             i++;
         }
         else if (strcmp (arg, "-mirSocket") == 0)
@@ -298,7 +299,10 @@ main (int argc, char **argv)
     g_signal_connect (xserver, "client-connected", G_CALLBACK (client_connected_cb), NULL);
     g_signal_connect (xserver, "client-disconnected", G_CALLBACK (client_disconnected_cb), NULL);
 
-    status_notify ("XSERVER-%d START", display_number);
+    if (mir_id != NULL)
+        status_notify ("XSERVER-%d START MIR-ID=%s", display_number, mir_id);
+    else
+        status_notify ("XSERVER-%d START", display_number);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);

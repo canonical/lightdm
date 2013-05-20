@@ -12,7 +12,7 @@
 #include <pwd.h>
 
 /* Timeout in ms waiting for the status we expect */
-#define STATUS_TIMEOUT 4000
+static int status_timeout_ms = 4000;
 
 /* Timeout in ms to wait for SIGTERM to be handled by a child process */
 #define KILL_TIMEOUT 2000
@@ -497,7 +497,8 @@ handle_command (const gchar *command)
     /* Forward to external processes */
     else if (g_str_has_prefix (name, "SESSION-") ||
              g_str_has_prefix (name, "GREETER-") ||
-             g_str_has_prefix (name, "XSERVER-"))
+             g_str_has_prefix (name, "XSERVER-") ||
+             strcmp (name, "UNITY-SYSTEM-COMPOSITOR") == 0)
     {
         GList *link;
         for (link = status_clients; link; link = link->next)
@@ -597,7 +598,7 @@ check_status (const gchar *status)
 
     /* Restart timeout */
     g_source_remove (status_timeout);
-    status_timeout = g_timeout_add (STATUS_TIMEOUT, status_timeout_cb, NULL);
+    status_timeout = g_timeout_add (status_timeout_ms, status_timeout_cb, NULL);
 
     run_commands ();
 }
@@ -1531,7 +1532,7 @@ run_lightdm ()
 
     run_commands ();
 
-    status_timeout = g_timeout_add (STATUS_TIMEOUT, status_timeout_cb, NULL);
+    status_timeout = g_timeout_add (status_timeout_ms, status_timeout_cb, NULL);
 
     command_line = g_string_new ("lightdm");
     if (getenv ("DEBUG"))
@@ -1869,6 +1870,9 @@ main (int argc, char **argv)
     g_file_set_contents (path, group_data->str, -1, NULL);
     g_free (path);
     g_string_free (group_data, TRUE);
+
+    if (g_key_file_has_key (config, "test-runner-config", "timeout", NULL))
+        status_timeout_ms = g_key_file_get_integer (config, "test-runner-config", "timeout", NULL) * 1000;
 
     /* Start D-Bus services */
     if (!g_key_file_get_boolean (config, "test-runner-config", "disable-upower", NULL))
