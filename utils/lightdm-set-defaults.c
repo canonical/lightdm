@@ -20,6 +20,7 @@
 #include <glib/gi18n.h>
 
 #define SEATDEFAULT_KEY_GROUP "SeatDefaults"
+#define TYPE_KEY_NAME  "type"
 #define SESSION_KEY_NAME  "user-session"
 #define GREETER_KEY_NAME  "greeter-session"
 #define AUTOLOGIN_KEY_NAME  "autologin-user"
@@ -38,6 +39,7 @@ static gboolean show_manual_login = FALSE;
 static gboolean show_remote_login = FALSE;
 static gboolean allow_guest = FALSE;
 
+static char    *type = NULL;
 static char    *session = NULL;
 static char    *greeter = NULL;
 static char    *autologin = NULL;
@@ -51,6 +53,7 @@ static GOptionEntry entries[] =
   { "debug",    'd', 0, G_OPTION_ARG_NONE, &debug, N_("Enable debugging"), NULL },
   { "keep-old", 'k', 0, G_OPTION_ARG_NONE, &keep_old, N_("Only update if no default already set"), NULL },
   { "remove",   'r', 0, G_OPTION_ARG_NONE, &remove, N_("Remove default value if it's the current one"), NULL },
+  { "type",     't', 0, G_OPTION_ARG_STRING, &type, N_("Set default seat type"), NULL },
   { "session",  's', 0, G_OPTION_ARG_STRING, &session, N_("Set default session"), NULL },
   { "greeter",  'g', 0, G_OPTION_ARG_STRING, &greeter, N_("Set default greeter"), NULL },
   { "autologin",'a', 0, G_OPTION_ARG_STRING, &autologin, N_("Set autologin user"), NULL },
@@ -160,6 +163,7 @@ main (int argc, char *argv[])
     gsize           size;
     const gchar    *gdm_conf_file = CONFIG_DIR "/lightdm.conf";
 
+    gchar          *default_type = NULL;
     gchar          *default_session = NULL;
     gchar          *default_greeter = NULL;
     gchar          *default_autologin = NULL;
@@ -181,7 +185,7 @@ main (int argc, char *argv[])
         g_error_free (error);
         return 1;
     }
-    if (IS_STRING_EMPTY (session) && IS_STRING_EMPTY (greeter) && IS_STRING_EMPTY (autologin) && IS_STRING_EMPTY(str_hide_users) && IS_STRING_EMPTY(str_show_manual_login) && IS_STRING_EMPTY(str_show_remote_login) && IS_STRING_EMPTY(str_allow_guest)) {
+    if (IS_STRING_EMPTY (type) && IS_STRING_EMPTY (session) && IS_STRING_EMPTY (greeter) && IS_STRING_EMPTY (autologin) && IS_STRING_EMPTY(str_hide_users) && IS_STRING_EMPTY(str_show_manual_login) && IS_STRING_EMPTY(str_show_remote_login) && IS_STRING_EMPTY(str_allow_guest)) {
         g_printerr (N_("Wrong usage of the command\n%s"), g_option_context_get_help (context, FALSE, NULL));
         g_option_context_free (context);
         return 1;
@@ -200,10 +204,13 @@ main (int argc, char *argv[])
     }
 
     // try to get the right keys
+    default_type = g_key_file_get_string (keyfile, SEATDEFAULT_KEY_GROUP, TYPE_KEY_NAME, NULL);
     default_session = g_key_file_get_string (keyfile, SEATDEFAULT_KEY_GROUP, SESSION_KEY_NAME, NULL);
     default_greeter = g_key_file_get_string (keyfile, SEATDEFAULT_KEY_GROUP, GREETER_KEY_NAME, NULL);
     default_autologin = g_key_file_get_string (keyfile, SEATDEFAULT_KEY_GROUP, AUTOLOGIN_KEY_NAME, NULL);
 
+    if (!(IS_STRING_EMPTY (type)))
+        return_code = update_string (default_type, type, keep_old, remove, SEATDEFAULT_KEY_GROUP, TYPE_KEY_NAME, keyfile);
     if (!(IS_STRING_EMPTY (session)))
         return_code = update_string (default_session, session, keep_old, remove, SEATDEFAULT_KEY_GROUP, SESSION_KEY_NAME, keyfile);
     if (!(IS_STRING_EMPTY (greeter)) && (return_code == 0))
@@ -266,6 +273,8 @@ main (int argc, char *argv[])
 
     g_key_file_free (keyfile);
 
+    if (default_type)
+        g_free (default_type);
     if (default_session)
         g_free (default_session);
     if (default_greeter)
