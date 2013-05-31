@@ -169,6 +169,12 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     gsize n_to_read = 0;
     guint16 id, payload_length;
     guint8 *payload;
+  
+    if (condition == G_IO_HUP)
+    {
+        g_debug ("Compositor closed communication channel");
+        return FALSE;
+    }
 
     /* Work out how much required for a message */
     if (seat->priv->read_buffer_n_used < 4)
@@ -183,19 +189,22 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     if (n_to_read > 0)
     {
         gsize n_total, n_read = 0;
+        GIOStatus status;
         GError *error = NULL;
 
         n_total = seat->priv->read_buffer_n_used + n_to_read;
         if (seat->priv->read_buffer_length < n_total)
             seat->priv->read_buffer = g_realloc (seat->priv->read_buffer, n_total);
 
-        g_io_channel_read_chars (source,
-                                 seat->priv->read_buffer + seat->priv->read_buffer_n_used,
-                                 n_to_read,
-                                 &n_read,
-                                 &error);
+        status = g_io_channel_read_chars (source,
+                                          seat->priv->read_buffer + seat->priv->read_buffer_n_used,
+                                          n_to_read,
+                                          &n_read,
+                                          &error);
         if (error)
             g_warning ("Failed to read from compositor: %s", error->message);
+        if (status != G_IO_STATUS_NORMAL)
+            return TRUE;
         g_clear_error (&error);
         seat->priv->read_buffer_n_used += n_read;
     }
@@ -323,7 +332,7 @@ seat_unity_start (Seat *seat)
 
     /* Listen for messages from the compositor */
     SEAT_UNITY (seat)->priv->from_compositor_channel = g_io_channel_unix_new (SEAT_UNITY (seat)->priv->from_compositor_pipe[0]);
-    g_io_add_watch (SEAT_UNITY (seat)->priv->from_compositor_channel, G_IO_IN, read_cb, seat);
+    g_io_add_watch (SEAT_UNITY (seat)->priv->from_compositor_channel, G_IO_IN | G_IO_HUP, read_cb, seat);
 
     /* Setup logging */
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
