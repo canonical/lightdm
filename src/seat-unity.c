@@ -64,7 +64,11 @@ struct SeatUnityPrivate
     /* Timeout when waiting for compositor to start */
     guint compositor_timeout;
 
+    /* Next Mir ID to use for a compositor client */
     gint next_id;
+
+    /* TRUE if using VT switching fallback */
+    gboolean use_vt_switching;
 
     /* The currently visible display */
     Display *active_display;
@@ -82,9 +86,22 @@ seat_unity_setup (Seat *seat)
 static void
 compositor_stopped_cb (Process *process, SeatUnity *seat)
 {
+    if (seat->priv->compositor_timeout != 0)
+        g_source_remove (seat->priv->compositor_timeout);
+    seat->priv->compositor_timeout = 0;
+
     if (seat_get_is_stopping (SEAT (seat)))
     {
         SEAT_CLASS (seat_unity_parent_class)->stop (SEAT (seat));
+        return;
+    }
+
+    /* If stopped before it was ready, then revert to VT mode */
+    if (!seat->priv->compositor_ready)
+    {
+        g_debug ("Compositor failed to start, switching to VT mode");
+        seat->priv->use_vt_switching = TRUE;
+        SEAT_CLASS (seat_unity_parent_class)->start (SEAT (seat));
         return;
     }
 
@@ -243,8 +260,10 @@ get_absolute_command (const gchar *command)
             absolute_command = g_strjoin (" ", absolute_binary, tokens[1], NULL);
         else
             absolute_command = g_strdup (absolute_binary);
+        g_free (absolute_binary);
     }
-    g_free (absolute_binary);
+    else
+        absolute_command = g_strdup (command);
 
     g_strfreev (tokens);
 
@@ -317,11 +336,6 @@ seat_unity_start (Seat *seat)
 
     absolute_command = get_absolute_command (command);
     g_free (command);
-    if (!absolute_command)
-    {
-        g_debug ("Can't launch system compositor, not found in path");
-        return FALSE;
-    }
 
     /* Start the compositor */
     process_set_command (SEAT_UNITY (seat)->priv->compositor_process, absolute_command);
@@ -359,11 +373,14 @@ seat_unity_create_display_server (Seat *seat)
 
     xserver = xserver_local_new ();
 
-    id = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->next_id);
-    SEAT_UNITY (seat)->priv->next_id++;
-    xserver_local_set_mir_id (xserver, id);
-    xserver_local_set_mir_socket (xserver, SEAT_UNITY (seat)->priv->mir_socket_filename);
-    g_free (id);
+    if (!SEAT_UNITY (seat)->priv->use_vt_switching)
+    {
+        id = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->next_id);
+        SEAT_UNITY (seat)->priv->next_id++;
+        xserver_local_set_mir_id (xserver, id);
+        xserver_local_set_mir_socket (xserver, SEAT_UNITY (seat)->priv->mir_socket_filename);
+        g_free (id);
+    }
 
     command = seat_get_string_property (seat, "xserver-command");
     if (command)
@@ -437,7 +454,10 @@ seat_unity_create_session (Seat *seat, Display *display)
     xserver = XSERVER_LOCAL (display_get_display_server (display));
 
     session = xsession_new (XSERVER (xserver));
-    tty = g_strdup_printf ("/dev/tty%d", SEAT_UNITY (seat)->priv->vt);
+    if (SEAT_UNITY (seat)->priv->use_vt_switching)
+        tty = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (xserver));
+    else
+        tty = g_strdup_printf ("/dev/tty%d", SEAT_UNITY (seat)->priv->vt);
     session_set_tty (SESSION (session), tty);
     g_free (tty);
 
@@ -449,6 +469,17 @@ seat_unity_set_active_display (Seat *seat, Display *display)
 {
     XServerLocal *xserver;
     const gchar *id;
+
+    /* If no compositor, have to use VT switching */
+    if (SEAT_UNITY (seat)->priv->use_vt_switching)
+    {
+        gint vt = xserver_local_get_vt (XSERVER_LOCAL (display_get_display_server (display)));
+        if (vt >= 0)
+            vt_set_active (vt);
+
+        SEAT_CLASS (seat_unity_parent_class)->set_active_display (seat, display);
+        return;
+    }
 
     if (display == SEAT_UNITY (seat)->priv->active_display)
         return;
@@ -466,6 +497,27 @@ seat_unity_set_active_display (Seat *seat, Display *display)
 static Display *
 seat_unity_get_active_display (Seat *seat)
 {
+    if (SEAT_UNITY (seat)->priv->use_vt_switching)
+    {
+        gint vt;
+        GList *link;
+        vt = vt_get_active ();
+        if (vt < 0)
+            return NULL;
+
+        for (link = seat_get_displays (seat); link; link = link->next)
+        {
+            Display *display = link->data;
+            XServerLocal *xserver;
+
+            xserver = XSERVER_LOCAL (display_get_display_server (display));
+            if (xserver_local_get_vt (xserver) == vt)
+                return display;
+        }
+
+        return NULL;
+    }
+
     return SEAT_UNITY (seat)->priv->active_display;
 }
 
