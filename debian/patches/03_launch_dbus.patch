@@ -1,9 +1,9 @@
 === modified file 'src/display.c'
-Index: lightdm-1.5.1/src/display.c
+Index: lightdm-unity/src/display.c
 ===================================================================
---- lightdm-1.5.1.orig/src/display.c	2013-03-08 11:18:24.497614682 +1300
-+++ lightdm-1.5.1/src/display.c	2013-03-08 11:18:24.497614682 +1300
-@@ -635,6 +635,8 @@
+--- lightdm-unity.orig/src/display.c	2013-05-31 14:43:17.293193278 +1200
++++ lightdm-unity/src/display.c	2013-05-31 14:43:17.293193278 +1200
+@@ -637,6 +637,8 @@
      }
  }
  
@@ -12,7 +12,7 @@ Index: lightdm-1.5.1/src/display.c
  static gboolean
  display_start_greeter (Display *display)
  {
-@@ -662,6 +664,8 @@
+@@ -664,6 +666,8 @@
      if (!argv)
          return TRUE;
  

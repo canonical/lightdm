@@ -1,8 +1,8 @@
-Index: lightdm-1.5.1/src/xserver-local.c
+Index: lightdm-unity/src/xserver-local.c
 ===================================================================
---- lightdm-1.5.1.orig/src/xserver-local.c	2013-03-08 11:18:26.989614595 +1300
-+++ lightdm-1.5.1/src/xserver-local.c	2013-03-08 11:18:26.989614595 +1300
-@@ -441,6 +441,9 @@
+--- lightdm-unity.orig/src/xserver-local.c	2013-05-31 14:43:19.661193196 +1200
++++ lightdm-unity/src/xserver-local.c	2013-05-31 14:43:19.661193196 +1200
+@@ -483,6 +483,9 @@
      if (server->priv->layout)
          g_string_append_printf (command, " -layout %s", server->priv->layout);
  
@@ -12,11 +12,11 @@ Index: lightdm-1.5.1/src/xserver-local.c
      gethostname (hostname, 1024);
      number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (server)));
      if (!server->priv->xdmcp_key)
-Index: lightdm-1.5.1/tests/src/X.c
+Index: lightdm-unity/tests/src/X.c
 ===================================================================
---- lightdm-1.5.1.orig/tests/src/X.c	2013-03-08 11:18:26.989614595 +1300
-+++ lightdm-1.5.1/tests/src/X.c	2013-03-08 11:18:26.989614595 +1300
-@@ -297,6 +297,9 @@
+--- lightdm-unity.orig/tests/src/X.c	2013-05-31 14:43:19.661193196 +1200
++++ lightdm-unity/tests/src/X.c	2013-05-31 14:43:19.661193196 +1200
+@@ -238,6 +238,9 @@
          else if (strcmp (arg, "-nr") == 0)
          {
          }
@@ -26,7 +26,7 @@ Index: lightdm-1.5.1/tests/src/X.c
          else if (strcmp (arg, "-background") == 0)
          {
              /* Ignore arg */
-@@ -333,6 +336,7 @@
+@@ -284,6 +287,7 @@
                          "-nolisten protocol     Don't listen on protocol\n"
                          "-background [none]     Create root window with no background\n"
                          "-nr                    (Ubuntu-specific) Synonym for -background none\n"
