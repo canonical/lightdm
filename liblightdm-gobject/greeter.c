@@ -81,7 +81,8 @@ typedef enum
     GREETER_MESSAGE_START_SESSION,
     GREETER_MESSAGE_CANCEL_AUTHENTICATION,
     GREETER_MESSAGE_SET_LANGUAGE,
-    GREETER_MESSAGE_AUTHENTICATE_REMOTE
+    GREETER_MESSAGE_AUTHENTICATE_REMOTE,
+    GREETER_MESSAGE_START_MIR_SESSION
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -1086,6 +1087,58 @@ lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *sessio
         g_debug ("Starting default session");
 
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_START_SESSION, string_length (session), &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, session, &offset);
+    write_message (greeter, message, offset);
+
+    response = read_message (greeter, &response_length, TRUE);
+    if (!response)
+        return FALSE;
+
+    offset = 0;
+    id = read_int (response, response_length, &offset);
+    read_int (response, response_length, &offset);
+    if (id == SERVER_MESSAGE_SESSION_RESULT)
+        return_code = read_int (response, response_length, &offset);
+    else
+        g_warning ("Expected SESSION_RESULT message, got %d", id);
+
+    g_free (response);
+
+    return return_code == 0;
+}
+
+/**
+ * lightdm_greeter_start_mir_session_sync:
+ * @greeter: A #LightDMGreeter
+ * @session: (allow-none): The Mir session to log into or #NULL to use the default.
+ * @error: return location for a #GError, or %NULL
+ *
+ * Start a session for the authenticated user.
+ *
+ * Return value: TRUE if the session was started.
+ **/
+gboolean
+lightdm_greeter_start_mir_session_sync (LightDMGreeter *greeter, const gchar *session, GError **error)
+{
+    LightDMGreeterPrivate *priv;
+    guint8 message[MAX_MESSAGE_LENGTH];
+    guint8 *response;
+    gsize response_length, offset = 0;
+    guint32 id, return_code = 1;
+
+    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
+
+    priv = GET_PRIVATE (greeter);
+
+    g_return_val_if_fail (priv->connected, FALSE);
+    g_return_val_if_fail (priv->is_authenticated, FALSE);
+
+    if (session)
+        g_debug ("Starting Mir session %s", session);
+    else
+        g_debug ("Starting default Mir session");
+
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_START_MIR_SESSION, string_length (session), &offset);
     write_string (message, MAX_MESSAGE_LENGTH, session, &offset);
     write_message (greeter, message, offset);
 

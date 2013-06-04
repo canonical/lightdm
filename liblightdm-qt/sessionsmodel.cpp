@@ -58,6 +58,9 @@ void SessionsModelPrivate::loadSessions(SessionsModel::SessionType sessionType)
     case SessionsModel::RemoteSessions:
         ldmSessions = lightdm_get_remote_sessions();
         break;
+    case SessionsModel::MirSessions:
+        ldmSessions = lightdm_get_mir_sessions();
+        break;
     case SessionsModel::LocalSessions:
         /* Fall through*/
     default:

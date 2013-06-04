@@ -46,7 +46,8 @@ typedef struct
 typedef enum
 {
     SESSION_TYPE_LOCAL,
-    SESSION_TYPE_REMOTE
+    SESSION_TYPE_REMOTE,
+    SESSION_TYPE_MIR
 } SessionType;
 
 #define XDG_SESSION_CLASS_USER        "user"

@@ -34,6 +34,7 @@ G_DEFINE_TYPE (LightDMSession, lightdm_session, G_TYPE_OBJECT);
 static gboolean have_sessions = FALSE;
 static GList *local_sessions = NULL;
 static GList *remote_sessions = NULL;
+static GList *mir_sessions = NULL;
 
 static gint 
 compare_session (gconstpointer a, gconstpointer b)
@@ -173,6 +174,7 @@ update_sessions (void)
     gchar *config_path = NULL;
     gchar *xsessions_dir;
     gchar *remote_sessions_dir;
+    gchar *mir_sessions_dir;
     gboolean result;
     GError *error = NULL;
 
@@ -181,6 +183,7 @@ update_sessions (void)
 
     xsessions_dir = g_strdup (XSESSIONS_DIR);
     remote_sessions_dir = g_strdup (REMOTE_SESSIONS_DIR);
+    mir_sessions_dir = g_strdup (MIR_SESSIONS_DIR);
 
     /* Use session directory from configuration */
     /* FIXME: This should be sent in the greeter connection */
@@ -207,12 +210,20 @@ update_sessions (void)
             g_free (remote_sessions_dir);
             remote_sessions_dir = value;
         }
+
+        value = g_key_file_get_string (config_key_file, "LightDM", "mir-sessions-directory", NULL);
+        if (value)
+        {
+            g_free (mir_sessions_dir);
+            mir_sessions_dir = value;
+        }
     }
     g_key_file_free (config_key_file);
     g_free (config_path);
 
     local_sessions = load_sessions (xsessions_dir);
     remote_sessions = load_sessions (remote_sessions_dir);
+    mir_sessions = load_sessions (mir_sessions_dir);
 
     g_free (xsessions_dir);
     g_free (remote_sessions_dir);
@@ -246,6 +257,20 @@ lightdm_get_remote_sessions (void)
 {
     update_sessions ();
     return remote_sessions;
+}
+
+/**
+ * lightdm_get_mir_sessions:
+ *
+ * Get the available Mir sessions.
+ *
+ * Return value: (element-type LightDMSession) (transfer none): A list of #LightDMSession
+ **/
+GList *
+lightdm_get_mir_sessions (void)
+{
+    update_sessions ();
+    return mir_sessions;
 }
 
 /**

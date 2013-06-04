@@ -32,7 +32,8 @@ namespace QLightDM {
 
         enum SessionType {
             LocalSessions,
-            RemoteSessions
+            RemoteSessions,
+            MirSessions
         };
 
         explicit SessionsModel(QObject *parent = 0); /** Deprecated. Loads local sessions*/
