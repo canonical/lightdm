@@ -301,6 +301,8 @@ main (int argc, char **argv)
 
     if (lightdm_greeter_get_select_user_hint (greeter))
         status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, lightdm_greeter_get_select_user_hint (greeter));
+    if (lightdm_greeter_get_select_guest_hint (greeter))
+        status_notify ("%s SELECT-GUEST-HINT", greeter_id);
     if (lightdm_greeter_get_lock_hint (greeter))
         status_notify ("%s LOCK-HINT", greeter_id);
 

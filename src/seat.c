@@ -708,7 +708,6 @@ seat_real_start (Seat *seat)
         g_signal_connect (display, "ready", G_CALLBACK (autologin_greeter_ready_cb), seat);
         if (autologin_timeout > 0)
             display_set_autologin_user (display, autologin_username, autologin_guest, autologin_timeout);
-        display_set_select_user_hint (display, autologin_username, autologin_guest, FALSE);
         return start_display (seat, display);
     }
 
