@@ -54,6 +54,8 @@ Display *display_new (DisplayServer *display_server);
 
 DisplayServer *display_get_display_server (Display *display);
 
+void display_set_share_display_server (Display *display, gboolean share_display_server);
+
 const gchar *display_get_username (Display *display);
 
 Session *display_get_session (Display *display);

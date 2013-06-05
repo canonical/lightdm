@@ -40,6 +40,9 @@ struct DisplayPrivate
     /* Display server */
     DisplayServer *display_server;
 
+    /* TRUE if the session can run on the same display server as the greeter */
+    gboolean share_display_server;
+
     /* Greeter session */
     gchar *greeter_session;
 
@@ -128,6 +131,13 @@ display_get_display_server (Display *display)
 {
     g_return_val_if_fail (display != NULL, NULL);
     return display->priv->display_server;
+}
+
+void
+display_set_share_display_server (Display *display, gboolean share_display_server)
+{
+    g_return_if_fail (display != NULL);
+    display->priv->share_display_server = share_display_server;
 }
 
 const gchar *
