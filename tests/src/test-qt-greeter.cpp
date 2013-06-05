@@ -6,6 +6,7 @@
 #include <xcb/xcb.h>
 #include <QLightDM/Greeter>
 #include <QLightDM/Power>
+#include <QLightDM/UsersModel>
 #include <QtCore/QSettings>
 #include <QtCore/QDebug>
 #include <QtCore/QCoreApplication>
@@ -123,6 +124,40 @@ request_cb (const gchar *request)
     {
         if (!greeter->startSessionSync (request + strlen (r)))
             status_notify ("%s SESSION-FAILED", greeter_id);
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("%s LOG-USER-LIST-LENGTH", greeter_id);
+    if (strcmp (request, r) == 0)
+    {
+        QLightDM::UsersModel model;
+        status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, model.rowCount (QModelIndex ()));
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("%s LOG-USER USERNAME=", greeter_id);
+    if (g_str_has_prefix (request, r))
+    {
+        const gchar *username = request + strlen (r);
+        QLightDM::UsersModel model;
+        for (int i = 0; i < model.rowCount (QModelIndex ()); i++)
+        {
+            QString name = model.data (model.index (i, 0), QLightDM::UsersModel::NameRole).toString ();
+            if (name == username)
+                status_notify ("%s LOG-USER USERNAME=%s", greeter_id, qPrintable (name));
+        }
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("%s LOG-USER-LIST", greeter_id);
+    if (strcmp (request, r) == 0)
+    {
+        QLightDM::UsersModel model;
+        for (int i = 0; i < model.rowCount (QModelIndex ()); i++)
+        {
+            QString name = model.data (model.index (i, 0), QLightDM::UsersModel::NameRole).toString ();
+            status_notify ("%s LOG-USER USERNAME=%s", greeter_id, qPrintable (name));
+        }
     }
     g_free (r);
 

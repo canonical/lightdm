@@ -1239,7 +1239,17 @@ static void
 load_passwd_file ()
 {
     gchar *path, *data, **lines;
+    gchar **user_filter = NULL;
     int i;
+
+    if (g_key_file_has_key (config, "test-runner-config", "accounts-service-user-filter", NULL))
+    {
+        gchar *filter;
+
+        filter = g_key_file_get_string (config, "test-runner-config", "accounts-service-user-filter", NULL);
+        user_filter = g_strsplit (filter, " ", -1);
+        g_free (filter);
+    }
 
     path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "passwd", NULL);
     g_file_get_contents (path, &data, NULL, NULL);
@@ -1252,17 +1262,37 @@ load_passwd_file ()
         gchar **fields;
         guint uid;
         gchar *user_name, *real_name;
+        int j;
         GList *link;
         AccountsUser *user = NULL;
         GError *error = NULL;
 
         fields = g_strsplit (lines[i], ":", -1);
         if (fields == NULL || g_strv_length (fields) < 7)
+        {
+            g_strfreev (fields);
             continue;
+        }
 
         user_name = fields[0];
         uid = atoi (fields[2]);
         real_name = fields[4];
+
+        /* Only allow users in whitelist */
+        if (user_filter)
+        {
+            gboolean in_filter = FALSE;
+
+            for (j = 0; user_filter[j] != NULL; j++)
+                if (strcmp (user_name, user_filter[j]) == 0)
+                    in_filter = TRUE;
+          
+            if (!in_filter)
+            {
+                g_strfreev (fields);
+                continue; 
+            }
+        }
 
         for (link = accounts_users; link; link = link->next)
         {

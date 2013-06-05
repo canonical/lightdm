@@ -79,6 +79,22 @@ def request_cb (channel, condition):
         if not greeter.start_session_sync (request[len(r):]):
             status_notify ('%s SESSION-FAILED' % greeter_id)
 
+    r = '%s LOG-USER-LIST-LENGTH' % greeter_id
+    if request == r:
+        status_notify ('%s LOG-USER-LIST-LENGTH N=%d' % (greeter_id, LightDM.UserList.get_instance ().get_length ()))
+
+    r = '%s LOG-USER USERNAME=' % greeter_id
+    if request.startswith (r):
+        username = request[len(r):]
+        user = LightDM.UserList.get_instance ().get_user_by_name (username)
+        status_notify ('%s LOG-USER USERNAME=%s' % (greeter_id, user.get_name ()))
+
+    r = '%s LOG-USER-LIST' % greeter_id
+    if request == r:
+        users = LightDM.UserList.get_instance ().get_users ();
+        for user in users:
+            status_notify ('%s LOG-USER USERNAME=%s' % (greeter_id, user.get_name ()))
+
     r = '%s LOG-LAYOUT' % greeter_id
     if request == r:
         layout = LightDM.get_layout ().get_name ()
@@ -96,7 +112,7 @@ def request_cb (channel, condition):
     r = '%s LOG-LANGUAGE USERNAME=' % greeter_id
     if request.startswith (r):
         username = request[len(r):]
-        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username)
+        user = lightdm_user_list_get_user_by_name (LightDM.UserList.get_instance (), username)
         language = lightdm_user_get_language (user)
         if language is None:
             language = ''

@@ -120,6 +120,37 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
+    r = g_strdup_printf ("%s LOG-USER-LIST-LENGTH", greeter_id);
+    if (strcmp (request, r) == 0)
+        status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, lightdm_user_list_get_length (lightdm_user_list_get_instance ()));
+    g_free (r);
+
+    r = g_strdup_printf ("%s LOG-USER USERNAME=", greeter_id);
+    if (g_str_has_prefix (request, r))
+    {
+        LightDMUser *user;
+        const gchar *username;
+
+        username = request + strlen (r);
+        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
+        status_notify ("%s LOG-USER USERNAME=%s", greeter_id, lightdm_user_get_name (user));
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("%s LOG-USER-LIST", greeter_id);
+    if (strcmp (request, r) == 0)
+    {
+        GList *users, *link;
+
+        users = lightdm_user_list_get_users (lightdm_user_list_get_instance ());
+        for (link = users; link; link = link->next)
+        {
+            LightDMUser *user = link->data;
+            status_notify ("%s LOG-USER USERNAME=%s", greeter_id, lightdm_user_get_name (user));
+        }
+    }
+    g_free (r);
+
     r = g_strdup_printf ("%s LOG-LAYOUT USERNAME=", greeter_id);
     if (g_str_has_prefix (request, r))
     {
