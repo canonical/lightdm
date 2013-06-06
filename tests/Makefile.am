@@ -215,10 +215,10 @@ TESTS += \
 	test-login-qt5-guest-fail-setup-script \
 	test-login-qt5-guest-logout \
 	test-login-qt5-remote-session \
-	test-qt4-power \
-	test-qt4-power-no-console-kit \
-	test-qt4-power-no-login1 \
-	test-qt4-power-no-services
+	test-qt5-power \
+	test-qt5-power-no-console-kit \
+	test-qt5-power-no-login1 \
+	test-qt5-power-no-services
 endif
 
 EXTRA_DIST = \
