@@ -269,6 +269,18 @@ request_cb (const gchar *request)
     g_free (r);
 }
 
+static void
+user_added_cb (LightDMUserList *user_list, LightDMUser *user)
+{
+    status_notify ("%s USER-ADDED USERNAME=%s", greeter_id, lightdm_user_get_name (user));
+}
+
+static void
+user_removed_cb (LightDMUserList *user_list, LightDMUser *user)
+{
+    status_notify ("%s USER-REMOVED USERNAME=%s", greeter_id, lightdm_user_get_name (user));
+}
+
 int
 main (int argc, char **argv)
 {
@@ -320,6 +332,12 @@ main (int argc, char **argv)
     g_signal_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
     g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
     g_signal_connect (greeter, "autologin-timer-expired", G_CALLBACK (autologin_timer_expired_cb), NULL);
+
+    if (g_key_file_get_boolean (config, "test-greeter-config", "log-user-changes", NULL))
+    {
+        g_signal_connect (lightdm_user_list_get_instance (), "user-added", G_CALLBACK (user_added_cb), NULL);
+        g_signal_connect (lightdm_user_list_get_instance (), "user-removed", G_CALLBACK (user_removed_cb), NULL);
+    }
 
     status_notify ("%s CONNECT-TO-DAEMON", greeter_id);
     if (!lightdm_greeter_connect_sync (greeter, NULL))

@@ -19,6 +19,7 @@ static QCoreApplication *app = NULL;
 static QSettings *config = NULL;
 static QLightDM::PowerInterface *power = NULL;
 static TestGreeter *greeter = NULL;
+static QLightDM::UsersModel *users_model = NULL;
 
 TestGreeter::TestGreeter ()
 {
@@ -51,6 +52,24 @@ void TestGreeter::authenticationComplete ()
 void TestGreeter::autologinTimerExpired ()
 {
     status_notify ("%s AUTOLOGIN-TIMER-EXPIRED", greeter_id);
+}
+
+void TestGreeter::userRowsInserted (const QModelIndex & parent, int start, int end)
+{
+    for (int i = start; i <= end; i++)
+    {
+        QString name = users_model->data (users_model->index (i, 0), QLightDM::UsersModel::NameRole).toString ();
+        status_notify ("%s USER-ADDED USERNAME=%s", greeter_id, qPrintable (name));
+    }
+}
+
+void TestGreeter::userRowsRemoved (const QModelIndex & parent, int start, int end)
+{
+    for (int i = start; i <= end; i++)
+    {
+        QString name = users_model->data (users_model->index (i, 0), QLightDM::UsersModel::NameRole).toString ();
+        status_notify ("%s USER-REMOVED USERNAME=%s", greeter_id, qPrintable (name));
+    }
 }
 
 static void
@@ -129,20 +148,16 @@ request_cb (const gchar *request)
 
     r = g_strdup_printf ("%s LOG-USER-LIST-LENGTH", greeter_id);
     if (strcmp (request, r) == 0)
-    {
-        QLightDM::UsersModel model;
-        status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, model.rowCount (QModelIndex ()));
-    }
+        status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, users_model->rowCount (QModelIndex ()));
     g_free (r);
 
     r = g_strdup_printf ("%s LOG-USER USERNAME=", greeter_id);
     if (g_str_has_prefix (request, r))
     {
         const gchar *username = request + strlen (r);
-        QLightDM::UsersModel model;
-        for (int i = 0; i < model.rowCount (QModelIndex ()); i++)
+        for (int i = 0; i < users_model->rowCount (QModelIndex ()); i++)
         {
-            QString name = model.data (model.index (i, 0), QLightDM::UsersModel::NameRole).toString ();
+            QString name = users_model->data (users_model->index (i, 0), QLightDM::UsersModel::NameRole).toString ();
             if (name == username)
                 status_notify ("%s LOG-USER USERNAME=%s", greeter_id, qPrintable (name));
         }
@@ -152,10 +167,9 @@ request_cb (const gchar *request)
     r = g_strdup_printf ("%s LOG-USER-LIST", greeter_id);
     if (strcmp (request, r) == 0)
     {
-        QLightDM::UsersModel model;
-        for (int i = 0; i < model.rowCount (QModelIndex ()); i++)
+        for (int i = 0; i < users_model->rowCount (QModelIndex ()); i++)
         {
-            QString name = model.data (model.index (i, 0), QLightDM::UsersModel::NameRole).toString ();
+            QString name = users_model->data (users_model->index (i, 0), QLightDM::UsersModel::NameRole).toString ();
             status_notify ("%s LOG-USER USERNAME=%s", greeter_id, qPrintable (name));
         }
     }
@@ -267,7 +281,14 @@ main(int argc, char *argv[])
     power = new QLightDM::PowerInterface();
 
     greeter = new TestGreeter();
-  
+
+    users_model = new QLightDM::UsersModel();
+    if (config->value ("test-greeter-config/log-user-changes", "false") == "true")
+    {
+        QObject::connect (users_model, SIGNAL(rowsInserted(const QModelIndex&, int, int)), greeter, SLOT(userRowsInserted(const QModelIndex&, int, int)));
+        QObject::connect (users_model, SIGNAL(rowsAboutToBeRemoved(const QModelIndex&, int, int)), greeter, SLOT(userRowsRemoved(const QModelIndex&, int, int)));
+    }
+
     status_notify ("%s CONNECT-TO-DAEMON", greeter_id);
     if (!greeter->connectSync())
     {
