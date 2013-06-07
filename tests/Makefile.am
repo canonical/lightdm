@@ -49,6 +49,8 @@ TESTS = \
 	test-system-xauthority \
 	test-user-renamed \
 	test-user-renamed-invalid \
+	test-users-gobject \
+	test-users-python \
 	test-keyboard-layout \
 	test-no-keyboard-layout \
 	test-language \
@@ -182,6 +184,7 @@ TESTS += \
 	test-login-qt4-guest-fail-setup-script \
 	test-login-qt4-guest-logout \
 	test-login-qt4-remote-session \
+	test-users-qt4 \
 	test-qt4-power \
 	test-qt4-power-no-console-kit \
 	test-qt4-power-no-login1 \
@@ -215,6 +218,7 @@ TESTS += \
 	test-login-qt5-guest-fail-setup-script \
 	test-login-qt5-guest-logout \
 	test-login-qt5-remote-session \
+	test-users-qt5 \
 	test-qt5-power \
 	test-qt5-power-no-console-kit \
 	test-qt5-power-no-login1 \
@@ -339,6 +343,7 @@ EXTRA_DIST = \
 	scripts/switch-to-user-logout.conf \
 	scripts/switch-to-user-no-password.conf \
 	scripts/system-xauthority.conf \
+	scripts/users.conf \
 	scripts/util-path.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \

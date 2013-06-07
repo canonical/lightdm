@@ -55,6 +55,7 @@ typedef struct
     gchar *language;
     gchar *xsession;
     gchar **layouts;
+    gboolean hidden;
 } AccountsUser;
 static GList *accounts_users = NULL;
 static void handle_user_call (GDBusConnection       *connection,
@@ -119,6 +120,9 @@ static GList *status_clients = NULL;
 static void run_lightdm (void);
 static void quit (int status);
 static void check_status (const gchar *status);
+static AccountsUser *get_accounts_user_by_uid (guint uid);
+static AccountsUser *get_accounts_user_by_name (const gchar *username);
+static void accounts_user_set_hidden (AccountsUser *user, gboolean hidden, gboolean emit_signal);
 
 static gboolean
 kill_timeout_cb (gpointer data)
@@ -493,6 +497,38 @@ handle_command (const gchar *command)
             process = watch_process (pid);
             g_hash_table_insert (children, GINT_TO_POINTER (process->pid), process);
         }
+    }
+    else if (strcmp (name, "ADD-USER") == 0)
+    {
+        gchar *status_text, *username;
+        AccountsUser *user;
+
+        username = g_hash_table_lookup (params, "USERNAME");
+        user = get_accounts_user_by_name (username);
+        if (user)
+            accounts_user_set_hidden (user, FALSE, TRUE);
+        else
+            g_warning ("Unknown user %s", username);
+
+        status_text = g_strdup_printf ("RUNNER ADD-USER USERNAME=%s", username);
+        check_status (status_text);
+        g_free (status_text);
+    }
+    else if (strcmp (name, "DELETE-USER") == 0)
+    {
+        gchar *status_text, *username;
+        AccountsUser *user;
+
+        username = g_hash_table_lookup (params, "USERNAME");
+        user = get_accounts_user_by_name (username);
+        if (user)
+            accounts_user_set_hidden (user, TRUE, TRUE);
+        else
+            g_warning ("Unknown user %s", username);
+
+        status_text = g_strdup_printf ("RUNNER DELETE-USER USERNAME=%s", username);
+        check_status (status_text);
+        g_free (status_text);
     }
     /* Forward to external processes */
     else if (g_str_has_prefix (name, "SESSION-") ||
@@ -1235,11 +1271,100 @@ start_login1_daemon ()
                     NULL);
 }
 
+static AccountsUser *
+get_accounts_user_by_uid (guint uid)
+{
+    GList *link;
+
+    for (link = accounts_users; link; link = link->next)
+    {
+        AccountsUser *u = link->data;
+        if (u->uid == uid)
+            return u;
+    }
+  
+    return NULL;
+}
+
+static AccountsUser *
+get_accounts_user_by_name (const gchar *username)
+{
+    GList *link;
+
+    for (link = accounts_users; link; link = link->next)
+    {
+        AccountsUser *u = link->data;
+        if (strcmp (u->user_name, username) == 0)
+            return u;
+    }
+
+    return NULL;
+}
+
+static void
+accounts_user_set_hidden (AccountsUser *user, gboolean hidden, gboolean emit_signal)
+{
+    GError *error = NULL;
+
+    user->hidden = hidden;
+
+    if (user->hidden && user->id != 0)
+    {
+        g_dbus_connection_unregister_object (accounts_connection, user->id);
+        g_dbus_connection_emit_signal (accounts_connection,
+                                       NULL,
+                                       "/org/freedesktop/Accounts",
+                                       "org.freedesktop.Accounts",
+                                       "UserDeleted",
+                                       g_variant_new ("(o)", user->path),
+                                       &error);
+        if (error)
+            g_warning ("Failed to emit UserDeleted: %s", error->message);
+        g_clear_error (&error);
+
+        user->id = 0;
+    }
+    if (!user->hidden && user->id == 0)
+    {
+        user->id = g_dbus_connection_register_object (accounts_connection,
+                                                      user->path,
+                                                      user_info->interfaces[0],
+                                                      &user_vtable,
+                                                      user,
+                                                      NULL,
+                                                      &error);
+        if (error)
+            g_warning ("Failed to register user: %s", error->message);
+        g_clear_error (&error);
+
+        g_dbus_connection_emit_signal (accounts_connection,
+                                       NULL,
+                                       "/org/freedesktop/Accounts",
+                                       "org.freedesktop.Accounts",
+                                       "UserAdded",
+                                       g_variant_new ("(o)", user->path),
+                                       &error);
+        if (error)
+            g_warning ("Failed to emit UserAdded: %s", error->message);
+        g_clear_error (&error);
+    }
+}
+
 static void
 load_passwd_file ()
 {
     gchar *path, *data, **lines;
+    gchar **user_filter = NULL;
     int i;
+
+    if (g_key_file_has_key (config, "test-runner-config", "accounts-service-user-filter", NULL))
+    {
+        gchar *filter;
+
+        filter = g_key_file_get_string (config, "test-runner-config", "accounts-service-user-filter", NULL);
+        user_filter = g_strsplit (filter, " ", -1);
+        g_free (filter);
+    }
 
     path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "passwd", NULL);
     g_file_get_contents (path, &data, NULL, NULL);
@@ -1258,21 +1383,16 @@ load_passwd_file ()
 
         fields = g_strsplit (lines[i], ":", -1);
         if (fields == NULL || g_strv_length (fields) < 7)
+        {
+            g_strfreev (fields);
             continue;
+        }
 
         user_name = fields[0];
         uid = atoi (fields[2]);
         real_name = fields[4];
 
-        for (link = accounts_users; link; link = link->next)
-        {
-            AccountsUser *u = link->data;
-            if (u->uid == uid)
-            {
-                user = u;
-                break;
-            }
-        }
+        user = get_accounts_user_by_uid (uid);
         if (!user)
         {
             gchar *path;
@@ -1280,6 +1400,18 @@ load_passwd_file ()
 
             user = g_malloc0 (sizeof (AccountsUser));
             accounts_users = g_list_append (accounts_users, user);
+
+            /* Only allow users in whitelist */
+            user->hidden = FALSE;
+            if (user_filter)
+            {
+                int j;
+
+                user->hidden = TRUE;
+                for (j = 0; user_filter[j] != NULL; j++)
+                    if (strcmp (user_name, user_filter[j]) == 0)
+                        user->hidden = FALSE;
+            }
 
             dmrc_file = g_key_file_new ();
             path = g_build_filename (temp_dir, "home", user_name, ".dmrc", NULL);
@@ -1301,16 +1433,7 @@ load_passwd_file ()
             user->xsession = g_key_file_get_string (dmrc_file, "Desktop", "Session", NULL);
             user->layouts = g_key_file_get_string_list (dmrc_file, "X-Accounts", "Layouts", NULL, NULL);
             user->path = g_strdup_printf ("/org/freedesktop/Accounts/User%d", uid);
-            user->id = g_dbus_connection_register_object (accounts_connection,
-                                                          user->path,
-                                                          user_info->interfaces[0],
-                                                          &user_vtable,
-                                                          user,
-                                                          NULL,
-                                                          &error);
-            if (error)
-                g_warning ("Failed to register user: %s", error->message);
-            g_clear_error (&error);
+            accounts_user_set_hidden (user, user->hidden, FALSE);
 
             g_key_file_free (dmrc_file);
         }
@@ -1342,7 +1465,8 @@ handle_accounts_call (GDBusConnection       *connection,
         for (link = accounts_users; link; link = link->next)
         {
             AccountsUser *user = link->data;
-            g_variant_builder_add_value (&builder, g_variant_new_object_path (user->path));
+            if (!user->hidden)
+                g_variant_builder_add_value (&builder, g_variant_new_object_path (user->path));
         }
 
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(ao)", &builder));
@@ -1356,16 +1480,8 @@ handle_accounts_call (GDBusConnection       *connection,
         g_variant_get (parameters, "(&s)", &user_name);
 
         load_passwd_file ();
-        for (link = accounts_users; link; link = link->next)
-        {
-            AccountsUser *u = link->data;
-            if (strcmp (u->user_name, user_name) == 0)
-            {
-                user = u;
-                break;
-            }
-        }
-        if (user)
+        user = get_accounts_user_by_name (user_name);
+        if (user && !user->hidden)
             g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", user->path));
         else
             g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such user: %s", user_name);
@@ -1452,6 +1568,12 @@ accounts_name_acquired_cb (GDBusConnection *connection,
         "      <arg name='name' direction='in' type='s'/>"
         "      <arg name='user' direction='out' type='o'/>"
         "    </method>"
+        "    <signal name='UserAdded'>"
+        "      <arg name='user' type='o'/>"
+        "    </signal>"
+        "    <signal name='UserDeleted'>"
+        "      <arg name='user' type='o'/>"
+        "    </signal>"
         "  </interface>"
         "</node>";
     static const GDBusInterfaceVTable accounts_vtable =

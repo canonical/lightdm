@@ -79,6 +79,22 @@ def request_cb (channel, condition):
         if not greeter.start_session_sync (request[len(r):]):
             status_notify ('%s SESSION-FAILED' % greeter_id)
 
+    r = '%s LOG-USER-LIST-LENGTH' % greeter_id
+    if request == r:
+        status_notify ('%s LOG-USER-LIST-LENGTH N=%d' % (greeter_id, LightDM.UserList.get_instance ().get_length ()))
+
+    r = '%s LOG-USER USERNAME=' % greeter_id
+    if request.startswith (r):
+        username = request[len(r):]
+        user = LightDM.UserList.get_instance ().get_user_by_name (username)
+        status_notify ('%s LOG-USER USERNAME=%s' % (greeter_id, user.get_name ()))
+
+    r = '%s LOG-USER-LIST' % greeter_id
+    if request == r:
+        users = LightDM.UserList.get_instance ().get_users ();
+        for user in users:
+            status_notify ('%s LOG-USER USERNAME=%s' % (greeter_id, user.get_name ()))
+
     r = '%s LOG-LAYOUT' % greeter_id
     if request == r:
         layout = LightDM.get_layout ().get_name ()
@@ -96,8 +112,8 @@ def request_cb (channel, condition):
     r = '%s LOG-LANGUAGE USERNAME=' % greeter_id
     if request.startswith (r):
         username = request[len(r):]
-        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username)
-        language = lightdm_user_get_language (user)
+        user = LightDM.UserList.get_instance ().get_user_by_name (username)
+        language = user.get_language ()
         if language is None:
             language = ''
         status_notify ('%s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s' % (greeter_id, username, language))
@@ -171,6 +187,9 @@ GLib.io_add_watch (status_socket.fileno (), GLib.IO_IN | GLib.IO_HUP, request_cb
 
 status_notify ('%s START' % greeter_id)
 
+config = GLib.KeyFile ()
+config.load_from_file (os.getenv ('LIGHTDM_TEST_ROOT') + '/script', GLib.KeyFileFlags.NONE)
+
 # NOTE: There don't seem to be any good X bindings so we have to mock up our own...
 (host, display_number) = display.split (':')
 if host == '':
@@ -220,6 +239,19 @@ greeter.connect ('show-message', show_message_cb)
 greeter.connect ('show-prompt', show_prompt_cb)
 greeter.connect ('authentication-complete', authentication_complete_cb)
 greeter.connect ('autologin-timer-expired', autologin_timer_expired_cb)
+
+def user_added_cb (user_list, user):
+    status_notify ('%s USER-ADDED USERNAME=%s' % (greeter_id, user.get_name ()))
+def user_removed_cb (user_list, user):
+    status_notify ('%s USER-REMOVED USERNAME=%s' % (greeter_id, user.get_name ()))
+log_user_changes = False
+try:
+    log_user_changes = config.get_boolean ('test-greeter-config', 'log-user-changes')
+except:
+    pass
+if log_user_changes:
+    LightDM.UserList.get_instance ().connect ('user-added', user_added_cb)
+    LightDM.UserList.get_instance ().connect ('user-removed', user_removed_cb)
 
 status_notify ('%s CONNECT-TO-DAEMON' % greeter_id)
 if not greeter.connect_sync ():
