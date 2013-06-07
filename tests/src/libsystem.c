@@ -157,6 +157,8 @@ redirect_path (const gchar *path)
         return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "lightdm", "lightdm.conf", NULL);
     else if (g_str_has_prefix (path, "/tmp/"))
         return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", path + 5, NULL);
+    else if (g_str_has_prefix (path, "/var/"))
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "var", path + 5, NULL);
     else
         return g_strdup (path);
 }
