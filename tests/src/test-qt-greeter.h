@@ -1,4 +1,5 @@
 #include <QLightDM/Greeter>
+#include <QLightDM/UsersModel>
 
 class TestGreeter : public QLightDM::Greeter
 {
@@ -12,4 +13,6 @@ private Q_SLOTS:
     void showPrompt(QString text, QLightDM::Greeter::PromptType type);
     void authenticationComplete();
     void autologinTimerExpired();
+    void userRowsInserted(const QModelIndex & parent, int start, int end);
+    void userRowsRemoved(const QModelIndex & parent, int start, int end);
 };
