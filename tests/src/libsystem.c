@@ -198,7 +198,7 @@ open (const char *pathname, int flags, ...)
     {
         va_list ap;
         va_start (ap, flags);
-        mode = va_arg (ap, int);
+        mode = va_arg (ap, mode_t);
         va_end (ap);
     }
     return open_wrapper ("open", pathname, flags, mode);
@@ -212,10 +212,58 @@ open64 (const char *pathname, int flags, ...)
     {
         va_list ap;
         va_start (ap, flags);
-        mode = va_arg (ap, int);
+        mode = va_arg (ap, mode_t);
         va_end (ap);
     }
     return open_wrapper ("open64", pathname, flags, mode);
+}
+
+FILE *
+fopen (const char *path, const char *mode)
+{
+    FILE *(*_fopen) (const char *pathname, const char *mode);
+    gchar *new_path = NULL;
+    FILE *result;
+
+    _fopen = (FILE *(*)(const char *pathname, const char *mode)) dlsym (RTLD_NEXT, "fopen");
+
+    new_path = redirect_path (path);
+    result = _fopen (new_path, mode);
+    g_free (new_path);
+
+    return result;
+}
+
+int
+creat (const char *pathname, mode_t mode)
+{
+    int (*_creat) (const char *pathname, mode_t mode);
+    gchar *new_path = NULL;
+    int result;
+
+    _creat = (int (*)(const char *pathname, mode_t mode)) dlsym (RTLD_NEXT, "creat");
+
+    new_path = redirect_path (pathname);
+    result = _creat (new_path, mode);
+    g_free (new_path);
+
+    return result;
+}
+
+int
+creat64 (const char *pathname, mode_t mode)
+{
+    int (*_creat64) (const char *pathname, mode_t mode);
+    gchar *new_path = NULL;
+    int result;
+
+    _creat64 = (int (*)(const char *pathname, mode_t mode)) dlsym (RTLD_NEXT, "creat64");
+
+    new_path = redirect_path (pathname);
+    result = _creat64 (new_path, mode);
+    g_free (new_path);
+
+    return result;
 }
 
 int
@@ -232,6 +280,38 @@ access (const char *pathname, int mode)
     g_free (new_path);
 
     return ret;
+}
+
+int
+mkdir (const char *pathname, mode_t mode)
+{
+    int (*_mkdir) (const char *pathname, mode_t mode);
+    gchar *new_path = NULL;
+    int result;
+
+    _mkdir = (int (*)(const char *pathname, mode_t mode)) dlsym (RTLD_NEXT, "mkdir");
+
+    new_path = redirect_path (pathname);
+    result = _mkdir (new_path, mode);
+    g_free (new_path);
+
+    return result;
+}
+
+int
+chown (const char *pathname, uid_t owner, gid_t group)
+{
+    int (*_chown) (const char *pathname, uid_t owner, gid_t group);
+    gchar *new_path = NULL;
+    int result;
+
+    _chown = (int (*)(const char *pathname, uid_t owner, gid_t group)) dlsym (RTLD_NEXT, "chown");
+
+    new_path = redirect_path (pathname);
+    result = _chown (new_path, owner, group);
+    g_free (new_path);
+
+    return result;
 }
 
 int
