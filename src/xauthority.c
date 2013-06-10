@@ -10,6 +10,7 @@
  */
 
 #include <string.h>
+#include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -210,37 +211,37 @@ read_string (gchar *data, gsize data_length, gsize *offset, gchar **value)
 }
 
 static void
-write_uint16 (GByteArray *data, guint16 value)
+write_uint16 (FILE *file, guint16 value)
 {
     guint8 v[2];
     v[0] = value >> 8;
     v[1] = value & 0xFF;
-    g_byte_array_append (data, v, 2);
+    fwrite (v, 2, 1, file);
 }
 
 static void
-write_data (GByteArray *data, const guint8 *value, gsize value_length)
+write_data (FILE *file, const guint8 *value, gsize value_length)
 {
-    g_byte_array_append (data, value, value_length);
+    fwrite (value, value_length, 1, file);
 }
 
 static void
-write_string (GByteArray *data, const gchar *value)
+write_string (FILE *file, const gchar *value)
 {
-    write_uint16 (data, strlen (value));
-    write_data (data, (guint8 *) value, strlen (value));
+    write_uint16 (file, strlen (value));
+    write_data (file, (guint8 *) value, strlen (value));
 }
 
 gboolean
 xauth_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GError **error)
 {
     gchar *input;
-    gsize input_length = 0, input_offset = 0;
+    gsize input_length = 0, input_offset = 0, offset;
     GList *link, *records = NULL;
     XAuthority *a;
     gboolean result;
     gboolean matched = FALSE;
-    GByteArray *output;
+    FILE *output;
 
     g_return_val_if_fail (auth != NULL, FALSE);
     g_return_val_if_fail (filename != NULL, FALSE);
@@ -311,8 +312,19 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GErro
         records = g_list_append (records, g_object_ref (auth));
 
     /* Write records back */
-    result = TRUE;
-    output = g_byte_array_new ();
+    errno = 0;
+    output = fopen (filename, "w");
+    if (output == NULL)
+    {
+        g_set_error (error,
+                     G_FILE_ERROR,
+                     g_file_error_from_errno (errno),
+                     "Failed to write X authority %s: %s",
+                     filename,
+                     g_strerror (errno));
+        return FALSE;
+    }
+  
     for (link = records; link && result; link = link->next)
     {
         XAuthority *a = link->data;
@@ -329,10 +341,9 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GErro
     }
     g_list_free (records);
 
-    result = g_file_set_contents (filename, (gchar *)output->data, output->len, error);
-    g_byte_array_free (output, TRUE);
+    fclose (output);
 
-    return result;
+    return TRUE;
 }    
 
 static void
