@@ -22,9 +22,9 @@ install-data-hook:
 	sed 's!PKGLIBEXECDIR!$(pkglibexecdir)!g' < $(srcdir)/guest-session.apparmor \
 		> $(DESTDIR)$(apparmor_profiledir)/lightdm-guest-session
 	install -d $(DESTDIR)$(apparmor_profiledir)/abstractions
-	install $(srcdir)/guest-session.apparmor_abstraction \
+	install --mode=0644 $(srcdir)/guest-session.apparmor_abstraction \
 		$(DESTDIR)$(apparmor_profiledir)/abstractions/lightdm
-	install $(srcdir)/guest-session.apparmor_chromium_abstraction \
+	install --mode=0644 $(srcdir)/guest-session.apparmor_chromium_abstraction \
 		$(DESTDIR)$(apparmor_profiledir)/abstractions/lightdm_chromium-browser
 
 dist_man1_MANS = lightdm.1 \
