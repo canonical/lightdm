@@ -1285,18 +1285,19 @@ xcb_connect_to_display_with_auth_info (const char *display, xcb_auth_info_t *aut
 
     if (c->error == 0)
     {
-        const gchar *d;
+        gchar *d;
 
         /* Skip the hostname, we'll assume it's localhost */
-        d = strchr (display, ':');
+        d = g_strdup_printf (".x%s", strchr (display, ':'));
 
-        socket_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", d, NULL);
+        socket_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), d, NULL);
+        g_free (d);
         address = g_unix_socket_address_new (socket_path);
-        g_free (socket_path);
         if (!g_socket_connect (c->socket, address, NULL, &error))
             c->error = XCB_CONN_ERROR;
         if (error)
-            g_printerr ("%s\n", error->message);
+            g_printerr ("Failed to connect to X socket %s: %s\n", socket_path, error->message);
+        g_free (socket_path);
         g_clear_error (&error);
     }
 
