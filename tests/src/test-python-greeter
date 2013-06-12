@@ -180,7 +180,7 @@ def request_cb (channel, condition):
 
     return True
 
-path = os.getenv ('LIGHTDM_TEST_ROOT') + '/.status-socket'
+path = os.getenv ('LIGHTDM_TEST_ROOT') + '/.s'
 status_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
 status_socket.connect (path)
 GLib.io_add_watch (status_socket.fileno (), GLib.IO_IN | GLib.IO_HUP, request_cb)
@@ -194,7 +194,7 @@ config.load_from_file (os.getenv ('LIGHTDM_TEST_ROOT') + '/script', GLib.KeyFile
 (host, display_number) = display.split (':')
 if host == '':
     x_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
-    x_socket.connect (os.getenv ('LIGHTDM_TEST_ROOT') + '/tmp/' + display)
+    x_socket.connect (os.getenv ('LIGHTDM_TEST_ROOT') + '/.x' + display)
 else:
     x_socket = socket.socket (socket.AF_INET, socket.SOCK_STREAM)
     x_socket.connect ((host, 6000 + int (display_number)))

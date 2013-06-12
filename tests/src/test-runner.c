@@ -239,7 +239,7 @@ quit (int status)
     if (status_socket_name)
         unlink (status_socket_name);
 
-    if (temp_dir)
+    if (temp_dir && getenv ("DEBUG") == NULL)
     {
         gchar *command = g_strdup_printf ("rm -rf %s", temp_dir);
         if (system (command))
@@ -1697,6 +1697,7 @@ int
 main (int argc, char **argv)
 {
     GMainLoop *loop;
+    int i;
     gchar *greeter = NULL, *script_name, *config_file, *path, *path1, *path2, *ld_preload, *ld_library_path, *home_dir;
     GString *passwd_data, *group_data;
     GSource *status_source;
@@ -1760,22 +1761,30 @@ main (int argc, char **argv)
     g_setenv ("GI_TYPELIB_PATH", path1, TRUE);
     g_free (path1);
 
-    /* Run from a temporary directory */
-    temp_dir = g_build_filename (g_get_tmp_dir (), "lightdm-test-XXXXXX", NULL);
-    if (!mkdtemp (temp_dir))
-    {
-        g_warning ("Error creating temporary directory: %s", strerror (errno));
-        quit (EXIT_FAILURE);
-    }
-    g_chmod (temp_dir, 0755);
+    /* Run in a temporary directory inside the build directory */
+    /* Note we have to pick a name that is short since Unix sockets in this directory have a 108 character limit on their paths */
+    i = 0;
+    while (TRUE) {
+        gchar *name;
+
+        name = g_strdup_printf (".r%d", i);
+        g_free (temp_dir);
+        temp_dir = g_build_filename ("/tmp", name, NULL);
+        g_free (name);
+        if (!g_file_test (temp_dir, G_FILE_TEST_EXISTS))
+            break;
+        i++;
+    }  
+    g_mkdir_with_parents (temp_dir, 0755);
     g_setenv ("LIGHTDM_TEST_ROOT", temp_dir, TRUE);
 
     /* Open socket for status */
-    status_socket_name = g_build_filename (temp_dir, ".status-socket", NULL);
+    /* Note we have to pick a socket name that is short since there is a 108 character limit on the name */
+    status_socket_name = g_build_filename (temp_dir, ".s", NULL);
     unlink (status_socket_name);
     status_socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
     if (error)
-        g_warning ("Error creating status socket: %s", error->message);
+        g_warning ("Error creating status socket %s: %s", status_socket_name, error->message);
     g_clear_error (&error);
     if (status_socket)
     {
@@ -1786,13 +1795,13 @@ main (int argc, char **argv)
         result = g_socket_bind (status_socket, address, FALSE, &error);
         g_object_unref (address);
         if (error)
-            g_warning ("Error binding status socket: %s", error->message);
+            g_warning ("Error binding status socket %s: %s", status_socket_name, error->message);
         g_clear_error (&error);
         if (result)
         {
             result = g_socket_listen (status_socket, &error);
             if (error)
-                g_warning ("Error listening on status socket: %s", error->message);
+                g_warning ("Error listening on status socket %s: %s", status_socket_name, error->message);
             g_clear_error (&error);
         }
         if (!result)
@@ -1810,6 +1819,9 @@ main (int argc, char **argv)
     /* Set up a skeleton file system */
     g_mkdir_with_parents (g_strdup_printf ("%s/etc", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/usr/share", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/xsessions", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/remote-sessions", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/xgreeters", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/tmp", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/var/run", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/var/log", temp_dir), 0755);
@@ -1825,11 +1837,11 @@ main (int argc, char **argv)
         perror ("Failed to copy configuration");
 
     /* Copy over the greeter files */
-    if (system (g_strdup_printf ("cp -r %s/xsessions %s/usr/share", DATADIR, temp_dir)))
+    if (system (g_strdup_printf ("cp %s/xsessions/* %s/usr/share/xsessions", DATADIR, temp_dir)))
         perror ("Failed to copy xsessions");
-    if (system (g_strdup_printf ("cp -r %s/remote-sessions %s/usr/share", DATADIR, temp_dir)))
+    if (system (g_strdup_printf ("cp %s/remote-sessions/* %s/usr/share/remote-sessions", DATADIR, temp_dir)))
         perror ("Failed to copy remote sessions");
-    if (system (g_strdup_printf ("cp -r %s/xgreeters %s/usr/share", DATADIR, temp_dir)))
+    if (system (g_strdup_printf ("cp %s/xgreeters/* %s/usr/share/xgreeters", DATADIR, temp_dir)))
         perror ("Failed to copy xgreeters");
 
     /* Set up the default greeter */
@@ -1924,7 +1936,6 @@ main (int argc, char **argv)
     };
     passwd_data = g_string_new ("");
     group_data = g_string_new ("");
-    int i;
     for (i = 0; users[i].user_name; i++)
     {
         GKeyFile *dmrc_file;
