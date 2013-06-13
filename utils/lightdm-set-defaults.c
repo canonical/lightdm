@@ -103,7 +103,8 @@ update_string(const gchar *default_value,
     if (remove) {
         if (g_strcmp0 (default_value, new_value) == 0) {
             g_debug ("Remove %s as default value for %s", default_value, key_name);
-            g_key_file_set_string (keyfile, key_group, key_name, "");
+            if (!g_key_file_remove_key (keyfile, key_group, key_name, NULL))
+                return (2);
             return(0);
         }
         g_debug ("Can't remove: %s is not the default value for %s", default_value, key_name);
