@@ -28,6 +28,7 @@ Makefile.in.in
 ./mkinstalldirs
 ./omf.make
 ./xmldocs.make
+data/apparmor/lightdm-guest-session
 doc/html
 doc/lightdm-gobject-*.*
 doc/*.stamp
