@@ -150,30 +150,26 @@ setresuid (uid_t ruid, uid_t uuid, uid_t suid)
 
 static gchar *
 redirect_path (const gchar *path)
-{ 
-    gchar *p;
-    gboolean matches;
+{
     size_t offset;
+    gboolean matches;
 
+    // Don't redirect if inside the running directory
     if (g_str_has_prefix (path, g_getenv ("LIGHTDM_TEST_ROOT")))
         return g_strdup (path);
 
-    if (strcmp (path, CONFIG_DIR "/lightdm.conf") == 0)
-        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "lightdm", "lightdm.conf", NULL);
+    // Don't redirect if inside the build directory
+    if (g_str_has_prefix (path, BUILDDIR))
+        return g_strdup (path);
 
-    p = g_strdup_printf ("%s/", SYSCONFDIR);
-    offset = strlen (p);
-    matches = g_str_has_prefix (path, p);
-    g_free (p);
-    if (g_str_has_prefix (path, "/tmp/"))
-        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", path + 5, NULL);
+    if (g_str_has_prefix (path, "/tmp"))
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", path + strlen ("tmp"), NULL);
 
-    p = g_strdup_printf ("%s/", LOCALSTATEDIR);
-    offset = strlen (p);
-    matches = g_str_has_prefix (path, p);
-    g_free (p);
-    if (matches)
-        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "var", path + offset, NULL);
+    if (g_str_has_prefix (path, SYSCONFDIR))
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", path + strlen (SYSCONFDIR), NULL);
+
+    if (g_str_has_prefix (path, LOCALSTATEDIR))
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "var", path + strlen (LOCALSTATEDIR), NULL);
 
     return g_strdup (path);
 }
