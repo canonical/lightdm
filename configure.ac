@@ -193,7 +193,6 @@ dnl ###########################################################################
 AC_CONFIG_FILES([
 Makefile
 data/Makefile
-data/init/Makefile
 doc/Makefile
 help/Makefile
 liblightdm-gobject/liblightdm-gobject-1.pc

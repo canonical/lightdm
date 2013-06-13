@@ -1,4 +1,5 @@
-SUBDIRS = init
+initdir = ${sysconfdir}/init
+dist_init_DATA = init/lightdm.conf
 
 confdir = $(sysconfdir)/lightdm
 dist_conf_DATA = lightdm.conf users.conf keys.conf
