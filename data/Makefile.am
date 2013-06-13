@@ -1,4 +1,5 @@
-SUBDIRS = init
+initdir = ${sysconfdir}/init
+dist_init_DATA = init/lightdm.conf
 
 confdir = $(sysconfdir)/lightdm
 dist_conf_DATA = lightdm.conf users.conf keys.conf
@@ -11,24 +12,22 @@ dist_pam_DATA = pam/lightdm \
                 pam/lightdm-autologin \
                 pam/lightdm-greeter
 
-EXTRA_DIST = guest-session.apparmor \
-             guest-session.apparmor_abstraction \
-             guest-session.apparmor_chromium_abstraction
+apparmor/lightdm-guest-session: $(srcdir)/apparmor/lightdm-guest-session.in
+	sed -e 's|@pkglibexecdir[@]|$(pkglibexecdir)|g' $< >$@
 
 apparmor_profiledir = $(sysconfdir)/apparmor.d
+dist_apparmor_profile_DATA = \
+    apparmor/lightdm-guest-session
 
-install-data-hook:
-	install -d $(DESTDIR)$(apparmor_profiledir)
-	sed 's!PKGLIBEXECDIR!$(pkglibexecdir)!g' < $(srcdir)/guest-session.apparmor \
-		> $(DESTDIR)$(apparmor_profiledir)/lightdm-guest-session
-	install -d $(DESTDIR)$(apparmor_profiledir)/abstractions
-	install --mode=0644 $(srcdir)/guest-session.apparmor_abstraction \
-		$(DESTDIR)$(apparmor_profiledir)/abstractions/lightdm
-	install --mode=0644 $(srcdir)/guest-session.apparmor_chromium_abstraction \
-		$(DESTDIR)$(apparmor_profiledir)/abstractions/lightdm_chromium-browser
+apparmor_profile_abstractionsdir = $(apparmor_profiledir)/abstractions
+dist_apparmor_profile_abstractions_DATA = \
+    apparmor/abstractions/lightdm \
+    apparmor/abstractions/lightdm_chromium-browser
 
 dist_man1_MANS = lightdm.1 \
                  lightdm-set-defaults.1
+
+CLEANFILES = apparmor/lightdm-guest-session
 
 DISTCLEANFILES = \
 	Makefile.in
