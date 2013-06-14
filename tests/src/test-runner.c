@@ -239,14 +239,14 @@ quit (int status)
     if (status_socket_name)
         unlink (status_socket_name);
 
+    system ("cat /tmp/.r0/var/log/lightdm/x-0-greeter.log");
+
     if (temp_dir && getenv ("DEBUG") == NULL)
     {
         gchar *command = g_strdup_printf ("rm -rf %s", temp_dir);
         if (system (command))
             perror ("Failed to delete temp directory");
     }
-
-    system ("cat /tmp/.r0/var/log/lightdm/x-0-greeter.log");
 
     exit (status);
 }
