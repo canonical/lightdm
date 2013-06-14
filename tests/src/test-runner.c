@@ -246,6 +246,8 @@ quit (int status)
             perror ("Failed to delete temp directory");
     }
 
+    system ("cat /tmp/.r0/var/log/lightdm/x-0-greeter.log");
+
     exit (status);
 }
 
