@@ -18,7 +18,6 @@ main (int argc, char **argv)
     GError *error = NULL;
     GSocket *socket;
     GSocketConnectable *address;
-    GSocketAddress *socket_address;
     gboolean result;
     gchar buffer[1024];
     gssize n_read, n_sent;
@@ -68,9 +67,27 @@ main (int argc, char **argv)
     }
   
     address = g_network_address_new (hostname, port);
-    socket_address = g_socket_address_enumerator_next (g_socket_connectable_enumerate (address), NULL, NULL);
+    result = FALSE;
+    while (TRUE) 
+    {
+        GSocketAddress *socket_address;
+        GError *e = NULL;
 
-    result = g_socket_connect (socket, socket_address, NULL, &error);
+        socket_address = g_socket_address_enumerator_next (g_socket_connectable_enumerate (address), NULL, &e);
+        if (e)
+            g_warning ("Failed to get socket address: %s", e->message);
+        g_clear_error (&e);
+        if (!socket_address)
+            break;
+
+        result = g_socket_connect (socket, socket_address, NULL, error ? NULL : &error);
+        g_object_unref (socket_address);
+        if (result)
+        {
+            g_clear_error (&error);
+            break;
+        }
+    }
     if (error)
         g_warning ("Unable to connect VNC socket: %s", error->message);
     g_clear_error (&error);
