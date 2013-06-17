@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.7.2
+
+    * Fix incorrectly distributed guest-session apparmor data
+
 Overview of changes in lightdm 1.7.1
 
     * Fix .pc file for liblightdm-qt5-3
