@@ -89,7 +89,7 @@ read_string_full (void* (*alloc_fn)(size_t n))
 }
 
 static gchar *
-read_string ()
+read_string (void)
 {
     return read_string_full (g_malloc);
 }

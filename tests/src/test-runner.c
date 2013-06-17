@@ -515,7 +515,7 @@ handle_command (const gchar *command)
 }
 
 static void
-run_commands ()
+run_commands (void)
 {
     /* Stop daemon if requested */
     while (TRUE)
@@ -890,7 +890,7 @@ ck_name_acquired_cb (GDBusConnection *connection,
 }
 
 static void
-start_console_kit_daemon ()
+start_console_kit_daemon (void)
 {
     service_count++;
     g_bus_own_name (G_BUS_TYPE_SYSTEM,
@@ -904,7 +904,7 @@ start_console_kit_daemon ()
 }
 
 static void
-load_passwd_file ()
+load_passwd_file (void)
 {
     gchar *path, *data, **lines;
     int i;
@@ -1179,7 +1179,7 @@ accounts_name_acquired_cb (GDBusConnection *connection,
 }
 
 static void
-start_accounts_service_daemon ()
+start_accounts_service_daemon (void)
 {
     service_count++;
     g_bus_own_name (G_BUS_TYPE_SYSTEM,
@@ -1193,7 +1193,7 @@ start_accounts_service_daemon ()
 }
 
 static void
-run_lightdm ()
+run_lightdm (void)
 {
     GString *command_line;
     gchar **lightdm_argv;

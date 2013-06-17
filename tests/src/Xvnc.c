@@ -29,7 +29,7 @@ static int display_number = 0;
 static XServer *xserver = NULL;
 
 static void
-indicate_ready ()
+indicate_ready (void)
 {
     void *handler;  
     handler = signal (SIGUSR1, SIG_IGN);
@@ -42,7 +42,7 @@ indicate_ready ()
 }
 
 static void
-cleanup ()
+cleanup (void)
 {
     if (lock_path)
         unlink (lock_path);
@@ -132,8 +132,6 @@ int
 main (int argc, char **argv)
 {
     char *pid_string;
-    gboolean listen_tcp = TRUE;
-    gboolean listen_unix = TRUE;
     gboolean use_inetd = FALSE;
     gboolean has_option = FALSE;
     gchar *geometry = g_strdup ("640x480");
@@ -172,9 +170,9 @@ main (int argc, char **argv)
             char *protocol = argv[i+1];
             i++;
             if (strcmp (protocol, "tcp") == 0)
-                listen_tcp = FALSE;
+                ;//listen_tcp = FALSE;
             else if (strcmp (protocol, "unix") == 0)
-                listen_unix = FALSE;
+                ;//listen_unix = FALSE;
         }
         else if (strcmp (arg, "-geometry") == 0)
         {
