@@ -67,7 +67,6 @@ main (int argc, char **argv)
         hostname = g_strdup ("localhost");
     }
 
-    g_warning ("CONNECT %s %d", hostname, port);
     address = g_network_address_new (hostname, port);
     enumerator = g_socket_connectable_enumerate (address);
     result = FALSE;
@@ -83,7 +82,6 @@ main (int argc, char **argv)
         if (!socket_address)
             break;
 
-        g_warning ("CONNECT");
         result = g_socket_connect (socket, socket_address, NULL, error ? NULL : &error);
         g_object_unref (socket_address);
         if (result)
@@ -97,16 +95,13 @@ main (int argc, char **argv)
     g_clear_error (&error);
     if (!result)
         return EXIT_FAILURE;
-    g_warning ("CONNECTED");
 
-    g_warning ("RECEIVE");
     n_read = g_socket_receive (socket, buffer, 1023, NULL, &error);
     if (error)
         g_warning ("Unable to receive on VNC socket: %s", error->message);
     g_clear_error (&error);
     if (n_read <= 0)
         return EXIT_FAILURE;
-    g_warning ("RECEIVED");
 
     buffer[n_read] = '\0';
     if (g_str_has_suffix (buffer, "\n"))

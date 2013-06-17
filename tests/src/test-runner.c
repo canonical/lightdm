@@ -239,8 +239,6 @@ quit (int status)
     if (status_socket_name)
         unlink (status_socket_name);
 
-    system ("cat /tmp/.r0/var/log/lightdm/x-0-greeter.log");
-
     if (temp_dir && getenv ("DEBUG") == NULL)
     {
         gchar *command = g_strdup_printf ("rm -rf %s", temp_dir);
@@ -1658,7 +1656,7 @@ run_lightdm ()
     status_timeout = g_timeout_add (STATUS_TIMEOUT, status_timeout_cb, NULL);
 
     command_line = g_string_new ("lightdm");
-    //if (getenv ("DEBUG"))
+    if (getenv ("DEBUG"))
         g_string_append (command_line, " --debug");
     g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
     g_string_append_printf (command_line, " --xsessions-dir=%s/usr/share/xsessions", temp_dir);
