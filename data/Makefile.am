@@ -27,7 +27,7 @@ dist_apparmor_profile_abstractions_DATA = \
 dist_man1_MANS = lightdm.1 \
                  lightdm-set-defaults.1
 
-EXTRA_DIST = lightdm-guest-session.in
+EXTRA_DIST = apparmor/lightdm-guest-session.in
 CLEANFILES = lightdm-guest-session
 
 DISTCLEANFILES = \
