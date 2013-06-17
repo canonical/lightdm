@@ -13,6 +13,10 @@
 
 #include "status.h"
 
+static gchar *session_id;
+
+static GMainLoop *loop;
+
 static GString *open_fds;
 
 static GKeyFile *config;
@@ -22,7 +26,7 @@ static xcb_connection_t *connection;
 static void
 quit_cb (int signum)
 {
-    status_notify ("SESSION %s TERMINATE SIGNAL=%d", getenv ("DISPLAY"), signum);
+    status_notify ("%s TERMINATE SIGNAL=%d", session_id, signum);
     exit (EXIT_SUCCESS);
 }
 
@@ -30,20 +34,27 @@ static void
 request_cb (const gchar *request)
 {
     gchar *r;
+
+    if (!request)
+    {
+        g_main_loop_quit (loop);
+        return;
+    }
   
-    r = g_strdup_printf ("SESSION %s LOGOUT", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s LOGOUT", session_id);
     if (strcmp (request, r) == 0)
         exit (EXIT_SUCCESS);
     g_free (r);
   
-    r = g_strdup_printf ("SESSION %s CRASH", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s CRASH", session_id);
     if (strcmp (request, r) == 0)
         kill (getpid (), SIGSEGV);
     g_free (r);
 
-    r = g_strdup_printf ("SESSION %s LOCK-SEAT", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s LOCK-SEAT", session_id);
     if (strcmp (request, r) == 0)
     {
+        status_notify ("%s LOCK-SEAT", session_id);
         g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
                                      "org.freedesktop.DisplayManager",
                                      getenv ("XDG_SEAT_PATH"),
@@ -55,13 +66,13 @@ request_cb (const gchar *request)
                                      1000,
                                      NULL,
                                      NULL);
-        status_notify ("SESSION %s LOCK-SEAT", getenv ("DISPLAY"));
     }
     g_free (r);
 
-    r = g_strdup_printf ("SESSION %s LOCK-SESSION", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s LOCK-SESSION", session_id);
     if (strcmp (request, r) == 0)
     {
+        status_notify ("%s LOCK-SESSION", session_id);
         g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
                                      "org.freedesktop.DisplayManager",
                                      getenv ("XDG_SESSION_PATH"),
@@ -73,11 +84,10 @@ request_cb (const gchar *request)
                                      1000,
                                      NULL,
                                      NULL);
-        status_notify ("SESSION %s LOCK-SESSION", getenv ("DISPLAY"));
     }
     g_free (r);
 
-    r = g_strdup_printf ("SESSION %s LIST-GROUPS", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s LIST-GROUPS", session_id);
     if (strcmp (request, r) == 0)
     {
         int n_groups, i;
@@ -100,31 +110,31 @@ request_cb (const gchar *request)
             else
                 g_string_append_printf (group_list, "%d", groups[i]);
         }
-        status_notify ("SESSION %s LIST-GROUPS GROUPS=%s", getenv ("DISPLAY"), group_list->str);
+        status_notify ("%s LIST-GROUPS GROUPS=%s", session_id, group_list->str);
         g_string_free (group_list, TRUE);
         free (groups);
     }
 
-    r = g_strdup_printf ("SESSION %s READ-ENV NAME=", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s READ-ENV NAME=", session_id);
     if (g_str_has_prefix (request, r))
     {
         const gchar *name = request + strlen (r);
         const gchar *value = g_getenv (name);
-        status_notify ("SESSION %s READ-ENV NAME=%s VALUE=%s", getenv ("DISPLAY"), name, value ? value : "");
+        status_notify ("%s READ-ENV NAME=%s VALUE=%s", session_id, name, value ? value : "");
     }
     g_free (r);
 
-    r = g_strdup_printf ("SESSION %s WRITE-STDOUT TEXT=", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s WRITE-STDOUT TEXT=", session_id);
     if (g_str_has_prefix (request, r))
         g_print ("%s", request + strlen (r));
     g_free (r);
 
-    r = g_strdup_printf ("SESSION %s WRITE-STDERR TEXT=", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s WRITE-STDERR TEXT=", session_id);
     if (g_str_has_prefix (request, r))
         g_printerr ("%s", request + strlen (r));
     g_free (r);
 
-    r = g_strdup_printf ("SESSION %s READ FILE=", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s READ FILE=", session_id);
     if (g_str_has_prefix (request, r))
     {
         const gchar *name = request + strlen (r);
@@ -132,24 +142,32 @@ request_cb (const gchar *request)
         GError *error = NULL;
 
         if (g_file_get_contents (name, &contents, NULL, &error))
-            status_notify ("SESSION %s READ FILE=%s TEXT=%s", getenv ("DISPLAY"), name, contents);
+            status_notify ("%s READ FILE=%s TEXT=%s", session_id, name, contents);
         else
-            status_notify ("SESSION %s READ FILE=%s ERROR=%s", getenv ("DISPLAY"), name, error->message);
+            status_notify ("%s READ FILE=%s ERROR=%s", session_id, name, error->message);
         g_clear_error (&error);
     }
     g_free (r);
 
-    r = g_strdup_printf ("SESSION %s LIST-UNKNOWN-FILE-DESCRIPTORS", getenv ("DISPLAY"));
+    r = g_strdup_printf ("%s LIST-UNKNOWN-FILE-DESCRIPTORS", session_id);
     if (strcmp (request, r) == 0)
-        status_notify ("SESSION %s LIST-UNKNOWN-FILE-DESCRIPTORS FDS=%s", getenv ("DISPLAY"), open_fds->str);
+        status_notify ("%s LIST-UNKNOWN-FILE-DESCRIPTORS FDS=%s", session_id, open_fds->str);
     g_free (r);
 }
 
 int
 main (int argc, char **argv)
 {
-    GMainLoop *loop;
+    gchar *display;
     int fd, open_max;
+
+    display = getenv ("DISPLAY");
+    if (display == NULL)
+        session_id = g_strdup ("SESSION-?");
+    else if (display[0] == ':')
+        session_id = g_strdup_printf ("SESSION-X-%s", display + 1);
+    else
+        session_id = g_strdup_printf ("SESSION-X-%s", display);
 
     open_fds = g_string_new ("");
     open_max = sysconf (_SC_OPEN_MAX);
@@ -164,16 +182,18 @@ main (int argc, char **argv)
     signal (SIGINT, quit_cb);
     signal (SIGTERM, quit_cb);
 
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
 
     loop = g_main_loop_new (NULL, FALSE);
 
     status_connect (request_cb);
 
     if (argc > 1)
-        status_notify ("SESSION %s START NAME=%s USER=%s", getenv ("DISPLAY"), argv[1], getenv ("USER"));
+        status_notify ("%s START NAME=%s USER=%s", session_id, argv[1], getenv ("USER"));
     else
-        status_notify ("SESSION %s START USER=%s", getenv ("DISPLAY"), getenv ("USER"));
+        status_notify ("%s START USER=%s", session_id, getenv ("USER"));
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
@@ -182,13 +202,13 @@ main (int argc, char **argv)
 
     if (xcb_connection_has_error (connection))
     {
-        status_notify ("SESSION %s CONNECT-XSERVER-ERROR", getenv ("DISPLAY"));
+        status_notify ("%s CONNECT-XSERVER-ERROR", session_id);
         return EXIT_FAILURE;
     }
 
-    status_notify ("SESSION %s CONNECT-XSERVER", getenv ("DISPLAY"));
+    status_notify ("%s CONNECT-XSERVER", session_id);
 
-    g_main_loop_run (loop);    
+    g_main_loop_run (loop);
 
     return EXIT_SUCCESS;
 }

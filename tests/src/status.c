@@ -1,8 +1,10 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <glib.h>
 #include <gio/gio.h>
 #include <gio/gunixsocketaddress.h>
+#include <unistd.h>
 
 #include "status.h"
 
@@ -21,7 +23,11 @@ status_request_cb (GSocket *socket, GIOCondition condition, gpointer data)
     if (n_read > 0)
         n_read = g_socket_receive (socket, buffer, length, NULL, &error);
     if (n_read == 0)
+    {
+        if (request_func)
+            request_func (NULL);
         return FALSE;
+    }
     if (error)
         g_warning ("Error reading from socket: %s", error->message);
     g_clear_error (&error);
@@ -53,7 +59,7 @@ status_connect (StatusRequestFunc request_cb)
     if (!status_socket)
         return;
 
-    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".status-socket", NULL);
+    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".s", NULL);
     address = g_unix_socket_address_new (path);
     result = g_socket_connect (status_socket, address, NULL, &error);
     g_object_unref (address);

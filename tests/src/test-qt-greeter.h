@@ -1,4 +1,5 @@
 #include <QLightDM/Greeter>
+#include <QLightDM/UsersModel>
 
 class TestGreeter : public QLightDM::Greeter
 {
@@ -7,7 +8,7 @@ class TestGreeter : public QLightDM::Greeter
 public:
     TestGreeter ();
 
-private slots:
+private Q_SLOTS:
     void showMessage(QString text, QLightDM::Greeter::MessageType type);
     void showPrompt(QString text, QLightDM::Greeter::PromptType type);
     void authenticationComplete();
