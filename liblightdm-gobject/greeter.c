@@ -118,7 +118,7 @@ timed_login_cb (gpointer data)
 }
 
 static guint32
-int_length ()
+int_length (void)
 {
     return 4;
 }

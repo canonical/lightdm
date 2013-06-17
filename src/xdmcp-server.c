@@ -237,7 +237,7 @@ decode_key (const gchar *key, guint8 *data)
 {
     gint i;
 
-    memset (data, 0, sizeof (data));
+    memset (data, 0, 8);
     if (strncmp (key, "0x", 2) == 0 || strncmp (key, "0X", 2) == 0)
     {
         for (i = 0; i < 8; i++)

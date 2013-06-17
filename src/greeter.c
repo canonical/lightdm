@@ -117,7 +117,7 @@ greeter_set_hint (Greeter *greeter, const gchar *name, const gchar *value)
 }
 
 static guint32
-int_length ()
+int_length (void)
 {
     return 4;
 }

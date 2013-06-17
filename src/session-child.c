@@ -65,7 +65,7 @@ read_data (void *buf, size_t count)
 }
 
 static gchar *
-read_string ()
+read_string (void)
 {
     int length;
     char *value;
