@@ -59,7 +59,7 @@ status_connect (StatusRequestFunc request_cb)
     if (!status_socket)
         return;
 
-    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".status-socket", NULL);
+    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".s", NULL);
     address = g_unix_socket_address_new (path);
     result = g_socket_connect (status_socket, address, NULL, &error);
     g_object_unref (address);
@@ -96,11 +96,6 @@ status_notify (const gchar *format, ...)
         if (error)
             g_printerr ("Failed to write to status socket: %s\n", error->message);
         g_clear_error (&error);
-        /* We sync filesystem here, to guarantee that statuses sent from
-           multiple process (e.g. greeter and X) are all ordered correctly.
-           Without this, there is a race that manifests occasionally between
-           close status_notify calls.  fsync does not seem to do the trick. */
-        sync ();
     }
     else
         g_printerr ("%s\n", status);

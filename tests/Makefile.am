@@ -48,8 +48,6 @@ TESTS = \
 	test-user-renamed-invalid \
 	test-keyboard-layout \
 	test-no-keyboard-layout \
-	test-default-keyboard-layout \
-	test-keyboard-variants \
 	test-language \
 	test-no-language \
 	test-language-no-accounts-service \
