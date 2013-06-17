@@ -182,7 +182,7 @@ lightdm_get_sessions (void)
 }
 
 /**
- * lightdm_session_get_key
+ * lightdm_session_get_key:
  * @session: A #LightDMSession
  * 
  * Get the key for a session
@@ -197,7 +197,7 @@ lightdm_session_get_key (LightDMSession *session)
 }
 
 /**
- * lightdm_session_get_name
+ * lightdm_session_get_name:
  * @session: A #LightDMSession
  * 
  * Get the name for a session
@@ -212,7 +212,7 @@ lightdm_session_get_name (LightDMSession *session)
 }
 
 /**
- * lightdm_session_get_comment
+ * lightdm_session_get_comment:
  * @session: A #LightDMSession
  * 
  * Get the comment for a session
