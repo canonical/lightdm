@@ -18,7 +18,7 @@ main (int argc, char **argv)
     GError *error = NULL;
     GSocket *socket;
     GSocketConnectable *address;
-    GSocketAddress *socket_address;
+    GSocketAddressEnumerator *enumerator;
     gboolean result;
     gchar buffer[1024];
     gssize n_read, n_sent;
@@ -57,7 +57,7 @@ main (int argc, char **argv)
         if (g_str_has_prefix (port_string, ":"))
             port = atoi (port_string + 1);
         else
-            port = 5900 + atoi (port_string);        
+            port = 5900 + atoi (port_string);
     }
     else
         port = 5900;
@@ -66,11 +66,30 @@ main (int argc, char **argv)
         g_free (hostname);
         hostname = g_strdup ("localhost");
     }
-  
-    address = g_network_address_new (hostname, port);
-    socket_address = g_socket_address_enumerator_next (g_socket_connectable_enumerate (address), NULL, NULL);
 
-    result = g_socket_connect (socket, socket_address, NULL, &error);
+    address = g_network_address_new (hostname, port);
+    enumerator = g_socket_connectable_enumerate (address);
+    result = FALSE;
+    while (TRUE) 
+    {
+        GSocketAddress *socket_address;
+        GError *e = NULL;
+
+        socket_address = g_socket_address_enumerator_next (enumerator, NULL, &e);
+        if (e)
+            g_warning ("Failed to get socket address: %s", e->message);
+        g_clear_error (&e);
+        if (!socket_address)
+            break;
+
+        result = g_socket_connect (socket, socket_address, NULL, error ? NULL : &error);
+        g_object_unref (socket_address);
+        if (result)
+        {
+            g_clear_error (&error);
+            break;
+        }
+    }
     if (error)
         g_warning ("Unable to connect VNC socket: %s", error->message);
     g_clear_error (&error);

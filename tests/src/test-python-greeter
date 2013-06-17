@@ -198,20 +198,6 @@ if host == '':
 else:
     x_socket = socket.socket (socket.AF_INET, socket.SOCK_STREAM)
     x_socket.connect ((host, 6000 + int (display_number)))
-authority = subprocess.check_output(['xauth', 'list']).split ()
-auth_name = ''
-auth_data = ''
-if len (authority) >= 3:
-    auth_name = authority[1]
-    hex = authority[2]
-    while len (hex) >= 2:
-        auth_data += chr (int (hex[:2], 16))
-        hex = hex[2:]
-def pad (value):
-    if len (value) % 4 != 0:
-        return value + '\x00' * (4 - len (value) % 4)
-    else:
-        return value
 
 status_notify ('%s CONNECT-XSERVER' % (greeter_id))
 
