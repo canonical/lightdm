@@ -38,7 +38,7 @@ static guint16 xdmcp_cookie_length = 0;
 static guint8 *xdmcp_cookie = NULL;
 
 static void
-cleanup ()
+cleanup (void)
 {
     if (lock_path)
         unlink (lock_path);
@@ -56,7 +56,7 @@ quit (int status)
 }
 
 static void
-indicate_ready ()
+indicate_ready (void)
 {
     void *handler;  
     handler = signal (SIGUSR1, SIG_IGN);
@@ -192,8 +192,6 @@ main (int argc, char **argv)
 {
     int i;
     char *pid_string;
-    gboolean listen_tcp = TRUE;
-    gboolean listen_unix = TRUE;
     gboolean do_xdmcp = FALSE;
     guint xdmcp_port = 0;
     gchar *xdmcp_host = NULL;
@@ -231,9 +229,9 @@ main (int argc, char **argv)
             char *protocol = argv[i+1];
             i++;
             if (strcmp (protocol, "tcp") == 0)
-                listen_tcp = FALSE;
+                ;//listen_tcp = FALSE;
             else if (strcmp (protocol, "unix") == 0)
-                listen_unix = FALSE;
+                ;//listen_unix = FALSE;
         }
         else if (strcmp (arg, "-nr") == 0)
         {

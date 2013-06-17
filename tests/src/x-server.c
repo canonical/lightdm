@@ -144,8 +144,8 @@ x_server_start (XServer *server)
     gchar *name;
     GError *error = NULL;
 
-    name = g_strdup_printf (":%d", server->priv->display_number);
-    server->priv->socket_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", name, NULL);
+    name = g_strdup_printf (".x:%d", server->priv->display_number);
+    server->priv->socket_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), name, NULL);
     g_free (name);
 
     server->priv->socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);

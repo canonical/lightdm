@@ -59,7 +59,7 @@ status_connect (StatusRequestFunc request_cb)
     if (!status_socket)
         return;
 
-    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".status-socket", NULL);
+    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".s", NULL);
     address = g_unix_socket_address_new (path);
     result = g_socket_connect (status_socket, address, NULL, &error);
     g_object_unref (address);

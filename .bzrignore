@@ -28,6 +28,7 @@ Makefile.in.in
 ./mkinstalldirs
 ./omf.make
 ./xmldocs.make
+data/apparmor/lightdm-guest-session
 doc/html
 doc/lightdm-gobject-*.*
 doc/*.stamp
@@ -56,6 +57,8 @@ src/ldm-marshal.c
 src/ldm-marshal.h
 src/lightdm
 src/lightdm-guest-session-wrapper
+tests/*.log
+tests/*.trs
 tests/data/passwd
 tests/src/*_moc*.cpp
 tests/src/dbus-env

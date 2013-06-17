@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 #include "configuration.h"
 #include "display-manager.h"
@@ -1037,13 +1038,16 @@ main (int argc, char **argv)
 
     /* Create run and cache directories */
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH);
+    if (g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
+        g_warning ("Failed to make log directory %s: %s", dir, strerror (errno));
     g_free (dir);
     dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
-    g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH);
+    if (g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
+        g_warning ("Failed to make run directory %s: %s", dir, strerror (errno));
     g_free (dir);
     dir = config_get_string (config_get_instance (), "LightDM", "cache-directory");
-    g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH);
+    if (g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
+        g_warning ("Failed to make cache directory %s: %s", dir, strerror (errno));
     g_free (dir);
 
     log_init ();

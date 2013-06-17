@@ -107,7 +107,8 @@ dmrc_save (GKeyFile *dmrc_file, const gchar *username)
     /* Update the .dmrc cache */
     cache_dir = config_get_string (config_get_instance (), "LightDM", "cache-directory");
     dmrc_cache_dir = g_build_filename (cache_dir, "dmrc", NULL);
-    g_mkdir_with_parents (dmrc_cache_dir, 0700);
+    if (g_mkdir_with_parents (dmrc_cache_dir, 0700) < 0)
+        g_warning ("Failed to make DMRC cache directory %s: %s", dmrc_cache_dir, strerror (errno));
 
     filename = g_strdup_printf ("%s.dmrc", username);
     path = g_build_filename (dmrc_cache_dir, filename, NULL);

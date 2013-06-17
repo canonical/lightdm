@@ -49,6 +49,8 @@ TESTS = \
 	test-system-xauthority \
 	test-user-renamed \
 	test-user-renamed-invalid \
+	test-users-gobject \
+	test-users-python \
 	test-keyboard-layout \
 	test-no-keyboard-layout \
 	test-language \
@@ -187,6 +189,7 @@ TESTS += \
 	test-login-qt4-guest-fail-setup-script \
 	test-login-qt4-guest-logout \
 	test-login-qt4-remote-session \
+	test-users-qt4 \
 	test-qt4-power \
 	test-qt4-power-no-console-kit \
 	test-qt4-power-no-login1 \
@@ -220,10 +223,11 @@ TESTS += \
 	test-login-qt5-guest-fail-setup-script \
 	test-login-qt5-guest-logout \
 	test-login-qt5-remote-session \
-	test-qt4-power \
-	test-qt4-power-no-console-kit \
-	test-qt4-power-no-login1 \
-	test-qt4-power-no-services
+	test-users-qt5 \
+	test-qt5-power \
+	test-qt5-power-no-console-kit \
+	test-qt5-power-no-login1 \
+	test-qt5-power-no-services
 endif
 
 EXTRA_DIST = \
@@ -349,6 +353,7 @@ EXTRA_DIST = \
 	scripts/unity-compositor-fail-start.conf \
 	scripts/unity-login.conf \
 	scripts/unity-switch.conf \
+	scripts/users.conf \
 	scripts/util-path.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \

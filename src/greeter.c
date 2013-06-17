@@ -152,7 +152,7 @@ secure_free (Greeter *greeter, void *ptr)
 }
 
 static guint32
-int_length ()
+int_length (void)
 {
     return 4;
 }
