@@ -18,6 +18,7 @@ main (int argc, char **argv)
     GError *error = NULL;
     GSocket *socket;
     GSocketConnectable *address;
+    GSocketAddressEnumerator *enumerator;
     gboolean result;
     gchar buffer[1024];
     gssize n_read, n_sent;
@@ -68,13 +69,14 @@ main (int argc, char **argv)
 
     g_warning ("CONNECT %s %d", hostname, port);
     address = g_network_address_new (hostname, port);
+    enumerator = g_socket_connectable_enumerate (address);
     result = FALSE;
     while (TRUE) 
     {
         GSocketAddress *socket_address;
         GError *e = NULL;
 
-        socket_address = g_socket_address_enumerator_next (g_socket_connectable_enumerate (address), NULL, &e);
+        socket_address = g_socket_address_enumerator_next (enumerator, NULL, &e);
         if (e)
             g_warning ("Failed to get socket address: %s", e->message);
         g_clear_error (&e);
