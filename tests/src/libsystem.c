@@ -158,18 +158,18 @@ redirect_path (const gchar *path)
     if (g_str_has_prefix (path, g_getenv ("LIGHTDM_TEST_ROOT")))
         return g_strdup (path);
 
+    if (g_str_has_prefix (path, SYSCONFDIR))
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", path + strlen (SYSCONFDIR), NULL);
+
+    if (g_str_has_prefix (path, LOCALSTATEDIR))
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "var", path + strlen (LOCALSTATEDIR), NULL);
+
     // Don't redirect if inside the build directory
     if (g_str_has_prefix (path, BUILDDIR))
         return g_strdup (path);
 
     if (g_str_has_prefix (path, "/tmp"))
         return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", path + strlen ("tmp"), NULL);
-
-    if (g_str_has_prefix (path, SYSCONFDIR))
-        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", path + strlen (SYSCONFDIR), NULL);
-
-    if (g_str_has_prefix (path, LOCALSTATEDIR))
-        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "var", path + strlen (LOCALSTATEDIR), NULL);
 
     return g_strdup (path);
 }
