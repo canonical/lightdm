@@ -49,6 +49,9 @@ struct ProcessPrivate
 
     /* Timeout waiting for process to quit */
     guint quit_timeout;
+
+    /* Watch on process */
+    guint watch;
 };
 
 G_DEFINE_TYPE (Process, process, G_TYPE_OBJECT);
@@ -133,6 +136,10 @@ process_watch_cb (GPid pid, gint status, gpointer data)
     else if (WIFSIGNALED (status))
         g_debug ("Process %d terminated with signal %d", pid, WTERMSIG (status));
 
+    if (process->priv->watch)
+        g_source_remove (process->priv->watch);
+    process->priv->watch = 0;
+
     if (process->priv->quit_timeout)
         g_source_remove (process->priv->quit_timeout);
     process->priv->quit_timeout = 0;  
@@ -171,7 +178,7 @@ process_run (Process *process)
 }
 
 gboolean
-process_start (Process *process)
+process_start (Process *process, gboolean block)
 {
     pid_t pid;
 
@@ -193,8 +200,17 @@ process_start (Process *process)
 
     process->priv->pid = pid;
 
-    g_hash_table_insert (processes, GINT_TO_POINTER (process->priv->pid), g_object_ref (process));
-    g_child_watch_add (process->priv->pid, process_watch_cb, process);
+    if (block)
+    {
+        int exit_status;
+        waitpid (process->priv->pid, &exit_status, 0);
+        process_watch_cb (process->priv->pid, exit_status, process);
+    }  
+    else
+    {
+        g_hash_table_insert (processes, GINT_TO_POINTER (process->priv->pid), g_object_ref (process));
+        process->priv->watch = g_child_watch_add (process->priv->pid, process_watch_cb, process);
+    }
 
     return TRUE;
 }
@@ -245,17 +261,6 @@ process_stop (Process *process)
     process_signal (process, SIGTERM);
 }
 
-void
-process_wait (Process *process)
-{
-    int exit_status;
-
-    g_return_if_fail (process != NULL);
-
-    waitpid (process->priv->pid, &exit_status, 0);
-    process_watch_cb (process->priv->pid, exit_status, process);
-}
-
 int
 process_get_exit_status (Process *process)
 {
@@ -287,6 +292,8 @@ process_finalize (GObject *object)
 
     g_free (self->priv->command);
     g_hash_table_unref (self->priv->env);
+    if (self->priv->watch)
+        g_source_remove (self->priv->watch);
 
     if (self->priv->pid)
         kill (self->priv->pid, SIGTERM);

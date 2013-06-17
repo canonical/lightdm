@@ -495,7 +495,7 @@ xserver_local_start (DisplayServer *display_server)
         process_set_env (server->priv->xserver_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }
 
-    result = process_start (server->priv->xserver_process);
+    result = process_start (server->priv->xserver_process, FALSE);
 
     if (result)
         g_debug ("Waiting for ready signal from X server :%d", xserver_get_display_number (XSERVER (server)));
