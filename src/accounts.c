@@ -154,7 +154,7 @@ get_string_from_dmrc (const gchar *username, const gchar *group,
 }
 
 static GDBusProxy *
-get_accounts_service_proxy ()
+get_accounts_service_proxy (void)
 {
     GError *error = NULL;
 
