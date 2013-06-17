@@ -48,8 +48,6 @@ TESTS = \
 	test-user-renamed-invalid \
 	test-keyboard-layout \
 	test-no-keyboard-layout \
-	test-default-keyboard-layout \
-	test-keyboard-variants \
 	test-language \
 	test-no-language \
 	test-language-no-accounts-service \
@@ -235,7 +233,6 @@ EXTRA_DIST = \
 	scripts/cred-error.conf \
 	scripts/cred-expired.conf \
 	scripts/cred-unavail.conf \
-	scripts/default-keyboard-layout.conf \
 	scripts/denied.conf \
 	scripts/expired.conf \
 	scripts/greeter-fail-start.conf \
@@ -246,7 +243,6 @@ EXTRA_DIST = \
 	scripts/home-dir-on-authenticate.conf \
 	scripts/home-dir-on-session.conf \
 	scripts/keyboard-layout.conf \
-	scripts/keyboard-variants.conf \
 	scripts/language.conf \
 	scripts/language-no-accounts-service.conf \
 	scripts/lock-seat.conf \

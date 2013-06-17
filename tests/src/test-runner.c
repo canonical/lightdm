@@ -12,7 +12,7 @@
 #include <pwd.h>
 
 /* Timeout in ms waiting for the status we expect */
-#define STATUS_TIMEOUT 2000
+#define STATUS_TIMEOUT 4000
 
 /* Timeout in ms to wait for SIGTERM to be handled by a child process */
 #define KILL_TIMEOUT 2000
@@ -23,8 +23,12 @@ static GKeyFile *config;
 static GSocket *status_socket = NULL;
 static gchar *status_socket_name = NULL;
 static GList *statuses = NULL;
+typedef struct
+{
+    gchar *text;
+    gboolean done;
+} ScriptLine;
 static GList *script = NULL;
-static GList *script_iter = NULL;
 static guint status_timeout = 0;
 static gchar *temp_dir = NULL;
 static int service_count;
@@ -221,7 +225,7 @@ quit (int status)
     if (status_socket_name)
         unlink (status_socket_name);
 
-    if (temp_dir)
+    if (temp_dir && getenv ("DEBUG") == NULL)
     {
         gchar *command = g_strdup_printf ("rm -rf %s", temp_dir);
         if (system (command))
@@ -253,12 +257,47 @@ fail (const gchar *event, const gchar *expected)
     quit (EXIT_FAILURE);
 }
 
-static const gchar *
-get_script_line ()
+static gchar *
+get_prefix (const gchar *text)
 {
-    if (!script_iter)
-        return NULL;
-    return script_iter->data;
+    gchar *prefix;
+    gint i;
+
+    prefix = g_strdup (text);
+    for (i = 0; prefix[i] != '\0' && prefix[i] != ' '; i++);
+    prefix[i] = '\0';
+
+    return prefix;
+}
+
+static ScriptLine *
+get_script_line (const gchar *prefix)
+{
+    GList *link;
+
+    for (link = script; link; link = link->next)
+    {
+        ScriptLine *line = link->data;
+
+        /* Ignore lines with other prefixes */
+        if (prefix)
+        {
+            gchar *p;
+            gboolean matches;
+
+            p = get_prefix (line->text);
+            matches = strcmp (prefix, p) == 0;
+            g_free (p);
+
+            if (!matches)
+                continue;
+        }
+
+        if (!line->done)
+            return line;
+    }
+
+    return NULL;
 }
 
 static void
@@ -446,9 +485,9 @@ handle_command (const gchar *command)
         }
     }
     /* Forward to external processes */
-    else if (strcmp (name, "SESSION") == 0 ||
-             strcmp (name, "GREETER") == 0 ||
-             strcmp (name, "XSERVER") == 0)
+    else if (g_str_has_prefix (name, "SESSION-") ||
+             g_str_has_prefix (name, "GREETER-") ||
+             g_str_has_prefix (name, "XSERVER-"))
     {
         GList *link;
         for (link = status_clients; link; link = link->next)
@@ -481,36 +520,41 @@ run_commands ()
     /* Stop daemon if requested */
     while (TRUE)
     {
-        const gchar *command;
+        ScriptLine *line;
 
         /* Commands start with an asterisk */
-        command = get_script_line ();
-        if (!command || command[0] != '*')
+        line = get_script_line (NULL);
+        if (!line || line->text[0] != '*')
             break;
 
-        statuses = g_list_append (statuses, g_strdup (command));
-        script_iter = script_iter->next;
+        statuses = g_list_append (statuses, g_strdup (line->text));
+        line->done = TRUE;
 
-        handle_command (command + 1);
+        handle_command (line->text + 1);
     }
 
     /* Stop at the end of the script */
-    if (get_script_line () == NULL)
+    if (get_script_line (NULL) == NULL)
         quit (EXIT_SUCCESS);
 }
 
 static gboolean
 status_timeout_cb (gpointer data)
 {
-    fail ("(timeout)", get_script_line ());
+    ScriptLine *line;
+
+    line = get_script_line (NULL);
+    fail ("(timeout)", line ? line->text : NULL);
+
     return FALSE;
 }
 
 static void
 check_status (const gchar *status)
 {
-    const gchar *pattern;
+    ScriptLine *line;
     gboolean result = FALSE;
+    gchar *prefix;
 
     if (stop)
         return;
@@ -521,20 +565,25 @@ check_status (const gchar *status)
         g_print ("%s\n", status);
 
     /* Try and match against expected */
-    pattern = get_script_line ();
-    if (pattern)
+    prefix = get_prefix (status);
+    line = get_script_line (prefix);
+    g_free (prefix);
+    if (line)
     {
-        gchar *full_pattern = g_strdup_printf ("^%s$", pattern);
+        gchar *full_pattern = g_strdup_printf ("^%s$", line->text);
         result = g_regex_match_simple (full_pattern, status, 0, 0);
         g_free (full_pattern);
     }
   
     if (!result)
     {
-        fail (NULL, pattern);
+        if (line == NULL)
+            line = get_script_line (NULL);
+        fail (NULL, line ? line->text : NULL);
         return;
     }
-    script_iter = script_iter->next;
+
+    line->done = TRUE;
 
     /* Restart timeout */
     g_source_remove (status_timeout);
@@ -617,11 +666,16 @@ load_script (const gchar *filename)
     /* Load lines with #? prefix as expected behaviour */
     for (i = 0; lines[i]; i++)
     {
-        gchar *line = g_strstrip (lines[i]);
-        if (g_str_has_prefix (line, "#?"))
-            script = g_list_append (script, g_strdup (line+2));
+        gchar *text = g_strstrip (lines[i]);
+        if (g_str_has_prefix (text, "#?"))
+        {
+            ScriptLine *line;
+            line = g_malloc0 (sizeof (ScriptLine));
+            line->text = g_strdup (text + 2);
+            line->done = FALSE;
+            script = g_list_append (script, line);
+        }
     }
-    script_iter = script;
     g_strfreev (lines);
 }
 
@@ -678,9 +732,15 @@ handle_ck_call (GDBusConnection       *connection,
                 gpointer               user_data)
 {
     if (strcmp (method_name, "CanRestart") == 0)
+    {
+        check_status ("CONSOLE-KIT CAN-RESTART");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+    }
     else if (strcmp (method_name, "CanStop") == 0)
+    {
+        check_status ("CONSOLE-KIT CAN-STOP");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+    }
     else if (strcmp (method_name, "CloseSession") == 0)
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
     else if (strcmp (method_name, "OpenSession") == 0)
@@ -715,9 +775,15 @@ handle_ck_call (GDBusConnection       *connection,
         g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Unable to find session for cookie");
     }
     else if (strcmp (method_name, "Restart") == 0)
+    {
+        check_status ("CONSOLE-KIT RESTART");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
     else if (strcmp (method_name, "Stop") == 0)
+    {
+        check_status ("CONSOLE-KIT STOP");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
     else
         g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
 }
@@ -860,7 +926,10 @@ load_passwd_file ()
 
         fields = g_strsplit (lines[i], ":", -1);
         if (fields == NULL || g_strv_length (fields) < 7)
+        {
+            g_strfreev (fields);
             continue;
+        }
 
         user_name = fields[0];
         uid = atoi (fields[2]);
@@ -1177,6 +1246,7 @@ int
 main (int argc, char **argv)
 {
     GMainLoop *loop;
+    int i;
     gchar *greeter = NULL, *script_name, *config_file, *path, *path1, *path2, *ld_preload, *ld_library_path, *home_dir;
     GString *passwd_data, *group_data;
     GSource *status_source;
@@ -1240,22 +1310,30 @@ main (int argc, char **argv)
     g_setenv ("GI_TYPELIB_PATH", path1, TRUE);
     g_free (path1);
 
-    /* Run from a temporary directory */
-    temp_dir = g_build_filename (g_get_tmp_dir (), "lightdm-test-XXXXXX", NULL);
-    if (!mkdtemp (temp_dir))
-    {
-        g_warning ("Error creating temporary directory: %s", strerror (errno));
-        quit (EXIT_FAILURE);
-    }
-    g_chmod (temp_dir, 0755);
+    /* Run in a temporary directory inside the build directory */
+    /* Note we have to pick a name that is short since Unix sockets in this directory have a 108 character limit on their paths */
+    i = 0;
+    while (TRUE) {
+        gchar *name;
+
+        name = g_strdup_printf (".r%d", i);
+        g_free (temp_dir);
+        temp_dir = g_build_filename ("/tmp", name, NULL);
+        g_free (name);
+        if (!g_file_test (temp_dir, G_FILE_TEST_EXISTS))
+            break;
+        i++;
+    }  
+    g_mkdir_with_parents (temp_dir, 0755);
     g_setenv ("LIGHTDM_TEST_ROOT", temp_dir, TRUE);
 
     /* Open socket for status */
-    status_socket_name = g_build_filename (temp_dir, ".status-socket", NULL);
+    /* Note we have to pick a socket name that is short since there is a 108 character limit on the name */
+    status_socket_name = g_build_filename (temp_dir, ".s", NULL);
     unlink (status_socket_name);
     status_socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
     if (error)
-        g_warning ("Error creating status socket: %s", error->message);
+        g_warning ("Error creating status socket %s: %s", status_socket_name, error->message);
     g_clear_error (&error);
     if (status_socket)
     {
@@ -1266,13 +1344,13 @@ main (int argc, char **argv)
         result = g_socket_bind (status_socket, address, FALSE, &error);
         g_object_unref (address);
         if (error)
-            g_warning ("Error binding status socket: %s", error->message);
+            g_warning ("Error binding status socket %s: %s", status_socket_name, error->message);
         g_clear_error (&error);
         if (result)
         {
             result = g_socket_listen (status_socket, &error);
             if (error)
-                g_warning ("Error listening on status socket: %s", error->message);
+                g_warning ("Error listening on status socket %s: %s", status_socket_name, error->message);
             g_clear_error (&error);
         }
         if (!result)
@@ -1290,7 +1368,12 @@ main (int argc, char **argv)
     /* Set up a skeleton file system */
     g_mkdir_with_parents (g_strdup_printf ("%s/etc", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/usr/share", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/xsessions", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/remote-sessions", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/xgreeters", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/tmp", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/var/run", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/var/log", temp_dir), 0755);
 
     /* Copy over the configuration */
     g_mkdir_with_parents (g_strdup_printf ("%s/etc/lightdm", temp_dir), 0755);
@@ -1303,11 +1386,11 @@ main (int argc, char **argv)
         perror ("Failed to copy configuration");  
 
     /* Copy over the greeter files */
-    if (system (g_strdup_printf ("cp -r %s/xsessions %s/usr/share", DATADIR, temp_dir)))
+    if (system (g_strdup_printf ("cp %s/xsessions/* %s/usr/share/xsessions", DATADIR, temp_dir)))
         perror ("Failed to copy xsessions");
-    if (system (g_strdup_printf ("cp -r %s/remote-sessions %s/usr/share", DATADIR, temp_dir)))
+    if (system (g_strdup_printf ("cp %s/remote-sessions/* %s/usr/share/remote-sessions", DATADIR, temp_dir)))
         perror ("Failed to copy remote sessions");
-    if (system (g_strdup_printf ("cp -r %s/xgreeters %s/usr/share", DATADIR, temp_dir)))
+    if (system (g_strdup_printf ("cp %s/xgreeters/* %s/usr/share/xgreeters", DATADIR, temp_dir)))
         perror ("Failed to copy xgreeters");
 
     /* Set up the default greeter */
@@ -1402,7 +1485,6 @@ main (int argc, char **argv)
     };
     passwd_data = g_string_new ("");
     group_data = g_string_new ("");
-    int i;
     for (i = 0; users[i].user_name; i++)
     {
         GKeyFile *dmrc_file;
