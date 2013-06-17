@@ -46,7 +46,9 @@ private:
 SessionsModelPrivate::SessionsModelPrivate(SessionsModel *parent) :
     q_ptr(parent)
 {
+#if !defined(GLIB_VERSION_2_36)
     g_type_init();
+#endif
     loadSessions();
 }
 

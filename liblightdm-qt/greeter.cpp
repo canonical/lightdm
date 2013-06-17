@@ -42,7 +42,9 @@ private:
 GreeterPrivate::GreeterPrivate(Greeter *parent) :
     q_ptr(parent)
 {
+#if !defined(GLIB_VERSION_2_36)
     g_type_init();
+#endif
     ldmGreeter = lightdm_greeter_new();
 
     g_signal_connect (ldmGreeter, "show-prompt", G_CALLBACK (cb_showPrompt), this);

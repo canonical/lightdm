@@ -78,7 +78,9 @@ main (int argc, char **argv)
     gint arg_index;
     GBusType bus_type = G_BUS_TYPE_SYSTEM;
 
+#if !defined(GLIB_VERSION_2_36)
     g_type_init ();
+#endif
 
     for (arg_index = 1; arg_index < argc; arg_index++)
     {
