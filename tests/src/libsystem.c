@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <pwd.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <grp.h>
 #include <security/pam_appl.h>
 #include <fcntl.h>
@@ -355,6 +356,22 @@ __xstat64 (int version, const char *path, struct stat *buf)
     g_free (new_path);
 
     return ret;
+}
+
+DIR *
+opendir (const char *name)
+{
+    DIR *(*_opendir) (const char *name);
+    gchar *new_path = NULL;
+    DIR *result;
+
+    _opendir = (DIR *(*)(const char *name)) dlsym (RTLD_NEXT, "opendir");
+
+    new_path = redirect_path (name);
+    result = _opendir (new_path);
+    g_free (new_path);
+
+    return result; 
 }
 
 int
