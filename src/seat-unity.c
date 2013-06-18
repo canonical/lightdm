@@ -282,11 +282,10 @@ get_absolute_command (const gchar *command)
 static gboolean
 compositor_timeout_cb (gpointer data)
 {
-    Seat *seat = data;
+    SeatUnity *seat = data;
 
-    g_debug ("Compositor failed to start");
-
-    seat_stop (seat);
+    /* Stop the compositor - it is not working */
+    process_stop (seat->priv->compositor_process);
 
     return TRUE;
 }
@@ -296,6 +295,7 @@ seat_unity_start (Seat *seat)
 {
     gchar *command, *absolute_command, *dir;
     gboolean result;
+    int timeout;
 
     /* Replace Plymouth if it is running */
     if (plymouth_get_is_active () && plymouth_has_active_vt ())
@@ -363,8 +363,11 @@ seat_unity_start (Seat *seat)
         return FALSE;
 
     /* Connect to the compositor */
-    g_debug ("Waiting for system compositor");
-    SEAT_UNITY (seat)->priv->compositor_timeout = g_timeout_add (5000, compositor_timeout_cb, seat);
+    timeout = seat_get_integer_property (seat, "unity-compositor-timeout");
+    if (timeout <= 0)
+        timeout = 5;
+    g_debug ("Waiting for system compositor for %ds", timeout);
+    SEAT_UNITY (seat)->priv->compositor_timeout = g_timeout_add (timeout * 1000, compositor_timeout_cb, seat);
 
     return TRUE;
 }
