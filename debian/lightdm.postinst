@@ -79,6 +79,20 @@ if [ -z "$2" ]; then
     fi
 fi
 
+case "$1" in
+    configure)
+        # LP: #1189948
+        if dpkg --compare-versions "$2" lt "1.7.0-0ubuntu6" ; then
+            if [ -f /etc/apparmor.d/abstractions/lightdm ]; then
+                chmod 0644 /etc/apparmor.d/abstractions/lightdm || true
+            fi
+            if [ -f /etc/apparmor.d/abstractions/lightdm_chromium-browser ]; then
+                chmod 0644 /etc/apparmor.d/abstractions/lightdm_chromium-browser || true
+            fi
+        fi
+        ;;
+esac
+
 #DEBHELPER#
 
 exit 0
