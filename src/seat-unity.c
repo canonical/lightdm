@@ -305,7 +305,7 @@ seat_unity_start (Seat *seat)
         {
             g_debug ("Compositor will replace Plymouth");
             SEAT_UNITY (seat)->priv->vt = active_vt;
-            plymouth_deactivate ();
+            plymouth_deactivate (TRUE);
         }
         else
             g_debug ("Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());

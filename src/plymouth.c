@@ -81,10 +81,30 @@ plymouth_has_active_vt (void)
 }
 
 void
-plymouth_deactivate (void)
+plymouth_deactivate (gboolean wait)
 {
+    gint attempt = 1;
     is_active = FALSE;
-    plymouth_run_command ("deactivate", NULL);
+
+    /*
+     * The "plymouth" command has no option like --wait-for-deactivation so
+     * we have to wait in a loop.
+     */
+    do
+    {
+        g_debug("Deactivating Plymouth (attempt #%d)", attempt);
+        attempt++;
+        plymouth_run_command ("deactivate", NULL);
+
+        if (!wait)
+            return;
+
+        sleep (1);
+        have_checked_active_vt = FALSE;
+    } while (plymouth_has_active_vt () && attempt <= 60);
+
+    if (has_active_vt)
+        g_debug("Failed to deactivate Plymouth.");
 }
 
 void

@@ -170,7 +170,7 @@ xserver_local_new (void)
             g_debug ("X server %s will replace Plymouth", xserver_get_address (XSERVER (self)));
             self->priv->replacing_plymouth = TRUE;
             self->priv->vt = active_vt;
-            plymouth_deactivate ();
+            plymouth_deactivate (FALSE);
         }
         else
             g_debug ("Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());
