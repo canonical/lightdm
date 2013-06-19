@@ -1657,7 +1657,7 @@ run_lightdm (void)
     status_timeout = g_timeout_add (status_timeout_ms, status_timeout_cb, NULL);
 
     command_line = g_string_new ("lightdm");
-    if (getenv ("DEBUG"))
+    //if (getenv ("DEBUG"))
         g_string_append (command_line, " --debug");
     g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
     g_string_append_printf (command_line, " --xsessions-dir=%s/usr/share/xsessions", temp_dir);
