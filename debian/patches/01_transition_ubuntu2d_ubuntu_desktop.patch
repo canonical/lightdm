@@ -2,11 +2,11 @@
 #              starting from quantal. llvmpipe is used in case no hardware
 #              acceleration is available.
 === modified file 'liblightdm-gobject/user.c'
-Index: lightdm-unity/liblightdm-gobject/user.c
+Index: lightdm-1.5.1/liblightdm-gobject/user.c
 ===================================================================
---- lightdm-unity.orig/liblightdm-gobject/user.c	2013-05-31 14:43:13.321193415 +1200
-+++ lightdm-unity/liblightdm-gobject/user.c	2013-05-31 14:43:13.313193415 +1200
-@@ -1307,6 +1307,12 @@
+--- lightdm-1.5.1.orig/liblightdm-gobject/user.c	2013-03-08 11:18:21.877614772 +1300
++++ lightdm-1.5.1/liblightdm-gobject/user.c	2013-03-08 11:18:21.873614772 +1300
+@@ -1313,6 +1313,12 @@
      load_dmrc (user);
      load_accounts_service (user); // overrides dmrc values
  

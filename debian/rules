@@ -13,10 +13,6 @@ override_dh_autoreconf:
 override_dh_auto_configure:
 	dh_auto_configure -- --with-greeter-user=lightdm --with-user-session=ubuntu --enable-gtk-doc
 
-override_dh_auto_test:
-	# lightdm must be installed in prefix before tests will succeed, so we run
-	# them as a dep8 test instead of during build
-
 override_dh_install:
 	#Remove .la and .a files.
 	find debian/tmp/usr/lib/ -name *.a |xargs rm

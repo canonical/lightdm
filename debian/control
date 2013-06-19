@@ -24,8 +24,8 @@ Build-Depends: debhelper (>= 7.0.50~),
                dh-translations,
                gtk-doc-tools,
                yelp-tools,
-               dbus
-XS-Testsuite: autopkgtest
+               dbus,
+               python-gi
 Homepage: https://launchpad.net/lightdm
 
 Package: lightdm
@@ -101,14 +101,14 @@ Description: LightDM GObject client library (development files)
  This package contains header files and development information, which
  is useful for building LightDM greeters and user switchers.
 
-Package: liblightdm-qt-3-dev
+Package: liblightdm-qt-dev
 Section: libdevel
 Architecture: any
 Depends: ${misc:Depends},
          liblightdm-qt-3-0 (= ${binary:Version}),
          libqt4-dev
-Conflicts: liblightdm-qt-1-dev (>= 1.1.1)
-Replaces: liblightdm-qt-1-dev (>= 1.1.1)
+Breaks: liblightdm-qt-1-dev (>= 1.1.1), liblightdm-qt-3-dev
+Replaces: liblightdm-qt-1-dev (>= 1.1.1), liblightdm-qt-3-dev
 Description: LightDM Qt client library (development files)
  A Qt based library for LightDM clients to use to interface with LightDM.
  .

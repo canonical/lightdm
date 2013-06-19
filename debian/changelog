@@ -1,5 +1,60 @@
-lightdm (1.7.0-0ubuntu1~ppa1) saucy; urgency=low
+lightdm (1.7.2-0ubuntu1) saucy; urgency=low
 
+  * New upstream release:
+    - Fix .pc file for liblightdm-qt5-3
+    - Add a new option "autologin-in-background" which lets an autologin happen
+      in a second display while still showing the greeter.
+    - Stop if fail to create default seat
+    - Add option to set seat type in lightdm-set-defaults
+    - Stop using g_file_set_contents - it can leave intermediate files around
+    - Make tests work without installing them
+    - Fix distcheck
+  * debian/patches/06_fix_qt_pcfiles.patch:
+  * debian/patches/07_lp1189948.patch:
+    - Applied upstream
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 17 Jun 2013 14:08:46 +1200
+
+lightdm (1.7.0-0ubuntu6) saucy; urgency=low
+
+  * install apparmor abstractions as 064 (LP: #1189948)
+    - debian/patches/07_lp1189948.patch: adjust Makefile.am and Makefile.in
+      to use install --mode=0644
+    - debian/lightdm.postinst: chmod apparmor abstractions to 0644 on upgrade
+
+ -- Jamie Strandboge <jamie@ubuntu.com>  Tue, 11 Jun 2013 14:11:34 -0500
+
+lightdm (1.7.0-0ubuntu5) saucy; urgency=low
+
+  * Drop XS-Testsuite header. We don't actually have any autopkgtests right
+    now (they are commented out in debian/tests/control and are broken).
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Thu, 06 Jun 2013 06:58:11 +0200
+
+lightdm (1.7.0-0ubuntu4) saucy; urgency=low
+
+  * Install some files in liblightdm-qt-dev, so it's somewhat useful.
+
+ -- Adam Conrad <adconrad@ubuntu.com>  Fri, 24 May 2013 00:31:31 -0600
+
+lightdm (1.7.0-0ubuntu3) saucy; urgency=low
+
+  * Switch to unversioned -dev package for liblightdm-qt to match Debian and
+    avoid having to change other packages synced from Debian
+  * Swtich Conflicts to Breaks and add liblightdm-qt-3-dev to Breaks/Replaces
+
+ -- Scott Kitterman <scott@kitterman.com>  Fri, 24 May 2013 00:37:06 -0400
+
+lightdm (1.7.0-0ubuntu2) saucy; urgency=low
+
+  * Cherry-pick patches from upstream to fix liblightdm-qt{,5} pcfiles. 
+  * Refresh patches to apply cleanly 
+
+ -- Iain Lane <iain.lane@canonical.com>  Tue, 07 May 2013 17:36:29 +0100
+
+lightdm (1.7.0-0ubuntu1) saucy; urgency=low
+
+  [ Robert Ancell ]
   * New upstream release:
     - Use logind instead of ConsoleKit if it is available
     - Use Q_SLOTS and Q_SIGNALS instead of slots and signals.
@@ -10,11 +65,16 @@ lightdm (1.7.0-0ubuntu1~ppa1) saucy; urgency=low
     - liblightdm-qt-2 -> liblightdm-qt-3
   * debian/patches/06_qt_no_keywords.patch:
     - Applied upstream
-  * NOTE: The locale changes do not match the patches to accounts service.
-    This package should be patched to match what the Ubuntu accounts service
-    provides.
+    
+  [ Gunnar Hjalmarsson ]
+  * debian/patches/04_language_options.patch:
+    - Applied upstream
+  * debian/patches/04_language_handling.patch:
+    - Set LANGUAGE instead of LANG, since the Language property in
+      accountsservice as patched for Ubuntu does not contain a valid
+      locale name.
 
- -- Robert Ancell <robert.ancell@canonical.com>  Tue, 30 Apr 2013 11:30:58 -0700
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 02 May 2013 10:20:02 -0700
 
 lightdm (1.6.0-0ubuntu2.1) raring-proposed; urgency=low
 
