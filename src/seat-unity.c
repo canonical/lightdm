@@ -478,7 +478,7 @@ seat_unity_create_session (Seat *seat, Display *display)
 
     /* Set variables for logind */
     session_set_env (SESSION (session), "XDG_SEAT", "seat0");
-    t = g_strdup_printf ("%d", xserver_local_get_vt (xserver));
+    t = g_strdup_printf ("%d", vt_number);
     session_set_env (SESSION (session), "XDG_VTNR", t);
     g_free (t);
 
