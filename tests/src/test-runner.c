@@ -1841,7 +1841,7 @@ main (int argc, char **argv)
 
         files = g_strsplit (additional_config, " ", -1);
         for (i = 0; files[i]; i++)
-            if (system (g_strdup_printf ("cp scripts/%s %s/etc/lightdm/lightdm.conf.d", files[i], temp_dir)))
+            if (system (g_strdup_printf ("cp %s/tests/scripts/%s %s/etc/lightdm/lightdm.conf.d", SRCDIR, files[i], temp_dir)))
                 perror ("Failed to copy configuration");
         g_strfreev (files);
     }
