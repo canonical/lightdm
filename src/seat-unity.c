@@ -461,17 +461,26 @@ seat_unity_create_session (Seat *seat, Display *display)
 {
     XServerLocal *xserver;
     XSession *session;
-    gchar *tty;
+    int vt_number;
+    gchar *t;
 
     xserver = XSERVER_LOCAL (display_get_display_server (display));
 
-    session = xsession_new (XSERVER (xserver));
     if (SEAT_UNITY (seat)->priv->use_vt_switching)
-        tty = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (xserver));
+        vt_number = xserver_local_get_vt (xserver);
     else
-        tty = g_strdup_printf ("/dev/tty%d", SEAT_UNITY (seat)->priv->vt);
-    session_set_tty (SESSION (session), tty);
-    g_free (tty);
+        vt_number = SEAT_UNITY (seat)->priv->vt;
+
+    session = xsession_new (XSERVER (xserver));
+    t = g_strdup_printf ("/dev/tty%d", vt_number);
+    session_set_tty (SESSION (session), t);
+    g_free (t);
+
+    /* Set variables for logind */
+    session_set_env (SESSION (session), "XDG_SEAT", "seat0");
+    t = g_strdup_printf ("%d", vt_number);
+    session_set_env (SESSION (session), "XDG_VTNR", t);
+    g_free (t);
 
     return SESSION (session);
 }
