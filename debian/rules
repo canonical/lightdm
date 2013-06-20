@@ -13,6 +13,9 @@ override_dh_autoreconf:
 override_dh_auto_configure:
 	dh_auto_configure -- --with-greeter-user=lightdm --with-user-session=ubuntu --enable-gtk-doc
 
+# Disable tests - they're not working in the PPA
+override_dh_auto_test:
+
 override_dh_install:
 	#Remove .la and .a files.
 	find debian/tmp/usr/lib/ -name *.a |xargs rm
