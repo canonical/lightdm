@@ -365,7 +365,7 @@ seat_unity_start (Seat *seat)
     /* Connect to the compositor */
     timeout = seat_get_integer_property (seat, "unity-compositor-timeout");
     if (timeout <= 0)
-        timeout = 5;
+        timeout = 60;
     g_debug ("Waiting for system compositor for %ds", timeout);
     SEAT_UNITY (seat)->priv->compositor_timeout = g_timeout_add (timeout * 1000, compositor_timeout_cb, seat);
 
