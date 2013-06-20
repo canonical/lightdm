@@ -22,7 +22,7 @@ gboolean plymouth_get_is_active (void);
 
 gboolean plymouth_has_active_vt (void);
 
-void plymouth_deactivate (void);
+void plymouth_deactivate (gboolean wait);
 
 void plymouth_quit (gboolean retain_splash);
 
