@@ -1,3 +1,12 @@
+lightdm (1.7.3-0ubuntu1) saucy; urgency=low
+
+  * New upstream release:
+    - Load configuration from /etc/lightdm/lightdm.conf.d. (LP: #1190425)
+    - Fix compile warnings
+    - Fix tests not running from install directory inside checkout.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 21 Jun 2013 14:39:27 +1200
+
 lightdm (1.7.2-0ubuntu1) saucy; urgency=low
 
   * New upstream release:
