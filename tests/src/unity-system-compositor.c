@@ -7,7 +7,7 @@
 
 static GMainLoop *loop;
 static int exit_status = EXIT_SUCCESS;
-static int from_dm_fd, to_dm_fd;
+static int from_dm_fd = -1, to_dm_fd = -1;
 
 static GKeyFile *config;
 
@@ -122,6 +122,8 @@ request_cb (const gchar *request)
 int
 main (int argc, char **argv)
 {
+    int i;
+
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
     signal (SIGHUP, signal_cb);
@@ -134,10 +136,24 @@ main (int argc, char **argv)
 
     status_connect (request_cb);
 
-    if (argc != 3)
-        return EXIT_FAILURE;
-    from_dm_fd = atoi (argv[1]);
-    to_dm_fd = atoi (argv[2]);
+    for (i = 1; i < argc; i++)
+    {
+        char *arg = argv[i];
+
+        if (strcmp (arg, "--from-dm-fd") == 0)
+        {
+            from_dm_fd = atoi (argv[i+1]);
+            i++;
+        }
+        else if (strcmp (arg, "--to-dm-fd") == 0)
+        {
+            to_dm_fd = atoi (argv[i+1]);
+            i++;
+        }
+        else
+            return EXIT_FAILURE;
+    }
+
     g_io_add_watch (g_io_channel_unix_new (from_dm_fd), G_IO_IN, read_message_cb, NULL);
 
     status_notify ("UNITY-SYSTEM-COMPOSITOR START");

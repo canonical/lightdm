@@ -6,6 +6,7 @@ TESTS = \
 	test-greeter-not-installed \
 	test-greeter-xserver-crash \
 	test-no-config \
+	test-additional-config \
 	test-headless \
 	test-autologin \
 	test-autologin-in-background \
@@ -241,6 +242,9 @@ EXTRA_DIST = \
 	data/xgreeters/test-qt5-greeter.desktop \
 	data/xsessions/alternative.desktop \
 	data/xsessions/default.desktop \
+	scripts/0-additional.conf \
+	scripts/1-additional.conf \
+	scripts/additional-config.conf \
 	scripts/autologin.conf \
 	scripts/autologin-guest.conf \
 	scripts/autologin-guest-fail-setup-script.conf \
