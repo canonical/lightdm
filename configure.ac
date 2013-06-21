@@ -49,23 +49,6 @@ PKG_CHECK_MODULES(XCB, [
     xcb
 ])
 
-AC_ARG_ENABLE(unity,
-	AS_HELP_STRING([--enable-unity],[Enable Unity support [[default=auto]]]),
-	[enable_unity=$enableval],
-	[enable_unity="auto"])
-compile_unity=no
-if test x"$enable_unity" = "xauto"; then
-    PKG_CHECK_MODULES(UNITY, [
-        mirclient
-    ], compile_unity=yes, compile_unity=no)
-elif test x"$enable_unity" = "xyes"; then
-    PKG_CHECK_MODULES(UNITY, [
-        mirclient
-    ])
-    compile_unity=yes
-fi
-AM_CONDITIONAL(COMPILE_UNITY, test x"$compile_unity" != "xno")
-
 AC_ARG_ENABLE(liblightdm-gobject,
 	AS_HELP_STRING([--enable-liblightdm-gobject],[Enable LightDM client gobject libraries [[default=auto]]]),
 	[enable_liblightdm_gobject=$enableval],
@@ -237,7 +220,6 @@ echo "
         Greeter session:          $GREETER_SESSION
         Greeter user:             $GREETER_USER
         User session:             $USER_SESSION
-        Unity support:            $compile_unity
         liblightdm-gobject:       $compile_liblightdm_gobject
         GObject introspection:    $found_introspection
         liblightdm-qt:            $compile_liblightdm_qt4
