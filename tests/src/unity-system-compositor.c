@@ -123,6 +123,7 @@ int
 main (int argc, char **argv)
 {
     int i;
+    gboolean test = FALSE;
 
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
@@ -155,13 +156,18 @@ main (int argc, char **argv)
             //vt_number = atoi (argv[i+1]);
             i++;
         }
+        else if (strcmp (arg, "--test") == 0)
+            test = TRUE;
         else
             return EXIT_FAILURE;
     }
 
     g_io_add_watch (g_io_channel_unix_new (from_dm_fd), G_IO_IN, read_message_cb, NULL);
 
-    status_notify ("UNITY-SYSTEM-COMPOSITOR START");
+    if (test)
+        status_notify ("UNITY-SYSTEM-COMPOSITOR START TEST");
+    else
+        status_notify ("UNITY-SYSTEM-COMPOSITOR START");
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);

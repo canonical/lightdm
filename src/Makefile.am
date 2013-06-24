@@ -38,6 +38,8 @@ lightdm_SOURCES = \
 	process.h \
 	seat.c \
 	seat.h \
+	seat-unity.c \
+	seat-unity.h \
 	seat-xdmcp-session.c \
 	seat-xdmcp-session.h \
 	seat-xlocal.c \
@@ -95,17 +97,6 @@ lightdm_LDADD = \
 	$(LIGHTDM_LIBS) \
 	-lgcrypt \
 	-lpam
-
-if COMPILE_UNITY
-lightdm_SOURCES += \
-	seat-unity.c \
-	seat-unity.h
-lightdm_CFLAGS += \
-	-DHAVE_UNITY \
-	$(UNITY_CFLAGS)
-lightdm_LDADD += \
-	$(UNITY_LIBS)
-endif
 
 pkglibexec_PROGRAMS = lightdm-guest-session-wrapper
 

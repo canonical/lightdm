@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.7.3
+
+    * Load configuration from /etc/lightdm/lightdm.conf.d.
+    * Fix compile warnings
+    * Fix tests not running from install directory inside checkout.
+
 Overview of changes in lightdm 1.7.2
 
     * Fix incorrectly distributed guest-session apparmor data
