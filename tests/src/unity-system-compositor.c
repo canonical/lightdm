@@ -151,6 +151,11 @@ main (int argc, char **argv)
             to_dm_fd = atoi (argv[i+1]);
             i++;
         }
+        else if (strcmp (arg, "--vt") == 0)
+        {
+            //vt_number = atoi (argv[i+1]);
+            i++;
+        }
         else if (strcmp (arg, "--test") == 0)
             test = TRUE;
         else
