@@ -957,9 +957,9 @@ static const char *
 get_env_value (const char *name_value, const char *name)
 {
     int j;
-
-    for (j = 0; name[j] && name[j] != '=' && name[j] == name_value[j]; j++);
-    if (name_value[j] == '=')
+  
+    for (j = 0; name[j] && name_value[j] && name[j] == name_value[j]; j++);
+    if (name[j] == '\0' && name_value[j] == '=')
         return &name_value[j + 1];
 
     return NULL;
@@ -969,15 +969,21 @@ int
 pam_putenv (pam_handle_t *pamh, const char *name_value)
 {
     int i;
+    gchar *name;
 
     if (pamh == NULL || name_value == NULL)
         return PAM_SYSTEM_ERR;
 
+    name = strdup (name_value);
+    for (i = 0; name[i]; i++)
+        if (name[i] == '=')
+            name[i] = '\0';
     for (i = 0; pamh->envlist[i]; i++)
     {
-        if (get_env_value (pamh->envlist[i], name_value))
+        if (get_env_value (pamh->envlist[i], name))
             break;
     }
+    free (name);
 
     if (pamh->envlist[i])
     {
