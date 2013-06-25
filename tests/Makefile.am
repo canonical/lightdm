@@ -138,6 +138,7 @@ TESTS = \
 	test-no-accounts-service \
 	test-console-kit \
 	test-no-console-kit \
+	test-login1 \
 	test-no-login1 \
 	test-no-console-kit-or-login1 \
 	test-gobject-power \
@@ -278,6 +279,7 @@ EXTRA_DIST = \
 	scripts/lock-session.conf \
 	scripts/lock-session-no-password.conf \
 	scripts/lock-session-return-session.conf \
+	scripts/login1.conf \
 	scripts/login.conf \
 	scripts/login-crash-authenticate.conf \
 	scripts/login-guest.conf \
