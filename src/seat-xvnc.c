@@ -72,6 +72,7 @@ seat_xvnc_create_session (Seat *seat, Display *display)
     XSession *session;
     GInetSocketAddress *address;
     gchar *hostname;
+    gchar *t;
 
     xserver = XSERVER_XVNC (display_get_display_server (display));
 

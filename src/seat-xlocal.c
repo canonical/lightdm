@@ -109,14 +109,20 @@ seat_xlocal_create_session (Seat *seat, Display *display)
 {
     XServerLocal *xserver;
     XSession *session;
-    gchar *tty;
+    gchar *t;
 
     xserver = XSERVER_LOCAL (display_get_display_server (display));
 
     session = xsession_new (XSERVER (xserver));
-    tty = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (xserver));
-    session_set_tty (SESSION (session), tty);
-    g_free (tty);
+    t = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (xserver));
+    session_set_tty (SESSION (session), t);
+    g_free (t);
+
+    /* Set variables for logind */
+    session_set_env (SESSION (session), "XDG_SEAT", "seat0");
+    t = g_strdup_printf ("%d", xserver_local_get_vt (xserver));
+    session_set_env (SESSION (session), "XDG_VTNR", t);
+    g_free (t);
 
     return SESSION (session);
 }
