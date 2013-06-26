@@ -47,7 +47,7 @@ PKG_CHECK_MODULES(GOBJECT, [
 
 PKG_CHECK_MODULES(XCB, [
     xcb
-])
+])    
 
 AC_ARG_ENABLE(liblightdm-gobject,
 	AS_HELP_STRING([--enable-liblightdm-gobject],[Enable LightDM client gobject libraries [[default=auto]]]),
