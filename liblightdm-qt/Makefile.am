@@ -1,15 +1,3 @@
-AM_V_MOC4 = $(am__v_MOC4_$(V))
-am__v_MOC4_ = $(am__v_MOC4_$(AM_DEFAULT_VERBOSITY))
-am__v_MOC4_0 = @echo "  MOC4  " $@;
-%_moc4.cpp: QLightDM/%.h
-	$(AM_V_MOC4) $(MOC4) $< -o $@
-
-AM_V_MOC5 = $(am__v_MOC5_$(V))
-am__v_MOC5_ = $(am__v_MOC5_$(AM_DEFAULT_VERBOSITY))
-am__v_MOC5_0 = @echo "  MOC5  " $@;
-%_moc5.cpp: QLightDM/%.h
-	$(AM_V_MOC5) $(MOC5) $< -o $@
-
 common_libadd = \
 	-L$(top_builddir)/liblightdm-gobject \
 	-llightdm-gobject-1
@@ -85,3 +73,16 @@ liblightdm_qt5_3include_HEADERS = $(common_headers)
 BUILT_SOURCES += $(common_sources:.cpp=_moc5.cpp)
 pkgconfig_DATA += liblightdm-qt5-3.pc
 endif
+
+# Support pretty printing MOC
+AM_V_MOC4 = $(am__v_MOC4_$(V))
+am__v_MOC4_ = $(am__v_MOC4_$(AM_DEFAULT_VERBOSITY))
+am__v_MOC4_0 = @echo "  MOC4    " $@;
+%_moc4.cpp: QLightDM/%.h
+	$(AM_V_MOC4) $(MOC4) $< -o $@
+
+AM_V_MOC5 = $(am__v_MOC5_$(V))
+am__v_MOC5_ = $(am__v_MOC5_$(AM_DEFAULT_VERBOSITY))
+am__v_MOC5_0 = @echo "  MOC5    " $@;
+%_moc5.cpp: QLightDM/%.h
+	$(AM_V_MOC5) $(MOC5) $< -o $@

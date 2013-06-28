@@ -714,6 +714,7 @@ display_start_session (Display *display)
     gchar *filename, *sessions_dir, *path;
     const gchar *language;
     gchar **argv;
+    gboolean disable_guest_wrapper;
 
     user = session_get_user (display->priv->session);
 
@@ -748,7 +749,8 @@ display_start_session (Display *display)
     session_set_env (display->priv->session, "GDMSESSION", display->priv->user_session); // FIXME: Not cross-desktop
 
     /* Run a guest session through the wrapper covered by MAC */
-    if (display->priv->autologin_guest)
+    disable_guest_wrapper = config_get_boolean (config_get_instance (), "LightDM", "disable-guest-wrapper");
+    if (display->priv->autologin_guest && !disable_guest_wrapper)
     {
         gchar *wrapper = g_build_filename (PKGLIBEXEC_DIR, "lightdm-guest-session-wrapper", NULL);
         g_debug ("Running guest session through wrapper: %s", wrapper);

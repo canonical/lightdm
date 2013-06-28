@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(lightdm, 1.7.0)
+AC_INIT(lightdm, 1.7.3)
 AC_CONFIG_MACRO_DIR(m4)
 AC_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE([1.11 no-dist-gzip dist-xz foreign])
@@ -193,7 +193,6 @@ dnl ###########################################################################
 AC_CONFIG_FILES([
 Makefile
 data/Makefile
-data/init/Makefile
 doc/Makefile
 help/Makefile
 liblightdm-gobject/liblightdm-gobject-1.pc

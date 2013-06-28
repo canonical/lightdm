@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <pwd.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <grp.h>
 #include <security/pam_appl.h>
 #include <fcntl.h>
@@ -150,15 +151,28 @@ setresuid (uid_t ruid, uid_t uuid, uid_t suid)
 
 static gchar *
 redirect_path (const gchar *path)
-{ 
+{
+    size_t offset;
+    gboolean matches;
+
+    // Don't redirect if inside the running directory
     if (g_str_has_prefix (path, g_getenv ("LIGHTDM_TEST_ROOT")))
         return g_strdup (path);
-    else if (strcmp (path, CONFIG_DIR "/lightdm.conf") == 0)
-        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "lightdm", "lightdm.conf", NULL);
-    else if (g_str_has_prefix (path, "/tmp/"))
-        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", path + 5, NULL);
-    else
+
+    if (g_str_has_prefix (path, SYSCONFDIR))
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", path + strlen (SYSCONFDIR), NULL);
+
+    if (g_str_has_prefix (path, LOCALSTATEDIR))
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "var", path + strlen (LOCALSTATEDIR), NULL);
+
+    // Don't redirect if inside the build directory
+    if (g_str_has_prefix (path, BUILDDIR))
         return g_strdup (path);
+
+    if (g_str_has_prefix (path, "/tmp"))
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", path + strlen ("tmp"), NULL);
+
+    return g_strdup (path);
 }
 
 #ifdef __linux__
@@ -196,7 +210,7 @@ open (const char *pathname, int flags, ...)
     {
         va_list ap;
         va_start (ap, flags);
-        mode = va_arg (ap, int);
+        mode = va_arg (ap, mode_t);
         va_end (ap);
     }
     return open_wrapper ("open", pathname, flags, mode);
@@ -210,10 +224,58 @@ open64 (const char *pathname, int flags, ...)
     {
         va_list ap;
         va_start (ap, flags);
-        mode = va_arg (ap, int);
+        mode = va_arg (ap, mode_t);
         va_end (ap);
     }
     return open_wrapper ("open64", pathname, flags, mode);
+}
+
+FILE *
+fopen (const char *path, const char *mode)
+{
+    FILE *(*_fopen) (const char *pathname, const char *mode);
+    gchar *new_path = NULL;
+    FILE *result;
+
+    _fopen = (FILE *(*)(const char *pathname, const char *mode)) dlsym (RTLD_NEXT, "fopen");
+
+    new_path = redirect_path (path);
+    result = _fopen (new_path, mode);
+    g_free (new_path);
+
+    return result;
+}
+
+int
+creat (const char *pathname, mode_t mode)
+{
+    int (*_creat) (const char *pathname, mode_t mode);
+    gchar *new_path = NULL;
+    int result;
+
+    _creat = (int (*)(const char *pathname, mode_t mode)) dlsym (RTLD_NEXT, "creat");
+
+    new_path = redirect_path (pathname);
+    result = _creat (new_path, mode);
+    g_free (new_path);
+
+    return result;
+}
+
+int
+creat64 (const char *pathname, mode_t mode)
+{
+    int (*_creat64) (const char *pathname, mode_t mode);
+    gchar *new_path = NULL;
+    int result;
+
+    _creat64 = (int (*)(const char *pathname, mode_t mode)) dlsym (RTLD_NEXT, "creat64");
+
+    new_path = redirect_path (pathname);
+    result = _creat64 (new_path, mode);
+    g_free (new_path);
+
+    return result;
 }
 
 int
@@ -230,6 +292,118 @@ access (const char *pathname, int mode)
     g_free (new_path);
 
     return ret;
+}
+
+int
+stat (const char *path, struct stat *buf)
+{
+    int (*_stat) (const char *path, struct stat *buf);
+    gchar *new_path = NULL;
+    int ret;
+  
+    _stat = (int (*)(const char *path, struct stat *buf)) dlsym (RTLD_NEXT, "stat");
+
+    new_path = redirect_path (path);
+    ret = _stat (new_path, buf);
+    g_free (new_path);
+
+    return ret;
+}
+
+int
+stat64 (const char *path, struct stat *buf)
+{
+    int (*_stat64) (const char *path, struct stat *buf);
+    gchar *new_path = NULL;
+    int ret;
+
+    _stat64 = (int (*)(const char *path, struct stat *buf)) dlsym (RTLD_NEXT, "stat64");
+
+    new_path = redirect_path (path);
+    ret = _stat (new_path, buf);
+    g_free (new_path);
+
+    return ret;
+}
+
+int
+__xstat (int version, const char *path, struct stat *buf)
+{
+    int (*___xstat) (int version, const char *path, struct stat *buf);
+    gchar *new_path = NULL;
+    int ret;
+  
+    ___xstat = (int (*)(int version, const char *path, struct stat *buf)) dlsym (RTLD_NEXT, "__xstat");
+
+    new_path = redirect_path (path);
+    ret = ___xstat (version, new_path, buf);
+    g_free (new_path);
+
+    return ret;
+}
+
+int
+__xstat64 (int version, const char *path, struct stat *buf)
+{
+    int (*___xstat64) (int version, const char *path, struct stat *buf);
+    gchar *new_path = NULL;
+    int ret;
+  
+    ___xstat64 = (int (*)(int version, const char *path, struct stat *buf)) dlsym (RTLD_NEXT, "__xstat64");
+
+    new_path = redirect_path (path);
+    ret = ___xstat64 (version, new_path, buf);
+    g_free (new_path);
+
+    return ret;
+}
+
+DIR *
+opendir (const char *name)
+{
+    DIR *(*_opendir) (const char *name);
+    gchar *new_path = NULL;
+    DIR *result;
+
+    _opendir = (DIR *(*)(const char *name)) dlsym (RTLD_NEXT, "opendir");
+
+    new_path = redirect_path (name);
+    result = _opendir (new_path);
+    g_free (new_path);
+
+    return result; 
+}
+
+int
+mkdir (const char *pathname, mode_t mode)
+{
+    int (*_mkdir) (const char *pathname, mode_t mode);
+    gchar *new_path = NULL;
+    int result;
+
+    _mkdir = (int (*)(const char *pathname, mode_t mode)) dlsym (RTLD_NEXT, "mkdir");
+
+    new_path = redirect_path (pathname);
+    result = _mkdir (new_path, mode);
+    g_free (new_path);
+
+    return result;
+}
+
+int
+chown (const char *pathname, uid_t owner, gid_t group)
+{
+    int (*_chown) (const char *pathname, uid_t owner, gid_t group);
+    gchar *new_path = NULL;
+    int result;
+
+    _chown = (int (*)(const char *pathname, uid_t owner, gid_t group)) dlsym (RTLD_NEXT, "chown");
+
+    new_path = redirect_path (pathname);
+    result = _chown (new_path, owner, group);
+    g_free (new_path);
+
+    return result;
 }
 
 int
@@ -783,9 +957,9 @@ static const char *
 get_env_value (const char *name_value, const char *name)
 {
     int j;
-
-    for (j = 0; name[j] && name[j] != '=' && name[j] == name_value[j]; j++);
-    if (name_value[j] == '=')
+  
+    for (j = 0; name[j] && name_value[j] && name[j] == name_value[j]; j++);
+    if (name[j] == '\0' && name_value[j] == '=')
         return &name_value[j + 1];
 
     return NULL;
@@ -795,15 +969,21 @@ int
 pam_putenv (pam_handle_t *pamh, const char *name_value)
 {
     int i;
+    gchar *name;
 
     if (pamh == NULL || name_value == NULL)
         return PAM_SYSTEM_ERR;
 
+    name = strdup (name_value);
+    for (i = 0; name[i]; i++)
+        if (name[i] == '=')
+            name[i] = '\0';
     for (i = 0; pamh->envlist[i]; i++)
     {
-        if (get_env_value (pamh->envlist[i], name_value))
+        if (get_env_value (pamh->envlist[i], name))
             break;
     }
+    free (name);
 
     if (pamh->envlist[i])
     {
@@ -1203,18 +1383,19 @@ xcb_connect_to_display_with_auth_info (const char *display, xcb_auth_info_t *aut
 
     if (c->error == 0)
     {
-        const gchar *d;
+        gchar *d;
 
         /* Skip the hostname, we'll assume it's localhost */
-        d = strchr (display, ':');
+        d = g_strdup_printf (".x%s", strchr (display, ':'));
 
-        socket_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", d, NULL);
+        socket_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), d, NULL);
+        g_free (d);
         address = g_unix_socket_address_new (socket_path);
-        g_free (socket_path);
         if (!g_socket_connect (c->socket, address, NULL, &error))
             c->error = XCB_CONN_ERROR;
         if (error)
-            g_printerr ("%s\n", error->message);
+            g_printerr ("Failed to connect to X socket %s: %s\n", socket_path, error->message);
+        g_free (socket_path);
         g_clear_error (&error);
     }
 

@@ -539,7 +539,8 @@ session_run (Session *session, gchar **argv)
         dir = g_build_filename (run_dir, session->priv->username, NULL);
         g_free (run_dir);
 
-        g_mkdir_with_parents (dir, S_IRWXU);
+        if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
+            g_warning ("Failed to set create system authority dir %s: %s", dir, strerror (errno));          
         if (getuid () == 0)
         {
             if (chown (dir, user_get_uid (session_get_user (session)), user_get_gid (session_get_user (session))) < 0)

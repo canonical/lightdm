@@ -8,6 +8,8 @@ libsystem_la_CFLAGS = \
 	$(GIO_UNIX_CFLAGS) \
 	-DSRCDIR=\"$(abs_top_srcdir)\" \
 	-DBUILDDIR=\"$(abs_top_builddir)\" \
+	-DSYSCONFDIR=\"$(sysconfdir)\" \
+	-DLOCALSTATEDIR=\"$(localstatedir)\" \
 	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\"
 libsystem_la_LIBADD = -ldl $(GLIB_LIBS) $(GIO_UNIX_LIBS)
 
@@ -184,3 +186,16 @@ vnc_client_LDADD = \
 CLEANFILES = \
 	test-qt4-greeter_moc4.cpp \
 	test-qt5-greeter_moc5.cpp
+
+# Support pretty printing MOC
+AM_V_MOC4 = $(am__v_MOC4_$(V))
+am__v_MOC4_ = $(am__v_MOC4_$(AM_DEFAULT_VERBOSITY))
+am__v_MOC4_0 = @echo "  MOC4    " $@;
+%_moc4.cpp: QLightDM/%.h
+	$(AM_V_MOC4) $(MOC4) $< -o $@
+
+AM_V_MOC5 = $(am__v_MOC5_$(V))
+am__v_MOC5_ = $(am__v_MOC5_$(AM_DEFAULT_VERBOSITY))
+am__v_MOC5_0 = @echo "  MOC5    " $@;
+%_moc5.cpp: QLightDM/%.h
+	$(AM_V_MOC5) $(MOC5) $< -o $@
