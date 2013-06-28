@@ -62,6 +62,9 @@ struct DisplayPrivate
     /* Program to run sessions through */
     gchar *session_wrapper;
 
+    /* Program to run greeter sessions through */
+    gchar *greeter_wrapper;
+
     /* TRUE if in a user session */
     gboolean in_user_session;
 
@@ -162,6 +165,14 @@ display_set_session_wrapper (Display *display, const gchar *session_wrapper)
     g_return_if_fail (display != NULL);
     g_free (display->priv->session_wrapper);
     display->priv->session_wrapper = g_strdup (session_wrapper);
+}
+
+void
+display_set_greeter_wrapper (Display *display, const gchar *greeter_wrapper)
+{
+    g_return_if_fail (display != NULL);
+    g_free (display->priv->greeter_wrapper);
+    display->priv->greeter_wrapper = g_strdup (greeter_wrapper);
 }
 
 void
@@ -590,6 +601,23 @@ get_session_command (const gchar *filename, const gchar *session_wrapper)
 }
 
 static void
+prepend_argv (gchar ***argv, const gchar *value)
+{
+    gchar **old_argv, **new_argv;
+    gint i;
+
+    old_argv = *argv;
+    new_argv = g_malloc (sizeof (gchar *) * (g_strv_length (*argv) + 2));
+    new_argv[0] = g_strdup (value);
+    for (i = 0; old_argv[i]; i++)
+        new_argv[i + 1] = old_argv[i];
+    new_argv[i + 1] = NULL;
+
+    g_free (*argv);
+    *argv = new_argv;
+}
+
+static void
 greeter_session_stopped_cb (Session *session, Display *display)
 {
     gboolean result = FALSE;
@@ -640,7 +668,7 @@ greeter_session_stopped_cb (Session *session, Display *display)
 static gboolean
 display_start_greeter (Display *display)
 {
-    gchar *log_dir, *filename, *log_filename, *sessions_dir, *path;
+    gchar *log_dir, *filename, *log_filename, *sessions_dir, *path, *wrapper;
     gchar **argv;
 
     /* Log the output of the greeter to a system location */
@@ -664,6 +692,14 @@ display_start_greeter (Display *display)
     if (!argv)
         return TRUE;
 
+    if (display->priv->greeter_wrapper)
+    {
+        gchar *path;
+        path = g_find_program_in_path (display->priv->greeter_wrapper);
+        prepend_argv (&argv, path ? path : display->priv->greeter_wrapper);
+        g_free (path);
+    }
+
     session_run (display->priv->session, argv);
 
     return FALSE;
@@ -678,23 +714,6 @@ user_session_stopped_cb (Session *session, Display *display)
 
     /* This display has ended */
     display_stop (display);
-}
-
-static void
-prepend_argv (gchar ***argv, const gchar *value)
-{
-    gchar **old_argv, **new_argv;
-    gint i;
-
-    old_argv = *argv;
-    new_argv = g_malloc (sizeof (gchar *) * (g_strv_length (*argv) + 2));
-    new_argv[0] = g_strdup (value);
-    for (i = 0; old_argv[i]; i++)
-        new_argv[i + 1] = old_argv[i];
-    new_argv[i + 1] = NULL;
-
-    g_free (*argv);
-    *argv = new_argv;
 }
 
 static gboolean
@@ -941,6 +960,7 @@ display_finalize (GObject *object)
         g_object_unref (self->priv->greeter);
     }
     g_free (self->priv->session_wrapper);
+    g_free (self->priv->greeter_wrapper);
     if (self->priv->session)
     {
         g_signal_handlers_disconnect_matched (self->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);      
