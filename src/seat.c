@@ -54,6 +54,8 @@ typedef struct
 } SeatModule;
 static GHashTable *seat_modules = NULL;
 
+static Display *create_display (Seat *seat);
+
 void
 seat_register_module (const gchar *name, GType type)
 {
@@ -409,6 +411,19 @@ display_ready_cb (Display *display, Seat *seat)
     SEAT_GET_CLASS (seat)->set_active_display (seat, display);
 }
 
+static Display *
+display_create_display_cb (Display *display, Session *session, Seat *seat)
+{
+    Display *d;
+
+    d = create_display (seat);
+    g_signal_emit (seat, signals[DISPLAY_ADDED], 0, d);
+
+    display_start_with_session (display, session);
+
+    return d;
+}
+
 static void
 check_stopped (Seat *seat)
 {
@@ -492,6 +507,7 @@ create_display (Seat *seat)
     g_signal_connect (display, "start-greeter", G_CALLBACK (display_start_greeter_cb), seat);
     g_signal_connect (display, "start-session", G_CALLBACK (display_start_session_cb), seat);
     g_signal_connect_after (display, "start-session", G_CALLBACK (display_session_started_cb), seat);
+    g_signal_connect (display, "create-display", G_CALLBACK (display_create_display_cb), seat);
     g_signal_connect (display, "stopped", G_CALLBACK (display_stopped_cb), seat);
     display_set_greeter_session (display, seat_get_string_property (seat, "greeter-session"));
     display_set_session_wrapper (display, seat_get_string_property (seat, "session-wrapper"));
