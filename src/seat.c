@@ -432,7 +432,7 @@ display_create_display_cb (Display *display, Session *session, Seat *seat)
 
     display_start_with_session (d, session);
 
-    return d;
+    return g_object_ref (d);
 }
 
 static void
