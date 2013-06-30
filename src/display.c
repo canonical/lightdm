@@ -889,6 +889,7 @@ display_start_with_session (Display *display, Session *session)
     g_return_val_if_fail (session != NULL, FALSE);
 
     display->priv->session = g_object_ref (session);
+    g_signal_connect_after (display->priv->session, "stopped", G_CALLBACK (user_session_stopped_cb), display);
     session_set_display_server (session, display->priv->display_server);
 
     return display_start (display);

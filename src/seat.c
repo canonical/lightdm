@@ -428,6 +428,7 @@ display_create_display_cb (Display *display, Session *session, Seat *seat)
     Display *d;
 
     d = create_display (seat);
+    g_signal_connect (d, "ready", G_CALLBACK (display_ready_cb), seat);
     g_signal_emit (seat, signals[DISPLAY_ADDED], 0, d);
 
     display_start_with_session (d, session);
