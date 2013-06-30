@@ -37,6 +37,9 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct SessionPrivate
 {
+    /* Display server running on */
+    DisplayServer *display_server;
+
     /* PID of child process */
     GPid pid;
 
@@ -112,6 +115,22 @@ session_set_class (Session *session, const gchar *class)
     g_return_if_fail (session != NULL);
     g_free (session->priv->class);
     session->priv->class = g_strdup (class);
+}
+
+static void
+session_real_set_display_server (Session *session, DisplayServer *display_server)
+{
+    if (session->priv->display_server)
+        g_object_unref (session->priv->display_server);
+    session->priv->display_server = g_object_ref (display_server);
+}
+
+void
+session_set_display_server (Session *session, DisplayServer *display_server)
+{
+    g_return_if_fail (session != NULL);
+    g_return_if_fail (display_server != NULL);
+    SESSION_GET_CLASS (session)->set_display_server (session, display_server);
 }
 
 void
@@ -629,6 +648,8 @@ session_finalize (GObject *object)
     Session *self = SESSION (object);
     int i;
 
+    if (self->priv->display_server)
+        g_object_unref (self->priv->display_server);
     if (self->priv->pid)
         kill (self->priv->pid, SIGKILL);
     if (self->priv->from_child_channel)
@@ -663,6 +684,7 @@ session_class_init (SessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
+    klass->set_display_server = session_real_set_display_server;
     object_class->finalize = session_finalize;
 
     g_type_class_add_private (klass, sizeof (SessionPrivate));

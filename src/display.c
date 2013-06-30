@@ -299,6 +299,7 @@ create_session (Display *display)
     g_signal_emit (display, signals[CREATE_SESSION], 0, &session);
     if (!session)
         return NULL;
+    session_set_display_server (session, display->priv->display_server);
 
     /* Connect using the session bus */
     if (getuid () != 0)
@@ -377,7 +378,6 @@ greeter_start_authentication_cb (Greeter *greeter, const gchar *username, Displa
 {
     return create_session (display);
 }
-
 
 static Display *
 create_display (Display *display, Session *session)
@@ -889,6 +889,7 @@ display_start_with_session (Display *display, Session *session)
     g_return_val_if_fail (session != NULL, FALSE);
 
     display->priv->session = g_object_ref (session);
+    session_set_display_server (session, display->priv->display_server);
 
     return display_start (display);
 }

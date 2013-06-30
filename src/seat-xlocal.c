@@ -114,7 +114,7 @@ seat_xlocal_create_session (Seat *seat, Display *display)
 
     xserver = XSERVER_LOCAL (display_get_display_server (display));
 
-    session = xsession_new (XSERVER (xserver));
+    session = xsession_new ();
     t = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (xserver));
     session_set_tty (SESSION (session), t);
     g_free (t);

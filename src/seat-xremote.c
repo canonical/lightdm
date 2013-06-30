@@ -52,7 +52,7 @@ seat_xremote_create_session (Seat *seat, Display *display)
 
     xserver = XSERVER_REMOTE (display_get_display_server (display));
 
-    session = xsession_new (XSERVER (xserver));
+    session = xsession_new ();
     session_set_remote_host_name (SESSION (session), xserver_get_hostname (XSERVER (xserver)));
 
     return SESSION (session);
