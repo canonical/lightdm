@@ -888,7 +888,7 @@ display_start_with_session (Display *display, Session *session)
     g_return_val_if_fail (display != NULL, FALSE);
     g_return_val_if_fail (session != NULL, FALSE);
 
-    // FIXME: Store the session
+    display->priv->session = g_object_ref (session);
 
     return display_start (display);
 }

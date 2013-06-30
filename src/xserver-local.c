@@ -535,8 +535,11 @@ xserver_local_finalize (GObject *object)
 
     self = XSERVER_LOCAL (object);  
 
-    if (self->priv->xserver_process)
+    if (self->priv->xserver_process) 
+    {
+        g_signal_handlers_disconnect_matched (self->priv->xserver_process, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
         g_object_unref (self->priv->xserver_process);
+    }
     g_free (self->priv->log_file);
     g_free (self->priv->command);
     g_free (self->priv->config_file);
