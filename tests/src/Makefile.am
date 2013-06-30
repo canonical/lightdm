@@ -1,4 +1,4 @@
-noinst_PROGRAMS = dbus-env test-runner X Xvnc test-gobject-greeter test-session test-script-hook guest-account initctl plymouth vnc-client
+noinst_PROGRAMS = dbus-env test-runner X Xvnc test-greeter-wrapper test-gobject-greeter test-session test-script-hook guest-account initctl plymouth vnc-client
 dist_noinst_SCRIPTS = lightdm-session test-python-greeter
 noinst_LTLIBRARIES = libsystem.la
 
@@ -69,6 +69,15 @@ Xvnc_LDADD = \
 	$(GOBJECT_LIBS) \
 	$(GLIB_LIBS) \
 	$(GIO_LIBS) \
+	$(GIO_UNIX_LIBS)
+
+test_greeter_wrapper_SOURCES = test-greeter-wrapper.c status.c status.h
+test_greeter_wrapper_CFLAGS = \
+	$(WARN_CFLAGS) \
+	$(GLIB_CFLAGS) \
+	$(GIO_UNIX_CFLAGS)
+test_greeter_wrapper_LDADD = \
+	$(GLIB_LIBS) \
 	$(GIO_UNIX_LIBS)
 
 test_gobject_greeter_SOURCES = test-gobject-greeter.c status.c status.h

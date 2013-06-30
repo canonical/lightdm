@@ -511,6 +511,7 @@ create_display (Seat *seat)
     g_signal_connect (display, "stopped", G_CALLBACK (display_stopped_cb), seat);
     display_set_greeter_session (display, seat_get_string_property (seat, "greeter-session"));
     display_set_session_wrapper (display, seat_get_string_property (seat, "session-wrapper"));
+    display_set_greeter_wrapper (display, seat_get_string_property (seat, "greeter-wrapper"));
     display_set_hide_users_hint (display, seat_get_boolean_property (seat, "greeter-hide-users"));
     display_set_show_manual_login_hint (display, seat_get_boolean_property (seat, "greeter-show-manual-login"));
     display_set_show_remote_login_hint (display, seat_get_boolean_property (seat, "greeter-show-remote-login"));
