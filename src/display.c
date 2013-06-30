@@ -829,7 +829,7 @@ display_server_ready_cb (DisplayServer *display_server, Display *display)
     /* If already have a session, run it */
     if (display->priv->session != NULL)
     {
-        if (!display_start_session (display))
+        if (display_start_session (display))
             display_stop (display);
         return;
     }
