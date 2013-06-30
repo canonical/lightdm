@@ -32,6 +32,9 @@ struct SeatPrivate
     /* TRUE if able to switch users */
     gboolean can_switch;
 
+    /* TRUE if display server can be shared for sessions */
+    gboolean share_display_server;
+
     /* Name of guest account */
     gchar *guest_username;
 
@@ -132,6 +135,14 @@ seat_set_can_switch (Seat *seat, gboolean can_switch)
     g_return_if_fail (seat != NULL);
 
     seat->priv->can_switch = can_switch;
+}
+
+void
+seat_set_share_display_server (Seat *seat, gboolean share_display_server)
+{
+    g_return_if_fail (seat != NULL);
+
+    seat->priv->share_display_server = share_display_server;
 }
 
 gboolean
@@ -518,6 +529,7 @@ create_display (Seat *seat)
     display_set_allow_guest (display, seat_get_allow_guest (seat));
     display_set_greeter_allow_guest (display, seat_get_greeter_allow_guest (seat));
     display_set_user_session (display, SESSION_TYPE_LOCAL, seat_get_string_property (seat, "user-session"));
+    display_set_share_display_server (display, seat->priv->share_display_server);
 
     seat->priv->displays = g_list_append (seat->priv->displays, display);
 
@@ -795,6 +807,7 @@ seat_init (Seat *seat)
 {
     seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_TYPE, SeatPrivate);
     seat->priv->properties = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+    seat->priv->share_display_server = TRUE;
 }
 
 static void

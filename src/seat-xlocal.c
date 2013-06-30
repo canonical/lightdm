@@ -23,6 +23,7 @@ static void
 seat_xlocal_setup (Seat *seat)
 {
     seat_set_can_switch (seat, TRUE);
+    seat_set_share_display_server (seat, seat_get_boolean_property (seat, "xserver-share"));
     SEAT_CLASS (seat_xlocal_parent_class)->setup (seat);
 }
 

@@ -67,6 +67,8 @@ gint seat_get_integer_property (Seat *seat, const gchar *name);
 
 void seat_set_can_switch (Seat *seat, gboolean can_switch);
 
+void seat_set_share_display_server (Seat *seat, gboolean share_display_server);
+
 gboolean seat_start (Seat *seat);
 
 GList *seat_get_displays (Seat *seat);
