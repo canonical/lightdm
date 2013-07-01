@@ -198,6 +198,7 @@ main (int argc, char **argv)
     gboolean do_xdmcp = FALSE;
     guint xdmcp_port = 0;
     gchar *xdmcp_host = NULL;
+    gchar *mir_id = NULL;
     gchar *lock_filename;
     int lock_file;
     GString *status_text;
@@ -263,9 +264,19 @@ main (int argc, char **argv)
         {
             vt_number = atoi (arg + 2);
         }
-        else if (g_str_has_prefix (arg, "-novtswitch"))
+        else if (strcmp (arg, "-novtswitch") == 0)
         {
             /* Ignore VT args */
+        }
+        else if (strcmp (arg, "-mir") == 0)
+        {
+            mir_id = argv[i+1];
+            i++;
+        }
+        else if (strcmp (arg, "-mirSocket") == 0)
+        {
+            /* FIXME */
+            i++;
         }
         else
         {
@@ -278,6 +289,8 @@ main (int argc, char **argv)
                         "-query host-name       Contact named host for XDMCP\n"
                         "-broadcast             Broadcast for XDMCP\n"
                         "-port port-num         UDP port number to send messages to\n"
+                        "-mir id                Mir ID to use\n"
+                        "-mirSocket name        Mir socket to use\n"
                         "vtxx                   Use virtual terminal xx instead of the next available\n",
                         arg, argv[0]);
             return EXIT_FAILURE;
@@ -292,6 +305,8 @@ main (int argc, char **argv)
     g_string_printf (status_text, "XSERVER-%d START", display_number);
     if (vt_number >= 0)
         g_string_append_printf (status_text, " VT=%d", vt_number);
+    if (mir_id != NULL)
+        g_string_append_printf (status_text, " MIR-ID=%s", mir_id);
     status_notify (status_text->str);
     g_string_free (status_text, TRUE);
 
