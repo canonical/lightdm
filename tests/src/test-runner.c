@@ -533,7 +533,8 @@ handle_command (const gchar *command)
     /* Forward to external processes */
     else if (g_str_has_prefix (name, "SESSION-") ||
              g_str_has_prefix (name, "GREETER-") ||
-             g_str_has_prefix (name, "XSERVER-"))
+             g_str_has_prefix (name, "XSERVER-") ||
+             strcmp (name, "UNITY-SYSTEM-COMPOSITOR") == 0)
     {
         GList *link;
         for (link = status_clients; link; link = link->next)

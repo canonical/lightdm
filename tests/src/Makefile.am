@@ -1,5 +1,18 @@
-noinst_PROGRAMS = dbus-env test-runner X Xvnc test-greeter-wrapper test-gobject-greeter test-session test-script-hook guest-account initctl plymouth vnc-client
-dist_noinst_SCRIPTS = lightdm-session test-python-greeter
+noinst_PROGRAMS = dbus-env \
+                  initctl \
+                  plymouth \
+                  test-gobject-greeter \
+                  test-greeter-wrapper \
+                  test-runner \
+                  test-script-hook \
+                  test-session \
+                  guest-account \
+                  unity-system-compositor \
+                  vnc-client \
+                  X \
+                  Xvnc
+dist_noinst_SCRIPTS = lightdm-session \
+                      test-python-greeter
 noinst_LTLIBRARIES = libsystem.la
 
 libsystem_la_SOURCES = libsystem.c
@@ -179,6 +192,17 @@ plymouth_CFLAGS = \
 	$(GIO_UNIX_CFLAGS)
 plymouth_LDADD = \
 	$(GLIB_LIBS) \
+	$(GIO_UNIX_LIBS)
+
+unity_system_compositor_SOURCES = unity-system-compositor.c status.c status.h
+unity_system_compositor_CFLAGS = \
+	$(WARN_CFLAGS) \
+	$(GLIB_CFLAGS) \
+	$(GIO_CFLAGS) \
+	$(GIO_UNIX_CFLAGS)
+unity_system_compositor_LDADD = \
+	$(GLIB_LIBS) \
+	$(GIO_LIBS) \
 	$(GIO_UNIX_LIBS)
 
 vnc_client_SOURCES = vnc-client.c status.c status.h
