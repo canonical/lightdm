@@ -158,7 +158,8 @@ TESTS = \
 	test-unity-compositor-fail-ready \
 	test-unity-autologin \
 	test-unity-login \
-	test-unity-switch
+	test-unity-switch \
+	test-unity-mir-login
 
 #	test-session-exit-error
 #	test-greeter-no-exit
@@ -362,6 +363,7 @@ EXTRA_DIST = \
 	scripts/unity-compositor-fail-ready.conf \
 	scripts/unity-compositor-fail-start.conf \
 	scripts/unity-login.conf \
+	scripts/unity-mir-login.conf \
 	scripts/unity-switch.conf \
 	scripts/users.conf \
 	scripts/util-path.conf \

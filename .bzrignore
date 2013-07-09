@@ -66,6 +66,8 @@ tests/src/guest-account
 tests/src/initctl
 tests/src/plymouth
 tests/src/test-gobject-greeter
+tests/src/test-greeter-wrapper
+tests/src/test-mir-greeter
 tests/src/test-qt4-greeter
 tests/src/test-qt5-greeter
 tests/src/test-runner
