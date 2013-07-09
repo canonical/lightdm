@@ -10,51 +10,40 @@
  */
 
 #include "mir-session.h"
-
-struct MirSessionPrivate
-{
-    /* Mir server information */
-    MirServer *mir_server;
-};
+#include "mir-server.h"
 
 G_DEFINE_TYPE (MirSession, mir_session, SESSION_TYPE);
 
 MirSession *
-mir_session_new (MirServer *mir_server)
+mir_session_new (void)
 {
     MirSession *session;
 
     session = g_object_new (MIR_SESSION_TYPE, NULL);
-    session->priv->mir_server = g_object_ref (mir_server);
+    session_set_log_file (SESSION (session), ".session-errors");
 
     return session;
 }
 
 static void
-mir_session_init (MirSession *session)
+mir_session_set_display_server (Session *session, DisplayServer *display_server)
 {
-    session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, MIR_SESSION_TYPE, MirSessionPrivate);
+    MirServer *mir_server;
+
+    mir_server = MIR_SERVER (display_server);
+
+    SESSION_CLASS (mir_session_parent_class)->set_display_server (session, display_server);
 }
 
 static void
-mir_session_finalize (GObject *object)
+mir_session_init (MirSession *session)
 {
-    MirSession *self;
-
-    self = MIR_SESSION (object);
-
-    if (self->priv->mir_server)
-        g_object_unref (self->priv->mir_server);
-
-    G_OBJECT_CLASS (mir_session_parent_class)->finalize (object);
 }
 
 static void
 mir_session_class_init (MirSessionClass *klass)
 {
-    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    SessionClass *session_class = SESSION_CLASS (klass);
 
-    object_class->finalize = mir_session_finalize;
-
-    g_type_class_add_private (klass, sizeof (MirSessionPrivate));
+    session_class->set_display_server = mir_session_set_display_server;
 }

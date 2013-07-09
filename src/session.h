@@ -16,6 +16,7 @@
 
 #include <security/pam_appl.h>
 
+#include "display-server.h"
 #include "accounts.h"
 #include "xauthority.h"
 
@@ -41,6 +42,7 @@ typedef struct
     void (*got_messages)(Session *session);
     void (*authentication_complete)(Session *session);
     void (*stopped)(Session *session);
+    void (*set_display_server)(Session *session, DisplayServer *display_server);
 } SessionClass;
 
 typedef enum
@@ -59,6 +61,8 @@ GType session_get_type (void);
 void session_set_log_file (Session *session, const gchar *filename);
 
 void session_set_class (Session *session, const gchar *class);
+
+void session_set_display_server (Session *session, DisplayServer *display_server);
 
 void session_set_tty (Session *session, const gchar *tty);
 

@@ -13,7 +13,6 @@
 #define XSESSION_H_
 
 #include "session.h"
-#include "xserver.h"
 
 G_BEGIN_DECLS
 
@@ -35,7 +34,7 @@ typedef struct
 
 GType xsession_get_type (void);
 
-XSession *xsession_new (XServer *xserver);
+XSession *xsession_new (void);
 
 G_END_DECLS
 

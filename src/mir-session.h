@@ -13,7 +13,6 @@
 #define MIR_SESSION_H_
 
 #include "session.h"
-#include "mir-server.h"
 
 G_BEGIN_DECLS
 
@@ -35,7 +34,7 @@ typedef struct
 
 GType mir_session_get_type (void);
 
-MirSession *mir_session_new (MirServer *mir_server);
+MirSession *mir_session_new (void);
 
 G_END_DECLS
 

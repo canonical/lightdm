@@ -23,6 +23,7 @@ static void
 seat_xlocal_setup (Seat *seat)
 {
     seat_set_can_switch (seat, TRUE);
+    seat_set_share_display_server (seat, seat_get_boolean_property (seat, "xserver-share"));
     SEAT_CLASS (seat_xlocal_parent_class)->setup (seat);
 }
 
@@ -113,7 +114,7 @@ seat_xlocal_create_session (Seat *seat, Display *display)
 
     xserver = XSERVER_LOCAL (display_get_display_server (display));
 
-    session = xsession_new (XSERVER (xserver));
+    session = xsession_new ();
     t = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (xserver));
     session_set_tty (SESSION (session), t);
     g_free (t);

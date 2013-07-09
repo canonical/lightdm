@@ -76,7 +76,7 @@ seat_xvnc_create_session (Seat *seat, Display *display)
 
     xserver = XSERVER_XVNC (display_get_display_server (display));
 
-    session = xsession_new (XSERVER (xserver));
+    session = xsession_new ();
     address = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (SEAT_XVNC (seat)->priv->connection, NULL));
     hostname = g_inet_address_to_string (g_inet_socket_address_get_address (address));
     session_set_remote_host_name (SESSION (session), hostname);

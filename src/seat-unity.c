@@ -474,7 +474,7 @@ seat_unity_create_session (Seat *seat, Display *display)
     else
         vt_number = SEAT_UNITY (seat)->priv->vt;
 
-    session = xsession_new (XSERVER (xserver));
+    session = xsession_new ();
     t = g_strdup_printf ("/dev/tty%d", vt_number);
     session_set_tty (SESSION (session), t);
     g_free (t);

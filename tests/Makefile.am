@@ -106,6 +106,7 @@ TESTS = \
 	test-login-python-remote-session \
 	test-login-session-crash \
 	test-login-xserver-crash \
+	test-xserver-no-share \
 	test-home-dir-on-authenticate \
 	test-home-dir-on-session \
 	test-plymouth-active-vt \
@@ -376,4 +377,5 @@ EXTRA_DIST = \
 	scripts/xauthority.conf \
 	scripts/xdmcp-login.conf \
 	scripts/xdmcp-open-file-descriptors.conf \
-	scripts/xserver-fail-start.conf
+	scripts/xserver-fail-start.conf \
+	scripts/xserver-no-share.conf
