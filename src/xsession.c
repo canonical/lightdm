@@ -18,12 +18,6 @@
 #include "configuration.h"
 #include "privileges.h"
 
-struct XSessionPrivate
-{
-    /* X server connected to */
-    XServer *xserver;
-};
-
 G_DEFINE_TYPE (XSession, xsession, SESSION_TYPE);
 
 XSession *
@@ -58,7 +52,6 @@ xsession_set_display_server (Session *session, DisplayServer *display_server)
 static void
 xsession_init (XSession *session)
 {
-    session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, XSESSION_TYPE, XSessionPrivate);
 }
 
 static void
@@ -67,6 +60,4 @@ xsession_class_init (XSessionClass *klass)
     SessionClass *session_class = SESSION_CLASS (klass);
 
     session_class->set_display_server = xsession_set_display_server;
-
-    g_type_class_add_private (klass, sizeof (XSessionPrivate));
 }
