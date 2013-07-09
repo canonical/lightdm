@@ -64,6 +64,7 @@ lightdm_layout_get_type
 <TITLE>Sessions</TITLE>
 lightdm_get_sessions
 lightdm_session_get_key
+lightdm_session_get_session_type
 lightdm_session_get_name
 lightdm_session_get_comment
 <SUBSECTION Standard>

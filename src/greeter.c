@@ -84,8 +84,7 @@ typedef enum
     GREETER_MESSAGE_START_SESSION,
     GREETER_MESSAGE_CANCEL_AUTHENTICATION,
     GREETER_MESSAGE_SET_LANGUAGE,
-    GREETER_MESSAGE_AUTHENTICATE_REMOTE,
-    GREETER_MESSAGE_START_MIR_SESSION
+    GREETER_MESSAGE_AUTHENTICATE_REMOTE
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -779,11 +778,6 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     case GREETER_MESSAGE_START_SESSION:
         session_name = read_string (greeter, &offset);
         handle_start_session (greeter, SESSION_TYPE_LOCAL, session_name);
-        g_free (session_name);
-        break;
-    case GREETER_MESSAGE_START_MIR_SESSION:
-        session_name = read_string (greeter, &offset);
-        handle_start_session (greeter, SESSION_TYPE_MIR, session_name);
         g_free (session_name);
         break;
     case GREETER_MESSAGE_SET_LANGUAGE:
