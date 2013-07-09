@@ -45,7 +45,7 @@ seat_xremote_create_display_server (Seat *seat)
 }
 
 static Session *
-seat_xremote_create_session (Seat *seat, Display *display)
+seat_xremote_create_session (Seat *seat, Display *display, Display *user_display)
 {
     XServerRemote *xserver;
     XSession *session;

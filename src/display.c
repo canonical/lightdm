@@ -292,11 +292,11 @@ get_guest_username (Display *display)
 }
 
 static Session *
-create_session (Display *display)
+create_session (Display *display, const gchar *username)
 {
     Session *session;
 
-    g_signal_emit (display, signals[CREATE_SESSION], 0, &session);
+    g_signal_emit (display, signals[CREATE_SESSION], 0, username, &session);
     if (!session)
         return NULL;
     session_set_display_server (session, display->priv->display_server);
@@ -376,7 +376,7 @@ greeter_connected_cb (Greeter *greeter, Display *display)
 static Session *
 greeter_start_authentication_cb (Greeter *greeter, const gchar *username, Display *display)
 {
-    return create_session (display);
+    return create_session (display, username);
 }
 
 static Display *
@@ -443,7 +443,7 @@ start_greeter (Display *display)
     gboolean result;
 
     destroy_session (display);
-    display->priv->session = create_session (display);
+    display->priv->session = create_session (display, NULL);
     session_set_class (display->priv->session, XDG_SESSION_CLASS_GREETER);
     g_signal_connect (display->priv->session, "authentication-complete", G_CALLBACK (greeter_authentication_complete_cb), display);
 
@@ -547,7 +547,7 @@ autologin (Display *display, const gchar *username, const gchar *service, gboole
 
     display->priv->in_user_session = TRUE;
     destroy_session (display);
-    display->priv->session = create_session (display);
+    display->priv->session = create_session (display, username);
     g_signal_connect (display->priv->session, "authentication-complete", G_CALLBACK (autologin_authentication_complete_cb), display);
     g_signal_connect_after (display->priv->session, "stopped", G_CALLBACK (user_session_stopped_cb), display);
     return session_start (display->priv->session, service, username, TRUE, FALSE, is_guest);
@@ -1048,8 +1048,8 @@ display_class_init (DisplayClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayClass, create_session),
                       NULL, NULL,
-                      ldm_marshal_OBJECT__VOID,
-                      SESSION_TYPE, 0);
+                      ldm_marshal_OBJECT__STRING,
+                      SESSION_TYPE, 1, G_TYPE_STRING);
     signals[READY] =
         g_signal_new ("ready",
                       G_TYPE_FROM_CLASS (klass),

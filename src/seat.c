@@ -340,9 +340,21 @@ display_display_server_ready_cb (Display *display, Seat *seat)
 }
 
 static Session *
-display_create_session_cb (Display *display, Seat *seat)
+display_create_session_cb (Display *display, const gchar *username, Seat *seat)
 {
-    return SEAT_GET_CLASS (seat)->create_session (seat, display);
+    GList *link;
+    Display *user_display = NULL;
+
+    /* Find display belonging to username, if any */
+    for (link = seat->priv->displays; link; link = link->next)
+    {
+        Display *display = link->data;
+
+        if (!display_get_is_stopped (display) && g_strcmp0 (display_get_username (display), username) == 0)
+            user_display = display;
+    }
+
+    return SEAT_GET_CLASS (seat)->create_session (seat, display, user_display);
 }
 
 static gboolean

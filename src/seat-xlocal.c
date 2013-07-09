@@ -106,7 +106,7 @@ seat_xlocal_create_display_server (Seat *seat)
 }
 
 static Session *
-seat_xlocal_create_session (Seat *seat, Display *display)
+seat_xlocal_create_session (Seat *seat, Display *display, Display *user_display)
 {
     XServerLocal *xserver;
     XSession *session;

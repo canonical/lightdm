@@ -66,7 +66,7 @@ seat_xvnc_create_display_server (Seat *seat)
 }
 
 static Session *
-seat_xvnc_create_session (Seat *seat, Display *display)
+seat_xvnc_create_session (Seat *seat, Display *display, Display *user_display)
 {
     XServerXVNC *xserver;
     XSession *session;

@@ -26,7 +26,8 @@ typedef enum
    USC_MESSAGE_PONG = 1,
    USC_MESSAGE_READY = 2,
    USC_MESSAGE_SESSION_CONNECTED = 3,
-   USC_MESSAGE_SET_ACTIVE_SESSION = 4
+   USC_MESSAGE_SET_ACTIVE_SESSION = 4,
+   USC_MESSAGE_SET_NEXT_SESSION = 5,
 } USCMessageID;
 
 struct SeatUnityPrivate
@@ -460,7 +461,7 @@ seat_unity_create_display_server (Seat *seat)
 }
 
 static Session *
-seat_unity_create_session (Seat *seat, Display *display)
+seat_unity_create_session (Seat *seat, Display *display, Display *user_display)
 {
     XServerLocal *xserver;
     XSession *session;
@@ -484,6 +485,17 @@ seat_unity_create_session (Seat *seat, Display *display)
     t = g_strdup_printf ("%d", vt_number);
     session_set_env (SESSION (session), "XDG_VTNR", t);
     g_free (t);
+
+    /* Notify compositor that user's display should be next session in stack */
+    if (user_display != NULL)
+    {
+        XServerLocal *user_xserver;
+        const gchar *id;
+
+        user_xserver = XSERVER_LOCAL (display_get_display_server (user_display));
+        id = xserver_local_get_mir_id (user_xserver);
+        write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_NEXT_SESSION, id, strlen (id));
+    }
 
     return SESSION (session);
 }
