@@ -32,6 +32,9 @@ struct SeatPrivate
     /* TRUE if able to switch users */
     gboolean can_switch;
 
+    /* TRUE if display server can be shared for sessions */
+    gboolean share_display_server;
+
     /* Name of guest account */
     gchar *guest_username;
 
@@ -53,6 +56,8 @@ typedef struct
     GType type;
 } SeatModule;
 static GHashTable *seat_modules = NULL;
+
+static Display *create_display (Seat *seat);
 
 void
 seat_register_module (const gchar *name, GType type)
@@ -130,6 +135,14 @@ seat_set_can_switch (Seat *seat, gboolean can_switch)
     g_return_if_fail (seat != NULL);
 
     seat->priv->can_switch = can_switch;
+}
+
+void
+seat_set_share_display_server (Seat *seat, gboolean share_display_server)
+{
+    g_return_if_fail (seat != NULL);
+
+    seat->priv->share_display_server = share_display_server;
 }
 
 gboolean
@@ -409,6 +422,20 @@ display_ready_cb (Display *display, Seat *seat)
     SEAT_GET_CLASS (seat)->set_active_display (seat, display);
 }
 
+static Display *
+display_create_display_cb (Display *display, Session *session, Seat *seat)
+{
+    Display *d;
+
+    d = create_display (seat);
+    g_signal_connect (d, "ready", G_CALLBACK (display_ready_cb), seat);
+    g_signal_emit (seat, signals[DISPLAY_ADDED], 0, d);
+
+    display_start_with_session (d, session);
+
+    return g_object_ref (d);
+}
+
 static void
 check_stopped (Seat *seat)
 {
@@ -492,6 +519,7 @@ create_display (Seat *seat)
     g_signal_connect (display, "start-greeter", G_CALLBACK (display_start_greeter_cb), seat);
     g_signal_connect (display, "start-session", G_CALLBACK (display_start_session_cb), seat);
     g_signal_connect_after (display, "start-session", G_CALLBACK (display_session_started_cb), seat);
+    g_signal_connect (display, "create-display", G_CALLBACK (display_create_display_cb), seat);
     g_signal_connect (display, "stopped", G_CALLBACK (display_stopped_cb), seat);
     display_set_greeter_session (display, seat_get_string_property (seat, "greeter-session"));
     display_set_session_wrapper (display, seat_get_string_property (seat, "session-wrapper"));
@@ -502,6 +530,7 @@ create_display (Seat *seat)
     display_set_allow_guest (display, seat_get_allow_guest (seat));
     display_set_greeter_allow_guest (display, seat_get_greeter_allow_guest (seat));
     display_set_user_session (display, SESSION_TYPE_LOCAL, seat_get_string_property (seat, "user-session"));
+    display_set_share_display_server (display, seat->priv->share_display_server);
 
     seat->priv->displays = g_list_append (seat->priv->displays, display);
 
@@ -779,6 +808,7 @@ seat_init (Seat *seat)
 {
     seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_TYPE, SeatPrivate);
     seat->priv->properties = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+    seat->priv->share_display_server = TRUE;
 }
 
 static void

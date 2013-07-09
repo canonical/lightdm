@@ -169,6 +169,33 @@ signal_cb (int signum)
         exit (EXIT_SUCCESS);
 }
 
+static XAuthority *
+read_xauth (void)
+{
+    gchar *xauth_name;
+    guint16 xauth_family;
+    guint8 *xauth_address;
+    gsize xauth_address_length;
+    gchar *xauth_number;
+    guint8 *xauth_data;
+    gsize xauth_data_length;
+
+    xauth_name = read_string ();
+    if (!xauth_name)
+        return NULL;
+
+    read_data (&xauth_family, sizeof (xauth_family));
+    read_data (&xauth_address_length, sizeof (xauth_address_length));
+    xauth_address = g_malloc (xauth_address_length);
+    read_data (xauth_address, xauth_address_length);
+    xauth_number = read_string ();
+    read_data (&xauth_data_length, sizeof (xauth_data_length));
+    xauth_data = g_malloc (xauth_data_length);
+    read_data (xauth_data, xauth_data_length);
+
+    return xauth_new (xauth_family, xauth_address, xauth_address_length, xauth_number, xauth_name, xauth_data, xauth_data_length);
+}
+
 int
 session_child_run (int argc, char **argv)
 {
@@ -190,7 +217,6 @@ session_child_run (int argc, char **argv)
     gchar *tty;
     gchar *remote_host_name;
     gchar *xdisplay;
-    gchar *xauth_name;
     XAuthority *xauthority = NULL;
     gchar *xauth_filename;
     GDBusConnection *bus;
@@ -262,27 +288,7 @@ session_child_run (int argc, char **argv)
     tty = read_string ();
     remote_host_name = read_string ();
     xdisplay = read_string ();
-    xauth_name = read_string ();
-    if (xauth_name)
-    {
-        guint16 xauth_family;
-        guint8 *xauth_address;
-        gsize xauth_address_length;
-        gchar *xauth_number;
-        guint8 *xauth_data;
-        gsize xauth_data_length;
-
-        read_data (&xauth_family, sizeof (xauth_family));
-        read_data (&xauth_address_length, sizeof (xauth_address_length));
-        xauth_address = g_malloc (xauth_address_length);
-        read_data (xauth_address, xauth_address_length);
-        xauth_number = read_string ();
-        read_data (&xauth_data_length, sizeof (xauth_data_length));
-        xauth_data = g_malloc (xauth_data_length);
-        read_data (xauth_data, xauth_data_length);
-
-        xauthority = xauth_new (xauth_family, xauth_address, xauth_address_length, xauth_number, xauth_name, xauth_data, xauth_data_length);
-    }
+    xauthority = read_xauth ();
 
     /* Setup PAM */
     result = pam_start (service, username, &conversation, &pam_handle);
@@ -389,7 +395,20 @@ session_child_run (int argc, char **argv)
 
     /* Get the command to run (blocks) */
     log_filename = read_string ();
+    if (version >= 1)
+    {
+        g_free (tty);
+        tty = read_string ();      
+    }
     xauth_filename = read_string ();
+    if (version >= 1)
+    {
+        g_free (xdisplay);
+        xdisplay = read_string ();
+        if (xauthority)
+            g_object_unref (xauthority);
+        xauthority = read_xauth ();
+    }
     read_data (&env_length, sizeof (env_length));
     for (i = 0; i < env_length; i++)
         pam_putenv (pam_handle, read_string ());

@@ -37,6 +37,9 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct SessionPrivate
 {
+    /* Display server running on */
+    DisplayServer *display_server;
+
     /* PID of child process */
     GPid pid;
 
@@ -114,6 +117,22 @@ session_set_class (Session *session, const gchar *class)
     session->priv->class = g_strdup (class);
 }
 
+static void
+session_real_set_display_server (Session *session, DisplayServer *display_server)
+{
+    if (session->priv->display_server)
+        g_object_unref (session->priv->display_server);
+    session->priv->display_server = g_object_ref (display_server);
+}
+
+void
+session_set_display_server (Session *session, DisplayServer *display_server)
+{
+    g_return_if_fail (session != NULL);
+    g_return_if_fail (display_server != NULL);
+    SESSION_GET_CLASS (session)->set_display_server (session, display_server);
+}
+
 void
 session_set_tty (Session *session, const gchar *tty)
 {
@@ -185,6 +204,30 @@ write_string (Session *session, const char *value)
     write_data (session, &length, sizeof (length));
     if (value)
         write_data (session, value, sizeof (char) * length);
+}
+
+static void
+write_xauth (Session *session, XAuthority *xauthority)
+{
+    guint16 family;
+    gsize length;
+
+    if (!xauthority)
+    {
+        write_string (session, NULL);
+        return;
+    }
+
+    write_string (session, xauth_get_authorization_name (session->priv->xauthority));
+    family = xauth_get_family (session->priv->xauthority);
+    write_data (session, &family, sizeof (family));
+    length = xauth_get_address_length (session->priv->xauthority);
+    write_data (session, &length, sizeof (length));
+    write_data (session, xauth_get_address (session->priv->xauthority), length);
+    write_string (session, xauth_get_number (session->priv->xauthority));
+    length = xauth_get_authorization_data_length (session->priv->xauthority);
+    write_data (session, &length, sizeof (length));
+    write_data (session, xauth_get_authorization_data (session->priv->xauthority), length);
 }
 
 static ssize_t
@@ -399,7 +442,7 @@ session_start (Session *session, const gchar *service, const gchar *username, gb
     close (from_child_input);
 
     /* Indicate what version of the protocol we are using */
-    version = 0;
+    version = 1;
     write_data (session, &version, sizeof (version));
 
     /* Send configuration */
@@ -411,24 +454,7 @@ session_start (Session *session, const gchar *service, const gchar *username, gb
     write_string (session, session->priv->tty);
     write_string (session, session->priv->remote_host_name);
     write_string (session, session->priv->xdisplay);
-    if (session->priv->xauthority)
-    {
-        guint16 family;
-        gsize length;
-
-        write_string (session, xauth_get_authorization_name (session->priv->xauthority));
-        family = xauth_get_family (session->priv->xauthority);
-        write_data (session, &family, sizeof (family));
-        length = xauth_get_address_length (session->priv->xauthority);
-        write_data (session, &length, sizeof (length));
-        write_data (session, xauth_get_address (session->priv->xauthority), length);
-        write_string (session, xauth_get_number (session->priv->xauthority));
-        length = xauth_get_authorization_data_length (session->priv->xauthority);
-        write_data (session, &length, sizeof (length));
-        write_data (session, xauth_get_authorization_data (session->priv->xauthority), length);
-    }
-    else
-        write_string (session, NULL);
+    write_xauth (session, session->priv->xauthority);
 
     g_debug ("Started session %d with service '%s', username '%s'", session->priv->pid, service, username);
 
@@ -520,7 +546,7 @@ void
 session_run (Session *session, gchar **argv)
 {
     gsize i, argc;
-    gchar *command, *filename;
+    gchar *command, *xauth_filename;
     GList *link;
 
     g_return_if_fail (session != NULL);
@@ -547,15 +573,18 @@ session_run (Session *session, gchar **argv)
                 g_warning ("Failed to set ownership of user authority dir: %s", strerror (errno));
         }
 
-        filename = g_build_filename (dir, "xauthority", NULL);
+        xauth_filename = g_build_filename (dir, "xauthority", NULL);
         g_free (dir);
     }
     else
-        filename = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
+        xauth_filename = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
 
     write_string (session, session->priv->log_filename);
-    write_string (session, filename);
-    g_free (filename);
+    write_string (session, session->priv->tty);
+    write_string (session, xauth_filename);
+    g_free (xauth_filename);
+    write_string (session, session->priv->xdisplay);
+    write_xauth (session, session->priv->xauthority);
     argc = g_list_length (session->priv->env);
     write_data (session, &argc, sizeof (argc));
     for (link = session->priv->env; link; link = link->next)
@@ -629,6 +658,8 @@ session_finalize (GObject *object)
     Session *self = SESSION (object);
     int i;
 
+    if (self->priv->display_server)
+        g_object_unref (self->priv->display_server);
     if (self->priv->pid)
         kill (self->priv->pid, SIGKILL);
     if (self->priv->from_child_channel)
@@ -663,6 +694,7 @@ session_class_init (SessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
+    klass->set_display_server = session_real_set_display_server;
     object_class->finalize = session_finalize;
 
     g_type_class_add_private (klass, sizeof (SessionPrivate));

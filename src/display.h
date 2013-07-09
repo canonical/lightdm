@@ -44,6 +44,7 @@ typedef struct
     void (*ready)(Display *display);
     gboolean (*switch_to_user)(Display *display, User *user);
     gboolean (*switch_to_guest)(Display *display);
+    Display *(*create_display)(Display *display, Session *session);
     gchar *(*get_guest_username)(Display *display);
     void (*stopped)(Display *display);
 } DisplayClass;
@@ -53,6 +54,8 @@ GType display_get_type (void);
 Display *display_new (DisplayServer *display_server);
 
 DisplayServer *display_get_display_server (Display *display);
+
+void display_set_share_display_server (Display *display, gboolean share_display_server);
 
 const gchar *display_get_username (Display *display);
 
@@ -83,6 +86,8 @@ void display_set_lock_hint (Display *display, gboolean is_lock);
 void display_set_user_session (Display *display, SessionType type, const gchar *session_name);
 
 gboolean display_start (Display *display);
+
+gboolean display_start_with_session (Display *display, Session *session);
 
 gboolean display_get_is_ready (Display *display);
 
