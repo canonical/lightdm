@@ -162,7 +162,7 @@ main (int argc, char **argv)
     int fd, open_max;
 
     display = getenv ("DISPLAY");
-    if (display == NULL)      
+    if (display == NULL)
         session_id = g_strdup ("SESSION-?");
     else if (display[0] == ':')
         session_id = g_strdup_printf ("SESSION-X-%s", display + 1);
