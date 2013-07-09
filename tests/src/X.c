@@ -27,6 +27,9 @@ static gchar *auth_path = NULL;
 /* Display number being served */
 static int display_number = 0;
 
+/* VT being run on */
+static int vt_number = -1;
+
 /* X server */
 static XServer *xserver = NULL;
 
@@ -38,7 +41,7 @@ static guint16 xdmcp_cookie_length = 0;
 static guint8 *xdmcp_cookie = NULL;
 
 static void
-cleanup ()
+cleanup (void)
 {
     if (lock_path)
         unlink (lock_path);
@@ -56,7 +59,7 @@ quit (int status)
 }
 
 static void
-indicate_ready ()
+indicate_ready (void)
 {
     void *handler;  
     handler = signal (SIGUSR1, SIG_IGN);
@@ -192,14 +195,13 @@ main (int argc, char **argv)
 {
     int i;
     char *pid_string;
-    gboolean listen_tcp = TRUE;
-    gboolean listen_unix = TRUE;
     gboolean do_xdmcp = FALSE;
     guint xdmcp_port = 0;
     gchar *xdmcp_host = NULL;
     gchar *mir_id = NULL;
     gchar *lock_filename;
     int lock_file;
+    GString *status_text;
 
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
@@ -231,9 +233,9 @@ main (int argc, char **argv)
             char *protocol = argv[i+1];
             i++;
             if (strcmp (protocol, "tcp") == 0)
-                listen_tcp = FALSE;
+                ;//listen_tcp = FALSE;
             else if (strcmp (protocol, "unix") == 0)
-                listen_unix = FALSE;
+                ;//listen_unix = FALSE;
         }
         else if (strcmp (arg, "-nr") == 0)
         {
@@ -260,7 +262,7 @@ main (int argc, char **argv)
         }
         else if (g_str_has_prefix (arg, "vt"))
         {
-            /* Ignore VT args */
+            vt_number = atoi (arg + 2);
         }
         else if (strcmp (arg, "-novtswitch") == 0)
         {
@@ -299,10 +301,14 @@ main (int argc, char **argv)
     g_signal_connect (xserver, "client-connected", G_CALLBACK (client_connected_cb), NULL);
     g_signal_connect (xserver, "client-disconnected", G_CALLBACK (client_disconnected_cb), NULL);
 
+    status_text = g_string_new ("");
+    g_string_printf (status_text, "XSERVER-%d START", display_number);
+    if (vt_number >= 0)
+        g_string_append_printf (status_text, " VT=%d", vt_number);
     if (mir_id != NULL)
-        status_notify ("XSERVER-%d START MIR-ID=%s", display_number, mir_id);
-    else
-        status_notify ("XSERVER-%d START", display_number);
+        g_string_append_printf (status_text, " MIR-ID=%s", mir_id);
+    status_notify (status_text->str);
+    g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);

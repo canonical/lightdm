@@ -120,6 +120,37 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
+    r = g_strdup_printf ("%s LOG-USER-LIST-LENGTH", greeter_id);
+    if (strcmp (request, r) == 0)
+        status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, lightdm_user_list_get_length (lightdm_user_list_get_instance ()));
+    g_free (r);
+
+    r = g_strdup_printf ("%s LOG-USER USERNAME=", greeter_id);
+    if (g_str_has_prefix (request, r))
+    {
+        LightDMUser *user;
+        const gchar *username;
+
+        username = request + strlen (r);
+        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
+        status_notify ("%s LOG-USER USERNAME=%s", greeter_id, lightdm_user_get_name (user));
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("%s LOG-USER-LIST", greeter_id);
+    if (strcmp (request, r) == 0)
+    {
+        GList *users, *link;
+
+        users = lightdm_user_list_get_users (lightdm_user_list_get_instance ());
+        for (link = users; link; link = link->next)
+        {
+            LightDMUser *user = link->data;
+            status_notify ("%s LOG-USER USERNAME=%s", greeter_id, lightdm_user_get_name (user));
+        }
+    }
+    g_free (r);
+
     r = g_strdup_printf ("%s LOG-LAYOUT USERNAME=", greeter_id);
     if (g_str_has_prefix (request, r))
     {
@@ -238,6 +269,18 @@ request_cb (const gchar *request)
     g_free (r);
 }
 
+static void
+user_added_cb (LightDMUserList *user_list, LightDMUser *user)
+{
+    status_notify ("%s USER-ADDED USERNAME=%s", greeter_id, lightdm_user_get_name (user));
+}
+
+static void
+user_removed_cb (LightDMUserList *user_list, LightDMUser *user)
+{
+    status_notify ("%s USER-REMOVED USERNAME=%s", greeter_id, lightdm_user_get_name (user));
+}
+
 int
 main (int argc, char **argv)
 {
@@ -290,6 +333,12 @@ main (int argc, char **argv)
     g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
     g_signal_connect (greeter, "autologin-timer-expired", G_CALLBACK (autologin_timer_expired_cb), NULL);
 
+    if (g_key_file_get_boolean (config, "test-greeter-config", "log-user-changes", NULL))
+    {
+        g_signal_connect (lightdm_user_list_get_instance (), "user-added", G_CALLBACK (user_added_cb), NULL);
+        g_signal_connect (lightdm_user_list_get_instance (), "user-removed", G_CALLBACK (user_removed_cb), NULL);
+    }
+
     status_notify ("%s CONNECT-TO-DAEMON", greeter_id);
     if (!lightdm_greeter_connect_sync (greeter, NULL))
     {
@@ -301,6 +350,8 @@ main (int argc, char **argv)
 
     if (lightdm_greeter_get_select_user_hint (greeter))
         status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, lightdm_greeter_get_select_user_hint (greeter));
+    if (lightdm_greeter_get_select_guest_hint (greeter))
+        status_notify ("%s SELECT-GUEST-HINT", greeter_id);
     if (lightdm_greeter_get_lock_hint (greeter))
         status_notify ("%s LOCK-HINT", greeter_id);
 

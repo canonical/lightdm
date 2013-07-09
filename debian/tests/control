@@ -1,3 +1,0 @@
-#Tests: upstream-tests
-#Depends: @, python-gi, xauth
-#Restrictions: build-needed needs-root

@@ -62,6 +62,8 @@ void display_set_greeter_session (Display *display, const gchar *greeter_session
 
 void display_set_session_wrapper (Display *display, const gchar *session_wrapper);
 
+void display_set_greeter_wrapper (Display *display, const gchar *greeter_wrapper);
+
 void display_set_allow_guest (Display *display, gboolean allow_guest);
 
 void display_set_greeter_allow_guest (Display *display, gboolean greeter_allow_guest);

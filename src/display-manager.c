@@ -20,11 +20,8 @@
 #include "display.h"
 #include "seat-xlocal.h"
 #include "seat-xremote.h"
-#include "plymouth.h"
-
-#ifdef HAVE_UNITY
 #include "seat-unity.h"
-#endif
+#include "plymouth.h"
 
 enum {
     SEAT_ADDED,
@@ -152,9 +149,7 @@ display_manager_init (DisplayManager *manager)
     /* Load the seat modules */
     seat_register_module ("xlocal", SEAT_XLOCAL_TYPE);
     seat_register_module ("xremote", SEAT_XREMOTE_TYPE);
-#ifdef HAVE_UNITY
     seat_register_module ("unity", SEAT_UNITY_TYPE);
-#endif
 }
 
 static void

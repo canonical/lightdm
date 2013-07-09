@@ -282,11 +282,10 @@ get_absolute_command (const gchar *command)
 static gboolean
 compositor_timeout_cb (gpointer data)
 {
-    Seat *seat = data;
+    SeatUnity *seat = data;
 
-    g_debug ("Compositor failed to start");
-
-    seat_stop (seat);
+    /* Stop the compositor - it is not working */
+    process_stop (seat->priv->compositor_process);
 
     return TRUE;
 }
@@ -294,8 +293,10 @@ compositor_timeout_cb (gpointer data)
 static gboolean
 seat_unity_start (Seat *seat)
 {
+    const gchar *compositor_command;
     gchar *command, *absolute_command, *dir;
     gboolean result;
+    int timeout;
 
     /* Replace Plymouth if it is running */
     if (plymouth_get_is_active () && plymouth_has_active_vt ())
@@ -341,7 +342,9 @@ seat_unity_start (Seat *seat)
     g_free (dir);
 
     SEAT_UNITY (seat)->priv->mir_socket_filename = g_strdup ("/tmp/mir_socket"); // FIXME: Use this socket by default as XMir is hardcoded to this
-    command = g_strdup_printf ("unity-system-compositor %d %d", SEAT_UNITY (seat)->priv->to_compositor_pipe[0], SEAT_UNITY (seat)->priv->from_compositor_pipe[1]);
+    timeout = seat_get_integer_property (seat, "unity-compositor-timeout");
+    compositor_command = seat_get_string_property (seat, "unity-compositor-command");
+    command = g_strdup_printf ("%s --from-dm-fd %d --to-dm-fd %d --vt %d", compositor_command, SEAT_UNITY (seat)->priv->to_compositor_pipe[0], SEAT_UNITY (seat)->priv->from_compositor_pipe[1], SEAT_UNITY (seat)->priv->vt);
 
     absolute_command = get_absolute_command (command);
     g_free (command);
@@ -363,8 +366,11 @@ seat_unity_start (Seat *seat)
         return FALSE;
 
     /* Connect to the compositor */
-    g_debug ("Waiting for system compositor");
-    SEAT_UNITY (seat)->priv->compositor_timeout = g_timeout_add (5000, compositor_timeout_cb, seat);
+    timeout = seat_get_integer_property (seat, "unity-compositor-timeout");
+    if (timeout <= 0)
+        timeout = 60;
+    g_debug ("Waiting for system compositor for %ds", timeout);
+    SEAT_UNITY (seat)->priv->compositor_timeout = g_timeout_add (timeout * 1000, compositor_timeout_cb, seat);
 
     return TRUE;
 }
@@ -458,17 +464,26 @@ seat_unity_create_session (Seat *seat, Display *display)
 {
     XServerLocal *xserver;
     XSession *session;
-    gchar *tty;
+    int vt_number;
+    gchar *t;
 
     xserver = XSERVER_LOCAL (display_get_display_server (display));
 
-    session = xsession_new (XSERVER (xserver));
     if (SEAT_UNITY (seat)->priv->use_vt_switching)
-        tty = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (xserver));
+        vt_number = xserver_local_get_vt (xserver);
     else
-        tty = g_strdup_printf ("/dev/tty%d", SEAT_UNITY (seat)->priv->vt);
-    session_set_tty (SESSION (session), tty);
-    g_free (tty);
+        vt_number = SEAT_UNITY (seat)->priv->vt;
+
+    session = xsession_new (XSERVER (xserver));
+    t = g_strdup_printf ("/dev/tty%d", vt_number);
+    session_set_tty (SESSION (session), t);
+    g_free (t);
+
+    /* Set variables for logind */
+    session_set_env (SESSION (session), "XDG_SEAT", "seat0");
+    t = g_strdup_printf ("%d", vt_number);
+    session_set_env (SESSION (session), "XDG_VTNR", t);
+    g_free (t);
 
     return SESSION (session);
 }

@@ -1,8 +1,0 @@
-#!/bin/sh
-set -e
-set -x
-
-# We use 'ubuntu' as the default xsession, so make sure it exists
-cp tests/data/xsessions/default.desktop tests/data/xsessions/ubuntu.desktop
-
-make check

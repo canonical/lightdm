@@ -422,7 +422,8 @@ write_authority_file (XServerLocal *server)
         run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
         dir = g_build_filename (run_dir, "root", NULL);
         g_free (run_dir);
-        g_mkdir_with_parents (dir, S_IRWXU);
+        if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
+            g_warning ("Failed to make authority directory %s: %s", dir, strerror (errno));
 
         server->priv->authority_file = g_build_filename (dir, xserver_get_address (XSERVER (server)), NULL);
         g_free (dir);
@@ -576,8 +577,11 @@ xserver_local_finalize (GObject *object)
 
     self = XSERVER_LOCAL (object);  
 
-    if (self->priv->xserver_process)
+    if (self->priv->xserver_process) 
+    {
+        g_signal_handlers_disconnect_matched (self->priv->xserver_process, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
         g_object_unref (self->priv->xserver_process);
+    }
     g_free (self->priv->log_file);
     g_free (self->priv->command);
     g_free (self->priv->config_file);
