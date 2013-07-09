@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.7.4
+
+    * Set XDG_SEAT and XDG_VTNR environment variables.
+    * Add initial support for Unity (i.e. Mir based) seats.
+    * Add a greeter wrapper option.
+
 Overview of changes in lightdm 1.7.3
 
     * Load configuration from /etc/lightdm/lightdm.conf.d.

@@ -153,7 +153,13 @@ TESTS = \
 	test-python-power-no-login1 \
 	test-python-power-no-services \
 	test-open-file-descriptors \
-	test-xdmcp-open-file-descriptors
+	test-xdmcp-open-file-descriptors \
+	test-unity-compositor-command \
+	test-unity-compositor-fail-start \
+	test-unity-compositor-fail-ready \
+	test-unity-autologin \
+	test-unity-login \
+	test-unity-switch
 
 #	test-session-exit-error
 #	test-greeter-no-exit
@@ -352,6 +358,12 @@ EXTRA_DIST = \
 	scripts/switch-to-user-logout.conf \
 	scripts/switch-to-user-no-password.conf \
 	scripts/system-xauthority.conf \
+	scripts/unity-autologin.conf \
+	scripts/unity-compositor-command.conf \
+	scripts/unity-compositor-fail-ready.conf \
+	scripts/unity-compositor-fail-start.conf \
+	scripts/unity-login.conf \
+	scripts/unity-switch.conf \
 	scripts/users.conf \
 	scripts/util-path.conf \
 	scripts/user-renamed.conf \

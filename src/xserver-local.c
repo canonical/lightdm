@@ -56,6 +56,12 @@ struct XServerLocalPrivate
     /* XDMCP key to use */
     gchar *xdmcp_key;
 
+    /* ID to report to Mir */
+    gchar *mir_id;
+
+    /* Filename of socket Mir is listening on */
+    gchar *mir_socket;
+
     /* TRUE when received ready signal */
     gboolean got_signal;
 
@@ -247,6 +253,35 @@ xserver_local_set_xdmcp_key (XServerLocal *server, const gchar *key)
     g_return_if_fail (server != NULL);
     g_free (server->priv->xdmcp_key);
     server->priv->xdmcp_key = g_strdup (key);
+}
+
+void
+xserver_local_set_mir_id (XServerLocal *server, const gchar *id)
+{
+    g_return_if_fail (server != NULL);
+    g_free (server->priv->mir_id);
+    server->priv->mir_id = g_strdup (id);
+
+    if (server->priv->have_vt_ref)
+    {
+        vt_unref (server->priv->vt);
+        server->priv->have_vt_ref = FALSE;
+    }
+    server->priv->vt = -1;
+}
+
+const gchar *xserver_local_get_mir_id (XServerLocal *server)
+{
+    g_return_val_if_fail (server != NULL, NULL);
+    return server->priv->mir_id; 
+}
+
+void
+xserver_local_set_mir_socket (XServerLocal *server, const gchar *socket)
+{
+    g_return_if_fail (server != NULL);
+    g_free (server->priv->mir_socket);
+    server->priv->mir_socket = g_strdup (socket);
 }
 
 gint
@@ -458,6 +493,13 @@ xserver_local_start (DisplayServer *display_server)
     if (server->priv->authority_file)
         g_string_append_printf (command, " -auth %s", server->priv->authority_file);
 
+    /* Setup for running inside Mir */
+    if (server->priv->mir_id)
+        g_string_append_printf (command, " -mir %s", server->priv->mir_id);
+
+    if (server->priv->mir_socket)
+        g_string_append_printf (command, " -mirSocket %s", server->priv->mir_socket);
+
     /* Connect to a remote server using XDMCP */
     if (server->priv->xdmcp_server != NULL)
     {
@@ -546,6 +588,8 @@ xserver_local_finalize (GObject *object)
     g_free (self->priv->layout);
     g_free (self->priv->xdmcp_server);
     g_free (self->priv->xdmcp_key);
+    g_free (self->priv->mir_id);
+    g_free (self->priv->mir_socket);
     g_free (self->priv->authority_file);
     if (self->priv->have_vt_ref)
         vt_unref (self->priv->vt);

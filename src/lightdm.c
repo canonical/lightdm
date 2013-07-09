@@ -1042,6 +1042,8 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", "X");
     if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-share"))
         config_set_boolean (config_get_instance (), "SeatDefaults", "xserver-share", TRUE);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "unity-compositor-command"))
+        config_set_string (config_get_instance (), "SeatDefaults", "unity-compositor-command", "unity-system-compositor");
     if (!config_has_key (config_get_instance (), "SeatDefaults", "start-session"))
         config_set_boolean (config_get_instance (), "SeatDefaults", "start-session", TRUE);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "allow-guest"))
