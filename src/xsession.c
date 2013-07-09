@@ -33,7 +33,7 @@ xsession_new (void)
 
     session = g_object_new (XSESSION_TYPE, NULL);
     session_set_log_file (SESSION (session), ".xsession-errors");
-  
+
     return session;
 }
 
@@ -46,9 +46,9 @@ xsession_set_display_server (Session *session, DisplayServer *display_server)
     xserver = XSERVER (display_server);
 
     session_set_env (session, "DISPLAY", xserver_get_address (xserver));
-    session_set_tty (session, xserver_get_address (xserver)); // FIXME: This is applied before authentication, it needs to be resent before the process it run
-    session_set_xdisplay (session, xserver_get_address (xserver)); // FIXME: This is applied before authentication, it needs to be resent before the process it run
-    authority = xserver_get_authority (xserver); // FIXME: This is applied before authentication, it needs to be resent before the process it run
+    session_set_tty (session, xserver_get_address (xserver));
+    session_set_xdisplay (session, xserver_get_address (xserver));
+    authority = xserver_get_authority (xserver);
     if (authority)
         session_set_xauthority (session, authority, config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"));
 

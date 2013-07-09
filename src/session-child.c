@@ -395,6 +395,11 @@ session_child_run (int argc, char **argv)
 
     /* Get the command to run (blocks) */
     log_filename = read_string ();
+    if (version >= 1)
+    {
+        g_free (tty);
+        tty = read_string ();      
+    }
     xauth_filename = read_string ();
     if (version >= 1)
     {

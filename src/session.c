@@ -546,7 +546,7 @@ void
 session_run (Session *session, gchar **argv)
 {
     gsize i, argc;
-    gchar *command, *filename;
+    gchar *command, *xauth_filename;
     GList *link;
 
     g_return_if_fail (session != NULL);
@@ -573,15 +573,16 @@ session_run (Session *session, gchar **argv)
                 g_warning ("Failed to set ownership of user authority dir: %s", strerror (errno));
         }
 
-        filename = g_build_filename (dir, "xauthority", NULL);
+        xauth_filename = g_build_filename (dir, "xauthority", NULL);
         g_free (dir);
     }
     else
-        filename = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
+        xauth_filename = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
 
     write_string (session, session->priv->log_filename);
-    write_string (session, filename);
-    g_free (filename);
+    write_string (session, session->priv->tty);
+    write_string (session, xauth_filename);
+    g_free (xauth_filename);
     write_string (session, session->priv->xdisplay);
     write_xauth (session, session->priv->xauthority);
     argc = g_list_length (session->priv->env);
