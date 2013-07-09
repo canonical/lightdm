@@ -206,6 +206,30 @@ write_string (Session *session, const char *value)
         write_data (session, value, sizeof (char) * length);
 }
 
+static void
+write_xauth (Session *session, XAuthority *xauthority)
+{
+    guint16 family;
+    gsize length;
+
+    if (!xauthority)
+    {
+        write_string (session, NULL);
+        return;
+    }
+
+    write_string (session, xauth_get_authorization_name (session->priv->xauthority));
+    family = xauth_get_family (session->priv->xauthority);
+    write_data (session, &family, sizeof (family));
+    length = xauth_get_address_length (session->priv->xauthority);
+    write_data (session, &length, sizeof (length));
+    write_data (session, xauth_get_address (session->priv->xauthority), length);
+    write_string (session, xauth_get_number (session->priv->xauthority));
+    length = xauth_get_authorization_data_length (session->priv->xauthority);
+    write_data (session, &length, sizeof (length));
+    write_data (session, xauth_get_authorization_data (session->priv->xauthority), length);
+}
+
 static ssize_t
 read_from_child (Session *session, void *buf, size_t count)
 {
@@ -418,7 +442,7 @@ session_start (Session *session, const gchar *service, const gchar *username, gb
     close (from_child_input);
 
     /* Indicate what version of the protocol we are using */
-    version = 0;
+    version = 1;
     write_data (session, &version, sizeof (version));
 
     /* Send configuration */
@@ -430,24 +454,7 @@ session_start (Session *session, const gchar *service, const gchar *username, gb
     write_string (session, session->priv->tty);
     write_string (session, session->priv->remote_host_name);
     write_string (session, session->priv->xdisplay);
-    if (session->priv->xauthority)
-    {
-        guint16 family;
-        gsize length;
-
-        write_string (session, xauth_get_authorization_name (session->priv->xauthority));
-        family = xauth_get_family (session->priv->xauthority);
-        write_data (session, &family, sizeof (family));
-        length = xauth_get_address_length (session->priv->xauthority);
-        write_data (session, &length, sizeof (length));
-        write_data (session, xauth_get_address (session->priv->xauthority), length);
-        write_string (session, xauth_get_number (session->priv->xauthority));
-        length = xauth_get_authorization_data_length (session->priv->xauthority);
-        write_data (session, &length, sizeof (length));
-        write_data (session, xauth_get_authorization_data (session->priv->xauthority), length);
-    }
-    else
-        write_string (session, NULL);
+    write_xauth (session, session->priv->xauthority);
 
     g_debug ("Started session %d with service '%s', username '%s'", session->priv->pid, service, username);
 
@@ -575,6 +582,8 @@ session_run (Session *session, gchar **argv)
     write_string (session, session->priv->log_filename);
     write_string (session, filename);
     g_free (filename);
+    write_string (session, session->priv->xdisplay);
+    write_xauth (session, session->priv->xauthority);
     argc = g_list_length (session->priv->env);
     write_data (session, &argc, sizeof (argc));
     for (link = session->priv->env; link; link = link->next)
