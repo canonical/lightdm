@@ -805,9 +805,6 @@ main (int argc, char **argv)
     gboolean explicit_config = FALSE;
     gboolean test_mode = FALSE;
     gchar *pid_path = "/var/run/lightdm.pid";
-    gchar *xsessions_dir = NULL;
-    gchar *remote_sessions_dir = NULL;
-    gchar *xgreeters_dir = NULL;
     gchar *config_dir, *config_d_dir = NULL;
     gchar *log_dir = NULL;
     gchar *run_dir = NULL;
@@ -831,15 +828,6 @@ main (int argc, char **argv)
         { "pid-file", 0, 0, G_OPTION_ARG_STRING, &pid_path,
           /* Help string for command line --pid-file flag */
           N_("File to write PID into"), "FILE" },
-        { "xsessions-dir", 0, 0, G_OPTION_ARG_STRING, &xsessions_dir,
-          /* Help string for command line --xsessions-dir flag */
-          N_("Directory to load X sessions from"), "DIRECTORY" },
-        { "remote-sessions-dir", 0, 0, G_OPTION_ARG_STRING, &remote_sessions_dir,
-          /* Help string for command line --remote-sessions-dir flag */
-          N_("Directory to load remote sessions from"), "DIRECTORY" },
-        { "xgreeters-dir", 0, 0, G_OPTION_ARG_STRING, &xgreeters_dir,
-          /* Help string for command line --xgreeters-dir flag */
-          N_("Directory to load X greeters from"), "DIRECTORY" },
         { "log-dir", 0, 0, G_OPTION_ARG_STRING, &log_dir,
           /* Help string for command line --log-dir flag */
           N_("Directory to write logs to"), "DIRECTORY" },
@@ -948,11 +936,6 @@ main (int argc, char **argv)
         fprintf (pid_file, "%d\n", getpid ());
         fclose (pid_file);
     }
-
-    /* Always use absolute directories as child processes may run from different locations */
-    xsessions_dir = path_make_absolute (xsessions_dir);
-    remote_sessions_dir = path_make_absolute (remote_sessions_dir);
-    xgreeters_dir = path_make_absolute (xgreeters_dir);
 
     /* If not running as root write output to directories we control */
     if (getuid () != 0)
@@ -1067,12 +1050,12 @@ main (int argc, char **argv)
     if (!config_has_key (config_get_instance (), "LightDM", "cache-directory"))
         config_set_string (config_get_instance (), "LightDM", "cache-directory", default_cache_dir);
     g_free (default_cache_dir);
-    if (!config_has_key (config_get_instance (), "LightDM", "xsessions-directory"))
-        config_set_string (config_get_instance (), "LightDM", "xsessions-directory", XSESSIONS_DIR);
+    if (!config_has_key (config_get_instance (), "LightDM", "sessions-directory"))
+        config_set_string (config_get_instance (), "LightDM", "sessions-directory", SESSIONS_DIR);
     if (!config_has_key (config_get_instance (), "LightDM", "remote-sessions-directory"))
         config_set_string (config_get_instance (), "LightDM", "remote-sessions-directory", REMOTE_SESSIONS_DIR);
-    if (!config_has_key (config_get_instance (), "LightDM", "xgreeters-directory"))
-        config_set_string (config_get_instance (), "LightDM", "xgreeters-directory", XGREETERS_DIR);
+    if (!config_has_key (config_get_instance (), "LightDM", "greeters-directory"))
+        config_set_string (config_get_instance (), "LightDM", "greeters-directory", GREETERS_DIR);
 
     /* Override defaults */
     if (log_dir)
@@ -1084,15 +1067,6 @@ main (int argc, char **argv)
     if (cache_dir)
         config_set_string (config_get_instance (), "LightDM", "cache-directory", cache_dir);
     g_free (cache_dir);
-    if (xsessions_dir)
-        config_set_string (config_get_instance (), "LightDM", "xsessions-directory", xsessions_dir);
-    g_free (xsessions_dir);
-    if (remote_sessions_dir)
-        config_set_string (config_get_instance (), "LightDM", "remote-sessions-directory", remote_sessions_dir);
-    g_free (remote_sessions_dir);
-    if (xgreeters_dir)
-        config_set_string (config_get_instance (), "LightDM", "xgreeters-directory", xgreeters_dir);
-    g_free (xgreeters_dir);
 
     /* Create run and cache directories */
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");

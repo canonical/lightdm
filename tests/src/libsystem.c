@@ -165,6 +165,9 @@ redirect_path (const gchar *path)
     if (g_str_has_prefix (path, LOCALSTATEDIR))
         return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "var", path + strlen (LOCALSTATEDIR), NULL);
 
+    if (g_str_has_prefix (path, DATADIR))
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "usr", "share", path + strlen (DATADIR), NULL);
+
     // Don't redirect if inside the build directory
     if (g_str_has_prefix (path, BUILDDIR))
         return g_strdup (path);
