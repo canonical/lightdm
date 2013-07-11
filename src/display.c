@@ -695,8 +695,9 @@ greeter_session_stopped_cb (Session *session, Display *display)
 static gboolean
 display_start_greeter (Display *display)
 {
-    gchar *log_dir, *filename, *log_filename, *sessions_dir, *path, *wrapper;
+    gchar *log_dir, *filename, *log_filename, *sessions_dir, *wrapper, **dirs;
     gchar **argv;
+    int i;
 
     /* Log the output of the greeter to a system location */
     log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
@@ -709,13 +710,22 @@ display_start_greeter (Display *display)
     g_free (log_filename);
 
     /* Load the greeter session information */
-    sessions_dir = config_get_string (config_get_instance (), "LightDM", "xgreeters-directory");
-    filename = g_strdup_printf ("%s.desktop", display->priv->greeter_session);
-    path = g_build_filename (sessions_dir, filename, NULL);
+    sessions_dir = config_get_string (config_get_instance (), "LightDM", "greeters-directory");
+    dirs = g_strsplit (sessions_dir, ":", -1);
     g_free (sessions_dir);
-    g_free (filename);
-    argv = get_session_command (path, NULL);
-    g_free (path);
+    for (i = 0; dirs[i]; i++)
+    {
+        gchar *path;
+
+        filename = g_strdup_printf ("%s.desktop", display->priv->greeter_session);
+        path = g_build_filename (dirs[i], filename, NULL);
+        g_free (filename);
+        argv = get_session_command (path, NULL);
+        g_free (path);
+        if (argv)
+            break;
+    }
+    g_strfreev (dirs);
     if (!argv)
         return TRUE;
 
@@ -747,29 +757,39 @@ static gboolean
 display_start_session (Display *display)
 {
     User *user;
-    gchar *filename, *sessions_dir, *path;
+    gchar *sessions_dir, **dirs;
     const gchar *language;
     gchar **argv;
     gboolean disable_guest_wrapper;
+    int i;
 
     user = session_get_user (display->priv->session);
 
     /* Find the command to run for the selected session */
     if (display->priv->user_session_type == SESSION_TYPE_LOCAL)
     {
-        sessions_dir = config_get_string (config_get_instance (), "LightDM", "xsessions-directory");
+        sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
 
         /* Store this session name so we automatically use it next time */
         user_set_xsession (user, display->priv->user_session);
     }
     else
         sessions_dir = config_get_string (config_get_instance (), "LightDM", "remote-sessions-directory");
-    filename = g_strdup_printf ("%s.desktop", display->priv->user_session);
-    path = g_build_filename (sessions_dir, filename, NULL);
+    dirs = g_strsplit (sessions_dir, ":", -1);
     g_free (sessions_dir);
-    g_free (filename);
-    argv = get_session_command (path, display->priv->session_wrapper);
-    g_free (path);
+    for (i = 0; dirs[i]; i++)
+    {
+        gchar *filename, *path;
+
+        filename = g_strdup_printf ("%s.desktop", display->priv->user_session);
+        path = g_build_filename (dirs[i], filename, NULL);
+        g_free (filename);
+        argv = get_session_command (path, display->priv->session_wrapper);
+        g_free (path);
+        if (argv)
+            break;
+    }
+    g_strfreev (dirs);
     if (!argv)
         return TRUE;
   

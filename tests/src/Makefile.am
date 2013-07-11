@@ -23,6 +23,7 @@ libsystem_la_CFLAGS = \
 	-DBUILDDIR=\"$(abs_top_builddir)\" \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
 	-DLOCALSTATEDIR=\"$(localstatedir)\" \
+	-DDATADIR=\"$(datadir)\" \
 	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\"
 libsystem_la_LIBADD = -ldl $(GLIB_LIBS) $(GIO_UNIX_LIBS)
 
