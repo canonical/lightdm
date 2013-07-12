@@ -133,6 +133,13 @@ session_set_display_server (Session *session, DisplayServer *display_server)
     SESSION_GET_CLASS (session)->set_display_server (session, display_server);
 }
 
+DisplayServer *
+session_get_display_server (Session *session)
+{
+    g_return_val_if_fail (session != NULL, NULL);
+    return session->priv->display_server;
+}
+
 void
 session_set_tty (Session *session, const gchar *tty)
 {

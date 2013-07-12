@@ -63,6 +63,8 @@ void session_set_class (Session *session, const gchar *class);
 
 void session_set_display_server (Session *session, DisplayServer *display_server);
 
+DisplayServer *session_get_display_server (Session *session);
+
 void session_set_tty (Session *session, const gchar *tty);
 
 void session_set_xdisplay (Session *session, const gchar *xdisplay);

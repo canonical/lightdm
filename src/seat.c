@@ -203,54 +203,9 @@ switch_to_user (Seat *seat, const gchar *username, gboolean unlock)
     GList *link;
 
     /* Switch to active display if it exists */
-    for (link = seat->priv->sessions; link; link = link->next)
-    {
-        Session *session = link->data;
-
-        if (display_get_is_stopped (display))
-            continue;
-
-        /* If already logged in, then switch to that display */
-        if (g_strcmp0 (display_get_username (display), username) == 0)        
-        {
-            if (username)
-                g_debug ("Switching to existing session for user %s", username);
-            else
-                g_debug ("Switching to existing greeter");
-            if (unlock)
-                display_unlock (display);
-            seat_set_active_display (seat, display);
-            return TRUE;
-        }
-    }
+    // FIXME
 
     return FALSE;
-}
-
-static gboolean
-display_switch_to_user_cb (Display *display, User *user, Seat *seat)
-{
-    return switch_to_user (seat, user_get_name (user), TRUE);
-}
-
-static gboolean
-display_switch_to_guest_cb (Display *display, Seat *seat)
-{
-    /* No guest account */
-    if (!seat->priv->guest_username)
-        return FALSE;
-
-    return switch_to_user (seat, seat->priv->guest_username, TRUE);
-}
-
-static const gchar *
-display_get_guest_username_cb (Display *display, Seat *seat)
-{
-    if (seat->priv->guest_username)
-        return seat->priv->guest_username;
-
-    seat->priv->guest_username = guest_account_setup ();
-    return g_strdup (seat->priv->guest_username);
 }
 
 static gboolean
@@ -325,57 +280,6 @@ emit_upstart_signal (const gchar *signal)
     g_free (cmd);
 }
 
-static gboolean
-display_display_server_ready_cb (Display *display, Seat *seat)
-{
-    const gchar *script;
-
-    /* Run setup script */
-    script = seat_get_string_property (seat, "display-setup-script");
-    if (script && !run_script (seat, display, script, NULL))
-        return FALSE;
-
-    emit_upstart_signal ("login-session-start");
-
-    return TRUE;
-}
-
-static Session *
-display_create_session_cb (Display *display, Seat *seat)
-{
-    return SEAT_GET_CLASS (seat)->create_session (seat, display);
-}
-
-static gboolean
-display_start_greeter_cb (Display *display, Seat *seat)
-{
-    Session *session;
-    const gchar *script;
-
-    session = display_get_session (display);
-
-    script = seat_get_string_property (seat, "greeter-setup-script");
-    if (script)
-        return !run_script (seat, display, script, session_get_user (session));
-    else
-        return FALSE;
-}
-
-static gboolean
-display_start_session_cb (Display *display, Seat *seat)
-{
-    Session *session;
-    const gchar *script;
-
-    session = display_get_session (display);
-
-    script = seat_get_string_property (seat, "session-setup-script");
-    if (script)
-        return !run_script (seat, display, script, session_get_user (session));
-    else
-        return FALSE;
-}
-
 static void
 session_stopped_cb (Session *session, Seat *seat)
 {
@@ -394,42 +298,13 @@ session_stopped_cb (Session *session, Seat *seat)
     }
 }
 
-static gboolean
-display_session_started_cb (Display *display, Seat *seat)
-{
-    g_signal_connect (display_get_session (display), "stopped", G_CALLBACK (session_stopped_cb), seat);
-    emit_upstart_signal ("desktop-session-start");
-    return FALSE;
-}
-
-static void
-display_ready_cb (Display *display, Seat *seat)
-{
-    /* Switch to this new display */
-    g_debug ("New display ready, switching to it");
-    SEAT_GET_CLASS (seat)->set_active_display (seat, display);
-}
-
-static Display *
-display_create_display_cb (Display *display, Session *session, Seat *seat)
-{
-    Display *d;
-
-    d = create_display (seat);
-    g_signal_connect (d, "ready", G_CALLBACK (display_ready_cb), seat);
-    g_signal_emit (seat, signals[SESSION_ADDED], 0, d);
-
-    display_start_with_session (d, session);
-
-    return g_object_ref (d);
-}
-
 static void
 check_stopped (Seat *seat)
 {
     if (seat->priv->stopping &&
         !seat->priv->stopped &&
-        g_list_length (seat->priv->displays) == 0)
+        g_list_length (seat->priv->display_servers) == 0 &&
+        g_list_length (seat->priv->sessions) == 0)
     {
         seat->priv->stopped = TRUE;
         g_debug ("Seat stopped");
@@ -437,128 +312,27 @@ check_stopped (Seat *seat)
     }
 }
 
-static void
-display_stopped_cb (Display *display, Seat *seat)
+static DisplayServer *
+create_display_server (Seat *seat)
 {
-    gboolean is_active;
-
-    is_active = display == seat_get_active_display (seat);
-
-    g_signal_handlers_disconnect_matched (display, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
-    seat->priv->displays = g_list_remove (seat->priv->displays, display);
-
-    g_signal_emit (seat, signals[SESSION_REMOVED], 0, display);
-
-    /* If no more displays running either start a greeter or stop the seat */
-    if (!seat->priv->stopping)
-    {
-        if (g_list_length (seat->priv->displays) == 0)
-        {
-            /* If failed to start then stop this seat */
-            if (!display_get_is_ready (display))
-            {
-                g_debug ("Stopping seat, failed to start a display");
-                seat_stop (seat);
-            }
-            /* Attempt to start a greeter */
-            else if (!seat->priv->can_switch)
-            {
-                g_debug ("Stopping seat, display stopped");
-                seat_stop (seat);             
-            }
-            
-            else if (!seat_switch_to_greeter (seat))
-            {
-                g_debug ("Stopping seat, unable to start greeter");
-                seat_stop (seat);
-            }        
-        }
-        else if (is_active)
-        {
-            g_debug ("Active display stopped, switching to greeter");
-            if (!seat_switch_to_greeter (seat))
-            {
-                g_debug ("Stopping seat, unable to start greeter");
-                seat_stop (seat);              
-            }
-        }
-    }
-
-    g_object_unref (display);
-
-    check_stopped (seat);
-}
-
-static Display *
-create_display (Seat *seat)
-{
-    Display *display;
-    DisplayServer *display_server;
-
-    display_server = SEAT_GET_CLASS (seat)->create_display_server (seat);
-    display = display_new (display_server);
-    g_object_unref (display_server);
-
-    g_signal_connect (display, "display-server-ready", G_CALLBACK (display_display_server_ready_cb), seat);  
-    g_signal_connect (display, "switch-to-user", G_CALLBACK (display_switch_to_user_cb), seat);
-    g_signal_connect (display, "switch-to-guest", G_CALLBACK (display_switch_to_guest_cb), seat);
-    g_signal_connect (display, "get-guest-username", G_CALLBACK (display_get_guest_username_cb), seat);
-    g_signal_connect (display, "create-session", G_CALLBACK (display_create_session_cb), seat);
-    g_signal_connect (display, "start-greeter", G_CALLBACK (display_start_greeter_cb), seat);
-    g_signal_connect (display, "start-session", G_CALLBACK (display_start_session_cb), seat);
-    g_signal_connect_after (display, "start-session", G_CALLBACK (display_session_started_cb), seat);
-    g_signal_connect (display, "create-display", G_CALLBACK (display_create_display_cb), seat);
-    g_signal_connect (display, "stopped", G_CALLBACK (display_stopped_cb), seat);
-    display_set_greeter_session (display, seat_get_string_property (seat, "greeter-session"));
-    display_set_session_wrapper (display, seat_get_string_property (seat, "session-wrapper"));
-    display_set_greeter_wrapper (display, seat_get_string_property (seat, "greeter-wrapper"));
-    display_set_hide_users_hint (display, seat_get_boolean_property (seat, "greeter-hide-users"));
-    display_set_show_manual_login_hint (display, seat_get_boolean_property (seat, "greeter-show-manual-login"));
-    display_set_show_remote_login_hint (display, seat_get_boolean_property (seat, "greeter-show-remote-login"));
-    display_set_allow_guest (display, seat_get_allow_guest (seat));
-    display_set_greeter_allow_guest (display, seat_get_greeter_allow_guest (seat));
-    display_set_user_session (display, SESSION_TYPE_LOCAL, seat_get_string_property (seat, "user-session"));
-    display_set_share_display_server (display, seat->priv->share_display_server);
-
-    seat->priv->displays = g_list_append (seat->priv->displays, display);
-
-    return display;
-}
-
-static gboolean
-start_display (Seat *seat, Display *display)
-{
-    g_signal_emit (seat, signals[SESSION_ADDED], 0, display);
-
-    /* Switch to this display if currently not looking at anything */
-    if (seat_get_active_display (seat) == NULL)
-        seat_set_active_display (seat, display);
-
-    return display_start (display);
+    return SEAT_GET_CLASS (seat)->create_display_server (seat);
 }
 
 gboolean
 seat_switch_to_greeter (Seat *seat)
 {
-    Display *display;
+    DisplayServer *display_server;
 
     g_return_val_if_fail (seat != NULL, FALSE);
 
     if (!seat->priv->can_switch)
         return FALSE;
 
-    g_debug ("Switching to greeter");
-
     /* Switch to greeter if one open (shouldn't be though) */
     if (switch_to_user (seat, NULL, FALSE))
         return TRUE;
 
-    g_debug ("Starting new display for greeter");
-
-    display = create_display (seat);
-    g_signal_connect (display, "ready", G_CALLBACK (display_ready_cb), seat);
-
-    return start_display (seat, display);
+    // FIXME
 }
 
 gboolean
@@ -576,18 +350,9 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
     if (switch_to_user (seat, username, FALSE))
         return TRUE;
 
-    if (username)
-        g_debug ("Starting new display for greeter with user %s selected", username);
-    else
-        g_debug ("Starting new display for greeter");
+    // FIXME
 
-    display = create_display (seat);
-    g_signal_connect (display, "ready", G_CALLBACK (display_ready_cb), seat);
-    display_set_select_user_hint (display, username, FALSE, TRUE);
-    if (session_name != NULL)
-        display_set_user_session (display, SESSION_TYPE_LOCAL, session_name);
-
-    return start_display (seat, display);
+    return FALSE;
 }
 
 gboolean
@@ -605,15 +370,9 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
         return switch_to_user (seat, seat->priv->guest_username, FALSE);
     }
 
-    g_debug ("Starting new display for automatic guest login");
+    // FIXME
 
-    display = create_display (seat);
-    g_signal_connect (display, "ready", G_CALLBACK (display_ready_cb), seat);
-    display_set_autologin_user (display, NULL, TRUE, 0);
-    if (session_name != NULL)
-        display_set_user_session (display, SESSION_TYPE_LOCAL, session_name);
-
-    return start_display (seat, display);
+    return FALSE;
 }
 
 gboolean
@@ -630,14 +389,9 @@ seat_lock (Seat *seat, const gchar *username)
     if (switch_to_user (seat, NULL, FALSE))
         return TRUE;
 
-    g_debug ("Starting new display for greeter (lock screen)");
+    // FIXME
 
-    display = create_display (seat);
-    g_signal_connect (display, "ready", G_CALLBACK (display_ready_cb), seat);
-    display_set_lock_hint (display, TRUE);
-    display_set_select_user_hint (display, username, FALSE, FALSE);
-
-    return start_display (seat, display);
+    return FALSE;
 }
 
 void
@@ -665,32 +419,6 @@ seat_real_setup (Seat *seat)
 {
 }
 
-static void
-autologin_greeter_ready_cb (Display *display, Seat *seat)
-{
-    const gchar *autologin_username;
-    gboolean autologin_guest;
-    Display *autologin_display;
-
-    g_debug ("Greeter ready, starting autologin session");
-
-    /* Get autologin settings */
-    autologin_username = seat_get_string_property (seat, "autologin-user");
-    if (g_strcmp0 (autologin_username, "") == 0)
-        autologin_username = NULL;
-    autologin_guest = seat_get_boolean_property (seat, "autologin-guest");
-
-    if (autologin_guest)
-        g_debug ("Starting new display for automatic guest login");
-    else if (autologin_username)
-        g_debug ("Starting new display for automatic login as user %s", autologin_username);
-
-    autologin_display = create_display (seat);
-    display_set_autologin_user (autologin_display, autologin_username, autologin_guest, 0);
-
-    start_display (seat, autologin_display);
-}
-
 static gboolean
 seat_real_start (Seat *seat)
 {
@@ -702,61 +430,12 @@ seat_real_start (Seat *seat)
 
     g_debug ("Starting seat");
 
-    /* Get autologin settings */
-    autologin_username = seat_get_string_property (seat, "autologin-user");
-    if (g_strcmp0 (autologin_username, "") == 0)
-        autologin_username = NULL;
-    autologin_timeout = seat_get_integer_property (seat, "autologin-user-timeout");
-    autologin_guest = seat_get_boolean_property (seat, "autologin-guest");
-    autologin_in_background = seat_get_boolean_property (seat, "autologin-in-background");
-    do_autologin = autologin_username != NULL || autologin_guest;
-
-    /* Background automatic logins need the greeter showing first */
-    if (do_autologin && autologin_in_background && !switch_to_user (seat, NULL, FALSE)) 
-    {
-        g_debug ("Autologin in background, opening greeter first");
-        display = create_display (seat);
-        g_signal_connect (display, "ready", G_CALLBACK (autologin_greeter_ready_cb), seat);
-        if (autologin_timeout > 0)
-            display_set_autologin_user (display, autologin_username, autologin_guest, autologin_timeout);
-        return start_display (seat, display);
-    }
-
-    if (autologin_guest)
-        g_debug ("Starting new display for automatic guest login");
-    else if (autologin_username)
-        g_debug ("Starting new display for automatic login as user %s", autologin_username);
-    else
-        g_debug ("Starting new display for greeter");
-
-    display = create_display (seat);
-    g_signal_connect (display, "ready", G_CALLBACK (display_ready_cb), seat);
-    display_set_autologin_user (display, autologin_username, autologin_guest, autologin_timeout);
-
-    return start_display (seat, display);
+    // FIXME
 }
 
 static void
 seat_real_set_active_session (Seat *seat, Session *session)
 {
-    GList *link;
-
-    for (link = seat->priv->displays; link; link = link->next)
-    {
-        Display *d = link->data;
-
-        if (d == display)
-            continue;
-
-        /* Stop any greeters and lock any other sessions */
-        if (!display_get_username (d))
-        {
-            g_debug ("Stopping background greeter");
-            display_stop (d);
-        }
-        else
-            display_lock (d);
-    }  
 }
 
 static Session *
@@ -768,20 +447,28 @@ seat_real_get_active_session (Seat *seat)
 static void
 seat_real_stop (Seat *seat)
 {
-    GList *displays, *link;
+    GList *list, *link;
 
     check_stopped (seat);
     if (seat->priv->stopped)
         return;
 
-    /* Stop all the displays on the seat. Copy the list as it might be modified if a display stops during this loop */
-    displays = g_list_copy (seat->priv->displays);
-    for (link = displays; link; link = link->next)
+    /* Stop all the display servers and sessions on the seat. Copy the list as
+     * it might be modified if a display server / session stops during this loop */
+    list = g_list_copy (seat->priv->display_servers);
+    for (link = list; link; link = link->next)
     {
-        Display *display = link->data;
-        display_stop (display);
+        DisplayServer *display_server = link->data;
+        display_server_stop (display_server);
     }
-    g_list_free (displays);
+    g_list_free (list);
+    list = g_list_copy (seat->priv->sessions);
+    for (link = list; link; link = link->next)
+    {
+        Session *session = link->data;
+        session_stop (session);
+    }
+    g_list_free (list);
 }
 
 static void

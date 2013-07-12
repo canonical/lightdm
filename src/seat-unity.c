@@ -501,15 +501,15 @@ seat_unity_set_active_session (Seat *seat, Session *session)
         if (vt >= 0)
             vt_set_active (vt);
 
-        SEAT_CLASS (seat_unity_parent_class)->set_active_display (seat, display);
+        SEAT_CLASS (seat_unity_parent_class)->set_active_session (seat, session);
         return;
     }
 
-    if (display == SEAT_UNITY (seat)->priv->active_display)
+    if (session == SEAT_UNITY (seat)->priv->active_session)
         return;
     SEAT_UNITY (seat)->priv->active_session = session;
 
-    xserver = XSERVER_LOCAL (display_get_display_server (display));
+    xserver = XSERVER_LOCAL (session_get_display_server (session));
     id = xserver_local_get_mir_id (xserver);
 
     g_debug ("Switching to Mir session %s", id);
@@ -551,7 +551,7 @@ seat_unity_run_script (Seat *seat, DisplayServer *display_server, Process *scrip
     const gchar *path;
     XServerLocal *xserver;
 
-    xserver = XSERVER_LOCAL (display_get_display_server (display));
+    xserver = XSERVER_LOCAL (display_server);
     path = xserver_local_get_authority_file_path (xserver);
     process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));
     process_set_env (script, "XAUTHORITY", path);
@@ -570,28 +570,6 @@ seat_unity_stop (Seat *seat)
     }
 
     SEAT_CLASS (seat_unity_parent_class)->stop (seat);
-}
-
-static void
-seat_unity_display_removed (Seat *seat, Display *display)
-{
-    if (seat_get_is_stopping (seat))
-        return;
-
-    /* If this is the only display and it failed to start then stop this seat */
-    if (g_list_length (seat_get_displays (seat)) == 0 && !display_get_is_ready (display))
-    {
-        g_debug ("Stopping Unity seat, failed to start a display");
-        seat_stop (seat);
-        return;
-    }
-
-    /* Show a new greeter */
-    if (display == seat_get_active_display (seat))
-    {
-        g_debug ("Active display stopped, switching to greeter");
-        seat_switch_to_greeter (seat);
-    }
 }
 
 static void
@@ -637,7 +615,6 @@ seat_unity_class_init (SeatUnityClass *klass)
     seat_class->get_active_session = seat_unity_get_active_session;
     seat_class->run_script = seat_unity_run_script;
     seat_class->stop = seat_unity_stop;
-    seat_class->display_removed = seat_unity_display_removed;
 
     g_type_class_add_private (klass, sizeof (SeatUnityPrivate));
 }

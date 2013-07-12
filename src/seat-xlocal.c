@@ -129,17 +129,17 @@ seat_xlocal_create_session (Seat *seat, DisplayServer *display_server)
 }
 
 static void
-seat_xlocal_set_active_display_server (Seat *seat, DisplayServer)
+seat_xlocal_set_active_session (Seat *seat, Session *session)
 {
-    gint vt = xserver_local_get_vt (XSERVER_LOCAL (display_server));
+    gint vt = xserver_local_get_vt (XSERVER_LOCAL (session_get_display_server (session)));
     if (vt >= 0)
         vt_set_active (vt);
 
-    SEAT_CLASS (seat_xlocal_parent_class)->set_active_display_server (seat, display_server);
+    SEAT_CLASS (seat_xlocal_parent_class)->set_active_session (seat, session);
 }
 
-static DisplayServer *
-seat_xlocal_get_active_display_server (Seat *seat)
+static Session *
+seat_xlocal_get_active_session (Seat *seat)
 {
     gint vt;
     GList *link;
@@ -148,14 +148,14 @@ seat_xlocal_get_active_display_server (Seat *seat)
     if (vt < 0)
         return NULL;
 
-    for (link = seat_get_display_servers (seat); link; link = link->next)
+    for (link = seat_get_sessions (seat); link; link = link->next)
     {
-        DisplayServer *display_server = link->data;
+        Session *session = link->data;
         XServerLocal *xserver;
 
-        xserver = XSERVER_LOCAL (display_server);
+        xserver = XSERVER_LOCAL (session_get_display_server (session));
         if (xserver_local_get_vt (xserver) == vt)
-            return display_server;
+            return session;
     }
 
     return NULL;
@@ -188,7 +188,7 @@ seat_xlocal_class_init (SeatXLocalClass *klass)
     seat_class->setup = seat_xlocal_setup;
     seat_class->create_display_server = seat_xlocal_create_display_server;
     seat_class->create_session = seat_xlocal_create_session;
-    seat_class->set_active_display = seat_xlocal_set_active_display;
-    seat_class->get_active_display = seat_xlocal_get_active_display;
+    seat_class->set_active_session = seat_xlocal_set_active_session;
+    seat_class->get_active_session = seat_xlocal_get_active_session;
     seat_class->run_script = seat_xlocal_run_script;
 }
