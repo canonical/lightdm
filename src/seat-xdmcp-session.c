@@ -50,12 +50,12 @@ seat_xdmcp_session_create_display_server (Seat *seat)
 }
 
 static Session *
-seat_xdmcp_session_create_session (Seat *seat, Display *display)
+seat_xdmcp_session_create_session (Seat *seat, DisplayServer *display_server)
 {
     XServerRemote *xserver;
     XSession *session;
 
-    xserver = XSERVER_REMOTE (display_get_display_server (display));
+    xserver = XSERVER_REMOTE (display_server);
 
     session = xsession_new ();
     session_set_remote_host_name (SESSION (session), xserver_get_hostname (XSERVER (xserver)));

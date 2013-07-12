@@ -17,8 +17,8 @@
 #include "guest-account.h"
 
 enum {
-    DISPLAY_ADDED,
-    DISPLAY_REMOVED,
+    SESSION_ADDED,
+    SESSION_REMOVED,
     STOPPED,
     LAST_SIGNAL
 };
@@ -38,8 +38,11 @@ struct SeatPrivate
     /* Name of guest account */
     gchar *guest_username;
 
-    /* The displays for this seat */
-    GList *displays;
+    /* The display servers on this seat */
+    GList *display_servers;
+
+    /* The sessions on this seat */
+    GList *sessions;
 
     /* TRUE if stopping this seat (waiting for displays to stop) */
     gboolean stopping;
@@ -56,8 +59,6 @@ typedef struct
     GType type;
 } SeatModule;
 static GHashTable *seat_modules = NULL;
-
-static Display *create_display (Seat *seat);
 
 void
 seat_register_module (const gchar *name, GType type)
@@ -155,24 +156,24 @@ seat_start (Seat *seat)
 }
 
 GList *
-seat_get_displays (Seat *seat)
+seat_get_sessions (Seat *seat)
 {
     g_return_val_if_fail (seat != NULL, NULL);
-    return seat->priv->displays;
+    return seat->priv->sessions;
 }
 
 void
-seat_set_active_display (Seat *seat, Display *display)
+seat_set_active_session (Seat *seat, Session *session)
 {
     g_return_if_fail (seat != NULL);
-    SEAT_GET_CLASS (seat)->set_active_display (seat, display);
+    SEAT_GET_CLASS (seat)->set_active_session (seat, session);
 }
 
-Display *
-seat_get_active_display (Seat *seat)
+Session *
+seat_get_active_session (Seat *seat)
 {
     g_return_val_if_fail (seat != NULL, NULL);
-    return SEAT_GET_CLASS (seat)->get_active_display (seat);
+    return SEAT_GET_CLASS (seat)->get_active_session (seat);
 }
 
 gboolean
@@ -202,9 +203,9 @@ switch_to_user (Seat *seat, const gchar *username, gboolean unlock)
     GList *link;
 
     /* Switch to active display if it exists */
-    for (link = seat->priv->displays; link; link = link->next)
+    for (link = seat->priv->sessions; link; link = link->next)
     {
-        Display *display = link->data;
+        Session *session = link->data;
 
         if (display_get_is_stopped (display))
             continue;
@@ -253,7 +254,7 @@ display_get_guest_username_cb (Display *display, Seat *seat)
 }
 
 static gboolean
-run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
+run_script (Seat *seat, DisplayServer *display_server, const gchar *script_name, User *user)
 {
     Process *script;
     gboolean result = FALSE;
@@ -286,7 +287,7 @@ run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
     else
         process_set_env (script, "HOME", "/");
 
-    SEAT_GET_CLASS (seat)->run_script (seat, display, script);
+    SEAT_GET_CLASS (seat)->run_script (seat, display_server, script);
 
     if (process_start (script, TRUE))
     {
@@ -306,7 +307,7 @@ run_script (Seat *seat, Display *display, const gchar *script_name, User *user)
 }
 
 static void
-seat_real_run_script (Seat *seat, Display *display, Process *process)
+seat_real_run_script (Seat *seat, DisplayServer *display_server, Process *process)
 {  
 }
 
@@ -378,26 +379,13 @@ display_start_session_cb (Display *display, Seat *seat)
 static void
 session_stopped_cb (Session *session, Seat *seat)
 {
-    Display *display = NULL;
     GList *link;
     const gchar *script;
   
-    /* Work out what display this session is on, it's a bit hacky because we really should know already... */
-    for (link = seat->priv->displays; link; link = link->next)
-    {
-        Display *d = link->data;
-        if (display_get_session (d) == session)
-        {
-            display = d;
-            break;
-        }
-    }
-    g_return_if_fail (display != NULL);
-
     /* Cleanup */
     script = seat_get_string_property (seat, "session-cleanup-script");
     if (script)
-        run_script (seat, display, script, session_get_user (session));
+        run_script (seat, session_get_display_server (session), script, session_get_user (session));
 
     if (seat->priv->guest_username && strcmp (session_get_username (session), seat->priv->guest_username) == 0)
     {
@@ -429,7 +417,7 @@ display_create_display_cb (Display *display, Session *session, Seat *seat)
 
     d = create_display (seat);
     g_signal_connect (d, "ready", G_CALLBACK (display_ready_cb), seat);
-    g_signal_emit (seat, signals[DISPLAY_ADDED], 0, d);
+    g_signal_emit (seat, signals[SESSION_ADDED], 0, d);
 
     display_start_with_session (d, session);
 
@@ -459,7 +447,7 @@ display_stopped_cb (Display *display, Seat *seat)
     g_signal_handlers_disconnect_matched (display, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
     seat->priv->displays = g_list_remove (seat->priv->displays, display);
 
-    g_signal_emit (seat, signals[DISPLAY_REMOVED], 0, display);
+    g_signal_emit (seat, signals[SESSION_REMOVED], 0, display);
 
     /* If no more displays running either start a greeter or stop the seat */
     if (!seat->priv->stopping)
@@ -540,7 +528,7 @@ create_display (Seat *seat)
 static gboolean
 start_display (Seat *seat, Display *display)
 {
-    g_signal_emit (seat, signals[DISPLAY_ADDED], 0, display);
+    g_signal_emit (seat, signals[SESSION_ADDED], 0, display);
 
     /* Switch to this display if currently not looking at anything */
     if (seat_get_active_display (seat) == NULL)
@@ -576,8 +564,6 @@ seat_switch_to_greeter (Seat *seat)
 gboolean
 seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_name)
 {
-    Display *display;
-
     g_return_val_if_fail (seat != NULL, FALSE);
     g_return_val_if_fail (username != NULL, FALSE);
 
@@ -607,8 +593,6 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
 gboolean
 seat_switch_to_guest (Seat *seat, const gchar *session_name)
 {
-    Display *display;
-
     g_return_val_if_fail (seat != NULL, FALSE);
 
     if (!seat->priv->can_switch || !seat_get_allow_guest (seat))
@@ -635,8 +619,6 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
 gboolean
 seat_lock (Seat *seat, const gchar *username)
 {
-    Display *display;
-
     g_return_val_if_fail (seat != NULL, FALSE);
 
     if (!seat->priv->can_switch)
@@ -717,7 +699,6 @@ seat_real_start (Seat *seat)
     gboolean autologin_guest;
     gboolean do_autologin;
     gboolean autologin_in_background;
-    Display *display;
 
     g_debug ("Starting seat");
 
@@ -756,7 +737,7 @@ seat_real_start (Seat *seat)
 }
 
 static void
-seat_real_set_active_display (Seat *seat, Display *display)
+seat_real_set_active_session (Seat *seat, Session *session)
 {
     GList *link;
 
@@ -778,8 +759,8 @@ seat_real_set_active_display (Seat *seat, Display *display)
     }  
 }
 
-static Display *
-seat_real_get_active_display (Seat *seat)
+static Session *
+seat_real_get_active_session (Seat *seat)
 {
     return NULL;
 }
@@ -821,12 +802,18 @@ seat_finalize (GObject *object)
 
     g_hash_table_unref (self->priv->properties);
     g_free (self->priv->guest_username);
-    for (link = self->priv->displays; link; link = link->next)
+    for (link = self->priv->display_servers; link; link = link->next)
     {
-        Display *display = link->data;
-        g_signal_handlers_disconnect_matched (display, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
+        DisplayServer *display_server = link->data;
+        g_signal_handlers_disconnect_matched (display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
     }  
-    g_list_free_full (self->priv->displays, g_object_unref);
+    g_list_free_full (self->priv->display_servers, g_object_unref);
+    for (link = self->priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+        g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
+    }  
+    g_list_free_full (self->priv->sessions, g_object_unref);
 
     G_OBJECT_CLASS (seat_parent_class)->finalize (object);
 }
@@ -838,8 +825,8 @@ seat_class_init (SeatClass *klass)
 
     klass->setup = seat_real_setup;
     klass->start = seat_real_start;
-    klass->set_active_display = seat_real_set_active_display;
-    klass->get_active_display = seat_real_get_active_display;
+    klass->set_active_session = seat_real_set_active_session;
+    klass->get_active_session = seat_real_get_active_session;
     klass->run_script = seat_real_run_script;
     klass->stop = seat_real_stop;
 
@@ -847,22 +834,22 @@ seat_class_init (SeatClass *klass)
 
     g_type_class_add_private (klass, sizeof (SeatPrivate));
 
-    signals[DISPLAY_ADDED] =
-        g_signal_new ("display-added",
+    signals[SESSION_ADDED] =
+        g_signal_new ("session-added",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (SeatClass, display_added),
+                      G_STRUCT_OFFSET (SeatClass, session_added),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__OBJECT,
-                      G_TYPE_NONE, 1, DISPLAY_TYPE);
-    signals[DISPLAY_REMOVED] =
-        g_signal_new ("display-removed",
+                      G_TYPE_NONE, 1, SESSION_TYPE);
+    signals[SESSION_REMOVED] =
+        g_signal_new ("session-removed",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (SeatClass, display_removed),
+                      G_STRUCT_OFFSET (SeatClass, session_removed),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__OBJECT,
-                      G_TYPE_NONE, 1, DISPLAY_TYPE);
+                      G_TYPE_NONE, 1, SESSION_TYPE);
     signals[STOPPED] =
         g_signal_new ("stopped",
                       G_TYPE_FROM_CLASS (klass),

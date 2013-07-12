@@ -45,12 +45,12 @@ seat_xremote_create_display_server (Seat *seat)
 }
 
 static Session *
-seat_xremote_create_session (Seat *seat, Display *display)
+seat_xremote_create_session (Seat *seat, DisplayServer *display_server)
 {
     XServerRemote *xserver;
     XSession *session;
 
-    xserver = XSERVER_REMOTE (display_get_display_server (display));
+    xserver = XSERVER_REMOTE (display_server);
 
     session = xsession_new ();
     session_set_remote_host_name (SESSION (session), xserver_get_hostname (XSERVER (xserver)));
@@ -59,15 +59,15 @@ seat_xremote_create_session (Seat *seat, Display *display)
 }
 
 static void
-seat_xremote_run_script (Seat *seat, Display *display, Process *script)
+seat_xremote_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
     XServerRemote *xserver;
 
-    xserver = XSERVER_REMOTE (display_get_display_server (display));
+    xserver = XSERVER_REMOTE (display_server);
     process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));  
     process_set_env (script, "REMOTE_HOST", xserver_get_hostname (XSERVER (xserver)));
 
-    SEAT_CLASS (seat_xremote_parent_class)->run_script (seat, display, script);
+    SEAT_CLASS (seat_xremote_parent_class)->run_script (seat, display_server, script);
 }
 
 static void

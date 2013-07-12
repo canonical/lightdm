@@ -13,8 +13,6 @@ lightdm_SOURCES = \
 	configuration.h \
 	console-kit.c \
 	console-kit.h \
-	display.c \
-	display.h \
 	display-manager.c \
 	display-manager.h \
 	display-server.c \

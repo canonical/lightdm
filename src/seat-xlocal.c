@@ -106,13 +106,13 @@ seat_xlocal_create_display_server (Seat *seat)
 }
 
 static Session *
-seat_xlocal_create_session (Seat *seat, Display *display)
+seat_xlocal_create_session (Seat *seat, DisplayServer *display_server)
 {
     XServerLocal *xserver;
     XSession *session;
     gchar *t;
 
-    xserver = XSERVER_LOCAL (display_get_display_server (display));
+    xserver = XSERVER_LOCAL (display_server);
 
     session = xsession_new ();
     t = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (xserver));
@@ -129,17 +129,17 @@ seat_xlocal_create_session (Seat *seat, Display *display)
 }
 
 static void
-seat_xlocal_set_active_display (Seat *seat, Display *display)
+seat_xlocal_set_active_display_server (Seat *seat, DisplayServer)
 {
-    gint vt = xserver_local_get_vt (XSERVER_LOCAL (display_get_display_server (display)));
+    gint vt = xserver_local_get_vt (XSERVER_LOCAL (display_server));
     if (vt >= 0)
         vt_set_active (vt);
 
-    SEAT_CLASS (seat_xlocal_parent_class)->set_active_display (seat, display);
+    SEAT_CLASS (seat_xlocal_parent_class)->set_active_display_server (seat, display_server);
 }
 
-static Display *
-seat_xlocal_get_active_display (Seat *seat)
+static DisplayServer *
+seat_xlocal_get_active_display_server (Seat *seat)
 {
     gint vt;
     GList *link;
@@ -148,31 +148,31 @@ seat_xlocal_get_active_display (Seat *seat)
     if (vt < 0)
         return NULL;
 
-    for (link = seat_get_displays (seat); link; link = link->next)
+    for (link = seat_get_display_servers (seat); link; link = link->next)
     {
-        Display *display = link->data;
+        DisplayServer *display_server = link->data;
         XServerLocal *xserver;
 
-        xserver = XSERVER_LOCAL (display_get_display_server (display));
+        xserver = XSERVER_LOCAL (display_server);
         if (xserver_local_get_vt (xserver) == vt)
-            return display;
+            return display_server;
     }
 
     return NULL;
 }
 
 static void
-seat_xlocal_run_script (Seat *seat, Display *display, Process *script)
+seat_xlocal_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
     const gchar *path;
     XServerLocal *xserver;
 
-    xserver = XSERVER_LOCAL (display_get_display_server (display));
+    xserver = XSERVER_LOCAL (display_server);
     path = xserver_local_get_authority_file_path (xserver);
     process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));
     process_set_env (script, "XAUTHORITY", path);
 
-    SEAT_CLASS (seat_xlocal_parent_class)->run_script (seat, display, script);
+    SEAT_CLASS (seat_xlocal_parent_class)->run_script (seat, display_server, script);
 }
 
 static void

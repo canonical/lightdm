@@ -66,7 +66,7 @@ seat_xvnc_create_display_server (Seat *seat)
 }
 
 static Session *
-seat_xvnc_create_session (Seat *seat, Display *display)
+seat_xvnc_create_session (Seat *seat, DisplayServer *display_server)
 {
     XServerXVNC *xserver;
     XSession *session;
@@ -74,7 +74,7 @@ seat_xvnc_create_session (Seat *seat, Display *display)
     gchar *hostname;
     gchar *t;
 
-    xserver = XSERVER_XVNC (display_get_display_server (display));
+    xserver = XSERVER_XVNC (display_server);
 
     session = xsession_new ();
     address = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (SEAT_XVNC (seat)->priv->connection, NULL));
@@ -86,14 +86,14 @@ seat_xvnc_create_session (Seat *seat, Display *display)
 }
 
 static void
-seat_xvnc_run_script (Seat *seat, Display *display, Process *script)
+seat_xvnc_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
     XServerXVNC *xserver;
     GInetSocketAddress *address;
     gchar *hostname;
     const gchar *path;
 
-    xserver = XSERVER_XVNC (display_get_display_server (display));
+    xserver = XSERVER_XVNC (display_server);
 
     address = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (SEAT_XVNC (seat)->priv->connection, NULL));
     hostname = g_inet_address_to_string (g_inet_socket_address_get_address (address));
@@ -105,7 +105,7 @@ seat_xvnc_run_script (Seat *seat, Display *display, Process *script)
 
     g_free (hostname);
 
-    SEAT_CLASS (seat_xvnc_parent_class)->run_script (seat, display, script);
+    SEAT_CLASS (seat_xvnc_parent_class)->run_script (seat, display_server, script);
 }
 
 static void

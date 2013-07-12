@@ -349,11 +349,11 @@ handle_seat_get_property (GDBusConnection       *connection,
         GList *link;
 
         builder = g_variant_builder_new (G_VARIANT_TYPE ("ao"));
-        for (link = seat_get_displays (seat); link; link = link->next)
+        for (link = seat_get_sessions (seat); link; link = link->next)
         {
-            Display *display = link->data;
+            Session *session = link->data;
             BusEntry *entry;
-            entry = g_hash_table_lookup (session_bus_entries, display_get_session (display));
+            entry = g_hash_table_lookup (session_bus_entries, session);
             if (entry)
                 g_variant_builder_add_value (builder, g_variant_new_object_path (entry->path));
         }
@@ -428,13 +428,13 @@ get_seat_for_session (Session *session)
     for (seat_link = display_manager_get_seats (display_manager); seat_link; seat_link = seat_link->next)
     {
         Seat *seat = seat_link->data;
-        GList *display_link;
+        GList *session_link;
 
-        for (display_link = seat_get_displays (seat); display_link; display_link = display_link->next)
+        for (session_link = seat_get_sessions (seat); session_link; session_link = session_link->next)
         {
-            Display *display = display_link->data;
+            Session *s = session_link->data;
 
-            if (display_get_session (display) == session)
+            if (s == session)
                 return seat;
         }
     }
@@ -521,13 +521,15 @@ bus_entry_free (gpointer data)
 }
 
 static gboolean
-start_session_cb (Display *display, Seat *seat)
+session_added_cb (Seat *seat, Session *session)
 {
-    Session *session;
-    BusEntry *seat_entry;
+    static const GDBusInterfaceVTable session_vtable =
+    {
+        handle_session_call,
+        handle_session_get_property
+    };
+    BusEntry *seat_entry, *entry;
     gchar *path;
-
-    session = display_get_session (display);
 
     /* Set environment variables when session runs */
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
@@ -536,31 +538,6 @@ start_session_cb (Display *display, Seat *seat)
     session_index++;
     session_set_env (session, "XDG_SESSION_PATH", path);
     g_object_set_data_full (G_OBJECT (session), "XDG_SESSION_PATH", path, g_free);
-
-    return FALSE;
-}
-
-static void
-session_stopped_cb (Session *session, Seat *seat)
-{
-    g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
-    g_hash_table_remove (session_bus_entries, session);
-}
-
-static gboolean
-session_started_cb (Display *display, Seat *seat)
-{
-    static const GDBusInterfaceVTable session_vtable =
-    {
-        handle_session_call,
-        handle_session_get_property
-    };
-    Session *session;
-    BusEntry *seat_entry, *entry;
-
-    session = display_get_session (display);
-
-    g_signal_connect (session, "stopped", G_CALLBACK (session_stopped_cb), seat);
 
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
     entry = bus_entry_new (g_object_get_data (G_OBJECT (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL, "SessionRemoved");
@@ -586,10 +563,10 @@ session_started_cb (Display *display, Seat *seat)
 }
 
 static void
-display_added_cb (Seat *seat, Display *display)
+session_removed_cb (Session *session, Seat *seat)
 {
-    g_signal_connect (display, "start-session", G_CALLBACK (start_session_cb), seat);
-    g_signal_connect_after (display, "start-session", G_CALLBACK (session_started_cb), seat);
+    g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
+    g_hash_table_remove (session_bus_entries, session);
 }
 
 static void
@@ -604,9 +581,10 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
     gchar *path;
     BusEntry *entry;
 
-    g_signal_connect (seat, "display-added", G_CALLBACK (display_added_cb), NULL);
-    for (link = seat_get_displays (seat); link; link = link->next)
-        display_added_cb (seat, (Display *) link->data);
+    g_signal_connect (seat, "session-added", G_CALLBACK (session_added_cb), NULL);
+    g_signal_connect (seat, "session-removed", G_CALLBACK (session_added_cb), NULL);
+    for (link = seat_get_sessions (seat); link; link = link->next)
+        session_added_cb (seat, (Session *) link->data);
 
     path = g_strdup_printf ("/org/freedesktop/DisplayManager/Seat%d", seat_index);
     seat_index++;

@@ -70,8 +70,8 @@ struct SeatUnityPrivate
     /* TRUE if using VT switching fallback */
     gboolean use_vt_switching;
 
-    /* The currently visible display */
-    Display *active_display;
+    /* The currently visible session */
+    Session *active_session;
 };
 
 G_DEFINE_TYPE (SeatUnity, seat_unity, SEAT_TYPE);
@@ -460,14 +460,14 @@ seat_unity_create_display_server (Seat *seat)
 }
 
 static Session *
-seat_unity_create_session (Seat *seat, Display *display)
+seat_unity_create_session (Seat *seat, DisplayServer *display_server)
 {
     XServerLocal *xserver;
     XSession *session;
     int vt_number;
     gchar *t;
 
-    xserver = XSERVER_LOCAL (display_get_display_server (display));
+    xserver = XSERVER_LOCAL (display_server);
 
     if (SEAT_UNITY (seat)->priv->use_vt_switching)
         vt_number = xserver_local_get_vt (xserver);
@@ -489,7 +489,7 @@ seat_unity_create_session (Seat *seat, Display *display)
 }
 
 static void
-seat_unity_set_active_display (Seat *seat, Display *display)
+seat_unity_set_active_session (Seat *seat, Session *session)
 {
     XServerLocal *xserver;
     const gchar *id;
@@ -497,7 +497,7 @@ seat_unity_set_active_display (Seat *seat, Display *display)
     /* If no compositor, have to use VT switching */
     if (SEAT_UNITY (seat)->priv->use_vt_switching)
     {
-        gint vt = xserver_local_get_vt (XSERVER_LOCAL (display_get_display_server (display)));
+        gint vt = xserver_local_get_vt (XSERVER_LOCAL (session_get_display_server (session)));
         if (vt >= 0)
             vt_set_active (vt);
 
@@ -507,7 +507,7 @@ seat_unity_set_active_display (Seat *seat, Display *display)
 
     if (display == SEAT_UNITY (seat)->priv->active_display)
         return;
-    SEAT_UNITY (seat)->priv->active_display = display;
+    SEAT_UNITY (seat)->priv->active_session = session;
 
     xserver = XSERVER_LOCAL (display_get_display_server (display));
     id = xserver_local_get_mir_id (xserver);
@@ -515,11 +515,11 @@ seat_unity_set_active_display (Seat *seat, Display *display)
     g_debug ("Switching to Mir session %s", id);
     write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_ACTIVE_SESSION, id, strlen (id));
 
-    SEAT_CLASS (seat_unity_parent_class)->set_active_display (seat, display);
+    SEAT_CLASS (seat_unity_parent_class)->set_active_session (seat, session);
 }
 
-static Display *
-seat_unity_get_active_display (Seat *seat)
+static Session *
+seat_unity_get_active_session (Seat *seat)
 {
     if (SEAT_UNITY (seat)->priv->use_vt_switching)
     {
@@ -529,24 +529,24 @@ seat_unity_get_active_display (Seat *seat)
         if (vt < 0)
             return NULL;
 
-        for (link = seat_get_displays (seat); link; link = link->next)
+        for (link = seat_get_sessions (seat); link; link = link->next)
         {
-            Display *display = link->data;
+            Session *session = link->data;
             XServerLocal *xserver;
 
-            xserver = XSERVER_LOCAL (display_get_display_server (display));
+            xserver = XSERVER_LOCAL (session_get_display_server (session));
             if (xserver_local_get_vt (xserver) == vt)
-                return display;
+                return session;
         }
 
         return NULL;
     }
 
-    return SEAT_UNITY (seat)->priv->active_display;
+    return SEAT_UNITY (seat)->priv->active_session;
 }
 
 static void
-seat_unity_run_script (Seat *seat, Display *display, Process *script)
+seat_unity_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
     const gchar *path;
     XServerLocal *xserver;
@@ -556,7 +556,7 @@ seat_unity_run_script (Seat *seat, Display *display, Process *script)
     process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));
     process_set_env (script, "XAUTHORITY", path);
 
-    SEAT_CLASS (seat_unity_parent_class)->run_script (seat, display, script);
+    SEAT_CLASS (seat_unity_parent_class)->run_script (seat, display_server, script);
 }
 
 static void
@@ -633,8 +633,8 @@ seat_unity_class_init (SeatUnityClass *klass)
     seat_class->start = seat_unity_start;
     seat_class->create_display_server = seat_unity_create_display_server;
     seat_class->create_session = seat_unity_create_session;
-    seat_class->set_active_display = seat_unity_set_active_display;
-    seat_class->get_active_display = seat_unity_get_active_display;
+    seat_class->set_active_session = seat_unity_set_active_session;
+    seat_class->get_active_session = seat_unity_get_active_session;
     seat_class->run_script = seat_unity_run_script;
     seat_class->stop = seat_unity_stop;
     seat_class->display_removed = seat_unity_display_removed;

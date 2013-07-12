@@ -13,7 +13,8 @@
 #define SEAT_H_
 
 #include <glib-object.h>
-#include "display.h"
+#include "display-server.h"
+#include "session.h"
 #include "process.h"
 
 G_BEGIN_DECLS
@@ -35,17 +36,17 @@ typedef struct
 {
     GObjectClass parent_class;
 
-    void (*setup)(Seat *seat);    
+    void (*setup)(Seat *seat);
     gboolean (*start)(Seat *seat);
     DisplayServer *(*create_display_server) (Seat *seat);
-    Session *(*create_session) (Seat *seat, Display *display);
-    void (*set_active_display)(Seat *seat, Display *display);
-    Display *(*get_active_display)(Seat *seat);
-    void (*run_script)(Seat *seat, Display *display, Process *script);
+    Session *(*create_session) (Seat *seat, DisplayServer *display_server);
+    void (*set_active_session)(Seat *seat, Session *session);
+    Session *(*get_active_session)(Seat *seat);
+    void (*run_script)(Seat *seat, DisplayServer *display_server, Process *script);
     void (*stop)(Seat *seat);
 
-    void (*display_added)(Seat *seat, Display *display);
-    void (*display_removed)(Seat *seat, Display *display);
+    void (*session_added)(Seat *seat, Session *session);
+    void (*session_removed)(Seat *seat, Session *session);
     void (*stopped)(Seat *seat);
 } SeatClass;
 
@@ -71,11 +72,11 @@ void seat_set_share_display_server (Seat *seat, gboolean share_display_server);
 
 gboolean seat_start (Seat *seat);
 
-GList *seat_get_displays (Seat *seat);
+GList *seat_get_sessions (Seat *seat);
 
-void seat_set_active_display (Seat *seat, Display *display);
+void seat_set_active_session (Seat *seat, Session *session);
 
-Display *seat_get_active_display (Seat *seat);
+Session *seat_get_active_session (Seat *seat);
 
 gboolean seat_get_can_switch (Seat *seat);
 
