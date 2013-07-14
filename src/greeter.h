@@ -31,7 +31,7 @@ typedef struct
 {
     GObjectClass parent_class;
     void (*connected)(Greeter *greeter);
-    Session *(*start_authentication)(Greeter *greeter, const gchar *username);
+    Session *(*create_session)(Greeter *greeter);
     gboolean (*start_session)(Greeter *greeter, SessionType type, const gchar *session);
 } GreeterClass;
 
@@ -43,13 +43,15 @@ void greeter_set_allow_guest (Greeter *greeter, gboolean allow_guest);
 
 void greeter_set_hint (Greeter *greeter, const gchar *name, const gchar *value);
 
+Session *greeter_get_session (Greeter *greeter);
+
 gboolean greeter_get_guest_authenticated (Greeter *greeter);
 
 Session *greeter_get_authentication_session (Greeter *greeter);
 
 gboolean greeter_get_start_session (Greeter *greeter);
 
-gboolean greeter_start (Greeter *greeter, const gchar *service, const gchar *username);
+gboolean greeter_start (Greeter *greeter);
 
 G_END_DECLS
 

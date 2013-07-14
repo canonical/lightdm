@@ -16,6 +16,7 @@
 #include "seat.h"
 #include "configuration.h"
 #include "guest-account.h"
+#include "greeter.h"
 
 enum {
     SESSION_ADDED,
@@ -44,6 +45,9 @@ struct SeatPrivate
 
     /* The sessions on this seat */
     GList *sessions;
+
+    /* Greeter connection */
+    Greeter *greeter;
 
     /* TRUE if stopping this seat (waiting for displays to stop) */
     gboolean stopping;
@@ -344,9 +348,20 @@ session_stopped_cb (Session *session, Seat *seat)
 
     g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
     seat->priv->sessions = g_list_remove (seat->priv->sessions, session);
-    g_object_unref (session);
 
     check_stopped (seat);
+  
+    /* If this is the greeter session then start the user session */
+    if (seat->priv->greeter &&
+        session == greeter_get_session (seat->priv->greeter) &&
+        seat->priv->share_display_server)
+    {
+        Session *s;
+        s = greeter_get_authentication_session (seat->priv->greeter);
+        session_run (s);
+    }
+
+    g_object_unref (session);
 }
 
 static Session *
@@ -493,7 +508,10 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
         if (session_get_display_server (session) == display_server)
         {
             g_signal_connect (session, "authentication-complete", G_CALLBACK (session_authentication_complete_cb), seat);
-            session_start (session);
+            if (seat->priv->greeter && greeter_get_session (seat->priv->greeter) == session)
+                greeter_start (seat->priv->greeter);
+            else
+                session_start (session);
             used_display_server = TRUE;
         }
     }
@@ -503,6 +521,12 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
         g_debug ("Stopping not required display server");
         display_server_stop (display_server);
     }
+}
+
+static Session *
+greeter_create_session_cb (Greeter *greeter, Seat *seat)
+{
+    return create_session (seat, NULL); // FIXME display_server
 }
 
 static gchar **
@@ -585,6 +609,37 @@ get_session_argv (const gchar *sessions_dir, const gchar *session_name, const gc
 }
 
 static gboolean
+greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
+{
+    /* If can re-use the display server, stop the greeter first */
+    if (seat->priv->share_display_server)
+    {
+        Session *s;
+        gchar *sessions_dir;
+        gchar **argv;
+
+        s = greeter_get_authentication_session (seat->priv->greeter);
+
+        /* Run on the same display server */
+        session_set_display_server (s, session_get_display_server (greeter_get_session (seat->priv->greeter)));
+
+        sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
+        argv = get_session_argv (sessions_dir, session_name, seat_get_string_property (seat, "session-wrapper"));
+        g_free (sessions_dir);
+        session_set_argv (s, argv);
+        g_strfreev (argv);
+
+        seat->priv->sessions = g_list_append (seat->priv->sessions, g_object_ref (s));
+
+        return TRUE;
+    }
+
+    /* Start a new display server for this session */
+
+    return TRUE;
+}
+
+static gboolean
 seat_real_start (Seat *seat)
 {
     const gchar *autologin_username;
@@ -620,10 +675,10 @@ seat_real_start (Seat *seat)
     display_server = create_display_server (seat);
     g_signal_connect (display_server, "ready", G_CALLBACK (display_server_ready_cb), seat);
 
-    /* Start new greeter or autologin session */
     session = create_session (seat, display_server);
     session_set_display_server (session, display_server);
 
+    /* Autologin or start a greeter */
     if (autologin_timeout == 0 && autologin_guest)
     {
         session_set_pam_service (session, AUTOLOGIN_SERVICE);
@@ -641,6 +696,21 @@ seat_real_start (Seat *seat)
         sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
         wrapper = seat_get_string_property (seat, "session-wrapper");
         session_name = user_get_xsession (user);
+    }
+    else
+    {
+        gchar *greeter_user;
+
+        session_set_pam_service (session, GREETER_SERVICE);
+        greeter_user = config_get_string (config_get_instance (), "LightDM", "greeter-user");
+        session_set_username (session, greeter_user);
+        g_free (greeter_user);
+        sessions_dir = config_get_string (config_get_instance (), "LightDM", "greeters-directory");
+        wrapper = seat_get_string_property (seat, "session-wrapper");
+
+        seat->priv->greeter = greeter_new (session, USER_SERVICE, AUTOLOGIN_SERVICE);
+        g_signal_connect (seat->priv->greeter, "create-session", G_CALLBACK (greeter_create_session_cb), seat);
+        g_signal_connect (seat->priv->greeter, "start-session", G_CALLBACK (greeter_start_session_cb), seat);
     }
 
     if (!session_name)

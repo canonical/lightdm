@@ -23,7 +23,7 @@
 
 enum {
     CONNECTED,
-    START_AUTHENTICATION,
+    CREATE_SESSION,
     START_SESSION,
     LAST_SIGNAL
 };
@@ -361,7 +361,7 @@ handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
     reset_session (greeter);
 
     greeter->priv->authentication_sequence_number = sequence_number;
-    g_signal_emit (greeter, signals[START_AUTHENTICATION], 0, username, &greeter->priv->authentication_session);
+    g_signal_emit (greeter, signals[CREATE_SESSION], 0, &greeter->priv->authentication_session);
     if (!greeter->priv->authentication_session)
     {
         send_end_authentication (greeter, sequence_number, "", PAM_USER_UNKNOWN);
@@ -469,7 +469,7 @@ handle_login_remote (Greeter *greeter, const gchar *session_name, const gchar *u
 
     greeter->priv->authentication_sequence_number = sequence_number;
     greeter->priv->remote_session = g_strdup (session_name);
-    g_signal_emit (greeter, signals[START_AUTHENTICATION], 0, username, &greeter->priv->authentication_session);
+    g_signal_emit (greeter, signals[CREATE_SESSION], 0, &greeter->priv->authentication_session);
     if (greeter->priv->authentication_session)
     {
         g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
@@ -805,6 +805,13 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     return TRUE;
 }
 
+Session *
+greeter_get_session (Greeter *greeter)
+{
+    g_return_val_if_fail (greeter != NULL, NULL);
+    return greeter->priv->session;
+}
+
 gboolean
 greeter_get_guest_authenticated (Greeter *greeter)
 {
@@ -827,7 +834,7 @@ greeter_get_start_session (Greeter *greeter)
 }
 
 gboolean
-greeter_start (Greeter *greeter, const gchar *service, const gchar *username)
+greeter_start (Greeter *greeter)
 {
     int to_greeter_pipe[2], from_greeter_pipe[2];
     gboolean result = FALSE;
@@ -858,8 +865,6 @@ greeter_start (Greeter *greeter, const gchar *service, const gchar *username)
     fcntl (to_greeter_pipe[1], F_SETFD, FD_CLOEXEC);
     fcntl (from_greeter_pipe[0], F_SETFD, FD_CLOEXEC);
 
-    session_set_pam_service (greeter->priv->session, service);
-    session_set_username (greeter->priv->session, username);
     result = session_start (greeter->priv->session);
 
     /* Close the session ends of the pipe */
@@ -870,7 +875,7 @@ greeter_start (Greeter *greeter, const gchar *service, const gchar *username)
 }
 
 static Session *
-greeter_real_start_authentication (Greeter *greeter, const gchar *username)
+greeter_real_create_session (Greeter *greeter)
 {
     return NULL;
 }
@@ -921,7 +926,7 @@ greeter_class_init (GreeterClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    klass->start_authentication = greeter_real_start_authentication;
+    klass->create_session = greeter_real_create_session;
     klass->start_session = greeter_real_start_session;
     object_class->finalize = greeter_finalize;
 
@@ -934,15 +939,15 @@ greeter_class_init (GreeterClass *klass)
                       g_cclosure_marshal_VOID__VOID,
                       G_TYPE_NONE, 0);
 
-    signals[START_AUTHENTICATION] =
-        g_signal_new ("start-authentication",
+    signals[CREATE_SESSION] =
+        g_signal_new ("create-session",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (GreeterClass, start_authentication),
+                      G_STRUCT_OFFSET (GreeterClass, create_session),
                       g_signal_accumulator_first_wins,
                       NULL,
-                      ldm_marshal_OBJECT__STRING,
-                      SESSION_TYPE, 1, G_TYPE_STRING);
+                      ldm_marshal_OBJECT__VOID,
+                      SESSION_TYPE, 0);
 
     signals[START_SESSION] =
         g_signal_new ("start-session",
