@@ -581,11 +581,6 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
     gchar *path;
     BusEntry *entry;
 
-    g_signal_connect (seat, "session-added", G_CALLBACK (session_added_cb), NULL);
-    g_signal_connect (seat, "session-removed", G_CALLBACK (session_added_cb), NULL);
-    for (link = seat_get_sessions (seat); link; link = link->next)
-        session_added_cb (seat, (Session *) link->data);
-
     path = g_strdup_printf ("/org/freedesktop/DisplayManager/Seat%d", seat_index);
     seat_index++;
 
@@ -608,6 +603,11 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
                                    "SeatAdded",
                                    g_variant_new ("(o)", entry->path),
                                    NULL);
+
+    g_signal_connect (seat, "session-added", G_CALLBACK (session_added_cb), NULL);
+    g_signal_connect (seat, "session-removed", G_CALLBACK (session_added_cb), NULL);
+    for (link = seat_get_sessions (seat); link; link = link->next)
+        session_added_cb (seat, (Session *) link->data);
 }
 
 static void

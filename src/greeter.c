@@ -385,7 +385,11 @@ handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
     }
 
     /* Run the session process */
-    session_start (greeter->priv->authentication_session, service, username, TRUE, is_interactive, FALSE);
+    session_set_pam_service (greeter->priv->authentication_session, service);
+    session_set_username (greeter->priv->authentication_session, username);
+    session_set_do_authenticate (greeter->priv->authentication_session, TRUE);
+    session_set_is_interactive (greeter->priv->authentication_session, is_interactive);
+    session_start (greeter->priv->authentication_session);
 }
 
 static void
@@ -472,7 +476,12 @@ handle_login_remote (Greeter *greeter, const gchar *session_name, const gchar *u
         g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "authentication-complete", G_CALLBACK (authentication_complete_cb), greeter);
 
         /* Run the session process */
-        session_start (greeter->priv->authentication_session, service, username, TRUE, TRUE, TRUE);
+        session_set_pam_service (greeter->priv->authentication_session, service);
+        session_set_username (greeter->priv->authentication_session, username);
+        session_set_do_authenticate (greeter->priv->authentication_session, TRUE);
+        session_set_is_interactive (greeter->priv->authentication_session, TRUE);
+        session_set_is_guest (greeter->priv->authentication_session, TRUE);
+        session_start (greeter->priv->authentication_session);
     }
 
     g_free (service);
@@ -849,7 +858,9 @@ greeter_start (Greeter *greeter, const gchar *service, const gchar *username)
     fcntl (to_greeter_pipe[1], F_SETFD, FD_CLOEXEC);
     fcntl (from_greeter_pipe[0], F_SETFD, FD_CLOEXEC);
 
-    result = session_start (greeter->priv->session, service, username, FALSE, FALSE, FALSE);
+    session_set_pam_service (greeter->priv->session, service);
+    session_set_username (greeter->priv->session, username);
+    result = session_start (greeter->priv->session);
 
     /* Close the session ends of the pipe */
     close (to_greeter_pipe[0]);

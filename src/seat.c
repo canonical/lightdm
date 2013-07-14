@@ -14,6 +14,7 @@
 #include <sys/wait.h>
 
 #include "seat.h"
+#include "configuration.h"
 #include "guest-account.h"
 
 enum {
@@ -50,6 +51,11 @@ struct SeatPrivate
     /* TRUE if stopped */
     gboolean stopped;
 };
+
+/* PAM services to use */
+#define GREETER_SERVICE   "lightdm-greeter"
+#define USER_SERVICE      "lightdm"
+#define AUTOLOGIN_SERVICE "lightdm-autologin"
 
 G_DEFINE_TYPE (Seat, seat, G_TYPE_OBJECT);
 
@@ -281,24 +287,6 @@ emit_upstart_signal (const gchar *signal)
 }
 
 static void
-session_stopped_cb (Session *session, Seat *seat)
-{
-    GList *link;
-    const gchar *script;
-  
-    /* Cleanup */
-    script = seat_get_string_property (seat, "session-cleanup-script");
-    if (script)
-        run_script (seat, session_get_display_server (session), script, session_get_user (session));
-
-    if (seat->priv->guest_username && strcmp (session_get_username (session), seat->priv->guest_username) == 0)
-    {
-        g_free (seat->priv->guest_username);
-        seat->priv->guest_username = NULL;
-    }
-}
-
-static void
 check_stopped (Seat *seat)
 {
     if (seat->priv->stopping &&
@@ -312,10 +300,57 @@ check_stopped (Seat *seat)
     }
 }
 
+static void
+display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
+{
+    g_signal_handlers_disconnect_matched (display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
+    seat->priv->display_servers = g_list_remove (seat->priv->display_servers, display_server);
+    g_object_unref (display_server);
+}
+
 static DisplayServer *
 create_display_server (Seat *seat)
 {
-    return SEAT_GET_CLASS (seat)->create_display_server (seat);
+    DisplayServer *display_server;
+
+    display_server = SEAT_GET_CLASS (seat)->create_display_server (seat);
+    seat->priv->display_servers = g_list_append (seat->priv->display_servers, display_server);
+    g_signal_connect (display_server, "stopped", G_CALLBACK (display_server_stopped_cb), seat);
+
+    return display_server;
+}
+
+static void
+session_stopped_cb (Session *session, Seat *seat)
+{
+    const gchar *script;
+  
+    /* Cleanup */
+    script = seat_get_string_property (seat, "session-cleanup-script");
+    if (script)
+        run_script (seat, session_get_display_server (session), script, session_get_user (session));
+
+    if (seat->priv->guest_username && strcmp (session_get_username (session), seat->priv->guest_username) == 0)
+    {
+        g_free (seat->priv->guest_username);
+        seat->priv->guest_username = NULL;
+    }
+
+    g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
+    seat->priv->sessions = g_list_remove (seat->priv->sessions, session);
+    g_object_unref (session);
+}
+
+static Session *
+create_session (Seat *seat, DisplayServer *display_server) // FIXME: Do we need the display_server?
+{
+    Session *session;
+
+    session = SEAT_GET_CLASS (seat)->create_session (seat, display_server);
+    seat->priv->sessions = g_list_append (seat->priv->sessions, session);
+    g_signal_connect (session, "stopped", G_CALLBACK (session_stopped_cb), seat);
+
+    return session;
 }
 
 gboolean
@@ -419,6 +454,117 @@ seat_real_setup (Seat *seat)
 {
 }
 
+static void
+session_authentication_complete_cb (Session *session, Seat *seat)
+{
+    session_run (session);
+}
+
+static void
+display_server_ready_cb (DisplayServer *display_server, Seat *seat)
+{
+    GList *link;
+    gboolean used_display_server = FALSE;
+
+    /* Start the sessions waiting for this display server */
+    for (link = seat->priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+
+        if (session_get_display_server (session) == display_server)
+        {
+            g_signal_connect (session, "authentication-complete", G_CALLBACK (session_authentication_complete_cb), seat);
+            session_start (session);
+            used_display_server = TRUE;
+        }
+    }
+
+    if (!used_display_server)
+    {
+        g_debug ("Stopping not required display server");
+        display_server_stop (display_server);
+    }
+}
+
+static gchar **
+get_session_argv_from_filename (const gchar *filename, const gchar *session_wrapper)
+{
+    GKeyFile *session_desktop_file;
+    gboolean result;
+    int argc;
+    gchar *command = NULL, **argv, *path;
+    GError *error = NULL;
+
+    /* Read the command from the .desktop file */
+    session_desktop_file = g_key_file_new ();
+    result = g_key_file_load_from_file (session_desktop_file, filename, G_KEY_FILE_NONE, &error);
+    if (error)
+        g_debug ("Failed to load session file %s: %s", filename, error->message);
+    g_clear_error (&error);
+    if (result)
+    {
+        command = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
+        if (!command)
+            g_debug ("No command in session file %s", filename);
+    }
+    g_key_file_free (session_desktop_file);
+
+    if (!command)
+        return NULL;
+
+    /* If configured, run sessions through a wrapper */
+    if (session_wrapper)
+    {
+        argv = g_malloc (sizeof (gchar *) * 3);
+        path = g_find_program_in_path (session_wrapper);
+        argv[0] = path ? path : g_strdup (session_wrapper);
+        argv[1] = command;
+        argv[2] = NULL;
+        return argv;
+    }
+
+    /* Split command into an array listing and make command absolute */
+    result = g_shell_parse_argv (command, &argc, &argv, &error);
+    if (error)
+        g_debug ("Invalid session command '%s': %s", command, error->message);
+    g_clear_error (&error);
+    g_free (command);
+    if (!result)
+        return NULL;
+    path = g_find_program_in_path (argv[0]);
+    if (path)
+    {
+        g_free (argv[0]);
+        argv[0] = path;
+    }
+  
+    return argv;
+}
+
+static gchar **
+get_session_argv (const gchar *sessions_dir, const gchar *session_name, const gchar *session_wrapper)
+{
+    gchar **dirs, **argv;
+    int i;
+
+    dirs = g_strsplit (sessions_dir, ":", -1);
+    for (i = 0; dirs[i]; i++)
+    {
+        gchar *filename, *path;
+
+        filename = g_strdup_printf ("%s.desktop", session_name);
+        path = g_build_filename (dirs[i], filename, NULL);
+        g_free (filename);
+        argv = get_session_argv_from_filename (path, session_wrapper);
+        g_free (path);
+        if (argv)
+            break;
+    }
+    g_strfreev (dirs);
+
+    return argv;
+}
+
 static gboolean
 seat_real_start (Seat *seat)
 {
@@ -427,10 +573,54 @@ seat_real_start (Seat *seat)
     gboolean autologin_guest;
     gboolean do_autologin;
     gboolean autologin_in_background;
+    const gchar *greeter_session;
+    const gchar *user_session;
+    Session *session;
+    DisplayServer *display_server;
+    User *user;
+    gchar *sessions_dir;
+    const gchar *wrapper;
+    const gchar *session_name;
+    gchar **argv;
 
     g_debug ("Starting seat");
 
-    // FIXME
+    /* Get autologin settings */
+    autologin_username = seat_get_string_property (seat, "autologin-user");
+    if (g_strcmp0 (autologin_username, "") == 0)
+        autologin_username = NULL;
+    autologin_timeout = seat_get_integer_property (seat, "autologin-user-timeout");
+    autologin_guest = seat_get_boolean_property (seat, "autologin-guest");
+    autologin_in_background = seat_get_boolean_property (seat, "autologin-in-background");
+    do_autologin = autologin_username != NULL || autologin_guest;
+
+    greeter_session = seat_get_string_property (seat, "greeter-session");
+    user_session = seat_get_string_property (seat, "user-session");
+
+    /* Start display server to show session on */
+    display_server = create_display_server (seat);
+    g_signal_connect (display_server, "ready", G_CALLBACK (display_server_ready_cb), seat);
+
+    /* Start new greeter or autologin session */
+    session = create_session (seat, display_server);
+    session_set_display_server (session, display_server);
+    session_set_pam_service (session, AUTOLOGIN_SERVICE);
+    session_set_username (session, autologin_username);
+    session_set_do_authenticate (session, TRUE);
+    session_set_is_interactive (session, FALSE);
+    session_set_is_guest (session, FALSE);
+    user = session_get_user (session);
+    sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
+    wrapper = seat_get_string_property (seat, "session-wrapper");
+    session_name = user_get_xsession (user);
+    if (!session_name)
+        session_name = user_session;
+    argv = get_session_argv (sessions_dir, session_name, wrapper);
+    g_free (sessions_dir);
+    session_set_argv (session, argv);
+    g_strfreev (argv);
+
+    display_server_start (display_server);
 }
 
 static void
