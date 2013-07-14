@@ -35,13 +35,26 @@ static void
 xsession_set_display_server (Session *session, DisplayServer *display_server)
 {
     XServer *xserver;
+    gint vt;
     XAuthority *authority;
 
     xserver = XSERVER (display_server);
 
+    vt = display_server_get_vt (display_server);
+    if (vt > 0)
+    {
+        gchar *t;
+
+        t = g_strdup_printf ("/dev/tty%d", vt);
+        session_set_tty (session, t);
+        session_set_env (session, "XDG_VTNR", t);
+        g_free (t);
+    }
+
     session_set_env (session, "DISPLAY", xserver_get_address (xserver));
     session_set_tty (session, xserver_get_address (xserver));
     session_set_xdisplay (session, xserver_get_address (xserver));
+    session_set_remote_host_name (XSESSION (session), xserver_get_hostname (xserver));
     authority = xserver_get_authority (xserver);
     if (authority)
         session_set_xauthority (session, authority, config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"));

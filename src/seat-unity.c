@@ -460,30 +460,12 @@ seat_unity_create_display_server (Seat *seat)
 }
 
 static Session *
-seat_unity_create_session (Seat *seat, DisplayServer *display_server)
+seat_unity_create_session (Seat *seat)
 {
-    XServerLocal *xserver;
     XSession *session;
-    int vt_number;
-    gchar *t;
-
-    xserver = XSERVER_LOCAL (display_server);
-
-    if (SEAT_UNITY (seat)->priv->use_vt_switching)
-        vt_number = xserver_local_get_vt (xserver);
-    else
-        vt_number = SEAT_UNITY (seat)->priv->vt;
 
     session = xsession_new ();
-    t = g_strdup_printf ("/dev/tty%d", vt_number);
-    session_set_tty (SESSION (session), t);
-    g_free (t);
-
-    /* Set variables for logind */
     session_set_env (SESSION (session), "XDG_SEAT", "seat0");
-    t = g_strdup_printf ("%d", vt_number);
-    session_set_env (SESSION (session), "XDG_VTNR", t);
-    g_free (t);
 
     return SESSION (session);
 }
@@ -497,7 +479,7 @@ seat_unity_set_active_session (Seat *seat, Session *session)
     /* If no compositor, have to use VT switching */
     if (SEAT_UNITY (seat)->priv->use_vt_switching)
     {
-        gint vt = xserver_local_get_vt (XSERVER_LOCAL (session_get_display_server (session)));
+        gint vt = display_server_get_vt (session_get_display_server (session));
         if (vt >= 0)
             vt_set_active (vt);
 
@@ -532,10 +514,7 @@ seat_unity_get_active_session (Seat *seat)
         for (link = seat_get_sessions (seat); link; link = link->next)
         {
             Session *session = link->data;
-            XServerLocal *xserver;
-
-            xserver = XSERVER_LOCAL (session_get_display_server (session));
-            if (xserver_local_get_vt (xserver) == vt)
+            if (display_server_get_vt (session_get_display_server (session)) == vt)
                 return session;
         }
 

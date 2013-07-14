@@ -365,11 +365,11 @@ session_stopped_cb (Session *session, Seat *seat)
 }
 
 static Session *
-create_session (Seat *seat, DisplayServer *display_server) // FIXME: Do we need the display_server?
+create_session (Seat *seat)
 {
     Session *session;
 
-    session = SEAT_GET_CLASS (seat)->create_session (seat, display_server);
+    session = SEAT_GET_CLASS (seat)->create_session (seat);
     seat->priv->sessions = g_list_append (seat->priv->sessions, session);
     g_signal_connect (session, "stopped", G_CALLBACK (session_stopped_cb), seat);
 
@@ -526,7 +526,7 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
 static Session *
 greeter_create_session_cb (Greeter *greeter, Seat *seat)
 {
-    return create_session (seat, NULL); // FIXME display_server
+    return create_session (seat);
 }
 
 static gchar **
@@ -675,7 +675,7 @@ seat_real_start (Seat *seat)
     display_server = create_display_server (seat);
     g_signal_connect (display_server, "ready", G_CALLBACK (display_server_ready_cb), seat);
 
-    session = create_session (seat, display_server);
+    session = create_session (seat);
     session_set_display_server (session, display_server);
 
     /* Autologin or start a greeter */

@@ -284,11 +284,11 @@ xserver_local_set_mir_socket (XServerLocal *server, const gchar *socket)
     server->priv->mir_socket = g_strdup (socket);
 }
 
-gint
-xserver_local_get_vt (XServerLocal *server)
+static gint
+xserver_local_get_vt (DisplayServer *server)
 {
     g_return_val_if_fail (server != NULL, 0);
-    return server->priv->vt;
+    return XSERVER_LOCAL (server)->priv->vt;
 }
 
 const gchar *
@@ -603,6 +603,7 @@ xserver_local_class_init (XServerLocalClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
+    display_server_class->get_vt = xserver_local_get_vt;
     display_server_class->start = xserver_local_start;
     display_server_class->stop = xserver_local_stop;
     object_class->finalize = xserver_local_finalize;

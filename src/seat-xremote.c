@@ -45,17 +45,9 @@ seat_xremote_create_display_server (Seat *seat)
 }
 
 static Session *
-seat_xremote_create_session (Seat *seat, DisplayServer *display_server)
+seat_xremote_create_session (Seat *seat)
 {
-    XServerRemote *xserver;
-    XSession *session;
-
-    xserver = XSERVER_REMOTE (display_server);
-
-    session = xsession_new ();
-    session_set_remote_host_name (SESSION (session), xserver_get_hostname (XSERVER (xserver)));
-
-    return SESSION (session);
+    return SESSION (xsession_new ());
 }
 
 static void

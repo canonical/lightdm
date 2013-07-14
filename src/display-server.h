@@ -36,6 +36,7 @@ typedef struct
     void (*ready)(DisplayServer *server);
     void (*stopped)(DisplayServer *server);
 
+    gint (*get_vt)(DisplayServer *server);
     gboolean (*start)(DisplayServer *server);
     void (*stop)(DisplayServer *server);
 } DisplayServerClass;
@@ -45,6 +46,8 @@ GType display_server_get_type (void);
 void display_server_set_name (DisplayServer *server, const gchar *name);
 
 const gchar *display_server_get_name (DisplayServer *server);
+
+gint display_server_get_vt (DisplayServer *server);
 
 void display_server_set_start_local_sessions (DisplayServer *server, gboolean start_local_sessions);
 

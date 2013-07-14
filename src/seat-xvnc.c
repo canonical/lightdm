@@ -66,23 +66,9 @@ seat_xvnc_create_display_server (Seat *seat)
 }
 
 static Session *
-seat_xvnc_create_session (Seat *seat, DisplayServer *display_server)
+seat_xvnc_create_session (Seat *seat)
 {
-    XServerXVNC *xserver;
-    XSession *session;
-    GInetSocketAddress *address;
-    gchar *hostname;
-    gchar *t;
-
-    xserver = XSERVER_XVNC (display_server);
-
-    session = xsession_new ();
-    address = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (SEAT_XVNC (seat)->priv->connection, NULL));
-    hostname = g_inet_address_to_string (g_inet_socket_address_get_address (address));
-    session_set_remote_host_name (SESSION (session), hostname);
-    g_free (hostname);
-
-    return SESSION (session);
+    return SESSION (xsession_new ());
 }
 
 static void

@@ -106,24 +106,12 @@ seat_xlocal_create_display_server (Seat *seat)
 }
 
 static Session *
-seat_xlocal_create_session (Seat *seat, DisplayServer *display_server)
+seat_xlocal_create_session (Seat *seat)
 {
-    XServerLocal *xserver;
     XSession *session;
-    gchar *t;
-
-    xserver = XSERVER_LOCAL (display_server);
 
     session = xsession_new ();
-    t = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (xserver));
-    session_set_tty (SESSION (session), t);
-    g_free (t);
-
-    /* Set variables for logind */
     session_set_env (SESSION (session), "XDG_SEAT", "seat0");
-    t = g_strdup_printf ("%d", xserver_local_get_vt (xserver));
-    session_set_env (SESSION (session), "XDG_VTNR", t);
-    g_free (t);
 
     return SESSION (session);
 }
@@ -131,7 +119,7 @@ seat_xlocal_create_session (Seat *seat, DisplayServer *display_server)
 static void
 seat_xlocal_set_active_session (Seat *seat, Session *session)
 {
-    gint vt = xserver_local_get_vt (XSERVER_LOCAL (session_get_display_server (session)));
+    gint vt = display_server_get_vt (session_get_display_server (session));
     if (vt >= 0)
         vt_set_active (vt);
 
@@ -151,10 +139,7 @@ seat_xlocal_get_active_session (Seat *seat)
     for (link = seat_get_sessions (seat); link; link = link->next)
     {
         Session *session = link->data;
-        XServerLocal *xserver;
-
-        xserver = XSERVER_LOCAL (session_get_display_server (session));
-        if (xserver_local_get_vt (xserver) == vt)
+        if (display_server_get_vt (session_get_display_server (session)) == vt)
             return session;
     }
 
