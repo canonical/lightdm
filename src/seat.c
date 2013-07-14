@@ -598,8 +598,8 @@ seat_real_start (Seat *seat)
     DisplayServer *display_server;
     User *user;
     gchar *sessions_dir;
-    const gchar *wrapper;
-    const gchar *session_name;
+    const gchar *wrapper = NULL;
+    const gchar *session_name = NULL;
     gchar **argv;
 
     g_debug ("Starting seat");
@@ -623,15 +623,26 @@ seat_real_start (Seat *seat)
     /* Start new greeter or autologin session */
     session = create_session (seat, display_server);
     session_set_display_server (session, display_server);
-    session_set_pam_service (session, AUTOLOGIN_SERVICE);
-    session_set_username (session, autologin_username);
-    session_set_do_authenticate (session, TRUE);
-    session_set_is_interactive (session, FALSE);
-    session_set_is_guest (session, FALSE);
-    user = session_get_user (session);
-    sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
-    wrapper = seat_get_string_property (seat, "session-wrapper");
-    session_name = user_get_xsession (user);
+
+    if (autologin_timeout == 0 && autologin_guest)
+    {
+        session_set_pam_service (session, AUTOLOGIN_SERVICE);
+        session_set_do_authenticate (session, TRUE);
+        session_set_is_guest (session, TRUE);
+        sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
+        wrapper = seat_get_string_property (seat, "session-wrapper");
+    }
+    else if (autologin_timeout == 0 && autologin_username != NULL)
+    {
+        session_set_pam_service (session, AUTOLOGIN_SERVICE);
+        session_set_username (session, autologin_username);
+        session_set_do_authenticate (session, TRUE);
+        user = session_get_user (session);
+        sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
+        wrapper = seat_get_string_property (seat, "session-wrapper");
+        session_name = user_get_xsession (user);
+    }
+
     if (!session_name)
         session_name = user_session;
     argv = get_session_argv (sessions_dir, session_name, wrapper);
