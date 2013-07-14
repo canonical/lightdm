@@ -454,7 +454,7 @@ xserver_local_start (DisplayServer *display_server)
 
     server->priv->xserver_process = process_new ();
     process_set_clear_environment (server->priv->xserver_process, TRUE);
-    g_signal_connect (server->priv->xserver_process, "run", G_CALLBACK (run_cb), server);  
+    g_signal_connect (server->priv->xserver_process, "run", G_CALLBACK (run_cb), server);
     g_signal_connect (server->priv->xserver_process, "got-signal", G_CALLBACK (got_signal_cb), server);
     g_signal_connect (server->priv->xserver_process, "stopped", G_CALLBACK (stopped_cb), server);
 

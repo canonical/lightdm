@@ -303,9 +303,13 @@ check_stopped (Seat *seat)
 static void
 display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 {
+    g_debug ("Display server stopped");
+
     g_signal_handlers_disconnect_matched (display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
     seat->priv->display_servers = g_list_remove (seat->priv->display_servers, display_server);
     g_object_unref (display_server);
+
+    check_stopped (seat);
 }
 
 static DisplayServer *
@@ -324,7 +328,9 @@ static void
 session_stopped_cb (Session *session, Seat *seat)
 {
     const gchar *script;
-  
+
+    g_debug ("Session stopped");
+
     /* Cleanup */
     script = seat_get_string_property (seat, "session-cleanup-script");
     if (script)
@@ -339,6 +345,8 @@ session_stopped_cb (Session *session, Seat *seat)
     g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
     seat->priv->sessions = g_list_remove (seat->priv->sessions, session);
     g_object_unref (session);
+
+    check_stopped (seat);
 }
 
 static Session *
@@ -349,6 +357,17 @@ create_session (Seat *seat, DisplayServer *display_server) // FIXME: Do we need 
     session = SEAT_GET_CLASS (seat)->create_session (seat, display_server);
     seat->priv->sessions = g_list_append (seat->priv->sessions, session);
     g_signal_connect (session, "stopped", G_CALLBACK (session_stopped_cb), seat);
+
+    /* Variables required for regression tests */
+    if (g_getenv ("LIGHTDM_TEST_ROOT"))
+    {
+        session_set_env (session, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
+        session_set_env (session, "DBUS_SYSTEM_BUS_ADDRESS", g_getenv ("DBUS_SYSTEM_BUS_ADDRESS"));
+        session_set_env (session, "DBUS_SESSION_BUS_ADDRESS", g_getenv ("DBUS_SESSION_BUS_ADDRESS"));
+        session_set_env (session, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
+        session_set_env (session, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+        session_set_env (session, "GI_TYPELIB_PATH", g_getenv ("GI_TYPELIB_PATH"));
+    }
 
     return session;
 }
@@ -620,7 +639,7 @@ seat_real_start (Seat *seat)
     session_set_argv (session, argv);
     g_strfreev (argv);
 
-    display_server_start (display_server);
+    return display_server_start (display_server);
 }
 
 static void
@@ -649,6 +668,7 @@ seat_real_stop (Seat *seat)
     for (link = list; link; link = link->next)
     {
         DisplayServer *display_server = link->data;
+        g_debug ("Stopping display server");
         display_server_stop (display_server);
     }
     g_list_free (list);
@@ -656,6 +676,7 @@ seat_real_stop (Seat *seat)
     for (link = list; link; link = link->next)
     {
         Session *session = link->data;
+        g_debug ("Stopping session");
         session_stop (session);
     }
     g_list_free (list);
