@@ -345,6 +345,8 @@ run_session (Seat *seat, Session *session)
 
         g_debug ("Switching to greeter due to failed setup script");
         session_stop (session);
+      
+        // FIXME: Only if can share servers
 
         greeter_session = create_greeter_session (seat);
         session_set_display_server (greeter_session, session_get_display_server (session));
@@ -362,8 +364,17 @@ session_authentication_complete_cb (Session *session, Seat *seat)
         run_session (seat, session);
     else
     {
-        g_debug ("Failed to authenticate, stopping session");
+        Session *greeter_session;
+
+        g_debug ("Switching to greeter due to failed authentication");
         session_stop (session);
+
+        // FIXME: Only if can share servers
+
+        greeter_session = create_greeter_session (seat);
+        session_set_display_server (greeter_session, session_get_display_server (session));
+
+        greeter_start (seat->priv->greeter);
     }
 }
 
@@ -412,10 +423,7 @@ session_stopped_cb (Session *session, Seat *seat)
             if (session_get_display_server (s) == display_server)
             {
                 if (greeter_get_guest_authenticated (seat->priv->greeter))
-                {
-                    g_signal_connect (s, "authentication-complete", G_CALLBACK (session_authentication_complete_cb), seat);
                     session_start (s);
-                }
                 else
                     run_session (seat, s);
                 break;
@@ -437,7 +445,10 @@ session_stopped_cb (Session *session, Seat *seat)
                 n_sessions++;
         }
         if (n_sessions == 0)
+        {
+            g_debug ("Stopping display server, no sessions require it");
             display_server_stop (display_server);
+        }
     }
 
     g_object_unref (session);
@@ -450,6 +461,7 @@ create_session (Seat *seat)
 
     session = SEAT_GET_CLASS (seat)->create_session (seat);
     seat->priv->sessions = g_list_append (seat->priv->sessions, session);
+    g_signal_connect (session, "authentication-complete", G_CALLBACK (session_authentication_complete_cb), seat);
     g_signal_connect (session, "stopped", G_CALLBACK (session_stopped_cb), seat);
 
     /* Variables required for regression tests */
@@ -904,7 +916,6 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
         if (session_get_display_server (session) != display_server)
             continue;
 
-        g_signal_connect (session, "authentication-complete", G_CALLBACK (session_authentication_complete_cb), seat);
         if (seat->priv->greeter && greeter_get_session (seat->priv->greeter) == session)
         {
             g_debug ("Display server ready, running greeter");
