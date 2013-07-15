@@ -319,8 +319,16 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 
     if (!seat->priv->stopping && g_list_length (seat->priv->display_servers) == 0)
     {
-        g_debug ("All display servers stopped, showing a greeter");
-        seat_switch_to_greeter (seat);
+        if (seat->priv->greeter && session_get_display_server (greeter_get_session (seat->priv->greeter)) == display_server)
+        {
+            g_debug ("Stopping seat, failed to get to a greeter");
+            seat_stop (seat);         
+        }
+        else
+        {
+            g_debug ("All display servers stopped, showing a greeter");
+            seat_switch_to_greeter (seat);
+        }
     }
 }
 
