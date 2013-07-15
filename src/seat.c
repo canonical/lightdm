@@ -479,18 +479,27 @@ create_autologin_session (Seat *seat, const gchar *autologin_username)
     const gchar *session_name;
     Session *session;
   
-    sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
     user = accounts_get_user_by_name (autologin_username);
+    if (!user)
+    {
+        g_debug ("Can't autologin unknown user '%s'", autologin_username);
+        return NULL;
+    }
+
     session_name = user_get_xsession (user);
     g_object_unref (user);
     if (!session_name)
         session_name = seat_get_string_property (seat, "user-session");
+    sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
     argv = get_session_argv (sessions_dir,
                              seat_get_string_property (seat, "user-session"),
                              seat_get_string_property (seat, "session-wrapper"));
     g_free (sessions_dir);
     if (!argv)
+    {
+        g_debug ("Can't find session '%s'", seat_get_string_property (seat, "user-session"));
         return NULL;
+    }
 
     session = create_session (seat);
     session_set_pam_service (session, AUTOLOGIN_SERVICE);
@@ -513,7 +522,10 @@ create_autologin_guest_session (Seat *seat)
                              seat_get_string_property (seat, "session-wrapper"));
     g_free (sessions_dir);
     if (!argv)
+    {
+        g_debug ("Can't find session '%s'", seat_get_string_property (seat, "user-session"));
         return NULL;
+    }
 
     session = create_session (seat);
     session_set_pam_service (session, AUTOLOGIN_SERVICE);
@@ -559,7 +571,10 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
 
     /* If no session information found, then can't start the session */
     if (!argv)
+    {
+        g_debug ("Can't find greeter session '%s'", session_name);
         return FALSE;
+    }
 
     /* If can re-use the display server, stop the greeter first */
     if (seat->priv->share_display_server)
@@ -803,7 +818,7 @@ seat_real_start (Seat *seat)
     gboolean autologin_guest;
     gboolean autologin_in_background;
     const gchar *user_session;
-    Session *session;
+    Session *session = NULL;
     DisplayServer *display_server;
     User *user;
     gchar *sessions_dir;
@@ -820,15 +835,17 @@ seat_real_start (Seat *seat)
     autologin_guest = seat_get_boolean_property (seat, "autologin-guest");
     autologin_in_background = seat_get_boolean_property (seat, "autologin-in-background");
 
-    /* Autologin or start a greeter */
+    /* Autologin if configured */
     if (autologin_timeout == 0 && autologin_guest)
         session = create_autologin_guest_session (seat);
     else if (autologin_timeout == 0 && autologin_username != NULL)
         session = create_autologin_session (seat, autologin_username);
-    else
+
+    /* Fallback to a greeter */
+    if (!session)
         session = create_greeter_session (seat);
 
-    /* If no session information found, then can't start the session */
+    /* Fail if can't start a session */
     if (!session)
     {
         seat_stop (seat);
