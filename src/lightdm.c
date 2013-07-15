@@ -1130,7 +1130,8 @@ main (int argc, char **argv)
         {
             set_seat_properties (seat, NULL);
             seat_set_property (seat, "exit-on-failure", "true");
-            display_manager_add_seat (display_manager, seat);
+            if (!display_manager_add_seat (display_manager, seat))
+                return EXIT_FAILURE;
             g_object_unref (seat);
         }
         else

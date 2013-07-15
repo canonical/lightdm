@@ -327,15 +327,18 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 static void
 session_stopped_cb (Session *session, Seat *seat)
 {
+    DisplayServer *display_server;
     const gchar *script;
     Session *greeter_session;
 
     g_debug ("Session stopped");
 
+    display_server = session_get_display_server (session);
+
     /* Cleanup */
     script = seat_get_string_property (seat, "session-cleanup-script");
     if (script)
-        run_script (seat, session_get_display_server (session), script, session_get_user (session));
+        run_script (seat, display_server, script, session_get_user (session));
 
     if (seat->priv->guest_username && strcmp (session_get_username (session), seat->priv->guest_username) == 0)
     {
@@ -359,8 +362,8 @@ session_stopped_cb (Session *session, Seat *seat)
         g_debug ("Starting session re-using greeter display server");
         session_run (greeter_session);
     }
-    else
-        display_server_stop (session_get_display_server (session));
+    else if (display_server)
+        display_server_stop (display_server);
 
     g_object_unref (session);
 }
@@ -663,6 +666,10 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     session_set_argv (session, argv);
     g_strfreev (argv);
 
+    /* If no session information found, then can't start the session */
+    if (!argv)
+        return FALSE;
+
     /* If can re-use the display server, stop the greeter first */
     if (seat->priv->share_display_server)
     {
@@ -712,11 +719,7 @@ seat_real_start (Seat *seat)
     autologin_in_background = seat_get_boolean_property (seat, "autologin-in-background");
     do_autologin = autologin_username != NULL || autologin_guest;
 
-    /* Start display server to show session on */
-    display_server = create_display_server (seat);
-
     session = create_session (seat);
-    session_set_display_server (session, display_server);
 
     /* Autologin or start a greeter */
     if (autologin_timeout == 0 && autologin_guest)
@@ -759,6 +762,17 @@ seat_real_start (Seat *seat)
     g_free (sessions_dir);
     session_set_argv (session, argv);
     g_strfreev (argv);
+
+    /* If no session information found, then can't start the session */
+    if (!argv)
+    {
+        seat_stop (seat);
+        return FALSE;
+    }
+
+    /* Start display server to show session on */
+    display_server = create_display_server (seat);
+    session_set_display_server (session, display_server);
 
     return display_server_start (display_server);
 }
