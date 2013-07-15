@@ -71,6 +71,7 @@ typedef struct
 static GHashTable *seat_modules = NULL;
 
 static DisplayServer *create_display_server (Seat *seat);
+static Session *create_greeter_session (Seat *seat);
 
 void
 seat_register_module (const gchar *name, GType type)
@@ -333,6 +334,28 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 }
 
 static void
+run_session (Seat *seat, Session *session)
+{
+    const gchar *script;
+
+    script = seat_get_string_property (seat, "session-setup-script");
+    if (script && !run_script (seat, session_get_display_server (session), script, NULL))
+    {
+        Session *greeter_session;
+
+        g_debug ("Switching to greeter due to failed setup script");
+        session_stop (session);
+
+        greeter_session = create_greeter_session (seat);
+        session_set_display_server (greeter_session, session_get_display_server (session));
+
+        greeter_start (seat->priv->greeter);
+    }
+    else
+        session_run (session);
+}
+
+static void
 session_stopped_cb (Session *session, Seat *seat)
 {
     DisplayServer *display_server;
@@ -366,10 +389,25 @@ session_stopped_cb (Session *session, Seat *seat)
         seat->priv->share_display_server)
     {
         g_debug ("Starting session re-using greeter display server");
-        session_run (greeter_get_authentication_session (seat->priv->greeter));
+        run_session (seat, greeter_get_authentication_session (seat->priv->greeter));
     }
     else if (display_server)
-        display_server_stop (display_server);
+    {
+        GList *link;
+        int n_sessions = 0;
+
+        /* Stop the display server if no-longer required */
+        for (link = seat->priv->sessions; link; link = link->next)
+        {
+            Session *s = link->data;
+            if (s == session)
+                continue;
+            if (session_get_display_server (s) == display_server)
+                n_sessions++;
+        }
+        if (n_sessions == 0)
+            display_server_stop (display_server);
+    }
 
     g_object_unref (session);
 }
@@ -770,7 +808,7 @@ static void
 session_authentication_complete_cb (Session *session, Seat *seat)
 {
     if (session_get_is_authenticated (session))
-        session_run (session);
+        run_session (seat, session);
     else
     {
         g_debug ("Failed to authenticate, stopping session");
@@ -817,8 +855,8 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
         }
         else
         {
-            g_debug ("Display server ready, running user session");        
-            session_run (session);
+            g_debug ("Display server ready, running user session");
+            run_session (seat, session);
         }
         used_display_server = TRUE;
     }
