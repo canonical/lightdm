@@ -767,8 +767,20 @@ session_authentication_complete_cb (Session *session, Seat *seat)
 static void
 display_server_ready_cb (DisplayServer *display_server, Seat *seat)
 {
+    const gchar *script;
     GList *link;
     gboolean used_display_server = FALSE;
+
+    /* Run setup script */
+    script = seat_get_string_property (seat, "display-setup-script");
+    if (script && !run_script (seat, display_server, script, NULL))
+    {
+        g_debug ("Stopping display server due to failed setup script");
+        display_server_stop (display_server);
+        return;
+    }
+
+    emit_upstart_signal ("login-session-start");
 
     /* Start the sessions waiting for this display server */
     for (link = seat->priv->sessions; link; link = link->next)
