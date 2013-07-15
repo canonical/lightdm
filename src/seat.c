@@ -539,7 +539,7 @@ create_autologin_guest_session (Seat *seat)
 static Session *
 greeter_create_session_cb (Greeter *greeter, Seat *seat)
 {
-    return create_session (seat);
+    return g_object_ref (create_session (seat));
 }
 
 static gboolean
