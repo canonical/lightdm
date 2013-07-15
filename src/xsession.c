@@ -47,6 +47,9 @@ xsession_set_display_server (Session *session, DisplayServer *display_server)
 
         t = g_strdup_printf ("/dev/tty%d", vt);
         session_set_tty (session, t);
+        g_free (t);
+
+        t = g_strdup_printf ("%d", vt);
         session_set_env (session, "XDG_VTNR", t);
         g_free (t);
     }
@@ -54,7 +57,7 @@ xsession_set_display_server (Session *session, DisplayServer *display_server)
     session_set_env (session, "DISPLAY", xserver_get_address (xserver));
     session_set_tty (session, xserver_get_address (xserver));
     session_set_xdisplay (session, xserver_get_address (xserver));
-    session_set_remote_host_name (XSESSION (session), xserver_get_hostname (xserver));
+    session_set_remote_host_name (session, xserver_get_hostname (xserver));
     authority = xserver_get_authority (xserver);
     if (authority)
         session_set_xauthority (session, authority, config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"));
