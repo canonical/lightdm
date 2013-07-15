@@ -662,6 +662,9 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
 gboolean
 seat_switch_to_guest (Seat *seat, const gchar *session_name)
 {
+    Session *session;
+    DisplayServer *display_server;
+
     g_return_val_if_fail (seat != NULL, FALSE);
 
     if (!seat->priv->can_switch || !seat_get_allow_guest (seat))
@@ -674,14 +677,19 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
         return switch_to_user (seat, seat->priv->guest_username, FALSE);
     }
 
-    // FIXME
+    session = create_autologin_guest_session (seat);
+    display_server = create_display_server (seat);
+    session_set_display_server (session, display_server);
 
-    return FALSE;
+    return display_server_start (display_server);
 }
 
 gboolean
 seat_lock (Seat *seat, const gchar *username)
 {
+    Session *session;
+    DisplayServer *display_server;
+
     g_return_val_if_fail (seat != NULL, FALSE);
 
     if (!seat->priv->can_switch)
@@ -693,9 +701,14 @@ seat_lock (Seat *seat, const gchar *username)
     if (switch_to_user (seat, NULL, FALSE))
         return TRUE;
 
-    // FIXME
+    session = create_greeter_session (seat);
+    greeter_set_hint (seat->priv->greeter, "lock-screen", "true");
+    if (username)
+        greeter_set_hint (seat->priv->greeter, "select-user", username);
+    display_server = create_display_server (seat);
+    session_set_display_server (session, display_server);
 
-    return FALSE;
+    return display_server_start (display_server);
 }
 
 void
