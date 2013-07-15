@@ -356,6 +356,18 @@ run_session (Seat *seat, Session *session)
 }
 
 static void
+session_authentication_complete_cb (Session *session, Seat *seat)
+{
+    if (session_get_is_authenticated (session))
+        run_session (seat, session);
+    else
+    {
+        g_debug ("Failed to authenticate, stopping session");
+        session_stop (session);
+    }
+}
+
+static void
 session_stopped_cb (Session *session, Seat *seat)
 {
     DisplayServer *display_server;
@@ -385,11 +397,30 @@ session_stopped_cb (Session *session, Seat *seat)
     if (!seat->priv->stopping &&
         seat->priv->greeter &&
         session == greeter_get_session (seat->priv->greeter) &&
-        greeter_get_authentication_session (seat->priv->greeter) &&
+        (greeter_get_guest_authenticated (seat->priv->greeter) || greeter_get_authentication_session (seat->priv->greeter)) &&
         seat->priv->share_display_server)
     {
+        GList *link;
+
         g_debug ("Starting session re-using greeter display server");
-        run_session (seat, greeter_get_authentication_session (seat->priv->greeter));
+
+        for (link = seat->priv->sessions; link; link = link->next)
+        {
+            Session *s = link->data;
+            if (s == session)
+                continue;
+            if (session_get_display_server (s) == display_server)
+            {
+                if (greeter_get_guest_authenticated (seat->priv->greeter))
+                {
+                    g_signal_connect (s, "authentication-complete", G_CALLBACK (session_authentication_complete_cb), seat);
+                    session_start (s);
+                }
+                else
+                    run_session (seat, s);
+                break;
+            }
+        }
     }
     else if (display_server)
     {
@@ -613,7 +644,10 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     gchar **argv;
 
     /* Get the session to use */
-    session = greeter_get_authentication_session (seat->priv->greeter);
+    if (greeter_get_guest_authenticated (seat->priv->greeter))
+        session = create_autologin_guest_session (seat);
+    else
+        session = greeter_get_authentication_session (seat->priv->greeter);
 
     /* Get session command to run */
     switch (type)
@@ -842,18 +876,6 @@ seat_get_is_stopping (Seat *seat)
 static void
 seat_real_setup (Seat *seat)
 {
-}
-
-static void
-session_authentication_complete_cb (Session *session, Seat *seat)
-{
-    if (session_get_is_authenticated (session))
-        run_session (seat, session);
-    else
-    {
-        g_debug ("Failed to authenticate, stopping session");
-        session_stop (session);
-    }
 }
 
 static void
