@@ -566,6 +566,13 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         session_name = seat_get_string_property (seat, "user-session");
     argv = get_session_argv (sessions_dir, session_name, seat_get_string_property (seat, "session-wrapper"));
     g_free (sessions_dir);
+  
+    if (!argv)
+    {
+        g_debug ("Can't find session '%s'", seat_get_string_property (seat, "user-session"));
+        return FALSE;
+    }
+  
     session_set_argv (session, argv);
     g_strfreev (argv);
 
