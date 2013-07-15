@@ -981,7 +981,21 @@ seat_real_start (Seat *seat)
 
     /* Fallback to a greeter */
     if (!session)
+    {
         session = create_greeter_session (seat);
+        if (autologin_timeout)
+        {
+            gchar *value;
+
+            value = g_strdup_printf ("%d", autologin_timeout);
+            greeter_set_hint (seat->priv->greeter, "autologin-timeout", value);
+            g_free (value);
+            if (autologin_username)
+                greeter_set_hint (seat->priv->greeter, "autologin-user", autologin_username);
+            if (autologin_guest)
+                greeter_set_hint (seat->priv->greeter, "autologin-guest", "true");
+        }
+    }
 
     /* Fail if can't start a session */
     if (!session)
