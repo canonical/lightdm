@@ -588,6 +588,23 @@ greeter_create_session_cb (Greeter *greeter, Seat *seat)
     return g_object_ref (create_session (seat));
 }
 
+static void
+prepend_argv (gchar ***argv, const gchar *value)
+{
+    gchar **old_argv, **new_argv;
+    gint i;
+
+    old_argv = *argv;
+    new_argv = g_malloc (sizeof (gchar *) * (g_strv_length (*argv) + 2));
+    new_argv[0] = g_strdup (value);
+    for (i = 0; old_argv[i]; i++)
+        new_argv[i + 1] = old_argv[i];
+    new_argv[i + 1] = NULL;
+
+    g_free (*argv);
+    *argv = new_argv;
+}
+
 static gboolean
 greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
 {
@@ -618,7 +635,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         g_debug ("Can't find session '%s'", seat_get_string_property (seat, "user-session"));
         return FALSE;
     }
-  
+
     session_set_argv (session, argv);
     g_strfreev (argv);
 
@@ -656,6 +673,7 @@ create_greeter_session (Seat *seat)
     gchar *sessions_dir, **argv;
     Session *session;
     gchar *greeter_user;
+    const gchar *greeter_wrapper;
 
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "greeters-directory");
     argv = get_session_argv (sessions_dir,
@@ -664,6 +682,15 @@ create_greeter_session (Seat *seat)
     g_free (sessions_dir);
     if (!argv)
         return NULL;
+
+    greeter_wrapper = seat_get_string_property (seat, "greeter-wrapper");
+    if (greeter_wrapper)
+    {
+        gchar *path;
+        path = g_find_program_in_path (greeter_wrapper);
+        prepend_argv (&argv, path ? path : greeter_wrapper);
+        g_free (path);
+    }
 
     session = create_session (seat);
 
