@@ -316,6 +316,12 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     g_object_unref (display_server);
 
     check_stopped (seat);
+
+    if (!seat->priv->stopping && g_list_length (seat->priv->display_servers) == 0)
+    {
+        g_debug ("Stopping seat, all display servers have stopped");
+        seat_stop (seat);
+    }
 }
 
 static void
@@ -342,7 +348,8 @@ session_stopped_cb (Session *session, Seat *seat)
     check_stopped (seat);
   
     /* If this is the greeter session then start the user session */
-    if (seat->priv->greeter &&
+    if (!seat->priv->stopping &&
+        seat->priv->greeter &&
         session == greeter_get_session (seat->priv->greeter) &&
         seat->priv->share_display_server)
     {
@@ -786,7 +793,10 @@ seat_real_stop (Seat *seat)
     {
         Session *session = link->data;
         g_debug ("Stopping session");
-        session_stop (session);
+        if (session_get_is_stopped (session))
+            session_stopped_cb (session, seat);
+        else
+            session_stop (session);
     }
     g_list_free (list);
 }
