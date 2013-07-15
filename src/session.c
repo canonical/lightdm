@@ -609,6 +609,7 @@ session_run (Session *session)
 
     g_return_if_fail (session != NULL);
     g_return_if_fail (session_get_is_authenticated (session));
+    g_return_if_fail (session->priv->argv != NULL);
 
     command = g_strjoinv (" ", session->priv->argv);
     g_debug ("Session %d running command %s", session->priv->pid, command);

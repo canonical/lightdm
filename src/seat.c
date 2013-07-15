@@ -70,6 +70,8 @@ typedef struct
 } SeatModule;
 static GHashTable *seat_modules = NULL;
 
+static DisplayServer *create_display_server (Seat *seat);
+
 void
 seat_register_module (const gchar *name, GType type)
 {
@@ -316,18 +318,6 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     check_stopped (seat);
 }
 
-static DisplayServer *
-create_display_server (Seat *seat)
-{
-    DisplayServer *display_server;
-
-    display_server = SEAT_GET_CLASS (seat)->create_display_server (seat);
-    seat->priv->display_servers = g_list_append (seat->priv->display_servers, display_server);
-    g_signal_connect (display_server, "stopped", G_CALLBACK (display_server_stopped_cb), seat);
-
-    return display_server;
-}
-
 static void
 session_stopped_cb (Session *session, Seat *seat)
 {
@@ -356,9 +346,8 @@ session_stopped_cb (Session *session, Seat *seat)
         session == greeter_get_session (seat->priv->greeter) &&
         seat->priv->share_display_server)
     {
-        Session *s;
-        s = greeter_get_authentication_session (seat->priv->greeter);
-        session_run (s);
+        g_debug ("Starting session re-using greeter display server");
+        session_run (greeter_get_authentication_session (seat->priv->greeter));
     }
 
     g_object_unref (session);
@@ -523,6 +512,19 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
     }
 }
 
+static DisplayServer *
+create_display_server (Seat *seat)
+{
+    DisplayServer *display_server;
+
+    display_server = SEAT_GET_CLASS (seat)->create_display_server (seat);
+    seat->priv->display_servers = g_list_append (seat->priv->display_servers, display_server);
+    g_signal_connect (display_server, "ready", G_CALLBACK (display_server_ready_cb), seat);
+    g_signal_connect (display_server, "stopped", G_CALLBACK (display_server_stopped_cb), seat);
+
+    return display_server;
+}
+
 static Session *
 greeter_create_session_cb (Greeter *greeter, Seat *seat)
 {
@@ -590,6 +592,9 @@ get_session_argv (const gchar *sessions_dir, const gchar *session_name, const gc
     gchar **dirs, **argv;
     int i;
 
+    g_return_val_if_fail (sessions_dir != NULL, NULL);
+    g_return_val_if_fail (session_name != NULL, NULL);
+
     dirs = g_strsplit (sessions_dir, ":", -1);
     for (i = 0; dirs[i]; i++)
     {
@@ -611,30 +616,46 @@ get_session_argv (const gchar *sessions_dir, const gchar *session_name, const gc
 static gboolean
 greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
 {
+    Session *session;
+    gchar *sessions_dir = NULL;
+    gchar **argv;
+
+    /* Get the session to use */
+    session = greeter_get_authentication_session (seat->priv->greeter);
+    seat->priv->sessions = g_list_append (seat->priv->sessions, g_object_ref (session));
+
+    /* Get session command to run */
+    switch (type)
+    {
+    case SESSION_TYPE_LOCAL:
+        sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
+        break;
+    case SESSION_TYPE_REMOTE:
+        sessions_dir = config_get_string (config_get_instance (), "LightDM", "remote-sessions-directory");
+        break;
+    }
+    if (!session_name)
+        session_name = seat_get_string_property (seat, "user-session");
+    argv = get_session_argv (sessions_dir, session_name, seat_get_string_property (seat, "session-wrapper"));
+    g_free (sessions_dir);
+    session_set_argv (session, argv);
+    g_strfreev (argv);
+
     /* If can re-use the display server, stop the greeter first */
     if (seat->priv->share_display_server)
     {
-        Session *s;
-        gchar *sessions_dir;
-        gchar **argv;
-
-        s = greeter_get_authentication_session (seat->priv->greeter);
-
-        /* Run on the same display server */
-        session_set_display_server (s, session_get_display_server (greeter_get_session (seat->priv->greeter)));
-
-        sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
-        argv = get_session_argv (sessions_dir, session_name, seat_get_string_property (seat, "session-wrapper"));
-        g_free (sessions_dir);
-        session_set_argv (s, argv);
-        g_strfreev (argv);
-
-        seat->priv->sessions = g_list_append (seat->priv->sessions, g_object_ref (s));
-
-        return TRUE;
+        /* Run on the same display server after the greeter has stopped */
+        session_set_display_server (session, session_get_display_server (greeter_get_session (seat->priv->greeter)));
+        session_stop (greeter_get_session (seat->priv->greeter));
     }
+    /* Otherwise start a new display server for this session */
+    else
+    {
+        DisplayServer *display_server;
 
-    /* Start a new display server for this session */
+        display_server = create_display_server (seat);
+        session_set_display_server (session, display_server);
+    }
 
     return TRUE;
 }
@@ -647,7 +668,6 @@ seat_real_start (Seat *seat)
     gboolean autologin_guest;
     gboolean do_autologin;
     gboolean autologin_in_background;
-    const gchar *greeter_session;
     const gchar *user_session;
     Session *session;
     DisplayServer *display_server;
@@ -668,12 +688,8 @@ seat_real_start (Seat *seat)
     autologin_in_background = seat_get_boolean_property (seat, "autologin-in-background");
     do_autologin = autologin_username != NULL || autologin_guest;
 
-    greeter_session = seat_get_string_property (seat, "greeter-session");
-    user_session = seat_get_string_property (seat, "user-session");
-
     /* Start display server to show session on */
     display_server = create_display_server (seat);
-    g_signal_connect (display_server, "ready", G_CALLBACK (display_server_ready_cb), seat);
 
     session = create_session (seat);
     session_set_display_server (session, display_server);
@@ -714,7 +730,7 @@ seat_real_start (Seat *seat)
     }
 
     if (!session_name)
-        session_name = user_session;
+        session_name = seat_get_string_property (seat, "user-session");
     argv = get_session_argv (sessions_dir, session_name, wrapper);
     g_free (sessions_dir);
     session_set_argv (session, argv);
