@@ -213,8 +213,12 @@ session_set_xauthority (Session *session, XAuthority *authority, gboolean use_sy
 {
     g_return_if_fail (session != NULL);
     if (session->priv->xauthority)
+    {
         g_object_unref (session->priv->xauthority);
-    session->priv->xauthority = g_object_ref (authority);
+        session->priv->xauthority = NULL;
+    }
+    if (authority)
+        session->priv->xauthority = g_object_ref (authority);
     session->priv->xauth_use_system_location = use_system_location;
 }
 

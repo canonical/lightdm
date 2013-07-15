@@ -661,9 +661,12 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         DisplayServer *display_server;
 
         display_server = create_display_server (seat);
+        if (!display_server_start (display_server))
+            return FALSE;
+
         session_set_display_server (session, display_server);
 
-        return display_server_start (display_server);
+        return TRUE;
     }
 }
 
@@ -727,11 +730,14 @@ seat_switch_to_greeter (Seat *seat)
     if (switch_to_user (seat, NULL, FALSE))
         return TRUE;
 
-    session = create_greeter_session (seat);
     display_server = create_display_server (seat);
+    if (!display_server_start (display_server))
+        return FALSE;
+
+    session = create_greeter_session (seat);
     session_set_display_server (session, display_server);
 
-    return display_server_start (display_server);
+    return TRUE;
 }
 
 gboolean
@@ -772,11 +778,14 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
         return switch_to_user (seat, seat->priv->guest_username, FALSE);
     }
 
-    session = create_autologin_guest_session (seat);
     display_server = create_display_server (seat);
+    if (!display_server_start (display_server))
+        return FALSE;
+
+    session = create_autologin_guest_session (seat);
     session_set_display_server (session, display_server);
 
-    return display_server_start (display_server);
+    return TRUE;
 }
 
 gboolean
@@ -796,14 +805,17 @@ seat_lock (Seat *seat, const gchar *username)
     if (switch_to_user (seat, NULL, FALSE))
         return TRUE;
 
+    display_server = create_display_server (seat);
+    if (!display_server_start (display_server))
+        return FALSE;
+
     session = create_greeter_session (seat);
     greeter_set_hint (seat->priv->greeter, "lock-screen", "true");
     if (username)
         greeter_set_hint (seat->priv->greeter, "select-user", username);
-    display_server = create_display_server (seat);
     session_set_display_server (session, display_server);
 
-    return display_server_start (display_server);
+    return TRUE;
 }
 
 void
@@ -925,6 +937,11 @@ seat_real_start (Seat *seat)
 
     g_debug ("Starting seat");
 
+    /* Start display server to show session on */
+    display_server = create_display_server (seat);
+    if (!display_server_start (display_server))
+        return FALSE;
+
     /* Get autologin settings */
     autologin_username = seat_get_string_property (seat, "autologin-user");
     if (g_strcmp0 (autologin_username, "") == 0)
@@ -950,11 +967,9 @@ seat_real_start (Seat *seat)
         return FALSE;
     }
 
-    /* Start display server to show session on */
-    display_server = create_display_server (seat);
     session_set_display_server (session, display_server);
 
-    return display_server_start (display_server);
+    return TRUE;
 }
 
 static void

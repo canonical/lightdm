@@ -36,7 +36,6 @@ xsession_set_display_server (Session *session, DisplayServer *display_server)
 {
     XServer *xserver;
     gint vt;
-    XAuthority *authority;
 
     xserver = XSERVER (display_server);
 
@@ -58,9 +57,9 @@ xsession_set_display_server (Session *session, DisplayServer *display_server)
     session_set_tty (session, xserver_get_address (xserver));
     session_set_xdisplay (session, xserver_get_address (xserver));
     session_set_remote_host_name (session, xserver_get_hostname (xserver));
-    authority = xserver_get_authority (xserver);
-    if (authority)
-        session_set_xauthority (session, authority, config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"));
+    session_set_xauthority (session,
+                            xserver_get_authority (xserver),
+                            config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"));
 
     SESSION_CLASS (xsession_parent_class)->set_display_server (session, display_server);
 }
