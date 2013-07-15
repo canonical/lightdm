@@ -106,6 +106,9 @@ struct SessionPrivate
 
     /* Command to run in child */
     gchar **argv;
+
+    /* True if have run command */
+    gboolean command_run;
 };
 
 /* Maximum length of a string to pass between daemon and session */
@@ -608,8 +611,12 @@ session_run (Session *session)
     GList *link;
 
     g_return_if_fail (session != NULL);
+    g_return_if_fail (!session->priv->command_run);
     g_return_if_fail (session_get_is_authenticated (session));
     g_return_if_fail (session->priv->argv != NULL);
+    g_return_if_fail (session->priv->pid != 0);
+
+    session->priv->command_run = TRUE;
 
     command = g_strjoinv (" ", session->priv->argv);
     g_debug ("Session %d running command %s", session->priv->pid, command);

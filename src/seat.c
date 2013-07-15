@@ -494,15 +494,26 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
     {
         Session *session = link->data;
 
-        if (session_get_display_server (session) == display_server)
+        if (session_get_display_server (session) != display_server)
+            continue;
+
+        g_signal_connect (session, "authentication-complete", G_CALLBACK (session_authentication_complete_cb), seat);
+        if (seat->priv->greeter && greeter_get_session (seat->priv->greeter) == session)
         {
-            g_signal_connect (session, "authentication-complete", G_CALLBACK (session_authentication_complete_cb), seat);
-            if (seat->priv->greeter && greeter_get_session (seat->priv->greeter) == session)
-                greeter_start (seat->priv->greeter);
-            else
-                session_start (session);
-            used_display_server = TRUE;
+            g_debug ("Display server ready, running greeter");
+            greeter_start (seat->priv->greeter);
         }
+        else if (!session_get_is_authenticated (session))
+        {
+            g_debug ("Display server ready, starting session");
+            session_start (session);
+        }
+        else
+        {
+            g_debug ("Display server ready, running user session");        
+            session_run (session);
+        }
+        used_display_server = TRUE;
     }
 
     if (!used_display_server)
@@ -622,7 +633,6 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
 
     /* Get the session to use */
     session = greeter_get_authentication_session (seat->priv->greeter);
-    seat->priv->sessions = g_list_append (seat->priv->sessions, g_object_ref (session));
 
     /* Get session command to run */
     switch (type)
@@ -647,6 +657,8 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         /* Run on the same display server after the greeter has stopped */
         session_set_display_server (session, session_get_display_server (greeter_get_session (seat->priv->greeter)));
         session_stop (greeter_get_session (seat->priv->greeter));
+
+        return TRUE;
     }
     /* Otherwise start a new display server for this session */
     else
@@ -655,9 +667,9 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
 
         display_server = create_display_server (seat);
         session_set_display_server (session, display_server);
-    }
 
-    return TRUE;
+        return display_server_start (display_server);
+    }
 }
 
 static gboolean
