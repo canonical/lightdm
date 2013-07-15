@@ -709,6 +709,7 @@ create_greeter_session (Seat *seat)
         g_object_unref (seat->priv->greeter);       
     }
     seat->priv->greeter = greeter_new (session, USER_SERVICE, AUTOLOGIN_SERVICE);
+    greeter_set_allow_guest (seat->priv->greeter, seat_get_allow_guest (seat));
     g_signal_connect (seat->priv->greeter, "create-session", G_CALLBACK (greeter_create_session_cb), seat);
     g_signal_connect (seat->priv->greeter, "start-session", G_CALLBACK (greeter_start_session_cb), seat);
 
