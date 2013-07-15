@@ -328,6 +328,7 @@ static void
 session_stopped_cb (Session *session, Seat *seat)
 {
     const gchar *script;
+    Session *greeter_session;
 
     g_debug ("Session stopped");
 
@@ -348,14 +349,18 @@ session_stopped_cb (Session *session, Seat *seat)
     check_stopped (seat);
   
     /* If this is the greeter session then start the user session */
+    greeter_session = greeter_get_authentication_session (seat->priv->greeter);
     if (!seat->priv->stopping &&
         seat->priv->greeter &&
         session == greeter_get_session (seat->priv->greeter) &&
+        greeter_session &&
         seat->priv->share_display_server)
     {
         g_debug ("Starting session re-using greeter display server");
-        session_run (greeter_get_authentication_session (seat->priv->greeter));
+        session_run (greeter_session);
     }
+    else
+        display_server_stop (session_get_display_server (session));
 
     g_object_unref (session);
 }
