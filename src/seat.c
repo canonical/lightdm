@@ -769,7 +769,13 @@ seat_real_setup (Seat *seat)
 static void
 session_authentication_complete_cb (Session *session, Seat *seat)
 {
-    session_run (session);
+    if (session_get_is_authenticated (session))
+        session_run (session);
+    else
+    {
+        g_debug ("Failed to authenticate, stopping session");
+        session_stop (session);
+    }
 }
 
 static void
