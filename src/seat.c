@@ -434,8 +434,7 @@ session_stopped_cb (Session *session, Seat *seat)
             if (s == session)
                 continue;
 
-            if (session_get_display_server (s) == display_server &&
-                session_get_is_authenticated (s))
+            if (session_get_display_server (s) == display_server && session_get_is_authenticated (s))
             {
                 g_debug ("Starting session re-using greeter display server");
                 run_session (seat, s);
@@ -677,10 +676,10 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     gchar **argv;
 
     /* Get the session to use */
-    if (greeter_get_guest_authenticated (seat->priv->greeter))
+    if (greeter_get_guest_authenticated (greeter))
         session = create_autologin_guest_session (seat);
     else
-        session = greeter_get_authentication_session (seat->priv->greeter);
+        session = greeter_get_authentication_session (greeter);
 
     /* Get session command to run */
     switch (type)
@@ -717,8 +716,8 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     if (seat->priv->share_display_server)
     {
         /* Run on the same display server after the greeter has stopped */
-        session_set_display_server (session, session_get_display_server (greeter_get_session (seat->priv->greeter)));
-        session_stop (greeter_get_session (seat->priv->greeter));
+        session_set_display_server (session, session_get_display_server (greeter_get_session (greeter)));
+        session_stop (greeter_get_session (greeter));
 
         return TRUE;
     }
