@@ -1660,9 +1660,6 @@ run_lightdm (void)
     if (getenv ("DEBUG"))
         g_string_append (command_line, " --debug");
     g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
-    g_string_append_printf (command_line, " --xsessions-dir=%s/usr/share/xsessions", temp_dir);
-    g_string_append_printf (command_line, " --remote-sessions-dir=%s/usr/share/remote-sessions", temp_dir);
-    g_string_append_printf (command_line, " --xgreeters-dir=%s/usr/share/xgreeters", temp_dir);
 
     test_runner_command = g_strdup_printf ("PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_ROOT=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
                                            g_getenv ("PATH"), g_getenv ("LD_PRELOAD"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_ROOT"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
@@ -1820,9 +1817,9 @@ main (int argc, char **argv)
     /* Set up a skeleton file system */
     g_mkdir_with_parents (g_strdup_printf ("%s/etc", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/usr/share", temp_dir), 0755);
-    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/xsessions", temp_dir), 0755);
-    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/remote-sessions", temp_dir), 0755);
-    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/xgreeters", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/lightdm/sessions", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/lightdm/remote-sessions", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/lightdm/greeters", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/tmp", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/var/run", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/var/log", temp_dir), 0755);
@@ -1852,15 +1849,15 @@ main (int argc, char **argv)
         perror ("Failed to copy configuration");
 
     /* Copy over the greeter files */
-    if (system (g_strdup_printf ("cp %s/xsessions/* %s/usr/share/xsessions", DATADIR, temp_dir)))
-        perror ("Failed to copy xsessions");
-    if (system (g_strdup_printf ("cp %s/remote-sessions/* %s/usr/share/remote-sessions", DATADIR, temp_dir)))
+    if (system (g_strdup_printf ("cp %s/sessions/* %s/usr/share/lightdm/sessions", DATADIR, temp_dir)))
+        perror ("Failed to copy sessions");
+    if (system (g_strdup_printf ("cp %s/remote-sessions/* %s/usr/share/lightdm/remote-sessions", DATADIR, temp_dir)))
         perror ("Failed to copy remote sessions");
-    if (system (g_strdup_printf ("cp %s/xgreeters/* %s/usr/share/xgreeters", DATADIR, temp_dir)))
-        perror ("Failed to copy xgreeters");
+    if (system (g_strdup_printf ("cp %s/greeters/* %s/usr/share/lightdm/greeters", DATADIR, temp_dir)))
+        perror ("Failed to copy greeters");
 
     /* Set up the default greeter */
-    path = g_build_filename (temp_dir, "usr", "share", "xgreeters", "default.desktop", NULL);
+    path = g_build_filename (temp_dir, "usr", "share", "lightdm", "greeters", "default.desktop", NULL);
     greeter = g_strdup_printf ("%s.desktop", argv[2]);
     if (symlink (greeter, path) < 0)
     {

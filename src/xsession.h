@@ -35,7 +35,7 @@ typedef struct
 
 GType xsession_get_type (void);
 
-XSession *xsession_new (XServer *xserver);
+XSession *xsession_new (void);
 
 G_END_DECLS
 
