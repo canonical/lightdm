@@ -1,0 +1,58 @@
+#!/bin/bash
+# Debian lightdm package pre-removal script
+# based on xdm script
+# Copyright 2001 Branden Robinson.
+# Licensed under the GNU General Public License, version 2.  See the file
+# /usr/share/common-licenses/GPL or <http://www.gnu.org/copyleft/gpl.txt>.
+# Acknowlegements to Stephen Early, Mark Eichin, and Manoj Srivastava.
+# based on gdm pre-removal script
+
+set -e
+
+THIS_PACKAGE=lightdm
+DAEMON=/usr/sbin/lightdm
+
+DEFAULT_DISPLAY_MANAGER_FILE=/etc/X11/default-display-manager
+
+if [ "$1" = "remove" ] || [ "$1" = "deconfigure" ]; then
+  if [ -e /usr/share/debconf/confmodule ]; then
+    . /usr/share/debconf/confmodule
+    # disown this question
+    db_unregister shared/default-x-display-manager
+    # does the question still exist?
+    if db_get shared/default-x-display-manager; then
+      db_metaget shared/default-x-display-manager owners
+      db_subst shared/default-x-display-manager choices "$RET"
+      db_get shared/default-x-display-manager
+      # are we removing the currently selected display manager?
+      if [ "$THIS_PACKAGE" = "$RET" ]; then
+        if [ -e "$DEFAULT_DISPLAY_MANAGER_FILE" ]; then
+	  if db_get "$RET"/daemon_name; then
+	    if [ "$(cat $DEFAULT_DISPLAY_MANAGER_FILE)" = "$RET" ]; then
+	      rm "$DEFAULT_DISPLAY_MANAGER_FILE"
+	    fi
+	  else
+	    if [ "$(cat $DEFAULT_DISPLAY_MANAGER_FILE)" = "$DAEMON" ]; then
+	      rm "$DEFAULT_DISPLAY_MANAGER_FILE"
+	    fi
+	  fi
+        fi
+        # ask the user to choose a new default
+        db_fset shared/default-x-display-manager seen false
+        db_input critical shared/default-x-display-manager || true
+        db_go
+        # if the display manager file doesn't exist, write it with the path
+        # to the new default display manager
+        if [ ! -e $DEFAULT_DISPLAY_MANAGER_FILE ]; then
+          db_get shared/default-x-display-manager
+          db_get "$RET"/daemon_name
+          echo "$RET" > "$DEFAULT_DISPLAY_MANAGER_FILE"
+        fi
+      fi
+    fi
+  fi
+fi
+
+#DEBHELPER#
+
+exit 0

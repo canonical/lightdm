@@ -1,0 +1,36 @@
+#!/usr/bin/make -f 
+
+LDFLAGS+=-Wl,--as-needed
+
+%:
+	dh $@ --with quilt,autoreconf,translations --parallel
+
+override_dh_autoreconf:
+	NOCONFIGURE=1 dh_autoreconf ./autogen.sh
+
+# NOTE: Using GNOME for now, but we still need a proper configuration system
+# See https://launchpad.net/bugs/799754
+override_dh_auto_configure:
+	dh_auto_configure -- --with-greeter-user=lightdm --with-user-session=ubuntu --enable-gtk-doc
+
+# Disable tests - they're not working in the PPA
+override_dh_auto_test:
+
+override_dh_install:
+	rm -r debian/tmp/usr/share/help/C/
+	# we do install pam through installpam and init through installinit
+	dh_install -X.a -X.la -Xpam.d -X'etc/init/lightdm.conf' --fail-missing
+	mv debian/lightdm/usr/lib/lightdm/lightdm/lightdm-set-defaults debian/lightdm/usr/lib/lightdm
+	chmod +x debian/lightdm/usr/lib/lightdm/lightdm-greeter-session
+
+override_dh_installinit:
+	dh_installinit --no-start
+
+override_dh_installpam:
+	dh_installpam
+	dh_installpam --name=lightdm-autologin
+	dh_installpam --name=lightdm-greeter
+	
+override_dh_makeshlibs:
+	dh_makeshlibs -pliblightdm-gobject-1-0 -V'liblightdm-gobject-1-0 (>= 0.9.2)' -- -c4
+	dh_makeshlibs -Nliblightdm-gobject-1-0
