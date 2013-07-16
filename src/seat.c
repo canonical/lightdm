@@ -310,6 +310,8 @@ check_stopped (Seat *seat)
 static void
 display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 {
+    GList *link;
+
     g_debug ("Display server stopped");
 
     g_signal_handlers_disconnect_matched (display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
@@ -317,6 +319,18 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     g_object_unref (display_server);
 
     check_stopped (seat);
+
+    /* Stop all sessions on this display server */
+    for (link = seat->priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+
+        if (session_get_display_server (session) == display_server)
+        {
+            g_debug ("Stopping session");
+            session_stop (session);
+        }
+    }
 
     if (!seat->priv->stopping && g_list_length (seat->priv->display_servers) == 0)
     {
@@ -404,38 +418,37 @@ session_stopped_cb (Session *session, Seat *seat)
 
     check_stopped (seat);
   
-    /* If this is the greeter session then start the user session */
+    /* If this is the greeter session then re-use this display server */
     if (!seat->priv->stopping &&
         seat->priv->greeter &&
         session == greeter_get_session (seat->priv->greeter) &&
-        (greeter_get_guest_authenticated (seat->priv->greeter) || greeter_get_authentication_session (seat->priv->greeter)) &&
         seat->priv->share_display_server)
     {
         GList *link;
 
-        g_debug ("Starting session re-using greeter display server");
-
         for (link = seat->priv->sessions; link; link = link->next)
         {
             Session *s = link->data;
+
+            /* Skip this session */
             if (s == session)
                 continue;
-            if (session_get_display_server (s) == display_server)
+
+            if (session_get_display_server (s) == display_server &&
+                session_get_is_authenticated (s))
             {
-                if (greeter_get_guest_authenticated (seat->priv->greeter))
-                    session_start (s);
-                else
-                    run_session (seat, s);
-                break;
+                g_debug ("Starting session re-using greeter display server");
+                run_session (seat, s);
             }
         }
     }
-    else if (display_server)
+
+    /* Stop the display server if no-longer required */
+    if (display_server)
     {
         GList *link;
         int n_sessions = 0;
 
-        /* Stop the display server if no-longer required */
         for (link = seat->priv->sessions; link; link = link->next)
         {
             Session *s = link->data;
@@ -451,17 +464,25 @@ session_stopped_cb (Session *session, Seat *seat)
         }
     }
 
+    /* If this was the greeter, we no longer have a greeter */
+    if (seat->priv->greeter && session == greeter_get_session (seat->priv->greeter))
+    {
+        g_object_unref (seat->priv->greeter);
+        seat->priv->greeter = NULL;
+    }
+
     g_object_unref (session);
 }
 
 static Session *
-create_session (Seat *seat)
+create_session (Seat *seat, gboolean autostart)
 {
     Session *session;
 
     session = SEAT_GET_CLASS (seat)->create_session (seat);
     seat->priv->sessions = g_list_append (seat->priv->sessions, session);
-    g_signal_connect (session, "authentication-complete", G_CALLBACK (session_authentication_complete_cb), seat);
+    if (autostart)
+        g_signal_connect (session, "authentication-complete", G_CALLBACK (session_authentication_complete_cb), seat);
     g_signal_connect (session, "stopped", G_CALLBACK (session_stopped_cb), seat);
 
     /* Variables required for regression tests */
@@ -590,7 +611,7 @@ create_autologin_session (Seat *seat, const gchar *autologin_username)
         return NULL;
     }
 
-    session = create_session (seat);
+    session = create_session (seat, TRUE);
     session_set_pam_service (session, AUTOLOGIN_SERVICE);
     session_set_username (session, autologin_username);
     session_set_do_authenticate (session, TRUE);
@@ -616,7 +637,7 @@ create_autologin_guest_session (Seat *seat)
         return NULL;
     }
 
-    session = create_session (seat);
+    session = create_session (seat, TRUE);
     session_set_pam_service (session, AUTOLOGIN_SERVICE);
     session_set_do_authenticate (session, TRUE);
     session_set_is_guest (session, TRUE);
@@ -628,7 +649,7 @@ create_autologin_guest_session (Seat *seat)
 static Session *
 greeter_create_session_cb (Greeter *greeter, Seat *seat)
 {
-    return g_object_ref (create_session (seat));
+    return g_object_ref (create_session (seat, FALSE));
 }
 
 static void
@@ -741,7 +762,7 @@ create_greeter_session (Seat *seat)
         g_free (path);
     }
 
-    session = create_session (seat);
+    session = create_session (seat, TRUE);
 
     session_set_pam_service (session, GREETER_SERVICE);
     greeter_user = config_get_string (config_get_instance (), "LightDM", "greeter-user");
@@ -923,7 +944,7 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
         }
         else if (!session_get_is_authenticated (session))
         {
-            g_debug ("Display server ready, starting session");
+            g_debug ("Display server ready, starting session authentication");
             session_start (session);
         }
         else
