@@ -50,6 +50,8 @@ gboolean greeter_get_guest_authenticated (Greeter *greeter);
 
 Session *greeter_get_authentication_session (Greeter *greeter);
 
+gboolean greeter_get_start_session (Greeter *greeter);
+
 G_END_DECLS
 
 #endif /* GREETER_H_ */

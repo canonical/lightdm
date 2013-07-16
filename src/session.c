@@ -448,6 +448,12 @@ session_start (Session *session)
     return SESSION_GET_CLASS (session)->start (session);
 }
 
+gboolean
+session_get_is_started (Session *session)
+{
+    return session->priv->pid != 0;
+}
+
 static gboolean
 session_real_start (Session *session)
 {

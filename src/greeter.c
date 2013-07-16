@@ -55,6 +55,9 @@ struct GreeterPrivate
     /* PAM session being constructed by the greeter */
     Session *authentication_session;
 
+    /* TRUE if a user has been authenticated and the session requested to start */
+    gboolean start_session;
+
     /* TRUE if can log into guest accounts */
     gboolean allow_guest;
 
@@ -568,6 +571,7 @@ handle_start_session (Greeter *greeter, const gchar *session)
             g_debug ("Greeter requests session %s", session);
         else
             g_debug ("Greeter requests default session");
+        greeter->priv->start_session = TRUE;
         g_signal_emit (greeter, signals[START_SESSION], 0, session_type, session, &result);
     }
     else
@@ -805,6 +809,13 @@ greeter_get_authentication_session (Greeter *greeter)
 {
     g_return_val_if_fail (greeter != NULL, NULL);
     return greeter->priv->authentication_session;
+}
+
+gboolean
+greeter_get_start_session (Greeter *greeter)
+{
+    g_return_val_if_fail (greeter != NULL, FALSE);
+    return greeter->priv->start_session;
 }
 
 static gboolean

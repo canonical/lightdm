@@ -93,6 +93,8 @@ User *session_get_user (Session *session);
 
 gboolean session_start (Session *session);
 
+gboolean session_get_is_started (Session *session);
+
 const gchar *session_get_username (Session *session);
 
 const gchar *session_get_console_kit_cookie (Session *session);

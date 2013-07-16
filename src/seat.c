@@ -308,7 +308,6 @@ static void
 display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 {
     GList *link;
-    gboolean had_greeter = FALSE;
 
     g_debug ("Display server stopped");
 
@@ -323,28 +322,27 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     {
         Session *session = link->data;
 
-        if (session_get_display_server (session) == display_server)
-        {
-            if (IS_GREETER (session)) // FIXME: Only if running?
-                had_greeter = TRUE;
+        if (session_get_display_server (session) != display_server)
+            continue;
 
-            g_debug ("Stopping session");
-            session_stop (session);
+        /* Stop seat if this is the only display server and it failed to start a greeter */
+        if (IS_GREETER (session) &&
+            !session_get_is_started (session) &&
+            g_list_length (seat->priv->display_servers) == 0)
+        {
+            g_debug ("Stopping seat, greeter display server failed to start");
+            seat_stop (seat);
         }
+
+        g_debug ("Stopping session");
+        session_stop (session);
     }
 
+    /* Show a greeter if everything fails */
     if (!seat->priv->stopping && g_list_length (seat->priv->display_servers) == 0)
     {
-        if (had_greeter)
-        {
-            g_debug ("Stopping seat, failed to get to a greeter");
-            seat_stop (seat);         
-        }
-        else
-        {
-            g_debug ("All display servers stopped, showing a greeter");
-            seat_switch_to_greeter (seat);
-        }
+        g_debug ("All display servers stopped, showing a greeter");
+        seat_switch_to_greeter (seat);
     }
 }
 
@@ -380,7 +378,7 @@ session_authentication_complete_cb (Session *session, Seat *seat)
         g_debug ("Session authenticated, running command");
         run_session (seat, session);
     }
-    else
+    else if (!IS_GREETER (session))
     {
         Greeter *greeter_session;
 
@@ -393,6 +391,11 @@ session_authentication_complete_cb (Session *session, Seat *seat)
         session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
 
         session_start (SESSION (greeter_session));
+    }
+    else
+    {
+        g_debug ("Stopping session that failed authentication");
+        session_stop (session);
     }
 }
 
@@ -422,24 +425,39 @@ session_stopped_cb (Session *session, Seat *seat)
 
     check_stopped (seat);
   
-    /* If this is the greeter session then re-use this display server */
-    if (!seat->priv->stopping && IS_GREETER (session) && seat->priv->share_display_server)
+    if (!seat->priv->stopping)
     {
-        GList *link;
-
-        for (link = seat->priv->sessions; link; link = link->next)
+        /* If this is the greeter session then re-use this display server */
+        if (IS_GREETER (session) &&
+            seat->priv->share_display_server &&
+            greeter_get_start_session (GREETER (session)))
         {
-            Session *s = link->data;
+            GList *link;
 
-            /* Skip this session */
-            if (s == session)
-                continue;
-
-            if (session_get_display_server (s) == display_server && session_get_is_authenticated (s))
+            for (link = seat->priv->sessions; link; link = link->next)
             {
-                g_debug ("Starting session re-using greeter display server");
-                run_session (seat, s);
-            }
+                Session *s = link->data;
+
+                /* Skip this session */
+                if (s == session)
+                    continue;
+
+                if (session_get_display_server (s) == display_server && session_get_is_authenticated (s))
+                {
+                    g_debug ("Starting session re-using greeter display server");
+                    run_session (seat, s);
+                }
+            }          
+        }
+
+        /* if this is the greeter and nothing else is running then stop the seat */
+        if (IS_GREETER (session) &&
+            !greeter_get_start_session (GREETER (session)) &&
+            g_list_length (seat->priv->display_servers) == 1 &&
+            g_list_nth_data (seat->priv->display_servers, 0) == display_server)
+        {
+            g_debug ("Stopping seat, failed to start a greeter");
+            seat_stop (seat);
         }
     }
 
@@ -717,6 +735,8 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     {
         /* Run on the same display server after the greeter has stopped */
         session_set_display_server (session, session_get_display_server (SESSION (greeter)));
+
+        g_debug ("Stopping greeter");
         session_stop (SESSION (greeter));
 
         return TRUE;
