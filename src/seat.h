@@ -14,6 +14,7 @@
 
 #include <glib-object.h>
 #include "display-server.h"
+#include "greeter.h"
 #include "session.h"
 #include "process.h"
 
@@ -39,6 +40,7 @@ typedef struct
     void (*setup)(Seat *seat);
     gboolean (*start)(Seat *seat);
     DisplayServer *(*create_display_server) (Seat *seat);
+    Greeter *(*create_greeter_session) (Seat *seat);
     Session *(*create_session) (Seat *seat);
     void (*set_active_session)(Seat *seat, Session *session);
     Session *(*get_active_session)(Seat *seat);

@@ -31,9 +31,6 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct GreeterPrivate
 {
-    /* Session running on */
-    Session *session;
-
     /* PAM service to authenticate with */
     gchar *pam_service;
     gchar *autologin_pam_service;
@@ -58,9 +55,6 @@ struct GreeterPrivate
     /* PAM session being constructed by the greeter */
     Session *authentication_session;
 
-    /* TRUE if a user has been authenticated and the session requested to start */
-    gboolean start_session;
-
     /* TRUE if can log into guest accounts */
     gboolean allow_guest;
 
@@ -72,7 +66,7 @@ struct GreeterPrivate
     GIOChannel *from_greeter_channel;
 };
 
-G_DEFINE_TYPE (Greeter, greeter, G_TYPE_OBJECT);
+G_DEFINE_TYPE (Greeter, greeter, SESSION_TYPE);
 
 /* Messages from the greeter to the server */
 typedef enum
@@ -98,18 +92,13 @@ typedef enum
 
 static gboolean read_cb (GIOChannel *source, GIOCondition condition, gpointer data);
 
-Greeter *
-greeter_new (Session *session, const gchar *pam_service, const gchar *autologin_pam_service)
+void
+greeter_set_pam_services (Greeter *greeter, const gchar *pam_service, const gchar *autologin_pam_service)
 {
-    Greeter *greeter;
-
-    greeter = g_object_new (GREETER_TYPE, NULL);
-    greeter->priv->session = g_object_ref (session);
+    g_free (greeter->priv->pam_service);
     greeter->priv->pam_service = g_strdup (pam_service);
+    g_free (greeter->priv->autologin_pam_service);
     greeter->priv->autologin_pam_service = g_strdup (autologin_pam_service);
-    greeter->priv->use_secure_memory = config_get_boolean (config_get_instance (), "LightDM", "lock-memory");
-
-    return greeter;
 }
 
 void
@@ -579,7 +568,6 @@ handle_start_session (Greeter *greeter, const gchar *session)
             g_debug ("Greeter requests session %s", session);
         else
             g_debug ("Greeter requests default session");
-        greeter->priv->start_session = TRUE;
         g_signal_emit (greeter, signals[START_SESSION], 0, session_type, session, &result);
     }
     else
@@ -805,13 +793,6 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     return TRUE;
 }
 
-Session *
-greeter_get_session (Greeter *greeter)
-{
-    g_return_val_if_fail (greeter != NULL, NULL);
-    return greeter->priv->session;
-}
-
 gboolean
 greeter_get_guest_authenticated (Greeter *greeter)
 {
@@ -826,16 +807,10 @@ greeter_get_authentication_session (Greeter *greeter)
     return greeter->priv->authentication_session;
 }
 
-gboolean
-greeter_get_start_session (Greeter *greeter)
+static gboolean
+greeter_start (Session *session)
 {
-    g_return_val_if_fail (greeter != NULL, FALSE);
-    return greeter->priv->start_session;
-}
-
-gboolean
-greeter_start (Greeter *greeter)
-{
+    Greeter *greeter = GREETER (session);
     int to_greeter_pipe[2], from_greeter_pipe[2];
     gboolean result = FALSE;
     gchar *value;
@@ -855,17 +830,17 @@ greeter_start (Greeter *greeter)
 
     /* Let the greeter session know how to communicate with the daemon */
     value = g_strdup_printf ("%d", from_greeter_pipe[1]);
-    session_set_env (greeter->priv->session, "LIGHTDM_TO_SERVER_FD", value);
+    session_set_env (SESSION (greeter), "LIGHTDM_TO_SERVER_FD", value);
     g_free (value);
     value = g_strdup_printf ("%d", to_greeter_pipe[0]);
-    session_set_env (greeter->priv->session, "LIGHTDM_FROM_SERVER_FD", value);
+    session_set_env (SESSION (greeter), "LIGHTDM_FROM_SERVER_FD", value);
     g_free (value);
 
     /* Don't allow the daemon end of the pipes to be accessed in child processes */
     fcntl (to_greeter_pipe[1], F_SETFD, FD_CLOEXEC);
     fcntl (from_greeter_pipe[0], F_SETFD, FD_CLOEXEC);
 
-    result = session_start (greeter->priv->session);
+    result = SESSION_CLASS (greeter_parent_class)->start (session);
 
     /* Close the session ends of the pipe */
     close (to_greeter_pipe[0]);
@@ -892,6 +867,7 @@ greeter_init (Greeter *greeter)
     greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, GREETER_TYPE, GreeterPrivate);
     greeter->priv->read_buffer = secure_malloc (greeter, HEADER_SIZE);
     greeter->priv->hints = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+    greeter->priv->use_secure_memory = config_get_boolean (config_get_instance (), "LightDM", "lock-memory");
 }
 
 static void
@@ -901,8 +877,6 @@ greeter_finalize (GObject *object)
 
     self = GREETER (object);
 
-    g_signal_handlers_disconnect_matched (self->priv->session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);    
-    g_object_unref (self->priv->session);
     g_free (self->priv->pam_service);
     g_free (self->priv->autologin_pam_service);
     secure_free (self, self->priv->read_buffer);
@@ -924,10 +898,12 @@ greeter_finalize (GObject *object)
 static void
 greeter_class_init (GreeterClass *klass)
 {
+    SessionClass *session_class = SESSION_CLASS (klass);
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     klass->create_session = greeter_real_create_session;
     klass->start_session = greeter_real_start_session;
+    session_class->start = greeter_start;
     object_class->finalize = greeter_finalize;
 
     signals[CONNECTED] =

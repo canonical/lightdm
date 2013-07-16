@@ -16,6 +16,7 @@
 #include "seat-unity.h"
 #include "configuration.h"
 #include "xserver-local.h"
+#include "xgreeter.h"
 #include "xsession.h"
 #include "vt.h"
 #include "plymouth.h"
@@ -459,6 +460,17 @@ seat_unity_create_display_server (Seat *seat)
     return DISPLAY_SERVER (xserver);
 }
 
+static Greeter *
+seat_unity_create_greeter_session (Seat *seat)
+{
+    XGreeter *greeter_session;
+
+    greeter_session = xgreeter_new ();
+    session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
+
+    return GREETER (greeter_session);
+}
+
 static Session *
 seat_unity_create_session (Seat *seat)
 {
@@ -589,6 +601,7 @@ seat_unity_class_init (SeatUnityClass *klass)
     seat_class->setup = seat_unity_setup;
     seat_class->start = seat_unity_start;
     seat_class->create_display_server = seat_unity_create_display_server;
+    seat_class->create_greeter_session = seat_unity_create_greeter_session;
     seat_class->create_session = seat_unity_create_session;
     seat_class->set_active_session = seat_unity_set_active_session;
     seat_class->get_active_session = seat_unity_get_active_session;

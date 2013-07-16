@@ -14,6 +14,7 @@
 #include "seat-xlocal.h"
 #include "configuration.h"
 #include "xserver-local.h"
+#include "xgreeter.h"
 #include "xsession.h"
 #include "vt.h"
 
@@ -105,6 +106,17 @@ seat_xlocal_create_display_server (Seat *seat)
     return DISPLAY_SERVER (xserver);
 }
 
+static Greeter *
+seat_xlocal_create_greeter_session (Seat *seat)
+{
+    XGreeter *greeter_session;
+
+    greeter_session = xgreeter_new ();
+    session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
+
+    return GREETER (greeter_session);
+}
+
 static Session *
 seat_xlocal_create_session (Seat *seat)
 {
@@ -172,6 +184,7 @@ seat_xlocal_class_init (SeatXLocalClass *klass)
 
     seat_class->setup = seat_xlocal_setup;
     seat_class->create_display_server = seat_xlocal_create_display_server;
+    seat_class->create_greeter_session = seat_xlocal_create_greeter_session;
     seat_class->create_session = seat_xlocal_create_session;
     seat_class->set_active_session = seat_xlocal_set_active_session;
     seat_class->get_active_session = seat_xlocal_get_active_session;

@@ -14,6 +14,7 @@
 #include "seat-xremote.h"
 #include "configuration.h"
 #include "xserver-remote.h"
+#include "xgreeter.h"
 #include "xsession.h"
 
 G_DEFINE_TYPE (SeatXRemote, seat_xremote, SEAT_TYPE);
@@ -42,6 +43,17 @@ seat_xremote_create_display_server (Seat *seat)
     xserver = xserver_remote_new (hostname, number, NULL);
 
     return DISPLAY_SERVER (xserver);
+}
+
+static Greeter *
+seat_xremote_create_greeter_session (Seat *seat)
+{
+    XGreeter *greeter_session;
+
+    greeter_session = xgreeter_new ();
+    session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
+
+    return GREETER (greeter_session);
 }
 
 static Session *
@@ -74,6 +86,7 @@ seat_xremote_class_init (SeatXRemoteClass *klass)
 
     seat_class->setup = seat_xremote_setup;
     seat_class->create_display_server = seat_xremote_create_display_server;
+    seat_class->create_greeter_session = seat_xremote_create_greeter_session;
     seat_class->create_session = seat_xremote_create_session;
     seat_class->run_script = seat_xremote_run_script;
 }

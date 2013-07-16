@@ -39,6 +39,7 @@ typedef struct
 {
     GObjectClass parent_class;
 
+    gboolean (*start)(Session *session);
     void (*got_messages)(Session *session);
     void (*authentication_complete)(Session *session);
     void (*stopped)(Session *session);

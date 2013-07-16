@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011 Robert Ancell.
+ * Copyright (C) 2013 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
  * 
  * This program is free software: you can redistribute it and/or modify it under
@@ -14,25 +14,20 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-#include "xsession.h"
+#include "xgreeter.h"
 #include "xserver.h"
 #include "configuration.h"
 
-G_DEFINE_TYPE (XSession, xsession, SESSION_TYPE);
+G_DEFINE_TYPE (XGreeter, xgreeter, GREETER_TYPE);
 
-XSession *
-xsession_new (void)
+XGreeter *
+xgreeter_new (void)
 {
-    XSession *session;
-
-    session = g_object_new (XSESSION_TYPE, NULL);
-    session_set_log_file (SESSION (session), ".xsession-errors");
-
-    return session;
+    return g_object_new (XGREETER_TYPE, NULL);
 }
 
 static void
-xsession_set_display_server (Session *session, DisplayServer *display_server)
+xgreeter_set_display_server (Session *session, DisplayServer *display_server)
 {
     XServer *xserver;
     gint vt;
@@ -61,18 +56,18 @@ xsession_set_display_server (Session *session, DisplayServer *display_server)
                             xserver_get_authority (xserver),
                             config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"));
 
-    SESSION_CLASS (xsession_parent_class)->set_display_server (session, display_server);
+    SESSION_CLASS (xgreeter_parent_class)->set_display_server (session, display_server);
 }
 
 static void
-xsession_init (XSession *session)
+xgreeter_init (XGreeter *session)
 {
 }
 
 static void
-xsession_class_init (XSessionClass *klass)
+xgreeter_class_init (XGreeterClass *klass)
 {
     SessionClass *session_class = SESSION_CLASS (klass);
 
-    session_class->set_display_server = xsession_set_display_server;
+    session_class->set_display_server = xgreeter_set_display_server;
 }

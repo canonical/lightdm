@@ -13,7 +13,6 @@
 #define XSESSION_H_
 
 #include "session.h"
-#include "xserver.h"
 
 G_BEGIN_DECLS
 

@@ -445,6 +445,12 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 gboolean
 session_start (Session *session)
 {
+    return SESSION_GET_CLASS (session)->start (session);
+}
+
+static gboolean
+session_real_start (Session *session)
+{
     int version;
     int to_child_pipe[2], from_child_pipe[2];
     int to_child_output, from_child_input;
@@ -766,6 +772,7 @@ session_class_init (SessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
+    klass->start = session_real_start;
     klass->set_display_server = session_real_set_display_server;
     object_class->finalize = session_finalize;
 
