@@ -406,16 +406,19 @@ static void
 session_stopped_cb (Session *session, Seat *seat)
 {
     DisplayServer *display_server;
-    const gchar *script;
 
     g_debug ("Session stopped");
 
     display_server = session_get_display_server (session);
 
     /* Cleanup */
-    script = seat_get_string_property (seat, "session-cleanup-script");
-    if (script)
-        run_script (seat, display_server, script, session_get_user (session));
+    if (!IS_GREETER (session))
+    {
+        const gchar *script;
+        script = seat_get_string_property (seat, "session-cleanup-script");
+        if (script)
+            run_script (seat, display_server, script, session_get_user (session));
+    }
 
     if (seat->priv->guest_username && strcmp (session_get_username (session), seat->priv->guest_username) == 0)
     {
