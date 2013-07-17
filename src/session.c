@@ -739,6 +739,8 @@ session_stop (Session *session)
         kill (session->priv->pid, SIGTERM);
         // FIXME: Handle timeout
     }
+    else
+        g_signal_emit (G_OBJECT (session), signals[STOPPED], 0);
 }
 
 gboolean
