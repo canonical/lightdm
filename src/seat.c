@@ -393,6 +393,10 @@ session_authentication_complete_cb (Session *session, Seat *seat)
         // FIXME: Only if can share servers
 
         greeter_session = create_greeter_session (seat);
+        if (session_get_is_guest (session))
+            greeter_set_hint (greeter_session, "select-guest", "true");
+        else
+            greeter_set_hint (greeter_session, "select-user", session_get_username (session));
         session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
 
         session_start (SESSION (greeter_session));
@@ -601,17 +605,17 @@ get_session_argv (const gchar *sessions_dir, const gchar *session_name, const gc
 }
 
 static Session *
-create_autologin_session (Seat *seat, const gchar *autologin_username)
+create_user_session (Seat *seat, const gchar *username)
 {
     User *user;
     gchar *sessions_dir, **argv;
     const gchar *session_name;
     Session *session;
   
-    user = accounts_get_user_by_name (autologin_username);
+    user = accounts_get_user_by_name (username);
     if (!user)
     {
-        g_debug ("Can't autologin unknown user '%s'", autologin_username);
+        g_debug ("Can't login unknown user '%s'", username);
         return NULL;
     }
 
@@ -632,7 +636,7 @@ create_autologin_session (Seat *seat, const gchar *autologin_username)
 
     session = create_session (seat, TRUE);
     session_set_pam_service (session, AUTOLOGIN_SERVICE);
-    session_set_username (session, autologin_username);
+    session_set_username (session, username);
     session_set_do_authenticate (session, TRUE);
     session_set_argv (session, argv);
 
@@ -640,7 +644,7 @@ create_autologin_session (Seat *seat, const gchar *autologin_username)
 }
 
 static Session *
-create_autologin_guest_session (Seat *seat)
+create_guest_session (Seat *seat)
 {
     gchar *sessions_dir, **argv;
     Session *session;
@@ -657,7 +661,6 @@ create_autologin_guest_session (Seat *seat)
     }
 
     session = create_session (seat, TRUE);
-    session_set_pam_service (session, AUTOLOGIN_SERVICE);
     session_set_do_authenticate (session, TRUE);
     session_set_is_guest (session, TRUE);
     session_set_argv (session, argv);
@@ -702,7 +705,10 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
 
     /* Get the session to use */
     if (greeter_get_guest_authenticated (greeter))
-        session = create_autologin_guest_session (seat);
+    {
+        session = create_guest_session (seat);
+        session_set_pam_service (session, AUTOLOGIN_SERVICE);
+    }
     else
         session = greeter_get_authentication_session (greeter);
 
@@ -868,6 +874,21 @@ create_display_server (Seat *seat)
     return display_server;
 }
 
+static Greeter *
+find_greeter_session (Seat *seat)
+{
+    GList *link;
+
+    for (link = seat->priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+        if (IS_GREETER (session))
+            return GREETER (session);
+    }
+
+    return NULL;
+}
+
 gboolean
 seat_switch_to_greeter (Seat *seat)
 {
@@ -880,22 +901,45 @@ seat_switch_to_greeter (Seat *seat)
         return FALSE;
 
     /* Switch to greeter if one open (shouldn't be though) */
-    if (switch_to_user (seat, NULL, FALSE))
+    greeter_session = find_greeter_session (seat);
+    if (greeter_session)
+    {
+        seat_set_active_session (seat, SESSION (greeter_session));
         return TRUE;
+    }
+
+    greeter_session = create_greeter_session (seat);
 
     display_server = create_display_server (seat);
+    session_set_display_server (SESSION (greeter_session), display_server);
     if (!display_server_start (display_server))
         return FALSE;
 
-    greeter_session = create_greeter_session (seat);
-    session_set_display_server (SESSION (greeter_session), display_server);
-
     return TRUE;
+}
+
+static Session *
+find_user_session (Seat *seat, const gchar *username)
+{
+    GList *link;
+
+    for (link = seat->priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+
+        if (strcmp (session_get_username (session), username) == 0)
+            return session;
+    }
+
+    return NULL;
 }
 
 gboolean
 seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_name)
 {
+    Session *session;
+    DisplayServer *display_server;
+
     g_return_val_if_fail (seat != NULL, FALSE);
     g_return_val_if_fail (username != NULL, FALSE);
 
@@ -904,11 +948,21 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
 
     g_debug ("Switching to user %s", username);
 
-    /* Switch to session if one open */
-    if (switch_to_user (seat, username, FALSE))
+    session = find_user_session (seat, username);
+    if (session)
+    {
+        g_debug ("Switching to existing user session %s", username);
+        seat_set_active_session (seat, session);
         return TRUE;
+    }
 
-    // FIXME
+    session = create_user_session (seat, username);
+    session_set_pam_service (session, USER_SERVICE);
+
+    display_server = create_display_server (seat);
+    session_set_display_server (session, display_server);
+    if (!display_server_start (display_server))
+        return FALSE;
 
     return FALSE;
 }
@@ -954,7 +1008,8 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
     if (!display_server_start (display_server))
         return FALSE;
 
-    session = create_autologin_guest_session (seat);
+    session = create_guest_session (seat);
+    session_set_pam_service (session, AUTOLOGIN_SERVICE);
     session_set_display_server (session, display_server);
 
     return TRUE;
@@ -1044,9 +1099,15 @@ seat_real_start (Seat *seat)
 
     /* Autologin if configured */
     if (autologin_timeout == 0 && autologin_guest)
-        session = create_autologin_guest_session (seat);
+    {
+        session = create_guest_session (seat);
+        session_set_pam_service (session, AUTOLOGIN_SERVICE);
+    }
     else if (autologin_timeout == 0 && autologin_username != NULL)
-        session = create_autologin_session (seat, autologin_username);
+    {
+        session = create_user_session (seat, autologin_username);
+        session_set_pam_service (session, AUTOLOGIN_SERVICE);
+    }
 
     /* Fallback to a greeter */
     if (!session)
