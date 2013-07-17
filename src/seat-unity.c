@@ -505,14 +505,14 @@ seat_unity_set_active_session (Seat *seat, Session *session)
 
     if (session == SEAT_UNITY (seat)->priv->active_session)
         return;
-    SEAT_UNITY (seat)->priv->active_session = session;
+    SEAT_UNITY (seat)->priv->active_session = g_object_ref (session);
 
     display_server = session_get_display_server (session);
     if (SEAT_UNITY (seat)->priv->active_display_server != display_server)
     {
         const gchar *id;
 
-        SEAT_UNITY (seat)->priv->active_display_server = display_server;
+        SEAT_UNITY (seat)->priv->active_display_server = g_object_ref (display_server);
         id = xserver_local_get_mir_id (XSERVER_LOCAL (display_server));
 
         g_debug ("Switching to Mir session %s", id);
@@ -597,6 +597,10 @@ seat_unity_finalize (GObject *object)
     g_io_channel_unref (seat->priv->from_compositor_channel);
     g_free (seat->priv->read_buffer);
     g_object_unref (seat->priv->compositor_process);
+    if (seat->priv->active_session)
+        g_object_unref (seat->priv->active_session);
+    if (seat->priv->active_display_server)
+        g_object_unref (seat->priv->active_display_server);
 
     G_OBJECT_CLASS (seat_unity_parent_class)->finalize (object);
 }

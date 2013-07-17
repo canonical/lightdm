@@ -372,7 +372,9 @@ start_session (Seat *seat, Session *session)
 
     g_debug ("Failed to start session, starting greeter");
     greeter_session = create_greeter_session (seat);
-    seat->priv->session_to_activate = SESSION (greeter_session);
+    if (seat->priv->session_to_activate)
+        g_object_unref (seat->priv->session_to_activate);
+    seat->priv->session_to_activate = g_object_ref (greeter_session);
     // FIXME: Only if can re-use
     session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
 
@@ -397,7 +399,9 @@ run_session (Seat *seat, Session *session)
         // FIXME: Only if can share servers
 
         greeter_session = create_greeter_session (seat);
-        seat->priv->session_to_activate = SESSION (greeter_session);
+        if (seat->priv->session_to_activate)
+            g_object_unref (seat->priv->session_to_activate);
+        seat->priv->session_to_activate = g_object_ref (greeter_session);
         session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
 
         start_session (seat, SESSION (greeter_session));
@@ -414,6 +418,7 @@ run_session (Seat *seat, Session *session)
         if (session == seat->priv->session_to_activate)
         {
             seat_set_active_session (seat, session);
+            g_object_unref (seat->priv->session_to_activate);
             seat->priv->session_to_activate = NULL;
         }
     }
@@ -436,7 +441,9 @@ session_authentication_complete_cb (Session *session, Seat *seat)
         // FIXME: Only if can share servers
 
         greeter_session = create_greeter_session (seat);
-        seat->priv->session_to_activate = SESSION (greeter_session);
+        if (seat->priv->session_to_activate)
+            g_object_unref (seat->priv->session_to_activate);
+        seat->priv->session_to_activate = g_object_ref (greeter_session);
         if (session_get_is_guest (session))
             greeter_set_hint (greeter_session, "select-guest", "true");
         else
@@ -479,7 +486,10 @@ session_stopped_cb (Session *session, Seat *seat)
     /* We were waiting for this session, but it didn't start :( */
     // FIXME: Start a greeter on this?
     if (session == seat->priv->session_to_activate)
+    {
+        g_object_unref (seat->priv->session_to_activate);
         seat->priv->session_to_activate = NULL;
+    }
 
     if (seat->priv->stopping)
     {
@@ -790,7 +800,9 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     if (greeter_get_guest_authenticated (greeter))
     {
         session = create_guest_session (seat);
-        seat->priv->session_to_activate = SESSION (session);
+        if (seat->priv->session_to_activate)
+            g_object_unref (seat->priv->session_to_activate);
+        seat->priv->session_to_activate = g_object_ref (session);
         session_set_pam_service (session, AUTOLOGIN_SERVICE);
     }
     else
@@ -1010,7 +1022,9 @@ seat_switch_to_greeter (Seat *seat)
     }
 
     greeter_session = create_greeter_session (seat);
-    seat->priv->session_to_activate = SESSION (greeter_session);
+    if (seat->priv->session_to_activate)
+        g_object_unref (seat->priv->session_to_activate);
+    seat->priv->session_to_activate = g_object_ref (greeter_session);
 
     display_server = create_display_server (seat);
     session_set_display_server (SESSION (greeter_session), display_server);
@@ -1043,7 +1057,9 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
     }
 
     session = create_user_session (seat, username);
-    seat->priv->session_to_activate = SESSION (session);
+    if (seat->priv->session_to_activate)
+        g_object_unref (seat->priv->session_to_activate);
+    seat->priv->session_to_activate = g_object_ref (session);
     session_set_pam_service (session, USER_SERVICE);
 
     display_server = create_display_server (seat);
@@ -1095,7 +1111,9 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
         return FALSE;
 
     session = create_guest_session (seat);
-    seat->priv->session_to_activate = SESSION (session);
+    if (seat->priv->session_to_activate)
+        g_object_unref (seat->priv->session_to_activate);
+    seat->priv->session_to_activate = g_object_ref (session);
     session_set_pam_service (session, AUTOLOGIN_SERVICE);
     session_set_display_server (session, display_server);
 
@@ -1129,7 +1147,9 @@ seat_lock (Seat *seat, const gchar *username)
         return FALSE;
 
     greeter_session = create_greeter_session (seat);
-    seat->priv->session_to_activate = SESSION (greeter_session);
+    if (seat->priv->session_to_activate)
+        g_object_unref (seat->priv->session_to_activate);
+    seat->priv->session_to_activate = g_object_ref (greeter_session);
     greeter_set_hint (greeter_session, "lock-screen", "true");
     if (username)
         greeter_set_hint (greeter_session, "select-user", username);
@@ -1194,13 +1214,17 @@ seat_real_start (Seat *seat)
     if (autologin_timeout == 0 && autologin_guest)
     {
         session = create_guest_session (seat);
-        seat->priv->session_to_activate = SESSION (session);
+        if (seat->priv->session_to_activate)
+            g_object_unref (seat->priv->session_to_activate);
+        seat->priv->session_to_activate = g_object_ref (session);
         session_set_pam_service (session, AUTOLOGIN_SERVICE);
     }
     else if (autologin_timeout == 0 && autologin_username != NULL)
     {
         session = create_user_session (seat, autologin_username);
-        seat->priv->session_to_activate = SESSION (session);
+        if (seat->priv->session_to_activate)
+            g_object_unref (seat->priv->session_to_activate);
+        seat->priv->session_to_activate = g_object_ref (session);
         session_set_pam_service (session, AUTOLOGIN_SERVICE);
     }
 
@@ -1224,7 +1248,9 @@ seat_real_start (Seat *seat)
         Greeter *greeter_session;
 
         greeter_session = create_greeter_session (seat);
-        seat->priv->session_to_activate = SESSION (greeter_session);
+        if (seat->priv->session_to_activate)
+            g_object_unref (seat->priv->session_to_activate);
+        seat->priv->session_to_activate = g_object_ref (greeter_session);
         session = SESSION (greeter_session);
 
         if (autologin_timeout)
@@ -1331,6 +1357,8 @@ seat_finalize (GObject *object)
         g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
     }
     g_list_free_full (self->priv->sessions, g_object_unref);
+    if (self->priv->session_to_activate)
+        g_object_unref (self->priv->session_to_activate);
 
     G_OBJECT_CLASS (seat_parent_class)->finalize (object);
 }
