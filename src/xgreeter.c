@@ -27,12 +27,12 @@ xgreeter_new (void)
 }
 
 static void
-xgreeter_set_display_server (Session *session, DisplayServer *display_server)
+setup_env (XGreeter *xgreeter)
 {
-    XServer *xserver;
+    DisplayServer *display_server;
     gint vt;
 
-    xserver = XSERVER (display_server);
+    display_server = session_get_display_server (SESSION (xgreeter));
 
     vt = display_server_get_vt (display_server);
     if (vt > 0)
@@ -40,23 +40,35 @@ xgreeter_set_display_server (Session *session, DisplayServer *display_server)
         gchar *t;
 
         t = g_strdup_printf ("/dev/tty%d", vt);
-        session_set_tty (session, t);
+        session_set_tty (SESSION (xgreeter), t);
         g_free (t);
 
         t = g_strdup_printf ("%d", vt);
-        session_set_env (session, "XDG_VTNR", t);
+        session_set_env (SESSION (xgreeter), "XDG_VTNR", t);
         g_free (t);
     }
 
-    session_set_env (session, "DISPLAY", xserver_get_address (xserver));
-    session_set_tty (session, xserver_get_address (xserver));
-    session_set_xdisplay (session, xserver_get_address (xserver));
-    session_set_remote_host_name (session, xserver_get_hostname (xserver));
-    session_set_xauthority (session,
-                            xserver_get_authority (xserver),
+    session_set_env (SESSION (xgreeter), "DISPLAY", xserver_get_address (XSERVER (display_server)));
+    session_set_tty (SESSION (xgreeter), xserver_get_address (XSERVER (display_server)));
+    session_set_xdisplay (SESSION (xgreeter), xserver_get_address (XSERVER (display_server)));
+    session_set_remote_host_name (SESSION (xgreeter), xserver_get_hostname (XSERVER (display_server)));
+    session_set_xauthority (SESSION (xgreeter),
+                            xserver_get_authority (XSERVER (display_server)),
                             config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"));
+}
 
-    SESSION_CLASS (xgreeter_parent_class)->set_display_server (session, display_server);
+static gboolean
+xgreeter_start (Session *session)
+{
+    setup_env (XGREETER (session));
+    return SESSION_CLASS (xgreeter_parent_class)->start (session);
+}
+
+static void
+xgreeter_run (Session *session)
+{
+    setup_env (XGREETER (session));
+    SESSION_CLASS (xgreeter_parent_class)->run (session);
 }
 
 static void
@@ -69,5 +81,6 @@ xgreeter_class_init (XGreeterClass *klass)
 {
     SessionClass *session_class = SESSION_CLASS (klass);
 
-    session_class->set_display_server = xgreeter_set_display_server;
+    session_class->start = xgreeter_start;
+    session_class->run = xgreeter_run;
 }

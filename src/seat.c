@@ -666,7 +666,12 @@ create_autologin_guest_session (Seat *seat)
 static Session *
 greeter_create_session_cb (Greeter *greeter, Seat *seat)
 {
-    return g_object_ref (create_session (seat, FALSE));
+    Session *session;
+
+    session = create_session (seat, FALSE);
+    session_set_display_server (session, session_get_display_server (SESSION (greeter)));
+
+    return g_object_ref (session);
 }
 
 static void
@@ -1006,10 +1011,7 @@ seat_real_start (Seat *seat)
 
     g_debug ("Starting seat");
 
-    /* Start display server to show session on */
     display_server = create_display_server (seat);
-    if (!display_server_start (display_server))
-        return FALSE;
 
     /* Get autologin settings */
     autologin_username = seat_get_string_property (seat, "autologin-user");
@@ -1054,7 +1056,10 @@ seat_real_start (Seat *seat)
         return FALSE;
     }
 
+    /* Start display server to show session on */
     session_set_display_server (session, display_server);
+    if (!display_server_start (display_server))
+        return FALSE;
 
     return TRUE;
 }

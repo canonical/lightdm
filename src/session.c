@@ -169,20 +169,14 @@ session_set_class (Session *session, const gchar *class)
     session->priv->class = g_strdup (class);
 }
 
-static void
-session_real_set_display_server (Session *session, DisplayServer *display_server)
-{
-    if (session->priv->display_server)
-        g_object_unref (session->priv->display_server);
-    session->priv->display_server = g_object_ref (display_server);
-}
-
 void
 session_set_display_server (Session *session, DisplayServer *display_server)
 {
     g_return_if_fail (session != NULL);
     g_return_if_fail (display_server != NULL);
-    SESSION_GET_CLASS (session)->set_display_server (session, display_server);
+    if (session->priv->display_server)
+        g_object_unref (session->priv->display_server);
+    session->priv->display_server = g_object_ref (display_server);
 }
 
 DisplayServer *
@@ -445,6 +439,7 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 gboolean
 session_start (Session *session)
 {
+    g_return_val_if_fail (session->priv->display_server != NULL, FALSE);
     return SESSION_GET_CLASS (session)->start (session);
 }
 
@@ -622,6 +617,13 @@ session_get_authentication_result_string (Session *session)
 void
 session_run (Session *session)
 {
+    g_return_if_fail (session->priv->display_server != NULL);
+    return SESSION_GET_CLASS (session)->run (session);
+}
+
+static void
+session_real_run (Session *session)
+{
     gsize i, argc;
     gchar *command, *xauth_filename;
     GList *link;
@@ -779,7 +781,7 @@ session_class_init (SessionClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     klass->start = session_real_start;
-    klass->set_display_server = session_real_set_display_server;
+    klass->run = session_real_run;
     object_class->finalize = session_finalize;
 
     g_type_class_add_private (klass, sizeof (SessionPrivate));

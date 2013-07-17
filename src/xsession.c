@@ -32,12 +32,12 @@ xsession_new (void)
 }
 
 static void
-xsession_set_display_server (Session *session, DisplayServer *display_server)
+setup_env (XSession *xsession)
 {
-    XServer *xserver;
+    DisplayServer *display_server;
     gint vt;
 
-    xserver = XSERVER (display_server);
+    display_server = session_get_display_server (SESSION (xsession));
 
     vt = display_server_get_vt (display_server);
     if (vt > 0)
@@ -45,23 +45,35 @@ xsession_set_display_server (Session *session, DisplayServer *display_server)
         gchar *t;
 
         t = g_strdup_printf ("/dev/tty%d", vt);
-        session_set_tty (session, t);
+        session_set_tty (SESSION (xsession), t);
         g_free (t);
 
         t = g_strdup_printf ("%d", vt);
-        session_set_env (session, "XDG_VTNR", t);
+        session_set_env (SESSION (xsession), "XDG_VTNR", t);
         g_free (t);
     }
 
-    session_set_env (session, "DISPLAY", xserver_get_address (xserver));
-    session_set_tty (session, xserver_get_address (xserver));
-    session_set_xdisplay (session, xserver_get_address (xserver));
-    session_set_remote_host_name (session, xserver_get_hostname (xserver));
-    session_set_xauthority (session,
-                            xserver_get_authority (xserver),
+    session_set_env (SESSION (xsession), "DISPLAY", xserver_get_address (XSERVER (display_server)));
+    session_set_tty (SESSION (xsession), xserver_get_address (XSERVER (display_server)));
+    session_set_xdisplay (SESSION (xsession), xserver_get_address (XSERVER (display_server)));
+    session_set_remote_host_name (SESSION (xsession), xserver_get_hostname (XSERVER (display_server)));
+    session_set_xauthority (SESSION (xsession),
+                            xserver_get_authority (XSERVER (display_server)),
                             config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"));
+}
 
-    SESSION_CLASS (xsession_parent_class)->set_display_server (session, display_server);
+static gboolean
+xsession_start (Session *session)
+{
+    setup_env (XSESSION (session));
+    return SESSION_CLASS (xsession_parent_class)->start (session);
+}
+
+static void
+xsession_run (Session *session)
+{
+    setup_env (XSESSION (session));
+    SESSION_CLASS (xsession_parent_class)->run (session);
 }
 
 static void
@@ -74,5 +86,6 @@ xsession_class_init (XSessionClass *klass)
 {
     SessionClass *session_class = SESSION_CLASS (klass);
 
-    session_class->set_display_server = xsession_set_display_server;
+    session_class->start = xsession_start;
+    session_class->run = xsession_run;
 }

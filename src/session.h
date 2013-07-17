@@ -43,7 +43,7 @@ typedef struct
     void (*got_messages)(Session *session);
     void (*authentication_complete)(Session *session);
     void (*stopped)(Session *session);
-    void (*set_display_server)(Session *session, DisplayServer *display_server);
+    void (*run)(Session *session);
 } SessionClass;
 
 typedef enum

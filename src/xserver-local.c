@@ -153,9 +153,14 @@ XServerLocal *
 xserver_local_new (void)
 {
     XServerLocal *self = g_object_new (XSERVER_LOCAL_TYPE, NULL);
-    gchar *name;
+    gchar hostname[1024], *number, *name;
 
     xserver_set_display_number (XSERVER (self), xserver_local_get_unused_display_number ());
+
+    gethostname (hostname, 1024);
+    number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (self)));
+    xserver_set_authority (XSERVER (self), xauth_new_cookie (XAUTH_FAMILY_LOCAL, (guint8*) hostname, strlen (hostname), number));
+    g_free (number);
 
     name = g_strdup_printf ("x-%d", xserver_get_display_number (XSERVER (self)));
     display_server_set_name (DISPLAY_SERVER (self), name);
@@ -253,6 +258,7 @@ xserver_local_set_xdmcp_key (XServerLocal *server, const gchar *key)
     g_return_if_fail (server != NULL);
     g_free (server->priv->xdmcp_key);
     server->priv->xdmcp_key = g_strdup (key);
+    xserver_set_authority (XSERVER (server), NULL);
 }
 
 void
@@ -443,7 +449,6 @@ xserver_local_start (DisplayServer *display_server)
     XServerLocal *server = XSERVER_LOCAL (display_server);
     gboolean result;
     gchar *filename, *dir, *absolute_command;
-    gchar hostname[1024], *number;
     GString *command;
 
     g_return_val_if_fail (server->priv->xserver_process == NULL, FALSE);
@@ -484,11 +489,6 @@ xserver_local_start (DisplayServer *display_server)
     if (server->priv->layout)
         g_string_append_printf (command, " -layout %s", server->priv->layout);
 
-    gethostname (hostname, 1024);
-    number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (server)));
-    if (!server->priv->xdmcp_key)
-        xserver_set_authority (XSERVER (server), xauth_new_cookie (XAUTH_FAMILY_LOCAL, (guint8*) hostname, strlen (hostname), number));
-    g_free (number);
     write_authority_file (server);
     if (server->priv->authority_file)
         g_string_append_printf (command, " -auth %s", server->priv->authority_file);
