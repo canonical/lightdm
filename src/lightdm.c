@@ -604,6 +604,7 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
                                    g_variant_new ("(o)", entry->path),
                                    NULL);
 
+    // FIXME: Use a user-session-run signal instead
     g_signal_connect (seat, "session-added", G_CALLBACK (session_added_cb), NULL);
     g_signal_connect (seat, "session-removed", G_CALLBACK (session_added_cb), NULL);
     for (link = seat_get_sessions (seat); link; link = link->next)
