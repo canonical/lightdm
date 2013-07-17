@@ -156,6 +156,13 @@ session_set_is_guest (Session *session, gboolean is_guest)
     session->priv->is_guest = is_guest;
 }
 
+gboolean
+session_get_is_guest (Session *session)
+{
+    g_return_val_if_fail (session != NULL, FALSE);
+    return session->priv->is_guest;
+}
+
 void
 session_set_log_file (Session *session, const gchar *filename)
 {

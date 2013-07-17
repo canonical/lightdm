@@ -37,9 +37,6 @@ struct SeatPrivate
     /* TRUE if display server can be shared for sessions */
     gboolean share_display_server;
 
-    /* Name of guest account */
-    gchar *guest_username;
-
     /* The display servers on this seat */
     GList *display_servers;
 
@@ -196,7 +193,7 @@ seat_get_can_switch (Seat *seat)
 gboolean
 seat_get_allow_guest (Seat *seat)
 {
-    g_return_val_if_fail (seat != NULL, FALSE);  
+    g_return_val_if_fail (seat != NULL, FALSE);
     return seat_get_boolean_property (seat, "allow-guest") && guest_account_is_installed ();
 }
 
@@ -423,12 +420,6 @@ session_stopped_cb (Session *session, Seat *seat)
         script = seat_get_string_property (seat, "session-cleanup-script");
         if (script)
             run_script (seat, display_server, script, session_get_user (session));
-    }
-
-    if (seat->priv->guest_username && strcmp (session_get_username (session), seat->priv->guest_username) == 0)
-    {
-        g_free (seat->priv->guest_username);
-        seat->priv->guest_username = NULL;
     }
 
     g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
@@ -922,11 +913,28 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
     return FALSE;
 }
 
+static Session *
+find_guest_session (Seat *seat)
+{
+    GList *link;
+
+    for (link = seat->priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+      
+        if (session_get_is_guest (session))
+            return session;
+    }
+
+    return NULL;
+}
+
 gboolean
 seat_switch_to_guest (Seat *seat, const gchar *session_name)
 {
     Session *session;
     DisplayServer *display_server;
+    GList *link;
 
     g_return_val_if_fail (seat != NULL, FALSE);
 
@@ -934,10 +942,12 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
         return FALSE;
 
     /* Switch to session if one open */
-    if (seat->priv->guest_username)
+    session = find_guest_session (seat);
+    if (session)
     {
-        g_debug ("Switching to existing guest account %s", seat->priv->guest_username);
-        return switch_to_user (seat, seat->priv->guest_username, FALSE);
+        g_debug ("Switching to existing guest account %s", session_get_username (session));
+        seat_set_active_session (seat, session);
+        return TRUE;
     }
 
     display_server = create_display_server (seat);
@@ -1135,7 +1145,6 @@ seat_finalize (GObject *object)
     self = SEAT (object);
 
     g_hash_table_unref (self->priv->properties);
-    g_free (self->priv->guest_username);
     for (link = self->priv->display_servers; link; link = link->next)
     {
         DisplayServer *display_server = link->data;
