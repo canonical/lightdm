@@ -60,8 +60,6 @@ Seat *seat_new (const gchar *module_name);
 
 void seat_set_property (Seat *seat, const gchar *name, const gchar *value);
 
-gboolean seat_has_property (Seat *seat, const gchar *name);
-
 const gchar *seat_get_string_property (Seat *seat, const gchar *name);
 
 gboolean seat_get_boolean_property (Seat *seat, const gchar *name);

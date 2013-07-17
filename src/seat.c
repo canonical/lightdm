@@ -108,13 +108,6 @@ seat_set_property (Seat *seat, const gchar *name, const gchar *value)
     g_hash_table_insert (seat->priv->properties, g_strdup (name), g_strdup (value));
 }
 
-gboolean
-seat_has_property (Seat *seat, const gchar *name)
-{
-    g_return_val_if_fail (seat != NULL, FALSE);
-    return g_hash_table_lookup (seat->priv->properties, name) != NULL;
-}
-
 const gchar *
 seat_get_string_property (Seat *seat, const gchar *name)
 {
@@ -220,17 +213,6 @@ seat_get_greeter_allow_guest (Seat *seat)
 {
     g_return_val_if_fail (seat != NULL, FALSE);  
     return seat_get_allow_guest (seat) && seat_get_boolean_property (seat, "greeter-allow-guest");
-}
-
-static gboolean
-switch_to_user (Seat *seat, const gchar *username, gboolean unlock)
-{
-    GList *link;
-
-    /* Switch to active display if it exists */
-    // FIXME
-
-    return FALSE;
 }
 
 static gboolean
@@ -512,9 +494,8 @@ session_stopped_cb (Session *session, Seat *seat)
             break;
         }
     }
-
     /* If this is the greeter and nothing else is running then stop the seat */
-    if (IS_GREETER (session) &&
+    else if (IS_GREETER (session) &&
         !greeter_get_start_session (GREETER (session)) &&
         g_list_length (seat->priv->display_servers) == 1 &&
         g_list_nth_data (seat->priv->display_servers, 0) == display_server)
@@ -522,16 +503,15 @@ session_stopped_cb (Session *session, Seat *seat)
         g_debug ("Stopping seat, failed to start a greeter");
         seat_stop (seat);
     }
-
     /* If we were the active session, switch to a greeter */
-    if (!IS_GREETER (session) && session == seat_get_active_session (seat))
+    else if (!IS_GREETER (session) && session == seat_get_active_session (seat))
     {
         g_debug ("Active session stopped, starting greeter");
         seat_switch_to_greeter (seat);
     }
 
     /* Stop the display server if no-longer required */
-    if (display_server)
+    if (display_server && !display_server_get_is_stopped (display_server))
     {
         GList *link;
         int n_sessions = 0;
@@ -1094,8 +1074,12 @@ seat_lock (Seat *seat, const gchar *username)
     g_debug ("Locking seat");
 
     /* Switch to greeter if one open (shouldn't be though) */
-    if (switch_to_user (seat, NULL, FALSE))
+    greeter_session = find_greeter_session (seat);
+    if (greeter_session)
+    {
+        seat_set_active_session (seat, SESSION (greeter_session));
         return TRUE;
+    }
 
     display_server = create_display_server (seat);
     if (!display_server_start (display_server))
