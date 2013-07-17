@@ -64,6 +64,7 @@ typedef struct
 } SeatModule;
 static GHashTable *seat_modules = NULL;
 
+// FIXME: Make a get_display_server() that re-uses display servers if supported
 static DisplayServer *create_display_server (Seat *seat);
 static Greeter *create_greeter_session (Seat *seat);
 
