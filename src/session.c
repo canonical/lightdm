@@ -109,6 +109,9 @@ struct SessionPrivate
 
     /* True if have run command */
     gboolean command_run;
+
+    /* TRUE if stopping this session */
+    gboolean stopping;
 };
 
 /* Maximum length of a string to pass between daemon and session */
@@ -714,6 +717,10 @@ void
 session_stop (Session *session)
 {
     g_return_if_fail (session != NULL);
+
+    if (session->priv->stopping)
+        return;
+    session->priv->stopping = TRUE;
 
     if (session->priv->pid > 0)
     {
