@@ -323,14 +323,19 @@ static void
 display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 {
     GList *link;
+    Session *active_session;
 
     g_debug ("Display server stopped");
 
     g_signal_handlers_disconnect_matched (display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
     seat->priv->display_servers = g_list_remove (seat->priv->display_servers, display_server);
-    g_object_unref (display_server);
 
-    check_stopped (seat);
+    if (seat->priv->stopping)
+    {
+        check_stopped (seat);
+        g_object_unref (display_server);
+        return;
+    }
 
     /* Stop all sessions on this display server */
     for (link = seat->priv->sessions; link; link = link->next)
@@ -353,12 +358,15 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
         session_stop (session);
     }
 
-    /* Show a greeter if everything fails */
-    if (!seat->priv->stopping && g_list_length (seat->priv->display_servers) == 0)
+    /* If we were the active session, switch to a greeter */
+    active_session = seat_get_active_session (seat);
+    if (!active_session || session_get_display_server (active_session) == display_server)
     {
-        g_debug ("All display servers stopped, showing a greeter");
+        g_debug ("Active display server stopped, starting greeter");
         seat_switch_to_greeter (seat);
     }
+
+    g_object_unref (display_server);
 }
 
 static void
@@ -470,51 +478,56 @@ session_stopped_cb (Session *session, Seat *seat)
     g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
     seat->priv->sessions = g_list_remove (seat->priv->sessions, session);
 
-    check_stopped (seat);
-  
-    if (!seat->priv->stopping)
+    if (seat->priv->stopping)
     {
-        /* If this is the greeter session then re-use this display server */
-        if (IS_GREETER (session) &&
-            seat->priv->share_display_server &&
-            greeter_get_start_session (GREETER (session)))
-        {
-            GList *link;
+        check_stopped (seat);
+        g_object_unref (session);
+        return;
+    }
 
-            for (link = seat->priv->sessions; link; link = link->next)
+    /* If this is the greeter session then re-use this display server */
+    if (IS_GREETER (session) && seat->priv->share_display_server &&
+        greeter_get_start_session (GREETER (session)))
+    {
+        GList *link;
+
+        for (link = seat->priv->sessions; link; link = link->next)
+        {
+            Session *s = link->data;
+
+            /* Skip this session and sessions on other display servers */
+            if (s == session || session_get_display_server (s) != display_server)
+                continue;
+
+            if (session_get_is_authenticated (s))
             {
-                Session *s = link->data;
-
-                /* Skip this session */
-                if (s == session)
-                    continue;
-
-                if (session_get_display_server (s) != display_server)
-                    continue;
-
-                if (session_get_is_authenticated (s))
-                {
-                    g_debug ("Greeter stopped, running session");
-                    run_session (seat, s);
-                }
-                else
-                {
-                    g_debug ("Greeter stopped, starting session authentication");
-                    start_session (seat, s);
-                }
-                break;
+                g_debug ("Greeter stopped, running session");
+                run_session (seat, s);
             }
+            else
+            {
+                g_debug ("Greeter stopped, starting session authentication");
+                start_session (seat, s);
+            }
+            break;
         }
+    }
 
-        /* if this is the greeter and nothing else is running then stop the seat */
-        if (IS_GREETER (session) &&
-            !greeter_get_start_session (GREETER (session)) &&
-            g_list_length (seat->priv->display_servers) == 1 &&
-            g_list_nth_data (seat->priv->display_servers, 0) == display_server)
-        {
-            g_debug ("Stopping seat, failed to start a greeter");
-            seat_stop (seat);
-        }
+    /* If this is the greeter and nothing else is running then stop the seat */
+    if (IS_GREETER (session) &&
+        !greeter_get_start_session (GREETER (session)) &&
+        g_list_length (seat->priv->display_servers) == 1 &&
+        g_list_nth_data (seat->priv->display_servers, 0) == display_server)
+    {
+        g_debug ("Stopping seat, failed to start a greeter");
+        seat_stop (seat);
+    }
+
+    /* If we were the active session, switch to a greeter */
+    if (!IS_GREETER (session) && session == seat_get_active_session (seat))
+    {
+        g_debug ("Active session stopped, starting greeter");
+        seat_switch_to_greeter (seat);
     }
 
     /* Stop the display server if no-longer required */
