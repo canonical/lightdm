@@ -448,10 +448,18 @@ session_stopped_cb (Session *session, Seat *seat)
                 if (s == session)
                     continue;
 
-                if (session_get_display_server (s) == display_server && session_get_is_authenticated (s))
+                if (session_get_display_server (s) == display_server)
                 {
-                    g_debug ("Starting session re-using greeter display server");
-                    run_session (seat, s);
+                    if (session_get_is_authenticated (s))
+                    {
+                        g_debug ("Greeter stopped running session");
+                        run_session (seat, s);
+                    }
+                    else
+                    {
+                        g_debug ("Greeter stopped, starting session authentication");
+                        session_start (s);
+                    }
                 }
             }          
         }
