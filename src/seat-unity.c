@@ -90,6 +90,10 @@ compositor_stopped_cb (Process *process, SeatUnity *seat)
         g_source_remove (seat->priv->compositor_timeout);
     seat->priv->compositor_timeout = 0;
 
+    /* Finished with the VT */
+    vt_unref (seat->priv->vt);
+    seat->priv->vt = -1;
+
     if (seat_get_is_stopping (SEAT (seat)))
     {
         SEAT_CLASS (seat_unity_parent_class)->stop (SEAT (seat));

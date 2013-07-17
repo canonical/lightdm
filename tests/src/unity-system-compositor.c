@@ -123,7 +123,9 @@ int
 main (int argc, char **argv)
 {
     int i;
+    GString *status_text;
     gboolean test = FALSE;
+    int vt_number = -1;
 
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
@@ -153,7 +155,7 @@ main (int argc, char **argv)
         }
         else if (strcmp (arg, "--vt") == 0)
         {
-            //vt_number = atoi (argv[i+1]);
+            vt_number = atoi (argv[i+1]);
             i++;
         }
         else if (strcmp (arg, "--test") == 0)
@@ -164,10 +166,13 @@ main (int argc, char **argv)
 
     g_io_add_watch (g_io_channel_unix_new (from_dm_fd), G_IO_IN, read_message_cb, NULL);
 
+    status_text = g_string_new ("UNITY-SYSTEM-COMPOSITOR START");
+    if (vt_number >= 0)
+        g_string_append_printf (status_text, " VT=%d", vt_number);
     if (test)
-        status_notify ("UNITY-SYSTEM-COMPOSITOR START TEST");
-    else
-        status_notify ("UNITY-SYSTEM-COMPOSITOR START");
+        g_string_append (status_text, " TEST=TRUE");
+    status_notify (status_text->str);
+    g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
