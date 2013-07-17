@@ -393,7 +393,6 @@ run_session (Seat *seat, Session *session)
         Greeter *greeter_session;
 
         g_debug ("Switching to greeter due to failed setup script");
-        session_stop (session);
       
         // FIXME: Only if can share servers
 
@@ -402,6 +401,9 @@ run_session (Seat *seat, Session *session)
         session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
 
         start_session (seat, SESSION (greeter_session));
+
+        /* Stop failed session */
+        session_stop (session);
     }
     else
     {
@@ -430,7 +432,6 @@ session_authentication_complete_cb (Session *session, Seat *seat)
         Greeter *greeter_session;
 
         g_debug ("Switching to greeter due to failed authentication");
-        session_stop (session);
 
         // FIXME: Only if can share servers
 
@@ -443,6 +444,9 @@ session_authentication_complete_cb (Session *session, Seat *seat)
         session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
 
         start_session (seat, SESSION (greeter_session));
+
+        /* Stop failed session */
+        session_stop (session);
     }
     else
     {
