@@ -742,10 +742,10 @@ session_stop (Session *session)
 }
 
 gboolean
-session_get_is_stopped (Session *session)
+session_get_is_stopping (Session *session)
 {
-    g_return_val_if_fail (session != NULL, TRUE);
-    return session->priv->pid == 0;
+    g_return_val_if_fail (session != NULL, FALSE);
+    return session->priv->stopping;
 }
 
 static void

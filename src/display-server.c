@@ -105,10 +105,10 @@ display_server_stop (DisplayServer *server)
 }
 
 gboolean
-display_server_get_is_stopped (DisplayServer *server)
+display_server_get_is_stopping (DisplayServer *server)
 {
-    g_return_val_if_fail (server != NULL, TRUE);
-    return server->priv->stopped;
+    g_return_val_if_fail (server != NULL, FALSE);
+    return server->priv->stopping;
 }
 
 static void

@@ -180,9 +180,9 @@ seat_set_active_session (Seat *seat, Session *session)
     {
         Session *s = link->data;
 
-        if (s == session)
+        if (s == session || session_get_is_stopping (s))
             continue;
-      
+
         if (IS_GREETER (s))
         {
             g_debug ("Stopping greeter");
@@ -328,7 +328,7 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     {
         Session *session = link->data;
 
-        if (session_get_display_server (session) != display_server)
+        if (session_get_display_server (session) != display_server || session_get_is_stopping (session))
             continue;
 
         /* Stop seat if this is the only display server and it failed to start a greeter */
@@ -495,7 +495,7 @@ session_stopped_cb (Session *session, Seat *seat)
             Session *s = link->data;
 
             /* Skip this session and sessions on other display servers */
-            if (s == session || session_get_display_server (s) != display_server)
+            if (s == session || session_get_display_server (s) != display_server || session_get_is_stopping (s))
                 continue;
 
             if (session_get_is_authenticated (s))
@@ -528,7 +528,7 @@ session_stopped_cb (Session *session, Seat *seat)
     }
 
     /* Stop the display server if no-longer required */
-    if (display_server && !display_server_get_is_stopped (display_server))
+    if (display_server && !display_server_get_is_stopping (display_server))
     {
         GList *link;
         int n_sessions = 0;
@@ -754,10 +754,30 @@ prepend_argv (gchar ***argv, const gchar *value)
     *argv = new_argv;
 }
 
+static Session *
+find_user_session (Seat *seat, const gchar *username)
+{
+    GList *link;
+
+    if (!username)
+        return NULL;
+
+    for (link = seat->priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+
+        if (!session_get_is_stopping (session) && strcmp (session_get_username (session), username) == 0)
+            return session;
+    }
+
+    return NULL;
+}
+
 static gboolean
 greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
 {
-    Session *session;
+    Session *session, *existing_session;
+    const gchar *username;
     User *user;
     gchar *sessions_dir = NULL;
     gchar **argv;
@@ -771,6 +791,17 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     }
     else
         session = greeter_get_authentication_session (greeter);
+
+    /* Return to existing session if it is open */
+    username = session_get_username (session);
+    existing_session = find_user_session (seat, username);
+    if (existing_session && session != existing_session)
+    {
+        g_debug ("Returning to existing user session %s", username);
+        session_stop (session);
+        seat_set_active_session (seat, existing_session);
+        return TRUE;
+    }
 
     /* Get session command to run */
     switch (type)
@@ -901,7 +932,7 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
     {
         Session *session = link->data;
 
-        if (session_get_display_server (session) != display_server)
+        if (session_get_display_server (session) != display_server || session_get_is_stopping (session))
             continue;
 
         if (session_get_is_authenticated (session))
@@ -945,7 +976,7 @@ find_greeter_session (Seat *seat)
     for (link = seat->priv->sessions; link; link = link->next)
     {
         Session *session = link->data;
-        if (IS_GREETER (session))
+        if (!session_get_is_stopping (session) && IS_GREETER (session))
             return GREETER (session);
     }
 
@@ -981,22 +1012,6 @@ seat_switch_to_greeter (Seat *seat)
         return FALSE;
 
     return TRUE;
-}
-
-static Session *
-find_user_session (Seat *seat, const gchar *username)
-{
-    GList *link;
-
-    for (link = seat->priv->sessions; link; link = link->next)
-    {
-        Session *session = link->data;
-
-        if (strcmp (session_get_username (session), username) == 0)
-            return session;
-    }
-
-    return NULL;
 }
 
 gboolean
@@ -1041,8 +1056,7 @@ find_guest_session (Seat *seat)
     for (link = seat->priv->sessions; link; link = link->next)
     {
         Session *session = link->data;
-      
-        if (session_get_is_guest (session))
+        if (!session_get_is_stopping (session) && session_get_is_guest (session))
             return session;
     }
 
@@ -1262,19 +1276,22 @@ seat_real_stop (Seat *seat)
     for (link = list; link; link = link->next)
     {
         DisplayServer *display_server = link->data;
-        g_debug ("Stopping display server");
-        display_server_stop (display_server);
+        if (!display_server_get_is_stopping (display_server))
+        {
+            g_debug ("Stopping display server");
+            display_server_stop (display_server);
+        }
     }
     g_list_free (list);
     list = g_list_copy (seat->priv->sessions);
     for (link = list; link; link = link->next)
     {
         Session *session = link->data;
-        g_debug ("Stopping session");
-        if (session_get_is_stopped (session))
-            session_stopped_cb (session, seat);
-        else
+        if (!session_get_is_stopping (session))
+        {
+            g_debug ("Stopping session");
             session_stop (session);
+        }
     }
     g_list_free (list);
 }

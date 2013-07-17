@@ -121,7 +121,7 @@ void session_unlock (Session *session);
 
 void session_stop (Session *session);
 
-gboolean session_get_is_stopped (Session *session);
+gboolean session_get_is_stopping (Session *session);
 
 G_END_DECLS
 

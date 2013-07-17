@@ -57,7 +57,7 @@ gboolean display_server_start (DisplayServer *server);
 
 void display_server_stop (DisplayServer *server);
 
-gboolean display_server_get_is_stopped (DisplayServer *server);
+gboolean display_server_get_is_stopping (DisplayServer *server);
 
 G_END_DECLS
 
