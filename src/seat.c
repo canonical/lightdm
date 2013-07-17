@@ -1211,35 +1211,38 @@ seat_real_start (Seat *seat)
     autologin_in_background = seat_get_boolean_property (seat, "autologin-in-background");
 
     /* Autologin if configured */
-    if (autologin_timeout == 0 && autologin_guest)
+    if (autologin_timeout == 0 || autologin_in_background)
     {
-        session = create_guest_session (seat);
-        if (seat->priv->session_to_activate)
-            g_object_unref (seat->priv->session_to_activate);
-        seat->priv->session_to_activate = g_object_ref (session);
-        session_set_pam_service (session, AUTOLOGIN_SERVICE);
-    }
-    else if (autologin_timeout == 0 && autologin_username != NULL)
-    {
-        session = create_user_session (seat, autologin_username);
-        if (seat->priv->session_to_activate)
-            g_object_unref (seat->priv->session_to_activate);
-        seat->priv->session_to_activate = g_object_ref (session);
-        session_set_pam_service (session, AUTOLOGIN_SERVICE);
-    }
+        if (autologin_guest)
+        {
+            session = create_guest_session (seat);
+            if (seat->priv->session_to_activate)
+                g_object_unref (seat->priv->session_to_activate);
+            seat->priv->session_to_activate = g_object_ref (session);
+            session_set_pam_service (session, AUTOLOGIN_SERVICE);
+        }
+        else if (autologin_username != NULL)
+        {
+            session = create_user_session (seat, autologin_username);
+            if (seat->priv->session_to_activate)
+                g_object_unref (seat->priv->session_to_activate);
+            seat->priv->session_to_activate = g_object_ref (session);
+            session_set_pam_service (session, AUTOLOGIN_SERVICE);
+        }
 
-    /* Load in background if required */
-    if (autologin_in_background && session)
-    {
-        DisplayServer *background_display_server;
+        /* Load in background if required */
+        if (autologin_in_background && session)
+        {
+            DisplayServer *background_display_server;
 
-        background_display_server = create_display_server (seat);
-        session_set_display_server (session, background_display_server);
-        if (!display_server_start (background_display_server))
-            return FALSE;
+            background_display_server = create_display_server (seat);
+            session_set_display_server (session, background_display_server);
+            if (!display_server_start (background_display_server))
+                return FALSE;
 
-        /* Start a greeter as well */
-        session = NULL;
+            /* Start a greeter as well */
+            session = NULL;
+        }
     }
 
     /* Fallback to a greeter */
