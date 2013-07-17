@@ -813,11 +813,13 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         sessions_dir = config_get_string (config_get_instance (), "LightDM", "remote-sessions-directory");
         break;
     }
-    if (!session_name)
-        session_name = user_get_xsession (session_get_user (session));
+    user = session_get_user (session);
+    if (!session_name && user)
+        session_name = user_get_xsession (user);
     if (!session_name)
         session_name = seat_get_string_property (seat, "user-session");
-    user_set_xsession (session_get_user (session), session_name);
+    if (user)
+        user_set_xsession (session_get_user (session), session_name);
     argv = get_session_argv (sessions_dir, session_name, seat_get_string_property (seat, "session-wrapper"));
     g_free (sessions_dir);
   
