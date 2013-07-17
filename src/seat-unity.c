@@ -73,6 +73,7 @@ struct SeatUnityPrivate
 
     /* The currently visible session */
     Session *active_session;
+    DisplayServer *active_display_server;
 };
 
 G_DEFINE_TYPE (SeatUnity, seat_unity, SEAT_TYPE);
@@ -489,8 +490,7 @@ seat_unity_create_session (Seat *seat)
 static void
 seat_unity_set_active_session (Seat *seat, Session *session)
 {
-    XServerLocal *xserver;
-    const gchar *id;
+    DisplayServer *display_server;
 
     /* If no compositor, have to use VT switching */
     if (SEAT_UNITY (seat)->priv->use_vt_switching)
@@ -507,11 +507,17 @@ seat_unity_set_active_session (Seat *seat, Session *session)
         return;
     SEAT_UNITY (seat)->priv->active_session = session;
 
-    xserver = XSERVER_LOCAL (session_get_display_server (session));
-    id = xserver_local_get_mir_id (xserver);
+    display_server = session_get_display_server (session);
+    if (SEAT_UNITY (seat)->priv->active_display_server != display_server)
+    {
+        const gchar *id;
 
-    g_debug ("Switching to Mir session %s", id);
-    write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_ACTIVE_SESSION, id, strlen (id));
+        SEAT_UNITY (seat)->priv->active_display_server = display_server;
+        id = xserver_local_get_mir_id (XSERVER_LOCAL (display_server));
+
+        g_debug ("Switching to Mir session %s", id);
+        write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_ACTIVE_SESSION, id, strlen (id));
+    }
 
     SEAT_CLASS (seat_unity_parent_class)->set_active_session (seat, session);
 }

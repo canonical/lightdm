@@ -370,7 +370,12 @@ run_session (Seat *seat, Session *session)
         session_start (SESSION (greeter_session));
     }
     else
+    {
         session_run (session);
+
+        // FIXME: Wait until the session is ready
+        seat_set_active_session (seat, session);
+    }
 }
 
 static void
