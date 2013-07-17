@@ -961,6 +961,7 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
         else
         {
             g_debug ("Display server ready, starting session authentication");
+            // FIXME: Can modify sessions
             start_session (seat, session);
         }
         used_display_server = TRUE;
