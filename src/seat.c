@@ -656,9 +656,7 @@ create_user_session (Seat *seat, const gchar *username)
     if (!session_name)
         session_name = seat_get_string_property (seat, "user-session");
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
-    argv = get_session_argv (sessions_dir,
-                             seat_get_string_property (seat, "user-session"),
-                             seat_get_string_property (seat, "session-wrapper"));
+    argv = get_session_argv (sessions_dir, session_name, seat_get_string_property (seat, "session-wrapper"));
     g_free (sessions_dir);
     if (!argv)
     {
