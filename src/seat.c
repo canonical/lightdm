@@ -172,8 +172,26 @@ seat_get_sessions (Seat *seat)
 void
 seat_set_active_session (Seat *seat, Session *session)
 {
+    GList *link;
+
     g_return_if_fail (seat != NULL);
+
     SEAT_GET_CLASS (seat)->set_active_session (seat, session);
+  
+    /* Stop any greeters */
+    for (link = seat->priv->sessions; link; link = link->next)
+    {
+        Session *s = link->data;
+
+        if (s == session)
+            continue;
+      
+        if (IS_GREETER (s))
+        {
+            g_debug ("Stopping greeter");
+            session_stop (s);
+        }
+    }
 }
 
 Session *
