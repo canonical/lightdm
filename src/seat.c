@@ -344,6 +344,29 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 }
 
 static void
+start_session (Seat *seat, Session *session)
+{
+    Greeter *greeter_session;
+
+    if (session_start (session))
+        return;
+
+    if (IS_GREETER (session))
+    {
+        g_debug ("Failed to start greeter");
+        display_server_stop (session_get_display_server (session));
+        return;
+    }
+
+    g_debug ("Failed to start session, starting greeter");
+    greeter_session = create_greeter_session (seat);
+    // FIXME: Only if can re-use
+    session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
+
+    start_session (seat, SESSION (greeter_session));
+}
+
+static void
 run_session (Seat *seat, Session *session)
 {
     const gchar *script;
@@ -364,7 +387,7 @@ run_session (Seat *seat, Session *session)
         greeter_session = create_greeter_session (seat);
         session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
 
-        session_start (SESSION (greeter_session));
+        start_session (seat, SESSION (greeter_session));
     }
     else
     {
@@ -399,7 +422,7 @@ session_authentication_complete_cb (Session *session, Seat *seat)
             greeter_set_hint (greeter_session, "select-user", session_get_username (session));
         session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
 
-        session_start (SESSION (greeter_session));
+        start_session (seat, SESSION (greeter_session));
     }
     else
     {
@@ -448,20 +471,21 @@ session_stopped_cb (Session *session, Seat *seat)
                 if (s == session)
                     continue;
 
-                if (session_get_display_server (s) == display_server)
+                if (session_get_display_server (s) != display_server)
+                    continue;
+
+                if (session_get_is_authenticated (s))
                 {
-                    if (session_get_is_authenticated (s))
-                    {
-                        g_debug ("Greeter stopped running session");
-                        run_session (seat, s);
-                    }
-                    else
-                    {
-                        g_debug ("Greeter stopped, starting session authentication");
-                        session_start (s);
-                    }
+                    g_debug ("Greeter stopped, running session");
+                    run_session (seat, s);
                 }
-            }          
+                else
+                {
+                    g_debug ("Greeter stopped, starting session authentication");
+                    start_session (seat, s);
+                }
+                break;
+            }
         }
 
         /* if this is the greeter and nothing else is running then stop the seat */
@@ -857,7 +881,7 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
         else
         {
             g_debug ("Display server ready, starting session authentication");
-            session_start (session);
+            start_session (seat, session);
         }
         used_display_server = TRUE;
     }

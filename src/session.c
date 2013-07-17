@@ -488,7 +488,11 @@ session_real_start (Session *session)
 
     /* Create the guest account if it is one */
     if (session->priv->is_guest && session->priv->username == NULL)
+    {
         session->priv->username = guest_account_setup ();
+        if (!session->priv->username)
+            return FALSE;
+    }
 
     /* Run the child */
     session->priv->pid = fork ();
