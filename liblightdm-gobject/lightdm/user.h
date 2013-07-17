@@ -39,13 +39,13 @@ typedef struct
     GObjectClass parent_class;
     void (*changed)(LightDMUser *user);
 
-	/* Reserved */
-	void (*reserved1) (void);
-	void (*reserved2) (void);
-	void (*reserved3) (void);
-	void (*reserved4) (void);
-	void (*reserved5) (void);
-	void (*reserved6) (void);
+    /* Reserved */
+    void (*reserved1) (void);
+    void (*reserved2) (void);
+    void (*reserved3) (void);
+    void (*reserved4) (void);
+    void (*reserved5) (void);
+    void (*reserved6) (void);
 } LightDMUserClass;
 
 typedef struct
@@ -61,13 +61,13 @@ typedef struct
     void (*user_changed)(LightDMUserList *user_list, LightDMUser *user);
     void (*user_removed)(LightDMUserList *user_list, LightDMUser *user);
 
-	/* Reserved */
-	void (*reserved1) (void);
-	void (*reserved2) (void);
-	void (*reserved3) (void);
-	void (*reserved4) (void);
-	void (*reserved5) (void);
-	void (*reserved6) (void);
+    /* Reserved */
+    void (*reserved1) (void);
+    void (*reserved2) (void);
+    void (*reserved3) (void);
+    void (*reserved4) (void);
+    void (*reserved5) (void);
+    void (*reserved6) (void);
 } LightDMUserListClass;
 
 GType lightdm_user_list_get_type (void);

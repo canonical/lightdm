@@ -44,7 +44,25 @@ A user has the following properties:
 @user: 
 
 
+<!-- ##### FUNCTION lightdm_user_get_background ##### -->
+<para>
+
+</para>
+
+@user: 
+@Returns: 
+
+
 <!-- ##### FUNCTION lightdm_user_get_display_name ##### -->
+<para>
+
+</para>
+
+@user: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_user_get_has_messages ##### -->
 <para>
 
 </para>
@@ -81,6 +99,15 @@ A user has the following properties:
 
 
 <!-- ##### FUNCTION lightdm_user_get_layout ##### -->
+<para>
+
+</para>
+
+@user: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_user_get_layouts ##### -->
 <para>
 
 </para>
