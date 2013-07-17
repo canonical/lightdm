@@ -71,6 +71,7 @@ TESTS = \
 	test-login-gobject-multi-info-prompt \
 	test-login-gobject-multi-prompt \
 	test-login-gobject-pick-session \
+	test-login-gobject-remember-session \
 	test-login-gobject-previous-session \
 	test-login-gobject-wrong-password \
 	test-login-gobject-invalid-user \
@@ -98,6 +99,7 @@ TESTS = \
 	test-login-python-invalid-session \
 	test-login-python-logout \
 	test-login-python-pick-session \
+	test-login-python-remember-session \
 	test-login-python-guest \
 	test-login-python-guest-disabled \
 	test-login-python-guest-no-setup-script \
@@ -188,6 +190,7 @@ TESTS += \
 	test-login-qt4-invalid-session \
 	test-login-qt4-logout \
 	test-login-qt4-pick-session \
+	test-login-qt4-remember-session \
 	test-login-qt4-guest \
 	test-login-qt4-guest-disabled \
 	test-login-qt4-guest-no-setup-script \
@@ -222,6 +225,7 @@ TESTS += \
 	test-login-qt5-invalid-session \
 	test-login-qt5-logout \
 	test-login-qt5-pick-session \
+	test-login-qt5-remember-session \
 	test-login-qt5-guest \
 	test-login-qt5-guest-disabled \
 	test-login-qt5-guest-no-setup-script \
@@ -315,6 +319,7 @@ EXTRA_DIST = \
 	scripts/login-pam.conf \
 	scripts/login-pick-session.conf \
 	scripts/login-previous-session.conf \
+	scripts/login-remember-session.conf \
 	scripts/login-remote-session.conf \
 	scripts/login-session-crash.conf \
 	scripts/login-two-factor.conf \
