@@ -240,12 +240,12 @@ EXTRA_DIST = \
 	data/remote-sessions/test-remote.desktop \
 	data/system.conf \
 	data/session.conf \
-	data/xgreeters/test-gobject-greeter.desktop \
-	data/xgreeters/test-python-greeter.desktop \
-	data/xgreeters/test-qt4-greeter.desktop \
-	data/xgreeters/test-qt5-greeter.desktop \
-	data/xsessions/alternative.desktop \
-	data/xsessions/default.desktop \
+	data/greeters/test-gobject-greeter.desktop \
+	data/greeters/test-python-greeter.desktop \
+	data/greeters/test-qt4-greeter.desktop \
+	data/greeters/test-qt5-greeter.desktop \
+	data/sessions/alternative.desktop \
+	data/sessions/default.desktop \
 	scripts/0-additional.conf \
 	scripts/1-additional.conf \
 	scripts/additional-config.conf \
