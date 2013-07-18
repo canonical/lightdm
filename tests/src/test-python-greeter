@@ -248,6 +248,8 @@ status_notify ('%s CONNECTED-TO-DAEMON' % greeter_id)
 
 if greeter.get_select_user_hint () is not None:
     status_notify ('%s SELECT-USER-HINT USERNAME=%s' % (greeter_id, greeter.get_select_user_hint ()))
+if greeter.get_select_guest_hint ():
+    status_notify ('%s SELECT-GUEST-HINT' % greeter_id)
 if greeter.get_lock_hint ():
     status_notify ('%s LOCK-HINT' % greeter_id);
 

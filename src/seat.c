@@ -372,6 +372,10 @@ start_session (Seat *seat, Session *session)
 
     g_debug ("Failed to start session, starting greeter");
     greeter_session = create_greeter_session (seat);
+    if (session_get_is_guest (session))
+        greeter_set_hint (greeter_session, "select-guest", "true");
+    else
+        greeter_set_hint (greeter_session, "select-user", session_get_username (session));
     if (seat->priv->session_to_activate)
         g_object_unref (seat->priv->session_to_activate);
     seat->priv->session_to_activate = g_object_ref (greeter_session);
