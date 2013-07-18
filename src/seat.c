@@ -70,6 +70,7 @@ static GHashTable *seat_modules = NULL;
 // FIXME: Make a get_display_server() that re-uses display servers if supported
 static DisplayServer *create_display_server (Seat *seat);
 static Greeter *create_greeter_session (Seat *seat);
+static void start_session (Seat *seat, Session *session);
 
 void
 seat_register_module (const gchar *name, GType type)
@@ -356,21 +357,11 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 }
 
 static void
-start_session (Seat *seat, Session *session)
+switch_to_greeter_from_failed_session (Seat *seat, Session *session)
 {
     Greeter *greeter_session;
+    DisplayServer *display_server;
 
-    if (session_start (session))
-        return;
-
-    if (IS_GREETER (session))
-    {
-        g_debug ("Failed to start greeter");
-        display_server_stop (session_get_display_server (session));
-        return;
-    }
-
-    g_debug ("Failed to start session, starting greeter");
     greeter_session = create_greeter_session (seat);
     if (session_get_is_guest (session))
         greeter_set_hint (greeter_session, "select-guest", "true");
@@ -397,6 +388,28 @@ start_session (Seat *seat, Session *session)
     }
 
     start_session (seat, SESSION (greeter_session));
+
+    /* Stop failed session */
+    session_stop (session);
+}
+
+static void
+start_session (Seat *seat, Session *session)
+{
+    Greeter *greeter_session;
+
+    if (session_start (session))
+        return;
+
+    if (IS_GREETER (session))
+    {
+        g_debug ("Failed to start greeter");
+        display_server_stop (session_get_display_server (session));
+        return;
+    }
+
+    g_debug ("Failed to start session, starting greeter");
+    switch_to_greeter_from_failed_session (seat, session);
 }
 
 static void
@@ -410,36 +423,8 @@ run_session (Seat *seat, Session *session)
         script = seat_get_string_property (seat, "session-setup-script");
     if (script && !run_script (seat, session_get_display_server (session), script, NULL))
     {
-        Greeter *greeter_session;
-
         g_debug ("Switching to greeter due to failed setup script");
-
-        greeter_session = create_greeter_session (seat);
-        if (seat->priv->session_to_activate)
-            g_object_unref (seat->priv->session_to_activate);
-        seat->priv->session_to_activate = g_object_ref (greeter_session);
-
-        if (seat->priv->share_display_server)
-            session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
-        else
-        {
-            DisplayServer *display_server;
-
-            display_server = create_display_server (seat);
-            if (!display_server_start (display_server))
-            {
-                g_debug ("Failed to start display server for greeter");
-                seat_stop (seat);
-            }
-
-            session_set_display_server (SESSION (greeter_session), display_server);         
-        }
-
-        start_session (seat, SESSION (greeter_session));
-
-        /* Stop failed session */
-        session_stop (session);
-      
+        switch_to_greeter_from_failed_session (seat, session);
         return;
     }
 
@@ -465,39 +450,8 @@ session_authentication_complete_cb (Session *session, Seat *seat)
     }
     else if (!IS_GREETER (session))
     {
-        Greeter *greeter_session;
-
         g_debug ("Switching to greeter due to failed authentication");
-
-        greeter_session = create_greeter_session (seat);
-        if (seat->priv->session_to_activate)
-            g_object_unref (seat->priv->session_to_activate);
-        seat->priv->session_to_activate = g_object_ref (greeter_session);
-        if (session_get_is_guest (session))
-            greeter_set_hint (greeter_session, "select-guest", "true");
-        else
-            greeter_set_hint (greeter_session, "select-user", session_get_username (session));
-
-        if (seat->priv->share_display_server)
-            session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
-        else
-        {
-            DisplayServer *display_server;
-
-            display_server = create_display_server (seat);
-            if (!display_server_start (display_server))
-            {
-                g_debug ("Failed to start display server for greeter");
-                seat_stop (seat);
-            }
-
-            session_set_display_server (SESSION (greeter_session), display_server);         
-        }
-
-        start_session (seat, SESSION (greeter_session));
-
-        /* Stop failed session */
-        session_stop (session);
+        switch_to_greeter_from_failed_session (seat, session);
     }
     else
     {
