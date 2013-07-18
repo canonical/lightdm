@@ -544,9 +544,8 @@ handle_command (const gchar *command)
             GError *error = NULL;
 
             length = strlen (command);
-            g_socket_send (client->socket, (gchar *) &length, sizeof (length), NULL, &error);
-            g_socket_send (client->socket, command, strlen (command), NULL, &error);
-            if (error)
+            if (g_socket_send (client->socket, (gchar *) &length, sizeof (length), NULL, &error) < 0 ||
+                g_socket_send (client->socket, command, strlen (command), NULL, &error) < 0)
                 g_printerr ("Failed to write to client socket: %s\n", error->message);
             g_clear_error (&error);
         }
