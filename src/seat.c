@@ -409,7 +409,7 @@ run_session (Seat *seat, Session *session)
         Greeter *greeter_session;
 
         g_debug ("Switching to greeter due to failed setup script");
-      
+
         // FIXME: Only if can share servers
 
         greeter_session = create_greeter_session (seat);
@@ -956,12 +956,26 @@ create_greeter_session (Seat *seat)
     return greeter_session;
 }
 
+static Session *
+find_session_for_display_server (Seat *seat, DisplayServer *display_server)
+{
+    GList *link;
+
+    for (link = seat->priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+        if (session_get_display_server (session) == display_server && !session_get_is_stopping (session))
+            return session;
+    }
+
+    return NULL;
+}
+
 static void
 display_server_ready_cb (DisplayServer *display_server, Seat *seat)
 {
     const gchar *script;
-    GList *link;
-    gboolean used_display_server = FALSE;
+    Session *session;
 
     /* Run setup script */
     script = seat_get_string_property (seat, "display-setup-script");
@@ -974,14 +988,10 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
 
     emit_upstart_signal ("login-session-start");
 
-    /* Start the sessions waiting for this display server */
-    for (link = seat->priv->sessions; link; link = link->next)
+    /* Start the session waiting for this display server */
+    session = find_session_for_display_server (seat, display_server);
+    if (session)
     {
-        Session *session = link->data;
-
-        if (session_get_display_server (session) != display_server || session_get_is_stopping (session))
-            continue;
-
         if (session_get_is_authenticated (session))
         {
             g_debug ("Display server ready, running session");
@@ -993,10 +1003,8 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
             // FIXME: Can modify sessions
             start_session (seat, session);
         }
-        used_display_server = TRUE;
     }
-
-    if (!used_display_server)
+    else
     {
         g_debug ("Stopping not required display server");
         display_server_stop (display_server);
