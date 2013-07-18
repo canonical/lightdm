@@ -375,8 +375,22 @@ start_session (Seat *seat, Session *session)
     if (seat->priv->session_to_activate)
         g_object_unref (seat->priv->session_to_activate);
     seat->priv->session_to_activate = g_object_ref (greeter_session);
-    // FIXME: Only if can re-use
-    session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
+
+    if (seat->priv->share_display_server)
+        session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
+    else
+    {
+        DisplayServer *display_server;
+
+        display_server = create_display_server (seat);
+        if (!display_server_start (display_server))
+        {
+            g_debug ("Failed to start display server for greeter");
+            seat_stop (seat);
+        }
+
+        session_set_display_server (session, display_server);
+    }
 
     start_session (seat, SESSION (greeter_session));
 }
@@ -408,19 +422,19 @@ run_session (Seat *seat, Session *session)
 
         /* Stop failed session */
         session_stop (session);
+      
+        return;
     }
-    else
+
+    session_run (session);
+
+    // FIXME: Wait until the session is ready
+
+    if (session == seat->priv->session_to_activate)
     {
-        session_run (session);
-
-        // FIXME: Wait until the session is ready
-
-        if (session == seat->priv->session_to_activate)
-        {
-            seat_set_active_session (seat, session);
-            g_object_unref (seat->priv->session_to_activate);
-            seat->priv->session_to_activate = NULL;
-        }
+        seat_set_active_session (seat, session);
+        g_object_unref (seat->priv->session_to_activate);
+        seat->priv->session_to_activate = NULL;
     }
 }
 
@@ -438,8 +452,6 @@ session_authentication_complete_cb (Session *session, Seat *seat)
 
         g_debug ("Switching to greeter due to failed authentication");
 
-        // FIXME: Only if can share servers
-
         greeter_session = create_greeter_session (seat);
         if (seat->priv->session_to_activate)
             g_object_unref (seat->priv->session_to_activate);
@@ -448,7 +460,22 @@ session_authentication_complete_cb (Session *session, Seat *seat)
             greeter_set_hint (greeter_session, "select-guest", "true");
         else
             greeter_set_hint (greeter_session, "select-user", session_get_username (session));
-        session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
+
+        if (seat->priv->share_display_server)
+            session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
+        else
+        {
+            DisplayServer *display_server;
+
+            display_server = create_display_server (seat);
+            if (!display_server_start (display_server))
+            {
+                g_debug ("Failed to start display server for greeter");
+                seat_stop (seat);
+            }
+
+            session_set_display_server (SESSION (greeter_session), display_server);         
+        }
 
         start_session (seat, SESSION (greeter_session));
 
@@ -800,13 +827,15 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     if (greeter_get_guest_authenticated (greeter))
     {
         session = create_guest_session (seat);
-        if (seat->priv->session_to_activate)
-            g_object_unref (seat->priv->session_to_activate);
-        seat->priv->session_to_activate = g_object_ref (session);
         session_set_pam_service (session, AUTOLOGIN_SERVICE);
     }
     else
         session = greeter_get_authentication_session (greeter);
+
+    /* Switch to this session when it is ready */
+    if (seat->priv->session_to_activate)
+        g_object_unref (seat->priv->session_to_activate);
+    seat->priv->session_to_activate = g_object_ref (session);
 
     /* Return to existing session if it is open */
     username = session_get_username (session);
