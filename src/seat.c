@@ -410,13 +410,26 @@ run_session (Seat *seat, Session *session)
 
         g_debug ("Switching to greeter due to failed setup script");
 
-        // FIXME: Only if can share servers
-
         greeter_session = create_greeter_session (seat);
         if (seat->priv->session_to_activate)
             g_object_unref (seat->priv->session_to_activate);
         seat->priv->session_to_activate = g_object_ref (greeter_session);
-        session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
+
+        if (seat->priv->share_display_server)
+            session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
+        else
+        {
+            DisplayServer *display_server;
+
+            display_server = create_display_server (seat);
+            if (!display_server_start (display_server))
+            {
+                g_debug ("Failed to start display server for greeter");
+                seat_stop (seat);
+            }
+
+            session_set_display_server (SESSION (greeter_session), display_server);         
+        }
 
         start_session (seat, SESSION (greeter_session));
 
@@ -1000,7 +1013,6 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
         else
         {
             g_debug ("Display server ready, starting session authentication");
-            // FIXME: Can modify sessions
             start_session (seat, session);
         }
     }
