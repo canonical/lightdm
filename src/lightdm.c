@@ -520,8 +520,8 @@ bus_entry_free (gpointer data)
     g_free (entry);
 }
 
-static gboolean
-session_added_cb (Seat *seat, Session *session)
+static void
+running_session_cb (Seat *seat, Session *session)
 {
     static const GDBusInterfaceVTable session_vtable =
     {
@@ -558,8 +558,6 @@ session_added_cb (Seat *seat, Session *session)
                                    "SessionAdded",
                                    g_variant_new ("(o)", entry->path),
                                    NULL);
-
-    return FALSE;
 }
 
 static void
@@ -604,17 +602,39 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
                                    g_variant_new ("(o)", entry->path),
                                    NULL);
 
-    // FIXME: Use a user-session-run signal instead
-    g_signal_connect (seat, "session-added", G_CALLBACK (session_added_cb), NULL);
-    g_signal_connect (seat, "session-removed", G_CALLBACK (session_added_cb), NULL);
-    for (link = seat_get_sessions (seat); link; link = link->next)
-        session_added_cb (seat, (Session *) link->data);
+    g_signal_connect (seat, "running-session", G_CALLBACK (running_session_cb), NULL);
+    g_signal_connect (seat, "session-removed", G_CALLBACK (session_removed_cb), NULL);
 }
 
 static void
 seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
     g_hash_table_remove (seat_bus_entries, seat);
+}
+
+static gboolean
+xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
+{
+    SeatXDMCPSession *seat;
+    gboolean result;
+
+    seat = seat_xdmcp_session_new (session);
+    set_seat_properties (SEAT (seat), NULL);
+    result = display_manager_add_seat (display_manager, SEAT (seat));
+    g_object_unref (seat);
+
+    return result;
+}
+
+static void
+vnc_connection_cb (VNCServer *server, GSocket *connection)
+{
+    SeatXVNC *seat;
+
+    seat = seat_xvnc_new (connection);
+    set_seat_properties (SEAT (seat), NULL);
+    display_manager_add_seat (display_manager, SEAT (seat));
+    g_object_unref (seat);
 }
 
 static void
@@ -709,6 +729,87 @@ bus_acquired_cb (GDBusConnection *connection,
     g_signal_connect (display_manager, "seat-removed", G_CALLBACK (seat_removed_cb), NULL);
     for (link = display_manager_get_seats (display_manager); link; link = link->next)
         seat_added_cb (display_manager, (Seat *) link->data);
+
+    display_manager_start (display_manager);
+
+    /* Start the XDMCP server */
+    if (config_get_boolean (config_get_instance (), "XDMCPServer", "enabled"))
+    {
+        gchar *key_name, *key = NULL;
+
+        xdmcp_server = xdmcp_server_new ();
+        if (config_has_key (config_get_instance (), "XDMCPServer", "port"))
+        {
+            gint port;
+            port = config_get_integer (config_get_instance (), "XDMCPServer", "port");
+            if (port > 0)
+                xdmcp_server_set_port (xdmcp_server, port);
+        }
+        g_signal_connect (xdmcp_server, "new-session", G_CALLBACK (xdmcp_session_cb), NULL);
+
+        key_name = config_get_string (config_get_instance (), "XDMCPServer", "key");
+        if (key_name)
+        {
+            gchar *dir, *path;
+            GKeyFile *keys;
+            gboolean result;
+            GError *error = NULL;
+
+            dir = config_get_string (config_get_instance (), "LightDM", "config-directory");
+            path = g_build_filename (dir, "keys.conf", NULL);
+            g_free (dir);
+
+            keys = g_key_file_new ();
+            result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
+            if (error)
+                g_debug ("Error getting key %s", error->message);
+            g_clear_error (&error);
+
+            if (result)
+            {
+                if (g_key_file_has_key (keys, "keyring", key_name, NULL))
+                    key = g_key_file_get_string (keys, "keyring", key_name, NULL);
+                else
+                    g_debug ("Key %s not defined", key_name);
+            }
+            g_free (path);
+            g_key_file_free (keys);
+        }
+        if (key)
+            xdmcp_server_set_key (xdmcp_server, key);
+        g_free (key_name);
+        g_free (key);
+
+        g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (xdmcp_server));
+        xdmcp_server_start (xdmcp_server);
+    }
+
+    /* Start the VNC server */
+    if (config_get_boolean (config_get_instance (), "VNCServer", "enabled"))
+    {
+        gchar *path;
+
+        path = g_find_program_in_path ("Xvnc");
+        if (path)
+        {
+            vnc_server = vnc_server_new ();
+            if (config_has_key (config_get_instance (), "VNCServer", "port"))
+            {
+                gint port;
+                port = config_get_integer (config_get_instance (), "VNCServer", "port");
+                if (port > 0)
+                    vnc_server_set_port (vnc_server, port);
+            }
+            g_signal_connect (vnc_server, "new-connection", G_CALLBACK (vnc_connection_cb), NULL);
+
+            g_debug ("Starting VNC server on TCP/IP port %d", vnc_server_get_port (vnc_server));
+            vnc_server_start (vnc_server);
+
+            g_free (path);
+        }
+        else
+            g_warning ("Can't start VNC server, Xvn is not in the path");
+    }
 }
 
 static void
@@ -740,31 +841,6 @@ path_make_absolute (gchar *path)
     g_free (path);
 
     return abs_path;
-}
-
-static gboolean
-xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
-{
-    SeatXDMCPSession *seat;
-    gboolean result;
-
-    seat = seat_xdmcp_session_new (session);
-    set_seat_properties (SEAT (seat), NULL);
-    result = display_manager_add_seat (display_manager, SEAT (seat));
-    g_object_unref (seat);
-
-    return result;
-}
-
-static void
-vnc_connection_cb (VNCServer *server, GSocket *connection)
-{
-    SeatXVNC *seat;
-
-    seat = seat_xvnc_new (connection);
-    set_seat_properties (SEAT (seat), NULL);
-    display_manager_add_seat (display_manager, SEAT (seat));
-    g_object_unref (seat);
 }
 
 static int
@@ -1140,87 +1216,6 @@ main (int argc, char **argv)
             g_warning ("Failed to create default seat %s", type);
             return EXIT_FAILURE;
         }
-    }
-
-    display_manager_start (display_manager);
-
-    /* Start the XDMCP server */
-    if (config_get_boolean (config_get_instance (), "XDMCPServer", "enabled"))
-    {
-        gchar *key_name, *key = NULL;
-
-        xdmcp_server = xdmcp_server_new ();
-        if (config_has_key (config_get_instance (), "XDMCPServer", "port"))
-        {
-            gint port;
-            port = config_get_integer (config_get_instance (), "XDMCPServer", "port");
-            if (port > 0)
-                xdmcp_server_set_port (xdmcp_server, port);
-        }
-        g_signal_connect (xdmcp_server, "new-session", G_CALLBACK (xdmcp_session_cb), NULL);
-
-        key_name = config_get_string (config_get_instance (), "XDMCPServer", "key");
-        if (key_name)
-        {
-            gchar *dir, *path;
-            GKeyFile *keys;
-            gboolean result;
-            GError *error = NULL;
-
-            dir = config_get_string (config_get_instance (), "LightDM", "config-directory");
-            path = g_build_filename (dir, "keys.conf", NULL);
-            g_free (dir);
-
-            keys = g_key_file_new ();
-            result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
-            if (error)
-                g_debug ("Error getting key %s", error->message);
-            g_clear_error (&error);
-
-            if (result)
-            {
-                if (g_key_file_has_key (keys, "keyring", key_name, NULL))
-                    key = g_key_file_get_string (keys, "keyring", key_name, NULL);
-                else
-                    g_debug ("Key %s not defined", key_name);
-            }
-            g_free (path);
-            g_key_file_free (keys);
-        }
-        if (key)
-            xdmcp_server_set_key (xdmcp_server, key);
-        g_free (key_name);
-        g_free (key);
-
-        g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (xdmcp_server));
-        xdmcp_server_start (xdmcp_server);
-    }
-
-    /* Start the VNC server */
-    if (config_get_boolean (config_get_instance (), "VNCServer", "enabled"))
-    {
-        gchar *path;
-
-        path = g_find_program_in_path ("Xvnc");
-        if (path)
-        {
-            vnc_server = vnc_server_new ();
-            if (config_has_key (config_get_instance (), "VNCServer", "port"))
-            {
-                gint port;
-                port = config_get_integer (config_get_instance (), "VNCServer", "port");
-                if (port > 0)
-                    vnc_server_set_port (vnc_server, port);
-            }
-            g_signal_connect (vnc_server, "new-connection", G_CALLBACK (vnc_connection_cb), NULL);
-
-            g_debug ("Starting VNC server on TCP/IP port %d", vnc_server_get_port (vnc_server));
-            vnc_server_start (vnc_server);
-
-            g_free (path);
-        }
-        else
-            g_warning ("Can't start VNC server, Xvn is not in the path");
     }
 
     g_main_loop_run (loop);

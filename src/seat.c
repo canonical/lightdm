@@ -20,6 +20,7 @@
 
 enum {
     SESSION_ADDED,
+    RUNNING_SESSION,
     SESSION_REMOVED,
     STOPPED,
     LAST_SIGNAL
@@ -428,6 +429,8 @@ run_session (Seat *seat, Session *session)
         return;
     }
 
+    g_signal_emit (seat, signals[RUNNING_SESSION], 0, session);
+
     session_run (session);
 
     // FIXME: Wait until the session is ready
@@ -560,6 +563,7 @@ session_stopped_cb (Session *session, Seat *seat)
         }
     }
 
+    g_signal_emit (seat, signals[SESSION_REMOVED], 0, session);
     g_object_unref (session);
 }
 
@@ -590,6 +594,8 @@ create_session (Seat *seat, gboolean autostart)
     g_signal_connect (session, "stopped", G_CALLBACK (session_stopped_cb), seat);
 
     set_session_env (session);
+
+    g_signal_emit (seat, signals[SESSION_ADDED], 0, session);
 
     return session;
 }
@@ -1395,6 +1401,14 @@ seat_class_init (SeatClass *klass)
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SeatClass, session_added),
+                      NULL, NULL,
+                      g_cclosure_marshal_VOID__OBJECT,
+                      G_TYPE_NONE, 1, SESSION_TYPE);
+    signals[RUNNING_SESSION] =
+        g_signal_new ("running-session",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (SeatClass, running_session),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__OBJECT,
                       G_TYPE_NONE, 1, SESSION_TYPE);
