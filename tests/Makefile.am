@@ -119,6 +119,7 @@ TESTS = \
 	test-script-hook-fail-display-setup \
 	test-script-hook-fail-greeter-setup \
 	test-script-hook-fail-session-setup \
+	test-dbus \
 	test-lock-seat \
 	test-lock-seat-return-session \
 	test-lock-session \
@@ -279,6 +280,7 @@ EXTRA_DIST = \
 	scripts/cred-error.conf \
 	scripts/cred-expired.conf \
 	scripts/cred-unavail.conf \
+	scripts/dbus.conf \    
 	scripts/denied.conf \
 	scripts/expired.conf \
 	scripts/greeter-fail-start.conf \
