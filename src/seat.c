@@ -350,12 +350,15 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     }
     g_list_free_full (list, g_object_unref);
 
-    /* If we were the active session, switch to a greeter */
-    active_session = seat_get_active_session (seat);
-    if (!active_session || session_get_display_server (active_session) == display_server)
+    if (!seat->priv->stopping)
     {
-        g_debug ("Active display server stopped, starting greeter");
-        seat_switch_to_greeter (seat);
+        /* If we were the active session, switch to a greeter */
+        active_session = seat_get_active_session (seat);
+        if (!active_session || session_get_display_server (active_session) == display_server)
+        {
+            g_debug ("Active display server stopped, starting greeter");
+            seat_switch_to_greeter (seat);
+        }
     }
 
     g_object_unref (display_server);
