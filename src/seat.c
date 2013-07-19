@@ -20,7 +20,7 @@
 
 enum {
     SESSION_ADDED,
-    RUNNING_SESSION,
+    RUNNING_USER_SESSION,
     SESSION_REMOVED,
     STOPPED,
     LAST_SIGNAL
@@ -436,7 +436,8 @@ run_session (Seat *seat, Session *session)
         return;
     }
 
-    g_signal_emit (seat, signals[RUNNING_SESSION], 0, session);
+    if (!IS_GREETER (session))
+        g_signal_emit (seat, signals[RUNNING_USER_SESSION], 0, session);
 
     session_run (session);
 
@@ -1415,11 +1416,11 @@ seat_class_init (SeatClass *klass)
                       NULL, NULL,
                       g_cclosure_marshal_VOID__OBJECT,
                       G_TYPE_NONE, 1, SESSION_TYPE);
-    signals[RUNNING_SESSION] =
-        g_signal_new ("running-session",
+    signals[RUNNING_USER_SESSION] =
+        g_signal_new ("running-user-session",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (SeatClass, running_session),
+                      G_STRUCT_OFFSET (SeatClass, running_user_session),
                       NULL, NULL,
                       g_cclosure_marshal_VOID__OBJECT,
                       G_TYPE_NONE, 1, SESSION_TYPE);

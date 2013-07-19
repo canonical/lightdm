@@ -521,7 +521,7 @@ bus_entry_free (gpointer data)
 }
 
 static void
-running_session_cb (Seat *seat, Session *session)
+running_user_session_cb (Seat *seat, Session *session)
 {
     static const GDBusInterfaceVTable session_vtable =
     {
@@ -602,7 +602,7 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
                                    g_variant_new ("(o)", entry->path),
                                    NULL);
 
-    g_signal_connect (seat, "running-session", G_CALLBACK (running_session_cb), NULL);
+    g_signal_connect (seat, "running-user-session", G_CALLBACK (running_user_session_cb), NULL);
     g_signal_connect (seat, "session-removed", G_CALLBACK (session_removed_cb), NULL);
 }
 

@@ -48,7 +48,7 @@ typedef struct
     void (*stop)(Seat *seat);
 
     void (*session_added)(Seat *seat, Session *session);
-    void (*running_session)(Seat *seat, Session *session);
+    void (*running_user_session)(Seat *seat, Session *session);
     void (*session_removed)(Seat *seat, Session *session);
     void (*stopped)(Seat *seat);
 } SeatClass;
