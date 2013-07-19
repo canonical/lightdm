@@ -873,6 +873,18 @@ greeter_real_start_session (Greeter *greeter, SessionType type, const gchar *ses
 }
 
 static void
+greeter_stop (Session *session)
+{
+    Greeter *greeter = GREETER (session);
+
+    /* Stop any events occurring after we've stopped */
+    if (greeter->priv->authentication_session)
+        g_signal_handlers_disconnect_matched (greeter->priv->authentication_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
+
+    SESSION_CLASS (greeter_parent_class)->stop (session);
+}
+
+static void
 greeter_init (Greeter *greeter)
 {
     greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, GREETER_TYPE, GreeterPrivate);
@@ -915,6 +927,7 @@ greeter_class_init (GreeterClass *klass)
     klass->create_session = greeter_real_create_session;
     klass->start_session = greeter_real_start_session;
     session_class->start = greeter_start;
+    session_class->stop = greeter_stop;
     object_class->finalize = greeter_finalize;
 
     signals[CONNECTED] =

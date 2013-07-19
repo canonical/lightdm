@@ -449,6 +449,7 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 gboolean
 session_start (Session *session)
 {
+    g_return_val_if_fail (session != NULL, FALSE);
     g_return_val_if_fail (session->priv->display_server != NULL, FALSE);
     return SESSION_GET_CLASS (session)->start (session);
 }
@@ -466,7 +467,6 @@ session_real_start (Session *session)
     int to_child_pipe[2], from_child_pipe[2];
     int to_child_output, from_child_input;
 
-    g_return_val_if_fail (session != NULL, FALSE);
     g_return_val_if_fail (session->priv->pid == 0, FALSE);
 
     /* Create pipes to talk to the child */
@@ -733,6 +733,14 @@ session_stop (Session *session)
         return;
     session->priv->stopping = TRUE;
 
+    return SESSION_GET_CLASS (session)->stop (session);
+}
+
+static void
+session_real_stop (Session *session)
+{
+    g_return_if_fail (session != NULL);
+
     if (session->priv->pid > 0)
     {
         g_debug ("Session %d: Sending SIGTERM", session->priv->pid);
@@ -802,6 +810,7 @@ session_class_init (SessionClass *klass)
 
     klass->start = session_real_start;
     klass->run = session_real_run;
+    klass->stop = session_real_stop;
     object_class->finalize = session_finalize;
 
     g_type_class_add_private (klass, sizeof (SessionPrivate));
