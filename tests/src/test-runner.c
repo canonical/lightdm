@@ -395,6 +395,78 @@ handle_command (const gchar *command)
     {
         sleep (1);
     }
+    else if (strcmp (name, "LIST-SEATS") == 0)
+    {
+        GVariant *result, *value;
+        GString *status;
+        GVariantIter *iter;
+        const gchar *path;
+        int i = 0;
+
+        result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                              "org.freedesktop.DisplayManager",
+                                              "/org/freedesktop/DisplayManager",
+                                              "org.freedesktop.DBus.Properties",
+                                              "Get",
+                                              g_variant_new ("(ss)", "org.freedesktop.DisplayManager", "Seats"),
+                                              G_VARIANT_TYPE ("(v)"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              1000,
+                                              NULL,
+                                              NULL);
+
+        status = g_string_new ("RUNNER LIST-SEATS SEATS=");
+        g_variant_get (result, "(v)", &value);
+        g_variant_get (value, "ao", &iter);
+        while (g_variant_iter_loop (iter, "&o", &path))
+        {
+            if (i != 0)
+                g_string_append (status, ",");
+            g_string_append (status, path);
+            i++;
+        }
+        g_variant_unref (value);
+        g_variant_unref (result);
+
+        check_status (status->str);
+        g_string_free (status, TRUE);
+    }
+    else if (strcmp (name, "LIST-SESSIONS") == 0)
+    {
+        GVariant *result, *value;
+        GString *status;
+        GVariantIter *iter;
+        const gchar *path;
+        int i = 0;
+
+        result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                              "org.freedesktop.DisplayManager",
+                                              "/org/freedesktop/DisplayManager",
+                                              "org.freedesktop.DBus.Properties",
+                                              "Get",
+                                              g_variant_new ("(ss)", "org.freedesktop.DisplayManager", "Sessions"),
+                                              G_VARIANT_TYPE ("(v)"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              1000,
+                                              NULL,
+                                              NULL);
+
+        status = g_string_new ("RUNNER LIST-SESSIONS SESSIONS=");
+        g_variant_get (result, "(v)", &value);
+        g_variant_get (value, "ao", &iter);
+        while (g_variant_iter_loop (iter, "&o", &path))
+        {
+            if (i != 0)
+                g_string_append (status, ",");
+            g_string_append (status, path);
+            i++;
+        }
+        g_variant_unref (value);
+        g_variant_unref (result);
+
+        check_status (status->str);
+        g_string_free (status, TRUE);
+    }
     else if (strcmp (name, "SWITCH-TO-GREETER") == 0)
     {
         g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
