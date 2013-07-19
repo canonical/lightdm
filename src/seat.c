@@ -176,7 +176,7 @@ seat_set_active_session (Seat *seat, Session *session)
     g_return_if_fail (seat != NULL);
 
     SEAT_GET_CLASS (seat)->set_active_session (seat, session);
-  
+
     /* Stop any greeters */
     for (link = seat->priv->sessions; link; link = link->next)
     {
@@ -310,7 +310,7 @@ check_stopped (Seat *seat)
 static void
 display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 {
-    GList *link;
+    GList *list, *link;
     Session *active_session;
 
     g_debug ("Display server stopped");
@@ -326,7 +326,10 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     }
 
     /* Stop all sessions on this display server */
-    for (link = seat->priv->sessions; link; link = link->next)
+    list = g_list_copy (seat->priv->sessions);
+    for (link = list; link; link = link->next)
+        g_object_ref (link->data);
+    for (link = list; link; link = link->next)
     {
         Session *session = link->data;
 
@@ -345,6 +348,7 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
         g_debug ("Stopping session");
         session_stop (session);
     }
+    g_list_free_full (list, g_object_unref);
 
     /* If we were the active session, switch to a greeter */
     active_session = seat_get_active_session (seat);
@@ -1323,6 +1327,8 @@ seat_real_stop (Seat *seat)
      * it might be modified if a display server / session stops during this loop */
     list = g_list_copy (seat->priv->display_servers);
     for (link = list; link; link = link->next)
+        g_object_ref (link->data);
+    for (link = list; link; link = link->next)
     {
         DisplayServer *display_server = link->data;
         if (!display_server_get_is_stopping (display_server))
@@ -1331,8 +1337,10 @@ seat_real_stop (Seat *seat)
             display_server_stop (display_server);
         }
     }
-    g_list_free (list);
+    g_list_free_full (list, g_object_unref);
     list = g_list_copy (seat->priv->sessions);
+    for (link = list; link; link = link->next)
+        g_object_ref (link->data);
     for (link = list; link; link = link->next)
     {
         Session *session = link->data;
@@ -1342,7 +1350,7 @@ seat_real_stop (Seat *seat)
             session_stop (session);
         }
     }
-    g_list_free (list);
+    g_list_free_full (list, g_object_unref);
 }
 
 static void
