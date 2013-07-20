@@ -1414,7 +1414,7 @@ seat_class_init (SeatClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SeatClass, session_added),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
+                      NULL,
                       G_TYPE_NONE, 1, SESSION_TYPE);
     signals[RUNNING_USER_SESSION] =
         g_signal_new ("running-user-session",
@@ -1422,7 +1422,7 @@ seat_class_init (SeatClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SeatClass, running_user_session),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
+                      NULL,
                       G_TYPE_NONE, 1, SESSION_TYPE);
     signals[SESSION_REMOVED] =
         g_signal_new ("session-removed",
@@ -1430,7 +1430,7 @@ seat_class_init (SeatClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SeatClass, session_removed),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
+                      NULL,
                       G_TYPE_NONE, 1, SESSION_TYPE);
     signals[STOPPED] =
         g_signal_new ("stopped",
@@ -1438,6 +1438,6 @@ seat_class_init (SeatClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SeatClass, stopped),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
 }

@@ -173,6 +173,6 @@ vnc_server_class_init (VNCServerClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (VNCServerClass, new_connection),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
+                      NULL,
                       G_TYPE_NONE, 1, G_TYPE_SOCKET);
 }

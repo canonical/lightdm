@@ -1,11 +1,5 @@
 sbin_PROGRAMS = lightdm
 
-ldm-marshal.c: ldm-marshal.list
-	@GLIB_GENMARSHAL@ --prefix=ldm_marshal $(srcdir)/ldm-marshal.list --header --body > ldm-marshal.c
-
-ldm-marshal.h: ldm-marshal.list
-	@GLIB_GENMARSHAL@ --prefix=ldm_marshal $(srcdir)/ldm-marshal.list --header > ldm-marshal.h
-
 lightdm_SOURCES = \
 	accounts.c \
 	accounts.h \
@@ -24,8 +18,6 @@ lightdm_SOURCES = \
 	guest-account.c \
 	guest-account.h \
 	lightdm.c \
-	ldm-marshal.c \
-	ldm-marshal.h \
 	login1.c \
 	login1.h \
 	plymouth.c \
@@ -76,10 +68,6 @@ lightdm_SOURCES = \
 	xsession.c \
 	xsession.h
 
-BUILT_SOURCES = \
-	ldm-marshal.c \
-	ldm-marshal.h
-
 lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
 	$(WARN_CFLAGS) \
@@ -106,11 +94,8 @@ lightdm_guest_session_wrapper_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
 	$(WARN_CFLAGS)
 
-EXTRA_DIST = ldm-marshal.list \
+EXTRA_DIST = \
 	display-manager.xml
-
-CLEANFILES = \
-	$(BUILT_SOURCES)
 
 DISTCLEANFILES = \
 	Makefile.in

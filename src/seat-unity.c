@@ -148,6 +148,12 @@ compositor_run_cb (Process *process, SeatUnity *seat)
              close (fd);
          }
     }
+
+    if (seat->priv->stopping_plymouth)
+    {      
+        seat->priv->stopping_plymouth = FALSE;
+        plymouth_quit (TRUE);
+    }  
 }
 
 static void
@@ -311,6 +317,7 @@ seat_unity_start (Seat *seat)
         if (active_vt >= vt_get_min ())
         {
             g_debug ("Compositor will replace Plymouth");
+            SEAT_UNITY (seat)->priv->stopping_plymouth = TRUE;
             SEAT_UNITY (seat)->priv->vt = active_vt;
             plymouth_deactivate ();
         }

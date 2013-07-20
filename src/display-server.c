@@ -146,7 +146,7 @@ display_server_class_init (DisplayServerClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayServerClass, ready),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
     signals[STOPPED] =
         g_signal_new ("stopped",
@@ -154,6 +154,6 @@ display_server_class_init (DisplayServerClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayServerClass, stopped),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
 }

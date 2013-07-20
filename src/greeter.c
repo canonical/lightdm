@@ -18,7 +18,6 @@
 #include <gcrypt.h>
 
 #include "greeter.h"
-#include "ldm-marshal.h"
 #include "configuration.h"
 
 enum {
@@ -936,7 +935,7 @@ greeter_class_init (GreeterClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (GreeterClass, connected),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
 
     signals[CREATE_SESSION] =
@@ -946,7 +945,7 @@ greeter_class_init (GreeterClass *klass)
                       G_STRUCT_OFFSET (GreeterClass, create_session),
                       g_signal_accumulator_first_wins,
                       NULL,
-                      ldm_marshal_OBJECT__VOID,
+                      NULL,
                       SESSION_TYPE, 0);
 
     signals[START_SESSION] =
@@ -956,7 +955,7 @@ greeter_class_init (GreeterClass *klass)
                       G_STRUCT_OFFSET (GreeterClass, start_session),
                       g_signal_accumulator_true_handled,
                       NULL,
-                      ldm_marshal_BOOLEAN__INT_STRING,
+                      NULL,
                       G_TYPE_BOOLEAN, 2, G_TYPE_INT, G_TYPE_STRING);
 
     g_type_class_add_private (klass, sizeof (GreeterPrivate));
