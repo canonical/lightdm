@@ -17,7 +17,6 @@
 
 #include "display.h"
 #include "configuration.h"
-#include "ldm-marshal.h"
 #include "greeter.h"
 
 enum
@@ -1068,7 +1067,7 @@ display_class_init (DisplayClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayClass, create_session),
                       NULL, NULL,
-                      ldm_marshal_OBJECT__VOID,
+                      NULL,
                       SESSION_TYPE, 0);
     signals[READY] =
         g_signal_new ("ready",
@@ -1076,7 +1075,7 @@ display_class_init (DisplayClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayClass, ready),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
     signals[SWITCH_TO_USER] =
         g_signal_new ("switch-to-user",
@@ -1085,7 +1084,7 @@ display_class_init (DisplayClass *klass)
                       G_STRUCT_OFFSET (DisplayClass, switch_to_user),
                       g_signal_accumulator_true_handled,
                       NULL,
-                      ldm_marshal_BOOLEAN__OBJECT,
+                      NULL,
                       G_TYPE_BOOLEAN, 1, USER_TYPE);
     signals[SWITCH_TO_GUEST] =
         g_signal_new ("switch-to-guest",
@@ -1094,7 +1093,7 @@ display_class_init (DisplayClass *klass)
                       G_STRUCT_OFFSET (DisplayClass, switch_to_guest),
                       g_signal_accumulator_true_handled,
                       NULL,
-                      ldm_marshal_BOOLEAN__VOID,
+                      NULL,
                       G_TYPE_BOOLEAN, 0);
     signals[GET_GUEST_USERNAME] =
         g_signal_new ("get-guest-username",
@@ -1103,7 +1102,7 @@ display_class_init (DisplayClass *klass)
                       G_STRUCT_OFFSET (DisplayClass, get_guest_username),
                       g_signal_accumulator_first_wins,
                       NULL,
-                      ldm_marshal_STRING__VOID,
+                      NULL,
                       G_TYPE_STRING, 0);
     signals[DISPLAY_SERVER_READY] =
         g_signal_new ("display-server-ready",
@@ -1111,7 +1110,7 @@ display_class_init (DisplayClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayClass, display_server_ready),
                       NULL, NULL,
-                      ldm_marshal_BOOLEAN__VOID,
+                      NULL,
                       G_TYPE_BOOLEAN, 0);
     signals[START_GREETER] =
         g_signal_new ("start-greeter",
@@ -1119,7 +1118,7 @@ display_class_init (DisplayClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayClass, start_greeter),
                       g_signal_accumulator_true_handled, NULL,
-                      ldm_marshal_BOOLEAN__VOID,
+                      NULL,
                       G_TYPE_BOOLEAN, 0);
     signals[START_SESSION] =
         g_signal_new ("start-session",
@@ -1127,7 +1126,7 @@ display_class_init (DisplayClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayClass, start_session),
                       g_signal_accumulator_true_handled, NULL,
-                      ldm_marshal_BOOLEAN__VOID,
+                      NULL,
                       G_TYPE_BOOLEAN, 0);
     signals[CREATE_DISPLAY] =
         g_signal_new ("create-display",
@@ -1135,7 +1134,7 @@ display_class_init (DisplayClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayClass, create_display),
                       NULL, NULL,
-                      ldm_marshal_OBJECT__OBJECT,
+                      NULL,
                       DISPLAY_TYPE, 1, SESSION_TYPE);
     signals[STOPPED] =
         g_signal_new ("stopped",
@@ -1143,6 +1142,6 @@ display_class_init (DisplayClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayClass, stopped),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
 }

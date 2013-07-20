@@ -705,7 +705,7 @@ session_class_init (SessionClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SessionClass, got_messages),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
 
     signals[AUTHENTICATION_COMPLETE] =
@@ -714,7 +714,7 @@ session_class_init (SessionClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SessionClass, authentication_complete),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
 
     signals[STOPPED] =
@@ -723,6 +723,6 @@ session_class_init (SessionClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SessionClass, stopped),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
 }

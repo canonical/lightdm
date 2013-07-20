@@ -22,7 +22,7 @@ AC_CHECK_HEADERS(security/pam_appl.h, [], AC_MSG_ERROR(PAM not found))
 AC_CHECK_FUNCS(setresgid setresuid clearenv)
 
 PKG_CHECK_MODULES(LIGHTDM, [
-    glib-2.0 >= 2.24
+    glib-2.0 >= 2.30
     gio-2.0 >= 2.26
     gio-unix-2.0
     xdmcp
@@ -131,8 +131,6 @@ AC_ARG_ENABLE(tests,
         AS_HELP_STRING([--disable-tests], [Disable tests building]),
         [], [enable_tests="yes"])
 AM_CONDITIONAL(COMPILE_TESTS, test x"$enable_tests" != "xno")
-
-AC_PATH_PROG(GLIB_GENMARSHAL, glib-genmarshal)
 
 dnl ###########################################################################
 dnl Configurable values
