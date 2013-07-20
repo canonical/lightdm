@@ -853,7 +853,7 @@ seat_class_init (SeatClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SeatClass, display_added),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
+                      NULL,
                       G_TYPE_NONE, 1, DISPLAY_TYPE);
     signals[DISPLAY_REMOVED] =
         g_signal_new ("display-removed",
@@ -861,7 +861,7 @@ seat_class_init (SeatClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SeatClass, display_removed),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
+                      NULL,
                       G_TYPE_NONE, 1, DISPLAY_TYPE);
     signals[STOPPED] =
         g_signal_new ("stopped",
@@ -869,6 +869,6 @@ seat_class_init (SeatClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SeatClass, stopped),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
 }
