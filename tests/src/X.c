@@ -3,7 +3,6 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <signal.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -59,17 +58,39 @@ quit (int status)
 }
 
 static void
-signal_cb (int signum)
+indicate_ready (void)
 {
-    if (signum == SIGHUP)
+    void *handler;  
+    handler = signal (SIGUSR1, SIG_IGN);
+    if (handler == SIG_IGN)
     {
-        status_notify ("XSERVER-%d DISCONNECT-CLIENTS", display_number);
+        status_notify ("XSERVER-%d INDICATE-READY", display_number);
+        kill (getppid (), SIGUSR1);
     }
-    else
-    {
-        status_notify ("XSERVER-%d TERMINATE SIGNAL=%d", display_number, signum);
-        quit (EXIT_SUCCESS);
-    }
+    signal (SIGUSR1, handler);
+}
+
+static gboolean
+sighup_cb (gpointer user_data)
+{
+    status_notify ("XSERVER-%d DISCONNECT-CLIENTS", display_number);
+    return TRUE;
+}
+
+static gboolean
+sigint_cb (gpointer user_data)
+{
+    status_notify ("XSERVER-%d TERMINATE SIGNAL=%d", display_number, SIGINT);
+    quit (EXIT_SUCCESS);
+    return TRUE;
+}
+
+static gboolean
+sigterm_cb (gpointer user_data)
+{
+    status_notify ("XSERVER-%d TERMINATE SIGNAL=%d", display_number, SIGTERM);
+    quit (EXIT_SUCCESS);
+    return TRUE;
 }
 
 static void
@@ -201,15 +222,15 @@ main (int argc, char **argv)
     int lock_file;
     GString *status_text;
 
-    signal (SIGINT, signal_cb);
-    signal (SIGTERM, signal_cb);
-    signal (SIGHUP, signal_cb);
-
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
 
     loop = g_main_loop_new (NULL, FALSE);
+
+    g_unix_signal_add (SIGINT, sigint_cb, NULL);
+    g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
+    g_unix_signal_add (SIGHUP, sighup_cb, NULL);
 
     status_connect (request_cb);
 

@@ -18,11 +18,20 @@ quit (int status)
     g_main_loop_quit (loop);
 }
 
-static void
-signal_cb (int signum)
+static gboolean
+sigint_cb (gpointer user_data)
 {
-    status_notify ("UNITY-SYSTEM-COMPOSITOR TERMINATE SIGNAL=%d", signum);
+    status_notify ("UNITY-SYSTEM-COMPOSITOR TERMINATE SIGNAL=%d", SIGINT);
     quit (EXIT_SUCCESS);
+    return TRUE;
+}
+
+static gboolean
+sigterm_cb (gpointer user_data)
+{
+    status_notify ("UNITY-SYSTEM-COMPOSITOR TERMINATE SIGNAL=%d", SIGTERM);
+    quit (EXIT_SUCCESS);
+    return TRUE;
 }
 
 typedef enum
@@ -127,15 +136,14 @@ main (int argc, char **argv)
     gboolean test = FALSE;
     int vt_number = -1;
 
-    signal (SIGINT, signal_cb);
-    signal (SIGTERM, signal_cb);
-    signal (SIGHUP, signal_cb);
-
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
 
     loop = g_main_loop_new (NULL, FALSE);
+
+    g_unix_signal_add (SIGINT, sigint_cb, NULL);
+    g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
 
     status_connect (request_cb);
 
