@@ -188,6 +188,13 @@ request_cb (const gchar *request)
         kill (getpid (), SIGSEGV);
     }
     g_free (r);
+    r = g_strdup_printf ("XSERVER-%d START-XDMCP", display_number);
+    if (strcmp (request, r) == 0)
+    {
+        if (!xdmcp_client_start (xdmcp_client))
+            quit (EXIT_FAILURE);
+    }
+    g_free (r);
 }
 
 int
@@ -397,9 +404,6 @@ main (int argc, char **argv)
         g_signal_connect (xdmcp_client, "accept", G_CALLBACK (xdmcp_accept_cb), NULL);
         g_signal_connect (xdmcp_client, "decline", G_CALLBACK (xdmcp_decline_cb), NULL);
         g_signal_connect (xdmcp_client, "failed", G_CALLBACK (xdmcp_failed_cb), NULL);
-
-        if (!xdmcp_client_start (xdmcp_client))
-            quit (EXIT_FAILURE);
     }
 
     /* Indicate ready if parent process has requested it */
