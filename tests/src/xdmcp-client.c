@@ -443,7 +443,7 @@ xdmcp_client_class_init (XDMCPClientClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XDMCPClientClass, query),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
     xdmcp_client_signals[XDMCP_CLIENT_WILLING] =
         g_signal_new ("willing",
@@ -451,7 +451,7 @@ xdmcp_client_class_init (XDMCPClientClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XDMCPClientClass, willing),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__POINTER,
+                      NULL,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
     xdmcp_client_signals[XDMCP_CLIENT_ACCEPT] =
         g_signal_new ("accept",
@@ -459,7 +459,7 @@ xdmcp_client_class_init (XDMCPClientClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XDMCPClientClass, accept),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__POINTER,
+                      NULL,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
     xdmcp_client_signals[XDMCP_CLIENT_DECLINE] =
         g_signal_new ("decline",
@@ -467,7 +467,7 @@ xdmcp_client_class_init (XDMCPClientClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XDMCPClientClass, decline),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__POINTER,
+                      NULL,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
     xdmcp_client_signals[XDMCP_CLIENT_FAILED] =
         g_signal_new ("failed",
@@ -475,6 +475,6 @@ xdmcp_client_class_init (XDMCPClientClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XDMCPClientClass, failed),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__POINTER,
+                      NULL,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
 }
