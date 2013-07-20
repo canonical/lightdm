@@ -719,6 +719,8 @@ create_user_session (Seat *seat, const gchar *username)
     }
 
     session = create_session (seat, TRUE);
+    session_set_env (session, "DESKTOP_SESSION", session_name);
+    session_set_env (session, "GDMSESSION", session_name);
     session_set_pam_service (session, AUTOLOGIN_SERVICE);
     session_set_username (session, username);
     session_set_do_authenticate (session, TRUE);
@@ -850,6 +852,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         session_name = seat_get_string_property (seat, "user-session");
     if (user)
         user_set_xsession (session_get_user (session), session_name);
+
     argv = get_session_argv (sessions_dir, session_name, seat_get_string_property (seat, "session-wrapper"));
     g_free (sessions_dir);
   
@@ -861,13 +864,8 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
 
     session_set_argv (session, argv);
     g_strfreev (argv);
-
-    /* If no session information found, then can't start the session */
-    if (!argv)
-    {
-        g_debug ("Can't find greeter session '%s'", session_name);
-        return FALSE;
-    }
+    session_set_env (session, "DESKTOP_SESSION", session_name);
+    session_set_env (session, "GDMSESSION", session_name);
 
     /* If can re-use the display server, stop the greeter first */
     if (seat->priv->share_display_server)
