@@ -695,36 +695,43 @@ create_user_session (Seat *seat, const gchar *username)
 {
     User *user;
     gchar *sessions_dir, **argv;
-    const gchar *session_name;
-    Session *session;
-  
+    const gchar *session_name, *language;
+    Session *session = NULL;
+
+    /* Load user preferences */
     user = accounts_get_user_by_name (username);
     if (!user)
     {
         g_debug ("Can't login unknown user '%s'", username);
         return NULL;
     }
-
     session_name = user_get_xsession (user);
-    g_object_unref (user);
+    language = user_get_language (user);
+
     if (!session_name)
         session_name = seat_get_string_property (seat, "user-session");
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
     argv = get_session_argv (sessions_dir, session_name, seat_get_string_property (seat, "session-wrapper"));
     g_free (sessions_dir);
-    if (!argv)
+    if (argv)
     {
-        g_debug ("Can't find session '%s'", seat_get_string_property (seat, "user-session"));
-        return NULL;
+        session = create_session (seat, TRUE);
+        session_set_env (session, "DESKTOP_SESSION", session_name);
+        session_set_env (session, "GDMSESSION", session_name);
+        if (language && language[0] != '\0')
+        {
+            session_set_env (session, "LANG", language);
+            session_set_env (session, "GDM_LANG", language);
+        }
+        session_set_pam_service (session, AUTOLOGIN_SERVICE);
+        session_set_username (session, username);
+        session_set_do_authenticate (session, TRUE);
+        session_set_argv (session, argv);     
     }
+    else
+        g_debug ("Can't find session '%s'", seat_get_string_property (seat, "user-session"));
 
-    session = create_session (seat, TRUE);
-    session_set_env (session, "DESKTOP_SESSION", session_name);
-    session_set_env (session, "GDMSESSION", session_name);
-    session_set_pam_service (session, AUTOLOGIN_SERVICE);
-    session_set_username (session, username);
-    session_set_do_authenticate (session, TRUE);
-    session_set_argv (session, argv);
+    g_object_unref (user);
 
     return session;
 }
@@ -805,7 +812,7 @@ static gboolean
 greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
 {
     Session *session, *existing_session;
-    const gchar *username;
+    const gchar *username, *language = NULL;
     User *user;
     gchar *sessions_dir = NULL;
     gchar **argv;
@@ -847,9 +854,16 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         sessions_dir = config_get_string (config_get_instance (), "LightDM", "remote-sessions-directory");
         break;
     }
+
+    /* Load user preferences */
     user = session_get_user (session);
-    if (!session_name && user)
-        session_name = user_get_xsession (user);
+    if (user)
+    {
+        if (!session_name)
+            session_name = user_get_xsession (user);
+        language = user_get_language (user);
+    }
+
     if (!session_name)
         session_name = seat_get_string_property (seat, "user-session");
     if (user)
@@ -868,6 +882,11 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     g_strfreev (argv);
     session_set_env (session, "DESKTOP_SESSION", session_name);
     session_set_env (session, "GDMSESSION", session_name);
+    if (language && language[0] != '\0')
+    {
+        session_set_env (session, "LANG", language);
+        session_set_env (session, "GDM_LANG", language);
+    }
 
     /* If can re-use the display server, stop the greeter first */
     if (seat->priv->share_display_server)
