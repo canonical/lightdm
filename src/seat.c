@@ -350,7 +350,7 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     }
     g_list_free_full (list, g_object_unref);
 
-    if (!seat->priv->stopping)
+    if (!seat->priv->stopping && display_server_get_start_local_sessions (display_server))
     {
         /* If we were the active session, switch to a greeter */
         active_session = seat_get_active_session (seat);
@@ -990,6 +990,10 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
         return;
     }
 
+    /* Stop if don't need to run a session */
+    if (!display_server_get_start_local_sessions (display_server))
+        return;
+
     emit_upstart_signal ("login-session-start");
 
     /* Start the session waiting for this display server */
@@ -1246,6 +1250,10 @@ seat_real_start (Seat *seat)
     g_debug ("Starting seat");
 
     display_server = create_display_server (seat);
+
+    /* If this display server doesn't have a session running on it, just start it */
+    if (!display_server_get_start_local_sessions (display_server))
+        return display_server_start (display_server);
 
     /* Get autologin settings */
     autologin_username = seat_get_string_property (seat, "autologin-user");
