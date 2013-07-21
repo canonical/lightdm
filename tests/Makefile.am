@@ -142,7 +142,8 @@ TESTS = \
 	test-vnc-command \
 	test-vnc-dimensions \
 	test-vnc-open-file-descriptors \
-	test-xdmcp-login \
+	test-xdmcp-client \
+	test-xdmcp-server-login \
 	test-no-accounts-service \
 	test-console-kit \
 	test-no-console-kit \
@@ -158,7 +159,7 @@ TESTS = \
 	test-python-power-no-login1 \
 	test-python-power-no-services \
 	test-open-file-descriptors \
-	test-xdmcp-open-file-descriptors \
+	test-xdmcp-server-open-file-descriptors \
 	test-unity-compositor-command \
 	test-unity-compositor-fail-start \
 	test-unity-compositor-fail-ready \
@@ -386,7 +387,8 @@ EXTRA_DIST = \
 	scripts/vnc-login.conf \
 	scripts/vnc-open-file-descriptors.conf \
 	scripts/xauthority.conf \
-	scripts/xdmcp-login.conf \
-	scripts/xdmcp-open-file-descriptors.conf \
+	scripts/xdmcp-client.conf \
+	scripts/xdmcp-server-login.conf \
+	scripts/xdmcp-server-open-file-descriptors.conf \
 	scripts/xserver-fail-start.conf \
 	scripts/xserver-no-share.conf
