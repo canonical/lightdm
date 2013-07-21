@@ -46,6 +46,7 @@ dbus_env_CFLAGS = \
 dbus_env_LDADD = \
 	$(GLIB_LIBS)
 
+test_runner_SOURCES = test-runner.c
 test_runner_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
