@@ -42,7 +42,8 @@ TESTS = \
 	test-autologin-guest-fail-setup-script \
 	test-autologin-guest-logout \
 	test-group-membership \
-	test-session-env \    
+	test-session-env \
+	test-language-env \
 	test-util-path \
 	test-session-stdout \
 	test-session-stderr \
@@ -294,6 +295,7 @@ EXTRA_DIST = \
 	scripts/home-dir-on-session.conf \
 	scripts/keyboard-layout.conf \
 	scripts/language.conf \
+	scripts/language-env.conf \
 	scripts/language-no-accounts-service.conf \
 	scripts/lock-seat.conf \
 	scripts/lock-seat-return-session.conf \
