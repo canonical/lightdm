@@ -814,6 +814,8 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     if (greeter_get_guest_authenticated (greeter))
     {
         session = create_guest_session (seat);
+        if (!session)
+            return FALSE;
         session_set_pam_service (session, AUTOLOGIN_SERVICE);
     }
     else
@@ -1077,6 +1079,8 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
     }
 
     session = create_user_session (seat, username);
+    if (!session)
+        return FALSE;
     if (seat->priv->session_to_activate)
         g_object_unref (seat->priv->session_to_activate);
     seat->priv->session_to_activate = g_object_ref (session);
@@ -1131,6 +1135,8 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
         return FALSE;
 
     session = create_guest_session (seat);
+    if (!session)
+        return FALSE;
     if (seat->priv->session_to_activate)
         g_object_unref (seat->priv->session_to_activate);
     seat->priv->session_to_activate = g_object_ref (session);
@@ -1234,16 +1240,12 @@ seat_real_start (Seat *seat)
     if (autologin_timeout == 0 || autologin_in_background)
     {
         if (autologin_guest)
-        {
             session = create_guest_session (seat);
-            if (seat->priv->session_to_activate)
-                g_object_unref (seat->priv->session_to_activate);
-            seat->priv->session_to_activate = g_object_ref (session);
-            session_set_pam_service (session, AUTOLOGIN_SERVICE);
-        }
         else if (autologin_username != NULL)
-        {
             session = create_user_session (seat, autologin_username);
+      
+        if (session)
+        {
             if (seat->priv->session_to_activate)
                 g_object_unref (seat->priv->session_to_activate);
             seat->priv->session_to_activate = g_object_ref (session);
