@@ -7,8 +7,6 @@ lightdm_SOURCES = \
 	configuration.h \
 	console-kit.c \
 	console-kit.h \
-	display.c \
-	display.h \
 	display-manager.c \
 	display-manager.h \
 	display-server.c \
@@ -57,6 +55,8 @@ lightdm_SOURCES = \
 	xdmcp-session.c \
 	xdmcp-session.h \
 	xdmcp-session-private.h \
+	xgreeter.c \
+	xgreeter.h \
 	xserver-local.c \
 	xserver-local.h \
 	xserver-remote.c \

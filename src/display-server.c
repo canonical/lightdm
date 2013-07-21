@@ -52,6 +52,18 @@ display_server_get_name (DisplayServer *server)
     return server->priv->name;
 }
 
+gint
+display_server_get_vt (DisplayServer *server)
+{
+    return DISPLAY_SERVER_GET_CLASS (server)->get_vt (server);
+}
+
+static gint
+display_server_real_get_vt (DisplayServer *server)
+{
+    return -1;
+}
+
 void
 display_server_set_start_local_sessions (DisplayServer *server, gboolean start_local_sessions)
 {
@@ -93,10 +105,10 @@ display_server_stop (DisplayServer *server)
 }
 
 gboolean
-display_server_get_is_stopped (DisplayServer *server)
+display_server_get_is_stopping (DisplayServer *server)
 {
-    g_return_val_if_fail (server != NULL, TRUE);
-    return server->priv->stopped;
+    g_return_val_if_fail (server != NULL, FALSE);
+    return server->priv->stopping;
 }
 
 static void
@@ -122,6 +134,7 @@ display_server_init (DisplayServer *server)
 static void
 display_server_class_init (DisplayServerClass *klass)
 {
+    klass->get_vt = display_server_real_get_vt;
     klass->start = display_server_real_start;
     klass->stop = display_server_real_stop;
 

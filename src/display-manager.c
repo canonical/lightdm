@@ -17,7 +17,6 @@
 
 #include "display-manager.h"
 #include "configuration.h"
-#include "display.h"
 #include "seat-xlocal.h"
 #include "seat-xremote.h"
 #include "seat-unity.h"

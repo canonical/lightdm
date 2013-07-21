@@ -300,6 +300,8 @@ main(int argc, char *argv[])
 
     if (greeter->selectUserHint() != "")
         status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, greeter->selectUserHint ().toAscii ().constData ());
+    if (greeter->selectGuestHint())
+        status_notify ("%s SELECT-GUEST-HINT", greeter_id);
     if (greeter->lockHint())
         status_notify ("%s LOCK-HINT", greeter_id);
 

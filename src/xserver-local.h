@@ -67,8 +67,6 @@ const gchar *xserver_local_get_mir_id (XServerLocal *server);
 
 void xserver_local_set_mir_socket (XServerLocal *server, const gchar *socket);
 
-gint xserver_local_get_vt (XServerLocal *server);
-
 const gchar *xserver_local_get_authority_file_path (XServerLocal *server);
 
 G_END_DECLS
