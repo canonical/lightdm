@@ -7,6 +7,7 @@ TESTS = \
 	test-greeter-xserver-crash \
 	test-greeter-wrapper \
 	test-greeter-default-session \
+	test-greeter-allow-guest \
 	test-greeter-hide-users \
 	test-greeter-show-manual-login \
 	test-greeter-show-remote-login \
@@ -290,6 +291,7 @@ EXTRA_DIST = \
 	scripts/dbus.conf \    
 	scripts/denied.conf \
 	scripts/expired.conf \
+	scripts/greeter-allow-guest.conf \
 	scripts/greeter-default-session.conf \
 	scripts/greeter-fail-start.conf \
 	scripts/greeter-hide-users.conf \

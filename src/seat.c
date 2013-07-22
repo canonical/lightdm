@@ -214,13 +214,6 @@ seat_get_allow_guest (Seat *seat)
     return seat_get_boolean_property (seat, "allow-guest") && guest_account_is_installed ();
 }
 
-gboolean
-seat_get_greeter_allow_guest (Seat *seat)
-{
-    g_return_val_if_fail (seat != NULL, FALSE);  
-    return seat_get_allow_guest (seat) && seat_get_boolean_property (seat, "greeter-allow-guest");
-}
-
 static gboolean
 run_script (Seat *seat, DisplayServer *display_server, const gchar *script_name, User *user)
 {
@@ -976,6 +969,7 @@ create_greeter_session (Seat *seat)
     greeter_set_hint (greeter_session, "hide-users", seat_get_boolean_property (seat, "greeter-hide-users") ? "true" : "false");
     greeter_set_hint (greeter_session, "show-manual-login", seat_get_boolean_property (seat, "greeter-show-manual-login") ? "true" : "false");
     greeter_set_hint (greeter_session, "show-remote-login", seat_get_boolean_property (seat, "greeter-show-remote-login") ? "true" : "false");
+    greeter_set_hint (greeter_session, "has-guest-account", seat_get_allow_guest (seat) && seat_get_boolean_property (seat, "greeter-allow-guest") ? "true" : "false");
 
     return greeter_session;
 }
