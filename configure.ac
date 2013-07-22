@@ -14,7 +14,14 @@ AM_MAINTAINER_MODE
 dnl Enable compile warnings
 WARN_CFLAGS="-Wall \
             -Wstrict-prototypes \
-            -Wnested-externs"
+            -Wnested-externs \
+            -Werror=missing-prototypes \
+            -Werror=implicit-function-declaration \
+            -Werror=pointer-arith \
+            -Werror=init-self \
+            -Werror=format-security \
+            -Werror=format=2 \
+            -Werror=missing-include-dirs"
 AC_SUBST(WARN_CFLAGS)
 
 GOBJECT_INTROSPECTION_CHECK(0.9.5)
