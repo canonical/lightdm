@@ -304,6 +304,14 @@ main(int argc, char *argv[])
         status_notify ("%s SELECT-GUEST-HINT", greeter_id);
     if (greeter->lockHint())
         status_notify ("%s LOCK-HINT", greeter_id);
+    if (!greeter->hasGuestAccountHint ())
+        status_notify ("%s HAS-GUEST-ACCOUNT-HINT=FALSE", greeter_id);
+    if (greeter->hideUsersHint ())
+        status_notify ("%s HIDE-USERS-HINT", greeter_id);
+    if (greeter->showManualLoginHint ())
+        status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
+    if (!greeter->showRemoteLoginHint ())
+        status_notify ("%s SHOW-REMOTE-LOGIN-HINT=FALSE", greeter_id);
 
     return app->exec();
 }
