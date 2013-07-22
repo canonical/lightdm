@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.7.6
+
+    * Restore greeter hints that were regressed in 1.7.5.
+    * Don't run greeters through session wrapper - regression in 1.7.5
+
 Overview of changes in lightdm 1.7.5
 
     * Quit Plymouth correctly when using the unity seat type
