@@ -1023,7 +1023,7 @@ main (int argc, char **argv)
     if (config_d_dir)
     {
         GDir *dir;
-        GList *files, *link;
+        GList *files = NULL, *link;
         GKeyFile *f;
 
         /* Find configuration files */
