@@ -85,7 +85,6 @@ display_number_in_use (guint display_number)
     GList *link;
     gchar *path;
     gboolean exists;
-    gboolean stale = TRUE;
     gchar *data;
 
     /* See if we know we are managing a server with that number */

@@ -12,6 +12,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <glib/gstdio.h>
 
 #include "seat-unity.h"
 #include "configuration.h"
@@ -180,7 +181,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     SeatUnity *seat = data;
     gsize n_to_read = 0;
     guint16 id, payload_length;
-    guint8 *payload;
+    /*guint8 *payload;*/
   
     if (condition == G_IO_HUP)
     {
@@ -209,7 +210,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
             seat->priv->read_buffer = g_realloc (seat->priv->read_buffer, n_total);
 
         status = g_io_channel_read_chars (source,
-                                          seat->priv->read_buffer + seat->priv->read_buffer_n_used,
+                                          (gchar *)seat->priv->read_buffer + seat->priv->read_buffer_n_used,
                                           n_to_read,
                                           &n_read,
                                           &error);
@@ -230,7 +231,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     /* Read payload */
     if (seat->priv->read_buffer_n_used < 4 + payload_length)
         return TRUE;
-    payload = seat->priv->read_buffer + 4;
+    /*payload = seat->priv->read_buffer + 4;*/
 
     switch (id)
     {
@@ -523,7 +524,7 @@ seat_unity_set_active_session (Seat *seat, Session *session)
         id = xserver_local_get_mir_id (XSERVER_LOCAL (display_server));
 
         g_debug ("Switching to Mir session %s", id);
-        write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_ACTIVE_SESSION, id, strlen (id));
+        write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_ACTIVE_SESSION, (const guint8 *) id, strlen (id));
     }
 
     SEAT_CLASS (seat_unity_parent_class)->set_active_session (seat, session);

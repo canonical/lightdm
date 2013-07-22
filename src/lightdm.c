@@ -575,7 +575,6 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
         handle_seat_call,
         handle_seat_get_property
     };
-    GList *link;
     gchar *path;
     BusEntry *entry;
 
@@ -1024,7 +1023,6 @@ main (int argc, char **argv)
     {
         GDir *dir;
         GList *files = NULL, *link;
-        GKeyFile *f;
 
         /* Find configuration files */
         dir = g_dir_open (config_d_dir, 0, &error);
@@ -1141,7 +1139,7 @@ main (int argc, char **argv)
 
     /* Show queued messages once logging is complete */
     for (link = messages; link; link = link->next)
-        g_debug ("%s", link->data);
+        g_debug ("%s", (gchar *)link->data);
     g_list_free_full (messages, g_free);
 
     g_debug ("Using D-Bus name %s", LIGHTDM_BUS_NAME);
