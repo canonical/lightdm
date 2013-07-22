@@ -8,6 +8,7 @@ TESTS = \
 	test-greeter-wrapper \
 	test-greeter-default-session \
 	test-greeter-hide-users \
+	test-greeter-show-manual-login \
 	test-no-config \
 	test-additional-config \
 	test-headless \
@@ -292,6 +293,7 @@ EXTRA_DIST = \
 	scripts/greeter-fail-start.conf \
 	scripts/greeter-hide-users.conf \
 	scripts/greeter-not-installed.conf \
+	scripts/greeter-show-manual-login.conf \
 	scripts/greeter-wrapper.conf \
 	scripts/greeter-xserver-crash.conf \
 	scripts/group-membership.conf \
