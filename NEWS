@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.7.7
+
+    * Fix uninitialized pointer introduced in 1.7.3
+    * Enable compile warnings and fix code generating warnings
+
 Overview of changes in lightdm 1.7.6
 
     * Restore greeter hints that were regressed in 1.7.5.
