@@ -11,6 +11,21 @@ AC_PROG_CXX
 AC_PROG_LIBTOOL
 AM_MAINTAINER_MODE
 
+dnl Enable compile warnings (only supporting GCC)
+if test "x$GCC" == xyes; then
+    WARN_CFLAGS="-Wall \
+                 -Wstrict-prototypes \
+                 -Wnested-externs \
+                 -Werror=missing-prototypes \
+                 -Werror=implicit-function-declaration \
+                 -Werror=pointer-arith \
+                 -Werror=init-self \
+                 -Werror=format-security \
+                 -Werror=format=2 \
+                 -Werror=missing-include-dirs"
+fi
+AC_SUBST(WARN_CFLAGS)
+
 GOBJECT_INTROSPECTION_CHECK(0.9.5)
 
 dnl ###########################################################################

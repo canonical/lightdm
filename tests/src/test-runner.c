@@ -879,7 +879,7 @@ upower_name_acquired_cb (GDBusConnection *connection,
 }
 
 static void
-start_upower_daemon ()
+start_upower_daemon (void)
 {
     service_count++;
     g_bus_own_name (G_BUS_TYPE_SYSTEM,
@@ -1153,7 +1153,7 @@ open_login1_session (GDBusConnection *connection,
                    error->message);
     g_clear_error (&error);
     if (!login1_session_info)
-        return;
+        return NULL;
 
     g_dbus_connection_register_object (connection,
                                        session->path,
@@ -1330,7 +1330,7 @@ login1_name_acquired_cb (GDBusConnection *connection,
 }
 
 static void
-start_login1_daemon ()
+start_login1_daemon (void)
 {
     service_count++;
     g_bus_own_name (G_BUS_TYPE_SYSTEM,
@@ -1449,9 +1449,7 @@ load_passwd_file (void)
         gchar **fields;
         guint uid;
         gchar *user_name, *real_name;
-        GList *link;
         AccountsUser *user = NULL;
-        GError *error = NULL;
 
         fields = g_strsplit (lines[i], ":", -1);
         if (fields == NULL || g_strv_length (fields) < 7)
@@ -1545,7 +1543,6 @@ handle_accounts_call (GDBusConnection       *connection,
     }
     else if (strcmp (method_name, "FindUserByName") == 0)
     {
-        GList *link;
         AccountsUser *user = NULL;
         gchar *user_name;
 

@@ -361,7 +361,6 @@ static void
 switch_to_greeter_from_failed_session (Seat *seat, Session *session)
 {
     Greeter *greeter_session;
-    DisplayServer *display_server;
 
     greeter_session = create_greeter_session (seat);
     if (session_get_is_guest (session))
@@ -397,8 +396,6 @@ switch_to_greeter_from_failed_session (Seat *seat, Session *session)
 static void
 start_session (Seat *seat, Session *session)
 {
-    Greeter *greeter_session;
-
     if (session_start (session))
         return;
 
@@ -673,7 +670,7 @@ get_session_argv_from_filename (const gchar *filename, const gchar *session_wrap
 static gchar **
 get_session_argv (const gchar *sessions_dir, const gchar *session_name, const gchar *session_wrapper)
 {
-    gchar **dirs, **argv;
+    gchar **dirs, **argv = NULL;
     int i;
 
     g_return_val_if_fail (sessions_dir != NULL, NULL);
@@ -1151,7 +1148,6 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
 {
     Session *session;
     DisplayServer *display_server;
-    GList *link;
 
     g_return_val_if_fail (seat != NULL, FALSE);
 
@@ -1253,13 +1249,8 @@ seat_real_start (Seat *seat)
     int autologin_timeout;
     gboolean autologin_guest;
     gboolean autologin_in_background;
-    const gchar *user_session;
     Session *session = NULL;
     DisplayServer *display_server;
-    User *user;
-    gchar *sessions_dir;
-    const gchar *wrapper = NULL;
-    const gchar *session_name = NULL;
 
     g_debug ("Starting seat");
 

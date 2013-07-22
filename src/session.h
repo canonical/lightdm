@@ -70,6 +70,8 @@ void session_set_is_interactive (Session *session, gboolean is_interactive);
 
 void session_set_is_guest (Session *session, gboolean is_guest);
 
+gboolean session_get_is_guest (Session *session);
+
 void session_set_log_file (Session *session, const gchar *filename);
 
 void session_set_class (Session *session, const gchar *class);

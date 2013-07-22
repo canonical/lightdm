@@ -5,6 +5,7 @@
 #include <string.h>
 #include <xcb/xcb.h>
 #include <lightdm.h>
+#include <glib-unix.h>
 
 #include "status.h"
 

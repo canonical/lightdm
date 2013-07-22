@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <gio/gio.h>
+#include <glib-unix.h>
 
 #include "status.h"
 #include "x-server.h"

@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
+#include <glib-unix.h>
 
 #include "status.h"
 
@@ -76,7 +78,7 @@ read_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     }
     if (n_read != 4)
     {
-        g_printerr ("Short read for header, %d instead of expected 4\n", n_read);
+        g_printerr ("Short read for header, %zi instead of expected 4\n", n_read);
         return FALSE;
     }
     id = header[0] << 8 | header[1];
@@ -89,7 +91,7 @@ read_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     }
     if (n_read != payload_length)
     {
-        g_printerr ("Short read for payload, %d instead of expected %d\n", n_read, payload_length);
+        g_printerr ("Short read for payload, %zi instead of expected %d\n", n_read, payload_length);
         return FALSE;      
     }
 
