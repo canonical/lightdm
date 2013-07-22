@@ -6,6 +6,11 @@ TESTS = \
 	test-greeter-not-installed \
 	test-greeter-xserver-crash \
 	test-greeter-wrapper \
+	test-greeter-default-session \
+	test-greeter-allow-guest \
+	test-greeter-hide-users \
+	test-greeter-show-manual-login \
+	test-greeter-show-remote-login \
 	test-no-config \
 	test-additional-config \
 	test-headless \
@@ -286,8 +291,13 @@ EXTRA_DIST = \
 	scripts/dbus.conf \    
 	scripts/denied.conf \
 	scripts/expired.conf \
+	scripts/greeter-allow-guest.conf \
+	scripts/greeter-default-session.conf \
 	scripts/greeter-fail-start.conf \
+	scripts/greeter-hide-users.conf \
 	scripts/greeter-not-installed.conf \
+	scripts/greeter-show-manual-login.conf \
+	scripts/greeter-show-remote-login.conf \
 	scripts/greeter-wrapper.conf \
 	scripts/greeter-xserver-crash.conf \
 	scripts/group-membership.conf \

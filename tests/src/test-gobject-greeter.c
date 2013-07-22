@@ -129,6 +129,11 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
+    r = g_strdup_printf ("%s LOG-DEFAULT-SESSION", greeter_id);
+    if (strcmp (request, r) == 0)
+        status_notify ("%s LOG-DEFAULT-SESSION SESSION=%s", greeter_id, lightdm_greeter_get_default_session_hint (greeter));
+    g_free (r);
+
     r = g_strdup_printf ("%s LOG-USER-LIST-LENGTH", greeter_id);
     if (strcmp (request, r) == 0)
         status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, lightdm_user_list_get_length (lightdm_user_list_get_instance ()));
@@ -363,6 +368,14 @@ main (int argc, char **argv)
         status_notify ("%s SELECT-GUEST-HINT", greeter_id);
     if (lightdm_greeter_get_lock_hint (greeter))
         status_notify ("%s LOCK-HINT", greeter_id);
+    if (!lightdm_greeter_get_has_guest_account_hint (greeter))
+        status_notify ("%s HAS-GUEST-ACCOUNT-HINT=FALSE", greeter_id);
+    if (lightdm_greeter_get_hide_users_hint (greeter))
+        status_notify ("%s HIDE-USERS-HINT", greeter_id);
+    if (lightdm_greeter_get_show_manual_login_hint (greeter))
+        status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
+    if (!lightdm_greeter_get_show_remote_login_hint (greeter))
+        status_notify ("%s SHOW-REMOTE-LOGIN-HINT=FALSE", greeter_id);
 
     g_main_loop_run (loop);
 
