@@ -973,6 +973,7 @@ create_greeter_session (Seat *seat)
     /* Set hints to greeter */
     greeter_set_hint (greeter_session, "default-session", seat_get_string_property (seat, "user-session"));
     greeter_set_allow_guest (greeter_session, seat_get_allow_guest (seat));
+    greeter_set_hint (greeter_session, "hide-users", seat_get_boolean_property (seat, "greeter-hide-users") ? "true" : "false");
 
     return greeter_session;
 }

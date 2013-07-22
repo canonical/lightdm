@@ -368,6 +368,8 @@ main (int argc, char **argv)
         status_notify ("%s SELECT-GUEST-HINT", greeter_id);
     if (lightdm_greeter_get_lock_hint (greeter))
         status_notify ("%s LOCK-HINT", greeter_id);
+    if (lightdm_greeter_get_hide_users_hint (greeter))
+        status_notify ("%s HIDE-USERS-HINT", greeter_id);
 
     g_main_loop_run (loop);
 
