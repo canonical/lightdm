@@ -939,7 +939,7 @@ create_greeter_session (Seat *seat)
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "greeters-directory");
     argv = get_session_argv (sessions_dir,
                              seat_get_string_property (seat, "greeter-session"),
-                             seat_get_string_property (seat, "session-wrapper"));
+                             NULL);
     g_free (sessions_dir);
     if (!argv)
         return NULL;
