@@ -372,6 +372,8 @@ main (int argc, char **argv)
         status_notify ("%s HIDE-USERS-HINT", greeter_id);
     if (lightdm_greeter_get_show_manual_login_hint (greeter))
         status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
+    if (!lightdm_greeter_get_show_remote_login_hint (greeter))
+        status_notify ("%s SHOW-REMOTE-LOGIN-HINT=FALSE", greeter_id);
 
     g_main_loop_run (loop);
 
