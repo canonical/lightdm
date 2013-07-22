@@ -6,6 +6,7 @@ TESTS = \
 	test-greeter-not-installed \
 	test-greeter-xserver-crash \
 	test-greeter-wrapper \
+	test-greeter-default-session \
 	test-no-config \
 	test-additional-config \
 	test-headless \
@@ -286,6 +287,7 @@ EXTRA_DIST = \
 	scripts/dbus.conf \    
 	scripts/denied.conf \
 	scripts/expired.conf \
+	scripts/greeter-default-session.conf \
 	scripts/greeter-fail-start.conf \
 	scripts/greeter-not-installed.conf \
 	scripts/greeter-wrapper.conf \

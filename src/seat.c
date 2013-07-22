@@ -967,9 +967,12 @@ create_greeter_session (Seat *seat)
     session_set_argv (SESSION (greeter_session), argv);
 
     greeter_set_pam_services (greeter_session, USER_SERVICE, AUTOLOGIN_SERVICE);
-    greeter_set_allow_guest (greeter_session, seat_get_allow_guest (seat));
     g_signal_connect (greeter_session, "create-session", G_CALLBACK (greeter_create_session_cb), seat);
     g_signal_connect (greeter_session, "start-session", G_CALLBACK (greeter_start_session_cb), seat);
+
+    /* Set hints to greeter */
+    greeter_set_hint (greeter_session, "default-session", seat_get_string_property (seat, "user-session"));
+    greeter_set_allow_guest (greeter_session, seat_get_allow_guest (seat));
 
     return greeter_session;
 }

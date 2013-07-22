@@ -129,6 +129,11 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
+    r = g_strdup_printf ("%s LOG-DEFAULT-SESSION", greeter_id);
+    if (strcmp (request, r) == 0)
+        status_notify ("%s LOG-DEFAULT-SESSION SESSION=%s", greeter_id, lightdm_greeter_get_default_session_hint (greeter));
+    g_free (r);
+
     r = g_strdup_printf ("%s LOG-USER-LIST-LENGTH", greeter_id);
     if (strcmp (request, r) == 0)
         status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, lightdm_user_list_get_length (lightdm_user_list_get_instance ()));
