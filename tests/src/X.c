@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <glib-unix.h>
 
 #include "status.h"
 #include "x-server.h"
@@ -55,19 +56,6 @@ quit (int status)
 {
     exit_status = status;
     g_main_loop_quit (loop);
-}
-
-static void
-indicate_ready (void)
-{
-    void *handler;  
-    handler = signal (SIGUSR1, SIG_IGN);
-    if (handler == SIG_IGN)
-    {
-        status_notify ("XSERVER-%d INDICATE-READY", display_number);
-        kill (getppid (), SIGUSR1);
-    }
-    signal (SIGUSR1, handler);
 }
 
 static gboolean

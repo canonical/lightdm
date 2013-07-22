@@ -9,6 +9,7 @@
 #include <glib.h>
 #include <glib-object.h>
 #include <gio/gio.h>
+#include <glib-unix.h>
 
 #include "status.h"
 

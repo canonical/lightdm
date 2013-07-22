@@ -12,7 +12,9 @@ AC_PROG_LIBTOOL
 AM_MAINTAINER_MODE
 
 dnl Enable compile warnings
-WARN_CFLAGS=-Wall
+WARN_CFLAGS="-Wall \
+            -Wstrict-prototypes \
+            -Wnested-externs"
 AC_SUBST(WARN_CFLAGS)
 
 GOBJECT_INTROSPECTION_CHECK(0.9.5)
