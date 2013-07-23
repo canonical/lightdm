@@ -20,6 +20,8 @@ lightdm_SOURCES = \
 	lightdm.c \
 	login1.c \
 	login1.h \
+	mir-greeter.c \
+	mir-greeter.h \
 	mir-server.c \
 	mir-server.h \
 	mir-session.c \
