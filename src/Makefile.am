@@ -48,6 +48,8 @@ lightdm_SOURCES = \
 	session.h \
 	session-child.c \
 	session-child.h \
+	session-config.c \
+	session-config.h \
 	vnc-server.c \
 	vnc-server.h \
 	vt.c \

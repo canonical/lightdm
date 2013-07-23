@@ -547,11 +547,12 @@ handle_cancel_authentication (Greeter *greeter)
 }
 
 static void
-handle_start_session (Greeter *greeter, SessionType session_type, const gchar *session)
+handle_start_session (Greeter *greeter, const gchar *session)
 {
     gboolean result;
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
+    SessionType session_type = SESSION_TYPE_LOCAL;
 
     if (strcmp (session, "") == 0)
         session = NULL;
@@ -777,7 +778,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         break;
     case GREETER_MESSAGE_START_SESSION:
         session_name = read_string (greeter, &offset);
-        handle_start_session (greeter, SESSION_TYPE_LOCAL, session_name);
+        handle_start_session (greeter, session_name);
         g_free (session_name);
         break;
     case GREETER_MESSAGE_SET_LANGUAGE:
