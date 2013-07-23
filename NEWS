@@ -1,3 +1,26 @@
+Overview of changes in lightdm 1.7.7
+
+    * Fix uninitialized pointer introduced in 1.7.3
+    * Enable compile warnings and fix code generating warnings
+
+Overview of changes in lightdm 1.7.6
+
+    * Restore greeter hints that were regressed in 1.7.5.
+    * Don't run greeters through session wrapper - regression in 1.7.5
+
+Overview of changes in lightdm 1.7.5
+
+    * Quit Plymouth correctly when using the unity seat type
+    * Release the VT when the system compositor fails to start
+    * Load sessions and greeters from /usr/share/lightdm/sessions and
+      /usr/share/lightdm/greeters. The existing directories are checked
+      if the sessions are not in these directories.
+    * Refactor the Display class so that it merges with the Seat class
+    * Support running the greeter and session in different display servers
+      instead of re-using the same one during a login.
+    * Add more regression tests
+    * Documentation fixes
+
 Overview of changes in lightdm 1.7.4
 
     * Set XDG_SEAT and XDG_VTNR environment variables.

@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/dbus-env ./src/test-runner xdmcp-server-open-file-descriptors test-gobject-greeter

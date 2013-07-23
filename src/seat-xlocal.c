@@ -14,6 +14,7 @@
 #include "seat-xlocal.h"
 #include "configuration.h"
 #include "xserver-local.h"
+#include "xgreeter.h"
 #include "xsession.h"
 #include "mir-server.h"
 #include "vt.h"
@@ -107,23 +108,12 @@ create_x_server (Seat *seat)
 }
 
 static DisplayServer *
-create_mir_server (Seat *seat)
-{
-    MirServer *mir_server;
-
-    mir_server = mir_server_new ();
-    // FIXME: Set VT
-
-    return DISPLAY_SERVER (mir_server);
-}
-
-static DisplayServer *
 seat_xlocal_create_display_server (Seat *seat, const gchar *session_type)
-{
+{  
     if (strcmp (session_type, "x") == 0)
         return create_x_server (seat);
     else if (strcmp (session_type, "mir") == 0)
-        return create_mir_server (seat);
+        return DISPLAY_SERVER (mir_server_new ());
     else
     {
         g_warning ("Can't create unsupported display server '%s'", session_type);
@@ -131,41 +121,40 @@ seat_xlocal_create_display_server (Seat *seat, const gchar *session_type)
     }
 }
 
-static Session *
-seat_xlocal_create_session (Seat *seat, Display *display)
+static Greeter *
+seat_xlocal_create_greeter_session (Seat *seat)
 {
-    XServerLocal *xserver;
-    XSession *session;
-    gchar *t;
+    XGreeter *greeter_session;
 
-    xserver = XSERVER_LOCAL (display_get_display_server (display));
+    greeter_session = xgreeter_new ();
+    session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
+
+    return GREETER (greeter_session);
+}
+
+static Session *
+seat_xlocal_create_session (Seat *seat)
+{
+    XSession *session;
 
     session = xsession_new ();
-    t = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (xserver));
-    session_set_tty (SESSION (session), t);
-    g_free (t);
-
-    /* Set variables for logind */
     session_set_env (SESSION (session), "XDG_SEAT", "seat0");
-    t = g_strdup_printf ("%d", xserver_local_get_vt (xserver));
-    session_set_env (SESSION (session), "XDG_VTNR", t);
-    g_free (t);
 
     return SESSION (session);
 }
 
 static void
-seat_xlocal_set_active_display (Seat *seat, Display *display)
+seat_xlocal_set_active_session (Seat *seat, Session *session)
 {
-    gint vt = xserver_local_get_vt (XSERVER_LOCAL (display_get_display_server (display)));
+    gint vt = display_server_get_vt (session_get_display_server (session));
     if (vt >= 0)
         vt_set_active (vt);
 
-    SEAT_CLASS (seat_xlocal_parent_class)->set_active_display (seat, display);
+    SEAT_CLASS (seat_xlocal_parent_class)->set_active_session (seat, session);
 }
 
-static Display *
-seat_xlocal_get_active_display (Seat *seat)
+static Session *
+seat_xlocal_get_active_session (Seat *seat)
 {
     gint vt;
     GList *link;
@@ -174,31 +163,28 @@ seat_xlocal_get_active_display (Seat *seat)
     if (vt < 0)
         return NULL;
 
-    for (link = seat_get_displays (seat); link; link = link->next)
+    for (link = seat_get_sessions (seat); link; link = link->next)
     {
-        Display *display = link->data;
-        XServerLocal *xserver;
-
-        xserver = XSERVER_LOCAL (display_get_display_server (display));
-        if (xserver_local_get_vt (xserver) == vt)
-            return display;
+        Session *session = link->data;
+        if (display_server_get_vt (session_get_display_server (session)) == vt)
+            return session;
     }
 
     return NULL;
 }
 
 static void
-seat_xlocal_run_script (Seat *seat, Display *display, Process *script)
+seat_xlocal_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
     const gchar *path;
     XServerLocal *xserver;
 
-    xserver = XSERVER_LOCAL (display_get_display_server (display));
+    xserver = XSERVER_LOCAL (display_server);
     path = xserver_local_get_authority_file_path (xserver);
     process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));
     process_set_env (script, "XAUTHORITY", path);
 
-    SEAT_CLASS (seat_xlocal_parent_class)->run_script (seat, display, script);
+    SEAT_CLASS (seat_xlocal_parent_class)->run_script (seat, display_server, script);
 }
 
 static void
@@ -213,8 +199,9 @@ seat_xlocal_class_init (SeatXLocalClass *klass)
 
     seat_class->setup = seat_xlocal_setup;
     seat_class->create_display_server = seat_xlocal_create_display_server;
+    seat_class->create_greeter_session = seat_xlocal_create_greeter_session;
     seat_class->create_session = seat_xlocal_create_session;
-    seat_class->set_active_display = seat_xlocal_set_active_display;
-    seat_class->get_active_display = seat_xlocal_get_active_display;
+    seat_class->set_active_session = seat_xlocal_set_active_session;
+    seat_class->get_active_session = seat_xlocal_get_active_session;
     seat_class->run_script = seat_xlocal_run_script;
 }

@@ -85,7 +85,6 @@ display_number_in_use (guint display_number)
     GList *link;
     gchar *path;
     gboolean exists;
-    gboolean stale = TRUE;
     gchar *data;
 
     /* See if we know we are managing a server with that number */
@@ -153,9 +152,14 @@ XServerLocal *
 xserver_local_new (void)
 {
     XServerLocal *self = g_object_new (XSERVER_LOCAL_TYPE, NULL);
-    gchar *name;
+    gchar hostname[1024], *number, *name;
 
     xserver_set_display_number (XSERVER (self), xserver_local_get_unused_display_number ());
+
+    gethostname (hostname, 1024);
+    number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (self)));
+    xserver_set_authority (XSERVER (self), xauth_new_cookie (XAUTH_FAMILY_LOCAL, (guint8*) hostname, strlen (hostname), number));
+    g_free (number);
 
     name = g_strdup_printf ("x-%d", xserver_get_display_number (XSERVER (self)));
     display_server_set_name (DISPLAY_SERVER (self), name);
@@ -253,6 +257,7 @@ xserver_local_set_xdmcp_key (XServerLocal *server, const gchar *key)
     g_return_if_fail (server != NULL);
     g_free (server->priv->xdmcp_key);
     server->priv->xdmcp_key = g_strdup (key);
+    xserver_set_authority (XSERVER (server), NULL);
 }
 
 void
@@ -284,11 +289,11 @@ xserver_local_set_mir_socket (XServerLocal *server, const gchar *socket)
     server->priv->mir_socket = g_strdup (socket);
 }
 
-gint
-xserver_local_get_vt (XServerLocal *server)
+static gint
+xserver_local_get_vt (DisplayServer *server)
 {
     g_return_val_if_fail (server != NULL, 0);
-    return server->priv->vt;
+    return XSERVER_LOCAL (server)->priv->vt;
 }
 
 const gchar *
@@ -443,7 +448,6 @@ xserver_local_start (DisplayServer *display_server)
     XServerLocal *server = XSERVER_LOCAL (display_server);
     gboolean result;
     gchar *filename, *dir, *absolute_command;
-    gchar hostname[1024], *number;
     GString *command;
 
     g_return_val_if_fail (server->priv->xserver_process == NULL, FALSE);
@@ -454,7 +458,7 @@ xserver_local_start (DisplayServer *display_server)
 
     server->priv->xserver_process = process_new ();
     process_set_clear_environment (server->priv->xserver_process, TRUE);
-    g_signal_connect (server->priv->xserver_process, "run", G_CALLBACK (run_cb), server);  
+    g_signal_connect (server->priv->xserver_process, "run", G_CALLBACK (run_cb), server);
     g_signal_connect (server->priv->xserver_process, "got-signal", G_CALLBACK (got_signal_cb), server);
     g_signal_connect (server->priv->xserver_process, "stopped", G_CALLBACK (stopped_cb), server);
 
@@ -484,11 +488,6 @@ xserver_local_start (DisplayServer *display_server)
     if (server->priv->layout)
         g_string_append_printf (command, " -layout %s", server->priv->layout);
 
-    gethostname (hostname, 1024);
-    number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (server)));
-    if (!server->priv->xdmcp_key)
-        xserver_set_authority (XSERVER (server), xauth_new_cookie (XAUTH_FAMILY_LOCAL, (guint8*) hostname, strlen (hostname), number));
-    g_free (number);
     write_authority_file (server);
     if (server->priv->authority_file)
         g_string_append_printf (command, " -auth %s", server->priv->authority_file);
@@ -603,6 +602,7 @@ xserver_local_class_init (XServerLocalClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
+    display_server_class->get_vt = xserver_local_get_vt;
     display_server_class->start = xserver_local_start;
     display_server_class->stop = xserver_local_stop;
     object_class->finalize = xserver_local_finalize;

@@ -15,7 +15,6 @@
 #define HASXDMAUTH
 #include <X11/Xdmcp.h>
 #include <gio/gio.h>
-#include "ldm-marshal.h"
 
 #include "xdmcp-server.h"
 #include "xdmcp-protocol.h"
@@ -707,6 +706,6 @@ xdmcp_server_class_init (XDMCPServerClass *klass)
                       G_STRUCT_OFFSET (XDMCPServerClass, new_session),
                       g_signal_accumulator_true_handled,
                       NULL,
-                      ldm_marshal_BOOLEAN__OBJECT,
+                      NULL,
                       G_TYPE_BOOLEAN, 1, XDMCP_SESSION_TYPE);
 }

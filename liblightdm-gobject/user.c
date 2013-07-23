@@ -979,7 +979,7 @@ lightdm_user_list_class_init (LightDMUserListClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LightDMUserListClass, user_added),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
+                      NULL,
                       G_TYPE_NONE, 1, LIGHTDM_TYPE_USER);
 
     /**
@@ -995,7 +995,7 @@ lightdm_user_list_class_init (LightDMUserListClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LightDMUserListClass, user_changed),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
+                      NULL,
                       G_TYPE_NONE, 1, LIGHTDM_TYPE_USER);
 
     /**
@@ -1011,7 +1011,7 @@ lightdm_user_list_class_init (LightDMUserListClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LightDMUserListClass, user_removed),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
+                      NULL,
                       G_TYPE_NONE, 1, LIGHTDM_TYPE_USER);
 }
 
@@ -1614,7 +1614,7 @@ lightdm_user_class_init (LightDMUserClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LightDMUserClass, changed),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
 }
 

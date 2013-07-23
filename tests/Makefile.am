@@ -6,6 +6,11 @@ TESTS = \
 	test-greeter-not-installed \
 	test-greeter-xserver-crash \
 	test-greeter-wrapper \
+	test-greeter-default-session \
+	test-greeter-allow-guest \
+	test-greeter-hide-users \
+	test-greeter-show-manual-login \
+	test-greeter-show-remote-login \
 	test-no-config \
 	test-additional-config \
 	test-headless \
@@ -42,6 +47,8 @@ TESTS = \
 	test-autologin-guest-fail-setup-script \
 	test-autologin-guest-logout \
 	test-group-membership \
+	test-session-env \
+	test-language-env \
 	test-util-path \
 	test-session-stdout \
 	test-session-stderr \
@@ -71,6 +78,7 @@ TESTS = \
 	test-login-gobject-multi-info-prompt \
 	test-login-gobject-multi-prompt \
 	test-login-gobject-pick-session \
+	test-login-gobject-remember-session \
 	test-login-gobject-previous-session \
 	test-login-gobject-wrong-password \
 	test-login-gobject-invalid-user \
@@ -98,6 +106,7 @@ TESTS = \
 	test-login-python-invalid-session \
 	test-login-python-logout \
 	test-login-python-pick-session \
+	test-login-python-remember-session \
 	test-login-python-guest \
 	test-login-python-guest-disabled \
 	test-login-python-guest-no-setup-script \
@@ -116,6 +125,7 @@ TESTS = \
 	test-script-hook-fail-display-setup \
 	test-script-hook-fail-greeter-setup \
 	test-script-hook-fail-session-setup \
+	test-dbus \
 	test-lock-seat \
 	test-lock-seat-return-session \
 	test-lock-session \
@@ -137,7 +147,8 @@ TESTS = \
 	test-vnc-command \
 	test-vnc-dimensions \
 	test-vnc-open-file-descriptors \
-	test-xdmcp-login \
+	test-xdmcp-client \
+	test-xdmcp-server-login \
 	test-no-accounts-service \
 	test-console-kit \
 	test-no-console-kit \
@@ -153,13 +164,14 @@ TESTS = \
 	test-python-power-no-login1 \
 	test-python-power-no-services \
 	test-open-file-descriptors \
-	test-xdmcp-open-file-descriptors \
+	test-xdmcp-server-open-file-descriptors \
 	test-unity-compositor-command \
 	test-unity-compositor-fail-start \
 	test-unity-compositor-fail-ready \
 	test-unity-autologin \
 	test-unity-login \
 	test-unity-switch \
+	test-unity-plymouth \
 	test-unity-mir-login
 
 #	test-session-exit-error
@@ -189,6 +201,7 @@ TESTS += \
 	test-login-qt4-invalid-session \
 	test-login-qt4-logout \
 	test-login-qt4-pick-session \
+	test-login-qt4-remember-session \
 	test-login-qt4-guest \
 	test-login-qt4-guest-disabled \
 	test-login-qt4-guest-no-setup-script \
@@ -223,6 +236,7 @@ TESTS += \
 	test-login-qt5-invalid-session \
 	test-login-qt5-logout \
 	test-login-qt5-pick-session \
+	test-login-qt5-remember-session \
 	test-login-qt5-guest \
 	test-login-qt5-guest-disabled \
 	test-login-qt5-guest-no-setup-script \
@@ -241,12 +255,12 @@ EXTRA_DIST = \
 	data/remote-sessions/test-remote.desktop \
 	data/system.conf \
 	data/session.conf \
-	data/xgreeters/test-gobject-greeter.desktop \
-	data/xgreeters/test-python-greeter.desktop \
-	data/xgreeters/test-qt4-greeter.desktop \
-	data/xgreeters/test-qt5-greeter.desktop \
-	data/xsessions/alternative.desktop \
-	data/xsessions/default.desktop \
+	data/greeters/test-gobject-greeter.desktop \
+	data/greeters/test-python-greeter.desktop \
+	data/greeters/test-qt4-greeter.desktop \
+	data/greeters/test-qt5-greeter.desktop \
+	data/sessions/alternative.desktop \
+	data/sessions/default.desktop \
 	scripts/0-additional.conf \
 	scripts/1-additional.conf \
 	scripts/additional-config.conf \
@@ -275,10 +289,16 @@ EXTRA_DIST = \
 	scripts/cred-error.conf \
 	scripts/cred-expired.conf \
 	scripts/cred-unavail.conf \
+	scripts/dbus.conf \    
 	scripts/denied.conf \
 	scripts/expired.conf \
+	scripts/greeter-allow-guest.conf \
+	scripts/greeter-default-session.conf \
 	scripts/greeter-fail-start.conf \
+	scripts/greeter-hide-users.conf \
 	scripts/greeter-not-installed.conf \
+	scripts/greeter-show-manual-login.conf \
+	scripts/greeter-show-remote-login.conf \
 	scripts/greeter-wrapper.conf \
 	scripts/greeter-xserver-crash.conf \
 	scripts/group-membership.conf \
@@ -287,6 +307,7 @@ EXTRA_DIST = \
 	scripts/home-dir-on-session.conf \
 	scripts/keyboard-layout.conf \
 	scripts/language.conf \
+	scripts/language-env.conf \
 	scripts/language-no-accounts-service.conf \
 	scripts/lock-seat.conf \
 	scripts/lock-seat-return-session.conf \
@@ -316,6 +337,7 @@ EXTRA_DIST = \
 	scripts/login-pam.conf \
 	scripts/login-pick-session.conf \
 	scripts/login-previous-session.conf \
+	scripts/login-remember-session.conf \
 	scripts/login-remote-session.conf \
 	scripts/login-session-crash.conf \
 	scripts/login-two-factor.conf \
@@ -342,6 +364,7 @@ EXTRA_DIST = \
 	scripts/script-hook-fail-display-setup.conf \
 	scripts/script-hook-fail-greeter-setup.conf \
 	scripts/script-hook-fail-session-setup.conf \
+	scripts/session-env.conf \
 	scripts/session-stdout.conf \
 	scripts/session-stderr.conf \
 	scripts/session-stderr-multi-write.conf \
@@ -365,6 +388,7 @@ EXTRA_DIST = \
 	scripts/unity-compositor-fail-start.conf \
 	scripts/unity-login.conf \
 	scripts/unity-mir-login.conf \
+	scripts/unity-plymouth.conf \
 	scripts/unity-switch.conf \
 	scripts/users.conf \
 	scripts/util-path.conf \
@@ -375,7 +399,8 @@ EXTRA_DIST = \
 	scripts/vnc-login.conf \
 	scripts/vnc-open-file-descriptors.conf \
 	scripts/xauthority.conf \
-	scripts/xdmcp-login.conf \
-	scripts/xdmcp-open-file-descriptors.conf \
+	scripts/xdmcp-client.conf \
+	scripts/xdmcp-server-login.conf \
+	scripts/xdmcp-server-open-file-descriptors.conf \
 	scripts/xserver-fail-start.conf \
 	scripts/xserver-no-share.conf

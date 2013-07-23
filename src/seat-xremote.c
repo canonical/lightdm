@@ -14,6 +14,7 @@
 #include "seat-xremote.h"
 #include "configuration.h"
 #include "xserver-remote.h"
+#include "xgreeter.h"
 #include "xsession.h"
 
 G_DEFINE_TYPE (SeatXRemote, seat_xremote, SEAT_TYPE);
@@ -50,30 +51,33 @@ seat_xremote_create_display_server (Seat *seat, const gchar *session_type)
     return DISPLAY_SERVER (xserver);
 }
 
-static Session *
-seat_xremote_create_session (Seat *seat, Display *display)
+static Greeter *
+seat_xremote_create_greeter_session (Seat *seat)
 {
-    XServerRemote *xserver;
-    XSession *session;
+    XGreeter *greeter_session;
 
-    xserver = XSERVER_REMOTE (display_get_display_server (display));
+    greeter_session = xgreeter_new ();
+    session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
 
-    session = xsession_new ();
-    session_set_remote_host_name (SESSION (session), xserver_get_hostname (XSERVER (xserver)));
+    return GREETER (greeter_session);
+}
 
-    return SESSION (session);
+static Session *
+seat_xremote_create_session (Seat *seat)
+{
+    return SESSION (xsession_new ());
 }
 
 static void
-seat_xremote_run_script (Seat *seat, Display *display, Process *script)
+seat_xremote_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
     XServerRemote *xserver;
 
-    xserver = XSERVER_REMOTE (display_get_display_server (display));
+    xserver = XSERVER_REMOTE (display_server);
     process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));  
     process_set_env (script, "REMOTE_HOST", xserver_get_hostname (XSERVER (xserver)));
 
-    SEAT_CLASS (seat_xremote_parent_class)->run_script (seat, display, script);
+    SEAT_CLASS (seat_xremote_parent_class)->run_script (seat, display_server, script);
 }
 
 static void
@@ -88,6 +92,7 @@ seat_xremote_class_init (SeatXRemoteClass *klass)
 
     seat_class->setup = seat_xremote_setup;
     seat_class->create_display_server = seat_xremote_create_display_server;
+    seat_class->create_greeter_session = seat_xremote_create_greeter_session;
     seat_class->create_session = seat_xremote_create_session;
     seat_class->run_script = seat_xremote_run_script;
 }

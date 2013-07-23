@@ -9,8 +9,11 @@
  * license.
  */
 
+#include <string.h>
+
 #include "seat-xvnc.h"
 #include "xserver-xvnc.h"
+#include "xgreeter.h"
 #include "xsession.h"
 #include "configuration.h"
 
@@ -71,35 +74,27 @@ seat_xvnc_create_display_server (Seat *seat, const gchar *session_type)
     return DISPLAY_SERVER (xserver);
 }
 
-static Session *
-seat_xvnc_create_session (Seat *seat, Display *display)
+static Greeter *
+seat_xvnc_create_greeter_session (Seat *seat)
 {
-    XServerXVNC *xserver;
-    XSession *session;
-    GInetSocketAddress *address;
-    gchar *hostname;
-    gchar *t;
+    return GREETER (xgreeter_new ());
+}
 
-    xserver = XSERVER_XVNC (display_get_display_server (display));
-
-    session = xsession_new ();
-    address = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (SEAT_XVNC (seat)->priv->connection, NULL));
-    hostname = g_inet_address_to_string (g_inet_socket_address_get_address (address));
-    session_set_remote_host_name (SESSION (session), hostname);
-    g_free (hostname);
-
-    return SESSION (session);
+static Session *
+seat_xvnc_create_session (Seat *seat)
+{
+    return SESSION (xsession_new ());
 }
 
 static void
-seat_xvnc_run_script (Seat *seat, Display *display, Process *script)
+seat_xvnc_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
     XServerXVNC *xserver;
     GInetSocketAddress *address;
     gchar *hostname;
     const gchar *path;
 
-    xserver = XSERVER_XVNC (display_get_display_server (display));
+    xserver = XSERVER_XVNC (display_server);
 
     address = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (SEAT_XVNC (seat)->priv->connection, NULL));
     hostname = g_inet_address_to_string (g_inet_socket_address_get_address (address));
@@ -111,7 +106,7 @@ seat_xvnc_run_script (Seat *seat, Display *display, Process *script)
 
     g_free (hostname);
 
-    SEAT_CLASS (seat_xvnc_parent_class)->run_script (seat, display, script);
+    SEAT_CLASS (seat_xvnc_parent_class)->run_script (seat, display_server, script);
 }
 
 static void
@@ -139,6 +134,7 @@ seat_xvnc_class_init (SeatXVNCClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     seat_class->create_display_server = seat_xvnc_create_display_server;
+    seat_class->create_greeter_session = seat_xvnc_create_greeter_session;
     seat_class->create_session = seat_xvnc_create_session;
     seat_class->run_script = seat_xvnc_run_script;
     object_class->finalize = seat_xdmcp_session_finalize;

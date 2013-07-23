@@ -349,11 +349,11 @@ handle_seat_get_property (GDBusConnection       *connection,
         GList *link;
 
         builder = g_variant_builder_new (G_VARIANT_TYPE ("ao"));
-        for (link = seat_get_displays (seat); link; link = link->next)
+        for (link = seat_get_sessions (seat); link; link = link->next)
         {
-            Display *display = link->data;
+            Session *session = link->data;
             BusEntry *entry;
-            entry = g_hash_table_lookup (session_bus_entries, display_get_session (display));
+            entry = g_hash_table_lookup (session_bus_entries, session);
             if (entry)
                 g_variant_builder_add_value (builder, g_variant_new_object_path (entry->path));
         }
@@ -428,13 +428,13 @@ get_seat_for_session (Session *session)
     for (seat_link = display_manager_get_seats (display_manager); seat_link; seat_link = seat_link->next)
     {
         Seat *seat = seat_link->data;
-        GList *display_link;
+        GList *session_link;
 
-        for (display_link = seat_get_displays (seat); display_link; display_link = display_link->next)
+        for (session_link = seat_get_sessions (seat); session_link; session_link = session_link->next)
         {
-            Display *display = display_link->data;
+            Session *s = session_link->data;
 
-            if (display_get_session (display) == session)
+            if (s == session)
                 return seat;
         }
     }
@@ -520,14 +520,16 @@ bus_entry_free (gpointer data)
     g_free (entry);
 }
 
-static gboolean
-start_session_cb (Display *display, Seat *seat)
+static void
+running_user_session_cb (Seat *seat, Session *session)
 {
-    Session *session;
-    BusEntry *seat_entry;
+    static const GDBusInterfaceVTable session_vtable =
+    {
+        handle_session_call,
+        handle_session_get_property
+    };
+    BusEntry *seat_entry, *entry;
     gchar *path;
-
-    session = display_get_session (display);
 
     /* Set environment variables when session runs */
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
@@ -536,31 +538,6 @@ start_session_cb (Display *display, Seat *seat)
     session_index++;
     session_set_env (session, "XDG_SESSION_PATH", path);
     g_object_set_data_full (G_OBJECT (session), "XDG_SESSION_PATH", path, g_free);
-
-    return FALSE;
-}
-
-static void
-session_stopped_cb (Session *session, Seat *seat)
-{
-    g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
-    g_hash_table_remove (session_bus_entries, session);
-}
-
-static gboolean
-session_started_cb (Display *display, Seat *seat)
-{
-    static const GDBusInterfaceVTable session_vtable =
-    {
-        handle_session_call,
-        handle_session_get_property
-    };
-    Session *session;
-    BusEntry *seat_entry, *entry;
-
-    session = display_get_session (display);
-
-    g_signal_connect (session, "stopped", G_CALLBACK (session_stopped_cb), seat);
 
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
     entry = bus_entry_new (g_object_get_data (G_OBJECT (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL, "SessionRemoved");
@@ -581,15 +558,13 @@ session_started_cb (Display *display, Seat *seat)
                                    "SessionAdded",
                                    g_variant_new ("(o)", entry->path),
                                    NULL);
-
-    return FALSE;
 }
 
 static void
-display_added_cb (Seat *seat, Display *display)
+session_removed_cb (Session *session, Seat *seat)
 {
-    g_signal_connect (display, "start-session", G_CALLBACK (start_session_cb), seat);
-    g_signal_connect_after (display, "start-session", G_CALLBACK (session_started_cb), seat);
+    g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
+    g_hash_table_remove (session_bus_entries, session);
 }
 
 static void
@@ -600,13 +575,8 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
         handle_seat_call,
         handle_seat_get_property
     };
-    GList *link;
     gchar *path;
     BusEntry *entry;
-
-    g_signal_connect (seat, "display-added", G_CALLBACK (display_added_cb), NULL);
-    for (link = seat_get_displays (seat); link; link = link->next)
-        display_added_cb (seat, (Display *) link->data);
 
     path = g_strdup_printf ("/org/freedesktop/DisplayManager/Seat%d", seat_index);
     seat_index++;
@@ -630,12 +600,40 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
                                    "SeatAdded",
                                    g_variant_new ("(o)", entry->path),
                                    NULL);
+
+    g_signal_connect (seat, "running-user-session", G_CALLBACK (running_user_session_cb), NULL);
+    g_signal_connect (seat, "session-removed", G_CALLBACK (session_removed_cb), NULL);
 }
 
 static void
 seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
     g_hash_table_remove (seat_bus_entries, seat);
+}
+
+static gboolean
+xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
+{
+    SeatXDMCPSession *seat;
+    gboolean result;
+
+    seat = seat_xdmcp_session_new (session);
+    set_seat_properties (SEAT (seat), NULL);
+    result = display_manager_add_seat (display_manager, SEAT (seat));
+    g_object_unref (seat);
+
+    return result;
+}
+
+static void
+vnc_connection_cb (VNCServer *server, GSocket *connection)
+{
+    SeatXVNC *seat;
+
+    seat = seat_xvnc_new (connection);
+    set_seat_properties (SEAT (seat), NULL);
+    display_manager_add_seat (display_manager, SEAT (seat));
+    g_object_unref (seat);
 }
 
 static void
@@ -730,6 +728,87 @@ bus_acquired_cb (GDBusConnection *connection,
     g_signal_connect (display_manager, "seat-removed", G_CALLBACK (seat_removed_cb), NULL);
     for (link = display_manager_get_seats (display_manager); link; link = link->next)
         seat_added_cb (display_manager, (Seat *) link->data);
+
+    display_manager_start (display_manager);
+
+    /* Start the XDMCP server */
+    if (config_get_boolean (config_get_instance (), "XDMCPServer", "enabled"))
+    {
+        gchar *key_name, *key = NULL;
+
+        xdmcp_server = xdmcp_server_new ();
+        if (config_has_key (config_get_instance (), "XDMCPServer", "port"))
+        {
+            gint port;
+            port = config_get_integer (config_get_instance (), "XDMCPServer", "port");
+            if (port > 0)
+                xdmcp_server_set_port (xdmcp_server, port);
+        }
+        g_signal_connect (xdmcp_server, "new-session", G_CALLBACK (xdmcp_session_cb), NULL);
+
+        key_name = config_get_string (config_get_instance (), "XDMCPServer", "key");
+        if (key_name)
+        {
+            gchar *dir, *path;
+            GKeyFile *keys;
+            gboolean result;
+            GError *error = NULL;
+
+            dir = config_get_string (config_get_instance (), "LightDM", "config-directory");
+            path = g_build_filename (dir, "keys.conf", NULL);
+            g_free (dir);
+
+            keys = g_key_file_new ();
+            result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
+            if (error)
+                g_debug ("Error getting key %s", error->message);
+            g_clear_error (&error);
+
+            if (result)
+            {
+                if (g_key_file_has_key (keys, "keyring", key_name, NULL))
+                    key = g_key_file_get_string (keys, "keyring", key_name, NULL);
+                else
+                    g_debug ("Key %s not defined", key_name);
+            }
+            g_free (path);
+            g_key_file_free (keys);
+        }
+        if (key)
+            xdmcp_server_set_key (xdmcp_server, key);
+        g_free (key_name);
+        g_free (key);
+
+        g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (xdmcp_server));
+        xdmcp_server_start (xdmcp_server);
+    }
+
+    /* Start the VNC server */
+    if (config_get_boolean (config_get_instance (), "VNCServer", "enabled"))
+    {
+        gchar *path;
+
+        path = g_find_program_in_path ("Xvnc");
+        if (path)
+        {
+            vnc_server = vnc_server_new ();
+            if (config_has_key (config_get_instance (), "VNCServer", "port"))
+            {
+                gint port;
+                port = config_get_integer (config_get_instance (), "VNCServer", "port");
+                if (port > 0)
+                    vnc_server_set_port (vnc_server, port);
+            }
+            g_signal_connect (vnc_server, "new-connection", G_CALLBACK (vnc_connection_cb), NULL);
+
+            g_debug ("Starting VNC server on TCP/IP port %d", vnc_server_get_port (vnc_server));
+            vnc_server_start (vnc_server);
+
+            g_free (path);
+        }
+        else
+            g_warning ("Can't start VNC server, Xvn is not in the path");
+    }
 }
 
 static void
@@ -763,31 +842,6 @@ path_make_absolute (gchar *path)
     return abs_path;
 }
 
-static gboolean
-xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
-{
-    SeatXDMCPSession *seat;
-    gboolean result;
-
-    seat = seat_xdmcp_session_new (session);
-    set_seat_properties (SEAT (seat), NULL);
-    result = display_manager_add_seat (display_manager, SEAT (seat));
-    g_object_unref (seat);
-
-    return result;
-}
-
-static void
-vnc_connection_cb (VNCServer *server, GSocket *connection)
-{
-    SeatXVNC *seat;
-
-    seat = seat_xvnc_new (connection);
-    set_seat_properties (SEAT (seat), NULL);
-    display_manager_add_seat (display_manager, SEAT (seat));
-    g_object_unref (seat);
-}
-
 static int
 compare_strings (gconstpointer a, gconstpointer b)
 {
@@ -805,9 +859,6 @@ main (int argc, char **argv)
     gboolean explicit_config = FALSE;
     gboolean test_mode = FALSE;
     gchar *pid_path = "/var/run/lightdm.pid";
-    gchar *xsessions_dir = NULL;
-    gchar *remote_sessions_dir = NULL;
-    gchar *xgreeters_dir = NULL;
     gchar *config_dir, *config_d_dir = NULL;
     gchar *log_dir = NULL;
     gchar *run_dir = NULL;
@@ -831,15 +882,6 @@ main (int argc, char **argv)
         { "pid-file", 0, 0, G_OPTION_ARG_STRING, &pid_path,
           /* Help string for command line --pid-file flag */
           N_("File to write PID into"), "FILE" },
-        { "xsessions-dir", 0, 0, G_OPTION_ARG_STRING, &xsessions_dir,
-          /* Help string for command line --xsessions-dir flag */
-          N_("Directory to load X sessions from"), "DIRECTORY" },
-        { "remote-sessions-dir", 0, 0, G_OPTION_ARG_STRING, &remote_sessions_dir,
-          /* Help string for command line --remote-sessions-dir flag */
-          N_("Directory to load remote sessions from"), "DIRECTORY" },
-        { "xgreeters-dir", 0, 0, G_OPTION_ARG_STRING, &xgreeters_dir,
-          /* Help string for command line --xgreeters-dir flag */
-          N_("Directory to load X greeters from"), "DIRECTORY" },
         { "log-dir", 0, 0, G_OPTION_ARG_STRING, &log_dir,
           /* Help string for command line --log-dir flag */
           N_("Directory to write logs to"), "DIRECTORY" },
@@ -949,11 +991,6 @@ main (int argc, char **argv)
         fclose (pid_file);
     }
 
-    /* Always use absolute directories as child processes may run from different locations */
-    xsessions_dir = path_make_absolute (xsessions_dir);
-    remote_sessions_dir = path_make_absolute (remote_sessions_dir);
-    xgreeters_dir = path_make_absolute (xgreeters_dir);
-
     /* If not running as root write output to directories we control */
     if (getuid () != 0)
     {
@@ -985,8 +1022,7 @@ main (int argc, char **argv)
     if (config_d_dir)
     {
         GDir *dir;
-        GList *files, *link;
-        GKeyFile *f;
+        GList *files = NULL, *link;
 
         /* Find configuration files */
         dir = g_dir_open (config_d_dir, 0, &error);
@@ -1067,12 +1103,12 @@ main (int argc, char **argv)
     if (!config_has_key (config_get_instance (), "LightDM", "cache-directory"))
         config_set_string (config_get_instance (), "LightDM", "cache-directory", default_cache_dir);
     g_free (default_cache_dir);
-    if (!config_has_key (config_get_instance (), "LightDM", "xsessions-directory"))
-        config_set_string (config_get_instance (), "LightDM", "xsessions-directory", XSESSIONS_DIR);
+    if (!config_has_key (config_get_instance (), "LightDM", "sessions-directory"))
+        config_set_string (config_get_instance (), "LightDM", "sessions-directory", SESSIONS_DIR);
     if (!config_has_key (config_get_instance (), "LightDM", "remote-sessions-directory"))
         config_set_string (config_get_instance (), "LightDM", "remote-sessions-directory", REMOTE_SESSIONS_DIR);
-    if (!config_has_key (config_get_instance (), "LightDM", "xgreeters-directory"))
-        config_set_string (config_get_instance (), "LightDM", "xgreeters-directory", XGREETERS_DIR);
+    if (!config_has_key (config_get_instance (), "LightDM", "greeters-directory"))
+        config_set_string (config_get_instance (), "LightDM", "greeters-directory", GREETERS_DIR);
 
     /* Override defaults */
     if (log_dir)
@@ -1084,15 +1120,6 @@ main (int argc, char **argv)
     if (cache_dir)
         config_set_string (config_get_instance (), "LightDM", "cache-directory", cache_dir);
     g_free (cache_dir);
-    if (xsessions_dir)
-        config_set_string (config_get_instance (), "LightDM", "xsessions-directory", xsessions_dir);
-    g_free (xsessions_dir);
-    if (remote_sessions_dir)
-        config_set_string (config_get_instance (), "LightDM", "remote-sessions-directory", remote_sessions_dir);
-    g_free (remote_sessions_dir);
-    if (xgreeters_dir)
-        config_set_string (config_get_instance (), "LightDM", "xgreeters-directory", xgreeters_dir);
-    g_free (xgreeters_dir);
 
     /* Create run and cache directories */
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
@@ -1112,7 +1139,7 @@ main (int argc, char **argv)
 
     /* Show queued messages once logging is complete */
     for (link = messages; link; link = link->next)
-        g_debug ("%s", link->data);
+        g_debug ("%s", (gchar *)link->data);
     g_list_free_full (messages, g_free);
 
     g_debug ("Using D-Bus name %s", LIGHTDM_BUS_NAME);
@@ -1178,7 +1205,8 @@ main (int argc, char **argv)
         {
             set_seat_properties (seat, NULL);
             seat_set_property (seat, "exit-on-failure", "true");
-            display_manager_add_seat (display_manager, seat);
+            if (!display_manager_add_seat (display_manager, seat))
+                return EXIT_FAILURE;
             g_object_unref (seat);
         }
         else
@@ -1186,87 +1214,6 @@ main (int argc, char **argv)
             g_warning ("Failed to create default seat %s", type);
             return EXIT_FAILURE;
         }
-    }
-
-    display_manager_start (display_manager);
-
-    /* Start the XDMCP server */
-    if (config_get_boolean (config_get_instance (), "XDMCPServer", "enabled"))
-    {
-        gchar *key_name, *key = NULL;
-
-        xdmcp_server = xdmcp_server_new ();
-        if (config_has_key (config_get_instance (), "XDMCPServer", "port"))
-        {
-            gint port;
-            port = config_get_integer (config_get_instance (), "XDMCPServer", "port");
-            if (port > 0)
-                xdmcp_server_set_port (xdmcp_server, port);
-        }
-        g_signal_connect (xdmcp_server, "new-session", G_CALLBACK (xdmcp_session_cb), NULL);
-
-        key_name = config_get_string (config_get_instance (), "XDMCPServer", "key");
-        if (key_name)
-        {
-            gchar *dir, *path;
-            GKeyFile *keys;
-            gboolean result;
-            GError *error = NULL;
-
-            dir = config_get_string (config_get_instance (), "LightDM", "config-directory");
-            path = g_build_filename (dir, "keys.conf", NULL);
-            g_free (dir);
-
-            keys = g_key_file_new ();
-            result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
-            if (error)
-                g_debug ("Error getting key %s", error->message);
-            g_clear_error (&error);
-
-            if (result)
-            {
-                if (g_key_file_has_key (keys, "keyring", key_name, NULL))
-                    key = g_key_file_get_string (keys, "keyring", key_name, NULL);
-                else
-                    g_debug ("Key %s not defined", key_name);
-            }
-            g_free (path);
-            g_key_file_free (keys);
-        }
-        if (key)
-            xdmcp_server_set_key (xdmcp_server, key);
-        g_free (key_name);
-        g_free (key);
-
-        g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (xdmcp_server));
-        xdmcp_server_start (xdmcp_server);
-    }
-
-    /* Start the VNC server */
-    if (config_get_boolean (config_get_instance (), "VNCServer", "enabled"))
-    {
-        gchar *path;
-
-        path = g_find_program_in_path ("Xvnc");
-        if (path)
-        {
-            vnc_server = vnc_server_new ();
-            if (config_has_key (config_get_instance (), "VNCServer", "port"))
-            {
-                gint port;
-                port = config_get_integer (config_get_instance (), "VNCServer", "port");
-                if (port > 0)
-                    vnc_server_set_port (vnc_server, port);
-            }
-            g_signal_connect (vnc_server, "new-connection", G_CALLBACK (vnc_connection_cb), NULL);
-
-            g_debug ("Starting VNC server on TCP/IP port %d", vnc_server_get_port (vnc_server));
-            vnc_server_start (vnc_server);
-
-            g_free (path);
-        }
-        else
-            g_warning ("Can't start VNC server, Xvn is not in the path");
     }
 
     g_main_loop_run (loop);

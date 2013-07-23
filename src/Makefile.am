@@ -1,11 +1,5 @@
 sbin_PROGRAMS = lightdm
 
-ldm-marshal.c: ldm-marshal.list
-	@GLIB_GENMARSHAL@ --prefix=ldm_marshal $(srcdir)/ldm-marshal.list --header --body > ldm-marshal.c
-
-ldm-marshal.h: ldm-marshal.list
-	@GLIB_GENMARSHAL@ --prefix=ldm_marshal $(srcdir)/ldm-marshal.list --header > ldm-marshal.h
-
 lightdm_SOURCES = \
 	accounts.c \
 	accounts.h \
@@ -13,8 +7,6 @@ lightdm_SOURCES = \
 	configuration.h \
 	console-kit.c \
 	console-kit.h \
-	display.c \
-	display.h \
 	display-manager.c \
 	display-manager.h \
 	display-server.c \
@@ -26,8 +18,6 @@ lightdm_SOURCES = \
 	guest-account.c \
 	guest-account.h \
 	lightdm.c \
-	ldm-marshal.c \
-	ldm-marshal.h \
 	login1.c \
 	login1.h \
 	mir-server.c \
@@ -69,6 +59,8 @@ lightdm_SOURCES = \
 	xdmcp-session.c \
 	xdmcp-session.h \
 	xdmcp-session-private.h \
+	xgreeter.c \
+	xgreeter.h \
 	xserver-local.c \
 	xserver-local.h \
 	xserver-remote.c \
@@ -80,10 +72,6 @@ lightdm_SOURCES = \
 	xsession.c \
 	xsession.h
 
-BUILT_SOURCES = \
-	ldm-marshal.c \
-	ldm-marshal.h
-
 lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
 	$(WARN_CFLAGS) \
@@ -93,9 +81,9 @@ lightdm_CFLAGS = \
 	-DLOG_DIR=\"$(localstatedir)/log/lightdm\" \
 	-DRUN_DIR=\"$(localstatedir)/run/lightdm\" \
 	-DCACHE_DIR=\"$(localstatedir)/cache/lightdm\" \
-	-DXSESSIONS_DIR=\"$(datadir)/xsessions\" \
+	-DSESSIONS_DIR=\"$(pkgdatadir)/sessions:$(datadir)/xsessions\" \
 	-DREMOTE_SESSIONS_DIR=\"$(pkgdatadir)/remote-sessions\" \
-	-DXGREETERS_DIR=\"$(datadir)/xgreeters\"
+	-DGREETERS_DIR=\"$(pkgdatadir)/greeters:$(datadir)/xgreeters\"
 
 lightdm_LDADD = \
 	$(LIGHTDM_LIBS) \
@@ -110,11 +98,8 @@ lightdm_guest_session_wrapper_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
 	$(WARN_CFLAGS)
 
-EXTRA_DIST = ldm-marshal.list \
+EXTRA_DIST = \
 	display-manager.xml
-
-CLEANFILES = \
-	$(BUILT_SOURCES)
 
 DISTCLEANFILES = \
 	Makefile.in

@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -10,6 +9,7 @@
 #include <glib.h>
 #include <glib-object.h>
 #include <gio/gio.h>
+#include <glib-unix.h>
 
 #include "status.h"
 
@@ -23,11 +23,20 @@ static GKeyFile *config;
 
 static xcb_connection_t *connection;
 
-static void
-quit_cb (int signum)
+static gboolean
+sigint_cb (gpointer user_data)
 {
-    status_notify ("%s TERMINATE SIGNAL=%d", session_id, signum);
-    exit (EXIT_SUCCESS);
+    status_notify ("%s TERMINATE SIGNAL=%d", session_id, SIGINT);
+    g_main_loop_quit (loop);
+    return TRUE;
+}
+
+static gboolean
+sigterm_cb (gpointer user_data)
+{
+    status_notify ("%s TERMINATE SIGNAL=%d", session_id, SIGTERM);
+    g_main_loop_quit (loop);
+    return TRUE;
 }
 
 static void
@@ -179,14 +188,14 @@ main (int argc, char **argv)
     if (g_str_has_suffix (open_fds->str, ","))
         open_fds->str[strlen (open_fds->str) - 1] = '\0';
 
-    signal (SIGINT, quit_cb);
-    signal (SIGTERM, quit_cb);
-
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
 
     loop = g_main_loop_new (NULL, FALSE);
+
+    g_unix_signal_add (SIGINT, sigint_cb, NULL);
+    g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
 
     status_connect (request_cb);
 

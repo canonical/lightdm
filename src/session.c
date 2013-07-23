@@ -59,6 +59,15 @@ struct SessionPrivate
     /* User object that matches the current username */
     User *user;
 
+    /* PAM service to use */
+    gchar *pam_service;
+
+    /* TRUE if should run PAM authentication phase */
+    gboolean do_authenticate;
+
+    /* TRUE if can handle PAM prompts */
+    gboolean is_interactive;
+
     /* Messages being requested by PAM */
     int messages_length;
     struct pam_message *messages;
@@ -94,6 +103,15 @@ struct SessionPrivate
 
     /* Environment to set in child */
     GList *env;
+
+    /* Command to run in child */
+    gchar **argv;
+
+    /* True if have run command */
+    gboolean command_run;
+
+    /* TRUE if stopping this session */
+    gboolean stopping;
 };
 
 /* Maximum length of a string to pass between daemon and session */
@@ -106,6 +124,50 @@ session_get_session_type (Session *session)
 {
     g_return_val_if_fail (session != NULL, NULL);
     return NULL;
+}
+
+void
+session_set_pam_service (Session *session, const gchar *pam_service)
+{
+    g_return_if_fail (session != NULL);
+    g_free (session->priv->pam_service);
+    session->priv->pam_service = g_strdup (pam_service);
+}
+
+void
+session_set_username (Session *session, const gchar *username)
+{
+    g_return_if_fail (session != NULL);
+    g_free (session->priv->username);
+    session->priv->username = g_strdup (username);
+}
+
+void
+session_set_do_authenticate (Session *session, gboolean do_authenticate)
+{
+    g_return_if_fail (session != NULL);
+    session->priv->do_authenticate = do_authenticate;
+}
+
+void
+session_set_is_interactive (Session *session, gboolean is_interactive)
+{
+    g_return_if_fail (session != NULL);
+    session->priv->is_interactive = is_interactive;
+}
+
+void
+session_set_is_guest (Session *session, gboolean is_guest)
+{
+    g_return_if_fail (session != NULL);
+    session->priv->is_guest = is_guest;
+}
+
+gboolean
+session_get_is_guest (Session *session)
+{
+    g_return_val_if_fail (session != NULL, FALSE);
+    return session->priv->is_guest;
 }
 
 void
@@ -124,20 +186,21 @@ session_set_class (Session *session, const gchar *class)
     session->priv->class = g_strdup (class);
 }
 
-static void
-session_real_set_display_server (Session *session, DisplayServer *display_server)
-{
-    if (session->priv->display_server)
-        g_object_unref (session->priv->display_server);
-    session->priv->display_server = g_object_ref (display_server);
-}
-
 void
 session_set_display_server (Session *session, DisplayServer *display_server)
 {
     g_return_if_fail (session != NULL);
     g_return_if_fail (display_server != NULL);
-    SESSION_GET_CLASS (session)->set_display_server (session, display_server);
+    if (session->priv->display_server)
+        g_object_unref (session->priv->display_server);
+    session->priv->display_server = g_object_ref (display_server);
+}
+
+DisplayServer *
+session_get_display_server (Session *session)
+{
+    g_return_val_if_fail (session != NULL, NULL);
+    return session->priv->display_server;
 }
 
 void
@@ -161,8 +224,12 @@ session_set_xauthority (Session *session, XAuthority *authority, gboolean use_sy
 {
     g_return_if_fail (session != NULL);
     if (session->priv->xauthority)
+    {
         g_object_unref (session->priv->xauthority);
-    session->priv->xauthority = g_object_ref (authority);
+        session->priv->xauthority = NULL;
+    }
+    if (authority)
+        session->priv->xauthority = g_object_ref (authority);
     session->priv->xauth_use_system_location = use_system_location;
 }
 
@@ -179,6 +246,13 @@ session_set_env (Session *session, const gchar *name, const gchar *value)
 {
     g_return_if_fail (session != NULL);
     session->priv->env = g_list_append (session->priv->env, g_strdup_printf ("%s=%s", name, value));
+}
+
+void
+session_set_argv (Session *session, gchar **argv)
+{
+    g_return_if_fail (session != NULL);
+    session->priv->argv = g_strdupv (argv);
 }
 
 User *
@@ -380,14 +454,26 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 }
 
 gboolean
-session_start (Session *session, const gchar *service, const gchar *username, gboolean do_authenticate, gboolean is_interactive, gboolean is_guest)
+session_start (Session *session)
+{
+    g_return_val_if_fail (session != NULL, FALSE);
+    g_return_val_if_fail (session->priv->display_server != NULL, FALSE);
+    return SESSION_GET_CLASS (session)->start (session);
+}
+
+gboolean
+session_get_is_started (Session *session)
+{
+    return session->priv->pid != 0;
+}
+
+static gboolean
+session_real_start (Session *session)
 {
     int version;
     int to_child_pipe[2], from_child_pipe[2];
     int to_child_output, from_child_input;
 
-    g_return_val_if_fail (session != NULL, FALSE);
-    g_return_val_if_fail (service != NULL, FALSE);
     g_return_val_if_fail (session->priv->pid == 0, FALSE);
 
     /* Create pipes to talk to the child */
@@ -408,12 +494,12 @@ session_start (Session *session, const gchar *service, const gchar *username, gb
     fcntl (session->priv->from_child_output, F_SETFD, FD_CLOEXEC);
 
     /* Create the guest account if it is one */
-    session->priv->is_guest = is_guest;
-    if (is_guest && username == NULL)
-        username = guest_account_setup ();
-
-    /* Remember what username we started with - it will be updated by PAM during authentication */
-    session->priv->username = g_strdup (username);
+    if (session->priv->is_guest && session->priv->username == NULL)
+    {
+        session->priv->username = guest_account_setup ();
+        if (!session->priv->username)
+            return FALSE;
+    }
 
     /* Run the child */
     session->priv->pid = fork ();
@@ -453,17 +539,17 @@ session_start (Session *session, const gchar *service, const gchar *username, gb
     write_data (session, &version, sizeof (version));
 
     /* Send configuration */
-    write_string (session, service);
-    write_string (session, username);
-    write_data (session, &do_authenticate, sizeof (do_authenticate));
-    write_data (session, &is_interactive, sizeof (is_interactive));
+    write_string (session, session->priv->pam_service);
+    write_string (session, session->priv->username);
+    write_data (session, &session->priv->do_authenticate, sizeof (session->priv->do_authenticate));
+    write_data (session, &session->priv->is_interactive, sizeof (session->priv->is_interactive));
     write_string (session, session->priv->class);
     write_string (session, session->priv->tty);
     write_string (session, session->priv->remote_host_name);
     write_string (session, session->priv->xdisplay);
     write_xauth (session, session->priv->xauthority);
 
-    g_debug ("Started session %d with service '%s', username '%s'", session->priv->pid, service, username);
+    g_debug ("Started session %d with service '%s', username '%s'", session->priv->pid, session->priv->pam_service, session->priv->username);
 
     return TRUE;
 }
@@ -550,16 +636,28 @@ session_get_authentication_result_string (Session *session)
 }
 
 void
-session_run (Session *session, gchar **argv)
+session_run (Session *session)
+{
+    g_return_if_fail (session->priv->display_server != NULL);
+    return SESSION_GET_CLASS (session)->run (session);
+}
+
+static void
+session_real_run (Session *session)
 {
     gsize i, argc;
     gchar *command, *xauth_filename;
     GList *link;
 
     g_return_if_fail (session != NULL);
+    g_return_if_fail (!session->priv->command_run);
     g_return_if_fail (session_get_is_authenticated (session));
+    g_return_if_fail (session->priv->argv != NULL);
+    g_return_if_fail (session->priv->pid != 0);
 
-    command = g_strjoinv (" ", argv);
+    session->priv->command_run = TRUE;
+
+    command = g_strjoinv (" ", session->priv->argv);
     g_debug ("Session %d running command %s", session->priv->pid, command);
     g_free (command);
 
@@ -596,15 +694,15 @@ session_run (Session *session, gchar **argv)
     write_data (session, &argc, sizeof (argc));
     for (link = session->priv->env; link; link = link->next)
         write_string (session, (gchar *) link->data);
-    argc = g_strv_length (argv);
+    argc = g_strv_length (session->priv->argv);
     write_data (session, &argc, sizeof (argc));
     for (i = 0; i < argc; i++)
-        write_string (session, argv[i]);
+        write_string (session, session->priv->argv[i]);
 
     if (login1_is_running ())
-      session->priv->login1_session = read_string_from_child (session);
+        session->priv->login1_session = read_string_from_child (session);
     if (!session->priv->login1_session)
-      session->priv->console_kit_cookie = read_string_from_child (session);
+        session->priv->console_kit_cookie = read_string_from_child (session);
 }
 
 void
@@ -638,19 +736,33 @@ session_stop (Session *session)
 {
     g_return_if_fail (session != NULL);
 
+    if (session->priv->stopping)
+        return;
+    session->priv->stopping = TRUE;
+
+    return SESSION_GET_CLASS (session)->stop (session);
+}
+
+static void
+session_real_stop (Session *session)
+{
+    g_return_if_fail (session != NULL);
+
     if (session->priv->pid > 0)
     {
         g_debug ("Session %d: Sending SIGTERM", session->priv->pid);
         kill (session->priv->pid, SIGTERM);
         // FIXME: Handle timeout
     }
+    else
+        g_signal_emit (G_OBJECT (session), signals[STOPPED], 0);
 }
 
 gboolean
-session_get_is_stopped (Session *session)
+session_get_is_stopping (Session *session)
 {
-    g_return_val_if_fail (session != NULL, TRUE);
-    return session->priv->pid == 0;
+    g_return_val_if_fail (session != NULL, FALSE);
+    return session->priv->stopping;
 }
 
 static void
@@ -678,6 +790,7 @@ session_finalize (GObject *object)
     g_free (self->priv->username);
     if (self->priv->user)
         g_object_unref (self->priv->user);
+    g_free (self->priv->pam_service);
     for (i = 0; i < self->priv->messages_length; i++)
         g_free ((char *) self->priv->messages[i].msg);
     g_free (self->priv->messages);
@@ -692,6 +805,7 @@ session_finalize (GObject *object)
     g_free (self->priv->login1_session);
     g_free (self->priv->console_kit_cookie);
     g_list_free_full (self->priv->env, g_free);
+    g_strfreev (self->priv->argv);
 
     G_OBJECT_CLASS (session_parent_class)->finalize (object);
 }
@@ -701,7 +815,9 @@ session_class_init (SessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    klass->set_display_server = session_real_set_display_server;
+    klass->start = session_real_start;
+    klass->run = session_real_run;
+    klass->stop = session_real_stop;
     object_class->finalize = session_finalize;
 
     g_type_class_add_private (klass, sizeof (SessionPrivate));
@@ -712,7 +828,7 @@ session_class_init (SessionClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SessionClass, got_messages),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
 
     signals[AUTHENTICATION_COMPLETE] =
@@ -721,7 +837,7 @@ session_class_init (SessionClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SessionClass, authentication_complete),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
 
     signals[STOPPED] =
@@ -730,6 +846,6 @@ session_class_init (SessionClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SessionClass, stopped),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
 }

@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(lightdm, 1.7.4)
+AC_INIT(lightdm, 1.7.7)
 AC_CONFIG_MACRO_DIR(m4)
 AC_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE([1.11 no-dist-gzip dist-xz foreign])
@@ -10,6 +10,21 @@ AM_PROG_CC_C_O
 AC_PROG_CXX
 AC_PROG_LIBTOOL
 AM_MAINTAINER_MODE
+
+dnl Enable compile warnings (only supporting GCC)
+if test "x$GCC" == xyes; then
+    WARN_CFLAGS="-Wall \
+                 -Wstrict-prototypes \
+                 -Wnested-externs \
+                 -Werror=missing-prototypes \
+                 -Werror=implicit-function-declaration \
+                 -Werror=pointer-arith \
+                 -Werror=init-self \
+                 -Werror=format-security \
+                 -Werror=format=2 \
+                 -Werror=missing-include-dirs"
+fi
+AC_SUBST(WARN_CFLAGS)
 
 GOBJECT_INTROSPECTION_CHECK(0.9.5)
 
@@ -22,7 +37,7 @@ AC_CHECK_HEADERS(security/pam_appl.h, [], AC_MSG_ERROR(PAM not found))
 AC_CHECK_FUNCS(setresgid setresuid clearenv)
 
 PKG_CHECK_MODULES(LIGHTDM, [
-    glib-2.0 >= 2.24
+    glib-2.0 >= 2.30
     gio-2.0 >= 2.26
     gio-unix-2.0
     xdmcp
@@ -131,8 +146,6 @@ AC_ARG_ENABLE(tests,
         AS_HELP_STRING([--disable-tests], [Disable tests building]),
         [], [enable_tests="yes"])
 AM_CONDITIONAL(COMPILE_TESTS, test x"$enable_tests" != "xno")
-
-AC_PATH_PROG(GLIB_GENMARSHAL, glib-genmarshal)
 
 dnl ###########################################################################
 dnl Configurable values

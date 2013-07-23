@@ -62,6 +62,7 @@ lightdm_layout_get_type
 <SECTION>
 <FILE>session</FILE>
 <TITLE>Sessions</TITLE>
+lightdm_get_remote_sessions
 lightdm_get_sessions
 lightdm_session_get_key
 lightdm_session_get_session_type
@@ -82,11 +83,14 @@ LIGHTDM_SESSION_GET_CLASS
 <FILE>user</FILE>
 <TITLE>User Accounts</TITLE>
 changed
+lightdm_user_get_background
 lightdm_user_get_display_name
+lightdm_user_get_has_messages
 lightdm_user_get_home_directory
 lightdm_user_get_image
 lightdm_user_get_language
 lightdm_user_get_layout
+lightdm_user_get_layouts
 lightdm_user_get_logged_in
 lightdm_user_get_name
 lightdm_user_get_real_name
@@ -129,16 +133,22 @@ lightdm_greeter_new
 lightdm_greeter_connect_sync
 lightdm_greeter_get_default_session_hint
 lightdm_greeter_get_hint
+lightdm_greeter_get_lock_hint
 lightdm_greeter_get_has_guest_account_hint
 lightdm_greeter_get_hide_users_hint
+lightdm_greeter_get_show_manual_login_hint
+lightdm_greeter_get_show_remote_login_hint
 lightdm_greeter_get_select_user_hint
 lightdm_greeter_get_select_guest_hint
 lightdm_greeter_get_autologin_user_hint
 lightdm_greeter_get_autologin_guest_hint
 lightdm_greeter_get_autologin_timeout_hint
+lightdm_greeter_set_language
 lightdm_greeter_cancel_autologin
 lightdm_greeter_authenticate
 lightdm_greeter_authenticate_as_guest
+lightdm_greeter_authenticate_autologin
+lightdm_greeter_authenticate_remote
 lightdm_greeter_respond
 lightdm_greeter_cancel_authentication
 lightdm_greeter_get_in_authentication

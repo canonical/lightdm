@@ -248,7 +248,17 @@ status_notify ('%s CONNECTED-TO-DAEMON' % greeter_id)
 
 if greeter.get_select_user_hint () is not None:
     status_notify ('%s SELECT-USER-HINT USERNAME=%s' % (greeter_id, greeter.get_select_user_hint ()))
+if greeter.get_select_guest_hint ():
+    status_notify ('%s SELECT-GUEST-HINT' % greeter_id)
 if greeter.get_lock_hint ():
-    status_notify ('%s LOCK-HINT' % greeter_id);
+    status_notify ('%s LOCK-HINT' % greeter_id)
+if not greeter.get_has_guest_account_hint ():
+    status_notify ('%s HAS-GUEST-ACCOUNT-HINT=FALSE' % greeter_id)
+if greeter.get_hide_users_hint ():
+    status_notify ('%s HIDE-USERS-HINT' % greeter_id)
+if greeter.get_show_manual_login_hint ():
+    status_notify ('%s SHOW-MANUAL-LOGIN-HINT' % greeter_id)
+if not greeter.get_show_remote_login_hint ():
+    status_notify ('%s SHOW-REMOTE-LOGIN-HINT=FALSE' % greeter_id)
 
 loop.run ()

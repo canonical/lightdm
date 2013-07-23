@@ -24,6 +24,7 @@ libsystem_la_CFLAGS = \
 	-DBUILDDIR=\"$(abs_top_builddir)\" \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
 	-DLOCALSTATEDIR=\"$(localstatedir)\" \
+	-DDATADIR=\"$(datadir)\" \
 	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\"
 libsystem_la_LIBADD = -ldl $(GLIB_LIBS) $(GIO_UNIX_LIBS)
 
@@ -46,6 +47,7 @@ dbus_env_CFLAGS = \
 dbus_env_LDADD = \
 	$(GLIB_LIBS)
 
+test_runner_SOURCES = test-runner.c
 test_runner_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \

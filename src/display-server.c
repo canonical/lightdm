@@ -52,6 +52,18 @@ display_server_get_name (DisplayServer *server)
     return server->priv->name;
 }
 
+gint
+display_server_get_vt (DisplayServer *server)
+{
+    return DISPLAY_SERVER_GET_CLASS (server)->get_vt (server);
+}
+
+static gint
+display_server_real_get_vt (DisplayServer *server)
+{
+    return -1;
+}
+
 void
 display_server_set_start_local_sessions (DisplayServer *server, gboolean start_local_sessions)
 {
@@ -93,23 +105,16 @@ display_server_stop (DisplayServer *server)
 }
 
 gboolean
-display_server_get_is_stopped (DisplayServer *server)
+display_server_get_is_stopping (DisplayServer *server)
 {
-    g_return_val_if_fail (server != NULL, TRUE);
-    return server->priv->stopped;
+    g_return_val_if_fail (server != NULL, FALSE);
+    return server->priv->stopping;
 }
 
 static void
 display_server_real_stop (DisplayServer *server)
 {
-    server->priv->stopped = TRUE;
     g_signal_emit (server, signals[STOPPED], 0);
-}
-
-static gboolean
-display_server_real_get_is_stopped (DisplayServer *server)
-{
-    return server->priv->stopped;
 }
 
 static void
@@ -122,6 +127,7 @@ display_server_init (DisplayServer *server)
 static void
 display_server_class_init (DisplayServerClass *klass)
 {
+    klass->get_vt = display_server_real_get_vt;
     klass->start = display_server_real_start;
     klass->stop = display_server_real_stop;
 
@@ -133,7 +139,7 @@ display_server_class_init (DisplayServerClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayServerClass, ready),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
     signals[STOPPED] =
         g_signal_new ("stopped",
@@ -141,6 +147,6 @@ display_server_class_init (DisplayServerClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayServerClass, stopped),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
 }

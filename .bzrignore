@@ -27,8 +27,10 @@ Makefile.in.in
 ./missing
 ./mkinstalldirs
 ./omf.make
+./test-driver
 ./xmldocs.make
 data/apparmor/lightdm-guest-session
+data/lightdm-guest-session
 doc/html
 doc/lightdm-gobject-*.*
 doc/*.stamp

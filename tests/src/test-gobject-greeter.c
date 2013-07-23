@@ -5,6 +5,7 @@
 #include <string.h>
 #include <xcb/xcb.h>
 #include <lightdm.h>
+#include <glib-unix.h>
 
 #include "status.h"
 
@@ -46,11 +47,20 @@ autologin_timer_expired_cb (LightDMGreeter *greeter)
     status_notify ("%s AUTOLOGIN-TIMER-EXPIRED", greeter_id);
 }
 
-static void
-signal_cb (int signum)
+static gboolean
+sigint_cb (gpointer user_data)
 {
-    status_notify ("%s TERMINATE SIGNAL=%d", greeter_id, signum);
-    exit (EXIT_SUCCESS);
+    status_notify ("%s TERMINATE SIGNAL=%d", greeter_id, SIGINT);
+    g_main_loop_quit (loop);
+    return TRUE;
+}
+
+static gboolean
+sigterm_cb (gpointer user_data)
+{
+    status_notify ("%s TERMINATE SIGNAL=%d", greeter_id, SIGTERM);
+    g_main_loop_quit (loop);
+    return TRUE;
 }
 
 static void
@@ -118,6 +128,11 @@ request_cb (const gchar *request)
         if (!lightdm_greeter_start_session_sync (greeter, request + strlen (r), NULL))
             status_notify ("%s SESSION-FAILED", greeter_id); 
     }
+    g_free (r);
+
+    r = g_strdup_printf ("%s LOG-DEFAULT-SESSION", greeter_id);
+    if (strcmp (request, r) == 0)
+        status_notify ("%s LOG-DEFAULT-SESSION SESSION=%s", greeter_id, lightdm_greeter_get_default_session_hint (greeter));
     g_free (r);
 
     r = g_strdup_printf ("%s LOG-USER-LIST-LENGTH", greeter_id);
@@ -286,9 +301,6 @@ main (int argc, char **argv)
 {
     gchar *display;
 
-    signal (SIGINT, signal_cb);
-    signal (SIGTERM, signal_cb);
-
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
@@ -302,6 +314,9 @@ main (int argc, char **argv)
         greeter_id = g_strdup_printf ("GREETER-X-%s", display);
 
     loop = g_main_loop_new (NULL, FALSE);
+
+    g_unix_signal_add (SIGINT, sigint_cb, NULL);
+    g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
 
     status_connect (request_cb);
 
@@ -354,6 +369,14 @@ main (int argc, char **argv)
         status_notify ("%s SELECT-GUEST-HINT", greeter_id);
     if (lightdm_greeter_get_lock_hint (greeter))
         status_notify ("%s LOCK-HINT", greeter_id);
+    if (!lightdm_greeter_get_has_guest_account_hint (greeter))
+        status_notify ("%s HAS-GUEST-ACCOUNT-HINT=FALSE", greeter_id);
+    if (lightdm_greeter_get_hide_users_hint (greeter))
+        status_notify ("%s HIDE-USERS-HINT", greeter_id);
+    if (lightdm_greeter_get_show_manual_login_hint (greeter))
+        status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
+    if (!lightdm_greeter_get_show_remote_login_hint (greeter))
+        status_notify ("%s SHOW-REMOTE-LOGIN-HINT=FALSE", greeter_id);
 
     g_main_loop_run (loop);
 

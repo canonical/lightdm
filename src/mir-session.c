@@ -26,16 +26,6 @@ mir_session_new (void)
 }
 
 static void
-mir_session_set_display_server (Session *session, DisplayServer *display_server)
-{
-    MirServer *mir_server;
-
-    mir_server = MIR_SERVER (display_server);
-
-    SESSION_CLASS (mir_session_parent_class)->set_display_server (session, display_server);
-}
-
-static void
 mir_session_init (MirSession *session)
 {
 }
@@ -43,7 +33,4 @@ mir_session_init (MirSession *session)
 static void
 mir_session_class_init (MirSessionClass *klass)
 {
-    SessionClass *session_class = SESSION_CLASS (klass);
-
-    session_class->set_display_server = mir_session_set_display_server;
 }

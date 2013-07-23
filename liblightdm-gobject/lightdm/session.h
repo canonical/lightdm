@@ -31,13 +31,13 @@ typedef struct
 {
     GObjectClass parent_class;
 
-	/* Reserved */
-	void (*reserved1) (void);
-	void (*reserved2) (void);
-	void (*reserved3) (void);
-	void (*reserved4) (void);
-	void (*reserved5) (void);
-	void (*reserved6) (void);
+    /* Reserved */
+    void (*reserved1) (void);
+    void (*reserved2) (void);
+    void (*reserved3) (void);
+    void (*reserved4) (void);
+    void (*reserved5) (void);
+    void (*reserved6) (void);
 } LightDMSessionClass;
 
 GType lightdm_session_get_type (void);
