@@ -134,6 +134,7 @@ TESTS = \
 	test-gobject-power-no-services \
 	test-open-file-descriptors \
 	test-xdmcp-server-open-file-descriptors \
+	test-mir-autologin \
 	test-mir-greeter-x-session \
 	test-mir-greeter-mir-session \
 	test-mir-session-x-greeter \
@@ -349,6 +350,7 @@ EXTRA_DIST = \
 	scripts/login-two-factor.conf \
 	scripts/login-wrong-password.conf \
 	scripts/login-xserver-crash.conf \
+	scripts/mir-autologin.conf \
 	scripts/mir-greeter-x-session.conf \
 	scripts/mir-greeter-mir-session.conf \
 	scripts/mir-session-x-greeter.conf \
