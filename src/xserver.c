@@ -14,7 +14,7 @@
 #include <xcb/xcb.h>
 
 #include "xserver.h"
-#include "xsession.h"
+#include "configuration.h"
 
 struct XServerPrivate
 {  
@@ -133,6 +133,36 @@ xserver_start (DisplayServer *display_server)
 }
 
 static void
+xserver_setup_session (DisplayServer *display_server, Session *session)
+{
+    gint vt;
+
+    display_server = session_get_display_server (session);
+
+    vt = display_server_get_vt (display_server);
+    if (vt > 0)
+    {
+        gchar *t;
+
+        t = g_strdup_printf ("/dev/tty%d", vt);
+        session_set_tty (session, t);
+        g_free (t);
+
+        t = g_strdup_printf ("%d", vt);
+        session_set_env (session, "XDG_VTNR", t);
+        g_free (t);
+    }
+
+    session_set_env (session, "DISPLAY", xserver_get_address (XSERVER (display_server)));
+    session_set_tty (session, xserver_get_address (XSERVER (display_server)));
+    session_set_xdisplay (session, xserver_get_address (XSERVER (display_server)));
+    session_set_remote_host_name (session, xserver_get_hostname (XSERVER (display_server)));
+    session_set_xauthority (session,
+                            xserver_get_authority (XSERVER (display_server)),
+                            config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"));
+}
+
+static void
 xserver_init (XServer *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_TYPE, XServerPrivate);
@@ -162,6 +192,7 @@ xserver_class_init (XServerClass *klass)
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
     display_server_class->start = xserver_start;
+    display_server_class->setup_session = xserver_setup_session;
     object_class->finalize = xserver_finalize;
 
     g_type_class_add_private (klass, sizeof (XServerPrivate));

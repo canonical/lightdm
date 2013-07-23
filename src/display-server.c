@@ -93,6 +93,17 @@ display_server_real_start (DisplayServer *server)
 }
 
 void
+display_server_setup_session (DisplayServer *server, Session *session)
+{
+    return DISPLAY_SERVER_GET_CLASS (server)->setup_session (server, session);
+}
+
+static void
+display_server_real_setup_session (DisplayServer *server, Session *session)
+{
+}
+
+void
 display_server_stop (DisplayServer *server)
 {
     g_return_if_fail (server != NULL);
@@ -129,6 +140,7 @@ display_server_class_init (DisplayServerClass *klass)
 {
     klass->get_vt = display_server_real_get_vt;
     klass->start = display_server_real_start;
+    klass->setup_session = display_server_real_setup_session;
     klass->stop = display_server_real_stop;
 
     g_type_class_add_private (klass, sizeof (DisplayServerPrivate));

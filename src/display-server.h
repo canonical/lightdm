@@ -14,6 +14,10 @@
 
 #include <glib-object.h>
 
+typedef struct DisplayServer DisplayServer;
+
+#include "session.h"
+
 G_BEGIN_DECLS
 
 #define DISPLAY_SERVER_TYPE (display_server_get_type())
@@ -23,11 +27,11 @@ G_BEGIN_DECLS
 
 typedef struct DisplayServerPrivate DisplayServerPrivate;
 
-typedef struct
+struct DisplayServer
 {
     GObject               parent_instance;
     DisplayServerPrivate *priv;
-} DisplayServer;
+};
 
 typedef struct
 {
@@ -38,6 +42,7 @@ typedef struct
 
     gint (*get_vt)(DisplayServer *server);
     gboolean (*start)(DisplayServer *server);
+    void (*setup_session)(DisplayServer *server, Session *session);
     void (*stop)(DisplayServer *server);
 } DisplayServerClass;
 
@@ -54,6 +59,8 @@ void display_server_set_start_local_sessions (DisplayServer *server, gboolean st
 gboolean display_server_get_start_local_sessions (DisplayServer *server);
 
 gboolean display_server_start (DisplayServer *server);
+
+void display_server_setup_session (DisplayServer *server, Session *session);
 
 void display_server_stop (DisplayServer *server);
 

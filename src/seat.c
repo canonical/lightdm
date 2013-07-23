@@ -711,6 +711,7 @@ create_user_session (Seat *seat, const gchar *username)
         gchar **argv;
 
         session = create_session (seat, TRUE);
+        session_set_session_type (session, session_config_get_session_type (session_config));
         session_set_env (session, "DESKTOP_SESSION", session_name);
         session_set_env (session, "GDMSESSION", session_name);
         if (language && language[0] != '\0')
@@ -751,6 +752,7 @@ create_guest_session (Seat *seat)
     }
 
     session = create_session (seat, TRUE);
+    session_set_session_type (session, session_config_get_session_type (session_config));
     session_set_do_authenticate (session, TRUE);
     session_set_is_guest (session, TRUE);
     argv = get_session_argv (session_config, seat_get_string_property (seat, "session-wrapper"));
@@ -767,6 +769,7 @@ greeter_create_session_cb (Greeter *greeter, Seat *seat)
     Session *session;
 
     session = create_session (seat, FALSE);
+    session_set_session_type (session, session_get_session_type (SESSION (greeter)));
     session_set_display_server (session, session_get_display_server (SESSION (greeter)));
 
     return g_object_ref (session);
@@ -1339,6 +1342,18 @@ seat_real_start (Seat *seat)
     return TRUE;
 }
 
+static Greeter *
+seat_real_create_greeter_session (Seat *seat)
+{
+    return greeter_new ();
+}
+
+static Session *
+seat_real_create_session (Seat *seat)
+{
+    return session_new ();
+}
+
 static void
 seat_real_set_active_session (Seat *seat, Session *session)
 {
@@ -1431,6 +1446,8 @@ seat_class_init (SeatClass *klass)
 
     klass->setup = seat_real_setup;
     klass->start = seat_real_start;
+    klass->create_greeter_session = seat_real_create_greeter_session;
+    klass->create_session = seat_real_create_session;
     klass->set_active_session = seat_real_set_active_session;
     klass->get_active_session = seat_real_get_active_session;
     klass->run_script = seat_real_run_script;

@@ -16,6 +16,8 @@
 
 #include <security/pam_appl.h>
 
+typedef struct Session Session;
+
 #include "display-server.h"
 #include "accounts.h"
 #include "xauthority.h"
@@ -29,11 +31,11 @@ G_BEGIN_DECLS
 
 typedef struct SessionPrivate SessionPrivate;
 
-typedef struct
+struct Session
 {
     GObject         parent_instance;
     SessionPrivate *priv;
-} Session;
+};
 
 typedef struct
 {
@@ -59,6 +61,10 @@ typedef enum
 #define XDG_SESSION_CLASS_LOCK_SCREEN "lock-screen"
 
 GType session_get_type (void);
+
+Session *session_new (void);
+
+void session_set_session_type (Session *session, const gchar *session_type);
 
 const gchar *session_get_session_type (Session *session);
 

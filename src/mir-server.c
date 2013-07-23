@@ -12,7 +12,6 @@
 #include <string.h>
 
 #include "mir-server.h"
-#include "mir-session.h"
 
 struct MirServerPrivate
 {  
@@ -40,10 +39,6 @@ mir_server_init (MirServer *server)
 static void
 mir_server_finalize (GObject *object)
 {
-    MirServer *self;
-
-    self = MIR_SERVER (object);
-
     G_OBJECT_CLASS (mir_server_parent_class)->finalize (object);
 }
 

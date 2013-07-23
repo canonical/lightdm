@@ -20,12 +20,8 @@ lightdm_SOURCES = \
 	lightdm.c \
 	login1.c \
 	login1.h \
-	mir-greeter.c \
-	mir-greeter.h \
 	mir-server.c \
 	mir-server.h \
-	mir-session.c \
-	mir-session.h \
 	plymouth.c \
 	plymouth.h \
 	privileges.c \
@@ -63,8 +59,6 @@ lightdm_SOURCES = \
 	xdmcp-session.c \
 	xdmcp-session.h \
 	xdmcp-session-private.h \
-	xgreeter.c \
-	xgreeter.h \
 	xserver-local.c \
 	xserver-local.h \
 	xserver-remote.c \
@@ -72,9 +66,7 @@ lightdm_SOURCES = \
 	xserver-xvnc.c \
 	xserver-xvnc.h \
 	xserver.c \
-	xserver.h \
-	xsession.c \
-	xsession.h
+	xserver.h
 
 lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
