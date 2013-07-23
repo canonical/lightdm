@@ -57,6 +57,8 @@ typedef enum
 
 GType session_get_type (void);
 
+const gchar *session_get_session_type (Session *session);
+
 void session_set_log_file (Session *session, const gchar *filename);
 
 void session_set_class (Session *session, const gchar *class);

@@ -33,11 +33,17 @@ SeatXVNC *seat_xvnc_new (GSocket *connection)
 }
 
 static DisplayServer *
-seat_xvnc_create_display_server (Seat *seat)
+seat_xvnc_create_display_server (Seat *seat, const gchar *session_type)
 {
     XServerXVNC *xserver;
     const gchar *command = NULL;
 
+    if (strcmp (session_type, "x") != 0)
+    {
+        g_warning ("XVNC seat only supports X display servers, not '%s'", session_type);
+        return NULL;
+    }
+  
     xserver = xserver_xvnc_new ();
     xserver_xvnc_set_socket (xserver, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
 

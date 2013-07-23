@@ -38,6 +38,8 @@ typedef struct
 
 GType mir_server_get_type (void);
 
+MirServer *mir_server_new (void);
+
 G_END_DECLS
 
 #endif /* MIR_SERVER_H_ */

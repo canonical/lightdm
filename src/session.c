@@ -101,6 +101,13 @@ struct SessionPrivate
 
 G_DEFINE_TYPE (Session, session, G_TYPE_OBJECT);
 
+const gchar *
+session_get_session_type (Session *session)
+{
+    g_return_val_if_fail (session != NULL, NULL);
+    return NULL;
+}
+
 void
 session_set_log_file (Session *session, const gchar *filename)
 {

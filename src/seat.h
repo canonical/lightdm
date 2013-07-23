@@ -37,7 +37,7 @@ typedef struct
 
     void (*setup)(Seat *seat);    
     gboolean (*start)(Seat *seat);
-    DisplayServer *(*create_display_server) (Seat *seat);
+    DisplayServer *(*create_display_server) (Seat *seat, const gchar *session_type);
     Session *(*create_session) (Seat *seat, Display *display);
     void (*set_active_display)(Seat *seat, Display *display);
     Display *(*get_active_display)(Seat *seat);

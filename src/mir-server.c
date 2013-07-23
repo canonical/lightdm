@@ -20,6 +20,11 @@ struct MirServerPrivate
 
 G_DEFINE_TYPE (MirServer, mir_server, DISPLAY_SERVER_TYPE);
 
+MirServer *mir_server_new (void)
+{
+    return g_object_new (MIR_SERVER_TYPE, NULL);  
+}
+
 static gboolean
 mir_server_start (DisplayServer *display_server)
 {

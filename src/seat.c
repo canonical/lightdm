@@ -57,7 +57,7 @@ typedef struct
 } SeatModule;
 static GHashTable *seat_modules = NULL;
 
-static Display *create_display (Seat *seat);
+static Display *create_display (Seat *seat, const gchar *session_type);
 
 void
 seat_register_module (const gchar *name, GType type)
@@ -427,7 +427,7 @@ display_create_display_cb (Display *display, Session *session, Seat *seat)
 {
     Display *d;
 
-    d = create_display (seat);
+    d = create_display (seat, session_get_session_type (session));
     g_signal_connect (d, "ready", G_CALLBACK (display_ready_cb), seat);
     g_signal_emit (seat, signals[DISPLAY_ADDED], 0, d);
 
@@ -502,12 +502,12 @@ display_stopped_cb (Display *display, Seat *seat)
 }
 
 static Display *
-create_display (Seat *seat)
+create_display (Seat *seat, const gchar *session_type)
 {
     Display *display;
     DisplayServer *display_server;
 
-    display_server = SEAT_GET_CLASS (seat)->create_display_server (seat);
+    display_server = SEAT_GET_CLASS (seat)->create_display_server (seat, session_type);
     display = display_new (display_server);
     g_object_unref (display_server);
 
@@ -567,7 +567,7 @@ seat_switch_to_greeter (Seat *seat)
 
     g_debug ("Starting new display for greeter");
 
-    display = create_display (seat);
+    display = create_display (seat, "x" /*FIXME greeter_type */);
     g_signal_connect (display, "ready", G_CALLBACK (display_ready_cb), seat);
 
     return start_display (seat, display);
@@ -595,7 +595,7 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
     else
         g_debug ("Starting new display for greeter");
 
-    display = create_display (seat);
+    display = create_display (seat, "x" /* FIXME greeter_type */);
     g_signal_connect (display, "ready", G_CALLBACK (display_ready_cb), seat);
     display_set_select_user_hint (display, username, FALSE, TRUE);
     if (session_name != NULL)
@@ -623,7 +623,7 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
 
     g_debug ("Starting new display for automatic guest login");
 
-    display = create_display (seat);
+    display = create_display (seat, "x" /* FIXME guest_type */);
     g_signal_connect (display, "ready", G_CALLBACK (display_ready_cb), seat);
     display_set_autologin_user (display, NULL, TRUE, 0);
     if (session_name != NULL)
@@ -650,7 +650,7 @@ seat_lock (Seat *seat, const gchar *username)
 
     g_debug ("Starting new display for greeter (lock screen)");
 
-    display = create_display (seat);
+    display = create_display (seat, "x" /* FIXMEgreeter_type */);
     g_signal_connect (display, "ready", G_CALLBACK (display_ready_cb), seat);
     display_set_lock_hint (display, TRUE);
     display_set_select_user_hint (display, username, FALSE, FALSE);
@@ -703,7 +703,7 @@ autologin_greeter_ready_cb (Display *display, Seat *seat)
     else if (autologin_username)
         g_debug ("Starting new display for automatic login as user %s", autologin_username);
 
-    autologin_display = create_display (seat);
+    autologin_display = create_display (seat, "x" /* FIXMEsession_type */);
     display_set_autologin_user (autologin_display, autologin_username, autologin_guest, 0);
 
     start_display (seat, autologin_display);
@@ -734,7 +734,7 @@ seat_real_start (Seat *seat)
     if (do_autologin && autologin_in_background && !switch_to_user (seat, NULL, FALSE)) 
     {
         g_debug ("Autologin in background, opening greeter first");
-        display = create_display (seat);
+        display = create_display (seat, "x" /* FIXMEgreeter_type */);
         g_signal_connect (display, "ready", G_CALLBACK (autologin_greeter_ready_cb), seat);
         if (autologin_timeout > 0)
             display_set_autologin_user (display, autologin_username, autologin_guest, autologin_timeout);
@@ -748,11 +748,17 @@ seat_real_start (Seat *seat)
     else
         g_debug ("Starting new display for greeter");
 
-    display = create_display (seat);
+    display = create_display (seat, "x" /* FIXMEsession_type */);
     g_signal_connect (display, "ready", G_CALLBACK (display_ready_cb), seat);
     display_set_autologin_user (display, autologin_username, autologin_guest, autologin_timeout);
 
     return start_display (seat, display);
+}
+
+static DisplayServer *
+seat_real_create_display_server (Seat *seat, const gchar *session_type)
+{
+    return NULL;
 }
 
 static void
@@ -838,6 +844,7 @@ seat_class_init (SeatClass *klass)
 
     klass->setup = seat_real_setup;
     klass->start = seat_real_start;
+    klass->create_display_server = seat_real_create_display_server;
     klass->set_active_display = seat_real_set_active_display;
     klass->get_active_display = seat_real_get_active_display;
     klass->run_script = seat_real_run_script;

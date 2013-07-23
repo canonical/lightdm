@@ -15,6 +15,7 @@
 #include "configuration.h"
 #include "xserver-local.h"
 #include "xsession.h"
+#include "mir-server.h"
 #include "vt.h"
 
 G_DEFINE_TYPE (SeatXLocal, seat_xlocal, SEAT_TYPE);
@@ -28,7 +29,7 @@ seat_xlocal_setup (Seat *seat)
 }
 
 static DisplayServer *
-seat_xlocal_create_display_server (Seat *seat)
+create_x_server (Seat *seat)
 {
     XServerLocal *xserver;
     const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
@@ -103,6 +104,31 @@ seat_xlocal_create_display_server (Seat *seat)
     }
 
     return DISPLAY_SERVER (xserver);
+}
+
+static DisplayServer *
+create_mir_server (Seat *seat)
+{
+    MirServer *mir_server;
+
+    mir_server = mir_server_new ();
+    // FIXME: Set VT
+
+    return DISPLAY_SERVER (mir_server);
+}
+
+static DisplayServer *
+seat_xlocal_create_display_server (Seat *seat, const gchar *session_type)
+{
+    if (strcmp (session_type, "x") == 0)
+        return create_x_server (seat);
+    else if (strcmp (session_type, "mir") == 0)
+        return create_mir_server (seat);
+    else
+    {
+        g_warning ("Can't create unsupported display server '%s'", session_type);
+        return NULL;
+    }
 }
 
 static Session *

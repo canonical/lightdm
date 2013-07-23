@@ -26,11 +26,17 @@ seat_xremote_setup (Seat *seat)
 }
 
 static DisplayServer *
-seat_xremote_create_display_server (Seat *seat)
+seat_xremote_create_display_server (Seat *seat, const gchar *session_type)
 {
     XServerRemote *xserver;
     const gchar *hostname;
     gint number;
+
+    if (strcmp (session_type, "x") != 0)
+    {
+        g_warning ("X remote seat only supports X display servers, not '%s'", session_type);
+        return NULL;
+    }
 
     hostname = seat_get_string_property (seat, "xserver-hostname");
     if (!hostname)

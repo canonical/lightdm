@@ -17,6 +17,7 @@
 #include "configuration.h"
 #include "xserver-local.h"
 #include "xsession.h"
+#include "mir-server.h"
 #include "vt.h"
 #include "plymouth.h"
 
@@ -376,7 +377,7 @@ seat_unity_start (Seat *seat)
 }
 
 static DisplayServer *
-seat_unity_create_display_server (Seat *seat)
+create_x_server (Seat *seat)
 {
     XServerLocal *xserver;
     const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
@@ -457,6 +458,20 @@ seat_unity_create_display_server (Seat *seat)
     }
 
     return DISPLAY_SERVER (xserver);
+}
+
+static DisplayServer *
+seat_unity_create_display_server (Seat *seat, const gchar *session_type)
+{
+    if (strcmp (session_type, "x") == 0)
+        return create_x_server (seat);
+    else if (strcmp (session_type, "mir") == 0)
+        return DISPLAY_SERVER (mir_server_new ());
+    else
+    {
+        g_warning ("Can't create unsupported display server '%s'", session_type);
+        return NULL;
+    }
 }
 
 static Session *
