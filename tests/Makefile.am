@@ -27,12 +27,9 @@ TESTS = \
 	test-autologin-new-authtok \
 	test-autologin-gobject-timeout \
 	test-autologin-gobject-guest-timeout \
-	test-autologin-python-timeout \
-	test-autologin-python-guest-timeout \
 	test-change-authentication \
 	test-restart-authentication \
 	test-gobject-cancel-authentication \
-	test-python-cancel-authentication \
 	test-pam \
 	test-login-pam \
 	test-denied \
@@ -59,7 +56,6 @@ TESTS = \
 	test-user-renamed \
 	test-user-renamed-invalid \
 	test-users-gobject \
-	test-users-python \
 	test-keyboard-layout \
 	test-no-keyboard-layout \
 	test-language \
@@ -90,29 +86,6 @@ TESTS = \
 	test-login-gobject-guest-fail-setup-script \
 	test-login-gobject-guest-logout \
 	test-login-gobject-remote-session \
-	test-login-python \
-	test-login-python-manual \
-	test-login-python-manual-previous-session \
-	test-login-python-no-password \
-	test-login-python-long-username \
-	test-login-python-long-password \
-	test-login-python-two-factor \
-	test-login-python-new-authtok \
-	test-login-python-info-prompt \
-	test-login-python-multi-info-prompt \
-	test-login-python-previous-session \
-	test-login-python-wrong-password \
-	test-login-python-invalid-user \
-	test-login-python-invalid-session \
-	test-login-python-logout \
-	test-login-python-pick-session \
-	test-login-python-remember-session \
-	test-login-python-guest \
-	test-login-python-guest-disabled \
-	test-login-python-guest-no-setup-script \
-	test-login-python-guest-fail-setup-script \
-	test-login-python-guest-logout \
-	test-login-python-remote-session \
 	test-login-session-crash \
 	test-login-xserver-crash \
 	test-xserver-no-share \
@@ -159,12 +132,11 @@ TESTS = \
 	test-gobject-power-no-console-kit \
 	test-gobject-power-no-login1 \
 	test-gobject-power-no-services \
-	test-python-power \
-	test-python-power-no-console-kit \
-	test-python-power-no-login1 \
-	test-python-power-no-services \
 	test-open-file-descriptors \
 	test-xdmcp-server-open-file-descriptors \
+	test-mir-greeter-x-session \
+	test-mir-greeter-mir-session \
+	test-mir-session-x-greeter \
 	test-unity-compositor-command \
 	test-unity-compositor-fail-start \
 	test-unity-compositor-fail-ready \
@@ -179,6 +151,39 @@ TESTS = \
 #   test-gobject-change-password
 #   test-qt-change-password
 #   test-autologin-create-directory
+
+TESTS += \
+	test-python-cancel-authentication \
+	test-users-python \
+	test-login-python \
+	test-login-python-manual \
+	test-login-python-manual-previous-session \
+	test-login-python-no-password \
+	test-login-python-long-username \
+	test-login-python-long-password \
+	test-login-python-two-factor \
+	test-login-python-new-authtok \
+	test-login-python-info-prompt \
+	test-login-python-multi-info-prompt \
+	test-login-python-previous-session \
+	test-login-python-wrong-password \
+	test-login-python-invalid-user \
+	test-login-python-invalid-session \
+	test-login-python-logout \
+	test-login-python-pick-session \
+	test-login-python-remember-session \
+	test-login-python-guest \
+	test-login-python-guest-disabled \
+	test-login-python-guest-no-setup-script \
+	test-login-python-guest-fail-setup-script \
+	test-login-python-guest-logout \
+	test-login-python-remote-session \
+	test-autologin-python-timeout \
+	test-autologin-python-guest-timeout \
+	test-python-power \
+	test-python-power-no-console-kit \
+	test-python-power-no-login1 \
+	test-python-power-no-services
 
 if COMPILE_LIBLIGHTDM_QT4
 TESTS += \
@@ -261,6 +266,7 @@ EXTRA_DIST = \
 	data/greeters/test-qt5-greeter.desktop \
 	data/sessions/alternative.desktop \
 	data/sessions/default.desktop \
+	data/sessions/mir.desktop \
 	scripts/0-additional.conf \
 	scripts/1-additional.conf \
 	scripts/additional-config.conf \
@@ -343,6 +349,9 @@ EXTRA_DIST = \
 	scripts/login-two-factor.conf \
 	scripts/login-wrong-password.conf \
 	scripts/login-xserver-crash.conf \
+	scripts/mir-greeter-x-session.conf \
+	scripts/mir-greeter-mir-session.conf \
+	scripts/mir-session-x-greeter.conf \
 	scripts/no-accounts-service.conf \
 	scripts/no-config.conf \
 	scripts/no-console-kit.conf \
