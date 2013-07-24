@@ -13,9 +13,9 @@
 
 #include "seat-xlocal.h"
 #include "configuration.h"
-#include "xserver-local.h"
-#include "xgreeter.h"
-#include "xsession.h"
+#include "x-server-local.h"
+#include "x-greeter.h"
+#include "x-session.h"
 #include "vt.h"
 
 G_DEFINE_TYPE (SeatXLocal, seat_xlocal, SEAT_TYPE);
@@ -31,14 +31,14 @@ seat_xlocal_setup (Seat *seat)
 static DisplayServer *
 seat_xlocal_create_display_server (Seat *seat)
 {
-    XServerLocal *xserver;
+    XServerLocal *x_server;
     const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
     gboolean allow_tcp;
     gint port = 0;
 
     g_debug ("Starting local X display");
   
-    xserver = xserver_local_new ();
+    x_server = x_server_local_new ();
 
     /* If running inside an X server use Xephyr instead */
     if (g_getenv ("DISPLAY"))
@@ -46,26 +46,26 @@ seat_xlocal_create_display_server (Seat *seat)
     if (!command)
         command = seat_get_string_property (seat, "xserver-command");
     if (command)
-        xserver_local_set_command (xserver, command);
+        x_server_local_set_command (x_server, command);
 
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)
-        xserver_local_set_layout (xserver, layout);
+        x_server_local_set_layout (x_server, layout);
 
     config_file = seat_get_string_property (seat, "xserver-config");
     if (config_file)
-        xserver_local_set_config (xserver, config_file);
+        x_server_local_set_config (x_server, config_file);
   
     allow_tcp = seat_get_boolean_property (seat, "xserver-allow-tcp");
-    xserver_local_set_allow_tcp (xserver, allow_tcp);    
+    x_server_local_set_allow_tcp (x_server, allow_tcp);    
 
     xdmcp_manager = seat_get_string_property (seat, "xdmcp-manager");
     if (xdmcp_manager)
-        xserver_local_set_xdmcp_server (xserver, xdmcp_manager);
+        x_server_local_set_xdmcp_server (x_server, xdmcp_manager);
 
     port = seat_get_integer_property (seat, "xdmcp-port");
     if (port > 0)
-        xserver_local_set_xdmcp_port (xserver, port);
+        x_server_local_set_xdmcp_port (x_server, port);
 
     key_name = seat_get_string_property (seat, "xdmcp-key");
     if (key_name)
@@ -95,7 +95,7 @@ seat_xlocal_create_display_server (Seat *seat)
                 g_debug ("Key %s not defined", key_name);
 
             if (key)
-                xserver_local_set_xdmcp_key (xserver, key);
+                x_server_local_set_xdmcp_key (x_server, key);
             g_free (key);
         }
 
@@ -103,7 +103,7 @@ seat_xlocal_create_display_server (Seat *seat)
         g_key_file_free (keys);
     }
 
-    return DISPLAY_SERVER (xserver);
+    return DISPLAY_SERVER (x_server);
 }
 
 static Greeter *
@@ -111,7 +111,7 @@ seat_xlocal_create_greeter_session (Seat *seat)
 {
     XGreeter *greeter_session;
 
-    greeter_session = xgreeter_new ();
+    greeter_session = x_greeter_new ();
     session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
 
     return GREETER (greeter_session);
@@ -122,7 +122,7 @@ seat_xlocal_create_session (Seat *seat)
 {
     XSession *session;
 
-    session = xsession_new ();
+    session = x_session_new ();
     session_set_env (SESSION (session), "XDG_SEAT", "seat0");
 
     return SESSION (session);
@@ -162,11 +162,11 @@ static void
 seat_xlocal_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
     const gchar *path;
-    XServerLocal *xserver;
+    XServerLocal *x_server;
 
-    xserver = XSERVER_LOCAL (display_server);
-    path = xserver_local_get_authority_file_path (xserver);
-    process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));
+    x_server = X_SERVER_LOCAL (display_server);
+    path = x_server_local_get_authority_file_path (x_server);
+    process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
     process_set_env (script, "XAUTHORITY", path);
 
     SEAT_CLASS (seat_xlocal_parent_class)->run_script (seat, display_server, script);

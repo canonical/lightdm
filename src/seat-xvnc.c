@@ -10,9 +10,9 @@
  */
 
 #include "seat-xvnc.h"
-#include "xserver-xvnc.h"
-#include "xgreeter.h"
-#include "xsession.h"
+#include "x-server-xvnc.h"
+#include "x-greeter.h"
+#include "x-session.h"
 #include "configuration.h"
 
 G_DEFINE_TYPE (SeatXVNC, seat_xvnc, SEAT_TYPE);
@@ -36,15 +36,15 @@ SeatXVNC *seat_xvnc_new (GSocket *connection)
 static DisplayServer *
 seat_xvnc_create_display_server (Seat *seat)
 {
-    XServerXVNC *xserver;
+    XServerXVNC *x_server;
     const gchar *command = NULL;
 
-    xserver = xserver_xvnc_new ();
-    xserver_xvnc_set_socket (xserver, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
+    x_server = x_server_xvnc_new ();
+    x_server_xvnc_set_socket (x_server, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
 
     command = config_get_string (config_get_instance (), "VNCServer", "command");
     if (command)
-        xserver_xvnc_set_command (xserver, command);
+        x_server_xvnc_set_command (x_server, command);
 
     if (config_has_key (config_get_instance (), "VNCServer", "width") &&
         config_has_key (config_get_instance (), "VNCServer", "height"))
@@ -53,47 +53,47 @@ seat_xvnc_create_display_server (Seat *seat)
         width = config_get_integer (config_get_instance (), "VNCServer", "width");
         height = config_get_integer (config_get_instance (), "VNCServer", "height");
         if (height > 0 && width > 0)
-            xserver_xvnc_set_geometry (xserver, width, height);
+            x_server_xvnc_set_geometry (x_server, width, height);
     }
     if (config_has_key (config_get_instance (), "VNCServer", "depth"))
     {
         gint depth;
         depth = config_get_integer (config_get_instance (), "VNCServer", "depth");
         if (depth == 8 || depth == 16 || depth == 24 || depth == 32)
-            xserver_xvnc_set_depth (xserver, depth);
+            x_server_xvnc_set_depth (x_server, depth);
     }
 
-    return DISPLAY_SERVER (xserver);
+    return DISPLAY_SERVER (x_server);
 }
 
 static Greeter *
 seat_xvnc_create_greeter_session (Seat *seat)
 {
-    return GREETER (xgreeter_new ());
+    return GREETER (x_greeter_new ());
 }
 
 static Session *
 seat_xvnc_create_session (Seat *seat)
 {
-    return SESSION (xsession_new ());
+    return SESSION (x_session_new ());
 }
 
 static void
 seat_xvnc_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
-    XServerXVNC *xserver;
+    XServerXVNC *x_server;
     GInetSocketAddress *address;
     gchar *hostname;
     const gchar *path;
 
-    xserver = XSERVER_XVNC (display_server);
+    x_server = X_SERVER_XVNC (display_server);
 
     address = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (SEAT_XVNC (seat)->priv->connection, NULL));
     hostname = g_inet_address_to_string (g_inet_socket_address_get_address (address));
-    path = xserver_xvnc_get_authority_file_path (xserver);
+    path = x_server_xvnc_get_authority_file_path (x_server);
 
     process_set_env (script, "REMOTE_HOST", hostname);
-    process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));
+    process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
     process_set_env (script, "XAUTHORITY", path);
 
     g_free (hostname);

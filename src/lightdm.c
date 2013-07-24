@@ -27,7 +27,7 @@
 #include "vnc-server.h"
 #include "seat-xdmcp-session.h"
 #include "seat-xvnc.h"
-#include "xserver.h"
+#include "x-server.h"
 #include "process.h"
 #include "session-child.h"
 
@@ -958,15 +958,15 @@ main (int argc, char **argv)
     /* If running inside an X server use Xephyr for display */
     if (getenv ("DISPLAY") && getuid () != 0)
     {
-        gchar *xserver_path;
+        gchar *x_server_path;
 
-        xserver_path = g_find_program_in_path ("Xephyr");
-        if (!xserver_path)
+        x_server_path = g_find_program_in_path ("Xephyr");
+        if (!x_server_path)
         {
             g_printerr ("Running inside an X server requires Xephyr to be installed but it cannot be found.  Please install it or update your PATH environment variable.\n");
             return EXIT_FAILURE;
         }
-        g_free (xserver_path);
+        g_free (x_server_path);
     }
 
     /* Make sure the system binary directory (where the greeters are installed) is in the path */

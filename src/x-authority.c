@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include "xauthority.h"
+#include "x-authority.h"
 
 struct XAuthorityPrivate
 {
@@ -37,24 +37,24 @@ struct XAuthorityPrivate
     gsize authorization_data_length;
 };
 
-G_DEFINE_TYPE (XAuthority, xauth, G_TYPE_OBJECT);
+G_DEFINE_TYPE (XAuthority, x_authority, G_TYPE_OBJECT);
 
 XAuthority *
-xauth_new (guint16 family, const guint8 *address, gsize address_length, const gchar *number, const gchar *name, const guint8 *data, gsize data_length)
+x_authority_new (guint16 family, const guint8 *address, gsize address_length, const gchar *number, const gchar *name, const guint8 *data, gsize data_length)
 {
-    XAuthority *auth = g_object_new (XAUTHORITY_TYPE, NULL);
+    XAuthority *auth = g_object_new (X_AUTHORITY_TYPE, NULL);
 
-    xauth_set_family (auth, family);  
-    xauth_set_address (auth, address, address_length);
-    xauth_set_number (auth, number);
-    xauth_set_authorization_name (auth, name);
-    xauth_set_authorization_data (auth, data, data_length);
+    x_authority_set_family (auth, family);  
+    x_authority_set_address (auth, address, address_length);
+    x_authority_set_number (auth, number);
+    x_authority_set_authorization_name (auth, name);
+    x_authority_set_authorization_data (auth, data, data_length);
 
     return auth;
 }
 
 XAuthority *
-xauth_new_cookie (guint16 family, const guint8 *address, gsize address_length, const gchar *number)
+x_authority_new_cookie (guint16 family, const guint8 *address, gsize address_length, const gchar *number)
 {
     guint8 cookie[16];
     gint i;
@@ -62,25 +62,25 @@ xauth_new_cookie (guint16 family, const guint8 *address, gsize address_length, c
     for (i = 0; i < 16; i++)
         cookie[i] = g_random_int () & 0xFF;
 
-    return xauth_new (family, address, address_length, number, "MIT-MAGIC-COOKIE-1", cookie, 16);
+    return x_authority_new (family, address, address_length, number, "MIT-MAGIC-COOKIE-1", cookie, 16);
 }
 
 void
-xauth_set_family (XAuthority *auth, guint16 family)
+x_authority_set_family (XAuthority *auth, guint16 family)
 {
     g_return_if_fail (auth != NULL);
     auth->priv->family = family;
 }
 
 guint16
-xauth_get_family (XAuthority *auth)
+x_authority_get_family (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, 0);
     return auth->priv->family;
 }
 
 void
-xauth_set_address (XAuthority *auth, const guint8 *address, gsize address_length)
+x_authority_set_address (XAuthority *auth, const guint8 *address, gsize address_length)
 {
     g_return_if_fail (auth != NULL);
     g_free (auth->priv->address);
@@ -90,21 +90,21 @@ xauth_set_address (XAuthority *auth, const guint8 *address, gsize address_length
 }
 
 const guint8 *
-xauth_get_address (XAuthority *auth)
+x_authority_get_address (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, NULL);
     return auth->priv->address;
 }
 
 const gsize
-xauth_get_address_length (XAuthority *auth)
+x_authority_get_address_length (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, 0);
     return auth->priv->address_length;
 }
 
 void
-xauth_set_number (XAuthority *auth, const gchar *number)
+x_authority_set_number (XAuthority *auth, const gchar *number)
 {
     g_return_if_fail (auth != NULL);
     g_free (auth->priv->number);
@@ -112,14 +112,14 @@ xauth_set_number (XAuthority *auth, const gchar *number)
 }
 
 const gchar *
-xauth_get_number (XAuthority *auth)
+x_authority_get_number (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, NULL);
     return auth->priv->number;
 }
 
 void
-xauth_set_authorization_name (XAuthority *auth, const gchar *name)
+x_authority_set_authorization_name (XAuthority *auth, const gchar *name)
 {
     g_return_if_fail (auth != NULL);
     g_free (auth->priv->authorization_name);
@@ -127,14 +127,14 @@ xauth_set_authorization_name (XAuthority *auth, const gchar *name)
 }
 
 const gchar *
-xauth_get_authorization_name (XAuthority *auth)
+x_authority_get_authorization_name (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, NULL);
     return auth->priv->authorization_name;
 }
 
 void
-xauth_set_authorization_data (XAuthority *auth, const guint8 *data, gsize data_length)
+x_authority_set_authorization_data (XAuthority *auth, const guint8 *data, gsize data_length)
 {
     g_return_if_fail (auth != NULL);
     g_free (auth->priv->authorization_data);
@@ -144,14 +144,14 @@ xauth_set_authorization_data (XAuthority *auth, const guint8 *data, gsize data_l
 }
 
 const guint8 *
-xauth_get_authorization_data (XAuthority *auth)
+x_authority_get_authorization_data (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, NULL);
     return auth->priv->authorization_data;
 }
 
 guint8 *
-xauth_copy_authorization_data (XAuthority *auth)
+x_authority_copy_authorization_data (XAuthority *auth)
 {
     guint8 *data;
 
@@ -163,7 +163,7 @@ xauth_copy_authorization_data (XAuthority *auth)
 }
 
 gsize
-xauth_get_authorization_data_length (XAuthority *auth)
+x_authority_get_authorization_data_length (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, 0);
     return auth->priv->authorization_data_length;
@@ -233,7 +233,7 @@ write_string (FILE *file, const gchar *value)
 }
 
 gboolean
-xauth_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GError **error)
+x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GError **error)
 {
     gchar *input;
     gsize input_length = 0, input_offset = 0;
@@ -262,7 +262,7 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GErro
         guint16 address_length = 0;
         guint16 authorization_data_length = 0;
 
-        a = g_object_new (XAUTHORITY_TYPE, NULL);
+        a = g_object_new (X_AUTHORITY_TYPE, NULL);
 
         result = read_uint16 (input, input_length, &input_offset, &a->priv->family) &&
                  read_uint16 (input, input_length, &input_offset, &address_length) &&
@@ -300,7 +300,7 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GErro
                 continue;
             }
             else
-                xauth_set_authorization_data (a, auth->priv->authorization_data, auth->priv->authorization_data_length);
+                x_authority_set_authorization_data (a, auth->priv->authorization_data, auth->priv->authorization_data_length);
         }
 
         records = g_list_append (records, a);
@@ -347,33 +347,33 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GErro
 }    
 
 static void
-xauth_init (XAuthority *auth)
+x_authority_init (XAuthority *auth)
 {
-    auth->priv = G_TYPE_INSTANCE_GET_PRIVATE (auth, XAUTHORITY_TYPE, XAuthorityPrivate);
+    auth->priv = G_TYPE_INSTANCE_GET_PRIVATE (auth, X_AUTHORITY_TYPE, XAuthorityPrivate);
     auth->priv->number = g_strdup ("");
 }
 
 static void
-xauth_finalize (GObject *object)
+x_authority_finalize (GObject *object)
 {
     XAuthority *self;
 
-    self = XAUTHORITY (object);
+    self = X_AUTHORITY (object);
 
     g_free (self->priv->address);
     g_free (self->priv->number);
     g_free (self->priv->authorization_name);
     g_free (self->priv->authorization_data);
 
-    G_OBJECT_CLASS (xauth_parent_class)->finalize (object);  
+    G_OBJECT_CLASS (x_authority_parent_class)->finalize (object);  
 }
 
 static void
-xauth_class_init (XAuthorityClass *klass)
+x_authority_class_init (XAuthorityClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->finalize = xauth_finalize;
+    object_class->finalize = x_authority_finalize;
 
     g_type_class_add_private (klass, sizeof (XAuthorityPrivate));
 }

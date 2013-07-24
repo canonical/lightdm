@@ -13,9 +13,9 @@
 
 #include "seat-xremote.h"
 #include "configuration.h"
-#include "xserver-remote.h"
-#include "xgreeter.h"
-#include "xsession.h"
+#include "x-server-remote.h"
+#include "x-greeter.h"
+#include "x-session.h"
 
 G_DEFINE_TYPE (SeatXRemote, seat_xremote, SEAT_TYPE);
 
@@ -29,7 +29,7 @@ seat_xremote_setup (Seat *seat)
 static DisplayServer *
 seat_xremote_create_display_server (Seat *seat)
 {
-    XServerRemote *xserver;
+    XServerRemote *x_server;
     const gchar *hostname;
     gint number;
 
@@ -40,9 +40,9 @@ seat_xremote_create_display_server (Seat *seat)
 
     g_debug ("Starting remote X display %s:%d", hostname, number);
 
-    xserver = xserver_remote_new (hostname, number, NULL);
+    x_server = x_server_remote_new (hostname, number, NULL);
 
-    return DISPLAY_SERVER (xserver);
+    return DISPLAY_SERVER (x_server);
 }
 
 static Greeter *
@@ -50,7 +50,7 @@ seat_xremote_create_greeter_session (Seat *seat)
 {
     XGreeter *greeter_session;
 
-    greeter_session = xgreeter_new ();
+    greeter_session = x_greeter_new ();
     session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
 
     return GREETER (greeter_session);
@@ -59,17 +59,17 @@ seat_xremote_create_greeter_session (Seat *seat)
 static Session *
 seat_xremote_create_session (Seat *seat)
 {
-    return SESSION (xsession_new ());
+    return SESSION (x_session_new ());
 }
 
 static void
 seat_xremote_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
-    XServerRemote *xserver;
+    XServerRemote *x_server;
 
-    xserver = XSERVER_REMOTE (display_server);
-    process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));  
-    process_set_env (script, "REMOTE_HOST", xserver_get_hostname (XSERVER (xserver)));
+    x_server = X_SERVER_REMOTE (display_server);
+    process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));  
+    process_set_env (script, "REMOTE_HOST", x_server_get_hostname (X_SERVER (x_server)));
 
     SEAT_CLASS (seat_xremote_parent_class)->run_script (seat, display_server, script);
 }

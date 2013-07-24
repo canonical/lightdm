@@ -12,9 +12,9 @@
 #include <string.h>
 
 #include "seat-xdmcp-session.h"
-#include "xserver-remote.h"
-#include "xgreeter.h"
-#include "xsession.h"
+#include "x-server-remote.h"
+#include "x-greeter.h"
+#include "x-session.h"
 
 struct SeatXDMCPSessionPrivate
 {
@@ -40,26 +40,26 @@ seat_xdmcp_session_create_display_server (Seat *seat)
 {
     XAuthority *authority;
     gchar *host;
-    XServerRemote *xserver;
+    XServerRemote *x_server;
 
     authority = xdmcp_session_get_authority (SEAT_XDMCP_SESSION (seat)->priv->session);
     host = g_inet_address_to_string (xdmcp_session_get_address (SEAT_XDMCP_SESSION (seat)->priv->session));
-    xserver = xserver_remote_new (host, xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session), authority);
+    x_server = x_server_remote_new (host, xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session), authority);
     g_free (host);
 
-    return DISPLAY_SERVER (xserver);
+    return DISPLAY_SERVER (x_server);
 }
 
 static Greeter *
 seat_xdmcp_session_create_greeter_session (Seat *seat)
 {
-    return GREETER (xgreeter_new ());
+    return GREETER (x_greeter_new ());
 }
 
 static Session *
 seat_xdmcp_session_create_session (Seat *seat)
 {
-    return SESSION (xsession_new ());
+    return SESSION (x_session_new ());
 }
 
 static void
