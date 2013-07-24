@@ -134,7 +134,7 @@ const gchar *
 session_get_session_type (Session *session)
 {
     g_return_val_if_fail (session != NULL, NULL);
-    return NULL;
+    return "x";
 }
 
 void

@@ -37,6 +37,7 @@ typedef struct
 {
     GObjectClass parent_class;
 
+    gboolean (*get_start_local_sessions) (Seat *seat);
     void (*setup)(Seat *seat);
     gboolean (*start)(Seat *seat);
     DisplayServer *(*create_display_server) (Seat *seat, const gchar *session_type);

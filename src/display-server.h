@@ -54,10 +54,6 @@ const gchar *display_server_get_name (DisplayServer *server);
 
 gint display_server_get_vt (DisplayServer *server);
 
-void display_server_set_start_local_sessions (DisplayServer *server, gboolean start_local_sessions);
-
-gboolean display_server_get_start_local_sessions (DisplayServer *server);
-
 gboolean display_server_start (DisplayServer *server);
 
 void display_server_setup_session (DisplayServer *server, Session *session);
