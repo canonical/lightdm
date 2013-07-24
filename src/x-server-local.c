@@ -21,7 +21,6 @@
 #include "x-server-local.h"
 #include "configuration.h"
 #include "process.h"
-#include "vt.h"
 
 struct XServerLocalPrivate
 {
