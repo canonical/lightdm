@@ -729,12 +729,16 @@ create_user_session (Seat *seat, const gchar *username)
         session_set_username (session, username);
         session_set_do_authenticate (session, TRUE);
         argv = get_session_argv (session_config, seat_get_string_property (seat, "session-wrapper"));
-        g_object_unref (session_config);
         session_set_argv (session, argv);
         g_strfreev (argv);
+
+        g_object_unref (session_config);
     }
     else
+    {
         g_debug ("Can't find session '%s'", seat_get_string_property (seat, "user-session"));
+        session = NULL;
+    }
 
     g_object_unref (user);
 
@@ -941,7 +945,6 @@ create_greeter_session (Seat *seat)
         return NULL;
 
     argv = get_session_argv (session_config, NULL);
-    g_object_unref (session_config);
     greeter_wrapper = seat_get_string_property (seat, "greeter-wrapper");
     if (greeter_wrapper)
     {
@@ -952,6 +955,7 @@ create_greeter_session (Seat *seat)
     }
 
     greeter_session = SEAT_GET_CLASS (seat)->create_greeter_session (seat);
+    session_set_session_type (SESSION (greeter_session), session_config_get_session_type (session_config));
     seat->priv->sessions = g_list_append (seat->priv->sessions, SESSION (greeter_session));
     g_signal_connect (greeter_session, "authentication-complete", G_CALLBACK (session_authentication_complete_cb), seat);
     g_signal_connect (greeter_session, "stopped", G_CALLBACK (session_stopped_cb), seat);
@@ -976,6 +980,8 @@ create_greeter_session (Seat *seat)
     greeter_set_hint (greeter_session, "show-manual-login", seat_get_boolean_property (seat, "greeter-show-manual-login") ? "true" : "false");
     greeter_set_hint (greeter_session, "show-remote-login", seat_get_boolean_property (seat, "greeter-show-remote-login") ? "true" : "false");
     greeter_set_hint (greeter_session, "has-guest-account", seat_get_allow_guest (seat) && seat_get_boolean_property (seat, "greeter-allow-guest") ? "true" : "false");
+
+    g_object_unref (session_config);
 
     return greeter_session;
 }

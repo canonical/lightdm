@@ -14,7 +14,8 @@
 #include "mir-server.h"
 
 struct MirServerPrivate
-{  
+{
+    int dummy;
 };
 
 G_DEFINE_TYPE (MirServer, mir_server, DISPLAY_SERVER_TYPE);

@@ -41,11 +41,14 @@ session_config_new_from_file (const gchar *filename, GError **error)
                      "No Exec option in session file: %s", filename);
         return NULL;
     }
-    g_key_file_free (desktop_file);
 
     config = g_object_new (SESSION_CONFIG_TYPE, NULL);
     config->priv->command = command;
     config->priv->session_type = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Session-Type", NULL);
+    if (!config->priv->session_type)
+        config->priv->session_type = g_strdup ("x");
+
+    g_key_file_free (desktop_file);
 
     return config;
 }
