@@ -300,6 +300,12 @@ check_stopped (Seat *seat)
     }
 }
 
+static gboolean
+get_start_local_sessions (Seat *seat)
+{
+    return SEAT_GET_CLASS (seat)->get_start_local_sessions (seat);
+}
+
 static void
 display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 {
@@ -343,7 +349,7 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     }
     g_list_free_full (list, g_object_unref);
 
-    if (!seat->priv->stopping && display_server_get_start_local_sessions (display_server))
+    if (!seat->priv->stopping && get_start_local_sessions (seat))
     {
         /* If we were the active session, switch to a greeter */
         active_session = seat_get_active_session (seat);
@@ -1002,7 +1008,7 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
     }
 
     /* Stop if don't need to run a session */
-    if (!display_server_get_start_local_sessions (display_server))
+    if (!get_start_local_sessions (seat))
         return;
 
     emit_upstart_signal ("login-session-start");
@@ -1237,6 +1243,12 @@ seat_get_is_stopping (Seat *seat)
     return seat->priv->stopping;
 }
 
+static gboolean
+seat_real_get_start_local_sessions (Seat *seat)
+{
+    return TRUE;
+}
+
 static void
 seat_real_setup (Seat *seat)
 {
@@ -1257,7 +1269,7 @@ seat_real_start (Seat *seat)
     display_server = create_display_server (seat);
 
     /* If this display server doesn't have a session running on it, just start it */
-    if (!display_server_get_start_local_sessions (display_server))
+    if (!get_start_local_sessions (seat))
         return display_server_start (display_server);
 
     /* Get autologin settings */
@@ -1429,6 +1441,7 @@ seat_class_init (SeatClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
+    klass->get_start_local_sessions = seat_real_get_start_local_sessions;
     klass->setup = seat_real_setup;
     klass->start = seat_real_start;
     klass->set_active_session = seat_real_set_active_session;
