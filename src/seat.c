@@ -17,6 +17,7 @@
 #include "configuration.h"
 #include "guest-account.h"
 #include "greeter.h"
+#include "session-config.h"
 
 enum {
     SESSION_ADDED,
@@ -613,30 +614,12 @@ create_session (Seat *seat, gboolean autostart)
 }
 
 static gchar **
-get_session_argv_from_filename (const gchar *filename, const gchar *session_wrapper)
+get_session_argv (SessionConfig *session_config, const gchar *session_wrapper)
 {
-    GKeyFile *session_desktop_file;
     gboolean result;
     int argc;
-    gchar *command = NULL, **argv, *path;
+    gchar **argv, *path;
     GError *error = NULL;
-
-    /* Read the command from the .desktop file */
-    session_desktop_file = g_key_file_new ();
-    result = g_key_file_load_from_file (session_desktop_file, filename, G_KEY_FILE_NONE, &error);
-    if (error)
-        g_debug ("Failed to load session file %s: %s", filename, error->message);
-    g_clear_error (&error);
-    if (result)
-    {
-        command = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
-        if (!command)
-            g_debug ("No command in session file %s", filename);
-    }
-    g_key_file_free (session_desktop_file);
-
-    if (!command)
-        return NULL;
 
     /* If configured, run sessions through a wrapper */
     if (session_wrapper)
@@ -644,17 +627,16 @@ get_session_argv_from_filename (const gchar *filename, const gchar *session_wrap
         argv = g_malloc (sizeof (gchar *) * 3);
         path = g_find_program_in_path (session_wrapper);
         argv[0] = path ? path : g_strdup (session_wrapper);
-        argv[1] = command;
+        argv[1] = g_strdup (session_config_get_command (session_config));
         argv[2] = NULL;
         return argv;
     }
 
     /* Split command into an array listing and make command absolute */
-    result = g_shell_parse_argv (command, &argc, &argv, &error);
+    result = g_shell_parse_argv (session_config_get_command (session_config), &argc, &argv, &error);
     if (error)
-        g_debug ("Invalid session command '%s': %s", command, error->message);
+        g_debug ("Invalid session command '%s': %s", session_config_get_command (session_config), error->message);
     g_clear_error (&error);
-    g_free (command);
     if (!result)
         return NULL;
     path = g_find_program_in_path (argv[0]);
@@ -667,11 +649,13 @@ get_session_argv_from_filename (const gchar *filename, const gchar *session_wrap
     return argv;
 }
 
-static gchar **
-get_session_argv (const gchar *sessions_dir, const gchar *session_name, const gchar *session_wrapper)
+static SessionConfig *
+find_session_config (const gchar *sessions_dir, const gchar *session_name)
 {
-    gchar **dirs, **argv = NULL;
+    gchar **dirs;
+    SessionConfig *session_config = NULL;
     int i;
+    GError *error = NULL;
 
     g_return_val_if_fail (sessions_dir != NULL, NULL);
     g_return_val_if_fail (session_name != NULL, NULL);
@@ -684,22 +668,27 @@ get_session_argv (const gchar *sessions_dir, const gchar *session_name, const gc
         filename = g_strdup_printf ("%s.desktop", session_name);
         path = g_build_filename (dirs[i], filename, NULL);
         g_free (filename);
-        argv = get_session_argv_from_filename (path, session_wrapper);
+        session_config = session_config_new_from_file (path, &error);
         g_free (path);
-        if (argv)
+        if (session_config)
             break;
+
+        if (dirs[i+1] == NULL)
+            g_debug ("Failed to find session configuration %s", session_name);
+        g_clear_error (&error);
     }
     g_strfreev (dirs);
 
-    return argv;
+    return session_config;
 }
 
 static Session *
 create_user_session (Seat *seat, const gchar *username)
 {
     User *user;
-    gchar *sessions_dir, **argv;
+    gchar *sessions_dir;
     const gchar *session_name, *language;
+    SessionConfig *session_config;
     Session *session = NULL;
 
     /* Load user preferences */
@@ -715,10 +704,12 @@ create_user_session (Seat *seat, const gchar *username)
     if (!session_name)
         session_name = seat_get_string_property (seat, "user-session");
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
-    argv = get_session_argv (sessions_dir, session_name, seat_get_string_property (seat, "session-wrapper"));
+    session_config = find_session_config (sessions_dir, session_name);
     g_free (sessions_dir);
-    if (argv)
+    if (session_config)
     {
+        gchar **argv;
+
         session = create_session (seat, TRUE);
         session_set_env (session, "DESKTOP_SESSION", session_name);
         session_set_env (session, "GDMSESSION", session_name);
@@ -730,10 +721,15 @@ create_user_session (Seat *seat, const gchar *username)
         session_set_pam_service (session, AUTOLOGIN_SERVICE);
         session_set_username (session, username);
         session_set_do_authenticate (session, TRUE);
-        session_set_argv (session, argv);     
+        argv = get_session_argv (session_config, seat_get_string_property (seat, "session-wrapper"));
+        session_set_argv (session, argv);
+        g_strfreev (argv);
+
+        g_object_unref (session_config);
     }
     else
         g_debug ("Can't find session '%s'", seat_get_string_property (seat, "user-session"));
+
 
     g_object_unref (user);
 
@@ -744,14 +740,13 @@ static Session *
 create_guest_session (Seat *seat)
 {
     gchar *sessions_dir, **argv;
+    SessionConfig *session_config;
     Session *session;
 
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
-    argv = get_session_argv (sessions_dir,
-                             seat_get_string_property (seat, "user-session"),
-                             seat_get_string_property (seat, "session-wrapper"));
+    session_config = find_session_config (sessions_dir, seat_get_string_property (seat, "user-session"));
     g_free (sessions_dir);
-    if (!argv)
+    if (!session_config)
     {
         g_debug ("Can't find session '%s'", seat_get_string_property (seat, "user-session"));
         return NULL;
@@ -760,7 +755,10 @@ create_guest_session (Seat *seat)
     session = create_session (seat, TRUE);
     session_set_do_authenticate (session, TRUE);
     session_set_is_guest (session, TRUE);
+    argv = get_session_argv (session_config, seat_get_string_property (seat, "session-wrapper"));
+    g_object_unref (session_config);
     session_set_argv (session, argv);
+    g_strfreev (argv);
   
     return session;
 }
@@ -817,6 +815,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
 {
     Session *session, *existing_session;
     const gchar *username, *language = NULL;
+    SessionConfig *session_config;
     User *user;
     gchar *sessions_dir = NULL;
     gchar **argv;
@@ -873,15 +872,16 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     if (user)
         user_set_xsession (session_get_user (session), session_name);
 
-    argv = get_session_argv (sessions_dir, session_name, seat_get_string_property (seat, "session-wrapper"));
+    session_config = find_session_config (sessions_dir, session_name);
     g_free (sessions_dir);
-  
-    if (!argv)
+    if (!session_config)
     {
         g_debug ("Can't find session '%s'", seat_get_string_property (seat, "user-session"));
         return FALSE;
     }
 
+    argv = get_session_argv (session_config, seat_get_string_property (seat, "session-wrapper"));
+    g_object_unref (session_config);
     session_set_argv (session, argv);
     g_strfreev (argv);
     session_set_env (session, "DESKTOP_SESSION", session_name);
@@ -922,18 +922,18 @@ static Greeter *
 create_greeter_session (Seat *seat)
 {
     gchar *sessions_dir, **argv;
+    SessionConfig *session_config;
     Greeter *greeter_session;
     gchar *greeter_user;
     const gchar *greeter_wrapper;
 
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "greeters-directory");
-    argv = get_session_argv (sessions_dir,
-                             seat_get_string_property (seat, "greeter-session"),
-                             NULL);
+    session_config = find_session_config (sessions_dir, seat_get_string_property (seat, "greeter-session"));
     g_free (sessions_dir);
-    if (!argv)
+    if (!session_config)
         return NULL;
 
+    argv = get_session_argv (session_config, NULL);
     greeter_wrapper = seat_get_string_property (seat, "greeter-wrapper");
     if (greeter_wrapper)
     {
@@ -955,6 +955,7 @@ create_greeter_session (Seat *seat)
     session_set_username (SESSION (greeter_session), greeter_user);
     g_free (greeter_user);
     session_set_argv (SESSION (greeter_session), argv);
+    g_strfreev (argv);
 
     greeter_set_pam_services (greeter_session, USER_SERVICE, AUTOLOGIN_SERVICE);
     g_signal_connect (greeter_session, "create-session", G_CALLBACK (greeter_create_session_cb), seat);
@@ -967,6 +968,8 @@ create_greeter_session (Seat *seat)
     greeter_set_hint (greeter_session, "show-manual-login", seat_get_boolean_property (seat, "greeter-show-manual-login") ? "true" : "false");
     greeter_set_hint (greeter_session, "show-remote-login", seat_get_boolean_property (seat, "greeter-show-remote-login") ? "true" : "false");
     greeter_set_hint (greeter_session, "has-guest-account", seat_get_allow_guest (seat) && seat_get_boolean_property (seat, "greeter-allow-guest") ? "true" : "false");
+
+    g_object_unref (session_config);
 
     return greeter_session;
 }
