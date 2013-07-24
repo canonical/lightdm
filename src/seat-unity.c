@@ -34,9 +34,6 @@ struct SeatUnityPrivate
     /* VT we are running on */
     gint vt;
 
-    /* TRUE if waiting for X server to start before stopping Plymouth */
-    gboolean stopping_plymouth;
-
     /* File to log to */
     gchar *log_file;
 
@@ -118,13 +115,6 @@ compositor_stopped_cb (Process *process, SeatUnity *seat)
 
     g_debug ("Stopping Unity seat, compositor terminated");
 
-    if (seat->priv->stopping_plymouth)
-    {
-        g_debug ("Stopping Plymouth, compositor failed to start");
-        plymouth_quit (FALSE);
-        seat->priv->stopping_plymouth = FALSE;
-    }
-
     seat_stop (SEAT (seat));
 }
 
@@ -153,12 +143,6 @@ compositor_run_cb (Process *process, SeatUnity *seat)
              close (fd);
          }
     }
-
-    if (seat->priv->stopping_plymouth)
-    {      
-        seat->priv->stopping_plymouth = FALSE;
-        plymouth_quit (TRUE);
-    }  
 }
 
 static void
@@ -321,14 +305,14 @@ seat_unity_start (Seat *seat)
         gint active_vt = vt_get_active ();
         if (active_vt >= vt_get_min ())
         {
-            g_debug ("Compositor will replace Plymouth");
-            SEAT_UNITY (seat)->priv->stopping_plymouth = TRUE;
             SEAT_UNITY (seat)->priv->vt = active_vt;
-            plymouth_deactivate ();
+            plymouth_quit (TRUE);
         }
         else
             g_debug ("Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());
     }
+    if (plymouth_get_is_active ())
+        plymouth_quit (FALSE);
     if (SEAT_UNITY (seat)->priv->vt < 0)
         SEAT_UNITY (seat)->priv->vt = vt_get_unused ();
     if (SEAT_UNITY (seat)->priv->vt < 0)
@@ -393,6 +377,19 @@ seat_unity_start (Seat *seat)
     return TRUE;
 }
 
+static void
+x_server_stopped_cb (XServerLocal *x_server, Seat *seat)
+{
+    gint vt;
+
+    /* Can re-use the VT */
+    vt = display_server_get_vt (DISPLAY_SERVER (x_server));
+    if (vt > 0)
+        vt_unref (vt);
+
+    g_signal_handlers_disconnect_matched (x_server, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, x_server_stopped_cb, NULL);
+}
+
 static DisplayServer *
 seat_unity_create_display_server (Seat *seat)
 {
@@ -418,6 +415,16 @@ seat_unity_create_display_server (Seat *seat)
     command = seat_get_string_property (seat, "xserver-command");
     if (command)
         x_server_local_set_command (x_server, command);
+
+    if (SEAT_UNITY (seat)->priv->use_vt_switching)
+    {
+        gint vt;
+      
+        vt = vt_get_unused ();
+        vt_ref (vt);
+        x_server_local_set_vt (x_server, vt);
+        g_signal_connect (x_server, "stopped", G_CALLBACK (x_server_stopped_cb), seat);
+    }
 
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)
