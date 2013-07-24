@@ -41,7 +41,7 @@ status_request_cb (GSocket *socket, GIOCondition condition, gpointer data)
     return TRUE;
 }
 
-void
+gboolean
 status_connect (StatusRequestFunc request_cb)
 {
     gchar *path;
@@ -57,7 +57,7 @@ status_connect (StatusRequestFunc request_cb)
         g_printerr ("Unable to open socket for status: %s\n", error->message);
     g_clear_error (&error);
     if (!status_socket)
-        return;
+        return FALSE;
 
     path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".s", NULL);
     address = g_unix_socket_address_new (path);
@@ -68,11 +68,13 @@ status_connect (StatusRequestFunc request_cb)
     g_clear_error (&error);
     g_free (path);
     if (!result)
-        return;
+        return FALSE;
 
     source = g_socket_create_source (status_socket, G_IO_IN, NULL);
     g_source_set_callback (source, (GSourceFunc) status_request_cb, NULL, NULL);
-    g_source_attach (source, NULL);   
+    g_source_attach (source, NULL);
+
+    return TRUE;
 }
 
 void

@@ -15,7 +15,7 @@ dist_noinst_SCRIPTS = lightdm-session \
                       test-python-greeter
 noinst_LTLIBRARIES = libsystem.la
 
-libsystem_la_SOURCES = libsystem.c
+libsystem_la_SOURCES = libsystem.c status.c status.h
 libsystem_la_CFLAGS = \
 	$(GLIB_CFLAGS) \
 	$(GIO_UNIX_CFLAGS) \
