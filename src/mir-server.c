@@ -12,11 +12,18 @@
 #include <string.h>
 
 #include "mir-server.h"
+#include "configuration.h"
 
 struct MirServerPrivate
 {
     /* VT to run on */
     gint vt;
+
+    /* Mir socket for children of this display server to communicate on */
+    gchar *mir_socket;
+
+    /* Mir socket for this server to talk to parent */
+    gchar *mir_parent_socket;
 };
 
 G_DEFINE_TYPE (MirServer, mir_server, DISPLAY_SERVER_TYPE);
@@ -42,6 +49,19 @@ mir_server_start (DisplayServer *display_server)
 static void
 mir_server_setup_session (DisplayServer *display_server, Session *session)
 {
+    MirServer *mir_server;
+
+    mir_server = MIR_SERVER (display_server);
+    if (mir_server->priv->mir_socket)
+        session_set_env (session, "MIR_SOCKET", mir_server->priv->mir_socket);
+    if (mir_server->priv->mir_parent_socket)
+        session_set_env (session, "MIR_SERVER_FILE", mir_server->priv->mir_parent_socket);
+    if (mir_server->priv->vt > 0)
+    {
+        gchar *value = g_strdup_printf ("%d", mir_server->priv->vt);
+        session_set_env (session, "MIR_SERVER_VT", value);
+        g_free (value);
+    }
 }
 
 static void

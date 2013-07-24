@@ -43,6 +43,7 @@ typedef struct
     gint (*get_vt)(DisplayServer *server);
     gboolean (*start)(DisplayServer *server);
     void (*setup_session)(DisplayServer *server, Session *session);
+    // FIXME: Also need a cleanup_session in case you switch between server types
     void (*stop)(DisplayServer *server);
 } DisplayServerClass;
 

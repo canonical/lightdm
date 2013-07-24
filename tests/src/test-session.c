@@ -167,16 +167,22 @@ request_cb (const gchar *request)
 int
 main (int argc, char **argv)
 {
-    gchar *display;
+    gchar *display, *mir_socket;
     int fd, open_max;
 
     display = getenv ("DISPLAY");
-    if (display == NULL)
-        session_id = g_strdup ("SESSION-?");
-    else if (display[0] == ':')
-        session_id = g_strdup_printf ("SESSION-X-%s", display + 1);
+    mir_socket = getenv ("DISPLAY");
+    if (display)
+    {
+        if (display[0] == ':')
+            session_id = g_strdup_printf ("SESSION-X-%s", display + 1);
+        else
+            session_id = g_strdup_printf ("SESSION-X-%s", display);
+    }
+    else if (mir_socket)
+        session_id = g_strdup ("SESSION-MIR");
     else
-        session_id = g_strdup_printf ("SESSION-X-%s", display);
+        session_id = g_strdup ("SESSION-?");
 
     open_fds = g_string_new ("");
     open_max = sysconf (_SC_OPEN_MAX);
