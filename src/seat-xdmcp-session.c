@@ -12,7 +12,7 @@
 #include <string.h>
 
 #include "seat-xdmcp-session.h"
-#include "xserver-remote.h"
+#include "x-server-remote.h"
 
 struct SeatXDMCPSessionPrivate
 {
@@ -38,7 +38,7 @@ seat_xdmcp_session_create_display_server (Seat *seat, const gchar *session_type)
 {
     XAuthority *authority;
     gchar *host;
-    XServerRemote *xserver;
+    XServerRemote *x_server;
 
     if (strcmp (session_type, "x") != 0)
     {
@@ -48,10 +48,10 @@ seat_xdmcp_session_create_display_server (Seat *seat, const gchar *session_type)
 
     authority = xdmcp_session_get_authority (SEAT_XDMCP_SESSION (seat)->priv->session);
     host = g_inet_address_to_string (xdmcp_session_get_address (SEAT_XDMCP_SESSION (seat)->priv->session));
-    xserver = xserver_remote_new (host, xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session), authority);
+    x_server = x_server_remote_new (host, xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session), authority);
     g_free (host);
 
-    return DISPLAY_SERVER (xserver);
+    return DISPLAY_SERVER (x_server);
 }
 
 static void

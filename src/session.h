@@ -20,7 +20,7 @@ typedef struct Session Session;
 
 #include "display-server.h"
 #include "accounts.h"
-#include "xauthority.h"
+#include "x-authority.h"
 
 G_BEGIN_DECLS
 
@@ -92,7 +92,7 @@ void session_set_tty (Session *session, const gchar *tty);
 
 void session_set_xdisplay (Session *session, const gchar *xdisplay);
 
-void session_set_xauthority (Session *session, XAuthority *authority, gboolean use_system_location);
+void session_set_x_authority (Session *session, XAuthority *authority, gboolean use_system_location);
 
 void session_set_remote_host_name (Session *session, const gchar *remote_host_name);
 

@@ -13,7 +13,7 @@
 #include <string.h>
 #include <xcb/xcb.h>
 
-#include "xserver.h"
+#include "x-server.h"
 #include "configuration.h"
 
 struct XServerPrivate
@@ -34,10 +34,10 @@ struct XServerPrivate
     xcb_connection_t *connection;
 };
 
-G_DEFINE_TYPE (XServer, xserver, DISPLAY_SERVER_TYPE);
+G_DEFINE_TYPE (XServer, x_server, DISPLAY_SERVER_TYPE);
 
 void
-xserver_set_hostname (XServer *server, const gchar *hostname)
+x_server_set_hostname (XServer *server, const gchar *hostname)
 {
     g_return_if_fail (server != NULL);
     g_free (server->priv->hostname);
@@ -47,14 +47,14 @@ xserver_set_hostname (XServer *server, const gchar *hostname)
 }
 
 gchar *
-xserver_get_hostname (XServer *server)
+x_server_get_hostname (XServer *server)
 {
     g_return_val_if_fail (server != NULL, NULL);
     return server->priv->hostname;
 }
 
 void
-xserver_set_display_number (XServer *server, guint number)
+x_server_set_display_number (XServer *server, guint number)
 {
     g_return_if_fail (server != NULL);
     server->priv->number = number;
@@ -63,14 +63,14 @@ xserver_set_display_number (XServer *server, guint number)
 }
 
 guint
-xserver_get_display_number (XServer *server)
+x_server_get_display_number (XServer *server)
 {
     g_return_val_if_fail (server != NULL, 0);
     return server->priv->number;
 }
 
 const gchar *
-xserver_get_address (XServer *server)
+x_server_get_address (XServer *server)
 {
     g_return_val_if_fail (server != NULL, NULL);
 
@@ -86,7 +86,7 @@ xserver_get_address (XServer *server)
 }
 
 void
-xserver_set_authority (XServer *server, XAuthority *authority)
+x_server_set_authority (XServer *server, XAuthority *authority)
 {
     g_return_if_fail (server != NULL);
 
@@ -99,41 +99,41 @@ xserver_set_authority (XServer *server, XAuthority *authority)
 }
 
 XAuthority *
-xserver_get_authority (XServer *server)
+x_server_get_authority (XServer *server)
 {
     g_return_val_if_fail (server != NULL, NULL);
     return server->priv->authority;
 }
 
 static gboolean
-xserver_start (DisplayServer *display_server)
+x_server_start (DisplayServer *display_server)
 {
-    XServer *server = XSERVER (display_server);
+    XServer *server = X_SERVER (display_server);
     xcb_auth_info_t *auth = NULL, a;
 
     if (server->priv->authority)
     {
-        a.namelen = strlen (xauth_get_authorization_name (server->priv->authority));
-        a.name = (char *) xauth_get_authorization_name (server->priv->authority);
-        a.datalen = xauth_get_authorization_data_length (server->priv->authority);
-        a.data = (char *) xauth_get_authorization_data (server->priv->authority);
+        a.namelen = strlen (x_authority_get_authorization_name (server->priv->authority));
+        a.name = (char *) x_authority_get_authorization_name (server->priv->authority);
+        a.datalen = x_authority_get_authorization_data_length (server->priv->authority);
+        a.data = (char *) x_authority_get_authorization_data (server->priv->authority);
         auth = &a;
     }
 
     /* Open connection */  
-    g_debug ("Connecting to XServer %s", xserver_get_address (server));
-    server->priv->connection = xcb_connect_to_display_with_auth_info (xserver_get_address (server), auth, NULL);
+    g_debug ("Connecting to XServer %s", x_server_get_address (server));
+    server->priv->connection = xcb_connect_to_display_with_auth_info (x_server_get_address (server), auth, NULL);
     if (xcb_connection_has_error (server->priv->connection))
     {
-        g_debug ("Error connecting to XServer %s", xserver_get_address (server));
+        g_debug ("Error connecting to XServer %s", x_server_get_address (server));
         return FALSE;
     }
 
-    return DISPLAY_SERVER_CLASS (xserver_parent_class)->start (display_server);
+    return DISPLAY_SERVER_CLASS (x_server_parent_class)->start (display_server);
 }
 
 static void
-xserver_setup_session (DisplayServer *display_server, Session *session)
+x_server_setup_session (DisplayServer *display_server, Session *session)
 {
     gint vt;
 
@@ -153,27 +153,27 @@ xserver_setup_session (DisplayServer *display_server, Session *session)
         g_free (t);
     }
 
-    session_set_env (session, "DISPLAY", xserver_get_address (XSERVER (display_server)));
-    session_set_tty (session, xserver_get_address (XSERVER (display_server)));
-    session_set_xdisplay (session, xserver_get_address (XSERVER (display_server)));
-    session_set_remote_host_name (session, xserver_get_hostname (XSERVER (display_server)));
-    session_set_xauthority (session,
-                            xserver_get_authority (XSERVER (display_server)),
-                            config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"));
+    session_set_env (session, "DISPLAY", x_server_get_address (X_SERVER (display_server)));
+    session_set_tty (session, x_server_get_address (X_SERVER (display_server)));
+    session_set_xdisplay (session, x_server_get_address (X_SERVER (display_server)));
+    session_set_remote_host_name (session, x_server_get_hostname (X_SERVER (display_server)));
+    session_set_x_authority (session,
+                             x_server_get_authority (X_SERVER (display_server)),
+                             config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"));
 }
 
-static void
-xserver_init (XServer *server)
+void
+x_server_init (XServer *server)
 {
-    server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_TYPE, XServerPrivate);
+    server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, X_SERVER_TYPE, XServerPrivate);
 }
 
 static void
-xserver_finalize (GObject *object)
+x_server_finalize (GObject *object)
 {
     XServer *self;
 
-    self = XSERVER (object);
+    self = X_SERVER (object);
 
     g_free (self->priv->hostname);
     g_free (self->priv->address);
@@ -182,18 +182,18 @@ xserver_finalize (GObject *object)
     if (self->priv->connection)
         xcb_disconnect (self->priv->connection);
 
-    G_OBJECT_CLASS (xserver_parent_class)->finalize (object);
+    G_OBJECT_CLASS (x_server_parent_class)->finalize (object);
 }
 
 static void
-xserver_class_init (XServerClass *klass)
+x_server_class_init (XServerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
-    display_server_class->start = xserver_start;
-    display_server_class->setup_session = xserver_setup_session;
-    object_class->finalize = xserver_finalize;
+    display_server_class->start = x_server_start;
+    display_server_class->setup_session = x_server_setup_session;
+    object_class->finalize = x_server_finalize;
 
     g_type_class_add_private (klass, sizeof (XServerPrivate));
 }

@@ -13,7 +13,7 @@
 #define XDMCP_SESSION_PRIVATE_H_
 
 #include "xdmcp-server.h"
-#include "xauthority.h"
+#include "x-authority.h"
 
 struct XDMCPSessionPrivate
 {

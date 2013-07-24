@@ -18,7 +18,7 @@
 #include <glib/gstdio.h>
 #include <stdlib.h>
 
-#include "xserver-local.h"
+#include "x-server-local.h"
 #include "configuration.h"
 #include "process.h"
 #include "vt.h"
@@ -27,7 +27,7 @@
 struct XServerLocalPrivate
 {
     /* X server process */
-    Process *xserver_process;
+    Process *x_server_process;
   
     /* File to log to */
     gchar *log_file;    
@@ -75,7 +75,7 @@ struct XServerLocalPrivate
     gboolean replacing_plymouth;
 };
 
-G_DEFINE_TYPE (XServerLocal, xserver_local, XSERVER_TYPE);
+G_DEFINE_TYPE (XServerLocal, x_server_local, X_SERVER_TYPE);
 
 static GList *display_numbers = NULL;
 
@@ -120,7 +120,7 @@ display_number_in_use (guint display_number)
 }
 
 guint
-xserver_local_get_unused_display_number (void)
+x_server_local_get_unused_display_number (void)
 {
     guint number;
 
@@ -134,7 +134,7 @@ xserver_local_get_unused_display_number (void)
 }
 
 void
-xserver_local_release_display_number (guint display_number)
+x_server_local_release_display_number (guint display_number)
 {
     GList *link;
     for (link = display_numbers; link; link = link->next)
@@ -149,19 +149,19 @@ xserver_local_release_display_number (guint display_number)
 }
 
 XServerLocal *
-xserver_local_new (void)
+x_server_local_new (void)
 {
-    XServerLocal *self = g_object_new (XSERVER_LOCAL_TYPE, NULL);
+    XServerLocal *self = g_object_new (X_SERVER_LOCAL_TYPE, NULL);
     gchar hostname[1024], *number, *name;
 
-    xserver_set_display_number (XSERVER (self), xserver_local_get_unused_display_number ());
+    x_server_set_display_number (X_SERVER (self), x_server_local_get_unused_display_number ());
 
     gethostname (hostname, 1024);
-    number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (self)));
-    xserver_set_authority (XSERVER (self), xauth_new_cookie (XAUTH_FAMILY_LOCAL, (guint8*) hostname, strlen (hostname), number));
+    number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (self)));
+    x_server_set_authority (X_SERVER (self), x_authority_new_cookie (XAUTH_FAMILY_LOCAL, (guint8*) hostname, strlen (hostname), number));
     g_free (number);
 
-    name = g_strdup_printf ("x-%d", xserver_get_display_number (XSERVER (self)));
+    name = g_strdup_printf ("x-%d", x_server_get_display_number (X_SERVER (self)));
     display_server_set_name (DISPLAY_SERVER (self), name);
     g_free (name);
 
@@ -171,7 +171,7 @@ xserver_local_new (void)
         gint active_vt = vt_get_active ();
         if (active_vt >= vt_get_min ())
         {
-            g_debug ("X server %s will replace Plymouth", xserver_get_address (XSERVER (self)));
+            g_debug ("X server %s will replace Plymouth", x_server_get_address (X_SERVER (self)));
             self->priv->replacing_plymouth = TRUE;
             self->priv->vt = active_vt;
             plymouth_deactivate ();
@@ -191,7 +191,7 @@ xserver_local_new (void)
 }
 
 void
-xserver_local_set_command (XServerLocal *server, const gchar *command)
+x_server_local_set_command (XServerLocal *server, const gchar *command)
 {
     g_return_if_fail (server != NULL);
     g_free (server->priv->command);
@@ -199,7 +199,7 @@ xserver_local_set_command (XServerLocal *server, const gchar *command)
 }
 
 void
-xserver_local_set_config (XServerLocal *server, const gchar *path)
+x_server_local_set_config (XServerLocal *server, const gchar *path)
 {
     g_return_if_fail (server != NULL);
     g_free (server->priv->config_file);
@@ -207,7 +207,7 @@ xserver_local_set_config (XServerLocal *server, const gchar *path)
 }
 
 void
-xserver_local_set_layout (XServerLocal *server, const gchar *layout)
+x_server_local_set_layout (XServerLocal *server, const gchar *layout)
 {
     g_return_if_fail (server != NULL);
     g_free (server->priv->layout);
@@ -215,14 +215,14 @@ xserver_local_set_layout (XServerLocal *server, const gchar *layout)
 }
 
 void
-xserver_local_set_allow_tcp (XServerLocal *server, gboolean allow_tcp)
+x_server_local_set_allow_tcp (XServerLocal *server, gboolean allow_tcp)
 {
     g_return_if_fail (server != NULL);
     server->priv->allow_tcp = allow_tcp;
 }
 
 void
-xserver_local_set_xdmcp_server (XServerLocal *server, const gchar *hostname)
+x_server_local_set_xdmcp_server (XServerLocal *server, const gchar *hostname)
 {
     g_return_if_fail (server != NULL);
     g_free (server->priv->xdmcp_server);
@@ -230,37 +230,37 @@ xserver_local_set_xdmcp_server (XServerLocal *server, const gchar *hostname)
 }
 
 const gchar *
-xserver_local_get_xdmcp_server (XServerLocal *server)
+x_server_local_get_xdmcp_server (XServerLocal *server)
 {
     g_return_val_if_fail (server != NULL, 0);
     return server->priv->xdmcp_server;
 }
 
 void
-xserver_local_set_xdmcp_port (XServerLocal *server, guint port)
+x_server_local_set_xdmcp_port (XServerLocal *server, guint port)
 {
     g_return_if_fail (server != NULL);
     server->priv->xdmcp_port = port;
 }
 
 guint
-xserver_local_get_xdmcp_port (XServerLocal *server)
+x_server_local_get_xdmcp_port (XServerLocal *server)
 {
     g_return_val_if_fail (server != NULL, 0);
     return server->priv->xdmcp_port;
 }
 
 void
-xserver_local_set_xdmcp_key (XServerLocal *server, const gchar *key)
+x_server_local_set_xdmcp_key (XServerLocal *server, const gchar *key)
 {
     g_return_if_fail (server != NULL);
     g_free (server->priv->xdmcp_key);
     server->priv->xdmcp_key = g_strdup (key);
-    xserver_set_authority (XSERVER (server), NULL);
+    x_server_set_authority (X_SERVER (server), NULL);
 }
 
 void
-xserver_local_set_mir_id (XServerLocal *server, const gchar *id)
+x_server_local_set_mir_id (XServerLocal *server, const gchar *id)
 {
     g_return_if_fail (server != NULL);
     g_free (server->priv->mir_id);
@@ -274,14 +274,14 @@ xserver_local_set_mir_id (XServerLocal *server, const gchar *id)
     server->priv->vt = -1;
 }
 
-const gchar *xserver_local_get_mir_id (XServerLocal *server)
+const gchar *x_server_local_get_mir_id (XServerLocal *server)
 {
     g_return_val_if_fail (server != NULL, NULL);
     return server->priv->mir_id; 
 }
 
 void
-xserver_local_set_mir_socket (XServerLocal *server, const gchar *socket)
+x_server_local_set_mir_socket (XServerLocal *server, const gchar *socket)
 {
     g_return_if_fail (server != NULL);
     g_free (server->priv->mir_socket);
@@ -289,14 +289,14 @@ xserver_local_set_mir_socket (XServerLocal *server, const gchar *socket)
 }
 
 static gint
-xserver_local_get_vt (DisplayServer *server)
+x_server_local_get_vt (DisplayServer *server)
 {
     g_return_val_if_fail (server != NULL, 0);
-    return XSERVER_LOCAL (server)->priv->vt;
+    return X_SERVER_LOCAL (server)->priv->vt;
 }
 
 const gchar *
-xserver_local_get_authority_file_path (XServerLocal *server)
+x_server_local_get_authority_file_path (XServerLocal *server)
 {
     g_return_val_if_fail (server != NULL, 0);
     return server->priv->authority_file;
@@ -361,7 +361,7 @@ got_signal_cb (Process *process, int signum, XServerLocal *server)
     if (signum == SIGUSR1 && !server->priv->got_signal)
     {
         server->priv->got_signal = TRUE;
-        g_debug ("Got signal from X server :%d", xserver_get_display_number (XSERVER (server)));
+        g_debug ("Got signal from X server :%d", x_server_get_display_number (X_SERVER (server)));
 
         if (server->priv->replacing_plymouth)
         {
@@ -371,7 +371,7 @@ got_signal_cb (Process *process, int signum, XServerLocal *server)
         }
 
         // FIXME: Check return value
-        DISPLAY_SERVER_CLASS (xserver_local_parent_class)->start (DISPLAY_SERVER (server));
+        DISPLAY_SERVER_CLASS (x_server_local_parent_class)->start (DISPLAY_SERVER (server));
     }
 }
 
@@ -380,9 +380,9 @@ stopped_cb (Process *process, XServerLocal *server)
 {
     g_debug ("X server stopped");
 
-    xserver_local_release_display_number (xserver_get_display_number (XSERVER (server)));
+    x_server_local_release_display_number (x_server_get_display_number (X_SERVER (server)));
   
-    if (xserver_get_authority (XSERVER (server)) && server->priv->authority_file)
+    if (x_server_get_authority (X_SERVER (server)) && server->priv->authority_file)
     {
         g_debug ("Removing X server authority %s", server->priv->authority_file);
 
@@ -405,7 +405,7 @@ stopped_cb (Process *process, XServerLocal *server)
         plymouth_quit (FALSE);
     }
 
-    DISPLAY_SERVER_CLASS (xserver_local_parent_class)->stop (DISPLAY_SERVER (server));
+    DISPLAY_SERVER_CLASS (x_server_local_parent_class)->stop (DISPLAY_SERVER (server));
 }
 
 static void
@@ -414,7 +414,7 @@ write_authority_file (XServerLocal *server)
     XAuthority *authority;
     GError *error = NULL;
 
-    authority = xserver_get_authority (XSERVER (server));
+    authority = x_server_get_authority (X_SERVER (server));
     if (!authority)
         return;
 
@@ -429,37 +429,37 @@ write_authority_file (XServerLocal *server)
         if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
             g_warning ("Failed to make authority directory %s: %s", dir, strerror (errno));
 
-        server->priv->authority_file = g_build_filename (dir, xserver_get_address (XSERVER (server)), NULL);
+        server->priv->authority_file = g_build_filename (dir, x_server_get_address (X_SERVER (server)), NULL);
         g_free (dir);
     }
 
     g_debug ("Writing X server authority to %s", server->priv->authority_file);
 
-    xauth_write (authority, XAUTH_WRITE_MODE_REPLACE, server->priv->authority_file, &error);
+    x_authority_write (authority, XAUTH_WRITE_MODE_REPLACE, server->priv->authority_file, &error);
     if (error)
         g_warning ("Failed to write authority: %s", error->message);
     g_clear_error (&error);
 }
 
 static gboolean
-xserver_local_start (DisplayServer *display_server)
+x_server_local_start (DisplayServer *display_server)
 {
-    XServerLocal *server = XSERVER_LOCAL (display_server);
+    XServerLocal *server = X_SERVER_LOCAL (display_server);
     gboolean result;
     gchar *filename, *dir, *absolute_command;
     GString *command;
 
-    g_return_val_if_fail (server->priv->xserver_process == NULL, FALSE);
+    g_return_val_if_fail (server->priv->x_server_process == NULL, FALSE);
 
     server->priv->got_signal = FALSE;
 
     g_return_val_if_fail (server->priv->command != NULL, FALSE);
 
-    server->priv->xserver_process = process_new ();
-    process_set_clear_environment (server->priv->xserver_process, TRUE);
-    g_signal_connect (server->priv->xserver_process, "run", G_CALLBACK (run_cb), server);
-    g_signal_connect (server->priv->xserver_process, "got-signal", G_CALLBACK (got_signal_cb), server);
-    g_signal_connect (server->priv->xserver_process, "stopped", G_CALLBACK (stopped_cb), server);
+    server->priv->x_server_process = process_new ();
+    process_set_clear_environment (server->priv->x_server_process, TRUE);
+    g_signal_connect (server->priv->x_server_process, "run", G_CALLBACK (run_cb), server);
+    g_signal_connect (server->priv->x_server_process, "got-signal", G_CALLBACK (got_signal_cb), server);
+    g_signal_connect (server->priv->x_server_process, "stopped", G_CALLBACK (stopped_cb), server);
 
     /* Setup logging */
     filename = g_strdup_printf ("%s.log", display_server_get_name (display_server));
@@ -473,13 +473,13 @@ xserver_local_start (DisplayServer *display_server)
     if (!absolute_command)
     {
         g_debug ("Can't launch X server %s, not found in path", server->priv->command);
-        stopped_cb (server->priv->xserver_process, XSERVER_LOCAL (server));
+        stopped_cb (server->priv->x_server_process, X_SERVER_LOCAL (server));
         return FALSE;
     }
     command = g_string_new (absolute_command);
     g_free (absolute_command);
 
-    g_string_append_printf (command, " :%d", xserver_get_display_number (XSERVER (server)));
+    g_string_append_printf (command, " :%d", x_server_get_display_number (X_SERVER (server)));
 
     if (server->priv->config_file)
         g_string_append_printf (command, " -config %s", server->priv->config_file);
@@ -515,7 +515,7 @@ xserver_local_start (DisplayServer *display_server)
 
     if (server->priv->replacing_plymouth)
         g_string_append (command, " -background none");
-    process_set_command (server->priv->xserver_process, command->str);
+    process_set_command (server->priv->x_server_process, command->str);
     g_string_free (command, TRUE);
 
     g_debug ("Launching X Server");
@@ -523,14 +523,14 @@ xserver_local_start (DisplayServer *display_server)
     /* If running inside another display then pass through those variables */
     if (g_getenv ("DISPLAY"))
     {
-        process_set_env (server->priv->xserver_process, "DISPLAY", g_getenv ("DISPLAY"));
+        process_set_env (server->priv->x_server_process, "DISPLAY", g_getenv ("DISPLAY"));
         if (g_getenv ("XAUTHORITY"))
-            process_set_env (server->priv->xserver_process, "XAUTHORITY", g_getenv ("XAUTHORITY"));
+            process_set_env (server->priv->x_server_process, "XAUTHORITY", g_getenv ("XAUTHORITY"));
         else
         {
             gchar *path;
             path = g_build_filename (g_get_home_dir (), ".Xauthority", NULL);
-            process_set_env (server->priv->xserver_process, "XAUTHORITY", path);
+            process_set_env (server->priv->x_server_process, "XAUTHORITY", path);
             g_free (path);
         }
     }
@@ -538,47 +538,47 @@ xserver_local_start (DisplayServer *display_server)
     /* Variable required for regression tests */
     if (g_getenv ("LIGHTDM_TEST_ROOT"))
     {
-        process_set_env (server->priv->xserver_process, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
-        process_set_env (server->priv->xserver_process, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
-        process_set_env (server->priv->xserver_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+        process_set_env (server->priv->x_server_process, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
+        process_set_env (server->priv->x_server_process, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
+        process_set_env (server->priv->x_server_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }
 
-    result = process_start (server->priv->xserver_process, FALSE);
+    result = process_start (server->priv->x_server_process, FALSE);
 
     if (result)
-        g_debug ("Waiting for ready signal from X server :%d", xserver_get_display_number (XSERVER (server)));
+        g_debug ("Waiting for ready signal from X server :%d", x_server_get_display_number (X_SERVER (server)));
 
     if (!result)
-        stopped_cb (server->priv->xserver_process, XSERVER_LOCAL (server));
+        stopped_cb (server->priv->x_server_process, X_SERVER_LOCAL (server));
 
     return result;
 }
  
 static void
-xserver_local_stop (DisplayServer *server)
+x_server_local_stop (DisplayServer *server)
 {
-    process_stop (XSERVER_LOCAL (server)->priv->xserver_process);
+    process_stop (X_SERVER_LOCAL (server)->priv->x_server_process);
 }
 
 static void
-xserver_local_init (XServerLocal *server)
+x_server_local_init (XServerLocal *server)
 {
-    server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_LOCAL_TYPE, XServerLocalPrivate);
+    server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, X_SERVER_LOCAL_TYPE, XServerLocalPrivate);
     server->priv->vt = -1;
     server->priv->command = g_strdup ("X");
 }
 
 static void
-xserver_local_finalize (GObject *object)
+x_server_local_finalize (GObject *object)
 {
     XServerLocal *self;
 
-    self = XSERVER_LOCAL (object);  
+    self = X_SERVER_LOCAL (object);  
 
-    if (self->priv->xserver_process) 
+    if (self->priv->x_server_process) 
     {
-        g_signal_handlers_disconnect_matched (self->priv->xserver_process, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
-        g_object_unref (self->priv->xserver_process);
+        g_signal_handlers_disconnect_matched (self->priv->x_server_process, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
+        g_object_unref (self->priv->x_server_process);
     }
     g_free (self->priv->log_file);
     g_free (self->priv->command);
@@ -592,19 +592,19 @@ xserver_local_finalize (GObject *object)
     if (self->priv->have_vt_ref)
         vt_unref (self->priv->vt);
 
-    G_OBJECT_CLASS (xserver_local_parent_class)->finalize (object);
+    G_OBJECT_CLASS (x_server_local_parent_class)->finalize (object);
 }
 
 static void
-xserver_local_class_init (XServerLocalClass *klass)
+x_server_local_class_init (XServerLocalClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
-    display_server_class->get_vt = xserver_local_get_vt;
-    display_server_class->start = xserver_local_start;
-    display_server_class->stop = xserver_local_stop;
-    object_class->finalize = xserver_local_finalize;
+    display_server_class->get_vt = x_server_local_get_vt;
+    display_server_class->start = x_server_local_start;
+    display_server_class->stop = x_server_local_stop;
+    object_class->finalize = x_server_local_finalize;
 
     g_type_class_add_private (klass, sizeof (XServerLocalPrivate));
 }

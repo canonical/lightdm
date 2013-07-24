@@ -50,23 +50,23 @@ lightdm_SOURCES = \
 	vnc-server.h \
 	vt.c \
 	vt.h \
-	xauthority.c \
-	xauthority.h \
+	x-authority.c \
+	x-authority.h \
+	x-server-local.c \
+	x-server-local.h \
+	x-server-remote.c \
+	x-server-remote.h \
+	x-server-xvnc.c \
+	x-server-xvnc.h \
+	x-server.c \
+	x-server.h \
 	xdmcp-protocol.c \
 	xdmcp-protocol.h \
 	xdmcp-server.c \
 	xdmcp-server.h \
 	xdmcp-session.c \
 	xdmcp-session.h \
-	xdmcp-session-private.h \
-	xserver-local.c \
-	xserver-local.h \
-	xserver-remote.c \
-	xserver-remote.h \
-	xserver-xvnc.c \
-	xserver-xvnc.h \
-	xserver.c \
-	xserver.h
+	xdmcp-session-private.h
 
 lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \

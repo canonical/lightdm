@@ -16,7 +16,7 @@
 
 #include "seat-unity.h"
 #include "configuration.h"
-#include "xserver-local.h"
+#include "x-server-local.h"
 #include "mir-server.h"
 #include "vt.h"
 #include "plymouth.h"
@@ -397,7 +397,7 @@ seat_unity_start (Seat *seat)
 static DisplayServer *
 create_x_server (Seat *seat)
 {
-    XServerLocal *xserver;
+    XServerLocal *x_server;
     const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
     gboolean allow_tcp;
     gint port = 0;
@@ -405,39 +405,39 @@ create_x_server (Seat *seat)
 
     g_debug ("Starting X server on Unity compositor");
 
-    xserver = xserver_local_new ();
+    x_server = x_server_local_new ();
 
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)
     {
         id = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->next_id);
         SEAT_UNITY (seat)->priv->next_id++;
-        xserver_local_set_mir_id (xserver, id);
-        xserver_local_set_mir_socket (xserver, SEAT_UNITY (seat)->priv->mir_socket_filename);
+        x_server_local_set_mir_id (x_server, id);
+        x_server_local_set_mir_socket (x_server, SEAT_UNITY (seat)->priv->mir_socket_filename);
         g_free (id);
     }
 
     command = seat_get_string_property (seat, "xserver-command");
     if (command)
-        xserver_local_set_command (xserver, command);
+        x_server_local_set_command (x_server, command);
 
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)
-        xserver_local_set_layout (xserver, layout);
+        x_server_local_set_layout (x_server, layout);
 
     config_file = seat_get_string_property (seat, "xserver-config");
     if (config_file)
-        xserver_local_set_config (xserver, config_file);
+        x_server_local_set_config (x_server, config_file);
 
     allow_tcp = seat_get_boolean_property (seat, "xserver-allow-tcp");
-    xserver_local_set_allow_tcp (xserver, allow_tcp);
+    x_server_local_set_allow_tcp (x_server, allow_tcp);
 
     xdmcp_manager = seat_get_string_property (seat, "xdmcp-manager");
     if (xdmcp_manager)
-        xserver_local_set_xdmcp_server (xserver, xdmcp_manager);
+        x_server_local_set_xdmcp_server (x_server, xdmcp_manager);
 
     port = seat_get_integer_property (seat, "xdmcp-port");
     if (port > 0)
-        xserver_local_set_xdmcp_port (xserver, port);
+        x_server_local_set_xdmcp_port (x_server, port);
 
     key_name = seat_get_string_property (seat, "xdmcp-key");
     if (key_name)
@@ -467,7 +467,7 @@ create_x_server (Seat *seat)
                 g_debug ("Key %s not defined", key_name);
 
             if (key)
-                xserver_local_set_xdmcp_key (xserver, key);
+                x_server_local_set_xdmcp_key (x_server, key);
             g_free (key);
         }
 
@@ -475,7 +475,7 @@ create_x_server (Seat *seat)
         g_key_file_free (keys);
     }
 
-    return DISPLAY_SERVER (xserver);
+    return DISPLAY_SERVER (x_server);
 }
 
 static DisplayServer *
@@ -540,7 +540,7 @@ seat_unity_set_active_session (Seat *seat, Session *session)
         const gchar *id;
 
         SEAT_UNITY (seat)->priv->active_display_server = g_object_ref (display_server);
-        id = xserver_local_get_mir_id (XSERVER_LOCAL (display_server));
+        id = x_server_local_get_mir_id (X_SERVER_LOCAL (display_server));
 
         g_debug ("Switching to Mir session %s", id);
         write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_ACTIVE_SESSION, (const guint8 *) id, strlen (id));
@@ -577,11 +577,11 @@ static void
 seat_unity_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
     const gchar *path;
-    XServerLocal *xserver;
+    XServerLocal *x_server;
 
-    xserver = XSERVER_LOCAL (display_server);
-    path = xserver_local_get_authority_file_path (xserver);
-    process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));
+    x_server = X_SERVER_LOCAL (display_server);
+    path = x_server_local_get_authority_file_path (x_server);
+    process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
     process_set_env (script, "XAUTHORITY", path);
 
     SEAT_CLASS (seat_unity_parent_class)->run_script (seat, display_server, script);
