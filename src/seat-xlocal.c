@@ -19,6 +19,12 @@
 
 G_DEFINE_TYPE (SeatXLocal, seat_xlocal, SEAT_TYPE);
 
+static gboolean
+seat_xlocal_get_start_local_sessions (Seat *seat)
+{
+    return !seat_get_string_property (seat, "xdmcp-manager");
+}
+
 static void
 seat_xlocal_setup (Seat *seat)
 {
@@ -246,6 +252,7 @@ seat_xlocal_class_init (SeatXLocalClass *klass)
 {
     SeatClass *seat_class = SEAT_CLASS (klass);
 
+    seat_class->get_start_local_sessions = seat_xlocal_get_start_local_sessions;
     seat_class->setup = seat_xlocal_setup;
     seat_class->start = seat_xlocal_start;
     seat_class->create_display_server = seat_xlocal_create_display_server;
