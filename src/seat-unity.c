@@ -79,6 +79,12 @@ struct SeatUnityPrivate
 
 G_DEFINE_TYPE (SeatUnity, seat_unity, SEAT_TYPE);
 
+static gboolean
+seat_unity_get_start_local_sessions (Seat *seat)
+{
+    return !seat_get_string_property (seat, "xdmcp-manager");
+}
+
 static void
 seat_unity_setup (Seat *seat)
 {
@@ -620,6 +626,7 @@ seat_unity_class_init (SeatUnityClass *klass)
     SeatClass *seat_class = SEAT_CLASS (klass);
 
     object_class->finalize = seat_unity_finalize;
+    seat_class->get_start_local_sessions = seat_unity_get_start_local_sessions;
     seat_class->setup = seat_unity_setup;
     seat_class->start = seat_unity_start;
     seat_class->create_display_server = seat_unity_create_display_server;

@@ -227,7 +227,6 @@ x_server_local_set_xdmcp_server (XServerLocal *server, const gchar *hostname)
     g_return_if_fail (server != NULL);
     g_free (server->priv->xdmcp_server);
     server->priv->xdmcp_server = g_strdup (hostname);
-    display_server_set_start_local_sessions (DISPLAY_SERVER (server), hostname == NULL);
 }
 
 const gchar *

@@ -25,9 +25,6 @@ struct DisplayServerPrivate
     /* Unique name for this display server */
     gchar *name;
 
-    /* TRUE if sessions should be automatically started on this display server */
-    gboolean start_local_sessions;
-
     /* TRUE when being stopped */
     gboolean stopping;
 
@@ -62,20 +59,6 @@ static gint
 display_server_real_get_vt (DisplayServer *server)
 {
     return -1;
-}
-
-void
-display_server_set_start_local_sessions (DisplayServer *server, gboolean start_local_sessions)
-{
-    g_return_if_fail (server != NULL);
-    server->priv->start_local_sessions = start_local_sessions;
-}
-
-gboolean
-display_server_get_start_local_sessions (DisplayServer *server)
-{
-    g_return_val_if_fail (server != NULL, FALSE);
-    return server->priv->start_local_sessions;
 }
 
 gboolean
@@ -121,7 +104,6 @@ static void
 display_server_init (DisplayServer *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, DISPLAY_SERVER_TYPE, DisplayServerPrivate);
-    server->priv->start_local_sessions = TRUE;
 }
 
 static void
