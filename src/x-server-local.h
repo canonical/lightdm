@@ -45,6 +45,8 @@ XServerLocal *x_server_local_new (void);
 
 void x_server_local_set_command (XServerLocal *server, const gchar *command);
 
+void x_server_local_set_vt (XServerLocal *server, gint vt);
+
 void x_server_local_set_config (XServerLocal *server, const gchar *path);
 
 void x_server_local_set_layout (XServerLocal *server, const gchar *layout);
@@ -60,6 +62,8 @@ void x_server_local_set_xdmcp_port (XServerLocal *server, guint port);
 guint x_server_local_get_xdmcp_port (XServerLocal *server);
 
 void x_server_local_set_xdmcp_key (XServerLocal *server, const gchar *key);
+
+void x_server_local_set_background (XServerLocal *server, const gchar *background);
 
 void x_server_local_set_mir_id (XServerLocal *server, const gchar *id);
 

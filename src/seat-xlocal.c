@@ -15,6 +15,7 @@
 #include "configuration.h"
 #include "x-server-local.h"
 #include "mir-server.h"
+#include "plymouth.h"
 #include "vt.h"
 
 G_DEFINE_TYPE (SeatXLocal, seat_xlocal, SEAT_TYPE);
@@ -33,15 +34,55 @@ seat_xlocal_setup (Seat *seat)
     SEAT_CLASS (seat_xlocal_parent_class)->setup (seat);
 }
 
+static gboolean
+seat_xlocal_start (Seat *seat)
+{
+   
+    return SEAT_CLASS (seat_xlocal_parent_class)->start (seat);
+}
+
+static void
+x_server_ready_cb (XServerLocal *x_server, Seat *seat)
+{
+    /* Quit Plymouth */
+    plymouth_quit (TRUE);
+}
+
+static void
+x_server_transition_plymouth_cb (XServerLocal *x_server, Seat *seat)
+{
+    /* Quit Plymouth if we didn't do the transition */
+    if (plymouth_get_is_running ())
+        plymouth_quit (FALSE);
+
+    g_signal_handlers_disconnect_matched (x_server, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, x_server_transition_plymouth_cb, NULL);
+}
+
+static void
+x_server_stopped_cb (XServerLocal *x_server, Seat *seat)
+{
+    gint vt;
+
+    /* Can re-use the VT */
+    vt = display_server_get_vt (DISPLAY_SERVER (x_server));
+    if (vt > 0)
+        vt_unref (vt);
+
+    g_signal_handlers_disconnect_matched (x_server, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, x_server_stopped_cb, NULL);
+}
+
 static DisplayServer *
 create_x_server (Seat *seat)
 {
     XServerLocal *x_server;
     const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
     gboolean allow_tcp;
-    gint port = 0;
+    gint vt = -1, port = 0;
 
-    g_debug ("Starting local X display");
+    if (vt > 0)
+        g_debug ("Starting local X display on VT %d", vt);
+    else
+        g_debug ("Starting local X display");
   
     x_server = x_server_local_new ();
 
@@ -52,6 +93,31 @@ create_x_server (Seat *seat)
         command = seat_get_string_property (seat, "xserver-command");
     if (command)
         x_server_local_set_command (x_server, command);
+
+    /* If Plymouth is running, stop it */
+    if (plymouth_get_is_active () && plymouth_has_active_vt ())
+    {
+        gint active_vt = vt_get_active ();
+        if (active_vt >= vt_get_min ())
+        {
+            vt = active_vt;
+            g_signal_connect (x_server, "ready", G_CALLBACK (x_server_ready_cb), seat);
+            g_signal_connect (x_server, "stopped", G_CALLBACK (x_server_transition_plymouth_cb), seat);
+            plymouth_deactivate ();
+        }
+        else
+            g_debug ("Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());
+    }
+    if (plymouth_get_is_active ())
+        plymouth_quit (FALSE);
+    if (vt < 0)
+        vt = vt_get_unused ();
+    if (vt >= 0)
+    {
+        vt_ref (vt);
+        x_server_local_set_vt (x_server, vt);
+        g_signal_connect (x_server, "stopped", G_CALLBACK (x_server_stopped_cb), seat);
+    }
 
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)
@@ -203,6 +269,7 @@ seat_xlocal_class_init (SeatXLocalClass *klass)
 
     seat_class->get_start_local_sessions = seat_xlocal_get_start_local_sessions;
     seat_class->setup = seat_xlocal_setup;
+    seat_class->start = seat_xlocal_start;
     seat_class->create_display_server = seat_xlocal_create_display_server;
     seat_class->create_greeter_session = seat_xlocal_create_greeter_session;
     seat_class->create_session = seat_xlocal_create_session;
