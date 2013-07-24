@@ -21,8 +21,6 @@
 #include "x-server-local.h"
 #include "configuration.h"
 #include "process.h"
-#include "vt.h"
-#include "plymouth.h"
 
 struct XServerLocalPrivate
 {
@@ -67,12 +65,9 @@ struct XServerLocalPrivate
 
     /* VT to run on */
     gint vt;
-  
-    /* TRUE if holding a reference to the VT */
-    gboolean have_vt_ref;
-  
-    /* TRUE if replacing Plymouth */
-    gboolean replacing_plymouth;
+
+    /* Background to set */
+    gchar *background;
 };
 
 G_DEFINE_TYPE (XServerLocal, x_server_local, X_SERVER_TYPE);
@@ -165,28 +160,6 @@ x_server_local_new (void)
     display_server_set_name (DISPLAY_SERVER (self), name);
     g_free (name);
 
-    /* Replace Plymouth if it is running */
-    if (plymouth_get_is_active () && plymouth_has_active_vt ())
-    {
-        gint active_vt = vt_get_active ();
-        if (active_vt >= vt_get_min ())
-        {
-            g_debug ("X server %s will replace Plymouth", x_server_get_address (X_SERVER (self)));
-            self->priv->replacing_plymouth = TRUE;
-            self->priv->vt = active_vt;
-            plymouth_deactivate ();
-        }
-        else
-            g_debug ("Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());
-    }
-    if (self->priv->vt < 0)
-        self->priv->vt = vt_get_unused ();
-    if (self->priv->vt >= 0)
-    {
-        vt_ref (self->priv->vt);
-        self->priv->have_vt_ref = TRUE;
-    }
-
     return self;
 }
 
@@ -196,6 +169,13 @@ x_server_local_set_command (XServerLocal *server, const gchar *command)
     g_return_if_fail (server != NULL);
     g_free (server->priv->command);
     server->priv->command = g_strdup (command);
+}
+
+void
+x_server_local_set_vt (XServerLocal *server, gint vt)
+{
+    g_return_if_fail (server != NULL);
+    server->priv->vt = vt;
 }
 
 void
@@ -260,18 +240,19 @@ x_server_local_set_xdmcp_key (XServerLocal *server, const gchar *key)
 }
 
 void
+x_server_local_set_background (XServerLocal *server, const gchar *background)
+{
+    g_return_if_fail (server != NULL);
+    g_free (server->priv->background);
+    server->priv->background = g_strdup (background);
+}
+
+void
 x_server_local_set_mir_id (XServerLocal *server, const gchar *id)
 {
     g_return_if_fail (server != NULL);
     g_free (server->priv->mir_id);
     server->priv->mir_id = g_strdup (id);
-
-    if (server->priv->have_vt_ref)
-    {
-        vt_unref (server->priv->vt);
-        server->priv->have_vt_ref = FALSE;
-    }
-    server->priv->vt = -1;
 }
 
 const gchar *x_server_local_get_mir_id (XServerLocal *server)
@@ -363,13 +344,6 @@ got_signal_cb (Process *process, int signum, XServerLocal *server)
         server->priv->got_signal = TRUE;
         g_debug ("Got signal from X server :%d", x_server_get_display_number (X_SERVER (server)));
 
-        if (server->priv->replacing_plymouth)
-        {
-            g_debug ("Stopping Plymouth, X server is ready");
-            server->priv->replacing_plymouth = FALSE;
-            plymouth_quit (TRUE);
-        }
-
         // FIXME: Check return value
         DISPLAY_SERVER_CLASS (x_server_local_parent_class)->start (DISPLAY_SERVER (server));
     }
@@ -390,19 +364,6 @@ stopped_cb (Process *process, XServerLocal *server)
 
         g_free (server->priv->authority_file);
         server->priv->authority_file = NULL;
-    }
-
-    if (server->priv->have_vt_ref)
-    {
-        vt_unref (server->priv->vt);
-        server->priv->have_vt_ref = FALSE;
-    }  
-
-    if (server->priv->replacing_plymouth && plymouth_get_is_running ())
-    {
-        g_debug ("Stopping Plymouth, X server failed to start");
-        server->priv->replacing_plymouth = FALSE;
-        plymouth_quit (FALSE);
     }
 
     DISPLAY_SERVER_CLASS (x_server_local_parent_class)->stop (DISPLAY_SERVER (server));
@@ -513,8 +474,9 @@ x_server_local_start (DisplayServer *display_server)
     if (server->priv->vt >= 0)
         g_string_append_printf (command, " vt%d -novtswitch", server->priv->vt);
 
-    if (server->priv->replacing_plymouth)
-        g_string_append (command, " -background none");
+    if (server->priv->background)
+        g_string_append_printf (command, " -background %s", server->priv->background);
+
     process_set_command (server->priv->x_server_process, command->str);
     g_string_free (command, TRUE);
 
@@ -589,8 +551,7 @@ x_server_local_finalize (GObject *object)
     g_free (self->priv->mir_id);
     g_free (self->priv->mir_socket);
     g_free (self->priv->authority_file);
-    if (self->priv->have_vt_ref)
-        vt_unref (self->priv->vt);
+    g_free (self->priv->background);
 
     G_OBJECT_CLASS (x_server_local_parent_class)->finalize (object);
 }
