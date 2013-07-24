@@ -50,8 +50,6 @@ lightdm_SOURCES = \
 	vt.h \
 	x-authority.c \
 	x-authority.h \
-	x-greeter.c \
-	x-greeter.h \
 	x-server-local.c \
 	x-server-local.h \
 	x-server-remote.c \
@@ -60,8 +58,6 @@ lightdm_SOURCES = \
 	x-server-xvnc.h \
 	x-server.c \
 	x-server.h \
-	x-session.c \
-	x-session.h \
 	xdmcp-protocol.c \
 	xdmcp-protocol.h \
 	xdmcp-server.c \

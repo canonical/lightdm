@@ -94,6 +94,12 @@ typedef enum
 
 static gboolean read_cb (GIOChannel *source, GIOCondition condition, gpointer data);
 
+Greeter *
+greeter_new (void)
+{
+    return g_object_new (GREETER_TYPE, NULL);
+}
+
 void
 greeter_set_pam_services (Greeter *greeter, const gchar *pam_service, const gchar *autologin_pam_service)
 {

@@ -13,8 +13,6 @@
 
 #include "seat-xdmcp-session.h"
 #include "x-server-remote.h"
-#include "x-greeter.h"
-#include "x-session.h"
 
 struct SeatXDMCPSessionPrivate
 {
@@ -50,18 +48,6 @@ seat_xdmcp_session_create_display_server (Seat *seat)
     return DISPLAY_SERVER (x_server);
 }
 
-static Greeter *
-seat_xdmcp_session_create_greeter_session (Seat *seat)
-{
-    return GREETER (x_greeter_new ());
-}
-
-static Session *
-seat_xdmcp_session_create_session (Seat *seat)
-{
-    return SESSION (x_session_new ());
-}
-
 static void
 seat_xdmcp_session_init (SeatXDMCPSession *seat)
 {
@@ -87,8 +73,6 @@ seat_xdmcp_session_class_init (SeatXDMCPSessionClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     seat_class->create_display_server = seat_xdmcp_session_create_display_server;
-    seat_class->create_greeter_session = seat_xdmcp_session_create_greeter_session;
-    seat_class->create_session = seat_xdmcp_session_create_session;
     object_class->finalize = seat_xdmcp_session_finalize;
 
     g_type_class_add_private (klass, sizeof (SeatXDMCPSessionPrivate));

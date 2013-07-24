@@ -1354,6 +1354,18 @@ seat_real_start (Seat *seat)
     return TRUE;
 }
 
+static Greeter *
+seat_real_create_greeter_session (Seat *seat)
+{
+    return greeter_new ();
+}
+
+static Session *
+seat_real_create_session (Seat *seat)
+{
+    return session_new ();
+}
+
 static void
 seat_real_set_active_session (Seat *seat, Session *session)
 {
@@ -1447,6 +1459,8 @@ seat_class_init (SeatClass *klass)
     klass->get_start_local_sessions = seat_real_get_start_local_sessions;
     klass->setup = seat_real_setup;
     klass->start = seat_real_start;
+    klass->create_greeter_session = seat_real_create_greeter_session;
+    klass->create_session = seat_real_create_session;
     klass->set_active_session = seat_real_set_active_session;
     klass->get_active_session = seat_real_get_active_session;
     klass->run_script = seat_real_run_script;

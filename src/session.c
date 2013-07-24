@@ -119,6 +119,12 @@ struct SessionPrivate
 
 G_DEFINE_TYPE (Session, session, G_TYPE_OBJECT);
 
+Session *
+session_new (void)
+{
+    return g_object_new (SESSION_TYPE, NULL);
+}
+
 void
 session_set_pam_service (Session *session, const gchar *pam_service)
 {
@@ -469,6 +475,8 @@ session_real_start (Session *session)
 
     g_return_val_if_fail (session->priv->pid == 0, FALSE);
 
+    display_server_setup_session (session->priv->display_server, session);
+
     /* Create pipes to talk to the child */
     if (pipe (to_child_pipe) < 0 || pipe (from_child_pipe) < 0)
     {
@@ -648,6 +656,8 @@ session_real_run (Session *session)
     g_return_if_fail (session->priv->argv != NULL);
     g_return_if_fail (session->priv->pid != 0);
 
+    display_server_setup_session (session->priv->display_server, session);
+
     session->priv->command_run = TRUE;
 
     command = g_strjoinv (" ", session->priv->argv);
@@ -762,6 +772,7 @@ static void
 session_init (Session *session)
 {
     session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, SESSION_TYPE, SessionPrivate);
+    session->priv->log_filename = g_strdup (".xsession-errors");
 }
 
 static void
