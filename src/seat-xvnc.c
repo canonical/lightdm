@@ -11,8 +11,6 @@
 
 #include "seat-xvnc.h"
 #include "x-server-xvnc.h"
-#include "x-greeter.h"
-#include "x-session.h"
 #include "configuration.h"
 
 G_DEFINE_TYPE (SeatXVNC, seat_xvnc, SEAT_TYPE);
@@ -66,18 +64,6 @@ seat_xvnc_create_display_server (Seat *seat)
     return DISPLAY_SERVER (x_server);
 }
 
-static Greeter *
-seat_xvnc_create_greeter_session (Seat *seat)
-{
-    return GREETER (x_greeter_new ());
-}
-
-static Session *
-seat_xvnc_create_session (Seat *seat)
-{
-    return SESSION (x_session_new ());
-}
-
 static void
 seat_xvnc_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
@@ -126,8 +112,6 @@ seat_xvnc_class_init (SeatXVNCClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     seat_class->create_display_server = seat_xvnc_create_display_server;
-    seat_class->create_greeter_session = seat_xvnc_create_greeter_session;
-    seat_class->create_session = seat_xvnc_create_session;
     seat_class->run_script = seat_xvnc_run_script;
     object_class->finalize = seat_xdmcp_session_finalize;
 

@@ -40,6 +40,8 @@ typedef struct
 
 GType greeter_get_type (void);
 
+Greeter *greeter_new (void);
+
 void greeter_set_pam_services (Greeter *greeter, const gchar *pam_service, const gchar *autologin_pam_service);
 
 void greeter_set_allow_guest (Greeter *greeter, gboolean allow_guest);
