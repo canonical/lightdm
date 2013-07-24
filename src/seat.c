@@ -737,6 +737,7 @@ create_user_session (Seat *seat, const gchar *username)
     else
         g_debug ("Can't find session '%s'", seat_get_string_property (seat, "user-session"));
 
+
     g_object_unref (user);
 
     return session;
