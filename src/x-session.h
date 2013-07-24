@@ -16,7 +16,7 @@
 
 G_BEGIN_DECLS
 
-#define XSESSION_TYPE (xsession_get_type())
+#define XSESSION_TYPE (x_session_get_type())
 #define XSESSION(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), XSESSION_TYPE, XSession))
 
 typedef struct XSessionPrivate XSessionPrivate;
@@ -32,9 +32,9 @@ typedef struct
     SessionClass parent_class;
 } XSessionClass;
 
-GType xsession_get_type (void);
+GType x_session_get_type (void);
 
-XSession *xsession_new (void);
+XSession *x_session_new (void);
 
 G_END_DECLS
 

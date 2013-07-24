@@ -16,7 +16,7 @@
 
 G_BEGIN_DECLS
 
-#define XGREETER_TYPE (xgreeter_get_type())
+#define XGREETER_TYPE (x_greeter_get_type())
 #define XGREETER(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), XGREETER_TYPE, XGreeter))
 
 typedef struct XGreeterPrivate XGreeterPrivate;
@@ -32,9 +32,9 @@ typedef struct
     GreeterClass parent_class;
 } XGreeterClass;
 
-GType xgreeter_get_type (void);
+GType x_greeter_get_type (void);
 
-XGreeter *xgreeter_new (void);
+XGreeter *x_greeter_new (void);
 
 G_END_DECLS
 

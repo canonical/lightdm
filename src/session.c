@@ -89,8 +89,8 @@ struct SessionPrivate
 
     /* X display connected to */
     gchar *xdisplay;
-    XAuthority *xauthority;
-    gboolean xauth_use_system_location;
+    XAuthority *x_authority;
+    gboolean x_authority_use_system_location;
 
     /* Remote host this session is being controlled from */
     gchar *remote_host_name;
@@ -213,17 +213,17 @@ session_set_xdisplay (Session *session, const gchar *xdisplay)
 }
 
 void
-session_set_xauthority (Session *session, XAuthority *authority, gboolean use_system_location)
+session_set_x_authority (Session *session, XAuthority *authority, gboolean use_system_location)
 {
     g_return_if_fail (session != NULL);
-    if (session->priv->xauthority)
+    if (session->priv->x_authority)
     {
-        g_object_unref (session->priv->xauthority);
-        session->priv->xauthority = NULL;
+        g_object_unref (session->priv->x_authority);
+        session->priv->x_authority = NULL;
     }
     if (authority)
-        session->priv->xauthority = g_object_ref (authority);
-    session->priv->xauth_use_system_location = use_system_location;
+        session->priv->x_authority = g_object_ref (authority);
+    session->priv->x_authority_use_system_location = use_system_location;
 }
 
 void
@@ -281,27 +281,27 @@ write_string (Session *session, const char *value)
 }
 
 static void
-write_xauth (Session *session, XAuthority *xauthority)
+write_xauth (Session *session, XAuthority *x_authority)
 {
     guint16 family;
     gsize length;
 
-    if (!xauthority)
+    if (!x_authority)
     {
         write_string (session, NULL);
         return;
     }
 
-    write_string (session, xauth_get_authorization_name (session->priv->xauthority));
-    family = xauth_get_family (session->priv->xauthority);
+    write_string (session, x_authority_get_authorization_name (session->priv->x_authority));
+    family = x_authority_get_family (session->priv->x_authority);
     write_data (session, &family, sizeof (family));
-    length = xauth_get_address_length (session->priv->xauthority);
+    length = x_authority_get_address_length (session->priv->x_authority);
     write_data (session, &length, sizeof (length));
-    write_data (session, xauth_get_address (session->priv->xauthority), length);
-    write_string (session, xauth_get_number (session->priv->xauthority));
-    length = xauth_get_authorization_data_length (session->priv->xauthority);
+    write_data (session, x_authority_get_address (session->priv->x_authority), length);
+    write_string (session, x_authority_get_number (session->priv->x_authority));
+    length = x_authority_get_authorization_data_length (session->priv->x_authority);
     write_data (session, &length, sizeof (length));
-    write_data (session, xauth_get_authorization_data (session->priv->xauthority), length);
+    write_data (session, x_authority_get_authorization_data (session->priv->x_authority), length);
 }
 
 static ssize_t
@@ -540,7 +540,7 @@ session_real_start (Session *session)
     write_string (session, session->priv->tty);
     write_string (session, session->priv->remote_host_name);
     write_string (session, session->priv->xdisplay);
-    write_xauth (session, session->priv->xauthority);
+    write_xauth (session, session->priv->x_authority);
 
     g_debug ("Started session %d with service '%s', username '%s'", session->priv->pid, session->priv->pam_service, session->priv->username);
 
@@ -639,7 +639,7 @@ static void
 session_real_run (Session *session)
 {
     gsize i, argc;
-    gchar *command, *xauth_filename;
+    gchar *command, *x_authority_filename;
     GList *link;
 
     g_return_if_fail (session != NULL);
@@ -655,7 +655,7 @@ session_real_run (Session *session)
     g_free (command);
 
     /* Create authority location */
-    if (session->priv->xauth_use_system_location)
+    if (session->priv->x_authority_use_system_location)
     {
         gchar *run_dir, *dir;
 
@@ -671,18 +671,18 @@ session_real_run (Session *session)
                 g_warning ("Failed to set ownership of user authority dir: %s", strerror (errno));
         }
 
-        xauth_filename = g_build_filename (dir, "xauthority", NULL);
+        x_authority_filename = g_build_filename (dir, "xauthority", NULL);
         g_free (dir);
     }
     else
-        xauth_filename = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
+        x_authority_filename = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
 
     write_string (session, session->priv->log_filename);
     write_string (session, session->priv->tty);
-    write_string (session, xauth_filename);
-    g_free (xauth_filename);
+    write_string (session, x_authority_filename);
+    g_free (x_authority_filename);
     write_string (session, session->priv->xdisplay);
-    write_xauth (session, session->priv->xauthority);
+    write_xauth (session, session->priv->x_authority);
     argc = g_list_length (session->priv->env);
     write_data (session, &argc, sizeof (argc));
     for (link = session->priv->env; link; link = link->next)
@@ -792,8 +792,8 @@ session_finalize (GObject *object)
     g_free (self->priv->class);
     g_free (self->priv->tty);
     g_free (self->priv->xdisplay);
-    if (self->priv->xauthority)
-        g_object_unref (self->priv->xauthority);
+    if (self->priv->x_authority)
+        g_object_unref (self->priv->x_authority);
     g_free (self->priv->remote_host_name);
     g_free (self->priv->login1_session);
     g_free (self->priv->console_kit_cookie);

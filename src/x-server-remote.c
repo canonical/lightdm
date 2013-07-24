@@ -11,19 +11,19 @@
 
 #include <config.h>
 
-#include "xserver-remote.h"
+#include "x-server-remote.h"
 
-G_DEFINE_TYPE (XServerRemote, xserver_remote, XSERVER_TYPE);
+G_DEFINE_TYPE (XServerRemote, x_server_remote, X_SERVER_TYPE);
 
 XServerRemote *
-xserver_remote_new (const gchar *hostname, guint number, XAuthority *authority)
+x_server_remote_new (const gchar *hostname, guint number, XAuthority *authority)
 {
-    XServerRemote *self = g_object_new (XSERVER_REMOTE_TYPE, NULL);
+    XServerRemote *self = g_object_new (X_SERVER_REMOTE_TYPE, NULL);
     gchar *name;
 
-    xserver_set_hostname (XSERVER (self), hostname);
-    xserver_set_display_number (XSERVER (self), number);
-    xserver_set_authority (XSERVER (self), authority);
+    x_server_set_hostname (X_SERVER (self), hostname);
+    x_server_set_display_number (X_SERVER (self), number);
+    x_server_set_authority (X_SERVER (self), authority);
 
     name = g_strdup_printf ("x-%s-%d", hostname, number);
     display_server_set_name (DISPLAY_SERVER (self), name);
@@ -33,11 +33,11 @@ xserver_remote_new (const gchar *hostname, guint number, XAuthority *authority)
 }
 
 static void
-xserver_remote_init (XServerRemote *server)
+x_server_remote_init (XServerRemote *server)
 {
 }
 
 static void
-xserver_remote_class_init (XServerRemoteClass *klass)
+x_server_remote_class_init (XServerRemoteClass *klass)
 {
 }

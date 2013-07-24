@@ -17,15 +17,15 @@
 #include <errno.h>
 #include <glib/gstdio.h>
 
-#include "xserver-xvnc.h"
+#include "x-server-xvnc.h"
 #include "configuration.h"
-#include "xserver-local.h"
+#include "x-server-local.h"
 #include "process.h"
 
 struct XServerXVNCPrivate
 {
     /* X server process */
-    Process *xserver_process;
+    Process *x_server_process;
   
     /* File to log to */
     gchar *log_file;
@@ -46,17 +46,17 @@ struct XServerXVNCPrivate
     gboolean got_signal;
 };
 
-G_DEFINE_TYPE (XServerXVNC, xserver_xvnc, XSERVER_TYPE);
+G_DEFINE_TYPE (XServerXVNC, x_server_xvnc, X_SERVER_TYPE);
 
 XServerXVNC *
-xserver_xvnc_new (void)
+x_server_xvnc_new (void)
 {
-    XServerXVNC *self = g_object_new (XSERVER_XVNC_TYPE, NULL);
+    XServerXVNC *self = g_object_new (X_SERVER_XVNC_TYPE, NULL);
     gchar *name;
 
-    xserver_set_display_number (XSERVER (self), xserver_local_get_unused_display_number ());
+    x_server_set_display_number (X_SERVER (self), x_server_local_get_unused_display_number ());
 
-    name = g_strdup_printf ("xvnc-%d", xserver_get_display_number (XSERVER (self)));
+    name = g_strdup_printf ("xvnc-%d", x_server_get_display_number (X_SERVER (self)));
     display_server_set_name (DISPLAY_SERVER (self), name);
     g_free (name);
 
@@ -64,7 +64,7 @@ xserver_xvnc_new (void)
 }
 
 void
-xserver_xvnc_set_command (XServerXVNC *server, const gchar *command)
+x_server_xvnc_set_command (XServerXVNC *server, const gchar *command)
 {
     g_return_if_fail (server != NULL);
     g_free (server->priv->command);
@@ -72,21 +72,21 @@ xserver_xvnc_set_command (XServerXVNC *server, const gchar *command)
 }
 
 void
-xserver_xvnc_set_socket (XServerXVNC *server, int fd)
+x_server_xvnc_set_socket (XServerXVNC *server, int fd)
 {
     g_return_if_fail (server != NULL);
     server->priv->socket_fd = fd;
 }
 
 int
-xserver_xvnc_get_socket (XServerXVNC *server)
+x_server_xvnc_get_socket (XServerXVNC *server)
 {
     g_return_val_if_fail (server != NULL, 0);
     return server->priv->socket_fd;
 }
 
 void
-xserver_xvnc_set_geometry (XServerXVNC *server, gint width, gint height)
+x_server_xvnc_set_geometry (XServerXVNC *server, gint width, gint height)
 {
     g_return_if_fail (server != NULL);
     server->priv->width = width;
@@ -94,14 +94,14 @@ xserver_xvnc_set_geometry (XServerXVNC *server, gint width, gint height)
 }
 
 void
-xserver_xvnc_set_depth (XServerXVNC *server, gint depth)
+x_server_xvnc_set_depth (XServerXVNC *server, gint depth)
 {
     g_return_if_fail (server != NULL);
     server->priv->depth = depth;
 }
 
 const gchar *
-xserver_xvnc_get_authority_file_path (XServerXVNC *server)
+x_server_xvnc_get_authority_file_path (XServerXVNC *server)
 {
     g_return_val_if_fail (server != NULL, 0);
     return server->priv->authority_file;
@@ -162,10 +162,10 @@ got_signal_cb (Process *process, int signum, XServerXVNC *server)
     if (signum == SIGUSR1 && !server->priv->got_signal)
     {
         server->priv->got_signal = TRUE;
-        g_debug ("Got signal from Xvnc server :%d", xserver_get_display_number (XSERVER (server)));
+        g_debug ("Got signal from Xvnc server :%d", x_server_get_display_number (X_SERVER (server)));
 
         // FIXME: Check return value
-        DISPLAY_SERVER_CLASS (xserver_xvnc_parent_class)->start (DISPLAY_SERVER (server));
+        DISPLAY_SERVER_CLASS (x_server_xvnc_parent_class)->start (DISPLAY_SERVER (server));
     }
 }
 
@@ -174,10 +174,10 @@ stopped_cb (Process *process, XServerXVNC *server)
 {
     g_debug ("Xvnc server stopped");
 
-    g_object_unref (server->priv->xserver_process);
-    server->priv->xserver_process = NULL;
+    g_object_unref (server->priv->x_server_process);
+    server->priv->x_server_process = NULL;
 
-    xserver_local_release_display_number (xserver_get_display_number (XSERVER (server)));
+    x_server_local_release_display_number (x_server_get_display_number (X_SERVER (server)));
 
     g_debug ("Removing X server authority %s", server->priv->authority_file);
 
@@ -185,13 +185,13 @@ stopped_cb (Process *process, XServerXVNC *server)
     g_free (server->priv->authority_file);
     server->priv->authority_file = NULL;
 
-    DISPLAY_SERVER_CLASS (xserver_xvnc_parent_class)->stop (DISPLAY_SERVER (server));
+    DISPLAY_SERVER_CLASS (x_server_xvnc_parent_class)->stop (DISPLAY_SERVER (server));
 }
 
 static gboolean
-xserver_xvnc_start (DisplayServer *display_server)
+x_server_xvnc_start (DisplayServer *display_server)
 {
-    XServerXVNC *server = XSERVER_XVNC (display_server);
+    XServerXVNC *server = X_SERVER_XVNC (display_server);
     XAuthority *authority;
     gboolean result;
     gchar *filename, *run_dir, *dir, *absolute_command;
@@ -199,15 +199,15 @@ xserver_xvnc_start (DisplayServer *display_server)
     gchar hostname[1024], *number;
     GError *error = NULL;
 
-    g_return_val_if_fail (server->priv->xserver_process == NULL, FALSE);
+    g_return_val_if_fail (server->priv->x_server_process == NULL, FALSE);
 
     server->priv->got_signal = FALSE;
 
-    server->priv->xserver_process = process_new ();
-    process_set_clear_environment (server->priv->xserver_process, TRUE);
-    g_signal_connect (server->priv->xserver_process, "run", G_CALLBACK (run_cb), server);  
-    g_signal_connect (server->priv->xserver_process, "got-signal", G_CALLBACK (got_signal_cb), server);
-    g_signal_connect (server->priv->xserver_process, "stopped", G_CALLBACK (stopped_cb), server);
+    server->priv->x_server_process = process_new ();
+    process_set_clear_environment (server->priv->x_server_process, TRUE);
+    g_signal_connect (server->priv->x_server_process, "run", G_CALLBACK (run_cb), server);  
+    g_signal_connect (server->priv->x_server_process, "got-signal", G_CALLBACK (got_signal_cb), server);
+    g_signal_connect (server->priv->x_server_process, "stopped", G_CALLBACK (stopped_cb), server);
 
     /* Setup logging */
     filename = g_strdup_printf ("%s.log", display_server_get_name (display_server));
@@ -221,15 +221,15 @@ xserver_xvnc_start (DisplayServer *display_server)
     if (!absolute_command)
     {
         g_debug ("Can't launch X server %s, not found in path", server->priv->command);
-        stopped_cb (server->priv->xserver_process, XSERVER_XVNC (server));
+        stopped_cb (server->priv->x_server_process, X_SERVER_XVNC (server));
         return FALSE;
     }
 
     gethostname (hostname, 1024);
-    number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (server)));
-    authority = xauth_new_cookie (XAUTH_FAMILY_LOCAL, (guint8*) hostname, strlen (hostname), number);
+    number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (server)));
+    authority = x_authority_new_cookie (XAUTH_FAMILY_LOCAL, (guint8*) hostname, strlen (hostname), number);
 
-    xserver_set_authority (XSERVER (server), authority);
+    x_server_set_authority (X_SERVER (server), authority);
 
     run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
     dir = g_build_filename (run_dir, "root", NULL);
@@ -237,12 +237,12 @@ xserver_xvnc_start (DisplayServer *display_server)
     if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
         g_warning ("Failed to make authority directory %s: %s", dir, strerror (errno));
 
-    server->priv->authority_file = g_build_filename (dir, xserver_get_address (XSERVER (server)), NULL);
+    server->priv->authority_file = g_build_filename (dir, x_server_get_address (X_SERVER (server)), NULL);
     g_free (dir);
 
     g_debug ("Writing X server authority to %s", server->priv->authority_file);
 
-    xauth_write (authority, XAUTH_WRITE_MODE_REPLACE, server->priv->authority_file, &error);
+    x_authority_write (authority, XAUTH_WRITE_MODE_REPLACE, server->priv->authority_file, &error);
     if (error)
         g_warning ("Failed to write authority: %s", error->message);
     g_clear_error (&error);
@@ -250,7 +250,7 @@ xserver_xvnc_start (DisplayServer *display_server)
     command = g_string_new (absolute_command);
     g_free (absolute_command);
   
-    g_string_append_printf (command, " :%d", xserver_get_display_number (XSERVER (server)));
+    g_string_append_printf (command, " :%d", x_server_get_display_number (X_SERVER (server)));
     g_string_append_printf (command, " -auth %s", server->priv->authority_file);
     g_string_append (command, " -inetd -nolisten tcp");
     if (server->priv->width > 0 && server->priv->height > 0)
@@ -258,7 +258,7 @@ xserver_xvnc_start (DisplayServer *display_server)
     if (server->priv->depth > 0)
         g_string_append_printf (command, " -depth %d", server->priv->depth);
 
-    process_set_command (server->priv->xserver_process, command->str);
+    process_set_command (server->priv->x_server_process, command->str);
     g_string_free (command, TRUE);
 
     g_debug ("Launching Xvnc server");
@@ -266,31 +266,31 @@ xserver_xvnc_start (DisplayServer *display_server)
     /* Variable required for regression tests */
     if (g_getenv ("LIGHTDM_TEST_ROOT"))
     {
-        process_set_env (server->priv->xserver_process, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
-        process_set_env (server->priv->xserver_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+        process_set_env (server->priv->x_server_process, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
+        process_set_env (server->priv->x_server_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }
 
-    result = process_start (server->priv->xserver_process, FALSE);
+    result = process_start (server->priv->x_server_process, FALSE);
 
     if (result)
-        g_debug ("Waiting for ready signal from Xvnc server :%d", xserver_get_display_number (XSERVER (server)));
+        g_debug ("Waiting for ready signal from Xvnc server :%d", x_server_get_display_number (X_SERVER (server)));
 
     if (!result)
-        stopped_cb (server->priv->xserver_process, XSERVER_XVNC (server));
+        stopped_cb (server->priv->x_server_process, X_SERVER_XVNC (server));
 
     return result;
 }
  
 static void
-xserver_xvnc_stop (DisplayServer *server)
+x_server_xvnc_stop (DisplayServer *server)
 {
-    process_stop (XSERVER_XVNC (server)->priv->xserver_process);
+    process_stop (X_SERVER_XVNC (server)->priv->x_server_process);
 }
 
 static void
-xserver_xvnc_init (XServerXVNC *server)
+x_server_xvnc_init (XServerXVNC *server)
 {
-    server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, XSERVER_XVNC_TYPE, XServerXVNCPrivate);
+    server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, X_SERVER_XVNC_TYPE, XServerXVNCPrivate);
     server->priv->command = g_strdup ("Xvnc");
     server->priv->width = 1024;
     server->priv->height = 768;
@@ -298,30 +298,30 @@ xserver_xvnc_init (XServerXVNC *server)
 }
 
 static void
-xserver_xvnc_finalize (GObject *object)
+x_server_xvnc_finalize (GObject *object)
 {
     XServerXVNC *self;
 
-    self = XSERVER_XVNC (object);
+    self = X_SERVER_XVNC (object);
 
-    if (self->priv->xserver_process)
-        g_object_unref (self->priv->xserver_process);
+    if (self->priv->x_server_process)
+        g_object_unref (self->priv->x_server_process);
     g_free (self->priv->command);
     g_free (self->priv->authority_file);
     g_free (self->priv->log_file);
 
-    G_OBJECT_CLASS (xserver_xvnc_parent_class)->finalize (object);
+    G_OBJECT_CLASS (x_server_xvnc_parent_class)->finalize (object);
 }
 
 static void
-xserver_xvnc_class_init (XServerXVNCClass *klass)
+x_server_xvnc_class_init (XServerXVNCClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
-    display_server_class->start = xserver_xvnc_start;
-    display_server_class->stop = xserver_xvnc_stop;
-    object_class->finalize = xserver_xvnc_finalize;
+    display_server_class->start = x_server_xvnc_start;
+    display_server_class->stop = x_server_xvnc_stop;
+    object_class->finalize = x_server_xvnc_finalize;
 
     g_type_class_add_private (klass, sizeof (XServerXVNCPrivate));
 }

@@ -9,15 +9,15 @@
  * license.
  */
 
-#ifndef XSERVER_REMOTE_H_
-#define XSERVER_REMOTE_H_
+#ifndef X_SERVER_REMOTE_H_
+#define X_SERVER_REMOTE_H_
 
-#include "xserver.h"
+#include "x-server.h"
 
 G_BEGIN_DECLS
 
-#define XSERVER_REMOTE_TYPE (xserver_remote_get_type())
-#define XSERVER_REMOTE(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), XSERVER_REMOTE_TYPE, XServerRemote))
+#define X_SERVER_REMOTE_TYPE (x_server_remote_get_type())
+#define X_SERVER_REMOTE(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), X_SERVER_REMOTE_TYPE, XServerRemote))
 
 typedef struct
 {
@@ -29,10 +29,10 @@ typedef struct
     XServerClass parent_class;
 } XServerRemoteClass;
 
-GType xserver_remote_get_type (void);
+GType x_server_remote_get_type (void);
 
-XServerRemote *xserver_remote_new (const gchar *hostname, guint number, XAuthority *authority);
+XServerRemote *x_server_remote_new (const gchar *hostname, guint number, XAuthority *authority);
 
 G_END_DECLS
 
-#endif /* XSERVER_REMOTE_H_ */
+#endif /* X_SERVER_REMOTE_H_ */
