@@ -403,6 +403,20 @@ switch_to_greeter_from_failed_session (Seat *seat, Session *session)
 static void
 start_session (Seat *seat, Session *session)
 {
+    /* Use system location for greeter log file */
+    if (IS_GREETER (session))
+    {
+        gchar *log_dir, *filename, *log_filename;
+
+        log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
+        filename = g_strdup_printf ("%s-greeter.log", display_server_get_name (session_get_display_server (session)));
+        log_filename = g_build_filename (log_dir, filename, NULL);
+        g_free (log_dir);
+        g_free (filename);
+        session_set_log_file (session, log_filename);
+        g_free (log_filename);
+    }
+
     if (session_start (session))
         return;
 
