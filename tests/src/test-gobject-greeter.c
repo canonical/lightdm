@@ -341,15 +341,16 @@ main (int argc, char **argv)
         return return_value;
     }
 
-    connection = xcb_connect (NULL, NULL);
-
-    if (xcb_connection_has_error (connection))
+    if (display)
     {
-        status_notify ("%s FAIL-CONNECT-XSERVER", greeter_id);
-        return EXIT_FAILURE;
+        connection = xcb_connect (NULL, NULL);
+        if (xcb_connection_has_error (connection))
+        {
+            status_notify ("%s FAIL-CONNECT-XSERVER", greeter_id);
+            return EXIT_FAILURE;
+        }
+        status_notify ("%s CONNECT-XSERVER", greeter_id);
     }
-
-    status_notify ("%s CONNECT-XSERVER", greeter_id);
 
     greeter = lightdm_greeter_new ();
     g_signal_connect (greeter, "show-message", G_CALLBACK (show_message_cb), NULL);
