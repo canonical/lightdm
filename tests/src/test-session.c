@@ -216,15 +216,16 @@ main (int argc, char **argv)
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
 
-    connection = xcb_connect (NULL, NULL);
-
-    if (xcb_connection_has_error (connection))
+    if (display)
     {
-        status_notify ("%s CONNECT-XSERVER-ERROR", session_id);
-        return EXIT_FAILURE;
+        connection = xcb_connect (NULL, NULL);
+        if (xcb_connection_has_error (connection))
+        {
+            status_notify ("%s CONNECT-XSERVER-ERROR", session_id);
+            return EXIT_FAILURE;
+        }
+        status_notify ("%s CONNECT-XSERVER", session_id);
     }
-
-    status_notify ("%s CONNECT-XSERVER", session_id);
 
     g_main_loop_run (loop);
 
