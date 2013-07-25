@@ -53,12 +53,26 @@ mir_server_set_parent_socket (MirServer *server, const gchar *parent_socket)
     server->priv->parent_socket = g_strdup (parent_socket);
 }
 
+static void
+update_name (MirServer *server)
+{
+    gchar *name;
+
+    if (server->priv->id)
+        name = g_strdup_printf ("mir-%s", server->priv->id);
+    else
+        name = g_strdup ("mir");
+    display_server_set_name (DISPLAY_SERVER (server), name);
+    g_free (name);
+}
+
 void
 mir_server_set_id (MirServer *server, const gchar *id)
 {
     g_return_if_fail (server != NULL);
     g_free (server->priv->id);
     server->priv->id = g_strdup (id);
+    update_name (server);
 }
 
 const gchar *
@@ -103,6 +117,7 @@ mir_server_init (MirServer *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, MIR_SERVER_TYPE, MirServerPrivate);
     server->priv->vt = -1;
+    update_name (server);
 }
 
 static void
