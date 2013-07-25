@@ -609,8 +609,10 @@ session_child_run (int argc, char **argv)
             memset (&ut, 0, sizeof (ut));
             ut.ut_type = USER_PROCESS;
             ut.ut_pid = child_pid;
-            strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
-            strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
+            if (tty)
+                strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
+            if (xdisplay)
+                strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
             strncpy (ut.ut_user, username, sizeof (ut.ut_user));
             if (xdisplay)
                 strncpy (ut.ut_host, xdisplay, sizeof (ut.ut_host));
@@ -638,8 +640,10 @@ session_child_run (int argc, char **argv)
             memset (&ut, 0, sizeof (ut));
             ut.ut_type = DEAD_PROCESS;
             ut.ut_pid = child_pid;
-            strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
-            strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
+            if (tty)
+                strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
+            if (xdisplay)
+                strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
             strncpy (ut.ut_user, username, sizeof (ut.ut_user));
             if (xdisplay)
                 strncpy (ut.ut_host, xdisplay, sizeof (ut.ut_host));
