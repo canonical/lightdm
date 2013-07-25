@@ -209,7 +209,10 @@ session_set_display_server (Session *session, DisplayServer *display_server)
     g_return_if_fail (session != NULL);
     g_return_if_fail (display_server != NULL);
     if (session->priv->display_server)
+    {
+        display_server_disconnect_session (session->priv->display_server, session);
         g_object_unref (session->priv->display_server);
+    }
     session->priv->display_server = g_object_ref (display_server);
 }
 
@@ -258,11 +261,56 @@ session_set_remote_host_name (Session *session, const gchar *remote_host_name)
     session->priv->remote_host_name = g_strdup (remote_host_name);
 }
 
+static GList *
+find_env_entry (Session *session, const gchar *name)
+{
+    GList *link;
+
+    for (link = session->priv->env; link; link = link->next)
+    {
+        const gchar *entry = link->data;
+
+        if (g_str_has_prefix (entry, name) && entry[strlen (name)] == '=')
+            return link;
+    }
+
+    return NULL;
+}
+
 void
 session_set_env (Session *session, const gchar *name, const gchar *value)
 {
+    GList *link;
+    gchar *entry;
+
     g_return_if_fail (session != NULL);
-    session->priv->env = g_list_append (session->priv->env, g_strdup_printf ("%s=%s", name, value));
+    g_return_if_fail (value != NULL);
+
+    entry = g_strdup_printf ("%s=%s", name, value);
+
+    link = find_env_entry (session, name);
+    if (link)
+    {
+        g_free (link->data);
+        link->data = entry;
+    }
+    else
+        session->priv->env = g_list_append (session->priv->env, entry);
+}
+
+void
+session_unset_env (Session *session, const gchar *name)
+{
+    GList *link;
+
+    g_return_if_fail (session != NULL);
+  
+    link = find_env_entry (session, name);
+    if (!link)
+        return;
+
+    g_free (link->data);
+    session->priv->env = g_list_remove_link (session->priv->env, link);
 }
 
 void
@@ -493,7 +541,7 @@ session_real_start (Session *session)
 
     g_return_val_if_fail (session->priv->pid == 0, FALSE);
 
-    display_server_setup_session (session->priv->display_server, session);
+    display_server_connect_session (session->priv->display_server, session);
 
     /* Create pipes to talk to the child */
     if (pipe (to_child_pipe) < 0 || pipe (from_child_pipe) < 0)
@@ -674,7 +722,7 @@ session_real_run (Session *session)
     g_return_if_fail (session->priv->argv != NULL);
     g_return_if_fail (session->priv->pid != 0);
 
-    display_server_setup_session (session->priv->display_server, session);
+    display_server_connect_session (session->priv->display_server, session);
 
     session->priv->command_run = TRUE;
 

@@ -43,8 +43,8 @@ typedef struct
     gboolean (*get_can_share)(DisplayServer *server);
     gint (*get_vt)(DisplayServer *server);
     gboolean (*start)(DisplayServer *server);
-    void (*setup_session)(DisplayServer *server, Session *session);
-    // FIXME: Also need a cleanup_session in case you switch between server types
+    void (*connect_session)(DisplayServer *server, Session *session);
+    void (*disconnect_session)(DisplayServer *server, Session *session);
     void (*stop)(DisplayServer *server);
 } DisplayServerClass;
 
@@ -60,7 +60,9 @@ gint display_server_get_vt (DisplayServer *server);
 
 gboolean display_server_start (DisplayServer *server);
 
-void display_server_setup_session (DisplayServer *server, Session *session);
+void display_server_connect_session (DisplayServer *server, Session *session);
+
+void display_server_disconnect_session (DisplayServer *server, Session *session);
 
 void display_server_stop (DisplayServer *server);
 

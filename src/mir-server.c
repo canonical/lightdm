@@ -89,7 +89,7 @@ mir_server_local_get_vt (DisplayServer *server)
 }
 
 static void
-mir_server_setup_session (DisplayServer *display_server, Session *session)
+mir_server_connect_session (DisplayServer *display_server, Session *session)
 {
     MirServer *server;
 
@@ -104,6 +104,14 @@ mir_server_setup_session (DisplayServer *display_server, Session *session)
         session_set_env (session, "MIR_SERVER_VT", value);
         g_free (value);
     }
+}
+
+static void
+mir_server_disconnect_session (DisplayServer *display_server, Session *session)
+{
+    session_unset_env (session, "MIR_ID");
+    session_unset_env (session, "MIR_SERVER_FILE");
+    session_unset_env (session, "MIR_SERVER_VT");
 }
 
 static void
@@ -136,7 +144,8 @@ mir_server_class_init (MirServerClass *klass)
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
     display_server_class->get_vt = mir_server_local_get_vt;
-    display_server_class->setup_session = mir_server_setup_session;
+    display_server_class->connect_session = mir_server_connect_session;
+    display_server_class->disconnect_session = mir_server_disconnect_session;
     object_class->finalize = mir_server_finalize;
 
     g_type_class_add_private (klass, sizeof (MirServerPrivate));

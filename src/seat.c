@@ -364,6 +364,12 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     g_object_unref (display_server);
 }
 
+static gboolean
+can_share_display_server (Seat *seat, DisplayServer *display_server)
+{
+    return seat->priv->share_display_server && display_server_get_can_share (display_server);
+}
+
 static void
 switch_to_greeter_from_failed_session (Seat *seat, Session *session)
 {
@@ -378,7 +384,7 @@ switch_to_greeter_from_failed_session (Seat *seat, Session *session)
         g_object_unref (seat->priv->session_to_activate);
     seat->priv->session_to_activate = g_object_ref (greeter_session);
 
-    if (seat->priv->share_display_server && display_server_get_can_share (session_get_display_server (session)))
+    if (can_share_display_server (seat, session_get_display_server (session)))
         session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
     else
     {
@@ -520,8 +526,7 @@ session_stopped_cb (Session *session, Seat *seat)
 
     /* If this is the greeter session then re-use this display server */
     if (IS_GREETER (session) &&
-        seat->priv->share_display_server &&
-        display_server_get_can_share (display_server) &&
+        can_share_display_server (seat, display_server) &&
         greeter_get_start_session (GREETER (session)))
     {
         GList *link;
@@ -713,6 +718,8 @@ create_user_session (Seat *seat, const gchar *username)
     SessionConfig *session_config;
     Session *session = NULL;
 
+    g_debug ("Creating user session");
+
     /* Load user preferences */
     user = accounts_get_user_by_name (username);
     if (!user)
@@ -836,6 +843,12 @@ find_user_session (Seat *seat, const gchar *username)
 }
 
 static gboolean
+display_server_supports_session_type (Seat *seat, DisplayServer *display_server, const gchar *session_type)
+{
+    return SEAT_GET_CLASS (seat)->display_server_supports_session_type (seat, display_server, session_type);
+}
+
+static gboolean
 greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
 {
     Session *session, *existing_session;
@@ -844,6 +857,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     User *user;
     gchar *sessions_dir = NULL;
     gchar **argv;
+    DisplayServer *display_server;
 
     /* Get the session to use */
     if (greeter_get_guest_authenticated (greeter))
@@ -905,8 +919,8 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         return FALSE;
     }
 
+    session_set_session_type (session, session_config_get_session_type (session_config));
     argv = get_session_argv (session_config, seat_get_string_property (seat, "session-wrapper"));
-    g_object_unref (session_config);
     session_set_argv (session, argv);
     g_strfreev (argv);
     session_set_env (session, "DESKTOP_SESSION", session_name);
@@ -917,13 +931,19 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         session_set_env (session, "GDM_LANG", language);
     }
 
-    /* If can re-use the display server, stop the greeter first */
-    if (seat->priv->share_display_server && display_server_get_can_share (session_get_display_server (SESSION (greeter))))
-    {
-        /* Run on the same display server after the greeter has stopped */
-        session_set_display_server (session, session_get_display_server (SESSION (greeter)));
+    g_object_unref (session_config);
 
-        g_debug ("Stopping greeter");
+    /* If can re-use the display server, stop the greeter first */
+    display_server = session_get_display_server (SESSION (greeter));
+    if (can_share_display_server (seat, display_server) &&
+        display_server_supports_session_type (seat, display_server, session_get_session_type (session)))
+    {
+        g_debug ("Stopping greeter; display server will be re-used for user session");
+
+        /* Run on the same display server after the greeter has stopped */
+        session_set_display_server (session, display_server);
+
+        /* Stop the greeter */
         session_stop (SESSION (greeter));
 
         return TRUE;
@@ -931,8 +951,6 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     /* Otherwise start a new display server for this session */
     else
     {
-        DisplayServer *display_server;
-
         display_server = create_display_server (seat, session_get_session_type (session));
         session_set_display_server (session, display_server);
         if (!display_server_start (display_server))
@@ -950,6 +968,8 @@ create_greeter_session (Seat *seat)
     Greeter *greeter_session;
     gchar *greeter_user;
     const gchar *greeter_wrapper;
+
+    g_debug ("Creating greeter session");
 
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "greeters-directory");
     session_config = find_session_config (sessions_dir, seat_get_string_property (seat, "greeter-session"));
@@ -1061,6 +1081,8 @@ static DisplayServer *
 create_display_server (Seat *seat, const gchar *session_type)
 {
     DisplayServer *display_server;
+
+    g_debug ("Creating display server of type %s", session_type);
 
     display_server = SEAT_GET_CLASS (seat)->create_display_server (seat, session_type);
     seat->priv->display_servers = g_list_append (seat->priv->display_servers, display_server);

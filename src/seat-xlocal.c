@@ -161,17 +161,39 @@ create_x_server (Seat *seat)
 }
 
 static DisplayServer *
+create_mir_server (Seat *seat)
+{
+    MirServer *mir_server;
+
+    mir_server = mir_server_new ();
+    mir_server_set_vt (mir_server, vt_get_unused ());
+
+    return DISPLAY_SERVER (mir_server);
+}
+
+static DisplayServer *
 seat_xlocal_create_display_server (Seat *seat, const gchar *session_type)
 {  
     if (strcmp (session_type, "x") == 0)
         return create_x_server (seat);
     else if (strcmp (session_type, "mir") == 0)
-        return DISPLAY_SERVER (mir_server_new ());
+        return create_mir_server (seat);
     else
     {
         g_warning ("Can't create unsupported display server '%s'", session_type);
         return NULL;
     }
+}
+
+static gboolean
+seat_xlocal_display_server_supports_session_type (Seat *seat, DisplayServer *display_server, const gchar *session_type)
+{  
+    if (IS_X_SERVER (display_server) && strcmp (session_type, "x") == 0)
+        return TRUE;
+    if (IS_MIR_SERVER (display_server) && strcmp (session_type, "mir") == 0)
+        return TRUE;
+
+    return FALSE;
 }
 
 static Greeter *
@@ -254,6 +276,7 @@ seat_xlocal_class_init (SeatXLocalClass *klass)
     seat_class->setup = seat_xlocal_setup;
     seat_class->start = seat_xlocal_start;
     seat_class->create_display_server = seat_xlocal_create_display_server;
+    seat_class->display_server_supports_session_type = seat_xlocal_display_server_supports_session_type;
     seat_class->create_greeter_session = seat_xlocal_create_greeter_session;
     seat_class->create_session = seat_xlocal_create_session;
     seat_class->set_active_session = seat_xlocal_set_active_session;
