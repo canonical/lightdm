@@ -58,19 +58,6 @@ x_server_transition_plymouth_cb (XServerLocal *x_server, Seat *seat)
     g_signal_handlers_disconnect_matched (x_server, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, x_server_transition_plymouth_cb, NULL);
 }
 
-static void
-x_server_stopped_cb (XServerLocal *x_server, Seat *seat)
-{
-    gint vt;
-
-    /* Can re-use the VT */
-    vt = display_server_get_vt (DISPLAY_SERVER (x_server));
-    if (vt > 0)
-        vt_unref (vt);
-
-    g_signal_handlers_disconnect_matched (x_server, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, x_server_stopped_cb, NULL);
-}
-
 static DisplayServer *
 create_x_server (Seat *seat)
 {
@@ -113,11 +100,7 @@ create_x_server (Seat *seat)
     if (vt < 0)
         vt = vt_get_unused ();
     if (vt >= 0)
-    {
-        vt_ref (vt);
         x_server_local_set_vt (x_server, vt);
-        g_signal_connect (x_server, "stopped", G_CALLBACK (x_server_stopped_cb), seat);
-    }
 
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)
