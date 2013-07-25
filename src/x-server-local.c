@@ -279,6 +279,12 @@ x_server_local_set_mir_socket (XServerLocal *server, const gchar *socket)
     server->priv->mir_socket = g_strdup (socket);
 }
 
+static gboolean
+x_server_local_get_can_share (DisplayServer *server)
+{
+    return TRUE;
+}
+
 static gint
 x_server_local_get_vt (DisplayServer *server)
 {
@@ -580,6 +586,7 @@ x_server_local_class_init (XServerLocalClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
+    display_server_class->get_can_share = x_server_local_get_can_share;
     display_server_class->get_vt = x_server_local_get_vt;
     display_server_class->start = x_server_local_start;
     display_server_class->stop = x_server_local_stop;

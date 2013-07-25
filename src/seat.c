@@ -378,7 +378,7 @@ switch_to_greeter_from_failed_session (Seat *seat, Session *session)
         g_object_unref (seat->priv->session_to_activate);
     seat->priv->session_to_activate = g_object_ref (greeter_session);
 
-    if (seat->priv->share_display_server)
+    if (seat->priv->share_display_server && display_server_get_can_share (session_get_display_server (session)))
         session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
     else
     {
@@ -519,7 +519,9 @@ session_stopped_cb (Session *session, Seat *seat)
     }
 
     /* If this is the greeter session then re-use this display server */
-    if (IS_GREETER (session) && seat->priv->share_display_server &&
+    if (IS_GREETER (session) &&
+        seat->priv->share_display_server &&
+        display_server_get_can_share (display_server) &&
         greeter_get_start_session (GREETER (session)))
     {
         GList *link;
@@ -916,7 +918,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     }
 
     /* If can re-use the display server, stop the greeter first */
-    if (seat->priv->share_display_server)
+    if (seat->priv->share_display_server && display_server_get_can_share (session_get_display_server (SESSION (greeter))))
     {
         /* Run on the same display server after the greeter has stopped */
         session_set_display_server (session, session_get_display_server (SESSION (greeter)));
@@ -932,10 +934,9 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         DisplayServer *display_server;
 
         display_server = create_display_server (seat, session_get_session_type (session));
+        session_set_display_server (session, display_server);
         if (!display_server_start (display_server))
             return FALSE;
-
-        session_set_display_server (session, display_server);
 
         return TRUE;
     }

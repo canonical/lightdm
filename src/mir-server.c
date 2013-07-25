@@ -88,12 +88,6 @@ mir_server_local_get_vt (DisplayServer *server)
     return MIR_SERVER (server)->priv->vt;
 }
 
-static gboolean
-mir_server_start (DisplayServer *display_server)
-{
-    return DISPLAY_SERVER_CLASS (mir_server_parent_class)->start (display_server);
-}
-
 static void
 mir_server_setup_session (DisplayServer *display_server, Session *session)
 {
@@ -142,7 +136,6 @@ mir_server_class_init (MirServerClass *klass)
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
     display_server_class->get_vt = mir_server_local_get_vt;
-    display_server_class->start = mir_server_start;
     display_server_class->setup_session = mir_server_setup_session;
     object_class->finalize = mir_server_finalize;
 
