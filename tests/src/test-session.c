@@ -167,11 +167,13 @@ request_cb (const gchar *request)
 int
 main (int argc, char **argv)
 {
-    gchar *display, *mir_socket, *mir_id;
+    gchar *display, *mir_socket, *mir_vt, *mir_id;
+    GString *status_text;
     int fd, open_max;
 
     display = getenv ("DISPLAY");
     mir_socket = getenv ("MIR_SERVER_FILE");
+    mir_vt = getenv ("MIR_SERVER_VT");
     mir_id = getenv ("MIR_ID");
     if (display)
     {
@@ -182,7 +184,7 @@ main (int argc, char **argv)
     }
     else if (mir_id)
         session_id = g_strdup_printf ("SESSION-MIR-%s", mir_id);
-    else if (mir_socket)
+    else if (mir_socket || mir_vt)
         session_id = g_strdup ("SESSION-MIR");
     else
         session_id = g_strdup ("SESSION-?");
@@ -208,10 +210,15 @@ main (int argc, char **argv)
 
     status_connect (request_cb);
 
+    status_text = g_string_new ("");
+    g_string_printf (status_text, "%s START", session_id);
+    if (mir_vt > 0)
+        g_string_append_printf (status_text, " VT=%s", mir_vt);
     if (argc > 1)
-        status_notify ("%s START NAME=%s USER=%s", session_id, argv[1], getenv ("USER"));
-    else
-        status_notify ("%s START USER=%s", session_id, getenv ("USER"));
+        g_string_append_printf (status_text, " NAME=%s", argv[1]);
+    g_string_append_printf (status_text, " USER=%s", getenv ("USER"));
+    status_notify (status_text->str);
+    g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);

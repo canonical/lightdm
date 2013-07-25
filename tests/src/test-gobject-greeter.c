@@ -299,7 +299,8 @@ user_removed_cb (LightDMUserList *user_list, LightDMUser *user)
 int
 main (int argc, char **argv)
 {
-    gchar *display, *mir_socket, *mir_id;
+    gchar *display, *mir_socket, *mir_vt, *mir_id;
+    GString *status_text;
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
@@ -307,6 +308,7 @@ main (int argc, char **argv)
 
     display = getenv ("DISPLAY");
     mir_socket = getenv ("MIR_SERVER_FILE");
+    mir_vt = getenv ("MIR_SERVER_VT");
     mir_id = getenv ("MIR_ID");
     if (display)
     {
@@ -317,7 +319,7 @@ main (int argc, char **argv)
     }
     else if (mir_id)
         greeter_id = g_strdup_printf ("GREETER-MIR-%s", mir_id);
-    else if (mir_socket)
+    else if (mir_socket || mir_vt)
         greeter_id = g_strdup ("GREETER-MIR");
     else
         greeter_id = g_strdup ("GREETER-?");
@@ -329,7 +331,12 @@ main (int argc, char **argv)
 
     status_connect (request_cb);
 
-    status_notify ("%s START", greeter_id);
+    status_text = g_string_new ("");
+    g_string_printf (status_text, "%s START", greeter_id);
+    if (mir_vt > 0)
+        g_string_append_printf (status_text, " VT=%s", mir_vt);
+    status_notify (status_text->str);
+    g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
