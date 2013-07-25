@@ -377,19 +377,6 @@ seat_unity_start (Seat *seat)
     return TRUE;
 }
 
-static void
-x_server_stopped_cb (XServerLocal *x_server, Seat *seat)
-{
-    gint vt;
-
-    /* Can re-use the VT */
-    vt = display_server_get_vt (DISPLAY_SERVER (x_server));
-    if (vt > 0)
-        vt_unref (vt);
-
-    g_signal_handlers_disconnect_matched (x_server, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, x_server_stopped_cb, NULL);
-}
-
 static DisplayServer *
 seat_unity_create_display_server (Seat *seat)
 {
@@ -417,14 +404,7 @@ seat_unity_create_display_server (Seat *seat)
         x_server_local_set_command (x_server, command);
 
     if (SEAT_UNITY (seat)->priv->use_vt_switching)
-    {
-        gint vt;
-      
-        vt = vt_get_unused ();
-        vt_ref (vt);
-        x_server_local_set_vt (x_server, vt);
-        g_signal_connect (x_server, "stopped", G_CALLBACK (x_server_stopped_cb), seat);
-    }
+        x_server_local_set_vt (x_server, vt_get_unused ());
 
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)

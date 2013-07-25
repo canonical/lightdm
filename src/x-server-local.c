@@ -21,6 +21,7 @@
 #include "x-server-local.h"
 #include "configuration.h"
 #include "process.h"
+#include "vt.h"
 
 struct XServerLocalPrivate
 {
@@ -65,6 +66,7 @@ struct XServerLocalPrivate
 
     /* VT to run on */
     gint vt;
+    gboolean have_vt_ref;
 
     /* Background to set */
     gchar *background;
@@ -175,7 +177,15 @@ void
 x_server_local_set_vt (XServerLocal *server, gint vt)
 {
     g_return_if_fail (server != NULL);
+    if (server->priv->vt > 0)
+        vt_unref (server->priv->vt);
+    server->priv->have_vt_ref = FALSE;
     server->priv->vt = vt;
+    if (vt > 0)
+    {
+        vt_ref (vt);
+        server->priv->have_vt_ref = TRUE;
+    }
 }
 
 void
@@ -354,6 +364,12 @@ stopped_cb (Process *process, XServerLocal *server)
 {
     g_debug ("X server stopped");
 
+    /* Release VT and display number for re-use */
+    if (server->priv->have_vt_ref)
+    {
+        vt_unref (server->priv->vt);
+        server->priv->have_vt_ref = FALSE;
+    }
     x_server_local_release_display_number (x_server_get_display_number (X_SERVER (server)));
   
     if (x_server_get_authority (X_SERVER (server)) && server->priv->authority_file)
@@ -551,6 +567,8 @@ x_server_local_finalize (GObject *object)
     g_free (self->priv->mir_id);
     g_free (self->priv->mir_socket);
     g_free (self->priv->authority_file);
+    if (self->priv->vt > 0)
+        vt_unref (self->priv->vt);
     g_free (self->priv->background);
 
     G_OBJECT_CLASS (x_server_local_parent_class)->finalize (object);
