@@ -299,19 +299,28 @@ user_removed_cb (LightDMUserList *user_list, LightDMUser *user)
 int
 main (int argc, char **argv)
 {
-    gchar *display;
+    gchar *display, *mir_socket, *mir_id;
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
 
     display = getenv ("DISPLAY");
-    if (display == NULL)
-        greeter_id = g_strdup ("GREETER-?");
-    else if (display[0] == ':')
-        greeter_id = g_strdup_printf ("GREETER-X-%s", display + 1);
+    mir_socket = getenv ("MIR_SERVER_FILE");
+    mir_id = getenv ("MIR_ID");
+    if (display)
+    {
+        if (display[0] == ':')
+            greeter_id = g_strdup_printf ("GREETER-X-%s", display + 1);
+        else
+            greeter_id = g_strdup_printf ("GREETER-X-%s", display);
+    }
+    else if (mir_id)
+        greeter_id = g_strdup_printf ("GREETER-MIR-%s", mir_id);
+    else if (mir_socket)
+        greeter_id = g_strdup ("GREETER-MIR");
     else
-        greeter_id = g_strdup_printf ("GREETER-X-%s", display);
+        greeter_id = g_strdup ("GREETER-?");
 
     loop = g_main_loop_new (NULL, FALSE);
 

@@ -398,20 +398,10 @@ create_x_server (Seat *seat)
     const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
     gboolean allow_tcp;
     gint port = 0;
-    gchar *id;
 
     g_debug ("Starting X server on Unity compositor");
 
     x_server = x_server_local_new ();
-
-    if (!SEAT_UNITY (seat)->priv->use_vt_switching)
-    {
-        id = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->next_id);
-        SEAT_UNITY (seat)->priv->next_id++;
-        x_server_local_set_mir_id (x_server, id);
-        x_server_local_set_mir_socket (x_server, SEAT_UNITY (seat)->priv->mir_socket_filename);
-        g_free (id);
-    }
 
     command = seat_get_string_property (seat, "xserver-command");
     if (command)
@@ -425,6 +415,16 @@ create_x_server (Seat *seat)
         vt_ref (vt);
         x_server_local_set_vt (x_server, vt);
         g_signal_connect (x_server, "stopped", G_CALLBACK (x_server_stopped_cb), seat);
+    }
+    else
+    {
+        gchar *id;
+
+        id = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->next_id);
+        SEAT_UNITY (seat)->priv->next_id++;
+        x_server_local_set_mir_id (x_server, id);
+        x_server_local_set_mir_socket (x_server, SEAT_UNITY (seat)->priv->mir_socket_filename);
+        g_free (id);
     }
 
     layout = seat_get_string_property (seat, "xserver-layout");
@@ -486,12 +486,36 @@ create_x_server (Seat *seat)
 }
 
 static DisplayServer *
+create_mir_server (Seat *seat)
+{
+    MirServer *mir_server;
+
+    mir_server = mir_server_new ();
+    mir_server_set_parent_socket (mir_server, SEAT_UNITY (seat)->priv->mir_socket_filename);
+
+    if (SEAT_UNITY (seat)->priv->use_vt_switching)
+        mir_server_set_vt (mir_server, vt_get_unused ());
+    else
+    {
+        gchar *id;
+
+        id = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->next_id);
+        SEAT_UNITY (seat)->priv->next_id++;
+        mir_server_set_id (mir_server, id);
+        mir_server_set_parent_socket (mir_server, SEAT_UNITY (seat)->priv->mir_socket_filename);
+        g_free (id);
+    }   
+
+    return DISPLAY_SERVER (mir_server);
+}
+
+static DisplayServer *
 seat_unity_create_display_server (Seat *seat, const gchar *session_type)
 {  
     if (strcmp (session_type, "x") == 0)
         return create_x_server (seat);
     else if (strcmp (session_type, "mir") == 0)
-        return DISPLAY_SERVER (mir_server_new ());
+        return create_mir_server (seat);
     else
     {
         g_warning ("Can't create unsupported display server '%s'", session_type);
@@ -544,13 +568,22 @@ seat_unity_set_active_session (Seat *seat, Session *session)
     display_server = session_get_display_server (session);
     if (SEAT_UNITY (seat)->priv->active_display_server != display_server)
     {
-        const gchar *id;
+        const gchar *id = NULL;
 
         SEAT_UNITY (seat)->priv->active_display_server = g_object_ref (display_server);
-        id = x_server_local_get_mir_id (X_SERVER_LOCAL (display_server));
 
-        g_debug ("Switching to Mir session %s", id);
-        write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_ACTIVE_SESSION, (const guint8 *) id, strlen (id));
+        if (IS_X_SERVER_LOCAL (display_server))
+            id = x_server_local_get_mir_id (X_SERVER_LOCAL (display_server));
+        else if (IS_MIR_SERVER (display_server))
+            id = mir_server_get_id (MIR_SERVER (display_server));
+
+        if (id)
+        {
+            g_debug ("Switching to Mir session %s", id);
+            write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_ACTIVE_SESSION, (const guint8 *) id, strlen (id));
+        }
+        else
+            g_warning ("Failed to work out session ID");
     }
 
     SEAT_CLASS (seat_unity_parent_class)->set_active_session (seat, session);

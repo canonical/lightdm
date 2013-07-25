@@ -167,11 +167,12 @@ request_cb (const gchar *request)
 int
 main (int argc, char **argv)
 {
-    gchar *display, *mir_socket;
+    gchar *display, *mir_socket, *mir_id;
     int fd, open_max;
 
     display = getenv ("DISPLAY");
-    mir_socket = getenv ("DISPLAY");
+    mir_socket = getenv ("MIR_SERVER_FILE");
+    mir_id = getenv ("MIR_ID");
     if (display)
     {
         if (display[0] == ':')
@@ -179,6 +180,8 @@ main (int argc, char **argv)
         else
             session_id = g_strdup_printf ("SESSION-X-%s", display);
     }
+    else if (mir_id)
+        session_id = g_strdup_printf ("SESSION-MIR-%s", mir_id);
     else if (mir_socket)
         session_id = g_strdup ("SESSION-MIR");
     else

@@ -13,17 +13,18 @@
 
 #include "mir-server.h"
 #include "configuration.h"
+#include "vt.h"
 
 struct MirServerPrivate
 {
     /* VT to run on */
     gint vt;
 
-    /* Mir socket for children of this display server to communicate on */
-    gchar *mir_socket;
-
     /* Mir socket for this server to talk to parent */
-    gchar *mir_parent_socket;
+    gchar *parent_socket;
+
+    /* ID to use for Mir connection */
+    gchar *id;
 };
 
 G_DEFINE_TYPE (MirServer, mir_server, DISPLAY_SERVER_TYPE);
@@ -33,10 +34,43 @@ MirServer *mir_server_new (void)
     return g_object_new (MIR_SERVER_TYPE, NULL);  
 }
 
+void
+mir_server_set_vt (MirServer *server, gint vt)
+{
+    g_return_if_fail (server != NULL);
+    if (server->priv->vt > 0)
+        vt_unref (server->priv->vt);
+    server->priv->vt = vt;
+    if (vt > 0)
+        vt_ref (vt);
+}
+
+void
+mir_server_set_parent_socket (MirServer *server, const gchar *parent_socket)
+{
+    g_return_if_fail (server != NULL);
+    g_free (server->priv->parent_socket);
+    server->priv->parent_socket = g_strdup (parent_socket);
+}
+
+void
+mir_server_set_id (MirServer *server, const gchar *id)
+{
+    g_return_if_fail (server != NULL);
+    g_free (server->priv->id);
+    server->priv->id = g_strdup (id);
+}
+
+const gchar *
+mir_server_get_id (MirServer *server)
+{
+    g_return_val_if_fail (server != NULL, NULL);
+    return server->priv->id;
+}
+
 static gint
 mir_server_local_get_vt (DisplayServer *server)
 {
-    g_return_val_if_fail (server != NULL, 0);
     return MIR_SERVER (server)->priv->vt;
 }
 
@@ -49,16 +83,16 @@ mir_server_start (DisplayServer *display_server)
 static void
 mir_server_setup_session (DisplayServer *display_server, Session *session)
 {
-    MirServer *mir_server;
+    MirServer *server;
 
-    mir_server = MIR_SERVER (display_server);
-    if (mir_server->priv->mir_socket)
-        session_set_env (session, "MIR_SOCKET", mir_server->priv->mir_socket);
-    if (mir_server->priv->mir_parent_socket)
-        session_set_env (session, "MIR_SERVER_FILE", mir_server->priv->mir_parent_socket);
-    if (mir_server->priv->vt > 0)
+    server = MIR_SERVER (display_server);
+    if (server->priv->id)
+        session_set_env (session, "MIR_ID", server->priv->id);
+    if (server->priv->parent_socket)
+        session_set_env (session, "MIR_SERVER_FILE", server->priv->parent_socket);
+    if (server->priv->vt > 0)
     {
-        gchar *value = g_strdup_printf ("%d", mir_server->priv->vt);
+        gchar *value = g_strdup_printf ("%d", server->priv->vt);
         session_set_env (session, "MIR_SERVER_VT", value);
         g_free (value);
     }
@@ -74,6 +108,15 @@ mir_server_init (MirServer *server)
 static void
 mir_server_finalize (GObject *object)
 {
+    MirServer *server;
+
+    server = MIR_SERVER (object);
+
+    if (server->priv->vt > 0)
+        vt_unref (server->priv->vt);
+    g_free (server->priv->id);
+    g_free (server->priv->parent_socket);
+
     G_OBJECT_CLASS (mir_server_parent_class)->finalize (object);
 }
 
