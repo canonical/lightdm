@@ -262,6 +262,7 @@ EXTRA_DIST = \
 	data/system.conf \
 	data/session.conf \
 	data/greeters/test-gobject-greeter.desktop \
+	data/greeters/test-mir-greeter.desktop \
 	data/greeters/test-python-greeter.desktop \
 	data/greeters/test-qt4-greeter.desktop \
 	data/greeters/test-qt5-greeter.desktop \
