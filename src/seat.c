@@ -364,6 +364,12 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     g_object_unref (display_server);
 }
 
+static gboolean
+can_share_display_server (Seat *seat, DisplayServer *display_server)
+{
+    return seat->priv->share_display_server && display_server_get_can_share (display_server);
+}
+
 static void
 switch_to_greeter_from_failed_session (Seat *seat, Session *session)
 {
@@ -378,7 +384,7 @@ switch_to_greeter_from_failed_session (Seat *seat, Session *session)
         g_object_unref (seat->priv->session_to_activate);
     seat->priv->session_to_activate = g_object_ref (greeter_session);
 
-    if (seat->priv->share_display_server)
+    if (can_share_display_server (seat, session_get_display_server (session)))
         session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
     else
     {
@@ -519,7 +525,8 @@ session_stopped_cb (Session *session, Seat *seat)
     }
 
     /* If this is the greeter session then re-use this display server */
-    if (IS_GREETER (session) && seat->priv->share_display_server &&
+    if (IS_GREETER (session) &&
+        can_share_display_server (seat, display_server) &&
         greeter_get_start_session (GREETER (session)))
     {
         GList *link;
@@ -839,6 +846,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     User *user;
     gchar *sessions_dir = NULL;
     gchar **argv;
+    DisplayServer *display_server;
 
     /* Get the session to use */
     if (greeter_get_guest_authenticated (greeter))
@@ -913,10 +921,11 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     }
 
     /* If can re-use the display server, stop the greeter first */
-    if (seat->priv->share_display_server)
+    display_server = session_get_display_server (SESSION (greeter));
+    if (can_share_display_server (seat, display_server))
     {
         /* Run on the same display server after the greeter has stopped */
-        session_set_display_server (session, session_get_display_server (SESSION (greeter)));
+        session_set_display_server (session, display_server);
 
         g_debug ("Stopping greeter");
         session_stop (SESSION (greeter));
@@ -926,8 +935,6 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     /* Otherwise start a new display server for this session */
     else
     {
-        DisplayServer *display_server;
-
         display_server = create_display_server (seat);
         if (!display_server_start (display_server))
             return FALSE;

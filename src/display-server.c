@@ -49,6 +49,18 @@ display_server_get_name (DisplayServer *server)
     return server->priv->name;
 }
 
+gboolean
+display_server_get_can_share (DisplayServer *server)
+{
+    return DISPLAY_SERVER_GET_CLASS (server)->get_can_share (server);
+}
+
+static gboolean
+display_server_real_get_can_share (DisplayServer *server)
+{
+    return FALSE;
+}
+
 gint
 display_server_get_vt (DisplayServer *server)
 {
@@ -120,6 +132,7 @@ display_server_init (DisplayServer *server)
 static void
 display_server_class_init (DisplayServerClass *klass)
 {
+    klass->get_can_share = display_server_real_get_can_share;
     klass->get_vt = display_server_real_get_vt;
     klass->start = display_server_real_start;
     klass->setup_session = display_server_real_setup_session;
