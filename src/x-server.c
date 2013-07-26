@@ -133,7 +133,7 @@ x_server_start (DisplayServer *display_server)
 }
 
 static void
-x_server_setup_session (DisplayServer *display_server, Session *session)
+x_server_connect_session (DisplayServer *display_server, Session *session)
 {
     gint vt;
 
@@ -160,6 +160,17 @@ x_server_setup_session (DisplayServer *display_server, Session *session)
     session_set_x_authority (session,
                              x_server_get_authority (X_SERVER (display_server)),
                              config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"));
+}
+
+static void
+x_server_disconnect_session (DisplayServer *display_server, Session *session)
+{
+    session_set_tty (session, NULL);
+    session_unset_env (session, "XDG_VTNR");
+    session_unset_env (session, "DISPLAY");
+    session_set_xdisplay (session, NULL);
+    session_set_remote_host_name (session, NULL);
+    session_set_x_authority (session, NULL, FALSE);
 }
 
 void
@@ -192,7 +203,8 @@ x_server_class_init (XServerClass *klass)
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
     display_server_class->start = x_server_start;
-    display_server_class->setup_session = x_server_setup_session;
+    display_server_class->connect_session = x_server_connect_session;
+    display_server_class->disconnect_session = x_server_disconnect_session;
     object_class->finalize = x_server_finalize;
 
     g_type_class_add_private (klass, sizeof (XServerPrivate));

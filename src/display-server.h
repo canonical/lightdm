@@ -42,7 +42,8 @@ typedef struct
 
     gint (*get_vt)(DisplayServer *server);
     gboolean (*start)(DisplayServer *server);
-    void (*setup_session)(DisplayServer *server, Session *session);
+    void (*connect_session)(DisplayServer *server, Session *session);
+    void (*disconnect_session)(DisplayServer *server, Session *session);
     void (*stop)(DisplayServer *server);
 } DisplayServerClass;
 
@@ -56,7 +57,9 @@ gint display_server_get_vt (DisplayServer *server);
 
 gboolean display_server_start (DisplayServer *server);
 
-void display_server_setup_session (DisplayServer *server, Session *session);
+void display_server_connect_session (DisplayServer *server, Session *session);
+
+void display_server_disconnect_session (DisplayServer *server, Session *session);
 
 void display_server_stop (DisplayServer *server);
 
