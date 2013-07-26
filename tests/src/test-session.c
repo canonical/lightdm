@@ -168,15 +168,19 @@ int
 main (int argc, char **argv)
 {
     gchar *display;
+    GString *status_text;
     int fd, open_max;
 
     display = getenv ("DISPLAY");
-    if (display == NULL)
-        session_id = g_strdup ("SESSION-?");
-    else if (display[0] == ':')
-        session_id = g_strdup_printf ("SESSION-X-%s", display + 1);
+    if (display)
+    {
+        if (display[0] == ':')
+            session_id = g_strdup_printf ("SESSION-X-%s", display + 1);
+        else
+            session_id = g_strdup_printf ("SESSION-X-%s", display);
+    }
     else
-        session_id = g_strdup_printf ("SESSION-X-%s", display);
+        session_id = g_strdup ("SESSION-?");
 
     open_fds = g_string_new ("");
     open_max = sysconf (_SC_OPEN_MAX);
@@ -199,23 +203,27 @@ main (int argc, char **argv)
 
     status_connect (request_cb);
 
+    status_text = g_string_new ("");
+    g_string_printf (status_text, "%s START", session_id);
     if (argc > 1)
-        status_notify ("%s START NAME=%s USER=%s", session_id, argv[1], getenv ("USER"));
-    else
-        status_notify ("%s START USER=%s", session_id, getenv ("USER"));
+        g_string_append_printf (status_text, " NAME=%s", argv[1]);
+    g_string_append_printf (status_text, " USER=%s", getenv ("USER"));
+    status_notify (status_text->str);
+    g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
 
-    connection = xcb_connect (NULL, NULL);
-
-    if (xcb_connection_has_error (connection))
+    if (display)
     {
-        status_notify ("%s CONNECT-XSERVER-ERROR", session_id);
-        return EXIT_FAILURE;
+        connection = xcb_connect (NULL, NULL);
+        if (xcb_connection_has_error (connection))
+        {
+            status_notify ("%s CONNECT-XSERVER-ERROR", session_id);
+            return EXIT_FAILURE;
+        }
+        status_notify ("%s CONNECT-XSERVER", session_id);
     }
-
-    status_notify ("%s CONNECT-XSERVER", session_id);
 
     g_main_loop_run (loop);
 

@@ -300,18 +300,22 @@ int
 main (int argc, char **argv)
 {
     gchar *display;
+    GString *status_text;
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
 
     display = getenv ("DISPLAY");
-    if (display == NULL)
-        greeter_id = g_strdup ("GREETER-?");
-    else if (display[0] == ':')
-        greeter_id = g_strdup_printf ("GREETER-X-%s", display + 1);
+    if (display)
+    {
+        if (display[0] == ':')
+            greeter_id = g_strdup_printf ("GREETER-X-%s", display + 1);
+        else
+            greeter_id = g_strdup_printf ("GREETER-X-%s", display);
+    }
     else
-        greeter_id = g_strdup_printf ("GREETER-X-%s", display);
+        greeter_id = g_strdup ("GREETER-?");
 
     loop = g_main_loop_new (NULL, FALSE);
 
@@ -320,7 +324,10 @@ main (int argc, char **argv)
 
     status_connect (request_cb);
 
-    status_notify ("%s START", greeter_id);
+    status_text = g_string_new ("");
+    g_string_printf (status_text, "%s START", greeter_id);
+    status_notify (status_text->str);
+    g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
@@ -332,15 +339,16 @@ main (int argc, char **argv)
         return return_value;
     }
 
-    connection = xcb_connect (NULL, NULL);
-
-    if (xcb_connection_has_error (connection))
+    if (display)
     {
-        status_notify ("%s FAIL-CONNECT-XSERVER", greeter_id);
-        return EXIT_FAILURE;
+        connection = xcb_connect (NULL, NULL);
+        if (xcb_connection_has_error (connection))
+        {
+            status_notify ("%s FAIL-CONNECT-XSERVER", greeter_id);
+            return EXIT_FAILURE;
+        }
+        status_notify ("%s CONNECT-XSERVER", greeter_id);
     }
-
-    status_notify ("%s CONNECT-XSERVER", greeter_id);
 
     greeter = lightdm_greeter_new ();
     g_signal_connect (greeter, "show-message", G_CALLBACK (show_message_cb), NULL);

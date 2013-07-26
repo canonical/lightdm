@@ -250,12 +250,15 @@ main(int argc, char *argv[])
 #endif
 
     display = getenv ("DISPLAY");
-    if (display == NULL)
-        greeter_id = g_strdup ("GREETER-?");
-    else if (display[0] == ':')
-        greeter_id = g_strdup_printf ("GREETER-X-%s", display + 1);
+    if (display)
+    {
+        if (display[0] == ':')
+            greeter_id = g_strdup_printf ("GREETER-X-%s", display + 1);
+        else
+            greeter_id = g_strdup_printf ("GREETER-X-%s", display);
+    }
     else
-        greeter_id = g_strdup_printf ("GREETER-X-%s", display);
+        greeter_id = g_strdup ("GREETER-?");
 
     status_connect (request_cb);
 
@@ -268,15 +271,16 @@ main(int argc, char *argv[])
 
     config = new QSettings (g_build_filename (getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), QSettings::IniFormat);
 
-    xcb_connection_t *connection = xcb_connect (NULL, NULL);
-
-    if (xcb_connection_has_error (connection))
+    if (display)
     {
-        status_notify ("%s FAIL-CONNECT-XSERVER", greeter_id);
-        return EXIT_FAILURE;
+        xcb_connection_t *connection = xcb_connect (NULL, NULL);
+        if (xcb_connection_has_error (connection))
+        {
+            status_notify ("%s FAIL-CONNECT-XSERVER", greeter_id);
+            return EXIT_FAILURE;
+        }
+        status_notify ("%s CONNECT-XSERVER", greeter_id);
     }
-
-    status_notify ("%s CONNECT-XSERVER", greeter_id);
 
     power = new QLightDM::PowerInterface();
 

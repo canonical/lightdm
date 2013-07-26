@@ -10,12 +10,13 @@ from gi.repository import GLib
 from gi.repository import LightDM
 
 display = os.getenv ('DISPLAY');
-if display is None:
-    greeter_id = 'GREETER-?'
-elif display.startswith (':'):
-    greeter_id = 'GREETER-X-%s' % display[1:]
+if display is not None:
+    if display.startswith (':'):
+        greeter_id = 'GREETER-X-%s' % display[1:]
+    else:
+        greeter_id = 'GREETER-X-%s' % display
 else:
-    greeter_id = 'GREETER-X-%s' % display
+    greeter_id = 'GREETER-?'
 
 loop = GLib.MainLoop ()
 
@@ -191,15 +192,16 @@ config = GLib.KeyFile ()
 config.load_from_file (os.getenv ('LIGHTDM_TEST_ROOT') + '/script', GLib.KeyFileFlags.NONE)
 
 # NOTE: There don't seem to be any good X bindings so we have to mock up our own...
-(host, display_number) = display.split (':')
-if host == '':
-    x_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
-    x_socket.connect (os.getenv ('LIGHTDM_TEST_ROOT') + '/.x' + display)
-else:
-    x_socket = socket.socket (socket.AF_INET, socket.SOCK_STREAM)
-    x_socket.connect ((host, 6000 + int (display_number)))
+if display is not None:
+    (host, display_number) = display.split (':')
+    if host == '':
+        x_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
+        x_socket.connect (os.getenv ('LIGHTDM_TEST_ROOT') + '/.x' + display)
+    else:
+        x_socket = socket.socket (socket.AF_INET, socket.SOCK_STREAM)
+        x_socket.connect ((host, 6000 + int (display_number)))
 
-status_notify ('%s CONNECT-XSERVER' % (greeter_id))
+    status_notify ('%s CONNECT-XSERVER' % (greeter_id))
 
 def show_message_cb (greeter, text, type):
     status_notify ('%s SHOW-MESSAGE TEXT=\"%s\"' % (greeter_id, text))
