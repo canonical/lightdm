@@ -47,6 +47,9 @@ struct SeatPrivate
 
     /* The session to set active when it starts */
     Session *session_to_activate;
+  
+    /* TRUE once we have started */
+    gboolean started;
 
     /* TRUE if stopping this seat (waiting for displays to stop) */
     gboolean stopping;
@@ -318,7 +321,7 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     g_signal_handlers_disconnect_matched (display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
     seat->priv->display_servers = g_list_remove (seat->priv->display_servers, display_server);
 
-    if (seat->priv->stopping)
+    if (seat->priv->stopping || !seat->priv->started)
     {
         check_stopped (seat);
         g_object_unref (display_server);
@@ -495,7 +498,15 @@ session_stopped_cb (Session *session, Seat *seat)
 
     g_debug ("Session stopped");
 
+    g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
+    seat->priv->sessions = g_list_remove (seat->priv->sessions, session);
+
     display_server = session_get_display_server (session);
+    if (!display_server)
+    {
+        g_object_unref (session);
+        return;
+    }
 
     /* Cleanup */
     if (!IS_GREETER (session))
@@ -505,9 +516,6 @@ session_stopped_cb (Session *session, Seat *seat)
         if (script)
             run_script (seat, display_server, script, session_get_user (session));
     }
-
-    g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
-    seat->priv->sessions = g_list_remove (seat->priv->sessions, session);
 
     /* We were waiting for this session, but it didn't start :( */
     // FIXME: Start a greeter on this?
@@ -1082,6 +1090,9 @@ create_display_server (Seat *seat, const gchar *session_type)
     g_debug ("Creating display server of type %s", session_type);
 
     display_server = SEAT_GET_CLASS (seat)->create_display_server (seat, session_type);
+    if (!display_server)
+        return NULL;
+
     seat->priv->display_servers = g_list_append (seat->priv->display_servers, display_server);
     g_signal_connect (display_server, "ready", G_CALLBACK (display_server_ready_cb), seat);
     g_signal_connect (display_server, "stopped", G_CALLBACK (display_server_stopped_cb), seat);
@@ -1307,13 +1318,13 @@ seat_real_start (Seat *seat)
     gboolean autologin_guest;
     gboolean autologin_in_background;
     Session *session = NULL, *background_session = NULL;
-    DisplayServer *display_server;
 
     g_debug ("Starting seat");
 
     /* If this display server doesn't have a session running on it, just start it */
     if (!get_start_local_sessions (seat))
     {
+        DisplayServer *display_server;
         display_server = create_display_server (seat, "x"); // FIXME: Not necessarily an X seat, but not sure what to put here
         return display_server_start (display_server);
     }
@@ -1333,14 +1344,9 @@ seat_real_start (Seat *seat)
             session = create_guest_session (seat);
         else if (autologin_username != NULL)
             session = create_user_session (seat, autologin_username);
-      
+
         if (session)
-        {
-            if (seat->priv->session_to_activate)
-                g_object_unref (seat->priv->session_to_activate);
-            seat->priv->session_to_activate = g_object_ref (session);
             session_set_pam_service (session, AUTOLOGIN_SERVICE);
-        }
 
         /* Load in background if required */
         if (autologin_in_background && session)
@@ -1348,14 +1354,41 @@ seat_real_start (Seat *seat)
             background_session = session;
             session = NULL;
         }
+      
+        if (session)
+        {
+            DisplayServer *display_server;
+
+            if (seat->priv->session_to_activate)
+                g_object_unref (seat->priv->session_to_activate);
+            seat->priv->session_to_activate = g_object_ref (session);
+
+            display_server = create_display_server (seat, session_get_session_type (session));
+            session_set_display_server (session, display_server);
+            if (!display_server || !display_server_start (display_server))
+            {
+                g_debug ("Can't create display server for automatic login");
+                session_stop (session);
+                if (display_server)
+                    display_server_stop (display_server);
+                session = NULL;
+            }
+        }
     }
 
     /* Fallback to a greeter */
     if (!session)
     {
         Greeter *greeter_session;
+        DisplayServer *display_server;
 
         greeter_session = create_greeter_session (seat);
+        if (!greeter_session)
+        {
+            g_debug ("Failed to create greeter session");
+            return FALSE;
+        }
+
         if (seat->priv->session_to_activate)
             g_object_unref (seat->priv->session_to_activate);
         seat->priv->session_to_activate = g_object_ref (greeter_session);
@@ -1373,6 +1406,17 @@ seat_real_start (Seat *seat)
             if (autologin_guest)
                 greeter_set_hint (greeter_session, "autologin-guest", "true");
         }
+
+        display_server = create_display_server (seat, session_get_session_type (session));
+        session_set_display_server (session, display_server);
+        if (!display_server || !display_server_start (display_server))
+        {
+            g_debug ("Can't create display server for greeter");
+            session_stop (session);
+            if (display_server)
+                display_server_stop (display_server);
+            session = NULL;
+        }
     }
 
     /* Fail if can't start a session */
@@ -1381,15 +1425,6 @@ seat_real_start (Seat *seat)
         seat_stop (seat);
         return FALSE;
     }
-
-    display_server = create_display_server (seat, session_get_session_type (session));
-    if (!display_server)
-        return FALSE;
-
-    /* Start display server to show session on */
-    session_set_display_server (session, display_server);
-    if (!display_server_start (display_server))
-        return FALSE;
 
     /* Start background session */
     if (background_session)
@@ -1402,6 +1437,7 @@ seat_real_start (Seat *seat)
             g_warning ("Failed to start display server for background session");
     }
 
+    seat->priv->started = TRUE;
     return TRUE;
 }
 

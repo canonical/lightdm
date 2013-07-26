@@ -135,9 +135,8 @@ TESTS = \
 	test-open-file-descriptors \
 	test-xdmcp-server-open-file-descriptors \
 	test-mir-autologin \
-	test-mir-greeter-x-session \
-	test-mir-greeter-mir-session \
-	test-mir-session-x-greeter \
+	test-mir-greeter \
+	test-mir-session \
 	test-unity-compositor-command \
 	test-unity-compositor-fail-start \
 	test-unity-compositor-fail-ready \
@@ -355,9 +354,8 @@ EXTRA_DIST = \
 	scripts/login-wrong-password.conf \
 	scripts/login-xserver-crash.conf \
 	scripts/mir-autologin.conf \
-	scripts/mir-greeter-x-session.conf \
-	scripts/mir-greeter-mir-session.conf \
-	scripts/mir-session-x-greeter.conf \
+	scripts/mir-greeter.conf \
+	scripts/mir-session.conf \
 	scripts/no-accounts-service.conf \
 	scripts/no-config.conf \
 	scripts/no-console-kit.conf \

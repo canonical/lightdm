@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/dbus-env ./src/test-runner mir-autologin test-mir-greeter
+./src/dbus-env ./src/test-runner mir-autologin test-gobject-greeter
