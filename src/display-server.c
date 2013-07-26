@@ -49,6 +49,12 @@ display_server_get_name (DisplayServer *server)
     return server->priv->name;
 }
 
+const gchar *
+display_server_get_session_type (DisplayServer *server)
+{
+    return DISPLAY_SERVER_GET_CLASS (server)->get_session_type (server);
+}
+
 gboolean
 display_server_get_can_share (DisplayServer *server)
 {

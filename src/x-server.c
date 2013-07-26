@@ -105,6 +105,12 @@ x_server_get_authority (XServer *server)
     return server->priv->authority;
 }
 
+static const gchar *
+x_server_get_session_type (DisplayServer *server)
+{
+    return "x";
+}
+
 static gboolean
 x_server_get_can_share (DisplayServer *server)
 {
@@ -208,6 +214,7 @@ x_server_class_init (XServerClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
+    display_server_class->get_session_type = x_server_get_session_type;    
     display_server_class->get_can_share = x_server_get_can_share;
     display_server_class->start = x_server_start;
     display_server_class->connect_session = x_server_connect_session;

@@ -82,8 +82,14 @@ mir_server_get_id (MirServer *server)
     return server->priv->id;
 }
 
+static const gchar *
+mir_server_get_session_type (DisplayServer *server)
+{
+    return "mir";
+}
+
 static gint
-mir_server_local_get_vt (DisplayServer *server)
+mir_server_get_vt (DisplayServer *server)
 {
     return MIR_SERVER (server)->priv->vt;
 }
@@ -143,7 +149,8 @@ mir_server_class_init (MirServerClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
-    display_server_class->get_vt = mir_server_local_get_vt;
+    display_server_class->get_session_type = mir_server_get_session_type;
+    display_server_class->get_vt = mir_server_get_vt;
     display_server_class->connect_session = mir_server_connect_session;
     display_server_class->disconnect_session = mir_server_disconnect_session;
     object_class->finalize = mir_server_finalize;

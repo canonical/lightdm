@@ -843,12 +843,6 @@ find_user_session (Seat *seat, const gchar *username)
 }
 
 static gboolean
-display_server_supports_session_type (Seat *seat, DisplayServer *display_server, const gchar *session_type)
-{
-    return SEAT_GET_CLASS (seat)->display_server_supports_session_type (seat, display_server, session_type);
-}
-
-static gboolean
 greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
 {
     Session *session, *existing_session;
@@ -936,7 +930,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     /* If can re-use the display server, stop the greeter first */
     display_server = session_get_display_server (SESSION (greeter));
     if (can_share_display_server (seat, display_server) &&
-        display_server_supports_session_type (seat, display_server, session_get_session_type (session)))
+        strcmp (display_server_get_session_type (display_server), session_get_session_type (session)) == 0)
     {
         g_debug ("Stopping greeter; display server will be re-used for user session");
 
@@ -954,7 +948,10 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         display_server = create_display_server (seat, session_get_session_type (session));
         session_set_display_server (session, display_server);
         if (!display_server_start (display_server))
+        {
+            g_debug ("Failed to start display server for new session");
             return FALSE;
+        }
 
         return TRUE;
     }

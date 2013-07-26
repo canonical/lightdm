@@ -503,17 +503,6 @@ seat_unity_create_display_server (Seat *seat, const gchar *session_type)
     }
 }
 
-static gboolean
-seat_unity_display_server_supports_session_type (Seat *seat, DisplayServer *display_server, const gchar *session_type)
-{  
-    if (IS_X_SERVER (display_server) && strcmp (session_type, "x") == 0)
-        return TRUE;
-    if (IS_MIR_SERVER (display_server) && strcmp (session_type, "mir") == 0)
-        return TRUE;
-
-    return FALSE;
-}
-
 static Greeter *
 seat_unity_create_greeter_session (Seat *seat)
 {
@@ -674,7 +663,6 @@ seat_unity_class_init (SeatUnityClass *klass)
     seat_class->setup = seat_unity_setup;
     seat_class->start = seat_unity_start;
     seat_class->create_display_server = seat_unity_create_display_server;
-    seat_class->display_server_supports_session_type = seat_unity_display_server_supports_session_type;
     seat_class->create_greeter_session = seat_unity_create_greeter_session;
     seat_class->create_session = seat_unity_create_session;
     seat_class->set_active_session = seat_unity_set_active_session;
