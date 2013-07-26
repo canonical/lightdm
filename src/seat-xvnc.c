@@ -40,10 +40,7 @@ seat_xvnc_create_display_server (Seat *seat, const gchar *session_type)
     const gchar *command = NULL;
 
     if (strcmp (session_type, "x") != 0)
-    {
-        g_warning ("XVNC seat only supports X display servers, not '%s'", session_type);
         return NULL;
-    }
   
     x_server = x_server_xvnc_new ();
     x_server_xvnc_set_socket (x_server, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
