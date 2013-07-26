@@ -711,6 +711,8 @@ create_user_session (Seat *seat, const gchar *username)
     SessionConfig *session_config;
     Session *session = NULL;
 
+    g_debug ("Creating user session");
+
     /* Load user preferences */
     user = accounts_get_user_by_name (username);
     if (!user)
@@ -915,10 +917,12 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     /* If can re-use the display server, stop the greeter first */
     if (seat->priv->share_display_server)
     {
+        g_debug ("Stopping greeter; display server will be re-used for user session");
+
         /* Run on the same display server after the greeter has stopped */
         session_set_display_server (session, session_get_display_server (SESSION (greeter)));
 
-        g_debug ("Stopping greeter");
+        /* Stop the greeter */
         session_stop (SESSION (greeter));
 
         return TRUE;
@@ -946,6 +950,8 @@ create_greeter_session (Seat *seat)
     Greeter *greeter_session;
     gchar *greeter_user;
     const gchar *greeter_wrapper;
+
+    g_debug ("Creating greeter session");
 
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "greeters-directory");
     session_config = find_session_config (sessions_dir, seat_get_string_property (seat, "greeter-session"));
@@ -1056,6 +1062,8 @@ static DisplayServer *
 create_display_server (Seat *seat)
 {
     DisplayServer *display_server;
+
+    g_debug ("Creating display server");
 
     display_server = SEAT_GET_CLASS (seat)->create_display_server (seat);
     seat->priv->display_servers = g_list_append (seat->priv->display_servers, display_server);
