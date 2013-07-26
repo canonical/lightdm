@@ -14,7 +14,6 @@
 #include "seat-xlocal.h"
 #include "configuration.h"
 #include "x-server-local.h"
-#include "mir-server.h"
 #include "plymouth.h"
 #include "vt.h"
 
@@ -59,8 +58,11 @@ x_server_transition_plymouth_cb (XServerLocal *x_server, Seat *seat)
 }
 
 static DisplayServer *
-create_x_server (Seat *seat)
-{
+seat_xlocal_create_display_server (Seat *seat, const gchar *session_type)
+{  
+    if (strcmp (session_type, "x") != 0)
+        return NULL;
+
     XServerLocal *x_server;
     const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
     gboolean allow_tcp;
@@ -160,31 +162,6 @@ create_x_server (Seat *seat)
     return DISPLAY_SERVER (x_server);
 }
 
-static DisplayServer *
-create_mir_server (Seat *seat)
-{
-    MirServer *mir_server;
-
-    mir_server = mir_server_new ();
-    mir_server_set_vt (mir_server, vt_get_unused ());
-
-    return DISPLAY_SERVER (mir_server);
-}
-
-static DisplayServer *
-seat_xlocal_create_display_server (Seat *seat, const gchar *session_type)
-{  
-    if (strcmp (session_type, "x") == 0)
-        return create_x_server (seat);
-    else if (strcmp (session_type, "mir") == 0)
-        return create_mir_server (seat);
-    else
-    {
-        g_warning ("Can't create unsupported display server '%s'", session_type);
-        return NULL;
-    }
-}
-
 static Greeter *
 seat_xlocal_create_greeter_session (Seat *seat)
 {
@@ -230,7 +207,10 @@ seat_xlocal_get_active_session (Seat *seat)
     for (link = seat_get_sessions (seat); link; link = link->next)
     {
         Session *session = link->data;
-        if (display_server_get_vt (session_get_display_server (session)) == vt)
+        DisplayServer *display_server;
+
+        display_server = session_get_display_server (session);
+        if (display_server && display_server_get_vt (display_server) == vt)
             return session;
     }
 
