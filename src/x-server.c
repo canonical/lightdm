@@ -106,6 +106,12 @@ x_server_get_authority (XServer *server)
 }
 
 static gboolean
+x_server_get_can_share (DisplayServer *server)
+{
+    return TRUE;
+}
+
+static gboolean
 x_server_start (DisplayServer *display_server)
 {
     XServer *server = X_SERVER (display_server);
@@ -202,6 +208,7 @@ x_server_class_init (XServerClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
+    display_server_class->get_can_share = x_server_get_can_share;
     display_server_class->start = x_server_start;
     display_server_class->connect_session = x_server_connect_session;
     display_server_class->disconnect_session = x_server_disconnect_session;

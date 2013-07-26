@@ -189,6 +189,12 @@ stopped_cb (Process *process, XServerXVNC *server)
 }
 
 static gboolean
+x_server_xvnc_get_can_share (DisplayServer *server)
+{
+    return TRUE;
+}
+
+static gboolean
 x_server_xvnc_start (DisplayServer *display_server)
 {
     XServerXVNC *server = X_SERVER_XVNC (display_server);
@@ -319,6 +325,7 @@ x_server_xvnc_class_init (XServerXVNCClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
+    display_server_class->get_can_share = x_server_xvnc_get_can_share;
     display_server_class->start = x_server_xvnc_start;
     display_server_class->stop = x_server_xvnc_stop;
     object_class->finalize = x_server_xvnc_finalize;
