@@ -1293,16 +1293,17 @@ seat_real_start (Seat *seat)
     int autologin_timeout;
     gboolean autologin_guest;
     gboolean autologin_in_background;
-    Session *session = NULL;
+    Session *session = NULL, *background_session = NULL;
     DisplayServer *display_server;
 
     g_debug ("Starting seat");
 
-    display_server = create_display_server (seat);
-
     /* If this display server doesn't have a session running on it, just start it */
     if (!get_start_local_sessions (seat))
+    {
+        display_server = create_display_server (seat);
         return display_server_start (display_server);
+    }
 
     /* Get autologin settings */
     autologin_username = seat_get_string_property (seat, "autologin-user");
@@ -1331,14 +1332,7 @@ seat_real_start (Seat *seat)
         /* Load in background if required */
         if (autologin_in_background && session)
         {
-            DisplayServer *background_display_server;
-
-            background_display_server = create_display_server (seat);
-            session_set_display_server (session, background_display_server);
-            if (!display_server_start (background_display_server))
-                return FALSE;
-
-            /* Start a greeter as well */
+            background_session = session;
             session = NULL;
         }
     }
@@ -1375,10 +1369,25 @@ seat_real_start (Seat *seat)
         return FALSE;
     }
 
+    display_server = create_display_server (seat);
+    if (!display_server)
+        return FALSE;
+
     /* Start display server to show session on */
     session_set_display_server (session, display_server);
     if (!display_server_start (display_server))
         return FALSE;
+
+    /* Start background session */
+    if (background_session)
+    {
+        DisplayServer *background_display_server;
+
+        background_display_server = create_display_server (seat);
+        session_set_display_server (background_session, background_display_server);
+        if (!display_server_start (background_display_server))
+            g_warning ("Failed to start display server for background session");
+    }
 
     return TRUE;
 }
