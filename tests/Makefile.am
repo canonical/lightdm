@@ -403,7 +403,7 @@ EXTRA_DIST = \
 	scripts/unity-mir-autologin.conf \
 	scripts/unity-mir-greeter-mir-session.conf \
 	scripts/unity-mir-greeter-x-session.conf \
-	scripts/unity-mir-session-x-greet.confer
+	scripts/unity-mir-session-x-greeter.conf \
 	scripts/unity-plymouth.conf \
 	scripts/unity-switch.conf \
 	scripts/users.conf \
