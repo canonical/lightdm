@@ -911,7 +911,6 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     }
 
     argv = get_session_argv (session_config, seat_get_string_property (seat, "session-wrapper"));
-    g_object_unref (session_config);
     session_set_argv (session, argv);
     g_strfreev (argv);
     session_set_env (session, "DESKTOP_SESSION", session_name);
@@ -921,6 +920,8 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         session_set_env (session, "LANG", language);
         session_set_env (session, "GDM_LANG", language);
     }
+
+    g_object_unref (session_config);
 
     /* If can re-use the display server, stop the greeter first */
     display_server = session_get_display_server (SESSION (greeter));
@@ -940,10 +941,12 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     else
     {
         display_server = create_display_server (seat);
-        if (!display_server_start (display_server))
-            return FALSE;
-
         session_set_display_server (session, display_server);
+        if (!display_server_start (display_server))
+        {
+            g_debug ("Failed to start display server for new session");
+            return FALSE;
+        }
 
         return TRUE;
     }
@@ -1201,13 +1204,14 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
         return TRUE;
     }
 
+    session = create_guest_session (seat);
+    if (!session)
+        return FALSE;
+
     display_server = create_display_server (seat);
     if (!display_server_start (display_server))
         return FALSE;
 
-    session = create_guest_session (seat);
-    if (!session)
-        return FALSE;
     if (seat->priv->session_to_activate)
         g_object_unref (seat->priv->session_to_activate);
     seat->priv->session_to_activate = g_object_ref (session);
@@ -1239,11 +1243,14 @@ seat_lock (Seat *seat, const gchar *username)
         return TRUE;
     }
 
+    greeter_session = create_greeter_session (seat);
+    if (!greeter_session)
+        return FALSE;
+
     display_server = create_display_server (seat);
     if (!display_server_start (display_server))
         return FALSE;
 
-    greeter_session = create_greeter_session (seat);
     if (seat->priv->session_to_activate)
         g_object_unref (seat->priv->session_to_activate);
     seat->priv->session_to_activate = g_object_ref (greeter_session);
