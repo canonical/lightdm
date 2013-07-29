@@ -178,7 +178,7 @@ test_session_LDADD = \
 	$(GIO_UNIX_LIBS) \
 	$(XCB_LIBS)
 
-initctl_SOURCES = initctl.c
+initctl_SOURCES = initctl.c status.c status.h
 initctl_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
