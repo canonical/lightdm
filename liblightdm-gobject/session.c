@@ -35,7 +35,6 @@ G_DEFINE_TYPE (LightDMSession, lightdm_session, G_TYPE_OBJECT);
 static gboolean have_sessions = FALSE;
 static GList *local_sessions = NULL;
 static GList *remote_sessions = NULL;
-static GList *mir_sessions = NULL;
 
 static gint 
 compare_session (gconstpointer a, gconstpointer b)
@@ -196,7 +195,6 @@ update_sessions (void)
     gchar *config_path = NULL;
     gchar *sessions_dir;
     gchar *remote_sessions_dir;
-    gchar *mir_sessions_dir;
     gboolean result;
     GError *error = NULL;
 
