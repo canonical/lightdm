@@ -40,6 +40,7 @@ SessionConfig *session_config_new_from_file (const gchar *filename, GError **err
 
 const gchar *session_config_get_command (SessionConfig *config);
 
+const gchar *session_config_get_session_type (SessionConfig *config);
 
 G_END_DECLS
 

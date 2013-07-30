@@ -37,6 +37,9 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct SessionPrivate
 {
+    /* Session type */
+    gchar *session_type;
+
     /* Display server running on */
     DisplayServer *display_server;
 
@@ -123,6 +126,21 @@ Session *
 session_new (void)
 {
     return g_object_new (SESSION_TYPE, NULL);
+}
+
+void
+session_set_session_type (Session *session, const gchar *session_type)
+{
+    g_return_if_fail (session != NULL);
+    g_free (session->priv->session_type);
+    session->priv->session_type = g_strdup (session_type);
+}
+
+const gchar *
+session_get_session_type (Session *session)
+{
+    g_return_val_if_fail (session != NULL, NULL);
+    return session->priv->session_type;
 }
 
 void
@@ -829,6 +847,7 @@ session_finalize (GObject *object)
     Session *self = SESSION (object);
     int i;
 
+    g_free (self->priv->session_type);
     if (self->priv->display_server)
         g_object_unref (self->priv->display_server);
     if (self->priv->pid)

@@ -3,6 +3,7 @@ noinst_PROGRAMS = dbus-env \
                   plymouth \
                   test-gobject-greeter \
                   test-greeter-wrapper \
+                  test-mir-greeter \
                   test-runner \
                   test-script-hook \
                   test-session \
@@ -107,7 +108,19 @@ test_gobject_greeter_LDADD = \
 	-llightdm-gobject-1 \
 	$(GLIB_LIBS) \
 	$(GIO_UNIX_LIBS) \
-	$(XCB_LIBS)    
+	$(XCB_LIBS)
+
+test_mir_greeter_SOURCES = test-mir-greeter.c status.c status.h
+test_mir_greeter_CFLAGS = \
+	-I$(top_srcdir)/liblightdm-gobject \
+	$(WARN_CFLAGS) \
+	$(GLIB_CFLAGS) \
+	$(GIO_UNIX_CFLAGS)
+test_mir_greeter_LDADD = \
+	-L$(top_builddir)/liblightdm-gobject \
+	-llightdm-gobject-1 \
+	$(GLIB_LIBS) \
+	$(GIO_UNIX_LIBS)
 
 guest_account_SOURCES = guest-account.c status.c status.h
 guest_account_CFLAGS = \

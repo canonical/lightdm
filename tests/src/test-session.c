@@ -167,11 +167,14 @@ request_cb (const gchar *request)
 int
 main (int argc, char **argv)
 {
-    gchar *display;
+    gchar *display, *mir_socket, *mir_vt, *mir_id;
     GString *status_text;
     int fd, open_max;
 
     display = getenv ("DISPLAY");
+    mir_socket = getenv ("MIR_SERVER_FILE");
+    mir_vt = getenv ("MIR_SERVER_VT");
+    mir_id = getenv ("MIR_ID");
     if (display)
     {
         if (display[0] == ':')
@@ -179,6 +182,10 @@ main (int argc, char **argv)
         else
             session_id = g_strdup_printf ("SESSION-X-%s", display);
     }
+    else if (mir_id)
+        session_id = g_strdup_printf ("SESSION-MIR-%s", mir_id);
+    else if (mir_socket || mir_vt)
+        session_id = g_strdup ("SESSION-MIR");
     else
         session_id = g_strdup ("SESSION-?");
 
@@ -205,6 +212,8 @@ main (int argc, char **argv)
 
     status_text = g_string_new ("");
     g_string_printf (status_text, "%s START", session_id);
+    if (mir_vt > 0)
+        g_string_append_printf (status_text, " VT=%s", mir_vt);
     if (argc > 1)
         g_string_append_printf (status_text, " NAME=%s", argv[1]);
     g_string_append_printf (status_text, " USER=%s", getenv ("USER"));

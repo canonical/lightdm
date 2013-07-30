@@ -64,6 +64,10 @@ GType session_get_type (void);
 
 Session *session_new (void);
 
+void session_set_session_type (Session *session, const gchar *session_type);
+
+const gchar *session_get_session_type (Session *session);
+
 void session_set_pam_service (Session *session, const gchar *pam_service);
 
 void session_set_username (Session *session, const gchar *username);

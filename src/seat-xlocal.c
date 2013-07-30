@@ -58,8 +58,11 @@ x_server_transition_plymouth_cb (XServerLocal *x_server, Seat *seat)
 }
 
 static DisplayServer *
-seat_xlocal_create_display_server (Seat *seat)
-{
+seat_xlocal_create_display_server (Seat *seat, const gchar *session_type)
+{  
+    if (strcmp (session_type, "x") != 0)
+        return NULL;
+
     XServerLocal *x_server;
     const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
     gboolean allow_tcp;
@@ -204,7 +207,10 @@ seat_xlocal_get_active_session (Seat *seat)
     for (link = seat_get_sessions (seat); link; link = link->next)
     {
         Session *session = link->data;
-        if (display_server_get_vt (session_get_display_server (session)) == vt)
+        DisplayServer *display_server;
+
+        display_server = session_get_display_server (session);
+        if (display_server && display_server_get_vt (display_server) == vt)
             return session;
     }
 

@@ -48,6 +48,8 @@ GList *lightdm_get_remote_sessions (void);
 
 const gchar *lightdm_session_get_key (LightDMSession *session);
 
+const gchar *lightdm_session_get_session_type (LightDMSession *session);
+
 const gchar *lightdm_session_get_name (LightDMSession *session);
 
 const gchar *lightdm_session_get_comment (LightDMSession *session);

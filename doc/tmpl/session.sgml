@@ -47,6 +47,15 @@ Object containing information about a session type. #LightDMSession objects are 
 @Returns: 
 
 
+<!-- ##### FUNCTION lightdm_session_get_session_type ##### -->
+<para>
+
+</para>
+
+@session: 
+@Returns: 
+
+
 <!-- ##### FUNCTION lightdm_session_get_name ##### -->
 <para>
 

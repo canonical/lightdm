@@ -20,6 +20,8 @@ lightdm_SOURCES = \
 	lightdm.c \
 	login1.c \
 	login1.h \
+	mir-server.c \
+	mir-server.h \
 	plymouth.c \
 	plymouth.h \
 	privileges.c \

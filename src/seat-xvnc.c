@@ -9,6 +9,8 @@
  * license.
  */
 
+#include <string.h>
+
 #include "seat-xvnc.h"
 #include "x-server-xvnc.h"
 #include "configuration.h"
@@ -32,11 +34,14 @@ SeatXVNC *seat_xvnc_new (GSocket *connection)
 }
 
 static DisplayServer *
-seat_xvnc_create_display_server (Seat *seat)
+seat_xvnc_create_display_server (Seat *seat, const gchar *session_type)
 {
     XServerXVNC *x_server;
     const gchar *command = NULL;
 
+    if (strcmp (session_type, "x") != 0)
+        return NULL;
+  
     x_server = x_server_xvnc_new ();
     x_server_xvnc_set_socket (x_server, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
 

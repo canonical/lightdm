@@ -34,11 +34,14 @@ seat_xdmcp_session_new (XDMCPSession *session)
 }
 
 static DisplayServer *
-seat_xdmcp_session_create_display_server (Seat *seat)
+seat_xdmcp_session_create_display_server (Seat *seat, const gchar *session_type)
 {
     XAuthority *authority;
     gchar *host;
     XServerRemote *x_server;
+
+    if (strcmp (session_type, "x") != 0)
+        return NULL;
 
     authority = xdmcp_session_get_authority (SEAT_XDMCP_SESSION (seat)->priv->session);
     host = g_inet_address_to_string (xdmcp_session_get_address (SEAT_XDMCP_SESSION (seat)->priv->session));
