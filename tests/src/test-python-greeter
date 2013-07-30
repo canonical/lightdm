@@ -10,6 +10,9 @@ from gi.repository import GLib
 from gi.repository import LightDM
 
 display = os.getenv ('DISPLAY');
+xdg_seat = os.getenv ('XDG_SEAT');
+xdg_vtnr = os.getenv ('XDG_VTNR');
+xdg_session_cookie = os.getenv ('XDG_SESSION_COOKIE');
 if display is not None:
     if display.startswith (':'):
         greeter_id = 'GREETER-X-%s' % display[1:]
@@ -186,7 +189,14 @@ status_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
 status_socket.connect (path)
 GLib.io_add_watch (status_socket.fileno (), GLib.IO_IN | GLib.IO_HUP, request_cb)
 
-status_notify ('%s START' % greeter_id)
+status_text = '%s START' % greeter_id
+if xdg_seat is not None:
+    status_text += ' XDG_SEAT=%s' % xdg_seat
+if xdg_vtnr is not None:
+    status_text += ' XDG_VTNR=%s' % xdg_vtnr
+if xdg_session_cookie is not None:
+    status_text += ' XDG_SESSION_COOKIE=%s' % xdg_session_cookie
+status_notify (status_text)
 
 config = GLib.KeyFile ()
 config.load_from_file (os.getenv ('LIGHTDM_TEST_ROOT') + '/script', GLib.KeyFileFlags.NONE)
