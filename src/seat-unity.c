@@ -510,6 +510,12 @@ seat_unity_create_greeter_session (Seat *seat)
 
     greeter_session = greeter_new ();
     session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
+    if (!SEAT_UNITY (seat)->priv->use_vt_switching)
+    {
+        gchar *value = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->vt);
+        session_set_env (SESSION (greeter_session), "XDG_VTNR", value);
+        g_free (value);
+    }
 
     return greeter_session;
 }
@@ -521,6 +527,12 @@ seat_unity_create_session (Seat *seat)
 
     session = session_new ();
     session_set_env (session, "XDG_SEAT", "seat0");
+    if (!SEAT_UNITY (seat)->priv->use_vt_switching)
+    {
+        gchar *value = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->vt);
+        session_set_env (SESSION (session), "XDG_VTNR", value);
+        g_free (value);
+    }
 
     return session;
 }
