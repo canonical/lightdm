@@ -127,7 +127,6 @@ TESTS = \
 	test-no-accounts-service \
 	test-console-kit \
 	test-no-console-kit \
-	test-login1 \
 	test-no-login1 \
 	test-no-console-kit-or-login1 \
 	test-gobject-power \
@@ -149,8 +148,7 @@ TESTS = \
 	test-unity-mir-autologin \
 	test-unity-mir-greeter-x-session \
 	test-unity-mir-greeter-mir-session \
-	test-unity-mir-session-x-greeter \
-	test-unity-login1
+	test-unity-mir-session-x-greeter
 
 #	test-session-exit-error
 #	test-greeter-no-exit
@@ -327,7 +325,6 @@ EXTRA_DIST = \
 	scripts/lock-session.conf \
 	scripts/lock-session-no-password.conf \
 	scripts/lock-session-return-session.conf \
-	scripts/login1.conf \
 	scripts/login.conf \
 	scripts/login-crash-authenticate.conf \
 	scripts/login-guest.conf \
@@ -403,7 +400,6 @@ EXTRA_DIST = \
 	scripts/unity-compositor-fail-ready.conf \
 	scripts/unity-compositor-fail-start.conf \
 	scripts/unity-login.conf \
-	scripts/unity-login1.conf \
 	scripts/unity-mir-autologin.conf \
 	scripts/unity-mir-greeter-mir-session.conf \
 	scripts/unity-mir-greeter-x-session.conf \

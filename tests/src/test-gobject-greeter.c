@@ -299,7 +299,7 @@ user_removed_cb (LightDMUserList *user_list, LightDMUser *user)
 int
 main (int argc, char **argv)
 {
-    gchar *display, *mir_socket, *mir_vt, *mir_id;
+    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie, *mir_socket, *mir_vt, *mir_id;
     GString *status_text;
 
 #if !defined(GLIB_VERSION_2_36)
@@ -307,6 +307,9 @@ main (int argc, char **argv)
 #endif
 
     display = getenv ("DISPLAY");
+    xdg_seat = getenv ("XDG_SEAT");
+    xdg_vtnr = getenv ("XDG_VTNR");
+    xdg_session_cookie = getenv ("XDG_SESSION_COOKIE");
     mir_socket = getenv ("MIR_SERVER_FILE");
     mir_vt = getenv ("MIR_SERVER_VT");
     mir_id = getenv ("MIR_ID");
@@ -333,8 +336,14 @@ main (int argc, char **argv)
 
     status_text = g_string_new ("");
     g_string_printf (status_text, "%s START", greeter_id);
+    if (xdg_seat)
+        g_string_append_printf (status_text, " XDG_SEAT=%s", xdg_seat);
+    if (xdg_vtnr)
+        g_string_append_printf (status_text, " XDG_VTNR=%s", xdg_vtnr);
+    if (xdg_session_cookie)
+        g_string_append_printf (status_text, " XDG_SESSION_COOKIE=%s", xdg_session_cookie);
     if (mir_vt > 0)
-        g_string_append_printf (status_text, " VT=%s", mir_vt);
+        g_string_append_printf (status_text, " MIR_SERVER_VT=%s", mir_vt);
     status_notify (status_text->str);
     g_string_free (status_text, TRUE);
 
