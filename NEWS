@@ -1,3 +1,10 @@
+Overview of changes in lightdm 1.7.8
+
+    * Add support for Mir sessions and greeters.
+    * Set XDG_VTNR for unity sessions.
+    * Fix desktop-session-start upstart signal not being emitted since 1.7.5.
+    * Fix greeter log broken in 1.7.5.
+
 Overview of changes in lightdm 1.7.7
 
     * Fix uninitialized pointer introduced in 1.7.3
