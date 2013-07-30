@@ -457,7 +457,10 @@ run_session (Seat *seat, Session *session)
     }
 
     if (!IS_GREETER (session))
+    {
         g_signal_emit (seat, signals[RUNNING_USER_SESSION], 0, session);
+        emit_upstart_signal ("desktop-session-start");
+    }
 
     session_run (session);
 

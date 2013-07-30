@@ -98,6 +98,8 @@ TESTS = \
 	test-script-hook-fail-display-setup \
 	test-script-hook-fail-greeter-setup \
 	test-script-hook-fail-session-setup \
+	test-upstart-autologin \
+	test-upstart-login \
 	test-dbus \
 	test-lock-seat \
 	test-lock-seat-return-session \
@@ -408,6 +410,8 @@ EXTRA_DIST = \
 	scripts/unity-mir-session-x-greeter.conf \
 	scripts/unity-plymouth.conf \
 	scripts/unity-switch.conf \
+	scripts/upstart-autologin.conf \
+	scripts/upstart-login.conf \
 	scripts/users.conf \
 	scripts/util-path.conf \
 	scripts/user-renamed.conf \
