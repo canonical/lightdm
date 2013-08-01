@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.7.9
+
+    * Correctly set XDG_VTNR for unity sessions that are not autologin.
+
 Overview of changes in lightdm 1.7.8
 
     * Add support for Mir sessions and greeters.
