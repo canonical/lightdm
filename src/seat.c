@@ -45,6 +45,9 @@ struct SeatPrivate
     /* The sessions on this seat */
     GList *sessions;
 
+    /* The last session set to active */
+    Session *active_session;
+
     /* The session to set active when it starts */
     Session *session_to_activate;
   
@@ -179,6 +182,10 @@ seat_set_active_session (Seat *seat, Session *session)
 
     g_return_if_fail (seat != NULL);
 
+    /* Unlock this session */
+    if (session != seat->priv->active_session && !IS_GREETER (session))
+        session_unlock (session);
+
     SEAT_GET_CLASS (seat)->set_active_session (seat, session);
 
     /* Stop any greeters */
@@ -195,6 +202,15 @@ seat_set_active_session (Seat *seat, Session *session)
             session_stop (s);
         }
     }
+
+    /* Lock previous sessions */
+    if (seat->priv->active_session)
+    {
+        if (session != seat->priv->active_session && !IS_GREETER (seat->priv->active_session))
+            session_lock (seat->priv->active_session);
+        g_object_unref (seat->priv->active_session);
+    }
+    seat->priv->active_session = g_object_ref (session);
 }
 
 Session *
@@ -503,6 +519,16 @@ session_stopped_cb (Session *session, Seat *seat)
 
     g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
     seat->priv->sessions = g_list_remove (seat->priv->sessions, session);
+    if (session == seat->priv->active_session)
+    {
+        g_object_unref (seat->priv->active_session);
+        seat->priv->active_session = NULL;
+    }
+    if (session == seat->priv->session_to_activate)
+    {
+        g_object_unref (seat->priv->session_to_activate);
+        seat->priv->session_to_activate = NULL;
+    }
 
     display_server = session_get_display_server (session);
     if (!display_server)
@@ -1535,6 +1561,8 @@ seat_finalize (GObject *object)
         g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
     }
     g_list_free_full (self->priv->sessions, g_object_unref);
+    if (self->priv->active_session)
+        g_object_unref (self->priv->active_session);
     if (self->priv->session_to_activate)
         g_object_unref (self->priv->session_to_activate);
 

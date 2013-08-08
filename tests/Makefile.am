@@ -106,6 +106,8 @@ TESTS = \
 	test-lock-session \
 	test-lock-session-no-password \
 	test-lock-session-return-session \
+	test-lock-seat-console-kit \
+	test-lock-seat-return-session-console-kit \
 	test-switch-to-greeter \
 	test-switch-to-greeter-new-session \
 	test-switch-to-greeter-new-session-logout-new \
@@ -321,7 +323,9 @@ EXTRA_DIST = \
 	scripts/language-env.conf \
 	scripts/language-no-accounts-service.conf \
 	scripts/lock-seat.conf \
+	scripts/lock-seat-console-kit.conf \    
 	scripts/lock-seat-return-session.conf \
+	scripts/lock-seat-return-session-console-kit.conf \
 	scripts/lock-session.conf \
 	scripts/lock-session-no-password.conf \
 	scripts/lock-session-return-session.conf \
