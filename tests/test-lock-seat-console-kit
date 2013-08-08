@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/dbus-env ./src/test-runner lock-seat-console-kit test-gobject-greeter
