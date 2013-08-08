@@ -85,6 +85,7 @@ typedef struct
     gchar *cookie;
     gchar *path;
     guint id;
+    gboolean locked;
 } CKSession;
 static GList *ck_sessions = NULL;
 static gint ck_session_index = 0;
@@ -105,6 +106,7 @@ typedef struct
 {
     gchar *path;
     guint pid;
+    gboolean locked;
 } Login1Session;
 
 static GList *login1_sessions = NULL;
@@ -1011,14 +1013,20 @@ handle_ck_session_call (GDBusConnection       *connection,
                         GDBusMethodInvocation *invocation,
                         gpointer               user_data)
 {
+    CKSession *session = user_data;
+
     if (strcmp (method_name, "Lock") == 0)
-    {
-        check_status ("CONSOLE-KIT LOCK-SESSION");
+    { 
+        if (!session->locked)
+            check_status ("CONSOLE-KIT LOCK-SESSION");
+        session->locked = TRUE;
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
     else if (strcmp (method_name, "Unlock") == 0)
     {
-        check_status ("CONSOLE-KIT UNLOCK-SESSION");
+        if (session->locked)
+            check_status ("CONSOLE-KIT UNLOCK-SESSION");
+        session->locked = FALSE;
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
     else
@@ -1132,14 +1140,20 @@ handle_login1_session_call (GDBusConnection       *connection,
                             GDBusMethodInvocation *invocation,
                             gpointer               user_data)
 {
+    Login1Session *session = user_data;
+
     if (strcmp (method_name, "Lock") == 0)
     {
-        check_status ("LOGIN1 LOCK-SESSION");
+        if (!session->locked)
+            check_status ("LOGIN1 LOCK-SESSION");
+        session->locked = TRUE;
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
     else if (strcmp (method_name, "Unlock") == 0)
     {
-        check_status ("LOGIN1 UNLOCK-SESSION");
+        if (session->locked)
+            check_status ("LOGIN1 UNLOCK-SESSION");
+        session->locked = FALSE;
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
     else
