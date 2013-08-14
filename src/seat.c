@@ -319,7 +319,7 @@ check_stopped (Seat *seat)
         g_list_length (seat->priv->sessions) == 0)
     {
         seat->priv->stopped = TRUE;
-        l_debug (seat, "Seat stopped");
+        l_debug (seat, "Stopped");
         g_signal_emit (seat, signals[STOPPED], 0);
     }
 }
@@ -364,7 +364,7 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
             !session_get_is_started (session) &&
             g_list_length (seat->priv->display_servers) == 0)
         {
-            l_debug (seat, "Stopping seat, greeter display server failed to start");
+            l_debug (seat, "Stopping; greeter display server failed to start");
             seat_stop (seat);
         }
 
@@ -599,7 +599,7 @@ session_stopped_cb (Session *session, Seat *seat)
         g_list_length (seat->priv->display_servers) == 1 &&
         g_list_nth_data (seat->priv->display_servers, 0) == display_server)
     {
-        l_debug (seat, "Stopping seat, failed to start a greeter");
+        l_debug (seat, "Stopping; failed to start a greeter");
         seat_stop (seat);
     }
     /* If we were the active session, switch to a greeter */
@@ -1282,7 +1282,7 @@ seat_lock (Seat *seat, const gchar *username)
     if (!seat->priv->can_switch)
         return FALSE;
 
-    l_debug (seat, "Locking seat");
+    l_debug (seat, "Locking");
 
     /* Switch to greeter if one open (shouldn't be though) */
     greeter_session = find_greeter_session (seat);
@@ -1320,7 +1320,7 @@ seat_stop (Seat *seat)
     if (seat->priv->stopping)
         return;
 
-    l_debug (seat, "Stopping seat");
+    l_debug (seat, "Stopping");
     seat->priv->stopping = TRUE;
     SEAT_GET_CLASS (seat)->stop (seat);
 }
@@ -1352,7 +1352,7 @@ seat_real_start (Seat *seat)
     gboolean autologin_in_background;
     Session *session = NULL, *background_session = NULL;
 
-    l_debug (seat, "Starting seat");
+    l_debug (seat, "Starting");
 
     /* If this display server doesn't have a session running on it, just start it */
     if (!get_start_local_sessions (seat))
