@@ -246,7 +246,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         g_debug ("SESSION CONNECTED");
         break;
     default:
-        g_warning ("Ingoring unknown message %d with %d octets from system compositor", id, payload_length);
+        g_warning ("Ignoring unknown message %d with %d octets from system compositor", id, payload_length);
         break;
     }
 
