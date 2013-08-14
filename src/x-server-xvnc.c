@@ -144,7 +144,7 @@ run_cb (Process *process, XServerXVNC *server)
 
          fd = g_open (server->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
          if (fd < 0)
-             g_warning ("Failed to open log file %s: %s", server->priv->log_file, g_strerror (errno));
+             l_warning (server, "Failed to open log file %s: %s", server->priv->log_file, g_strerror (errno));
          else
          {
              dup2 (fd, STDERR_FILENO);
@@ -162,7 +162,7 @@ got_signal_cb (Process *process, int signum, XServerXVNC *server)
     if (signum == SIGUSR1 && !server->priv->got_signal)
     {
         server->priv->got_signal = TRUE;
-        g_debug ("Got signal from Xvnc server :%d", x_server_get_display_number (X_SERVER (server)));
+        l_debug (server, "Got signal from Xvnc server :%d", x_server_get_display_number (X_SERVER (server)));
 
         // FIXME: Check return value
         DISPLAY_SERVER_CLASS (x_server_xvnc_parent_class)->start (DISPLAY_SERVER (server));
@@ -172,14 +172,14 @@ got_signal_cb (Process *process, int signum, XServerXVNC *server)
 static void
 stopped_cb (Process *process, XServerXVNC *server)
 {
-    g_debug ("Xvnc server stopped");
+    l_debug (server, "Xvnc server stopped");
 
     g_object_unref (server->priv->x_server_process);
     server->priv->x_server_process = NULL;
 
     x_server_local_release_display_number (x_server_get_display_number (X_SERVER (server)));
 
-    g_debug ("Removing X server authority %s", server->priv->authority_file);
+    l_debug (server, "Removing X server authority %s", server->priv->authority_file);
 
     g_unlink (server->priv->authority_file);
     g_free (server->priv->authority_file);
@@ -219,14 +219,14 @@ x_server_xvnc_start (DisplayServer *display_server)
     filename = g_strdup_printf ("%s.log", display_server_get_name (display_server));
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
     server->priv->log_file = g_build_filename (dir, filename, NULL);
-    g_debug ("Logging to %s", server->priv->log_file);
+    l_debug (display_server, "Logging to %s", server->priv->log_file);
     g_free (filename);
     g_free (dir);
 
     absolute_command = get_absolute_command (server->priv->command);
     if (!absolute_command)
     {
-        g_debug ("Can't launch X server %s, not found in path", server->priv->command);
+        l_debug (display_server, "Can't launch X server %s, not found in path", server->priv->command);
         stopped_cb (server->priv->x_server_process, X_SERVER_XVNC (server));
         return FALSE;
     }
@@ -241,16 +241,16 @@ x_server_xvnc_start (DisplayServer *display_server)
     dir = g_build_filename (run_dir, "root", NULL);
     g_free (run_dir);
     if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
-        g_warning ("Failed to make authority directory %s: %s", dir, strerror (errno));
+        l_warning (display_server, "Failed to make authority directory %s: %s", dir, strerror (errno));
 
     server->priv->authority_file = g_build_filename (dir, x_server_get_address (X_SERVER (server)), NULL);
     g_free (dir);
 
-    g_debug ("Writing X server authority to %s", server->priv->authority_file);
+    l_debug (display_server, "Writing X server authority to %s", server->priv->authority_file);
 
     x_authority_write (authority, XAUTH_WRITE_MODE_REPLACE, server->priv->authority_file, &error);
     if (error)
-        g_warning ("Failed to write authority: %s", error->message);
+        l_warning (display_server, "Failed to write authority: %s", error->message);
     g_clear_error (&error);
   
     command = g_string_new (absolute_command);
@@ -267,7 +267,7 @@ x_server_xvnc_start (DisplayServer *display_server)
     process_set_command (server->priv->x_server_process, command->str);
     g_string_free (command, TRUE);
 
-    g_debug ("Launching Xvnc server");
+    l_debug (display_server, "Launching Xvnc server");
 
     /* Variable required for regression tests */
     if (g_getenv ("LIGHTDM_TEST_ROOT"))
@@ -279,7 +279,7 @@ x_server_xvnc_start (DisplayServer *display_server)
     result = process_start (server->priv->x_server_process, FALSE);
 
     if (result)
-        g_debug ("Waiting for ready signal from Xvnc server :%d", x_server_get_display_number (X_SERVER (server)));
+        l_debug (display_server, "Waiting for ready signal from Xvnc server :%d", x_server_get_display_number (X_SERVER (server)));
 
     if (!result)
         stopped_cb (server->priv->x_server_process, X_SERVER_XVNC (server));

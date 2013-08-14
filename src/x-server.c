@@ -133,11 +133,11 @@ x_server_start (DisplayServer *display_server)
     }
 
     /* Open connection */  
-    g_debug ("Connecting to XServer %s", x_server_get_address (server));
+    l_debug (server, "Connecting to XServer %s", x_server_get_address (server));
     server->priv->connection = xcb_connect_to_display_with_auth_info (x_server_get_address (server), auth, NULL);
     if (xcb_connection_has_error (server->priv->connection))
     {
-        g_debug ("Error connecting to XServer %s", x_server_get_address (server));
+        l_debug (server, "Error connecting to XServer %s", x_server_get_address (server));
         return FALSE;
     }
 
