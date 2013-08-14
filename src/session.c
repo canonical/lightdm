@@ -421,14 +421,14 @@ session_watch_cb (GPid pid, gint status, gpointer data)
     session->priv->pid = 0;
 
     if (WIFEXITED (status))
-        l_debug (session, "Session %d exited with return value %d", pid, WEXITSTATUS (status));
+        l_debug (session, "Exited with return value %d", WEXITSTATUS (status));
     else if (WIFSIGNALED (status))
-        l_debug (session, "Session %d terminated with signal %d", pid, WTERMSIG (status));
+        l_debug (session, "Terminated with signal %d", WTERMSIG (status));
 
     /* If failed during authentication then report this as an authentication failure */
     if (session->priv->authentication_started && !session->priv->authentication_complete)
     {
-        l_debug (session, "Session %d failed during authentication", pid);
+        l_debug (session, "Failed during authentication");
         session->priv->authentication_complete = TRUE;
         session->priv->authentication_result = PAM_CONV_ERR;
         g_free (session->priv->authentication_result_string);
@@ -491,7 +491,7 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         g_free (session->priv->authentication_result_string);
         session->priv->authentication_result_string = read_string_from_child (session);
 
-        l_debug (session, "Session %d authentication complete with return value %d: %s", session->priv->pid, session->priv->authentication_result, session->priv->authentication_result_string);
+        l_debug (session, "Authentication complete with return value %d: %s", session->priv->authentication_result, session->priv->authentication_result_string);
 
         /* No longer expect any more messages */
         session->priv->from_child_watch = 0;
@@ -514,7 +514,7 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
             m->msg = read_string_from_child (session);
         }
 
-        l_debug (session, "Session %d got %d message(s) from PAM", session->priv->pid, session->priv->messages_length);
+        l_debug (session, "Got %d message(s) from PAM", session->priv->messages_length);
 
         g_signal_emit (G_OBJECT (session), signals[GOT_MESSAGES], 0);
     }
@@ -620,7 +620,7 @@ session_real_start (Session *session)
     write_string (session, session->priv->xdisplay);
     write_xauth (session, session->priv->x_authority);
 
-    l_debug (session, "Started session %d with service '%s', username '%s'", session->priv->pid, session->priv->pam_service, session->priv->username);
+    l_debug (session, "Started with service '%s', username '%s'", session->priv->pam_service, session->priv->username);
 
     return TRUE;
 }
@@ -731,7 +731,7 @@ session_real_run (Session *session)
     session->priv->command_run = TRUE;
 
     command = g_strjoinv (" ", session->priv->argv);
-    l_debug (session, "Session %d running command %s", session->priv->pid, command);
+    l_debug (session, "Running command %s", command);
     g_free (command);
 
     /* Create authority location */
@@ -823,7 +823,7 @@ session_real_stop (Session *session)
 
     if (session->priv->pid > 0)
     {
-        l_debug (session, "Session %d: Sending SIGTERM", session->priv->pid);
+        l_debug (session, "Sending SIGTERM");
         kill (session->priv->pid, SIGTERM);
         // FIXME: Handle timeout
     }
