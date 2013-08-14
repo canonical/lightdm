@@ -66,7 +66,11 @@ struct SeatPrivate
 #define USER_SERVICE      "lightdm"
 #define AUTOLOGIN_SERVICE "lightdm-autologin"
 
-G_DEFINE_TYPE (Seat, seat, G_TYPE_OBJECT);
+static void seat_logger_iface_init (LoggerInterface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (Seat, seat, G_TYPE_OBJECT,
+                         G_IMPLEMENT_INTERFACE (
+                             LOGGER_TYPE, seat_logger_iface_init));
 
 typedef struct
 {
@@ -1620,4 +1624,21 @@ seat_class_init (SeatClass *klass)
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 0);
+}
+
+static gint
+seat_real_logprefix (Logger *self, gchar *buf, gulong buflen)
+{
+    Seat *seat = SEAT (self);
+    const gchar *name = seat_get_string_property (seat, "seat-name");
+    if (name)
+        return g_snprintf (buf, buflen, "Seat %s: ", name);
+    else
+        return g_snprintf (buf, buflen, "Seat: ");
+}
+
+static void
+seat_logger_iface_init (LoggerInterface *iface)
+{
+    iface->logprefix = &seat_real_logprefix;
 }
