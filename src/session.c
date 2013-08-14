@@ -120,7 +120,11 @@ struct SessionPrivate
 /* Maximum length of a string to pass between daemon and session */
 #define MAX_STRING_LENGTH 65535
 
-G_DEFINE_TYPE (Session, session, G_TYPE_OBJECT);
+static void session_logger_iface_init (LoggerInterface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (Session, session, G_TYPE_OBJECT,
+                         G_IMPLEMENT_INTERFACE (
+                             LOGGER_TYPE, session_logger_iface_init));
 
 Session *
 session_new (void)
@@ -919,4 +923,20 @@ session_class_init (SessionClass *klass)
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 0);
+}
+
+static gint
+session_real_logprefix (Logger *self, gchar *buf, gulong buflen)
+{
+    Session *session = SESSION (self);
+    if (session->priv->pid != 0)
+        return g_snprintf (buf, buflen, "Session pid=%d: ", session->priv->pid);
+    else
+        return g_snprintf (buf, buflen, "Session: ");
+}
+
+static void
+session_logger_iface_init (LoggerInterface *iface)
+{
+    iface->logprefix = &session_real_logprefix;
 }
