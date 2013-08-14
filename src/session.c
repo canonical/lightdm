@@ -418,12 +418,13 @@ session_watch_cb (GPid pid, gint status, gpointer data)
 {
     Session *session = data;
 
-    session->priv->pid = 0;
-
     if (WIFEXITED (status))
         l_debug (session, "Exited with return value %d", WEXITSTATUS (status));
     else if (WIFSIGNALED (status))
         l_debug (session, "Terminated with signal %d", WTERMSIG (status));
+
+    /* do this as late as possible for log messages prefix */
+    session->priv->pid = 0;
 
     /* If failed during authentication then report this as an authentication failure */
     if (session->priv->authentication_started && !session->priv->authentication_complete)
