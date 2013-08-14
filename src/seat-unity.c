@@ -507,15 +507,21 @@ static Greeter *
 seat_unity_create_greeter_session (Seat *seat)
 {
     Greeter *greeter_session;
+    const gchar *xdg_seat;
 
     greeter_session = SEAT_CLASS (seat_unity_parent_class)->create_greeter_session (seat);
-    session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
+    xdg_seat = "seat0";
+    l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
+    session_set_env (SESSION (greeter_session), "XDG_SEAT", xdg_seat);
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)
     {
         gchar *value = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->vt);
+        l_debug (seat, "Setting XDG_VTNR=%s", value);
         session_set_env (SESSION (greeter_session), "XDG_VTNR", value);
         g_free (value);
     }
+    else
+        l_debug (seat, "Not setting XDG_VTNR");
 
     return greeter_session;
 }
@@ -524,15 +530,21 @@ static Session *
 seat_unity_create_session (Seat *seat)
 {
     Session *session;
+    const gchar *xdg_seat;
 
     session = SEAT_CLASS (seat_unity_parent_class)->create_session (seat);
-    session_set_env (session, "XDG_SEAT", "seat0");
+    xdg_seat = "seat0";
+    l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
+    session_set_env (session, "XDG_SEAT", xdg_seat);
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)
     {
         gchar *value = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->vt);
+        l_debug (seat, "Setting XDG_VTNR=%s", value);
         session_set_env (SESSION (session), "XDG_VTNR", value);
         g_free (value);
     }
+    else
+        l_debug (seat, "Not setting XDG_VTNR");
 
     return session;
 }

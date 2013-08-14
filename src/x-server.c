@@ -161,9 +161,12 @@ x_server_connect_session (DisplayServer *display_server, Session *session)
         g_free (t);
 
         t = g_strdup_printf ("%d", vt);
+        l_debug (session, "Setting XDG_VTNR=%s", t);
         session_set_env (session, "XDG_VTNR", t);
         g_free (t);
     }
+    else
+        l_debug (session, "Not setting XDG_VTNR");
 
     session_set_env (session, "DISPLAY", x_server_get_address (X_SERVER (display_server)));
     session_set_tty (session, x_server_get_address (X_SERVER (display_server)));

@@ -166,9 +166,12 @@ static Greeter *
 seat_xlocal_create_greeter_session (Seat *seat)
 {
     Greeter *greeter_session;
+    const gchar *xdg_seat;
 
     greeter_session = SEAT_CLASS (seat_xlocal_parent_class)->create_greeter_session (seat);
-    session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
+    xdg_seat = "seat0";
+    l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
+    session_set_env (SESSION (greeter_session), "XDG_SEAT", xdg_seat);
 
     return greeter_session;
 }
@@ -177,9 +180,12 @@ static Session *
 seat_xlocal_create_session (Seat *seat)
 {
     Session *session;
+    const gchar *xdg_seat;
 
     session = SEAT_CLASS (seat_xlocal_parent_class)->create_session (seat);
-    session_set_env (SESSION (session), "XDG_SEAT", "seat0");
+    xdg_seat = "seat0";
+    l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
+    session_set_env (SESSION (session), "XDG_SEAT", xdg_seat);
 
     return session;
 }
