@@ -678,7 +678,7 @@ create_session (Seat *seat, gboolean autostart)
 }
 
 static gchar **
-get_session_argv (SessionConfig *session_config, const gchar *session_wrapper)
+get_session_argv (Seat *seat, SessionConfig *session_config, const gchar *session_wrapper)
 {
     gboolean result;
     int argc;
@@ -714,7 +714,7 @@ get_session_argv (SessionConfig *session_config, const gchar *session_wrapper)
 }
 
 static SessionConfig *
-find_session_config (const gchar *sessions_dir, const gchar *session_name)
+find_session_config (Seat *seat, const gchar *sessions_dir, const gchar *session_name)
 {
     gchar **dirs;
     SessionConfig *session_config = NULL;
@@ -770,7 +770,7 @@ create_user_session (Seat *seat, const gchar *username)
     if (!session_name)
         session_name = seat_get_string_property (seat, "user-session");
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
-    session_config = find_session_config (sessions_dir, session_name);
+    session_config = find_session_config (seat, sessions_dir, session_name);
     g_free (sessions_dir);
     if (session_config)
     {
@@ -788,7 +788,7 @@ create_user_session (Seat *seat, const gchar *username)
         session_set_pam_service (session, AUTOLOGIN_SERVICE);
         session_set_username (session, username);
         session_set_do_authenticate (session, TRUE);
-        argv = get_session_argv (session_config, seat_get_string_property (seat, "session-wrapper"));
+        argv = get_session_argv (seat, session_config, seat_get_string_property (seat, "session-wrapper"));
         session_set_argv (session, argv);
         g_strfreev (argv);
 
@@ -811,7 +811,7 @@ create_guest_session (Seat *seat)
     Session *session;
 
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
-    session_config = find_session_config (sessions_dir, seat_get_string_property (seat, "user-session"));
+    session_config = find_session_config (seat, sessions_dir, seat_get_string_property (seat, "user-session"));
     g_free (sessions_dir);
     if (!session_config)
     {
@@ -823,7 +823,7 @@ create_guest_session (Seat *seat)
     session_set_session_type (session, session_config_get_session_type (session_config));
     session_set_do_authenticate (session, TRUE);
     session_set_is_guest (session, TRUE);
-    argv = get_session_argv (session_config, seat_get_string_property (seat, "session-wrapper"));
+    argv = get_session_argv (seat, session_config, seat_get_string_property (seat, "session-wrapper"));
     g_object_unref (session_config);
     session_set_argv (session, argv);
     g_strfreev (argv);
@@ -942,7 +942,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     if (user)
         user_set_xsession (session_get_user (session), session_name);
 
-    session_config = find_session_config (sessions_dir, session_name);
+    session_config = find_session_config (seat, sessions_dir, session_name);
     g_free (sessions_dir);
     if (!session_config)
     {
@@ -951,7 +951,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     }
 
     session_set_session_type (session, session_config_get_session_type (session_config));
-    argv = get_session_argv (session_config, seat_get_string_property (seat, "session-wrapper"));
+    argv = get_session_argv (seat, session_config, seat_get_string_property (seat, "session-wrapper"));
     session_set_argv (session, argv);
     g_strfreev (argv);
     session_set_env (session, "DESKTOP_SESSION", session_name);
@@ -1006,12 +1006,12 @@ create_greeter_session (Seat *seat)
     g_debug ("Creating greeter session");
 
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "greeters-directory");
-    session_config = find_session_config (sessions_dir, seat_get_string_property (seat, "greeter-session"));
+    session_config = find_session_config (seat, sessions_dir, seat_get_string_property (seat, "greeter-session"));
     g_free (sessions_dir);
     if (!session_config)
         return NULL;
 
-    argv = get_session_argv (session_config, NULL);
+    argv = get_session_argv (seat, session_config, NULL);
     greeter_wrapper = seat_get_string_property (seat, "greeter-wrapper");
     if (greeter_wrapper)
     {
