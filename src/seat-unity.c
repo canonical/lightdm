@@ -508,7 +508,7 @@ seat_unity_create_greeter_session (Seat *seat)
 {
     Greeter *greeter_session;
 
-    greeter_session = greeter_new ();
+    greeter_session = SEAT_CLASS (seat_unity_parent_class)->create_greeter_session (seat);
     session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)
     {
@@ -525,7 +525,7 @@ seat_unity_create_session (Seat *seat)
 {
     Session *session;
 
-    session = session_new ();
+    session = SEAT_CLASS (seat_unity_parent_class)->create_session (seat);
     session_set_env (session, "XDG_SEAT", "seat0");
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)
     {
