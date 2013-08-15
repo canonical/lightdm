@@ -25,7 +25,7 @@ seat_xremote_setup (Seat *seat)
 }
 
 static DisplayServer *
-seat_xremote_create_display_server (Seat *seat, const gchar *session_type)
+seat_xremote_create_display_server (Seat *seat, const gchar *session_type, gboolean is_greeter)
 {
     XServerRemote *x_server;
     const gchar *hostname;

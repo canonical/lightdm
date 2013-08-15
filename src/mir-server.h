@@ -44,6 +44,8 @@ void mir_server_set_vt (MirServer *server, gint vt);
 
 void mir_server_set_parent_socket (MirServer *server, const gchar *parent_socket);
 
+void mir_server_set_is_greeter (MirServer *server, gboolean is_greeter);
+
 void mir_server_set_id (MirServer *server, const gchar *id);
 
 const gchar *mir_server_get_id (MirServer *server);
