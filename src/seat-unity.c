@@ -27,7 +27,8 @@ typedef enum
    USC_MESSAGE_PONG = 1,
    USC_MESSAGE_READY = 2,
    USC_MESSAGE_SESSION_CONNECTED = 3,
-   USC_MESSAGE_SET_ACTIVE_SESSION = 4
+   USC_MESSAGE_SET_ACTIVE_SESSION = 4,
+   USC_MESSAGE_SET_NEXT_SESSION = 5,
 } USCMessageID;
 
 struct SeatUnityPrivate
@@ -522,6 +523,54 @@ seat_unity_create_greeter_session (Seat *seat)
 }
 
 static void
+seat_unity_set_next_session (Seat *seat, Session *session)
+{
+    DisplayServer *display_server;
+    const gchar *id = NULL;
+
+    /* If no compositor, don't worry about it */
+    if (SEAT_UNITY (seat)->priv->use_vt_switching)
+        return;
+
+    display_server = session_get_display_server (session);
+    if (IS_MIR_SERVER (display_server))
+    {
+        id = mir_server_get_id (MIR_SERVER (display_server));
+
+        if (id)
+        {
+            g_debug ("Marking Mir session %s as the next session", id);
+            write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_NEXT_SESSION, (const guint8 *) id, strlen (id));
+        }
+        else
+            g_warning ("Failed to work out session ID to mark");
+        }
+    }
+}
+
+static Session *
+seat_unity_create_session (Seat *seat, Session *user_session)
+{
+    Session *session;
+
+    session = session_new ();
+    session_set_env (session, "XDG_SEAT", "seat0");
+    if (!SEAT_UNITY (seat)->priv->use_vt_switching)
+    {
+        gchar *value = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->vt);
+        session_set_env (SESSION (session), "XDG_VTNR", value);
+        g_free (value);
+
+        /* Notify compositor that user's session should be displayed under
+           greeter. */
+        if (user_session != NULL)
+            seat_unity_set_next_session (seat, user_session);
+    }
+
+    return session;
+}
+
+static void
 seat_unity_set_active_session (Seat *seat, Session *session)
 {
     DisplayServer *display_server;
@@ -587,31 +636,6 @@ seat_unity_get_active_session (Seat *seat)
     }
 
     return SEAT_UNITY (seat)->priv->active_session;
-}
-
-static Session *
-seat_unity_create_session (Seat *seat, Session *user_session)
-{
-    Session *session;
-
-    session = session_new ();
-    session_set_env (session, "XDG_SEAT", "seat0");
-    if (!SEAT_UNITY (seat)->priv->use_vt_switching)
-    {
-        gchar *value = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->vt);
-        session_set_env (SESSION (session), "XDG_VTNR", value);
-        g_free (value);
-
-        /* Notify compositor that user's session should be displayed under
-           greeter.  Note that we actually just set the active session, because
-           the compositor should know to always keep the greeter above any
-           sessions.  So we are only adjusting the session relative to other
-           user sessions. */
-        if (user_session != NULL)
-            seat_unity_set_active_session (seat, user_session);
-    }
-
-    return session;
 }
 
 static void
