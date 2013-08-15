@@ -91,7 +91,7 @@ x_client_class_init (XClientClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XClientClass, disconnected),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
 }
 
@@ -196,7 +196,7 @@ x_server_class_init (XServerClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XServerClass, client_connected),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
+                      NULL,
                       G_TYPE_NONE, 1, x_client_get_type ());
     x_server_signals[X_SERVER_CLIENT_DISCONNECTED] =
         g_signal_new ("client-disconnected",
@@ -204,6 +204,6 @@ x_server_class_init (XServerClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XServerClass, client_disconnected),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__OBJECT,
+                      NULL,
                       G_TYPE_NONE, 1, x_client_get_type ());
 }

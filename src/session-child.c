@@ -22,7 +22,7 @@
 #include "console-kit.h"
 #include "login1.h"
 #include "privileges.h"
-#include "xauthority.h"
+#include "x-authority.h"
 #include "configuration.h"
 
 /* Child process being run */
@@ -172,28 +172,28 @@ signal_cb (int signum)
 static XAuthority *
 read_xauth (void)
 {
-    gchar *xauth_name;
-    guint16 xauth_family;
-    guint8 *xauth_address;
-    gsize xauth_address_length;
-    gchar *xauth_number;
-    guint8 *xauth_data;
-    gsize xauth_data_length;
+    gchar *x_authority_name;
+    guint16 x_authority_family;
+    guint8 *x_authority_address;
+    gsize x_authority_address_length;
+    gchar *x_authority_number;
+    guint8 *x_authority_data;
+    gsize x_authority_data_length;
 
-    xauth_name = read_string ();
-    if (!xauth_name)
+    x_authority_name = read_string ();
+    if (!x_authority_name)
         return NULL;
 
-    read_data (&xauth_family, sizeof (xauth_family));
-    read_data (&xauth_address_length, sizeof (xauth_address_length));
-    xauth_address = g_malloc (xauth_address_length);
-    read_data (xauth_address, xauth_address_length);
-    xauth_number = read_string ();
-    read_data (&xauth_data_length, sizeof (xauth_data_length));
-    xauth_data = g_malloc (xauth_data_length);
-    read_data (xauth_data, xauth_data_length);
+    read_data (&x_authority_family, sizeof (x_authority_family));
+    read_data (&x_authority_address_length, sizeof (x_authority_address_length));
+    x_authority_address = g_malloc (x_authority_address_length);
+    read_data (x_authority_address, x_authority_address_length);
+    x_authority_number = read_string ();
+    read_data (&x_authority_data_length, sizeof (x_authority_data_length));
+    x_authority_data = g_malloc (x_authority_data_length);
+    read_data (x_authority_data, x_authority_data_length);
 
-    return xauth_new (xauth_family, xauth_address, xauth_address_length, xauth_number, xauth_name, xauth_data, xauth_data_length);
+    return x_authority_new (x_authority_family, x_authority_address, x_authority_address_length, x_authority_number, x_authority_name, x_authority_data, x_authority_data_length);
 }
 
 int
@@ -217,8 +217,8 @@ session_child_run (int argc, char **argv)
     gchar *tty;
     gchar *remote_host_name;
     gchar *xdisplay;
-    XAuthority *xauthority = NULL;
-    gchar *xauth_filename;
+    XAuthority *x_authority = NULL;
+    gchar *x_authority_filename;
     GDBusConnection *bus;
     gchar *console_kit_cookie = NULL;
     gchar *login1_session = NULL;
@@ -288,7 +288,7 @@ session_child_run (int argc, char **argv)
     tty = read_string ();
     remote_host_name = read_string ();
     xdisplay = read_string ();
-    xauthority = read_xauth ();
+    x_authority = read_xauth ();
 
     /* Setup PAM */
     result = pam_start (service, username, &conversation, &pam_handle);
@@ -308,14 +308,14 @@ session_child_run (int argc, char **argv)
         pam_set_item (pam_handle, PAM_TTY, tty);    
 
 #ifdef PAM_XAUTHDATA
-    if (xauthority)
+    if (x_authority)
     {
         struct pam_xauth_data value;
 
-        value.name = (char *) xauth_get_authorization_name (xauthority);
-        value.namelen = strlen (xauth_get_authorization_name (xauthority));
-        value.data = (char *) xauth_get_authorization_data (xauthority);
-        value.datalen = xauth_get_authorization_data_length (xauthority);
+        value.name = (char *) x_authority_get_authorization_name (x_authority);
+        value.namelen = strlen (x_authority_get_authorization_name (x_authority));
+        value.data = (char *) x_authority_get_authorization_data (x_authority);
+        value.datalen = x_authority_get_authorization_data_length (x_authority);
         pam_set_item (pam_handle, PAM_XAUTHDATA, &value);
     }
 #endif
@@ -400,14 +400,14 @@ session_child_run (int argc, char **argv)
         g_free (tty);
         tty = read_string ();      
     }
-    xauth_filename = read_string ();
+    x_authority_filename = read_string ();
     if (version >= 1)
     {
         g_free (xdisplay);
         xdisplay = read_string ();
-        if (xauthority)
-            g_object_unref (xauthority);
-        xauthority = read_xauth ();
+        if (x_authority)
+            g_object_unref (x_authority);
+        x_authority = read_xauth ();
     }
     read_data (&env_length, sizeof (env_length));
     for (i = 0; i < env_length; i++)
@@ -507,7 +507,7 @@ session_child_run (int argc, char **argv)
     }
 
     /* Write X authority */
-    if (xauthority)
+    if (x_authority)
     {
         gboolean drop_privileges, result;
         gchar *value;
@@ -516,7 +516,7 @@ session_child_run (int argc, char **argv)
         drop_privileges = geteuid () == 0;
         if (drop_privileges)
             privileges_drop (user);
-        result = xauth_write (xauthority, XAUTH_WRITE_MODE_REPLACE, xauth_filename, &error);
+        result = x_authority_write (x_authority, XAUTH_WRITE_MODE_REPLACE, x_authority_filename, &error);
         if (drop_privileges)
             privileges_reclaim ();
 
@@ -526,7 +526,7 @@ session_child_run (int argc, char **argv)
         if (!result)
             return EXIT_FAILURE;
 
-        value = g_strdup_printf ("XAUTHORITY=%s", xauth_filename);
+        value = g_strdup_printf ("XAUTHORITY=%s", x_authority_filename);
         pam_putenv (pam_handle, value);
         g_free (value);
     }
@@ -609,8 +609,10 @@ session_child_run (int argc, char **argv)
             memset (&ut, 0, sizeof (ut));
             ut.ut_type = USER_PROCESS;
             ut.ut_pid = child_pid;
-            strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
-            strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
+            if (tty)
+                strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
+            if (xdisplay)
+                strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
             strncpy (ut.ut_user, username, sizeof (ut.ut_user));
             if (xdisplay)
                 strncpy (ut.ut_host, xdisplay, sizeof (ut.ut_host));
@@ -638,8 +640,10 @@ session_child_run (int argc, char **argv)
             memset (&ut, 0, sizeof (ut));
             ut.ut_type = DEAD_PROCESS;
             ut.ut_pid = child_pid;
-            strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
-            strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
+            if (tty)
+                strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
+            if (xdisplay)
+                strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
             strncpy (ut.ut_user, username, sizeof (ut.ut_user));
             if (xdisplay)
                 strncpy (ut.ut_host, xdisplay, sizeof (ut.ut_host));
@@ -657,7 +661,7 @@ session_child_run (int argc, char **argv)
     }
 
     /* Remove X authority */
-    if (xauthority)
+    if (x_authority)
     {
         gboolean drop_privileges, result;
         GError *error = NULL;
@@ -665,7 +669,7 @@ session_child_run (int argc, char **argv)
         drop_privileges = geteuid () == 0;
         if (drop_privileges)
             privileges_drop (user);
-        result = xauth_write (xauthority, XAUTH_WRITE_MODE_REMOVE, xauth_filename, &error);
+        result = x_authority_write (x_authority, XAUTH_WRITE_MODE_REMOVE, x_authority_filename, &error);
         if (drop_privileges)
             privileges_reclaim ();
 

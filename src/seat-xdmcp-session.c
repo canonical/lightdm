@@ -12,8 +12,7 @@
 #include <string.h>
 
 #include "seat-xdmcp-session.h"
-#include "xserver-remote.h"
-#include "xsession.h"
+#include "x-server-remote.h"
 
 struct SeatXDMCPSessionPrivate
 {
@@ -35,32 +34,21 @@ seat_xdmcp_session_new (XDMCPSession *session)
 }
 
 static DisplayServer *
-seat_xdmcp_session_create_display_server (Seat *seat)
+seat_xdmcp_session_create_display_server (Seat *seat, const gchar *session_type)
 {
     XAuthority *authority;
     gchar *host;
-    XServerRemote *xserver;
+    XServerRemote *x_server;
+
+    if (strcmp (session_type, "x") != 0)
+        return NULL;
 
     authority = xdmcp_session_get_authority (SEAT_XDMCP_SESSION (seat)->priv->session);
     host = g_inet_address_to_string (xdmcp_session_get_address (SEAT_XDMCP_SESSION (seat)->priv->session));
-    xserver = xserver_remote_new (host, xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session), authority);
+    x_server = x_server_remote_new (host, xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session), authority);
     g_free (host);
 
-    return DISPLAY_SERVER (xserver);
-}
-
-static Session *
-seat_xdmcp_session_create_session (Seat *seat, Display *display, Display *user_display)
-{
-    XServerRemote *xserver;
-    XSession *session;
-
-    xserver = XSERVER_REMOTE (display_get_display_server (display));
-
-    session = xsession_new ();
-    session_set_remote_host_name (SESSION (session), xserver_get_hostname (XSERVER (xserver)));
-
-    return SESSION (session);
+    return DISPLAY_SERVER (x_server);
 }
 
 static void
@@ -88,7 +76,6 @@ seat_xdmcp_session_class_init (SeatXDMCPSessionClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     seat_class->create_display_server = seat_xdmcp_session_create_display_server;
-    seat_class->create_session = seat_xdmcp_session_create_session;
     object_class->finalize = seat_xdmcp_session_finalize;
 
     g_type_class_add_private (klass, sizeof (SeatXDMCPSessionPrivate));

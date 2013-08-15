@@ -15,12 +15,11 @@
 #define HASXDMAUTH
 #include <X11/Xdmcp.h>
 #include <gio/gio.h>
-#include "ldm-marshal.h"
 
 #include "xdmcp-server.h"
 #include "xdmcp-protocol.h"
 #include "xdmcp-session-private.h"
-#include "xauthority.h"
+#include "x-authority.h"
 
 enum {
     NEW_SESSION,
@@ -273,7 +272,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     gsize session_authorization_data_length = 0;
     gchar **j;
     guint16 family;
-    GInetAddress *xserver_address = NULL;
+    GInetAddress *x_server_address = NULL;
     gchar *display_number;
     XdmAuthKeyRec rho;
 
@@ -284,13 +283,13 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
         if (connection->type == XAUTH_FAMILY_INTERNET6 && connection->address.length == 16)
         {
             family = connection->type;
-            xserver_address = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV6);
+            x_server_address = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV6);
 
             /* We can't use link-local addresses, as we need to know what interface it is on */
-            if (g_inet_address_get_is_link_local (xserver_address))
+            if (g_inet_address_get_is_link_local (x_server_address))
             {
-                g_object_unref (xserver_address);
-                xserver_address = NULL;
+                g_object_unref (x_server_address);
+                x_server_address = NULL;
             }
             else
                 break;
@@ -298,7 +297,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
     }
 
     /* If no IPv6 address, then try and find an IPv4 one */
-    if (!xserver_address)
+    if (!x_server_address)
     {
         for (i = 0; i < packet->Request.n_connections; i++)
         {
@@ -306,14 +305,14 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
             if (connection->type == XAUTH_FAMILY_INTERNET && connection->address.length == 4)
             {
                 family = connection->type;
-                xserver_address = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV4);
+                x_server_address = g_inet_address_new_from_bytes (connection->address.data, G_SOCKET_FAMILY_IPV4);
                 break;
             }
         }
     }
 
     /* Decline if haven't got an address we can connect on */
-    if (!xserver_address)
+    if (!x_server_address)
     {
         response = xdmcp_packet_alloc (XDMCP_Decline);
         response->Decline.status = g_strdup ("No valid address found");
@@ -419,29 +418,29 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
         XAuthority *auth;
 
         /* Data is the cookie */
-        auth = xauth_new_cookie (XAUTH_FAMILY_WILD, NULL, 0, "");
-        authorization_data = xauth_copy_authorization_data (auth);
-        authorization_data_length = xauth_get_authorization_data_length (auth);
-        session_authorization_data = xauth_copy_authorization_data (auth);
-        session_authorization_data_length = xauth_get_authorization_data_length (auth);
+        auth = x_authority_new_cookie (XAUTH_FAMILY_WILD, NULL, 0, "");
+        authorization_data = x_authority_copy_authorization_data (auth);
+        authorization_data_length = x_authority_get_authorization_data_length (auth);
+        session_authorization_data = x_authority_copy_authorization_data (auth);
+        session_authorization_data_length = x_authority_get_authorization_data_length (auth);
 
         g_object_unref (auth);
     }
 
     session = add_session (server);
-    session->priv->address = xserver_address;
+    session->priv->address = x_server_address;
     session->priv->display_number = packet->Request.display_number;
     display_number = g_strdup_printf ("%d", packet->Request.display_number);
 
     /* We need to check if this is the loopback address and set the authority
      * for a local connection if this is so as XCB treats "127.0.0.1" as local
      * always */
-    if (g_inet_address_get_is_loopback (xserver_address))
+    if (g_inet_address_get_is_loopback (x_server_address))
     {
         gchar hostname[1024];
         gethostname (hostname, 1024);
 
-        session->priv->authority = xauth_new (XAUTH_FAMILY_LOCAL,
+        session->priv->authority = x_authority_new (XAUTH_FAMILY_LOCAL,
                                               (guint8 *) hostname,
                                               strlen (hostname),
                                               display_number,
@@ -450,9 +449,9 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
                                               session_authorization_data_length);
     }
     else
-        session->priv->authority = xauth_new (family,
-                                              g_inet_address_to_bytes (G_INET_ADDRESS (xserver_address)),
-                                              g_inet_address_get_native_size (G_INET_ADDRESS (xserver_address)),
+        session->priv->authority = x_authority_new (family,
+                                              g_inet_address_to_bytes (G_INET_ADDRESS (x_server_address)),
+                                              g_inet_address_get_native_size (G_INET_ADDRESS (x_server_address)),
                                               display_number,
                                               authorization_name,
                                               session_authorization_data,
@@ -707,6 +706,6 @@ xdmcp_server_class_init (XDMCPServerClass *klass)
                       G_STRUCT_OFFSET (XDMCPServerClass, new_session),
                       g_signal_accumulator_true_handled,
                       NULL,
-                      ldm_marshal_BOOLEAN__OBJECT,
+                      NULL,
                       G_TYPE_BOOLEAN, 1, XDMCP_SESSION_TYPE);
 }

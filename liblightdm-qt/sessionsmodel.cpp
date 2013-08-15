@@ -21,6 +21,7 @@ class SessionItem
 {
 public:
     QString key;
+    QString type;
     QString name;
     QString comment;
 };
@@ -71,6 +72,7 @@ void SessionsModelPrivate::loadSessions(SessionsModel::SessionType sessionType)
 
        SessionItem session;
        session.key = QString::fromUtf8(lightdm_session_get_key(ldmSession));
+       session.type = QString::fromUtf8(lightdm_session_get_session_type(ldmSession));
        session.name = QString::fromUtf8(lightdm_session_get_name(ldmSession));
        session.comment = QString::fromUtf8(lightdm_session_get_comment(ldmSession));
 
@@ -137,6 +139,8 @@ QVariant SessionsModel::data(const QModelIndex &index, int role) const
     switch (role) {
     case SessionsModel::KeyRole:
         return d->items[row].key;
+    case SessionsModel::TypeRole:
+        return d->items[row].type;
     case Qt::DisplayRole:
         return d->items[row].name;
     case Qt::ToolTipRole:

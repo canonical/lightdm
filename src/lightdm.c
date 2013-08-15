@@ -27,7 +27,7 @@
 #include "vnc-server.h"
 #include "seat-xdmcp-session.h"
 #include "seat-xvnc.h"
-#include "xserver.h"
+#include "x-server.h"
 #include "process.h"
 #include "session-child.h"
 
@@ -349,11 +349,11 @@ handle_seat_get_property (GDBusConnection       *connection,
         GList *link;
 
         builder = g_variant_builder_new (G_VARIANT_TYPE ("ao"));
-        for (link = seat_get_displays (seat); link; link = link->next)
+        for (link = seat_get_sessions (seat); link; link = link->next)
         {
-            Display *display = link->data;
+            Session *session = link->data;
             BusEntry *entry;
-            entry = g_hash_table_lookup (session_bus_entries, display_get_session (display));
+            entry = g_hash_table_lookup (session_bus_entries, session);
             if (entry)
                 g_variant_builder_add_value (builder, g_variant_new_object_path (entry->path));
         }
@@ -428,13 +428,13 @@ get_seat_for_session (Session *session)
     for (seat_link = display_manager_get_seats (display_manager); seat_link; seat_link = seat_link->next)
     {
         Seat *seat = seat_link->data;
-        GList *display_link;
+        GList *session_link;
 
-        for (display_link = seat_get_displays (seat); display_link; display_link = display_link->next)
+        for (session_link = seat_get_sessions (seat); session_link; session_link = session_link->next)
         {
-            Display *display = display_link->data;
+            Session *s = session_link->data;
 
-            if (display_get_session (display) == session)
+            if (s == session)
                 return seat;
         }
     }
@@ -520,14 +520,16 @@ bus_entry_free (gpointer data)
     g_free (entry);
 }
 
-static gboolean
-start_session_cb (Display *display, Seat *seat)
+static void
+running_user_session_cb (Seat *seat, Session *session)
 {
-    Session *session;
-    BusEntry *seat_entry;
+    static const GDBusInterfaceVTable session_vtable =
+    {
+        handle_session_call,
+        handle_session_get_property
+    };
+    BusEntry *seat_entry, *entry;
     gchar *path;
-
-    session = display_get_session (display);
 
     /* Set environment variables when session runs */
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
@@ -536,31 +538,6 @@ start_session_cb (Display *display, Seat *seat)
     session_index++;
     session_set_env (session, "XDG_SESSION_PATH", path);
     g_object_set_data_full (G_OBJECT (session), "XDG_SESSION_PATH", path, g_free);
-
-    return FALSE;
-}
-
-static void
-session_stopped_cb (Session *session, Seat *seat)
-{
-    g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
-    g_hash_table_remove (session_bus_entries, session);
-}
-
-static gboolean
-session_started_cb (Display *display, Seat *seat)
-{
-    static const GDBusInterfaceVTable session_vtable =
-    {
-        handle_session_call,
-        handle_session_get_property
-    };
-    Session *session;
-    BusEntry *seat_entry, *entry;
-
-    session = display_get_session (display);
-
-    g_signal_connect (session, "stopped", G_CALLBACK (session_stopped_cb), seat);
 
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
     entry = bus_entry_new (g_object_get_data (G_OBJECT (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL, "SessionRemoved");
@@ -581,15 +558,13 @@ session_started_cb (Display *display, Seat *seat)
                                    "SessionAdded",
                                    g_variant_new ("(o)", entry->path),
                                    NULL);
-
-    return FALSE;
 }
 
 static void
-display_added_cb (Seat *seat, Display *display)
+session_removed_cb (Session *session, Seat *seat)
 {
-    g_signal_connect (display, "start-session", G_CALLBACK (start_session_cb), seat);
-    g_signal_connect_after (display, "start-session", G_CALLBACK (session_started_cb), seat);
+    g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
+    g_hash_table_remove (session_bus_entries, session);
 }
 
 static void
@@ -600,13 +575,8 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
         handle_seat_call,
         handle_seat_get_property
     };
-    GList *link;
     gchar *path;
     BusEntry *entry;
-
-    g_signal_connect (seat, "display-added", G_CALLBACK (display_added_cb), NULL);
-    for (link = seat_get_displays (seat); link; link = link->next)
-        display_added_cb (seat, (Display *) link->data);
 
     path = g_strdup_printf ("/org/freedesktop/DisplayManager/Seat%d", seat_index);
     seat_index++;
@@ -630,12 +600,40 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
                                    "SeatAdded",
                                    g_variant_new ("(o)", entry->path),
                                    NULL);
+
+    g_signal_connect (seat, "running-user-session", G_CALLBACK (running_user_session_cb), NULL);
+    g_signal_connect (seat, "session-removed", G_CALLBACK (session_removed_cb), NULL);
 }
 
 static void
 seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
     g_hash_table_remove (seat_bus_entries, seat);
+}
+
+static gboolean
+xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
+{
+    SeatXDMCPSession *seat;
+    gboolean result;
+
+    seat = seat_xdmcp_session_new (session);
+    set_seat_properties (SEAT (seat), NULL);
+    result = display_manager_add_seat (display_manager, SEAT (seat));
+    g_object_unref (seat);
+
+    return result;
+}
+
+static void
+vnc_connection_cb (VNCServer *server, GSocket *connection)
+{
+    SeatXVNC *seat;
+
+    seat = seat_xvnc_new (connection);
+    set_seat_properties (SEAT (seat), NULL);
+    display_manager_add_seat (display_manager, SEAT (seat));
+    g_object_unref (seat);
 }
 
 static void
@@ -730,463 +728,6 @@ bus_acquired_cb (GDBusConnection *connection,
     g_signal_connect (display_manager, "seat-removed", G_CALLBACK (seat_removed_cb), NULL);
     for (link = display_manager_get_seats (display_manager); link; link = link->next)
         seat_added_cb (display_manager, (Seat *) link->data);
-}
-
-static void
-name_lost_cb (GDBusConnection *connection,
-              const gchar *name,
-              gpointer user_data)
-{
-    if (connection)
-        g_printerr ("Failed to use bus name " LIGHTDM_BUS_NAME ", do you have appropriate permissions?\n");
-    else
-        g_printerr ("Failed to get D-Bus connection\n");
-
-    exit (EXIT_FAILURE);
-}
-
-static gchar *
-path_make_absolute (gchar *path)
-{
-    gchar *cwd, *abs_path;
-
-    if (!path)
-        return NULL;
-
-    if (g_path_is_absolute (path))
-        return path;
-
-    cwd = g_get_current_dir ();
-    abs_path = g_build_filename (cwd, path, NULL);
-    g_free (path);
-
-    return abs_path;
-}
-
-static gboolean
-xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
-{
-    SeatXDMCPSession *seat;
-    gboolean result;
-
-    seat = seat_xdmcp_session_new (session);
-    set_seat_properties (SEAT (seat), NULL);
-    result = display_manager_add_seat (display_manager, SEAT (seat));
-    g_object_unref (seat);
-
-    return result;
-}
-
-static void
-vnc_connection_cb (VNCServer *server, GSocket *connection)
-{
-    SeatXVNC *seat;
-
-    seat = seat_xvnc_new (connection);
-    set_seat_properties (SEAT (seat), NULL);
-    display_manager_add_seat (display_manager, SEAT (seat));
-    g_object_unref (seat);
-}
-
-static int
-compare_strings (gconstpointer a, gconstpointer b)
-{
-    return strcmp (a, b);
-}
-
-int
-main (int argc, char **argv)
-{
-    FILE *pid_file;
-    GOptionContext *option_context;
-    gboolean result;
-    gchar **groups, **i, *dir;
-    gint n_seats = 0;
-    gboolean explicit_config = FALSE;
-    gboolean test_mode = FALSE;
-    gchar *pid_path = "/var/run/lightdm.pid";
-    gchar *xsessions_dir = NULL;
-    gchar *remote_sessions_dir = NULL;
-    gchar *xgreeters_dir = NULL;
-    gchar *config_dir, *config_d_dir = NULL;
-    gchar *log_dir = NULL;
-    gchar *run_dir = NULL;
-    gchar *cache_dir = NULL;
-    gchar *default_log_dir = g_strdup (LOG_DIR);
-    gchar *default_run_dir = g_strdup (RUN_DIR);
-    gchar *default_cache_dir = g_strdup (CACHE_DIR);
-    gboolean show_version = FALSE;
-    GList *link, *messages = NULL;
-    GOptionEntry options[] =
-    {
-        { "config", 'c', 0, G_OPTION_ARG_STRING, &config_path,
-          /* Help string for command line --config flag */
-          N_("Use configuration file"), "FILE" },
-        { "debug", 'd', 0, G_OPTION_ARG_NONE, &debug,
-          /* Help string for command line --debug flag */
-          N_("Print debugging messages"), NULL },
-        { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
-          /* Help string for command line --test-mode flag */
-          N_("Run as unprivileged user, skipping things that require root access"), NULL },
-        { "pid-file", 0, 0, G_OPTION_ARG_STRING, &pid_path,
-          /* Help string for command line --pid-file flag */
-          N_("File to write PID into"), "FILE" },
-        { "xsessions-dir", 0, 0, G_OPTION_ARG_STRING, &xsessions_dir,
-          /* Help string for command line --xsessions-dir flag */
-          N_("Directory to load X sessions from"), "DIRECTORY" },
-        { "remote-sessions-dir", 0, 0, G_OPTION_ARG_STRING, &remote_sessions_dir,
-          /* Help string for command line --remote-sessions-dir flag */
-          N_("Directory to load remote sessions from"), "DIRECTORY" },
-        { "xgreeters-dir", 0, 0, G_OPTION_ARG_STRING, &xgreeters_dir,
-          /* Help string for command line --xgreeters-dir flag */
-          N_("Directory to load X greeters from"), "DIRECTORY" },
-        { "log-dir", 0, 0, G_OPTION_ARG_STRING, &log_dir,
-          /* Help string for command line --log-dir flag */
-          N_("Directory to write logs to"), "DIRECTORY" },
-        { "run-dir", 0, 0, G_OPTION_ARG_STRING, &run_dir,
-          /* Help string for command line --run-dir flag */
-          N_("Directory to store running state"), "DIRECTORY" },
-        { "cache-dir", 0, 0, G_OPTION_ARG_STRING, &cache_dir,
-          /* Help string for command line --cache-dir flag */
-          N_("Directory to cache information"), "DIRECTORY" },
-        { "version", 'v', 0, G_OPTION_ARG_NONE, &show_version,
-          /* Help string for command line --version flag */
-          N_("Show release version"), NULL },
-        { NULL }
-    };
-    GError *error = NULL;
-
-    /* When lightdm starts sessions it needs to run itself in a new mode */
-    if (argc >= 2 && strcmp (argv[1], "--session-child") == 0)
-        return session_child_run (argc, argv);
-
-#if !defined(GLIB_VERSION_2_36)
-    g_type_init ();
-#endif
-    loop = g_main_loop_new (NULL, FALSE);
-
-    messages = g_list_append (messages, g_strdup_printf ("Starting Light Display Manager %s, UID=%i PID=%i", VERSION, getuid (), getpid ()));
-
-    g_signal_connect (process_get_current (), "got-signal", G_CALLBACK (signal_cb), NULL);
-
-    option_context = g_option_context_new (/* Arguments and description for --help test */
-                                           _("- Display Manager"));
-    g_option_context_add_main_entries (option_context, options, GETTEXT_PACKAGE);
-    result = g_option_context_parse (option_context, &argc, &argv, &error);
-    if (error)
-        g_printerr ("%s\n", error->message);
-    g_clear_error (&error);
-    g_option_context_free (option_context);
-    if (!result)
-    {
-        g_printerr (/* Text printed out when an unknown command-line argument provided */
-                    _("Run '%s --help' to see a full list of available command line options."), argv[0]);
-        g_printerr ("\n");
-        return EXIT_FAILURE;
-    }
-
-    if (show_version)
-    {
-        /* NOTE: Is not translated so can be easily parsed */
-        g_printerr ("lightdm %s\n", VERSION);
-        return EXIT_SUCCESS;
-    }
-
-    if (config_path)
-    {
-        config_dir = g_path_get_basename (config_path);
-        config_dir = path_make_absolute (config_dir);
-        explicit_config = TRUE;
-    }
-    else
-    {
-        config_dir = g_strdup (CONFIG_DIR);
-        config_d_dir = g_build_filename (config_dir, "lightdm.conf.d", NULL);
-        config_path = g_build_filename (config_dir, "lightdm.conf", NULL);
-    }
-    config_set_string (config_get_instance (), "LightDM", "config-directory", config_dir);
-    g_free (config_dir);
-
-    if (!test_mode && getuid () != 0)
-    {
-        g_printerr ("Only root can run Light Display Manager.  To run as a regular user for testing run with the --test-mode flag.\n");
-        return EXIT_FAILURE;
-    }
-
-    /* If running inside an X server use Xephyr for display */
-    if (getenv ("DISPLAY") && getuid () != 0)
-    {
-        gchar *xserver_path;
-
-        xserver_path = g_find_program_in_path ("Xephyr");
-        if (!xserver_path)
-        {
-            g_printerr ("Running inside an X server requires Xephyr to be installed but it cannot be found.  Please install it or update your PATH environment variable.\n");
-            return EXIT_FAILURE;
-        }
-        g_free (xserver_path);
-    }
-
-    /* Make sure the system binary directory (where the greeters are installed) is in the path */
-    if (test_mode)
-    {
-        const gchar *path = g_getenv ("PATH");
-        gchar *new_path;
-
-        if (path)
-            new_path = g_strdup_printf ("%s:%s", path, SBIN_DIR);
-        else
-            new_path = g_strdup (SBIN_DIR);
-        g_setenv ("PATH", new_path, TRUE);
-        g_free (new_path);
-    }
-
-    /* Write PID file */
-    pid_file = fopen (pid_path, "w");
-    if (pid_file)
-    {
-        fprintf (pid_file, "%d\n", getpid ());
-        fclose (pid_file);
-    }
-
-    /* Always use absolute directories as child processes may run from different locations */
-    xsessions_dir = path_make_absolute (xsessions_dir);
-    remote_sessions_dir = path_make_absolute (remote_sessions_dir);
-    xgreeters_dir = path_make_absolute (xgreeters_dir);
-
-    /* If not running as root write output to directories we control */
-    if (getuid () != 0)
-    {
-        g_free (default_log_dir);
-        default_log_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "log", NULL);
-        g_free (default_run_dir);
-        default_run_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "run", NULL);
-        g_free (default_cache_dir);
-        default_cache_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "cache", NULL);
-    }
-
-    /* Load config file(s) */
-    messages = g_list_append (messages, g_strdup_printf ("Loading configuration from %s", config_path));
-    if (!config_load_from_file (config_get_instance (), config_path, &error))
-    {
-        gboolean is_empty;
-
-        is_empty = error && g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
-
-        if (explicit_config || !is_empty)
-        {
-            if (error)
-                g_printerr ("Failed to load configuration from %s: %s\n", config_path, error->message);
-            exit (EXIT_FAILURE);
-        }
-    }
-    g_clear_error (&error);
-    g_free (config_path);
-    if (config_d_dir)
-    {
-        GDir *dir;
-        GList *files, *link;
-        GKeyFile *f;
-
-        /* Find configuration files */
-        dir = g_dir_open (config_d_dir, 0, &error);
-        if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
-            g_printerr ("Failed to open configuration directory %s: %s\n", config_d_dir, error->message);
-        g_clear_error (&error);
-        if (dir)
-        {
-            const gchar *name;
-            while ((name = g_dir_read_name (dir)))
-                files = g_list_append (files, g_strdup (name));
-            g_dir_close (dir);
-        }
-
-        /* Sort alphabetically and load onto existing configuration */
-        files = g_list_sort (files, compare_strings);
-        for (link = files; link; link = link->next)
-        {
-            gchar *filename = link->data;
-            gchar *path;
-
-            path = g_build_filename (config_d_dir, filename, NULL);
-            if (g_str_has_suffix (filename, ".conf"))
-            {
-                messages = g_list_append (messages, g_strdup_printf ("Loading configuration from %s", path));
-                config_load_from_file (config_get_instance (), path, &error);
-                if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
-                    g_printerr ("Failed to load configuration from %s: %s\n", filename, error->message);
-                g_clear_error (&error);
-            }
-            else
-                g_debug ("Ignoring configuration file %s, it does not have .conf suffix", path);
-            g_free (path);
-        }
-        g_list_free_full (files, g_free);
-    }
-    g_free (config_d_dir);
-
-    /* Set default values */
-    if (!config_has_key (config_get_instance (), "LightDM", "start-default-seat"))
-        config_set_boolean (config_get_instance (), "LightDM", "start-default-seat", TRUE);
-    if (!config_has_key (config_get_instance (), "LightDM", "minimum-vt"))
-        config_set_integer (config_get_instance (), "LightDM", "minimum-vt", 7);
-    if (!config_has_key (config_get_instance (), "LightDM", "guest-account-script"))
-        config_set_string (config_get_instance (), "LightDM", "guest-account-script", "guest-account");
-    if (!config_has_key (config_get_instance (), "LightDM", "greeter-user"))
-        config_set_string (config_get_instance (), "LightDM", "greeter-user", GREETER_USER);
-    if (!config_has_key (config_get_instance (), "LightDM", "lock-memory"))
-        config_set_boolean (config_get_instance (), "LightDM", "lock-memory", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "type"))
-        config_set_string (config_get_instance (), "SeatDefaults", "type", "xlocal");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-command"))
-        config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", "X");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-share"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "xserver-share", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "unity-compositor-command"))
-        config_set_string (config_get_instance (), "SeatDefaults", "unity-compositor-command", "unity-system-compositor");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "start-session"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "start-session", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "allow-guest"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "allow-guest", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-allow-guest"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "greeter-allow-guest", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-show-remote-login"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "greeter-show-remote-login", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-session"))
-        config_set_string (config_get_instance (), "SeatDefaults", "greeter-session", GREETER_SESSION);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "user-session"))
-        config_set_string (config_get_instance (), "SeatDefaults", "user-session", USER_SESSION);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "session-wrapper"))
-        config_set_string (config_get_instance (), "SeatDefaults", "session-wrapper", "lightdm-session");
-    if (!config_has_key (config_get_instance (), "LightDM", "log-directory"))
-        config_set_string (config_get_instance (), "LightDM", "log-directory", default_log_dir);
-    g_free (default_log_dir);
-    if (!config_has_key (config_get_instance (), "LightDM", "run-directory"))
-        config_set_string (config_get_instance (), "LightDM", "run-directory", default_run_dir);
-    g_free (default_run_dir);
-    if (!config_has_key (config_get_instance (), "LightDM", "cache-directory"))
-        config_set_string (config_get_instance (), "LightDM", "cache-directory", default_cache_dir);
-    g_free (default_cache_dir);
-    if (!config_has_key (config_get_instance (), "LightDM", "xsessions-directory"))
-        config_set_string (config_get_instance (), "LightDM", "xsessions-directory", XSESSIONS_DIR);
-    if (!config_has_key (config_get_instance (), "LightDM", "remote-sessions-directory"))
-        config_set_string (config_get_instance (), "LightDM", "remote-sessions-directory", REMOTE_SESSIONS_DIR);
-    if (!config_has_key (config_get_instance (), "LightDM", "xgreeters-directory"))
-        config_set_string (config_get_instance (), "LightDM", "xgreeters-directory", XGREETERS_DIR);
-
-    /* Override defaults */
-    if (log_dir)
-        config_set_string (config_get_instance (), "LightDM", "log-directory", log_dir);
-    g_free (log_dir);
-    if (run_dir)
-        config_set_string (config_get_instance (), "LightDM", "run-directory", run_dir);
-    g_free (run_dir);
-    if (cache_dir)
-        config_set_string (config_get_instance (), "LightDM", "cache-directory", cache_dir);
-    g_free (cache_dir);
-    if (xsessions_dir)
-        config_set_string (config_get_instance (), "LightDM", "xsessions-directory", xsessions_dir);
-    g_free (xsessions_dir);
-    if (remote_sessions_dir)
-        config_set_string (config_get_instance (), "LightDM", "remote-sessions-directory", remote_sessions_dir);
-    g_free (remote_sessions_dir);
-    if (xgreeters_dir)
-        config_set_string (config_get_instance (), "LightDM", "xgreeters-directory", xgreeters_dir);
-    g_free (xgreeters_dir);
-
-    /* Create run and cache directories */
-    dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    if (g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
-        g_warning ("Failed to make log directory %s: %s", dir, strerror (errno));
-    g_free (dir);
-    dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
-    if (g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
-        g_warning ("Failed to make run directory %s: %s", dir, strerror (errno));
-    g_free (dir);
-    dir = config_get_string (config_get_instance (), "LightDM", "cache-directory");
-    if (g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
-        g_warning ("Failed to make cache directory %s: %s", dir, strerror (errno));
-    g_free (dir);
-
-    log_init ();
-
-    /* Show queued messages once logging is complete */
-    for (link = messages; link; link = link->next)
-        g_debug ("%s", link->data);
-    g_list_free_full (messages, g_free);
-
-    g_debug ("Using D-Bus name %s", LIGHTDM_BUS_NAME);
-    bus_id = g_bus_own_name (getuid () == 0 ? G_BUS_TYPE_SYSTEM : G_BUS_TYPE_SESSION,
-                             LIGHTDM_BUS_NAME,
-                             G_BUS_NAME_OWNER_FLAGS_NONE,
-                             bus_acquired_cb,
-                             NULL,
-                             name_lost_cb,
-                             NULL,
-                             NULL);
-
-    if (getuid () != 0)
-        g_debug ("Running in user mode");
-    if (getenv ("DISPLAY"))
-        g_debug ("Using Xephyr for X servers");
-
-    display_manager = display_manager_new ();
-    g_signal_connect (display_manager, "stopped", G_CALLBACK (display_manager_stopped_cb), NULL);
-    g_signal_connect (display_manager, "seat-removed", G_CALLBACK (display_manager_seat_removed_cb), NULL);
-
-    /* Load the static display entries */
-    groups = config_get_groups (config_get_instance ());
-    for (i = groups; *i; i++)
-    {
-        gchar *config_section = *i;
-        gchar *type;
-        Seat *seat;
-
-        if (!g_str_has_prefix (config_section, "Seat:"))
-            continue;
-
-        g_debug ("Loading seat %s", config_section);
-        type = config_get_string (config_get_instance (), config_section, "type");
-        if (!type)
-            type = config_get_string (config_get_instance (), "SeatDefaults", "type");
-        seat = seat_new (type);
-        g_free (type);
-        if (seat)
-        {
-            set_seat_properties (seat, config_section);
-            display_manager_add_seat (display_manager, seat);
-            g_object_unref (seat);
-            n_seats++;
-        }
-        else
-            g_warning ("Failed to create seat %s", config_section);
-    }
-    g_strfreev (groups);
-
-    /* If no seats start a default one */
-    if (n_seats == 0 && config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
-    {
-        gchar *type;
-        Seat *seat;
-
-        g_debug ("Adding default seat");
-
-        type = config_get_string (config_get_instance (), "SeatDefaults", "type");
-        seat = seat_new (type);
-        g_free (type);
-        if (seat)
-        {
-            set_seat_properties (seat, NULL);
-            seat_set_property (seat, "exit-on-failure", "true");
-            display_manager_add_seat (display_manager, seat);
-            g_object_unref (seat);
-        }
-        else
-        {
-            g_warning ("Failed to create default seat %s", type);
-            return EXIT_FAILURE;
-        }
-    }
 
     display_manager_start (display_manager);
 
@@ -1267,6 +808,412 @@ main (int argc, char **argv)
         }
         else
             g_warning ("Can't start VNC server, Xvn is not in the path");
+    }
+}
+
+static void
+name_lost_cb (GDBusConnection *connection,
+              const gchar *name,
+              gpointer user_data)
+{
+    if (connection)
+        g_printerr ("Failed to use bus name " LIGHTDM_BUS_NAME ", do you have appropriate permissions?\n");
+    else
+        g_printerr ("Failed to get D-Bus connection\n");
+
+    exit (EXIT_FAILURE);
+}
+
+static gchar *
+path_make_absolute (gchar *path)
+{
+    gchar *cwd, *abs_path;
+
+    if (!path)
+        return NULL;
+
+    if (g_path_is_absolute (path))
+        return path;
+
+    cwd = g_get_current_dir ();
+    abs_path = g_build_filename (cwd, path, NULL);
+    g_free (path);
+
+    return abs_path;
+}
+
+static int
+compare_strings (gconstpointer a, gconstpointer b)
+{
+    return strcmp (a, b);
+}
+
+int
+main (int argc, char **argv)
+{
+    FILE *pid_file;
+    GOptionContext *option_context;
+    gboolean result;
+    gchar **groups, **i, *dir;
+    gint n_seats = 0;
+    gboolean explicit_config = FALSE;
+    gboolean test_mode = FALSE;
+    gchar *pid_path = "/var/run/lightdm.pid";
+    gchar *config_dir, *config_d_dir = NULL;
+    gchar *log_dir = NULL;
+    gchar *run_dir = NULL;
+    gchar *cache_dir = NULL;
+    gchar *default_log_dir = g_strdup (LOG_DIR);
+    gchar *default_run_dir = g_strdup (RUN_DIR);
+    gchar *default_cache_dir = g_strdup (CACHE_DIR);
+    gboolean show_version = FALSE;
+    GList *link, *messages = NULL;
+    GOptionEntry options[] =
+    {
+        { "config", 'c', 0, G_OPTION_ARG_STRING, &config_path,
+          /* Help string for command line --config flag */
+          N_("Use configuration file"), "FILE" },
+        { "debug", 'd', 0, G_OPTION_ARG_NONE, &debug,
+          /* Help string for command line --debug flag */
+          N_("Print debugging messages"), NULL },
+        { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
+          /* Help string for command line --test-mode flag */
+          N_("Run as unprivileged user, skipping things that require root access"), NULL },
+        { "pid-file", 0, 0, G_OPTION_ARG_STRING, &pid_path,
+          /* Help string for command line --pid-file flag */
+          N_("File to write PID into"), "FILE" },
+        { "log-dir", 0, 0, G_OPTION_ARG_STRING, &log_dir,
+          /* Help string for command line --log-dir flag */
+          N_("Directory to write logs to"), "DIRECTORY" },
+        { "run-dir", 0, 0, G_OPTION_ARG_STRING, &run_dir,
+          /* Help string for command line --run-dir flag */
+          N_("Directory to store running state"), "DIRECTORY" },
+        { "cache-dir", 0, 0, G_OPTION_ARG_STRING, &cache_dir,
+          /* Help string for command line --cache-dir flag */
+          N_("Directory to cache information"), "DIRECTORY" },
+        { "version", 'v', 0, G_OPTION_ARG_NONE, &show_version,
+          /* Help string for command line --version flag */
+          N_("Show release version"), NULL },
+        { NULL }
+    };
+    GError *error = NULL;
+
+    /* When lightdm starts sessions it needs to run itself in a new mode */
+    if (argc >= 2 && strcmp (argv[1], "--session-child") == 0)
+        return session_child_run (argc, argv);
+
+#if !defined(GLIB_VERSION_2_36)
+    g_type_init ();
+#endif
+    loop = g_main_loop_new (NULL, FALSE);
+
+    messages = g_list_append (messages, g_strdup_printf ("Starting Light Display Manager %s, UID=%i PID=%i", VERSION, getuid (), getpid ()));
+
+    g_signal_connect (process_get_current (), "got-signal", G_CALLBACK (signal_cb), NULL);
+
+    option_context = g_option_context_new (/* Arguments and description for --help test */
+                                           _("- Display Manager"));
+    g_option_context_add_main_entries (option_context, options, GETTEXT_PACKAGE);
+    result = g_option_context_parse (option_context, &argc, &argv, &error);
+    if (error)
+        g_printerr ("%s\n", error->message);
+    g_clear_error (&error);
+    g_option_context_free (option_context);
+    if (!result)
+    {
+        g_printerr (/* Text printed out when an unknown command-line argument provided */
+                    _("Run '%s --help' to see a full list of available command line options."), argv[0]);
+        g_printerr ("\n");
+        return EXIT_FAILURE;
+    }
+
+    if (show_version)
+    {
+        /* NOTE: Is not translated so can be easily parsed */
+        g_printerr ("lightdm %s\n", VERSION);
+        return EXIT_SUCCESS;
+    }
+
+    if (config_path)
+    {
+        config_dir = g_path_get_basename (config_path);
+        config_dir = path_make_absolute (config_dir);
+        explicit_config = TRUE;
+    }
+    else
+    {
+        config_dir = g_strdup (CONFIG_DIR);
+        config_d_dir = g_build_filename (config_dir, "lightdm.conf.d", NULL);
+        config_path = g_build_filename (config_dir, "lightdm.conf", NULL);
+    }
+    config_set_string (config_get_instance (), "LightDM", "config-directory", config_dir);
+    g_free (config_dir);
+
+    if (!test_mode && getuid () != 0)
+    {
+        g_printerr ("Only root can run Light Display Manager.  To run as a regular user for testing run with the --test-mode flag.\n");
+        return EXIT_FAILURE;
+    }
+
+    /* If running inside an X server use Xephyr for display */
+    if (getenv ("DISPLAY") && getuid () != 0)
+    {
+        gchar *x_server_path;
+
+        x_server_path = g_find_program_in_path ("Xephyr");
+        if (!x_server_path)
+        {
+            g_printerr ("Running inside an X server requires Xephyr to be installed but it cannot be found.  Please install it or update your PATH environment variable.\n");
+            return EXIT_FAILURE;
+        }
+        g_free (x_server_path);
+    }
+
+    /* Make sure the system binary directory (where the greeters are installed) is in the path */
+    if (test_mode)
+    {
+        const gchar *path = g_getenv ("PATH");
+        gchar *new_path;
+
+        if (path)
+            new_path = g_strdup_printf ("%s:%s", path, SBIN_DIR);
+        else
+            new_path = g_strdup (SBIN_DIR);
+        g_setenv ("PATH", new_path, TRUE);
+        g_free (new_path);
+    }
+
+    /* Write PID file */
+    pid_file = fopen (pid_path, "w");
+    if (pid_file)
+    {
+        fprintf (pid_file, "%d\n", getpid ());
+        fclose (pid_file);
+    }
+
+    /* If not running as root write output to directories we control */
+    if (getuid () != 0)
+    {
+        g_free (default_log_dir);
+        default_log_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "log", NULL);
+        g_free (default_run_dir);
+        default_run_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "run", NULL);
+        g_free (default_cache_dir);
+        default_cache_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "cache", NULL);
+    }
+
+    /* Load config file(s) */
+    messages = g_list_append (messages, g_strdup_printf ("Loading configuration from %s", config_path));
+    if (!config_load_from_file (config_get_instance (), config_path, &error))
+    {
+        gboolean is_empty;
+
+        is_empty = error && g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
+
+        if (explicit_config || !is_empty)
+        {
+            if (error)
+                g_printerr ("Failed to load configuration from %s: %s\n", config_path, error->message);
+            exit (EXIT_FAILURE);
+        }
+    }
+    g_clear_error (&error);
+    g_free (config_path);
+    if (config_d_dir)
+    {
+        GDir *dir;
+        GList *files = NULL, *link;
+
+        /* Find configuration files */
+        dir = g_dir_open (config_d_dir, 0, &error);
+        if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+            g_printerr ("Failed to open configuration directory %s: %s\n", config_d_dir, error->message);
+        g_clear_error (&error);
+        if (dir)
+        {
+            const gchar *name;
+            while ((name = g_dir_read_name (dir)))
+                files = g_list_append (files, g_strdup (name));
+            g_dir_close (dir);
+        }
+
+        /* Sort alphabetically and load onto existing configuration */
+        files = g_list_sort (files, compare_strings);
+        for (link = files; link; link = link->next)
+        {
+            gchar *filename = link->data;
+            gchar *path;
+
+            path = g_build_filename (config_d_dir, filename, NULL);
+            if (g_str_has_suffix (filename, ".conf"))
+            {
+                messages = g_list_append (messages, g_strdup_printf ("Loading configuration from %s", path));
+                config_load_from_file (config_get_instance (), path, &error);
+                if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+                    g_printerr ("Failed to load configuration from %s: %s\n", filename, error->message);
+                g_clear_error (&error);
+            }
+            else
+                g_debug ("Ignoring configuration file %s, it does not have .conf suffix", path);
+            g_free (path);
+        }
+        g_list_free_full (files, g_free);
+    }
+    g_free (config_d_dir);
+
+    /* Set default values */
+    if (!config_has_key (config_get_instance (), "LightDM", "start-default-seat"))
+        config_set_boolean (config_get_instance (), "LightDM", "start-default-seat", TRUE);
+    if (!config_has_key (config_get_instance (), "LightDM", "minimum-vt"))
+        config_set_integer (config_get_instance (), "LightDM", "minimum-vt", 7);
+    if (!config_has_key (config_get_instance (), "LightDM", "guest-account-script"))
+        config_set_string (config_get_instance (), "LightDM", "guest-account-script", "guest-account");
+    if (!config_has_key (config_get_instance (), "LightDM", "greeter-user"))
+        config_set_string (config_get_instance (), "LightDM", "greeter-user", GREETER_USER);
+    if (!config_has_key (config_get_instance (), "LightDM", "lock-memory"))
+        config_set_boolean (config_get_instance (), "LightDM", "lock-memory", TRUE);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "type"))
+        config_set_string (config_get_instance (), "SeatDefaults", "type", "xlocal");
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-command"))
+        config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", "X");
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-share"))
+        config_set_boolean (config_get_instance (), "SeatDefaults", "xserver-share", TRUE);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "unity-compositor-command"))
+        config_set_string (config_get_instance (), "SeatDefaults", "unity-compositor-command", "unity-system-compositor");
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "start-session"))
+        config_set_boolean (config_get_instance (), "SeatDefaults", "start-session", TRUE);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "allow-guest"))
+        config_set_boolean (config_get_instance (), "SeatDefaults", "allow-guest", TRUE);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-allow-guest"))
+        config_set_boolean (config_get_instance (), "SeatDefaults", "greeter-allow-guest", TRUE);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-show-remote-login"))
+        config_set_boolean (config_get_instance (), "SeatDefaults", "greeter-show-remote-login", TRUE);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-session"))
+        config_set_string (config_get_instance (), "SeatDefaults", "greeter-session", GREETER_SESSION);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "user-session"))
+        config_set_string (config_get_instance (), "SeatDefaults", "user-session", USER_SESSION);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "session-wrapper"))
+        config_set_string (config_get_instance (), "SeatDefaults", "session-wrapper", "lightdm-session");
+    if (!config_has_key (config_get_instance (), "LightDM", "log-directory"))
+        config_set_string (config_get_instance (), "LightDM", "log-directory", default_log_dir);
+    g_free (default_log_dir);
+    if (!config_has_key (config_get_instance (), "LightDM", "run-directory"))
+        config_set_string (config_get_instance (), "LightDM", "run-directory", default_run_dir);
+    g_free (default_run_dir);
+    if (!config_has_key (config_get_instance (), "LightDM", "cache-directory"))
+        config_set_string (config_get_instance (), "LightDM", "cache-directory", default_cache_dir);
+    g_free (default_cache_dir);
+    if (!config_has_key (config_get_instance (), "LightDM", "sessions-directory"))
+        config_set_string (config_get_instance (), "LightDM", "sessions-directory", SESSIONS_DIR);
+    if (!config_has_key (config_get_instance (), "LightDM", "remote-sessions-directory"))
+        config_set_string (config_get_instance (), "LightDM", "remote-sessions-directory", REMOTE_SESSIONS_DIR);
+    if (!config_has_key (config_get_instance (), "LightDM", "greeters-directory"))
+        config_set_string (config_get_instance (), "LightDM", "greeters-directory", GREETERS_DIR);
+
+    /* Override defaults */
+    if (log_dir)
+        config_set_string (config_get_instance (), "LightDM", "log-directory", log_dir);
+    g_free (log_dir);
+    if (run_dir)
+        config_set_string (config_get_instance (), "LightDM", "run-directory", run_dir);
+    g_free (run_dir);
+    if (cache_dir)
+        config_set_string (config_get_instance (), "LightDM", "cache-directory", cache_dir);
+    g_free (cache_dir);
+
+    /* Create run and cache directories */
+    dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
+    if (g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
+        g_warning ("Failed to make log directory %s: %s", dir, strerror (errno));
+    g_free (dir);
+    dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
+    if (g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
+        g_warning ("Failed to make run directory %s: %s", dir, strerror (errno));
+    g_free (dir);
+    dir = config_get_string (config_get_instance (), "LightDM", "cache-directory");
+    if (g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
+        g_warning ("Failed to make cache directory %s: %s", dir, strerror (errno));
+    g_free (dir);
+
+    log_init ();
+
+    /* Show queued messages once logging is complete */
+    for (link = messages; link; link = link->next)
+        g_debug ("%s", (gchar *)link->data);
+    g_list_free_full (messages, g_free);
+
+    g_debug ("Using D-Bus name %s", LIGHTDM_BUS_NAME);
+    bus_id = g_bus_own_name (getuid () == 0 ? G_BUS_TYPE_SYSTEM : G_BUS_TYPE_SESSION,
+                             LIGHTDM_BUS_NAME,
+                             G_BUS_NAME_OWNER_FLAGS_NONE,
+                             bus_acquired_cb,
+                             NULL,
+                             name_lost_cb,
+                             NULL,
+                             NULL);
+
+    if (getuid () != 0)
+        g_debug ("Running in user mode");
+    if (getenv ("DISPLAY"))
+        g_debug ("Using Xephyr for X servers");
+
+    display_manager = display_manager_new ();
+    g_signal_connect (display_manager, "stopped", G_CALLBACK (display_manager_stopped_cb), NULL);
+    g_signal_connect (display_manager, "seat-removed", G_CALLBACK (display_manager_seat_removed_cb), NULL);
+
+    /* Load the static display entries */
+    groups = config_get_groups (config_get_instance ());
+    for (i = groups; *i; i++)
+    {
+        gchar *config_section = *i;
+        gchar *type;
+        Seat *seat;
+
+        if (!g_str_has_prefix (config_section, "Seat:"))
+            continue;
+
+        g_debug ("Loading seat %s", config_section);
+        type = config_get_string (config_get_instance (), config_section, "type");
+        if (!type)
+            type = config_get_string (config_get_instance (), "SeatDefaults", "type");
+        seat = seat_new (type);
+        g_free (type);
+        if (seat)
+        {
+            set_seat_properties (seat, config_section);
+            display_manager_add_seat (display_manager, seat);
+            g_object_unref (seat);
+            n_seats++;
+        }
+        else
+            g_warning ("Failed to create seat %s", config_section);
+    }
+    g_strfreev (groups);
+
+    /* If no seats start a default one */
+    if (n_seats == 0 && config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
+    {
+        gchar *type;
+        Seat *seat;
+
+        g_debug ("Adding default seat");
+
+        type = config_get_string (config_get_instance (), "SeatDefaults", "type");
+        seat = seat_new (type);
+        g_free (type);
+        if (seat)
+        {
+            set_seat_properties (seat, NULL);
+            seat_set_property (seat, "exit-on-failure", "true");
+            if (!display_manager_add_seat (display_manager, seat))
+                return EXIT_FAILURE;
+            g_object_unref (seat);
+        }
+        else
+        {
+            g_warning ("Failed to create default seat %s", type);
+            return EXIT_FAILURE;
+        }
     }
 
     g_main_loop_run (loop);

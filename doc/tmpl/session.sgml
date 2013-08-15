@@ -20,6 +20,15 @@ Object containing information about a session type. #LightDMSession objects are 
 <!-- ##### SECTION Image ##### -->
 
 
+<!-- ##### FUNCTION lightdm_get_remote_sessions ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
 <!-- ##### FUNCTION lightdm_get_sessions ##### -->
 <para>
 
@@ -30,6 +39,15 @@ Object containing information about a session type. #LightDMSession objects are 
 
 
 <!-- ##### FUNCTION lightdm_session_get_key ##### -->
+<para>
+
+</para>
+
+@session: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_session_get_session_type ##### -->
 <para>
 
 </para>

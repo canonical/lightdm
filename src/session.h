@@ -16,9 +16,11 @@
 
 #include <security/pam_appl.h>
 
+typedef struct Session Session;
+
 #include "display-server.h"
 #include "accounts.h"
-#include "xauthority.h"
+#include "x-authority.h"
 
 G_BEGIN_DECLS
 
@@ -29,20 +31,23 @@ G_BEGIN_DECLS
 
 typedef struct SessionPrivate SessionPrivate;
 
-typedef struct
+struct Session
 {
     GObject         parent_instance;
     SessionPrivate *priv;
-} Session;
+};
 
 typedef struct
 {
     GObjectClass parent_class;
 
+    gboolean (*start)(Session *session);
+    void (*run)(Session *session);
+    void (*stop)(Session *session);
+
     void (*got_messages)(Session *session);
     void (*authentication_complete)(Session *session);
     void (*stopped)(Session *session);
-    void (*set_display_server)(Session *session, DisplayServer *display_server);
 } SessionClass;
 
 typedef enum
@@ -57,26 +62,52 @@ typedef enum
 
 GType session_get_type (void);
 
+Session *session_new (void);
+
+void session_set_session_type (Session *session, const gchar *session_type);
+
+const gchar *session_get_session_type (Session *session);
+
+void session_set_pam_service (Session *session, const gchar *pam_service);
+
+void session_set_username (Session *session, const gchar *username);
+
+void session_set_do_authenticate (Session *session, gboolean do_authenticate);
+
+void session_set_is_interactive (Session *session, gboolean is_interactive);
+
+void session_set_is_guest (Session *session, gboolean is_guest);
+
+gboolean session_get_is_guest (Session *session);
+
 void session_set_log_file (Session *session, const gchar *filename);
 
 void session_set_class (Session *session, const gchar *class);
 
 void session_set_display_server (Session *session, DisplayServer *display_server);
 
+DisplayServer *session_get_display_server (Session *session);
+
 void session_set_tty (Session *session, const gchar *tty);
 
 void session_set_xdisplay (Session *session, const gchar *xdisplay);
 
-void session_set_xauthority (Session *session, XAuthority *authority, gboolean use_system_location);
+void session_set_x_authority (Session *session, XAuthority *authority, gboolean use_system_location);
 
 void session_set_remote_host_name (Session *session, const gchar *remote_host_name);
 
 void session_set_env (Session *session, const gchar *name, const gchar *value);
 
+void session_unset_env (Session *session, const gchar *name);
+
+void session_set_argv (Session *session, gchar **argv);
+
 // FIXME: Remove
 User *session_get_user (Session *session);
 
-gboolean session_start (Session *session, const gchar *service, const gchar *username, gboolean do_authenticate, gboolean is_interactive, gboolean is_guest);
+gboolean session_start (Session *session);
+
+gboolean session_get_is_started (Session *session);
 
 const gchar *session_get_username (Session *session);
 
@@ -96,7 +127,7 @@ int session_get_authentication_result (Session *session);
 
 const gchar *session_get_authentication_result_string (Session *session);
 
-void session_run (Session *session, gchar **argv);
+void session_run (Session *session);
 
 void session_lock (Session *session);
 
@@ -104,7 +135,7 @@ void session_unlock (Session *session);
 
 void session_stop (Session *session);
 
-gboolean session_get_is_stopped (Session *session);
+gboolean session_get_is_stopping (Session *session);
 
 G_END_DECLS
 

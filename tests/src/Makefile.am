@@ -3,6 +3,7 @@ noinst_PROGRAMS = dbus-env \
                   plymouth \
                   test-gobject-greeter \
                   test-greeter-wrapper \
+                  test-mir-greeter \
                   test-runner \
                   test-script-hook \
                   test-session \
@@ -15,7 +16,7 @@ dist_noinst_SCRIPTS = lightdm-session \
                       test-python-greeter
 noinst_LTLIBRARIES = libsystem.la
 
-libsystem_la_SOURCES = libsystem.c
+libsystem_la_SOURCES = libsystem.c status.c status.h
 libsystem_la_CFLAGS = \
 	$(GLIB_CFLAGS) \
 	$(GIO_UNIX_CFLAGS) \
@@ -23,6 +24,7 @@ libsystem_la_CFLAGS = \
 	-DBUILDDIR=\"$(abs_top_builddir)\" \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
 	-DLOCALSTATEDIR=\"$(localstatedir)\" \
+	-DDATADIR=\"$(datadir)\" \
 	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\"
 libsystem_la_LIBADD = -ldl $(GLIB_LIBS) $(GIO_UNIX_LIBS)
 
@@ -45,6 +47,7 @@ dbus_env_CFLAGS = \
 dbus_env_LDADD = \
 	$(GLIB_LIBS)
 
+test_runner_SOURCES = test-runner.c
 test_runner_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
@@ -105,7 +108,19 @@ test_gobject_greeter_LDADD = \
 	-llightdm-gobject-1 \
 	$(GLIB_LIBS) \
 	$(GIO_UNIX_LIBS) \
-	$(XCB_LIBS)    
+	$(XCB_LIBS)
+
+test_mir_greeter_SOURCES = test-mir-greeter.c status.c status.h
+test_mir_greeter_CFLAGS = \
+	-I$(top_srcdir)/liblightdm-gobject \
+	$(WARN_CFLAGS) \
+	$(GLIB_CFLAGS) \
+	$(GIO_UNIX_CFLAGS)
+test_mir_greeter_LDADD = \
+	-L$(top_builddir)/liblightdm-gobject \
+	-llightdm-gobject-1 \
+	$(GLIB_LIBS) \
+	$(GIO_UNIX_LIBS)
 
 guest_account_SOURCES = guest-account.c status.c status.h
 guest_account_CFLAGS = \
@@ -176,7 +191,7 @@ test_session_LDADD = \
 	$(GIO_UNIX_LIBS) \
 	$(XCB_LIBS)
 
-initctl_SOURCES = initctl.c
+initctl_SOURCES = initctl.c status.c status.h
 initctl_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \

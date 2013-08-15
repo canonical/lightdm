@@ -83,6 +83,7 @@ plymouth_has_active_vt (void)
 void
 plymouth_deactivate (void)
 {
+    g_debug ("Deactivating Plymouth");
     is_active = FALSE;
     plymouth_run_command ("deactivate", NULL);
 }
@@ -90,6 +91,11 @@ plymouth_deactivate (void)
 void
 plymouth_quit (gboolean retain_splash)
 {
+    if (retain_splash)
+        g_debug ("Quitting Plymouth; retaining splash");
+    else
+        g_debug ("Quitting Plymouth");
+
     have_pinged = TRUE;
     is_running = FALSE;
     if (retain_splash)

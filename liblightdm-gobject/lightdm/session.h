@@ -31,13 +31,13 @@ typedef struct
 {
     GObjectClass parent_class;
 
-	/* Reserved */
-	void (*reserved1) (void);
-	void (*reserved2) (void);
-	void (*reserved3) (void);
-	void (*reserved4) (void);
-	void (*reserved5) (void);
-	void (*reserved6) (void);
+    /* Reserved */
+    void (*reserved1) (void);
+    void (*reserved2) (void);
+    void (*reserved3) (void);
+    void (*reserved4) (void);
+    void (*reserved5) (void);
+    void (*reserved6) (void);
 } LightDMSessionClass;
 
 GType lightdm_session_get_type (void);
@@ -47,6 +47,8 @@ GList *lightdm_get_sessions (void);
 GList *lightdm_get_remote_sessions (void);
 
 const gchar *lightdm_session_get_key (LightDMSession *session);
+
+const gchar *lightdm_session_get_session_type (LightDMSession *session);
 
 const gchar *lightdm_session_get_name (LightDMSession *session);
 

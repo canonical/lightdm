@@ -16,28 +16,33 @@
 
 G_BEGIN_DECLS
 
-#define GREETER_TYPE (greeter_get_type())
-#define GREETER(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), GREETER_TYPE, Greeter))
+#define GREETER_TYPE           (greeter_get_type())
+#define GREETER(obj)           (G_TYPE_CHECK_INSTANCE_CAST ((obj), GREETER_TYPE, Greeter))
+#define GREETER_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST ((klass), GREETER_TYPE, GreeterClass))
+#define GREETER_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), GREETER_TYPE, GreeterClass))
+#define IS_GREETER(obj)        (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GREETER_TYPE))
 
 typedef struct GreeterPrivate GreeterPrivate;
 
 typedef struct
 {
-    GObject         parent_instance;
+    Session         parent_instance;
     GreeterPrivate *priv;
 } Greeter;
 
 typedef struct
 {
-    GObjectClass parent_class;
+    SessionClass parent_class;
     void (*connected)(Greeter *greeter);
-    Session *(*start_authentication)(Greeter *greeter, const gchar *username);
+    Session *(*create_session)(Greeter *greeter);
     gboolean (*start_session)(Greeter *greeter, SessionType type, const gchar *session);
 } GreeterClass;
 
 GType greeter_get_type (void);
 
-Greeter *greeter_new (Session *session, const gchar *pam_service, const gchar *autologin_pam_service);
+Greeter *greeter_new (void);
+
+void greeter_set_pam_services (Greeter *greeter, const gchar *pam_service, const gchar *autologin_pam_service);
 
 void greeter_set_allow_guest (Greeter *greeter, gboolean allow_guest);
 
@@ -48,8 +53,6 @@ gboolean greeter_get_guest_authenticated (Greeter *greeter);
 Session *greeter_get_authentication_session (Greeter *greeter);
 
 gboolean greeter_get_start_session (Greeter *greeter);
-
-gboolean greeter_start (Greeter *greeter, const gchar *service, const gchar *username);
 
 G_END_DECLS
 

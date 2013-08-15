@@ -23,6 +23,7 @@ enum {
 typedef struct
 {
     gchar *key;
+    gchar *type;
     gchar *name;
     gchar *comment;
 } LightDMSessionPrivate;
@@ -46,7 +47,7 @@ compare_session (gconstpointer a, gconstpointer b)
 static LightDMSession *
 load_session (GKeyFile *key_file, const gchar *key)
 {
-    gchar *domain, *name;
+    gchar *type, *domain, *name;
     LightDMSession *session;
     LightDMSessionPrivate *priv;
     gchar *try_exec;
@@ -54,6 +55,10 @@ load_session (GKeyFile *key_file, const gchar *key)
     if (g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY, NULL) ||
         g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_HIDDEN, NULL))
         return NULL;
+
+    type = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Session-Type", NULL);
+    if (!type)
+        type = "x";
 
 #ifdef G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN
     domain = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN, NULL);
@@ -91,6 +96,9 @@ load_session (GKeyFile *key_file, const gchar *key)
     g_free (priv->key);
     priv->key = g_strdup (key);
 
+    g_free (priv->type);
+    priv->type = g_strdup (type);
+
     g_free (priv->name);
     priv->name = name;
 
@@ -105,10 +113,9 @@ load_session (GKeyFile *key_file, const gchar *key)
 }
 
 static GList *
-load_sessions (const gchar *sessions_dir)
+load_sessions_dir (GList *sessions, const gchar *sessions_dir)
 {
     GDir *directory;
-    GList *sessions = NULL;
     GError *error = NULL;
 
     directory = g_dir_open (sessions_dir, 0, &error);
@@ -116,7 +123,7 @@ load_sessions (const gchar *sessions_dir)
         g_warning ("Failed to open sessions directory: %s", error->message);
     g_clear_error (&error);
     if (!directory)
-        return NULL;
+        return sessions;
 
     while (TRUE)
     {
@@ -166,12 +173,27 @@ load_sessions (const gchar *sessions_dir)
     return sessions;
 }
 
+static GList *
+load_sessions (const gchar *sessions_dir)
+{
+    GList *sessions = NULL;
+    gchar **dirs;
+    int i;
+
+    dirs = g_strsplit (sessions_dir, ":", -1);
+    for (i = 0; dirs[i]; i++)
+        sessions = load_sessions_dir (sessions, dirs[i]);
+    g_strfreev (dirs);
+  
+    return sessions;
+}
+
 static void
 update_sessions (void)
 {
     GKeyFile *config_key_file = NULL;
     gchar *config_path = NULL;
-    gchar *xsessions_dir;
+    gchar *sessions_dir;
     gchar *remote_sessions_dir;
     gboolean result;
     GError *error = NULL;
@@ -179,7 +201,7 @@ update_sessions (void)
     if (have_sessions)
         return;
 
-    xsessions_dir = g_strdup (XSESSIONS_DIR);
+    sessions_dir = g_strdup (SESSIONS_DIR);
     remote_sessions_dir = g_strdup (REMOTE_SESSIONS_DIR);
 
     /* Use session directory from configuration */
@@ -194,11 +216,11 @@ update_sessions (void)
     {
         gchar *value;
       
-        value = g_key_file_get_string (config_key_file, "LightDM", "xsessions-directory", NULL);
+        value = g_key_file_get_string (config_key_file, "LightDM", "sessions-directory", NULL);
         if (value)
         {
-            g_free (xsessions_dir);
-            xsessions_dir = value;
+            g_free (sessions_dir);
+            sessions_dir = value;
         }
 
         value = g_key_file_get_string (config_key_file, "LightDM", "remote-sessions-directory", NULL);
@@ -211,10 +233,10 @@ update_sessions (void)
     g_key_file_free (config_key_file);
     g_free (config_path);
 
-    local_sessions = load_sessions (xsessions_dir);
+    local_sessions = load_sessions (sessions_dir);
     remote_sessions = load_sessions (remote_sessions_dir);
 
-    g_free (xsessions_dir);
+    g_free (sessions_dir);
     g_free (remote_sessions_dir);
 
     have_sessions = TRUE;
@@ -261,6 +283,21 @@ lightdm_session_get_key (LightDMSession *session)
 {
     g_return_val_if_fail (LIGHTDM_IS_SESSION (session), NULL);
     return GET_PRIVATE (session)->key;
+}
+
+/**
+ * lightdm_session_get_session_type:
+ * @session: A #LightDMSession
+ * 
+ * Get the type a session
+ * 
+ * Return value: The session type, e.g. x or mir
+ **/
+const gchar *
+lightdm_session_get_session_type (LightDMSession *session)
+{
+    g_return_val_if_fail (LIGHTDM_IS_SESSION (session), NULL);
+    return GET_PRIVATE (session)->type;
 }
 
 /**
@@ -340,6 +377,7 @@ lightdm_session_finalize (GObject *object)
     LightDMSessionPrivate *priv = GET_PRIVATE (self);
 
     g_free (priv->key);
+    g_free (priv->type);
     g_free (priv->name);
     g_free (priv->comment);
 }

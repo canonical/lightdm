@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
+#include <glib-unix.h>
 
 #include "status.h"
 
@@ -18,11 +20,20 @@ quit (int status)
     g_main_loop_quit (loop);
 }
 
-static void
-signal_cb (int signum)
+static gboolean
+sigint_cb (gpointer user_data)
 {
-    status_notify ("UNITY-SYSTEM-COMPOSITOR TERMINATE SIGNAL=%d", signum);
+    status_notify ("UNITY-SYSTEM-COMPOSITOR TERMINATE SIGNAL=%d", SIGINT);
     quit (EXIT_SUCCESS);
+    return TRUE;
+}
+
+static gboolean
+sigterm_cb (gpointer user_data)
+{
+    status_notify ("UNITY-SYSTEM-COMPOSITOR TERMINATE SIGNAL=%d", SIGTERM);
+    quit (EXIT_SUCCESS);
+    return TRUE;
 }
 
 typedef enum
@@ -67,7 +78,7 @@ read_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     }
     if (n_read != 4)
     {
-        g_printerr ("Short read for header, %d instead of expected 4\n", n_read);
+        g_printerr ("Short read for header, %zi instead of expected 4\n", n_read);
         return FALSE;
     }
     id = header[0] << 8 | header[1];
@@ -80,7 +91,7 @@ read_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     }
     if (n_read != payload_length)
     {
-        g_printerr ("Short read for payload, %d instead of expected %d\n", n_read, payload_length);
+        g_printerr ("Short read for payload, %zi instead of expected %d\n", n_read, payload_length);
         return FALSE;      
     }
 
@@ -123,17 +134,18 @@ int
 main (int argc, char **argv)
 {
     int i;
+    GString *status_text;
     gboolean test = FALSE;
-
-    signal (SIGINT, signal_cb);
-    signal (SIGTERM, signal_cb);
-    signal (SIGHUP, signal_cb);
+    int vt_number = -1;
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
 
     loop = g_main_loop_new (NULL, FALSE);
+
+    g_unix_signal_add (SIGINT, sigint_cb, NULL);
+    g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
 
     status_connect (request_cb);
 
@@ -153,7 +165,7 @@ main (int argc, char **argv)
         }
         else if (strcmp (arg, "--vt") == 0)
         {
-            //vt_number = atoi (argv[i+1]);
+            vt_number = atoi (argv[i+1]);
             i++;
         }
         else if (strcmp (arg, "--test") == 0)
@@ -164,10 +176,13 @@ main (int argc, char **argv)
 
     g_io_add_watch (g_io_channel_unix_new (from_dm_fd), G_IO_IN, read_message_cb, NULL);
 
+    status_text = g_string_new ("UNITY-SYSTEM-COMPOSITOR START");
+    if (vt_number >= 0)
+        g_string_append_printf (status_text, " VT=%d", vt_number);
     if (test)
-        status_notify ("UNITY-SYSTEM-COMPOSITOR START TEST");
-    else
-        status_notify ("UNITY-SYSTEM-COMPOSITOR START");
+        g_string_append (status_text, " TEST=TRUE");
+    status_notify (status_text->str);
+    g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);

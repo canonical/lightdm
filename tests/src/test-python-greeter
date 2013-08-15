@@ -10,12 +10,16 @@ from gi.repository import GLib
 from gi.repository import LightDM
 
 display = os.getenv ('DISPLAY');
-if display is None:
-    greeter_id = 'GREETER-?'
-elif display.startswith (':'):
-    greeter_id = 'GREETER-X-%s' % display[1:]
+xdg_seat = os.getenv ('XDG_SEAT');
+xdg_vtnr = os.getenv ('XDG_VTNR');
+xdg_session_cookie = os.getenv ('XDG_SESSION_COOKIE');
+if display is not None:
+    if display.startswith (':'):
+        greeter_id = 'GREETER-X-%s' % display[1:]
+    else:
+        greeter_id = 'GREETER-X-%s' % display
 else:
-    greeter_id = 'GREETER-X-%s' % display
+    greeter_id = 'GREETER-?'
 
 loop = GLib.MainLoop ()
 
@@ -185,21 +189,29 @@ status_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
 status_socket.connect (path)
 GLib.io_add_watch (status_socket.fileno (), GLib.IO_IN | GLib.IO_HUP, request_cb)
 
-status_notify ('%s START' % greeter_id)
+status_text = '%s START' % greeter_id
+if xdg_seat is not None:
+    status_text += ' XDG_SEAT=%s' % xdg_seat
+if xdg_vtnr is not None:
+    status_text += ' XDG_VTNR=%s' % xdg_vtnr
+if xdg_session_cookie is not None:
+    status_text += ' XDG_SESSION_COOKIE=%s' % xdg_session_cookie
+status_notify (status_text)
 
 config = GLib.KeyFile ()
 config.load_from_file (os.getenv ('LIGHTDM_TEST_ROOT') + '/script', GLib.KeyFileFlags.NONE)
 
 # NOTE: There don't seem to be any good X bindings so we have to mock up our own...
-(host, display_number) = display.split (':')
-if host == '':
-    x_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
-    x_socket.connect (os.getenv ('LIGHTDM_TEST_ROOT') + '/.x' + display)
-else:
-    x_socket = socket.socket (socket.AF_INET, socket.SOCK_STREAM)
-    x_socket.connect ((host, 6000 + int (display_number)))
+if display is not None:
+    (host, display_number) = display.split (':')
+    if host == '':
+        x_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
+        x_socket.connect (os.getenv ('LIGHTDM_TEST_ROOT') + '/.x' + display)
+    else:
+        x_socket = socket.socket (socket.AF_INET, socket.SOCK_STREAM)
+        x_socket.connect ((host, 6000 + int (display_number)))
 
-status_notify ('%s CONNECT-XSERVER' % (greeter_id))
+    status_notify ('%s CONNECT-XSERVER' % (greeter_id))
 
 def show_message_cb (greeter, text, type):
     status_notify ('%s SHOW-MESSAGE TEXT=\"%s\"' % (greeter_id, text))
@@ -248,7 +260,17 @@ status_notify ('%s CONNECTED-TO-DAEMON' % greeter_id)
 
 if greeter.get_select_user_hint () is not None:
     status_notify ('%s SELECT-USER-HINT USERNAME=%s' % (greeter_id, greeter.get_select_user_hint ()))
+if greeter.get_select_guest_hint ():
+    status_notify ('%s SELECT-GUEST-HINT' % greeter_id)
 if greeter.get_lock_hint ():
-    status_notify ('%s LOCK-HINT' % greeter_id);
+    status_notify ('%s LOCK-HINT' % greeter_id)
+if not greeter.get_has_guest_account_hint ():
+    status_notify ('%s HAS-GUEST-ACCOUNT-HINT=FALSE' % greeter_id)
+if greeter.get_hide_users_hint ():
+    status_notify ('%s HIDE-USERS-HINT' % greeter_id)
+if greeter.get_show_manual_login_hint ():
+    status_notify ('%s SHOW-MANUAL-LOGIN-HINT' % greeter_id)
+if not greeter.get_show_remote_login_hint ():
+    status_notify ('%s SHOW-REMOTE-LOGIN-HINT=FALSE' % greeter_id)
 
 loop.run ()

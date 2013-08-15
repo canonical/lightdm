@@ -29,6 +29,8 @@ static GList *group_entries = NULL;
 
 static int active_vt = 7;
 
+static gboolean status_connected = FALSE;
+
 struct pam_handle
 {
     char *service_name;
@@ -165,6 +167,9 @@ redirect_path (const gchar *path)
     if (g_str_has_prefix (path, LOCALSTATEDIR))
         return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "var", path + strlen (LOCALSTATEDIR), NULL);
 
+    if (g_str_has_prefix (path, DATADIR))
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "usr", "share", path + strlen (DATADIR), NULL);
+
     // Don't redirect if inside the build directory
     if (g_str_has_prefix (path, BUILDDIR))
         return g_strdup (path);
@@ -284,6 +289,10 @@ access (const char *pathname, int mode)
     int (*_access) (const char *pathname, int mode);
     gchar *new_path = NULL;
     int ret;
+
+    /* Look like systemd is always running */
+    if (strcmp (pathname, "/run/systemd/seats/") == 0)
+        return 1;
 
     _access = (int (*)(const char *pathname, int mode)) dlsym (RTLD_NEXT, "access");
 
@@ -416,6 +425,7 @@ ioctl (int d, int request, void *data)
     {
         struct vt_stat *console_state;
         int *n;
+        int vt;
 
         switch (request)
         {
@@ -424,7 +434,14 @@ ioctl (int d, int request, void *data)
             console_state->v_active = active_vt;
             break;
         case VT_ACTIVATE:
-            active_vt = GPOINTER_TO_INT (data);
+            vt = GPOINTER_TO_INT (data);
+            if (vt != active_vt)
+            {
+                active_vt = vt;
+                if (!status_connected)
+                    status_connected = status_connect (NULL);
+                status_notify ("VT ACTIVATE VT=%d", active_vt);
+            }
             break;
         case VT_WAITACTIVE:
             break;

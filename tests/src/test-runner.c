@@ -85,10 +85,11 @@ typedef struct
     gchar *cookie;
     gchar *path;
     guint id;
+    gboolean locked;
 } CKSession;
 static GList *ck_sessions = NULL;
 static gint ck_session_index = 0;
-static void handle_session_call (GDBusConnection       *connection,
+static void handle_ck_session_call (GDBusConnection       *connection,
                                     const gchar           *sender,
                                     const gchar           *object_path,
                                     const gchar           *interface_name,
@@ -98,13 +99,14 @@ static void handle_session_call (GDBusConnection       *connection,
                                     gpointer               user_data);
 static const GDBusInterfaceVTable ck_session_vtable =
 {
-    handle_session_call,
+    handle_ck_session_call,
 };
 
 typedef struct
 {
     gchar *path;
     guint pid;
+    gboolean locked;
 } Login1Session;
 
 static GList *login1_sessions = NULL;
@@ -395,6 +397,78 @@ handle_command (const gchar *command)
     {
         sleep (1);
     }
+    else if (strcmp (name, "LIST-SEATS") == 0)
+    {
+        GVariant *result, *value;
+        GString *status;
+        GVariantIter *iter;
+        const gchar *path;
+        int i = 0;
+
+        result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                              "org.freedesktop.DisplayManager",
+                                              "/org/freedesktop/DisplayManager",
+                                              "org.freedesktop.DBus.Properties",
+                                              "Get",
+                                              g_variant_new ("(ss)", "org.freedesktop.DisplayManager", "Seats"),
+                                              G_VARIANT_TYPE ("(v)"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              1000,
+                                              NULL,
+                                              NULL);
+
+        status = g_string_new ("RUNNER LIST-SEATS SEATS=");
+        g_variant_get (result, "(v)", &value);
+        g_variant_get (value, "ao", &iter);
+        while (g_variant_iter_loop (iter, "&o", &path))
+        {
+            if (i != 0)
+                g_string_append (status, ",");
+            g_string_append (status, path);
+            i++;
+        }
+        g_variant_unref (value);
+        g_variant_unref (result);
+
+        check_status (status->str);
+        g_string_free (status, TRUE);
+    }
+    else if (strcmp (name, "LIST-SESSIONS") == 0)
+    {
+        GVariant *result, *value;
+        GString *status;
+        GVariantIter *iter;
+        const gchar *path;
+        int i = 0;
+
+        result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                              "org.freedesktop.DisplayManager",
+                                              "/org/freedesktop/DisplayManager",
+                                              "org.freedesktop.DBus.Properties",
+                                              "Get",
+                                              g_variant_new ("(ss)", "org.freedesktop.DisplayManager", "Sessions"),
+                                              G_VARIANT_TYPE ("(v)"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              1000,
+                                              NULL,
+                                              NULL);
+
+        status = g_string_new ("RUNNER LIST-SESSIONS SESSIONS=");
+        g_variant_get (result, "(v)", &value);
+        g_variant_get (value, "ao", &iter);
+        while (g_variant_iter_loop (iter, "&o", &path))
+        {
+            if (i != 0)
+                g_string_append (status, ",");
+            g_string_append (status, path);
+            i++;
+        }
+        g_variant_unref (value);
+        g_variant_unref (result);
+
+        check_status (status->str);
+        g_string_free (status, TRUE);
+    }
     else if (strcmp (name, "SWITCH-TO-GREETER") == 0)
     {
         g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
@@ -544,9 +618,8 @@ handle_command (const gchar *command)
             GError *error = NULL;
 
             length = strlen (command);
-            g_socket_send (client->socket, (gchar *) &length, sizeof (length), NULL, &error);
-            g_socket_send (client->socket, command, strlen (command), NULL, &error);
-            if (error)
+            if (g_socket_send (client->socket, (gchar *) &length, sizeof (length), NULL, &error) < 0 ||
+                g_socket_send (client->socket, command, strlen (command), NULL, &error) < 0)
                 g_printerr ("Failed to write to client socket: %s\n", error->message);
             g_clear_error (&error);
         }
@@ -808,7 +881,7 @@ upower_name_acquired_cb (GDBusConnection *connection,
 }
 
 static void
-start_upower_daemon ()
+start_upower_daemon (void)
 {
     service_count++;
     g_bus_own_name (G_BUS_TYPE_SYSTEM,
@@ -930,22 +1003,32 @@ handle_ck_call (GDBusConnection       *connection,
         g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
 }
 
-
-/* Shared between CK and Login1 - identical signatures */
 static void
-handle_session_call (GDBusConnection       *connection,
-                     const gchar           *sender,
-                     const gchar           *object_path,
-                     const gchar           *interface_name,
-                     const gchar           *method_name,
-                     GVariant              *parameters,
-                     GDBusMethodInvocation *invocation,
-                     gpointer               user_data)
+handle_ck_session_call (GDBusConnection       *connection,
+                        const gchar           *sender,
+                        const gchar           *object_path,
+                        const gchar           *interface_name,
+                        const gchar           *method_name,
+                        GVariant              *parameters,
+                        GDBusMethodInvocation *invocation,
+                        gpointer               user_data)
 {
+    CKSession *session = user_data;
+
     if (strcmp (method_name, "Lock") == 0)
+    { 
+        if (!session->locked)
+            check_status ("CONSOLE-KIT LOCK-SESSION");
+        session->locked = TRUE;
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
     else if (strcmp (method_name, "Unlock") == 0)
+    {
+        if (session->locked)
+            check_status ("CONSOLE-KIT UNLOCK-SESSION");
+        session->locked = FALSE;
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
     else
         g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
 }
@@ -1047,6 +1130,36 @@ start_console_kit_daemon (void)
                     NULL);
 }
 
+static void
+handle_login1_session_call (GDBusConnection       *connection,
+                            const gchar           *sender,
+                            const gchar           *object_path,
+                            const gchar           *interface_name,
+                            const gchar           *method_name,
+                            GVariant              *parameters,
+                            GDBusMethodInvocation *invocation,
+                            gpointer               user_data)
+{
+    Login1Session *session = user_data;
+
+    if (strcmp (method_name, "Lock") == 0)
+    {
+        if (!session->locked)
+            check_status ("LOGIN1 LOCK-SESSION");
+        session->locked = TRUE;
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "Unlock") == 0)
+    {
+        if (session->locked)
+            check_status ("LOGIN1 UNLOCK-SESSION");
+        session->locked = FALSE;
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
+}
+
 static Login1Session *
 open_login1_session (GDBusConnection *connection,
                      GVariant *params)
@@ -1064,7 +1177,7 @@ open_login1_session (GDBusConnection *connection,
         "</node>";
     static const GDBusInterfaceVTable login1_session_vtable =
     {
-        handle_session_call,
+        handle_login1_session_call,
     };
 
     session = g_malloc0 (sizeof (Login1Session));
@@ -1082,7 +1195,7 @@ open_login1_session (GDBusConnection *connection,
                    error->message);
     g_clear_error (&error);
     if (!login1_session_info)
-        return;
+        return NULL;
 
     g_dbus_connection_register_object (connection,
                                        session->path,
@@ -1259,7 +1372,7 @@ login1_name_acquired_cb (GDBusConnection *connection,
 }
 
 static void
-start_login1_daemon ()
+start_login1_daemon (void)
 {
     service_count++;
     g_bus_own_name (G_BUS_TYPE_SYSTEM,
@@ -1378,9 +1491,7 @@ load_passwd_file (void)
         gchar **fields;
         guint uid;
         gchar *user_name, *real_name;
-        GList *link;
         AccountsUser *user = NULL;
-        GError *error = NULL;
 
         fields = g_strsplit (lines[i], ":", -1);
         if (fields == NULL || g_strv_length (fields) < 7)
@@ -1474,7 +1585,6 @@ handle_accounts_call (GDBusConnection       *connection,
     }
     else if (strcmp (method_name, "FindUserByName") == 0)
     {
-        GList *link;
         AccountsUser *user = NULL;
         gchar *user_name;
 
@@ -1660,9 +1770,6 @@ run_lightdm (void)
     if (getenv ("DEBUG"))
         g_string_append (command_line, " --debug");
     g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
-    g_string_append_printf (command_line, " --xsessions-dir=%s/usr/share/xsessions", temp_dir);
-    g_string_append_printf (command_line, " --remote-sessions-dir=%s/usr/share/remote-sessions", temp_dir);
-    g_string_append_printf (command_line, " --xgreeters-dir=%s/usr/share/xgreeters", temp_dir);
 
     test_runner_command = g_strdup_printf ("PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_ROOT=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
                                            g_getenv ("PATH"), g_getenv ("LD_PRELOAD"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_ROOT"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
@@ -1820,9 +1927,9 @@ main (int argc, char **argv)
     /* Set up a skeleton file system */
     g_mkdir_with_parents (g_strdup_printf ("%s/etc", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/usr/share", temp_dir), 0755);
-    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/xsessions", temp_dir), 0755);
-    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/remote-sessions", temp_dir), 0755);
-    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/xgreeters", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/lightdm/sessions", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/lightdm/remote-sessions", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/lightdm/greeters", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/tmp", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/var/run", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/var/log", temp_dir), 0755);
@@ -1852,15 +1959,15 @@ main (int argc, char **argv)
         perror ("Failed to copy configuration");
 
     /* Copy over the greeter files */
-    if (system (g_strdup_printf ("cp %s/xsessions/* %s/usr/share/xsessions", DATADIR, temp_dir)))
-        perror ("Failed to copy xsessions");
-    if (system (g_strdup_printf ("cp %s/remote-sessions/* %s/usr/share/remote-sessions", DATADIR, temp_dir)))
+    if (system (g_strdup_printf ("cp %s/sessions/* %s/usr/share/lightdm/sessions", DATADIR, temp_dir)))
+        perror ("Failed to copy sessions");
+    if (system (g_strdup_printf ("cp %s/remote-sessions/* %s/usr/share/lightdm/remote-sessions", DATADIR, temp_dir)))
         perror ("Failed to copy remote sessions");
-    if (system (g_strdup_printf ("cp %s/xgreeters/* %s/usr/share/xgreeters", DATADIR, temp_dir)))
-        perror ("Failed to copy xgreeters");
+    if (system (g_strdup_printf ("cp %s/greeters/* %s/usr/share/lightdm/greeters", DATADIR, temp_dir)))
+        perror ("Failed to copy greeters");
 
     /* Set up the default greeter */
-    path = g_build_filename (temp_dir, "usr", "share", "xgreeters", "default.desktop", NULL);
+    path = g_build_filename (temp_dir, "usr", "share", "lightdm", "greeters", "default.desktop", NULL);
     greeter = g_strdup_printf ("%s.desktop", argv[2]);
     if (symlink (greeter, path) < 0)
     {
