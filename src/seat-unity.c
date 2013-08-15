@@ -543,6 +543,7 @@ seat_unity_set_next_session (Seat *seat, Session *session)
             write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_NEXT_SESSION, (const guint8 *) id, strlen (id));
         }
         else
+        {
             g_warning ("Failed to work out session ID to mark");
         }
     }
