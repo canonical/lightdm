@@ -16,6 +16,9 @@ struct SessionConfigPrivate
     /* Session type */
     gchar *session_type;
 
+    /* Desktop name */
+    gchar *desktop_name;
+
     /* Command to run */
     gchar *command;
 };
@@ -47,6 +50,7 @@ session_config_new_from_file (const gchar *filename, GError **error)
     config->priv->session_type = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Session-Type", NULL);
     if (!config->priv->session_type)
         config->priv->session_type = g_strdup ("x");
+    config->priv->desktop_name = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-DesktopName", NULL);
 
     g_key_file_free (desktop_file);
 
@@ -67,6 +71,13 @@ session_config_get_session_type (SessionConfig *config)
     return config->priv->session_type;
 }
 
+const gchar *
+session_config_get_desktop_name (SessionConfig *config)
+{
+    g_return_val_if_fail (config != NULL, NULL);
+    return config->priv->desktop_name;
+}
+
 static void
 session_config_init (SessionConfig *config)
 {
@@ -79,6 +90,7 @@ session_config_finalize (GObject *object)
     SessionConfig *self = SESSION_CONFIG (object);
 
     g_free (self->priv->session_type);
+    g_free (self->priv->desktop_name);
     g_free (self->priv->command);
 
     G_OBJECT_CLASS (session_config_parent_class)->finalize (object);
