@@ -25,10 +25,13 @@ Build-Depends: debhelper (>= 7.0.50~),
                yelp-tools,
                dbus,
 Homepage: https://launchpad.net/lightdm
+# If you aren't a member of ~lightdm-team but need to upload packaging changes,
+# just go ahead.  ~lightdm-team will notice and sync up the code again.
+Vcs-Bzr: https://code.launchpad.net/~lightdm-team/lightdm/trunk
 
 Package: lightdm
 Architecture: any
-Pre-Depends: dpkg (>= 1.15.7.2)
+Pre-Depends: dpkg (>= 1.15.7.2),
 Depends: ${misc:Depends},
          ${shlibs:Depends},
          libpam-runtime (>= 0.76-14),
@@ -36,11 +39,11 @@ Depends: ${misc:Depends},
          adduser,
          libglib2.0-bin,
          dbus,
-         plymouth (>= 0.8.8-0ubuntu6.1)
+         plymouth (>= 0.8.8-0ubuntu6.1),
 Recommends: xserver-xorg,
-            unity-greeter | lightdm-greeter | lightdm-kde-greeter
+            unity-greeter | lightdm-greeter | lightdm-kde-greeter,
 Conflicts: liblightdm-gobject-0-0,
-           liblightdm-qt-0-0
+           liblightdm-qt-0-0,
 Provides: x-display-manager
 Description: Display Manager
  LightDM is a X display manager that:
