@@ -45,6 +45,7 @@ TESTS = \
 	test-autologin-guest-logout \
 	test-group-membership \
 	test-session-env \
+	test-xdg-current-desktop \
 	test-language-env \
 	test-util-path \
 	test-session-stdout \
@@ -421,6 +422,7 @@ EXTRA_DIST = \
 	scripts/vnc-login.conf \
 	scripts/vnc-open-file-descriptors.conf \
 	scripts/xauthority.conf \
+	scripts/xdg-current-desktop.conf \
 	scripts/xdmcp-client.conf \
 	scripts/xdmcp-server-login.conf \
 	scripts/xdmcp-server-open-file-descriptors.conf \

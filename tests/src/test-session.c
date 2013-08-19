@@ -167,13 +167,14 @@ request_cb (const gchar *request)
 int
 main (int argc, char **argv)
 {
-    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie, *mir_socket, *mir_vt, *mir_id;
+    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_current_desktop, *xdg_session_cookie, *mir_socket, *mir_vt, *mir_id;
     GString *status_text;
     int fd, open_max;
 
     display = getenv ("DISPLAY");
     xdg_seat = getenv ("XDG_SEAT");
     xdg_vtnr = getenv ("XDG_VTNR");
+    xdg_current_desktop = getenv ("XDG_CURRENT_DESKTOP");
     xdg_session_cookie = getenv ("XDG_SESSION_COOKIE");
     mir_socket = getenv ("MIR_SERVER_FILE");
     mir_vt = getenv ("MIR_SERVER_VT");
@@ -219,6 +220,8 @@ main (int argc, char **argv)
         g_string_append_printf (status_text, " XDG_SEAT=%s", xdg_seat);
     if (xdg_vtnr)
         g_string_append_printf (status_text, " XDG_VTNR=%s", xdg_vtnr);
+    if (xdg_current_desktop)
+        g_string_append_printf (status_text, " XDG_CURRENT_DESKTOP=%s", xdg_current_desktop);
     if (xdg_session_cookie)
         g_string_append_printf (status_text, " XDG_SESSION_COOKIE=%s", xdg_session_cookie);
     if (mir_vt > 0)
