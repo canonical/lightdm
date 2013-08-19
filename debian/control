@@ -24,7 +24,6 @@ Build-Depends: debhelper (>= 7.0.50~),
                gtk-doc-tools,
                yelp-tools,
                dbus,
-               python-gi,
 Homepage: https://launchpad.net/lightdm
 
 Package: lightdm
@@ -37,8 +36,7 @@ Depends: ${misc:Depends},
          adduser,
          libglib2.0-bin,
          dbus,
-         plymouth (>= 0.8.8-0ubuntu6.1),
-         unity-system-compositor,
+         plymouth (>= 0.8.8-0ubuntu6.1)
 Recommends: xserver-xorg,
             unity-greeter | lightdm-greeter | lightdm-kde-greeter
 Conflicts: liblightdm-gobject-0-0,

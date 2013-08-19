@@ -13,8 +13,9 @@ override_dh_autoreconf:
 override_dh_auto_configure:
 	dh_auto_configure -- --with-greeter-user=lightdm --with-user-session=ubuntu --enable-gtk-doc
 
-# Disable tests - they're not working in the PPA
 override_dh_auto_test:
+	# lightdm must be installed in prefix before tests will succeed, so we run
+	# them as a dep8 test instead of during build
 
 override_dh_install:
 	rm -r debian/tmp/usr/share/help/C/

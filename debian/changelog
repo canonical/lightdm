@@ -1,3 +1,66 @@
+lightdm (1.7.9-0ubuntu1) saucy; urgency=low
+
+  * New upstream release:
+    - Correctly set XDG_VTNR for unity sessions that are not autologin.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 30 Jul 2013 18:35:21 +0100
+
+lightdm (1.7.8-0ubuntu1) saucy; urgency=low
+
+  * New upstream release:
+    - Add support for Mir sessions and greeters.
+    - Set XDG_VTNR for unity sessions.
+    - Fix desktop-session-start upstart signal not being emitted since 1.7.5.
+    - Fix greeter log broken in 1.7.5.
+  * debian/liblightdm-gobject-1-0.symbols:
+    - Updated
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 30 Jul 2013 15:27:58 +0100
+
+lightdm (1.7.7-0ubuntu2) saucy; urgency=low
+
+  * debian/lightdm.init:
+    - Use correct path to daemon (LP: #1204713)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 25 Jul 2013 14:25:48 +1200
+
+lightdm (1.7.7-0ubuntu1) saucy; urgency=low
+
+  * New upstream release:
+    - Fix uninitialized pointer introduced in 1.7.3
+    - Enable compile warnings and fix code generating warnings
+  * debian/patches/50_ubuntu_fix_uninitialised_pointer.patch:
+    - Applied upstream:
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 23 Jul 2013 11:23:47 +1200
+
+lightdm (1.7.6-0ubuntu2) saucy; urgency=low
+
+  * src/main.c: fix up an unitialised pointer in configuration directory
+    handling.  (LP: #1203711)
+
+ -- Andy Whitcroft <apw@canonical.com>  Mon, 22 Jul 2013 11:36:05 +0100
+
+lightdm (1.7.6-0ubuntu1) saucy; urgency=low
+
+  * New upstream release:
+    [ 1.7.6 ]
+    - Restore greeter hints that were regressed in 1.7.5.
+    - Don't run greeters through session wrapper - regression in 1.7.5    
+    [ 1.7.5 ]
+    - Quit Plymouth correctly when using the unity seat type (LP: #1192051)
+    - Release the VT when the system compositor fails to start
+    - Load sessions and greeters from /usr/share/lightdm/sessions and
+      /usr/share/lightdm/greeters. The existing directories are checked
+      if the sessions are not in these directories.
+    - Refactor the Display class so that it merges with the Seat class
+    - Support running the greeter and session in different display servers
+      instead of re-using the same one during a login.
+    - Add more regression tests
+    - Documentation fixes
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 22 Jul 2013 17:13:19 +1200
+
 lightdm (1.7.4-0ubuntu1) saucy; urgency=low
 
   * New upstream release:

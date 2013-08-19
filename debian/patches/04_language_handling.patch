@@ -2,10 +2,10 @@ Description: Adjustments due to handling of languages
 Forwarded: not-needed
 Author: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
 
-Index: lightdm-1.7.4/liblightdm-gobject/language.c
+Index: lightdm-1.7.5/liblightdm-gobject/language.c
 ===================================================================
---- lightdm-1.7.4.orig/liblightdm-gobject/language.c	2013-07-01 15:49:32.086864815 +1200
-+++ lightdm-1.7.4/liblightdm-gobject/language.c	2013-07-01 15:49:32.082864815 +1200
+--- lightdm-1.7.5.orig/liblightdm-gobject/language.c	2013-07-22 11:11:11.049310128 +1200
++++ lightdm-1.7.5/liblightdm-gobject/language.c	2013-07-22 11:11:11.045310128 +1200
 @@ -40,7 +40,7 @@
  static void
  update_languages (void)
@@ -15,16 +15,40 @@ Index: lightdm-1.7.4/liblightdm-gobject/language.c
      gchar *stdout_text = NULL, *stderr_text = NULL;
      gint exit_status;
      gboolean result;
-Index: lightdm-1.7.4/src/display.c
+Index: lightdm-1.7.5/tests/scripts/language-env.conf
 ===================================================================
---- lightdm-1.7.4.orig/src/display.c	2013-07-01 15:49:32.086864815 +1200
-+++ lightdm-1.7.4/src/display.c	2013-07-01 15:49:32.082864815 +1200
-@@ -754,7 +754,7 @@
-     language = user_get_language (user);
-     if (language != NULL && language != '\0')
+--- lightdm-1.7.5.orig/tests/scripts/language-env.conf	2013-07-22 11:11:11.049310128 +1200
++++ lightdm-1.7.5/tests/scripts/language-env.conf	2013-07-22 11:11:11.045310128 +1200
+@@ -22,8 +22,8 @@
+ #?SESSION-X-0 CONNECT-XSERVER
+ 
+ # Check environment variables
+-#?*SESSION-X-0 READ-ENV NAME=LANG
+-#?SESSION-X-0 READ-ENV NAME=LANG VALUE=en_AU
++#?*SESSION-X-0 READ-ENV NAME=LANGUAGE
++#?SESSION-X-0 READ-ENV NAME=LANGUAGE VALUE=en_AU
+ #?*SESSION-X-0 READ-ENV NAME=GDM_LANG
+ #?SESSION-X-0 READ-ENV NAME=GDM_LANG VALUE=en_AU
+ 
+Index: lightdm-1.7.5/src/seat.c
+===================================================================
+--- lightdm-1.7.5.orig/src/seat.c	2013-07-22 09:38:03.000000000 +1200
++++ lightdm-1.7.5/src/seat.c	2013-07-22 11:11:23.677310505 +1200
+@@ -734,7 +734,7 @@
+         session_set_env (session, "GDMSESSION", session_name);
+         if (language && language[0] != '\0')
+         {
+-            session_set_env (session, "LANG", language);
++            session_set_env (session, "LANGUAGE", language);
+             session_set_env (session, "GDM_LANG", language);
+         }
+         session_set_pam_service (session, AUTOLOGIN_SERVICE);
+@@ -898,7 +898,7 @@
+     session_set_env (session, "GDMSESSION", session_name);
+     if (language && language[0] != '\0')
      {
--        session_set_env (display->priv->session, "LANG", language);
-+        session_set_env (display->priv->session, "LANGUAGE", language);
-         session_set_env (display->priv->session, "GDM_LANG", language);
+-        session_set_env (session, "LANG", language);
++        session_set_env (session, "LANGUAGE", language);
+         session_set_env (session, "GDM_LANG", language);
      }
  
