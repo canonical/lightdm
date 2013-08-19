@@ -9,9 +9,10 @@
  * license.
  */
 
+#include <string.h>
+
 #include "seat-xvnc.h"
-#include "xserver-xvnc.h"
-#include "xsession.h"
+#include "x-server-xvnc.h"
 #include "configuration.h"
 
 G_DEFINE_TYPE (SeatXVNC, seat_xvnc, SEAT_TYPE);
@@ -33,17 +34,20 @@ SeatXVNC *seat_xvnc_new (GSocket *connection)
 }
 
 static DisplayServer *
-seat_xvnc_create_display_server (Seat *seat)
+seat_xvnc_create_display_server (Seat *seat, const gchar *session_type)
 {
-    XServerXVNC *xserver;
+    XServerXVNC *x_server;
     const gchar *command = NULL;
 
-    xserver = xserver_xvnc_new ();
-    xserver_xvnc_set_socket (xserver, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
+    if (strcmp (session_type, "x") != 0)
+        return NULL;
+  
+    x_server = x_server_xvnc_new ();
+    x_server_xvnc_set_socket (x_server, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
 
     command = config_get_string (config_get_instance (), "VNCServer", "command");
     if (command)
-        xserver_xvnc_set_command (xserver, command);
+        x_server_xvnc_set_command (x_server, command);
 
     if (config_has_key (config_get_instance (), "VNCServer", "width") &&
         config_has_key (config_get_instance (), "VNCServer", "height"))
@@ -52,60 +56,40 @@ seat_xvnc_create_display_server (Seat *seat)
         width = config_get_integer (config_get_instance (), "VNCServer", "width");
         height = config_get_integer (config_get_instance (), "VNCServer", "height");
         if (height > 0 && width > 0)
-            xserver_xvnc_set_geometry (xserver, width, height);
+            x_server_xvnc_set_geometry (x_server, width, height);
     }
     if (config_has_key (config_get_instance (), "VNCServer", "depth"))
     {
         gint depth;
         depth = config_get_integer (config_get_instance (), "VNCServer", "depth");
         if (depth == 8 || depth == 16 || depth == 24 || depth == 32)
-            xserver_xvnc_set_depth (xserver, depth);
+            x_server_xvnc_set_depth (x_server, depth);
     }
 
-    return DISPLAY_SERVER (xserver);
-}
-
-static Session *
-seat_xvnc_create_session (Seat *seat, Display *display)
-{
-    XServerXVNC *xserver;
-    XSession *session;
-    GInetSocketAddress *address;
-    gchar *hostname;
-    gchar *t;
-
-    xserver = XSERVER_XVNC (display_get_display_server (display));
-
-    session = xsession_new ();
-    address = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (SEAT_XVNC (seat)->priv->connection, NULL));
-    hostname = g_inet_address_to_string (g_inet_socket_address_get_address (address));
-    session_set_remote_host_name (SESSION (session), hostname);
-    g_free (hostname);
-
-    return SESSION (session);
+    return DISPLAY_SERVER (x_server);
 }
 
 static void
-seat_xvnc_run_script (Seat *seat, Display *display, Process *script)
+seat_xvnc_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
-    XServerXVNC *xserver;
+    XServerXVNC *x_server;
     GInetSocketAddress *address;
     gchar *hostname;
     const gchar *path;
 
-    xserver = XSERVER_XVNC (display_get_display_server (display));
+    x_server = X_SERVER_XVNC (display_server);
 
     address = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (SEAT_XVNC (seat)->priv->connection, NULL));
     hostname = g_inet_address_to_string (g_inet_socket_address_get_address (address));
-    path = xserver_xvnc_get_authority_file_path (xserver);
+    path = x_server_xvnc_get_authority_file_path (x_server);
 
     process_set_env (script, "REMOTE_HOST", hostname);
-    process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));
+    process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
     process_set_env (script, "XAUTHORITY", path);
 
     g_free (hostname);
 
-    SEAT_CLASS (seat_xvnc_parent_class)->run_script (seat, display, script);
+    SEAT_CLASS (seat_xvnc_parent_class)->run_script (seat, display_server, script);
 }
 
 static void
@@ -133,7 +117,6 @@ seat_xvnc_class_init (SeatXVNCClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     seat_class->create_display_server = seat_xvnc_create_display_server;
-    seat_class->create_session = seat_xvnc_create_session;
     seat_class->run_script = seat_xvnc_run_script;
     object_class->finalize = seat_xdmcp_session_finalize;
 

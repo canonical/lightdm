@@ -13,8 +13,7 @@
 
 #include "seat-xremote.h"
 #include "configuration.h"
-#include "xserver-remote.h"
-#include "xsession.h"
+#include "x-server-remote.h"
 
 G_DEFINE_TYPE (SeatXRemote, seat_xremote, SEAT_TYPE);
 
@@ -26,11 +25,17 @@ seat_xremote_setup (Seat *seat)
 }
 
 static DisplayServer *
-seat_xremote_create_display_server (Seat *seat)
+seat_xremote_create_display_server (Seat *seat, const gchar *session_type)
 {
-    XServerRemote *xserver;
+    XServerRemote *x_server;
     const gchar *hostname;
     gint number;
+
+    if (strcmp (session_type, "x") != 0)
+    {
+        g_warning ("X remote seat only supports X display servers, not '%s'", session_type);
+        return NULL;
+    }
 
     hostname = seat_get_string_property (seat, "xserver-hostname");
     if (!hostname)
@@ -39,35 +44,43 @@ seat_xremote_create_display_server (Seat *seat)
 
     g_debug ("Starting remote X display %s:%d", hostname, number);
 
-    xserver = xserver_remote_new (hostname, number, NULL);
+    x_server = x_server_remote_new (hostname, number, NULL);
 
-    return DISPLAY_SERVER (xserver);
+    return DISPLAY_SERVER (x_server);
+}
+
+static Greeter *
+seat_xremote_create_greeter_session (Seat *seat)
+{
+    Greeter *greeter_session;
+
+    greeter_session = SEAT_CLASS (seat_xremote_parent_class)->create_greeter_session (seat);
+    session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
+
+    return greeter_session;
 }
 
 static Session *
-seat_xremote_create_session (Seat *seat, Display *display)
+seat_xremote_create_session (Seat *seat)
 {
-    XServerRemote *xserver;
-    XSession *session;
+    Session *session;
 
-    xserver = XSERVER_REMOTE (display_get_display_server (display));
+    session = SEAT_CLASS (seat_xremote_parent_class)->create_session (seat);
+    session_set_env (SESSION (session), "XDG_SEAT", "seat0");
 
-    session = xsession_new ();
-    session_set_remote_host_name (SESSION (session), xserver_get_hostname (XSERVER (xserver)));
-
-    return SESSION (session);
+    return session;
 }
 
 static void
-seat_xremote_run_script (Seat *seat, Display *display, Process *script)
+seat_xremote_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
-    XServerRemote *xserver;
+    XServerRemote *x_server;
 
-    xserver = XSERVER_REMOTE (display_get_display_server (display));
-    process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));  
-    process_set_env (script, "REMOTE_HOST", xserver_get_hostname (XSERVER (xserver)));
+    x_server = X_SERVER_REMOTE (display_server);
+    process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));  
+    process_set_env (script, "REMOTE_HOST", x_server_get_hostname (X_SERVER (x_server)));
 
-    SEAT_CLASS (seat_xremote_parent_class)->run_script (seat, display, script);
+    SEAT_CLASS (seat_xremote_parent_class)->run_script (seat, display_server, script);
 }
 
 static void
@@ -82,6 +95,7 @@ seat_xremote_class_init (SeatXRemoteClass *klass)
 
     seat_class->setup = seat_xremote_setup;
     seat_class->create_display_server = seat_xremote_create_display_server;
+    seat_class->create_greeter_session = seat_xremote_create_greeter_session;
     seat_class->create_session = seat_xremote_create_session;
     seat_class->run_script = seat_xremote_run_script;
 }

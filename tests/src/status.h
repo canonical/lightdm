@@ -9,7 +9,7 @@ extern "C" {
 
 typedef void (*StatusRequestFunc)(const gchar *message);
 
-void status_connect (StatusRequestFunc message_cb);
+gboolean status_connect (StatusRequestFunc message_cb);
 
 void status_notify (const gchar *format, ...);
 

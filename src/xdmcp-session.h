@@ -15,7 +15,7 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
-#include "xauthority.h"
+#include "x-authority.h"
 
 G_BEGIN_DECLS
 

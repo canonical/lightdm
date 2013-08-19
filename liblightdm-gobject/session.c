@@ -23,6 +23,7 @@ enum {
 typedef struct
 {
     gchar *key;
+    gchar *type;
     gchar *name;
     gchar *comment;
 } LightDMSessionPrivate;
@@ -46,7 +47,7 @@ compare_session (gconstpointer a, gconstpointer b)
 static LightDMSession *
 load_session (GKeyFile *key_file, const gchar *key)
 {
-    gchar *domain, *name;
+    gchar *type, *domain, *name;
     LightDMSession *session;
     LightDMSessionPrivate *priv;
     gchar *try_exec;
@@ -54,6 +55,10 @@ load_session (GKeyFile *key_file, const gchar *key)
     if (g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY, NULL) ||
         g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_HIDDEN, NULL))
         return NULL;
+
+    type = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Session-Type", NULL);
+    if (!type)
+        type = "x";
 
 #ifdef G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN
     domain = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN, NULL);
@@ -90,6 +95,9 @@ load_session (GKeyFile *key_file, const gchar *key)
 
     g_free (priv->key);
     priv->key = g_strdup (key);
+
+    g_free (priv->type);
+    priv->type = g_strdup (type);
 
     g_free (priv->name);
     priv->name = name;
@@ -278,6 +286,21 @@ lightdm_session_get_key (LightDMSession *session)
 }
 
 /**
+ * lightdm_session_get_session_type:
+ * @session: A #LightDMSession
+ * 
+ * Get the type a session
+ * 
+ * Return value: The session type, e.g. x or mir
+ **/
+const gchar *
+lightdm_session_get_session_type (LightDMSession *session)
+{
+    g_return_val_if_fail (LIGHTDM_IS_SESSION (session), NULL);
+    return GET_PRIVATE (session)->type;
+}
+
+/**
  * lightdm_session_get_name:
  * @session: A #LightDMSession
  * 
@@ -354,6 +377,7 @@ lightdm_session_finalize (GObject *object)
     LightDMSessionPrivate *priv = GET_PRIVATE (self);
 
     g_free (priv->key);
+    g_free (priv->type);
     g_free (priv->name);
     g_free (priv->comment);
 }

@@ -13,11 +13,17 @@
 
 #include "seat-xlocal.h"
 #include "configuration.h"
-#include "xserver-local.h"
-#include "xsession.h"
+#include "x-server-local.h"
+#include "plymouth.h"
 #include "vt.h"
 
 G_DEFINE_TYPE (SeatXLocal, seat_xlocal, SEAT_TYPE);
+
+static gboolean
+seat_xlocal_get_start_local_sessions (Seat *seat)
+{
+    return !seat_get_string_property (seat, "xdmcp-manager");
+}
 
 static void
 seat_xlocal_setup (Seat *seat)
@@ -27,17 +33,47 @@ seat_xlocal_setup (Seat *seat)
     SEAT_CLASS (seat_xlocal_parent_class)->setup (seat);
 }
 
-static DisplayServer *
-seat_xlocal_create_display_server (Seat *seat)
+static gboolean
+seat_xlocal_start (Seat *seat)
 {
-    XServerLocal *xserver;
+   
+    return SEAT_CLASS (seat_xlocal_parent_class)->start (seat);
+}
+
+static void
+x_server_ready_cb (XServerLocal *x_server, Seat *seat)
+{
+    /* Quit Plymouth */
+    plymouth_quit (TRUE);
+}
+
+static void
+x_server_transition_plymouth_cb (XServerLocal *x_server, Seat *seat)
+{
+    /* Quit Plymouth if we didn't do the transition */
+    if (plymouth_get_is_running ())
+        plymouth_quit (FALSE);
+
+    g_signal_handlers_disconnect_matched (x_server, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, x_server_transition_plymouth_cb, NULL);
+}
+
+static DisplayServer *
+seat_xlocal_create_display_server (Seat *seat, const gchar *session_type)
+{  
+    if (strcmp (session_type, "x") != 0)
+        return NULL;
+
+    XServerLocal *x_server;
     const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
     gboolean allow_tcp;
-    gint port = 0;
+    gint vt = -1, port = 0;
 
-    g_debug ("Starting local X display");
+    if (vt > 0)
+        g_debug ("Starting local X display on VT %d", vt);
+    else
+        g_debug ("Starting local X display");
   
-    xserver = xserver_local_new ();
+    x_server = x_server_local_new ();
 
     /* If running inside an X server use Xephyr instead */
     if (g_getenv ("DISPLAY"))
@@ -45,26 +81,47 @@ seat_xlocal_create_display_server (Seat *seat)
     if (!command)
         command = seat_get_string_property (seat, "xserver-command");
     if (command)
-        xserver_local_set_command (xserver, command);
+        x_server_local_set_command (x_server, command);
+
+    /* If Plymouth is running, stop it */
+    if (plymouth_get_is_active () && plymouth_has_active_vt ())
+    {
+        gint active_vt = vt_get_active ();
+        if (active_vt >= vt_get_min ())
+        {
+            vt = active_vt;
+            g_signal_connect (x_server, "ready", G_CALLBACK (x_server_ready_cb), seat);
+            g_signal_connect (x_server, "stopped", G_CALLBACK (x_server_transition_plymouth_cb), seat);
+            plymouth_deactivate ();
+        }
+        else
+            g_debug ("Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());
+    }
+    if (plymouth_get_is_active ())
+        plymouth_quit (FALSE);
+    if (vt < 0)
+        vt = vt_get_unused ();
+    if (vt >= 0)
+        x_server_local_set_vt (x_server, vt);
 
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)
-        xserver_local_set_layout (xserver, layout);
+        x_server_local_set_layout (x_server, layout);
 
     config_file = seat_get_string_property (seat, "xserver-config");
     if (config_file)
-        xserver_local_set_config (xserver, config_file);
+        x_server_local_set_config (x_server, config_file);
   
     allow_tcp = seat_get_boolean_property (seat, "xserver-allow-tcp");
-    xserver_local_set_allow_tcp (xserver, allow_tcp);    
+    x_server_local_set_allow_tcp (x_server, allow_tcp);    
 
     xdmcp_manager = seat_get_string_property (seat, "xdmcp-manager");
     if (xdmcp_manager)
-        xserver_local_set_xdmcp_server (xserver, xdmcp_manager);
+        x_server_local_set_xdmcp_server (x_server, xdmcp_manager);
 
     port = seat_get_integer_property (seat, "xdmcp-port");
     if (port > 0)
-        xserver_local_set_xdmcp_port (xserver, port);
+        x_server_local_set_xdmcp_port (x_server, port);
 
     key_name = seat_get_string_property (seat, "xdmcp-key");
     if (key_name)
@@ -94,7 +151,7 @@ seat_xlocal_create_display_server (Seat *seat)
                 g_debug ("Key %s not defined", key_name);
 
             if (key)
-                xserver_local_set_xdmcp_key (xserver, key);
+                x_server_local_set_xdmcp_key (x_server, key);
             g_free (key);
         }
 
@@ -102,44 +159,43 @@ seat_xlocal_create_display_server (Seat *seat)
         g_key_file_free (keys);
     }
 
-    return DISPLAY_SERVER (xserver);
+    return DISPLAY_SERVER (x_server);
+}
+
+static Greeter *
+seat_xlocal_create_greeter_session (Seat *seat)
+{
+    Greeter *greeter_session;
+
+    greeter_session = SEAT_CLASS (seat_xlocal_parent_class)->create_greeter_session (seat);
+    session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
+
+    return greeter_session;
 }
 
 static Session *
-seat_xlocal_create_session (Seat *seat, Display *display)
+seat_xlocal_create_session (Seat *seat)
 {
-    XServerLocal *xserver;
-    XSession *session;
-    gchar *t;
+    Session *session;
 
-    xserver = XSERVER_LOCAL (display_get_display_server (display));
-
-    session = xsession_new ();
-    t = g_strdup_printf ("/dev/tty%d", xserver_local_get_vt (xserver));
-    session_set_tty (SESSION (session), t);
-    g_free (t);
-
-    /* Set variables for logind */
+    session = SEAT_CLASS (seat_xlocal_parent_class)->create_session (seat);
     session_set_env (SESSION (session), "XDG_SEAT", "seat0");
-    t = g_strdup_printf ("%d", xserver_local_get_vt (xserver));
-    session_set_env (SESSION (session), "XDG_VTNR", t);
-    g_free (t);
 
-    return SESSION (session);
+    return session;
 }
 
 static void
-seat_xlocal_set_active_display (Seat *seat, Display *display)
+seat_xlocal_set_active_session (Seat *seat, Session *session)
 {
-    gint vt = xserver_local_get_vt (XSERVER_LOCAL (display_get_display_server (display)));
+    gint vt = display_server_get_vt (session_get_display_server (session));
     if (vt >= 0)
         vt_set_active (vt);
 
-    SEAT_CLASS (seat_xlocal_parent_class)->set_active_display (seat, display);
+    SEAT_CLASS (seat_xlocal_parent_class)->set_active_session (seat, session);
 }
 
-static Display *
-seat_xlocal_get_active_display (Seat *seat)
+static Session *
+seat_xlocal_get_active_session (Seat *seat)
 {
     gint vt;
     GList *link;
@@ -148,31 +204,31 @@ seat_xlocal_get_active_display (Seat *seat)
     if (vt < 0)
         return NULL;
 
-    for (link = seat_get_displays (seat); link; link = link->next)
+    for (link = seat_get_sessions (seat); link; link = link->next)
     {
-        Display *display = link->data;
-        XServerLocal *xserver;
+        Session *session = link->data;
+        DisplayServer *display_server;
 
-        xserver = XSERVER_LOCAL (display_get_display_server (display));
-        if (xserver_local_get_vt (xserver) == vt)
-            return display;
+        display_server = session_get_display_server (session);
+        if (display_server && display_server_get_vt (display_server) == vt)
+            return session;
     }
 
     return NULL;
 }
 
 static void
-seat_xlocal_run_script (Seat *seat, Display *display, Process *script)
+seat_xlocal_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
     const gchar *path;
-    XServerLocal *xserver;
+    XServerLocal *x_server;
 
-    xserver = XSERVER_LOCAL (display_get_display_server (display));
-    path = xserver_local_get_authority_file_path (xserver);
-    process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));
+    x_server = X_SERVER_LOCAL (display_server);
+    path = x_server_local_get_authority_file_path (x_server);
+    process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
     process_set_env (script, "XAUTHORITY", path);
 
-    SEAT_CLASS (seat_xlocal_parent_class)->run_script (seat, display, script);
+    SEAT_CLASS (seat_xlocal_parent_class)->run_script (seat, display_server, script);
 }
 
 static void
@@ -185,10 +241,13 @@ seat_xlocal_class_init (SeatXLocalClass *klass)
 {
     SeatClass *seat_class = SEAT_CLASS (klass);
 
+    seat_class->get_start_local_sessions = seat_xlocal_get_start_local_sessions;
     seat_class->setup = seat_xlocal_setup;
+    seat_class->start = seat_xlocal_start;
     seat_class->create_display_server = seat_xlocal_create_display_server;
+    seat_class->create_greeter_session = seat_xlocal_create_greeter_session;
     seat_class->create_session = seat_xlocal_create_session;
-    seat_class->set_active_display = seat_xlocal_set_active_display;
-    seat_class->get_active_display = seat_xlocal_get_active_display;
+    seat_class->set_active_session = seat_xlocal_set_active_session;
+    seat_class->get_active_session = seat_xlocal_get_active_session;
     seat_class->run_script = seat_xlocal_run_script;
 }

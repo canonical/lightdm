@@ -25,9 +25,6 @@ struct DisplayServerPrivate
     /* Unique name for this display server */
     gchar *name;
 
-    /* TRUE if sessions should be automatically started on this display server */
-    gboolean start_local_sessions;
-
     /* TRUE when being stopped */
     gboolean stopping;
 
@@ -52,18 +49,35 @@ display_server_get_name (DisplayServer *server)
     return server->priv->name;
 }
 
-void
-display_server_set_start_local_sessions (DisplayServer *server, gboolean start_local_sessions)
+const gchar *
+display_server_get_session_type (DisplayServer *server)
 {
-    g_return_if_fail (server != NULL);
-    server->priv->start_local_sessions = start_local_sessions;
+    return DISPLAY_SERVER_GET_CLASS (server)->get_session_type (server);
 }
 
 gboolean
-display_server_get_start_local_sessions (DisplayServer *server)
+display_server_get_can_share (DisplayServer *server)
 {
-    g_return_val_if_fail (server != NULL, FALSE);
-    return server->priv->start_local_sessions;
+    return DISPLAY_SERVER_GET_CLASS (server)->get_can_share (server);
+}
+
+static gboolean
+display_server_real_get_can_share (DisplayServer *server)
+{
+    return FALSE;
+}
+
+gint
+display_server_get_vt (DisplayServer *server)
+{
+    g_return_val_if_fail (server != NULL, -1);
+    return DISPLAY_SERVER_GET_CLASS (server)->get_vt (server);
+}
+
+static gint
+display_server_real_get_vt (DisplayServer *server)
+{
+    return -1;
 }
 
 gboolean
@@ -81,6 +95,28 @@ display_server_real_start (DisplayServer *server)
 }
 
 void
+display_server_connect_session (DisplayServer *server, Session *session)
+{
+    return DISPLAY_SERVER_GET_CLASS (server)->connect_session (server, session);
+}
+
+static void
+display_server_real_connect_session (DisplayServer *server, Session *session)
+{
+}
+
+void
+display_server_disconnect_session (DisplayServer *server, Session *session)
+{
+    return DISPLAY_SERVER_GET_CLASS (server)->disconnect_session (server, session);
+}
+
+static void
+display_server_real_disconnect_session (DisplayServer *server, Session *session)
+{
+}
+
+void
 display_server_stop (DisplayServer *server)
 {
     g_return_if_fail (server != NULL);
@@ -93,36 +129,32 @@ display_server_stop (DisplayServer *server)
 }
 
 gboolean
-display_server_get_is_stopped (DisplayServer *server)
+display_server_get_is_stopping (DisplayServer *server)
 {
-    g_return_val_if_fail (server != NULL, TRUE);
-    return server->priv->stopped;
+    g_return_val_if_fail (server != NULL, FALSE);
+    return server->priv->stopping;
 }
 
 static void
 display_server_real_stop (DisplayServer *server)
 {
-    server->priv->stopped = TRUE;
     g_signal_emit (server, signals[STOPPED], 0);
-}
-
-static gboolean
-display_server_real_get_is_stopped (DisplayServer *server)
-{
-    return server->priv->stopped;
 }
 
 static void
 display_server_init (DisplayServer *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, DISPLAY_SERVER_TYPE, DisplayServerPrivate);
-    server->priv->start_local_sessions = TRUE;
 }
 
 static void
 display_server_class_init (DisplayServerClass *klass)
 {
+    klass->get_can_share = display_server_real_get_can_share;
+    klass->get_vt = display_server_real_get_vt;
     klass->start = display_server_real_start;
+    klass->connect_session = display_server_real_connect_session;
+    klass->disconnect_session = display_server_real_disconnect_session;
     klass->stop = display_server_real_stop;
 
     g_type_class_add_private (klass, sizeof (DisplayServerPrivate));
@@ -133,7 +165,7 @@ display_server_class_init (DisplayServerClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayServerClass, ready),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
     signals[STOPPED] =
         g_signal_new ("stopped",
@@ -141,6 +173,6 @@ display_server_class_init (DisplayServerClass *klass)
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayServerClass, stopped),
                       NULL, NULL,
-                      g_cclosure_marshal_VOID__VOID,
+                      NULL,
                       G_TYPE_NONE, 0);
 }

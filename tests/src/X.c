@@ -3,10 +3,10 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <signal.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <glib-unix.h>
 
 #include "status.h"
 #include "x-server.h"
@@ -58,32 +58,27 @@ quit (int status)
     g_main_loop_quit (loop);
 }
 
-static void
-indicate_ready (void)
+static gboolean
+sighup_cb (gpointer user_data)
 {
-    void *handler;  
-    handler = signal (SIGUSR1, SIG_IGN);
-    if (handler == SIG_IGN)
-    {
-        status_notify ("XSERVER-%d INDICATE-READY", display_number);
-        kill (getppid (), SIGUSR1);
-    }
-    signal (SIGUSR1, handler);
+    status_notify ("XSERVER-%d DISCONNECT-CLIENTS", display_number);
+    return TRUE;
 }
 
-static void
-signal_cb (int signum)
+static gboolean
+sigint_cb (gpointer user_data)
 {
-    if (signum == SIGHUP)
-    {
-        status_notify ("XSERVER-%d DISCONNECT-CLIENTS", display_number);
-        indicate_ready ();
-    }
-    else
-    {
-        status_notify ("XSERVER-%d TERMINATE SIGNAL=%d", display_number, signum);
-        quit (EXIT_SUCCESS);
-    }
+    status_notify ("XSERVER-%d TERMINATE SIGNAL=%d", display_number, SIGINT);
+    quit (EXIT_SUCCESS);
+    return TRUE;
+}
+
+static gboolean
+sigterm_cb (gpointer user_data)
+{
+    status_notify ("XSERVER-%d TERMINATE SIGNAL=%d", display_number, SIGTERM);
+    quit (EXIT_SUCCESS);
+    return TRUE;
 }
 
 static void
@@ -166,8 +161,6 @@ static void
 client_disconnected_cb (XServer *server, XClient *client)
 {  
     g_signal_handlers_disconnect_matched (client, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, NULL);  
-    if (x_server_get_n_clients (server) == 0)
-        indicate_ready ();
 }
 
 static void
@@ -188,6 +181,27 @@ request_cb (const gchar *request)
         kill (getpid (), SIGSEGV);
     }
     g_free (r);
+    r = g_strdup_printf ("XSERVER-%d INDICATE-READY", display_number);
+    if (strcmp (request, r) == 0)
+    {
+        void *handler;
+
+        handler = signal (SIGUSR1, SIG_IGN);
+        if (handler == SIG_IGN)
+        {
+            status_notify ("XSERVER-%d INDICATE-READY", display_number);
+            kill (getppid (), SIGUSR1);
+        }
+        signal (SIGUSR1, handler);
+    }
+    g_free (r);
+    r = g_strdup_printf ("XSERVER-%d START-XDMCP", display_number);
+    if (strcmp (request, r) == 0)
+    {
+        if (!xdmcp_client_start (xdmcp_client))
+            quit (EXIT_FAILURE);
+    }
+    g_free (r);
 }
 
 int
@@ -203,15 +217,15 @@ main (int argc, char **argv)
     int lock_file;
     GString *status_text;
 
-    signal (SIGINT, signal_cb);
-    signal (SIGTERM, signal_cb);
-    signal (SIGHUP, signal_cb);
-
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
 
     loop = g_main_loop_new (NULL, FALSE);
+
+    g_unix_signal_add (SIGINT, sigint_cb, NULL);
+    g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
+    g_unix_signal_add (SIGHUP, sighup_cb, NULL);
 
     status_connect (request_cb);
 
@@ -397,13 +411,7 @@ main (int argc, char **argv)
         g_signal_connect (xdmcp_client, "accept", G_CALLBACK (xdmcp_accept_cb), NULL);
         g_signal_connect (xdmcp_client, "decline", G_CALLBACK (xdmcp_decline_cb), NULL);
         g_signal_connect (xdmcp_client, "failed", G_CALLBACK (xdmcp_failed_cb), NULL);
-
-        if (!xdmcp_client_start (xdmcp_client))
-            quit (EXIT_FAILURE);
     }
-
-    /* Indicate ready if parent process has requested it */
-    indicate_ready ();
 
     g_main_loop_run (loop);
 
