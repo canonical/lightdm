@@ -1,0 +1,58 @@
+# LightDM - light Display Manager
+#
+# The display manager service manages the X servers running on the
+# system, providing login and auto-login services
+#
+# based on gdm upstart script
+
+description	"LightDM Display Manager"
+author		"Robert Ancell <robert.ancell@canonical.com>"
+
+start on ((filesystem
+           and runlevel [!06]
+           and started dbus
+           and plymouth-ready)
+          or runlevel PREVLEVEL=S)
+
+stop on runlevel [016]
+
+emits login-session-start
+emits desktop-session-start
+emits desktop-shutdown
+
+script
+    if [ -n "$UPSTART_EVENTS" ]
+    then
+        # Check kernel command-line for inhibitors, unless we are being called
+        # manually
+        for ARG in $(cat /proc/cmdline); do
+            if [ "$ARG" = "text" ]; then
+		plymouth quit || : 
+                stop
+		exit 0
+            fi
+        done
+
+	[ ! -f /etc/X11/default-display-manager -o "$(cat /etc/X11/default-display-manager 2>/dev/null)" = "/usr/bin/lightdm" -o "$(cat /etc/X11/default-display-manager 2>/dev/null)" = "/usr/sbin/lightdm" ] || { stop; exit 0; }
+
+	if [ "$RUNLEVEL" = S -o "$RUNLEVEL" = 1 ]
+	then
+	    # Single-user mode
+	    plymouth quit || :
+	    exit 0
+	fi
+    fi
+
+    exec lightdm
+end script
+
+post-start script
+    sleep 5
+    clear > /dev/tty7
+end script
+
+post-stop script
+	if [ "$UPSTART_STOP_EVENTS" = runlevel ]; then
+		initctl emit desktop-shutdown
+	fi
+end script
