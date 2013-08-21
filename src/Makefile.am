@@ -18,6 +18,8 @@ lightdm_SOURCES = \
 	guest-account.c \
 	guest-account.h \
 	lightdm.c \
+	logger.c \
+	logger.h \
 	login1.c \
 	login1.h \
 	mir-server.c \

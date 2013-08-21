@@ -1168,8 +1168,9 @@ main (int argc, char **argv)
         gchar *config_section = *i;
         gchar *type;
         Seat *seat;
+        const gchar *const seatpfx = "Seat:";
 
-        if (!g_str_has_prefix (config_section, "Seat:"))
+        if (!g_str_has_prefix (config_section, seatpfx))
             continue;
 
         g_debug ("Loading seat %s", config_section);
@@ -1180,6 +1181,11 @@ main (int argc, char **argv)
         g_free (type);
         if (seat)
         {
+            const gsize seatpfxlen = strlen(seatpfx);
+            gchar *seatname = config_section + seatpfxlen;
+
+            seat_set_property (seat, "seat-name", seatname);
+
             set_seat_properties (seat, config_section);
             display_manager_add_seat (display_manager, seat);
             g_object_unref (seat);

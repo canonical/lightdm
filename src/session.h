@@ -21,6 +21,7 @@ typedef struct Session Session;
 #include "display-server.h"
 #include "accounts.h"
 #include "x-authority.h"
+#include "logger.h"
 
 G_BEGIN_DECLS
 

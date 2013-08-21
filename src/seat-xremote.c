@@ -33,7 +33,7 @@ seat_xremote_create_display_server (Seat *seat, const gchar *session_type)
 
     if (strcmp (session_type, "x") != 0)
     {
-        g_warning ("X remote seat only supports X display servers, not '%s'", session_type);
+        l_warning (seat, "X remote seat only supports X display servers, not '%s'", session_type);
         return NULL;
     }
 
@@ -42,7 +42,7 @@ seat_xremote_create_display_server (Seat *seat, const gchar *session_type)
         hostname = "localhost";
     number = seat_get_integer_property (seat, "xserver-display-number");
 
-    g_debug ("Starting remote X display %s:%d", hostname, number);
+    l_debug (seat, "Starting remote X display %s:%d", hostname, number);
 
     x_server = x_server_remote_new (hostname, number, NULL);
 
@@ -53,9 +53,12 @@ static Greeter *
 seat_xremote_create_greeter_session (Seat *seat)
 {
     Greeter *greeter_session;
+    const gchar *xdg_seat;
 
     greeter_session = SEAT_CLASS (seat_xremote_parent_class)->create_greeter_session (seat);
-    session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
+    xdg_seat = "seat0";
+    l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
+    session_set_env (SESSION (greeter_session), "XDG_SEAT", xdg_seat);
 
     return greeter_session;
 }
@@ -64,9 +67,12 @@ static Session *
 seat_xremote_create_session (Seat *seat)
 {
     Session *session;
+    const gchar *xdg_seat;
 
     session = SEAT_CLASS (seat_xremote_parent_class)->create_session (seat);
-    session_set_env (SESSION (session), "XDG_SEAT", "seat0");
+    xdg_seat = "seat0";
+    l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
+    session_set_env (SESSION (session), "XDG_SEAT", xdg_seat);
 
     return session;
 }

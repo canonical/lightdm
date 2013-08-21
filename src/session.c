@@ -120,7 +120,11 @@ struct SessionPrivate
 /* Maximum length of a string to pass between daemon and session */
 #define MAX_STRING_LENGTH 65535
 
-G_DEFINE_TYPE (Session, session, G_TYPE_OBJECT);
+static void session_logger_iface_init (LoggerInterface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (Session, session, G_TYPE_OBJECT,
+                         G_IMPLEMENT_INTERFACE (
+                             LOGGER_TYPE, session_logger_iface_init));
 
 Session *
 session_new (void)
@@ -338,7 +342,7 @@ static void
 write_data (Session *session, const void *buf, size_t count)
 {
     if (write (session->priv->to_child_input, buf, count) != count)
-        g_warning ("Error writing to session: %s", strerror (errno));
+        l_warning (session, "Error writing to session: %s", strerror (errno));
 }
 
 static void
@@ -382,7 +386,7 @@ read_from_child (Session *session, void *buf, size_t count)
     ssize_t n_read;
     n_read = read (session->priv->from_child_output, buf, count);
     if (n_read < 0)
-        g_warning ("Error reading from session: %s", strerror (errno));
+        l_warning (session, "Error reading from session: %s", strerror (errno));
     return n_read;
 }
 
@@ -398,7 +402,7 @@ read_string_from_child (Session *session)
         return NULL;
     if (length > MAX_STRING_LENGTH)
     {
-        g_warning ("Invalid string length %d from child", length);
+        l_warning (session, "Invalid string length %d from child", length);
         return NULL;
     }
 
@@ -414,17 +418,18 @@ session_watch_cb (GPid pid, gint status, gpointer data)
 {
     Session *session = data;
 
-    session->priv->pid = 0;
-
     if (WIFEXITED (status))
-        g_debug ("Session %d exited with return value %d", pid, WEXITSTATUS (status));
+        l_debug (session, "Exited with return value %d", WEXITSTATUS (status));
     else if (WIFSIGNALED (status))
-        g_debug ("Session %d terminated with signal %d", pid, WTERMSIG (status));
+        l_debug (session, "Terminated with signal %d", WTERMSIG (status));
+
+    /* do this as late as possible for log messages prefix */
+    session->priv->pid = 0;
 
     /* If failed during authentication then report this as an authentication failure */
     if (session->priv->authentication_started && !session->priv->authentication_complete)
     {
-        g_debug ("Session %d failed during authentication", pid);
+        l_debug (session, "Failed during authentication");
         session->priv->authentication_complete = TRUE;
         session->priv->authentication_result = PAM_CONV_ERR;
         g_free (session->priv->authentication_result_string);
@@ -473,7 +478,7 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     /* Check if authentication completed */
     n_read = read_from_child (session, &auth_complete, sizeof (auth_complete));
     if (n_read < 0)
-        g_debug ("Error reading from child: %s", strerror (errno));
+        l_debug (session, "Error reading from child: %s", strerror (errno));
     if (n_read <= 0)
     {
         session->priv->from_child_watch = 0;
@@ -487,7 +492,7 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         g_free (session->priv->authentication_result_string);
         session->priv->authentication_result_string = read_string_from_child (session);
 
-        g_debug ("Session %d authentication complete with return value %d: %s", session->priv->pid, session->priv->authentication_result, session->priv->authentication_result_string);
+        l_debug (session, "Authentication complete with return value %d: %s", session->priv->authentication_result, session->priv->authentication_result_string);
 
         /* No longer expect any more messages */
         session->priv->from_child_watch = 0;
@@ -510,7 +515,7 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
             m->msg = read_string_from_child (session);
         }
 
-        g_debug ("Session %d got %d message(s) from PAM", session->priv->pid, session->priv->messages_length);
+        l_debug (session, "Got %d message(s) from PAM", session->priv->messages_length);
 
         g_signal_emit (G_OBJECT (session), signals[GOT_MESSAGES], 0);
     }
@@ -616,7 +621,7 @@ session_real_start (Session *session)
     write_string (session, session->priv->xdisplay);
     write_xauth (session, session->priv->x_authority);
 
-    g_debug ("Started session %d with service '%s', username '%s'", session->priv->pid, session->priv->pam_service, session->priv->username);
+    l_debug (session, "Started with service '%s', username '%s'", session->priv->pam_service, session->priv->username);
 
     return TRUE;
 }
@@ -727,7 +732,7 @@ session_real_run (Session *session)
     session->priv->command_run = TRUE;
 
     command = g_strjoinv (" ", session->priv->argv);
-    g_debug ("Session %d running command %s", session->priv->pid, command);
+    l_debug (session, "Running command %s", command);
     g_free (command);
 
     /* Create authority location */
@@ -740,11 +745,11 @@ session_real_run (Session *session)
         g_free (run_dir);
 
         if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
-            g_warning ("Failed to set create system authority dir %s: %s", dir, strerror (errno));          
+            l_warning (session, "Failed to set create system authority dir %s: %s", dir, strerror (errno));
         if (getuid () == 0)
         {
             if (chown (dir, user_get_uid (session_get_user (session)), user_get_gid (session_get_user (session))) < 0)
-                g_warning ("Failed to set ownership of user authority dir: %s", strerror (errno));
+                l_warning (session, "Failed to set ownership of user authority dir: %s", strerror (errno));
         }
 
         x_authority_filename = g_build_filename (dir, "xauthority", NULL);
@@ -819,7 +824,7 @@ session_real_stop (Session *session)
 
     if (session->priv->pid > 0)
     {
-        g_debug ("Session %d: Sending SIGTERM", session->priv->pid);
+        l_debug (session, "Sending SIGTERM");
         kill (session->priv->pid, SIGTERM);
         // FIXME: Handle timeout
     }
@@ -919,4 +924,20 @@ session_class_init (SessionClass *klass)
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 0);
+}
+
+static gint
+session_real_logprefix (Logger *self, gchar *buf, gulong buflen)
+{
+    Session *session = SESSION (self);
+    if (session->priv->pid != 0)
+        return g_snprintf (buf, buflen, "Session pid=%d: ", session->priv->pid);
+    else
+        return g_snprintf (buf, buflen, "Session: ");
+}
+
+static void
+session_logger_iface_init (LoggerInterface *iface)
+{
+    iface->logprefix = &session_real_logprefix;
 }

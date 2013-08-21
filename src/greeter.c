@@ -164,7 +164,7 @@ write_message (Greeter *greeter, guint8 *message, gsize message_length)
 
     g_io_channel_write_chars (greeter->priv->to_greeter_channel, (gchar *) message, message_length, NULL, &error);
     if (error)
-        g_warning ("Error writing to greeter: %s", error->message);
+        l_warning (greeter, "Error writing to greeter: %s", error->message);
     g_clear_error (&error);
     g_io_channel_flush (greeter->priv->to_greeter_channel, NULL);
 }
@@ -225,7 +225,7 @@ handle_connect (Greeter *greeter, const gchar *version)
     GHashTableIter iter;
     gpointer key, value;
 
-    g_debug ("Greeter connected version=%s", version);
+    l_debug (greeter, "Greeter connected version=%s", version);
 
     length = string_length (VERSION);
     g_hash_table_iter_init (&iter, greeter->priv->hints);
@@ -260,7 +260,7 @@ pam_messages_cb (Session *session, Greeter *greeter)
     messages_length = session_get_messages_length (session);
 
     /* Respond to d-bus query with messages */
-    g_debug ("Prompt greeter with %d message(s)", messages_length);
+    l_debug (greeter, "Prompt greeter with %d message(s)", messages_length);
     size = int_length () + string_length (session_get_username (session)) + int_length ();
     for (i = 0; i < messages_length; i++)
         size += int_length () + string_length (messages[i].msg);
@@ -308,16 +308,16 @@ authentication_complete_cb (Session *session, Greeter *greeter)
 {
     int result;
 
-    g_debug ("Authenticate result for user %s: %s", session_get_username (session), session_get_authentication_result_string (session));
+    l_debug (greeter, "Authenticate result for user %s: %s", session_get_username (session), session_get_authentication_result_string (session));
 
     result = session_get_authentication_result (session);
     if (session_get_is_authenticated (session))
     {
         if (session_get_user (session))
-            g_debug ("User %s authorized", session_get_username (session));
+            l_debug (greeter, "User %s authorized", session_get_username (session));
         else
         {
-            g_debug ("User %s authorized, but no account of that name exists", session_get_username (session));          
+            l_debug (greeter, "User %s authorized, but no account of that name exists", session_get_username (session));
             result = PAM_USER_UNKNOWN;
         }
     }
@@ -349,11 +349,11 @@ handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
 
     if (username[0] == '\0')
     {
-        g_debug ("Greeter start authentication");
+        l_debug (greeter, "Greeter start authentication");
         username = NULL;
     }
     else
-        g_debug ("Greeter start authentication for %s", username);
+        l_debug (greeter, "Greeter start authentication for %s", username);
 
     reset_session (greeter);
 
@@ -392,13 +392,13 @@ handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
 static void
 handle_login_as_guest (Greeter *greeter, guint32 sequence_number)
 {
-    g_debug ("Greeter start authentication for guest account");
+    l_debug (greeter, "Greeter start authentication for guest account");
 
     reset_session (greeter);
 
     if (!greeter->priv->allow_guest)
     {
-        g_debug ("Guest account is disabled");
+        l_debug (greeter, "Guest account is disabled");
         send_end_authentication (greeter, sequence_number, "", PAM_USER_UNKNOWN);
         return;
     }
@@ -449,11 +449,11 @@ handle_login_remote (Greeter *greeter, const gchar *session_name, const gchar *u
 
     if (username[0] == '\0')
     {
-        g_debug ("Greeter start authentication for remote session %s", session_name);
+        l_debug (greeter, "Greeter start authentication for remote session %s", session_name);
         username = NULL;
     }
     else
-        g_debug ("Greeter start authentication for remote session %s as user %s", session_name, username);
+        l_debug (greeter, "Greeter start authentication for remote session %s as user %s", session_name, username);
 
     reset_session (greeter);
 
@@ -518,7 +518,7 @@ handle_continue_authentication (Greeter *greeter, gchar **secrets)
         return;
     }
 
-    g_debug ("Continue authentication");
+    l_debug (greeter, "Continue authentication");
 
     /* Build response */
     response = calloc (messages_length, sizeof (struct pam_response));
@@ -548,7 +548,7 @@ handle_cancel_authentication (Greeter *greeter)
     if (greeter->priv->authentication_session == NULL)
         return;
 
-    g_debug ("Cancel authentication");
+    l_debug (greeter, "Cancel authentication");
     reset_session (greeter);
 }
 
@@ -573,15 +573,15 @@ handle_start_session (Greeter *greeter, const gchar *session)
     if (greeter->priv->guest_account_authenticated || session_get_is_authenticated (greeter->priv->authentication_session))
     {
         if (session)
-            g_debug ("Greeter requests session %s", session);
+            l_debug (greeter, "Greeter requests session %s", session);
         else
-            g_debug ("Greeter requests default session");
+            l_debug (greeter, "Greeter requests default session");
         greeter->priv->start_session = TRUE;
         g_signal_emit (greeter, signals[START_SESSION], 0, session_type, session, &result);
     }
     else
     {
-        g_debug ("Ignoring start session request, user is not authorized");
+        l_debug (greeter, "Ignoring start session request, user is not authorized");
         result = FALSE;
     }
 
@@ -597,18 +597,18 @@ handle_set_language (Greeter *greeter, const gchar *language)
 
     if (!greeter->priv->guest_account_authenticated && !session_get_is_authenticated (greeter->priv->authentication_session))
     {
-        g_debug ("Ignoring set language request, user is not authorized");
+        l_debug (greeter, "Ignoring set language request, user is not authorized");
         return;
     }
 
     // FIXME: Could use this
     if (greeter->priv->guest_account_authenticated)
     {
-        g_debug ("Ignoring set language request for guest user");
+        l_debug (greeter, "Ignoring set language request for guest user");
         return;
     }
 
-    g_debug ("Greeter sets language %s", language);
+    l_debug (greeter, "Greeter sets language %s", language);
     user = session_get_user (greeter->priv->authentication_session);
     user_set_language (user, language);
 }
@@ -620,7 +620,7 @@ read_int (Greeter *greeter, gsize *offset)
     guint8 *buffer;
     if (greeter->priv->n_read - *offset < sizeof (guint32))
     {
-        g_warning ("Not enough space for int, need %zu, got %zu", sizeof (guint32), greeter->priv->n_read - *offset);
+        l_warning (greeter, "Not enough space for int, need %zu, got %zu", sizeof (guint32), greeter->priv->n_read - *offset);
         return 0;
     }
     buffer = greeter->priv->read_buffer + *offset;
@@ -640,7 +640,7 @@ get_message_length (Greeter *greeter)
 
     if (HEADER_SIZE + payload_length < HEADER_SIZE)
     {
-        g_warning ("Payload length of %u octets too long", payload_length);
+        l_warning (greeter, "Payload length of %u octets too long", payload_length);
         return HEADER_SIZE;
     }
 
@@ -656,7 +656,7 @@ read_string_full (Greeter *greeter, gsize *offset, void* (*alloc_fn)(size_t n))
     length = read_int (greeter, offset);
     if (greeter->priv->n_read - *offset < length)
     {
-        g_warning ("Not enough space for string, need %u, got %zu", length, greeter->priv->n_read - *offset);
+        l_warning (greeter, "Not enough space for string, need %u, got %zu", length, greeter->priv->n_read - *offset);
         return g_strdup ("");
     }
 
@@ -697,7 +697,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 
     if (condition == G_IO_HUP)
     {
-        g_debug ("Greeter closed communication channel");
+        l_debug (greeter, "Greeter closed communication channel");
         return FALSE;
     }
   
@@ -715,7 +715,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
                                       &n_read,
                                       &error);
     if (error)
-        g_warning ("Error reading from greeter: %s", error->message);
+        l_warning (greeter, "Error reading from greeter: %s", error->message);
     g_clear_error (&error);
     if (status != G_IO_STATUS_NORMAL)
         return TRUE;
@@ -767,7 +767,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         max_secrets = (G_MAXUINT32 - 1) / sizeof (gchar *);
         if (n_secrets > max_secrets)
         {
-            g_warning ("Array length of %u elements too long", n_secrets);
+            l_warning (greeter, "Array length of %u elements too long", n_secrets);
             return FALSE;
         }
         secrets = g_malloc (sizeof (gchar *) * (n_secrets + 1));
@@ -793,7 +793,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         g_free (language);
         break;
     default:
-        g_warning ("Unknown message from greeter: %d", id);
+        l_warning (greeter, "Unknown message from greeter: %d", id);
         break;
     }
 
