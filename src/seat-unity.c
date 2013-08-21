@@ -522,7 +522,7 @@ seat_unity_create_greeter_session (Seat *seat)
 }
 
 static void
-seat_unity_set_next_session (Seat *seat, Session *session)
+set_next_session (Seat *seat, Session *session)
 {
     DisplayServer *display_server;
     const gchar *id = NULL;
@@ -553,7 +553,7 @@ seat_unity_create_session (Seat *seat, Session *user_session)
 {
     Session *session;
 
-    session = SEAT_CLASS (seat_unity_parent_class)->create_session (seat);
+    session = SEAT_CLASS (seat_unity_parent_class)->create_session (seat, user_session);
     session_set_env (session, "XDG_SEAT", "seat0");
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)
     {
@@ -564,7 +564,7 @@ seat_unity_create_session (Seat *seat, Session *user_session)
         /* Notify compositor that user's session should be displayed under
            greeter. */
         if (user_session != NULL)
-            seat_unity_set_next_session (seat, user_session);
+            set_next_session (seat, user_session);
     }
 
     return session;
