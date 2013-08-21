@@ -1,0 +1,101 @@
+# translation of xdm-eu.po to librezale
+# debconf templates for xorg-x11 package
+# Euskara translation
+#
+# $Id: eu.po 490 2005-08-03 09:59:07Z ender $
+#
+# Copyright:
+#
+# This file is distributed under the same license as the xorg-x11 package.
+# Please see debian/copyright.
+#
+#    Translators, if you are not familiar with the PO format, gettext
+#    documentation is worth reading, especially sections dedicated to
+#    this format, e.g. by running:
+#         info -n '(gettext)PO Files'
+#         info -n '(gettext)Header Entry'
+#
+#    Some information specific to po-debconf is available at
+#            /usr/share/doc/po-debconf/README-trans
+#         or http://www.debian.org/intl/l10n/po-debconf/README-trans
+#
+#    Developers do not need to manually edit POT or PO files.
+#
+# Branden Robinson, 2000-2004.
+# Piarres Beobide <pi@beobide.net>, 2005, 2007.
+msgid ""
+msgstr ""
+"Project-Id-Version: xdm-eu\n"
+"Report-Msgid-Bugs-To: mmassonnet@gmail.com\n"
+"POT-Creation-Date: 2007-05-31 08:04+0200\n"
+"PO-Revision-Date: 2007-03-22 16:06+0100\n"
+"Last-Translator: Piarres Beobide <pi@beobide.net>\n"
+"Language-Team: librezale <librezale@librezale.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.4\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+msgid "Default display manager:"
+msgstr "Lehenetsiriko pantaila kudeatzailea:"
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+msgid ""
+"A display manager is a program that provides graphical login capabilities "
+"for the X Window System."
+msgstr ""
+"Pantaila kudeatzailea X Leiho Sistemarako saio hasiera grafiko aukera ematen "
+"duen programa bat da."
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+msgid ""
+"Only one display manager can manage a given X server, but multiple display "
+"manager packages are installed. Please select which display manager should "
+"run by default."
+msgstr ""
+"Jakindako X zerbitzari bat pantaila kudeatzaile batek bakarrik kudea dezake, "
+"baina pantaila kudeatzaile anitz daude instalaturik.  Hautatu zein pantaila "
+"kudeatzaile erabili nahi duzun lehenetsi bezala."
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+msgid ""
+"Multiple display managers can run simultaneously if they are configured to "
+"manage different servers; to achieve this, configure the display managers "
+"accordingly, edit each of their init scripts in /etc/init.d, and disable the "
+"check for a default display manager."
+msgstr ""
+"Pantaila kudeatzaile anitz batera martxan egon daitezke, zerbitzari "
+"ezberdinak kudeatzeko konfiguraturik badaude; hau lortzeko, pantaila "
+"kudeatzaileak behar bezala konfiguratu eta /etc/init.d-eko init script-ean "
+"lehenetsiriko pantaila kudeatzailea arakatzeko aukera ezgaitu."
+
+#~ msgid "Stop the xdm daemon?"
+#~ msgstr "Xdm deabrua gelditu?"
+
+#~ msgid ""
+#~ "The X display manager (xdm) daemon is typically stopped on package "
+#~ "upgrade and removal, but it appears to be managing at least one running X "
+#~ "session."
+#~ msgstr ""
+#~ "X Pantaila Kudeatzaile (xdm) deabrua arruntean gelditu egiten da pakete "
+#~ "eguneraketa edo ezabaketa egiterakoan, baina dirudienez martxan dagoen X "
+#~ "saio bat beintzat kudeatzen ari da."
+
+#~ msgid ""
+#~ "If xdm is stopped now, any X sessions it manages will be terminated. "
+#~ "Otherwise, the new version will take effect the next time the daemon is "
+#~ "restarted."
+#~ msgstr ""
+#~ "xdm orain gelditu ezkero, kudeatzen ari den edozein X saio itxi egingo "
+#~ "da. Bestela xdm martxan utz dezakezu eta bersio berria deabrua abiarazten "
+#~ "den hurrengo aldian erabiliko da."

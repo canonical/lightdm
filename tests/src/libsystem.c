@@ -290,6 +290,10 @@ access (const char *pathname, int mode)
     gchar *new_path = NULL;
     int ret;
 
+    /* Look like systemd is always running */
+    if (strcmp (pathname, "/run/systemd/seats/") == 0)
+        return 1;
+
     _access = (int (*)(const char *pathname, int mode)) dlsym (RTLD_NEXT, "access");
 
     new_path = redirect_path (pathname);

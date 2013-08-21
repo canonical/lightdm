@@ -17,6 +17,7 @@
 #include "greeter.h"
 #include "session.h"
 #include "process.h"
+#include "logger.h"
 
 G_BEGIN_DECLS
 

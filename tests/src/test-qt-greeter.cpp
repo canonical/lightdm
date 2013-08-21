@@ -243,13 +243,17 @@ request_cb (const gchar *request)
 int
 main(int argc, char *argv[])
 {
-    gchar *display;
+    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie;
+    GString *status_text;   
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
 
     display = getenv ("DISPLAY");
+    xdg_seat = getenv ("XDG_SEAT");
+    xdg_vtnr = getenv ("XDG_VTNR");
+    xdg_session_cookie = getenv ("XDG_SESSION_COOKIE");
     if (display)
     {
         if (display[0] == ':')
@@ -267,7 +271,16 @@ main(int argc, char *argv[])
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
 
-    status_notify ("%s START", greeter_id);
+    status_text = g_string_new ("");
+    g_string_printf (status_text, "%s START", greeter_id);
+    if (xdg_seat)
+        g_string_append_printf (status_text, " XDG_SEAT=%s", xdg_seat);
+    if (xdg_vtnr)
+        g_string_append_printf (status_text, " XDG_VTNR=%s", xdg_vtnr);
+    if (xdg_session_cookie)
+        g_string_append_printf (status_text, " XDG_SESSION_COOKIE=%s", xdg_session_cookie);
+    status_notify (status_text->str);
+    g_string_free (status_text, TRUE);
 
     config = new QSettings (g_build_filename (getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), QSettings::IniFormat);
 

@@ -85,10 +85,11 @@ typedef struct
     gchar *cookie;
     gchar *path;
     guint id;
+    gboolean locked;
 } CKSession;
 static GList *ck_sessions = NULL;
 static gint ck_session_index = 0;
-static void handle_session_call (GDBusConnection       *connection,
+static void handle_ck_session_call (GDBusConnection       *connection,
                                     const gchar           *sender,
                                     const gchar           *object_path,
                                     const gchar           *interface_name,
@@ -98,13 +99,14 @@ static void handle_session_call (GDBusConnection       *connection,
                                     gpointer               user_data);
 static const GDBusInterfaceVTable ck_session_vtable =
 {
-    handle_session_call,
+    handle_ck_session_call,
 };
 
 typedef struct
 {
     gchar *path;
     guint pid;
+    gboolean locked;
 } Login1Session;
 
 static GList *login1_sessions = NULL;
@@ -1001,22 +1003,32 @@ handle_ck_call (GDBusConnection       *connection,
         g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
 }
 
-
-/* Shared between CK and Login1 - identical signatures */
 static void
-handle_session_call (GDBusConnection       *connection,
-                     const gchar           *sender,
-                     const gchar           *object_path,
-                     const gchar           *interface_name,
-                     const gchar           *method_name,
-                     GVariant              *parameters,
-                     GDBusMethodInvocation *invocation,
-                     gpointer               user_data)
+handle_ck_session_call (GDBusConnection       *connection,
+                        const gchar           *sender,
+                        const gchar           *object_path,
+                        const gchar           *interface_name,
+                        const gchar           *method_name,
+                        GVariant              *parameters,
+                        GDBusMethodInvocation *invocation,
+                        gpointer               user_data)
 {
+    CKSession *session = user_data;
+
     if (strcmp (method_name, "Lock") == 0)
+    { 
+        if (!session->locked)
+            check_status ("CONSOLE-KIT LOCK-SESSION");
+        session->locked = TRUE;
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
     else if (strcmp (method_name, "Unlock") == 0)
+    {
+        if (session->locked)
+            check_status ("CONSOLE-KIT UNLOCK-SESSION");
+        session->locked = FALSE;
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
     else
         g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
 }
@@ -1118,6 +1130,36 @@ start_console_kit_daemon (void)
                     NULL);
 }
 
+static void
+handle_login1_session_call (GDBusConnection       *connection,
+                            const gchar           *sender,
+                            const gchar           *object_path,
+                            const gchar           *interface_name,
+                            const gchar           *method_name,
+                            GVariant              *parameters,
+                            GDBusMethodInvocation *invocation,
+                            gpointer               user_data)
+{
+    Login1Session *session = user_data;
+
+    if (strcmp (method_name, "Lock") == 0)
+    {
+        if (!session->locked)
+            check_status ("LOGIN1 LOCK-SESSION");
+        session->locked = TRUE;
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "Unlock") == 0)
+    {
+        if (session->locked)
+            check_status ("LOGIN1 UNLOCK-SESSION");
+        session->locked = FALSE;
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
+}
+
 static Login1Session *
 open_login1_session (GDBusConnection *connection,
                      GVariant *params)
@@ -1135,7 +1177,7 @@ open_login1_session (GDBusConnection *connection,
         "</node>";
     static const GDBusInterfaceVTable login1_session_vtable =
     {
-        handle_session_call,
+        handle_login1_session_call,
     };
 
     session = g_malloc0 (sizeof (Login1Session));

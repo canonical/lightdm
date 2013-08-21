@@ -1,0 +1,102 @@
+# debconf templates for xorg-x11 package
+# Dutch translation
+#
+# $Id: nl.po 1042 2006-01-09 07:55:08Z ender $
+#
+# Copyrights:
+# Branden Robinson, 2000-2004
+# Wouter Verhelst, 2002
+# Bart Cornelis, 2003
+#
+# This file is distributed under the same license as the xorg-x11 package.
+# Please see debian/copyright.
+#
+#    Translators, if you are not familiar with the PO format, gettext
+#    documentation is worth reading, especially sections dedicated to
+#    this format, e.g. by running:
+#         info -n '(gettext)PO Files'
+#         info -n '(gettext)Header Entry'
+#
+#    Some information specific to po-debconf are available at
+#            /usr/share/doc/po-debconf/README-trans
+#         or http://www.debian.org/intl/l10n/po-debconf/README-trans
+#
+#    Developers do not need to manually edit POT or PO files.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: xdm\n"
+"Report-Msgid-Bugs-To: mmassonnet@gmail.com\n"
+"POT-Creation-Date: 2007-05-31 08:04+0200\n"
+"PO-Revision-Date: 2007-03-22 20:24+0100\n"
+"Last-Translator: Bart Cornelis <cobaco@skolelinux.no>\n"
+"Language-Team: debian-l10n-dutch <debian-l10n-dutch@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Dutch\n"
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+msgid "Default display manager:"
+msgstr "Standaard beeldschermbeheerder:"
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+msgid ""
+"A display manager is a program that provides graphical login capabilities "
+"for the X Window System."
+msgstr ""
+"Een beeldschermbeheerder is een programma waarmee u zich grafisch op het "
+"systeem kunt aanmelden, waarna u in de grafische omgeving (het X Window "
+"System) terecht komt."
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+msgid ""
+"Only one display manager can manage a given X server, but multiple display "
+"manager packages are installed. Please select which display manager should "
+"run by default."
+msgstr ""
+"Elke X-server kan door slechts één beeldschermbeheerder beheerd worden, "
+"hoewel er meerdere beeldschermbeheerders geïnstalleerd kunnen zijn. Welke "
+"beeldschermbeheerder dient standaard gebruikt te worden?"
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+msgid ""
+"Multiple display managers can run simultaneously if they are configured to "
+"manage different servers; to achieve this, configure the display managers "
+"accordingly, edit each of their init scripts in /etc/init.d, and disable the "
+"check for a default display manager."
+msgstr ""
+"Het is mogelijk om meerdere beeldschermbeheerders tegelijk te draaien zolang "
+"deze verschillende servers beheren. Om dat te bereiken dient u de "
+"beeldschermbeheerders overeenkomstig in te stellen door in hun init-scripts "
+"(in /etc/init.d) de controle of ze de standaard beeldschermbeheerder zijn "
+"uit te schakelen."
+
+#~ msgid "Stop the xdm daemon?"
+#~ msgstr "Wilt u de xdm-achtergronddienst stoppen?"
+
+#~ msgid ""
+#~ "The X display manager (xdm) daemon is typically stopped on package "
+#~ "upgrade and removal, but it appears to be managing at least one running X "
+#~ "session."
+#~ msgstr ""
+#~ "Normaal wordt de beeldschermbeheerder (xdm) gestopt bij opwaardering en "
+#~ "verwijdering van dit pakket; momenteel is er echter minstens één lopende "
+#~ "X-sessie actief."
+
+#~ msgid ""
+#~ "If xdm is stopped now, any X sessions it manages will be terminated. "
+#~ "Otherwise, the new version will take effect the next time the daemon is "
+#~ "restarted."
+#~ msgstr ""
+#~ "Als xdm nu gestopt word, worden alle door xdm beheerde X-sessies "
+#~ "afgesloten. Als u xdm nu laat draaien wordt de nieuwe versie pas actief "
+#~ "de eerstvolgende keer dat de achtergronddienst herstart wordt. "

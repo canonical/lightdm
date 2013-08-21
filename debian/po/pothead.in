@@ -1,0 +1,30 @@
+# debconf templates for xorg-x11 package
+#
+# $Id: pothead.in 498 2005-08-05 01:55:05Z dnusinow $
+#
+# Copyright:
+# Branden Robinson, 2000-2004
+#
+# This file is distributed under the same license as the xorg-x11 package.
+# Please see debian/copyright.
+#
+#    Translators, if you are not familiar with the PO format, gettext
+#    documentation is worth reading, especially sections dedicated to
+#    this format, e.g. by running:
+#         info -n '(gettext)PO Files'
+#         info -n '(gettext)Header Entry'
+#
+#    Some information specific to po-debconf is available at
+#            /usr/share/doc/po-debconf/README-trans
+#         or http://www.debian.org/intl/l10n/po-debconf/README-trans
+#
+#    Developers do not need to manually edit POT or PO files.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: SOURCE_VERSION\n"
+"Report-Msgid-Bugs-To: debian-x@lists.debian.org\n"
+"POT-Creation-Date: DATE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"

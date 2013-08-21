@@ -45,6 +45,7 @@ TESTS = \
 	test-autologin-guest-logout \
 	test-group-membership \
 	test-session-env \
+	test-xdg-current-desktop \
 	test-language-env \
 	test-util-path \
 	test-session-stdout \
@@ -98,12 +99,16 @@ TESTS = \
 	test-script-hook-fail-display-setup \
 	test-script-hook-fail-greeter-setup \
 	test-script-hook-fail-session-setup \
+	test-upstart-autologin \
+	test-upstart-login \
 	test-dbus \
 	test-lock-seat \
 	test-lock-seat-return-session \
 	test-lock-session \
 	test-lock-session-no-password \
 	test-lock-session-return-session \
+	test-lock-seat-console-kit \
+	test-lock-seat-return-session-console-kit \
 	test-switch-to-greeter \
 	test-switch-to-greeter-new-session \
 	test-switch-to-greeter-new-session-logout-new \
@@ -125,7 +130,6 @@ TESTS = \
 	test-no-accounts-service \
 	test-console-kit \
 	test-no-console-kit \
-	test-login1 \
 	test-no-login1 \
 	test-no-console-kit-or-login1 \
 	test-gobject-power \
@@ -320,11 +324,12 @@ EXTRA_DIST = \
 	scripts/language-env.conf \
 	scripts/language-no-accounts-service.conf \
 	scripts/lock-seat.conf \
+	scripts/lock-seat-console-kit.conf \    
 	scripts/lock-seat-return-session.conf \
+	scripts/lock-seat-return-session-console-kit.conf \
 	scripts/lock-session.conf \
 	scripts/lock-session-no-password.conf \
 	scripts/lock-session-return-session.conf \
-	scripts/login1.conf \
 	scripts/login.conf \
 	scripts/login-crash-authenticate.conf \
 	scripts/login-guest.conf \
@@ -406,6 +411,8 @@ EXTRA_DIST = \
 	scripts/unity-mir-session-x-greeter.conf \
 	scripts/unity-plymouth.conf \
 	scripts/unity-switch.conf \
+	scripts/upstart-autologin.conf \
+	scripts/upstart-login.conf \
 	scripts/users.conf \
 	scripts/util-path.conf \
 	scripts/user-renamed.conf \
@@ -415,6 +422,7 @@ EXTRA_DIST = \
 	scripts/vnc-login.conf \
 	scripts/vnc-open-file-descriptors.conf \
 	scripts/xauthority.conf \
+	scripts/xdg-current-desktop.conf \
 	scripts/xdmcp-client.conf \
 	scripts/xdmcp-server-login.conf \
 	scripts/xdmcp-server-open-file-descriptors.conf \
