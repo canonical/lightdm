@@ -795,12 +795,16 @@ create_user_session (Seat *seat, const gchar *username)
     g_free (sessions_dir);
     if (session_config)
     {
+        const gchar *desktop_name;
         gchar **argv;
 
         session = create_session (seat, TRUE, username);
         session_set_session_type (session, session_config_get_session_type (session_config));
         session_set_env (session, "DESKTOP_SESSION", session_name);
         session_set_env (session, "GDMSESSION", session_name);
+        desktop_name = session_config_get_desktop_name (session_config);
+        if (desktop_name)
+            session_set_env (session, "XDG_CURRENT_DESKTOP", desktop_name);
         if (language && language[0] != '\0')
         {
             session_set_env (session, "LANG", language);
