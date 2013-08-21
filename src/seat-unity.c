@@ -467,7 +467,7 @@ create_x_server (Seat *seat)
 }
 
 static DisplayServer *
-create_mir_server (Seat *seat, gboolean is_greeter)
+create_mir_server (Seat *seat)
 {
     MirServer *mir_server;
 
@@ -483,7 +483,6 @@ create_mir_server (Seat *seat, gboolean is_greeter)
         id = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->next_id);
         SEAT_UNITY (seat)->priv->next_id++;
         mir_server_set_id (mir_server, id);
-        mir_server_set_is_greeter (mir_server, is_greeter);
         mir_server_set_parent_socket (mir_server, SEAT_UNITY (seat)->priv->mir_socket_filename);
         g_free (id);
     }   
@@ -492,12 +491,12 @@ create_mir_server (Seat *seat, gboolean is_greeter)
 }
 
 static DisplayServer *
-seat_unity_create_display_server (Seat *seat, const gchar *session_type, gboolean is_greeter)
+seat_unity_create_display_server (Seat *seat, const gchar *session_type)
 {  
     if (strcmp (session_type, "x") == 0)
         return create_x_server (seat);
     else if (strcmp (session_type, "mir") == 0)
-        return create_mir_server (seat, is_greeter);
+        return create_mir_server (seat);
     else
     {
         g_warning ("Can't create unsupported display server '%s'", session_type);

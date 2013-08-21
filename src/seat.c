@@ -76,7 +76,7 @@ typedef struct
 static GHashTable *seat_modules = NULL;
 
 // FIXME: Make a get_display_server() that re-uses display servers if supported
-static DisplayServer *create_display_server (Seat *seat, const gchar *session_type, gboolean is_greeter);
+static DisplayServer *create_display_server (Seat *seat, const gchar *session_type);
 static Greeter *create_greeter_session (Seat *seat);
 static void start_session (Seat *seat, Session *session);
 
@@ -409,7 +409,7 @@ switch_to_greeter_from_failed_session (Seat *seat, Session *session)
     {
         DisplayServer *display_server;
 
-        display_server = create_display_server (seat, session_get_session_type (session), TRUE);
+        display_server = create_display_server (seat, session_get_session_type (session));
         if (!display_server_start (display_server))
         {
             g_debug ("Failed to start display server for greeter");
@@ -984,7 +984,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     /* Otherwise start a new display server for this session */
     else
     {
-        display_server = create_display_server (seat, session_get_session_type (session), FALSE);
+        display_server = create_display_server (seat, session_get_session_type (session));
         session_set_display_server (session, display_server);
         if (!display_server_start (display_server))
         {
@@ -1114,13 +1114,13 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
 }
 
 static DisplayServer *
-create_display_server (Seat *seat, const gchar *session_type, gboolean is_greeter)
+create_display_server (Seat *seat, const gchar *session_type)
 {
     DisplayServer *display_server;
 
     g_debug ("Creating display server of type %s", session_type);
 
-    display_server = SEAT_GET_CLASS (seat)->create_display_server (seat, session_type, is_greeter);
+    display_server = SEAT_GET_CLASS (seat)->create_display_server (seat, session_type);
     if (!display_server)
         return NULL;
 
@@ -1171,7 +1171,7 @@ seat_switch_to_greeter (Seat *seat)
         g_object_unref (seat->priv->session_to_activate);
     seat->priv->session_to_activate = g_object_ref (greeter_session);
 
-    display_server = create_display_server (seat, session_get_session_type (SESSION (greeter_session)), TRUE);
+    display_server = create_display_server (seat, session_get_session_type (SESSION (greeter_session)));
     session_set_display_server (SESSION (greeter_session), display_server);
     if (!display_server_start (display_server))
         return FALSE;
@@ -1209,7 +1209,7 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
     seat->priv->session_to_activate = g_object_ref (session);
     session_set_pam_service (session, USER_SERVICE);
 
-    display_server = create_display_server (seat, session_get_session_type (session), FALSE);
+    display_server = create_display_server (seat, session_get_session_type (session));
     session_set_display_server (session, display_server);
     if (!display_server_start (display_server))
         return FALSE;
@@ -1256,7 +1256,7 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
     if (!session)
         return FALSE;
 
-    display_server = create_display_server (seat, session_get_session_type (session), FALSE);
+    display_server = create_display_server (seat, session_get_session_type (session));
     if (!display_server_start (display_server))
         return FALSE;
 
@@ -1295,7 +1295,7 @@ seat_lock (Seat *seat, const gchar *username)
     if (!greeter_session)
         return FALSE;
 
-    display_server = create_display_server (seat, session_get_session_type (SESSION (greeter_session)), TRUE);
+    display_server = create_display_server (seat, session_get_session_type (SESSION (greeter_session)));
     if (!display_server_start (display_server))
         return FALSE;
 
@@ -1356,7 +1356,7 @@ seat_real_start (Seat *seat)
     if (!get_start_local_sessions (seat))
     {
         DisplayServer *display_server;
-        display_server = create_display_server (seat, "x", FALSE); // FIXME: Not necessarily an X seat, but not sure what to put here
+        display_server = create_display_server (seat, "x"); // FIXME: Not necessarily an X seat, but not sure what to put here
         return display_server_start (display_server);
     }
 
@@ -1394,7 +1394,7 @@ seat_real_start (Seat *seat)
                 g_object_unref (seat->priv->session_to_activate);
             seat->priv->session_to_activate = g_object_ref (session);
 
-            display_server = create_display_server (seat, session_get_session_type (session), FALSE);
+            display_server = create_display_server (seat, session_get_session_type (session));
             session_set_display_server (session, display_server);
             if (!display_server || !display_server_start (display_server))
             {
@@ -1438,7 +1438,7 @@ seat_real_start (Seat *seat)
                 greeter_set_hint (greeter_session, "autologin-guest", "true");
         }
 
-        display_server = create_display_server (seat, session_get_session_type (session), TRUE);
+        display_server = create_display_server (seat, session_get_session_type (session));
         session_set_display_server (session, display_server);
         if (!display_server || !display_server_start (display_server))
         {
@@ -1462,7 +1462,7 @@ seat_real_start (Seat *seat)
     {
         DisplayServer *background_display_server;
 
-        background_display_server = create_display_server (seat, session_get_session_type (background_session), FALSE);
+        background_display_server = create_display_server (seat, session_get_session_type (background_session));
         session_set_display_server (background_session, background_display_server);
         if (!display_server_start (background_display_server))
             g_warning ("Failed to start display server for background session");
