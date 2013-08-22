@@ -1,5 +1,5 @@
-#ifndef _STATUS_H_
-#define _STATUS_H_
+#ifndef STATUS_H_
+#define STATUS_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -9,7 +9,7 @@ extern "C" {
 
 typedef void (*StatusRequestFunc)(const gchar *message);
 
-void status_connect (StatusRequestFunc message_cb);
+gboolean status_connect (StatusRequestFunc message_cb);
 
 void status_notify (const gchar *format, ...);
 
@@ -17,4 +17,4 @@ void status_notify (const gchar *format, ...);
 }
 #endif
 
-#endif /* _STATUS_H_ */
+#endif /* STATUS_H_ */

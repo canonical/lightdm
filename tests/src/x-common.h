@@ -1,5 +1,5 @@
-#ifndef _X_COMMON_H_
-#define _X_COMMON_H_
+#ifndef X_COMMON_H_
+#define X_COMMON_H_
 
 #include <glib-object.h>
 
@@ -45,4 +45,4 @@ void write_padded_string (guint8 *buffer, gsize buffer_length, const gchar *valu
 
 G_END_DECLS
 
-#endif /* _X_COMMON_H_ */
+#endif /* X_COMMON_H_ */
