@@ -133,7 +133,14 @@ compositor_run_cb (Process *process, SeatUnity *seat)
     if (seat->priv->log_file)
     {
          int fd;
+         gchar *old_filename;
 
+         /* Move old file out of the way */
+         old_filename = g_strdup_printf ("%s.old", seat->priv->log_file);
+         rename (seat->priv->log_file, old_filename);
+         g_free (old_filename);
+
+         /* Create new file and log to it */
          fd = g_open (seat->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
          if (fd < 0)
              l_warning (seat, "Failed to open log file %s: %s", seat->priv->log_file, g_strerror (errno));
