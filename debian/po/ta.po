@@ -1,77 +1,84 @@
-# translation of templates.po to TAMIL
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
+# Tamil translation for lightdm
+# Copyright (c) 2011 Rosetta Contributors and Canonical Ltd 2011
+# This file is distributed under the same license as the lightdm package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2011.
 #
-# Dr.T.Vasudevan <agnihot3@gmail.com>, 2007.
 msgid ""
 msgstr ""
-"Project-Id-Version: templates\n"
-"Report-Msgid-Bugs-To: mmassonnet@gmail.com\n"
+"Project-Id-Version: lightdm\n"
+"Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2007-05-31 08:04+0200\n"
-"PO-Revision-Date: 2007-03-26 16:49+0530\n"
-"Last-Translator: Dr.T.Vasudevan <agnihot3@gmail.com>\n"
-"Language-Team: TAMIL <ubuntu-l10n-tam@lists.ubuntu.com>\n"
+"PO-Revision-Date: 2011-07-04 05:24+0000\n"
+"Last-Translator: Mel C <melwin.a3@gmail.com>\n"
+"Language-Team: Tamil <ta@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.11.4\n"
+"X-Launchpad-Export-Date: 2013-08-22 05:08+0000\n"
+"X-Generator: Launchpad (build 16734)\n"
 
 #. Type: select
 #. Description
-#: ../lxdm.templates:2001
+#: ../lightdm.templates:2001
 msgid "Default display manager:"
-msgstr "முன்னிருப்பு காட்சி மேலாளர்:"
+msgstr ""
 
 #. Type: select
 #. Description
-#: ../lxdm.templates:2001
+#: ../lightdm.templates:2001
 msgid ""
 "A display manager is a program that provides graphical login capabilities "
 "for the X Window System."
 msgstr ""
-"காட்சி மேலாளர் என்பது வரைகலை உள்நுழைவு இயலுமையை எக்ஸ் விண்டோஸ் அமைப்புக்கு தரும் "
-"நிரலாகும்."
 
 #. Type: select
 #. Description
-#: ../lxdm.templates:2001
+#: ../lightdm.templates:2001
 msgid ""
 "Only one display manager can manage a given X server, but multiple display "
 "manager packages are installed. Please select which display manager should "
 "run by default."
 msgstr ""
-"ஒரு கொடுக்கப் பட்ட X சேவையகத்தில் ஒரு காட்சி மேலாளர்தான் மேலாள இயலும். ஆனால் பல காட்சி "
-"மேலாளர்கள் நிறுவப் பட்டுள்ளன. எது முன்னிருப்பாக இருக்க வேண்டும் என தேர்ந்தெடுங்கள்"
 
 #. Type: select
 #. Description
-#: ../lxdm.templates:2001
+#: ../lightdm.templates:2001
 msgid ""
 "Multiple display managers can run simultaneously if they are configured to "
 "manage different servers; to achieve this, configure the display managers "
 "accordingly, edit each of their init scripts in /etc/init.d, and disable the "
 "check for a default display manager."
 msgstr ""
-"வெவ்வேறு சேவையகங்களை மேலாள வடிவமைத்தால் பல காட்சி மேலாளர்கள் ஒரே நேரத்தில் இயங்கக் "
-"கூடும். இதை செய்ய காட்சி மேலாளர்களை தகுந்தாற் போல வடிவமையுங்கள். அவற்றின் இனிட் சிறு "
-"நிரல்களை /etc/init.d இல் திருத்துங்கள். முன்னிருப்பு காட்சி மேலாளர் தேர்வை செயலிழக்கச் "
-"செய்யவும்."
 
-#~ msgid "Stop the xdm daemon?"
-#~ msgstr "எக்ஸ்டிஎம் கிங்கரனை நிறுத்தவா?"
+#~ msgid "Shutdown"
+#~ msgstr "முழுநிறுத்தம்"
+
+#~ msgid "Large Font"
+#~ msgstr "தடிமஎழுத்துரு"
+
+#~ msgid "Cancel"
+#~ msgstr "ரத்துசெய்"
+
+#~ msgid "Are you sure you want to close all programs and restart the computer?"
+#~ msgstr ""
+#~ "அனைத்து நிரல்களையும் மூடி கணினியை மீள்துவக்கம் செய்ய உறுதியாக உள்ளீர்களா?"
+
+#~ msgid "Restart"
+#~ msgstr "மீள்துவக்கு"
+
+#~ msgid "Hibernate"
+#~ msgstr "இடை உறக்கம்"
+
+#~ msgid "Restart..."
+#~ msgstr "மீள்துவக்கு"
+
+#~ msgid "Shutdown..."
+#~ msgstr "முழுநிறுத்தம்"
+
+#~ msgid "Suspend"
+#~ msgstr "ஒத்திப்போடு"
 
 #~ msgid ""
-#~ "The X display manager (xdm) daemon is typically stopped on package "
-#~ "upgrade and removal, but it appears to be managing at least one running X "
-#~ "session."
+#~ "Are you sure you want to close all programs and shutdown the computer?"
 #~ msgstr ""
-#~ "எக்ஸ்டிஎம் கிங்கரன் வழக்கமாக பொதி மேலாக்கம் அல்லது நீக்கம் நிகழும் போது நிறுத்தப் படும். "
-#~ "ஆனால் அது ஒரு எக்ஸ் அமர்வையாவது இயக்குவது போல தெரிகிறது."
-
-#~ msgid ""
-#~ "If xdm is stopped now, any X sessions it manages will be terminated. "
-#~ "Otherwise, the new version will take effect the next time the daemon is "
-#~ "restarted."
-#~ msgstr ""
-#~ "இப்போது எக்ஸ்டிஎம் நிறுத்தப் பட்டால் அது மேலாளும் எக்ஸ் அமர்வுகள் நிறுத்தப் படும். அல்லது "
-#~ "புதிய பதிப்பு கிங்கரன் அடுத்த முறை இயங்கும் போது செயல் ல் படும்."
+#~ "அனைத்து நிரல்களையும் மூடி கணினியை முழுநிறுத்தம் செய்ய உறுதியாக உள்ளீர்களா?"
