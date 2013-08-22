@@ -330,7 +330,14 @@ run_cb (Process *process, XServerLocal *server)
     if (server->priv->log_file)
     {
          int fd;
+         gchar *old_filename;
 
+         /* Move old file out of the way */
+         old_filename = g_strdup_printf ("%s.old", server->priv->log_file);
+         rename (server->priv->log_file, old_filename);
+         g_free (old_filename);
+
+         /* Create new file and log to it */
          fd = g_open (server->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
          if (fd < 0)
              l_warning (server, "Failed to open log file %s: %s", server->priv->log_file, g_strerror (errno));
