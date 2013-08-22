@@ -115,6 +115,42 @@ request_cb (const gchar *request)
     }
     g_free (r);
 
+    r = g_strdup_printf ("%s LOG-DEFAULT-SESSION", greeter_id);
+    if (strcmp (request, r) == 0)
+        status_notify ("%s LOG-DEFAULT-SESSION SESSION=%s", greeter_id, lightdm_greeter_get_default_session_hint (greeter));
+    g_free (r);
+
+    r = g_strdup_printf ("%s LOG-USER-LIST-LENGTH", greeter_id);
+    if (strcmp (request, r) == 0)
+        status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, lightdm_user_list_get_length (lightdm_user_list_get_instance ()));
+    g_free (r);
+
+    r = g_strdup_printf ("%s LOG-USER USERNAME=", greeter_id);
+    if (g_str_has_prefix (request, r))
+    {
+        LightDMUser *user;
+        const gchar *username;
+
+        username = request + strlen (r);
+        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
+        status_notify ("%s LOG-USER USERNAME=%s", greeter_id, lightdm_user_get_name (user));
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("%s LOG-USER-LIST", greeter_id);
+    if (strcmp (request, r) == 0)
+    {
+        GList *users, *link;
+
+        users = lightdm_user_list_get_users (lightdm_user_list_get_instance ());
+        for (link = users; link; link = link->next)
+        {
+            LightDMUser *user = link->data;
+            status_notify ("%s LOG-USER USERNAME=%s", greeter_id, lightdm_user_get_name (user));
+        }
+    }
+    g_free (r);
+
     r = g_strdup_printf ("%s LOG-LAYOUT USERNAME=", greeter_id);
     if (g_str_has_prefix (request, r))
     {
@@ -161,10 +197,23 @@ request_cb (const gchar *request)
     g_free (r);
 }
 
+static void
+user_added_cb (LightDMUserList *user_list, LightDMUser *user)
+{
+    status_notify ("%s USER-ADDED USERNAME=%s", greeter_id, lightdm_user_get_name (user));
+}
+
+static void
+user_removed_cb (LightDMUserList *user_list, LightDMUser *user)
+{
+    status_notify ("%s USER-REMOVED USERNAME=%s", greeter_id, lightdm_user_get_name (user));
+}
+
 int
 main (int argc, char **argv)
 {
-    gchar *display;
+    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie;
+    GString *status_text;
 
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
@@ -174,18 +223,33 @@ main (int argc, char **argv)
 #endif
 
     display = getenv ("DISPLAY");
-    if (display == NULL)
-        greeter_id = g_strdup ("GREETER-?");
-    else if (display[0] == ':')
-        greeter_id = g_strdup_printf ("GREETER-X-%s", display + 1);
+    xdg_seat = getenv ("XDG_SEAT");
+    xdg_vtnr = getenv ("XDG_VTNR");
+    xdg_session_cookie = getenv ("XDG_SESSION_COOKIE");
+    if (display)
+    {
+        if (display[0] == ':')
+            greeter_id = g_strdup_printf ("GREETER-X-%s", display + 1);
+        else
+            greeter_id = g_strdup_printf ("GREETER-X-%s", display);
+    }
     else
-        greeter_id = g_strdup_printf ("GREETER-X-%s", display);
+        greeter_id = g_strdup ("GREETER-?");
 
     loop = g_main_loop_new (NULL, FALSE);
 
     status_connect (request_cb);
 
-    status_notify ("%s START", greeter_id);
+    status_text = g_string_new ("");
+    g_string_printf (status_text, "%s START", greeter_id);
+    if (xdg_seat)
+        g_string_append_printf (status_text, " XDG_SEAT=%s", xdg_seat);
+    if (xdg_vtnr)
+        g_string_append_printf (status_text, " XDG_VTNR=%s", xdg_vtnr);
+    if (xdg_session_cookie)
+        g_string_append_printf (status_text, " XDG_SESSION_COOKIE=%s", xdg_session_cookie);
+    status_notify (status_text->str);
+    g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
@@ -197,21 +261,28 @@ main (int argc, char **argv)
         return return_value;
     }
 
-    connection = xcb_connect (NULL, NULL);
-
-    if (xcb_connection_has_error (connection))
+    if (display)
     {
-        status_notify ("%s FAIL-CONNECT-XSERVER", greeter_id);
-        return EXIT_FAILURE;
+        connection = xcb_connect (NULL, NULL);
+        if (xcb_connection_has_error (connection))
+        {
+            status_notify ("%s FAIL-CONNECT-XSERVER", greeter_id);
+            return EXIT_FAILURE;
+        }
+        status_notify ("%s CONNECT-XSERVER", greeter_id);
     }
-
-    status_notify ("%s CONNECT-XSERVER", greeter_id);
 
     greeter = lightdm_greeter_new ();
     g_signal_connect (greeter, "show-message", G_CALLBACK (show_message_cb), NULL);
     g_signal_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
     g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
     g_signal_connect (greeter, "autologin-timer-expired", G_CALLBACK (autologin_timer_expired_cb), NULL);
+
+    if (g_key_file_get_boolean (config, "test-greeter-config", "log-user-changes", NULL))
+    {
+        g_signal_connect (lightdm_user_list_get_instance (), "user-added", G_CALLBACK (user_added_cb), NULL);
+        g_signal_connect (lightdm_user_list_get_instance (), "user-removed", G_CALLBACK (user_removed_cb), NULL);
+    }
 
     status_notify ("%s CONNECT-TO-DAEMON", greeter_id);
     if (!lightdm_greeter_connect_sync (greeter, NULL))
@@ -228,6 +299,12 @@ main (int argc, char **argv)
         status_notify ("%s SELECT-GUEST-HINT", greeter_id);
     if (lightdm_greeter_get_lock_hint (greeter))
         status_notify ("%s LOCK-HINT", greeter_id);
+    if (!lightdm_greeter_get_has_guest_account_hint (greeter))
+        status_notify ("%s HAS-GUEST-ACCOUNT-HINT=FALSE", greeter_id);
+    if (lightdm_greeter_get_hide_users_hint (greeter))
+        status_notify ("%s HIDE-USERS-HINT", greeter_id);
+    if (lightdm_greeter_get_show_manual_login_hint (greeter))
+        status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
 
     g_main_loop_run (loop);
 

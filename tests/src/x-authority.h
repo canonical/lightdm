@@ -1,5 +1,5 @@
-#ifndef _X_AUTHORITY_H_
-#define _X_AUTHORITY_H_
+#ifndef X_AUTHORITY_H_
+#define X_AUTHORITY_H_
 
 #include <glib-object.h>
 #include <gio/gio.h>
@@ -68,4 +68,4 @@ gboolean x_authority_record_check_cookie (XAuthorityRecord *record, const guint8
 
 G_END_DECLS
 
-#endif /* _X_AUTHORITY_H_ */
+#endif /* X_AUTHORITY_H_ */

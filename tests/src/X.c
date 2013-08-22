@@ -27,6 +27,9 @@ static gchar *auth_path = NULL;
 /* Display number being served */
 static int display_number = 0;
 
+/* VT being run on */
+static int vt_number = -1;
+
 /* X server */
 static XServer *xserver = NULL;
 
@@ -55,18 +58,6 @@ quit (int status)
     g_main_loop_quit (loop);
 }
 
-static void
-indicate_ready (void)
-{
-    void *handler;  
-    handler = signal (SIGUSR1, SIG_IGN);
-    if (handler == SIG_IGN)
-    {
-        status_notify ("XSERVER-%d INDICATE-READY", display_number);
-        kill (getppid (), SIGUSR1);
-    }
-    signal (SIGUSR1, handler);
-}
 
 static void
 signal_cb (int signum)
@@ -74,7 +65,6 @@ signal_cb (int signum)
     if (signum == SIGHUP)
     {
         status_notify ("XSERVER-%d DISCONNECT-CLIENTS", display_number);
-        indicate_ready ();
     }
     else
     {
@@ -163,8 +153,6 @@ static void
 client_disconnected_cb (XServer *server, XClient *client)
 {  
     g_signal_handlers_disconnect_matched (client, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, NULL);  
-    if (x_server_get_n_clients (server) == 0)
-        indicate_ready ();
 }
 
 static void
@@ -185,6 +173,27 @@ request_cb (const gchar *request)
         kill (getpid (), SIGSEGV);
     }
     g_free (r);
+    r = g_strdup_printf ("XSERVER-%d INDICATE-READY", display_number);
+    if (strcmp (request, r) == 0)
+    {
+        void *handler;
+
+        handler = signal (SIGUSR1, SIG_IGN);
+        if (handler == SIG_IGN)
+        {
+            status_notify ("XSERVER-%d INDICATE-READY", display_number);
+            kill (getppid (), SIGUSR1);
+        }
+        signal (SIGUSR1, handler);
+    }
+    g_free (r);
+    r = g_strdup_printf ("XSERVER-%d START-XDMCP", display_number);
+    if (strcmp (request, r) == 0)
+    {
+        if (!xdmcp_client_start (xdmcp_client))
+            quit (EXIT_FAILURE);
+    }
+    g_free (r);
 }
 
 int
@@ -197,6 +206,7 @@ main (int argc, char **argv)
     gchar *xdmcp_host = NULL;
     gchar *lock_filename;
     int lock_file;
+    GString *status_text;
 
     signal (SIGINT, signal_cb);
     signal (SIGTERM, signal_cb);
@@ -257,9 +267,9 @@ main (int argc, char **argv)
         }
         else if (g_str_has_prefix (arg, "vt"))
         {
-            /* Ignore VT args */
+            vt_number = atoi (arg + 2);
         }
-        else if (g_str_has_prefix (arg, "-novtswitch"))
+        else if (strcmp (arg, "-novtswitch") == 0)
         {
             /* Ignore VT args */
         }
@@ -284,7 +294,12 @@ main (int argc, char **argv)
     g_signal_connect (xserver, "client-connected", G_CALLBACK (client_connected_cb), NULL);
     g_signal_connect (xserver, "client-disconnected", G_CALLBACK (client_disconnected_cb), NULL);
 
-    status_notify ("XSERVER-%d START", display_number);
+    status_text = g_string_new ("");
+    g_string_printf (status_text, "XSERVER-%d START", display_number);
+    if (vt_number >= 0)
+        g_string_append_printf (status_text, " VT=%d", vt_number);
+    status_notify (status_text->str);
+    g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
@@ -373,13 +388,7 @@ main (int argc, char **argv)
         g_signal_connect (xdmcp_client, "accept", G_CALLBACK (xdmcp_accept_cb), NULL);
         g_signal_connect (xdmcp_client, "decline", G_CALLBACK (xdmcp_decline_cb), NULL);
         g_signal_connect (xdmcp_client, "failed", G_CALLBACK (xdmcp_failed_cb), NULL);
-
-        if (!xdmcp_client_start (xdmcp_client))
-            quit (EXIT_FAILURE);
     }
-
-    /* Indicate ready if parent process has requested it */
-    indicate_ready ();
 
     g_main_loop_run (loop);
 

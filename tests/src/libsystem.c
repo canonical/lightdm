@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <pwd.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <grp.h>
 #include <security/pam_appl.h>
 #include <fcntl.h>
@@ -27,6 +28,8 @@ static GList *getpwent_link = NULL;
 static GList *group_entries = NULL;
 
 static int active_vt = 7;
+
+static gboolean status_connected = FALSE;
 
 struct pam_handle
 {
@@ -164,6 +167,9 @@ redirect_path (const gchar *path)
     if (g_str_has_prefix (path, LOCALSTATEDIR))
         return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "var", path + strlen (LOCALSTATEDIR), NULL);
 
+    if (g_str_has_prefix (path, DATADIR))
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "usr", "share", path + strlen (DATADIR), NULL);
+
     // Don't redirect if inside the build directory
     if (g_str_has_prefix (path, BUILDDIR))
         return g_strdup (path);
@@ -284,6 +290,10 @@ access (const char *pathname, int mode)
     gchar *new_path = NULL;
     int ret;
 
+    /* Look like systemd is always running */
+    if (strcmp (pathname, "/run/systemd/seats/") == 0)
+        return 1;
+
     _access = (int (*)(const char *pathname, int mode)) dlsym (RTLD_NEXT, "access");
 
     new_path = redirect_path (pathname);
@@ -357,6 +367,22 @@ __xstat64 (int version, const char *path, struct stat *buf)
     return ret;
 }
 
+DIR *
+opendir (const char *name)
+{
+    DIR *(*_opendir) (const char *name);
+    gchar *new_path = NULL;
+    DIR *result;
+
+    _opendir = (DIR *(*)(const char *name)) dlsym (RTLD_NEXT, "opendir");
+
+    new_path = redirect_path (name);
+    result = _opendir (new_path);
+    g_free (new_path);
+
+    return result; 
+}
+
 int
 mkdir (const char *pathname, mode_t mode)
 {
@@ -399,6 +425,7 @@ ioctl (int d, int request, void *data)
     {
         struct vt_stat *console_state;
         int *n;
+        int vt;
 
         switch (request)
         {
@@ -407,7 +434,14 @@ ioctl (int d, int request, void *data)
             console_state->v_active = active_vt;
             break;
         case VT_ACTIVATE:
-            active_vt = GPOINTER_TO_INT (data);
+            vt = GPOINTER_TO_INT (data);
+            if (vt != active_vt)
+            {
+                active_vt = vt;
+                if (!status_connected)
+                    status_connected = status_connect (NULL);
+                status_notify ("VT ACTIVATE VT=%d", active_vt);
+            }
             break;
         case VT_WAITACTIVE:
             break;
@@ -940,9 +974,9 @@ static const char *
 get_env_value (const char *name_value, const char *name)
 {
     int j;
-
-    for (j = 0; name[j] && name[j] != '=' && name[j] == name_value[j]; j++);
-    if (name_value[j] == '=')
+  
+    for (j = 0; name[j] && name_value[j] && name[j] == name_value[j]; j++);
+    if (name[j] == '\0' && name_value[j] == '=')
         return &name_value[j + 1];
 
     return NULL;
@@ -952,15 +986,21 @@ int
 pam_putenv (pam_handle_t *pamh, const char *name_value)
 {
     int i;
+    gchar *name;
 
     if (pamh == NULL || name_value == NULL)
         return PAM_SYSTEM_ERR;
 
+    name = strdup (name_value);
+    for (i = 0; name[i]; i++)
+        if (name[i] == '=')
+            name[i] = '\0';
     for (i = 0; pamh->envlist[i]; i++)
     {
-        if (get_env_value (pamh->envlist[i], name_value))
+        if (get_env_value (pamh->envlist[i], name))
             break;
     }
+    free (name);
 
     if (pamh->envlist[i])
     {

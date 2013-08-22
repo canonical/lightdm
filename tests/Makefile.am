@@ -5,6 +5,10 @@ TESTS = \
 	test-greeter-fail-start \
 	test-greeter-not-installed \
 	test-greeter-xserver-crash \
+	test-greeter-default-session \
+	test-greeter-allow-guest \
+	test-greeter-hide-users \
+	test-greeter-show-manual-login \
 	test-no-config \
 	test-headless \
 	test-autologin \
@@ -17,8 +21,6 @@ TESTS = \
 	test-autologin-new-authtok \
 	test-autologin-gobject-timeout \
 	test-autologin-gobject-guest-timeout \
-	test-autologin-python-timeout \
-	test-autologin-python-guest-timeout \
 	test-pam \
 	test-login-pam \
 	test-denied \
@@ -33,6 +35,7 @@ TESTS = \
 	test-autologin-guest-fail-setup-script \
 	test-autologin-guest-logout \
 	test-group-membership \
+	test-session-env \
 	test-util-path \
 	test-session-stdout \
 	test-session-stderr \
@@ -60,6 +63,7 @@ TESTS = \
 	test-login-gobject-multi-info-prompt \
 	test-login-gobject-multi-prompt \
 	test-login-gobject-pick-session \
+	test-login-gobject-remember-session \
 	test-login-gobject-previous-session \
 	test-login-gobject-wrong-password \
 	test-login-gobject-invalid-user \
@@ -70,27 +74,6 @@ TESTS = \
 	test-login-gobject-guest-no-setup-script \
 	test-login-gobject-guest-fail-setup-script \
 	test-login-gobject-guest-logout \
-	test-login-python \
-	test-login-python-manual \
-	test-login-python-manual-previous-session \
-	test-login-python-no-password \
-	test-login-python-long-username \
-	test-login-python-long-password \
-	test-login-python-two-factor \
-	test-login-python-new-authtok \
-	test-login-python-info-prompt \
-	test-login-python-multi-info-prompt \
-	test-login-python-previous-session \
-	test-login-python-wrong-password \
-	test-login-python-invalid-user \
-	test-login-python-invalid-session \
-	test-login-python-logout \
-	test-login-python-pick-session \
-	test-login-python-guest \
-	test-login-python-guest-disabled \
-	test-login-python-guest-no-setup-script \
-	test-login-python-guest-fail-setup-script \
-	test-login-python-guest-logout \
 	test-login-session-crash \
 	test-login-xserver-crash \
 	test-home-dir-on-authenticate \
@@ -117,18 +100,44 @@ TESTS = \
 	test-switch-to-user-no-password \
 	test-switch-to-user-logout \
 	test-vnc-login \
-	test-xdmcp-login \
+	test-xdmcp-server-login \
 	test-no-accounts-service \
 	test-console-kit \
 	test-no-console-kit \
 	test-open-file-descriptors \
-	test-xdmcp-open-file-descriptors
+	test-xdmcp-server-open-file-descriptors
 
 #	test-session-exit-error
 #	test-greeter-no-exit
 #   test-gobject-change-password
 #   test-qt-change-password
 #   test-autologin-create-directory
+
+TESTS += \
+	test-login-python \
+	test-login-python-manual \
+	test-login-python-manual-previous-session \
+	test-login-python-no-password \
+	test-login-python-long-username \
+	test-login-python-long-password \
+	test-login-python-two-factor \
+	test-login-python-new-authtok \
+	test-login-python-info-prompt \
+	test-login-python-multi-info-prompt \
+	test-login-python-previous-session \
+	test-login-python-wrong-password \
+	test-login-python-invalid-user \
+	test-login-python-invalid-session \
+	test-login-python-logout \
+	test-login-python-pick-session \
+	test-login-python-remember-session \
+	test-login-python-guest \
+	test-login-python-guest-disabled \
+	test-login-python-guest-no-setup-script \
+	test-login-python-guest-fail-setup-script \
+	test-login-python-guest-logout \
+	test-autologin-python-timeout \
+	test-autologin-python-guest-timeout
 
 if COMPILE_LIBLIGHTDM_QT
 TESTS += \
@@ -150,6 +159,7 @@ TESTS += \
 	test-login-qt-invalid-session \
 	test-login-qt-logout \
 	test-login-qt-pick-session \
+	test-login-qt-remember-session \
 	test-login-qt-guest \
 	test-login-qt-guest-disabled \
 	test-login-qt-guest-no-setup-script \
@@ -188,8 +198,12 @@ EXTRA_DIST = \
 	scripts/cred-unavail.conf \
 	scripts/denied.conf \
 	scripts/expired.conf \
+	scripts/greeter-allow-guest.conf \
+	scripts/greeter-default-session.conf \
 	scripts/greeter-fail-start.conf \
+	scripts/greeter-hide-users.conf \
 	scripts/greeter-not-installed.conf \
+	scripts/greeter-show-manual-login.conf \
 	scripts/greeter-xserver-crash.conf \
 	scripts/group-membership.conf \
 	scripts/headless.conf \
@@ -222,8 +236,9 @@ EXTRA_DIST = \
 	scripts/login-pam.conf \
 	scripts/login-pick-session.conf \
 	scripts/login-previous-session.conf \
-	scripts/login-two-factor.conf \
+	scripts/login-remember-session.conf \
 	scripts/login-session-crash.conf \
+	scripts/login-two-factor.conf \
 	scripts/login-wrong-password.conf \
 	scripts/login-xserver-crash.conf \
 	scripts/no-accounts-service.conf \
@@ -231,6 +246,7 @@ EXTRA_DIST = \
 	scripts/no-console-kit.conf \
 	scripts/no-keyboard-layout.conf \
 	scripts/no-language.conf \
+	scripts/open-file-descriptors.conf \
 	scripts/pam.conf \
 	scripts/plymouth-active-vt.conf \
 	scripts/plymouth-inactive-vt.conf \
@@ -239,6 +255,7 @@ EXTRA_DIST = \
 	scripts/script-hook-fail-display-setup.conf \
 	scripts/script-hook-fail-greeter-setup.conf \
 	scripts/script-hook-fail-session-setup.conf \
+	scripts/session-env.conf \
 	scripts/session-stdout.conf \
 	scripts/session-stderr.conf \
 	scripts/session-stderr-multi-write.conf \
@@ -261,5 +278,6 @@ EXTRA_DIST = \
 	scripts/user-renamed-invalid.conf \
 	scripts/vnc-login.conf \
 	scripts/xauthority.conf \
-	scripts/xdmcp-login.conf \
+	scripts/xdmcp-server-login.conf \
+	scripts/xdmcp-server-open-file-descriptors.conf \
 	scripts/xserver-fail-start.conf
