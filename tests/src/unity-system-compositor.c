@@ -179,6 +179,8 @@ main (int argc, char **argv)
     status_text = g_string_new ("UNITY-SYSTEM-COMPOSITOR START");
     if (vt_number >= 0)
         g_string_append_printf (status_text, " VT=%d", vt_number);
+    if (g_getenv ("XDG_VTNR"))
+        g_string_append_printf (status_text, " XDG_VTNR=%s", g_getenv ("XDG_VTNR"));
     if (test)
         g_string_append (status_text, " TEST=TRUE");
     status_notify (status_text->str);
