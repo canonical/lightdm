@@ -854,6 +854,49 @@ compare_strings (gconstpointer a, gconstpointer b)
     return strcmp (a, b);
 }
 
+static void
+load_config_directory (const gchar *path, GList **messages)
+{
+    GDir *dir;
+    GList *files = NULL, *link;
+    GError *error = NULL;
+
+    /* Find configuration files */
+    dir = g_dir_open (path, 0, &error);
+    if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+        g_printerr ("Failed to open configuration directory %s: %s\n", path, error->message);
+    g_clear_error (&error);
+    if (dir)
+    {
+        const gchar *name;
+        while ((name = g_dir_read_name (dir)))
+            files = g_list_append (files, g_strdup (name));
+        g_dir_close (dir);
+    }
+
+    /* Sort alphabetically and load onto existing configuration */
+    files = g_list_sort (files, compare_strings);
+    for (link = files; link; link = link->next)
+    {
+        gchar *filename = link->data;
+        gchar *conf_path;
+
+        conf_path = g_build_filename (path, filename, NULL);
+        if (g_str_has_suffix (filename, ".conf"))
+        {
+            *messages = g_list_append (*messages, g_strdup_printf ("Loading configuration from %s", conf_path));
+            config_load_from_file (config_get_instance (), conf_path, &error);
+            if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+                g_printerr ("Failed to load configuration from %s: %s\n", filename, error->message);
+            g_clear_error (&error);
+        }
+        else
+            g_debug ("Ignoring configuration file %s, it does not have .conf suffix", conf_path);
+        g_free (conf_path);
+    }
+    g_list_free_full (files, g_free);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1009,46 +1052,9 @@ main (int argc, char **argv)
     }
 
     /* Load config file(s) */
+    load_config_directory (SYSTEM_CONFIG_DIR, &messages);
     if (config_d_dir)
-    {
-        GDir *dir;
-        GList *files = NULL, *link;
-
-        /* Find configuration files */
-        dir = g_dir_open (config_d_dir, 0, &error);
-        if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
-            g_printerr ("Failed to open configuration directory %s: %s\n", config_d_dir, error->message);
-        g_clear_error (&error);
-        if (dir)
-        {
-            const gchar *name;
-            while ((name = g_dir_read_name (dir)))
-                files = g_list_append (files, g_strdup (name));
-            g_dir_close (dir);
-        }
-
-        /* Sort alphabetically and load onto existing configuration */
-        files = g_list_sort (files, compare_strings);
-        for (link = files; link; link = link->next)
-        {
-            gchar *filename = link->data;
-            gchar *path;
-
-            path = g_build_filename (config_d_dir, filename, NULL);
-            if (g_str_has_suffix (filename, ".conf"))
-            {
-                messages = g_list_append (messages, g_strdup_printf ("Loading configuration from %s", path));
-                config_load_from_file (config_get_instance (), path, &error);
-                if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
-                    g_printerr ("Failed to load configuration from %s: %s\n", filename, error->message);
-                g_clear_error (&error);
-            }
-            else
-                g_debug ("Ignoring configuration file %s, it does not have .conf suffix", path);
-            g_free (path);
-        }
-        g_list_free_full (files, g_free);
-    }
+        load_config_directory (config_d_dir, &messages);
     g_free (config_d_dir);
     messages = g_list_append (messages, g_strdup_printf ("Loading configuration from %s", config_path));
     if (!config_load_from_file (config_get_instance (), config_path, &error))

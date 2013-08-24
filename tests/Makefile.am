@@ -14,6 +14,8 @@ TESTS = \
 	test-no-config \
 	test-additional-config \
 	test-additional-config-priority \
+	test-additional-system-config \
+	test-additional-system-config-priority \
 	test-headless \
 	test-autologin \
 	test-autologin-in-background \
@@ -280,6 +282,8 @@ EXTRA_DIST = \
 	scripts/1-additional.conf \
 	scripts/additional-config.conf \
 	scripts/additional-config-priority.conf \
+	scripts/additional-system-config.conf \
+	scripts/additional-system-config-priority.conf \
 	scripts/autologin.conf \
 	scripts/autologin-guest.conf \
 	scripts/autologin-guest-fail-setup-script.conf \
