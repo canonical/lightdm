@@ -527,7 +527,6 @@ gboolean
 session_start (Session *session)
 {
     g_return_val_if_fail (session != NULL, FALSE);
-    g_return_val_if_fail (session->priv->display_server != NULL, FALSE);
     return SESSION_GET_CLASS (session)->start (session);
 }
 
@@ -546,7 +545,8 @@ session_real_start (Session *session)
 
     g_return_val_if_fail (session->priv->pid == 0, FALSE);
 
-    display_server_connect_session (session->priv->display_server, session);
+    if (session->priv->display_server)
+        display_server_connect_session (session->priv->display_server, session);
 
     /* Create pipes to talk to the child */
     if (pipe (to_child_pipe) < 0 || pipe (from_child_pipe) < 0)
