@@ -13,6 +13,7 @@ TESTS = \
 	test-greeter-show-remote-login \
 	test-no-config \
 	test-additional-config \
+	test-additional-config-priority \
 	test-headless \
 	test-autologin \
 	test-autologin-in-background \
@@ -278,6 +279,7 @@ EXTRA_DIST = \
 	scripts/0-additional.conf \
 	scripts/1-additional.conf \
 	scripts/additional-config.conf \
+	scripts/additional-config-priority.conf \
 	scripts/autologin.conf \
 	scripts/autologin-guest.conf \
 	scripts/autologin-guest-fail-setup-script.conf \

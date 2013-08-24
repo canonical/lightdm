@@ -1009,22 +1009,6 @@ main (int argc, char **argv)
     }
 
     /* Load config file(s) */
-    messages = g_list_append (messages, g_strdup_printf ("Loading configuration from %s", config_path));
-    if (!config_load_from_file (config_get_instance (), config_path, &error))
-    {
-        gboolean is_empty;
-
-        is_empty = error && g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
-
-        if (explicit_config || !is_empty)
-        {
-            if (error)
-                g_printerr ("Failed to load configuration from %s: %s\n", config_path, error->message);
-            exit (EXIT_FAILURE);
-        }
-    }
-    g_clear_error (&error);
-    g_free (config_path);
     if (config_d_dir)
     {
         GDir *dir;
@@ -1066,6 +1050,22 @@ main (int argc, char **argv)
         g_list_free_full (files, g_free);
     }
     g_free (config_d_dir);
+    messages = g_list_append (messages, g_strdup_printf ("Loading configuration from %s", config_path));
+    if (!config_load_from_file (config_get_instance (), config_path, &error))
+    {
+        gboolean is_empty;
+
+        is_empty = error && g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
+
+        if (explicit_config || !is_empty)
+        {
+            if (error)
+                g_printerr ("Failed to load configuration from %s: %s\n", config_path, error->message);
+            exit (EXIT_FAILURE);
+        }
+    }
+    g_clear_error (&error);
+    g_free (config_path);
 
     /* Set default values */
     if (!config_has_key (config_get_instance (), "LightDM", "start-default-seat"))
