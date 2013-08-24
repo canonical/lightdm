@@ -186,10 +186,6 @@ seat_set_active_session (Seat *seat, Session *session)
 
     g_return_if_fail (seat != NULL);
 
-    /* Unlock this session */
-    if (session != seat->priv->active_session && !IS_GREETER (session))
-        session_unlock (session);
-
     SEAT_GET_CLASS (seat)->set_active_session (seat, session);
 
     /* Stop any greeters */
@@ -921,6 +917,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     {
         l_debug (seat, "Returning to existing user session %s", username);
         session_stop (session);
+        session_unlock (existing_session);
         seat_set_active_session (seat, existing_session);
         return TRUE;
     }
