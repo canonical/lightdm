@@ -122,6 +122,7 @@ TESTS = \
 	test-switch-to-user \
 	test-switch-to-users \
 	test-switch-to-user-existing-session \
+	test-switch-to-user-switch-back \
 	test-switch-to-user-no-password \
 	test-switch-to-user-logout \
 	test-vnc-login \
@@ -405,6 +406,7 @@ EXTRA_DIST = \
 	scripts/switch-to-user-existing-session.conf \
 	scripts/switch-to-user-logout.conf \
 	scripts/switch-to-user-no-password.conf \
+	scripts/switch-to-user-switch-back.conf \
 	scripts/system-xauthority.conf \
 	scripts/unity-autologin.conf \
 	scripts/unity-compositor-command.conf \

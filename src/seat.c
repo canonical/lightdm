@@ -494,13 +494,47 @@ run_session (Seat *seat, Session *session)
     }
 }
 
+static Session *
+find_user_session (Seat *seat, const gchar *username, Session *ignore_session)
+{
+    GList *link;
+
+    if (!username)
+        return NULL;
+
+    for (link = seat->priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+
+        if (session == ignore_session)
+            continue;
+
+        if (!session_get_is_stopping (session) && strcmp (session_get_username (session), username) == 0)
+            return session;
+    }
+
+    return NULL;
+}
+
 static void
 session_authentication_complete_cb (Session *session, Seat *seat)
 {
     if (session_get_is_authenticated (session))
     {
-        l_debug (seat, "Session authenticated, running command");
-        run_session (seat, session);
+        Session *s;
+
+        s = find_user_session (seat, session_get_username (session), session);
+        if (s)
+        {
+            l_debug (seat, "Session authenticated, switching to existing user session");
+            seat_set_active_session (seat, s);
+            session_stop (session);
+        }
+        else
+        {
+            l_debug (seat, "Session authenticated, running command");
+            run_session (seat, session);
+        }
     }
     else if (!IS_GREETER (session))
     {
@@ -805,7 +839,6 @@ create_user_session (Seat *seat, const gchar *username)
     else
         l_debug (seat, "Can't find session '%s'", seat_get_string_property (seat, "user-session"));
 
-
     g_object_unref (user);
 
     return session;
@@ -868,25 +901,6 @@ prepend_argv (gchar ***argv, const gchar *value)
     *argv = new_argv;
 }
 
-static Session *
-find_user_session (Seat *seat, const gchar *username)
-{
-    GList *link;
-
-    if (!username)
-        return NULL;
-
-    for (link = seat->priv->sessions; link; link = link->next)
-    {
-        Session *session = link->data;
-
-        if (!session_get_is_stopping (session) && strcmp (session_get_username (session), username) == 0)
-            return session;
-    }
-
-    return NULL;
-}
-
 static gboolean
 greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
 {
@@ -916,7 +930,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
 
     /* Return to existing session if it is open */
     username = session_get_username (session);
-    existing_session = find_user_session (seat, username);
+    existing_session = find_user_session (seat, username, NULL);
     if (existing_session && session != existing_session)
     {
         l_debug (seat, "Returning to existing user session %s", username);
@@ -1198,14 +1212,6 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
         return FALSE;
 
     l_debug (seat, "Switching to user %s", username);
-
-    session = find_user_session (seat, username);
-    if (session)
-    {
-        l_debug (seat, "Switching to existing user session %s", username);
-        seat_set_active_session (seat, session);
-        return TRUE;
-    }
 
     session = create_user_session (seat, username);
     if (!session)
