@@ -45,6 +45,7 @@ typedef struct
     Greeter *(*create_greeter_session) (Seat *seat);
     Session *(*create_session) (Seat *seat, Session *user_session);
     void (*set_active_session)(Seat *seat, Session *session);
+    void (*set_next_session)(Seat *seat, Session *session);
     Session *(*get_active_session)(Seat *seat);
     void (*run_script)(Seat *seat, DisplayServer *display_server, Process *script);
     void (*stop)(Seat *seat);
@@ -80,6 +81,8 @@ GList *seat_get_sessions (Seat *seat);
 void seat_set_active_session (Seat *seat, Session *session);
 
 Session *seat_get_active_session (Seat *seat);
+
+Session *seat_get_next_session (Seat *seat);
 
 gboolean seat_get_can_switch (Seat *seat);
 

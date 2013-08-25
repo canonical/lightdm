@@ -48,6 +48,9 @@ struct SeatPrivate
     /* The last session set to active */
     Session *active_session;
 
+    /* The session belonging to the active greeter user */
+    Session *next_session;
+
     /* The session to set active when it starts */
     Session *session_to_activate;
   
@@ -218,6 +221,13 @@ seat_get_active_session (Seat *seat)
 {
     g_return_val_if_fail (seat != NULL, NULL);
     return SEAT_GET_CLASS (seat)->get_active_session (seat);
+}
+
+Session *
+seat_get_next_session (Seat *seat)
+{
+    g_return_val_if_fail (seat != NULL, NULL);
+    return seat->priv->next_session;
 }
 
 gboolean
@@ -490,6 +500,41 @@ run_session (Seat *seat, Session *session)
     }
 }
 
+static Session *
+find_user_session (Seat *seat, const gchar *username)
+{
+    GList *link;
+
+    if (!username)
+        return NULL;
+
+    for (link = seat->priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+
+        if (!session_get_is_stopping (session) && strcmp (session_get_username (session), username) == 0)
+            return session;
+    }
+
+    return NULL;
+}
+
+static void
+greeter_active_username_changed_cb (Greeter *greeter, GParamSpec *pspec, Seat *seat)
+{
+    Session *session;
+
+    session = find_user_session (seat, greeter_get_active_username (greeter));
+    if (session)
+    {
+        if (seat->priv->next_session)
+            g_object_unref (seat->priv->next_session);
+        seat->priv->next_session = g_object_ref (session);
+
+        SEAT_GET_CLASS (seat)->set_next_session (seat, session);
+    }
+}
+
 static void
 session_authentication_complete_cb (Session *session, Seat *seat)
 {
@@ -523,6 +568,11 @@ session_stopped_cb (Session *session, Seat *seat)
     {
         g_object_unref (seat->priv->active_session);
         seat->priv->active_session = NULL;
+    }
+    if (session == seat->priv->next_session)
+    {
+        g_object_unref (seat->priv->next_session);
+        seat->priv->next_session = NULL;
     }
     if (session == seat->priv->session_to_activate)
     {
@@ -657,25 +707,6 @@ set_session_env (Session *session)
         session_set_env (session, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
         session_set_env (session, "GI_TYPELIB_PATH", g_getenv ("GI_TYPELIB_PATH"));
     }
-}
-
-static Session *
-find_user_session (Seat *seat, const gchar *username)
-{
-    GList *link;
-
-    if (!username)
-        return NULL;
-
-    for (link = seat->priv->sessions; link; link = link->next)
-    {
-        Session *session = link->data;
-
-        if (!session_get_is_stopping (session) && strcmp (session_get_username (session), username) == 0)
-            return session;
-    }
-
-    return NULL;
 }
 
 static Session *
@@ -1030,6 +1061,7 @@ create_greeter_session (Seat *seat)
     greeter_session = SEAT_GET_CLASS (seat)->create_greeter_session (seat);
     session_set_session_type (SESSION (greeter_session), session_config_get_session_type (session_config));
     seat->priv->sessions = g_list_append (seat->priv->sessions, SESSION (greeter_session));
+    g_signal_connect (greeter_session, "notify::active-username", G_CALLBACK (greeter_active_username_changed_cb), seat);
     g_signal_connect (greeter_session, "authentication-complete", G_CALLBACK (session_authentication_complete_cb), seat);
     g_signal_connect (greeter_session, "stopped", G_CALLBACK (session_stopped_cb), seat);
   
@@ -1493,6 +1525,11 @@ seat_real_set_active_session (Seat *seat, Session *session)
 {
 }
 
+static void
+seat_real_set_next_session (Seat *seat, Session *session)
+{
+}
+
 static Session *
 seat_real_get_active_session (Seat *seat)
 {
@@ -1569,6 +1606,8 @@ seat_finalize (GObject *object)
     g_list_free_full (self->priv->sessions, g_object_unref);
     if (self->priv->active_session)
         g_object_unref (self->priv->active_session);
+    if (self->priv->next_session)
+        g_object_unref (self->priv->next_session);
     if (self->priv->session_to_activate)
         g_object_unref (self->priv->session_to_activate);
 
@@ -1587,6 +1626,7 @@ seat_class_init (SeatClass *klass)
     klass->create_session = seat_real_create_session;
     klass->set_active_session = seat_real_set_active_session;
     klass->get_active_session = seat_real_get_active_session;
+    klass->set_next_session = seat_real_set_next_session;
     klass->run_script = seat_real_run_script;
     klass->stop = seat_real_stop;
 
