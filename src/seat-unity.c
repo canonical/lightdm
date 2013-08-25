@@ -521,33 +521,6 @@ seat_unity_create_greeter_session (Seat *seat)
     return greeter_session;
 }
 
-static void
-set_next_session (Seat *seat, Session *session)
-{
-    DisplayServer *display_server;
-    const gchar *id = NULL;
-
-    /* If no compositor, don't worry about it */
-    if (SEAT_UNITY (seat)->priv->use_vt_switching)
-        return;
-
-    display_server = session_get_display_server (session);
-    if (IS_MIR_SERVER (display_server))
-    {
-        id = mir_server_get_id (MIR_SERVER (display_server));
-
-        if (id)
-        {
-            g_debug ("Marking Mir session %s as the next session", id);
-            write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_NEXT_SESSION, (const guint8 *) id, strlen (id));
-        }
-        else
-        {
-            g_warning ("Failed to work out session ID to mark");
-        }
-    }
-}
-
 static Session *
 seat_unity_create_session (Seat *seat, Session *user_session)
 {
@@ -560,11 +533,6 @@ seat_unity_create_session (Seat *seat, Session *user_session)
         gchar *value = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->vt);
         session_set_env (SESSION (session), "XDG_VTNR", value);
         g_free (value);
-
-        /* Notify compositor that user's session should be displayed under
-           greeter. */
-        if (user_session != NULL)
-            set_next_session (seat, user_session);
     }
 
     return session;
@@ -636,6 +604,33 @@ seat_unity_get_active_session (Seat *seat)
     }
 
     return SEAT_UNITY (seat)->priv->active_session;
+}
+
+static void
+seat_unity_set_next_session (Seat *seat, Session *session)
+{
+    DisplayServer *display_server;
+    const gchar *id = NULL;
+
+    /* If no compositor, don't worry about it */
+    if (SEAT_UNITY (seat)->priv->use_vt_switching)
+        return;
+
+    display_server = session_get_display_server (session);
+    if (IS_MIR_SERVER (display_server))
+    {
+        id = mir_server_get_id (MIR_SERVER (display_server));
+
+        if (id)
+        {
+            g_debug ("Marking Mir session %s as the next session", id);
+            write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_NEXT_SESSION, (const guint8 *) id, strlen (id));
+        }
+        else
+        {
+            g_warning ("Failed to work out session ID to mark");
+        }
+    }
 }
 
 static void
@@ -712,6 +707,7 @@ seat_unity_class_init (SeatUnityClass *klass)
     seat_class->create_session = seat_unity_create_session;
     seat_class->set_active_session = seat_unity_set_active_session;
     seat_class->get_active_session = seat_unity_get_active_session;
+    seat_class->set_next_session = seat_unity_set_next_session;
     seat_class->run_script = seat_unity_run_script;
     seat_class->stop = seat_unity_stop;
 
