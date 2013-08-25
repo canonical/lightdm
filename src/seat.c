@@ -1257,6 +1257,11 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
     if (!seat->priv->can_switch)
         return FALSE;
 
+    /* If we're already on this session, then ignore */
+    session = find_user_session (seat, username, NULL);
+    if (session && session == seat->priv->active_session)
+        return TRUE;
+
     l_debug (seat, "Switching to user %s", username);
 
     /* Attempt to authenticate them */
