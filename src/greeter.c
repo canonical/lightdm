@@ -371,7 +371,7 @@ handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
     g_object_notify (G_OBJECT (greeter), "active-username");
 
     greeter->priv->authentication_sequence_number = sequence_number;
-    g_signal_emit (greeter, signals[CREATE_SESSION], 0, username, &greeter->priv->authentication_session);
+    g_signal_emit (greeter, signals[CREATE_SESSION], 0, &greeter->priv->authentication_session);
     if (!greeter->priv->authentication_session)
     {
         send_end_authentication (greeter, sequence_number, "", PAM_USER_UNKNOWN);
@@ -479,7 +479,7 @@ handle_login_remote (Greeter *greeter, const gchar *session_name, const gchar *u
 
     greeter->priv->authentication_sequence_number = sequence_number;
     greeter->priv->remote_session = g_strdup (session_name);
-    g_signal_emit (greeter, signals[CREATE_SESSION], 0, username, &greeter->priv->authentication_session);
+    g_signal_emit (greeter, signals[CREATE_SESSION], 0, &greeter->priv->authentication_session);
     if (greeter->priv->authentication_session)
     {
         g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
@@ -1002,7 +1002,7 @@ greeter_class_init (GreeterClass *klass)
                       g_signal_accumulator_first_wins,
                       NULL,
                       NULL,
-                      SESSION_TYPE, 1, G_TYPE_STRING);
+                      SESSION_TYPE, 0);
 
     signals[START_SESSION] =
         g_signal_new ("start-session",

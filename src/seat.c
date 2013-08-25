@@ -528,14 +528,12 @@ greeter_active_username_changed_cb (Greeter *greeter, GParamSpec *pspec, Seat *s
     Session *session;
 
     session = find_user_session (seat, greeter_get_active_username (greeter), seat->priv->active_session);
-    if (session)
-    {
-        if (seat->priv->next_session)
-            g_object_unref (seat->priv->next_session);
-        seat->priv->next_session = g_object_ref (session);
 
-        SEAT_GET_CLASS (seat)->set_next_session (seat, session);
-    }
+    if (seat->priv->next_session)
+        g_object_unref (seat->priv->next_session);
+    seat->priv->next_session = session ? g_object_ref (session) : NULL;
+
+    SEAT_GET_CLASS (seat)->set_next_session (seat, session);
 }
 
 static void
@@ -725,13 +723,11 @@ set_session_env (Session *session)
 }
 
 static Session *
-create_session (Seat *seat, gboolean autostart, const gchar *username)
+create_session (Seat *seat, gboolean autostart)
 {
     Session *session;
-    Session *user_session;
 
-    user_session = find_user_session (seat, username, NULL);
-    session = SEAT_GET_CLASS (seat)->create_session (seat, user_session);
+    session = SEAT_GET_CLASS (seat)->create_session (seat);
     seat->priv->sessions = g_list_append (seat->priv->sessions, session);
     if (autostart)
         g_signal_connect (session, "authentication-complete", G_CALLBACK (session_authentication_complete_cb), seat);
@@ -844,7 +840,7 @@ create_user_session (Seat *seat, const gchar *username, gboolean autostart)
         const gchar *desktop_name;
         gchar **argv;
 
-        session = create_session (seat, autostart, username);
+        session = create_session (seat, autostart);
         session_set_session_type (session, session_config_get_session_type (session_config));
         session_set_env (session, "DESKTOP_SESSION", session_name);
         session_set_env (session, "GDMSESSION", session_name);
@@ -888,7 +884,7 @@ create_guest_session (Seat *seat)
         return NULL;
     }
 
-    session = create_session (seat, TRUE, NULL);
+    session = create_session (seat, TRUE);
     session_set_session_type (session, session_config_get_session_type (session_config));
     session_set_do_authenticate (session, TRUE);
     session_set_is_guest (session, TRUE);
@@ -901,11 +897,11 @@ create_guest_session (Seat *seat)
 }
 
 static Session *
-greeter_create_session_cb (Greeter *greeter, Seat *seat, const gchar *username)
+greeter_create_session_cb (Greeter *greeter, Seat *seat)
 {
     Session *session;
 
-    session = create_session (seat, FALSE, username);
+    session = create_session (seat, FALSE);
     session_set_session_type (session, session_get_session_type (SESSION (greeter)));
     session_set_display_server (session, session_get_display_server (SESSION (greeter)));
 
@@ -1569,7 +1565,7 @@ seat_real_create_greeter_session (Seat *seat)
 }
 
 static Session *
-seat_real_create_session (Seat *seat, Session *user_session)
+seat_real_create_session (Seat *seat)
 {
     return session_new ();
 }

@@ -535,12 +535,12 @@ seat_unity_create_greeter_session (Seat *seat)
 }
 
 static Session *
-seat_unity_create_session (Seat *seat, Session *user_session)
+seat_unity_create_session (Seat *seat)
 {
     Session *session;
     const gchar *xdg_seat;
 
-    session = SEAT_CLASS (seat_unity_parent_class)->create_session (seat, user_session);
+    session = SEAT_CLASS (seat_unity_parent_class)->create_session (seat);
     xdg_seat = "seat0";
     l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
     session_set_env (session, "XDG_SEAT", xdg_seat);
@@ -631,6 +631,9 @@ seat_unity_set_next_session (Seat *seat, Session *session)
     DisplayServer *display_server;
     const gchar *id = NULL;
 
+    if (!session)
+        return;
+
     /* If no compositor, don't worry about it */
     if (SEAT_UNITY (seat)->priv->use_vt_switching)
         return;
@@ -650,6 +653,8 @@ seat_unity_set_next_session (Seat *seat, Session *session)
             g_warning ("Failed to work out session ID to mark");
         }
     }
+
+    SEAT_CLASS (seat_unity_parent_class)->set_next_session (seat, session);
 }
 
 static void

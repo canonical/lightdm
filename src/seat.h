@@ -44,7 +44,7 @@ typedef struct
     DisplayServer *(*create_display_server) (Seat *seat, const gchar *session_type);
     gboolean (*display_server_supports_session_type) (Seat *seat, DisplayServer *display_server, const gchar *session_type);
     Greeter *(*create_greeter_session) (Seat *seat);
-    Session *(*create_session) (Seat *seat, Session *user_session);
+    Session *(*create_session) (Seat *seat);
     void (*set_active_session)(Seat *seat, Session *session);
     void (*set_next_session)(Seat *seat, Session *session);
     Session *(*get_active_session)(Seat *seat);

@@ -64,12 +64,12 @@ seat_xremote_create_greeter_session (Seat *seat)
 }
 
 static Session *
-seat_xremote_create_session (Seat *seat, Session *user_session)
+seat_xremote_create_session (Seat *seat)
 {
     Session *session;
     const gchar *xdg_seat;
 
-    session = SEAT_CLASS (seat_xremote_parent_class)->create_session (seat, user_session);
+    session = SEAT_CLASS (seat_xremote_parent_class)->create_session (seat);
     xdg_seat = "seat0";
     l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
     session_set_env (SESSION (session), "XDG_SEAT", xdg_seat);
