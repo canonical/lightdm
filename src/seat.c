@@ -490,13 +490,47 @@ run_session (Seat *seat, Session *session)
     }
 }
 
+static Session *
+find_user_session (Seat *seat, const gchar *username, Session *ignore_session)
+{
+    GList *link;
+
+    if (!username)
+        return NULL;
+
+    for (link = seat->priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+
+        if (session == ignore_session)
+            continue;
+
+        if (!session_get_is_stopping (session) && g_strcmp0 (session_get_username (session), username) == 0)
+            return session;
+    }
+
+    return NULL;
+}
+
 static void
 session_authentication_complete_cb (Session *session, Seat *seat)
 {
     if (session_get_is_authenticated (session))
     {
-        l_debug (seat, "Session authenticated, running command");
-        run_session (seat, session);
+        Session *s;
+
+        s = find_user_session (seat, session_get_username (session), session);
+        if (s)
+        {
+            l_debug (seat, "Session authenticated, switching to existing user session");
+            seat_set_active_session (seat, s);
+            session_stop (session);
+        }
+        else
+        {
+            l_debug (seat, "Session authenticated, running command");
+            run_session (seat, session);
+        }
     }
     else if (!IS_GREETER (session))
     {
@@ -747,7 +781,7 @@ find_session_config (Seat *seat, const gchar *sessions_dir, const gchar *session
 }
 
 static Session *
-create_user_session (Seat *seat, const gchar *username)
+create_user_session (Seat *seat, const gchar *username, gboolean autostart)
 {
     User *user;
     gchar *sessions_dir;
@@ -777,7 +811,7 @@ create_user_session (Seat *seat, const gchar *username)
         const gchar *desktop_name;
         gchar **argv;
 
-        session = create_session (seat, TRUE);
+        session = create_session (seat, autostart);
         session_set_session_type (session, session_config_get_session_type (session_config));
         session_set_env (session, "DESKTOP_SESSION", session_name);
         session_set_env (session, "GDMSESSION", session_name);
@@ -789,7 +823,6 @@ create_user_session (Seat *seat, const gchar *username)
             session_set_env (session, "LANG", language);
             session_set_env (session, "GDM_LANG", language);
         }
-        session_set_pam_service (session, AUTOLOGIN_SERVICE);
         session_set_username (session, username);
         session_set_do_authenticate (session, TRUE);
         argv = get_session_argv (seat, session_config, seat_get_string_property (seat, "session-wrapper"));
@@ -800,7 +833,6 @@ create_user_session (Seat *seat, const gchar *username)
     }
     else
         l_debug (seat, "Can't find session '%s'", seat_get_string_property (seat, "user-session"));
-
 
     g_object_unref (user);
 
@@ -864,25 +896,6 @@ prepend_argv (gchar ***argv, const gchar *value)
     *argv = new_argv;
 }
 
-static Session *
-find_user_session (Seat *seat, const gchar *username)
-{
-    GList *link;
-
-    if (!username)
-        return NULL;
-
-    for (link = seat->priv->sessions; link; link = link->next)
-    {
-        Session *session = link->data;
-
-        if (!session_get_is_stopping (session) && strcmp (session_get_username (session), username) == 0)
-            return session;
-    }
-
-    return NULL;
-}
-
 static gboolean
 greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
 {
@@ -912,7 +925,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
 
     /* Return to existing session if it is open */
     username = session_get_username (session);
-    existing_session = find_user_session (seat, username);
+    existing_session = find_user_session (seat, username, NULL);
     if (existing_session && session != existing_session)
     {
         l_debug (seat, "Returning to existing user session %s", username);
@@ -1182,11 +1195,61 @@ seat_switch_to_greeter (Seat *seat)
     return TRUE;
 }
 
+static void
+switch_authentication_complete_cb (Session *session, Seat *seat)
+{
+    Greeter *greeter_session;
+    DisplayServer *display_server;
+
+    /* If authenticated, then unlock existing session or start new one */
+    if (session_get_is_authenticated (session))
+    {
+        Session *s;
+
+        s = find_user_session (seat, session_get_username (session), session);
+        if (s)
+        {
+            l_debug (seat, "Session authenticated, switching to existing user session");
+            session_unlock (s);
+            seat_set_active_session (seat, s);
+            session_stop (session);
+        }
+        else
+        {
+            l_debug (seat, "Session authenticated, starting display server");
+            if (seat->priv->session_to_activate)
+                g_object_unref (seat->priv->session_to_activate);
+            seat->priv->session_to_activate = g_object_ref (session);
+            display_server = create_display_server (seat, session_get_session_type (session));
+            session_set_display_server (session, display_server);
+            display_server_start (display_server);
+        }
+
+        return;
+    }
+
+    l_debug (seat, "Switching to greeter to authenticate session");
+
+    session_stop (session);
+
+    greeter_session = create_greeter_session (seat);
+    if (session_get_is_guest (session))
+        greeter_set_hint (greeter_session, "select-guest", "true");
+    else
+        greeter_set_hint (greeter_session, "select-user", session_get_username (session));
+    if (seat->priv->session_to_activate)
+        g_object_unref (seat->priv->session_to_activate);
+    seat->priv->session_to_activate = g_object_ref (greeter_session);
+
+    display_server = create_display_server (seat, session_get_session_type (SESSION (greeter_session)));
+    session_set_display_server (SESSION (greeter_session), display_server);
+    display_server_start (display_server);
+}
+
 gboolean
 seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_name)
 {
     Session *session;
-    DisplayServer *display_server;
 
     g_return_val_if_fail (seat != NULL, FALSE);
     g_return_val_if_fail (username != NULL, FALSE);
@@ -1194,28 +1257,18 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
     if (!seat->priv->can_switch)
         return FALSE;
 
+    /* If we're already on this session, then ignore */
+    session = find_user_session (seat, username, NULL);
+    if (session && session == seat->priv->active_session)
+        return TRUE;
+
     l_debug (seat, "Switching to user %s", username);
 
-    session = find_user_session (seat, username);
-    if (session)
-    {
-        l_debug (seat, "Switching to existing user session %s", username);
-        seat_set_active_session (seat, session);
-        return TRUE;
-    }
-
-    session = create_user_session (seat, username);
-    if (!session)
-        return FALSE;
-    if (seat->priv->session_to_activate)
-        g_object_unref (seat->priv->session_to_activate);
-    seat->priv->session_to_activate = g_object_ref (session);
+    /* Attempt to authenticate them */
+    session = create_user_session (seat, username, FALSE);
+    g_signal_connect (session, "authentication-complete", G_CALLBACK (switch_authentication_complete_cb), seat);
     session_set_pam_service (session, USER_SERVICE);
-
-    display_server = create_display_server (seat, session_get_session_type (session));
-    session_set_display_server (session, display_server);
-    if (!display_server_start (display_server))
-        return FALSE;
+    session_start (session);
 
     return FALSE;
 }
@@ -1377,7 +1430,7 @@ seat_real_start (Seat *seat)
         if (autologin_guest)
             session = create_guest_session (seat);
         else if (autologin_username != NULL)
-            session = create_user_session (seat, autologin_username);
+            session = create_user_session (seat, autologin_username, TRUE);
 
         if (session)
             session_set_pam_service (session, AUTOLOGIN_SERVICE);

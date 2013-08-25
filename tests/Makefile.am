@@ -114,16 +114,17 @@ TESTS = \
 	test-lock-seat-return-session-console-kit \
 	test-switch-to-greeter \
 	test-switch-to-greeter-new-session \
-	test-switch-to-greeter-new-session-logout-new \
-	test-switch-to-greeter-new-session-logout-old \
 	test-switch-to-greeter-return-session \
 	test-switch-to-greeter-return-session-logout \
 	test-switch-to-guest \
 	test-switch-to-user \
-	test-switch-to-users \
-	test-switch-to-user-existing-session \
 	test-switch-to-user-no-password \
-	test-switch-to-user-logout \
+	test-switch-to-user-active \
+	test-switch-to-user-existing \
+	test-switch-to-user-existing-no-password \
+	test-switch-to-user-logout-active \
+	test-switch-to-user-logout-inactive \
+	test-switch-to-users \
 	test-vnc-login \
 	test-vnc-command \
 	test-vnc-dimensions \
@@ -309,7 +310,7 @@ EXTRA_DIST = \
 	scripts/cred-error.conf \
 	scripts/cred-expired.conf \
 	scripts/cred-unavail.conf \
-	scripts/dbus.conf \    
+	scripts/dbus.conf \
 	scripts/denied.conf \
 	scripts/expired.conf \
 	scripts/greeter-allow-guest.conf \
@@ -395,15 +396,16 @@ EXTRA_DIST = \
 	scripts/session-stderr-backup.conf \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-greeter-new-session.conf \
-	scripts/switch-to-greeter-new-session-logout-new.conf \
-	scripts/switch-to-greeter-new-session-logout-old.conf \
 	scripts/switch-to-greeter-return-session.conf \
 	scripts/switch-to-greeter-return-session-logout.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \
 	scripts/switch-to-users.conf \
-	scripts/switch-to-user-existing-session.conf \
-	scripts/switch-to-user-logout.conf \
+	scripts/switch-to-user-active.conf \
+	scripts/switch-to-user-existing.conf \
+	scripts/switch-to-user-existing-no-password.conf \
+	scripts/switch-to-user-logout-active.conf \
+	scripts/switch-to-user-logout-inactive.conf \
 	scripts/switch-to-user-no-password.conf \
 	scripts/system-xauthority.conf \
 	scripts/unity-autologin.conf \
