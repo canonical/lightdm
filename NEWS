@@ -1,3 +1,13 @@
+Overview of changes in lightdm 1.7.10
+
+    * Fix session locking broken in 1.7.5
+    * Load lightdm.conf after lightdm.conf.d/*.conf
+    * Also support loading config from /usr/share
+    * When switching sessions show a greeter if authentication required
+    * Set $XDG_CURRENT_DESKTOP if specified in the xsession file
+    * Change logging prefixes to make it easier to troubleshoot multiseat setups
+    * Bring Ubuntu packaging in-tree
+
 Overview of changes in lightdm 1.7.9
 
     * Correctly set XDG_VTNR for unity sessions that are not autologin.

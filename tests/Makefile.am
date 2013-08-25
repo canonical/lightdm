@@ -13,6 +13,9 @@ TESTS = \
 	test-greeter-show-remote-login \
 	test-no-config \
 	test-additional-config \
+	test-additional-config-priority \
+	test-additional-system-config \
+	test-additional-system-config-priority \
 	test-headless \
 	test-autologin \
 	test-autologin-in-background \
@@ -111,16 +114,17 @@ TESTS = \
 	test-lock-seat-return-session-console-kit \
 	test-switch-to-greeter \
 	test-switch-to-greeter-new-session \
-	test-switch-to-greeter-new-session-logout-new \
-	test-switch-to-greeter-new-session-logout-old \
 	test-switch-to-greeter-return-session \
 	test-switch-to-greeter-return-session-logout \
 	test-switch-to-guest \
 	test-switch-to-user \
-	test-switch-to-users \
-	test-switch-to-user-existing-session \
 	test-switch-to-user-no-password \
-	test-switch-to-user-logout \
+	test-switch-to-user-active \
+	test-switch-to-user-existing \
+	test-switch-to-user-existing-no-password \
+	test-switch-to-user-logout-active \
+	test-switch-to-user-logout-inactive \
+	test-switch-to-users \
 	test-vnc-login \
 	test-vnc-command \
 	test-vnc-dimensions \
@@ -275,9 +279,13 @@ EXTRA_DIST = \
 	data/sessions/alternative.desktop \
 	data/sessions/default.desktop \
 	data/sessions/mir.desktop \
+	data/sessions/named.desktop \
 	scripts/0-additional.conf \
 	scripts/1-additional.conf \
 	scripts/additional-config.conf \
+	scripts/additional-config-priority.conf \
+	scripts/additional-system-config.conf \
+	scripts/additional-system-config-priority.conf \
 	scripts/autologin.conf \
 	scripts/autologin-guest.conf \
 	scripts/autologin-guest-fail-setup-script.conf \
@@ -303,7 +311,7 @@ EXTRA_DIST = \
 	scripts/cred-error.conf \
 	scripts/cred-expired.conf \
 	scripts/cred-unavail.conf \
-	scripts/dbus.conf \    
+	scripts/dbus.conf \
 	scripts/denied.conf \
 	scripts/expired.conf \
 	scripts/greeter-allow-guest.conf \
@@ -389,15 +397,16 @@ EXTRA_DIST = \
 	scripts/session-stderr-backup.conf \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-greeter-new-session.conf \
-	scripts/switch-to-greeter-new-session-logout-new.conf \
-	scripts/switch-to-greeter-new-session-logout-old.conf \
 	scripts/switch-to-greeter-return-session.conf \
 	scripts/switch-to-greeter-return-session-logout.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \
 	scripts/switch-to-users.conf \
-	scripts/switch-to-user-existing-session.conf \
-	scripts/switch-to-user-logout.conf \
+	scripts/switch-to-user-active.conf \
+	scripts/switch-to-user-existing.conf \
+	scripts/switch-to-user-existing-no-password.conf \
+	scripts/switch-to-user-logout-active.conf \
+	scripts/switch-to-user-logout-inactive.conf \
 	scripts/switch-to-user-no-password.conf \
 	scripts/system-xauthority.conf \
 	scripts/unity-autologin.conf \

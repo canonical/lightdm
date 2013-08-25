@@ -32,7 +32,11 @@ struct DisplayServerPrivate
     gboolean stopped;
 };
 
-G_DEFINE_TYPE (DisplayServer, display_server, G_TYPE_OBJECT);
+static void display_server_logger_iface_init (LoggerInterface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (DisplayServer, display_server, G_TYPE_OBJECT,
+                         G_IMPLEMENT_INTERFACE (
+                             LOGGER_TYPE, display_server_logger_iface_init));
 
 void
 display_server_set_name (DisplayServer *server, const gchar *name)
@@ -175,4 +179,21 @@ display_server_class_init (DisplayServerClass *klass)
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 0);
+}
+
+static gint
+display_server_real_logprefix (Logger *self, gchar *buf, gulong buflen)
+{
+    DisplayServer *server = DISPLAY_SERVER (self);
+    const gchar *name = display_server_get_name (server);
+    if (name)
+        return g_snprintf (buf, buflen, "DisplayServer %s: ", name);
+    else
+        return g_snprintf (buf, buflen, "DisplayServer: ");
+}
+
+static void
+display_server_logger_iface_init (LoggerInterface *iface)
+{
+    iface->logprefix = &display_server_real_logprefix;
 }

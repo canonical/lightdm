@@ -18,6 +18,8 @@ lightdm_SOURCES = \
 	guest-account.c \
 	guest-account.h \
 	lightdm.c \
+	logger.c \
+	logger.h \
 	login1.c \
 	login1.h \
 	mir-server.c \
@@ -77,6 +79,7 @@ lightdm_CFLAGS = \
 	-DLOG_DIR=\"$(localstatedir)/log/lightdm\" \
 	-DRUN_DIR=\"$(localstatedir)/run/lightdm\" \
 	-DCACHE_DIR=\"$(localstatedir)/cache/lightdm\" \
+	-DSYSTEM_CONFIG_DIR=\"$(pkgdatadir)/lightdm.conf.d\" \
 	-DSESSIONS_DIR=\"$(pkgdatadir)/sessions:$(datadir)/xsessions\" \
 	-DREMOTE_SESSIONS_DIR=\"$(pkgdatadir)/remote-sessions\" \
 	-DGREETERS_DIR=\"$(pkgdatadir)/greeters:$(datadir)/xgreeters\"

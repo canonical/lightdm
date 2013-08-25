@@ -16,6 +16,7 @@
 
 typedef struct DisplayServer DisplayServer;
 
+#include "logger.h"
 #include "session.h"
 
 G_BEGIN_DECLS

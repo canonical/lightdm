@@ -330,10 +330,17 @@ run_cb (Process *process, XServerLocal *server)
     if (server->priv->log_file)
     {
          int fd;
+         gchar *old_filename;
 
+         /* Move old file out of the way */
+         old_filename = g_strdup_printf ("%s.old", server->priv->log_file);
+         rename (server->priv->log_file, old_filename);
+         g_free (old_filename);
+
+         /* Create new file and log to it */
          fd = g_open (server->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
          if (fd < 0)
-             g_warning ("Failed to open log file %s: %s", server->priv->log_file, g_strerror (errno));
+             l_warning (server, "Failed to open log file %s: %s", server->priv->log_file, g_strerror (errno));
          else
          {
              dup2 (fd, STDOUT_FILENO);
@@ -352,7 +359,7 @@ got_signal_cb (Process *process, int signum, XServerLocal *server)
     if (signum == SIGUSR1 && !server->priv->got_signal)
     {
         server->priv->got_signal = TRUE;
-        g_debug ("Got signal from X server :%d", x_server_get_display_number (X_SERVER (server)));
+        l_debug (server, "Got signal from X server :%d", x_server_get_display_number (X_SERVER (server)));
 
         // FIXME: Check return value
         DISPLAY_SERVER_CLASS (x_server_local_parent_class)->start (DISPLAY_SERVER (server));
@@ -362,7 +369,7 @@ got_signal_cb (Process *process, int signum, XServerLocal *server)
 static void
 stopped_cb (Process *process, XServerLocal *server)
 {
-    g_debug ("X server stopped");
+    l_debug (server, "X server stopped");
 
     /* Release VT and display number for re-use */
     if (server->priv->have_vt_ref)
@@ -374,7 +381,7 @@ stopped_cb (Process *process, XServerLocal *server)
   
     if (x_server_get_authority (X_SERVER (server)) && server->priv->authority_file)
     {
-        g_debug ("Removing X server authority %s", server->priv->authority_file);
+        l_debug (server, "Removing X server authority %s", server->priv->authority_file);
 
         g_unlink (server->priv->authority_file);
 
@@ -404,17 +411,17 @@ write_authority_file (XServerLocal *server)
         dir = g_build_filename (run_dir, "root", NULL);
         g_free (run_dir);
         if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
-            g_warning ("Failed to make authority directory %s: %s", dir, strerror (errno));
+            l_warning (server, "Failed to make authority directory %s: %s", dir, strerror (errno));
 
         server->priv->authority_file = g_build_filename (dir, x_server_get_address (X_SERVER (server)), NULL);
         g_free (dir);
     }
 
-    g_debug ("Writing X server authority to %s", server->priv->authority_file);
+    l_debug (server, "Writing X server authority to %s", server->priv->authority_file);
 
     x_authority_write (authority, XAUTH_WRITE_MODE_REPLACE, server->priv->authority_file, &error);
     if (error)
-        g_warning ("Failed to write authority: %s", error->message);
+        l_warning (server, "Failed to write authority: %s", error->message);
     g_clear_error (&error);
 }
 
@@ -442,14 +449,14 @@ x_server_local_start (DisplayServer *display_server)
     filename = g_strdup_printf ("%s.log", display_server_get_name (display_server));
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
     server->priv->log_file = g_build_filename (dir, filename, NULL);
-    g_debug ("Logging to %s", server->priv->log_file);
+    l_debug (display_server, "Logging to %s", server->priv->log_file);
     g_free (filename);
     g_free (dir);
 
     absolute_command = get_absolute_command (server->priv->command);
     if (!absolute_command)
     {
-        g_debug ("Can't launch X server %s, not found in path", server->priv->command);
+        l_debug (display_server, "Can't launch X server %s, not found in path", server->priv->command);
         stopped_cb (server->priv->x_server_process, X_SERVER_LOCAL (server));
         return FALSE;
     }
@@ -496,7 +503,7 @@ x_server_local_start (DisplayServer *display_server)
     process_set_command (server->priv->x_server_process, command->str);
     g_string_free (command, TRUE);
 
-    g_debug ("Launching X Server");
+    l_debug (display_server, "Launching X Server");
 
     /* If running inside another display then pass through those variables */
     if (g_getenv ("DISPLAY"))
@@ -524,7 +531,7 @@ x_server_local_start (DisplayServer *display_server)
     result = process_start (server->priv->x_server_process, FALSE);
 
     if (result)
-        g_debug ("Waiting for ready signal from X server :%d", x_server_get_display_number (X_SERVER (server)));
+        l_debug (display_server, "Waiting for ready signal from X server :%d", x_server_get_display_number (X_SERVER (server)));
 
     if (!result)
         stopped_cb (server->priv->x_server_process, X_SERVER_LOCAL (server));
