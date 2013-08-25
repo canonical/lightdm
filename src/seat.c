@@ -505,7 +505,7 @@ find_user_session (Seat *seat, const gchar *username, Session *ignore_session)
         if (session == ignore_session)
             continue;
 
-        if (!session_get_is_stopping (session) && strcmp (session_get_username (session), username) == 0)
+        if (!session_get_is_stopping (session) && g_strcmp0 (session_get_username (session), username) == 0)
             return session;
     }
 
