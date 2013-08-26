@@ -42,7 +42,8 @@ typedef enum
    USC_MESSAGE_PONG = 1,
    USC_MESSAGE_READY = 2,
    USC_MESSAGE_SESSION_CONNECTED = 3,
-   USC_MESSAGE_SET_ACTIVE_SESSION = 4
+   USC_MESSAGE_SET_ACTIVE_SESSION = 4,
+   USC_MESSAGE_SET_NEXT_SESSION = 5,
 } USCMessageID;
 
 static void
@@ -102,6 +103,9 @@ read_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
         break;
     case USC_MESSAGE_SET_ACTIVE_SESSION:
         status_notify ("UNITY-SYSTEM-COMPOSITOR SET-ACTIVE-SESSION ID=%s", (gchar *)payload);
+        break;
+    case USC_MESSAGE_SET_NEXT_SESSION:
+        status_notify ("UNITY-SYSTEM-COMPOSITOR SET-NEXT-SESSION ID=%s", (gchar *)payload);
         break;
     default:
         g_printerr ("Ignoring message %d with %d octets\n", id, payload_length);

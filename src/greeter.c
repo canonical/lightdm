@@ -21,6 +21,11 @@
 #include "configuration.h"
 
 enum {
+    PROP_0,
+    PROP_ACTIVE_USERNAME,
+};
+
+enum {
     CONNECTED,
     CREATE_SESSION,
     START_SESSION,
@@ -50,6 +55,9 @@ struct GreeterPrivate
 
     /* Remote session name */
     gchar *remote_session;
+
+    /* Currently selected user */
+    gchar *active_username;
 
     /* PAM session being constructed by the greeter */
     Session *authentication_session;
@@ -357,6 +365,11 @@ handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
         l_debug (greeter, "Greeter start authentication for %s", username);
 
     reset_session (greeter);
+
+    if (greeter->priv->active_username)
+        g_free (greeter->priv->active_username);
+    greeter->priv->active_username = g_strdup (username);
+    g_object_notify (G_OBJECT (greeter), "active-username");
 
     greeter->priv->authentication_sequence_number = sequence_number;
     g_signal_emit (greeter, signals[CREATE_SESSION], 0, &greeter->priv->authentication_session);
@@ -824,6 +837,13 @@ greeter_get_start_session (Greeter *greeter)
     return greeter->priv->start_session;
 }
 
+const gchar *
+greeter_get_active_username (Greeter *greeter)
+{
+    g_return_val_if_fail (greeter != NULL, NULL);
+    return greeter->priv->active_username;
+}
+
 static gboolean
 greeter_start (Session *session)
 {
@@ -911,6 +931,7 @@ greeter_finalize (GObject *object)
     secure_free (self, self->priv->read_buffer);
     g_hash_table_unref (self->priv->hints);
     g_free (self->priv->remote_session);
+    g_free (self->priv->active_username);
     if (self->priv->authentication_session)
     {
         g_signal_handlers_disconnect_matched (self->priv->authentication_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
@@ -927,6 +948,33 @@ greeter_finalize (GObject *object)
 }
 
 static void
+greeter_set_property (GObject      *object,
+                      guint         prop_id,
+                      const GValue *value,
+                      GParamSpec   *pspec)
+{
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+}
+
+static void
+greeter_get_property (GObject    *object,
+                      guint       prop_id,
+                      GValue     *value,
+                      GParamSpec *pspec)
+{
+    Greeter *greeter = GREETER (object);
+
+    switch (prop_id) {
+    case PROP_ACTIVE_USERNAME:
+        g_value_set_string (value, greeter_get_active_username (greeter));
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        break;
+    }
+}
+
+static void
 greeter_class_init (GreeterClass *klass)
 {
     SessionClass *session_class = SESSION_CLASS (klass);
@@ -937,6 +985,8 @@ greeter_class_init (GreeterClass *klass)
     session_class->start = greeter_start;
     session_class->stop = greeter_stop;
     object_class->finalize = greeter_finalize;
+    object_class->get_property = greeter_get_property;
+    object_class->set_property = greeter_set_property;
 
     signals[CONNECTED] =
         g_signal_new ("connected",
@@ -966,6 +1016,14 @@ greeter_class_init (GreeterClass *klass)
                       NULL,
                       NULL,
                       G_TYPE_BOOLEAN, 2, G_TYPE_INT, G_TYPE_STRING);
+
+    g_object_class_install_property (object_class,
+                                     PROP_ACTIVE_USERNAME,
+                                     g_param_spec_string ("active-username",
+                                                          "active-username",
+                                                          "Active username",
+                                                          NULL,
+                                                          G_PARAM_READABLE));
 
     g_type_class_add_private (klass, sizeof (GreeterPrivate));
 }

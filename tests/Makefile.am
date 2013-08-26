@@ -148,6 +148,7 @@ TESTS = \
 	test-unity-compositor-command \
 	test-unity-compositor-fail-start \
 	test-unity-compositor-fail-ready \
+	test-unity-compositor-next-session \
 	test-unity-autologin \
 	test-unity-login \
 	test-unity-switch \
@@ -413,6 +414,7 @@ EXTRA_DIST = \
 	scripts/unity-compositor-command.conf \
 	scripts/unity-compositor-fail-ready.conf \
 	scripts/unity-compositor-fail-start.conf \
+	scripts/unity-compositor-next-session.conf \
 	scripts/unity-login.conf \
 	scripts/unity-mir-autologin.conf \
 	scripts/unity-mir-greeter-mir-session.conf \

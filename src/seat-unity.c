@@ -27,7 +27,8 @@ typedef enum
    USC_MESSAGE_PONG = 1,
    USC_MESSAGE_READY = 2,
    USC_MESSAGE_SESSION_CONNECTED = 3,
-   USC_MESSAGE_SET_ACTIVE_SESSION = 4
+   USC_MESSAGE_SET_ACTIVE_SESSION = 4,
+   USC_MESSAGE_SET_NEXT_SESSION = 5,
 } USCMessageID;
 
 struct SeatUnityPrivate
@@ -640,6 +641,39 @@ seat_unity_get_active_session (Seat *seat)
 }
 
 static void
+seat_unity_set_next_session (Seat *seat, Session *session)
+{
+    DisplayServer *display_server;
+    const gchar *id = NULL;
+
+    if (!session)
+        return;
+
+    /* If no compositor, don't worry about it */
+    if (SEAT_UNITY (seat)->priv->use_vt_switching)
+        return;
+
+    display_server = session_get_display_server (session);
+
+    if (IS_X_SERVER_LOCAL (display_server))
+        id = x_server_local_get_mir_id (X_SERVER_LOCAL (display_server));
+    else if (IS_MIR_SERVER (display_server))
+        id = mir_server_get_id (MIR_SERVER (display_server));
+
+    if (id)
+    {
+        l_debug (seat, "Marking Mir session %s as the next session", id);
+        write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_NEXT_SESSION, (const guint8 *) id, strlen (id));
+    }
+    else
+    {
+        l_debug (seat, "Failed to work out session ID to mark");
+    }
+
+    SEAT_CLASS (seat_unity_parent_class)->set_next_session (seat, session);
+}
+
+static void
 seat_unity_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
     const gchar *path;
@@ -714,6 +748,7 @@ seat_unity_class_init (SeatUnityClass *klass)
     seat_class->create_session = seat_unity_create_session;
     seat_class->set_active_session = seat_unity_set_active_session;
     seat_class->get_active_session = seat_unity_get_active_session;
+    seat_class->set_next_session = seat_unity_set_next_session;
     seat_class->run_script = seat_unity_run_script;
     seat_class->stop = seat_unity_stop;
 
