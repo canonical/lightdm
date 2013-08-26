@@ -639,19 +639,20 @@ seat_unity_set_next_session (Seat *seat, Session *session)
         return;
 
     display_server = session_get_display_server (session);
-    if (IS_MIR_SERVER (display_server))
-    {
+
+    if (IS_X_SERVER_LOCAL (display_server))
+        id = x_server_local_get_mir_id (X_SERVER_LOCAL (display_server));
+    else if (IS_MIR_SERVER (display_server))
         id = mir_server_get_id (MIR_SERVER (display_server));
 
-        if (id)
-        {
-            g_debug ("Marking Mir session %s as the next session", id);
-            write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_NEXT_SESSION, (const guint8 *) id, strlen (id));
-        }
-        else
-        {
-            g_warning ("Failed to work out session ID to mark");
-        }
+    if (id)
+    {
+        l_debug (seat, "Marking Mir session %s as the next session", id);
+        write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_NEXT_SESSION, (const guint8 *) id, strlen (id));
+    }
+    else
+    {
+        l_debug (seat, "Failed to work out session ID to mark");
     }
 
     SEAT_CLASS (seat_unity_parent_class)->set_next_session (seat, session);
