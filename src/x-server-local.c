@@ -39,6 +39,9 @@ struct XServerLocalPrivate
 
     /* Server layout to use */
     gchar *layout;
+    
+    /* Value for -seat argument */
+    gchar *xdg_seat;
 
     /* TRUE if TCP/IP connections are allowed */
     gboolean allow_tcp;
@@ -202,6 +205,14 @@ x_server_local_set_layout (XServerLocal *server, const gchar *layout)
     g_return_if_fail (server != NULL);
     g_free (server->priv->layout);
     server->priv->layout = g_strdup (layout);
+}
+
+void
+x_server_local_set_xdg_seat (XServerLocal *server, const gchar *xdg_seat)
+{
+    g_return_if_fail (server != NULL);
+    g_free (server->priv->xdg_seat);
+    server->priv->xdg_seat = g_strdup (xdg_seat);
 }
 
 void
@@ -470,6 +481,9 @@ x_server_local_start (DisplayServer *display_server)
 
     if (server->priv->layout)
         g_string_append_printf (command, " -layout %s", server->priv->layout);
+        
+    if (server->priv->xdg_seat)
+        g_string_append_printf (command, " -seat %s", server->priv->xdg_seat);
 
     write_authority_file (server);
     if (server->priv->authority_file)

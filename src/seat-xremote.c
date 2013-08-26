@@ -56,7 +56,9 @@ seat_xremote_create_greeter_session (Seat *seat)
     const gchar *xdg_seat;
 
     greeter_session = SEAT_CLASS (seat_xremote_parent_class)->create_greeter_session (seat);
-    xdg_seat = "seat0";
+    xdg_seat = seat_get_string_property (seat, "xdg-seat");
+    if (!xdg_seat)
+        xdg_seat = "seat0";
     l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
     session_set_env (SESSION (greeter_session), "XDG_SEAT", xdg_seat);
 
@@ -70,7 +72,9 @@ seat_xremote_create_session (Seat *seat)
     const gchar *xdg_seat;
 
     session = SEAT_CLASS (seat_xremote_parent_class)->create_session (seat);
-    xdg_seat = "seat0";
+    xdg_seat = seat_get_string_property (seat, "xdg-seat");
+    if (!xdg_seat)
+        xdg_seat = "seat0";
     l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
     session_set_env (SESSION (session), "XDG_SEAT", xdg_seat);
 
