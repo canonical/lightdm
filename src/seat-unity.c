@@ -303,7 +303,7 @@ static gboolean
 seat_unity_start (Seat *seat)
 {
     const gchar *compositor_command;
-    gchar *command, *absolute_command, *dir;
+    gchar *command, *absolute_command, *dir, *value;
     gboolean result;
     int timeout;
 
@@ -350,6 +350,20 @@ seat_unity_start (Seat *seat)
     SEAT_UNITY (seat)->priv->log_file = g_build_filename (dir, "unity-system-compositor.log", NULL);
     l_debug (seat, "Logging to %s", SEAT_UNITY (seat)->priv->log_file);
     g_free (dir);
+
+    /* Setup environment */
+    process_set_clear_environment (SEAT_UNITY (seat)->priv->compositor_process, TRUE);
+    process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "XDG_SEAT", "seat0");
+    value = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->vt);
+    process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "XDG_VTNR", value);
+    g_free (value);
+    /* Variable required for regression tests */
+    if (g_getenv ("LIGHTDM_TEST_ROOT"))
+    {
+        process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
+        process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
+        process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+    }
 
     SEAT_UNITY (seat)->priv->mir_socket_filename = g_strdup ("/tmp/mir_socket"); // FIXME: Use this socket by default as XMir is hardcoded to this
     timeout = seat_get_integer_property (seat, "unity-compositor-timeout");
