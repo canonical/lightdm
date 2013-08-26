@@ -509,16 +509,19 @@ static void
 bus_entry_free (gpointer data)
 {
     BusEntry *entry = data;
+    GError *error = NULL;
 
     g_dbus_connection_unregister_object (bus, entry->bus_id);
 
-    g_dbus_connection_emit_signal (bus,
-                                   NULL,
-                                   "/org/freedesktop/DisplayManager",
-                                   "org.freedesktop.DisplayManager",
-                                   entry->removed_signal,
-                                   g_variant_new ("(o)", entry->path),
-                                   NULL);
+    if (!g_dbus_connection_emit_signal (bus,
+                                        NULL,
+                                        "/org/freedesktop/DisplayManager",
+                                        "org.freedesktop.DisplayManager",
+                                        entry->removed_signal,
+                                        g_variant_new ("(o)", entry->path),
+                                        &error))
+        g_warning ("Failed to emit %s signal: %s", entry->removed_signal, error->message);
+    g_clear_error (&error);
 
     g_free (entry->path);
     g_free (entry->parent_path);
@@ -536,6 +539,7 @@ running_user_session_cb (Seat *seat, Session *session)
     };
     BusEntry *seat_entry, *entry;
     gchar *path;
+    GError *error = NULL;
 
     /* Set environment variables when session runs */
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
@@ -556,14 +560,20 @@ running_user_session_cb (Seat *seat, Session *session)
                                                        session_info->interfaces[0],
                                                        &session_vtable,
                                                        g_object_ref (session), g_object_unref,
-                                                       NULL);
-    g_dbus_connection_emit_signal (bus,
-                                   NULL,
-                                   "/org/freedesktop/DisplayManager",
-                                   "org.freedesktop.DisplayManager",
-                                   "SessionAdded",
-                                   g_variant_new ("(o)", entry->path),
-                                   NULL);
+                                                       &error);
+    if (entry->bus_id == 0)
+        g_warning ("Failed to register user session: %s", error->message);
+    g_clear_error (&error);
+
+    if (!g_dbus_connection_emit_signal (bus,
+                                        NULL,
+                                        "/org/freedesktop/DisplayManager",
+                                        "org.freedesktop.DisplayManager",
+                                        "SessionAdded",
+                                        g_variant_new ("(o)", entry->path),
+                                        &error))
+        g_warning ("Failed to emit SessionAdded signal: %s", error->message);
+    g_clear_error (&error);
 }
 
 static void
@@ -583,6 +593,7 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
     };
     gchar *path;
     BusEntry *entry;
+    GError *error = NULL;
 
     path = g_strdup_printf ("/org/freedesktop/DisplayManager/Seat%d", seat_index);
     seat_index++;
@@ -598,14 +609,20 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
                                                        seat_info->interfaces[0],
                                                        &seat_vtable,
                                                        g_object_ref (seat), g_object_unref,
-                                                       NULL);
-    g_dbus_connection_emit_signal (bus,
-                                   NULL,
-                                   "/org/freedesktop/DisplayManager",
-                                   "org.freedesktop.DisplayManager",
-                                   "SeatAdded",
-                                   g_variant_new ("(o)", entry->path),
-                                   NULL);
+                                                       &error);
+    if (entry->bus_id == 0)
+        g_warning ("Failed to register seat: %s", error->message);
+    g_clear_error (&error);
+
+    if (!g_dbus_connection_emit_signal (bus,
+                                        NULL,
+                                        "/org/freedesktop/DisplayManager",
+                                        "org.freedesktop.DisplayManager",
+                                        "SeatAdded",
+                                        g_variant_new ("(o)", entry->path),
+                                        &error))
+        g_warning ("Failed to emit SeatAdded signal: %s", error->message);
+    g_clear_error (&error);
 
     g_signal_connect (seat, "running-user-session", G_CALLBACK (running_user_session_cb), NULL);
     g_signal_connect (seat, "session-removed", G_CALLBACK (session_removed_cb), NULL);
@@ -707,6 +724,7 @@ bus_acquired_cb (GDBusConnection *connection,
         "</node>";
     GDBusNodeInfo *display_manager_info;
     GList *link;
+    GError *error = NULL;
 
     g_debug ("Acquired bus name %s", name);
 
@@ -724,8 +742,11 @@ bus_acquired_cb (GDBusConnection *connection,
                                                 display_manager_info->interfaces[0],
                                                 &display_manager_vtable,
                                                 NULL, NULL,
-                                                NULL);
-    g_dbus_node_info_unref  (display_manager_info);
+                                                &error);
+    if (bus_id == 0)
+        g_warning ("Failed to register display manager: %s", error->message);
+    g_clear_error (&error);
+    g_dbus_node_info_unref (display_manager_info);
 
     seat_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, bus_entry_free);
     session_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, bus_entry_free);
@@ -813,7 +834,7 @@ bus_acquired_cb (GDBusConnection *connection,
             g_free (path);
         }
         else
-            g_warning ("Can't start VNC server, Xvn is not in the path");
+            g_warning ("Can't start VNC server, Xvnc is not in the path");
     }
 }
 
