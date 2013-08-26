@@ -47,6 +47,7 @@ struct SeatUnityPrivate
 
     /* IO channel listening on for messages from the compositor */
     GIOChannel *from_compositor_channel;
+    guint from_compositor_watch;
 
     /* TRUE when the compositor indicates it is ready */
     gboolean compositor_ready;
@@ -343,7 +344,7 @@ seat_unity_start (Seat *seat)
 
     /* Listen for messages from the compositor */
     SEAT_UNITY (seat)->priv->from_compositor_channel = g_io_channel_unix_new (SEAT_UNITY (seat)->priv->from_compositor_pipe[0]);
-    g_io_add_watch (SEAT_UNITY (seat)->priv->from_compositor_channel, G_IO_IN | G_IO_HUP, read_cb, seat);
+    SEAT_UNITY (seat)->priv->from_compositor_watch = g_io_add_watch (SEAT_UNITY (seat)->priv->from_compositor_channel, G_IO_IN | G_IO_HUP, read_cb, seat);
 
     /* Setup logging */
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
@@ -673,6 +674,7 @@ seat_unity_finalize (GObject *object)
     close (seat->priv->from_compositor_pipe[0]);
     close (seat->priv->from_compositor_pipe[1]);
     g_io_channel_unref (seat->priv->from_compositor_channel);
+    g_source_remove (seat->priv->from_compositor_watch);
     g_free (seat->priv->read_buffer);
     g_object_unref (seat->priv->compositor_process);
     if (seat->priv->active_session)
