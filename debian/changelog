@@ -1,6 +1,11 @@
-lightdm (1.7.10-0ubuntu1) saucy; urgency=low
+lightdm (1.7.11-0ubuntu1) saucy; urgency=low
 
   * New upstream release:
+    [ 1.7.11 ]
+    - Fix crash when greeter quits due to read watch not being removed
+    - Correctly setup Unity System Compositor environment
+    - Improve log messages
+    [ 1.7.10 ]
     - Fix session locking broken in 1.7.5
     - Load lightdm.conf after lightdm.conf.d/*.conf
     - Also support loading config from /usr/share
@@ -9,7 +14,7 @@ lightdm (1.7.10-0ubuntu1) saucy; urgency=low
     - Change logging prefixes to make it easier to troubleshoot multiseat setups
     - Bring Ubuntu packaging in-tree
 
- -- Robert Ancell <robert.ancell@canonical.com>  Sun, 25 Aug 2013 13:08:38 +1200
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 26 Aug 2013 14:48:55 +1200
 
 lightdm (1.7.9-0ubuntu1) saucy; urgency=low
 
