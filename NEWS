@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.7.12
+
+    * Add xdg-seat config setting
+    * Notify Unity System Compositor of the session being authenticated
+
 Overview of changes in lightdm 1.7.11
 
     * Fix crash when greeter quits due to read watch not being removed

@@ -1,3 +1,9 @@
+lightdm (1.7.12-0ubuntu1) saucy; urgency=low
+
+  * New upstream release:
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 29 Aug 2013 12:59:39 +1200
+
 lightdm (1.7.11-0ubuntu1) saucy; urgency=low
 
   * New upstream release:
