@@ -405,7 +405,7 @@ static DisplayServer *
 create_x_server (Seat *seat)
 {
     XServerLocal *x_server;
-    const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
+    const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL, *xdg_seat = NULL;
     gboolean allow_tcp;
     gint port = 0;
 
@@ -433,6 +433,10 @@ create_x_server (Seat *seat)
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)
         x_server_local_set_layout (x_server, layout);
+    
+    xdg_seat = seat_get_string_property (seat, "xdg-seat");
+    if (xdg_seat)
+        x_server_local_set_xdg_seat (x_server, xdg_seat);
 
     config_file = seat_get_string_property (seat, "xserver-config");
     if (config_file)
@@ -533,7 +537,9 @@ seat_unity_create_greeter_session (Seat *seat)
     const gchar *xdg_seat;
 
     greeter_session = SEAT_CLASS (seat_unity_parent_class)->create_greeter_session (seat);
-    xdg_seat = "seat0";
+    xdg_seat = seat_get_string_property (seat, "xdg-seat");
+    if (!xdg_seat)
+        xdg_seat = "seat0";
     l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
     session_set_env (SESSION (greeter_session), "XDG_SEAT", xdg_seat);
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)
@@ -556,7 +562,9 @@ seat_unity_create_session (Seat *seat)
     const gchar *xdg_seat;
 
     session = SEAT_CLASS (seat_unity_parent_class)->create_session (seat);
-    xdg_seat = "seat0";
+    xdg_seat = seat_get_string_property (seat, "xdg-seat");
+    if (!xdg_seat)
+        xdg_seat = "seat0";
     l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
     session_set_env (session, "XDG_SEAT", xdg_seat);
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)

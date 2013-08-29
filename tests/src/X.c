@@ -212,6 +212,7 @@ main (int argc, char **argv)
     gboolean do_xdmcp = FALSE;
     guint xdmcp_port = 0;
     gchar *xdmcp_host = NULL;
+    gchar *seat = NULL;
     gchar *mir_id = NULL;
     gchar *lock_filename;
     int lock_file;
@@ -282,6 +283,11 @@ main (int argc, char **argv)
         {
             /* Ignore VT args */
         }
+        else if (strcmp (arg, "-seat") == 0)
+        {
+            seat = argv[i+1];
+            i++;
+        }
         else if (strcmp (arg, "-mir") == 0)
         {
             mir_id = argv[i+1];
@@ -303,6 +309,7 @@ main (int argc, char **argv)
                         "-query host-name       Contact named host for XDMCP\n"
                         "-broadcast             Broadcast for XDMCP\n"
                         "-port port-num         UDP port number to send messages to\n"
+                        "-seat string           seat to run on\n"
                         "-mir id                Mir ID to use\n"
                         "-mirSocket name        Mir socket to use\n"
                         "vtxx                   Use virtual terminal xx instead of the next available\n",
@@ -319,6 +326,8 @@ main (int argc, char **argv)
     g_string_printf (status_text, "XSERVER-%d START", display_number);
     if (vt_number >= 0)
         g_string_append_printf (status_text, " VT=%d", vt_number);
+    if (seat != NULL)
+        g_string_append_printf (status_text, " SEAT=%s", seat);
     if (mir_id != NULL)
         g_string_append_printf (status_text, " MIR-ID=%s", mir_id);
     status_notify (status_text->str);
