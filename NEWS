@@ -1,3 +1,10 @@
+Overview of changes in lightdm 1.6.1
+
+    * Fix bug where seat failure before D-Bus acquired would not stop daemon
+    * Stop using g_file_set_contents - it can leave intermediate files around
+    * Support compiling liblightdm-qt headers with QT_NO_KEYWORDS.
+    * Fix compile warnings
+
 Overview of changes in lightdm 1.6.0
 
     * Allow VNC command to be specified in lightdm.conf
