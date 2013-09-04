@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.4.2
+
+    * Fix compile warnings
+    * Stop using g_file_set_replace - it can leave intermediate files around
+
 Overview of changes in lightdm 1.4.1
 
     * Fix script hooks no longer working with latest glib
