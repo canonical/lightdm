@@ -184,6 +184,7 @@ endif
 
 EXTRA_DIST = \
 	$(TESTS) \
+	data/remote-sessions/test-remote.desktop \
 	data/system.conf \
 	data/session.conf \
 	data/xgreeters/test-gobject-greeter.desktop \
