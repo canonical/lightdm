@@ -134,14 +134,13 @@ seat_xlocal_set_active_display (Seat *seat, Display *display)
 static void
 seat_xlocal_run_script (Seat *seat, Display *display, Process *script)
 {
-    gchar *path;
+    const gchar *path;
     XServerLocal *xserver;
 
     xserver = XSERVER_LOCAL (display_get_display_server (display));
     path = xserver_local_get_authority_file_path (xserver);
     process_set_env (script, "DISPLAY", xserver_get_address (XSERVER (xserver)));
     process_set_env (script, "XAUTHORITY", path);
-    g_free (path);
 
     SEAT_CLASS (seat_xlocal_parent_class)->run_script (seat, display, script);
 }

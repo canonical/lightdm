@@ -63,7 +63,7 @@ void xserver_local_set_xdmcp_key (XServerLocal *server, const gchar *key);
 
 gint xserver_local_get_vt (XServerLocal *server);
 
-gchar *xserver_local_get_authority_file_path (XServerLocal *server);
+const gchar *xserver_local_get_authority_file_path (XServerLocal *server);
 
 G_END_DECLS
 

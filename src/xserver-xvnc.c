@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <glib/gstdio.h>
+#include <unistd.h>
 
 #include "xserver-xvnc.h"
 #include "configuration.h"
@@ -30,7 +31,7 @@ struct XServerXVNCPrivate
     gchar *log_file;  
 
     /* Authority file */
-    GFile *authority_file;
+    gchar *authority_file;
 
     /* File descriptor to use for standard input */
     gint socket_fd;
@@ -88,13 +89,11 @@ xserver_xvnc_set_depth (XServerXVNC *server, gint depth)
     server->priv->depth = depth;
 }
 
-gchar *
+const gchar *
 xserver_xvnc_get_authority_file_path (XServerXVNC *server)
 {
-    g_return_val_if_fail (server != NULL, 0);
-    if (server->priv->authority_file)
-        return g_file_get_path (server->priv->authority_file);
-    return NULL;
+    g_return_val_if_fail (server != NULL, NULL);
+    return server->priv->authority_file;
 }
 
 static gchar *
@@ -162,9 +161,6 @@ got_signal_cb (Process *process, int signum, XServerXVNC *server)
 static void
 stopped_cb (Process *process, XServerXVNC *server)
 {
-    GError *error = NULL;
-    gchar *path;
-  
     g_debug ("Xvnc server stopped");
 
     g_object_unref (server->priv->xserver_process);
@@ -172,15 +168,10 @@ stopped_cb (Process *process, XServerXVNC *server)
 
     xserver_local_release_display_number (xserver_get_display_number (XSERVER (server)));
 
-    path = g_file_get_path (server->priv->authority_file);
-    g_debug ("Removing X server authority %s", path);
-    g_free (path);
+    g_debug ("Removing X server authority %s", server->priv->authority_file);
 
-    g_file_delete (server->priv->authority_file, NULL, &error);
-    if (error)
-        g_debug ("Error removing authority: %s", error->message);
-    g_clear_error (&error);
-    g_object_unref (server->priv->authority_file);
+    g_unlink (server->priv->authority_file);
+    g_free (server->priv->authority_file);
     server->priv->authority_file = NULL;
 
     DISPLAY_SERVER_CLASS (xserver_xvnc_parent_class)->stop (DISPLAY_SERVER (server));
@@ -192,7 +183,7 @@ xserver_xvnc_start (DisplayServer *display_server)
     XServerXVNC *server = XSERVER_XVNC (display_server);
     XAuthority *authority;
     gboolean result;
-    gchar *filename, *run_dir, *dir, *path, *absolute_command;
+    gchar *filename, *run_dir, *dir, *absolute_command;
     GString *command;
     gchar hostname[1024], *number;
     GError *error = NULL;
@@ -234,13 +225,10 @@ xserver_xvnc_start (DisplayServer *display_server)
     g_free (run_dir);
     g_mkdir_with_parents (dir, S_IRWXU);
 
-    path = g_build_filename (dir, xserver_get_address (XSERVER (server)), NULL);
+    server->priv->authority_file = g_build_filename (dir, xserver_get_address (XSERVER (server)), NULL);
     g_free (dir);
-    server->priv->authority_file = g_file_new_for_path (path);
-    g_free (path);
 
-    path = g_file_get_path (server->priv->authority_file);
-    g_debug ("Writing X server authority to %s", path);
+    g_debug ("Writing X server authority to %s", server->priv->authority_file);
 
     xauth_write (authority, XAUTH_WRITE_MODE_REPLACE, server->priv->authority_file, &error);
     if (error)
@@ -251,8 +239,7 @@ xserver_xvnc_start (DisplayServer *display_server)
     g_free (absolute_command);
   
     g_string_append_printf (command, " :%d", xserver_get_display_number (XSERVER (server)));
-    g_string_append_printf (command, " -auth %s", path);
-    g_free (path);
+    g_string_append_printf (command, " -auth %s", server->priv->authority_file);
     g_string_append (command, " -inetd -nolisten tcp");
     if (server->priv->width > 0 && server->priv->height > 0)
         g_string_append_printf (command, " -geometry %dx%d", server->priv->width, server->priv->height);
@@ -312,8 +299,7 @@ xserver_xvnc_finalize (GObject *object)
 
     if (self->priv->xserver_process)
         g_object_unref (self->priv->xserver_process);
-    if (self->priv->authority_file)
-        g_object_unref (self->priv->authority_file);
+    g_free (self->priv->authority_file);
     g_free (self->priv->log_file);
 
     G_OBJECT_CLASS (xserver_xvnc_parent_class)->finalize (object);
