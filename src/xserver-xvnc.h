@@ -49,7 +49,7 @@ void xserver_xvnc_set_geometry (XServerXVNC *server, gint width, gint height);
 
 void xserver_xvnc_set_depth (XServerXVNC *server, gint depth);
 
-gchar *xserver_xvnc_get_authority_file_path (XServerXVNC *server);
+const gchar *xserver_xvnc_get_authority_file_path (XServerXVNC *server);
 
 G_END_DECLS
 

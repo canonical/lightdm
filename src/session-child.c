@@ -435,21 +435,17 @@ session_child_run (int argc, char **argv)
     /* Write X authority */
     if (xauthority)
     {
-        GFile *file;
         gboolean drop_privileges, result;
         gchar *value;
         GError *error = NULL;
 
-        file = g_file_new_for_path (xauth_filename);
-
         drop_privileges = geteuid () == 0;
         if (drop_privileges)
             privileges_drop (user);
-        result = xauth_write (xauthority, XAUTH_WRITE_MODE_REPLACE, file, &error);
+        result = xauth_write (xauthority, XAUTH_WRITE_MODE_REPLACE, xauth_filename, &error);
         if (drop_privileges)
             privileges_reclaim ();
 
-        g_object_unref (file);
         if (error)
             g_printerr ("Error writing X authority: %s\n", error->message);
         g_clear_error (&error);
@@ -589,20 +585,16 @@ session_child_run (int argc, char **argv)
     /* Remove X authority */
     if (xauthority)
     {
-        GFile *file;
         gboolean drop_privileges, result;
         GError *error = NULL;
-
-        file = g_file_new_for_path (xauth_filename);
 
         drop_privileges = geteuid () == 0;
         if (drop_privileges)
             privileges_drop (user);
-        result = xauth_write (xauthority, XAUTH_WRITE_MODE_REMOVE, file, &error);
+        result = xauth_write (xauthority, XAUTH_WRITE_MODE_REMOVE, xauth_filename, &error);
         if (drop_privileges)
             privileges_reclaim ();
 
-        g_object_unref (file);
         if (error)
             g_printerr ("Error removing X authority: %s\n", error->message);
         g_clear_error (&error);
