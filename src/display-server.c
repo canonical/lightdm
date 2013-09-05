@@ -106,12 +106,6 @@ display_server_real_stop (DisplayServer *server)
     g_signal_emit (server, signals[STOPPED], 0);
 }
 
-static gboolean
-display_server_real_get_is_stopped (DisplayServer *server)
-{
-    return server->priv->stopped;
-}
-
 static void
 display_server_init (DisplayServer *server)
 {

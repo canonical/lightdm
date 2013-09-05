@@ -236,7 +236,7 @@ gboolean
 xauth_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GError **error)
 {
     gchar *input;
-    gsize input_length = 0, input_offset = 0, offset;
+    gsize input_length = 0, input_offset = 0;
     GList *link, *records = NULL;
     XAuthority *a;
     gboolean result;

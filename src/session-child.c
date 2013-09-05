@@ -19,6 +19,7 @@
 #include "console-kit.h"
 #include "privileges.h"
 #include "xauthority.h"
+#include "configuration.h"
 
 /* Child process being run */
 static GPid child_pid = 0;
