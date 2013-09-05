@@ -506,7 +506,7 @@ read_string (Greeter *greeter, gsize *offset)
         return g_strdup ("");
     }
 
-    value = g_malloc (sizeof (gchar *) * (length + 1));
+    value = g_malloc (sizeof (gchar) * (length + 1));
     memcpy (value, greeter->priv->read_buffer + *offset, length);
     value[length] = '\0';
     *offset += length;
