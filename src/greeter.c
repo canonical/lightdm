@@ -654,7 +654,7 @@ read_string_full (Greeter *greeter, gsize *offset, void* (*alloc_fn)(size_t n))
         return g_strdup ("");
     }
 
-    value = (*alloc_fn) (sizeof (gchar *) * (length + 1));
+    value = (*alloc_fn) (sizeof (gchar) * (length + 1));
     memcpy (value, greeter->priv->read_buffer + *offset, length);
     value[length] = '\0';
     *offset += length;
