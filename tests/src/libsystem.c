@@ -1376,7 +1376,6 @@ xcb_connect_to_display_with_auth_info (const char *display, xcb_auth_info_t *aut
 {
     xcb_connection_t *c;
     gchar *socket_path;
-    GSocketAddress *address;
     GError *error = NULL;
   
     c = malloc (sizeof (xcb_connection_t));
@@ -1401,6 +1400,7 @@ xcb_connect_to_display_with_auth_info (const char *display, xcb_auth_info_t *aut
     if (c->error == 0)
     {
         gchar *d;
+        GSocketAddress *address;
 
         /* Skip the hostname, we'll assume it's localhost */
         d = g_strdup_printf (".x%s", strchr (display, ':'));
@@ -1410,6 +1410,7 @@ xcb_connect_to_display_with_auth_info (const char *display, xcb_auth_info_t *aut
         address = g_unix_socket_address_new (socket_path);
         if (!g_socket_connect (c->socket, address, NULL, &error))
             c->error = XCB_CONN_ERROR;
+        g_object_unref (address);
         if (error)
             g_printerr ("Failed to connect to X socket %s: %s\n", socket_path, error->message);
         g_free (socket_path);
@@ -1420,8 +1421,6 @@ xcb_connect_to_display_with_auth_info (const char *display, xcb_auth_info_t *aut
     if (c->error == 0)
     {
     }
-
-    g_object_unref (address);
 
     return c;
 }
