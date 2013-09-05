@@ -146,15 +146,8 @@ xdmcp_failed_cb (XDMCPClient *client, XDMCPFailed *message)
 static void
 client_connected_cb (XServer *server, XClient *client)
 {
-    gchar *auth_error = NULL;
-
     status_notify ("XSERVER-%d ACCEPT-CONNECT", display_number);
-
-    if (auth_error)
-        x_client_send_failed (client, auth_error);
-    else
-        x_client_send_success (client);
-    g_free (auth_error);
+    x_client_send_success (client);
 }
 
 static void
