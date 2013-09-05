@@ -120,7 +120,7 @@ write_card16 (PacketWriter *writer, guint16 value)
 }
 
 static void
-write_card32 (PacketWriter *writer, guint16 value)
+write_card32 (PacketWriter *writer, guint32 value)
 {
     write_card8 (writer, (value >> 24) & 0xFF);
     write_card8 (writer, (value >> 16) & 0xFF);
