@@ -1236,8 +1236,12 @@ pam_setcred (pam_handle_t *pamh, int flags)
         if (group)
         {
             groups_length = getgroups (0, NULL);
+            if (groups_length < 0)
+                return PAM_SYSTEM_ERR;
             groups = malloc (sizeof (gid_t) * (groups_length + 1));
             groups_length = getgroups (groups_length, groups);
+            if (groups_length < 0)
+                return PAM_SYSTEM_ERR;
             groups[groups_length] = group->gr_gid;
             groups_length++;
             setgroups (groups_length, groups);
