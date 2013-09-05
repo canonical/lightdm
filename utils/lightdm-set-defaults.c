@@ -77,16 +77,12 @@ update_boolean(const gboolean new_value,
               const gchar *key_name,
               GKeyFile    *keyfile)
 {
-    gboolean success = TRUE;
-
     if (keep_old)
         g_debug ("keep-old mode: keep previous default value");
     else {
         g_debug ("Update to %d for %s", new_value, key_name);
         g_key_file_set_boolean (keyfile, key_group, key_name, new_value);
     }
-    if (!success)
-        return(2);
     return(0);
 }
 
@@ -99,8 +95,6 @@ update_string(const gchar *default_value,
               const gchar *key_name,
               GKeyFile    *keyfile)
 {
-    gboolean success = TRUE;
-        
     if (!(default_value) || (strlen(default_value) < 1)) {
         g_debug ("No existing valid value for %s. Set to %s", key_name, new_value);
         g_key_file_set_string (keyfile, key_group, key_name, new_value);
@@ -110,8 +104,6 @@ update_string(const gchar *default_value,
             if (g_strcmp0 (default_value, new_value) == 0) {
                 g_debug ("Remove %s as default value for %s", default_value, key_name);
                 g_key_file_set_string (keyfile, key_group, key_name, "");
-                if (!success)
-                    return(2);
                 return(0);
             }
             g_debug ("Can't remove: %s is not the default value for %s", default_value, key_name);
@@ -127,8 +119,6 @@ update_string(const gchar *default_value,
             }
         }
     }
-    if (!success)
-        return(2);
     return(0);
 }
 
