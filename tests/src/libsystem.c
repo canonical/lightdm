@@ -329,7 +329,7 @@ stat64 (const char *path, struct stat *buf)
     _stat64 = (int (*)(const char *path, struct stat *buf)) dlsym (RTLD_NEXT, "stat64");
 
     new_path = redirect_path (path);
-    ret = _stat (new_path, buf);
+    ret = _stat64 (new_path, buf);
     g_free (new_path);
 
     return ret;
