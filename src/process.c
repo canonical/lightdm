@@ -322,8 +322,9 @@ handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
     pid_t pid;
     Process *process;
 
-    if (read (signal_pipe[0], &signo, sizeof (int)) < 0 || 
-        read (signal_pipe[0], &pid, sizeof (pid_t)) < 0)
+    errno = 0;
+    if (read (signal_pipe[0], &signo, sizeof (int)) != sizeof (int) || 
+        read (signal_pipe[0], &pid, sizeof (pid_t)) != sizeof (pid_t))
     {
         g_warning ("Error reading from signal pipe: %s", strerror (errno));
         return TRUE;
