@@ -54,7 +54,9 @@ x_client_send_failed (XClient *client, const gchar *reason)
     gchar *message;
   
     message = g_strdup_printf ("FAILED:%s", reason);
-    send (g_io_channel_unix_get_fd (client->priv->channel), message, strlen (message), 0);
+    errno = 0;
+    if (send (g_io_channel_unix_get_fd (client->priv->channel), message, strlen (message), 0) != strlen (message))
+        g_printerr ("Failed to send FAILED: %s\n", strerror (errno));
     g_free (message);
 }
 
@@ -64,7 +66,9 @@ x_client_send_success (XClient *client)
     gchar *message;
 
     message = g_strdup ("SUCCESS");
-    send (g_io_channel_unix_get_fd (client->priv->channel), message, strlen (message), 0);
+    errno = 0;
+    if (send (g_io_channel_unix_get_fd (client->priv->channel), message, strlen (message), 0) != strlen (message))
+        g_printerr ("Failed to send SUCCESS: %s\n", strerror (errno));
     g_free (message);
 }
 
