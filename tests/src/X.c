@@ -146,15 +146,8 @@ xdmcp_failed_cb (XDMCPClient *client, XDMCPFailed *message)
 static void
 client_connected_cb (XServer *server, XClient *client)
 {
-    gchar *auth_error = NULL;
-
     status_notify ("XSERVER-%d ACCEPT-CONNECT", display_number);
-
-    if (auth_error)
-        x_client_send_failed (client, auth_error);
-    else
-        x_client_send_success (client);
-    g_free (auth_error);
+    x_client_send_success (client);
 }
 
 static void
@@ -394,18 +387,18 @@ main (int argc, char **argv)
                  "	and start again.\n", display_number, lock_path);
         g_free (lock_path);
         lock_path = NULL;
-        quit (EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
     pid_string = g_strdup_printf ("%10ld", (long) getpid ());
     if (write (lock_file, pid_string, strlen (pid_string)) < 0)
     {
         g_warning ("Error writing PID file: %s", strerror (errno));
-        quit (EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
     g_free (pid_string);
 
     if (!x_server_start (xserver))
-        quit (EXIT_FAILURE);
+        return EXIT_FAILURE;
 
     /* Enable XDMCP */
     if (do_xdmcp)

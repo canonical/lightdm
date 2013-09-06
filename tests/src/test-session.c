@@ -104,6 +104,11 @@ request_cb (const gchar *request)
         GString *group_list;
 
         n_groups = getgroups (0, NULL);
+        if (n_groups < 0)
+        {
+            g_printerr ("Failed to get groups: %s", strerror (errno));
+            n_groups = 0;
+        }
         groups = malloc (sizeof (gid_t) * n_groups);
         n_groups = getgroups (n_groups, groups);
         group_list = g_string_new ("");

@@ -199,7 +199,7 @@ main (int argc, char **argv)
     {
         gchar *username, *session = "";
 
-        if (n_options > 1)
+        if (n_options > 2)
         {
             g_printerr ("Usage switch-to-user USERNAME [SESSION]\n");
             usage ();
