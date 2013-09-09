@@ -929,7 +929,7 @@ static gboolean
 greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
 {
     Session *session, *existing_session;
-    const gchar *username, *language = NULL;
+    const gchar *username, *desktop_name, *language = NULL;
     SessionConfig *session_config;
     User *user;
     gchar *sessions_dir = NULL;
@@ -1003,6 +1003,9 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     g_strfreev (argv);
     session_set_env (session, "DESKTOP_SESSION", session_name);
     session_set_env (session, "GDMSESSION", session_name);
+    desktop_name = session_config_get_desktop_name (session_config);
+    if (desktop_name)
+        session_set_env (session, "XDG_CURRENT_DESKTOP", desktop_name);
     if (language && language[0] != '\0')
     {
         session_set_env (session, "LANG", language);
