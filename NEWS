@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.7.13
+
+    * Correctly set $XDG_CURRENT_DESKTOP for non-autologin sessions
+    * Fix overallocation of array for strings from greeter.
+    * Fix truncation writing card32 in XDMCP server.
+
 Overview of changes in lightdm 1.7.12
 
     * Add xdg-seat config setting

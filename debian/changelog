@@ -1,6 +1,18 @@
+lightdm (1.7.13-0ubuntu1) saucy; urgency=low
+
+  * New upstream release:
+    - Correctly set $XDG_CURRENT_DESKTOP for non-autologin sessions
+      (LP: #1221803)
+    - Fix overallocation of array for strings from greeter.
+    - Fix truncation writing card32 in XDMCP server.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 09 Sep 2013 16:08:55 +1200
+
 lightdm (1.7.12-0ubuntu1) saucy; urgency=low
 
   * New upstream release:
+    - Add xdg-seat config setting
+    - Notify Unity System Compositor of the session being authenticated
 
  -- Robert Ancell <robert.ancell@canonical.com>  Thu, 29 Aug 2013 12:59:39 +1200
 
