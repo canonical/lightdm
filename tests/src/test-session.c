@@ -10,6 +10,7 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 #include <glib-unix.h>
+#include <glib/gstdio.h>
 
 #include "status.h"
 
@@ -166,6 +167,35 @@ request_cb (const gchar *request)
     r = g_strdup_printf ("%s LIST-UNKNOWN-FILE-DESCRIPTORS", session_id);
     if (strcmp (request, r) == 0)
         status_notify ("%s LIST-UNKNOWN-FILE-DESCRIPTORS FDS=%s", session_id, open_fds->str);
+    g_free (r);
+
+    r = g_strdup_printf ("%s CHECK-X-AUTHORITY", session_id);
+    if (strcmp (request, r) == 0)
+    {
+        gchar *xauthority;
+        GStatBuf file_info;
+        GString *mode_string;
+
+        xauthority = g_strdup (g_getenv ("XAUTHORITY"));
+        if (!xauthority)
+            xauthority = g_build_filename (g_get_home_dir (), ".Xauthority", NULL);
+
+        g_stat (xauthority, &file_info);
+        g_free (xauthority);
+
+        mode_string = g_string_new ("");
+        g_string_append_c (mode_string, file_info.st_mode & S_IRUSR ? 'r' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IWUSR ? 'w' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IXUSR ? 'x' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IRGRP ? 'r' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IWGRP ? 'w' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IXGRP ? 'x' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IROTH ? 'r' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IWOTH ? 'w' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IXOTH ? 'x' : '-');
+        status_notify ("%s CHECK-X-AUTHORITY MODE=%s", session_id, mode_string->str);
+        g_string_free (mode_string, TRUE);
+    }
     g_free (r);
 }
 

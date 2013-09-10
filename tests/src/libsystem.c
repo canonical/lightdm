@@ -416,6 +416,22 @@ chown (const char *pathname, uid_t owner, gid_t group)
 }
 
 int
+chmod (const char *path, mode_t mode)
+{
+    int (*_chmod) (const char *path, mode_t mode);
+    gchar *new_path = NULL;
+    int result;
+
+    _chmod = (int (*)(const char *path, mode_t mode)) dlsym (RTLD_NEXT, "chmod");
+
+    new_path = redirect_path (path);
+    result = _chmod (new_path, mode);
+    g_free (new_path);
+
+    return result;
+}
+
+int
 ioctl (int d, int request, void *data)
 {
     int (*_ioctl) (int d, int request, void *data);

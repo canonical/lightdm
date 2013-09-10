@@ -325,6 +325,18 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
         return FALSE;
     }
   
+    /* Only allow the file to be read by this user */
+    if (chmod (filename, S_IRUSR | S_IWUSR) != 0)
+    {
+        g_set_error (error,
+                     G_FILE_ERROR,
+                     g_file_error_from_errno (errno),
+                     "Failed to set permissions on X authority %s: %s",
+                     filename,
+                     g_strerror (errno));
+        return FALSE;
+    }
+
     for (link = records; link && result; link = link->next)
     {
         XAuthority *a = link->data;
