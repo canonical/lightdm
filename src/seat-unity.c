@@ -535,6 +535,7 @@ seat_unity_create_greeter_session (Seat *seat)
 {
     Greeter *greeter_session;
     const gchar *xdg_seat;
+    gint vt = -1;
 
     greeter_session = SEAT_CLASS (seat_unity_parent_class)->create_greeter_session (seat);
     xdg_seat = seat_get_string_property (seat, "xdg-seat");
@@ -542,9 +543,15 @@ seat_unity_create_greeter_session (Seat *seat)
         xdg_seat = "seat0";
     l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
     session_set_env (SESSION (greeter_session), "XDG_SEAT", xdg_seat);
+
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)
+        vt = SEAT_UNITY (seat)->priv->vt;
+    else if (vt_get_active () < 0)
+        vt = 1; /* If even VTs aren't working, just fake it */
+
+    if (vt >= 0)
     {
-        gchar *value = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->vt);
+        gchar *value = g_strdup_printf ("%d", vt);
         l_debug (seat, "Setting XDG_VTNR=%s", value);
         session_set_env (SESSION (greeter_session), "XDG_VTNR", value);
         g_free (value);
@@ -560,6 +567,7 @@ seat_unity_create_session (Seat *seat)
 {
     Session *session;
     const gchar *xdg_seat;
+    gint vt = -1;
 
     session = SEAT_CLASS (seat_unity_parent_class)->create_session (seat);
     xdg_seat = seat_get_string_property (seat, "xdg-seat");
@@ -567,9 +575,15 @@ seat_unity_create_session (Seat *seat)
         xdg_seat = "seat0";
     l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
     session_set_env (session, "XDG_SEAT", xdg_seat);
+
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)
+        vt = SEAT_UNITY (seat)->priv->vt;
+    else if (vt_get_active () < 0)
+        vt = 1; /* If even VTs aren't working, just fake it */
+
+    if (vt >= 0)
     {
-        gchar *value = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->vt);
+        gchar *value = g_strdup_printf ("%d", vt);
         l_debug (seat, "Setting XDG_VTNR=%s", value);
         session_set_env (SESSION (session), "XDG_VTNR", value);
         g_free (value);
