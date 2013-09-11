@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.7.14
+
+    * Correctly set permissions on Xauthority file.
+
 Overview of changes in lightdm 1.7.13
 
     * Correctly set $XDG_CURRENT_DESKTOP for non-autologin sessions
