@@ -2,7 +2,7 @@
 # Run this to generate all the initial makefiles, etc.
 
 libtoolize --force --copy
-intltoolize --force
+intltoolize --force --copy
 gtkdocize --copy
 aclocal
 autoconf
