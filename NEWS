@@ -1,3 +1,12 @@
+Overview of changes in lightdm 1.2.4
+
+    * Fix overallocation of array for strings from greeter
+    * Fix truncation writing card32 in XDMCP server
+    * Don't write X authority with g_file_replace - it can leave intermediate
+      files around if it is interrupted.
+    * Stop deprecation warnings from glib >= 2.36
+    * Fix script hooks no longer working with latest glib
+
 Overview of changes in lightdm 1.2.3
 
     * Correctly implement and test autologin timeouts
