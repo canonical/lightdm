@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.4.3
+
+    * Correctly set permissions on Xauthority file
+    * Fix overallocation of array for strings from greeter
+    * Fix truncation writing card32 in XDMCP server
+
 Overview of changes in lightdm 1.4.2
 
     * Fix compile warnings
