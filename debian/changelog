@@ -1,3 +1,10 @@
+lightdm (1.7.14-0ubuntu2) UNRELEASED; urgency=low
+
+  * Have liblightdm-gobject-1.0 suggest not recommend lightdm
+    (LP: #1222155)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 10 Sep 2013 22:21:58 -0400
+
 lightdm (1.7.14-0ubuntu1) saucy; urgency=low
 
   * New upstream release:

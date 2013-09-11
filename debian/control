@@ -56,8 +56,8 @@ Package: liblightdm-gobject-1-0
 Architecture: any
 Depends: ${misc:Depends},
          ${shlibs:Depends},
-Recommends: lightdm,
-            accountsservice,
+Recommends: accountsservice
+Suggests: lightdm
 Description: LightDM GObject client library
  A GObject based library for LightDM clients to use to interface with LightDM.
 
