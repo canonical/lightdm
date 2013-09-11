@@ -14,7 +14,6 @@ TESTS = \
 	test-autologin \
 	test-autologin-invalid-user \
 	test-autologin-invalid-session \
-	test-crash-authenticate \
 	test-autologin-xserver-crash \
 	test-autologin-session-crash \
 	test-autologin-password \
@@ -107,6 +106,7 @@ TESTS = \
 	test-open-file-descriptors \
 	test-xdmcp-server-open-file-descriptors
 
+#	test-crash-authenticate
 #	test-session-exit-error
 #	test-greeter-no-exit
 #   test-gobject-change-password
