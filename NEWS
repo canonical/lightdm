@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.7.15
+
+    * Set XDG_VTNR=1 as a fallback if using SeatUnity without a functioning
+      compositor or working VT switching, so that logind will recognize the VT
+      as active.
+
 Overview of changes in lightdm 1.7.14
 
     * Correctly set permissions on Xauthority file.
