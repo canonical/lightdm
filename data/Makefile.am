@@ -11,16 +11,18 @@ dist_pam_DATA = pam/lightdm \
                 pam/lightdm-autologin \
                 pam/lightdm-greeter
 
-EXTRA_DIST = guest-session.apparmor
+lightdm-guest-session: $(srcdir)/apparmor/lightdm-guest-session.in
+	sed -e 's|@pkglibexecdir[@]|$(pkglibexecdir)|g' $< >$@
 
 apparmor_profiledir = $(sysconfdir)/apparmor.d
+apparmor_profile_DATA = \
+    lightdm-guest-session
 
-install-data-hook:
-	install -d $(DESTDIR)$(apparmor_profiledir)
-	sed 's!PKGLIBEXECDIR!$(pkglibexecdir)!g' < $(srcdir)/guest-session.apparmor \
-		> $(DESTDIR)$(apparmor_profiledir)/lightdm-guest-session
 
 dist_man1_MANS = lightdm.1
+
+EXTRA_DIST = apparmor/lightdm-guest-session.in
+CLEANFILES = lightdm-guest-session
 
 DISTCLEANFILES = \
 	Makefile.in
