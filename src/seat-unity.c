@@ -368,11 +368,9 @@ seat_unity_start (Seat *seat)
     }
 
     SEAT_UNITY (seat)->priv->mir_socket_filename = g_strdup ("/tmp/mir_socket"); // FIXME: Use this socket by default as XMir is hardcoded to this
-    process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "MIR_SERVER_FILE", SEAT_UNITY (seat)->priv->mir_socket_filename);
-
     timeout = seat_get_integer_property (seat, "unity-compositor-timeout");
     compositor_command = seat_get_string_property (seat, "unity-compositor-command");
-    command = g_strdup_printf ("%s --from-dm-fd %d --to-dm-fd %d --vt %d", compositor_command, SEAT_UNITY (seat)->priv->to_compositor_pipe[0], SEAT_UNITY (seat)->priv->from_compositor_pipe[1], SEAT_UNITY (seat)->priv->vt);
+    command = g_strdup_printf ("%s --standalone --file '%s' --from-dm-fd %d --to-dm-fd %d --vt %d", compositor_command, SEAT_UNITY (seat)->priv->mir_socket_filename, SEAT_UNITY (seat)->priv->to_compositor_pipe[0], SEAT_UNITY (seat)->priv->from_compositor_pipe[1], SEAT_UNITY (seat)->priv->vt);
 
     absolute_command = get_absolute_command (command);
     g_free (command);
