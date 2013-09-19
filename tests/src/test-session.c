@@ -226,7 +226,7 @@ main (int argc, char **argv)
     else if (mir_socket || mir_vt)
         session_id = g_strdup ("SESSION-MIR");
     else
-        session_id = g_strdup ("SESSION-?");
+        session_id = g_strdup ("SESSION-UNKNOWN");
 
     open_fds = g_string_new ("");
     open_max = sysconf (_SC_OPEN_MAX);
