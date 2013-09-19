@@ -546,8 +546,6 @@ seat_unity_create_greeter_session (Seat *seat)
 
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)
         vt = SEAT_UNITY (seat)->priv->vt;
-    else if (vt_get_active () < 0)
-        vt = 1; /* If even VTs aren't working, just fake it */
 
     if (vt >= 0)
     {
@@ -578,8 +576,6 @@ seat_unity_create_session (Seat *seat)
 
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)
         vt = SEAT_UNITY (seat)->priv->vt;
-    else if (vt_get_active () < 0)
-        vt = 1; /* If even VTs aren't working, just fake it */
 
     if (vt >= 0)
     {
