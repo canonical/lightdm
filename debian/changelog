@@ -1,3 +1,12 @@
+lightdm (1.7.16-0ubuntu2) saucy; urgency=low
+
+  * New upstream release:
+    - Fix ConsoleKit support broken in 1.7.5
+    - Fix --test-mode (LP: #1226544) 
+    - Add support for running Surfaceflinger sessions
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 19 Sep 2013 17:42:48 -0400
+
 lightdm (1.7.15-0ubuntu1) saucy; urgency=low
 
   [ Jeremy Bicha ]
