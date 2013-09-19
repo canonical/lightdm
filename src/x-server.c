@@ -169,7 +169,6 @@ x_server_connect_session (DisplayServer *display_server, Session *session)
         l_debug (session, "Not setting XDG_VTNR");
 
     session_set_env (session, "DISPLAY", x_server_get_address (X_SERVER (display_server)));
-    session_set_tty (session, x_server_get_address (X_SERVER (display_server)));
     session_set_xdisplay (session, x_server_get_address (X_SERVER (display_server)));
     session_set_remote_host_name (session, x_server_get_hostname (X_SERVER (display_server)));
     session_set_x_authority (session,
