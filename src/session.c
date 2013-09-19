@@ -758,6 +758,8 @@ session_real_run (Session *session)
     else
         x_authority_filename = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
 
+    if (session->priv->log_filename)
+        l_debug (session, "Logging to %s", session->priv->log_filename);
     write_string (session, session->priv->log_filename);
     write_string (session, session->priv->tty);
     write_string (session, x_authority_filename);

@@ -1050,7 +1050,6 @@ create_greeter_session (Seat *seat)
     gchar *sessions_dir, **argv;
     SessionConfig *session_config;
     Greeter *greeter_session;
-    gchar *greeter_user;
     const gchar *greeter_wrapper;
 
     l_debug (seat, "Creating greeter session");
@@ -1081,9 +1080,18 @@ create_greeter_session (Seat *seat)
     set_session_env (SESSION (greeter_session));
 
     session_set_pam_service (SESSION (greeter_session), GREETER_SERVICE);
-    greeter_user = config_get_string (config_get_instance (), "LightDM", "greeter-user");
-    session_set_username (SESSION (greeter_session), greeter_user);
-    g_free (greeter_user);
+    if (getuid () == 0)
+    {
+        gchar *greeter_user;      
+        greeter_user = config_get_string (config_get_instance (), "LightDM", "greeter-user");
+        session_set_username (SESSION (greeter_session), greeter_user);
+        g_free (greeter_user);
+    }
+    else
+    {
+        /* In test mode run the greeter as ourself */
+        session_set_username (SESSION (greeter_session), user_get_name (accounts_get_current_user ()));
+    }
     session_set_argv (SESSION (greeter_session), argv);
     g_strfreev (argv);
 
