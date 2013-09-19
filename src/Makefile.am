@@ -32,6 +32,8 @@ lightdm_SOURCES = \
 	process.h \
 	seat.c \
 	seat.h \
+	seat-surfaceflinger.c \
+	seat-surfaceflinger.h \
 	seat-unity.c \
 	seat-unity.h \
 	seat-xdmcp-session.c \
@@ -48,6 +50,8 @@ lightdm_SOURCES = \
 	session-child.h \
 	session-config.c \
 	session-config.h \
+	surfaceflinger-server.c \
+	surfaceflinger-server.h \
 	vnc-server.c \
 	vnc-server.h \
 	vt.c \
