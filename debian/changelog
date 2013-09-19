@@ -1,4 +1,4 @@
-lightdm (1.7.16-0ubuntu2) saucy; urgency=low
+lightdm (1.7.16-0ubuntu1) saucy; urgency=low
 
   * New upstream release:
     - Fix ConsoleKit support broken in 1.7.5
