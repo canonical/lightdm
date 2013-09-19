@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.7.16
+
+    * Fix ConsoleKit support broken in 1.7.5
+    * Fix --test-mode
+    * Add support for running Surfaceflinger sessions
+
 Overview of changes in lightdm 1.7.15
 
     * Set XDG_VTNR=1 as a fallback if using SeatUnity without a functioning
