@@ -67,7 +67,7 @@ seat_surfaceflinger_create_session (Seat *seat)
     session_set_env (session, "XDG_SEAT", xdg_seat);
 
     /* Fake the VT */
-    session_set_env (session, "XDG_VTNR", "1");
+    session_set_env (session, "XDG_VTNR", vt_can_multi_seat() ? "1" : "0");
 
     return session;
 }
