@@ -13,6 +13,7 @@
 
 #include "seat-surfaceflinger.h"
 #include "surfaceflinger-server.h"
+#include "vt.h"
 
 G_DEFINE_TYPE (SeatSurfaceflinger, seat_surfaceflinger, SEAT_TYPE);
 
@@ -48,7 +49,7 @@ seat_surfaceflinger_create_greeter_session (Seat *seat)
     session_set_env (SESSION (greeter_session), "XDG_SEAT", xdg_seat);
 
     /* Fake the VT */
-    session_set_env (SESSION (greeter_session), "XDG_VTNR", "1");
+    session_set_env (SESSION (greeter_session), "XDG_VTNR", vt_can_multi_seat() ? "1" : "0");
 
     return greeter_session;
 }

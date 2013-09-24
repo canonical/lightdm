@@ -14,6 +14,8 @@
 
 #include <glib-object.h>
 
+gboolean vt_can_multi_seat (void);
+
 gint vt_get_active (void);
 
 gint vt_get_unused (void);
