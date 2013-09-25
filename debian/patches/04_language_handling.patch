@@ -4,8 +4,8 @@ Author: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
 
 Index: trunk/liblightdm-gobject/language.c
 ===================================================================
---- trunk.orig/liblightdm-gobject/language.c	2013-08-25 13:11:15.911273679 +1200
-+++ trunk/liblightdm-gobject/language.c	2013-08-25 13:11:15.903273679 +1200
+--- trunk.orig/liblightdm-gobject/language.c	2013-09-25 12:08:11.120803355 +1200
++++ trunk/liblightdm-gobject/language.c	2013-09-25 12:08:11.112803355 +1200
 @@ -40,7 +40,7 @@
  static void
  update_languages (void)
@@ -17,8 +17,8 @@ Index: trunk/liblightdm-gobject/language.c
      gboolean result;
 Index: trunk/tests/scripts/language-env.conf
 ===================================================================
---- trunk.orig/tests/scripts/language-env.conf	2013-08-25 13:11:15.911273679 +1200
-+++ trunk/tests/scripts/language-env.conf	2013-08-25 13:11:15.903273679 +1200
+--- trunk.orig/tests/scripts/language-env.conf	2013-09-25 12:08:11.120803355 +1200
++++ trunk/tests/scripts/language-env.conf	2013-09-25 12:08:11.112803355 +1200
 @@ -22,8 +22,8 @@
  #?SESSION-X-0 CONNECT-XSERVER
  
@@ -32,9 +32,9 @@ Index: trunk/tests/scripts/language-env.conf
  
 Index: trunk/src/seat.c
 ===================================================================
---- trunk.orig/src/seat.c	2013-08-25 13:11:15.911273679 +1200
-+++ trunk/src/seat.c	2013-08-25 13:11:15.907273679 +1200
-@@ -820,7 +820,7 @@
+--- trunk.orig/src/seat.c	2013-09-25 12:08:11.120803355 +1200
++++ trunk/src/seat.c	2013-09-25 12:08:11.112803355 +1200
+@@ -849,7 +849,7 @@
              session_set_env (session, "XDG_CURRENT_DESKTOP", desktop_name);
          if (language && language[0] != '\0')
          {
@@ -43,8 +43,8 @@ Index: trunk/src/seat.c
              session_set_env (session, "GDM_LANG", language);
          }
          session_set_username (session, username);
-@@ -976,7 +976,7 @@
-     session_set_env (session, "GDMSESSION", session_name);
+@@ -1008,7 +1008,7 @@
+         session_set_env (session, "XDG_CURRENT_DESKTOP", desktop_name);
      if (language && language[0] != '\0')
      {
 -        session_set_env (session, "LANG", language);

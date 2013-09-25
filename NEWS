@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.7.17
+
+    * surfaceflinger: Set XDG_VTNR=0 if VTs are not available
+    * Allow compiling of liblightdm-qt without liblightdm-gobject
+    * Add missing documentation for xremote seat options.
+
 Overview of changes in lightdm 1.7.16
 
     * Fix ConsoleKit support broken in 1.7.5

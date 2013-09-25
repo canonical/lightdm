@@ -1,3 +1,12 @@
+lightdm (1.7.17-0ubuntu1) saucy; urgency=low
+
+  * New upstream release:
+    - surfaceflinger: Set XDG_VTNR=0 if VTs are not available
+    - Allow compiling of liblightdm-qt without liblightdm-gobject
+    - Add missing documentation for xremote seat options.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 25 Sep 2013 12:06:25 +1200
+
 lightdm (1.7.16-0ubuntu1) saucy; urgency=low
 
   * New upstream release:
