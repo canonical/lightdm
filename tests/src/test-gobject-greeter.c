@@ -310,7 +310,7 @@ main (int argc, char **argv)
     xdg_seat = getenv ("XDG_SEAT");
     xdg_vtnr = getenv ("XDG_VTNR");
     xdg_session_cookie = getenv ("XDG_SESSION_COOKIE");
-    mir_socket = getenv ("MIR_SERVER_FILE");
+    mir_socket = getenv ("MIR_SOCKET");
     mir_vt = getenv ("MIR_SERVER_VT");
     mir_id = getenv ("MIR_ID");
     if (display)
