@@ -237,7 +237,7 @@ write_string (int fd, const gchar *value)
 gboolean
 x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GError **error)
 {
-    gchar *input;
+    gchar *input = NULL;
     gsize input_length = 0, input_offset = 0;
     GList *link, *records = NULL;
     XAuthority *a;
