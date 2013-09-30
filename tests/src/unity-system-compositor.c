@@ -172,8 +172,15 @@ main (int argc, char **argv)
             vt_number = atoi (argv[i+1]);
             i++;
         }
+        else if (strcmp (arg, "--file") == 0)
+        {
+            /*file = argv[i+1];*/
+            i++;
+        }
         else if (strcmp (arg, "--test") == 0)
             test = TRUE;
+        else if (strcmp (arg, "--standalone") == 0)
+            ;
         else
             return EXIT_FAILURE;
     }
