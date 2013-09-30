@@ -328,6 +328,7 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
     }
 
     errno = 0;
+    result = TRUE;
     for (link = records; link && result; link = link->next)
     {
         XAuthority *a = link->data;
