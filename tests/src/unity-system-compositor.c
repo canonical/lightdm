@@ -179,8 +179,6 @@ main (int argc, char **argv)
         }
         else if (strcmp (arg, "--test") == 0)
             test = TRUE;
-        else if (strcmp (arg, "--standalone") == 0)
-            ;
         else
             return EXIT_FAILURE;
     }
