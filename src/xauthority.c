@@ -237,7 +237,7 @@ write_string (int fd, const gchar *value)
 gboolean
 xauth_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GError **error)
 {
-    gchar *input;
+    gchar *input = NULL;
     gsize input_length = 0, input_offset = 0;
     GList *link, *records = NULL;
     XAuthority *a;
@@ -328,6 +328,7 @@ xauth_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GErro
     }
 
     errno = 0;
+    result = TRUE;
     for (link = records; link && result; link = link->next)
     {
         XAuthority *a = link->data;
