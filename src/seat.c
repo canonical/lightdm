@@ -809,6 +809,24 @@ find_session_config (Seat *seat, const gchar *sessions_dir, const gchar *session
     return session_config;
 }
 
+static void
+configure_session (Session *session, SessionConfig *config, const gchar *session_name, const gchar *language)
+{
+    const gchar *desktop_name;
+
+    session_set_session_type (session, session_config_get_session_type (config));
+    session_set_env (session, "DESKTOP_SESSION", session_name);
+    session_set_env (session, "GDMSESSION", session_name);
+    desktop_name = session_config_get_desktop_name (config);
+    if (desktop_name)
+        session_set_env (session, "XDG_CURRENT_DESKTOP", desktop_name);
+    if (language && language[0] != '\0')
+    {
+        session_set_env (session, "LANG", language);
+        session_set_env (session, "GDM_LANG", language);
+    }
+}
+
 static Session *
 create_user_session (Seat *seat, const gchar *username, gboolean autostart)
 {
@@ -837,27 +855,15 @@ create_user_session (Seat *seat, const gchar *username, gboolean autostart)
     g_free (sessions_dir);
     if (session_config)
     {
-        const gchar *desktop_name;
         gchar **argv;
 
         session = create_session (seat, autostart);
-        session_set_session_type (session, session_config_get_session_type (session_config));
-        session_set_env (session, "DESKTOP_SESSION", session_name);
-        session_set_env (session, "GDMSESSION", session_name);
-        desktop_name = session_config_get_desktop_name (session_config);
-        if (desktop_name)
-            session_set_env (session, "XDG_CURRENT_DESKTOP", desktop_name);
-        if (language && language[0] != '\0')
-        {
-            session_set_env (session, "LANG", language);
-            session_set_env (session, "GDM_LANG", language);
-        }
+        configure_session (session, session_config, session_name, language);
         session_set_username (session, username);
         session_set_do_authenticate (session, TRUE);
         argv = get_session_argv (seat, session_config, seat_get_string_property (seat, "session-wrapper"));
         session_set_argv (session, argv);
         g_strfreev (argv);
-
         g_object_unref (session_config);
     }
     else
@@ -871,12 +877,14 @@ create_user_session (Seat *seat, const gchar *username, gboolean autostart)
 static Session *
 create_guest_session (Seat *seat)
 {
+    const gchar *session_name;
     gchar *sessions_dir, **argv;
     SessionConfig *session_config;
     Session *session;
 
+    session_name = seat_get_string_property (seat, "user-session");
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
-    session_config = find_session_config (seat, sessions_dir, seat_get_string_property (seat, "user-session"));
+    session_config = find_session_config (seat, sessions_dir, session_name);
     g_free (sessions_dir);
     if (!session_config)
     {
@@ -885,13 +893,13 @@ create_guest_session (Seat *seat)
     }
 
     session = create_session (seat, TRUE);
-    session_set_session_type (session, session_config_get_session_type (session_config));
+    configure_session (session, session_config, session_name, NULL);
     session_set_do_authenticate (session, TRUE);
     session_set_is_guest (session, TRUE);
     argv = get_session_argv (seat, session_config, seat_get_string_property (seat, "session-wrapper"));
-    g_object_unref (session_config);
     session_set_argv (session, argv);
     g_strfreev (argv);
+    g_object_unref (session_config);
   
     return session;
 }
@@ -929,7 +937,7 @@ static gboolean
 greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
 {
     Session *session, *existing_session;
-    const gchar *username, *desktop_name, *language = NULL;
+    const gchar *username, *language = NULL;
     SessionConfig *session_config;
     User *user;
     gchar *sessions_dir = NULL;
@@ -997,21 +1005,10 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         return FALSE;
     }
 
-    session_set_session_type (session, session_config_get_session_type (session_config));
+    configure_session (session, session_config, session_name, language);
     argv = get_session_argv (seat, session_config, seat_get_string_property (seat, "session-wrapper"));
     session_set_argv (session, argv);
     g_strfreev (argv);
-    session_set_env (session, "DESKTOP_SESSION", session_name);
-    session_set_env (session, "GDMSESSION", session_name);
-    desktop_name = session_config_get_desktop_name (session_config);
-    if (desktop_name)
-        session_set_env (session, "XDG_CURRENT_DESKTOP", desktop_name);
-    if (language && language[0] != '\0')
-    {
-        session_set_env (session, "LANG", language);
-        session_set_env (session, "GDM_LANG", language);
-    }
-
     g_object_unref (session_config);
 
     /* If can re-use the display server, stop the greeter first */
