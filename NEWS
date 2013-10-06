@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.7.18
+
+    * Set session environment variables for guest sessions (1.7 regression).
+    * Don't fail writing X authority if reading it had an error.
+    * Update environment variables that we pass to Mir.
+
 Overview of changes in lightdm 1.7.17
 
     * surfaceflinger: Set XDG_VTNR=0 if VTs are not available
