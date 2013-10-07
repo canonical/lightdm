@@ -41,6 +41,7 @@ TESTS = \
 	test-session-stderr-multi-write \
 	test-session-stderr-backup \
 	test-xauthority \
+	test-corrupt-xauthority \
 	test-system-xauthority \
 	test-user-renamed \
 	test-user-renamed-invalid \
@@ -192,6 +193,7 @@ EXTRA_DIST = \
 	scripts/autologin-timeout.conf \
 	scripts/autologin-xserver-crash.conf \
 	scripts/console-kit.conf \
+	scripts/corrupt-xauthority.conf \
 	scripts/crash-authenticate.conf \
 	scripts/cred-error.conf \
 	scripts/cred-expired.conf \
