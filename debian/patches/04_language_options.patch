@@ -1,0 +1,15 @@
+Description: Replace 'locale -a' output with accountsservice's list of language options.
+Forwarded: not-needed
+Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
+
+--- lightdm.orig/liblightdm-gobject/language.c	2011-12-09 02:51:23 +0100
++++ lightdm/liblightdm-gobject/language.c	2012-01-18 14:00:36 +0100
+@@ -41,7 +41,7 @@
+ static void
+ update_languages (void)
+ {
+-    gchar *command = "locale -a";
++    gchar *command = "/usr/share/language-tools/language-options";
+     gchar *stdout_text = NULL, *stderr_text = NULL;
+     gint exit_status;
+     gboolean result;

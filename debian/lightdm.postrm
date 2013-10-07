@@ -1,0 +1,38 @@
+#!/bin/sh
+set -e
+
+if dpkg-maintscript-helper supports mv_conffile; then
+  dpkg-maintscript-helper mv_conffile \
+    /etc/lightdm.conf \
+    /etc/lightdm/lightdm.conf \
+    0.3.7-0ubuntu2 -- "$@"
+fi    
+
+if [ "$1" = "purge" ] ; then
+        rm -f /etc/lightdm.conf
+
+        if [ -d /var/log/lightdm ]; then
+                rm -r /var/log/lightdm
+        fi
+
+        if [ -d /var/cache/lightdm ]; then
+                rm -r /var/cache/lightdm
+        fi
+
+        if [ -d /var/run/lightdm/authority ]; then
+                rm -r /var/run/lightdm/authority
+        fi
+
+        if getent passwd lightdm >/dev/null; then
+                if [ -x /usr/sbin/deluser ]; then
+                        deluser --system lightdm
+                fi
+        fi
+        if getent group lightdm >/dev/null; then
+                if [ -x /usr/sbin/delgroup ]; then
+                        delgroup --system lightdm
+                fi
+        fi
+fi
+#DEBHELPER#
+exit 0

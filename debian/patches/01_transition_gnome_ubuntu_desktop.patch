@@ -1,0 +1,30 @@
+# Description: some sessions have been renamed between Natty and Oneiric.
+#              Make the transition happens as less intrusive as possible.
+=== modified file 'liblightdm-gobject/user.c'
+Index: lightdm-1.2.3/liblightdm-gobject/user.c
+===================================================================
+--- lightdm-1.2.3.orig/liblightdm-gobject/user.c	2012-11-20 17:31:49.000000000 +1300
++++ lightdm-1.2.3/liblightdm-gobject/user.c	2012-11-21 15:55:17.911297577 +1300
+@@ -1159,6 +1159,22 @@
+     if (priv->session)
+         g_free (priv->session);
+     priv->session = g_key_file_get_string (priv->dmrc_file, "Desktop", "Session", NULL);
++
++    if (g_strcmp0 (priv->session, "gnome") == 0)
++    {
++        g_free(priv->session);
++        priv->session = g_strdup ("ubuntu");
++    }
++    else if (g_strcmp0 (priv->session, "unity-2d") == 0)
++    {
++        g_free(priv->session);
++        priv->session = g_strdup ("ubuntu-2d");
++    }
++    else if (g_strcmp0 (priv->session, "gnome-2d") == 0)
++    {
++        g_free(priv->session);
++        priv->session = g_strdup ("gnome-fallback");
++    }
+ }
+ 
+ static GVariant *
