@@ -1,0 +1,13 @@
+Index: 1.4/tests/Makefile.am
+===================================================================
+--- 1.4.orig/tests/Makefile.am	2013-10-08 12:21:29.598637574 +1300
++++ 1.4/tests/Makefile.am	2013-10-08 12:21:29.594637574 +1300
+@@ -183,6 +183,8 @@
+ 	test-login-qt-remote-session
+ endif
+ 
++TESTS =
++
+ EXTRA_DIST = \
+ 	$(TESTS) \
+ 	data/remote-sessions/test-remote.desktop \

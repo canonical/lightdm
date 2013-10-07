@@ -1,0 +1,14 @@
+Index: 1.4/src/xserver-local.c
+===================================================================
+--- 1.4.orig/src/xserver-local.c	2013-10-08 12:21:34.674637398 +1300
++++ 1.4/src/xserver-local.c	2013-10-08 12:21:34.666637399 +1300
+@@ -424,6 +424,9 @@
+     if (server->priv->layout)
+         g_string_append_printf (command, " -layout %s", server->priv->layout);
+ 
++    /* We always want apport to be able to catch crashes */
++    g_string_append (command, " -core");
++
+     gethostname (hostname, 1024);
+     number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (server)));
+     if (!server->priv->xdmcp_key)

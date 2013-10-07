@@ -1,0 +1,3 @@
+/etc/X11
+/var/log/lightdm
+/var/cache/lightdm
