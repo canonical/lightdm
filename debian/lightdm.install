@@ -1,0 +1,14 @@
+usr/sbin/lightdm
+usr/share/man
+usr/share/locale
+usr/lib/lightdm
+usr/bin
+etc/dbus-1/
+etc/lightdm/users.conf
+etc/lightdm/lightdm.conf usr/share/doc/lightdm/
+etc/lightdm/keys.conf usr/share/doc/lightdm/
+etc/apparmor.d
+debian/lightdm-session usr/sbin
+debian/guest-account usr/sbin
+debian/lightdm-greeter-session usr/lib/lightdm
+debian/source_lightdm.py usr/share/apport/package-hooks

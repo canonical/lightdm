@@ -1,0 +1,36 @@
+Index: 1.6/src/xserver-local.c
+===================================================================
+--- 1.6.orig/src/xserver-local.c	2013-10-08 12:04:05.154673736 +1300
++++ 1.6/src/xserver-local.c	2013-10-08 12:04:05.130673737 +1300
+@@ -428,6 +428,9 @@
+     if (server->priv->layout)
+         g_string_append_printf (command, " -layout %s", server->priv->layout);
+ 
++    /* We always want apport to be able to catch crashes */
++    g_string_append (command, " -core");
++
+     gethostname (hostname, 1024);
+     number = g_strdup_printf ("%d", xserver_get_display_number (XSERVER (server)));
+     if (!server->priv->xdmcp_key)
+Index: 1.6/tests/src/X.c
+===================================================================
+--- 1.6.orig/tests/src/X.c	2013-10-08 12:04:05.154673736 +1300
++++ 1.6/tests/src/X.c	2013-10-08 12:04:05.150673736 +1300
+@@ -245,6 +245,9 @@
+         else if (strcmp (arg, "-nr") == 0)
+         {
+         }
++        else if (strcmp (arg, "-core") == 0)
++        {
++        }
+         else if (strcmp (arg, "-background") == 0)
+         {
+             /* Ignore arg */
+@@ -281,6 +284,7 @@
+                         "-nolisten protocol     Don't listen on protocol\n"
+                         "-background [none]     Create root window with no background\n"
+                         "-nr                    (Ubuntu-specific) Synonym for -background none\n"
++                        "-core                  Dump core upon crash\n"
+                         "-query host-name       Contact named host for XDMCP\n"
+                         "-broadcast             Broadcast for XDMCP\n"
+                         "-port port-num         UDP port number to send messages to\n"

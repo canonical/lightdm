@@ -1,0 +1,28 @@
+Description: fix permissions on existing .Xauthority file
+Bug: https://bugs.launchpad.net/lightdm/+bug/685212
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/lightdm/+bug/1175023
+Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=721744
+
+Index: 1.6/src/xauthority.c
+===================================================================
+--- 1.6.orig/src/xauthority.c	2013-10-08 12:05:27.582670882 +1300
++++ 1.6/src/xauthority.c	2013-10-08 12:05:27.574670882 +1300
+@@ -327,6 +327,18 @@
+         return FALSE;
+     }
+ 
++    /* Fix incorrect permissions left behind by previous version */
++    if (chmod (filename, S_IRUSR | S_IWUSR) != 0)
++    {
++        g_set_error (error,
++                     G_FILE_ERROR,
++                     g_file_error_from_errno (errno),
++                     "Failed to set permissions on X authority %s: %s",
++                     filename,
++                     g_strerror (errno));
++        return FALSE;
++    }
++
+     errno = 0;
+     result = TRUE;
+     for (link = records; link && result; link = link->next)

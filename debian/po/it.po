@@ -1,0 +1,102 @@
+# debconf templates for xorg-x11 package
+# Italian translation
+#
+# $Id: it.po 1042 2006-01-09 07:55:08Z ender $
+#
+# Copyrights:
+# Branden Robinson, 2000-2004
+# Matteo Dell'Amico, 2002
+# Emanuele Aina, 2002
+# Luca Monducci, 2004
+# Danilo Piazzalunga, 2004-2007
+#
+# This file is distributed under the same license as the xorg-x11 package.
+# Please see debian/copyright.
+#
+#    Translators, if you are not familiar with the PO format, gettext
+#    documentation is worth reading, especially sections dedicated to
+#    this format, e.g. by running:
+#         info -n '(gettext)PO Files'
+#         info -n '(gettext)Header Entry'
+#
+#    Some information specific to po-debconf are available at
+#            /usr/share/doc/po-debconf/README-trans
+#         or http://www.debian.org/intl/l10n/po-debconf/README-trans
+#
+#    Developers do not need to manually edit POT or PO files.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: xorg-x11 6.8.2.dfsg.1-10\n"
+"Report-Msgid-Bugs-To: mmassonnet@gmail.com\n"
+"POT-Creation-Date: 2007-05-31 08:04+0200\n"
+"PO-Revision-Date: 2007-03-25 14:40+0200\n"
+"Last-Translator: Danilo Piazzalunga <danilopiazza@gmail.com>\n"
+"Language-Team: Italian <tp@lists.linux.it>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+msgid "Default display manager:"
+msgstr "Display manager predefinito."
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+msgid ""
+"A display manager is a program that provides graphical login capabilities "
+"for the X Window System."
+msgstr ""
+"Un display manager è un programma che fornisce capacità di login grafico per "
+"il sistema X Window."
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+msgid ""
+"Only one display manager can manage a given X server, but multiple display "
+"manager packages are installed. Please select which display manager should "
+"run by default."
+msgstr ""
+"Solo un display manager può gestire un dato server X, ma sono installati più "
+"pacchetti di display manager. Scegliere il display manager da usare come "
+"predefinito."
+
+#. Type: select
+#. Description
+#: ../lxdm.templates:2001
+msgid ""
+"Multiple display managers can run simultaneously if they are configured to "
+"manage different servers; to achieve this, configure the display managers "
+"accordingly, edit each of their init scripts in /etc/init.d, and disable the "
+"check for a default display manager."
+msgstr ""
+"Possono essere eseguiti più display manager contemporaneamente, a patto che "
+"siano impostati per gestire server diversi; per fare questo, configurare i "
+"display manager in maniera appropriata, modificare ciascuno dei loro script "
+"di avvio in /etc/init.d e disabilitare il controllo per un display manager "
+"predefinito."
+
+#~ msgid "Stop the xdm daemon?"
+#~ msgstr "Arrestare il demone xdm?"
+
+#~ msgid ""
+#~ "The X display manager (xdm) daemon is typically stopped on package "
+#~ "upgrade and removal, but it appears to be managing at least one running X "
+#~ "session."
+#~ msgstr ""
+#~ "Il demone del display manager X (xdm) viene tipicamente fermato in fase "
+#~ "di aggiornamento o rimozione del pacchetto, ma pare che al momento stia "
+#~ "gestendo almeno una sessione attiva di X."
+
+#~ msgid ""
+#~ "If xdm is stopped now, any X sessions it manages will be terminated. "
+#~ "Otherwise, the new version will take effect the next time the daemon is "
+#~ "restarted."
+#~ msgstr ""
+#~ "Se xdm viene arrestato ora, anche tutte le sessioni di X che gestisce "
+#~ "verranno terminate. In alternativa, la nuova versione sarà usata a "
+#~ "partire dal prossimo avvio del demone."
