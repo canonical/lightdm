@@ -1,4 +1,5 @@
-SUBDIRS = init
+initdir = ${sysconfdir}/init
+dist_init_DATA = init/lightdm.conf
 
 confdir = $(sysconfdir)/lightdm
 dist_conf_DATA = lightdm.conf users.conf keys.conf
@@ -12,6 +13,11 @@ lightdm-guest-session: $(srcdir)/apparmor/lightdm-guest-session.in
 apparmor_profiledir = $(sysconfdir)/apparmor.d
 apparmor_profile_DATA = \
     lightdm-guest-session
+
+apparmor_profile_abstractionsdir = $(apparmor_profiledir)/abstractions
+dist_apparmor_profile_abstractions_DATA = \
+    apparmor/abstractions/lightdm \
+    apparmor/abstractions/lightdm_chromium-browser
 
 dist_man1_MANS = lightdm.1
 
