@@ -2069,6 +2069,8 @@ main (int argc, char **argv)
         {"log-pam",          "password", TRUE,  "Log PAM",            NULL,  NULL, NULL,          NULL,          1030},
         /* This account shows multiple prompts on login */
         {"multi-prompt",     "password", TRUE,  "Multi Prompt",       NULL,  NULL, NULL,          NULL,          1031},
+        /* This account has an existing corrupt X authority */
+        {"corrupt-xauth",    "password", TRUE,  "Corrupt Xauthority", NULL,  NULL, NULL,          NULL,          1032},
         {NULL,               NULL,       FALSE, NULL,                 NULL,  NULL, NULL,          NULL,             0}
     };
     passwd_data = g_string_new ("");
@@ -2122,6 +2124,17 @@ main (int argc, char **argv)
         }
 
         g_key_file_free (dmrc_file);
+
+        /* Write corrupt X authority file */
+        if (strcmp (users[i].user_name, "corrupt-xauth") == 0)
+        {
+            gchar data[1] = { 0xFF };
+
+            path = g_build_filename (home_dir, users[i].user_name, ".Xauthority", NULL);
+            g_file_set_contents (path, data, 1, NULL);
+            chmod (path, S_IRUSR | S_IWUSR);
+            g_free (path);
+        }
 
         /* Add passwd file entry */
         g_string_append_printf (passwd_data, "%s:%s:%d:%d:%s:%s/home/%s:/bin/sh\n", users[i].user_name, users[i].password, users[i].uid, users[i].uid, users[i].real_name, temp_dir, users[i].user_name);
