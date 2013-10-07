@@ -46,6 +46,7 @@ TESTS = \
 	test-session-stderr-multi-write \
 	test-session-stderr-backup \
 	test-xauthority \
+	test-corrupt-xauthority \
 	test-system-xauthority \
 	test-user-renamed \
 	test-user-renamed-invalid \
@@ -210,6 +211,7 @@ EXTRA_DIST = \
 	scripts/change-authentication.conf \
 	scripts/cancel-authentication.conf \
 	scripts/console-kit.conf \
+	scripts/corrupt-xauthority.conf \
 	scripts/crash-authenticate.conf \
 	scripts/cred-error.conf \
 	scripts/cred-expired.conf \
