@@ -297,6 +297,8 @@ process_finalize (GObject *object)
 
     g_free (self->priv->command);
     g_hash_table_unref (self->priv->env);
+    if (self->priv->quit_timeout)
+        g_source_remove (self->priv->quit_timeout);
     if (self->priv->watch)
         g_source_remove (self->priv->watch);
 
