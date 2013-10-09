@@ -1,9 +1,9 @@
-lightdm (1.7.18-0ubuntu2) UNRELEASED; urgency=low
+lightdm (1.8.0-0ubuntu1) saucy; urgency=low
 
   * debian/lightdm-session:
     - Handle xrdb, setxkbmap and xmodmap not being installed (LP: #1236317)
 
- -- Robert Ancell <robert.ancell@canonical.com>  Wed, 09 Oct 2013 09:46:39 +1300
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 09 Oct 2013 15:53:56 +1300
 
 lightdm (1.7.18-0ubuntu1) saucy; urgency=low
 

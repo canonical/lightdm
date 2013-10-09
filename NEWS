@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.8.0
+
+    * Add regression test for corrupt X authority files.
+
 Overview of changes in lightdm 1.7.18
 
     * Set session environment variables for guest sessions (1.7 regression).
