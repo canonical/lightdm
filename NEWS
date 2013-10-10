@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.8.1
+
+    * Fix crash where Process objects are accessed after unref
+
 Overview of changes in lightdm 1.8.0
 
     * Add regression test for corrupt X authority files.

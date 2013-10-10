@@ -1,5 +1,14 @@
+lightdm (1.8.1-0ubuntu1) saucy; urgency=low
+
+  * New upstream release:
+    - Fix crash where Process objects are accessed after unref (LP: #1207935)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 10 Oct 2013 20:34:13 +1300
+
 lightdm (1.8.0-0ubuntu1) saucy; urgency=low
 
+  * New upstream release:
+    - Add regression test for corrupt X authority files.
   * debian/lightdm-session:
     - Handle xrdb, setxkbmap and xmodmap not being installed (LP: #1236317)
 
