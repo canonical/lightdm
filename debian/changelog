@@ -1,3 +1,11 @@
+lightdm (1.8.2-0ubuntu1) saucy; urgency=low
+
+  * New upstream release:
+    - Fix crash when starting with existing X servers. This was introduced in
+      rev 1651 (lightdm 1.7.0). (LP: #1231841)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 16 Oct 2013 15:46:40 +1300
+
 lightdm (1.8.1-0ubuntu1) saucy; urgency=low
 
   * New upstream release:
