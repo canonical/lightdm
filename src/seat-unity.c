@@ -480,10 +480,10 @@ create_mir_server (Seat *seat, gboolean is_greeter)
     {
         gchar *id;
 
-        id = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->next_id);
+        // If we're a greeter, mark our ID that way, so USC can treat it specially
+        id = g_strdup_printf ("%s%d", is_greeter ? "greeter-" : "", SEAT_UNITY (seat)->priv->next_id);
         SEAT_UNITY (seat)->priv->next_id++;
         mir_server_set_id (mir_server, id);
-        mir_server_set_is_greeter (mir_server, is_greeter);
         mir_server_set_parent_socket (mir_server, SEAT_UNITY (seat)->priv->mir_socket_filename);
         g_free (id);
     }   

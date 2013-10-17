@@ -25,9 +25,6 @@ struct MirServerPrivate
 
     /* ID to use for Mir connection */
     gchar *id;
-
-    /* Whether this server belongs to a greeter */
-    gboolean is_greeter;
 };
 
 G_DEFINE_TYPE (MirServer, mir_server, DISPLAY_SERVER_TYPE);
@@ -59,28 +56,14 @@ mir_server_set_parent_socket (MirServer *server, const gchar *parent_socket)
 static void
 update_name (MirServer *server)
 {
-    const gchar *type;
     gchar *name;
 
-    if (server->priv->is_greeter)
-        type = "greeter";
-    else
-        type = "mir";
-
     if (server->priv->id)
-        name = g_strdup_printf ("%s-%s", type, server->priv->id);
+        name = g_strdup_printf ("mir-%s", type, server->priv->id);
     else
         name = g_strdup (type);
     display_server_set_name (DISPLAY_SERVER (server), name);
     g_free (name);
-}
-
-void
-mir_server_set_is_greeter (MirServer *server, gboolean is_greeter)
-{
-    g_return_if_fail (server != NULL);
-    server->priv->is_greeter = is_greeter;
-    update_name (server);
 }
 
 void
@@ -118,7 +101,7 @@ mir_server_connect_session (DisplayServer *display_server, Session *session)
 
     server = MIR_SERVER (display_server);
     if (server->priv->id)
-        session_set_env (session, "MIR_ID", server->priv->id);
+        session_set_env (session, "MIR_SERVER_NAME", server->priv->id);
     if (server->priv->parent_socket)
         session_set_env (session, "MIR_SERVER_FILE", server->priv->parent_socket);
     if (server->priv->vt > 0)
@@ -132,7 +115,7 @@ mir_server_connect_session (DisplayServer *display_server, Session *session)
 static void
 mir_server_disconnect_session (DisplayServer *display_server, Session *session)
 {
-    session_unset_env (session, "MIR_ID");
+    session_unset_env (session, "MIR_SERVER_NAME");
     session_unset_env (session, "MIR_SERVER_FILE");
     session_unset_env (session, "MIR_SERVER_VT");
 }
