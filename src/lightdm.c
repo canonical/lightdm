@@ -115,7 +115,7 @@ log_cb (const gchar *log_domain, GLogLevelFlags log_level, const gchar *message,
 static void
 log_init (void)
 {
-    gchar *log_dir, *path;
+    gchar *log_dir, *path, *old_path;
 
     log_timer = g_timer_new ();
 
@@ -124,6 +124,12 @@ log_init (void)
     path = g_build_filename (log_dir, "lightdm.log", NULL);
     g_free (log_dir);
 
+    /* Move old file out of the way */
+    old_path = g_strdup_printf ("%s.old", path);
+    rename (path, old_path);
+    g_free (old_path);
+
+    /* Create new file and log to it */
     log_fd = open (path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
     fcntl (log_fd, F_SETFD, FD_CLOEXEC);
     g_log_set_default_handler (log_cb, NULL);
@@ -503,16 +509,19 @@ static void
 bus_entry_free (gpointer data)
 {
     BusEntry *entry = data;
+    GError *error = NULL;
 
     g_dbus_connection_unregister_object (bus, entry->bus_id);
 
-    g_dbus_connection_emit_signal (bus,
-                                   NULL,
-                                   "/org/freedesktop/DisplayManager",
-                                   "org.freedesktop.DisplayManager",
-                                   entry->removed_signal,
-                                   g_variant_new ("(o)", entry->path),
-                                   NULL);
+    if (!g_dbus_connection_emit_signal (bus,
+                                        NULL,
+                                        "/org/freedesktop/DisplayManager",
+                                        "org.freedesktop.DisplayManager",
+                                        entry->removed_signal,
+                                        g_variant_new ("(o)", entry->path),
+                                        &error))
+        g_warning ("Failed to emit %s signal: %s", entry->removed_signal, error->message);
+    g_clear_error (&error);
 
     g_free (entry->path);
     g_free (entry->parent_path);
@@ -530,6 +539,7 @@ running_user_session_cb (Seat *seat, Session *session)
     };
     BusEntry *seat_entry, *entry;
     gchar *path;
+    GError *error = NULL;
 
     /* Set environment variables when session runs */
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
@@ -550,14 +560,20 @@ running_user_session_cb (Seat *seat, Session *session)
                                                        session_info->interfaces[0],
                                                        &session_vtable,
                                                        g_object_ref (session), g_object_unref,
-                                                       NULL);
-    g_dbus_connection_emit_signal (bus,
-                                   NULL,
-                                   "/org/freedesktop/DisplayManager",
-                                   "org.freedesktop.DisplayManager",
-                                   "SessionAdded",
-                                   g_variant_new ("(o)", entry->path),
-                                   NULL);
+                                                       &error);
+    if (entry->bus_id == 0)
+        g_warning ("Failed to register user session: %s", error->message);
+    g_clear_error (&error);
+
+    if (!g_dbus_connection_emit_signal (bus,
+                                        NULL,
+                                        "/org/freedesktop/DisplayManager",
+                                        "org.freedesktop.DisplayManager",
+                                        "SessionAdded",
+                                        g_variant_new ("(o)", entry->path),
+                                        &error))
+        g_warning ("Failed to emit SessionAdded signal: %s", error->message);
+    g_clear_error (&error);
 }
 
 static void
@@ -577,6 +593,7 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
     };
     gchar *path;
     BusEntry *entry;
+    GError *error = NULL;
 
     path = g_strdup_printf ("/org/freedesktop/DisplayManager/Seat%d", seat_index);
     seat_index++;
@@ -592,14 +609,20 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
                                                        seat_info->interfaces[0],
                                                        &seat_vtable,
                                                        g_object_ref (seat), g_object_unref,
-                                                       NULL);
-    g_dbus_connection_emit_signal (bus,
-                                   NULL,
-                                   "/org/freedesktop/DisplayManager",
-                                   "org.freedesktop.DisplayManager",
-                                   "SeatAdded",
-                                   g_variant_new ("(o)", entry->path),
-                                   NULL);
+                                                       &error);
+    if (entry->bus_id == 0)
+        g_warning ("Failed to register seat: %s", error->message);
+    g_clear_error (&error);
+
+    if (!g_dbus_connection_emit_signal (bus,
+                                        NULL,
+                                        "/org/freedesktop/DisplayManager",
+                                        "org.freedesktop.DisplayManager",
+                                        "SeatAdded",
+                                        g_variant_new ("(o)", entry->path),
+                                        &error))
+        g_warning ("Failed to emit SeatAdded signal: %s", error->message);
+    g_clear_error (&error);
 
     g_signal_connect (seat, "running-user-session", G_CALLBACK (running_user_session_cb), NULL);
     g_signal_connect (seat, "session-removed", G_CALLBACK (session_removed_cb), NULL);
@@ -701,6 +724,7 @@ bus_acquired_cb (GDBusConnection *connection,
         "</node>";
     GDBusNodeInfo *display_manager_info;
     GList *link;
+    GError *error = NULL;
 
     g_debug ("Acquired bus name %s", name);
 
@@ -718,8 +742,11 @@ bus_acquired_cb (GDBusConnection *connection,
                                                 display_manager_info->interfaces[0],
                                                 &display_manager_vtable,
                                                 NULL, NULL,
-                                                NULL);
-    g_dbus_node_info_unref  (display_manager_info);
+                                                &error);
+    if (bus_id == 0)
+        g_warning ("Failed to register display manager: %s", error->message);
+    g_clear_error (&error);
+    g_dbus_node_info_unref (display_manager_info);
 
     seat_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, bus_entry_free);
     session_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, bus_entry_free);
@@ -807,7 +834,7 @@ bus_acquired_cb (GDBusConnection *connection,
             g_free (path);
         }
         else
-            g_warning ("Can't start VNC server, Xvn is not in the path");
+            g_warning ("Can't start VNC server, Xvnc is not in the path");
     }
 }
 
@@ -846,6 +873,49 @@ static int
 compare_strings (gconstpointer a, gconstpointer b)
 {
     return strcmp (a, b);
+}
+
+static void
+load_config_directory (const gchar *path, GList **messages)
+{
+    GDir *dir;
+    GList *files = NULL, *link;
+    GError *error = NULL;
+
+    /* Find configuration files */
+    dir = g_dir_open (path, 0, &error);
+    if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+        g_printerr ("Failed to open configuration directory %s: %s\n", path, error->message);
+    g_clear_error (&error);
+    if (dir)
+    {
+        const gchar *name;
+        while ((name = g_dir_read_name (dir)))
+            files = g_list_append (files, g_strdup (name));
+        g_dir_close (dir);
+    }
+
+    /* Sort alphabetically and load onto existing configuration */
+    files = g_list_sort (files, compare_strings);
+    for (link = files; link; link = link->next)
+    {
+        gchar *filename = link->data;
+        gchar *conf_path;
+
+        conf_path = g_build_filename (path, filename, NULL);
+        if (g_str_has_suffix (filename, ".conf"))
+        {
+            *messages = g_list_append (*messages, g_strdup_printf ("Loading configuration from %s", conf_path));
+            config_load_from_file (config_get_instance (), conf_path, &error);
+            if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+                g_printerr ("Failed to load configuration from %s: %s\n", filename, error->message);
+            g_clear_error (&error);
+        }
+        else
+            g_debug ("Ignoring configuration file %s, it does not have .conf suffix", conf_path);
+        g_free (conf_path);
+    }
+    g_list_free_full (files, g_free);
 }
 
 int
@@ -1003,6 +1073,10 @@ main (int argc, char **argv)
     }
 
     /* Load config file(s) */
+    load_config_directory (SYSTEM_CONFIG_DIR, &messages);
+    if (config_d_dir)
+        load_config_directory (config_d_dir, &messages);
+    g_free (config_d_dir);
     messages = g_list_append (messages, g_strdup_printf ("Loading configuration from %s", config_path));
     if (!config_load_from_file (config_get_instance (), config_path, &error))
     {
@@ -1019,47 +1093,6 @@ main (int argc, char **argv)
     }
     g_clear_error (&error);
     g_free (config_path);
-    if (config_d_dir)
-    {
-        GDir *dir;
-        GList *files = NULL, *link;
-
-        /* Find configuration files */
-        dir = g_dir_open (config_d_dir, 0, &error);
-        if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
-            g_printerr ("Failed to open configuration directory %s: %s\n", config_d_dir, error->message);
-        g_clear_error (&error);
-        if (dir)
-        {
-            const gchar *name;
-            while ((name = g_dir_read_name (dir)))
-                files = g_list_append (files, g_strdup (name));
-            g_dir_close (dir);
-        }
-
-        /* Sort alphabetically and load onto existing configuration */
-        files = g_list_sort (files, compare_strings);
-        for (link = files; link; link = link->next)
-        {
-            gchar *filename = link->data;
-            gchar *path;
-
-            path = g_build_filename (config_d_dir, filename, NULL);
-            if (g_str_has_suffix (filename, ".conf"))
-            {
-                messages = g_list_append (messages, g_strdup_printf ("Loading configuration from %s", path));
-                config_load_from_file (config_get_instance (), path, &error);
-                if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
-                    g_printerr ("Failed to load configuration from %s: %s\n", filename, error->message);
-                g_clear_error (&error);
-            }
-            else
-                g_debug ("Ignoring configuration file %s, it does not have .conf suffix", path);
-            g_free (path);
-        }
-        g_list_free_full (files, g_free);
-    }
-    g_free (config_d_dir);
 
     /* Set default values */
     if (!config_has_key (config_get_instance (), "LightDM", "start-default-seat"))
@@ -1168,8 +1201,9 @@ main (int argc, char **argv)
         gchar *config_section = *i;
         gchar *type;
         Seat *seat;
+        const gchar *const seatpfx = "Seat:";
 
-        if (!g_str_has_prefix (config_section, "Seat:"))
+        if (!g_str_has_prefix (config_section, seatpfx))
             continue;
 
         g_debug ("Loading seat %s", config_section);
@@ -1180,6 +1214,11 @@ main (int argc, char **argv)
         g_free (type);
         if (seat)
         {
+            const gsize seatpfxlen = strlen(seatpfx);
+            gchar *seatname = config_section + seatpfxlen;
+
+            seat_set_property (seat, "seat-name", seatname);
+
             set_seat_properties (seat, config_section);
             display_manager_add_seat (display_manager, seat);
             g_object_unref (seat);

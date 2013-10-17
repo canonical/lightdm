@@ -48,6 +48,7 @@ struct SeatUnityPrivate
 
     /* IO channel listening on for messages from the compositor */
     GIOChannel *from_compositor_channel;
+    guint from_compositor_watch;
 
     /* TRUE when the compositor indicates it is ready */
     gboolean compositor_ready;
@@ -109,13 +110,13 @@ compositor_stopped_cb (Process *process, SeatUnity *seat)
     /* If stopped before it was ready, then revert to VT mode */
     if (!seat->priv->compositor_ready)
     {
-        g_debug ("Compositor failed to start, switching to VT mode");
+        l_debug (seat, "Compositor failed to start, switching to VT mode");
         seat->priv->use_vt_switching = TRUE;
         SEAT_CLASS (seat_unity_parent_class)->start (SEAT (seat));
         return;
     }
 
-    g_debug ("Stopping Unity seat, compositor terminated");
+    l_debug (seat, "Stopping Unity seat, compositor terminated");
 
     seat_stop (SEAT (seat));
 }
@@ -134,10 +135,17 @@ compositor_run_cb (Process *process, SeatUnity *seat)
     if (seat->priv->log_file)
     {
          int fd;
+         gchar *old_filename;
 
+         /* Move old file out of the way */
+         old_filename = g_strdup_printf ("%s.old", seat->priv->log_file);
+         rename (seat->priv->log_file, old_filename);
+         g_free (old_filename);
+
+         /* Create new file and log to it */
          fd = g_open (seat->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
          if (fd < 0)
-             g_warning ("Failed to open log file %s: %s", seat->priv->log_file, g_strerror (errno));
+             l_warning (seat, "Failed to open log file %s: %s", seat->priv->log_file, g_strerror (errno));
          else
          {
              dup2 (fd, STDOUT_FILENO);
@@ -162,7 +170,7 @@ write_message (SeatUnity *seat, guint16 id, const guint8 *payload, guint16 paylo
 
     errno = 0;
     if (write (seat->priv->to_compositor_pipe[1], data, data_length) != data_length)
-        g_warning ("Failed to write to compositor: %s", strerror (errno));
+        l_warning (seat, "Failed to write to compositor: %s", strerror (errno));
 }
 
 static gboolean
@@ -175,7 +183,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
   
     if (condition == G_IO_HUP)
     {
-        g_debug ("Compositor closed communication channel");
+        l_debug (seat, "Compositor closed communication channel");
         return FALSE;
     }
 
@@ -205,7 +213,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
                                           &n_read,
                                           &error);
         if (error)
-            g_warning ("Failed to read from compositor: %s", error->message);
+            l_warning (seat, "Failed to read from compositor: %s", error->message);
         if (status != G_IO_STATUS_NORMAL)
             return TRUE;
         g_clear_error (&error);
@@ -226,28 +234,28 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     switch (id)
     {
     case USC_MESSAGE_PING:
-        g_debug ("PING!");
+        l_debug (seat, "PING!");
         write_message (seat, USC_MESSAGE_PONG, NULL, 0);
         break;
     case USC_MESSAGE_PONG:
-        g_debug ("PONG!");
+        l_debug (seat, "PONG!");
         break;
     case USC_MESSAGE_READY:
-        g_debug ("READY");
+        l_debug (seat, "READY");
         if (!seat->priv->compositor_ready)
         {
             seat->priv->compositor_ready = TRUE;
-            g_debug ("Compositor ready");
+            l_debug (seat, "Compositor ready");
             g_source_remove (seat->priv->compositor_timeout);
             seat->priv->compositor_timeout = 0;
             SEAT_CLASS (seat_unity_parent_class)->start (SEAT (seat));
         }
         break;
     case USC_MESSAGE_SESSION_CONNECTED:
-        g_debug ("SESSION CONNECTED");
+        l_debug (seat, "SESSION CONNECTED");
         break;
     default:
-        g_warning ("Ingoring unknown message %d with %d octets from system compositor", id, payload_length);
+        l_warning (seat, "Ignoring unknown message %d with %d octets from system compositor", id, payload_length);
         break;
     }
 
@@ -297,7 +305,7 @@ static gboolean
 seat_unity_start (Seat *seat)
 {
     const gchar *compositor_command;
-    gchar *command, *absolute_command, *dir;
+    gchar *command, *absolute_command, *dir, *value;
     gboolean result;
     int timeout;
 
@@ -311,7 +319,7 @@ seat_unity_start (Seat *seat)
             plymouth_quit (TRUE);
         }
         else
-            g_debug ("Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());
+            l_debug (seat, "Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());
     }
     if (plymouth_get_is_active ())
         plymouth_quit (FALSE);
@@ -319,7 +327,7 @@ seat_unity_start (Seat *seat)
         SEAT_UNITY (seat)->priv->vt = vt_get_unused ();
     if (SEAT_UNITY (seat)->priv->vt < 0)
     {
-        g_debug ("Failed to get a VT to run on");
+        l_debug (seat, "Failed to get a VT to run on");
         return FALSE;
     }
     vt_ref (SEAT_UNITY (seat)->priv->vt);
@@ -327,7 +335,7 @@ seat_unity_start (Seat *seat)
     /* Create pipes to talk to compositor */
     if (pipe (SEAT_UNITY (seat)->priv->to_compositor_pipe) < 0 || pipe (SEAT_UNITY (seat)->priv->from_compositor_pipe) < 0)
     {
-        g_debug ("Failed to create compositor pipes: %s", g_strerror (errno));
+        l_debug (seat, "Failed to create compositor pipes: %s", g_strerror (errno));
         return FALSE;
     }
 
@@ -337,18 +345,32 @@ seat_unity_start (Seat *seat)
 
     /* Listen for messages from the compositor */
     SEAT_UNITY (seat)->priv->from_compositor_channel = g_io_channel_unix_new (SEAT_UNITY (seat)->priv->from_compositor_pipe[0]);
-    g_io_add_watch (SEAT_UNITY (seat)->priv->from_compositor_channel, G_IO_IN | G_IO_HUP, read_cb, seat);
+    SEAT_UNITY (seat)->priv->from_compositor_watch = g_io_add_watch (SEAT_UNITY (seat)->priv->from_compositor_channel, G_IO_IN | G_IO_HUP, read_cb, seat);
 
     /* Setup logging */
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
     SEAT_UNITY (seat)->priv->log_file = g_build_filename (dir, "unity-system-compositor.log", NULL);
-    g_debug ("Logging to %s", SEAT_UNITY (seat)->priv->log_file);
+    l_debug (seat, "Logging to %s", SEAT_UNITY (seat)->priv->log_file);
     g_free (dir);
+
+    /* Setup environment */
+    process_set_clear_environment (SEAT_UNITY (seat)->priv->compositor_process, TRUE);
+    process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "XDG_SEAT", "seat0");
+    value = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->vt);
+    process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "XDG_VTNR", value);
+    g_free (value);
+    /* Variable required for regression tests */
+    if (g_getenv ("LIGHTDM_TEST_ROOT"))
+    {
+        process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
+        process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
+        process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+    }
 
     SEAT_UNITY (seat)->priv->mir_socket_filename = g_strdup ("/tmp/mir_socket"); // FIXME: Use this socket by default as XMir is hardcoded to this
     timeout = seat_get_integer_property (seat, "unity-compositor-timeout");
     compositor_command = seat_get_string_property (seat, "unity-compositor-command");
-    command = g_strdup_printf ("%s --from-dm-fd %d --to-dm-fd %d --vt %d", compositor_command, SEAT_UNITY (seat)->priv->to_compositor_pipe[0], SEAT_UNITY (seat)->priv->from_compositor_pipe[1], SEAT_UNITY (seat)->priv->vt);
+    command = g_strdup_printf ("%s --file '%s' --from-dm-fd %d --to-dm-fd %d --vt %d", compositor_command, SEAT_UNITY (seat)->priv->mir_socket_filename, SEAT_UNITY (seat)->priv->to_compositor_pipe[0], SEAT_UNITY (seat)->priv->from_compositor_pipe[1], SEAT_UNITY (seat)->priv->vt);
 
     absolute_command = get_absolute_command (command);
     g_free (command);
@@ -373,7 +395,7 @@ seat_unity_start (Seat *seat)
     timeout = seat_get_integer_property (seat, "unity-compositor-timeout");
     if (timeout <= 0)
         timeout = 60;
-    g_debug ("Waiting for system compositor for %ds", timeout);
+    l_debug (seat, "Waiting for system compositor for %ds", timeout);
     SEAT_UNITY (seat)->priv->compositor_timeout = g_timeout_add (timeout * 1000, compositor_timeout_cb, seat);
 
     return TRUE;
@@ -383,11 +405,11 @@ static DisplayServer *
 create_x_server (Seat *seat)
 {
     XServerLocal *x_server;
-    const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
+    const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL, *xdg_seat = NULL;
     gboolean allow_tcp;
     gint port = 0;
 
-    g_debug ("Starting X server on Unity compositor");
+    l_debug (seat, "Starting X server on Unity compositor");
 
     x_server = x_server_local_new ();
 
@@ -411,6 +433,10 @@ create_x_server (Seat *seat)
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)
         x_server_local_set_layout (x_server, layout);
+    
+    xdg_seat = seat_get_string_property (seat, "xdg-seat");
+    if (xdg_seat)
+        x_server_local_set_xdg_seat (x_server, xdg_seat);
 
     config_file = seat_get_string_property (seat, "xserver-config");
     if (config_file)
@@ -442,7 +468,7 @@ create_x_server (Seat *seat)
         keys = g_key_file_new ();
         result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
         if (error)
-            g_debug ("Error getting key %s", error->message);
+            l_debug (seat, "Error getting key %s", error->message);
         g_clear_error (&error);
 
         if (result)
@@ -452,7 +478,7 @@ create_x_server (Seat *seat)
             if (g_key_file_has_key (keys, "keyring", key_name, NULL))
                 key = g_key_file_get_string (keys, "keyring", key_name, NULL);
             else
-                g_debug ("Key %s not defined", key_name);
+                l_debug (seat, "Key %s not defined", key_name);
 
             if (key)
                 x_server_local_set_xdmcp_key (x_server, key);
@@ -484,7 +510,6 @@ create_mir_server (Seat *seat, gboolean is_greeter)
         id = g_strdup_printf ("%s%d", is_greeter ? "greeter-" : "", SEAT_UNITY (seat)->priv->next_id);
         SEAT_UNITY (seat)->priv->next_id++;
         mir_server_set_id (mir_server, id);
-        mir_server_set_parent_socket (mir_server, SEAT_UNITY (seat)->priv->mir_socket_filename);
         g_free (id);
     }   
 
@@ -500,7 +525,7 @@ seat_unity_create_display_server (Seat *seat, const gchar *session_type, gboolea
         return create_mir_server (seat, is_greeter);
     else
     {
-        g_warning ("Can't create unsupported display server '%s'", session_type);
+        l_warning (seat, "Can't create unsupported display server '%s'", session_type);
         return NULL;
     }
 }
@@ -509,64 +534,58 @@ static Greeter *
 seat_unity_create_greeter_session (Seat *seat)
 {
     Greeter *greeter_session;
+    const gchar *xdg_seat;
+    gint vt = -1;
 
-    greeter_session = greeter_new ();
-    session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
+    greeter_session = SEAT_CLASS (seat_unity_parent_class)->create_greeter_session (seat);
+    xdg_seat = seat_get_string_property (seat, "xdg-seat");
+    if (!xdg_seat)
+        xdg_seat = "seat0";
+    l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
+    session_set_env (SESSION (greeter_session), "XDG_SEAT", xdg_seat);
+
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)
+        vt = SEAT_UNITY (seat)->priv->vt;
+
+    if (vt >= 0)
     {
-        gchar *value = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->vt);
+        gchar *value = g_strdup_printf ("%d", vt);
+        l_debug (seat, "Setting XDG_VTNR=%s", value);
         session_set_env (SESSION (greeter_session), "XDG_VTNR", value);
         g_free (value);
     }
+    else
+        l_debug (seat, "Not setting XDG_VTNR");
 
     return greeter_session;
 }
 
-static void
-seat_unity_set_next_session (Seat *seat, Session *session)
-{
-    DisplayServer *display_server;
-    const gchar *id = NULL;
-
-    /* If no compositor, don't worry about it */
-    if (SEAT_UNITY (seat)->priv->use_vt_switching)
-        return;
-
-    display_server = session_get_display_server (session);
-    if (IS_MIR_SERVER (display_server))
-    {
-        id = mir_server_get_id (MIR_SERVER (display_server));
-
-        if (id)
-        {
-            g_debug ("Marking Mir session %s as the next session", id);
-            write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_NEXT_SESSION, (const guint8 *) id, strlen (id));
-        }
-        else
-        {
-            g_warning ("Failed to work out session ID to mark");
-        }
-    }
-}
-
 static Session *
-seat_unity_create_session (Seat *seat, Session *user_session)
+seat_unity_create_session (Seat *seat)
 {
     Session *session;
+    const gchar *xdg_seat;
+    gint vt = -1;
 
-    session = session_new ();
-    session_set_env (session, "XDG_SEAT", "seat0");
+    session = SEAT_CLASS (seat_unity_parent_class)->create_session (seat);
+    xdg_seat = seat_get_string_property (seat, "xdg-seat");
+    if (!xdg_seat)
+        xdg_seat = "seat0";
+    l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
+    session_set_env (session, "XDG_SEAT", xdg_seat);
+
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)
+        vt = SEAT_UNITY (seat)->priv->vt;
+
+    if (vt >= 0)
     {
-        gchar *value = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->vt);
+        gchar *value = g_strdup_printf ("%d", vt);
+        l_debug (seat, "Setting XDG_VTNR=%s", value);
         session_set_env (SESSION (session), "XDG_VTNR", value);
         g_free (value);
-
-        /* Notify compositor that user's session should be displayed under
-           greeter. */
-        if (user_session != NULL)
-            seat_unity_set_next_session (seat, user_session);
     }
+    else
+        l_debug (seat, "Not setting XDG_VTNR");
 
     return session;
 }
@@ -605,11 +624,11 @@ seat_unity_set_active_session (Seat *seat, Session *session)
 
         if (id)
         {
-            g_debug ("Switching to Mir session %s", id);
+            l_debug (seat, "Switching to Mir session %s", id);
             write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_ACTIVE_SESSION, (const guint8 *) id, strlen (id));
         }
         else
-            g_warning ("Failed to work out session ID");
+            l_warning (seat, "Failed to work out session ID");
     }
 
     SEAT_CLASS (seat_unity_parent_class)->set_active_session (seat, session);
@@ -637,6 +656,39 @@ seat_unity_get_active_session (Seat *seat)
     }
 
     return SEAT_UNITY (seat)->priv->active_session;
+}
+
+static void
+seat_unity_set_next_session (Seat *seat, Session *session)
+{
+    DisplayServer *display_server;
+    const gchar *id = NULL;
+
+    if (!session)
+        return;
+
+    /* If no compositor, don't worry about it */
+    if (SEAT_UNITY (seat)->priv->use_vt_switching)
+        return;
+
+    display_server = session_get_display_server (session);
+
+    if (IS_X_SERVER_LOCAL (display_server))
+        id = x_server_local_get_mir_id (X_SERVER_LOCAL (display_server));
+    else if (IS_MIR_SERVER (display_server))
+        id = mir_server_get_id (MIR_SERVER (display_server));
+
+    if (id)
+    {
+        l_debug (seat, "Marking Mir session %s as the next session", id);
+        write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_NEXT_SESSION, (const guint8 *) id, strlen (id));
+    }
+    else
+    {
+        l_debug (seat, "Failed to work out session ID to mark");
+    }
+
+    SEAT_CLASS (seat_unity_parent_class)->set_next_session (seat, session);
 }
 
 static void
@@ -688,6 +740,7 @@ seat_unity_finalize (GObject *object)
     close (seat->priv->from_compositor_pipe[0]);
     close (seat->priv->from_compositor_pipe[1]);
     g_io_channel_unref (seat->priv->from_compositor_channel);
+    g_source_remove (seat->priv->from_compositor_watch);
     g_free (seat->priv->read_buffer);
     g_object_unref (seat->priv->compositor_process);
     if (seat->priv->active_session)
@@ -713,6 +766,7 @@ seat_unity_class_init (SeatUnityClass *klass)
     seat_class->create_session = seat_unity_create_session;
     seat_class->set_active_session = seat_unity_set_active_session;
     seat_class->get_active_session = seat_unity_get_active_session;
+    seat_class->set_next_session = seat_unity_set_next_session;
     seat_class->run_script = seat_unity_run_script;
     seat_class->stop = seat_unity_stop;
 

@@ -42,6 +42,8 @@ const gchar *session_config_get_command (SessionConfig *config);
 
 const gchar *session_config_get_session_type (SessionConfig *config);
 
+const gchar *session_config_get_desktop_name (SessionConfig *config);
+
 G_END_DECLS
 
 #endif /* SESSION_CONFIG_H_ */

@@ -1,0 +1,104 @@
+#!/bin/sh
+#
+# LightDM wrapper to run around X sessions.
+
+echo "Running X session wrapper"
+
+message () {
+  # pretty-print messages of arbitrary length; use xmessage if it
+  # is available and $DISPLAY is set
+  MESSAGE="$PROGNAME: $*"
+  echo "$MESSAGE" | fold -s -w ${COLUMNS:-80} >&2
+  if [ -n "$DISPLAY" ] && which xmessage > /dev/null 2>&1; then
+    echo "$MESSAGE" | fold -s -w ${COLUMNS:-80} | xmessage -center -file -
+  fi
+}
+
+errormsg () {
+  # exit script with error
+  message "$*"
+  exit 1
+}
+
+# Load profile
+for file in "/etc/profile" "$HOME/.profile" "/etc/xprofile" "$HOME/.xprofile"; do
+    if [ -f "$file" ]; then
+        echo "Loading profile from $file";
+        . "$file"
+    fi
+done
+
+# Load resources
+if type xrdb >/dev/null 2>&1; then
+    xresourcedir="/etc/X11/Xresources"
+    if [ -d "$xresourcedir" ]; then
+        for file in $xresourcedir/*; do
+            echo "Loading resource: $file"
+            xrdb -nocpp -merge "$file"
+        done
+    fi
+    xresourcefile="$HOME/.Xresources"
+    if [ -f "$xresourcefile" ]; then
+        echo "Loading resource: $xresourcefile"
+        xrdb -nocpp -merge "$xresourcefile"
+    fi
+fi    
+
+# Load keymaps
+if type setxkbmap >/dev/null 2>&1; then
+    for file in "/etc/X11/Xkbmap" "$HOME/.Xkbmap"; do
+        if [ -f "$file" ]; then
+            echo "Loading keymap: $file"
+            setxkbmap `cat "$file"`
+            XKB_IN_USE=yes
+        fi
+    done
+fi
+
+# Load xmodmap if not using XKB
+if type xmodmap >/dev/null 2>&1; then
+    if [ -z "$XKB_IN_USE" ]; then
+        for file in "/etc/X11/Xmodmap" "$HOME/.Xmodmap"; do
+            if [ -f "$file" ]; then
+               echo "Loading modmap: $file"
+               xmodmap "$file"
+            fi
+        done
+    fi
+fi
+
+unset XKB_IN_USE
+
+# Run all system xinitrc shell scripts.
+xinitdir="/etc/X11/xinit/xinitrc.d"
+if [ -d "$xinitdir" ]; then
+    for script in $xinitdir/*; do
+        echo "Loading xinit script $script"
+        if [ -x "$script" -a ! -d "$script" ]; then
+            . "$script"
+        fi
+    done
+fi
+
+# Load Xsession scripts
+# OPTIONFILE, USERXSESSION, USERXSESSIONRC and ALTUSERXSESSION are required
+# by the scripts to work
+xsessionddir="/etc/X11/Xsession.d"
+OPTIONFILE=/etc/X11/Xsession.options
+USERXSESSION=$HOME/.xsession
+USERXSESSIONRC=$HOME/.xsessionrc
+ALTUSERXSESSION=$HOME/.Xsession
+
+if [ -d "$xsessionddir" ]; then
+    for i in `ls $xsessionddir`; do
+        script="$xsessionddir/$i"
+        echo "Loading X session script $script"
+        if [ -r "$script"  -a -f "$script" ] && expr "$i" : '^[[:alnum:]_-]\+$' > /dev/null; then
+            . "$script"
+        fi
+    done
+fi
+
+echo "X session wrapper complete, running session $@"
+
+exec $@

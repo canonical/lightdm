@@ -42,7 +42,8 @@ typedef enum
    USC_MESSAGE_PONG = 1,
    USC_MESSAGE_READY = 2,
    USC_MESSAGE_SESSION_CONNECTED = 3,
-   USC_MESSAGE_SET_ACTIVE_SESSION = 4
+   USC_MESSAGE_SET_ACTIVE_SESSION = 4,
+   USC_MESSAGE_SET_NEXT_SESSION = 5,
 } USCMessageID;
 
 static void
@@ -102,6 +103,9 @@ read_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
         break;
     case USC_MESSAGE_SET_ACTIVE_SESSION:
         status_notify ("UNITY-SYSTEM-COMPOSITOR SET-ACTIVE-SESSION ID=%s", (gchar *)payload);
+        break;
+    case USC_MESSAGE_SET_NEXT_SESSION:
+        status_notify ("UNITY-SYSTEM-COMPOSITOR SET-NEXT-SESSION ID=%s", (gchar *)payload);
         break;
     default:
         g_printerr ("Ignoring message %d with %d octets\n", id, payload_length);
@@ -168,6 +172,11 @@ main (int argc, char **argv)
             vt_number = atoi (argv[i+1]);
             i++;
         }
+        else if (strcmp (arg, "--file") == 0)
+        {
+            /*file = argv[i+1];*/
+            i++;
+        }
         else if (strcmp (arg, "--test") == 0)
             test = TRUE;
         else
@@ -179,6 +188,8 @@ main (int argc, char **argv)
     status_text = g_string_new ("UNITY-SYSTEM-COMPOSITOR START");
     if (vt_number >= 0)
         g_string_append_printf (status_text, " VT=%d", vt_number);
+    if (g_getenv ("XDG_VTNR"))
+        g_string_append_printf (status_text, " XDG_VTNR=%s", g_getenv ("XDG_VTNR"));
     if (test)
         g_string_append (status_text, " TEST=TRUE");
     status_notify (status_text->str);

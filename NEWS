@@ -1,3 +1,62 @@
+Overview of changes in lightdm 1.8.0
+
+    * Add regression test for corrupt X authority files.
+
+Overview of changes in lightdm 1.7.18
+
+    * Set session environment variables for guest sessions (1.7 regression).
+    * Don't fail writing X authority if reading it had an error.
+    * Update environment variables that we pass to Mir.
+
+Overview of changes in lightdm 1.7.17
+
+    * surfaceflinger: Set XDG_VTNR=0 if VTs are not available
+    * Allow compiling of liblightdm-qt without liblightdm-gobject
+    * Add missing documentation for xremote seat options.
+
+Overview of changes in lightdm 1.7.16
+
+    * Fix ConsoleKit support broken in 1.7.5
+    * Fix --test-mode
+    * Add support for running Surfaceflinger sessions
+
+Overview of changes in lightdm 1.7.15
+
+    * Set XDG_VTNR=1 as a fallback if using SeatUnity without a functioning
+      compositor or working VT switching, so that logind will recognize the VT
+      as active.
+
+Overview of changes in lightdm 1.7.14
+
+    * Correctly set permissions on Xauthority file.
+
+Overview of changes in lightdm 1.7.13
+
+    * Correctly set $XDG_CURRENT_DESKTOP for non-autologin sessions
+    * Fix overallocation of array for strings from greeter.
+    * Fix truncation writing card32 in XDMCP server.
+
+Overview of changes in lightdm 1.7.12
+
+    * Add xdg-seat config setting
+    * Notify Unity System Compositor of the session being authenticated
+
+Overview of changes in lightdm 1.7.11
+
+    * Fix crash when greeter quits due to read watch not being removed
+    * Correctly setup Unity System Compositor environment
+    * Improve log messages
+
+Overview of changes in lightdm 1.7.10
+
+    * Fix session locking broken in 1.7.5
+    * Load lightdm.conf after lightdm.conf.d/*.conf
+    * Also support loading config from /usr/share
+    * When switching sessions show a greeter if authentication required
+    * Set $XDG_CURRENT_DESKTOP if specified in the xsession file
+    * Change logging prefixes to make it easier to troubleshoot multiseat setups
+    * Bring Ubuntu packaging in-tree
+
 Overview of changes in lightdm 1.7.9
 
     * Correctly set XDG_VTNR for unity sessions that are not autologin.

@@ -146,15 +146,8 @@ xdmcp_failed_cb (XDMCPClient *client, XDMCPFailed *message)
 static void
 client_connected_cb (XServer *server, XClient *client)
 {
-    gchar *auth_error = NULL;
-
     status_notify ("XSERVER-%d ACCEPT-CONNECT", display_number);
-
-    if (auth_error)
-        x_client_send_failed (client, auth_error);
-    else
-        x_client_send_success (client);
-    g_free (auth_error);
+    x_client_send_success (client);
 }
 
 static void
@@ -212,6 +205,7 @@ main (int argc, char **argv)
     gboolean do_xdmcp = FALSE;
     guint xdmcp_port = 0;
     gchar *xdmcp_host = NULL;
+    gchar *seat = NULL;
     gchar *mir_id = NULL;
     gchar *lock_filename;
     int lock_file;
@@ -282,6 +276,11 @@ main (int argc, char **argv)
         {
             /* Ignore VT args */
         }
+        else if (strcmp (arg, "-seat") == 0)
+        {
+            seat = argv[i+1];
+            i++;
+        }
         else if (strcmp (arg, "-mir") == 0)
         {
             mir_id = argv[i+1];
@@ -303,6 +302,7 @@ main (int argc, char **argv)
                         "-query host-name       Contact named host for XDMCP\n"
                         "-broadcast             Broadcast for XDMCP\n"
                         "-port port-num         UDP port number to send messages to\n"
+                        "-seat string           seat to run on\n"
                         "-mir id                Mir ID to use\n"
                         "-mirSocket name        Mir socket to use\n"
                         "vtxx                   Use virtual terminal xx instead of the next available\n",
@@ -319,6 +319,8 @@ main (int argc, char **argv)
     g_string_printf (status_text, "XSERVER-%d START", display_number);
     if (vt_number >= 0)
         g_string_append_printf (status_text, " VT=%d", vt_number);
+    if (seat != NULL)
+        g_string_append_printf (status_text, " SEAT=%s", seat);
     if (mir_id != NULL)
         g_string_append_printf (status_text, " MIR-ID=%s", mir_id);
     status_notify (status_text->str);
@@ -385,18 +387,18 @@ main (int argc, char **argv)
                  "	and start again.\n", display_number, lock_path);
         g_free (lock_path);
         lock_path = NULL;
-        quit (EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
     pid_string = g_strdup_printf ("%10ld", (long) getpid ());
     if (write (lock_file, pid_string, strlen (pid_string)) < 0)
     {
         g_warning ("Error writing PID file: %s", strerror (errno));
-        quit (EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
     g_free (pid_string);
 
     if (!x_server_start (xserver))
-        quit (EXIT_FAILURE);
+        return EXIT_FAILURE;
 
     /* Enable XDMCP */
     if (do_xdmcp)

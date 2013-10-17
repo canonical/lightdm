@@ -133,11 +133,11 @@ x_server_start (DisplayServer *display_server)
     }
 
     /* Open connection */  
-    g_debug ("Connecting to XServer %s", x_server_get_address (server));
+    l_debug (server, "Connecting to XServer %s", x_server_get_address (server));
     server->priv->connection = xcb_connect_to_display_with_auth_info (x_server_get_address (server), auth, NULL);
     if (xcb_connection_has_error (server->priv->connection))
     {
-        g_debug ("Error connecting to XServer %s", x_server_get_address (server));
+        l_debug (server, "Error connecting to XServer %s", x_server_get_address (server));
         return FALSE;
     }
 
@@ -161,12 +161,14 @@ x_server_connect_session (DisplayServer *display_server, Session *session)
         g_free (t);
 
         t = g_strdup_printf ("%d", vt);
+        l_debug (session, "Setting XDG_VTNR=%s", t);
         session_set_env (session, "XDG_VTNR", t);
         g_free (t);
     }
+    else
+        l_debug (session, "Not setting XDG_VTNR");
 
     session_set_env (session, "DISPLAY", x_server_get_address (X_SERVER (display_server)));
-    session_set_tty (session, x_server_get_address (X_SERVER (display_server)));
     session_set_xdisplay (session, x_server_get_address (X_SERVER (display_server)));
     session_set_remote_host_name (session, x_server_get_hostname (X_SERVER (display_server)));
     session_set_x_authority (session,

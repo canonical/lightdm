@@ -13,6 +13,9 @@ TESTS = \
 	test-greeter-show-remote-login \
 	test-no-config \
 	test-additional-config \
+	test-additional-config-priority \
+	test-additional-system-config \
+	test-additional-system-config-priority \
 	test-headless \
 	test-autologin \
 	test-autologin-in-background \
@@ -44,7 +47,8 @@ TESTS = \
 	test-autologin-guest-fail-setup-script \
 	test-autologin-guest-logout \
 	test-group-membership \
-	test-session-env \
+	test-xdg-current-desktop \
+	test-xdg-seat \
 	test-language-env \
 	test-util-path \
 	test-session-stdout \
@@ -52,6 +56,7 @@ TESTS = \
 	test-session-stderr-multi-write \
 	test-session-stderr-backup \
 	test-xauthority \
+	test-corrupt-xauthority \
 	test-system-xauthority \
 	test-user-renamed \
 	test-user-renamed-invalid \
@@ -75,6 +80,7 @@ TESTS = \
 	test-login-gobject-multi-prompt \
 	test-login-gobject-pick-session \
 	test-login-gobject-remember-session \
+	test-login-gobject-manual-remember-session \
 	test-login-gobject-previous-session \
 	test-login-gobject-wrong-password \
 	test-login-gobject-invalid-user \
@@ -110,16 +116,17 @@ TESTS = \
 	test-lock-seat-return-session-console-kit \
 	test-switch-to-greeter \
 	test-switch-to-greeter-new-session \
-	test-switch-to-greeter-new-session-logout-new \
-	test-switch-to-greeter-new-session-logout-old \
 	test-switch-to-greeter-return-session \
 	test-switch-to-greeter-return-session-logout \
 	test-switch-to-guest \
 	test-switch-to-user \
-	test-switch-to-users \
-	test-switch-to-user-existing-session \
 	test-switch-to-user-no-password \
-	test-switch-to-user-logout \
+	test-switch-to-user-active \
+	test-switch-to-user-existing \
+	test-switch-to-user-existing-no-password \
+	test-switch-to-user-logout-active \
+	test-switch-to-user-logout-inactive \
+	test-switch-to-users \
 	test-vnc-login \
 	test-vnc-command \
 	test-vnc-dimensions \
@@ -143,6 +150,7 @@ TESTS = \
 	test-unity-compositor-command \
 	test-unity-compositor-fail-start \
 	test-unity-compositor-fail-ready \
+	test-unity-compositor-next-session \
 	test-unity-autologin \
 	test-unity-login \
 	test-unity-switch \
@@ -150,7 +158,9 @@ TESTS = \
 	test-unity-mir-autologin \
 	test-unity-mir-greeter-x-session \
 	test-unity-mir-greeter-mir-session \
-	test-unity-mir-session-x-greeter
+	test-unity-mir-session-x-greeter \
+	test-unity-xdg-seat \
+	test-surfaceflinger-autologin
 
 #	test-session-exit-error
 #	test-greeter-no-exit
@@ -178,6 +188,7 @@ TESTS += \
 	test-login-python-logout \
 	test-login-python-pick-session \
 	test-login-python-remember-session \
+	test-login-python-manual-remember-session \
 	test-login-python-guest \
 	test-login-python-guest-disabled \
 	test-login-python-guest-no-setup-script \
@@ -213,6 +224,7 @@ TESTS += \
 	test-login-qt4-logout \
 	test-login-qt4-pick-session \
 	test-login-qt4-remember-session \
+	test-login-qt4-manual-remember-session \
 	test-login-qt4-guest \
 	test-login-qt4-guest-disabled \
 	test-login-qt4-guest-no-setup-script \
@@ -248,6 +260,7 @@ TESTS += \
 	test-login-qt5-logout \
 	test-login-qt5-pick-session \
 	test-login-qt5-remember-session \
+	test-login-qt5-manual-remember-session \
 	test-login-qt5-guest \
 	test-login-qt5-guest-disabled \
 	test-login-qt5-guest-no-setup-script \
@@ -274,9 +287,14 @@ EXTRA_DIST = \
 	data/sessions/alternative.desktop \
 	data/sessions/default.desktop \
 	data/sessions/mir.desktop \
+	data/sessions/named.desktop \
+	data/sessions/surfaceflinger.desktop \
 	scripts/0-additional.conf \
 	scripts/1-additional.conf \
 	scripts/additional-config.conf \
+	scripts/additional-config-priority.conf \
+	scripts/additional-system-config.conf \
+	scripts/additional-system-config-priority.conf \
 	scripts/autologin.conf \
 	scripts/autologin-guest.conf \
 	scripts/autologin-guest-fail-setup-script.conf \
@@ -298,11 +316,12 @@ EXTRA_DIST = \
 	scripts/change-authentication.conf \
 	scripts/cancel-authentication.conf \
 	scripts/console-kit.conf \
+	scripts/corrupt-xauthority.conf \
 	scripts/crash-authenticate.conf \
 	scripts/cred-error.conf \
 	scripts/cred-expired.conf \
 	scripts/cred-unavail.conf \
-	scripts/dbus.conf \    
+	scripts/dbus.conf \
 	scripts/denied.conf \
 	scripts/expired.conf \
 	scripts/greeter-allow-guest.conf \
@@ -344,6 +363,7 @@ EXTRA_DIST = \
 	scripts/login-long-password.conf \
 	scripts/login-manual.conf \
 	scripts/login-manual-previous-session.conf \
+	scripts/login-manual-remember-session.conf \
 	scripts/login-multi-info-prompt.conf \
 	scripts/login-multi-prompt.conf \
 	scripts/login-new-authtok.conf \
@@ -381,28 +401,30 @@ EXTRA_DIST = \
 	scripts/script-hook-fail-display-setup.conf \
 	scripts/script-hook-fail-greeter-setup.conf \
 	scripts/script-hook-fail-session-setup.conf \
-	scripts/session-env.conf \
 	scripts/session-stdout.conf \
 	scripts/session-stderr.conf \
 	scripts/session-stderr-multi-write.conf \
 	scripts/session-stderr-backup.conf \
+	scripts/surfaceflinger-autologin.conf \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-greeter-new-session.conf \
-	scripts/switch-to-greeter-new-session-logout-new.conf \
-	scripts/switch-to-greeter-new-session-logout-old.conf \
 	scripts/switch-to-greeter-return-session.conf \
 	scripts/switch-to-greeter-return-session-logout.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \
 	scripts/switch-to-users.conf \
-	scripts/switch-to-user-existing-session.conf \
-	scripts/switch-to-user-logout.conf \
+	scripts/switch-to-user-active.conf \
+	scripts/switch-to-user-existing.conf \
+	scripts/switch-to-user-existing-no-password.conf \
+	scripts/switch-to-user-logout-active.conf \
+	scripts/switch-to-user-logout-inactive.conf \
 	scripts/switch-to-user-no-password.conf \
 	scripts/system-xauthority.conf \
 	scripts/unity-autologin.conf \
 	scripts/unity-compositor-command.conf \
 	scripts/unity-compositor-fail-ready.conf \
 	scripts/unity-compositor-fail-start.conf \
+	scripts/unity-compositor-next-session.conf \
 	scripts/unity-login.conf \
 	scripts/unity-mir-autologin.conf \
 	scripts/unity-mir-greeter-mir-session.conf \
@@ -410,6 +432,7 @@ EXTRA_DIST = \
 	scripts/unity-mir-session-x-greeter.conf \
 	scripts/unity-plymouth.conf \
 	scripts/unity-switch.conf \
+	scripts/unity-xdg-seat.conf \
 	scripts/upstart-autologin.conf \
 	scripts/upstart-login.conf \
 	scripts/users.conf \
@@ -421,6 +444,8 @@ EXTRA_DIST = \
 	scripts/vnc-login.conf \
 	scripts/vnc-open-file-descriptors.conf \
 	scripts/xauthority.conf \
+	scripts/xdg-current-desktop.conf \
+	scripts/xdg-seat.conf \
 	scripts/xdmcp-client.conf \
 	scripts/xdmcp-server-login.conf \
 	scripts/xdmcp-server-open-file-descriptors.conf \

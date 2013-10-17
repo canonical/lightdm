@@ -297,6 +297,8 @@ process_finalize (GObject *object)
 
     g_free (self->priv->command);
     g_hash_table_unref (self->priv->env);
+    if (self->priv->quit_timeout)
+        g_source_remove (self->priv->quit_timeout);
     if (self->priv->watch)
         g_source_remove (self->priv->watch);
 
@@ -322,8 +324,9 @@ handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
     pid_t pid;
     Process *process;
 
-    if (read (signal_pipe[0], &signo, sizeof (int)) < 0 || 
-        read (signal_pipe[0], &pid, sizeof (pid_t)) < 0)
+    errno = 0;
+    if (read (signal_pipe[0], &signo, sizeof (int)) != sizeof (int) || 
+        read (signal_pipe[0], &pid, sizeof (pid_t)) != sizeof (pid_t))
     {
         g_warning ("Error reading from signal pipe: %s", strerror (errno));
         return TRUE;

@@ -36,6 +36,20 @@ open_console (void)
     return fd;
 }
 
+gboolean
+vt_can_multi_seat (void)
+{
+    /* Quick check to see if we can multi seat.  This is intentionally the
+       same check logind does, just without actually reading from the files.
+       Existence will prove whether we have CONFIG_VT built into the kernel.
+       (Reading /dev/console like the rest of the code in this file isn't
+       sufficient -- it may still exist if tty0 doesn't and it may not work
+       in situations where tty0 does exist and thus logind will think we are
+       multi seat.) */
+    return access ("/dev/tty0", F_OK) == 0 &&
+           access ("/sys/class/tty/tty0/active", F_OK) == 0;
+}
+
 gint
 vt_get_active (void)
 {

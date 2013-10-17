@@ -14,6 +14,8 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <fcntl.h>
+#include <glib/gstdio.h>
 
 #include "x-authority.h"
 
@@ -210,38 +212,38 @@ read_string (gchar *data, gsize data_length, gsize *offset, gchar **value)
     return read_data (data, data_length, offset, length, (guint8 **) value);
 }
 
-static void
-write_uint16 (FILE *file, guint16 value)
+static gboolean
+write_uint16 (int fd, guint16 value)
 {
     guint8 v[2];
     v[0] = value >> 8;
     v[1] = value & 0xFF;
-    fwrite (v, 2, 1, file);
+    return write (fd, v, 2) == 2;
 }
 
-static void
-write_data (FILE *file, const guint8 *value, gsize value_length)
+static gboolean
+write_data (int fd, const guint8 *value, gsize value_length)
 {
-    fwrite (value, value_length, 1, file);
+    return write (fd, value, value_length) == value_length;
 }
 
-static void
-write_string (FILE *file, const gchar *value)
+static gboolean
+write_string (int fd, const gchar *value)
 {
-    write_uint16 (file, strlen (value));
-    write_data (file, (guint8 *) value, strlen (value));
+    size_t value_length = strlen (value);
+    return write_uint16 (fd, value_length) && write_data (fd, (guint8 *) value, value_length);
 }
 
 gboolean
 x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GError **error)
 {
-    gchar *input;
+    gchar *input = NULL;
     gsize input_length = 0, input_offset = 0;
     GList *link, *records = NULL;
     XAuthority *a;
-    gboolean result;
+    gboolean result = TRUE;
     gboolean matched = FALSE;
-    FILE *output;
+    int output_fd;
 
     g_return_val_if_fail (auth != NULL, FALSE);
     g_return_val_if_fail (filename != NULL, FALSE);
@@ -313,8 +315,39 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
 
     /* Write records back */
     errno = 0;
-    output = fopen (filename, "w");
-    if (output == NULL)
+    output_fd = g_open (filename, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    if (output_fd < 0)
+    {
+        g_set_error (error,
+                     G_FILE_ERROR,
+                     g_file_error_from_errno (errno),
+                     "Failed to open X authority %s: %s",
+                     filename,
+                     g_strerror (errno));
+        return FALSE;
+    }
+
+    errno = 0;
+    result = TRUE;
+    for (link = records; link && result; link = link->next)
+    {
+        XAuthority *a = link->data;
+
+        result = write_uint16 (output_fd, a->priv->family) &&
+                 write_uint16 (output_fd, a->priv->address_length) &&
+                 write_data (output_fd, a->priv->address, a->priv->address_length) &&
+                 write_string (output_fd, a->priv->number) &&
+                 write_string (output_fd, a->priv->authorization_name) &&
+                 write_uint16 (output_fd, a->priv->authorization_data_length) &&
+                 write_data (output_fd, a->priv->authorization_data, a->priv->authorization_data_length);
+
+        g_object_unref (a);
+    }
+    g_list_free (records);
+
+    close (output_fd);
+
+    if (!result)
     {
         g_set_error (error,
                      G_FILE_ERROR,
@@ -324,24 +357,6 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
                      g_strerror (errno));
         return FALSE;
     }
-  
-    for (link = records; link && result; link = link->next)
-    {
-        XAuthority *a = link->data;
-
-        write_uint16 (output, a->priv->family);
-        write_uint16 (output, a->priv->address_length);
-        write_data (output, a->priv->address, a->priv->address_length);
-        write_string (output, a->priv->number);
-        write_string (output, a->priv->authorization_name);
-        write_uint16 (output, a->priv->authorization_data_length);
-        write_data (output, a->priv->authorization_data, a->priv->authorization_data_length);
-
-        g_object_unref (a);
-    }
-    g_list_free (records);
-
-    fclose (output);
 
     return TRUE;
 }    

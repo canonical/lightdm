@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/dbus-env ./src/test-runner unity-xdg-seat test-gobject-greeter

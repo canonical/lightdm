@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/dbus-env ./src/test-runner login-manual-remember-session test-qt4-greeter

@@ -64,14 +64,14 @@ seat_xlocal_create_display_server (Seat *seat, const gchar *session_type, gboole
         return NULL;
 
     XServerLocal *x_server;
-    const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
+    const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL, *xdg_seat = NULL;
     gboolean allow_tcp;
     gint vt = -1, port = 0;
 
     if (vt > 0)
-        g_debug ("Starting local X display on VT %d", vt);
+        l_debug (seat, "Starting local X display on VT %d", vt);
     else
-        g_debug ("Starting local X display");
+        l_debug (seat, "Starting local X display");
   
     x_server = x_server_local_new ();
 
@@ -95,7 +95,7 @@ seat_xlocal_create_display_server (Seat *seat, const gchar *session_type, gboole
             plymouth_deactivate ();
         }
         else
-            g_debug ("Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());
+            l_debug (seat, "Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());
     }
     if (plymouth_get_is_active ())
         plymouth_quit (FALSE);
@@ -107,6 +107,10 @@ seat_xlocal_create_display_server (Seat *seat, const gchar *session_type, gboole
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)
         x_server_local_set_layout (x_server, layout);
+        
+    xdg_seat = seat_get_string_property (seat, "xdg-seat");
+    if (xdg_seat)
+        x_server_local_set_xdg_seat (x_server, xdg_seat);
 
     config_file = seat_get_string_property (seat, "xserver-config");
     if (config_file)
@@ -138,7 +142,7 @@ seat_xlocal_create_display_server (Seat *seat, const gchar *session_type, gboole
         keys = g_key_file_new ();
         result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
         if (error)
-            g_debug ("Error getting key %s", error->message);
+            l_debug (seat, "Error getting key %s", error->message);
         g_clear_error (&error);      
 
         if (result)
@@ -148,7 +152,7 @@ seat_xlocal_create_display_server (Seat *seat, const gchar *session_type, gboole
             if (g_key_file_has_key (keys, "keyring", key_name, NULL))
                 key = g_key_file_get_string (keys, "keyring", key_name, NULL);
             else
-                g_debug ("Key %s not defined", key_name);
+                l_debug (seat, "Key %s not defined", key_name);
 
             if (key)
                 x_server_local_set_xdmcp_key (x_server, key);
@@ -166,20 +170,30 @@ static Greeter *
 seat_xlocal_create_greeter_session (Seat *seat)
 {
     Greeter *greeter_session;
+    const gchar *xdg_seat;
 
     greeter_session = SEAT_CLASS (seat_xlocal_parent_class)->create_greeter_session (seat);
-    session_set_env (SESSION (greeter_session), "XDG_SEAT", "seat0");
+    xdg_seat = seat_get_string_property (seat, "xdg-seat");
+    if (!xdg_seat)
+        xdg_seat = "seat0";
+    l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
+    session_set_env (SESSION (greeter_session), "XDG_SEAT", xdg_seat);
 
     return greeter_session;
 }
 
 static Session *
-seat_xlocal_create_session (Seat *seat, Session *user_session)
+seat_xlocal_create_session (Seat *seat)
 {
     Session *session;
+    const gchar *xdg_seat;
 
-    session = SEAT_CLASS (seat_xlocal_parent_class)->create_session (seat, user_session);
-    session_set_env (SESSION (session), "XDG_SEAT", "seat0");
+    session = SEAT_CLASS (seat_xlocal_parent_class)->create_session (seat);
+    xdg_seat = seat_get_string_property (seat, "xdg-seat");
+    if (!xdg_seat)
+        xdg_seat = "seat0";
+    l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
+    session_set_env (SESSION (session), "XDG_SEAT", xdg_seat);
 
     return session;
 }

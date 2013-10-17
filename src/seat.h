@@ -17,6 +17,7 @@
 #include "greeter.h"
 #include "session.h"
 #include "process.h"
+#include "logger.h"
 
 G_BEGIN_DECLS
 
@@ -43,8 +44,9 @@ typedef struct
     DisplayServer *(*create_display_server) (Seat *seat, const gchar *session_type, gboolean is_greeter);
     gboolean (*display_server_supports_session_type) (Seat *seat, DisplayServer *display_server, const gchar *session_type);
     Greeter *(*create_greeter_session) (Seat *seat);
-    Session *(*create_session) (Seat *seat, Session *user_session);
+    Session *(*create_session) (Seat *seat);
     void (*set_active_session)(Seat *seat, Session *session);
+    void (*set_next_session)(Seat *seat, Session *session);
     Session *(*get_active_session)(Seat *seat);
     void (*run_script)(Seat *seat, DisplayServer *display_server, Process *script);
     void (*stop)(Seat *seat);
@@ -80,6 +82,8 @@ GList *seat_get_sessions (Seat *seat);
 void seat_set_active_session (Seat *seat, Session *session);
 
 Session *seat_get_active_session (Seat *seat);
+
+Session *seat_get_next_session (Seat *seat);
 
 gboolean seat_get_can_switch (Seat *seat);
 

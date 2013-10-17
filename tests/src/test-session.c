@@ -10,6 +10,7 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 #include <glib-unix.h>
+#include <glib/gstdio.h>
 
 #include "status.h"
 
@@ -104,6 +105,11 @@ request_cb (const gchar *request)
         GString *group_list;
 
         n_groups = getgroups (0, NULL);
+        if (n_groups < 0)
+        {
+            g_printerr ("Failed to get groups: %s", strerror (errno));
+            n_groups = 0;
+        }
         groups = malloc (sizeof (gid_t) * n_groups);
         n_groups = getgroups (n_groups, groups);
         group_list = g_string_new ("");
@@ -162,20 +168,51 @@ request_cb (const gchar *request)
     if (strcmp (request, r) == 0)
         status_notify ("%s LIST-UNKNOWN-FILE-DESCRIPTORS FDS=%s", session_id, open_fds->str);
     g_free (r);
+
+    r = g_strdup_printf ("%s CHECK-X-AUTHORITY", session_id);
+    if (strcmp (request, r) == 0)
+    {
+        gchar *xauthority;
+        GStatBuf file_info;
+        GString *mode_string;
+
+        xauthority = g_strdup (g_getenv ("XAUTHORITY"));
+        if (!xauthority)
+            xauthority = g_build_filename (g_get_home_dir (), ".Xauthority", NULL);
+
+        g_stat (xauthority, &file_info);
+        g_free (xauthority);
+
+        mode_string = g_string_new ("");
+        g_string_append_c (mode_string, file_info.st_mode & S_IRUSR ? 'r' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IWUSR ? 'w' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IXUSR ? 'x' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IRGRP ? 'r' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IWGRP ? 'w' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IXGRP ? 'x' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IROTH ? 'r' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IWOTH ? 'w' : '-');
+        g_string_append_c (mode_string, file_info.st_mode & S_IXOTH ? 'x' : '-');
+        status_notify ("%s CHECK-X-AUTHORITY MODE=%s", session_id, mode_string->str);
+        g_string_free (mode_string, TRUE);
+    }
+    g_free (r);
 }
 
 int
 main (int argc, char **argv)
 {
-    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie, *mir_socket, *mir_vt, *mir_id;
+    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_current_desktop, *xdg_session_cookie, *desktop_session, *mir_socket, *mir_vt, *mir_id;
     GString *status_text;
     int fd, open_max;
 
     display = getenv ("DISPLAY");
     xdg_seat = getenv ("XDG_SEAT");
     xdg_vtnr = getenv ("XDG_VTNR");
+    xdg_current_desktop = getenv ("XDG_CURRENT_DESKTOP");
     xdg_session_cookie = getenv ("XDG_SESSION_COOKIE");
-    mir_socket = getenv ("MIR_SERVER_FILE");
+    desktop_session = getenv ("DESKTOP_SESSION");
+    mir_socket = getenv ("MIR_SOCKET");
     mir_vt = getenv ("MIR_SERVER_VT");
     mir_id = getenv ("MIR_ID");
     if (display)
@@ -190,7 +227,7 @@ main (int argc, char **argv)
     else if (mir_socket || mir_vt)
         session_id = g_strdup ("SESSION-MIR");
     else
-        session_id = g_strdup ("SESSION-?");
+        session_id = g_strdup ("SESSION-UNKNOWN");
 
     open_fds = g_string_new ("");
     open_max = sysconf (_SC_OPEN_MAX);
@@ -219,8 +256,12 @@ main (int argc, char **argv)
         g_string_append_printf (status_text, " XDG_SEAT=%s", xdg_seat);
     if (xdg_vtnr)
         g_string_append_printf (status_text, " XDG_VTNR=%s", xdg_vtnr);
+    if (xdg_current_desktop)
+        g_string_append_printf (status_text, " XDG_CURRENT_DESKTOP=%s", xdg_current_desktop);
     if (xdg_session_cookie)
         g_string_append_printf (status_text, " XDG_SESSION_COOKIE=%s", xdg_session_cookie);
+    if (desktop_session)
+        g_string_append_printf (status_text, " DESKTOP_SESSION=%s", desktop_session);
     if (mir_vt > 0)
         g_string_append_printf (status_text, " MIR_SERVER_VT=%s", mir_vt);
     if (argc > 1)

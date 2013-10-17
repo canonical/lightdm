@@ -54,6 +54,8 @@ Session *greeter_get_authentication_session (Greeter *greeter);
 
 gboolean greeter_get_start_session (Greeter *greeter);
 
+const gchar *greeter_get_active_username (Greeter *greeter);
+
 G_END_DECLS
 
 #endif /* GREETER_H_ */

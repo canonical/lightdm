@@ -1,0 +1,45 @@
+Description: Adjustments due to handling of languages
+Forwarded: not-needed
+Author: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
+
+Index: guest-desktop-session/liblightdm-gobject/language.c
+===================================================================
+--- guest-desktop-session.orig/liblightdm-gobject/language.c	2013-10-04 12:01:29.437363620 +1300
++++ guest-desktop-session/liblightdm-gobject/language.c	2013-10-04 12:01:29.433363621 +1300
+@@ -40,7 +40,7 @@
+ static void
+ update_languages (void)
+ {
+-    gchar *command = "locale -a";
++    gchar *command = "/usr/share/language-tools/language-options";
+     gchar *stdout_text = NULL, *stderr_text = NULL;
+     gint exit_status;
+     gboolean result;
+Index: guest-desktop-session/tests/scripts/language-env.conf
+===================================================================
+--- guest-desktop-session.orig/tests/scripts/language-env.conf	2013-10-04 12:01:29.437363620 +1300
++++ guest-desktop-session/tests/scripts/language-env.conf	2013-10-04 12:01:29.433363621 +1300
+@@ -22,8 +22,8 @@
+ #?SESSION-X-0 CONNECT-XSERVER
+ 
+ # Check environment variables
+-#?*SESSION-X-0 READ-ENV NAME=LANG
+-#?SESSION-X-0 READ-ENV NAME=LANG VALUE=en_AU
++#?*SESSION-X-0 READ-ENV NAME=LANGUAGE
++#?SESSION-X-0 READ-ENV NAME=LANGUAGE VALUE=en_AU
+ #?*SESSION-X-0 READ-ENV NAME=GDM_LANG
+ #?SESSION-X-0 READ-ENV NAME=GDM_LANG VALUE=en_AU
+ 
+Index: guest-desktop-session/src/seat.c
+===================================================================
+--- guest-desktop-session.orig/src/seat.c	2013-10-04 12:01:29.437363620 +1300
++++ guest-desktop-session/src/seat.c	2013-10-04 12:01:29.433363621 +1300
+@@ -822,7 +822,7 @@
+         session_set_env (session, "XDG_CURRENT_DESKTOP", desktop_name);
+     if (language && language[0] != '\0')
+     {
+-        session_set_env (session, "LANG", language);
++        session_set_env (session, "LANGUAGE", language);
+         session_set_env (session, "GDM_LANG", language);
+     }
+ }
