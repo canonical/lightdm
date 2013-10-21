@@ -479,7 +479,7 @@ session_child_run (int argc, char **argv)
         g_variant_builder_init (&ck_parameters, G_VARIANT_TYPE ("(a(sv))"));
         g_variant_builder_open (&ck_parameters, G_VARIANT_TYPE ("a(sv)"));
         g_variant_builder_add (&ck_parameters, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
-        if (g_strcmp0 (pam_getenv (pam_handle, "XDG_SESSION_CLASS"), XDG_SESSION_CLASS_GREETER) == 0)
+        if (g_strcmp0 (pam_getenv (pam_handle, "XDG_SESSION_CLASS"), "greeter") == 0)
             g_variant_builder_add (&ck_parameters, "(sv)", "session-type", g_variant_new_string ("LoginWindow"));
         if (xdisplay)
         {
@@ -600,7 +600,7 @@ session_child_run (int argc, char **argv)
     if (child_pid > 0)
     {
         /* Log to utmp */
-        if (g_strcmp0 (pam_getenv (pam_handle, "XDG_SESSION_CLASS"), XDG_SESSION_CLASS_GREETER) != 0)
+        if (g_strcmp0 (pam_getenv (pam_handle, "XDG_SESSION_CLASS"), "greeter") != 0)
         {
             struct utmpx ut;
             struct timeval tv;
@@ -631,7 +631,7 @@ session_child_run (int argc, char **argv)
         child_pid = 0;
 
         /* Log to utmp */
-        if (g_strcmp0 (pam_getenv (pam_handle, "XDG_SESSION_CLASS"), XDG_SESSION_CLASS_GREETER) != 0)
+        if (g_strcmp0 (pam_getenv (pam_handle, "XDG_SESSION_CLASS"), "greeter") != 0)
         {
             struct utmpx ut;
             struct timeval tv;
