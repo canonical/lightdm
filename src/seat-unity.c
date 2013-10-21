@@ -508,9 +508,15 @@ create_mir_server (Seat *seat, gboolean is_greeter)
 
         // If we're a greeter, mark our ID that way, so USC can treat it specially
         id = g_strdup_printf ("%s%d", is_greeter ? "greeter-" : "", SEAT_UNITY (seat)->priv->next_id);
-        SEAT_UNITY (seat)->priv->next_id++;
         mir_server_set_id (mir_server, id);
         g_free (id);
+
+        // Now set display name for logging and internal use
+        id = g_strdup_printf ("mir-%s", SEAT_UNITY (seat)->priv->next_id);
+        display_server_set_name (DISPLAY_SERVER (mir_server), id);
+        g_free (id);
+
+        SEAT_UNITY (seat)->priv->next_id++;
     }   
 
     return DISPLAY_SERVER (mir_server);
