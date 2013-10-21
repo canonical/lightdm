@@ -1,3 +1,12 @@
+lightdm (1.9.0-0ubuntu1) trusty; urgency=low
+
+  * New upstream release:
+    - Fix crash when starting with existing X servers. This was introduced in
+      rev 1651 (lightdm 1.7.0). (LP: #1231841)
+    - Fix crash where Process objects are accessed after unref (LP: #1207935)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 22 Oct 2013 12:19:25 +1300
+
 lightdm (1.8.0-0ubuntu1) saucy; urgency=low
 
   * debian/lightdm-session:
