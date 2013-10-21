@@ -512,7 +512,7 @@ create_mir_server (Seat *seat, gboolean is_greeter)
         g_free (id);
 
         // Now set display name for logging and internal use
-        id = g_strdup_printf ("mir-%s", SEAT_UNITY (seat)->priv->next_id);
+        id = g_strdup_printf ("mir-%d", SEAT_UNITY (seat)->priv->next_id);
         display_server_set_name (DISPLAY_SERVER (mir_server), id);
         g_free (id);
 
