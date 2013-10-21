@@ -213,7 +213,6 @@ session_child_run (int argc, char **argv)
     gchar *authentication_result_string;
     gchar *service;
     gchar *username;
-    gchar *class;
     gchar *tty;
     gchar *remote_host_name;
     gchar *xdisplay;
@@ -284,7 +283,7 @@ session_child_run (int argc, char **argv)
     username = read_string ();
     read_data (&do_authenticate, sizeof (do_authenticate));
     read_data (&is_interactive, sizeof (is_interactive));
-    class = read_string ();
+    read_string (); /* Used to be class, now we just use the environment variable */
     tty = read_string ();
     remote_host_name = read_string ();
     xdisplay = read_string ();
@@ -480,7 +479,7 @@ session_child_run (int argc, char **argv)
         g_variant_builder_init (&ck_parameters, G_VARIANT_TYPE ("(a(sv))"));
         g_variant_builder_open (&ck_parameters, G_VARIANT_TYPE ("a(sv)"));
         g_variant_builder_add (&ck_parameters, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
-        if (g_strcmp0 (class, XDG_SESSION_CLASS_GREETER) == 0)
+        if (g_strcmp0 (pam_getenv (pam_handle, "XDG_SESSION_CLASS"), XDG_SESSION_CLASS_GREETER) == 0)
             g_variant_builder_add (&ck_parameters, "(sv)", "session-type", g_variant_new_string ("LoginWindow"));
         if (xdisplay)
         {
@@ -601,7 +600,7 @@ session_child_run (int argc, char **argv)
     if (child_pid > 0)
     {
         /* Log to utmp */
-        if (g_strcmp0 (class, XDG_SESSION_CLASS_GREETER) != 0)
+        if (g_strcmp0 (pam_getenv (pam_handle, "XDG_SESSION_CLASS"), XDG_SESSION_CLASS_GREETER) != 0)
         {
             struct utmpx ut;
             struct timeval tv;
@@ -632,7 +631,7 @@ session_child_run (int argc, char **argv)
         child_pid = 0;
 
         /* Log to utmp */
-        if (g_strcmp0 (class, XDG_SESSION_CLASS_GREETER) != 0)
+        if (g_strcmp0 (pam_getenv (pam_handle, "XDG_SESSION_CLASS"), XDG_SESSION_CLASS_GREETER) != 0)
         {
             struct utmpx ut;
             struct timeval tv;
