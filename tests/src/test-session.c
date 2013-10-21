@@ -214,7 +214,7 @@ main (int argc, char **argv)
     desktop_session = getenv ("DESKTOP_SESSION");
     mir_socket = getenv ("MIR_SOCKET");
     mir_vt = getenv ("MIR_SERVER_VT");
-    mir_id = getenv ("MIR_ID");
+    mir_id = getenv ("MIR_SERVER_NAME");
     if (display)
     {
         if (display[0] == ':')
