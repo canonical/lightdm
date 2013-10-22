@@ -13,6 +13,7 @@ display = os.getenv ('DISPLAY');
 xdg_seat = os.getenv ('XDG_SEAT');
 xdg_vtnr = os.getenv ('XDG_VTNR');
 xdg_session_cookie = os.getenv ('XDG_SESSION_COOKIE');
+xdg_session_class = os.getenv ('XDG_SESSION_CLASS');
 if display is not None:
     if display.startswith (':'):
         greeter_id = 'GREETER-X-%s' % display[1:]
@@ -196,6 +197,8 @@ if xdg_vtnr is not None:
     status_text += ' XDG_VTNR=%s' % xdg_vtnr
 if xdg_session_cookie is not None:
     status_text += ' XDG_SESSION_COOKIE=%s' % xdg_session_cookie
+if xdg_session_class is not None:
+    status_text += ' XDG_SESSION_CLASS=%s' % xdg_session_class
 status_notify (status_text)
 
 config = GLib.KeyFile ()

@@ -243,7 +243,7 @@ request_cb (const gchar *request)
 int
 main(int argc, char *argv[])
 {
-    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie;
+    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie, *xdg_session_class;
     GString *status_text;   
 
 #if !defined(GLIB_VERSION_2_36)
@@ -254,6 +254,7 @@ main(int argc, char *argv[])
     xdg_seat = getenv ("XDG_SEAT");
     xdg_vtnr = getenv ("XDG_VTNR");
     xdg_session_cookie = getenv ("XDG_SESSION_COOKIE");
+    xdg_session_class = getenv ("XDG_SESSION_CLASS");
     if (display)
     {
         if (display[0] == ':')
@@ -279,6 +280,8 @@ main(int argc, char *argv[])
         g_string_append_printf (status_text, " XDG_VTNR=%s", xdg_vtnr);
     if (xdg_session_cookie)
         g_string_append_printf (status_text, " XDG_SESSION_COOKIE=%s", xdg_session_cookie);
+    if (xdg_session_class)
+        g_string_append_printf (status_text, " XDG_SESSION_CLASS=%s", xdg_session_class);
     status_notify (status_text->str);
     g_string_free (status_text, TRUE);
 
