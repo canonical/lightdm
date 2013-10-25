@@ -344,6 +344,12 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 
     l_debug (seat, "Display server stopped");
 
+    /* Run a script right after stopping the display server */
+    const gchar *script;
+    script = seat_get_string_property (seat, "display-stopped-script");
+    if (script)
+        run_script (seat, NULL, script, NULL);
+
     g_signal_handlers_disconnect_matched (display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
     seat->priv->display_servers = g_list_remove (seat->priv->display_servers, display_server);
 
