@@ -46,6 +46,7 @@ TESTS = \
 	test-autologin-guest \
 	test-autologin-guest-fail-setup-script \
 	test-autologin-guest-logout \
+	test-guest-wrapper \
 	test-group-membership \
 	test-xdg-current-desktop \
 	test-xdg-seat \
@@ -334,6 +335,7 @@ EXTRA_DIST = \
 	scripts/greeter-wrapper.conf \
 	scripts/greeter-xserver-crash.conf \
 	scripts/group-membership.conf \
+	scripts/guest-wrapper.conf \
 	scripts/headless.conf \
 	scripts/home-dir-on-authenticate.conf \
 	scripts/home-dir-on-session.conf \
