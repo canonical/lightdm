@@ -914,7 +914,6 @@ create_guest_session (Seat *seat)
     session_set_do_authenticate (session, TRUE);
     session_set_is_guest (session, TRUE);
     argv = get_session_argv (seat, session_config, seat_get_string_property (seat, "session-wrapper"));
-
     guest_wrapper = seat_get_string_property (seat, "guest-wrapper");
     if (guest_wrapper)
     {
