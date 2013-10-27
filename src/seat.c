@@ -874,10 +874,27 @@ create_user_session (Seat *seat, const gchar *username, gboolean autostart)
     return session;
 }
 
+static void
+prepend_argv (gchar ***argv, const gchar *value)
+{
+    gchar **old_argv, **new_argv;
+    gint i;
+
+    old_argv = *argv;
+    new_argv = g_malloc (sizeof (gchar *) * (g_strv_length (*argv) + 2));
+    new_argv[0] = g_strdup (value);
+    for (i = 0; old_argv[i]; i++)
+        new_argv[i + 1] = old_argv[i];
+    new_argv[i + 1] = NULL;
+
+    g_free (*argv);
+    *argv = new_argv;
+}
+
 static Session *
 create_guest_session (Seat *seat)
 {
-    const gchar *session_name;
+    const gchar *session_name, *guest_wrapper;
     gchar *sessions_dir, **argv;
     SessionConfig *session_config;
     Session *session;
@@ -897,6 +914,17 @@ create_guest_session (Seat *seat)
     session_set_do_authenticate (session, TRUE);
     session_set_is_guest (session, TRUE);
     argv = get_session_argv (seat, session_config, seat_get_string_property (seat, "session-wrapper"));
+
+    argv = get_session_argv (seat, session_config, NULL);
+    guest_wrapper = seat_get_string_property (seat, "guest-wrapper");
+    if (guest_wrapper)
+    {
+        gchar *path;
+        path = g_find_program_in_path (guest_wrapper);
+        prepend_argv (&argv, path ? path : guest_wrapper);
+        g_free (path);
+    }
+
     session_set_argv (session, argv);
     g_strfreev (argv);
     g_object_unref (session_config);
@@ -914,23 +942,6 @@ greeter_create_session_cb (Greeter *greeter, Seat *seat)
     session_set_display_server (session, session_get_display_server (SESSION (greeter)));
 
     return g_object_ref (session);
-}
-
-static void
-prepend_argv (gchar ***argv, const gchar *value)
-{
-    gchar **old_argv, **new_argv;
-    gint i;
-
-    old_argv = *argv;
-    new_argv = g_malloc (sizeof (gchar *) * (g_strv_length (*argv) + 2));
-    new_argv[0] = g_strdup (value);
-    for (i = 0; old_argv[i]; i++)
-        new_argv[i + 1] = old_argv[i];
-    new_argv[i + 1] = NULL;
-
-    g_free (*argv);
-    *argv = new_argv;
 }
 
 static gboolean
