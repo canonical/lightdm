@@ -946,11 +946,7 @@ static gboolean
 greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
 {
     Session *session, *existing_session;
-    const gchar *username, *language = NULL;
-    SessionConfig *session_config;
-    User *user;
-    gchar *sessions_dir = NULL;
-    gchar **argv;
+    const gchar *username;
     DisplayServer *display_server;
 
     /* Get the session to use */
@@ -962,7 +958,54 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         session_set_pam_service (session, AUTOLOGIN_SERVICE);
     }
     else
+    {
+        const gchar *language = NULL;
+        SessionConfig *session_config;
+        User *user;
+        gchar *sessions_dir = NULL;
+        gchar **argv;
+
         session = greeter_get_authentication_session (greeter);
+  
+        /* Get session command to run */
+        switch (type)
+        {
+        case SESSION_TYPE_LOCAL:
+            sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
+            break;
+        case SESSION_TYPE_REMOTE:
+            sessions_dir = config_get_string (config_get_instance (), "LightDM", "remote-sessions-directory");
+            break;
+        }
+
+        /* Load user preferences */
+        user = session_get_user (session);
+        if (user)
+        {
+            if (!session_name)
+                session_name = user_get_xsession (user);
+            language = user_get_language (user);
+        }
+
+        if (!session_name)
+            session_name = seat_get_string_property (seat, "user-session");
+        if (user)
+            user_set_xsession (session_get_user (session), session_name);
+
+        session_config = find_session_config (seat, sessions_dir, session_name);
+        g_free (sessions_dir);
+        if (!session_config)
+        {
+            l_debug (seat, "Can't find session '%s'", seat_get_string_property (seat, "user-session"));
+            return FALSE;
+        }
+
+        configure_session (session, session_config, session_name, language);
+        argv = get_session_argv (seat, session_config, seat_get_string_property (seat, "session-wrapper"));
+        session_set_argv (session, argv);
+        g_strfreev (argv);
+        g_object_unref (session_config);
+    }
 
     /* Switch to this session when it is ready */
     if (seat->priv->session_to_activate)
@@ -980,45 +1023,6 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         seat_set_active_session (seat, existing_session);
         return TRUE;
     }
-
-    /* Get session command to run */
-    switch (type)
-    {
-    case SESSION_TYPE_LOCAL:
-        sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
-        break;
-    case SESSION_TYPE_REMOTE:
-        sessions_dir = config_get_string (config_get_instance (), "LightDM", "remote-sessions-directory");
-        break;
-    }
-
-    /* Load user preferences */
-    user = session_get_user (session);
-    if (user)
-    {
-        if (!session_name)
-            session_name = user_get_xsession (user);
-        language = user_get_language (user);
-    }
-
-    if (!session_name)
-        session_name = seat_get_string_property (seat, "user-session");
-    if (user)
-        user_set_xsession (session_get_user (session), session_name);
-
-    session_config = find_session_config (seat, sessions_dir, session_name);
-    g_free (sessions_dir);
-    if (!session_config)
-    {
-        l_debug (seat, "Can't find session '%s'", seat_get_string_property (seat, "user-session"));
-        return FALSE;
-    }
-
-    configure_session (session, session_config, session_name, language);
-    argv = get_session_argv (seat, session_config, seat_get_string_property (seat, "session-wrapper"));
-    session_set_argv (session, argv);
-    g_strfreev (argv);
-    g_object_unref (session_config);
 
     /* If can re-use the display server, stop the greeter first */
     display_server = session_get_display_server (SESSION (greeter));
