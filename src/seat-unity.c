@@ -680,7 +680,7 @@ seat_unity_set_next_session (Seat *seat, Session *session)
     if (IS_X_SERVER_LOCAL (display_server))
         id = x_server_local_get_mir_id (X_SERVER_LOCAL (display_server));
     else
-        id = session_get_env (session, "MIR_SESSION_NAME");
+        id = session_get_env (session, "MIR_SERVER_NAME");
 
     if (id)
     {
