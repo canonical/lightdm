@@ -34,7 +34,7 @@ SeatXVNC *seat_xvnc_new (GSocket *connection)
 }
 
 static DisplayServer *
-seat_xvnc_create_display_server (Seat *seat, const gchar *session_type, gboolean is_greeter)
+seat_xvnc_create_display_server (Seat *seat, const gchar *session_type)
 {
     XServerXVNC *x_server;
     const gchar *command = NULL;

@@ -34,7 +34,7 @@ seat_xdmcp_session_new (XDMCPSession *session)
 }
 
 static DisplayServer *
-seat_xdmcp_session_create_display_server (Seat *seat, const gchar *session_type, gboolean is_greeter)
+seat_xdmcp_session_create_display_server (Seat *seat, const gchar *session_type)
 {
     XAuthority *authority;
     gchar *host;
