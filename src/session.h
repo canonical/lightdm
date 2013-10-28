@@ -99,6 +99,8 @@ void session_set_remote_host_name (Session *session, const gchar *remote_host_na
 
 void session_set_env (Session *session, const gchar *name, const gchar *value);
 
+const gchar *session_get_env (Session *session, const gchar *name);
+
 void session_unset_env (Session *session, const gchar *name);
 
 void session_set_argv (Session *session, gchar **argv);

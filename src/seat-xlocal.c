@@ -58,7 +58,7 @@ x_server_transition_plymouth_cb (XServerLocal *x_server, Seat *seat)
 }
 
 static DisplayServer *
-seat_xlocal_create_display_server (Seat *seat, const gchar *session_type, gboolean is_greeter)
+seat_xlocal_create_display_server (Seat *seat, const gchar *session_type)
 {  
     if (strcmp (session_type, "x") != 0)
         return NULL;

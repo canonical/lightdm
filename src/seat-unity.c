@@ -64,8 +64,10 @@ struct SeatUnityPrivate
     /* Timeout when waiting for compositor to start */
     guint compositor_timeout;
 
-    /* Next Mir ID to use for a compositor client */
-    gint next_id;
+    /* Next Mir ID to use for a Mir sessions, X server and greeters */
+    gint next_session_id;
+    gint next_x_server_id;
+    gint next_greeter_id;
 
     /* TRUE if using VT switching fallback */
     gboolean use_vt_switching;
@@ -423,8 +425,8 @@ create_x_server (Seat *seat)
     {
         gchar *id;
 
-        id = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->next_id);
-        SEAT_UNITY (seat)->priv->next_id++;
+        id = g_strdup_printf ("x-%d", SEAT_UNITY (seat)->priv->next_x_server_id);
+        SEAT_UNITY (seat)->priv->next_x_server_id++;
         x_server_local_set_mir_id (x_server, id);
         x_server_local_set_mir_socket (x_server, SEAT_UNITY (seat)->priv->mir_socket_filename);
         g_free (id);
@@ -493,7 +495,7 @@ create_x_server (Seat *seat)
 }
 
 static DisplayServer *
-create_mir_server (Seat *seat, gboolean is_greeter)
+create_mir_server (Seat *seat)
 {
     MirServer *mir_server;
 
@@ -502,33 +504,17 @@ create_mir_server (Seat *seat, gboolean is_greeter)
 
     if (SEAT_UNITY (seat)->priv->use_vt_switching)
         mir_server_set_vt (mir_server, vt_get_unused ());
-    else
-    {
-        gchar *id;
-
-        // If we're a greeter, mark our ID that way, so USC can treat it specially
-        id = g_strdup_printf ("%s%d", is_greeter ? "greeter-" : "", SEAT_UNITY (seat)->priv->next_id);
-        mir_server_set_id (mir_server, id);
-        g_free (id);
-
-        // Now set display name for logging and internal use
-        id = g_strdup_printf ("mir-%d", SEAT_UNITY (seat)->priv->next_id);
-        display_server_set_name (DISPLAY_SERVER (mir_server), id);
-        g_free (id);
-
-        SEAT_UNITY (seat)->priv->next_id++;
-    }   
 
     return DISPLAY_SERVER (mir_server);
 }
 
 static DisplayServer *
-seat_unity_create_display_server (Seat *seat, const gchar *session_type, gboolean is_greeter)
+seat_unity_create_display_server (Seat *seat, const gchar *session_type)
 {  
     if (strcmp (session_type, "x") == 0)
         return create_x_server (seat);
     else if (strcmp (session_type, "mir") == 0)
-        return create_mir_server (seat, is_greeter);
+        return create_mir_server (seat);
     else
     {
         l_warning (seat, "Can't create unsupported display server '%s'", session_type);
@@ -541,6 +527,7 @@ seat_unity_create_greeter_session (Seat *seat)
 {
     Greeter *greeter_session;
     const gchar *xdg_seat;
+    gchar *id;
     gint vt = -1;
 
     greeter_session = SEAT_CLASS (seat_unity_parent_class)->create_greeter_session (seat);
@@ -549,6 +536,11 @@ seat_unity_create_greeter_session (Seat *seat)
         xdg_seat = "seat0";
     l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
     session_set_env (SESSION (greeter_session), "XDG_SEAT", xdg_seat);
+
+    id = g_strdup_printf ("greeter-%d", SEAT_UNITY (seat)->priv->next_greeter_id);
+    SEAT_UNITY (seat)->priv->next_greeter_id++;
+    session_set_env (SESSION (greeter_session), "MIR_SERVER_NAME", id);
+    g_free (id);
 
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)
         vt = SEAT_UNITY (seat)->priv->vt;
@@ -571,6 +563,7 @@ seat_unity_create_session (Seat *seat)
 {
     Session *session;
     const gchar *xdg_seat;
+    gchar *id;
     gint vt = -1;
 
     session = SEAT_CLASS (seat_unity_parent_class)->create_session (seat);
@@ -579,6 +572,11 @@ seat_unity_create_session (Seat *seat)
         xdg_seat = "seat0";
     l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
     session_set_env (session, "XDG_SEAT", xdg_seat);
+
+    id = g_strdup_printf ("session-%d", SEAT_UNITY (seat)->priv->next_session_id);
+    SEAT_UNITY (seat)->priv->next_session_id++;
+    session_set_env (session, "MIR_SERVER_NAME", id);
+    g_free (id);
 
     if (!SEAT_UNITY (seat)->priv->use_vt_switching)
         vt = SEAT_UNITY (seat)->priv->vt;
@@ -625,8 +623,8 @@ seat_unity_set_active_session (Seat *seat, Session *session)
 
         if (IS_X_SERVER_LOCAL (display_server))
             id = x_server_local_get_mir_id (X_SERVER_LOCAL (display_server));
-        else if (IS_MIR_SERVER (display_server))
-            id = mir_server_get_id (MIR_SERVER (display_server));
+        else
+            id = session_get_env (session, "MIR_SERVER_NAME");
 
         if (id)
         {
@@ -681,8 +679,8 @@ seat_unity_set_next_session (Seat *seat, Session *session)
 
     if (IS_X_SERVER_LOCAL (display_server))
         id = x_server_local_get_mir_id (X_SERVER_LOCAL (display_server));
-    else if (IS_MIR_SERVER (display_server))
-        id = mir_server_get_id (MIR_SERVER (display_server));
+    else
+        id = session_get_env (session, "MIR_SESSION_NAME");
 
     if (id)
     {

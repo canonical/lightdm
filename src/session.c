@@ -302,6 +302,21 @@ session_set_env (Session *session, const gchar *name, const gchar *value)
         session->priv->env = g_list_append (session->priv->env, entry);
 }
 
+const gchar *
+session_get_env (Session *session, const gchar *name)
+{
+    GList *link;
+    gchar *entry;
+
+    link = find_env_entry (session, name);
+    if (!link)
+        return NULL;
+  
+    entry = link->data;
+
+    return entry + strlen (name) + 1;
+}
+
 void
 session_unset_env (Session *session, const gchar *name)
 {

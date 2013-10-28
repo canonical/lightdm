@@ -22,9 +22,6 @@ struct MirServerPrivate
 
     /* Mir socket for this server to talk to parent */
     gchar *parent_socket;
-
-    /* ID to use for Mir connection */
-    gchar *id;
 };
 
 G_DEFINE_TYPE (MirServer, mir_server, DISPLAY_SERVER_TYPE);
@@ -53,21 +50,6 @@ mir_server_set_parent_socket (MirServer *server, const gchar *parent_socket)
     server->priv->parent_socket = g_strdup (parent_socket);
 }
 
-void
-mir_server_set_id (MirServer *server, const gchar *id)
-{
-    g_return_if_fail (server != NULL);
-    g_free (server->priv->id);
-    server->priv->id = g_strdup (id);
-}
-
-const gchar *
-mir_server_get_id (MirServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->id;
-}
-
 static const gchar *
 mir_server_get_session_type (DisplayServer *server)
 {
@@ -86,8 +68,6 @@ mir_server_connect_session (DisplayServer *display_server, Session *session)
     MirServer *server;
 
     server = MIR_SERVER (display_server);
-    if (server->priv->id)
-        session_set_env (session, "MIR_SERVER_NAME", server->priv->id);
     if (server->priv->parent_socket)
         session_set_env (session, "MIR_SOCKET", server->priv->parent_socket);
     if (server->priv->vt > 0)
@@ -101,7 +81,6 @@ mir_server_connect_session (DisplayServer *display_server, Session *session)
 static void
 mir_server_disconnect_session (DisplayServer *display_server, Session *session)
 {
-    session_unset_env (session, "MIR_SERVER_NAME");
     session_unset_env (session, "MIR_SOCKET");
     session_unset_env (session, "MIR_SERVER_VT");
 }
@@ -111,7 +90,6 @@ mir_server_init (MirServer *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, MIR_SERVER_TYPE, MirServerPrivate);
     server->priv->vt = -1;
-    display_server_set_name (DISPLAY_SERVER (server), "mir");
 }
 
 static void
@@ -123,7 +101,6 @@ mir_server_finalize (GObject *object)
 
     if (server->priv->vt > 0)
         vt_unref (server->priv->vt);
-    g_free (server->priv->id);
     g_free (server->priv->parent_socket);
 
     G_OBJECT_CLASS (mir_server_parent_class)->finalize (object);
