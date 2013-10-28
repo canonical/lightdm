@@ -16,7 +16,8 @@
 #include <glib/gi18n.h>
 #include <gio/gio.h>
 
-static GDBusProxy *dm_proxy, *seat_proxy;
+static GBusType bus_type = G_BUS_TYPE_SYSTEM;
+static GDBusProxy *dm_proxy, *seat_proxy = NULL;
 
 static gint xephyr_display_number;
 static GPid xephyr_pid;
@@ -68,6 +69,38 @@ xephyr_signal_cb (int signum)
     exit (EXIT_SUCCESS);
 }
 
+GDBusProxy *
+get_seat_proxy (void)
+{
+    GError *error = NULL;
+
+    if (seat_proxy)
+        return seat_proxy;
+  
+    if (!g_getenv ("XDG_SEAT_PATH"))
+    {
+        g_printerr ("Not running inside a display manager, XDG_SEAT_PATH not defined\n");
+        exit (EXIT_FAILURE);
+    }
+
+    seat_proxy = g_dbus_proxy_new_for_bus_sync (bus_type,
+                                                G_DBUS_PROXY_FLAGS_NONE,
+                                                NULL,
+                                                "org.freedesktop.DisplayManager",
+                                                g_getenv ("XDG_SEAT_PATH"),
+                                                "org.freedesktop.DisplayManager.Seat",
+                                                NULL,
+                                                &error);
+    if (!seat_proxy)
+    {
+        g_printerr ("Unable to contact display manager: %s\n", error->message);
+        exit (EXIT_FAILURE);
+    }
+    g_clear_error (&error);
+  
+    return seat_proxy;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -76,7 +109,6 @@ main (int argc, char **argv)
     gchar **options;
     GError *error = NULL;
     gint arg_index;
-    GBusType bus_type = G_BUS_TYPE_SYSTEM;
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
@@ -148,27 +180,6 @@ main (int argc, char **argv)
     }
     g_clear_error (&error);
   
-    if (!g_getenv ("XDG_SEAT_PATH"))
-    {
-        g_printerr ("Not running inside a display manager, XDG_SEAT_PATH not defined\n");
-        return EXIT_FAILURE;
-    }
-
-    seat_proxy = g_dbus_proxy_new_for_bus_sync (bus_type,
-                                                G_DBUS_PROXY_FLAGS_NONE,
-                                                NULL,
-                                                "org.freedesktop.DisplayManager",
-                                                g_getenv ("XDG_SEAT_PATH"),
-                                                "org.freedesktop.DisplayManager.Seat",
-                                                NULL,
-                                                &error);
-    if (!seat_proxy)
-    {
-        g_printerr ("Unable to contact display manager: %s\n", error->message);
-        return EXIT_FAILURE;
-    }
-    g_clear_error (&error);
-
     command = argv[arg_index];
     arg_index++;
     n_options = argc - arg_index;
@@ -182,7 +193,7 @@ main (int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        if (!g_dbus_proxy_call_sync (seat_proxy,
+        if (!g_dbus_proxy_call_sync (get_seat_proxy (),
                                      "SwitchToGreeter",
                                      g_variant_new ("()"),
                                      G_DBUS_CALL_FLAGS_NONE,
@@ -210,7 +221,7 @@ main (int argc, char **argv)
         if (n_options == 2)
             session = options[1];
 
-        if (!g_dbus_proxy_call_sync (seat_proxy,
+        if (!g_dbus_proxy_call_sync (get_seat_proxy (),
                                      "SwitchToUser",
                                      g_variant_new ("(ss)", username, session),
                                      G_DBUS_CALL_FLAGS_NONE,
@@ -237,7 +248,7 @@ main (int argc, char **argv)
         if (n_options == 1)
             session = options[0];
 
-        if (!g_dbus_proxy_call_sync (seat_proxy,
+        if (!g_dbus_proxy_call_sync (get_seat_proxy (),
                                      "SwitchToGuest",
                                      g_variant_new ("(s)", session),
                                      G_DBUS_CALL_FLAGS_NONE,
@@ -259,7 +270,7 @@ main (int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        if (!g_dbus_proxy_call_sync (seat_proxy,
+        if (!g_dbus_proxy_call_sync (get_seat_proxy (),
                                      "Lock",
                                      g_variant_new ("()"),
                                      G_DBUS_CALL_FLAGS_NONE,
@@ -289,7 +300,7 @@ main (int argc, char **argv)
         while (g_variant_iter_loop (seat_iter, "&o", &seat_path))
         {
             gchar *seat_name;
-            GDBusProxy *seat_proxy;
+            GDBusProxy *proxy;
             gchar **property_names;
             GVariant *sessions;
             GVariantIter *session_iter;
@@ -301,19 +312,19 @@ main (int argc, char **argv)
             else
                 seat_name = seat_path;
 
-            seat_proxy = g_dbus_proxy_new_sync (g_dbus_proxy_get_connection (dm_proxy),
-                                                G_DBUS_PROXY_FLAGS_NONE,
-                                                NULL,
-                                                "org.freedesktop.DisplayManager",
-                                                seat_path,
-                                                "org.freedesktop.DisplayManager.Seat",
-                                                NULL,
-                                                NULL);
-            if (!seat_proxy || !g_dbus_proxy_get_name_owner (seat_proxy))
+            proxy = g_dbus_proxy_new_sync (g_dbus_proxy_get_connection (dm_proxy),
+                                           G_DBUS_PROXY_FLAGS_NONE,
+                                           NULL,
+                                           "org.freedesktop.DisplayManager",
+                                           seat_path,
+                                           "org.freedesktop.DisplayManager.Seat",
+                                           NULL,
+                                           NULL);
+            if (!proxy || !g_dbus_proxy_get_name_owner (proxy))
                 continue;
 
             g_print ("%s\n", seat_name);
-            property_names = g_dbus_proxy_get_cached_property_names (seat_proxy);
+            property_names = g_dbus_proxy_get_cached_property_names (proxy);
             for (i = 0; property_names[i]; i++)
             {
                 GVariant *value;
@@ -321,12 +332,12 @@ main (int argc, char **argv)
                 if (strcmp (property_names[i], "Sessions") == 0)
                     continue;
 
-                value = g_dbus_proxy_get_cached_property (seat_proxy, property_names[i]);
+                value = g_dbus_proxy_get_cached_property (proxy, property_names[i]);
                 g_print ("  %s=%s\n", property_names[i], g_variant_print (value, FALSE));
                 g_variant_unref (value);
             }
 
-            sessions = g_dbus_proxy_get_cached_property (seat_proxy, "Sessions");
+            sessions = g_dbus_proxy_get_cached_property (proxy, "Sessions");
             if (!sessions)
                 continue;
 
@@ -370,7 +381,7 @@ main (int argc, char **argv)
             }
             g_variant_iter_free (session_iter);
 
-            g_object_unref (seat_proxy);
+            g_object_unref (proxy);
         }
         g_variant_iter_free (seat_iter);
 
