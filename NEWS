@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.9.0
+
+    * Fix crash when starting with existing X servers. This was introduced in
+      rev 1651 (lightdm 1.7.0).
+    * Fix crash where Process objects are accessed after unref
+
 Overview of changes in lightdm 1.8.0
 
     * Add regression test for corrupt X authority files.

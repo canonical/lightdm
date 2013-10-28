@@ -57,10 +57,6 @@ typedef enum
     SESSION_TYPE_REMOTE
 } SessionType;
 
-#define XDG_SESSION_CLASS_USER        "user"
-#define XDG_SESSION_CLASS_GREETER     "greeter"
-#define XDG_SESSION_CLASS_LOCK_SCREEN "lock-screen"
-
 GType session_get_type (void);
 
 Session *session_new (void);
@@ -82,8 +78,6 @@ void session_set_is_guest (Session *session, gboolean is_guest);
 gboolean session_get_is_guest (Session *session);
 
 void session_set_log_file (Session *session, const gchar *filename);
-
-void session_set_class (Session *session, const gchar *class);
 
 void session_set_display_server (Session *session, DisplayServer *display_server);
 
