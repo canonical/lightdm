@@ -339,13 +339,13 @@ get_start_local_sessions (Seat *seat)
 static void
 display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 {
+    const gchar *script;
     GList *list, *link;
     Session *active_session;
 
     l_debug (seat, "Display server stopped");
 
     /* Run a script right after stopping the display server */
-    const gchar *script;
     script = seat_get_string_property (seat, "display-stopped-script");
     if (script)
         run_script (seat, NULL, script, NULL);
