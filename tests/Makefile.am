@@ -61,6 +61,7 @@ TESTS = \
 	test-user-renamed \
 	test-user-renamed-invalid \
 	test-users-gobject \
+	test-user-properties \
 	test-keyboard-layout \
 	test-no-keyboard-layout \
 	test-language \
@@ -437,6 +438,7 @@ EXTRA_DIST = \
 	scripts/upstart-autologin.conf \
 	scripts/upstart-login.conf \
 	scripts/users.conf \
+	scripts/user-properties.conf \
 	scripts/util-path.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \

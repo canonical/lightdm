@@ -55,6 +55,7 @@ typedef struct
     gchar *language;
     gchar *xsession;
     gchar **layouts;
+    gboolean has_messages;
     gboolean hidden;
 } AccountsUser;
 static GList *accounts_users = NULL;
@@ -125,6 +126,7 @@ static void check_status (const gchar *status);
 static AccountsUser *get_accounts_user_by_uid (guint uid);
 static AccountsUser *get_accounts_user_by_name (const gchar *username);
 static void accounts_user_set_hidden (AccountsUser *user, gboolean hidden, gboolean emit_signal);
+static void accounts_user_set_has_messages (AccountsUser *user, gboolean has_messages);
 
 static gboolean
 kill_timeout_cb (gpointer data)
@@ -585,6 +587,25 @@ handle_command (const gchar *command)
             g_warning ("Unknown user %s", username);
 
         status_text = g_strdup_printf ("RUNNER ADD-USER USERNAME=%s", username);
+        check_status (status_text);
+        g_free (status_text);
+    }
+    else if (strcmp (name, "SET-HAS-MESSAGES") == 0)
+    {
+        gchar *status_text, *username;
+        gboolean has_messages = TRUE;
+        AccountsUser *user;
+
+        username = g_hash_table_lookup (params, "USERNAME");
+        if (g_hash_table_lookup (params, "HAS-MESSAGES"))
+            has_messages = g_strcmp0 (g_hash_table_lookup (params, "HAS-MESSAGES"), "TRUE") == 0;
+        user = get_accounts_user_by_name (username);
+        if (user)
+            accounts_user_set_has_messages (user, has_messages);
+        else
+            g_warning ("Unknown user %s", username);
+
+        status_text = g_strdup_printf ("RUNNER SET-HAS-MESSAGES USERNAME=%s HAS-MESSAGES=%s", username, has_messages ? "TRUE" : "FALSE");
         check_status (status_text);
         g_free (status_text);
     }
@@ -1465,6 +1486,25 @@ accounts_user_set_hidden (AccountsUser *user, gboolean hidden, gboolean emit_sig
 }
 
 static void
+accounts_user_set_has_messages (AccountsUser *user, gboolean has_messages)
+{
+    GError *error = NULL;
+
+    user->has_messages = has_messages;
+
+    g_dbus_connection_emit_signal (accounts_connection,
+                                   NULL,
+                                   user->path,
+                                   "org.freedesktop.Accounts.User",
+                                   "Changed",
+                                   g_variant_new ("()"),
+                                   &error);
+    if (error)
+        g_warning ("Failed to emit Changed: %s", error->message);
+    g_clear_error (&error);
+}
+
+static void
 load_passwd_file (void)
 {
     gchar *path, *data, **lines;
@@ -1550,6 +1590,7 @@ load_passwd_file (void)
                 user->layouts[0] = g_key_file_get_string (dmrc_file, "Desktop", "Layout", NULL);
                 user->layouts[1] = NULL;
             }
+            user->has_messages = g_key_file_get_boolean (dmrc_file, "X-Accounts", "HasMessages", NULL);
             user->path = g_strdup_printf ("/org/freedesktop/Accounts/User%d", uid);
             accounts_user_set_hidden (user, user->hidden, FALSE);
 
@@ -1665,7 +1706,7 @@ handle_user_get_property (GDBusConnection       *connection,
             return g_variant_new_strv (NULL, 0);
     }
     else if (strcmp (property_name, "XHasMessages") == 0)
-        return g_variant_new_boolean (FALSE);
+        return g_variant_new_boolean (user->has_messages);
 
     return NULL;
 }
@@ -1711,6 +1752,7 @@ accounts_name_acquired_cb (GDBusConnection *connection,
         "    <property name='XSession' type='s' access='read'/>"
         "    <property name='XKeyboardLayouts' type='as' access='read'/>"
         "    <property name='XHasMessages' type='b' access='read'/>"
+        "    <signal name='Changed' />"
         "  </interface>"
         "</node>";
     GError *error = NULL;
@@ -2072,6 +2114,10 @@ main (int argc, char **argv)
         {"multi-prompt",     "password",  "Multi Prompt",       1031},
         /* This account has an existing corrupt X authority */
         {"corrupt-xauth",    "password",  "Corrupt Xauthority", 1032},
+        /* This account has messages */
+        {"has-messages",     "password",  "Has messages",       1033},
+        /* This account does not have messages */
+        {"has-no-messages",  "password",  "Has no messages",    1034},
         {NULL,               NULL,        NULL,                    0}
     };
     passwd_data = g_string_new ("");
@@ -2110,6 +2156,11 @@ main (int argc, char **argv)
         if (strcmp (users[i].user_name, "have-language") == 0)
         {
             g_key_file_set_string (dmrc_file, "Desktop", "Language", "en_AU.utf8");
+            save_dmrc = TRUE;
+        }
+        if (strcmp (users[i].user_name, "has-messages") == 0)
+        {
+            g_key_file_set_string (dmrc_file, "X-Accounts", "HasMessages", "true");
             save_dmrc = TRUE;
         }
 
