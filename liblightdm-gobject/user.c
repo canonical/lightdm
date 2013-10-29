@@ -61,16 +61,20 @@ static guint user_signals[LAST_USER_SIGNAL] = { 0 };
 
 typedef struct
 {
+    /* Bus connection being communicated on */
+    GDBusConnection *bus;
+
     /* Connection to AccountsService */
     GDBusProxy *accounts_service_proxy;
     GList *user_account_objects;
 
-    /* Connection to DisplayManager */
-    GDBusProxy *display_manager_proxy;
+    /* D-Bus signals for display manager events */
+    guint session_added_signal;
+    guint session_removed_signal;
 
     /* File monitor for password file */
     GFileMonitor *passwd_monitor;
-  
+
     /* TRUE if have scanned users */
     gboolean have_users;
 
@@ -597,7 +601,7 @@ load_session (LightDMUserList *user_list, const gchar *path)
     GVariant *result, *username;
     GError *error = NULL;
 
-    result = g_dbus_connection_call_sync (g_dbus_proxy_get_connection (priv->display_manager_proxy),
+    result = g_dbus_connection_call_sync (priv->bus,
                                           "org.freedesktop.DisplayManager",
                                           path,
                                           "org.freedesktop.DBus.Properties",
@@ -634,51 +638,69 @@ load_session (LightDMUserList *user_list, const gchar *path)
 }
 
 static void
-display_manager_signal_cb (GDBusProxy *proxy, gchar *sender_name, gchar *signal_name, GVariant *parameters, LightDMUserList *user_list)
+session_added_cb (GDBusConnection *connection,
+                  const gchar *sender_name,
+                  const gchar *object_path,
+                  const gchar *interface_name,
+                  const gchar *signal_name,
+                  GVariant *parameters,
+                  gpointer data)
 {
-    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
+    LightDMUserList *user_list = data;
+    gchar *path;
+    Session *session;
+    LightDMUser *user = NULL;
 
-    if (strcmp (signal_name, "SessionAdded") == 0)
+    if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
     {
-        if (g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
-        {
-            gchar *path;
-            Session *session;
-            LightDMUser *user = NULL;
+        g_warning ("Got DisplayManager signal SessionAdded with unknown parameters %s", g_variant_get_type_string (parameters));
+        return;
+    }
 
-            g_variant_get (parameters, "(&o)", &path);
-            session = load_session (user_list, path);
-            if (session)
-                user = get_user_by_name (user_list, session->username);
+    g_variant_get (parameters, "(&o)", &path);
+    session = load_session (user_list, path);
+    if (session)
+        user = get_user_by_name (user_list, session->username);
+    if (user)
+        g_signal_emit (user, user_signals[CHANGED], 0);
+}
+
+static void
+session_removed_cb (GDBusConnection *connection,
+                    const gchar *sender_name,
+                    const gchar *object_path,
+                    const gchar *interface_name,
+                    const gchar *signal_name,
+                    GVariant *parameters,
+                    gpointer data)
+{
+    LightDMUserList *user_list = data;
+    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
+    gchar *path;
+    GList *link;
+
+    if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
+    {
+        g_warning ("Got DisplayManager signal SessionRemoved with unknown parameters %s", g_variant_get_type_string (parameters));
+        return;
+    }
+
+    g_variant_get (parameters, "(&o)", &path);
+
+    for (link = priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+        if (strcmp (session->path, path) == 0)
+        {
+            LightDMUser *user;
+
+            g_debug ("Session %s removed", path);
+            priv->sessions = g_list_remove_link (priv->sessions, link);
+            user = get_user_by_name (user_list, session->username);
             if (user)
                 g_signal_emit (user, user_signals[CHANGED], 0);
-        }
-    }
-    else if (strcmp (signal_name, "SessionRemoved") == 0)
-    {
-        if (g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
-        {
-            gchar *path;
-            GList *link;
-
-            g_variant_get (parameters, "(&o)", &path);
-
-            for (link = priv->sessions; link; link = link->next)
-            {
-                Session *session = link->data;
-                if (strcmp (session->path, path) == 0)
-                {
-                    LightDMUser *user;
-
-                    g_debug ("Session %s removed", path);
-                    priv->sessions = g_list_remove_link (priv->sessions, link);
-                    user = get_user_by_name (user_list, session->username);
-                    if (user)
-                        g_signal_emit (user, user_signals[CHANGED], 0);
-                    g_object_unref (session);
-                    break;
-                }
-            }
+            g_object_unref (session);
+            break;
         }
     }
 }
@@ -687,6 +709,7 @@ static void
 update_users (LightDMUserList *user_list)
 {
     LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
+    GVariant *result;
     GError *error = NULL;
 
     if (priv->have_users)
@@ -787,41 +810,42 @@ update_users (LightDMUserList *user_list)
         g_clear_error (&error);
     }
 
-    priv->display_manager_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                                                 G_DBUS_PROXY_FLAGS_NONE,
-                                                                 NULL,
-                                                                 "org.freedesktop.DisplayManager",
-                                                                 "/org/freedesktop/DisplayManager",
-                                                                 "org.freedesktop.DisplayManager",
-                                                                 NULL,
-                                                                 &error);
+    priv->session_added_signal = g_dbus_connection_signal_subscribe (priv->bus,
+                                                                     "org.freedesktop.DisplayManager",
+                                                                     "org.freedesktop.DisplayManager",
+                                                                     "SessionAdded",
+                                                                     "/org/freedesktop/DisplayManager",
+                                                                     NULL,
+                                                                     G_DBUS_SIGNAL_FLAGS_NONE,
+                                                                     session_added_cb,
+                                                                     user_list,
+                                                                     NULL);
+    priv->session_removed_signal = g_dbus_connection_signal_subscribe (priv->bus,
+                                                                       "org.freedesktop.DisplayManager",
+                                                                       "org.freedesktop.DisplayManager",
+                                                                       "SessionRemoved",
+                                                                       "/org/freedesktop/DisplayManager",
+                                                                       NULL,
+                                                                       G_DBUS_SIGNAL_FLAGS_NONE,
+                                                                       session_removed_cb,
+                                                                       user_list,
+                                                                       NULL);
+    result = g_dbus_connection_call_sync (priv->bus,
+                                          "org.freedesktop.DisplayManager",
+                                          "/org/freedesktop/DisplayManager",
+                                          "org.freedesktop.DBus.Properties",
+                                          "Get",
+                                          g_variant_new ("(ss)", "org.freedesktop.DisplayManager", "Sessions"),
+                                          G_VARIANT_TYPE ("(v)"),
+                                          G_DBUS_CALL_FLAGS_NONE,
+                                          -1,
+                                          NULL,
+                                          &error);
     if (error)
-        g_warning ("Error contacting org.freedesktop.DisplayManager: %s", error->message);
+        g_warning ("Error getting session list from org.freedesktop.DisplayManager: %s", error->message);
     g_clear_error (&error);
-
-    if (priv->display_manager_proxy)
+    if (result)
     {
-        GVariant *result;
-
-        g_signal_connect (priv->display_manager_proxy, "g-signal", G_CALLBACK (display_manager_signal_cb), user_list);
-
-        result = g_dbus_connection_call_sync (g_dbus_proxy_get_connection (priv->display_manager_proxy),
-                                              "org.freedesktop.DisplayManager",
-                                              "/org/freedesktop/DisplayManager",
-                                              "org.freedesktop.DBus.Properties",
-                                              "Get",
-                                              g_variant_new ("(ss)", "org.freedesktop.DisplayManager", "Sessions"),
-                                              G_VARIANT_TYPE ("(v)"),
-                                              G_DBUS_CALL_FLAGS_NONE,
-                                              -1,
-                                              NULL,
-                                              &error);
-        if (error)
-            g_warning ("Error getting session list from org.freedesktop.DisplayManager: %s", error->message);
-        g_clear_error (&error);
-        if (!result)
-            return;
-
         if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(v)")))
         {
             GVariant *value;
@@ -899,6 +923,9 @@ lightdm_user_list_get_user_by_name (LightDMUserList *user_list, const gchar *use
 static void
 lightdm_user_list_init (LightDMUserList *user_list)
 {
+    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
+
+    priv->bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL);
 }
 
 static void
@@ -944,6 +971,11 @@ lightdm_user_list_finalize (GObject *object)
         g_object_unref (priv->passwd_monitor);
     g_list_free_full (priv->users, g_object_unref);
     g_list_free_full (priv->sessions, g_object_unref);
+    if (priv->session_added_signal)
+        g_dbus_connection_signal_unsubscribe (priv->bus, priv->session_added_signal);
+    if (priv->session_removed_signal)
+        g_dbus_connection_signal_unsubscribe (priv->bus, priv->session_removed_signal);
+    g_object_unref (priv->bus);
 
     G_OBJECT_CLASS (lightdm_user_list_parent_class)->finalize (object);
 }
