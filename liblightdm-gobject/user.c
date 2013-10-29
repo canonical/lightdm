@@ -1477,6 +1477,9 @@ lightdm_user_get_has_messages (LightDMUser *user)
 static void
 lightdm_user_init (LightDMUser *user)
 {
+    LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
+    priv->layouts = g_malloc (sizeof (gchar *) * 1);
+    priv->layouts[0] = NULL;
 }
 
 static void
