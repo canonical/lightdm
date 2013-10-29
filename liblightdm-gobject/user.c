@@ -64,8 +64,9 @@ typedef struct
     /* Bus connection being communicated on */
     GDBusConnection *bus;
 
-    /* Connection to AccountsService */
-    GDBusProxy *accounts_service_proxy;
+    /* D-Bus signals for accounts service events */
+    guint user_added_signal;
+    guint user_removed_signal;
 
     /* D-Bus signals for display manager events */
     guint session_added_signal;
@@ -560,46 +561,64 @@ add_accounts_user (LightDMUserList *user_list, const gchar *path, gboolean emit_
 }
 
 static void
-user_accounts_signal_cb (GDBusProxy *proxy, gchar *sender_name, gchar *signal_name, GVariant *parameters, LightDMUserList *user_list)
-{ 
-    if (strcmp (signal_name, "UserAdded") == 0)
+accounts_user_added_cb (GDBusConnection *connection,
+                        const gchar *sender_name,
+                        const gchar *object_path,
+                        const gchar *interface_name,
+                        const gchar *signal_name,
+                        GVariant *parameters,
+                        gpointer data)
+{
+    LightDMUserList *user_list = data;
+    gchar *path;
+    LightDMUser *user;
+  
+    if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
     {
-        if (g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
-        {
-            gchar *path;
-            LightDMUser *user;
-
-            g_variant_get (parameters, "(&o)", &path);
-
-            /* Ignore duplicate requests */
-            user = get_user_by_path (user_list, path);
-            if (!user)
-                add_accounts_user (user_list, path, TRUE);
-        }
-        else
-            g_warning ("Got UserAccounts signal UserAdded with unknown parameters %s", g_variant_get_type_string (parameters));
+        g_warning ("Got UserAccounts signal UserAdded with unknown parameters %s", g_variant_get_type_string (parameters));
+        return;
     }
-    else if (strcmp (signal_name, "UserDeleted") == 0)
+
+    g_variant_get (parameters, "(&o)", &path);
+
+    /* Add user if we haven't got them */
+    user = get_user_by_path (user_list, path);
+    if (!user)
+        add_accounts_user (user_list, path, TRUE);
+}
+
+static void
+accounts_user_deleted_cb (GDBusConnection *connection,
+                          const gchar *sender_name,
+                          const gchar *object_path,
+                          const gchar *interface_name,
+                          const gchar *signal_name,
+                          GVariant *parameters,
+                          gpointer data)
+{
+    LightDMUserList *user_list = data;
+    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
+    gchar *path;
+    LightDMUser *user;
+
+    if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
     {
-        if (g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
-        {
-            LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
-            gchar *path;
-            LightDMUser *user;
+        g_warning ("Got UserAccounts signal UserDeleted with unknown parameters %s", g_variant_get_type_string (parameters));
+        return;
+    }
 
-            g_variant_get (parameters, "(&o)", &path);
+    g_variant_get (parameters, "(&o)", &path);
 
-            user = get_user_by_path (user_list, path);
-            if (!user)
-                return;
+    /* Delete user if we know of them */
+    user = get_user_by_path (user_list, path);
+    if (user)
+    {
+        g_debug ("User %s deleted", path);
+        priv->users = g_list_remove (priv->users, user);
 
-            g_debug ("User %s deleted", path);
-            priv->users = g_list_remove (priv->users, user);
-            g_signal_emit (user_list, list_signals[USER_REMOVED], 0, user);
-            g_object_unref (user);
-        }
-        else
-            g_warning ("Got UserAccounts signal UserDeleted with unknown parameters %s", g_variant_get_type_string (parameters));
+        g_signal_emit (user_list, list_signals[USER_REMOVED], 0, user);
+
+        g_object_unref (user);
     }
 }
 
@@ -716,7 +735,7 @@ session_removed_cb (GDBusConnection *connection,
 }
 
 static void
-update_users (LightDMUserList *user_list)
+load_users (LightDMUserList *user_list)
 {
     LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
     GVariant *result;
@@ -726,71 +745,61 @@ update_users (LightDMUserList *user_list)
         return;
     priv->have_users = TRUE;
 
-    priv->accounts_service_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                                                  G_DBUS_PROXY_FLAGS_NONE,
-                                                                  NULL,
+    /* Get user list from accounts service and fall back to /etc/passwd if that fails */
+    priv->user_added_signal = g_dbus_connection_signal_subscribe (priv->bus,
                                                                   "org.freedesktop.Accounts",
+                                                                  "org.freedesktop.Accounts",
+                                                                  "UserAdded",
                                                                   "/org/freedesktop/Accounts",
-                                                                  "org.freedesktop.Accounts",
                                                                   NULL,
-                                                                  &error);
+                                                                  G_DBUS_SIGNAL_FLAGS_NONE,
+                                                                  accounts_user_added_cb,
+                                                                  user_list,
+                                                                  NULL);
+    priv->user_removed_signal = g_dbus_connection_signal_subscribe (priv->bus,
+                                                                    "org.freedesktop.Accounts",
+                                                                    "org.freedesktop.Accounts",
+                                                                    "UserDeleted",
+                                                                    "/org/freedesktop/Accounts",
+                                                                    NULL,
+                                                                    G_DBUS_SIGNAL_FLAGS_NONE,
+                                                                    accounts_user_deleted_cb,
+                                                                    user_list,
+                                                                    NULL);
+    result = g_dbus_connection_call_sync (priv->bus,
+                                          "org.freedesktop.Accounts",
+                                          "/org/freedesktop/Accounts",
+                                          "org.freedesktop.Accounts",
+                                          "ListCachedUsers",
+                                          g_variant_new ("()"),
+                                          G_VARIANT_TYPE ("(ao)"),
+                                          G_DBUS_CALL_FLAGS_NONE,
+                                          -1,
+                                          NULL,
+                                          &error);
     if (error)
-        g_warning ("Error contacting org.freedesktop.Accounts: %s", error->message);
+        g_warning ("Error getting user list from org.freedesktop.Accounts: %s", error->message);
     g_clear_error (&error);
-
-    /* Check if the service exists */
-    if (priv->accounts_service_proxy)
+    if (result)
     {
-        gchar *name;
+        GVariantIter *iter;
+        const gchar *path;
 
-        name = g_dbus_proxy_get_name_owner (priv->accounts_service_proxy);
-        if (!name)
-        {
-            g_debug ("org.freedesktop.Accounts does not exist, falling back to passwd file");
-            g_object_unref (priv->accounts_service_proxy);
-            priv->accounts_service_proxy = NULL;
-        }
-        g_free (name);
-    }
-
-    if (priv->accounts_service_proxy)
-    {
-        GVariant *result;
-
-        g_signal_connect (priv->accounts_service_proxy, "g-signal", G_CALLBACK (user_accounts_signal_cb), user_list);
-
-        result = g_dbus_proxy_call_sync (priv->accounts_service_proxy,
-                                         "ListCachedUsers",
-                                         g_variant_new ("()"),
-                                         G_DBUS_CALL_FLAGS_NONE,
-                                         -1,
-                                         NULL,
-                                         &error);
-        if (error)
-            g_warning ("Error getting user list from org.freedesktop.Accounts: %s", error->message);
-        g_clear_error (&error);
-        if (!result)
-            return;
-
-        if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(ao)")))
-        {
-            GVariantIter *iter;
-            const gchar *path;
-
-            g_debug ("Loading users from org.freedesktop.Accounts");
-            g_variant_get (result, "(ao)", &iter);
-            while (g_variant_iter_loop (iter, "&o", &path))
-                add_accounts_user (user_list, path, FALSE);
-            g_variant_iter_free (iter);
-        }
-        else
-            g_warning ("Unexpected type from ListCachedUsers: %s", g_variant_get_type_string (result));
-
+        g_debug ("Loading users from org.freedesktop.Accounts");
+        g_variant_get (result, "(ao)", &iter);
+        while (g_variant_iter_loop (iter, "&o", &path))
+            add_accounts_user (user_list, path, FALSE);
+        g_variant_iter_free (iter);
         g_variant_unref (result);
     }
     else
     {
         GFile *passwd_file;
+
+        g_dbus_connection_signal_unsubscribe (priv->bus, priv->user_added_signal);
+        priv->user_added_signal = 0;
+        g_dbus_connection_signal_unsubscribe (priv->bus, priv->user_removed_signal);
+        priv->user_removed_signal = 0;
 
         load_passwd_file (user_list, FALSE);
 
@@ -876,7 +885,7 @@ gint
 lightdm_user_list_get_length (LightDMUserList *user_list)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER_LIST (user_list), 0);
-    update_users (user_list);
+    load_users (user_list);
     return g_list_length (GET_LIST_PRIVATE (user_list)->users);
 }
 
@@ -893,7 +902,7 @@ GList *
 lightdm_user_list_get_users (LightDMUserList *user_list)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER_LIST (user_list), NULL);
-    update_users (user_list);
+    load_users (user_list);
     return GET_LIST_PRIVATE (user_list)->users;
 }
 
@@ -912,7 +921,7 @@ lightdm_user_list_get_user_by_name (LightDMUserList *user_list, const gchar *use
     g_return_val_if_fail (LIGHTDM_IS_USER_LIST (user_list), NULL);
     g_return_val_if_fail (username != NULL, NULL);
 
-    update_users (user_list);
+    load_users (user_list);
 
     return get_user_by_name (user_list, username);
 }
@@ -961,17 +970,21 @@ lightdm_user_list_finalize (GObject *object)
     LightDMUserList *self = LIGHTDM_USER_LIST (object);
     LightDMUserListPrivate *priv = GET_LIST_PRIVATE (self);
 
-    if (priv->accounts_service_proxy)
-        g_object_unref (priv->accounts_service_proxy);
-    if (priv->passwd_monitor)
-        g_object_unref (priv->passwd_monitor);
+    /* Remove children first, they might access us */
     g_list_free_full (priv->users, g_object_unref);
     g_list_free_full (priv->sessions, g_object_unref);
+
+    if (priv->user_added_signal)
+        g_dbus_connection_signal_unsubscribe (priv->bus, priv->user_added_signal);
+    if (priv->user_removed_signal)
+        g_dbus_connection_signal_unsubscribe (priv->bus, priv->user_removed_signal);
     if (priv->session_added_signal)
         g_dbus_connection_signal_unsubscribe (priv->bus, priv->session_added_signal);
     if (priv->session_removed_signal)
         g_dbus_connection_signal_unsubscribe (priv->bus, priv->session_removed_signal);
     g_object_unref (priv->bus);
+    if (priv->passwd_monitor)
+        g_object_unref (priv->passwd_monitor);
 
     G_OBJECT_CLASS (lightdm_user_list_parent_class)->finalize (object);
 }
