@@ -1111,8 +1111,10 @@ load_user_values (LightDMUser *user)
         return;
     priv->loaded_values = TRUE;
 
-    load_dmrc (user);
-    load_accounts_user (user); // overrides dmrc values
+    if (priv->path)
+        load_accounts_user (user);
+    else
+        load_dmrc (user);
 }
 
 /**
