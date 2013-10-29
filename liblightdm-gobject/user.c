@@ -473,6 +473,8 @@ update_user (UserAccountObject *object)
             else
                 priv->background = g_strdup (background_file);
         }
+        else if (strcmp (name, "XHasMessages") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
+            g_variant_get (value, "b", &priv->has_messages);
     }
     g_variant_iter_free (iter);
 
