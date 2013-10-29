@@ -1544,6 +1544,12 @@ load_passwd_file (void)
             }
             user->xsession = g_key_file_get_string (dmrc_file, "Desktop", "Session", NULL);
             user->layouts = g_key_file_get_string_list (dmrc_file, "X-Accounts", "Layouts", NULL, NULL);
+            if (!user->layouts)
+            {
+                user->layouts = g_malloc (sizeof (gchar *) * 2);
+                user->layouts[0] = g_key_file_get_string (dmrc_file, "Desktop", "Layout", NULL);
+                user->layouts[1] = NULL;
+            }
             user->path = g_strdup_printf ("/org/freedesktop/Accounts/User%d", uid);
             accounts_user_set_hidden (user, user->hidden, FALSE);
 
@@ -1999,79 +2005,74 @@ main (int argc, char **argv)
     {
         gchar *user_name;
         gchar *password;
-        gboolean have_home_dir;
         gchar *real_name;
-        gchar *xsession;
-        gchar *dmrc_layout;
-        gchar *dbus_layouts;
-        gchar *language;
         gint uid;
     } users[] =
     {
         /* Root account */
-        {"root",             "",         TRUE,  "root",               NULL,  NULL, NULL,          NULL,             0},
+        {"root",             "",          "root",                  0},
         /* Unprivileged account for greeters */
-        {"lightdm",          "",         TRUE,  "",                   NULL,  NULL, NULL,          NULL,           100},
+        {"lightdm",          "",          "",                    100},
         /* These accounts have a password */
-        {"have-password1",   "password", TRUE,  "Password User 1",    NULL,  NULL, NULL,          NULL,          1000},
-        {"have-password2",   "password", TRUE,  "Password User 2",    NULL,  NULL, NULL,          NULL,          1001},
-        {"have-password3",   "password", TRUE,  "Password User 3",    NULL,  NULL, NULL,          NULL,          1002},
-        {"have-password4",   "password", TRUE,  "Password User 4",    NULL,  NULL, NULL,          NULL,          1003},
+        {"have-password1",   "password",  "Password User 1",    1000},
+        {"have-password2",   "password",  "Password User 2",    1001},
+        {"have-password3",   "password",  "Password User 3",    1002},
+        {"have-password4",   "password",  "Password User 4",    1003},
         /* This account always prompts for a password, even if using the lightdm-autologin service */
-        {"always-password",  "password", TRUE,  "Password User 4",    NULL,  NULL, NULL,          NULL,          1004},
+        {"always-password",  "password",  "Password User 4",    1004},
         /* These accounts have no password */
-        {"no-password1",     "",         TRUE,  "No Password User 1", NULL,  NULL, NULL,          NULL,          1005},
-        {"no-password2",     "",         TRUE,  "No Password User 2", NULL,  NULL, NULL,          NULL,          1006},
-        {"no-password3",     "",         TRUE,  "No Password User 3", NULL,  NULL, NULL,          NULL,          1007},
-        {"no-password4",     "",         TRUE,  "No Password User 4", NULL,  NULL, NULL,          NULL,          1008},
+        {"no-password1",     "",          "No Password User 1", 1005},
+        {"no-password2",     "",          "No Password User 2", 1006},
+        {"no-password3",     "",          "No Password User 3", 1007},
+        {"no-password4",     "",          "No Password User 4", 1008},
         /* This account has a keyboard layout */
-        {"have-layout",      "",         TRUE,  "Layout User",        NULL,  "us", NULL,          NULL,          1009},
+        {"have-layout",      "",          "Layout User",        1009},
         /* This account has a set of keyboard layouts */
-        {"have-layouts",     "",         TRUE,  "Layouts User",       NULL,  "ru", "fr\toss;ru;", NULL,          1010},
+        {"have-layouts",     "",          "Layouts User",       1010},
         /* This account has a language set */
-        {"have-language",    "",         TRUE,  "Language User",      NULL,  NULL, NULL,          "en_AU.utf8",  1011},
+        {"have-language",    "",          "Language User",      1011},
         /* This account has a preconfigured session */
-        {"have-session",            "",  TRUE,  "Session User", "alternative", NULL, NULL,        NULL,          1012},
+        {"have-session",            "",   "Session User",       1012},
         /* This account has the home directory mounted on login */
-        {"mount-home-dir",   "",         FALSE, "Mounted Home Dir User", NULL, NULL, NULL,        NULL,          1013},
+        {"mount-home-dir",   "",          "Mounted Home Dir User", 1013},
         /* This account is denied access */
-        {"denied",           "",         TRUE,  "Denied User",        NULL,  NULL, NULL,          NULL,          1014},
+        {"denied",           "",          "Denied User",        1014},
         /* This account has expired */
-        {"expired",          "",         TRUE,  "Expired User",       NULL,  NULL, NULL,          NULL,          1015},
+        {"expired",          "",          "Expired User",       1015},
         /* This account needs a password change */
-        {"new-authtok",      "",         TRUE,  "New Token User",     NULL,  NULL, NULL,          NULL,          1016},
+        {"new-authtok",      "",          "New Token User",     1016},
         /* This account is switched to change-user2 when authentication succeeds */
-        {"change-user1",     "",         TRUE,  "Change User 1",      NULL,  NULL, NULL,          NULL,          1017},
-        {"change-user2",     "",         TRUE,  "Change User 2",      NULL,  NULL, NULL,          NULL,          1018},
+        {"change-user1",     "",          "Change User 1",      1017},
+        {"change-user2",     "",          "Change User 2",      1018},
         /* This account switches to invalid-user when authentication succeeds */
-        {"change-user-invalid", "",      TRUE,  "Invalid Change User",NULL,  NULL, NULL,          NULL,          1019},
+        {"change-user-invalid", "",       "Invalid Change User", 1019},
         /* This account crashes on authentication */
-        {"crash-authenticate", "",       TRUE,  "Crash Auth User",    NULL,  NULL, NULL,          NULL,          1020},
+        {"crash-authenticate", "",        "Crash Auth User",    1020},
         /* This account shows an informational prompt on login */
-        {"info-prompt",      "password", TRUE,  "Info Prompt",        NULL,  NULL, NULL,          NULL,          1021},
+        {"info-prompt",      "password",  "Info Prompt",        1021},
         /* This account shows multiple informational prompts on login */
-        {"multi-info-prompt","password", TRUE,  "Multi Info Prompt",  NULL,  NULL, NULL,          NULL,          1022},
+        {"multi-info-prompt","password",  "Multi Info Prompt",  1022},
         /* This account uses two factor authentication */
-        {"two-factor",       "password", TRUE,  "Two Factor",         NULL,  NULL, NULL,          NULL,          1023},
+        {"two-factor",       "password",  "Two Factor",         1023},
         /* This account has a special group */
-        {"group-member",     "password", TRUE,  "Group Member",       NULL,  NULL, NULL,          NULL,          1024},
+        {"group-member",     "password",  "Group Member",       1024},
         /* This account has the home directory created when the session starts */
-        {"make-home-dir",    "",         FALSE, "Make Home Dir User", NULL,  NULL, NULL,          NULL,          1025},
+        {"make-home-dir",    "",          "Make Home Dir User", 1025},
         /* This account fails to open a session */
-        {"session-error",    "password", TRUE,  "Session Error",      NULL,  NULL, NULL,          NULL,          1026},
+        {"session-error",    "password",  "Session Error",      1026},
         /* This account can't establish credentials */
-        {"cred-error",       "password", TRUE,  "Cred Error",         NULL,  NULL, NULL,          NULL,          1027},
+        {"cred-error",       "password",  "Cred Error",         1027},
         /* This account has expired credentials */
-        {"cred-expired",     "password", TRUE,  "Cred Expired",       NULL,  NULL, NULL,          NULL,          1028},
+        {"cred-expired",     "password",  "Cred Expired",       1028},
         /* This account has cannot access their credentials */
-        {"cred-unavail",     "password", TRUE,  "Cred Unavail",       NULL,  NULL, NULL,          NULL,          1029},
+        {"cred-unavail",     "password",  "Cred Unavail",       1029},
         /* This account sends informational messages for each PAM function that is called */
-        {"log-pam",          "password", TRUE,  "Log PAM",            NULL,  NULL, NULL,          NULL,          1030},
+        {"log-pam",          "password",  "Log PAM",            1030},
         /* This account shows multiple prompts on login */
-        {"multi-prompt",     "password", TRUE,  "Multi Prompt",       NULL,  NULL, NULL,          NULL,          1031},
+        {"multi-prompt",     "password",  "Multi Prompt",       1031},
         /* This account has an existing corrupt X authority */
-        {"corrupt-xauth",    "password", TRUE,  "Corrupt Xauthority", NULL,  NULL, NULL,          NULL,          1032},
-        {NULL,               NULL,       FALSE, NULL,                 NULL,  NULL, NULL,          NULL,             0}
+        {"corrupt-xauth",    "password",  "Corrupt Xauthority", 1032},
+        {NULL,               NULL,        NULL,                    0}
     };
     passwd_data = g_string_new ("");
     group_data = g_string_new ("");
@@ -2080,7 +2081,7 @@ main (int argc, char **argv)
         GKeyFile *dmrc_file;
         gboolean save_dmrc = FALSE;
 
-        if (users[i].have_home_dir)
+        if (strcmp (users[i].user_name, "mount-home-dir") != 0 && strcmp (users[i].user_name, "make-home-dir") != 0)
         {
             path = g_build_filename (home_dir, users[i].user_name, NULL);
             g_mkdir_with_parents (path, 0755);
@@ -2090,25 +2091,25 @@ main (int argc, char **argv)
         }
 
         dmrc_file = g_key_file_new ();
-        if (users[i].xsession)
+        if (strcmp (users[i].user_name, "have-session") == 0)
         {
-            g_key_file_set_string (dmrc_file, "Desktop", "Session", users[i].xsession);
+            g_key_file_set_string (dmrc_file, "Desktop", "Session", "alternative");
             save_dmrc = TRUE;
         }
-        if (users[i].dmrc_layout)
+        if (strcmp (users[i].user_name, "have-layout") == 0)
         {
-            g_key_file_set_string (dmrc_file, "Desktop", "Layout", users[i].dmrc_layout);
+            g_key_file_set_string (dmrc_file, "Desktop", "Layout", "us");
             save_dmrc = TRUE;
         }
-        if (users[i].dbus_layouts)
+        if (strcmp (users[i].user_name, "have-layouts") == 0)
         {
-            g_key_file_set_string (dmrc_file, "X-Accounts", "Layouts", users[i].dbus_layouts);
+            g_key_file_set_string (dmrc_file, "Desktop", "Layout", "ru");
+            g_key_file_set_string (dmrc_file, "X-Accounts", "Layouts", "fr\toss;ru;");
             save_dmrc = TRUE;
-
         }
-        if (users[i].language)
+        if (strcmp (users[i].user_name, "have-language") == 0)
         {
-            g_key_file_set_string (dmrc_file, "Desktop", "Language", users[i].language);
+            g_key_file_set_string (dmrc_file, "Desktop", "Language", "en_AU.utf8");
             save_dmrc = TRUE;
         }
 
