@@ -96,6 +96,9 @@ typedef struct
     /* User list this user is part of */
     LightDMUserList *user_list;
 
+    /* TRUE if have loaded user properties */
+    gboolean loaded_values;
+
     /* DMRC file */
     GKeyFile *dmrc_file;
 
@@ -1352,6 +1355,10 @@ static void
 load_user_values (LightDMUser *user)
 {
     LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
+
+    if (priv->loaded_values)
+        return;
+    priv->loaded_values = TRUE;
 
     load_dmrc (user);
     load_accounts_service (user); // overrides dmrc values
