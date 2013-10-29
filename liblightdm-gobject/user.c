@@ -1422,11 +1422,14 @@ lightdm_user_get_session (LightDMUser *user)
 gboolean
 lightdm_user_get_logged_in (LightDMUser *user)
 {
-    LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
-    LightDMUserListPrivate *list_priv = GET_LIST_PRIVATE (priv->user_list);
+    LightDMUserPrivate *priv;
+    LightDMUserListPrivate *list_priv;
     GList *link;
 
     g_return_val_if_fail (LIGHTDM_IS_USER (user), FALSE);
+
+    priv = GET_USER_PRIVATE (user);
+    list_priv = GET_LIST_PRIVATE (priv->user_list);
 
     for (link = list_priv->sessions; link; link = link->next)
     {
