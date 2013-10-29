@@ -8,6 +8,10 @@
 # etc). Note that this profile intentionally omits chromium-browser.
 
   #include <abstractions/authentication>
+  #include <abstractions/cups-client>
+  #include <abstractions/dbus>
+  #include <abstractions/dbus-session>
+  #include <abstractions/dbus-accessibility>
   #include <abstractions/nameservice>
   #include <abstractions/wutmp>
   /etc/compizconfig/config rw, # bug in compiz https://launchpad.net/bugs/697678
@@ -47,6 +51,8 @@
   /sbin/** rmixk,
   /sys/ r,
   /sys/** rm,
+  # needed for confined trusted helpers, such as dbus-daemon
+  /sys/kernel/security/apparmor/.access rw,
   /tmp/ rw,
   owner /tmp/** rwlkmix,
   /usr/ r,
