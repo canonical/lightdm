@@ -313,7 +313,7 @@ main (int argc, char **argv)
     xdg_session_class = getenv ("XDG_SESSION_CLASS");
     mir_socket = getenv ("MIR_SOCKET");
     mir_vt = getenv ("MIR_SERVER_VT");
-    mir_id = getenv ("MIR_ID");
+    mir_id = getenv ("MIR_SERVER_NAME");
     if (display)
     {
         if (display[0] == ':')

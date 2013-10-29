@@ -152,6 +152,7 @@ TESTS = \
 	test-unity-compositor-fail-start \
 	test-unity-compositor-fail-ready \
 	test-unity-compositor-next-session \
+	test-unity-compositor-mir-next-session \
 	test-unity-autologin \
 	test-unity-login \
 	test-unity-switch \
