@@ -428,7 +428,7 @@ update_user (LightDMUser *user)
     gchar *name;
     GError *error = NULL;
 
-    result = g_dbus_connection_call_sync (g_dbus_proxy_get_connection (priv->proxy),
+    result = g_dbus_connection_call_sync (GET_LIST_PRIVATE (priv->user_list)->bus,
                                           "org.freedesktop.Accounts",
                                           priv->path,
                                           "org.freedesktop.DBus.Properties",
