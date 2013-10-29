@@ -434,47 +434,41 @@ update_user (UserAccountObject *object)
     {
         if (strcmp (name, "UserName") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
         {
-            gchar *user_name;
-            g_variant_get (value, "&s", &user_name);
             g_free (priv->name);
-            priv->name = g_strdup (user_name);
+            priv->name = g_variant_dup_string (value, NULL);
         }
         else if (strcmp (name, "RealName") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
         {
-            gchar *real_name;
-            g_variant_get (value, "&s", &real_name);
             g_free (priv->real_name);
-            priv->real_name = g_strdup (real_name);
+            priv->real_name = g_variant_dup_string (value, NULL);
         }
         else if (strcmp (name, "HomeDirectory") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
         {
-            gchar *home_directory;
-            g_variant_get (value, "&s", &home_directory);
             g_free (priv->home_directory);
-            priv->home_directory = g_strdup (home_directory);
+            priv->home_directory = g_variant_dup_string (value, NULL);
         }
         else if (strcmp (name, "IconFile") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
         {
-            gchar *icon_file;
-            g_variant_get (value, "&s", &icon_file);
             g_free (priv->image);
-            if (strcmp (icon_file, "") == 0)
+            priv->image = g_variant_dup_string (value, NULL);
+            if (strcmp (priv->image, "") == 0)
+            {
+                g_free (priv->image);
                 priv->image = NULL;
-            else
-                priv->image = g_strdup (icon_file);
+            }
         }
         else if (strcmp (name, "BackgroundFile") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
         {
-            gchar *background_file;
-            g_variant_get (value, "&s", &background_file);
             g_free (priv->background);
-            if (strcmp (background_file, "") == 0)
+            priv->background = g_variant_dup_string (value, NULL);
+            if (strcmp (priv->background, "") == 0)
+            {
+                g_free (priv->background);
                 priv->background = NULL;
-            else
-                priv->background = g_strdup (background_file);
+            }
         }
         else if (strcmp (name, "XHasMessages") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
-            g_variant_get (value, "b", &priv->has_messages);
+            priv->has_messages = g_variant_get_boolean (value);
     }
     g_variant_iter_free (iter);
 
