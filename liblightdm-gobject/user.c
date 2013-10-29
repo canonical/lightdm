@@ -1167,10 +1167,10 @@ lightdm_user_get_display_name (LightDMUser *user)
     load_user_values (user);
 
     priv = GET_USER_PRIVATE (user);
-    if (!priv->real_name || strcmp (priv->real_name, ""))
-        return priv->real_name;
-    else
+    if (!priv->real_name || strcmp (priv->real_name, "") == 0)
         return priv->name;
+    else
+        return priv->real_name;
 }
 
 /**
