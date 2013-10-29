@@ -87,8 +87,6 @@ typedef struct
 
 typedef struct
 {
-    GDBusProxy *proxy;
-
     /* User list this user is part of */
     LightDMUserList *user_list;
 
@@ -100,6 +98,9 @@ typedef struct
 
     /* DMRC file */
     GKeyFile *dmrc_file;
+
+    /* Update signal from accounts service */
+    guint changed_signal;
 
     /* Username */
     gchar *name;
@@ -420,6 +421,25 @@ passwd_changed_cb (GFileMonitor *monitor, GFile *file, GFile *other_file, GFileM
     }
 }
 
+static gboolean load_accounts_user (LightDMUser *user);
+
+static void
+accounts_user_changed_cb (GDBusConnection *connection,
+                          const gchar *sender_name,
+                          const gchar *object_path,
+                          const gchar *interface_name,
+                          const gchar *signal_name,
+                          GVariant *parameters,
+                          gpointer data)
+{
+    LightDMUser *user = data;
+    LightDMUserPrivate *priv = GET_USER_PRIVATE (user);  
+
+    g_debug ("User %s changed", priv->path);
+    load_accounts_user (user);
+    g_signal_emit (user, user_signals[CHANGED], 0);
+}
+
 static gboolean
 load_accounts_user (LightDMUser *user)
 {
@@ -429,6 +449,18 @@ load_accounts_user (LightDMUser *user)
     gchar *name;
     GError *error = NULL;
 
+    /* Get the properties for this user */
+    if (!priv->changed_signal)
+        priv->changed_signal = g_dbus_connection_signal_subscribe (GET_LIST_PRIVATE (priv->user_list)->bus,
+                                                                   "org.freedesktop.Accounts",
+                                                                   "org.freedesktop.Accounts.User",
+                                                                   "Changed",
+                                                                   priv->path,
+                                                                   NULL,
+                                                                   G_DBUS_SIGNAL_FLAGS_NONE,
+                                                                   accounts_user_changed_cb,
+                                                                   user,
+                                                                   NULL);
     result = g_dbus_connection_call_sync (GET_LIST_PRIVATE (priv->user_list)->bus,
                                           "org.freedesktop.Accounts",
                                           priv->path,
@@ -517,22 +549,6 @@ load_accounts_user (LightDMUser *user)
 }
 
 static void
-user_signal_cb (GDBusProxy *proxy, gchar *sender_name, gchar *signal_name, GVariant *parameters, LightDMUser *user)
-{
-    if (strcmp (signal_name, "Changed") == 0)
-    {
-        if (g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
-        {
-            g_debug ("User %s changed", GET_USER_PRIVATE (user)->path);
-            load_accounts_user (user);
-            g_signal_emit (user, user_signals[CHANGED], 0);
-        }
-        else
-            g_warning ("Got org.freedesktop.Accounts.User signal Changed with unknown parameters %s", g_variant_get_type_string (parameters));
-    }
-}
-
-static void
 add_accounts_user (LightDMUserList *user_list, const gchar *path, gboolean emit_signal)
 {
     LightDMUserListPrivate *list_priv = GET_LIST_PRIVATE (user_list);
@@ -543,15 +559,6 @@ add_accounts_user (LightDMUserList *user_list, const gchar *path, gboolean emit_
     priv = GET_USER_PRIVATE (user);
 
     g_debug ("User %s added", path);
-    priv->proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                                 G_DBUS_PROXY_FLAGS_NONE,
-                                                 NULL,
-                                                 "org.freedesktop.Accounts",
-                                                 path,
-                                                 "org.freedesktop.Accounts.User",
-                                                 NULL,
-                                                 NULL);
-    g_signal_connect (priv->proxy, "g-signal", G_CALLBACK (user_signal_cb), user);
     priv->user_list = user_list;
     priv->path = g_strdup (path);
     list_priv->users = g_list_insert_sorted (list_priv->users, user, compare_user);
@@ -1399,9 +1406,9 @@ lightdm_user_finalize (GObject *object)
     LightDMUser *self = LIGHTDM_USER (object);
     LightDMUserPrivate *priv = GET_USER_PRIVATE (self);
 
-    if (priv->proxy)
-        g_object_unref (priv->proxy);
     g_free (priv->path);
+    if (priv->changed_signal)
+        g_dbus_connection_signal_unsubscribe (GET_LIST_PRIVATE (priv->user_list)->bus, priv->changed_signal);
     g_free (priv->name);
     g_free (priv->real_name);
     g_free (priv->home_directory);
