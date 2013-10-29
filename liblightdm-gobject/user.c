@@ -93,18 +93,37 @@ typedef struct
 
 typedef struct
 {
+    /* User list this user is part of */
     LightDMUserList *user_list;
 
+    /* DMRC file */
+    GKeyFile *dmrc_file;
+
+    /* Username */
     gchar *name;
+
+    /* Descriptive name for user */
     gchar *real_name;
+
+    /* Home directory of user */
     gchar *home_directory;
+
+    /* Image for user */
     gchar *image;
+
+    /* Background image for users */
     gchar *background;
+
+    /* TRUE if this user has messages available */
     gboolean has_messages;
 
-    GKeyFile *dmrc_file;
+    /* User chosen language */
     gchar *language;
+
+    /* User layout preferences */
     gchar **layouts;
+
+    /* User default session */
     gchar *session;
 } LightDMUserPrivate;
 
@@ -158,7 +177,7 @@ get_user_by_name (LightDMUserList *user_list, const gchar *username)
     for (link = priv->users; link; link = link->next)
     {
         LightDMUser *user = link->data;
-        if (strcmp (lightdm_user_get_name (user), username) == 0)
+        if (g_strcmp0 (lightdm_user_get_name (user), username) == 0)
             return user;
     }
 
@@ -169,7 +188,7 @@ static gint
 compare_user (gconstpointer a, gconstpointer b)
 {
     LightDMUser *user_a = (LightDMUser *) a, *user_b = (LightDMUser *) b;
-    return strcmp (lightdm_user_get_display_name (user_a), lightdm_user_get_display_name (user_b));
+    return g_strcmp0 (lightdm_user_get_display_name (user_a), lightdm_user_get_display_name (user_b));
 }
 
 static gboolean
@@ -177,6 +196,7 @@ update_passwd_user (LightDMUser *user, const gchar *real_name, const gchar *home
 {
     LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
 
+    /* Skip if already set to this */
     if (g_strcmp0 (lightdm_user_get_real_name (user), real_name) == 0 &&
         g_strcmp0 (lightdm_user_get_home_directory (user), home_directory) == 0 &&
         g_strcmp0 (lightdm_user_get_image (user), image) == 0)
@@ -408,6 +428,7 @@ update_user (UserAccountObject *object)
     if (!result)
         return FALSE;
 
+    /* Store the properties we need */
     g_variant_get (result, "(a{sv})", &iter);
     while (g_variant_iter_loop (iter, "{&sv}", &name, &value))
     {
