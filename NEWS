@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.9.2
+
+    * Implement missing guest-wrapper functionality and enable it for Ubuntu.
+    * Update AppArmor scripts to work in Ubuntu 13.10.
+
 Overview of changes in lightdm 1.9.1
 
     * Correctly set $XDG_SESSION_CLASS for greeters. This was regressed in 1.7.5
