@@ -339,10 +339,16 @@ get_start_local_sessions (Seat *seat)
 static void
 display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 {
+    const gchar *script;
     GList *list, *link;
     Session *active_session;
 
     l_debug (seat, "Display server stopped");
+
+    /* Run a script right after stopping the display server */
+    script = seat_get_string_property (seat, "display-stopped-script");
+    if (script)
+        run_script (seat, NULL, script, NULL);
 
     g_signal_handlers_disconnect_matched (display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
     seat->priv->display_servers = g_list_remove (seat->priv->display_servers, display_server);
@@ -475,7 +481,7 @@ run_session (Seat *seat, Session *session)
         script = seat_get_string_property (seat, "greeter-setup-script");
     else
         script = seat_get_string_property (seat, "session-setup-script");
-    if (script && !run_script (seat, session_get_display_server (session), script, NULL))
+    if (script && !run_script (seat, session_get_display_server (session), script, session_get_user (session)))
     {
         l_debug (seat, "Switching to greeter due to failed setup script");
         switch_to_greeter_from_failed_session (seat, session);

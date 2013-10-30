@@ -68,7 +68,11 @@ status_connect (StatusRequestFunc request_cb)
     g_clear_error (&error);
     g_free (path);
     if (!result)
+    {
+        g_object_unref (status_socket);
+        status_socket = NULL;
         return FALSE;
+    }
 
     source = g_socket_create_source (status_socket, G_IO_IN, NULL);
     g_source_set_callback (source, (GSourceFunc) status_request_cb, NULL, NULL);
@@ -80,6 +84,8 @@ status_connect (StatusRequestFunc request_cb)
 void
 status_notify (const gchar *format, ...)
 {
+    gboolean written = FALSE;
+
     gchar status[1024];
     va_list ap;
 
@@ -93,12 +99,13 @@ status_notify (const gchar *format, ...)
         int length;
 
         length = strlen (status);
-        g_socket_send (status_socket, (gchar *) &length, sizeof (length), NULL, &error);
-        g_socket_send (status_socket, status, strlen (status), NULL, &error);
+        written = g_socket_send (status_socket, (gchar *) &length, sizeof (length), NULL, &error) == sizeof (length) &&
+                  g_socket_send (status_socket, status, strlen (status), NULL, &error) == strlen (status);
         if (error)
             g_printerr ("Failed to write to status socket: %s\n", error->message);
         g_clear_error (&error);
     }
-    else
+
+    if (!written)
         g_printerr ("%s\n", status);
 }
