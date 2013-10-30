@@ -1075,6 +1075,7 @@ create_greeter_session (Seat *seat)
     g_signal_connect (greeter_session, "stopped", G_CALLBACK (session_stopped_cb), seat);
   
     set_session_env (SESSION (greeter_session));
+    session_set_env (SESSION (greeter_session), "XDG_SESSION_CLASS", "greeter");
 
     session_set_pam_service (SESSION (greeter_session), GREETER_SERVICE);
     if (getuid () == 0)

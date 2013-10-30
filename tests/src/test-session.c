@@ -202,7 +202,7 @@ request_cb (const gchar *request)
 int
 main (int argc, char **argv)
 {
-    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_current_desktop, *xdg_session_cookie, *desktop_session, *mir_socket, *mir_vt, *mir_id;
+    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_current_desktop, *xdg_session_cookie, *xdg_session_class, *desktop_session, *mir_socket, *mir_vt, *mir_id;
     GString *status_text;
     int fd, open_max;
 
@@ -211,6 +211,7 @@ main (int argc, char **argv)
     xdg_vtnr = getenv ("XDG_VTNR");
     xdg_current_desktop = getenv ("XDG_CURRENT_DESKTOP");
     xdg_session_cookie = getenv ("XDG_SESSION_COOKIE");
+    xdg_session_class = getenv ("XDG_SESSION_CLASS");
     desktop_session = getenv ("DESKTOP_SESSION");
     mir_socket = getenv ("MIR_SOCKET");
     mir_vt = getenv ("MIR_SERVER_VT");
@@ -260,6 +261,8 @@ main (int argc, char **argv)
         g_string_append_printf (status_text, " XDG_CURRENT_DESKTOP=%s", xdg_current_desktop);
     if (xdg_session_cookie)
         g_string_append_printf (status_text, " XDG_SESSION_COOKIE=%s", xdg_session_cookie);
+    if (xdg_session_class)
+        g_string_append_printf (status_text, " XDG_SESSION_CLASS=%s", xdg_session_class);
     if (desktop_session)
         g_string_append_printf (status_text, " DESKTOP_SESSION=%s", desktop_session);
     if (mir_vt > 0)

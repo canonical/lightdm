@@ -84,9 +84,6 @@ struct SessionPrivate
     /* File to log to */
     gchar *log_filename;
 
-    /* Seat class */
-    gchar *class;
-
     /* tty this session is running on */
     gchar *tty;
 
@@ -197,14 +194,6 @@ session_set_log_file (Session *session, const gchar *filename)
     g_return_if_fail (session != NULL);
     g_free (session->priv->log_filename);
     session->priv->log_filename = g_strdup (filename);
-}
-
-void
-session_set_class (Session *session, const gchar *class)
-{
-    g_return_if_fail (session != NULL);
-    g_free (session->priv->class);
-    session->priv->class = g_strdup (class);
 }
 
 void
@@ -615,7 +604,7 @@ session_real_start (Session *session)
     write_string (session, session->priv->username);
     write_data (session, &session->priv->do_authenticate, sizeof (session->priv->do_authenticate));
     write_data (session, &session->priv->is_interactive, sizeof (session->priv->is_interactive));
-    write_string (session, session->priv->class);
+    write_string (session, NULL); /* Used to be class, now we just use the environment variable */
     write_string (session, session->priv->tty);
     write_string (session, session->priv->remote_host_name);
     write_string (session, session->priv->xdisplay);
@@ -874,7 +863,6 @@ session_finalize (GObject *object)
     g_free (self->priv->messages);
     g_free (self->priv->authentication_result_string);
     g_free (self->priv->log_filename);
-    g_free (self->priv->class);
     g_free (self->priv->tty);
     g_free (self->priv->xdisplay);
     if (self->priv->x_authority)
