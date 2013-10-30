@@ -24,6 +24,13 @@ lightdm (1.9.1-0ubuntu1) trusty; urgency=low
 
  -- Robert Ancell <robert.ancell@canonical.com>  Wed, 30 Oct 2013 14:11:16 -0700
 
+lightdm (1.9.0-0ubuntu2) UNRELEASED; urgency=low
+
+  * debian/50-guest-wrapper.conf:
+    - Configure guest session wrapper to use
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Sun, 27 Oct 2013 17:34:20 +1300
+
 lightdm (1.9.0-0ubuntu1) trusty; urgency=low
 
   * New upstream release:
