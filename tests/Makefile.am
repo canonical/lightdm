@@ -426,6 +426,7 @@ EXTRA_DIST = \
 	scripts/unity-compositor-command.conf \
 	scripts/unity-compositor-fail-ready.conf \
 	scripts/unity-compositor-fail-start.conf \
+	scripts/unity-compositor-mir-next-session.conf \
 	scripts/unity-compositor-next-session.conf \
 	scripts/unity-login.conf \
 	scripts/unity-mir-autologin.conf \
@@ -443,6 +444,7 @@ EXTRA_DIST = \
 	scripts/user-image.conf \
 	scripts/user-layout.conf \
 	scripts/user-logged-in.conf \
+	scripts/user-name.conf \
 	scripts/util-path.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
