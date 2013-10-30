@@ -66,6 +66,7 @@ TESTS = \
 	test-user-layout \
 	test-user-has-messages \
 	test-user-session \
+	test-user-logged-in \
 	test-users-gobject \
 	test-language \
 	test-language-no-accounts-service \
@@ -441,10 +442,11 @@ EXTRA_DIST = \
 	scripts/user-has-messages.conf \
 	scripts/user-image.conf \
 	scripts/user-layout.conf \
-	scripts/user-session.conf \
+	scripts/user-logged-in.conf \
 	scripts/util-path.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
+	scripts/user-session.conf \
 	scripts/vnc-command.conf \
 	scripts/vnc-dimensions.conf \
 	scripts/vnc-login.conf \

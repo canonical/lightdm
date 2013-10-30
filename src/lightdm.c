@@ -577,7 +577,7 @@ running_user_session_cb (Seat *seat, Session *session)
 }
 
 static void
-session_removed_cb (Session *session, Seat *seat)
+session_removed_cb (Seat *seat, Session *session)
 {
     g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
     g_hash_table_remove (session_bus_entries, session);
