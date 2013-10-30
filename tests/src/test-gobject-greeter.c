@@ -64,6 +64,12 @@ sigterm_cb (gpointer user_data)
 }
 
 static void
+user_changed_cb (LightDMUser *user)
+{
+    status_notify ("%s USER-CHANGED USERNAME=%s", greeter_id, lightdm_user_get_name (user));
+}
+
+static void
 request_cb (const gchar *request)
 {
     gchar *r;
@@ -140,6 +146,20 @@ request_cb (const gchar *request)
         status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, lightdm_user_list_get_length (lightdm_user_list_get_instance ()));
     g_free (r);
 
+    r = g_strdup_printf ("%s WATCH-USER USERNAME=", greeter_id);
+    if (g_str_has_prefix (request, r))
+    {
+        LightDMUser *user;
+        const gchar *username;
+
+        username = request + strlen (r);
+        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
+        if (user)
+            g_signal_connect (user, "changed", G_CALLBACK (user_changed_cb), NULL);
+        status_notify ("%s WATCH-USER USERNAME=%s", greeter_id, username);
+    }
+    g_free (r);
+
     r = g_strdup_printf ("%s LOG-USER USERNAME=", greeter_id);
     if (g_str_has_prefix (request, r))
     {
@@ -148,7 +168,11 @@ request_cb (const gchar *request)
 
         username = request + strlen (r);
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
-        status_notify ("%s LOG-USER USERNAME=%s", greeter_id, lightdm_user_get_name (user));
+        status_notify ("%s LOG-USER USERNAME=%s LOGGED-IN=%s HAS-MESSAGES=%s",
+                       greeter_id,
+                       lightdm_user_get_name (user),
+                       lightdm_user_get_logged_in (user) ? "TRUE" : "FALSE",
+                       lightdm_user_get_has_messages (user) ? "TRUE" : "FALSE");
     }
     g_free (r);
 
