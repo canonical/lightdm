@@ -475,7 +475,7 @@ run_session (Seat *seat, Session *session)
         script = seat_get_string_property (seat, "greeter-setup-script");
     else
         script = seat_get_string_property (seat, "session-setup-script");
-    if (script && !run_script (seat, session_get_display_server (session), script, NULL))
+    if (script && !run_script (seat, session_get_display_server (session), script, session_get_user (session)))
     {
         l_debug (seat, "Switching to greeter due to failed setup script");
         switch_to_greeter_from_failed_session (seat, session);
