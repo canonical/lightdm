@@ -1,2 +1,0 @@
-#!/bin/sh
-./src/dbus-env ./src/test-runner no-keyboard-layout test-gobject-greeter

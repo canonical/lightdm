@@ -50,6 +50,8 @@ typedef struct
     gchar *user_name;
     gchar *real_name;
     gchar *home_directory;
+    gchar *image;
+    gchar *background;
     gchar *path;
     guint id;
     gchar *language;
@@ -126,7 +128,6 @@ static void check_status (const gchar *status);
 static AccountsUser *get_accounts_user_by_uid (guint uid);
 static AccountsUser *get_accounts_user_by_name (const gchar *username);
 static void accounts_user_set_hidden (AccountsUser *user, gboolean hidden, gboolean emit_signal);
-static void accounts_user_set_has_messages (AccountsUser *user, gboolean has_messages);
 
 static gboolean
 kill_timeout_cb (gpointer data)
@@ -590,24 +591,83 @@ handle_command (const gchar *command)
         check_status (status_text);
         g_free (status_text);
     }
-    else if (strcmp (name, "SET-HAS-MESSAGES") == 0)
+    else if (strcmp (name, "UPDATE-USER") == 0)
     {
-        gchar *status_text, *username;
-        gboolean has_messages = TRUE;
+        GString *status_text;
+        gchar *username;
         AccountsUser *user;
+        GError *error = NULL;
+
+        status_text = g_string_new ("RUNNER UPDATE-USER USERNAME=");
 
         username = g_hash_table_lookup (params, "USERNAME");
-        if (g_hash_table_lookup (params, "HAS-MESSAGES"))
-            has_messages = g_strcmp0 (g_hash_table_lookup (params, "HAS-MESSAGES"), "TRUE") == 0;
+        g_string_append (status_text, username);
         user = get_accounts_user_by_name (username);
         if (user)
-            accounts_user_set_has_messages (user, has_messages);
+        {
+            if (g_hash_table_lookup (params, "NAME"))
+            {
+                user->user_name = g_strdup (g_hash_table_lookup (params, "NAME"));
+                g_string_append_printf (status_text, " NAME=%s", user->user_name);
+            }
+            if (g_hash_table_lookup (params, "REAL-NAME"))
+            {
+                user->real_name = g_strdup (g_hash_table_lookup (params, "REAL-NAME"));
+                g_string_append_printf (status_text, " REAL-NAME=%s", user->real_name);
+            }
+            if (g_hash_table_lookup (params, "HOME-DIRECTORY"))
+            {
+                user->home_directory = g_strdup (g_hash_table_lookup (params, "HOME-DIRECTORY"));
+                g_string_append_printf (status_text, " HOME-DIRECTORY=%s", user->home_directory);
+            }
+            if (g_hash_table_lookup (params, "IMAGE"))
+            {
+                user->image = g_strdup (g_hash_table_lookup (params, "IMAGE"));
+                g_string_append_printf (status_text, " IMAGE=%s", user->image);
+            }
+            if (g_hash_table_lookup (params, "BACKGROUND"))
+            {
+                user->background = g_strdup (g_hash_table_lookup (params, "BACKGROUND"));
+                g_string_append_printf (status_text, " BACKGROUND=%s", user->background);
+            }
+            if (g_hash_table_lookup (params, "LANGUAGE"))
+            {
+                user->language = g_strdup (g_hash_table_lookup (params, "LANGUAGE"));
+                g_string_append_printf (status_text, " LANGUAGE=%s", user->language);
+            }
+            if (g_hash_table_lookup (params, "LAYOUTS"))
+            {
+                const gchar *value = g_hash_table_lookup (params, "LAYOUTS");
+                user->layouts = g_strsplit (value, ";", -1);
+                g_string_append_printf (status_text, " LAYOUTS=%s", value);
+            }
+            if (g_hash_table_lookup (params, "HAS-MESSAGES"))
+            {
+                user->has_messages = g_strcmp0 (g_hash_table_lookup (params, "HAS-MESSAGES"), "TRUE") == 0;
+                g_string_append_printf (status_text, " HAS-MESSAGES=%s", user->has_messages ? "TRUE" : "FALSE");
+            }
+            if (g_hash_table_lookup (params, "SESSION"))
+            {
+                user->xsession = g_strdup (g_hash_table_lookup (params, "SESSION"));
+                g_string_append_printf (status_text, " SESSION=%s", user->xsession);
+            }
+        }
         else
             g_warning ("Unknown user %s", username);
 
-        status_text = g_strdup_printf ("RUNNER SET-HAS-MESSAGES USERNAME=%s HAS-MESSAGES=%s", username, has_messages ? "TRUE" : "FALSE");
-        check_status (status_text);
-        g_free (status_text);
+        g_dbus_connection_emit_signal (accounts_connection,
+                                       NULL,
+                                       user->path,
+                                       "org.freedesktop.Accounts.User",
+                                       "Changed",
+                                       g_variant_new ("()"),
+                                       &error);
+        if (error)
+            g_warning ("Failed to emit Changed: %s", error->message);
+        g_clear_error (&error);
+
+        check_status (status_text->str);
+        g_string_free (status_text, TRUE);
     }
     else if (strcmp (name, "DELETE-USER") == 0)
     {
@@ -1486,25 +1546,6 @@ accounts_user_set_hidden (AccountsUser *user, gboolean hidden, gboolean emit_sig
 }
 
 static void
-accounts_user_set_has_messages (AccountsUser *user, gboolean has_messages)
-{
-    GError *error = NULL;
-
-    user->has_messages = has_messages;
-
-    g_dbus_connection_emit_signal (accounts_connection,
-                                   NULL,
-                                   user->path,
-                                   "org.freedesktop.Accounts.User",
-                                   "Changed",
-                                   g_variant_new ("()"),
-                                   &error);
-    if (error)
-        g_warning ("Failed to emit Changed: %s", error->message);
-    g_clear_error (&error);
-}
-
-static void
 load_passwd_file (void)
 {
     gchar *path, *data, **lines;
@@ -1693,9 +1734,11 @@ handle_user_get_property (GDBusConnection       *connection,
     else if (strcmp (property_name, "HomeDirectory") == 0)
         return g_variant_new_string (user->home_directory);
     else if (strcmp (property_name, "BackgroundFile") == 0)
-        return g_variant_new_string ("");
+        return g_variant_new_string (user->background ? user->background : "");
     else if (strcmp (property_name, "Language") == 0)
         return g_variant_new_string (user->language ? user->language : "");
+    else if (strcmp (property_name, "IconFile") == 0)
+        return g_variant_new_string (user->image ? user->image : "");
     else if (strcmp (property_name, "XSession") == 0)
         return g_variant_new_string (user->xsession ? user->xsession : "");
     else if (strcmp (property_name, "XKeyboardLayouts") == 0)
@@ -1749,6 +1792,7 @@ accounts_name_acquired_cb (GDBusConnection *connection,
         "    <property name='HomeDirectory' type='s' access='read'/>"
         "    <property name='BackgroundFile' type='s' access='read'/>"
         "    <property name='Language' type='s' access='read'/>"
+        "    <property name='IconFile' type='s' access='read'/>"
         "    <property name='XSession' type='s' access='read'/>"
         "    <property name='XKeyboardLayouts' type='as' access='read'/>"
         "    <property name='XHasMessages' type='b' access='read'/>"
@@ -2114,10 +2158,8 @@ main (int argc, char **argv)
         {"multi-prompt",     "password",  "Multi Prompt",       1031},
         /* This account has an existing corrupt X authority */
         {"corrupt-xauth",    "password",  "Corrupt Xauthority", 1032},
-        /* This account has messages */
-        {"has-messages",     "password",  "Has messages",       1033},
-        /* This account does not have messages */
-        {"has-no-messages",  "password",  "Has no messages",    1034},
+        /* User to test properties */
+        {"prop-user",        "",          "TEST",               1033},
         {NULL,               NULL,        NULL,                    0}
     };
     passwd_data = g_string_new ("");
@@ -2156,11 +2198,6 @@ main (int argc, char **argv)
         if (strcmp (users[i].user_name, "have-language") == 0)
         {
             g_key_file_set_string (dmrc_file, "Desktop", "Language", "en_AU.utf8");
-            save_dmrc = TRUE;
-        }
-        if (strcmp (users[i].user_name, "has-messages") == 0)
-        {
-            g_key_file_set_string (dmrc_file, "X-Accounts", "HasMessages", "true");
             save_dmrc = TRUE;
         }
 

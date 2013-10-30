@@ -6,6 +6,7 @@
 #include <xcb/xcb.h>
 #include <lightdm.h>
 #include <glib-unix.h>
+#include <ctype.h>
 
 #include "status.h"
 
@@ -72,112 +73,208 @@ user_changed_cb (LightDMUser *user)
 static void
 request_cb (const gchar *request)
 {
-    gchar *r;
+    const gchar *c, *start;
+    int l;
+    gchar *id, *name = NULL;
+    gboolean id_matches;
+    GHashTable *params;
 
     if (!request)
     {
         g_main_loop_quit (loop);
         return;
     }
+
+    c = request;
+    start = c;
+    l = 0;
+    while (*c && !isspace (*c))
+    {
+        c++;
+        l++;
+    }
+    id = g_strdup_printf ("%.*s", l, start);
+    id_matches = strcmp (id, greeter_id) == 0;
+    g_free (id);
+    if (!id_matches)
+        return;
+
+    while (isspace (*c))
+        c++;
+    start = c;
+    l = 0;
+    while (*c && !isspace (*c))
+    {
+        c++;
+        l++;
+    }
+    name = g_strdup_printf ("%.*s", l, start);
+
+    params = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+    while (TRUE)
+    {
+        const gchar *start;
+        gchar *param_name, *param_value;
+
+        while (isspace (*c))
+            c++;
+        start = c;
+        while (*c && !isspace (*c) && *c != '=')
+            c++;
+        if (*c == '\0')
+            break;
+
+        param_name = g_strdup_printf ("%.*s", (int) (c - start), start);
+
+        if (*c == '=')
+        {
+            c++;
+            while (isspace (*c))
+                c++;
+            if (*c == '\"')
+            {
+                gboolean escaped = FALSE;
+                GString *value;
+
+                c++;
+                value = g_string_new ("");
+                while (*c)
+                {
+                    if (*c == '\\')
+                    {
+                        if (escaped)
+                        {
+                            g_string_append_c (value, '\\');
+                            escaped = FALSE;
+                        }
+                        else
+                            escaped = TRUE;
+                    }
+                    else if (!escaped && *c == '\"')
+                        break;
+                    if (!escaped)
+                        g_string_append_c (value, *c);
+                    c++;
+                }
+                param_value = value->str;
+                g_string_free (value, FALSE);
+                if (*c == '\"')
+                    c++;
+            }
+            else
+            {
+                start = c;
+                while (*c && !isspace (*c))
+                    c++;
+                param_value = g_strdup_printf ("%.*s", (int) (c - start), start);
+            }
+        }
+        else
+            param_value = g_strdup ("");
+
+        g_hash_table_insert (params, param_name, param_value);
+    }
   
-    r = g_strdup_printf ("%s AUTHENTICATE", greeter_id);
-    if (strcmp (request, r) == 0)
-        lightdm_greeter_authenticate (greeter, NULL);
-    g_free (r);
+    if (strcmp (name, "AUTHENTICATE") == 0)
+        lightdm_greeter_authenticate (greeter, g_hash_table_lookup (params, "USERNAME"));
 
-    r = g_strdup_printf ("%s AUTHENTICATE USERNAME=", greeter_id);
-    if (g_str_has_prefix (request, r))
-        lightdm_greeter_authenticate (greeter, request + strlen (r));
-    g_free (r);
-
-    r = g_strdup_printf ("%s AUTHENTICATE-GUEST", greeter_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "AUTHENTICATE-GUEST") == 0)
         lightdm_greeter_authenticate_as_guest (greeter);
-    g_free (r);
 
-    r = g_strdup_printf ("%s AUTHENTICATE-AUTOLOGIN", greeter_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "AUTHENTICATE-AUTOLOGIN") == 0)
         lightdm_greeter_authenticate_autologin (greeter);
-    g_free (r);
 
-    r = g_strdup_printf ("%s AUTHENTICATE-REMOTE SESSION=", greeter_id);
-    if (g_str_has_prefix (request, r))
-        lightdm_greeter_authenticate_remote (greeter, request + strlen (r), NULL);
-    g_free (r);
+    if (strcmp (name, "AUTHENTICATE-REMOTE") == 0)
+        lightdm_greeter_authenticate_remote (greeter, g_hash_table_lookup (params, "SESSION"), NULL);
 
-    r = g_strdup_printf ("%s RESPOND TEXT=\"", greeter_id);
-    if (g_str_has_prefix (request, r))
-    {
-        gchar *text = g_strdup (request + strlen (r));
-        text[strlen (text) - 1] = '\0';
-        lightdm_greeter_respond (greeter, text);
-        g_free (text);
-    }
-    g_free (r);
+    if (strcmp (name, "RESPOND") == 0)
+        lightdm_greeter_respond (greeter, g_hash_table_lookup (params, "TEXT"));
 
-    r = g_strdup_printf ("%s CANCEL-AUTHENTICATION", greeter_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "CANCEL-AUTHENTICATION") == 0)
         lightdm_greeter_cancel_authentication (greeter);
-    g_free (r);
 
-    r = g_strdup_printf ("%s START-SESSION", greeter_id);
-    if (strcmp (request, r) == 0)
-    {
-        if (!lightdm_greeter_start_session_sync (greeter, NULL, NULL))
+    if (strcmp (name, "START-SESSION") == 0)
+        if (!lightdm_greeter_start_session_sync (greeter, g_hash_table_lookup (params, "SESSION"), NULL))
             status_notify ("%s SESSION-FAILED", greeter_id); 
-    }
-    g_free (r);
 
-    r = g_strdup_printf ("%s START-SESSION SESSION=", greeter_id);
-    if (g_str_has_prefix (request, r))
-    {
-        if (!lightdm_greeter_start_session_sync (greeter, request + strlen (r), NULL))
-            status_notify ("%s SESSION-FAILED", greeter_id); 
-    }
-    g_free (r);
-
-    r = g_strdup_printf ("%s LOG-DEFAULT-SESSION", greeter_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "LOG-DEFAULT-SESSION") == 0)
         status_notify ("%s LOG-DEFAULT-SESSION SESSION=%s", greeter_id, lightdm_greeter_get_default_session_hint (greeter));
-    g_free (r);
 
-    r = g_strdup_printf ("%s LOG-USER-LIST-LENGTH", greeter_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "LOG-USER-LIST-LENGTH") == 0)
         status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, lightdm_user_list_get_length (lightdm_user_list_get_instance ()));
-    g_free (r);
 
-    r = g_strdup_printf ("%s WATCH-USER USERNAME=", greeter_id);
-    if (g_str_has_prefix (request, r))
+    if (strcmp (name, "WATCH-USER") == 0)
     {
         LightDMUser *user;
         const gchar *username;
 
-        username = request + strlen (r);
+        username = g_hash_table_lookup (params, "USERNAME");
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         if (user)
             g_signal_connect (user, "changed", G_CALLBACK (user_changed_cb), NULL);
         status_notify ("%s WATCH-USER USERNAME=%s", greeter_id, username);
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s LOG-USER USERNAME=", greeter_id);
-    if (g_str_has_prefix (request, r))
+    if (strcmp (name, "LOG-USER") == 0)
     {
         LightDMUser *user;
-        const gchar *username;
+        const gchar *username, *image, *background, *layout, *session;
+        const gchar * const * layouts;
+        gchar **fields = NULL;
+        gchar *layouts_text;
+        GString *status_text;
+        int i;
 
-        username = request + strlen (r);
+        username = g_hash_table_lookup (params, "USERNAME");
+        if (g_hash_table_lookup (params, "FIELDS"))
+            fields = g_strsplit (g_hash_table_lookup (params, "FIELDS"), ",", -1);
+        if (!fields)
+        {
+            fields = g_malloc (sizeof (gchar *) * 1);
+            fields[0] = NULL;
+        }
+
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
-        status_notify ("%s LOG-USER USERNAME=%s LOGGED-IN=%s HAS-MESSAGES=%s",
-                       greeter_id,
-                       lightdm_user_get_name (user),
-                       lightdm_user_get_logged_in (user) ? "TRUE" : "FALSE",
-                       lightdm_user_get_has_messages (user) ? "TRUE" : "FALSE");
-    }
-    g_free (r);
+        image = lightdm_user_get_image (user);
+        background = lightdm_user_get_background (user);
+        layout = lightdm_user_get_layout (user);
+        layouts = lightdm_user_get_layouts (user);
+        layouts_text = g_strjoinv (";", (gchar **) layouts);
+        session = lightdm_user_get_session (user);
 
-    r = g_strdup_printf ("%s LOG-USER-LIST", greeter_id);
-    if (strcmp (request, r) == 0)
+        status_text = g_string_new ("");
+        g_string_append_printf (status_text, "%s LOG-USER USERNAME=%s", greeter_id, username);
+        for (i = 0; fields[i]; i++)
+        {
+            if (strcmp (fields[i], "REAL-NAME") == 0)
+                g_string_append_printf (status_text, " REAL-NAME=%s", lightdm_user_get_real_name (user));
+            else if (strcmp (fields[i], "DISPLAY-NAME") == 0)
+                g_string_append_printf (status_text, " DISPLAY-NAME=%s", lightdm_user_get_display_name (user));
+            else if (strcmp (fields[i], "IMAGE") == 0)
+                g_string_append_printf (status_text, " IMAGE=%s", image ? image : "");
+            else if (strcmp (fields[i], "BACKGROUND") == 0)
+                g_string_append_printf (status_text, " BACKGROUND=%s", background ? background : "");
+            else if (strcmp (fields[i], "LANGUAGE") == 0)
+                g_string_append_printf (status_text, " LANGUAGE=%s", lightdm_user_get_language (user));
+            else if (strcmp (fields[i], "LAYOUT") == 0)
+                g_string_append_printf (status_text, " LAYOUT=%s", layout ? layout : "");
+            else if (strcmp (fields[i], "LAYOUTS") == 0)
+                g_string_append_printf (status_text, " LAYOUTS=%s", layouts_text);
+            else if (strcmp (fields[i], "SESSION") == 0)
+                g_string_append_printf (status_text, " SESSION=%s", session ? session : "");
+            else if (strcmp (fields[i], "LOGGED-IN") == 0)
+                g_string_append_printf (status_text, " LOGGED-IN=%s", lightdm_user_get_logged_in (user) ? "TRUE" : "FALSE");
+            else if (strcmp (fields[i], "HAS-MESSAGES") == 0)
+                g_string_append_printf (status_text, " HAS-MESSAGES=%s", lightdm_user_get_has_messages (user) ? "TRUE" : "FALSE");
+        }
+        g_strfreev (fields);
+        g_free (layouts_text);
+
+        status_notify (status_text->str);
+        g_string_free (status_text, TRUE);
+    }
+
+    if (strcmp (name, "LOG-USER-LIST") == 0)
     {
         GList *users, *link;
 
@@ -188,124 +285,65 @@ request_cb (const gchar *request)
             status_notify ("%s LOG-USER USERNAME=%s", greeter_id, lightdm_user_get_name (user));
         }
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s LOG-LAYOUT USERNAME=", greeter_id);
-    if (g_str_has_prefix (request, r))
-    {
-        LightDMUser *user;
-        const gchar *username, *layout;
-
-        username = request + strlen (r);
-        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
-        layout = lightdm_user_get_layout (user);
-
-        status_notify ("%s LOG-LAYOUT USERNAME=%s LAYOUT='%s'", greeter_id, username, layout ? layout : "");
-    }
-    g_free (r);
-
-    r = g_strdup_printf ("%s LOG-LAYOUTS USERNAME=", greeter_id);
-    if (g_str_has_prefix (request, r))
-    {
-        LightDMUser *user;
-        const gchar *username;
-        const gchar * const *layouts;
-        int i;
-
-        username = request + strlen (r);
-        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
-        layouts = lightdm_user_get_layouts (user);
-
-        for (i = 0; layouts[i]; i++)
-            status_notify ("%s LOG-LAYOUTS USERNAME=%s LAYOUT='%s'", greeter_id, username, layouts[i]);
-    }
-    g_free (r);
-
-    r = g_strdup_printf ("%s LOG-LANGUAGE USERNAME=", greeter_id);  
-    if (g_str_has_prefix (request, r))
-    {
-        LightDMUser *user;
-        const gchar *username, *language;
-
-        username = request + strlen (r);
-        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
-        language = lightdm_user_get_language (user);
-
-        status_notify ("%s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s", greeter_id, username, language ? language : "");
-    }
-    g_free (r);
-
-    r = g_strdup_printf ("%s GET-CAN-SUSPEND", greeter_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "GET-CAN-SUSPEND") == 0)
     {
         gboolean can_suspend = lightdm_get_can_suspend ();
         status_notify ("%s CAN-SUSPEND ALLOWED=%s", greeter_id, can_suspend ? "TRUE" : "FALSE");
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s SUSPEND", greeter_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "SUSPEND") == 0)
     {
         GError *error = NULL;
         if (!lightdm_suspend (&error))
             status_notify ("%s FAIL-SUSPEND", greeter_id);
         g_clear_error (&error);
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s GET-CAN-HIBERNATE", greeter_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "GET-CAN-HIBERNATE") == 0)
     {
         gboolean can_hibernate = lightdm_get_can_hibernate ();
         status_notify ("%s CAN-HIBERNATE ALLOWED=%s", greeter_id, can_hibernate ? "TRUE" : "FALSE");
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s HIBERNATE", greeter_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "HIBERNATE") == 0)
     {
         GError *error = NULL;
         if (!lightdm_hibernate (&error))
             status_notify ("%s FAIL-HIBERNATE", greeter_id);
         g_clear_error (&error);
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s GET-CAN-RESTART", greeter_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "GET-CAN-RESTART") == 0)
     {
         gboolean can_restart = lightdm_get_can_restart ();
         status_notify ("%s CAN-RESTART ALLOWED=%s", greeter_id, can_restart ? "TRUE" : "FALSE");
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s RESTART", greeter_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "RESTART") == 0)
     {
         GError *error = NULL;
         if (!lightdm_restart (&error))
             status_notify ("%s FAIL-RESTART", greeter_id);
         g_clear_error (&error);
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s GET-CAN-SHUTDOWN", greeter_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "GET-CAN-SHUTDOWN") == 0)
     {
         gboolean can_shutdown = lightdm_get_can_shutdown ();
         status_notify ("%s CAN-SHUTDOWN ALLOWED=%s", greeter_id, can_shutdown ? "TRUE" : "FALSE");
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s SHUTDOWN", greeter_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "SHUTDOWN") == 0)
     {
         GError *error = NULL;
         if (!lightdm_shutdown (&error))
             status_notify ("%s FAIL-SHUTDOWN", greeter_id);
         g_clear_error (&error);
     }
-    g_free (r);
+
+    g_free (name);
+    g_hash_table_unref (params);
 }
 
 static void

@@ -60,12 +60,14 @@ TESTS = \
 	test-system-xauthority \
 	test-user-renamed \
 	test-user-renamed-invalid \
+	test-user-name \
+	test-user-image \
+	test-user-background \
+	test-user-layout \
+	test-user-has-messages \
+	test-user-session \
 	test-users-gobject \
-	test-user-properties \
-	test-keyboard-layout \
-	test-no-keyboard-layout \
 	test-language \
-	test-no-language \
 	test-language-no-accounts-service \
 	test-login-crash-authenticate \
 	test-login-gobject \
@@ -339,7 +341,6 @@ EXTRA_DIST = \
 	scripts/headless.conf \
 	scripts/home-dir-on-authenticate.conf \
 	scripts/home-dir-on-session.conf \
-	scripts/keyboard-layout.conf \
 	scripts/language.conf \
 	scripts/language-env.conf \
 	scripts/language-no-accounts-service.conf \
@@ -386,8 +387,6 @@ EXTRA_DIST = \
 	scripts/no-config.conf \
 	scripts/no-console-kit.conf \
 	scripts/no-console-kit-or-login1.conf \
-	scripts/no-keyboard-layout.conf \
-	scripts/no-language.conf \
 	scripts/no-login1.conf \
 	scripts/open-file-descriptors.conf \
 	scripts/pam.conf \
@@ -438,7 +437,11 @@ EXTRA_DIST = \
 	scripts/upstart-autologin.conf \
 	scripts/upstart-login.conf \
 	scripts/users.conf \
-	scripts/user-properties.conf \
+	scripts/user-background.conf \
+	scripts/user-has-messages.conf \
+	scripts/user-image.conf \
+	scripts/user-layout.conf \
+	scripts/user-session.conf \
 	scripts/util-path.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
