@@ -1,3 +1,15 @@
+Overview of changes in lightdm 1.8.3
+
+    * Correctly set $XDG_SESSION_CLASS for greeters. This was regressed in 1.7.5
+      for ConsoleKit and was never passed to logind. logind/ConsoleKit treat
+      greeter sessions without this set as user sessions. This causes greeters
+      to show the lightdm user able to be logged in with.
+    * Set $USER when running the session-setup-script. This is a regression from
+      1.7.5.
+    * Fix notification of sessions being logged out. This is a regression from
+      1.7.5 and caused greeters to show sessions logged in after they had been
+      logged out.
+
 Overview of changes in lightdm 1.8.2
 
     * Fix crash when starting with existing X servers. This was introduced in

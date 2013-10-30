@@ -1,3 +1,19 @@
+lightdm (1.8.3-0ubuntu1) saucy; urgency=low
+
+  * New upstream release:
+    - Correctly set $XDG_SESSION_CLASS for greeters. This was regressed in 1.7.5
+      for ConsoleKit and was never passed to logind. logind/ConsoleKit treat
+      greeter sessions without this set as user sessions. This causes greeters
+      to show the lightdm user able to be logged in with.
+      (LP: #1242939)
+    - Set $USER when running the session-setup-script. This is a regression from
+      1.7.5. (LP: #1245957)
+    - Fix notification of sessions being logged out. This is a regression from
+      1.7.5 and caused greeters to show sessions logged in after they had been
+      logged out. (LP: #1245295)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 30 Oct 2013 13:54:22 -0700
+
 lightdm (1.8.2-0ubuntu1) saucy; urgency=low
 
   * New upstream release:
