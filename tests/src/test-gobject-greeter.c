@@ -194,10 +194,6 @@ request_cb (const gchar *request)
         lightdm_greeter_cancel_authentication (greeter);
 
     if (strcmp (name, "START-SESSION") == 0)
-        if (!lightdm_greeter_start_session_sync (greeter, NULL, NULL))
-            status_notify ("%s SESSION-FAILED", greeter_id); 
-
-    if (strcmp (name, "START-SESSION") == 0)
         if (!lightdm_greeter_start_session_sync (greeter, g_hash_table_lookup (params, "SESSION"), NULL))
             status_notify ("%s SESSION-FAILED", greeter_id); 
 
