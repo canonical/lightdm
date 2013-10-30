@@ -222,21 +222,27 @@ request_cb (const gchar *request)
     if (strcmp (name, "LOG-USER") == 0)
     {
         LightDMUser *user;
-        const gchar *username, *image, *background, *layout_text, *session;
+        const gchar *username, *image, *background, *layout, *session;
         const gchar * const * layouts;
-        gchar **fields;
+        gchar **fields = NULL;
         gchar *layouts_text;
         GString *status_text;
         int i;
 
         username = g_hash_table_lookup (params, "USERNAME");
-        fields = g_strsplit (g_hash_table_lookup (params, "FIELDS"), ",", -1);
+        if (g_hash_table_lookup (params, "FIELDS"))
+            fields = g_strsplit (g_hash_table_lookup (params, "FIELDS"), ",", -1);
+        if (!fields)
+        {
+            fields = g_malloc (sizeof (gchar *) * 1);
+            fields[0] = NULL;
+        }
 
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         image = lightdm_user_get_image (user);
         background = lightdm_user_get_background (user);
+        layout = lightdm_user_get_layout (user);
         layouts = lightdm_user_get_layouts (user);
-        layout_text = layouts[0] ? layouts[0] : "";
         layouts_text = g_strjoinv (";", (gchar **) layouts);
         session = lightdm_user_get_session (user);
 
@@ -255,7 +261,7 @@ request_cb (const gchar *request)
             else if (strcmp (fields[i], "LANGUAGE") == 0)
                 g_string_append_printf (status_text, " LANGUAGE=%s", lightdm_user_get_language (user));
             else if (strcmp (fields[i], "LAYOUT") == 0)
-                g_string_append_printf (status_text, " LAYOUT=%s", layout_text);
+                g_string_append_printf (status_text, " LAYOUT=%s", layout ? layout : "");
             else if (strcmp (fields[i], "LAYOUTS") == 0)
                 g_string_append_printf (status_text, " LAYOUTS=%s", layouts_text);
             else if (strcmp (fields[i], "SESSION") == 0)
