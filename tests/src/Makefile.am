@@ -3,6 +3,7 @@ noinst_PROGRAMS = dbus-env \
                   plymouth \
                   test-gobject-greeter \
                   test-greeter-wrapper \
+                  test-guest-wrapper \
                   test-mir-greeter \
                   test-runner \
                   test-script-hook \
@@ -93,6 +94,15 @@ test_greeter_wrapper_CFLAGS = \
 	$(GLIB_CFLAGS) \
 	$(GIO_UNIX_CFLAGS)
 test_greeter_wrapper_LDADD = \
+	$(GLIB_LIBS) \
+	$(GIO_UNIX_LIBS)
+
+test_guest_wrapper_SOURCES = test-guest-wrapper.c status.c status.h
+test_guest_wrapper_CFLAGS = \
+	$(WARN_CFLAGS) \
+	$(GLIB_CFLAGS) \
+	$(GIO_UNIX_CFLAGS)
+test_guest_wrapper_LDADD = \
 	$(GLIB_LIBS) \
 	$(GIO_UNIX_LIBS)
 

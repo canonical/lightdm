@@ -14,3 +14,4 @@ debian/lightdm-greeter-session usr/lib/lightdm
 debian/source_lightdm.py usr/share/apport/package-hooks
 debian/50-xserver-command.conf etc/lightdm/lightdm.conf.d
 debian/50-greeter-wrapper.conf etc/lightdm/lightdm.conf.d
+debian/50-guest-wrapper.conf etc/lightdm/lightdm.conf.d
