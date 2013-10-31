@@ -1,9 +1,9 @@
-lightdm (1.8.4-0ubuntu1) UNRELEASED; urgency=low
+lightdm (1.8.4-0ubuntu1) saucy; urgency=low
 
   * debian/50-guest-wrapper.conf:
     - Configure guest session wrapper to use
 
- -- Robert Ancell <robert.ancell@canonical.com>  Sun, 27 Oct 2013 17:34:20 +1300
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 31 Oct 2013 12:01:53 -0700
 
 lightdm (1.8.3-0ubuntu1) saucy; urgency=low
 
