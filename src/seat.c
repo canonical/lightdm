@@ -392,7 +392,11 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
         if (!active_session || session_get_display_server (active_session) == display_server)
         {
             l_debug (seat, "Active display server stopped, starting greeter");
-            seat_switch_to_greeter (seat);
+            if (!seat_switch_to_greeter (seat))
+            {
+                l_debug (seat, "Stopping; failed to start a greeter");
+                seat_stop (seat);
+            }
         }
     }
 
@@ -671,7 +675,11 @@ session_stopped_cb (Session *session, Seat *seat)
     else if (!IS_GREETER (session) && session == seat_get_active_session (seat))
     {
         l_debug (seat, "Active session stopped, starting greeter");
-        seat_switch_to_greeter (seat);
+        if (!seat_switch_to_greeter (seat))
+        {
+            l_debug (seat, "Stopping; failed to start a greeter");
+            seat_stop (seat);
+        }
     }
 
     /* Stop the display server if no-longer required */
@@ -1241,6 +1249,9 @@ seat_switch_to_greeter (Seat *seat)
     }
 
     greeter_session = create_greeter_session (seat);
+    if (!greeter_session)
+        return FALSE;
+
     if (seat->priv->session_to_activate)
         g_object_unref (seat->priv->session_to_activate);
     seat->priv->session_to_activate = g_object_ref (greeter_session);
