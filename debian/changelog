@@ -1,5 +1,8 @@
 lightdm (1.8.4-0ubuntu1) saucy; urgency=low
 
+  * New upstream release:
+    - Implement missing guest-wrapper functionality and enable it for Ubuntu.
+    - Update AppArmor scripts to work in Ubuntu 13.10. (LP: #1243339)
   * debian/50-guest-wrapper.conf:
     - Configure guest session wrapper to use
 
