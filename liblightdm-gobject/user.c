@@ -436,8 +436,8 @@ accounts_user_changed_cb (GDBusConnection *connection,
     LightDMUserPrivate *priv = GET_USER_PRIVATE (user);  
 
     g_debug ("User %s changed", priv->path);
-    load_accounts_user (user);
-    g_signal_emit (user, user_signals[CHANGED], 0);
+    if (load_accounts_user (user))
+        g_signal_emit (user, user_signals[CHANGED], 0);
 }
 
 static gboolean
@@ -447,6 +447,7 @@ load_accounts_user (LightDMUser *user)
     GVariant *result, *value;
     GVariantIter *iter;
     gchar *name;
+    gboolean system_account = FALSE;
     GError *error = NULL;
 
     /* Get the properties for this user */
@@ -497,6 +498,8 @@ load_accounts_user (LightDMUser *user)
             g_free (priv->home_directory);
             priv->home_directory = g_variant_dup_string (value, NULL);
         }
+        else if (strcmp (name, "SystemAccount") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
+            system_account = g_variant_get_boolean (value);
         else if (strcmp (name, "Language") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
         {
             if (priv->language)
@@ -545,7 +548,9 @@ load_accounts_user (LightDMUser *user)
 
     g_variant_unref (result);
 
-    return TRUE;
+    priv->loaded_values = TRUE;
+
+    return !system_account;
 }
 
 static void
@@ -561,10 +566,15 @@ add_accounts_user (LightDMUserList *user_list, const gchar *path, gboolean emit_
     g_debug ("User %s added", path);
     priv->user_list = user_list;
     priv->path = g_strdup (path);
-    list_priv->users = g_list_insert_sorted (list_priv->users, user, compare_user);
     g_signal_connect (user, "changed", G_CALLBACK (user_changed_cb), NULL);
-    if (emit_signal)
-        g_signal_emit (user_list, list_signals[USER_ADDED], 0, user);
+    if (load_accounts_user (user))
+    {
+        list_priv->users = g_list_insert_sorted (list_priv->users, user, compare_user);
+        if (emit_signal)      
+            g_signal_emit (user_list, list_signals[USER_ADDED], 0, user);
+    }
+    else
+        g_object_unref (user);
 }
 
 static void
@@ -1111,9 +1121,7 @@ load_user_values (LightDMUser *user)
         return;
     priv->loaded_values = TRUE;
 
-    if (priv->path)
-        load_accounts_user (user);
-    else
+    if (!priv->path)
         load_dmrc (user);
 }
 
