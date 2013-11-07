@@ -1,0 +1,63 @@
+.TH DM-TOOL 1 "7 November 2013"
+.SH NAME
+dm-tool \- a tool to control the display manager
+.SH SYNOPSIS
+.B dm-tool
+[
+.I OPTIONS
+]
+.I COMMAND
+[
+.I ARGS
+]
+.SH DESCRIPTION
+.B dm-tool
+is a tool to communicate with the LightDM display manager.
+.SH OPTIONS
+.TP
+.B \-h, \-\-help
+Show help options
+.TP
+.B \-\-version
+Show release version
+.TP
+.B \-\-session-bus
+Attempt to connect to the display manager using the session bus.
+This is useful if you are running a display manager in a test mode.
+If this option is not present dm-tool will connect using the system bus.
+.TP
+The following commands are available:
+.TP
+.B switch-to-greeter
+Switch to the greeter suitable for logging into a new session.
+.TP
+.B switch-to-user USERNAME [SESSION]
+Switch to a user session.
+If this user is already logged in then the display manager will switch to that session, otherwise a new session is started.
+If authentication is required a greeter will start to collect this.
+If the session option is provided then this session type will be used, otherwise the default for this user is used.
+.TP
+.B switch-to-guest [SESSION]
+Switch to a guest session.
+If the guest session is already active the display manager will switch to that session, otherwise the guest session is started.
+If the session option is provided then this session type will be used, otherwise the default for the guest user is used.
+.TP
+.B lock
+Lock the current seat.
+This will swith to a greeter with a hint that the screen is locked.
+You can return to this session by authenticating in the greeter.
+.TP
+.B list-seats
+List the active seats and sessions that are running.
+.TP
+.B add-nested-seat
+Start an X server inside a session and connect it to a display manager.
+.TP
+.B add-local-x-seat DISPLAY_NUMBER
+Connect an existing X server to the display manager.
+.TP
+.B add-seat TYPE [NAME=VALUE...]
+Add a dynamic seat.
+.SH SEE ALSO
+.BR lightdm (1),
+.BR lightdm-set-defaults (1)
