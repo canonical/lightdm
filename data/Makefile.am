@@ -24,7 +24,8 @@ dist_apparmor_profile_abstractions_DATA = \
     apparmor/abstractions/lightdm \
     apparmor/abstractions/lightdm_chromium-browser
 
-dist_man1_MANS = lightdm.1 \
+dist_man1_MANS = dm-tool.1 \
+                 lightdm.1 \
                  lightdm-set-defaults.1
 
 EXTRA_DIST = apparmor/lightdm-guest-session.in
