@@ -1,12 +1,18 @@
-lightdm (1.8.4-0ubuntu1) saucy; urgency=low
+lightdm (1.8.4-0ubuntu1) saucy-security; urgency=low
 
+  [ Marc Deslauriers ]
+  * SECURITY UPDATE: improper guest account confinement (LP: #1243339)
+    - CVE-2013-4459
+
+  [ Robert Ancell ]
   * New upstream release:
     - Implement missing guest-wrapper functionality and enable it for Ubuntu.
     - Update AppArmor scripts to work in Ubuntu 13.10. (LP: #1243339)
   * debian/50-guest-wrapper.conf:
     - Configure guest session wrapper to use
 
- -- Robert Ancell <robert.ancell@canonical.com>  Thu, 31 Oct 2013 12:01:53 -0700
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Mon, 04 Nov 2013 13:35:26 -0500
 
 lightdm (1.8.3-0ubuntu1) saucy; urgency=low
 
