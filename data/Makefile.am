@@ -13,7 +13,7 @@ dist_pam_DATA = pam/lightdm \
                 pam/lightdm-greeter
 
 lightdm-guest-session: $(srcdir)/apparmor/lightdm-guest-session.in
-	sed -e 's|@pkglibexecdir[@]|$(pkglibexecdir)|g' $< >$@
+	sed -e 's|@libexecdir[@]|$(libexecdir)|g' $< >$@
 
 apparmor_profiledir = $(sysconfdir)/apparmor.d
 apparmor_profile_DATA = \
