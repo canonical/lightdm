@@ -1577,7 +1577,7 @@ handle_accounts_call (GDBusConnection       *connection,
         for (link = accounts_users; link; link = link->next)
         {
             AccountsUser *user = link->data;
-            if (!user->hidden)
+            if (!user->hidden && user->uid >= 1000)
                 g_variant_builder_add_value (&builder, g_variant_new_object_path (user->path));
         }
 
@@ -1645,6 +1645,8 @@ handle_user_get_property (GDBusConnection       *connection,
         return g_variant_new_string (user->real_name);
     else if (strcmp (property_name, "HomeDirectory") == 0)
         return g_variant_new_string (user->home_directory);
+    else if (strcmp (property_name, "SystemAccount") == 0)
+        return g_variant_new_boolean (user->uid < 1000);
     else if (strcmp (property_name, "BackgroundFile") == 0)
         return g_variant_new_string ("");
     else if (strcmp (property_name, "Language") == 0)
@@ -1700,6 +1702,7 @@ accounts_name_acquired_cb (GDBusConnection *connection,
         "    <property name='UserName' type='s' access='read'/>"
         "    <property name='RealName' type='s' access='read'/>"
         "    <property name='HomeDirectory' type='s' access='read'/>"
+        "    <property name='SystemAccount' type='b' access='read'/>"
         "    <property name='BackgroundFile' type='s' access='read'/>"
         "    <property name='Language' type='s' access='read'/>"
         "    <property name='XSession' type='s' access='read'/>"

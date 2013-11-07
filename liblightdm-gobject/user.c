@@ -385,6 +385,7 @@ update_user (UserAccountObject *object)
     GVariant *result, *value;
     GVariantIter *iter;
     gchar *name;
+    gboolean system_account = FALSE;
     GError *error = NULL;
 
     result = g_dbus_connection_call_sync (g_dbus_proxy_get_connection (object->proxy),
@@ -427,6 +428,10 @@ update_user (UserAccountObject *object)
             g_variant_get (value, "&s", &home_directory);
             g_free (priv->home_directory);
             priv->home_directory = g_strdup (home_directory);
+        }      
+        else if (strcmp (name, "SystemAccount") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
+        {
+            system_account = g_variant_get_boolean (value);
         }
         else if (strcmp (name, "IconFile") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
         {
@@ -453,7 +458,7 @@ update_user (UserAccountObject *object)
 
     g_variant_unref (result);
 
-    return TRUE;
+    return !system_account;
 }
 
 static void
@@ -464,8 +469,8 @@ user_signal_cb (GDBusProxy *proxy, gchar *sender_name, gchar *signal_name, GVari
         if (g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
         {
             g_debug ("User %s changed", g_dbus_proxy_get_object_path (object->proxy));
-            update_user (object);
-            g_signal_emit (object->user, user_signals[CHANGED], 0);
+            if (update_user (object))
+                g_signal_emit (object->user, user_signals[CHANGED], 0);
         }
         else
             g_warning ("Got org.freedesktop.Accounts.User signal Changed with unknown parameters %s", g_variant_get_type_string (parameters));
