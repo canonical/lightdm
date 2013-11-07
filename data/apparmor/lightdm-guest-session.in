@@ -3,7 +3,7 @@
 
 #include <tunables/global>
 
-@pkglibexecdir@/lightdm-guest-session-wrapper {
+@libexecdir@/lightdm-guest-session {
   # Most applications are confined via the main abstraction
   #include <abstractions/lightdm>
 

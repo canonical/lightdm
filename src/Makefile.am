@@ -93,11 +93,11 @@ lightdm_LDADD = \
 	-lgcrypt \
 	-lpam
 
-pkglibexec_PROGRAMS = lightdm-guest-session-wrapper
+libexec_PROGRAMS = lightdm-guest-session
 
-lightdm_guest_session_wrapper_SOURCES = lightdm-guest-session-wrapper.c
+lightdm_guest_session_SOURCES = lightdm-guest-session.c
 
-lightdm_guest_session_wrapper_CFLAGS = \
+lightdm_guest_session_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
 	$(WARN_CFLAGS)
 
