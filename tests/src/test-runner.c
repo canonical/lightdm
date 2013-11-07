@@ -1680,8 +1680,12 @@ handle_accounts_call (GDBusConnection       *connection,
 
         load_passwd_file ();
         user = get_accounts_user_by_name (user_name);
-        if (user && !user->hidden)
+        if (user)
+        {
+            if (user->hidden)
+                accounts_user_set_hidden (user, FALSE, TRUE);
             g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", user->path));
+        }
         else
             g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such user: %s", user_name);
     }
