@@ -51,12 +51,7 @@ m4/*
 po/*.gmo
 po/POTFILES
 po/stamp-it
-src/display-glue.h
-src/display-manager-glue.h
-src/session-manager-glue.h
-src/user-manager-glue.h
-src/ldm-marshal.c
-src/ldm-marshal.h
+src/dm-tool
 src/lightdm
 src/lightdm-guest-session-wrapper
 tests/*.log
@@ -69,6 +64,7 @@ tests/src/initctl
 tests/src/plymouth
 tests/src/test-gobject-greeter
 tests/src/test-greeter-wrapper
+tests/src/test-guest-wrapper
 tests/src/test-mir-greeter
 tests/src/test-qt4-greeter
 tests/src/test-qt5-greeter
@@ -79,5 +75,3 @@ tests/src/unity-system-compositor
 tests/src/vnc-client
 tests/src/X
 tests/src/Xvnc
-utils/lightdm-set-defaults
-utils/dm-tool
