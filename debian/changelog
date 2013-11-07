@@ -1,3 +1,12 @@
+lightdm (1.8.5-0ubuntu1) saucy; urgency=low
+
+  * New upstream release:
+    - Don't pass system user accounts from AccountsService to greeters.
+      (LP: #1248541)
+    - Fix crash if switching to greeter and it isn't installed. (LP: #1246529)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 07 Nov 2013 15:39:20 +1300
+
 lightdm (1.8.4-0ubuntu1) saucy-security; urgency=low
 
   [ Marc Deslauriers ]
