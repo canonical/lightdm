@@ -52,7 +52,6 @@ TESTS = \
 	test-xdg-current-desktop \
 	test-xdg-seat \
 	test-language-env \
-	test-util-path \
 	test-session-stdout \
 	test-session-stderr \
 	test-session-stderr-multi-write \
@@ -451,7 +450,6 @@ EXTRA_DIST = \
 	scripts/user-layout.conf \
 	scripts/user-logged-in.conf \
 	scripts/user-name.conf \
-	scripts/util-path.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
 	scripts/user-session.conf \

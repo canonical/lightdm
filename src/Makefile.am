@@ -1,4 +1,5 @@
 sbin_PROGRAMS = lightdm
+bin_PROGRAMS = dm-tool
 
 lightdm_SOURCES = \
 	accounts.c \
@@ -92,6 +93,17 @@ lightdm_LDADD = \
 	$(LIGHTDM_LIBS) \
 	-lgcrypt \
 	-lpam
+
+dm_tool_SOURCES = \
+	dm-tool.c
+
+dm_tool_CFLAGS = \
+	$(LIGHTDM_CFLAGS) \
+	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\" \
+	-DLOCALE_DIR=\"$(datadir)/locale\"
+
+dm_tool_LDADD = \
+	$(LIGHTDM_LIBS)
 
 pkglibexec_PROGRAMS = lightdm-guest-session-wrapper
 
