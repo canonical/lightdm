@@ -22,6 +22,7 @@ TESTS = \
 	test-autologin-guest-in-background \
 	test-autologin-timeout-in-background \
 	test-autologin-invalid-user \
+	test-autologin-invalid-greeter \
 	test-autologin-invalid-session \
 	test-crash-authenticate \
 	test-autologin-xserver-crash \
@@ -68,6 +69,7 @@ TESTS = \
 	test-no-language \
 	test-language-no-accounts-service \
 	test-login-crash-authenticate \
+	test-login-invalid-greeter \
 	test-login-gobject \
 	test-login-gobject-manual \
 	test-login-gobject-manual-previous-session \
@@ -298,6 +300,7 @@ EXTRA_DIST = \
 	scripts/autologin-guest-logout.conf \
 	scripts/autologin-guest-timeout.conf \
 	scripts/autologin-in-background.conf \
+	scripts/autologin-invalid-greeter.conf \
 	scripts/autologin-guest-in-background.conf \
 	scripts/autologin-timeout-in-background.conf \
 	scripts/autologin-invalid-session.conf \
@@ -354,6 +357,7 @@ EXTRA_DIST = \
 	scripts/login-guest-logout.conf \
 	scripts/login-guest-no-setup-script.conf \
 	scripts/login-info-prompt.conf \
+	scripts/login-invalid-greeter.conf \
 	scripts/login-invalid-session.conf \
 	scripts/login-invalid-user.conf \
 	scripts/login-logout.conf \
