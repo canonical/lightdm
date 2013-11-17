@@ -69,16 +69,6 @@ fi
 # stdout, which can confuse debconf.
 db_stop
 
-# migrate gdm configuration on first-time installation
-if [ -z "$2" ]; then
-    if grep -q '^AutomaticLoginEnable *= *true$' /etc/gdm/custom.conf 2>/dev/null; then
-        user=`sed -n '/^AutomaticLogin *=/ { s/^.*= *//; p }' /etc/gdm/custom.conf`
-        if [ -n "$user" ]; then
-            /usr/lib/lightdm/lightdm-set-defaults --keep-old --autologin="$user"
-        fi
-    fi
-fi
-
 case "$1" in
     configure)
         # LP: #1189948
