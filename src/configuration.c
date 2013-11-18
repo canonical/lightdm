@@ -90,6 +90,18 @@ config_get_string (Configuration *config, const gchar *section, const gchar *key
 }
 
 void
+config_set_string_list (Configuration *config, const gchar *section, const gchar *key, const gchar **value, gsize length)
+{
+    g_key_file_set_string_list (config->priv->key_file, section, key, value, length);
+}
+
+gchar **
+config_get_string_list (Configuration *config, const gchar *section, const gchar *key)
+{
+    return g_key_file_get_string_list (config->priv->key_file, section, key, NULL, NULL);
+}
+
+void
 config_set_integer (Configuration *config, const gchar *section, const gchar *key, gint value)
 {
     g_key_file_set_integer (config->priv->key_file, section, key, value);

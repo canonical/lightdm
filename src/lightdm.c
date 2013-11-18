@@ -1199,19 +1199,21 @@ main (int argc, char **argv)
     for (i = groups; *i; i++)
     {
         gchar *config_section = *i;
-        gchar *type;
-        Seat *seat;
+        gchar **types;
+        gchar **type;
+        Seat *seat = NULL;
         const gchar *const seatpfx = "Seat:";
 
         if (!g_str_has_prefix (config_section, seatpfx))
             continue;
 
         g_debug ("Loading seat %s", config_section);
-        type = config_get_string (config_get_instance (), config_section, "type");
-        if (!type)
-            type = config_get_string (config_get_instance (), "SeatDefaults", "type");
-        seat = seat_new (type);
-        g_free (type);
+        types = config_get_string_list (config_get_instance (), config_section, "type");
+        if (!types)
+            types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
+        for (type = types; !seat && *type; type++)
+            seat = seat_new (*type);
+        g_strfreev (types);
         if (seat)
         {
             const gsize seatpfxlen = strlen(seatpfx);
@@ -1232,14 +1234,16 @@ main (int argc, char **argv)
     /* If no seats start a default one */
     if (n_seats == 0 && config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
     {
-        gchar *type;
-        Seat *seat;
+        gchar **types;
+        gchar **type;
+        Seat *seat = NULL;
 
         g_debug ("Adding default seat");
 
-        type = config_get_string (config_get_instance (), "SeatDefaults", "type");
-        seat = seat_new (type);
-        g_free (type);
+        types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
+        for (type = types; !seat && *type; type++)
+            seat = seat_new (*type);
+        g_strfreev (types);
         if (seat)
         {
             set_seat_properties (seat, NULL);
@@ -1250,7 +1254,7 @@ main (int argc, char **argv)
         }
         else
         {
-            g_warning ("Failed to create default seat %s", type);
+            g_warning ("Failed to create default seat");
             return EXIT_FAILURE;
         }
     }
