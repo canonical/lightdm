@@ -139,6 +139,34 @@ log_init (void)
 }
 
 static void
+set_seat_properties (Seat *seat, const gchar *config_section)
+{
+    gchar **keys;
+    gint i;
+
+    keys = config_get_keys (config_get_instance (), "SeatDefaults");
+    for (i = 0; keys[i]; i++)
+    {
+        gchar *value = config_get_string (config_get_instance (), "SeatDefaults", keys[i]);
+        seat_set_property (seat, keys[i], value);
+        g_free (value);
+    }
+    g_strfreev (keys);
+
+    if (config_section)
+    {
+        keys = config_get_keys (config_get_instance (), config_section);
+        for (i = 0; keys[i]; i++)
+        {
+            gchar *value = config_get_string (config_get_instance (), config_section, keys[i]);
+            seat_set_property (seat, keys[i], value);
+            g_free (value);
+        }
+        g_strfreev (keys);
+    }
+}
+
+static void
 signal_cb (Process *process, int signum)
 {
     g_debug ("Caught %s signal, shutting down", g_strsignal (signum));
@@ -156,7 +184,45 @@ display_manager_stopped_cb (DisplayManager *display_manager)
 static void
 display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
-    if (seat_get_boolean_property (seat, "exit-on-failure"))
+    const gchar *type;
+    gchar **types;
+    gchar **iter;
+    gboolean make_seats = FALSE;
+    Seat *next_seat = NULL;
+
+    /* If we have fallback types registered for the seat, let's try them
+       before giving up.  This code does not expect a type name to appear twice
+       in the type list.  It is a configuration error to do so. */
+    type = seat_get_type_name(seat);
+    types = seat_get_string_list_property (seat, "type");
+    for (iter = types; !next_seat && iter && *iter; iter++)
+    {
+        if (make_seats)
+            next_seat = seat_new (*iter);
+        else if (g_strcmp0 (type, *iter) == 0)
+            make_seats = TRUE;
+    }
+    g_strfreev (types);
+
+    if (next_seat)
+    {
+        const gchar *seat_name;
+        gchar *config_section = NULL;
+
+        seat_name = seat_get_string_property (seat, "seat-name");
+        if (seat_name)
+            config_section = g_strdup_printf ("Seat:%s", seat_name);
+        set_seat_properties (next_seat, config_section);
+        g_free (config_section);
+
+        // We set this manually on default seat.  Let's port it over if needed.
+        if (seat_get_boolean_property (seat, "exit-on-failure"))
+            seat_set_property (next_seat, "exit-on-failure", "true");
+
+        display_manager_add_seat (display_manager, next_seat);
+        g_object_unref (next_seat);
+    }
+    else if (seat_get_boolean_property (seat, "exit-on-failure"))
     {
         g_debug ("Required seat has stopped");
         exit_code = EXIT_FAILURE;
@@ -209,34 +275,6 @@ handle_display_manager_get_property (GDBusConnection       *connection,
     }
 
     return result;
-}
-
-static void
-set_seat_properties (Seat *seat, const gchar *config_section)
-{
-    gchar **keys;
-    gint i;
-
-    keys = config_get_keys (config_get_instance (), "SeatDefaults");
-    for (i = 0; keys[i]; i++)
-    {
-        gchar *value = config_get_string (config_get_instance (), "SeatDefaults", keys[i]);
-        seat_set_property (seat, keys[i], value);
-        g_free (value);
-    }
-    g_strfreev (keys);
-
-    if (config_section)
-    {
-        keys = config_get_keys (config_get_instance (), config_section);
-        for (i = 0; keys[i]; i++)
-        {
-            gchar *value = config_get_string (config_get_instance (), config_section, keys[i]);
-            seat_set_property (seat, keys[i], value);
-            g_free (value);
-        }
-        g_strfreev (keys);
-    }
 }
 
 static void
@@ -1211,7 +1249,7 @@ main (int argc, char **argv)
         types = config_get_string_list (config_get_instance (), config_section, "type");
         if (!types)
             types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
-        for (type = types; !seat && *type; type++)
+        for (type = types; !seat && type && *type; type++)
             seat = seat_new (*type);
         g_strfreev (types);
         if (seat)
@@ -1241,7 +1279,7 @@ main (int argc, char **argv)
         g_debug ("Adding default seat");
 
         types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
-        for (type = types; !seat && *type; type++)
+        for (type = types; !seat && type && *type; type++)
             seat = seat_new (*type);
         g_strfreev (types);
         if (seat)
