@@ -135,6 +135,13 @@ seat_get_string_property (Seat *seat, const gchar *name)
     return g_hash_table_lookup (seat->priv->properties, name);
 }
 
+gchar **
+seat_get_string_list_property (Seat *seat, const gchar *name)
+{
+    g_return_val_if_fail (seat != NULL, NULL);
+    return g_strsplit (g_hash_table_lookup (seat->priv->properties, name), ";", 0);
+}
+
 gboolean
 seat_get_boolean_property (Seat *seat, const gchar *name)
 {
