@@ -26,8 +26,10 @@ seat_surfaceflinger_setup (Seat *seat)
 
 static DisplayServer *
 seat_surfaceflinger_create_display_server (Seat *seat, const gchar *session_type)
-{  
-    if (strcmp (session_type, "surfaceflinger") == 0)
+{
+    /* Allow mir types too, because Mir sessions usually support surfaceflinger
+       as an alternate mode, since Mir is frequently used on phones. */
+    if (strcmp (session_type, "surfaceflinger") == 0 || strcmp (session_type, "mir") == 0)
         return DISPLAY_SERVER (surfaceflinger_server_new ());
     else
     {
