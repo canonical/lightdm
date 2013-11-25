@@ -437,13 +437,12 @@ switch_to_greeter_from_failed_session (Seat *seat, Session *session)
         DisplayServer *display_server;
 
         display_server = create_display_server (seat, session_get_session_type (session));
+        session_set_display_server (session, display_server);
         if (!display_server_start (display_server))
         {
             l_debug (seat, "Failed to start display server for greeter");
             seat_stop (seat);
         }
-
-        session_set_display_server (session, display_server);
     }
 
     start_session (seat, SESSION (greeter_session));
@@ -1389,8 +1388,6 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
         return FALSE;
 
     display_server = create_display_server (seat, session_get_session_type (session));
-    if (!display_server_start (display_server))
-        return FALSE;
 
     if (seat->priv->session_to_activate)
         g_object_unref (seat->priv->session_to_activate);
@@ -1398,7 +1395,7 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
     session_set_pam_service (session, AUTOLOGIN_SERVICE);
     session_set_display_server (session, display_server);
 
-    return TRUE;
+    return display_server_start (display_server);
 }
 
 gboolean
@@ -1428,8 +1425,6 @@ seat_lock (Seat *seat, const gchar *username)
         return FALSE;
 
     display_server = create_display_server (seat, session_get_session_type (SESSION (greeter_session)));
-    if (!display_server_start (display_server))
-        return FALSE;
 
     if (seat->priv->session_to_activate)
         g_object_unref (seat->priv->session_to_activate);
@@ -1439,7 +1434,7 @@ seat_lock (Seat *seat, const gchar *username)
         greeter_set_hint (greeter_session, "select-user", username);
     session_set_display_server (SESSION (greeter_session), display_server);
 
-    return TRUE;
+    return display_server_start (display_server);
 }
 
 void
