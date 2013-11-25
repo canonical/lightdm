@@ -228,7 +228,6 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
             seat_set_property (next_seat, "exit-on-failure", "true");
 
         seat_set_property (next_seat, "type", next_types->str);
-        g_string_free (next_types, TRUE);
 
         display_manager_add_seat (display_manager, next_seat);
         g_object_unref (next_seat);
@@ -239,6 +238,8 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
         exit_code = EXIT_FAILURE;
         display_manager_stop (display_manager);
     }
+
+    g_string_free (next_types, TRUE);
 }
 
 static GVariant *
