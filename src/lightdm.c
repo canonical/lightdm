@@ -184,25 +184,30 @@ display_manager_stopped_cb (DisplayManager *display_manager)
 static void
 display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
-    const gchar *type;
     gchar **types;
     gchar **iter;
-    gboolean make_seats = FALSE;
     Seat *next_seat = NULL;
+    GString *next_types;
 
     /* If we have fallback types registered for the seat, let's try them
-       before giving up.  This code does not expect a type name to appear twice
-       in the type list.  It is a configuration error to do so. */
-    type = seat_get_type_name (seat);
+       before giving up. */
     types = seat_get_string_list_property (seat, "type");
+    next_types = g_string_new ("");
     for (iter = types; iter && *iter; iter++)
     {
-        if (g_strcmp0 (type, *iter) == 0)
-            make_seats = TRUE;
-        else if (make_seats) {
+        if (iter == types)
+            continue; // skip first one, that is our current seat type
+
+        if (!next_seat)
+        {
             next_seat = seat_new (*iter);
-            if (next_seat)
-                break;
+            g_string_assign (next_types, *iter);
+        }
+        else
+        {
+            // Build up list of types to try next time
+            g_string_append_c (next_types, ';');
+            g_string_append (next_types, *iter);
         }
     }
     g_strfreev (types);
@@ -221,6 +226,9 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
         // We set this manually on default seat.  Let's port it over if needed.
         if (seat_get_boolean_property (seat, "exit-on-failure"))
             seat_set_property (next_seat, "exit-on-failure", "true");
+
+        seat_set_property (next_seat, "type", next_types->str);
+        g_string_free (next_types, TRUE);
 
         display_manager_add_seat (display_manager, next_seat);
         g_object_unref (next_seat);

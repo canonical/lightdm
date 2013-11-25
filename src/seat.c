@@ -121,30 +121,6 @@ seat_new (const gchar *module_name)
     return seat;
 }
 
-const gchar *
-seat_get_type_name (Seat *seat)
-{
-    GList *values = NULL;
-    GList *iter;
-    const gchar *name = NULL;
-
-    if (seat_modules)
-        values = g_hash_table_get_values (seat_modules);
-
-    for (iter = values; iter; iter = iter->next)
-    {
-        SeatModule *module = (SeatModule *)iter->data;
-        if (module->type == G_OBJECT_TYPE (seat))
-        {
-            name = module->name;
-            break;
-        }
-    }
-
-    g_list_free (values);
-    return name;
-}
-
 void
 seat_set_property (Seat *seat, const gchar *name, const gchar *value)
 {
