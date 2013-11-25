@@ -193,14 +193,17 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
     /* If we have fallback types registered for the seat, let's try them
        before giving up.  This code does not expect a type name to appear twice
        in the type list.  It is a configuration error to do so. */
-    type = seat_get_type_name(seat);
+    type = seat_get_type_name (seat);
     types = seat_get_string_list_property (seat, "type");
-    for (iter = types; !next_seat && iter && *iter; iter++)
+    for (iter = types; iter && *iter; iter++)
     {
-        if (make_seats)
-            next_seat = seat_new (*iter);
-        else if (g_strcmp0 (type, *iter) == 0)
+        if (g_strcmp0 (type, *iter) == 0)
             make_seats = TRUE;
+        else if (make_seats) {
+            next_seat = seat_new (*iter);
+            if (next_seat)
+                break;
+        }
     }
     g_strfreev (types);
 
@@ -1249,8 +1252,12 @@ main (int argc, char **argv)
         types = config_get_string_list (config_get_instance (), config_section, "type");
         if (!types)
             types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
-        for (type = types; !seat && type && *type; type++)
+        for (type = types; type && *type; type++)
+        {
             seat = seat_new (*type);
+            if (seat)
+                break;
+        }
         g_strfreev (types);
         if (seat)
         {
@@ -1279,8 +1286,12 @@ main (int argc, char **argv)
         g_debug ("Adding default seat");
 
         types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
-        for (type = types; !seat && type && *type; type++)
+        for (type = types; type && *type; type++)
+        {
             seat = seat_new (*type);
+            if (seat)
+                break;
+        }
         g_strfreev (types);
         if (seat)
         {
