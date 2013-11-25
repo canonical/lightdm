@@ -430,13 +430,12 @@ switch_to_greeter_from_failed_session (Seat *seat, Session *session)
         DisplayServer *display_server;
 
         display_server = create_display_server (seat, session_get_session_type (session));
+        session_set_display_server (session, display_server);
         if (!display_server_start (display_server))
         {
             l_debug (seat, "Failed to start display server for greeter");
             seat_stop (seat);
         }
-
-        session_set_display_server (session, display_server);
     }
 
     start_session (seat, SESSION (greeter_session));
