@@ -805,6 +805,55 @@ vnc_connection_cb (VNCServer *server, GSocket *connection)
     g_object_unref (seat);
 }
 
+static int
+compare_strings (gconstpointer a, gconstpointer b)
+{
+    return strcmp (a, b);
+}
+
+static void
+load_config_directory (const gchar *path, GList **messages)
+{
+    GDir *dir;
+    GList *files = NULL, *link;
+    GError *error = NULL;
+
+    /* Find configuration files */
+    dir = g_dir_open (path, 0, &error);
+    if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+        g_printerr ("Failed to open configuration directory %s: %s\n", path, error->message);
+    g_clear_error (&error);
+    if (dir)
+    {
+        const gchar *name;
+        while ((name = g_dir_read_name (dir)))
+            files = g_list_append (files, g_strdup (name));
+        g_dir_close (dir);
+    }
+
+    /* Sort alphabetically and load onto existing configuration */
+    files = g_list_sort (files, compare_strings);
+    for (link = files; link; link = link->next)
+    {
+        gchar *filename = link->data;
+        gchar *conf_path;
+
+        conf_path = g_build_filename (path, filename, NULL);
+        if (g_str_has_suffix (filename, ".conf"))
+        {
+            *messages = g_list_append (*messages, g_strdup_printf ("Loading configuration from %s", conf_path));
+            config_load_from_file (config_get_instance (), conf_path, &error);
+            if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+                g_printerr ("Failed to load configuration from %s: %s\n", filename, error->message);
+            g_clear_error (&error);
+        }
+        else
+            g_debug ("Ignoring configuration file %s, it does not have .conf suffix", conf_path);
+        g_free (conf_path);
+    }
+    g_list_free_full (files, g_free);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -819,7 +868,7 @@ main (int argc, char **argv)
     gchar *xsessions_dir = NULL;
     gchar *remote_sessions_dir = NULL;
     gchar *xgreeters_dir = NULL;
-    gchar *config_dir;
+    gchar *config_dir, *config_d_dir = NULL;
     gchar *log_dir = NULL;
     gchar *run_dir = NULL;
     gchar *cache_dir = NULL;
@@ -827,7 +876,8 @@ main (int argc, char **argv)
     gchar *default_run_dir = g_strdup (RUN_DIR);
     gchar *default_cache_dir = g_strdup (CACHE_DIR);
     gboolean show_version = FALSE;
-    GOptionEntry options[] = 
+    GList *link, *messages = NULL;
+    GOptionEntry options[] =
     {
         { "config", 'c', 0, G_OPTION_ARG_STRING, &config_path,
           /* Help string for command line --config flag */
@@ -875,6 +925,8 @@ main (int argc, char **argv)
 #endif
     loop = g_main_loop_new (NULL, FALSE);
 
+    messages = g_list_append (messages, g_strdup_printf ("Starting Light Display Manager %s, UID=%i PID=%i", VERSION, getuid (), getpid ()));
+
     g_signal_connect (process_get_current (), "got-signal", G_CALLBACK (signal_cb), NULL);
 
     option_context = g_option_context_new (/* Arguments and description for --help test */
@@ -909,6 +961,7 @@ main (int argc, char **argv)
     else
     {
         config_dir = g_strdup (CONFIG_DIR);
+        config_d_dir = g_build_filename (config_dir, "lightdm.conf.d", NULL);
         config_path = g_build_filename (config_dir, "lightdm.conf", NULL);
     }
     config_set_string (config_get_instance (), "LightDM", "config-directory", config_dir);
@@ -972,7 +1025,12 @@ main (int argc, char **argv)
         default_cache_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "cache", NULL);
     }
 
-    /* Load config file */
+    /* Load config file(s) */
+    load_config_directory (SYSTEM_CONFIG_DIR, &messages);
+    if (config_d_dir)
+        load_config_directory (config_d_dir, &messages);
+    g_free (config_d_dir);
+    messages = g_list_append (messages, g_strdup_printf ("Loading configuration from %s", config_path));
     if (!config_load_from_file (config_get_instance (), config_path, &error))
     {
         gboolean is_empty;
@@ -987,6 +1045,7 @@ main (int argc, char **argv)
         }
     }
     g_clear_error (&error);
+    g_free (config_path);
 
     /* Set default values */
     if (!config_has_key (config_get_instance (), "LightDM", "start-default-seat"))
@@ -1066,10 +1125,10 @@ main (int argc, char **argv)
 
     log_init ();
 
-    g_debug ("Starting Light Display Manager %s, UID=%i PID=%i", VERSION, getuid (), getpid ());
-
-    g_debug ("Loaded configuration from %s", config_path);
-    g_free (config_path);
+    /* Show queued messages once logging is complete */
+    for (link = messages; link; link = link->next)
+        g_debug ("%s", (gchar *)link->data);
+    g_list_free_full (messages, g_free);
 
     g_debug ("Using D-Bus name %s", LIGHTDM_BUS_NAME);
     bus_id = g_bus_own_name (getuid () == 0 ? G_BUS_TYPE_SYSTEM : G_BUS_TYPE_SESSION,

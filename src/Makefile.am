@@ -86,6 +86,7 @@ lightdm_CFLAGS = \
 	-DRUN_DIR=\"$(localstatedir)/run/lightdm\" \
 	-DCACHE_DIR=\"$(localstatedir)/cache/lightdm\" \
 	-DXSESSIONS_DIR=\"$(datadir)/xsessions\" \
+	-DSYSTEM_CONFIG_DIR=\"$(pkgdatadir)/lightdm.conf.d\" \
 	-DREMOTE_SESSIONS_DIR=\"$(pkgdatadir)/remote-sessions\" \
 	-DXGREETERS_DIR=\"$(datadir)/xgreeters\"
 
