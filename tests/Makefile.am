@@ -11,6 +11,10 @@ TESTS = \
 	test-greeter-show-manual-login \
 	test-greeter-show-remote-login \
 	test-no-config \
+	test-additional-config \
+	test-additional-config-priority \
+	test-additional-system-config \
+	test-additional-system-config-priority \
 	test-headless \
 	test-autologin \
 	test-autologin-invalid-user \
@@ -232,6 +236,12 @@ EXTRA_DIST = \
 	data/xgreeters/test-qt5-greeter.desktop \
 	data/xsessions/alternative.desktop \
 	data/xsessions/default.desktop \
+	scripts/0-additional.conf \
+	scripts/1-additional.conf \
+	scripts/additional-config.conf \
+	scripts/additional-config-priority.conf \
+	scripts/additional-system-config.conf \
+	scripts/additional-system-config-priority.conf \
 	scripts/autologin.conf \
 	scripts/autologin-guest.conf \
 	scripts/autologin-guest-fail-setup-script.conf \
