@@ -27,8 +27,9 @@ Makefile.in.in
 ./missing
 ./mkinstalldirs
 ./omf.make
+./test-driver
 ./xmldocs.make
-data/apparmor/lightdm-guest-session
+data/lightdm-guest-session
 doc/html
 doc/lightdm-gobject-*.*
 doc/*.stamp
@@ -42,7 +43,7 @@ greeters/qt/ui_*.h
 liblightdm-gobject/*.gir
 liblightdm-gobject/*.typelib
 liblightdm-gobject/liblightdm-gobject-*.pc
-liblightdm-qt/liblightdm-qt4-*.pc
+liblightdm-qt/liblightdm-qt-*.pc
 liblightdm-qt/liblightdm-qt5-*.pc
 liblightdm-qt/*_moc*.cpp
 m4/*
@@ -57,6 +58,8 @@ src/ldm-marshal.c
 src/ldm-marshal.h
 src/lightdm
 src/lightdm-guest-session-wrapper
+tests/*.log
+tests/*.trs
 tests/data/passwd
 tests/src/*_moc*.cpp
 tests/src/dbus-env
