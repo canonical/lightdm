@@ -1805,7 +1805,8 @@ main (int argc, char **argv)
 {
     GMainLoop *loop;
     int i;
-    gchar *greeter = NULL, *script_name, *config_file, *path, *path1, *path2, *ld_preload, *ld_library_path, *home_dir;
+    gchar *greeter = NULL, *script_name, *config_file, *additional_system_config;
+    gchar *additional_config, *path, *path1, *path2, *ld_preload, *ld_library_path, *home_dir;
     GString *passwd_data, *group_data;
     GSource *status_source;
     gchar cwd[1024];
@@ -1937,6 +1938,34 @@ main (int argc, char **argv)
     if (!g_key_file_has_key (config, "test-runner-config", "have-config", NULL) || g_key_file_get_boolean (config, "test-runner-config", "have-config", NULL))
         if (system (g_strdup_printf ("cp %s %s/etc/lightdm/lightdm.conf", config_path, temp_dir)))
             perror ("Failed to copy configuration");
+
+    additional_system_config = g_key_file_get_string (config, "test-runner-config", "additional-system-config", NULL);
+    if (additional_system_config)
+    {
+        gchar **files;
+
+        g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/lightdm/lightdm.conf.d", temp_dir), 0755);
+
+        files = g_strsplit (additional_system_config, " ", -1);
+        for (i = 0; files[i]; i++)
+            if (system (g_strdup_printf ("cp %s/tests/scripts/%s %s/usr/share/lightdm/lightdm.conf.d", SRCDIR, files[i], temp_dir)))
+                perror ("Failed to copy configuration");
+        g_strfreev (files);
+    }
+
+    additional_config = g_key_file_get_string (config, "test-runner-config", "additional-config", NULL);
+    if (additional_config)
+    {
+        gchar **files;
+
+        g_mkdir_with_parents (g_strdup_printf ("%s/etc/lightdm/lightdm.conf.d", temp_dir), 0755);
+
+        files = g_strsplit (additional_config, " ", -1);
+        for (i = 0; files[i]; i++)
+            if (system (g_strdup_printf ("cp %s/tests/scripts/%s %s/etc/lightdm/lightdm.conf.d", SRCDIR, files[i], temp_dir)))
+                perror ("Failed to copy configuration");
+        g_strfreev (files);
+    }
 
     /* Always copy the script */
     if (system (g_strdup_printf ("cp %s %s/script", config_path, temp_dir)))
