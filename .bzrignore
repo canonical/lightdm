@@ -53,7 +53,7 @@ po/POTFILES
 po/stamp-it
 src/dm-tool
 src/lightdm
-src/lightdm-guest-session-wrapper
+src/lightdm-guest-session
 tests/*.log
 tests/*.trs
 tests/data/passwd
