@@ -52,7 +52,6 @@ TESTS = \
 	test-xdg-current-desktop \
 	test-xdg-seat \
 	test-language-env \
-	test-util-path \
 	test-session-stdout \
 	test-session-stderr \
 	test-session-stderr-multi-write \
@@ -157,6 +156,7 @@ TESTS = \
 	test-unity-compositor-command \
 	test-unity-compositor-fail-start \
 	test-unity-compositor-fail-ready \
+	test-unity-compositor-fallback \
 	test-unity-compositor-next-session \
 	test-unity-compositor-mir-next-session \
 	test-unity-autologin \
@@ -166,6 +166,7 @@ TESTS = \
 	test-unity-mir-autologin \
 	test-unity-mir-greeter-x-session \
 	test-unity-mir-greeter-mir-session \
+	test-unity-mir-lock-seat \
 	test-unity-mir-session-x-greeter \
 	test-unity-xdg-seat \
 	test-surfaceflinger-autologin
@@ -432,11 +433,13 @@ EXTRA_DIST = \
 	scripts/unity-compositor-command.conf \
 	scripts/unity-compositor-fail-ready.conf \
 	scripts/unity-compositor-fail-start.conf \
+	scripts/unity-compositor-fallback.conf \
 	scripts/unity-compositor-mir-next-session.conf \
 	scripts/unity-compositor-next-session.conf \
 	scripts/unity-login.conf \
 	scripts/unity-mir-autologin.conf \
 	scripts/unity-mir-greeter-mir-session.conf \
+	scripts/unity-mir-lock-seat.conf \
 	scripts/unity-mir-greeter-x-session.conf \
 	scripts/unity-mir-session-x-greeter.conf \
 	scripts/unity-plymouth.conf \
@@ -451,7 +454,6 @@ EXTRA_DIST = \
 	scripts/user-layout.conf \
 	scripts/user-logged-in.conf \
 	scripts/user-name.conf \
-	scripts/util-path.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
 	scripts/user-session.conf \

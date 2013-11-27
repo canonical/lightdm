@@ -48,6 +48,10 @@ void config_set_string (Configuration *config, const gchar *section, const gchar
 
 gchar *config_get_string (Configuration *config, const gchar *section, const gchar *key);
 
+void config_set_string_list (Configuration *config, const gchar *section, const gchar *key, const gchar **value, gsize length);
+
+gchar **config_get_string_list (Configuration *config, const gchar *section, const gchar *key);
+
 void config_set_integer (Configuration *config, const gchar *section, const gchar *key, gint value);
 
 gint config_get_integer (Configuration *config, const gchar *section, const gchar *key);

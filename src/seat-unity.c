@@ -69,9 +69,6 @@ struct SeatUnityPrivate
     gint next_x_server_id;
     gint next_greeter_id;
 
-    /* TRUE if using VT switching fallback */
-    gboolean use_vt_switching;
-
     /* The currently visible session */
     Session *active_session;
     DisplayServer *active_display_server;
@@ -106,15 +103,6 @@ compositor_stopped_cb (Process *process, SeatUnity *seat)
     if (seat_get_is_stopping (SEAT (seat)))
     {
         SEAT_CLASS (seat_unity_parent_class)->stop (SEAT (seat));
-        return;
-    }
-
-    /* If stopped before it was ready, then revert to VT mode */
-    if (!seat->priv->compositor_ready)
-    {
-        l_debug (seat, "Compositor failed to start, switching to VT mode");
-        seat->priv->use_vt_switching = TRUE;
-        SEAT_CLASS (seat_unity_parent_class)->start (SEAT (seat));
         return;
     }
 
@@ -410,6 +398,7 @@ create_x_server (Seat *seat)
     const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL, *xdg_seat = NULL;
     gboolean allow_tcp;
     gint port = 0;
+    gchar *id;
 
     l_debug (seat, "Starting X server on Unity compositor");
 
@@ -419,18 +408,11 @@ create_x_server (Seat *seat)
     if (command)
         x_server_local_set_command (x_server, command);
 
-    if (SEAT_UNITY (seat)->priv->use_vt_switching)
-        x_server_local_set_vt (x_server, vt_get_unused ());
-    else
-    {
-        gchar *id;
-
-        id = g_strdup_printf ("x-%d", SEAT_UNITY (seat)->priv->next_x_server_id);
-        SEAT_UNITY (seat)->priv->next_x_server_id++;
-        x_server_local_set_mir_id (x_server, id);
-        x_server_local_set_mir_socket (x_server, SEAT_UNITY (seat)->priv->mir_socket_filename);
-        g_free (id);
-    }
+    id = g_strdup_printf ("x-%d", SEAT_UNITY (seat)->priv->next_x_server_id);
+    SEAT_UNITY (seat)->priv->next_x_server_id++;
+    x_server_local_set_mir_id (x_server, id);
+    x_server_local_set_mir_socket (x_server, SEAT_UNITY (seat)->priv->mir_socket_filename);
+    g_free (id);
 
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)
@@ -502,9 +484,6 @@ create_mir_server (Seat *seat)
     mir_server = mir_server_new ();
     mir_server_set_parent_socket (mir_server, SEAT_UNITY (seat)->priv->mir_socket_filename);
 
-    if (SEAT_UNITY (seat)->priv->use_vt_switching)
-        mir_server_set_vt (mir_server, vt_get_unused ());
-
     return DISPLAY_SERVER (mir_server);
 }
 
@@ -528,7 +507,7 @@ seat_unity_create_greeter_session (Seat *seat)
     Greeter *greeter_session;
     const gchar *xdg_seat;
     gchar *id;
-    gint vt = -1;
+    gint vt;
 
     greeter_session = SEAT_CLASS (seat_unity_parent_class)->create_greeter_session (seat);
     xdg_seat = seat_get_string_property (seat, "xdg-seat");
@@ -542,9 +521,7 @@ seat_unity_create_greeter_session (Seat *seat)
     session_set_env (SESSION (greeter_session), "MIR_SERVER_NAME", id);
     g_free (id);
 
-    if (!SEAT_UNITY (seat)->priv->use_vt_switching)
-        vt = SEAT_UNITY (seat)->priv->vt;
-
+    vt = SEAT_UNITY (seat)->priv->vt;
     if (vt >= 0)
     {
         gchar *value = g_strdup_printf ("%d", vt);
@@ -564,7 +541,7 @@ seat_unity_create_session (Seat *seat)
     Session *session;
     const gchar *xdg_seat;
     gchar *id;
-    gint vt = -1;
+    gint vt;
 
     session = SEAT_CLASS (seat_unity_parent_class)->create_session (seat);
     xdg_seat = seat_get_string_property (seat, "xdg-seat");
@@ -578,9 +555,7 @@ seat_unity_create_session (Seat *seat)
     session_set_env (session, "MIR_SERVER_NAME", id);
     g_free (id);
 
-    if (!SEAT_UNITY (seat)->priv->use_vt_switching)
-        vt = SEAT_UNITY (seat)->priv->vt;
-
+    vt = SEAT_UNITY (seat)->priv->vt;
     if (vt >= 0)
     {
         gchar *value = g_strdup_printf ("%d", vt);
@@ -598,17 +573,6 @@ static void
 seat_unity_set_active_session (Seat *seat, Session *session)
 {
     DisplayServer *display_server;
-
-    /* If no compositor, have to use VT switching */
-    if (SEAT_UNITY (seat)->priv->use_vt_switching)
-    {
-        gint vt = display_server_get_vt (session_get_display_server (session));
-        if (vt >= 0)
-            vt_set_active (vt);
-
-        SEAT_CLASS (seat_unity_parent_class)->set_active_session (seat, session);
-        return;
-    }
 
     if (session == SEAT_UNITY (seat)->priv->active_session)
         return;
@@ -641,24 +605,6 @@ seat_unity_set_active_session (Seat *seat, Session *session)
 static Session *
 seat_unity_get_active_session (Seat *seat)
 {
-    if (SEAT_UNITY (seat)->priv->use_vt_switching)
-    {
-        gint vt;
-        GList *link;
-        vt = vt_get_active ();
-        if (vt < 0)
-            return NULL;
-
-        for (link = seat_get_sessions (seat); link; link = link->next)
-        {
-            Session *session = link->data;
-            if (display_server_get_vt (session_get_display_server (session)) == vt)
-                return session;
-        }
-
-        return NULL;
-    }
-
     return SEAT_UNITY (seat)->priv->active_session;
 }
 
@@ -669,10 +615,6 @@ seat_unity_set_next_session (Seat *seat, Session *session)
     const gchar *id = NULL;
 
     if (!session)
-        return;
-
-    /* If no compositor, don't worry about it */
-    if (SEAT_UNITY (seat)->priv->use_vt_switching)
         return;
 
     display_server = session_get_display_server (session);
