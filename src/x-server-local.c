@@ -178,7 +178,7 @@ void
 x_server_local_set_vt (XServerLocal *server, gint vt)
 {
     g_return_if_fail (server != NULL);
-    if (server->priv->vt > 0)
+    if (server->priv->have_vt_ref)
         vt_unref (server->priv->vt);
     server->priv->have_vt_ref = FALSE;
     server->priv->vt = vt;
@@ -586,7 +586,7 @@ x_server_local_finalize (GObject *object)
     g_free (self->priv->mir_id);
     g_free (self->priv->mir_socket);
     g_free (self->priv->authority_file);
-    if (self->priv->vt > 0)
+    if (self->priv->have_vt_ref)
         vt_unref (self->priv->vt);
     g_free (self->priv->background);
 
