@@ -2,4 +2,4 @@
 # Please keep this file sorted alphabetically.
 [encoding: UTF-8]
 src/lightdm.c
-utils/dm-tool.c
+src/dm-tool.c
