@@ -1,3 +1,19 @@
+lightdm (1.9.4-0ubuntu1) trusty; urgency=low
+
+  * New upstream release:
+    - Fix issue where VTs are double used when switching sessions.
+      (LP: #1256150)
+    - Remove lightdm-set-defaults and gdmflexiserver.
+    - Add new ability to specify a list of seat types to try, rather than just
+      one.
+    - Allow Mir sessions in the surfaceflinger seat.
+    - Rename the guest session wrapper to have a simpler name.
+    - Make sure sessions are associated with the display server before starting
+      them.
+    - Add a dm-tool man page.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 03 Dec 2013 19:07:28 +1300
+
 lightdm (1.9.3-0ubuntu1) trusty; urgency=low
 
   * New upstream release:

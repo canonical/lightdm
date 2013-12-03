@@ -1,3 +1,15 @@
+Overview of changes in lightdm 1.9.4
+
+    * Fix issue where VTs are double used when switching sessions.
+    * Remove lightdm-set-defaults and gdmflexiserver.
+    * Add new ability to specify a list of seat types to try, rather than just
+      one.
+    * Allow Mir sessions in the surfaceflinger seat.
+    * Rename the guest session wrapper to have a simpler name.
+    * Make sure sessions are associated with the display server before starting
+      them.
+    * Add a dm-tool man page.
+
 Overview of changes in lightdm 1.9.3
 
     * Don't pass system user accounts from AccountsService to greeters.
