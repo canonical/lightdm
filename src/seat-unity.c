@@ -314,7 +314,7 @@ seat_unity_start (Seat *seat)
     if (plymouth_get_is_active ())
         plymouth_quit (FALSE);
     if (SEAT_UNITY (seat)->priv->vt < 0)
-        SEAT_UNITY (seat)->priv->vt = vt_get_unused ();
+        SEAT_UNITY (seat)->priv->vt = vt_can_multi_seat () ? vt_get_unused () : 0;
     if (SEAT_UNITY (seat)->priv->vt < 0)
     {
         l_debug (seat, "Failed to get a VT to run on");
