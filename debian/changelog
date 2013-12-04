@@ -1,3 +1,11 @@
+lightdm (1.9.5-0ubuntu1) trusty; urgency=low
+
+  * New upstream release:
+    - In the unity seat, if we don't have proper VT support, fake VT 0 instead
+      of a real VT number. This matches what logind expects.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 05 Dec 2013 09:35:42 +1300
+
 lightdm (1.9.4-0ubuntu1) trusty; urgency=low
 
   * New upstream release:

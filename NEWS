@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.9.5
+
+    * In the unity seat, if we don't have proper VT support, fake VT 0 instead
+      of a real VT number. This matches what logind expects.
+
 Overview of changes in lightdm 1.9.4
 
     * Fix issue where VTs are double used when switching sessions.
