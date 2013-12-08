@@ -90,6 +90,7 @@ mir_server_init (MirServer *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, MIR_SERVER_TYPE, MirServerPrivate);
     server->priv->vt = -1;
+    display_server_set_name (DISPLAY_SERVER (server), "mir");
 }
 
 static void
