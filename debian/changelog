@@ -21,6 +21,7 @@ lightdm (1.2.6-0ubuntu1) UNRELEASED; urgency=low
     - Tidy up
     - Compile with --parallel
     - Use ./autogen.sh when running dh_autoreconf
+    - Don't try and remove non-existant /usr/share/help/C
   * debian/patches/05_lp577919-fix-chromium-launch.patch:
     - Applied upstream
 
