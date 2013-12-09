@@ -221,9 +221,6 @@ session_child_run (int argc, char **argv)
     GDBusConnection *bus;
     gchar *console_kit_cookie = NULL;
     gchar *login1_session = NULL;
-
-    const gchar *path;
-    GError *error = NULL;
     const gchar *locale_value;
     gchar *locale_var;
     static const gchar * const locale_var_names[] = {
@@ -237,6 +234,7 @@ session_child_run (int argc, char **argv)
         "LANG",
         NULL
     };
+    GError *error = NULL;
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
