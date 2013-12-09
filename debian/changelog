@@ -24,6 +24,7 @@ lightdm (1.4.5-0ubuntu1) UNRELEASED; urgency=low
   * debian/rules:
     - Tidy up
     - Compile with --parallel
+    - Use ./autogen.sh when running dh_autoreconf
   * debian/patches/08_lp1059510.patch:
   * debian/patches/09_lp577919-fix-chromium-launch.patch:
     - Applied upstream
