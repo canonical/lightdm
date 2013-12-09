@@ -5,6 +5,9 @@ LDFLAGS+=-Wl,--as-needed
 %:
 	dh $@ --with quilt,autoreconf,translations --parallel
 
+override_dh_autoreconf:
+	NOCONFIGURE=1 dh_autoreconf ./autogen.sh
+
 # NOTE: Using GNOME for now, but we still need a proper configuration system
 # See https://launchpad.net/bugs/799754
 override_dh_auto_configure:
