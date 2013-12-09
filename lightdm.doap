@@ -7,7 +7,7 @@
   <name xml:lang="en">lightdm</name>
   <shortdesc xml:lang="en">X Display Manager</shortdesc>
   <homepage rdf:resource="https://launchpad.net/lightdm" />
-  <download-page rdf:resource="http://people.ubuntu.com/~robert-ancell/lightdm/" />
+  <download-page rdf:resource="https://launchpad.net/lightdm/+download" />
   <bug-database rdf:resource="https://bugs.launchpad.net/lightdm" />
   <category rdf:resource="http://api.gnome.org/doap-extensions#desktop" />
 
