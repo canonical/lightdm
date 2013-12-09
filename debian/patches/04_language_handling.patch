@@ -2,10 +2,10 @@ Description: Adjustments due to handling of languages
 Forwarded: not-needed
 Author: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
 
-Index: guest-desktop-session/liblightdm-gobject/language.c
+Index: trunk/liblightdm-gobject/language.c
 ===================================================================
---- guest-desktop-session.orig/liblightdm-gobject/language.c	2013-10-04 12:01:29.437363620 +1300
-+++ guest-desktop-session/liblightdm-gobject/language.c	2013-10-04 12:01:29.433363621 +1300
+--- trunk.orig/liblightdm-gobject/language.c	2013-12-09 17:13:51.362244753 +1300
++++ trunk/liblightdm-gobject/language.c	2013-12-09 17:13:51.298244756 +1300
 @@ -40,7 +40,7 @@
  static void
  update_languages (void)
@@ -15,10 +15,10 @@ Index: guest-desktop-session/liblightdm-gobject/language.c
      gchar *stdout_text = NULL, *stderr_text = NULL;
      gint exit_status;
      gboolean result;
-Index: guest-desktop-session/tests/scripts/language-env.conf
+Index: trunk/tests/scripts/language-env.conf
 ===================================================================
---- guest-desktop-session.orig/tests/scripts/language-env.conf	2013-10-04 12:01:29.437363620 +1300
-+++ guest-desktop-session/tests/scripts/language-env.conf	2013-10-04 12:01:29.433363621 +1300
+--- trunk.orig/tests/scripts/language-env.conf	2013-12-09 17:13:51.362244753 +1300
++++ trunk/tests/scripts/language-env.conf	2013-12-09 17:13:51.338244754 +1300
 @@ -22,8 +22,8 @@
  #?SESSION-X-0 CONNECT-XSERVER
  
@@ -30,11 +30,11 @@ Index: guest-desktop-session/tests/scripts/language-env.conf
  #?*SESSION-X-0 READ-ENV NAME=GDM_LANG
  #?SESSION-X-0 READ-ENV NAME=GDM_LANG VALUE=en_AU
  
-Index: guest-desktop-session/src/seat.c
+Index: trunk/src/seat.c
 ===================================================================
---- guest-desktop-session.orig/src/seat.c	2013-10-04 12:01:29.437363620 +1300
-+++ guest-desktop-session/src/seat.c	2013-10-04 12:01:29.433363621 +1300
-@@ -822,7 +822,7 @@
+--- trunk.orig/src/seat.c	2013-12-09 17:13:51.362244753 +1300
++++ trunk/src/seat.c	2013-12-09 17:13:51.358244753 +1300
+@@ -842,7 +842,7 @@
          session_set_env (session, "XDG_CURRENT_DESKTOP", desktop_name);
      if (language && language[0] != '\0')
      {

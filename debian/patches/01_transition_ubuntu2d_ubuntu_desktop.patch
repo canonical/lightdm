@@ -2,13 +2,13 @@
 #              starting from quantal. llvmpipe is used in case no hardware
 #              acceleration is available.
 === modified file 'liblightdm-gobject/user.c'
-Index: user-refactor/liblightdm-gobject/user.c
+Index: trunk/liblightdm-gobject/user.c
 ===================================================================
---- user-refactor.orig/liblightdm-gobject/user.c	2013-10-29 16:16:48.505903621 -0700
-+++ user-refactor/liblightdm-gobject/user.c	2013-10-29 16:16:48.501905620 -0700
-@@ -1115,6 +1115,12 @@
-         load_accounts_user (user);
-     else
+--- trunk.orig/liblightdm-gobject/user.c	2013-12-09 17:13:47.918244873 +1300
++++ trunk/liblightdm-gobject/user.c	2013-12-09 17:13:47.910244873 +1300
+@@ -1123,6 +1123,12 @@
+ 
+     if (!priv->path)
          load_dmrc (user);
 + 
 +    if (g_strcmp0 (priv->session, "ubuntu-2d") == 0)
