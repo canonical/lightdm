@@ -22,6 +22,7 @@ override_dh_install:
 	# we do install pam through installpam and init through installinit
 	dh_install -X.a -X.la -Xpam.d -X'etc/init/lightdm.conf' --fail-missing
 	chmod +x debian/lightdm/usr/lib/lightdm/lightdm-greeter-session
+	chmod +x debian/lightdm/usr/lib/lightdm/guest-session-auto.sh
 
 override_dh_installinit:
 	dh_installinit --no-start

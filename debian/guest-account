@@ -71,10 +71,12 @@ add_account ()
     fi
   done
 
-  echo "[Desktop Entry]" >> "$HOME"/.config/autostart/screenlocking.desktop
-  echo "Name='Disable screen locking in guest session'" >> "$HOME"/.config/autostart/screenlocking.desktop
-  echo "Type=Application" >> "$HOME"/.config/autostart/screenlocking.desktop
-  echo "Exec=gsettings set org.gnome.desktop.lockdown disable-lock-screen true" >> "$HOME"/.config/autostart/screenlocking.desktop
+  STARTUP="$HOME"/.config/autostart/startup-commands.desktop
+  echo "[Desktop Entry]" > $STARTUP
+  echo "Name=Startup commands" >> $STARTUP
+  echo "Type=Application" >> $STARTUP
+  echo "NoDisplay=true" >> $STARTUP
+  echo "Exec=/usr/lib/lightdm/guest-session-auto.sh" >> $STARTUP
 
   mkdir -p "$HOME"/.kde/share/config
   echo "[Basic Settings]" >> "$HOME"/.kde/share/config/nepomukserverrc
