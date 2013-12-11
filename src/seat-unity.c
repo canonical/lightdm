@@ -16,53 +16,16 @@
 
 #include "seat-unity.h"
 #include "configuration.h"
+#include "unity-system-compositor.h"
 #include "x-server-local.h"
 #include "mir-server.h"
 #include "vt.h"
 #include "plymouth.h"
 
-typedef enum
-{
-   USC_MESSAGE_PING = 0,
-   USC_MESSAGE_PONG = 1,
-   USC_MESSAGE_READY = 2,
-   USC_MESSAGE_SESSION_CONNECTED = 3,
-   USC_MESSAGE_SET_ACTIVE_SESSION = 4,
-   USC_MESSAGE_SET_NEXT_SESSION = 5,
-} USCMessageID;
-
 struct SeatUnityPrivate
 {
-    /* VT we are running on */
-    gint vt;
-
-    /* File to log to */
-    gchar *log_file;
-
-    /* Filename of Mir socket */
-    gchar *mir_socket_filename;
-
-    /* Pipes to communicate with compositor */
-    int to_compositor_pipe[2];
-    int from_compositor_pipe[2];
-
-    /* IO channel listening on for messages from the compositor */
-    GIOChannel *from_compositor_channel;
-    guint from_compositor_watch;
-
-    /* TRUE when the compositor indicates it is ready */
-    gboolean compositor_ready;
-
-    /* Buffer reading from channel */
-    guint8 *read_buffer;
-    gsize read_buffer_length;
-    gsize read_buffer_n_used;
-
-    /* Compositor process */
-    Process *compositor_process;
-
-    /* Timeout when waiting for compositor to start */
-    guint compositor_timeout;
+    /* System compositor */
+    UnitySystemCompositor *compositor;
 
     /* Next Mir ID to use for a Mir sessions, X server and greeters */
     gint next_session_id;
@@ -90,15 +53,17 @@ seat_unity_setup (Seat *seat)
 }
 
 static void
-compositor_stopped_cb (Process *process, SeatUnity *seat)
+compositor_ready_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
 {
-    if (seat->priv->compositor_timeout != 0)
-        g_source_remove (seat->priv->compositor_timeout);
-    seat->priv->compositor_timeout = 0;
+    l_debug (seat, "Compositor ready"); 
+    SEAT_CLASS (seat_unity_parent_class)->start (SEAT (seat));
+}
 
-    /* Finished with the VT */
-    vt_unref (seat->priv->vt);
-    seat->priv->vt = -1;
+static void
+compositor_stopped_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
+{
+    g_object_unref (seat->priv->compositor);
+    seat->priv->compositor = NULL;
 
     if (seat_get_is_stopping (SEAT (seat)))
     {
@@ -111,192 +76,10 @@ compositor_stopped_cb (Process *process, SeatUnity *seat)
     seat_stop (SEAT (seat));
 }
 
-static void
-compositor_run_cb (Process *process, SeatUnity *seat)
-{
-    int fd;
-
-    /* Make input non-blocking */
-    fd = open ("/dev/null", O_RDONLY);
-    dup2 (fd, STDIN_FILENO);
-    close (fd);
-
-    /* Redirect output to logfile */
-    if (seat->priv->log_file)
-    {
-         int fd;
-         gchar *old_filename;
-
-         /* Move old file out of the way */
-         old_filename = g_strdup_printf ("%s.old", seat->priv->log_file);
-         rename (seat->priv->log_file, old_filename);
-         g_free (old_filename);
-
-         /* Create new file and log to it */
-         fd = g_open (seat->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-         if (fd < 0)
-             l_warning (seat, "Failed to open log file %s: %s", seat->priv->log_file, g_strerror (errno));
-         else
-         {
-             dup2 (fd, STDOUT_FILENO);
-             dup2 (fd, STDERR_FILENO);
-             close (fd);
-         }
-    }
-}
-
-static void
-write_message (SeatUnity *seat, guint16 id, const guint8 *payload, guint16 payload_length)
-{
-    guint8 *data;
-    gsize data_length = 4 + payload_length;
-
-    data = g_malloc (data_length);
-    data[0] = id >> 8;
-    data[1] = id & 0xFF;
-    data[2] = payload_length >> 8;
-    data[3] = payload_length & 0xFF;
-    memcpy (data + 4, payload, payload_length);
-
-    errno = 0;
-    if (write (seat->priv->to_compositor_pipe[1], data, data_length) != data_length)
-        l_warning (seat, "Failed to write to compositor: %s", strerror (errno));
-}
-
-static gboolean
-read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
-{
-    SeatUnity *seat = data;
-    gsize n_to_read = 0;
-    guint16 id, payload_length;
-    /*guint8 *payload;*/
-  
-    if (condition == G_IO_HUP)
-    {
-        l_debug (seat, "Compositor closed communication channel");
-        return FALSE;
-    }
-
-    /* Work out how much required for a message */
-    if (seat->priv->read_buffer_n_used < 4)
-        n_to_read = 4 - seat->priv->read_buffer_n_used;
-    else
-    {
-        payload_length = seat->priv->read_buffer[2] << 8 | seat->priv->read_buffer[3];
-        n_to_read = 4 + payload_length - seat->priv->read_buffer_n_used;
-    }
-
-    /* Read from compositor */
-    if (n_to_read > 0)
-    {
-        gsize n_total, n_read = 0;
-        GIOStatus status;
-        GError *error = NULL;
-
-        n_total = seat->priv->read_buffer_n_used + n_to_read;
-        if (seat->priv->read_buffer_length < n_total)
-            seat->priv->read_buffer = g_realloc (seat->priv->read_buffer, n_total);
-
-        status = g_io_channel_read_chars (source,
-                                          (gchar *)seat->priv->read_buffer + seat->priv->read_buffer_n_used,
-                                          n_to_read,
-                                          &n_read,
-                                          &error);
-        if (error)
-            l_warning (seat, "Failed to read from compositor: %s", error->message);
-        if (status != G_IO_STATUS_NORMAL)
-            return TRUE;
-        g_clear_error (&error);
-        seat->priv->read_buffer_n_used += n_read;
-    }
-
-    /* Read header */
-    if (seat->priv->read_buffer_n_used < 4)
-         return TRUE;
-    id = seat->priv->read_buffer[0] << 8 | seat->priv->read_buffer[1];
-    payload_length = seat->priv->read_buffer[2] << 8 | seat->priv->read_buffer[3];
-
-    /* Read payload */
-    if (seat->priv->read_buffer_n_used < 4 + payload_length)
-        return TRUE;
-    /*payload = seat->priv->read_buffer + 4;*/
-
-    switch (id)
-    {
-    case USC_MESSAGE_PING:
-        l_debug (seat, "PING!");
-        write_message (seat, USC_MESSAGE_PONG, NULL, 0);
-        break;
-    case USC_MESSAGE_PONG:
-        l_debug (seat, "PONG!");
-        break;
-    case USC_MESSAGE_READY:
-        l_debug (seat, "READY");
-        if (!seat->priv->compositor_ready)
-        {
-            seat->priv->compositor_ready = TRUE;
-            l_debug (seat, "Compositor ready");
-            g_source_remove (seat->priv->compositor_timeout);
-            seat->priv->compositor_timeout = 0;
-            SEAT_CLASS (seat_unity_parent_class)->start (SEAT (seat));
-        }
-        break;
-    case USC_MESSAGE_SESSION_CONNECTED:
-        l_debug (seat, "SESSION CONNECTED");
-        break;
-    default:
-        l_warning (seat, "Ignoring unknown message %d with %d octets from system compositor", id, payload_length);
-        break;
-    }
-
-    /* Clear buffer */
-    seat->priv->read_buffer_n_used = 0;
-
-    return TRUE;
-}
-
-static gchar *
-get_absolute_command (const gchar *command)
-{
-    gchar **tokens;
-    gchar *absolute_binary, *absolute_command = NULL;
-
-    tokens = g_strsplit (command, " ", 2);
-
-    absolute_binary = g_find_program_in_path (tokens[0]);
-    if (absolute_binary)
-    {
-        if (tokens[1])
-            absolute_command = g_strjoin (" ", absolute_binary, tokens[1], NULL);
-        else
-            absolute_command = g_strdup (absolute_binary);
-        g_free (absolute_binary);
-    }
-    else
-        absolute_command = g_strdup (command);
-
-    g_strfreev (tokens);
-
-    return absolute_command;
-}
-
-static gboolean
-compositor_timeout_cb (gpointer data)
-{
-    SeatUnity *seat = data;
-
-    /* Stop the compositor - it is not working */
-    process_stop (seat->priv->compositor_process);
-
-    return TRUE;
-}
-
 static gboolean
 seat_unity_start (Seat *seat)
 {
-    const gchar *compositor_command;
-    gchar *command, *absolute_command, *dir, *value;
-    gboolean result;
+    gint vt = -1;
     int timeout;
 
     /* Replace Plymouth if it is running */
@@ -305,7 +88,7 @@ seat_unity_start (Seat *seat)
         gint active_vt = vt_get_active ();
         if (active_vt >= vt_get_min ())
         {
-            SEAT_UNITY (seat)->priv->vt = active_vt;
+            vt = active_vt;
             plymouth_quit (TRUE);
         }
         else
@@ -313,82 +96,26 @@ seat_unity_start (Seat *seat)
     }
     if (plymouth_get_is_active ())
         plymouth_quit (FALSE);
-    if (SEAT_UNITY (seat)->priv->vt < 0)
-        SEAT_UNITY (seat)->priv->vt = vt_can_multi_seat () ? vt_get_unused () : 0;
-    if (SEAT_UNITY (seat)->priv->vt < 0)
+    if (vt < 0)
+        vt = vt_can_multi_seat () ? vt_get_unused () : 0;
+    if (vt < 0)
     {
         l_debug (seat, "Failed to get a VT to run on");
         return FALSE;
     }
-    vt_ref (SEAT_UNITY (seat)->priv->vt);
 
-    /* Create pipes to talk to compositor */
-    if (pipe (SEAT_UNITY (seat)->priv->to_compositor_pipe) < 0 || pipe (SEAT_UNITY (seat)->priv->from_compositor_pipe) < 0)
-    {
-        l_debug (seat, "Failed to create compositor pipes: %s", g_strerror (errno));
-        return FALSE;
-    }
-
-    /* Don't allow the daemon end of the pipes to be accessed in the compositor */
-    fcntl (SEAT_UNITY (seat)->priv->to_compositor_pipe[1], F_SETFD, FD_CLOEXEC);
-    fcntl (SEAT_UNITY (seat)->priv->from_compositor_pipe[0], F_SETFD, FD_CLOEXEC);
-
-    /* Listen for messages from the compositor */
-    SEAT_UNITY (seat)->priv->from_compositor_channel = g_io_channel_unix_new (SEAT_UNITY (seat)->priv->from_compositor_pipe[0]);
-    SEAT_UNITY (seat)->priv->from_compositor_watch = g_io_add_watch (SEAT_UNITY (seat)->priv->from_compositor_channel, G_IO_IN | G_IO_HUP, read_cb, seat);
-
-    /* Setup logging */
-    dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    SEAT_UNITY (seat)->priv->log_file = g_build_filename (dir, "unity-system-compositor.log", NULL);
-    l_debug (seat, "Logging to %s", SEAT_UNITY (seat)->priv->log_file);
-    g_free (dir);
-
-    /* Setup environment */
-    process_set_clear_environment (SEAT_UNITY (seat)->priv->compositor_process, TRUE);
-    process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "XDG_SEAT", "seat0");
-    value = g_strdup_printf ("%d", SEAT_UNITY (seat)->priv->vt);
-    process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "XDG_VTNR", value);
-    g_free (value);
-    /* Variable required for regression tests */
-    if (g_getenv ("LIGHTDM_TEST_ROOT"))
-    {
-        process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
-        process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
-        process_set_env (SEAT_UNITY (seat)->priv->compositor_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
-    }
-
-    SEAT_UNITY (seat)->priv->mir_socket_filename = g_strdup ("/tmp/mir_socket"); // FIXME: Use this socket by default as XMir is hardcoded to this
-    timeout = seat_get_integer_property (seat, "unity-compositor-timeout");
-    compositor_command = seat_get_string_property (seat, "unity-compositor-command");
-    command = g_strdup_printf ("%s --file '%s' --from-dm-fd %d --to-dm-fd %d --vt %d", compositor_command, SEAT_UNITY (seat)->priv->mir_socket_filename, SEAT_UNITY (seat)->priv->to_compositor_pipe[0], SEAT_UNITY (seat)->priv->from_compositor_pipe[1], SEAT_UNITY (seat)->priv->vt);
-
-    absolute_command = get_absolute_command (command);
-    g_free (command);
-
-    /* Start the compositor */
-    process_set_command (SEAT_UNITY (seat)->priv->compositor_process, absolute_command);
-    g_free (absolute_command);
-    g_signal_connect (SEAT_UNITY (seat)->priv->compositor_process, "stopped", G_CALLBACK (compositor_stopped_cb), seat);
-    g_signal_connect (SEAT_UNITY (seat)->priv->compositor_process, "run", G_CALLBACK (compositor_run_cb), seat);
-    result = process_start (SEAT_UNITY (seat)->priv->compositor_process, FALSE);
-
-    /* Close compostor ends of the pipes */
-    close (SEAT_UNITY (seat)->priv->to_compositor_pipe[0]);
-    SEAT_UNITY (seat)->priv->to_compositor_pipe[0] = 0;
-    close (SEAT_UNITY (seat)->priv->from_compositor_pipe[1]);
-    SEAT_UNITY (seat)->priv->from_compositor_pipe[1] = 0;
-
-    if (!result)
-        return FALSE;
-
-    /* Connect to the compositor */
     timeout = seat_get_integer_property (seat, "unity-compositor-timeout");
     if (timeout <= 0)
         timeout = 60;
-    l_debug (seat, "Waiting for system compositor for %ds", timeout);
-    SEAT_UNITY (seat)->priv->compositor_timeout = g_timeout_add (timeout * 1000, compositor_timeout_cb, seat);
 
-    return TRUE;
+    SEAT_UNITY (seat)->priv->compositor = unity_system_compositor_new ();
+    g_signal_connect (SEAT_UNITY (seat)->priv->compositor, "ready", G_CALLBACK (compositor_ready_cb), seat);
+    g_signal_connect (SEAT_UNITY (seat)->priv->compositor, "stopped", G_CALLBACK (compositor_stopped_cb), seat);
+    unity_system_compositor_set_command (SEAT_UNITY (seat)->priv->compositor, seat_get_string_property (seat, "unity-compositor-command"));
+    unity_system_compositor_set_vt (SEAT_UNITY (seat)->priv->compositor, vt);
+    unity_system_compositor_set_timeout (SEAT_UNITY (seat)->priv->compositor, timeout);
+
+    return display_server_start (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor));
 }
 
 static DisplayServer *
@@ -411,7 +138,7 @@ create_x_server (Seat *seat)
     id = g_strdup_printf ("x-%d", SEAT_UNITY (seat)->priv->next_x_server_id);
     SEAT_UNITY (seat)->priv->next_x_server_id++;
     x_server_local_set_mir_id (x_server, id);
-    x_server_local_set_mir_socket (x_server, SEAT_UNITY (seat)->priv->mir_socket_filename);
+    x_server_local_set_mir_socket (x_server, unity_system_compositor_get_socket (SEAT_UNITY (seat)->priv->compositor));
     g_free (id);
 
     layout = seat_get_string_property (seat, "xserver-layout");
@@ -482,7 +209,7 @@ create_mir_server (Seat *seat)
     MirServer *mir_server;
 
     mir_server = mir_server_new ();
-    mir_server_set_parent_socket (mir_server, SEAT_UNITY (seat)->priv->mir_socket_filename);
+    mir_server_set_parent_socket (mir_server, unity_system_compositor_get_socket (SEAT_UNITY (seat)->priv->compositor));
 
     return DISPLAY_SERVER (mir_server);
 }
@@ -521,7 +248,7 @@ seat_unity_create_greeter_session (Seat *seat)
     session_set_env (SESSION (greeter_session), "MIR_SERVER_NAME", id);
     g_free (id);
 
-    vt = SEAT_UNITY (seat)->priv->vt;
+    vt = display_server_get_vt (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor));
     if (vt >= 0)
     {
         gchar *value = g_strdup_printf ("%d", vt);
@@ -555,7 +282,7 @@ seat_unity_create_session (Seat *seat)
     session_set_env (session, "MIR_SERVER_NAME", id);
     g_free (id);
 
-    vt = SEAT_UNITY (seat)->priv->vt;
+    vt = display_server_get_vt (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor));
     if (vt >= 0)
     {
         gchar *value = g_strdup_printf ("%d", vt);
@@ -593,7 +320,7 @@ seat_unity_set_active_session (Seat *seat, Session *session)
         if (id)
         {
             l_debug (seat, "Switching to Mir session %s", id);
-            write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_ACTIVE_SESSION, (const guint8 *) id, strlen (id));
+            unity_system_compositor_set_active_session (SEAT_UNITY (seat)->priv->compositor, id);
         }
         else
             l_warning (seat, "Failed to work out session ID");
@@ -627,7 +354,7 @@ seat_unity_set_next_session (Seat *seat, Session *session)
     if (id)
     {
         l_debug (seat, "Marking Mir session %s as the next session", id);
-        write_message (SEAT_UNITY (seat), USC_MESSAGE_SET_NEXT_SESSION, (const guint8 *) id, strlen (id));
+        unity_system_compositor_set_next_session (SEAT_UNITY (seat)->priv->compositor, id);
     }
     else
     {
@@ -655,9 +382,9 @@ static void
 seat_unity_stop (Seat *seat)
 {
     /* Stop the compositor first */
-    if (process_get_is_running (SEAT_UNITY (seat)->priv->compositor_process))
+    if (SEAT_UNITY (seat)->priv->compositor)
     {
-        process_stop (SEAT_UNITY (seat)->priv->compositor_process);
+        display_server_stop (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor));
         return;
     }
 
@@ -668,8 +395,6 @@ static void
 seat_unity_init (SeatUnity *seat)
 {
     seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_UNITY_TYPE, SeatUnityPrivate);
-    seat->priv->vt = -1;
-    seat->priv->compositor_process = process_new ();
 }
 
 static void
@@ -677,18 +402,8 @@ seat_unity_finalize (GObject *object)
 {
     SeatUnity *seat = SEAT_UNITY (object);
 
-    if (seat->priv->vt >= 0)
-        vt_unref (seat->priv->vt);
-    g_free (seat->priv->log_file);
-    g_free (seat->priv->mir_socket_filename);
-    close (seat->priv->to_compositor_pipe[0]);
-    close (seat->priv->to_compositor_pipe[1]);
-    close (seat->priv->from_compositor_pipe[0]);
-    close (seat->priv->from_compositor_pipe[1]);
-    g_io_channel_unref (seat->priv->from_compositor_channel);
-    g_source_remove (seat->priv->from_compositor_watch);
-    g_free (seat->priv->read_buffer);
-    g_object_unref (seat->priv->compositor_process);
+    if (seat->priv->compositor)
+        g_object_unref (seat->priv->compositor);
     if (seat->priv->active_session)
         g_object_unref (seat->priv->active_session);
     if (seat->priv->active_display_server)
