@@ -53,6 +53,8 @@ lightdm_SOURCES = \
 	session-config.h \
 	surfaceflinger-server.c \
 	surfaceflinger-server.h \
+	unity-system-compositor.c \
+	unity-system-compositor.h \
 	vnc-server.c \
 	vnc-server.h \
 	vt.c \

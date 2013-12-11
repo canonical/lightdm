@@ -31,8 +31,6 @@ typedef struct
 typedef struct
 {
     XServerClass parent_class;
-
-    void (*ready)(XServerLocal *server);
 } XServerLocalClass;
 
 guint x_server_local_get_unused_display_number (void);
