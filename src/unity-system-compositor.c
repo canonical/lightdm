@@ -21,6 +21,7 @@
 #include "unity-system-compositor.h"
 #include "configuration.h"
 #include "process.h"
+#include "greeter.h"
 #include "vt.h"
 
 struct UnitySystemCompositorPrivate
@@ -163,6 +164,36 @@ unity_system_compositor_get_vt (DisplayServer *server)
 {
     g_return_val_if_fail (server != NULL, 0);
     return UNITY_SYSTEM_COMPOSITOR (server)->priv->vt;
+}
+
+static void
+unity_system_compositor_connect_session (DisplayServer *display_server, Session *session)
+{
+    UnitySystemCompositor *compositor = UNITY_SYSTEM_COMPOSITOR (display_server);
+    const gchar *name;
+
+    if (compositor->priv->socket)
+        session_set_env (session, "MIR_SOCKET", compositor->priv->socket);
+    if (IS_GREETER (session))
+        name = "greeter-0";
+    else
+        name = "session-0";
+    session_set_env (session, "MIR_SERVER_NAME", name);
+
+    if (compositor->priv->vt >= 0)
+    {
+        gchar *value = g_strdup_printf ("%d", compositor->priv->vt);
+        session_set_env (session, "XDG_VTNR", value);
+        g_free (value);
+    }
+}
+
+static void
+unity_system_compositor_disconnect_session (DisplayServer *display_server, Session *session)
+{
+    session_unset_env (session, "MIR_SOCKET");
+    session_unset_env (session, "MIR_SERVER_NAME");
+    session_unset_env (session, "XDG_VTNR");
 }
 
 static gchar *
@@ -478,6 +509,8 @@ unity_system_compositor_class_init (UnitySystemCompositorClass *klass)
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
     display_server_class->get_vt = unity_system_compositor_get_vt;
+    display_server_class->connect_session = unity_system_compositor_connect_session;
+    display_server_class->disconnect_session = unity_system_compositor_disconnect_session;
     display_server_class->start = unity_system_compositor_start;
     display_server_class->stop = unity_system_compositor_stop;
     object_class->finalize = unity_system_compositor_finalize;
