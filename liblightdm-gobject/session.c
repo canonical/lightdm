@@ -119,7 +119,7 @@ load_sessions_dir (GList *sessions, const gchar *sessions_dir)
     GError *error = NULL;
 
     directory = g_dir_open (sessions_dir, 0, &error);
-    if (error)
+    if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
         g_warning ("Failed to open sessions directory: %s", error->message);
     g_clear_error (&error);
     if (!directory)
@@ -209,7 +209,7 @@ update_sessions (void)
     config_path = g_build_filename (CONFIG_DIR, "lightdm.conf", NULL);
     config_key_file = g_key_file_new ();
     result = g_key_file_load_from_file (config_key_file, config_path, G_KEY_FILE_NONE, &error);
-    if (error)
+    if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
         g_warning ("Failed to open configuration file: %s", error->message);
     g_clear_error (&error);
     if (result)

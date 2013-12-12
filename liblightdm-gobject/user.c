@@ -253,7 +253,7 @@ load_passwd_file (LightDMUserList *user_list, gboolean emit_add_signal)
     config = g_key_file_new ();
     g_key_file_load_from_file (config, USER_CONFIG_FILE, G_KEY_FILE_NONE, &error);
     if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
-        g_warning ("Failed to load configuration from %s: %s", USER_CONFIG_FILE, error->message); // FIXME: Don't make warning on no file, just info
+        g_warning ("Failed to load configuration from %s: %s", USER_CONFIG_FILE, error->message);
     g_clear_error (&error);
 
     if (g_key_file_has_key (config, "UserList", "minimum-uid", NULL))
