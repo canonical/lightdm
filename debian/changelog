@@ -1,3 +1,9 @@
+lightdm (1.9.5-0ubuntu2) trusty; urgency=low
+
+  * Add screen and fullscreen options to dm-tool add-nested-seat
+
+ -- Maarten Bezemer <maarten.bezemer@gmail.com>  Sun, 05 Jan 2014 18:10:57 +0100
+
 lightdm (1.9.5-0ubuntu1) trusty; urgency=low
 
   * New upstream release:
