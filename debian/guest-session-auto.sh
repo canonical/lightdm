@@ -36,7 +36,7 @@ test -f "$HOME"/.skip-guest-warning-dialog || {
 		{
 			# Sleep to wait for the the info dialog to start.
 			# This way the window will likely become focused.
-			sleep 2
+			sleep $DIALOG_SLEEP
 			kdialog --title "$TITLE" --textbox $TEXT_FILE 450 250
 			rm -f $TEXT_FILE
 		} &
@@ -45,7 +45,7 @@ test -f "$HOME"/.skip-guest-warning-dialog || {
 		{
 			# Sleep to wait for the the info dialog to start.
 			# This way the window will likely become focused.
-			sleep 2
+			sleep $DIALOG_SLEEP
 			zenity --warning --no-wrap --title="$TITLE" --text="$TEXT"
 		} &
 	fi

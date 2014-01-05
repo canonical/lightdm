@@ -78,6 +78,8 @@ add_account ()
   echo "NoDisplay=true" >> $STARTUP
   echo "Exec=/usr/lib/lightdm/guest-session-auto.sh" >> $STARTUP
 
+  echo "export DIALOG_SLEEP=4" >> "$HOME"/.profile
+
   mkdir -p "$HOME"/.kde/share/config
   echo "[Basic Settings]" >> "$HOME"/.kde/share/config/nepomukserverrc
   echo "Start Nepomuk=false" >> "$HOME"/.kde/share/config/nepomukserverrc
