@@ -29,7 +29,18 @@ USB stick, if you would like to access them again later.')
 	test -w /var/guest-data && TEXT="$TEXT\n\n$para2"
 }
 test -f "$HOME"/.skip-guest-warning-dialog || {
-	if [ -x /usr/bin/zenity ]; then
+	if [ "$KDE_FULL_SESSION" = true ] && [ -x /usr/bin/kdialog ]; then
+		dialog_content
+		TEXT_FILE="$HOME"/.guest-session-kdialog
+		echo -n "$TEXT" > $TEXT_FILE
+		{
+			# Sleep to wait for the the info dialog to start.
+			# This way the window will likely become focused.
+			sleep 2
+			kdialog --title "$TITLE" --textbox $TEXT_FILE 450 250
+			rm -f $TEXT_FILE
+		} &
+	elif [ -x /usr/bin/zenity ]; then
 		dialog_content
 		{
 			# Sleep to wait for the the info dialog to start.
