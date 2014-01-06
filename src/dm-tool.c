@@ -390,8 +390,7 @@ main (int argc, char **argv)
     else if (strcmp (command, "add-nested-seat") == 0)
     {
         gchar *path, *xephyr_command, **xephyr_argv;
-        gint screen_mode = 0;
-        gchar *dimensions;
+        gchar *dimensions = NULL;
         GMainLoop *loop;
 
         path = g_find_program_in_path ("Xephyr");
@@ -401,24 +400,15 @@ main (int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        if (n_options == 1)
+        if (n_options > 0)
         {
-            if (strcmp (options[0], "--fullscreen") == 0)
+            /* Parse the given options */
+            if (strcmp (options[0], "--fullscreen") == 0 && n_options == 1)
             {
-                screen_mode = 1;
+                dimensions = "fullscreen";
             }
-            else 
+            else if (strcmp (options[0], "--screen") == 0 && n_options == 2)
             {
-                g_printerr ("Usage add-nested-seat [--fullscreen|--screen DIMENSIONS]\n");
-                usage ();
-                return EXIT_FAILURE;
-            }
-        }
-        else if (n_options == 2)
-        {
-            if (strcmp (options[0], "--screen") == 0)
-            {
-                screen_mode = 2;
                 dimensions = options[1];
             }
             else
@@ -427,12 +417,6 @@ main (int argc, char **argv)
                 usage ();
                 return EXIT_FAILURE;
             }
-        }
-        else if (n_options > 2)
-        {
-            g_printerr ("Usage add-nested-seat [--fullscreen|--screen DIMENSIONS]\n");
-            usage ();
-            return EXIT_FAILURE;
         }
 
         /* Get a unique display number.  It's racy, but the only reliable method to get one */
@@ -455,17 +439,17 @@ main (int argc, char **argv)
         /* Wait for signal from Xephyr is ready */
         signal (SIGUSR1, xephyr_signal_cb);
 
-        if (screen_mode == 1)
+        if (dimensions == NULL)
+        {
+            xephyr_command = g_strdup_printf ("Xephyr :%d ", xephyr_display_number);
+        }
+        else if (strcmp (dimensions, "fullscreen") == 0)
         {
             xephyr_command = g_strdup_printf ("Xephyr :%d -fullscreen", xephyr_display_number);   
         }
-        else if (screen_mode == 2)
-        {
-            xephyr_command = g_strdup_printf ("Xephyr :%d -screen %s", xephyr_display_number, dimensions); 
-        }
         else
         {
-            xephyr_command = g_strdup_printf ("Xephyr :%d ", xephyr_display_number);
+            xephyr_command = g_strdup_printf ("Xephyr :%d -screen %s", xephyr_display_number, dimensions); 
         }
         if (!g_shell_parse_argv (xephyr_command, NULL, &xephyr_argv, &error) ||
             !g_spawn_async (NULL, xephyr_argv, NULL,
