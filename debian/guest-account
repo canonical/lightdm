@@ -136,6 +136,14 @@ remove_account ()
   # remove leftovers in /tmp
   find /tmp -mindepth 1 -maxdepth 1 -uid "$UID" -print0 | xargs -0 rm -rf || true
 
+  # remove possible /media/guest-XXXXXX folder
+  if [ -d /media/"$USER" ]; then
+    for dir in $( find /media/"$USER" -mindepth 1 -maxdepth 1 ); do
+      umount "$dir" || true
+    done
+    rmdir /media/"$USER" || true
+  fi
+
   deluser --system "$USER"
 }
 
