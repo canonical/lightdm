@@ -96,7 +96,7 @@ AC_ARG_ENABLE(liblightdm-qt,
 	[enable_liblightdm_qt4=$enableval],
 	[enable_liblightdm_qt4="auto"])
 compile_liblightdm_qt4=no
-if test x"$enable_liblightdm_qt4" != "xno"; then
+if test x"$enable_liblightdm_qt4" = "xyes" -o \( x"$enable_liblightdm_qt4" = "xauto" -a x$compile_liblightdm_gobject = xyes \) ; then
     PKG_CHECK_MODULES(LIBLIGHTDM_QT4, [
         QtCore
         QtDBus
@@ -106,6 +106,10 @@ if test x"$enable_liblightdm_qt4" != "xno"; then
      AC_CHECK_TOOLS(MOC4, [moc-qt4 moc])
      if test x"$(readlink $(which $MOC4))" = xqtchooser; then
          MOC4="$MOC4 --qt=qt4"
+     fi
+     if test "x$compile_liblightdm_gobject" != xyes; then
+         AC_MSG_FAILURE(
+           [liblightdm-gobject is required to compile liblightdm-qt])
      fi
     ],
     [if test "x$enable_liblightdm_qt4" != xauto; then
