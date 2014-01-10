@@ -132,14 +132,14 @@ main (int argc, char **argv)
                         "  --session-bus     Use session D-Bus\n"
                         "\n"
                         "Commands:\n"
-                        "  switch-to-greeter                   Switch to the greeter\n"
-                        "  switch-to-user USERNAME [SESSION]   Switch to a user session\n"
-                        "  switch-to-guest [SESSION]           Switch to a guest session\n"
-                        "  lock                                Lock the current seat\n"
-                        "  list-seats                          List the active seats\n"
-                        "  add-nested-seat                     Start a nested display\n"
-                        "  add-local-x-seat DISPLAY_NUMBER     Add a local X seat\n"
-                        "  add-seat TYPE [NAME=VALUE...]       Add a dynamic seat\n");
+                        "  switch-to-greeter                                    Switch to the greeter\n"
+                        "  switch-to-user USERNAME [SESSION]                    Switch to a user session\n"
+                        "  switch-to-guest [SESSION]                            Switch to a guest session\n"
+                        "  lock                                                 Lock the current seat\n"
+                        "  list-seats                                           List the active seats\n"
+                        "  add-nested-seat [--fullscreen|--screen DIMENSIONS]   Start a nested display\n"
+                        "  add-local-x-seat DISPLAY_NUMBER                      Add a local X seat\n"
+                        "  add-seat TYPE [NAME=VALUE...]                        Add a dynamic seat\n");
             return EXIT_SUCCESS;
         }
         else if (strcmp (arg, "-v") == 0 || strcmp (arg, "--version") == 0)
@@ -390,6 +390,7 @@ main (int argc, char **argv)
     else if (strcmp (command, "add-nested-seat") == 0)
     {
         gchar *path, *xephyr_command, **xephyr_argv;
+        gchar *dimensions = NULL;
         GMainLoop *loop;
 
         path = g_find_program_in_path ("Xephyr");
@@ -397,6 +398,25 @@ main (int argc, char **argv)
         {
             g_printerr ("Unable to find Xephyr, please install it\n");
             return EXIT_FAILURE;
+        }
+
+        if (n_options > 0)
+        {
+            /* Parse the given options */
+            if (strcmp (options[0], "--fullscreen") == 0 && n_options == 1)
+            {
+                dimensions = "fullscreen";
+            }
+            else if (strcmp (options[0], "--screen") == 0 && n_options == 2)
+            {
+                dimensions = options[1];
+            }
+            else
+            {
+                g_printerr ("Usage add-nested-seat [--fullscreen|--screen DIMENSIONS]\n");
+                usage ();
+                return EXIT_FAILURE;
+            }
         }
 
         /* Get a unique display number.  It's racy, but the only reliable method to get one */
@@ -419,7 +439,18 @@ main (int argc, char **argv)
         /* Wait for signal from Xephyr is ready */
         signal (SIGUSR1, xephyr_signal_cb);
 
-        xephyr_command = g_strdup_printf ("Xephyr :%d", xephyr_display_number);
+        if (dimensions == NULL)
+        {
+            xephyr_command = g_strdup_printf ("Xephyr :%d ", xephyr_display_number);
+        }
+        else if (strcmp (dimensions, "fullscreen") == 0)
+        {
+            xephyr_command = g_strdup_printf ("Xephyr :%d -fullscreen", xephyr_display_number);   
+        }
+        else
+        {
+            xephyr_command = g_strdup_printf ("Xephyr :%d -screen %s", xephyr_display_number, dimensions); 
+        }
         if (!g_shell_parse_argv (xephyr_command, NULL, &xephyr_argv, &error) ||
             !g_spawn_async (NULL, xephyr_argv, NULL,
                             G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
