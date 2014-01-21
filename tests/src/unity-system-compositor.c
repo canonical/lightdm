@@ -141,6 +141,7 @@ main (int argc, char **argv)
     GString *status_text;
     gboolean test = FALSE;
     int vt_number = -1;
+    const gchar *file = NULL;
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
@@ -174,7 +175,7 @@ main (int argc, char **argv)
         }
         else if (strcmp (arg, "--file") == 0)
         {
-            /*file = argv[i+1];*/
+            file = argv[i+1];
             i++;
         }
         else if (strcmp (arg, "--test") == 0)
@@ -186,6 +187,8 @@ main (int argc, char **argv)
     g_io_add_watch (g_io_channel_unix_new (from_dm_fd), G_IO_IN, read_message_cb, NULL);
 
     status_text = g_string_new ("UNITY-SYSTEM-COMPOSITOR START");
+    if (file)
+        g_string_append_printf (status_text, " FILE=%s", file);
     if (vt_number >= 0)
         g_string_append_printf (status_text, " VT=%d", vt_number);
     if (g_getenv ("XDG_VTNR"))
