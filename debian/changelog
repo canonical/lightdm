@@ -1,3 +1,11 @@
+lightdm (1.8.6-0ubuntu1) saucy; urgency=medium
+
+  * New upstream release:
+    - Fix issue where VTs are double used when switching sessions.
+      (LP: #1256150)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 22 Jan 2014 17:22:32 +1300
+
 lightdm (1.8.5-0ubuntu1) saucy; urgency=low
 
   * New upstream release:
