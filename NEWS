@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.8.6
+
+    * Fix issue where VTs are double used when switching sessions.
+
 Overview of changes in lightdm 1.8.5
 
     * Don't pass system user accounts from AccountsService to greeters.
