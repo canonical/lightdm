@@ -1,3 +1,26 @@
+lightdm (1.9.6-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Support Mir sessions in xlocal seats by starting a unity system compositor
+      for each session.
+    - Add --screen and --fullscreen options to "dm-tool add-nested-seat"
+    - Don't try to compile liblightdm-qt if liblightdm-gobject will not be
+      compiled.
+    - Stop greeters warning if sessions directories not present or lightdm.conf
+      doesn't exist - this is valid.
+    - Fix log name for Mir display servers
+    - Fix double removal of source IDs
+  * debian/guest-account:
+  * debian/guest-session-auto.sh:
+  * debian/lightdm.install:
+  * debian/rules:
+    - Warn users about the temporary nature of a guest session. (LP: #435930)
+  * debian/lightdm.install:
+  * debian/lightdm.maintscript:
+    - Move configuration from /etc to /usr/share so dpkg doesn't keep it around.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 22 Jan 2014 15:51:29 +1300
+
 lightdm (1.9.5-0ubuntu1) trusty; urgency=low
 
   * New upstream release:

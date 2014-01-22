@@ -1,3 +1,15 @@
+Overview of changes in lightdm 1.9.6
+
+    * Support Mir sessions in xlocal seats by starting a unity system compositor
+      for each session.
+    * Add --screen and --fullscreen options to "dm-tool add-nested-seat"
+    * Don't try to compile liblightdm-qt if liblightdm-gobject will not be
+      compiled.
+    * Stop greeters warning if sessions directories not present or lightdm.conf
+      doesn't exist - this is valid.
+    * Fix log name for Mir display servers
+    * Fix double removal of source IDs
+
 Overview of changes in lightdm 1.9.5
 
     * In the unity seat, if we don't have proper VT support, fake VT 0 instead
