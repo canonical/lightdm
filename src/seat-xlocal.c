@@ -61,6 +61,7 @@ static gint
 get_vt (Seat *seat, DisplayServer *display_server)
 {
     gint vt = -1;
+    const gchar *xdg_seat = seat_get_string_property (seat, "xdg-seat");
 
     /* If Plymouth is running, stop it */
     if (plymouth_get_is_active () && plymouth_has_active_vt ())
@@ -78,7 +79,7 @@ get_vt (Seat *seat, DisplayServer *display_server)
     }
     if (plymouth_get_is_active ())
         plymouth_quit (FALSE);
-    if (vt < 0)
+    if (vt < 0 && (!xdg_seat || (xdg_seat && strcmp (xdg_seat, "seat0") == 0)))
         vt = vt_get_unused ();
 
     return vt;
@@ -258,7 +259,9 @@ static void
 seat_xlocal_set_active_session (Seat *seat, Session *session)
 {
     gint vt = display_server_get_vt (session_get_display_server (session));
-    if (vt >= 0)
+    const gchar * xdg_seat = seat_get_string_property (seat, "xdg-seat");
+    
+    if (vt >= 0 && (!xdg_seat || (xdg_seat && strcmp (xdg_seat, "seat0") == 0)))
         vt_set_active (vt);
 
     SEAT_CLASS (seat_xlocal_parent_class)->set_active_session (seat, session);
@@ -271,8 +274,6 @@ seat_xlocal_get_active_session (Seat *seat)
     GList *link;
 
     vt = vt_get_active ();
-    if (vt < 0)
-        return NULL;
 
     for (link = seat_get_sessions (seat); link; link = link->next)
     {
