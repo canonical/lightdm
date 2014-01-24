@@ -1,2 +1,3 @@
 01_transition_ubuntu2d_ubuntu_desktop.patch
 04_language_handling.patch
+05_translate_guest_session_dialog.patch
