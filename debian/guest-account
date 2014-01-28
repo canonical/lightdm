@@ -93,12 +93,12 @@ add_account ()
   #dmrc='[Desktop]\nSession=guest-restricted'
   #/bin/echo -e "$dmrc" > "$HOME"/.dmrc
 
-  chown -R $USER:$USER "$HOME"
-
   # set possible local guest session preferences
   if [ -f /etc/guest-session/prefs.sh ]; then
       . /etc/guest-session/prefs.sh
   fi
+
+  chown -R $USER:$USER "$HOME"
 
   echo $USER  
 }
