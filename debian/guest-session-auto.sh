@@ -11,8 +11,8 @@
 
 # This script is run via autostart at the launch of a guest session.
 
-TEXTDOMAINDIR=/usr/share/locale-langpack
-TEXTDOMAIN=lightdm
+export TEXTDOMAINDIR=/usr/share/locale-langpack
+export TEXTDOMAIN=lightdm
 
 # disable screen locking
 gsettings set org.gnome.desktop.lockdown disable-lock-screen true
