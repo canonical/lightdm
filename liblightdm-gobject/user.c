@@ -1,7 +1,9 @@
 /* -*- Mode: C; indent-tabs-mode:nil; tab-width:4 -*-
  *
  * Copyright (C) 2010 Robert Ancell.
- * Author: Robert Ancell <robert.ancell@canonical.com>
+ * Copyright (C) 2014 Canonical, Ltd.
+ * Authors: Robert Ancell <robert.ancell@canonical.com>
+ *          Michael Terry <michael.terry@canonical.com>
  * 
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -11,12 +13,7 @@
 
 #include <config.h>
 
-#include <errno.h>
-#include <string.h>
-#include <sys/utsname.h>
-#include <pwd.h>
-#include <gio/gio.h>
-
+#include "common/user-list.h"
 #include "lightdm/user.h"
 
 enum
@@ -29,6 +26,7 @@ enum
 enum
 {
     USER_PROP_0,
+    USER_PROP_COMMON_USER,
     USER_PROP_NAME,
     USER_PROP_REAL_NAME,
     USER_PROP_DISPLAY_NAME,
@@ -61,98 +59,22 @@ static guint user_signals[LAST_USER_SIGNAL] = { 0 };
 
 typedef struct
 {
-    /* Bus connection being communicated on */
-    GDBusConnection *bus;
+    gboolean initialized;
 
-    /* D-Bus signals for accounts service events */
-    guint user_added_signal;
-    guint user_removed_signal;
-
-    /* D-Bus signals for display manager events */
-    guint session_added_signal;
-    guint session_removed_signal;
-
-    /* File monitor for password file */
-    GFileMonitor *passwd_monitor;
-
-    /* TRUE if have scanned users */
-    gboolean have_users;
-
-    /* List of users */
-    GList *users;
-
-    /* List of sessions */
-    GList *sessions;
+    /* Wrapper list, kept locally to preserve transfer-none promises */
+    GList *lightdm_list;
 } LightDMUserListPrivate;
 
 typedef struct
 {
-    /* User list this user is part of */
-    LightDMUserList *user_list;
-
-    /* TRUE if have loaded user properties */
-    gboolean loaded_values;
-
-    /* Accounts service path */
-    gchar *path;
-
-    /* DMRC file */
-    GKeyFile *dmrc_file;
-
-    /* Update signal from accounts service */
-    guint changed_signal;
-
-    /* Username */
-    gchar *name;
-
-    /* Descriptive name for user */
-    gchar *real_name;
-
-    /* Home directory of user */
-    gchar *home_directory;
-
-    /* Image for user */
-    gchar *image;
-
-    /* Background image for users */
-    gchar *background;
-
-    /* TRUE if this user has messages available */
-    gboolean has_messages;
-
-    /* User chosen language */
-    gchar *language;
-
-    /* User layout preferences */
-    gchar **layouts;
-
-    /* User default session */
-    gchar *session;
+    CommonUser *common_user;
 } LightDMUserPrivate;
-
-typedef struct
-{
-    GObject parent_instance;
-    gchar *path;
-    gchar *username;
-} Session;
-
-typedef struct
-{
-    GObjectClass parent_class;
-} SessionClass;
 
 G_DEFINE_TYPE (LightDMUserList, lightdm_user_list, G_TYPE_OBJECT);
 G_DEFINE_TYPE (LightDMUser, lightdm_user, G_TYPE_OBJECT);
-#define SESSION(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), session_get_type (), Session))
-GType session_get_type (void);
-G_DEFINE_TYPE (Session, session, G_TYPE_OBJECT);
 
 #define GET_LIST_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_USER_LIST, LightDMUserListPrivate)
 #define GET_USER_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_USER, LightDMUserPrivate)
-
-#define PASSWD_FILE      "/etc/passwd"
-#define USER_CONFIG_FILE "/etc/lightdm/users.conf"
 
 static LightDMUserList *singleton = NULL;
 
@@ -171,725 +93,84 @@ lightdm_user_list_get_instance (void)
     return singleton;
 }
 
-static LightDMUser *
-get_user_by_name (LightDMUserList *user_list, const gchar *username)
+static void
+user_changed_cb (CommonUser *common_user, LightDMUser *lightdm_user)
 {
-    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
-    GList *link;
-  
-    for (link = priv->users; link; link = link->next)
-    {
-        LightDMUser *user = link->data;
-        if (g_strcmp0 (lightdm_user_get_name (user), username) == 0)
-            return user;
-    }
-
-    return NULL;
+    g_signal_emit (lightdm_user, user_signals[CHANGED], 0);
 }
 
 static LightDMUser *
-get_user_by_path (LightDMUserList *user_list, const gchar *path)
+wrap_common_user (CommonUser *user)
+{
+    LightDMUser *lightdm_user = g_object_new (LIGHTDM_TYPE_USER, "common-user", user, NULL);
+    g_signal_connect (user, "changed", G_CALLBACK (user_changed_cb), lightdm_user);
+    return lightdm_user;
+}
+
+static void
+user_list_added_cb (CommonUserList *common_list, CommonUser *common_user, LightDMUserList *user_list)
+{
+    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
+    GList *common_users = common_user_list_get_users (common_list);
+    LightDMUser *lightdm_user = wrap_common_user (common_user);
+    priv->lightdm_list = g_list_insert (priv->lightdm_list, lightdm_user, g_list_index (common_users, common_user));
+    g_signal_emit (user_list, list_signals[USER_ADDED], 0, lightdm_user);
+}
+
+static void
+user_list_changed_cb (CommonUserList *common_list, CommonUser *common_user, LightDMUserList *user_list)
+{
+    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
+    GList *common_users = common_user_list_get_users (common_list);
+    LightDMUser *lightdm_user = g_list_nth_data (priv->lightdm_list, g_list_index (common_users, common_user));
+    g_signal_emit (user_list, list_signals[USER_CHANGED], 0, lightdm_user);
+}
+
+static void
+user_list_removed_cb (CommonUserList *common_list, CommonUser *common_user, LightDMUserList *user_list)
 {
     LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
     GList *link;
-  
-    for (link = priv->users; link; link = link->next)
+
+    for (link = priv->lightdm_list; link; link = link->next)
     {
-        LightDMUser *user = link->data;
-        if (g_strcmp0 (GET_USER_PRIVATE (user)->path, path) == 0)
-            return user;
-    }
-
-    return NULL;
-}
-  
-static gint
-compare_user (gconstpointer a, gconstpointer b)
-{
-    LightDMUser *user_a = (LightDMUser *) a, *user_b = (LightDMUser *) b;
-    return g_strcmp0 (lightdm_user_get_display_name (user_a), lightdm_user_get_display_name (user_b));
-}
-
-static gboolean
-update_passwd_user (LightDMUser *user, const gchar *real_name, const gchar *home_directory, const gchar *image)
-{
-    LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
-
-    /* Skip if already set to this */
-    if (g_strcmp0 (lightdm_user_get_real_name (user), real_name) == 0 &&
-        g_strcmp0 (lightdm_user_get_home_directory (user), home_directory) == 0 &&
-        g_strcmp0 (lightdm_user_get_image (user), image) == 0)
-        return FALSE;
-
-    g_free (priv->real_name);
-    priv->real_name = g_strdup (real_name);
-    g_free (priv->home_directory);
-    priv->home_directory = g_strdup (home_directory);
-    g_free (priv->image);
-    priv->image = g_strdup (image);
-
-    return TRUE;
-}
-
-static void
-user_changed_cb (LightDMUser *user)
-{
-    g_signal_emit (GET_USER_PRIVATE (user)->user_list, list_signals[USER_CHANGED], 0, user);
-}
-
-static void
-load_passwd_file (LightDMUserList *user_list, gboolean emit_add_signal)
-{
-    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
-    GKeyFile *config;
-    gchar *value;
-    gint minimum_uid;
-    gchar **hidden_users, **hidden_shells;
-    GList *users = NULL, *old_users, *new_users = NULL, *changed_users = NULL, *link;
-    GError *error = NULL;
-
-    g_debug ("Loading user config from %s", USER_CONFIG_FILE);
-
-    config = g_key_file_new ();
-    g_key_file_load_from_file (config, USER_CONFIG_FILE, G_KEY_FILE_NONE, &error);
-    if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
-        g_warning ("Failed to load configuration from %s: %s", USER_CONFIG_FILE, error->message);
-    g_clear_error (&error);
-
-    if (g_key_file_has_key (config, "UserList", "minimum-uid", NULL))
-        minimum_uid = g_key_file_get_integer (config, "UserList", "minimum-uid", NULL);
-    else
-        minimum_uid = 500;
-
-    value = g_key_file_get_string (config, "UserList", "hidden-users", NULL);
-    if (!value)
-        value = g_strdup ("nobody nobody4 noaccess");
-    hidden_users = g_strsplit (value, " ", -1);
-    g_free (value);
-
-    value = g_key_file_get_string (config, "UserList", "hidden-shells", NULL);
-    if (!value)
-        value = g_strdup ("/bin/false /usr/sbin/nologin");
-    hidden_shells = g_strsplit (value, " ", -1);
-    g_free (value);
-
-    g_key_file_free (config);
-
-    setpwent ();
-
-    while (TRUE)
-    {
-        struct passwd *entry;
-        LightDMUser *user;
-        LightDMUserPrivate *user_priv;
-        char **tokens;
-        gchar *real_name, *image;
-        int i;
-
-        errno = 0;
-        entry = getpwent ();
-        if (!entry)
-            break;
-
-        /* Ignore system users */
-        if (entry->pw_uid < minimum_uid)
-            continue;
-
-        /* Ignore users disabled by shell */
-        if (entry->pw_shell)
+        LightDMUser *lightdm_user = link->data;
+        LightDMUserPrivate *user_priv = GET_USER_PRIVATE (lightdm_user);
+        if (user_priv->common_user == common_user)
         {
-            for (i = 0; hidden_shells[i] && strcmp (entry->pw_shell, hidden_shells[i]) != 0; i++);
-            if (hidden_shells[i])
-                continue;
-        }
-
-        /* Ignore certain users */
-        for (i = 0; hidden_users[i] && strcmp (entry->pw_name, hidden_users[i]) != 0; i++);
-        if (hidden_users[i])
-            continue;
-
-        tokens = g_strsplit (entry->pw_gecos, ",", -1);
-        if (tokens[0] != NULL && tokens[0][0] != '\0')
-            real_name = g_strdup (tokens[0]);
-        else
-            real_name = g_strdup ("");
-        g_strfreev (tokens);
-
-        image = g_build_filename (entry->pw_dir, ".face", NULL);
-        if (!g_file_test (image, G_FILE_TEST_EXISTS))
-        {
-            g_free (image);
-            image = g_build_filename (entry->pw_dir, ".face.icon", NULL);
-            if (!g_file_test (image, G_FILE_TEST_EXISTS))
-            {
-                g_free (image);
-                image = NULL;
-            }
-        }
-
-        user = g_object_new (LIGHTDM_TYPE_USER, NULL);
-        user_priv = GET_USER_PRIVATE (user);
-        user_priv->user_list = user_list;
-        g_free (user_priv->name);
-        user_priv->name = g_strdup (entry->pw_name);
-        g_free (user_priv->real_name);
-        user_priv->real_name = real_name;
-        g_free (user_priv->home_directory);
-        user_priv->home_directory = g_strdup (entry->pw_dir);
-        g_free (user_priv->image);
-        user_priv->image = image;
-
-        /* Update existing users if have them */
-        for (link = priv->users; link; link = link->next)
-        {
-            LightDMUser *info = link->data;
-            if (strcmp (lightdm_user_get_name (info), lightdm_user_get_name (user)) == 0)
-            {
-                if (update_passwd_user (info, lightdm_user_get_real_name (user), lightdm_user_get_home_directory (user), lightdm_user_get_image (user)))
-                    changed_users = g_list_insert_sorted (changed_users, info, compare_user);
-                g_object_unref (user);
-                user = info;
-                break;
-            }
-        }
-        if (!link)
-        {
-            /* Only notify once we have loaded the user list */
-            if (priv->have_users)
-                new_users = g_list_insert_sorted (new_users, user, compare_user);
-        }
-        users = g_list_insert_sorted (users, user, compare_user);
-    }
-    g_strfreev (hidden_users);
-    g_strfreev (hidden_shells);
-
-    if (errno != 0)
-        g_warning ("Failed to read password database: %s", strerror (errno));
-
-    endpwent ();
-
-    /* Use new user list */
-    old_users = priv->users;
-    priv->users = users;
-  
-    /* Notify of changes */
-    for (link = new_users; link; link = link->next)
-    {
-        LightDMUser *info = link->data;
-        g_debug ("User %s added", lightdm_user_get_name (info));
-        g_signal_connect (info, "changed", G_CALLBACK (user_changed_cb), NULL);
-        if (emit_add_signal)
-            g_signal_emit (user_list, list_signals[USER_ADDED], 0, info);
-    }
-    g_list_free (new_users);
-    for (link = changed_users; link; link = link->next)
-    {
-        LightDMUser *info = link->data;
-        g_debug ("User %s changed", lightdm_user_get_name (info));
-        g_signal_emit (info, user_signals[CHANGED], 0);
-    }
-    g_list_free (changed_users);
-    for (link = old_users; link; link = link->next)
-    {
-        GList *new_link;
-
-        /* See if this user is in the current list */
-        for (new_link = priv->users; new_link; new_link = new_link->next)
-        {
-            if (new_link->data == link->data)
-                break;
-        }
-
-        if (!new_link)
-        {
-            LightDMUser *info = link->data;
-            g_debug ("User %s removed", lightdm_user_get_name (info));
-            g_signal_emit (user_list, list_signals[USER_REMOVED], 0, info);
-            g_object_unref (info);
-        }
-    }
-    g_list_free (old_users);
-}
-
-static void
-passwd_changed_cb (GFileMonitor *monitor, GFile *file, GFile *other_file, GFileMonitorEvent event_type, LightDMUserList *user_list)
-{
-    if (event_type == G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT)
-    {
-        g_debug ("%s changed, reloading user list", g_file_get_path (file));
-        load_passwd_file (user_list, TRUE);
-    }
-}
-
-static gboolean load_accounts_user (LightDMUser *user);
-
-static void
-accounts_user_changed_cb (GDBusConnection *connection,
-                          const gchar *sender_name,
-                          const gchar *object_path,
-                          const gchar *interface_name,
-                          const gchar *signal_name,
-                          GVariant *parameters,
-                          gpointer data)
-{
-    LightDMUser *user = data;
-    LightDMUserPrivate *priv = GET_USER_PRIVATE (user);  
-
-    g_debug ("User %s changed", priv->path);
-    if (load_accounts_user (user))
-        g_signal_emit (user, user_signals[CHANGED], 0);
-}
-
-static gboolean
-load_accounts_user (LightDMUser *user)
-{
-    LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
-    GVariant *result, *value;
-    GVariantIter *iter;
-    gchar *name;
-    gboolean system_account = FALSE;
-    GError *error = NULL;
-
-    /* Get the properties for this user */
-    if (!priv->changed_signal)
-        priv->changed_signal = g_dbus_connection_signal_subscribe (GET_LIST_PRIVATE (priv->user_list)->bus,
-                                                                   "org.freedesktop.Accounts",
-                                                                   "org.freedesktop.Accounts.User",
-                                                                   "Changed",
-                                                                   priv->path,
-                                                                   NULL,
-                                                                   G_DBUS_SIGNAL_FLAGS_NONE,
-                                                                   accounts_user_changed_cb,
-                                                                   user,
-                                                                   NULL);
-    result = g_dbus_connection_call_sync (GET_LIST_PRIVATE (priv->user_list)->bus,
-                                          "org.freedesktop.Accounts",
-                                          priv->path,
-                                          "org.freedesktop.DBus.Properties",
-                                          "GetAll",
-                                          g_variant_new ("(s)", "org.freedesktop.Accounts.User"),
-                                          G_VARIANT_TYPE ("(a{sv})"),
-                                          G_DBUS_CALL_FLAGS_NONE,
-                                          -1,
-                                          NULL,
-                                          &error);
-    if (error)
-        g_warning ("Error updating user %s: %s", priv->path, error->message);
-    g_clear_error (&error);
-    if (!result)
-        return FALSE;
-
-    /* Store the properties we need */
-    g_variant_get (result, "(a{sv})", &iter);
-    while (g_variant_iter_loop (iter, "{&sv}", &name, &value))
-    {
-        if (strcmp (name, "UserName") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            g_free (priv->name);
-            priv->name = g_variant_dup_string (value, NULL);
-        }
-        else if (strcmp (name, "RealName") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            g_free (priv->real_name);
-            priv->real_name = g_variant_dup_string (value, NULL);
-        }
-        else if (strcmp (name, "HomeDirectory") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            g_free (priv->home_directory);
-            priv->home_directory = g_variant_dup_string (value, NULL);
-        }
-        else if (strcmp (name, "SystemAccount") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
-            system_account = g_variant_get_boolean (value);
-        else if (strcmp (name, "Language") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            if (priv->language)
-                g_free (priv->language);
-            priv->language = g_variant_dup_string (value, NULL);
-        }
-        else if (strcmp (name, "IconFile") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            g_free (priv->image);
-            priv->image = g_variant_dup_string (value, NULL);
-            if (strcmp (priv->image, "") == 0)
-            {
-                g_free (priv->image);
-                priv->image = NULL;
-            }
-        }
-        else if (strcmp (name, "XSession") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            g_free (priv->session);
-            priv->session = g_variant_dup_string (value, NULL);
-        }
-        else if (strcmp (name, "BackgroundFile") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            g_free (priv->background);
-            priv->background = g_variant_dup_string (value, NULL);
-            if (strcmp (priv->background, "") == 0)
-            {
-                g_free (priv->background);
-                priv->background = NULL;
-            }
-        }
-        else if (strcmp (name, "XKeyboardLayouts") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING_ARRAY))
-        {
-            g_strfreev (priv->layouts);
-            priv->layouts = g_variant_dup_strv (value, NULL);
-            if (!priv->layouts)
-            {
-                priv->layouts = g_malloc (sizeof (gchar *) * 1);
-                priv->layouts[0] = NULL;
-            }
-        }
-        else if (strcmp (name, "XHasMessages") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
-            priv->has_messages = g_variant_get_boolean (value);
-    }
-    g_variant_iter_free (iter);
-
-    g_variant_unref (result);
-
-    priv->loaded_values = TRUE;
-
-    return !system_account;
-}
-
-static void
-add_accounts_user (LightDMUserList *user_list, const gchar *path, gboolean emit_signal)
-{
-    LightDMUserListPrivate *list_priv = GET_LIST_PRIVATE (user_list);
-    LightDMUser *user;
-    LightDMUserPrivate *priv;
-
-    user = g_object_new (LIGHTDM_TYPE_USER, NULL);
-    priv = GET_USER_PRIVATE (user);
-
-    g_debug ("User %s added", path);
-    priv->user_list = user_list;
-    priv->path = g_strdup (path);
-    g_signal_connect (user, "changed", G_CALLBACK (user_changed_cb), NULL);
-    if (load_accounts_user (user))
-    {
-        list_priv->users = g_list_insert_sorted (list_priv->users, user, compare_user);
-        if (emit_signal)      
-            g_signal_emit (user_list, list_signals[USER_ADDED], 0, user);
-    }
-    else
-        g_object_unref (user);
-}
-
-static void
-accounts_user_added_cb (GDBusConnection *connection,
-                        const gchar *sender_name,
-                        const gchar *object_path,
-                        const gchar *interface_name,
-                        const gchar *signal_name,
-                        GVariant *parameters,
-                        gpointer data)
-{
-    LightDMUserList *user_list = data;
-    gchar *path;
-    LightDMUser *user;
-  
-    if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
-    {
-        g_warning ("Got UserAccounts signal UserAdded with unknown parameters %s", g_variant_get_type_string (parameters));
-        return;
-    }
-
-    g_variant_get (parameters, "(&o)", &path);
-
-    /* Add user if we haven't got them */
-    user = get_user_by_path (user_list, path);
-    if (!user)
-        add_accounts_user (user_list, path, TRUE);
-}
-
-static void
-accounts_user_deleted_cb (GDBusConnection *connection,
-                          const gchar *sender_name,
-                          const gchar *object_path,
-                          const gchar *interface_name,
-                          const gchar *signal_name,
-                          GVariant *parameters,
-                          gpointer data)
-{
-    LightDMUserList *user_list = data;
-    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
-    gchar *path;
-    LightDMUser *user;
-
-    if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
-    {
-        g_warning ("Got UserAccounts signal UserDeleted with unknown parameters %s", g_variant_get_type_string (parameters));
-        return;
-    }
-
-    g_variant_get (parameters, "(&o)", &path);
-
-    /* Delete user if we know of them */
-    user = get_user_by_path (user_list, path);
-    if (user)
-    {
-        g_debug ("User %s deleted", path);
-        priv->users = g_list_remove (priv->users, user);
-
-        g_signal_emit (user_list, list_signals[USER_REMOVED], 0, user);
-
-        g_object_unref (user);
-    }
-}
-
-static Session *
-load_session (LightDMUserList *user_list, const gchar *path)
-{
-    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
-    Session *session = NULL;
-    GVariant *result, *username;
-    GError *error = NULL;
-
-    result = g_dbus_connection_call_sync (priv->bus,
-                                          "org.freedesktop.DisplayManager",
-                                          path,
-                                          "org.freedesktop.DBus.Properties",
-                                          "Get",
-                                          g_variant_new ("(ss)", "org.freedesktop.DisplayManager.Session", "UserName"),
-                                          G_VARIANT_TYPE ("(v)"),
-                                          G_DBUS_CALL_FLAGS_NONE,
-                                          -1,
-                                          NULL,
-                                          &error);
-    if (error)
-        g_warning ("Error getting UserName from org.freedesktop.DisplayManager.Session: %s", error->message);
-    g_clear_error (&error);
-    if (!result)
-        return NULL;
-
-    g_variant_get (result, "(v)", &username);
-    if (g_variant_is_of_type (username, G_VARIANT_TYPE_STRING))
-    {
-        gchar *name;
-
-        g_variant_get (username, "&s", &name);
-
-        g_debug ("Loaded session %s (%s)", path, name);
-        session = g_object_new (session_get_type (), NULL);
-        session->username = g_strdup (name);
-        session->path = g_strdup (path);
-        priv->sessions = g_list_append (priv->sessions, session);
-    }
-    g_variant_unref (username);
-    g_variant_unref (result);
-
-    return session;
-}
-
-static void
-session_added_cb (GDBusConnection *connection,
-                  const gchar *sender_name,
-                  const gchar *object_path,
-                  const gchar *interface_name,
-                  const gchar *signal_name,
-                  GVariant *parameters,
-                  gpointer data)
-{
-    LightDMUserList *user_list = data;
-    gchar *path;
-    Session *session;
-    LightDMUser *user = NULL;
-
-    if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
-    {
-        g_warning ("Got DisplayManager signal SessionAdded with unknown parameters %s", g_variant_get_type_string (parameters));
-        return;
-    }
-
-    g_variant_get (parameters, "(&o)", &path);
-    session = load_session (user_list, path);
-    if (session)
-        user = get_user_by_name (user_list, session->username);
-    if (user)
-        g_signal_emit (user, user_signals[CHANGED], 0);
-}
-
-static void
-session_removed_cb (GDBusConnection *connection,
-                    const gchar *sender_name,
-                    const gchar *object_path,
-                    const gchar *interface_name,
-                    const gchar *signal_name,
-                    GVariant *parameters,
-                    gpointer data)
-{
-    LightDMUserList *user_list = data;
-    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
-    gchar *path;
-    GList *link;
-
-    if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
-    {
-        g_warning ("Got DisplayManager signal SessionRemoved with unknown parameters %s", g_variant_get_type_string (parameters));
-        return;
-    }
-
-    g_variant_get (parameters, "(&o)", &path);
-
-    for (link = priv->sessions; link; link = link->next)
-    {
-        Session *session = link->data;
-        if (strcmp (session->path, path) == 0)
-        {
-            LightDMUser *user;
-
-            g_debug ("Session %s removed", path);
-            priv->sessions = g_list_remove_link (priv->sessions, link);
-            user = get_user_by_name (user_list, session->username);
-            if (user)
-                g_signal_emit (user, user_signals[CHANGED], 0);
-            g_object_unref (session);
+            priv->lightdm_list = g_list_delete_link (priv->lightdm_list, link);
+            g_signal_emit (user_list, list_signals[USER_REMOVED], 0, lightdm_user);
+            g_object_unref (lightdm_user);
             break;
         }
     }
 }
 
 static void
-load_users (LightDMUserList *user_list)
+initialize_user_list_if_needed (LightDMUserList *user_list)
 {
     LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
-    GVariant *result;
-    GError *error = NULL;
+    GList *common_users;
+    GList *link;
 
-    if (priv->have_users)
+    if (priv->initialized)
         return;
-    priv->have_users = TRUE;
 
-    /* Get user list from accounts service and fall back to /etc/passwd if that fails */
-    priv->user_added_signal = g_dbus_connection_signal_subscribe (priv->bus,
-                                                                  "org.freedesktop.Accounts",
-                                                                  "org.freedesktop.Accounts",
-                                                                  "UserAdded",
-                                                                  "/org/freedesktop/Accounts",
-                                                                  NULL,
-                                                                  G_DBUS_SIGNAL_FLAGS_NONE,
-                                                                  accounts_user_added_cb,
-                                                                  user_list,
-                                                                  NULL);
-    priv->user_removed_signal = g_dbus_connection_signal_subscribe (priv->bus,
-                                                                    "org.freedesktop.Accounts",
-                                                                    "org.freedesktop.Accounts",
-                                                                    "UserDeleted",
-                                                                    "/org/freedesktop/Accounts",
-                                                                    NULL,
-                                                                    G_DBUS_SIGNAL_FLAGS_NONE,
-                                                                    accounts_user_deleted_cb,
-                                                                    user_list,
-                                                                    NULL);
-    result = g_dbus_connection_call_sync (priv->bus,
-                                          "org.freedesktop.Accounts",
-                                          "/org/freedesktop/Accounts",
-                                          "org.freedesktop.Accounts",
-                                          "ListCachedUsers",
-                                          g_variant_new ("()"),
-                                          G_VARIANT_TYPE ("(ao)"),
-                                          G_DBUS_CALL_FLAGS_NONE,
-                                          -1,
-                                          NULL,
-                                          &error);
-    if (error)
-        g_warning ("Error getting user list from org.freedesktop.Accounts: %s", error->message);
-    g_clear_error (&error);
-    if (result)
+    common_users = common_user_list_get_users (common_user_list_get_instance ());
+    for (link = common_users; link; link = link->next)
     {
-        GVariantIter *iter;
-        const gchar *path;
-
-        g_debug ("Loading users from org.freedesktop.Accounts");
-        g_variant_get (result, "(ao)", &iter);
-        while (g_variant_iter_loop (iter, "&o", &path))
-            add_accounts_user (user_list, path, FALSE);
-        g_variant_iter_free (iter);
-        g_variant_unref (result);
+        CommonUser *user = link->data;
+        LightDMUser *lightdm_user = wrap_common_user (user);
+        priv->lightdm_list = g_list_prepend (priv->lightdm_list, lightdm_user);
     }
-    else
-    {
-        GFile *passwd_file;
+    priv->lightdm_list = g_list_reverse (priv->lightdm_list);
 
-        g_dbus_connection_signal_unsubscribe (priv->bus, priv->user_added_signal);
-        priv->user_added_signal = 0;
-        g_dbus_connection_signal_unsubscribe (priv->bus, priv->user_removed_signal);
-        priv->user_removed_signal = 0;
+    CommonUserList *common_list = common_user_list_get_instance ();
+    g_signal_connect (common_list, "user-added", G_CALLBACK (user_list_added_cb), user_list);
+    g_signal_connect (common_list, "user-changed", G_CALLBACK (user_list_changed_cb), user_list);
+    g_signal_connect (common_list, "user-removed", G_CALLBACK (user_list_removed_cb), user_list);
 
-        load_passwd_file (user_list, FALSE);
-
-        /* Watch for changes to user list */
-
-        passwd_file = g_file_new_for_path (PASSWD_FILE);
-        priv->passwd_monitor = g_file_monitor (passwd_file, G_FILE_MONITOR_NONE, NULL, &error);
-        g_object_unref (passwd_file);
-        if (error)
-            g_warning ("Error monitoring %s: %s", PASSWD_FILE, error->message);
-        else
-            g_signal_connect (priv->passwd_monitor, "changed", G_CALLBACK (passwd_changed_cb), user_list);
-        g_clear_error (&error);
-    }
-
-    priv->session_added_signal = g_dbus_connection_signal_subscribe (priv->bus,
-                                                                     "org.freedesktop.DisplayManager",
-                                                                     "org.freedesktop.DisplayManager",
-                                                                     "SessionAdded",
-                                                                     "/org/freedesktop/DisplayManager",
-                                                                     NULL,
-                                                                     G_DBUS_SIGNAL_FLAGS_NONE,
-                                                                     session_added_cb,
-                                                                     user_list,
-                                                                     NULL);
-    priv->session_removed_signal = g_dbus_connection_signal_subscribe (priv->bus,
-                                                                       "org.freedesktop.DisplayManager",
-                                                                       "org.freedesktop.DisplayManager",
-                                                                       "SessionRemoved",
-                                                                       "/org/freedesktop/DisplayManager",
-                                                                       NULL,
-                                                                       G_DBUS_SIGNAL_FLAGS_NONE,
-                                                                       session_removed_cb,
-
-                                                                    user_list,
-                                                                    NULL);
-    result = g_dbus_connection_call_sync (priv->bus,
-                                          "org.freedesktop.DisplayManager",
-                                          "/org/freedesktop/DisplayManager",
-                                          "org.freedesktop.DBus.Properties",
-                                          "Get",
-                                          g_variant_new ("(ss)", "org.freedesktop.DisplayManager", "Sessions"),
-                                          G_VARIANT_TYPE ("(v)"),
-                                          G_DBUS_CALL_FLAGS_NONE,
-                                          -1,
-                                          NULL,
-                                          &error);
-    if (error)
-        g_warning ("Error getting session list from org.freedesktop.DisplayManager: %s", error->message);
-    g_clear_error (&error);
-    if (result)
-    {
-        if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(v)")))
-        {
-            GVariant *value;
-            GVariantIter *iter;
-            const gchar *path;
-
-            g_variant_get (result, "(v)", &value);
-
-            g_debug ("Loading sessions from org.freedesktop.DisplayManager");
-            g_variant_get (value, "ao", &iter);
-            while (g_variant_iter_loop (iter, "&o", &path))
-                load_session (user_list, path);
-            g_variant_iter_free (iter);
-
-            g_variant_unref (value);
-        }
-        else
-            g_warning ("Unexpected type from org.freedesktop.DisplayManager.Sessions: %s", g_variant_get_type_string (result));
-
-        g_variant_unref (result);
-    }
+    priv->initialized = TRUE;
 }
 
 /**
@@ -902,8 +183,8 @@ gint
 lightdm_user_list_get_length (LightDMUserList *user_list)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER_LIST (user_list), 0);
-    load_users (user_list);
-    return g_list_length (GET_LIST_PRIVATE (user_list)->users);
+    initialize_user_list_if_needed (user_list);
+    return g_list_length (GET_LIST_PRIVATE (user_list)->lightdm_list);
 }
 
 /**
@@ -919,8 +200,8 @@ GList *
 lightdm_user_list_get_users (LightDMUserList *user_list)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER_LIST (user_list), NULL);
-    load_users (user_list);
-    return GET_LIST_PRIVATE (user_list)->users;
+    initialize_user_list_if_needed (user_list);
+    return GET_LIST_PRIVATE (user_list)->lightdm_list;
 }
 
 /**
@@ -935,20 +216,26 @@ lightdm_user_list_get_users (LightDMUserList *user_list)
 LightDMUser *
 lightdm_user_list_get_user_by_name (LightDMUserList *user_list, const gchar *username)
 {
+    GList *link;
+
     g_return_val_if_fail (LIGHTDM_IS_USER_LIST (user_list), NULL);
     g_return_val_if_fail (username != NULL, NULL);
 
-    load_users (user_list);
+    initialize_user_list_if_needed (user_list);
 
-    return get_user_by_name (user_list, username);
+    for (link = GET_LIST_PRIVATE (user_list)->lightdm_list; link; link = link->next)
+    {
+        LightDMUser *user = link->data;
+        if (g_strcmp0 (lightdm_user_get_name (user), username) == 0)
+            return user;
+    }
+
+    return NULL;
 }
 
 static void
 lightdm_user_list_init (LightDMUserList *user_list)
 {
-    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
-
-    priv->bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL);
 }
 
 static void
@@ -987,21 +274,7 @@ lightdm_user_list_finalize (GObject *object)
     LightDMUserList *self = LIGHTDM_USER_LIST (object);
     LightDMUserListPrivate *priv = GET_LIST_PRIVATE (self);
 
-    /* Remove children first, they might access us */
-    g_list_free_full (priv->users, g_object_unref);
-    g_list_free_full (priv->sessions, g_object_unref);
-
-    if (priv->user_added_signal)
-        g_dbus_connection_signal_unsubscribe (priv->bus, priv->user_added_signal);
-    if (priv->user_removed_signal)
-        g_dbus_connection_signal_unsubscribe (priv->bus, priv->user_removed_signal);
-    if (priv->session_added_signal)
-        g_dbus_connection_signal_unsubscribe (priv->bus, priv->session_added_signal);
-    if (priv->session_removed_signal)
-        g_dbus_connection_signal_unsubscribe (priv->bus, priv->session_removed_signal);
-    g_object_unref (priv->bus);
-    if (priv->passwd_monitor)
-        g_object_unref (priv->passwd_monitor);
+    g_list_free_full (priv->lightdm_list, g_object_unref);
 
     G_OBJECT_CLASS (lightdm_user_list_parent_class)->finalize (object);
 }
@@ -1073,58 +346,6 @@ lightdm_user_list_class_init (LightDMUserListClass *klass)
                       G_TYPE_NONE, 1, LIGHTDM_TYPE_USER);
 }
 
-static void
-load_dmrc (LightDMUser *user)
-{
-    LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
-    gchar *path;
-    //gboolean have_dmrc;
-
-    if (!priv->dmrc_file)
-        priv->dmrc_file = g_key_file_new ();
-
-    /* Load from the user directory */  
-    path = g_build_filename (priv->home_directory, ".dmrc", NULL);
-    /*have_dmrc = */g_key_file_load_from_file (priv->dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, NULL);
-    g_free (path);
-
-    /* If no ~/.dmrc, then load from the cache */
-    // FIXME
-
-    // FIXME: Watch for changes
-
-    /* The Language field contains the locale */
-    if (priv->language)
-        g_free (priv->language);
-    priv->language = g_key_file_get_string (priv->dmrc_file, "Desktop", "Language", NULL);
-
-    if (g_key_file_has_key (priv->dmrc_file, "Desktop", "Layout", NULL))
-    {
-        g_strfreev (priv->layouts);
-        priv->layouts = g_malloc (sizeof (gchar *) * 2);
-        priv->layouts[0] = g_key_file_get_string (priv->dmrc_file, "Desktop", "Layout", NULL);
-        priv->layouts[1] = NULL;
-    }
-
-    if (priv->session)
-        g_free (priv->session);
-    priv->session = g_key_file_get_string (priv->dmrc_file, "Desktop", "Session", NULL);
-}
-
-/* Loads language/layout/session info for user */
-static void
-load_user_values (LightDMUser *user)
-{
-    LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
-
-    if (priv->loaded_values)
-        return;
-    priv->loaded_values = TRUE;
-
-    if (!priv->path)
-        load_dmrc (user);
-}
-
 /**
  * lightdm_user_get_name:
  * @user: A #LightDMUser
@@ -1137,8 +358,7 @@ const gchar *
 lightdm_user_get_name (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    load_user_values (user);
-    return GET_USER_PRIVATE (user)->name;
+    return common_user_get_name (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -1153,8 +373,7 @@ const gchar *
 lightdm_user_get_real_name (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    load_user_values (user);
-    return GET_USER_PRIVATE (user)->real_name;
+    return common_user_get_real_name (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -1168,17 +387,8 @@ lightdm_user_get_real_name (LightDMUser *user)
 const gchar *
 lightdm_user_get_display_name (LightDMUser *user)
 {
-    LightDMUserPrivate *priv;
-
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-
-    load_user_values (user);
-
-    priv = GET_USER_PRIVATE (user);
-    if (!priv->real_name || strcmp (priv->real_name, "") == 0)
-        return priv->name;
-    else
-        return priv->real_name;
+    return common_user_get_display_name (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -1193,8 +403,7 @@ const gchar *
 lightdm_user_get_home_directory (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    load_user_values (user);
-    return GET_USER_PRIVATE (user)->home_directory;
+    return common_user_get_home_directory (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -1209,8 +418,7 @@ const gchar *
 lightdm_user_get_image (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    load_user_values (user);
-    return GET_USER_PRIVATE (user)->image;
+    return common_user_get_image (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -1225,8 +433,7 @@ const gchar *
 lightdm_user_get_background (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    load_user_values (user);
-    return GET_USER_PRIVATE (user)->background;
+    return common_user_get_background (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -1241,8 +448,7 @@ const gchar *
 lightdm_user_get_language (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    load_user_values (user);
-    return GET_USER_PRIVATE (user)->language;
+    return common_user_get_language (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -1257,8 +463,7 @@ const gchar *
 lightdm_user_get_layout (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    load_user_values (user);
-    return GET_USER_PRIVATE (user)->layouts[0];
+    return common_user_get_layout (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -1273,8 +478,7 @@ const gchar * const *
 lightdm_user_get_layouts (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    load_user_values (user);
-    return (const gchar * const *) GET_USER_PRIVATE (user)->layouts;
+    return common_user_get_layouts (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -1289,8 +493,7 @@ const gchar *
 lightdm_user_get_session (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    load_user_values (user);
-    return GET_USER_PRIVATE (user)->session; 
+    return common_user_get_session (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -1304,23 +507,8 @@ lightdm_user_get_session (LightDMUser *user)
 gboolean
 lightdm_user_get_logged_in (LightDMUser *user)
 {
-    LightDMUserPrivate *priv;
-    LightDMUserListPrivate *list_priv;
-    GList *link;
-
     g_return_val_if_fail (LIGHTDM_IS_USER (user), FALSE);
-
-    priv = GET_USER_PRIVATE (user);
-    list_priv = GET_LIST_PRIVATE (priv->user_list);
-
-    for (link = list_priv->sessions; link; link = link->next)
-    {
-        Session *session = link->data;
-        if (strcmp (session->username, priv->name) == 0)
-            return TRUE;
-    }
-
-    return FALSE;
+    return common_user_get_logged_in (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -1335,16 +523,12 @@ gboolean
 lightdm_user_get_has_messages (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), FALSE);
-    load_user_values (user);
-    return GET_USER_PRIVATE (user)->has_messages;
+    return common_user_get_has_messages (GET_USER_PRIVATE (user)->common_user);
 }
 
 static void
 lightdm_user_init (LightDMUser *user)
 {
-    LightDMUserPrivate *priv = GET_USER_PRIVATE (user);
-    priv->layouts = g_malloc (sizeof (gchar *) * 1);
-    priv->layouts[0] = NULL;
 }
 
 static void
@@ -1353,7 +537,18 @@ lightdm_user_set_property (GObject    *object,
                            const GValue *value,
                            GParamSpec *pspec)
 {
-    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    LightDMUser *self = LIGHTDM_USER (object);
+    LightDMUserPrivate *priv = GET_USER_PRIVATE (self);
+
+    switch (prop_id)
+    {
+    case USER_PROP_COMMON_USER:
+        priv->common_user = g_value_dup_object (value);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        break;
+    }
 }
 
 static void
@@ -1416,17 +611,9 @@ lightdm_user_finalize (GObject *object)
     LightDMUser *self = LIGHTDM_USER (object);
     LightDMUserPrivate *priv = GET_USER_PRIVATE (self);
 
-    g_free (priv->path);
-    if (priv->changed_signal)
-        g_dbus_connection_signal_unsubscribe (GET_LIST_PRIVATE (priv->user_list)->bus, priv->changed_signal);
-    g_free (priv->name);
-    g_free (priv->real_name);
-    g_free (priv->home_directory);
-    g_free (priv->image);
-    g_free (priv->background);
-    g_strfreev (priv->layouts);
-    if (priv->dmrc_file)
-        g_key_file_free (priv->dmrc_file);
+    g_object_unref (priv->common_user);
+
+    G_OBJECT_CLASS (lightdm_user_parent_class)->finalize (object);
 }
 
 static void
@@ -1440,6 +627,13 @@ lightdm_user_class_init (LightDMUserClass *klass)
     object_class->get_property = lightdm_user_get_property;
     object_class->finalize = lightdm_user_finalize;
 
+    g_object_class_install_property (object_class,
+                                     USER_PROP_COMMON_USER,
+                                     g_param_spec_object ("common-user",
+                                                          "common-user",
+                                                          "Internal user object",
+                                                          COMMON_TYPE_USER,
+                                                          G_PARAM_PRIVATE|G_PARAM_CONSTRUCT_ONLY|G_PARAM_WRITABLE));
     g_object_class_install_property (object_class,
                                      USER_PROP_NAME,
                                      g_param_spec_string ("name",
@@ -1539,25 +733,4 @@ lightdm_user_class_init (LightDMUserClass *klass)
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 0);
-}
-
-static void
-session_init (Session *session)
-{
-}
-
-static void
-session_finalize (GObject *object)
-{
-    Session *self = SESSION (object);
-
-    g_free (self->path);
-    g_free (self->username);
-}
-
-static void
-session_class_init (SessionClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS (klass);
-    object_class->finalize = session_finalize;
 }

@@ -29,6 +29,7 @@ liblightdm_gobject_1_la_SOURCES= \
 	power.c \
 	session.c \
 	user.c \
+	$(top_srcdir)/common/user-list.c \
 	$(liblightdm_gobject_1include_HEADERS)
 
 if HAVE_INTROSPECTION
