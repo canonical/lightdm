@@ -9,13 +9,18 @@
  * license.
  */
 
-#ifndef PRIVILEGES_H_
-#define PRIVILEGES_H_
+#ifndef DMRC_H_
+#define DMRC_H_
 
-#include "accounts.h"
+#include <glib.h>
+#include "user-list.h"
 
-void privileges_drop (User *user);
+G_BEGIN_DECLS
 
-void privileges_reclaim (void);
+GKeyFile *dmrc_load (CommonUser *user);
 
-#endif /* PRIVILEGES_H_ */
+void dmrc_save (GKeyFile *dmrc_file, CommonUser *user);
+
+G_END_DECLS
+
+#endif /* DMRC_H_ */

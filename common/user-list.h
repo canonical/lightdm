@@ -14,6 +14,7 @@
 #define COMMON_USER_LIST_H_
 
 #include <glib-object.h>
+#include <sys/types.h>
 
 G_BEGIN_DECLS
 
@@ -77,11 +78,15 @@ const gchar *common_user_get_display_name (CommonUser *user);
 
 const gchar *common_user_get_home_directory (CommonUser *user);
 
+const gchar *common_user_get_shell (CommonUser *user);
+
 const gchar *common_user_get_image (CommonUser *user);
 
 const gchar *common_user_get_background (CommonUser *user);
 
 const gchar *common_user_get_language (CommonUser *user);
+
+void common_user_set_language (CommonUser *user, const gchar *language);
 
 const gchar *common_user_get_layout (CommonUser *user);
 
@@ -89,9 +94,15 @@ const gchar * const *common_user_get_layouts (CommonUser *user);
 
 const gchar *common_user_get_session (CommonUser *user);
 
+void common_user_set_session (CommonUser *user, const gchar *session);
+
 gboolean common_user_get_logged_in (CommonUser *user);
 
 gboolean common_user_get_has_messages (CommonUser *user);
+
+uid_t common_user_get_uid (CommonUser *user);
+
+gid_t common_user_get_gid (CommonUser *user);
 
 G_END_DECLS
 

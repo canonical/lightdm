@@ -1,4 +1,4 @@
-SUBDIRS =
+SUBDIRS = common
 if COMPILE_LIBLIGHTDM_GOBJECT
 SUBDIRS += liblightdm-gobject
 endif

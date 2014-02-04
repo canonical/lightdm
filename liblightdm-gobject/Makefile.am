@@ -1,9 +1,12 @@
 lib_LTLIBRARIES = liblightdm-gobject-1.la
 
 liblightdm_gobject_1_la_LDFLAGS = -export-symbols-regex \^lightdm_.*
-liblightdm_gobject_1_la_LIBADD = $(LIBLIGHTDM_GOBJECT_LIBS)
+liblightdm_gobject_1_la_LIBADD = \
+	$(LIBLIGHTDM_GOBJECT_LIBS) \
+	$(top_builddir)/common/libcommon.la
 liblightdm_gobject_1_la_CFLAGS = $(LIBLIGHTDM_GOBJECT_CFLAGS) \
 	$(WARN_CFLAGS) \
+	-I"$(top_srcdir)/common" \
 	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\" \
 	-DSESSIONS_DIR=\"$(pkgdatadir)/sessions:$(datadir)/xsessions\" \
 	-DREMOTE_SESSIONS_DIR=\"$(pkgdatadir)/remote-sessions\"
@@ -29,7 +32,6 @@ liblightdm_gobject_1_la_SOURCES= \
 	power.c \
 	session.c \
 	user.c \
-	$(top_srcdir)/common/user-list.c \
 	$(liblightdm_gobject_1include_HEADERS)
 
 if HAVE_INTROSPECTION

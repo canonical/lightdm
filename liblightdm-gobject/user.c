@@ -13,7 +13,7 @@
 
 #include <config.h>
 
-#include "common/user-list.h"
+#include "user-list.h"
 #include "lightdm/user.h"
 
 enum

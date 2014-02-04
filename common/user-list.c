@@ -19,6 +19,7 @@
 #include <pwd.h>
 #include <gio/gio.h>
 
+#include "dmrc.h"
 #include "user-list.h"
 
 enum
@@ -35,6 +36,7 @@ enum
     USER_PROP_REAL_NAME,
     USER_PROP_DISPLAY_NAME,
     USER_PROP_HOME_DIRECTORY,
+    USER_PROP_SHELL,
     USER_PROP_IMAGE,
     USER_PROP_BACKGROUND,
     USER_PROP_LANGUAGE,
@@ -42,7 +44,9 @@ enum
     USER_PROP_LAYOUTS,
     USER_PROP_SESSION,
     USER_PROP_LOGGED_IN,
-    USER_PROP_HAS_MESSAGES
+    USER_PROP_HAS_MESSAGES,
+    USER_PROP_UID,
+    USER_PROP_GID,
 };
 
 enum
@@ -98,9 +102,6 @@ typedef struct
     /* Accounts service path */
     gchar *path;
 
-    /* DMRC file */
-    GKeyFile *dmrc_file;
-
     /* Update signal from accounts service */
     guint changed_signal;
 
@@ -113,6 +114,9 @@ typedef struct
     /* Home directory of user */
     gchar *home_directory;
 
+    /* Shell for user */
+    gchar *shell;
+
     /* Image for user */
     gchar *image;
 
@@ -121,6 +125,12 @@ typedef struct
 
     /* TRUE if this user has messages available */
     gboolean has_messages;
+
+    /* UID of user */
+    guint64 uid;
+
+    /* GID of user */
+    guint64 gid;
 
     /* User chosen language */
     gchar *language;
@@ -137,18 +147,18 @@ typedef struct
     GObject parent_instance;
     gchar *path;
     gchar *username;
-} Session;
+} CommonSession;
 
 typedef struct
 {
     GObjectClass parent_class;
-} SessionClass;
+} CommonSessionClass;
 
 G_DEFINE_TYPE (CommonUserList, common_user_list, G_TYPE_OBJECT);
 G_DEFINE_TYPE (CommonUser, common_user, G_TYPE_OBJECT);
-#define SESSION(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), session_get_type (), Session))
-GType session_get_type (void);
-G_DEFINE_TYPE (Session, session, G_TYPE_OBJECT);
+#define COMMON_SESSION(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), common_session_get_type (), CommonSession))
+GType common_session_get_type (void);
+G_DEFINE_TYPE (CommonSession, common_session, G_TYPE_OBJECT);
 
 #define GET_LIST_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), COMMON_TYPE_USER_LIST, CommonUserListPrivate)
 #define GET_USER_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), COMMON_TYPE_USER, CommonUserPrivate)
@@ -213,13 +223,14 @@ compare_user (gconstpointer a, gconstpointer b)
 }
 
 static gboolean
-update_passwd_user (CommonUser *user, const gchar *real_name, const gchar *home_directory, const gchar *image)
+update_passwd_user (CommonUser *user, const gchar *real_name, const gchar *home_directory, const gchar *shell, const gchar *image)
 {
     CommonUserPrivate *priv = GET_USER_PRIVATE (user);
 
     /* Skip if already set to this */
     if (g_strcmp0 (common_user_get_real_name (user), real_name) == 0 &&
         g_strcmp0 (common_user_get_home_directory (user), home_directory) == 0 &&
+        g_strcmp0 (common_user_get_shell (user), shell) == 0 &&
         g_strcmp0 (common_user_get_image (user), image) == 0)
         return FALSE;
 
@@ -227,6 +238,8 @@ update_passwd_user (CommonUser *user, const gchar *real_name, const gchar *home_
     priv->real_name = g_strdup (real_name);
     g_free (priv->home_directory);
     priv->home_directory = g_strdup (home_directory);
+    g_free (priv->shell);
+    priv->shell = g_strdup (shell);
     g_free (priv->image);
     priv->image = g_strdup (image);
 
@@ -237,6 +250,45 @@ static void
 user_changed_cb (CommonUser *user)
 {
     g_signal_emit (GET_USER_PRIVATE (user)->user_list, list_signals[USER_CHANGED], 0, user);
+}
+
+static CommonUser *
+make_passwd_user (CommonUserList *user_list, struct passwd *entry)
+{
+    CommonUser *user = g_object_new (COMMON_TYPE_USER, NULL);
+    CommonUserPrivate *priv = GET_USER_PRIVATE (user);
+    char **tokens;
+    gchar *real_name, *image;
+
+    tokens = g_strsplit (entry->pw_gecos, ",", -1);
+    if (tokens[0] != NULL && tokens[0][0] != '\0')
+        real_name = g_strdup (tokens[0]);
+    else
+        real_name = g_strdup ("");
+    g_strfreev (tokens);
+
+    image = g_build_filename (entry->pw_dir, ".face", NULL);
+    if (!g_file_test (image, G_FILE_TEST_EXISTS))
+    {
+        g_free (image);
+        image = g_build_filename (entry->pw_dir, ".face.icon", NULL);
+        if (!g_file_test (image, G_FILE_TEST_EXISTS))
+        {
+            g_free (image);
+            image = NULL;
+        }
+    }
+
+    priv->user_list = user_list;
+    priv->name = g_strdup (entry->pw_name);
+    priv->real_name = real_name;
+    priv->home_directory = g_strdup (entry->pw_dir);
+    priv->shell = g_strdup (entry->pw_shell);
+    priv->image = image;
+    priv->uid = entry->pw_uid;
+    priv->gid = entry->pw_gid;
+
+    return user;
 }
 
 static void
@@ -283,9 +335,6 @@ load_passwd_file (CommonUserList *user_list, gboolean emit_add_signal)
     {
         struct passwd *entry;
         CommonUser *user;
-        CommonUserPrivate *user_priv;
-        char **tokens;
-        gchar *real_name, *image;
         int i;
 
         errno = 0;
@@ -310,36 +359,7 @@ load_passwd_file (CommonUserList *user_list, gboolean emit_add_signal)
         if (hidden_users[i])
             continue;
 
-        tokens = g_strsplit (entry->pw_gecos, ",", -1);
-        if (tokens[0] != NULL && tokens[0][0] != '\0')
-            real_name = g_strdup (tokens[0]);
-        else
-            real_name = g_strdup ("");
-        g_strfreev (tokens);
-
-        image = g_build_filename (entry->pw_dir, ".face", NULL);
-        if (!g_file_test (image, G_FILE_TEST_EXISTS))
-        {
-            g_free (image);
-            image = g_build_filename (entry->pw_dir, ".face.icon", NULL);
-            if (!g_file_test (image, G_FILE_TEST_EXISTS))
-            {
-                g_free (image);
-                image = NULL;
-            }
-        }
-
-        user = g_object_new (COMMON_TYPE_USER, NULL);
-        user_priv = GET_USER_PRIVATE (user);
-        user_priv->user_list = user_list;
-        g_free (user_priv->name);
-        user_priv->name = g_strdup (entry->pw_name);
-        g_free (user_priv->real_name);
-        user_priv->real_name = real_name;
-        g_free (user_priv->home_directory);
-        user_priv->home_directory = g_strdup (entry->pw_dir);
-        g_free (user_priv->image);
-        user_priv->image = image;
+        user = make_passwd_user (user_list, entry);
 
         /* Update existing users if have them */
         for (link = priv->users; link; link = link->next)
@@ -347,7 +367,7 @@ load_passwd_file (CommonUserList *user_list, gboolean emit_add_signal)
             CommonUser *info = link->data;
             if (strcmp (common_user_get_name (info), common_user_get_name (user)) == 0)
             {
-                if (update_passwd_user (info, common_user_get_real_name (user), common_user_get_home_directory (user), common_user_get_image (user)))
+                if (update_passwd_user (info, common_user_get_real_name (user), common_user_get_home_directory (user), common_user_get_shell (user), common_user_get_image (user)))
                     changed_users = g_list_insert_sorted (changed_users, info, compare_user);
                 g_object_unref (user);
                 user = info;
@@ -500,6 +520,11 @@ load_accounts_user (CommonUser *user)
             g_free (priv->home_directory);
             priv->home_directory = g_variant_dup_string (value, NULL);
         }
+        else if (strcmp (name, "Shell") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
+        {
+            g_free (priv->shell);
+            priv->shell = g_variant_dup_string (value, NULL);
+        }
         else if (strcmp (name, "SystemAccount") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
             system_account = g_variant_get_boolean (value);
         else if (strcmp (name, "Language") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
@@ -545,6 +570,8 @@ load_accounts_user (CommonUser *user)
         }
         else if (strcmp (name, "XHasMessages") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
             priv->has_messages = g_variant_get_boolean (value);
+        else if (strcmp (name, "Uid") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_UINT64))
+            priv->uid = g_variant_get_uint64 (value);
     }
     g_variant_iter_free (iter);
 
@@ -641,11 +668,11 @@ accounts_user_deleted_cb (GDBusConnection *connection,
     }
 }
 
-static Session *
+static CommonSession *
 load_session (CommonUserList *user_list, const gchar *path)
 {
     CommonUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
-    Session *session = NULL;
+    CommonSession *session = NULL;
     GVariant *result, *username;
     GError *error = NULL;
 
@@ -674,7 +701,7 @@ load_session (CommonUserList *user_list, const gchar *path)
         g_variant_get (username, "&s", &name);
 
         g_debug ("Loaded session %s (%s)", path, name);
-        session = g_object_new (session_get_type (), NULL);
+        session = g_object_new (common_session_get_type (), NULL);
         session->username = g_strdup (name);
         session->path = g_strdup (path);
         priv->sessions = g_list_append (priv->sessions, session);
@@ -696,7 +723,7 @@ session_added_cb (GDBusConnection *connection,
 {
     CommonUserList *user_list = data;
     gchar *path;
-    Session *session;
+    CommonSession *session;
     CommonUser *user = NULL;
 
     if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(o)")))
@@ -737,7 +764,7 @@ session_removed_cb (GDBusConnection *connection,
 
     for (link = priv->sessions; link; link = link->next)
     {
-        Session *session = link->data;
+        CommonSession *session = link->data;
         if (strcmp (session->path, path) == 0)
         {
             CommonUser *user;
@@ -750,6 +777,72 @@ session_removed_cb (GDBusConnection *connection,
             g_object_unref (session);
             break;
         }
+    }
+}
+
+static void
+load_sessions (CommonUserList *user_list)
+{
+    CommonUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
+    GVariant *result;
+    GError *error = NULL;
+
+    priv->session_added_signal = g_dbus_connection_signal_subscribe (priv->bus,
+                                                                     "org.freedesktop.DisplayManager",
+                                                                     "org.freedesktop.DisplayManager",
+                                                                     "SessionAdded",
+                                                                     "/org/freedesktop/DisplayManager",
+                                                                     NULL,
+                                                                     G_DBUS_SIGNAL_FLAGS_NONE,
+                                                                     session_added_cb,
+                                                                     user_list,
+                                                                     NULL);
+    priv->session_removed_signal = g_dbus_connection_signal_subscribe (priv->bus,
+                                                                       "org.freedesktop.DisplayManager",
+                                                                       "org.freedesktop.DisplayManager",
+                                                                       "SessionRemoved",
+                                                                       "/org/freedesktop/DisplayManager",
+                                                                       NULL,
+                                                                       G_DBUS_SIGNAL_FLAGS_NONE,
+                                                                       session_removed_cb,
+                                                                       user_list,
+                                                                       NULL);
+    result = g_dbus_connection_call_sync (priv->bus,
+                                          "org.freedesktop.DisplayManager",
+                                          "/org/freedesktop/DisplayManager",
+                                          "org.freedesktop.DBus.Properties",
+                                          "Get",
+                                          g_variant_new ("(ss)", "org.freedesktop.DisplayManager", "Sessions"),
+                                          G_VARIANT_TYPE ("(v)"),
+                                          G_DBUS_CALL_FLAGS_NONE,
+                                          -1,
+                                          NULL,
+                                          &error);
+    if (error)
+        g_warning ("Error getting session list from org.freedesktop.DisplayManager: %s", error->message);
+    g_clear_error (&error);
+    if (result)
+    {
+        if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(v)")))
+        {
+            GVariant *value;
+            GVariantIter *iter;
+            const gchar *path;
+
+            g_variant_get (result, "(v)", &value);
+
+            g_debug ("Loading sessions from org.freedesktop.DisplayManager");
+            g_variant_get (value, "ao", &iter);
+            while (g_variant_iter_loop (iter, "&o", &path))
+                load_session (user_list, path);
+            g_variant_iter_free (iter);
+
+            g_variant_unref (value);
+        }
+        else
+            g_warning ("Unexpected type from org.freedesktop.DisplayManager.Sessions: %s", g_variant_get_type_string (result));
+
+        g_variant_unref (result);
     }
 }
 
@@ -833,65 +926,6 @@ load_users (CommonUserList *user_list)
             g_signal_connect (priv->passwd_monitor, "changed", G_CALLBACK (passwd_changed_cb), user_list);
         g_clear_error (&error);
     }
-
-    priv->session_added_signal = g_dbus_connection_signal_subscribe (priv->bus,
-                                                                     "org.freedesktop.DisplayManager",
-                                                                     "org.freedesktop.DisplayManager",
-                                                                     "SessionAdded",
-                                                                     "/org/freedesktop/DisplayManager",
-                                                                     NULL,
-                                                                     G_DBUS_SIGNAL_FLAGS_NONE,
-                                                                     session_added_cb,
-                                                                     user_list,
-                                                                     NULL);
-    priv->session_removed_signal = g_dbus_connection_signal_subscribe (priv->bus,
-                                                                       "org.freedesktop.DisplayManager",
-                                                                       "org.freedesktop.DisplayManager",
-                                                                       "SessionRemoved",
-                                                                       "/org/freedesktop/DisplayManager",
-                                                                       NULL,
-                                                                       G_DBUS_SIGNAL_FLAGS_NONE,
-                                                                       session_removed_cb,
-
-                                                                    user_list,
-                                                                    NULL);
-    result = g_dbus_connection_call_sync (priv->bus,
-                                          "org.freedesktop.DisplayManager",
-                                          "/org/freedesktop/DisplayManager",
-                                          "org.freedesktop.DBus.Properties",
-                                          "Get",
-                                          g_variant_new ("(ss)", "org.freedesktop.DisplayManager", "Sessions"),
-                                          G_VARIANT_TYPE ("(v)"),
-                                          G_DBUS_CALL_FLAGS_NONE,
-                                          -1,
-                                          NULL,
-                                          &error);
-    if (error)
-        g_warning ("Error getting session list from org.freedesktop.DisplayManager: %s", error->message);
-    g_clear_error (&error);
-    if (result)
-    {
-        if (g_variant_is_of_type (result, G_VARIANT_TYPE ("(v)")))
-        {
-            GVariant *value;
-            GVariantIter *iter;
-            const gchar *path;
-
-            g_variant_get (result, "(v)", &value);
-
-            g_debug ("Loading sessions from org.freedesktop.DisplayManager");
-            g_variant_get (value, "ao", &iter);
-            while (g_variant_iter_loop (iter, "&o", &path))
-                load_session (user_list, path);
-            g_variant_iter_free (iter);
-
-            g_variant_unref (value);
-        }
-        else
-            g_warning ("Unexpected type from org.freedesktop.DisplayManager.Sessions: %s", g_variant_get_type_string (result));
-
-        g_variant_unref (result);
-    }
 }
 
 /**
@@ -931,8 +965,10 @@ common_user_list_get_users (CommonUserList *user_list)
  * @username: Name of user to get.
  *
  * Get infomation about a given user or #NULL if this user doesn't exist.
+ * Includes hidden and system users, unlike the list from
+ * common_user_list_get_users.
  *
- * Return value: (transfer none): A #CommonUser entry for the given user.
+ * Return value: (transfer full): A #CommonUser entry for the given user.
  **/
 CommonUser *
 common_user_list_get_user_by_name (CommonUserList *user_list, const gchar *username)
@@ -942,7 +978,19 @@ common_user_list_get_user_by_name (CommonUserList *user_list, const gchar *usern
 
     load_users (user_list);
 
-    return get_user_by_name (user_list, username);
+    CommonUser *user = get_user_by_name (user_list, username);
+    if (user)
+        return g_object_ref (user);
+
+    /* Sometimes we need to look up users that aren't in AccountsService.
+       Notably we need to look up the user that the greeter runs as, which
+       is usually 'lightdm'. For such cases, we manually create a one-off
+       CommonUser object and pre-seed with passwd info. */
+    struct passwd *entry = getpwnam (username);
+    if (entry != NULL)
+        return make_passwd_user (user_list, entry);
+
+    return NULL;
 }
 
 static void
@@ -1075,42 +1123,80 @@ common_user_list_class_init (CommonUserListClass *klass)
                       G_TYPE_NONE, 1, COMMON_TYPE_USER);
 }
 
+static gboolean
+call_method (CommonUser *user, const gchar *method, GVariant *args,
+             const gchar *expected, GVariant **result)
+{
+    GVariant *answer;
+    GError *error = NULL;
+    CommonUserPrivate *user_priv = GET_USER_PRIVATE (user);
+    CommonUserListPrivate *list_priv = GET_LIST_PRIVATE (user_priv->user_list);
+
+    answer = g_dbus_connection_call_sync (list_priv->bus,
+                                          "org.freedesktop.Accounts",
+                                          user_priv->path,
+                                          "org.freedesktop.Accounts.User",
+                                          method,
+                                          args,
+                                          G_VARIANT_TYPE (expected),
+                                          G_DBUS_CALL_FLAGS_NONE,
+                                          -1,
+                                          NULL,
+                                          &error);
+    if (error)
+        g_warning ("Could not call %s: %s", method, error->message);
+    g_clear_error (&error);
+
+    if (!answer)
+        return FALSE;
+
+    if (result)
+        *result = answer;
+    else
+        g_variant_unref (answer);
+
+    return TRUE;
+}
+
+static void
+save_string_to_dmrc (CommonUser *user, const gchar *group,
+                     const gchar *key, const gchar *value)
+{
+    GKeyFile *dmrc;
+
+    dmrc = dmrc_load (user);
+    g_key_file_set_string (dmrc, group, key, value);
+    dmrc_save (dmrc, user);
+
+    g_key_file_free (dmrc);
+}
+
 static void
 load_dmrc (CommonUser *user)
 {
     CommonUserPrivate *priv = GET_USER_PRIVATE (user);
-    gchar *path;
-    //gboolean have_dmrc;
+    GKeyFile *dmrc;
 
-    if (!priv->dmrc_file)
-        priv->dmrc_file = g_key_file_new ();
-
-    /* Load from the user directory */  
-    path = g_build_filename (priv->home_directory, ".dmrc", NULL);
-    /*have_dmrc = */g_key_file_load_from_file (priv->dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, NULL);
-    g_free (path);
-
-    /* If no ~/.dmrc, then load from the cache */
-    // FIXME
+    dmrc = dmrc_load (user);
 
     // FIXME: Watch for changes
 
     /* The Language field contains the locale */
-    if (priv->language)
-        g_free (priv->language);
-    priv->language = g_key_file_get_string (priv->dmrc_file, "Desktop", "Language", NULL);
+    g_free (priv->language);
+    priv->language = g_key_file_get_string (dmrc, "Desktop", "Language", NULL);
 
-    if (g_key_file_has_key (priv->dmrc_file, "Desktop", "Layout", NULL))
+    if (g_key_file_has_key (dmrc, "Desktop", "Layout", NULL))
     {
         g_strfreev (priv->layouts);
         priv->layouts = g_malloc (sizeof (gchar *) * 2);
-        priv->layouts[0] = g_key_file_get_string (priv->dmrc_file, "Desktop", "Layout", NULL);
+        priv->layouts[0] = g_key_file_get_string (dmrc, "Desktop", "Layout", NULL);
         priv->layouts[1] = NULL;
     }
 
-    if (priv->session)
-        g_free (priv->session);
-    priv->session = g_key_file_get_string (priv->dmrc_file, "Desktop", "Session", NULL);
+    g_free (priv->session);
+    priv->session = g_key_file_get_string (dmrc, "Desktop", "Session", NULL);
+
+    g_key_file_free (dmrc);
 }
 
 /* Loads language/layout/session info for user */
@@ -1200,6 +1286,22 @@ common_user_get_home_directory (CommonUser *user)
 }
 
 /**
+ * common_user_get_shell:
+ * @user: A #CommonUser
+ * 
+ * Get the shell for a user.
+ * 
+ * Return value: The user's shell
+ */
+const gchar *
+common_user_get_shell (CommonUser *user)
+{
+    g_return_val_if_fail (COMMON_IS_USER (user), NULL);
+    load_user_values (user);
+    return GET_USER_PRIVATE (user)->shell;
+}
+
+/**
  * common_user_get_image:
  * @user: A #CommonUser
  * 
@@ -1244,7 +1346,26 @@ common_user_get_language (CommonUser *user)
 {
     g_return_val_if_fail (COMMON_IS_USER (user), NULL);
     load_user_values (user);
-    return GET_USER_PRIVATE (user)->language;
+    const gchar *language = GET_USER_PRIVATE (user)->language;
+    return (language && language[0] == 0) ? NULL : language; /* Treat "" as NULL */
+}
+
+/**
+ * common_user_set_language:
+ * @user: A #CommonUser
+ * @language: The user's new language
+ * 
+ * Set the language for a user.
+ **/
+void
+common_user_set_language (CommonUser *user, const gchar *language)
+{
+    g_return_if_fail (COMMON_IS_USER (user));
+    if (g_strcmp0 (common_user_get_language (user), language) != 0)
+    {
+        call_method (user, "SetLanguage", g_variant_new ("(s)", language), "()", NULL);
+        save_string_to_dmrc (user, "Desktop", "Language", language);
+    }
 }
 
 /**
@@ -1292,7 +1413,26 @@ common_user_get_session (CommonUser *user)
 {
     g_return_val_if_fail (COMMON_IS_USER (user), NULL);
     load_user_values (user);
-    return GET_USER_PRIVATE (user)->session; 
+    const gchar *session = GET_USER_PRIVATE (user)->session;
+    return (session && session[0] == 0) ? NULL : session; /* Treat "" as NULL */
+}
+
+/**
+ * common_user_set_session:
+ * @user: A #CommonUser
+ * @language: The user's new session
+ * 
+ * Set the session for a user.
+ **/
+void
+common_user_set_session (CommonUser *user, const gchar *session)
+{
+    g_return_if_fail (COMMON_IS_USER (user));
+    if (g_strcmp0 (common_user_get_session (user), session) != 0)
+    {
+        call_method (user, "SetXSession", g_variant_new ("(s)", session), "()", NULL);
+        save_string_to_dmrc (user, "Desktop", "Session", session);
+    }
 }
 
 /**
@@ -1315,9 +1455,13 @@ common_user_get_logged_in (CommonUser *user)
     priv = GET_USER_PRIVATE (user);
     list_priv = GET_LIST_PRIVATE (priv->user_list);
 
+    // Lazily decide to load/listen to sessions
+    if (list_priv->session_added_signal == 0)
+        load_sessions (priv->user_list);
+
     for (link = list_priv->sessions; link; link = link->next)
     {
-        Session *session = link->data;
+        CommonSession *session = link->data;
         if (strcmp (session->username, priv->name) == 0)
             return TRUE;
     }
@@ -1339,6 +1483,48 @@ common_user_get_has_messages (CommonUser *user)
     g_return_val_if_fail (COMMON_IS_USER (user), FALSE);
     load_user_values (user);
     return GET_USER_PRIVATE (user)->has_messages;
+}
+
+/**
+ * common_user_get_uid:
+ * @user: A #CommonUser
+ * 
+ * Get the uid of a user
+ * 
+ * Return value: The user's uid
+ **/
+uid_t
+common_user_get_uid (CommonUser *user)
+{
+    g_return_val_if_fail (COMMON_IS_USER (user), 0);
+    load_user_values (user);
+    return GET_USER_PRIVATE (user)->uid;
+}
+
+/**
+ * common_user_get_gid:
+ * @user: A #CommonUser
+ * 
+ * Get the gid of a user
+ * 
+ * Return value: The user's gid
+ **/
+gid_t
+common_user_get_gid (CommonUser *user)
+{
+    g_return_val_if_fail (COMMON_IS_USER (user), 0);
+    load_user_values (user);
+    /* gid is not actually stored in AccountsService, so if our user is from
+       AccountsService, we have to look up manually in passwd.  gid won't
+       change, so just look up the first time we're asked and never again. */
+    CommonUserPrivate *priv = GET_USER_PRIVATE (user);
+    if (priv->uid != 0 && priv->gid == 0)
+    {
+        struct passwd *entry = getpwuid (priv->uid);
+        if (entry != NULL)
+            priv->gid = entry->pw_gid;
+    }
+    return priv->gid;
 }
 
 static void
@@ -1382,6 +1568,9 @@ common_user_get_property (GObject    *object,
     case USER_PROP_HOME_DIRECTORY:
         g_value_set_string (value, common_user_get_home_directory (self));
         break;
+    case USER_PROP_SHELL:
+        g_value_set_string (value, common_user_get_shell (self));
+        break;
     case USER_PROP_IMAGE:
         g_value_set_string (value, common_user_get_image (self));
         break;
@@ -1406,6 +1595,12 @@ common_user_get_property (GObject    *object,
     case USER_PROP_HAS_MESSAGES:
         g_value_set_boolean (value, common_user_get_has_messages (self));
         break;
+    case USER_PROP_UID:
+        g_value_set_uint64 (value, common_user_get_uid (self));
+        break;
+    case USER_PROP_GID:
+        g_value_set_uint64 (value, common_user_get_gid (self));
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -1424,11 +1619,10 @@ common_user_finalize (GObject *object)
     g_free (priv->name);
     g_free (priv->real_name);
     g_free (priv->home_directory);
+    g_free (priv->shell);
     g_free (priv->image);
     g_free (priv->background);
     g_strfreev (priv->layouts);
-    if (priv->dmrc_file)
-        g_key_file_free (priv->dmrc_file);
 }
 
 static void
@@ -1468,6 +1662,13 @@ common_user_class_init (CommonUserClass *klass)
                                      g_param_spec_string ("home-directory",
                                                           "home-directory",
                                                           "Home directory",
+                                                          NULL,
+                                                          G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
+                                     USER_PROP_SHELL,
+                                     g_param_spec_string ("shell",
+                                                          "shell",
+                                                          "Shell",
                                                           NULL,
                                                           G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
@@ -1526,6 +1727,24 @@ common_user_class_init (CommonUserClass *klass)
                                                            "TRUE if the user is has waiting messages",
                                                            FALSE,
                                                            G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
+                                     USER_PROP_UID,
+                                     g_param_spec_uint64 ("uid",
+                                                          "uid",
+                                                          "Uid",
+                                                          0,
+                                                          G_MAXUINT64,
+                                                          0,
+                                                          G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
+                                     USER_PROP_GID,
+                                     g_param_spec_uint64 ("gd",
+                                                          "gid",
+                                                          "Gid",
+                                                          0,
+                                                          G_MAXUINT64,
+                                                          0,
+                                                          G_PARAM_READWRITE));
 
     /**
      * CommonUser::changed:
@@ -1544,22 +1763,22 @@ common_user_class_init (CommonUserClass *klass)
 }
 
 static void
-session_init (Session *session)
+common_session_init (CommonSession *common_session)
 {
 }
 
 static void
-session_finalize (GObject *object)
+common_session_finalize (GObject *object)
 {
-    Session *self = SESSION (object);
+    CommonSession *self = COMMON_SESSION (object);
 
     g_free (self->path);
     g_free (self->username);
 }
 
 static void
-session_class_init (SessionClass *klass)
+common_session_class_init (CommonSessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-    object_class->finalize = session_finalize;
+    object_class->finalize = common_session_finalize;
 }

@@ -209,6 +209,7 @@ dnl ###########################################################################
 
 AC_CONFIG_FILES([
 Makefile
+common/Makefile
 data/Makefile
 doc/Makefile
 help/Makefile

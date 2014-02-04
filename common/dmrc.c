@@ -15,34 +15,26 @@
 
 #include "dmrc.h"
 #include "configuration.h"
-#include "accounts.h"
 #include "privileges.h"
+#include "user-list.h"
 
 GKeyFile *
-dmrc_load (const gchar *username)
+dmrc_load (CommonUser *user)
 {
-    User *user;
     GKeyFile *dmrc_file;
     gchar *path;
     gboolean have_dmrc, drop_privileges;
 
     dmrc_file = g_key_file_new ();
 
-    user = accounts_get_user_by_name (username);
-    if (!user)
-    {
-        g_warning ("Cannot load .dmrc file, unable to get information on user %s", username);      
-        return dmrc_file;
-    }
-
     /* Load from the user directory, if this fails (e.g. the user directory
      * is not yet mounted) then load from the cache */
-    path = g_build_filename (user_get_home_directory (user), ".dmrc", NULL);
+    path = g_build_filename (common_user_get_home_directory (user), ".dmrc", NULL);
 
     /* Guard against privilege escalation through symlinks, etc. */
     drop_privileges = geteuid () == 0;
     if (drop_privileges)
-        privileges_drop (user);
+        privileges_drop (common_user_get_uid (user), common_user_get_gid (user));
     have_dmrc = g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, NULL);
     if (drop_privileges)
         privileges_reclaim ();
@@ -53,7 +45,7 @@ dmrc_load (const gchar *username)
     {
         gchar *filename, *cache_dir;
 
-        filename = g_strdup_printf ("%s.dmrc", user_get_name (user));
+        filename = g_strdup_printf ("%s.dmrc", common_user_get_name (user));
         cache_dir = config_get_string (config_get_instance (), "LightDM", "cache-directory");
         path = g_build_filename (cache_dir, "dmrc", filename, NULL);
         g_free (filename);
@@ -63,46 +55,32 @@ dmrc_load (const gchar *username)
         g_free (path);
     }
 
-    g_object_unref (user);
-
     return dmrc_file;
 }
 
 void
-dmrc_save (GKeyFile *dmrc_file, const gchar *username)
+dmrc_save (GKeyFile *dmrc_file, CommonUser *user)
 {
-    User *user;
     gchar *path, *filename, *cache_dir, *dmrc_cache_dir;
     gchar *data;
     gsize length;
-
-    user = accounts_get_user_by_name (username);
-    if (!user)
-    {
-        g_warning ("Not saving DMRC file - unable to get information on user %s", username);
-        return;
-    }
+    gboolean drop_privileges;
 
     data = g_key_file_to_data (dmrc_file, &length, NULL);
 
     /* Update the users .dmrc */
-    if (user)
-    {
-        gboolean drop_privileges;
+    path = g_build_filename (common_user_get_home_directory (user), ".dmrc", NULL);
 
-        path = g_build_filename (user_get_home_directory (user), ".dmrc", NULL);
+    /* Guard against privilege escalation through symlinks, etc. */
+    drop_privileges = geteuid () == 0;
+    if (drop_privileges)
+        privileges_drop (common_user_get_uid (user), common_user_get_gid (user));
+    g_debug ("Writing %s", path);
+    g_file_set_contents (path, data, length, NULL);
+    if (drop_privileges)
+        privileges_reclaim ();
 
-        /* Guard against privilege escalation through symlinks, etc. */
-        drop_privileges = geteuid () == 0;
-        if (drop_privileges)
-            privileges_drop (user);
-        g_debug ("Writing %s", path);
-        g_file_set_contents (path, data, length, NULL);
-        if (drop_privileges)
-            privileges_reclaim ();
-
-        g_free (path);
-    }
+    g_free (path);
 
     /* Update the .dmrc cache */
     cache_dir = config_get_string (config_get_instance (), "LightDM", "cache-directory");
@@ -110,12 +88,11 @@ dmrc_save (GKeyFile *dmrc_file, const gchar *username)
     if (g_mkdir_with_parents (dmrc_cache_dir, 0700) < 0)
         g_warning ("Failed to make DMRC cache directory %s: %s", dmrc_cache_dir, strerror (errno));
 
-    filename = g_strdup_printf ("%s.dmrc", username);
+    filename = g_strdup_printf ("%s.dmrc", common_user_get_name (user));
     path = g_build_filename (dmrc_cache_dir, filename, NULL);
     g_file_set_contents (path, data, length, NULL);
 
     g_free (dmrc_cache_dir);
     g_free (path);
     g_free (filename);
-    g_object_unref (user);
 }

@@ -36,8 +36,6 @@ typedef struct
 
 User *accounts_get_user_by_name (const gchar *username);
 
-User *accounts_get_user_by_uid (uid_t uid);
-
 User *accounts_get_current_user (void);
 
 GType user_get_type (void);
@@ -47,8 +45,6 @@ const gchar *user_get_name (User *user);
 uid_t user_get_uid (User *user);
 
 gid_t user_get_gid (User *user);
-
-const gchar *user_get_gecos (User *user);
 
 const gchar *user_get_home_directory (User *user);
 
