@@ -245,12 +245,9 @@ seat_unity_create_greeter_session (Seat *seat)
     if (vt >= 0)
     {
         gchar *value = g_strdup_printf ("%d", vt);
-        l_debug (seat, "Setting XDG_VTNR=%s", value);
         session_set_env (SESSION (greeter_session), "XDG_VTNR", value);
         g_free (value);
     }
-    else
-        l_debug (seat, "Not setting XDG_VTNR");
 
     return greeter_session;
 }
@@ -274,12 +271,9 @@ seat_unity_create_session (Seat *seat)
     if (vt >= 0)
     {
         gchar *value = g_strdup_printf ("%d", vt);
-        l_debug (seat, "Setting XDG_VTNR=%s", value);
         session_set_env (SESSION (session), "XDG_VTNR", value);
         g_free (value);
     }
-    else
-        l_debug (seat, "Not setting XDG_VTNR");
 
     return session;
 }
