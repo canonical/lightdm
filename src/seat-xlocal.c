@@ -273,7 +273,7 @@ seat_xlocal_get_active_session (Seat *seat)
 
     vt = vt_get_active ();
     if (vt < 0)
-    	return NULL;
+        return NULL;
 
     for (link = seat_get_sessions (seat); link; link = link->next)
     {
