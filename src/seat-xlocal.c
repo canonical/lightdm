@@ -79,6 +79,8 @@ get_vt (Seat *seat, DisplayServer *display_server)
     }
     if (plymouth_get_is_active ())
         plymouth_quit (FALSE);
+    if (!xdg_seat)
+        xdg_seat = "seat0";
     if (vt < 0 && g_strcmp0 (xdg_seat, "seat0") == 0)
         vt = vt_get_unused ();
 
