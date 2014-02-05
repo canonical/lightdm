@@ -157,6 +157,18 @@ seat_get_integer_property (Seat *seat, const gchar *name)
     return value ? atoi (value) : 0;
 }
 
+const gchar *
+seat_get_name (Seat *seat)
+{
+    const gchar *name;
+
+    name = seat_get_string_property (seat, "xdg-seat");
+    if (name)
+        return name;
+
+    return "seat0";
+}
+
 void
 seat_set_can_switch (Seat *seat, gboolean can_switch)
 {

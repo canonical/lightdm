@@ -122,7 +122,7 @@ static DisplayServer *
 create_x_server (Seat *seat)
 {
     XServerLocal *x_server;
-    const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL, *xdg_seat = NULL;
+    const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
     gboolean allow_tcp;
     gint port = 0;
     gchar *id;
@@ -145,9 +145,7 @@ create_x_server (Seat *seat)
     if (layout)
         x_server_local_set_layout (x_server, layout);
     
-    xdg_seat = seat_get_string_property (seat, "xdg-seat");
-    if (xdg_seat)
-        x_server_local_set_xdg_seat (x_server, xdg_seat);
+    x_server_local_set_xdg_seat (x_server, seat_get_name (seat));
 
     config_file = seat_get_string_property (seat, "xserver-config");
     if (config_file)
@@ -232,16 +230,11 @@ static Greeter *
 seat_unity_create_greeter_session (Seat *seat)
 {
     Greeter *greeter_session;
-    const gchar *xdg_seat;
     gchar *id;
     gint vt;
 
     greeter_session = SEAT_CLASS (seat_unity_parent_class)->create_greeter_session (seat);
-    xdg_seat = seat_get_string_property (seat, "xdg-seat");
-    if (!xdg_seat)
-        xdg_seat = "seat0";
-    l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
-    session_set_env (SESSION (greeter_session), "XDG_SEAT", xdg_seat);
+    session_set_env (SESSION (greeter_session), "XDG_SEAT", seat_get_name (seat));
 
     id = g_strdup_printf ("greeter-%d", SEAT_UNITY (seat)->priv->next_greeter_id);
     SEAT_UNITY (seat)->priv->next_greeter_id++;
@@ -266,16 +259,11 @@ static Session *
 seat_unity_create_session (Seat *seat)
 {
     Session *session;
-    const gchar *xdg_seat;
     gchar *id;
     gint vt;
 
     session = SEAT_CLASS (seat_unity_parent_class)->create_session (seat);
-    xdg_seat = seat_get_string_property (seat, "xdg-seat");
-    if (!xdg_seat)
-        xdg_seat = "seat0";
-    l_debug (seat, "Setting XDG_SEAT=%s", xdg_seat);
-    session_set_env (session, "XDG_SEAT", xdg_seat);
+    session_set_env (session, "XDG_SEAT", seat_get_name (seat));
 
     id = g_strdup_printf ("session-%d", SEAT_UNITY (seat)->priv->next_session_id);
     SEAT_UNITY (seat)->priv->next_session_id++;
