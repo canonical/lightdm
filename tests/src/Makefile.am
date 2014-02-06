@@ -19,6 +19,7 @@ noinst_LTLIBRARIES = libsystem.la
 
 libsystem_la_SOURCES = libsystem.c status.c status.h
 libsystem_la_CFLAGS = \
+	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
 	$(GIO_UNIX_CFLAGS) \
 	-DSRCDIR=\"$(abs_top_srcdir)\" \
@@ -160,6 +161,7 @@ test_qt5_greeter_SOURCES = $(common_qt_sources)
 nodist_test_qt4_greeter_SOURCES = test-qt4-greeter_moc4.cpp
 nodist_test_qt5_greeter_SOURCES = test-qt5-greeter_moc5.cpp
 common_qt_cflags = \
+	$(WARN_CXXFLAGS) \
 	$(GLIB_CFLAGS) \
 	$(GIO_UNIX_CFLAGS) \
 	$(XCB_CFLAGS)
