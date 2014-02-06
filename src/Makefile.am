@@ -78,8 +78,8 @@ lightdm_SOURCES = \
 	xdmcp-session-private.h
 
 lightdm_CFLAGS = \
-	$(LIGHTDM_CFLAGS) \
 	$(WARN_CFLAGS) \
+	$(LIGHTDM_CFLAGS) \
 	-DSBIN_DIR=\"$(sbindir)\" \
 	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\" \
 	-DLOG_DIR=\"$(localstatedir)/log/lightdm\" \
@@ -99,6 +99,7 @@ dm_tool_SOURCES = \
 	dm-tool.c
 
 dm_tool_CFLAGS = \
+	$(WARN_CFLAGS) \
 	$(LIGHTDM_CFLAGS) \
 	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\" \
 	-DLOCALE_DIR=\"$(datadir)/locale\"
@@ -111,8 +112,8 @@ libexec_PROGRAMS = lightdm-guest-session
 lightdm_guest_session_SOURCES = lightdm-guest-session.c
 
 lightdm_guest_session_CFLAGS = \
-	$(LIGHTDM_CFLAGS) \
-	$(WARN_CFLAGS)
+	$(WARN_CFLAGS) \
+	$(LIGHTDM_CFLAGS)
 
 EXTRA_DIST = \
 	display-manager.xml
