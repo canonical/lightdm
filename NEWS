@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.4.6
+
+    * Correctly invoke PAM to change authentication token
+    * Load configuration from /etc/lightdm/lightdm.conf.d
+    * Fix crash where Process objects are accessed after unref
+
 Overview of changes in lightdm 1.4.5
 
     * Update apparmor abstractions
