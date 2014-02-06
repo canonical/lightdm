@@ -59,9 +59,8 @@ void GreeterPrivate::cb_showPrompt(LightDMGreeter *greeter, const gchar *text, L
     GreeterPrivate *that = static_cast<GreeterPrivate*>(data);
     QString message = QString::fromUtf8(text);
     
-    //FIXME prompt type
-
-    Q_EMIT that->q_func()->showPrompt(message, Greeter::PromptTypeSecret);
+    Q_EMIT that->q_func()->showPrompt(message, type == LIGHTDM_PROMPT_TYPE_QUESTION ?
+                                               Greeter::PromptTypeQuestion : Greeter::PromptTypeSecret);
 }
 
 void GreeterPrivate::cb_showMessage(LightDMGreeter *greeter, const gchar *text, LightDMMessageType type, gpointer data)
@@ -71,9 +70,8 @@ void GreeterPrivate::cb_showMessage(LightDMGreeter *greeter, const gchar *text, 
     GreeterPrivate *that = static_cast<GreeterPrivate*>(data);
     QString message = QString::fromUtf8(text);
 
-    //FIXME prompt type
-
-    Q_EMIT that->q_func()->showMessage(message, Greeter::MessageTypeInfo);
+    Q_EMIT that->q_func()->showMessage(message, type == LIGHTDM_MESSAGE_TYPE_INFO ?
+                                                Greeter::MessageTypeInfo : Greeter::MessageTypeError);
 }
 
 void GreeterPrivate::cb_authenticationComplete(LightDMGreeter *greeter, gpointer data)
