@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.8.7
+
+    * Correctly invoke PAM to change authentication token    
+
 Overview of changes in lightdm 1.8.6
 
     * Fix issue where VTs are double used when switching sessions.
