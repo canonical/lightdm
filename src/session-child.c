@@ -291,7 +291,7 @@ session_child_run (int argc, char **argv)
         if (authentication_result == PAM_SUCCESS)
             authentication_result = pam_acct_mgmt (pam_handle, 0);
         if (authentication_result == PAM_NEW_AUTHTOK_REQD)
-            authentication_result = pam_chauthtok (pam_handle, 0);
+            authentication_result = pam_chauthtok (pam_handle, PAM_CHANGE_EXPIRED_AUTHTOK);
     }
     else
         authentication_result = PAM_SUCCESS;
