@@ -3,6 +3,7 @@ Overview of changes in lightdm 1.2.7
     * Correctly invoke PAM to change authentication token
     * Add back apparmor abstractions removed in 1.2.6
     * Load configuration from /etc/lightdm/lightdm.conf.d
+    * Fix crash where Process objects are accessed after unref
     * Fix double removal of source IDs
 
 Overview of changes in lightdm 1.2.6
