@@ -1,3 +1,23 @@
+lightdm (1.9.6-0ubuntu3) trusty; urgency=medium
+
+  [ Gunnar Hjalmarsson ]
+  * debian/guest-session-auto.sh:
+    - Export gettext variables.
+  * debian/guest-account:
+    - Chown $HOME after /etc/guest-session/prefs.sh has been sourced.
+  * debian/patches/05_translate_guest_session_dialog.patch:
+    - Make the translatable strings in debian/guest-session-auto.sh end up in
+      the PO files.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 05 Feb 2014 10:23:52 +0000
+
+lightdm (1.9.6-0ubuntu2) trusty; urgency=medium
+
+  * Clear default tty on lightdm shutdown, to avoid brief display of text
+    messages on shutdown. (LP: #967229)
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Tue, 04 Feb 2014 10:12:05 +0000
+
 lightdm (1.9.6-0ubuntu1) trusty; urgency=medium
 
   * New upstream release:

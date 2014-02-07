@@ -23,8 +23,10 @@ if test "x$GCC" == xyes; then
                  -Werror=format-security \
                  -Werror=format=2 \
                  -Werror=missing-include-dirs"
+    WARN_CXXFLAGS="-Wall"
 fi
 AC_SUBST(WARN_CFLAGS)
+AC_SUBST(WARN_CXXFLAGS)
 
 GOBJECT_INTROSPECTION_CHECK(0.9.5)
 

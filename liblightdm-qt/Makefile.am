@@ -9,6 +9,7 @@ liblightdm_qt5_3_la_LIBADD = \
 	$(common_libadd)
 
 common_cflags = \
+	$(WARN_CXXFLAGS) \
 	-I$(top_srcdir)/liblightdm-gobject \
 	$(GLIB_CFLAGS) \
 	-DQT_NO_KEYWORDS \

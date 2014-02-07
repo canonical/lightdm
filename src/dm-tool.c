@@ -23,7 +23,7 @@ static gint xephyr_display_number;
 static GPid xephyr_pid;
 
 static void
-usage ()
+usage (void)
 {
     g_printerr (/* Text printed out when an unknown command-line argument provided */
                 _("Run 'dm-tool --help' to see a full list of available command line options."));
@@ -69,7 +69,7 @@ xephyr_signal_cb (int signum)
     exit (EXIT_SUCCESS);
 }
 
-GDBusProxy *
+static GDBusProxy *
 get_seat_proxy (void)
 {
     GError *error = NULL;
@@ -285,7 +285,7 @@ main (int argc, char **argv)
     }
     else if (strcmp (command, "list-seats") == 0)
     {
-        GVariant *seats, *sessions;
+        GVariant *seats;
         GVariantIter *seat_iter;
         gchar *seat_path;
 

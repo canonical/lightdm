@@ -2,10 +2,10 @@ Description: Adjustments due to handling of languages
 Forwarded: not-needed
 Author: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
 
-Index: trunk/liblightdm-gobject/language.c
+Index: xdg-seat/liblightdm-gobject/language.c
 ===================================================================
---- trunk.orig/liblightdm-gobject/language.c	2013-12-09 17:13:51.362244753 +1300
-+++ trunk/liblightdm-gobject/language.c	2013-12-09 17:13:51.298244756 +1300
+--- xdg-seat.orig/liblightdm-gobject/language.c	2014-02-05 14:22:08.711739102 +0000
++++ xdg-seat/liblightdm-gobject/language.c	2014-02-05 14:22:08.707739102 +0000
 @@ -40,7 +40,7 @@
  static void
  update_languages (void)
@@ -15,10 +15,10 @@ Index: trunk/liblightdm-gobject/language.c
      gchar *stdout_text = NULL, *stderr_text = NULL;
      gint exit_status;
      gboolean result;
-Index: trunk/tests/scripts/language-env.conf
+Index: xdg-seat/tests/scripts/language-env.conf
 ===================================================================
---- trunk.orig/tests/scripts/language-env.conf	2013-12-09 17:13:51.362244753 +1300
-+++ trunk/tests/scripts/language-env.conf	2013-12-09 17:13:51.338244754 +1300
+--- xdg-seat.orig/tests/scripts/language-env.conf	2014-02-05 14:22:08.711739102 +0000
++++ xdg-seat/tests/scripts/language-env.conf	2014-02-05 14:22:08.707739102 +0000
 @@ -22,8 +22,8 @@
  #?SESSION-X-0 CONNECT-XSERVER
  
@@ -30,11 +30,11 @@ Index: trunk/tests/scripts/language-env.conf
  #?*SESSION-X-0 READ-ENV NAME=GDM_LANG
  #?SESSION-X-0 READ-ENV NAME=GDM_LANG VALUE=en_AU
  
-Index: trunk/src/seat.c
+Index: xdg-seat/src/seat.c
 ===================================================================
---- trunk.orig/src/seat.c	2013-12-09 17:13:51.362244753 +1300
-+++ trunk/src/seat.c	2013-12-09 17:13:51.358244753 +1300
-@@ -842,7 +842,7 @@
+--- xdg-seat.orig/src/seat.c	2014-02-05 14:22:08.711739102 +0000
++++ xdg-seat/src/seat.c	2014-02-05 14:22:08.707739102 +0000
+@@ -854,7 +854,7 @@
          session_set_env (session, "XDG_CURRENT_DESKTOP", desktop_name);
      if (language && language[0] != '\0')
      {

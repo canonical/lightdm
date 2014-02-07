@@ -1,22 +1,29 @@
+#define _GNU_SOURCE
+#define __USE_GNU
+
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <pwd.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <grp.h>
 #include <security/pam_appl.h>
 #include <fcntl.h>
-#define __USE_GNU
 #include <dlfcn.h>
+#include <utmpx.h>
 #ifdef __linux__
 #include <linux/vt.h>
 #endif
 #include <glib.h>
 #include <xcb/xcb.h>
 #include <gio/gunixsocketaddress.h>
+
+#include "status.h"
 
 #define LOGIN_PROMPT "login:"
 
@@ -154,9 +161,6 @@ setresuid (uid_t ruid, uid_t uuid, uid_t suid)
 static gchar *
 redirect_path (const gchar *path)
 {
-    size_t offset;
-    gboolean matches;
-
     // Don't redirect if inside the running directory
     if (g_str_has_prefix (path, g_getenv ("LIGHTDM_TEST_ROOT")))
         return g_strdup (path);
@@ -320,13 +324,13 @@ stat (const char *path, struct stat *buf)
 }
 
 int
-stat64 (const char *path, struct stat *buf)
+stat64 (const char *path, struct stat64 *buf)
 {
-    int (*_stat64) (const char *path, struct stat *buf);
+    int (*_stat64) (const char *path, struct stat64 *buf);
     gchar *new_path = NULL;
     int ret;
 
-    _stat64 = (int (*)(const char *path, struct stat *buf)) dlsym (RTLD_NEXT, "stat64");
+    _stat64 = (int (*)(const char *path, struct stat64 *buf)) dlsym (RTLD_NEXT, "stat64");
 
     new_path = redirect_path (path);
     ret = _stat64 (new_path, buf);
@@ -352,13 +356,13 @@ __xstat (int version, const char *path, struct stat *buf)
 }
 
 int
-__xstat64 (int version, const char *path, struct stat *buf)
+__xstat64 (int version, const char *path, struct stat64 *buf)
 {
-    int (*___xstat64) (int version, const char *path, struct stat *buf);
+    int (*___xstat64) (int version, const char *path, struct stat64 *buf);
     gchar *new_path = NULL;
     int ret;
   
-    ___xstat64 = (int (*)(int version, const char *path, struct stat *buf)) dlsym (RTLD_NEXT, "__xstat64");
+    ___xstat64 = (int (*)(int version, const char *path, struct stat64 *buf)) dlsym (RTLD_NEXT, "__xstat64");
 
     new_path = redirect_path (path);
     ret = ___xstat64 (version, new_path, buf);
@@ -432,25 +436,29 @@ chmod (const char *path, mode_t mode)
 }
 
 int
-ioctl (int d, int request, void *data)
+ioctl (int d, unsigned long request, ...)
 {
-    int (*_ioctl) (int d, int request, void *data);
+    int (*_ioctl) (int d, int request, ...);
 
-    _ioctl = (int (*)(int d, int request, void *data)) dlsym (RTLD_NEXT, "ioctl");
+    _ioctl = (int (*)(int d, int request, ...)) dlsym (RTLD_NEXT, "ioctl");
     if (d > 0 && d == console_fd)
     {
         struct vt_stat *console_state;
-        int *n;
         int vt;
+        va_list ap;
 
         switch (request)
         {
         case VT_GETSTATE:
-            console_state = data;
+            va_start (ap, request);
+            console_state = va_arg (ap, struct vt_stat *);
+            va_end (ap);
             console_state->v_active = active_vt;
             break;
         case VT_ACTIVATE:
-            vt = GPOINTER_TO_INT (data);
+            va_start (ap, request);
+            vt = va_arg (ap, int);
+            va_end (ap);
             if (vt != active_vt)
             {
                 active_vt = vt;
@@ -465,7 +473,15 @@ ioctl (int d, int request, void *data)
         return 0;
     }
     else
+    {
+        va_list ap;
+        void *data;
+
+        va_start (ap, request);
+        data = va_arg (ap, void *);
+        va_end (ap);
         return _ioctl (d, request, data);
+    }
 }
 
 int
@@ -495,7 +511,7 @@ free_user (gpointer data)
 }
 
 static void
-load_passwd_file ()
+load_passwd_file (void)
 {
     gchar *path, *data = NULL, **lines;
     gint i;
@@ -627,7 +643,7 @@ free_group (gpointer data)
 }
 
 static void
-load_group_file ()
+load_group_file (void)
 {
     gchar *path, *data = NULL, **lines;
     gint i;
@@ -1194,7 +1210,10 @@ pam_chauthtok (pam_handle_t *pamh, int flags)
     msg = malloc (sizeof (struct pam_message *) * 1);
     msg[0] = malloc (sizeof (struct pam_message));
     msg[0]->msg_style = PAM_PROMPT_ECHO_OFF;
-    msg[0]->msg = "Enter new password:";
+    if ((flags & PAM_CHANGE_EXPIRED_AUTHTOK) != 0)
+        msg[0]->msg = "Enter new password (expired):";
+    else
+        msg[0]->msg = "Enter new password:";
     result = pamh->conversation.conv (1, (const struct pam_message **) msg, &resp, pamh->conversation.appdata_ptr);
     free (msg[0]);
     free (msg);
@@ -1373,10 +1392,10 @@ setutxent (void)
 {
 }
   
-struct utmp *
-pututxline (struct utmp *ut)
+struct utmpx *
+pututxline (const struct utmpx *ut)
 {
-    return ut;
+    return (struct utmpx *)ut;
 }
 
 void

@@ -52,6 +52,8 @@ post-start script
 end script
 
 post-stop script
+	clear > /dev/tty7
+	sleep 1
 	if [ "$UPSTART_STOP_EVENTS" = runlevel ]; then
 		initctl emit desktop-shutdown
 	fi
