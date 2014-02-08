@@ -183,6 +183,14 @@ common_user_list_get_instance (void)
     return singleton;
 }
 
+void
+common_user_list_cleanup (void)
+{
+    if (singleton)
+        g_object_unref (singleton);
+    singleton = NULL;
+}
+
 static CommonUser *
 get_user_by_name (CommonUserList *user_list, const gchar *username)
 {

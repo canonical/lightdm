@@ -64,6 +64,8 @@ GType common_user_get_type (void);
 
 CommonUserList *common_user_list_get_instance (void);
 
+void common_user_list_cleanup (void);
+
 gint common_user_list_get_length (CommonUserList *user_list);
 
 CommonUser *common_user_list_get_user_by_name (CommonUserList *user_list, const gchar *username);
