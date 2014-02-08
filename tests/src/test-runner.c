@@ -319,6 +319,13 @@ get_script_line (const gchar *prefix)
     return NULL;
 }
 
+static gboolean
+stop_loop (gpointer user_data)
+{
+    g_main_loop_quit ((GMainLoop *)user_data);
+    return G_SOURCE_REMOVE;
+}
+
 static void
 handle_command (const gchar *command)
 {
@@ -398,7 +405,50 @@ handle_command (const gchar *command)
 
     if (strcmp (name, "WAIT") == 0)
     {
-        sleep (1);
+        /* Use a main loop so that our DBus functions are still responsive */
+        GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+        g_timeout_add_seconds (1, stop_loop, loop);
+        g_main_loop_run (loop);
+        g_main_loop_unref (loop);
+    }
+    else if (strcmp (name, "LIST-SHARED-DATA-DIRS") == 0)
+    {
+        gchar *shared_dir;
+        GDir *dir;
+        const gchar *path;
+        GList *paths = NULL, *link;
+        GString *status;
+
+        shared_dir = g_strdup_printf ("%s/var/lib/lightdm-data", temp_dir);
+        dir = g_dir_open (shared_dir, 0, NULL);
+        while ((path = g_dir_read_name (dir)))
+        {
+            gchar *full_path = g_build_filename (shared_dir, path, NULL);
+            paths = g_list_insert_sorted (paths, full_path, (GCompareFunc)g_strcmp0);
+        }
+        g_dir_close (dir);
+        g_free (shared_dir);
+
+        status = g_string_new ("RUNNER LIST-SHARED-DATA-DIRS DIRS=");
+        for (link = paths; link; link = link->next)
+        {
+            path = (const gchar *)link->data;
+            GStatBuf buf;
+            if (g_stat (path, &buf) != 0)
+                continue;
+
+            if (link != paths)
+                g_string_append (status, ",");
+            gchar *basename = g_path_get_basename (path);
+            g_string_append_printf (status, "%s:%u:%u:0%o", basename,
+                                    buf.st_uid, buf.st_gid,
+                                    buf.st_mode & (S_IRWXU|S_IRWXG|S_IRWXO));
+            g_free (basename);
+        }
+        g_list_free_full (paths, g_free);
+
+        check_status (status->str);
+        g_string_free (status, TRUE);
     }
     else if (strcmp (name, "LIST-SEATS") == 0)
     {
@@ -2046,6 +2096,7 @@ main (int argc, char **argv)
     g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/lightdm/remote-sessions", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/usr/share/lightdm/greeters", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/tmp", temp_dir), 0755);
+    g_mkdir_with_parents (g_strdup_printf ("%s/var/lib/lightdm-data", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/var/run", temp_dir), 0755);
     g_mkdir_with_parents (g_strdup_printf ("%s/var/log", temp_dir), 0755);
 
@@ -2081,6 +2132,37 @@ main (int argc, char **argv)
             if (system (g_strdup_printf ("cp %s/tests/scripts/%s %s/etc/lightdm/lightdm.conf.d", SRCDIR, files[i], temp_dir)))
                 perror ("Failed to copy configuration");
         g_strfreev (files);
+    }
+
+    if (g_key_file_has_key (config, "test-runner-config", "shared-data-dirs", NULL))
+    {
+        gchar *dir_string;
+        gchar **dirs;
+        gint i;
+
+        dir_string = g_key_file_get_string (config, "test-runner-config", "shared-data-dirs", NULL);
+        dirs = g_strsplit (dir_string, " ", -1);
+        g_free (dir_string);
+
+        for (i = 0; dirs[i]; i++)
+        {
+            gchar **fields = g_strsplit (dirs[i], ":", -1);
+            if (g_strv_length (fields) == 4)
+            {
+                gchar *path = g_strdup_printf ("%s/var/lib/lightdm-data/%s", temp_dir, fields[0]);
+                int uid = g_ascii_strtoll (fields[1], NULL, 10);
+                int gid = g_ascii_strtoll (fields[2], NULL, 10);
+                int mode = g_ascii_strtoll (fields[3], NULL, 8);
+                g_mkdir (path, mode);
+                g_chmod (path, mode); /* mkdir filters by umask, so make sure we have what we want */
+                if (chown (path, uid, gid) < 0)
+                  g_warning ("chown (%s) failed: %s", path, strerror (errno));
+                g_free (path);
+            }
+            g_strfreev (fields);
+        }
+
+        g_strfreev (dirs);
     }
 
     /* Always copy the script */

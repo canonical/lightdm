@@ -1,0 +1,45 @@
+/*
+ * Copyright (C) 2014 Canonical, Ltd
+ * Author: Michael Terry <michael.terry@canonical.com>
+ * 
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version. See http://www.gnu.org/copyleft/gpl.html the full text of the
+ * license.
+ */
+
+#ifndef SHARED_DATA_MANAGER_H_
+#define SHARED_DATA_MANAGER_H_
+
+#include <glib-object.h>
+
+typedef struct SharedDataManager SharedDataManager;
+
+G_BEGIN_DECLS
+
+#define SHARED_DATA_MANAGER_TYPE (shared_data_manager_get_type())
+#define SHARED_DATA_MANAGER(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), SHARED_DATA_MANAGER_TYPE, SharedDataManager))
+#define SHARED_DATA_MANAGER_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST ((klass), SHARED_DATA_MANAGER_TYPE, SharedDataManagerClass))
+#define SHARED_DATA_MANAGER_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), SHARED_DATA_MANAGER_TYPE, SharedDataManagerClass))
+
+typedef struct SharedDataManagerPrivate SharedDataManagerPrivate;
+
+struct SharedDataManager
+{
+    GObject                   parent_instance;
+    SharedDataManagerPrivate *priv;
+};
+
+typedef struct
+{
+    GObjectClass parent_class;
+} SharedDataManagerClass;
+
+GType shared_data_manager_get_type (void);
+
+SharedDataManager *shared_data_manager_new (void);
+
+G_END_DECLS
+
+#endif /* SHARED_DATA_MANAGER_H_ */
