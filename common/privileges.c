@@ -13,24 +13,24 @@
 #define _GNU_SOURCE
 
 #include <config.h>
+#include <glib.h>
+#include <unistd.h>
 #include "privileges.h"
 
 void
-privileges_drop (User *user)
+privileges_drop (uid_t uid, gid_t gid)
 {
-    g_return_if_fail (user != NULL);
-
 #ifdef HAVE_SETRESGID
-    g_assert (setresgid (user_get_gid (user), user_get_gid (user), -1) == 0);
+    g_assert (setresgid (gid, gid, -1) == 0);
 #else
-    g_assert (setgid (user_get_gid (user)) == 0);
-    g_assert (setegid (user_get_gid (user)) == 0);
+    g_assert (setgid (gid) == 0);
+    g_assert (setegid (gid) == 0);
 #endif
 #ifdef HAVE_SETRESUID
-    g_assert (setresuid (user_get_uid (user), user_get_uid (user), -1) == 0);
+    g_assert (setresuid (uid, uid, -1) == 0);
 #else
-    g_assert (setuid (user_get_uid (user)) == 0);
-    g_assert (seteuid (user_get_uid (user)) == 0);
+    g_assert (setuid (uid) == 0);
+    g_assert (seteuid (uid) == 0);
 #endif
 }
 

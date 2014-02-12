@@ -1715,6 +1715,15 @@ handle_user_call (GDBusConnection       *connection,
         user->xsession = g_strdup (xsession);
 
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+
+        /* And notify others that it took */
+        g_dbus_connection_emit_signal (accounts_connection,
+                                       NULL,
+                                       user->path,
+                                       "org.freedesktop.Accounts.User",
+                                       "Changed",
+                                       g_variant_new ("()"),
+                                       NULL);
     }
     else
         g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
@@ -1745,6 +1754,10 @@ handle_user_get_property (GDBusConnection       *connection,
         return g_variant_new_string (user->language ? user->language : "");
     else if (strcmp (property_name, "IconFile") == 0)
         return g_variant_new_string (user->image ? user->image : "");
+    else if (strcmp (property_name, "Shell") == 0)
+        return g_variant_new_string ("/bin/sh");
+    else if (strcmp (property_name, "Uid") == 0)
+        return g_variant_new_uint64 (user->uid);
     else if (strcmp (property_name, "XSession") == 0)
         return g_variant_new_string (user->xsession ? user->xsession : "");
     else if (strcmp (property_name, "XKeyboardLayouts") == 0)
@@ -1800,6 +1813,8 @@ accounts_name_acquired_cb (GDBusConnection *connection,
         "    <property name='BackgroundFile' type='s' access='read'/>"
         "    <property name='Language' type='s' access='read'/>"
         "    <property name='IconFile' type='s' access='read'/>"
+        "    <property name='Shell' type='s' access='read'/>"
+        "    <property name='Uid' type='t' access='read'/>"
         "    <property name='XSession' type='s' access='read'/>"
         "    <property name='XKeyboardLayouts' type='as' access='read'/>"
         "    <property name='XHasMessages' type='b' access='read'/>"

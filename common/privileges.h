@@ -9,17 +9,13 @@
  * license.
  */
 
-#ifndef DMRC_H_
-#define DMRC_H_
+#ifndef PRIVILEGES_H_
+#define PRIVILEGES_H_
 
-#include <glib.h>
+#include <sys/types.h>
 
-G_BEGIN_DECLS
+void privileges_drop (uid_t uid, gid_t gid);
 
-GKeyFile *dmrc_load (const gchar *username);
+void privileges_reclaim (void);
 
-void dmrc_save (GKeyFile *dmrc_file, const gchar *username);
-
-G_END_DECLS
-
-#endif /* DMRC_H_ */
+#endif /* PRIVILEGES_H_ */

@@ -11,6 +11,7 @@
 #include <string.h>
 #include <gio/gdesktopappinfo.h>
 
+#include "configuration.h"
 #include "lightdm/session.h"
 
 enum {
@@ -191,7 +192,6 @@ load_sessions (const gchar *sessions_dir)
 static void
 update_sessions (void)
 {
-    GKeyFile *config_key_file = NULL;
     gchar *config_path = NULL;
     gchar *sessions_dir;
     gchar *remote_sessions_dir;
@@ -207,8 +207,8 @@ update_sessions (void)
     /* Use session directory from configuration */
     /* FIXME: This should be sent in the greeter connection */
     config_path = g_build_filename (CONFIG_DIR, "lightdm.conf", NULL);
-    config_key_file = g_key_file_new ();
-    result = g_key_file_load_from_file (config_key_file, config_path, G_KEY_FILE_NONE, &error);
+    /* FIXME: This should load from lightdm.conf.d as well */
+    result = config_load_from_file (config_get_instance (), config_path, &error);
     if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
         g_warning ("Failed to open configuration file: %s", error->message);
     g_clear_error (&error);
@@ -216,21 +216,20 @@ update_sessions (void)
     {
         gchar *value;
       
-        value = g_key_file_get_string (config_key_file, "LightDM", "sessions-directory", NULL);
+        value = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
         if (value)
         {
             g_free (sessions_dir);
             sessions_dir = value;
         }
 
-        value = g_key_file_get_string (config_key_file, "LightDM", "remote-sessions-directory", NULL);
+        value = config_get_string (config_get_instance (), "LightDM", "remote-sessions-directory");
         if (value)
         {
             g_free (remote_sessions_dir);
             remote_sessions_dir = value;
         }
     }
-    g_key_file_free (config_key_file);
     g_free (config_path);
 
     local_sessions = load_sessions (sessions_dir);

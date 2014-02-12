@@ -512,7 +512,7 @@ session_child_run (int argc, char **argv)
 
         drop_privileges = geteuid () == 0;
         if (drop_privileges)
-            privileges_drop (user);
+            privileges_drop (user_get_uid (user), user_get_gid (user));
         result = x_authority_write (x_authority, XAUTH_WRITE_MODE_REPLACE, x_authority_filename, &error);
         if (drop_privileges)
             privileges_reclaim ();
@@ -660,7 +660,7 @@ session_child_run (int argc, char **argv)
 
         drop_privileges = geteuid () == 0;
         if (drop_privileges)
-            privileges_drop (user);
+            privileges_drop (user_get_uid (user), user_get_gid (user));
         result = x_authority_write (x_authority, XAUTH_WRITE_MODE_REMOVE, x_authority_filename, &error);
         if (drop_privileges)
             privileges_reclaim ();

@@ -218,7 +218,7 @@ request_cb (const gchar *request)
     if (strcmp (name, "LOG-USER") == 0)
     {
         LightDMUser *user;
-        const gchar *username, *image, *background, *layout, *session;
+        const gchar *username, *image, *background, *language, *layout, *session;
         const gchar * const * layouts;
         gchar **fields = NULL;
         gchar *layouts_text;
@@ -237,6 +237,7 @@ request_cb (const gchar *request)
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         image = lightdm_user_get_image (user);
         background = lightdm_user_get_background (user);
+        language = lightdm_user_get_language (user);
         layout = lightdm_user_get_layout (user);
         layouts = lightdm_user_get_layouts (user);
         layouts_text = g_strjoinv (";", (gchar **) layouts);
@@ -255,7 +256,7 @@ request_cb (const gchar *request)
             else if (strcmp (fields[i], "BACKGROUND") == 0)
                 g_string_append_printf (status_text, " BACKGROUND=%s", background ? background : "");
             else if (strcmp (fields[i], "LANGUAGE") == 0)
-                g_string_append_printf (status_text, " LANGUAGE=%s", lightdm_user_get_language (user));
+                g_string_append_printf (status_text, " LANGUAGE=%s", language ? language : "");
             else if (strcmp (fields[i], "LAYOUT") == 0)
                 g_string_append_printf (status_text, " LAYOUT=%s", layout ? layout : "");
             else if (strcmp (fields[i], "LAYOUTS") == 0)

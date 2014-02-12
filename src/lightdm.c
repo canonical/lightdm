@@ -30,6 +30,7 @@
 #include "x-server.h"
 #include "process.h"
 #include "session-child.h"
+#include "user-list.h"
 
 static gchar *config_path = NULL;
 static GMainLoop *loop = NULL;
@@ -42,7 +43,7 @@ static XDMCPServer *xdmcp_server = NULL;
 static VNCServer *vnc_server = NULL;
 static guint bus_id = 0;
 static GDBusConnection *bus = NULL;
-static guint bus_id;
+static guint reg_id = 0;
 static GDBusNodeInfo *seat_info;
 static GHashTable *seat_bus_entries = NULL;
 static guint seat_index = 0;
@@ -787,13 +788,13 @@ bus_acquired_cb (GDBusConnection *connection,
     session_info = g_dbus_node_info_new_for_xml (session_interface, NULL);
     g_assert (session_info != NULL);
 
-    bus_id = g_dbus_connection_register_object (connection,
+    reg_id = g_dbus_connection_register_object (connection,
                                                 "/org/freedesktop/DisplayManager",
                                                 display_manager_info->interfaces[0],
                                                 &display_manager_vtable,
                                                 NULL, NULL,
                                                 &error);
-    if (bus_id == 0)
+    if (reg_id == 0)
         g_warning ("Failed to register display manager: %s", error->message);
     g_clear_error (&error);
     g_dbus_node_info_unref (display_manager_info);
@@ -1319,11 +1320,15 @@ main (int argc, char **argv)
 
     g_main_loop_run (loop);
 
+    /* Clean up user list */
+    common_user_list_cleanup ();
+
     /* Clean up display manager */
     g_object_unref (display_manager);
     display_manager = NULL;
 
     /* Remove D-Bus interface */
+    g_dbus_connection_unregister_object (bus, reg_id);
     g_bus_unown_name (bus_id);
     if (seat_bus_entries)
         g_hash_table_unref (seat_bus_entries);

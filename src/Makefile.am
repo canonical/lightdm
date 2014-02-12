@@ -4,16 +4,12 @@ bin_PROGRAMS = dm-tool
 lightdm_SOURCES = \
 	accounts.c \
 	accounts.h \
-	configuration.c \
-	configuration.h \
 	console-kit.c \
 	console-kit.h \
 	display-manager.c \
 	display-manager.h \
 	display-server.c \
 	display-server.h \
-	dmrc.c \
-	dmrc.h \
 	greeter.c \
 	greeter.h \
 	guest-account.c \
@@ -27,8 +23,6 @@ lightdm_SOURCES = \
 	mir-server.h \
 	plymouth.c \
 	plymouth.h \
-	privileges.c \
-	privileges.h \
 	process.c \
 	process.h \
 	seat.c \
@@ -80,6 +74,7 @@ lightdm_SOURCES = \
 lightdm_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(LIGHTDM_CFLAGS) \
+	-I"$(top_srcdir)/common" \
 	-DSBIN_DIR=\"$(sbindir)\" \
 	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\" \
 	-DLOG_DIR=\"$(localstatedir)/log/lightdm\" \
@@ -92,6 +87,7 @@ lightdm_CFLAGS = \
 
 lightdm_LDADD = \
 	$(LIGHTDM_LIBS) \
+	$(top_builddir)/common/libcommon.la \
 	-lgcrypt \
 	-lpam
 
