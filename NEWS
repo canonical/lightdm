@@ -1,3 +1,10 @@
+Overview of changes in lightdm 1.9.7
+
+    * Correctly invoke PAM to change authentication token.
+    * Make xdg-seat a core property of a seat and always pass it to X servers.
+    * Qt bindings: properly hand over prompt and message type.
+    * Add warning flags where they are missing and fix the resulting warnings.
+
 Overview of changes in lightdm 1.9.6
 
     * Support Mir sessions in xlocal seats by starting a unity system compositor

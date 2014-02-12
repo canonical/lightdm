@@ -1,9 +1,19 @@
-lightdm (1.9.6-0ubuntu4) trusty; urgency=medium
+lightdm (1.9.7-0ubuntu2) trusty; urgency=medium
 
   * debian/lightdm.postinst: Guard the chown'ing of /var/lib/lightdm/, it
     might fail on the .gvfs mount. (LP: #1279428)
 
- -- Martin Pitt <martin.pitt@ubuntu.com>  Wed, 12 Feb 2014 18:13:39 +0100
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Wed, 12 Feb 2014 18:15:55 +0100
+
+lightdm (1.9.7-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Correctly invoke PAM to change authentication token. (LP: #1270118)
+    - Make xdg-seat a core property of a seat and always pass it to X servers.
+    - Qt bindings: properly hand over prompt and message type.
+    - Add warning flags where they are missing and fix the resulting warnings.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 07 Feb 2014 15:40:20 +0000
 
 lightdm (1.9.6-0ubuntu3) trusty; urgency=medium
 
