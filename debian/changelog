@@ -1,9 +1,9 @@
-lightdm (1.9.6-0ubuntu4) UNRELEASED; urgency=medium
+lightdm (1.9.6-0ubuntu4) trusty; urgency=medium
 
   * debian/lightdm.postinst: Guard the chown'ing of /var/lib/lightdm/, it
     might fail on the .gvfs mount. (LP: #1279428)
 
- -- Martin Pitt <martin.pitt@ubuntu.com>  Wed, 12 Feb 2014 18:12:04 +0100
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Wed, 12 Feb 2014 18:13:39 +0100
 
 lightdm (1.9.6-0ubuntu3) trusty; urgency=medium
 
