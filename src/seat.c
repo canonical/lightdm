@@ -1520,7 +1520,12 @@ seat_real_start (Seat *seat)
             session = create_user_session (seat, autologin_username, TRUE);
 
         if (session)
+        {
             session_set_pam_service (session, AUTOLOGIN_SERVICE);
+
+            /* Make sure shared user directory for this user exists */
+            shared_data_manager_ensure_user_dir (shared_data_manager_get_instance (), session_get_username (session));
+        }
 
         /* Load in background if required */
         if (autologin_in_background && session)
