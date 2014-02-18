@@ -37,7 +37,7 @@ if ! getent group nopasswdlogin >/dev/null; then
 fi
 
 if [ -d /var/lib/lightdm ]; then
-  chown -R lightdm:lightdm /var/lib/lightdm
+  chown -R lightdm:lightdm /var/lib/lightdm || true
   chmod 0750 /var/lib/lightdm
 fi
 

@@ -8,20 +8,20 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2007-05-31 08:04+0200\n"
-"PO-Revision-Date: 2011-04-26 10:47+0000\n"
-"Last-Translator: Svetoslav Stefanov <svetlisashkov@yahoo.com>\n"
+"PO-Revision-Date: 2014-02-11 22:46+0000\n"
+"Last-Translator: Atanas Kovachki <Unknown>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2014-01-29 05:32+0000\n"
+"X-Launchpad-Export-Date: 2014-02-12 05:41+0000\n"
 "X-Generator: Launchpad (build 16916)\n"
 
 #. Type: select
 #. Description
 #: ../lightdm.templates:2001
 msgid "Default display manager:"
-msgstr ""
+msgstr "Стандартен мениджър на дисплея:"
 
 #. Type: select
 #. Description
@@ -30,6 +30,8 @@ msgid ""
 "A display manager is a program that provides graphical login capabilities "
 "for the X Window System."
 msgstr ""
+"Мениджър на дисплея е програма, която осигурява графични възможности за "
+"влизане в X Window система."
 
 #. Type: select
 #. Description
@@ -39,6 +41,9 @@ msgid ""
 "manager packages are installed. Please select which display manager should "
 "run by default."
 msgstr ""
+"Само един мениджър на дисплея може да управлява даден X сървър, но множество "
+"пакети на мениджъри на дисплея са инсталирани. Моля, изберете кой мениджър "
+"на дисплея би трябвало стандартно да работи."
 
 #. Type: select
 #. Description
@@ -49,6 +54,11 @@ msgid ""
 "accordingly, edit each of their init scripts in /etc/init.d, and disable the "
 "check for a default display manager."
 msgstr ""
+"Множество мениджъри на дисплея могат да работят едновременно, ако те са "
+"конфигурирани за управление на различни сървъри, за да се постигне това "
+"конфигурирайте мениджърите на дисплея съответно, да редактират всеки един от "
+"техните инициализиращи скриптове в /etc/init.d и деактивирайте проверката за "
+"стандартния мениджър на дисплея."
 
 #~ msgid "Large Font"
 #~ msgstr "Голям шрифт"
