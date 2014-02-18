@@ -23,7 +23,7 @@
 
 struct SharedDataManagerPrivate
 {
-    guint32 greeter_uid;
+    gchar *greeter_user;
     guint32 greeter_gid;
     GHashTable *starting_dirs;
 };
@@ -142,32 +142,25 @@ make_user_dir_cb (GObject *object, GAsyncResult *res, gpointer user_data)
     g_free (owner);
 }
 
-static void
-setup_user_dir (SharedDataManager *manager, guint32 uid)
+void
+shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *user)
 {
+    struct passwd *entry = getpwnam (user);
+    if (!entry)
+        return;
+
     struct OwnerInfo *owner = g_malloc (sizeof (struct OwnerInfo));
     owner->manager = g_object_ref (manager);
-    owner->uid = uid;
+    owner->uid = entry->pw_uid;
 
-    gchar *uidstr = g_strdup_printf ("%u", uid);
-    gchar *path = g_build_filename (USERS_DIR, uidstr, NULL);
+    gchar *path = g_build_filename (USERS_DIR, user, NULL);
     GFile *file = g_file_new_for_path (path);
     g_free (path);
-    g_free (uidstr);
 
     g_file_make_directory_async (file, G_PRIORITY_DEFAULT, NULL,
                                  make_user_dir_cb, owner);
 
     g_object_unref (file);
-}
-
-void
-shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *user)
-{
-    struct passwd *entry;
-    entry = getpwnam (user);
-    if (entry)
-        setup_user_dir (manager, entry->pw_uid);
 }
 
 static void
@@ -212,19 +205,17 @@ next_user_dirs_cb (GObject *object, GAsyncResult *res, gpointer user_data)
         for (link = users; link; link = link->next)
         {
             CommonUser *user = link->data;
-            gchar *uidstr = g_strdup_printf ("%u", common_user_get_uid (user));
-            g_hash_table_remove (manager->priv->starting_dirs, uidstr);
-            g_free (uidstr);
+            g_hash_table_remove (manager->priv->starting_dirs, common_user_get_name (user));
         }
-        g_hash_table_foreach (manager->priv->starting_dirs,
-                              delete_unused_user, manager);
+        g_hash_table_foreach (manager->priv->starting_dirs, delete_unused_user, manager);
         g_hash_table_destroy (manager->priv->starting_dirs);
         manager->priv->starting_dirs = NULL;
 
         // Also set up our own greeter dir, so it has a place to dump its own files
         // (imagine it holding some large files temporarily before shunting them
         // to the next user to log in's specific directory).
-        setup_user_dir (manager, manager->priv->greeter_uid);
+        shared_data_manager_ensure_user_dir (manager, manager->priv->greeter_user);
+
         g_object_unref (manager);
     }
 }
@@ -259,9 +250,7 @@ static void
 user_removed_cb (CommonUserList *list, CommonUser *user,
                  SharedDataManager *manager)
 {
-    gchar *uid = g_strdup_printf ("%u", common_user_get_uid (user));
-    delete_unused_user (uid, NULL, manager);
-    g_free (uid);
+    delete_unused_user (common_user_get_name (user), NULL, manager);
 }
 
 void
@@ -287,16 +276,11 @@ shared_data_manager_init (SharedDataManager *manager)
     manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, SHARED_DATA_MANAGER_TYPE, SharedDataManagerPrivate);
 
     // Grab current greeter-user gid
-    gchar *greeter_user;
     struct passwd *greeter_entry;
-    greeter_user = config_get_string (config_get_instance (), "LightDM", "greeter-user");
-    greeter_entry = getpwnam (greeter_user);
+    manager->priv->greeter_user = config_get_string (config_get_instance (), "LightDM", "greeter-user");
+    greeter_entry = getpwnam (manager->priv->greeter_user);
     if (greeter_entry)
-    {
-        manager->priv->greeter_uid = greeter_entry->pw_uid;
         manager->priv->greeter_gid = greeter_entry->pw_gid;
-    }
-    g_free (greeter_user);
 }
 
 static void
@@ -320,6 +304,8 @@ shared_data_manager_finalize (GObject *object)
 
     if (self->priv->starting_dirs)
         g_hash_table_destroy (self->priv->starting_dirs);
+
+    g_free (self->priv->greeter_user);
 
     G_OBJECT_CLASS (shared_data_manager_parent_class)->finalize (object);
 }
