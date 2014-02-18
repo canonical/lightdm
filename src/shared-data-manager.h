@@ -44,7 +44,7 @@ void shared_data_manager_start (SharedDataManager *manager);
 
 void shared_data_manager_cleanup (void);
 
-void shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *user);
+gboolean shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *user);
 
 G_END_DECLS
 

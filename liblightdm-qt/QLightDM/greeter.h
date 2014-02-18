@@ -80,7 +80,7 @@ public Q_SLOTS:
     void cancelAuthentication();
     void setLanguage (const QString &language);
     bool startSessionSync(const QString &session=QString());
-    void ensureSharedDataDir (const QString &username);
+    bool ensureSharedDataDirSync(const QString &username);
 
 Q_SIGNALS:
     void showMessage(QString text, QLightDM::Greeter::MessageType type);

@@ -62,8 +62,7 @@ delete_unused_user (gpointer key, gpointer value, gpointer user_data)
     const gchar *user = (const gchar *)key;
     GError *error = NULL;
 
-    /* Listen, the rest of this file is nice async glib code and all, but
-       for this operation, we just need a fire and forget rm -rf.  Since
+    /* For this operation, we just need a fire and forget rm -rf.  Since
        recursively deleting in GIO is a huge pain in the butt, we'll just drop
        to shell for this. */
 
@@ -82,47 +81,31 @@ delete_unused_user (gpointer key, gpointer value, gpointer user_data)
     g_free (path);
 }
 
-static void
-chown_user_dir_cb (GObject *object, GAsyncResult *res, gpointer user_data)
+gboolean
+shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *user)
 {
-    GFile *file = G_FILE (object);
-    GFileInfo *info = NULL;
+    struct passwd *entry = getpwnam (user);
+    if (!entry)
+        return FALSE;
+
     GError *error = NULL;
 
-    if (!g_file_set_attributes_finish (file, res, &info, &error))
-    {
-        gchar *path = g_file_get_path (file);
-        g_warning ("Could not chown user data directory %s: %s",
-                   path, error->message);
-        g_free (path);
-        g_error_free (error);
-    }
+    gchar *path = g_build_filename (USERS_DIR, user, NULL);
+    GFile *file = g_file_new_for_path (path);
 
-    if (info)
-        g_object_unref (info);
-}
-
-static void
-make_user_dir_cb (GObject *object, GAsyncResult *res, gpointer user_data)
-{
-    GFile *file = G_FILE (object);
-    struct OwnerInfo *owner = (struct OwnerInfo *)user_data;
-    GError *error = NULL;
-
-    if (!g_file_make_directory_finish (file, res, &error))
+    if (!g_file_make_directory (file, NULL, &error))
     {
         if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_EXISTS))
         {
-            gchar *path = g_file_get_path (file);
             g_warning ("Could not create user data directory %s: %s",
                        path, error->message);
-            g_free (path);
             g_error_free (error);
-            g_object_unref (owner->manager);
-            g_free (owner);
-            return;
+            g_object_unref (file);
+            g_free (path);
+            return FALSE;
         }
         g_error_free (error);
+        error = NULL;
     }
 
     /* Even if the directory already exists, we want to re-affirm the owners
@@ -130,37 +113,26 @@ make_user_dir_cb (GObject *object, GAsyncResult *res, gpointer user_data)
        runs. */
     GFileInfo *info = g_file_info_new ();
     g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_UID,
-                                      owner->uid);
+                                      entry->pw_uid);
     g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_GID,
-                                      owner->manager->priv->greeter_gid);
+                                      manager->priv->greeter_gid);
     g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_MODE, 0770);
-    g_file_set_attributes_async (file, info, G_FILE_QUERY_INFO_NONE,
-                                 G_PRIORITY_DEFAULT, NULL,
-                                 chown_user_dir_cb, NULL);
+    if (!g_file_set_attributes_from_info (file, info, G_FILE_QUERY_INFO_NONE,
+                                          NULL, &error))
+    {
+        g_warning ("Could not chown user data directory %s: %s",
+                   path, error->message);
+        g_error_free (error);
+        g_object_unref (info);
+        g_object_unref (file);
+        g_free (path);
+        return FALSE;
+    }
 
-    g_object_unref (owner->manager);
-    g_free (owner);
-}
-
-void
-shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *user)
-{
-    struct passwd *entry = getpwnam (user);
-    if (!entry)
-        return;
-
-    struct OwnerInfo *owner = g_malloc (sizeof (struct OwnerInfo));
-    owner->manager = g_object_ref (manager);
-    owner->uid = entry->pw_uid;
-
-    gchar *path = g_build_filename (USERS_DIR, user, NULL);
-    GFile *file = g_file_new_for_path (path);
-    g_free (path);
-
-    g_file_make_directory_async (file, G_PRIORITY_DEFAULT, NULL,
-                                 make_user_dir_cb, owner);
-
+    g_object_unref (info);
     g_object_unref (file);
+    g_free (path);
+    return TRUE;
 }
 
 static void

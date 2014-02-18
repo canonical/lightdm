@@ -172,10 +172,10 @@ bool Greeter::startSessionSync(const QString &session)
     return lightdm_greeter_start_session_sync(d->ldmGreeter, session.toLocal8Bit().constData(), NULL);
 }
 
-void Greeter::ensureSharedDataDir(const QString &username)
+bool Greeter::ensureSharedDataDirSync(const QString &username)
 {
     Q_D(Greeter);
-    lightdm_greeter_ensure_shared_data_dir(d->ldmGreeter, username.toLocal8Bit().constData());
+    return lightdm_greeter_ensure_shared_data_dir_sync(d->ldmGreeter, username.toLocal8Bit().constData());
 }
 
 

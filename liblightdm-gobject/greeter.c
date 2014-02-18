@@ -91,7 +91,8 @@ typedef enum
     SERVER_MESSAGE_CONNECTED = 0,
     SERVER_MESSAGE_PROMPT_AUTHENTICATION,
     SERVER_MESSAGE_END_AUTHENTICATION,
-    SERVER_MESSAGE_SESSION_RESULT
+    SERVER_MESSAGE_SESSION_RESULT,
+    SERVER_MESSAGE_SHARED_DIR_RESULT,
 } ServerMessage;
 
 /**
@@ -1108,7 +1109,7 @@ lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *sessio
 }
 
 /**
- * lightdm_greeter_ensure_shared_data_dir:
+ * lightdm_greeter_ensure_shared_data_dir_sync:
  * @greeter: A #LightDMGreeter
  * @username: A username
  *
@@ -1122,13 +1123,17 @@ lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *sessio
  * LightDM will automatically create these if the user actually logs in, so
  * greeters only need to call this method if they want to store something in
  * the directory themselves.
+ *
+ * Return value: TRUE if the directory is ready for use.
  **/
-void
-lightdm_greeter_ensure_shared_data_dir (LightDMGreeter *greeter, const gchar *username)
+gboolean
+lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gchar *username)
 {
     LightDMGreeterPrivate *priv;
     guint8 message[MAX_MESSAGE_LENGTH];
-    gsize offset = 0;
+    guint8 *response;
+    gsize response_length, offset = 0;
+    guint32 id, return_code = 1;
 
     g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
 
@@ -1139,6 +1144,22 @@ lightdm_greeter_ensure_shared_data_dir (LightDMGreeter *greeter, const gchar *us
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_ENSURE_SHARED_DIR, string_length (username), &offset);
     write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
     write_message (greeter, message, offset);
+
+    response = read_message (greeter, &response_length, TRUE);
+    if (!response)
+        return FALSE;
+
+    offset = 0;
+    id = read_int (response, response_length, &offset);
+    read_int (response, response_length, &offset);
+    if (id == SERVER_MESSAGE_SHARED_DIR_RESULT)
+        return_code = read_int (response, response_length, &offset);
+    else
+        g_warning ("Expected SHARED_DIR_RESULT message, got %d", id);
+
+    g_free (response);
+
+    return return_code == 0;
 }
 
 static void
