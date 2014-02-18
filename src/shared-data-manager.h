@@ -38,7 +38,13 @@ typedef struct
 
 GType shared_data_manager_get_type (void);
 
-SharedDataManager *shared_data_manager_new (void);
+SharedDataManager *shared_data_manager_get_instance (void);
+
+void shared_data_manager_start (SharedDataManager *manager);
+
+void shared_data_manager_cleanup (void);
+
+void shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *user);
 
 G_END_DECLS
 

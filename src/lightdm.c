@@ -990,7 +990,6 @@ main (int argc, char **argv)
     gchar *default_cache_dir = g_strdup (CACHE_DIR);
     gboolean show_version = FALSE;
     GList *link, *messages = NULL;
-    SharedDataManager *shared_data_manager = NULL;
     GOptionEntry options[] =
     {
         { "config", 'c', 0, G_OPTION_ARG_STRING, &config_path,
@@ -1247,7 +1246,7 @@ main (int argc, char **argv)
     g_signal_connect (display_manager, "stopped", G_CALLBACK (display_manager_stopped_cb), NULL);
     g_signal_connect (display_manager, "seat-removed", G_CALLBACK (display_manager_seat_removed_cb), NULL);
 
-    shared_data_manager = shared_data_manager_new ();
+    shared_data_manager_start (shared_data_manager_get_instance ());
 
     /* Load the static display entries */
     groups = config_get_groups (config_get_instance ());
@@ -1325,8 +1324,7 @@ main (int argc, char **argv)
     g_main_loop_run (loop);
 
     /* Clean up shared data manager */
-    g_object_unref (shared_data_manager);
-    shared_data_manager = NULL;
+    shared_data_manager_cleanup ();
 
     /* Clean up user list */
     common_user_list_cleanup ();

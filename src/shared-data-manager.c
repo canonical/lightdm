@@ -25,7 +25,6 @@ struct SharedDataManagerPrivate
 {
     guint32 greeter_uid;
     guint32 greeter_gid;
-    guint num_setup_users;
     GHashTable *starting_dirs;
 };
 
@@ -37,10 +36,24 @@ struct OwnerInfo
 
 G_DEFINE_TYPE (SharedDataManager, shared_data_manager, G_TYPE_OBJECT);
 
+static SharedDataManager *singleton = NULL;
+
 SharedDataManager *
-shared_data_manager_new (void)
+shared_data_manager_get_instance (void)
 {
-    return g_object_new (SHARED_DATA_MANAGER_TYPE, NULL);
+    if (!singleton)
+        singleton = g_object_new (SHARED_DATA_MANAGER_TYPE, NULL);
+    return singleton;
+}
+
+void
+shared_data_manager_cleanup (void)
+{
+    if (singleton)
+    {
+        g_object_unref (singleton);
+        singleton = NULL;
+    }
 }
 
 static void
@@ -105,7 +118,6 @@ make_user_dir_cb (GObject *object, GAsyncResult *res, gpointer user_data)
                        path, error->message);
             g_free (path);
             g_error_free (error);
-            owner->manager->priv->num_setup_users--;
             g_object_unref (owner->manager);
             g_free (owner);
             return;
@@ -126,17 +138,6 @@ make_user_dir_cb (GObject *object, GAsyncResult *res, gpointer user_data)
                                  G_PRIORITY_DEFAULT, NULL,
                                  chown_user_dir_cb, NULL);
 
-    /* If we're the last user dir to be set up, delete unused user dirs */
-    owner->manager->priv->num_setup_users--;
-    if (owner->manager->priv->starting_dirs != NULL &&
-        owner->manager->priv->num_setup_users == 0)
-    {
-        g_hash_table_foreach (owner->manager->priv->starting_dirs,
-                              delete_unused_user, owner->manager);
-        g_hash_table_destroy (owner->manager->priv->starting_dirs);
-        owner->manager->priv->starting_dirs = NULL;
-    }
-
     g_object_unref (owner->manager);
     g_free (owner);
 }
@@ -152,16 +153,21 @@ setup_user_dir (SharedDataManager *manager, guint32 uid)
     gchar *path = g_build_filename (USERS_DIR, uidstr, NULL);
     GFile *file = g_file_new_for_path (path);
     g_free (path);
-
-    manager->priv->num_setup_users++;
-    if (manager->priv->starting_dirs != NULL)
-        g_hash_table_remove (manager->priv->starting_dirs, uidstr);
     g_free (uidstr);
 
     g_file_make_directory_async (file, G_PRIORITY_DEFAULT, NULL,
                                  make_user_dir_cb, owner);
 
     g_object_unref (file);
+}
+
+void
+shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *user)
+{
+    struct passwd *entry;
+    entry = getpwnam (user);
+    if (entry)
+        setup_user_dir (manager, entry->pw_uid);
 }
 
 static void
@@ -200,15 +206,21 @@ next_user_dirs_cb (GObject *object, GAsyncResult *res, gpointer user_data)
     else
     {
         // We've finally assembled all the initial directories.  Now let's
-        // iterate the current users and set them each up.  As we go, we'll
-        // remove the users from the starting_dirs hash and thus see which
-        // users are obsolete.
+        // iterate the current users and as we go, remove the users from the
+        // starting_dirs hash and thus see which users are obsolete.
         GList *users = common_user_list_get_users (common_user_list_get_instance ());
         for (link = users; link; link = link->next)
         {
             CommonUser *user = link->data;
-            setup_user_dir (manager, common_user_get_uid (user));
+            gchar *uidstr = g_strdup_printf ("%u", common_user_get_uid (user));
+            g_hash_table_remove (manager->priv->starting_dirs, uidstr);
+            g_free (uidstr);
         }
+        g_hash_table_foreach (manager->priv->starting_dirs,
+                              delete_unused_user, manager);
+        g_hash_table_destroy (manager->priv->starting_dirs);
+        manager->priv->starting_dirs = NULL;
+
         // Also set up our own greeter dir, so it has a place to dump its own files
         // (imagine it holding some large files temporarily before shunting them
         // to the next user to log in's specific directory).
@@ -244,19 +256,29 @@ list_user_dirs_cb (GObject *object, GAsyncResult *res, gpointer user_data)
 }
 
 static void
-user_added_cb (CommonUserList *list, CommonUser *user,
-               SharedDataManager *manager)
-{
-    setup_user_dir (manager, common_user_get_uid (user));
-}
-
-static void
 user_removed_cb (CommonUserList *list, CommonUser *user,
                  SharedDataManager *manager)
 {
     gchar *uid = g_strdup_printf ("%u", common_user_get_uid (user));
     delete_unused_user (uid, NULL, manager);
     g_free (uid);
+}
+
+void
+shared_data_manager_start (SharedDataManager *manager)
+{
+    /* Grab list of all current directories, so we know if any exist that we
+       no longer need. */
+    GFile *file = g_file_new_for_path (USERS_DIR);
+    g_file_enumerate_children_async (file, G_FILE_ATTRIBUTE_STANDARD_NAME,
+                                     G_FILE_QUERY_INFO_NONE,
+                                     G_PRIORITY_DEFAULT, NULL,
+                                     list_user_dirs_cb, g_object_ref (manager));
+    g_object_unref (file);
+
+    /* And listen for user removals. */
+    g_signal_connect (common_user_list_get_instance (), "user-removed",
+                      G_CALLBACK (user_removed_cb), manager);
 }
 
 static void
@@ -275,22 +297,6 @@ shared_data_manager_init (SharedDataManager *manager)
         manager->priv->greeter_gid = greeter_entry->pw_gid;
     }
     g_free (greeter_user);
-
-    /* Grab list of all current directories, so we know if any exist that we
-       no longer need. */
-    GFile *file = g_file_new_for_path (USERS_DIR);
-    g_file_enumerate_children_async (file, G_FILE_ATTRIBUTE_STANDARD_NAME,
-                                     G_FILE_QUERY_INFO_NONE,
-                                     G_PRIORITY_DEFAULT, NULL,
-                                     list_user_dirs_cb, g_object_ref (manager));
-    g_object_unref (file);
-
-    /* And listen for user changes.  The chance of a race with the above
-       initial setup is so tiny, it's not worth worrying about. */
-    g_signal_connect (common_user_list_get_instance (), "user-added",
-                      G_CALLBACK (user_added_cb), manager);
-    g_signal_connect (common_user_list_get_instance (), "user-removed",
-                      G_CALLBACK (user_removed_cb), manager);
 }
 
 static void
