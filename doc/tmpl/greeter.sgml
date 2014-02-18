@@ -356,3 +356,12 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 @Returns: 
 
 
+<!-- ##### FUNCTION lightdm_greeter_ensure_shared_data_dir ##### -->
+<para>
+
+</para>
+
+@greeter:
+@username:
+
+

@@ -81,7 +81,8 @@ typedef enum
     GREETER_MESSAGE_START_SESSION,
     GREETER_MESSAGE_CANCEL_AUTHENTICATION,
     GREETER_MESSAGE_SET_LANGUAGE,
-    GREETER_MESSAGE_AUTHENTICATE_REMOTE
+    GREETER_MESSAGE_AUTHENTICATE_REMOTE,
+    GREETER_MESSAGE_ENSURE_SHARED_DIR,
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -1104,6 +1105,40 @@ lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *sessio
     g_free (response);
 
     return return_code == 0;
+}
+
+/**
+ * lightdm_greeter_ensure_shared_data_dir:
+ * @greeter: A #LightDMGreeter
+ * @username: A username
+ *
+ * Ensure that a shared data dir for the given user is available.  This will
+ * be created at /var/lib/lightdm-data/@username.  Both the greeter user and
+ * @username will have write access to that folder.  The intention is that
+ * larger pieces of shared data would be stored there (files that the greeter
+ * creates but wants to give to a user -- like camera photos -- or files that
+ * the user creates but wants the greeter to see -- like contact avatars).
+ *
+ * LightDM will automatically create these if the user actually logs in, so
+ * greeters only need to call this method if they want to store something in
+ * the directory themselves.
+ **/
+void
+lightdm_greeter_ensure_shared_data_dir (LightDMGreeter *greeter, const gchar *username)
+{
+    LightDMGreeterPrivate *priv;
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+
+    g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
+
+    priv = GET_PRIVATE (greeter);
+
+    g_return_if_fail (priv->connected);
+
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_ENSURE_SHARED_DIR, string_length (username), &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
+    write_message (greeter, message, offset);
 }
 
 static void

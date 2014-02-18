@@ -1,3 +1,10 @@
+lightdm (1.9.7-0ubuntu1) UNRELEASED; urgency=medium
+
+  * Add support for shared data directories that both the greeter and
+    user sessions can write to.
+
+ -- Michael Terry <mterry@ubuntu.com>  Tue, 18 Feb 2014 15:40:46 -0500
+
 lightdm (1.9.6-0ubuntu3) trusty; urgency=medium
 
   [ Gunnar Hjalmarsson ]

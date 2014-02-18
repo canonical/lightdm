@@ -250,7 +250,7 @@ static void
 user_removed_cb (CommonUserList *list, CommonUser *user,
                  SharedDataManager *manager)
 {
-    delete_unused_user (common_user_get_name (user), NULL, manager);
+    delete_unused_user ((gpointer)common_user_get_name (user), NULL, manager);
 }
 
 void

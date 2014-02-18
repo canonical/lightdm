@@ -19,6 +19,7 @@
 
 #include "greeter.h"
 #include "configuration.h"
+#include "shared-data-manager.h"
 
 enum {
     PROP_0,
@@ -89,7 +90,8 @@ typedef enum
     GREETER_MESSAGE_START_SESSION,
     GREETER_MESSAGE_CANCEL_AUTHENTICATION,
     GREETER_MESSAGE_SET_LANGUAGE,
-    GREETER_MESSAGE_AUTHENTICATE_REMOTE
+    GREETER_MESSAGE_AUTHENTICATE_REMOTE,
+    GREETER_MESSAGE_ENSURE_SHARED_DIR,
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -810,6 +812,11 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         language = read_string (greeter, &offset);
         handle_set_language (greeter, language);
         g_free (language);
+        break;
+    case GREETER_MESSAGE_ENSURE_SHARED_DIR:
+        username = read_string (greeter, &offset);
+        shared_data_manager_ensure_user_dir (shared_data_manager_get_instance (), username);
+        g_free (username);
         break;
     default:
         l_warning (greeter, "Unknown message from greeter: %d", id);

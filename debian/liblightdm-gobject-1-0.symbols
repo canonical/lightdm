@@ -17,6 +17,7 @@ liblightdm-gobject-1.so.0 liblightdm-gobject-1-0 #MINVER#
  lightdm_greeter_cancel_authentication@Base 0.9.2
  lightdm_greeter_cancel_autologin@Base 0.9.2
  lightdm_greeter_connect_sync@Base 0.9.2
+ lightdm_greeter_ensure_shared_data_dir@Base 1.9.7
  lightdm_greeter_get_authentication_user@Base 0.9.2
  lightdm_greeter_get_autologin_guest_hint@Base 0.9.2
  lightdm_greeter_get_autologin_timeout_hint@Base 0.9.2
