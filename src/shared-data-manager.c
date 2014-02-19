@@ -81,12 +81,12 @@ delete_unused_user (gpointer key, gpointer value, gpointer user_data)
     g_free (path);
 }
 
-gboolean
+gchar *
 shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *user)
 {
     struct passwd *entry = getpwnam (user);
     if (!entry)
-        return FALSE;
+        return NULL;
 
     GError *error = NULL;
 
@@ -102,7 +102,7 @@ shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *us
             g_error_free (error);
             g_object_unref (file);
             g_free (path);
-            return FALSE;
+            return NULL;
         }
         g_error_free (error);
         error = NULL;
@@ -126,13 +126,12 @@ shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *us
         g_object_unref (info);
         g_object_unref (file);
         g_free (path);
-        return FALSE;
+        return NULL;
     }
 
     g_object_unref (info);
     g_object_unref (file);
-    g_free (path);
-    return TRUE;
+    return path;
 }
 
 static void
@@ -182,11 +181,6 @@ next_user_dirs_cb (GObject *object, GAsyncResult *res, gpointer user_data)
         g_hash_table_foreach (manager->priv->starting_dirs, delete_unused_user, manager);
         g_hash_table_destroy (manager->priv->starting_dirs);
         manager->priv->starting_dirs = NULL;
-
-        // Also set up our own greeter dir, so it has a place to dump its own files
-        // (imagine it holding some large files temporarily before shunting them
-        // to the next user to log in's specific directory).
-        shared_data_manager_ensure_user_dir (manager, manager->priv->greeter_user);
 
         g_object_unref (manager);
     }

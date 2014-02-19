@@ -1113,33 +1113,34 @@ lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *sessio
  * @greeter: A #LightDMGreeter
  * @username: A username
  *
- * Ensure that a shared data dir for the given user is available.  This will
- * be created at /var/lib/lightdm-data/@username.  Both the greeter user and
- * @username will have write access to that folder.  The intention is that
- * larger pieces of shared data would be stored there (files that the greeter
- * creates but wants to give to a user -- like camera photos -- or files that
- * the user creates but wants the greeter to see -- like contact avatars).
+ * Ensure that a shared data dir for the given user is available.  Both the
+ * greeter user and @username will have write access to that folder.  The
+ * intention is that larger pieces of shared data would be stored there (files
+ * that the greeter creates but wants to give to a user -- like camera
+ * photos -- or files that the user creates but wants the greeter to
+ * see -- like contact avatars).
  *
  * LightDM will automatically create these if the user actually logs in, so
  * greeters only need to call this method if they want to store something in
  * the directory themselves.
  *
- * Return value: TRUE if the directory is ready for use.
+ * Return value: The path to the shared directory, free with g_free
  **/
-gboolean
+gchar *
 lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gchar *username)
 {
     LightDMGreeterPrivate *priv;
     guint8 message[MAX_MESSAGE_LENGTH];
     guint8 *response;
     gsize response_length, offset = 0;
-    guint32 id, return_code = 1;
+    guint32 id;
+    gchar *data_dir = NULL;
 
-    g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
+    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
 
     priv = GET_PRIVATE (greeter);
 
-    g_return_if_fail (priv->connected);
+    g_return_val_if_fail (priv->connected, NULL);
 
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_ENSURE_SHARED_DIR, string_length (username), &offset);
     write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
@@ -1147,19 +1148,19 @@ lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gcha
 
     response = read_message (greeter, &response_length, TRUE);
     if (!response)
-        return FALSE;
+        return NULL;
 
     offset = 0;
     id = read_int (response, response_length, &offset);
     read_int (response, response_length, &offset);
     if (id == SERVER_MESSAGE_SHARED_DIR_RESULT)
-        return_code = read_int (response, response_length, &offset);
+        data_dir = read_string (message, response_length, &offset);
     else
         g_warning ("Expected SHARED_DIR_RESULT message, got %d", id);
 
     g_free (response);
 
-    return return_code == 0;
+    return data_dir;
 }
 
 static void

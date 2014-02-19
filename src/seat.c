@@ -18,7 +18,6 @@
 #include "guest-account.h"
 #include "greeter.h"
 #include "session-config.h"
-#include "shared-data-manager.h"
 
 enum {
     SESSION_ADDED,
@@ -1040,9 +1039,6 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         g_object_unref (session_config);
     }
 
-    /* Make sure shared user directory for this user exists */
-    shared_data_manager_ensure_user_dir (shared_data_manager_get_instance (), session_get_username (session));
-
     /* Switch to this session when it is ready */
     if (seat->priv->session_to_activate)
         g_object_unref (seat->priv->session_to_activate);
@@ -1520,12 +1516,7 @@ seat_real_start (Seat *seat)
             session = create_user_session (seat, autologin_username, TRUE);
 
         if (session)
-        {
             session_set_pam_service (session, AUTOLOGIN_SERVICE);
-
-            /* Make sure shared user directory for this user exists */
-            shared_data_manager_ensure_user_dir (shared_data_manager_get_instance (), session_get_username (session));
-        }
 
         /* Load in background if required */
         if (autologin_in_background && session)
