@@ -203,6 +203,9 @@ request_cb (const gchar *request)
     if (strcmp (name, "LOG-USER-LIST-LENGTH") == 0)
         status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, lightdm_user_list_get_length (lightdm_user_list_get_instance ()));
 
+    if (strcmp (name, "ENSURE-SHARED-DATA-DIR") == 0)
+        status_notify ("%s ENSURE-SHARED-DATA-DIR RESULT=%s", greeter_id, lightdm_greeter_ensure_shared_data_dir_sync (greeter, g_hash_table_lookup (params, "USERNAME")) ? "TRUE" : "FALSE");
+
     if (strcmp (name, "WATCH-USER") == 0)
     {
         LightDMUser *user;

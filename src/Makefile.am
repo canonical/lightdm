@@ -45,6 +45,8 @@ lightdm_SOURCES = \
 	session-child.h \
 	session-config.c \
 	session-config.h \
+	shared-data-manager.c \
+	shared-data-manager.h \
 	surfaceflinger-server.c \
 	surfaceflinger-server.h \
 	unity-system-compositor.c \
@@ -77,6 +79,7 @@ lightdm_CFLAGS = \
 	-I"$(top_srcdir)/common" \
 	-DSBIN_DIR=\"$(sbindir)\" \
 	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\" \
+	-DUSERS_DIR=\"$(localstatedir)/lib/lightdm-data\" \
 	-DLOG_DIR=\"$(localstatedir)/log/lightdm\" \
 	-DRUN_DIR=\"$(localstatedir)/run/lightdm\" \
 	-DCACHE_DIR=\"$(localstatedir)/cache/lightdm\" \

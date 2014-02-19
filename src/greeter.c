@@ -19,6 +19,7 @@
 
 #include "greeter.h"
 #include "configuration.h"
+#include "shared-data-manager.h"
 
 enum {
     PROP_0,
@@ -89,7 +90,8 @@ typedef enum
     GREETER_MESSAGE_START_SESSION,
     GREETER_MESSAGE_CANCEL_AUTHENTICATION,
     GREETER_MESSAGE_SET_LANGUAGE,
-    GREETER_MESSAGE_AUTHENTICATE_REMOTE
+    GREETER_MESSAGE_AUTHENTICATE_REMOTE,
+    GREETER_MESSAGE_ENSURE_SHARED_DIR,
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -98,7 +100,8 @@ typedef enum
     SERVER_MESSAGE_CONNECTED = 0,
     SERVER_MESSAGE_PROMPT_AUTHENTICATION,
     SERVER_MESSAGE_END_AUTHENTICATION,
-    SERVER_MESSAGE_SESSION_RESULT
+    SERVER_MESSAGE_SESSION_RESULT,
+    SERVER_MESSAGE_SHARED_DIR_RESULT,
 } ServerMessage;
 
 static gboolean read_cb (GIOChannel *source, GIOCondition condition, gpointer data);
@@ -627,6 +630,22 @@ handle_set_language (Greeter *greeter, const gchar *language)
     user_set_language (user, language);
 }
 
+static void
+handle_ensure_shared_dir (Greeter *greeter, const gchar *username)
+{
+    gchar *result;
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+
+    result = shared_data_manager_ensure_user_dir (shared_data_manager_get_instance (), username);
+
+    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_SHARED_DIR_RESULT, string_length (result), &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, result, &offset);
+    write_message (greeter, message, offset);
+
+    g_free (result);
+}
+
 static guint32
 read_int (Greeter *greeter, gsize *offset)
 {
@@ -810,6 +829,11 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         language = read_string (greeter, &offset);
         handle_set_language (greeter, language);
         g_free (language);
+        break;
+    case GREETER_MESSAGE_ENSURE_SHARED_DIR:
+        username = read_string (greeter, &offset);
+        handle_ensure_shared_dir (greeter, username);
+        g_free (username);
         break;
     default:
         l_warning (greeter, "Unknown message from greeter: %d", id);

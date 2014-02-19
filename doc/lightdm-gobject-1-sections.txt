@@ -131,6 +131,7 @@ LightDMMessageType
 LightDMPromptType
 lightdm_greeter_new
 lightdm_greeter_connect_sync
+lightdm_greeter_ensure_shared_data_dir_sync
 lightdm_greeter_get_default_session_hint
 lightdm_greeter_get_hint
 lightdm_greeter_get_lock_hint

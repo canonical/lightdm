@@ -121,6 +121,8 @@ void lightdm_greeter_set_language (LightDMGreeter *greeter, const gchar *languag
 
 gboolean lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *session, GError **error);
 
+gchar *lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gchar *username);
+
 G_END_DECLS
 
 #endif /* LIGHTDM_GREETER_H_ */

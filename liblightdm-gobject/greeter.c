@@ -81,7 +81,8 @@ typedef enum
     GREETER_MESSAGE_START_SESSION,
     GREETER_MESSAGE_CANCEL_AUTHENTICATION,
     GREETER_MESSAGE_SET_LANGUAGE,
-    GREETER_MESSAGE_AUTHENTICATE_REMOTE
+    GREETER_MESSAGE_AUTHENTICATE_REMOTE,
+    GREETER_MESSAGE_ENSURE_SHARED_DIR,
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -90,7 +91,8 @@ typedef enum
     SERVER_MESSAGE_CONNECTED = 0,
     SERVER_MESSAGE_PROMPT_AUTHENTICATION,
     SERVER_MESSAGE_END_AUTHENTICATION,
-    SERVER_MESSAGE_SESSION_RESULT
+    SERVER_MESSAGE_SESSION_RESULT,
+    SERVER_MESSAGE_SHARED_DIR_RESULT,
 } ServerMessage;
 
 /**
@@ -1104,6 +1106,61 @@ lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *sessio
     g_free (response);
 
     return return_code == 0;
+}
+
+/**
+ * lightdm_greeter_ensure_shared_data_dir_sync:
+ * @greeter: A #LightDMGreeter
+ * @username: A username
+ *
+ * Ensure that a shared data dir for the given user is available.  Both the
+ * greeter user and @username will have write access to that folder.  The
+ * intention is that larger pieces of shared data would be stored there (files
+ * that the greeter creates but wants to give to a user -- like camera
+ * photos -- or files that the user creates but wants the greeter to
+ * see -- like contact avatars).
+ *
+ * LightDM will automatically create these if the user actually logs in, so
+ * greeters only need to call this method if they want to store something in
+ * the directory themselves.
+ *
+ * Return value: The path to the shared directory, free with g_free
+ **/
+gchar *
+lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gchar *username)
+{
+    LightDMGreeterPrivate *priv;
+    guint8 message[MAX_MESSAGE_LENGTH];
+    guint8 *response;
+    gsize response_length, offset = 0;
+    guint32 id;
+    gchar *data_dir = NULL;
+
+    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
+
+    priv = GET_PRIVATE (greeter);
+
+    g_return_val_if_fail (priv->connected, NULL);
+
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_ENSURE_SHARED_DIR, string_length (username), &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
+    write_message (greeter, message, offset);
+
+    response = read_message (greeter, &response_length, TRUE);
+    if (!response)
+        return NULL;
+
+    offset = 0;
+    id = read_int (response, response_length, &offset);
+    read_int (response, response_length, &offset);
+    if (id == SERVER_MESSAGE_SHARED_DIR_RESULT)
+        data_dir = read_string (message, response_length, &offset);
+    else
+        g_warning ("Expected SHARED_DIR_RESULT message, got %d", id);
+
+    g_free (response);
+
+    return data_dir;
 }
 
 static void

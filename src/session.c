@@ -26,6 +26,7 @@
 #include "console-kit.h"
 #include "login1.h"
 #include "guest-account.h"
+#include "shared-data-manager.h"
 
 enum {
     GOT_MESSAGES,
@@ -763,6 +764,17 @@ session_real_run (Session *session)
     }
     else
         x_authority_filename = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
+
+    /* Make sure shared user directory for this user exists */
+    if (!session->priv->remote_host_name)
+    {
+        gchar *data_dir = shared_data_manager_ensure_user_dir (shared_data_manager_get_instance (), session->priv->username);
+        if (data_dir)
+        {
+            session_set_env (session, "XDG_GREETER_DATA_DIR", data_dir);
+            g_free (data_dir);
+        }
+    }
 
     if (session->priv->log_filename)
         l_debug (session, "Logging to %s", session->priv->log_filename);

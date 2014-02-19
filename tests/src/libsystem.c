@@ -179,7 +179,7 @@ redirect_path (const gchar *path)
         return g_strdup (path);
 
     if (g_str_has_prefix (path, "/tmp"))
-        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", path + strlen ("tmp"), NULL);
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", path + strlen ("/tmp"), NULL);
 
     return g_strdup (path);
 }
@@ -250,6 +250,22 @@ fopen (const char *path, const char *mode)
 
     new_path = redirect_path (path);
     result = _fopen (new_path, mode);
+    g_free (new_path);
+
+    return result;
+}
+
+int
+unlinkat (int dirfd, const char *pathname, int flags)
+{
+    int (*_unlinkat) (int dirfd, const char *pathname, int flags);
+    gchar *new_path = NULL;
+    int result;
+
+    _unlinkat = (int (*)(int dirfd, const char *pathname, int flags)) dlsym (RTLD_NEXT, "unlinkat");
+
+    new_path = redirect_path (pathname);
+    result = _unlinkat (dirfd, new_path, flags);
     g_free (new_path);
 
     return result;
@@ -366,6 +382,38 @@ __xstat64 (int version, const char *path, struct stat64 *buf)
 
     new_path = redirect_path (path);
     ret = ___xstat64 (version, new_path, buf);
+    g_free (new_path);
+
+    return ret;
+}
+
+int
+__fxstatat(int ver, int dirfd, const char *pathname, struct stat *buf, int flags)
+{
+    int (*___fxstatat) (int ver, int dirfd, const char *pathname, struct stat *buf, int flags);
+    gchar *new_path = NULL;
+    int ret;
+  
+    ___fxstatat = (int (*)(int ver, int dirfd, const char *pathname, struct stat *buf, int flags)) dlsym (RTLD_NEXT, "__fxstatat");
+
+    new_path = redirect_path (pathname);
+    ret = ___fxstatat (ver, dirfd, new_path, buf, flags);
+    g_free (new_path);
+
+    return ret;
+}
+
+int
+__fxstatat64(int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags)
+{
+    int (*___fxstatat64) (int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags);
+    gchar *new_path = NULL;
+    int ret;
+  
+    ___fxstatat64 = (int (*)(int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags)) dlsym (RTLD_NEXT, "__fxstatat64");
+
+    new_path = redirect_path (pathname);
+    ret = ___fxstatat64 (ver, dirfd, new_path, buf, flags);
     g_free (new_path);
 
     return ret;

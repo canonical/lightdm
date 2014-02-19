@@ -1,3 +1,10 @@
+lightdm (1.9.8-0ubuntu1) UNRELEASED; urgency=medium
+
+  * Add support for shared data directories that both the greeter and
+    user sessions can write to.
+
+ -- Michael Terry <mterry@ubuntu.com>  Tue, 18 Feb 2014 17:38:49 -0500
+
 lightdm (1.9.7-0ubuntu2) trusty; urgency=medium
 
   * debian/lightdm.postinst: Guard the chown'ing of /var/lib/lightdm/, it
