@@ -769,7 +769,6 @@ session_real_run (Session *session)
     if (!session->priv->remote_host_name)
     {
         gchar *data_dir = shared_data_manager_ensure_user_dir (shared_data_manager_get_instance (), session->priv->username);
-        l_debug(session, "MIKE set XDG_GREETER_DATA_DIR=%s from user %s", data_dir, session->priv->username);
         if (data_dir)
         {
             session_set_env (session, "XDG_GREETER_DATA_DIR", data_dir);
