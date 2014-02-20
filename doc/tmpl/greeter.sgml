@@ -140,6 +140,16 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 @Returns: 
 
 
+<!-- ##### FUNCTION lightdm_greeter_ensure_shared_data_dir_sync ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@username: 
+@Returns: 
+
+
 <!-- ##### FUNCTION lightdm_greeter_get_default_session_hint ##### -->
 <para>
 
@@ -354,14 +364,5 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 @session: 
 @error: 
 @Returns: 
-
-
-<!-- ##### FUNCTION lightdm_greeter_ensure_shared_data_dir_sync ##### -->
-<para>
-
-</para>
-
-@greeter:
-@username:
 
 

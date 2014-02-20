@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.9.8
+
+    * Add support for shared user data directories between the greeter and user sessions.
+    * Refactor LightDMUser and User classes to use the same code internally.
+
 Overview of changes in lightdm 1.9.7
 
     * Correctly invoke PAM to change authentication token.
