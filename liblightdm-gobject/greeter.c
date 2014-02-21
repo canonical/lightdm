@@ -1154,7 +1154,7 @@ lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gcha
     id = read_int (response, response_length, &offset);
     read_int (response, response_length, &offset);
     if (id == SERVER_MESSAGE_SHARED_DIR_RESULT)
-        data_dir = read_string (message, response_length, &offset);
+        data_dir = read_string (response, response_length, &offset);
     else
         g_warning ("Expected SHARED_DIR_RESULT message, got %d", id);
 
