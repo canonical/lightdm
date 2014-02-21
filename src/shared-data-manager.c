@@ -70,11 +70,10 @@ delete_unused_user (gpointer key, gpointer value, gpointer user_data)
     gchar *quoted_path = g_shell_quote (path);
     gchar *cmd = g_strdup_printf ("/bin/rm -rf %s", quoted_path);
 
-    if (!g_spawn_command_line_async (cmd, &error))
-    {
+    g_spawn_command_line_async (cmd, &error);
+    if (error)
         g_warning ("Could not delete unused user data directory %s: %s", path, error->message);
-        g_error_free (error);
-    }
+    g_clear_error (&error);
 
     g_free (cmd);
     g_free (quoted_path);
@@ -84,53 +83,51 @@ delete_unused_user (gpointer key, gpointer value, gpointer user_data)
 gchar *
 shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *user)
 {
-    struct passwd *entry = getpwnam (user);
-    if (!entry)
-        return NULL;
-
+    struct passwd *entry;
+    gchar *path;
+    GFile *file;
+    gboolean result;
+    GFileInfo *info;
     GError *error = NULL;
 
-    gchar *path = g_build_filename (USERS_DIR, user, NULL);
-    GFile *file = g_file_new_for_path (path);
+    entry = getpwnam (user);
+    if (!entry)
+        return NULL;
+  
+    path = g_build_filename (USERS_DIR, user, NULL);
+    file = g_file_new_for_path (path);
 
-    if (!g_file_make_directory (file, NULL, &error))
-    {
-        if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_EXISTS))
-        {
-            g_warning ("Could not create user data directory %s: %s",
-                       path, error->message);
-            g_error_free (error);
-            g_object_unref (file);
-            g_free (path);
-            return NULL;
-        }
-        g_error_free (error);
-        error = NULL;
-    }
+    g_debug ("Creating shared data directory %s", path);
 
-    /* Even if the directory already exists, we want to re-affirm the owners
-       because the greeter gid is configuration based and may change between
-       runs. */
-    GFileInfo *info = g_file_info_new ();
-    g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_UID,
-                                      entry->pw_uid);
-    g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_GID,
-                                      manager->priv->greeter_gid);
-    g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_MODE, 0770);
-    if (!g_file_set_attributes_from_info (file, info, G_FILE_QUERY_INFO_NONE,
-                                          NULL, &error))
+    result = g_file_make_directory (file, NULL, &error);
+    if (error && !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_EXISTS))
+        g_warning ("Could not create user data directory %s: %s", path, error->message);
+    g_clear_error (&error);  
+    if (!result)
     {
-        g_warning ("Could not chown user data directory %s: %s",
-                   path, error->message);
-        g_error_free (error);
-        g_object_unref (info);
         g_object_unref (file);
         g_free (path);
         return NULL;
     }
 
+    /* Even if the directory already exists, we want to re-affirm the owners
+       because the greeter gid is configuration based and may change between
+       runs. */
+    info = g_file_info_new ();
+    g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_UID, entry->pw_uid);
+    g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_GID, manager->priv->greeter_gid);
+    g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_MODE, 0770);
+    result = g_file_set_attributes_from_info (file, info, G_FILE_QUERY_INFO_NONE, NULL, &error);
     g_object_unref (info);
     g_object_unref (file);
+    if (error)
+        g_warning ("Could not chown user data directory %s: %s", path, error->message);
+    if (!result)
+    {
+        g_free (path);
+        return NULL;
+    }
+
     return path;
 }
 
@@ -142,13 +139,11 @@ next_user_dirs_cb (GObject *object, GAsyncResult *res, gpointer user_data)
     GList *link;
     GError *error = NULL;
 
-    GList *files = g_file_enumerator_next_files_finish (enumerator, res,
-                                                        &error);
-    if (error != NULL)
+    GList *files = g_file_enumerator_next_files_finish (enumerator, res, &error);
+    if (error)
     {
-        g_warning ("Could not enumerate user data directory %s: %s",
-                   USERS_DIR, error->message);
-        g_error_free (error);
+        g_warning ("Could not enumerate user data directory %s: %s", USERS_DIR, error->message);
+        g_clear_error (&error);
         g_object_unref (manager);
         return;
     }
@@ -156,16 +151,13 @@ next_user_dirs_cb (GObject *object, GAsyncResult *res, gpointer user_data)
     for (link = files; link; link = link->next)
     {
         GFileInfo *info = link->data;
-        g_hash_table_insert (manager->priv->starting_dirs,
-                             g_strdup (g_file_info_get_name (info)), NULL);
+        g_hash_table_insert (manager->priv->starting_dirs, g_strdup (g_file_info_get_name (info)), NULL);
     }
 
     if (files != NULL)
     {
         g_list_free_full (files, g_object_unref);
-        g_file_enumerator_next_files_async (enumerator, NUM_ENUMERATION_FILES,
-                                            G_PRIORITY_DEFAULT, NULL,
-                                            next_user_dirs_cb, manager);
+        g_file_enumerator_next_files_async (enumerator, NUM_ENUMERATION_FILES, G_PRIORITY_DEFAULT, NULL, next_user_dirs_cb, manager);
     }
     else
     {
@@ -195,36 +187,34 @@ list_user_dirs_cb (GObject *object, GAsyncResult *res, gpointer user_data)
     GError *error = NULL;
 
     enumerator = g_file_enumerate_children_finish (file, res, &error);
-    if (enumerator == NULL)
+    if (error)
+        g_warning ("Could not enumerate user data directory %s: %s", USERS_DIR, error->message);
+    g_clear_error (&error);
+    if (!enumerator)
     {
-        g_warning ("Could not enumerate user data directory %s: %s",
-                   USERS_DIR, error->message);
-        g_error_free (error);
         g_object_unref (manager);
         return;
     }
 
-    manager->priv->starting_dirs = g_hash_table_new_full (g_str_hash,
-                                                          g_str_equal,
-                                                          g_free, NULL);
+    manager->priv->starting_dirs = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
     g_file_enumerator_next_files_async (enumerator, NUM_ENUMERATION_FILES,
                                         G_PRIORITY_DEFAULT, NULL,
                                         next_user_dirs_cb, manager);
 }
 
 static void
-user_removed_cb (CommonUserList *list, CommonUser *user,
-                 SharedDataManager *manager)
+user_removed_cb (CommonUserList *list, CommonUser *user, SharedDataManager *manager)
 {
-    delete_unused_user ((gpointer)common_user_get_name (user), NULL, manager);
+    delete_unused_user ((gpointer) common_user_get_name (user), NULL, manager);
 }
 
 void
 shared_data_manager_start (SharedDataManager *manager)
 {
-    /* Grab list of all current directories, so we know if any exist that we
-       no longer need. */
-    GFile *file = g_file_new_for_path (USERS_DIR);
+    GFile *file;
+
+    /* Grab list of all current directories, so we know if any exist that we no longer need. */
+    file = g_file_new_for_path (USERS_DIR);
     g_file_enumerate_children_async (file, G_FILE_ATTRIBUTE_STANDARD_NAME,
                                      G_FILE_QUERY_INFO_NONE,
                                      G_PRIORITY_DEFAULT, NULL,
@@ -232,17 +222,17 @@ shared_data_manager_start (SharedDataManager *manager)
     g_object_unref (file);
 
     /* And listen for user removals. */
-    g_signal_connect (common_user_list_get_instance (), "user-removed",
-                      G_CALLBACK (user_removed_cb), manager);
+    g_signal_connect (common_user_list_get_instance (), "user-removed", G_CALLBACK (user_removed_cb), manager);
 }
 
 static void
 shared_data_manager_init (SharedDataManager *manager)
 {
+    struct passwd *greeter_entry;
+
     manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, SHARED_DATA_MANAGER_TYPE, SharedDataManagerPrivate);
 
-    // Grab current greeter-user gid
-    struct passwd *greeter_entry;
+    /* Grab current greeter-user gid */
     manager->priv->greeter_user = config_get_string (config_get_instance (), "LightDM", "greeter-user");
     greeter_entry = getpwnam (manager->priv->greeter_user);
     if (greeter_entry)
@@ -254,11 +244,9 @@ shared_data_manager_dispose (GObject *object)
 {
     SharedDataManager *self = SHARED_DATA_MANAGER (object);
 
-    /* Should also cancel outstanding GIO operations, but whatever, let them
-       do their thing. */
+    /* Should also cancel outstanding GIO operations, but whatever, let them do their thing. */
 
-    g_signal_handlers_disconnect_by_data (common_user_list_get_instance (),
-                                          self);
+    g_signal_handlers_disconnect_by_data (common_user_list_get_instance (), self);
 
     G_OBJECT_CLASS (shared_data_manager_parent_class)->dispose (object);
 }

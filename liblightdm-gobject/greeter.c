@@ -415,7 +415,7 @@ read_message (LightDMGreeter *greeter, gsize *length, gboolean block)
 
     /* Stop if haven't got all the data we want */
     if (priv->n_read != n_to_read)
-        return FALSE;
+        return NULL;
 
     /* If have header, rerun for content */
     if (priv->n_read == HEADER_SIZE)
@@ -1142,6 +1142,8 @@ lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gcha
 
     g_return_val_if_fail (priv->connected, NULL);
 
+    g_debug ("Ensuring data directory for user %s", username);
+
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_ENSURE_SHARED_DIR, string_length (username), &offset);
     write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
     write_message (greeter, message, offset);
@@ -1150,7 +1152,6 @@ lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gcha
     if (!response)
         return NULL;
 
-    offset = 0;
     id = read_int (response, response_length, &offset);
     read_int (response, response_length, &offset);
     if (id == SERVER_MESSAGE_SHARED_DIR_RESULT)
