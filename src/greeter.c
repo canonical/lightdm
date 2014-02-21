@@ -633,17 +633,19 @@ handle_set_language (Greeter *greeter, const gchar *language)
 static void
 handle_ensure_shared_dir (Greeter *greeter, const gchar *username)
 {
-    gchar *result;
+    gchar *dir;
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
 
-    result = shared_data_manager_ensure_user_dir (shared_data_manager_get_instance (), username);
+    l_debug (greeter, "Greeter requests data directory for user %s", username);
 
-    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_SHARED_DIR_RESULT, string_length (result), &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, result, &offset);
+    dir = shared_data_manager_ensure_user_dir (shared_data_manager_get_instance (), username);
+
+    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_SHARED_DIR_RESULT, string_length (dir), &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, dir, &offset);
     write_message (greeter, message, offset);
 
-    g_free (result);
+    g_free (dir);
 }
 
 static guint32
