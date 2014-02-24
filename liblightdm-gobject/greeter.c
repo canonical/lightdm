@@ -1152,6 +1152,7 @@ lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gcha
     if (!response)
         return NULL;
 
+    offset = 0;
     id = read_int (response, response_length, &offset);
     read_int (response, response_length, &offset);
     if (id == SERVER_MESSAGE_SHARED_DIR_RESULT)
