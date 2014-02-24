@@ -230,6 +230,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     if (condition == G_IO_HUP)
     {
         l_debug (compositor, "Compositor closed communication channel");
+        compositor->priv->from_compositor_watch = 0;
         return FALSE;
     }
 
@@ -494,7 +495,8 @@ unity_system_compositor_finalize (GObject *object)
     close (self->priv->from_compositor_pipe[0]);
     close (self->priv->from_compositor_pipe[1]);
     g_io_channel_unref (self->priv->from_compositor_channel);
-    g_source_remove (self->priv->from_compositor_watch);
+    if (self->priv->from_compositor_watch)      
+        g_source_remove (self->priv->from_compositor_watch);
     g_free (self->priv->read_buffer);
     if (self->priv->timeout_source != 0)
         g_source_remove (self->priv->timeout_source);
