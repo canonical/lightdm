@@ -100,8 +100,13 @@ shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *us
     g_debug ("Creating shared data directory %s", path);
 
     result = g_file_make_directory (file, NULL, &error);
-    if (error && !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_EXISTS))
-        g_warning ("Could not create user data directory %s: %s", path, error->message);
+    if (error)
+    {
+        if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_EXISTS))
+            result = TRUE;
+        else
+            g_warning ("Could not create user data directory %s: %s", path, error->message);
+    }
     g_clear_error (&error);  
     if (!result)
     {
