@@ -153,13 +153,14 @@ request_cb (const gchar *request)
     if (g_str_has_prefix (request, r))
     {
         const gchar *name = request + strlen (r);
-        gchar *contents;
+        gchar *contents = NULL;
         GError *error = NULL;
 
         if (g_file_get_contents (name, &contents, NULL, &error))
             status_notify ("%s READ FILE=%s TEXT=%s", session_id, name, contents);
         else
             status_notify ("%s READ FILE=%s ERROR=%s", session_id, name, error->message);
+        g_free (contents);
         g_clear_error (&error);
     }
     g_free (r);
@@ -195,6 +196,59 @@ request_cb (const gchar *request)
         g_string_append_c (mode_string, file_info.st_mode & S_IXOTH ? 'x' : '-');
         status_notify ("%s CHECK-X-AUTHORITY MODE=%s", session_id, mode_string->str);
         g_string_free (mode_string, TRUE);
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("%s WRITE-SHARED-DATA DATA=", session_id);
+    if (g_str_has_prefix (request, r))
+    {
+        const gchar *data = request + strlen (r);
+        gchar *dir;
+      
+        dir = getenv ("XDG_GREETER_DATA_DIR");
+        if (dir)
+        {
+            gchar *path;
+            FILE *f;
+
+            path = g_build_filename (dir, "data", NULL);
+            if (!(f = fopen (path, "w")) || fprintf (f, "%s", data) < 0)
+                status_notify ("%s WRITE-SHARED-DATA ERROR=%s", session_id, strerror (errno));
+            else
+                status_notify ("%s WRITE-SHARED-DATA RESULT=TRUE", session_id);
+
+            if (f)
+                fclose (f);
+            g_free (path);
+        }
+        else
+            status_notify ("%s WRITE-SHARED-DATA ERROR=NO_XDG_GREETER_DATA_DIR", session_id);
+    }
+    g_free (r);
+
+    r = g_strdup_printf ("%s READ-SHARED-DATA", session_id);
+    if (strcmp (request, r) == 0)
+    {
+        gchar *dir;
+
+        dir = getenv ("XDG_GREETER_DATA_DIR");
+        if (dir)
+        {
+            gchar *path;
+            gchar *contents = NULL;
+            GError *error = NULL;
+
+            path = g_build_filename (dir, "data", NULL);
+            if (g_file_get_contents (path, &contents, NULL, &error))
+                status_notify ("%s READ-SHARED-DATA DATA=%s", session_id, contents);
+            else
+                status_notify ("%s WRITE-SHARED-DATA ERROR=%s", session_id, error->message);
+            g_free (path);
+            g_free (contents);
+            g_clear_error (&error);
+        }
+        else
+            status_notify ("%s WRITE-SHARED-DATA ERROR=NO_XDG_GREETER_DATA_DIR", session_id);
     }
     g_free (r);
 }

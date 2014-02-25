@@ -110,8 +110,10 @@ TESTS = \
 	test-script-hook-fail-display-setup \
 	test-script-hook-fail-greeter-setup \
 	test-script-hook-fail-session-setup \
-	test-shared-data-dirs \
-	test-shared-data-dirs-autologin \
+	test-shared-data-greeter-to-session \
+	test-shared-data-session-to-greeter \
+	test-shared-data-session-to-greeter-autologin \
+	test-shared-data-invalid-user \
 	test-upstart-autologin \
 	test-upstart-login \
 	test-dbus \
@@ -408,8 +410,10 @@ EXTRA_DIST = \
 	scripts/plymouth-inactive-vt.conf \
 	scripts/plymouth-no-seat.conf \
 	scripts/restart-authentication.conf \
-	scripts/shared-data-dirs.conf \
-	scripts/shared-data-dirs-autologin.conf \
+	scripts/shared-data-greeter-to-session.conf \
+	scripts/shared-data-invalid-user.conf \
+	scripts/shared-data-session-to-greeter.conf \
+	scripts/shared-data-session-to-greeter-autologin.conf \
 	scripts/script-hooks.conf \
 	scripts/script-hook-fail-display-setup.conf \
 	scripts/script-hook-fail-greeter-setup.conf \
