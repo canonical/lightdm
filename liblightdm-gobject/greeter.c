@@ -1160,6 +1160,13 @@ lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gcha
     else
         g_warning ("Expected SHARED_DIR_RESULT message, got %d", id);
 
+    /* Blank data dir means invalid user */
+    if (g_strcmp0 (data_dir, "") == 0)
+    {
+        g_free (data_dir);
+        data_dir = NULL;
+    }
+
     g_free (response);
 
     return data_dir;
