@@ -411,45 +411,6 @@ handle_command (const gchar *command)
         g_main_loop_run (loop);
         g_main_loop_unref (loop);
     }
-    else if (strcmp (name, "LIST-SHARED-DATA-DIRS") == 0)
-    {
-        gchar *shared_dir;
-        GDir *dir;
-        const gchar *path;
-        GList *paths = NULL, *link;
-        GString *status;
-
-        shared_dir = g_strdup_printf ("%s/var/lib/lightdm-data", temp_dir);
-        dir = g_dir_open (shared_dir, 0, NULL);
-        while ((path = g_dir_read_name (dir)))
-        {
-            gchar *full_path = g_build_filename (shared_dir, path, NULL);
-            paths = g_list_insert_sorted (paths, full_path, (GCompareFunc)g_strcmp0);
-        }
-        g_dir_close (dir);
-        g_free (shared_dir);
-
-        status = g_string_new ("RUNNER LIST-SHARED-DATA-DIRS DIRS=");
-        for (link = paths; link; link = link->next)
-        {
-            path = (const gchar *)link->data;
-            GStatBuf buf;
-            if (g_stat (path, &buf) != 0)
-                continue;
-
-            if (link != paths)
-                g_string_append (status, ",");
-            gchar *basename = g_path_get_basename (path);
-            g_string_append_printf (status, "%s:%u:%u:0%o", basename,
-                                    buf.st_uid, buf.st_gid,
-                                    buf.st_mode & (S_IRWXU|S_IRWXG|S_IRWXO));
-            g_free (basename);
-        }
-        g_list_free_full (paths, g_free);
-
-        check_status (status->str);
-        g_string_free (status, TRUE);
-    }
     else if (strcmp (name, "LIST-SEATS") == 0)
     {
         GVariant *result, *value;

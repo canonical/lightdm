@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/dbus-env ./src/test-runner shared-data-session-to-greeter test-gobject-greeter
