@@ -32,17 +32,20 @@ typedef struct
 typedef struct
 {
     GObjectClass parent_class;
-    void (*run)(Process *process);
     void (*got_data)(Process *process);
     void (*got_signal)(Process *process, int signum);
     void (*stopped)(Process *process);
 } ProcessClass;
 
+typedef void (*ProcessRunFunc)(Process *process, gpointer user_data);
+
 GType process_get_type (void);
 
 Process *process_get_current (void);
 
-Process *process_new (void);
+Process *process_new (ProcessRunFunc run_func, gpointer run_func_data);
+
+void process_set_log_file (Process *process, const gchar *path, gboolean log_stdout);
 
 void process_set_clear_environment (Process *process, gboolean clear_environment);
 

@@ -549,6 +549,7 @@ session_real_start (Session *session)
     int version;
     int to_child_pipe[2], from_child_pipe[2];
     int to_child_output, from_child_input;
+    gchar *arg0, *arg1;
 
     g_return_val_if_fail (session->priv->pid == 0, FALSE);
 
@@ -581,23 +582,25 @@ session_real_start (Session *session)
     }
 
     /* Run the child */
+    arg0 = g_strdup_printf ("%d", to_child_output);
+    arg1 = g_strdup_printf ("%d", from_child_input);
     session->priv->pid = fork ();
-    if (session->priv->pid < 0)
-    {
-        g_debug ("Failed to fork session child process: %s", strerror (errno));
-        return FALSE;
-    }
-
     if (session->priv->pid == 0)
     {
         /* Run us again in session child mode */
         execlp ("lightdm",
                 "lightdm",
                 "--session-child",
-                g_strdup_printf ("%d", to_child_output),
-                g_strdup_printf ("%d", from_child_input),
-                NULL);
+                arg0, arg1, NULL);
         _exit (EXIT_FAILURE);
+    }
+    g_free (arg0);
+    g_free (arg1);
+
+    if (session->priv->pid < 0)
+    {
+        g_debug ("Failed to fork session child process: %s", strerror (errno));
+        return FALSE;
     }
 
     /* Hold a reference on this object until the child process terminates so we

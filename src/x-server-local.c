@@ -27,9 +27,6 @@ struct XServerLocalPrivate
 {
     /* X server process */
     Process *x_server_process;
-  
-    /* File to log to */
-    gchar *log_file;    
 
     /* Command to run the X server */
     gchar *command;
@@ -326,7 +323,7 @@ get_absolute_command (const gchar *command)
 }
 
 static void
-run_cb (Process *process, XServerLocal *server)
+run_cb (Process *process, gpointer user_data)
 {
     int fd;
 
@@ -334,29 +331,6 @@ run_cb (Process *process, XServerLocal *server)
     fd = open ("/dev/null", O_RDONLY);
     dup2 (fd, STDIN_FILENO);
     close (fd);
-
-    /* Redirect output to logfile */
-    if (server->priv->log_file)
-    {
-         int fd;
-         gchar *old_filename;
-
-         /* Move old file out of the way */
-         old_filename = g_strdup_printf ("%s.old", server->priv->log_file);
-         rename (server->priv->log_file, old_filename);
-         g_free (old_filename);
-
-         /* Create new file and log to it */
-         fd = g_open (server->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-         if (fd < 0)
-             l_warning (server, "Failed to open log file %s: %s", server->priv->log_file, g_strerror (errno));
-         else
-         {
-             dup2 (fd, STDOUT_FILENO);
-             dup2 (fd, STDERR_FILENO);
-             close (fd);
-         }
-    }
 
     /* Set SIGUSR1 to ignore so the X server can indicate it when it is ready */
     signal (SIGUSR1, SIG_IGN);
@@ -439,7 +413,7 @@ x_server_local_start (DisplayServer *display_server)
 {
     XServerLocal *server = X_SERVER_LOCAL (display_server);
     gboolean result;
-    gchar *filename, *dir, *absolute_command;
+    gchar *filename, *dir, *log_file, *absolute_command;
     GString *command;
 
     g_return_val_if_fail (server->priv->x_server_process == NULL, FALSE);
@@ -448,17 +422,18 @@ x_server_local_start (DisplayServer *display_server)
 
     g_return_val_if_fail (server->priv->command != NULL, FALSE);
 
-    server->priv->x_server_process = process_new ();
+    server->priv->x_server_process = process_new (run_cb, server);
     process_set_clear_environment (server->priv->x_server_process, TRUE);
-    g_signal_connect (server->priv->x_server_process, "run", G_CALLBACK (run_cb), server);
     g_signal_connect (server->priv->x_server_process, "got-signal", G_CALLBACK (got_signal_cb), server);
     g_signal_connect (server->priv->x_server_process, "stopped", G_CALLBACK (stopped_cb), server);
 
     /* Setup logging */
     filename = g_strdup_printf ("%s.log", display_server_get_name (display_server));
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    server->priv->log_file = g_build_filename (dir, filename, NULL);
-    l_debug (display_server, "Logging to %s", server->priv->log_file);
+    log_file = g_build_filename (dir, filename, NULL);
+    process_set_log_file (server->priv->x_server_process, log_file, TRUE);
+    l_debug (display_server, "Logging to %s", log_file);
+    g_free (log_file);
     g_free (filename);
     g_free (dir);
 
@@ -577,7 +552,6 @@ x_server_local_finalize (GObject *object)
         g_signal_handlers_disconnect_matched (self->priv->x_server_process, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
         g_object_unref (self->priv->x_server_process);
     }
-    g_free (self->priv->log_file);
     g_free (self->priv->command);
     g_free (self->priv->config_file);
     g_free (self->priv->layout);
