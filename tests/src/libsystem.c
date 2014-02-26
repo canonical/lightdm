@@ -502,7 +502,7 @@ ioctl (int d, unsigned long request, ...)
             {
                 active_vt = vt;
                 if (!status_connected)
-                    status_connected = status_connect (NULL);
+                    status_connected = status_connect (NULL, NULL);
                 status_notify ("VT ACTIVATE VT=%d", active_vt);
             }
             break;

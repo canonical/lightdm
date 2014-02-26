@@ -46,56 +46,33 @@ signal_cb (int signum)
 }
 
 static void
-request_cb (const gchar *request)
+request_cb (const gchar *name, GHashTable *params)
 {
-    gchar *r;
-
-    if (!request)
+    if (!name)
     {
         g_main_loop_quit (loop);
         return;
     }
   
-    r = g_strdup_printf ("%s AUTHENTICATE", greeter_id);
-    if (strcmp (request, r) == 0)
-        lightdm_greeter_authenticate (greeter, NULL);
-    g_free (r);
+    if (strcmp (name, "AUTHENTICATE") == 0)
+        lightdm_greeter_authenticate (greeter, g_hash_table_lookup (params, "USERNAME"));
 
-    r = g_strdup_printf ("%s AUTHENTICATE USERNAME=", greeter_id);
-    if (g_str_has_prefix (request, r))
-        lightdm_greeter_authenticate (greeter, request + strlen (r));
-    g_free (r);
-
-    r = g_strdup_printf ("%s RESPOND TEXT=\"", greeter_id);
-    if (g_str_has_prefix (request, r))
+    if (strcmp (name, "RESPOND") == 0)
     {
-        gchar *text = g_strdup (request + strlen (r));
+        gchar *text = g_strdup (g_hash_table_lookup (params, "TEXT"));
         text[strlen (text) - 1] = '\0';
         lightdm_greeter_respond (greeter, text);
         g_free (text);
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s CANCEL-AUTHENTICATION", greeter_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "CANCEL-AUTHENTICATION") == 0)
         lightdm_greeter_cancel_authentication (greeter);
-    g_free (r);
 
-    r = g_strdup_printf ("%s START-SESSION", greeter_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "START-SESSION") == 0)
     {
-        if (!lightdm_greeter_start_session_sync (greeter, NULL, NULL))
+        if (!lightdm_greeter_start_session_sync (greeter, g_hash_table_lookup (params, "SESSION"), NULL))
             status_notify ("%s SESSION-FAILED", greeter_id); 
     }
-    g_free (r);
-
-    r = g_strdup_printf ("%s START-SESSION SESSION=", greeter_id);
-    if (g_str_has_prefix (request, r))
-    {
-        if (!lightdm_greeter_start_session_sync (greeter, request + strlen (r), NULL))
-            status_notify ("%s SESSION-FAILED", greeter_id); 
-    }
-    g_free (r);
 }
 
 int
@@ -112,7 +89,7 @@ main (int argc, char **argv)
 
     loop = g_main_loop_new (NULL, FALSE);
 
-    status_connect (request_cb);
+    status_connect (request_cb, greeter_id);
 
     status_notify ("%s START", greeter_id);
 

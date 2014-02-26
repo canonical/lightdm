@@ -5,11 +5,13 @@
 #include <gio/gio.h>
 #include <gio/gunixsocketaddress.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #include "status.h"
 
 static GSocket *status_socket = NULL;
 static StatusRequestFunc request_func = NULL;
+static gchar *filter_id = NULL;
 
 static gboolean
 status_request_cb (GSocket *socket, GIOCondition condition, gpointer data)
@@ -17,6 +19,11 @@ status_request_cb (GSocket *socket, GIOCondition condition, gpointer data)
     int length;
     gchar buffer[1024];
     ssize_t n_read;
+    const gchar *c, *start;
+    int l;
+    gchar *id, *name = NULL;
+    gboolean id_matches;
+    GHashTable *params;
     GError *error = NULL;  
 
     n_read = g_socket_receive (socket, (gchar *)&length, sizeof (length), NULL, &error);
@@ -25,24 +32,117 @@ status_request_cb (GSocket *socket, GIOCondition condition, gpointer data)
     if (n_read == 0)
     {
         if (request_func)
-            request_func (NULL);
+            request_func (NULL, NULL);
         return FALSE;
     }
     if (error)
         g_warning ("Error reading from socket: %s", error->message);
     g_clear_error (&error);
 
-    if (n_read > 0 && request_func)
+    if (n_read <= 0 || !request_func)
+        return TRUE;
+
+    buffer[n_read] = '\0';
+    c = buffer;
+    start = c;
+    l = 0;
+    while (*c && !isspace (*c))
     {
-        buffer[n_read] = '\0';
-        request_func (buffer);
+        c++;
+        l++;
     }
+    id = g_strdup_printf ("%.*s", l, start);
+    id_matches = g_strcmp0 (id, filter_id) == 0;
+    g_free (id);
+    if (!id_matches)
+        return TRUE;
+
+    while (isspace (*c))
+        c++;
+    start = c;
+    l = 0;
+    while (*c && !isspace (*c))
+    {
+        c++;
+        l++;
+    }
+    name = g_strdup_printf ("%.*s", l, start);
+
+    params = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+    while (TRUE)
+    {
+        const gchar *start;
+        gchar *param_name, *param_value;
+
+        while (isspace (*c))
+            c++;
+        start = c;
+        while (*c && !isspace (*c) && *c != '=')
+            c++;
+        if (*c == '\0')
+            break;
+
+        param_name = g_strdup_printf ("%.*s", (int) (c - start), start);
+
+        if (*c == '=')
+        {
+            c++;
+            while (isspace (*c))
+                c++;
+            if (*c == '\"')
+            {
+                gboolean escaped = FALSE;
+                GString *value;
+
+                c++;
+                value = g_string_new ("");
+                while (*c)
+                {
+                    if (*c == '\\')
+                    {
+                        if (escaped)
+                        {
+                            g_string_append_c (value, '\\');
+                            escaped = FALSE;
+                        }
+                        else
+                            escaped = TRUE;
+                    }
+                    else if (!escaped && *c == '\"')
+                        break;
+                    if (!escaped)
+                        g_string_append_c (value, *c);
+                    c++;
+                }
+                param_value = value->str;
+                g_string_free (value, FALSE);
+                if (*c == '\"')
+                    c++;
+            }
+            else
+            {
+                start = c;
+                while (*c && !isspace (*c))
+                    c++;
+                param_value = g_strdup_printf ("%.*s", (int) (c - start), start);
+            }
+        }
+        else
+            param_value = g_strdup ("");
+
+        g_hash_table_insert (params, param_name, param_value);
+    }
+
+    request_func (name, params);
+
+    g_free (name);
+    g_hash_table_unref (params);
 
     return TRUE;
 }
 
 gboolean
-status_connect (StatusRequestFunc request_cb)
+status_connect (StatusRequestFunc request_cb, const gchar *id)
 {
     gchar *path;
     GSocketAddress *address;
@@ -51,6 +151,7 @@ status_connect (StatusRequestFunc request_cb)
     GError *error = NULL;
 
     request_func = request_cb;
+    filter_id = g_strdup (id);
 
     status_socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
     if (error)

@@ -80,81 +80,59 @@ signal_cb (int signum)
 }
 
 static void
-request_cb (const gchar *request)
+request_cb (const gchar *name, GHashTable *params)
 {
     gchar *r;
 
-    if (!request)
+    if (!name)
     {
         app->quit ();
         return;
     }
   
-    r = g_strdup_printf ("%s AUTHENTICATE", greeter_id);
-    if (strcmp (request, r) == 0)
-        greeter->authenticate ();
-    g_free (r);
+    if (strcmp (name, "AUTHENTICATE") == 0)
+    {
+        if (g_hash_table_lookup (params, "USERNAME"))
+            greeter->authenticate ((const gchar *) g_hash_table_lookup (params, "USERNAME"));
+        else
+            greeter->authenticate ();
+    }
 
-    r = g_strdup_printf ("%s AUTHENTICATE USERNAME=", greeter_id);
-    if (g_str_has_prefix (request, r))
-        greeter->authenticate (request + strlen (r));
-    g_free (r);
-
-    r = g_strdup_printf ("%s AUTHENTICATE-GUEST", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "AUTHENTICATE-GUEST") == 0)
         greeter->authenticateAsGuest ();
-    g_free (r);
-
-    r = g_strdup_printf ("%s AUTHENTICATE-AUTOLOGIN", greeter_id);
-    if (strcmp (request, r) == 0)
+  
+    else if (strcmp (name, "AUTHENTICATE-AUTOLOGIN") == 0)
         greeter->authenticateAutologin ();
-    g_free (r);
 
-    r = g_strdup_printf ("%s AUTHENTICATE-REMOTE SESSION=", greeter_id);
-    if (g_str_has_prefix (request, r))
-        greeter->authenticateRemote (request + strlen (r), NULL);
-    g_free (r);
+    else if (strcmp (name, "AUTHENTICATE-REMOTE") == 0)
+        greeter->authenticateRemote ((const gchar *) g_hash_table_lookup (params, "SESSION"), NULL);
 
-    r = g_strdup_printf ("%s RESPOND TEXT=\"", greeter_id);
-    if (g_str_has_prefix (request, r))
-    {
-        gchar *text = g_strdup (request + strlen (r));
-        text[strlen (text) - 1] = '\0';
-        greeter->respond (text);
-        g_free (text);
-    }
-    g_free (r);
+    else if (strcmp (name, "RESPOND") == 0)
+        greeter->respond ((const gchar *) g_hash_table_lookup (params, "TEXT"));
 
-    r = g_strdup_printf ("%s CANCEL-AUTHENTICATION", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "CANCEL-AUTHENTICATION") == 0)
         greeter->cancelAuthentication ();
-    g_free (r);
 
-    r = g_strdup_printf ("%s START-SESSION", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "START-SESSION") == 0)
     {
-        if (!greeter->startSessionSync ())
-            status_notify ("%s SESSION-FAILED", greeter_id);
+        if (g_hash_table_lookup (params, "SESSION"))
+        {
+            if (!greeter->startSessionSync ((const gchar *) g_hash_table_lookup (params, "SESSION")))
+                status_notify ("%s SESSION-FAILED", greeter_id);
+        }
+        else
+        {
+            if (!greeter->startSessionSync ())
+                status_notify ("%s SESSION-FAILED", greeter_id);
+        }
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s START-SESSION SESSION=", greeter_id);
-    if (g_str_has_prefix (request, r))
-    {
-        if (!greeter->startSessionSync (request + strlen (r)))
-            status_notify ("%s SESSION-FAILED", greeter_id);
-    }
-    g_free (r);
-
-    r = g_strdup_printf ("%s LOG-USER-LIST-LENGTH", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "LOG-USER-LIST-LENGTH") == 0)
         status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, users_model->rowCount (QModelIndex ()));
-    g_free (r);
 
-    r = g_strdup_printf ("%s LOG-USER USERNAME=", greeter_id);
-    if (g_str_has_prefix (request, r))
+    else if (strcmp (name, "LOG-USER") == 0)
     {
-        const gchar *username = request + strlen (r);
+        const gchar *username = (const gchar *) g_hash_table_lookup (params, "USERNAME");
         for (int i = 0; i < users_model->rowCount (QModelIndex ()); i++)
         {
             QString name = users_model->data (users_model->index (i, 0), QLightDM::UsersModel::NameRole).toString ();
@@ -162,10 +140,8 @@ request_cb (const gchar *request)
                 status_notify ("%s LOG-USER USERNAME=%s", greeter_id, qPrintable (name));
         }
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s LOG-USER-LIST", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "LOG-USER-LIST") == 0)
     {
         for (int i = 0; i < users_model->rowCount (QModelIndex ()); i++)
         {
@@ -173,71 +149,54 @@ request_cb (const gchar *request)
             status_notify ("%s LOG-USER USERNAME=%s", greeter_id, qPrintable (name));
         }
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s GET-CAN-SUSPEND", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "GET-CAN-SUSPEND") == 0)
     {
         gboolean can_suspend = power->canSuspend ();
         status_notify ("%s CAN-SUSPEND ALLOWED=%s", greeter_id, can_suspend ? "TRUE" : "FALSE");
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s SUSPEND", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "SUSPEND") == 0)
     {
         if (!power->suspend ())
             status_notify ("%s FAIL-SUSPEND", greeter_id);
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s GET-CAN-HIBERNATE", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "GET-CAN-HIBERNATE") == 0)
     {
         gboolean can_hibernate = power->canHibernate ();
         status_notify ("%s CAN-HIBERNATE ALLOWED=%s", greeter_id, can_hibernate ? "TRUE" : "FALSE");
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s HIBERNATE", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "HIBERNATE") == 0)
     {
         if (!power->hibernate ())
             status_notify ("%s FAIL-HIBERNATE", greeter_id);
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s GET-CAN-RESTART", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "GET-CAN-RESTART") == 0)
     {
         gboolean can_restart = power->canRestart ();
         status_notify ("%s CAN-RESTART ALLOWED=%s", greeter_id, can_restart ? "TRUE" : "FALSE");
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s RESTART", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "RESTART") == 0)
     {
         if (!power->restart ())
             status_notify ("%s FAIL-RESTART", greeter_id);
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s GET-CAN-SHUTDOWN", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "GET-CAN-SHUTDOWN") == 0)
     {
         gboolean can_shutdown = power->canShutdown ();
         status_notify ("%s CAN-SHUTDOWN ALLOWED=%s", greeter_id, can_shutdown ? "TRUE" : "FALSE");
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s SHUTDOWN", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "SHUTDOWN") == 0)
     {
         if (!power->shutdown ())
             status_notify ("%s FAIL-SHUTDOWN", greeter_id);
     }
-    g_free (r);
 }
 
 int
@@ -265,7 +224,7 @@ main(int argc, char *argv[])
     else
         greeter_id = g_strdup ("GREETER-?");
 
-    status_connect (request_cb);
+    status_connect (request_cb, greeter_id);
 
     app = new QCoreApplication (argc, argv);
 

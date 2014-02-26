@@ -41,28 +41,21 @@ sigterm_cb (gpointer user_data)
 }
 
 static void
-request_cb (const gchar *request)
+request_cb (const gchar *name, GHashTable *params)
 {
-    gchar *r;
-
-    if (!request)
+    if (!name)
     {
         g_main_loop_quit (loop);
         return;
     }
   
-    r = g_strdup_printf ("%s LOGOUT", session_id);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "LOGOUT") == 0)
         exit (EXIT_SUCCESS);
-    g_free (r);
-  
-    r = g_strdup_printf ("%s CRASH", session_id);
-    if (strcmp (request, r) == 0)
-        kill (getpid (), SIGSEGV);
-    g_free (r);
 
-    r = g_strdup_printf ("%s LOCK-SEAT", session_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "CRASH") == 0)
+        kill (getpid (), SIGSEGV);
+
+    else if (strcmp (name, "LOCK-SEAT") == 0)
     {
         status_notify ("%s LOCK-SEAT", session_id);
         g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
@@ -77,10 +70,8 @@ request_cb (const gchar *request)
                                      NULL,
                                      NULL);
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s LOCK-SESSION", session_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "LOCK-SESSION") == 0)
     {
         status_notify ("%s LOCK-SESSION", session_id);
         g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
@@ -95,10 +86,8 @@ request_cb (const gchar *request)
                                      NULL,
                                      NULL);
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s LIST-GROUPS", session_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "LIST-GROUPS") == 0)
     {
         int n_groups, i;
         gid_t *groups;
@@ -130,29 +119,22 @@ request_cb (const gchar *request)
         free (groups);
     }
 
-    r = g_strdup_printf ("%s READ-ENV NAME=", session_id);
-    if (g_str_has_prefix (request, r))
+    else if (strcmp (name, "READ-ENV") == 0)
     {
-        const gchar *name = request + strlen (r);
+        const gchar *name = g_hash_table_lookup (params, "NAME");
         const gchar *value = g_getenv (name);
         status_notify ("%s READ-ENV NAME=%s VALUE=%s", session_id, name, value ? value : "");
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s WRITE-STDOUT TEXT=", session_id);
-    if (g_str_has_prefix (request, r))
-        g_print ("%s", request + strlen (r));
-    g_free (r);
+    else if (strcmp (name, "WRITE-STDOUT") == 0)
+        g_print ("%s", (const gchar *) g_hash_table_lookup (params, "TEXT"));
 
-    r = g_strdup_printf ("%s WRITE-STDERR TEXT=", session_id);
-    if (g_str_has_prefix (request, r))
-        g_printerr ("%s", request + strlen (r));
-    g_free (r);
+    else if (strcmp (name, "WRITE-STDERR") == 0)
+        g_printerr ("%s", (const gchar *) g_hash_table_lookup (params, "TEXT"));
 
-    r = g_strdup_printf ("%s READ FILE=", session_id);
-    if (g_str_has_prefix (request, r))
+    else if (strcmp (name, "READ") == 0)
     {
-        const gchar *name = request + strlen (r);
+        const gchar *name = g_hash_table_lookup (params, "FILE");
         gchar *contents = NULL;
         GError *error = NULL;
 
@@ -163,15 +145,11 @@ request_cb (const gchar *request)
         g_free (contents);
         g_clear_error (&error);
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s LIST-UNKNOWN-FILE-DESCRIPTORS", session_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "LIST-UNKNOWN-FILE-DESCRIPTORS") == 0)
         status_notify ("%s LIST-UNKNOWN-FILE-DESCRIPTORS FDS=%s", session_id, open_fds->str);
-    g_free (r);
 
-    r = g_strdup_printf ("%s CHECK-X-AUTHORITY", session_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "CHECK-X-AUTHORITY") == 0)
     {
         gchar *xauthority;
         GStatBuf file_info;
@@ -197,12 +175,10 @@ request_cb (const gchar *request)
         status_notify ("%s CHECK-X-AUTHORITY MODE=%s", session_id, mode_string->str);
         g_string_free (mode_string, TRUE);
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s WRITE-SHARED-DATA DATA=", session_id);
-    if (g_str_has_prefix (request, r))
+    else if (strcmp (name, "WRITE-SHARED-DATA") == 0)
     {
-        const gchar *data = request + strlen (r);
+        const gchar *data = g_hash_table_lookup (params, "DATA");
         gchar *dir;
       
         dir = getenv ("XDG_GREETER_DATA_DIR");
@@ -224,10 +200,8 @@ request_cb (const gchar *request)
         else
             status_notify ("%s WRITE-SHARED-DATA ERROR=NO_XDG_GREETER_DATA_DIR", session_id);
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s READ-SHARED-DATA", session_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "READ-SHARED-DATA") == 0)
     {
         gchar *dir;
 
@@ -250,7 +224,6 @@ request_cb (const gchar *request)
         else
             status_notify ("%s WRITE-SHARED-DATA ERROR=NO_XDG_GREETER_DATA_DIR", session_id);
     }
-    g_free (r);
 }
 
 int
@@ -304,7 +277,7 @@ main (int argc, char **argv)
     g_unix_signal_add (SIGINT, sigint_cb, NULL);
     g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
 
-    status_connect (request_cb);
+    status_connect (request_cb, session_id);
 
     status_text = g_string_new ("");
     g_string_printf (status_text, "%s START", session_id);

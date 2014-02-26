@@ -3,17 +3,12 @@
 
 #include "status.h"
 
-static void
-request_cb (const gchar *request)
-{
-}
-
 int
 main (int argc, char **argv)
 {
     gchar *display;
 
-    status_connect (request_cb);
+    status_connect (NULL, NULL);
 
     display = getenv ("DISPLAY");
     if (display == NULL)

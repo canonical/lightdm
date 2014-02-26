@@ -118,19 +118,21 @@ read_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 }
 
 static void
-request_cb (const gchar *request)
+request_cb (const gchar *name, GHashTable *params)
 {
-    if (!request)
+    if (!name)
     {
         g_main_loop_quit (loop);
         return;
     }
 
-    if (strcmp (request, "UNITY-SYSTEM-COMPOSITOR PING") == 0)
+    if (strcmp (name, "PING") == 0)
         write_message (USC_MESSAGE_PING, NULL, 0);
-    else if (strcmp (request, "UNITY-SYSTEM-COMPOSITOR PONG") == 0)
+
+    else if (strcmp (name, "PONG") == 0)
         write_message (USC_MESSAGE_PONG, NULL, 0);
-    else if (strcmp (request, "UNITY-SYSTEM-COMPOSITOR READY") == 0)
+
+    else if (strcmp (name, "READY") == 0)
         write_message (USC_MESSAGE_READY, NULL, 0);
 }
 
@@ -152,7 +154,7 @@ main (int argc, char **argv)
     g_unix_signal_add (SIGINT, sigint_cb, NULL);
     g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
 
-    status_connect (request_cb);
+    status_connect (request_cb, "UNITY-SYSTEM-COMPOSITOR");
 
     for (i = 1; i < argc; i++)
     {
