@@ -132,6 +132,8 @@ request_cb (const gchar *request)
         write_message (USC_MESSAGE_PONG, NULL, 0);
     else if (strcmp (request, "UNITY-SYSTEM-COMPOSITOR READY") == 0)
         write_message (USC_MESSAGE_READY, NULL, 0);
+    else if (strcmp (request, "UNITY-SYSTEM-COMPOSITOR CRASH") == 0)
+        kill (getpid (), SIGSEGV);
 }
 
 int
