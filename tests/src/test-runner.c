@@ -831,7 +831,8 @@ check_status (const gchar *status)
     line->done = TRUE;
 
     /* Restart timeout */
-    g_source_remove (status_timeout);
+    if (status_timeout)
+        g_source_remove (status_timeout);
     status_timeout = g_timeout_add (status_timeout_ms, status_timeout_cb, NULL);
 
     run_commands ();
@@ -1916,7 +1917,6 @@ static void
 ready (void)
 {
     run_commands ();
-    status_timeout = g_timeout_add (status_timeout_ms, status_timeout_cb, NULL);
 }
 
 static gboolean
