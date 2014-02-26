@@ -134,6 +134,9 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "READY") == 0)
         write_message (USC_MESSAGE_READY, NULL, 0);
+
+    else if (strcmp (name, "CRASH") == 0)
+        kill (getpid (), SIGSEGV);
 }
 
 int
