@@ -28,9 +28,6 @@ struct UnitySystemCompositorPrivate
 {
     /* Compositor process */
     Process *process;
-  
-    /* File to log to */
-    gchar *log_file;    
 
     /* Command to run the compositor */
     gchar *command;
@@ -313,7 +310,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 }
 
 static void
-run_cb (Process *process, UnitySystemCompositor *compositor)
+run_cb (Process *process, gpointer user_data)
 {
     int fd;
 
@@ -321,29 +318,6 @@ run_cb (Process *process, UnitySystemCompositor *compositor)
     fd = open ("/dev/null", O_RDONLY);
     dup2 (fd, STDIN_FILENO);
     close (fd);
-
-    /* Redirect output to logfile */
-    if (compositor->priv->log_file)
-    {
-         int fd;
-         gchar *old_filename;
-
-         /* Move old file out of the way */
-         old_filename = g_strdup_printf ("%s.old", compositor->priv->log_file);
-         rename (compositor->priv->log_file, old_filename);
-         g_free (old_filename);
-
-         /* Create new file and log to it */
-         fd = g_open (compositor->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-         if (fd < 0)
-             l_warning (compositor, "Failed to open log file %s: %s", compositor->priv->log_file, g_strerror (errno));
-         else
-         {
-             dup2 (fd, STDOUT_FILENO);
-             dup2 (fd, STDERR_FILENO);
-             close (fd);
-         }
-    }
 }
 
 static gboolean
@@ -383,7 +357,7 @@ unity_system_compositor_start (DisplayServer *server)
 {
     UnitySystemCompositor *compositor = UNITY_SYSTEM_COMPOSITOR (server);
     gboolean result;
-    gchar *dir, *command, *absolute_command, *value;
+    gchar *dir, *log_file, *command, *absolute_command, *value;
 
     g_return_val_if_fail (compositor->priv->process == NULL, FALSE);
 
@@ -408,12 +382,14 @@ unity_system_compositor_start (DisplayServer *server)
 
     /* Setup logging */
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    compositor->priv->log_file = g_build_filename (dir, "unity-system-compositor.log", NULL);
-    l_debug (compositor, "Logging to %s", compositor->priv->log_file);
+    log_file = g_build_filename (dir, "unity-system-compositor.log", NULL);
+    l_debug (compositor, "Logging to %s", log_file);
     g_free (dir);
 
     /* Setup environment */
-    compositor->priv->process = process_new ();
+    compositor->priv->process = process_new (run_cb, compositor);
+    process_set_log_file (compositor->priv->process, log_file, TRUE);
+    g_free (log_file);
     process_set_clear_environment (compositor->priv->process, TRUE);
     process_set_env (compositor->priv->process, "XDG_SEAT", "seat0");
     value = g_strdup_printf ("%d", compositor->priv->vt);
@@ -435,7 +411,6 @@ unity_system_compositor_start (DisplayServer *server)
     process_set_command (compositor->priv->process, absolute_command);
     g_free (absolute_command);
     g_signal_connect (compositor->priv->process, "stopped", G_CALLBACK (stopped_cb), compositor);
-    g_signal_connect (compositor->priv->process, "run", G_CALLBACK (run_cb), compositor);
     result = process_start (compositor->priv->process, FALSE);
 
     /* Close compostor ends of the pipes */
@@ -485,7 +460,6 @@ unity_system_compositor_finalize (GObject *object)
         g_signal_handlers_disconnect_matched (self->priv->process, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
         g_object_unref (self->priv->process);
     }
-    g_free (self->priv->log_file);
     g_free (self->priv->command);
     g_free (self->priv->socket);
     if (self->priv->have_vt_ref)

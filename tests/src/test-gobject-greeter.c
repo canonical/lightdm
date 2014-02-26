@@ -203,8 +203,58 @@ request_cb (const gchar *request)
     if (strcmp (name, "LOG-USER-LIST-LENGTH") == 0)
         status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, lightdm_user_list_get_length (lightdm_user_list_get_instance ()));
 
-    if (strcmp (name, "ENSURE-SHARED-DATA-DIR") == 0)
-        status_notify ("%s ENSURE-SHARED-DATA-DIR RESULT=%s", greeter_id, lightdm_greeter_ensure_shared_data_dir_sync (greeter, g_hash_table_lookup (params, "USERNAME")) ? "TRUE" : "FALSE");
+    if (strcmp (name, "WRITE-SHARED-DATA") == 0)
+    {
+        gchar *dir;
+
+        dir = lightdm_greeter_ensure_shared_data_dir_sync (greeter, g_hash_table_lookup (params, "USERNAME"));
+        if (dir)
+        {
+            gchar *path;
+            FILE *f;
+
+            g_printerr ("dir='%s'\n", dir);
+
+            path = g_build_filename (dir, "data", NULL);
+            if (!(f = fopen (path, "w")) || fprintf (f, "%s", (const gchar *) g_hash_table_lookup (params, "DATA")) < 0)
+                status_notify ("%s WRITE-SHARED-DATA ERROR=%s", greeter_id, strerror (errno));
+            else
+                status_notify ("%s WRITE-SHARED-DATA RESULT=TRUE", greeter_id);
+
+            if (f)
+                fclose (f);
+            g_free (path);
+            g_free (dir);
+        }
+        else
+            status_notify ("%s WRITE-SHARED-DATA ERROR=NO_SHARED_DIR", greeter_id);
+    }
+
+    if (strcmp (name, "READ-SHARED-DATA") == 0)
+    {
+        gchar *dir;
+
+        dir = lightdm_greeter_ensure_shared_data_dir_sync (greeter, g_hash_table_lookup (params, "USERNAME"));
+        if (dir)
+        {
+            gchar *path;
+            gchar *contents = NULL;
+            GError *error = NULL;
+
+            g_printerr ("dir='%s'\n", dir);
+
+            path = g_build_filename (dir, "data", NULL);
+            if (g_file_get_contents (path, &contents, NULL, &error))
+                status_notify ("%s READ-SHARED-DATA DATA=%s", greeter_id, contents);
+            else
+                status_notify ("%s READ-SHARED-DATA ERROR=%s", greeter_id, error->message);
+            g_free (path);
+            g_free (contents);
+            g_clear_error (&error);
+        }
+        else
+            status_notify ("%s READ-SHARED-DATA ERROR=NO_SHARED_DIR", greeter_id);
+    }
 
     if (strcmp (name, "WATCH-USER") == 0)
     {

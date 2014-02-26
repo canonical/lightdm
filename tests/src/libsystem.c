@@ -454,17 +454,8 @@ mkdir (const char *pathname, mode_t mode)
 int
 chown (const char *pathname, uid_t owner, gid_t group)
 {
-    int (*_chown) (const char *pathname, uid_t owner, gid_t group);
-    gchar *new_path = NULL;
-    int result;
-
-    _chown = (int (*)(const char *pathname, uid_t owner, gid_t group)) dlsym (RTLD_NEXT, "chown");
-
-    new_path = redirect_path (pathname);
-    result = _chown (new_path, owner, group);
-    g_free (new_path);
-
-    return result;
+    /* Just fake it - we're not root */
+    return 0;
 }
 
 int

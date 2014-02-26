@@ -234,6 +234,9 @@ session_child_run (int argc, char **argv)
         "LANG",
         NULL
     };
+    gid_t gid;
+    uid_t uid;
+    const gchar *home_directory;
     GError *error = NULL;
 
 #if !defined(GLIB_VERSION_2_36)
@@ -417,17 +420,21 @@ session_child_run (int argc, char **argv)
 
     /* Redirect stderr to a log file */
     if (log_filename)
+    {
         log_backup_filename = g_strdup_printf ("%s.old", log_filename);
-    if (!log_filename)
+        if (g_path_is_absolute (log_filename))
+        {
+            rename (log_filename, log_backup_filename);
+            fd = open (log_filename, O_WRONLY | O_APPEND | O_CREAT, 0600);
+            dup2 (fd, STDERR_FILENO);
+            close (fd);
+            g_free (log_filename);
+            log_filename = NULL;
+        }
+    }
+    else
     {
         fd = open ("/dev/null", O_WRONLY);   
-        dup2 (fd, STDERR_FILENO);
-        close (fd);
-    }
-    else if (g_path_is_absolute (log_filename))
-    {
-        rename (log_filename, log_backup_filename);
-        fd = open (log_filename, O_WRONLY | O_APPEND | O_CREAT, 0600);
         dup2 (fd, STDERR_FILENO);
         close (fd);
     }
@@ -532,53 +539,46 @@ session_child_run (int argc, char **argv)
     signal (SIGTERM, signal_cb);
 
     /* Run the command as the authenticated user */
-    child_pid = fork (); 
+    uid = user_get_uid (user);
+    gid = user_get_gid (user);
+    home_directory = user_get_home_directory (user);
+    child_pid = fork ();
     if (child_pid == 0)
     {
-        // FIXME: This is not thread safe (particularly the printfs)
-
         /* Make this process its own session */
         if (setsid () < 0)
-            g_printerr ("Failed to make process a new session: %s\n", strerror (errno));
+            _exit (errno);
 
         /* Change to this user */
         if (getuid () == 0)
         {
-            if (setgid (user_get_gid (user)) != 0)
-            {
-                g_printerr ("Failed to set group ID to %d: %s\n", user_get_gid (user), strerror (errno));
-                _exit (EXIT_FAILURE);
-            }
+            if (setgid (gid) != 0)
+                _exit (errno);
 
-            if (setuid (user_get_uid (user)) != 0)
-            {
-                g_printerr ("Failed to set user ID to %d: %s\n", user_get_uid (user), strerror (errno));
-                _exit (EXIT_FAILURE);
-            }
+            if (setuid (uid) != 0)
+                _exit (errno);
         }
 
         /* Change working directory */
         /* NOTE: This must be done after the permissions are changed because NFS filesystems can
          * be setup so the local root user accesses the NFS files as 'nobody'.  If the home directories
          * are not system readable then the chdir can fail */
-        if (chdir (user_get_home_directory (user)) != 0)
-        {
-            g_printerr ("Failed to change to home directory %s: %s\n", user_get_home_directory (user), strerror (errno));
-            _exit (EXIT_FAILURE);
-        }
+        if (chdir (home_directory) != 0)
+            _exit (errno);
 
-        /* Redirect stderr to a log file */
-        if (log_filename && !g_path_is_absolute (log_filename))
+        if (log_filename)
         {
             rename (log_filename, log_backup_filename);
             fd = open (log_filename, O_WRONLY | O_APPEND | O_CREAT, 0600);
-            dup2 (fd, STDERR_FILENO);
-            close (fd);
+            if (fd >= 0)
+            {
+                dup2 (fd, STDERR_FILENO);
+                close (fd);
+            }
         }
 
         /* Run the command */
         execve (command_argv[0], command_argv, pam_getenvlist (pam_handle));
-        g_printerr ("Failed to run command: %s\n", strerror (errno));
         _exit (EXIT_FAILURE);
     }
 

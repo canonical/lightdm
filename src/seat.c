@@ -269,7 +269,7 @@ run_script (Seat *seat, DisplayServer *display_server, const gchar *script_name,
     Process *script;
     gboolean result = FALSE;
   
-    script = process_new ();
+    script = process_new (NULL, NULL);
 
     process_set_command (script, script_name);
 
