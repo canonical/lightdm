@@ -122,7 +122,7 @@ typedef struct
 } StatusClient;
 static GList *status_clients = NULL;
 
-static void run_lightdm (void);
+static void ready (void);
 static void quit (int status);
 static void check_status (const gchar *status);
 static AccountsUser *get_accounts_user_by_uid (guint uid);
@@ -403,7 +403,40 @@ handle_command (const gchar *command)
         g_hash_table_insert (params, param_name, param_value);
     }
 
-    if (strcmp (name, "WAIT") == 0)
+    if (strcmp (name, "START-DAEMON") == 0)
+    {
+        GString *command_line;
+        gchar **lightdm_argv;
+        pid_t lightdm_pid;
+        GError *error = NULL;
+
+        command_line = g_string_new ("lightdm");
+        if (getenv ("DEBUG"))
+            g_string_append (command_line, " --debug");
+        g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
+
+        test_runner_command = g_strdup_printf ("PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_ROOT=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
+                                               g_getenv ("PATH"), g_getenv ("LD_PRELOAD"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_ROOT"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
+                                               command_line->str);
+
+        if (!g_shell_parse_argv (command_line->str, NULL, &lightdm_argv, &error))
+        {
+            g_warning ("Error parsing command line: %s", error->message);
+            quit (EXIT_FAILURE);
+        }
+        g_clear_error (&error);
+
+        if (!g_spawn_async (NULL, lightdm_argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH, NULL, NULL, &lightdm_pid, &error))
+        {
+            g_warning ("Error launching LightDM: %s", error->message);
+            quit (EXIT_FAILURE);
+        }
+        g_clear_error (&error);
+        lightdm_process = watch_process (lightdm_pid);
+
+        check_status ("RUNNER DAEMON-START");
+    }
+    else if (strcmp (name, "WAIT") == 0)
     {
         /* Use a main loop so that our DBus functions are still responsive */
         GMainLoop *loop = g_main_loop_new (NULL, FALSE);
@@ -969,7 +1002,7 @@ upower_name_acquired_cb (GDBusConnection *connection,
 
     service_count--;
     if (service_count == 0)
-        run_lightdm ();
+        ready ();
 }
 
 static void
@@ -1205,7 +1238,7 @@ ck_name_acquired_cb (GDBusConnection *connection,
 
     service_count--;
     if (service_count == 0)
-        run_lightdm ();
+        ready ();
 }
 
 static void
@@ -1460,7 +1493,7 @@ login1_name_acquired_cb (GDBusConnection *connection,
 
     service_count--;
     if (service_count == 0)
-        run_lightdm ();
+        ready ();
 }
 
 static void
@@ -1862,7 +1895,7 @@ accounts_name_acquired_cb (GDBusConnection *connection,
 
     service_count--;
     if (service_count == 0)
-        run_lightdm ();
+        ready ();
 }
 
 static void
@@ -1880,42 +1913,10 @@ start_accounts_service_daemon (void)
 }
 
 static void
-run_lightdm (void)
+ready (void)
 {
-    GString *command_line;
-    gchar **lightdm_argv;
-    pid_t lightdm_pid;
-    GError *error = NULL;
-
     run_commands ();
-
     status_timeout = g_timeout_add (status_timeout_ms, status_timeout_cb, NULL);
-
-    command_line = g_string_new ("lightdm");
-    if (getenv ("DEBUG"))
-        g_string_append (command_line, " --debug");
-    g_string_append_printf (command_line, " --cache-dir %s/cache", temp_dir);
-
-    test_runner_command = g_strdup_printf ("PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_ROOT=%s DBUS_SESSION_BUS_ADDRESS=%s %s\n",
-                                           g_getenv ("PATH"), g_getenv ("LD_PRELOAD"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_ROOT"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"),
-                                           command_line->str);
-
-    if (!g_shell_parse_argv (command_line->str, NULL, &lightdm_argv, &error))
-    {
-        g_warning ("Error parsing command line: %s", error->message);
-        quit (EXIT_FAILURE);
-    }
-    g_clear_error (&error);
-
-    if (!g_spawn_async (NULL, lightdm_argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH, NULL, NULL, &lightdm_pid, &error))
-    {
-        g_warning ("Error launching LightDM: %s", error->message);
-        quit (EXIT_FAILURE);
-    }
-    g_clear_error (&error);
-    lightdm_process = watch_process (lightdm_pid);
-
-    check_status ("RUNNER DAEMON-START");
 }
 
 static gboolean
