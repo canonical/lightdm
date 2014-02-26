@@ -79,7 +79,10 @@ request_cb (const gchar *name, GHashTable *params)
         return;
     }
 
-    if (strcmp (name, "AUTHENTICATE") == 0)
+    if (strcmp (name, "CRASH") == 0)
+        kill (getpid (), SIGSEGV);
+
+    else if (strcmp (name, "AUTHENTICATE") == 0)
         lightdm_greeter_authenticate (greeter, g_hash_table_lookup (params, "USERNAME"));
 
     else if (strcmp (name, "AUTHENTICATE-GUEST") == 0)
