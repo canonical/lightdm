@@ -27,7 +27,7 @@ main (int argc, char **argv)
     g_type_init ();
 #endif
 
-    status_connect (NULL);
+    status_connect (NULL, NULL);
 
     status_notify ("VNC-CLIENT START");
 

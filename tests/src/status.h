@@ -7,9 +7,9 @@ extern "C" {
   
 #include <glib-object.h>
 
-typedef void (*StatusRequestFunc)(const gchar *message);
+typedef void (*StatusRequestFunc)(const gchar *name, GHashTable *params);
 
-gboolean status_connect (StatusRequestFunc message_cb);
+gboolean status_connect (StatusRequestFunc message_cb, const gchar *id);
 
 void status_notify (const gchar *format, ...);
 

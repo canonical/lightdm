@@ -71,139 +71,45 @@ user_changed_cb (LightDMUser *user)
 }
 
 static void
-request_cb (const gchar *request)
+request_cb (const gchar *name, GHashTable *params)
 {
-    const gchar *c, *start;
-    int l;
-    gchar *id, *name = NULL;
-    gboolean id_matches;
-    GHashTable *params;
-
-    if (!request)
+    if (!name)
     {
         g_main_loop_quit (loop);
         return;
     }
 
-    c = request;
-    start = c;
-    l = 0;
-    while (*c && !isspace (*c))
-    {
-        c++;
-        l++;
-    }
-    id = g_strdup_printf ("%.*s", l, start);
-    id_matches = strcmp (id, greeter_id) == 0;
-    g_free (id);
-    if (!id_matches)
-        return;
-
-    while (isspace (*c))
-        c++;
-    start = c;
-    l = 0;
-    while (*c && !isspace (*c))
-    {
-        c++;
-        l++;
-    }
-    name = g_strdup_printf ("%.*s", l, start);
-
-    params = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-    while (TRUE)
-    {
-        const gchar *start;
-        gchar *param_name, *param_value;
-
-        while (isspace (*c))
-            c++;
-        start = c;
-        while (*c && !isspace (*c) && *c != '=')
-            c++;
-        if (*c == '\0')
-            break;
-
-        param_name = g_strdup_printf ("%.*s", (int) (c - start), start);
-
-        if (*c == '=')
-        {
-            c++;
-            while (isspace (*c))
-                c++;
-            if (*c == '\"')
-            {
-                gboolean escaped = FALSE;
-                GString *value;
-
-                c++;
-                value = g_string_new ("");
-                while (*c)
-                {
-                    if (*c == '\\')
-                    {
-                        if (escaped)
-                        {
-                            g_string_append_c (value, '\\');
-                            escaped = FALSE;
-                        }
-                        else
-                            escaped = TRUE;
-                    }
-                    else if (!escaped && *c == '\"')
-                        break;
-                    if (!escaped)
-                        g_string_append_c (value, *c);
-                    c++;
-                }
-                param_value = value->str;
-                g_string_free (value, FALSE);
-                if (*c == '\"')
-                    c++;
-            }
-            else
-            {
-                start = c;
-                while (*c && !isspace (*c))
-                    c++;
-                param_value = g_strdup_printf ("%.*s", (int) (c - start), start);
-            }
-        }
-        else
-            param_value = g_strdup ("");
-
-        g_hash_table_insert (params, param_name, param_value);
-    }
-  
     if (strcmp (name, "AUTHENTICATE") == 0)
         lightdm_greeter_authenticate (greeter, g_hash_table_lookup (params, "USERNAME"));
 
-    if (strcmp (name, "AUTHENTICATE-GUEST") == 0)
+    else if (strcmp (name, "AUTHENTICATE-GUEST") == 0)
         lightdm_greeter_authenticate_as_guest (greeter);
 
-    if (strcmp (name, "AUTHENTICATE-AUTOLOGIN") == 0)
+    else if (strcmp (name, "AUTHENTICATE-AUTOLOGIN") == 0)
         lightdm_greeter_authenticate_autologin (greeter);
 
-    if (strcmp (name, "AUTHENTICATE-REMOTE") == 0)
+    else if (strcmp (name, "AUTHENTICATE-REMOTE") == 0)
         lightdm_greeter_authenticate_remote (greeter, g_hash_table_lookup (params, "SESSION"), NULL);
 
-    if (strcmp (name, "RESPOND") == 0)
+    else if (strcmp (name, "RESPOND") == 0)
         lightdm_greeter_respond (greeter, g_hash_table_lookup (params, "TEXT"));
 
-    if (strcmp (name, "CANCEL-AUTHENTICATION") == 0)
+    else if (strcmp (name, "CANCEL-AUTHENTICATION") == 0)
         lightdm_greeter_cancel_authentication (greeter);
 
-    if (strcmp (name, "START-SESSION") == 0)
+    else if (strcmp (name, "START-SESSION") == 0)
+    {
         if (!lightdm_greeter_start_session_sync (greeter, g_hash_table_lookup (params, "SESSION"), NULL))
-            status_notify ("%s SESSION-FAILED", greeter_id); 
+            status_notify ("%s SESSION-FAILED", greeter_id);
+    }
 
-    if (strcmp (name, "LOG-DEFAULT-SESSION") == 0)
+    else if (strcmp (name, "LOG-DEFAULT-SESSION") == 0)
         status_notify ("%s LOG-DEFAULT-SESSION SESSION=%s", greeter_id, lightdm_greeter_get_default_session_hint (greeter));
 
-    if (strcmp (name, "LOG-USER-LIST-LENGTH") == 0)
+    else if (strcmp (name, "LOG-USER-LIST-LENGTH") == 0)
         status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, lightdm_user_list_get_length (lightdm_user_list_get_instance ()));
 
-    if (strcmp (name, "WRITE-SHARED-DATA") == 0)
+    else if (strcmp (name, "WRITE-SHARED-DATA") == 0)
     {
         gchar *dir;
 
@@ -230,7 +136,7 @@ request_cb (const gchar *request)
             status_notify ("%s WRITE-SHARED-DATA ERROR=NO_SHARED_DIR", greeter_id);
     }
 
-    if (strcmp (name, "READ-SHARED-DATA") == 0)
+    else if (strcmp (name, "READ-SHARED-DATA") == 0)
     {
         gchar *dir;
 
@@ -256,7 +162,7 @@ request_cb (const gchar *request)
             status_notify ("%s READ-SHARED-DATA ERROR=NO_SHARED_DIR", greeter_id);
     }
 
-    if (strcmp (name, "WATCH-USER") == 0)
+    else if (strcmp (name, "WATCH-USER") == 0)
     {
         LightDMUser *user;
         const gchar *username;
@@ -268,7 +174,7 @@ request_cb (const gchar *request)
         status_notify ("%s WATCH-USER USERNAME=%s", greeter_id, username);
     }
 
-    if (strcmp (name, "LOG-USER") == 0)
+    else if (strcmp (name, "LOG-USER") == 0)
     {
         LightDMUser *user;
         const gchar *username, *image, *background, *language, *layout, *session;
@@ -328,7 +234,7 @@ request_cb (const gchar *request)
         g_string_free (status_text, TRUE);
     }
 
-    if (strcmp (name, "LOG-USER-LIST") == 0)
+    else if (strcmp (name, "LOG-USER-LIST") == 0)
     {
         GList *users, *link;
 
@@ -340,13 +246,13 @@ request_cb (const gchar *request)
         }
     }
 
-    if (strcmp (name, "GET-CAN-SUSPEND") == 0)
+    else if (strcmp (name, "GET-CAN-SUSPEND") == 0)
     {
         gboolean can_suspend = lightdm_get_can_suspend ();
         status_notify ("%s CAN-SUSPEND ALLOWED=%s", greeter_id, can_suspend ? "TRUE" : "FALSE");
     }
 
-    if (strcmp (name, "SUSPEND") == 0)
+    else if (strcmp (name, "SUSPEND") == 0)
     {
         GError *error = NULL;
         if (!lightdm_suspend (&error))
@@ -354,13 +260,13 @@ request_cb (const gchar *request)
         g_clear_error (&error);
     }
 
-    if (strcmp (name, "GET-CAN-HIBERNATE") == 0)
+    else if (strcmp (name, "GET-CAN-HIBERNATE") == 0)
     {
         gboolean can_hibernate = lightdm_get_can_hibernate ();
         status_notify ("%s CAN-HIBERNATE ALLOWED=%s", greeter_id, can_hibernate ? "TRUE" : "FALSE");
     }
 
-    if (strcmp (name, "HIBERNATE") == 0)
+    else if (strcmp (name, "HIBERNATE") == 0)
     {
         GError *error = NULL;
         if (!lightdm_hibernate (&error))
@@ -368,13 +274,13 @@ request_cb (const gchar *request)
         g_clear_error (&error);
     }
 
-    if (strcmp (name, "GET-CAN-RESTART") == 0)
+    else if (strcmp (name, "GET-CAN-RESTART") == 0)
     {
         gboolean can_restart = lightdm_get_can_restart ();
         status_notify ("%s CAN-RESTART ALLOWED=%s", greeter_id, can_restart ? "TRUE" : "FALSE");
     }
 
-    if (strcmp (name, "RESTART") == 0)
+    else if (strcmp (name, "RESTART") == 0)
     {
         GError *error = NULL;
         if (!lightdm_restart (&error))
@@ -382,22 +288,19 @@ request_cb (const gchar *request)
         g_clear_error (&error);
     }
 
-    if (strcmp (name, "GET-CAN-SHUTDOWN") == 0)
+    else if (strcmp (name, "GET-CAN-SHUTDOWN") == 0)
     {
         gboolean can_shutdown = lightdm_get_can_shutdown ();
         status_notify ("%s CAN-SHUTDOWN ALLOWED=%s", greeter_id, can_shutdown ? "TRUE" : "FALSE");
     }
 
-    if (strcmp (name, "SHUTDOWN") == 0)
+    else if (strcmp (name, "SHUTDOWN") == 0)
     {
         GError *error = NULL;
         if (!lightdm_shutdown (&error))
             status_notify ("%s FAIL-SHUTDOWN", greeter_id);
         g_clear_error (&error);
     }
-
-    g_free (name);
-    g_hash_table_unref (params);
 }
 
 static void
@@ -449,7 +352,7 @@ main (int argc, char **argv)
     g_unix_signal_add (SIGINT, sigint_cb, NULL);
     g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
 
-    status_connect (request_cb);
+    status_connect (request_cb, greeter_id);
 
     status_text = g_string_new ("");
     g_string_printf (status_text, "%s START", greeter_id);
