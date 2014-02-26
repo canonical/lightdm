@@ -157,6 +157,8 @@ TESTS = \
 	test-mir-autologin \
 	test-mir-greeter \
 	test-mir-session \
+	test-mir-session-crash \
+	test-mir-session-compositor-crash \
 	test-unity-compositor-command \
 	test-unity-compositor-fail-start \
 	test-unity-compositor-fail-ready \
@@ -396,6 +398,8 @@ EXTRA_DIST = \
 	scripts/mir-autologin.conf \
 	scripts/mir-greeter.conf \
 	scripts/mir-session.conf \
+	scripts/mir-session-compositor-crash.conf \
+	scripts/mir-session-crash.conf \
 	scripts/no-accounts-service.conf \
 	scripts/no-config.conf \
 	scripts/no-console-kit.conf \
