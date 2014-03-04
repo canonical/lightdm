@@ -134,9 +134,12 @@ kill_timeout_cb (gpointer data)
 {
     Process *process = data;
 
+    process->kill_timeout = 0;
+
     if (getenv ("DEBUG"))
         g_print ("Sending SIGKILL to process %d\n", process->pid);
     kill (process->pid, SIGKILL);
+
     return FALSE;
 }
 
