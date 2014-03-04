@@ -472,7 +472,7 @@ unity_system_compositor_finalize (GObject *object)
     if (self->priv->from_compositor_watch)      
         g_source_remove (self->priv->from_compositor_watch);
     g_free (self->priv->read_buffer);
-    if (self->priv->timeout_source != 0)
+    if (self->priv->timeout_source)
         g_source_remove (self->priv->timeout_source);
 
     G_OBJECT_CLASS (unity_system_compositor_parent_class)->finalize (object);
