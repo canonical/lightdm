@@ -149,16 +149,13 @@ process_watch_cb (GPid pid, gint status, gpointer data)
 {
     Process *process = data;
 
+    process->priv->watch = 0;
     process->priv->exit_status = status;
 
     if (WIFEXITED (status))
         g_debug ("Process %d exited with return value %d", pid, WEXITSTATUS (status));
     else if (WIFSIGNALED (status))
         g_debug ("Process %d terminated with signal %d", pid, WTERMSIG (status));
-
-    if (process->priv->watch)
-        g_source_remove (process->priv->watch);
-    process->priv->watch = 0;
 
     if (process->priv->quit_timeout)
         g_source_remove (process->priv->quit_timeout);
