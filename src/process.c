@@ -55,6 +55,9 @@ struct ProcessPrivate
     /* Exit status of process */
     int exit_status;
 
+    /* TRUE if stopping this process (waiting for child process to stop) */
+    gboolean stopping;
+
     /* Timeout waiting for process to quit */
     guint quit_timeout;
 
@@ -292,7 +295,11 @@ process_signal (Process *process, int signum)
     g_debug ("Sending signal %d to process %d", signum, process->priv->pid);
 
     if (kill (process->priv->pid, signum) < 0)
-        g_warning ("Error sending signal %d to process %d: %s", signum, process->priv->pid, strerror (errno));
+    {
+        /* Ignore ESRCH, we will pick that up in our wait */
+        if (errno != ESRCH)
+            g_warning ("Error sending signal %d to process %d: %s", signum, process->priv->pid, strerror (errno));
+    }
 }
 
 static gboolean
@@ -307,6 +314,14 @@ void
 process_stop (Process *process)
 {
     g_return_if_fail (process != NULL);
+
+    if (process->priv->stopping)
+        return;
+    process->priv->stopping = TRUE;
+
+    /* If already stopped then we're done! */
+    if (process->priv->pid == 0)
+        return;
 
     /* Send SIGTERM, and then SIGKILL if no response */
     process->priv->quit_timeout = g_timeout_add (5000, (GSourceFunc) quit_timeout_cb, process);
