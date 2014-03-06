@@ -1630,7 +1630,9 @@ common_user_finalize (GObject *object)
     g_free (priv->shell);
     g_free (priv->image);
     g_free (priv->background);
+    g_free (priv->language);
     g_strfreev (priv->layouts);
+    g_free (priv->session);
 }
 
 static void
