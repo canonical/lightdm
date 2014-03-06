@@ -555,6 +555,7 @@ x_server_local_finalize (GObject *object)
     g_free (self->priv->command);
     g_free (self->priv->config_file);
     g_free (self->priv->layout);
+    g_free (self->priv->xdg_seat);
     g_free (self->priv->xdmcp_server);
     g_free (self->priv->xdmcp_key);
     g_free (self->priv->mir_id);
