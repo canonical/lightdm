@@ -240,8 +240,9 @@ process_start (Process *process, gboolean block)
         execvp (argv[0], argv);
         _exit (EXIT_FAILURE);
     }
-
+  
     close (log_fd);
+    g_strfreev (argv);
     g_free (env_keys);
     g_free (env_values);
 

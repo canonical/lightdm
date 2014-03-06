@@ -152,14 +152,29 @@ display_server_init (DisplayServer *server)
 }
 
 static void
+display_server_finalize (GObject *object)
+{
+    DisplayServer *self;
+
+    self = DISPLAY_SERVER (object);
+
+    g_free (self->priv->name);
+
+    G_OBJECT_CLASS (display_server_parent_class)->finalize (object);
+}
+
+static void
 display_server_class_init (DisplayServerClass *klass)
 {
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
     klass->get_can_share = display_server_real_get_can_share;
     klass->get_vt = display_server_real_get_vt;
     klass->start = display_server_real_start;
     klass->connect_session = display_server_real_connect_session;
     klass->disconnect_session = display_server_real_disconnect_session;
     klass->stop = display_server_real_stop;
+    object_class->finalize = display_server_finalize;
 
     g_type_class_add_private (klass, sizeof (DisplayServerPrivate));
 

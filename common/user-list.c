@@ -778,7 +778,7 @@ session_removed_cb (GDBusConnection *connection,
             CommonUser *user;
 
             g_debug ("Session %s removed", path);
-            priv->sessions = g_list_remove_link (priv->sessions, link);
+            priv->sessions = g_list_delete_link (priv->sessions, link);
             user = get_user_by_name (user_list, session->username);
             if (user)
                 g_signal_emit (user, user_signals[CHANGED], 0);
@@ -1630,7 +1630,9 @@ common_user_finalize (GObject *object)
     g_free (priv->shell);
     g_free (priv->image);
     g_free (priv->background);
+    g_free (priv->language);
     g_strfreev (priv->layouts);
+    g_free (priv->session);
 }
 
 static void
