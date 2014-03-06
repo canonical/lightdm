@@ -137,7 +137,7 @@ x_server_local_release_display_number (guint display_number)
         guint number = GPOINTER_TO_UINT (link->data);
         if (number == display_number)
         {
-            display_numbers = g_list_remove_link (display_numbers, link);
+            display_numbers = g_list_delete_link (display_numbers, link);
             return;
         }
     }
