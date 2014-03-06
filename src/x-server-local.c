@@ -146,15 +146,20 @@ x_server_local_release_display_number (guint display_number)
 XServerLocal *
 x_server_local_new (void)
 {
-    XServerLocal *self = g_object_new (X_SERVER_LOCAL_TYPE, NULL);
+    XServerLocal *self;
     gchar hostname[1024], *number, *name;
+    XAuthority *cookie;
+
+    self = g_object_new (X_SERVER_LOCAL_TYPE, NULL);
 
     x_server_set_display_number (X_SERVER (self), x_server_local_get_unused_display_number ());
 
     gethostname (hostname, 1024);
     number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (self)));
-    x_server_set_authority (X_SERVER (self), x_authority_new_cookie (XAUTH_FAMILY_LOCAL, (guint8*) hostname, strlen (hostname), number));
+    cookie = x_authority_new_cookie (XAUTH_FAMILY_LOCAL, (guint8*) hostname, strlen (hostname), number);
+    x_server_set_authority (X_SERVER (self), cookie);
     g_free (number);
+    g_object_unref (cookie);
 
     name = g_strdup_printf ("x-%d", x_server_get_display_number (X_SERVER (self)));
     display_server_set_name (DISPLAY_SERVER (self), name);
