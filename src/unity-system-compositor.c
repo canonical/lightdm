@@ -403,13 +403,19 @@ unity_system_compositor_start (DisplayServer *server)
         process_set_env (compositor->priv->process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }
 
-    command = g_strdup_printf ("%s --file '%s' --from-dm-fd %d --to-dm-fd %d --vt %d", compositor->priv->command, compositor->priv->socket, compositor->priv->to_compositor_pipe[0], compositor->priv->from_compositor_pipe[1], compositor->priv->vt);
-    absolute_command = get_absolute_command (command);
+    /* Generate command line to run */
+    absolute_command = get_absolute_command (compositor->priv->command);
+    if (!absolute_command)
+    {
+        l_debug (compositor, "Can't launch compositor %s, not found in path", compositor->priv->command);
+        return FALSE;
+    }
+    command = g_strdup_printf ("%s --file '%s' --from-dm-fd %d --to-dm-fd %d --vt %d", absolute_command, compositor->priv->socket, compositor->priv->to_compositor_pipe[0], compositor->priv->from_compositor_pipe[1], compositor->priv->vt);
+    process_set_command (compositor->priv->process, command);
     g_free (command);
+    g_free (absolute_command);
 
     /* Start the compositor */
-    process_set_command (compositor->priv->process, absolute_command);
-    g_free (absolute_command);
     g_signal_connect (compositor->priv->process, "stopped", G_CALLBACK (stopped_cb), compositor);
     result = process_start (compositor->priv->process, FALSE);
 
