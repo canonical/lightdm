@@ -108,13 +108,15 @@ dmrc_save (GKeyFile *dmrc_file, const gchar *username)
     cache_dir = config_get_string (config_get_instance (), "LightDM", "cache-directory");
     dmrc_cache_dir = g_build_filename (cache_dir, "dmrc", NULL);
     g_mkdir_with_parents (dmrc_cache_dir, 0700);
+    g_free (cache_dir);
 
     filename = g_strdup_printf ("%s.dmrc", username);
     path = g_build_filename (dmrc_cache_dir, filename, NULL);
     g_file_set_contents (path, data, length, NULL);
 
-    g_free (dmrc_cache_dir);
+    g_free (data);
     g_free (path);
     g_free (filename);
+    g_free (dmrc_cache_dir);
     g_object_unref (user);
 }
