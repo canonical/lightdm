@@ -161,6 +161,7 @@ TESTS = \
 	test-mir-session-crash \
 	test-mir-session-compositor-crash \
 	test-unity-compositor-command \
+	test-unity-compositor-not-found \
 	test-unity-compositor-fail-start \
 	test-unity-compositor-fail-ready \
 	test-unity-compositor-crash \
@@ -452,6 +453,7 @@ EXTRA_DIST = \
 	scripts/unity-compositor-fallback.conf \
 	scripts/unity-compositor-mir-next-session.conf \
 	scripts/unity-compositor-next-session.conf \
+	scripts/unity-compositor-not-found.conf \
 	scripts/unity-login.conf \
 	scripts/unity-mir-autologin.conf \
 	scripts/unity-mir-greeter-mir-session.conf \
