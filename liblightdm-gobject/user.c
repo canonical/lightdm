@@ -1506,9 +1506,11 @@ lightdm_user_finalize (GObject *object)
     g_free (priv->home_directory);
     g_free (priv->image);
     g_free (priv->background);
-    g_strfreev (priv->layouts);
     if (priv->dmrc_file)
         g_key_file_free (priv->dmrc_file);
+    g_free (priv->language);
+    g_strfreev (priv->layouts);
+    g_free (priv->session);
 }
 
 static void

@@ -303,7 +303,7 @@ session_unset_env (Session *session, const gchar *name)
         return;
 
     g_free (link->data);
-    session->priv->env = g_list_remove_link (session->priv->env, link);
+    session->priv->env = g_list_delete_link (session->priv->env, link);
 }
 
 void
