@@ -59,6 +59,7 @@ G_DEFINE_TYPE (Process, process, G_TYPE_OBJECT);
 
 static Process *current_process = NULL;
 static GHashTable *processes = NULL;
+static pid_t signal_pid;
 static int signal_pipe[2];
 
 Process *
@@ -311,10 +312,15 @@ process_finalize (GObject *object)
 static void
 signal_cb (int signum, siginfo_t *info, void *data)
 {
-    /* NOTE: Using g_printerr as can't call g_warning from a signal callback */
+    /* Check if we are from a forked process that hasn't updated the signal handlers or execed.
+       If so, then we should just quit */
+    if (getpid () != signal_pid)
+        _exit (EXIT_SUCCESS);
+
+    /* Write signal to main thread, if something goes wrong just close the pipe so it is detected on the other end */
     if (write (signal_pipe[1], &info->si_signo, sizeof (int)) < 0 ||
         write (signal_pipe[1], &info->si_pid, sizeof (pid_t)) < 0)
-        g_printerr ("Failed to write to signal pipe: %s", strerror (errno));
+        close (signal_pipe[1]);
 }
 
 static gboolean
@@ -329,7 +335,7 @@ handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
         read (signal_pipe[0], &pid, sizeof (pid_t)) != sizeof (pid_t))
     {
         g_warning ("Error reading from signal pipe: %s", strerror (errno));
-        return TRUE;
+        return FALSE;
     }
 
     g_debug ("Got signal %d from process %d", signo, pid);
@@ -390,6 +396,7 @@ process_class_init (ProcessClass *klass)
 
     /* Catch signals and feed them to the main loop via a pipe */
     processes = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_object_unref);
+    signal_pid = getpid ();
     if (pipe (signal_pipe) != 0)
         g_critical ("Failed to create signal pipe");
     fcntl (signal_pipe[0], F_SETFD, FD_CLOEXEC);
