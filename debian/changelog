@@ -1,3 +1,25 @@
+lightdm (1.9.9-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Handle signals being received in child processes instead of treating them
+      like they are received in the daemon.
+    - Set utmp ut_line to the display name (i.e. :0) to match what other
+      programs expect (e.g. 'w').
+    - Fix lightdm_greeter_ensure_shared_data_dir_sync returning the wrong value.
+    - Fix shared data tests so you can run test suite without root again.
+    - Be extra careful not to call any non thread safe function after a fork.
+    - Fix some small memory leaks detected by valgrind.
+    - Fix process shutdown code to stop generating confusing warnings
+    - Fix more double removal of source IDs.
+    - Test improvements.
+
+  [ Gunnar Hjalmarsson ]
+  * debian/patches/04_language_handling.patch:
+    - Make lightdm_get_language() return a language with a short form language
+      code (LP: #1276072).
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 11 Mar 2014 09:17:15 +1300
+
 lightdm (1.9.8-0ubuntu1) trusty; urgency=medium
 
   * New upstream release:
