@@ -37,6 +37,19 @@ static GList *group_entries = NULL;
 static int active_vt = 7;
 
 static gboolean status_connected = FALSE;
+static GKeyFile *config;
+
+static void connect_status (void)
+{
+    if (status_connected)
+        return;
+    status_connected = TRUE;
+
+    status_connect (NULL, NULL);
+
+    config = g_key_file_new ();
+    g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
+}
 
 struct pam_handle
 {
@@ -501,8 +514,7 @@ ioctl (int d, unsigned long request, ...)
             if (vt != active_vt)
             {
                 active_vt = vt;
-                if (!status_connected)
-                    status_connected = status_connect (NULL, NULL);
+                connect_status ();
                 status_notify ("VT ACTIVATE VT=%d", active_vt);
             }
             break;
@@ -1434,6 +1446,40 @@ setutxent (void)
 struct utmpx *
 pututxline (const struct utmpx *ut)
 {
+    GString *status;
+
+    status = g_string_new ("UTMP");
+    switch (ut->ut_type)
+    {
+    case INIT_PROCESS:
+        g_string_append_printf (status, " TYPE=INIT_PROCESS");
+        break;
+    case LOGIN_PROCESS:
+        g_string_append_printf (status, " TYPE=LOGIN_PROCESS");
+        break;
+    case USER_PROCESS:
+        g_string_append_printf (status, " TYPE=USER_PROCESS");
+        break;
+    case DEAD_PROCESS:
+        g_string_append_printf (status, " TYPE=DEAD_PROCESS");
+        break;
+    default:
+        g_string_append_printf (status, " TYPE=%d", ut->ut_type);
+    }
+    if (ut->ut_line)
+        g_string_append_printf (status, " LINE=%s", ut->ut_line);
+    if (ut->ut_id)
+        g_string_append_printf (status, " ID=%s", ut->ut_id);
+    if (ut->ut_user)
+        g_string_append_printf (status, " USER=%s", ut->ut_user);
+    if (ut->ut_host)
+        g_string_append_printf (status, " HOST=%s", ut->ut_host);
+
+    connect_status ();
+    if (g_key_file_get_boolean (config, "test-utmp-config", "check-events", NULL))
+        status_notify ("%s", status->str);
+    g_string_free (status, TRUE);
+
     return (struct utmpx *)ut;
 }
 
