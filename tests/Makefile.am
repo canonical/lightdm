@@ -144,6 +144,7 @@ TESTS = \
 	test-vnc-open-file-descriptors \
 	test-xdmcp-client \
 	test-xdmcp-server-login \
+	test-utmp \
 	test-no-accounts-service \
 	test-console-kit \
 	test-no-console-kit \
@@ -475,6 +476,7 @@ EXTRA_DIST = \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
 	scripts/user-session.conf \
+	scripts/utmp.conf \
 	scripts/vnc-command.conf \
 	scripts/vnc-dimensions.conf \
 	scripts/vnc-login.conf \
