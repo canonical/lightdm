@@ -177,6 +177,7 @@ process_start (Process *process, gboolean block)
     gchar **argv;
     gchar **env_keys, **env_values;
     guint i, env_length;
+    GList *link;
     pid_t pid;
     int log_fd = -1;
     GError *error = NULL;
@@ -207,10 +208,14 @@ process_start (Process *process, gboolean block)
     }
 
     /* Work out variables to set */
-    env_keys = (gchar **) g_hash_table_get_keys_as_array (process->priv->env, &env_length);
+    env_length = g_hash_table_size (process->priv->env);
+    env_keys = g_malloc (sizeof (gchar *) * env_length);
     env_values = g_malloc (sizeof (gchar *) * env_length);
-    for (i = 0; i < env_length; i++)
+    for (i = 0, link = g_hash_table_get_keys (process->priv->env); i < env_length; i++, link = link->next)
+    {
+        env_keys[i] = link->data;
         env_values[i] = g_hash_table_lookup (process->priv->env, env_keys[i]);
+    }
 
     pid = fork ();
     if (pid == 0)
