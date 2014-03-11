@@ -13,6 +13,7 @@
 #include <grp.h>
 #include <glib.h>
 #include <security/pam_appl.h>
+#include <utmp.h>
 #include <utmpx.h>
 #include <sys/mman.h>
 
@@ -196,6 +197,29 @@ read_xauth (void)
     return x_authority_new (x_authority_family, x_authority_address, x_authority_address_length, x_authority_number, x_authority_name, x_authority_data, x_authority_data_length);
 }
 
+/* GNU provides this but we can't rely on that so let's make our own version */
+static void
+updwtmpx (const gchar *wtmp_file, struct utmpx *ut)
+{
+    struct utmp u;
+
+    memset (&u, 0, sizeof (u));
+    u.ut_type = ut->ut_type;
+    u.ut_pid = ut->ut_pid;
+    if (ut->ut_line)
+        strncpy (u.ut_line, ut->ut_line, sizeof (u.ut_line));
+    if (ut->ut_id)
+        strncpy (u.ut_id, ut->ut_id, sizeof (u.ut_id));
+    if (ut->ut_user)
+        strncpy (u.ut_user, ut->ut_user, sizeof (u.ut_user));
+    if (ut->ut_host)
+        strncpy (u.ut_host, ut->ut_host, sizeof (u.ut_host));
+    u.ut_tv.tv_sec = ut->ut_tv.tv_sec;
+    u.ut_tv.tv_usec = ut->ut_tv.tv_usec;
+  
+    updwtmp (wtmp_file, &u);
+}
+
 int
 session_child_run (int argc, char **argv)
 {
@@ -332,6 +356,34 @@ session_child_run (int argc, char **argv)
             return EXIT_FAILURE;
         g_free (username);
         username = g_strdup (new_username);
+
+        /* Write record to btmp database */
+        if (authentication_result == PAM_AUTH_ERR)
+        {
+            struct utmpx ut;
+            struct timeval tv;
+
+            memset (&ut, 0, sizeof (ut));
+            ut.ut_type = USER_PROCESS;
+            ut.ut_pid = getpid ();
+            if (xdisplay)
+            {
+                strncpy (ut.ut_line, xdisplay, sizeof (ut.ut_line));
+                strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
+            }
+            else if (tty)
+                strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
+            strncpy (ut.ut_user, username, sizeof (ut.ut_user));
+            if (xdisplay)
+                strncpy (ut.ut_host, xdisplay, sizeof (ut.ut_host));
+            else if (remote_host_name)
+                strncpy (ut.ut_host, remote_host_name, sizeof (ut.ut_host));
+            gettimeofday (&tv, NULL);
+            ut.ut_tv.tv_sec = tv.tv_sec;
+            ut.ut_tv.tv_usec = tv.tv_usec;
+
+            updwtmpx ("/var/log/btmp", &ut);
+        }
 
         /* Check account is valid */
         if (authentication_result == PAM_SUCCESS)
@@ -617,10 +669,12 @@ session_child_run (int argc, char **argv)
             ut.ut_tv.tv_sec = tv.tv_sec;
             ut.ut_tv.tv_usec = tv.tv_usec;
 
+            /* Write records to utmp/wtmp databases */
             setutxent ();
             if (!pututxline (&ut))
                 g_printerr ("Failed to write utmpx: %s\n", strerror (errno));
             endutxent ();
+            updwtmpx ("/var/log/wtmp", &ut);
         }
 
         waitpid (child_pid, &return_code, 0);
@@ -651,10 +705,12 @@ session_child_run (int argc, char **argv)
             ut.ut_tv.tv_sec = tv.tv_sec;
             ut.ut_tv.tv_usec = tv.tv_usec;
 
+            /* Write records to utmp/wtmp databases */
             setutxent ();
             if (!pututxline (&ut))
                 g_printerr ("Failed to write utmpx: %s\n", strerror (errno));
             endutxent ();
+            updwtmpx ("/var/log/wtmp", &ut);
         }
     }
 
