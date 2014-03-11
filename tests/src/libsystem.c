@@ -15,6 +15,7 @@
 #include <security/pam_appl.h>
 #include <fcntl.h>
 #include <dlfcn.h>
+#include <utmp.h>
 #include <utmpx.h>
 #ifdef __linux__
 #include <linux/vt.h>
@@ -1442,43 +1443,44 @@ void
 setutxent (void)
 {
 }
-  
+
 struct utmpx *
 pututxline (const struct utmpx *ut)
 {
-    GString *status;
-
-    status = g_string_new ("UTMP");
-    switch (ut->ut_type)
-    {
-    case INIT_PROCESS:
-        g_string_append_printf (status, " TYPE=INIT_PROCESS");
-        break;
-    case LOGIN_PROCESS:
-        g_string_append_printf (status, " TYPE=LOGIN_PROCESS");
-        break;
-    case USER_PROCESS:
-        g_string_append_printf (status, " TYPE=USER_PROCESS");
-        break;
-    case DEAD_PROCESS:
-        g_string_append_printf (status, " TYPE=DEAD_PROCESS");
-        break;
-    default:
-        g_string_append_printf (status, " TYPE=%d", ut->ut_type);
-    }
-    if (ut->ut_line)
-        g_string_append_printf (status, " LINE=%s", ut->ut_line);
-    if (ut->ut_id)
-        g_string_append_printf (status, " ID=%s", ut->ut_id);
-    if (ut->ut_user)
-        g_string_append_printf (status, " USER=%s", ut->ut_user);
-    if (ut->ut_host)
-        g_string_append_printf (status, " HOST=%s", ut->ut_host);
-
     connect_status ();
     if (g_key_file_get_boolean (config, "test-utmp-config", "check-events", NULL))
+    {
+        GString *status;
+
+        status = g_string_new ("UTMP");
+        switch (ut->ut_type)
+        {
+        case INIT_PROCESS:
+            g_string_append_printf (status, " TYPE=INIT_PROCESS");
+            break;
+        case LOGIN_PROCESS:
+            g_string_append_printf (status, " TYPE=LOGIN_PROCESS");
+            break;
+        case USER_PROCESS:
+            g_string_append_printf (status, " TYPE=USER_PROCESS");
+            break;
+        case DEAD_PROCESS:
+            g_string_append_printf (status, " TYPE=DEAD_PROCESS");
+            break;
+        default:
+            g_string_append_printf (status, " TYPE=%d", ut->ut_type);
+        }
+        if (ut->ut_line)
+            g_string_append_printf (status, " LINE=%s", ut->ut_line);
+        if (ut->ut_id)
+            g_string_append_printf (status, " ID=%s", ut->ut_id);
+        if (ut->ut_user)
+            g_string_append_printf (status, " USER=%s", ut->ut_user);
+        if (ut->ut_host)
+            g_string_append_printf (status, " HOST=%s", ut->ut_host);
         status_notify ("%s", status->str);
-    g_string_free (status, TRUE);
+        g_string_free (status, TRUE);
+    }
 
     return (struct utmpx *)ut;
 }
@@ -1486,6 +1488,46 @@ pututxline (const struct utmpx *ut)
 void
 endutxent (void)
 {
+}
+
+void
+updwtmp (const char *wtmp_file, const struct utmp *ut)
+{
+    connect_status ();
+    if (g_key_file_get_boolean (config, "test-utmp-config", "check-events", NULL))
+    {
+        GString *status;
+
+        status = g_string_new ("WTMP");
+        g_string_append_printf (status, " FILE=%s", wtmp_file);
+        switch (ut->ut_type)
+        {
+        case INIT_PROCESS:
+            g_string_append_printf (status, " TYPE=INIT_PROCESS");
+            break;
+        case LOGIN_PROCESS:
+            g_string_append_printf (status, " TYPE=LOGIN_PROCESS");
+            break;
+        case USER_PROCESS:
+            g_string_append_printf (status, " TYPE=USER_PROCESS");
+            break;
+        case DEAD_PROCESS:
+            g_string_append_printf (status, " TYPE=DEAD_PROCESS");
+            break;
+        default:
+            g_string_append_printf (status, " TYPE=%d", ut->ut_type);
+        }
+        if (ut->ut_line)
+            g_string_append_printf (status, " LINE=%s", ut->ut_line);
+        if (ut->ut_id)
+            g_string_append_printf (status, " ID=%s", ut->ut_id);
+        if (ut->ut_user)
+            g_string_append_printf (status, " USER=%s", ut->ut_user);
+        if (ut->ut_host)
+            g_string_append_printf (status, " HOST=%s", ut->ut_host);
+        status_notify ("%s", status->str);
+        g_string_free (status, TRUE);
+    }
 }
 
 struct xcb_connection_t
