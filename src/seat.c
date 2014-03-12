@@ -924,14 +924,15 @@ prepend_argv (gchar ***argv, const gchar *value)
 }
 
 static Session *
-create_guest_session (Seat *seat)
+create_guest_session (Seat *seat, const gchar *session_name)
 {
-    const gchar *session_name, *guest_wrapper;
+    const gchar *guest_wrapper;
     gchar *sessions_dir, **argv;
     SessionConfig *session_config;
     Session *session;
 
-    session_name = seat_get_string_property (seat, "user-session");
+    if (!session_name)
+        session_name = seat_get_string_property (seat, "user-session");
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
     session_config = find_session_config (seat, sessions_dir, session_name);
     g_free (sessions_dir);
@@ -984,7 +985,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     /* Get the session to use */
     if (greeter_get_guest_authenticated (greeter))
     {
-        session = create_guest_session (seat);
+        session = create_guest_session (seat, session_name);
         if (!session)
             return FALSE;
         session_set_pam_service (session, AUTOLOGIN_SERVICE);
@@ -1395,7 +1396,7 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
         return TRUE;
     }
 
-    session = create_guest_session (seat);
+    session = create_guest_session (seat, session_name);
     if (!session)
         return FALSE;
 
@@ -1511,7 +1512,7 @@ seat_real_start (Seat *seat)
     if (autologin_timeout == 0 || autologin_in_background)
     {
         if (autologin_guest)
-            session = create_guest_session (seat);
+            session = create_guest_session (seat, NULL);
         else if (autologin_username != NULL)
             session = create_user_session (seat, autologin_username, TRUE);
 
