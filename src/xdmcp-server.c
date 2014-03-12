@@ -117,6 +117,8 @@ xdmcp_server_set_key (XDMCPServer *server, const gchar *key)
 static gboolean
 session_timeout_cb (XDMCPSession *session)
 {
+    session->priv->inactive_timeout = 0;
+
     g_debug ("Timing out unmanaged session %d", session->priv->id);
     g_hash_table_remove (session->priv->server->priv->sessions, GINT_TO_POINTER ((gint) session->priv->id));
     return FALSE;
@@ -517,7 +519,8 @@ handle_manage (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XD
     if (result)
     {
         /* Cancel the inactive timer */
-        g_source_remove (session->priv->inactive_timeout);
+        if (session->priv->inactive_timeout)
+            g_source_remove (session->priv->inactive_timeout);
 
         session->priv->started = TRUE;
     }
