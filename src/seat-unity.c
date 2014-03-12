@@ -93,7 +93,7 @@ seat_unity_setup (Seat *seat)
 static void
 compositor_stopped_cb (Process *process, SeatUnity *seat)
 {
-    if (seat->priv->compositor_timeout != 0)
+    if (seat->priv->compositor_timeout)
         g_source_remove (seat->priv->compositor_timeout);
     seat->priv->compositor_timeout = 0;
 
@@ -184,6 +184,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     if (condition == G_IO_HUP)
     {
         l_debug (seat, "Compositor closed communication channel");
+        seat->priv->from_compositor_watch = 0;
         return FALSE;
     }
 
@@ -739,7 +740,8 @@ seat_unity_finalize (GObject *object)
     close (seat->priv->from_compositor_pipe[0]);
     close (seat->priv->from_compositor_pipe[1]);
     g_io_channel_unref (seat->priv->from_compositor_channel);
-    g_source_remove (seat->priv->from_compositor_watch);
+    if (seat->priv->from_compositor_watch)
+        g_source_remove (seat->priv->from_compositor_watch);
     g_free (seat->priv->read_buffer);
     g_object_unref (seat->priv->compositor_process);
     if (seat->priv->active_session)

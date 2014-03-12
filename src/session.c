@@ -407,6 +407,8 @@ session_watch_cb (GPid pid, gint status, gpointer data)
 {
     Session *session = data;
 
+    session->priv->child_watch = 0;
+
     if (WIFEXITED (status))
         l_debug (session, "Exited with return value %d", WEXITSTATUS (status));
     else if (WIFSIGNALED (status))

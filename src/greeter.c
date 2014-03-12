@@ -712,6 +712,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     if (condition == G_IO_HUP)
     {
         l_debug (greeter, "Greeter closed communication channel");
+        greeter->priv->from_greeter_watch = 0;
         return FALSE;
     }
   
@@ -720,7 +721,10 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     {
         n_to_read = get_message_length (greeter);
         if (n_to_read <= HEADER_SIZE)
+        {
+            greeter->priv->from_greeter_watch = 0;
             return FALSE;
+        }
     }
 
     status = g_io_channel_read_chars (greeter->priv->from_greeter_channel,
@@ -782,6 +786,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         if (n_secrets > max_secrets)
         {
             l_warning (greeter, "Array length of %u elements too long", n_secrets);
+            greeter->priv->from_greeter_watch = 0;
             return FALSE;
         }
         secrets = g_malloc (sizeof (gchar *) * (n_secrets + 1));
