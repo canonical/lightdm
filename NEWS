@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.9.10
+
+    * Honour session type requested by greeter for guest sessions
+    * Log to wtmp and btmp.
+    * Implement guest-session config option
+
 Overview of changes in lightdm 1.9.9
 
     * Handle signals being received in child processes instead of treating them

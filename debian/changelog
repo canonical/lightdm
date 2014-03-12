@@ -1,3 +1,12 @@
+lightdm (1.9.10-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Honour session type requested by greeter for guest sessions (LP: #1285132)
+    - Log to wtmp and btmp. (LP: #1027805)
+    - Implement guest-session config option
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 13 Mar 2014 11:50:38 +1300
+
 lightdm (1.9.9-0ubuntu1) trusty; urgency=medium
 
   * New upstream release:
