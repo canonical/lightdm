@@ -46,9 +46,11 @@ TESTS = \
 	test-autologin-logout \
 	test-autologin-previous-session \
 	test-autologin-guest \
+	test-autologin-guest-session-config \
 	test-autologin-guest-fail-setup-script \
 	test-autologin-guest-logout \
 	test-guest-wrapper \
+	test-login-guest-session-config \
 	test-group-membership \
 	test-xdg-current-desktop \
 	test-xdg-seat \
@@ -324,6 +326,7 @@ EXTRA_DIST = \
 	scripts/autologin-guest.conf \
 	scripts/autologin-guest-fail-setup-script.conf \
 	scripts/autologin-guest-logout.conf \
+	scripts/autologin-guest-session-config.conf \
 	scripts/autologin-guest-timeout.conf \
 	scripts/autologin-in-background.conf \
 	scripts/autologin-invalid-greeter.conf \
@@ -383,6 +386,7 @@ EXTRA_DIST = \
 	scripts/login-guest-logout.conf \
 	scripts/login-guest-pick-session.conf \
 	scripts/login-guest-no-setup-script.conf \
+	scripts/login-guest-session-config.conf \
 	scripts/login-info-prompt.conf \
 	scripts/login-invalid-greeter.conf \
 	scripts/login-invalid-session.conf \
