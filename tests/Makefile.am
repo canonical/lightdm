@@ -96,6 +96,7 @@ TESTS = \
 	test-login-gobject-invalid-session \
 	test-login-gobject-logout \
 	test-login-gobject-guest \
+	test-login-gobject-guest-pick-session \
 	test-login-gobject-guest-disabled \
 	test-login-gobject-guest-no-setup-script \
 	test-login-gobject-guest-fail-setup-script \
@@ -213,6 +214,7 @@ TESTS += \
 	test-login-python-remember-session \
 	test-login-python-manual-remember-session \
 	test-login-python-guest \
+	test-login-python-guest-pick-session \
 	test-login-python-guest-disabled \
 	test-login-python-guest-no-setup-script \
 	test-login-python-guest-fail-setup-script \
@@ -249,6 +251,7 @@ TESTS += \
 	test-login-qt4-remember-session \
 	test-login-qt4-manual-remember-session \
 	test-login-qt4-guest \
+	test-login-qt4-guest-pick-session \
 	test-login-qt4-guest-disabled \
 	test-login-qt4-guest-no-setup-script \
 	test-login-qt4-guest-fail-setup-script \
@@ -285,6 +288,7 @@ TESTS += \
 	test-login-qt5-remember-session \
 	test-login-qt5-manual-remember-session \
 	test-login-qt5-guest \
+	test-login-qt5-guest-pick-session \
 	test-login-qt5-guest-disabled \
 	test-login-qt5-guest-no-setup-script \
 	test-login-qt5-guest-fail-setup-script \
@@ -380,6 +384,7 @@ EXTRA_DIST = \
 	scripts/login-guest-disabled.conf \
 	scripts/login-guest-fail-setup-script.conf \
 	scripts/login-guest-logout.conf \
+	scripts/login-guest-pick-session.conf \
 	scripts/login-guest-no-setup-script.conf \
 	scripts/login-guest-session-config.conf \
 	scripts/login-info-prompt.conf \
