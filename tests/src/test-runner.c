@@ -1126,8 +1126,8 @@ start_console_kit_daemon (void)
     g_bus_own_name (G_BUS_TYPE_SYSTEM,
                     "org.freedesktop.ConsoleKit",
                     G_BUS_NAME_OWNER_FLAGS_NONE,
-                    ck_name_acquired_cb,
                     NULL,
+                    ck_name_acquired_cb,
                     NULL,
                     NULL,
                     NULL);
@@ -1381,8 +1381,8 @@ start_login1_daemon (void)
     g_bus_own_name (G_BUS_TYPE_SYSTEM,
                     "org.freedesktop.login1",
                     G_BUS_NAME_OWNER_FLAGS_NONE,
-                    login1_name_acquired_cb,
                     NULL,
+                    login1_name_acquired_cb,
                     NULL,
                     NULL,
                     NULL);
