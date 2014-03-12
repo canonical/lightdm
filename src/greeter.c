@@ -64,6 +64,7 @@ struct GreeterPrivate
     /* Communication channels to communicate with */
     GIOChannel *to_greeter_channel;
     GIOChannel *from_greeter_channel;
+    guint from_greeter_watch;
 };
 
 G_DEFINE_TYPE (Greeter, greeter, G_TYPE_OBJECT);
@@ -529,6 +530,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     if (condition == G_IO_HUP)
     {
         g_debug ("Greeter closed communication channel");
+        greeter->priv->from_greeter_watch = 0;
         return FALSE;
     }
   
@@ -658,7 +660,7 @@ greeter_start (Greeter *greeter, const gchar *service, const gchar *username)
     greeter->priv->from_greeter_channel = g_io_channel_unix_new (from_greeter_pipe[0]);
     g_io_channel_set_encoding (greeter->priv->from_greeter_channel, NULL, NULL);
     g_io_channel_set_buffered (greeter->priv->from_greeter_channel, FALSE);
-    g_io_add_watch (greeter->priv->from_greeter_channel, G_IO_IN | G_IO_HUP, read_cb, greeter);
+    greeter->priv->from_greeter_watch = g_io_add_watch (greeter->priv->from_greeter_channel, G_IO_IN | G_IO_HUP, read_cb, greeter);
 
     /* Let the greeter session know how to communicate with the daemon */
     value = g_strdup_printf ("%d", from_greeter_pipe[1]);
@@ -723,6 +725,8 @@ greeter_finalize (GObject *object)
         g_io_channel_unref (self->priv->to_greeter_channel);
     if (self->priv->from_greeter_channel)
         g_io_channel_unref (self->priv->from_greeter_channel);
+    if (self->priv->from_greeter_watch)
+        g_source_remove (self->priv->from_greeter_watch);
 
     G_OBJECT_CLASS (greeter_parent_class)->finalize (object);
 }
