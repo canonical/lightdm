@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/dbus-env ./src/test-runner guest-session-config test-gobject-greeter

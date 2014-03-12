@@ -931,7 +931,9 @@ create_guest_session (Seat *seat)
     SessionConfig *session_config;
     Session *session;
 
-    session_name = seat_get_string_property (seat, "user-session");
+    session_name = seat_get_string_property (seat, "guest-session");
+    if (!session_name)
+        session_name = seat_get_string_property (seat, "user-session");
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
     session_config = find_session_config (seat, sessions_dir, session_name);
     g_free (sessions_dir);
