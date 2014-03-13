@@ -1,3 +1,10 @@
+lightdm (1.9.11-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Don't use g_hash_table_get_keys_as_array, it's a glib 2.40 feature
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 13 Mar 2014 13:42:04 +1300
+
 lightdm (1.9.10-0ubuntu1) trusty; urgency=medium
 
   * New upstream release:

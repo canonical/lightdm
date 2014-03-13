@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.9.11
+
+    * Don't use g_hash_table_get_keys_as_array, it's a glib 2.40 feature
+
 Overview of changes in lightdm 1.9.10
 
     * Honour session type requested by greeter for guest sessions
