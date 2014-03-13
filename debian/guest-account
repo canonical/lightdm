@@ -71,6 +71,10 @@ add_account ()
     fi
   done
 
+  # disable Unity shortcut hint
+  mkdir -p "$HOME"/.cache/unity
+  touch "$HOME"/.cache/unity/first_run.stamp
+
   STARTUP="$HOME"/.config/autostart/startup-commands.desktop
   echo "[Desktop Entry]" > $STARTUP
   echo "Name=Startup commands" >> $STARTUP
