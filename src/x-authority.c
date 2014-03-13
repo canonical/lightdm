@@ -345,6 +345,7 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
     }
     g_list_free (records);
 
+    fsync (output_fd);
     close (output_fd);
 
     if (!result)
