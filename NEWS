@@ -1,3 +1,12 @@
+Overview of changes in lightdm 1.8.8
+
+    * Handle signals being received in child processes instead of treating them
+      like they are received in the daemon.
+    * Ensure X authority is written before X server is started.
+    * Honour session type requested by greeter for guest sessions.
+    * Fix some small memory leaks detected by valgrind.
+    * Fix double removal of source IDs.
+
 Overview of changes in lightdm 1.8.7
 
     * Correctly invoke PAM to change authentication token    
