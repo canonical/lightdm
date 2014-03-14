@@ -111,9 +111,12 @@ TESTS = \
 	test-plymouth-inactive-vt \
 	test-plymouth-no-seat \
 	test-script-hooks \
-	test-script-hook-fail-display-setup \
-	test-script-hook-fail-greeter-setup \
-	test-script-hook-fail-session-setup \
+	test-script-hook-display-setup-fail \
+	test-script-hook-display-setup-missing \
+	test-script-hook-greeter-setup-fail \
+	test-script-hook-greeter-setup-missing \
+	test-script-hook-session-setup-fail \
+	test-script-hook-session-setup-missing \
 	test-shared-data-greeter-to-session \
 	test-shared-data-session-to-greeter \
 	test-shared-data-session-to-greeter-autologin \
@@ -435,9 +438,12 @@ EXTRA_DIST = \
 	scripts/shared-data-session-to-greeter.conf \
 	scripts/shared-data-session-to-greeter-autologin.conf \
 	scripts/script-hooks.conf \
-	scripts/script-hook-fail-display-setup.conf \
-	scripts/script-hook-fail-greeter-setup.conf \
-	scripts/script-hook-fail-session-setup.conf \
+	scripts/script-hook-display-setup-fail.conf \
+	scripts/script-hook-display-setup-missing.conf \
+	scripts/script-hook-greeter-setup-fail.conf \
+	scripts/script-hook-greeter-setup-missing.conf \
+	scripts/script-hook-session-setup-fail.conf \
+	scripts/script-hook-session-setup-missing.conf \
 	scripts/session-stdout.conf \
 	scripts/session-stderr.conf \
 	scripts/session-stderr-multi-write.conf \
