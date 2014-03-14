@@ -1,3 +1,9 @@
+lightdm (1.9.11-0ubuntu2) trusty; urgency=medium
+
+  * Rebuild against Qt 5.2.1.
+
+ -- Timo Jyrinki <timo-jyrinki@ubuntu.com>  Thu, 13 Mar 2014 07:41:22 +0200
+
 lightdm (1.9.11-0ubuntu1) trusty; urgency=medium
 
   * New upstream release:
