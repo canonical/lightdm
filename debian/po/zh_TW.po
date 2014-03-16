@@ -8,14 +8,14 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2007-05-31 08:04+0200\n"
-"PO-Revision-Date: 2014-02-07 04:54+0000\n"
+"PO-Revision-Date: 2014-03-16 03:54+0000\n"
 "Last-Translator: Walter Cheuk <wwycheuk@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <zh_TW@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2014-03-11 05:53+0000\n"
-"X-Generator: Launchpad (build 16948)\n"
+"X-Launchpad-Export-Date: 2014-03-16 05:50+0000\n"
+"X-Generator: Launchpad (build 16963)\n"
 
 #. Type: select
 #. Description
@@ -29,7 +29,7 @@ msgstr "預設顯示管理員："
 msgid ""
 "A display manager is a program that provides graphical login capabilities "
 "for the X Window System."
-msgstr ""
+msgstr "顯示管理員為 X 視窗系統提供圖像化登入。"
 
 #. Type: select
 #. Description
