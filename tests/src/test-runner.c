@@ -1109,7 +1109,7 @@ handle_ck_call (GDBusConnection       *connection,
         for (link = ck_sessions; link; link = link->next)
         {
             CKSession *session = link->data;
-            if (strcmp (session->cookie, cookie) != 0)
+            if (strcmp (session->cookie, cookie) == 0)
             {
                 g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", session->path));
                 return;
@@ -1156,6 +1156,11 @@ handle_ck_session_call (GDBusConnection       *connection,
         if (session->locked)
             check_status ("CONSOLE-KIT UNLOCK-SESSION");
         session->locked = FALSE;
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "Activate") == 0)
+    {
+        check_status ("CONSOLE-KIT ACTIVATE-SESSION");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
     else
@@ -1210,6 +1215,7 @@ ck_name_acquired_cb (GDBusConnection *connection,
         "  <interface name='org.freedesktop.ConsoleKit.Session'>"
         "    <method name='Lock'/>"
         "    <method name='Unlock'/>"
+        "    <method name='Activate'/>"
         "  </interface>"
         "</node>";
     GDBusNodeInfo *ck_info;
@@ -1285,6 +1291,11 @@ handle_login1_session_call (GDBusConnection       *connection,
         session->locked = FALSE;
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
+    else if (strcmp (method_name, "Activate") == 0)
+    {
+        check_status ("LOGIN1 ACTIVATE-SESSION");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
     else
         g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
 }
@@ -1302,6 +1313,7 @@ open_login1_session (GDBusConnection *connection,
         "  <interface name='org.freedesktop.login1.Session'>"
         "    <method name='Lock'/>"
         "    <method name='Unlock'/>"
+        "    <method name='Activate'/>"
         "  </interface>"
         "</node>";
     static const GDBusInterfaceVTable login1_session_vtable =

@@ -829,6 +829,19 @@ session_unlock (Session *session)
 }
 
 void
+session_activate (Session *session)
+{
+    g_return_if_fail (session != NULL);
+    if (getuid () == 0)
+    {
+        if (session->priv->login1_session)
+            login1_activate_session (session->priv->login1_session);
+        else if (session->priv->console_kit_cookie)
+            ck_activate_session (session->priv->console_kit_cookie);
+    }
+}
+
+void
 session_stop (Session *session)
 {
     g_return_if_fail (session != NULL);

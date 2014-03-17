@@ -232,6 +232,8 @@ seat_set_active_session (Seat *seat, Session *session)
             session_lock (seat->priv->active_session);
         g_object_unref (seat->priv->active_session);
     }
+
+    session_activate (session);
     seat->priv->active_session = g_object_ref (session);
 }
 
