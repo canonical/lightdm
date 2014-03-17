@@ -109,30 +109,26 @@ layout_cb (XklConfigRegistry *config,
 GList *
 lightdm_get_layouts (void)
 {
+    XklConfigRegistry *registry;
+
     if (have_layouts)
         return layouts;
 
     display = XOpenDisplay (NULL);
+    if (display == NULL)
+        return NULL;
+    
     xkl_engine = xkl_engine_get_instance (display);
-    if (xkl_engine == NULL)
-    {
-        g_warning ("Failed to get Xkl engine for display '%p'", display);
-    }
-    else
-    {
-        XklConfigRegistry *registry;
+    xkl_config = xkl_config_rec_new ();
+    if (!xkl_config_rec_get_from_server (xkl_config, xkl_engine))
+        g_warning ("Failed to get Xkl configuration from server");
 
-        xkl_config = xkl_config_rec_new ();
-        if (!xkl_config_rec_get_from_server (xkl_config, xkl_engine))
-            g_warning ("Failed to get Xkl configuration from server");
+    registry = xkl_config_registry_get_instance (xkl_engine);
+    xkl_config_registry_load (registry, FALSE);
+    xkl_config_registry_foreach_layout (registry, layout_cb, NULL);
+    g_object_unref (registry);
 
-        registry = xkl_config_registry_get_instance (xkl_engine);
-        xkl_config_registry_load (registry, FALSE);
-        xkl_config_registry_foreach_layout (registry, layout_cb, NULL);
-        g_object_unref (registry);
-
-        have_layouts = TRUE;
-    }
+    have_layouts = TRUE;
 
     return layouts;
 }
