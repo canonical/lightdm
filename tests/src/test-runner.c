@@ -1160,7 +1160,10 @@ handle_ck_session_call (GDBusConnection       *connection,
     }
     else if (strcmp (method_name, "Activate") == 0)
     {
-        check_status ("CONSOLE-KIT ACTIVATE-SESSION");
+        gchar *status = g_strdup_printf ("CONSOLE-KIT ACTIVATE-SESSION SESSION=%s", session->cookie);
+        check_status (status);
+        g_free (status);
+
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
     else
@@ -1293,7 +1296,10 @@ handle_login1_session_call (GDBusConnection       *connection,
     }
     else if (strcmp (method_name, "Activate") == 0)
     {
-        check_status ("LOGIN1 ACTIVATE-SESSION");
+        gchar *status = g_strdup_printf ("LOGIN1 ACTIVATE-SESSION SESSION=%s", strrchr (object_path, '/') + 1);
+        check_status (status);
+        g_free (status);
+
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
     else

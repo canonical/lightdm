@@ -528,6 +528,17 @@ run_session (Seat *seat, Session *session)
         g_object_unref (seat->priv->session_to_activate);
         seat->priv->session_to_activate = NULL;
     }
+    else if (session != seat->priv->active_session)
+    {
+        /* Multiple sessions can theoretically be on the same VT (especially
+           if using Mir).  If a new session appears on an existing active VT,
+           logind will mark it as active, while ConsoleKit will re-mark the
+           oldest session as active.  In either case, that may not be the
+           session that we want to be active.  So let's be explicit and
+           re-activate the correct session whenever a new session starts.
+           There's no harm to do this in seats that enforce separate VTs. */
+        session_activate (seat->priv->active_session);
+    }
 }
 
 static Session *
