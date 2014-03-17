@@ -1,3 +1,16 @@
+lightdm (1.9.12-0ubuntu1) trusty; urgency=medium
+
+  [ Robert Ancell ]
+  * New upstream release:
+    - Ensure X authority is written before X server is started (LP: #1260220)
+    - Activate after unlocking a logind session
+
+  [ Gunnar Hjalmarsson ]
+  * debian/guest-account:
+    - Disable Unity shortcut hint. (LP: #1292178)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 17 Mar 2014 16:49:37 +1300
+
 lightdm (1.9.11-0ubuntu2) trusty; urgency=medium
 
   * Rebuild against Qt 5.2.1.
