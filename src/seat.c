@@ -528,7 +528,7 @@ run_session (Seat *seat, Session *session)
         g_object_unref (seat->priv->session_to_activate);
         seat->priv->session_to_activate = NULL;
     }
-    else if (session != seat->priv->active_session)
+    else if (seat->priv->active_session)
     {
         /* Multiple sessions can theoretically be on the same VT (especially
            if using Mir).  If a new session appears on an existing active VT,
