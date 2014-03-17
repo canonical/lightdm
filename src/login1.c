@@ -136,28 +136,49 @@ login1_unlock_session (const gchar *session_path)
         if (error)
             g_warning ("Error unlocking login1 session: %s", error->message);
         g_clear_error (&error);
-
         if (result)
-        {
             g_variant_unref (result);
+    }
+    g_object_unref (bus);
+}
 
-            result = g_dbus_connection_call_sync (bus,
-                                                  "org.freedesktop.login1",
-                                                  session_path,
-                                                  "org.freedesktop.login1.Session",
-                                                  "Activate",
-                                                  g_variant_new ("()"),
-                                                  G_VARIANT_TYPE ("()"),
-                                                  G_DBUS_CALL_FLAGS_NONE,
-                                                  -1,
-                                                  NULL,
-                                                  &error);
-            if (error)
-                g_warning ("Error activating login1 session: %s", error->message);
-            g_clear_error (&error);
-            if (result)
-                g_variant_unref (result);
-        }
+void
+login1_activate_session (const gchar *session_path)
+{
+    GDBusConnection *bus;
+    GError *error = NULL;
+
+    g_return_if_fail (session_path != NULL);
+
+    g_debug ("Activating login1 session %s", session_path);
+
+    bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
+    if (error)
+        g_warning ("Failed to get system bus: %s", error->message);
+    g_clear_error (&error);
+    if (!bus)
+        return;
+
+    if (session_path)
+    {
+        GVariant *result;
+
+        result = g_dbus_connection_call_sync (bus,
+                                              "org.freedesktop.login1",
+                                              session_path,
+                                              "org.freedesktop.login1.Session",
+                                              "Activate",
+                                              g_variant_new ("()"),
+                                              G_VARIANT_TYPE ("()"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              -1,
+                                              NULL,
+                                              &error);
+        if (error)
+            g_warning ("Error activating login1 session: %s", error->message);
+        g_clear_error (&error);
+        if (result)
+            g_variant_unref (result);
     }
     g_object_unref (bus);
 }

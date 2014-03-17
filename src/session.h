@@ -130,6 +130,8 @@ void session_lock (Session *session);
 
 void session_unlock (Session *session);
 
+void session_activate (Session *session);
+
 void session_stop (Session *session);
 
 gboolean session_get_is_stopping (Session *session);

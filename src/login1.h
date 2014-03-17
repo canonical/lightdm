@@ -24,6 +24,8 @@ void login1_lock_session (const gchar *session_path);
 
 void login1_unlock_session (const gchar *session_path);
 
+void login1_activate_session (const gchar *session_path);
+
 G_END_DECLS
 
 #endif /* _LOGIN1_H_ */
