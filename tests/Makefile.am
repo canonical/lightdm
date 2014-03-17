@@ -164,6 +164,7 @@ TESTS = \
 	test-gobject-power-no-services \
 	test-open-file-descriptors \
 	test-xdmcp-server-open-file-descriptors \
+	test-multi-seat \
 	test-mir-autologin \
 	test-mir-greeter \
 	test-mir-session \
@@ -418,6 +419,7 @@ EXTRA_DIST = \
 	scripts/mir-session.conf \
 	scripts/mir-session-compositor-crash.conf \
 	scripts/mir-session-crash.conf \
+	scripts/multi-seat.conf \
 	scripts/no-accounts-service.conf \
 	scripts/no-config.conf \
 	scripts/no-console-kit.conf \
