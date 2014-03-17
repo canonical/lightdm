@@ -136,8 +136,28 @@ login1_unlock_session (const gchar *session_path)
         if (error)
             g_warning ("Error unlocking login1 session: %s", error->message);
         g_clear_error (&error);
+
         if (result)
+        {
             g_variant_unref (result);
+
+            result = g_dbus_connection_call_sync (bus,
+                                                  "org.freedesktop.login1",
+                                                  session_path,
+                                                  "org.freedesktop.login1.Session",
+                                                  "Activate",
+                                                  g_variant_new ("()"),
+                                                  G_VARIANT_TYPE ("()"),
+                                                  G_DBUS_CALL_FLAGS_NONE,
+                                                  -1,
+                                                  NULL,
+                                                  &error);
+            if (error)
+                g_warning ("Error activating login1 session: %s", error->message);
+            g_clear_error (&error);
+            if (result)
+                g_variant_unref (result);
+        }
     }
     g_object_unref (bus);
 }
