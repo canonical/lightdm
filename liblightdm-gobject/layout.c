@@ -115,6 +115,9 @@ lightdm_get_layouts (void)
         return layouts;
 
     display = XOpenDisplay (NULL);
+    if (display == NULL)
+        return NULL;
+    
     xkl_engine = xkl_engine_get_instance (display);
     xkl_config = xkl_config_rec_new ();
     if (!xkl_config_rec_get_from_server (xkl_config, xkl_engine))
