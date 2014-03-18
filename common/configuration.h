@@ -38,6 +38,8 @@ Configuration *config_get_instance (void);
 
 gboolean config_load_from_file (Configuration *config, const gchar *path, GError **error);
 
+gboolean config_load_from_standard_locations (Configuration *config, const gchar *config_path, GList **messages);
+
 gchar **config_get_groups (Configuration *config);
 
 gchar **config_get_keys (Configuration *config, const gchar *group_name);

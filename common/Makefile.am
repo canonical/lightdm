@@ -14,7 +14,9 @@ libcommon_la_SOURCES = \
 
 libcommon_la_CFLAGS = \
 	$(WARN_CFLAGS) \
-	$(GLIB_CFLAGS)
+	$(GLIB_CFLAGS) \
+	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\" \
+	-DSYSTEM_CONFIG_DIR=\"$(pkgdatadir)/lightdm.conf.d\"
 
 libcommon_la_LIBADD = \
 	$(GLIB_LDFLAGS)
