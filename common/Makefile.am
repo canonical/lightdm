@@ -14,7 +14,8 @@ libcommon_la_SOURCES = \
 
 libcommon_la_CFLAGS = \
 	$(WARN_CFLAGS) \
-	$(GLIB_CFLAGS)
+	$(GLIB_CFLAGS) \
+	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\"
 
 libcommon_la_LIBADD = \
 	$(GLIB_LDFLAGS)

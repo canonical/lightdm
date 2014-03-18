@@ -192,11 +192,10 @@ load_sessions (const gchar *sessions_dir)
 static void
 update_sessions (void)
 {
-    gchar *config_path = NULL;
     gchar *sessions_dir;
     gchar *remote_sessions_dir;
     gboolean result;
-    GError *error = NULL;
+    gchar *value;
 
     if (have_sessions)
         return;
@@ -205,32 +204,21 @@ update_sessions (void)
     remote_sessions_dir = g_strdup (REMOTE_SESSIONS_DIR);
 
     /* Use session directory from configuration */
-    /* FIXME: This should be sent in the greeter connection */
-    config_path = g_build_filename (CONFIG_DIR, "lightdm.conf", NULL);
-    /* FIXME: This should load from lightdm.conf.d as well */
-    result = config_load_from_file (config_get_instance (), config_path, &error);
-    if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
-        g_warning ("Failed to open configuration file: %s", error->message);
-    g_clear_error (&error);
-    if (result)
-    {
-        gchar *value;
+    config_load_from_standard_locations (config_get_instance (), NULL, NULL);
       
-        value = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
-        if (value)
-        {
-            g_free (sessions_dir);
-            sessions_dir = value;
-        }
-
-        value = config_get_string (config_get_instance (), "LightDM", "remote-sessions-directory");
-        if (value)
-        {
-            g_free (remote_sessions_dir);
-            remote_sessions_dir = value;
-        }
+    value = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
+    if (value)
+    {
+        g_free (sessions_dir);
+        sessions_dir = value;
     }
-    g_free (config_path);
+
+    value = config_get_string (config_get_instance (), "LightDM", "remote-sessions-directory");
+    if (value)
+    {
+        g_free (remote_sessions_dir);
+        remote_sessions_dir = value;
+    }
 
     local_sessions = load_sessions (sessions_dir);
     remote_sessions = load_sessions (remote_sessions_dir);

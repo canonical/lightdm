@@ -78,12 +78,10 @@ lightdm_CFLAGS = \
 	$(LIGHTDM_CFLAGS) \
 	-I"$(top_srcdir)/common" \
 	-DSBIN_DIR=\"$(sbindir)\" \
-	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\" \
 	-DUSERS_DIR=\"$(localstatedir)/lib/lightdm-data\" \
 	-DLOG_DIR=\"$(localstatedir)/log/lightdm\" \
 	-DRUN_DIR=\"$(localstatedir)/run/lightdm\" \
 	-DCACHE_DIR=\"$(localstatedir)/cache/lightdm\" \
-	-DSYSTEM_CONFIG_DIR=\"$(pkgdatadir)/lightdm.conf.d\" \
 	-DSESSIONS_DIR=\"$(pkgdatadir)/sessions:$(datadir)/xsessions\" \
 	-DREMOTE_SESSIONS_DIR=\"$(pkgdatadir)/remote-sessions\" \
 	-DGREETERS_DIR=\"$(pkgdatadir)/greeters:$(datadir)/xgreeters\"
@@ -100,7 +98,6 @@ dm_tool_SOURCES = \
 dm_tool_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(LIGHTDM_CFLAGS) \
-	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\" \
 	-DLOCALE_DIR=\"$(datadir)/locale\"
 
 dm_tool_LDADD = \

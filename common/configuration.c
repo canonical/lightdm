@@ -9,6 +9,8 @@
  * license.
  */
 
+#include <string.h>
+
 #include "configuration.h"
 
 struct ConfigurationPrivate
@@ -68,6 +70,140 @@ config_load_from_file (Configuration *config, const gchar *path, GError **error)
     g_key_file_free (key_file);
 
     return TRUE;
+}
+
+static gchar *
+path_make_absolute (gchar *path)
+{
+    gchar *cwd, *abs_path;
+
+    if (!path)
+        return NULL;
+
+    if (g_path_is_absolute (path))
+        return path;
+
+    cwd = g_get_current_dir ();
+    abs_path = g_build_filename (cwd, path, NULL);
+    g_free (path);
+
+    return abs_path;
+}
+
+static int
+compare_strings (gconstpointer a, gconstpointer b)
+{
+    return strcmp (a, b);
+}
+
+static void
+load_config_directory (const gchar *path, GList **messages)
+{
+    GDir *dir;
+    GList *files = NULL, *link;
+    GError *error = NULL;
+
+    /* Find configuration files */
+    dir = g_dir_open (path, 0, &error);
+    if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+        g_printerr ("Failed to open configuration directory %s: %s\n", path, error->message);
+    g_clear_error (&error);
+    if (dir)
+    {
+        const gchar *name;
+        while ((name = g_dir_read_name (dir)))
+            files = g_list_append (files, g_strdup (name));
+        g_dir_close (dir);
+    }
+
+    /* Sort alphabetically and load onto existing configuration */
+    files = g_list_sort (files, compare_strings);
+    for (link = files; link; link = link->next)
+    {
+        gchar *filename = link->data;
+        gchar *conf_path;
+
+        conf_path = g_build_filename (path, filename, NULL);
+        if (g_str_has_suffix (filename, ".conf"))
+        {
+            if (messages)
+                *messages = g_list_append (*messages, g_strdup_printf ("Loading configuration from %s", conf_path));
+            config_load_from_file (config_get_instance (), conf_path, &error);
+            if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+                g_printerr ("Failed to load configuration from %s: %s\n", filename, error->message);
+            g_clear_error (&error);
+        }
+        else
+            g_debug ("Ignoring configuration file %s, it does not have .conf suffix", conf_path);
+        g_free (conf_path);
+    }
+    g_list_free_full (files, g_free);
+}
+
+static void
+load_config_directories (const gchar * const *dirs, GList **messages)
+{
+    gint i;
+
+    /* Load in reverse order, because XDG_* fields are preference-ordered and the directories in front should override directories in back. */
+    for (i = g_strv_length ((gchar **)dirs) - 1; i >= 0; i--)
+    {
+        gchar *full_dir = g_build_filename (dirs[i], "lightdm", "lightdm.conf.d", NULL);
+        if (messages)
+            *messages = g_list_append (*messages, g_strdup_printf ("Loading configuration dirs from %s", full_dir));
+        load_config_directory (full_dir, messages);
+        g_free (full_dir);
+    }
+}
+
+gboolean
+config_load_from_standard_locations (Configuration *config, const gchar *config_path, GList **messages)
+{
+    gchar *config_dir, *config_d_dir = NULL;
+    gboolean explicit_config = FALSE;
+    gboolean success = TRUE;
+    GError *error = NULL;
+
+    load_config_directories (g_get_system_data_dirs (), messages);
+    load_config_directories (g_get_system_config_dirs (), messages);
+
+    if (config_path)
+    {
+        config_dir = g_path_get_basename (config_path);
+        config_dir = path_make_absolute (config_dir);
+        explicit_config = TRUE;
+    }
+    else
+    {
+        config_dir = g_strdup (CONFIG_DIR);
+        config_d_dir = g_build_filename (config_dir, "lightdm.conf.d", NULL);
+        config_path = g_build_filename (config_dir, "lightdm.conf", NULL);
+    }
+    config_set_string (config, "LightDM", "config-directory", config_dir);
+    g_free (config_dir);
+
+    if (config_d_dir)
+        load_config_directory (config_d_dir, messages);
+    g_free (config_d_dir);
+
+    if (messages)
+        *messages = g_list_append (*messages, g_strdup_printf ("Loading configuration from %s", config_path));
+    if (!config_load_from_file (config, config_path, &error))
+    {
+        gboolean is_empty;
+
+        is_empty = error && g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
+
+        if (explicit_config || !is_empty)
+        {
+            if (error)
+                g_printerr ("Failed to load configuration from %s: %s\n", config_path, error->message);
+            success = FALSE;
+        }
+    }
+    g_clear_error (&error);
+
+    return success;
 }
 
 gchar **
