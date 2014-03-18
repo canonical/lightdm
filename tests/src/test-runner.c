@@ -1995,6 +1995,10 @@ main (int argc, char **argv)
     /* Don't contact our X server */
     g_unsetenv ("DISPLAY");
 
+    /* Don't let XDG vars from system affect tests */
+    g_unsetenv ("XDG_CONFIG_DIRS");
+    g_unsetenv ("XDG_DATA_DIRS");
+
     /* Override system calls */
     ld_preload = g_build_filename (BUILDDIR, "tests", "src", ".libs", "libsystem.so", NULL);
     g_setenv ("LD_PRELOAD", ld_preload, TRUE);
@@ -2108,11 +2112,11 @@ main (int argc, char **argv)
     {
         gchar **files;
 
-        g_mkdir_with_parents (g_strdup_printf ("%s/etc/lightdm/lightdm.conf.d", temp_dir), 0755);
+        g_mkdir_with_parents (g_strdup_printf ("%s/etc/xdg/lightdm/lightdm.conf.d", temp_dir), 0755);
 
         files = g_strsplit (additional_config, " ", -1);
         for (i = 0; files[i]; i++)
-            if (system (g_strdup_printf ("cp %s/tests/scripts/%s %s/etc/lightdm/lightdm.conf.d", SRCDIR, files[i], temp_dir)))
+            if (system (g_strdup_printf ("cp %s/tests/scripts/%s %s/etc/xdg/lightdm/lightdm.conf.d", SRCDIR, files[i], temp_dir)))
                 perror ("Failed to copy configuration");
         g_strfreev (files);
     }

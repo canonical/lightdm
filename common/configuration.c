@@ -140,6 +140,21 @@ load_config_directory (const gchar *path, GList **messages)
     g_list_free_full (files, g_free);
 }
 
+static void
+load_config_directories (const gchar * const *dirs, GList **messages)
+{
+    gint i;
+
+    for (i = 0; dirs[i]; i++)
+    {
+        gchar *full_dir = g_build_filename (dirs[i], "lightdm", "lightdm.conf.d", NULL);
+            if (messages)
+                *messages = g_list_append (*messages, g_strdup_printf ("Loading configuration dirs from %s", full_dir));
+        load_config_directory (full_dir, messages);
+        g_free (full_dir);
+    }
+}
+
 gboolean
 config_load_from_standard_locations (Configuration *config, const gchar *config_path, GList **messages)
 {
@@ -147,6 +162,9 @@ config_load_from_standard_locations (Configuration *config, const gchar *config_
     gboolean explicit_config = FALSE;
     gboolean success = TRUE;
     GError *error = NULL;
+
+    load_config_directories (g_get_system_data_dirs (), messages);
+    load_config_directories (g_get_system_config_dirs (), messages);
 
     if (config_path)
     {
@@ -163,7 +181,6 @@ config_load_from_standard_locations (Configuration *config, const gchar *config_
     config_set_string (config, "LightDM", "config-directory", config_dir);
     g_free (config_dir);
 
-    load_config_directory (SYSTEM_CONFIG_DIR, messages);
     if (config_d_dir)
         load_config_directory (config_d_dir, messages);
     g_free (config_d_dir);
