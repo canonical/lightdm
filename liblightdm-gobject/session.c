@@ -194,7 +194,6 @@ update_sessions (void)
 {
     gchar *sessions_dir;
     gchar *remote_sessions_dir;
-    gboolean result;
     gchar *value;
 
     if (have_sessions)
