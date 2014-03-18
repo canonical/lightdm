@@ -145,7 +145,9 @@ load_config_directories (const gchar * const *dirs, GList **messages)
 {
     gint i;
 
-    for (i = 0; dirs[i]; i++)
+    // Load in reverse order, because XDG_* fields are preference-ordered and
+    // the directories in front should override directories in back. 
+    for (i = g_strv_length ((gchar **)dirs) - 1; i >= 0; i--)
     {
         gchar *full_dir = g_build_filename (dirs[i], "lightdm", "lightdm.conf.d", NULL);
             if (messages)
