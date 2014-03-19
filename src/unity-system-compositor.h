@@ -48,6 +48,8 @@ const gchar *unity_system_compositor_get_socket (UnitySystemCompositor *composit
 
 void unity_system_compositor_set_vt (UnitySystemCompositor *compositor, gint vt);
 
+void unity_system_compositor_set_enable_hardware_cursor (UnitySystemCompositor *compositor, gboolean enable_cursor);
+
 void unity_system_compositor_set_timeout (UnitySystemCompositor *compositor, gint timeout);
 
 void unity_system_compositor_set_active_session (UnitySystemCompositor *compositor, const gchar *id);
