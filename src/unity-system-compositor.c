@@ -428,7 +428,7 @@ unity_system_compositor_start (DisplayServer *server)
     if (compositor->priv->vt > 0)
         g_string_append_printf (command, " --vt %d", compositor->priv->vt);
     if (compositor->priv->enable_hardware_cursor)
-        g_string_append (command, " --enable-hardware-cursor");
+        g_string_append (command, " --enable-hardware-cursor=true");
     process_set_command (compositor->priv->process, command->str);
     g_string_free (command, TRUE);
 

@@ -179,7 +179,7 @@ main (int argc, char **argv)
             vt_number = atoi (argv[i+1]);
             i++;
         }
-        else if (strcmp (arg, "--enable-hardware-cursor") == 0)
+        else if (strcmp (arg, "--enable-hardware-cursor=true") == 0)
             enable_hardware_cursor = TRUE;
         else if (strcmp (arg, "--file") == 0)
         {
