@@ -480,7 +480,7 @@ session_child_run (int argc, char **argv)
     /* If nothing to run just refresh credentials because we successfully authenticated */
     if (command_argc == 0)
     {
-        pam_setcred (pam_handle, PAM_REFRESH_CRED);
+        pam_setcred (pam_handle, PAM_REINITIALIZE_CRED);
         return EXIT_SUCCESS;
     }
 
