@@ -477,6 +477,13 @@ session_child_run (int argc, char **argv)
         command_argv[i] = read_string ();
     command_argv[i] = NULL;
 
+    /* If nothing to run just refresh credentials because we successfully authenticated */
+    if (command_argc == 0)
+    {
+        pam_setcred (pam_handle, PAM_REFRESH_CRED);
+        return EXIT_SUCCESS;
+    }
+
     /* Redirect stderr to a log file */
     if (log_filename)
     {
