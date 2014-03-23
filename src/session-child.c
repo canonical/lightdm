@@ -481,6 +481,7 @@ session_child_run (int argc, char **argv)
     if (command_argc == 0)
     {
         pam_setcred (pam_handle, PAM_REINITIALIZE_CRED);
+        pam_end (pam_handle, 0);
         return EXIT_SUCCESS;
     }
 
