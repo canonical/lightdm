@@ -1,3 +1,12 @@
+lightdm (1.9.13-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Handle not getting an X connection when attempting to get X layouts.
+      (LP: #1235915)
+    - Read config data from both XDG_DATA_DIRS and XDG_CONFIG_DIRS.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 25 Mar 2014 14:45:54 +1300
+
 lightdm (1.9.12-0ubuntu1) trusty; urgency=medium
 
   [ Robert Ancell ]
