@@ -206,6 +206,8 @@ create_unity_system_compositor (Seat *seat)
     unity_system_compositor_set_socket (compositor, socket_name);
     g_free (socket_name);
 
+    unity_system_compositor_set_enable_hardware_cursor (compositor, TRUE);
+
     return DISPLAY_SERVER (compositor);
 }
 
