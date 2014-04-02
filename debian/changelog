@@ -1,3 +1,11 @@
+lightdm (1.9.14-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Pass --enable-hardware-greeter to unity-system-compositor for Mir sessions
+      on xlocal seats (LP: #1289072)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 03 Apr 2014 09:07:39 +1300
+
 lightdm (1.9.13-0ubuntu1) trusty; urgency=medium
 
   * New upstream release:

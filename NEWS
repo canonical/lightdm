@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.9.14
+
+    * Pass --enable-hardware-greeter to unity-system-compositor for Mir sessions
+      on xlocal seats
+
 Overview of changes in lightdm 1.9.13
 
     * Handle not getting an X connection when attempting to get X layouts.
