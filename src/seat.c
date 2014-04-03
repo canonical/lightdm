@@ -860,6 +860,7 @@ configure_session (Session *session, SessionConfig *config, const gchar *session
     const gchar *desktop_name;
 
     session_set_session_type (session, session_config_get_session_type (config));
+    session_set_env (session, "XDG_SESSION_DESKTOP", session_name);
     session_set_env (session, "DESKTOP_SESSION", session_name);
     session_set_env (session, "GDMSESSION", session_name);
     desktop_name = session_config_get_desktop_name (config);
