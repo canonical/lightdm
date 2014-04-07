@@ -1,3 +1,15 @@
+lightdm (1.9.14-0ubuntu2) trusty; urgency=medium
+
+  * debian/patches/06_guest_signal_and_ptrace_aa_rules.patch: Grant
+    permission for guest session processes to signal and ptrace each
+    other (LP: #1298611)
+  * debian/patches/07_guest_proc_pid_stat_aa_rule.patch: Grant permission for
+    guest session processes to read /proc/<PID>/stat. This prevents AppArmor
+    denial messages caused by bamfdaemon and common utilities such as ps and
+    killall. (LP: #1301625)
+
+ -- Tyler Hicks <tyhicks@canonical.com>  Thu, 03 Apr 2014 02:48:51 -0500
+
 lightdm (1.9.14-0ubuntu1) trusty; urgency=medium
 
   * New upstream release:
