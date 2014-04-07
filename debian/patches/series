@@ -1,3 +1,5 @@
 01_transition_ubuntu2d_ubuntu_desktop.patch
 04_language_handling.patch
 05_translate_guest_session_dialog.patch
+06_guest_signal_and_ptrace_aa_rules.patch
+07_guest_proc_pid_stat_aa_rule.patch
