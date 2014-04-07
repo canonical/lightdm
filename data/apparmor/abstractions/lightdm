@@ -47,6 +47,8 @@
   owner @{PROC}/** rm,
   # needed for gnome-keyring-daemon
   @{PROC}/*/status r,
+  # needed for bamfdaemon and utilities such as ps and killall
+  @{PROC}/*/stat r,
   /sbin/ r,
   /sbin/** rmixk,
   /sys/ r,
