@@ -149,6 +149,8 @@ x_server_connect_session (DisplayServer *display_server, Session *session)
 {
     gint vt;
 
+    session_set_env (session, "XDG_SESSION_TYPE", "x11");
+
     display_server = session_get_display_server (session);
 
     vt = display_server_get_vt (display_server);
@@ -180,6 +182,7 @@ x_server_disconnect_session (DisplayServer *display_server, Session *session)
 {
     gint vt;
 
+    session_unset_env (session, "XDG_SESSION_TYPE");
     vt = display_server_get_vt (display_server);
     if (vt > 0)
     {
