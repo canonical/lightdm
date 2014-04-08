@@ -846,6 +846,22 @@ session_stop (Session *session)
 {
     g_return_if_fail (session != NULL);
 
+    /* If can cleanly stop then do that */
+    if (session_get_is_authenticated (session) && !session->priv->command_run)
+    {
+        gsize n = 0;
+
+        session->priv->command_run = TRUE;
+        write_string (session, NULL); // log filename
+        write_string (session, NULL); // tty
+        write_string (session, NULL); // xauth filename
+        write_string (session, NULL); // xdisplay
+        write_xauth (session, NULL); // xauth
+        write_data (session, &n, sizeof (n)); // environment
+        write_data (session, &n, sizeof (n)); // command
+        return;
+    }
+
     if (session->priv->stopping)
         return;
     session->priv->stopping = TRUE;
