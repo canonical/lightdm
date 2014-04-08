@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(lightdm, 1.9.15)
+AC_INIT(lightdm, 1.10.0)
 AC_CONFIG_MACRO_DIR(m4)
 AC_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE([1.11 no-dist-gzip dist-xz foreign])

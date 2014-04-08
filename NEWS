@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.10.0
+
+    * Fix return value for Vala bindings to Greeter.start_session_sync
+    * Fix logging when failing to find session
+
 Overview of changes in lightdm 1.9.15
 
     * Update the lightdm AppArmor abstraction to allow the guest session to

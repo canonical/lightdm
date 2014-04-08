@@ -1,3 +1,11 @@
+lightdm (1.10.0-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Fix return value for Vala bindings to Greeter.start_session_sync
+    - Fix logging when failing to find session
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 08 Apr 2014 16:12:46 +1200
+
 lightdm (1.9.15-0ubuntu1) trusty; urgency=medium
 
   * debian/patches/06_guest_signal_and_ptrace_aa_rules.patch,
