@@ -912,7 +912,7 @@ create_user_session (Seat *seat, const gchar *username, gboolean autostart)
         g_object_unref (session_config);
     }
     else
-        l_debug (seat, "Can't find session '%s'", seat_get_string_property (seat, "user-session"));
+        l_debug (seat, "Can't find session '%s'", session_name);
 
     g_object_unref (user);
 
@@ -953,7 +953,7 @@ create_guest_session (Seat *seat, const gchar *session_name)
     g_free (sessions_dir);
     if (!session_config)
     {
-        l_debug (seat, "Can't find session '%s'", seat_get_string_property (seat, "user-session"));
+        l_debug (seat, "Can't find session '%s'", session_name);
         return NULL;
     }
 
@@ -1044,7 +1044,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         g_free (sessions_dir);
         if (!session_config)
         {
-            l_debug (seat, "Can't find session '%s'", seat_get_string_property (seat, "user-session"));
+            l_debug (seat, "Can't find session '%s'", session_name);
             return FALSE;
         }
 

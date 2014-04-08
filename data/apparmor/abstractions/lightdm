@@ -47,6 +47,8 @@
   owner @{PROC}/** rm,
   # needed for gnome-keyring-daemon
   @{PROC}/*/status r,
+  # needed for bamfdaemon and utilities such as ps and killall
+  @{PROC}/*/stat r,
   /sbin/ r,
   /sbin/** rmixk,
   /sys/ r,
@@ -70,6 +72,12 @@
   owner /{,var/}run/user/*/** rw,
 
   capability ipc_lock,
+
+  # allow processes in the guest session to signal and ptrace each other
+  signal peer=@{profile_name},
+  ptrace peer=@{profile_name},
+  # needed when logging out of the guest session
+  signal (receive) peer=unconfined,
 
   # silence warnings for stuff that we really don't want to grant
   deny capability dac_override,

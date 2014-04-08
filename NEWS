@@ -1,3 +1,24 @@
+Overview of changes in lightdm 1.10.0
+
+    * Fix return value for Vala bindings to Greeter.start_session_sync
+    * Fix logging when failing to find session
+
+Overview of changes in lightdm 1.9.15
+
+    * Update the lightdm AppArmor abstraction to allow the guest session to
+      start when AppArmor is mediating signals and ptrace and fix a minor, but
+      noisy, denial when applications attempt to read /proc/<PID>/stat.
+
+Overview of changes in lightdm 1.9.14
+
+    * Pass --enable-hardware-greeter to unity-system-compositor for Mir sessions
+      on xlocal seats
+
+Overview of changes in lightdm 1.9.13
+
+    * Handle not getting an X connection when attempting to get X layouts.
+    * Read config data from both XDG_DATA_DIRS and XDG_CONFIG_DIRS.
+
 Overview of changes in lightdm 1.9.12
 
     * Ensure X authority is written before X server is started

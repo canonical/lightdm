@@ -1,3 +1,48 @@
+lightdm (1.10.0-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Fix return value for Vala bindings to Greeter.start_session_sync
+    - Fix logging when failing to find session
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 08 Apr 2014 16:12:46 +1200
+
+lightdm (1.9.15-0ubuntu1) trusty; urgency=medium
+
+  * debian/patches/06_guest_signal_and_ptrace_aa_rules.patch,
+    debian/patches/07_guest_proc_pid_stat_aa_rule.patch: Dropped, the fixes
+    are upstream
+
+ -- Tyler Hicks <tyhicks@canonical.com>  Mon, 07 Apr 2014 10:33:46 -0500
+
+lightdm (1.9.14-0ubuntu2) trusty; urgency=medium
+
+  * debian/patches/06_guest_signal_and_ptrace_aa_rules.patch: Grant
+    permission for guest session processes to signal and ptrace each
+    other (LP: #1298611)
+  * debian/patches/07_guest_proc_pid_stat_aa_rule.patch: Grant permission for
+    guest session processes to read /proc/<PID>/stat. This prevents AppArmor
+    denial messages caused by bamfdaemon and common utilities such as ps and
+    killall. (LP: #1301625)
+
+ -- Tyler Hicks <tyhicks@canonical.com>  Thu, 03 Apr 2014 02:48:51 -0500
+
+lightdm (1.9.14-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Pass --enable-hardware-greeter to unity-system-compositor for Mir sessions
+      on xlocal seats (LP: #1289072)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 03 Apr 2014 09:07:39 +1300
+
+lightdm (1.9.13-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Handle not getting an X connection when attempting to get X layouts.
+      (LP: #1235915)
+    - Read config data from both XDG_DATA_DIRS and XDG_CONFIG_DIRS.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 25 Mar 2014 14:45:54 +1300
+
 lightdm (1.9.12-0ubuntu1) trusty; urgency=medium
 
   [ Robert Ancell ]
