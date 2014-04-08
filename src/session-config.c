@@ -50,7 +50,10 @@ session_config_new_from_file (const gchar *filename, GError **error)
     config->priv->session_type = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Session-Type", NULL);
     if (!config->priv->session_type)
         config->priv->session_type = g_strdup ("x");
-    config->priv->desktop_name = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-DesktopName", NULL);
+
+    config->priv->desktop_name = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "DesktopNames", NULL);
+    if (!config->priv->desktop_name)
+        config->priv->desktop_name = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-DesktopName", NULL);
 
     g_key_file_free (desktop_file);
 
