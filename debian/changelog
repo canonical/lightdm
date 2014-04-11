@@ -1,4 +1,4 @@
-lightdm (1.10.0-0ubuntu2) UNRELEASED; urgency=medium
+lightdm (1.10.0-0ubuntu2) trusty; urgency=medium
 
   * Add pam_kwallet to pam configs. (LP: #1305307)
 
