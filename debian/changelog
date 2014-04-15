@@ -1,3 +1,18 @@
+lightdm (1.10.0-0ubuntu3) trusty; urgency=medium
+
+  * debian/patches/06_apparmor_chromium_updates.patch: allow oxide based
+    browsers and Google Chrome to run in the guest session
+    - LP: #1298021
+    - LP: #1306560
+
+ -- Jamie Strandboge <jamie@ubuntu.com>  Fri, 11 Apr 2014 09:24:09 -0500
+
+lightdm (1.10.0-0ubuntu2) trusty; urgency=medium
+
+  * Add pam_kwallet to pam configs. (LP: #1305307)
+
+ -- Harald Sitter <apachelogger@kubuntu.org>  Thu, 10 Apr 2014 10:27:18 +0200
+
 lightdm (1.10.0-0ubuntu1) trusty; urgency=medium
 
   * New upstream release:
