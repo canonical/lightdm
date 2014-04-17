@@ -577,13 +577,12 @@ emit_object_value_changed (GDBusConnection *bus, const gchar *path, const gchar 
     g_variant_builder_init (&builder, G_VARIANT_TYPE_ARRAY);
     g_variant_builder_add (&builder, "{sv}", property_name, property_value);
 
-    GVariant *v = g_variant_new ("(sa{sv}as)", interface_name, &builder, NULL);
     if (!g_dbus_connection_emit_signal (bus,
                                         NULL,
                                         path,
                                         "org.freedesktop.DBus.Properties",
                                         "PropertiesChanged",
-                                        v,//g_variant_new ("(sa{sv}as)", interface_name, &builder, NULL),
+                                        g_variant_new ("(sa{sv}as)", interface_name, &builder, NULL),
                                         &error))
         g_warning ("Failed to emit PropertiesChanged signal: %s", error->message);
     g_clear_error (&error); 
