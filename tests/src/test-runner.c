@@ -1968,13 +1968,22 @@ properties_changed_cb (GDBusConnection *connection,
     status = g_string_new ("RUNNER DBUS-PROPERTIES-CHANGED");
     g_string_append_printf (status, " PATH=%s", object_path);
     g_string_append_printf (status, " INTERFACE=%s", interface);
-    for (i = 0; g_variant_iter_loop (changed_properties, "(&sv)", &name, &value); i++)
+    for (i = 0; g_variant_iter_loop (changed_properties, "{&sv}", &name, &value); i++)
     {
         if (i == 0)
             g_string_append (status, " CHANGED=");
         else
             g_string_append (status, ",");
         g_string_append (status, name);
+        if (g_variant_is_of_type (value, G_VARIANT_TYPE ("ao")))
+        {
+            GVariantIter iter;
+            const gchar *path;
+
+            g_variant_iter_init (&iter, value);
+            while (g_variant_iter_loop (&iter, "&o", &path))
+                g_string_append_printf (status, ":%s", path);
+        }
     }
     for (i = 0; g_variant_iter_loop (invalidated_properties, "&s", &name); i++)
     {
