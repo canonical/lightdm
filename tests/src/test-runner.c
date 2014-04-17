@@ -1948,6 +1948,67 @@ signal_cb (gpointer user_data)
     return FALSE;
 }
 
+static void
+properties_changed_cb (GDBusConnection *connection,
+                       const gchar *sender_name,
+                       const gchar *object_path,
+                       const gchar *interface_name,
+                       const gchar *signal_name,
+                       GVariant *parameters,
+                       gpointer user_data)
+{
+    const gchar *interface, *name;
+    GString *status;
+    GVariant *value;
+    GVariantIter *changed_properties, *invalidated_properties;
+    int i;
+
+    g_variant_get (parameters, "(&sa{sv}as)", &interface, &changed_properties, &invalidated_properties);
+
+    status = g_string_new ("RUNNER DBUS-PROPERTIES-CHANGED");
+    g_string_append_printf (status, " PATH=%s", object_path);
+    g_string_append_printf (status, " INTERFACE=%s", interface);
+    for (i = 0; g_variant_iter_loop (changed_properties, "(&sv)", &name, &value); i++)
+    {
+        if (i == 0)
+            g_string_append (status, " CHANGED=");
+        else
+            g_string_append (status, ",");
+        g_string_append (status, name);
+    }
+    for (i = 0; g_variant_iter_loop (invalidated_properties, "&s", &name); i++)
+    {
+        if (i == 0)
+            g_string_append (status, " INVALIDATED=");
+        else
+            g_string_append (status, ",");
+        g_string_append (status, name);
+    }
+
+    check_status (status->str);
+    g_string_free (status, TRUE);
+}
+
+static void
+dbus_signal_cb (GDBusConnection *connection,
+                const gchar *sender_name,
+                const gchar *object_path,
+                const gchar *interface_name,
+                const gchar *signal_name,
+                GVariant *parameters,
+                gpointer user_data)
+{
+    GString *status;
+
+    status = g_string_new ("RUNNER DBUS-SIGNAL");
+    g_string_append_printf (status, " PATH=%s", object_path);
+    g_string_append_printf (status, " INTERFACE=%s", interface_name);
+    g_string_append_printf (status, " NAME=%s", signal_name);
+
+    check_status (status->str);
+    g_string_free (status, TRUE);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -2347,6 +2408,31 @@ main (int argc, char **argv)
         start_login1_daemon ();
     if (!g_key_file_get_boolean (config, "test-runner-config", "disable-accounts-service", NULL))
         start_accounts_service_daemon ();
+
+    /* Listen for daemon bus events */
+    if (g_key_file_get_boolean (config, "test-runner-config", "log-dbus", NULL))
+    {
+        g_dbus_connection_signal_subscribe (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                            "org.freedesktop.DisplayManager",
+                                            "org.freedesktop.DBus.Properties",
+                                            "PropertiesChanged",
+                                            NULL,
+                                            NULL,
+                                            G_DBUS_SIGNAL_FLAGS_NONE,
+                                            properties_changed_cb,
+                                            NULL,
+                                            NULL);
+        g_dbus_connection_signal_subscribe (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                            "org.freedesktop.DisplayManager",
+                                            "org.freedesktop.DisplayManager",
+                                            NULL,
+                                            NULL,
+                                            NULL,
+                                            G_DBUS_SIGNAL_FLAGS_NONE,
+                                            dbus_signal_cb,
+                                            NULL,
+                                            NULL);
+    }
 
     g_main_loop_run (loop);
 

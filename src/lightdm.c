@@ -57,6 +57,7 @@ typedef struct
 {
     gchar *path;
     gchar *parent_path;
+    gchar *property_name;
     gchar *removed_signal;
     guint bus_id;
 } BusEntry;
@@ -545,38 +546,73 @@ handle_session_call (GDBusConnection       *connection,
 }
 
 static BusEntry *
-bus_entry_new (const gchar *path, const gchar *parent_path, const gchar *removed_signal)
+bus_entry_new (const gchar *path, const gchar *parent_path, const gchar *property_name, const gchar *removed_signal)
 {
     BusEntry *entry;
 
     entry = g_malloc0 (sizeof (BusEntry));
     entry->path = g_strdup (path);
     entry->parent_path = g_strdup (parent_path);
+    entry->property_name = g_strdup (property_name);
     entry->removed_signal = g_strdup (removed_signal);
 
     return entry;
 }
 
 static void
-bus_entry_free (gpointer data)
+emit_property_changed (GDBusConnection *bus, const gchar *path, const gchar *property_name)
 {
-    BusEntry *entry = data;
+    GVariantBuilder builder;
     GError *error = NULL;
 
-    g_dbus_connection_unregister_object (bus, entry->bus_id);
+    g_variant_builder_init (&builder, G_VARIANT_TYPE ("as"));
+    g_variant_builder_add (&builder, "s", property_name);
+    if (!g_dbus_connection_emit_signal (bus,
+                                        NULL,
+                                        path,
+                                        "org.freedesktop.DBus.Properties",
+                                        "PropertiesChanged",
+                                        g_variant_new ("(sa{sv}as)", "org.freedesktop.DisplayManager", NULL, &builder),
+                                        &error))
+        g_warning ("Failed to emit PropertiesChanged signal: %s", error->message);
+    g_clear_error (&error); 
+}
+
+static void
+emit_object_signal (GDBusConnection *bus, const gchar *path, const gchar *signal_name, const gchar *object_path)
+{
+    GError *error = NULL;
 
     if (!g_dbus_connection_emit_signal (bus,
                                         NULL,
-                                        "/org/freedesktop/DisplayManager",
+                                        path,
                                         "org.freedesktop.DisplayManager",
-                                        entry->removed_signal,
-                                        g_variant_new ("(o)", entry->path),
+                                        signal_name,
+                                        g_variant_new ("(o)", object_path),
                                         &error))
-        g_warning ("Failed to emit %s signal: %s", entry->removed_signal, error->message);
-    g_clear_error (&error);
+        g_warning ("Failed to emit %s signal on %s: %s", signal_name, path, error->message);
+    g_clear_error (&error); 
+}
+
+static void
+bus_entry_free (gpointer data)
+{
+    BusEntry *entry = data;
+
+    g_dbus_connection_unregister_object (bus, entry->bus_id);
+
+    emit_property_changed (bus, "/org/freedesktop/DisplayManager", entry->property_name);
+    emit_object_signal (bus, "/org/freedesktop/DisplayManager", entry->removed_signal, entry->path);
+
+    if (entry->parent_path)
+    {
+        emit_property_changed (bus, entry->parent_path, entry->property_name);
+        emit_object_signal (bus, entry->parent_path, entry->removed_signal, entry->path);
+    }
 
     g_free (entry->path);
     g_free (entry->parent_path);
+    g_free (entry->property_name);
     g_free (entry->removed_signal);
     g_free (entry);
 }
@@ -602,7 +638,7 @@ running_user_session_cb (Seat *seat, Session *session)
     g_object_set_data_full (G_OBJECT (session), "XDG_SESSION_PATH", path, g_free);
 
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
-    entry = bus_entry_new (g_object_get_data (G_OBJECT (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL, "SessionRemoved");
+    entry = bus_entry_new (g_object_get_data (G_OBJECT (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL, "Sessions", "SessionRemoved");
     g_hash_table_insert (session_bus_entries, g_object_ref (session), entry);
 
     g_debug ("Registering session with bus path %s", entry->path);
@@ -617,15 +653,11 @@ running_user_session_cb (Seat *seat, Session *session)
         g_warning ("Failed to register user session: %s", error->message);
     g_clear_error (&error);
 
-    if (!g_dbus_connection_emit_signal (bus,
-                                        NULL,
-                                        "/org/freedesktop/DisplayManager",
-                                        "org.freedesktop.DisplayManager",
-                                        "SessionAdded",
-                                        g_variant_new ("(o)", entry->path),
-                                        &error))
-        g_warning ("Failed to emit SessionAdded signal: %s", error->message);
-    g_clear_error (&error);
+    emit_property_changed (bus, "/org/freedesktop/DisplayManager", "Sessions");
+    emit_object_signal (bus, "/org/freedesktop/DisplayManager", "SessionAdded", entry->path);
+
+    emit_property_changed (bus, seat_entry->path, "Sessions");
+    emit_object_signal (bus, seat_entry->path, "SessionAdded", entry->path);
 }
 
 static void
@@ -650,7 +682,7 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
     path = g_strdup_printf ("/org/freedesktop/DisplayManager/Seat%d", seat_index);
     seat_index++;
 
-    entry = bus_entry_new (path, NULL, "SeatRemoved");
+    entry = bus_entry_new (path, NULL, "Seats", "SeatRemoved");
     g_free (path);
     g_hash_table_insert (seat_bus_entries, g_object_ref (seat), entry);
 
@@ -666,15 +698,8 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
         g_warning ("Failed to register seat: %s", error->message);
     g_clear_error (&error);
 
-    if (!g_dbus_connection_emit_signal (bus,
-                                        NULL,
-                                        "/org/freedesktop/DisplayManager",
-                                        "org.freedesktop.DisplayManager",
-                                        "SeatAdded",
-                                        g_variant_new ("(o)", entry->path),
-                                        &error))
-        g_warning ("Failed to emit SeatAdded signal: %s", error->message);
-    g_clear_error (&error);
+    emit_property_changed (bus, "/org/freedesktop/DisplayManager", "Seats");
+    emit_object_signal (bus, "/org/freedesktop/DisplayManager", "SeatAdded", entry->path);
 
     g_signal_connect (seat, "running-user-session", G_CALLBACK (running_user_session_cb), NULL);
     g_signal_connect (seat, "session-removed", G_CALLBACK (session_removed_cb), NULL);
@@ -719,8 +744,12 @@ bus_acquired_cb (GDBusConnection *connection,
     const gchar *display_manager_interface =
         "<node>"
         "  <interface name='org.freedesktop.DisplayManager'>"
-        "    <property name='Seats' type='ao' access='read'/>"
-        "    <property name='Sessions' type='ao' access='read'/>"
+        "    <property name='Seats' type='ao' access='read'>"
+        "      <annotation name='org.freedesktop.DBus.Property.EmitsChangedSignal' value='invalidates'/>"
+        "    </property>"
+        "    <property name='Sessions' type='ao' access='read'>"
+        "      <annotation name='org.freedesktop.DBus.Property.EmitsChangedSignal' value='invalidates'/>"
+        "    </property>"
         "    <method name='AddSeat'>"
         "      <arg name='type' direction='in' type='s'/>"
         "      <arg name='properties' direction='in' type='a(ss)'/>"
@@ -754,7 +783,9 @@ bus_acquired_cb (GDBusConnection *connection,
         "  <interface name='org.freedesktop.DisplayManager.Seat'>"
         "    <property name='CanSwitch' type='b' access='read'/>"
         "    <property name='HasGuestAccount' type='b' access='read'/>"
-        "    <property name='Sessions' type='ao' access='read'/>"
+        "    <property name='Sessions' type='ao' access='read'>"
+        "      <annotation name='org.freedesktop.DBus.Property.EmitsChangedSignal' value='invalidates'/>"
+        "    </property>"
         "    <method name='SwitchToGreeter'/>"
         "    <method name='SwitchToUser'>"
         "      <arg name='username' direction='in' type='s'/>"
@@ -764,6 +795,12 @@ bus_acquired_cb (GDBusConnection *connection,
         "      <arg name='session-name' direction='in' type='s'/>"
         "    </method>"
         "    <method name='Lock'/>"
+        "    <signal name='SessionAdded'>"
+        "      <arg name='session' type='o'/>"
+        "    </signal>"
+        "    <signal name='SessionRemoved'>"
+        "      <arg name='session' type='o'/>"
+        "    </signal>"
         "  </interface>"
         "</node>";
     const gchar *session_interface =
