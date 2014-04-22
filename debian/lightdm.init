@@ -23,7 +23,7 @@
 # Provides:          lightdm
 # Required-Start:    $local_fs $remote_fs dbus
 # Required-Stop:     $local_fs $remote_fs dbus
-# Should-Start:      $named acpid hal
+# Should-Start:      $named
 # Should-Stop:       $named
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
