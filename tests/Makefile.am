@@ -150,7 +150,9 @@ TESTS = \
 	test-vnc-dimensions \
 	test-vnc-open-file-descriptors \
 	test-xdmcp-client \
+	test-xdmcp-server-autologin \
 	test-xdmcp-server-login \
+	test-xdmcp-server-double-login \
 	test-utmp-login \
 	test-utmp-autologin \
 	test-utmp-wrong-password \
@@ -508,6 +510,8 @@ EXTRA_DIST = \
 	scripts/xdg-current-desktop.conf \
 	scripts/xdg-seat.conf \
 	scripts/xdmcp-client.conf \
+	scripts/xdmcp-server-autologin.conf \
+	scripts/xdmcp-server-double-login.conf \
 	scripts/xdmcp-server-login.conf \
 	scripts/xdmcp-server-open-file-descriptors.conf \
 	scripts/xserver-fail-start.conf \
