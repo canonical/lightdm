@@ -270,6 +270,13 @@ if log_user_changes:
     LightDM.UserList.get_instance ().connect ('user-added', user_added_cb)
     LightDM.UserList.get_instance ().connect ('user-removed', user_removed_cb)
 
+status_notify ('%s CONNECT-TO-DAEMON' % greeter_id)
+if not greeter.connect_sync ():
+    status_notify ('%s FAIL-CONNECT-DAEMON' % greeter_id)
+    exit (1)
+
+status_notify ('%s CONNECTED-TO-DAEMON' % greeter_id)
+
 def idle_cb (greeter):
     status_notify ('%s IDLE' % (greeter_id))
 def reset_cb (greeter):
@@ -284,13 +291,6 @@ if resettable:
     LightDM.Greeter.get_instance ().set_resettable (True)
     LightDM.Greeter.get_instance ().connect ('idle', idle_cb)
     LightDM.Greeter.get_instance ().connect ('reset', reset_cb)
-
-status_notify ('%s CONNECT-TO-DAEMON' % greeter_id)
-if not greeter.connect_sync ():
-    status_notify ('%s FAIL-CONNECT-DAEMON' % greeter_id)
-    exit (1)
-
-status_notify ('%s CONNECTED-TO-DAEMON' % greeter_id)
 
 print_hints (greeter)
 

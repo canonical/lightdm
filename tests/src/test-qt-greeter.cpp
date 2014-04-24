@@ -298,13 +298,6 @@ main(int argc, char *argv[])
         QObject::connect (users_model, SIGNAL(rowsAboutToBeRemoved(const QModelIndex&, int, int)), greeter, SLOT(userRowsRemoved(const QModelIndex&, int, int)));
     }
 
-    if (config->value ("test-greeter-config/resettable", "false") == "true")
-    {
-        greeter->setResettable (true);
-        QObject::connect (greeter, SIGNAL(idle()), greeter, SLOT(idle()));
-        QObject::connect (greeter, SIGNAL(reset()), greeter, SLOT(reset()));
-    }
-
     status_notify ("%s CONNECT-TO-DAEMON", greeter_id);
     if (!greeter->connectSync())
     {
@@ -313,6 +306,13 @@ main(int argc, char *argv[])
     }
 
     status_notify ("%s CONNECTED-TO-DAEMON", greeter_id);
+
+    if (config->value ("test-greeter-config/resettable", "false") == "true")
+    {
+        greeter->setResettable (true);
+        QObject::connect (greeter, SIGNAL(idle()), greeter, SLOT(idle()));
+        QObject::connect (greeter, SIGNAL(reset()), greeter, SLOT(reset()));
+    }
 
     greeter->printHints();
 

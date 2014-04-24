@@ -223,8 +223,11 @@ seat_set_active_session (Seat *seat, Session *session)
             Greeter *greeter = GREETER (s);
             if (greeter_get_resettable (greeter))
             {
-                l_debug (seat, "Idling greeter");
-                greeter_idle (greeter);
+                if (seat->priv->active_session == greeter)
+                {
+                    l_debug (seat, "Idling greeter");
+                    greeter_idle (greeter);
+                }
             }
             else
             {
@@ -1132,7 +1135,8 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
 
     /* If can re-use the display server, stop the greeter first */
     display_server = session_get_display_server (SESSION (greeter));
-    if (can_share_display_server (seat, display_server) &&
+    if (!greeter_get_resettable (greeter) &&
+        can_share_display_server (seat, display_server) &&
         strcmp (display_server_get_session_type (display_server), session_get_session_type (session)) == 0)
     {
         l_debug (seat, "Stopping greeter; display server will be re-used for user session");

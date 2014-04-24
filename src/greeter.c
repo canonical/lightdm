@@ -881,7 +881,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         g_free (username);
         break;
     case GREETER_MESSAGE_SET_RESETTABLE:
-        greeter->priv->resettable = read_int (greeter, &offset);
+        greeter->priv->resettable = (gboolean)read_int (greeter, &offset);
         break;
     default:
         l_warning (greeter, "Unknown message from greeter: %d", id);

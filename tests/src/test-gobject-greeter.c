@@ -437,13 +437,6 @@ main (int argc, char **argv)
         g_signal_connect (lightdm_user_list_get_instance (), "user-removed", G_CALLBACK (user_removed_cb), NULL);
     }
 
-    if (g_key_file_get_boolean (config, "test-greeter-config", "resettable", NULL))
-    {
-        lightdm_greeter_set_resettable (greeter, TRUE);
-        g_signal_connect (greeter, "idle", G_CALLBACK (idle_cb), NULL);
-        g_signal_connect (greeter, "reset", G_CALLBACK (reset_cb), NULL);
-    }
-
     status_notify ("%s CONNECT-TO-DAEMON", greeter_id);
     if (!lightdm_greeter_connect_sync (greeter, NULL))
     {
@@ -452,6 +445,13 @@ main (int argc, char **argv)
     }
 
     status_notify ("%s CONNECTED-TO-DAEMON", greeter_id);
+
+    if (g_key_file_get_boolean (config, "test-greeter-config", "resettable", NULL))
+    {
+        lightdm_greeter_set_resettable (greeter, TRUE);
+        g_signal_connect (greeter, "idle", G_CALLBACK (idle_cb), NULL);
+        g_signal_connect (greeter, "reset", G_CALLBACK (reset_cb), NULL);
+    }
 
     print_hints (greeter);
 
