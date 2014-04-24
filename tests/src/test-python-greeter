@@ -185,6 +185,22 @@ def request_cb (channel, condition):
 
     return True
 
+def print_hints (greeter):
+    if greeter.get_select_user_hint () is not None:
+        status_notify ('%s SELECT-USER-HINT USERNAME=%s' % (greeter_id, greeter.get_select_user_hint ()))
+    if greeter.get_select_guest_hint ():
+        status_notify ('%s SELECT-GUEST-HINT' % greeter_id)
+    if greeter.get_lock_hint ():
+        status_notify ('%s LOCK-HINT' % greeter_id)
+    if not greeter.get_has_guest_account_hint ():
+        status_notify ('%s HAS-GUEST-ACCOUNT-HINT=FALSE' % greeter_id)
+    if greeter.get_hide_users_hint ():
+        status_notify ('%s HIDE-USERS-HINT' % greeter_id)
+    if greeter.get_show_manual_login_hint ():
+        status_notify ('%s SHOW-MANUAL-LOGIN-HINT' % greeter_id)
+    if not greeter.get_show_remote_login_hint ():
+        status_notify ('%s SHOW-REMOTE-LOGIN-HINT=FALSE' % greeter_id)
+
 path = os.getenv ('LIGHTDM_TEST_ROOT') + '/.s'
 status_socket = socket.socket (socket.AF_UNIX, socket.SOCK_STREAM)
 status_socket.connect (path)
@@ -254,6 +270,21 @@ if log_user_changes:
     LightDM.UserList.get_instance ().connect ('user-added', user_added_cb)
     LightDM.UserList.get_instance ().connect ('user-removed', user_removed_cb)
 
+def idle_cb (greeter):
+    status_notify ('%s IDLE' % (greeter_id))
+def reset_cb (greeter):
+    status_notify ('%s RESET' % (greeter_id))
+    print_hints (greeter)
+resettable = False
+try:
+    resettable = config.get_boolean ('test-greeter-config', 'resettable')
+except:
+    pass
+if resettable:
+    LightDM.Greeter.get_instance ().set_resettable (True)
+    LightDM.Greeter.get_instance ().connect ('idle', idle_cb)
+    LightDM.Greeter.get_instance ().connect ('reset', reset_cb)
+
 status_notify ('%s CONNECT-TO-DAEMON' % greeter_id)
 if not greeter.connect_sync ():
     status_notify ('%s FAIL-CONNECT-DAEMON' % greeter_id)
@@ -261,19 +292,6 @@ if not greeter.connect_sync ():
 
 status_notify ('%s CONNECTED-TO-DAEMON' % greeter_id)
 
-if greeter.get_select_user_hint () is not None:
-    status_notify ('%s SELECT-USER-HINT USERNAME=%s' % (greeter_id, greeter.get_select_user_hint ()))
-if greeter.get_select_guest_hint ():
-    status_notify ('%s SELECT-GUEST-HINT' % greeter_id)
-if greeter.get_lock_hint ():
-    status_notify ('%s LOCK-HINT' % greeter_id)
-if not greeter.get_has_guest_account_hint ():
-    status_notify ('%s HAS-GUEST-ACCOUNT-HINT=FALSE' % greeter_id)
-if greeter.get_hide_users_hint ():
-    status_notify ('%s HIDE-USERS-HINT' % greeter_id)
-if greeter.get_show_manual_login_hint ():
-    status_notify ('%s SHOW-MANUAL-LOGIN-HINT' % greeter_id)
-if not greeter.get_show_remote_login_hint ():
-    status_notify ('%s SHOW-REMOTE-LOGIN-HINT=FALSE' % greeter_id)
+print_hints (greeter)
 
 loop.run ()

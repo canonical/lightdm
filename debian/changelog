@@ -1,3 +1,9 @@
+lightdm (1.10.1-0ubuntu1) UNRELEASED; urgency=medium
+
+  * Add lightdm_greeter_set_resettable
+
+ -- Michael Terry <mterry@ubuntu.com>  Wed, 23 Apr 2014 19:21:30 -0400
+
 lightdm (1.10.0-0ubuntu3) trusty; urgency=medium
 
   * debian/patches/06_apparmor_chromium_updates.patch: allow oxide based

@@ -33,6 +33,8 @@ protected:
     static void cb_showMessage(LightDMGreeter *greeter, const gchar *text, LightDMMessageType type, gpointer data);
     static void cb_authenticationComplete(LightDMGreeter *greeter, gpointer data);
     static void cb_autoLoginExpired(LightDMGreeter *greeter, gpointer data);
+    static void cb_idle(LightDMGreeter *greeter, gpointer data);
+    static void cb_reset(LightDMGreeter *greeter, gpointer data);
     
 private:
     Q_DECLARE_PUBLIC(Greeter)
@@ -50,6 +52,8 @@ GreeterPrivate::GreeterPrivate(Greeter *parent) :
     g_signal_connect (ldmGreeter, "show-message", G_CALLBACK (cb_showMessage), this);
     g_signal_connect (ldmGreeter, "authentication-complete", G_CALLBACK (cb_authenticationComplete), this);
     g_signal_connect (ldmGreeter, "autologin-timer-expired", G_CALLBACK (cb_autoLoginExpired), this);
+    g_signal_connect (ldmGreeter, "idle", G_CALLBACK (cb_idle), this);
+    g_signal_connect (ldmGreeter, "reset", G_CALLBACK (cb_reset), this);
 }
 
 void GreeterPrivate::cb_showPrompt(LightDMGreeter *greeter, const gchar *text, LightDMPromptType type, gpointer data)
@@ -86,6 +90,20 @@ void GreeterPrivate::cb_autoLoginExpired(LightDMGreeter *greeter, gpointer data)
     Q_UNUSED(greeter);
     GreeterPrivate *that = static_cast<GreeterPrivate*>(data);
     Q_EMIT that->q_func()->autologinTimerExpired();
+}
+
+void GreeterPrivate::cb_idle(LightDMGreeter *greeter, gpointer data)
+{
+    Q_UNUSED(greeter);
+    GreeterPrivate *that = static_cast<GreeterPrivate*>(data);
+    Q_EMIT that->q_func()->idle();
+}
+
+void GreeterPrivate::cb_reset(LightDMGreeter *greeter, gpointer data)
+{
+    Q_UNUSED(greeter);
+    GreeterPrivate *that = static_cast<GreeterPrivate*>(data);
+    Q_EMIT that->q_func()->reset();
 }
 
 Greeter::Greeter(QObject *parent) :
@@ -164,6 +182,12 @@ void Greeter::setLanguage (const QString &language)
 {
     Q_D(Greeter);
     lightdm_greeter_set_language(d->ldmGreeter, language.toLocal8Bit().constData());
+}
+
+void Greeter::setResettable (bool resettable)
+{
+    Q_D(Greeter);
+    lightdm_greeter_set_resettable(d->ldmGreeter, resettable);
 }
 
 bool Greeter::startSessionSync(const QString &session)

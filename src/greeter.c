@@ -63,6 +63,9 @@ struct GreeterPrivate
     /* PAM session being constructed by the greeter */
     Session *authentication_session;
 
+    /* TRUE if a the greeter can handle a reset; else we will just kill it instead */
+    gboolean resettable;
+
     /* TRUE if a user has been authenticated and the session requested to start */
     gboolean start_session;
 
@@ -92,6 +95,7 @@ typedef enum
     GREETER_MESSAGE_SET_LANGUAGE,
     GREETER_MESSAGE_AUTHENTICATE_REMOTE,
     GREETER_MESSAGE_ENSURE_SHARED_DIR,
+    GREETER_MESSAGE_SET_RESETTABLE,
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -102,6 +106,8 @@ typedef enum
     SERVER_MESSAGE_END_AUTHENTICATION,
     SERVER_MESSAGE_SESSION_RESULT,
     SERVER_MESSAGE_SHARED_DIR_RESULT,
+    SERVER_MESSAGE_IDLE,
+    SERVER_MESSAGE_RESET,
 } ServerMessage;
 
 static gboolean read_cb (GIOChannel *source, GIOCondition condition, gpointer data);
@@ -125,6 +131,12 @@ void
 greeter_set_allow_guest (Greeter *greeter, gboolean allow_guest)
 {
     greeter->priv->allow_guest = allow_guest;
+}
+
+void
+greeter_clear_hints (Greeter *greeter)
+{
+    g_hash_table_remove_all (greeter->priv->hints);
 }
 
 void
@@ -313,6 +325,37 @@ send_end_authentication (Greeter *greeter, guint32 sequence_number, const gchar 
     write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, result, &offset);
     write_message (greeter, message, offset); 
+}
+
+void greeter_idle (Greeter *greeter)
+{
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+
+    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_IDLE, 0, &offset);
+    write_message (greeter, message, offset);
+}
+
+void greeter_reset (Greeter *greeter)
+{
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+    guint32 length = 0;
+    GHashTableIter iter;
+    gpointer key, value;
+
+    g_hash_table_iter_init (&iter, greeter->priv->hints);
+    while (g_hash_table_iter_next (&iter, &key, &value))
+        length += string_length (key) + string_length (value);
+
+    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_RESET, length, &offset);
+    g_hash_table_iter_init (&iter, greeter->priv->hints);
+    while (g_hash_table_iter_next (&iter, &key, &value))
+    {
+        write_string (message, MAX_MESSAGE_LENGTH, key, &offset);
+        write_string (message, MAX_MESSAGE_LENGTH, value, &offset);
+    }
+    write_message (greeter, message, offset);
 }
 
 static void
@@ -837,6 +880,9 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         handle_ensure_shared_dir (greeter, username);
         g_free (username);
         break;
+    case GREETER_MESSAGE_SET_RESETTABLE:
+        greeter->priv->resettable = read_int (greeter, &offset);
+        break;
     default:
         l_warning (greeter, "Unknown message from greeter: %d", id);
         break;
@@ -859,6 +905,13 @@ greeter_get_authentication_session (Greeter *greeter)
 {
     g_return_val_if_fail (greeter != NULL, NULL);
     return greeter->priv->authentication_session;
+}
+
+gboolean
+greeter_get_resettable (Greeter *greeter)
+{
+    g_return_val_if_fail (greeter != NULL, FALSE);
+    return greeter->priv->resettable;
 }
 
 gboolean

@@ -39,6 +39,8 @@ enum {
     SHOW_MESSAGE,
     AUTHENTICATION_COMPLETE,
     AUTOLOGIN_TIMER_EXPIRED,
+    IDLE,
+    RESET,
     LAST_SIGNAL
 };
 static guint signals[LAST_SIGNAL] = { 0 };
@@ -83,6 +85,7 @@ typedef enum
     GREETER_MESSAGE_SET_LANGUAGE,
     GREETER_MESSAGE_AUTHENTICATE_REMOTE,
     GREETER_MESSAGE_ENSURE_SHARED_DIR,
+    GREETER_MESSAGE_SET_RESETTABLE,
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -93,6 +96,8 @@ typedef enum
     SERVER_MESSAGE_END_AUTHENTICATION,
     SERVER_MESSAGE_SESSION_RESULT,
     SERVER_MESSAGE_SHARED_DIR_RESULT,
+    SERVER_MESSAGE_IDLE,
+    SERVER_MESSAGE_RESET,
 } ServerMessage;
 
 /**
@@ -381,6 +386,31 @@ handle_end_authentication (LightDMGreeter *greeter, guint8 *message, gsize messa
     g_signal_emit (G_OBJECT (greeter), signals[AUTHENTICATION_COMPLETE], 0);
 }
 
+static void
+handle_reset (LightDMGreeter *greeter, guint8 *message, gsize message_length, gsize *offset)
+{
+    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    GString *hint_string;
+
+    g_hash_table_remove_all (priv->hints);
+
+    hint_string = g_string_new ("");
+    while (*offset < message_length)
+    {
+        gchar *name, *value;
+
+        name = read_string (message, message_length, offset);
+        value = read_string (message, message_length, offset);
+        g_hash_table_insert (priv->hints, name, value);
+        g_string_append_printf (hint_string, " %s=%s", name, value);
+    }
+
+    g_debug ("Reset%s", hint_string->str);
+    g_string_free (hint_string, TRUE);
+
+    g_signal_emit (G_OBJECT (greeter), signals[RESET], 0);
+}
+
 static guint8 *
 read_message (LightDMGreeter *greeter, gsize *length, gboolean block)
 {
@@ -459,6 +489,12 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         break;
     case SERVER_MESSAGE_END_AUTHENTICATION:
         handle_end_authentication (greeter, message, message_length, &offset);
+        break;
+    case SERVER_MESSAGE_IDLE:
+        g_signal_emit (G_OBJECT (greeter), signals[IDLE], 0);
+        break;
+    case SERVER_MESSAGE_RESET:
+        handle_reset (greeter, message, message_length, &offset);
         break;
     default:
         g_warning ("Unknown message from server: %d", id);
@@ -1057,6 +1093,31 @@ lightdm_greeter_set_language (LightDMGreeter *greeter, const gchar *language)
 }
 
 /**
+ * lightdm_greeter_set_resettable:
+ * @greeter: A #LightDMGreeter
+ * @resettable: Whether the greeter wants to be reset instead of killed after the user logs in
+ *
+ * Set whether the greeter will be reset instead of killed after the user logs in.
+ **/
+void
+lightdm_greeter_set_resettable (LightDMGreeter *greeter, gboolean resettable)
+{
+    LightDMGreeterPrivate *priv;
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+
+    g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
+
+    priv = GET_PRIVATE (greeter);
+
+    g_return_if_fail (priv->connected);
+
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_SET_RESETTABLE, int_length (), &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, resettable ? 1 : 0, &offset);
+    write_message (greeter, message, offset);
+}
+
+/**
  * lightdm_greeter_start_session_sync:
  * @greeter: A #LightDMGreeter
  * @session: (allow-none): The session to log into or #NULL to use the default.
@@ -1457,6 +1518,44 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LightDMGreeterClass, autologin_timer_expired),
+                      NULL, NULL,
+                      NULL,
+                      G_TYPE_NONE, 0);
+
+    /**
+     * LightDMGreeter::idle:
+     * @greeter: A #LightDMGreeter
+     *
+     * The ::idle signal gets emitted when the user has logged in and the
+     * greeter is no longer needed.
+     *
+     * This signal only matters if the greeter has marked itself as
+     * resettable using lightdm_greeter_set_resettable().
+     **/
+    signals[IDLE] =
+        g_signal_new ("idle",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (LightDMGreeterClass, idle),
+                      NULL, NULL,
+                      NULL,
+                      G_TYPE_NONE, 0);
+
+    /**
+     * LightDMGreeter::reset:
+     * @greeter: A #LightDMGreeter
+     *
+     * The ::reset signal gets emitted when the user is returning to a greeter
+     * that was previously marked idle.
+     *
+     * This signal only matters if the greeter has marked itself as
+     * resettable using lightdm_greeter_set_resettable().
+     **/
+    signals[RESET] =
+        g_signal_new ("reset",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (LightDMGreeterClass, reset),
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 0);

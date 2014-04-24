@@ -54,6 +54,36 @@ void TestGreeter::autologinTimerExpired ()
     status_notify ("%s AUTOLOGIN-TIMER-EXPIRED", greeter_id);
 }
 
+void TestGreeter::printHints ()
+{
+    if (selectUserHint() != "")
+        status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, greeter->selectUserHint ().toAscii ().constData ());
+    if (selectGuestHint())
+        status_notify ("%s SELECT-GUEST-HINT", greeter_id);
+    if (lockHint())
+        status_notify ("%s LOCK-HINT", greeter_id);
+    if (!hasGuestAccountHint ())
+        status_notify ("%s HAS-GUEST-ACCOUNT-HINT=FALSE", greeter_id);
+    if (hideUsersHint ())
+        status_notify ("%s HIDE-USERS-HINT", greeter_id);
+    if (showManualLoginHint ())
+        status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
+    if (!showRemoteLoginHint ())
+        status_notify ("%s SHOW-REMOTE-LOGIN-HINT=FALSE", greeter_id);
+
+}
+
+void TestGreeter::idle ()
+{
+    status_notify ("%s IDLE", greeter_id);
+}
+
+void TestGreeter::reset ()
+{
+    status_notify ("%s RESET", greeter_id);
+    printHints ();
+}
+
 void TestGreeter::userRowsInserted (const QModelIndex & parent, int start, int end)
 {
     for (int i = start; i <= end; i++)
@@ -268,6 +298,13 @@ main(int argc, char *argv[])
         QObject::connect (users_model, SIGNAL(rowsAboutToBeRemoved(const QModelIndex&, int, int)), greeter, SLOT(userRowsRemoved(const QModelIndex&, int, int)));
     }
 
+    if (config->value ("test-greeter-config/resettable", "false") == "true")
+    {
+        greeter->setResettable (true);
+        QObject::connect (greeter, SIGNAL(idle()), greeter, SLOT(idle()));
+        QObject::connect (greeter, SIGNAL(reset()), greeter, SLOT(reset()));
+    }
+
     status_notify ("%s CONNECT-TO-DAEMON", greeter_id);
     if (!greeter->connectSync())
     {
@@ -277,20 +314,7 @@ main(int argc, char *argv[])
 
     status_notify ("%s CONNECTED-TO-DAEMON", greeter_id);
 
-    if (greeter->selectUserHint() != "")
-        status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, greeter->selectUserHint ().toAscii ().constData ());
-    if (greeter->selectGuestHint())
-        status_notify ("%s SELECT-GUEST-HINT", greeter_id);
-    if (greeter->lockHint())
-        status_notify ("%s LOCK-HINT", greeter_id);
-    if (!greeter->hasGuestAccountHint ())
-        status_notify ("%s HAS-GUEST-ACCOUNT-HINT=FALSE", greeter_id);
-    if (greeter->hideUsersHint ())
-        status_notify ("%s HIDE-USERS-HINT", greeter_id);
-    if (greeter->showManualLoginHint ())
-        status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
-    if (!greeter->showRemoteLoginHint ())
-        status_notify ("%s SHOW-REMOTE-LOGIN-HINT=FALSE", greeter_id);
+    greeter->printHints();
 
     return app->exec();
 }
