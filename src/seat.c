@@ -201,6 +201,13 @@ seat_get_sessions (Seat *seat)
     return seat->priv->sessions;
 }
 
+static gboolean
+set_greeter_idle (gpointer greeter)
+{
+    greeter_idle (GREETER (greeter));
+    return FALSE;
+}
+
 void
 seat_set_active_session (Seat *seat, Session *session)
 {
@@ -223,10 +230,14 @@ seat_set_active_session (Seat *seat, Session *session)
             Greeter *greeter = GREETER (s);
             if (greeter_get_resettable (greeter))
             {
-                if (seat->priv->active_session == greeter)
+                if (seat->priv->active_session == SESSION (greeter))
                 {
                     l_debug (seat, "Idling greeter");
-                    greeter_idle (greeter);
+                    /* Do this in an idle callback, because we might very well
+                       be in the middle of responding to a START_SESSION
+                       request by a greeter.  So they won't expect an IDLE
+                       call during that.  Plus, this isn't time-sensitive. */
+                    g_idle_add (set_greeter_idle, greeter);
                 }
             }
             else
