@@ -80,6 +80,16 @@ case "$1" in
                 chmod 0644 /etc/apparmor.d/abstractions/lightdm_chromium-browser || true
             fi
         fi
+
+        # set default-display-manager systemd service link according to our config
+        if [ -e "$DEFAULT_DISPLAY_MANAGER_FILE" -a -d /etc/systemd/system/ ]; then
+            SERVICE=/lib/systemd/system/$(basename $(cat "$DEFAULT_DISPLAY_MANAGER_FILE")).service
+            if [ -e "$SERVICE" ]; then
+                ln -sf "$SERVICE" /etc/systemd/system/display-manager.service
+            else
+                echo "ERROR: $SERVICE is the selected default display manager but does not exist" >&2
+            fi
+        fi
         ;;
 esac
 
