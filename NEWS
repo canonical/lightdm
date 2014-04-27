@@ -1,3 +1,10 @@
+Overview of changes in lightdm 1.10.1
+
+    * When switching to an existing session refresh PAM credentials and end
+      session cleanly so no resources leak.
+    * Update apparmor rules to allow oxide based browsers and Google Chrome to
+      run in the guest session.
+
 Overview of changes in lightdm 1.10.0
 
     * Fix return value for Vala bindings to Greeter.start_session_sync

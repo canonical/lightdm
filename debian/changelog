@@ -1,3 +1,15 @@
+lightdm (1.10.1-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - When switching to an existing session refresh PAM credentials and end
+      session cleanly so no resources leak. (LP: #1296276)
+    - Update apparmor rules to allow oxide based browsers and Google Chrome to
+      run in the guest session.
+  * debian/patches/06_apparmor_chromium_updates.patch:
+    - Applied upstream
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 28 Apr 2014 09:56:14 +1200
+
 lightdm (1.10.0-0ubuntu3) trusty; urgency=medium
 
   * debian/patches/06_apparmor_chromium_updates.patch: allow oxide based
