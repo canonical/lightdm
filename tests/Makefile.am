@@ -19,6 +19,7 @@ TESTS = \
 	test-additional-system-config-priority \
 	test-headless \
 	test-autologin \
+	test-autologin-pam \
 	test-autologin-in-background \
 	test-autologin-guest-in-background \
 	test-autologin-timeout-in-background \
@@ -35,7 +36,6 @@ TESTS = \
 	test-change-authentication \
 	test-restart-authentication \
 	test-gobject-cancel-authentication \
-	test-pam \
 	test-login-pam \
 	test-denied \
 	test-expired \
@@ -134,6 +134,7 @@ TESTS = \
 	test-switch-to-greeter \
 	test-switch-to-greeter-new-session \
 	test-switch-to-greeter-return-session \
+	test-switch-to-greeter-return-session-pam \
 	test-switch-to-greeter-return-session-logout \
 	test-switch-to-guest \
 	test-switch-to-user \
@@ -329,12 +330,13 @@ EXTRA_DIST = \
 	scripts/autologin.conf \
 	scripts/autologin-guest.conf \
 	scripts/autologin-guest-fail-setup-script.conf \
+	scripts/autologin-guest-in-background.conf \
 	scripts/autologin-guest-logout.conf \
 	scripts/autologin-guest-session-config.conf \
 	scripts/autologin-guest-timeout.conf \
 	scripts/autologin-in-background.conf \
 	scripts/autologin-invalid-greeter.conf \
-	scripts/autologin-guest-in-background.conf \
+	scripts/autologin-pam.conf \
 	scripts/autologin-timeout-in-background.conf \
 	scripts/autologin-invalid-session.conf \
 	scripts/autologin-invalid-user.conf \
@@ -426,7 +428,6 @@ EXTRA_DIST = \
 	scripts/no-console-kit-or-login1.conf \
 	scripts/no-login1.conf \
 	scripts/open-file-descriptors.conf \
-	scripts/pam.conf \
 	scripts/power.conf \
 	scripts/power-no-console-kit.conf \
 	scripts/power-no-services.conf \
@@ -455,6 +456,7 @@ EXTRA_DIST = \
 	scripts/switch-to-greeter-new-session.conf \
 	scripts/switch-to-greeter-return-session.conf \
 	scripts/switch-to-greeter-return-session-logout.conf \
+	scripts/switch-to-greeter-return-session-pam.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-user.conf \
 	scripts/switch-to-users.conf \

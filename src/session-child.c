@@ -353,7 +353,10 @@ session_child_run (int argc, char **argv)
 
         /* See what user we ended up as */
         if (pam_get_item (pam_handle, PAM_USER, (const void **) &new_username) != PAM_SUCCESS)
+        {
+            pam_end (pam_handle, 0);
             return EXIT_FAILURE;
+        }
         g_free (username);
         username = g_strdup (new_username);
 
@@ -438,12 +441,16 @@ session_child_run (int argc, char **argv)
     if (!username)
     {
         g_printerr ("No user selected during authentication\n");
+        pam_end (pam_handle, 0);
         return EXIT_FAILURE;
     }
 
     /* Stop if we didn't authenticated */
     if (authentication_result != PAM_SUCCESS)
+    {
+        pam_end (pam_handle, 0);
         return EXIT_FAILURE;
+    }
 
     /* Get the command to run (blocks) */
     log_filename = read_string ();
@@ -469,6 +476,14 @@ session_child_run (int argc, char **argv)
     for (i = 0; i < command_argc; i++)
         command_argv[i] = read_string ();
     command_argv[i] = NULL;
+
+    /* If nothing to run just refresh credentials because we successfully authenticated */
+    if (command_argc == 0)
+    {
+        pam_setcred (pam_handle, PAM_REINITIALIZE_CRED);
+        pam_end (pam_handle, 0);
+        return EXIT_SUCCESS;
+    }
 
     /* Redirect stderr to a log file */
     if (log_filename)
@@ -506,6 +521,7 @@ session_child_run (int argc, char **argv)
     if (result != PAM_SUCCESS)
     {
         g_printerr ("Failed to establish PAM credentials: %s\n", pam_strerror (pam_handle, result));
+        pam_end (pam_handle, 0);
         return EXIT_FAILURE;
     }
      
@@ -514,6 +530,7 @@ session_child_run (int argc, char **argv)
     if (result != PAM_SUCCESS)
     {
         g_printerr ("Failed to open PAM session: %s\n", pam_strerror (pam_handle, result));
+        pam_end (pam_handle, 0);
         return EXIT_FAILURE;
     }
 
@@ -522,7 +539,10 @@ session_child_run (int argc, char **argv)
     if (error)
         g_printerr ("Unable to contact system bus: %s", error->message);
     if (!bus)
+    {
+        pam_end (pam_handle, 0);
         return EXIT_FAILURE;
+    }
 
     if (login1_is_running ())
     {
@@ -580,7 +600,10 @@ session_child_run (int argc, char **argv)
             g_printerr ("Error writing X authority: %s\n", error->message);
         g_clear_error (&error);
         if (!result)
+        {
+            pam_end (pam_handle, 0);
             return EXIT_FAILURE;
+        }
 
         value = g_strdup_printf ("XAUTHORITY=%s", x_authority_filename);
         pam_putenv (pam_handle, value);
