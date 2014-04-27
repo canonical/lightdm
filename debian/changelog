@@ -1,4 +1,4 @@
-lightdm (1.11.0-0ubuntu1) unicorn; urgency=medium
+lightdm (1.11.0-0ubuntu1) utopic; urgency=medium
 
   * New upstream release:
     - When switching to an existing session refresh PAM credentials and end
