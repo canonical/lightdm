@@ -56,10 +56,14 @@ static gint exit_code = EXIT_SUCCESS;
 typedef struct
 {
     gchar *path;
-    gchar *parent_path;
-    gchar *removed_signal;
     guint bus_id;
-} BusEntry;
+} SeatBusEntry;
+typedef struct
+{
+    gchar *path;
+    gchar *seat_path;
+    guint bus_id;
+} SessionBusEntry;
 
 #define LIGHTDM_BUS_NAME "org.freedesktop.DisplayManager"
 
@@ -245,6 +249,44 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 }
 
 static GVariant *
+get_seat_list (void)
+{
+    GVariantBuilder builder;
+    GHashTableIter iter;
+    gpointer value;
+
+    g_variant_builder_init (&builder, G_VARIANT_TYPE ("ao"));
+    g_hash_table_iter_init (&iter, seat_bus_entries);
+    while (g_hash_table_iter_next (&iter, NULL, &value))
+    {
+        SeatBusEntry *entry = value;
+        g_variant_builder_add_value (&builder, g_variant_new_object_path (entry->path));
+    }
+
+    return g_variant_builder_end (&builder);
+}
+
+static GVariant *
+get_session_list (const gchar *seat_path)
+{
+    GVariantBuilder builder;
+    GHashTableIter iter;
+    gpointer value;
+
+    g_variant_builder_init (&builder, G_VARIANT_TYPE ("ao"));
+
+    g_hash_table_iter_init (&iter, session_bus_entries);
+    while (g_hash_table_iter_next (&iter, NULL, &value))
+    {
+        SessionBusEntry *entry = value;
+        if (seat_path == NULL || strcmp (entry->seat_path, seat_path) == 0)
+            g_variant_builder_add_value (&builder, g_variant_new_object_path (entry->path));
+    }
+
+    return g_variant_builder_end (&builder);
+}
+
+static GVariant *
 handle_display_manager_get_property (GDBusConnection       *connection,
                                      const gchar           *sender,
                                      const gchar           *object_path,
@@ -253,42 +295,12 @@ handle_display_manager_get_property (GDBusConnection       *connection,
                                      GError               **error,
                                      gpointer               user_data)
 {
-    GVariant *result = NULL;
-
     if (g_strcmp0 (property_name, "Seats") == 0)
-    {
-        GVariantBuilder *builder;
-        GHashTableIter iter;
-        gpointer value;
-
-        builder = g_variant_builder_new (G_VARIANT_TYPE ("ao"));
-        g_hash_table_iter_init (&iter, seat_bus_entries);
-        while (g_hash_table_iter_next (&iter, NULL, &value))
-        {
-            BusEntry *entry = value;
-            g_variant_builder_add_value (builder, g_variant_new_object_path (entry->path));
-        }
-        result = g_variant_builder_end (builder);
-        g_variant_builder_unref (builder);
-    }
+        return get_seat_list ();
     else if (g_strcmp0 (property_name, "Sessions") == 0)
-    {
-        GVariantBuilder *builder;
-        GHashTableIter iter;
-        gpointer value;
+        return get_session_list (NULL);
 
-        builder = g_variant_builder_new (G_VARIANT_TYPE ("ao"));
-        g_hash_table_iter_init (&iter, session_bus_entries);
-        while (g_hash_table_iter_next (&iter, NULL, &value))
-        {
-            BusEntry *entry = value;
-            g_variant_builder_add_value (builder, g_variant_new_object_path (entry->path));
-        }
-        result = g_variant_builder_end (builder);
-        g_variant_builder_unref (builder);
-    }
-
-    return result;
+    return NULL;
 }
 
 static void
@@ -333,7 +345,7 @@ handle_display_manager_call (GDBusConnection       *connection,
 
         if (display_manager_add_seat (display_manager, seat))
         {
-            BusEntry *entry;
+            SeatBusEntry *entry;
 
             entry = g_hash_table_lookup (seat_bus_entries, seat);
             g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", entry->path));
@@ -374,7 +386,7 @@ handle_display_manager_call (GDBusConnection       *connection,
 
         if (display_manager_add_seat (display_manager, seat))
         {
-            BusEntry *entry;
+            SeatBusEntry *entry;
 
             entry = g_hash_table_lookup (seat_bus_entries, seat);
             g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", entry->path));
@@ -395,31 +407,20 @@ handle_seat_get_property (GDBusConnection       *connection,
                           gpointer               user_data)
 {
     Seat *seat = user_data;
-    GVariant *result = NULL;
 
     if (g_strcmp0 (property_name, "CanSwitch") == 0)
-        result = g_variant_new_boolean (seat_get_can_switch (seat));
+        return g_variant_new_boolean (seat_get_can_switch (seat));
     if (g_strcmp0 (property_name, "HasGuestAccount") == 0)
-        result = g_variant_new_boolean (seat_get_allow_guest (seat));
+        return g_variant_new_boolean (seat_get_allow_guest (seat));
     else if (g_strcmp0 (property_name, "Sessions") == 0)
     {
-        GVariantBuilder *builder;
-        GList *link;
+        SeatBusEntry *entry;
 
-        builder = g_variant_builder_new (G_VARIANT_TYPE ("ao"));
-        for (link = seat_get_sessions (seat); link; link = link->next)
-        {
-            Session *session = link->data;
-            BusEntry *entry;
-            entry = g_hash_table_lookup (session_bus_entries, session);
-            if (entry)
-                g_variant_builder_add_value (builder, g_variant_new_object_path (entry->path));
-        }
-        result = g_variant_builder_end (builder);
-        g_variant_builder_unref (builder);
+        entry = g_hash_table_lookup (seat_bus_entries, seat);
+        return get_session_list (entry->path);
     }
 
-    return result;
+    return NULL;
 }
 
 static void
@@ -510,11 +511,11 @@ handle_session_get_property (GDBusConnection       *connection,
                              gpointer               user_data)
 {
     Session *session = user_data;
-    BusEntry *entry;
+    SessionBusEntry *entry;
 
     entry = g_hash_table_lookup (session_bus_entries, session);
     if (g_strcmp0 (property_name, "Seat") == 0)
-        return g_variant_new_object_path (entry ? entry->parent_path : "");
+        return g_variant_new_object_path (entry ? entry->seat_path : "");
     else if (g_strcmp0 (property_name, "UserName") == 0)
         return g_variant_new_string (session_get_username (session));
 
@@ -544,40 +545,94 @@ handle_session_call (GDBusConnection       *connection,
     }
 }
 
-static BusEntry *
-bus_entry_new (const gchar *path, const gchar *parent_path, const gchar *removed_signal)
+static SeatBusEntry *
+seat_bus_entry_new (const gchar *path)
 {
-    BusEntry *entry;
+    SeatBusEntry *entry;
 
-    entry = g_malloc0 (sizeof (BusEntry));
+    entry = g_malloc0 (sizeof (SeatBusEntry));
     entry->path = g_strdup (path);
-    entry->parent_path = g_strdup (parent_path);
-    entry->removed_signal = g_strdup (removed_signal);
+
+    return entry;
+}
+
+static SessionBusEntry *
+session_bus_entry_new (const gchar *path, const gchar *seat_path)
+{
+    SessionBusEntry *entry;
+
+    entry = g_malloc0 (sizeof (SessionBusEntry));
+    entry->path = g_strdup (path);
+    entry->seat_path = g_strdup (seat_path);
 
     return entry;
 }
 
 static void
-bus_entry_free (gpointer data)
+emit_object_value_changed (GDBusConnection *bus, const gchar *path, const gchar *interface_name, const gchar *property_name, GVariant *property_value)
 {
-    BusEntry *entry = data;
+    GVariantBuilder builder;
     GError *error = NULL;
 
-    g_dbus_connection_unregister_object (bus, entry->bus_id);
+    g_variant_builder_init (&builder, G_VARIANT_TYPE_ARRAY);
+    g_variant_builder_add (&builder, "{sv}", property_name, property_value);
 
     if (!g_dbus_connection_emit_signal (bus,
                                         NULL,
-                                        "/org/freedesktop/DisplayManager",
-                                        "org.freedesktop.DisplayManager",
-                                        entry->removed_signal,
-                                        g_variant_new ("(o)", entry->path),
+                                        path,
+                                        "org.freedesktop.DBus.Properties",
+                                        "PropertiesChanged",
+                                        g_variant_new ("(sa{sv}as)", interface_name, &builder, NULL),
                                         &error))
-        g_warning ("Failed to emit %s signal: %s", entry->removed_signal, error->message);
-    g_clear_error (&error);
+        g_warning ("Failed to emit PropertiesChanged signal: %s", error->message);
+    g_clear_error (&error); 
+}
+
+static void
+emit_object_signal (GDBusConnection *bus, const gchar *path, const gchar *signal_name, const gchar *object_path)
+{
+    GError *error = NULL;
+
+    if (!g_dbus_connection_emit_signal (bus,
+                                        NULL,
+                                        path,
+                                        "org.freedesktop.DisplayManager",
+                                        signal_name,
+                                        g_variant_new ("(o)", object_path),
+                                        &error))
+        g_warning ("Failed to emit %s signal on %s: %s", signal_name, path, error->message);
+    g_clear_error (&error); 
+}
+
+static void
+seat_bus_entry_free (gpointer data)
+{
+    SeatBusEntry *entry = data;
+
+    g_dbus_connection_unregister_object (bus, entry->bus_id);
+
+    emit_object_value_changed (bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Seats", get_seat_list ());
+    emit_object_signal (bus, "/org/freedesktop/DisplayManager", "SeatRemoved", entry->path);
 
     g_free (entry->path);
-    g_free (entry->parent_path);
-    g_free (entry->removed_signal);
+    g_free (entry);
+}
+
+static void
+session_bus_entry_free (gpointer data)
+{
+    SessionBusEntry *entry = data;
+
+    g_dbus_connection_unregister_object (bus, entry->bus_id);
+
+    emit_object_value_changed (bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Sessions", get_session_list (NULL));
+    emit_object_signal (bus, "/org/freedesktop/DisplayManager", "SessionRemoved", entry->path);
+
+    emit_object_value_changed (bus, entry->seat_path, "org.freedesktop.DisplayManager.Seat", "Sessions", get_session_list (entry->seat_path));
+    emit_object_signal (bus, entry->seat_path, "SessionRemoved", entry->path);
+
+    g_free (entry->path);
+    g_free (entry->seat_path);
     g_free (entry);
 }
 
@@ -589,7 +644,8 @@ running_user_session_cb (Seat *seat, Session *session)
         handle_session_call,
         handle_session_get_property
     };
-    BusEntry *seat_entry, *entry;
+    SeatBusEntry *seat_entry;
+    SessionBusEntry *session_entry;
     gchar *path;
     GError *error = NULL;
 
@@ -602,30 +658,26 @@ running_user_session_cb (Seat *seat, Session *session)
     g_object_set_data_full (G_OBJECT (session), "XDG_SESSION_PATH", path, g_free);
 
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
-    entry = bus_entry_new (g_object_get_data (G_OBJECT (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL, "SessionRemoved");
-    g_hash_table_insert (session_bus_entries, g_object_ref (session), entry);
+    session_entry = session_bus_entry_new (g_object_get_data (G_OBJECT (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL);
+    g_hash_table_insert (session_bus_entries, g_object_ref (session), session_entry);
 
-    g_debug ("Registering session with bus path %s", entry->path);
+    g_debug ("Registering session with bus path %s", session_entry->path);
 
-    entry->bus_id = g_dbus_connection_register_object (bus,
-                                                       entry->path,
-                                                       session_info->interfaces[0],
-                                                       &session_vtable,
-                                                       g_object_ref (session), g_object_unref,
-                                                       &error);
-    if (entry->bus_id == 0)
+    session_entry->bus_id = g_dbus_connection_register_object (bus,
+                                                               session_entry->path,
+                                                               session_info->interfaces[0],
+                                                               &session_vtable,
+                                                               g_object_ref (session), g_object_unref,
+                                                               &error);
+    if (session_entry->bus_id == 0)
         g_warning ("Failed to register user session: %s", error->message);
     g_clear_error (&error);
 
-    if (!g_dbus_connection_emit_signal (bus,
-                                        NULL,
-                                        "/org/freedesktop/DisplayManager",
-                                        "org.freedesktop.DisplayManager",
-                                        "SessionAdded",
-                                        g_variant_new ("(o)", entry->path),
-                                        &error))
-        g_warning ("Failed to emit SessionAdded signal: %s", error->message);
-    g_clear_error (&error);
+    emit_object_value_changed (bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Sessions", get_session_list (NULL));
+    emit_object_signal (bus, "/org/freedesktop/DisplayManager", "SessionAdded", session_entry->path);
+
+    emit_object_value_changed (bus, seat_entry->path, "org.freedesktop.DisplayManager.Seat", "Sessions", get_session_list (session_entry->seat_path));
+    emit_object_signal (bus, seat_entry->path, "SessionAdded", session_entry->path);
 }
 
 static void
@@ -644,13 +696,13 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
         handle_seat_get_property
     };
     gchar *path;
-    BusEntry *entry;
+    SeatBusEntry *entry;
     GError *error = NULL;
 
     path = g_strdup_printf ("/org/freedesktop/DisplayManager/Seat%d", seat_index);
     seat_index++;
 
-    entry = bus_entry_new (path, NULL, "SeatRemoved");
+    entry = seat_bus_entry_new (path);
     g_free (path);
     g_hash_table_insert (seat_bus_entries, g_object_ref (seat), entry);
 
@@ -666,15 +718,8 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
         g_warning ("Failed to register seat: %s", error->message);
     g_clear_error (&error);
 
-    if (!g_dbus_connection_emit_signal (bus,
-                                        NULL,
-                                        "/org/freedesktop/DisplayManager",
-                                        "org.freedesktop.DisplayManager",
-                                        "SeatAdded",
-                                        g_variant_new ("(o)", entry->path),
-                                        &error))
-        g_warning ("Failed to emit SeatAdded signal: %s", error->message);
-    g_clear_error (&error);
+    emit_object_value_changed (bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Seats", get_seat_list ());
+    emit_object_signal (bus, "/org/freedesktop/DisplayManager", "SeatAdded", entry->path);
 
     g_signal_connect (seat, "running-user-session", G_CALLBACK (running_user_session_cb), NULL);
     g_signal_connect (seat, "session-removed", G_CALLBACK (session_removed_cb), NULL);
@@ -764,6 +809,12 @@ bus_acquired_cb (GDBusConnection *connection,
         "      <arg name='session-name' direction='in' type='s'/>"
         "    </method>"
         "    <method name='Lock'/>"
+        "    <signal name='SessionAdded'>"
+        "      <arg name='session' type='o'/>"
+        "    </signal>"
+        "    <signal name='SessionRemoved'>"
+        "      <arg name='session' type='o'/>"
+        "    </signal>"
         "  </interface>"
         "</node>";
     const gchar *session_interface =
@@ -800,8 +851,8 @@ bus_acquired_cb (GDBusConnection *connection,
     g_clear_error (&error);
     g_dbus_node_info_unref (display_manager_info);
 
-    seat_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, bus_entry_free);
-    session_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, bus_entry_free);
+    seat_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, seat_bus_entry_free);
+    session_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, session_bus_entry_free);
 
     g_signal_connect (display_manager, "seat-added", G_CALLBACK (seat_added_cb), NULL);
     g_signal_connect (display_manager, "seat-removed", G_CALLBACK (seat_removed_cb), NULL);

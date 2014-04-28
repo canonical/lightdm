@@ -54,6 +54,7 @@ static void connect_status (void)
 
 struct pam_handle
 {
+    char *id;
     char *service_name;
     char *user;
     char *authtok;
@@ -794,6 +795,25 @@ pam_start (const char *service_name, const char *user, const struct pam_conv *co
     if (handle == NULL)
         return PAM_BUF_ERR;
 
+    if (user)
+        handle->id = g_strdup_printf ("PAM-%s", user);
+    else
+        handle->id = g_strdup ("PAM");
+
+    connect_status ();
+    if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
+    {
+        GString *status;
+
+        status = g_string_new ("");
+        g_string_append_printf (status, "%s START", handle->id);
+        g_string_append_printf (status, " SERVICE=%s", service_name);
+        if (user)
+            g_string_append_printf (status, " USER=%s", user);
+        status_notify (status->str);
+        g_string_free (status, TRUE);
+    }
+
     handle->service_name = strdup (service_name);
     handle->user = user ? strdup (user) : NULL;
     handle->authtok = NULL;
@@ -807,27 +827,6 @@ pam_start (const char *service_name, const char *user, const struct pam_conv *co
     return PAM_SUCCESS;
 }
 
-static void
-send_info (pam_handle_t *pamh, const char *message)
-{
-    struct pam_message **msg;
-    struct pam_response *resp = NULL;
-
-    msg = calloc (1, sizeof (struct pam_message *));
-    msg[0] = malloc (sizeof (struct pam_message));
-    msg[0]->msg_style = PAM_TEXT_INFO;
-    msg[0]->msg = message;
-    pamh->conversation.conv (1, (const struct pam_message **) msg, &resp, pamh->conversation.appdata_ptr);
-    free (msg[0]);
-    free (msg);
-    if (resp)
-    {
-        if (resp[0].resp)
-            free (resp[0].resp);
-        free (resp);
-    }
-}
-
 int
 pam_authenticate (pam_handle_t *pamh, int flags)
 {
@@ -836,6 +835,22 @@ pam_authenticate (pam_handle_t *pamh, int flags)
 
     if (pamh == NULL)
         return PAM_SYSTEM_ERR;
+
+    connect_status ();
+    if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
+    {
+        GString *status;
+
+        status = g_string_new ("");
+        g_string_append_printf (status, "%s AUTHENTICATE", pamh->id);
+        if (flags & PAM_SILENT)
+            g_string_append (status, " SILENT");
+        if (flags & PAM_DISALLOW_NULL_AUTHTOK)
+            g_string_append (status, " DISALLOW_NULL_AUTHTOK");
+
+        status_notify (status->str);
+        g_string_free (status, TRUE);
+    }
   
     if (strcmp (pamh->service_name, "test-remote") == 0)
     {
@@ -928,9 +943,6 @@ pam_authenticate (pam_handle_t *pamh, int flags)
         free (resp[0].resp);
         free (resp);
     }
-
-    if (strcmp (pamh->user, "log-pam") == 0)
-        send_info (pamh, "pam_authenticate");
 
     /* Crash on authenticate */
     if (strcmp (pamh->user, "crash-authenticate") == 0)
@@ -1201,11 +1213,22 @@ pam_open_session (pam_handle_t *pamh, int flags)
     if (pamh == NULL)
         return PAM_SYSTEM_ERR;
 
+    connect_status ();
+    if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
+    {
+        GString *status;
+
+        status = g_string_new ("");
+        g_string_append_printf (status, "%s OPEN-SESSION", pamh->id);
+        if (flags & PAM_SILENT)
+            g_string_append (status, " SILENT");
+
+        status_notify (status->str);
+        g_string_free (status, TRUE);
+    }
+
     if (strcmp (pamh->user, "session-error") == 0)
         return PAM_SESSION_ERR;
-
-    if (strcmp (pamh->user, "log-pam") == 0)
-        send_info (pamh, "pam_open_session");
 
     if (strcmp (pamh->user, "make-home-dir") == 0)
     {
@@ -1223,8 +1246,19 @@ pam_close_session (pam_handle_t *pamh, int flags)
     if (pamh == NULL)
         return PAM_SYSTEM_ERR;
 
-    if (strcmp (pamh->user, "log-pam") == 0)
-        send_info (pamh, "pam_close_session");
+    connect_status ();
+    if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
+    {
+        GString *status;
+
+        status = g_string_new ("");
+        g_string_append_printf (status, "%s CLOSE-SESSION", pamh->id);
+        if (flags & PAM_SILENT)
+            g_string_append (status, " SILENT");
+
+        status_notify (status->str);
+        g_string_free (status, TRUE);
+    }
 
     return PAM_SUCCESS;
 }
@@ -1234,12 +1268,25 @@ pam_acct_mgmt (pam_handle_t *pamh, int flags)
 {
     if (pamh == NULL)
         return PAM_SYSTEM_ERR;
+
+    connect_status ();
+    if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
+    {
+        GString *status;
+
+        status = g_string_new ("");
+        g_string_append_printf (status, "%s ACCT-MGMT", pamh->id);
+        if (flags & PAM_SILENT)
+            g_string_append (status, " SILENT");
+        if (flags & PAM_DISALLOW_NULL_AUTHTOK)
+            g_string_append (status, " DISALLOW_NULL_AUTHTOK");
+
+        status_notify (status->str);
+        g_string_free (status, TRUE);
+    }
   
     if (!pamh->user)
         return PAM_USER_UNKNOWN;
-
-    if (strcmp (pamh->user, "log-pam") == 0)
-        send_info (pamh, "pam_acct_mgmt");
 
     if (strcmp (pamh->user, "denied") == 0)
         return PAM_PERM_DENIED;
@@ -1262,8 +1309,21 @@ pam_chauthtok (pam_handle_t *pamh, int flags)
     if (pamh == NULL)
         return PAM_SYSTEM_ERR;
 
-    if (strcmp (pamh->user, "log-pam") == 0)
-        send_info (pamh, "pam_chauthtok");
+    connect_status ();
+    if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
+    {
+        GString *status;
+
+        status = g_string_new ("");
+        g_string_append_printf (status, "%s CHAUTHTOK", pamh->id);
+        if (flags & PAM_SILENT)
+            g_string_append (status, " SILENT");
+        if (flags & PAM_CHANGE_EXPIRED_AUTHTOK)
+            g_string_append (status, " CHANGE_EXPIRED_AUTHTOK");
+
+        status_notify (status->str);
+        g_string_free (status, TRUE);
+    }
 
     msg = malloc (sizeof (struct pam_message *) * 1);
     msg[0] = malloc (sizeof (struct pam_message));
@@ -1303,8 +1363,27 @@ pam_setcred (pam_handle_t *pamh, int flags)
     if (pamh == NULL)
         return PAM_SYSTEM_ERR;
 
-    if (strcmp (pamh->user, "log-pam") == 0)
-        send_info (pamh, "pam_setcred");
+    connect_status ();
+    if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
+    {
+        GString *status;
+
+        status = g_string_new ("");
+        g_string_append_printf (status, "%s SETCRED", pamh->id);
+        if (flags & PAM_SILENT)
+            g_string_append (status, " SILENT");
+        if (flags & PAM_ESTABLISH_CRED)
+            g_string_append (status, " ESTABLISH_CRED");
+        if (flags & PAM_DELETE_CRED)
+            g_string_append (status, " DELETE_CRED");
+        if (flags & PAM_REINITIALIZE_CRED)
+            g_string_append (status, " REINITIALIZE_CRED");
+        if (flags & PAM_REFRESH_CRED)
+            g_string_append (status, " REFRESH_CRED");
+
+        status_notify (status->str);
+        g_string_free (status, TRUE);
+    }
 
     /* Put the test directories into the path */
     e = g_strdup_printf ("PATH=%s/tests/src/.libs:%s/tests/src:%s/tests/src:%s/src:%s", BUILDDIR, BUILDDIR, SRCDIR, BUILDDIR, pam_getenv (pamh, "PATH"));
@@ -1353,7 +1432,19 @@ pam_end (pam_handle_t *pamh, int pam_status)
 {
     if (pamh == NULL)
         return PAM_SYSTEM_ERR;
-  
+
+    connect_status ();
+    if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
+    {
+        GString *status;
+
+        status = g_string_new ("");
+        g_string_append_printf (status, "%s END", pamh->id);
+        status_notify (status->str);
+        g_string_free (status, TRUE);
+    }
+
+    free (pamh->id);
     free (pamh->service_name);
     if (pamh->user)
         free (pamh->user);

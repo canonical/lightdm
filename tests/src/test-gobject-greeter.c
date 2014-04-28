@@ -66,6 +66,38 @@ sigterm_cb (gpointer user_data)
 }
 
 static void
+notify_hints (LightDMGreeter *greeter)
+{
+    if (lightdm_greeter_get_select_user_hint (greeter))
+        status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, lightdm_greeter_get_select_user_hint (greeter));
+    if (lightdm_greeter_get_select_guest_hint (greeter))
+        status_notify ("%s SELECT-GUEST-HINT", greeter_id);
+    if (lightdm_greeter_get_lock_hint (greeter))
+        status_notify ("%s LOCK-HINT", greeter_id);
+    if (!lightdm_greeter_get_has_guest_account_hint (greeter))
+        status_notify ("%s HAS-GUEST-ACCOUNT-HINT=FALSE", greeter_id);
+    if (lightdm_greeter_get_hide_users_hint (greeter))
+        status_notify ("%s HIDE-USERS-HINT", greeter_id);
+    if (lightdm_greeter_get_show_manual_login_hint (greeter))
+        status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
+    if (!lightdm_greeter_get_show_remote_login_hint (greeter))
+        status_notify ("%s SHOW-REMOTE-LOGIN-HINT=FALSE", greeter_id);
+}
+
+static void
+idle_cb (LightDMGreeter *greeter)
+{
+    status_notify ("%s IDLE", greeter_id);
+}
+
+static void
+reset_cb (LightDMGreeter *greeter)
+{
+    status_notify ("%s RESET", greeter_id);
+    notify_hints (greeter);
+}
+
+static void
 user_changed_cb (LightDMUser *user)
 {
     status_notify ("%s USER-CHANGED USERNAME=%s", greeter_id, lightdm_user_get_name (user));
@@ -352,20 +384,7 @@ connect_finished (GObject *object, GAsyncResult *result, gpointer data)
 
     status_notify ("%s CONNECTED-TO-DAEMON", greeter_id);
 
-    if (lightdm_greeter_get_select_user_hint (greeter))
-        status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, lightdm_greeter_get_select_user_hint (greeter));
-    if (lightdm_greeter_get_select_guest_hint (greeter))
-        status_notify ("%s SELECT-GUEST-HINT", greeter_id);
-    if (lightdm_greeter_get_lock_hint (greeter))
-        status_notify ("%s LOCK-HINT", greeter_id);
-    if (!lightdm_greeter_get_has_guest_account_hint (greeter))
-        status_notify ("%s HAS-GUEST-ACCOUNT-HINT=FALSE", greeter_id);
-    if (lightdm_greeter_get_hide_users_hint (greeter))
-        status_notify ("%s HIDE-USERS-HINT", greeter_id);
-    if (lightdm_greeter_get_show_manual_login_hint (greeter))
-        status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
-    if (!lightdm_greeter_get_show_remote_login_hint (greeter))
-        status_notify ("%s SHOW-REMOTE-LOGIN-HINT=FALSE", greeter_id);
+    notify_hints (greeter);
 }
 
 int
@@ -448,6 +467,12 @@ main (int argc, char **argv)
     g_signal_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
     g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
     g_signal_connect (greeter, "autologin-timer-expired", G_CALLBACK (autologin_timer_expired_cb), NULL);
+    if (g_key_file_get_boolean (config, "test-greeter-config", "resettable", NULL))
+    {
+        lightdm_greeter_set_resettable (greeter, TRUE);
+        g_signal_connect (greeter, "idle", G_CALLBACK (idle_cb), NULL);
+        g_signal_connect (greeter, "reset", G_CALLBACK (reset_cb), NULL);
+    }
 
     if (g_key_file_get_boolean (config, "test-greeter-config", "log-user-changes", NULL))
     {

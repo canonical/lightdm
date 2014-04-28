@@ -63,6 +63,9 @@ struct GreeterPrivate
     /* PAM session being constructed by the greeter */
     Session *authentication_session;
 
+    /* TRUE if a the greeter can handle a reset; else we will just kill it instead */
+    gboolean resettable;
+
     /* TRUE if a user has been authenticated and the session requested to start */
     gboolean start_session;
 
@@ -102,6 +105,8 @@ typedef enum
     SERVER_MESSAGE_END_AUTHENTICATION,
     SERVER_MESSAGE_SESSION_RESULT,
     SERVER_MESSAGE_SHARED_DIR_RESULT,
+    SERVER_MESSAGE_IDLE,
+    SERVER_MESSAGE_RESET,
 } ServerMessage;
 
 static gboolean read_cb (GIOChannel *source, GIOCondition condition, gpointer data);
@@ -125,6 +130,12 @@ void
 greeter_set_allow_guest (Greeter *greeter, gboolean allow_guest)
 {
     greeter->priv->allow_guest = allow_guest;
+}
+
+void
+greeter_clear_hints (Greeter *greeter)
+{
+    g_hash_table_remove_all (greeter->priv->hints);
 }
 
 void
@@ -229,7 +240,7 @@ string_length (const gchar *value)
 }
 
 static void
-handle_connect (Greeter *greeter, const gchar *version)
+handle_connect (Greeter *greeter, const gchar *version, gboolean resettable)
 {
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
@@ -237,7 +248,9 @@ handle_connect (Greeter *greeter, const gchar *version)
     GHashTableIter iter;
     gpointer key, value;
 
-    l_debug (greeter, "Greeter connected version=%s", version);
+    l_debug (greeter, "Greeter connected version=%s resettable=%s", version, resettable ? "true" : "false");
+
+    greeter->priv->resettable = resettable;
 
     length = string_length (VERSION);
     g_hash_table_iter_init (&iter, greeter->priv->hints);
@@ -313,6 +326,39 @@ send_end_authentication (Greeter *greeter, guint32 sequence_number, const gchar 
     write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, result, &offset);
     write_message (greeter, message, offset); 
+}
+
+void
+greeter_idle (Greeter *greeter)
+{
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+
+    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_IDLE, 0, &offset);
+    write_message (greeter, message, offset);
+}
+
+void
+greeter_reset (Greeter *greeter)
+{
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+    guint32 length = 0;
+    GHashTableIter iter;
+    gpointer key, value;
+
+    g_hash_table_iter_init (&iter, greeter->priv->hints);
+    while (g_hash_table_iter_next (&iter, &key, &value))
+        length += string_length (key) + string_length (value);
+
+    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_RESET, length, &offset);
+    g_hash_table_iter_init (&iter, greeter->priv->hints);
+    while (g_hash_table_iter_next (&iter, &key, &value))
+    {
+        write_string (message, MAX_MESSAGE_LENGTH, key, &offset);
+        write_string (message, MAX_MESSAGE_LENGTH, value, &offset);
+    }
+    write_message (greeter, message, offset);
 }
 
 static void
@@ -724,10 +770,11 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     Greeter *greeter = data;
     gsize n_to_read, n_read, offset;
     GIOStatus status;
-    int id, i;
+    int id, length, i;
     guint32 sequence_number, n_secrets, max_secrets;
     gchar *version, *username, *session_name, *language;
     gchar **secrets;
+    gboolean resettable = FALSE;
     GError *error = NULL;
 
     if (condition == G_IO_HUP)
@@ -777,12 +824,14 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
   
     offset = 0;
     id = read_int (greeter, &offset);
-    read_int (greeter, &offset);
+    length = HEADER_SIZE + read_int (greeter, &offset);
     switch (id)
     {
     case GREETER_MESSAGE_CONNECT:
         version = read_string (greeter, &offset);
-        handle_connect (greeter, version);
+        if (offset < length)
+            resettable = read_int (greeter, &offset) != 0;
+        handle_connect (greeter, version, resettable);
         g_free (version);
         break;
     case GREETER_MESSAGE_AUTHENTICATE:
@@ -859,6 +908,13 @@ greeter_get_authentication_session (Greeter *greeter)
 {
     g_return_val_if_fail (greeter != NULL, NULL);
     return greeter->priv->authentication_session;
+}
+
+gboolean
+greeter_get_resettable (Greeter *greeter)
+{
+    g_return_val_if_fail (greeter != NULL, FALSE);
+    return greeter->priv->resettable;
 }
 
 gboolean

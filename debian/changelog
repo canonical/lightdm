@@ -1,3 +1,70 @@
+lightdm (1.11.1-0ubuntu1) UNRELEASED; urgency=medium
+
+  * Add lightdm_greeter_set_resettable
+
+ -- Michael Terry <mterry@ubuntu.com>  Mon, 28 Apr 2014 09:42:14 -0400
+
+lightdm (1.11.0-0ubuntu1) utopic; urgency=medium
+
+  * New upstream release:
+    - When switching to an existing session refresh PAM credentials and end
+      session cleanly so no resources leak. (LP: #1296276)
+    - Support new standard DesktopNames field in session files
+    - Set XDG_SESSION_TYPE and XDG_SESSION_DESKTOP as used by systemd
+    - Emit DBus PropertiesChanged when Sessions/Seats properties change. Also
+      add SessionAdded/SessionRemoved signals to Seat interface
+
+  [ Harald Sitter ]
+  * Add pam_kwallet to pam configs. (LP: #1305307)
+  
+  [ Martin Pitt ]
+  * Add systemd integration
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 28 Apr 2014 10:32:37 +1200
+
+lightdm (1.10.0-0ubuntu3) trusty; urgency=medium
+
+  * debian/patches/06_apparmor_chromium_updates.patch: allow oxide based
+    browsers and Google Chrome to run in the guest session
+    - LP: #1298021
+    - LP: #1306560
+
+ -- Jamie Strandboge <jamie@ubuntu.com>  Fri, 11 Apr 2014 09:24:09 -0500
+
+lightdm (1.10.0-0ubuntu2) trusty; urgency=medium
+
+  * Add pam_kwallet to pam configs. (LP: #1305307)
+
+ -- Harald Sitter <apachelogger@kubuntu.org>  Thu, 10 Apr 2014 10:27:18 +0200
+
+lightdm (1.10.0-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Fix return value for Vala bindings to Greeter.start_session_sync
+    - Fix logging when failing to find session
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 08 Apr 2014 16:12:46 +1200
+
+lightdm (1.9.15-0ubuntu1) trusty; urgency=medium
+
+  * debian/patches/06_guest_signal_and_ptrace_aa_rules.patch,
+    debian/patches/07_guest_proc_pid_stat_aa_rule.patch: Dropped, the fixes
+    are upstream
+
+ -- Tyler Hicks <tyhicks@canonical.com>  Mon, 07 Apr 2014 10:33:46 -0500
+
+lightdm (1.9.14-0ubuntu2) trusty; urgency=medium
+
+  * debian/patches/06_guest_signal_and_ptrace_aa_rules.patch: Grant
+    permission for guest session processes to signal and ptrace each
+    other (LP: #1298611)
+  * debian/patches/07_guest_proc_pid_stat_aa_rule.patch: Grant permission for
+    guest session processes to read /proc/<PID>/stat. This prevents AppArmor
+    denial messages caused by bamfdaemon and common utilities such as ps and
+    killall. (LP: #1301625)
+
+ -- Tyler Hicks <tyhicks@canonical.com>  Thu, 03 Apr 2014 02:48:51 -0500
+
 lightdm (1.9.14-0ubuntu1) trusty; urgency=medium
 
   * New upstream release:

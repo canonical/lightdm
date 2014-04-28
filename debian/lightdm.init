@@ -21,9 +21,9 @@
 
 ### BEGIN INIT INFO
 # Provides:          lightdm
-# Required-Start:    $local_fs $remote_fs
-# Required-Stop:     $local_fs $remote_fs
-# Should-Start:      $named acpid hal
+# Required-Start:    $local_fs $remote_fs dbus
+# Required-Stop:     $local_fs $remote_fs dbus
+# Should-Start:      $named
 # Should-Stop:       $named
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6

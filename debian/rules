@@ -3,7 +3,7 @@
 LDFLAGS+=-Wl,--as-needed
 
 %:
-	dh $@ --with quilt,autoreconf,translations --parallel
+	dh $@ --with quilt,autoreconf,translations,systemd --parallel
 
 override_dh_autoreconf:
 	NOCONFIGURE=1 dh_autoreconf ./autogen.sh
@@ -26,6 +26,9 @@ override_dh_install:
 
 override_dh_installinit:
 	dh_installinit --no-start
+
+override_dh_systemd_start:
+	dh_systemd_start -plightdm --no-start -r lightdm.service
 
 override_dh_installpam:
 	dh_installpam

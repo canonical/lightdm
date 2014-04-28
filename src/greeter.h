@@ -46,13 +46,21 @@ void greeter_set_pam_services (Greeter *greeter, const gchar *pam_service, const
 
 void greeter_set_allow_guest (Greeter *greeter, gboolean allow_guest);
 
+void greeter_clear_hints (Greeter *greeter);
+
 void greeter_set_hint (Greeter *greeter, const gchar *name, const gchar *value);
+
+void greeter_idle (Greeter *greeter);
+
+void greeter_reset (Greeter *greeter);
 
 gboolean greeter_get_guest_authenticated (Greeter *greeter);
 
 Session *greeter_get_authentication_session (Greeter *greeter);
 
 gboolean greeter_get_start_session (Greeter *greeter);
+
+gboolean greeter_get_resettable (Greeter *greeter);
 
 const gchar *greeter_get_active_username (Greeter *greeter);
 

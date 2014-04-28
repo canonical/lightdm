@@ -179,6 +179,8 @@ unity_system_compositor_connect_session (DisplayServer *display_server, Session 
     UnitySystemCompositor *compositor = UNITY_SYSTEM_COMPOSITOR (display_server);
     const gchar *name;
 
+    session_set_env (session, "XDG_SESSION_TYPE", "mir");
+
     if (compositor->priv->socket)
         session_set_env (session, "MIR_SOCKET", compositor->priv->socket);
     if (IS_GREETER (session))
@@ -198,6 +200,7 @@ unity_system_compositor_connect_session (DisplayServer *display_server, Session 
 static void
 unity_system_compositor_disconnect_session (DisplayServer *display_server, Session *session)
 {
+    session_unset_env (session, "XDG_SESSION_TYPE");
     session_unset_env (session, "MIR_SOCKET");
     session_unset_env (session, "MIR_SERVER_NAME");
     session_unset_env (session, "XDG_VTNR");

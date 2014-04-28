@@ -49,7 +49,7 @@ namespace LightDM {
         public bool is_authenticated { get; }
         public unowned string? authentication_user { get; }
         public async void start_session (string? session = null) throws GLib.Error;
-        public void start_session_sync (string? session = null) throws GLib.Error;
+        public bool start_session_sync (string? session = null) throws GLib.Error;
         public async string ensure_shared_data_dir (string username);
         public string ensure_shared_data_dir_sync (string username);
     }

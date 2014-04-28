@@ -69,6 +69,24 @@ fi
 # stdout, which can confuse debconf.
 db_stop
 
+DEFAULT_SERVICE=/etc/systemd/system/display-manager.service
+# set default-display-manager systemd service link according to our config
+if [ "$1" = configure ] && [ -d /etc/systemd/system/ ]; then
+  if [ -e "$DEFAULT_DISPLAY_MANAGER_FILE" ]; then
+    SERVICE=/lib/systemd/system/$(basename $(cat "$DEFAULT_DISPLAY_MANAGER_FILE")).service
+    if [ -h "$DEFAULT_SERVICE" ] && [ $(readlink "$DEFAULT_SERVICE") = /dev/null ]; then
+      echo "Display manager service is masked" >&2
+    elif [ -e "$SERVICE" ]; then
+      ln -sf "$SERVICE" "$DEFAULT_SERVICE"
+    else
+      echo "WARNING: $SERVICE is the selected default display manager but does not exist" >&2
+      rm -f "$DEFAULT_SERVICE"
+    fi
+  else
+    rm -f "$DEFAULT_SERVICE"
+  fi
+fi
+
 case "$1" in
     configure)
         # LP: #1189948
