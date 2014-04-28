@@ -468,6 +468,22 @@ find_greeter_session (Seat *seat)
     return NULL;
 }
 
+static Greeter *
+find_resettable_greeter (Seat *seat)
+{
+    GList *link;
+
+    for (link = seat->priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+        if (!session_get_is_stopping (session) && IS_GREETER (session) &&
+            greeter_get_resettable (GREETER (session)))
+            return GREETER (session);
+    }
+
+    return NULL;
+}
+
 static void
 set_greeter_hints (Seat *seat, Greeter *greeter_session)
 {
@@ -486,7 +502,7 @@ switch_to_greeter_from_failed_session (Seat *seat, Session *session)
     gboolean existing = FALSE;
 
     /* Switch to greeter if one open */
-    greeter_session = find_greeter_session (seat);
+    greeter_session = find_resettable_greeter (seat);
     if (greeter_session)
     {
         l_debug (seat, "Switching to existing greeter");
@@ -1388,10 +1404,8 @@ switch_authentication_complete_cb (Session *session, Seat *seat)
 
     session_stop (session);
 
-    /* See if we already have a greeter up and reuse it if so.  Which will only
-       happen if the greeter marked itself as resettable and we thus didn't
-       kill it when a user session started */
-    greeter_session = find_greeter_session (seat);
+    /* See if we already have a greeter up and reuse it if so */
+    greeter_session = find_resettable_greeter (seat);
     if (greeter_session)
     {
         l_debug (seat, "Switching to existing greeter to authenticate session");
@@ -1517,8 +1531,8 @@ seat_lock (Seat *seat, const gchar *username)
 
     l_debug (seat, "Locking");
 
-    /* Switch to greeter if one open (only true if it's a resettable greeter) */
-    greeter_session = find_greeter_session (seat);
+    /* Switch to greeter we can reuse */
+    greeter_session = find_resettable_greeter (seat);
     if (greeter_session)
     {
         l_debug (seat, "Switching to existing greeter");
