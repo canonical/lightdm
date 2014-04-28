@@ -1,8 +1,26 @@
-lightdm (1.11.0-0ubuntu1) UNRELEASED; urgency=medium
+lightdm (1.11.1-0ubuntu1) UNRELEASED; urgency=medium
 
   * Add lightdm_greeter_set_resettable
 
  -- Michael Terry <mterry@ubuntu.com>  Mon, 28 Apr 2014 09:42:14 -0400
+
+lightdm (1.11.0-0ubuntu1) utopic; urgency=medium
+
+  * New upstream release:
+    - When switching to an existing session refresh PAM credentials and end
+      session cleanly so no resources leak. (LP: #1296276)
+    - Support new standard DesktopNames field in session files
+    - Set XDG_SESSION_TYPE and XDG_SESSION_DESKTOP as used by systemd
+    - Emit DBus PropertiesChanged when Sessions/Seats properties change. Also
+      add SessionAdded/SessionRemoved signals to Seat interface
+
+  [ Harald Sitter ]
+  * Add pam_kwallet to pam configs. (LP: #1305307)
+  
+  [ Martin Pitt ]
+  * Add systemd integration
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 28 Apr 2014 10:32:37 +1200
 
 lightdm (1.10.0-0ubuntu3) trusty; urgency=medium
 

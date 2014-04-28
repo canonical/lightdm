@@ -7,6 +7,11 @@
 # Even minor modifications require translation updates and such
 # changes should be coordinated with translators and reviewers.
 
+Template: lightdm/daemon_name
+Type: string
+Default: /usr/sbin/lightdm
+Description: for internal use only
+
 Template: shared/default-x-display-manager
 Type: select
 Choices: ${choices}

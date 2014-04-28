@@ -1,3 +1,12 @@
+Overview of changes in lightdm 1.11.0
+
+    * When switching to an existing session refresh PAM credentials and end
+      session cleanly so no resources leak.
+    * Support new standard DesktopNames field in session files
+    * Set XDG_SESSION_TYPE and XDG_SESSION_DESKTOP as used by systemd
+    * Emit DBus PropertiesChanged when Sessions/Seats properties change. Also
+      add SessionAdded/SessionRemoved signals to Seat interface
+
 Overview of changes in lightdm 1.10.0
 
     * Fix return value for Vala bindings to Greeter.start_session_sync
