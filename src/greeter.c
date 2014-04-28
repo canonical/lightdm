@@ -95,7 +95,6 @@ typedef enum
     GREETER_MESSAGE_SET_LANGUAGE,
     GREETER_MESSAGE_AUTHENTICATE_REMOTE,
     GREETER_MESSAGE_ENSURE_SHARED_DIR,
-    GREETER_MESSAGE_SET_RESETTABLE,
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -241,7 +240,7 @@ string_length (const gchar *value)
 }
 
 static void
-handle_connect (Greeter *greeter, const gchar *version)
+handle_connect (Greeter *greeter, const gchar *version, gboolean resettable)
 {
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
@@ -249,7 +248,9 @@ handle_connect (Greeter *greeter, const gchar *version)
     GHashTableIter iter;
     gpointer key, value;
 
-    l_debug (greeter, "Greeter connected version=%s", version);
+    l_debug (greeter, "Greeter connected version=%s resettable=%s", version, resettable ? "true" : "false");
+
+    greeter->priv->resettable = resettable;
 
     length = string_length (VERSION);
     g_hash_table_iter_init (&iter, greeter->priv->hints);
@@ -769,10 +770,11 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     Greeter *greeter = data;
     gsize n_to_read, n_read, offset;
     GIOStatus status;
-    int id, i;
+    int id, length, i;
     guint32 sequence_number, n_secrets, max_secrets;
     gchar *version, *username, *session_name, *language;
     gchar **secrets;
+    gboolean resettable = FALSE;
     GError *error = NULL;
 
     if (condition == G_IO_HUP)
@@ -822,12 +824,14 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
   
     offset = 0;
     id = read_int (greeter, &offset);
-    read_int (greeter, &offset);
+    length = HEADER_SIZE + read_int (greeter, &offset);
     switch (id)
     {
     case GREETER_MESSAGE_CONNECT:
         version = read_string (greeter, &offset);
-        handle_connect (greeter, version);
+        if (offset < length)
+            resettable = read_int (greeter, &offset) != 0;
+        handle_connect (greeter, version, resettable);
         g_free (version);
         break;
     case GREETER_MESSAGE_AUTHENTICATE:
@@ -881,9 +885,6 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         username = read_string (greeter, &offset);
         handle_ensure_shared_dir (greeter, username);
         g_free (username);
-        break;
-    case GREETER_MESSAGE_SET_RESETTABLE:
-        greeter->priv->resettable = read_int (greeter, &offset) != 0;
         break;
     default:
         l_warning (greeter, "Unknown message from greeter: %d", id);

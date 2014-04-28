@@ -47,6 +47,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 typedef struct
 {
+    gboolean resettable;
     gboolean connected;
 
     GIOChannel *to_server_channel, *from_server_channel;
@@ -85,7 +86,6 @@ typedef enum
     GREETER_MESSAGE_SET_LANGUAGE,
     GREETER_MESSAGE_AUTHENTICATE_REMOTE,
     GREETER_MESSAGE_ENSURE_SHARED_DIR,
-    GREETER_MESSAGE_SET_RESETTABLE,
 } GreeterMessage;
 
 /* Messages from the server to the greeter */
@@ -111,6 +111,27 @@ LightDMGreeter *
 lightdm_greeter_new ()
 {
     return g_object_new (LIGHTDM_TYPE_GREETER, NULL);
+}
+
+/**
+ * lightdm_greeter_set_resettable:
+ * @greeter: A #LightDMGreeter
+ * @resettable: Whether the greeter wants to be reset instead of killed after the user logs in
+ *
+ * Set whether the greeter will be reset instead of killed after the user logs in.
+ * This must be called before lightdm_greeter_connect is called.
+ **/
+void
+lightdm_greeter_set_resettable (LightDMGreeter *greeter, gboolean resettable)
+{
+    LightDMGreeterPrivate *priv;
+
+    g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
+
+    priv = GET_PRIVATE (greeter);
+
+    g_return_if_fail (!priv->connected);
+    priv->resettable = resettable;
 }
 
 static gboolean
@@ -548,8 +569,9 @@ lightdm_greeter_connect_sync (LightDMGreeter *greeter, GError **error)
     g_io_add_watch (priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
 
     g_debug ("Connecting to display manager...");
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECT, string_length (VERSION), &offset);
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECT, string_length (VERSION) + int_length (), &offset);
     write_string (message, MAX_MESSAGE_LENGTH, VERSION, &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, priv->resettable ? 1 : 0, &offset);
     write_message (greeter, message, offset);
 
     response = read_message (greeter, &response_length, TRUE);
@@ -1089,31 +1111,6 @@ lightdm_greeter_set_language (LightDMGreeter *greeter, const gchar *language)
 
     write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_SET_LANGUAGE, string_length (language), &offset);
     write_string (message, MAX_MESSAGE_LENGTH, language, &offset);
-    write_message (greeter, message, offset);
-}
-
-/**
- * lightdm_greeter_set_resettable:
- * @greeter: A #LightDMGreeter
- * @resettable: Whether the greeter wants to be reset instead of killed after the user logs in
- *
- * Set whether the greeter will be reset instead of killed after the user logs in.
- **/
-void
-lightdm_greeter_set_resettable (LightDMGreeter *greeter, gboolean resettable)
-{
-    LightDMGreeterPrivate *priv;
-    guint8 message[MAX_MESSAGE_LENGTH];
-    gsize offset = 0;
-
-    g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
-
-    priv = GET_PRIVATE (greeter);
-
-    g_return_if_fail (priv->connected);
-
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_SET_RESETTABLE, int_length (), &offset);
-    write_int (message, MAX_MESSAGE_LENGTH, resettable ? 1 : 0, &offset);
     write_message (greeter, message, offset);
 }
 

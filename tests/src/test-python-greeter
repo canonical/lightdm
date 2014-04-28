@@ -256,6 +256,15 @@ greeter.connect ('show-message', show_message_cb)
 greeter.connect ('show-prompt', show_prompt_cb)
 greeter.connect ('authentication-complete', authentication_complete_cb)
 greeter.connect ('autologin-timer-expired', autologin_timer_expired_cb)
+resettable = False
+try:
+    resettable = config.get_boolean ('test-greeter-config', 'resettable')
+except:
+    pass
+if resettable:
+    LightDM.Greeter.get_instance ().set_resettable (True)
+    LightDM.Greeter.get_instance ().connect ('idle', idle_cb)
+    LightDM.Greeter.get_instance ().connect ('reset', reset_cb)
 
 def user_added_cb (user_list, user):
     status_notify ('%s USER-ADDED USERNAME=%s' % (greeter_id, user.get_name ()))
@@ -282,15 +291,6 @@ def idle_cb (greeter):
 def reset_cb (greeter):
     status_notify ('%s RESET' % (greeter_id))
     notify_hints (greeter)
-resettable = False
-try:
-    resettable = config.get_boolean ('test-greeter-config', 'resettable')
-except:
-    pass
-if resettable:
-    LightDM.Greeter.get_instance ().set_resettable (True)
-    LightDM.Greeter.get_instance ().connect ('idle', idle_cb)
-    LightDM.Greeter.get_instance ().connect ('reset', reset_cb)
 
 notify_hints (greeter)
 

@@ -290,6 +290,12 @@ main(int argc, char *argv[])
     power = new QLightDM::PowerInterface();
 
     greeter = new TestGreeter();
+    if (config->value ("test-greeter-config/resettable", "false") == "true")
+    {
+        greeter->setResettable (true);
+        QObject::connect (greeter, SIGNAL(idle()), greeter, SLOT(idle()));
+        QObject::connect (greeter, SIGNAL(reset()), greeter, SLOT(reset()));
+    }
 
     users_model = new QLightDM::UsersModel();
     if (config->value ("test-greeter-config/log-user-changes", "false") == "true")
@@ -306,13 +312,6 @@ main(int argc, char *argv[])
     }
 
     status_notify ("%s CONNECTED-TO-DAEMON", greeter_id);
-
-    if (config->value ("test-greeter-config/resettable", "false") == "true")
-    {
-        greeter->setResettable (true);
-        QObject::connect (greeter, SIGNAL(idle()), greeter, SLOT(idle()));
-        QObject::connect (greeter, SIGNAL(reset()), greeter, SLOT(reset()));
-    }
 
     greeter->printHints();
 
