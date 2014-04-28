@@ -469,7 +469,7 @@ find_greeter_session (Seat *seat)
 }
 
 static void
-reset_greeter_hints (Seat *seat, Greeter *greeter_session)
+set_greeter_hints (Seat *seat, Greeter *greeter_session)
 {
     greeter_clear_hints (greeter_session);    
     greeter_set_hint (greeter_session, "default-session", seat_get_string_property (seat, "user-session"));
@@ -490,7 +490,7 @@ switch_to_greeter_from_failed_session (Seat *seat, Session *session)
     if (greeter_session)
     {
         l_debug (seat, "Switching to existing greeter");
-        reset_greeter_hints (seat, greeter_session);
+        set_greeter_hints (seat, greeter_session);
         existing = TRUE;
     }
     else
@@ -1233,7 +1233,7 @@ create_greeter_session (Seat *seat)
 
     /* Set hints to greeter */
     greeter_set_allow_guest (greeter_session, seat_get_allow_guest (seat));
-    reset_greeter_hints (seat, greeter_session);
+    set_greeter_hints (seat, greeter_session);
 
     g_object_unref (session_config);
 
@@ -1395,7 +1395,7 @@ switch_authentication_complete_cb (Session *session, Seat *seat)
     if (greeter_session)
     {
         l_debug (seat, "Switching to existing greeter to authenticate session");
-        reset_greeter_hints (seat, greeter_session);
+        set_greeter_hints (seat, greeter_session);
         existing = TRUE;
     }
     else
@@ -1522,7 +1522,7 @@ seat_lock (Seat *seat, const gchar *username)
     if (greeter_session)
     {
         l_debug (seat, "Switching to existing greeter");
-        reset_greeter_hints (seat, greeter_session);
+        set_greeter_hints (seat, greeter_session);
         existing = TRUE;
     }
     else

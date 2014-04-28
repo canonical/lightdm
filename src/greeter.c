@@ -327,7 +327,8 @@ send_end_authentication (Greeter *greeter, guint32 sequence_number, const gchar 
     write_message (greeter, message, offset); 
 }
 
-void greeter_idle (Greeter *greeter)
+void
+greeter_idle (Greeter *greeter)
 {
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
@@ -336,7 +337,8 @@ void greeter_idle (Greeter *greeter)
     write_message (greeter, message, offset);
 }
 
-void greeter_reset (Greeter *greeter)
+void
+greeter_reset (Greeter *greeter)
 {
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
@@ -881,7 +883,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         g_free (username);
         break;
     case GREETER_MESSAGE_SET_RESETTABLE:
-        greeter->priv->resettable = (gboolean)read_int (greeter, &offset);
+        greeter->priv->resettable = read_int (greeter, &offset) != 0;
         break;
     default:
         l_warning (greeter, "Unknown message from greeter: %d", id);

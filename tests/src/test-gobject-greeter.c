@@ -65,7 +65,7 @@ sigterm_cb (gpointer user_data)
 }
 
 static void
-print_hints (LightDMGreeter *greeter)
+notify_hints (LightDMGreeter *greeter)
 {
     if (lightdm_greeter_get_select_user_hint (greeter))
         status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, lightdm_greeter_get_select_user_hint (greeter));
@@ -93,7 +93,7 @@ static void
 reset_cb (LightDMGreeter *greeter)
 {
     status_notify ("%s RESET", greeter_id);
-    print_hints (greeter);
+    notify_hints (greeter);
 }
 
 static void
@@ -453,7 +453,7 @@ main (int argc, char **argv)
         g_signal_connect (greeter, "reset", G_CALLBACK (reset_cb), NULL);
     }
 
-    print_hints (greeter);
+    notify_hints (greeter);
 
     g_main_loop_run (loop);
 

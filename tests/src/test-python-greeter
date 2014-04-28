@@ -185,7 +185,7 @@ def request_cb (channel, condition):
 
     return True
 
-def print_hints (greeter):
+def notify_hints (greeter):
     if greeter.get_select_user_hint () is not None:
         status_notify ('%s SELECT-USER-HINT USERNAME=%s' % (greeter_id, greeter.get_select_user_hint ()))
     if greeter.get_select_guest_hint ():
@@ -281,7 +281,7 @@ def idle_cb (greeter):
     status_notify ('%s IDLE' % (greeter_id))
 def reset_cb (greeter):
     status_notify ('%s RESET' % (greeter_id))
-    print_hints (greeter)
+    notify_hints (greeter)
 resettable = False
 try:
     resettable = config.get_boolean ('test-greeter-config', 'resettable')
@@ -292,6 +292,6 @@ if resettable:
     LightDM.Greeter.get_instance ().connect ('idle', idle_cb)
     LightDM.Greeter.get_instance ().connect ('reset', reset_cb)
 
-print_hints (greeter)
+notify_hints (greeter)
 
 loop.run ()
