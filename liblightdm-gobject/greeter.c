@@ -57,6 +57,10 @@ typedef struct
     gsize n_responses_waiting;
     GList *responses_received;
 
+    GList *connect_requests;
+    GList *start_session_requests;
+    GList *ensure_shared_data_dir_requests;
+
     GHashTable *hints;
     guint autologin_timeout;
 
@@ -100,6 +104,22 @@ typedef enum
     SERVER_MESSAGE_RESET,
 } ServerMessage;
 
+/* Request sent to server */
+typedef struct
+{
+    GObject parent_instance;
+    gboolean complete;
+    guint32 return_code;
+    gchar *dir;
+} Request;
+typedef struct
+{
+    GObjectClass parent_class;
+} RequestClass;
+GType request_get_type (void);
+#define REQUEST(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), request_get_type (), Request))
+G_DEFINE_TYPE (Request, request, G_TYPE_OBJECT);
+
 /**
  * lightdm_greeter_new:
  *
@@ -132,6 +152,16 @@ lightdm_greeter_set_resettable (LightDMGreeter *greeter, gboolean resettable)
 
     g_return_if_fail (!priv->connected);
     priv->resettable = resettable;
+}
+
+static Request *
+request_new (void)
+{
+    Request *request;
+
+    request = g_object_new (request_get_type (), NULL);
+
+    return request;
 }
 
 static gboolean
@@ -277,6 +307,7 @@ handle_connected (LightDMGreeter *greeter, guint8 *message, gsize message_length
     gchar *version;
     GString *hint_string;
     int timeout;
+    Request *request;
 
     version = read_string (message, message_length, offset);
     hint_string = g_string_new ("");
@@ -290,6 +321,7 @@ handle_connected (LightDMGreeter *greeter, guint8 *message, gsize message_length
         g_string_append_printf (hint_string, " %s=%s", name, value);
     }
 
+    priv->connected = TRUE;
     g_debug ("Connected version=%s%s", version, hint_string->str);
     g_free (version);
     g_string_free (hint_string, TRUE);
@@ -300,6 +332,14 @@ handle_connected (LightDMGreeter *greeter, guint8 *message, gsize message_length
     {
         g_debug ("Setting autologin timer for %d seconds", timeout);
         priv->autologin_timeout = g_timeout_add (timeout * 1000, timed_login_cb, greeter);
+    }
+
+    request = g_list_nth_data (priv->connect_requests, 0);
+    if (request)
+    {
+        request->complete = TRUE;
+        priv->connect_requests = g_list_remove (priv->connect_requests, request);
+        g_object_unref (request);
     }
 }
 
@@ -408,6 +448,12 @@ handle_end_authentication (LightDMGreeter *greeter, guint8 *message, gsize messa
 }
 
 static void
+handle_idle (LightDMGreeter *greeter, guint8 *message, gsize message_length, gsize *offset)
+{
+    g_signal_emit (G_OBJECT (greeter), signals[IDLE], 0);
+}
+
+static void
 handle_reset (LightDMGreeter *greeter, guint8 *message, gsize message_length, gsize *offset)
 {
     LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
@@ -430,6 +476,81 @@ handle_reset (LightDMGreeter *greeter, guint8 *message, gsize message_length, gs
     g_string_free (hint_string, TRUE);
 
     g_signal_emit (G_OBJECT (greeter), signals[RESET], 0);
+}
+
+static void
+handle_session_result (LightDMGreeter *greeter, guint8 *message, gsize message_length, gsize *offset)
+{
+    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    Request *request;
+
+    request = g_list_nth_data (priv->start_session_requests, 0);
+    if (request)
+    {
+        request->return_code = read_int (message, message_length, offset);
+        request->complete = TRUE;
+        priv->start_session_requests = g_list_remove (priv->start_session_requests, request);
+        g_object_unref (request);
+    }
+}
+
+static void
+handle_shared_dir_result (LightDMGreeter *greeter, guint8 *message, gsize message_length, gsize *offset)
+{
+    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    Request *request;
+
+    request = g_list_nth_data (priv->ensure_shared_data_dir_requests, 0);
+    if (request)
+    {
+        request->dir = read_string (message, message_length, offset);
+        /* Blank data dir means invalid user */
+        if (g_strcmp0 (request->dir, "") == 0)
+        {
+            g_free (request->dir);
+            request->dir = NULL;
+        }
+        request->complete = TRUE;
+        priv->ensure_shared_data_dir_requests = g_list_remove (priv->ensure_shared_data_dir_requests, request);
+        g_object_unref (request);
+    }
+}
+
+static void
+handle_message (LightDMGreeter *greeter, guint8 *message, gsize message_length)
+{
+    gsize offset = 0;
+    guint32 id;
+
+    id = read_int (message, message_length, &offset);
+    read_int (message, message_length, &offset);
+    switch (id)
+    {
+    case SERVER_MESSAGE_CONNECTED:
+        handle_connected (greeter, message, message_length, &offset);
+        break;
+    case SERVER_MESSAGE_PROMPT_AUTHENTICATION:
+        handle_prompt_authentication (greeter, message, message_length, &offset);
+        break;
+    case SERVER_MESSAGE_END_AUTHENTICATION:
+        handle_end_authentication (greeter, message, message_length, &offset);
+        break;
+    case SERVER_MESSAGE_SESSION_RESULT:
+        handle_session_result (greeter, message, message_length, &offset);
+        break;
+    case SERVER_MESSAGE_SHARED_DIR_RESULT:
+        handle_shared_dir_result (greeter, message, message_length, &offset);
+        break;
+    case SERVER_MESSAGE_IDLE:
+        handle_idle (greeter, message, message_length, &offset);
+        break;
+    case SERVER_MESSAGE_RESET:
+        handle_reset (greeter, message, message_length, &offset);
+        break;
+    default:
+        g_warning ("Unknown message from server: %d", id);
+        break;
+    }
 }
 
 static guint8 *
@@ -493,37 +614,59 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 {
     LightDMGreeter *greeter = data;
     guint8 *message;
-    gsize message_length, offset;
-    guint32 id;
+    gsize message_length;
 
+    /* Read one message and process it */
     message = read_message (greeter, &message_length, FALSE);
-    if (!message)
-        return TRUE;
-
-    offset = 0;
-    id = read_int (message, message_length, &offset);
-    read_int (message, message_length, &offset);
-    switch (id)
+    if (message)
     {
-    case SERVER_MESSAGE_PROMPT_AUTHENTICATION:
-        handle_prompt_authentication (greeter, message, message_length, &offset);
-        break;
-    case SERVER_MESSAGE_END_AUTHENTICATION:
-        handle_end_authentication (greeter, message, message_length, &offset);
-        break;
-    case SERVER_MESSAGE_IDLE:
-        g_signal_emit (G_OBJECT (greeter), signals[IDLE], 0);
-        break;
-    case SERVER_MESSAGE_RESET:
-        handle_reset (greeter, message, message_length, &offset);
-        break;
-    default:
-        g_warning ("Unknown message from server: %d", id);
-        break;
+        handle_message (greeter, message, message_length);
+        g_free (message);
     }
-    g_free (message);
 
     return TRUE;
+}
+
+static void
+send_connect (LightDMGreeter *greeter, gboolean resettable)
+{
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+
+    g_debug ("Connecting to display manager...");
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECT, string_length (VERSION) + int_length (), &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, VERSION, &offset);
+    write_int (message, MAX_MESSAGE_LENGTH, resettable ? 1 : 0, &offset);
+    write_message (greeter, message, offset);
+}
+
+static void
+send_start_session (LightDMGreeter *greeter, const gchar *session)
+{
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+
+    if (session)
+        g_debug ("Starting session %s", session);
+    else
+        g_debug ("Starting default session");
+
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_START_SESSION, string_length (session), &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, session, &offset);
+    write_message (greeter, message, offset);
+}
+
+static void
+send_ensure_shared_data_dir (LightDMGreeter *greeter, const gchar *username)
+{
+    guint8 message[MAX_MESSAGE_LENGTH];
+    gsize offset = 0;
+
+    g_debug ("Ensuring data directory for user %s", username);
+
+    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_ENSURE_SHARED_DIR, string_length (username), &offset);
+    write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
+    write_message (greeter, message, offset);
 }
 
 /**
@@ -540,10 +683,7 @@ lightdm_greeter_connect_sync (LightDMGreeter *greeter, GError **error)
 {
     LightDMGreeterPrivate *priv;
     const gchar *fd;
-    guint8 message[MAX_MESSAGE_LENGTH];
-    guint8 *response;
-    gsize response_length, offset = 0;
-    guint32 id;
+    Request *request;
 
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
 
@@ -568,31 +708,25 @@ lightdm_greeter_connect_sync (LightDMGreeter *greeter, GError **error)
     g_io_channel_set_encoding (priv->from_server_channel, NULL, NULL);
     g_io_add_watch (priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
 
-    g_debug ("Connecting to display manager...");
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECT, string_length (VERSION) + int_length (), &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, VERSION, &offset);
-    write_int (message, MAX_MESSAGE_LENGTH, priv->resettable ? 1 : 0, &offset);
-    write_message (greeter, message, offset);
-
-    response = read_message (greeter, &response_length, TRUE);
-    if (!response)
-        return FALSE;
-
-    offset = 0;
-    id = read_int (response, response_length, &offset);
-    read_int (response, response_length, &offset);
-    if (id == SERVER_MESSAGE_CONNECTED)
-        handle_connected (greeter, response, response_length, &offset);
-    g_free (response);
-    if (id != SERVER_MESSAGE_CONNECTED)
+    /* Read until we are connected */
+    send_connect (greeter, priv->resettable);
+    request = request_new ();
+    priv->connect_requests = g_list_append (priv->connect_requests, g_object_ref (request));
+    do
     {
-        g_warning ("Expected CONNECTED message, got %d", id);
-        return FALSE;
-    }
+        guint8 *message;
+        gsize message_length;
 
-    priv->connected = TRUE;
+        message = read_message (greeter, &message_length, TRUE);
+        if (!message)
+            break;
+        handle_message (greeter, message, message_length);
+        g_free (message);
+    } while (!request->complete);
 
-    return TRUE;
+    g_object_unref (request);
+
+    return request->complete;
 }
 
 /**
@@ -1128,10 +1262,8 @@ gboolean
 lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *session, GError **error)
 {
     LightDMGreeterPrivate *priv;
-    guint8 message[MAX_MESSAGE_LENGTH];
-    guint8 *response;
-    gsize response_length, offset = 0;
-    guint32 id, return_code = 1;
+    Request *request;
+    guint32 return_code;
 
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
 
@@ -1140,28 +1272,24 @@ lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *sessio
     g_return_val_if_fail (priv->connected, FALSE);
     g_return_val_if_fail (priv->is_authenticated, FALSE);
 
-    if (session)
-        g_debug ("Starting session %s", session);
-    else
-        g_debug ("Starting default session");
+    /* Read until the session is started */
+    send_start_session (greeter, session);
+    request = request_new ();
+    priv->start_session_requests = g_list_append (priv->start_session_requests, g_object_ref (request));
+    do
+    {
+        guint8 *message;
+        gsize message_length;
 
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_START_SESSION, string_length (session), &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, session, &offset);
-    write_message (greeter, message, offset);
+        message = read_message (greeter, &message_length, TRUE);
+        if (!message)
+            break;
+        handle_message (greeter, message, message_length);
+        g_free (message);
+    } while (!request->complete);
 
-    response = read_message (greeter, &response_length, TRUE);
-    if (!response)
-        return FALSE;
-
-    offset = 0;
-    id = read_int (response, response_length, &offset);
-    read_int (response, response_length, &offset);
-    if (id == SERVER_MESSAGE_SESSION_RESULT)
-        return_code = read_int (response, response_length, &offset);
-    else
-        g_warning ("Expected SESSION_RESULT message, got %d", id);
-
-    g_free (response);
+    return_code = request->return_code;
+    g_object_unref (request);
 
     return return_code == 0;
 }
@@ -1188,11 +1316,8 @@ gchar *
 lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gchar *username)
 {
     LightDMGreeterPrivate *priv;
-    guint8 message[MAX_MESSAGE_LENGTH];
-    guint8 *response;
-    gsize response_length, offset = 0;
-    guint32 id;
-    gchar *data_dir = NULL;
+    Request *request;
+    gchar *data_dir;
 
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
 
@@ -1200,32 +1325,24 @@ lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gcha
 
     g_return_val_if_fail (priv->connected, NULL);
 
-    g_debug ("Ensuring data directory for user %s", username);
-
-    write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_ENSURE_SHARED_DIR, string_length (username), &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
-    write_message (greeter, message, offset);
-
-    response = read_message (greeter, &response_length, TRUE);
-    if (!response)
-        return NULL;
-
-    offset = 0;
-    id = read_int (response, response_length, &offset);
-    read_int (response, response_length, &offset);
-    if (id == SERVER_MESSAGE_SHARED_DIR_RESULT)
-        data_dir = read_string (response, response_length, &offset);
-    else
-        g_warning ("Expected SHARED_DIR_RESULT message, got %d", id);
-
-    /* Blank data dir means invalid user */
-    if (g_strcmp0 (data_dir, "") == 0)
+    /* Read until a response */
+    send_ensure_shared_data_dir (greeter, username);
+    request = request_new ();
+    priv->ensure_shared_data_dir_requests = g_list_append (priv->ensure_shared_data_dir_requests, g_object_ref (request));
+    do
     {
-        g_free (data_dir);
-        data_dir = NULL;
-    }
+        guint8 *message;
+        gsize message_length;
 
-    g_free (response);
+        message = read_message (greeter, &message_length, TRUE);
+        if (!message)
+            break;
+        handle_message (greeter, message, message_length);
+        g_free (message);
+    } while (!request->complete);
+
+    data_dir = g_strdup (request->dir);
+    g_object_unref (request);
 
     return data_dir;
 }
@@ -1556,4 +1673,26 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 0);
+}
+
+static void
+request_init (Request *request)
+{
+}
+
+static void
+request_finalize (GObject *object)
+{
+    Request *request = REQUEST (object);
+
+    g_free (request->dir);
+
+    G_OBJECT_CLASS (request_parent_class)->finalize (object);
+}
+
+static void
+request_class_init (RequestClass *klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    object_class->finalize = request_finalize;
 }
