@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/dbus-env ./src/test-runner switch-to-user-existing-resettable test-gobject-greeter

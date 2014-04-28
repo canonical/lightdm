@@ -8,6 +8,8 @@ class TestGreeter : public QLightDM::Greeter
 public:
     TestGreeter ();
 
+    void printHints();
+
 private Q_SLOTS:
     void showMessage(QString text, QLightDM::Greeter::MessageType type);
     void showPrompt(QString text, QLightDM::Greeter::PromptType type);
@@ -15,4 +17,6 @@ private Q_SLOTS:
     void autologinTimerExpired();
     void userRowsInserted(const QModelIndex & parent, int start, int end);
     void userRowsRemoved(const QModelIndex & parent, int start, int end);
+    void idle();
+    void reset();
 };

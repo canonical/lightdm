@@ -125,25 +125,32 @@ TESTS = \
 	test-upstart-login \
 	test-dbus \
 	test-lock-seat \
+	test-lock-seat-resettable \
 	test-lock-seat-return-session \
 	test-lock-session \
 	test-lock-session-no-password \
+	test-lock-session-resettable \
 	test-lock-session-return-session \
 	test-lock-seat-console-kit \
 	test-lock-seat-return-session-console-kit \
 	test-switch-to-greeter \
 	test-switch-to-greeter-new-session \
+	test-switch-to-greeter-resettable \
 	test-switch-to-greeter-return-session \
 	test-switch-to-greeter-return-session-pam \
 	test-switch-to-greeter-return-session-logout \
 	test-switch-to-guest \
+	test-switch-to-guest-fail-resettable \
 	test-switch-to-user \
 	test-switch-to-user-no-password \
 	test-switch-to-user-active \
 	test-switch-to-user-existing \
 	test-switch-to-user-existing-no-password \
+	test-switch-to-user-existing-resettable \
 	test-switch-to-user-logout-active \
+	test-switch-to-user-logout-active-resettable \
 	test-switch-to-user-logout-inactive \
+	test-switch-to-user-resettable \
 	test-switch-to-users \
 	test-vnc-login \
 	test-vnc-command \
@@ -190,6 +197,7 @@ TESTS = \
 	test-unity-mir-greeter-mir-session \
 	test-unity-mir-lock-seat \
 	test-unity-mir-session-x-greeter \
+	test-unity-mir-switch-to-user-resettable \
 	test-unity-xdg-seat \
 	test-surfaceflinger-autologin
 
@@ -381,10 +389,12 @@ EXTRA_DIST = \
 	scripts/language-no-accounts-service.conf \
 	scripts/lock-seat.conf \
 	scripts/lock-seat-console-kit.conf \    
+	scripts/lock-seat-resettable.conf \
 	scripts/lock-seat-return-session.conf \
 	scripts/lock-seat-return-session-console-kit.conf \
 	scripts/lock-session.conf \
 	scripts/lock-session-no-password.conf \
+	scripts/lock-session-resettable.conf \
 	scripts/lock-session-return-session.conf \
 	scripts/login.conf \
 	scripts/login-crash-authenticate.conf \
@@ -456,18 +466,23 @@ EXTRA_DIST = \
 	scripts/surfaceflinger-autologin.conf \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-greeter-new-session.conf \
+	scripts/switch-to-greeter-resettable.conf \
 	scripts/switch-to-greeter-return-session.conf \
 	scripts/switch-to-greeter-return-session-logout.conf \
 	scripts/switch-to-greeter-return-session-pam.conf \
 	scripts/switch-to-guest.conf \
+	scripts/switch-to-guest-fail-resettable.conf \
 	scripts/switch-to-user.conf \
 	scripts/switch-to-users.conf \
 	scripts/switch-to-user-active.conf \
 	scripts/switch-to-user-existing.conf \
 	scripts/switch-to-user-existing-no-password.conf \
+	scripts/switch-to-user-existing-resettable.conf \
 	scripts/switch-to-user-logout-active.conf \
+	scripts/switch-to-user-logout-active-resettable.conf \
 	scripts/switch-to-user-logout-inactive.conf \
 	scripts/switch-to-user-no-password.conf \
+	scripts/switch-to-user-resettable.conf \
 	scripts/system-xauthority.conf \
 	scripts/unity-autologin.conf \
 	scripts/unity-compositor-command.conf \
@@ -484,6 +499,7 @@ EXTRA_DIST = \
 	scripts/unity-mir-lock-seat.conf \
 	scripts/unity-mir-greeter-x-session.conf \
 	scripts/unity-mir-session-x-greeter.conf \
+	scripts/unity-mir-switch-to-user-resettable.conf \
 	scripts/unity-plymouth.conf \
 	scripts/unity-switch.conf \
 	scripts/unity-xdg-seat.conf \

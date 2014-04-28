@@ -1,3 +1,9 @@
+lightdm (1.11.1-0ubuntu1) UNRELEASED; urgency=medium
+
+  * Add lightdm_greeter_set_resettable
+
+ -- Michael Terry <mterry@ubuntu.com>  Mon, 28 Apr 2014 09:42:14 -0400
+
 lightdm (1.11.0-0ubuntu1) utopic; urgency=medium
 
   * New upstream release:
