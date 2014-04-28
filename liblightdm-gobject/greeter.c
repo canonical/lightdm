@@ -117,9 +117,10 @@ typedef enum
     SERVER_MESSAGE_SHARED_DIR_RESULT,
 } ServerMessage;
 
-/* Request to connect */
+/* Request sent to server */
 typedef struct
 {
+    GObject parent_instance;
     GCancellable *cancellable;
     GAsyncReadyCallback callback;
     gpointer user_data;
