@@ -75,9 +75,6 @@ typedef struct
     /* Pending ensure shared data dir requests */
     GList *ensure_shared_data_dir_requests;
 
-    /* Mapping of username to shared data directories */
-    GHashTable *shared_data_dirs;
-
     /* Hints provided by the daemon */
     GHashTable *hints;
 
