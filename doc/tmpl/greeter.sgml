@@ -105,6 +105,22 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 @greeter: 
 
 
+<!-- ##### USER_FUNCTION idle ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
+<!-- ##### USER_FUNCTION reset ##### -->
+<para>
+
+</para>
+
+@greeter: 
+
+
 <!-- ##### ENUM LightDMMessageType ##### -->
 <para>
 
@@ -128,6 +144,15 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 
 @void: 
 @Returns: 
+
+
+<!-- ##### FUNCTION lightdm_greeter_set_resettable ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@resettable: 
 
 
 <!-- ##### FUNCTION lightdm_greeter_connect ##### -->
