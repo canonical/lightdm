@@ -10,6 +10,7 @@
 
 #include "status.h"
 
+static int exit_code = EXIT_SUCCESS;
 static gchar *greeter_id;
 static GMainLoop *loop;
 static LightDMGreeter *greeter;
@@ -103,6 +104,70 @@ user_changed_cb (LightDMUser *user)
 }
 
 static void
+start_session_finished (GObject *object, GAsyncResult *result, gpointer data)
+{
+    LightDMGreeter *greeter = LIGHTDM_GREETER (object);
+    GError *error = NULL;
+
+    if (!lightdm_greeter_start_session_finish (greeter, result, &error))
+        status_notify ("%s SESSION-FAILED", greeter_id);
+    g_clear_error (&error);
+}
+
+static void
+write_shared_data_finished (GObject *object, GAsyncResult *result, gpointer data)
+{
+    LightDMGreeter *greeter = LIGHTDM_GREETER (object);
+    gchar *dir, *path, *test_data;
+    FILE *f;
+
+    dir = lightdm_greeter_ensure_shared_data_dir_finish (greeter, result);
+    if (!dir)
+    {
+        status_notify ("%s WRITE-SHARED-DATA ERROR=NO_SHARED_DIR", greeter_id);
+        return;
+    }
+
+    path = g_build_filename (dir, "data", NULL);
+    test_data = data;
+    if (!(f = fopen (path, "w")) || fprintf (f, "%s", test_data) < 0)
+        status_notify ("%s WRITE-SHARED-DATA ERROR=%s", greeter_id, strerror (errno));
+    else
+        status_notify ("%s WRITE-SHARED-DATA RESULT=TRUE", greeter_id);
+    g_free (test_data);
+
+    if (f)
+        fclose (f);
+    g_free (path);
+    g_free (dir);
+}
+
+static void
+read_shared_data_finished (GObject *object, GAsyncResult *result, gpointer data)
+{
+    LightDMGreeter *greeter = LIGHTDM_GREETER (object);
+    gchar *dir, *path;
+    gchar *contents = NULL;
+    GError *error = NULL;
+
+    dir = lightdm_greeter_ensure_shared_data_dir_finish (greeter, result);
+    if (!dir)
+    {
+        status_notify ("%s READ-SHARED-DATA ERROR=NO_SHARED_DIR", greeter_id);
+        return;
+    }
+
+    path = g_build_filename (dir, "data", NULL);
+    if (g_file_get_contents (path, &contents, NULL, &error))
+        status_notify ("%s READ-SHARED-DATA DATA=%s", greeter_id, contents);
+    else
+        status_notify ("%s READ-SHARED-DATA ERROR=%s", greeter_id, error->message);
+    g_free (path);
+    g_free (contents);
+    g_clear_error (&error);
+}
+
+static void
 request_cb (const gchar *name, GHashTable *params)
 {
     if (!name)
@@ -133,10 +198,7 @@ request_cb (const gchar *name, GHashTable *params)
         lightdm_greeter_cancel_authentication (greeter);
 
     else if (strcmp (name, "START-SESSION") == 0)
-    {
-        if (!lightdm_greeter_start_session_sync (greeter, g_hash_table_lookup (params, "SESSION"), NULL))
-            status_notify ("%s SESSION-FAILED", greeter_id);
-    }
+        lightdm_greeter_start_session (greeter, g_hash_table_lookup (params, "SESSION"), NULL, start_session_finished, NULL);
 
     else if (strcmp (name, "LOG-DEFAULT-SESSION") == 0)
         status_notify ("%s LOG-DEFAULT-SESSION SESSION=%s", greeter_id, lightdm_greeter_get_default_session_hint (greeter));
@@ -146,56 +208,12 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "WRITE-SHARED-DATA") == 0)
     {
-        gchar *dir;
-
-        dir = lightdm_greeter_ensure_shared_data_dir_sync (greeter, g_hash_table_lookup (params, "USERNAME"));
-        if (dir)
-        {
-            gchar *path;
-            FILE *f;
-
-            g_printerr ("dir='%s'\n", dir);
-
-            path = g_build_filename (dir, "data", NULL);
-            if (!(f = fopen (path, "w")) || fprintf (f, "%s", (const gchar *) g_hash_table_lookup (params, "DATA")) < 0)
-                status_notify ("%s WRITE-SHARED-DATA ERROR=%s", greeter_id, strerror (errno));
-            else
-                status_notify ("%s WRITE-SHARED-DATA RESULT=TRUE", greeter_id);
-
-            if (f)
-                fclose (f);
-            g_free (path);
-            g_free (dir);
-        }
-        else
-            status_notify ("%s WRITE-SHARED-DATA ERROR=NO_SHARED_DIR", greeter_id);
+        const gchar *data = g_hash_table_lookup (params, "DATA");
+        lightdm_greeter_ensure_shared_data_dir (greeter, g_hash_table_lookup (params, "USERNAME"), NULL, write_shared_data_finished, g_strdup (data));
     }
 
     else if (strcmp (name, "READ-SHARED-DATA") == 0)
-    {
-        gchar *dir;
-
-        dir = lightdm_greeter_ensure_shared_data_dir_sync (greeter, g_hash_table_lookup (params, "USERNAME"));
-        if (dir)
-        {
-            gchar *path;
-            gchar *contents = NULL;
-            GError *error = NULL;
-
-            g_printerr ("dir='%s'\n", dir);
-
-            path = g_build_filename (dir, "data", NULL);
-            if (g_file_get_contents (path, &contents, NULL, &error))
-                status_notify ("%s READ-SHARED-DATA DATA=%s", greeter_id, contents);
-            else
-                status_notify ("%s READ-SHARED-DATA ERROR=%s", greeter_id, error->message);
-            g_free (path);
-            g_free (contents);
-            g_clear_error (&error);
-        }
-        else
-            status_notify ("%s READ-SHARED-DATA ERROR=NO_SHARED_DIR", greeter_id);
-    }
+        lightdm_greeter_ensure_shared_data_dir (greeter, g_hash_table_lookup (params, "USERNAME"), NULL, read_shared_data_finished, NULL);
 
     else if (strcmp (name, "WATCH-USER") == 0)
     {
@@ -350,6 +368,25 @@ user_removed_cb (LightDMUserList *user_list, LightDMUser *user)
     status_notify ("%s USER-REMOVED USERNAME=%s", greeter_id, lightdm_user_get_name (user));
 }
 
+static void
+connect_finished (GObject *object, GAsyncResult *result, gpointer data)
+{
+    LightDMGreeter *greeter = LIGHTDM_GREETER (object);
+    GError *error = NULL;
+
+    if (!lightdm_greeter_connect_finish (greeter, result, &error))
+    {
+        status_notify ("%s FAIL-CONNECT-DAEMON", greeter_id);
+        exit_code = EXIT_FAILURE;
+        g_main_loop_quit (loop);
+        return;
+    }
+
+    status_notify ("%s CONNECTED-TO-DAEMON", greeter_id);
+
+    notify_hints (greeter);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -444,17 +481,9 @@ main (int argc, char **argv)
     }
 
     status_notify ("%s CONNECT-TO-DAEMON", greeter_id);
-    if (!lightdm_greeter_connect_sync (greeter, NULL))
-    {
-        status_notify ("%s FAIL-CONNECT-DAEMON", greeter_id);
-        return EXIT_FAILURE;
-    }
-
-    status_notify ("%s CONNECTED-TO-DAEMON", greeter_id);
-
-    notify_hints (greeter);
+    lightdm_greeter_connect (greeter, NULL, connect_finished, NULL);
 
     g_main_loop_run (loop);
 
-    return EXIT_SUCCESS;
+    return exit_code;
 }
