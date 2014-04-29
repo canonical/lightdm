@@ -130,6 +130,28 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 @Returns: 
 
 
+<!-- ##### FUNCTION lightdm_greeter_connect ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@cancellable: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION lightdm_greeter_connect_finish ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@result: 
+@error: 
+@Returns: 
+
+
 <!-- ##### FUNCTION lightdm_greeter_connect_sync ##### -->
 <para>
 
@@ -137,6 +159,28 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 
 @greeter: 
 @error: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_greeter_ensure_shared_data_dir ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@username: 
+@cancellable: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION lightdm_greeter_ensure_shared_data_dir_finish ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@result: 
 @Returns: 
 
 
@@ -352,6 +396,29 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 </para>
 
 @greeter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION lightdm_greeter_start_session ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@session: 
+@cancellable: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION lightdm_greeter_start_session_finish ##### -->
+<para>
+
+</para>
+
+@greeter: 
+@result: 
+@error: 
 @Returns: 
 
 
