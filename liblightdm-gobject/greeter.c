@@ -192,16 +192,18 @@ request_new (GCancellable *cancellable, GAsyncReadyCallback callback, gpointer u
     return request;
 }
 
-static gboolean
-request_call_callback (Request *request)
+static void
+request_complete (Request *request, GObject *object)
 {
+    request->complete = TRUE;
+
     if (!request->callback)
-        return FALSE;
+        return;
 
     if (request->cancellable && g_cancellable_is_cancelled (request->cancellable))
-        return FALSE;
+        return;
 
-    return TRUE;
+    request->callback (object, G_ASYNC_RESULT (request), request->user_data);
 }
 
 static gboolean
@@ -385,9 +387,7 @@ handle_connected (LightDMGreeter *greeter, guint8 *message, gsize message_length
     request = g_list_nth_data (priv->connect_requests, 0);
     if (request)
     {
-        request->complete = TRUE;
-        if (request_call_callback (request))
-            request->callback (G_OBJECT (greeter), G_ASYNC_RESULT (request), request->user_data);
+        request_complete (request, G_OBJECT (greeter));
         priv->connect_requests = g_list_remove (priv->connect_requests, request);
         g_object_unref (request);
     }
@@ -539,9 +539,7 @@ handle_session_result (LightDMGreeter *greeter, guint8 *message, gsize message_l
     if (request)
     {
         request->return_code = read_int (message, message_length, offset);
-        request->complete = TRUE;
-        if (request_call_callback (request))
-            request->callback (G_OBJECT (greeter), G_ASYNC_RESULT (request), request->user_data);
+        request_complete (request, G_OBJECT (greeter));
         priv->start_session_requests = g_list_remove (priv->start_session_requests, request);
         g_object_unref (request);
     }
@@ -564,9 +562,7 @@ handle_shared_dir_result (LightDMGreeter *greeter, guint8 *message, gsize messag
             g_free (request->dir);
             request->dir = NULL;
         }
-        request->complete = TRUE;
-        if (request_call_callback (request))
-            request->callback (G_OBJECT (greeter), G_ASYNC_RESULT (request), request->user_data);
+        request_complete (request, G_OBJECT (greeter));
         priv->ensure_shared_data_dir_requests = g_list_remove (priv->ensure_shared_data_dir_requests, request);
         g_object_unref (request);
     }
