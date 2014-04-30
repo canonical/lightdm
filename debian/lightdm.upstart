@@ -16,6 +16,8 @@ start on ((filesystem
 
 stop on runlevel [016]
 
+respawn
+
 emits login-session-start
 emits desktop-session-start
 emits desktop-shutdown
@@ -43,6 +45,7 @@ script
 	fi
     fi
 
+    rm -f /tmp/mir_socket
     exec lightdm
 end script
 
