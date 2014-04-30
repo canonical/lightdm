@@ -45,7 +45,6 @@ script
 	fi
     fi
 
-    rm -f /tmp/mir_socket
     exec lightdm
 end script
 
