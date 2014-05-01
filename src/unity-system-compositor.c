@@ -417,9 +417,6 @@ unity_system_compositor_start (DisplayServer *server)
         process_set_env (compositor->priv->process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }
 
-    /* Delete a potential stale socket before USC tries to use it */
-    g_unlink (compositor->priv->socket);
-
     /* Generate command line to run */
     absolute_command = get_absolute_command (compositor->priv->command);
     if (!absolute_command)
