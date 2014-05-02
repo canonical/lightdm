@@ -16,6 +16,9 @@ start on ((filesystem
 
 stop on runlevel [016]
 
+respawn
+respawn limit 2 15
+
 emits login-session-start
 emits desktop-session-start
 emits desktop-shutdown
