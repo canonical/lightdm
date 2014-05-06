@@ -1,8 +1,13 @@
-lightdm (1.11.1-0ubuntu1) UNRELEASED; urgency=medium
+lightdm (1.11.1-0ubuntu1) utopic; urgency=medium
 
-  * Add lightdm_greeter_set_resettable
+  * New upstream release:
+    - Allow greeters to remain runing to reduce startup time when switching to a
+      greeter
+    - Add asynchronous methods to liblightdm 
+  * debian/lightdm.upstart:
+    - Respawn lightdm daemon if it is unexpectedly closed
 
- -- Michael Terry <mterry@ubuntu.com>  Mon, 28 Apr 2014 09:42:14 -0400
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 06 May 2014 17:07:44 +1200
 
 lightdm (1.11.0-0ubuntu1) utopic; urgency=medium
 

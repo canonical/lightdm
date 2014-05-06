@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.11.1
+
+    * Allow greeters to remain runing to reduce startup time when switching to a
+      greeter
+    * Add asynchronous methods to liblightdm
+
 Overview of changes in lightdm 1.11.0
 
     * When switching to an existing session refresh PAM credentials and end
