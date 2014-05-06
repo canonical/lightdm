@@ -24,7 +24,7 @@ int main ()
     g_object_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
 
     // Connect to LightDM daemon
-    if (!lightdm_greeter_connect_sync (greeter, NULL))
+    if (!lightdm_greeter_connect_to_daemon_sync (greeter, NULL))
         return EXIT_FAILURE;
 
     // Start authentication
@@ -155,7 +155,7 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 @resettable: 
 
 
-<!-- ##### FUNCTION lightdm_greeter_connect ##### -->
+<!-- ##### FUNCTION lightdm_greeter_connect_to_daemon ##### -->
 <para>
 
 </para>
@@ -166,7 +166,7 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 @user_data: 
 
 
-<!-- ##### FUNCTION lightdm_greeter_connect_finish ##### -->
+<!-- ##### FUNCTION lightdm_greeter_connect_to_daemon_finish ##### -->
 <para>
 
 </para>
@@ -177,7 +177,7 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 @Returns: 
 
 
-<!-- ##### FUNCTION lightdm_greeter_connect_sync ##### -->
+<!-- ##### FUNCTION lightdm_greeter_connect_to_daemon_sync ##### -->
 <para>
 
 </para>

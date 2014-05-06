@@ -24,8 +24,8 @@ namespace LightDM {
         public signal void authentication_complete ();
         public signal void autologin_timer_expired ();
 
-        public async bool connect_sync () throws GLib.Error;
-        public bool connect_sync () throws GLib.Error;
+        public async bool connect_to_daemon () throws GLib.Error;
+        public bool connect_to_daemon_sync () throws GLib.Error;
         public unowned string get_hint (string name);
         public unowned string default_session_hint { get; }
         public bool hide_users_hint { get; }

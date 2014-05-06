@@ -109,7 +109,7 @@ main (int argc, char **argv)
     g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
 
     status_notify ("%s CONNECT-TO-DAEMON", greeter_id);
-    if (!lightdm_greeter_connect_sync (greeter, NULL))
+    if (!lightdm_greeter_connect_to_daemon_sync (greeter, NULL))
     {
         status_notify ("%s FAIL-CONNECT-DAEMON", greeter_id);
         return EXIT_FAILURE;
