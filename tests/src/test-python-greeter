@@ -280,7 +280,7 @@ if log_user_changes:
     LightDM.UserList.get_instance ().connect ('user-removed', user_removed_cb)
 
 status_notify ('%s CONNECT-TO-DAEMON' % greeter_id)
-if not greeter.connect_sync ():
+if not greeter.connect_to_daemon_sync ():
     status_notify ('%s FAIL-CONNECT-DAEMON' % greeter_id)
     exit (1)
 

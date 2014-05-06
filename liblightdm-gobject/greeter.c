@@ -723,7 +723,7 @@ send_ensure_shared_data_dir (LightDMGreeter *greeter, const gchar *username)
 }
 
 /**
- * lightdm_greeter_connect:
+ * lightdm_greeter_connect_to_daemon:
  * @greeter: The greeter to connect
  * @cancellable: (allow-none): A #GCancellable or %NULL.
  * @callback: (allow-none): A #GAsyncReadyCallback to call when completed or %NULL.
@@ -731,12 +731,12 @@ send_ensure_shared_data_dir (LightDMGreeter *greeter, const gchar *username)
  *
  * Asynchronously connects the greeter to the display manager.
  *
- * When the operation is finished, @callback will be invoked. You can then call lightdm_greeter_connect_finish() to get the result of the operation.
+ * When the operation is finished, @callback will be invoked. You can then call lightdm_greeter_connect_to_daemon_finish() to get the result of the operation.
  *
- * See lightdm_greeter_connect_sync() for the synchronous version.
+ * See lightdm_greeter_connect_to_daemon_sync() for the synchronous version.
  **/
 void
-lightdm_greeter_connect (LightDMGreeter *greeter, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
+lightdm_greeter_connect_to_daemon (LightDMGreeter *greeter, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
     LightDMGreeterPrivate *priv;
     Request *request;
@@ -751,23 +751,23 @@ lightdm_greeter_connect (LightDMGreeter *greeter, GCancellable *cancellable, GAs
 }
 
 /**
- * lightdm_greeter_connect_finish:
+ * lightdm_greeter_connect_to_daemon_finish:
  * @result: A #GAsyncResult.
  * @error: return location for a #GError, or %NULL
  *
- * Finishes an operation started with lightdm_greeter_connect().
+ * Finishes an operation started with lightdm_greeter_connect_to_daemon().
  *
  * Return value: #TRUE if successfully connected
  **/
 gboolean
-lightdm_greeter_connect_finish (LightDMGreeter *greeter, GAsyncResult *result, GError **error)
+lightdm_greeter_connect_to_daemon_finish (LightDMGreeter *greeter, GAsyncResult *result, GError **error)
 {
     g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
     return REQUEST (result)->complete;
 }
 
 /**
- * lightdm_greeter_connect_sync:
+ * lightdm_greeter_connect_to_daemon_sync:
  * @greeter: The greeter to connect
  * @error: return location for a #GError, or %NULL
  *
@@ -776,7 +776,7 @@ lightdm_greeter_connect_finish (LightDMGreeter *greeter, GAsyncResult *result, G
  * Return value: #TRUE if successfully connected
  **/
 gboolean
-lightdm_greeter_connect_sync (LightDMGreeter *greeter, GError **error)
+lightdm_greeter_connect_to_daemon_sync (LightDMGreeter *greeter, GError **error)
 {
     LightDMGreeterPrivate *priv;
     Request *request;
@@ -804,6 +804,23 @@ lightdm_greeter_connect_sync (LightDMGreeter *greeter, GError **error)
     g_object_unref (request);
 
     return request->complete;
+}
+
+/**
+ * lightdm_greeter_connect_sync:
+ * @greeter: The greeter to connect
+ * @error: return location for a #GError, or %NULL
+ *
+ * Connects the greeter to the display manager.  Will block until connected.
+ *
+ * Return value: #TRUE if successfully connected
+ *
+ * Deprecated: 1.11.1: Use lightdm_greeter_connect_to_daemon_sync() instead
+ **/
+gboolean
+lightdm_greeter_connect_sync (LightDMGreeter *greeter, GError **error)
+{
+    return lightdm_greeter_connect_to_daemon_sync (greeter, error);
 }
 
 /**

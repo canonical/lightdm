@@ -118,10 +118,16 @@ Greeter::~Greeter()
 }
 
 
+bool Greeter::connectToDaemonSync()
+{
+    Q_D(Greeter);
+    return lightdm_greeter_connect_to_daemon_sync(d->ldmGreeter, NULL);
+}
+
 bool Greeter::connectSync()
 {
     Q_D(Greeter);
-    return lightdm_greeter_connect_sync(d->ldmGreeter, NULL);
+    return lightdm_greeter_connect_to_daemon_sync(d->ldmGreeter, NULL);
 }
 
 void Greeter::authenticate(const QString &username)

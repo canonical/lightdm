@@ -374,7 +374,7 @@ connect_finished (GObject *object, GAsyncResult *result, gpointer data)
     LightDMGreeter *greeter = LIGHTDM_GREETER (object);
     GError *error = NULL;
 
-    if (!lightdm_greeter_connect_finish (greeter, result, &error))
+    if (!lightdm_greeter_connect_to_daemon_finish (greeter, result, &error))
     {
         status_notify ("%s FAIL-CONNECT-DAEMON", greeter_id);
         exit_code = EXIT_FAILURE;
@@ -481,7 +481,7 @@ main (int argc, char **argv)
     }
 
     status_notify ("%s CONNECT-TO-DAEMON", greeter_id);
-    lightdm_greeter_connect (greeter, NULL, connect_finished, NULL);
+    lightdm_greeter_connect_to_daemon (greeter, NULL, connect_finished, NULL);
 
     g_main_loop_run (loop);
 

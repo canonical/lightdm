@@ -71,6 +71,7 @@ public:
     QString hostname() const;
 
 public Q_SLOTS:
+    bool connectToDaemonSync();
     bool connectSync();
     void authenticate(const QString &username=QString());
     void authenticateAsGuest();

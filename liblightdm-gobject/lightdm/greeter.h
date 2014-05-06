@@ -74,9 +74,11 @@ LightDMGreeter *lightdm_greeter_new (void);
 
 void lightdm_greeter_set_resettable (LightDMGreeter *greeter, gboolean resettable);
 
-void lightdm_greeter_connect (LightDMGreeter *greeter, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
+void lightdm_greeter_connect_to_daemon (LightDMGreeter *greeter, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 
-gboolean lightdm_greeter_connect_finish (LightDMGreeter *greeter, GAsyncResult *result, GError **error);
+gboolean lightdm_greeter_connect_to_daemon_finish (LightDMGreeter *greeter, GAsyncResult *result, GError **error);
+
+gboolean lightdm_greeter_connect_to_daemon_sync (LightDMGreeter *greeter, GError **error);
 
 gboolean lightdm_greeter_connect_sync (LightDMGreeter *greeter, GError **error);
 
