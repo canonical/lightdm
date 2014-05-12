@@ -104,6 +104,7 @@ namespace LightDM {
         public bool logged_in { get; }
         public unowned string name { get; }
         public unowned string real_name { get; }
+        public unowned Posix.uid_t uid { get; }
         public unowned string home_directory { get; }
         public unowned string session { get; }
         public unowned string background { get; }
