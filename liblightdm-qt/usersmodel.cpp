@@ -29,6 +29,7 @@ public:
     QString session;
     bool isLoggedIn;
     bool hasMessages;
+    quint64 uid;
     QString displayName() const;
 };
 
@@ -66,7 +67,7 @@ UsersModelPrivate::UsersModelPrivate(UsersModel* parent) :
 {
 #if !defined(GLIB_VERSION_2_36)
     g_type_init();
-#endif  
+#endif
 }
 
 UsersModelPrivate::~UsersModelPrivate()
@@ -99,6 +100,7 @@ void UsersModelPrivate::loadUsers()
             user.session = QString::fromUtf8(lightdm_user_get_session(ldmUser));
             user.isLoggedIn = lightdm_user_get_logged_in(ldmUser);
             user.hasMessages = lightdm_user_get_has_messages(ldmUser);
+            user.uid = (quint64)lightdm_user_get_uid(ldmUser);
             users.append(user);
         }
 
@@ -108,8 +110,6 @@ void UsersModelPrivate::loadUsers()
     g_signal_connect(lightdm_user_list_get_instance(), "user-changed", G_CALLBACK (cb_userChanged), this);
     g_signal_connect(lightdm_user_list_get_instance(), "user-removed", G_CALLBACK (cb_userRemoved), this);
 }
-
-
 
 void UsersModelPrivate::cb_userAdded(LightDMUserList *user_list, LightDMUser *ldmUser, gpointer data)
 {
@@ -126,6 +126,7 @@ void UsersModelPrivate::cb_userAdded(LightDMUserList *user_list, LightDMUser *ld
     user.background = QString::fromUtf8(lightdm_user_get_background(ldmUser));
     user.isLoggedIn = lightdm_user_get_logged_in(ldmUser);
     user.hasMessages = lightdm_user_get_has_messages(ldmUser);
+    user.uid = (quint64)lightdm_user_get_uid(ldmUser);
     that->users.append(user);
 
     that->q_func()->endInsertRows();
@@ -148,6 +149,7 @@ void UsersModelPrivate::cb_userChanged(LightDMUserList *user_list, LightDMUser *
             that->users[i].background = QString::fromUtf8(lightdm_user_get_background(ldmUser));
             that->users[i].isLoggedIn = lightdm_user_get_logged_in(ldmUser);
             that->users[i].hasMessages = lightdm_user_get_has_messages(ldmUser);
+            that->users[i].uid = (quint64)lightdm_user_get_uid(ldmUser);
 
             QModelIndex index = that->q_ptr->createIndex(i, 0);
             that->q_ptr->dataChanged(index, index);
@@ -189,6 +191,7 @@ UsersModel::UsersModel(QObject *parent) :
     roles[SessionRole] = "session";
     roles[HasMessagesRole] = "hasMessages";
     roles[ImagePathRole] = "imagePath";
+    roles[UidRole] = "uid";
     setRoleNames(roles);
     d->loadUsers();
 
@@ -240,6 +243,8 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
         return d->users[row].hasMessages;
     case UsersModel::ImagePathRole:
         return d->users[row].image;
+    case UsersModel::UidRole:
+        return d->users[row].uid;
     }
 
     return QVariant();
