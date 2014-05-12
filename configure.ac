@@ -36,6 +36,8 @@ dnl ###########################################################################
 
 AC_CHECK_HEADERS(security/pam_appl.h, [], AC_MSG_ERROR(PAM not found))
 
+AC_CHECK_HEADERS(gcrypt.h, [], AC_MSG_ERROR(libgcrypt not found))
+
 AC_CHECK_FUNCS(setresgid setresuid clearenv)
 
 PKG_CHECK_MODULES(LIGHTDM, [
