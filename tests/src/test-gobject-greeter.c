@@ -279,6 +279,8 @@ request_cb (const gchar *name, GHashTable *params)
                 g_string_append_printf (status_text, " LOGGED-IN=%s", lightdm_user_get_logged_in (user) ? "TRUE" : "FALSE");
             else if (strcmp (fields[i], "HAS-MESSAGES") == 0)
                 g_string_append_printf (status_text, " HAS-MESSAGES=%s", lightdm_user_get_has_messages (user) ? "TRUE" : "FALSE");
+            else if (strcmp (fields[i], "UID") == 0)
+                g_string_append_printf (status_text, " UID=%d", lightdm_user_get_uid (user));
         }
         g_strfreev (fields);
         g_free (layouts_text);

@@ -65,6 +65,7 @@ TESTS = \
 	test-user-renamed \
 	test-user-renamed-invalid \
 	test-user-name \
+	test-user-uid \
 	test-user-image \
 	test-user-background \
 	test-user-layout \
@@ -515,6 +516,7 @@ EXTRA_DIST = \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
 	scripts/user-session.conf \
+	scripts/user-uid.conf \
 	scripts/utmp-autologin.conf \
 	scripts/utmp-login.conf \
 	scripts/utmp-wrong-password.conf \
