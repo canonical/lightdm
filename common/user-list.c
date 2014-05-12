@@ -1219,6 +1219,12 @@ load_user_values (CommonUser *user)
 
     if (!priv->path)
         load_dmrc (user);
+
+    if (g_strcmp0 (priv->session, "ubuntu-2d") == 0)
+    {
+        g_free(priv->session);
+        priv->session = g_strdup ("ubuntu");
+    }
 }
 
 /**

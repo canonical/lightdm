@@ -40,7 +40,7 @@ static GList *languages = NULL;
 static void
 update_languages (void)
 {
-    gchar *command = "locale -a";
+    gchar *command = "/usr/share/language-tools/language-options";
     gchar *stdout_text = NULL, *stderr_text = NULL;
     gint exit_status;
     gboolean result;
@@ -161,15 +161,39 @@ lightdm_get_language (void)
 {
     const gchar *lang;
     GList *link;
+    static const gchar *short_lang = NULL;
+
+    if (short_lang)
+        goto match;
 
     lang = g_getenv ("LANG");
     if (!lang)
         return NULL;
 
+    /* Convert to a short form language code */
+    gchar *command = g_strconcat ("/usr/share/language-tools/language-validate ", lang, NULL);
+    gchar *out;
+    GError *error = NULL;
+    if (g_spawn_command_line_sync (command, &out, NULL, NULL, &error))
+    {
+        short_lang = g_strdup (g_strchomp (out));
+        g_free (out);
+        g_free (command);
+    }
+    else
+    {
+        g_warning ("Failed to run '%s': %s", command, error->message);
+        g_error_free (error);
+        g_free (command);
+        return NULL;
+    }
+
+match:
+
     for (link = lightdm_get_languages (); link; link = link->next)
     {
         LightDMLanguage *language = link->data;
-        if (lightdm_language_matches (language, lang))
+        if (lightdm_language_matches (language, short_lang))
             return language;
     }
 

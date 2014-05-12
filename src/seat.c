@@ -955,7 +955,7 @@ configure_session (Session *session, SessionConfig *config, const gchar *session
         session_set_env (session, "XDG_CURRENT_DESKTOP", desktop_name);
     if (language && language[0] != '\0')
     {
-        session_set_env (session, "LANG", language);
+        session_set_env (session, "LANGUAGE", language);
         session_set_env (session, "GDM_LANG", language);
     }
 }
