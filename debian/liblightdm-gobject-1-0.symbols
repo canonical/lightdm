@@ -78,7 +78,7 @@ liblightdm-gobject-1.so.0 liblightdm-gobject-1-0 #MINVER#
  lightdm_user_get_real_name@Base 0.9.2
  lightdm_user_get_session@Base 0.9.2
  lightdm_user_get_type@Base 0.9.2
- lightdm_user_get_uid@Base 1.11.1-0ubuntu1
+ lightdm_user_get_uid@Base 1.11.1
  lightdm_user_list_get_instance@Base 0.9.2
  lightdm_user_list_get_length@Base 0.9.2
  lightdm_user_list_get_type@Base 0.9.2
