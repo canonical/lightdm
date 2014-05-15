@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.11.2
+
+    * Add liblightdm method to get user UID
+    * DBus-activate logind
+    * Check for libgcrypt at configure time
+
 Overview of changes in lightdm 1.11.1
 
     * Allow greeters to remain runing to reduce startup time when switching to a
