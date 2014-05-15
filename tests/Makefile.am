@@ -31,11 +31,11 @@ TESTS = \
 	test-autologin-session-crash \
 	test-autologin-password \
 	test-autologin-new-authtok \
-	test-autologin-gobject-timeout \
-	test-autologin-gobject-guest-timeout \
+	test-autologin-timeout-gobject \
+	test-autologin-guest-timeout-gobject \
 	test-change-authentication \
 	test-restart-authentication \
-	test-gobject-cancel-authentication \
+	test-cancel-authentication-gobject \
 	test-login-pam \
 	test-denied \
 	test-expired \
@@ -78,31 +78,31 @@ TESTS = \
 	test-login-crash-authenticate \
 	test-login-invalid-greeter \
 	test-login-gobject \
-	test-login-gobject-manual \
-	test-login-gobject-manual-previous-session \
-	test-login-gobject-no-password \
-	test-login-gobject-long-username \
-	test-login-gobject-long-password \
-	test-login-gobject-two-factor \
-	test-login-gobject-new-authtok \
-	test-login-gobject-info-prompt \
-	test-login-gobject-multi-info-prompt \
-	test-login-gobject-multi-prompt \
-	test-login-gobject-pick-session \
-	test-login-gobject-remember-session \
-	test-login-gobject-manual-remember-session \
-	test-login-gobject-previous-session \
-	test-login-gobject-wrong-password \
-	test-login-gobject-invalid-user \
-	test-login-gobject-invalid-session \
-	test-login-gobject-logout \
-	test-login-gobject-guest \
-	test-login-gobject-guest-pick-session \
-	test-login-gobject-guest-disabled \
-	test-login-gobject-guest-no-setup-script \
-	test-login-gobject-guest-fail-setup-script \
-	test-login-gobject-guest-logout \
-	test-login-gobject-remote-session \
+	test-login-manual-gobject \
+	test-login-manual-previous-session-gobject \
+	test-login-no-password-gobject \
+	test-login-long-username-gobject \
+	test-login-long-password-gobject \
+	test-login-two-factor-gobject \
+	test-login-new-authtok-gobject \
+	test-login-info-prompt-gobject \
+	test-login-multi-info-prompt-gobject \
+	test-login-multi-prompt-gobject \
+	test-login-pick-session-gobject \
+	test-login-remember-session-gobject \
+	test-login-manual-remember-session-gobject \
+	test-login-previous-session-gobject \
+	test-login-wrong-password-gobject \
+	test-login-invalid-user-gobject \
+	test-login-invalid-session-gobject \
+	test-login-logout-gobject \
+	test-login-guest-gobject \
+	test-login-guest-pick-session-gobject \
+	test-login-guest-disabled-gobject \
+	test-login-guest-no-setup-script-gobject \
+	test-login-guest-fail-setup-script-gobject \
+	test-login-guest-logout-gobject \
+	test-login-remote-session-gobject \
 	test-login-session-crash \
 	test-login-xserver-crash \
 	test-xserver-no-share \
@@ -169,10 +169,10 @@ TESTS = \
 	test-no-console-kit \
 	test-no-login1 \
 	test-no-console-kit-or-login1 \
-	test-gobject-power \
-	test-gobject-power-no-console-kit \
-	test-gobject-power-no-login1 \
-	test-gobject-power-no-services \
+	test-power-gobject \
+	test-power-no-console-kit-gobject \
+	test-power-no-login1-gobject \
+	test-power-no-services-gobject \
 	test-open-file-descriptors \
 	test-xdmcp-server-open-file-descriptors \
 	test-multi-seat \
@@ -204,117 +204,117 @@ TESTS = \
 
 #	test-session-exit-error
 #	test-greeter-no-exit
-#   test-gobject-change-password
-#   test-qt-change-password
+#   test-change-password-gobject
+#   test-change-password-qt
 #   test-autologin-create-directory
 
 TESTS += \
-	test-python-cancel-authentication \
+	test-cancel-authentication-python \
 	test-users-python \
 	test-login-python \
-	test-login-python-manual \
-	test-login-python-manual-previous-session \
-	test-login-python-no-password \
-	test-login-python-long-username \
-	test-login-python-long-password \
-	test-login-python-two-factor \
-	test-login-python-new-authtok \
-	test-login-python-info-prompt \
-	test-login-python-multi-info-prompt \
-	test-login-python-previous-session \
-	test-login-python-wrong-password \
-	test-login-python-invalid-user \
-	test-login-python-invalid-session \
-	test-login-python-logout \
-	test-login-python-pick-session \
-	test-login-python-remember-session \
-	test-login-python-manual-remember-session \
-	test-login-python-guest \
-	test-login-python-guest-pick-session \
-	test-login-python-guest-disabled \
-	test-login-python-guest-no-setup-script \
-	test-login-python-guest-fail-setup-script \
-	test-login-python-guest-logout \
-	test-login-python-remote-session \
-	test-autologin-python-timeout \
-	test-autologin-python-guest-timeout \
-	test-python-power \
-	test-python-power-no-console-kit \
-	test-python-power-no-login1 \
-	test-python-power-no-services
+	test-login-manual-python \
+	test-login-manual-previous-session-python \
+	test-login-no-password-python \
+	test-login-long-username-python \
+	test-login-long-password-python \
+	test-login-two-factor-python \
+	test-login-new-authtok-python \
+	test-login-info-prompt-python \
+	test-login-multi-info-prompt-python \
+	test-login-previous-session-python \
+	test-login-wrong-password-python \
+	test-login-invalid-user-python \
+	test-login-invalid-session-python \
+	test-login-logout-python \
+	test-login-pick-session-python \
+	test-login-remember-session-python \
+	test-login-manual-remember-session-python \
+	test-login-guest-python \
+	test-login-guest-pick-session-python \
+	test-login-guest-disabled-python \
+	test-login-guest-no-setup-script-python \
+	test-login-guest-fail-setup-script-python \
+	test-login-guest-logout-python \
+	test-login-remote-session-python \
+	test-autologin-timeout-python \
+	test-autologin-guest-timeout-python \
+	test-power-python \
+	test-power-no-console-kit-python \
+	test-power-no-login1-python \
+	test-power-no-services-python
 
 if COMPILE_LIBLIGHTDM_QT4
 TESTS += \
-	test-autologin-qt4-timeout \
-	test-autologin-qt4-guest-timeout \
-	test-qt4-cancel-authentication \
+	test-autologin-timeout-qt4 \
+	test-autologin-guest-timeout-qt4 \
+	test-cancel-authentication-qt4 \
 	test-login-qt4 \
-	test-login-qt4-manual \
-	test-login-qt4-manual-previous-session \
-	test-login-qt4-no-password \
-	test-login-qt4-long-username \
-	test-login-qt4-long-password \
-	test-login-qt4-two-factor \
-	test-login-qt4-new-authtok \
-	test-login-qt4-info-prompt \
-	test-login-qt4-multi-info-prompt \
-	test-login-qt4-previous-session \
-	test-login-qt4-wrong-password \
-	test-login-qt4-invalid-user \
-	test-login-qt4-invalid-session \
-	test-login-qt4-logout \
-	test-login-qt4-pick-session \
-	test-login-qt4-remember-session \
-	test-login-qt4-manual-remember-session \
-	test-login-qt4-guest \
-	test-login-qt4-guest-pick-session \
-	test-login-qt4-guest-disabled \
-	test-login-qt4-guest-no-setup-script \
-	test-login-qt4-guest-fail-setup-script \
-	test-login-qt4-guest-logout \
-	test-login-qt4-remote-session \
+	test-login-manual-qt4 \
+	test-login-manual-previous-session-qt4 \
+	test-login-no-password-qt4 \
+	test-login-long-username-qt4 \
+	test-login-long-password-qt4 \
+	test-login-two-factor-qt4 \
+	test-login-new-authtok-qt4 \
+	test-login-info-prompt-qt4 \
+	test-login-multi-info-prompt-qt4 \
+	test-login-previous-session-qt4 \
+	test-login-wrong-password-qt4 \
+	test-login-invalid-user-qt4 \
+	test-login-invalid-session-qt4 \
+	test-login-logout-qt4 \
+	test-login-pick-session-qt4 \
+	test-login-remember-session-qt4 \
+	test-login-manual-remember-session-qt4 \
+	test-login-guest-qt4 \
+	test-login-guest-pick-session-qt4 \
+	test-login-guest-disabled-qt4 \
+	test-login-guest-no-setup-script-qt4 \
+	test-login-guest-fail-setup-script-qt4 \
+	test-login-guest-logout-qt4 \
+	test-login-remote-session-qt4 \
 	test-users-qt4 \
-	test-qt4-power \
-	test-qt4-power-no-console-kit \
-	test-qt4-power-no-login1 \
-	test-qt4-power-no-services
+	test-power-qt4 \
+	test-power-no-console-kit-qt4 \
+	test-power-no-login1-qt4 \
+	test-power-no-services-qt4
 endif
 
 if COMPILE_LIBLIGHTDM_QT5
 TESTS += \
-	test-autologin-qt5-timeout \
-	test-autologin-qt5-guest-timeout \
-	test-qt5-cancel-authentication \
+	test-autologin-timeout-qt5 \
+	test-autologin-guest-timeout-qt5 \
+	test-cancel-authentication-qt5 \
 	test-login-qt5 \
-	test-login-qt5-manual \
-	test-login-qt5-manual-previous-session \
-	test-login-qt5-no-password \
-	test-login-qt5-long-username \
-	test-login-qt5-long-password \
-	test-login-qt5-two-factor \
-	test-login-qt5-new-authtok \
-	test-login-qt5-info-prompt \
-	test-login-qt5-multi-info-prompt \
-	test-login-qt5-previous-session \
-	test-login-qt5-wrong-password \
-	test-login-qt5-invalid-user \
-	test-login-qt5-invalid-session \
-	test-login-qt5-logout \
-	test-login-qt5-pick-session \
-	test-login-qt5-remember-session \
-	test-login-qt5-manual-remember-session \
-	test-login-qt5-guest \
-	test-login-qt5-guest-pick-session \
-	test-login-qt5-guest-disabled \
-	test-login-qt5-guest-no-setup-script \
-	test-login-qt5-guest-fail-setup-script \
-	test-login-qt5-guest-logout \
-	test-login-qt5-remote-session \
+	test-login-manual-qt5 \
+	test-login-manual-previous-session-qt5 \
+	test-login-no-password-qt5 \
+	test-login-long-username-qt5 \
+	test-login-long-password-qt5 \
+	test-login-two-factor-qt5 \
+	test-login-new-authtok-qt5 \
+	test-login-info-prompt-qt5 \
+	test-login-multi-info-prompt-qt5 \
+	test-login-previous-session-qt5 \
+	test-login-wrong-password-qt5 \
+	test-login-invalid-user-qt5 \
+	test-login-invalid-session-qt5 \
+	test-login-logout-qt5 \
+	test-login-pick-session-qt5 \
+	test-login-remember-session-qt5 \
+	test-login-manual-remember-session-qt5 \
+	test-login-guest-qt5 \
+	test-login-guest-pick-session-qt5 \
+	test-login-guest-disabled-qt5 \
+	test-login-guest-no-setup-script-qt5 \
+	test-login-guest-fail-setup-script-qt5 \
+	test-login-guest-logout-qt5 \
+	test-login-remote-session-qt5 \
 	test-users-qt5 \
-	test-qt5-power \
-	test-qt5-power-no-console-kit \
-	test-qt5-power-no-login1 \
-	test-qt5-power-no-services
+	test-power-qt5 \
+	test-power-no-console-kit-qt5 \
+	test-power-no-login1-qt5 \
+	test-power-no-services-qt5
 endif
 
 EXTRA_DIST = \
