@@ -1,3 +1,12 @@
+lightdm (1.11.2-0ubuntu1) utopic; urgency=medium
+
+  * New upstream release:
+    - Add liblightdm method to get user UID
+    - DBus-activate logind
+    - Check for libgcrypt at configure time
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 16 May 2014 10:55:37 +1200
+
 lightdm (1.11.1-0ubuntu1) utopic; urgency=medium
 
   * New upstream release:
