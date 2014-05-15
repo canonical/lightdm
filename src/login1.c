@@ -14,10 +14,46 @@
 
 #include "login1.h"
 
+static gboolean
+check_login1 (void)
+{
+    GDBusProxy *proxy;
+    gchar *owner;
+    gboolean success;
+
+    proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                           G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
+                                           NULL,
+                                           "org.freedesktop.login1",
+                                           "/org/freedesktop/login1",
+                                           "org.freedesktop.login1.Manager",
+                                           NULL,
+                                           NULL);
+    if (!proxy)
+        return FALSE;
+
+    owner = g_dbus_proxy_get_name_owner (proxy);
+    g_object_unref (proxy);
+
+    success = (owner != NULL);
+    g_free (owner);
+
+    return success;
+}
+
 gboolean
 login1_is_running (void)
 {
-    return access ("/run/systemd/seats/", F_OK) >= 0;
+    static gboolean have_checked = FALSE;
+    static gboolean is_running = FALSE;
+
+    if (!have_checked)
+    {
+        have_checked = TRUE;
+        is_running = check_login1();
+    }
+
+    return is_running;
 }
 
 gchar *
