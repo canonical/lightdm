@@ -1,3 +1,9 @@
+lightdm (1.11.2-0ubuntu2) utopic; urgency=medium
+
+  * Integration plymouth systemd system job with plymouth services.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Sat, 17 May 2014 19:18:41 +0100
+
 lightdm (1.11.2-0ubuntu1) utopic; urgency=medium
 
   * New upstream release:
