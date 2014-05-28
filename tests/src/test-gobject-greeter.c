@@ -285,7 +285,7 @@ request_cb (const gchar *name, GHashTable *params)
         g_strfreev (fields);
         g_free (layouts_text);
 
-        status_notify (status_text->str);
+        status_notify ("%s", status_text->str);
         g_string_free (status_text, TRUE);
     }
 
@@ -440,7 +440,7 @@ main (int argc, char **argv)
         g_string_append_printf (status_text, " XDG_SESSION_CLASS=%s", xdg_session_class);
     if (mir_vt > 0)
         g_string_append_printf (status_text, " MIR_SERVER_VT=%s", mir_vt);
-    status_notify (status_text->str);
+    status_notify ("%s", status_text->str);
     g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();

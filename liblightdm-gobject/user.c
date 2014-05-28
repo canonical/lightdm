@@ -538,7 +538,7 @@ lightdm_user_get_has_messages (LightDMUser *user)
 uid_t
 lightdm_user_get_uid (LightDMUser *user)
 {
-    g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
+    g_return_val_if_fail (LIGHTDM_IS_USER (user), (uid_t)-1);
     return common_user_get_uid (GET_USER_PRIVATE (user)->common_user);
 }
 

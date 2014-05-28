@@ -44,10 +44,10 @@ gint logger_logprefix (Logger *self, gchar *buf, gulong buflen);
  * output of logger_logprefix() and then passes the result to
  * g_log()
  */
-void logger_logv (Logger *self, GLogLevelFlags log_level, const gchar *format, va_list ap);
+void logger_logv (Logger *self, GLogLevelFlags log_level, const gchar *format, va_list ap) __attribute__ ((format (printf, 3, 0)));
 
 /*! \brief convenience wrapper around \c logger_logv() */
-void logger_log (Logger *self, GLogLevelFlags log_level, const gchar *format, ...);
+void logger_log (Logger *self, GLogLevelFlags log_level, const gchar *format, ...) __attribute__ ((format (printf, 3, 4)));
 
 /* convenience wrappers around logger_log() */
 #define l_debug(self, ...) \

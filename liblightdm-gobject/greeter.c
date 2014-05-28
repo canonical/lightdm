@@ -762,7 +762,7 @@ lightdm_greeter_connect_to_daemon (LightDMGreeter *greeter, GCancellable *cancel
 gboolean
 lightdm_greeter_connect_to_daemon_finish (LightDMGreeter *greeter, GAsyncResult *result, GError **error)
 {
-    g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
+    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
     return REQUEST (result)->complete;
 }
 
