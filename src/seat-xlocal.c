@@ -199,7 +199,7 @@ create_unity_system_compositor (Seat *seat)
   
     for (i = 0; ; i++)
     {
-        socket_name = g_strdup_printf ("/tmp/lightdm-mir-%d", i);
+        socket_name = g_strdup_printf ("/run/lightdm-mir-%d", i);
         if (!g_file_test (socket_name, G_FILE_TEST_EXISTS))
             break;
     }

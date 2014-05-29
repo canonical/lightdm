@@ -470,7 +470,7 @@ unity_system_compositor_init (UnitySystemCompositor *compositor)
     compositor->priv = G_TYPE_INSTANCE_GET_PRIVATE (compositor, UNITY_SYSTEM_COMPOSITOR_TYPE, UnitySystemCompositorPrivate);
     compositor->priv->vt = -1;
     compositor->priv->command = g_strdup ("unity-system-compositor");
-    compositor->priv->socket = g_strdup ("/tmp/mir_socket");
+    compositor->priv->socket = g_strdup ("/run/mir_socket");
     compositor->priv->timeout = -1;
 }
 
