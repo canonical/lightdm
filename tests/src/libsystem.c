@@ -806,7 +806,7 @@ pam_start (const char *service_name, const char *user, const struct pam_conv *co
         g_string_append_printf (status, " SERVICE=%s", service_name);
         if (user)
             g_string_append_printf (status, " USER=%s", user);
-        status_notify (status->str);
+        status_notify ("%s", status->str);
         g_string_free (status, TRUE);
     }
 
@@ -844,7 +844,7 @@ pam_authenticate (pam_handle_t *pamh, int flags)
         if (flags & PAM_DISALLOW_NULL_AUTHTOK)
             g_string_append (status, " DISALLOW_NULL_AUTHTOK");
 
-        status_notify (status->str);
+        status_notify ("%s", status->str);
         g_string_free (status, TRUE);
     }
   
@@ -1219,7 +1219,7 @@ pam_open_session (pam_handle_t *pamh, int flags)
         if (flags & PAM_SILENT)
             g_string_append (status, " SILENT");
 
-        status_notify (status->str);
+        status_notify ("%s", status->str);
         g_string_free (status, TRUE);
     }
 
@@ -1252,7 +1252,7 @@ pam_close_session (pam_handle_t *pamh, int flags)
         if (flags & PAM_SILENT)
             g_string_append (status, " SILENT");
 
-        status_notify (status->str);
+        status_notify ("%s", status->str);
         g_string_free (status, TRUE);
     }
 
@@ -1277,7 +1277,7 @@ pam_acct_mgmt (pam_handle_t *pamh, int flags)
         if (flags & PAM_DISALLOW_NULL_AUTHTOK)
             g_string_append (status, " DISALLOW_NULL_AUTHTOK");
 
-        status_notify (status->str);
+        status_notify ("%s", status->str);
         g_string_free (status, TRUE);
     }
   
@@ -1317,7 +1317,7 @@ pam_chauthtok (pam_handle_t *pamh, int flags)
         if (flags & PAM_CHANGE_EXPIRED_AUTHTOK)
             g_string_append (status, " CHANGE_EXPIRED_AUTHTOK");
 
-        status_notify (status->str);
+        status_notify ("%s", status->str);
         g_string_free (status, TRUE);
     }
 
@@ -1377,7 +1377,7 @@ pam_setcred (pam_handle_t *pamh, int flags)
         if (flags & PAM_REFRESH_CRED)
             g_string_append (status, " REFRESH_CRED");
 
-        status_notify (status->str);
+        status_notify ("%s", status->str);
         g_string_free (status, TRUE);
     }
 
@@ -1436,7 +1436,7 @@ pam_end (pam_handle_t *pamh, int pam_status)
 
         status = g_string_new ("");
         g_string_append_printf (status, "%s END", pamh->id);
-        status_notify (status->str);
+        status_notify ("%s", status->str);
         g_string_free (status, TRUE);
     }
 

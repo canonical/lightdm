@@ -271,7 +271,7 @@ main(int argc, char *argv[])
         g_string_append_printf (status_text, " XDG_SESSION_COOKIE=%s", xdg_session_cookie);
     if (xdg_session_class)
         g_string_append_printf (status_text, " XDG_SESSION_CLASS=%s", xdg_session_class);
-    status_notify (status_text->str);
+    status_notify ("%s", status_text->str);
     g_string_free (status_text, TRUE);
 
     config = new QSettings (g_build_filename (getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), QSettings::IniFormat);

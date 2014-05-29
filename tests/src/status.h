@@ -11,7 +11,7 @@ typedef void (*StatusRequestFunc)(const gchar *name, GHashTable *params);
 
 gboolean status_connect (StatusRequestFunc message_cb, const gchar *id);
 
-void status_notify (const gchar *format, ...);
+void status_notify (const gchar *format, ...) __attribute__((format (printf, 1, 2)));
 
 #ifdef __cplusplus
 }
