@@ -4,9 +4,9 @@ Author: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
 
 Index: trunk/liblightdm-gobject/language.c
 ===================================================================
---- trunk.orig/liblightdm-gobject/language.c	2014-03-18 10:43:32.473863308 +1300
-+++ trunk/liblightdm-gobject/language.c	2014-03-18 10:43:32.469863307 +1300
-@@ -40,7 +40,7 @@
+--- trunk.orig/liblightdm-gobject/language.c
++++ trunk/liblightdm-gobject/language.c
+@@ -40,7 +40,7 @@ static GList *languages = NULL;
  static void
  update_languages (void)
  {
@@ -15,7 +15,7 @@ Index: trunk/liblightdm-gobject/language.c
      gchar *stdout_text = NULL, *stderr_text = NULL;
      gint exit_status;
      gboolean result;
-@@ -161,15 +161,39 @@
+@@ -161,15 +161,39 @@ lightdm_get_language (void)
  {
      const gchar *lang;
      GList *link;
@@ -58,9 +58,9 @@ Index: trunk/liblightdm-gobject/language.c
  
 Index: trunk/tests/scripts/language-env.conf
 ===================================================================
---- trunk.orig/tests/scripts/language-env.conf	2014-03-18 10:43:32.473863308 +1300
-+++ trunk/tests/scripts/language-env.conf	2014-03-18 10:43:32.469863307 +1300
-@@ -24,8 +24,8 @@
+--- trunk.orig/tests/scripts/language-env.conf
++++ trunk/tests/scripts/language-env.conf
+@@ -24,8 +24,8 @@ user-session=default
  #?SESSION-X-0 CONNECT-XSERVER
  
  # Check environment variables
@@ -73,9 +73,9 @@ Index: trunk/tests/scripts/language-env.conf
  
 Index: trunk/src/seat.c
 ===================================================================
---- trunk.orig/src/seat.c	2014-03-18 10:43:32.473863308 +1300
-+++ trunk/src/seat.c	2014-03-18 10:43:32.469863307 +1300
-@@ -867,7 +867,7 @@
+--- trunk.orig/src/seat.c
++++ trunk/src/seat.c
+@@ -955,7 +955,7 @@ configure_session (Session *session, Ses
          session_set_env (session, "XDG_CURRENT_DESKTOP", desktop_name);
      if (language && language[0] != '\0')
      {

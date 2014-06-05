@@ -1,3 +1,16 @@
+lightdm (1.11.3-0ubuntu1) utopic; urgency=medium
+
+  * New upstream release:
+    - Fix Mir sessions broken with unity-system-compositor 0.3.
+    - Add back Vala bindings for LightDM.Greeter.connect_sync - just mark as
+      deprecated.
+    - Put unity-system-compositor's mir_socket under /run rather than /tmp.
+      (LP: #1325995)
+    - Fix building with clang (3.5) and -Werror.
+    - Correct section name in default users.conf file.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 05 Jun 2014 16:07:14 +1200
+
 lightdm (1.11.2-0ubuntu3) utopic; urgency=high
 
   * No change rebuild against new dh_installinit, to call update-rc.d at

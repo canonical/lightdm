@@ -1,3 +1,12 @@
+Overview of changes in lightdm 1.11.3
+
+    * Fix Mir sessions broken with unity-system-compositor 0.3.
+    * Add back Vala bindings for LightDM.Greeter.connect_sync - just mark as
+      deprecated.
+    * Put unity-system-compositor's mir_socket under /run rather than /tmp.
+    * Fix building with clang (3.5) and -Werror.
+    * Correct section name in default users.conf file.
+
 Overview of changes in lightdm 1.11.2
 
     * Add liblightdm method to get user UID
