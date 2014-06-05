@@ -1283,14 +1283,22 @@ handle_login1_session_call (GDBusConnection       *connection,
     if (strcmp (method_name, "Lock") == 0)
     {
         if (!session->locked)
-            check_status ("LOGIN1 LOCK-SESSION");
+        {
+            gchar *status = g_strdup_printf ("LOGIN1 LOCK-SESSION SESSION=%s", strrchr (object_path, '/') + 1);
+            check_status (status);
+            g_free (status);
+        }
         session->locked = TRUE;
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
     else if (strcmp (method_name, "Unlock") == 0)
     {
         if (session->locked)
-            check_status ("LOGIN1 UNLOCK-SESSION");
+        {
+            gchar *status = g_strdup_printf ("LOGIN1 UNLOCK-SESSION SESSION=%s", strrchr (object_path, '/') + 1);
+            check_status (status);
+            g_free (status);
+        }
         session->locked = FALSE;
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
