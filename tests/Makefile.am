@@ -198,6 +198,7 @@ TESTS = \
 	test-unity-mir-greeter-mir-session \
 	test-unity-mir-lock-seat \
 	test-unity-mir-session-x-greeter \
+	test-unity-mir-switch \
 	test-unity-mir-switch-to-user-resettable \
 	test-unity-xdg-seat \
 	test-surfaceflinger-autologin
@@ -500,6 +501,7 @@ EXTRA_DIST = \
 	scripts/unity-mir-lock-seat.conf \
 	scripts/unity-mir-greeter-x-session.conf \
 	scripts/unity-mir-session-x-greeter.conf \
+	scripts/unity-mir-switch.conf \
 	scripts/unity-mir-switch-to-user-resettable.conf \
 	scripts/unity-plymouth.conf \
 	scripts/unity-switch.conf \
