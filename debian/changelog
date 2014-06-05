@@ -1,3 +1,10 @@
+lightdm (1.11.2-0ubuntu3) utopic; urgency=high
+
+  * No change rebuild against new dh_installinit, to call update-rc.d at
+    postinst.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Wed, 28 May 2014 11:09:29 +0100
+
 lightdm (1.11.2-0ubuntu2) utopic; urgency=medium
 
   * Integration plymouth systemd system job with plymouth services.
