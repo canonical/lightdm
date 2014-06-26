@@ -42,7 +42,7 @@ AC_CHECK_FUNCS(setresgid setresuid clearenv)
 
 PKG_CHECK_MODULES(LIGHTDM, [
     glib-2.0 >= 2.30
-    gio-2.0 >= 2.26
+    gio-2.0 >= 2.34
     gio-unix-2.0
     xdmcp
     xcb
