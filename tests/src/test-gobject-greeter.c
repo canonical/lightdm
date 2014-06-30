@@ -46,7 +46,6 @@ authentication_complete_cb (LightDMGreeter *greeter)
 static void
 autologin_timer_expired_cb (LightDMGreeter *greeter)
 {
-    status_notify ("%s AUTOLOGIN-TIMER-EXPIRED", greeter_id);
 }
 
 static gboolean
@@ -68,6 +67,8 @@ sigterm_cb (gpointer user_data)
 static void
 notify_hints (LightDMGreeter *greeter)
 {
+    int timeout = lightdm_greeter_get_autologin_timeout_hint (greeter);
+
     if (lightdm_greeter_get_select_user_hint (greeter))
         status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, lightdm_greeter_get_select_user_hint (greeter));
     if (lightdm_greeter_get_select_guest_hint (greeter))
@@ -82,6 +83,20 @@ notify_hints (LightDMGreeter *greeter)
         status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
     if (!lightdm_greeter_get_show_remote_login_hint (greeter))
         status_notify ("%s SHOW-REMOTE-LOGIN-HINT=FALSE", greeter_id);
+    if (lightdm_greeter_get_autologin_user_hint (greeter))
+    {
+        if (timeout != 0)
+            status_notify ("%s AUTOLOGIN-USER USERNAME=%s TIMEOUT=%d", greeter_id, lightdm_greeter_get_autologin_user_hint (greeter), timeout);
+        else
+            status_notify ("%s AUTOLOGIN-USER USERNAME=%s", greeter_id, lightdm_greeter_get_autologin_user_hint (greeter));
+    }
+    else if (lightdm_greeter_get_autologin_guest_hint (greeter))
+    {
+        if (timeout != 0)
+            status_notify ("%s AUTOLOGIN-GUEST TIMEOUT=%d", greeter_id, timeout);
+        else
+            status_notify ("%s AUTOLOGIN-GUEST", greeter_id);
+    }
 }
 
 static void

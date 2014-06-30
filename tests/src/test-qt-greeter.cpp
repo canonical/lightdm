@@ -51,7 +51,6 @@ void TestGreeter::authenticationComplete ()
 
 void TestGreeter::autologinTimerExpired ()
 {
-    status_notify ("%s AUTOLOGIN-TIMER-EXPIRED", greeter_id);
 }
 
 void TestGreeter::printHints ()
@@ -70,7 +69,21 @@ void TestGreeter::printHints ()
         status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
     if (!showRemoteLoginHint ())
         status_notify ("%s SHOW-REMOTE-LOGIN-HINT=FALSE", greeter_id);
-
+    int timeout = autologinTimeoutHint ();
+    if (autologinUserHint () != "")
+    {
+        if (timeout != 0)
+            status_notify ("%s AUTOLOGIN-USER USERNAME=%s TIMEOUT=%d", greeter_id, greeter->autologinUserHint ().toAscii ().constData (), timeout);
+        else
+            status_notify ("%s AUTOLOGIN-USER USERNAME=%s", greeter_id, greeter->autologinUserHint ().toAscii ().constData ());
+    }
+    else if (autologinGuestHint ())
+    {
+        if (timeout != 0)
+            status_notify ("%s AUTOLOGIN-GUEST TIMEOUT=%d", greeter_id, timeout);
+        else
+            status_notify ("%s AUTOLOGIN-GUEST", greeter_id);
+    }
 }
 
 void TestGreeter::idle ()
