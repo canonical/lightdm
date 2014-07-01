@@ -1,3 +1,14 @@
+lightdm (1.11.4-0ubuntu1) utopic; urgency=medium
+
+  * New upstream release:
+    - Do timed autologin each time you are returned to the greeter
+    - Fix tests failing with Qt 5.3 due to it checking getuid/geteuid which we are faking
+    - dm-tool: Warn if trying to switch to user without username
+  * debian/lightdm.service:
+    - Don't test for specific installation path
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 01 Jul 2014 15:50:16 +1200
+
 lightdm (1.11.3-0ubuntu1) utopic; urgency=medium
 
   * New upstream release:

@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.11.4
+
+    * Do timed autologin each time you are returned to the greeter
+    * Fix tests failing with Qt 5.3 due to it checking getuid/geteuid which we are faking
+    * dm-tool: Warn if trying to switch to user without username
+
 Overview of changes in lightdm 1.11.3
 
     * Fix Mir sessions broken with unity-system-compositor 0.3.
