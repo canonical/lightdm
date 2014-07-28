@@ -75,7 +75,7 @@ Index: trunk/src/seat.c
 ===================================================================
 --- trunk.orig/src/seat.c
 +++ trunk/src/seat.c
-@@ -955,7 +955,7 @@ configure_session (Session *session, Ses
+@@ -950,7 +950,7 @@ configure_session (Session *session, Ses
          session_set_env (session, "XDG_CURRENT_DESKTOP", desktop_name);
      if (language && language[0] != '\0')
      {
