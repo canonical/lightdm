@@ -1,3 +1,15 @@
+lightdm (1.11.5-0ubuntu1) utopic; urgency=medium
+
+  * New upstream release:
+    - Make PAM services configurable
+  * debian/guest-account:
+  * debian/lightdm.install:
+  * debian/rules:
+  * debian/patches/05_translate_debian_files.patch:
+    - Make the real name of a guest account translatable (LP: #1177713)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 28 Jul 2014 13:40:46 +1200
+
 lightdm (1.11.4-0ubuntu1) utopic; urgency=medium
 
   * New upstream release:

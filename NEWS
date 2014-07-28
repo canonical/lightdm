@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.11.5
+
+    * Make PAM services configurable
+
 Overview of changes in lightdm 1.11.4
 
     * Do timed autologin each time you are returned to the greeter
