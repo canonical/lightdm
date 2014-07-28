@@ -1,7 +1,7 @@
 lightdm (1.11.5-0ubuntu1) utopic; urgency=medium
 
   * New upstream release:
-    - Make PAM services configurable
+    - Make PAM services configurable (LP: #1348251)
   * debian/guest-account:
   * debian/lightdm.install:
   * debian/rules:
