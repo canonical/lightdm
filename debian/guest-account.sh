@@ -8,6 +8,16 @@
 # If this succeeds, this script needs to print the username as the last line to
 # stdout.
 
+export TEXTDOMAINDIR=/usr/share/locale-langpack
+export TEXTDOMAIN=lightdm
+
+# set the system wide locale for gettext calls
+if [ -f /etc/default/locale ]; then
+  . /etc/default/locale
+  LANGUAGE=
+  export LANG LANGUAGE
+fi
+
 add_account ()
 {
   HOME=`mktemp -td guest-XXXXXX`
@@ -36,7 +46,7 @@ add_account ()
     fi
   else
     # does not exist, so create it
-    adduser --system --no-create-home --home / --gecos "Guest" --group --shell /bin/bash $USER || {
+    adduser --system --no-create-home --home / --gecos $(gettext "Guest") --group --shell /bin/bash $USER || {
         umount "$HOME"
         rm -rf "$HOME"
         exit 1
