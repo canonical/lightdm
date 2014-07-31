@@ -33,7 +33,7 @@ struct SeatPrivate
     /* Configuration for this seat */
     GHashTable *properties;
 
-    /* TRUE if able to switch users */
+    /* TRUE if this seat can run multiple sessions at once */
     gboolean supports_multi_session;
 
     /* TRUE if display server can be shared for sessions */
