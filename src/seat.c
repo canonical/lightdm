@@ -1381,10 +1381,8 @@ seat_switch_to_greeter (Seat *seat)
 
     display_server = create_display_server (seat, session_get_session_type (SESSION (greeter_session)));
     session_set_display_server (SESSION (greeter_session), display_server);
-    if (!display_server_start (display_server))
-        return FALSE;
 
-    return TRUE;
+    return display_server_start (display_server);
 }
 
 static void
@@ -1481,9 +1479,8 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
     session = create_user_session (seat, username, FALSE);
     g_signal_connect (session, "authentication-complete", G_CALLBACK (switch_authentication_complete_cb), seat);
     session_set_pam_service (session, seat_get_string_property (seat, "pam-service"));
-    session_start (session);
 
-    return FALSE;
+    return session_start (session);
 }
 
 static Session *
