@@ -1149,6 +1149,8 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "SeatDefaults", "unity-compositor-command", "unity-system-compositor");
     if (!config_has_key (config_get_instance (), "SeatDefaults", "start-session"))
         config_set_boolean (config_get_instance (), "SeatDefaults", "start-session", TRUE);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "allow-user-switching"))
+        config_set_boolean (config_get_instance (), "SeatDefaults", "allow-user-switching", TRUE);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "allow-guest"))
         config_set_boolean (config_get_instance (), "SeatDefaults", "allow-guest", TRUE);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-allow-guest"))
