@@ -463,7 +463,7 @@ handle_command (const gchar *command)
                                               g_variant_new ("(ss)", "org.freedesktop.DisplayManager", "Seats"),
                                               G_VARIANT_TYPE ("(v)"),
                                               G_DBUS_CALL_FLAGS_NONE,
-                                              1000,
+                                              G_MAXINT,
                                               NULL,
                                               NULL);
 
@@ -499,7 +499,7 @@ handle_command (const gchar *command)
                                               g_variant_new ("(ss)", "org.freedesktop.DisplayManager", "Sessions"),
                                               G_VARIANT_TYPE ("(v)"),
                                               G_DBUS_CALL_FLAGS_NONE,
-                                              1000,
+                                              G_MAXINT,
                                               NULL,
                                               NULL);
 
@@ -519,55 +519,132 @@ handle_command (const gchar *command)
         check_status (status->str);
         g_string_free (status, TRUE);
     }
+    else if (strcmp (name, "SEAT-CAN-SWITCH") == 0)
+    {
+        GVariant *result, *value;
+        gchar *status;
+
+        result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                              "org.freedesktop.DisplayManager",
+                                              "/org/freedesktop/DisplayManager/Seat0",
+                                              "org.freedesktop.DBus.Properties",
+                                              "Get",
+                                              g_variant_new ("(ss)", "org.freedesktop.DisplayManager.Seat", "CanSwitch"),
+                                              G_VARIANT_TYPE ("(v)"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              G_MAXINT,
+                                              NULL,
+                                              NULL);
+
+        g_variant_get (result, "(v)", &value);
+        status = g_strdup_printf ("RUNNER SEAT-CAN-SWITCH CAN-SWITCH=%s", g_variant_get_boolean (value) ? "TRUE" : "FALSE");
+        g_variant_unref (value);
+        g_variant_unref (result);
+        check_status (status);
+        g_free (status);
+    }
+    else if (strcmp (name, "SEAT-HAS-GUEST-ACCOUNT") == 0)
+    {
+        GVariant *result, *value;
+        gchar *status;
+
+        result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                              "org.freedesktop.DisplayManager",
+                                              "/org/freedesktop/DisplayManager/Seat0",
+                                              "org.freedesktop.DBus.Properties",
+                                              "Get",
+                                              g_variant_new ("(ss)", "org.freedesktop.DisplayManager.Seat", "HasGuestAccount"),
+                                              G_VARIANT_TYPE ("(v)"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              G_MAXINT,
+                                              NULL,
+                                              NULL);
+
+        g_variant_get (result, "(v)", &value);
+        status = g_strdup_printf ("RUNNER SEAT-HAS-GUEST-ACCOUNT HAS-GUEST-ACCOUNT=%s", g_variant_get_boolean (value) ? "TRUE" : "FALSE");
+        g_variant_unref (value);
+        g_variant_unref (result);
+        check_status (status);
+        g_free (status);
+    }
     else if (strcmp (name, "SWITCH-TO-GREETER") == 0)
     {
-        g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
-                                     "org.freedesktop.DisplayManager",
-                                     "/org/freedesktop/DisplayManager/Seat0",
-                                     "org.freedesktop.DisplayManager.Seat",
-                                     "SwitchToGreeter",
-                                     g_variant_new ("()"),
-                                     G_VARIANT_TYPE ("()"),
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     1000,
-                                     NULL,
-                                     NULL);
-        check_status ("RUNNER SWITCH-TO-GREETER");
+        GVariant *result;
+
+        result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                              "org.freedesktop.DisplayManager",
+                                              "/org/freedesktop/DisplayManager/Seat0",
+                                              "org.freedesktop.DisplayManager.Seat",
+                                              "SwitchToGreeter",
+                                              g_variant_new ("()"),
+                                              G_VARIANT_TYPE ("()"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              G_MAXINT,
+                                              NULL,
+                                              NULL);
+        if (result)
+        {
+            check_status ("RUNNER SWITCH-TO-GREETER");
+            g_variant_unref (result);
+        }
+        else
+            check_status ("RUNNER SWITCH-TO-GREETER FAILED");
     }
     else if (strcmp (name, "SWITCH-TO-USER") == 0)
     {
-        gchar *status_text, *username;
+        GVariant *result;
+        const gchar *username;
 
         username = g_hash_table_lookup (params, "USERNAME");
-        g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
-                                     "org.freedesktop.DisplayManager",
-                                     "/org/freedesktop/DisplayManager/Seat0",
-                                     "org.freedesktop.DisplayManager.Seat",
-                                     "SwitchToUser",
-                                     g_variant_new ("(ss)", username, ""),
-                                     G_VARIANT_TYPE ("()"),
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     1000,
-                                     NULL,
-                                     NULL);
-        status_text = g_strdup_printf ("RUNNER SWITCH-TO-USER USERNAME=%s", username);
-        check_status (status_text);
-        g_free (status_text);
+        result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                              "org.freedesktop.DisplayManager",
+                                              "/org/freedesktop/DisplayManager/Seat0",
+                                              "org.freedesktop.DisplayManager.Seat",
+                                              "SwitchToUser",
+                                              g_variant_new ("(ss)", username, ""),
+                                              G_VARIANT_TYPE ("()"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              G_MAXINT,
+                                              NULL,
+                                              NULL);
+        if (result)
+        {
+            gchar *status_text;
+            status_text = g_strdup_printf ("RUNNER SWITCH-TO-USER USERNAME=%s", username);
+            check_status (status_text);
+            g_free (status_text);
+            g_variant_unref (result);
+        }
+        else
+        {
+            gchar *status_text;
+            status_text = g_strdup_printf ("RUNNER SWITCH-TO-USER USERNAME=%s FAILED", username);
+            check_status (status_text);
+            g_free (status_text);
+        }
     }
     else if (strcmp (name, "SWITCH-TO-GUEST") == 0)
     {
-        g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
-                                     "org.freedesktop.DisplayManager",
-                                     "/org/freedesktop/DisplayManager/Seat0",
-                                     "org.freedesktop.DisplayManager.Seat",
-                                     "SwitchToGuest",
-                                     g_variant_new ("(s)", ""),
-                                     G_VARIANT_TYPE ("()"),
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     1000,
-                                     NULL,
-                                     NULL);
-        check_status ("RUNNER SWITCH-TO-GUEST");
+        GVariant *result;
+
+        result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                              "org.freedesktop.DisplayManager",
+                                              "/org/freedesktop/DisplayManager/Seat0",
+                                              "org.freedesktop.DisplayManager.Seat",
+                                              "SwitchToGuest",
+                                              g_variant_new ("(s)", ""),
+                                              G_VARIANT_TYPE ("()"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              G_MAXINT,
+                                              NULL,
+                                              NULL);
+        if (result)
+        {
+            check_status ("RUNNER SWITCH-TO-GUEST");
+            g_variant_unref (result);
+        }
+        else
+            check_status ("RUNNER SWITCH-TO-GUEST FAILED");
     }
     else if (strcmp (name, "STOP-DAEMON") == 0)
         stop_process (lightdm_process);

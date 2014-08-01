@@ -48,7 +48,7 @@ seat_unity_get_start_local_sessions (Seat *seat)
 static void
 seat_unity_setup (Seat *seat)
 {
-    seat_set_can_switch (seat, TRUE);
+    seat_set_supports_multi_session (seat, TRUE);
     SEAT_CLASS (seat_unity_parent_class)->setup (seat);
 }
 
