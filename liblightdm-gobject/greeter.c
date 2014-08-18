@@ -1916,16 +1916,9 @@ request_get_source_object (GAsyncResult *res)
     return NULL;
 }
 
-static gboolean
-request_is_tagged (GAsyncResult *res, gpointer source_tag)
-{
-    return FALSE;
-}
-
 static void
 request_iface_init (GAsyncResultIface *iface)
 {
     iface->get_user_data = request_get_user_data;
     iface->get_source_object = request_get_source_object;
-    iface->is_tagged = request_is_tagged;
 }
