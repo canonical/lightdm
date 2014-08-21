@@ -144,7 +144,7 @@ main (int argc, char **argv)
 {
     int i;
     GString *status_text;
-    gboolean test = FALSE;
+    gboolean test = FALSE, container = FALSE;
     int vt_number = -1;
     gboolean enable_hardware_cursor = FALSE;
     const gchar *file = NULL;
@@ -188,6 +188,8 @@ main (int argc, char **argv)
         }
         else if (strcmp (arg, "--test") == 0)
             test = TRUE;
+        else if (strcmp (arg, "--container") == 0)
+            container = TRUE;
         else
             return EXIT_FAILURE;
     }
@@ -205,6 +207,8 @@ main (int argc, char **argv)
         g_string_append_printf (status_text, " XDG_VTNR=%s", g_getenv ("XDG_VTNR"));
     if (test)
         g_string_append (status_text, " TEST=TRUE");
+    if (container)
+        g_string_append (status_text, " CONTAINER=TRUE");
     status_notify ("%s", status_text->str);
     g_string_free (status_text, TRUE);
 

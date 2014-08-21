@@ -18,6 +18,7 @@
 
 typedef struct Session Session;
 
+#include "session-config.h"
 #include "display-server.h"
 #include "accounts.h"
 #include "x-authority.h"
@@ -61,7 +62,9 @@ GType session_get_type (void);
 
 Session *session_new (void);
 
-void session_set_session_type (Session *session, const gchar *session_type);
+void session_set_config (Session *session, SessionConfig *config);
+
+SessionConfig *session_get_config (Session *session);
 
 const gchar *session_get_session_type (Session *session);
 

@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Test Session
+Comment=LightDM test Mir session
+Exec=test-session
+X-LightDM-Session-Type=mir-container
+X-LightDM-System-Compositor-Command=unity-system-compositor --container

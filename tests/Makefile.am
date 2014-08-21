@@ -187,6 +187,7 @@ TESTS = \
 	test-mir-session \
 	test-mir-session-crash \
 	test-mir-session-compositor-crash \
+	test-mir-container-session \
 	test-unity-compositor-command \
 	test-unity-compositor-not-found \
 	test-unity-compositor-fail-start \
@@ -337,6 +338,7 @@ EXTRA_DIST = \
 	data/sessions/alternative.desktop \
 	data/sessions/default.desktop \
 	data/sessions/mir.desktop \
+	data/sessions/mir-container.desktop \
 	data/sessions/named.desktop \
 	data/sessions/surfaceflinger.desktop \
 	scripts/0-additional.conf \
@@ -440,6 +442,7 @@ EXTRA_DIST = \
 	scripts/login-wrong-password.conf \
 	scripts/login-xserver-crash.conf \
 	scripts/mir-autologin.conf \
+	scripts/mir-container-session.conf \
 	scripts/mir-greeter.conf \
 	scripts/mir-session.conf \
 	scripts/mir-session-compositor-crash.conf \
