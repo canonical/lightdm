@@ -243,8 +243,11 @@ create_mir_server (Seat *seat)
 }
 
 static DisplayServer *
-seat_unity_create_display_server (Seat *seat, const gchar *session_type)
+seat_unity_create_display_server (Seat *seat, Session *session)
 {  
+    const gchar *session_type;
+  
+    session_type = session_get_session_type (session);
     if (strcmp (session_type, "x") == 0)
         return DISPLAY_SERVER (create_x_server (seat));
     else if (strcmp (session_type, "mir") == 0)

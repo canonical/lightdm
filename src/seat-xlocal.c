@@ -247,12 +247,27 @@ create_unity_system_compositor (Seat *seat)
 }
 
 static DisplayServer *
-seat_xlocal_create_display_server (Seat *seat, const gchar *session_type)
+seat_xlocal_create_display_server (Seat *seat, Session *session)
 {
+    const gchar *session_type;
+
+    session_type = session_get_session_type (session);
     if (strcmp (session_type, "x") == 0)
         return DISPLAY_SERVER (create_x_server (seat));
     else if (strcmp (session_type, "mir") == 0)
         return create_unity_system_compositor (seat);
+    else if (strcmp (session_type, "mir-container") == 0)
+    {
+        DisplayServer *compositor;
+        const gchar *compositor_command;
+
+        compositor = create_unity_system_compositor (seat);
+        compositor_command = session_config_get_compositor_command (session_get_config (session));
+        if (compositor_command)
+            unity_system_compositor_set_command (UNITY_SYSTEM_COMPOSITOR (compositor), compositor_command);
+      
+        return compositor;
+    }
     else
     {
         l_warning (seat, "Can't create unsupported display server '%s'", session_type);
