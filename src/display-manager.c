@@ -20,7 +20,6 @@
 #include "seat-xlocal.h"
 #include "seat-xremote.h"
 #include "seat-unity.h"
-#include "seat-surfaceflinger.h"
 #include "plymouth.h"
 
 enum {
@@ -150,7 +149,6 @@ display_manager_init (DisplayManager *manager)
     seat_register_module ("xlocal", SEAT_XLOCAL_TYPE);
     seat_register_module ("xremote", SEAT_XREMOTE_TYPE);
     seat_register_module ("unity", SEAT_UNITY_TYPE);
-    seat_register_module ("surfaceflinger", SEAT_SURFACEFLINGER_TYPE);
 }
 
 static void

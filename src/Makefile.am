@@ -27,8 +27,6 @@ lightdm_SOURCES = \
 	process.h \
 	seat.c \
 	seat.h \
-	seat-surfaceflinger.c \
-	seat-surfaceflinger.h \
 	seat-unity.c \
 	seat-unity.h \
 	seat-xdmcp-session.c \
@@ -47,8 +45,6 @@ lightdm_SOURCES = \
 	session-config.h \
 	shared-data-manager.c \
 	shared-data-manager.h \
-	surfaceflinger-server.c \
-	surfaceflinger-server.h \
 	unity-system-compositor.c \
 	unity-system-compositor.h \
 	vnc-server.c \

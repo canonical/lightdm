@@ -207,8 +207,7 @@ TESTS = \
 	test-unity-mir-session-x-greeter \
 	test-unity-mir-switch \
 	test-unity-mir-switch-to-user-resettable \
-	test-unity-xdg-seat \
-	test-surfaceflinger-autologin
+	test-unity-xdg-seat
 
 #	test-session-exit-error
 #	test-greeter-no-exit
@@ -340,7 +339,6 @@ EXTRA_DIST = \
 	data/sessions/mir.desktop \
 	data/sessions/mir-container.desktop \
 	data/sessions/named.desktop \
-	data/sessions/surfaceflinger.desktop \
 	scripts/0-additional.conf \
 	scripts/1-additional.conf \
 	scripts/additional-config.conf \
@@ -477,7 +475,6 @@ EXTRA_DIST = \
 	scripts/session-stderr.conf \
 	scripts/session-stderr-multi-write.conf \
 	scripts/session-stderr-backup.conf \
-	scripts/surfaceflinger-autologin.conf \
 	scripts/switch-to-greeter.conf \
 	scripts/switch-to-greeter-disabled.conf \
 	scripts/switch-to-greeter-new-session.conf \
