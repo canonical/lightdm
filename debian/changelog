@@ -1,3 +1,18 @@
+lightdm (1.11.6-0ubuntu1) utopic; urgency=medium
+
+  * New upstream release:
+    * Add a seat option 'allow-user-switching' that can disable all user
+      switching for that seat
+    * Add a new session type 'mir-container' that allows the session to run
+      inside a custom system compositor (LP: #1359332)
+    * Only seat0 takes VT from Plymouth
+    * Removed unused GAsyncResultIface.is_tagged as this attribute was not
+      available in earlier versions of Glib I/O.
+    * Abort autogen if yelp-tools not installed
+    * Return correct errors for D-Bus calls
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 22 Aug 2014 09:10:29 +1200
+
 lightdm (1.11.5-0ubuntu1) utopic; urgency=medium
 
   * New upstream release:
