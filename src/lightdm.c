@@ -986,7 +986,7 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
     gchar **groups, **i;
     Seat *seat;
 
-    g_debug ("Add seat for login1 seat id %s", seat_name);
+    g_debug ("New seat added from logind: %s", seat_name);
     seat = seat_new ("xlocal");
 
     if (seat)
@@ -1019,12 +1019,12 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
     else
     {
         // FIXME: Need to make proper error
-        g_warning ("Unable to create seat for login1 seat id %s", seat_name);
+        g_warning ("Unable to create seat: %s", seat_name);
         return;
     }
 
     if (!display_manager_add_seat (display_manager, seat)) // FIXME: Need to make proper error
-        g_warning ("Failed to start seat for login1 seat id %s", seat_name);
+        g_warning ("Failed to start seat: %s", seat_name);
 
     g_object_unref (seat);
 }
@@ -1034,6 +1034,7 @@ login1_service_seat_removed_cb (Login1Service *service, Login1Seat *login1_seat)
 {
     GList *seats, *link;
     Seat *seat;
+    const gchar *seat_name = login1_seat_get_id (login1_seat);
 
     /* Stop all seats matching given xdg-seat property value.
      * Copy the list as it might be modified if a seat stops during this loop */
@@ -1042,11 +1043,12 @@ login1_service_seat_removed_cb (Login1Service *service, Login1Seat *login1_seat)
     /* FIXME: This loop should be uneeded, provided we can ensure
      *        there's only one Seat object in DisplayManager list
      *        matching given Login1Seat object id. */
+    g_debug ("Seat removed from logind: %s", seat_name);
     for (link = seats; link; link = link->next)
     {
         seat = link->data;
 
-        if (g_strcmp0 (seat_get_name (seat), login1_seat_get_id (login1_seat)) == 0)
+        if (g_strcmp0 (seat_get_name (seat), seat_name) == 0)
             seat_stop (seat);
     }
 
