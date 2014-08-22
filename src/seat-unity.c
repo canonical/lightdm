@@ -96,14 +96,12 @@ compositor_ready_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
         key_name = seat_get_string_property (SEAT (seat), "xdmcp-key");
         if (key_name)
         {
-            gchar *dir, *path;
+            gchar *path;
             GKeyFile *keys;
             gboolean result;
             GError *error = NULL;
 
-            dir = config_get_string (config_get_instance (), "LightDM", "config-directory");
-            path = g_build_filename (dir, "keys.conf", NULL);
-            g_free (dir);
+            path = g_build_filename (config_get_directory (config_get_instance ()), "keys.conf", NULL);
 
             keys = g_key_file_new ();
             result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);

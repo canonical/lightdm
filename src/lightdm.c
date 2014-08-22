@@ -906,14 +906,12 @@ bus_acquired_cb (GDBusConnection *connection,
         key_name = config_get_string (config_get_instance (), "XDMCPServer", "key");
         if (key_name)
         {
-            gchar *dir, *path;
+            gchar *path;
             GKeyFile *keys;
             gboolean result;
             GError *error = NULL;
 
-            dir = config_get_string (config_get_instance (), "LightDM", "config-directory");
-            path = g_build_filename (dir, "keys.conf", NULL);
-            g_free (dir);
+            path = g_build_filename (config_get_directory (config_get_instance ()), "keys.conf", NULL);
 
             keys = g_key_file_new ();
             result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
@@ -1064,12 +1062,35 @@ main (int argc, char **argv)
     /* Show combined configuration if user requested it */
     if (show_config)
     {
-        gchar **groups;
+        GList *sources, *link;
+        gchar **groups, *last_source, *empty_source;
+        GHashTable *source_ids;
         int i;
 
         if (!config_load_from_standard_locations (config_get_instance (), config_path, NULL))
             return EXIT_FAILURE;
 
+        /* Number sources */
+        sources = config_get_sources (config_get_instance ());
+        source_ids = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+        last_source = "";
+        for (i = 0, link = sources; link; i++, link = link->next)
+        {
+            gchar *path, *id;
+
+            path = link->data;
+            if (i < 26)
+                id = g_strdup_printf ("%c", 'A' + i);
+            else
+                id = g_strdup_printf ("%d", i);
+            g_hash_table_insert (source_ids, g_strdup (path), id);
+            last_source = id;
+        }
+        empty_source = g_strdup (last_source);
+        for (i = 0; empty_source[i] != '\0'; i++)
+            empty_source[i] = ' ';
+
+        /* Print out keys */
         groups = config_get_groups (config_get_instance ());
         for (i = 0; groups[i]; i++)
         {
@@ -1078,21 +1099,38 @@ main (int argc, char **argv)
 
             if (i != 0)
                 g_printerr ("\n");
-            g_printerr ("[%s]\n", groups[i]);
+            g_printerr ("%s  [%s]\n", empty_source, groups[i]);
 
             keys = config_get_keys (config_get_instance (), groups[i]);
             for (j = 0; keys[j]; j++)
             {
+                const gchar *source, *id;
                 gchar *value;
 
+                source = config_get_source (config_get_instance (), groups[i], keys[j]);
+                id = source ? g_hash_table_lookup (source_ids, source) : empty_source;
                 value = config_get_string (config_get_instance (), groups[i], keys[j]);
-                g_printerr ("%s=%s\n", keys[j], value);
+                g_printerr ("%s  %s=%s\n", id, keys[j], value);
                 g_free (value);
             }
 
             g_strfreev (keys);
         }
         g_strfreev (groups);
+
+        /* Show mapping from source number to path */
+        g_printerr ("\n");
+        g_printerr ("Sources:\n");
+        for (link = sources; link; link = link->next)
+        {
+            const gchar *path = link->data;
+            const gchar *source;
+
+            source = g_hash_table_lookup (source_ids, path);
+            g_printerr ("%s  %s\n", source, path);
+        }
+
+        g_hash_table_destroy (source_ids);
 
         return EXIT_SUCCESS;
     }
