@@ -544,15 +544,12 @@ session_child_run (int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    if (login1_is_running ())
-    {
-        login1_session = login1_get_session_id ();
+    /* Check what logind session we are, or fallback to ConsoleKit */
+    login1_session = login1_get_session_id ();
+    if (login1_session)
         write_string (login1_session);
-    }
-
-    if (!login1_session)
+    else
     {
-        /* Open a Console Kit session */
         g_variant_builder_init (&ck_parameters, G_VARIANT_TYPE ("(a(sv))"));
         g_variant_builder_open (&ck_parameters, G_VARIANT_TYPE ("a(sv)"));
         g_variant_builder_add (&ck_parameters, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));

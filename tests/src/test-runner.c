@@ -1626,7 +1626,7 @@ handle_login1_call (GDBusConnection       *connection,
             Login1Seat *seat = link->data;
             g_variant_builder_add (&seats, "(so)", seat->id, seat->path);
         }
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(a(so))", g_variant_builder_end (&seats)));
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(a(so))", &seats));
     }
     else if (strcmp (method_name, "GetSessionByPID") == 0)
     {
