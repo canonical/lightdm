@@ -1004,9 +1004,7 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
         {
             gchar *config_section = *i;
 
-            /* FIXME: Replace "AutoSeat:" prefix with "Seat:" once we can
-                      get rid of static seat loading */
-            if (!g_str_has_prefix (config_section, "AutoSeat:") ||
+            if (!g_str_has_prefix (config_section, "Seat:") ||
                 !g_str_has_suffix (config_section, seat_name))
                 continue;
 
@@ -1389,52 +1387,9 @@ main (int argc, char **argv)
 
     /* Connect to logind */
     login1_service = login1_service_get_instance ();
-    login1_service_connect (login1_service);
-
-    /* Load the static display entries */
-    groups = config_get_groups (config_get_instance ());
-    for (i = groups; *i; i++)
+    if (login1_service_connect (login1_service))
     {
-        gchar *config_section = *i;
-        gchar **types;
-        gchar **type;
-        Seat *seat = NULL;
-        const gchar *const seatpfx = "Seat:";
-
-        if (!g_str_has_prefix (config_section, seatpfx))
-            continue;
-
-        g_debug ("Loading seat %s", config_section);
-        types = config_get_string_list (config_get_instance (), config_section, "type");
-        if (!types)
-            types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
-        for (type = types; type && *type; type++)
-        {
-            seat = seat_new (*type);
-            if (seat)
-                break;
-        }
-        g_strfreev (types);
-        if (seat)
-        {
-            const gsize seatpfxlen = strlen(seatpfx);
-            gchar *seatname = config_section + seatpfxlen;
-
-            seat_set_property (seat, "seat-name", seatname);
-
-            set_seat_properties (seat, config_section);
-            display_manager_add_seat (display_manager, seat);
-            g_object_unref (seat);
-            n_seats++;
-        }
-        else
-            g_warning ("Failed to create seat %s", config_section);
-    }
-    g_strfreev (groups);
-
-    /* Load dynamic seats from logind */
-    if (login1_service_get_is_connected (login1_service))
-    {
+        /* Load dynamic seats from logind */
         g_signal_connect (login1_service, "seat-added", G_CALLBACK (login1_service_seat_added_cb), NULL);
         g_signal_connect (login1_service, "seat-removed", G_CALLBACK (login1_service_seat_removed_cb), NULL);
 
@@ -1443,6 +1398,49 @@ main (int argc, char **argv)
             login1_service_seat_added_cb (login1_service, (Login1Seat *) link->data);
             n_seats++;
         }
+    }
+    else
+    {
+        /* Load the static display entries */
+        groups = config_get_groups (config_get_instance ());
+        for (i = groups; *i; i++)
+        {
+            gchar *config_section = *i;
+            gchar **types;
+            gchar **type;
+            Seat *seat = NULL;
+            const gchar *const seatpfx = "Seat:";
+
+            if (!g_str_has_prefix (config_section, seatpfx))
+                continue;
+
+            g_debug ("Loading seat %s", config_section);
+            types = config_get_string_list (config_get_instance (), config_section, "type");
+            if (!types)
+                types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
+            for (type = types; type && *type; type++)
+            {
+                seat = seat_new (*type);
+                if (seat)
+                    break;
+            }
+            g_strfreev (types);
+            if (seat)
+            {
+                const gsize seatpfxlen = strlen(seatpfx);
+                gchar *seatname = config_section + seatpfxlen;
+
+                seat_set_property (seat, "seat-name", seatname);
+
+                set_seat_properties (seat, config_section);
+                display_manager_add_seat (display_manager, seat);
+                g_object_unref (seat);
+                n_seats++;
+            }
+            else
+                g_warning ("Failed to create seat %s", config_section);
+        }
+        g_strfreev (groups);
     }
 
     /* If no seats start a default one */
