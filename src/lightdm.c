@@ -997,7 +997,7 @@ main (int argc, char **argv)
     gchar *default_log_dir = g_strdup (LOG_DIR);
     gchar *default_run_dir = g_strdup (RUN_DIR);
     gchar *default_cache_dir = g_strdup (CACHE_DIR);
-    gboolean show_version = FALSE;
+    gboolean show_config = FALSE, show_version = FALSE;
     GList *link, *messages = NULL;
     GOptionEntry options[] =
     {
@@ -1022,6 +1022,9 @@ main (int argc, char **argv)
         { "cache-dir", 0, 0, G_OPTION_ARG_STRING, &cache_dir,
           /* Help string for command line --cache-dir flag */
           N_("Directory to cache information"), "DIRECTORY" },
+        { "show-config", 0, 0, G_OPTION_ARG_NONE, &show_config,
+          /* Help string for command line --show-config flag */
+          N_("Show combined configuration"), NULL },
         { "version", 'v', 0, G_OPTION_ARG_NONE, &show_version,
           /* Help string for command line --version flag */
           N_("Show release version"), NULL },
@@ -1056,6 +1059,42 @@ main (int argc, char **argv)
                     _("Run '%s --help' to see a full list of available command line options."), argv[0]);
         g_printerr ("\n");
         return EXIT_FAILURE;
+    }
+
+    /* Show combined configuration if user requested it */
+    if (show_config)
+    {
+        gchar **groups;
+        int i;
+
+        if (!config_load_from_standard_locations (config_get_instance (), config_path, NULL))
+            return EXIT_FAILURE;
+
+        groups = config_get_groups (config_get_instance ());
+        for (i = 0; groups[i]; i++)
+        {
+            gchar **keys;
+            int j;
+
+            if (i != 0)
+                g_printerr ("\n");
+            g_printerr ("[%s]\n", groups[i]);
+
+            keys = config_get_keys (config_get_instance (), groups[i]);
+            for (j = 0; keys[j]; j++)
+            {
+                gchar *value;
+
+                value = config_get_string (config_get_instance (), groups[i], keys[j]);
+                g_printerr ("%s=%s\n", keys[j], value);
+                g_free (value);
+            }
+
+            g_strfreev (keys);
+        }
+        g_strfreev (groups);
+
+        return EXIT_SUCCESS;
     }
 
     if (show_version)
