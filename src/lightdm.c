@@ -1071,7 +1071,7 @@ main (int argc, char **argv)
     gchar *default_cache_dir = g_strdup (CACHE_DIR);
     gboolean show_config = FALSE, show_version = FALSE;
     GList *link, *messages = NULL;
-    Login1Service login1_service;
+    Login1Service *login1_service;
     GOptionEntry options[] =
     {
         { "config", 'c', 0, G_OPTION_ARG_STRING, &config_path,
