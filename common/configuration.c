@@ -15,7 +15,10 @@
 
 struct ConfigurationPrivate
 {
+    gchar *dir;
     GKeyFile *key_file;
+    GList *sources;
+    GHashTable *key_sources;
 };
 
 G_DEFINE_TYPE (Configuration, config, G_TYPE_OBJECT);
@@ -34,7 +37,7 @@ gboolean
 config_load_from_file (Configuration *config, const gchar *path, GError **error)
 {
     GKeyFile *key_file;
-    gchar **groups;
+    gchar *source_path, **groups;
     int i;
 
     key_file = g_key_file_new ();
@@ -43,6 +46,9 @@ config_load_from_file (Configuration *config, const gchar *path, GError **error)
         g_key_file_free (key_file);
         return FALSE;
     }
+
+    source_path = g_strdup (path);
+    config->priv->sources = g_list_append (config->priv->sources, source_path);
 
     groups = g_key_file_get_groups (key_file, NULL);
     for (i = 0; groups[i]; i++)
@@ -53,14 +59,17 @@ config_load_from_file (Configuration *config, const gchar *path, GError **error)
         keys = g_key_file_get_keys (key_file, groups[i], NULL, error);
         if (!keys)
             break;
-      
+
         for (j = 0; keys[j]; j++)
         {
-            gchar *value;
+            gchar *value, *k;
 
             value = g_key_file_get_value (key_file, groups[i], keys[j], NULL);
             g_key_file_set_value (config->priv->key_file, groups[i], keys[j], value);
             g_free (value);
+
+            k = g_strdup_printf ("%s]%s", groups[i], keys[j]);
+            g_hash_table_insert (config->priv->key_sources, k, source_path);
         }
 
         g_strfreev (keys);
@@ -159,7 +168,7 @@ load_config_directories (const gchar * const *dirs, GList **messages)
 gboolean
 config_load_from_standard_locations (Configuration *config, const gchar *config_path, GList **messages)
 {
-    gchar *config_dir, *config_d_dir = NULL;
+    gchar *config_d_dir = NULL;
     gboolean explicit_config = FALSE;
     gboolean success = TRUE;
     GError *error = NULL;
@@ -169,18 +178,15 @@ config_load_from_standard_locations (Configuration *config, const gchar *config_
 
     if (config_path)
     {
-        config_dir = g_path_get_basename (config_path);
-        config_dir = path_make_absolute (config_dir);
+        config->priv->dir = path_make_absolute (g_path_get_basename (config_path));
         explicit_config = TRUE;
     }
     else
     {
-        config_dir = g_strdup (CONFIG_DIR);
-        config_d_dir = g_build_filename (config_dir, "lightdm.conf.d", NULL);
-        config_path = g_build_filename (config_dir, "lightdm.conf", NULL);
+        config->priv->dir = g_strdup (CONFIG_DIR);
+        config_d_dir = g_build_filename (config->priv->dir, "lightdm.conf.d", NULL);
+        config_path = g_build_filename (config->priv->dir, "lightdm.conf", NULL);
     }
-    config_set_string (config, "LightDM", "config-directory", config_dir);
-    g_free (config_dir);
 
     if (config_d_dir)
         load_config_directory (config_d_dir, messages);
@@ -206,6 +212,12 @@ config_load_from_standard_locations (Configuration *config, const gchar *config_
     return success;
 }
 
+const gchar *
+config_get_directory (Configuration *config)
+{
+    return config->priv->dir;
+}
+
 gchar **
 config_get_groups (Configuration *config)
 {
@@ -222,6 +234,25 @@ gboolean
 config_has_key (Configuration *config, const gchar *section, const gchar *key)
 {
     return g_key_file_has_key (config->priv->key_file, section, key, NULL);
+}
+
+GList *
+config_get_sources (Configuration *config)
+{
+    return config->priv->sources;
+}
+
+const gchar *
+config_get_source (Configuration *config, const gchar *section, const gchar *key)
+{
+    gchar *k;
+    const gchar *source;
+
+    k = g_strdup_printf ("%s]%s", section, key);
+    source = g_hash_table_lookup (config->priv->key_sources, k);
+    g_free (k);
+
+    return source;
 }
 
 void
@@ -276,7 +307,8 @@ static void
 config_init (Configuration *config)
 {
     config->priv = G_TYPE_INSTANCE_GET_PRIVATE (config, CONFIGURATION_TYPE, ConfigurationPrivate);
-    config->priv->key_file = g_key_file_new ();  
+    config->priv->key_file = g_key_file_new ();
+    config->priv->key_sources = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 }
 
 static void
@@ -286,7 +318,10 @@ config_finalize (GObject *object)
 
     self = CONFIGURATION (object);
 
+    g_free (self->priv->dir);
     g_key_file_free (self->priv->key_file);
+    g_list_free_full (self->priv->sources, g_free);
+    g_hash_table_destroy (self->priv->key_sources);
 
     G_OBJECT_CLASS (config_parent_class)->finalize (object);  
 }
