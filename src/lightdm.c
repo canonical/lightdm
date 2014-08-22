@@ -1034,6 +1034,7 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
 static void
 login1_service_seat_removed_cb (Login1Service *service, Login1Seat *login1_seat)
 {
+    GList *seats, *link;
     Seat *seat;
 
     /* Stop all seats matching given xdg-seat property value.
