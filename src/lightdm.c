@@ -979,6 +979,81 @@ name_lost_cb (GDBusConnection *connection,
     exit (EXIT_FAILURE);
 }
 
+static void
+login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
+{
+    const gchar *seat_name = login1_seat_get_id (login1_seat);
+    gchar **groups, **i;
+    Seat *seat;
+
+    g_debug ("Add seat for login1 seat id %s", seat_name);
+    seat = seat_new ("xlocal");
+
+    if (seat)
+    {
+        groups = config_get_groups (config_get_instance ());
+        set_seat_properties (seat, NULL);
+
+        if (!login1_seat_get_can_multi_session (login1_seat))
+        {
+            g_debug ("Seat %s has property CanMultiSession=no", seat_name);
+            seat_set_property (seat, "allow-user-switching", "false");
+        }
+
+        for (i = groups; *i; i++)
+        {
+            gchar *config_section = *i;
+
+            /* FIXME: Replace "AutoSeat:" prefix with "Seat:" once we can
+                      get rid of static seat loading */
+            if (!g_str_has_prefix (config_section, "AutoSeat:") ||
+                !g_str_has_suffix (config_section, seat_name))
+                continue;
+
+            g_debug ("Loading properties from config section %s", config_section);
+            set_seat_properties (seat, config_section);
+        }
+
+        seat_set_property (seat, "seat-name", seat_name);
+        seat_set_property (seat, "xdg-seat", seat_name);
+        g_strfreev (groups);
+    }
+    else
+    {
+        // FIXME: Need to make proper error
+        g_warning ("Unable to create seat for login1 seat id %s", seat_name);
+        return;
+    }
+
+    if (!display_manager_add_seat (display_manager, seat)) // FIXME: Need to make proper error
+        g_warning ("Failed to start seat for login1 seat id %s", seat_name);
+
+    g_object_unref (seat);
+}
+
+static void
+login1_service_seat_removed_cb (Login1Service *service, Login1Seat *login1_seat)
+{
+    Seat *seat;
+
+    /* Stop all seats matching given xdg-seat property value.
+     * Copy the list as it might be modified if a seat stops during this loop */
+    seats = g_list_copy (display_manager_get_seats (display_manager));
+
+    /* FIXME: This loop should be uneeded, provided we can ensure
+     *        there's only one Seat object in DisplayManager list
+     *        matching given Login1Seat object id. */
+    for (link = seats; link; link = link->next)
+    {
+        seat = link->data;
+
+        if (g_strcmp0 (seat_get_name (seat), login1_seat_get_id (login1_seat)) == 0)
+            seat_stop (seat);
+    }
+
+    g_list_free (seats);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -997,6 +1072,7 @@ main (int argc, char **argv)
     gchar *default_cache_dir = g_strdup (CACHE_DIR);
     gboolean show_config = FALSE, show_version = FALSE;
     GList *link, *messages = NULL;
+    Login1Service login1_service;
     GOptionEntry options[] =
     {
         { "config", 'c', 0, G_OPTION_ARG_STRING, &config_path,
@@ -1311,7 +1387,8 @@ main (int argc, char **argv)
     shared_data_manager_start (shared_data_manager_get_instance ());
 
     /* Connect to logind */
-    login1_service_connect (login1_service_get_instance ());
+    login1_service = login1_service_get_instance ();
+    login1_service_connect (login1_service);
 
     /* Load the static display entries */
     groups = config_get_groups (config_get_instance ());
@@ -1353,6 +1430,19 @@ main (int argc, char **argv)
             g_warning ("Failed to create seat %s", config_section);
     }
     g_strfreev (groups);
+
+    /* Load dynamic seats from logind */
+    if (login1_service_get_is_connected (login1_service))
+    {
+        g_signal_connect (login1_service, "seat-added", G_CALLBACK (login1_service_seat_added_cb), NULL);
+        g_signal_connect (login1_service, "seat-removed", G_CALLBACK (login1_service_seat_removed_cb), NULL);
+
+        for (link = login1_service_get_seats (login1_service); link; link = link->next)
+        {
+            login1_service_seat_added_cb (login1_service, (Login1Seat *) link->data);
+            n_seats++;
+        }
+    }
 
     /* If no seats start a default one */
     if (n_seats == 0 && config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
