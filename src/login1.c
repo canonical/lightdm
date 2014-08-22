@@ -290,33 +290,22 @@ signal_cb (GDBusConnection *connection,
            gpointer user_data)
 {
     Login1Service *service = user_data;
+    Login1Seat *seat;
+    const gchar *id, *path;
 
-    if (strcmp (signal_name, "SeatNew") == 0)
+    g_variant_get (parameters, "(&s&o)", &id, &path);
+    seat = login1_service_get_seat (service, id);
+
+    if (strcmp (signal_name, "SeatNew") == 0 && !seat)
     {
-        const gchar *id, *path;
-        Login1Seat *seat;
-
-        g_variant_get (parameters, "(&s&o)", &id, &path);
-        seat = login1_service_get_seat (service, id);
-        if (!seat)
-        {
-            seat = add_seat (service, id, path);
-            g_signal_emit (service, signals[SEAT_ADDED], 0, seat);
-        }
+        seat = add_seat (service, id, path);
+        g_signal_emit (service, signals[SEAT_ADDED], 0, seat);
     }
-    else if (strcmp (signal_name, "SeatRemoved") == 0)
+    else if (strcmp (signal_name, "SeatRemoved") == 0 && seat)
     {
-        const gchar *id, *path;
-        Login1Seat *seat;
-
-        g_variant_get (parameters, "(&s&o)", &id, &path);
-        seat = login1_service_get_seat (service, id);
-        if (seat)
-        {
-            service->priv->seats = g_list_remove (service->priv->seats, seat);            
-            g_signal_emit (service, signals[SEAT_REMOVED], 0, seat);
-            g_object_unref (seat);
-        }                        
+        service->priv->seats = g_list_remove (service->priv->seats, seat);            
+        g_signal_emit (service, signals[SEAT_REMOVED], 0, seat);
+        g_object_unref (seat);
     } 
 }
 
