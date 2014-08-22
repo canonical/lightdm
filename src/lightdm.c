@@ -1390,6 +1390,7 @@ main (int argc, char **argv)
     if (login1_service_connect (login1_service))
     {
         /* Load dynamic seats from logind */
+        g_debug ("Start monitoring logind for new/removed seats");
         g_signal_connect (login1_service, "seat-added", G_CALLBACK (login1_service_seat_added_cb), NULL);
         g_signal_connect (login1_service, "seat-removed", G_CALLBACK (login1_service_seat_removed_cb), NULL);
 
