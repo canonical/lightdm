@@ -16,8 +16,6 @@
 
 G_BEGIN_DECLS
 
-gboolean login1_is_running (void);
-
 gchar *login1_get_session_id (void);
 
 void login1_lock_session (const gchar *session_path);
@@ -67,6 +65,8 @@ GType login1_seat_get_type (void);
 Login1Service *login1_service_get_instance (void);
 
 gboolean login1_service_connect (Login1Service *service);
+
+gboolean login1_service_get_is_connected (Login1Service *service);
 
 GList *login1_service_get_seats (Login1Service *service);
 

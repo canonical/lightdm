@@ -29,6 +29,9 @@ struct Login1ServicePrivate
     /* Connection to bus service is running on */
     GDBusConnection *connection;
 
+    /* TRUE if have connected to service */
+    gboolean connected;
+
     /* Seats the service is reporting */
     GList *seats;
 
@@ -49,48 +52,6 @@ G_DEFINE_TYPE (Login1Service, login1_service, G_TYPE_OBJECT);
 G_DEFINE_TYPE (Login1Seat, login1_seat, G_TYPE_OBJECT);
 
 static Login1Service *singleton = NULL;
-
-static gboolean
-check_login1 (void)
-{
-    GDBusProxy *proxy;
-    gchar *owner;
-    gboolean success;
-
-    proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                           G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
-                                           NULL,
-                                           LOGIN1_SERVICE_NAME,
-                                           "/org/freedesktop/login1",
-                                           "org.freedesktop.login1.Manager",
-                                           NULL,
-                                           NULL);
-    if (!proxy)
-        return FALSE;
-
-    owner = g_dbus_proxy_get_name_owner (proxy);
-    g_object_unref (proxy);
-
-    success = (owner != NULL);
-    g_free (owner);
-
-    return success;
-}
-
-gboolean
-login1_is_running (void)
-{
-    static gboolean have_checked = FALSE;
-    static gboolean is_running = FALSE;
-
-    if (!have_checked)
-    {
-        have_checked = TRUE;
-        is_running = check_login1 ();
-    }
-
-    return is_running;
-}
 
 gchar *
 login1_get_session_id (void)
@@ -326,6 +287,9 @@ login1_service_connect (Login1Service *service)
 
     g_return_val_if_fail (service != NULL, FALSE);
 
+    if (service->priv->connected)
+        return TRUE;
+
     service->priv->connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
     if (error)
         g_warning ("Failed to get system bus: %s", error->message);
@@ -367,7 +331,16 @@ login1_service_connect (Login1Service *service)
     g_variant_iter_free (seat_iter);
     g_variant_unref (result);
 
+    service->priv->connected = TRUE;
+
     return TRUE;
+}
+
+gboolean
+login1_service_get_is_connected (Login1Service *service)
+{
+    g_return_val_if_fail (service != NULL, FALSE);
+    return service->priv->connected;
 }
 
 GList *

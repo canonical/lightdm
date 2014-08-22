@@ -796,7 +796,7 @@ session_real_run (Session *session)
     for (i = 0; i < argc; i++)
         write_string (session, session->priv->argv[i]);
 
-    if (login1_is_running ())
+    if (login1_service_get_is_connected (login1_service_get_instance ()))
         session->priv->login1_session = read_string_from_child (session);
     if (!session->priv->login1_session)
         session->priv->console_kit_cookie = read_string_from_child (session);
