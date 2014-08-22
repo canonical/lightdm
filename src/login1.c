@@ -46,6 +46,12 @@ struct Login1SeatPrivate
 
     /* D-Bus path for this seat */
     gchar *path;
+
+    /* TRUE if can run a graphical display on this seat */
+    gboolean can_graphical;
+
+    /* TRUE if can do session switching */
+    gboolean can_multi_session;
 };
 
 G_DEFINE_TYPE (Login1Service, login1_service, G_TYPE_OBJECT);
@@ -228,10 +234,47 @@ static Login1Seat *
 add_seat (Login1Service *service, const gchar *id, const gchar *path)
 {
     Login1Seat *seat;
+    GVariant *result;
+    GError *error = NULL;
 
     seat = g_object_new (LOGIN1_SEAT_TYPE, NULL);
     seat->priv->id = g_strdup (id);
     seat->priv->path = g_strdup (path);
+
+    /* Get properties for this seat */
+    result = g_dbus_connection_call_sync (service->priv->connection,
+                                          LOGIN1_SERVICE_NAME,
+                                          path,
+                                          "org.freedesktop.DBus.Properties",
+                                          "GetAll",
+                                          g_variant_new ("(s)", "org.freedesktop.login1.Seat"),
+                                          G_VARIANT_TYPE ("(a{sv})"),
+                                          G_DBUS_CALL_FLAGS_NONE,
+                                          -1,
+                                          NULL,
+                                          &error);
+    if (error)
+        g_warning ("Failed to get seat properties: %s", error->message);
+    g_clear_error (&error);
+    if (result)
+    {
+        GVariantIter *properties;
+        const gchar *name;
+        GVariant *value;
+
+        g_variant_get (result, "(a{sv})", &properties);
+        while (g_variant_iter_loop (properties, "{&sv}", &name, &value))
+        {
+            if (strcmp (name, "CanGraphical") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
+                seat->priv->can_graphical = g_variant_get_boolean (value);
+            else if (strcmp (name, "CanMultiSession") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
+                seat->priv->can_multi_session = g_variant_get_boolean (value);
+            g_variant_unref (value);
+        }
+        g_variant_iter_free (properties);
+        g_variant_unref (result);
+    }
+
     service->priv->seats = g_list_append (service->priv->seats, seat);
 
     return seat;
@@ -417,6 +460,20 @@ login1_seat_get_id (Login1Seat *seat)
 {
     g_return_val_if_fail (seat != NULL, NULL);
     return seat->priv->id;
+}
+
+gboolean
+login1_seat_get_can_graphical (Login1Seat *seat)
+{
+    g_return_val_if_fail (seat != NULL, FALSE);
+    return seat->priv->can_graphical;
+}
+
+gboolean
+login1_seat_get_can_multi_session (Login1Seat *seat)
+{
+    g_return_val_if_fail (seat != NULL, FALSE);
+    return seat->priv->can_multi_session;
 }
 
 static void
