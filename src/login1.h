@@ -74,6 +74,10 @@ Login1Seat *login1_service_get_seat (Login1Service *service, const gchar *id);
 
 const gchar *login1_seat_get_id (Login1Seat *seat);
 
+gboolean login1_seat_get_can_graphical (Login1Seat *seat);
+
+gboolean login1_seat_get_can_multi_session (Login1Seat *seat);
+
 G_END_DECLS
 
 #endif /* _LOGIN1_H_ */
