@@ -1062,7 +1062,6 @@ main (int argc, char **argv)
     GOptionContext *option_context;
     gboolean result;
     gchar **groups, **i, *dir;
-    gint n_seats = 0;
     gboolean test_mode = FALSE;
     gchar *pid_path = "/var/run/lightdm.pid";
     gchar *log_dir = NULL;
@@ -1397,13 +1396,12 @@ main (int argc, char **argv)
         g_signal_connect (login1_service, "seat-removed", G_CALLBACK (login1_service_seat_removed_cb), NULL);
 
         for (link = login1_service_get_seats (login1_service); link; link = link->next)
-        {
             login1_service_seat_added_cb (login1_service, (Login1Seat *) link->data);
-            n_seats++;
-        }
     }
     else
     {
+        gint n_seats = 0;
+
         /* Load the static display entries */
         groups = config_get_groups (config_get_instance ());
         for (i = groups; *i; i++)
@@ -1444,37 +1442,37 @@ main (int argc, char **argv)
                 g_warning ("Failed to create seat %s", config_section);
         }
         g_strfreev (groups);
-    }
 
-    /* If no seats start a default one */
-    if (n_seats == 0 && config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
-    {
-        gchar **types;
-        gchar **type;
-        Seat *seat = NULL;
-
-        g_debug ("Adding default seat");
-
-        types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
-        for (type = types; type && *type; type++)
+        /* If no seats start a default one */
+        if (n_seats == 0 && config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
         {
-            seat = seat_new (*type);
+            gchar **types;
+            gchar **type;
+            Seat *seat = NULL;
+
+            g_debug ("Adding default seat");
+
+            types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
+            for (type = types; type && *type; type++)
+            {
+                seat = seat_new (*type);
+                if (seat)
+                    break;
+            }
+            g_strfreev (types);
             if (seat)
-                break;
-        }
-        g_strfreev (types);
-        if (seat)
-        {
-            set_seat_properties (seat, NULL);
-            seat_set_property (seat, "exit-on-failure", "true");
-            if (!display_manager_add_seat (display_manager, seat))
+            {
+                set_seat_properties (seat, NULL);
+                seat_set_property (seat, "exit-on-failure", "true");
+                if (!display_manager_add_seat (display_manager, seat))
+                    return EXIT_FAILURE;
+                g_object_unref (seat);
+            }
+            else
+            {
+                g_warning ("Failed to create default seat");
                 return EXIT_FAILURE;
-            g_object_unref (seat);
-        }
-        else
-        {
-            g_warning ("Failed to create default seat");
-            return EXIT_FAILURE;
+            }
         }
     }
 
