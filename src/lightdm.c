@@ -1010,7 +1010,7 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
     for (type = types; !seat && type && *type; type++)
         seat = seat_new (*type);
 
-    g_strvfree (types);
+    g_strfreev (types);
 
     if (seat)
     {
