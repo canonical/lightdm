@@ -984,14 +984,36 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
 {
     const gchar *seat_name = login1_seat_get_id (login1_seat);
     gchar **groups, **i;
-    Seat *seat;
+    gchar *config_section = NULL;
+    gchar **types = NULL, **type;
+    Seat *seat = NULL;
 
     g_debug ("New seat added from logind: %s", seat_name);
-    seat = seat_new ("xlocal");
+    groups = config_get_groups (config_get_instance ());
+
+    for (i = groups; !config_section && *i; i++)
+    {
+        if (g_str_has_prefix (*i, "Seat:") &&
+            g_str_has_suffix (*i, seat_name))
+            config_section = *i;
+    }
+
+    if (config_section)
+    {
+        g_debug ("Loading properties from config section %s", config_section);
+        types = config_get_string_list (config_get_instance (), config_section, "type");
+    }
+
+    if (!types)
+        types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
+
+    for (type = types; !seat && type && *type; type++)
+        seat = seat_new (*type);
+
+    g_strvfree (types);
 
     if (seat)
     {
-        groups = config_get_groups (config_get_instance ());
         set_seat_properties (seat, NULL);
 
         if (!login1_seat_get_can_multi_session (login1_seat))
@@ -1000,17 +1022,8 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
             seat_set_property (seat, "allow-user-switching", "false");
         }
 
-        for (i = groups; *i; i++)
-        {
-            gchar *config_section = *i;
-
-            if (!g_str_has_prefix (config_section, "Seat:") ||
-                !g_str_has_suffix (config_section, seat_name))
-                continue;
-
-            g_debug ("Loading properties from config section %s", config_section);
+        if (config_section)
             set_seat_properties (seat, config_section);
-        }
 
         seat_set_property (seat, "seat-name", seat_name);
         seat_set_property (seat, "xdg-seat", seat_name);
@@ -1020,6 +1033,7 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
     {
         // FIXME: Need to make proper error
         g_warning ("Unable to create seat: %s", seat_name);
+        g_strfreev (groups);
         return;
     }
 
