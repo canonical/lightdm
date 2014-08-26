@@ -1086,7 +1086,6 @@ main (int argc, char **argv)
     gchar *default_cache_dir = g_strdup (CACHE_DIR);
     gboolean show_config = FALSE, show_version = FALSE;
     GList *link, *messages = NULL;
-    Login1Service *login1_service;
     GOptionEntry options[] =
     {
         { "config", 'c', 0, G_OPTION_ARG_STRING, &config_path,
@@ -1401,16 +1400,15 @@ main (int argc, char **argv)
     shared_data_manager_start (shared_data_manager_get_instance ());
 
     /* Connect to logind */
-    login1_service = login1_service_get_instance ();
-    if (login1_service_connect (login1_service))
+    if (login1_service_connect (login1_service_get_instance ()))
     {
         /* Load dynamic seats from logind */
         g_debug ("Start monitoring logind for new/removed seats");
-        g_signal_connect (login1_service, "seat-added", G_CALLBACK (login1_service_seat_added_cb), NULL);
-        g_signal_connect (login1_service, "seat-removed", G_CALLBACK (login1_service_seat_removed_cb), NULL);
+        g_signal_connect (login1_service_get_instance (), "seat-added", G_CALLBACK (login1_service_seat_added_cb), NULL);
+        g_signal_connect (login1_service_get_instance (), "seat-removed", G_CALLBACK (login1_service_seat_removed_cb), NULL);
 
-        for (link = login1_service_get_seats (login1_service); link; link = link->next)
-            login1_service_seat_added_cb (login1_service, (Login1Seat *) link->data);
+        for (link = login1_service_get_seats (login1_service_get_instance ()); link; link = link->next)
+            login1_service_seat_added_cb (login1_service_get_instance (), (Login1Seat *) link->data);
     }
     else
     {
