@@ -348,8 +348,8 @@ login1_service_connect (Login1Service *service)
                                                                    NULL,
                                                                    G_DBUS_SIGNAL_FLAGS_NONE,
                                                                    signal_cb,
-                                                                   service,
-                                                                   NULL);
+                                                                   g_object_ref (service),
+                                                                   g_object_unref);
 
     result = g_dbus_connection_call_sync (service->priv->connection,
                                           LOGIN1_SERVICE_NAME,
