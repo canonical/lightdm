@@ -56,7 +56,6 @@ TESTS = \
 	test-login-guest-session-config \
 	test-group-membership \
 	test-xdg-current-desktop \
-	test-xdg-seat \
 	test-language-env \
 	test-session-stdout \
 	test-session-stderr \
@@ -206,8 +205,7 @@ TESTS = \
 	test-unity-mir-lock-seat \
 	test-unity-mir-session-x-greeter \
 	test-unity-mir-switch \
-	test-unity-mir-switch-to-user-resettable \
-	test-unity-xdg-seat
+	test-unity-mir-switch-to-user-resettable
 
 #	test-session-exit-error
 #	test-greeter-no-exit
@@ -517,7 +515,6 @@ EXTRA_DIST = \
 	scripts/unity-mir-switch-to-user-resettable.conf \
 	scripts/unity-plymouth.conf \
 	scripts/unity-switch.conf \
-	scripts/unity-xdg-seat.conf \
 	scripts/upstart-autologin.conf \
 	scripts/upstart-login.conf \
 	scripts/users.conf \
@@ -540,7 +537,6 @@ EXTRA_DIST = \
 	scripts/vnc-open-file-descriptors.conf \
 	scripts/xauthority.conf \
 	scripts/xdg-current-desktop.conf \
-	scripts/xdg-seat.conf \
 	scripts/xdmcp-client.conf \
 	scripts/xdmcp-server-autologin.conf \
 	scripts/xdmcp-server-double-login.conf \
