@@ -207,7 +207,7 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 
         if (!next_seat)
         {
-            next_seat = seat_new (*iter);
+            next_seat = seat_new (*iter, seat_get_name (seat));
             g_string_assign (next_types, *iter);
         }
         else
@@ -221,12 +221,9 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 
     if (next_seat)
     {
-        const gchar *seat_name;
-        gchar *config_section = NULL;
+        gchar *config_section;
 
-        seat_name = seat_get_string_property (seat, "seat-name");
-        if (seat_name)
-            config_section = g_strdup_printf ("Seat:%s", seat_name);
+        config_section = g_strdup_printf ("Seat:%s", seat_get_name (seat));
         set_seat_properties (next_seat, config_section);
         g_free (config_section);
 
@@ -315,49 +312,7 @@ handle_display_manager_call (GDBusConnection       *connection,
                              gpointer               user_data)
 {
     if (g_strcmp0 (method_name, "AddSeat") == 0)
-    {
-        gchar *type;
-        GVariantIter *property_iter;
-        gchar *name, *value;
-        Seat *seat;
-
-        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(sa(ss))")))
-        {
-            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_INVALID_ARGS, "Invalid arguments");
-            return;
-        }
-
-        g_variant_get (parameters, "(&sa(ss))", &type, &property_iter);
-
-        g_debug ("Adding seat of type %s", type);
-
-        seat = seat_new (type);
-        if (seat)
-        {
-            set_seat_properties (seat, NULL);
-            while (g_variant_iter_loop (property_iter, "(&s&s)", &name, &value))
-                seat_set_property (seat, name, value);
-        }
-        g_variant_iter_free (property_iter);
-
-        if (!seat)
-        {
-            // FIXME: Need to make proper error
-            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Unable to create seat of type %s", type);
-            return;
-        }
-
-        if (display_manager_add_seat (display_manager, seat))
-        {
-            SeatBusEntry *entry;
-
-            entry = g_hash_table_lookup (seat_bus_entries, seat);
-            g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", entry->path));
-        }
-        else// FIXME: Need to make proper error
-            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Failed to start seat");
-        g_object_unref (seat);
-    }
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_INVALID_ARGS, "AddSeat is deprecated");
     else if (g_strcmp0 (method_name, "AddLocalXSeat") == 0)
     {
         gint display_number;
@@ -373,7 +328,7 @@ handle_display_manager_call (GDBusConnection       *connection,
 
         g_debug ("Adding local X seat :%d", display_number);
 
-        seat = seat_new ("xremote");
+        seat = seat_new ("xremote", "xremote0"); // FIXME: What to use for a name?
         if (seat)
         {
             gchar *display_number_string;
@@ -1013,7 +968,7 @@ add_login1_seat (Login1Seat *login1_seat)
     if (!types)
         types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
     for (type = types; !seat && type && *type; type++)
-        seat = seat_new (*type);
+        seat = seat_new (*type, seat_name);
     g_strfreev (types);
 
     if (seat)
@@ -1028,9 +983,6 @@ add_login1_seat (Login1Seat *login1_seat)
 
         if (config_section)
             set_seat_properties (seat, config_section);
-
-        seat_set_property (seat, "seat-name", seat_name);
-        seat_set_property (seat, "xdg-seat", seat_name);
 
         if (is_seat0)
             seat_set_property (seat, "exit-on-failure", "true");
@@ -1074,7 +1026,7 @@ main (int argc, char **argv)
     FILE *pid_file;
     GOptionContext *option_context;
     gboolean result;
-    gchar **groups, **i, *dir;
+    gchar *dir;
     gboolean test_mode = FALSE;
     gchar *pid_path = "/var/run/lightdm.pid";
     gchar *log_dir = NULL;
@@ -1419,51 +1371,7 @@ main (int argc, char **argv)
     }
     else
     {
-        gint n_seats = 0;
-
-        /* Load the static display entries */
-        groups = config_get_groups (config_get_instance ());
-        for (i = groups; *i; i++)
-        {
-            gchar *config_section = *i;
-            gchar **types;
-            gchar **type;
-            Seat *seat = NULL;
-            const gchar *const seatpfx = "Seat:";
-
-            if (!g_str_has_prefix (config_section, seatpfx))
-                continue;
-
-            g_debug ("Loading seat %s", config_section);
-            types = config_get_string_list (config_get_instance (), config_section, "type");
-            if (!types)
-                types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
-            for (type = types; type && *type; type++)
-            {
-                seat = seat_new (*type);
-                if (seat)
-                    break;
-            }
-            g_strfreev (types);
-
-            if (seat)
-            {
-                gchar *seat_name = config_section + strlen (seatpfx);
-
-                seat_set_property (seat, "seat-name", seat_name);
-
-                set_seat_properties (seat, config_section);
-                display_manager_add_seat (display_manager, seat);
-                g_object_unref (seat);
-                n_seats++;
-            }
-            else
-                g_warning ("Failed to create seat %s", config_section);
-        }
-        g_strfreev (groups);
-
-        /* If no seats start a default one */
-        if (n_seats == 0 && config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
+        if (config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
         {
             gchar **types;
             gchar **type;
@@ -1474,7 +1382,7 @@ main (int argc, char **argv)
             types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
             for (type = types; type && *type; type++)
             {
-                seat = seat_new (*type);
+                seat = seat_new (*type, "seat0");
                 if (seat)
                     break;
             }

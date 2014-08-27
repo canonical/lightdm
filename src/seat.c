@@ -30,6 +30,9 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct SeatPrivate
 {
+    /* XDG name for this seat */
+    gchar *name;
+
     /* Configuration for this seat */
     GHashTable *properties;
 
@@ -99,7 +102,7 @@ seat_register_module (const gchar *name, GType type)
 }
 
 Seat *
-seat_new (const gchar *module_name)
+seat_new (const gchar *module_name, const gchar *name)
 {
     Seat *seat;
     SeatModule *m = NULL;
@@ -112,6 +115,7 @@ seat_new (const gchar *module_name)
         return NULL;
 
     seat = g_object_new (m->type, NULL);
+    seat->priv->name = g_strdup (name);
 
     return seat;
 }
@@ -155,13 +159,7 @@ seat_get_integer_property (Seat *seat, const gchar *name)
 const gchar *
 seat_get_name (Seat *seat)
 {
-    const gchar *name;
-
-    name = seat_get_string_property (seat, "xdg-seat");
-    if (name)
-        return name;
-
-    return "seat0";
+    return seat->priv->name;
 }
 
 void
@@ -1792,6 +1790,7 @@ seat_finalize (GObject *object)
 
     self = SEAT (object);
 
+    g_free (self->priv->name);
     g_hash_table_unref (self->priv->properties);
     for (link = self->priv->display_servers; link; link = link->next)
     {
@@ -1871,12 +1870,7 @@ seat_class_init (SeatClass *klass)
 static gint
 seat_real_logprefix (Logger *self, gchar *buf, gulong buflen)
 {
-    Seat *seat = SEAT (self);
-    const gchar *name = seat_get_string_property (seat, "seat-name");
-    if (name)
-        return g_snprintf (buf, buflen, "Seat %s: ", name);
-    else
-        return g_snprintf (buf, buflen, "Seat: ");
+    return g_snprintf (buf, buflen, "Seat %s: ", SEAT (self)->priv->name);
 }
 
 static void
