@@ -1403,14 +1403,18 @@ main (int argc, char **argv)
     {
         /* Load dynamic seats from logind */
         g_debug ("Monitoring logind for seats");
-        g_signal_connect (login1_service_get_instance (), "seat-added", G_CALLBACK (login1_service_seat_added_cb), NULL);
-        g_signal_connect (login1_service_get_instance (), "seat-removed", G_CALLBACK (login1_service_seat_removed_cb), NULL);
 
-        for (link = login1_service_get_seats (login1_service_get_instance ()); link; link = link->next)
+        if (config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
         {
-            Login1Seat *seat = link->data;
-            if (!add_login1_seat (seat))
-                return EXIT_FAILURE;
+            g_signal_connect (login1_service_get_instance (), "seat-added", G_CALLBACK (login1_service_seat_added_cb), NULL);
+            g_signal_connect (login1_service_get_instance (), "seat-removed", G_CALLBACK (login1_service_seat_removed_cb), NULL);
+
+            for (link = login1_service_get_seats (login1_service_get_instance ()); link; link = link->next)
+            {
+                Login1Seat *seat = link->data;
+                if (!add_login1_seat (seat))
+                    return EXIT_FAILURE;
+            }
         }
     }
     else
