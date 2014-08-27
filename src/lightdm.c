@@ -223,7 +223,7 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
     {
         gchar *config_section;
 
-        config_section = g_strdup_printf ("Seat:%s", seat_get_name (seat));
+        config_section = get_config_section (seat_get_name (seat));
         set_seat_properties (next_seat, config_section);
         g_free (config_section);
 
@@ -934,31 +934,53 @@ name_lost_cb (GDBusConnection *connection,
     exit (EXIT_FAILURE);
 }
 
+static gchar*
+get_config_section (const gchar *seat_name)
+{
+    gchar **groups, **i;
+    gchar *config_section = NULL;
+
+    groups = config_get_groups (config_get_instance ());
+    for (i = groups; !config_section && *i; i++)
+    {
+        if (g_str_has_prefix (*i, "Seat:"))
+        {
+            const gchar *seat_name_suffix = *i + strlen ("Seat:");
+            gchar *seat_name_globbing;
+            gboolean matches;
+
+            if (g_str_has_suffix (seat_name_suffix, "*"))
+                seat_name_globbing = g_strndup (seat_name_suffix, strlen(seat_name_suffix) - 1);
+            else
+                seat_name_globbing = g_strdup (seat_name_suffix);
+            
+            matches = g_str_has_prefix (seat_name, seat_name_globbing);
+            g_free (seat_name_globbing);
+
+            if (matches)
+            {
+                config_section = g_strdup (*i);
+                break;
+            }
+        }
+    }
+    g_strfreev (groups);
+    return config_section;
+}
+
 static gboolean
 add_login1_seat (Login1Seat *login1_seat)
 {
     const gchar *seat_name = login1_seat_get_id (login1_seat);
-    gchar **groups, **i;
-    gchar *config_section = NULL;
     gchar **types = NULL, **type;
+    gchar *config_section;
     Seat *seat = NULL;
     gboolean is_seat0, started = FALSE;
 
     g_debug ("New seat added from logind: %s", seat_name);
     is_seat0 = strcmp (seat_name, "seat0") == 0;
 
-    groups = config_get_groups (config_get_instance ());
-    for (i = groups; !config_section && *i; i++)
-    {
-        if (g_str_has_prefix (*i, "Seat:") &&
-            g_str_has_suffix (*i, seat_name))
-        {
-            config_section = g_strdup (*i);
-            break;
-        }
-    }
-    g_strfreev (groups);
-
+    config_section = get_config_section (seat_name);
     if (config_section)
     {
         g_debug ("Loading properties from config section %s", config_section);
