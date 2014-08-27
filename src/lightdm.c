@@ -145,6 +145,40 @@ log_init (void)
     g_free (path);
 }
 
+static gchar*
+get_config_section (const gchar *seat_name)
+{
+    gchar **groups, **i;
+    gchar *config_section = NULL;
+
+    groups = config_get_groups (config_get_instance ());
+    for (i = groups; !config_section && *i; i++)
+    {
+        if (g_str_has_prefix (*i, "Seat:"))
+        {
+            const gchar *seat_name_suffix = *i + strlen ("Seat:");
+            gchar *seat_name_globbing;
+            gboolean matches;
+
+            if (g_str_has_suffix (seat_name_suffix, "*"))
+                seat_name_globbing = g_strndup (seat_name_suffix, strlen (seat_name_suffix) - 1);
+            else
+                seat_name_globbing = g_strdup (seat_name_suffix);
+            
+            matches = g_str_has_prefix (seat_name, seat_name_globbing);
+            g_free (seat_name_globbing);
+
+            if (matches)
+            {
+                config_section = g_strdup (*i);
+                break;
+            }
+        }
+    }
+    g_strfreev (groups);
+    return config_section;
+}
+
 static void
 set_seat_properties (Seat *seat, const gchar *config_section)
 {
@@ -932,40 +966,6 @@ name_lost_cb (GDBusConnection *connection,
         g_printerr ("Failed to get D-Bus connection\n");
 
     exit (EXIT_FAILURE);
-}
-
-static gchar*
-get_config_section (const gchar *seat_name)
-{
-    gchar **groups, **i;
-    gchar *config_section = NULL;
-
-    groups = config_get_groups (config_get_instance ());
-    for (i = groups; !config_section && *i; i++)
-    {
-        if (g_str_has_prefix (*i, "Seat:"))
-        {
-            const gchar *seat_name_suffix = *i + strlen ("Seat:");
-            gchar *seat_name_globbing;
-            gboolean matches;
-
-            if (g_str_has_suffix (seat_name_suffix, "*"))
-                seat_name_globbing = g_strndup (seat_name_suffix, strlen (seat_name_suffix) - 1);
-            else
-                seat_name_globbing = g_strdup (seat_name_suffix);
-            
-            matches = g_str_has_prefix (seat_name, seat_name_globbing);
-            g_free (seat_name_globbing);
-
-            if (matches)
-            {
-                config_section = g_strdup (*i);
-                break;
-            }
-        }
-    }
-    g_strfreev (groups);
-    return config_section;
 }
 
 static gboolean
