@@ -979,24 +979,30 @@ name_lost_cb (GDBusConnection *connection,
     exit (EXIT_FAILURE);
 }
 
-static void
-login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
+static gboolean
+add_login1_seat (Login1Seat *login1_seat)
 {
     const gchar *seat_name = login1_seat_get_id (login1_seat);
     gchar **groups, **i;
     gchar *config_section = NULL;
     gchar **types = NULL, **type;
     Seat *seat = NULL;
+    gboolean is_seat0, started = FALSE;
 
     g_debug ("New seat added from logind: %s", seat_name);
-    groups = config_get_groups (config_get_instance ());
+    is_seat0 = strcmp (seat_name, "seat0") == 0;
 
+    groups = config_get_groups (config_get_instance ());
     for (i = groups; !config_section && *i; i++)
     {
         if (g_str_has_prefix (*i, "Seat:") &&
             g_str_has_suffix (*i, seat_name))
-            config_section = *i;
+        {
+            config_section = g_strdup (*i);
+            break;
+        }
     }
+    g_strfreev (groups);
 
     if (config_section)
     {
@@ -1025,22 +1031,30 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
 
         seat_set_property (seat, "seat-name", seat_name);
         seat_set_property (seat, "xdg-seat", seat_name);
-        g_strfreev (groups);
 
-        if (strcmp (seat_name, "seat0") == 0)
+        if (is_seat0)
             seat_set_property (seat, "exit-on-failure", "true");
     }
     else
+        g_debug ("Unable to create seat: %s", seat_name);
+
+    if (seat)
     {
-        g_warning ("Unable to create seat: %s", seat_name);
-        g_strfreev (groups);
-        return;
+        started = display_manager_add_seat (display_manager, seat);
+        if (!started)
+            g_debug ("Failed to start seat: %s", seat_name);
     }
 
-    if (!display_manager_add_seat (display_manager, seat))
-        g_warning ("Failed to start seat: %s", seat_name);
-
+    g_free (config_section);
     g_object_unref (seat);
+  
+    return started;
+}
+
+static void
+login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
+{
+    add_login1_seat (login1_seat);
 }
 
 static void
@@ -1393,7 +1407,11 @@ main (int argc, char **argv)
         g_signal_connect (login1_service_get_instance (), "seat-removed", G_CALLBACK (login1_service_seat_removed_cb), NULL);
 
         for (link = login1_service_get_seats (login1_service_get_instance ()); link; link = link->next)
-            login1_service_seat_added_cb (login1_service_get_instance (), (Login1Seat *) link->data);
+        {
+            Login1Seat *seat = link->data;
+            if (!add_login1_seat (seat))
+                return EXIT_FAILURE;
+        }
     }
     else
     {
