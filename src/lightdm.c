@@ -1029,13 +1029,12 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
     }
     else
     {
-        // FIXME: Need to make proper error
         g_warning ("Unable to create seat: %s", seat_name);
         g_strfreev (groups);
         return;
     }
 
-    if (!display_manager_add_seat (display_manager, seat)) // FIXME: Need to make proper error
+    if (!display_manager_add_seat (display_manager, seat))
         g_warning ("Failed to start seat: %s", seat_name);
 
     g_object_unref (seat);
