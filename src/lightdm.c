@@ -152,7 +152,7 @@ set_seat_properties (Seat *seat, const gchar *config_section)
     gint i;
 
     keys = config_get_keys (config_get_instance (), "SeatDefaults");
-    for (i = 0; keys[i]; i++)
+    for (i = 0; keys && keys[i]; i++)
     {
         gchar *value = config_get_string (config_get_instance (), "SeatDefaults", keys[i]);
         seat_set_property (seat, keys[i], value);
@@ -163,7 +163,7 @@ set_seat_properties (Seat *seat, const gchar *config_section)
     if (config_section)
     {
         keys = config_get_keys (config_get_instance (), config_section);
-        for (i = 0; keys[i]; i++)
+        for (i = 0; keys && keys[i]; i++)
         {
             gchar *value = config_get_string (config_get_instance (), config_section, keys[i]);
             seat_set_property (seat, keys[i], value);
@@ -1190,7 +1190,7 @@ main (int argc, char **argv)
             g_printerr ("%s  [%s]\n", empty_source, groups[i]);
 
             keys = config_get_keys (config_get_instance (), groups[i]);
-            for (j = 0; keys[j]; j++)
+            for (j = 0; keys && keys[j]; j++)
             {
                 const gchar *source, *id;
                 gchar *value;
