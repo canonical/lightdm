@@ -1417,6 +1417,9 @@ add_login1_seat (GDBusConnection *connection, const gchar *id, gboolean can_grap
     const gchar *login1_seat_interface =
         "<node>"
         "  <interface name='org.freedesktop.login1.Seat'>"
+        "    <property name='CanGraphical' type='b' access='read'/>"
+        "    <property name='CanMultiSession' type='b' access='read'/>"
+        "    <property name='Id' type='s' access='read'/>"
         "  </interface>"
         "</node>";
     static const GDBusInterfaceVTable login1_seat_vtable =
