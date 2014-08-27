@@ -1044,27 +1044,12 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
 static void
 login1_service_seat_removed_cb (Login1Service *service, Login1Seat *login1_seat)
 {
-    GList *seats, *link;
     Seat *seat;
-    const gchar *seat_name = login1_seat_get_id (login1_seat);
 
-    /* Stop all seats matching given xdg-seat property value.
-     * Copy the list as it might be modified if a seat stops during this loop */
-    seats = g_list_copy (display_manager_get_seats (display_manager));
-
-    /* FIXME: This loop should be uneeded, provided we can ensure
-     *        there's only one Seat object in DisplayManager list
-     *        matching given Login1Seat object id. */
-    g_debug ("Seat removed from logind: %s", seat_name);
-    for (link = seats; link; link = link->next)
-    {
-        seat = link->data;
-
-        if (g_strcmp0 (seat_get_name (seat), seat_name) == 0)
-            seat_stop (seat);
-    }
-
-    g_list_free (seats);
+    g_debug ("Seat removed from logind: %s", login1_seat_get_id (login1_seat));
+    seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
+    if (seat)
+        seat_stop (seat);
 }
 
 int
