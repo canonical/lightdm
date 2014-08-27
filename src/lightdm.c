@@ -1026,6 +1026,9 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
         seat_set_property (seat, "seat-name", seat_name);
         seat_set_property (seat, "xdg-seat", seat_name);
         g_strfreev (groups);
+
+        if (strcmp (seat_name, "seat0") == 0)
+            seat_set_property (seat, "exit-on-failure", "true");
     }
     else
     {
