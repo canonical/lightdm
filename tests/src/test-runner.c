@@ -114,7 +114,8 @@ typedef struct
 
 static GList *login1_seats = NULL;
 
-static Login1Seat *add_login1_seat (GDBusConnection *connection, const gchar *id, gboolean can_graphical, gboolean can_multi_session, gboolean emit_signal);
+static Login1Seat *add_login1_seat (GDBusConnection *connection, const gchar *id, gboolean emit_signal);
+static Login1Seat *find_login1_seat (const gchar *id);
 static void remove_login1_seat (GDBusConnection *connection, const gchar *id);
 
 typedef struct
@@ -461,19 +462,61 @@ handle_command (const gchar *command)
     }
     else if (strcmp (name, "ADD-SEAT") == 0)
     {
-        gchar *id, *v;
-        gboolean can_graphical, can_multi_session;
+        const gchar *id, *v;
+        Login1Seat *seat;
 
-        id = g_hash_table_lookup (params, "ID");
+        id = g_hash_table_lookup (params, "ID");      
+        seat = add_login1_seat (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL), id, TRUE);
         v = g_hash_table_lookup (params, "CAN-GRAPHICAL");
-        can_graphical = !v || strcmp (v, "TRUE") == 0;
+        if (v)
+            seat->can_graphical = strcmp (v, "TRUE") == 0;
         v = g_hash_table_lookup (params, "CAN-MULTI-SESSION");
-        can_multi_session = !v || strcmp (v, "TRUE") == 0;
-        add_login1_seat (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL), id, can_graphical, can_multi_session, TRUE);
+        if (v)
+            seat->can_multi_session = strcmp (v, "TRUE") == 0;
+    }
+    else if (strcmp (name, "UPDATE-SEAT") == 0)
+    {
+        Login1Seat *seat;
+        const gchar *id;
+      
+        id = g_hash_table_lookup (params, "ID");
+        seat = find_login1_seat (id);
+        if (seat)
+        {
+            const gchar *v;
+            GVariantBuilder changed_properties;
+            GError *error = NULL;
+
+            g_variant_builder_init (&changed_properties, G_VARIANT_TYPE_ARRAY);
+
+            v = g_hash_table_lookup (params, "CAN-GRAPHICAL");
+            if (v)
+            {
+                seat->can_graphical = strcmp (v, "TRUE") == 0;
+                g_variant_builder_add (&changed_properties, "{sv}", "CanGraphical", g_variant_new_boolean (seat->can_graphical));
+            }
+            v = g_hash_table_lookup (params, "CAN-MULTI-SESSION");
+            if (v)
+            {
+                seat->can_multi_session = strcmp (v, "TRUE") == 0;
+                g_variant_builder_add (&changed_properties, "{sv}", "CanMultiSession", g_variant_new_boolean (seat->can_multi_session));
+            }
+
+            g_dbus_connection_emit_signal (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                           NULL,
+                                           seat->path,
+                                           "org.freedesktop.DBus.Propeties",
+                                           "PropertiesChanged",
+                                           g_variant_new ("(sa{sv}as)", "org.freedesktop.login1.Seat", &changed_properties, NULL),
+                                           &error);
+            if (error)
+                g_warning ("Failed to emit PropertiesChanged: %s", error->message);
+            g_clear_error (&error);
+        }
     }
     else if (strcmp (name, "REMOVE-SEAT") == 0)
     {
-        gchar *id;
+        const gchar *id;
         id = g_hash_table_lookup (params, "ID");
         remove_login1_seat (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL), id);
     }
@@ -1408,7 +1451,7 @@ handle_login1_seat_get_property (GDBusConnection       *connection,
 }
 
 static Login1Seat *
-add_login1_seat (GDBusConnection *connection, const gchar *id, gboolean can_graphical, gboolean can_multi_session, gboolean emit_signal)
+add_login1_seat (GDBusConnection *connection, const gchar *id, gboolean emit_signal)
 {
     Login1Seat *seat;
     GError *error = NULL;
@@ -1432,8 +1475,8 @@ add_login1_seat (GDBusConnection *connection, const gchar *id, gboolean can_grap
     login1_seats = g_list_append (login1_seats, seat);
     seat->id = g_strdup (id);
     seat->path = g_strdup_printf ("/org/freedesktop/login1/seat/%s", seat->id);
-    seat->can_graphical = can_graphical;
-    seat->can_multi_session = can_multi_session;
+    seat->can_graphical = TRUE;
+    seat->can_multi_session = TRUE;
 
     login1_seat_info = g_dbus_node_info_new_for_xml (login1_seat_interface, &error);
     if (error)
@@ -1472,7 +1515,7 @@ add_login1_seat (GDBusConnection *connection, const gchar *id, gboolean can_grap
 }
 
 static Login1Seat *
-find_seat (const gchar *id)
+find_login1_seat (const gchar *id)
 {
     Login1Seat *seat;
     GList *link;
@@ -1492,8 +1535,8 @@ remove_login1_seat (GDBusConnection *connection, const gchar *id)
 {
     Login1Seat *seat;
     GError *error = NULL;
-  
-    seat = find_seat (id);
+
+    seat = find_login1_seat (id);
     if (!seat)
         return;
 
@@ -1782,7 +1825,7 @@ login1_name_acquired_cb (GDBusConnection *connection,
     g_dbus_node_info_unref (login1_info);
 
     /* We always have seat0 */
-    add_login1_seat (connection, "seat0", TRUE, TRUE, FALSE);
+    add_login1_seat (connection, "seat0", FALSE);
 
     service_count--;
     if (service_count == 0)
