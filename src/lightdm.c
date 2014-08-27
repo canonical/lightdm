@@ -950,7 +950,7 @@ get_config_section (const gchar *seat_name)
             gboolean matches;
 
             if (g_str_has_suffix (seat_name_suffix, "*"))
-                seat_name_globbing = g_strndup (seat_name_suffix, strlen(seat_name_suffix) - 1);
+                seat_name_globbing = g_strndup (seat_name_suffix, strlen (seat_name_suffix) - 1);
             else
                 seat_name_globbing = g_strdup (seat_name_suffix);
             
