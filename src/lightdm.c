@@ -1006,10 +1006,8 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
 
     if (!types)
         types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
-
     for (type = types; !seat && type && *type; type++)
         seat = seat_new (*type);
-
     g_strfreev (types);
 
     if (seat)
@@ -1403,7 +1401,7 @@ main (int argc, char **argv)
     if (login1_service_connect (login1_service_get_instance ()))
     {
         /* Load dynamic seats from logind */
-        g_debug ("Start monitoring logind for new/removed seats");
+        g_debug ("Monitoring logind for seats");
         g_signal_connect (login1_service_get_instance (), "seat-added", G_CALLBACK (login1_service_seat_added_cb), NULL);
         g_signal_connect (login1_service_get_instance (), "seat-removed", G_CALLBACK (login1_service_seat_removed_cb), NULL);
 
@@ -1438,12 +1436,12 @@ main (int argc, char **argv)
                     break;
             }
             g_strfreev (types);
+
             if (seat)
             {
-                const gsize seatpfxlen = strlen(seatpfx);
-                gchar *seatname = config_section + seatpfxlen;
+                gchar *seat_name = config_section + strlen (seatpfx);
 
-                seat_set_property (seat, "seat-name", seatname);
+                seat_set_property (seat, "seat-name", seat_name);
 
                 set_seat_properties (seat, config_section);
                 display_manager_add_seat (display_manager, seat);
