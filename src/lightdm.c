@@ -944,6 +944,10 @@ add_login1_seat (Login1Seat *login1_seat)
     Seat *seat = NULL;
     gboolean is_seat0, started = FALSE;
 
+    /* We only create graphical seats */
+    if (!login1_seat_get_can_graphical (login1_seat))
+        return TRUE;
+
     g_debug ("New seat added from logind: %s", seat_name);
     is_seat0 = strcmp (seat_name, "seat0") == 0;
 
