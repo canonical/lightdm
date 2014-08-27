@@ -1,3 +1,11 @@
+Overview of changes in lightdm 1.11.7
+
+    * Use logind to provide the list of seats to use. Deprecate the old method
+      of manually defining seats.
+    * Add --show-config option that shows combined configuration.
+    * Drop the surfaceflinger seat type. This was a temporary solution while
+      Ubuntu Phone was migrating to Mir.
+
 Overview of changes in lightdm 1.11.6
 
     * Add a seat option 'allow-user-switching' that can disable all user

@@ -1,3 +1,14 @@
+lightdm (1.11.7-0ubuntu1) utopic; urgency=medium
+
+  * New upstream release:
+    - Use logind to provide the list of seats to use. Deprecate the old method
+      of manually defining seats.
+    - Add --show-config option that shows combined configuration.
+    - Drop the surfaceflinger seat type. This was a temporary solution while
+      Ubuntu Phone was migrating to Mir.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 27 Aug 2014 16:25:53 +1200
+
 lightdm (1.11.6-0ubuntu1) utopic; urgency=medium
 
   * New upstream release:
