@@ -60,7 +60,7 @@ GType seat_get_type (void);
 
 void seat_register_module (const gchar *name, GType type);
 
-Seat *seat_new (const gchar *module_name);
+Seat *seat_new (const gchar *module_name, const gchar *name);
 
 void seat_set_property (Seat *seat, const gchar *name, const gchar *value);
 

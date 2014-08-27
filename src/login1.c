@@ -269,7 +269,6 @@ add_seat (Login1Service *service, const gchar *id, const gchar *path)
                 seat->priv->can_graphical = g_variant_get_boolean (value);
             else if (strcmp (name, "CanMultiSession") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
                 seat->priv->can_multi_session = g_variant_get_boolean (value);
-            g_variant_unref (value);
         }
         g_variant_iter_free (properties);
         g_variant_unref (result);
