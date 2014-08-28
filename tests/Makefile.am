@@ -181,6 +181,7 @@ TESTS = \
 	test-open-file-descriptors \
 	test-xdmcp-server-open-file-descriptors \
 	test-multi-seat \
+	test-multi-seat-with-globbing-config-sections \
 	test-mir-autologin \
 	test-mir-greeter \
 	test-mir-session \
@@ -444,6 +445,7 @@ EXTRA_DIST = \
 	scripts/mir-session-compositor-crash.conf \
 	scripts/mir-session-crash.conf \
 	scripts/multi-seat.conf \
+	scripts/multi-seat-with-globbing-config-sections.conf \
 	scripts/no-accounts-service.conf \
 	scripts/no-config.conf \
 	scripts/no-console-kit.conf \
