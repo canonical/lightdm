@@ -161,7 +161,8 @@ get_config_sections (const gchar *seat_name)
                 config_sections = g_list_append (config_sections, g_strdup (*i));
         }
     }
-    g_strfreev (groups);
+    if (groups)
+        g_strfreev (groups);
     return config_sections;
 }
 
@@ -246,7 +247,8 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
         config_sections = get_config_sections (seat_get_name (seat));
         for (link = config_sections; link; link = link->next)
             set_seat_properties (next_seat, (gchar*) link->data);
-        g_list_free_full (config_sections, g_free);
+        if (config_sections)
+            g_list_free_full (config_sections, g_free);
 
         // We set this manually on default seat.  Let's port it over if needed.
         if (seat_get_boolean_property (seat, "exit-on-failure"))
@@ -1007,7 +1009,8 @@ add_login1_seat (Login1Seat *login1_seat)
             g_debug ("Failed to start seat: %s", seat_name);
     }
 
-    g_list_free_full (config_sections, g_free);
+    if (config_sections)
+        g_list_free_full (config_sections, g_free);
     g_object_unref (seat);
   
     return started;
