@@ -156,19 +156,8 @@ get_config_section (const gchar *seat_name)
     {
         if (g_str_has_prefix (*i, "Seat:"))
         {
-            const gchar *seat_name_suffix = *i + strlen ("Seat:");
-            gchar *seat_name_globbing;
-            gboolean matches;
-
-            if (g_str_has_suffix (seat_name_suffix, "*"))
-                seat_name_globbing = g_strndup (seat_name_suffix, strlen (seat_name_suffix) - 1);
-            else
-                seat_name_globbing = g_strdup (seat_name_suffix);
-            
-            matches = g_str_has_prefix (seat_name, seat_name_globbing);
-            g_free (seat_name_globbing);
-
-            if (matches)
+            const gchar *seat_name_glob = *i + strlen ("Seat:");
+            if (g_pattern_match_simple (seat_name_glob, seat_name))
             {
                 config_section = g_strdup (*i);
                 break;
