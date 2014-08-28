@@ -484,30 +484,30 @@ handle_command (const gchar *command)
         if (seat)
         {
             const gchar *v;
-            GVariantBuilder changed_properties;
+            GVariantBuilder invalidated_properties;
             GError *error = NULL;
 
-            g_variant_builder_init (&changed_properties, G_VARIANT_TYPE_ARRAY);
+            g_variant_builder_init (&invalidated_properties, G_VARIANT_TYPE_ARRAY);
 
             v = g_hash_table_lookup (params, "CAN-GRAPHICAL");
             if (v)
             {
                 seat->can_graphical = strcmp (v, "TRUE") == 0;
-                g_variant_builder_add (&changed_properties, "{sv}", "CanGraphical", g_variant_new_boolean (seat->can_graphical));
+                g_variant_builder_add (&invalidated_properties, "s", "CanGraphical");
             }
             v = g_hash_table_lookup (params, "CAN-MULTI-SESSION");
             if (v)
             {
                 seat->can_multi_session = strcmp (v, "TRUE") == 0;
-                g_variant_builder_add (&changed_properties, "{sv}", "CanMultiSession", g_variant_new_boolean (seat->can_multi_session));
+                g_variant_builder_add (&invalidated_properties, "s", "CanMultiSession");
             }
 
             g_dbus_connection_emit_signal (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
                                            NULL,
                                            seat->path,
-                                           "org.freedesktop.DBus.Propeties",
+                                           "org.freedesktop.DBus.Properties",
                                            "PropertiesChanged",
-                                           g_variant_new ("(sa{sv}as)", "org.freedesktop.login1.Seat", &changed_properties, NULL),
+                                           g_variant_new ("(sa{sv}as)", "org.freedesktop.login1.Seat", NULL, &invalidated_properties),
                                            &error);
             if (error)
                 g_warning ("Failed to emit PropertiesChanged: %s", error->message);

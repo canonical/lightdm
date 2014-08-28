@@ -41,6 +41,7 @@ typedef struct
 typedef struct
 {
     GObjectClass parent_class;
+    void (*can_graphical_changed)(Login1Seat *seat);
 } Login1SeatClass;
 
 typedef struct Login1ServicePrivate Login1ServicePrivate;
