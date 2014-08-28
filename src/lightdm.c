@@ -1026,20 +1026,70 @@ add_login1_seat (Login1Seat *login1_seat)
 }
 
 static void
+remove_login1_seat (Login1Seat *login1_seat)
+{
+    Seat *seat;
+
+    seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
+    if (seat)
+        seat_stop (seat);
+}
+
+static gboolean update_login1_seat (Login1Seat *login1_seat);
+
+static void
+seat_stopped_cb (Seat *seat, Login1Seat *login1_seat)
+{
+    update_login1_seat (login1_seat);
+    g_signal_handlers_disconnect_matched (seat, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, login1_seat);
+}
+
+static gboolean
+update_login1_seat (Login1Seat *login1_seat)
+{
+    if (login1_seat_get_can_graphical (login1_seat))
+    {
+        Seat *seat;
+
+        /* Wait for existing seat to stop or ignore if we already have a valid seat */
+        seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
+        if (seat)
+        {
+            if (seat_get_is_stopping (seat))
+                g_signal_connect (seat, "stopped", G_CALLBACK (seat_stopped_cb), login1_seat);
+            return TRUE;
+        }
+
+        return add_login1_seat (login1_seat);
+    }
+    else
+    {
+        remove_login1_seat (login1_seat);
+        return TRUE;
+    }
+}
+
+static void
+login1_can_graphical_changed_cb (Login1Seat *login1_seat)
+{
+    g_debug ("Seat %s changes graphical state to %s", login1_seat_get_id (login1_seat), login1_seat_get_can_graphical (login1_seat) ? "true" : "false");
+    update_login1_seat (login1_seat);
+}
+
+static void
 login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
 {
-    add_login1_seat (login1_seat);
+    g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
+    login1_can_graphical_changed_cb (login1_seat);
 }
 
 static void
 login1_service_seat_removed_cb (Login1Service *service, Login1Seat *login1_seat)
 {
-    Seat *seat;
+    g_signal_handlers_disconnect_matched (login1_seat, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, login1_can_graphical_changed_cb, NULL);
 
     g_debug ("Seat removed from logind: %s", login1_seat_get_id (login1_seat));
-    seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
-    if (seat)
-        seat_stop (seat);
+    remove_login1_seat (login1_seat);
 }
 
 int
@@ -1385,8 +1435,9 @@ main (int argc, char **argv)
 
             for (link = login1_service_get_seats (login1_service_get_instance ()); link; link = link->next)
             {
-                Login1Seat *seat = link->data;
-                if (!add_login1_seat (seat))
+                Login1Seat *login1_seat = link->data;
+                g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
+                if (!update_login1_seat (login1_seat))
                     return EXIT_FAILURE;
             }
         }
