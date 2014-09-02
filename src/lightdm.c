@@ -145,6 +145,27 @@ log_init (void)
     g_free (path);
 }
 
+static GList*
+get_config_sections (const gchar *seat_name)
+{
+    gchar **groups, **i;
+    GList *config_sections = NULL;
+
+    groups = config_get_groups (config_get_instance ());
+    for (i = groups; *i; i++)
+    {
+        if (g_str_has_prefix (*i, "Seat:"))
+        {
+            const gchar *seat_name_glob = *i + strlen ("Seat:");
+            if (g_pattern_match_simple (seat_name_glob, seat_name))
+                config_sections = g_list_append (config_sections, g_strdup (*i));
+        }
+    }
+    if (groups)
+        g_strfreev (groups);
+    return config_sections;
+}
+
 static void
 set_seat_properties (Seat *seat, const gchar *config_section)
 {
@@ -221,11 +242,13 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 
     if (next_seat)
     {
-        gchar *config_section;
+        GList *config_sections, *link;
 
-        config_section = g_strdup_printf ("Seat:%s", seat_get_name (seat));
-        set_seat_properties (next_seat, config_section);
-        g_free (config_section);
+        config_sections = get_config_sections (seat_get_name (seat));
+        for (link = config_sections; link; link = link->next)
+            set_seat_properties (next_seat, (gchar*) link->data);
+        if (config_sections)
+            g_list_free_full (config_sections, g_free);
 
         // We set this manually on default seat.  Let's port it over if needed.
         if (seat_get_boolean_property (seat, "exit-on-failure"))
@@ -938,29 +961,18 @@ static gboolean
 add_login1_seat (Login1Seat *login1_seat)
 {
     const gchar *seat_name = login1_seat_get_id (login1_seat);
-    gchar **groups, **i;
-    gchar *config_section = NULL;
     gchar **types = NULL, **type;
+    GList *config_sections = NULL, *link;
     Seat *seat = NULL;
     gboolean is_seat0, started = FALSE;
 
     g_debug ("New seat added from logind: %s", seat_name);
     is_seat0 = strcmp (seat_name, "seat0") == 0;
 
-    groups = config_get_groups (config_get_instance ());
-    for (i = groups; !config_section && *i; i++)
+    config_sections = get_config_sections (seat_name);
+    for (link = config_sections; link; link = link->next)
     {
-        if (g_str_has_prefix (*i, "Seat:") &&
-            g_str_has_suffix (*i, seat_name))
-        {
-            config_section = g_strdup (*i);
-            break;
-        }
-    }
-    g_strfreev (groups);
-
-    if (config_section)
-    {
+        gchar *config_section = link->data;
         g_debug ("Loading properties from config section %s", config_section);
         types = config_get_string_list (config_get_instance (), config_section, "type");
     }
@@ -981,8 +993,8 @@ add_login1_seat (Login1Seat *login1_seat)
             seat_set_property (seat, "allow-user-switching", "false");
         }
 
-        if (config_section)
-            set_seat_properties (seat, config_section);
+        for (link = config_sections; link; link = link->next)
+            set_seat_properties (seat, (gchar*) link->data);
 
         if (is_seat0)
             seat_set_property (seat, "exit-on-failure", "true");
@@ -997,7 +1009,8 @@ add_login1_seat (Login1Seat *login1_seat)
             g_debug ("Failed to start seat: %s", seat_name);
     }
 
-    g_free (config_section);
+    if (config_sections)
+        g_list_free_full (config_sections, g_free);
     g_object_unref (seat);
   
     return started;
