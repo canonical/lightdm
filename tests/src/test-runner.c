@@ -1451,29 +1451,10 @@ handle_login1_seat_get_property (GDBusConnection       *connection,
         return NULL;
 }
 
-static gchar *
-escape_seat_id (const gchar *id)
-{
-    GString *s;
-    int i;
-
-    s = g_string_new ("");
-    for (i = 0; id[i]; i++)
-    {
-        if (isalnum (id[i]) || id[i] == '_')
-            g_string_append_c (s, id[i]);
-        else
-            g_string_append_printf (s, "_%02x", id[i]);
-    }
-
-    return g_string_free (s, FALSE);
-}
-
 static Login1Seat *
 add_login1_seat (GDBusConnection *connection, const gchar *id, gboolean emit_signal)
 {
     Login1Seat *seat;
-    gchar *escaped_id;
     GError *error = NULL;
     GDBusNodeInfo *login1_seat_info;
 
@@ -1491,21 +1472,19 @@ add_login1_seat (GDBusConnection *connection, const gchar *id, gboolean emit_sig
         handle_login1_seat_get_property,
     };
 
+    seat = g_malloc0 (sizeof (Login1Seat));
+    login1_seats = g_list_append (login1_seats, seat);
+    seat->id = g_strdup (id);
+    seat->path = g_strdup_printf ("/org/freedesktop/login1/seat/%s", seat->id);
+    seat->can_graphical = TRUE;
+    seat->can_multi_session = TRUE;
+
     login1_seat_info = g_dbus_node_info_new_for_xml (login1_seat_interface, &error);
     if (error)
         g_warning ("Failed to parse login1 seat D-Bus interface: %s", error->message);
     g_clear_error (&error);
     if (!login1_seat_info)
         return NULL;
-
-    seat = g_malloc0 (sizeof (Login1Seat));
-    login1_seats = g_list_append (login1_seats, seat);
-    seat->id = g_strdup (id);
-    escaped_id = escape_seat_id (seat->id);
-    seat->path = g_strdup_printf ("/org/freedesktop/login1/seat/%s", escaped_id);
-    g_free (escaped_id);
-    seat->can_graphical = TRUE;
-    seat->can_multi_session = TRUE;
 
     g_dbus_connection_register_object (connection,
                                        seat->path,

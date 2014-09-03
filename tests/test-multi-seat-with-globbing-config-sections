@@ -1,2 +1,0 @@
-#!/bin/sh
-./src/dbus-env ./src/test-runner multi-seat-with-globbing-config-sections test-gobject-greeter
