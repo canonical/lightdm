@@ -16,13 +16,11 @@
 
 G_BEGIN_DECLS
 
-gchar *login1_get_session_id (void);
+void login1_lock_session (const gchar *session_id);
 
-void login1_lock_session (const gchar *session_path);
+void login1_unlock_session (const gchar *session_id);
 
-void login1_unlock_session (const gchar *session_path);
-
-void login1_activate_session (const gchar *session_path);
+void login1_activate_session (const gchar *session_id);
 
 #define LOGIN1_SEAT_TYPE (login1_seat_get_type())
 #define LOGIN1_SEAT(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), LOGIN1_SEAT_TYPE, Login1Seat));

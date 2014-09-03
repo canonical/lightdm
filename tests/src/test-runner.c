@@ -120,6 +120,7 @@ static void remove_login1_seat (GDBusConnection *connection, const gchar *id);
 
 typedef struct
 {
+    gchar *id;
     gchar *path;
     guint pid;
     gboolean locked;
@@ -1588,45 +1589,12 @@ handle_login1_session_call (GDBusConnection       *connection,
                             GDBusMethodInvocation *invocation,
                             gpointer               user_data)
 {
-    Login1Session *session = user_data;
-
-    if (strcmp (method_name, "Lock") == 0)
-    {
-        if (!session->locked)
-        {
-            gchar *status = g_strdup_printf ("LOGIN1 LOCK-SESSION SESSION=%s", strrchr (object_path, '/') + 1);
-            check_status (status);
-            g_free (status);
-        }
-        session->locked = TRUE;
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
-    }
-    else if (strcmp (method_name, "Unlock") == 0)
-    {
-        if (session->locked)
-        {
-            gchar *status = g_strdup_printf ("LOGIN1 UNLOCK-SESSION SESSION=%s", strrchr (object_path, '/') + 1);
-            check_status (status);
-            g_free (status);
-        }
-        session->locked = FALSE;
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
-    }
-    else if (strcmp (method_name, "Activate") == 0)
-    {
-        gchar *status = g_strdup_printf ("LOGIN1 ACTIVATE-SESSION SESSION=%s", strrchr (object_path, '/') + 1);
-        check_status (status);
-        g_free (status);
-
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
-    }
-    else
-        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
+    /*Login1Session *session = user_data;*/
+    g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
 }
 
 static Login1Session *
-open_login1_session (GDBusConnection *connection,
-                     GVariant *params)
+create_login1_session (GDBusConnection *connection)
 {
     Login1Session *session;
     GError *error = NULL;
@@ -1635,9 +1603,6 @@ open_login1_session (GDBusConnection *connection,
     const gchar *login1_session_interface =
         "<node>"
         "  <interface name='org.freedesktop.login1.Session'>"
-        "    <method name='Lock'/>"
-        "    <method name='Unlock'/>"
-        "    <method name='Activate'/>"
         "  </interface>"
         "</node>";
     static const GDBusInterfaceVTable login1_session_vtable =
@@ -1648,7 +1613,8 @@ open_login1_session (GDBusConnection *connection,
     session = g_malloc0 (sizeof (Login1Session));
     login1_sessions = g_list_append (login1_sessions, session);
 
-    session->path = g_strdup_printf ("/org/freedesktop/login1/Session/c%d", login1_session_index++);
+    session->id = g_strdup_printf ("c%d", login1_session_index++);
+    session->path = g_strdup_printf ("/org/freedesktop/login1/Session/%s", session->id);
 
     login1_session_info = g_dbus_node_info_new_for_xml (login1_session_interface, &error);
     if (error)
@@ -1670,6 +1636,21 @@ open_login1_session (GDBusConnection *connection,
     g_dbus_node_info_unref (login1_session_info);
 
     return session;
+}
+
+static Login1Session *
+find_login1_session (const gchar *id)
+{
+    GList *link;
+
+    for (link = login1_sessions; link; link = link->next)
+    {
+        Login1Session *session = link->data;
+        if (strcmp (session->id, id) == 0)
+            return session;
+    }
+
+    return NULL;
 }
 
 static void
@@ -1695,32 +1676,76 @@ handle_login1_call (GDBusConnection       *connection,
         }
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(a(so))", &seats));
     }
-    else if (strcmp (method_name, "GetSessionByPID") == 0)
+    else if (strcmp (method_name, "CreateSession") == 0)
     {
-        /* Look for a session with our PID, and create one if we don't have one already. */
-        GList *link;
-        guint pid;
-        Login1Session *ret = NULL;
+        /* Note: this is not the full CreateSession as used by logind, we just
+           need one so our fake PAM stack can communicate with this service */
+        Login1Session *session = create_login1_session (connection);
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(so)", session->id, session->path));
 
-        g_variant_get (parameters, "(u)", &pid);
+    }
+    else if (strcmp (method_name, "LockSession") == 0)
+    {
+        const gchar *id;
+        Login1Session *session;
 
-        for (link = login1_sessions; link; link = link->next)
+        g_variant_get (parameters, "(&s)", &id);
+        session = find_login1_session (id);
+        if (!session)
         {
-            Login1Session *session;
-            session = link->data;
-            if (session->pid == pid)
-            {
-                ret = session;
-                break;
-            }
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such session: %s", id);
+            return;
         }
-        /* Not found */
-        if (!ret)
-            ret = open_login1_session (connection, parameters);
 
-        g_dbus_method_invocation_return_value (invocation,
-                                               g_variant_new("(o)", ret->path));
+        if (!session->locked)
+        {
+            gchar *status = g_strdup_printf ("LOGIN1 LOCK-SESSION SESSION=%s", id);
+            check_status (status);
+            g_free (status);
+        }
+        session->locked = TRUE;
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "UnlockSession") == 0)
+    {
+        const gchar *id;
+        Login1Session *session;
 
+        g_variant_get (parameters, "(&s)", &id);
+        session = find_login1_session (id);
+        if (!session)
+        {
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such session: %s", id);
+            return;
+        }
+
+        if (session->locked)
+        {
+            gchar *status = g_strdup_printf ("LOGIN1 UNLOCK-SESSION SESSION=%s", id);
+            check_status (status);
+            g_free (status);
+        }
+        session->locked = FALSE;
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "ActivateSession") == 0)
+    {
+        const gchar *id;
+        Login1Session *session;
+
+        g_variant_get (parameters, "(&s)", &id);
+        session = find_login1_session (id);
+        if (!session)
+        {
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such session: %s", id);
+            return;
+        }
+
+        gchar *status = g_strdup_printf ("LOGIN1 ACTIVATE-SESSION SESSION=%s", id);
+        check_status (status);
+        g_free (status);
+
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
     else if (strcmp (method_name, "CanReboot") == 0)
     {
@@ -1785,9 +1810,18 @@ login1_name_acquired_cb (GDBusConnection *connection,
         "    <method name='ListSeats'>"
         "      <arg name='seats' type='a(so)' direction='out'/>"
         "    </method>"
-        "    <method name='GetSessionByPID'>"
-        "      <arg name='pid' type='u' direction='in'/>"
-        "      <arg name='session' type='o' direction='out'/>"
+        "    <method name='CreateSession'>"
+        "      <arg name='id' type='s' direction='out'/>"
+        "      <arg name='path' type='o' direction='out'/>"
+        "    </method>"
+        "    <method name='LockSession'>"
+        "      <arg name='id' type='s' direction='in'/>"
+        "    </method>"
+        "    <method name='UnlockSession'>"
+        "      <arg name='id' type='s' direction='in'/>"
+        "    </method>"
+        "    <method name='ActivateSession'>"
+        "      <arg name='id' type='s' direction='in'/>"
         "    </method>"
         "    <method name='CanReboot'>"
         "      <arg name='result' direction='out' type='s'/>"
