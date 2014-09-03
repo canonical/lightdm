@@ -807,7 +807,7 @@ session_real_run (Session *session)
 
     if (login1_service_get_is_connected (login1_service_get_instance ()))
         session->priv->login1_session = read_string_from_child (session);
-    if (!session->priv->login1_session)
+    else
         session->priv->console_kit_cookie = read_string_from_child (session);
 }
 
