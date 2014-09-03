@@ -243,8 +243,8 @@ session_child_run (int argc, char **argv)
     XAuthority *x_authority = NULL;
     gchar *x_authority_filename;
     GDBusConnection *bus;
+    const gchar *login1_session = NULL;
     gchar *console_kit_cookie = NULL;
-    gchar *login1_session = NULL;
     const gchar *locale_value;
     gchar *locale_var;
     static const gchar * const locale_var_names[] = {
@@ -545,7 +545,7 @@ session_child_run (int argc, char **argv)
     }
 
     /* Check what logind session we are, or fallback to ConsoleKit */
-    login1_session = login1_get_session_id ();
+    login1_session = pam_getenv (pam_handle, "XDG_SESSION_ID");
     if (login1_session)
         write_string (login1_session);
     else
