@@ -964,7 +964,7 @@ add_login1_seat (Login1Seat *login1_seat)
     is_seat0 = strcmp (seat_name, "seat0") == 0;
 
     config_sections = get_config_sections (seat_name);
-    for (link = g_list_last (config_sections); link; link = link->next)
+    for (link = g_list_last (config_sections); link; link = link->prev)
     {
         gchar *config_section = link->data;
         g_debug ("Loading properties from config section %s", config_section);
