@@ -151,6 +151,11 @@ get_config_sections (const gchar *seat_name)
     gchar **groups, **i;
     GList *config_sections = NULL;
 
+    config_sections = g_list_append (config_sections, g_strdup ("SeatDefaults"));
+
+    if (!seat_name)
+        return config_sections;
+
     groups = config_get_groups (config_get_instance ());
     for (i = groups; *i; i++)
     {
@@ -161,37 +166,32 @@ get_config_sections (const gchar *seat_name)
                 config_sections = g_list_append (config_sections, g_strdup (*i));
         }
     }
-    if (groups)
-        g_strfreev (groups);
+    g_strfreev (groups);
+
     return config_sections;
 }
 
 static void
-set_seat_properties (Seat *seat, const gchar *config_section)
+set_seat_properties (Seat *seat, const gchar *seat_name)
 {
+    GList *sections, *link;
     gchar **keys;
     gint i;
 
-    keys = config_get_keys (config_get_instance (), "SeatDefaults");
-    for (i = 0; keys && keys[i]; i++)
+    sections = get_config_sections (seat_name);
+    for (link = sections; link; link = link->next)
     {
-        gchar *value = config_get_string (config_get_instance (), "SeatDefaults", keys[i]);
-        seat_set_property (seat, keys[i], value);
-        g_free (value);
-    }
-    g_strfreev (keys);
-
-    if (config_section)
-    {
-        keys = config_get_keys (config_get_instance (), config_section);
+        const gchar *section = link->data;
+        keys = config_get_keys (config_get_instance (), section);
         for (i = 0; keys && keys[i]; i++)
         {
-            gchar *value = config_get_string (config_get_instance (), config_section, keys[i]);
+            gchar *value = config_get_string (config_get_instance (), section, keys[i]);
             seat_set_property (seat, keys[i], value);
             g_free (value);
         }
         g_strfreev (keys);
     }
+    g_list_free_full (sections, g_free);
 }
 
 static void
@@ -242,13 +242,7 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 
     if (next_seat)
     {
-        GList *config_sections, *link;
-
-        config_sections = get_config_sections (seat_get_name (seat));
-        for (link = config_sections; link; link = link->next)
-            set_seat_properties (next_seat, (gchar*) link->data);
-        if (config_sections)
-            g_list_free_full (config_sections, g_free);
+        set_seat_properties (next_seat, seat_get_name (seat));
 
         // We set this manually on default seat.  Let's port it over if needed.
         if (seat_get_boolean_property (seat, "exit-on-failure"))
@@ -970,31 +964,29 @@ add_login1_seat (Login1Seat *login1_seat)
     is_seat0 = strcmp (seat_name, "seat0") == 0;
 
     config_sections = get_config_sections (seat_name);
-    for (link = config_sections; link; link = link->next)
+    for (link = g_list_last (config_sections); link; link = link->next)
     {
         gchar *config_section = link->data;
         g_debug ("Loading properties from config section %s", config_section);
         types = config_get_string_list (config_get_instance (), config_section, "type");
+        if (types)
+            break;
     }
+    g_list_free_full (config_sections, g_free);
 
-    if (!types)
-        types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
     for (type = types; !seat && type && *type; type++)
         seat = seat_new (*type, seat_name);
     g_strfreev (types);
 
     if (seat)
     {
-        set_seat_properties (seat, NULL);
+        set_seat_properties (seat, seat_name);
 
         if (!login1_seat_get_can_multi_session (login1_seat))
         {
             g_debug ("Seat %s has property CanMultiSession=no", seat_name);
             seat_set_property (seat, "allow-user-switching", "false");
         }
-
-        for (link = config_sections; link; link = link->next)
-            set_seat_properties (seat, (gchar*) link->data);
 
         if (is_seat0)
             seat_set_property (seat, "exit-on-failure", "true");
@@ -1009,8 +1001,6 @@ add_login1_seat (Login1Seat *login1_seat)
             g_debug ("Failed to start seat: %s", seat_name);
     }
 
-    if (config_sections)
-        g_list_free_full (config_sections, g_free);
     g_object_unref (seat);
   
     return started;

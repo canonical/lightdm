@@ -85,6 +85,8 @@ void
 unity_system_compositor_set_command (UnitySystemCompositor *compositor, const gchar *command)
 {
     g_return_if_fail (compositor != NULL);
+    g_return_if_fail (command != NULL);
+
     g_free (compositor->priv->command);
     compositor->priv->command = g_strdup (command);
 }
