@@ -182,6 +182,7 @@ set_seat_properties (Seat *seat, const gchar *seat_name)
     for (link = sections; link; link = link->next)
     {
         const gchar *section = link->data;
+        g_debug ("Loading properties from config section %s", section);
         keys = config_get_keys (config_get_instance (), section);
         for (i = 0; keys && keys[i]; i++)
         {
@@ -967,7 +968,6 @@ add_login1_seat (Login1Seat *login1_seat)
     for (link = g_list_last (config_sections); link; link = link->prev)
     {
         gchar *config_section = link->data;
-        g_debug ("Loading properties from config section %s", config_section);
         types = config_get_string_list (config_get_instance (), config_section, "type");
         if (types)
             break;
