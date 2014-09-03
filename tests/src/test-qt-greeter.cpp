@@ -226,6 +226,11 @@ main(int argc, char *argv[])
 
     status_connect (request_cb, greeter_id);
 
+    /* Workaround for Qt being confused by libsystem */
+#if QT_VERSION >= QT_VERSION_CHECK (5, 3, 0)
+    QCoreApplication::setSetuidAllowed (true);
+#endif  
+
     app = new QCoreApplication (argc, argv);
 
     signal (SIGINT, signal_cb);
