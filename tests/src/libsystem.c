@@ -1210,6 +1210,9 @@ pam_get_item (const pam_handle_t *pamh, int item_type, const void **item)
 int
 pam_open_session (pam_handle_t *pamh, int flags)
 {
+    GVariant *result;
+    GError *error = NULL;
+
     if (pamh == NULL)
         return PAM_SYSTEM_ERR;
 
@@ -1236,6 +1239,33 @@ pam_open_session (pam_handle_t *pamh, int flags)
         entry = getpwnam (pamh->user);
         g_mkdir_with_parents (entry->pw_dir, 0755);
     }
+
+    /* Open logind session */
+    result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+                                          "org.freedesktop.login1",
+                                          "/org/freedesktop/login1",
+                                          "org.freedesktop.login1.Manager",
+                                          "CreateSession",
+                                          g_variant_new ("()", ""),
+                                          G_VARIANT_TYPE ("(so)"),
+                                          G_DBUS_CALL_FLAGS_NONE,
+                                          G_MAXINT,
+                                          NULL,
+                                          &error);
+    if (result)
+    {
+        gchar *e;
+        const gchar *id;
+
+        g_variant_get (result, "(&so)", &id, NULL);
+        e = g_strdup_printf ("XDG_SESSION_ID=%s", id);
+        pam_putenv (pamh, e);
+        g_free (e);
+        g_variant_unref (result);
+    }
+    else
+        g_printerr ("Failed to create logind session: %s\n", error->message);
+    g_clear_error (&error);
 
     return PAM_SUCCESS;
 }

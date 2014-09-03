@@ -16,15 +16,11 @@
 
 G_BEGIN_DECLS
 
-gboolean login1_is_running (void);
+void login1_lock_session (const gchar *session_id);
 
-gchar *login1_get_session_id (void);
+void login1_unlock_session (const gchar *session_id);
 
-void login1_lock_session (const gchar *session_path);
-
-void login1_unlock_session (const gchar *session_path);
-
-void login1_activate_session (const gchar *session_path);
+void login1_activate_session (const gchar *session_id);
 
 G_END_DECLS
 

@@ -617,7 +617,7 @@ session_real_start (Session *session)
     close (from_child_input);
 
     /* Indicate what version of the protocol we are using */
-    version = 1;
+    version = 2;
     write_data (session, &version, sizeof (version));
 
     /* Send configuration */
@@ -796,10 +796,8 @@ session_real_run (Session *session)
     for (i = 0; i < argc; i++)
         write_string (session, session->priv->argv[i]);
 
-    if (login1_is_running ())
-        session->priv->login1_session = read_string_from_child (session);
-    if (!session->priv->login1_session)
-        session->priv->console_kit_cookie = read_string_from_child (session);
+    session->priv->login1_session = read_string_from_child (session);
+    session->priv->console_kit_cookie = read_string_from_child (session);
 }
 
 void
