@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.11.8
+
+    * Rework logind code that gets session ID. The previous method was racy
+      and a change in lightdm 1.11.7 led to a lockup when this race occurred.
+    * Handle CanGraphical property on logind seats
+
 Overview of changes in lightdm 1.11.7
 
     * Use logind to provide the list of seats to use. Deprecate the old method

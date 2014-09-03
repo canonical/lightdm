@@ -1,3 +1,13 @@
+lightdm (1.11.8-0ubuntu1) utopic; urgency=medium
+
+  * New upstream release:
+    - Rework logind code that gets session ID. The previous method was racy
+      and a change in lightdm 1.11.7 led to a lockup when this race occurred.
+      (LP: #1364725)
+    - Handle CanGraphical property on logind seats
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 03 Sep 2014 17:26:36 +1200
+
 lightdm (1.11.7-0ubuntu1) utopic; urgency=medium
 
   * New upstream release:

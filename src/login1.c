@@ -16,6 +16,8 @@
 #include "login1.h"
 
 #define LOGIN1_SERVICE_NAME "org.freedesktop.login1"
+#define LOGIN1_OBJECT_NAME "/org/freedesktop/login1"
+#define LOGIN1_MANAGER_INTERFACE_NAME "org.freedesktop.login1.Manager"
 
 enum {
     SEAT_ADDED,
@@ -71,55 +73,15 @@ G_DEFINE_TYPE (Login1Seat, login1_seat, G_TYPE_OBJECT);
 
 static Login1Service *singleton = NULL;
 
-gchar *
-login1_get_session_id (void)
-{
-    GDBusConnection *bus;
-    GVariant *result;
-    gchar *session_path;
-    GError *error = NULL;
-
-    bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
-    if (error)
-        g_warning ("Failed to get system bus: %s", error->message);
-    g_clear_error (&error);
-    if (!bus)
-        return NULL;
-    result = g_dbus_connection_call_sync (bus,
-                                          LOGIN1_SERVICE_NAME,
-                                          "/org/freedesktop/login1",
-                                          "org.freedesktop.login1.Manager",
-                                          "GetSessionByPID",
-                                          g_variant_new ("(u)", getpid()),
-                                          G_VARIANT_TYPE ("(o)"),
-                                          G_DBUS_CALL_FLAGS_NONE,
-                                          -1,
-                                          NULL,
-                                          &error);
-    g_object_unref (bus);
-
-    if (error)
-        g_warning ("Failed to open login1 session: %s", error->message);
-    g_clear_error (&error);
-    if (!result)
-        return NULL;
-
-    g_variant_get (result, "(o)", &session_path);
-    g_variant_unref (result);
-    g_debug ("Got login1 session id: %s", session_path);
-
-    return session_path;
-}
-
 void
-login1_lock_session (const gchar *session_path)
+login1_lock_session (const gchar *session_id)
 {
     GDBusConnection *bus;
     GError *error = NULL;
 
-    g_return_if_fail (session_path != NULL);
+    g_return_if_fail (session_id != NULL);
 
-    g_debug ("Locking login1 session %s", session_path);
+    g_debug ("Locking login1 session %s", session_id);
 
     bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
     if (error)
@@ -128,16 +90,16 @@ login1_lock_session (const gchar *session_path)
     if (!bus)
         return;
 
-    if (session_path)
+    if (session_id)
     {
         GVariant *result;
 
         result = g_dbus_connection_call_sync (bus,
                                               LOGIN1_SERVICE_NAME,
-                                              session_path,
-                                              "org.freedesktop.login1.Session",
-                                              "Lock",
-                                              g_variant_new ("()"),
+                                              LOGIN1_OBJECT_NAME,
+                                              LOGIN1_MANAGER_INTERFACE_NAME,
+                                              "LockSession",
+                                              g_variant_new ("(s)", session_id),
                                               G_VARIANT_TYPE ("()"),
                                               G_DBUS_CALL_FLAGS_NONE,
                                               -1,
@@ -153,14 +115,14 @@ login1_lock_session (const gchar *session_path)
 }
 
 void
-login1_unlock_session (const gchar *session_path)
+login1_unlock_session (const gchar *session_id)
 {
     GDBusConnection *bus;
     GError *error = NULL;
 
-    g_return_if_fail (session_path != NULL);
+    g_return_if_fail (session_id != NULL);
 
-    g_debug ("Unlocking login1 session %s", session_path);
+    g_debug ("Unlocking login1 session %s", session_id);
 
     bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
     if (error)
@@ -169,16 +131,16 @@ login1_unlock_session (const gchar *session_path)
     if (!bus)
         return;
 
-    if (session_path)
+    if (session_id)
     {
         GVariant *result;
 
         result = g_dbus_connection_call_sync (bus,
                                               LOGIN1_SERVICE_NAME,
-                                              session_path,
-                                              "org.freedesktop.login1.Session",
-                                              "Unlock",
-                                              g_variant_new ("()"),
+                                              LOGIN1_OBJECT_NAME,
+                                              LOGIN1_MANAGER_INTERFACE_NAME,
+                                              "UnlockSession",
+                                              g_variant_new ("(s)", session_id),
                                               G_VARIANT_TYPE ("()"),
                                               G_DBUS_CALL_FLAGS_NONE,
                                               -1,
@@ -194,14 +156,14 @@ login1_unlock_session (const gchar *session_path)
 }
 
 void
-login1_activate_session (const gchar *session_path)
+login1_activate_session (const gchar *session_id)
 {
     GDBusConnection *bus;
     GError *error = NULL;
 
-    g_return_if_fail (session_path != NULL);
+    g_return_if_fail (session_id != NULL);
 
-    g_debug ("Activating login1 session %s", session_path);
+    g_debug ("Activating login1 session %s", session_id);
 
     bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
     if (error)
@@ -210,16 +172,16 @@ login1_activate_session (const gchar *session_path)
     if (!bus)
         return;
 
-    if (session_path)
+    if (session_id)
     {
         GVariant *result;
 
         result = g_dbus_connection_call_sync (bus,
                                               LOGIN1_SERVICE_NAME,
-                                              session_path,
-                                              "org.freedesktop.login1.Session",
-                                              "Activate",
-                                              g_variant_new ("()"),
+                                              LOGIN1_OBJECT_NAME,
+                                              LOGIN1_MANAGER_INTERFACE_NAME,
+                                              "ActivateSession",
+                                              g_variant_new ("(s)", session_id),
                                               G_VARIANT_TYPE ("()"),
                                               G_DBUS_CALL_FLAGS_NONE,
                                               -1,
@@ -417,9 +379,9 @@ login1_service_connect (Login1Service *service)
 
     service->priv->signal_id = g_dbus_connection_signal_subscribe (service->priv->connection,
                                                                    LOGIN1_SERVICE_NAME,
-                                                                   "org.freedesktop.login1.Manager",
+                                                                   LOGIN1_MANAGER_INTERFACE_NAME,
                                                                    NULL,
-                                                                   "/org/freedesktop/login1",
+                                                                   LOGIN1_OBJECT_NAME,
                                                                    NULL,
                                                                    G_DBUS_SIGNAL_FLAGS_NONE,
                                                                    signal_cb,
@@ -428,8 +390,8 @@ login1_service_connect (Login1Service *service)
 
     result = g_dbus_connection_call_sync (service->priv->connection,
                                           LOGIN1_SERVICE_NAME,
-                                          "/org/freedesktop/login1",
-                                          "org.freedesktop.login1.Manager",
+                                          LOGIN1_OBJECT_NAME,
+                                          LOGIN1_MANAGER_INTERFACE_NAME,
                                           "ListSeats",
                                           g_variant_new ("()"),
                                           G_VARIANT_TYPE ("(a(so))"),
