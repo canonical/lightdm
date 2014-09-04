@@ -183,13 +183,31 @@ int_length (void)
 static void
 write_message (Greeter *greeter, guint8 *message, gsize message_length)
 {
+    gchar *data;
+    gsize data_length;
     GError *error = NULL;
 
-    g_io_channel_write_chars (greeter->priv->to_greeter_channel, (gchar *) message, message_length, NULL, &error);
+    data = (gchar *) message;
+    data_length = message_length;
+    while (data_length > 0)
+    {
+        GIOStatus status;
+        gsize n_written;
+
+        status = g_io_channel_write_chars (greeter->priv->to_greeter_channel, data, data_length, &n_written, &error);
+        if (error)
+            l_warning (greeter, "Error writing to greeter: %s", error->message);
+        g_clear_error (&error);
+        if (status != G_IO_STATUS_NORMAL)
+            return;
+        data_length -= n_written;
+        data += n_written;
+    }
+
+    g_io_channel_flush (greeter->priv->to_greeter_channel, &error);
     if (error)
-        l_warning (greeter, "Error writing to greeter: %s", error->message);
+        l_warning (greeter, "Failed to flush data to greeter: %s", error->message);
     g_clear_error (&error);
-    g_io_channel_flush (greeter->priv->to_greeter_channel, NULL);
 }
 
 static void
