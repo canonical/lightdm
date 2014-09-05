@@ -1839,6 +1839,7 @@ login1_name_acquired_cb (GDBusConnection *connection,
         handle_login1_call,
     };
     GDBusNodeInfo *login1_info;
+    Login1Seat *seat0;
     GError *error = NULL;
 
     login1_info = g_dbus_node_info_new_for_xml (login1_interface, &error);
@@ -1859,7 +1860,11 @@ login1_name_acquired_cb (GDBusConnection *connection,
     g_dbus_node_info_unref (login1_info);
 
     /* We always have seat0 */
-    add_login1_seat (connection, "seat0", FALSE);
+    seat0 = add_login1_seat (connection, "seat0", FALSE);
+    if (g_key_file_has_key (config, "test-runner-config", "seat0-can-graphical", NULL))
+        seat0->can_graphical = g_key_file_get_boolean (config, "test-runner-config", "seat0-can-graphical", NULL);
+    if (g_key_file_has_key (config, "test-runner-config", "seat0-can-multi-session", NULL))
+        seat0->can_multi_session = g_key_file_get_boolean (config, "test-runner-config", "seat0-can-multi-session", NULL);
 
     service_count--;
     if (service_count == 0)
