@@ -169,7 +169,6 @@ gboolean
 config_load_from_standard_locations (Configuration *config, const gchar *config_path, GList **messages)
 {
     gchar *config_d_dir = NULL, *path;
-    gboolean explicit_config = FALSE;
     gboolean success = TRUE;
     GError *error = NULL;
 
@@ -182,7 +181,6 @@ config_load_from_standard_locations (Configuration *config, const gchar *config_
     {
         path = g_strdup (config_path);
         config->priv->dir = path_make_absolute (g_path_get_basename (config_path));
-        explicit_config = TRUE;
     }
     else
     {
@@ -202,7 +200,7 @@ config_load_from_standard_locations (Configuration *config, const gchar *config_
 
         is_empty = error && g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
 
-        if (explicit_config || !is_empty)
+        if (config_path || !is_empty)
         {
             if (error)
                 g_printerr ("Failed to load configuration from %s: %s\n", path, error->message);
