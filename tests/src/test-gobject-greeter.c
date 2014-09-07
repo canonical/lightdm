@@ -321,7 +321,7 @@ user_removed_cb (LightDMUserList *user_list, LightDMUser *user)
 int
 main (int argc, char **argv)
 {
-    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie, *xdg_session_class, *mir_socket, *mir_vt, *mir_id;
+    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie, *xdg_session_class, *mir_socket, *mir_vt, *mir_id, *path;
     GString *status_text;
 
 #if !defined(GLIB_VERSION_2_36)
@@ -373,7 +373,9 @@ main (int argc, char **argv)
     g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
-    g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
+    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL);
+    g_key_file_load_from_file (config, path, G_KEY_FILE_NONE, NULL);
+    g_free (path);
 
     if (g_key_file_has_key (config, "test-greeter-config", "return-value", NULL))
     {
