@@ -53,7 +53,7 @@ config_load_from_file (Configuration *config, const gchar *path, GError **error)
         keys = g_key_file_get_keys (key_file, groups[i], NULL, error);
         if (!keys)
             break;
-      
+
         for (j = 0; keys[j]; j++)
         {
             gchar *value;
@@ -159,8 +159,7 @@ load_config_directories (const gchar * const *dirs, GList **messages)
 gboolean
 config_load_from_standard_locations (Configuration *config, const gchar *config_path, GList **messages)
 {
-    gchar *config_dir, *config_d_dir = NULL;
-    gboolean explicit_config = FALSE;
+    gchar *config_dir, *config_d_dir = NULL, *path;
     gboolean success = TRUE;
     GError *error = NULL;
 
@@ -169,39 +168,40 @@ config_load_from_standard_locations (Configuration *config, const gchar *config_
 
     if (config_path)
     {
-        config_dir = g_path_get_basename (config_path);
-        config_dir = path_make_absolute (config_dir);
-        explicit_config = TRUE;
+        config_dir = path_make_absolute (g_path_get_basename (config_path));
+        path = g_strdup (config_path);
     }
     else
     {
         config_dir = g_strdup (CONFIG_DIR);
         config_d_dir = g_build_filename (config_dir, "lightdm.conf.d", NULL);
-        config_path = g_build_filename (config_dir, "lightdm.conf", NULL);
+        path = g_build_filename (config_dir, "lightdm.conf", NULL);
     }
     config_set_string (config, "LightDM", "config-directory", config_dir);
-    g_free (config_dir);
 
     if (config_d_dir)
         load_config_directory (config_d_dir, messages);
-    g_free (config_d_dir);
 
     if (messages)
-        *messages = g_list_append (*messages, g_strdup_printf ("Loading configuration from %s", config_path));
-    if (!config_load_from_file (config, config_path, &error))
+        *messages = g_list_append (*messages, g_strdup_printf ("Loading configuration from %s", path));
+    if (!config_load_from_file (config, path, &error))
     {
         gboolean is_empty;
 
         is_empty = error && g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
 
-        if (explicit_config || !is_empty)
+        if (config_path || !is_empty)
         {
             if (error)
-                g_printerr ("Failed to load configuration from %s: %s\n", config_path, error->message);
+                g_printerr ("Failed to load configuration from %s: %s\n", path, error->message);
             success = FALSE;
         }
     }
     g_clear_error (&error);
+
+    g_free (config_dir);
+    g_free (config_d_dir);
+    g_free (path);
 
     return success;
 }
