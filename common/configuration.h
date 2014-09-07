@@ -40,11 +40,17 @@ gboolean config_load_from_file (Configuration *config, const gchar *path, GError
 
 gboolean config_load_from_standard_locations (Configuration *config, const gchar *config_path, GList **messages);
 
+const gchar *config_get_directory (Configuration *config);
+
 gchar **config_get_groups (Configuration *config);
 
 gchar **config_get_keys (Configuration *config, const gchar *group_name);
 
 gboolean config_has_key (Configuration *config, const gchar *section, const gchar *key);
+
+GList *config_get_sources (Configuration *config);
+
+const gchar *config_get_source (Configuration *config, const gchar *section, const gchar *key);
 
 void config_set_string (Configuration *config, const gchar *section, const gchar *key, const gchar *value);
 
