@@ -340,11 +340,11 @@ seat_xlocal_get_active_session (Seat *seat)
 static void
 seat_xlocal_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
-    const gchar *path;
-    XServerLocal *x_server;
-
     if (IS_X_SERVER_LOCAL (display_server))
     {
+        const gchar *path;
+        XServerLocal *x_server;
+
         x_server = X_SERVER_LOCAL (display_server);
         path = x_server_local_get_authority_file_path (x_server);
         process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
