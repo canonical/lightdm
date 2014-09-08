@@ -51,7 +51,39 @@ void TestGreeter::authenticationComplete ()
 
 void TestGreeter::autologinTimerExpired ()
 {
-    status_notify ("%s AUTOLOGIN-TIMER-EXPIRED", greeter_id);
+}
+
+void TestGreeter::printHints ()
+{
+    if (selectUserHint() != "")
+        status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, greeter->selectUserHint ().toAscii ().constData ());
+    if (selectGuestHint())
+        status_notify ("%s SELECT-GUEST-HINT", greeter_id);
+    if (lockHint())
+        status_notify ("%s LOCK-HINT", greeter_id);
+    if (!hasGuestAccountHint ())
+        status_notify ("%s HAS-GUEST-ACCOUNT-HINT=FALSE", greeter_id);
+    if (hideUsersHint ())
+        status_notify ("%s HIDE-USERS-HINT", greeter_id);
+    if (showManualLoginHint ())
+        status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
+    if (!showRemoteLoginHint ())
+        status_notify ("%s SHOW-REMOTE-LOGIN-HINT=FALSE", greeter_id);
+    int timeout = autologinTimeoutHint ();
+    if (autologinUserHint () != "")
+    {
+        if (timeout != 0)
+            status_notify ("%s AUTOLOGIN-USER USERNAME=%s TIMEOUT=%d", greeter_id, greeter->autologinUserHint ().toAscii ().constData (), timeout);
+        else
+            status_notify ("%s AUTOLOGIN-USER USERNAME=%s", greeter_id, greeter->autologinUserHint ().toAscii ().constData ());
+    }
+    else if (autologinGuestHint ())
+    {
+        if (timeout != 0)
+            status_notify ("%s AUTOLOGIN-GUEST TIMEOUT=%d", greeter_id, timeout);
+        else
+            status_notify ("%s AUTOLOGIN-GUEST", greeter_id);
+    }
 }
 
 void TestGreeter::userRowsInserted (const QModelIndex & parent, int start, int end)
@@ -246,7 +278,7 @@ main(int argc, char *argv[])
         g_string_append_printf (status_text, " XDG_SESSION_COOKIE=%s", xdg_session_cookie);
     if (xdg_session_class)
         g_string_append_printf (status_text, " XDG_SESSION_CLASS=%s", xdg_session_class);
-    status_notify (status_text->str);
+    status_notify ("%s", status_text->str);
     g_string_free (status_text, TRUE);
 
     config = new QSettings (g_build_filename (getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), QSettings::IniFormat);
@@ -282,20 +314,7 @@ main(int argc, char *argv[])
 
     status_notify ("%s CONNECTED-TO-DAEMON", greeter_id);
 
-    if (greeter->selectUserHint() != "")
-        status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, greeter->selectUserHint ().toAscii ().constData ());
-    if (greeter->selectGuestHint())
-        status_notify ("%s SELECT-GUEST-HINT", greeter_id);
-    if (greeter->lockHint())
-        status_notify ("%s LOCK-HINT", greeter_id);
-    if (!greeter->hasGuestAccountHint ())
-        status_notify ("%s HAS-GUEST-ACCOUNT-HINT=FALSE", greeter_id);
-    if (greeter->hideUsersHint ())
-        status_notify ("%s HIDE-USERS-HINT", greeter_id);
-    if (greeter->showManualLoginHint ())
-        status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
-    if (!greeter->showRemoteLoginHint ())
-        status_notify ("%s SHOW-REMOTE-LOGIN-HINT=FALSE", greeter_id);
+    greeter->printHints();
 
     return app->exec();
 }

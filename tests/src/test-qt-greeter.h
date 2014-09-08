@@ -8,6 +8,8 @@ class TestGreeter : public QLightDM::Greeter
 public:
     TestGreeter ();
 
+    void printHints();
+
 private Q_SLOTS:
     void showMessage(QString text, QLightDM::Greeter::MessageType type);
     void showPrompt(QString text, QLightDM::Greeter::PromptType type);
