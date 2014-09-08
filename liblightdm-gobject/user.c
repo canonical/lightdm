@@ -38,7 +38,8 @@ enum
     USER_PROP_LAYOUTS,
     USER_PROP_SESSION,
     USER_PROP_LOGGED_IN,
-    USER_PROP_HAS_MESSAGES
+    USER_PROP_HAS_MESSAGES,
+    USER_PROP_UID,
 };
 
 enum
@@ -526,6 +527,21 @@ lightdm_user_get_has_messages (LightDMUser *user)
     return common_user_get_has_messages (GET_USER_PRIVATE (user)->common_user);
 }
 
+/**
+ * lightdm_user_get_uid:
+ * @user: A #LightDMUser
+ * 
+ * Get the uid of a user.
+ * 
+ * Return value: The uid of the given user
+ **/
+uid_t
+lightdm_user_get_uid (LightDMUser *user)
+{
+    g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
+    return common_user_get_uid (GET_USER_PRIVATE (user)->common_user);
+}
+
 static void
 lightdm_user_init (LightDMUser *user)
 {
@@ -599,6 +615,9 @@ lightdm_user_get_property (GObject    *object,
     case USER_PROP_HAS_MESSAGES:
         g_value_set_boolean (value, lightdm_user_get_has_messages (self));
         break;
+    case USER_PROP_UID:
+        g_value_set_uint64 (value, lightdm_user_get_uid (self));
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -620,7 +639,7 @@ static void
 lightdm_user_class_init (LightDMUserClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-  
+
     g_type_class_add_private (klass, sizeof (LightDMUserPrivate));
 
     object_class->set_property = lightdm_user_set_property;
@@ -718,6 +737,13 @@ lightdm_user_class_init (LightDMUserClass *klass)
                                                            "TRUE if the user is has waiting messages",
                                                            FALSE,
                                                            G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
+                                     USER_PROP_UID,
+                                     g_param_spec_string ("uid",
+                                                          "uid",
+                                                          "User UID",
+                                                          NULL,
+                                                          G_PARAM_READABLE));
 
     /**
      * LightDMUser::changed:

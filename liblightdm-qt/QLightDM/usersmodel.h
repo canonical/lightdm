@@ -37,7 +37,8 @@ public:
                          SessionRole,
                          HasMessagesRole,
                          ImagePathRole,
-                         BackgroundPathRole
+                         BackgroundPathRole,
+                         UidRole
     };
 
     int rowCount(const QModelIndex &parent) const;
