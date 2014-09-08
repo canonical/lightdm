@@ -32,6 +32,7 @@
 #include "session-child.h"
 #include "shared-data-manager.h"
 #include "user-list.h"
+#include "login1.h"
 
 static gchar *config_path = NULL;
 static GMainLoop *loop = NULL;
@@ -62,6 +63,8 @@ typedef struct
 } BusEntry;
 
 #define LIGHTDM_BUS_NAME "org.freedesktop.DisplayManager"
+
+static gboolean update_login1_seat (Login1Seat *login1_seat);
 
 static void
 log_cb (const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer data)
@@ -1244,6 +1247,9 @@ main (int argc, char **argv)
     g_signal_connect (display_manager, "seat-removed", G_CALLBACK (display_manager_seat_removed_cb), NULL);
 
     shared_data_manager_start (shared_data_manager_get_instance ());
+
+    /* Connect to logind */
+    login1_service_connect (login1_service_get_instance ());
 
     /* Load the static display entries */
     groups = config_get_groups (config_get_instance ());
