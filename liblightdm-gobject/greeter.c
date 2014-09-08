@@ -45,16 +45,26 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 typedef struct
 {
-    gboolean connected;
+    /* Channel to write to daemon */
+    GIOChannel *to_server_channel;
 
-    GIOChannel *to_server_channel, *from_server_channel;
+    /* Channel to read from daemon */
+    GIOChannel *from_server_channel;
+
+    /* Data read from the daemon */
     guint8 *read_buffer;
     gsize n_read;
 
     gsize n_responses_waiting;
     GList *responses_received;
 
+    /* TRUE if have got a connect response */
+    gboolean connected;
+
+    /* Hints provided by the daemon */
     GHashTable *hints;
+
+    /* Timeout source to notify greeter to autologin */
     guint autologin_timeout;
 
     gchar *authentication_user;
@@ -103,7 +113,7 @@ typedef enum
  * Return value: the new #LightDMGreeter
  **/
 LightDMGreeter *
-lightdm_greeter_new ()
+lightdm_greeter_new (void)
 {
     return g_object_new (LIGHTDM_TYPE_GREETER, NULL);
 }
@@ -955,27 +965,23 @@ lightdm_greeter_respond (LightDMGreeter *greeter, const gchar *response)
 
     if (priv->n_responses_waiting == 0)
     {
-      guint32 msg_length;
-      GList *iter;
+        guint32 msg_length;
+        GList *iter;
 
-      g_debug ("Providing response to display manager");
+        g_debug ("Providing response to display manager");
 
-      msg_length = int_length ();
-      for (iter = priv->responses_received; iter; iter = iter->next)
-      {
-          msg_length += string_length ((gchar *)iter->data);
-      }
+        msg_length = int_length ();
+        for (iter = priv->responses_received; iter; iter = iter->next)
+            msg_length += string_length ((gchar *)iter->data);
 
-      write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONTINUE_AUTHENTICATION, msg_length, &offset);
-      write_int (message, MAX_MESSAGE_LENGTH, g_list_length (priv->responses_received), &offset);
-      for (iter = priv->responses_received; iter; iter = iter->next)
-      {
-          write_string (message, MAX_MESSAGE_LENGTH, (gchar *)iter->data, &offset);
-      }
-      write_message (greeter, message, offset);
+        write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONTINUE_AUTHENTICATION, msg_length, &offset);
+        write_int (message, MAX_MESSAGE_LENGTH, g_list_length (priv->responses_received), &offset);
+        for (iter = priv->responses_received; iter; iter = iter->next)
+            write_string (message, MAX_MESSAGE_LENGTH, (gchar *)iter->data, &offset);
+        write_message (greeter, message, offset);
 
-      g_list_free_full (priv->responses_received, g_free);
-      priv->responses_received = NULL;
+        g_list_free_full (priv->responses_received, g_free);
+        priv->responses_received = NULL;
     }
 }
 
@@ -1141,7 +1147,7 @@ lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *sessio
  * greeters only need to call this method if they want to store something in
  * the directory themselves.
  *
- * Return value: The path to the shared directory, free with g_free
+ * Return value: The path to the shared directory, free with g_free.
  **/
 gchar *
 lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gchar *username)
