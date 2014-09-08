@@ -64,11 +64,6 @@ struct SeatPrivate
     gboolean stopped;
 };
 
-/* PAM services to use */
-#define GREETER_SERVICE   "lightdm-greeter"
-#define USER_SERVICE      "lightdm"
-#define AUTOLOGIN_SERVICE "lightdm-autologin"
-
 static void seat_logger_iface_init (LoggerInterface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (Seat, seat, G_TYPE_OBJECT,
@@ -1001,7 +996,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         session = create_guest_session (seat, session_name);
         if (!session)
             return FALSE;
-        session_set_pam_service (session, AUTOLOGIN_SERVICE);
+        session_set_pam_service (session, seat_get_string_property (seat, "pam-autologin-service"));
     }
     else
     {
@@ -1136,7 +1131,7 @@ create_greeter_session (Seat *seat)
     set_session_env (SESSION (greeter_session));
     session_set_env (SESSION (greeter_session), "XDG_SESSION_CLASS", "greeter");
 
-    session_set_pam_service (SESSION (greeter_session), GREETER_SERVICE);
+    session_set_pam_service (SESSION (greeter_session), seat_get_string_property (seat, "pam-greeter-service"));
     if (getuid () == 0)
     {
         gchar *greeter_user;      
@@ -1152,7 +1147,9 @@ create_greeter_session (Seat *seat)
     session_set_argv (SESSION (greeter_session), argv);
     g_strfreev (argv);
 
-    greeter_set_pam_services (greeter_session, USER_SERVICE, AUTOLOGIN_SERVICE);
+    greeter_set_pam_services (greeter_session,
+                              seat_get_string_property (seat, "pam-service"),
+                              seat_get_string_property (seat, "pam-autologin-service"));
     g_signal_connect (greeter_session, "create-session", G_CALLBACK (greeter_create_session_cb), seat);
     g_signal_connect (greeter_session, "start-session", G_CALLBACK (greeter_start_session_cb), seat);
 
@@ -1368,7 +1365,7 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
     /* Attempt to authenticate them */
     session = create_user_session (seat, username, FALSE);
     g_signal_connect (session, "authentication-complete", G_CALLBACK (switch_authentication_complete_cb), seat);
-    session_set_pam_service (session, USER_SERVICE);
+    session_set_pam_service (session, seat_get_string_property (seat, "pam-service"));
 
     return session_start (session);
 }
@@ -1417,7 +1414,7 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
     if (seat->priv->session_to_activate)
         g_object_unref (seat->priv->session_to_activate);
     seat->priv->session_to_activate = g_object_ref (session);
-    session_set_pam_service (session, AUTOLOGIN_SERVICE);
+    session_set_pam_service (session, seat_get_string_property (seat, "pam-autologin-service"));
     session_set_display_server (session, display_server);
 
     return display_server_start (display_server);
@@ -1529,7 +1526,7 @@ seat_real_start (Seat *seat)
             session = create_user_session (seat, autologin_username, TRUE);
 
         if (session)
-            session_set_pam_service (session, AUTOLOGIN_SERVICE);
+            session_set_pam_service (session, seat_get_string_property (seat, "pam-autologin-service"));
 
         /* Load in background if required */
         if (autologin_in_background && session)

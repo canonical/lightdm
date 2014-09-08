@@ -20,6 +20,7 @@ TESTS = \
 	test-headless \
 	test-autologin \
 	test-autologin-pam \
+	test-autologin-pam-config \
 	test-autologin-in-background \
 	test-autologin-guest-in-background \
 	test-autologin-timeout-in-background \
@@ -37,6 +38,7 @@ TESTS = \
 	test-restart-authentication \
 	test-gobject-cancel-authentication \
 	test-login-pam \
+	test-login-pam-config \
 	test-denied \
 	test-expired \
 	test-cred-error \
@@ -340,6 +342,7 @@ EXTRA_DIST = \
 	scripts/autologin-in-background.conf \
 	scripts/autologin-invalid-greeter.conf \
 	scripts/autologin-pam.conf \
+	scripts/autologin-pam-config.conf \
 	scripts/autologin-timeout-in-background.conf \
 	scripts/autologin-invalid-session.conf \
 	scripts/autologin-invalid-user.conf \
@@ -411,6 +414,7 @@ EXTRA_DIST = \
 	scripts/login-new-authtok.conf \
 	scripts/login-no-password.conf \
 	scripts/login-pam.conf \
+	scripts/login-pam-config.conf \
 	scripts/login-pick-session.conf \
 	scripts/login-previous-session.conf \
 	scripts/login-remember-session.conf \

@@ -1148,6 +1148,12 @@ main (int argc, char **argv)
         config_set_boolean (config_get_instance (), "LightDM", "lock-memory", TRUE);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "type"))
         config_set_string (config_get_instance (), "SeatDefaults", "type", "xlocal");
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "pam-service"))
+        config_set_string (config_get_instance (), "SeatDefaults", "pam-service", "lightdm");
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "pam-autologin-service"))
+        config_set_string (config_get_instance (), "SeatDefaults", "pam-autologin-service", "lightdm-autologin");
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "pam-greeter-service"))
+        config_set_string (config_get_instance (), "SeatDefaults", "pam-greeter-service", "lightdm-greeter");
     if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-command"))
         config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", "X");
     if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-share"))
