@@ -29,7 +29,7 @@ seat_xlocal_get_start_local_sessions (Seat *seat)
 static void
 seat_xlocal_setup (Seat *seat)
 {
-    seat_set_can_switch (seat, TRUE);
+    seat_set_supports_multi_session (seat, TRUE);
     seat_set_share_display_server (seat, seat_get_boolean_property (seat, "xserver-share"));
     SEAT_CLASS (seat_xlocal_parent_class)->setup (seat);
 }

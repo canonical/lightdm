@@ -132,12 +132,15 @@ TESTS = \
 	test-lock-seat-console-kit \
 	test-lock-seat-return-session-console-kit \
 	test-switch-to-greeter \
+	test-switch-to-greeter-disabled \
 	test-switch-to-greeter-new-session \
 	test-switch-to-greeter-return-session \
 	test-switch-to-greeter-return-session-pam \
 	test-switch-to-greeter-return-session-logout \
 	test-switch-to-guest \
+	test-switch-to-guest-disabled \
 	test-switch-to-user \
+	test-switch-to-user-disabled \
 	test-switch-to-user-no-password \
 	test-switch-to-user-active \
 	test-switch-to-user-existing \
@@ -453,14 +456,17 @@ EXTRA_DIST = \
 	scripts/session-stderr-backup.conf \
 	scripts/surfaceflinger-autologin.conf \
 	scripts/switch-to-greeter.conf \
+	scripts/switch-to-greeter-disabled.conf \
 	scripts/switch-to-greeter-new-session.conf \
 	scripts/switch-to-greeter-return-session.conf \
 	scripts/switch-to-greeter-return-session-logout.conf \
 	scripts/switch-to-greeter-return-session-pam.conf \
 	scripts/switch-to-guest.conf \
+	scripts/switch-to-guest-disabled.conf \
 	scripts/switch-to-user.conf \
 	scripts/switch-to-users.conf \
 	scripts/switch-to-user-active.conf \
+	scripts/switch-to-user-disabled.conf \
 	scripts/switch-to-user-existing.conf \
 	scripts/switch-to-user-existing-no-password.conf \
 	scripts/switch-to-user-logout-active.conf \

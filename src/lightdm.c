@@ -437,45 +437,58 @@ handle_seat_call (GDBusConnection       *connection,
     if (g_strcmp0 (method_name, "SwitchToGreeter") == 0)
     {
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
-            return;
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_INVALID_ARGS, "Invalid arguments");
 
-        seat_switch_to_greeter (seat);
-        g_dbus_method_invocation_return_value (invocation, NULL);
+        if (seat_switch_to_greeter (seat))
+            g_dbus_method_invocation_return_value (invocation, NULL);
+        else// FIXME: Need to make proper error
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Failed to switch to greeter");
     }
     else if (g_strcmp0 (method_name, "SwitchToUser") == 0)
     {
         const gchar *username, *session_name;
 
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(ss)")))
-            return;
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_INVALID_ARGS, "Invalid arguments");
 
         g_variant_get (parameters, "(&s&s)", &username, &session_name);
         if (strcmp (session_name, "") == 0)
             session_name = NULL;
 
-        seat_switch_to_user (seat, username, session_name);
-        g_dbus_method_invocation_return_value (invocation, NULL);
+        if (seat_switch_to_user (seat, username, session_name))
+            g_dbus_method_invocation_return_value (invocation, NULL);
+        else// FIXME: Need to make proper error
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Failed to switch to user");
     }
     else if (g_strcmp0 (method_name, "SwitchToGuest") == 0)
     {
         const gchar *session_name;
 
         if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("(s)")))
-            return;
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_INVALID_ARGS, "Invalid arguments");
 
         g_variant_get (parameters, "(&s)", &session_name);
         if (strcmp (session_name, "") == 0)
             session_name = NULL;
 
-        seat_switch_to_guest (seat, session_name);
-        g_dbus_method_invocation_return_value (invocation, NULL);
+        if (seat_switch_to_guest (seat, session_name))
+            g_dbus_method_invocation_return_value (invocation, NULL);
+        else// FIXME: Need to make proper error
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Failed to switch to guest");
     }
     else if (g_strcmp0 (method_name, "Lock") == 0)
     {
+        if (!g_variant_is_of_type (parameters, G_VARIANT_TYPE ("()")))
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_INVALID_ARGS, "Invalid arguments");
+
         /* FIXME: Should only allow locks if have a session on this seat */
-        seat_lock (seat, NULL);
-        g_dbus_method_invocation_return_value (invocation, NULL);
+        if (seat_lock (seat, NULL))
+            g_dbus_method_invocation_return_value (invocation, NULL);
+        else// FIXME: Need to make proper error
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Failed to lock seat");
     }
+    else
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD, "Unknown method");
 }
 
 static Seat *
@@ -1143,6 +1156,8 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "SeatDefaults", "unity-compositor-command", "unity-system-compositor");
     if (!config_has_key (config_get_instance (), "SeatDefaults", "start-session"))
         config_set_boolean (config_get_instance (), "SeatDefaults", "start-session", TRUE);
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "allow-user-switching"))
+        config_set_boolean (config_get_instance (), "SeatDefaults", "allow-user-switching", TRUE);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "allow-guest"))
         config_set_boolean (config_get_instance (), "SeatDefaults", "allow-guest", TRUE);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-allow-guest"))

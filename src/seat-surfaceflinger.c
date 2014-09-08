@@ -20,7 +20,7 @@ G_DEFINE_TYPE (SeatSurfaceflinger, seat_surfaceflinger, SEAT_TYPE);
 static void
 seat_surfaceflinger_setup (Seat *seat)
 {
-    seat_set_can_switch (seat, FALSE);
+    seat_set_supports_multi_session (seat, FALSE);
     SEAT_CLASS (seat_surfaceflinger_parent_class)->setup (seat);
 }
 

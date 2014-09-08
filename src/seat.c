@@ -33,8 +33,8 @@ struct SeatPrivate
     /* Configuration for this seat */
     GHashTable *properties;
 
-    /* TRUE if able to switch users */
-    gboolean can_switch;
+    /* TRUE if this seat can run multiple sessions at once */
+    gboolean supports_multi_session;
 
     /* TRUE if display server can be shared for sessions */
     gboolean share_display_server;
@@ -170,18 +170,16 @@ seat_get_name (Seat *seat)
 }
 
 void
-seat_set_can_switch (Seat *seat, gboolean can_switch)
+seat_set_supports_multi_session (Seat *seat, gboolean supports_multi_session)
 {
     g_return_if_fail (seat != NULL);
-
-    seat->priv->can_switch = can_switch;
+    seat->priv->supports_multi_session = supports_multi_session;
 }
 
 void
 seat_set_share_display_server (Seat *seat, gboolean share_display_server)
 {
     g_return_if_fail (seat != NULL);
-
     seat->priv->share_display_server = share_display_server;
 }
 
@@ -255,7 +253,7 @@ gboolean
 seat_get_can_switch (Seat *seat)
 {
     g_return_val_if_fail (seat != NULL, FALSE);
-    return seat->priv->can_switch;
+    return seat_get_boolean_property (seat, "allow-user-switching") && seat->priv->supports_multi_session;
 }
 
 gboolean
@@ -1270,7 +1268,7 @@ seat_switch_to_greeter (Seat *seat)
 
     g_return_val_if_fail (seat != NULL, FALSE);
 
-    if (!seat->priv->can_switch)
+    if (!seat_get_can_switch (seat))
         return FALSE;
 
     /* Switch to greeter if one open (shouldn't be though) */
@@ -1357,7 +1355,7 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
     g_return_val_if_fail (seat != NULL, FALSE);
     g_return_val_if_fail (username != NULL, FALSE);
 
-    if (!seat->priv->can_switch)
+    if (!seat_get_can_switch (seat))
         return FALSE;
 
     /* If we're already on this session, then ignore */
@@ -1371,9 +1369,8 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
     session = create_user_session (seat, username, FALSE);
     g_signal_connect (session, "authentication-complete", G_CALLBACK (switch_authentication_complete_cb), seat);
     session_set_pam_service (session, USER_SERVICE);
-    session_start (session);
 
-    return FALSE;
+    return session_start (session);
 }
 
 static Session *
@@ -1399,7 +1396,7 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
 
     g_return_val_if_fail (seat != NULL, FALSE);
 
-    if (!seat->priv->can_switch || !seat_get_allow_guest (seat))
+    if (!seat_get_can_switch (seat) || !seat_get_allow_guest (seat))
         return FALSE;
 
     /* Switch to session if one open */
@@ -1434,7 +1431,7 @@ seat_lock (Seat *seat, const gchar *username)
 
     g_return_val_if_fail (seat != NULL, FALSE);
 
-    if (!seat->priv->can_switch)
+    if (!seat_get_can_switch (seat))
         return FALSE;
 
     l_debug (seat, "Locking");
