@@ -168,46 +168,49 @@ load_config_directories (const gchar * const *dirs, GList **messages)
 gboolean
 config_load_from_standard_locations (Configuration *config, const gchar *config_path, GList **messages)
 {
-    gchar *config_d_dir = NULL;
-    gboolean explicit_config = FALSE;
+    gchar *config_d_dir = NULL, *path;
     gboolean success = TRUE;
     GError *error = NULL;
+
+    g_return_val_if_fail (config->priv->dir == NULL, FALSE);
 
     load_config_directories (g_get_system_data_dirs (), messages);
     load_config_directories (g_get_system_config_dirs (), messages);
 
     if (config_path)
     {
+        path = g_strdup (config_path);
         config->priv->dir = path_make_absolute (g_path_get_basename (config_path));
-        explicit_config = TRUE;
     }
     else
     {
         config->priv->dir = g_strdup (CONFIG_DIR);
         config_d_dir = g_build_filename (config->priv->dir, "lightdm.conf.d", NULL);
-        config_path = g_build_filename (config->priv->dir, "lightdm.conf", NULL);
+        path = g_build_filename (config->priv->dir, "lightdm.conf", NULL);
     }
 
     if (config_d_dir)
         load_config_directory (config_d_dir, messages);
-    g_free (config_d_dir);
 
     if (messages)
-        *messages = g_list_append (*messages, g_strdup_printf ("Loading configuration from %s", config_path));
-    if (!config_load_from_file (config, config_path, &error))
+        *messages = g_list_append (*messages, g_strdup_printf ("Loading configuration from %s", path));
+    if (!config_load_from_file (config, path, &error))
     {
         gboolean is_empty;
 
         is_empty = error && g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
 
-        if (explicit_config || !is_empty)
+        if (config_path || !is_empty)
         {
             if (error)
-                g_printerr ("Failed to load configuration from %s: %s\n", config_path, error->message);
+                g_printerr ("Failed to load configuration from %s: %s\n", path, error->message);
             success = FALSE;
         }
     }
     g_clear_error (&error);
+
+    g_free (config_d_dir);
+    g_free (path);
 
     return success;
 }

@@ -16,14 +16,6 @@
 
 G_BEGIN_DECLS
 
-gchar *login1_get_session_id (void);
-
-void login1_lock_session (const gchar *session_path);
-
-void login1_unlock_session (const gchar *session_path);
-
-void login1_activate_session (const gchar *session_path);
-
 #define LOGIN1_SEAT_TYPE (login1_seat_get_type())
 #define LOGIN1_SEAT(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), LOGIN1_SEAT_TYPE, Login1Seat));
 
@@ -72,6 +64,12 @@ gboolean login1_service_get_is_connected (Login1Service *service);
 GList *login1_service_get_seats (Login1Service *service);
 
 Login1Seat *login1_service_get_seat (Login1Service *service, const gchar *id);
+
+void login1_service_lock_session (Login1Service *service, const gchar *session_id);
+
+void login1_service_unlock_session (Login1Service *service, const gchar *session_id);
+
+void login1_service_activate_session (Login1Service *service, const gchar *session_id);
 
 const gchar *login1_seat_get_id (Login1Seat *seat);
 
