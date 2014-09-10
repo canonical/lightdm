@@ -454,7 +454,6 @@ EXTRA_DIST = \
 	scripts/multi-seat-change-graphical.conf \
 	scripts/multi-seat-change-graphical-disabled.conf \
 	scripts/multi-seat-non-graphical.conf \
-	scripts/multi-seat-change-graphical.conf \
 	scripts/multi-seat-non-graphical-disabled.conf \
 	scripts/multi-seat-seat0-non-graphical.conf \
 	scripts/multi-seat-seat0-non-graphical-disabled.conf \
