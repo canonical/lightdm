@@ -1,3 +1,10 @@
+lightdm (1.11.8-0ubuntu2) utopic; urgency=medium
+
+  * debian/patches/06_apparmor-unix.patch: updates for unix socket mediation
+    (LP: #1362199)
+
+ -- Jamie Strandboge <jamie@ubuntu.com>  Fri, 05 Sep 2014 17:34:03 -0500
+
 lightdm (1.11.8-0ubuntu1) utopic; urgency=medium
 
   * New upstream release:
