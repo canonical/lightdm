@@ -68,6 +68,8 @@ typedef struct
 
 #define LIGHTDM_BUS_NAME "org.freedesktop.DisplayManager"
 
+static gboolean update_login1_seat (Login1Seat *login1_seat);
+
 static void
 log_cb (const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer data)
 {
@@ -1016,8 +1018,6 @@ remove_login1_seat (Login1Seat *login1_seat)
         seat_stop (seat);
 }
 
-static gboolean update_login1_seat (Login1Seat *login1_seat);
-
 static void
 seat_stopped_cb (Seat *seat, Login1Seat *login1_seat)
 {
@@ -1028,7 +1028,8 @@ seat_stopped_cb (Seat *seat, Login1Seat *login1_seat)
 static gboolean
 update_login1_seat (Login1Seat *login1_seat)
 {
-    if (login1_seat_get_can_graphical (login1_seat))
+    if (!config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical") ||
+        login1_seat_get_can_graphical (login1_seat))
     {
         Seat *seat;
 
@@ -1060,16 +1061,21 @@ login1_can_graphical_changed_cb (Login1Seat *login1_seat)
 static void
 login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
 {
-    g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
-    login1_can_graphical_changed_cb (login1_seat);
+    if (login1_seat_get_can_graphical (login1_seat))
+        g_debug ("Seat %s added from logind", login1_seat_get_id (login1_seat));
+    else
+        g_debug ("Seat %s added from logind without graphical output", login1_seat_get_id (login1_seat));
+
+    if (config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical"))
+        g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
+    update_login1_seat (login1_seat);
 }
 
 static void
 login1_service_seat_removed_cb (Login1Service *service, Login1Seat *login1_seat)
 {
+    g_debug ("Seat %s removed from logind", login1_seat_get_id (login1_seat));
     g_signal_handlers_disconnect_matched (login1_seat, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, login1_can_graphical_changed_cb, NULL);
-
-    g_debug ("Seat removed from logind: %s", login1_seat_get_id (login1_seat));
     remove_login1_seat (login1_seat);
 }
 
@@ -1417,7 +1423,8 @@ main (int argc, char **argv)
             for (link = login1_service_get_seats (login1_service_get_instance ()); link; link = link->next)
             {
                 Login1Seat *login1_seat = link->data;
-                g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
+                if (config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical"))
+                    g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
                 if (!update_login1_seat (login1_seat))
                     return EXIT_FAILURE;
             }

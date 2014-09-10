@@ -1,0 +1,48 @@
+Author: Jamie Strandboge <jamie@canonical.com>
+Description: updates for unix socket mediation
+Forwarded: no
+
+Index: lightdm-1.11.8/data/apparmor/abstractions/lightdm
+===================================================================
+--- lightdm-1.11.8.orig/data/apparmor/abstractions/lightdm
++++ lightdm-1.11.8/data/apparmor/abstractions/lightdm
+@@ -79,6 +79,14 @@
+   # needed when logging out of the guest session
+   signal (receive) peer=unconfined,
+ 
++  unix peer=(label=@{profile_name}),
++  unix (receive) peer=(label=unconfined),
++  unix (create),
++  unix (getattr, getopt, setopt, shutdown),
++  unix (connect, receive, send) type=stream peer=(addr="@/tmp/dbus-*"),
++  unix (connect, receive, send) type=stream peer=(addr="@/tmp/.X11-unix/X[0-9]*"),
++  unix (bind) type=stream addr="@/com/ubuntu/upstart-session/*",
++
+   # silence warnings for stuff that we really don't want to grant
+   deny capability dac_override,
+   deny capability dac_read_search,
+Index: lightdm-1.11.8/data/apparmor/abstractions/lightdm_chromium-browser
+===================================================================
+--- lightdm-1.11.8.orig/data/apparmor/abstractions/lightdm_chromium-browser
++++ lightdm-1.11.8/data/apparmor/abstractions/lightdm_chromium-browser
+@@ -22,6 +22,9 @@
+   # Allow receiving and sending signals to processes in the chromium child profile
+   signal (receive, send) peer=/usr/lib/lightdm/lightdm-guest-session//chromium,
+ 
++  # Allow communications with chromium child profile via unix sockets
++  unix peer=(label=/usr/lib/lightdm/lightdm-guest-session//chromium),
++
+   profile chromium {
+     # Allow all the same accesses as other applications in the guest session
+     #include <abstractions/lightdm>
+@@ -47,6 +50,10 @@
+     # lightdm-guest-session
+     signal (receive, send) set=("exists") peer=/usr/lib/lightdm/lightdm-guest-session,
+ 
++    # Allow us to receive and send on unix sockets from processes in the
++    # lightdm-guest-session
++    unix (receive, send) peer=(label=/usr/lib/lightdm/lightdm-guest-session),
++
+     @{PROC}/[0-9]*/ r,                 # sandbox wants these
+     @{PROC}/[0-9]*/fd/ r,              # sandbox wants these
+     @{PROC}/[0-9]*/task/[0-9]*/stat r, # sandbox wants these

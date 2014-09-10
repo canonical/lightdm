@@ -152,6 +152,8 @@ write_message (UnitySystemCompositor *compositor, guint16 id, const guint8 *payl
     errno = 0;
     if (write (compositor->priv->to_compositor_pipe[1], data, data_length) != data_length)
         l_warning (compositor, "Failed to write to compositor: %s", strerror (errno));
+
+    g_free (data);
 }
 
 void
