@@ -1,3 +1,18 @@
+lightdm (1.11.9-0ubuntu1) utopic; urgency=medium
+
+    * New upstream release:
+     - Don't check the logind CanGraphical seat property unless
+       login-check-graphical option is set to true. There are too many cases of
+       drivers that don't set the appropriate flags for this feature to work.
+       (LP: #1365336)
+     - Make socket writing code used between greeter and daemon more robust to
+       errors.
+     - Fix small memory leaks.
+     - Improve logging messages.
+     - Test improvements.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 10 Sep 2014 15:47:36 +1200
+
 lightdm (1.11.8-0ubuntu2) utopic; urgency=medium
 
   * debian/patches/06_apparmor-unix.patch: updates for unix socket mediation
