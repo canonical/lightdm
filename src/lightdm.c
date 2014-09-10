@@ -1025,7 +1025,8 @@ seat_stopped_cb (Seat *seat, Login1Seat *login1_seat)
 static gboolean
 update_login1_seat (Login1Seat *login1_seat)
 {
-    if (login1_seat_get_can_graphical (login1_seat))
+    if (!config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical") ||
+        login1_seat_get_can_graphical (login1_seat))
     {
         Seat *seat;
 
@@ -1062,7 +1063,8 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
     else
         g_debug ("Seat %s added from logind without graphical output", login1_seat_get_id (login1_seat));
 
-    g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
+    if (config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical"))
+        g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
     update_login1_seat (login1_seat);
 }
 
@@ -1418,7 +1420,8 @@ main (int argc, char **argv)
             for (link = login1_service_get_seats (login1_service_get_instance ()); link; link = link->next)
             {
                 Login1Seat *login1_seat = link->data;
-                g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
+                if (config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical"))
+                    g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
                 if (!update_login1_seat (login1_seat))
                     return EXIT_FAILURE;
             }
