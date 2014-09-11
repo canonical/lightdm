@@ -1064,8 +1064,7 @@ main (int argc, char **argv)
     FILE *pid_file;
     GOptionContext *option_context;
     gboolean result;
-    gchar **groups, **i, *dir;
-    gint n_seats = 0;
+    gchar *dir;
     gboolean test_mode = FALSE;
     gchar *pid_path = "/var/run/lightdm.pid";
     gchar *log_dir = NULL;
@@ -1416,42 +1415,42 @@ main (int argc, char **argv)
                 }
             }
         }
-        else
+        else if (config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
         {
-            if (config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
+            gchar **types;
+            gchar **type;
+            Seat *seat = NULL;
+
+            g_debug ("Adding default seat");
+
+            types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
+            for (type = types; type && *type; type++)
             {
-                gchar **types;
-                gchar **type;
-                Seat *seat = NULL;
-
-                g_debug ("Adding default seat");
-
-                types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
-                for (type = types; type && *type; type++)
-                {
-                    seat = seat_new (*type);
-                    if (seat)
-                        break;
-                }
-                g_strfreev (types);
+                seat = seat_new (*type);
                 if (seat)
-                {
-                    set_seat_properties (seat, NULL);
-                    seat_set_property (seat, "exit-on-failure", "true");
-                    if (!display_manager_add_seat (display_manager, seat))
-                        return EXIT_FAILURE;
-                    g_object_unref (seat);
-                }
-                else
-                {
-                    g_warning ("Failed to create default seat");
+                    break;
+            }
+            g_strfreev (types);
+            if (seat)
+            {
+                set_seat_properties (seat, NULL);
+                seat_set_property (seat, "exit-on-failure", "true");
+                if (!display_manager_add_seat (display_manager, seat))
                     return EXIT_FAILURE;
-                }
+                g_object_unref (seat);
+            }
+            else
+            {
+                g_warning ("Failed to create default seat");
+                return EXIT_FAILURE;
             }
         }
     }
     else
     {
+        gchar **groups, **i;
+        gint n_seats = 0;
+
         /* Load the static seat entries */
         groups = config_get_groups (config_get_instance ());
         for (i = groups; *i; i++)
