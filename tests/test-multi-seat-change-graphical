@@ -1,2 +1,2 @@
 #!/bin/sh
-./src/dbus-env ./src/test-runner multi-seat-automatic-change-graphical test-gobject-greeter
+./src/dbus-env ./src/test-runner multi-seat-change-graphical test-gobject-greeter
