@@ -1,3 +1,14 @@
+Overview of changes in lightdm 1.11.9
+
+    * Don't check the logind CanGraphical seat property unless
+      login-check-graphical option is set to true. There are too many cases of
+      drivers that don't set the appropriate flags for this feature to work.
+    * Make socket writing code used between greeter and daemon more robust to
+      errors.
+    * Fix small memory leaks.
+    * Improve logging messages.
+    * Test improvements.
+
 Overview of changes in lightdm 1.11.8
 
     * Rework logind code that gets session ID. The previous method was racy
