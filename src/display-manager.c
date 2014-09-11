@@ -57,6 +57,22 @@ display_manager_get_seats (DisplayManager *manager)
     return manager->priv->seats;
 }
 
+Seat *
+display_manager_get_seat (DisplayManager *manager, const gchar *name)
+{
+    GList *link;
+
+    for (link = manager->priv->seats; link; link = link->next)
+    {
+        Seat *seat = link->data;
+
+        if (strcmp (seat_get_name (seat), name) == 0)
+            return seat;
+    }
+
+    return NULL;
+}
+
 static void
 check_stopped (DisplayManager *manager)
 {

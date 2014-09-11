@@ -807,7 +807,7 @@ session_lock (Session *session)
     if (getuid () == 0)
     {
         if (session->priv->login1_session)
-            login1_lock_session (session->priv->login1_session);
+            login1_service_lock_session (login1_service_get_instance (), session->priv->login1_session);
         else if (session->priv->console_kit_cookie)
             ck_lock_session (session->priv->console_kit_cookie);
     }
@@ -820,7 +820,7 @@ session_unlock (Session *session)
     if (getuid () == 0)
     {
         if (session->priv->login1_session)
-            login1_unlock_session (session->priv->login1_session);
+            login1_service_unlock_session (login1_service_get_instance (), session->priv->login1_session);
         else if (session->priv->console_kit_cookie)
             ck_unlock_session (session->priv->console_kit_cookie);
     }
@@ -833,7 +833,7 @@ session_activate (Session *session)
     if (getuid () == 0)
     {
         if (session->priv->login1_session)
-            login1_activate_session (session->priv->login1_session);
+            login1_service_activate_session (login1_service_get_instance (), session->priv->login1_session);
         else if (session->priv->console_kit_cookie)
             ck_activate_session (session->priv->console_kit_cookie);
     }

@@ -32,6 +32,7 @@
 #include "session-child.h"
 #include "shared-data-manager.h"
 #include "user-list.h"
+#include "login1.h"
 
 static gchar *config_path = NULL;
 static GMainLoop *loop = NULL;
@@ -62,6 +63,8 @@ typedef struct
 } BusEntry;
 
 #define LIGHTDM_BUS_NAME "org.freedesktop.DisplayManager"
+
+static gboolean update_login1_seat (Login1Seat *login1_seat);
 
 static void
 log_cb (const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer data)
@@ -914,14 +917,154 @@ name_lost_cb (GDBusConnection *connection,
     exit (EXIT_FAILURE);
 }
 
+static gboolean
+add_login1_seat (Login1Seat *login1_seat)
+{
+    const gchar *seat_name = login1_seat_get_id (login1_seat);
+    gchar **groups, **i;
+    gchar *config_section = NULL;
+    gchar **types = NULL, **type;
+    Seat *seat = NULL;
+    gboolean is_seat0, started = FALSE;
+
+    g_debug ("New seat added from logind: %s", seat_name);
+    is_seat0 = strcmp (seat_name, "seat0") == 0;
+
+    groups = config_get_groups (config_get_instance ());
+    for (i = groups; !config_section && *i; i++)
+    {
+        if (g_str_has_prefix (*i, "Seat:") &&
+            g_str_has_suffix (*i, seat_name))
+        {
+            config_section = g_strdup (*i);
+            break;
+        }
+    }
+    g_strfreev (groups);
+
+    if (config_section)
+    {
+        g_debug ("Loading properties from config section %s", config_section);
+        types = config_get_string_list (config_get_instance (), config_section, "type");
+    }
+
+    if (!types)
+        types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
+    for (type = types; !seat && type && *type; type++)
+        seat = seat_new (*type);
+    g_strfreev (types);
+
+    if (seat)
+    {
+        seat_set_property (seat, "xdg-seat", seat_name);
+        set_seat_properties (seat, NULL);
+
+        if (!login1_seat_get_can_multi_session (login1_seat))
+        {
+            g_debug ("Seat %s has property CanMultiSession=no", seat_name);
+            seat_set_property (seat, "allow-user-switching", "false");
+        }
+
+        if (config_section)
+            set_seat_properties (seat, config_section);
+
+        if (is_seat0)
+            seat_set_property (seat, "exit-on-failure", "true");
+    }
+    else
+        g_debug ("Unable to create seat: %s", seat_name);
+
+    if (seat)
+    {
+        started = display_manager_add_seat (display_manager, seat);
+        if (!started)
+            g_debug ("Failed to start seat: %s", seat_name);
+    }
+
+    g_free (config_section);
+    g_object_unref (seat);
+  
+    return started;
+}
+
+static void
+remove_login1_seat (Login1Seat *login1_seat)
+{
+    Seat *seat;
+
+    seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
+    if (seat)
+        seat_stop (seat);
+}
+
+static void
+seat_stopped_cb (Seat *seat, Login1Seat *login1_seat)
+{
+    update_login1_seat (login1_seat);
+    g_signal_handlers_disconnect_matched (seat, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, login1_seat);
+}
+
+static gboolean
+update_login1_seat (Login1Seat *login1_seat)
+{
+    if (!config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical") ||
+        login1_seat_get_can_graphical (login1_seat))
+    {
+        Seat *seat;
+
+        /* Wait for existing seat to stop or ignore if we already have a valid seat */
+        seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
+        if (seat)
+        {
+            if (seat_get_is_stopping (seat))
+                g_signal_connect (seat, "stopped", G_CALLBACK (seat_stopped_cb), login1_seat);
+            return TRUE;
+        }
+
+        return add_login1_seat (login1_seat);
+    }
+    else
+    {
+        remove_login1_seat (login1_seat);
+        return TRUE;
+    }
+}
+
+static void
+login1_can_graphical_changed_cb (Login1Seat *login1_seat)
+{
+    g_debug ("Seat %s changes graphical state to %s", login1_seat_get_id (login1_seat), login1_seat_get_can_graphical (login1_seat) ? "true" : "false");
+    update_login1_seat (login1_seat);
+}
+
+static void
+login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
+{
+    if (login1_seat_get_can_graphical (login1_seat))
+        g_debug ("Seat %s added from logind", login1_seat_get_id (login1_seat));
+    else
+        g_debug ("Seat %s added from logind without graphical output", login1_seat_get_id (login1_seat));
+
+    if (config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical"))
+        g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
+    update_login1_seat (login1_seat);
+}
+
+static void
+login1_service_seat_removed_cb (Login1Service *service, Login1Seat *login1_seat)
+{
+    g_debug ("Seat %s removed from logind", login1_seat_get_id (login1_seat));
+    g_signal_handlers_disconnect_matched (login1_seat, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, login1_can_graphical_changed_cb, NULL);
+    remove_login1_seat (login1_seat);
+}
+
 int
 main (int argc, char **argv)
 {
     FILE *pid_file;
     GOptionContext *option_context;
     gboolean result;
-    gchar **groups, **i, *dir;
-    gint n_seats = 0;
+    gchar *dir;
     gboolean test_mode = FALSE;
     gchar *pid_path = "/var/run/lightdm.pid";
     gchar *log_dir = NULL;
@@ -932,6 +1075,7 @@ main (int argc, char **argv)
     gchar *default_cache_dir = g_strdup (CACHE_DIR);
     gboolean show_config = FALSE, show_version = FALSE;
     GList *link, *messages = NULL;
+    gboolean connected;
     GOptionEntry options[] =
     {
         { "config", 'c', 0, G_OPTION_ARG_STRING, &config_path,
@@ -1245,76 +1389,139 @@ main (int argc, char **argv)
 
     shared_data_manager_start (shared_data_manager_get_instance ());
 
-    /* Load the static display entries */
-    groups = config_get_groups (config_get_instance ());
-    for (i = groups; *i; i++)
+    /* Connect to logind */
+    connected = login1_service_connect (login1_service_get_instance ());
+
+    /* Load dynamic seats from logind */
+    if (config_get_boolean (config_get_instance (), "LightDM", "logind-load-seats"))
     {
-        gchar *config_section = *i;
-        gchar **types;
-        gchar **type;
-        Seat *seat = NULL;
-        const gchar *const seatpfx = "Seat:";
+        if (connected)
+        {
+            /* Load dynamic seats from logind */
+            g_debug ("Monitoring logind for seats");
 
-        if (!g_str_has_prefix (config_section, seatpfx))
-            continue;
+            if (config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
+            {
+                g_signal_connect (login1_service_get_instance (), "seat-added", G_CALLBACK (login1_service_seat_added_cb), NULL);
+                g_signal_connect (login1_service_get_instance (), "seat-removed", G_CALLBACK (login1_service_seat_removed_cb), NULL);
 
-        g_debug ("Loading seat %s", config_section);
-        types = config_get_string_list (config_get_instance (), config_section, "type");
-        if (!types)
+                for (link = login1_service_get_seats (login1_service_get_instance ()); link; link = link->next)
+                {
+                    Login1Seat *login1_seat = link->data;
+                    if (config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical"))
+                        g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
+                    if (!update_login1_seat (login1_seat))
+                        return EXIT_FAILURE;
+                }
+            }
+        }
+        else if (config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
+        {
+            gchar **types;
+            gchar **type;
+            Seat *seat = NULL;
+
+            g_debug ("Adding default seat");
+
             types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
-        for (type = types; type && *type; type++)
-        {
-            seat = seat_new (*type);
+            for (type = types; type && *type; type++)
+            {
+                seat = seat_new (*type);
+                if (seat)
+                    break;
+            }
+            g_strfreev (types);
             if (seat)
-                break;
-        }
-        g_strfreev (types);
-        if (seat)
-        {
-            const gsize seatpfxlen = strlen(seatpfx);
-            gchar *seatname = config_section + seatpfxlen;
-
-            seat_set_property (seat, "seat-name", seatname);
-
-            set_seat_properties (seat, config_section);
-            display_manager_add_seat (display_manager, seat);
-            g_object_unref (seat);
-            n_seats++;
-        }
-        else
-            g_warning ("Failed to create seat %s", config_section);
-    }
-    g_strfreev (groups);
-
-    /* If no seats start a default one */
-    if (n_seats == 0 && config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
-    {
-        gchar **types;
-        gchar **type;
-        Seat *seat = NULL;
-
-        g_debug ("Adding default seat");
-
-        types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
-        for (type = types; type && *type; type++)
-        {
-            seat = seat_new (*type);
-            if (seat)
-                break;
-        }
-        g_strfreev (types);
-        if (seat)
-        {
-            set_seat_properties (seat, NULL);
-            seat_set_property (seat, "exit-on-failure", "true");
-            if (!display_manager_add_seat (display_manager, seat))
+            {
+                set_seat_properties (seat, NULL);
+                seat_set_property (seat, "exit-on-failure", "true");
+                if (!display_manager_add_seat (display_manager, seat))
+                    return EXIT_FAILURE;
+                g_object_unref (seat);
+            }
+            else
+            {
+                g_warning ("Failed to create default seat");
                 return EXIT_FAILURE;
-            g_object_unref (seat);
+            }
         }
-        else
+    }
+    else
+    {
+        gchar **groups, **i;
+        gint n_seats = 0;
+
+        /* Load the static seat entries */
+        groups = config_get_groups (config_get_instance ());
+        for (i = groups; *i; i++)
         {
-            g_warning ("Failed to create default seat");
-            return EXIT_FAILURE;
+            gchar *config_section = *i;
+            gchar **types;
+            gchar **type;
+            Seat *seat = NULL;
+            const gchar *const seatpfx = "Seat:";
+
+            if (!g_str_has_prefix (config_section, seatpfx))
+                continue;
+
+            g_debug ("Loading seat %s", config_section);
+            types = config_get_string_list (config_get_instance (), config_section, "type");
+            if (!types)
+                types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
+            for (type = types; type && *type; type++)
+            {
+                seat = seat_new (*type);
+                if (seat)
+                    break;
+            }
+            g_strfreev (types);
+            if (seat)
+            {
+                const gsize seatpfxlen = strlen(seatpfx);
+                gchar *seatname = config_section + seatpfxlen;
+
+                seat_set_property (seat, "seat-name", seatname);
+
+                set_seat_properties (seat, config_section);
+                display_manager_add_seat (display_manager, seat);
+                g_object_unref (seat);
+                n_seats++;
+            }
+            else
+                g_warning ("Failed to create seat %s", config_section);
+        }
+        g_strfreev (groups);
+
+        /* If no seats start a default one */
+        if (n_seats == 0 && config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
+        {
+            gchar **types;
+            gchar **type;
+            Seat *seat = NULL;
+
+            g_debug ("Adding default seat");
+
+            types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
+            for (type = types; type && *type; type++)
+            {
+                seat = seat_new (*type);
+                if (seat)
+                    break;
+            }
+            g_strfreev (types);
+            if (seat)
+            {
+                set_seat_properties (seat, NULL);
+                seat_set_property (seat, "exit-on-failure", "true");
+                if (!display_manager_add_seat (display_manager, seat))
+                    return EXIT_FAILURE;
+                g_object_unref (seat);
+            }
+            else
+            {
+                g_warning ("Failed to create default seat");
+                return EXIT_FAILURE;
+            }
         }
     }
 

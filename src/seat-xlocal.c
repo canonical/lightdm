@@ -61,7 +61,9 @@ static gint
 get_vt (Seat *seat, DisplayServer *display_server)
 {
     gint vt = -1;
-    const gchar *xdg_seat = seat_get_string_property (seat, "xdg-seat");
+
+    if (g_strcmp0 (seat_get_name (seat), "seat0") != 0)
+        return vt;
 
     /* If Plymouth is running, stop it */
     if (plymouth_get_is_active () && plymouth_has_active_vt ())
@@ -79,9 +81,7 @@ get_vt (Seat *seat, DisplayServer *display_server)
     }
     if (plymouth_get_is_active ())
         plymouth_quit (FALSE);
-    if (!xdg_seat)
-        xdg_seat = "seat0";
-    if (vt < 0 && g_strcmp0 (xdg_seat, "seat0") == 0)
+    if (vt < 0)
         vt = vt_get_unused ();
 
     return vt;
@@ -119,6 +119,8 @@ create_x_server (Seat *seat)
         x_server_local_set_layout (x_server, layout);
 
     x_server_local_set_xdg_seat (x_server, seat_get_name (seat));
+    if (config_get_boolean (config_get_instance (), "LightDM", "logind-load-seats") && strcmp (seat_get_name (seat), "seat0") != 0)
+        x_server_local_set_sharevts (x_server, TRUE);
 
     config_file = seat_get_string_property (seat, "xserver-config");
     if (config_file)

@@ -51,6 +51,8 @@ void x_server_local_set_layout (XServerLocal *server, const gchar *layout);
 
 void x_server_local_set_xdg_seat (XServerLocal *server, const gchar *xdg_seat);
 
+void x_server_local_set_sharevts (XServerLocal *server, gboolean sharevts);
+
 void x_server_local_set_allow_tcp (XServerLocal *server, gboolean allow_tcp);
 
 void x_server_local_set_xdmcp_server (XServerLocal *server, const gchar *hostname);

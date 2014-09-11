@@ -40,6 +40,9 @@ struct XServerLocalPrivate
     /* Value for -seat argument */
     gchar *xdg_seat;
 
+    /* TRUE if should share VT with other X server */
+    gboolean sharevts;
+
     /* TRUE if TCP/IP connections are allowed */
     gboolean allow_tcp;
 
@@ -213,6 +216,13 @@ x_server_local_set_xdg_seat (XServerLocal *server, const gchar *xdg_seat)
     g_return_if_fail (server != NULL);
     g_free (server->priv->xdg_seat);
     server->priv->xdg_seat = g_strdup (xdg_seat);
+}
+
+void
+x_server_local_set_sharevts (XServerLocal *server, gboolean sharevts)
+{
+    g_return_if_fail (server != NULL);
+    server->priv->sharevts = sharevts;
 }
 
 void
@@ -462,6 +472,9 @@ x_server_local_start (DisplayServer *display_server)
         
     if (server->priv->xdg_seat)
         g_string_append_printf (command, " -seat %s", server->priv->xdg_seat);
+
+    if (server->priv->sharevts)
+        g_string_append (command, " -sharevts");
 
     write_authority_file (server);
     if (server->priv->authority_file)

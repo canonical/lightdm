@@ -46,6 +46,8 @@ gboolean display_manager_add_seat (DisplayManager *manager, Seat *seat);
 
 GList *display_manager_get_seats (DisplayManager *manager);
 
+Seat *display_manager_get_seat (DisplayManager *manager, const gchar *name);
+
 void display_manager_start (DisplayManager *manager);
 
 void display_manager_stop (DisplayManager *manager);
