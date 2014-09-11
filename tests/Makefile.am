@@ -172,10 +172,13 @@ TESTS = \
 	test-open-file-descriptors \
 	test-xdmcp-server-open-file-descriptors \
 	test-multi-seat \
-	test-multi-seat-automatic \
-	test-multi-seat-automatic-seat0-non-graphical \
-	test-multi-seat-automatic-non-graphical \
-	test-multi-seat-automatic-change-graphical \
+	test-multi-seat-legacy \
+	test-multi-seat-seat0-non-graphical \
+	test-multi-seat-seat0-non-graphical-disabled \
+	test-multi-seat-non-graphical \
+	test-multi-seat-non-graphical-disabled \
+	test-multi-seat-change-graphical \
+	test-multi-seat-change-graphical-disabled \
 	test-mir-autologin \
 	test-mir-greeter \
 	test-mir-session \
@@ -434,10 +437,13 @@ EXTRA_DIST = \
 	scripts/mir-session-compositor-crash.conf \
 	scripts/mir-session-crash.conf \
 	scripts/multi-seat.conf \
-	scripts/multi-seat.automatic-conf \
-	scripts/multi-seat-automatic-change-graphical.conf \
-	scripts/multi-seat-automatic-non-graphical.conf \
-	scripts/multi-seat-automatic-seat0-non-graphical.conf \
+	scripts/multi-seat-change-graphical.conf \
+	scripts/multi-seat-change-graphical-disabled.conf \
+	scripts/multi-seat-legacy.conf \
+	scripts/multi-seat-non-graphical.conf \
+	scripts/multi-seat-non-graphical-disabled.conf \
+	scripts/multi-seat-seat0-non-graphical.conf \
+	scripts/multi-seat-seat0-non-graphical-disabled.conf \
 	scripts/no-accounts-service.conf \
 	scripts/no-config.conf \
 	scripts/no-console-kit.conf \
