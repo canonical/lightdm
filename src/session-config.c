@@ -21,6 +21,9 @@ struct SessionConfigPrivate
 
     /* Command to run */
     gchar *command;
+
+    /* Compositor command to run (for type mir-container) */
+    gchar *compositor_command;
 };
 
 G_DEFINE_TYPE (SessionConfig, session_config, G_TYPE_OBJECT);
@@ -51,6 +54,7 @@ session_config_new_from_file (const gchar *filename, GError **error)
     if (!config->priv->session_type)
         config->priv->session_type = g_strdup ("x");
     config->priv->desktop_name = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-DesktopName", NULL);
+    config->priv->compositor_command = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-System-Compositor-Command", NULL);
 
     g_key_file_free (desktop_file);
 
@@ -78,6 +82,13 @@ session_config_get_desktop_name (SessionConfig *config)
     return config->priv->desktop_name;
 }
 
+const gchar *
+session_config_get_compositor_command (SessionConfig *config)
+{
+    g_return_val_if_fail (config != NULL, NULL);
+    return config->priv->compositor_command;
+}
+
 static void
 session_config_init (SessionConfig *config)
 {
@@ -92,6 +103,7 @@ session_config_finalize (GObject *object)
     g_free (self->priv->session_type);
     g_free (self->priv->desktop_name);
     g_free (self->priv->command);
+    g_free (self->priv->compositor_command);
 
     G_OBJECT_CLASS (session_config_parent_class)->finalize (object);
 }

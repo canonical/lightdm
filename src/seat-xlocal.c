@@ -79,14 +79,12 @@ seat_xlocal_start (Seat *seat)
         key_name = seat_get_string_property (seat, "xdmcp-key");
         if (key_name)
         {
-            gchar *dir, *path;
+            gchar *path;
             GKeyFile *keys;
             gboolean result;
             GError *error = NULL;
 
-            dir = config_get_string (config_get_instance (), "LightDM", "config-directory");
-            path = g_build_filename (dir, "keys.conf", NULL);
-            g_free (dir);
+            path = g_build_filename (config_get_directory (config_get_instance ()), "keys.conf", NULL);
 
             keys = g_key_file_new ();
             result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
@@ -249,12 +247,27 @@ create_unity_system_compositor (Seat *seat)
 }
 
 static DisplayServer *
-seat_xlocal_create_display_server (Seat *seat, const gchar *session_type)
+seat_xlocal_create_display_server (Seat *seat, Session *session)
 {
+    const gchar *session_type;
+
+    session_type = session_get_session_type (session);
     if (strcmp (session_type, "x") == 0)
         return DISPLAY_SERVER (create_x_server (seat));
     else if (strcmp (session_type, "mir") == 0)
         return create_unity_system_compositor (seat);
+    else if (strcmp (session_type, "mir-container") == 0)
+    {
+        DisplayServer *compositor;
+        const gchar *compositor_command;
+
+        compositor = create_unity_system_compositor (seat);
+        compositor_command = session_config_get_compositor_command (session_get_config (session));
+        if (compositor_command)
+            unity_system_compositor_set_command (UNITY_SYSTEM_COMPOSITOR (compositor), compositor_command);
+      
+        return compositor;
+    }
     else
     {
         l_warning (seat, "Can't create unsupported display server '%s'", session_type);
@@ -287,9 +300,16 @@ seat_xlocal_create_session (Seat *seat)
 static void
 seat_xlocal_set_active_session (Seat *seat, Session *session)
 {
-    gint vt = display_server_get_vt (session_get_display_server (session));
+    DisplayServer *display_server;
+
+    display_server = session_get_display_server (session);
+
+    gint vt = display_server_get_vt (display_server);
     if (vt >= 0)
         vt_set_active (vt);
+
+    if (IS_UNITY_SYSTEM_COMPOSITOR (display_server))
+        unity_system_compositor_set_active_session (UNITY_SYSTEM_COMPOSITOR (display_server), IS_GREETER (session) ? "greeter-0" : "session-0");
 
     SEAT_CLASS (seat_xlocal_parent_class)->set_active_session (seat, session);
 }
