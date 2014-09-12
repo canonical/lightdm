@@ -78,7 +78,7 @@ typedef struct
 static GHashTable *seat_modules = NULL;
 
 // FIXME: Make a get_display_server() that re-uses display servers if supported
-static DisplayServer *create_display_server (Seat *seat, const gchar *session_type);
+static DisplayServer *create_display_server (Seat *seat, Session *session);
 static Greeter *create_greeter_session (Seat *seat);
 static void start_session (Seat *seat, Session *session);
 
@@ -182,9 +182,13 @@ gboolean
 seat_start (Seat *seat)
 {
     g_return_val_if_fail (seat != NULL, FALSE);
-  
+
+    l_debug (seat, "Starting");
+
     SEAT_GET_CLASS (seat)->setup (seat);
-    return SEAT_GET_CLASS (seat)->start (seat);
+    seat->priv->started = SEAT_GET_CLASS (seat)->start (seat);
+
+    return seat->priv->started;
 }
 
 GList *
@@ -344,12 +348,6 @@ check_stopped (Seat *seat)
     }
 }
 
-static gboolean
-get_start_local_sessions (Seat *seat)
-{
-    return SEAT_GET_CLASS (seat)->get_start_local_sessions (seat);
-}
-
 static void
 display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 {
@@ -399,7 +397,7 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     }
     g_list_free_full (list, g_object_unref);
 
-    if (!seat->priv->stopping && get_start_local_sessions (seat))
+    if (!seat->priv->stopping)
     {
         /* If we were the active session, switch to a greeter */
         active_session = seat_get_active_session (seat);
@@ -443,7 +441,7 @@ switch_to_greeter_from_failed_session (Seat *seat, Session *session)
     {
         DisplayServer *display_server;
 
-        display_server = create_display_server (seat, session_get_session_type (session));
+        display_server = create_display_server (seat, session);
         session_set_display_server (session, display_server);
         if (!display_server_start (display_server))
         {
@@ -852,7 +850,7 @@ configure_session (Session *session, SessionConfig *config, const gchar *session
 {
     const gchar *desktop_name;
 
-    session_set_session_type (session, session_config_get_session_type (config));
+    session_set_config (session, config);
     session_set_env (session, "DESKTOP_SESSION", session_name);
     session_set_env (session, "GDMSESSION", session_name);
     desktop_name = session_config_get_desktop_name (config);
@@ -977,7 +975,7 @@ greeter_create_session_cb (Greeter *greeter, Seat *seat)
     Session *session;
 
     session = create_session (seat, FALSE);
-    session_set_session_type (session, session_get_session_type (SESSION (greeter)));
+    session_set_config (session, session_get_config (SESSION (greeter)));
     session_set_display_server (session, session_get_display_server (SESSION (greeter)));
 
     return g_object_ref (session);
@@ -1083,7 +1081,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     /* Otherwise start a new display server for this session */
     else
     {
-        display_server = create_display_server (seat, session_get_session_type (session));
+        display_server = create_display_server (seat, session);
         session_set_display_server (session, display_server);
         if (!display_server_start (display_server))
         {
@@ -1122,7 +1120,7 @@ create_greeter_session (Seat *seat)
     }
 
     greeter_session = SEAT_GET_CLASS (seat)->create_greeter_session (seat);
-    session_set_session_type (SESSION (greeter_session), session_config_get_session_type (session_config));
+    session_set_config (SESSION (greeter_session), session_config);
     seat->priv->sessions = g_list_append (seat->priv->sessions, SESSION (greeter_session));
     g_signal_connect (greeter_session, "notify::active-username", G_CALLBACK (greeter_active_username_changed_cb), seat);
     g_signal_connect (greeter_session, "authentication-complete", G_CALLBACK (session_authentication_complete_cb), seat);
@@ -1196,10 +1194,6 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
         return;
     }
 
-    /* Stop if don't need to run a session */
-    if (!get_start_local_sessions (seat))
-        return;
-
     emit_upstart_signal ("login-session-start");
 
     /* Start the session waiting for this display server */
@@ -1225,13 +1219,13 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
 }
 
 static DisplayServer *
-create_display_server (Seat *seat, const gchar *session_type)
+create_display_server (Seat *seat, Session *session)
 {
     DisplayServer *display_server;
 
-    l_debug (seat, "Creating display server of type %s", session_type);
+    l_debug (seat, "Creating display server of type %s", session_get_session_type (session));
 
-    display_server = SEAT_GET_CLASS (seat)->create_display_server (seat, session_type);
+    display_server = SEAT_GET_CLASS (seat)->create_display_server (seat, session);
     if (!display_server)
         return NULL;
 
@@ -1285,7 +1279,7 @@ seat_switch_to_greeter (Seat *seat)
         g_object_unref (seat->priv->session_to_activate);
     seat->priv->session_to_activate = g_object_ref (greeter_session);
 
-    display_server = create_display_server (seat, session_get_session_type (SESSION (greeter_session)));
+    display_server = create_display_server (seat, SESSION (greeter_session));
     session_set_display_server (SESSION (greeter_session), display_server);
     if (!display_server_start (display_server))
         return FALSE;
@@ -1318,7 +1312,7 @@ switch_authentication_complete_cb (Session *session, Seat *seat)
             if (seat->priv->session_to_activate)
                 g_object_unref (seat->priv->session_to_activate);
             seat->priv->session_to_activate = g_object_ref (session);
-            display_server = create_display_server (seat, session_get_session_type (session));
+            display_server = create_display_server (seat, session);
             session_set_display_server (session, display_server);
             display_server_start (display_server);
         }
@@ -1339,7 +1333,7 @@ switch_authentication_complete_cb (Session *session, Seat *seat)
         g_object_unref (seat->priv->session_to_activate);
     seat->priv->session_to_activate = g_object_ref (greeter_session);
 
-    display_server = create_display_server (seat, session_get_session_type (SESSION (greeter_session)));
+    display_server = create_display_server (seat, SESSION (greeter_session));
     session_set_display_server (SESSION (greeter_session), display_server);
     display_server_start (display_server);
 }
@@ -1409,7 +1403,7 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
     if (!session)
         return FALSE;
 
-    display_server = create_display_server (seat, session_get_session_type (session));
+    display_server = create_display_server (seat, session);
 
     if (seat->priv->session_to_activate)
         g_object_unref (seat->priv->session_to_activate);
@@ -1446,7 +1440,7 @@ seat_lock (Seat *seat, const gchar *username)
     if (!greeter_session)
         return FALSE;
 
-    display_server = create_display_server (seat, session_get_session_type (SESSION (greeter_session)));
+    display_server = create_display_server (seat, SESSION (greeter_session));
 
     if (seat->priv->session_to_activate)
         g_object_unref (seat->priv->session_to_activate);
@@ -1479,12 +1473,6 @@ seat_get_is_stopping (Seat *seat)
     return seat->priv->stopping;
 }
 
-static gboolean
-seat_real_get_start_local_sessions (Seat *seat)
-{
-    return TRUE;
-}
-
 static void
 seat_real_setup (Seat *seat)
 {
@@ -1498,16 +1486,6 @@ seat_real_start (Seat *seat)
     gboolean autologin_guest;
     gboolean autologin_in_background;
     Session *session = NULL, *background_session = NULL;
-
-    l_debug (seat, "Starting");
-
-    /* If this display server doesn't have a session running on it, just start it */
-    if (!get_start_local_sessions (seat))
-    {
-        DisplayServer *display_server;
-        display_server = create_display_server (seat, "x"); // FIXME: Not necessarily an X seat, but not sure what to put here
-        return display_server_start (display_server);
-    }
 
     /* Get autologin settings */
     autologin_username = seat_get_string_property (seat, "autologin-user");
@@ -1543,7 +1521,7 @@ seat_real_start (Seat *seat)
                 g_object_unref (seat->priv->session_to_activate);
             seat->priv->session_to_activate = g_object_ref (session);
 
-            display_server = create_display_server (seat, session_get_session_type (session));
+            display_server = create_display_server (seat, session);
             session_set_display_server (session, display_server);
             if (!display_server || !display_server_start (display_server))
             {
@@ -1587,7 +1565,7 @@ seat_real_start (Seat *seat)
                 greeter_set_hint (greeter_session, "autologin-guest", "true");
         }
 
-        display_server = create_display_server (seat, session_get_session_type (session));
+        display_server = create_display_server (seat, session);
         session_set_display_server (session, display_server);
         if (!display_server || !display_server_start (display_server))
         {
@@ -1611,13 +1589,12 @@ seat_real_start (Seat *seat)
     {
         DisplayServer *background_display_server;
 
-        background_display_server = create_display_server (seat, session_get_session_type (background_session));
+        background_display_server = create_display_server (seat, background_session);
         session_set_display_server (background_session, background_display_server);
         if (!display_server_start (background_display_server))
             l_warning (seat, "Failed to start display server for background session");
     }
 
-    seat->priv->started = TRUE;
     return TRUE;
 }
 
@@ -1732,7 +1709,6 @@ seat_class_init (SeatClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    klass->get_start_local_sessions = seat_real_get_start_local_sessions;
     klass->setup = seat_real_setup;
     klass->start = seat_real_start;
     klass->create_greeter_session = seat_real_create_greeter_session;

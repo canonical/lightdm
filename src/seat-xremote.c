@@ -25,12 +25,14 @@ seat_xremote_setup (Seat *seat)
 }
 
 static DisplayServer *
-seat_xremote_create_display_server (Seat *seat, const gchar *session_type)
+seat_xremote_create_display_server (Seat *seat, Session *session)
 {
+    const gchar *session_type;
     XServerRemote *x_server;
     const gchar *hostname;
     gint number;
 
+    session_type = session_get_session_type (session);
     if (strcmp (session_type, "x") != 0)
     {
         l_warning (seat, "X remote seat only supports X display servers, not '%s'", session_type);

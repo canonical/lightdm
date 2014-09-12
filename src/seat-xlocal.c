@@ -18,13 +18,15 @@
 #include "plymouth.h"
 #include "vt.h"
 
+struct SeatXLocalPrivate
+{
+    /* X server being used for XDMCP */
+    XServerLocal *xdmcp_x_server;
+};
+
 G_DEFINE_TYPE (SeatXLocal, seat_xlocal, SEAT_TYPE);
 
-static gboolean
-seat_xlocal_get_start_local_sessions (Seat *seat)
-{
-    return !seat_get_string_property (seat, "xdmcp-manager");
-}
+static XServerLocal *create_x_server (Seat *seat);
 
 static void
 seat_xlocal_setup (Seat *seat)
@@ -34,9 +36,84 @@ seat_xlocal_setup (Seat *seat)
     SEAT_CLASS (seat_xlocal_parent_class)->setup (seat);
 }
 
+static void
+check_stopped (SeatXLocal *seat)
+{
+    if (!seat->priv->xdmcp_x_server)
+        SEAT_CLASS (seat_xlocal_parent_class)->stop (SEAT (seat));
+}
+
+static void
+xdmcp_x_server_stopped_cb (DisplayServer *display_server, Seat *seat)
+{
+    l_debug (seat, "XDMCP X server stopped");
+
+    g_signal_handlers_disconnect_matched (SEAT_XLOCAL (seat)->priv->xdmcp_x_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
+    SEAT_XLOCAL (seat)->priv->xdmcp_x_server = NULL;
+    g_object_unref (display_server);
+    
+    if (seat_get_is_stopping (seat))
+        check_stopped (SEAT_XLOCAL (seat));
+    else
+        seat_stop (seat);
+}
+
 static gboolean
 seat_xlocal_start (Seat *seat)
 {
+    const gchar *xdmcp_manager = NULL;
+
+    /* If running as an XDMCP client then just start an X server */
+    xdmcp_manager = seat_get_string_property (seat, "xdmcp-manager");
+    if (xdmcp_manager)
+    {
+        SeatXLocal *s = SEAT_XLOCAL (seat);
+        const gchar *key_name = NULL;
+        gint port = 0;
+
+        s->priv->xdmcp_x_server = create_x_server (seat);
+        x_server_local_set_xdmcp_server (s->priv->xdmcp_x_server, xdmcp_manager);
+        port = seat_get_integer_property (seat, "xdmcp-port");
+        if (port > 0)
+            x_server_local_set_xdmcp_port (s->priv->xdmcp_x_server, port);
+        key_name = seat_get_string_property (seat, "xdmcp-key");
+        if (key_name)
+        {
+            gchar *path;
+            GKeyFile *keys;
+            gboolean result;
+            GError *error = NULL;
+
+            path = g_build_filename (config_get_directory (config_get_instance ()), "keys.conf", NULL);
+
+            keys = g_key_file_new ();
+            result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
+            if (error)
+                l_debug (seat, "Error getting key %s", error->message);
+            g_clear_error (&error);      
+
+            if (result)
+            {
+                gchar *key = NULL;
+
+                if (g_key_file_has_key (keys, "keyring", key_name, NULL))
+                    key = g_key_file_get_string (keys, "keyring", key_name, NULL);
+                else
+                    l_debug (seat, "Key %s not defined", key_name);
+
+                if (key)
+                    x_server_local_set_xdmcp_key (s->priv->xdmcp_x_server, key);
+                g_free (key);
+            }
+
+            g_free (path);
+            g_key_file_free (keys);
+        }
+
+        g_signal_connect (s->priv->xdmcp_x_server, "stopped", G_CALLBACK (xdmcp_x_server_stopped_cb), seat);
+        return display_server_start (DISPLAY_SERVER (s->priv->xdmcp_x_server));
+    }
+
     return SEAT_CLASS (seat_xlocal_parent_class)->start (seat);
 }
 
@@ -87,13 +164,13 @@ get_vt (Seat *seat, DisplayServer *display_server)
     return vt;
 }
 
-static DisplayServer *
+static XServerLocal *
 create_x_server (Seat *seat)
 {
     XServerLocal *x_server;
-    const gchar *command = NULL, *layout = NULL, *config_file = NULL, *xdmcp_manager = NULL, *key_name = NULL;
+    const gchar *command = NULL, *layout = NULL, *config_file = NULL;
     gboolean allow_tcp;
-    gint vt, port = 0;
+    gint vt;
 
     x_server = x_server_local_new ();
 
@@ -129,49 +206,7 @@ create_x_server (Seat *seat)
     allow_tcp = seat_get_boolean_property (seat, "xserver-allow-tcp");
     x_server_local_set_allow_tcp (x_server, allow_tcp);    
 
-    xdmcp_manager = seat_get_string_property (seat, "xdmcp-manager");
-    if (xdmcp_manager)
-        x_server_local_set_xdmcp_server (x_server, xdmcp_manager);
-
-    port = seat_get_integer_property (seat, "xdmcp-port");
-    if (port > 0)
-        x_server_local_set_xdmcp_port (x_server, port);
-
-    key_name = seat_get_string_property (seat, "xdmcp-key");
-    if (key_name)
-    {
-        gchar *path;
-        GKeyFile *keys;
-        gboolean result;
-        GError *error = NULL;
-
-        path = g_build_filename (config_get_directory (config_get_instance ()), "keys.conf", NULL);
-
-        keys = g_key_file_new ();
-        result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
-        if (error)
-            l_debug (seat, "Error getting key %s", error->message);
-        g_clear_error (&error);      
-
-        if (result)
-        {
-            gchar *key = NULL;
-
-            if (g_key_file_has_key (keys, "keyring", key_name, NULL))
-                key = g_key_file_get_string (keys, "keyring", key_name, NULL);
-            else
-                l_debug (seat, "Key %s not defined", key_name);
-
-            if (key)
-                x_server_local_set_xdmcp_key (x_server, key);
-            g_free (key);
-        }
-
-        g_free (path);
-        g_key_file_free (keys);
-    }
-
-    return DISPLAY_SERVER (x_server);
+    return x_server;
 }
 
 static DisplayServer *
@@ -212,12 +247,27 @@ create_unity_system_compositor (Seat *seat)
 }
 
 static DisplayServer *
-seat_xlocal_create_display_server (Seat *seat, const gchar *session_type)
+seat_xlocal_create_display_server (Seat *seat, Session *session)
 {
+    const gchar *session_type;
+
+    session_type = session_get_session_type (session);
     if (strcmp (session_type, "x") == 0)
-        return create_x_server (seat);
+        return DISPLAY_SERVER (create_x_server (seat));
     else if (strcmp (session_type, "mir") == 0)
         return create_unity_system_compositor (seat);
+    else if (strcmp (session_type, "mir-container") == 0)
+    {
+        DisplayServer *compositor;
+        const gchar *compositor_command;
+
+        compositor = create_unity_system_compositor (seat);
+        compositor_command = session_config_get_compositor_command (session_get_config (session));
+        if (compositor_command)
+            unity_system_compositor_set_command (UNITY_SYSTEM_COMPOSITOR (compositor), compositor_command);
+      
+        return compositor;
+    }
     else
     {
         l_warning (seat, "Can't create unsupported display server '%s'", session_type);
@@ -250,9 +300,16 @@ seat_xlocal_create_session (Seat *seat)
 static void
 seat_xlocal_set_active_session (Seat *seat, Session *session)
 {
-    gint vt = display_server_get_vt (session_get_display_server (session));
+    DisplayServer *display_server;
+
+    display_server = session_get_display_server (session);
+
+    gint vt = display_server_get_vt (display_server);
     if (vt >= 0)
         vt_set_active (vt);
+
+    if (IS_UNITY_SYSTEM_COMPOSITOR (display_server))
+        unity_system_compositor_set_active_session (UNITY_SYSTEM_COMPOSITOR (display_server), IS_GREETER (session) ? "greeter-0" : "session-0");
 
     SEAT_CLASS (seat_xlocal_parent_class)->set_active_session (seat, session);
 }
@@ -295,16 +352,43 @@ seat_xlocal_run_script (Seat *seat, DisplayServer *display_server, Process *scri
 }
 
 static void
+seat_xlocal_stop (Seat *seat)
+{
+    /* Stop the XDMCP X server first */
+    if (SEAT_XLOCAL (seat)->priv->xdmcp_x_server)
+        display_server_stop (DISPLAY_SERVER (SEAT_XLOCAL (seat)->priv->xdmcp_x_server));
+
+    check_stopped (SEAT_XLOCAL (seat));
+}
+
+static void
 seat_xlocal_init (SeatXLocal *seat)
 {
+    seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_XLOCAL_TYPE, SeatXLocalPrivate);
+}
+
+static void
+seat_xlocal_finalize (GObject *object)
+{
+    SeatXLocal *seat = SEAT_XLOCAL (object);
+
+    if (seat->priv->xdmcp_x_server)
+    {
+        g_signal_handlers_disconnect_matched (seat->priv->xdmcp_x_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
+        g_object_unref (seat->priv->xdmcp_x_server);
+    }
+
+    G_OBJECT_CLASS (seat_xlocal_parent_class)->finalize (object);
 }
 
 static void
 seat_xlocal_class_init (SeatXLocalClass *klass)
 {
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
     SeatClass *seat_class = SEAT_CLASS (klass);
 
-    seat_class->get_start_local_sessions = seat_xlocal_get_start_local_sessions;
+    object_class->finalize = seat_xlocal_finalize;
+
     seat_class->setup = seat_xlocal_setup;
     seat_class->start = seat_xlocal_start;
     seat_class->create_display_server = seat_xlocal_create_display_server;
@@ -313,4 +397,7 @@ seat_xlocal_class_init (SeatXLocalClass *klass)
     seat_class->set_active_session = seat_xlocal_set_active_session;
     seat_class->get_active_session = seat_xlocal_get_active_session;
     seat_class->run_script = seat_xlocal_run_script;
+    seat_class->stop = seat_xlocal_stop;
+
+    g_type_class_add_private (klass, sizeof (SeatXLocalPrivate));
 }

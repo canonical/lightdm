@@ -30,7 +30,7 @@ typedef struct SeatPrivate SeatPrivate;
 
 typedef struct
 {
-    GObject         parent_instance;
+    GObject      parent_instance;
     SeatPrivate *priv;
 } Seat;
 
@@ -38,10 +38,9 @@ typedef struct
 {
     GObjectClass parent_class;
 
-    gboolean (*get_start_local_sessions) (Seat *seat);
     void (*setup)(Seat *seat);
     gboolean (*start)(Seat *seat);
-    DisplayServer *(*create_display_server) (Seat *seat, const gchar *session_type);
+    DisplayServer *(*create_display_server) (Seat *seat, Session *session);
     gboolean (*display_server_supports_session_type) (Seat *seat, DisplayServer *display_server, const gchar *session_type);
     Greeter *(*create_greeter_session) (Seat *seat);
     Session *(*create_session) (Seat *seat);
