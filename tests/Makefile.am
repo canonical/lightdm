@@ -193,7 +193,6 @@ TESTS = \
 	test-mir-session-crash \
 	test-mir-session-compositor-crash \
 	test-mir-container-session \
-	test-mir-script-hooks \
 	test-unity-compositor-command \
 	test-unity-compositor-not-found \
 	test-unity-compositor-fail-start \
@@ -216,6 +215,7 @@ TESTS = \
 	test-unity-mir-switch-to-user-resettable \
 	test-unity-mir-script-hooks
 
+#	test-mir-script-hooks \
 #	test-session-exit-error
 #	test-greeter-no-exit
 #   test-change-password-gobject
