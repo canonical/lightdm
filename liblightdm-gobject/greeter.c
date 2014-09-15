@@ -1558,8 +1558,13 @@ lightdm_greeter_init (LightDMGreeter *greeter)
     fd = g_getenv ("LIGHTDM_TO_SERVER_FD");
     if (fd)
     {
+        GError *error = NULL;
+
         priv->to_server_channel = g_io_channel_unix_new (atoi (fd));
-        g_io_channel_set_encoding (priv->to_server_channel, NULL, NULL);
+        g_io_channel_set_encoding (priv->to_server_channel, NULL, &error);
+        if (error)
+            g_warning ("Failed to set encoding on to server channel to binary: %s\n", error->message);
+        g_clear_error (&error);
     }
     else
         g_warning ("No LIGHTDM_TO_SERVER_FD environment variable");
@@ -1567,8 +1572,13 @@ lightdm_greeter_init (LightDMGreeter *greeter)
     fd = g_getenv ("LIGHTDM_FROM_SERVER_FD");
     if (fd)
     {
+        GError *error = NULL;
+
         priv->from_server_channel = g_io_channel_unix_new (atoi (fd));
-        g_io_channel_set_encoding (priv->from_server_channel, NULL, NULL);
+        g_io_channel_set_encoding (priv->from_server_channel, NULL, &error);
+        if (error)
+            g_warning ("Failed to set encoding on from server channel to binary: %s\n", error->message);
+        g_clear_error (&error);
         g_io_add_watch (priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
     }
     else
