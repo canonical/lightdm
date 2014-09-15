@@ -57,8 +57,7 @@ session_config_new_from_file (const gchar *filename, GError **error)
     config->priv->desktop_name = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "DesktopNames", NULL);
     if (!config->priv->desktop_name)
         config->priv->desktop_name = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-DesktopName", NULL);
-    if (!config->priv->compositor_command)
-        config->priv->compositor_command = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-System-Compositor-Command", NULL);
+    config->priv->compositor_command = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-System-Compositor-Command", NULL);
 
     g_key_file_free (desktop_file);
 

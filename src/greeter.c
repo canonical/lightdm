@@ -956,6 +956,7 @@ greeter_start (Session *session)
     int to_greeter_pipe[2], from_greeter_pipe[2];
     gboolean result = FALSE;
     gchar *value;
+    GError *error = NULL;
 
     /* Create a pipe to talk with the greeter */
     if (pipe (to_greeter_pipe) != 0 || pipe (from_greeter_pipe) != 0)
@@ -964,9 +965,15 @@ greeter_start (Session *session)
         return FALSE;
     }
     greeter->priv->to_greeter_channel = g_io_channel_unix_new (to_greeter_pipe[1]);
-    g_io_channel_set_encoding (greeter->priv->to_greeter_channel, NULL, NULL);
+    g_io_channel_set_encoding (greeter->priv->to_greeter_channel, NULL, &error);
+    if (error)
+        g_warning ("Failed to set encoding on to greeter channel to binary: %s\n", error->message);
+    g_clear_error (&error);
     greeter->priv->from_greeter_channel = g_io_channel_unix_new (from_greeter_pipe[0]);
-    g_io_channel_set_encoding (greeter->priv->from_greeter_channel, NULL, NULL);
+    g_io_channel_set_encoding (greeter->priv->from_greeter_channel, NULL, &error);
+    if (error)
+        g_warning ("Failed to set encoding on from greeter channel to binary: %s\n", error->message);
+    g_clear_error (&error);
     g_io_channel_set_buffered (greeter->priv->from_greeter_channel, FALSE);
     greeter->priv->from_greeter_watch = g_io_add_watch (greeter->priv->from_greeter_channel, G_IO_IN | G_IO_HUP, read_cb, greeter);
 

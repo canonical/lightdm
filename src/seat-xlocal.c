@@ -139,6 +139,7 @@ get_vt (Seat *seat, DisplayServer *display_server)
 {
     gint vt = -1;
     const gchar *xdg_seat = seat_get_name (seat);
+
     if (strcmp (xdg_seat, "seat0") != 0)
         return vt;
 
