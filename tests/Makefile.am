@@ -205,14 +205,17 @@ TESTS = \
 	test-unity-login \
 	test-unity-switch \
 	test-unity-plymouth \
+	test-unity-script-hooks \
 	test-unity-mir-autologin \
 	test-unity-mir-greeter-x-session \
 	test-unity-mir-greeter-mir-session \
 	test-unity-mir-lock-seat \
 	test-unity-mir-session-x-greeter \
 	test-unity-mir-switch \
-	test-unity-mir-switch-to-user-resettable
+	test-unity-mir-switch-to-user-resettable \
+	test-unity-mir-script-hooks
 
+#	test-mir-script-hooks \
 #	test-session-exit-error
 #	test-greeter-no-exit
 #   test-change-password-gobject
@@ -446,6 +449,7 @@ EXTRA_DIST = \
 	scripts/mir-autologin.conf \
 	scripts/mir-container-session.conf \
 	scripts/mir-greeter.conf \
+	scripts/mir-script-hooks.conf \
 	scripts/mir-session.conf \
 	scripts/mir-session-compositor-crash.conf \
 	scripts/mir-session-crash.conf \
@@ -522,10 +526,12 @@ EXTRA_DIST = \
 	scripts/unity-mir-greeter-mir-session.conf \
 	scripts/unity-mir-lock-seat.conf \
 	scripts/unity-mir-greeter-x-session.conf \
+	scripts/unity-mir-script-hooks.conf \
 	scripts/unity-mir-session-x-greeter.conf \
 	scripts/unity-mir-switch.conf \
 	scripts/unity-mir-switch-to-user-resettable.conf \
 	scripts/unity-plymouth.conf \
+	scripts/unity-script-hooks.conf \
 	scripts/unity-switch.conf \
 	scripts/upstart-autologin.conf \
 	scripts/upstart-login.conf \
