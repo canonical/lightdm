@@ -380,13 +380,16 @@ seat_unity_set_next_session (Seat *seat, Session *session)
 static void
 seat_unity_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
-    const gchar *path;
-    XServerLocal *x_server;
+    if (IS_X_SERVER_LOCAL (display_server))
+    {
+        XServerLocal *x_server;
+        const gchar *path;
 
-    x_server = X_SERVER_LOCAL (display_server);
-    path = x_server_local_get_authority_file_path (x_server);
-    process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
-    process_set_env (script, "XAUTHORITY", path);
+        x_server = X_SERVER_LOCAL (display_server);
+        path = x_server_local_get_authority_file_path (x_server);
+        process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
+        process_set_env (script, "XAUTHORITY", path);
+    }
 
     SEAT_CLASS (seat_unity_parent_class)->run_script (seat, display_server, script);
 }
