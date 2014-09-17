@@ -1,3 +1,30 @@
+lightdm (1.10.2-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Use logind to provide the list of seats to use. This is disabled unless
+      logind-load-seats (in [LightDM] section) is set to true. This is the
+      default behaviour in lightdm 1.12. (LP: #1190581)
+    - Fix crash if running script hooks with non-X display servers.
+      (LP: #1305006)
+    - Add a seat option 'allow-user-switching' that can disable all user
+      switching for that seat. (LP: #1350357)
+    - Make PAM services configurable. (LP: #1348251)
+    - Add liblightdm method to get user UID. (LP: #1370327)
+    - Add a new session type 'mir-container' that allows the session to run
+      inside a custom system compositor. (LP: #1359332)
+    - Add --show-config option that shows combined configuration.
+    - Use XDG_SESSION_ID from PAM instead of using the logind D-Bus API.
+      (LP: #1364725)
+    - Make socket writing code used between greeter and daemon more robust to
+      errors.
+    - Correct section name in default users.conf file.
+    - Fix tests failing with Qt 5.3 due to it checking getuid/geteuid which we
+      are faking.
+    - Fix small memory leaks.
+    - Test improvements
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 17 Sep 2014 16:27:53 +1200
+
 lightdm (1.10.1-0ubuntu1) trusty; urgency=medium
 
   * New upstream release:
