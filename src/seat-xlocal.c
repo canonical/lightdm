@@ -308,7 +308,7 @@ seat_xlocal_set_active_session (Seat *seat, Session *session)
     if (vt >= 0)
         vt_set_active (vt);
 
-    if (IS_UNITY_SYSTEM_COMPOSITOR (display_server))
+    if (IS_UNITY_SYSTEM_COMPOSITOR (display_server) && strcmp (session_get_session_type (session), "mir-container") == 0)
         unity_system_compositor_set_active_session (UNITY_SYSTEM_COMPOSITOR (display_server), IS_GREETER (session) ? "greeter-0" : "session-0");
 
     SEAT_CLASS (seat_xlocal_parent_class)->set_active_session (seat, session);
