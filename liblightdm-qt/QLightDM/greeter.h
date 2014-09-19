@@ -23,7 +23,7 @@ namespace QLightDM
 class Q_DECL_EXPORT Greeter : public QObject
 {
     Q_OBJECT
-    
+
     Q_PROPERTY(bool authenticated READ isAuthenticated ) //NOTFIY authenticationComplete
     Q_PROPERTY(QString authenticationUser READ authenticationUser )
     Q_PROPERTY(QString defaultSession READ defaultSessionHint CONSTANT)
@@ -33,7 +33,7 @@ class Q_DECL_EXPORT Greeter : public QObject
     Q_PROPERTY(QString hostname READ hostname CONSTANT)
     Q_PROPERTY(bool hasGuestAccount READ hasGuestAccountHint CONSTANT)
     Q_PROPERTY(bool locked READ lockHint CONSTANT)
-    
+
     Q_PROPERTY(QString hostname READ hostname CONSTANT)
 
     Q_ENUMS(PromptType MessageType)
@@ -52,7 +52,7 @@ public:
     explicit Greeter(QObject* parent=0);
     virtual ~Greeter();
 
-    QString getHint(const QString &name) const;   
+    QString getHint(const QString &name) const;
     QString defaultSessionHint() const;
     bool hideUsersHint() const;
     bool showManualLoginHint() const;

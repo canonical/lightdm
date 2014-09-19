@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -17,7 +17,7 @@
 #include "configuration.h"
 
 struct XServerPrivate
-{  
+{
     /* Host running the server */
     gchar *hostname;
 
@@ -80,7 +80,7 @@ x_server_get_address (XServer *server)
             server->priv->address = g_strdup_printf("%s:%d", server->priv->hostname, server->priv->number);
         else
             server->priv->address = g_strdup_printf(":%d", server->priv->number);
-    }  
+    }
 
     return server->priv->address;
 }
@@ -132,7 +132,7 @@ x_server_start (DisplayServer *display_server)
         auth = &a;
     }
 
-    /* Open connection */  
+    /* Open connection */
     l_debug (server, "Connecting to XServer %s", x_server_get_address (server));
     server->priv->connection = xcb_connect_to_display_with_auth_info (x_server_get_address (server), auth, NULL);
     if (xcb_connection_has_error (server->priv->connection))
@@ -224,7 +224,7 @@ x_server_class_init (XServerClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
-    display_server_class->get_session_type = x_server_get_session_type;    
+    display_server_class->get_session_type = x_server_get_session_type;
     display_server_class->get_can_share = x_server_get_can_share;
     display_server_class->start = x_server_start;
     display_server_class->connect_session = x_server_connect_session;

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -27,7 +27,7 @@ struct XAuthorityPrivate
     /* Address of the X server (format dependent on family) */
     guint8 *address;
     gsize address_length;
-  
+
     /* Display number of X server */
     gchar *number;
 
@@ -46,7 +46,7 @@ x_authority_new (guint16 family, const guint8 *address, gsize address_length, co
 {
     XAuthority *auth = g_object_new (X_AUTHORITY_TYPE, NULL);
 
-    x_authority_set_family (auth, family);  
+    x_authority_set_family (auth, family);
     x_authority_set_address (auth, address, address_length);
     x_authority_set_number (auth, number);
     x_authority_set_authorization_name (auth, name);
@@ -60,7 +60,7 @@ x_authority_new_cookie (guint16 family, const guint8 *address, gsize address_len
 {
     guint8 cookie[16];
     gint i;
-  
+
     for (i = 0; i < 16; i++)
         cookie[i] = g_random_int () & 0xFF;
 
@@ -193,7 +193,7 @@ read_data (gchar *data, gsize data_length, gsize *offset, guint16 length, guint8
 
     if (data_length - *offset < length)
         return FALSE;
-  
+
     *value = g_malloc0 (length + 1);
     for (i = 0; i < length; i++)
         (*value)[i] = data[*offset + i];
@@ -360,7 +360,7 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
     }
 
     return TRUE;
-}    
+}
 
 static void
 x_authority_init (XAuthority *auth)
@@ -381,7 +381,7 @@ x_authority_finalize (GObject *object)
     g_free (self->priv->authorization_name);
     g_free (self->priv->authorization_data);
 
-    G_OBJECT_CLASS (x_authority_parent_class)->finalize (object);  
+    G_OBJECT_CLASS (x_authority_parent_class)->finalize (object);
 }
 
 static void

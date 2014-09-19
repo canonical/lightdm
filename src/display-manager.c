@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -125,7 +125,7 @@ display_manager_start (DisplayManager *manager)
     /* Disable Plymouth if no X servers are replacing it */
     if (plymouth_get_is_active ())
     {
-        g_debug ("Stopping Plymouth, no displays replace it");      
+        g_debug ("Stopping Plymouth, no displays replace it");
         plymouth_quit (FALSE);
     }
 }
@@ -155,7 +155,7 @@ display_manager_stop (DisplayManager *manager)
 
     check_stopped (manager);
 }
-  
+
 static void
 display_manager_init (DisplayManager *manager)
 {

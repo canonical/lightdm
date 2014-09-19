@@ -67,7 +67,7 @@ read_data (void *buf, size_t count)
     n_read = read (from_daemon_output, buf, count);
     if (n_read < 0)
         g_printerr ("Error reading from daemon: %s\n", strerror (errno));
-  
+
     return n_read;
 }
 
@@ -86,10 +86,10 @@ read_string_full (void* (*alloc_fn)(size_t n))
         g_printerr ("Invalid string length %d from daemon\n", length);
         return NULL;
     }
-  
+
     value = (*alloc_fn) (sizeof (char) * (length + 1));
     read_data (value, length);
-    value[length] = '\0';      
+    value[length] = '\0';
 
     return value;
 }
@@ -216,7 +216,7 @@ updwtmpx (const gchar *wtmp_file, struct utmpx *ut)
         strncpy (u.ut_host, ut->ut_host, sizeof (u.ut_host));
     u.ut_tv.tv_sec = ut->ut_tv.tv_sec;
     u.ut_tv.tv_usec = ut->ut_tv.tv_usec;
-  
+
     updwtmp (wtmp_file, &u);
 }
 
@@ -329,7 +329,7 @@ session_child_run (int argc, char **argv)
         pam_set_item (pam_handle, PAM_TTY, xdisplay);
     }
     else if (tty)
-        pam_set_item (pam_handle, PAM_TTY, tty);    
+        pam_set_item (pam_handle, PAM_TTY, tty);
 
 #ifdef PAM_XAUTHDATA
     if (x_authority)
@@ -457,7 +457,7 @@ session_child_run (int argc, char **argv)
     if (version >= 1)
     {
         g_free (tty);
-        tty = read_string ();      
+        tty = read_string ();
     }
     x_authority_filename = read_string ();
     if (version >= 1)
@@ -501,7 +501,7 @@ session_child_run (int argc, char **argv)
     }
     else
     {
-        fd = open ("/dev/null", O_WRONLY);   
+        fd = open ("/dev/null", O_WRONLY);
         dup2 (fd, STDERR_FILENO);
         close (fd);
     }
@@ -524,7 +524,7 @@ session_child_run (int argc, char **argv)
         pam_end (pam_handle, 0);
         return EXIT_FAILURE;
     }
-     
+
     /* Open the session */
     result = pam_open_session (pam_handle, 0);
     if (result != PAM_SUCCESS)

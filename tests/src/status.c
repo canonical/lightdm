@@ -24,7 +24,7 @@ status_request_cb (GSocket *socket, GIOCondition condition, gpointer data)
     gchar *id, *name = NULL;
     gboolean id_matches;
     GHashTable *params;
-    GError *error = NULL;  
+    GError *error = NULL;
 
     n_read = g_socket_receive (socket, (gchar *)&length, sizeof (length), NULL, &error);
     if (n_read > 0)

@@ -33,7 +33,7 @@ main (int argc, char **argv)
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
-  
+
     if (argc > 1)
         server_address = g_strdup (argv[1]);
     else
@@ -70,7 +70,7 @@ main (int argc, char **argv)
     address = g_network_address_new (hostname, port);
     enumerator = g_socket_connectable_enumerate (address);
     result = FALSE;
-    while (TRUE) 
+    while (TRUE)
     {
         GSocketAddress *socket_address;
         GError *e = NULL;

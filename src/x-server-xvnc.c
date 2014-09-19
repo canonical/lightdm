@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -35,7 +35,7 @@ struct XServerXVNCPrivate
 
     /* File descriptor to use for standard input */
     gint socket_fd;
-  
+
     /* Geometry and colour depth */
     gint width, height, depth;
 
@@ -237,10 +237,10 @@ x_server_xvnc_start (DisplayServer *display_server)
     if (error)
         l_warning (display_server, "Failed to write authority: %s", error->message);
     g_clear_error (&error);
-  
+
     command = g_string_new (absolute_command);
     g_free (absolute_command);
-  
+
     g_string_append_printf (command, " :%d", x_server_get_display_number (X_SERVER (server)));
     g_string_append_printf (command, " -auth %s", server->priv->authority_file);
     g_string_append (command, " -inetd -nolisten tcp");
@@ -271,7 +271,7 @@ x_server_xvnc_start (DisplayServer *display_server)
 
     return result;
 }
- 
+
 static void
 x_server_xvnc_stop (DisplayServer *server)
 {

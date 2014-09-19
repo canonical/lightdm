@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -41,7 +41,7 @@ seat_xvnc_create_display_server (Seat *seat, Session *session)
 
     if (strcmp (session_get_session_type (session), "x") != 0)
         return NULL;
-  
+
     x_server = x_server_xvnc_new ();
     x_server_xvnc_set_socket (x_server, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
 

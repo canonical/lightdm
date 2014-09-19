@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
  * Software Foundation; either version 2 or version 3 of the License.
@@ -193,9 +193,9 @@ lightdm_get_languages (void)
 /**
  * lightdm_language_get_code:
  * @language: A #LightDMLanguage
- * 
+ *
  * Get the code of a language (e.g. "de_DE.UTF-8")
- * 
+ *
  * Return value: The code of the language
  **/
 const gchar *
@@ -208,7 +208,7 @@ lightdm_language_get_code (LightDMLanguage *language)
 /**
  * lightdm_language_get_name:
  * @language: A #LightDMLanguage
- * 
+ *
  * Get the name of a language.
  *
  * Return value: The name of the language
@@ -251,9 +251,9 @@ lightdm_language_get_name (LightDMLanguage *language)
 /**
  * lightdm_language_get_territory:
  * @language: A #LightDMLanguage
- * 
+ *
  * Get the territory the language is used in.
- * 
+ *
  * Return value: The territory the language is used in.
  **/
 const gchar *
@@ -295,9 +295,9 @@ lightdm_language_get_territory (LightDMLanguage *language)
  * lightdm_language_matches:
  * @language: A #LightDMLanguage
  * @code: A language code
- * 
+ *
  * Check if a language code matches this language.
- * 
+ *
  * Return value: #TRUE if the code matches this language.
  **/
 gboolean
@@ -377,7 +377,7 @@ static void
 lightdm_language_class_init (LightDMLanguageClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-  
+
     g_type_class_add_private (klass, sizeof (LightDMLanguagePrivate));
 
     object_class->set_property = lightdm_language_set_property;

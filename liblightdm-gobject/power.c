@@ -337,7 +337,7 @@ lightdm_get_can_shutdown (void)
  * @error: return location for a #GError, or %NULL
  *
  * Triggers a system shutdown.
- * 
+ *
  * Return value: #TRUE if shutdown initiated.
  **/
 gboolean

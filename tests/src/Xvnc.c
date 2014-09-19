@@ -86,8 +86,8 @@ client_connected_cb (XServer *server, XClient *client)
 
 static void
 client_disconnected_cb (XServer *server, XClient *client)
-{  
-    g_signal_handlers_disconnect_matched (client, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, NULL);  
+{
+    g_signal_handlers_disconnect_matched (client, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, NULL);
 }
 
 static gboolean
@@ -110,7 +110,7 @@ vnc_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
             buffer[n_read-1] = '\0';
         status_notify ("%s VNC-CLIENT-CONNECT VERSION=\"%s\"", id, buffer);
     }
-  
+
     return TRUE;
 }
 
@@ -191,7 +191,7 @@ main (int argc, char **argv)
         {
             g_free (geometry);
             geometry = g_strdup (argv[i+1]);
-            i++;         
+            i++;
         }
         else if (strcmp (arg, "-depth") == 0)
         {
@@ -232,7 +232,7 @@ main (int argc, char **argv)
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
-  
+
     if (use_inetd)
     {
         if (!g_io_add_watch (g_io_channel_unix_new (STDIN_FILENO), G_IO_IN, vnc_data_cb, NULL))

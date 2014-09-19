@@ -48,7 +48,7 @@ request_cb (const gchar *name, GHashTable *params)
         g_main_loop_quit (loop);
         return;
     }
-  
+
     if (strcmp (name, "LOGOUT") == 0)
         exit (EXIT_SUCCESS);
 
@@ -180,7 +180,7 @@ request_cb (const gchar *name, GHashTable *params)
     {
         const gchar *data = g_hash_table_lookup (params, "DATA");
         gchar *dir;
-      
+
         dir = getenv ("XDG_GREETER_DATA_DIR");
         if (dir)
         {

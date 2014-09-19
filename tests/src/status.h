@@ -4,7 +4,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  
+
 #include <glib-object.h>
 
 typedef void (*StatusRequestFunc)(const gchar *name, GHashTable *params);

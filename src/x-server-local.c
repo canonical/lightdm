@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -36,7 +36,7 @@ struct XServerLocalPrivate
 
     /* Server layout to use */
     gchar *layout;
-    
+
     /* Value for -seat argument */
     gchar *xdg_seat;
 
@@ -113,7 +113,7 @@ display_number_in_use (guint display_number)
     }
 
     g_free (path);
-  
+
     return in_use;
 }
 
@@ -289,7 +289,7 @@ x_server_local_set_mir_id (XServerLocal *server, const gchar *id)
 const gchar *x_server_local_get_mir_id (XServerLocal *server)
 {
     g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->mir_id; 
+    return server->priv->mir_id;
 }
 
 void
@@ -376,7 +376,7 @@ stopped_cb (Process *process, XServerLocal *server)
         server->priv->have_vt_ref = FALSE;
     }
     x_server_local_release_display_number (x_server_get_display_number (X_SERVER (server)));
-  
+
     if (x_server_get_authority (X_SERVER (server)) && server->priv->authority_file)
     {
         l_debug (server, "Removing X server authority %s", server->priv->authority_file);
@@ -404,7 +404,7 @@ write_authority_file (XServerLocal *server)
     if (!server->priv->authority_file)
     {
         gchar *run_dir, *dir;
-      
+
         run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
         dir = g_build_filename (run_dir, "root", NULL);
         g_free (run_dir);
@@ -469,7 +469,7 @@ x_server_local_start (DisplayServer *display_server)
 
     if (server->priv->layout)
         g_string_append_printf (command, " -layout %s", server->priv->layout);
-        
+
     if (server->priv->xdg_seat)
         g_string_append_printf (command, " -seat %s", server->priv->xdg_seat);
 
@@ -543,7 +543,7 @@ x_server_local_start (DisplayServer *display_server)
 
     return result;
 }
- 
+
 static void
 x_server_local_stop (DisplayServer *server)
 {
@@ -563,9 +563,9 @@ x_server_local_finalize (GObject *object)
 {
     XServerLocal *self;
 
-    self = X_SERVER_LOCAL (object);  
+    self = X_SERVER_LOCAL (object);
 
-    if (self->priv->x_server_process) 
+    if (self->priv->x_server_process)
     {
         g_signal_handlers_disconnect_matched (self->priv->x_server_process, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
         g_object_unref (self->priv->x_server_process);

@@ -28,14 +28,14 @@ public:
     LightDMGreeter *ldmGreeter;
 protected:
     Greeter* q_ptr;
-    
+
     static void cb_showPrompt(LightDMGreeter *greeter, const gchar *text, LightDMPromptType type, gpointer data);
     static void cb_showMessage(LightDMGreeter *greeter, const gchar *text, LightDMMessageType type, gpointer data);
     static void cb_authenticationComplete(LightDMGreeter *greeter, gpointer data);
     static void cb_autoLoginExpired(LightDMGreeter *greeter, gpointer data);
     static void cb_idle(LightDMGreeter *greeter, gpointer data);
     static void cb_reset(LightDMGreeter *greeter, gpointer data);
-    
+
 private:
     Q_DECLARE_PUBLIC(Greeter)
 };
@@ -59,10 +59,10 @@ GreeterPrivate::GreeterPrivate(Greeter *parent) :
 void GreeterPrivate::cb_showPrompt(LightDMGreeter *greeter, const gchar *text, LightDMPromptType type, gpointer data)
 {
     Q_UNUSED(greeter);
-    
+
     GreeterPrivate *that = static_cast<GreeterPrivate*>(data);
     QString message = QString::fromUtf8(text);
-    
+
     Q_EMIT that->q_func()->showPrompt(message, type == LIGHTDM_PROMPT_TYPE_QUESTION ?
                                                Greeter::PromptTypeQuestion : Greeter::PromptTypeSecret);
 }

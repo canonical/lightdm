@@ -19,7 +19,7 @@ main (int argc, char **argv)
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
-  
+
     if (argc < 2)
     {
         g_printerr ("Usage: %s text [return-value]\n", argv[0]);
