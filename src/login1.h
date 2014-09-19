@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -22,6 +22,9 @@ G_BEGIN_DECLS
 #define LOGIN1_SERVICE_TYPE (login1_service_get_type())
 #define LOGIN1_SERVICE(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), LOGIN1_SERVICE_TYPE, Login1Service));
 
+#define SIGNAL_LOGIN1_ACTIVE_SESION_CHANGED "active-session-changed"
+#define SIGNAL_LOGIN1_CAN_GRAPHICAL_CHANGED "can-graphical-changed"
+
 typedef struct Login1SeatPrivate Login1SeatPrivate;
 
 typedef struct
@@ -34,6 +37,7 @@ typedef struct
 {
     GObjectClass parent_class;
     void (*can_graphical_changed)(Login1Seat *seat);
+    void (*active_session_changed)(Login1Seat *seat, const gchar *login1_session);
 } Login1SeatClass;
 
 typedef struct Login1ServicePrivate Login1ServicePrivate;

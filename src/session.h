@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -110,6 +110,8 @@ gboolean session_start (Session *session);
 gboolean session_get_is_started (Session *session);
 
 const gchar *session_get_username (Session *session);
+
+const gchar *session_get_login1_session (Session *session);
 
 const gchar *session_get_console_kit_cookie (Session *session);
 

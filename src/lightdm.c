@@ -569,7 +569,7 @@ emit_object_value_changed (GDBusConnection *bus, const gchar *path, const gchar 
                                         g_variant_new ("(sa{sv}as)", interface_name, &builder, NULL),
                                         &error))
         g_warning ("Failed to emit PropertiesChanged signal: %s", error->message);
-    g_clear_error (&error); 
+    g_clear_error (&error);
 }
 
 static void
@@ -585,7 +585,7 @@ emit_object_signal (GDBusConnection *bus, const gchar *path, const gchar *signal
                                         g_variant_new ("(o)", object_path),
                                         &error))
         g_warning ("Failed to emit %s signal on %s: %s", signal_name, path, error->message);
-    g_clear_error (&error); 
+    g_clear_error (&error);
 }
 
 static void
@@ -1001,7 +1001,7 @@ add_login1_seat (Login1Seat *login1_seat)
 
     g_free (config_section);
     g_object_unref (seat);
-  
+
     return started;
 }
 
@@ -1056,6 +1056,54 @@ login1_can_graphical_changed_cb (Login1Seat *login1_seat)
 }
 
 static void
+login1_active_session_changed_cb (Login1Seat *login1_seat, const gchar *login1_session)
+{
+    g_debug ("Seat %s changes active session to %s", login1_seat_get_id (login1_seat), login1_session);
+
+    Seat *seat;
+    seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
+
+    if (seat)
+    {
+        Session *active_session;
+        active_session = seat_get_expected_active_session (seat);
+
+        if (g_strcmp0 (login1_session, session_get_login1_session (active_session)) == 0)
+        {
+            // Session is already active
+            g_debug ("Session %s is already active", login1_session);
+            return;
+        }
+
+        GList *session_link;
+        for (session_link = seat_get_sessions (seat); session_link; session_link = session_link->next)
+        {
+            Session *session = session_link->data;
+
+            if (g_strcmp0 (login1_session, session_get_login1_session (session)) == 0)
+            {
+                g_debug ("Activating session %s", login1_session);
+                seat_set_externally_activated_session (seat, session);
+                return;
+            }
+        }
+    }
+}
+
+static gboolean
+login1_add_seat (Login1Seat *login1_seat)
+{
+    if (config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical"))
+    {
+        g_signal_connect (login1_seat, SIGNAL_LOGIN1_CAN_GRAPHICAL_CHANGED, G_CALLBACK (login1_can_graphical_changed_cb), NULL);
+    }
+
+    g_signal_connect (login1_seat, SIGNAL_LOGIN1_ACTIVE_SESION_CHANGED, G_CALLBACK (login1_active_session_changed_cb), NULL);
+
+    return update_login1_seat (login1_seat);
+}
+
+static void
 login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
 {
     if (login1_seat_get_can_graphical (login1_seat))
@@ -1063,9 +1111,7 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
     else
         g_debug ("Seat %s added from logind without graphical output", login1_seat_get_id (login1_seat));
 
-    if (config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical"))
-        g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
-    update_login1_seat (login1_seat);
+    login1_add_seat (login1_seat);
 }
 
 static void
@@ -1420,10 +1466,10 @@ main (int argc, char **argv)
             for (link = login1_service_get_seats (login1_service_get_instance ()); link; link = link->next)
             {
                 Login1Seat *login1_seat = link->data;
-                if (config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical"))
-                    g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
-                if (!update_login1_seat (login1_seat))
+                if (!login1_add_seat (login1_seat))
+                {
                     return EXIT_FAILURE;
+                }
             }
         }
     }

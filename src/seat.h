@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -87,6 +87,10 @@ void seat_set_active_session (Seat *seat, Session *session);
 Session *seat_get_active_session (Seat *seat);
 
 Session *seat_get_next_session (Seat *seat);
+
+void seat_set_externally_activated_session (Seat *seat, Session *session);
+
+Session *seat_get_expected_active_session (Seat *seat);
 
 gboolean seat_get_can_switch (Seat *seat);
 

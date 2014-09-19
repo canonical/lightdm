@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -56,7 +56,7 @@ struct SeatPrivate
 
     /* The session to set active when it starts */
     Session *session_to_activate;
-  
+
     /* TRUE once we have started */
     gboolean started;
 
@@ -106,7 +106,7 @@ seat_new (const gchar *module_name, const gchar *name)
 {
     Seat *seat;
     SeatModule *m = NULL;
-  
+
     g_return_val_if_fail (module_name != NULL, NULL);
 
     if (seat_modules)
@@ -269,6 +269,37 @@ seat_get_next_session (Seat *seat)
     return seat->priv->next_session;
 }
 
+/**
+ * Obtains the active session which lightdm expects to be active.
+ *
+ * This function is different from seat_get_active_session() in that the
+ * later (in the case of xlocal seats) dynamically finds the session that is
+ * really active (based on the active VT), whereas this function returns the
+ * session that lightdm activated last by itself, which may not be the actual
+ * active session (i.e. VT changes).
+ */
+Session *
+seat_get_expected_active_session (Seat *seat)
+{
+    g_return_val_if_fail (seat != NULL, NULL);
+    return seat->priv->active_session;
+}
+
+/**
+ * Sets the active session which lightdm expects to be active.
+ *
+ * This function is different from seat_set_active_session() in that the
+ * later performs an actual session activation, whereas this function just
+ * updates the active session after the session has been activated by some
+ * means external to lightdm (i.e. VT changes).
+ */
+void
+seat_set_externally_activated_session (Seat *seat, Session *session)
+{
+    g_return_if_fail (seat != NULL);
+    seat->priv->active_session = session;
+}
+
 gboolean
 seat_get_can_switch (Seat *seat)
 {
@@ -288,7 +319,7 @@ run_script (Seat *seat, DisplayServer *display_server, const gchar *script_name,
 {
     Process *script;
     gboolean result = FALSE;
-  
+
     script = process_new (NULL, NULL);
 
     process_set_command (script, script_name);
@@ -338,7 +369,7 @@ run_script (Seat *seat, DisplayServer *display_server, const gchar *script_name,
 
 static void
 seat_real_run_script (Seat *seat, DisplayServer *display_server, Process *process)
-{  
+{
 }
 
 static void
@@ -476,7 +507,7 @@ find_resettable_greeter (Seat *seat)
 static void
 set_greeter_hints (Seat *seat, Greeter *greeter_session)
 {
-    greeter_clear_hints (greeter_session);    
+    greeter_clear_hints (greeter_session);
     greeter_set_hint (greeter_session, "default-session", seat_get_string_property (seat, "user-session"));
     greeter_set_hint (greeter_session, "hide-users", seat_get_boolean_property (seat, "greeter-hide-users") ? "true" : "false");
     greeter_set_hint (greeter_session, "show-manual-login", seat_get_boolean_property (seat, "greeter-show-manual-login") ? "true" : "false");
@@ -893,7 +924,7 @@ get_session_argv (Seat *seat, SessionConfig *session_config, const gchar *sessio
         g_free (argv[0]);
         argv[0] = path;
     }
-  
+
     return argv;
 }
 
@@ -1051,7 +1082,7 @@ create_guest_session (Seat *seat, const gchar *session_name)
     session_set_argv (session, argv);
     g_strfreev (argv);
     g_object_unref (session_config);
-  
+
     return session;
 }
 
@@ -1091,7 +1122,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         gchar **argv;
 
         session = greeter_get_authentication_session (greeter);
-  
+
         /* Get session command to run */
         switch (type)
         {
@@ -1215,14 +1246,14 @@ create_greeter_session (Seat *seat)
     g_signal_connect (greeter_session, "notify::active-username", G_CALLBACK (greeter_active_username_changed_cb), seat);
     g_signal_connect (greeter_session, "authentication-complete", G_CALLBACK (session_authentication_complete_cb), seat);
     g_signal_connect (greeter_session, "stopped", G_CALLBACK (session_stopped_cb), seat);
-  
+
     set_session_env (SESSION (greeter_session));
     session_set_env (SESSION (greeter_session), "XDG_SESSION_CLASS", "greeter");
 
     session_set_pam_service (SESSION (greeter_session), seat_get_string_property (seat, "pam-greeter-service"));
     if (getuid () == 0)
     {
-        gchar *greeter_user;      
+        gchar *greeter_user;
         greeter_user = config_get_string (config_get_instance (), "LightDM", "greeter-user");
         session_set_username (SESSION (greeter_session), greeter_user);
         g_free (greeter_user);
@@ -1634,7 +1665,7 @@ seat_real_start (Seat *seat)
             background_session = session;
             session = NULL;
         }
-      
+
         if (session)
         {
             DisplayServer *display_server;
@@ -1796,7 +1827,7 @@ seat_finalize (GObject *object)
     {
         DisplayServer *display_server = link->data;
         g_signal_handlers_disconnect_matched (display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
-    }  
+    }
     g_list_free_full (self->priv->display_servers, g_object_unref);
     for (link = self->priv->sessions; link; link = link->next)
     {

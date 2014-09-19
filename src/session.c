@@ -310,7 +310,7 @@ session_get_env (Session *session, const gchar *name)
     link = find_env_entry (session, name);
     if (!link)
         return NULL;
-  
+
     entry = link->data;
 
     return entry + strlen (name) + 1;
@@ -322,7 +322,7 @@ session_unset_env (Session *session, const gchar *name)
     GList *link;
 
     g_return_if_fail (session != NULL);
-  
+
     link = find_env_entry (session, name);
     if (!link)
         return;
@@ -650,6 +650,13 @@ session_get_username (Session *session)
 {
     g_return_val_if_fail (session != NULL, NULL);
     return session->priv->username;
+}
+
+const gchar *
+session_get_login1_session (Session *session)
+{
+    g_return_val_if_fail (session != NULL, NULL);
+    return session->priv->login1_session;
 }
 
 const gchar *
