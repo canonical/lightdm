@@ -297,7 +297,11 @@ void
 seat_set_externally_activated_session (Seat *seat, Session *session)
 {
     g_return_if_fail (seat != NULL);
-    seat->priv->active_session = session;
+    if (seat->priv->active_session)
+    {
+        g_object_unref (seat->priv->active_session);
+    }
+    seat->priv->active_session = g_object_ref (session);
 }
 
 gboolean
