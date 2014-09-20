@@ -304,6 +304,22 @@ seat_set_externally_activated_session (Seat *seat, Session *session)
     seat->priv->active_session = g_object_ref (session);
 }
 
+Session *
+seat_find_session_by_login1_id (Seat *seat, const gchar *login1_session_id)
+{
+    GList *session_link;
+    for (session_link = seat->priv->sessions; session_link; session_link = session_link->next)
+    {
+        Session *session = session_link->data;
+
+        if (g_strcmp0 (login1_session_id, session_get_login1_session_id (session)) == 0)
+        {
+            return session;
+        }
+    }
+    return NULL;
+}
+
 gboolean
 seat_get_can_switch (Seat *seat)
 {

@@ -111,7 +111,7 @@ gboolean session_get_is_started (Session *session);
 
 const gchar *session_get_username (Session *session);
 
-const gchar *session_get_login1_session (Session *session);
+const gchar *session_get_login1_session_id (Session *session);
 
 const gchar *session_get_console_kit_cookie (Session *session);
 

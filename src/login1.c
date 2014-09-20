@@ -153,7 +153,6 @@ seat_properties_changed_cb (GDBusConnection *connection,
             if (result)
             {
                 GVariant *value1, *value2;
-                const gchar *login1_session;
 
                 g_variant_get (result, "(v)", &value1);
 
@@ -162,11 +161,13 @@ seat_properties_changed_cb (GDBusConnection *connection,
 
                 if (value2)
                 {
-                    login1_session = g_variant_get_string (value2, NULL);
+                    const gchar *login1_session_id;
 
-                    if (login1_session)
+                    login1_session_id = g_variant_get_string (value2, NULL);
+
+                    if (login1_session_id)
                     {
-                        g_signal_emit (seat, seat_signals[ACTIVE_SESSION_CHANGED], 0, login1_session);
+                        g_signal_emit (seat, seat_signals[ACTIVE_SESSION_CHANGED], 0, login1_session_id);
                     }
 
                     g_variant_unref (value2);

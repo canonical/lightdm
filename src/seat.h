@@ -92,6 +92,8 @@ void seat_set_externally_activated_session (Seat *seat, Session *session);
 
 Session *seat_get_expected_active_session (Seat *seat);
 
+Session *seat_find_session_by_login1_id (Seat *seat, const gchar *login1_session_id);
+
 gboolean seat_get_can_switch (Seat *seat);
 
 gboolean seat_get_allow_guest (Seat *seat);

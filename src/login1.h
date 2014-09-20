@@ -37,7 +37,7 @@ typedef struct
 {
     GObjectClass parent_class;
     void (*can_graphical_changed)(Login1Seat *seat);
-    void (*active_session_changed)(Login1Seat *seat, const gchar *login1_session);
+    void (*active_session_changed)(Login1Seat *seat, const gchar *login1_session_id);
 } Login1SeatClass;
 
 typedef struct Login1ServicePrivate Login1ServicePrivate;

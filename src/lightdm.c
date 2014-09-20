@@ -1056,9 +1056,9 @@ login1_can_graphical_changed_cb (Login1Seat *login1_seat)
 }
 
 static void
-login1_active_session_changed_cb (Login1Seat *login1_seat, const gchar *login1_session)
+login1_active_session_changed_cb (Login1Seat *login1_seat, const gchar *login1_session_id)
 {
-    g_debug ("Seat %s changes active session to %s", login1_seat_get_id (login1_seat), login1_session);
+    g_debug ("Seat %s changes active session to %s", login1_seat_get_id (login1_seat), login1_session_id);
 
     Seat *seat;
     seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
@@ -1068,24 +1068,20 @@ login1_active_session_changed_cb (Login1Seat *login1_seat, const gchar *login1_s
         Session *active_session;
         active_session = seat_get_expected_active_session (seat);
 
-        if (g_strcmp0 (login1_session, session_get_login1_session (active_session)) == 0)
+        if (g_strcmp0 (login1_session_id, session_get_login1_session_id (active_session)) == 0)
         {
             // Session is already active
-            g_debug ("Session %s is already active", login1_session);
+            g_debug ("Session %s is already active", login1_session_id);
             return;
         }
 
-        GList *session_link;
-        for (session_link = seat_get_sessions (seat); session_link; session_link = session_link->next)
+        active_session = seat_find_session_by_login1_id (seat, login1_session_id);
+        if (active_session != NULL)
         {
-            Session *session = session_link->data;
+            g_debug ("Activating session %s", login1_session_id);
+            seat_set_externally_activated_session (seat, active_session);
+            return;
 
-            if (g_strcmp0 (login1_session, session_get_login1_session (session)) == 0)
-            {
-                g_debug ("Activating session %s", login1_session);
-                seat_set_externally_activated_session (seat, session);
-                return;
-            }
         }
     }
 }
