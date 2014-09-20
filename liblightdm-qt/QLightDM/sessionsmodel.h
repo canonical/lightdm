@@ -45,7 +45,7 @@ namespace QLightDM {
 
     protected:
         SessionsModelPrivate *d_ptr;
-        
+
     private:
         Q_DECLARE_PRIVATE(SessionsModel)
     };

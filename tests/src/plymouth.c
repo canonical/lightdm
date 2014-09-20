@@ -38,7 +38,7 @@ main (int argc, char **argv)
     if (argc == 2 && strcmp (argv[1], "--has-active-vt") == 0)
     {
         if (g_key_file_get_boolean (config, "test-plymouth-config", "has-active-vt", NULL))
-        {          
+        {
             status_notify ("PLYMOUTH HAS-ACTIVE-VT=TRUE");
             return EXIT_SUCCESS;
         }

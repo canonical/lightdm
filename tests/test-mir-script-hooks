@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/dbus-env ./src/test-runner mir-script-hooks test-mir-greeter

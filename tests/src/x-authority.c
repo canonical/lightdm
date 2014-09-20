@@ -68,10 +68,10 @@ x_authority_match_local (XAuthority *authority, const gchar *authorization_name)
     for (link = authority->priv->records; link; link = link->next)
     {
         XAuthorityRecord *record = link->data;
-      
+
         if (strcmp (record->priv->authorization_name, authorization_name) != 0)
             continue;
-      
+
         if (record->priv->family == XAUTH_FAMILY_WILD || record->priv->family == XAUTH_FAMILY_LOCAL)
             return record;
     }
@@ -87,10 +87,10 @@ x_authority_match_localhost (XAuthority *authority, const gchar *authorization_n
     for (link = authority->priv->records; link; link = link->next)
     {
         XAuthorityRecord *record = link->data;
-      
+
         if (strcmp (record->priv->authorization_name, authorization_name) != 0)
             continue;
-      
+
         if (record->priv->family == XAUTH_FAMILY_WILD || record->priv->family == XAUTH_FAMILY_LOCALHOST)
             return record;
     }
@@ -193,7 +193,7 @@ x_authority_record_check_cookie (XAuthorityRecord *record, const guint8 *cookie_
 
     if (strcmp (record->priv->authorization_name, "MIT-MAGIC-COOKIE-1") != 0)
         return FALSE;
-  
+
     if (cookie_data_length != record->priv->authorization_data_length)
         return FALSE;
 

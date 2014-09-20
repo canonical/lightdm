@@ -374,7 +374,7 @@ handle_connected (LightDMGreeter *greeter, guint8 *message, gsize message_length
     while (*offset < message_length)
     {
         gchar *name, *value;
-      
+
         name = read_string (message, message_length, offset);
         value = read_string (message, message_length, offset);
         g_hash_table_insert (priv->hints, name, value);
@@ -876,7 +876,7 @@ lightdm_greeter_get_default_session_hint (LightDMGreeter *greeter)
  * accounts should be taken from #LightDMUserList and displayed in the greeter
  * for the user to choose from.  Note that this list can be empty and it is
  * recommended you show a method for the user to enter a username manually.
- * 
+ *
  * If this option is shown the greeter should only allow these users to be
  * chosen for login unless the manual login hint is set.
  *
@@ -969,7 +969,7 @@ lightdm_greeter_get_has_guest_account_hint (LightDMGreeter *greeter)
 
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
     value = lightdm_greeter_get_hint (greeter, "has-guest-account");
-  
+
     return g_strcmp0 (value, "true") == 0;
 }
 
@@ -1003,7 +1003,7 @@ lightdm_greeter_get_select_guest_hint (LightDMGreeter *greeter)
 
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
     value = lightdm_greeter_get_hint (greeter, "select-guest");
-  
+
     return g_strcmp0 (value, "true") == 0;
 }
 
@@ -1037,7 +1037,7 @@ lightdm_greeter_get_autologin_guest_hint (LightDMGreeter *greeter)
 
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
     value = lightdm_greeter_get_hint (greeter, "autologin-guest");
-  
+
     return g_strcmp0 (value, "true") == 0;
 }
 
@@ -1107,7 +1107,7 @@ lightdm_greeter_authenticate (LightDMGreeter *greeter, const gchar *username)
 
     priv->cancelling_authentication = FALSE;
     priv->authenticate_sequence_number++;
-    priv->in_authentication = TRUE;  
+    priv->in_authentication = TRUE;
     priv->is_authenticated = FALSE;
     if (username != priv->authentication_user)
     {
@@ -1558,8 +1558,13 @@ lightdm_greeter_init (LightDMGreeter *greeter)
     fd = g_getenv ("LIGHTDM_TO_SERVER_FD");
     if (fd)
     {
+        GError *error = NULL;
+
         priv->to_server_channel = g_io_channel_unix_new (atoi (fd));
-        g_io_channel_set_encoding (priv->to_server_channel, NULL, NULL);
+        g_io_channel_set_encoding (priv->to_server_channel, NULL, &error);
+        if (error)
+            g_warning ("Failed to set encoding on to server channel to binary: %s\n", error->message);
+        g_clear_error (&error);
     }
     else
         g_warning ("No LIGHTDM_TO_SERVER_FD environment variable");
@@ -1567,8 +1572,13 @@ lightdm_greeter_init (LightDMGreeter *greeter)
     fd = g_getenv ("LIGHTDM_FROM_SERVER_FD");
     if (fd)
     {
+        GError *error = NULL;
+
         priv->from_server_channel = g_io_channel_unix_new (atoi (fd));
-        g_io_channel_set_encoding (priv->from_server_channel, NULL, NULL);
+        g_io_channel_set_encoding (priv->from_server_channel, NULL, &error);
+        if (error)
+            g_warning ("Failed to set encoding on from server channel to binary: %s\n", error->message);
+        g_clear_error (&error);
         g_io_add_watch (priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
     }
     else

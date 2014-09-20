@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -88,7 +88,7 @@ vt_set_active (gint number)
 
     /* Pretend always active */
     if (getuid () != 0)
-        return;   
+        return;
 
     console_fd = open_console ();
     if (console_fd >= 0)
@@ -147,7 +147,7 @@ vt_get_unused (void)
     number = vt_get_min ();
     while (vt_is_used (number))
         number++;
- 
+
     return number;
 }
 
@@ -155,7 +155,7 @@ void
 vt_ref (gint number)
 {
     g_debug ("Using VT %d", number);
-    used_vts = g_list_append (used_vts, GINT_TO_POINTER (number)); 
+    used_vts = g_list_append (used_vts, GINT_TO_POINTER (number));
 }
 
 void

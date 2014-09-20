@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -44,11 +44,11 @@ struct GreeterPrivate
     guint8 *read_buffer;
     gsize n_read;
     gboolean use_secure_memory;
-  
+
     /* Hints for the greeter */
     GHashTable *hints;
 
-    /* Default session to use */   
+    /* Default session to use */
     gchar *default_session;
 
     /* Sequence number of current PAM session */
@@ -226,7 +226,7 @@ static void
 write_string (guint8 *buffer, gint buffer_length, const gchar *value, gsize *offset)
 {
     gint length;
-  
+
     if (value)
         length = strlen (value);
     else
@@ -307,7 +307,7 @@ pam_messages_cb (Session *session, Greeter *greeter)
     size = int_length () + string_length (session_get_username (session)) + int_length ();
     for (i = 0; i < messages_length; i++)
         size += int_length () + string_length (messages[i].msg);
-  
+
     write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_PROMPT_AUTHENTICATION, size, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, greeter->priv->authentication_sequence_number, &offset);
     write_string (message, MAX_MESSAGE_LENGTH, session_get_username (session), &offset);
@@ -343,7 +343,7 @@ send_end_authentication (Greeter *greeter, guint32 sequence_number, const gchar 
     write_int (message, MAX_MESSAGE_LENGTH, sequence_number, &offset);
     write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, result, &offset);
-    write_message (greeter, message, offset); 
+    write_message (greeter, message, offset);
 }
 
 void
@@ -484,7 +484,7 @@ handle_login_as_guest (Greeter *greeter, guint32 sequence_number)
         return;
     }
 
-    greeter->priv->guest_account_authenticated = TRUE;  
+    greeter->priv->guest_account_authenticated = TRUE;
     send_end_authentication (greeter, sequence_number, "", PAM_SUCCESS);
 }
 
@@ -801,7 +801,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         greeter->priv->from_greeter_watch = 0;
         return FALSE;
     }
-  
+
     n_to_read = HEADER_SIZE;
     if (greeter->priv->n_read >= HEADER_SIZE)
     {
@@ -837,9 +837,9 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
             greeter->priv->read_buffer = secure_realloc (greeter, greeter->priv->read_buffer, n_to_read);
             read_cb (source, condition, greeter);
             return TRUE;
-        }      
+        }
     }
-  
+
     offset = 0;
     id = read_int (greeter, &offset);
     length = HEADER_SIZE + read_int (greeter, &offset);
@@ -956,6 +956,7 @@ greeter_start (Session *session)
     int to_greeter_pipe[2], from_greeter_pipe[2];
     gboolean result = FALSE;
     gchar *value;
+    GError *error = NULL;
 
     /* Create a pipe to talk with the greeter */
     if (pipe (to_greeter_pipe) != 0 || pipe (from_greeter_pipe) != 0)
@@ -964,9 +965,15 @@ greeter_start (Session *session)
         return FALSE;
     }
     greeter->priv->to_greeter_channel = g_io_channel_unix_new (to_greeter_pipe[1]);
-    g_io_channel_set_encoding (greeter->priv->to_greeter_channel, NULL, NULL);
+    g_io_channel_set_encoding (greeter->priv->to_greeter_channel, NULL, &error);
+    if (error)
+        g_warning ("Failed to set encoding on to greeter channel to binary: %s\n", error->message);
+    g_clear_error (&error);
     greeter->priv->from_greeter_channel = g_io_channel_unix_new (from_greeter_pipe[0]);
-    g_io_channel_set_encoding (greeter->priv->from_greeter_channel, NULL, NULL);
+    g_io_channel_set_encoding (greeter->priv->from_greeter_channel, NULL, &error);
+    if (error)
+        g_warning ("Failed to set encoding on from greeter channel to binary: %s\n", error->message);
+    g_clear_error (&error);
     g_io_channel_set_buffered (greeter->priv->from_greeter_channel, FALSE);
     greeter->priv->from_greeter_watch = g_io_add_watch (greeter->priv->from_greeter_channel, G_IO_IN | G_IO_HUP, read_cb, greeter);
 

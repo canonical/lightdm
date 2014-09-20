@@ -43,7 +43,7 @@ create_bus (const gchar *config_file, GPid *pid)
 
     if (n_read > 0 && address[n_read - 1] == '\n')
         address[n_read - 1] = '\0';
-  
+
     return g_strdup (address);
 }
 

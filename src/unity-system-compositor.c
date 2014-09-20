@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2013 Canonical Ltd.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -238,7 +238,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     gsize n_to_read = 0;
     guint16 id, payload_length;
     /*guint8 *payload;*/
-  
+
     if (condition == G_IO_HUP)
     {
         l_debug (compositor, "Compositor closed communication channel");
@@ -459,7 +459,7 @@ unity_system_compositor_start (DisplayServer *server)
 
     return TRUE;
 }
- 
+
 static void
 unity_system_compositor_stop (DisplayServer *server)
 {
@@ -481,7 +481,7 @@ unity_system_compositor_finalize (GObject *object)
 {
     UnitySystemCompositor *self;
 
-    self = UNITY_SYSTEM_COMPOSITOR (object);  
+    self = UNITY_SYSTEM_COMPOSITOR (object);
 
     if (self->priv->process)
     {
@@ -497,7 +497,7 @@ unity_system_compositor_finalize (GObject *object)
     close (self->priv->from_compositor_pipe[0]);
     close (self->priv->from_compositor_pipe[1]);
     g_io_channel_unref (self->priv->from_compositor_channel);
-    if (self->priv->from_compositor_watch)      
+    if (self->priv->from_compositor_watch)
         g_source_remove (self->priv->from_compositor_watch);
     g_free (self->priv->read_buffer);
     if (self->priv->timeout_source)

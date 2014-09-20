@@ -152,7 +152,7 @@ bool PowerInterface::canRestart()
         }
     }
     qWarning() << d->login1Interface->lastError();
-  
+
     QDBusReply<bool> reply = d->consoleKitInterface->call("CanRestart");
     if (reply.isValid()) {
         return reply.value();

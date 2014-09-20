@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -24,7 +24,7 @@
 
 enum {
     GOT_DATA,
-    GOT_SIGNAL,  
+    GOT_SIGNAL,
     STOPPED,
     LAST_SIGNAL
 };
@@ -51,7 +51,7 @@ struct ProcessPrivate
 
     /* Process ID */
     GPid pid;
-  
+
     /* Exit status of process */
     int exit_status;
 
@@ -121,7 +121,7 @@ process_set_env (Process *process, const gchar *name, const gchar *value)
 {
     g_return_if_fail (process != NULL);
     g_return_if_fail (name != NULL);
-    g_hash_table_insert (process->priv->env, g_strdup (name), g_strdup (value));  
+    g_hash_table_insert (process->priv->env, g_strdup (name), g_strdup (value));
 }
 
 const gchar *
@@ -163,7 +163,7 @@ process_watch_cb (GPid pid, gint status, gpointer data)
 
     if (process->priv->quit_timeout)
         g_source_remove (process->priv->quit_timeout);
-    process->priv->quit_timeout = 0;  
+    process->priv->quit_timeout = 0;
     process->priv->pid = 0;
     g_hash_table_remove (processes, GINT_TO_POINTER (pid));
 
@@ -183,7 +183,7 @@ process_start (Process *process, gboolean block)
     GError *error = NULL;
 
     g_return_val_if_fail (process != NULL, FALSE);
-    g_return_val_if_fail (process->priv->command != NULL, FALSE);  
+    g_return_val_if_fail (process->priv->command != NULL, FALSE);
     g_return_val_if_fail (process->priv->pid == 0, FALSE);
 
     if (!g_shell_parse_argv (process->priv->command, &argc, &argv, &error))
@@ -244,11 +244,11 @@ process_start (Process *process, gboolean block)
 #endif
         for (i = 0; i < env_length; i++)
             setenv (env_keys[i], env_values[i], TRUE);
-  
+
         execvp (argv[0], argv);
         _exit (EXIT_FAILURE);
     }
-  
+
     close (log_fd);
     g_strfreev (argv);
     g_free (env_keys);
@@ -269,7 +269,7 @@ process_start (Process *process, gboolean block)
         int exit_status;
         waitpid (process->priv->pid, &exit_status, 0);
         process_watch_cb (process->priv->pid, exit_status, process);
-    }  
+    }
     else
     {
         g_hash_table_insert (processes, GINT_TO_POINTER (process->priv->pid), g_object_ref (process));
@@ -402,7 +402,7 @@ handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
     Process *process;
 
     errno = 0;
-    if (read (signal_pipe[0], &signo, sizeof (int)) != sizeof (int) || 
+    if (read (signal_pipe[0], &signo, sizeof (int)) != sizeof (int) ||
         read (signal_pipe[0], &pid, sizeof (pid_t)) != sizeof (pid_t))
     {
         g_warning ("Error reading from signal pipe: %s", strerror (errno));
@@ -427,7 +427,7 @@ process_class_init (ProcessClass *klass)
     struct sigaction action;
 
     klass->stopped = process_stopped;
-    object_class->finalize = process_finalize;  
+    object_class->finalize = process_finalize;
 
     g_type_class_add_private (klass, sizeof (ProcessPrivate));
 
@@ -438,7 +438,7 @@ process_class_init (ProcessClass *klass)
                       G_STRUCT_OFFSET (ProcessClass, got_data),
                       NULL, NULL,
                       NULL,
-                      G_TYPE_NONE, 0); 
+                      G_TYPE_NONE, 0);
     signals[GOT_SIGNAL] =
         g_signal_new ("got-signal",
                       G_TYPE_FROM_CLASS (klass),

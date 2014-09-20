@@ -43,7 +43,7 @@ struct XDMCPClientPrivate
 };
 
 enum {
-    XDMCP_CLIENT_QUERY,  
+    XDMCP_CLIENT_QUERY,
     XDMCP_CLIENT_WILLING,
     XDMCP_CLIENT_ACCEPT,
     XDMCP_CLIENT_DECLINE,
@@ -82,7 +82,7 @@ decode_willing (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
     /* Stop sending queries */
     g_source_remove (client->priv->query_timer);
     client->priv->query_timer = 0;
-  
+
     message = g_malloc0 (sizeof (XDMCPWilling));
 
     length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
@@ -93,7 +93,7 @@ decode_willing (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
     message->status = read_string (buffer, buffer_length, length, &offset);
 
     g_signal_emit (client, xdmcp_client_signals[XDMCP_CLIENT_WILLING], 0, message);
-  
+
     g_free (message->authentication_name);
     g_free (message->hostname);
     g_free (message->status);
@@ -133,7 +133,7 @@ decode_decline (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
     XDMCPDecline *message;
     gsize offset = 0;
     guint16 length;
-  
+
     message = g_malloc0 (sizeof (XDMCPDecline));
 
     length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
@@ -142,7 +142,7 @@ decode_decline (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
     message->authentication_name = read_string (buffer, buffer_length, length, &offset);
     length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
     read_string8 (buffer, buffer_length, length, &offset);
-  
+
     g_signal_emit (client, xdmcp_client_signals[XDMCP_CLIENT_DECLINE], 0, message);
 
     g_free (message->status);
@@ -275,7 +275,7 @@ xdmcp_client_start (XDMCPClient *client)
     address = g_network_address_new (client->priv->host, client->priv->port);
     enumerator = g_socket_connectable_enumerate (address);
     result = FALSE;
-    while (TRUE) 
+    while (TRUE)
     {
         GSocketAddress *socket_address;
         GError *e = NULL;
@@ -299,11 +299,11 @@ xdmcp_client_start (XDMCPClient *client)
         g_warning ("Unable to connect XDMCP socket: %s", error->message);
     if (!result)
         return FALSE;
-  
+
     g_io_add_watch (g_io_channel_unix_new (g_socket_get_fd (client->priv->socket)), G_IO_IN, xdmcp_data_cb, client);
 
     client->priv->query_timer = g_timeout_add (2000, xdmcp_query_cb, client);
-    xdmcp_query_cb (client); 
+    xdmcp_query_cb (client);
 
     return TRUE;
 }
@@ -312,7 +312,7 @@ GInetAddress *
 xdmcp_client_get_local_address (XDMCPClient *client)
 {
     GSocketAddress *socket_address;
-  
+
     if (!client->priv->socket)
         return NULL;
 
@@ -338,7 +338,7 @@ xdmcp_client_send_query (XDMCPClient *client)
     write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, X_BYTE_ORDER_MSB, 1, &offset);
     write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 0, &offset);
 
-    xdmcp_write (client, buffer, offset);   
+    xdmcp_write (client, buffer, offset);
 }
 
 void
@@ -417,7 +417,7 @@ xdmcp_client_send_manage (XDMCPClient *client, guint32 session_id, guint16 displ
     write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, X_BYTE_ORDER_MSB, strlen (display_class), &offset);
     write_string (buffer, MAXIMUM_REQUEST_LENGTH, display_class, &offset);
 
-    xdmcp_write (client, buffer, offset); 
+    xdmcp_write (client, buffer, offset);
 }
 
 static void

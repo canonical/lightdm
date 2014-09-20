@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -51,7 +51,7 @@ xdmcp_x_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     g_signal_handlers_disconnect_matched (SEAT_XLOCAL (seat)->priv->xdmcp_x_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
     SEAT_XLOCAL (seat)->priv->xdmcp_x_server = NULL;
     g_object_unref (display_server);
-    
+
     if (seat_get_is_stopping (seat))
         check_stopped (SEAT_XLOCAL (seat));
     else
@@ -90,7 +90,7 @@ seat_xlocal_start (Seat *seat)
             result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
             if (error)
                 l_debug (seat, "Error getting key %s", error->message);
-            g_clear_error (&error);      
+            g_clear_error (&error);
 
             if (result)
             {
@@ -203,9 +203,9 @@ create_x_server (Seat *seat)
     config_file = seat_get_string_property (seat, "xserver-config");
     if (config_file)
         x_server_local_set_config (x_server, config_file);
-  
+
     allow_tcp = seat_get_boolean_property (seat, "xserver-allow-tcp");
-    x_server_local_set_allow_tcp (x_server, allow_tcp);    
+    x_server_local_set_allow_tcp (x_server, allow_tcp);
 
     return x_server;
 }
@@ -232,7 +232,7 @@ create_unity_system_compositor (Seat *seat)
     vt = get_vt (seat, DISPLAY_SERVER (compositor));
     if (vt >= 0)
         unity_system_compositor_set_vt (compositor, vt);
-  
+
     for (i = 0; ; i++)
     {
         socket_name = g_strdup_printf ("/run/lightdm-mir-%d", i);
@@ -266,7 +266,7 @@ seat_xlocal_create_display_server (Seat *seat, Session *session)
         compositor_command = session_config_get_compositor_command (session_get_config (session));
         if (compositor_command)
             unity_system_compositor_set_command (UNITY_SYSTEM_COMPOSITOR (compositor), compositor_command);
-      
+
         return compositor;
     }
     else
@@ -341,13 +341,16 @@ seat_xlocal_get_active_session (Seat *seat)
 static void
 seat_xlocal_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
-    const gchar *path;
-    XServerLocal *x_server;
+    if (IS_X_SERVER_LOCAL (display_server))
+    {
+        const gchar *path;
+        XServerLocal *x_server;
 
-    x_server = X_SERVER_LOCAL (display_server);
-    path = x_server_local_get_authority_file_path (x_server);
-    process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
-    process_set_env (script, "XAUTHORITY", path);
+        x_server = X_SERVER_LOCAL (display_server);
+        path = x_server_local_get_authority_file_path (x_server);
+        process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
+        process_set_env (script, "XAUTHORITY", path);
+    }
 
     SEAT_CLASS (seat_xlocal_parent_class)->run_script (seat, display_server, script);
 }

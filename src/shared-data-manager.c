@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2014 Canonical, Ltd
  * Author: Michael Terry <michael.terry@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -93,7 +93,7 @@ shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *us
     entry = getpwnam (user);
     if (!entry)
         return NULL;
-  
+
     path = g_build_filename (USERS_DIR, user, NULL);
     file = g_file_new_for_path (path);
 
@@ -107,7 +107,7 @@ shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *us
         else
             g_warning ("Could not create user data directory %s: %s", path, error->message);
     }
-    g_clear_error (&error);  
+    g_clear_error (&error);
     if (!result)
     {
         g_object_unref (file);

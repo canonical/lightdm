@@ -107,7 +107,7 @@ compositor_ready_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
             result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
             if (error)
                 l_debug (seat, "Error getting key %s", error->message);
-            g_clear_error (&error);      
+            g_clear_error (&error);
 
             if (result)
             {
@@ -216,7 +216,7 @@ create_x_server (Seat *seat)
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)
         x_server_local_set_layout (x_server, layout);
-    
+
     x_server_local_set_xdg_seat (x_server, seat_get_name (seat));
 
     config_file = seat_get_string_property (seat, "xserver-config");
@@ -242,9 +242,9 @@ create_mir_server (Seat *seat)
 
 static DisplayServer *
 seat_unity_create_display_server (Seat *seat, Session *session)
-{  
+{
     const gchar *session_type;
-  
+
     session_type = session_get_session_type (session);
     if (strcmp (session_type, "x") == 0)
         return DISPLAY_SERVER (create_x_server (seat));
@@ -380,13 +380,16 @@ seat_unity_set_next_session (Seat *seat, Session *session)
 static void
 seat_unity_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
-    const gchar *path;
-    XServerLocal *x_server;
+    if (IS_X_SERVER_LOCAL (display_server))
+    {
+        XServerLocal *x_server;
+        const gchar *path;
 
-    x_server = X_SERVER_LOCAL (display_server);
-    path = x_server_local_get_authority_file_path (x_server);
-    process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
-    process_set_env (script, "XAUTHORITY", path);
+        x_server = X_SERVER_LOCAL (display_server);
+        path = x_server_local_get_authority_file_path (x_server);
+        process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
+        process_set_env (script, "XAUTHORITY", path);
+    }
 
     SEAT_CLASS (seat_unity_parent_class)->run_script (seat, display_server, script);
 }

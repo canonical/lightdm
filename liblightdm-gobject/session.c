@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
  * Software Foundation; either version 2 or version 3 of the License.
@@ -37,7 +37,7 @@ static gboolean have_sessions = FALSE;
 static GList *local_sessions = NULL;
 static GList *remote_sessions = NULL;
 
-static gint 
+static gint
 compare_session (gconstpointer a, gconstpointer b)
 {
     LightDMSessionPrivate *priv_a = GET_PRIVATE (a);
@@ -52,7 +52,7 @@ load_session (GKeyFile *key_file, const gchar *key)
     LightDMSession *session;
     LightDMSessionPrivate *priv;
     gchar *try_exec;
-  
+
     if (g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY, NULL) ||
         g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_HIDDEN, NULL))
         return NULL;
@@ -170,7 +170,7 @@ load_sessions_dir (GList *sessions, const gchar *sessions_dir)
     }
 
     g_dir_close (directory);
-  
+
     return sessions;
 }
 
@@ -185,7 +185,7 @@ load_sessions (const gchar *sessions_dir)
     for (i = 0; dirs[i]; i++)
         sessions = load_sessions_dir (sessions, dirs[i]);
     g_strfreev (dirs);
-  
+
     return sessions;
 }
 
@@ -204,7 +204,7 @@ update_sessions (void)
 
     /* Use session directory from configuration */
     config_load_from_standard_locations (config_get_instance (), NULL, NULL);
-      
+
     value = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
     if (value)
     {
@@ -259,9 +259,9 @@ lightdm_get_remote_sessions (void)
 /**
  * lightdm_session_get_key:
  * @session: A #LightDMSession
- * 
+ *
  * Get the key for a session
- * 
+ *
  * Return value: The session key
  **/
 const gchar *
@@ -274,9 +274,9 @@ lightdm_session_get_key (LightDMSession *session)
 /**
  * lightdm_session_get_session_type:
  * @session: A #LightDMSession
- * 
+ *
  * Get the type a session
- * 
+ *
  * Return value: The session type, e.g. x or mir
  **/
 const gchar *
@@ -289,9 +289,9 @@ lightdm_session_get_session_type (LightDMSession *session)
 /**
  * lightdm_session_get_name:
  * @session: A #LightDMSession
- * 
+ *
  * Get the name for a session
- * 
+ *
  * Return value: The session name
  **/
 const gchar *
@@ -304,9 +304,9 @@ lightdm_session_get_name (LightDMSession *session)
 /**
  * lightdm_session_get_comment:
  * @session: A #LightDMSession
- * 
+ *
  * Get the comment for a session
- * 
+ *
  * Return value: The session comment
  **/
 const gchar *
@@ -372,7 +372,7 @@ static void
 lightdm_session_class_init (LightDMSessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-  
+
     g_type_class_add_private (klass, sizeof (LightDMSessionPrivate));
 
     object_class->set_property = lightdm_session_set_property;

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -79,7 +79,7 @@ seat_xremote_run_script (Seat *seat, DisplayServer *display_server, Process *scr
     XServerRemote *x_server;
 
     x_server = X_SERVER_REMOTE (display_server);
-    process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));  
+    process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
     process_set_env (script, "REMOTE_HOST", x_server_get_hostname (X_SERVER (x_server)));
 
     SEAT_CLASS (seat_xremote_parent_class)->run_script (seat, display_server, script);

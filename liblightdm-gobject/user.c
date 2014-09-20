@@ -4,7 +4,7 @@
  * Copyright (C) 2014 Canonical, Ltd.
  * Authors: Robert Ancell <robert.ancell@canonical.com>
  *          Michael Terry <michael.terry@canonical.com>
- * 
+ *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
  * Software Foundation; either version 2 or version 3 of the License.
@@ -350,9 +350,9 @@ lightdm_user_list_class_init (LightDMUserListClass *klass)
 /**
  * lightdm_user_get_name:
  * @user: A #LightDMUser
- * 
+ *
  * Get the name of a user.
- * 
+ *
  * Return value: The name of the given user
  **/
 const gchar *
@@ -365,7 +365,7 @@ lightdm_user_get_name (LightDMUser *user)
 /**
  * lightdm_user_get_real_name:
  * @user: A #LightDMUser
- * 
+ *
  * Get the real name of a user.
  *
  * Return value: The real name of the given user
@@ -380,9 +380,9 @@ lightdm_user_get_real_name (LightDMUser *user)
 /**
  * lightdm_user_get_display_name:
  * @user: A #LightDMUser
- * 
+ *
  * Get the display name of a user.
- * 
+ *
  * Return value: The display name of the given user
  **/
 const gchar *
@@ -395,9 +395,9 @@ lightdm_user_get_display_name (LightDMUser *user)
 /**
  * lightdm_user_get_home_directory:
  * @user: A #LightDMUser
- * 
+ *
  * Get the home directory for a user.
- * 
+ *
  * Return value: The users home directory
  */
 const gchar *
@@ -410,9 +410,9 @@ lightdm_user_get_home_directory (LightDMUser *user)
 /**
  * lightdm_user_get_image:
  * @user: A #LightDMUser
- * 
+ *
  * Get the image URI for a user.
- * 
+ *
  * Return value: The image URI for the given user or #NULL if no URI
  **/
 const gchar *
@@ -425,9 +425,9 @@ lightdm_user_get_image (LightDMUser *user)
 /**
  * lightdm_user_get_background:
  * @user: A #LightDMUser
- * 
+ *
  * Get the background file path for a user.
- * 
+ *
  * Return value: The background file path for the given user or #NULL if no path
  **/
 const gchar *
@@ -440,9 +440,9 @@ lightdm_user_get_background (LightDMUser *user)
 /**
  * lightdm_user_get_language:
  * @user: A #LightDMUser
- * 
+ *
  * Get the language for a user.
- * 
+ *
  * Return value: The language in the form of a local specification (e.g. "de_DE.UTF-8") for the given user or #NULL if using the system default locale.
  **/
 const gchar *
@@ -455,9 +455,9 @@ lightdm_user_get_language (LightDMUser *user)
 /**
  * lightdm_user_get_layout:
  * @user: A #LightDMUser
- * 
+ *
  * Get the keyboard layout for a user.
- * 
+ *
  * Return value: The keyboard layout for the given user or #NULL if using system defaults.  Copy the value if you want to use it long term.
  **/
 const gchar *
@@ -470,9 +470,9 @@ lightdm_user_get_layout (LightDMUser *user)
 /**
  * lightdm_user_get_layouts:
  * @user: A #LightDMUser
- * 
+ *
  * Get the configured keyboard layouts for a user.
- * 
+ *
  * Return value: (transfer none): A NULL-terminated array of keyboard layouts for the given user.  Copy the values if you want to use them long term.
  **/
 const gchar * const *
@@ -485,9 +485,9 @@ lightdm_user_get_layouts (LightDMUser *user)
 /**
  * lightdm_user_get_session:
  * @user: A #LightDMUser
- * 
+ *
  * Get the session for a user.
- * 
+ *
  * Return value: The session for the given user or #NULL if using system defaults.
  **/
 const gchar *
@@ -500,9 +500,9 @@ lightdm_user_get_session (LightDMUser *user)
 /**
  * lightdm_user_get_logged_in:
  * @user: A #LightDMUser
- * 
+ *
  * Check if a user is logged in.
- * 
+ *
  * Return value: #TRUE if the user is currently logged in.
  **/
 gboolean
@@ -515,9 +515,9 @@ lightdm_user_get_logged_in (LightDMUser *user)
 /**
  * lightdm_user_get_has_messages:
  * @user: A #LightDMUser
- * 
+ *
  * Check if a user has waiting messages.
- * 
+ *
  * Return value: #TRUE if the user has waiting messages.
  **/
 gboolean
@@ -530,9 +530,9 @@ lightdm_user_get_has_messages (LightDMUser *user)
 /**
  * lightdm_user_get_uid:
  * @user: A #LightDMUser
- * 
+ *
  * Get the uid of a user.
- * 
+ *
  * Return value: The uid of the given user
  **/
 uid_t

@@ -531,7 +531,7 @@ handle_command (const gchar *command)
         const gchar *id, *v;
         Login1Seat *seat;
 
-        id = g_hash_table_lookup (params, "ID");      
+        id = g_hash_table_lookup (params, "ID");
         seat = add_login1_seat (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL), id, TRUE);
         v = g_hash_table_lookup (params, "CAN-GRAPHICAL");
         if (v)
@@ -544,7 +544,7 @@ handle_command (const gchar *command)
     {
         Login1Seat *seat;
         const gchar *id;
-      
+
         id = g_hash_table_lookup (params, "ID");
         seat = find_login1_seat (id);
         if (seat)
@@ -1330,7 +1330,7 @@ handle_ck_session_call (GDBusConnection       *connection,
     CKSession *session = user_data;
 
     if (strcmp (method_name, "Lock") == 0)
-    { 
+    {
         if (!session->locked)
             check_status ("CONSOLE-KIT LOCK-SESSION");
         session->locked = TRUE;
@@ -1585,7 +1585,7 @@ remove_login1_seat (GDBusConnection *connection, const gchar *id)
     if (error)
         g_warning ("Failed to emit SeatNew: %s", error->message);
     g_clear_error (&error);
-  
+
     login1_seats = g_list_remove (login1_seats, seat);
     g_free (seat->id);
     g_free (seat->path);
@@ -1930,7 +1930,7 @@ get_accounts_user_by_uid (guint uid)
         if (u->uid == uid)
             return u;
     }
-  
+
     return NULL;
 }
 
@@ -2491,7 +2491,7 @@ main (int argc, char **argv)
         if (!g_file_test (temp_dir, G_FILE_TEST_EXISTS))
             break;
         i++;
-    }  
+    }
     g_mkdir_with_parents (temp_dir, 0755);
     g_setenv ("LIGHTDM_TEST_ROOT", temp_dir, TRUE);
 
