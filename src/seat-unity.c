@@ -107,7 +107,7 @@ compositor_ready_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
             result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
             if (error)
                 l_debug (seat, "Error getting key %s", error->message);
-            g_clear_error (&error);      
+            g_clear_error (&error);
 
             if (result)
             {
@@ -216,7 +216,7 @@ create_x_server (Seat *seat)
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)
         x_server_local_set_layout (x_server, layout);
-    
+
     x_server_local_set_xdg_seat (x_server, seat_get_name (seat));
 
     config_file = seat_get_string_property (seat, "xserver-config");
@@ -242,9 +242,9 @@ create_mir_server (Seat *seat)
 
 static DisplayServer *
 seat_unity_create_display_server (Seat *seat, Session *session)
-{  
+{
     const gchar *session_type;
-  
+
     session_type = session_get_session_type (session);
     if (strcmp (session_type, "x") == 0)
         return DISPLAY_SERVER (create_x_server (seat));

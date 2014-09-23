@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -155,7 +155,7 @@ send_packet (GSocket *socket, GSocketAddress *address, XDMCPPacket *packet)
     gssize n_written;
 
     g_debug ("Send %s", xdmcp_packet_tostring (packet));
-              
+
     n_written = xdmcp_packet_encode (packet, data, 1024);
     if (n_written < 0)
       g_critical ("Failed to encode XDMCP packet");
@@ -215,7 +215,7 @@ handle_query (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XDM
         else
             response->Unwilling.status = g_strdup ("Server does not support authentication");
     }
-  
+
     send_packet (socket, address, response);
 
     xdmcp_packet_free (response);
@@ -325,7 +325,7 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
         xdmcp_packet_free (response);
         return;
     }
-  
+
     /* Must be using our authentication scheme */
     if (strcmp (packet->Request.authentication_name, get_authentication_name (server)) != 0)
     {
@@ -572,7 +572,7 @@ read_cb (GSocket *socket, GIOCondition condition, XDMCPServer *server)
 
         packet = xdmcp_packet_decode ((guint8 *)data, n_read);
         if (packet)
-        {        
+        {
             g_debug ("Got %s", xdmcp_packet_tostring (packet));
 
             switch (packet->opcode)
@@ -586,7 +586,7 @@ read_cb (GSocket *socket, GIOCondition condition, XDMCPServer *server)
                 handle_request (server, socket, address, packet);
                 break;
             case XDMCP_Manage:
-                handle_manage (server, socket, address, packet);              
+                handle_manage (server, socket, address, packet);
                 break;
             case XDMCP_KeepAlive:
                 handle_keep_alive (server, socket, address, packet);
@@ -609,7 +609,7 @@ open_udp_socket (GSocketFamily family, guint port, GError **error)
     GSocket *socket;
     GSocketAddress *address;
     gboolean result;
-  
+
     socket = g_socket_new (family, G_SOCKET_TYPE_DATAGRAM, G_SOCKET_PROTOCOL_UDP, error);
     if (!socket)
         return NULL;
@@ -632,19 +632,19 @@ xdmcp_server_start (XDMCPServer *server)
     GError *error = NULL;
 
     g_return_val_if_fail (server != NULL, FALSE);
-  
+
     server->priv->socket = open_udp_socket (G_SOCKET_FAMILY_IPV4, server->priv->port, &error);
     if (error)
         g_warning ("Failed to create IPv4 XDMCP socket: %s", error->message);
     g_clear_error (&error);
-  
+
     if (server->priv->socket)
     {
         source = g_socket_create_source (server->priv->socket, G_IO_IN, NULL);
         g_source_set_callback (source, (GSourceFunc) read_cb, server, NULL);
         g_source_attach (source, NULL);
     }
-    
+
     server->priv->socket6 = open_udp_socket (G_SOCKET_FAMILY_IPV6, server->priv->port, &error);
     if (error)
         g_warning ("Failed to create IPv6 XDMCP socket: %s", error->message);
@@ -680,7 +680,7 @@ xdmcp_server_finalize (GObject *object)
     XDMCPServer *self;
 
     self = XDMCP_SERVER (object);
-  
+
     if (self->priv->socket)
         g_object_unref (self->priv->socket);
     if (self->priv->socket6)
@@ -689,8 +689,8 @@ xdmcp_server_finalize (GObject *object)
     g_free (self->priv->status);
     g_free (self->priv->key);
     g_hash_table_unref (self->priv->sessions);
-  
-    G_OBJECT_CLASS (xdmcp_server_parent_class)->finalize (object);  
+
+    G_OBJECT_CLASS (xdmcp_server_parent_class)->finalize (object);
 }
 
 static void
@@ -698,7 +698,7 @@ xdmcp_server_class_init (XDMCPServerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->finalize = xdmcp_server_finalize;  
+    object_class->finalize = xdmcp_server_finalize;
 
     g_type_class_add_private (klass, sizeof (XDMCPServerPrivate));
 

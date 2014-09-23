@@ -2,7 +2,7 @@
  *
  * Copyright (C) 2010 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
  * Software Foundation; either version 2 or version 3 of the License.
@@ -117,7 +117,7 @@ lightdm_get_layouts (void)
     display = XOpenDisplay (NULL);
     if (display == NULL)
         return NULL;
-    
+
     xkl_engine = xkl_engine_get_instance (display);
     xkl_config = xkl_config_rec_new ();
     if (!xkl_config_rec_get_from_server (xkl_config, xkl_engine))
@@ -203,9 +203,9 @@ lightdm_get_layout (void)
 /**
  * lightdm_layout_get_name:
  * @layout: A #LightDMLayout
- * 
+ *
  * Get the name of a layout.
- * 
+ *
  * Return value: The name of the layout
  **/
 const gchar *
@@ -218,7 +218,7 @@ lightdm_layout_get_name (LightDMLayout *layout)
 /**
  * lightdm_layout_get_short_description:
  * @layout: A #LightDMLayout
- * 
+ *
  * Get the short description of a layout.
  *
  * Return value: A short description of the layout
@@ -233,9 +233,9 @@ lightdm_layout_get_short_description (LightDMLayout *layout)
 /**
  * lightdm_layout_get_description:
  * @layout: A #LightDMLayout
- * 
+ *
  * Get the long description of a layout.
- * 
+ *
  * Return value: A long description of the layout
  **/
 const gchar *
@@ -308,7 +308,7 @@ static void
 lightdm_layout_class_init (LightDMLayoutClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-  
+
     g_type_class_add_private (klass, sizeof (LightDMLayoutPrivate));
 
     object_class->set_property = lightdm_layout_set_property;

@@ -569,7 +569,7 @@ emit_object_value_changed (GDBusConnection *bus, const gchar *path, const gchar 
                                         g_variant_new ("(sa{sv}as)", interface_name, &builder, NULL),
                                         &error))
         g_warning ("Failed to emit PropertiesChanged signal: %s", error->message);
-    g_clear_error (&error); 
+    g_clear_error (&error);
 }
 
 static void
@@ -585,7 +585,7 @@ emit_object_signal (GDBusConnection *bus, const gchar *path, const gchar *signal
                                         g_variant_new ("(o)", object_path),
                                         &error))
         g_warning ("Failed to emit %s signal on %s: %s", signal_name, path, error->message);
-    g_clear_error (&error); 
+    g_clear_error (&error);
 }
 
 static void
@@ -1001,7 +1001,7 @@ add_login1_seat (Login1Seat *login1_seat)
 
     g_free (config_section);
     g_object_unref (seat);
-  
+
     return started;
 }
 

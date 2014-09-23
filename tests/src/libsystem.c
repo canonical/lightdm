@@ -346,7 +346,7 @@ stat (const char *path, struct stat *buf)
     int (*_stat) (const char *path, struct stat *buf);
     gchar *new_path = NULL;
     int ret;
-  
+
     _stat = (int (*)(const char *path, struct stat *buf)) dlsym (RTLD_NEXT, "stat");
 
     new_path = redirect_path (path);
@@ -378,7 +378,7 @@ __xstat (int version, const char *path, struct stat *buf)
     int (*___xstat) (int version, const char *path, struct stat *buf);
     gchar *new_path = NULL;
     int ret;
-  
+
     ___xstat = (int (*)(int version, const char *path, struct stat *buf)) dlsym (RTLD_NEXT, "__xstat");
 
     new_path = redirect_path (path);
@@ -394,7 +394,7 @@ __xstat64 (int version, const char *path, struct stat64 *buf)
     int (*___xstat64) (int version, const char *path, struct stat64 *buf);
     gchar *new_path = NULL;
     int ret;
-  
+
     ___xstat64 = (int (*)(int version, const char *path, struct stat64 *buf)) dlsym (RTLD_NEXT, "__xstat64");
 
     new_path = redirect_path (path);
@@ -410,7 +410,7 @@ __fxstatat(int ver, int dirfd, const char *pathname, struct stat *buf, int flags
     int (*___fxstatat) (int ver, int dirfd, const char *pathname, struct stat *buf, int flags);
     gchar *new_path = NULL;
     int ret;
-  
+
     ___fxstatat = (int (*)(int ver, int dirfd, const char *pathname, struct stat *buf, int flags)) dlsym (RTLD_NEXT, "__fxstatat");
 
     new_path = redirect_path (pathname);
@@ -426,7 +426,7 @@ __fxstatat64(int ver, int dirfd, const char *pathname, struct stat64 *buf, int f
     int (*___fxstatat64) (int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags);
     gchar *new_path = NULL;
     int ret;
-  
+
     ___fxstatat64 = (int (*)(int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags)) dlsym (RTLD_NEXT, "__fxstatat64");
 
     new_path = redirect_path (pathname);
@@ -449,7 +449,7 @@ opendir (const char *name)
     result = _opendir (new_path);
     g_free (new_path);
 
-    return result; 
+    return result;
 }
 
 int
@@ -556,7 +556,7 @@ static void
 free_user (gpointer data)
 {
     struct passwd *entry = data;
-  
+
     g_free (entry->pw_name);
     g_free (entry->pw_passwd);
     g_free (entry->pw_gecos);
@@ -649,10 +649,10 @@ struct passwd *
 getpwnam (const char *name)
 {
     GList *link;
-  
+
     if (name == NULL)
         return NULL;
-  
+
     load_passwd_file ();
 
     for (link = user_entries; link; link = link->next)
@@ -690,7 +690,7 @@ static void
 free_group (gpointer data)
 {
     struct group *entry = data;
-  
+
     g_free (entry->gr_name);
     g_free (entry->gr_passwd);
     g_strfreev (entry->gr_mem);
@@ -847,7 +847,7 @@ pam_authenticate (pam_handle_t *pamh, int flags)
         status_notify ("%s", status->str);
         g_string_free (status, TRUE);
     }
-  
+
     if (strcmp (pamh->service_name, "test-remote") == 0)
     {
         int result;
@@ -856,7 +856,7 @@ pam_authenticate (pam_handle_t *pamh, int flags)
 
         msg = malloc (sizeof (struct pam_message *) * 1);
         msg[0] = malloc (sizeof (struct pam_message));
-        msg[0]->msg_style = PAM_PROMPT_ECHO_ON; 
+        msg[0]->msg_style = PAM_PROMPT_ECHO_ON;
         msg[0]->msg = "remote-login:";
         result = pamh->conversation.conv (1, (const struct pam_message **) msg, &resp, pamh->conversation.appdata_ptr);
         free (msg[0]);
@@ -919,7 +919,7 @@ pam_authenticate (pam_handle_t *pamh, int flags)
 
         msg = malloc (sizeof (struct pam_message *) * 1);
         msg[0] = malloc (sizeof (struct pam_message));
-        msg[0]->msg_style = PAM_PROMPT_ECHO_ON; 
+        msg[0]->msg_style = PAM_PROMPT_ECHO_ON;
         msg[0]->msg = LOGIN_PROMPT;
         result = pamh->conversation.conv (1, (const struct pam_message **) msg, &resp, pamh->conversation.appdata_ptr);
         free (msg[0]);
@@ -934,7 +934,7 @@ pam_authenticate (pam_handle_t *pamh, int flags)
             free (resp);
             return PAM_CONV_ERR;
         }
-      
+
         pamh->user = strdup (resp[0].resp);
         free (resp[0].resp);
         free (resp);
@@ -1072,7 +1072,7 @@ static const char *
 get_env_value (const char *name_value, const char *name)
 {
     int j;
-  
+
     for (j = 0; name[j] && name_value[j] && name[j] == name_value[j]; j++);
     if (name[j] == '\0' && name_value[j] == '=')
         return &name_value[j + 1];
@@ -1167,13 +1167,13 @@ pam_get_item (const pam_handle_t *pamh, int item_type, const void **item)
 {
     if (pamh == NULL || item == NULL)
         return PAM_SYSTEM_ERR;
-  
+
     switch (item_type)
     {
     case PAM_SERVICE:
         *item = pamh->service_name;
         return PAM_SUCCESS;
-      
+
     case PAM_USER:
         *item = pamh->user;
         return PAM_SUCCESS;
@@ -1185,11 +1185,11 @@ pam_get_item (const pam_handle_t *pamh, int item_type, const void **item)
     case PAM_RUSER:
         *item = pamh->ruser;
         return PAM_SUCCESS;
-     
+
     case PAM_USER_PROMPT:
         *item = LOGIN_PROMPT;
         return PAM_SUCCESS;
-      
+
     case PAM_TTY:
         *item = pamh->tty;
         return PAM_SUCCESS;
@@ -1310,7 +1310,7 @@ pam_acct_mgmt (pam_handle_t *pamh, int flags)
         status_notify ("%s", status->str);
         g_string_free (status, TRUE);
     }
-  
+
     if (!pamh->user)
         return PAM_USER_UNKNOWN;
 
@@ -1666,7 +1666,7 @@ xcb_connect_to_display_with_auth_info (const char *display, xcb_auth_info_t *aut
     xcb_connection_t *c;
     gchar *socket_path;
     GError *error = NULL;
-  
+
     c = malloc (sizeof (xcb_connection_t));
     c->display = g_strdup (display);
     c->error = 0;

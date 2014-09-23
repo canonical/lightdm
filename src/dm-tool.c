@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -76,7 +76,7 @@ get_seat_proxy (void)
 
     if (seat_proxy)
         return seat_proxy;
-  
+
     if (!g_getenv ("XDG_SEAT_PATH"))
     {
         g_printerr ("Not running inside a display manager, XDG_SEAT_PATH not defined\n");
@@ -97,7 +97,7 @@ get_seat_proxy (void)
         exit (EXIT_FAILURE);
     }
     g_clear_error (&error);
-  
+
     return seat_proxy;
 }
 
@@ -120,7 +120,7 @@ main (int argc, char **argv)
 
         if (!g_str_has_prefix (arg, "-"))
             break;
-      
+
         if (strcmp (arg, "-h") == 0 || strcmp (arg, "--help") == 0)
         {
             g_printerr ("Usage:\n"
@@ -179,7 +179,7 @@ main (int argc, char **argv)
         return EXIT_FAILURE;
     }
     g_clear_error (&error);
-  
+
     command = argv[arg_index];
     arg_index++;
     n_options = argc - arg_index;
@@ -429,7 +429,7 @@ main (int argc, char **argv)
             lock_name = g_strdup_printf ("/tmp/.X%d-lock", xephyr_display_number);
             has_lock = g_file_test (lock_name, G_FILE_TEST_EXISTS);
             g_free (lock_name);
-          
+
             if (has_lock)
                 xephyr_display_number++;
             else
@@ -445,11 +445,11 @@ main (int argc, char **argv)
         }
         else if (strcmp (dimensions, "fullscreen") == 0)
         {
-            xephyr_command = g_strdup_printf ("Xephyr :%d -fullscreen", xephyr_display_number);   
+            xephyr_command = g_strdup_printf ("Xephyr :%d -fullscreen", xephyr_display_number);
         }
         else
         {
-            xephyr_command = g_strdup_printf ("Xephyr :%d -screen %s", xephyr_display_number, dimensions); 
+            xephyr_command = g_strdup_printf ("Xephyr :%d -screen %s", xephyr_display_number, dimensions);
         }
         if (!g_shell_parse_argv (xephyr_command, NULL, &xephyr_argv, &error) ||
             !g_spawn_async (NULL, xephyr_argv, NULL,
@@ -503,7 +503,7 @@ main (int argc, char **argv)
         g_variant_get (result, "(&o)", &path);
         g_print ("%s\n", path);
 
-        return EXIT_SUCCESS; 
+        return EXIT_SUCCESS;
     }
     else if (strcmp (command, "add-seat") == 0)
     {
@@ -521,7 +521,7 @@ main (int argc, char **argv)
 
         type = options[0];
         properties = g_variant_builder_new (G_VARIANT_TYPE ("a(ss)"));
-      
+
         for (i = 1; i < n_options; i++)
         {
             gchar *property, *name, *value;
@@ -540,7 +540,7 @@ main (int argc, char **argv)
             g_variant_builder_add_value (properties, g_variant_new ("(ss)", name, value));
             g_free (property);
         }
-      
+
         result = g_dbus_proxy_call_sync (dm_proxy,
                                          "AddSeat",
                                          g_variant_new ("(sa(ss))", type, properties),

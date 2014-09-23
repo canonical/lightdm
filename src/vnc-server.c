@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -82,7 +82,7 @@ open_tcp_socket (GSocketFamily family, guint port, GError **error)
 {
     GSocket *socket;
     GSocketAddress *address;
-  
+
     socket = g_socket_new (family, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_TCP, error);
     if (!socket)
         return NULL;
@@ -105,19 +105,19 @@ vnc_server_start (VNCServer *server)
     GError *error = NULL;
 
     g_return_val_if_fail (server != NULL, FALSE);
-  
+
     server->priv->socket = open_tcp_socket (G_SOCKET_FAMILY_IPV4, server->priv->port, &error);
     if (error)
         g_warning ("Failed to create IPv4 VNC socket: %s", error->message);
     g_clear_error (&error);
-  
+
     if (server->priv->socket)
     {
         source = g_socket_create_source (server->priv->socket, G_IO_IN, NULL);
         g_source_set_callback (source, (GSourceFunc) read_cb, server, NULL);
         g_source_attach (source, NULL);
     }
-    
+
     server->priv->socket6 = open_tcp_socket (G_SOCKET_FAMILY_IPV6, server->priv->port, &error);
     if (error)
         g_warning ("Failed to create IPv6 VNC socket: %s", error->message);
@@ -149,13 +149,13 @@ vnc_server_finalize (GObject *object)
     VNCServer *self;
 
     self = VNC_SERVER (object);
-  
+
     if (self->priv->socket)
         g_object_unref (self->priv->socket);
     if (self->priv->socket6)
         g_object_unref (self->priv->socket6);
-  
-    G_OBJECT_CLASS (vnc_server_parent_class)->finalize (object);  
+
+    G_OBJECT_CLASS (vnc_server_parent_class)->finalize (object);
 }
 
 static void
@@ -163,7 +163,7 @@ vnc_server_class_init (VNCServerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->finalize = vnc_server_finalize;  
+    object_class->finalize = vnc_server_finalize;
 
     g_type_class_add_private (klass, sizeof (VNCServerPrivate));
 

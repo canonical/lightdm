@@ -99,8 +99,8 @@ struct SessionPrivate
     /* Console kit cookie */
     gchar *console_kit_cookie;
 
-    /* login1 session */
-    gchar *login1_session;
+    /* login1 session ID */
+    gchar *login1_session_id;
 
     /* Environment to set in child */
     GList *env;
@@ -310,7 +310,7 @@ session_get_env (Session *session, const gchar *name)
     link = find_env_entry (session, name);
     if (!link)
         return NULL;
-  
+
     entry = link->data;
 
     return entry + strlen (name) + 1;
@@ -322,7 +322,7 @@ session_unset_env (Session *session, const gchar *name)
     GList *link;
 
     g_return_if_fail (session != NULL);
-  
+
     link = find_env_entry (session, name);
     if (!link)
         return;
@@ -805,7 +805,7 @@ session_real_run (Session *session)
     for (i = 0; i < argc; i++)
         write_string (session, session->priv->argv[i]);
 
-    session->priv->login1_session = read_string_from_child (session);
+    session->priv->login1_session_id = read_string_from_child (session);
     session->priv->console_kit_cookie = read_string_from_child (session);
 }
 
@@ -815,8 +815,8 @@ session_lock (Session *session)
     g_return_if_fail (session != NULL);
     if (getuid () == 0)
     {
-        if (session->priv->login1_session)
-            login1_service_lock_session (login1_service_get_instance (), session->priv->login1_session);
+        if (session->priv->login1_session_id)
+            login1_service_lock_session (login1_service_get_instance (), session->priv->login1_session_id);
         else if (session->priv->console_kit_cookie)
             ck_lock_session (session->priv->console_kit_cookie);
     }
@@ -828,8 +828,8 @@ session_unlock (Session *session)
     g_return_if_fail (session != NULL);
     if (getuid () == 0)
     {
-        if (session->priv->login1_session)
-            login1_service_unlock_session (login1_service_get_instance (), session->priv->login1_session);
+        if (session->priv->login1_session_id)
+            login1_service_unlock_session (login1_service_get_instance (), session->priv->login1_session_id);
         else if (session->priv->console_kit_cookie)
             ck_unlock_session (session->priv->console_kit_cookie);
     }
@@ -841,8 +841,8 @@ session_activate (Session *session)
     g_return_if_fail (session != NULL);
     if (getuid () == 0)
     {
-        if (session->priv->login1_session)
-            login1_service_activate_session (login1_service_get_instance (), session->priv->login1_session);
+        if (session->priv->login1_session_id)
+            login1_service_activate_session (login1_service_get_instance (), session->priv->login1_session_id);
         else if (session->priv->console_kit_cookie)
             ck_activate_session (session->priv->console_kit_cookie);
     }
@@ -937,7 +937,7 @@ session_finalize (GObject *object)
     if (self->priv->x_authority)
         g_object_unref (self->priv->x_authority);
     g_free (self->priv->remote_host_name);
-    g_free (self->priv->login1_session);
+    g_free (self->priv->login1_session_id);
     g_free (self->priv->console_kit_cookie);
     g_list_free_full (self->priv->env, g_free);
     g_strfreev (self->priv->argv);

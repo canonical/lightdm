@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -28,7 +28,7 @@ G_DEFINE_TYPE (MirServer, mir_server, DISPLAY_SERVER_TYPE);
 
 MirServer *mir_server_new (void)
 {
-    return g_object_new (MIR_SERVER_TYPE, NULL);  
+    return g_object_new (MIR_SERVER_TYPE, NULL);
 }
 
 void

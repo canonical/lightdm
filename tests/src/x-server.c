@@ -37,7 +37,7 @@ struct XServerPrivate
 struct XClientPrivate
 {
     XServer *server;
-    GSocket *socket;  
+    GSocket *socket;
     GIOChannel *channel;
 };
 
@@ -52,7 +52,7 @@ void
 x_client_send_failed (XClient *client, const gchar *reason)
 {
     gchar *message;
-  
+
     message = g_strdup_printf ("FAILED:%s", reason);
     errno = 0;
     if (send (g_io_channel_unix_get_fd (client->priv->channel), message, strlen (message), 0) != strlen (message))
@@ -60,7 +60,7 @@ x_client_send_failed (XClient *client, const gchar *reason)
     g_free (message);
 }
 
-void 
+void
 x_client_send_success (XClient *client)
 {
     gchar *message;

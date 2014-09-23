@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -20,7 +20,7 @@ get_setup_script (void)
 {
     gchar *script;
     static gchar *setup_script = NULL;
-  
+
     if (setup_script)
         return setup_script;
 
@@ -30,7 +30,7 @@ get_setup_script (void)
 
     setup_script = g_find_program_in_path (script);
     g_free (script);
-  
+
     return setup_script;
 }
 
@@ -55,7 +55,7 @@ run_script (const gchar *script, gchar **stdout_text, gint *exit_status, GError 
                            NULL, NULL,
                            stdout_text, NULL, exit_status, error);
     g_strfreev (argv);
-  
+
     return result;
 }
 
@@ -98,7 +98,7 @@ guest_account_setup (void)
         g_debug ("Guest account setup script didn't return a username");
         return NULL;
     }
-  
+
     g_debug ("Guest account %s setup", username);
 
     return username;

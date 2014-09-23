@@ -137,7 +137,7 @@ xdmcp_accept_cb (XDMCPClient *client, XDMCPAccept *message)
 static void
 xdmcp_decline_cb (XDMCPClient *client, XDMCPDecline *message)
 {
-    status_notify ("%s GOT-DECLINE STATUS=\"%s\" AUTHENTICATION-NAME=\"%s\"", id, message->status, message->authentication_name);  
+    status_notify ("%s GOT-DECLINE STATUS=\"%s\" AUTHENTICATION-NAME=\"%s\"", id, message->status, message->authentication_name);
 }
 
 static void
@@ -155,8 +155,8 @@ client_connected_cb (XServer *server, XClient *client)
 
 static void
 client_disconnected_cb (XServer *server, XClient *client)
-{  
-    g_signal_handlers_disconnect_matched (client, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, NULL);  
+{
+    g_signal_handlers_disconnect_matched (client, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, NULL);
 }
 
 static void
@@ -367,7 +367,7 @@ main (int argc, char **argv)
                 gchar *socket_path;
 
                 socket_dir = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", ".X11-unix", NULL);
-                g_mkdir_with_parents (socket_dir, 0755);                
+                g_mkdir_with_parents (socket_dir, 0755);
 
                 socket_filename = g_strdup_printf ("X%d", display_number);
                 socket_path = g_build_filename (socket_dir, socket_filename, NULL);
@@ -415,7 +415,7 @@ main (int argc, char **argv)
             xdmcp_client_set_hostname (xdmcp_client, xdmcp_host);
         if (xdmcp_port > 0)
             xdmcp_client_set_port (xdmcp_client, xdmcp_port);
-        g_signal_connect (xdmcp_client, "query", G_CALLBACK (xdmcp_query_cb), NULL);      
+        g_signal_connect (xdmcp_client, "query", G_CALLBACK (xdmcp_query_cb), NULL);
         g_signal_connect (xdmcp_client, "willing", G_CALLBACK (xdmcp_willing_cb), NULL);
         g_signal_connect (xdmcp_client, "accept", G_CALLBACK (xdmcp_accept_cb), NULL);
         g_signal_connect (xdmcp_client, "decline", G_CALLBACK (xdmcp_decline_cb), NULL);

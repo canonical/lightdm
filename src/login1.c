@@ -227,11 +227,11 @@ signal_cb (GDBusConnection *connection,
         seat = login1_service_get_seat (service, id);
         if (seat)
         {
-            service->priv->seats = g_list_remove (service->priv->seats, seat);            
+            service->priv->seats = g_list_remove (service->priv->seats, seat);
             g_signal_emit (service, service_signals[SEAT_REMOVED], 0, seat);
             g_object_unref (seat);
-        }                        
-    } 
+        }
+    }
 }
 
 gboolean

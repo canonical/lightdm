@@ -93,7 +93,7 @@ read_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     if (n_read != payload_length)
     {
         g_printerr ("Short read for payload, %zi instead of expected %d\n", n_read, payload_length);
-        return FALSE;      
+        return FALSE;
     }
 
     switch (id)
