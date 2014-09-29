@@ -110,7 +110,7 @@ seat_xlocal_start (Seat *seat)
             g_key_file_free (keys);
         }
 
-        g_signal_connect (s->priv->xdmcp_x_server, "stopped", G_CALLBACK (xdmcp_x_server_stopped_cb), seat);
+        g_signal_connect (s->priv->xdmcp_x_server, DISPLAY_SERVER_SIGNAL_STOPPED, G_CALLBACK (xdmcp_x_server_stopped_cb), seat);
         return display_server_start (DISPLAY_SERVER (s->priv->xdmcp_x_server));
     }
 
@@ -150,8 +150,8 @@ get_vt (Seat *seat, DisplayServer *display_server)
         if (active_vt >= vt_get_min ())
         {
             vt = active_vt;
-            g_signal_connect (display_server, "ready", G_CALLBACK (display_server_ready_cb), seat);
-            g_signal_connect (display_server, "stopped", G_CALLBACK (display_server_transition_plymouth_cb), seat);
+            g_signal_connect (display_server, DISPLAY_SERVER_SIGNAL_READY, G_CALLBACK (display_server_ready_cb), seat);
+            g_signal_connect (display_server, DISPLAY_SERVER_SIGNAL_STOPPED, G_CALLBACK (display_server_transition_plymouth_cb), seat);
             plymouth_deactivate ();
         }
         else

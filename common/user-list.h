@@ -32,6 +32,12 @@ G_BEGIN_DECLS
 #define COMMON_IS_USER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), COMMON_TYPE_USER))
 #define COMMON_USER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), COMMON_TYPE_USER, CommonUserClass))
 
+#define USER_LIST_SIGNAL_USER_ADDED   "user-added"
+#define USER_LIST_SIGNAL_USER_CHANGED "user-changed"
+#define USER_LIST_SIGNAL_USER_REMOVED "user-removed"
+
+#define USER_SIGNAL_CHANGED "changed"
+
 typedef struct
 {
     GObject parent_instance;

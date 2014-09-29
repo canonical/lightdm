@@ -111,7 +111,7 @@ display_manager_add_seat (DisplayManager *manager, Seat *seat)
         return FALSE;
 
     manager->priv->seats = g_list_append (manager->priv->seats, g_object_ref (seat));
-    g_signal_connect (seat, "stopped", G_CALLBACK (seat_stopped_cb), manager);
+    g_signal_connect (seat, SEAT_SIGNAL_STOPPED, G_CALLBACK (seat_stopped_cb), manager);
     g_signal_emit (manager, signals[SEAT_ADDED], 0, seat);
 
     return TRUE;
@@ -195,7 +195,7 @@ display_manager_class_init (DisplayManagerClass *klass)
     g_type_class_add_private (klass, sizeof (DisplayManagerPrivate));
 
     signals[SEAT_ADDED] =
-        g_signal_new ("seat-added",
+        g_signal_new (DISPLAY_MANAGER_SIGNAL_SEAT_ADDED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayManagerClass, seat_added),
@@ -203,7 +203,7 @@ display_manager_class_init (DisplayManagerClass *klass)
                       NULL,
                       G_TYPE_NONE, 1, SEAT_TYPE);
     signals[SEAT_REMOVED] =
-        g_signal_new ("seat-removed",
+        g_signal_new (DISPLAY_MANAGER_SIGNAL_SEAT_REMOVED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayManagerClass, seat_removed),
@@ -211,7 +211,7 @@ display_manager_class_init (DisplayManagerClass *klass)
                       NULL,
                       G_TYPE_NONE, 1, SEAT_TYPE);
     signals[STOPPED] =
-        g_signal_new ("stopped",
+        g_signal_new (DISPLAY_MANAGER_SIGNAL_STOPPED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayManagerClass, stopped),

@@ -29,6 +29,12 @@ G_BEGIN_DECLS
 #define LIGHTDM_IS_USER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LIGHTDM_TYPE_USER))
 #define LIGHTDM_USER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LIGHTDM_TYPE_USER, LightDMUserClass))
 
+#define LIGHTDM_USER_LIST_SIGNAL_USER_ADDED   "user-added"
+#define LIGHTDM_USER_LIST_SIGNAL_USER_CHANGED "user-changed"
+#define LIGHTDM_USER_LIST_SIGNAL_USER_REMOVED "user-removed"
+
+#define LIGHTDM_SIGNAL_USER_CHANGED "changed"
+
 typedef struct
 {
     GObject parent_instance;

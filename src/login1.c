@@ -451,7 +451,7 @@ login1_service_class_init (Login1ServiceClass *klass)
     g_type_class_add_private (klass, sizeof (Login1ServicePrivate));
 
     service_signals[SEAT_ADDED] =
-        g_signal_new ("seat-added",
+        g_signal_new (LOGIN1_SERVICE_SIGNAL_SEAT_ADDED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (Login1ServiceClass, seat_added),
@@ -459,7 +459,7 @@ login1_service_class_init (Login1ServiceClass *klass)
                       NULL,
                       G_TYPE_NONE, 1, LOGIN1_SEAT_TYPE);
     service_signals[SEAT_REMOVED] =
-        g_signal_new ("seat-removed",
+        g_signal_new (LOGIN1_SERVICE_SIGNAL_SEAT_REMOVED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (Login1ServiceClass, seat_removed),
@@ -518,7 +518,7 @@ login1_seat_class_init (Login1SeatClass *klass)
     g_type_class_add_private (klass, sizeof (Login1SeatPrivate));
 
     seat_signals[CAN_GRAPHICAL_CHANGED] =
-        g_signal_new ("can-graphical-changed",
+        g_signal_new (LOGIN1_SEAT_SIGNAL_CAN_GRAPHICAL_CHANGED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (Login1SeatClass, can_graphical_changed),

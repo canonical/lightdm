@@ -127,7 +127,7 @@ compositor_ready_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
             g_key_file_free (keys);
         }
 
-        g_signal_connect (seat->priv->xdmcp_x_server, "stopped", G_CALLBACK (xdmcp_x_server_stopped_cb), seat);
+        g_signal_connect (seat->priv->xdmcp_x_server, DISPLAY_SERVER_SIGNAL_STOPPED, G_CALLBACK (xdmcp_x_server_stopped_cb), seat);
         if (!display_server_start (DISPLAY_SERVER (seat->priv->xdmcp_x_server)))
             seat_stop (SEAT (seat));
     }
@@ -182,8 +182,8 @@ seat_unity_start (Seat *seat)
         timeout = 60;
 
     SEAT_UNITY (seat)->priv->compositor = unity_system_compositor_new ();
-    g_signal_connect (SEAT_UNITY (seat)->priv->compositor, "ready", G_CALLBACK (compositor_ready_cb), seat);
-    g_signal_connect (SEAT_UNITY (seat)->priv->compositor, "stopped", G_CALLBACK (compositor_stopped_cb), seat);
+    g_signal_connect (SEAT_UNITY (seat)->priv->compositor, DISPLAY_SERVER_SIGNAL_READY, G_CALLBACK (compositor_ready_cb), seat);
+    g_signal_connect (SEAT_UNITY (seat)->priv->compositor, DISPLAY_SERVER_SIGNAL_STOPPED, G_CALLBACK (compositor_stopped_cb), seat);
     unity_system_compositor_set_command (SEAT_UNITY (seat)->priv->compositor, seat_get_string_property (SEAT (seat), "unity-compositor-command"));
     unity_system_compositor_set_vt (SEAT_UNITY (seat)->priv->compositor, vt);
     unity_system_compositor_set_timeout (SEAT_UNITY (seat)->priv->compositor, timeout);

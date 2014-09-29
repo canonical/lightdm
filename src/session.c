@@ -958,7 +958,7 @@ session_class_init (SessionClass *klass)
     g_type_class_add_private (klass, sizeof (SessionPrivate));
 
     signals[GOT_MESSAGES] =
-        g_signal_new ("got-messages",
+        g_signal_new (SESSION_SIGNAL_GOT_MESSAGES,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SessionClass, got_messages),
@@ -967,7 +967,7 @@ session_class_init (SessionClass *klass)
                       G_TYPE_NONE, 0);
 
     signals[AUTHENTICATION_COMPLETE] =
-        g_signal_new ("authentication-complete",
+        g_signal_new (SESSION_SIGNAL_AUTHENTICATION_COMPLETE,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SessionClass, authentication_complete),
@@ -976,7 +976,7 @@ session_class_init (SessionClass *klass)
                       G_TYPE_NONE, 0);
 
     signals[STOPPED] =
-        g_signal_new ("stopped",
+        g_signal_new (SESSION_SIGNAL_STOPPED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (SessionClass, stopped),
