@@ -1,3 +1,5 @@
 04_language_handling.patch
 05_translate_debian_files.patch
 06_apparmor-unix.patch
+07_apparmor-chrome.patch
+08_apparmor-updates.patch
