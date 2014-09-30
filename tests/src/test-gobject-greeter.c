@@ -407,7 +407,7 @@ connect_finished (GObject *object, GAsyncResult *result, gpointer data)
 int
 main (int argc, char **argv)
 {
-    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie, *xdg_session_class, *mir_socket, *mir_vt, *mir_id, *path;
+    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_class, *mir_socket, *mir_vt, *mir_id, *path;
     GString *status_text;
 
 #if !defined(GLIB_VERSION_2_36)
@@ -417,7 +417,6 @@ main (int argc, char **argv)
     display = getenv ("DISPLAY");
     xdg_seat = getenv ("XDG_SEAT");
     xdg_vtnr = getenv ("XDG_VTNR");
-    xdg_session_cookie = getenv ("XDG_SESSION_COOKIE");
     xdg_session_class = getenv ("XDG_SESSION_CLASS");
     mir_socket = getenv ("MIR_SOCKET");
     mir_vt = getenv ("MIR_SERVER_VT");
@@ -449,8 +448,6 @@ main (int argc, char **argv)
         g_string_append_printf (status_text, " XDG_SEAT=%s", xdg_seat);
     if (xdg_vtnr)
         g_string_append_printf (status_text, " XDG_VTNR=%s", xdg_vtnr);
-    if (xdg_session_cookie)
-        g_string_append_printf (status_text, " XDG_SESSION_COOKIE=%s", xdg_session_cookie);
     if (xdg_session_class)
         g_string_append_printf (status_text, " XDG_SESSION_CLASS=%s", xdg_session_class);
     if (mir_vt > 0)

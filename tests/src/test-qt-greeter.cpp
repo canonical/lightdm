@@ -245,7 +245,7 @@ request_cb (const gchar *name, GHashTable *params)
 int
 main(int argc, char *argv[])
 {
-    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie, *xdg_session_class;
+    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_class;
     GString *status_text;   
 
 #if !defined(GLIB_VERSION_2_36)
@@ -255,7 +255,6 @@ main(int argc, char *argv[])
     display = getenv ("DISPLAY");
     xdg_seat = getenv ("XDG_SEAT");
     xdg_vtnr = getenv ("XDG_VTNR");
-    xdg_session_cookie = getenv ("XDG_SESSION_COOKIE");
     xdg_session_class = getenv ("XDG_SESSION_CLASS");
     if (display)
     {
@@ -285,8 +284,6 @@ main(int argc, char *argv[])
         g_string_append_printf (status_text, " XDG_SEAT=%s", xdg_seat);
     if (xdg_vtnr)
         g_string_append_printf (status_text, " XDG_VTNR=%s", xdg_vtnr);
-    if (xdg_session_cookie)
-        g_string_append_printf (status_text, " XDG_SESSION_COOKIE=%s", xdg_session_cookie);
     if (xdg_session_class)
         g_string_append_printf (status_text, " XDG_SESSION_CLASS=%s", xdg_session_class);
     status_notify ("%s", status_text->str);

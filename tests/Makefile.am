@@ -134,8 +134,6 @@ TESTS = \
 	test-lock-session-no-password \
 	test-lock-session-resettable \
 	test-lock-session-return-session \
-	test-lock-seat-console-kit \
-	test-lock-seat-return-session-console-kit \
 	test-switch-to-greeter \
 	test-switch-to-greeter-disabled \
 	test-switch-to-greeter-new-session \
@@ -170,12 +168,8 @@ TESTS = \
 	test-utmp-autologin \
 	test-utmp-wrong-password \
 	test-no-accounts-service \
-	test-console-kit \
-	test-no-console-kit \
 	test-no-login1 \
-	test-no-console-kit-or-login1 \
 	test-power-gobject \
-	test-power-no-console-kit-gobject \
 	test-power-no-login1-gobject \
 	test-power-no-services-gobject \
 	test-open-file-descriptors \
@@ -253,7 +247,6 @@ TESTS += \
 	test-autologin-timeout-python \
 	test-autologin-guest-timeout-python \
 	test-power-python \
-	test-power-no-console-kit-python \
 	test-power-no-login1-python \
 	test-power-no-services-python
 
@@ -289,7 +282,6 @@ TESTS += \
 	test-login-remote-session-qt4 \
 	test-users-qt4 \
 	test-power-qt4 \
-	test-power-no-console-kit-qt4 \
 	test-power-no-login1-qt4 \
 	test-power-no-services-qt4
 endif
@@ -326,7 +318,6 @@ TESTS += \
 	test-login-remote-session-qt5 \
 	test-users-qt5 \
 	test-power-qt5 \
-	test-power-no-console-kit-qt5 \
 	test-power-no-login1-qt5 \
 	test-power-no-services-qt5
 endif
@@ -377,7 +368,6 @@ EXTRA_DIST = \
 	scripts/autologin-xserver-crash.conf \
 	scripts/change-authentication.conf \
 	scripts/cancel-authentication.conf \
-	scripts/console-kit.conf \
 	scripts/corrupt-xauthority.conf \
 	scripts/crash-authenticate.conf \
 	scripts/cred-error.conf \
@@ -405,10 +395,8 @@ EXTRA_DIST = \
 	scripts/language-env.conf \
 	scripts/language-no-accounts-service.conf \
 	scripts/lock-seat.conf \
-	scripts/lock-seat-console-kit.conf \    
 	scripts/lock-seat-resettable.conf \
 	scripts/lock-seat-return-session.conf \
-	scripts/lock-seat-return-session-console-kit.conf \
 	scripts/lock-session.conf \
 	scripts/lock-session-no-password.conf \
 	scripts/lock-session-resettable.conf \
@@ -462,12 +450,9 @@ EXTRA_DIST = \
 	scripts/multi-seat-seat0-non-graphical-disabled.conf \
 	scripts/no-accounts-service.conf \
 	scripts/no-config.conf \
-	scripts/no-console-kit.conf \
-	scripts/no-console-kit-or-login1.conf \
 	scripts/no-login1.conf \
 	scripts/open-file-descriptors.conf \
 	scripts/power.conf \
-	scripts/power-no-console-kit.conf \
 	scripts/power-no-services.conf \
 	scripts/power-no-login1.conf \
 	scripts/plymouth-active-vt.conf \

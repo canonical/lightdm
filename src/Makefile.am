@@ -4,8 +4,6 @@ bin_PROGRAMS = dm-tool
 lightdm_SOURCES = \
 	accounts.c \
 	accounts.h \
-	console-kit.c \
-	console-kit.h \
 	display-manager.c \
 	display-manager.h \
 	display-server.c \
