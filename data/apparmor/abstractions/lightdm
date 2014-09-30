@@ -14,7 +14,10 @@
   #include <abstractions/dbus-accessibility>
   #include <abstractions/nameservice>
   #include <abstractions/wutmp>
-  /etc/compizconfig/config rw, # bug in compiz https://launchpad.net/bugs/697678
+
+  # bug in compiz https://launchpad.net/bugs/697678
+  /etc/compizconfig/config rw,
+  /etc/compizconfig/unity.ini rw,
 
   / r,
   /bin/ rmix,
@@ -44,6 +47,7 @@
   @{PROC}/asound/** rm,
   @{PROC}/ati rm,
   @{PROC}/ati/** rm,
+  @{PROC}/sys/vm/overcommit_memory r,
   owner @{PROC}/** rm,
   # needed for gnome-keyring-daemon
   @{PROC}/*/status r,
@@ -68,6 +72,7 @@
   # necessary for writing to sockets, etc.
   /{,var/}run/** rmkix,
   /{,var/}run/shm/** wl,
+  /{,var/}run/uuidd/request w,
   # libpam-xdg-support/logind
   owner /{,var/}run/user/*/** rw,
 
