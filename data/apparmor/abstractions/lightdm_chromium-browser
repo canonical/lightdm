@@ -8,6 +8,8 @@
 # provided in abstractions/lightdm, this abstraction must be separate from
 # abstractions/lightdm.
 
+# Requires apparmor 2.9
+
   /usr/lib/chromium-browser/chromium-browser Cx -> chromium,
   /usr/bin/webapp-container Cx -> chromium,
   /usr/bin/webbrowser-app Cx -> chromium,
@@ -22,6 +24,9 @@
 
   # Allow receiving and sending signals to processes in the chromium child profile
   signal (receive, send) peer=/usr/lib/lightdm/lightdm-guest-session//chromium,
+
+  # Allow communications with chromium child profile via unix sockets
+  unix peer=(label=/usr/lib/lightdm/lightdm-guest-session//chromium),
 
   profile chromium {
     # Allow all the same accesses as other applications in the guest session
@@ -47,6 +52,10 @@
     # Allow us to receive and send signals from processes in the
     # lightdm-guest-session
     signal (receive, send) set=("exists") peer=/usr/lib/lightdm/lightdm-guest-session,
+
+    # Allow us to receive and send on unix sockets from processes in the
+    # lightdm-guest-session
+    unix (receive, send) peer=(label=/usr/lib/lightdm/lightdm-guest-session),
 
     @{PROC}/[0-9]*/ r,                 # sandbox wants these
     @{PROC}/[0-9]*/fd/ r,              # sandbox wants these
