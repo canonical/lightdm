@@ -1100,6 +1100,9 @@ create_greeter_session (Seat *seat)
     SessionConfig *session_config;
     Greeter *greeter_session;
     const gchar *greeter_wrapper;
+    const gchar *autologin_username;
+    int autologin_timeout;
+    gboolean autologin_guest;
 
     l_debug (seat, "Creating greeter session");
 
@@ -1158,6 +1161,25 @@ create_greeter_session (Seat *seat)
     greeter_set_hint (greeter_session, "show-manual-login", seat_get_boolean_property (seat, "greeter-show-manual-login") ? "true" : "false");
     greeter_set_hint (greeter_session, "show-remote-login", seat_get_boolean_property (seat, "greeter-show-remote-login") ? "true" : "false");
     greeter_set_hint (greeter_session, "has-guest-account", seat_get_allow_guest (seat) && seat_get_boolean_property (seat, "greeter-allow-guest") ? "true" : "false");
+
+    /* Configure for automatic login */
+    autologin_username = seat_get_string_property (seat, "autologin-user");
+    if (g_strcmp0 (autologin_username, "") == 0)
+        autologin_username = NULL;
+    autologin_timeout = seat_get_integer_property (seat, "autologin-user-timeout");
+    autologin_guest = seat_get_boolean_property (seat, "autologin-guest");
+    if (autologin_timeout > 0)
+    {
+        gchar *value;
+
+        value = g_strdup_printf ("%d", autologin_timeout);
+        greeter_set_hint (greeter_session, "autologin-timeout", value);
+        g_free (value);
+        if (autologin_username)
+            greeter_set_hint (greeter_session, "autologin-user", autologin_username);
+        if (autologin_guest)
+            greeter_set_hint (greeter_session, "autologin-guest", "true");
+    }
 
     g_object_unref (session_config);
 

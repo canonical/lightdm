@@ -46,6 +46,7 @@ TESTS = \
 	test-cred-unavail \
 	test-autologin-session-error \
 	test-autologin-logout \
+	test-autologin-timeout-logout \
 	test-autologin-previous-session \
 	test-autologin-guest \
 	test-autologin-guest-session-config \
@@ -356,7 +357,6 @@ EXTRA_DIST = \
 	scripts/autologin-invalid-greeter.conf \
 	scripts/autologin-pam.conf \
 	scripts/autologin-pam-config.conf \
-	scripts/autologin-timeout-in-background.conf \
 	scripts/autologin-invalid-session.conf \
 	scripts/autologin-invalid-user.conf \
 	scripts/autologin-logout.conf \
@@ -366,6 +366,8 @@ EXTRA_DIST = \
 	scripts/autologin-session-crash.conf \
 	scripts/autologin-session-error.conf \
 	scripts/autologin-timeout.conf \
+	scripts/autologin-timeout-in-background.conf \
+	scripts/autologin-timeout-logout.conf \
 	scripts/autologin-xserver-crash.conf \
 	scripts/change-authentication.conf \
 	scripts/cancel-authentication.conf \
