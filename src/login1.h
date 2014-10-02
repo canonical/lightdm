@@ -22,8 +22,7 @@ G_BEGIN_DECLS
 #define LOGIN1_SERVICE_TYPE (login1_service_get_type())
 #define LOGIN1_SERVICE(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), LOGIN1_SERVICE_TYPE, Login1Service));
 
-#define SIGNAL_LOGIN1_ACTIVE_SESION_CHANGED "active-session-changed"
-#define SIGNAL_LOGIN1_CAN_GRAPHICAL_CHANGED "can-graphical-changed"
+#define LOGIN1_SIGNAL_ACTIVE_SESION_CHANGED "active-session-changed"
 
 typedef struct Login1SeatPrivate Login1SeatPrivate;
 

@@ -566,7 +566,7 @@ login1_seat_class_init (Login1SeatClass *klass)
     g_type_class_add_private (klass, sizeof (Login1SeatPrivate));
 
     seat_signals[CAN_GRAPHICAL_CHANGED] =
-        g_signal_new (SIGNAL_LOGIN1_CAN_GRAPHICAL_CHANGED,
+        g_signal_new ("can-graphical-changed",
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (Login1SeatClass, can_graphical_changed),
@@ -575,7 +575,7 @@ login1_seat_class_init (Login1SeatClass *klass)
                       G_TYPE_NONE, 0);
 
     seat_signals[ACTIVE_SESSION_CHANGED] =
-        g_signal_new (SIGNAL_LOGIN1_ACTIVE_SESION_CHANGED,
+        g_signal_new (LOGIN1_SIGNAL_ACTIVE_SESION_CHANGED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (Login1SeatClass, active_session_changed),

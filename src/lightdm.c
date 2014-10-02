@@ -1091,10 +1091,10 @@ login1_add_seat (Login1Seat *login1_seat)
 {
     if (config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical"))
     {
-        g_signal_connect (login1_seat, SIGNAL_LOGIN1_CAN_GRAPHICAL_CHANGED, G_CALLBACK (login1_can_graphical_changed_cb), NULL);
+        g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
     }
 
-    g_signal_connect (login1_seat, SIGNAL_LOGIN1_ACTIVE_SESION_CHANGED, G_CALLBACK (login1_active_session_changed_cb), NULL);
+    g_signal_connect (login1_seat, LOGIN1_SIGNAL_ACTIVE_SESION_CHANGED, G_CALLBACK (login1_active_session_changed_cb), NULL);
 
     return update_login1_seat (login1_seat);
 }
@@ -1115,6 +1115,7 @@ login1_service_seat_removed_cb (Login1Service *service, Login1Seat *login1_seat)
 {
     g_debug ("Seat %s removed from logind", login1_seat_get_id (login1_seat));
     g_signal_handlers_disconnect_matched (login1_seat, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, login1_can_graphical_changed_cb, NULL);
+    g_signal_handlers_disconnect_matched (login1_seat, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, login1_active_session_changed_cb, NULL);
     remove_login1_seat (login1_seat);
 }
 
