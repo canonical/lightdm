@@ -484,10 +484,10 @@ load_accounts_user (CommonUser *user)
     if (!priv->changed_signal)
         priv->changed_signal = g_dbus_connection_signal_subscribe (GET_LIST_PRIVATE (priv->user_list)->bus,
                                                                    "org.freedesktop.Accounts",
-                                                                   "org.freedesktop.Accounts.User",
-                                                                   "Changed",
+                                                                   "org.freedesktop.DBus.Properties",
+                                                                   "PropertiesChanged",
                                                                    priv->path,
-                                                                   NULL,
+                                                                   "org.freedesktop.Accounts.User",
                                                                    G_DBUS_SIGNAL_FLAGS_NONE,
                                                                    accounts_user_changed_cb,
                                                                    user,

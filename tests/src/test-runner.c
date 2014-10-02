@@ -828,7 +828,6 @@ handle_command (const gchar *command)
         GString *status_text;
         gchar *username;
         AccountsUser *user;
-        GError *error = NULL;
 
         status_text = g_string_new ("RUNNER UPDATE-USER USERNAME=");
 
@@ -837,66 +836,80 @@ handle_command (const gchar *command)
         user = get_accounts_user_by_name (username);
         if (user)
         {
+            GVariantBuilder invalidated_properties;
+            GError *error = NULL;
+
+            g_variant_builder_init (&invalidated_properties, G_VARIANT_TYPE_ARRAY);
+
             if (g_hash_table_lookup (params, "NAME"))
             {
                 user->user_name = g_strdup (g_hash_table_lookup (params, "NAME"));
                 g_string_append_printf (status_text, " NAME=%s", user->user_name);
+                g_variant_builder_add (&invalidated_properties, "s", "UserName");
             }
             if (g_hash_table_lookup (params, "REAL-NAME"))
             {
                 user->real_name = g_strdup (g_hash_table_lookup (params, "REAL-NAME"));
                 g_string_append_printf (status_text, " REAL-NAME=%s", user->real_name);
+                g_variant_builder_add (&invalidated_properties, "s", "RealName");
             }
             if (g_hash_table_lookup (params, "HOME-DIRECTORY"))
             {
                 user->home_directory = g_strdup (g_hash_table_lookup (params, "HOME-DIRECTORY"));
                 g_string_append_printf (status_text, " HOME-DIRECTORY=%s", user->home_directory);
+                g_variant_builder_add (&invalidated_properties, "s", "HomeDirectory");
             }
             if (g_hash_table_lookup (params, "IMAGE"))
             {
                 user->image = g_strdup (g_hash_table_lookup (params, "IMAGE"));
                 g_string_append_printf (status_text, " IMAGE=%s", user->image);
+                g_variant_builder_add (&invalidated_properties, "s", "SystemAccount");
             }
             if (g_hash_table_lookup (params, "BACKGROUND"))
             {
                 user->background = g_strdup (g_hash_table_lookup (params, "BACKGROUND"));
                 g_string_append_printf (status_text, " BACKGROUND=%s", user->background);
+                g_variant_builder_add (&invalidated_properties, "s", "BackgroundFile");
             }
             if (g_hash_table_lookup (params, "LANGUAGE"))
             {
                 user->language = g_strdup (g_hash_table_lookup (params, "LANGUAGE"));
                 g_string_append_printf (status_text, " LANGUAGE=%s", user->language);
+                g_variant_builder_add (&invalidated_properties, "s", "Language");
             }
             if (g_hash_table_lookup (params, "LAYOUTS"))
             {
                 const gchar *value = g_hash_table_lookup (params, "LAYOUTS");
                 user->layouts = g_strsplit (value, ";", -1);
                 g_string_append_printf (status_text, " LAYOUTS=%s", value);
+                g_variant_builder_add (&invalidated_properties, "s", "XKeyboardLayouts");
             }
             if (g_hash_table_lookup (params, "HAS-MESSAGES"))
             {
                 user->has_messages = g_strcmp0 (g_hash_table_lookup (params, "HAS-MESSAGES"), "TRUE") == 0;
                 g_string_append_printf (status_text, " HAS-MESSAGES=%s", user->has_messages ? "TRUE" : "FALSE");
+                g_variant_builder_add (&invalidated_properties, "s", "XHasMessages");
             }
             if (g_hash_table_lookup (params, "SESSION"))
             {
                 user->xsession = g_strdup (g_hash_table_lookup (params, "SESSION"));
                 g_string_append_printf (status_text, " SESSION=%s", user->xsession);
+                g_variant_builder_add (&invalidated_properties, "s", "XSession");
             }
+
+            g_dbus_connection_emit_signal (accounts_connection,
+                                           NULL,
+                                           user->path,
+                                           "org.freedesktop.DBus.Properties",
+                                           "PropertiesChanged",
+                                           g_variant_new ("(sa{sv}as)", "org.freedesktop.Accounts.User", NULL, &invalidated_properties),
+                                           &error);
+            if (error)
+                g_warning ("Failed to emit PropertiesChanged: %s", error->message);
+            g_clear_error (&error);
         }
         else
             g_warning ("Unknown user %s", username);
-
-        g_dbus_connection_emit_signal (accounts_connection,
-                                       NULL,
-                                       user->path,
-                                       "org.freedesktop.Accounts.User",
-                                       "Changed",
-                                       g_variant_new ("()"),
-                                       &error);
-        if (error)
-            g_warning ("Failed to emit Changed: %s", error->message);
-        g_clear_error (&error);
 
         check_status (status_text->str);
         g_string_free (status_text, TRUE);
@@ -2161,6 +2174,7 @@ handle_user_call (GDBusConnection       *connection,
     if (strcmp (method_name, "SetXSession") == 0)
     {
         gchar *xsession;
+        GVariantBuilder invalidated_properties;
 
         g_variant_get (parameters, "(&s)", &xsession);
 
@@ -2170,12 +2184,14 @@ handle_user_call (GDBusConnection       *connection,
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
 
         /* And notify others that it took */
+        g_variant_builder_init (&invalidated_properties, G_VARIANT_TYPE_ARRAY);
+        g_variant_builder_add (&invalidated_properties, "s", "XSession");
         g_dbus_connection_emit_signal (accounts_connection,
                                        NULL,
                                        user->path,
-                                       "org.freedesktop.Accounts.User",
-                                       "Changed",
-                                       g_variant_new ("()"),
+                                       "org.freedesktop.DBus.Properties",
+                                       "PropertiesChanged",
+                                       g_variant_new ("(sa{sv}as)", "org.freedesktop.Accounts.User", NULL, &invalidated_properties),
                                        NULL);
     }
     else
@@ -2271,7 +2287,6 @@ accounts_name_acquired_cb (GDBusConnection *connection,
         "    <property name='XSession' type='s' access='read'/>"
         "    <property name='XKeyboardLayouts' type='as' access='read'/>"
         "    <property name='XHasMessages' type='b' access='read'/>"
-        "    <signal name='Changed' />"
         "  </interface>"
         "</node>";
     GError *error = NULL;
