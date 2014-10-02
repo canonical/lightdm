@@ -1804,7 +1804,7 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
      * lightdm_greeter_cancel_authentication() to abort the authentication.
      **/
     signals[SHOW_PROMPT] =
-        g_signal_new ("show-prompt",
+        g_signal_new (LIGHTDM_GREETER_SIGNAL_SHOW_PROMPT,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LightDMGreeterClass, show_prompt),
@@ -1822,7 +1822,7 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
      * should show a message to the user.
      **/
     signals[SHOW_MESSAGE] =
-        g_signal_new ("show-message",
+        g_signal_new (LIGHTDM_GREETER_SIGNAL_SHOW_MESSAGE,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LightDMGreeterClass, show_message),
@@ -1841,7 +1841,7 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
      * was successful.
      **/
     signals[AUTHENTICATION_COMPLETE] =
-        g_signal_new ("authentication-complete",
+        g_signal_new (LIGHTDM_GREETER_SIGNAL_AUTHENTICATION_COMPLETE,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LightDMGreeterClass, authentication_complete),
@@ -1857,7 +1857,7 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
      * The application should then call lightdm_greeter_login().
      **/
     signals[AUTOLOGIN_TIMER_EXPIRED] =
-        g_signal_new ("autologin-timer-expired",
+        g_signal_new (LIGHTDM_GREETER_SIGNAL_AUTOLOGIN_TIMER_EXPIRED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LightDMGreeterClass, autologin_timer_expired),
@@ -1876,7 +1876,7 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
      * resettable using lightdm_greeter_set_resettable().
      **/
     signals[IDLE] =
-        g_signal_new ("idle",
+        g_signal_new (LIGHTDM_GREETER_SIGNAL_IDLE,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LightDMGreeterClass, idle),
@@ -1895,7 +1895,7 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
      * resettable using lightdm_greeter_set_resettable().
      **/
     signals[RESET] =
-        g_signal_new ("reset",
+        g_signal_new (LIGHTDM_GREETER_SIGNAL_RESET,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LightDMGreeterClass, reset),

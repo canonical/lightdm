@@ -440,7 +440,7 @@ unity_system_compositor_start (DisplayServer *server)
     g_string_free (command, TRUE);
 
     /* Start the compositor */
-    g_signal_connect (compositor->priv->process, "stopped", G_CALLBACK (stopped_cb), compositor);
+    g_signal_connect (compositor->priv->process, PROCESS_SIGNAL_STOPPED, G_CALLBACK (stopped_cb), compositor);
     result = process_start (compositor->priv->process, FALSE);
 
     /* Close compostor ends of the pipes */

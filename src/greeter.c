@@ -436,7 +436,7 @@ handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
     if (greeter->priv->active_username)
         g_free (greeter->priv->active_username);
     greeter->priv->active_username = g_strdup (username);
-    g_object_notify (G_OBJECT (greeter), "active-username");
+    g_object_notify (G_OBJECT (greeter), GREETER_PROPERTY_ACTIVE_USERNAME);
 
     greeter->priv->authentication_sequence_number = sequence_number;
     g_signal_emit (greeter, signals[CREATE_SESSION], 0, &greeter->priv->authentication_session);
@@ -446,8 +446,8 @@ handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
         return;
     }
 
-    g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
-    g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "authentication-complete", G_CALLBACK (authentication_complete_cb), greeter);
+    g_signal_connect (G_OBJECT (greeter->priv->authentication_session), SESSION_SIGNAL_GOT_MESSAGES, G_CALLBACK (pam_messages_cb), greeter);
+    g_signal_connect (G_OBJECT (greeter->priv->authentication_session), SESSION_SIGNAL_AUTHENTICATION_COMPLETE, G_CALLBACK (authentication_complete_cb), greeter);
 
     /* Use non-interactive service for autologin user */
     autologin_username = g_hash_table_lookup (greeter->priv->hints, "autologin-user");
@@ -550,8 +550,8 @@ handle_login_remote (Greeter *greeter, const gchar *session_name, const gchar *u
     g_signal_emit (greeter, signals[CREATE_SESSION], 0, &greeter->priv->authentication_session);
     if (greeter->priv->authentication_session)
     {
-        g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "got-messages", G_CALLBACK (pam_messages_cb), greeter);
-        g_signal_connect (G_OBJECT (greeter->priv->authentication_session), "authentication-complete", G_CALLBACK (authentication_complete_cb), greeter);
+        g_signal_connect (G_OBJECT (greeter->priv->authentication_session), SESSION_SIGNAL_GOT_MESSAGES, G_CALLBACK (pam_messages_cb), greeter);
+        g_signal_connect (G_OBJECT (greeter->priv->authentication_session), SESSION_SIGNAL_AUTHENTICATION_COMPLETE, G_CALLBACK (authentication_complete_cb), greeter);
 
         /* Run the session process */
         session_set_pam_service (greeter->priv->authentication_session, service);
@@ -1101,7 +1101,7 @@ greeter_class_init (GreeterClass *klass)
     object_class->set_property = greeter_set_property;
 
     signals[CONNECTED] =
-        g_signal_new ("connected",
+        g_signal_new (GREETER_SIGNAL_CONNECTED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (GreeterClass, connected),
@@ -1110,7 +1110,7 @@ greeter_class_init (GreeterClass *klass)
                       G_TYPE_NONE, 0);
 
     signals[CREATE_SESSION] =
-        g_signal_new ("create-session",
+        g_signal_new (GREETER_SIGNAL_CREATE_SESSION,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (GreeterClass, create_session),
@@ -1120,7 +1120,7 @@ greeter_class_init (GreeterClass *klass)
                       SESSION_TYPE, 0);
 
     signals[START_SESSION] =
-        g_signal_new ("start-session",
+        g_signal_new (GREETER_SIGNAL_START_SESSION,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (GreeterClass, start_session),
@@ -1131,8 +1131,8 @@ greeter_class_init (GreeterClass *klass)
 
     g_object_class_install_property (object_class,
                                      PROP_ACTIVE_USERNAME,
-                                     g_param_spec_string ("active-username",
-                                                          "active-username",
+                                     g_param_spec_string (GREETER_PROPERTY_ACTIVE_USERNAME,
+                                                          GREETER_PROPERTY_ACTIVE_USERNAME,
                                                           "Active username",
                                                           NULL,
                                                           G_PARAM_READABLE));

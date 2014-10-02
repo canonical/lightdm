@@ -179,7 +179,7 @@ display_server_class_init (DisplayServerClass *klass)
     g_type_class_add_private (klass, sizeof (DisplayServerPrivate));
 
     signals[READY] =
-        g_signal_new ("ready",
+        g_signal_new (DISPLAY_SERVER_SIGNAL_READY,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayServerClass, ready),
@@ -187,7 +187,7 @@ display_server_class_init (DisplayServerClass *klass)
                       NULL,
                       G_TYPE_NONE, 0);
     signals[STOPPED] =
-        g_signal_new ("stopped",
+        g_signal_new (DISPLAY_SERVER_SIGNAL_STOPPED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (DisplayServerClass, stopped),

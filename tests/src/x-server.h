@@ -6,6 +6,11 @@
 
 G_BEGIN_DECLS
 
+#define X_CLIENT_SIGNAL_DISCONNECTED "disconnected"
+
+#define X_SERVER_SIGNAL_CLIENT_CONNECTED    "client-connected"
+#define X_SERVER_SIGNAL_CLIENT_DISCONNECTED "client-disconnected"
+
 typedef struct XClientPrivate XClientPrivate;
 
 typedef struct

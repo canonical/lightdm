@@ -410,7 +410,7 @@ load_passwd_file (CommonUserList *user_list, gboolean emit_add_signal)
     {
         CommonUser *info = link->data;
         g_debug ("User %s added", common_user_get_name (info));
-        g_signal_connect (info, "changed", G_CALLBACK (user_changed_cb), NULL);
+        g_signal_connect (info, USER_SIGNAL_CHANGED, G_CALLBACK (user_changed_cb), NULL);
         if (emit_add_signal)
             g_signal_emit (user_list, list_signals[USER_ADDED], 0, info);
     }
@@ -684,7 +684,7 @@ add_accounts_user (CommonUserList *user_list, const gchar *path, gboolean emit_s
     g_debug ("User %s added", path);
     priv->user_list = user_list;
     priv->path = g_strdup (path);
-    g_signal_connect (user, "changed", G_CALLBACK (user_changed_cb), NULL);
+    g_signal_connect (user, USER_SIGNAL_CHANGED, G_CALLBACK (user_changed_cb), NULL);
     if (load_accounts_user (user))
     {
         list_priv->users = g_list_insert_sorted (list_priv->users, user, compare_user);
@@ -1171,7 +1171,7 @@ common_user_list_class_init (CommonUserListClass *klass)
      * The ::user-added signal gets emitted when a user account is created.
      **/
     list_signals[USER_ADDED] =
-        g_signal_new ("user-added",
+        g_signal_new (USER_LIST_SIGNAL_USER_ADDED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (CommonUserListClass, user_added),
@@ -1187,7 +1187,7 @@ common_user_list_class_init (CommonUserListClass *klass)
      * The ::user-changed signal gets emitted when a user account is modified.
      **/
     list_signals[USER_CHANGED] =
-        g_signal_new ("user-changed",
+        g_signal_new (USER_LIST_SIGNAL_USER_CHANGED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (CommonUserListClass, user_changed),
@@ -1203,7 +1203,7 @@ common_user_list_class_init (CommonUserListClass *klass)
      * The ::user-removed signal gets emitted when a user account is removed.
      **/
     list_signals[USER_REMOVED] =
-        g_signal_new ("user-removed",
+        g_signal_new (USER_LIST_SIGNAL_USER_REMOVED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (CommonUserListClass, user_removed),
@@ -1827,7 +1827,7 @@ common_user_class_init (CommonUserClass *klass)
      * The ::changed signal gets emitted this user account is modified.
      **/
     user_signals[CHANGED] =
-        g_signal_new ("changed",
+        g_signal_new (USER_SIGNAL_CHANGED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (CommonUserClass, changed),

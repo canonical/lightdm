@@ -104,7 +104,7 @@ static LightDMUser *
 wrap_common_user (CommonUser *user)
 {
     LightDMUser *lightdm_user = g_object_new (LIGHTDM_TYPE_USER, "common-user", user, NULL);
-    g_signal_connect (user, "changed", G_CALLBACK (user_changed_cb), lightdm_user);
+    g_signal_connect (user, USER_SIGNAL_CHANGED, G_CALLBACK (user_changed_cb), lightdm_user);
     return lightdm_user;
 }
 
@@ -167,9 +167,9 @@ initialize_user_list_if_needed (LightDMUserList *user_list)
     priv->lightdm_list = g_list_reverse (priv->lightdm_list);
 
     CommonUserList *common_list = common_user_list_get_instance ();
-    g_signal_connect (common_list, "user-added", G_CALLBACK (user_list_added_cb), user_list);
-    g_signal_connect (common_list, "user-changed", G_CALLBACK (user_list_changed_cb), user_list);
-    g_signal_connect (common_list, "user-removed", G_CALLBACK (user_list_removed_cb), user_list);
+    g_signal_connect (common_list, USER_LIST_SIGNAL_USER_ADDED, G_CALLBACK (user_list_added_cb), user_list);
+    g_signal_connect (common_list, USER_LIST_SIGNAL_USER_CHANGED, G_CALLBACK (user_list_changed_cb), user_list);
+    g_signal_connect (common_list, USER_LIST_SIGNAL_USER_REMOVED, G_CALLBACK (user_list_removed_cb), user_list);
 
     priv->initialized = TRUE;
 }
@@ -306,7 +306,7 @@ lightdm_user_list_class_init (LightDMUserListClass *klass)
      * The ::user-added signal gets emitted when a user account is created.
      **/
     list_signals[USER_ADDED] =
-        g_signal_new ("user-added",
+        g_signal_new (LIGHTDM_USER_LIST_SIGNAL_USER_ADDED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LightDMUserListClass, user_added),
@@ -322,7 +322,7 @@ lightdm_user_list_class_init (LightDMUserListClass *klass)
      * The ::user-changed signal gets emitted when a user account is modified.
      **/
     list_signals[USER_CHANGED] =
-        g_signal_new ("user-changed",
+        g_signal_new (LIGHTDM_USER_LIST_SIGNAL_USER_CHANGED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LightDMUserListClass, user_changed),
@@ -338,7 +338,7 @@ lightdm_user_list_class_init (LightDMUserListClass *klass)
      * The ::user-removed signal gets emitted when a user account is removed.
      **/
     list_signals[USER_REMOVED] =
-        g_signal_new ("user-removed",
+        g_signal_new (LIGHTDM_USER_LIST_SIGNAL_USER_REMOVED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LightDMUserListClass, user_removed),
@@ -752,7 +752,7 @@ lightdm_user_class_init (LightDMUserClass *klass)
      * The ::changed signal gets emitted this user account is modified.
      **/
     user_signals[CHANGED] =
-        g_signal_new ("changed",
+        g_signal_new (LIGHTDM_SIGNAL_USER_CHANGED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (LightDMUserClass, changed),

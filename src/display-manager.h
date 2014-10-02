@@ -21,6 +21,10 @@ G_BEGIN_DECLS
 #define DISPLAY_MANAGER_TYPE (display_manager_get_type())
 #define DISPLAY_MANAGER(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), DISPLAY_MANAGER_TYPE, DisplayManager));
 
+#define DISPLAY_MANAGER_SIGNAL_SEAT_ADDED   "seat-added"
+#define DISPLAY_MANAGER_SIGNAL_SEAT_REMOVED "seat-removed"
+#define DISPLAY_MANAGER_SIGNAL_STOPPED      "stopped"
+
 typedef struct DisplayManagerPrivate DisplayManagerPrivate;
 
 typedef struct
