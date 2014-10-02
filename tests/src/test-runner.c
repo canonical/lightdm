@@ -863,7 +863,7 @@ handle_command (const gchar *command)
             {
                 user->image = g_strdup (g_hash_table_lookup (params, "IMAGE"));
                 g_string_append_printf (status_text, " IMAGE=%s", user->image);
-                g_variant_builder_add (&invalidated_properties, "s", "SystemAccount");
+                g_variant_builder_add (&invalidated_properties, "s", "IconFile");
             }
             if (g_hash_table_lookup (params, "BACKGROUND"))
             {
