@@ -48,12 +48,12 @@ GreeterPrivate::GreeterPrivate(Greeter *parent) :
 #endif
     ldmGreeter = lightdm_greeter_new();
 
-    g_signal_connect (ldmGreeter, "show-prompt", G_CALLBACK (cb_showPrompt), this);
-    g_signal_connect (ldmGreeter, "show-message", G_CALLBACK (cb_showMessage), this);
-    g_signal_connect (ldmGreeter, "authentication-complete", G_CALLBACK (cb_authenticationComplete), this);
-    g_signal_connect (ldmGreeter, "autologin-timer-expired", G_CALLBACK (cb_autoLoginExpired), this);
-    g_signal_connect (ldmGreeter, "idle", G_CALLBACK (cb_idle), this);
-    g_signal_connect (ldmGreeter, "reset", G_CALLBACK (cb_reset), this);
+    g_signal_connect (ldmGreeter, LIGHTDM_GREETER_SIGNAL_SHOW_PROMPT, G_CALLBACK (cb_showPrompt), this);
+    g_signal_connect (ldmGreeter, LIGHTDM_GREETER_SIGNAL_SHOW_MESSAGE, G_CALLBACK (cb_showMessage), this);
+    g_signal_connect (ldmGreeter, LIGHTDM_GREETER_SIGNAL_AUTHENTICATION_COMPLETE, G_CALLBACK (cb_authenticationComplete), this);
+    g_signal_connect (ldmGreeter, LIGHTDM_GREETER_SIGNAL_AUTOLOGIN_TIMER_EXPIRED, G_CALLBACK (cb_autoLoginExpired), this);
+    g_signal_connect (ldmGreeter, LIGHTDM_GREETER_SIGNAL_IDLE, G_CALLBACK (cb_idle), this);
+    g_signal_connect (ldmGreeter, LIGHTDM_GREETER_SIGNAL_RESET, G_CALLBACK (cb_reset), this);
 }
 
 void GreeterPrivate::cb_showPrompt(LightDMGreeter *greeter, const gchar *text, LightDMPromptType type, gpointer data)

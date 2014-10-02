@@ -22,6 +22,14 @@ G_BEGIN_DECLS
 #define GREETER_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), GREETER_TYPE, GreeterClass))
 #define IS_GREETER(obj)        (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GREETER_TYPE))
 
+#define GREETER_SIGNAL_CONNECTED      "connected"
+#define GREETER_SIGNAL_CREATE_SESSION "create-session"
+#define GREETER_SIGNAL_START_SESSION  "start-session"
+
+#define GREETER_PROPERTY_ACTIVE_USERNAME "active-username"
+
+#define GREETER_SIGNAL_ACTIVE_USERNAME_CHANGED "notify::" GREETER_PROPERTY_ACTIVE_USERNAME
+
 typedef struct GreeterPrivate GreeterPrivate;
 
 typedef struct

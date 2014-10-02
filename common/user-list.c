@@ -117,6 +117,9 @@ typedef struct
     /* Shell for user */
     gchar *shell;
 
+    /* TRUE if a system account */
+    gboolean system_account;
+
     /* Image for user */
     gchar *image;
 
@@ -407,7 +410,7 @@ load_passwd_file (CommonUserList *user_list, gboolean emit_add_signal)
     {
         CommonUser *info = link->data;
         g_debug ("User %s added", common_user_get_name (info));
-        g_signal_connect (info, "changed", G_CALLBACK (user_changed_cb), NULL);
+        g_signal_connect (info, USER_SIGNAL_CHANGED, G_CALLBACK (user_changed_cb), NULL);
         if (emit_add_signal)
             g_signal_emit (user_list, list_signals[USER_ADDED], 0, info);
     }
@@ -451,7 +454,110 @@ passwd_changed_cb (GFileMonitor *monitor, GFile *file, GFile *other_file, GFileM
     }
 }
 
-static gboolean load_accounts_user (CommonUser *user);
+static gboolean
+update_user_property (CommonUser *user, const gchar *name, GVariant *value)
+{
+    CommonUserPrivate *priv = GET_USER_PRIVATE (user);
+
+    if (strcmp (name, "UserName") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
+    {
+        g_free (priv->name);
+        priv->name = g_variant_dup_string (value, NULL);
+        return TRUE;
+    }
+
+    if (strcmp (name, "RealName") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
+    {
+        g_free (priv->real_name);
+        priv->real_name = g_variant_dup_string (value, NULL);
+        return TRUE;
+    }
+
+    if (strcmp (name, "HomeDirectory") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
+    {
+        g_free (priv->home_directory);
+        priv->home_directory = g_variant_dup_string (value, NULL);
+        return TRUE;
+    }
+
+    if (strcmp (name, "Shell") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
+    {
+        g_free (priv->shell);
+        priv->shell = g_variant_dup_string (value, NULL);
+        return TRUE;
+    }
+
+    if (strcmp (name, "SystemAccount") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
+    {
+        priv->system_account = g_variant_get_boolean (value);
+        return TRUE;
+    }
+
+    if (strcmp (name, "Language") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
+    {
+        if (priv->language)
+            g_free (priv->language);
+        priv->language = g_variant_dup_string (value, NULL);
+        return TRUE;
+    }
+
+    if (strcmp (name, "IconFile") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
+    {
+        g_free (priv->image);
+        priv->image = g_variant_dup_string (value, NULL);
+        if (strcmp (priv->image, "") == 0)
+        {
+            g_free (priv->image);
+            priv->image = NULL;
+        }
+        return TRUE;
+    }
+
+    if (strcmp (name, "XSession") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
+    {
+        g_free (priv->session);
+        priv->session = g_variant_dup_string (value, NULL);
+        return TRUE;
+    }
+
+    if (strcmp (name, "BackgroundFile") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
+    {
+        g_free (priv->background);
+        priv->background = g_variant_dup_string (value, NULL);
+        if (strcmp (priv->background, "") == 0)
+        {
+            g_free (priv->background);
+            priv->background = NULL;
+        }
+        return TRUE;
+    }
+
+    if (strcmp (name, "XKeyboardLayouts") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING_ARRAY))
+    {
+        g_strfreev (priv->layouts);
+        priv->layouts = g_variant_dup_strv (value, NULL);
+        if (!priv->layouts)
+        {
+            priv->layouts = g_malloc (sizeof (gchar *) * 1);
+            priv->layouts[0] = NULL;
+        }
+        return TRUE;
+    }
+
+    if (strcmp (name, "XHasMessages") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
+    {
+        priv->has_messages = g_variant_get_boolean (value);
+        return TRUE;
+    }
+
+    if (strcmp (name, "Uid") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_UINT64))
+    {
+        priv->uid = g_variant_get_uint64 (value);
+        return TRUE;
+    }
+
+    return FALSE;
+}
 
 static void
 accounts_user_changed_cb (GDBusConnection *connection,
@@ -463,11 +569,57 @@ accounts_user_changed_cb (GDBusConnection *connection,
                           gpointer data)
 {
     CommonUser *user = data;
-    CommonUserPrivate *priv = GET_USER_PRIVATE (user);  
+    CommonUserPrivate *priv = GET_USER_PRIVATE (user);
+    gboolean changed = FALSE;
+    GVariantIter *iter;
+    GVariantIter *invalidated_properties;
+    gchar *name;
+    GVariant *value;
 
-    g_debug ("User %s changed", priv->path);
-    if (load_accounts_user (user))
+    g_variant_get (parameters, "(sa{sv}as)", NULL, &iter, &invalidated_properties);
+    while (g_variant_iter_loop (iter, "{&sv}", &name, &value))
+    {
+        if (update_user_property (user, name, value))
+            changed = TRUE;
+    }
+    g_variant_iter_free (iter);
+    while (g_variant_iter_loop (invalidated_properties, "&s", &name))
+    {
+        GVariant *result;
+        GError *error = NULL;
+
+        result = g_dbus_connection_call_sync (connection,
+                                              "org.freedesktop.Accounts",
+                                              priv->path,
+                                              "org.freedesktop.DBus.Properties",
+                                              "Get",
+                                              g_variant_new ("(ss)", "org.freedesktop.Accounts.User", name),
+                                              G_VARIANT_TYPE ("(v)"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              -1,
+                                              NULL,
+                                              &error);
+        if (error)
+            g_warning ("Error updating user property %s: %s", name, error->message);
+        g_clear_error (&error);
+
+        if (result)
+        {
+            GVariant *value;
+
+            g_variant_get (result, "(v)", &value);
+            if (update_user_property (user, name, value))
+                changed = TRUE;
+            g_variant_unref (value);
+            g_variant_unref (result);          
+        }
+    }
+
+    if (changed)
+    {
+        g_debug ("User %s changed", priv->path);
         g_signal_emit (user, user_signals[CHANGED], 0);
+    }
 }
 
 static gboolean
@@ -477,17 +629,16 @@ load_accounts_user (CommonUser *user)
     GVariant *result, *value;
     GVariantIter *iter;
     gchar *name;
-    gboolean system_account = FALSE;
     GError *error = NULL;
 
     /* Get the properties for this user */
     if (!priv->changed_signal)
         priv->changed_signal = g_dbus_connection_signal_subscribe (GET_LIST_PRIVATE (priv->user_list)->bus,
                                                                    "org.freedesktop.Accounts",
-                                                                   "org.freedesktop.Accounts.User",
-                                                                   "Changed",
+                                                                   "org.freedesktop.DBus.Properties",
+                                                                   "PropertiesChanged",
                                                                    priv->path,
-                                                                   NULL,
+                                                                   "org.freedesktop.Accounts.User",
                                                                    G_DBUS_SIGNAL_FLAGS_NONE,
                                                                    accounts_user_changed_cb,
                                                                    user,
@@ -512,80 +663,12 @@ load_accounts_user (CommonUser *user)
     /* Store the properties we need */
     g_variant_get (result, "(a{sv})", &iter);
     while (g_variant_iter_loop (iter, "{&sv}", &name, &value))
-    {
-        if (strcmp (name, "UserName") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            g_free (priv->name);
-            priv->name = g_variant_dup_string (value, NULL);
-        }
-        else if (strcmp (name, "RealName") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            g_free (priv->real_name);
-            priv->real_name = g_variant_dup_string (value, NULL);
-        }
-        else if (strcmp (name, "HomeDirectory") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            g_free (priv->home_directory);
-            priv->home_directory = g_variant_dup_string (value, NULL);
-        }
-        else if (strcmp (name, "Shell") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            g_free (priv->shell);
-            priv->shell = g_variant_dup_string (value, NULL);
-        }
-        else if (strcmp (name, "SystemAccount") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
-            system_account = g_variant_get_boolean (value);
-        else if (strcmp (name, "Language") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            if (priv->language)
-                g_free (priv->language);
-            priv->language = g_variant_dup_string (value, NULL);
-        }
-        else if (strcmp (name, "IconFile") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            g_free (priv->image);
-            priv->image = g_variant_dup_string (value, NULL);
-            if (strcmp (priv->image, "") == 0)
-            {
-                g_free (priv->image);
-                priv->image = NULL;
-            }
-        }
-        else if (strcmp (name, "XSession") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            g_free (priv->session);
-            priv->session = g_variant_dup_string (value, NULL);
-        }
-        else if (strcmp (name, "BackgroundFile") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            g_free (priv->background);
-            priv->background = g_variant_dup_string (value, NULL);
-            if (strcmp (priv->background, "") == 0)
-            {
-                g_free (priv->background);
-                priv->background = NULL;
-            }
-        }
-        else if (strcmp (name, "XKeyboardLayouts") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING_ARRAY))
-        {
-            g_strfreev (priv->layouts);
-            priv->layouts = g_variant_dup_strv (value, NULL);
-            if (!priv->layouts)
-            {
-                priv->layouts = g_malloc (sizeof (gchar *) * 1);
-                priv->layouts[0] = NULL;
-            }
-        }
-        else if (strcmp (name, "XHasMessages") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
-            priv->has_messages = g_variant_get_boolean (value);
-        else if (strcmp (name, "Uid") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_UINT64))
-            priv->uid = g_variant_get_uint64 (value);
-    }
+        update_user_property (user, name, value);
     g_variant_iter_free (iter);
 
     g_variant_unref (result);
 
-    return !system_account;
+    return !priv->system_account;
 }
 
 static void
@@ -601,7 +684,7 @@ add_accounts_user (CommonUserList *user_list, const gchar *path, gboolean emit_s
     g_debug ("User %s added", path);
     priv->user_list = user_list;
     priv->path = g_strdup (path);
-    g_signal_connect (user, "changed", G_CALLBACK (user_changed_cb), NULL);
+    g_signal_connect (user, USER_SIGNAL_CHANGED, G_CALLBACK (user_changed_cb), NULL);
     if (load_accounts_user (user))
     {
         list_priv->users = g_list_insert_sorted (list_priv->users, user, compare_user);
@@ -1088,7 +1171,7 @@ common_user_list_class_init (CommonUserListClass *klass)
      * The ::user-added signal gets emitted when a user account is created.
      **/
     list_signals[USER_ADDED] =
-        g_signal_new ("user-added",
+        g_signal_new (USER_LIST_SIGNAL_USER_ADDED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (CommonUserListClass, user_added),
@@ -1104,7 +1187,7 @@ common_user_list_class_init (CommonUserListClass *klass)
      * The ::user-changed signal gets emitted when a user account is modified.
      **/
     list_signals[USER_CHANGED] =
-        g_signal_new ("user-changed",
+        g_signal_new (USER_LIST_SIGNAL_USER_CHANGED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (CommonUserListClass, user_changed),
@@ -1120,7 +1203,7 @@ common_user_list_class_init (CommonUserListClass *klass)
      * The ::user-removed signal gets emitted when a user account is removed.
      **/
     list_signals[USER_REMOVED] =
-        g_signal_new ("user-removed",
+        g_signal_new (USER_LIST_SIGNAL_USER_REMOVED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (CommonUserListClass, user_removed),
@@ -1744,7 +1827,7 @@ common_user_class_init (CommonUserClass *klass)
      * The ::changed signal gets emitted this user account is modified.
      **/
     user_signals[CHANGED] =
-        g_signal_new ("changed",
+        g_signal_new (USER_SIGNAL_CHANGED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (CommonUserClass, changed),

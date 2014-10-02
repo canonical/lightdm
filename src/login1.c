@@ -82,6 +82,16 @@ login1_service_get_instance (void)
 }
 
 static void
+update_property (Login1Seat *seat, const gchar *name, GVariant *value)
+{
+    if (strcmp (name, "CanGraphical") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
+    {
+        seat->priv->can_graphical = g_variant_get_boolean (value);
+        g_signal_emit (seat, seat_signals[CAN_GRAPHICAL_CHANGED], 0);
+    }
+}
+
+static void
 seat_properties_changed_cb (GDBusConnection *connection,
                             const gchar *sender_name,
                             const gchar *object_path,
@@ -91,43 +101,39 @@ seat_properties_changed_cb (GDBusConnection *connection,
                             gpointer user_data)
 {
     Login1Seat *seat = user_data;
+    GVariantIter *iter;
     GVariantIter *invalidated_properties;
-    const gchar *property_name;
+    const gchar *name;
+    GVariant *value;
 
-    g_variant_get (parameters, "(sa{sv}as)", NULL, NULL, &invalidated_properties);
-    while (g_variant_iter_loop (invalidated_properties, "&s", &property_name))
+    g_variant_get (parameters, "(sa{sv}as)", NULL, &iter, &invalidated_properties);
+    while (g_variant_iter_loop (iter, "{&sv}", &name, &value))
+        update_property (seat, name, value);
+    g_variant_iter_free (iter);
+    while (g_variant_iter_loop (invalidated_properties, "&s", &name))
     {
-        if (strcmp (property_name, "CanGraphical") == 0)
+        GVariant *result;
+        GError *error = NULL;
+
+        result = g_dbus_connection_call_sync (connection,
+                                              LOGIN1_SERVICE_NAME,
+                                              seat->priv->path,
+                                              "org.freedesktop.DBus.Properties",
+                                              "Get",
+                                              g_variant_new ("(ss)", "org.freedesktop.login1.Seat", name),
+                                              G_VARIANT_TYPE ("(v)"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              -1,
+                                              NULL,
+                                              &error);
+        if (error)
+            g_warning ("Error updating seat property %s: %s", name, error->message);
+        g_clear_error (&error);
+        if (result)
         {
-            GVariant *result;
-            GError *error = NULL;
-
-            result = g_dbus_connection_call_sync (connection,
-                                                  LOGIN1_SERVICE_NAME,
-                                                  seat->priv->path,
-                                                  "org.freedesktop.DBus.Properties",
-                                                  "Get",
-                                                  g_variant_new ("(ss)", "org.freedesktop.login1.Seat", property_name),
-                                                  G_VARIANT_TYPE ("(v)"),
-                                                  G_DBUS_CALL_FLAGS_NONE,
-                                                  -1,
-                                                  NULL,
-                                                  &error);
-            if (error)
-                g_warning ("Error updating CanGraphical: %s", error->message);
-            g_clear_error (&error);
-            if (result)
-            {
-                GVariant *value;
-
-                g_variant_get (result, "(v)", &value);
-                seat->priv->can_graphical = g_variant_get_boolean (value);
-                g_variant_unref (value);
-
-                g_signal_emit (seat, seat_signals[CAN_GRAPHICAL_CHANGED], 0);
-
-                g_variant_unref (result);
-            }
+            g_variant_get (result, "(v)", &value);
+            update_property (seat, name, value);
+            g_variant_unref (result);
         }
     }
     g_variant_iter_free (invalidated_properties);
@@ -451,7 +457,7 @@ login1_service_class_init (Login1ServiceClass *klass)
     g_type_class_add_private (klass, sizeof (Login1ServicePrivate));
 
     service_signals[SEAT_ADDED] =
-        g_signal_new ("seat-added",
+        g_signal_new (LOGIN1_SERVICE_SIGNAL_SEAT_ADDED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (Login1ServiceClass, seat_added),
@@ -459,7 +465,7 @@ login1_service_class_init (Login1ServiceClass *klass)
                       NULL,
                       G_TYPE_NONE, 1, LOGIN1_SEAT_TYPE);
     service_signals[SEAT_REMOVED] =
-        g_signal_new ("seat-removed",
+        g_signal_new (LOGIN1_SERVICE_SIGNAL_SEAT_REMOVED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (Login1ServiceClass, seat_removed),
@@ -518,7 +524,7 @@ login1_seat_class_init (Login1SeatClass *klass)
     g_type_class_add_private (klass, sizeof (Login1SeatPrivate));
 
     seat_signals[CAN_GRAPHICAL_CHANGED] =
-        g_signal_new ("can-graphical-changed",
+        g_signal_new (LOGIN1_SEAT_SIGNAL_CAN_GRAPHICAL_CHANGED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (Login1SeatClass, can_graphical_changed),

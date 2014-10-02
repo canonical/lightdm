@@ -439,8 +439,8 @@ x_server_local_start (DisplayServer *display_server)
 
     server->priv->x_server_process = process_new (run_cb, server);
     process_set_clear_environment (server->priv->x_server_process, TRUE);
-    g_signal_connect (server->priv->x_server_process, "got-signal", G_CALLBACK (got_signal_cb), server);
-    g_signal_connect (server->priv->x_server_process, "stopped", G_CALLBACK (stopped_cb), server);
+    g_signal_connect (server->priv->x_server_process, PROCESS_SIGNAL_GOT_SIGNAL, G_CALLBACK (got_signal_cb), server);
+    g_signal_connect (server->priv->x_server_process, PROCESS_SIGNAL_STOPPED, G_CALLBACK (stopped_cb), server);
 
     /* Setup logging */
     filename = g_strdup_printf ("%s.log", display_server_get_name (display_server));

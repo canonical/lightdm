@@ -23,6 +23,13 @@ G_BEGIN_DECLS
 #define LIGHTDM_IS_GREETER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LIGHTDM_TYPE_GREETER))
 #define LIGHTDM_GREETER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LIGHTDM_TYPE_GREETER, LightDMGreeterClass))
 
+#define LIGHTDM_GREETER_SIGNAL_SHOW_PROMPT             "show-prompt"
+#define LIGHTDM_GREETER_SIGNAL_SHOW_MESSAGE            "show-message"
+#define LIGHTDM_GREETER_SIGNAL_AUTHENTICATION_COMPLETE "authentication-complete"
+#define LIGHTDM_GREETER_SIGNAL_AUTOLOGIN_TIMER_EXPIRED "autologin-timer-expired"
+#define LIGHTDM_GREETER_SIGNAL_IDLE                    "idle"
+#define LIGHTDM_GREETER_SIGNAL_RESET                   "reset"
+
 /**
  * LightDMPromptType:
  * @LIGHTDM_PROMPT_TYPE_QUESTION: Prompt is a question.  The information can be shown as it is entered.

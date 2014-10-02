@@ -31,6 +31,10 @@ G_BEGIN_DECLS
 #define SESSION_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST ((klass), SESSION_TYPE, SessionClass))
 #define SESSION_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), SESSION_TYPE, SessionClass))
 
+#define SESSION_SIGNAL_GOT_MESSAGES            "got-messages"
+#define SESSION_SIGNAL_AUTHENTICATION_COMPLETE "authentication-complete"
+#define SESSION_SIGNAL_STOPPED                 "stopped"
+
 typedef struct SessionPrivate SessionPrivate;
 
 struct Session

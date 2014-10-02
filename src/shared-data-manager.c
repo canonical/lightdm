@@ -227,7 +227,7 @@ shared_data_manager_start (SharedDataManager *manager)
     g_object_unref (file);
 
     /* And listen for user removals. */
-    g_signal_connect (common_user_list_get_instance (), "user-removed", G_CALLBACK (user_removed_cb), manager);
+    g_signal_connect (common_user_list_get_instance (), USER_LIST_SIGNAL_USER_REMOVED, G_CALLBACK (user_removed_cb), manager);
 }
 
 static void
