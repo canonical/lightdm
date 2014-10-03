@@ -962,7 +962,8 @@ add_login1_seat (Login1Seat *login1_seat)
         if (!login1_seat_get_can_multi_session (login1_seat))
         {
             g_debug ("Seat %s has property CanMultiSession=no", seat_name);
-            seat_set_property (seat, "allow-user-switching", "false");
+            /* XXX: uncomment this line after bug #1371250 is closed.
+            seat_set_property (seat, "allow-user-switching", "false"); */
         }
 
         if (config_section)
