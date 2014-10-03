@@ -463,9 +463,12 @@ accounts_user_changed_cb (GDBusConnection *connection,
                           gpointer data)
 {
     CommonUser *user = data;
-    CommonUserPrivate *priv = GET_USER_PRIVATE (user);  
+    /*CommonUserPrivate *priv = GET_USER_PRIVATE (user);*/
 
-    g_debug ("User %s changed", priv->path);
+    /* Log message disabled as AccountsService can have arbitrary plugins that
+     * might cause us to log when properties change we don't use. LP: #1376357
+     */
+    /*g_debug ("User %s changed", priv->path);*/
     if (load_accounts_user (user))
         g_signal_emit (user, user_signals[CHANGED], 0);
 }
