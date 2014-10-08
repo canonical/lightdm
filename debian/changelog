@@ -1,3 +1,17 @@
+lightdm (1.10.3-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Fix crash when having configuration keys defined in multiple places
+      (LP: #1377373)
+    - Allow user switching in multi-seat until bug stopping greeter showing on
+      logout is fixed
+    - Don't access .dmrc files until information from these files is required
+      (LP: #1370852)
+    - Do timed autologin each time you are returned to the greeter
+      (LP: #1302491)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 09 Oct 2014 09:01:21 +1300
+
 lightdm (1.10.2-0ubuntu1) trusty; urgency=medium
 
   * New upstream release:
