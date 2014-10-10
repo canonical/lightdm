@@ -1,3 +1,9 @@
+lightdm (1.10.3-0ubuntu2) trusty; urgency=medium
+
+  * Refresh patches
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 10 Oct 2014 21:24:51 +1300
+
 lightdm (1.10.3-0ubuntu1) trusty; urgency=medium
 
   * New upstream release:
