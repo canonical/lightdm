@@ -7,6 +7,8 @@
 # confinement for the various lightdm sessions (guest, freerdp, uccsconfigure,
 # etc). Note that this profile intentionally omits chromium-browser.
 
+# Requires apparmor 2.9
+
   #include <abstractions/authentication>
   #include <abstractions/cups-client>
   #include <abstractions/dbus>
@@ -14,7 +16,10 @@
   #include <abstractions/dbus-accessibility>
   #include <abstractions/nameservice>
   #include <abstractions/wutmp>
-  /etc/compizconfig/config rw, # bug in compiz https://launchpad.net/bugs/697678
+
+  # bug in compiz https://launchpad.net/bugs/697678
+  /etc/compizconfig/config rw,
+  /etc/compizconfig/unity.ini rw,
 
   / r,
   /bin/ rmix,
@@ -44,6 +49,7 @@
   @{PROC}/asound/** rm,
   @{PROC}/ati rm,
   @{PROC}/ati/** rm,
+  @{PROC}/sys/vm/overcommit_memory r,
   owner @{PROC}/** rm,
   # needed for gnome-keyring-daemon
   @{PROC}/*/status r,
@@ -68,6 +74,7 @@
   # necessary for writing to sockets, etc.
   /{,var/}run/** rmkix,
   /{,var/}run/shm/** wl,
+  /{,var/}run/uuidd/request w,
   # libpam-xdg-support/logind
   owner /{,var/}run/user/*/** rw,
 
@@ -78,6 +85,20 @@
   ptrace peer=@{profile_name},
   # needed when logging out of the guest session
   signal (receive) peer=unconfined,
+
+  unix peer=(label=@{profile_name}),
+  unix (receive) peer=(label=unconfined),
+  unix (create),
+  unix (getattr, getopt, setopt, shutdown),
+  unix (bind, listen) type=stream addr="@/com/ubuntu/upstart-session/**",
+  unix (bind, listen) type=stream addr="@/tmp/dbus-*",
+  unix (bind, listen) type=stream addr="@/tmp/.ICE-unix/[0-9]*",
+  unix (bind, listen) type=stream addr="@/dbus-vfs-daemon/*",
+  unix (bind, listen) type=stream addr="@guest*",
+  unix (connect, receive, send) type=stream peer=(addr="@/tmp/dbus-*"),
+  unix (connect, receive, send) type=stream peer=(addr="@/tmp/.X11-unix/X[0-9]*"),
+  unix (connect, receive, send) type=stream peer=(addr="@/dbus-vfs-daemon/*"),
+  unix (connect, receive, send) type=stream peer=(addr="@guest*"),
 
   # silence warnings for stuff that we really don't want to grant
   deny capability dac_override,

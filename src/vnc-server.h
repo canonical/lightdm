@@ -19,6 +19,8 @@ G_BEGIN_DECLS
 #define VNC_SERVER_TYPE (vnc_server_get_type())
 #define VNC_SERVER(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), VNC_SERVER_TYPE, VNCServer));
 
+#define VNC_SERVER_SIGNAL_NEW_CONNECTION "new-connection"
+
 typedef struct VNCServerPrivate VNCServerPrivate;
 
 typedef struct

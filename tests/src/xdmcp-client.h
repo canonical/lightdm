@@ -7,6 +7,12 @@
 #define XDMCP_VERSION 1
 #define XDMCP_PORT 177
 
+#define XDMCP_CLIENT_SIGNAL_QUERY   "query"
+#define XDMCP_CLIENT_SIGNAL_WILLING "willing"
+#define XDMCP_CLIENT_SIGNAL_ACCEPT  "accept"
+#define XDMCP_CLIENT_SIGNAL_DECLINE "decline"
+#define XDMCP_CLIENT_SIGNAL_FAILED  "failed"
+
 typedef struct
 {
     gchar *authentication_name;

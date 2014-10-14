@@ -1,3 +1,36 @@
+lightdm (1.12.0-0ubuntu2) utopic; urgency=medium
+
+  * Restore 1.11.9-0ubuntu2, it was reverted by error in the previous upload
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 30 Sep 2014 11:25:09 +0200
+
+lightdm (1.12.0-0ubuntu1) utopic; urgency=medium
+
+  * New upstream release:
+    - Fix assumption that the display server is X when running scripts.
+      (LP: #1305006)
+    - Don't access .dmrc files until information from these files is required.
+      (LP: #1370852)
+  * debian/patches/01_transition_ubuntu2d_ubuntu_desktop.patch:
+    - Dropped, Unity 2D doesn't exist and all users will have been migrated in
+      14.04 LTS
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 30 Sep 2014 15:11:51 +1300
+
+lightdm (1.11.9-0ubuntu2) utopic; urgency=medium
+
+  * debian/patches/06_apparmor-unix.patch: update for addr= rules
+  * debian/patches/07_apparmor-chrome.patch:
+    - allow new path to Google Chrome (LP: #1361372)
+    - allow read of @{PROC}/[0-9]*/statm
+  * debian/patches/08_apparmor-updates.patch:
+    - allow 'rw' on /etc/compizconfig/unity.ini (continue workaround for
+     LP: 697678)
+    - allow read of @{PROC}/sys/vm/overcommit_memory
+    - allow write to /run/uuidd/request
+
+ -- Jamie Strandboge <jamie@ubuntu.com>  Thu, 18 Sep 2014 12:18:12 -0500
+
 lightdm (1.11.9-0ubuntu1) utopic; urgency=medium
 
     * New upstream release:

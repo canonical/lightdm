@@ -168,7 +168,7 @@ vnc_server_class_init (VNCServerClass *klass)
     g_type_class_add_private (klass, sizeof (VNCServerPrivate));
 
     signals[NEW_CONNECTION] =
-        g_signal_new ("new-connection",
+        g_signal_new (VNC_SERVER_SIGNAL_NEW_CONNECTION,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (VNCServerClass, new_connection),

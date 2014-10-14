@@ -21,6 +21,10 @@ G_BEGIN_DECLS
 #define PROCESS(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), PROCESS_TYPE, Process))
 #define PROCESS_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), PROCESS_TYPE, ProcessClass))
 
+#define PROCESS_SIGNAL_GOT_DATA   "got-data"
+#define PROCESS_SIGNAL_GOT_SIGNAL "got-signal"
+#define PROCESS_SIGNAL_STOPPED    "stopped"
+
 typedef struct ProcessPrivate ProcessPrivate;
 
 typedef struct

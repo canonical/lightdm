@@ -317,8 +317,8 @@ main (int argc, char **argv)
     status_connect (request_cb, id);
 
     xserver = x_server_new (display_number);
-    g_signal_connect (xserver, "client-connected", G_CALLBACK (client_connected_cb), NULL);
-    g_signal_connect (xserver, "client-disconnected", G_CALLBACK (client_disconnected_cb), NULL);
+    g_signal_connect (xserver, X_SERVER_SIGNAL_CLIENT_CONNECTED, G_CALLBACK (client_connected_cb), NULL);
+    g_signal_connect (xserver, X_SERVER_SIGNAL_CLIENT_DISCONNECTED, G_CALLBACK (client_disconnected_cb), NULL);
 
     status_text = g_string_new ("");
     g_string_printf (status_text, "%s START", id);
@@ -415,11 +415,11 @@ main (int argc, char **argv)
             xdmcp_client_set_hostname (xdmcp_client, xdmcp_host);
         if (xdmcp_port > 0)
             xdmcp_client_set_port (xdmcp_client, xdmcp_port);
-        g_signal_connect (xdmcp_client, "query", G_CALLBACK (xdmcp_query_cb), NULL);
-        g_signal_connect (xdmcp_client, "willing", G_CALLBACK (xdmcp_willing_cb), NULL);
-        g_signal_connect (xdmcp_client, "accept", G_CALLBACK (xdmcp_accept_cb), NULL);
-        g_signal_connect (xdmcp_client, "decline", G_CALLBACK (xdmcp_decline_cb), NULL);
-        g_signal_connect (xdmcp_client, "failed", G_CALLBACK (xdmcp_failed_cb), NULL);
+        g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_QUERY, G_CALLBACK (xdmcp_query_cb), NULL);
+        g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_WILLING, G_CALLBACK (xdmcp_willing_cb), NULL);
+        g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_ACCEPT, G_CALLBACK (xdmcp_accept_cb), NULL);
+        g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_DECLINE, G_CALLBACK (xdmcp_decline_cb), NULL);
+        g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_FAILED, G_CALLBACK (xdmcp_failed_cb), NULL);
     }
 
     g_main_loop_run (loop);

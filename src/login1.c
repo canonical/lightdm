@@ -86,7 +86,7 @@ login1_service_get_instance (void)
 }
 
 static GVariant *
-seat_get_property (GDBusConnection *connection,
+get_property_from_dbus (GDBusConnection *connection,
                    Login1Seat *seat,
                    const gchar *property_name)
 {
@@ -112,6 +112,36 @@ seat_get_property (GDBusConnection *connection,
 }
 
 static void
+update_property (Login1Seat *seat, const gchar *name, GVariant *value)
+{
+    if (strcmp (name, "CanGraphical") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
+    {
+        seat->priv->can_graphical = g_variant_get_boolean (value);
+        g_signal_emit (seat, seat_signals[CAN_GRAPHICAL_CHANGED], 0);
+    }
+    else if (strcmp (name, "ActiveSession") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_ARRAY))
+    {
+        GVariant *value2;
+        
+        // value should be of type (so)
+        value2 = g_variant_get_child_value (value, 0);
+        if (value2)
+        {
+            const gchar *login1_session_id;
+
+            login1_session_id = g_variant_get_string (value2, NULL);
+
+            if (login1_session_id)
+            {
+                g_signal_emit (seat, seat_signals[ACTIVE_SESSION_CHANGED], 0, login1_session_id);
+            }
+
+            g_variant_unref (value2);
+        }
+    }
+}
+
+static void
 seat_properties_changed_cb (GDBusConnection *connection,
                             const gchar *sender_name,
                             const gchar *object_path,
@@ -121,61 +151,31 @@ seat_properties_changed_cb (GDBusConnection *connection,
                             gpointer user_data)
 {
     Login1Seat *seat = user_data;
+    GVariantIter *changed_properties;
     GVariantIter *invalidated_properties;
     const gchar *property_name;
+    GVariant *property_value;
 
-    g_variant_get (parameters, "(sa{sv}as)", NULL, NULL, &invalidated_properties);
+    g_variant_get (parameters, "(sa{sv}as)", NULL, &changed_properties, &invalidated_properties);
+    
+    while (g_variant_iter_loop (changed_properties, "{&sv}", &property_name, &property_value))
+    {
+        update_property (seat, property_name, property_value);
+    }
+    g_variant_iter_free (changed_properties);
+    
     while (g_variant_iter_loop (invalidated_properties, "&s", &property_name))
     {
-        if (strcmp (property_name, "CanGraphical") == 0)
+        GVariant *result;
+
+        result = get_property_from_dbus (connection, seat, property_name);
+        if (result)
         {
-            GVariant *result;
+            g_variant_get (result, "(v)", &property_value);
+            update_property (seat, property_name, property_value);
+            g_variant_unref (property_value);
 
-            result = seat_get_property (connection, seat, property_name);
-            if (result)
-            {
-                GVariant *value;
-
-                g_variant_get (result, "(v)", &value);
-                seat->priv->can_graphical = g_variant_get_boolean (value);
-                g_variant_unref (value);
-
-                g_signal_emit (seat, seat_signals[CAN_GRAPHICAL_CHANGED], 0);
-
-                g_variant_unref (result);
-            }
-        }
-        if (strcmp (property_name, "ActiveSession") == 0)
-        {
-            GVariant *result;
-
-            result = seat_get_property (connection, seat, property_name);
-            if (result)
-            {
-                GVariant *value1, *value2;
-
-                g_variant_get (result, "(v)", &value1);
-
-                // returned value should be of type (so)
-                value2 = g_variant_get_child_value (value1, 0);
-
-                if (value2)
-                {
-                    const gchar *login1_session_id;
-
-                    login1_session_id = g_variant_get_string (value2, NULL);
-
-                    if (login1_session_id)
-                    {
-                        g_signal_emit (seat, seat_signals[ACTIVE_SESSION_CHANGED], 0, login1_session_id);
-                    }
-
-                    g_variant_unref (value2);
-                }
-
-                g_variant_unref (value1);
-                g_variant_unref (result);
-            }
+            g_variant_unref (result);
         }
     }
     g_variant_iter_free (invalidated_properties);
@@ -499,7 +499,7 @@ login1_service_class_init (Login1ServiceClass *klass)
     g_type_class_add_private (klass, sizeof (Login1ServicePrivate));
 
     service_signals[SEAT_ADDED] =
-        g_signal_new ("seat-added",
+        g_signal_new (LOGIN1_SERVICE_SIGNAL_SEAT_ADDED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (Login1ServiceClass, seat_added),
@@ -507,7 +507,7 @@ login1_service_class_init (Login1ServiceClass *klass)
                       NULL,
                       G_TYPE_NONE, 1, LOGIN1_SEAT_TYPE);
     service_signals[SEAT_REMOVED] =
-        g_signal_new ("seat-removed",
+        g_signal_new (LOGIN1_SERVICE_SIGNAL_SEAT_REMOVED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (Login1ServiceClass, seat_removed),
@@ -566,7 +566,7 @@ login1_seat_class_init (Login1SeatClass *klass)
     g_type_class_add_private (klass, sizeof (Login1SeatPrivate));
 
     seat_signals[CAN_GRAPHICAL_CHANGED] =
-        g_signal_new ("can-graphical-changed",
+        g_signal_new (LOGIN1_SEAT_SIGNAL_CAN_GRAPHICAL_CHANGED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (Login1SeatClass, can_graphical_changed),

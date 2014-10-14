@@ -238,7 +238,7 @@ request_cb (const gchar *name, GHashTable *params)
         username = g_hash_table_lookup (params, "USERNAME");
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         if (user)
-            g_signal_connect (user, "changed", G_CALLBACK (user_changed_cb), NULL);
+            g_signal_connect (user, LIGHTDM_SIGNAL_USER_CHANGED, G_CALLBACK (user_changed_cb), NULL);
         status_notify ("%s WATCH-USER USERNAME=%s", greeter_id, username);
     }
 
@@ -482,21 +482,21 @@ main (int argc, char **argv)
     }
 
     greeter = lightdm_greeter_new ();
-    g_signal_connect (greeter, "show-message", G_CALLBACK (show_message_cb), NULL);
-    g_signal_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
-    g_signal_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
-    g_signal_connect (greeter, "autologin-timer-expired", G_CALLBACK (autologin_timer_expired_cb), NULL);
+    g_signal_connect (greeter, LIGHTDM_GREETER_SIGNAL_SHOW_MESSAGE, G_CALLBACK (show_message_cb), NULL);
+    g_signal_connect (greeter, LIGHTDM_GREETER_SIGNAL_SHOW_PROMPT, G_CALLBACK (show_prompt_cb), NULL);
+    g_signal_connect (greeter, LIGHTDM_GREETER_SIGNAL_AUTHENTICATION_COMPLETE, G_CALLBACK (authentication_complete_cb), NULL);
+    g_signal_connect (greeter, LIGHTDM_GREETER_SIGNAL_AUTOLOGIN_TIMER_EXPIRED, G_CALLBACK (autologin_timer_expired_cb), NULL);
     if (g_key_file_get_boolean (config, "test-greeter-config", "resettable", NULL))
     {
         lightdm_greeter_set_resettable (greeter, TRUE);
-        g_signal_connect (greeter, "idle", G_CALLBACK (idle_cb), NULL);
-        g_signal_connect (greeter, "reset", G_CALLBACK (reset_cb), NULL);
+        g_signal_connect (greeter, LIGHTDM_GREETER_SIGNAL_IDLE, G_CALLBACK (idle_cb), NULL);
+        g_signal_connect (greeter, LIGHTDM_GREETER_SIGNAL_RESET, G_CALLBACK (reset_cb), NULL);
     }
 
     if (g_key_file_get_boolean (config, "test-greeter-config", "log-user-changes", NULL))
     {
-        g_signal_connect (lightdm_user_list_get_instance (), "user-added", G_CALLBACK (user_added_cb), NULL);
-        g_signal_connect (lightdm_user_list_get_instance (), "user-removed", G_CALLBACK (user_removed_cb), NULL);
+        g_signal_connect (lightdm_user_list_get_instance (), LIGHTDM_USER_LIST_SIGNAL_USER_ADDED, G_CALLBACK (user_added_cb), NULL);
+        g_signal_connect (lightdm_user_list_get_instance (), LIGHTDM_USER_LIST_SIGNAL_USER_REMOVED, G_CALLBACK (user_removed_cb), NULL);
     }
 
     status_notify ("%s CONNECT-TO-DAEMON", greeter_id);

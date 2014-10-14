@@ -703,7 +703,7 @@ xdmcp_server_class_init (XDMCPServerClass *klass)
     g_type_class_add_private (klass, sizeof (XDMCPServerPrivate));
 
     signals[NEW_SESSION] =
-        g_signal_new ("new-session",
+        g_signal_new (XDMCP_SERVER_SIGNAL_NEW_SESSION,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XDMCPServerClass, new_session),

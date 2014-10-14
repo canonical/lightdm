@@ -432,7 +432,7 @@ process_class_init (ProcessClass *klass)
     g_type_class_add_private (klass, sizeof (ProcessPrivate));
 
     signals[GOT_DATA] =
-        g_signal_new ("got-data",
+        g_signal_new (PROCESS_SIGNAL_GOT_DATA,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (ProcessClass, got_data),
@@ -440,7 +440,7 @@ process_class_init (ProcessClass *klass)
                       NULL,
                       G_TYPE_NONE, 0);
     signals[GOT_SIGNAL] =
-        g_signal_new ("got-signal",
+        g_signal_new (PROCESS_SIGNAL_GOT_SIGNAL,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (ProcessClass, got_signal),
@@ -448,7 +448,7 @@ process_class_init (ProcessClass *klass)
                       NULL,
                       G_TYPE_NONE, 1, G_TYPE_INT);
     signals[STOPPED] =
-        g_signal_new ("stopped",
+        g_signal_new (PROCESS_SIGNAL_STOPPED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (ProcessClass, stopped),

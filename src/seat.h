@@ -26,6 +26,11 @@ G_BEGIN_DECLS
 #define SEAT_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST ((klass), SEAT_TYPE, SeatClass))
 #define SEAT_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), SEAT_TYPE, SeatClass))
 
+#define SEAT_SIGNAL_SESSION_ADDED        "session-added"
+#define SEAT_SIGNAL_RUNNING_USER_SESSION "running-user-session"
+#define SEAT_SIGNAL_SESSION_REMOVED      "session-removed"
+#define SEAT_SIGNAL_STOPPED              "stopped"
+
 typedef struct SeatPrivate SeatPrivate;
 
 typedef struct

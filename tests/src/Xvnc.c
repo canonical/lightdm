@@ -225,8 +225,8 @@ main (int argc, char **argv)
     status_connect (request_cb, id);
 
     xserver = x_server_new (display_number);
-    g_signal_connect (xserver, "client-connected", G_CALLBACK (client_connected_cb), NULL);
-    g_signal_connect (xserver, "client-disconnected", G_CALLBACK (client_disconnected_cb), NULL);
+    g_signal_connect (xserver, X_SERVER_SIGNAL_CLIENT_CONNECTED, G_CALLBACK (client_connected_cb), NULL);
+    g_signal_connect (xserver, X_SERVER_SIGNAL_CLIENT_DISCONNECTED, G_CALLBACK (client_disconnected_cb), NULL);
 
     status_notify ("%s START GEOMETRY=%s DEPTH=%d OPTION=%s", id, geometry, depth, has_option ? "TRUE" : "FALSE");
 
