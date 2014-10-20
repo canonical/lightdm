@@ -2,4 +2,4 @@
 Name=Test Session
 Comment=LightDM test session
 Exec=test-session
-DesktopNames=TestDesktop1;TestDesktop2;
+X-LightDM-DesktopName=TestDesktop
