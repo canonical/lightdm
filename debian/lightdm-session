@@ -20,11 +20,30 @@ errormsg () {
   exit 1
 }
 
+# temporary storage of error messages
+ERR=$(mktemp --tmpdir config-err-XXXXXX)
+
+source_with_error_check () {
+    CONFIG_FILE="$1"
+    if sh -n "$CONFIG_FILE" 2>"$ERR"; then
+        echo "Loading $CONFIG_FILE";
+        . "$CONFIG_FILE" 2>"$ERR"
+        if [ -s "$ERR" ]; then
+            SYNTAX=false
+            . /usr/lib/lightdm/config-error-dialog.sh
+        fi
+    else
+        SYNTAX=true
+        . /usr/lib/lightdm/config-error-dialog.sh
+    fi
+    cat "$ERR" >>/dev/stderr
+    truncate -s 0 "$ERR"
+}
+
 # Load profile
 for file in "/etc/profile" "$HOME/.profile" "/etc/xprofile" "$HOME/.xprofile"; do
     if [ -f "$file" ]; then
-        echo "Loading profile from $file";
-        . "$file"
+        source_with_error_check "$file"
     fi
 done
 
