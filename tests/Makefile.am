@@ -56,6 +56,7 @@ TESTS = \
 	test-login-guest-session-config \
 	test-group-membership \
 	test-xdg-current-desktop \
+	test-xdg-current-desktop-legacy \
 	test-language-env \
 	test-session-stdout \
 	test-session-stderr \
@@ -346,6 +347,7 @@ EXTRA_DIST = \
 	data/sessions/mir.desktop \
 	data/sessions/mir-container.desktop \
 	data/sessions/named.desktop \
+	data/sessions/named-legacy.desktop \
 	scripts/0-additional.conf \
 	scripts/1-additional.conf \
 	scripts/additional-config.conf \
@@ -555,6 +557,7 @@ EXTRA_DIST = \
 	scripts/vnc-open-file-descriptors.conf \
 	scripts/xauthority.conf \
 	scripts/xdg-current-desktop.conf \
+	scripts/xdg-current-desktop-legacy.conf \
 	scripts/xdmcp-client.conf \
 	scripts/xdmcp-server-autologin.conf \
 	scripts/xdmcp-server-double-login.conf \

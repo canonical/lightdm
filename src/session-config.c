@@ -16,8 +16,8 @@ struct SessionConfigPrivate
     /* Session type */
     gchar *session_type;
 
-    /* Desktop name */
-    gchar *desktop_name;
+    /* Desktop names */
+    gchar **desktop_names;
 
     /* Command to run */
     gchar *command;
@@ -54,9 +54,19 @@ session_config_new_from_file (const gchar *filename, GError **error)
     if (!config->priv->session_type)
         config->priv->session_type = g_strdup ("x");
 
-    config->priv->desktop_name = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "DesktopNames", NULL);
-    if (!config->priv->desktop_name)
-        config->priv->desktop_name = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-DesktopName", NULL);
+    config->priv->desktop_names = g_key_file_get_string_list (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "DesktopNames", NULL, NULL);
+    if (!config->priv->desktop_names)
+    {
+        gchar *name;
+
+        name = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-DesktopName", NULL);
+        if (name)
+        {
+            config->priv->desktop_names = g_malloc (sizeof (gchar *) * 2);
+            config->priv->desktop_names[0] = name;
+            config->priv->desktop_names[1] = NULL;
+        }
+    }
     config->priv->compositor_command = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-System-Compositor-Command", NULL);
 
     g_key_file_free (desktop_file);
@@ -78,11 +88,11 @@ session_config_get_session_type (SessionConfig *config)
     return config->priv->session_type;
 }
 
-const gchar *
-session_config_get_desktop_name (SessionConfig *config)
+gchar **
+session_config_get_desktop_names (SessionConfig *config)
 {
     g_return_val_if_fail (config != NULL, NULL);
-    return config->priv->desktop_name;
+    return config->priv->desktop_names;
 }
 
 const gchar *
@@ -104,7 +114,7 @@ session_config_finalize (GObject *object)
     SessionConfig *self = SESSION_CONFIG (object);
 
     g_free (self->priv->session_type);
-    g_free (self->priv->desktop_name);
+    g_strfreev (self->priv->desktop_names);
     g_free (self->priv->command);
     g_free (self->priv->compositor_command);
 
