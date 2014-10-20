@@ -34,6 +34,7 @@ session_config_new_from_file (const gchar *filename, GError **error)
     GKeyFile *desktop_file;
     SessionConfig *config;
     gchar *command;
+    gchar **desktop_names;
 
     desktop_file = g_key_file_new ();
     if (!g_key_file_load_from_file (desktop_file, filename, G_KEY_FILE_NONE, error))
@@ -54,7 +55,12 @@ session_config_new_from_file (const gchar *filename, GError **error)
     if (!config->priv->session_type)
         config->priv->session_type = g_strdup ("x");
 
-    config->priv->desktop_name = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "DesktopNames", NULL);
+    desktop_names = g_key_file_get_string_list (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "DesktopNames", NULL, NULL);
+    if (desktop_names != NULL)
+    {
+        config->priv->desktop_name = g_strjoinv (":", desktop_names);
+        g_strfreev (desktop_names);
+    }
     if (!config->priv->desktop_name)
         config->priv->desktop_name = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-DesktopName", NULL);
     config->priv->compositor_command = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-System-Compositor-Command", NULL);
@@ -96,6 +102,7 @@ static void
 session_config_init (SessionConfig *config)
 {
     config->priv = G_TYPE_INSTANCE_GET_PRIVATE (config, SESSION_CONFIG_TYPE, SessionConfigPrivate);
+    config->priv->desktop_name = NULL;
 }
 
 static void
