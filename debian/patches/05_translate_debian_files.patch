@@ -3,12 +3,13 @@ Description: Grab translatable strings from debian/* files
 Forwarded: not-needed
 Author: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
 
---- lightdm.orig/po/POTFILES.in	2014-01-23 19:17:23.143894000 +0100
-+++ lightdm/po/POTFILES.in	2014-07-24 23:28:19.519106226 +0200
-@@ -1,5 +1,7 @@
+--- lightdm.orig/po/POTFILES.in	2014-09-30 05:00:39.000000000 +0200
++++ lightdm/po/POTFILES.in	2014-10-19 18:08:09.576134427 +0200
+@@ -1,5 +1,8 @@
  # List of source files containing translatable strings.
  # Please keep this file sorted alphabetically.
  [encoding: UTF-8]
++debian/config-error-dialog.sh
 +debian/guest-account.sh
 +debian/guest-session-auto.sh
  src/lightdm.c
