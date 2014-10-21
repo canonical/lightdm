@@ -10,6 +10,7 @@ etc/lightdm/keys.conf usr/share/doc/lightdm/
 etc/apparmor.d
 debian/lightdm-session usr/sbin
 debian/guest-account usr/sbin
+debian/config-error-dialog.sh usr/lib/lightdm
 debian/guest-session-auto.sh usr/lib/lightdm
 debian/lightdm-greeter-session usr/lib/lightdm
 debian/source_lightdm.py usr/share/apport/package-hooks
