@@ -196,6 +196,9 @@ redirect_path (const gchar *path)
     if (g_str_has_prefix (path, "/tmp"))
         return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", path + strlen ("/tmp"), NULL);
 
+    if (g_str_has_prefix (path, "/run"))
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "run", path + strlen ("/run"), NULL);
+
     if (g_str_has_prefix (path, "/etc/xdg"))
         return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "xdg", path + strlen ("/etc/xdg"), NULL);
 
