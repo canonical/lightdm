@@ -311,7 +311,7 @@ config_init (Configuration *config)
 {
     config->priv = G_TYPE_INSTANCE_GET_PRIVATE (config, CONFIGURATION_TYPE, ConfigurationPrivate);
     config->priv->key_file = g_key_file_new ();
-    config->priv->key_sources = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+    config->priv->key_sources = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 }
 
 static void

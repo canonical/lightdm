@@ -932,15 +932,20 @@ find_session_config (Seat *seat, const gchar *sessions_dir, const gchar *session
 static void
 configure_session (Session *session, SessionConfig *config, const gchar *session_name, const gchar *language)
 {
-    const gchar *desktop_name;
+    gchar **desktop_names;
 
     session_set_config (session, config);
     session_set_env (session, "XDG_SESSION_DESKTOP", session_name);
     session_set_env (session, "DESKTOP_SESSION", session_name);
     session_set_env (session, "GDMSESSION", session_name);
-    desktop_name = session_config_get_desktop_name (config);
-    if (desktop_name)
-        session_set_env (session, "XDG_CURRENT_DESKTOP", desktop_name);
+    desktop_names = session_config_get_desktop_names (config);
+    if (desktop_names)
+    {
+        gchar *value;
+        value = g_strjoinv (":", desktop_names);
+        session_set_env (session, "XDG_CURRENT_DESKTOP", value);
+        g_free (value);
+    }
     if (language && language[0] != '\0')
     {
         session_set_env (session, "LANG", language);
