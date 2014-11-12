@@ -590,6 +590,8 @@ session_finalize (GObject *object)
   
     if (self->priv->pid)
         kill (self->priv->pid, SIGKILL);
+    close (self->priv->to_child_input);
+    close (self->priv->from_child_output);
     if (self->priv->from_child_channel)
         g_io_channel_unref (self->priv->from_child_channel);
     if (self->priv->from_child_watch)
