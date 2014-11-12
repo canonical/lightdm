@@ -269,6 +269,7 @@ xdmcp_client_start (XDMCPClient *client)
     client->priv->socket = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_DATAGRAM, G_SOCKET_PROTOCOL_UDP, &error);
     if (error)
         g_warning ("Error creating XDMCP socket: %s", error->message);
+    g_clear_error (&error);
     if (!client->priv->socket)
         return FALSE;
 
