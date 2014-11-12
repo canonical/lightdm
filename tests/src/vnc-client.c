@@ -14,8 +14,7 @@ main (int argc, char **argv)
 {
     GError *error = NULL;
     GSocket *socket;
-    GSocketConnectable *address;
-    GSocketAddressEnumerator *enumerator;
+    GSocketAddress *address;
     gboolean result;
     gchar buffer[1024];
     gssize n_read, n_sent;
@@ -40,29 +39,9 @@ main (int argc, char **argv)
     if (!socket)
         return EXIT_FAILURE;
 
-    address = g_network_address_new ("localhost", 5900);
-    enumerator = g_socket_connectable_enumerate (address);
-    result = FALSE;
-    while (TRUE)
-    {
-        GSocketAddress *socket_address;
-        GError *e = NULL;
-
-        socket_address = g_socket_address_enumerator_next (enumerator, NULL, &e);
-        if (e)
-            g_warning ("Failed to get socket address: %s", e->message);
-        g_clear_error (&e);
-        if (!socket_address)
-            break;
-
-        result = g_socket_connect (socket, socket_address, NULL, error ? NULL : &error);
-        g_object_unref (socket_address);
-        if (result)
-        {
-            g_clear_error (&error);
-            break;
-        }
-    }
+    address = g_inet_socket_address_new (g_inet_address_new_loopback (G_SOCKET_FAMILY_IPV4), 5900);
+    result = g_socket_connect (socket, address, NULL, &error);
+    g_object_unref (address);
     if (error)
         g_warning ("Unable to connect VNC socket: %s", error->message);
     g_clear_error (&error);
