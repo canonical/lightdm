@@ -1,8 +1,8 @@
 Index: 1.2/tests/Makefile.am
 ===================================================================
---- 1.2.orig/tests/Makefile.am	2013-10-08 12:49:59.378578376 +1300
-+++ 1.2/tests/Makefile.am	2013-10-08 12:49:59.374578376 +1300
-@@ -168,6 +168,8 @@
+--- 1.2.orig/tests/Makefile.am
++++ 1.2/tests/Makefile.am
+@@ -172,6 +172,8 @@ TESTS += \
  	test-login-qt-guest-logout
  endif
  

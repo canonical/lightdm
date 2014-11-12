@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.2.9
+
+    * Fix pipe file descriptor leak for each session login / authentication
+    * Handle not getting an X connection when attempting to get X layouts
+    * Correct section name in default users.conf file
+
 Overview of changes in lightdm 1.2.8
 
     * Handle signals being received in child processes instead of treating them

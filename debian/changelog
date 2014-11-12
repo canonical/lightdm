@@ -1,17 +1,33 @@
-lightdm (1.2.6-0ubuntu1) UNRELEASED; urgency=low
+lightdm (1.2.9-0ubuntu1) UNRELEASED; urgency=low
 
   * New upstream release:
+    [ 1.2.9 ]
+    - Fix pipe file descriptor leak for each session login / authentication
+    - Handle not getting an X connection when attempting to get X layouts
+    - Correct section name in default users.conf file
+    [ 1.2.8 ]
+    - Handle signals being received in child processes instead of treating them
+      like they are received in the daemon.
+    - Ensure X authority is written before X server is started.
+    - Fix some small memory leaks detected by valgrind.
+    - Fix double removal of source IDs.
+    [ 1.2.7 ]
+    - Correctly invoke PAM to change authentication token
+    - Add back apparmor abstractions removed in 1.2.6
+    - Load configuration from /etc/lightdm/lightdm.conf.d
+    - Fix crash where Process objects are accessed after unref
+    - Fix double removal of source IDs
     [ 1.2.6 ]
-    * Update apparmor abstractions
+    - Update apparmor abstractions
     [ 1.2.5 ]
-    * Don't fail writing X authority if reading it had an error
+    - Don't fail writing X authority if reading it had an error
     [ 1.2.4 ]
-    * Fix overallocation of array for strings from greeter
-    * Fix truncation writing card32 in XDMCP server
-    * Don't write X authority with g_file_replace - it can leave intermediate
+    - Fix overallocation of array for strings from greeter
+    - Fix truncation writing card32 in XDMCP server
+    - Don't write X authority with g_file_replace - it can leave intermediate
       files around if it is interrupted.
-    * Stop deprecation warnings from glib >= 2.36
-    * Fix script hooks no longer working with latest glib
+    - Stop deprecation warnings from glib >= 2.36
+    - Fix script hooks no longer working with latest glib
   * debian/control:
     - Tidy up
     - Add Vcs-Bzr link
