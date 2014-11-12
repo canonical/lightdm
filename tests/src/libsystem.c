@@ -338,6 +338,11 @@ access (const char *pathname, int mode)
 
     _access = (int (*)(const char *pathname, int mode)) dlsym (RTLD_NEXT, "access");
 
+    if (strcmp (pathname, "/dev/tty0") == 0)
+        return F_OK;
+    if (strcmp (pathname, "/sys/class/tty/tty0/active") == 0)
+        return F_OK;
+
     new_path = redirect_path (pathname);
     ret = _access (new_path, mode);
     g_free (new_path);
