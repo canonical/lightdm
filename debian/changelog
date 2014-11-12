@@ -1,3 +1,16 @@
+lightdm (1.12.2-0ubuntu1) utopic; urgency=medium
+
+  * New upstream release:
+    - Fix pipe file descriptor leak for each session login / authentication
+      (LP: #1190344)
+    - Use correct syntax for DesktopNames key in session files (LP: #1383321)
+    - Mock /run in tests
+  * debian/config-error-dialog.sh:
+    - Show warning dialog instead of interrupted login if syntax error in
+      ~/.profile etc (LP: #678421)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 13 Nov 2014 10:43:43 +1300
+
 lightdm (1.12.1-0ubuntu1) utopic; urgency=medium
 
   * New upstream release:
