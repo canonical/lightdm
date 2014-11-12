@@ -1,3 +1,15 @@
+lightdm (1.10.4-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Fix pipe file descriptor leak for each session login / authentication
+      (LP: #1190344)
+    - Support DesktopNames key in session files (LP: #1383321)
+  * debian/config-error-dialog.sh:
+    - Show warning dialog instead of interrupted login if syntax error in
+      ~/.profile etc (LP: #678421)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 13 Nov 2014 10:46:18 +1300
+
 lightdm (1.10.3-0ubuntu2) trusty; urgency=medium
 
   * Refresh patches

@@ -75,8 +75,8 @@ Index: 1.10/src/seat.c
 ===================================================================
 --- 1.10.orig/src/seat.c
 +++ 1.10/src/seat.c
-@@ -858,7 +858,7 @@ configure_session (Session *session, Ses
-         session_set_env (session, "XDG_CURRENT_DESKTOP", desktop_name);
+@@ -863,7 +863,7 @@ configure_session (Session *session, Ses
+     }
      if (language && language[0] != '\0')
      {
 -        session_set_env (session, "LANG", language);

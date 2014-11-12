@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.10.4
+
+    * Fix pipe file descriptor leak for each session login / authentication
+    * Support DesktopNames key in session files
+
 Overview of changes in lightdm 1.10.3
 
     * Fix crash when having configuration keys defined in multiple places
