@@ -47,12 +47,11 @@ Conflicts: liblightdm-gobject-0-0,
            liblightdm-qt-0-0,
 Provides: x-display-manager
 Description: Display Manager
- LightDM is a display manager that:
-  * Is cross-desktop - supports different desktops
-  * Supports different display technologies
-  * Is lightweight - low memory usage and fast performance
-  * Has a comprehensive test suite
-  * Has low code complexity
+ LightDM is a X display manager that:
+  * Has a lightweight codebase
+  * Is standards compliant (PAM, ConsoleKit, etc)
+  * Has a well defined interface between the server and user interface
+  * Cross-desktop (greeters can be written in any toolkit)
 
 Package: liblightdm-gobject-1-0
 Architecture: any

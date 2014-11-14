@@ -81,6 +81,28 @@ static const GDBusInterfaceVTable user_vtable =
     handle_user_call,
     handle_user_get_property,
 };
+static GDBusNodeInfo *ck_session_info;
+typedef struct
+{
+    gchar *cookie;
+    gchar *path;
+    guint id;
+    gboolean locked;
+} CKSession;
+static GList *ck_sessions = NULL;
+static gint ck_session_index = 0;
+static void handle_ck_session_call (GDBusConnection       *connection,
+                                    const gchar           *sender,
+                                    const gchar           *object_path,
+                                    const gchar           *interface_name,
+                                    const gchar           *method_name,
+                                    GVariant              *parameters,
+                                    GDBusMethodInvocation *invocation,
+                                    gpointer               user_data);
+static const GDBusInterfaceVTable ck_session_vtable =
+{
+    handle_ck_session_call,
+};
 
 typedef struct
 {
@@ -1181,6 +1203,249 @@ start_upower_daemon (void)
                     G_BUS_NAME_OWNER_FLAGS_NONE,
                     upower_name_acquired_cb,
                     NULL,
+                    NULL,
+                    NULL,
+                    NULL);
+}
+
+static CKSession *
+open_ck_session (GDBusConnection *connection, GVariant *params)
+{
+    CKSession *session;
+    GString *cookie;
+    GVariantIter *iter;
+    const gchar *name;
+    GVariant *value;
+    GError *error = NULL;
+
+    session = g_malloc0 (sizeof (CKSession));
+    ck_sessions = g_list_append (ck_sessions, session);
+
+    cookie = g_string_new ("ck-cookie");
+    g_variant_get (params, "a(sv)", &iter);
+    while (g_variant_iter_loop (iter, "(&sv)", &name, &value))
+    {
+        if (strcmp (name, "x11-display") == 0)
+        {
+            const gchar *display;
+            g_variant_get (value, "&s", &display);
+            g_string_append_printf (cookie, "-x%s", display);
+        }
+    }
+
+    session->cookie = cookie->str;
+    g_string_free (cookie, FALSE);
+    session->path = g_strdup_printf ("/org/freedesktop/ConsoleKit/Session%d", ck_session_index++);
+    session->id = g_dbus_connection_register_object (connection,
+                                                     session->path,
+                                                     ck_session_info->interfaces[0],
+                                                     &ck_session_vtable,
+                                                     session,
+                                                     NULL,
+                                                     &error);
+    if (error)
+        g_warning ("Failed to register CK Session: %s", error->message);
+    g_clear_error (&error);
+
+    return session;
+}
+
+static void
+handle_ck_call (GDBusConnection       *connection,
+                const gchar           *sender,
+                const gchar           *object_path,
+                const gchar           *interface_name,
+                const gchar           *method_name,
+                GVariant              *parameters,
+                GDBusMethodInvocation *invocation,
+                gpointer               user_data)
+{
+    if (strcmp (method_name, "CanRestart") == 0)
+    {
+        check_status ("CONSOLE-KIT CAN-RESTART");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+    }
+    else if (strcmp (method_name, "CanStop") == 0)
+    {
+        check_status ("CONSOLE-KIT CAN-STOP");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+    }
+    else if (strcmp (method_name, "CloseSession") == 0)
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+    else if (strcmp (method_name, "OpenSession") == 0)
+    {
+        GVariantBuilder params;
+        g_variant_builder_init (&params, G_VARIANT_TYPE ("a(sv)"));
+        CKSession *session = open_ck_session (connection, g_variant_builder_end (&params));
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", session->cookie));
+    }
+    else if (strcmp (method_name, "OpenSessionWithParameters") == 0)
+    {
+        CKSession *session = open_ck_session (connection, g_variant_get_child_value (parameters, 0));
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", session->cookie));
+    }
+    else if (strcmp (method_name, "GetSessionForCookie") == 0)
+    {
+        GList *link;
+        gchar *cookie;
+
+        g_variant_get (parameters, "(&s)", &cookie);
+
+        for (link = ck_sessions; link; link = link->next)
+        {
+            CKSession *session = link->data;
+            if (strcmp (session->cookie, cookie) == 0)
+            {
+                g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", session->path));
+                return;
+            }
+        }
+
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Unable to find session for cookie");
+    }
+    else if (strcmp (method_name, "Restart") == 0)
+    {
+        check_status ("CONSOLE-KIT RESTART");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "Stop") == 0)
+    {
+        check_status ("CONSOLE-KIT STOP");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
+}
+
+static void
+handle_ck_session_call (GDBusConnection       *connection,
+                        const gchar           *sender,
+                        const gchar           *object_path,
+                        const gchar           *interface_name,
+                        const gchar           *method_name,
+                        GVariant              *parameters,
+                        GDBusMethodInvocation *invocation,
+                        gpointer               user_data)
+{
+    CKSession *session = user_data;
+
+    if (strcmp (method_name, "Lock") == 0)
+    {
+        if (!session->locked)
+            check_status ("CONSOLE-KIT LOCK-SESSION");
+        session->locked = TRUE;
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "Unlock") == 0)
+    {
+        if (session->locked)
+            check_status ("CONSOLE-KIT UNLOCK-SESSION");
+        session->locked = FALSE;
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "Activate") == 0)
+    {
+        gchar *status = g_strdup_printf ("CONSOLE-KIT ACTIVATE-SESSION SESSION=%s", session->cookie);
+        check_status (status);
+        g_free (status);
+
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
+}
+
+static void
+ck_name_acquired_cb (GDBusConnection *connection,
+                     const gchar     *name,
+                     gpointer         user_data)
+{
+    const gchar *ck_interface =
+        "<node>"
+        "  <interface name='org.freedesktop.ConsoleKit.Manager'>"
+        "    <method name='CanRestart'>"
+        "      <arg name='can_restart' direction='out' type='b'/>"
+        "    </method>"
+        "    <method name='CanStop'>"
+        "      <arg name='can_stop' direction='out' type='b'/>"
+        "    </method>"
+        "    <method name='CloseSession'>"
+        "      <arg name='cookie' direction='in' type='s'/>"
+        "      <arg name='result' direction='out' type='b'/>"
+        "    </method>"
+        "    <method name='OpenSession'>"
+        "      <arg name='cookie' direction='out' type='s'/>"
+        "    </method>"
+        "    <method name='OpenSessionWithParameters'>"
+        "      <arg name='parameters' direction='in' type='a(sv)'/>"
+        "      <arg name='cookie' direction='out' type='s'/>"
+        "    </method>"
+        "    <method name='GetSessionForCookie'>"
+        "      <arg name='cookie' direction='in' type='s'/>"
+        "      <arg name='ssid' direction='out' type='o'/>"
+        "    </method>"
+        "    <method name='Restart'/>"
+        "    <method name='Stop'/>"
+        "    <signal name='SeatAdded'>"
+        "      <arg name='seat' type='o'/>"
+        "    </signal>"
+        "    <signal name='SeatRemoved'>"
+        "      <arg name='seat' type='o'/>"
+        "    </signal>"
+        "  </interface>"
+        "</node>";
+    static const GDBusInterfaceVTable ck_vtable =
+    {
+        handle_ck_call,
+    };
+    const gchar *ck_session_interface =
+        "<node>"
+        "  <interface name='org.freedesktop.ConsoleKit.Session'>"
+        "    <method name='Lock'/>"
+        "    <method name='Unlock'/>"
+        "    <method name='Activate'/>"
+        "  </interface>"
+        "</node>";
+    GDBusNodeInfo *ck_info;
+    GError *error = NULL;
+
+    ck_info = g_dbus_node_info_new_for_xml (ck_interface, &error);
+    if (error)
+        g_warning ("Failed to parse D-Bus interface: %s", error->message);
+    g_clear_error (&error);
+    if (!ck_info)
+        return;
+    ck_session_info = g_dbus_node_info_new_for_xml (ck_session_interface, &error);
+    if (error)
+        g_warning ("Failed to parse D-Bus interface: %s", error->message);
+    g_clear_error (&error);
+    if (!ck_session_info)
+        return;
+    g_dbus_connection_register_object (connection,
+                                       "/org/freedesktop/ConsoleKit/Manager",
+                                       ck_info->interfaces[0],
+                                       &ck_vtable,
+                                       NULL, NULL,
+                                       &error);
+    if (error)
+        g_warning ("Failed to register console kit service: %s", error->message);
+    g_clear_error (&error);
+    g_dbus_node_info_unref (ck_info);
+
+    service_count--;
+    if (service_count == 0)
+        ready ();
+}
+
+static void
+start_console_kit_daemon (void)
+{
+    service_count++;
+    g_bus_own_name (G_BUS_TYPE_SYSTEM,
+                    "org.freedesktop.ConsoleKit",
+                    G_BUS_NAME_OWNER_FLAGS_NONE,
+                    NULL,
+                    ck_name_acquired_cb,
                     NULL,
                     NULL,
                     NULL);
@@ -2534,6 +2799,8 @@ main (int argc, char **argv)
     /* Start D-Bus services */
     if (!g_key_file_get_boolean (config, "test-runner-config", "disable-upower", NULL))
         start_upower_daemon ();
+    if (!g_key_file_get_boolean (config, "test-runner-config", "disable-console-kit", NULL))
+        start_console_kit_daemon ();
     if (!g_key_file_get_boolean (config, "test-runner-config", "disable-login1", NULL))
         start_login1_daemon ();
     if (!g_key_file_get_boolean (config, "test-runner-config", "disable-accounts-service", NULL))

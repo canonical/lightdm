@@ -16,6 +16,7 @@
 #include "lightdm/power.h"
 
 static GDBusProxy *upower_proxy = NULL;
+static GDBusProxy *ck_proxy = NULL;
 static GDBusProxy *login1_proxy = NULL;
 
 static GVariant *
@@ -204,6 +205,36 @@ lightdm_hibernate (GError **error)
     return hibernated;
 }
 
+static GVariant *
+ck_call_function (const gchar *function, GError **error)
+{
+    GVariant *r;
+
+    if (!ck_proxy)
+    {
+        ck_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                                  G_DBUS_PROXY_FLAGS_NONE,
+                                                  NULL,
+                                                  "org.freedesktop.ConsoleKit",
+                                                  "/org/freedesktop/ConsoleKit/Manager",
+                                                  "org.freedesktop.ConsoleKit.Manager",
+                                                  NULL,
+                                                  error);
+        if (!ck_proxy)
+            return FALSE;
+    }
+
+    r = g_dbus_proxy_call_sync (ck_proxy,
+                                function,
+                                NULL,
+                                G_DBUS_CALL_FLAGS_NONE,
+                                -1,
+                                NULL,
+                                error);
+
+    return r;
+}
+
 /**
  * lightdm_get_can_restart:
  *
@@ -226,8 +257,15 @@ lightdm_get_can_restart (void)
             g_variant_get (r, "(&s)", &result);
             can_restart = g_strcmp0 (result, "yes") == 0;
         }
+    }
+    else
+    {
+        r = ck_call_function ("CanRestart", NULL);
+        if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
+            g_variant_get (r, "(b)", &can_restart);
+    }
+    if (r)
         g_variant_unref (r);
-    }  
 
     return can_restart;
 }
@@ -244,15 +282,19 @@ gboolean
 lightdm_restart (GError **error)
 {
     GVariant *r;
+    gboolean restarted;
 
     r = login1_call_function ("Reboot", g_variant_new("(b)", FALSE), error);
-    if (r)
+    if (!r)
     {
-        g_variant_unref (r);
-        return TRUE;
+        g_clear_error (error);
+        r = ck_call_function ("Restart", error);
     }
+    restarted = r != NULL;
+    if (r)
+        g_variant_unref (r);
 
-    return FALSE;
+    return restarted;
 }
 
 /**
@@ -277,8 +319,15 @@ lightdm_get_can_shutdown (void)
             g_variant_get (r, "(&s)", &result);
             can_shutdown = g_strcmp0 (result, "yes") == 0;
         }
-        g_variant_unref (r);
     }
+    else
+    {
+        r = ck_call_function ("CanStop", NULL);
+        if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
+            g_variant_get (r, "(b)", &can_shutdown);
+    }
+    if (r)
+        g_variant_unref (r);
 
     return can_shutdown;
 }
@@ -295,13 +344,17 @@ gboolean
 lightdm_shutdown (GError **error)
 {
     GVariant *r;
+    gboolean shutdown;
 
     r = login1_call_function ("PowerOff", g_variant_new("(b)", FALSE), error);
-    if (r)
+    if (!r)
     {
-        g_variant_unref (r);
-        return TRUE;
+        g_clear_error (error);
+        r = ck_call_function ("Stop", error);
     }
+    shutdown = r != NULL;
+    if (r)
+        g_variant_unref (r);
 
-    return FALSE;
+    return shutdown;
 }

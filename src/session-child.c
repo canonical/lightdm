@@ -20,6 +20,7 @@
 #include "configuration.h"
 #include "session-child.h"
 #include "session.h"
+#include "console-kit.h"
 #include "login1.h"
 #include "privileges.h"
 #include "x-authority.h"
@@ -230,6 +231,7 @@ session_child_run (int argc, char **argv)
     gsize env_length;
     gsize command_argc;
     gchar **command_argv;
+    GVariantBuilder ck_parameters;
     int return_code;
     int authentication_result;
     gchar *authentication_result_string;
@@ -240,7 +242,9 @@ session_child_run (int argc, char **argv)
     gchar *xdisplay;
     XAuthority *x_authority = NULL;
     gchar *x_authority_filename;
+    GDBusConnection *bus;
     const gchar *login1_session = NULL;
+    gchar *console_kit_cookie = NULL;
     const gchar *locale_value;
     gchar *locale_var;
     static const gchar * const locale_var_names[] = {
@@ -257,6 +261,7 @@ session_child_run (int argc, char **argv)
     gid_t gid;
     uid_t uid;
     const gchar *home_directory;
+    GError *error = NULL;
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
@@ -529,21 +534,55 @@ session_child_run (int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    /* Open a connection to the system bus for ConsoleKit - we must keep it open or CK will close the session */
+    bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
+    if (error)
+        g_printerr ("Unable to contact system bus: %s", error->message);
+    if (!bus)
+    {
+        pam_end (pam_handle, 0);
+        return EXIT_FAILURE;
+    }
+
     /* Check what logind session we are, or fallback to ConsoleKit */
     login1_session = pam_getenv (pam_handle, "XDG_SESSION_ID");
     if (login1_session)
     {
         write_string (login1_session);
-        /* Write what was a ConsoleKit cookie */
         if (version >= 2)
             write_string (NULL);
     }
     else
     {
+        g_variant_builder_init (&ck_parameters, G_VARIANT_TYPE ("(a(sv))"));
+        g_variant_builder_open (&ck_parameters, G_VARIANT_TYPE ("a(sv)"));
+        g_variant_builder_add (&ck_parameters, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
+        if (g_strcmp0 (pam_getenv (pam_handle, "XDG_SESSION_CLASS"), "greeter") == 0)
+            g_variant_builder_add (&ck_parameters, "(sv)", "session-type", g_variant_new_string ("LoginWindow"));
+        if (xdisplay)
+        {
+            g_variant_builder_add (&ck_parameters, "(sv)", "x11-display", g_variant_new_string (xdisplay));
+            if (tty)
+                g_variant_builder_add (&ck_parameters, "(sv)", "x11-display-device", g_variant_new_string (tty));
+        }
+        if (remote_host_name)
+        {
+            g_variant_builder_add (&ck_parameters, "(sv)", "is-local", g_variant_new_boolean (FALSE));
+            g_variant_builder_add (&ck_parameters, "(sv)", "remote-host-name", g_variant_new_string (remote_host_name));
+        }
+        else
+            g_variant_builder_add (&ck_parameters, "(sv)", "is-local", g_variant_new_boolean (TRUE));
+        console_kit_cookie = ck_open_session (&ck_parameters);
         if (version >= 2)
             write_string (NULL);
-        /* Write what was a ConsoleKit cookie */
-        write_string (NULL);
+        write_string (console_kit_cookie);
+        if (console_kit_cookie)
+        {
+            gchar *value;
+            value = g_strdup_printf ("XDG_SESSION_COOKIE=%s", console_kit_cookie);
+            pam_putenv (pam_handle, value);
+            g_free (value);
+        }
     }
 
     /* Write X authority */
@@ -720,6 +759,10 @@ session_child_run (int argc, char **argv)
         if (!result)
             _exit (EXIT_FAILURE);
     }
+
+    /* Close the Console Kit session */
+    if (console_kit_cookie)
+        ck_close_session (console_kit_cookie);
 
     /* Close the session */
     pam_close_session (pam_handle, 0);
