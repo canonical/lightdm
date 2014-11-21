@@ -1,3 +1,23 @@
+lightdm (1.13.0-0ubuntu1) vivid; urgency=medium
+
+  * New upstream release:
+    - Fix crash when having configuration keys defined in multiple places
+      (LP: #1377373)
+    - Fix pipe file descriptor leak for each session login / authentication
+      (LP: #1190344)
+    - Use correct syntax for DesktopNames key in session files (LP: #1383321)
+    - Match seat configuration with globbing (LP: #1364911)
+    - Allow user switching in multi-seat until bug stopping greeter showing on
+      logout is fixed
+    - Disable log message when AccountsService users change (LP: #1376357)
+    - Update AppArmor scripts, requires AppArmor 2.9
+    - Update tests to run better on servers
+  * debian/config-error-dialog.sh:
+    - Show warning dialog instead of interrupted login if syntax error in
+      ~/.profile etc (LP: #678421)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 13 Nov 2014 11:08:17 +1300
+
 lightdm (1.12.0-0ubuntu2) utopic; urgency=medium
 
   * Restore 1.11.9-0ubuntu2, it was reverted by error in the previous upload

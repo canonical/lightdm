@@ -8,6 +8,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <pwd.h>
 #include <unistd.h>
 #include <dirent.h>
@@ -196,6 +198,9 @@ redirect_path (const gchar *path)
     if (g_str_has_prefix (path, "/tmp"))
         return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", path + strlen ("/tmp"), NULL);
 
+    if (g_str_has_prefix (path, "/run"))
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "run", path + strlen ("/run"), NULL);
+
     if (g_str_has_prefix (path, "/etc/xdg"))
         return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "xdg", path + strlen ("/etc/xdg"), NULL);
 
@@ -332,6 +337,11 @@ access (const char *pathname, int mode)
     int ret;
 
     _access = (int (*)(const char *pathname, int mode)) dlsym (RTLD_NEXT, "access");
+
+    if (strcmp (pathname, "/dev/tty0") == 0)
+        return F_OK;
+    if (strcmp (pathname, "/sys/class/tty/tty0/active") == 0)
+        return F_OK;
 
     new_path = redirect_path (pathname);
     ret = _access (new_path, mode);
@@ -537,6 +547,188 @@ ioctl (int d, unsigned long request, ...)
         va_end (ap);
         return _ioctl (d, request, data);
     }
+}
+
+static void
+add_port_redirect (int requested_port, int redirected_port)
+{
+    GKeyFile *file;
+    gchar *path, *name, *data;
+
+    file = g_key_file_new ();
+    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".port-redirects", NULL);
+    g_key_file_load_from_file (file, path, G_KEY_FILE_NONE, NULL);
+
+    name = g_strdup_printf ("%d", requested_port);
+    g_key_file_set_integer (file, name, "redirected", redirected_port);
+    g_free (name);
+  
+    data = g_key_file_to_data (file, NULL, NULL);
+    g_file_set_contents (path, data, -1, NULL);
+    g_free (data);
+    g_free (path);
+
+    g_key_file_free (file);
+}
+
+static int
+find_port_redirect (int port)
+{
+    GKeyFile *file;
+    gchar *path, *name;
+    int redirected_port;
+
+    file = g_key_file_new ();
+    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".port-redirects", NULL);
+    g_key_file_load_from_file (file, path, G_KEY_FILE_NONE, NULL);
+    g_free (path);
+
+    name = g_strdup_printf ("%d", port);
+    redirected_port = g_key_file_get_integer (file, name, "redirected", NULL);
+    g_free (name);
+    g_key_file_free (file);
+
+    return redirected_port;
+}
+
+int
+bind (int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+{
+    int port = 0, redirected_port = 0;
+    int (*_bind) (int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+    const struct sockaddr *modified_addr = addr;
+    struct sockaddr_in temp_addr;
+    struct sockaddr_in6 temp_addr6;
+    int retval;
+
+    _bind = (int (*)(int sockfd, const struct sockaddr *addr, socklen_t addrlen)) dlsym (RTLD_NEXT, "bind");
+
+    switch (addr->sa_family)
+    {
+    case AF_INET:
+        port = ntohs (((const struct sockaddr_in *) addr)->sin_port);
+        redirected_port = find_port_redirect (port);
+        memcpy (&temp_addr, addr, sizeof (struct sockaddr_in));
+        modified_addr = (struct sockaddr *) &temp_addr;
+        if (redirected_port != 0)
+            temp_addr.sin_port = htons (redirected_port);
+        else
+            temp_addr.sin_port = 0;
+        break;
+    case AF_INET6:
+        port = ntohs (((const struct sockaddr_in6 *) addr)->sin6_port);
+        redirected_port = find_port_redirect (port);
+        memcpy (&temp_addr6, addr, sizeof (struct sockaddr_in6));
+        modified_addr = (struct sockaddr *) &temp_addr6;
+        if (redirected_port != 0)
+            temp_addr6.sin6_port = htons (redirected_port);
+        else
+            temp_addr6.sin6_port = 0;
+        break;
+    }
+
+    retval = _bind (sockfd, modified_addr, addrlen);
+
+    socklen_t temp_addr_len;
+    switch (addr->sa_family)
+    {
+    case AF_INET:
+        temp_addr_len = sizeof (temp_addr);
+        getsockname (sockfd, &temp_addr, &temp_addr_len);
+        if (redirected_port == 0)
+        {
+            redirected_port = ntohs (temp_addr.sin_port);
+            add_port_redirect (port, redirected_port);
+        }
+        break;
+    case AF_INET6:
+        temp_addr_len = sizeof (temp_addr6);
+        getsockname (sockfd, &temp_addr6, &temp_addr_len);
+        if (redirected_port == 0)
+        {
+            redirected_port = ntohs (temp_addr6.sin6_port);
+            add_port_redirect (port, redirected_port);
+        }
+        break;
+    }
+
+    return retval;
+}
+
+int
+connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+{
+    int port, redirected_port;
+    const struct sockaddr *modified_addr = addr;
+    struct sockaddr_in temp_addr;
+    struct sockaddr_in6 temp_addr6;
+    int (*_connect) (int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+
+    _connect = (int (*)(int sockfd, const struct sockaddr *addr, socklen_t addrlen)) dlsym (RTLD_NEXT, "connect");
+
+    switch (addr->sa_family)
+    {
+    case AF_INET:
+        port = ntohs (((const struct sockaddr_in *) addr)->sin_port);
+        redirected_port = find_port_redirect (port);
+        if (redirected_port != 0) 
+        {
+            memcpy (&temp_addr, addr, sizeof (struct sockaddr_in));
+            temp_addr.sin_port = htons (redirected_port);
+            modified_addr = (struct sockaddr *) &temp_addr;
+        }
+        break;
+    case AF_INET6:
+        port = ntohs (((const struct sockaddr_in6 *) addr)->sin6_port);
+        redirected_port = find_port_redirect (port);
+        if (redirected_port != 0) 
+        {
+            memcpy (&temp_addr6, addr, sizeof (struct sockaddr_in6));
+            temp_addr6.sin6_port = htons (redirected_port);
+            modified_addr = (struct sockaddr *) &temp_addr6;
+        }
+        break;
+    }
+
+    return _connect (sockfd, modified_addr, addrlen);
+}
+
+ssize_t
+sendto (int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen)
+{
+    int port, redirected_port;
+    const struct sockaddr *modified_addr = dest_addr;
+    struct sockaddr_in temp_addr;
+    struct sockaddr_in6 temp_addr6;
+    ssize_t (*_sendto) (int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen);
+
+    _sendto = (ssize_t (*)(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen)) dlsym (RTLD_NEXT, "sendto");
+
+    switch (dest_addr->sa_family)
+    {
+    case AF_INET:
+        port = ntohs (((const struct sockaddr_in *) dest_addr)->sin_port);
+        redirected_port = find_port_redirect (port);
+        if (redirected_port != 0) 
+        {
+            memcpy (&temp_addr, dest_addr, sizeof (struct sockaddr_in));
+            temp_addr.sin_port = htons (redirected_port);
+            modified_addr = (struct sockaddr *) &temp_addr;
+        }
+        break;
+    case AF_INET6:
+        port = ntohs (((const struct sockaddr_in6 *) dest_addr)->sin6_port);
+        redirected_port = find_port_redirect (port);
+        if (redirected_port != 0) 
+        {
+            memcpy (&temp_addr6, dest_addr, sizeof (struct sockaddr_in6));
+            temp_addr6.sin6_port = htons (redirected_port);
+            modified_addr = (struct sockaddr *) &temp_addr6;
+        }
+        break;
+    }
+
+    return _sendto (sockfd, buf, len, flags, modified_addr, addrlen);
 }
 
 int
