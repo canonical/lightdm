@@ -119,10 +119,10 @@ update_property (Login1Seat *seat, const gchar *name, GVariant *value)
         seat->priv->can_graphical = g_variant_get_boolean (value);
         g_signal_emit (seat, seat_signals[CAN_GRAPHICAL_CHANGED], 0);
     }
-    else if (strcmp (name, "ActiveSession") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_ARRAY))
+    else if (strcmp (name, "ActiveSession") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_TUPLE))
     {
         GVariant *value2;
-        
+
         // value should be of type (so)
         value2 = g_variant_get_child_value (value, 0);
         if (value2)
