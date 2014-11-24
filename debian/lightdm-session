@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # LightDM wrapper to run around X sessions.
 
@@ -25,15 +25,9 @@ ERR=$(mktemp --tmpdir config-err-XXXXXX)
 
 source_with_error_check () {
     CONFIG_FILE="$1"
-    if sh -n "$CONFIG_FILE" 2>"$ERR"; then
-        echo "Loading $CONFIG_FILE";
-        . "$CONFIG_FILE" 2>"$ERR"
-        if [ -s "$ERR" ]; then
-            SYNTAX=false
-            . /usr/lib/lightdm/config-error-dialog.sh
-        fi
-    else
-        SYNTAX=true
+    echo "Loading $CONFIG_FILE"
+    . "$CONFIG_FILE" 2>"$ERR"
+    if [ -s "$ERR" ]; then
         . /usr/lib/lightdm/config-error-dialog.sh
     fi
     cat "$ERR" >>/dev/stderr
