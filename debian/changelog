@@ -1,3 +1,13 @@
+lightdm (1.10.4-0ubuntu2) trusty; urgency=medium
+
+  * debian/config-error-dialog.sh:
+  * debian/lightdm-session:
+    - Use bash for the session to improve error handling (LP: #678421)
+  * debian/control:
+    - Depend on bash
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 25 Nov 2014 11:25:23 +1300
+
 lightdm (1.10.4-0ubuntu1) trusty; urgency=medium
 
   * New upstream release:
