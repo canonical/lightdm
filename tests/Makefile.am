@@ -129,6 +129,7 @@ TESTS = \
 	test-upstart-login \
 	test-dbus \
 	test-lock-seat \
+	test-lock-seat-after-vt-switch \
 	test-lock-seat-resettable \
 	test-lock-seat-return-session \
 	test-lock-session \
