@@ -641,7 +641,6 @@ session_removed_cb (Seat *seat, Session *session)
         GError *error = NULL;
 
         g_dbus_connection_unregister_object (bus, entry->bus_id);
-        g_dbus_connection_unregister_object (bus, entry->bus_id);
         if (!g_dbus_connection_emit_signal (bus,
                                             NULL,
                                             "/org/freedesktop/DisplayManager",
