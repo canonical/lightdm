@@ -611,11 +611,6 @@ seat_bus_entry_free (gpointer data)
 {
     SeatBusEntry *entry = data;
 
-    g_dbus_connection_unregister_object (bus, entry->bus_id);
-
-    emit_object_value_changed (bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Seats", get_seat_list ());
-    emit_object_signal (bus, "/org/freedesktop/DisplayManager", "SeatRemoved", entry->path);
-
     g_free (entry->path);
     g_free (entry);
 }
@@ -624,14 +619,6 @@ static void
 session_bus_entry_free (gpointer data)
 {
     SessionBusEntry *entry = data;
-
-    g_dbus_connection_unregister_object (bus, entry->bus_id);
-
-    emit_object_value_changed (bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Sessions", get_session_list (NULL));
-    emit_object_signal (bus, "/org/freedesktop/DisplayManager", "SessionRemoved", entry->path);
-
-    emit_object_value_changed (bus, entry->seat_path, "org.freedesktop.DisplayManager.Seat", "Sessions", get_session_list (entry->seat_path));
-    emit_object_signal (bus, entry->seat_path, "SessionRemoved", entry->path);
 
     g_free (entry->path);
     g_free (entry->seat_path);
@@ -685,8 +672,28 @@ running_user_session_cb (Seat *seat, Session *session)
 static void
 session_removed_cb (Seat *seat, Session *session)
 {
+    SessionBusEntry *entry;
+    gchar *seat_path = NULL;
+
     g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
+
+    entry = g_hash_table_lookup (session_bus_entries, session);
+    if (entry)
+    {
+        g_dbus_connection_unregister_object (bus, entry->bus_id);
+        emit_object_signal (bus, "/org/freedesktop/DisplayManager", "SessionRemoved", entry->path);
+        emit_object_signal (bus, entry->seat_path, "SessionRemoved", entry->path);
+        seat_path = g_strdup (entry->seat_path);
+    }
+
     g_hash_table_remove (session_bus_entries, session);
+
+    if (seat_path)
+    {
+        emit_object_value_changed (bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Sessions", get_session_list (NULL));
+        emit_object_value_changed (bus, seat_path, "org.freedesktop.DisplayManager.Seat", "Sessions", get_session_list (seat_path));
+        g_free (seat_path);
+    }
 }
 
 static void
@@ -730,7 +737,18 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
 static void
 seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
+    SeatBusEntry *entry;
+
+    entry = g_hash_table_lookup (seat_bus_entries, seat);
+    if (entry)
+    {
+        g_dbus_connection_unregister_object (bus, entry->bus_id);
+        emit_object_signal (bus, "/org/freedesktop/DisplayManager", "SeatRemoved", entry->path);
+    }
+
     g_hash_table_remove (seat_bus_entries, seat);
+  
+    emit_object_value_changed (bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Seats", get_seat_list ());
 }
 
 static gboolean
