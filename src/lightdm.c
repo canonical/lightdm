@@ -58,7 +58,6 @@ typedef struct
 {
     gchar *path;
     gchar *parent_path;
-    gchar *removed_signal;
     guint bus_id;
 } BusEntry;
 
@@ -561,14 +560,13 @@ handle_session_call (GDBusConnection       *connection,
 }
 
 static BusEntry *
-bus_entry_new (const gchar *path, const gchar *parent_path, const gchar *removed_signal)
+bus_entry_new (const gchar *path, const gchar *parent_path)
 {
     BusEntry *entry;
 
     entry = g_malloc0 (sizeof (BusEntry));
     entry->path = g_strdup (path);
     entry->parent_path = g_strdup (parent_path);
-    entry->removed_signal = g_strdup (removed_signal);
 
     return entry;
 }
@@ -577,23 +575,9 @@ static void
 bus_entry_free (gpointer data)
 {
     BusEntry *entry = data;
-    GError *error = NULL;
-
-    g_dbus_connection_unregister_object (bus, entry->bus_id);
-
-    if (!g_dbus_connection_emit_signal (bus,
-                                        NULL,
-                                        "/org/freedesktop/DisplayManager",
-                                        "org.freedesktop.DisplayManager",
-                                        entry->removed_signal,
-                                        g_variant_new ("(o)", entry->path),
-                                        &error))
-        g_warning ("Failed to emit %s signal: %s", entry->removed_signal, error->message);
-    g_clear_error (&error);
 
     g_free (entry->path);
     g_free (entry->parent_path);
-    g_free (entry->removed_signal);
     g_free (entry);
 }
 
@@ -618,7 +602,7 @@ running_user_session_cb (Seat *seat, Session *session)
     g_object_set_data_full (G_OBJECT (session), "XDG_SESSION_PATH", path, g_free);
 
     seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
-    entry = bus_entry_new (g_object_get_data (G_OBJECT (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL, "SessionRemoved");
+    entry = bus_entry_new (g_object_get_data (G_OBJECT (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL);
     g_hash_table_insert (session_bus_entries, g_object_ref (session), entry);
 
     g_debug ("Registering session with bus path %s", entry->path);
@@ -647,7 +631,28 @@ running_user_session_cb (Seat *seat, Session *session)
 static void
 session_removed_cb (Seat *seat, Session *session)
 {
+    BusEntry *entry;
+
     g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
+
+    entry = g_hash_table_lookup (session_bus_entries, session);
+    if (entry)
+    {
+        GError *error = NULL;
+
+        g_dbus_connection_unregister_object (bus, entry->bus_id);
+        g_dbus_connection_unregister_object (bus, entry->bus_id);
+        if (!g_dbus_connection_emit_signal (bus,
+                                            NULL,
+                                            "/org/freedesktop/DisplayManager",
+                                            "org.freedesktop.DisplayManager",
+                                            "SessionRemoved",
+                                            g_variant_new ("(o)", entry->path),
+                                            &error))
+            g_warning ("Failed to emit SessionRemoved signal: %s", error->message);
+        g_clear_error (&error);
+    }
+
     g_hash_table_remove (session_bus_entries, session);
 }
 
@@ -666,7 +671,7 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
     path = g_strdup_printf ("/org/freedesktop/DisplayManager/Seat%d", seat_index);
     seat_index++;
 
-    entry = bus_entry_new (path, NULL, "SeatRemoved");
+    entry = bus_entry_new (path, NULL);
     g_free (path);
     g_hash_table_insert (seat_bus_entries, g_object_ref (seat), entry);
 
@@ -699,6 +704,25 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
 static void
 seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
+    BusEntry *entry;
+
+    entry = g_hash_table_lookup (seat_bus_entries, seat);
+    if (entry)
+    {
+        GError *error = NULL;
+
+        g_dbus_connection_unregister_object (bus, entry->bus_id);
+        if (!g_dbus_connection_emit_signal (bus,
+                                            NULL,
+                                            "/org/freedesktop/DisplayManager",
+                                            "org.freedesktop.DisplayManager",
+                                            "SeatRemoved",
+                                            g_variant_new ("(o)", entry->path),
+                                            &error))
+            g_warning ("Failed to emit SeatRemoved signal: %s", error->message);
+        g_clear_error (&error);
+    }
+
     g_hash_table_remove (seat_bus_entries, seat);
 }
 
