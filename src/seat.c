@@ -1540,6 +1540,8 @@ seat_lock (Seat *seat, const gchar *username)
     if (!seat_get_can_switch (seat))
         return FALSE;
 
+    // FIXME: If already locked then don't bother...
+
     l_debug (seat, "Locking");
 
     /* Switch to greeter we can reuse */
