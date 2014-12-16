@@ -1094,9 +1094,7 @@ static gboolean
 login1_add_seat (Login1Seat *login1_seat)
 {
     if (config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical"))
-    {
         g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
-    }
 
     g_signal_connect (login1_seat, LOGIN1_SIGNAL_ACTIVE_SESION_CHANGED, G_CALLBACK (login1_active_session_changed_cb), NULL);
 
@@ -1468,9 +1466,7 @@ main (int argc, char **argv)
             {
                 Login1Seat *login1_seat = link->data;
                 if (!login1_add_seat (login1_seat))
-                {
                     return EXIT_FAILURE;
-                }
             }
         }
     }

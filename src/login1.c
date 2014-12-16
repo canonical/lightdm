@@ -18,9 +18,6 @@
 #define LOGIN1_SERVICE_NAME "org.freedesktop.login1"
 #define LOGIN1_OBJECT_NAME "/org/freedesktop/login1"
 #define LOGIN1_MANAGER_INTERFACE_NAME "org.freedesktop.login1.Manager"
-#define DBUS_PROPERTIES_INTERFACE "org.freedesktop.DBus.Properties"
-#define DBUS_PROPERTIES_GET_METHOD "Get"
-#define LOGIN1_SEAT_INTERFACE "org.freedesktop.login1.Seat"
 
 enum {
     SEAT_ADDED,
@@ -85,32 +82,6 @@ login1_service_get_instance (void)
     return singleton;
 }
 
-static GVariant *
-get_property_from_dbus (GDBusConnection *connection,
-                   Login1Seat *seat,
-                   const gchar *property_name)
-{
-    GVariant *result;
-    GError *error = NULL;
-
-    result = g_dbus_connection_call_sync (connection,
-                                          LOGIN1_SERVICE_NAME,
-                                          seat->priv->path,
-                                          DBUS_PROPERTIES_INTERFACE,
-                                          DBUS_PROPERTIES_GET_METHOD,
-                                          g_variant_new ("(ss)", LOGIN1_SEAT_INTERFACE, property_name),
-                                          G_VARIANT_TYPE ("(v)"),
-                                          G_DBUS_CALL_FLAGS_NONE,
-                                          -1,
-                                          NULL,
-                                          &error);
-    if (error)
-        g_warning ("Error updating %s: %s", property_name, error->message);
-    g_clear_error (&error);
-
-    return result;
-}
-
 static void
 update_property (Login1Seat *seat, const gchar *name, GVariant *value)
 {
@@ -119,25 +90,11 @@ update_property (Login1Seat *seat, const gchar *name, GVariant *value)
         seat->priv->can_graphical = g_variant_get_boolean (value);
         g_signal_emit (seat, seat_signals[CAN_GRAPHICAL_CHANGED], 0);
     }
-    else if (strcmp (name, "ActiveSession") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_TUPLE))
+    else if (strcmp (name, "ActiveSession") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE ("(so)")))
     {
-        GVariant *value2;
-
-        // value should be of type (so)
-        value2 = g_variant_get_child_value (value, 0);
-        if (value2)
-        {
-            const gchar *login1_session_id;
-
-            login1_session_id = g_variant_get_string (value2, NULL);
-
-            if (login1_session_id)
-            {
-                g_signal_emit (seat, seat_signals[ACTIVE_SESSION_CHANGED], 0, login1_session_id);
-            }
-
-            g_variant_unref (value2);
-        }
+        const gchar *login1_session_id;
+        g_variant_get (value, "(&so)", &login1_session_id, NULL);
+        g_signal_emit (seat, seat_signals[ACTIVE_SESSION_CHANGED], 0, login1_session_id);
     }
 }
 
@@ -151,30 +108,39 @@ seat_properties_changed_cb (GDBusConnection *connection,
                             gpointer user_data)
 {
     Login1Seat *seat = user_data;
-    GVariantIter *changed_properties;
+    GVariantIter *iter;
     GVariantIter *invalidated_properties;
-    const gchar *property_name;
-    GVariant *property_value;
+    const gchar *name;
+    GVariant *value;
 
-    g_variant_get (parameters, "(sa{sv}as)", NULL, &changed_properties, &invalidated_properties);
-    
-    while (g_variant_iter_loop (changed_properties, "{&sv}", &property_name, &property_value))
-    {
-        update_property (seat, property_name, property_value);
-    }
-    g_variant_iter_free (changed_properties);
-    
-    while (g_variant_iter_loop (invalidated_properties, "&s", &property_name))
+    g_variant_get (parameters, "(sa{sv}as)", NULL, &iter, &invalidated_properties);
+    while (g_variant_iter_loop (iter, "{&sv}", &name, &value))
+        update_property (seat, name, value);
+    g_variant_iter_free (iter);
+    while (g_variant_iter_loop (invalidated_properties, "&s", &name))
     {
         GVariant *result;
+        GError *error = NULL;
 
-        result = get_property_from_dbus (connection, seat, property_name);
+        result = g_dbus_connection_call_sync (connection,
+                                              LOGIN1_SERVICE_NAME,
+                                              seat->priv->path,
+                                              "org.freedesktop.DBus.Properties",
+                                              "Get",
+                                              g_variant_new ("(ss)", "org.freedesktop.login1.Seat", name),
+                                              G_VARIANT_TYPE ("(v)"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              -1,
+                                              NULL,
+                                              &error);
+        if (error)
+            g_warning ("Error updating seat property %s: %s", name, error->message);
+        g_clear_error (&error);
         if (result)
         {
-            g_variant_get (result, "(v)", &property_value);
-            update_property (seat, property_name, property_value);
-            g_variant_unref (property_value);
-
+            g_variant_get (result, "(v)", &value);
+            update_property (seat, name, value);
+            g_variant_unref (value);
             g_variant_unref (result);
         }
     }
