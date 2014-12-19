@@ -79,6 +79,7 @@ public Q_SLOTS:
     void authenticateRemote(const QString &session=QString(), const QString &username=QString());
     void respond(const QString &response);
     void cancelAuthentication();
+    void cancelAutologin();
     void setLanguage (const QString &language);
     void setResettable (bool resettable);
     bool startSessionSync(const QString &session=QString());

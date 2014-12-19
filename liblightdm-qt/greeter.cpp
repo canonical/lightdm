@@ -166,6 +166,12 @@ void Greeter::cancelAuthentication()
     lightdm_greeter_cancel_authentication(d->ldmGreeter);
 }
 
+void Greeter::cancelAutologin()
+{
+    Q_D(Greeter);
+    lightdm_greeter_cancel_autologin(d->ldmGreeter);
+}
+
 bool Greeter::inAuthentication() const
 {
     Q_D(const Greeter);
