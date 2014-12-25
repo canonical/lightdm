@@ -1532,8 +1532,9 @@ gboolean
 seat_lock (Seat *seat, const gchar *username)
 {
     Greeter *greeter_session;
-    DisplayServer *display_server;
-    gboolean existing = FALSE;
+    DisplayServer *display_server = NULL;
+    gboolean reset_existing = FALSE;
+    gboolean reuse_xserver = FALSE;
 
     g_return_val_if_fail (seat != NULL, FALSE);
 
@@ -1550,10 +1551,23 @@ seat_lock (Seat *seat, const gchar *username)
     {
         l_debug (seat, "Switching to existing greeter");
         set_greeter_hints (seat, greeter_session);
-        existing = TRUE;
+        reset_existing = TRUE;
     }
     else
     {
+        /* If the existing greeter can't be reused, stop it and reuse its display server */
+        greeter_session = find_greeter_session (seat);
+        if (greeter_session)
+        {
+            display_server = session_get_display_server (SESSION (greeter_session));
+            if (!session_get_is_stopping (SESSION (greeter_session)))
+            {
+                l_debug (seat, "Stopping session");
+                session_stop (SESSION (greeter_session));
+            }
+            reuse_xserver = TRUE;
+        }
+        
         greeter_session = create_greeter_session (seat);
         if (!greeter_session)
             return FALSE;
@@ -1563,7 +1577,7 @@ seat_lock (Seat *seat, const gchar *username)
     if (username)
         greeter_set_hint (greeter_session, "select-user", username);
 
-    if (existing)
+    if (reset_existing)
     {
         greeter_reset (greeter_session);
         seat_set_active_session (seat, SESSION (greeter_session));
@@ -1571,14 +1585,18 @@ seat_lock (Seat *seat, const gchar *username)
     }
     else
     {
-        display_server = create_display_server (seat, SESSION (greeter_session));
+        if (!reuse_xserver)
+            display_server = create_display_server (seat, SESSION (greeter_session));
 
         if (seat->priv->session_to_activate)
             g_object_unref (seat->priv->session_to_activate);
         seat->priv->session_to_activate = g_object_ref (greeter_session);
         session_set_display_server (SESSION (greeter_session), display_server);
 
-        return display_server_start (display_server);
+        if (reuse_xserver)
+            return TRUE;
+        else
+            return display_server_start (display_server);
     }
 }
 
