@@ -65,6 +65,9 @@ struct SeatPrivate
 
     /* TRUE if stopped */
     gboolean stopped;
+    
+    /* The greeter to be started to replace the current one */
+    Greeter *replacement_greeter;
 };
 
 static void seat_logger_iface_init (LoggerInterface *iface);
@@ -740,9 +743,28 @@ session_stopped_cb (Session *session, Seat *seat)
         g_object_unref (session);
         return;
     }
+    
+    /* If there is a pending replacement greeter, start it */
+    if (IS_GREETER (session) && seat->priv->replacement_greeter)
+    {
+        Session *s = SESSION(seat->priv->replacement_greeter);
+        seat->priv->replacement_greeter = NULL;
+        g_object_unref(s);
+        
+        if (session_get_is_authenticated (s))
+        {
+            l_debug (seat, "Greeter stopped, running session");
+            run_session (seat, s);
+        }
+        else
+        {
+            l_debug (seat, "Greeter stopped, starting session authentication");
+            start_session (seat, s);
+        }
 
+    }
     /* If this is the greeter session then re-use this display server */
-    if (IS_GREETER (session) &&
+    else if (IS_GREETER (session) &&
         can_share_display_server (seat, display_server) &&
         greeter_get_start_session (GREETER (session)))
     {
@@ -1587,14 +1609,19 @@ seat_lock (Seat *seat, const gchar *username)
     {
         if (!reuse_xserver)
             display_server = create_display_server (seat, SESSION (greeter_session));
+        session_set_display_server (SESSION (greeter_session), display_server);
 
         if (seat->priv->session_to_activate)
             g_object_unref (seat->priv->session_to_activate);
         seat->priv->session_to_activate = g_object_ref (greeter_session);
-        session_set_display_server (SESSION (greeter_session), display_server);
 
         if (reuse_xserver)
+        {
+            if (seat->priv->replacement_greeter)
+                g_object_unref (seat->priv->replacement_greeter);
+            seat->priv->replacement_greeter = g_object_ref (greeter_session);
             return TRUE;
+        }
         else
             return display_server_start (display_server);
     }
