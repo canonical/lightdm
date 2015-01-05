@@ -43,6 +43,7 @@ struct Login1ServicePrivate
 
 enum {
     CAN_GRAPHICAL_CHANGED,
+    ACTIVE_SESSION_CHANGED,
     LAST_SEAT_SIGNAL
 };
 static guint seat_signals[LAST_SEAT_SIGNAL] = { 0 };
@@ -88,6 +89,12 @@ update_property (Login1Seat *seat, const gchar *name, GVariant *value)
     {
         seat->priv->can_graphical = g_variant_get_boolean (value);
         g_signal_emit (seat, seat_signals[CAN_GRAPHICAL_CHANGED], 0);
+    }
+    else if (strcmp (name, "ActiveSession") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE ("(so)")))
+    {
+        const gchar *login1_session_id;
+        g_variant_get (value, "(&so)", &login1_session_id, NULL);
+        g_signal_emit (seat, seat_signals[ACTIVE_SESSION_CHANGED], 0, login1_session_id);
     }
 }
 
@@ -531,4 +538,13 @@ login1_seat_class_init (Login1SeatClass *klass)
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 0);
+
+    seat_signals[ACTIVE_SESSION_CHANGED] =
+        g_signal_new (LOGIN1_SIGNAL_ACTIVE_SESION_CHANGED,
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (Login1SeatClass, active_session_changed),
+                      NULL, NULL,
+                      NULL,
+                      G_TYPE_NONE, 1, G_TYPE_STRING);
 }

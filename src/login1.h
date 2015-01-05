@@ -26,6 +26,7 @@ G_BEGIN_DECLS
 #define LOGIN1_SERVICE_SIGNAL_SEAT_REMOVED "seat-removed"
 
 #define LOGIN1_SEAT_SIGNAL_CAN_GRAPHICAL_CHANGED "can-graphical-changed"
+#define LOGIN1_SIGNAL_ACTIVE_SESION_CHANGED "active-session-changed"
 
 typedef struct Login1SeatPrivate Login1SeatPrivate;
 
@@ -39,6 +40,7 @@ typedef struct
 {
     GObjectClass parent_class;
     void (*can_graphical_changed)(Login1Seat *seat);
+    void (*active_session_changed)(Login1Seat *seat, const gchar *login1_session_id);
 } Login1SeatClass;
 
 typedef struct Login1ServicePrivate Login1ServicePrivate;
