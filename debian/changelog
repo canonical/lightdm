@@ -1,3 +1,11 @@
+lightdm (1.13.1-0ubuntu1) vivid; urgency=medium
+
+  * New upstream release:
+    - Don't attempt generate D-Bus seat/session removal signals on shutdown.
+    - Add missing method QLightDM::Greeter::cancelAutologin
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 14 Jan 2015 14:00:02 +1300
+
 lightdm (1.13.0-0ubuntu2) vivid; urgency=medium
 
   * debian/config-error-dialog.sh:
