@@ -1,3 +1,12 @@
+lightdm (1.13.1-0ubuntu2) vivid; urgency=medium
+
+  * debian/guest-account.sh:
+    - Rename variables to make script compatible with Bash (LP: #1411100)
+  * debian/control:
+    - Set required version of bash
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 21 Jan 2015 12:20:42 +1300
+
 lightdm (1.13.1-0ubuntu1) vivid; urgency=medium
 
   * New upstream release:
