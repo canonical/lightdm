@@ -1,4 +1,4 @@
-lightdm (1.2.9-0ubuntu1) utopic; urgency=low
+lightdm (1.2.9-0ubuntu1) UNRELEASED; urgency=low
 
   * New upstream release:
     [ 1.2.9 ]
@@ -41,9 +41,32 @@ lightdm (1.2.9-0ubuntu1) utopic; urgency=low
     - Use ./autogen.sh when running dh_autoreconf
     - Don't try and remove non-existant /usr/share/help/C
   * debian/patches/05_lp577919-fix-chromium-launch.patch:
+  * debian/patches/06_config_directory.patch:
+  * debian/patches/07_add_display-stopped-script.patch:
+  * debian/patches/08_chauthtok.patch:
     - Applied upstream
 
- -- Robert Ancell <robert.ancell@canonical.com>  Thu, 13 Nov 2014 15:20:27 +1300
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 21 Jan 2015 12:38:18 +1300
+
+lightdm (1.2.3-0ubuntu2.5) precise; urgency=medium
+
+  * debian/patches/08_chauthtok.patch:
+    - Correctly invoke PAM to change authentication token (LP: #1270118)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 01 Apr 2014 16:03:51 +1300
+
+lightdm (1.2.3-0ubuntu2.4) precise-proposed; urgency=low
+
+  [ Robert Ancell ]
+  * debian/patches/06_config_directory.patch:
+    - Backport conf.d configuration support (LP: #1190425)
+
+  [ Alberto Milone ]
+  * debian/patches/07_add_display-stopped-script.patch:
+    - Backport support for the display-stopped-script entry
+      in the configuration file (LP: #1259237)
+
+ -- Alberto Milone <alberto.milone@canonical.com>  Wed, 18 Dec 2013 14:31:49 +0100
 
 lightdm (1.2.3-0ubuntu2.3) precise; urgency=low
 
