@@ -12,6 +12,9 @@ dist_pam_DATA = pam/lightdm \
                 pam/lightdm-autologin \
                 pam/lightdm-greeter
 
+completionsdir = $(datadir)/bash-completion/completions
+dist_completions_DATA = bash-completion/dm-tool
+
 lightdm-guest-session: $(srcdir)/apparmor/lightdm-guest-session.in
 	sed -e 's|@libexecdir[@]|$(libexecdir)|g' $< >$@
 

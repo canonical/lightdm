@@ -1,0 +1,51 @@
+#-*- mode: shell-script;-*-
+
+_dm_tool()
+{
+    local cur prev opts
+    _init_completion || return
+    opts='switch-to-greeter switch-to-user switch-to-guest lock list-seats add-nested-seat add-local-x-seat add-seat'
+
+    case "$prev" in
+    switch-to-greeter)
+        return 0
+        ;;
+    switch-to-user)
+        COMPREPLY=($(compgen -u -- "${cur}"))
+        return 0
+        ;;
+    switch-to-guest)
+        # FIXME: session name
+        return 0
+        ;;
+    lock)
+        return 0
+        ;;
+    list-seats)
+        return 0
+        ;;
+    add-nested-seat)
+        # FIXME ...
+        return 0
+        ;;
+    add-local-x-seat)
+        # FIXME ...
+        return 0
+        ;;
+    add-seat)
+        # FIXME ...
+        return 0
+        ;;
+    *)
+        ;;
+    esac
+
+    if [[ "$cur" == -* ]]; then
+        COMPREPLY=( $( compgen -W '$( _parse_help "$1" )' -- "$cur" ) )
+        return 0
+    fi
+
+    COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
+    return 0
+}
+complete -F _dm_tool dm-tool
