@@ -653,6 +653,13 @@ session_get_username (Session *session)
 }
 
 const gchar *
+session_get_login1_session_id (Session *session)
+{
+    g_return_val_if_fail (session != NULL, NULL);
+    return session->priv->login1_session_id;
+}
+
+const gchar *
 session_get_console_kit_cookie (Session *session)
 {
     g_return_val_if_fail (session != NULL, NULL);
