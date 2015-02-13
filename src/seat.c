@@ -272,6 +272,54 @@ seat_get_next_session (Seat *seat)
     return seat->priv->next_session;
 }
 
+/**
+ * Obtains the active session which lightdm expects to be active.
+ *
+ * This function is different from seat_get_active_session() in that the
+ * later (in the case of xlocal seats) dynamically finds the session that is
+ * really active (based on the active VT), whereas this function returns the
+ * session that lightdm activated last by itself, which may not be the actual
+ * active session (i.e. VT changes).
+ */
+Session *
+seat_get_expected_active_session (Seat *seat)
+{
+    g_return_val_if_fail (seat != NULL, NULL);
+    return seat->priv->active_session;
+}
+
+/**
+ * Sets the active session which lightdm expects to be active.
+ *
+ * This function is different from seat_set_active_session() in that the
+ * later performs an actual session activation, whereas this function just
+ * updates the active session after the session has been activated by some
+ * means external to lightdm (i.e. VT changes).
+ */
+void
+seat_set_externally_activated_session (Seat *seat, Session *session)
+{
+    g_return_if_fail (seat != NULL);
+    if (seat->priv->active_session)
+        g_object_unref (seat->priv->active_session);
+    seat->priv->active_session = g_object_ref (session);
+}
+
+Session *
+seat_find_session_by_login1_id (Seat *seat, const gchar *login1_session_id)
+{
+    GList *session_link;
+
+    for (session_link = seat->priv->sessions; session_link; session_link = session_link->next)
+    {
+        Session *session = session_link->data;
+        if (g_strcmp0 (login1_session_id, session_get_login1_session_id (session)) == 0)
+            return session;
+    }
+
+    return NULL;
+}
+
 gboolean
 seat_get_can_switch (Seat *seat)
 {

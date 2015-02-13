@@ -1,0 +1,13 @@
+#-*- mode: shell-script;-*-
+
+_lightdm()
+{
+    local cur prev opts
+    _init_completion || return
+
+    if [[ "$cur" == -* ]]; then
+        COMPREPLY=( $( compgen -W '$( _parse_help "$1" )' -- "$cur" ) )
+        return 0
+    fi
+}
+complete -F _lightdm lightdm

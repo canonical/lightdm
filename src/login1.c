@@ -140,6 +140,7 @@ seat_properties_changed_cb (GDBusConnection *connection,
         {
             g_variant_get (result, "(v)", &value);
             update_property (seat, name, value);
+            g_variant_unref (value);
             g_variant_unref (result);
         }
     }
