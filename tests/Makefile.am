@@ -166,10 +166,12 @@ TESTS = \
 	test-vnc-command \
 	test-vnc-dimensions \
 	test-vnc-open-file-descriptors \
+	test-vnc-guest \
 	test-xdmcp-client \
 	test-xdmcp-server-autologin \
 	test-xdmcp-server-login \
 	test-xdmcp-server-double-login \
+	test-xdmcp-server-guest \
 	test-utmp-login \
 	test-utmp-autologin \
 	test-utmp-wrong-password \
@@ -561,6 +563,7 @@ EXTRA_DIST = \
 	scripts/utmp-wrong-password.conf \
 	scripts/vnc-command.conf \
 	scripts/vnc-dimensions.conf \
+	scripts/vnc-guest.conf \
 	scripts/vnc-login.conf \
 	scripts/vnc-open-file-descriptors.conf \
 	scripts/xauthority.conf \
@@ -569,6 +572,7 @@ EXTRA_DIST = \
 	scripts/xdmcp-client.conf \
 	scripts/xdmcp-server-autologin.conf \
 	scripts/xdmcp-server-double-login.conf \
+	scripts/xdmcp-server-guest.conf \
 	scripts/xdmcp-server-login.conf \
 	scripts/xdmcp-server-open-file-descriptors.conf \
 	scripts/xserver-fail-start.conf \
