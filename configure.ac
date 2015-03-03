@@ -129,7 +129,7 @@ AC_ARG_ENABLE(liblightdm-qt5,
 	[enable_liblightdm_qt5=$enableval],
 	[enable_liblightdm_qt5="auto"])
 compile_liblightdm_qt5=no
-if test x"$enable_liblightdm_qt5" != "xno"; then
+if test x"$enable_liblightdm_qt5" = "xyes" -o \( x"$enable_liblightdm_qt5" = "xauto" -a x$compile_liblightdm_gobject = xyes \); then
     PKG_CHECK_MODULES(LIBLIGHTDM_QT5, [
         Qt5Core
         Qt5DBus
@@ -139,6 +139,10 @@ if test x"$enable_liblightdm_qt5" != "xno"; then
      AC_CHECK_TOOLS(MOC5, [moc])
      if test x"$(readlink $(which $MOC5))" = xqtchooser; then
          MOC5="$MOC5 --qt=qt5"
+     fi
+     if test "x$compile_liblightdm_gobject" != xyes; then
+         AC_MSG_FAILURE(
+           [liblightdm-gobject is required to compile liblightdm-qt5])
      fi
     ],
     [if test "x$enable_liblightdm_qt5" != xauto; then
