@@ -1,6 +1,9 @@
 lightdm (1.2.9-0ubuntu1) UNRELEASED; urgency=low
 
   * New upstream release:
+    [ 1.2.10 ]
+    - Fix pipe file descriptor leak for each greeter session. (LP: #1190344)
+    - Don't attempt generate D-Bus seat/session removal signals on shutdown.
     [ 1.2.9 ]
     - Fix pipe file descriptor leak for each session login / authentication
       (LP: #1190344)
@@ -46,7 +49,7 @@ lightdm (1.2.9-0ubuntu1) UNRELEASED; urgency=low
   * debian/patches/08_chauthtok.patch:
     - Applied upstream
 
- -- Robert Ancell <robert.ancell@canonical.com>  Wed, 21 Jan 2015 12:38:18 +1300
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 10 Mar 2015 17:02:37 +1300
 
 lightdm (1.2.3-0ubuntu2.5) precise; urgency=medium
 
