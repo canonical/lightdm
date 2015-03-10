@@ -1,3 +1,17 @@
+lightdm (1.13.2-0ubuntu1) vivid; urgency=medium
+
+  * New upstream release:
+    - Fix pipe file descriptor leak for each greeter session. (LP: #1190344)
+    - Support active session changing via logind. (LP: #1371378)
+    - Don't allow liblightdm-gobject to be disabled. It is required for
+      liblightdm-qt and the tests so it's not worth supporting builds without
+      it.
+    - Add bash autocompletion support
+  * debian/lightdm.install:
+    - Install autocompletion configuration
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 10 Mar 2015 14:54:29 +1300
+
 lightdm (1.13.1-0ubuntu2) vivid; urgency=medium
 
   * debian/guest-account.sh:

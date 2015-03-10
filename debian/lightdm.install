@@ -1,6 +1,7 @@
 usr/sbin/lightdm
 usr/share/man
 usr/share/locale
+usr/share/bash-completion
 usr/lib/lightdm
 usr/bin
 etc/dbus-1/
