@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.12.3
+
+    * Fix pipe file descriptor leak for each greeter session.
+    * Don't attempt generate D-Bus seat/session removal signals on shutdown.
+
 Overview of changes in lightdm 1.12.2
 
     * Fix pipe file descriptor leak for each session login / authentication

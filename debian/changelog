@@ -1,3 +1,17 @@
+lightdm (1.12.3-0ubuntu1) utopic; urgency=medium
+
+  * New upstream release:
+    - Fix pipe file descriptor leak for each greeter session. (LP: #1190344)
+    - Don't attempt generate D-Bus seat/session removal signals on shutdown.
+  * debian/guest-account.sh:
+    - Rename variables to make script compatible with Bash (LP: #1411100)
+  * debian/lightdm-session:
+    - Use bash for the session to improve error handling (LP: #678421)
+  * debian/control:
+    - Depend on bash
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 10 Mar 2015 16:02:44 +1300
+
 lightdm (1.12.2-0ubuntu1) utopic; urgency=medium
 
   * New upstream release:
