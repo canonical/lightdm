@@ -411,6 +411,7 @@ EXTRA_DIST = \
 	scripts/language-env.conf \
 	scripts/language-no-accounts-service.conf \
 	scripts/lock-seat.conf \
+	scripts/lock-seat-after-vt-switch.conf \
 	scripts/lock-seat-console-kit.conf \    
 	scripts/lock-seat-resettable.conf \
 	scripts/lock-seat-return-session.conf \
