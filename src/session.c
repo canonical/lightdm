@@ -580,6 +580,8 @@ static void
 session_init (Session *session)
 {
     session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, SESSION_TYPE, SessionPrivate);
+    session->priv->to_child_input = -1;
+    session->priv->from_child_output = -1;
 }
 
 static void

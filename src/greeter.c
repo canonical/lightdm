@@ -708,6 +708,8 @@ greeter_init (Greeter *greeter)
     greeter->priv = G_TYPE_INSTANCE_GET_PRIVATE (greeter, GREETER_TYPE, GreeterPrivate);
     greeter->priv->read_buffer = g_malloc (HEADER_SIZE);
     greeter->priv->hints = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+    greeter->priv->to_greeter_input = -1;
+    greeter->priv->from_greeter_output = -1;
 }
 
 static void
