@@ -903,6 +903,8 @@ session_init (Session *session)
 {
     session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, SESSION_TYPE, SessionPrivate);
     session->priv->log_filename = g_strdup (".xsession-errors");
+    session->priv->to_child_input = -1;
+    session->priv->from_child_output = -1;
 }
 
 static void
