@@ -973,6 +973,8 @@ greeter_init (Greeter *greeter)
     greeter->priv->read_buffer = secure_malloc (greeter, HEADER_SIZE);
     greeter->priv->hints = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
     greeter->priv->use_secure_memory = config_get_boolean (config_get_instance (), "LightDM", "lock-memory");
+    greeter->priv->to_greeter_input = -1;
+    greeter->priv->from_greeter_output = -1;
 }
 
 static void
