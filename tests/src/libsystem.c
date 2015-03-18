@@ -1222,6 +1222,8 @@ pam_authenticate (pam_handle_t *pamh, int flags)
             result = pamh->conversation.conv (1, (const struct pam_message **) msg, &resp, pamh->conversation.appdata_ptr);
             free (msg[0]);
             free (msg);
+            if (result != PAM_SUCCESS)
+                return result;
 
             if (resp == NULL)
                 return PAM_CONV_ERR;

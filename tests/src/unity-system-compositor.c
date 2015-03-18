@@ -57,7 +57,8 @@ write_message (guint16 id, const guint8 *payload, guint16 payload_length)
     data[1] = id & 0xFF;
     data[2] = payload_length >> 8;
     data[3] = payload_length & 0xFF;
-    memcpy (data + 4, payload, payload_length);
+    if (payload)
+        memcpy (data + 4, payload, payload_length);
 
     if (write (to_dm_fd, data, data_length) < 0)
         fprintf (stderr, "Failed to write to daemon: %s\n", strerror (errno));

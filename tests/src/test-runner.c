@@ -907,17 +907,18 @@ handle_command (const gchar *command)
                 user->xsession = g_strdup (g_hash_table_lookup (params, "SESSION"));
                 g_string_append_printf (status_text, " SESSION=%s", user->xsession);
             }
+
+            g_dbus_connection_emit_signal (accounts_connection,
+                                           NULL,
+                                           user->path,
+                                           "org.freedesktop.Accounts.User",
+                                           "Changed",
+                                           g_variant_new ("()"),
+                                           &error);
         }
         else
             g_warning ("Unknown user %s", username);
 
-        g_dbus_connection_emit_signal (accounts_connection,
-                                       NULL,
-                                       user->path,
-                                       "org.freedesktop.Accounts.User",
-                                       "Changed",
-                                       g_variant_new ("()"),
-                                       &error);
         if (error)
             g_warning ("Failed to emit Changed: %s", error->message);
         g_clear_error (&error);

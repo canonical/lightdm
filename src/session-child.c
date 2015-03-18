@@ -768,7 +768,7 @@ session_child_run (int argc, char **argv)
     pam_close_session (pam_handle, 0);
 
     /* Remove credentials */
-    result = pam_setcred (pam_handle, PAM_DELETE_CRED);
+    pam_setcred (pam_handle, PAM_DELETE_CRED);
 
     pam_end (pam_handle, 0);
     pam_handle = NULL;

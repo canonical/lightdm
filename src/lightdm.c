@@ -646,7 +646,6 @@ running_user_session_cb (Seat *seat, Session *session)
     session_set_env (session, "XDG_SESSION_PATH", path);
     g_object_set_data_full (G_OBJECT (session), "XDG_SESSION_PATH", path, g_free);
 
-    seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
     session_entry = session_bus_entry_new (g_object_get_data (G_OBJECT (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL);
     g_hash_table_insert (session_bus_entries, g_object_ref (session), session_entry);
 
