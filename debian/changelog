@@ -1,3 +1,12 @@
+lightdm (1.14.0-0ubuntu1) vivid; urgency=medium
+
+  * New upstream release:
+    - Initialize file descriptor handles so we don't attempt to close stdin by
+      accident.
+    - Fix small errors detected by scan-build (clang).
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 24 Mar 2015 10:25:22 +1300
+
 lightdm (1.13.2-0ubuntu1) vivid; urgency=medium
 
   * New upstream release:
