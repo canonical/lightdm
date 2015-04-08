@@ -1,3 +1,9 @@
+lightdm (1.14.0-0ubuntu2) vivid; urgency=medium
+
+  * Quiesce initctl errors when not running under upstart. (LP: #1414420)
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Wed, 08 Apr 2015 14:37:17 +0200
+
 lightdm (1.14.0-0ubuntu1) vivid; urgency=medium
 
   * New upstream release:
