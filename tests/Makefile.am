@@ -218,7 +218,8 @@ TESTS = \
 	test-unity-mir-session-x-greeter \
 	test-unity-mir-switch \
 	test-unity-mir-switch-to-user-resettable \
-	test-unity-mir-script-hooks
+	test-unity-mir-script-hooks \
+	test-seatdefaults-still-supported
 
 #	test-mir-script-hooks \
 #	test-session-exit-error
@@ -572,4 +573,5 @@ EXTRA_DIST = \
 	scripts/xdmcp-server-login.conf \
 	scripts/xdmcp-server-open-file-descriptors.conf \
 	scripts/xserver-fail-start.conf \
-	scripts/xserver-no-share.conf
+	scripts/xserver-no-share.conf \
+	scripts/seatdefaults-still-supported.conf
