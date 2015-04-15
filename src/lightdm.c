@@ -153,10 +153,8 @@ get_config_sections (const gchar *seat_name)
     gchar **groups, **i;
     GList *config_sections = NULL;
 
+    /* Keep this so it won't break existing config files using old [SeatDefaults] */
     config_sections = g_list_append (config_sections, g_strdup ("SeatDefaults"));
-
-    if (!seat_name)
-        return config_sections;
 
     groups = config_get_groups (config_get_instance ());
     for (i = groups; *i; i++)
@@ -164,7 +162,7 @@ get_config_sections (const gchar *seat_name)
         if (g_str_has_prefix (*i, "Seat:"))
         {
             const gchar *seat_name_glob = *i + strlen ("Seat:");
-            if (g_pattern_match_simple (seat_name_glob, seat_name))
+            if (g_pattern_match_simple (seat_name_glob, seat_name ? seat_name : ""))
                 config_sections = g_list_append (config_sections, g_strdup (*i));
         }
     }
@@ -184,8 +182,13 @@ set_seat_properties (Seat *seat, const gchar *seat_name)
     for (link = sections; link; link = link->next)
     {
         const gchar *section = link->data;
-        g_debug ("Loading properties from config section %s", section);
         keys = config_get_keys (config_get_instance (), section);
+
+        /* Keep this until [SeatDefaults] support is definitely removed */
+        if (strcmp (section, "SeatDefaults") == 0 && keys)
+            l_warning (seat, "[SeatDefaults] is deprecated and won't be supported in the future. Use [Seat:*] instead!");
+
+        l_debug (seat, "Loading properties from config section %s", section);
         for (i = 0; keys && keys[i]; i++)
         {
             gchar *value = config_get_string (config_get_instance (), section, keys[i]);
@@ -1369,36 +1372,36 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "LightDM", "greeter-user", GREETER_USER);
     if (!config_has_key (config_get_instance (), "LightDM", "lock-memory"))
         config_set_boolean (config_get_instance (), "LightDM", "lock-memory", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "type"))
-        config_set_string (config_get_instance (), "SeatDefaults", "type", "xlocal");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "pam-service"))
-        config_set_string (config_get_instance (), "SeatDefaults", "pam-service", "lightdm");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "pam-autologin-service"))
-        config_set_string (config_get_instance (), "SeatDefaults", "pam-autologin-service", "lightdm-autologin");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "pam-greeter-service"))
-        config_set_string (config_get_instance (), "SeatDefaults", "pam-greeter-service", "lightdm-greeter");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-command"))
-        config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", "X");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-share"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "xserver-share", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "unity-compositor-command"))
-        config_set_string (config_get_instance (), "SeatDefaults", "unity-compositor-command", "unity-system-compositor");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "start-session"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "start-session", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "allow-user-switching"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "allow-user-switching", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "allow-guest"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "allow-guest", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-allow-guest"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "greeter-allow-guest", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-show-remote-login"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "greeter-show-remote-login", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-session"))
-        config_set_string (config_get_instance (), "SeatDefaults", "greeter-session", GREETER_SESSION);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "user-session"))
-        config_set_string (config_get_instance (), "SeatDefaults", "user-session", USER_SESSION);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "session-wrapper"))
-        config_set_string (config_get_instance (), "SeatDefaults", "session-wrapper", "lightdm-session");
+    if (!config_has_key (config_get_instance (), "Seat:*", "type"))
+        config_set_string (config_get_instance (), "Seat:*", "type", "xlocal");
+    if (!config_has_key (config_get_instance (), "Seat:*", "pam-service"))
+        config_set_string (config_get_instance (), "Seat:*", "pam-service", "lightdm");
+    if (!config_has_key (config_get_instance (), "Seat:*", "pam-autologin-service"))
+        config_set_string (config_get_instance (), "Seat:*", "pam-autologin-service", "lightdm-autologin");
+    if (!config_has_key (config_get_instance (), "Seat:*", "pam-greeter-service"))
+        config_set_string (config_get_instance (), "Seat:*", "pam-greeter-service", "lightdm-greeter");
+    if (!config_has_key (config_get_instance (), "Seat:*", "xserver-command"))
+        config_set_string (config_get_instance (), "Seat:*", "xserver-command", "X");
+    if (!config_has_key (config_get_instance (), "Seat:*", "xserver-share"))
+        config_set_boolean (config_get_instance (), "Seat:*", "xserver-share", TRUE);
+    if (!config_has_key (config_get_instance (), "Seat:*", "unity-compositor-command"))
+        config_set_string (config_get_instance (), "Seat:*", "unity-compositor-command", "unity-system-compositor");
+    if (!config_has_key (config_get_instance (), "Seat:*", "start-session"))
+        config_set_boolean (config_get_instance (), "Seat:*", "start-session", TRUE);
+    if (!config_has_key (config_get_instance (), "Seat:*", "allow-user-switching"))
+        config_set_boolean (config_get_instance (), "Seat:*", "allow-user-switching", TRUE);
+    if (!config_has_key (config_get_instance (), "Seat:*", "allow-guest"))
+        config_set_boolean (config_get_instance (), "Seat:*", "allow-guest", TRUE);
+    if (!config_has_key (config_get_instance (), "Seat:*", "greeter-allow-guest"))
+        config_set_boolean (config_get_instance (), "Seat:*", "greeter-allow-guest", TRUE);
+    if (!config_has_key (config_get_instance (), "Seat:*", "greeter-show-remote-login"))
+        config_set_boolean (config_get_instance (), "Seat:*", "greeter-show-remote-login", TRUE);
+    if (!config_has_key (config_get_instance (), "Seat:*", "greeter-session"))
+        config_set_string (config_get_instance (), "Seat:*", "greeter-session", GREETER_SESSION);
+    if (!config_has_key (config_get_instance (), "Seat:*", "user-session"))
+        config_set_string (config_get_instance (), "Seat:*", "user-session", USER_SESSION);
+    if (!config_has_key (config_get_instance (), "Seat:*", "session-wrapper"))
+        config_set_string (config_get_instance (), "Seat:*", "session-wrapper", "lightdm-session");
     if (!config_has_key (config_get_instance (), "LightDM", "log-directory"))
         config_set_string (config_get_instance (), "LightDM", "log-directory", default_log_dir);
     g_free (default_log_dir);
@@ -1497,7 +1500,7 @@ main (int argc, char **argv)
 
             g_debug ("Adding default seat");
 
-            types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
+            types = config_get_string_list (config_get_instance (), "Seat:*", "type");
             for (type = types; type && *type; type++)
             {
                 seat = seat_new (*type, "seat0");
