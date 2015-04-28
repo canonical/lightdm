@@ -147,7 +147,8 @@ write_message (UnitySystemCompositor *compositor, guint16 id, const guint8 *payl
     data[1] = id & 0xFF;
     data[2] = payload_length >> 8;
     data[3] = payload_length & 0xFF;
-    memcpy (data + 4, payload, payload_length);
+    if (payload)
+        memcpy (data + 4, payload, payload_length);
 
     errno = 0;
     if (write (compositor->priv->to_compositor_pipe[1], data, data_length) != data_length)

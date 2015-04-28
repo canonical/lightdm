@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(lightdm, 1.13.1)
+AC_INIT(lightdm, 1.14.0)
 AC_CONFIG_MACRO_DIR(m4)
 AC_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE([1.11 no-dist-gzip dist-xz foreign])
@@ -68,39 +68,21 @@ PKG_CHECK_MODULES(XCB, [
     xcb
 ])    
 
-AC_ARG_ENABLE(liblightdm-gobject,
-	AS_HELP_STRING([--enable-liblightdm-gobject],[Enable LightDM client gobject libraries [[default=auto]]]),
-	[enable_liblightdm_gobject=$enableval],
-	[enable_liblightdm_gobject="auto"])
-compile_liblightdm_gobject=no
-if test x"$enable_liblightdm_gobject" = "xauto"; then
-    PKG_CHECK_MODULES(LIBLIGHTDM_GOBJECT, [
-        glib-2.0
-        gio-2.0 >= 2.26
-        gio-unix-2.0
-        gobject-2.0
-        libxklavier
-        x11
-    ], compile_liblightdm_gobject=yes, compile_liblightdm_gobject=no)
-elif test x"$enable_liblightdm_gobject" = "xyes"; then
-    PKG_CHECK_MODULES(LIBLIGHTDM_GOBJECT, [
-        glib-2.0
-        gio-2.0 >= 2.26
-        gio-unix-2.0
-        gobject-2.0
-        libxklavier
-        x11
-    ])
-    compile_liblightdm_gobject=yes
-fi
-AM_CONDITIONAL(COMPILE_LIBLIGHTDM_GOBJECT, test x"$compile_liblightdm_gobject" != "xno")
+PKG_CHECK_MODULES(LIBLIGHTDM_GOBJECT, [
+    glib-2.0
+    gio-2.0 >= 2.26
+    gio-unix-2.0
+    gobject-2.0
+    libxklavier
+    x11
+])
 
 AC_ARG_ENABLE(liblightdm-qt,
 	AS_HELP_STRING([--enable-liblightdm-qt],[Enable LightDM client Qt4 libraries [[default=auto]]]),
 	[enable_liblightdm_qt4=$enableval],
 	[enable_liblightdm_qt4="auto"])
 compile_liblightdm_qt4=no
-if test x"$enable_liblightdm_qt4" = "xyes" -o \( x"$enable_liblightdm_qt4" = "xauto" -a x$compile_liblightdm_gobject = xyes \) ; then
+if test x"$enable_liblightdm_qt4" != "xno" ; then
     PKG_CHECK_MODULES(LIBLIGHTDM_QT4, [
         QtCore
         QtDBus
@@ -110,10 +92,6 @@ if test x"$enable_liblightdm_qt4" = "xyes" -o \( x"$enable_liblightdm_qt4" = "xa
      AC_CHECK_TOOLS(MOC4, [moc-qt4 moc])
      if test x"$(readlink $(which $MOC4))" = xqtchooser; then
          MOC4="$MOC4 --qt=qt4"
-     fi
-     if test "x$compile_liblightdm_gobject" != xyes; then
-         AC_MSG_FAILURE(
-           [liblightdm-gobject is required to compile liblightdm-qt])
      fi
     ],
     [if test "x$enable_liblightdm_qt4" != xauto; then
@@ -241,7 +219,6 @@ echo "
         Greeter session:          $GREETER_SESSION
         Greeter user:             $GREETER_USER
         User session:             $USER_SESSION
-        liblightdm-gobject:       $compile_liblightdm_gobject
         GObject introspection:    $found_introspection
         liblightdm-qt:            $compile_liblightdm_qt4
         liblightdm-qt5:           $compile_liblightdm_qt5

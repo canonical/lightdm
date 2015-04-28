@@ -1,3 +1,32 @@
+lightdm (1.14.0-0ubuntu2) vivid; urgency=medium
+
+  * Quiesce initctl errors when not running under upstart. (LP: #1414420)
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Wed, 08 Apr 2015 14:37:17 +0200
+
+lightdm (1.14.0-0ubuntu1) vivid; urgency=medium
+
+  * New upstream release:
+    - Initialize file descriptor handles so we don't attempt to close stdin by
+      accident.
+    - Fix small errors detected by scan-build (clang).
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 24 Mar 2015 10:25:22 +1300
+
+lightdm (1.13.2-0ubuntu1) vivid; urgency=medium
+
+  * New upstream release:
+    - Fix pipe file descriptor leak for each greeter session. (LP: #1190344)
+    - Support active session changing via logind. (LP: #1371378)
+    - Don't allow liblightdm-gobject to be disabled. It is required for
+      liblightdm-qt and the tests so it's not worth supporting builds without
+      it.
+    - Add bash autocompletion support
+  * debian/lightdm.install:
+    - Install autocompletion configuration
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 10 Mar 2015 14:54:29 +1300
+
 lightdm (1.13.1-0ubuntu2) vivid; urgency=medium
 
   * debian/guest-account.sh:

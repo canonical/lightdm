@@ -397,13 +397,15 @@ emit_upstart_signal (const gchar *signal)
 {
     g_return_if_fail (signal != NULL);
     g_return_if_fail (signal[0] != 0);
+    const gchar* argv[] = {"initctl", "-q", "emit", signal, "DISPLAY_MANAGER=lightdm", NULL};
 
     if (getuid () != 0)
         return;
 
-    gchar *cmd = g_strdup_printf ("initctl -q emit %s DISPLAY_MANAGER=lightdm", signal);
-    g_spawn_command_line_async (cmd, NULL); /* OK if it fails, probably not installed */
-    g_free (cmd);
+    /* OK if it fails, probably not installed or not running upstart */
+    g_spawn_async (NULL, argv, NULL,
+            G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
+            NULL, NULL, NULL, NULL);
 }
 
 static void

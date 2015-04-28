@@ -220,7 +220,8 @@ TESTS = \
 	test-unity-mir-session-x-greeter \
 	test-unity-mir-switch \
 	test-unity-mir-switch-to-user-resettable \
-	test-unity-mir-script-hooks
+	test-unity-mir-script-hooks \
+	test-seatdefaults-still-supported
 
 #	test-mir-script-hooks \
 #	test-session-exit-error
@@ -413,8 +414,8 @@ EXTRA_DIST = \
 	scripts/language-env.conf \
 	scripts/language-no-accounts-service.conf \
 	scripts/lock-seat.conf \
-	scripts/lock-seat-after-vt-switch.conf
-	scripts/lock-seat-console-kit.conf \
+	scripts/lock-seat-after-vt-switch.conf \
+	scripts/lock-seat-console-kit.conf \    
 	scripts/lock-seat-resettable.conf \
 	scripts/lock-seat-return-session.conf \
 	scripts/lock-seat-return-session-console-kit.conf \
@@ -576,4 +577,5 @@ EXTRA_DIST = \
 	scripts/xdmcp-server-login.conf \
 	scripts/xdmcp-server-open-file-descriptors.conf \
 	scripts/xserver-fail-start.conf \
-	scripts/xserver-no-share.conf
+	scripts/xserver-no-share.conf \
+	scripts/seatdefaults-still-supported.conf

@@ -1,3 +1,18 @@
+Overview of changes in lightdm 1.14.0
+
+    * Initialize file descriptor handles so we don't attempt to close stdin by
+      accident.
+    * Fix small errors detected by scan-build (clang).
+
+Overview of changes in lightdm 1.13.2
+
+    * Fix pipe file descriptor leak for each greeter session.
+    * Support active session changing via logind.
+    * Don't allow liblightdm-gobject to be disabled. It is required for
+      liblightdm-qt and the tests so it's not worth supporting builds without
+      it.
+    * Add bash autocompletion support
+
 Overview of changes in lightdm 1.13.1
 
     * Don't attempt generate D-Bus seat/session removal signals on shutdown.

@@ -139,6 +139,7 @@ static GList *status_clients = NULL;
 
 static void ready (void);
 static void quit (int status);
+static gboolean status_timeout_cb (gpointer data);
 static void check_status (const gchar *status);
 static AccountsUser *get_accounts_user_by_uid (guint uid);
 static AccountsUser *get_accounts_user_by_name (const gchar *username);
@@ -522,11 +523,25 @@ handle_command (const gchar *command)
     }
     else if (strcmp (name, "WAIT") == 0)
     {
+        const gchar *v;
+        int duration;
+
+        /* Stop status timeout */
+        if (status_timeout)
+            g_source_remove (status_timeout);
+
         /* Use a main loop so that our DBus functions are still responsive */
         GMainLoop *loop = g_main_loop_new (NULL, FALSE);
-        g_timeout_add_seconds (1, stop_loop, loop);
+        v = g_hash_table_lookup (params, "DURATION");
+        duration = v ? atoi (v) : 1;
+        if (duration < 1)
+            duration = 1;
+        g_timeout_add_seconds (duration, stop_loop, loop);
         g_main_loop_run (loop);
         g_main_loop_unref (loop);
+
+        /* Restart status timeout */
+        status_timeout = g_timeout_add (status_timeout_ms, status_timeout_cb, NULL);
     }
     else if (strcmp (name, "ADD-SEAT") == 0)
     {
@@ -892,17 +907,18 @@ handle_command (const gchar *command)
                 user->xsession = g_strdup (g_hash_table_lookup (params, "SESSION"));
                 g_string_append_printf (status_text, " SESSION=%s", user->xsession);
             }
+
+            g_dbus_connection_emit_signal (accounts_connection,
+                                           NULL,
+                                           user->path,
+                                           "org.freedesktop.Accounts.User",
+                                           "Changed",
+                                           g_variant_new ("()"),
+                                           &error);
         }
         else
             g_warning ("Unknown user %s", username);
 
-        g_dbus_connection_emit_signal (accounts_connection,
-                                       NULL,
-                                       user->path,
-                                       "org.freedesktop.Accounts.User",
-                                       "Changed",
-                                       g_variant_new ("()"),
-                                       &error);
         if (error)
             g_warning ("Failed to emit Changed: %s", error->message);
         g_clear_error (&error);
