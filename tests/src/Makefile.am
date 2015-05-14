@@ -11,6 +11,7 @@ noinst_PROGRAMS = dbus-env \
                   unity-system-compositor \
                   vnc-client \
                   X \
+                  Xmir \
                   Xvnc
 dist_noinst_SCRIPTS = lightdm-session \
                       test-python-greeter
@@ -70,6 +71,19 @@ X_CFLAGS = \
 	$(GIO_CFLAGS) \
 	$(GIO_UNIX_CFLAGS)
 X_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GLIB_LIBS) \
+	$(GIO_LIBS) \
+	$(GIO_UNIX_LIBS)
+
+Xmir_SOURCES = Xmir.c x-authority.c x-authority.h x-common.c x-common.h x-server.c x-server.h status.c status.h
+Xmir_CFLAGS = \
+	$(WARN_CFLAGS) \
+	$(GOBJECT_CFLAGS) \
+	$(GLIB_CFLAGS) \
+	$(GIO_CFLAGS) \
+	$(GIO_UNIX_CFLAGS)
+Xmir_LDADD = \
 	$(GOBJECT_LIBS) \
 	$(GLIB_LIBS) \
 	$(GIO_LIBS) \

@@ -555,7 +555,7 @@ x_server_local_init (XServerLocal *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, X_SERVER_LOCAL_TYPE, XServerLocalPrivate);
     server->priv->vt = -1;
-    server->priv->command = g_strdup ("X");
+    server->priv->command = g_strdup ("Xmir");
 }
 
 static void

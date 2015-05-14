@@ -1344,6 +1344,8 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "SeatDefaults", "user-session", USER_SESSION);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "session-wrapper"))
         config_set_string (config_get_instance (), "SeatDefaults", "session-wrapper", "lightdm-session");
+    if (!config_has_key (config_get_instance (), "SeatDefaults", "xmir-command"))
+        config_set_string (config_get_instance (), "SeatDefaults", "xmir-command", "Xmir");
     if (!config_has_key (config_get_instance (), "LightDM", "log-directory"))
         config_set_string (config_get_instance (), "LightDM", "log-directory", default_log_dir);
     g_free (default_log_dir);
