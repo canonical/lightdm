@@ -966,6 +966,7 @@ handle_command (const gchar *command)
     else if (g_str_has_prefix (name, "SESSION-") ||
              g_str_has_prefix (name, "GREETER-") ||
              g_str_has_prefix (name, "XSERVER-") ||
+             g_str_has_prefix (name, "XVNC-") ||
              strcmp (name, "UNITY-SYSTEM-COMPOSITOR") == 0)
     {
         GList *link;

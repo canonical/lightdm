@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <gio/gio.h>
@@ -13,6 +14,7 @@
 #include "x-authority.h"
 
 static GMainLoop *loop;
+static int exit_status = EXIT_SUCCESS;
 
 static GKeyFile *config;
 
@@ -43,8 +45,8 @@ cleanup (void)
 static void
 quit (int status)
 {
-    cleanup ();
-    exit (status);
+    exit_status = status;
+    g_main_loop_quit (loop);
 }
 
 static gboolean
@@ -73,15 +75,8 @@ sigterm_cb (gpointer user_data)
 static void
 client_connected_cb (XServer *server, XClient *client)
 {
-    gchar *auth_error = NULL;
-
     status_notify ("%s ACCEPT-CONNECT", id);
-
-    if (auth_error)
-        x_client_send_failed (client, auth_error);
-    else
-        x_client_send_success (client);
-    g_free (auth_error);
+    x_client_send_success (client);
 }
 
 static void
@@ -146,6 +141,7 @@ request_cb (const gchar *name, GHashTable *params)
 int
 main (int argc, char **argv)
 {
+    int i;
     char *pid_string;
     gboolean use_inetd = FALSE;
     gboolean has_option = FALSE;
@@ -153,7 +149,6 @@ main (int argc, char **argv)
     gint depth = 8;
     gchar *lock_filename;
     int lock_file;
-    int i;
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
@@ -220,7 +215,7 @@ main (int argc, char **argv)
         }
     }
 
-    id = g_strdup_printf ("XSERVER-%d", display_number);
+    id = g_strdup_printf ("XVNC-%d", display_number);
 
     status_connect (request_cb, id);
 
@@ -250,6 +245,44 @@ main (int argc, char **argv)
     lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
     if (lock_file < 0)
     {
+        char *lock_contents = NULL;
+
+        if (g_file_get_contents (lock_path, &lock_contents, NULL, NULL))
+        {
+            gchar *proc_filename;
+            pid_t pid;
+
+            pid = atol (lock_contents);
+            g_free (lock_contents);
+
+            proc_filename = g_strdup_printf ("/proc/%d", pid);
+            if (!g_file_test (proc_filename, G_FILE_TEST_EXISTS))
+            {
+                gchar *socket_dir;
+                gchar *socket_filename;
+                gchar *socket_path;
+
+                socket_dir = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", ".X11-unix", NULL);
+                g_mkdir_with_parents (socket_dir, 0755);
+
+                socket_filename = g_strdup_printf ("X%d", display_number);
+                socket_path = g_build_filename (socket_dir, socket_filename, NULL);
+
+                g_printerr ("Breaking lock on non-existant process %d\n", pid);
+                unlink (lock_path);
+                unlink (socket_path);
+
+                g_free (socket_dir);
+                g_free (socket_filename);
+                g_free (socket_path);
+            }
+            g_free (proc_filename);
+
+            lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
+        }
+    }
+    if (lock_file < 0)
+    {
         fprintf (stderr,
                  "Fatal server error:\n"
                  "Server is already active for display %d\n"
@@ -257,22 +290,22 @@ main (int argc, char **argv)
                  "	and start again.\n", display_number, lock_path);
         g_free (lock_path);
         lock_path = NULL;
-        quit (EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
     pid_string = g_strdup_printf ("%10ld", (long) getpid ());
     if (write (lock_file, pid_string, strlen (pid_string)) < 0)
     {
         g_warning ("Error writing PID file: %s", strerror (errno));
-        quit (EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
     g_free (pid_string);
 
     if (!x_server_start (xserver))
-        quit (EXIT_FAILURE);
+        return EXIT_FAILURE;
 
     g_main_loop_run (loop);
 
     cleanup ();
 
-    return EXIT_SUCCESS;
+    return exit_status;
 }
