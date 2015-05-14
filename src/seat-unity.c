@@ -203,9 +203,11 @@ create_x_server (Seat *seat)
 
     x_server = x_server_local_new ();
 
-    command = seat_get_string_property (seat, "xserver-command");
-    if (command)
-        x_server_local_set_command (x_server, command);
+    command = seat_get_string_property (seat, "xmir-command");
+    /* Fall back to using X if Xmir is not available as this was the previous way XMir worked */
+    if (strcmp (command, "Xmir") == 0 && !g_find_program_in_path ("Xmir"))
+        command = seat_get_string_property (seat, "xserver-command");
+    x_server_local_set_command (x_server, command);
 
     id = g_strdup_printf ("x-%d", SEAT_UNITY (seat)->priv->next_x_server_id);
     SEAT_UNITY (seat)->priv->next_x_server_id++;
