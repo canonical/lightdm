@@ -153,13 +153,14 @@ get_config_sections (const gchar *seat_name)
     gchar **groups, **i;
     GList *config_sections = NULL;
 
-    /* Keep this so it won't break existing config files using old [SeatDefaults] */
+    /* Load seat defaults first and support old method of [SeatDefaults] */
+    config_sections = g_list_append (config_sections, g_strdup ("Seat:*"));
     config_sections = g_list_append (config_sections, g_strdup ("SeatDefaults"));
 
     groups = config_get_groups (config_get_instance ());
     for (i = groups; *i; i++)
     {
-        if (g_str_has_prefix (*i, "Seat:"))
+        if (g_str_has_prefix (*i, "Seat:") && strcmp (*i, "Seat:*") != 0)
         {
             const gchar *seat_name_glob = *i + strlen ("Seat:");
             if (g_pattern_match_simple (seat_name_glob, seat_name ? seat_name : ""))
@@ -183,10 +184,6 @@ set_seat_properties (Seat *seat, const gchar *seat_name)
     {
         const gchar *section = link->data;
         keys = config_get_keys (config_get_instance (), section);
-
-        /* Keep this until [SeatDefaults] support is definitely removed */
-        if (strcmp (section, "SeatDefaults") == 0 && keys)
-            l_warning (seat, "[SeatDefaults] is deprecated and won't be supported in the future. Use [Seat:*] instead!");
 
         l_debug (seat, "Loading properties from config section %s", section);
         for (i = 0; keys && keys[i]; i++)
