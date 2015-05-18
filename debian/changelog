@@ -1,3 +1,11 @@
+lightdm (1.15.0-0ubuntu1) wily; urgency=medium
+
+  * New upstream release:
+    - Deprecate [SeatDefaults] in favour of [Seat:*]
+    - Use new Xmir binary when running X under Unity System Compositor
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 18 May 2015 13:38:23 +1200
+
 lightdm (1.14.0-0ubuntu2) vivid; urgency=medium
 
   * Quiesce initctl errors when not running under upstart. (LP: #1414420)
