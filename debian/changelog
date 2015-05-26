@@ -1,5 +1,11 @@
 lightdm (1.14.0-0ubuntu1) vivid; urgency=medium
 
+  * New upstream release
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 26 May 2015 11:56:16 +1200
+
+lightdm (1.14.0-0ubuntu1) vivid; urgency=medium
+
   * New upstream release:
     - Initialize file descriptor handles so we don't attempt to close stdin by
       accident.
