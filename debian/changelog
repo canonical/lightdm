@@ -1,8 +1,11 @@
-lightdm (1.14.1-0ubuntu1) vivid; urgency=medium
+lightdm (1.14.2-0ubuntu1) vivid; urgency=medium
 
   * New upstream release:
+    [ 1.14.1 ]
     - Use new Xmir binary when running X under Unity System Compositor
       (LP: #1458696)
+    [ 1.14.2 ]
+    - Quiesce initctl errors when not running under upstart
 
  -- Robert Ancell <robert.ancell@canonical.com>  Tue, 26 May 2015 11:56:16 +1200
 
