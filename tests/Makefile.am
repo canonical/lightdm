@@ -209,6 +209,7 @@ TESTS = \
 	test-unity-compositor-next-session \
 	test-unity-compositor-mir-next-session \
 	test-unity-autologin \
+	test-unity-autologin-legacy \
 	test-unity-login \
 	test-unity-switch \
 	test-unity-plymouth \
@@ -526,6 +527,7 @@ EXTRA_DIST = \
 	scripts/switch-to-user-resettable.conf \
 	scripts/system-xauthority.conf \
 	scripts/unity-autologin.conf \
+	scripts/unity-autologin-legacy.conf \
 	scripts/unity-compositor-command.conf \
 	scripts/unity-compositor-crash.conf \
 	scripts/unity-compositor-fail-ready.conf \

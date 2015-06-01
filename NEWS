@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.15.0
+
+    * Deprecate [SeatDefaults] in favour of [Seat:*]
+    * Use new Xmir binary when running X under Unity System Compositor
+
 Overview of changes in lightdm 1.14.0
 
     * Initialize file descriptor handles so we don't attempt to close stdin by

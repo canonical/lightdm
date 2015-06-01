@@ -56,6 +56,9 @@ config_load_from_file (Configuration *config, const gchar *path, GError **error)
         gchar **keys;
         int j;
 
+        if (strcmp (groups[i], "SeatDefaults") == 0)
+            g_printerr ("Configuration file %s contains a deprecated [SeatDefaults] section, use [Seat:*] instead\n", path);
+
         keys = g_key_file_get_keys (key_file, groups[i], NULL, error);
         if (!keys)
             break;

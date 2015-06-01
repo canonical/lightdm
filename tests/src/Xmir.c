@@ -6,12 +6,12 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <gio/gio.h>
 #include <glib-unix.h>
 
 #include "status.h"
 #include "x-server.h"
 #include "x-authority.h"
+#include "xdmcp-client.h"
 
 static GMainLoop *loop;
 static int exit_status = EXIT_SUCCESS;
@@ -29,6 +29,9 @@ static gchar *id;
 
 /* Display number being served */
 static int display_number = 0;
+
+/* VT being run on */
+static int vt_number = -1;
 
 /* X server */
 static XServer *xserver = NULL;
@@ -85,30 +88,6 @@ client_disconnected_cb (XServer *server, XClient *client)
     g_signal_handlers_disconnect_matched (client, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, NULL);
 }
 
-static gboolean
-vnc_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
-{
-    gchar buffer[1024];
-    gsize n_read;
-    GIOStatus status;
-    GError *error = NULL;
-
-    status = g_io_channel_read_chars (channel, buffer, 1023, &n_read, &error);
-    if (error)
-        g_warning ("Error reading from VNC client: %s", error->message);
-    g_clear_error (&error);
-
-    if (status == G_IO_STATUS_NORMAL)
-    {
-        buffer[n_read] = '\0';
-        if (g_str_has_suffix (buffer, "\n"))
-            buffer[n_read-1] = '\0';
-        status_notify ("%s VNC-CLIENT-CONNECT VERSION=\"%s\"", id, buffer);
-    }
-
-    return TRUE;
-}
-
 static void
 request_cb (const gchar *name, GHashTable *params)
 {
@@ -130,12 +109,6 @@ request_cb (const gchar *name, GHashTable *params)
         }
         signal (SIGUSR1, handler);
     }
-
-    else if (strcmp (name, "START-VNC") == 0)
-    {
-        /* Send server protocol version to client */
-        g_print ("RFB 003.007\n");
-    }
 }
 
 int
@@ -143,12 +116,12 @@ main (int argc, char **argv)
 {
     int i;
     char *pid_string;
-    gboolean use_inetd = FALSE;
-    gboolean has_option = FALSE;
-    gchar *geometry = g_strdup ("640x480");
-    gint depth = 8;
+    gchar *seat = NULL;
+    gchar *mir_id = NULL;
     gchar *lock_filename;
+    gboolean sharevts = FALSE;
     int lock_file;
+    GString *status_text;
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
@@ -182,24 +155,40 @@ main (int argc, char **argv)
             else if (strcmp (protocol, "unix") == 0)
                 ;//listen_unix = FALSE;
         }
-        else if (strcmp (arg, "-geometry") == 0)
+        else if (strcmp (arg, "-nr") == 0)
         {
-            g_free (geometry);
-            geometry = g_strdup (argv[i+1]);
+        }
+        else if (strcmp (arg, "-background") == 0)
+        {
+            /* Ignore arg */
             i++;
         }
-        else if (strcmp (arg, "-depth") == 0)
+        else if (g_str_has_prefix (arg, "vt"))
         {
-            depth = atoi (argv[i+1]);
+            vt_number = atoi (arg + 2);
+        }
+        else if (strcmp (arg, "-novtswitch") == 0)
+        {
+            /* Ignore VT args */
+        }
+        else if (strcmp (arg, "-seat") == 0)
+        {
+            seat = argv[i+1];
             i++;
         }
-        else if (strcmp (arg, "-inetd") == 0)
+        else if (strcmp (arg, "-sharevts") == 0)
         {
-            use_inetd = TRUE;
+            sharevts = TRUE;
         }
-        else if (strcmp (arg, "-option") == 0)
+        else if (strcmp (arg, "-mir") == 0)
         {
-            has_option = TRUE;
+            mir_id = argv[i+1];
+            i++;
+        }
+        else if (strcmp (arg, "-mirSocket") == 0)
+        {
+            /* FIXME */
+            i++;
         }
         else
         {
@@ -207,15 +196,19 @@ main (int argc, char **argv)
                         "Use: %s [:<display>] [option]\n"
                         "-auth file             Select authorization file\n"
                         "-nolisten protocol     Don't listen on protocol\n"
-                        "-geometry WxH          Set framebuffer width & height\n"
-                        "-depth D               Set framebuffer depth\n"
-                        "-inetd                 Xvnc is launched by inetd\n",
+                        "-background [none]     Create root window with no background\n"
+                        "-nr                    (Ubuntu-specific) Synonym for -background none\n"
+                        "-seat string           seat to run on\n"
+                        "-sharevts              share VTs with another X server\n"
+                        "-mir id                Mir ID to use\n"
+                        "-mirSocket name        Mir socket to use\n"
+                        "vtxx                   Use virtual terminal xx instead of the next available\n",
                         arg, argv[0]);
             return EXIT_FAILURE;
         }
     }
 
-    id = g_strdup_printf ("XVNC-%d", display_number);
+    id = g_strdup_printf ("XMIR-%d", display_number);
 
     status_connect (request_cb, id);
 
@@ -223,20 +216,27 @@ main (int argc, char **argv)
     g_signal_connect (xserver, X_SERVER_SIGNAL_CLIENT_CONNECTED, G_CALLBACK (client_connected_cb), NULL);
     g_signal_connect (xserver, X_SERVER_SIGNAL_CLIENT_DISCONNECTED, G_CALLBACK (client_disconnected_cb), NULL);
 
-    status_notify ("%s START GEOMETRY=%s DEPTH=%d OPTION=%s", id, geometry, depth, has_option ? "TRUE" : "FALSE");
+    status_text = g_string_new ("");
+    g_string_printf (status_text, "%s START", id);
+    if (vt_number >= 0)
+        g_string_append_printf (status_text, " VT=%d", vt_number);
+    if (seat != NULL)
+        g_string_append_printf (status_text, " SEAT=%s", seat);
+    if (sharevts)
+        g_string_append (status_text, " SHAREVTS=TRUE");
+    if (mir_id != NULL)
+        g_string_append_printf (status_text, " MIR-ID=%s", mir_id);
+    status_notify ("%s", status_text->str);
+    g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
 
-    if (use_inetd)
+    if (g_key_file_has_key (config, "test-xserver-config", "return-value", NULL))
     {
-        if (!g_io_add_watch (g_io_channel_unix_new (STDIN_FILENO), G_IO_IN, vnc_data_cb, NULL))
-            return EXIT_FAILURE;
-    }
-    else
-    {
-        g_printerr ("Only supported in -inetd mode\n");
-        return EXIT_FAILURE;
+        int return_value = g_key_file_get_integer (config, "test-xserver-config", "return-value", NULL);
+        status_notify ("%s EXIT CODE=%d", id, return_value);
+        return return_value;
     }
 
     lock_filename = g_strdup_printf (".X%d-lock", display_number);

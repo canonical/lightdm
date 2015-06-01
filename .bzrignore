@@ -73,4 +73,5 @@ tests/src/test-session
 tests/src/unity-system-compositor
 tests/src/vnc-client
 tests/src/X
+tests/src/Xmir
 tests/src/Xvnc
