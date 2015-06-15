@@ -8,20 +8,20 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2007-05-31 08:04+0200\n"
-"PO-Revision-Date: 2011-09-13 08:33+0000\n"
-"Last-Translator: Alexandre Patenaude <Unknown>\n"
+"PO-Revision-Date: 2015-06-14 15:29+0000\n"
+"Last-Translator: Anne <anneonyme017@gmail.com>\n"
 "Language-Team: French <fr@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2015-06-02 05:14+0000\n"
-"X-Generator: Launchpad (build 17532)\n"
+"X-Launchpad-Export-Date: 2015-06-15 04:56+0000\n"
+"X-Generator: Launchpad (build 17557)\n"
 
 #. Type: select
 #. Description
 #: ../lightdm.templates:2001
 msgid "Default display manager:"
-msgstr ""
+msgstr "Gestionnaire d'affichage par défaut :"
 
 #. Type: select
 #. Description
@@ -30,6 +30,8 @@ msgid ""
 "A display manager is a program that provides graphical login capabilities "
 "for the X Window System."
 msgstr ""
+"Un gestionnaire d'affichage est un programme qui propose un environnement "
+"graphique de(s) session(s) des utilisateurs pour le système X Window."
 
 #. Type: select
 #. Description
@@ -39,6 +41,9 @@ msgid ""
 "manager packages are installed. Please select which display manager should "
 "run by default."
 msgstr ""
+"Seul un gestionnaire d'affichage peut gérer un serveur X donné. Cependant, "
+"plusieurs paquets de gestion de l'affichage sont installés. Veuillez "
+"sélectionner quel gestionnaire d'affichage devrait être utilisé par défaut."
 
 #. Type: select
 #. Description
@@ -49,6 +54,11 @@ msgid ""
 "accordingly, edit each of their init scripts in /etc/init.d, and disable the "
 "check for a default display manager."
 msgstr ""
+"Plusieurs gestionnaires d'affichage peuvent fonctionner simultanément s'ils "
+"sont configurés pour gérer différents serveurs. Pour ce faire, configurez "
+"les gestionnaires d'affichage en conséquence, modifiez chacun de leurs "
+"scripts d'initialisation dans /etc/init.d , et désactivez la vérification "
+"d'un gestionnaire d'affichage par défaut."
 
 #~ msgid "Large Font"
 #~ msgstr "Grande police"
