@@ -47,15 +47,15 @@ if type xrdb >/dev/null 2>&1; then
     if [ -d "$xresourcedir" ]; then
         for file in $xresourcedir/*; do
             echo "Loading resource: $file"
-            xrdb -nocpp -merge "$file"
+            xrdb -merge "$file"
         done
     fi
     xresourcefile="$HOME/.Xresources"
     if [ -f "$xresourcefile" ]; then
         echo "Loading resource: $xresourcefile"
-        xrdb -nocpp -merge "$xresourcefile"
+        xrdb -merge "$xresourcefile"
     fi
-fi    
+fi
 
 # Load keymaps
 if type setxkbmap >/dev/null 2>&1; then

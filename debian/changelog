@@ -1,3 +1,10 @@
+lightdm (1.12.3-0ubuntu1.1) utopic; urgency=medium
+
+  * debian/lightdm-session: Enable the C preprocessor 
+    when loading X resources. (LP: #1244578).
+
+ -- Jorge Niedbalski <jorge.niedbalski@canonical.com>  Mon, 15 Jun 2015 13:33:30 -0500
+
 lightdm (1.12.3-0ubuntu1) utopic; urgency=medium
 
   * New upstream release:
