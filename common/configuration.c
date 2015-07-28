@@ -53,11 +53,16 @@ config_load_from_file (Configuration *config, const gchar *path, GError **error)
     groups = g_key_file_get_groups (key_file, NULL);
     for (i = 0; groups[i]; i++)
     {
-        gchar **keys;
+        gchar **keys, *group;
         int j;
 
-        if (strcmp (groups[i], "SeatDefaults") == 0)
+        /* Move keys from deprecated [SeatDefaults] into [Seat:*] */
+        group = groups[i];
+        if (strcmp (group, "SeatDefaults") == 0)
+        {
             g_printerr ("Configuration file %s contains a deprecated [SeatDefaults] section, use [Seat:*] instead\n", path);
+            group = "Seat:*";
+        }
 
         keys = g_key_file_get_keys (key_file, groups[i], NULL, error);
         if (!keys)
@@ -68,10 +73,10 @@ config_load_from_file (Configuration *config, const gchar *path, GError **error)
             gchar *value, *k;
 
             value = g_key_file_get_value (key_file, groups[i], keys[j], NULL);
-            g_key_file_set_value (config->priv->key_file, groups[i], keys[j], value);
+            g_key_file_set_value (config->priv->key_file, group, keys[j], value);
             g_free (value);
 
-            k = g_strdup_printf ("%s]%s", groups[i], keys[j]);
+            k = g_strdup_printf ("%s]%s", group, keys[j]);
             g_hash_table_insert (config->priv->key_sources, k, source_path);
         }
 

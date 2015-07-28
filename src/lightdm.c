@@ -153,9 +153,8 @@ get_config_sections (const gchar *seat_name)
     gchar **groups, **i;
     GList *config_sections = NULL;
 
-    /* Load seat defaults first and support old method of [SeatDefaults] */
+    /* Load seat defaults first */
     config_sections = g_list_append (config_sections, g_strdup ("Seat:*"));
-    config_sections = g_list_append (config_sections, g_strdup ("SeatDefaults"));
 
     groups = config_get_groups (config_get_instance ());
     for (i = groups; *i; i++)
