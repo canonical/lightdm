@@ -46,9 +46,9 @@ compare_session (gconstpointer a, gconstpointer b)
 }
 
 static LightDMSession *
-load_session (GKeyFile *key_file, const gchar *key)
+load_session (GKeyFile *key_file, const gchar *key, const gchar *default_type)
 {
-    gchar *type, *domain, *name;
+    gchar *domain, *name, *type;
     LightDMSession *session;
     LightDMSessionPrivate *priv;
     gchar *try_exec;
@@ -56,10 +56,6 @@ load_session (GKeyFile *key_file, const gchar *key)
     if (g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY, NULL) ||
         g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_HIDDEN, NULL))
         return NULL;
-
-    type = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Session-Type", NULL);
-    if (!type)
-        type = "x";
 
 #ifdef G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN
     domain = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_GETTEXT_DOMAIN, NULL);
@@ -91,6 +87,10 @@ load_session (GKeyFile *key_file, const gchar *key)
         g_free (full_path);
     }
 
+    type = g_key_file_get_string (key_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Session-Type", NULL);
+    if (!type)
+        type = strdup (default_type);
+
     session = g_object_new (LIGHTDM_TYPE_SESSION, NULL);
     priv = GET_PRIVATE (session);
 
@@ -98,7 +98,7 @@ load_session (GKeyFile *key_file, const gchar *key)
     priv->key = g_strdup (key);
 
     g_free (priv->type);
-    priv->type = g_strdup (type);
+    priv->type = type;
 
     g_free (priv->name);
     priv->name = name;
@@ -114,7 +114,7 @@ load_session (GKeyFile *key_file, const gchar *key)
 }
 
 static GList *
-load_sessions_dir (GList *sessions, const gchar *sessions_dir)
+load_sessions_dir (GList *sessions, const gchar *sessions_dir, const gchar *default_type)
 {
     GDir *directory;
     GError *error = NULL;
@@ -154,7 +154,7 @@ load_sessions_dir (GList *sessions, const gchar *sessions_dir)
             LightDMSession *session;
 
             key = g_strndup (filename, strlen (filename) - strlen (".desktop"));
-            session = load_session (key_file, key);
+            session = load_session (key_file, key, default_type);
             if (session)
             {
                 g_debug ("Loaded session %s (%s, %s)", path, GET_PRIVATE (session)->name, GET_PRIVATE (session)->comment);
@@ -182,8 +182,16 @@ load_sessions (const gchar *sessions_dir)
     int i;
 
     dirs = g_strsplit (sessions_dir, ":", -1);
-    for (i = 0; dirs[i]; i++)
-        sessions = load_sessions_dir (sessions, dirs[i]);
+    for (i = 0; dirs[i]; i++) 
+    {
+        const gchar *default_type = "x";
+
+        if (strcmp (dirs[i], WAYLAND_SESSIONS_DIR) == 0)
+            default_type = "wayland";
+
+        sessions = load_sessions_dir (sessions, dirs[i], default_type);
+    }
+ 
     g_strfreev (dirs);
 
     return sessions;

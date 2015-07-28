@@ -12,8 +12,7 @@ common_cflags = \
 	$(WARN_CXXFLAGS) \
 	-I$(top_srcdir)/liblightdm-gobject \
 	$(GLIB_CFLAGS) \
-	-DQT_NO_KEYWORDS \
-	-DXSESSIONS_DIR=\"$(datadir)/xsessions\"
+	-DQT_NO_KEYWORDS
 liblightdm_qt_3_la_CXXFLAGS = \
 	$(LIBLIGHTDM_QT4_CFLAGS) \
 	$(common_cflags)

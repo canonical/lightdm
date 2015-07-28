@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=Test GObject Greeter
-Comment=LightDM test GObject greeter
+Name=Test Mir Greeter
+Comment=LightDM test Mir greeter
 Exec=test-gobject-greeter
 X-LightDM-Session-Type=mir

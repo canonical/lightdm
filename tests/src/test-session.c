@@ -256,6 +256,8 @@ main (int argc, char **argv)
         session_id = g_strdup_printf ("SESSION-MIR-%s", mir_id);
     else if (mir_socket || mir_vt)
         session_id = g_strdup ("SESSION-MIR");
+    else if (g_strcmp0 (xdg_session_type, "wayland") == 0)
+        session_id = g_strdup ("SESSION-WAYLAND");
     else
         session_id = g_strdup ("SESSION-UNKNOWN");
 

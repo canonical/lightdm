@@ -29,7 +29,7 @@ struct SessionConfigPrivate
 G_DEFINE_TYPE (SessionConfig, session_config, G_TYPE_OBJECT);
 
 SessionConfig *
-session_config_new_from_file (const gchar *filename, GError **error)
+session_config_new_from_file (const gchar *filename, const gchar *default_session_type, GError **error)
 {
     GKeyFile *desktop_file;
     SessionConfig *config;
@@ -52,7 +52,7 @@ session_config_new_from_file (const gchar *filename, GError **error)
     config->priv->command = command;
     config->priv->session_type = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Session-Type", NULL);
     if (!config->priv->session_type)
-        config->priv->session_type = g_strdup ("x");
+        config->priv->session_type = g_strdup (default_session_type);
 
     config->priv->desktop_names = g_key_file_get_string_list (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "DesktopNames", NULL, NULL);
     if (!config->priv->desktop_names)

@@ -36,7 +36,7 @@ typedef struct
 
 GType session_config_get_type (void);
 
-SessionConfig *session_config_new_from_file (const gchar *filename, GError **error);
+SessionConfig *session_config_new_from_file (const gchar *filename, const gchar *default_session_type, GError **error);
 
 const gchar *session_config_get_command (SessionConfig *config);
 
