@@ -10,8 +10,10 @@
  */
 
 #include <string.h>
+#include <gio/gio.h>
 
 #include "xdmcp-protocol.h"
+#include "x-authority.h"
 
 typedef struct
 {
@@ -481,13 +483,31 @@ xdmcp_packet_tostring (XDMCPPacket *packet)
         t3 = g_string_new ("");
         for (i = 0; i < packet->Request.n_connections; i++)
         {
-            gchar *t4;
+            XDMCPConnection *connection = &packet->Request.connections[i];
+            GSocketFamily family = G_SOCKET_FAMILY_INVALID;
 
             if (i != 0)
                g_string_append (t3, " ");
-            t4 = data_tostring (&packet->Request.connections[i].address);
-            g_string_append_printf (t3, "(%d, %s)", packet->Request.connections[i].type, t4);
-            g_free (t4);
+
+            if (connection->type == XAUTH_FAMILY_INTERNET && connection->address.length == 4)
+                family = G_SOCKET_FAMILY_IPV4;
+            else if (connection->type == XAUTH_FAMILY_INTERNET6 && connection->address.length == 16)
+                family = G_SOCKET_FAMILY_IPV6;
+
+            if (family != G_SOCKET_FAMILY_INVALID)
+            {
+                GInetAddress *address = g_inet_address_new_from_bytes (connection->address.data, family);
+                gchar *t4 = g_inet_address_to_string (address);
+                g_string_append (t3, t4);
+                g_free (t4);
+                g_object_unref (address);
+            }
+            else
+            {
+                gchar *t4 = data_tostring (&connection->address);
+                g_string_append_printf (t3, "(%d, %s)", connection->type, t4);
+                g_free (t4);
+            }
         }
         string = g_strdup_printf ("Request(display_number=%d connections=[%s] authentication_name='%s' authentication_data=%s authorization_names=[%s] manufacturer_display_id='%s')",
                                   packet->Request.display_number, t3->str, packet->Request.authentication_name, t2,
