@@ -443,21 +443,21 @@ handle_request (XDMCPServer *server, GSocket *socket, GSocketAddress *address, X
         gethostname (hostname, 1024);
 
         session->priv->authority = x_authority_new (XAUTH_FAMILY_LOCAL,
-                                              (guint8 *) hostname,
-                                              strlen (hostname),
-                                              display_number,
-                                              authorization_name,
-                                              session_authorization_data,
-                                              session_authorization_data_length);
+                                                    (guint8 *) hostname,
+                                                    strlen (hostname),
+                                                    display_number,
+                                                    authorization_name,
+                                                    session_authorization_data,
+                                                    session_authorization_data_length);
     }
     else
         session->priv->authority = x_authority_new (family,
-                                              g_inet_address_to_bytes (G_INET_ADDRESS (x_server_address)),
-                                              g_inet_address_get_native_size (G_INET_ADDRESS (x_server_address)),
-                                              display_number,
-                                              authorization_name,
-                                              session_authorization_data,
-                                              session_authorization_data_length);
+                                                    g_inet_address_to_bytes (G_INET_ADDRESS (x_server_address)),
+                                                    g_inet_address_get_native_size (G_INET_ADDRESS (x_server_address)),
+                                                    display_number,
+                                                    authorization_name,
+                                                    session_authorization_data,
+                                                    session_authorization_data_length);
     g_free (display_number);
 
     response = xdmcp_packet_alloc (XDMCP_Accept);
