@@ -42,6 +42,10 @@ void vnc_server_set_port (VNCServer *server, guint port);
 
 guint vnc_server_get_port (VNCServer *server);
 
+void vnc_server_set_listen_address (VNCServer *server, const gchar *listen_address);
+
+const gchar *vnc_server_get_listen_address (VNCServer *server);
+
 gboolean vnc_server_start (VNCServer *server);
 
 G_END_DECLS

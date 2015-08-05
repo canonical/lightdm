@@ -1215,7 +1215,7 @@ main (int argc, char **argv)
     /* Start the XDMCP server */
     if (config_get_boolean (config_get_instance (), "XDMCPServer", "enabled"))
     {
-        gchar *key_name, *key = NULL;
+        gchar *key_name, *key = NULL, *listen_address;
 
         xdmcp_server = xdmcp_server_new ();
         if (config_has_key (config_get_instance (), "XDMCPServer", "port"))
@@ -1225,6 +1225,9 @@ main (int argc, char **argv)
             if (port > 0)
                 xdmcp_server_set_port (xdmcp_server, port);
         }
+        listen_address = config_get_string (config_get_instance (), "XDMCPServer", "listen-address");
+        xdmcp_server_set_listen_address (xdmcp_server, listen_address);
+        g_free (listen_address);
         g_signal_connect (xdmcp_server, "new-session", G_CALLBACK (xdmcp_session_cb), NULL);
 
         key_name = config_get_string (config_get_instance (), "XDMCPServer", "key");
@@ -1272,6 +1275,8 @@ main (int argc, char **argv)
         path = g_find_program_in_path ("Xvnc");
         if (path)
         {
+            gchar *listen_address;
+
             vnc_server = vnc_server_new ();
             if (config_has_key (config_get_instance (), "VNCServer", "port"))
             {
@@ -1280,6 +1285,9 @@ main (int argc, char **argv)
                 if (port > 0)
                     vnc_server_set_port (vnc_server, port);
             }
+            listen_address = config_get_string (config_get_instance (), "VNCServer", "listen-address");
+            vnc_server_set_listen_address (vnc_server, listen_address);
+            g_free (listen_address);
             g_signal_connect (vnc_server, "new-connection", G_CALLBACK (vnc_connection_cb), NULL);
 
             g_debug ("Starting VNC server on TCP/IP port %d", vnc_server_get_port (vnc_server));

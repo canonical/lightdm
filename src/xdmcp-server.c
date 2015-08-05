@@ -33,6 +33,9 @@ struct XDMCPServerPrivate
     /* Port to listen on */
     guint port;
 
+    /* Address to listen on */
+    gchar *listen_address;
+
     /* Listening sockets */
     GSocket *socket, *socket6;
 
@@ -72,6 +75,22 @@ xdmcp_server_get_port (XDMCPServer *server)
 {
     g_return_val_if_fail (server != NULL, 0);
     return server->priv->port;
+}
+
+void
+xdmcp_server_set_listen_address (XDMCPServer *server, const gchar *listen_address)
+{
+    g_return_if_fail (server != NULL);
+
+    g_free (server->priv->listen_address);
+    server->priv->listen_address = g_strdup (listen_address);
+}
+
+const gchar *
+xdmcp_server_get_listen_address (XDMCPServer *server)
+{
+    g_return_val_if_fail (server != NULL, NULL);
+    return server->priv->listen_address;
 }
 
 void
@@ -638,7 +657,7 @@ read_cb (GSocket *socket, GIOCondition condition, XDMCPServer *server)
 }
 
 static GSocket *
-open_udp_socket (GSocketFamily family, guint port, GError **error)
+open_udp_socket (GSocketFamily family, guint port, const gchar *listen_address, GError **error)
 {
     GSocket *socket;
     GSocketAddress *address;
@@ -648,7 +667,21 @@ open_udp_socket (GSocketFamily family, guint port, GError **error)
     if (!socket)
         return NULL;
 
-    address = g_inet_socket_address_new (g_inet_address_new_any (family), port);
+    if (listen_address) 
+    {
+        GList *addresses;
+
+        addresses = g_resolver_lookup_by_name (g_resolver_get_default (), listen_address, NULL, error);
+        if (!addresses)
+        {
+            g_object_unref (socket);
+            return NULL;
+        }
+        address = g_inet_socket_address_new (addresses->data, port);
+        g_resolver_free_addresses (addresses);
+    }
+    else
+        address = g_inet_socket_address_new (g_inet_address_new_any (family), port);
     result = g_socket_bind (socket, address, TRUE, error);
     if (!result)
     {
@@ -667,7 +700,7 @@ xdmcp_server_start (XDMCPServer *server)
 
     g_return_val_if_fail (server != NULL, FALSE);
   
-    server->priv->socket = open_udp_socket (G_SOCKET_FAMILY_IPV4, server->priv->port, &error);
+    server->priv->socket = open_udp_socket (G_SOCKET_FAMILY_IPV4, server->priv->port, server->priv->listen_address, &error);
     if (error)
         g_warning ("Failed to create IPv4 XDMCP socket: %s", error->message);
     g_clear_error (&error);
@@ -679,7 +712,7 @@ xdmcp_server_start (XDMCPServer *server)
         g_source_attach (source, NULL);
     }
     
-    server->priv->socket6 = open_udp_socket (G_SOCKET_FAMILY_IPV6, server->priv->port, &error);
+    server->priv->socket6 = open_udp_socket (G_SOCKET_FAMILY_IPV6, server->priv->port, server->priv->listen_address, &error);
     if (error)
         g_warning ("Failed to create IPv6 XDMCP socket: %s", error->message);
     g_clear_error (&error);
@@ -719,6 +752,7 @@ xdmcp_server_finalize (GObject *object)
         g_object_unref (self->priv->socket);
     if (self->priv->socket6)
         g_object_unref (self->priv->socket6);
+    g_free (self->priv->listen_address);
     g_free (self->priv->hostname);
     g_free (self->priv->status);
     g_free (self->priv->key);
