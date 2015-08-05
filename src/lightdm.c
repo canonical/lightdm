@@ -153,18 +153,16 @@ get_config_sections (const gchar *seat_name)
     gchar **groups, **i;
     GList *config_sections = NULL;
 
-    config_sections = g_list_append (config_sections, g_strdup ("SeatDefaults"));
-
-    if (!seat_name)
-        return config_sections;
+    /* Load seat defaults first */
+    config_sections = g_list_append (config_sections, g_strdup ("Seat:*"));
 
     groups = config_get_groups (config_get_instance ());
     for (i = groups; *i; i++)
     {
-        if (g_str_has_prefix (*i, "Seat:"))
+        if (g_str_has_prefix (*i, "Seat:") && strcmp (*i, "Seat:*") != 0)
         {
             const gchar *seat_name_glob = *i + strlen ("Seat:");
-            if (g_pattern_match_simple (seat_name_glob, seat_name))
+            if (g_pattern_match_simple (seat_name_glob, seat_name ? seat_name : ""))
                 config_sections = g_list_append (config_sections, g_strdup (*i));
         }
     }
@@ -184,8 +182,9 @@ set_seat_properties (Seat *seat, const gchar *seat_name)
     for (link = sections; link; link = link->next)
     {
         const gchar *section = link->data;
-        g_debug ("Loading properties from config section %s", section);
         keys = config_get_keys (config_get_instance (), section);
+
+        l_debug (seat, "Loading properties from config section %s", section);
         for (i = 0; keys && keys[i]; i++)
         {
             gchar *value = config_get_string (config_get_instance (), section, keys[i]);
@@ -611,11 +610,6 @@ seat_bus_entry_free (gpointer data)
 {
     SeatBusEntry *entry = data;
 
-    g_dbus_connection_unregister_object (bus, entry->bus_id);
-
-    emit_object_value_changed (bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Seats", get_seat_list ());
-    emit_object_signal (bus, "/org/freedesktop/DisplayManager", "SeatRemoved", entry->path);
-
     g_free (entry->path);
     g_free (entry);
 }
@@ -624,14 +618,6 @@ static void
 session_bus_entry_free (gpointer data)
 {
     SessionBusEntry *entry = data;
-
-    g_dbus_connection_unregister_object (bus, entry->bus_id);
-
-    emit_object_value_changed (bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Sessions", get_session_list (NULL));
-    emit_object_signal (bus, "/org/freedesktop/DisplayManager", "SessionRemoved", entry->path);
-
-    emit_object_value_changed (bus, entry->seat_path, "org.freedesktop.DisplayManager.Seat", "Sessions", get_session_list (entry->seat_path));
-    emit_object_signal (bus, entry->seat_path, "SessionRemoved", entry->path);
 
     g_free (entry->path);
     g_free (entry->seat_path);
@@ -659,7 +645,6 @@ running_user_session_cb (Seat *seat, Session *session)
     session_set_env (session, "XDG_SESSION_PATH", path);
     g_object_set_data_full (G_OBJECT (session), "XDG_SESSION_PATH", path, g_free);
 
-    seat_entry = g_hash_table_lookup (seat_bus_entries, seat);
     session_entry = session_bus_entry_new (g_object_get_data (G_OBJECT (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL);
     g_hash_table_insert (session_bus_entries, g_object_ref (session), session_entry);
 
@@ -685,8 +670,28 @@ running_user_session_cb (Seat *seat, Session *session)
 static void
 session_removed_cb (Seat *seat, Session *session)
 {
+    SessionBusEntry *entry;
+    gchar *seat_path = NULL;
+
     g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
+
+    entry = g_hash_table_lookup (session_bus_entries, session);
+    if (entry)
+    {
+        g_dbus_connection_unregister_object (bus, entry->bus_id);
+        emit_object_signal (bus, "/org/freedesktop/DisplayManager", "SessionRemoved", entry->path);
+        emit_object_signal (bus, entry->seat_path, "SessionRemoved", entry->path);
+        seat_path = g_strdup (entry->seat_path);
+    }
+
     g_hash_table_remove (session_bus_entries, session);
+
+    if (seat_path)
+    {
+        emit_object_value_changed (bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Sessions", get_session_list (NULL));
+        emit_object_value_changed (bus, seat_path, "org.freedesktop.DisplayManager.Seat", "Sessions", get_session_list (seat_path));
+        g_free (seat_path);
+    }
 }
 
 static void
@@ -730,7 +735,18 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat)
 static void
 seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
+    SeatBusEntry *entry;
+
+    entry = g_hash_table_lookup (seat_bus_entries, seat);
+    if (entry)
+    {
+        g_dbus_connection_unregister_object (bus, entry->bus_id);
+        emit_object_signal (bus, "/org/freedesktop/DisplayManager", "SeatRemoved", entry->path);
+    }
+
     g_hash_table_remove (seat_bus_entries, seat);
+  
+    emit_object_value_changed (bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Seats", get_seat_list ());
 }
 
 static gboolean
@@ -1068,6 +1084,48 @@ login1_can_graphical_changed_cb (Login1Seat *login1_seat)
 }
 
 static void
+login1_active_session_changed_cb (Login1Seat *login1_seat, const gchar *login1_session_id)
+{
+    g_debug ("Seat %s changes active session to %s", login1_seat_get_id (login1_seat), login1_session_id);
+
+    Seat *seat;
+    seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
+
+    if (seat)
+    {
+        Session *active_session;
+        active_session = seat_get_expected_active_session (seat);
+
+        if (g_strcmp0 (login1_session_id, session_get_login1_session_id (active_session)) == 0)
+        {
+            // Session is already active
+            g_debug ("Session %s is already active", login1_session_id);
+            return;
+        }
+
+        active_session = seat_find_session_by_login1_id (seat, login1_session_id);
+        if (active_session != NULL)
+        {
+            g_debug ("Activating session %s", login1_session_id);
+            seat_set_externally_activated_session (seat, active_session);
+            return;
+
+        }
+    }
+}
+
+static gboolean
+login1_add_seat (Login1Seat *login1_seat)
+{
+    if (config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical"))
+        g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
+
+    g_signal_connect (login1_seat, LOGIN1_SIGNAL_ACTIVE_SESION_CHANGED, G_CALLBACK (login1_active_session_changed_cb), NULL);
+
+    return update_login1_seat (login1_seat);
+}
+
+static void
 login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
 {
     if (login1_seat_get_can_graphical (login1_seat))
@@ -1075,9 +1133,7 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
     else
         g_debug ("Seat %s added from logind without graphical output", login1_seat_get_id (login1_seat));
 
-    if (config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical"))
-        g_signal_connect (login1_seat, LOGIN1_SEAT_SIGNAL_CAN_GRAPHICAL_CHANGED, G_CALLBACK (login1_can_graphical_changed_cb), NULL);
-    update_login1_seat (login1_seat);
+    login1_add_seat (login1_seat);
 }
 
 static void
@@ -1085,6 +1141,7 @@ login1_service_seat_removed_cb (Login1Service *service, Login1Seat *login1_seat)
 {
     g_debug ("Seat %s removed from logind", login1_seat_get_id (login1_seat));
     g_signal_handlers_disconnect_matched (login1_seat, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, login1_can_graphical_changed_cb, NULL);
+    g_signal_handlers_disconnect_matched (login1_seat, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, login1_active_session_changed_cb, NULL);
     remove_login1_seat (login1_seat);
 }
 
@@ -1319,36 +1376,38 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "LightDM", "greeter-user", GREETER_USER);
     if (!config_has_key (config_get_instance (), "LightDM", "lock-memory"))
         config_set_boolean (config_get_instance (), "LightDM", "lock-memory", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "type"))
-        config_set_string (config_get_instance (), "SeatDefaults", "type", "xlocal");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "pam-service"))
-        config_set_string (config_get_instance (), "SeatDefaults", "pam-service", "lightdm");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "pam-autologin-service"))
-        config_set_string (config_get_instance (), "SeatDefaults", "pam-autologin-service", "lightdm-autologin");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "pam-greeter-service"))
-        config_set_string (config_get_instance (), "SeatDefaults", "pam-greeter-service", "lightdm-greeter");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-command"))
-        config_set_string (config_get_instance (), "SeatDefaults", "xserver-command", "X");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-share"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "xserver-share", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "unity-compositor-command"))
-        config_set_string (config_get_instance (), "SeatDefaults", "unity-compositor-command", "unity-system-compositor");
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "start-session"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "start-session", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "allow-user-switching"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "allow-user-switching", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "allow-guest"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "allow-guest", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-allow-guest"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "greeter-allow-guest", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-show-remote-login"))
-        config_set_boolean (config_get_instance (), "SeatDefaults", "greeter-show-remote-login", TRUE);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "greeter-session"))
-        config_set_string (config_get_instance (), "SeatDefaults", "greeter-session", GREETER_SESSION);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "user-session"))
-        config_set_string (config_get_instance (), "SeatDefaults", "user-session", USER_SESSION);
-    if (!config_has_key (config_get_instance (), "SeatDefaults", "session-wrapper"))
-        config_set_string (config_get_instance (), "SeatDefaults", "session-wrapper", "lightdm-session");
+    if (!config_has_key (config_get_instance (), "Seat:*", "type"))
+        config_set_string (config_get_instance (), "Seat:*", "type", "xlocal");
+    if (!config_has_key (config_get_instance (), "Seat:*", "pam-service"))
+        config_set_string (config_get_instance (), "Seat:*", "pam-service", "lightdm");
+    if (!config_has_key (config_get_instance (), "Seat:*", "pam-autologin-service"))
+        config_set_string (config_get_instance (), "Seat:*", "pam-autologin-service", "lightdm-autologin");
+    if (!config_has_key (config_get_instance (), "Seat:*", "pam-greeter-service"))
+        config_set_string (config_get_instance (), "Seat:*", "pam-greeter-service", "lightdm-greeter");
+    if (!config_has_key (config_get_instance (), "Seat:*", "xserver-command"))
+        config_set_string (config_get_instance (), "Seat:*", "xserver-command", "X");
+    if (!config_has_key (config_get_instance (), "Seat:*", "xmir-command"))
+        config_set_string (config_get_instance (), "Seat:*", "xmir-command", "Xmir");
+    if (!config_has_key (config_get_instance (), "Seat:*", "xserver-share"))
+        config_set_boolean (config_get_instance (), "Seat:*", "xserver-share", TRUE);
+    if (!config_has_key (config_get_instance (), "Seat:*", "unity-compositor-command"))
+        config_set_string (config_get_instance (), "Seat:*", "unity-compositor-command", "unity-system-compositor");
+    if (!config_has_key (config_get_instance (), "Seat:*", "start-session"))
+        config_set_boolean (config_get_instance (), "Seat:*", "start-session", TRUE);
+    if (!config_has_key (config_get_instance (), "Seat:*", "allow-user-switching"))
+        config_set_boolean (config_get_instance (), "Seat:*", "allow-user-switching", TRUE);
+    if (!config_has_key (config_get_instance (), "Seat:*", "allow-guest"))
+        config_set_boolean (config_get_instance (), "Seat:*", "allow-guest", TRUE);
+    if (!config_has_key (config_get_instance (), "Seat:*", "greeter-allow-guest"))
+        config_set_boolean (config_get_instance (), "Seat:*", "greeter-allow-guest", TRUE);
+    if (!config_has_key (config_get_instance (), "Seat:*", "greeter-show-remote-login"))
+        config_set_boolean (config_get_instance (), "Seat:*", "greeter-show-remote-login", TRUE);
+    if (!config_has_key (config_get_instance (), "Seat:*", "greeter-session"))
+        config_set_string (config_get_instance (), "Seat:*", "greeter-session", GREETER_SESSION);
+    if (!config_has_key (config_get_instance (), "Seat:*", "user-session"))
+        config_set_string (config_get_instance (), "Seat:*", "user-session", USER_SESSION);
+    if (!config_has_key (config_get_instance (), "Seat:*", "session-wrapper"))
+        config_set_string (config_get_instance (), "Seat:*", "session-wrapper", "lightdm-session");
     if (!config_has_key (config_get_instance (), "LightDM", "log-directory"))
         config_set_string (config_get_instance (), "LightDM", "log-directory", default_log_dir);
     g_free (default_log_dir);
@@ -1432,9 +1491,7 @@ main (int argc, char **argv)
             for (link = login1_service_get_seats (login1_service_get_instance ()); link; link = link->next)
             {
                 Login1Seat *login1_seat = link->data;
-                if (config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical"))
-                    g_signal_connect (login1_seat, LOGIN1_SEAT_SIGNAL_CAN_GRAPHICAL_CHANGED, G_CALLBACK (login1_can_graphical_changed_cb), NULL);
-                if (!update_login1_seat (login1_seat))
+                if (!login1_add_seat (login1_seat))
                     return EXIT_FAILURE;
             }
         }
@@ -1449,7 +1506,7 @@ main (int argc, char **argv)
 
             g_debug ("Adding default seat");
 
-            types = config_get_string_list (config_get_instance (), "SeatDefaults", "type");
+            types = config_get_string_list (config_get_instance (), "Seat:*", "type");
             for (type = types; type && *type; type++)
             {
                 seat = seat_new (*type, "seat0");

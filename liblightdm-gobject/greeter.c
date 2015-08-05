@@ -243,7 +243,8 @@ write_string (guint8 *buffer, gint buffer_length, const gchar *value, gsize *off
     write_int (buffer, buffer_length, length, offset);
     if (*offset + length >= buffer_length)
         return;
-    memcpy (buffer + *offset, value, length);
+    if (value)
+        memcpy (buffer + *offset, value, length);
     *offset += length;
 }
 

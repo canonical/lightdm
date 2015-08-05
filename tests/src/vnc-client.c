@@ -12,13 +12,9 @@ static GKeyFile *config;
 int
 main (int argc, char **argv)
 {
-    gchar *server_address;
-    gchar *hostname, *c;
-    gint port;
     GError *error = NULL;
     GSocket *socket;
-    GSocketConnectable *address;
-    GSocketAddressEnumerator *enumerator;
+    GSocketAddress *address;
     gboolean result;
     gchar buffer[1024];
     gssize n_read, n_sent;
@@ -34,12 +30,7 @@ main (int argc, char **argv)
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
 
-    if (argc > 1)
-        server_address = g_strdup (argv[1]);
-    else
-        server_address = g_strdup (":0");
-
-    status_notify ("VNC-CLIENT CONNECT SERVER=%s", server_address);
+    status_notify ("VNC-CLIENT CONNECT");
 
     socket = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_TCP, &error);
     if (error)
@@ -48,48 +39,9 @@ main (int argc, char **argv)
     if (!socket)
         return EXIT_FAILURE;
 
-    hostname = g_strdup (server_address);
-    c = strchr (hostname, ':');
-    if (c)
-    {
-        *c = '\0';
-        gchar *port_string = c + 1;
-        if (g_str_has_prefix (port_string, ":"))
-            port = atoi (port_string + 1);
-        else
-            port = 5900 + atoi (port_string);
-    }
-    else
-        port = 5900;
-    if (strcmp (hostname, "") == 0)
-    {
-        g_free (hostname);
-        hostname = g_strdup ("localhost");
-    }
-
-    address = g_network_address_new (hostname, port);
-    enumerator = g_socket_connectable_enumerate (address);
-    result = FALSE;
-    while (TRUE)
-    {
-        GSocketAddress *socket_address;
-        GError *e = NULL;
-
-        socket_address = g_socket_address_enumerator_next (enumerator, NULL, &e);
-        if (e)
-            g_warning ("Failed to get socket address: %s", e->message);
-        g_clear_error (&e);
-        if (!socket_address)
-            break;
-
-        result = g_socket_connect (socket, socket_address, NULL, error ? NULL : &error);
-        g_object_unref (socket_address);
-        if (result)
-        {
-            g_clear_error (&error);
-            break;
-        }
-    }
+    address = g_inet_socket_address_new (g_inet_address_new_loopback (G_SOCKET_FAMILY_IPV4), 5900);
+    result = g_socket_connect (socket, address, NULL, &error);
+    g_object_unref (address);
     if (error)
         g_warning ("Unable to connect VNC socket: %s", error->message);
     g_clear_error (&error);

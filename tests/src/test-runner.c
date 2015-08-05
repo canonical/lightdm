@@ -110,6 +110,7 @@ typedef struct
     gchar *path;
     gboolean can_graphical;
     gboolean can_multi_session;
+    gchar *active_session;
 } Login1Seat;
 
 static GList *login1_seats = NULL;
@@ -138,10 +139,12 @@ static GList *status_clients = NULL;
 
 static void ready (void);
 static void quit (int status);
+static gboolean status_timeout_cb (gpointer data);
 static void check_status (const gchar *status);
 static AccountsUser *get_accounts_user_by_uid (guint uid);
 static AccountsUser *get_accounts_user_by_name (const gchar *username);
 static void accounts_user_set_hidden (AccountsUser *user, gboolean hidden, gboolean emit_signal);
+static Login1Session *find_login1_session (const gchar *id);
 
 static gboolean
 kill_timeout_cb (gpointer data)
@@ -520,11 +523,25 @@ handle_command (const gchar *command)
     }
     else if (strcmp (name, "WAIT") == 0)
     {
+        const gchar *v;
+        int duration;
+
+        /* Stop status timeout */
+        if (status_timeout)
+            g_source_remove (status_timeout);
+
         /* Use a main loop so that our DBus functions are still responsive */
         GMainLoop *loop = g_main_loop_new (NULL, FALSE);
-        g_timeout_add_seconds (1, stop_loop, loop);
+        v = g_hash_table_lookup (params, "DURATION");
+        duration = v ? atoi (v) : 1;
+        if (duration < 1)
+            duration = 1;
+        g_timeout_add_seconds (duration, stop_loop, loop);
         g_main_loop_run (loop);
         g_main_loop_unref (loop);
+
+        /* Restart status timeout */
+        status_timeout = g_timeout_add (status_timeout_ms, status_timeout_cb, NULL);
     }
     else if (strcmp (name, "ADD-SEAT") == 0)
     {
@@ -566,6 +583,13 @@ handle_command (const gchar *command)
             {
                 seat->can_multi_session = strcmp (v, "TRUE") == 0;
                 g_variant_builder_add (&invalidated_properties, "s", "CanMultiSession");
+            }
+            v = g_hash_table_lookup (params, "ACTIVE-SESSION");
+            if (v)
+            {
+                g_free (seat->active_session);
+                seat->active_session = g_strdup (v);
+                g_variant_builder_add (&invalidated_properties, "s", "ActiveSession");
             }
 
             g_dbus_connection_emit_signal (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
@@ -883,17 +907,18 @@ handle_command (const gchar *command)
                 user->xsession = g_strdup (g_hash_table_lookup (params, "SESSION"));
                 g_string_append_printf (status_text, " SESSION=%s", user->xsession);
             }
+
+            g_dbus_connection_emit_signal (accounts_connection,
+                                           NULL,
+                                           user->path,
+                                           "org.freedesktop.Accounts.User",
+                                           "Changed",
+                                           g_variant_new ("()"),
+                                           &error);
         }
         else
             g_warning ("Unknown user %s", username);
 
-        g_dbus_connection_emit_signal (accounts_connection,
-                                       NULL,
-                                       user->path,
-                                       "org.freedesktop.Accounts.User",
-                                       "Changed",
-                                       g_variant_new ("()"),
-                                       &error);
         if (error)
             g_warning ("Failed to emit Changed: %s", error->message);
         g_clear_error (&error);
@@ -917,10 +942,32 @@ handle_command (const gchar *command)
         check_status (status_text);
         g_free (status_text);
     }
+    else if (strcmp (name, "UNLOCK-SESSION") == 0)
+    {
+        gchar *status_text, *id;
+        Login1Session *session;
+        
+        id = g_hash_table_lookup (params, "SESSION");
+        session = find_login1_session (id);
+        if (session)
+        {
+            if (!session->locked)
+                g_warning ("Session %s is not locked", id);
+            session->locked = FALSE;
+        }
+        else
+            g_warning ("Unknown session %s", id);
+
+        status_text = g_strdup_printf ("RUNNER UNLOCK-SESSION SESSION=%s", id);
+        check_status (status_text);
+        g_free (status_text);
+    }
     /* Forward to external processes */
     else if (g_str_has_prefix (name, "SESSION-") ||
              g_str_has_prefix (name, "GREETER-") ||
              g_str_has_prefix (name, "XSERVER-") ||
+             g_str_has_prefix (name, "XMIR-") ||
+             g_str_has_prefix (name, "XVNC-") ||
              strcmp (name, "UNITY-SYSTEM-COMPOSITOR") == 0)
     {
         GList *link;
@@ -1481,6 +1528,22 @@ handle_login1_seat_get_property (GDBusConnection       *connection,
         return g_variant_new_boolean (seat->can_multi_session);
     else if (strcmp (property_name, "Id") == 0)
         return g_variant_new_string (seat->id);
+    else if (strcmp (property_name, "ActiveSession") == 0)
+    {
+        if (seat->active_session)
+        {
+            gchar *path;
+            GVariant *ret;
+            
+            path = g_strdup_printf ("/org/freedesktop/login1/session/%s", seat->active_session);
+            ret = g_variant_new ("(so)", seat->active_session, path);
+            g_free (path);
+
+            return ret;
+        }
+        else 
+            return NULL;
+    }
     else
         return NULL;
 }
@@ -1497,6 +1560,7 @@ add_login1_seat (GDBusConnection *connection, const gchar *id, gboolean emit_sig
         "  <interface name='org.freedesktop.login1.Seat'>"
         "    <property name='CanGraphical' type='b' access='read'/>"
         "    <property name='CanMultiSession' type='b' access='read'/>"
+        "    <property name='ActiveSession' type='(so)' access='read'/>"
         "    <property name='Id' type='s' access='read'/>"
         "  </interface>"
         "</node>";
@@ -1512,6 +1576,7 @@ add_login1_seat (GDBusConnection *connection, const gchar *id, gboolean emit_sig
     seat->path = g_strdup_printf ("/org/freedesktop/login1/seat/%s", seat->id);
     seat->can_graphical = TRUE;
     seat->can_multi_session = TRUE;
+    seat->active_session = NULL;
 
     login1_seat_info = g_dbus_node_info_new_for_xml (login1_seat_interface, &error);
     if (error)
@@ -1589,6 +1654,7 @@ remove_login1_seat (GDBusConnection *connection, const gchar *id)
     login1_seats = g_list_remove (login1_seats, seat);
     g_free (seat->id);
     g_free (seat->path);
+    g_free (seat->active_session);
     g_free (seat);
 }
 

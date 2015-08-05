@@ -1,3 +1,87 @@
+lightdm (1.15.0-0ubuntu1) wily; urgency=medium
+
+  * New upstream release:
+    - Deprecate [SeatDefaults] in favour of [Seat:*]
+    - Use new Xmir binary when running X under Unity System Compositor
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 18 May 2015 13:38:23 +1200
+
+lightdm (1.14.0-0ubuntu2) vivid; urgency=medium
+
+  * Quiesce initctl errors when not running under upstart. (LP: #1414420)
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Wed, 08 Apr 2015 14:37:17 +0200
+
+lightdm (1.14.0-0ubuntu1) vivid; urgency=medium
+
+  * New upstream release:
+    - Initialize file descriptor handles so we don't attempt to close stdin by
+      accident.
+    - Fix small errors detected by scan-build (clang).
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 24 Mar 2015 10:25:22 +1300
+
+lightdm (1.13.2-0ubuntu1) vivid; urgency=medium
+
+  * New upstream release:
+    - Fix pipe file descriptor leak for each greeter session. (LP: #1190344)
+    - Support active session changing via logind. (LP: #1371378)
+    - Don't allow liblightdm-gobject to be disabled. It is required for
+      liblightdm-qt and the tests so it's not worth supporting builds without
+      it.
+    - Add bash autocompletion support
+  * debian/lightdm.install:
+    - Install autocompletion configuration
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 10 Mar 2015 14:54:29 +1300
+
+lightdm (1.13.1-0ubuntu2) vivid; urgency=medium
+
+  * debian/guest-account.sh:
+    - Rename variables to make script compatible with Bash (LP: #1411100)
+  * debian/control:
+    - Set required version of bash
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 21 Jan 2015 12:20:42 +1300
+
+lightdm (1.13.1-0ubuntu1) vivid; urgency=medium
+
+  * New upstream release:
+    - Don't attempt generate D-Bus seat/session removal signals on shutdown.
+    - Add missing method QLightDM::Greeter::cancelAutologin
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 14 Jan 2015 14:00:02 +1300
+
+lightdm (1.13.0-0ubuntu2) vivid; urgency=medium
+
+  * debian/config-error-dialog.sh:
+  * debian/lightdm-session:
+    - Use bash for the session to improve error handling (LP: #678421)
+  * debian/control:
+    - Depend on bash
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 25 Nov 2014 11:28:11 +1300
+
+lightdm (1.13.0-0ubuntu1) vivid; urgency=medium
+
+  * New upstream release:
+    - Fix crash when having configuration keys defined in multiple places
+      (LP: #1377373)
+    - Fix pipe file descriptor leak for each session login / authentication
+      (LP: #1190344)
+    - Use correct syntax for DesktopNames key in session files (LP: #1383321)
+    - Match seat configuration with globbing (LP: #1364911)
+    - Allow user switching in multi-seat until bug stopping greeter showing on
+      logout is fixed
+    - Disable log message when AccountsService users change (LP: #1376357)
+    - Update AppArmor scripts, requires AppArmor 2.9
+    - Update tests to run better on servers
+  * debian/config-error-dialog.sh:
+    - Show warning dialog instead of interrupted login if syntax error in
+      ~/.profile etc (LP: #678421)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 13 Nov 2014 11:08:17 +1300
+
 lightdm (1.12.0-0ubuntu2) utopic; urgency=medium
 
   * Restore 1.11.9-0ubuntu2, it was reverted by error in the previous upload

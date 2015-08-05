@@ -41,7 +41,7 @@ seat_xremote_create_display_server (Seat *seat, Session *session)
 
     hostname = seat_get_string_property (seat, "xserver-hostname");
     if (!hostname)
-        hostname = "localhost";
+        hostname = "127.0.0.1";
     number = seat_get_integer_property (seat, "xserver-display-number");
 
     l_debug (seat, "Starting remote X display %s:%d", hostname, number);

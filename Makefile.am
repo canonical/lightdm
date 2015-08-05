@@ -1,8 +1,4 @@
-SUBDIRS = common
-if COMPILE_LIBLIGHTDM_GOBJECT
-SUBDIRS += liblightdm-gobject
-endif
-SUBDIRS += liblightdm-qt
+SUBDIRS = common liblightdm-gobject liblightdm-qt
 if COMPILE_TESTS
 SUBDIRS += tests
 endif

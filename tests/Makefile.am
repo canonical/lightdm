@@ -129,6 +129,7 @@ TESTS = \
 	test-upstart-login \
 	test-dbus \
 	test-lock-seat \
+	test-lock-seat-after-vt-switch \
 	test-lock-seat-resettable \
 	test-lock-seat-return-session \
 	test-lock-session \
@@ -163,10 +164,12 @@ TESTS = \
 	test-vnc-command \
 	test-vnc-dimensions \
 	test-vnc-open-file-descriptors \
+	test-vnc-guest \
 	test-xdmcp-client \
 	test-xdmcp-server-autologin \
 	test-xdmcp-server-login \
 	test-xdmcp-server-double-login \
+	test-xdmcp-server-guest \
 	test-utmp-login \
 	test-utmp-autologin \
 	test-utmp-wrong-password \
@@ -204,6 +207,7 @@ TESTS = \
 	test-unity-compositor-next-session \
 	test-unity-compositor-mir-next-session \
 	test-unity-autologin \
+	test-unity-autologin-legacy \
 	test-unity-login \
 	test-unity-switch \
 	test-unity-plymouth \
@@ -215,7 +219,8 @@ TESTS = \
 	test-unity-mir-session-x-greeter \
 	test-unity-mir-switch \
 	test-unity-mir-switch-to-user-resettable \
-	test-unity-mir-script-hooks
+	test-unity-mir-script-hooks \
+	test-seatdefaults-still-supported
 
 #	test-mir-script-hooks \
 #	test-session-exit-error
@@ -408,6 +413,7 @@ EXTRA_DIST = \
 	scripts/language-env.conf \
 	scripts/language-no-accounts-service.conf \
 	scripts/lock-seat.conf \
+	scripts/lock-seat-after-vt-switch.conf \
 	scripts/lock-seat-console-kit.conf \    
 	scripts/lock-seat-resettable.conf \
 	scripts/lock-seat-return-session.conf \
@@ -517,6 +523,7 @@ EXTRA_DIST = \
 	scripts/switch-to-user-resettable.conf \
 	scripts/system-xauthority.conf \
 	scripts/unity-autologin.conf \
+	scripts/unity-autologin-legacy.conf \
 	scripts/unity-compositor-command.conf \
 	scripts/unity-compositor-crash.conf \
 	scripts/unity-compositor-fail-ready.conf \
@@ -555,6 +562,7 @@ EXTRA_DIST = \
 	scripts/utmp-wrong-password.conf \
 	scripts/vnc-command.conf \
 	scripts/vnc-dimensions.conf \
+	scripts/vnc-guest.conf \
 	scripts/vnc-login.conf \
 	scripts/vnc-open-file-descriptors.conf \
 	scripts/xauthority.conf \
@@ -563,7 +571,9 @@ EXTRA_DIST = \
 	scripts/xdmcp-client.conf \
 	scripts/xdmcp-server-autologin.conf \
 	scripts/xdmcp-server-double-login.conf \
+	scripts/xdmcp-server-guest.conf \
 	scripts/xdmcp-server-login.conf \
 	scripts/xdmcp-server-open-file-descriptors.conf \
 	scripts/xserver-fail-start.conf \
-	scripts/xserver-no-share.conf
+	scripts/xserver-no-share.conf \
+	scripts/seatdefaults-still-supported.conf

@@ -13,13 +13,7 @@
 export TEXTDOMAIN=lightdm
 . /usr/bin/gettext.sh
 
-if $SYNTAX; then
-	PARA1=$(eval_gettext 'The configuration file $CONFIG_FILE contains
-invalid syntax and could not be loaded:')
-else
-	PARA1=$(eval_gettext 'Error found when loading $CONFIG_FILE:')
-fi
-
+PARA1=$(eval_gettext 'Error found when loading $CONFIG_FILE:')
 PARA2=$(gettext 'As a result the session will not be configured correctly.
 You should fix the problem as soon as feasible.')
 

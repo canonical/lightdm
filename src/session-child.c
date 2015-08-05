@@ -243,7 +243,7 @@ session_child_run (int argc, char **argv)
     XAuthority *x_authority = NULL;
     gchar *x_authority_filename;
     GDBusConnection *bus;
-    const gchar *login1_session = NULL;
+    const gchar *login1_session_id = NULL;
     gchar *console_kit_cookie = NULL;
     const gchar *locale_value;
     gchar *locale_var;
@@ -545,10 +545,10 @@ session_child_run (int argc, char **argv)
     }
 
     /* Check what logind session we are, or fallback to ConsoleKit */
-    login1_session = pam_getenv (pam_handle, "XDG_SESSION_ID");
-    if (login1_session)
+    login1_session_id = pam_getenv (pam_handle, "XDG_SESSION_ID");
+    if (login1_session_id)
     {
-        write_string (login1_session);
+        write_string (login1_session_id);
         if (version >= 2)
             write_string (NULL);
     }
@@ -768,7 +768,7 @@ session_child_run (int argc, char **argv)
     pam_close_session (pam_handle, 0);
 
     /* Remove credentials */
-    result = pam_setcred (pam_handle, PAM_DELETE_CRED);
+    pam_setcred (pam_handle, PAM_DELETE_CRED);
 
     pam_end (pam_handle, 0);
     pam_handle = NULL;
