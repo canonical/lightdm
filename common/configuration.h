@@ -36,7 +36,7 @@ GType config_get_type (void);
 
 Configuration *config_get_instance (void);
 
-gboolean config_load_from_file (Configuration *config, const gchar *path, GError **error);
+gboolean config_load_from_file (Configuration *config, const gchar *path, GList **messages, GError **error);
 
 gboolean config_load_from_standard_locations (Configuration *config, const gchar *config_path, GList **messages);
 
