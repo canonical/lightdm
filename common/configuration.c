@@ -73,6 +73,11 @@ config_load_from_file (Configuration *config, const gchar *path, GList **message
         {
             gchar *value, *k;
 
+            if (messages && g_str_has_prefix (group, "Seat:") && strcmp (keys[j], "xdg-seat") == 0)
+                *messages = g_list_append (*messages, g_strdup_printf ("  [%s] contains deprecated option xdg-seat, this can be safely removed", group));
+            if (messages && strcmp (group, "LightDM") == 0 && strcmp (keys[j], "logind-load-seats") == 0)
+                *messages = g_list_append (*messages, g_strdup ("  [LightDM] contains deprecated option logind-load-seats, this can be safely removed"));
+
             value = g_key_file_get_value (key_file, groups[i], keys[j], NULL);
             g_key_file_set_value (config->priv->key_file, group, keys[j], value);
             g_free (value);
