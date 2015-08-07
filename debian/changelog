@@ -1,3 +1,13 @@
+lightdm (1.15.1-0ubuntu2) wily; urgency=medium
+
+  * debian/guest-session-auto.sh:
+    - Disable screenlocks for guest sessions on MATE, XFCE, Pantheon
+      (LP: #1481804)
+  * debian/control:
+    - Switch build-depends from transitional libgcrypt11-dev to libgcrypt20-dev
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 07 Aug 2015 12:50:38 +1200
+
 lightdm (1.15.1-0ubuntu1) wily; urgency=medium
 
   * New upstream release:
