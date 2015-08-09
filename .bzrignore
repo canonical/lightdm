@@ -43,6 +43,7 @@ greeters/qt/*_moc*.cpp
 greeters/qt/ui_*.h
 liblightdm-gobject/*.gir
 liblightdm-gobject/*.typelib
+liblightdm-gobject/*.vapi
 liblightdm-gobject/liblightdm-gobject-*.pc
 liblightdm-qt/liblightdm-qt-*.pc
 liblightdm-qt/liblightdm-qt5-*.pc

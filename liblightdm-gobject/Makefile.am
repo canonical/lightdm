@@ -44,7 +44,7 @@ INTROSPECTION_GIRS = LightDM-1.gir
 
 LightDM-1.gir: liblightdm-gobject-1.la
 LightDM_1_gir_INCLUDES = GObject-2.0 Gio-2.0
-LightDM_1_gir_SCANNERFLAGS = --symbol-prefix=lightdm
+LightDM_1_gir_SCANNERFLAGS = --symbol-prefix=lightdm --c-include "lightdm.h"
 LightDM_1_gir_LIBS = liblightdm-gobject-1.la
 LightDM_1_gir_FILES = $(liblightdm_gobject_1_la_SOURCES)
 
@@ -56,18 +56,38 @@ typelib_DATA = LightDM-1.typelib
 
 endif
 
+if ENABLE_VAPIGEN
+
+include $(VAPIGEN_MAKEFILE)
+
+liblightdm-gobject-1.vapi: $(gir_DATA) LightDM-1.metadata LightDM-1-custom.vala
+
+VAPIGEN_VAPIS = liblightdm-gobject-1.vapi
+
+liblightdm_gobject_1_vapi_DEPS = gio-2.0 posix
+liblightdm_gobject_1_vapi_METADATADIRS = $(srcdir)
+liblightdm_gobject_1_vapi_FILES = $(gir_DATA) $(srcdir)/LightDM-1-custom.vala
+
 vapidir = $(datadir)/vala/vapi
-dist_vapi_DATA = liblightdm-gobject-1.vapi
+vapi_DATA = $(VAPIGEN_VAPIS) $(srcdir)/liblightdm-gobject-1.deps
+
+endif
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = liblightdm-gobject-1.pc
 
 CLEANFILES = \
 	$(gir_DATA) \
-	$(typelib_DATA)
+	$(typelib_DATA) \
+	$(vapi_DATA)
 
 DISTCLEANFILES = \
 	Makefile.in \
 	$(pkgconfig_DATA) \
 	$(gir_DATA) \
 	$(typelib_DATA)
+
+EXTRA_DIST = \
+	LightDM-1.metadata \
+	LightDM-1-custom.vala \
+	liblightdm-gobject-1.deps

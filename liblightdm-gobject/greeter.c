@@ -141,6 +141,41 @@ static void request_iface_init (GAsyncResultIface *iface);
 #define REQUEST(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), request_get_type (), Request))
 G_DEFINE_TYPE_WITH_CODE (Request, request, G_TYPE_OBJECT, G_IMPLEMENT_INTERFACE (G_TYPE_ASYNC_RESULT, request_iface_init));
 
+GType
+lightdm_prompt_type_get_type (void)
+{
+    static GType enum_type = 0;
+  
+    if (G_UNLIKELY(enum_type == 0)) {
+        static const GEnumValue values[] = {
+            { LIGHTDM_PROMPT_TYPE_QUESTION, "LIGHTDM_PROMPT_TYPE_QUESTION", "question" },
+            { LIGHTDM_PROMPT_TYPE_SECRET, "LIGHTDM_PROMPT_TYPE_SECRET", "secret" },
+            { 0, NULL, NULL }
+        };
+        enum_type = g_enum_register_static (g_intern_static_string ("LightDMPromptType"), values);
+    }
+
+    return enum_type;
+}
+
+GType
+lightdm_message_type_get_type (void)
+{
+    static GType enum_type = 0;
+  
+    if (G_UNLIKELY(enum_type == 0)) {
+        static const GEnumValue values[] = {
+            { LIGHTDM_MESSAGE_TYPE_INFO, "LIGHTDM_MESSAGE_TYPE_INFO", "info" },
+            { LIGHTDM_MESSAGE_TYPE_ERROR, "LIGHTDM_MESSAGE_TYPE_ERROR", "error" },
+            { 0, NULL, NULL }
+        };
+        enum_type = g_enum_register_static (g_intern_static_string ("LightDMMessageType"), values);
+    }
+
+    return enum_type;
+}
+
+
 /**
  * lightdm_greeter_new:
  *
@@ -845,7 +880,7 @@ lightdm_greeter_connect_sync (LightDMGreeter *greeter, GError **error)
  *
  * Get a hint.
  *
- * Return value: The value for this hint or #NULL if not set.
+ * Return value: (nullable): The value for this hint or #NULL if not set.
  **/
 const gchar *
 lightdm_greeter_get_hint (LightDMGreeter *greeter, const gchar *name)
@@ -980,7 +1015,7 @@ lightdm_greeter_get_has_guest_account_hint (LightDMGreeter *greeter)
  *
  * Get the user to select by default.
  *
- * Return value: A username
+ * Return value: (nullable): A username or %NULL if no particular user should be selected.
  */
 const gchar *
 lightdm_greeter_get_select_user_hint (LightDMGreeter *greeter)
@@ -1012,9 +1047,9 @@ lightdm_greeter_get_select_guest_hint (LightDMGreeter *greeter)
  * lightdm_greeter_get_autologin_user_hint:
  * @greeter: A #LightDMGreeter
  *
- * Get the user account to automatically logg into when the timer expires.
+ * Get the user account to automatically log into when the timer expires.
  *
- * Return value: The user account to automatically log into.
+ * Return value: (nullable): The user account to automatically log into or %NULL if none configured.
  */
 const gchar *
 lightdm_greeter_get_autologin_user_hint (LightDMGreeter *greeter)
@@ -1319,7 +1354,7 @@ lightdm_greeter_get_is_authenticated (LightDMGreeter *greeter)
  *
  * Get the user that is being authenticated.
  *
- * Return value: The username of the authentication user being authenticated or #NULL if no authentication in progress.
+ * Return value: (nullable): The username of the authentication user being authenticated or #NULL if no authentication in progress.
  */
 const gchar *
 lightdm_greeter_get_authentication_user (LightDMGreeter *greeter)
@@ -1484,6 +1519,7 @@ lightdm_greeter_ensure_shared_data_dir (LightDMGreeter *greeter, const gchar *us
  * @result: A #GAsyncResult.
  * @greeter: A #LightDMGreeter
  *
+ * Function to call from lightdm_greeter_ensure_shared_data_dir callback.
  *
  * Return value: The path to the shared directory, free with g_free.
  **/
@@ -1687,7 +1723,7 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
                                                           "default-session-hint",
                                                           "Default session hint",
                                                           NULL,
-                                                          G_PARAM_READWRITE));
+                                                          G_PARAM_READABLE));
 
     g_object_class_install_property (object_class,
                                      PROP_HIDE_USERS_HINT,
@@ -1811,7 +1847,7 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
                       G_STRUCT_OFFSET (LightDMGreeterClass, show_prompt),
                       NULL, NULL,
                       NULL,
-                      G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_INT);
+                      G_TYPE_NONE, 2, G_TYPE_STRING, lightdm_prompt_type_get_type ());
 
     /**
      * LightDMGreeter::show-message:
@@ -1829,7 +1865,7 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
                       G_STRUCT_OFFSET (LightDMGreeterClass, show_message),
                       NULL, NULL,
                       NULL,
-                      G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_INT);
+                      G_TYPE_NONE, 2, G_TYPE_STRING, lightdm_message_type_get_type ());
 
     /**
      * LightDMGreeter::authentication-complete:

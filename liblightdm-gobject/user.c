@@ -20,6 +20,7 @@ enum
 {
     LIST_PROP_0,
     LIST_PROP_NUM_USERS,
+    LIST_PROP_LENGTH,  
     LIST_PROP_USERS,
 };
 
@@ -261,6 +262,7 @@ lightdm_user_list_get_property (GObject    *object,
     switch (prop_id)
     {
     case LIST_PROP_NUM_USERS:
+    case LIST_PROP_LENGTH:      
         g_value_set_int (value, lightdm_user_list_get_length (self));
         break;
     default:
@@ -297,7 +299,23 @@ lightdm_user_list_class_init (LightDMUserListClass *klass)
                                                        "num-users",
                                                        "Number of login users",
                                                        0, G_MAXINT, 0,
+                                                       G_PARAM_DEPRECATED | G_PARAM_READABLE));
+
+    g_object_class_install_property (object_class,
+                                     LIST_PROP_LENGTH,
+                                     g_param_spec_int ("length",
+                                                       "length",
+                                                       "Number of login users",
+                                                       0, G_MAXINT, 0,
                                                        G_PARAM_READABLE));
+
+    /*g_object_class_install_property (object_class,
+                                     LIST_PROP_USERS,
+                                     g_param_spec_int ("users",
+                                                       "users",
+                                                       "Users to present to user",
+                                                       0, G_MAXINT, 0,
+                                                       G_PARAM_READABLE));*/
     /**
      * LightDMUserList::user-added:
      * @user_list: A #LightDMUserList
@@ -413,7 +431,7 @@ lightdm_user_get_home_directory (LightDMUser *user)
  *
  * Get the image URI for a user.
  *
- * Return value: The image URI for the given user or #NULL if no URI
+ * Return value: (nullable): The image URI for the given user or #NULL if no URI
  **/
 const gchar *
 lightdm_user_get_image (LightDMUser *user)
@@ -428,7 +446,7 @@ lightdm_user_get_image (LightDMUser *user)
  *
  * Get the background file path for a user.
  *
- * Return value: The background file path for the given user or #NULL if no path
+ * Return value: (nullable): The background file path for the given user or #NULL if no path
  **/
 const gchar *
 lightdm_user_get_background (LightDMUser *user)
@@ -443,7 +461,7 @@ lightdm_user_get_background (LightDMUser *user)
  *
  * Get the language for a user.
  *
- * Return value: The language in the form of a local specification (e.g. "de_DE.UTF-8") for the given user or #NULL if using the system default locale.
+ * Return value: (nullable): The language in the form of a local specification (e.g. "de_DE.UTF-8") for the given user or #NULL if using the system default locale.
  **/
 const gchar *
 lightdm_user_get_language (LightDMUser *user)
@@ -458,7 +476,7 @@ lightdm_user_get_language (LightDMUser *user)
  *
  * Get the keyboard layout for a user.
  *
- * Return value: The keyboard layout for the given user or #NULL if using system defaults.  Copy the value if you want to use it long term.
+ * Return value: (nullable): The keyboard layout for the given user or #NULL if using system defaults.  Copy the value if you want to use it long term.
  **/
 const gchar *
 lightdm_user_get_layout (LightDMUser *user)
@@ -488,7 +506,7 @@ lightdm_user_get_layouts (LightDMUser *user)
  *
  * Get the session for a user.
  *
- * Return value: The session for the given user or #NULL if using system defaults.
+ * Return value: (nullable): The session for the given user or #NULL if using system defaults.
  **/
 const gchar *
 lightdm_user_get_session (LightDMUser *user)
@@ -659,14 +677,14 @@ lightdm_user_class_init (LightDMUserClass *klass)
                                                           "name",
                                                           "Username",
                                                           NULL,
-                                                          G_PARAM_READWRITE));
+                                                          G_PARAM_READABLE));
     g_object_class_install_property (object_class,
                                      USER_PROP_REAL_NAME,
                                      g_param_spec_string ("real-name",
                                                           "real-name",
                                                           "Users real name",
                                                           NULL,
-                                                          G_PARAM_READWRITE));
+                                                          G_PARAM_READABLE));
     g_object_class_install_property (object_class,
                                      USER_PROP_DISPLAY_NAME,
                                      g_param_spec_string ("display-name",
@@ -680,21 +698,21 @@ lightdm_user_class_init (LightDMUserClass *klass)
                                                           "home-directory",
                                                           "Home directory",
                                                           NULL,
-                                                          G_PARAM_READWRITE));
+                                                          G_PARAM_READABLE));
     g_object_class_install_property (object_class,
                                      USER_PROP_IMAGE,
                                      g_param_spec_string ("image",
                                                           "image",
                                                           "Avatar image",
                                                           NULL,
-                                                          G_PARAM_READWRITE));
+                                                          G_PARAM_READABLE));
     g_object_class_install_property (object_class,
                                      USER_PROP_BACKGROUND,
                                      g_param_spec_string ("background",
                                                           "background",
                                                           "User background",
                                                           NULL,
-                                                          G_PARAM_READWRITE));
+                                                          G_PARAM_READABLE));
     g_object_class_install_property (object_class,
                                      USER_PROP_LANGUAGE,
                                      g_param_spec_string ("language",
@@ -729,20 +747,20 @@ lightdm_user_class_init (LightDMUserClass *klass)
                                                            "logged-in",
                                                            "TRUE if the user is currently in a session",
                                                            FALSE,
-                                                           G_PARAM_READWRITE));
+                                                           G_PARAM_READABLE));
     g_object_class_install_property (object_class,
                                      USER_PROP_LOGGED_IN,
                                      g_param_spec_boolean ("has-messages",
                                                            "has-messages",
                                                            "TRUE if the user is has waiting messages",
                                                            FALSE,
-                                                           G_PARAM_READWRITE));
+                                                           G_PARAM_READABLE));
     g_object_class_install_property (object_class,
                                      USER_PROP_UID,
-                                     g_param_spec_string ("uid",
+                                     g_param_spec_uint64 ("uid",
                                                           "uid",
                                                           "User UID",
-                                                          NULL,
+                                                          0, G_MAXUINT64, 0,
                                                           G_PARAM_READABLE));
 
     /**

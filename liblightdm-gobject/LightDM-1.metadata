@@ -1,0 +1,12 @@
+Greeter
+        .authenticate.username default=null
+        .connect_sync replacement="LightDM.Greeter.connect_to_daemon_sync"
+        .start_session.session default=null
+        .start_session.cancellable default=null
+        .start_session_sync.session default=null
+        .authentication_user nullable=true
+        .autologin_user_hint nullable=true
+        .select_user_hint nullable=true
+User
+        .get_uid type="Posix.uid_t"
+        .uid type="Posix.uid_t"

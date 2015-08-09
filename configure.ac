@@ -30,6 +30,8 @@ AC_SUBST(WARN_CXXFLAGS)
 
 GOBJECT_INTROSPECTION_CHECK(0.9.5)
 
+VAPIGEN_CHECK([0.16])
+
 dnl ###########################################################################
 dnl Dependencies
 dnl ###########################################################################
@@ -220,6 +222,7 @@ echo "
         Greeter user:             $GREETER_USER
         User session:             $USER_SESSION
         GObject introspection:    $found_introspection
+        Vala bindings:            $enable_vala
         liblightdm-qt:            $compile_liblightdm_qt4
         liblightdm-qt5:           $compile_liblightdm_qt5
         Enable tests:             $enable_tests

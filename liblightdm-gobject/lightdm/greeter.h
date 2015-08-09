@@ -41,6 +41,8 @@ typedef enum
     LIGHTDM_PROMPT_TYPE_SECRET
 } LightDMPromptType;
 
+GType lightdm_prompt_type_get_type (void);
+
 /**
  * LightDMMessageType:
  * @LIGHTDM_MESSAGE_TYPE_INFO: Informational message.
@@ -51,6 +53,8 @@ typedef enum
     LIGHTDM_MESSAGE_TYPE_INFO,
     LIGHTDM_MESSAGE_TYPE_ERROR
 } LightDMMessageType;
+
+GType lightdm_message_type_get_type (void);
 
 typedef struct
 {
