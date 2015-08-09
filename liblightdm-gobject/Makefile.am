@@ -82,7 +82,6 @@ CLEANFILES = \
 	$(vapi_DATA)
 
 DISTCLEANFILES = \
-	Makefile.in \
 	$(pkgconfig_DATA) \
 	$(gir_DATA) \
 	$(typelib_DATA)

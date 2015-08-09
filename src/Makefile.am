@@ -109,6 +109,3 @@ lightdm_guest_session_CFLAGS = \
 
 EXTRA_DIST = \
 	display-manager.xml
-
-DISTCLEANFILES = \
-	Makefile.in

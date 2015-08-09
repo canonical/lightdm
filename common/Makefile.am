@@ -19,6 +19,3 @@ libcommon_la_CFLAGS = \
 
 libcommon_la_LIBADD = \
 	$(GLIB_LDFLAGS)
-
-DISTCLEANFILES = \
-	Makefile.in
