@@ -46,6 +46,10 @@ void xdmcp_server_set_port (XDMCPServer *server, guint port);
 
 guint xdmcp_server_get_port (XDMCPServer *server);
 
+void xdmcp_server_set_listen_address (XDMCPServer *server, const gchar *listen_address);
+
+const gchar *xdmcp_server_get_listen_address (XDMCPServer *server);
+
 void xdmcp_server_set_hostname (XDMCPServer *server, const gchar *hostname);
 
 const gchar *xdmcp_server_get_hostname (XDMCPServer *server);

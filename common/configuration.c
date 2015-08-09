@@ -34,7 +34,7 @@ config_get_instance (void)
 }
 
 gboolean
-config_load_from_file (Configuration *config, const gchar *path, GError **error)
+config_load_from_file (Configuration *config, const gchar *path, GList **messages, GError **error)
 {
     GKeyFile *key_file;
     gchar *source_path, **groups;
@@ -60,7 +60,8 @@ config_load_from_file (Configuration *config, const gchar *path, GError **error)
         group = groups[i];
         if (strcmp (group, "SeatDefaults") == 0)
         {
-            g_printerr ("Configuration file %s contains a deprecated [SeatDefaults] section, use [Seat:*] instead\n", path);
+            if (messages)
+                *messages = g_list_append (*messages, g_strdup ("  [SeatDefaults] is now called [Seat:*], please update this configuration"));
             group = "Seat:*";
         }
 
@@ -71,6 +72,11 @@ config_load_from_file (Configuration *config, const gchar *path, GError **error)
         for (j = 0; keys[j]; j++)
         {
             gchar *value, *k;
+
+            if (messages && g_str_has_prefix (group, "Seat:") && strcmp (keys[j], "xdg-seat") == 0)
+                *messages = g_list_append (*messages, g_strdup_printf ("  [%s] contains deprecated option xdg-seat, this can be safely removed", group));
+            if (messages && strcmp (group, "LightDM") == 0 && strcmp (keys[j], "logind-load-seats") == 0)
+                *messages = g_list_append (*messages, g_strdup ("  [LightDM] contains deprecated option logind-load-seats, this can be safely removed"));
 
             value = g_key_file_get_value (key_file, groups[i], keys[j], NULL);
             g_key_file_set_value (config->priv->key_file, group, keys[j], value);
@@ -145,7 +151,7 @@ load_config_directory (const gchar *path, GList **messages)
         {
             if (messages)
                 *messages = g_list_append (*messages, g_strdup_printf ("Loading configuration from %s", conf_path));
-            config_load_from_file (config_get_instance (), conf_path, &error);
+            config_load_from_file (config_get_instance (), conf_path, messages, &error);
             if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
                 g_printerr ("Failed to load configuration from %s: %s\n", filename, error->message);
             g_clear_error (&error);
@@ -202,7 +208,7 @@ config_load_from_standard_locations (Configuration *config, const gchar *config_
 
     if (messages)
         *messages = g_list_append (*messages, g_strdup_printf ("Loading configuration from %s", path));
-    if (!config_load_from_file (config, path, &error))
+    if (!config_load_from_file (config, path, messages, &error))
     {
         gboolean is_empty;
 

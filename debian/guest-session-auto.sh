@@ -14,8 +14,17 @@
 export TEXTDOMAINDIR=/usr/share/locale-langpack
 export TEXTDOMAIN=lightdm
 
-# disable screen locking
+# disable screen locking (GNOME, Unity)
 gsettings set org.gnome.desktop.lockdown disable-lock-screen true
+
+# disable screen locking (MATE)
+gsettings set org.mate.screensaver lock-enabled false
+
+# disable screenlocking (XFCE, Pantheon)
+gsettings set apps.light-locker light-locker-enabled false
+gsettings set apps.light-locker late-locking false
+gsettings set apps.light-locker lock-on-lid false
+gsettings set apps.light-locker lock-on-suspend false
 
 # info dialog about the temporary nature of a guest session
 dialog_content () {

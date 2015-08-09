@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(lightdm, 1.15.0)
+AC_INIT(lightdm, 1.15.1)
 AC_CONFIG_MACRO_DIR(m4)
 AC_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE([1.11 no-dist-gzip dist-xz foreign])
@@ -29,6 +29,8 @@ AC_SUBST(WARN_CFLAGS)
 AC_SUBST(WARN_CXXFLAGS)
 
 GOBJECT_INTROSPECTION_CHECK(0.9.5)
+
+VAPIGEN_CHECK([0.16])
 
 dnl ###########################################################################
 dnl Dependencies
@@ -220,6 +222,7 @@ echo "
         Greeter user:             $GREETER_USER
         User session:             $USER_SESSION
         GObject introspection:    $found_introspection
+        Vala bindings:            $enable_vala
         liblightdm-qt:            $compile_liblightdm_qt4
         liblightdm-qt5:           $compile_liblightdm_qt5
         Enable tests:             $enable_tests

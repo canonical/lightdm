@@ -1,3 +1,32 @@
+lightdm (1.15.1-0ubuntu2) wily; urgency=medium
+
+  * debian/guest-session-auto.sh:
+    - Disable screenlocks for guest sessions on MATE, XFCE, Pantheon
+      (LP: #1481804)
+  * debian/control:
+    - Switch build-depends from transitional libgcrypt11-dev to libgcrypt20-dev
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 07 Aug 2015 12:50:38 +1200
+
+lightdm (1.15.1-0ubuntu1) wily; urgency=medium
+
+  * New upstream release:
+    - Fix default X server command set to XMir in 1.15.0.
+    - Internally merge the [SeatDefaults] and [Seat:*] sections together. The
+      previous method meant configuration snippets using a mix of old and new
+      naming would not correctly override eachother.
+    - Use IP address of XDMCP requests to contact X server if available.
+      (LP: #1481561)
+    - Add an option for XDMCP and VNC servers to only listen on one address.
+      (LP: #1390808)
+    - Fix configuration file warnings so they go to the log, not stderr.
+    - Warn if deprecated options logind-load-seats or xdg-seat are in
+      configuration. (LP: #1468057)
+    - Improve IP addresses in XDMCP log messages.
+    - Fix typo in dm-tool man page. (LP: #1470587)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 05 Aug 2015 16:53:39 +1200
+
 lightdm (1.15.0-0ubuntu1) wily; urgency=medium
 
   * New upstream release:
