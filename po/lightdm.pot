@@ -1,0 +1,81 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-08-10 12:37+1200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Help string for command line --config flag
+#: ../src/lightdm.c:1169
+msgid "Use configuration file"
+msgstr ""
+
+#. Help string for command line --debug flag
+#: ../src/lightdm.c:1172
+msgid "Print debugging messages"
+msgstr ""
+
+#. Help string for command line --test-mode flag
+#: ../src/lightdm.c:1175
+msgid "Run as unprivileged user, skipping things that require root access"
+msgstr ""
+
+#. Help string for command line --pid-file flag
+#: ../src/lightdm.c:1178
+msgid "File to write PID into"
+msgstr ""
+
+#. Help string for command line --log-dir flag
+#: ../src/lightdm.c:1181
+msgid "Directory to write logs to"
+msgstr ""
+
+#. Help string for command line --run-dir flag
+#: ../src/lightdm.c:1184
+msgid "Directory to store running state"
+msgstr ""
+
+#. Help string for command line --cache-dir flag
+#: ../src/lightdm.c:1187
+msgid "Directory to cache information"
+msgstr ""
+
+#. Help string for command line --show-config flag
+#: ../src/lightdm.c:1190
+msgid "Show combined configuration"
+msgstr ""
+
+#. Help string for command line --version flag
+#: ../src/lightdm.c:1193
+msgid "Show release version"
+msgstr ""
+
+#. Arguments and description for --help test
+#: ../src/lightdm.c:1212
+msgid "- Display Manager"
+msgstr ""
+
+#. Text printed out when an unknown command-line argument provided
+#: ../src/lightdm.c:1222
+#, c-format
+msgid "Run '%s --help' to see a full list of available command line options."
+msgstr ""
+
+#. Text printed out when an unknown command-line argument provided
+#: ../src/dm-tool.c:29
+#, c-format
+msgid ""
+"Run 'dm-tool --help' to see a full list of available command line options."
+msgstr ""
