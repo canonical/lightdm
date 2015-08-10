@@ -26,7 +26,7 @@ ERR=$(mktemp --tmpdir config-err-XXXXXX)
 source_with_error_check () {
     CONFIG_FILE="$1"
     echo "Loading $CONFIG_FILE"
-    . "$CONFIG_FILE" 2>"$ERR"
+    BASH_VERSION= . "$CONFIG_FILE" 2>"$ERR"
     if [ -s "$ERR" ]; then
         . /usr/lib/lightdm/config-error-dialog.sh
     fi
