@@ -53,7 +53,6 @@ CLEANFILES = \
 	*_moc*.cpp
 
 DISTCLEANFILES = \
-	Makefile.in \
 	$(pkgconfig_DATA)
 
 lib_LTLIBRARIES =

@@ -32,6 +32,3 @@ dist_man1_MANS = dm-tool.1 \
 
 EXTRA_DIST = apparmor/lightdm-guest-session.in
 CLEANFILES = lightdm-guest-session
-
-DISTCLEANFILES = \
-	Makefile.in

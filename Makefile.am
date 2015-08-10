@@ -13,18 +13,3 @@ EXTRA_DIST = \
 	COPYING.LGPL2 \
 	COPYING.LGPL3 \
 	NEWS
-
-DISTCLEANFILES = \
-	Makefile.in \
-	aclocal.m4 \
-	configure \
-	config.h.in \
-	config.h \
-	depcomp \
-	gtk-doc.make \
-	install-sh \
-	missing \
-	mkinstalldirs \
-	omf.make \
-	xmldocs.make \
-	po/Makefile.in.in

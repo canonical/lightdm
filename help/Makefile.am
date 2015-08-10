@@ -21,6 +21,3 @@ HELP_FILES = autologin.page \
              xdmcp.page
 
 HELP_LINGUAS =
-
-DISTCLEANFILES = \
-	Makefile.in
