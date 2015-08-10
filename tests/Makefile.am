@@ -46,6 +46,7 @@ TESTS = \
 	test-cred-unavail \
 	test-autologin-session-error \
 	test-autologin-logout \
+	test-autologin-session \
 	test-autologin-timeout-logout \
 	test-autologin-previous-session \
 	test-autologin-guest \
@@ -377,6 +378,7 @@ EXTRA_DIST = \
 	scripts/autologin-new-authtok.conf \
 	scripts/autologin-password.conf \
 	scripts/autologin-previous-session.conf \
+	scripts/autologin-session.conf \    
 	scripts/autologin-session-crash.conf \
 	scripts/autologin-session-error.conf \
 	scripts/autologin-timeout.conf \

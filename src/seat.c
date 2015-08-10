@@ -1025,6 +1025,14 @@ create_user_session (Seat *seat, const gchar *username, gboolean autostart)
     session_name = user_get_xsession (user);
     language = user_get_language (user);
 
+    /* Override session for autologin if configured */
+    if (autostart)
+    {
+        const gchar *autologin_session_name = seat_get_string_property (seat, "autologin-session");
+        if (autologin_session_name)
+            session_name = autologin_session_name;
+    }
+
     if (!session_name)
         session_name = seat_get_string_property (seat, "user-session");
     sessions_dir = config_get_string (config_get_instance (), "LightDM", "sessions-directory");
