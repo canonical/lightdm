@@ -199,6 +199,9 @@ TESTS = \
 	test-mir-session-crash \
 	test-mir-session-compositor-crash \
 	test-mir-container-session \
+	test-wayland-autologin \
+	test-wayland-greeter \
+	test-wayland-session \
 	test-unity-compositor-command \
 	test-unity-compositor-not-found \
 	test-unity-compositor-fail-start \
@@ -349,12 +352,14 @@ EXTRA_DIST = \
 	data/greeters/test-python-greeter.desktop \
 	data/greeters/test-qt4-greeter.desktop \
 	data/greeters/test-qt5-greeter.desktop \
+	data/greeters/test-wayland-greeter.desktop \
 	data/sessions/alternative.desktop \
 	data/sessions/default.desktop \
 	data/sessions/mir.desktop \
 	data/sessions/mir-container.desktop \
 	data/sessions/named.desktop \
 	data/sessions/named-legacy.desktop \
+	data/sessions/wayland.desktop \
 	scripts/0-additional.conf \
 	scripts/1-additional.conf \
 	scripts/additional-config.conf \
@@ -567,6 +572,9 @@ EXTRA_DIST = \
 	scripts/vnc-guest.conf \
 	scripts/vnc-login.conf \
 	scripts/vnc-open-file-descriptors.conf \
+	scripts/wayland-autologin.conf \
+	scripts/wayland-greeter.conf \
+	scripts/wayland-session.conf \
 	scripts/xauthority.conf \
 	scripts/xdg-current-desktop.conf \
 	scripts/xdg-current-desktop-legacy.conf \

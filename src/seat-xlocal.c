@@ -15,6 +15,7 @@
 #include "configuration.h"
 #include "x-server-local.h"
 #include "unity-system-compositor.h"
+#include "wayland-session.h"
 #include "plymouth.h"
 #include "vt.h"
 
@@ -248,6 +249,21 @@ create_unity_system_compositor (Seat *seat)
 }
 
 static DisplayServer *
+create_wayland_session (Seat *seat)
+{
+    WaylandSession *session;
+    gint vt;
+
+    session = wayland_session_new ();
+
+    vt = get_vt (seat, DISPLAY_SERVER (session));
+    if (vt >= 0)
+        wayland_session_set_vt (session, vt);
+
+    return DISPLAY_SERVER (session);
+}
+
+static DisplayServer *
 seat_xlocal_create_display_server (Seat *seat, Session *session)
 {
     const gchar *session_type;
@@ -257,6 +273,8 @@ seat_xlocal_create_display_server (Seat *seat, Session *session)
         return DISPLAY_SERVER (create_x_server (seat));
     else if (strcmp (session_type, "mir") == 0)
         return create_unity_system_compositor (seat);
+    else if (strcmp (session_type, "wayland") == 0)
+        return create_wayland_session (seat);
     else if (strcmp (session_type, "mir-container") == 0)
     {
         DisplayServer *compositor;

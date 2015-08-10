@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=Test Session
+Comment=LightDM test Wayland session
+Exec=test-session
+X-LightDM-Session-Type=wayland

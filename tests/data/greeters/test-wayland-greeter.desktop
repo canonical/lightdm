@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=Test Wayland Greeter
+Comment=LightDM test Wayland greeter
+Exec=test-gobject-greeter
+X-LightDM-Session-Type=wayland

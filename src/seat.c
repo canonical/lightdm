@@ -962,11 +962,15 @@ find_session_config (Seat *seat, const gchar *sessions_dir, const gchar *session
     for (i = 0; dirs[i]; i++)
     {
         gchar *filename, *path;
+        const gchar *default_session_type = "x";
+
+        if (strcmp (dirs[i], WAYLAND_SESSIONS_DIR) == 0)
+            default_session_type = "wayland";
 
         filename = g_strdup_printf ("%s.desktop", session_name);
         path = g_build_filename (dirs[i], filename, NULL);
         g_free (filename);
-        session_config = session_config_new_from_file (path, &error);
+        session_config = session_config_new_from_file (path, default_session_type, &error);
         g_free (path);
         if (session_config)
             break;
