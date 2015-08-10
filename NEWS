@@ -1,3 +1,11 @@
+Overview of changes in lightdm 1.15.2
+
+    * Support Wayland sessions.
+    * Implement autologin-session option.    
+    * Generate Vala bindings from GIR instead of manually writing them. This
+      fixes some small bugs in both the Vala and GIR bindings.
+    * Don't remove autotools generated files in distclean. 
+
 Overview of changes in lightdm 1.15.1
 
     * Fix default X server command set to XMir in 1.15.0.

@@ -1,3 +1,24 @@
+lightdm (1.15.2-0ubuntu1) wily; urgency=medium
+
+  [ Robert Ancell ]
+  * New upstream release:
+    - Support Wayland sessions. (LP: #888391)
+    - Implement autologin-session option.    
+    - Generate Vala bindings from GIR instead of manually writing them. This
+      fixes some small bugs in both the Vala and GIR bindings.
+    - Don't remove autotools generated files in distclean.
+  * debian/control:
+    - Use standards version 3.9.6
+  * debian/liblightdm-gobject-1-0.symbols:
+    - Updated
+
+  [ Gunnar Hjalmarsson ]
+  * debian/lightdm-session:
+    - Prevent ~/.bashrc from being sourced when ~/.profile is sourced.
+      (LP: #1482641)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 10 Aug 2015 16:11:13 +1200
+
 lightdm (1.15.1-0ubuntu2) wily; urgency=medium
 
   * debian/guest-session-auto.sh:
