@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.15.3
+
+    * Drop Xorg option -sharevts. It's no longer required for non-seat0 X
+      servers since xorg-server release 1.16.
+
 Overview of changes in lightdm 1.15.2
 
     * Support Wayland sessions.
