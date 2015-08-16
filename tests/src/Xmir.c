@@ -119,7 +119,6 @@ main (int argc, char **argv)
     gchar *seat = NULL;
     gchar *mir_id = NULL;
     gchar *lock_filename;
-    gboolean sharevts = FALSE;
     int lock_file;
     GString *status_text;
 
@@ -176,10 +175,6 @@ main (int argc, char **argv)
             seat = argv[i+1];
             i++;
         }
-        else if (strcmp (arg, "-sharevts") == 0)
-        {
-            sharevts = TRUE;
-        }
         else if (strcmp (arg, "-mir") == 0)
         {
             mir_id = argv[i+1];
@@ -199,7 +194,6 @@ main (int argc, char **argv)
                         "-background [none]     Create root window with no background\n"
                         "-nr                    (Ubuntu-specific) Synonym for -background none\n"
                         "-seat string           seat to run on\n"
-                        "-sharevts              share VTs with another X server\n"
                         "-mir id                Mir ID to use\n"
                         "-mirSocket name        Mir socket to use\n"
                         "vtxx                   Use virtual terminal xx instead of the next available\n",
@@ -222,8 +216,6 @@ main (int argc, char **argv)
         g_string_append_printf (status_text, " VT=%d", vt_number);
     if (seat != NULL)
         g_string_append_printf (status_text, " SEAT=%s", seat);
-    if (sharevts)
-        g_string_append (status_text, " SHAREVTS=TRUE");
     if (mir_id != NULL)
         g_string_append_printf (status_text, " MIR-ID=%s", mir_id);
     status_notify ("%s", status_text->str);

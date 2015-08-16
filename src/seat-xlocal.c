@@ -198,8 +198,6 @@ create_x_server (Seat *seat)
         x_server_local_set_layout (x_server, layout);
 
     x_server_local_set_xdg_seat (x_server, seat_get_name (seat));
-    if (strcmp (seat_get_name (seat), "seat0") != 0)
-        x_server_local_set_sharevts (x_server, TRUE);
 
     config_file = seat_get_string_property (seat, "xserver-config");
     if (config_file)
