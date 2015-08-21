@@ -8,20 +8,20 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2007-05-31 08:04+0200\n"
-"PO-Revision-Date: 2011-10-30 10:52+0000\n"
-"Last-Translator: Jakob Kramer <Unknown>\n"
+"PO-Revision-Date: 2015-08-20 12:56+0000\n"
+"Last-Translator: Tobias Bannert <Unknown>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2015-08-04 05:22+0000\n"
-"X-Generator: Launchpad (build 17656)\n"
+"X-Launchpad-Export-Date: 2015-08-21 05:18+0000\n"
+"X-Generator: Launchpad (build 17690)\n"
 
 #. Type: select
 #. Description
 #: ../lightdm.templates:2001
 msgid "Default display manager:"
-msgstr ""
+msgstr "Vorgegebene Anzeigenverwaltung:"
 
 #. Type: select
 #. Description
@@ -30,6 +30,8 @@ msgid ""
 "A display manager is a program that provides graphical login capabilities "
 "for the X Window System."
 msgstr ""
+"Eine Anzeigenverwaltung ist ein Programm, das eine grafische Anmeldefunktion "
+"für das X-Window-System bereitstellt."
 
 #. Type: select
 #. Description
@@ -39,6 +41,9 @@ msgid ""
 "manager packages are installed. Please select which display manager should "
 "run by default."
 msgstr ""
+"Nur eine Anzeigenverwaltung kann einen bestimmten X-Server zu verwalten, "
+"aber mehrere Anzeigenverwaltungspakete sind installiert. Bitte die "
+"Anzeigenverwaltung auswählen, die standardmäßig ausgeführt werden soll."
 
 #. Type: select
 #. Description
@@ -49,6 +54,11 @@ msgid ""
 "accordingly, edit each of their init scripts in /etc/init.d, and disable the "
 "check for a default display manager."
 msgstr ""
+"Mehre Anzeigenverwaltungen können gleichzeitig ausgeführt werden, wenn sie "
+"so konfiguriert werden, um verschiedene Server zu verwalten; um das zu "
+"erreichen, bitte die Anzeigenverwaltungen entsprechend konfigurieren, bitte "
+"jedes ihrer Init-Skripte in /etc/init.d bearbeiten und das Überprüfen nach "
+"einer Standardanzeigenverwaltungs deaktivieren."
 
 #~ msgid "Large Font"
 #~ msgstr "Große Schrift"
