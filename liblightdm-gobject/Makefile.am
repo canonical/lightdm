@@ -9,7 +9,7 @@ liblightdm_gobject_1_la_CFLAGS = $(LIBLIGHTDM_GOBJECT_CFLAGS) \
 	-I"$(top_srcdir)/common" \
 	-DCONFIG_DIR=\"$(sysconfdir)/lightdm\" \
 	-DSESSIONS_DIR=\"$(pkgdatadir)/sessions:$(datadir)/xsessions:$(datadir)/wayland-sessions\" \
-	-DWAYLAND_SESSIONS_DIR=\"$(datadir)/wayland-sessions\" \    
+	-DWAYLAND_SESSIONS_DIR=\"$(datadir)/wayland-sessions\" \
 	-DREMOTE_SESSIONS_DIR=\"$(pkgdatadir)/remote-sessions\"
 
 mainheader_HEADERS = lightdm.h

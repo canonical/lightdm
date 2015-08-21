@@ -383,7 +383,7 @@ EXTRA_DIST = \
 	scripts/autologin-new-authtok.conf \
 	scripts/autologin-password.conf \
 	scripts/autologin-previous-session.conf \
-	scripts/autologin-session.conf \    
+	scripts/autologin-session.conf \
 	scripts/autologin-session-crash.conf \
 	scripts/autologin-session-error.conf \
 	scripts/autologin-timeout.conf \
@@ -421,7 +421,7 @@ EXTRA_DIST = \
 	scripts/language-no-accounts-service.conf \
 	scripts/lock-seat.conf \
 	scripts/lock-seat-after-vt-switch.conf \
-	scripts/lock-seat-console-kit.conf \    
+	scripts/lock-seat-console-kit.conf \
 	scripts/lock-seat-resettable.conf \
 	scripts/lock-seat-return-session.conf \
 	scripts/lock-seat-return-session-console-kit.conf \
