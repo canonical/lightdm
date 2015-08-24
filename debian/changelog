@@ -1,3 +1,10 @@
+lightdm (1.15.3-0ubuntu2) UNRELEASED; urgency=medium
+
+  * Load pam_kwallet5 in pam profile (kwallet and kwallet5 are distinct
+    entities requiring sepreate unlocking)
+
+ -- Harald Sitter <sitter@kde.org>  Mon, 24 Aug 2015 12:50:00 +0200
+
 lightdm (1.15.3-0ubuntu1) wily; urgency=medium
 
   * New upstream release:
