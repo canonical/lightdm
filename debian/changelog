@@ -1,3 +1,9 @@
+lightdm (1.15.3-0ubuntu3) wily; urgency=medium
+
+  * Make package multi-arch
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 25 Aug 2015 08:51:47 +0100
+
 lightdm (1.15.3-0ubuntu2) wily; urgency=medium
 
   * debian/lightdm.lightdm-greeter.pam:

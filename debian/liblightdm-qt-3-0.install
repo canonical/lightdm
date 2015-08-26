@@ -1,1 +1,1 @@
-usr/lib/liblightdm-qt-*.so.*
+usr/lib/*/liblightdm-qt-*.so.*

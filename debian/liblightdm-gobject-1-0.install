@@ -1,1 +1,1 @@
-usr/lib/liblightdm-gobject-*.so.*
+usr/lib/*/liblightdm-gobject-*.so.*
