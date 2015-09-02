@@ -1,3 +1,18 @@
+lightdm (1.15.3-0ubuntu4) UNRELEASED; urgency=medium
+
+  * Generate login and logout events that can be used by the Linux Audit tools
+    such as aulast and aureport (LP: #1319278) (LP: #1478087)
+    - Link against libaudit and log AUDIT_USER_LOGIN and AUDIT_USER_LOGOUT
+      events after appending entries to the wtmp file. These events go to the
+      audit log and can then be consumed by the Linux Audit tools.
+    - debian/control: Add libaudit-dev to Build-Depends
+    - debian/lightdm.pam, debian/lightdm-autologin.pam: Set the loginuid for
+      the process that is authenticating. This allows for the UID to be
+      properly set when AUDIT_USER_LOGIN and AUDIT_USER_LOGOUT events are
+      logged.
+
+ -- Tyler Hicks <tyhicks@canonical.com>  Tue, 01 Sep 2015 20:37:22 -0500
+
 lightdm (1.15.3-0ubuntu3) wily; urgency=medium
 
   * debian/lightdm.postrm:
