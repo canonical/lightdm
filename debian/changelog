@@ -1,8 +1,17 @@
-lightdm (1.15.3-0ubuntu3) wily; urgency=medium
+lightdm (1.15.3-0ubuntu4) UNRELEASED; urgency=medium
 
   * Make package multi-arch
 
- -- Robert Ancell <robert.ancell@canonical.com>  Tue, 25 Aug 2015 08:51:47 +0100
+ -- Robert Ancell <robert.ancell@canonical.com>  Sat, 05 Sep 2015 21:09:06 +1200
+
+lightdm (1.15.3-0ubuntu3) wily; urgency=medium
+
+  * debian/lightdm.postrm:
+    - Don't remove the lightdm user/group on package removal. This fails if the
+      user is still in use and leaves the risk of another user being created
+      with the same UID. (LP: #924224)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 26 Aug 2015 09:35:56 +0100
 
 lightdm (1.15.3-0ubuntu2) wily; urgency=medium
 
