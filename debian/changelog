@@ -1,3 +1,11 @@
+lightdm (1.16.0-0ubuntu1) wily; urgency=medium
+
+  * New upstream release:
+    - Update default configuration better explaining the seat configuration name
+      matching and dropping references to the obsolete [SeatDefaults] section
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 07 Sep 2015 10:52:54 +1200
+
 lightdm (1.15.3-0ubuntu3) wily; urgency=medium
 
   * debian/lightdm.postrm:
