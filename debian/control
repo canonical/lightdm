@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Robert Ancell <robert.ancell@ubuntu.com>
 Uploaders: Julien Lavergne <gilir@ubuntu.com>
 Standards-Version: 3.9.6
-Build-Depends: debhelper (>= 7.0.50~),
+Build-Depends: debhelper (>= 9),
                gnome-common,
                intltool (>= 0.35.0),
                quilt,
@@ -58,6 +58,8 @@ Description: Display Manager
 
 Package: liblightdm-gobject-1-0
 Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends},
          ${shlibs:Depends},
 Recommends: accountsservice
@@ -68,6 +70,7 @@ Description: LightDM GObject client library
 Package: gir1.2-lightdm-1
 Section: libs
 Architecture: any
+Multi-Arch: same
 Depends: ${misc:Depends},
          liblightdm-gobject-1-0 (= ${binary:Version}),
 Description: Typelib file for liblightdm-1
@@ -75,6 +78,8 @@ Description: Typelib file for liblightdm-1
 
 Package: liblightdm-qt-3-0
 Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends},
          ${shlibs:Depends},
 Recommends: lightdm         
@@ -85,6 +90,8 @@ Description: LightDM Qt client library
 
 Package: liblightdm-qt5-3-0
 Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends},
          ${shlibs:Depends},
 Recommends: lightdm,
@@ -94,6 +101,7 @@ Description: LightDM Qt 5 client library
 Package: liblightdm-gobject-1-dev
 Section: libdevel
 Architecture: any
+Multi-Arch: same
 Depends: ${misc:Depends},
          liblightdm-gobject-1-0 (= ${binary:Version}),
          libglib2.0-dev,
@@ -108,6 +116,7 @@ Description: LightDM GObject client library (development files)
 Package: liblightdm-qt-dev
 Section: libdevel
 Architecture: any
+Multi-Arch: same
 Depends: ${misc:Depends},
          liblightdm-qt-3-0 (= ${binary:Version}),
          libqt4-dev,
@@ -122,6 +131,7 @@ Description: LightDM Qt client library (development files)
 Package: liblightdm-qt5-3-dev
 Section: libdevel
 Architecture: any
+Multi-Arch: same
 Depends: ${misc:Depends},
          liblightdm-qt5-3-0 (= ${binary:Version}),
          libqt4-dev,
