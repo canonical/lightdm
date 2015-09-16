@@ -1,3 +1,10 @@
+lightdm (1.16.1-0ubuntu1) wily; urgency=medium
+
+  * New upstream release:
+    - Use libaudit to generate audit events (LP: #1478087)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 16 Sep 2015 13:43:34 -0400
+
 lightdm (1.16.0-0ubuntu1) wily; urgency=medium
 
   * New upstream release:

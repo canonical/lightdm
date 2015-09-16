@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.16.1
+
+    * Use libaudit to generate audit events
+
 Overview of changes in lightdm 1.16.0
 
     * Update default configuration better explaining the seat configuration name
