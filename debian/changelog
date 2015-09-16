@@ -1,3 +1,10 @@
+lightdm (1.16.2-0ubuntu1) wily; urgency=medium
+
+  * New upstream release:
+    - Fix compile failing without libinput  
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 16 Sep 2015 14:20:11 -0400
+
 lightdm (1.16.1-0ubuntu1) wily; urgency=medium
 
   * New upstream release:

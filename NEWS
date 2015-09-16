@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.16.2
+
+    * Fix compile failing without libinput
+
 Overview of changes in lightdm 1.16.1
 
     * Use libaudit to generate audit events
