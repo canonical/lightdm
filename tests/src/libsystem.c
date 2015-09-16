@@ -1951,7 +1951,7 @@ audit_open (void)
     if (g_key_file_get_boolean (config, "test-audit-config", "check-events", NULL))
         status_notify ("AUDIT OPEN");
 
-    return 1;
+    return dup (STDOUT_FILENO);
 }
 
 int
