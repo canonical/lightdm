@@ -173,6 +173,7 @@ TESTS = \
 	test-utmp-login \
 	test-utmp-autologin \
 	test-utmp-wrong-password \
+	test-audit-autologin \    
 	test-no-accounts-service \
 	test-console-kit \
 	test-no-console-kit \
@@ -359,6 +360,7 @@ EXTRA_DIST = \
 	scripts/additional-config-priority.conf \
 	scripts/additional-system-config.conf \
 	scripts/additional-system-config-priority.conf \
+	scripts/audit-autologin.conf \    
 	scripts/autologin.conf \
 	scripts/autologin-guest.conf \
 	scripts/autologin-guest-fail-setup-script.conf \
