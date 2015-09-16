@@ -24,6 +24,7 @@ Build-Depends: debhelper (>= 7.0.50~),
                gtk-doc-tools,
                yelp-tools,
                dbus,
+               libaudit-dev
 Homepage: https://launchpad.net/lightdm
 # If you aren't a member of ~lightdm-team but need to upload packaging changes,
 # just go ahead.  ~lightdm-team will notice and sync up the code again.

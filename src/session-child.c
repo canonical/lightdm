@@ -16,6 +16,7 @@
 #include <utmp.h>
 #include <utmpx.h>
 #include <sys/mman.h>
+#include <libaudit.h>
 
 #include "configuration.h"
 #include "session-child.h"
@@ -220,6 +221,32 @@ updwtmpx (const gchar *wtmp_file, struct utmpx *ut)
     updwtmp (wtmp_file, &u);
 }
 
+static void
+audit_event (int type, const gchar *username, uid_t uid, const gchar *remote_host_name, const gchar *tty, gboolean success)
+{
+#if HAVE_LIBAUDIT
+    int auditfd, result;
+    const char *op = NULL;
+
+    auditfd = audit_open ();
+    if (auditfd < 0) {
+        g_printerr ("Error opening audit socket: %s\n", strerror (errno));
+        return;
+    }
+
+    if (type == AUDIT_USER_LOGIN)
+        op = "login";
+    else if (type == AUDIT_USER_LOGOUT)
+        op = "logout";
+    result = success == TRUE ? 1 : 0;
+
+    if (audit_log_acct_message (auditfd, type, NULL, op, username, uid, remote_host_name, NULL, tty, result) <= 0)
+        g_printerr ("Error writing audit message: %s\n", strerror (errno));
+
+    close (auditfd);
+#endif
+}
+
 int
 session_child_run (int argc, char **argv)
 {
@@ -386,6 +413,8 @@ session_child_run (int argc, char **argv)
             ut.ut_tv.tv_usec = tv.tv_usec;
 
             updwtmpx ("/var/log/btmp", &ut);
+
+            audit_event (AUDIT_USER_LOGIN, username, -1, remote_host_name, tty, FALSE);
         }
 
         /* Check account is valid */
@@ -701,6 +730,8 @@ session_child_run (int argc, char **argv)
                 g_printerr ("Failed to write utmpx: %s\n", strerror (errno));
             endutxent ();
             updwtmpx ("/var/log/wtmp", &ut);
+
+            audit_event (AUDIT_USER_LOGIN, username, uid, remote_host_name, tty, TRUE);
         }
 
         waitpid (child_pid, &return_code, 0);
@@ -737,6 +768,8 @@ session_child_run (int argc, char **argv)
                 g_printerr ("Failed to write utmpx: %s\n", strerror (errno));
             endutxent ();
             updwtmpx ("/var/log/wtmp", &ut);
+
+            audit_event (AUDIT_USER_LOGOUT, username, uid, remote_host_name, tty, TRUE);
         }
     }
 
