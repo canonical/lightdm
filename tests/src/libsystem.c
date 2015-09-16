@@ -1,6 +1,8 @@
 #define _GNU_SOURCE
 #define __USE_GNU
 
+#include <config.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -25,6 +27,10 @@
 #include <glib.h>
 #include <xcb/xcb.h>
 #include <gio/gunixsocketaddress.h>
+
+#if HAVE_LIBAUDIT
+#include <libaudit.h>
+#endif
 
 #include "status.h"
 
@@ -1937,3 +1943,47 @@ xcb_disconnect (xcb_connection_t *c)
     free (c);
 }
 
+#if HAVE_LIBAUDIT
+int
+audit_open (void)
+{
+    connect_status ();  
+    if (g_key_file_get_boolean (config, "test-audit-config", "check-events", NULL))
+        status_notify ("AUDIT OPEN");
+
+    return 1;
+}
+
+int
+audit_log_acct_message (int audit_fd, int type, const char *pgname,
+                        const char *op, const char *name, unsigned int id,
+                        const char *host, const char *addr, const char *tty, int result)
+{
+    gchar *type_string;
+
+    connect_status ();  
+    if (!g_key_file_get_boolean (config, "test-audit-config", "check-events", NULL))
+        return 1;
+
+    switch (type)
+    {
+    case AUDIT_USER_LOGIN:
+        type_string = g_strdup ("USER_LOGIN");
+        break;      
+    case AUDIT_USER_LOGOUT:
+        type_string = g_strdup ("USER_LOGOUT");
+        break;
+    default:
+        type_string = g_strdup_printf ("%d", type);
+        break;
+    }
+  
+    status_notify ("AUDIT LOG-ACCT TYPE=%s PGNAME=%s OP=%s NAME=%s ID=%u HOST=%s ADDR=%s TTY=%s RESULT=%d",
+                   type_string, pgname ? pgname : "", op ? op : "", name ? name : "", id, host ? host : "", addr ? addr : "", tty ? tty : "", result);
+
+    g_free (type_string);
+
+    return 1;
+}
+
+#endif
