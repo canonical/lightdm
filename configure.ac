@@ -132,9 +132,11 @@ AC_ARG_ENABLE([audit],
                    [Enable audit logging of login and logout events [[default=auto]]]),
     [enable_audit=$enableval],
     [enable_audit=auto])
+use_libaudit=no    
 if test x"$enable_audit" != "xno"; then
     AC_CHECK_LIB([audit], [audit_log_user_message],
-                 [AC_DEFINE(HAVE_LIBAUDIT, 1, [libaudit support])
+                 [use_libaudit=yes
+                  AC_DEFINE(HAVE_LIBAUDIT, 1, [libaudit support])
                   LIGHTDM_LIBS="${LIGHTDM_LIBS} -laudit"
                  ],
                  [if test "x$enable_audit" != xauto; then
@@ -239,5 +241,6 @@ echo "
         GObject introspection:    $found_introspection
         liblightdm-qt:            $compile_liblightdm_qt4
         liblightdm-qt5:           $compile_liblightdm_qt5
+        libaudit support:         $use_libaudit
         Enable tests:             $enable_tests
 "
