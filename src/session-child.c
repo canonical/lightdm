@@ -16,7 +16,10 @@
 #include <utmp.h>
 #include <utmpx.h>
 #include <sys/mman.h>
+
+#if HAVE_LIBAUDIT
 #include <libaudit.h>
+#endif
 
 #include "configuration.h"
 #include "session-child.h"
