@@ -224,10 +224,10 @@ updwtmpx (const gchar *wtmp_file, struct utmpx *ut)
     updwtmp (wtmp_file, &u);
 }
 
+#if HAVE_LIBAUDIT
 static void
 audit_event (int type, const gchar *username, uid_t uid, const gchar *remote_host_name, const gchar *tty, gboolean success)
 {
-#if HAVE_LIBAUDIT
     int auditfd, result;
     const char *op = NULL;
 
@@ -247,8 +247,8 @@ audit_event (int type, const gchar *username, uid_t uid, const gchar *remote_hos
         g_printerr ("Error writing audit message: %s\n", strerror (errno));
 
     close (auditfd);
-#endif
 }
+#endif
 
 int
 session_child_run (int argc, char **argv)
@@ -417,7 +417,9 @@ session_child_run (int argc, char **argv)
 
             updwtmpx ("/var/log/btmp", &ut);
 
+#if HAVE_LIBAUDIT
             audit_event (AUDIT_USER_LOGIN, username, -1, remote_host_name, tty, FALSE);
+#endif
         }
 
         /* Check account is valid */
@@ -734,7 +736,9 @@ session_child_run (int argc, char **argv)
             endutxent ();
             updwtmpx ("/var/log/wtmp", &ut);
 
+#if HAVE_LIBAUDIT          
             audit_event (AUDIT_USER_LOGIN, username, uid, remote_host_name, tty, TRUE);
+#endif
         }
 
         waitpid (child_pid, &return_code, 0);
@@ -772,7 +776,9 @@ session_child_run (int argc, char **argv)
             endutxent ();
             updwtmpx ("/var/log/wtmp", &ut);
 
+#if HAVE_LIBAUDIT
             audit_event (AUDIT_USER_LOGOUT, username, uid, remote_host_name, tty, TRUE);
+#endif
         }
     }
 
