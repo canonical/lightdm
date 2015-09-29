@@ -11,7 +11,10 @@ override_dh_autoreconf:
 # NOTE: Using GNOME for now, but we still need a proper configuration system
 # See https://launchpad.net/bugs/799754
 override_dh_auto_configure:
-	dh_auto_configure -- --with-greeter-user=lightdm --with-user-session=ubuntu --enable-gtk-doc
+	dh_auto_configure -- \
+        --with-greeter-user=lightdm \
+        --with-user-session=ubuntu \
+        --enable-gtk-doc
 
 override_dh_auto_test:
 	#Disabled for now, are failing for some reason
