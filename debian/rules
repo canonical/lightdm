@@ -15,7 +15,8 @@ override_dh_auto_configure:
         --libexecdir=/usr/lib/lightdm \
         --with-greeter-user=lightdm \
         --with-user-session=ubuntu \
-        --enable-gtk-doc
+        --enable-gtk-doc \
+        --disable-audit
 
 override_dh_auto_test:
 	#Disabled for now, are failing for some reason
