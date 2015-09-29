@@ -7,7 +7,7 @@ DOC_SOURCE_DIR=$(top_srcdir)/liblightdm-gobject
 HFILE_GLOB=$(top_srcdir)/liblightdm-gobject/lightdm.h
 CFILE_GLOB=$(top_srcdir)/liblightdm-gobject/*.c
 
-INCLUDES = \
+AM_CPPFLAGS = \
 	$(LIBLIGHTDM_GOBJECT_CFLAGS) \
 	-I$(top_srcdir)/liblightdm-gobject
 
