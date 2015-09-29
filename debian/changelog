@@ -2,7 +2,12 @@ lightdm (1.16.3-0ubuntu1) wily; urgency=medium
 
   * New upstream release:
     - Fix compile failing without libinput
-    - Fix compile failing without Vala  
+    - Fix compile failing without Vala
+  * debian/lightdm.lightdm-autologin.pam:
+  * debian/lightdm.pam:
+  * debian/rules:
+    - Disable libaudit support for now - Unity is not unlocking with these
+      changes (LP: #1498775)
 
  -- Robert Ancell <robert.ancell@canonical.com>  Wed, 30 Sep 2015 09:30:57 +1300
 
