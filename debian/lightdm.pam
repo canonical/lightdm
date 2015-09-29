@@ -6,7 +6,7 @@ auth    optional        pam_gnome_keyring.so
 auth    optional        pam_kwallet.so
 @include common-account
 session [success=ok ignore=ignore module_unknown=ignore default=bad] pam_selinux.so close
-session required        pam_loginuid.so
+#session required        pam_loginuid.so
 session required        pam_limits.so
 @include common-session
 session [success=ok ignore=ignore module_unknown=ignore default=bad] pam_selinux.so open
