@@ -129,21 +129,21 @@ if test x"$enable_liblightdm_qt5" != "xno"; then
 fi
 AM_CONDITIONAL(COMPILE_LIBLIGHTDM_QT5, test x"$compile_liblightdm_qt5" != "xno")
 
-AC_ARG_ENABLE([audit],
-    AS_HELP_STRING([--enable-audit],
-                   [Enable audit logging of login and logout events [[default=auto]]]),
-    [enable_audit=$enableval],
-    [enable_audit=auto])
+AC_ARG_ENABLE([libaudit],
+    AS_HELP_STRING([--enable-libaudit],
+                   [Enable libaudit logging of login and logout events [[default=auto]]]),
+    [enable_libaudit=$enableval],
+    [enable_libaudit=auto])
 use_libaudit=no    
-if test x"$enable_audit" != "xno"; then
+if test x"$enable_libaudit" != "xno"; then
     AC_CHECK_LIB([audit], [audit_log_user_message],
                  [use_libaudit=yes
                   AC_DEFINE(HAVE_LIBAUDIT, 1, [libaudit support])
                   LIGHTDM_LIBS="${LIGHTDM_LIBS} -laudit"
                  ],
-                 [if test "x$enable_audit" != xauto; then
+                 [if test "x$enable_libaudit" != xauto; then
                     AC_MSG_FAILURE(
-                      [--enable-audit was given, but test for libaudit failed])
+                      [--enable-libaudit was given, but test for libaudit failed])
                   fi
                  ])
 fi
