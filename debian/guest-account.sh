@@ -22,6 +22,15 @@ add_account ()
 {
   HOME=`mktemp -td guest-XXXXXX`
   USER=`echo $HOME | sed 's/\(.*\)guest/guest/'`
+  # Suppose that we have a "guest-template" user/group,
+  # with home directory /home/guest-template.
+  # If GROUP below could be set to "guest-template", we can
+  # mount /home/guest-template on /etc/guest-session/skel
+  # using bindfs with option "mirror-only=@guest-template", so
+  # that all guest accounts would see files in /etc/guest-session/skel
+  # as their own ones.
+  GROUP="$USER"
+  PRE_HOME="/tmp/.rw-${USER}"
 
   # if $USER already exists, it must be a locked system account with no existing
   # home directory
@@ -46,23 +55,53 @@ add_account ()
     fi
   else
     # does not exist, so create it
-    adduser --system --no-create-home --home / --gecos $(gettext "Guest") --group --shell /bin/bash $USER || {
+    adduser --system --no-create-home --home / --gecos $(gettext "Guest") --ingroup $GROUP --shell /bin/bash $USER || {
         umount "$HOME"
         rm -rf "$HOME"
+        umount "$PRE_HOME"
+        rm -rf "$PRE_HOME"
         exit 1
     }
   fi
 
-  # create temporary home directory
-  mount -t tmpfs -o mode=700 none "$HOME" || { rm -rf "$HOME"; exit 1; }
-  chown $USER:$USER "$HOME"
   gs_skel=/etc/guest-session/skel/
+
   if [ -d "$gs_skel" ] && [ -n "`find $gs_skel -type f`" ]; then
-    cp -rT $gs_skel "$HOME"
+    # create temporary home directory
+    mkdir "$PRE_HOME"
+    mount -t tmpfs -o mode=700 none "$PRE_HOME" || { rm -rf "$PRE_HOME" "$HOME"; exit 1; }
+    chown $USER:$GROUP "$PRE_HOME"
+
+    # Try OverlayFS first
+    if modinfo -n overlay >/dev/null 2>&1; then
+      mkdir ${PRE_HOME}/.upper ${PRE_HOME}/.work
+      chown -R $USER:$GROUP $PRE_HOME/.*
+      mount -t overlay -o lowerdir=$gs_skel,upperdir=${PRE_HOME}/.upper,workdir=${PRE_HOME}/.work overlay $HOME || {
+        rm -rf "$HOME"
+        umount "$PRE_HOME"
+        rm -rf "$PRE_HOME"
+        exit 1
+      }
+    # If OverlayFS is not available, try AuFS
+    elif [ -x /sbin/mount.aufs ]; then
+      mount -t aufs -o br=${PRE_HOME}:$gs_skel none $HOME || {
+        rm -rf "$HOME"
+        umount "$PRE_HOME"
+        rm -rf "$PRE_HOME"
+        exit 1
+      }
+    # If none of them is available, fall back to copy over
+    else
+      umount "$PRE_HOME"
+      rm -rf "$PRE_HOME"
+      cp -rT $gs_skel "$HOME"
+      chown -R $USER:$GROUP "$HOME"
+    fi
   else
     cp -rT /etc/skel/ "$HOME"
+    chown -R $USER:$GROUP "$HOME"
   fi
-  chown -R $USER:$USER "$HOME"
+
   usermod -d "$HOME" "$USER"
 
   #
@@ -112,7 +151,7 @@ add_account ()
       . /etc/guest-session/prefs.sh
   fi
 
-  chown -R $USER:$USER "$HOME"
+  chown -R $USER:$GROUP "$HOME"
 
   echo $USER  
 }
@@ -127,6 +166,7 @@ remove_account ()
   }
   GUEST_UID=`echo "$PWENT" | cut -f3 -d:`
   GUEST_HOME=`echo "$PWENT" | cut -f6 -d:`
+  GUEST_PRE_HOME=/tmp/.rw-$GUEST_USER
 
   if [ "$GUEST_UID" -ge 500 ]; then
     echo "Error: user $GUEST_USER is not a system user."
@@ -146,6 +186,8 @@ remove_account ()
 
   umount "$GUEST_HOME" || umount -l "$GUEST_HOME" || true
   rm -rf "$GUEST_HOME"
+  umount "$GUEST_PRE_HOME" || umount -l "$GUEST_PRE_HOME" || true
+  rm -rf "$GUEST_PRE_HOME"
 
   # remove leftovers in /tmp
   find /tmp -mindepth 1 -maxdepth 1 -uid "$GUEST_UID" -print0 | xargs -0 rm -rf || true
