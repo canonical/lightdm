@@ -180,7 +180,7 @@ remove_account ()
   }
   GUEST_UID=`echo "$PWENT" | cut -f3 -d:`
   GUEST_HOME=`echo "$PWENT" | cut -f6 -d:`
-  GUEST_PRE_HOME=/tmp/.rw-$GUEST_USER
+  GUEST_PRE_HOME=/tmp/.pre-$GUEST_USER
 
   if [ "$GUEST_UID" -ge 500 ]; then
     echo "Error: user $GUEST_USER is not a system user."
