@@ -22,6 +22,7 @@ add_account ()
 {
   HOME=`mktemp -td guest-XXXXXX`
   USER=`echo $HOME | sed 's/\(.*\)guest/guest/'`
+  PRE_HOME="/tmp/.pre-${USER}"
 
   # if $USER already exists, it must be a locked system account with no existing
   # home directory
@@ -49,20 +50,72 @@ add_account ()
     adduser --system --no-create-home --home / --gecos $(gettext "Guest") --group --shell /bin/bash $USER || {
         umount "$HOME"
         rm -rf "$HOME"
+        umount "$PRE_HOME"
+        rm -rf "$PRE_HOME"
         exit 1
     }
   fi
 
-  # create temporary home directory
-  mount -t tmpfs -o mode=700 none "$HOME" || { rm -rf "$HOME"; exit 1; }
-  chown $USER:$USER "$HOME"
   gs_skel=/etc/guest-session/skel/
+
   if [ -d "$gs_skel" ] && [ -n "`find $gs_skel -type f`" ]; then
-    cp -rT $gs_skel "$HOME"
+    # Only perform union-mounting if BindFS is available
+    if [ -x /usr/bin/bindfs ]; then
+      # create temporary home directory
+      mkdir "$PRE_HOME"
+      mount -t tmpfs -o mode=700 none "$PRE_HOME" || { rm -rf "$PRE_HOME" "$HOME"; exit 1; }
+      mkdir ${PRE_HOME}/lower ${PRE_HOME}/upper
+      chown -R $USER:$USER "$PRE_HOME"
+
+      # Wrap ${gs_skel} in a BindFS mount, so that
+      # guest account will see itself as the owner of ${gs_skel}'s contents.
+      bindfs -M $USER $gs_skel ${PRE_HOME}/lower || {
+        rm -rf "$PRE_HOME"
+        rm -rf "$HOME"
+        exit 1
+      }
+
+      # Try OverlayFS first
+      if modinfo -n overlay >/dev/null 2>&1; then
+        mkdir ${PRE_HOME}/work
+        chown $USER:$USER ${PRE_HOME}/work
+        mount -t overlay -o lowerdir=${PRE_HOME}/lower,upperdir=${PRE_HOME}/upper,workdir=${PRE_HOME}/work overlay $HOME || {
+          umount ${PRE_HOME}/lower
+          umount "$PRE_HOME"
+          rm -rf "$PRE_HOME"
+          rm -rf "$HOME"
+          exit 1
+        }
+      # If OverlayFS is not available, try AuFS
+      elif [ -x /sbin/mount.aufs ]; then
+        mount -t aufs -o br=${PRE_HOME}/upper:${PRE_HOME}/lower none $HOME || {
+          umount ${PRE_HOME}/lower
+          umount "$PRE_HOME"
+          rm -rf "$PRE_HOME"
+          rm -rf "$HOME"
+          exit 1
+        }
+      # If none of them is available, fall back to copy over
+      else
+        umount ${PRE_HOME}/lower
+        umount "$PRE_HOME"
+        rm -rf "$PRE_HOME"
+        mount -t tmpfs -o mode=700 none "$HOME" || { rm -rf "$HOME"; exit 1; }
+        cp -rT $gs_skel "$HOME"
+        chown -R $USER:$USER "$HOME"
+      fi
+    # If BindFS is not available, just fall back to copy over
+    else
+      mount -t tmpfs -o mode=700 none "$HOME" || { rm -rf "$HOME"; exit 1; }
+      cp -rT $gs_skel "$HOME"
+      chown -R $USER:$USER "$HOME"
+    fi
   else
+    mount -t tmpfs -o mode=700 none "$HOME" || { rm -rf "$HOME"; exit 1; }
     cp -rT /etc/skel/ "$HOME"
+    chown -R $USER:$USER "$HOME"
   fi
-  chown -R $USER:$USER "$HOME"
+
   usermod -d "$HOME" "$USER"
 
   #
@@ -127,6 +180,7 @@ remove_account ()
   }
   GUEST_UID=`echo "$PWENT" | cut -f3 -d:`
   GUEST_HOME=`echo "$PWENT" | cut -f6 -d:`
+  GUEST_PRE_HOME=/tmp/.pre-$GUEST_USER
 
   if [ "$GUEST_UID" -ge 500 ]; then
     echo "Error: user $GUEST_USER is not a system user."
@@ -146,6 +200,9 @@ remove_account ()
 
   umount "$GUEST_HOME" || umount -l "$GUEST_HOME" || true
   rm -rf "$GUEST_HOME"
+  umount ${GUEST_PRE_HOME}/lower || umount -l ${GUEST_PRE_HOME}/lower || true
+  umount "$GUEST_PRE_HOME" || umount -l "$GUEST_PRE_HOME" || true
+  rm -rf "$GUEST_PRE_HOME"
 
   # remove leftovers in /tmp
   find /tmp -mindepth 1 -maxdepth 1 -uid "$GUEST_UID" -print0 | xargs -0 rm -rf || true
