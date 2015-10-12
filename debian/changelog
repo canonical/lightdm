@@ -1,5 +1,8 @@
 lightdm (1.17.0-0ubuntu1) UNRELEASED; urgency=medium
 
+  * New upstream release:
+    - ...
+  * Build with multi-arch
   * debian/patches/xorg-1.17.patch:
     - Fix xserver-allow-tcp=true option not working with X.org 1.17
 
