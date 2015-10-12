@@ -62,6 +62,10 @@
     @{PROC}/[0-9]*/statm r,            # sandbox wants these
     @{PROC}/[0-9]*/task/[0-9]*/stat r, # sandbox wants these
 
+    owner @{PROC}/@{pid}/setgroups w,
+    owner @{PROC}/@{pid}/uid_map w,
+    owner @{PROC}/@{pid}/gid_map w,
+
     /selinux/ r,
 
     /usr/lib/chromium-browser/chromium-browser-sandbox ix,

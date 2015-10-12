@@ -5,6 +5,8 @@ lightdm (1.17.0-0ubuntu1) UNRELEASED; urgency=medium
   * Build with multi-arch
   * debian/patches/xorg-1.17.patch:
     - Fix xserver-allow-tcp=true option not working with X.org 1.17
+  * data/apparmor/abstractions/lightdm_chromium-browser: cgroups support for
+    guest sessions. (LP: #1504049, LP: #1464958)
 
  -- Robert Ancell <robert.ancell@canonical.com>  Mon, 12 Oct 2015 14:57:47 +0100
 
