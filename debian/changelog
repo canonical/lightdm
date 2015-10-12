@@ -1,3 +1,11 @@
+lightdm (1.14.2-0ubuntu1.2) vivid; urgency=medium
+
+  * debian/patches/xorg-1.17.patch:
+    - Fix xserver-allow-tcp=true option not working with X.org 1.17
+      (LP: #1449282)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 12 Oct 2015 14:35:03 +0100
+
 lightdm (1.14.2-0ubuntu1.1) vivid; urgency=medium
 
   * debian/lightdm-session: Enable the C preprocessor
