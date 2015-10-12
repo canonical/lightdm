@@ -1,3 +1,11 @@
+lightdm (1.16.3-0ubuntu2) wily; urgency=medium
+
+  * debian/patches/xorg-1.17.patch:
+    - Fix xserver-allow-tcp=true option not working with X.org 1.17
+      (LP: #1449282)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 12 Oct 2015 14:57:47 +0100
+
 lightdm (1.16.3-0ubuntu1) wily; urgency=medium
 
   * New upstream release:
