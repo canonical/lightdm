@@ -1,3 +1,11 @@
+lightdm (1.16.4-0ubuntu1) wily; urgency=medium
+
+  * New upstream release:
+    - Fix apparmor profiles for running Chromium in guest sessions
+      (LP: #1504049)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 13 Oct 2015 11:47:16 +0100
+
 lightdm (1.16.3-0ubuntu2) wily; urgency=medium
 
   * debian/patches/xorg-1.17.patch:

@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.16.4
+
+    * Fix apparmor profiles for running Chromium in guest sessions
+
 Overview of changes in lightdm 1.16.3
 
     * Fix compile failing without libinput
