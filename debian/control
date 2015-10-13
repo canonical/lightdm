@@ -47,7 +47,7 @@ Depends: ${misc:Depends},
          bash (>= 4.3),
 Recommends: xserver-xorg,
             unity-greeter | lightdm-greeter | lightdm-kde-greeter,
-Suggests: bindfs, linux-generic (>= 3.18) | aufs-tools
+Suggests: bindfs
 Conflicts: liblightdm-gobject-0-0,
            liblightdm-qt-0-0,
 Provides: x-display-manager
