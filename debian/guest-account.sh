@@ -20,52 +20,55 @@ fi
 
 add_account ()
 {
-  HOME=`mktemp -td guest-XXXXXX`
-  USER=`echo $HOME | sed 's/\(.*\)guest/guest/'`
+  HOME=$(mktemp -td guest-XXXXXX)
+  USER=$(echo ${HOME} | sed 's/\(.*\)guest/guest/')
 
-  # if $USER already exists, it must be a locked system account with no existing
+  # if ${USER} already exists, it must be a locked system account with no existing
   # home directory
-  if PWSTAT=`passwd -S "$USER"` 2>/dev/null; then
-    if [ "`echo \"$PWSTAT\" | cut -f2 -d\ `" != "L" ]; then
-      echo "User account $USER already exists and is not locked"
+  if PWSTAT=$(passwd -S ${USER}) 2>/dev/null; then
+    if [ $(echo ${PWSTAT} | cut -f2 -d' ') != L ]; then
+      echo "User account ${USER} already exists and is not locked"
       exit 1
     fi
-    PWENT=`getent passwd "$USER"` || {
-      echo "getent passwd $USER failed"
+    PWENT=$(getent passwd ${USER}) || {
+      echo "getent passwd ${USER} failed"
       exit 1
     }
-    GUEST_UID=`echo "$PWENT" | cut -f3 -d:`
-    if [ "$GUEST_UID" -ge 500 ]; then
-      echo "Account $USER is not a system user"
+    GUEST_UID=$(echo ${PWENT} | cut -f3 -d:)
+    if [ ${GUEST_UID} -ge 500 ]; then
+      echo "Account ${USER} is not a system user"
       exit 1
     fi
-    HOME=`echo "$PWENT" | cut -f6 -d:`
-    if [ "$HOME" != / ] && [ "${HOME#/tmp}" = "$HOME" ] && [ -d "$HOME" ]; then
-      echo "Home directory of $USER already exists"
+    HOME=$(echo ${PWENT} | cut -f6 -d:)
+    if [ ${HOME} != / ] && [ ${HOME#/tmp} = ${HOME} ] && [ -d ${HOME} ]; then
+      echo "Home directory of ${USER} already exists"
       exit 1
     fi
   else
     # does not exist, so create it
-    adduser --system --no-create-home --home / --gecos $(gettext "Guest") --group --shell /bin/bash $USER || {
-        umount ${HOME}
-        rm -rf ${HOME}
-        exit 1
+    adduser --system --no-create-home --home / --gecos $(gettext "Guest") --group --shell /bin/bash ${USER} || {
+      umount ${HOME}
+      rm -rf ${HOME}
+      exit 1
     }
   fi
 
   gs_skel=/etc/guest-session/skel/
 
   # create temporary home directory
-  mount -t tmpfs -o mode=700,uid=${USER} none ${HOME} || { rm -rf ${HOME}; exit 1; }
+  mount -t tmpfs -o mode=700,uid=${USER} none ${HOME} || {
+    rm -rf ${HOME}
+    exit 1
+  }
 
-  if [ -d "$gs_skel" ] && [ -n "`find $gs_skel -type f`" ]; then
+  if [ -d ${gs_skel} ] && [ -n $(find ${gs_skel} -type f) ]; then
     # Only perform union-mounting if BindFS is available
     if [ -x /usr/bin/bindfs ]; then
       bindfs_mount=true
 
       # Try OverlayFS first
       if modinfo -n overlay >/dev/null 2>&1; then
-        sudo -u $USER mkdir ${HOME}/upper ${HOME}/work
+        sudo -u ${USER} mkdir ${HOME}/upper ${HOME}/work
         mount -t overlay -o lowerdir=${gs_skel},upperdir=${HOME}/upper,workdir=${HOME}/work overlay ${HOME} || {
           umount ${HOME}
           rm -rf ${HOME}
@@ -105,84 +108,84 @@ add_account ()
     chown -R ${USER}:${USER} ${HOME}
   fi
 
-  usermod -d "$HOME" "$USER"
+  usermod -d ${HOME} ${USER}
 
   #
   # setup session
   #
 
   # disable some services that are unnecessary for the guest session
-  [ -d "$HOME"/.config/autostart ] || sudo -u $USER mkdir -p "$HOME"/.config/autostart
+  [ -d ${HOME}/.config/autostart ] || sudo -u ${USER} mkdir -p ${HOME}/.config/autostart
   cd /etc/xdg/autostart/
   services="jockey-kde.desktop jockey-gtk.desktop update-notifier.desktop user-dirs-update-gtk.desktop"
-  for service in $services
+  for service in ${services}
   do
-    if [ -e /etc/xdg/autostart/"$service" ] ; then
-        [ -f "$HOME"/.config/autostart/$service ] || sudo -u $USER cp "$service" "$HOME"/.config/autostart
-        echo "X-GNOME-Autostart-enabled=false" >> "$HOME"/.config/autostart/"$service"
+    if [ -e /etc/xdg/autostart/${service} ] ; then
+      [ -f ${HOME}/.config/autostart/${service} ] || sudo -u ${USER} cp ${service} ${HOME}/.config/autostart
+      echo "X-GNOME-Autostart-enabled=false" >> ${HOME}/.config/autostart/${service}
     fi
   done
 
   # disable Unity shortcut hint
-  [ -d "$HOME"/.cache/unity ] || sudo -u $USER mkdir -p "$HOME"/.cache/unity
-  sudo -u $USER touch "$HOME"/.cache/unity/first_run.stamp
+  [ -d ${HOME}/.cache/unity ] || sudo -u ${USER} mkdir -p ${HOME}/.cache/unity
+  sudo -u ${USER} touch ${HOME}/.cache/unity/first_run.stamp
 
-  STARTUP="$HOME"/.config/autostart/startup-commands.desktop
-  sudo -u $USER touch $STARTUP
-  echo "[Desktop Entry]" > $STARTUP
-  echo "Name=Startup commands" >> $STARTUP
-  echo "Type=Application" >> $STARTUP
-  echo "NoDisplay=true" >> $STARTUP
-  echo "Exec=/usr/lib/lightdm/guest-session-auto.sh" >> $STARTUP
+  STARTUP=${HOME}/.config/autostart/startup-commands.desktop
+  sudo -u ${USER} touch ${STARTUP}
+  echo "[Desktop Entry]" > ${STARTUP}
+  echo "Name=Startup commands" >> ${STARTUP}
+  echo "Type=Application" >> ${STARTUP}
+  echo "NoDisplay=true" >> ${STARTUP}
+  echo "Exec=/usr/lib/lightdm/guest-session-auto.sh" >> ${STARTUP}
 
-  sudo -u $USER touch "$HOME"/.profile
-  echo "export DIALOG_SLEEP=4" >> "$HOME"/.profile
+  sudo -u ${USER} touch ${HOME}/.profile
+  echo "export DIALOG_SLEEP=4" >> ${HOME}/.profile
 
-  [ -d "$HOME"/.kde/share/config ] || sudo -u $USER mkdir -p "$HOME"/.kde/share/config
-  [ -f "$HOME"/.kde/share/config/nepomukserverrc ] || sudo -u $USER touch "$HOME"/.kde/share/config/nepomukserverrc
-  echo "[Basic Settings]" >> "$HOME"/.kde/share/config/nepomukserverrc
-  echo "Start Nepomuk=false" >> "$HOME"/.kde/share/config/nepomukserverrc
+  [ -d ${HOME}/.kde/share/config ] || sudo -u ${USER} mkdir -p ${HOME}/.kde/share/config
+  [ -f ${HOME}/.kde/share/config/nepomukserverrc ] || sudo -u ${USER} touch ${HOME}/.kde/share/config/nepomukserverrc
+  echo "[Basic Settings]" >> ${HOME}/.kde/share/config/nepomukserverrc
+  echo "Start Nepomuk=false" >> ${HOME}/.kde/share/config/nepomukserverrc
 
-  [ -f "$HOME"/.kde/share/config/notificationhelper ] || sudo -u $USER touch "$HOME"/.kde/share/config/notificationhelper
-  echo "[Event]" >> "$HOME"/.kde/share/config/notificationhelper
-  echo "hideHookNotifier=true" >> "$HOME"/.kde/share/config/notificationhelper
-  echo "hideInstallNotifier=true" >> "$HOME"/.kde/share/config/notificationhelper
-  echo "hideRestartNotifier=true" >> "$HOME"/.kde/share/config/notificationhelper
+  [ -f ${HOME}/.kde/share/config/notificationhelper ] || sudo -u ${USER} touch ${HOME}/.kde/share/config/notificationhelper
+  echo "[Event]" >> ${HOME}/.kde/share/config/notificationhelper
+  echo "hideHookNotifier=true" >> ${HOME}/.kde/share/config/notificationhelper
+  echo "hideInstallNotifier=true" >> ${HOME}/.kde/share/config/notificationhelper
+  echo "hideRestartNotifier=true" >> ${HOME}/.kde/share/config/notificationhelper
 
   # Load restricted session
   #dmrc='[Desktop]\nSession=guest-restricted'
-  #/bin/echo -e "$dmrc" > "$HOME"/.dmrc
+  #/bin/echo -e ${dmrc} > ${HOME}/.dmrc
 
   # set possible local guest session preferences
-  [ -f /etc/guest-session/prefs.sh ] && sudo -u $USER sh -c '. /etc/guest-session/prefs.sh'
+  [ -f /etc/guest-session/prefs.sh ] && sudo -u ${USER} sh -c '. /etc/guest-session/prefs.sh'
 
-  echo $USER
+  echo ${USER}
 }
 
 remove_account ()
 {
-  GUEST_USER=$1
+  GUEST_USER=${1}
   
-  PWENT=`getent passwd "$GUEST_USER"` || {
-    echo "Error: invalid user $GUEST_USER"
+  PWENT=$(getent passwd ${GUEST_USER}) || {
+    echo "Error: invalid user ${GUEST_USER}"
     exit 1
   }
-  GUEST_UID=`echo "$PWENT" | cut -f3 -d:`
-  GUEST_HOME=`echo "$PWENT" | cut -f6 -d:`
+  GUEST_UID=$(echo ${PWENT} | cut -f3 -d:)
+  GUEST_HOME=$(echo ${PWENT} | cut -f6 -d:)
 
-  if [ "$GUEST_UID" -ge 500 ]; then
-    echo "Error: user $GUEST_USER is not a system user."
+  if [ ${GUEST_UID} -ge 500 ]; then
+    echo "Error: user ${GUEST_USER} is not a system user."
     exit 1
   fi
 
-  if [ "${GUEST_HOME}" = "${GUEST_HOME#/tmp/}" ]; then
-    echo "Error: home directory $GUEST_HOME is not in /tmp/."
+  if [ ${GUEST_HOME} = ${GUEST_HOME#/tmp/} ]; then
+    echo "Error: home directory ${GUEST_HOME} is not in /tmp/."
     exit 1
   fi
 
   # kill all remaining processes
-  while ps h -u "$GUEST_USER" >/dev/null; do 
-    killall -9 -u "$GUEST_USER" || true
+  while ps h -u ${GUEST_USER} >/dev/null; do 
+    killall -9 -u ${GUEST_USER} || true
     sleep 0.2; 
   done
 
@@ -192,31 +195,32 @@ remove_account ()
   rm -rf ${GUEST_HOME}
 
   # remove leftovers in /tmp
-  find /tmp -mindepth 1 -maxdepth 1 -uid "$GUEST_UID" -print0 | xargs -0 rm -rf || true
+  find /tmp -mindepth 1 -maxdepth 1 -uid ${GUEST_UID} -print0 | xargs -0 rm -rf || true
 
   # remove possible /media/guest-XXXXXX folder
-  if [ -d /media/"$GUEST_USER" ]; then
-    for dir in $( find /media/"$GUEST_USER" -mindepth 1 -maxdepth 1 ); do
-      umount "$dir" || true
+  if [ -d /media/${GUEST_USER} ]; then
+    for dir in $(find /media/${GUEST_USER} -mindepth 1 -maxdepth 1); do
+      umount ${dir} || true
     done
-    rmdir /media/"$GUEST_USER" || true
+
+    rmdir /media/${GUEST_USER} || true
   fi
 
-  deluser --system "$GUEST_USER"
+  deluser --system ${GUEST_USER}
 }
 
-case "$1" in
+case ${1} in
   add)
     add_account
     ;;
   remove)
-    if [ -z $2 ] ; then
-      echo "Usage: $0 remove [account]"
+    if [ -z ${2} ] ; then
+      echo "Usage: ${0} remove [account]"
       exit 1
     fi
-    remove_account $2
+    remove_account ${2}
     ;;
   *)
-    echo "Usage: $0 add|remove"
+    echo "Usage: ${0} add|remove"
     exit 1
 esac
