@@ -22,7 +22,7 @@ main (int argc, char **argv)
         status_text = g_string_new ("INIT");
         for (i = 1; i < argc; i++)
             g_string_append_printf (status_text, " %s", argv[i]);
-        status_notify (status_text->str);
+        status_notify ("%s", status_text->str);
         g_string_free (status_text, TRUE);
     }
 

@@ -386,7 +386,7 @@ main (int argc, char **argv)
         g_string_append (status_text, " SHAREVTS=TRUE");
     if (mir_id != NULL)
         g_string_append_printf (status_text, " MIR-ID=%s", mir_id);
-    status_notify (status_text->str);
+    status_notify ("%s", status_text->str);
     g_string_free (status_text, TRUE);
 
     if (g_key_file_has_key (config, "test-xserver-config", "return-value", NULL))

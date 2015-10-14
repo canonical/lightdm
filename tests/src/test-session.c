@@ -300,7 +300,7 @@ main (int argc, char **argv)
     if (argc > 1)
         g_string_append_printf (status_text, " NAME=%s", argv[1]);
     g_string_append_printf (status_text, " USER=%s", getenv ("USER"));
-    status_notify (status_text->str);
+    status_notify ("%s", status_text->str);
     g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
