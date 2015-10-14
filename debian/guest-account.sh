@@ -61,47 +61,49 @@ add_account ()
   if [ -d "$gs_skel" ] && [ -n "`find $gs_skel -type f`" ]; then
     # Only perform union-mounting if BindFS is available
     if [ -x /usr/bin/bindfs ]; then
+      local bindfs_mount=true
+
       # create temporary home directory
       sudo -u $USER mkdir "$PRE_HOME"
-      mount -t tmpfs -o mode=700,uid=$USER none "$PRE_HOME" || { rm -rf "$PRE_HOME" "$HOME"; exit 1; }
-      sudo -u $USER mkdir ${PRE_HOME}/lower ${PRE_HOME}/upper
-
-      # Wrap ${gs_skel} in a BindFS mount, so that
-      # guest account will see itself as the owner of ${gs_skel}'s contents.
-      bindfs -r -u $USER -g $USER $gs_skel ${PRE_HOME}/lower || {
-        umount "$PRE_HOME"
-        rm -rf "$PRE_HOME"
-        rm -rf "$HOME"
-        exit 1
-      }
+      mount -t tmpfs -o mode=700,uid=${USER} none ${PRE_HOME} || { rm -rf ${PRE_HOME} ${HOME}; exit 1; }
 
       # Try OverlayFS first
       if modinfo -n overlay >/dev/null 2>&1; then
-        sudo -u $USER mkdir ${PRE_HOME}/work
-        mount -t overlay -o lowerdir=${PRE_HOME}/lower,upperdir=${PRE_HOME}/upper,workdir=${PRE_HOME}/work overlay $HOME || {
-          umount ${PRE_HOME}/lower
-          umount "$PRE_HOME"
-          rm -rf "$PRE_HOME"
-          rm -rf "$HOME"
+        sudo -u $USER mkdir ${PRE_HOME}/upper ${PRE_HOME}/work
+        mount -t overlay -o lowerdir=${gs_skel},upperdir=${PRE_HOME}/upper,workdir=${PRE_HOME}/work overlay ${HOME} || {
+          umount ${PRE_HOME}
+          rm -rf ${PRE_HOME}
+          rm -rf ${HOME}
           exit 1
         }
       # If OverlayFS is not available, try AuFS
       elif [ -x /sbin/mount.aufs ]; then
-        mount -t aufs -o br=${PRE_HOME}/upper:${PRE_HOME}/lower none $HOME || {
-          umount ${PRE_HOME}/lower
-          umount "$PRE_HOME"
-          rm -rf "$PRE_HOME"
-          rm -rf "$HOME"
+        mount -t aufs -o br=${PRE_HOME}:${gs_skel} none ${HOME} || {
+          umount ${PRE_HOME}
+          rm -rf ${PRE_HOME}
+          rm -rf ${HOME}
           exit 1
         }
       # If none of them is available, fall back to copy over
       else
-        umount ${PRE_HOME}/lower
-        umount "$PRE_HOME"
-        rm -rf "$PRE_HOME"
+        umount ${PRE_HOME}
+        rm -rf ${PRE_HOME}
         mount -t tmpfs -o mode=700 none "$HOME" || { rm -rf "$HOME"; exit 1; }
         cp -rT $gs_skel "$HOME"
         chown -R $USER:$USER "$HOME"
+        bindfs_mount=false
+      fi
+
+      if ${bindfs_mount}; then
+        # Wrap ${HOME} in a BindFS mount, so that
+        # ${USER} will be seen as the owner of ${HOME}'s contents.
+        bindfs -u ${USER} -g ${USER} ${HOME} ${HOME} || {
+          umount ${HOME}
+          umount ${PRE_HOME}
+          rm -rf ${PRE_HOME}
+          rm -rf ${HOME}
+          exit 1
+        }
       fi
     # If BindFS is not available, just fall back to copy over
     else
@@ -197,11 +199,15 @@ remove_account ()
     sleep 0.2; 
   done
 
+  # Unmount BindFS
   umount "$GUEST_HOME" || umount -l "$GUEST_HOME" || true
-  rm -rf "$GUEST_HOME"
-  umount ${GUEST_PRE_HOME}/lower || umount -l ${GUEST_PRE_HOME}/lower || true
+
+  # Unmount union
+  umount "$GUEST_HOME" || umount -l "$GUEST_HOME" || true
+
   umount "$GUEST_PRE_HOME" || umount -l "$GUEST_PRE_HOME" || true
   rm -rf "$GUEST_PRE_HOME"
+  rm -rf "$GUEST_HOME"
 
   # remove leftovers in /tmp
   find /tmp -mindepth 1 -maxdepth 1 -uid "$GUEST_UID" -print0 | xargs -0 rm -rf || true
