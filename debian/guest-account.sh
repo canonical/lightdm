@@ -62,14 +62,14 @@ add_account ()
     # Only perform union-mounting if BindFS is available
     if [ -x /usr/bin/bindfs ]; then
       # create temporary home directory
-      mkdir "$PRE_HOME"
-      mount -t tmpfs -o mode=700 none "$PRE_HOME" || { rm -rf "$PRE_HOME" "$HOME"; exit 1; }
-      mkdir ${PRE_HOME}/lower ${PRE_HOME}/upper
-      chown -R $USER:$USER "$PRE_HOME"
+      sudo -u $USER mkdir "$PRE_HOME"
+      mount -t tmpfs -o mode=700,uid=$USER none "$PRE_HOME" || { rm -rf "$PRE_HOME" "$HOME"; exit 1; }
+      sudo -u $USER mkdir ${PRE_HOME}/lower ${PRE_HOME}/upper
 
       # Wrap ${gs_skel} in a BindFS mount, so that
       # guest account will see itself as the owner of ${gs_skel}'s contents.
       bindfs -r -u $USER -g $USER $gs_skel ${PRE_HOME}/lower || {
+        umount "$PRE_HOME"
         rm -rf "$PRE_HOME"
         rm -rf "$HOME"
         exit 1
@@ -77,8 +77,7 @@ add_account ()
 
       # Try OverlayFS first
       if modinfo -n overlay >/dev/null 2>&1; then
-        mkdir ${PRE_HOME}/work
-        chown $USER:$USER ${PRE_HOME}/work
+        sudo -u $USER mkdir ${PRE_HOME}/work
         mount -t overlay -o lowerdir=${PRE_HOME}/lower,upperdir=${PRE_HOME}/upper,workdir=${PRE_HOME}/work overlay $HOME || {
           umount ${PRE_HOME}/lower
           umount "$PRE_HOME"
@@ -123,34 +122,38 @@ add_account ()
   #
 
   # disable some services that are unnecessary for the guest session
-  mkdir --parents "$HOME"/.config/autostart
+  [ -d "$HOME"/.config/autostart ] || sudo -u $USER mkdir -p "$HOME"/.config/autostart
   cd /etc/xdg/autostart/
   services="jockey-kde.desktop jockey-gtk.desktop update-notifier.desktop user-dirs-update-gtk.desktop"
   for service in $services
   do
     if [ -e /etc/xdg/autostart/"$service" ] ; then
-        cp "$service" "$HOME"/.config/autostart
+        [ -f "$HOME"/.config/autostart/$service ] || sudo -u $USER cp "$service" "$HOME"/.config/autostart
         echo "X-GNOME-Autostart-enabled=false" >> "$HOME"/.config/autostart/"$service"
     fi
   done
 
   # disable Unity shortcut hint
-  mkdir -p "$HOME"/.cache/unity
-  touch "$HOME"/.cache/unity/first_run.stamp
+  [ -d "$HOME"/.cache/unity ] || sudo -u $USER mkdir -p "$HOME"/.cache/unity
+  sudo -u $USER touch "$HOME"/.cache/unity/first_run.stamp
 
   STARTUP="$HOME"/.config/autostart/startup-commands.desktop
+  sudo -u $USER touch $STARTUP
   echo "[Desktop Entry]" > $STARTUP
   echo "Name=Startup commands" >> $STARTUP
   echo "Type=Application" >> $STARTUP
   echo "NoDisplay=true" >> $STARTUP
   echo "Exec=/usr/lib/lightdm/guest-session-auto.sh" >> $STARTUP
 
+  sudo -u $USER touch "$HOME"/.profile
   echo "export DIALOG_SLEEP=4" >> "$HOME"/.profile
 
-  mkdir -p "$HOME"/.kde/share/config
+  [ -d "$HOME"/.kde/share/config ] || sudo -u $USER mkdir -p "$HOME"/.kde/share/config
+  [ -f "$HOME"/.kde/share/config/nepomukserverrc ] || sudo -u $USER touch "$HOME"/.kde/share/config/nepomukserverrc
   echo "[Basic Settings]" >> "$HOME"/.kde/share/config/nepomukserverrc
   echo "Start Nepomuk=false" >> "$HOME"/.kde/share/config/nepomukserverrc
 
+  [ -f "$HOME"/.kde/share/config/notificationhelper ] || sudo -u $USER touch "$HOME"/.kde/share/config/notificationhelper
   echo "[Event]" >> "$HOME"/.kde/share/config/notificationhelper
   echo "hideHookNotifier=true" >> "$HOME"/.kde/share/config/notificationhelper
   echo "hideInstallNotifier=true" >> "$HOME"/.kde/share/config/notificationhelper
@@ -161,13 +164,9 @@ add_account ()
   #/bin/echo -e "$dmrc" > "$HOME"/.dmrc
 
   # set possible local guest session preferences
-  if [ -f /etc/guest-session/prefs.sh ]; then
-      . /etc/guest-session/prefs.sh
-  fi
+  [ -f /etc/guest-session/prefs.sh ] && sudo -u $USER sh -c '. /etc/guest-session/prefs.sh'
 
-  chown -R $USER:$USER "$HOME"
-
-  echo $USER  
+  echo $USER
 }
 
 remove_account ()
