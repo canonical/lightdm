@@ -34,6 +34,8 @@ TESTS = \
 	test-autologin-new-authtok \
 	test-autologin-timeout-gobject \
 	test-autologin-guest-timeout-gobject \
+	test-allow-tcp-xorg-1.16 \
+	test-allow-tcp-xorg-1.17 \    
 	test-change-authentication \
 	test-restart-authentication \
 	test-cancel-authentication-gobject \
@@ -367,6 +369,8 @@ EXTRA_DIST = \
 	scripts/additional-config-priority.conf \
 	scripts/additional-system-config.conf \
 	scripts/additional-system-config-priority.conf \
+	scripts/allow-tcp-xorg-1.16.conf \
+	scripts/allow-tcp-xorg-1.17.conf \    
 	scripts/audit-autologin.conf \
 	scripts/autologin.conf \
 	scripts/autologin-guest.conf \

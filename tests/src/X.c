@@ -18,8 +18,18 @@ static int exit_status = EXIT_SUCCESS;
 
 static GKeyFile *config;
 
+/* Version to pretend to be */
+static gchar *xorg_version;
+static gint xorg_version_major, xorg_version_minor;
+
 /* Path to lock file */
 static gchar *lock_path = NULL;
+
+/* TRUE if we allow TCP connections */
+static gboolean listen_tcp = TRUE;
+
+/* TRUE if we allow Unix connections */
+static gboolean listen_unix = TRUE;
 
 /* Path to authority database to use */
 static gchar *auth_path = NULL;
@@ -194,10 +204,20 @@ request_cb (const gchar *name, GHashTable *params)
     }
 }
 
+static int
+version_compare (int major, int minor)
+{
+    if (major == xorg_version_major)
+        return xorg_version_minor - minor;
+    else
+        return xorg_version_major - major;
+}
+
 int
 main (int argc, char **argv)
 {
     int i;
+    gchar **tokens;
     char *pid_string;
     gboolean do_xdmcp = FALSE;
     guint xdmcp_port = 0;
@@ -218,6 +238,20 @@ main (int argc, char **argv)
     g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
     g_unix_signal_add (SIGHUP, sighup_cb, NULL);
 
+    config = g_key_file_new ();
+    g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
+
+    xorg_version = g_key_file_get_string (config, "test-xserver-config", "version", NULL);
+    if (!xorg_version)
+        xorg_version = g_strdup ("1.16.0");
+    tokens = g_strsplit (xorg_version, ".", -1);
+    xorg_version_major = g_strv_length (tokens) > 0 ? atoi (tokens[0]) : 0;
+    xorg_version_minor = g_strv_length (tokens) > 1 ? atoi (tokens[1]) : 0;
+    g_strfreev (tokens);
+
+    /* TCP listening default changed in 1.17.0 */
+    listen_tcp = version_compare (1, 17) < 0;
+
     for (i = 1; i < argc; i++)
     {
         char *arg = argv[i];
@@ -231,14 +265,23 @@ main (int argc, char **argv)
             auth_path = argv[i+1];
             i++;
         }
+        else if (strcmp (arg, "-listen") == 0 && version_compare (1, 17) >= 0)
+        {
+            char *protocol = argv[i+1];
+            i++;
+            if (strcmp (protocol, "tcp") == 0)
+                listen_tcp = TRUE;
+            else if (strcmp (protocol, "unix") == 0)
+                listen_unix = TRUE;
+        }
         else if (strcmp (arg, "-nolisten") == 0)
         {
             char *protocol = argv[i+1];
             i++;
             if (strcmp (protocol, "tcp") == 0)
-                ;//listen_tcp = FALSE;
+                listen_tcp = FALSE;
             else if (strcmp (protocol, "unix") == 0)
-                ;//listen_unix = FALSE;
+                listen_unix = FALSE;
         }
         else if (strcmp (arg, "-nr") == 0)
         {
@@ -257,11 +300,13 @@ main (int argc, char **argv)
         {
             do_xdmcp = TRUE;
             xdmcp_host = argv[i+1];
+            listen_tcp = TRUE;
             i++;
         }
         else if (strcmp (arg, "-broadcast") == 0)
         {
             do_xdmcp = TRUE;
+            listen_tcp = TRUE;
         }
         else if (g_str_has_prefix (arg, "vt"))
         {
@@ -286,12 +331,18 @@ main (int argc, char **argv)
             /* FIXME */
             i++;
         }
+        else if (strcmp (arg, "-version") == 0)
+        {
+            fprintf (stderr, "\nX.Org X Server %s\nBlah blah blah\n", xorg_version);
+            return EXIT_SUCCESS;
+        }
         else
         {
             g_printerr ("Unrecognized option: %s\n"
                         "Use: %s [:<display>] [option]\n"
                         "-auth file             Select authorization file\n"
                         "-nolisten protocol     Don't listen on protocol\n"
+                        "-listen protocol       Listen on protocol\n"
                         "-background [none]     Create root window with no background\n"
                         "-nr                    (Ubuntu-specific) Synonym for -background none\n"
                         "-query host-name       Contact named host for XDMCP\n"
@@ -300,6 +351,7 @@ main (int argc, char **argv)
                         "-seat string           seat to run on\n"
                         "-mir id                Mir ID to use\n"
                         "-mirSocket name        Mir socket to use\n"
+                        "-version               show the server version\n"
                         "vtxx                   Use virtual terminal xx instead of the next available\n",
                         arg, argv[0]);
             return EXIT_FAILURE;
@@ -318,15 +370,16 @@ main (int argc, char **argv)
     g_string_printf (status_text, "%s START", id);
     if (vt_number >= 0)
         g_string_append_printf (status_text, " VT=%d", vt_number);
+    if (listen_tcp)
+        g_string_append (status_text, " LISTEN-TCP");
+    if (!listen_unix)
+        g_string_append (status_text, " NO-LISTEN-UNIX");
     if (seat != NULL)
         g_string_append_printf (status_text, " SEAT=%s", seat);
     if (mir_id != NULL)
         g_string_append_printf (status_text, " MIR-ID=%s", mir_id);
     status_notify ("%s", status_text->str);
     g_string_free (status_text, TRUE);
-
-    config = g_key_file_new ();
-    g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
 
     if (g_key_file_has_key (config, "test-xserver-config", "return-value", NULL))
     {
