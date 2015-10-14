@@ -31,6 +31,9 @@ static gboolean listen_tcp = TRUE;
 /* TRUE if we allow Unix connections */
 static gboolean listen_unix = TRUE;
 
+/* Configuration layout to use */
+static gchar *layout = NULL;
+
 /* Path to authority database to use */
 static gchar *auth_path = NULL;
 
@@ -260,6 +263,11 @@ main (int argc, char **argv)
         {
             display_number = atoi (arg + 1);
         }
+        else if (strcmp (arg, "-layout") == 0)
+        {
+            layout = argv[i+1];
+            i++;
+        }
         else if (strcmp (arg, "-auth") == 0)
         {
             auth_path = argv[i+1];
@@ -340,6 +348,7 @@ main (int argc, char **argv)
         {
             g_printerr ("Unrecognized option: %s\n"
                         "Use: %s [:<display>] [option]\n"
+                        "-layout name           Specify the ServerLayout section name\n"
                         "-auth file             Select authorization file\n"
                         "-nolisten protocol     Don't listen on protocol\n"
                         "-listen protocol       Listen on protocol\n"
@@ -368,6 +377,8 @@ main (int argc, char **argv)
 
     status_text = g_string_new ("");
     g_string_printf (status_text, "%s START", id);
+    if (layout)
+        g_string_append_printf (status_text, " LAYOUT=%s", layout);
     if (vt_number >= 0)
         g_string_append_printf (status_text, " VT=%d", vt_number);
     if (listen_tcp)

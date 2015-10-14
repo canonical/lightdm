@@ -34,6 +34,7 @@ TESTS = \
 	test-autologin-new-authtok \
 	test-autologin-timeout-gobject \
 	test-autologin-guest-timeout-gobject \
+	test-xserver-config-layout \
 	test-allow-tcp-xorg-1.16 \
 	test-allow-tcp-xorg-1.17 \    
 	test-change-authentication \
@@ -590,6 +591,7 @@ EXTRA_DIST = \
 	scripts/xdmcp-server-guest.conf \
 	scripts/xdmcp-server-login.conf \
 	scripts/xdmcp-server-open-file-descriptors.conf \
+	scripts/xserver-config-layout.conf \
 	scripts/xserver-fail-start.conf \
 	scripts/xserver-no-share.conf \
 	scripts/seatdefaults-still-supported.conf
