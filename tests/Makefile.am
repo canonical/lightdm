@@ -169,6 +169,8 @@ TESTS = \
 	test-vnc-dimensions \
 	test-vnc-open-file-descriptors \
 	test-vnc-guest \
+	test-xremote-autologin \
+	test-xremote-login \    
 	test-xdmcp-client \
 	test-xdmcp-server-autologin \
 	test-xdmcp-server-login \
@@ -591,6 +593,8 @@ EXTRA_DIST = \
 	scripts/xdmcp-server-guest.conf \
 	scripts/xdmcp-server-login.conf \
 	scripts/xdmcp-server-open-file-descriptors.conf \
+	scripts/xremote-autologin.conf \
+	scripts/xremote-login.conf \
 	scripts/xserver-config.conf \
 	scripts/xserver-fail-start.conf \
 	scripts/xserver-no-share.conf \
