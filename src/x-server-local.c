@@ -77,7 +77,64 @@ struct XServerLocalPrivate
 
 G_DEFINE_TYPE (XServerLocal, x_server_local, X_SERVER_TYPE);
 
+static gchar *version = NULL;
+static guint version_major = 0, version_minor = 0;
 static GList *display_numbers = NULL;
+
+#define XORG_VERSION_PREFIX "X.Org X Server "
+
+static gchar *
+find_version (const gchar *line)
+{
+    if (!g_str_has_prefix (line, XORG_VERSION_PREFIX))
+        return NULL;
+
+    return g_strdup (line + strlen (XORG_VERSION_PREFIX));
+}
+
+const gchar *
+x_server_local_get_version (void)
+{
+    gchar *stderr_text;
+    gint exit_status;
+    gchar **tokens;
+    guint n_tokens;
+
+    if (version)
+        return version;
+
+    if (!g_spawn_command_line_sync ("X -version", NULL, &stderr_text, &exit_status, NULL))
+        return NULL;
+    if (exit_status == EXIT_SUCCESS)
+    {
+        gchar **lines;
+        int i;
+
+        lines = g_strsplit (stderr_text, "\n", -1);
+        for (i = 0; lines[i] && !version; i++)
+            version = find_version (lines[i]);
+        g_strfreev (lines);
+    }
+    g_free (stderr_text);
+
+    tokens = g_strsplit (version, ".", 3);
+    n_tokens = g_strv_length (tokens);
+    version_major = n_tokens > 0 ? atoi (tokens[0]) : 0;
+    version_minor = n_tokens > 1 ? atoi (tokens[1]) : 0;
+    g_strfreev (tokens);
+
+    return version;
+}
+
+gint
+x_server_local_version_compare (guint major, guint minor)
+{
+    x_server_local_get_version ();
+    if (major == version_major)
+        return version_minor - minor;
+    else
+        return version_major - major;
+}
 
 static gboolean
 display_number_in_use (guint display_number)
@@ -496,7 +553,12 @@ x_server_local_start (DisplayServer *display_server)
         if (server->priv->xdmcp_key)
             g_string_append_printf (command, " -cookie %s", server->priv->xdmcp_key);
     }
-    else if (!server->priv->allow_tcp)
+    else if (server->priv->allow_tcp)
+    {
+        if (x_server_local_version_compare (1, 17) >= 0)
+            g_string_append (command, " -listen tcp");
+    }
+    else
         g_string_append (command, " -nolisten tcp");
 
     if (server->priv->vt >= 0)
