@@ -69,7 +69,7 @@ add_account ()
 
       # Wrap ${gs_skel} in a BindFS mount, so that
       # guest account will see itself as the owner of ${gs_skel}'s contents.
-      bindfs -r -M $USER $gs_skel ${PRE_HOME}/lower || {
+      bindfs -r -u $USER -g $USER $gs_skel ${PRE_HOME}/lower || {
         rm -rf "$PRE_HOME"
         rm -rf "$HOME"
         exit 1
