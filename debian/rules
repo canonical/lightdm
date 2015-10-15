@@ -27,7 +27,7 @@ override_dh_install:
 	# we do install pam through installpam and init through installinit
 	dh_install -X.a -X.la -Xpam.d -X'etc/init/lightdm.conf' --fail-missing
 	install -D debian/guest-account.sh debian/lightdm/usr/sbin/guest-account
-	install -D debian/guest-session-setup.sh debian/lightdm/usr/share/lightdm/guest-session/setup.sh
+	install -D -m 755 debian/guest-session-setup.sh debian/lightdm/usr/share/lightdm/guest-session/setup.sh
 	install -D debian/guest-session.profile debian/lightdm/usr/share/lightdm/guest-session/skel/.profile
 	chmod +x debian/lightdm/usr/lib/lightdm/lightdm-greeter-session
 	chmod +x debian/lightdm/usr/lib/lightdm/guest-session-auto.sh
