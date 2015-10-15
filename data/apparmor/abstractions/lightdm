@@ -45,6 +45,8 @@
   /opt/** rmixk,
   @{PROC}/ r,
   @{PROC}/* rm,
+  @{PROC}/[0-9]*/net/ r,
+  @{PROC}/[0-9]*/net/dev r,
   @{PROC}/asound rm,
   @{PROC}/asound/** rm,
   @{PROC}/ati rm,
