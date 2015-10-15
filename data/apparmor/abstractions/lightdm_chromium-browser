@@ -51,7 +51,7 @@
 
     # Allow us to receive and send signals from processes in the
     # lightdm-guest-session
-    signal (receive, send) set=("exists") peer=/usr/lib/lightdm/lightdm-guest-session,
+    signal (receive, send) set=("exists", "term") peer=/usr/lib/lightdm/lightdm-guest-session,
 
     # Allow us to receive and send on unix sockets from processes in the
     # lightdm-guest-session
