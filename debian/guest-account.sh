@@ -53,7 +53,8 @@ add_account ()
     }
   fi
 
-  gs_skel=/etc/guest-session/skel/
+  dist_gs=/usr/share/lightdm/guest-session
+  site_gs=/etc/guest-session
 
   # create temporary home directory
   mount -t tmpfs -o mode=700,uid=${USER} none ${HOME} || {
@@ -61,29 +62,31 @@ add_account ()
     exit 1
   }
 
-  if [ -d ${gs_skel} ] && [ -n $(find ${gs_skel} -type f) ]; then
+  if [ -d ${site_gs}/skel ] && [ -n $(find ${site_gs}/skel -type f) ]; then
     # Only perform union-mounting if BindFS is available
     if [ -x /usr/bin/bindfs ]; then
       bindfs_mount=true
 
       # Try OverlayFS first
       if modinfo -n overlay >/dev/null 2>&1; then
-        sudo -u ${USER} mkdir ${HOME}/upper ${HOME}/work
-        mount -t overlay -o lowerdir=${gs_skel},upperdir=${HOME}/upper,workdir=${HOME}/work overlay ${HOME} || {
+        mkdir ${HOME}/upper ${HOME}/work
+        chown ${USER}:${USER} ${HOME}/upper ${HOME}/work
+        mount -t overlay -o lowerdir=${dist_gs}/skel:${site_gs}/skel,upperdir=${HOME}/upper,workdir=${HOME}/work overlay ${HOME} || {
           umount ${HOME}
           rm -rf ${HOME}
           exit 1
         }
       # If OverlayFS is not available, try AuFS
       elif [ -x /sbin/mount.aufs ]; then
-        mount -t aufs -o br=${HOME}:${gs_skel} none ${HOME} || {
+        mount -t aufs -o br=${HOME}:${dist_gs}/skel:${site_gs}/skel none ${HOME} || {
           umount ${HOME}
           rm -rf ${HOME}
           exit 1
         }
       # If none of them is available, fall back to copy over
       else
-        cp -rT ${gs_skel} ${HOME}
+        cp -rT ${site_gs}/skel/ ${HOME}
+        cp -rT ${dist_gs}/skel/ ${HOME}
         chown -R ${USER}:${USER} ${HOME}
         bindfs_mount=false
       fi
@@ -100,64 +103,20 @@ add_account ()
       fi
     # If BindFS is not available, just fall back to copy over
     else
-      cp -rT ${gs_skel} ${HOME}
+      cp -rT ${site_gs}/skel/ ${HOME}
+      cp -rT ${dist_gs}/skel/ ${HOME}
       chown -R ${USER}:${USER} ${HOME}
     fi
   else
     cp -rT /etc/skel/ ${HOME}
+    cp -rT ${dist_gs}/skel/ ${HOME}
     chown -R ${USER}:${USER} ${HOME}
   fi
 
   usermod -d ${HOME} ${USER}
 
-  #
   # setup session
-  #
-
-  # disable some services that are unnecessary for the guest session
-  [ -d ${HOME}/.config/autostart ] || sudo -u ${USER} mkdir -p ${HOME}/.config/autostart
-  cd /etc/xdg/autostart/
-  services="jockey-kde.desktop jockey-gtk.desktop update-notifier.desktop user-dirs-update-gtk.desktop"
-  for service in ${services}
-  do
-    if [ -e /etc/xdg/autostart/${service} ] ; then
-      [ -f ${HOME}/.config/autostart/${service} ] || sudo -u ${USER} cp ${service} ${HOME}/.config/autostart
-      echo "X-GNOME-Autostart-enabled=false" >> ${HOME}/.config/autostart/${service}
-    fi
-  done
-
-  # disable Unity shortcut hint
-  [ -d ${HOME}/.cache/unity ] || sudo -u ${USER} mkdir -p ${HOME}/.cache/unity
-  sudo -u ${USER} touch ${HOME}/.cache/unity/first_run.stamp
-
-  STARTUP=${HOME}/.config/autostart/startup-commands.desktop
-  sudo -u ${USER} touch ${STARTUP}
-  echo "[Desktop Entry]" > ${STARTUP}
-  echo "Name=Startup commands" >> ${STARTUP}
-  echo "Type=Application" >> ${STARTUP}
-  echo "NoDisplay=true" >> ${STARTUP}
-  echo "Exec=/usr/lib/lightdm/guest-session-auto.sh" >> ${STARTUP}
-
-  sudo -u ${USER} touch ${HOME}/.profile
-  echo "export DIALOG_SLEEP=4" >> ${HOME}/.profile
-
-  [ -d ${HOME}/.kde/share/config ] || sudo -u ${USER} mkdir -p ${HOME}/.kde/share/config
-  [ -f ${HOME}/.kde/share/config/nepomukserverrc ] || sudo -u ${USER} touch ${HOME}/.kde/share/config/nepomukserverrc
-  echo "[Basic Settings]" >> ${HOME}/.kde/share/config/nepomukserverrc
-  echo "Start Nepomuk=false" >> ${HOME}/.kde/share/config/nepomukserverrc
-
-  [ -f ${HOME}/.kde/share/config/notificationhelper ] || sudo -u ${USER} touch ${HOME}/.kde/share/config/notificationhelper
-  echo "[Event]" >> ${HOME}/.kde/share/config/notificationhelper
-  echo "hideHookNotifier=true" >> ${HOME}/.kde/share/config/notificationhelper
-  echo "hideInstallNotifier=true" >> ${HOME}/.kde/share/config/notificationhelper
-  echo "hideRestartNotifier=true" >> ${HOME}/.kde/share/config/notificationhelper
-
-  # Load restricted session
-  #dmrc='[Desktop]\nSession=guest-restricted'
-  #/bin/echo -e ${dmrc} > ${HOME}/.dmrc
-
-  # set possible local guest session preferences
-  [ -f /etc/guest-session/prefs.sh ] && sudo -u ${USER} sh -c '. /etc/guest-session/prefs.sh'
+  su ${USER} -c "env HOME=${HOME} site_gs=${site_gs} ${dist_gs}/setup.sh"
 
   echo ${USER}
 }

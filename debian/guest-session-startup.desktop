@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=Custom startup commands for LightDM guest session
+Type=Application
+NoDisplay=true
+Exec=/usr/lib/lightdm/guest-session-auto.sh

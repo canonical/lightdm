@@ -1,0 +1,1 @@
+DIALOG_SLEEP=4
