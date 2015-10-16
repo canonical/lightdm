@@ -20,8 +20,10 @@ fi
 
 add_account ()
 {
-  HOME=$(mktemp -td guest-XXXXXX)
+  local temp_home=$(mktemp -td guest-XXXXXX)
+  HOME=$(echo ${temp_home} | tr '[:upper:]' '[:lower:]')
   USER=$(echo ${HOME} | sed 's/\(.*\)guest/guest/')
+  [ ${HOME} != ${temp_home} ] && mv ${temp_home} ${HOME}
 
   # if ${USER} already exists, it must be a locked system account with no existing
   # home directory
