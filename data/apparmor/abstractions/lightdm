@@ -75,6 +75,7 @@
   /{,var/}run/ r,
   # necessary for writing to sockets, etc.
   /{,var/}run/** rmkix,
+  /{,var/}run/screen/** wl,
   /{,var/}run/shm/** wl,
   /{,var/}run/uuidd/request w,
   # libpam-xdg-support/logind
