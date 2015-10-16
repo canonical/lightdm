@@ -173,7 +173,8 @@ TESTS = \
 	test-vnc-guest \
 	test-xremote-autologin \
 	test-xremote-login \    
-	test-xdmcp-client \
+	test-xdmcp-client-xorg-1.16 \
+	test-xdmcp-client-xorg-1.17 \
 	test-xdmcp-server-autologin \
 	test-xdmcp-server-login \
 	test-xdmcp-server-double-login \
@@ -591,7 +592,8 @@ EXTRA_DIST = \
 	scripts/xauthority.conf \
 	scripts/xdg-current-desktop.conf \
 	scripts/xdg-current-desktop-legacy.conf \
-	scripts/xdmcp-client.conf \
+	scripts/xdmcp-client-xorg-1.16.conf \
+	scripts/xdmcp-client-xorg-1.17.conf \
 	scripts/xdmcp-server-autologin.conf \
 	scripts/xdmcp-server-double-login.conf \
 	scripts/xdmcp-server-guest.conf \
