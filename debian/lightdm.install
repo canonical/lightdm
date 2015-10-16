@@ -12,6 +12,7 @@ etc/apparmor.d
 debian/lightdm-session usr/sbin
 debian/config-error-dialog.sh usr/lib/lightdm
 debian/guest-session-auto.sh usr/lib/lightdm
+debian/guest-session-startup.desktop usr/share/lightdm/guest-session/skel/.config/autostart
 debian/lightdm-greeter-session usr/lib/lightdm
 debian/source_lightdm.py usr/share/apport/package-hooks
 debian/50-xserver-command.conf usr/share/lightdm/lightdm.conf.d
