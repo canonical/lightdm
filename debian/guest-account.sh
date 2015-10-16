@@ -18,6 +18,18 @@ if [ -f /etc/default/locale ]; then
   export LANG LANGUAGE
 fi
 
+is_system_user ()
+{
+  local UID_MIN=$(cat /etc/login.defs | grep UID_MIN | awk '{print $2}')
+  local SYS_UID_MIN=$(cat /etc/login.defs | grep SYS_UID_MIN | awk '{print $2}')
+  local SYS_UID_MAX=$(cat /etc/login.defs | grep SYS_UID_MAX | awk '{print $2}')
+
+  SYS_UID_MIN=${SYS_UID_MIN:-101}
+  SYS_UID_MAX=${SYS_UID_MAX:-$(( UID_MIN - 1 ))}
+
+  [ ${1} -ge ${SYS_UID_MIN} ] && [ ${1} -le ${SYS_UID_MAX} ]
+}
+
 add_account ()
 {
   local temp_home=$(mktemp -td guest-XXXXXX)
@@ -37,7 +49,7 @@ add_account ()
       exit 1
     }
     GUEST_UID=$(echo ${PWENT} | cut -f3 -d:)
-    if [ ${GUEST_UID} -ge 500 ]; then
+    if ! is_system_user ${GUEST_UID}; then
       echo "Account ${USER} is not a system user"
       exit 1
     fi
@@ -133,10 +145,7 @@ remove_account ()
   GUEST_UID=$(echo ${PWENT} | cut -f3 -d:)
   GUEST_HOME=$(echo ${PWENT} | cut -f6 -d:)
 
-  SYS_UID_MIN=$(cat /etc/login.defs | grep SYS_UID_MIN | awk '{print $2}')
-  SYS_UID_MAX=$(cat /etc/login.defs | grep SYS_UID_MAX | awk '{print $2}')
-
-  if [ ${GUEST_UID} -lt ${SYS_UID_MIN} ] || [ ${GUEST_UID} -gt ${SYS_UID_MAX} ]; then
+  if ! is_system_user ${GUEST_UID}; then
     echo "Error: user ${GUEST_USER} is not a system user."
     exit 1
   fi
