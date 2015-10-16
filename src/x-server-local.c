@@ -610,9 +610,7 @@ x_server_local_init (XServerLocal *server)
 static void
 x_server_local_finalize (GObject *object)
 {
-    XServerLocal *self;
-
-    self = X_SERVER_LOCAL (object);
+    XServerLocal *self = X_SERVER_LOCAL (object);
 
     if (self->priv->x_server_process)
     {

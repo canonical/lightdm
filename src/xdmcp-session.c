@@ -77,15 +77,11 @@ xdmcp_session_init (XDMCPSession *session)
 static void
 xdmcp_session_finalize (GObject *object)
 {
-    XDMCPSession *self;
-
-    self = XDMCP_SESSION (object);
+    XDMCPSession *self = XDMCP_SESSION (object);
 
     g_free (self->priv->manufacturer_display_id);
-    if (self->priv->address)
-        g_object_unref (self->priv->address);
-    if (self->priv->authority)
-        g_object_unref (self->priv->authority);
+    g_clear_object (&self->priv->address);
+    g_clear_object (&self->priv->authority);
     g_free (self->priv->display_class);
 
     G_OBJECT_CLASS (xdmcp_session_parent_class)->finalize (object);

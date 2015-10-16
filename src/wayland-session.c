@@ -81,9 +81,7 @@ wayland_session_init (WaylandSession *session)
 static void
 wayland_session_finalize (GObject *object)
 {
-    WaylandSession *self;
-
-    self = WAYLAND_SESSION (object);
+    WaylandSession *self = WAYLAND_SESSION (object);
 
     if (self->priv->have_vt_ref)
         vt_unref (self->priv->vt);

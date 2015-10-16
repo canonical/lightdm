@@ -450,7 +450,7 @@ login1_service_finalize (GObject *object)
 
     g_list_free_full (self->priv->seats, g_object_unref);
     g_dbus_connection_signal_unsubscribe (self->priv->connection, self->priv->signal_id);
-    g_object_unref (self->priv->connection);
+    g_clear_object (&self->priv->connection);
 
     G_OBJECT_CLASS (login1_service_parent_class)->finalize (object);
 }

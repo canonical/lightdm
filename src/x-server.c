@@ -204,14 +204,11 @@ x_server_init (XServer *server)
 static void
 x_server_finalize (GObject *object)
 {
-    XServer *self;
-
-    self = X_SERVER (object);
+    XServer *self = X_SERVER (object);
 
     g_free (self->priv->hostname);
     g_free (self->priv->address);
-    if (self->priv->authority)
-        g_object_unref (self->priv->authority);
+    g_clear_object (&self->priv->authority);
     if (self->priv->connection)
         xcb_disconnect (self->priv->connection);
 

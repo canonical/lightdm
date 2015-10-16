@@ -1899,10 +1899,8 @@ seat_init (Seat *seat)
 static void
 seat_finalize (GObject *object)
 {
-    Seat *self;
+    Seat *self = SEAT (object);
     GList *link;
-
-    self = SEAT (object);
 
     g_free (self->priv->name);
     g_hash_table_unref (self->priv->properties);
@@ -1918,14 +1916,10 @@ seat_finalize (GObject *object)
         g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
     }
     g_list_free_full (self->priv->sessions, g_object_unref);
-    if (self->priv->active_session)
-        g_object_unref (self->priv->active_session);
-    if (self->priv->next_session)
-        g_object_unref (self->priv->next_session);
-    if (self->priv->session_to_activate)
-        g_object_unref (self->priv->session_to_activate);
-    if (self->priv->replacement_greeter)
-        g_object_unref (self->priv->replacement_greeter);
+    g_clear_object (&self->priv->active_session);
+    g_clear_object (&self->priv->next_session);
+    g_clear_object (&self->priv->session_to_activate);
+    g_clear_object (&self->priv->replacement_greeter);
 
     G_OBJECT_CLASS (seat_parent_class)->finalize (object);
 }

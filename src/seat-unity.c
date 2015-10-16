@@ -421,17 +421,14 @@ seat_unity_finalize (GObject *object)
 {
     SeatUnity *seat = SEAT_UNITY (object);
 
-    if (seat->priv->compositor)
-        g_object_unref (seat->priv->compositor);
+    g_clear_object (&seat->priv->compositor);
     if (seat->priv->xdmcp_x_server)
     {
         g_signal_handlers_disconnect_matched (seat->priv->xdmcp_x_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
         g_object_unref (seat->priv->xdmcp_x_server);
     }
-    if (seat->priv->active_session)
-        g_object_unref (seat->priv->active_session);
-    if (seat->priv->active_display_server)
-        g_object_unref (seat->priv->active_display_server);
+    g_clear_object (&seat->priv->active_session);
+    g_clear_object (&seat->priv->active_display_server);
 
     G_OBJECT_CLASS (seat_unity_parent_class)->finalize (object);
 }

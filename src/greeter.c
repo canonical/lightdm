@@ -1043,9 +1043,7 @@ greeter_init (Greeter *greeter)
 static void
 greeter_finalize (GObject *object)
 {
-    Greeter *self;
-
-    self = GREETER (object);
+    Greeter *self = GREETER (object);
 
     g_free (self->priv->pam_service);
     g_free (self->priv->autologin_pam_service);

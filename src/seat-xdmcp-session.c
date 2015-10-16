@@ -60,11 +60,9 @@ seat_xdmcp_session_init (SeatXDMCPSession *seat)
 static void
 seat_xdmcp_session_finalize (GObject *object)
 {
-    SeatXDMCPSession *self;
+    SeatXDMCPSession *self = SEAT_XDMCP_SESSION (object);
 
-    self = SEAT_XDMCP_SESSION (object);
-
-    g_object_unref (self->priv->session);
+    g_clear_object (&self->priv->session);
 
     G_OBJECT_CLASS (seat_xdmcp_session_parent_class)->finalize (object);
 }

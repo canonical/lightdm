@@ -154,9 +154,7 @@ display_server_init (DisplayServer *server)
 static void
 display_server_finalize (GObject *object)
 {
-    DisplayServer *self;
-
-    self = DISPLAY_SERVER (object);
+    DisplayServer *self = DISPLAY_SERVER (object);
 
     g_free (self->priv->name);
 

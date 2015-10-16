@@ -359,9 +359,7 @@ process_stopped (Process *process)
 static void
 process_finalize (GObject *object)
 {
-    Process *self;
-
-    self = PROCESS (object);
+    Process *self = PROCESS (object);
 
     if (self->priv->pid > 0)
         g_hash_table_remove (processes, GINT_TO_POINTER (self->priv->pid));

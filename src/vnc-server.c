@@ -179,15 +179,11 @@ vnc_server_init (VNCServer *server)
 static void
 vnc_server_finalize (GObject *object)
 {
-    VNCServer *self;
-
-    self = VNC_SERVER (object);
+    VNCServer *self = VNC_SERVER (object);
 
     g_free (self->priv->listen_address);
-    if (self->priv->socket)
-        g_object_unref (self->priv->socket);
-    if (self->priv->socket6)
-        g_object_unref (self->priv->socket6);
+    g_clear_object (&self->priv->socket);
+    g_clear_object (&self->priv->socket6);
 
     G_OBJECT_CLASS (vnc_server_parent_class)->finalize (object);
 }

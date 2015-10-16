@@ -101,11 +101,9 @@ seat_xvnc_init (SeatXVNC *seat)
 static void
 seat_xdmcp_session_finalize (GObject *object)
 {
-    SeatXVNC *self;
+    SeatXVNC *self = SEAT_XVNC (object);
 
-    self = SEAT_XVNC (object);
-
-    g_object_unref (self->priv->connection);
+    g_clear_object (&self->priv->connection);
 
     G_OBJECT_CLASS (seat_xvnc_parent_class)->finalize (object);
 }

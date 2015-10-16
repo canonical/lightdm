@@ -170,10 +170,8 @@ display_manager_init (DisplayManager *manager)
 static void
 display_manager_finalize (GObject *object)
 {
-    DisplayManager *self;
+    DisplayManager *self = DISPLAY_MANAGER (object);
     GList *link;
-
-    self = DISPLAY_MANAGER (object);
 
     for (link = self->priv->seats; link; link = link->next)
     {

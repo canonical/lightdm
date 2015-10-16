@@ -920,10 +920,8 @@ session_finalize (GObject *object)
     Session *self = SESSION (object);
     int i;
 
-    if (self->priv->config)
-        g_object_unref (self->priv->config);
-    if (self->priv->display_server)
-        g_object_unref (self->priv->display_server);
+    g_clear_object (&self->priv->config);
+    g_clear_object (&self->priv->display_server);
     if (self->priv->pid)
         kill (self->priv->pid, SIGKILL);
     close (self->priv->to_child_input);
@@ -935,8 +933,7 @@ session_finalize (GObject *object)
     if (self->priv->child_watch)
         g_source_remove (self->priv->child_watch);
     g_free (self->priv->username);
-    if (self->priv->user)
-        g_object_unref (self->priv->user);
+    g_clear_object (&self->priv->user);
     g_free (self->priv->pam_service);
     for (i = 0; i < self->priv->messages_length; i++)
         g_free ((char *) self->priv->messages[i].msg);
@@ -945,8 +942,7 @@ session_finalize (GObject *object)
     g_free (self->priv->log_filename);
     g_free (self->priv->tty);
     g_free (self->priv->xdisplay);
-    if (self->priv->x_authority)
-        g_object_unref (self->priv->x_authority);
+    g_clear_object (&self->priv->x_authority);
     g_free (self->priv->remote_host_name);
     g_free (self->priv->login1_session_id);
     g_free (self->priv->console_kit_cookie);

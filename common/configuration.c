@@ -331,9 +331,7 @@ config_init (Configuration *config)
 static void
 config_finalize (GObject *object)
 {
-    Configuration *self;
-
-    self = CONFIGURATION (object);
+    Configuration *self = CONFIGURATION (object);
 
     g_free (self->priv->dir);
     g_key_file_free (self->priv->key_file);

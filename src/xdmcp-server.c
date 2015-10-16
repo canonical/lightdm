@@ -743,14 +743,10 @@ xdmcp_server_init (XDMCPServer *server)
 static void
 xdmcp_server_finalize (GObject *object)
 {
-    XDMCPServer *self;
+    XDMCPServer *self = XDMCP_SERVER (object);
 
-    self = XDMCP_SERVER (object);
-
-    if (self->priv->socket)
-        g_object_unref (self->priv->socket);
-    if (self->priv->socket6)
-        g_object_unref (self->priv->socket6);
+    g_clear_object (&self->priv->socket);
+    g_clear_object (&self->priv->socket6);
     g_free (self->priv->listen_address);
     g_free (self->priv->hostname);
     g_free (self->priv->status);

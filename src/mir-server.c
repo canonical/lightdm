@@ -99,13 +99,11 @@ mir_server_init (MirServer *server)
 static void
 mir_server_finalize (GObject *object)
 {
-    MirServer *server;
+    MirServer *self = MIR_SERVER (object);
 
-    server = MIR_SERVER (object);
-
-    if (server->priv->vt > 0)
-        vt_unref (server->priv->vt);
-    g_free (server->priv->parent_socket);
+    if (self->priv->vt > 0)
+        vt_unref (self->priv->vt);
+    g_free (self->priv->parent_socket);
 
     G_OBJECT_CLASS (mir_server_parent_class)->finalize (object);
 }

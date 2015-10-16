@@ -372,9 +372,7 @@ x_authority_init (XAuthority *auth)
 static void
 x_authority_finalize (GObject *object)
 {
-    XAuthority *self;
-
-    self = X_AUTHORITY (object);
+    XAuthority *self = X_AUTHORITY (object);
 
     g_free (self->priv->address);
     g_free (self->priv->number);

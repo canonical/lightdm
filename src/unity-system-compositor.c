@@ -482,9 +482,7 @@ unity_system_compositor_init (UnitySystemCompositor *compositor)
 static void
 unity_system_compositor_finalize (GObject *object)
 {
-    UnitySystemCompositor *self;
-
-    self = UNITY_SYSTEM_COMPOSITOR (object);
+    UnitySystemCompositor *self = UNITY_SYSTEM_COMPOSITOR (object);
 
     if (self->priv->process)
     {

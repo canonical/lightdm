@@ -1059,8 +1059,7 @@ common_user_list_finalize (GObject *object)
     if (priv->session_removed_signal)
         g_dbus_connection_signal_unsubscribe (priv->bus, priv->session_removed_signal);
     g_object_unref (priv->bus);
-    if (priv->passwd_monitor)
-        g_object_unref (priv->passwd_monitor);
+    g_clear_object (&priv->passwd_monitor);
 
     G_OBJECT_CLASS (common_user_list_parent_class)->finalize (object);
 }

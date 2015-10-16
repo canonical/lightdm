@@ -291,12 +291,9 @@ x_server_xvnc_init (XServerXVNC *server)
 static void
 x_server_xvnc_finalize (GObject *object)
 {
-    XServerXVNC *self;
+    XServerXVNC *self = X_SERVER_XVNC (object);
 
-    self = X_SERVER_XVNC (object);
-
-    if (self->priv->x_server_process)
-        g_object_unref (self->priv->x_server_process);
+    g_clear_object (&self->priv->x_server_process);
     g_free (self->priv->command);
     g_free (self->priv->authority_file);
 
