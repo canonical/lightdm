@@ -164,10 +164,14 @@ remove_account ()
   fi
 
   # kill all remaining processes
-  while ps h -u ${GUEST_USER} >/dev/null; do 
-    killall -9 -u ${GUEST_USER} || true
-    sleep 0.2; 
-  done
+  if [ -x /bin/loginctl ] || [ -x /usr/bin/loginctl ]; then
+    loginctl terminate-user ${GUEST_USER} >/dev/null || true
+  else
+    while ps h -u ${GUEST_USER} >/dev/null; do 
+      killall -9 -u ${GUEST_USER} || true
+      sleep 0.2; 
+    done
+  fi
 
   umount ${GUEST_HOME} || umount -l ${GUEST_HOME} || true # BindFS mount
   umount ${GUEST_HOME} || umount -l ${GUEST_HOME} || true # union mount
