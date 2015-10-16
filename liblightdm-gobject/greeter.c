@@ -1952,8 +1952,7 @@ request_finalize (GObject *object)
     Request *request = REQUEST (object);
 
     g_free (request->dir);
-    if (request->cancellable)
-        g_object_unref (request->cancellable);
+    g_clear_object (&request->cancellable);
 
     G_OBJECT_CLASS (request_parent_class)->finalize (object);
 }
