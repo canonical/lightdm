@@ -245,21 +245,13 @@ shared_data_manager_init (SharedDataManager *manager)
 }
 
 static void
-shared_data_manager_dispose (GObject *object)
-{
-    SharedDataManager *self = SHARED_DATA_MANAGER (object);
-
-    /* Should also cancel outstanding GIO operations, but whatever, let them do their thing. */
-
-    g_signal_handlers_disconnect_by_data (common_user_list_get_instance (), self);
-
-    G_OBJECT_CLASS (shared_data_manager_parent_class)->dispose (object);
-}
-
-static void
 shared_data_manager_finalize (GObject *object)
 {
     SharedDataManager *self = SHARED_DATA_MANAGER (object);
+  
+    /* Should also cancel outstanding GIO operations, but whatever, let them do their thing. */
+
+    g_signal_handlers_disconnect_by_data (common_user_list_get_instance (), self);
 
     if (self->priv->starting_dirs)
         g_hash_table_destroy (self->priv->starting_dirs);
@@ -274,7 +266,6 @@ shared_data_manager_class_init (SharedDataManagerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->dispose = shared_data_manager_dispose;
     object_class->finalize = shared_data_manager_finalize;
 
     g_type_class_add_private (klass, sizeof (SharedDataManagerPrivate));

@@ -122,17 +122,13 @@ user_init (User *user)
 }
 
 static void
-user_dispose (GObject *object)
+user_finalize (GObject *object)
 {
-    User *self;
+    User *self = USER (object);
 
-    self = USER (object);
+    g_clear_object (&self->priv->common_user);
 
-    if (self->priv->common_user)
-        g_object_unref (self->priv->common_user);
-    self->priv->common_user = NULL;
-
-    G_OBJECT_CLASS (user_parent_class)->dispose (object);
+    G_OBJECT_CLASS (user_parent_class)->finalize (object);
 }
 
 static void
@@ -140,7 +136,7 @@ user_class_init (UserClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->dispose = user_dispose;
+    object_class->finalize = user_finalize;
 
     g_type_class_add_private (klass, sizeof (UserPrivate));
 }
