@@ -135,8 +135,7 @@ session_set_config (Session *session, SessionConfig *config)
 {
     g_return_if_fail (session != NULL);
 
-    if (session->priv->config)
-        g_object_unref (session->priv->config);
+    g_clear_object (&session->priv->config);
     session->priv->config = g_object_ref (config);
 }
 
@@ -246,11 +245,7 @@ void
 session_set_x_authority (Session *session, XAuthority *authority, gboolean use_system_location)
 {
     g_return_if_fail (session != NULL);
-    if (session->priv->x_authority)
-    {
-        g_object_unref (session->priv->x_authority);
-        session->priv->x_authority = NULL;
-    }
+    g_clear_object (&session->priv->x_authority);
     if (authority)
         session->priv->x_authority = g_object_ref (authority);
     session->priv->x_authority_use_system_location = use_system_location;
@@ -484,9 +479,7 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     {
         g_free (session->priv->username);
         session->priv->username = username;
-        if (session->priv->user)
-            g_object_unref (session->priv->user);
-        session->priv->user = NULL;
+        g_clear_object (&session->priv->user);
     }
     else
         g_free (username);

@@ -158,8 +158,7 @@ stopped_cb (Process *process, XServerXVNC *server)
 {
     l_debug (server, "Xvnc server stopped");
 
-    g_object_unref (server->priv->x_server_process);
-    server->priv->x_server_process = NULL;
+    g_clear_object (&server->priv->x_server_process);
 
     x_server_local_release_display_number (x_server_get_display_number (X_SERVER (server)));
 

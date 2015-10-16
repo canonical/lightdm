@@ -140,8 +140,7 @@ compositor_stopped_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
 {
     l_debug (seat, "Compositor stopped");
 
-    g_object_unref (seat->priv->compositor);
-    seat->priv->compositor = NULL;
+    g_clear_object (&seat->priv->compositor);
 
     if (seat_get_is_stopping (SEAT (seat)))
         check_stopped (seat);

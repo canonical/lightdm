@@ -412,8 +412,7 @@ reset_session (Greeter *greeter)
     {
         g_signal_handlers_disconnect_matched (greeter->priv->authentication_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
         session_stop (greeter->priv->authentication_session);
-        g_object_unref (greeter->priv->authentication_session);
-        greeter->priv->authentication_session = NULL;
+        g_clear_object (&greeter->priv->authentication_session);
     }
 
     greeter->priv->guest_account_authenticated = FALSE;

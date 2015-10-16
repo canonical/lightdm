@@ -1539,8 +1539,7 @@ main (int argc, char **argv)
     common_user_list_cleanup ();
 
     /* Clean up display manager */
-    g_object_unref (display_manager);
-    display_manager = NULL;
+    g_clear_object (&display_manager);
 
     /* Remove D-Bus interface */
     g_dbus_connection_unregister_object (bus, reg_id);

@@ -186,9 +186,7 @@ common_user_list_get_instance (void)
 void
 common_user_list_cleanup (void)
 {
-    if (singleton)
-        g_object_unref (singleton);
-    singleton = NULL;
+    g_clear_object (&singleton);
 }
 
 static CommonUser *

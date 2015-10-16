@@ -49,11 +49,7 @@ shared_data_manager_get_instance (void)
 void
 shared_data_manager_cleanup (void)
 {
-    if (singleton)
-    {
-        g_object_unref (singleton);
-        singleton = NULL;
-    }
+    g_clear_object (&singleton);
 }
 
 static void
