@@ -44,16 +44,21 @@ add_account ()
       echo "User account ${USER} already exists and is not locked"
       exit 1
     fi
+
     PWENT=$(getent passwd ${USER}) || {
       echo "getent passwd ${USER} failed"
       exit 1
     }
+
     GUEST_UID=$(echo ${PWENT} | cut -f3 -d:)
+
     if ! is_system_user ${GUEST_UID}; then
       echo "Account ${USER} is not a system user"
       exit 1
     fi
+
     HOME=$(echo ${PWENT} | cut -f6 -d:)
+
     if [ ${HOME} != / ] && [ ${HOME#/tmp} = ${HOME} ] && [ -d ${HOME} ]; then
       echo "Home directory of ${USER} already exists"
       exit 1
@@ -84,6 +89,7 @@ add_account ()
       if modinfo -n overlay >/dev/null 2>&1; then
         mkdir ${HOME}/upper ${HOME}/work
         chown ${USER}:${USER} ${HOME}/upper ${HOME}/work
+
         mount -t overlay -o lowerdir=${dist_gs}/skel:${site_gs}/skel,upperdir=${HOME}/upper,workdir=${HOME}/work overlay ${HOME} || {
           umount ${HOME}
           rm -rf ${HOME}
@@ -142,13 +148,15 @@ remove_account ()
     echo "Error: invalid user ${GUEST_USER}"
     exit 1
   }
+
   GUEST_UID=$(echo ${PWENT} | cut -f3 -d:)
-  GUEST_HOME=$(echo ${PWENT} | cut -f6 -d:)
 
   if ! is_system_user ${GUEST_UID}; then
     echo "Error: user ${GUEST_USER} is not a system user."
     exit 1
   fi
+
+  GUEST_HOME=$(echo ${PWENT} | cut -f6 -d:)
 
   if [ ${GUEST_HOME} = ${GUEST_HOME#/tmp/} ]; then
     echo "Error: home directory ${GUEST_HOME} is not in /tmp/."
@@ -192,9 +200,11 @@ case ${1} in
       echo "Usage: ${0} remove [account]"
       exit 1
     fi
+
     remove_account ${2}
     ;;
   *)
-    echo "Usage: ${0} add|remove"
+    echo "Usage: ${0} add"
+    echo "       ${0} remove [account]"
     exit 1
 esac
