@@ -160,14 +160,16 @@ remove_account ()
   # remove leftovers in /tmp
   find /tmp -mindepth 1 -maxdepth 1 -uid ${GUEST_UID} -print0 | xargs -0 rm -rf || true
 
-  # remove possible /media/guest-XXXXXX folder
-  if [ -d /media/${GUEST_USER} ]; then
-    for dir in $(find /media/${GUEST_USER} -mindepth 1 -maxdepth 1); do
-      umount ${dir} || true
-    done
+  # remove possible {/run,}/media/guest-XXXXXX folder
+  for media_dir in /run/media/${GUEST_USER} /media/${GUEST_USER}; do
+    if [ -d ${media_dir} ]; then
+      for dir in $(find ${media_dir} -mindepth 1 -maxdepth 1); do
+        umount ${dir} || true
+      done
 
-    rmdir /media/${GUEST_USER} || true
-  fi
+      rmdir ${media_dir} || true
+    fi
+  done
 
   userdel ${GUEST_USER}
 }
