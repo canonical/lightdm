@@ -48,8 +48,7 @@ add_account ()
     fi
   else
     # does not exist, so create it
-    adduser --system --no-create-home --home / --gecos $(gettext "Guest") --group --shell /bin/bash ${USER} || {
-      umount ${HOME}
+    useradd --system --home-dir / --comment $(gettext "Guest") --user-group --shell /bin/bash ${USER} || {
       rm -rf ${HOME}
       exit 1
     }
@@ -134,7 +133,10 @@ remove_account ()
   GUEST_UID=$(echo ${PWENT} | cut -f3 -d:)
   GUEST_HOME=$(echo ${PWENT} | cut -f6 -d:)
 
-  if [ ${GUEST_UID} -ge 500 ]; then
+  SYS_UID_MIN=$(cat /etc/login.defs | grep SYS_UID_MIN | awk '{print $2}')
+  SYS_UID_MAX=$(cat /etc/login.defs | grep SYS_UID_MAX | awk '{print $2}')
+
+  if [ ${GUEST_UID} -lt ${SYS_UID_MIN} ] || [ ${GUEST_UID} -gt ${SYS_UID_MAX} ]; then
     echo "Error: user ${GUEST_USER} is not a system user."
     exit 1
   fi
@@ -167,7 +169,7 @@ remove_account ()
     rmdir /media/${GUEST_USER} || true
   fi
 
-  deluser --system ${GUEST_USER}
+  userdel ${GUEST_USER}
 }
 
 case ${1} in
