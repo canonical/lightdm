@@ -134,9 +134,11 @@ TESTS = \
 	test-dbus \
 	test-lock-seat \
 	test-lock-seat-after-vt-switch \
+	test-lock-seat-twice \
 	test-lock-seat-resettable \
 	test-lock-seat-return-session \
 	test-lock-session \
+	test-lock-session-twice \
 	test-lock-session-no-password \
 	test-lock-session-resettable \
 	test-lock-session-return-session \
@@ -434,10 +436,12 @@ EXTRA_DIST = \
 	scripts/lock-seat-resettable.conf \
 	scripts/lock-seat-return-session.conf \
 	scripts/lock-seat-return-session-console-kit.conf \
+	scripts/lock-seat-twice.conf \
 	scripts/lock-session.conf \
 	scripts/lock-session-no-password.conf \
 	scripts/lock-session-resettable.conf \
 	scripts/lock-session-return-session.conf \
+	scripts/lock-session-twice.conf \
 	scripts/login.conf \
 	scripts/login-crash-authenticate.conf \
 	scripts/login-guest.conf \

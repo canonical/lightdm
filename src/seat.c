@@ -65,6 +65,9 @@ struct SeatPrivate
 
     /* TRUE if stopped */
     gboolean stopped;
+    
+    /* The greeter to be started to replace the current one */
+    Greeter *replacement_greeter;
 };
 
 static void seat_logger_iface_init (LoggerInterface *iface);
@@ -790,9 +793,28 @@ session_stopped_cb (Session *session, Seat *seat)
         g_object_unref (session);
         return;
     }
+    
+    /* If there is a pending replacement greeter, start it */
+    if (IS_GREETER (session) && seat->priv->replacement_greeter)
+    {
+        Greeter *replacement_greeter = seat->priv->replacement_greeter;
+        seat->priv->replacement_greeter = NULL;
+        
+        if (session_get_is_authenticated (SESSION (replacement_greeter)))
+        {
+            l_debug (seat, "Greeter stopped, running session");
+            run_session (seat, SESSION (replacement_greeter));
+        }
+        else
+        {
+            l_debug (seat, "Greeter stopped, starting session authentication");
+            start_session (seat, SESSION (replacement_greeter));
+        }
 
+        g_object_unref (replacement_greeter);
+    }
     /* If this is the greeter session then re-use this display server */
-    if (IS_GREETER (session) &&
+    else if (IS_GREETER (session) &&
         can_share_display_server (seat, display_server) &&
         greeter_get_start_session (GREETER (session)))
     {
@@ -1594,13 +1616,16 @@ gboolean
 seat_lock (Seat *seat, const gchar *username)
 {
     Greeter *greeter_session;
-    DisplayServer *display_server;
-    gboolean existing = FALSE;
+    DisplayServer *display_server = NULL;
+    gboolean reset_existing = FALSE;
+    gboolean reuse_xserver = FALSE;
 
     g_return_val_if_fail (seat != NULL, FALSE);
 
     if (!seat_get_can_switch (seat))
         return FALSE;
+
+    // FIXME: If already locked then don't bother...
 
     l_debug (seat, "Locking");
 
@@ -1610,10 +1635,23 @@ seat_lock (Seat *seat, const gchar *username)
     {
         l_debug (seat, "Switching to existing greeter");
         set_greeter_hints (seat, greeter_session);
-        existing = TRUE;
+        reset_existing = TRUE;
     }
     else
     {
+        /* If the existing greeter can't be reused, stop it and reuse its display server */
+        greeter_session = find_greeter_session (seat);
+        if (greeter_session)
+        {
+            display_server = session_get_display_server (SESSION (greeter_session));
+            if (!session_get_is_stopping (SESSION (greeter_session)))
+            {
+                l_debug (seat, "Stopping session");
+                session_stop (SESSION (greeter_session));
+            }
+            reuse_xserver = TRUE;
+        }
+        
         greeter_session = create_greeter_session (seat);
         if (!greeter_session)
             return FALSE;
@@ -1623,7 +1661,7 @@ seat_lock (Seat *seat, const gchar *username)
     if (username)
         greeter_set_hint (greeter_session, "select-user", username);
 
-    if (existing)
+    if (reset_existing)
     {
         greeter_reset (greeter_session);
         seat_set_active_session (seat, SESSION (greeter_session));
@@ -1631,14 +1669,23 @@ seat_lock (Seat *seat, const gchar *username)
     }
     else
     {
-        display_server = create_display_server (seat, SESSION (greeter_session));
+        if (!reuse_xserver)
+            display_server = create_display_server (seat, SESSION (greeter_session));
+        session_set_display_server (SESSION (greeter_session), display_server);
 
         if (seat->priv->session_to_activate)
             g_object_unref (seat->priv->session_to_activate);
         seat->priv->session_to_activate = g_object_ref (greeter_session);
-        session_set_display_server (SESSION (greeter_session), display_server);
 
-        return display_server_start (display_server);
+        if (reuse_xserver)
+        {
+            if (seat->priv->replacement_greeter)
+                g_object_unref (seat->priv->replacement_greeter);
+            seat->priv->replacement_greeter = g_object_ref (greeter_session);
+            return TRUE;
+        }
+        else
+            return display_server_start (display_server);
     }
 }
 
@@ -1877,6 +1924,8 @@ seat_finalize (GObject *object)
         g_object_unref (self->priv->next_session);
     if (self->priv->session_to_activate)
         g_object_unref (self->priv->session_to_activate);
+    if (self->priv->replacement_greeter)
+        g_object_unref (self->priv->replacement_greeter);
 
     G_OBJECT_CLASS (seat_parent_class)->finalize (object);
 }
