@@ -33,14 +33,16 @@
   /etc/ r,
   /etc/** rmk,
   /etc/gdm/Xsession ix,
+  /etc/X11/xdm/** ix, # needed for openSUSE's default session-wrapper
+  /etc/X11/xinit/** ix, # needed for openSUSE's default session-wrapper
   /lib/ r,
   /lib/** rmixk,
   /lib32/ r,
   /lib32/** rmixk,
   /lib64/ r,
   /lib64/** rmixk,
-  owner /media/ r,
-  owner /media/** rmwlixk,  # we want access to USB sticks and the like
+  owner /{,run/}media/ r,
+  owner /{,run/}media/** rmwlixk,  # we want access to USB sticks and the like
   /opt/ r,
   /opt/** rmixk,
   @{PROC}/ r,
