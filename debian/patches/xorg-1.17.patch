@@ -3,11 +3,11 @@ Author: Robert Ancell <robert.ancell@canonical.com>
 Bug: https://bugs.launchpad.net/bugs/1449282
 
 === modified file 'src/x-server-local.c'
-Index: 1.16/src/x-server-local.c
+Index: trunk/src/x-server-local.c
 ===================================================================
---- 1.16.orig/src/x-server-local.c
-+++ 1.16/src/x-server-local.c
-@@ -477,6 +477,7 @@ x_server_local_start (DisplayServer *dis
+--- trunk.orig/src/x-server-local.c
++++ trunk/src/x-server-local.c
+@@ -534,6 +534,7 @@ x_server_local_start (DisplayServer *dis
      /* Connect to a remote server using XDMCP */
      if (server->priv->xdmcp_server != NULL)
      {
@@ -15,9 +15,9 @@ Index: 1.16/src/x-server-local.c
          if (server->priv->xdmcp_port != 0)
              g_string_append_printf (command, " -port %d", server->priv->xdmcp_port);
          g_string_append_printf (command, " -query %s", server->priv->xdmcp_server);
-@@ -485,6 +486,8 @@ x_server_local_start (DisplayServer *dis
+@@ -547,6 +548,8 @@ x_server_local_start (DisplayServer *dis
      }
-     else if (!server->priv->allow_tcp)
+     else
          g_string_append (command, " -nolisten tcp");
 +    else
 +        g_string_append (command, " -listen tcp");
