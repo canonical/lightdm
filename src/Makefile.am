@@ -19,6 +19,9 @@ lightdm_SOURCES = \
 	logger.h \
 	login1.c \
 	login1.h \
+	log-file.c \
+	log-file.h \
+	log-mode.h \
 	mir-server.c \
 	mir-server.h \
 	plymouth.c \

@@ -23,6 +23,7 @@ typedef struct Session Session;
 #include "accounts.h"
 #include "x-authority.h"
 #include "logger.h"
+#include "log-mode.h"
 
 G_BEGIN_DECLS
 
@@ -84,7 +85,7 @@ void session_set_is_guest (Session *session, gboolean is_guest);
 
 gboolean session_get_is_guest (Session *session);
 
-void session_set_log_file (Session *session, const gchar *filename);
+void session_set_log_file (Session *session, const gchar *filename, LogMode log_mode);
 
 void session_set_display_server (Session *session, DisplayServer *display_server);
 

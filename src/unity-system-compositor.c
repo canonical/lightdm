@@ -407,7 +407,7 @@ unity_system_compositor_start (DisplayServer *server)
 
     /* Setup environment */
     compositor->priv->process = process_new (run_cb, compositor);
-    process_set_log_file (compositor->priv->process, log_file, TRUE);
+    process_set_log_file (compositor->priv->process, log_file, TRUE, LOG_MODE_APPEND);
     g_free (log_file);
     process_set_clear_environment (compositor->priv->process, TRUE);
     process_set_env (compositor->priv->process, "XDG_SEAT", "seat0");

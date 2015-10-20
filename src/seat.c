@@ -602,7 +602,7 @@ start_session (Seat *seat, Session *session)
         log_filename = g_build_filename (log_dir, filename, NULL);
         g_free (log_dir);
         g_free (filename);
-        session_set_log_file (session, log_filename);
+        session_set_log_file (session, log_filename, LOG_MODE_APPEND);
         g_free (log_filename);
     }
 
