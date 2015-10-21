@@ -147,7 +147,19 @@ seat_get_string_list_property (Seat *seat, const gchar *name)
 gboolean
 seat_get_boolean_property (Seat *seat, const gchar *name)
 {
-    return g_strcmp0 (seat_get_string_property (seat, name), "true") == 0;
+    const gchar *value;
+    gint i, length = 0;
+
+    value = seat_get_string_property (seat, name);
+    if (!value)
+        return FALSE;
+
+    /* Count the number of non-whitespace characters */
+    for (i = 0; value[i]; i++)
+        if (!g_ascii_isspace (value[i]))
+            length = i + 1;
+
+    return strncmp (value, "true", MAX (length, 4)) == 0;
 }
 
 gint
