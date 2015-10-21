@@ -308,7 +308,22 @@ config_set_boolean (Configuration *config, const gchar *section, const gchar *ke
 gboolean
 config_get_boolean (Configuration *config, const gchar *section, const gchar *key)
 {
-    return g_key_file_get_boolean (config->priv->key_file, section, key, NULL);
+    /* We don't use the standard function because it doesn't work with trailing whitespace:
+     * https://bugzilla.gnome.org/show_bug.cgi?id=664740
+     */
+    /*return g_key_file_get_boolean (config->priv->key_file, section, key, NULL);*/
+
+    gchar *value;
+    gboolean v;
+
+    value = g_key_file_get_value (config->priv->key_file, section, key, NULL);
+    if (!value)
+        return FALSE;
+    g_strchomp (value);
+    v = strcmp (value, "true") == 0;
+    g_free (value);
+
+    return v;
 }
 
 static void
