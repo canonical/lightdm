@@ -14,6 +14,8 @@
 
 #include <glib-object.h>
 
+#include "log-mode.h"
+
 G_BEGIN_DECLS
 
 #define PROCESS_TYPE (process_get_type())
@@ -49,7 +51,7 @@ Process *process_get_current (void);
 
 Process *process_new (ProcessRunFunc run_func, gpointer run_func_data);
 
-void process_set_log_file (Process *process, const gchar *path, gboolean log_stdout);
+void process_set_log_file (Process *process, const gchar *path, gboolean log_stdout, LogMode log_mode);
 
 void process_set_clear_environment (Process *process, gboolean clear_environment);
 

@@ -201,7 +201,7 @@ x_server_xvnc_start (DisplayServer *display_server)
     filename = g_strdup_printf ("%s.log", display_server_get_name (display_server));
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
     log_file = g_build_filename (dir, filename, NULL);
-    process_set_log_file (server->priv->x_server_process, log_file, FALSE);
+    process_set_log_file (server->priv->x_server_process, log_file, FALSE, LOG_MODE_APPEND);
     l_debug (display_server, "Logging to %s", log_file);
     g_free (log_file);
     g_free (filename);
