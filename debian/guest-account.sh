@@ -143,7 +143,7 @@ add_account ()
 remove_account ()
 {
   GUEST_USER=${1}
-  
+
   PWENT=$(getent passwd ${GUEST_USER}) || {
     echo "Error: invalid user ${GUEST_USER}"
     exit 1
@@ -158,25 +158,25 @@ remove_account ()
 
   GUEST_HOME=$(echo ${PWENT} | cut -f6 -d:)
 
-  if [ ${GUEST_HOME} = ${GUEST_HOME#/tmp/} ]; then
-    echo "Error: home directory ${GUEST_HOME} is not in /tmp/."
-    exit 1
-  fi
-
   # kill all remaining processes
   if [ -x /bin/loginctl ] || [ -x /usr/bin/loginctl ]; then
     loginctl terminate-user ${GUEST_USER} >/dev/null || true
   else
-    while ps h -u ${GUEST_USER} >/dev/null; do 
+    while ps h -u ${GUEST_USER} >/dev/null
+    do
       killall -9 -u ${GUEST_USER} || true
-      sleep 0.2; 
+      sleep 0.2;
     done
   fi
 
-  umount ${GUEST_HOME} || umount -l ${GUEST_HOME} || true # BindFS mount
-  umount ${GUEST_HOME} || umount -l ${GUEST_HOME} || true # union mount
-  umount ${GUEST_HOME} || umount -l ${GUEST_HOME} || true # tmpfs mount
-  rm -rf ${GUEST_HOME}
+  if [ ${GUEST_HOME} = ${GUEST_HOME#/tmp/} ]; then
+    echo "Warning: home directory ${GUEST_HOME} is not in /tmp/. It won't be removed."
+  else
+    umount ${GUEST_HOME} || umount -l ${GUEST_HOME} || true # BindFS mount
+    umount ${GUEST_HOME} || umount -l ${GUEST_HOME} || true # union mount
+    umount ${GUEST_HOME} || umount -l ${GUEST_HOME} || true # tmpfs mount
+    rm -rf ${GUEST_HOME}
+  fi
 
   # remove leftovers in /tmp
   find /tmp -mindepth 1 -maxdepth 1 -uid ${GUEST_UID} -print0 | xargs -0 rm -rf || true
