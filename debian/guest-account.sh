@@ -34,7 +34,7 @@ add_account ()
 {
   temp_home=$(mktemp -td guest-XXXXXX)
   GUEST_HOME=$(echo ${temp_home} | tr '[:upper:]' '[:lower:]')
-  GUEST_USER=$(echo ${GUEST_HOME} | sed 's/\(.*\)guest/guest/')
+  GUEST_USER=${GUEST_HOME#/tmp/}
   [ ${GUEST_HOME} != ${temp_home} ] && mv ${temp_home} ${GUEST_HOME}
 
   # if ${GUEST_USER} already exists, it must be a locked system account with no existing
