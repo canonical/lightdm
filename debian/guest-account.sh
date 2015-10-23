@@ -80,7 +80,7 @@ add_account ()
     exit 1
   }
 
-  if [ -d ${site_gs}/skel ] && [ -n $(find ${site_gs}/skel -type f) ]; then
+  if [ -d ${site_gs}/skel ] && [ "$(ls -A ${site_gs}/skel)" ]; then
     # Only perform union-mounting if BindFS is available
     if [ -x /usr/bin/bindfs ]; then
       bindfs_mount=true
