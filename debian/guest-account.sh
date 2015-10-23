@@ -65,7 +65,7 @@ add_account ()
     fi
   else
     # does not exist, so create it
-    useradd --system --home-dir / --comment $(gettext "Guest") --user-group --shell /bin/bash ${GUEST_USER} || {
+    useradd --system --home-dir ${GUEST_HOME} --comment $(gettext "Guest") --user-group --shell /bin/bash ${GUEST_USER} || {
       rm -rf ${GUEST_HOME}
       exit 1
     }
@@ -131,8 +131,6 @@ add_account ()
     cp -rT ${dist_gs}/skel/ ${GUEST_HOME}
     chown -R ${GUEST_USER}:${GUEST_USER} ${GUEST_HOME}
   fi
-
-  usermod -d ${GUEST_HOME} ${GUEST_USER}
 
   # setup session
   su ${GUEST_USER} -c "env HOME=${GUEST_HOME} site_gs=${site_gs} ${dist_gs}/setup.sh"
