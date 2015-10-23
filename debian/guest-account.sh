@@ -33,40 +33,40 @@ is_system_user ()
 add_account ()
 {
   temp_home=$(mktemp -td guest-XXXXXX)
-  HOME=$(echo ${temp_home} | tr '[:upper:]' '[:lower:]')
-  USER=$(echo ${HOME} | sed 's/\(.*\)guest/guest/')
-  [ ${HOME} != ${temp_home} ] && mv ${temp_home} ${HOME}
+  GUEST_HOME=$(echo ${temp_home} | tr '[:upper:]' '[:lower:]')
+  GUEST_USER=$(echo ${GUEST_HOME} | sed 's/\(.*\)guest/guest/')
+  [ ${GUEST_HOME} != ${temp_home} ] && mv ${temp_home} ${GUEST_HOME}
 
-  # if ${USER} already exists, it must be a locked system account with no existing
+  # if ${GUEST_USER} already exists, it must be a locked system account with no existing
   # home directory
-  if PWSTAT=$(passwd -S ${USER}) 2>/dev/null; then
+  if PWSTAT=$(passwd -S ${GUEST_USER}) 2>/dev/null; then
     if [ $(echo ${PWSTAT} | cut -f2 -d' ') != L ]; then
-      echo "User account ${USER} already exists and is not locked"
+      echo "User account ${GUEST_USER} already exists and is not locked"
       exit 1
     fi
 
-    PWENT=$(getent passwd ${USER}) || {
-      echo "getent passwd ${USER} failed"
+    PWENT=$(getent passwd ${GUEST_USER}) || {
+      echo "getent passwd ${GUEST_USER} failed"
       exit 1
     }
 
     GUEST_UID=$(echo ${PWENT} | cut -f3 -d:)
 
     if ! is_system_user ${GUEST_UID}; then
-      echo "Account ${USER} is not a system user"
+      echo "Account ${GUEST_USER} is not a system user"
       exit 1
     fi
 
-    HOME=$(echo ${PWENT} | cut -f6 -d:)
+    GUEST_HOME=$(echo ${PWENT} | cut -f6 -d:)
 
-    if [ ${HOME} != / ] && [ ${HOME#/tmp} = ${HOME} ] && [ -d ${HOME} ]; then
-      echo "Home directory of ${USER} already exists"
+    if [ ${GUEST_HOME} != / ] && [ ${GUEST_HOME#/tmp} = ${GUEST_HOME} ] && [ -d ${GUEST_HOME} ]; then
+      echo "Home directory of ${GUEST_USER} already exists"
       exit 1
     fi
   else
     # does not exist, so create it
-    useradd --system --home-dir / --comment $(gettext "Guest") --user-group --shell /bin/bash ${USER} || {
-      rm -rf ${HOME}
+    useradd --system --home-dir / --comment $(gettext "Guest") --user-group --shell /bin/bash ${GUEST_USER} || {
+      rm -rf ${GUEST_HOME}
       exit 1
     }
   fi
@@ -75,8 +75,8 @@ add_account ()
   site_gs=/etc/guest-session
 
   # create temporary home directory
-  mount -t tmpfs -o mode=700,uid=${USER} none ${HOME} || {
-    rm -rf ${HOME}
+  mount -t tmpfs -o mode=700,uid=${GUEST_USER} none ${GUEST_HOME} || {
+    rm -rf ${GUEST_HOME}
     exit 1
   }
 
@@ -87,57 +87,57 @@ add_account ()
 
       # Try OverlayFS first
       if modinfo -n overlay >/dev/null 2>&1; then
-        mkdir ${HOME}/upper ${HOME}/work
-        chown ${USER}:${USER} ${HOME}/upper ${HOME}/work
+        mkdir ${GUEST_HOME}/upper ${GUEST_HOME}/work
+        chown ${GUEST_USER}:${GUEST_USER} ${GUEST_HOME}/upper ${GUEST_HOME}/work
 
-        mount -t overlay -o lowerdir=${dist_gs}/skel:${site_gs}/skel,upperdir=${HOME}/upper,workdir=${HOME}/work overlay ${HOME} || {
-          umount ${HOME}
-          rm -rf ${HOME}
+        mount -t overlay -o lowerdir=${dist_gs}/skel:${site_gs}/skel,upperdir=${GUEST_HOME}/upper,workdir=${GUEST_HOME}/work overlay ${GUEST_HOME} || {
+          umount ${GUEST_HOME}
+          rm -rf ${GUEST_HOME}
           exit 1
         }
       # If OverlayFS is not available, try AuFS
       elif [ -x /sbin/mount.aufs ]; then
-        mount -t aufs -o br=${HOME}:${dist_gs}/skel:${site_gs}/skel none ${HOME} || {
-          umount ${HOME}
-          rm -rf ${HOME}
+        mount -t aufs -o br=${GUEST_HOME}:${dist_gs}/skel:${site_gs}/skel none ${GUEST_HOME} || {
+          umount ${GUEST_HOME}
+          rm -rf ${GUEST_HOME}
           exit 1
         }
       # If none of them is available, fall back to copy over
       else
-        cp -rT ${site_gs}/skel/ ${HOME}
-        cp -rT ${dist_gs}/skel/ ${HOME}
-        chown -R ${USER}:${USER} ${HOME}
+        cp -rT ${site_gs}/skel/ ${GUEST_HOME}
+        cp -rT ${dist_gs}/skel/ ${GUEST_HOME}
+        chown -R ${GUEST_USER}:${GUEST_USER} ${GUEST_HOME}
         bindfs_mount=false
       fi
 
       if ${bindfs_mount}; then
-        # Wrap ${HOME} in a BindFS mount, so that
-        # ${USER} will be seen as the owner of ${HOME}'s contents.
-        bindfs -u ${USER} -g ${USER} ${HOME} ${HOME} || {
-          umount ${HOME} # union mount
-          umount ${HOME} # tmpfs mount
-          rm -rf ${HOME}
+        # Wrap ${GUEST_HOME} in a BindFS mount, so that
+        # ${GUEST_USER} will be seen as the owner of ${GUEST_HOME}'s contents.
+        bindfs -u ${GUEST_USER} -g ${GUEST_USER} ${GUEST_HOME} ${GUEST_HOME} || {
+          umount ${GUEST_HOME} # union mount
+          umount ${GUEST_HOME} # tmpfs mount
+          rm -rf ${GUEST_HOME}
           exit 1
         }
       fi
     # If BindFS is not available, just fall back to copy over
     else
-      cp -rT ${site_gs}/skel/ ${HOME}
-      cp -rT ${dist_gs}/skel/ ${HOME}
-      chown -R ${USER}:${USER} ${HOME}
+      cp -rT ${site_gs}/skel/ ${GUEST_HOME}
+      cp -rT ${dist_gs}/skel/ ${GUEST_HOME}
+      chown -R ${GUEST_USER}:${GUEST_USER} ${GUEST_HOME}
     fi
   else
-    cp -rT /etc/skel/ ${HOME}
-    cp -rT ${dist_gs}/skel/ ${HOME}
-    chown -R ${USER}:${USER} ${HOME}
+    cp -rT /etc/skel/ ${GUEST_HOME}
+    cp -rT ${dist_gs}/skel/ ${GUEST_HOME}
+    chown -R ${GUEST_USER}:${GUEST_USER} ${GUEST_HOME}
   fi
 
-  usermod -d ${HOME} ${USER}
+  usermod -d ${GUEST_HOME} ${GUEST_USER}
 
   # setup session
-  su ${USER} -c "env HOME=${HOME} site_gs=${site_gs} ${dist_gs}/setup.sh"
+  su ${GUEST_USER} -c "env HOME=${GUEST_HOME} site_gs=${site_gs} ${dist_gs}/setup.sh"
 
-  echo ${USER}
+  echo ${GUEST_USER}
 }
 
 remove_account ()
