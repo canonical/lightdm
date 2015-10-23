@@ -20,9 +20,9 @@ fi
 
 is_system_user ()
 {
-  local UID_MIN=$(cat /etc/login.defs | grep UID_MIN | awk '{print $2}')
-  local SYS_UID_MIN=$(cat /etc/login.defs | grep SYS_UID_MIN | awk '{print $2}')
-  local SYS_UID_MAX=$(cat /etc/login.defs | grep SYS_UID_MAX | awk '{print $2}')
+  UID_MIN=$(cat /etc/login.defs | grep UID_MIN | awk '{print $2}')
+  SYS_UID_MIN=$(cat /etc/login.defs | grep SYS_UID_MIN | awk '{print $2}')
+  SYS_UID_MAX=$(cat /etc/login.defs | grep SYS_UID_MAX | awk '{print $2}')
 
   SYS_UID_MIN=${SYS_UID_MIN:-101}
   SYS_UID_MAX=${SYS_UID_MAX:-$(( UID_MIN - 1 ))}
@@ -32,7 +32,7 @@ is_system_user ()
 
 add_account ()
 {
-  local temp_home=$(mktemp -td guest-XXXXXX)
+  temp_home=$(mktemp -td guest-XXXXXX)
   HOME=$(echo ${temp_home} | tr '[:upper:]' '[:lower:]')
   USER=$(echo ${HOME} | sed 's/\(.*\)guest/guest/')
   [ ${HOME} != ${temp_home} ] && mv ${temp_home} ${HOME}
