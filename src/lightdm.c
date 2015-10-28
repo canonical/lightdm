@@ -29,6 +29,7 @@
 #include "xserver.h"
 #include "process.h"
 #include "session-child.h"
+#include "log-file.h"
 
 static gchar *config_path = NULL;
 static GMainLoop *loop = NULL;
@@ -114,6 +115,7 @@ static void
 log_init (void)
 {
     gchar *log_dir, *path;
+    gboolean backup_logs;
 
     log_timer = g_timer_new ();
 
@@ -122,7 +124,8 @@ log_init (void)
     path = g_build_filename (log_dir, "lightdm.log", NULL);
     g_free (log_dir);
 
-    log_fd = open (path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
+    log_fd = log_file_open (path, backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
     fcntl (log_fd, F_SETFD, FD_CLOEXEC);
     g_log_set_default_handler (log_cb, NULL);
 
@@ -1076,6 +1079,8 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "LightDM", "guest-account-script", "guest-account");
     if (!config_has_key (config_get_instance (), "LightDM", "greeter-user"))
         config_set_string (config_get_instance (), "LightDM", "greeter-user", GREETER_USER);
+    if (!config_has_key (config_get_instance (), "LightDM", "backup-logs"))
+        config_set_boolean (config_get_instance (), "LightDM", "backup-logs", TRUE);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "type"))
         config_set_string (config_get_instance (), "SeatDefaults", "type", "xlocal");
     if (!config_has_key (config_get_instance (), "SeatDefaults", "xserver-command"))

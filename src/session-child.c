@@ -16,6 +16,7 @@
 #include "session-child.h"
 #include "session.h"
 #include "console-kit.h"
+#include "log-file.h"
 #include "privileges.h"
 #include "xauthority.h"
 
@@ -155,6 +156,33 @@ signal_cb (int signum)
         exit (EXIT_SUCCESS);
 }
 
+static XAuthority *
+read_xauth (void)
+{
+    gchar *x_authority_name;
+    guint16 x_authority_family;
+    guint8 *x_authority_address;
+    gsize x_authority_address_length;
+    gchar *x_authority_number;
+    guint8 *x_authority_data;
+    gsize x_authority_data_length;
+
+    x_authority_name = read_string ();
+    if (!x_authority_name)
+        return NULL;
+
+    read_data (&x_authority_family, sizeof (x_authority_family));
+    read_data (&x_authority_address_length, sizeof (x_authority_address_length));
+    x_authority_address = g_malloc (x_authority_address_length);
+    read_data (x_authority_address, x_authority_address_length);
+    x_authority_number = read_string ();
+    read_data (&x_authority_data_length, sizeof (x_authority_data_length));
+    x_authority_data = g_malloc (x_authority_data_length);
+    read_data (x_authority_data, x_authority_data_length);
+
+    return xauth_new (x_authority_family, x_authority_address, x_authority_address_length, x_authority_number, x_authority_name, x_authority_data, x_authority_data_length);
+}
+
 int
 session_child_run (int argc, char **argv)
 {
@@ -162,7 +190,8 @@ session_child_run (int argc, char **argv)
     int i, version, fd, result;
     gboolean auth_complete = TRUE;
     User *user = NULL;
-    gchar *log_filename, *log_backup_filename = NULL;
+    gchar *log_filename;
+    LogMode log_mode = LOG_MODE_BACKUP_AND_TRUNCATE;
     gsize env_length;
     gsize command_argc;
     gchar **command_argv;
@@ -176,7 +205,6 @@ session_child_run (int argc, char **argv)
     gchar *tty;
     gchar *remote_host_name;
     gchar *xdisplay;
-    gchar *xauth_name;
     XAuthority *xauthority = NULL;
     gchar *xauth_filename;
     GDBusConnection *bus;
@@ -227,27 +255,7 @@ session_child_run (int argc, char **argv)
     tty = read_string ();
     remote_host_name = read_string ();
     xdisplay = read_string ();
-    xauth_name = read_string ();
-    if (xauth_name)
-    {
-        guint16 xauth_family;
-        guint8 *xauth_address;
-        gsize xauth_address_length;
-        gchar *xauth_number;
-        guint8 *xauth_data;
-        gsize xauth_data_length;
-
-        read_data (&xauth_family, sizeof (xauth_family));
-        read_data (&xauth_address_length, sizeof (xauth_address_length));
-        xauth_address = g_malloc (xauth_address_length);
-        read_data (xauth_address, xauth_address_length);
-        xauth_number = read_string ();
-        read_data (&xauth_data_length, sizeof (xauth_data_length));
-        xauth_data = g_malloc (xauth_data_length);
-        read_data (xauth_data, xauth_data_length);
-
-        xauthority = xauth_new (xauth_family, xauth_address, xauth_address_length, xauth_number, xauth_name, xauth_data, xauth_data_length);
-    }
+    xauthority = read_xauth ();
 
     /* Setup PAM */
     result = pam_start (service, username, &conversation, &pam_handle);
@@ -338,7 +346,25 @@ session_child_run (int argc, char **argv)
 
     /* Get the command to run (blocks) */
     log_filename = read_string ();
+    if (version >= 3)
+        read_data (&log_mode, sizeof (log_mode));
+    if (version >= 1)
+    {
+        gchar *tty = read_string ();
+        g_free (tty);
+    }
     xauth_filename = read_string ();
+    if (version >= 1)
+    {
+        gchar *xdisplay;
+        XAuthority *x_authority;
+
+        xdisplay = read_string ();
+        g_free (xdisplay);
+        x_authority = read_xauth ();
+        if (x_authority)
+            g_object_unref (x_authority);
+    }
     read_data (&env_length, sizeof (env_length));
     for (i = 0; i < env_length; i++)
         pam_putenv (pam_handle, read_string ());
@@ -349,8 +375,6 @@ session_child_run (int argc, char **argv)
     command_argv[i] = NULL;
 
     /* Redirect stderr to a log file */
-    if (log_filename)
-        log_backup_filename = g_strdup_printf ("%s.old", log_filename);
     if (!log_filename)
     {
         fd = open ("/dev/null", O_WRONLY);   
@@ -359,8 +383,7 @@ session_child_run (int argc, char **argv)
     }
     else if (g_path_is_absolute (log_filename))
     {
-        rename (log_filename, log_backup_filename);
-        fd = open (log_filename, O_WRONLY | O_APPEND | O_CREAT, 0600);
+        fd = log_file_open (log_filename, log_mode);
         dup2 (fd, STDERR_FILENO);
         close (fd);
     }
@@ -418,6 +441,8 @@ session_child_run (int argc, char **argv)
     else
         g_variant_builder_add (&ck_parameters, "(sv)", "is-local", g_variant_new_boolean (TRUE));
     console_kit_cookie = ck_open_session (&ck_parameters);
+    if (version >= 2)
+        write_string (NULL);
     write_string (console_kit_cookie);
     if (console_kit_cookie)
     {
@@ -499,8 +524,7 @@ session_child_run (int argc, char **argv)
         /* Redirect stderr to a log file */
         if (log_filename && !g_path_is_absolute (log_filename))
         {
-            rename (log_filename, log_backup_filename);
-            fd = open (log_filename, O_WRONLY | O_APPEND | O_CREAT, 0600);
+            fd = log_file_open (log_filename, log_mode);
             dup2 (fd, STDERR_FILENO);
             close (fd);
         }

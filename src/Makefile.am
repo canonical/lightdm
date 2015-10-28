@@ -28,6 +28,8 @@ lightdm_SOURCES = \
 	lightdm.c \
 	ldm-marshal.c \
 	ldm-marshal.h \
+	log-file.c \
+	log-file.h \
 	plymouth.c \
 	plymouth.h \
 	privileges.c \

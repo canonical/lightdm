@@ -41,7 +41,7 @@ xsession_new (XServer *xserver)
     authority = xserver_get_authority (xserver);
     if (authority)
         session_set_xauthority (SESSION (session), authority, config_get_boolean (config_get_instance (), "LightDM", "user-authority-in-system-dir"));
-    session_set_log_file (SESSION (session), ".xsession-errors");
+    session_set_log_file (SESSION (session), ".xsession-errors", LOG_MODE_BACKUP_AND_TRUNCATE);
 
     return session;
 }

@@ -626,6 +626,7 @@ display_start_greeter (Display *display)
 {
     gchar *log_dir, *filename, *log_filename, *sessions_dir, *path;
     gchar **argv;
+    gboolean backup_logs;
 
     /* Log the output of the greeter to a system location */
     log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
@@ -634,7 +635,8 @@ display_start_greeter (Display *display)
     g_free (log_dir);
     g_free (filename);
     g_debug ("Logging to %s", log_filename);
-    session_set_log_file (display->priv->session, log_filename);
+    backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
+    session_set_log_file (display->priv->session, log_filename, backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
     g_free (log_filename);
 
     /* Load the greeter session information */

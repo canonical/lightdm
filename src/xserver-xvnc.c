@@ -21,6 +21,7 @@
 #include "configuration.h"
 #include "xserver-local.h"
 #include "process.h"
+#include "log-file.h"
 
 struct XServerXVNCPrivate
 {
@@ -28,7 +29,8 @@ struct XServerXVNCPrivate
     Process *xserver_process;
   
     /* File to log to */
-    gchar *log_file;  
+    gchar *log_file;
+    LogMode log_mode;
 
     /* Authority file */
     gchar *authority_file;
@@ -131,10 +133,8 @@ run_cb (Process *process, XServerXVNC *server)
     {
          int fd;
 
-         fd = g_open (server->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-         if (fd < 0)
-             g_warning ("Failed to open log file %s: %s", server->priv->log_file, g_strerror (errno));
-         else
+         fd = log_file_open (server->priv->log_file, server->priv->log_mode);
+         if (fd >= 0)
          {
              dup2 (fd, STDERR_FILENO);
              close (fd);
@@ -202,6 +202,7 @@ xserver_xvnc_start (DisplayServer *display_server)
     filename = g_strdup_printf ("%s.log", display_server_get_name (display_server));
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
     server->priv->log_file = g_build_filename (dir, filename, NULL);
+    server->priv->log_mode = config_get_boolean (config_get_instance (), "LightDM", "backup-logs") ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND;
     g_debug ("Logging to %s", server->priv->log_file);
     g_free (filename);
     g_free (dir);

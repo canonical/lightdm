@@ -61,6 +61,7 @@ struct SessionPrivate
   
     /* File to log to */
     gchar *log_filename;
+    LogMode log_mode;
   
     /* Seat class */
     gchar *class;
@@ -89,11 +90,12 @@ struct SessionPrivate
 G_DEFINE_TYPE (Session, session, G_TYPE_OBJECT);
 
 void
-session_set_log_file (Session *session, const gchar *filename)
+session_set_log_file (Session *session, const gchar *filename, LogMode log_mode)
 {
     g_return_if_fail (session != NULL);
     g_free (session->priv->log_filename);
     session->priv->log_filename = g_strdup (filename);
+    session->priv->log_mode = log_mode;
 }
 
 void
@@ -372,7 +374,7 @@ session_start (Session *session, const gchar *service, const gchar *username, gb
     close (from_child_input);
   
     /* Indicate what version of the protocol we are using */
-    version = 0;
+    version = 3;
     write_data (session, &version, sizeof (version));
 
     /* Send configuration */
@@ -493,7 +495,7 @@ void
 session_run (Session *session, gchar **argv)
 {
     gsize i, argc;
-    gchar *command, *filename;
+    gchar *command, *filename, *login1_session_id;
     GList *link;
 
     g_return_if_fail (session != NULL);
@@ -526,8 +528,12 @@ session_run (Session *session, gchar **argv)
         filename = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
 
     write_string (session, session->priv->log_filename);
+    write_data (session, &session->priv->log_mode, sizeof (session->priv->log_mode));
+    write_string (session, NULL); /* TTY in future code */
     write_string (session, filename);
     g_free (filename);
+    write_string (session, NULL); /* xdisplay in future code */
+    write_string (session, NULL); /* xauth in future code */
     argc = g_list_length (session->priv->env);
     write_data (session, &argc, sizeof (argc));
     for (link = session->priv->env; link; link = link->next)
@@ -537,6 +543,8 @@ session_run (Session *session, gchar **argv)
     for (i = 0; i < argc; i++)
         write_string (session, argv[i]);
 
+    login1_session_id = read_string_from_child (session);
+    g_free (login1_session_id); /* Used in future code */
     session->priv->console_kit_cookie = read_string_from_child (session);
 }
 
@@ -560,7 +568,7 @@ void
 session_stop (Session *session)
 {
     g_return_if_fail (session != NULL);
-  
+
     if (session->priv->pid > 0)
     {
         g_debug ("Session %d: Sending SIGTERM", session->priv->pid);
@@ -580,6 +588,7 @@ static void
 session_init (Session *session)
 {
     session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, SESSION_TYPE, SessionPrivate);
+    session->priv->log_mode = LOG_MODE_BACKUP_AND_TRUNCATE;
     session->priv->to_child_input = -1;
     session->priv->from_child_output = -1;
 }

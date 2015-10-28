@@ -18,6 +18,7 @@
 
 #include "accounts.h"
 #include "xauthority.h"
+#include "log-file.h"
 
 G_BEGIN_DECLS
 
@@ -49,7 +50,7 @@ typedef struct
 
 GType session_get_type (void);
 
-void session_set_log_file (Session *session, const gchar *filename);
+void session_set_log_file (Session *session, const gchar *filename, LogMode log_mode);
 
 void session_set_class (Session *session, const gchar *class);
 
