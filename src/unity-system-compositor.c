@@ -374,7 +374,7 @@ static gboolean
 unity_system_compositor_start (DisplayServer *server)
 {
     UnitySystemCompositor *compositor = UNITY_SYSTEM_COMPOSITOR (server);
-    gboolean result;
+    gboolean result, backup_logs;
     GString *command;
     gchar *dir, *log_file, *absolute_command, *value;
 
@@ -407,7 +407,8 @@ unity_system_compositor_start (DisplayServer *server)
 
     /* Setup environment */
     compositor->priv->process = process_new (run_cb, compositor);
-    process_set_log_file (compositor->priv->process, log_file, TRUE);
+    backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
+    process_set_log_file (compositor->priv->process, log_file, TRUE, backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
     g_free (log_file);
     process_set_clear_environment (compositor->priv->process, TRUE);
     process_set_env (compositor->priv->process, "XDG_SEAT", "seat0");

@@ -26,6 +26,7 @@
 #include "session.h"
 #include "console-kit.h"
 #include "login1.h"
+#include "log-file.h"
 #include "privileges.h"
 #include "x-authority.h"
 #include "configuration.h"
@@ -257,7 +258,8 @@ session_child_run (int argc, char **argv)
     int i, version, fd, result;
     gboolean auth_complete = TRUE;
     User *user = NULL;
-    gchar *log_filename, *log_backup_filename = NULL;
+    gchar *log_filename;
+    LogMode log_mode = LOG_MODE_BACKUP_AND_TRUNCATE;
     gsize env_length;
     gsize command_argc;
     gchar **command_argv;
@@ -488,6 +490,8 @@ session_child_run (int argc, char **argv)
 
     /* Get the command to run (blocks) */
     log_filename = read_string ();
+    if (version >= 3)
+        read_data (&log_mode, sizeof (log_mode));
     if (version >= 1)
     {
         g_free (tty);
@@ -522,11 +526,9 @@ session_child_run (int argc, char **argv)
     /* Redirect stderr to a log file */
     if (log_filename)
     {
-        log_backup_filename = g_strdup_printf ("%s.old", log_filename);
         if (g_path_is_absolute (log_filename))
         {
-            rename (log_filename, log_backup_filename);
-            fd = open (log_filename, O_WRONLY | O_APPEND | O_CREAT, 0600);
+            fd = log_file_open (log_filename, log_mode);
             dup2 (fd, STDERR_FILENO);
             close (fd);
             g_free (log_filename);
@@ -680,8 +682,7 @@ session_child_run (int argc, char **argv)
 
         if (log_filename)
         {
-            rename (log_filename, log_backup_filename);
-            fd = open (log_filename, O_WRONLY | O_APPEND | O_CREAT, 0600);
+            fd = log_file_open (log_filename, log_mode);
             if (fd >= 0)
             {
                 dup2 (fd, STDERR_FILENO);

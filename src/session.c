@@ -84,6 +84,7 @@ struct SessionPrivate
 
     /* File to log to */
     gchar *log_filename;
+    LogMode log_mode;
 
     /* tty this session is running on */
     gchar *tty;
@@ -199,11 +200,12 @@ session_get_is_guest (Session *session)
 }
 
 void
-session_set_log_file (Session *session, const gchar *filename)
+session_set_log_file (Session *session, const gchar *filename, LogMode log_mode)
 {
     g_return_if_fail (session != NULL);
     g_free (session->priv->log_filename);
     session->priv->log_filename = g_strdup (filename);
+    session->priv->log_mode = log_mode;
 }
 
 void
@@ -626,7 +628,7 @@ session_real_start (Session *session)
     close (from_child_input);
 
     /* Indicate what version of the protocol we are using */
-    version = 2;
+    version = 3;
     write_data (session, &version, sizeof (version));
 
     /* Send configuration */
@@ -798,6 +800,7 @@ session_real_run (Session *session)
     if (session->priv->log_filename)
         l_debug (session, "Logging to %s", session->priv->log_filename);
     write_string (session, session->priv->log_filename);
+    write_data (session, &session->priv->log_mode, sizeof (session->priv->log_mode));
     write_string (session, session->priv->tty);
     write_string (session, x_authority_filename);
     g_free (x_authority_filename);
@@ -864,9 +867,11 @@ session_stop (Session *session)
     if (session_get_is_authenticated (session) && !session->priv->command_run)
     {
         gsize n = 0;
+        LogMode log_mode = LOG_MODE_INVALID;
 
         session->priv->command_run = TRUE;
         write_string (session, NULL); // log filename
+        write_data (session, &log_mode, sizeof (log_mode)); // log mode
         write_string (session, NULL); // tty
         write_string (session, NULL); // xauth filename
         write_string (session, NULL); // xdisplay
@@ -910,6 +915,7 @@ session_init (Session *session)
 {
     session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, SESSION_TYPE, SessionPrivate);
     session->priv->log_filename = g_strdup (".xsession-errors");
+    session->priv->log_mode = LOG_MODE_BACKUP_AND_TRUNCATE;
     session->priv->to_child_input = -1;
     session->priv->from_child_output = -1;
 }
