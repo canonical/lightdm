@@ -1,18 +1,29 @@
-lightdm (1.17.0-0ubuntu1) UNRELEASED; urgency=medium
+lightdm (1.17.0-0ubuntu1) xenial; urgency=medium
 
   * New upstream release:
-    - Don't backup system log files to *.old when starting. Handling of these
-      log files is now left to the system (e.g., through logrotate).
+    - Disable log backups - this interferes with logrotate.
+    - Support using libaudit to generate audit events.
+    - Handle trailing whitespace on boolean values in configuration.
+    - Update example configuration to more correctly match allowed options.
+    - Fix unnecessary X server from being launched when locking seats.
+    - Check the version of the X server we are running so we correctly pass
+      -listen tcp when required.
+    - Allow reading /proc/<PID>/net/dev from within a guest session.
+      (LP: #1442609)
+    - Allow guest sessions to write in /{,var/}run/screen folder.
+      (LP: #1442611)
+    - Update guest-session AppArmor profile to be suitable for openSUSE.
+    - Fix apparmor profiles for running Chromium in guest sessions.
+      (LP: #1504049, LP: #1464958)
+    - Fix configure failing without Vala installed.
   * Build with multi-arch
-  * debian/patches/xorg-1.17.patch:
-    - Fix xserver-allow-tcp=true option not working with X.org 1.17
-  * data/apparmor/abstractions/lightdm_chromium-browser: cgroups support for
-    guest sessions. (LP: #1504049, LP: #1464958)
   * debian/lightdm.logrotate:
     - Use logrotate to handle log files placed in the default system log
       directory (/var/log/lightdm).
+  * debian/guest*:
+    - Optimize guest account creation, use OverlayFS of AuFS if available.
 
- -- Robert Ancell <robert.ancell@canonical.com>  Mon, 12 Oct 2015 14:57:47 +0100
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 28 Oct 2015 15:02:46 +1300
 
 lightdm (1.16.0-0ubuntu1) wily; urgency=medium
 

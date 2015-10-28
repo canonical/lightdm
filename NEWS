@@ -1,3 +1,17 @@
+Overview of changes in lightdm 1.17.0
+
+    * Disable log backups - this interferes with logrotate.
+    * Support using libaudit to generate audit events.
+    * Handle trailing whitespace on boolean values in configuration.
+    * Update example configuration to more correctly match allowed options.
+    * Fix unnecessary X server from being launched when locking seats.
+    * Check the version of the X server we are running so we correctly pass -listen tcp when required.
+    * Allow reading /proc/<PID>/net/dev from within a guest session.
+    * Allow guest sessions to write in /{,var/}run/screen folder.
+    * Update guest-session AppArmor profile to be suitable for openSUSE.
+    * Fix apparmor profiles for running Chromium in guest sessions.
+    * Fix configure failing without Vala installed.
+
 Overview of changes in lightdm 1.16.0
 
     * Update default configuration better explaining the seat configuration name
