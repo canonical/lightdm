@@ -126,6 +126,7 @@ static void
 log_init (void)
 {
     gchar *log_dir, *path;
+    gboolean backup_logs;
 
     log_timer = g_timer_new ();
 
@@ -134,7 +135,8 @@ log_init (void)
     path = g_build_filename (log_dir, "lightdm.log", NULL);
     g_free (log_dir);
 
-    log_fd = log_file_open (path, LOG_MODE_APPEND);
+    backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
+    log_fd = log_file_open (path, backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
     fcntl (log_fd, F_SETFD, FD_CLOEXEC);
     g_log_set_default_handler (log_cb, NULL);
 
