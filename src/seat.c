@@ -475,13 +475,15 @@ start_session (Seat *seat, Session *session)
     if (IS_GREETER (session))
     {
         gchar *log_dir, *filename, *log_filename;
+        gboolean backup_logs;
 
         log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
         filename = g_strdup_printf ("%s-greeter.log", display_server_get_name (session_get_display_server (session)));
         log_filename = g_build_filename (log_dir, filename, NULL);
         g_free (log_dir);
         g_free (filename);
-        session_set_log_file (session, log_filename);
+        backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
+        session_set_log_file (session, log_filename, backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
         g_free (log_filename);
     }
 

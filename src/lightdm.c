@@ -33,6 +33,7 @@
 #include "shared-data-manager.h"
 #include "user-list.h"
 #include "login1.h"
+#include "log-file.h"
 
 static gchar *config_path = NULL;
 static GMainLoop *loop = NULL;
@@ -119,7 +120,7 @@ log_cb (const gchar *log_domain, GLogLevelFlags log_level, const gchar *message,
 static void
 log_init (void)
 {
-    gchar *log_dir, *path, *old_path;
+    gchar *log_dir, *path;
 
     log_timer = g_timer_new ();
 
@@ -128,13 +129,7 @@ log_init (void)
     path = g_build_filename (log_dir, "lightdm.log", NULL);
     g_free (log_dir);
 
-    /* Move old file out of the way */
-    old_path = g_strdup_printf ("%s.old", path);
-    rename (path, old_path);
-    g_free (old_path);
-
-    /* Create new file and log to it */
-    log_fd = open (path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    log_fd = log_file_open (path, LOG_MODE_APPEND);
     fcntl (log_fd, F_SETFD, FD_CLOEXEC);
     g_log_set_default_handler (log_cb, NULL);
 
@@ -1322,6 +1317,8 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "LightDM", "greeter-user", GREETER_USER);
     if (!config_has_key (config_get_instance (), "LightDM", "lock-memory"))
         config_set_boolean (config_get_instance (), "LightDM", "lock-memory", TRUE);
+    if (!config_has_key (config_get_instance (), "LightDM", "backup-logs"))
+        config_set_boolean (config_get_instance (), "LightDM", "backup-logs", TRUE);
     if (!config_has_key (config_get_instance (), "SeatDefaults", "type"))
         config_set_string (config_get_instance (), "SeatDefaults", "type", "xlocal");
     if (!config_has_key (config_get_instance (), "SeatDefaults", "pam-service"))

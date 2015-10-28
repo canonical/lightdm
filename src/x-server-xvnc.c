@@ -183,7 +183,7 @@ x_server_xvnc_start (DisplayServer *display_server)
 {
     XServerXVNC *server = X_SERVER_XVNC (display_server);
     XAuthority *authority;
-    gboolean result;
+    gboolean result, backup_logs;
     gchar *filename, *run_dir, *dir, *log_file, *absolute_command;
     GString *command;
     gchar hostname[1024], *number;
@@ -202,7 +202,8 @@ x_server_xvnc_start (DisplayServer *display_server)
     filename = g_strdup_printf ("%s.log", display_server_get_name (display_server));
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
     log_file = g_build_filename (dir, filename, NULL);
-    process_set_log_file (server->priv->x_server_process, log_file, FALSE);
+    backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");  
+    process_set_log_file (server->priv->x_server_process, log_file, FALSE, backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
     l_debug (display_server, "Logging to %s", log_file);
     g_free (log_file);
     g_free (filename);

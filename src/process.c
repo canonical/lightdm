@@ -17,9 +17,9 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <grp.h>
-#include <glib/gstdio.h>
 #include <config.h>
 
+#include "log-file.h"
 #include "process.h"
 
 enum {
@@ -39,6 +39,7 @@ struct ProcessPrivate
     /* File to log to */
     gchar *log_file;
     gboolean log_stdout;
+    LogMode log_mode;
 
     /* Command to run */
     gchar *command;
@@ -90,16 +91,18 @@ process_new (ProcessRunFunc run_func, gpointer run_func_data)
     Process *process = g_object_new (PROCESS_TYPE, NULL);
     process->priv->run_func = run_func;
     process->priv->run_func_data = run_func_data;
+    process->priv->log_mode = LOG_MODE_INVALID;
     return process;
 }
 
 void
-process_set_log_file (Process *process, const gchar *path, gboolean log_stdout)
+process_set_log_file (Process *process, const gchar *path, gboolean log_stdout, LogMode log_mode)
 {
     g_return_if_fail (process != NULL);
     g_free (process->priv->log_file);
     process->priv->log_file = g_strdup (path);
     process->priv->log_stdout = log_stdout;
+    process->priv->log_mode = log_mode;
 }
 
 void
@@ -193,19 +196,7 @@ process_start (Process *process, gboolean block)
     }
 
     if (process->priv->log_file)
-    {
-        gchar *old_filename;
-
-        /* Move old file out of the way */
-        old_filename = g_strdup_printf ("%s.old", process->priv->log_file);
-        rename (process->priv->log_file, old_filename);
-        g_free (old_filename);
-
-        /* Create new file and log to it */
-        log_fd = g_open (process->priv->log_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-        if (log_fd < 0)
-            g_warning ("Failed to open log file %s: %s", process->priv->log_file, g_strerror (errno));
-    }
+        log_fd = log_file_open (process->priv->log_file, process->priv->log_mode);
 
     /* Work out variables to set */
     env_length = g_hash_table_size (process->priv->env);
