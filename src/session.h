@@ -23,7 +23,7 @@ typedef struct Session Session;
 #include "accounts.h"
 #include "x-authority.h"
 #include "logger.h"
-#include "log-mode.h"
+#include "log-file.h"
 
 G_BEGIN_DECLS
 

@@ -14,7 +14,12 @@
 
 #include <glib.h>
 
-#include "log-mode.h"
+typedef enum
+{
+    LOG_MODE_INVALID = -1,
+    LOG_MODE_BACKUP_AND_TRUNCATE,
+    LOG_MODE_APPEND
+} LogMode;
 
 int log_file_open (const gchar *log_filename, LogMode log_mode);
 

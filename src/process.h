@@ -14,7 +14,7 @@
 
 #include <glib-object.h>
 
-#include "log-mode.h"
+#include "log-file.h"
 
 G_BEGIN_DECLS
 

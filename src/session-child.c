@@ -27,7 +27,6 @@
 #include "console-kit.h"
 #include "login1.h"
 #include "log-file.h"
-#include "log-mode.h"
 #include "privileges.h"
 #include "x-authority.h"
 #include "configuration.h"
