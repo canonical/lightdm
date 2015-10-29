@@ -625,7 +625,11 @@ read_cb (GSocket *socket, GIOCondition condition, XDMCPServer *server)
         packet = xdmcp_packet_decode ((guint8 *)data, n_read);
         if (packet)
         {
-            g_debug ("Got %s", xdmcp_packet_tostring (packet));
+            gchar *packet_string;
+
+            packet_string = xdmcp_packet_tostring (packet);
+            g_debug ("Got %s", packet_string);
+            g_free (packet_string);
 
             switch (packet->opcode)
             {
