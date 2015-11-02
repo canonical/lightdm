@@ -59,8 +59,8 @@ typedef struct
 
         struct
         {
-            gchar *client_address;
-            gchar *client_port;
+            XDMCPData client_address;
+            XDMCPData client_port;
             gchar **authentication_names;
         } ForwardQuery;
 
