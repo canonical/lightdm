@@ -280,6 +280,12 @@ session_child_run (int argc, char **argv)
     const gchar *locale_value;
     gchar *locale_var;
     static const gchar * const locale_var_names[] = {
+        "LC_PAPER",
+        "LC_NAME",
+        "LC_ADDRESS",
+        "LC_TELEPHONE",
+        "LC_MEASUREMENT",
+        "LC_IDENTIFICATION",
         "LC_COLLATE",
         "LC_CTYPE",
         "LC_MONETARY",
