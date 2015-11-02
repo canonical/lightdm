@@ -683,6 +683,7 @@ read_cb (GSocket *socket, GIOCondition condition, XDMCPServer *server)
                 break;
             case XDMCP_ForwardQuery:
                 handle_forward_query (server, socket, address, packet);
+                break;
             case XDMCP_Request:
                 handle_request (server, socket, address, packet);
                 break;
