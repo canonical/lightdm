@@ -199,17 +199,17 @@ get_authentication_name (XDMCPServer *server)
 }
 
 static void
-handle_query (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XDMCPPacket *packet)
+handle_query (XDMCPServer *server, GSocket *socket, GSocketAddress *address, gchar **authentication_names)
 {
     XDMCPPacket *response;
     gchar **i;
     gchar *authentication_name = NULL;
 
     /* If no authentication requested and we are configured for none then allow */
-    if (packet->Query.authentication_names[0] == NULL && server->priv->key == NULL)
+    if (authentication_names[0] == NULL && server->priv->key == NULL)
         authentication_name = "";
 
-    for (i = packet->Query.authentication_names; *i; i++)
+    for (i = authentication_names; *i; i++)
     {
         if (strcmp (*i, get_authentication_name (server)) == 0 && server->priv->key != NULL)
         {
@@ -238,6 +238,49 @@ handle_query (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XDM
     send_packet (socket, address, response);
 
     xdmcp_packet_free (response);
+}
+
+static void
+handle_forward_query (XDMCPServer *server, GSocket *socket, GSocketAddress *address, XDMCPPacket *packet)
+{
+    GSocketFamily family;
+    GInetAddress *client_inet_address;
+    GSocketAddress *client_address;
+    gint i;
+    guint16 port = 0;
+
+    family = g_socket_get_family (socket);
+    switch (family)
+    {
+    case G_SOCKET_FAMILY_IPV4:
+        if (packet->ForwardQuery.client_address.length != 4)
+        {
+            g_warning ("Ignoring IPv4 XDMCP ForwardQuery with client address of length %d", packet->ForwardQuery.client_address.length);
+            return;
+        }
+        break;
+    case G_SOCKET_FAMILY_IPV6:
+        if (packet->ForwardQuery.client_address.length != 16)
+        {
+            g_warning ("Ignoring IPv6 XDMCP ForwardQuery with client address of length %d", packet->ForwardQuery.client_address.length);
+            return;
+        }
+        break;
+    default:
+        g_warning ("Unknown socket family %d", family);
+        return;
+    }
+
+    for (i = 0; i < packet->ForwardQuery.client_port.length; i++)
+        port = port << 8 | packet->ForwardQuery.client_port.data[i];
+
+    client_inet_address = g_inet_address_new_from_bytes (packet->ForwardQuery.client_address.data, family);
+    client_address = g_inet_socket_address_new (client_inet_address, port);
+    g_object_unref (client_inet_address);
+
+    handle_query (server, socket, client_address, packet->ForwardQuery.authentication_names);
+
+    g_object_unref (client_address);
 }
 
 static guint8
@@ -636,7 +679,10 @@ read_cb (GSocket *socket, GIOCondition condition, XDMCPServer *server)
             case XDMCP_BroadcastQuery:
             case XDMCP_Query:
             case XDMCP_IndirectQuery:
-                handle_query (server, socket, address, packet);
+                handle_query (server, socket, address, packet->Query.authentication_names);
+                break;
+            case XDMCP_ForwardQuery:
+                handle_forward_query (server, socket, address, packet);
                 break;
             case XDMCP_Request:
                 handle_request (server, socket, address, packet);
