@@ -1,15 +1,27 @@
+Overview of changes in lightdm 1.16.5
+
+    * Handle trailing whitespace on boolean values in configuration.
+    * Add a backup-logs option that can be used to disable existing logging
+      files having a .old suffix added to them.
+    * Add LC_PAPER, LC_NAME, LC_ADDRESS, LC_TELEPHONE, LC_MEASUREMENT and
+      LC_IDENTIFICATION variables to the list of inherited locale variables.
+    * Implement XDMCP ForwardQuery.
+    * Fix small memory leak in XDMCP logging code.
+    * Check the version of the X server we are running so we correctly pass
+      -listen tcp when required.
+
 Overview of changes in lightdm 1.16.4
 
     * Fix apparmor profiles for running Chromium in guest sessions
 
 Overview of changes in lightdm 1.16.3
 
-    * Fix compile failing without libinput
+    * Fix compile failing without libaudit
     * Fix compile failing without Vala
 
 Overview of changes in lightdm 1.16.2
 
-    * Fix compile failing without libinput
+    * Fix compile failing without libaudit
 
 Overview of changes in lightdm 1.16.1
 

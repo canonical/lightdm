@@ -1,3 +1,20 @@
+lightdm (1.16.5-0ubuntu1) wily; urgency=medium
+
+  * New upstream release:
+    - Handle trailing whitespace on boolean values in configuration.
+      (LP: #1507033)
+    - Add a backup-logs option that can be used to disable existing logging
+      files having a .old suffix added to them.
+    - Add LC_PAPER, LC_NAME, LC_ADDRESS, LC_TELEPHONE, LC_MEASUREMENT and
+      LC_IDENTIFICATION variables to the list of inherited locale variables.
+      (LP: #1511259)
+    - Implement XDMCP ForwardQuery. (LP: #1511545)
+    - Fix small memory leak in XDMCP logging code.
+    - Check the version of the X server we are running so we correctly pass
+      -listen tcp when required. (LP: #1449282)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 03 Nov 2015 16:47:08 +1300
+
 lightdm (1.16.4-0ubuntu1) wily; urgency=medium
 
   * New upstream release:
