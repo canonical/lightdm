@@ -1373,6 +1373,8 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "LightDM", "greeter-user", GREETER_USER);
     if (!config_has_key (config_get_instance (), "LightDM", "lock-memory"))
         config_set_boolean (config_get_instance (), "LightDM", "lock-memory", TRUE);
+    if (!config_has_key (config_get_instance (), "LightDM", "backup-logs"))
+        config_set_boolean (config_get_instance (), "LightDM", "backup-logs", TRUE);
     if (!config_has_key (config_get_instance (), "Seat:*", "type"))
         config_set_string (config_get_instance (), "Seat:*", "type", "xlocal");
     if (!config_has_key (config_get_instance (), "Seat:*", "pam-service"))
