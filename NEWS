@@ -1,3 +1,12 @@
+Overview of changes in lightdm 1.17.1
+
+    * Add a backup-logs option that can be used to disable existing logging
+      files having a .old suffix added to them.
+    * Add LC_PAPER, LC_NAME, LC_ADDRESS, LC_TELEPHONE, LC_MEASUREMENT and
+      LC_IDENTIFICATION variables to the list of inherited locale variables.
+    * Implement XDMCP ForwardQuery.
+    * Fix small memory leak in XDMCP logging code.
+
 Overview of changes in lightdm 1.17.0
 
     * Disable log backups - this interferes with logrotate.
