@@ -1,3 +1,20 @@
+Overview of changes in lightdm 1.14.3
+
+    * Handle trailing whitespace on boolean values in configuration.
+    * Add a backup-logs option that can be used to disable existing logging
+      files having a .old suffix added to them.
+    * Use libaudit to generate audit events
+    * Fix apparmor profiles for running Chromium in guest sessions
+    * Add LC_PAPER, LC_NAME, LC_ADDRESS, LC_TELEPHONE, LC_MEASUREMENT and
+      LC_IDENTIFICATION variables to the list of inherited locale variables.
+    * Use IP address of XDMCP requests to contact X server if available.
+    * Add an option for XDMCP and VNC servers to only listen on one address.
+    * Implement XDMCP ForwardQuery.
+    * Fix small memory leak in XDMCP logging code.
+    * Check the version of the X server we are running so we correctly pass
+      -listen tcp when required.
+    * Fix typo in dm-tool man page.
+
 Overview of changes in lightdm 1.14.2
 
     * Quiesce initctl errors when not running under upstart

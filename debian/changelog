@@ -1,10 +1,29 @@
-lightdm (1.14.2-0ubuntu1.2) vivid; urgency=medium
+lightdm (1.14.3-0ubuntu1) vivid; urgency=medium
 
-  * debian/patches/xorg-1.17.patch:
-    - Fix xserver-allow-tcp=true option not working with X.org 1.17
-      (LP: #1449282)
+  * New upstream release:
+    - Handle trailing whitespace on boolean values in configuration.
+      (LP: #1507033)
+    - Add a backup-logs option that can be used to disable existing logging
+      files having a .old suffix added to them.
+    - Use libaudit to generate audit events. (currently disabled in Ubuntu)
+    - Fix apparmor profiles for running Chromium in guest sessions
+      (LP: #1504049)
+    - Add LC_PAPER, LC_NAME, LC_ADDRESS, LC_TELEPHONE, LC_MEASUREMENT and
+      LC_IDENTIFICATION variables to the list of inherited locale variables.
+      (LP: #1511259)
+    - Use IP address of XDMCP requests to contact X server if available.
+      (LP: #1481561)
+    - Add an option for XDMCP and VNC servers to only listen on one address.
+      (LP: #1390808)
+    - Implement XDMCP ForwardQuery. (LP: #1511545)
+    - Fix small memory leak in XDMCP logging code.
+    - Check the version of the X server we are running so we correctly pass
+      -listen tcp when required. (LP: #1449282)
+    - Warn if deprecated options logind-load-seats or xdg-seat are in
+      configuration. (LP: #1468057)
+    - Fix typo in dm-tool man page. (LP: #1470587)
 
- -- Robert Ancell <robert.ancell@canonical.com>  Mon, 12 Oct 2015 14:35:03 +0100
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 03 Nov 2015 15:36:51 +1300
 
 lightdm (1.14.2-0ubuntu1.1) vivid; urgency=medium
 
