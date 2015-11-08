@@ -99,7 +99,7 @@ seat_xvnc_init (SeatXVNC *seat)
 }
 
 static void
-seat_xdmcp_session_finalize (GObject *object)
+seat_xvnc_session_finalize (GObject *object)
 {
     SeatXVNC *self = SEAT_XVNC (object);
 
@@ -116,7 +116,7 @@ seat_xvnc_class_init (SeatXVNCClass *klass)
 
     seat_class->create_display_server = seat_xvnc_create_display_server;
     seat_class->run_script = seat_xvnc_run_script;
-    object_class->finalize = seat_xdmcp_session_finalize;
+    object_class->finalize = seat_xvnc_session_finalize;
 
     g_type_class_add_private (klass, sizeof (SeatXVNCPrivate));
 }
