@@ -31,4 +31,6 @@ echo "hideRestartNotifier=true" >> ${HOME}/.kde/share/config/notificationhelper
 #/bin/echo -e ${dmrc} > ${HOME}/.dmrc
 
 # set possible local guest session preferences
-[ -f ${site_gs}/prefs.sh ] && . ${site_gs}/prefs.sh
+if [ -f ${site_gs}/prefs.sh ]; then
+    . ${site_gs}/prefs.sh
+fi
