@@ -249,7 +249,7 @@ main (int argc, char **argv)
 
     xorg_version = g_key_file_get_string (config, "test-xserver-config", "version", NULL);
     if (!xorg_version)
-        xorg_version = g_strdup ("1.16.0");
+        xorg_version = g_strdup ("1.17.0");
     tokens = g_strsplit (xorg_version, ".", -1);
     xorg_version_major = g_strv_length (tokens) > 0 ? atoi (tokens[0]) : 0;
     xorg_version_minor = g_strv_length (tokens) > 1 ? atoi (tokens[1]) : 0;

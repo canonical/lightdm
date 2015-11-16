@@ -35,8 +35,8 @@ TESTS = \
 	test-autologin-timeout-gobject \
 	test-autologin-guest-timeout-gobject \
 	test-xserver-config \
+	test-allow-tcp \
 	test-allow-tcp-xorg-1.16 \
-	test-allow-tcp-xorg-1.17 \    
 	test-change-authentication \
 	test-restart-authentication \
 	test-cancel-authentication-gobject \
@@ -173,8 +173,8 @@ TESTS = \
 	test-vnc-guest \
 	test-xremote-autologin \
 	test-xremote-login \    
+	test-xdmcp-client \
 	test-xdmcp-client-xorg-1.16 \
-	test-xdmcp-client-xorg-1.17 \
 	test-xdmcp-server-autologin \
 	test-xdmcp-server-login \
 	test-xdmcp-server-double-login \
@@ -375,8 +375,8 @@ EXTRA_DIST = \
 	scripts/additional-config-priority.conf \
 	scripts/additional-system-config.conf \
 	scripts/additional-system-config-priority.conf \
+	scripts/allow-tcp.conf \
 	scripts/allow-tcp-xorg-1.16.conf \
-	scripts/allow-tcp-xorg-1.17.conf \    
 	scripts/audit-autologin.conf \
 	scripts/autologin.conf \
 	scripts/autologin-guest.conf \
@@ -592,8 +592,8 @@ EXTRA_DIST = \
 	scripts/xauthority.conf \
 	scripts/xdg-current-desktop.conf \
 	scripts/xdg-current-desktop-legacy.conf \
+	scripts/xdmcp-client.conf \
 	scripts/xdmcp-client-xorg-1.16.conf \
-	scripts/xdmcp-client-xorg-1.17.conf \
 	scripts/xdmcp-server-autologin.conf \
 	scripts/xdmcp-server-double-login.conf \
 	scripts/xdmcp-server-guest.conf \
