@@ -31,6 +31,12 @@ static gboolean listen_tcp = TRUE;
 /* TRUE if we allow Unix connections */
 static gboolean listen_unix = TRUE;
 
+/* Configuration to use */
+static gchar *config_file = NULL;
+
+/* Configuration layout to use */
+static gchar *layout = NULL;
+
 /* Path to authority database to use */
 static gchar *auth_path = NULL;
 
@@ -48,6 +54,9 @@ static XServer *xserver = NULL;
 
 /* XDMCP client */
 static XDMCPClient *xdmcp_client = NULL;
+
+/* Session ID provided by XDMCP server */
+static guint32 xdmcp_session_id = 0;
 
 /* Authorization provided by XDMCP server */
 static guint16 xdmcp_cookie_length = 0;
@@ -109,21 +118,7 @@ xdmcp_query_cb (XDMCPClient *client)
 static void
 xdmcp_willing_cb (XDMCPClient *client, XDMCPWilling *message)
 {
-    gchar **authorization_names;
-    GInetAddress *addresses[2];
-
     status_notify ("%s GOT-WILLING AUTHENTICATION-NAME=\"%s\" HOSTNAME=\"%s\" STATUS=\"%s\"", id, message->authentication_name, message->hostname, message->status);
-
-    status_notify ("%s SEND-REQUEST DISPLAY-NUMBER=%d AUTHORIZATION-NAME=\"%s\" MFID=\"%s\"", id, display_number, "MIT-MAGIC-COOKIE-1", "TEST XSERVER");
-
-    authorization_names = g_strsplit ("MIT-MAGIC-COOKIE-1", " ", -1);
-    addresses[0] = xdmcp_client_get_local_address (client);
-    addresses[1] = NULL;
-    xdmcp_client_send_request (client, display_number,
-                               addresses,
-                               "", NULL, 0,
-                               authorization_names, "TEST XSERVER");
-    g_strfreev (authorization_names);
 }
 
 static void
@@ -131,17 +126,12 @@ xdmcp_accept_cb (XDMCPClient *client, XDMCPAccept *message)
 {
     status_notify ("%s GOT-ACCEPT SESSION-ID=%d AUTHENTICATION-NAME=\"%s\" AUTHORIZATION-NAME=\"%s\"", id, message->session_id, message->authentication_name, message->authorization_name);
 
-    /* Ignore if haven't picked a valid authorization */
-    if (strcmp (message->authorization_name, "MIT-MAGIC-COOKIE-1") != 0)
-        return;
+    xdmcp_session_id = message->session_id;
 
     g_free (xdmcp_cookie);
     xdmcp_cookie_length = message->authorization_data_length;
     xdmcp_cookie = g_malloc (message->authorization_data_length);
     memcpy (xdmcp_cookie, message->authorization_data, message->authorization_data_length);
-
-    status_notify ("%s SEND-MANAGE SESSION-ID=%d DISPLAY-NUMBER=%d DISPLAY-CLASS=\"%s\"", id, message->session_id, display_number, "DISPLAY CLASS");
-    xdmcp_client_send_manage (client, message->session_id, display_number, "DISPLAY CLASS");
 }
 
 static void
@@ -202,6 +192,46 @@ request_cb (const gchar *name, GHashTable *params)
         if (!xdmcp_client_start (xdmcp_client))
             quit (EXIT_FAILURE);
     }
+
+    else if (strcmp (name, "SEND-REQUEST") == 0)
+    {
+        const gchar *addresses_list, *authorization_names_list, *mfid;
+        gchar **list, **authorization_names;
+        gsize list_length;
+        gint i;
+        GInetAddress **addresses;
+
+        addresses_list = g_hash_table_lookup (params, "ADDRESSES");
+        if (!addresses_list)
+            addresses_list = "";
+        authorization_names_list = g_hash_table_lookup (params, "AUTHORIZATION-NAMES");
+        if (!authorization_names_list)
+            authorization_names_list = "";
+        mfid = g_hash_table_lookup (params, "MFID");
+        if (!mfid)
+            mfid = "";
+
+        list = g_strsplit (addresses_list, " ", -1);
+        list_length = g_strv_length (list);
+        addresses = g_malloc (sizeof (GInetAddress *) * (list_length + 1));
+        for (i = 0; i < list_length; i++)
+            addresses[i] = g_inet_address_new_from_string (list[i]);
+        addresses[i] = NULL;
+        g_strfreev (list);
+
+        authorization_names = g_strsplit (authorization_names_list, " ", -1);
+
+        xdmcp_client_send_request (xdmcp_client, display_number,
+                                   addresses,
+                                   "", NULL, 0,
+                                   authorization_names, mfid);
+        g_strfreev (authorization_names);
+    }
+
+    else if (strcmp (name, "SEND-MANAGE") == 0)
+    {
+        xdmcp_client_send_manage (xdmcp_client, xdmcp_session_id, display_number, "DISPLAY CLASS");
+    }
 }
 
 static int
@@ -244,7 +274,7 @@ main (int argc, char **argv)
 
     xorg_version = g_key_file_get_string (config, "test-xserver-config", "version", NULL);
     if (!xorg_version)
-        xorg_version = g_strdup ("1.16.0");
+        xorg_version = g_strdup ("1.17.0");
     tokens = g_strsplit (xorg_version, ".", -1);
     xorg_version_major = g_strv_length (tokens) > 0 ? atoi (tokens[0]) : 0;
     xorg_version_minor = g_strv_length (tokens) > 1 ? atoi (tokens[1]) : 0;
@@ -260,6 +290,16 @@ main (int argc, char **argv)
         if (arg[0] == ':')
         {
             display_number = atoi (arg + 1);
+        }
+        else if (strcmp (arg, "-config") == 0)
+        {
+            config_file = argv[i+1];
+            i++;
+        }
+        else if (strcmp (arg, "-layout") == 0)
+        {
+            layout = argv[i+1];
+            i++;
         }
         else if (strcmp (arg, "-auth") == 0)
         {
@@ -345,6 +385,8 @@ main (int argc, char **argv)
         {
             g_printerr ("Unrecognized option: %s\n"
                         "Use: %s [:<display>] [option]\n"
+                        "-config file           Specify a configuration file\n"
+                        "-layout name           Specify the ServerLayout section name\n"
                         "-auth file             Select authorization file\n"
                         "-nolisten protocol     Don't listen on protocol\n"
                         "-listen protocol       Listen on protocol\n"
@@ -374,6 +416,10 @@ main (int argc, char **argv)
 
     status_text = g_string_new ("");
     g_string_printf (status_text, "%s START", id);
+    if (config_file)
+        g_string_append_printf (status_text, " CONFIG=%s", config_file);
+    if (layout)
+        g_string_append_printf (status_text, " LAYOUT=%s", layout);
     if (vt_number >= 0)
         g_string_append_printf (status_text, " VT=%d", vt_number);
     if (listen_tcp)
