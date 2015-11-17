@@ -321,6 +321,9 @@ choose_connection (XDMCPPacket *packet, GInetAddress *source_address)
     gssize index = -1;
 
     addresses_length = packet->Request.n_connections;
+    if (addresses_length == 0)
+        return NULL;
+
     addresses = malloc (sizeof (GInetAddress *) * addresses_length);
     for (i = 0; i < addresses_length; i++)
         addresses[i] = connection_to_address (&packet->Request.connections[i]);
@@ -335,7 +338,7 @@ choose_connection (XDMCPPacket *packet, GInetAddress *source_address)
         index = find_address (addresses, addresses_length, g_inet_address_get_family (source_address));
 
     /* Otherwise use the first available */
-    if (index < 0 && addresses_length > 0)
+    if (index < 0)    
         index = 0;
 
     for (i = 0; i < addresses_length; i++)
