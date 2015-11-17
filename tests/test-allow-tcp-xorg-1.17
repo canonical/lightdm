@@ -1,2 +1,0 @@
-#!/bin/sh
-./src/dbus-env ./src/test-runner allow-tcp-xorg-1.17 test-gobject-greeter
