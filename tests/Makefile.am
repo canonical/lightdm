@@ -165,6 +165,7 @@ TESTS = \
 	test-xdmcp-client \
 	test-xdmcp-client-xorg-1.16 \
 	test-xdmcp-server-login \
+	test-xdmcp-server-request-without-addresses \
 	test-utmp-login \
 	test-utmp-autologin \
 	test-utmp-wrong-password \
@@ -563,6 +564,7 @@ EXTRA_DIST = \
 	scripts/xdmcp-client-xorg-1.16.conf \
 	scripts/xdmcp-server-login.conf \
 	scripts/xdmcp-server-open-file-descriptors.conf \
+	scripts/xdmcp-server-request-without-addresses.conf \
 	scripts/xremote-autologin.conf \
 	scripts/xremote-login.conf \
 	scripts/xserver-config.conf \
