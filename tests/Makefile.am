@@ -16,6 +16,7 @@ TESTS = \
 	test-additional-system-config-priority \
 	test-headless \
 	test-autologin \
+	test-autologin-pam \
 	test-autologin-invalid-user \
 	test-autologin-invalid-session \
 	test-autologin-xserver-crash \
@@ -25,7 +26,6 @@ TESTS = \
 	test-autologin-gobject-timeout \
 	test-autologin-gobject-guest-timeout \
 	test-xserver-config \
-	test-pam \
 	test-login-pam \
 	test-denied \
 	test-expired \
@@ -199,6 +199,7 @@ EXTRA_DIST = \
 	scripts/autologin-guest-fail-setup-script.conf \
 	scripts/autologin-guest-logout.conf \
 	scripts/autologin-guest-timeout.conf \
+	scripts/autologin-pam.conf \
 	scripts/autologin-invalid-session.conf \
 	scripts/autologin-invalid-user.conf \
 	scripts/autologin-logout.conf \
@@ -266,7 +267,6 @@ EXTRA_DIST = \
 	scripts/no-keyboard-layout.conf \
 	scripts/no-language.conf \
 	scripts/open-file-descriptors.conf \
-	scripts/pam.conf \
 	scripts/plymouth-active-vt.conf \
 	scripts/plymouth-inactive-vt.conf \
 	scripts/plymouth-no-seat.conf \
