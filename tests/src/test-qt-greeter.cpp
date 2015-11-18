@@ -58,66 +58,49 @@ signal_cb (int signum)
 }
 
 static void
-request_cb (const gchar *request)
+request_cb (const gchar *name, GHashTable *params)
 {
     gchar *r;
 
-    if (!request)
+    if (!name)
     {
         app->quit ();
         return;
     }
   
-    r = g_strdup_printf ("%s AUTHENTICATE", greeter_id);
-    if (strcmp (request, r) == 0)
-        greeter->authenticate ();
-    g_free (r);
+    if (strcmp (name, "AUTHENTICATE") == 0)
+    {
+        if (g_hash_table_lookup (params, "USERNAME"))
+            greeter->authenticate ((const gchar *) g_hash_table_lookup (params, "USERNAME"));
+        else
+            greeter->authenticate ();
+    }
 
-    r = g_strdup_printf ("%s AUTHENTICATE USERNAME=", greeter_id);
-    if (g_str_has_prefix (request, r))
-        greeter->authenticate (request + strlen (r));
-    g_free (r);
-
-    r = g_strdup_printf ("%s AUTHENTICATE-GUEST", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "AUTHENTICATE-GUEST") == 0)
         greeter->authenticateAsGuest ();
-    g_free (r);
 
-    r = g_strdup_printf ("%s AUTHENTICATE-AUTOLOGIN", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "AUTHENTICATE-AUTOLOGIN") == 0)
         greeter->authenticateAutologin ();
-    g_free (r);
 
-    r = g_strdup_printf ("%s RESPOND TEXT=\"", greeter_id);
-    if (g_str_has_prefix (request, r))
-    {
-        gchar *text = g_strdup (request + strlen (r));
-        text[strlen (text) - 1] = '\0';
-        greeter->respond (text);
-        g_free (text);
-    }
-    g_free (r);
+    else if (strcmp (name, "RESPOND") == 0)
+        greeter->respond ((const gchar *) g_hash_table_lookup (params, "TEXT"));
 
-    r = g_strdup_printf ("%s CANCEL-AUTHENTICATION", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "CANCEL-AUTHENTICATION") == 0)
         greeter->cancelAuthentication ();
-    g_free (r);
 
-    r = g_strdup_printf ("%s START-SESSION", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "START-SESSION") == 0)
     {
-        if (!greeter->startSessionSync ())
-            status_notify ("%s SESSION-FAILED", greeter_id);
+        if (g_hash_table_lookup (params, "SESSION"))
+        {
+            if (!greeter->startSessionSync ((const gchar *) g_hash_table_lookup (params, "SESSION")))
+                status_notify ("%s SESSION-FAILED", greeter_id);
+        }
+        else
+        {
+            if (!greeter->startSessionSync ())
+                status_notify ("%s SESSION-FAILED", greeter_id);
+        }
     }
-    g_free (r);
-
-    r = g_strdup_printf ("%s START-SESSION SESSION=", greeter_id);
-    if (g_str_has_prefix (request, r))
-    {
-        if (!greeter->startSessionSync (request + strlen (r)))
-            status_notify ("%s SESSION-FAILED", greeter_id);
-    }
-    g_free (r);
 }
 
 int
@@ -144,7 +127,12 @@ main(int argc, char *argv[])
     else
         greeter_id = g_strdup ("GREETER-?");
 
-    status_connect (request_cb);
+    status_connect (request_cb, greeter_id);
+
+    /* Workaround for Qt being confused by libsystem */
+#if QT_VERSION >= QT_VERSION_CHECK (5, 3, 0)
+    QCoreApplication::setSetuidAllowed (true);
+#endif  
 
     app = new QCoreApplication (argc, argv);
 
@@ -159,7 +147,7 @@ main(int argc, char *argv[])
         g_string_append_printf (status_text, " XDG_VTNR=%s", xdg_vtnr);
     if (xdg_session_cookie)
         g_string_append_printf (status_text, " XDG_SESSION_COOKIE=%s", xdg_session_cookie);
-    status_notify (status_text->str);
+    status_notify ("%s", status_text->str);
     g_string_free (status_text, TRUE);
 
     config = new QSettings (g_build_filename (getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), QSettings::IniFormat);

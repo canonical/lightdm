@@ -18,6 +18,8 @@
 #include <xcb/xcb.h>
 #include <gio/gunixsocketaddress.h>
 
+#include "status.h"
+
 #define LOGIN_PROMPT "login:"
 
 static int console_fd = -1;
@@ -30,6 +32,15 @@ static GList *group_entries = NULL;
 static int active_vt = 7;
 
 static gboolean status_connected = FALSE;
+
+static void connect_status (void)
+{
+    if (status_connected)
+        return;
+    status_connected = TRUE;
+
+    status_connect (NULL, NULL);
+}
 
 struct pam_handle
 {
@@ -454,8 +465,7 @@ ioctl (int d, int request, void *data)
             if (vt != active_vt)
             {
                 active_vt = vt;
-                if (!status_connected)
-                    status_connected = status_connect (NULL);
+                connect_status ();
                 status_notify ("VT ACTIVATE VT=%d", active_vt);
             }
             break;
@@ -495,7 +505,7 @@ free_user (gpointer data)
 }
 
 static void
-load_passwd_file ()
+load_passwd_file (void)
 {
     gchar *path, *data = NULL, **lines;
     gint i;
@@ -627,7 +637,7 @@ free_group (gpointer data)
 }
 
 static void
-load_group_file ()
+load_group_file (void)
 {
     gchar *path, *data = NULL, **lines;
     gint i;
@@ -1371,7 +1381,7 @@ void
 setutxent (void)
 {
 }
-  
+
 struct utmp *
 pututxline (struct utmp *ut)
 {
@@ -1395,7 +1405,6 @@ xcb_connect_to_display_with_auth_info (const char *display, xcb_auth_info_t *aut
 {
     xcb_connection_t *c;
     gchar *socket_path;
-    GSocketAddress *address;
     GError *error = NULL;
   
     c = malloc (sizeof (xcb_connection_t));
@@ -1420,6 +1429,7 @@ xcb_connect_to_display_with_auth_info (const char *display, xcb_auth_info_t *aut
     if (c->error == 0)
     {
         gchar *d;
+        GSocketAddress *address;
 
         /* Skip the hostname, we'll assume it's localhost */
         d = g_strdup_printf (".x%s", strchr (display, ':'));
@@ -1429,6 +1439,7 @@ xcb_connect_to_display_with_auth_info (const char *display, xcb_auth_info_t *aut
         address = g_unix_socket_address_new (socket_path);
         if (!g_socket_connect (c->socket, address, NULL, &error))
             c->error = XCB_CONN_ERROR;
+        g_object_unref (address);
         if (error)
             g_printerr ("Failed to connect to X socket %s: %s\n", socket_path, error->message);
         g_free (socket_path);
@@ -1439,8 +1450,6 @@ xcb_connect_to_display_with_auth_info (const char *display, xcb_auth_info_t *aut
     if (c->error == 0)
     {
     }
-
-    g_object_unref (address);
 
     return c;
 }

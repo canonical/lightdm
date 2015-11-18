@@ -3,10 +3,10 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <signal.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <gio/gio.h>
+#include <glib-unix.h>
 
 #include "status.h"
 #include "x-server.h"
@@ -21,6 +21,9 @@ static gchar *lock_path = NULL;
 
 /* Path to authority database to use */
 static gchar *auth_path = NULL;
+
+/* ID to use for test reporting */
+static gchar *id;
 
 /* Display number being served */
 static int display_number = 0;
@@ -44,18 +47,27 @@ quit (int status)
     exit (status);
 }
 
-static void
-signal_cb (int signum)
+static gboolean
+sighup_cb (gpointer user_data)
 {
-    if (signum == SIGHUP)
-    {
-        status_notify ("XSERVER-%d DISCONNECT-CLIENTS", display_number);
-    }
-    else
-    {
-        status_notify ("XSERVER-%d TERMINATE SIGNAL=%d", display_number, signum);
-        quit (EXIT_SUCCESS);
-    }
+    status_notify ("%s DISCONNECT-CLIENTS", id);
+    return TRUE;
+}
+
+static gboolean
+sigint_cb (gpointer user_data)
+{
+    status_notify ("%s TERMINATE SIGNAL=%d", id, SIGINT);
+    quit (EXIT_SUCCESS);
+    return TRUE;
+}
+
+static gboolean
+sigterm_cb (gpointer user_data)
+{
+    status_notify ("%s TERMINATE SIGNAL=%d", id, SIGTERM);
+    quit (EXIT_SUCCESS);
+    return TRUE;
 }
 
 static void
@@ -63,7 +75,7 @@ client_connected_cb (XServer *server, XClient *client)
 {
     gchar *auth_error = NULL;
 
-    status_notify ("XSERVER-%d ACCEPT-CONNECT", display_number);
+    status_notify ("%s ACCEPT-CONNECT", id);
 
     if (auth_error)
         x_client_send_failed (client, auth_error);
@@ -96,44 +108,39 @@ vnc_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
         buffer[n_read] = '\0';
         if (g_str_has_suffix (buffer, "\n"))
             buffer[n_read-1] = '\0';
-        status_notify ("XSERVER-%d VNC-CLIENT-CONNECT VERSION=\"%s\"", display_number, buffer);
+        status_notify ("%s VNC-CLIENT-CONNECT VERSION=\"%s\"", id, buffer);
     }
   
     return TRUE;
 }
 
 static void
-request_cb (const gchar *request)
+request_cb (const gchar *name, GHashTable *params)
 {
-    gchar *r;
-
-    if (!request)
+    if (!name)
     {
         g_main_loop_quit (loop);
         return;
     }
 
-    r = g_strdup_printf ("XSERVER-%d INDICATE-READY", display_number);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "INDICATE-READY") == 0)
     {
         void *handler;
 
         handler = signal (SIGUSR1, SIG_IGN);
         if (handler == SIG_IGN)
         {
-            status_notify ("XSERVER-%d INDICATE-READY", display_number);
+            status_notify ("%s INDICATE-READY", id);
             kill (getppid (), SIGUSR1);
         }
         signal (SIGUSR1, handler);
     }
-    g_free (r);
-    r = g_strdup_printf ("XSERVER-%d START-VNC", display_number);
-    if (strcmp (request, r) == 0)
+
+    else if (strcmp (name, "START-VNC") == 0)
     {
         /* Send server protocol version to client */
         g_print ("RFB 003.007\n");
     }
-    g_free (r);
 }
 
 int
@@ -148,17 +155,15 @@ main (int argc, char **argv)
     int lock_file;
     int i;
 
-    signal (SIGINT, signal_cb);
-    signal (SIGTERM, signal_cb);
-    signal (SIGHUP, signal_cb);
-
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
 
     loop = g_main_loop_new (NULL, FALSE);
 
-    status_connect (request_cb);
+    g_unix_signal_add (SIGINT, sigint_cb, NULL);
+    g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
+    g_unix_signal_add (SIGHUP, sighup_cb, NULL);
 
     for (i = 1; i < argc; i++)
     {
@@ -214,12 +219,16 @@ main (int argc, char **argv)
             return EXIT_FAILURE;
         }
     }
-  
+
+    id = g_strdup_printf ("XSERVER-%d", display_number);
+
+    status_connect (request_cb, id);
+
     xserver = x_server_new (display_number);
     g_signal_connect (xserver, "client-connected", G_CALLBACK (client_connected_cb), NULL);
     g_signal_connect (xserver, "client-disconnected", G_CALLBACK (client_disconnected_cb), NULL);
 
-    status_notify ("XSERVER-%d START GEOMETRY=%s DEPTH=%d OPTION=%s", display_number, geometry, depth, has_option ? "TRUE" : "FALSE");
+    status_notify ("%s START GEOMETRY=%s DEPTH=%d OPTION=%s", id, geometry, depth, has_option ? "TRUE" : "FALSE");
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);

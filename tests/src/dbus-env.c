@@ -29,7 +29,7 @@ create_bus (const gchar *config_file, GPid *pid)
     g_clear_error (&error);
     if (!g_spawn_async (NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_LEAVE_DESCRIPTORS_OPEN, NULL, NULL, pid, &error))
     {
-        g_warning ("Error launching LightDM: %s", error->message);
+        g_warning ("Error launching D-Bus: %s", error->message);
         exit (EXIT_FAILURE);
     }
 

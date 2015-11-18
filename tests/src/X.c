@@ -3,10 +3,10 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <signal.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <glib-unix.h>
 
 #include "status.h"
 #include "x-server.h"
@@ -24,6 +24,9 @@ static gchar *lock_path = NULL;
 /* Path to authority database to use */
 static gchar *auth_path = NULL;
 
+/* ID to use for test reporting */
+static gchar *id;
+
 /* Display number being served */
 static int display_number = 0;
 
@@ -35,6 +38,9 @@ static XServer *xserver = NULL;
 
 /* XDMCP client */
 static XDMCPClient *xdmcp_client = NULL;
+
+/* Session ID provided by XDMCP server */
+static guint32 xdmcp_session_id = 0;
 
 /* Authorization provided by XDMCP server */
 static guint16 xdmcp_cookie_length = 0;
@@ -58,19 +64,27 @@ quit (int status)
     g_main_loop_quit (loop);
 }
 
-
-static void
-signal_cb (int signum)
+static gboolean
+sighup_cb (gpointer user_data)
 {
-    if (signum == SIGHUP)
-    {
-        status_notify ("XSERVER-%d DISCONNECT-CLIENTS", display_number);
-    }
-    else
-    {
-        status_notify ("XSERVER-%d TERMINATE SIGNAL=%d", display_number, signum);
-        quit (EXIT_SUCCESS);
-    }
+    status_notify ("%s DISCONNECT-CLIENTS", id);
+    return TRUE;
+}
+
+static gboolean
+sigint_cb (gpointer user_data)
+{
+    status_notify ("%s TERMINATE SIGNAL=%d", id, SIGINT);
+    quit (EXIT_SUCCESS);
+    return TRUE;
+}
+
+static gboolean
+sigterm_cb (gpointer user_data)
+{
+    status_notify ("%s TERMINATE SIGNAL=%d", id, SIGTERM);
+    quit (EXIT_SUCCESS);
+    return TRUE;
 }
 
 static void
@@ -80,7 +94,7 @@ xdmcp_query_cb (XDMCPClient *client)
 
     if (!notified_query)
     {
-        status_notify ("XSERVER-%d SEND-QUERY", display_number);
+        status_notify ("%s SEND-QUERY", id);
         notified_query = TRUE;
     }
 }
@@ -88,65 +102,39 @@ xdmcp_query_cb (XDMCPClient *client)
 static void
 xdmcp_willing_cb (XDMCPClient *client, XDMCPWilling *message)
 {
-    gchar **authorization_names;
-    GInetAddress *addresses[2];
-
-    status_notify ("XSERVER-%d GOT-WILLING AUTHENTICATION-NAME=\"%s\" HOSTNAME=\"%s\" STATUS=\"%s\"", display_number, message->authentication_name, message->hostname, message->status);
-
-    status_notify ("XSERVER-%d SEND-REQUEST DISPLAY-NUMBER=%d AUTHORIZATION-NAME=\"%s\" MFID=\"%s\"", display_number, display_number, "MIT-MAGIC-COOKIE-1", "TEST XSERVER");
-
-    authorization_names = g_strsplit ("MIT-MAGIC-COOKIE-1", " ", -1);
-    addresses[0] = xdmcp_client_get_local_address (client);
-    addresses[1] = NULL;
-    xdmcp_client_send_request (client, display_number,
-                               addresses,
-                               "", NULL, 0,
-                               authorization_names, "TEST XSERVER");
-    g_strfreev (authorization_names);
+    status_notify ("%s GOT-WILLING AUTHENTICATION-NAME=\"%s\" HOSTNAME=\"%s\" STATUS=\"%s\"", id, message->authentication_name, message->hostname, message->status);
 }
 
 static void
 xdmcp_accept_cb (XDMCPClient *client, XDMCPAccept *message)
 {
-    status_notify ("XSERVER-%d GOT-ACCEPT SESSION-ID=%d AUTHENTICATION-NAME=\"%s\" AUTHORIZATION-NAME=\"%s\"", display_number, message->session_id, message->authentication_name, message->authorization_name);
+    status_notify ("%s GOT-ACCEPT SESSION-ID=%d AUTHENTICATION-NAME=\"%s\" AUTHORIZATION-NAME=\"%s\"", id, message->session_id, message->authentication_name, message->authorization_name);
 
-    /* Ignore if haven't picked a valid authorization */
-    if (strcmp (message->authorization_name, "MIT-MAGIC-COOKIE-1") != 0)
-        return;
+    xdmcp_session_id = message->session_id;
 
     g_free (xdmcp_cookie);
     xdmcp_cookie_length = message->authorization_data_length;
     xdmcp_cookie = g_malloc (message->authorization_data_length);
     memcpy (xdmcp_cookie, message->authorization_data, message->authorization_data_length);
-
-    status_notify ("XSERVER-%d SEND-MANAGE SESSION-ID=%d DISPLAY-NUMBER=%d DISPLAY-CLASS=\"%s\"", display_number, message->session_id, display_number, "DISPLAY CLASS");
-    xdmcp_client_send_manage (client, message->session_id, display_number, "DISPLAY CLASS");
 }
 
 static void
 xdmcp_decline_cb (XDMCPClient *client, XDMCPDecline *message)
 {
-    status_notify ("XSERVER-%d GOT-DECLINE STATUS=\"%s\" AUTHENTICATION-NAME=\"%s\"", display_number, message->status, message->authentication_name);  
+    status_notify ("%s GOT-DECLINE STATUS=\"%s\" AUTHENTICATION-NAME=\"%s\"", id, message->status, message->authentication_name);  
 }
 
 static void
 xdmcp_failed_cb (XDMCPClient *client, XDMCPFailed *message)
 {
-    status_notify ("XSERVER-%d GOT-FAILED SESSION-ID=%d STATUS=\"%s\"", display_number, message->session_id, message->status);
+    status_notify ("%s GOT-FAILED SESSION-ID=%d STATUS=\"%s\"", id, message->session_id, message->status);
 }
 
 static void
 client_connected_cb (XServer *server, XClient *client)
 {
-    gchar *auth_error = NULL;
-
-    status_notify ("XSERVER-%d ACCEPT-CONNECT", display_number);
-
-    if (auth_error)
-        x_client_send_failed (client, auth_error);
-    else
-        x_client_send_success (client);
-    g_free (auth_error);
+    status_notify ("%s ACCEPT-CONNECT", id);
+    x_client_send_success (client);
 }
 
 static void
@@ -156,44 +144,78 @@ client_disconnected_cb (XServer *server, XClient *client)
 }
 
 static void
-request_cb (const gchar *request)
+request_cb (const gchar *name, GHashTable *params)
 {
-    gchar *r;
-  
-    if (!request)
+    if (!name)
     {
         g_main_loop_quit (loop);
         return;
     }
 
-    r = g_strdup_printf ("XSERVER-%d CRASH", display_number);
-    if (strcmp (request, r) == 0)
+    if (strcmp (name, "CRASH") == 0)
     {
         cleanup ();
         kill (getpid (), SIGSEGV);
     }
-    g_free (r);
-    r = g_strdup_printf ("XSERVER-%d INDICATE-READY", display_number);
-    if (strcmp (request, r) == 0)
+
+    else if (strcmp (name, "INDICATE-READY") == 0)
     {
         void *handler;
 
         handler = signal (SIGUSR1, SIG_IGN);
         if (handler == SIG_IGN)
         {
-            status_notify ("XSERVER-%d INDICATE-READY", display_number);
+            status_notify ("%s INDICATE-READY", id);
             kill (getppid (), SIGUSR1);
         }
         signal (SIGUSR1, handler);
     }
-    g_free (r);
-    r = g_strdup_printf ("XSERVER-%d START-XDMCP", display_number);
-    if (strcmp (request, r) == 0)
+
+    else if (strcmp (name, "START-XDMCP") == 0)
     {
         if (!xdmcp_client_start (xdmcp_client))
             quit (EXIT_FAILURE);
     }
-    g_free (r);
+
+    else if (strcmp (name, "SEND-REQUEST") == 0)
+    {
+        const gchar *addresses_list, *authorization_names_list, *mfid;
+        gchar **list, **authorization_names;
+        gsize list_length;
+        gint i;
+        GInetAddress **addresses;
+
+        addresses_list = g_hash_table_lookup (params, "ADDRESSES");
+        if (!addresses_list)
+            addresses_list = "";
+        authorization_names_list = g_hash_table_lookup (params, "AUTHORIZATION-NAMES");
+        if (!authorization_names_list)
+            authorization_names_list = "";
+        mfid = g_hash_table_lookup (params, "MFID");
+        if (!mfid)
+            mfid = "";
+
+        list = g_strsplit (addresses_list, " ", -1);
+        list_length = g_strv_length (list);
+        addresses = g_malloc (sizeof (GInetAddress *) * (list_length + 1));
+        for (i = 0; i < list_length; i++)
+            addresses[i] = g_inet_address_new_from_string (list[i]);
+        addresses[i] = NULL;
+        g_strfreev (list);
+
+        authorization_names = g_strsplit (authorization_names_list, " ", -1);
+
+        xdmcp_client_send_request (xdmcp_client, display_number,
+                                   addresses,
+                                   "", NULL, 0,
+                                   authorization_names, mfid);
+        g_strfreev (authorization_names);
+    }
+
+    else if (strcmp (name, "SEND-MANAGE") == 0)
+    {
+        xdmcp_client_send_manage (xdmcp_client, xdmcp_session_id, display_number, "DISPLAY CLASS");
+    }
 }
 
 int
@@ -208,17 +230,15 @@ main (int argc, char **argv)
     int lock_file;
     GString *status_text;
 
-    signal (SIGINT, signal_cb);
-    signal (SIGTERM, signal_cb);
-    signal (SIGHUP, signal_cb);
-
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
 
     loop = g_main_loop_new (NULL, FALSE);
 
-    status_connect (request_cb);
+    g_unix_signal_add (SIGINT, sigint_cb, NULL);
+    g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
+    g_unix_signal_add (SIGHUP, sighup_cb, NULL);
 
     for (i = 1; i < argc; i++)
     {
@@ -290,15 +310,19 @@ main (int argc, char **argv)
         }
     }
 
+    id = g_strdup_printf ("XSERVER-%d", display_number);
+
+    status_connect (request_cb, id);
+
     xserver = x_server_new (display_number);
     g_signal_connect (xserver, "client-connected", G_CALLBACK (client_connected_cb), NULL);
     g_signal_connect (xserver, "client-disconnected", G_CALLBACK (client_disconnected_cb), NULL);
 
     status_text = g_string_new ("");
-    g_string_printf (status_text, "XSERVER-%d START", display_number);
+    g_string_printf (status_text, "%s START", id);
     if (vt_number >= 0)
         g_string_append_printf (status_text, " VT=%d", vt_number);
-    status_notify (status_text->str);
+    status_notify ("%s", status_text->str);
     g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
@@ -307,7 +331,7 @@ main (int argc, char **argv)
     if (g_key_file_has_key (config, "test-xserver-config", "return-value", NULL))
     {
         int return_value = g_key_file_get_integer (config, "test-xserver-config", "return-value", NULL);
-        status_notify ("XSERVER-%d EXIT CODE=%d", display_number, return_value);
+        status_notify ("%s EXIT CODE=%d", id, return_value);
         return return_value;
     }
 
@@ -362,18 +386,18 @@ main (int argc, char **argv)
                  "	and start again.\n", display_number, lock_path);
         g_free (lock_path);
         lock_path = NULL;
-        quit (EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
     pid_string = g_strdup_printf ("%10ld", (long) getpid ());
     if (write (lock_file, pid_string, strlen (pid_string)) < 0)
     {
         g_warning ("Error writing PID file: %s", strerror (errno));
-        quit (EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
     g_free (pid_string);
 
     if (!x_server_start (xserver))
-        quit (EXIT_FAILURE);
+        return EXIT_FAILURE;
 
     /* Enable XDMCP */
     if (do_xdmcp)

@@ -5,6 +5,7 @@
 #include <string.h>
 #include <xcb/xcb.h>
 #include <lightdm.h>
+#include <glib-unix.h>
 
 #include "status.h"
 
@@ -46,99 +47,72 @@ autologin_timer_expired_cb (LightDMGreeter *greeter)
     status_notify ("%s AUTOLOGIN-TIMER-EXPIRED", greeter_id);
 }
 
-static void
-signal_cb (int signum)
+static gboolean
+sigint_cb (gpointer user_data)
 {
-    status_notify ("%s TERMINATE SIGNAL=%d", greeter_id, signum);
-    exit (EXIT_SUCCESS);
+    status_notify ("%s TERMINATE SIGNAL=%d", greeter_id, SIGINT);
+    g_main_loop_quit (loop);
+    return TRUE;
+}
+
+static gboolean
+sigterm_cb (gpointer user_data)
+{
+    status_notify ("%s TERMINATE SIGNAL=%d", greeter_id, SIGTERM);
+    g_main_loop_quit (loop);
+    return TRUE;
 }
 
 static void
-request_cb (const gchar *request)
+request_cb (const gchar *name, GHashTable *params)
 {
-    gchar *r;
-
-    if (!request)
+    if (!name)
     {
         g_main_loop_quit (loop);
         return;
     }
-  
-    r = g_strdup_printf ("%s AUTHENTICATE", greeter_id);
-    if (strcmp (request, r) == 0)
-        lightdm_greeter_authenticate (greeter, NULL);
-    g_free (r);
 
-    r = g_strdup_printf ("%s AUTHENTICATE USERNAME=", greeter_id);
-    if (g_str_has_prefix (request, r))
-        lightdm_greeter_authenticate (greeter, request + strlen (r));
-    g_free (r);
+    if (strcmp (name, "CRASH") == 0)
+        kill (getpid (), SIGSEGV);
 
-    r = g_strdup_printf ("%s AUTHENTICATE-GUEST", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "AUTHENTICATE") == 0)
+        lightdm_greeter_authenticate (greeter, g_hash_table_lookup (params, "USERNAME"));
+
+    else if (strcmp (name, "AUTHENTICATE-GUEST") == 0)
         lightdm_greeter_authenticate_as_guest (greeter);
-    g_free (r);
 
-    r = g_strdup_printf ("%s AUTHENTICATE-AUTOLOGIN", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "AUTHENTICATE-AUTOLOGIN") == 0)
         lightdm_greeter_authenticate_autologin (greeter);
-    g_free (r);
 
-    r = g_strdup_printf ("%s RESPOND TEXT=\"", greeter_id);
-    if (g_str_has_prefix (request, r))
-    {
-        gchar *text = g_strdup (request + strlen (r));
-        text[strlen (text) - 1] = '\0';
-        lightdm_greeter_respond (greeter, text);
-        g_free (text);
-    }
-    g_free (r);
+    else if (strcmp (name, "RESPOND") == 0)
+        lightdm_greeter_respond (greeter, g_hash_table_lookup (params, "TEXT"));
 
-    r = g_strdup_printf ("%s CANCEL-AUTHENTICATION", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "CANCEL-AUTHENTICATION") == 0)
         lightdm_greeter_cancel_authentication (greeter);
-    g_free (r);
 
-    r = g_strdup_printf ("%s START-SESSION", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "START-SESSION") == 0)
     {
-        if (!lightdm_greeter_start_session_sync (greeter, NULL, NULL))
-            status_notify ("%s SESSION-FAILED", greeter_id); 
+        if (!lightdm_greeter_start_session_sync (greeter, g_hash_table_lookup (params, "SESSION"), NULL))
+            status_notify ("%s SESSION-FAILED", greeter_id);
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s START-SESSION SESSION=", greeter_id);
-    if (g_str_has_prefix (request, r))
-    {
-        if (!lightdm_greeter_start_session_sync (greeter, request + strlen (r), NULL))
-            status_notify ("%s SESSION-FAILED", greeter_id); 
-    }
-    g_free (r);
-
-    r = g_strdup_printf ("%s LOG-DEFAULT-SESSION", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "LOG-DEFAULT-SESSION") == 0)
         status_notify ("%s LOG-DEFAULT-SESSION SESSION=%s", greeter_id, lightdm_greeter_get_default_session_hint (greeter));
-    g_free (r);
 
-    r = g_strdup_printf ("%s LOG-USER-LIST-LENGTH", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "LOG-USER-LIST-LENGTH") == 0)
         status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, lightdm_user_list_get_length (lightdm_user_list_get_instance ()));
-    g_free (r);
 
-    r = g_strdup_printf ("%s LOG-USER USERNAME=", greeter_id);
-    if (g_str_has_prefix (request, r))
+    else if (strcmp (name, "LOG-USER") == 0)
     {
         LightDMUser *user;
         const gchar *username;
 
-        username = request + strlen (r);
+        username = g_hash_table_lookup (params, "USERNAME");
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         status_notify ("%s LOG-USER USERNAME=%s", greeter_id, lightdm_user_get_name (user));
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s LOG-USER-LIST", greeter_id);
-    if (strcmp (request, r) == 0)
+    else if (strcmp (name, "LOG-USER-LIST") == 0)
     {
         GList *users, *link;
 
@@ -149,52 +123,45 @@ request_cb (const gchar *request)
             status_notify ("%s LOG-USER USERNAME=%s", greeter_id, lightdm_user_get_name (user));
         }
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s LOG-LAYOUT USERNAME=", greeter_id);
-    if (g_str_has_prefix (request, r))
+    else if (strcmp (name, "LOG-LAYOUT") == 0)
     {
         LightDMUser *user;
         const gchar *username, *layout;
 
-        username = request + strlen (r);
+        username = g_hash_table_lookup (params, "USERNAME");
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         layout = lightdm_user_get_layout (user);
 
         status_notify ("%s LOG-LAYOUT USERNAME=%s LAYOUT='%s'", greeter_id, username, layout ? layout : "");
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s LOG-LAYOUTS USERNAME=", greeter_id);
-    if (g_str_has_prefix (request, r))
+    else if (strcmp (name, "LOG-LAYOUTS") == 0)
     {
         LightDMUser *user;
         const gchar *username;
         const gchar * const *layouts;
         int i;
 
-        username = request + strlen (r);
+        username = g_hash_table_lookup (params, "USERNAME");
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         layouts = lightdm_user_get_layouts (user);
 
         for (i = 0; layouts[i]; i++)
             status_notify ("%s LOG-LAYOUTS USERNAME=%s LAYOUT='%s'", greeter_id, username, layouts[i]);
     }
-    g_free (r);
 
-    r = g_strdup_printf ("%s LOG-LANGUAGE USERNAME=", greeter_id);  
-    if (g_str_has_prefix (request, r))
+    else if (strcmp (name, "LOG-LANGUAGE") == 0)
     {
         LightDMUser *user;
         const gchar *username, *language;
 
-        username = request + strlen (r);
+        username = g_hash_table_lookup (params, "USERNAME");
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         language = lightdm_user_get_language (user);
 
         status_notify ("%s LOG-LANGUAGE USERNAME=%s LANGUAGE=%s", greeter_id, username, language ? language : "");
     }
-    g_free (r);
 }
 
 static void
@@ -212,11 +179,8 @@ user_removed_cb (LightDMUserList *user_list, LightDMUser *user)
 int
 main (int argc, char **argv)
 {
-    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie;
+    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie, *path;
     GString *status_text;
-
-    signal (SIGINT, signal_cb);
-    signal (SIGTERM, signal_cb);
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
@@ -238,7 +202,10 @@ main (int argc, char **argv)
 
     loop = g_main_loop_new (NULL, FALSE);
 
-    status_connect (request_cb);
+    g_unix_signal_add (SIGINT, sigint_cb, NULL);
+    g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
+
+    status_connect (request_cb, greeter_id);
 
     status_text = g_string_new ("");
     g_string_printf (status_text, "%s START", greeter_id);
@@ -248,11 +215,13 @@ main (int argc, char **argv)
         g_string_append_printf (status_text, " XDG_VTNR=%s", xdg_vtnr);
     if (xdg_session_cookie)
         g_string_append_printf (status_text, " XDG_SESSION_COOKIE=%s", xdg_session_cookie);
-    status_notify (status_text->str);
+    status_notify ("%s", status_text->str);
     g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
-    g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
+    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL);
+    g_key_file_load_from_file (config, path, G_KEY_FILE_NONE, NULL);
+    g_free (path);
 
     if (g_key_file_has_key (config, "test-greeter-config", "return-value", NULL))
     {
