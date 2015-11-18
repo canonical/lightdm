@@ -24,6 +24,7 @@ TESTS = \
 	test-autologin-new-authtok \
 	test-autologin-gobject-timeout \
 	test-autologin-gobject-guest-timeout \
+	test-xserver-config \
 	test-pam \
 	test-login-pam \
 	test-denied \
@@ -103,7 +104,11 @@ TESTS = \
 	test-switch-to-user-no-password \
 	test-switch-to-user-logout \
 	test-vnc-login \
+	test-xremote-autologin \
+	test-xremote-login \
+	test-xdmcp-client \
 	test-xdmcp-server-login \
+	test-xdmcp-server-request-without-addresses \
 	test-no-accounts-service \
 	test-console-kit \
 	test-no-console-kit \
@@ -292,6 +297,11 @@ EXTRA_DIST = \
 	scripts/user-renamed-invalid.conf \
 	scripts/vnc-login.conf \
 	scripts/xauthority.conf \
+	scripts/xdmcp-client.conf \
 	scripts/xdmcp-server-login.conf \
 	scripts/xdmcp-server-open-file-descriptors.conf \
+	scripts/xdmcp-server-request-without-addresses.conf \
+	scripts/xremote-autologin.conf \
+	scripts/xremote-login.conf \
+	scripts/xserver-config.conf \
 	scripts/xserver-fail-start.conf

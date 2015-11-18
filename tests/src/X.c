@@ -21,6 +21,18 @@ static GKeyFile *config;
 /* Path to lock file */
 static gchar *lock_path = NULL;
 
+/* TRUE if we allow TCP connections */
+static gboolean listen_tcp = TRUE;
+
+/* TRUE if we allow Unix connections */
+static gboolean listen_unix = TRUE;
+
+/* Configuration to use */
+static gchar *config_file = NULL;
+
+/* Configuration layout to use */
+static gchar *layout = NULL;
+
 /* Path to authority database to use */
 static gchar *auth_path = NULL;
 
@@ -240,6 +252,8 @@ main (int argc, char **argv)
     g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
     g_unix_signal_add (SIGHUP, sighup_cb, NULL);
 
+    listen_tcp = TRUE;
+
     for (i = 1; i < argc; i++)
     {
         char *arg = argv[i];
@@ -247,6 +261,16 @@ main (int argc, char **argv)
         if (arg[0] == ':')
         {
             display_number = atoi (arg + 1);
+        }
+        else if (strcmp (arg, "-config") == 0)
+        {
+            config_file = argv[i+1];
+            i++;
+        }
+        else if (strcmp (arg, "-layout") == 0)
+        {
+            layout = argv[i+1];
+            i++;
         }
         else if (strcmp (arg, "-auth") == 0)
         {
@@ -258,9 +282,9 @@ main (int argc, char **argv)
             char *protocol = argv[i+1];
             i++;
             if (strcmp (protocol, "tcp") == 0)
-                ;//listen_tcp = FALSE;
+                listen_tcp = FALSE;
             else if (strcmp (protocol, "unix") == 0)
-                ;//listen_unix = FALSE;
+                listen_unix = FALSE;
         }
         else if (strcmp (arg, "-nr") == 0)
         {
@@ -297,6 +321,8 @@ main (int argc, char **argv)
         {
             g_printerr ("Unrecognized option: %s\n"
                         "Use: %s [:<display>] [option]\n"
+                        "-config file           Specify a configuration file\n"
+                        "-layout name           Specify the ServerLayout section name\n"
                         "-auth file             Select authorization file\n"
                         "-nolisten protocol     Don't listen on protocol\n"
                         "-background [none]     Create root window with no background\n"
@@ -320,6 +346,10 @@ main (int argc, char **argv)
 
     status_text = g_string_new ("");
     g_string_printf (status_text, "%s START", id);
+    if (config_file)
+        g_string_append_printf (status_text, " CONFIG=%s", config_file);
+    if (layout)
+        g_string_append_printf (status_text, " LAYOUT=%s", layout);
     if (vt_number >= 0)
         g_string_append_printf (status_text, " VT=%d", vt_number);
     status_notify ("%s", status_text->str);

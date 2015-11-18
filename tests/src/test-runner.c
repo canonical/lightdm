@@ -1183,8 +1183,6 @@ open_ck_session (GVariant *params)
     const gchar *name;
     GVariant *value;
     GError *error = NULL;
-  
-    g_printerr ("open_ck_session\n");
 
     session = g_malloc0 (sizeof (CKSession));
     ck_sessions = g_list_append (ck_sessions, session);
@@ -1214,8 +1212,6 @@ open_ck_session (GVariant *params)
     if (error)
         g_warning ("Failed to register CK Session: %s", error->message);
     g_clear_error (&error);
-
-    g_printerr ("~open_ck_session\n");
 
     return session;
 }
