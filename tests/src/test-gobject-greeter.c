@@ -44,7 +44,6 @@ authentication_complete_cb (LightDMGreeter *greeter)
 static void
 autologin_timer_expired_cb (LightDMGreeter *greeter)
 {
-    status_notify ("%s AUTOLOGIN-TIMER-EXPIRED", greeter_id);
 }
 
 static gboolean
@@ -61,6 +60,45 @@ sigterm_cb (gpointer user_data)
     status_notify ("%s TERMINATE SIGNAL=%d", greeter_id, SIGTERM);
     g_main_loop_quit (loop);
     return TRUE;
+}
+
+static void
+notify_hints (LightDMGreeter *greeter)
+{
+    int timeout = lightdm_greeter_get_autologin_timeout_hint (greeter);
+
+    if (lightdm_greeter_get_select_user_hint (greeter))
+        status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, lightdm_greeter_get_select_user_hint (greeter));
+    if (lightdm_greeter_get_select_guest_hint (greeter))
+        status_notify ("%s SELECT-GUEST-HINT", greeter_id);
+    if (lightdm_greeter_get_lock_hint (greeter))
+        status_notify ("%s LOCK-HINT", greeter_id);
+    if (!lightdm_greeter_get_has_guest_account_hint (greeter))
+        status_notify ("%s HAS-GUEST-ACCOUNT-HINT=FALSE", greeter_id);
+    if (lightdm_greeter_get_hide_users_hint (greeter))
+        status_notify ("%s HIDE-USERS-HINT", greeter_id);
+    if (lightdm_greeter_get_show_manual_login_hint (greeter))
+        status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
+    if (lightdm_greeter_get_autologin_user_hint (greeter))
+    {
+        if (timeout != 0)
+            status_notify ("%s AUTOLOGIN-USER USERNAME=%s TIMEOUT=%d", greeter_id, lightdm_greeter_get_autologin_user_hint (greeter), timeout);
+        else
+            status_notify ("%s AUTOLOGIN-USER USERNAME=%s", greeter_id, lightdm_greeter_get_autologin_user_hint (greeter));
+    }
+    else if (lightdm_greeter_get_autologin_guest_hint (greeter))
+    {
+        if (timeout != 0)
+            status_notify ("%s AUTOLOGIN-GUEST TIMEOUT=%d", greeter_id, timeout);
+        else
+            status_notify ("%s AUTOLOGIN-GUEST", greeter_id);
+    }
+}
+
+static void
+user_changed_cb (LightDMUser *user)
+{
+    status_notify ("%s USER-CHANGED USERNAME=%s", greeter_id, lightdm_user_get_name (user));
 }
 
 static void
@@ -102,14 +140,76 @@ request_cb (const gchar *name, GHashTable *params)
     else if (strcmp (name, "LOG-USER-LIST-LENGTH") == 0)
         status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, lightdm_user_list_get_length (lightdm_user_list_get_instance ()));
 
-    else if (strcmp (name, "LOG-USER") == 0)
+    else if (strcmp (name, "WATCH-USER") == 0)
     {
         LightDMUser *user;
         const gchar *username;
 
         username = g_hash_table_lookup (params, "USERNAME");
         user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
-        status_notify ("%s LOG-USER USERNAME=%s", greeter_id, lightdm_user_get_name (user));
+        if (user)
+            g_signal_connect (user, "changed", G_CALLBACK (user_changed_cb), NULL);
+        status_notify ("%s WATCH-USER USERNAME=%s", greeter_id, username);
+    }
+
+    else if (strcmp (name, "LOG-USER") == 0)
+    {
+        LightDMUser *user;
+        const gchar *username, *image, *background, *language, *layout, *session;
+        const gchar * const * layouts;
+        gchar **fields = NULL;
+        gchar *layouts_text;
+        GString *status_text;
+        int i;
+
+        username = g_hash_table_lookup (params, "USERNAME");
+        if (g_hash_table_lookup (params, "FIELDS"))
+            fields = g_strsplit (g_hash_table_lookup (params, "FIELDS"), ",", -1);
+        if (!fields)
+        {
+            fields = g_malloc (sizeof (gchar *) * 1);
+            fields[0] = NULL;
+        }
+
+        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
+        image = lightdm_user_get_image (user);
+        background = lightdm_user_get_background (user);
+        language = lightdm_user_get_language (user);
+        layout = lightdm_user_get_layout (user);
+        layouts = lightdm_user_get_layouts (user);
+        layouts_text = g_strjoinv (";", (gchar **) layouts);
+        session = lightdm_user_get_session (user);
+
+        status_text = g_string_new ("");
+        g_string_append_printf (status_text, "%s LOG-USER USERNAME=%s", greeter_id, username);
+        for (i = 0; fields[i]; i++)
+        {
+            if (strcmp (fields[i], "REAL-NAME") == 0)
+                g_string_append_printf (status_text, " REAL-NAME=%s", lightdm_user_get_real_name (user));
+            else if (strcmp (fields[i], "DISPLAY-NAME") == 0)
+                g_string_append_printf (status_text, " DISPLAY-NAME=%s", lightdm_user_get_display_name (user));
+            else if (strcmp (fields[i], "IMAGE") == 0)
+                g_string_append_printf (status_text, " IMAGE=%s", image ? image : "");
+            else if (strcmp (fields[i], "BACKGROUND") == 0)
+                g_string_append_printf (status_text, " BACKGROUND=%s", background ? background : "");
+            else if (strcmp (fields[i], "LANGUAGE") == 0)
+                g_string_append_printf (status_text, " LANGUAGE=%s", language ? language : "");
+            else if (strcmp (fields[i], "LAYOUT") == 0)
+                g_string_append_printf (status_text, " LAYOUT=%s", layout ? layout : "");
+            else if (strcmp (fields[i], "LAYOUTS") == 0)
+                g_string_append_printf (status_text, " LAYOUTS=%s", layouts_text);
+            else if (strcmp (fields[i], "SESSION") == 0)
+                g_string_append_printf (status_text, " SESSION=%s", session ? session : "");
+            else if (strcmp (fields[i], "LOGGED-IN") == 0)
+                g_string_append_printf (status_text, " LOGGED-IN=%s", lightdm_user_get_logged_in (user) ? "TRUE" : "FALSE");
+            else if (strcmp (fields[i], "HAS-MESSAGES") == 0)
+                g_string_append_printf (status_text, " HAS-MESSAGES=%s", lightdm_user_get_has_messages (user) ? "TRUE" : "FALSE");
+        }
+        g_strfreev (fields);
+        g_free (layouts_text);
+
+        status_notify ("%s", status_text->str);
+        g_string_free (status_text, TRUE);
     }
 
     else if (strcmp (name, "LOG-USER-LIST") == 0)
@@ -262,18 +362,7 @@ main (int argc, char **argv)
 
     status_notify ("%s CONNECTED-TO-DAEMON", greeter_id);
 
-    if (lightdm_greeter_get_select_user_hint (greeter))
-        status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, lightdm_greeter_get_select_user_hint (greeter));
-    if (lightdm_greeter_get_select_guest_hint (greeter))
-        status_notify ("%s SELECT-GUEST-HINT", greeter_id);
-    if (lightdm_greeter_get_lock_hint (greeter))
-        status_notify ("%s LOCK-HINT", greeter_id);
-    if (!lightdm_greeter_get_has_guest_account_hint (greeter))
-        status_notify ("%s HAS-GUEST-ACCOUNT-HINT=FALSE", greeter_id);
-    if (lightdm_greeter_get_hide_users_hint (greeter))
-        status_notify ("%s HIDE-USERS-HINT", greeter_id);
-    if (lightdm_greeter_get_show_manual_login_hint (greeter))
-        status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
+    notify_hints (greeter);
 
     g_main_loop_run (loop);
 

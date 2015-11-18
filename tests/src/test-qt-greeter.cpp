@@ -5,6 +5,7 @@
 #include <glib-object.h>
 #include <xcb/xcb.h>
 #include <QLightDM/Greeter>
+#include <QLightDM/UsersModel>
 #include <QtCore/QSettings>
 #include <QtCore/QDebug>
 #include <QtCore/QCoreApplication>
@@ -16,6 +17,7 @@ static gchar *greeter_id;
 static QCoreApplication *app = NULL;
 static QSettings *config = NULL;
 static TestGreeter *greeter = NULL;
+static QLightDM::UsersModel *users_model = NULL;
 
 TestGreeter::TestGreeter ()
 {
@@ -47,7 +49,55 @@ void TestGreeter::authenticationComplete ()
 
 void TestGreeter::autologinTimerExpired ()
 {
-    status_notify ("%s AUTOLOGIN-TIMER-EXPIRED", greeter_id);
+}
+
+void TestGreeter::printHints ()
+{
+    if (selectUserHint() != "")
+        status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, greeter->selectUserHint ().toAscii ().constData ());
+    if (selectGuestHint())
+        status_notify ("%s SELECT-GUEST-HINT", greeter_id);
+    if (lockHint())
+        status_notify ("%s LOCK-HINT", greeter_id);
+    if (!hasGuestAccountHint ())
+        status_notify ("%s HAS-GUEST-ACCOUNT-HINT=FALSE", greeter_id);
+    if (hideUsersHint ())
+        status_notify ("%s HIDE-USERS-HINT", greeter_id);
+    if (showManualLoginHint ())
+        status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
+    int timeout = autologinTimeoutHint ();
+    if (autologinUserHint () != "")
+    {
+        if (timeout != 0)
+            status_notify ("%s AUTOLOGIN-USER USERNAME=%s TIMEOUT=%d", greeter_id, greeter->autologinUserHint ().toAscii ().constData (), timeout);
+        else
+            status_notify ("%s AUTOLOGIN-USER USERNAME=%s", greeter_id, greeter->autologinUserHint ().toAscii ().constData ());
+    }
+    else if (autologinGuestHint ())
+    {
+        if (timeout != 0)
+            status_notify ("%s AUTOLOGIN-GUEST TIMEOUT=%d", greeter_id, timeout);
+        else
+            status_notify ("%s AUTOLOGIN-GUEST", greeter_id);
+    }
+}
+
+void TestGreeter::userRowsInserted (const QModelIndex & parent, int start, int end)
+{
+    for (int i = start; i <= end; i++)
+    {
+        QString name = users_model->data (users_model->index (i, 0), QLightDM::UsersModel::NameRole).toString ();
+        status_notify ("%s USER-ADDED USERNAME=%s", greeter_id, qPrintable (name));
+    }
+}
+
+void TestGreeter::userRowsRemoved (const QModelIndex & parent, int start, int end)
+{
+    for (int i = start; i <= end; i++)
+    {
+        QString name = users_model->data (users_model->index (i, 0), QLightDM::UsersModel::NameRole).toString ();
+        status_notify ("%s USER-REMOVED USERNAME=%s", greeter_id, qPrintable (name));
+    }
 }
 
 static void
@@ -99,6 +149,29 @@ request_cb (const gchar *name, GHashTable *params)
         {
             if (!greeter->startSessionSync ())
                 status_notify ("%s SESSION-FAILED", greeter_id);
+        }
+    }
+
+    else if (strcmp (name, "LOG-USER-LIST-LENGTH") == 0)
+        status_notify ("%s LOG-USER-LIST-LENGTH N=%d", greeter_id, users_model->rowCount (QModelIndex ()));
+
+    else if (strcmp (name, "LOG-USER") == 0)
+    {
+        const gchar *username = (const gchar *) g_hash_table_lookup (params, "USERNAME");
+        for (int i = 0; i < users_model->rowCount (QModelIndex ()); i++)
+        {
+            QString name = users_model->data (users_model->index (i, 0), QLightDM::UsersModel::NameRole).toString ();
+            if (name == username)
+                status_notify ("%s LOG-USER USERNAME=%s", greeter_id, qPrintable (name));
+        }
+    }
+
+    else if (strcmp (name, "LOG-USER-LIST") == 0)
+    {
+        for (int i = 0; i < users_model->rowCount (QModelIndex ()); i++)
+        {
+            QString name = users_model->data (users_model->index (i, 0), QLightDM::UsersModel::NameRole).toString ();
+            status_notify ("%s LOG-USER USERNAME=%s", greeter_id, qPrintable (name));
         }
     }
 }
@@ -165,6 +238,13 @@ main(int argc, char *argv[])
 
     greeter = new TestGreeter();
 
+    users_model = new QLightDM::UsersModel();
+    if (config->value ("test-greeter-config/log-user-changes", "false") == "true")
+    {
+        QObject::connect (users_model, SIGNAL(rowsInserted(const QModelIndex&, int, int)), greeter, SLOT(userRowsInserted(const QModelIndex&, int, int)));
+        QObject::connect (users_model, SIGNAL(rowsAboutToBeRemoved(const QModelIndex&, int, int)), greeter, SLOT(userRowsRemoved(const QModelIndex&, int, int)));
+    }
+
     status_notify ("%s CONNECT-TO-DAEMON", greeter_id);
     if (!greeter->connectSync())
     {
@@ -174,18 +254,7 @@ main(int argc, char *argv[])
 
     status_notify ("%s CONNECTED-TO-DAEMON", greeter_id);
 
-    if (greeter->selectUserHint() != "")
-        status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, greeter->selectUserHint ().toAscii ().constData ());
-    if (greeter->selectGuestHint())
-        status_notify ("%s SELECT-GUEST-HINT", greeter_id);
-    if (greeter->lockHint())
-        status_notify ("%s LOCK-HINT", greeter_id);
-    if (!greeter->hasGuestAccountHint ())
-        status_notify ("%s HAS-GUEST-ACCOUNT-HINT=FALSE", greeter_id);
-    if (greeter->hideUsersHint ())
-        status_notify ("%s HIDE-USERS-HINT", greeter_id);
-    if (greeter->showManualLoginHint ())
-        status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
+    greeter->printHints();
 
     return app->exec();
 }

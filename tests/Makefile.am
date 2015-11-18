@@ -52,6 +52,10 @@ TESTS = \
 	test-user-renamed \
 	test-user-renamed-invalid \
 	test-keyboard-layout \
+	test-user-name \
+	test-user-image \
+	test-user-background \
+	test-user-logged-in \
 	test-no-keyboard-layout \
 	test-language \
 	test-no-language \
@@ -294,6 +298,10 @@ EXTRA_DIST = \
 	scripts/switch-to-user-logout.conf \
 	scripts/switch-to-user-no-password.conf \
 	scripts/system-xauthority.conf \
+	scripts/user-background.conf \
+	scripts/user-image.conf \
+	scripts/user-logged-in.conf \
+	scripts/user-name.conf \
 	scripts/util-path.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
