@@ -51,12 +51,13 @@ TESTS = \
 	test-system-xauthority \
 	test-user-renamed \
 	test-user-renamed-invalid \
-	test-keyboard-layout \
 	test-user-name \
 	test-user-image \
 	test-user-background \
-	test-user-logged-in \
+	test-keyboard-layout \
 	test-no-keyboard-layout \
+	test-user-logged-in \
+	test-users-gobject \
 	test-language \
 	test-no-language \
 	test-language-no-accounts-service \
@@ -131,6 +132,7 @@ TESTS = \
 #   test-autologin-create-directory
 
 TESTS += \
+	test-users-python \
 	test-login-python \
 	test-login-python-manual \
 	test-login-python-manual-previous-session \
@@ -181,7 +183,8 @@ TESTS += \
 	test-login-qt-guest-disabled \
 	test-login-qt-guest-no-setup-script \
 	test-login-qt-guest-fail-setup-script \
-	test-login-qt-guest-logout
+	test-login-qt-guest-logout \
+	test-users-qt
 endif
 
 EXTRA_DIST = \
@@ -298,6 +301,7 @@ EXTRA_DIST = \
 	scripts/switch-to-user-logout.conf \
 	scripts/switch-to-user-no-password.conf \
 	scripts/system-xauthority.conf \
+	scripts/users.conf \
 	scripts/user-background.conf \
 	scripts/user-image.conf \
 	scripts/user-logged-in.conf \
