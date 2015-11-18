@@ -252,6 +252,9 @@ main (int argc, char **argv)
     g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
     g_unix_signal_add (SIGHUP, sighup_cb, NULL);
 
+    config = g_key_file_new ();
+    g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
+
     listen_tcp = TRUE;
 
     for (i = 1; i < argc; i++)
@@ -352,11 +355,12 @@ main (int argc, char **argv)
         g_string_append_printf (status_text, " LAYOUT=%s", layout);
     if (vt_number >= 0)
         g_string_append_printf (status_text, " VT=%d", vt_number);
+    if (listen_tcp)
+        g_string_append (status_text, " LISTEN-TCP");
+    if (!listen_unix)
+        g_string_append (status_text, " NO-LISTEN-UNIX");
     status_notify ("%s", status_text->str);
     g_string_free (status_text, TRUE);
-
-    config = g_key_file_new ();
-    g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);
 
     if (g_key_file_has_key (config, "test-xserver-config", "return-value", NULL))
     {

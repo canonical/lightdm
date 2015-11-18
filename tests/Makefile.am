@@ -26,6 +26,7 @@ TESTS = \
 	test-autologin-gobject-timeout \
 	test-autologin-gobject-guest-timeout \
 	test-xserver-config \
+	test-allow-tcp \
 	test-login-pam \
 	test-denied \
 	test-expired \
@@ -194,6 +195,7 @@ EXTRA_DIST = \
 	scripts/additional-config-priority.conf \
 	scripts/additional-system-config.conf \
 	scripts/additional-system-config-priority.conf \
+	scripts/allow-tcp.conf \
 	scripts/autologin.conf \
 	scripts/autologin-guest.conf \
 	scripts/autologin-guest-fail-setup-script.conf \
