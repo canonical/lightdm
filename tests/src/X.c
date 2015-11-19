@@ -104,21 +104,15 @@ sigterm_cb (gpointer user_data)
 }
 
 static void
-xdmcp_query_cb (XDMCPClient *client)
-{
-    static gboolean notified_query = FALSE;
-
-    if (!notified_query)
-    {
-        status_notify ("%s SEND-QUERY", id);
-        notified_query = TRUE;
-    }
-}
-
-static void
 xdmcp_willing_cb (XDMCPClient *client, XDMCPWilling *message)
 {
     status_notify ("%s GOT-WILLING AUTHENTICATION-NAME=\"%s\" HOSTNAME=\"%s\" STATUS=\"%s\"", id, message->authentication_name, message->hostname, message->status);
+}
+
+static void
+xdmcp_unwilling_cb (XDMCPClient *client, XDMCPUnwilling *message)
+{
+    status_notify ("%s GOT-UNWILLING HOSTNAME=\"%s\" STATUS=\"%s\"", id, message->hostname, message->status);
 }
 
 static void
@@ -159,6 +153,19 @@ client_disconnected_cb (XServer *server, XClient *client)
     g_signal_handlers_disconnect_matched (client, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, NULL);
 }
 
+static guint8
+get_nibble (char c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    else if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    else if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    else
+        return 0;
+}
+
 static void
 request_cb (const gchar *name, GHashTable *params)
 {
@@ -187,23 +194,45 @@ request_cb (const gchar *name, GHashTable *params)
         signal (SIGUSR1, handler);
     }
 
-    else if (strcmp (name, "START-XDMCP") == 0)
+    else if (strcmp (name, "SEND-QUERY") == 0)
     {
+        const gchar *authentication_names_list;
+        gchar **authentication_names;
+
         if (!xdmcp_client_start (xdmcp_client))
             quit (EXIT_FAILURE);
+
+        authentication_names_list = g_hash_table_lookup (params, "AUTHENTICATION-NAMES");
+        if (!authentication_names_list)
+            authentication_names_list = "";
+        authentication_names = g_strsplit (authentication_names_list, " ", -1);
+
+        xdmcp_client_send_query (xdmcp_client, authentication_names);
+        g_strfreev (authentication_names);
     }
 
     else if (strcmp (name, "SEND-REQUEST") == 0)
     {
-        const gchar *addresses_list, *authorization_names_list, *mfid;
+        const gchar *text, *addresses_list, *authentication_name, *authentication_data_text, *authorization_names_list, *mfid;
+        int request_display_number = display_number;
         gchar **list, **authorization_names;
-        gsize list_length;
+        guint8 *authentication_data;
+        gsize authentication_data_length, list_length;
         gint i;
         GInetAddress **addresses;
 
+        text = g_hash_table_lookup (params, "DISPLAY-NUMBER");
+        if (text)
+            request_display_number = atoi (text);
         addresses_list = g_hash_table_lookup (params, "ADDRESSES");
         if (!addresses_list)
             addresses_list = "";
+        authentication_name = g_hash_table_lookup (params, "AUTHENTICATION-NAME");
+        if (!authentication_name)
+            authentication_name = "";
+        authentication_data_text = g_hash_table_lookup (params, "AUTHENTICATION-DATA");
+        if (!authentication_data_text)
+            authentication_data_text = "";
         authorization_names_list = g_hash_table_lookup (params, "AUTHORIZATION-NAMES");
         if (!authorization_names_list)
             authorization_names_list = "";
@@ -219,18 +248,43 @@ request_cb (const gchar *name, GHashTable *params)
         addresses[i] = NULL;
         g_strfreev (list);
 
+        authentication_data_length = strlen (authentication_data_text) / 2;
+        authentication_data = malloc (authentication_data_length);
+        for (i = 0; i < authentication_data_length; i++)
+            authentication_data[i] = get_nibble (authentication_data_text[i*2]) << 4 | get_nibble (authentication_data_text[i*2+1]);
+
         authorization_names = g_strsplit (authorization_names_list, " ", -1);
 
-        xdmcp_client_send_request (xdmcp_client, display_number,
+        xdmcp_client_send_request (xdmcp_client,
+                                   request_display_number,
                                    addresses,
-                                   "", NULL, 0,
+                                   authentication_name,
+                                   authentication_data, authentication_data_length,
                                    authorization_names, mfid);
+        g_free (authentication_data);
         g_strfreev (authorization_names);
     }
 
     else if (strcmp (name, "SEND-MANAGE") == 0)
     {
-        xdmcp_client_send_manage (xdmcp_client, xdmcp_session_id, display_number, "DISPLAY CLASS");
+        const char *text, *display_class;
+        guint32 session_id = xdmcp_session_id;
+        guint16 manage_display_number = display_number;
+
+        text = g_hash_table_lookup (params, "SESSION-ID");
+        if (text)
+            session_id = atoi (text);
+        text = g_hash_table_lookup (params, "DISPLAY-NUMBER");
+        if (text)
+            manage_display_number = atoi (text);
+        display_class = g_hash_table_lookup (params, "DISPLAY-CLASS");
+
+        if (!display_class)
+            display_class = "";
+        xdmcp_client_send_manage (xdmcp_client,
+                                  session_id,
+                                  manage_display_number,
+                                  display_class);
     }
 }
 
@@ -506,8 +560,8 @@ main (int argc, char **argv)
             xdmcp_client_set_hostname (xdmcp_client, xdmcp_host);
         if (xdmcp_port > 0)
             xdmcp_client_set_port (xdmcp_client, xdmcp_port);
-        g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_QUERY, G_CALLBACK (xdmcp_query_cb), NULL);
         g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_WILLING, G_CALLBACK (xdmcp_willing_cb), NULL);
+        g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_UNWILLING, G_CALLBACK (xdmcp_unwilling_cb), NULL);      
         g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_ACCEPT, G_CALLBACK (xdmcp_accept_cb), NULL);
         g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_DECLINE, G_CALLBACK (xdmcp_decline_cb), NULL);
         g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_FAILED, G_CALLBACK (xdmcp_failed_cb), NULL);

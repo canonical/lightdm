@@ -179,7 +179,19 @@ TESTS = \
 	test-xdmcp-server-login \
 	test-xdmcp-server-double-login \
 	test-xdmcp-server-guest \
+	test-xdmcp-server-xdm-authentication \
+	test-xdmcp-server-xdm-authentication-missing-data \
+	test-xdmcp-server-xdm-authentication-short-data \
+	test-xdmcp-server-xdm-authentication-long-data \
+	test-xdmcp-server-xdm-authentication-required \
+	test-xdmcp-server-xdm-authentication-missing-key \
+	test-xdmcp-server-xdm-authentication-no-key \
+	test-xdmcp-server-xdm-authentication-invalid-authorization \        
+	test-xdmcp-server-invalid-authentication \
 	test-xdmcp-server-request-without-addresses \
+	test-xdmcp-server-request-without-authorization \
+	test-xdmcp-server-request-invalid-authentication \
+	test-xdmcp-server-request-invalid-authorization \
 	test-utmp-login \
 	test-utmp-autologin \
 	test-utmp-wrong-password \
@@ -598,9 +610,21 @@ EXTRA_DIST = \
 	scripts/xdmcp-server-autologin.conf \
 	scripts/xdmcp-server-double-login.conf \
 	scripts/xdmcp-server-guest.conf \
+	scripts/xdmcp-server-invalid-authentication.conf \
 	scripts/xdmcp-server-login.conf \
 	scripts/xdmcp-server-open-file-descriptors.conf \
+	scripts/xdmcp-server-request-invalid-authentication.conf \
+	scripts/xdmcp-server-request-invalid-authorization.conf \
 	scripts/xdmcp-server-request-without-addresses.conf \
+	scripts/xdmcp-server-request-without-authorization.conf \
+	scripts/xdmcp-server-xdm-authentication.conf \
+	scripts/xdmcp-server-xdm-authentication-invalid-authorization.conf \
+	scripts/xdmcp-server-xdm-authentication-long-data.conf \
+	scripts/xdmcp-server-xdm-authentication-missing-key.conf \
+	scripts/xdmcp-server-xdm-authentication-missing-data.conf \
+	scripts/xdmcp-server-xdm-authentication-no-key.conf \        
+	scripts/xdmcp-server-xdm-authentication-required.conf \
+	scripts/xdmcp-server-xdm-authentication-short-data.conf \
 	scripts/xremote-autologin.conf \
 	scripts/xremote-login.conf \
 	scripts/xserver-config.conf \
