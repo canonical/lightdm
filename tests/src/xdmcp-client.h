@@ -30,6 +30,8 @@ typedef struct
 {
     guint32 session_id;
     gchar *authentication_name;
+    guint16 authentication_data_length;
+    guint8 *authentication_data;
     gchar *authorization_name;
     guint16 authorization_data_length;
     guint8 *authorization_data;
@@ -39,6 +41,8 @@ typedef struct
 {
     gchar *status;
     gchar *authentication_name;
+    guint16 authentication_data_length;
+    guint8 *authentication_data;
 } XDMCPDecline;
 
 typedef struct

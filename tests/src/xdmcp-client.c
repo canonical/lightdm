@@ -123,8 +123,8 @@ decode_accept (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
     message->session_id = read_card32 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
     length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
     message->authentication_name = read_string (buffer, buffer_length, length, &offset);
-    length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
-    read_string8 (buffer, buffer_length, length, &offset);
+    message->authentication_data_length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
+    message->authentication_data = read_string8 (buffer, buffer_length, message->authentication_data_length, &offset);
     length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
     message->authorization_name = read_string (buffer, buffer_length, length, &offset);
     message->authorization_data_length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
@@ -151,8 +151,8 @@ decode_decline (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
     message->status = read_string (buffer, buffer_length, length, &offset);
     length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
     message->authentication_name = read_string (buffer, buffer_length, length, &offset);
-    length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
-    read_string8 (buffer, buffer_length, length, &offset);
+    message->authentication_data_length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
+    message->authentication_data = read_string8 (buffer, buffer_length, message->authentication_data_length, &offset);
 
     g_signal_emit (client, xdmcp_client_signals[XDMCP_CLIENT_DECLINE], 0, message);
 

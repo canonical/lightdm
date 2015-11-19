@@ -115,10 +115,35 @@ xdmcp_unwilling_cb (XDMCPClient *client, XDMCPUnwilling *message)
     status_notify ("%s GOT-UNWILLING HOSTNAME=\"%s\" STATUS=\"%s\"", id, message->hostname, message->status);
 }
 
+static gchar *
+data_to_string (guint8 *data, gsize data_length)
+{
+    static gchar hex_char[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+    gchar *text;
+    gsize i;
+
+    text = malloc (data_length * 2 + 1);
+    for (i = 0; i < data_length; i++)
+    {
+        text[i*2] = hex_char [data[i] >> 4];
+        text[i*2 + 1] = hex_char [data[i] & 0xF];
+    }
+    text[i*2] = '\0';
+
+    return text;
+}
+
 static void
 xdmcp_accept_cb (XDMCPClient *client, XDMCPAccept *message)
 {
-    status_notify ("%s GOT-ACCEPT SESSION-ID=%d AUTHENTICATION-NAME=\"%s\" AUTHORIZATION-NAME=\"%s\"", id, message->session_id, message->authentication_name, message->authorization_name);
+    gchar *authentication_data_text, *authorization_data_text;
+
+    authentication_data_text = data_to_string (message->authentication_data, message->authentication_data_length);
+    authorization_data_text = data_to_string (message->authorization_data, message->authorization_data_length);
+    status_notify ("%s GOT-ACCEPT SESSION-ID=%d AUTHENTICATION-NAME=\"%s\" AUTHENTICATION-DATA=%s AUTHORIZATION-NAME=\"%s\" AUTHORIZATION-DATA=%s",
+                   id, message->session_id, message->authentication_name, authentication_data_text, message->authorization_name, authorization_data_text);
+    g_free (authentication_data_text);
+    g_free (authorization_data_text);  
 
     xdmcp_session_id = message->session_id;
 
@@ -131,7 +156,11 @@ xdmcp_accept_cb (XDMCPClient *client, XDMCPAccept *message)
 static void
 xdmcp_decline_cb (XDMCPClient *client, XDMCPDecline *message)
 {
-    status_notify ("%s GOT-DECLINE STATUS=\"%s\" AUTHENTICATION-NAME=\"%s\"", id, message->status, message->authentication_name);
+    gchar *authentication_data_text;
+
+    authentication_data_text = data_to_string (message->authentication_data, message->authentication_data_length);
+    status_notify ("%s GOT-DECLINE STATUS=\"%s\" AUTHENTICATION-NAME=\"%s\" AUTHENTICATION-DATA=%s", id, message->status, message->authentication_name, authentication_data_text);
+    g_free (authentication_data_text);
 }
 
 static void
