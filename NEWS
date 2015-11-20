@@ -1,3 +1,12 @@
+Overview of changes in lightdm 1.17.2
+
+    * Handle XDMCP Request packet with no addresses.
+    * Don't start LightDM if the XDMCP server is configured with a key that
+      doesn't exist.
+    * Add IP addresses to XDMCP log messages.
+    * Refactor XDMCP error handling.
+    * Add more XDMCP tests.
+
 Overview of changes in lightdm 1.17.1
 
     * Add a backup-logs option that can be used to disable existing logging
@@ -14,7 +23,8 @@ Overview of changes in lightdm 1.17.0
     * Handle trailing whitespace on boolean values in configuration.
     * Update example configuration to more correctly match allowed options.
     * Fix unnecessary X server from being launched when locking seats.
-    * Check the version of the X server we are running so we correctly pass -listen tcp when required.
+    * Check the version of the X server we are running so we correctly pass
+      -listen tcp when required.
     * Allow reading /proc/<PID>/net/dev from within a guest session.
     * Allow guest sessions to write in /{,var/}run/screen folder.
     * Update guest-session AppArmor profile to be suitable for openSUSE.

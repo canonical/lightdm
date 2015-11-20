@@ -1,3 +1,23 @@
+lightdm (1.17.2-0ubuntu1) xenial; urgency=medium
+
+  * New upstream release:
+    - Handle XDMCP Request packet with no addresses. (LP: #1516831)
+    - Don't start LightDM if the XDMCP server is configured with a key that
+      doesn't exist. (LP: #1517685)
+    - Add IP addresses to XDMCP log messages.
+    - Refactor XDMCP error handling.
+    - Add more XDMCP tests.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 20 Nov 2015 15:34:08 +1300
+
+lightdm (1.17.1-0ubuntu2) xenial; urgency=medium
+
+  * debian/guest-session-setup.sh:
+    - don't error out if there is no prefs.sh configuration,
+      should fix the guest session not starting in xenial (lp: #1515704)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 13 Nov 2015 11:52:06 +0100
+
 lightdm (1.17.1-0ubuntu1) xenial; urgency=medium
 
   * New upstream release:
