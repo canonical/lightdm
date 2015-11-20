@@ -36,18 +36,19 @@ struct XDMCPClientPrivate
     gchar *host;
     gint port;
     GSocket *socket;
-    guint query_timer;
+    gchar *authentication_names;
     gchar *authorization_name;
     gint authorization_data_length;
     guint8 *authorization_data;
 };
 
 enum {
-    XDMCP_CLIENT_QUERY,
     XDMCP_CLIENT_WILLING,
+    XDMCP_CLIENT_UNWILLING,  
     XDMCP_CLIENT_ACCEPT,
     XDMCP_CLIENT_DECLINE,
     XDMCP_CLIENT_FAILED,
+    XDMCP_CLIENT_ALIVE,  
     XDMCP_CLIENT_LAST_SIGNAL
 };
 static guint xdmcp_client_signals[XDMCP_CLIENT_LAST_SIGNAL] = { 0 };
@@ -73,16 +74,6 @@ decode_willing (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
     gsize offset = 0;
     guint16 length;
 
-    if (client->priv->query_timer == 0)
-    {
-        g_debug ("Ignoring XDMCP unrequested/duplicate Willing");
-        return;
-    }
-
-    /* Stop sending queries */
-    g_source_remove (client->priv->query_timer);
-    client->priv->query_timer = 0;
-
     message = g_malloc0 (sizeof (XDMCPWilling));
 
     length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
@@ -101,6 +92,27 @@ decode_willing (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
 }
 
 static void
+decode_unwilling (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
+{
+    XDMCPUnwilling *message;
+    gsize offset = 0;
+    guint16 length;
+
+    message = g_malloc0 (sizeof (XDMCPUnwilling));
+
+    length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
+    message->hostname = read_string (buffer, buffer_length, length, &offset);
+    length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
+    message->status = read_string (buffer, buffer_length, length, &offset);
+
+    g_signal_emit (client, xdmcp_client_signals[XDMCP_CLIENT_UNWILLING], 0, message);
+
+    g_free (message->hostname);
+    g_free (message->status);
+    g_free (message);
+}
+
+static void
 decode_accept (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
 {
     XDMCPAccept *message;
@@ -112,8 +124,8 @@ decode_accept (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
     message->session_id = read_card32 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
     length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
     message->authentication_name = read_string (buffer, buffer_length, length, &offset);
-    length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
-    read_string8 (buffer, buffer_length, length, &offset);
+    message->authentication_data_length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
+    message->authentication_data = read_string8 (buffer, buffer_length, message->authentication_data_length, &offset);
     length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
     message->authorization_name = read_string (buffer, buffer_length, length, &offset);
     message->authorization_data_length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
@@ -122,6 +134,7 @@ decode_accept (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
     g_signal_emit (client, xdmcp_client_signals[XDMCP_CLIENT_ACCEPT], 0, message);
 
     g_free (message->authentication_name);
+    g_free (message->authentication_data);  
     g_free (message->authorization_name);
     g_free (message->authorization_data);
     g_free (message);
@@ -140,13 +153,14 @@ decode_decline (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
     message->status = read_string (buffer, buffer_length, length, &offset);
     length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
     message->authentication_name = read_string (buffer, buffer_length, length, &offset);
-    length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
-    read_string8 (buffer, buffer_length, length, &offset);
+    message->authentication_data_length = read_card16 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
+    message->authentication_data = read_string8 (buffer, buffer_length, message->authentication_data_length, &offset);
 
     g_signal_emit (client, xdmcp_client_signals[XDMCP_CLIENT_DECLINE], 0, message);
 
     g_free (message->status);
     g_free (message->authentication_name);
+    g_free (message->authentication_data);  
     g_free (message);
 }
 
@@ -166,6 +180,22 @@ decode_failed (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
     g_signal_emit (client, xdmcp_client_signals[XDMCP_CLIENT_FAILED], 0, message);
 
     g_free (message->status);
+    g_free (message);
+}
+
+static void
+decode_alive (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
+{
+    XDMCPAlive *message;
+    gsize offset = 0;
+
+    message = g_malloc0 (sizeof (XDMCPAlive));
+
+    message->session_running = read_card8 (buffer, buffer_length, &offset) != 0 ? TRUE : FALSE;
+    message->session_id = read_card32 (buffer, buffer_length, X_BYTE_ORDER_MSB, &offset);
+
+    g_signal_emit (client, xdmcp_client_signals[XDMCP_CLIENT_ALIVE], 0, message);
+
     g_free (message);
 }
 
@@ -209,6 +239,10 @@ xdmcp_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
             decode_willing (client, buffer + offset, n_read - offset);
             break;
 
+        case XDMCP_Unwilling:
+            decode_unwilling (client, buffer + offset, n_read - offset);
+            break;
+
         case XDMCP_Accept:
             decode_accept (client, buffer + offset, n_read - offset);
             break;
@@ -221,21 +255,16 @@ xdmcp_data_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
             decode_failed (client, buffer + offset, n_read - offset);
             break;
 
+        case XDMCP_Alive:
+            decode_alive (client, buffer + offset, n_read - offset);
+            break;
+
         default:
             g_debug ("Ignoring unknown XDMCP opcode %d", opcode);
             break;
         }
     }
 
-    return TRUE;
-}
-
-static gboolean
-xdmcp_query_cb (gpointer data)
-{
-    XDMCPClient *client = data;
-    g_signal_emit (client, xdmcp_client_signals[XDMCP_CLIENT_QUERY], 0);
-    xdmcp_client_send_query (client);
     return TRUE;
 }
 
@@ -265,6 +294,9 @@ xdmcp_client_start (XDMCPClient *client)
     GSocketAddressEnumerator *enumerator;
     gboolean result;
     GError *error = NULL;
+
+    if (client->priv->socket)
+        return TRUE;
 
     client->priv->socket = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_DATAGRAM, G_SOCKET_PROTOCOL_UDP, &error);
     if (error)
@@ -303,9 +335,6 @@ xdmcp_client_start (XDMCPClient *client)
 
     g_io_add_watch (g_io_channel_unix_new (g_socket_get_fd (client->priv->socket)), G_IO_IN, xdmcp_data_cb, client);
 
-    client->priv->query_timer = g_timeout_add (2000, xdmcp_query_cb, client);
-    xdmcp_query_cb (client);
-
     return TRUE;
 }
 
@@ -328,18 +357,48 @@ xdmcp_client_init (XDMCPClient *client)
     client->priv->port = XDMCP_PORT;
 }
 
-void
-xdmcp_client_send_query (XDMCPClient *client)
+static void
+send_query (XDMCPClient *client, guint16 opcode, gchar **authentication_names)
 {
     guint8 buffer[MAXIMUM_REQUEST_LENGTH];
-    gsize offset = 0;
+    gsize length, offset = 0, n_names = 0;
+    gchar **name;
+
+    length = 1;
+    for (name = authentication_names; authentication_names && *name; name++)
+    {
+        length += 2 + strlen (*name);
+        n_names++;
+    }
 
     write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, X_BYTE_ORDER_MSB, XDMCP_VERSION, &offset);
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, X_BYTE_ORDER_MSB, XDMCP_Query, &offset);
-    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, X_BYTE_ORDER_MSB, 1, &offset);
-    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, 0, &offset);
-
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, X_BYTE_ORDER_MSB, opcode, &offset);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, X_BYTE_ORDER_MSB, length, &offset);
+    write_card8 (buffer, MAXIMUM_REQUEST_LENGTH, n_names, &offset);
+    for (name = authentication_names; authentication_names && *name; name++)
+    {
+        write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, X_BYTE_ORDER_MSB, strlen (*name), &offset);
+        write_string (buffer, MAXIMUM_REQUEST_LENGTH, *name, &offset);      
+    }
     xdmcp_write (client, buffer, offset);
+}
+
+void
+xdmcp_client_send_query (XDMCPClient *client, gchar **authentication_names)
+{
+    send_query (client, XDMCP_Query, authentication_names);
+}
+
+void
+xdmcp_client_send_broadcast_query (XDMCPClient *client, gchar **authentication_names)
+{
+    send_query (client, XDMCP_BroadcastQuery, authentication_names);
+}
+
+void
+xdmcp_client_send_indirect_query (XDMCPClient *client, gchar **authentication_names)
+{
+    send_query (client, XDMCP_IndirectQuery, authentication_names);
 }
 
 void
@@ -404,7 +463,7 @@ xdmcp_client_send_request (XDMCPClient *client,
 }
 
 void
-xdmcp_client_send_manage (XDMCPClient *client, guint32 session_id, guint16 display_number, gchar *display_class)
+xdmcp_client_send_manage (XDMCPClient *client, guint32 session_id, guint16 display_number, const gchar *display_class)
 {
     guint8 buffer[MAXIMUM_REQUEST_LENGTH];
     gsize offset = 0;
@@ -417,6 +476,22 @@ xdmcp_client_send_manage (XDMCPClient *client, guint32 session_id, guint16 displ
     write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, X_BYTE_ORDER_MSB, display_number, &offset);
     write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, X_BYTE_ORDER_MSB, strlen (display_class), &offset);
     write_string (buffer, MAXIMUM_REQUEST_LENGTH, display_class, &offset);
+
+    xdmcp_write (client, buffer, offset);
+}
+
+void
+xdmcp_client_send_keep_alive (XDMCPClient *client, guint16 display_number, guint32 session_id)
+{
+    guint8 buffer[MAXIMUM_REQUEST_LENGTH];
+    gsize offset = 0;
+
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, X_BYTE_ORDER_MSB, XDMCP_VERSION, &offset);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, X_BYTE_ORDER_MSB, XDMCP_KeepAlive, &offset);
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, X_BYTE_ORDER_MSB, 6, &offset);
+
+    write_card16 (buffer, MAXIMUM_REQUEST_LENGTH, X_BYTE_ORDER_MSB, display_number, &offset);
+    write_card32 (buffer, MAXIMUM_REQUEST_LENGTH, X_BYTE_ORDER_MSB, session_id, &offset);
 
     xdmcp_write (client, buffer, offset);
 }
@@ -438,19 +513,19 @@ xdmcp_client_class_init (XDMCPClientClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     object_class->finalize = xdmcp_client_finalize;
     g_type_class_add_private (klass, sizeof (XDMCPClientPrivate));
-    xdmcp_client_signals[XDMCP_CLIENT_QUERY] =
-        g_signal_new (XDMCP_CLIENT_SIGNAL_QUERY,
-                      G_TYPE_FROM_CLASS (klass),
-                      G_SIGNAL_RUN_LAST,
-                      G_STRUCT_OFFSET (XDMCPClientClass, query),
-                      NULL, NULL,
-                      NULL,
-                      G_TYPE_NONE, 0);
     xdmcp_client_signals[XDMCP_CLIENT_WILLING] =
         g_signal_new (XDMCP_CLIENT_SIGNAL_WILLING,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XDMCPClientClass, willing),
+                      NULL, NULL,
+                      NULL,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    xdmcp_client_signals[XDMCP_CLIENT_UNWILLING] =
+        g_signal_new (XDMCP_CLIENT_SIGNAL_UNWILLING,
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XDMCPClientClass, unwilling),
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);
@@ -475,6 +550,14 @@ xdmcp_client_class_init (XDMCPClientClass *klass)
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XDMCPClientClass, failed),
+                      NULL, NULL,
+                      NULL,
+                      G_TYPE_NONE, 1, G_TYPE_POINTER);
+    xdmcp_client_signals[XDMCP_CLIENT_ALIVE] =
+        g_signal_new (XDMCP_CLIENT_SIGNAL_ALIVE,
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XDMCPClientClass, alive),
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 1, G_TYPE_POINTER);

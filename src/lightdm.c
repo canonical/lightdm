@@ -908,7 +908,7 @@ bus_acquired_cb (GDBusConnection *connection,
             keys = g_key_file_new ();
             result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
             if (error)
-                g_debug ("Error getting key %s", error->message);
+                g_warning ("Unable to load keys from %s: %s", path, error->message);
             g_clear_error (&error);
 
             if (result)
@@ -916,7 +916,7 @@ bus_acquired_cb (GDBusConnection *connection,
                 if (g_key_file_has_key (keys, "keyring", key_name, NULL))
                     key = g_key_file_get_string (keys, "keyring", key_name, NULL);
                 else
-                    g_debug ("Key %s not defined", key_name);
+                    g_warning ("Key %s not defined", key_name);
             }
             g_free (path);
             g_key_file_free (keys);
@@ -925,9 +925,18 @@ bus_acquired_cb (GDBusConnection *connection,
             xdmcp_server_set_key (xdmcp_server, key);
         g_free (key_name);
         g_free (key);
-
-        g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (xdmcp_server));
-        xdmcp_server_start (xdmcp_server);
+      
+        if (key_name && !key)
+        {
+            exit_code = EXIT_FAILURE;
+            display_manager_stop (display_manager);
+            return;
+        }
+        else
+        {
+            g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (xdmcp_server));
+            xdmcp_server_start (xdmcp_server);
+        }
     }
 
     /* Start the VNC server */
