@@ -1,3 +1,12 @@
+Overview of changes in lightdm 1.16.6
+
+    * Handle XDMCP Request packet with no addresses.
+    * Don't start LightDM if the XDMCP server is configured with a key that
+      doesn't exist.
+    * Add IP addresses to XDMCP log messages.
+    * Refactor XDMCP error handling.
+    * Add more tests.
+
 Overview of changes in lightdm 1.16.5
 
     * Handle trailing whitespace on boolean values in configuration.
