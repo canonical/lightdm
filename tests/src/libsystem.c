@@ -10,6 +10,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <pwd.h>
 #include <unistd.h>
 #include <dirent.h>
@@ -210,6 +212,9 @@ redirect_path (const gchar *path)
     if (g_str_has_prefix (path, "/tmp"))
         return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", path + strlen ("/tmp"), NULL);
 
+    if (g_str_has_prefix (path, "/run"))
+        return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "run", path + strlen ("/run"), NULL);
+
     if (g_str_has_prefix (path, "/etc/xdg"))
         return g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "xdg", path + strlen ("/etc/xdg"), NULL);
 
@@ -364,7 +369,7 @@ stat (const char *path, struct stat *buf)
     int (*_stat) (const char *path, struct stat *buf);
     gchar *new_path = NULL;
     int ret;
-  
+
     _stat = (int (*)(const char *path, struct stat *buf)) dlsym (RTLD_NEXT, "stat");
 
     new_path = redirect_path (path);
@@ -396,7 +401,7 @@ __xstat (int version, const char *path, struct stat *buf)
     int (*___xstat) (int version, const char *path, struct stat *buf);
     gchar *new_path = NULL;
     int ret;
-  
+
     ___xstat = (int (*)(int version, const char *path, struct stat *buf)) dlsym (RTLD_NEXT, "__xstat");
 
     new_path = redirect_path (path);
@@ -412,7 +417,7 @@ __xstat64 (int version, const char *path, struct stat64 *buf)
     int (*___xstat64) (int version, const char *path, struct stat64 *buf);
     gchar *new_path = NULL;
     int ret;
-  
+
     ___xstat64 = (int (*)(int version, const char *path, struct stat64 *buf)) dlsym (RTLD_NEXT, "__xstat64");
 
     new_path = redirect_path (path);
@@ -428,7 +433,7 @@ __fxstatat(int ver, int dirfd, const char *pathname, struct stat *buf, int flags
     int (*___fxstatat) (int ver, int dirfd, const char *pathname, struct stat *buf, int flags);
     gchar *new_path = NULL;
     int ret;
-  
+
     ___fxstatat = (int (*)(int ver, int dirfd, const char *pathname, struct stat *buf, int flags)) dlsym (RTLD_NEXT, "__fxstatat");
 
     new_path = redirect_path (pathname);
@@ -444,7 +449,7 @@ __fxstatat64(int ver, int dirfd, const char *pathname, struct stat64 *buf, int f
     int (*___fxstatat64) (int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags);
     gchar *new_path = NULL;
     int ret;
-  
+
     ___fxstatat64 = (int (*)(int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags)) dlsym (RTLD_NEXT, "__fxstatat64");
 
     new_path = redirect_path (pathname);
@@ -467,7 +472,7 @@ opendir (const char *name)
     result = _opendir (new_path);
     g_free (new_path);
 
-    return result; 
+    return result;
 }
 
 int
@@ -557,6 +562,188 @@ ioctl (int d, unsigned long request, ...)
     }
 }
 
+static void
+add_port_redirect (int requested_port, int redirected_port)
+{
+    GKeyFile *file;
+    gchar *path, *name, *data;
+
+    file = g_key_file_new ();
+    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".port-redirects", NULL);
+    g_key_file_load_from_file (file, path, G_KEY_FILE_NONE, NULL);
+
+    name = g_strdup_printf ("%d", requested_port);
+    g_key_file_set_integer (file, name, "redirected", redirected_port);
+    g_free (name);
+  
+    data = g_key_file_to_data (file, NULL, NULL);
+    g_file_set_contents (path, data, -1, NULL);
+    g_free (data);
+    g_free (path);
+
+    g_key_file_free (file);
+}
+
+static int
+find_port_redirect (int port)
+{
+    GKeyFile *file;
+    gchar *path, *name;
+    int redirected_port;
+
+    file = g_key_file_new ();
+    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".port-redirects", NULL);
+    g_key_file_load_from_file (file, path, G_KEY_FILE_NONE, NULL);
+    g_free (path);
+
+    name = g_strdup_printf ("%d", port);
+    redirected_port = g_key_file_get_integer (file, name, "redirected", NULL);
+    g_free (name);
+    g_key_file_free (file);
+
+    return redirected_port;
+}
+
+int
+bind (int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+{
+    int port = 0, redirected_port = 0;
+    int (*_bind) (int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+    const struct sockaddr *modified_addr = addr;
+    struct sockaddr_in temp_addr;
+    struct sockaddr_in6 temp_addr6;
+    int retval;
+
+    _bind = (int (*)(int sockfd, const struct sockaddr *addr, socklen_t addrlen)) dlsym (RTLD_NEXT, "bind");
+
+    switch (addr->sa_family)
+    {
+    case AF_INET:
+        port = ntohs (((const struct sockaddr_in *) addr)->sin_port);
+        redirected_port = find_port_redirect (port);
+        memcpy (&temp_addr, addr, sizeof (struct sockaddr_in));
+        modified_addr = (struct sockaddr *) &temp_addr;
+        if (redirected_port != 0)
+            temp_addr.sin_port = htons (redirected_port);
+        else
+            temp_addr.sin_port = 0;
+        break;
+    case AF_INET6:
+        port = ntohs (((const struct sockaddr_in6 *) addr)->sin6_port);
+        redirected_port = find_port_redirect (port);
+        memcpy (&temp_addr6, addr, sizeof (struct sockaddr_in6));
+        modified_addr = (struct sockaddr *) &temp_addr6;
+        if (redirected_port != 0)
+            temp_addr6.sin6_port = htons (redirected_port);
+        else
+            temp_addr6.sin6_port = 0;
+        break;
+    }
+
+    retval = _bind (sockfd, modified_addr, addrlen);
+
+    socklen_t temp_addr_len;
+    switch (addr->sa_family)
+    {
+    case AF_INET:
+        temp_addr_len = sizeof (temp_addr);
+        getsockname (sockfd, &temp_addr, &temp_addr_len);
+        if (redirected_port == 0)
+        {
+            redirected_port = ntohs (temp_addr.sin_port);
+            add_port_redirect (port, redirected_port);
+        }
+        break;
+    case AF_INET6:
+        temp_addr_len = sizeof (temp_addr6);
+        getsockname (sockfd, &temp_addr6, &temp_addr_len);
+        if (redirected_port == 0)
+        {
+            redirected_port = ntohs (temp_addr6.sin6_port);
+            add_port_redirect (port, redirected_port);
+        }
+        break;
+    }
+
+    return retval;
+}
+
+int
+connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+{
+    int port, redirected_port;
+    const struct sockaddr *modified_addr = addr;
+    struct sockaddr_in temp_addr;
+    struct sockaddr_in6 temp_addr6;
+    int (*_connect) (int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+
+    _connect = (int (*)(int sockfd, const struct sockaddr *addr, socklen_t addrlen)) dlsym (RTLD_NEXT, "connect");
+
+    switch (addr->sa_family)
+    {
+    case AF_INET:
+        port = ntohs (((const struct sockaddr_in *) addr)->sin_port);
+        redirected_port = find_port_redirect (port);
+        if (redirected_port != 0) 
+        {
+            memcpy (&temp_addr, addr, sizeof (struct sockaddr_in));
+            temp_addr.sin_port = htons (redirected_port);
+            modified_addr = (struct sockaddr *) &temp_addr;
+        }
+        break;
+    case AF_INET6:
+        port = ntohs (((const struct sockaddr_in6 *) addr)->sin6_port);
+        redirected_port = find_port_redirect (port);
+        if (redirected_port != 0) 
+        {
+            memcpy (&temp_addr6, addr, sizeof (struct sockaddr_in6));
+            temp_addr6.sin6_port = htons (redirected_port);
+            modified_addr = (struct sockaddr *) &temp_addr6;
+        }
+        break;
+    }
+
+    return _connect (sockfd, modified_addr, addrlen);
+}
+
+ssize_t
+sendto (int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen)
+{
+    int port, redirected_port;
+    const struct sockaddr *modified_addr = dest_addr;
+    struct sockaddr_in temp_addr;
+    struct sockaddr_in6 temp_addr6;
+    ssize_t (*_sendto) (int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen);
+
+    _sendto = (ssize_t (*)(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen)) dlsym (RTLD_NEXT, "sendto");
+
+    switch (dest_addr->sa_family)
+    {
+    case AF_INET:
+        port = ntohs (((const struct sockaddr_in *) dest_addr)->sin_port);
+        redirected_port = find_port_redirect (port);
+        if (redirected_port != 0) 
+        {
+            memcpy (&temp_addr, dest_addr, sizeof (struct sockaddr_in));
+            temp_addr.sin_port = htons (redirected_port);
+            modified_addr = (struct sockaddr *) &temp_addr;
+        }
+        break;
+    case AF_INET6:
+        port = ntohs (((const struct sockaddr_in6 *) dest_addr)->sin6_port);
+        redirected_port = find_port_redirect (port);
+        if (redirected_port != 0) 
+        {
+            memcpy (&temp_addr6, dest_addr, sizeof (struct sockaddr_in6));
+            temp_addr6.sin6_port = htons (redirected_port);
+            modified_addr = (struct sockaddr *) &temp_addr6;
+        }
+        break;
+    }
+
+    return _sendto (sockfd, buf, len, flags, modified_addr, addrlen);
+}
+
 int
 close (int fd)
 {
@@ -574,7 +761,7 @@ static void
 free_user (gpointer data)
 {
     struct passwd *entry = data;
-  
+
     g_free (entry->pw_name);
     g_free (entry->pw_passwd);
     g_free (entry->pw_gecos);
@@ -667,10 +854,10 @@ struct passwd *
 getpwnam (const char *name)
 {
     GList *link;
-  
+
     if (name == NULL)
         return NULL;
-  
+
     load_passwd_file ();
 
     for (link = user_entries; link; link = link->next)
@@ -708,7 +895,7 @@ static void
 free_group (gpointer data)
 {
     struct group *entry = data;
-  
+
     g_free (entry->gr_name);
     g_free (entry->gr_passwd);
     g_strfreev (entry->gr_mem);
@@ -865,7 +1052,7 @@ pam_authenticate (pam_handle_t *pamh, int flags)
         status_notify ("%s", status->str);
         g_string_free (status, TRUE);
     }
-  
+
     if (strcmp (pamh->service_name, "test-remote") == 0)
     {
         int result;
@@ -874,7 +1061,7 @@ pam_authenticate (pam_handle_t *pamh, int flags)
 
         msg = malloc (sizeof (struct pam_message *) * 1);
         msg[0] = malloc (sizeof (struct pam_message));
-        msg[0]->msg_style = PAM_PROMPT_ECHO_ON; 
+        msg[0]->msg_style = PAM_PROMPT_ECHO_ON;
         msg[0]->msg = "remote-login:";
         result = pamh->conversation.conv (1, (const struct pam_message **) msg, &resp, pamh->conversation.appdata_ptr);
         free (msg[0]);
@@ -937,7 +1124,7 @@ pam_authenticate (pam_handle_t *pamh, int flags)
 
         msg = malloc (sizeof (struct pam_message *) * 1);
         msg[0] = malloc (sizeof (struct pam_message));
-        msg[0]->msg_style = PAM_PROMPT_ECHO_ON; 
+        msg[0]->msg_style = PAM_PROMPT_ECHO_ON;
         msg[0]->msg = LOGIN_PROMPT;
         result = pamh->conversation.conv (1, (const struct pam_message **) msg, &resp, pamh->conversation.appdata_ptr);
         free (msg[0]);
@@ -952,7 +1139,7 @@ pam_authenticate (pam_handle_t *pamh, int flags)
             free (resp);
             return PAM_CONV_ERR;
         }
-      
+
         pamh->user = strdup (resp[0].resp);
         free (resp[0].resp);
         free (resp);
@@ -1048,6 +1235,8 @@ pam_authenticate (pam_handle_t *pamh, int flags)
             result = pamh->conversation.conv (1, (const struct pam_message **) msg, &resp, pamh->conversation.appdata_ptr);
             free (msg[0]);
             free (msg);
+            if (result != PAM_SUCCESS)
+                return result;
 
             if (resp == NULL)
                 return PAM_CONV_ERR;
@@ -1090,7 +1279,7 @@ static const char *
 get_env_value (const char *name_value, const char *name)
 {
     int j;
-  
+
     for (j = 0; name[j] && name_value[j] && name[j] == name_value[j]; j++);
     if (name[j] == '\0' && name_value[j] == '=')
         return &name_value[j + 1];
@@ -1185,13 +1374,13 @@ pam_get_item (const pam_handle_t *pamh, int item_type, const void **item)
 {
     if (pamh == NULL || item == NULL)
         return PAM_SYSTEM_ERR;
-  
+
     switch (item_type)
     {
     case PAM_SERVICE:
         *item = pamh->service_name;
         return PAM_SUCCESS;
-      
+
     case PAM_USER:
         *item = pamh->user;
         return PAM_SUCCESS;
@@ -1203,11 +1392,11 @@ pam_get_item (const pam_handle_t *pamh, int item_type, const void **item)
     case PAM_RUSER:
         *item = pamh->ruser;
         return PAM_SUCCESS;
-     
+
     case PAM_USER_PROMPT:
         *item = LOGIN_PROMPT;
         return PAM_SUCCESS;
-      
+
     case PAM_TTY:
         *item = pamh->tty;
         return PAM_SUCCESS;
@@ -1328,7 +1517,7 @@ pam_acct_mgmt (pam_handle_t *pamh, int flags)
         status_notify ("%s", status->str);
         g_string_free (status, TRUE);
     }
-  
+
     if (!pamh->user)
         return PAM_USER_UNKNOWN;
 
@@ -1684,7 +1873,7 @@ xcb_connect_to_display_with_auth_info (const char *display, xcb_auth_info_t *aut
     xcb_connection_t *c;
     gchar *socket_path;
     GError *error = NULL;
-  
+
     c = malloc (sizeof (xcb_connection_t));
     c->display = g_strdup (display);
     c->error = 0;
