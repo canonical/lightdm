@@ -164,7 +164,10 @@ TESTS = \
 	test-xremote-login \
 	test-xdmcp-client \
 	test-xdmcp-client-xorg-1.16 \
+	test-xdmcp-server-autologin \
 	test-xdmcp-server-login \
+	test-xdmcp-server-double-login \
+	test-xdmcp-server-guest \
 	test-xdmcp-server-keep-alive \
 	test-xdmcp-server-xdm-authentication \
 	test-xdmcp-server-xdm-authentication-missing-data \
