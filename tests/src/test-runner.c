@@ -2445,6 +2445,8 @@ main (int argc, char **argv)
     if (!g_key_file_has_key (config, "test-runner-config", "have-config", NULL) || g_key_file_get_boolean (config, "test-runner-config", "have-config", NULL))
         if (system (g_strdup_printf ("cp %s %s/etc/lightdm/lightdm.conf", config_path, temp_dir)))
             perror ("Failed to copy configuration");
+    if (system (g_strdup_printf ("cp %s/tests/data/keys.conf %s/etc/lightdm/", SRCDIR, temp_dir)))
+        perror ("Failed to copy key configuration");
 
     additional_system_config = g_key_file_get_string (config, "test-runner-config", "additional-system-config", NULL);
     if (additional_system_config)

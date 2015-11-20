@@ -1250,7 +1250,7 @@ main (int argc, char **argv)
             keys = g_key_file_new ();
             result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
             if (error)
-                g_debug ("Error getting key %s", error->message);
+                g_warning ("Unable to load keys from %s: %s", path, error->message);
             g_clear_error (&error);
 
             if (result)
@@ -1258,7 +1258,7 @@ main (int argc, char **argv)
                 if (g_key_file_has_key (keys, "keyring", key_name, NULL))
                     key = g_key_file_get_string (keys, "keyring", key_name, NULL);
                 else
-                    g_debug ("Key %s not defined", key_name);
+                    g_warning ("Key %s not defined", key_name);
             }
             g_free (path);
             g_key_file_free (keys);
@@ -1268,8 +1268,13 @@ main (int argc, char **argv)
         g_free (key_name);
         g_free (key);
 
-        g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (xdmcp_server));
-        xdmcp_server_start (xdmcp_server);
+        if (key_name && !key)
+            return EXIT_FAILURE;
+        else
+        {
+            g_debug ("Starting XDMCP server on UDP/IP port %d", xdmcp_server_get_port (xdmcp_server));
+            xdmcp_server_start (xdmcp_server);
+        }
     }
 
     /* Start the VNC server */

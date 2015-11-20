@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -49,7 +49,7 @@ typedef struct
 typedef struct
 {
     XDMCPOpcode opcode;
-  
+
     union
     {
         struct
@@ -59,8 +59,8 @@ typedef struct
 
         struct
         {
-            gchar *client_address;
-            gchar *client_port;
+            XDMCPData client_address;
+            XDMCPData client_port;
             gchar **authentication_names;
         } ForwardQuery;
 

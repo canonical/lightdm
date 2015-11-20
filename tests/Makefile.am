@@ -110,15 +110,32 @@ TESTS = \
 	test-switch-to-user-no-password \
 	test-switch-to-user-logout \
 	test-vnc-login \
+	test-vnc-dimensions \
 	test-xremote-autologin \
 	test-xremote-login \
 	test-xdmcp-client \
+	test-xdmcp-server-autologin \
 	test-xdmcp-server-login \
+	test-xdmcp-server-double-login \
+	test-xdmcp-server-keep-alive \
+	test-xdmcp-server-xdm-authentication \
+	test-xdmcp-server-xdm-authentication-missing-data \
+	test-xdmcp-server-xdm-authentication-short-data \
+	test-xdmcp-server-xdm-authentication-long-data \
+	test-xdmcp-server-xdm-authentication-required \
+	test-xdmcp-server-xdm-authentication-missing-key \
+	test-xdmcp-server-xdm-authentication-no-key \
+	test-xdmcp-server-xdm-authentication-invalid-authorization \
+	test-xdmcp-server-invalid-authentication \
 	test-xdmcp-server-request-without-addresses \
+	test-xdmcp-server-request-without-authorization \
+	test-xdmcp-server-request-invalid-authentication \
+	test-xdmcp-server-request-invalid-authorization \
 	test-no-accounts-service \
 	test-console-kit \
 	test-no-console-kit \
 	test-open-file-descriptors \
+	test-xdmcp-server-open-file-descriptors \
 	test-xdmcp-server-open-file-descriptors
 
 # Disabled as doesn't work with updated test framework for some reason (some sort of deadlock). This test is not in trunk.
@@ -196,6 +213,7 @@ EXTRA_DIST = \
 	data/xgreeters/test-qt-greeter.desktop \
 	data/xsessions/alternative.desktop \
 	data/xsessions/default.desktop \
+	data/keys.conf \
 	scripts/0-additional.conf \
 	scripts/1-additional.conf \
 	scripts/additional-config.conf \
@@ -309,12 +327,29 @@ EXTRA_DIST = \
 	scripts/util-path.conf \
 	scripts/user-renamed.conf \
 	scripts/user-renamed-invalid.conf \
+	scripts/vnc-dimensions.conf \
 	scripts/vnc-login.conf \
+	scripts/vnc-open-file-descriptors.conf \
 	scripts/xauthority.conf \
 	scripts/xdmcp-client.conf \
+	scripts/xdmcp-server-autologin.conf \
+	scripts/xdmcp-server-double-login.conf \
+	scripts/xdmcp-server-invalid-authentication.conf \
+	scripts/xdmcp-server-keep-alive.conf \
 	scripts/xdmcp-server-login.conf \
 	scripts/xdmcp-server-open-file-descriptors.conf \
+	scripts/xdmcp-server-request-invalid-authentication.conf \
+	scripts/xdmcp-server-request-invalid-authorization.conf \
 	scripts/xdmcp-server-request-without-addresses.conf \
+	scripts/xdmcp-server-request-without-authorization.conf \
+	scripts/xdmcp-server-xdm-authentication.conf \
+	scripts/xdmcp-server-xdm-authentication-invalid-authorization.conf \
+	scripts/xdmcp-server-xdm-authentication-long-data.conf \
+	scripts/xdmcp-server-xdm-authentication-missing-key.conf \
+	scripts/xdmcp-server-xdm-authentication-missing-data.conf \
+	scripts/xdmcp-server-xdm-authentication-no-key.conf \
+	scripts/xdmcp-server-xdm-authentication-required.conf \
+	scripts/xdmcp-server-xdm-authentication-short-data.conf \
 	scripts/xremote-autologin.conf \
 	scripts/xremote-login.conf \
 	scripts/xserver-config.conf \

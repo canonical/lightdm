@@ -37,7 +37,7 @@ struct XServerPrivate
 struct XClientPrivate
 {
     XServer *server;
-    GSocket *socket;  
+    GSocket *socket;
     GIOChannel *channel;
 };
 
@@ -52,7 +52,7 @@ void
 x_client_send_failed (XClient *client, const gchar *reason)
 {
     gchar *message;
-  
+
     message = g_strdup_printf ("FAILED:%s", reason);
     errno = 0;
     if (send (g_io_channel_unix_get_fd (client->priv->channel), message, strlen (message), 0) != strlen (message))
@@ -60,7 +60,7 @@ x_client_send_failed (XClient *client, const gchar *reason)
     g_free (message);
 }
 
-void 
+void
 x_client_send_success (XClient *client)
 {
     gchar *message;
@@ -90,7 +90,7 @@ x_client_class_init (XClientClass *klass)
     g_type_class_add_private (klass, sizeof (XClientPrivate));
 
     x_client_signals[X_CLIENT_DISCONNECTED] =
-        g_signal_new ("disconnected",
+        g_signal_new (X_CLIENT_SIGNAL_DISCONNECTED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XClientClass, disconnected),
@@ -132,7 +132,7 @@ socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 
     client = g_object_new (x_client_get_type (), NULL);
     client->priv->server = server;
-    g_signal_connect (client, "disconnected", G_CALLBACK (x_client_disconnected_cb), server);
+    g_signal_connect (client, X_CLIENT_SIGNAL_DISCONNECTED, G_CALLBACK (x_client_disconnected_cb), server);
     client->priv->socket = data_socket;
     client->priv->channel = g_io_channel_unix_new (g_socket_get_fd (data_socket));
     g_hash_table_insert (server->priv->clients, client->priv->channel, client);
@@ -195,7 +195,7 @@ x_server_class_init (XServerClass *klass)
     object_class->finalize = x_server_finalize;
     g_type_class_add_private (klass, sizeof (XServerPrivate));
     x_server_signals[X_SERVER_CLIENT_CONNECTED] =
-        g_signal_new ("client-connected",
+        g_signal_new (X_SERVER_SIGNAL_CLIENT_CONNECTED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XServerClass, client_connected),
@@ -203,7 +203,7 @@ x_server_class_init (XServerClass *klass)
                       g_cclosure_marshal_VOID__OBJECT,
                       G_TYPE_NONE, 1, x_client_get_type ());
     x_server_signals[X_SERVER_CLIENT_DISCONNECTED] =
-        g_signal_new ("client-disconnected",
+        g_signal_new (X_SERVER_SIGNAL_CLIENT_DISCONNECTED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (XServerClass, client_disconnected),

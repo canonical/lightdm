@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 Robert Ancell.
  * Author: Robert Ancell <robert.ancell@canonical.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
@@ -187,7 +187,7 @@ xdmcp_packet_decode (const guint8 *data, gsize data_length)
     length = read_card16 (&reader);
 
     if (reader.overflow)
-    {      
+    {
         g_warning ("Ignoring short packet"); // FIXME: Use GError
         return NULL;
     }
@@ -211,8 +211,8 @@ xdmcp_packet_decode (const guint8 *data, gsize data_length)
         packet->Query.authentication_names = read_string_array (&reader);
         break;
     case XDMCP_ForwardQuery:
-        packet->ForwardQuery.client_address = read_string (&reader);
-        packet->ForwardQuery.client_port = read_string (&reader);
+        read_data (&reader, &packet->ForwardQuery.client_address);
+        read_data (&reader, &packet->ForwardQuery.client_port);
         packet->ForwardQuery.authentication_names = read_string_array (&reader);
         break;
     case XDMCP_Willing:
@@ -324,8 +324,8 @@ xdmcp_packet_encode (XDMCPPacket *packet, guint8 *data, gsize max_length)
         write_string_array (&writer, packet->Query.authentication_names);
         break;
     case XDMCP_ForwardQuery:
-        write_string (&writer, packet->ForwardQuery.client_address);
-        write_string (&writer, packet->ForwardQuery.client_port);
+        write_data (&writer, &packet->ForwardQuery.client_address);
+        write_data (&writer, &packet->ForwardQuery.client_port);
         write_string_array (&writer, packet->ForwardQuery.authentication_names);
         break;
     case XDMCP_Willing:
@@ -351,7 +351,7 @@ xdmcp_packet_encode (XDMCPPacket *packet, guint8 *data, gsize max_length)
         write_string (&writer, packet->Request.manufacturer_display_id);
         break;
     case XDMCP_Accept:
-        write_card32 (&writer, packet->Accept.session_id);      
+        write_card32 (&writer, packet->Accept.session_id);
         write_string (&writer, packet->Accept.authentication_name);
         write_data (&writer, &packet->Accept.authentication_data);
         write_string (&writer, packet->Accept.authorization_name);
@@ -399,7 +399,7 @@ xdmcp_packet_encode (XDMCPPacket *packet, guint8 *data, gsize max_length)
         g_warning ("Overflow writing response");
         return -1;
     }
-  
+
     return length + 6;
 }
 
@@ -425,8 +425,8 @@ string_list_tostring (gchar **strings)
     GString *s;
     gchar *string;
     gchar **i;
-  
-    s = g_string_new ("");  
+
+    s = g_string_new ("");
     for (i = strings; *i; i++)
     {
         if (i != strings)
@@ -442,7 +442,7 @@ string_list_tostring (gchar **strings)
 gchar *
 xdmcp_packet_tostring (XDMCPPacket *packet)
 {
-    gchar *string, *t, *t2;
+    gchar *string, *t, *t2, *t5;
     gint i;
     GString *t3;
 
@@ -464,17 +464,21 @@ xdmcp_packet_tostring (XDMCPPacket *packet)
         g_free (t);
         return string;
     case XDMCP_ForwardQuery:
-        t = string_list_tostring (packet->ForwardQuery.authentication_names);
-        string = g_strdup_printf ("ForwardQuery(client_address='%s' client_port='%s' authentication_names=[%s])",
-                                  packet->ForwardQuery.client_address, packet->ForwardQuery.client_port, t);
+        t = data_tostring (&packet->ForwardQuery.client_address);
+        t2 = data_tostring (&packet->ForwardQuery.client_port);
+        t5 = string_list_tostring (packet->ForwardQuery.authentication_names);      
+        string = g_strdup_printf ("ForwardQuery(client_address=%s client_port=%s authentication_names=[%s])",
+                                  t, t2, t5);
         g_free (t);
+        g_free (t2);
+        g_free (t5);
         return string;
     case XDMCP_Willing:
         return g_strdup_printf ("Willing(authentication_name='%s' hostname='%s' status='%s')",
                                 packet->Willing.authentication_name, packet->Willing.hostname, packet->Willing.status);
     case XDMCP_Unwilling:
         return g_strdup_printf ("Unwilling(hostname='%s' status='%s')",
-                                packet->Unwilling.hostname, packet->Unwilling.status);      
+                                packet->Unwilling.hostname, packet->Unwilling.status);
     case XDMCP_Request:
         t = string_list_tostring (packet->Request.authorization_names);
         t2 = data_tostring (&packet->Request.authentication_data);
@@ -545,8 +549,8 @@ xdmcp_packet_free (XDMCPPacket *packet)
         g_strfreev (packet->Query.authentication_names);
         break;
     case XDMCP_ForwardQuery:
-        g_free (packet->ForwardQuery.client_address);
-        g_free (packet->ForwardQuery.client_port);
+        g_free (packet->ForwardQuery.client_address.data);
+        g_free (packet->ForwardQuery.client_port.data);      
         g_strfreev (packet->ForwardQuery.authentication_names);
         break;
     case XDMCP_Willing:
