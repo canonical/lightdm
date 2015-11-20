@@ -12,6 +12,7 @@
 #define XDMCP_CLIENT_SIGNAL_ACCEPT     "accept"
 #define XDMCP_CLIENT_SIGNAL_DECLINE    "decline"
 #define XDMCP_CLIENT_SIGNAL_FAILED     "failed"
+#define XDMCP_CLIENT_SIGNAL_ALIVE      "alive"
 
 typedef struct
 {
@@ -51,6 +52,12 @@ typedef struct
     gchar *status;
 } XDMCPFailed;
 
+typedef struct
+{
+    gboolean session_running;
+    guint32 session_id;
+} XDMCPAlive;
+
 typedef struct XDMCPClientPrivate XDMCPClientPrivate;
 
 typedef struct
@@ -67,6 +74,7 @@ typedef struct
    void (*accept)(XDMCPClient *client, XDMCPAccept *message);
    void (*decline)(XDMCPClient *client, XDMCPDecline *message);
    void (*failed)(XDMCPClient *client, XDMCPFailed *message);
+   void (*alive)(XDMCPClient *client, XDMCPAlive *message);
 } XDMCPClientClass;
 
 GType xdmcp_client_get_type (void);
@@ -95,6 +103,8 @@ void xdmcp_client_send_request (XDMCPClient *client,
                                 gchar **authorization_names, const gchar *mfid);
 
 void xdmcp_client_send_manage (XDMCPClient *client, guint32 session_id, guint16 display_number, const gchar *display_class);
+
+void xdmcp_client_send_keep_alive (XDMCPClient *client, guint16 display_number, guint32 session_id);
 
 G_END_DECLS
 

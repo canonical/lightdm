@@ -170,6 +170,12 @@ xdmcp_failed_cb (XDMCPClient *client, XDMCPFailed *message)
 }
 
 static void
+xdmcp_alive_cb (XDMCPClient *client, XDMCPAlive *message)
+{
+    status_notify ("%s GOT-ALIVE SESSION-RUNNING=%s SESSION-ID=%d", id, message->session_running ? "TRUE" : "FALSE", message->session_id);
+}
+
+static void
 client_connected_cb (XServer *server, XClient *client)
 {
     status_notify ("%s ACCEPT-CONNECT", id);
@@ -314,6 +320,22 @@ request_cb (const gchar *name, GHashTable *params)
                                   session_id,
                                   manage_display_number,
                                   display_class);
+    }
+
+    else if (strcmp (name, "SEND-KEEP-ALIVE") == 0)
+    {
+        const char *text;
+        guint32 session_id = xdmcp_session_id;
+        guint16 keep_alive_display_number = display_number;
+
+        text = g_hash_table_lookup (params, "DISPLAY-NUMBER");
+        if (text)
+            keep_alive_display_number = atoi (text);     
+        text = g_hash_table_lookup (params, "SESSION-ID");
+        if (text)
+            session_id = atoi (text);
+
+        xdmcp_client_send_keep_alive (xdmcp_client, keep_alive_display_number, session_id);
     }
 }
 
@@ -594,6 +616,7 @@ main (int argc, char **argv)
         g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_ACCEPT, G_CALLBACK (xdmcp_accept_cb), NULL);
         g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_DECLINE, G_CALLBACK (xdmcp_decline_cb), NULL);
         g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_FAILED, G_CALLBACK (xdmcp_failed_cb), NULL);
+        g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_ALIVE, G_CALLBACK (xdmcp_alive_cb), NULL);      
     }
 
     g_main_loop_run (loop);
