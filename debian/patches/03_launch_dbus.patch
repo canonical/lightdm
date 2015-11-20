@@ -1,9 +1,9 @@
 === modified file 'src/display.c'
-Index: lightdm-1.2.3/src/display.c
+Index: 1.2/src/display.c
 ===================================================================
---- lightdm-1.2.3.orig/src/display.c	2012-11-20 17:31:49.000000000 +1300
-+++ lightdm-1.2.3/src/display.c	2012-11-21 15:55:22.071297433 +1300
-@@ -621,6 +621,8 @@
+--- 1.2.orig/src/display.c
++++ 1.2/src/display.c
+@@ -621,6 +621,8 @@ greeter_session_stopped_cb (Session *ses
      }
  }
  
@@ -12,7 +12,7 @@ Index: lightdm-1.2.3/src/display.c
  static gboolean
  display_start_greeter (Display *display)
  {
-@@ -648,6 +650,8 @@
+@@ -650,6 +652,8 @@ display_start_greeter (Display *display)
      if (!argv)
          return TRUE;
  

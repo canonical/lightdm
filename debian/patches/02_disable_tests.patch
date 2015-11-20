@@ -2,8 +2,8 @@ Index: 1.2/tests/Makefile.am
 ===================================================================
 --- 1.2.orig/tests/Makefile.am
 +++ 1.2/tests/Makefile.am
-@@ -172,6 +172,8 @@ TESTS += \
- 	test-login-qt-guest-logout
+@@ -204,6 +204,8 @@ TESTS += \
+ 	test-users-qt
  endif
  
 +TESTS =
