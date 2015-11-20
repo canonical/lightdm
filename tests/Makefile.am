@@ -368,6 +368,7 @@ EXTRA_DIST = \
 	data/greeters/test-python-greeter.desktop \
 	data/greeters/test-qt4-greeter.desktop \
 	data/greeters/test-qt5-greeter.desktop \
+	data/keys.conf \
 	data/sessions/alternative.desktop \
 	data/sessions/default.desktop \
 	data/sessions/mir.desktop \
