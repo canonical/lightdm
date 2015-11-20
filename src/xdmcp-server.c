@@ -167,13 +167,28 @@ get_session (XDMCPServer *server, guint16 id)
     return g_hash_table_lookup (server->priv->sessions, GINT_TO_POINTER ((gint) id));
 }
 
+static gchar *
+socket_address_to_string (GSocketAddress *address)
+{
+    gchar *inet_text, *text;
+
+    inet_text = g_inet_address_to_string (g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (address)));
+    text = g_strdup_printf ("%s:%d", inet_text, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (address)));
+    g_free (inet_text);
+
+    return text;
+}
+
 static void
 send_packet (GSocket *socket, GSocketAddress *address, XDMCPPacket *packet)
 {
+    gchar *address_string;
     guint8 data[1024];
     gssize n_written;
 
-    g_debug ("Send %s", xdmcp_packet_tostring (packet));
+    address_string = socket_address_to_string (address);
+    g_debug ("Send %s to %s", xdmcp_packet_tostring (packet), address_string);
+    g_free (address_string);
 
     n_written = xdmcp_packet_encode (packet, data, 1024);
     if (n_written < 0)
@@ -668,11 +683,13 @@ read_cb (GSocket *socket, GIOCondition condition, XDMCPServer *server)
         packet = xdmcp_packet_decode ((guint8 *)data, n_read);
         if (packet)
         {
-            gchar *packet_string;
+            gchar *packet_string, *address_string;
 
             packet_string = xdmcp_packet_tostring (packet);
-            g_debug ("Got %s", packet_string);
+            address_string = socket_address_to_string (address);
+            g_debug ("Got %s from %s", packet_string, address_string);
             g_free (packet_string);
+            g_free (address_string);
 
             switch (packet->opcode)
             {
