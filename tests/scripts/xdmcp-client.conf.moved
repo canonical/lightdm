@@ -14,7 +14,7 @@ xdmcp-manager=127.0.0.1
 #?XSERVER-0 INDICATE-READY
 #?XSERVER-0 ACCEPT-CONNECT
 
-# Send an XDMCP query
+# Send an XDMCP queriy
 #?*XSERVER-0 SEND-QUERY
 
 # Wait to check a greeter is not started
