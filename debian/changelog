@@ -1,3 +1,15 @@
+lightdm (1.14.4-0ubuntu1) vivid; urgency=medium
+
+  * New upstream release:
+    - Handle XDMCP Request packet with no addresses. (LP: #1516831)
+    - Don't start LightDM if the XDMCP server is configured with a key that
+      doesn't exist. (LP: #1517685)
+    - Add IP addresses to XDMCP log messages.
+    - Refactor XDMCP error handling.
+    - Add more tests.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 20 Nov 2015 16:01:15 +1300
+
 lightdm (1.14.3-0ubuntu1) vivid; urgency=medium
 
   * New upstream release:
