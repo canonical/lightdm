@@ -1,3 +1,36 @@
+lightdm (1.10.6-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release:
+    - Handle trailing whitespace on boolean values in configuration.
+      (LP: #1507033)
+    - Use libaudit to generate audit events.
+    - Fix apparmor profiles for running Chromium in guest sessions.
+      (LP: #1504049)
+    - Add LC_PAPER, LC_NAME, LC_ADDRESS, LC_TELEPHONE, LC_MEASUREMENT and
+      LC_IDENTIFICATION variables to the list of inherited locale variables.
+      (LP: #1511259)
+    - Add a backup-logs option that can be used to disable existing logging
+      files having a .old suffix added to them.
+    - Check the version of the X server we are running so we correctly pass
+      -listen tcp when required. (LP: #1449282)
+    - Use IP address of XDMCP requests to contact X server if available.
+      (LP: #1481561)
+    - Implement XDMCP ForwardQuery. (LP: #1511545)
+    - Add an option for XDMCP and VNC servers to only listen on one address.
+      (LP: #1390808)
+    - Don't start LightDM if the XDMCP server is configured with a key that
+      doesn't exist. (LP: #1517685)
+    - Add IP addresses to XDMCP log messages.
+    - Refactor XDMCP error handling.
+    - Fix small memory leak in XDMCP logging code.
+    - Fix typo in dm-tool man page. (LP: #1470587)
+    - Use new Xmir binary when running X under Unity System Compositor.    
+    - Fix all the things that prevent clang (3.5) from building LightDM with
+      -Werror.
+    - Add more tests.
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 20 Nov 2015 16:07:50 +1300
+
 lightdm (1.10.5-0ubuntu1.1) trusty; urgency=medium
 
   * debian/lightdm-session: Enable the C preprocessor 

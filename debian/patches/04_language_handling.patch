@@ -75,7 +75,7 @@ Index: 1.10/src/seat.c
 ===================================================================
 --- 1.10.orig/src/seat.c
 +++ 1.10/src/seat.c
-@@ -863,7 +863,7 @@ configure_session (Session *session, Ses
+@@ -877,7 +877,7 @@ configure_session (Session *session, Ses
      }
      if (language && language[0] != '\0')
      {

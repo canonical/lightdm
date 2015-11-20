@@ -1,3 +1,28 @@
+Overview of changes in lightdm 1.10.6
+
+    * Handle trailing whitespace on boolean values in configuration.
+    * Use libaudit to generate audit events.
+    * Fix apparmor profiles for running Chromium in guest sessions.
+    * Add LC_PAPER, LC_NAME, LC_ADDRESS, LC_TELEPHONE, LC_MEASUREMENT and
+      LC_IDENTIFICATION variables to the list of inherited locale variables.
+    * Add a backup-logs option that can be used to disable existing logging
+      files having a .old suffix added to them.
+    * Check the version of the X server we are running so we correctly pass
+      -listen tcp when required.
+    * Use IP address of XDMCP requests to contact X server if available.
+    * Implement XDMCP ForwardQuery.
+    * Add an option for XDMCP and VNC servers to only listen on one address.
+    * Don't start LightDM if the XDMCP server is configured with a key that
+      doesn't exist.
+    * Add IP addresses to XDMCP log messages.
+    * Refactor XDMCP error handling.
+    * Fix small memory leak in XDMCP logging code.
+    * Fix typo in dm-tool man page.
+    * Use new Xmir binary when running X under Unity System Compositor.
+    * Fix all the things that prevent clang (3.5) from building LightDM with
+      -Werror.
+    * Add more tests.
+
 Overview of changes in lightdm 1.10.5
 
     * Fix pipe file descriptor leak for each greeter session.
