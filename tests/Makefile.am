@@ -172,14 +172,14 @@ TESTS = \
 	test-vnc-open-file-descriptors \
 	test-vnc-guest \
 	test-xremote-autologin \
-	test-xremote-login \    
+	test-xremote-login \
 	test-xdmcp-client \
 	test-xdmcp-client-xorg-1.16 \
 	test-xdmcp-server-autologin \
 	test-xdmcp-server-login \
 	test-xdmcp-server-double-login \
 	test-xdmcp-server-guest \
-	test-xdmcp-server-keep-alive \        
+	test-xdmcp-server-keep-alive \
 	test-xdmcp-server-xdm-authentication \
 	test-xdmcp-server-xdm-authentication-missing-data \
 	test-xdmcp-server-xdm-authentication-short-data \
@@ -187,7 +187,7 @@ TESTS = \
 	test-xdmcp-server-xdm-authentication-required \
 	test-xdmcp-server-xdm-authentication-missing-key \
 	test-xdmcp-server-xdm-authentication-no-key \
-	test-xdmcp-server-xdm-authentication-invalid-authorization \        
+	test-xdmcp-server-xdm-authentication-invalid-authorization \
 	test-xdmcp-server-invalid-authentication \
 	test-xdmcp-server-request-without-addresses \
 	test-xdmcp-server-request-without-authorization \
@@ -624,7 +624,7 @@ EXTRA_DIST = \
 	scripts/xdmcp-server-xdm-authentication-long-data.conf \
 	scripts/xdmcp-server-xdm-authentication-missing-key.conf \
 	scripts/xdmcp-server-xdm-authentication-missing-data.conf \
-	scripts/xdmcp-server-xdm-authentication-no-key.conf \        
+	scripts/xdmcp-server-xdm-authentication-no-key.conf \
 	scripts/xdmcp-server-xdm-authentication-required.conf \
 	scripts/xdmcp-server-xdm-authentication-short-data.conf \
 	scripts/xremote-autologin.conf \
