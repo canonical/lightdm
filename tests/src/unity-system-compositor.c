@@ -147,7 +147,6 @@ main (int argc, char **argv)
     GString *status_text;
     gboolean test = FALSE, container = FALSE;
     int vt_number = -1;
-    gboolean enable_hardware_cursor = FALSE;
     const gchar *file = NULL;
 
 #if !defined(GLIB_VERSION_2_36)
@@ -180,8 +179,6 @@ main (int argc, char **argv)
             vt_number = atoi (argv[i+1]);
             i++;
         }
-        else if (strcmp (arg, "--enable-hardware-cursor=true") == 0)
-            enable_hardware_cursor = TRUE;
         else if (strcmp (arg, "--file") == 0)
         {
             file = argv[i+1];
@@ -202,8 +199,6 @@ main (int argc, char **argv)
         g_string_append_printf (status_text, " FILE=%s", file);
     if (vt_number >= 0)
         g_string_append_printf (status_text, " VT=%d", vt_number);
-    if (enable_hardware_cursor)
-        g_string_append (status_text, " ENABLE-HARDWARE-CURSOR=TRUE");
     if (g_getenv ("XDG_VTNR"))
         g_string_append_printf (status_text, " XDG_VTNR=%s", g_getenv ("XDG_VTNR"));
     if (test)

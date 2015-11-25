@@ -39,9 +39,6 @@ struct UnitySystemCompositorPrivate
     gint vt;
     gboolean have_vt_ref;
 
-    /* TRUE if should show hardware cursor */
-    gboolean enable_hardware_cursor;
-
     /* Pipes to communicate with compositor */
     int to_compositor_pipe[2];
     int from_compositor_pipe[2];
@@ -120,13 +117,6 @@ unity_system_compositor_set_vt (UnitySystemCompositor *compositor, gint vt)
         vt_ref (vt);
         compositor->priv->have_vt_ref = TRUE;
     }
-}
-
-void
-unity_system_compositor_set_enable_hardware_cursor (UnitySystemCompositor *compositor, gboolean enable_cursor)
-{
-    g_return_if_fail (compositor != NULL);
-    compositor->priv->enable_hardware_cursor = enable_cursor;
 }
 
 void
@@ -436,8 +426,6 @@ unity_system_compositor_start (DisplayServer *server)
     g_string_append_printf (command, " --from-dm-fd %d --to-dm-fd %d", compositor->priv->to_compositor_pipe[0], compositor->priv->from_compositor_pipe[1]);
     if (compositor->priv->vt > 0)
         g_string_append_printf (command, " --vt %d", compositor->priv->vt);
-    if (compositor->priv->enable_hardware_cursor)
-        g_string_append (command, " --enable-hardware-cursor=true");
     process_set_command (compositor->priv->process, command->str);
     g_string_free (command, TRUE);
 
