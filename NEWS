@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.17.3
+
+    * Don't enable the hardware cursor in Unity System Compositor anymore.
+      Unity 8 now correctly provides its own cursor and other shells should too
+
 Overview of changes in lightdm 1.17.2
 
     * Handle XDMCP Request packet with no addresses.

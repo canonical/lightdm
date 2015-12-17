@@ -1,3 +1,14 @@
+lightdm (1.17.3-0ubuntu1) xenial; urgency=medium
+
+  * New upstream release:
+    - Don't enable the hardware cursor in Unity System Compositor anymore.
+      Unity 8 now correctly provides its own cursor and other shells should too
+      (LP: #1517615)
+  * debian/guest-session.profile:
+    - Fix guest session dialog sleep (LP: #1526004)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 17 Dec 2015 13:12:24 +1300
+
 lightdm (1.17.2-0ubuntu1) xenial; urgency=medium
 
   * New upstream release:
