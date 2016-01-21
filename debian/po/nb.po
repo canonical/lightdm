@@ -8,20 +8,20 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2007-05-31 08:04+0200\n"
-"PO-Revision-Date: 2011-07-18 17:22+0000\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"PO-Revision-Date: 2016-01-20 07:48+0000\n"
+"Last-Translator: Åka Sikrom <Unknown>\n"
 "Language-Team: Norwegian Bokmal <nb@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2015-12-24 05:17+0000\n"
-"X-Generator: Launchpad (build 17865)\n"
+"X-Launchpad-Export-Date: 2016-01-21 05:23+0000\n"
+"X-Generator: Launchpad (build 17886)\n"
 
 #. Type: select
 #. Description
 #: ../lightdm.templates:2001
 msgid "Default display manager:"
-msgstr ""
+msgstr "Standard skjermbehandler:"
 
 #. Type: select
 #. Description
@@ -30,6 +30,8 @@ msgid ""
 "A display manager is a program that provides graphical login capabilities "
 "for the X Window System."
 msgstr ""
+"En skjermbehandler er et program som gir deg mulighet til å logge inn i "
+"vindusystemet X via et grafisk grensesnitt."
 
 #. Type: select
 #. Description
@@ -39,6 +41,9 @@ msgid ""
 "manager packages are installed. Please select which display manager should "
 "run by default."
 msgstr ""
+"Du kan bare håndtere en X-tjener med én skjermbehandler om gangen, men flere "
+"skjermbehandler-pakker er installert. Velg hvilken skjermbehandler som skal "
+"brukes som standard."
 
 #. Type: select
 #. Description
@@ -49,6 +54,10 @@ msgid ""
 "accordingly, edit each of their init scripts in /etc/init.d, and disable the "
 "check for a default display manager."
 msgstr ""
+"Flere skjermbehandlere kan kjøre samtidig hvis de er satt opp til å behandle "
+"ulike tjenere. For at dette skal fungere må du sette opp skjermbehandlerne "
+"deretter, redigere oppstartsskriptene deres under /etc/init.d og slå av "
+"funksjonen som ser etter en standard skjermbehandler."
 
 #~ msgid ""
 #~ "Are you sure you want to close all programs and shutdown the computer?"
