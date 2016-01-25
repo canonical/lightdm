@@ -79,6 +79,14 @@ typedef struct
     void (*reserved4) (void);
 } LightDMGreeterClass;
 
+#ifdef GLIB_VERSION_2_44
+typedef LightDMGreeter *LightDMGreeter_autoptr;
+static inline void glib_autoptr_cleanup_LightDMGreeter (LightDMGreeter **_ptr)
+{
+    glib_autoptr_cleanup_GObject ((GObject **) _ptr);
+}
+#endif
+
 GType lightdm_greeter_get_type (void);
 
 LightDMGreeter *lightdm_greeter_new (void);

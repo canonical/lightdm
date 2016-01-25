@@ -40,6 +40,14 @@ typedef struct
     void (*reserved6) (void);
 } LightDMLanguageClass;
 
+#ifdef GLIB_VERSION_2_44
+typedef LightDMLanguage *LightDMLanguage_autoptr;
+static inline void glib_autoptr_cleanup_LightDMLanguage (LightDMLanguage **_ptr)
+{
+    glib_autoptr_cleanup_GObject ((GObject **) _ptr);
+}
+#endif
+
 GType lightdm_language_get_type (void);
 
 GList *lightdm_get_languages (void);

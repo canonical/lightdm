@@ -40,6 +40,14 @@ typedef struct
     void (*reserved6) (void);
 } LightDMLayoutClass;
 
+#ifdef GLIB_VERSION_2_44
+typedef LightDMLayout *LightDMLayout_autoptr;
+static inline void glib_autoptr_cleanup_LightDMLayout (LightDMLayout **_ptr)
+{
+    glib_autoptr_cleanup_GObject ((GObject **) _ptr);
+}
+#endif
+
 GType lightdm_layout_get_type (void);
 
 GList *lightdm_get_layouts (void);

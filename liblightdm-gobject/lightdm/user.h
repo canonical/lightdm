@@ -76,6 +76,19 @@ typedef struct
     void (*reserved6) (void);
 } LightDMUserListClass;
 
+#ifdef GLIB_VERSION_2_44
+typedef LightDMUser *LightDMUser_autoptr;
+static inline void glib_autoptr_cleanup_LightDMUser (LightDMUser **_ptr)
+{
+    glib_autoptr_cleanup_GObject ((GObject **) _ptr);
+}
+typedef LightDMUserList *LightDMUserList_autoptr;
+static inline void glib_autoptr_cleanup_LightDMUserList (LightDMUserList **_ptr)
+{
+    glib_autoptr_cleanup_GObject ((GObject **) _ptr);
+}
+#endif
+
 GType lightdm_user_list_get_type (void);
 
 GType lightdm_user_get_type (void);

@@ -40,6 +40,14 @@ typedef struct
     void (*reserved6) (void);
 } LightDMSessionClass;
 
+#ifdef GLIB_VERSION_2_44
+typedef LightDMSession *LightDMSession_autoptr;
+static inline void glib_autoptr_cleanup_LightDMSession (LightDMSession **_ptr)
+{
+    glib_autoptr_cleanup_GObject ((GObject **) _ptr);
+}
+#endif
+
 GType lightdm_session_get_type (void);
 
 GList *lightdm_get_sessions (void);
