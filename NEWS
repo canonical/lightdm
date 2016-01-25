@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.16.7
+
+    * Fix dm-tool add-local-seat not working because LightDM is trying to
+      connect with TCP/IP
+
 Overview of changes in lightdm 1.16.6
 
     * Handle XDMCP Request packet with no addresses.

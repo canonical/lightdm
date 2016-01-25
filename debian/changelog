@@ -1,3 +1,11 @@
+lightdm (1.16.7-0ubuntu1) wily; urgency=medium
+
+  * New upstream release:
+    - Fix dm-tool add-local-seat not working because LightDM is trying to
+      connect with TCP/IP (LP: #1529454)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 25 Jan 2016 17:35:34 +1300
+
 lightdm (1.16.6-0ubuntu1) wily; urgency=medium
 
   * New upstream release:
