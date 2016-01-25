@@ -260,3 +260,53 @@ ck_close_session (const gchar *cookie)
     if (!is_closed)
         g_warning ("ConsoleKit.Manager.CloseSession() returned false");
 }
+
+gchar *
+ck_get_xdg_runtime_dir (const gchar *cookie)
+{
+    GDBusConnection *bus;
+    gchar *session_path;
+    gchar *runtime_dir = NULL;
+    GError *error = NULL;
+
+    g_return_if_fail (cookie != NULL);
+
+    g_debug ("Getting XDG_RUNTIME_DIR from ConsoleKit for session %s", cookie);
+
+    bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
+    if (error)
+        g_warning ("Failed to get system bus: %s", error->message);
+    g_clear_error (&error);
+    if (!bus)
+        return NULL;
+
+    session_path = get_ck_session (bus, cookie);
+    if (session_path)
+    {
+        GVariant *result;
+
+        result = g_dbus_connection_call_sync (bus,
+                                              "org.freedesktop.ConsoleKit",
+                                              session_path,
+                                              "org.freedesktop.ConsoleKit.Session",
+                                              "GetXDGRuntimeDir",
+                                              g_variant_new ("()"),
+                                              G_VARIANT_TYPE ("(s)"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              -1,
+                                              NULL,
+                                              &error);
+        if (error)
+            g_warning ("Error getting XDG_RUNTIME_DIR from ConsoleKit: %s", error->message);
+        g_clear_error (&error);
+        if (!result)
+            return NULL;
+
+        g_variant_get (result, "(s)", &runtime_dir);
+        g_variant_unref (result);
+        g_debug ("ConsoleKit XDG_RUNTIME_DIR is %s", runtime_dir);
+    }
+
+    g_object_unref (bus);
+    return runtime_dir;
+}

@@ -621,9 +621,20 @@ session_child_run (int argc, char **argv)
         if (console_kit_cookie)
         {
             gchar *value;
+            gchar *runtime_dir;
             value = g_strdup_printf ("XDG_SESSION_COOKIE=%s", console_kit_cookie);
             pam_putenv (pam_handle, value);
             g_free (value);
+
+            runtime_dir = ck_get_xdg_runtime_dir (console_kit_cookie);
+            if (runtime_dir)
+            {
+                gchar *value;
+                value = g_strdup_printf ("XDG_RUNTIME_DIR=%s", runtime_dir);
+                pam_putenv (pam_handle, value);
+                g_free (value);
+                g_free (runtime_dir);
+            }
         }
     }
 
