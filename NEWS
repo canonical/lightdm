@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.17.4
+
+    * Add support for g_autoptr and liblightdm-gobject
+    * Fix dm-tool add-local-seat not working because LightDM is trying to
+      connect with TCP/IP
+
 Overview of changes in lightdm 1.17.3
 
     * Don't enable the hardware cursor in Unity System Compositor anymore.

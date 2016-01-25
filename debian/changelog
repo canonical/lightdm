@@ -1,3 +1,12 @@
+lightdm (1.17.4-0ubuntu1) xenial; urgency=medium
+
+  * New upstream release:
+    - Add support for g_autoptr and liblightdm-gobject
+    - Fix dm-tool add-local-seat not working because LightDM is trying to
+      connect with TCP/IP (LP: #1529454)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 25 Jan 2016 17:13:18 +1300
+
 lightdm (1.17.3-0ubuntu1) xenial; urgency=medium
 
   * New upstream release:
