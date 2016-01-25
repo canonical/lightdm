@@ -208,6 +208,7 @@ TESTS = \
 	test-power-no-services-gobject \
 	test-open-file-descriptors \
 	test-xdmcp-server-open-file-descriptors \
+	test-add-local-x-seat \
 	test-multi-seat \
 	test-multi-seat-seat0-non-graphical \
 	test-multi-seat-seat0-non-graphical-disabled \
@@ -386,6 +387,7 @@ EXTRA_DIST = \
 	data/sessions/wayland.desktop \
 	scripts/0-additional.conf \
 	scripts/1-additional.conf \
+	scripts/add-local-x-seat.conf \        
 	scripts/additional-config.conf \
 	scripts/additional-config-priority.conf \
 	scripts/additional-system-config.conf \
