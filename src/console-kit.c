@@ -269,7 +269,7 @@ ck_get_xdg_runtime_dir (const gchar *cookie)
     gchar *runtime_dir = NULL;
     GError *error = NULL;
 
-    g_return_if_fail (cookie != NULL);
+    g_return_val_if_fail (cookie != NULL, NULL);
 
     g_debug ("Getting XDG_RUNTIME_DIR from ConsoleKit for session %s", cookie);
 
@@ -308,5 +308,6 @@ ck_get_xdg_runtime_dir (const gchar *cookie)
     }
 
     g_object_unref (bus);
+
     return runtime_dir;
 }
