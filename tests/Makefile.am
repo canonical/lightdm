@@ -199,6 +199,7 @@ TESTS = \
 	test-audit-autologin \
 	test-no-accounts-service \
 	test-console-kit \
+	test-console-kit-no-xdg-runtime \        
 	test-no-console-kit \
 	test-no-login1 \
 	test-no-console-kit-or-login1 \
@@ -422,6 +423,7 @@ EXTRA_DIST = \
 	scripts/change-authentication.conf \
 	scripts/cancel-authentication.conf \
 	scripts/console-kit.conf \
+	scripts/console-kit-no-xdg-runtime.conf \        
 	scripts/corrupt-xauthority.conf \
 	scripts/crash-authenticate.conf \
 	scripts/cred-error.conf \

@@ -1395,7 +1395,11 @@ handle_ck_session_call (GDBusConnection       *connection,
 {
     CKSession *session = user_data;
 
-    if (strcmp (method_name, "Lock") == 0)
+    if (strcmp (method_name, "GetXDGRuntimeDir") == 0 && !g_key_file_get_boolean (config, "test-runner-config", "ck-no-xdg-runtime", NULL))
+    {
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "/run/console-kit"));
+    }
+    else if (strcmp (method_name, "Lock") == 0)
     {
         if (!session->locked)
             check_status ("CONSOLE-KIT LOCK-SESSION");
@@ -1464,9 +1468,20 @@ ck_name_acquired_cb (GDBusConnection *connection,
     {
         handle_ck_call,
     };
+    const gchar *ck_session_interface_old =
+        "<node>"
+        "  <interface name='org.freedesktop.ConsoleKit.Session'>"
+        "    <method name='Lock'/>"
+        "    <method name='Unlock'/>"
+        "    <method name='Activate'/>"
+        "  </interface>"
+        "</node>";
     const gchar *ck_session_interface =
         "<node>"
         "  <interface name='org.freedesktop.ConsoleKit.Session'>"
+        "    <method name='GetXDGRuntimeDir'>"
+        "      <arg name='dir' direction='out' type='s'/>"
+        "    </method>"
         "    <method name='Lock'/>"
         "    <method name='Unlock'/>"
         "    <method name='Activate'/>"
@@ -1481,7 +1496,10 @@ ck_name_acquired_cb (GDBusConnection *connection,
     g_clear_error (&error);
     if (!ck_info)
         return;
-    ck_session_info = g_dbus_node_info_new_for_xml (ck_session_interface, &error);
+    if (g_key_file_get_boolean (config, "test-runner-config", "ck-no-xdg-runtime", NULL))
+        ck_session_info = g_dbus_node_info_new_for_xml (ck_session_interface_old, &error);
+    else
+        ck_session_info = g_dbus_node_info_new_for_xml (ck_session_interface, &error);  
     if (error)
         g_warning ("Failed to parse D-Bus interface: %s", error->message);
     g_clear_error (&error);
