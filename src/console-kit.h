@@ -26,6 +26,8 @@ void ck_activate_session (const gchar *cookie);
 
 void ck_close_session (const gchar *cookie);
 
+gchar *ck_get_xdg_runtime_dir (const gchar *cookie);
+
 G_END_DECLS
 
 #endif /* CONSOLE_KIT_H_ */
