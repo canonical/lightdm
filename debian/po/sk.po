@@ -8,20 +8,20 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2007-05-31 08:04+0200\n"
-"PO-Revision-Date: 2012-01-18 17:14+0000\n"
-"Last-Translator: Pavol Klačanský <pavol@klacansky.com>\n"
+"PO-Revision-Date: 2016-01-30 13:59+0000\n"
+"Last-Translator: Dusan Kazik <prescott66@gmail.com>\n"
 "Language-Team: Slovak <sk@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2015-12-24 05:17+0000\n"
-"X-Generator: Launchpad (build 17865)\n"
+"X-Launchpad-Export-Date: 2016-01-31 05:46+0000\n"
+"X-Generator: Launchpad (build 17908)\n"
 
 #. Type: select
 #. Description
 #: ../lightdm.templates:2001
 msgid "Default display manager:"
-msgstr ""
+msgstr "Predvolený správca zobrazenia:"
 
 #. Type: select
 #. Description
@@ -30,6 +30,8 @@ msgid ""
 "A display manager is a program that provides graphical login capabilities "
 "for the X Window System."
 msgstr ""
+"Správca zobrazenia je program, ktorý poskytuje možnosti grafického "
+"prihlásenia pre systém okien X."
 
 #. Type: select
 #. Description
@@ -39,6 +41,9 @@ msgid ""
 "manager packages are installed. Please select which display manager should "
 "run by default."
 msgstr ""
+"Iba jeden správca zobrazenia môže spravovať daný server X, ale je "
+"nainštalovaných viacero balíkov správcov zobrazenia. Prosím, vyberte, ktorý "
+"správca zobrazenia by mal byť predvolene spustený."
 
 #. Type: select
 #. Description
@@ -49,6 +54,10 @@ msgid ""
 "accordingly, edit each of their init scripts in /etc/init.d, and disable the "
 "check for a default display manager."
 msgstr ""
+"Viacero správcov zobrazenia môže byť spustených naraz, ak sú nastavené, aby "
+"spravovali rozličné servery. Toto docielite adekvátnym nastavením správcov "
+"zobrazenia. Upravte každému inicializačný skript v /etc/init.d a zakážte "
+"kontrolu predvoleného správcu zobrazenia."
 
 #~ msgid "Shutdown"
 #~ msgstr "Vypnúť"
