@@ -1,4 +1,5 @@
 /etc/X11
 /var/cache/lightdm
+/var/lib/lightdm
 /var/lib/lightdm-data
 /var/log/lightdm
