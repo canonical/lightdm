@@ -23,10 +23,6 @@ if [ "$1" = "purge" ] ; then
                 rm -r /var/run/lightdm/authority
         fi
 
-        if [ -d /var/lib/lightdm ]; then
-                rm -r /var/lib/lightdm
-        fi
-
 fi
 #DEBHELPER#
 exit 0
