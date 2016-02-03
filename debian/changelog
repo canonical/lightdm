@@ -1,4 +1,4 @@
-lightdm (1.17.5-0ubunt1) xenial; urgency=medium
+lightdm (1.17.5-0ubuntu1) xenial; urgency=medium
 
   * New upstream release:
     - Set XDG_RUNTIME_DIR for ConsoleKit sessions. This is a recent change in
