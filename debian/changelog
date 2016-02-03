@@ -1,3 +1,14 @@
+lightdm (1.17.5-0ubunt1) xenial; urgency=medium
+
+  * New upstream release:
+    - Set XDG_RUNTIME_DIR for ConsoleKit sessions. This is a recent change in
+      ConsoleKit2.
+  * debian/lightdm.postrm:
+    - Don't remove the lightdm user home directory on purge since we no longer
+      remove the user account. (LP: #1540933)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 03 Feb 2016 12:55:04 +1300
+
 lightdm (1.17.4-0ubuntu1) xenial; urgency=medium
 
   * New upstream release:

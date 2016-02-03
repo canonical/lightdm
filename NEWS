@@ -1,3 +1,8 @@
+Overview of changes in lightdm 1.17.5
+
+    * Set XDG_RUNTIME_DIR for ConsoleKit sessions. This is a recent change in
+      ConsoleKit2.
+
 Overview of changes in lightdm 1.17.4
 
     * Add support for g_autoptr and liblightdm-gobject
