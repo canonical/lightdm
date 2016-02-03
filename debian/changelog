@@ -1,3 +1,11 @@
+lightdm (1.16.7-0ubuntu2) wily; urgency=medium
+
+  * debian/lightdm.postrm:
+    - Don't remove the lightdm user home directory on purge since we no longer
+      remove the user account. (LP: #1540933)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 03 Feb 2016 13:20:39 +1300
+
 lightdm (1.16.7-0ubuntu1) wily; urgency=medium
 
   * New upstream release:
