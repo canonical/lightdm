@@ -1,3 +1,10 @@
+lightdm (1.17.5-0ubuntu2) xenial; urgency=medium
+
+  * debian/control:
+    - Fix liblightdm-qt5-3-dev to depend on qtbase5-dev, not libqt4-dev
+
+ -- Michael Terry <mterry@ubuntu.com>  Wed, 03 Feb 2016 13:45:53 -0500
+
 lightdm (1.17.5-0ubuntu1) xenial; urgency=medium
 
   * New upstream release:

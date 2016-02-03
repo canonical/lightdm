@@ -136,7 +136,7 @@ Architecture: any
 Multi-Arch: same
 Depends: ${misc:Depends},
          liblightdm-qt5-3-0 (= ${binary:Version}),
-         libqt4-dev,
+         qtbase5-dev,
 Description: LightDM Qt 5 client library (development files)
  A Qt 5 based library for LightDM clients to use to interface with LightDM.
  .
