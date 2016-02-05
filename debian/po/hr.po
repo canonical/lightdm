@@ -8,20 +8,20 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: gogo <trebelnik2@gmail.com>\n"
 "POT-Creation-Date: 2007-05-31 08:04+0200\n"
-"PO-Revision-Date: 2011-06-11 07:49+0000\n"
+"PO-Revision-Date: 2016-02-04 20:43+0000\n"
 "Last-Translator: gogo <trebelnik2@gmail.com>\n"
 "Language-Team: Croatian <hr@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2015-12-24 05:17+0000\n"
-"X-Generator: Launchpad (build 17865)\n"
+"X-Launchpad-Export-Date: 2016-02-05 05:50+0000\n"
+"X-Generator: Launchpad (build 17908)\n"
 
 #. Type: select
 #. Description
 #: ../lightdm.templates:2001
 msgid "Default display manager:"
-msgstr ""
+msgstr "Zadani upravitelj zaslona:"
 
 #. Type: select
 #. Description
@@ -30,6 +30,8 @@ msgid ""
 "A display manager is a program that provides graphical login capabilities "
 "for the X Window System."
 msgstr ""
+"Upravitelj zaslona je program koji omogućuje grafičku prijavu za X sustav "
+"prozora."
 
 #. Type: select
 #. Description
@@ -39,6 +41,9 @@ msgid ""
 "manager packages are installed. Please select which display manager should "
 "run by default."
 msgstr ""
+"Samo jedan upravitelj prozora može upravljati zadanim X poslužiteljem, dok "
+"je instalirano više upravitelja prozora. Odaberite koji upravitelj zaslona "
+"će se zadano pokretati."
 
 #. Type: select
 #. Description
@@ -49,6 +54,11 @@ msgid ""
 "accordingly, edit each of their init scripts in /etc/init.d, and disable the "
 "check for a default display manager."
 msgstr ""
+"Više upravitelja zaslona može se pokretati istovremeno ako su podešeni za "
+"upravljanjem različitim poslužiteljima; kako bi to postigli, podesite "
+"upravitelja zaslonom shodno tome, uredite svaku pojedinu datoteku njihove "
+"init skripte u /etc/init.d i onemogućite provjeru zadanog upravitelja "
+"zaslona."
 
 #~ msgid "Cancel"
 #~ msgstr "Otkaži"
