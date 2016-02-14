@@ -132,6 +132,9 @@ add_account ()
     chown -R ${GUEST_USER}:${GUEST_USER} ${GUEST_HOME}
   fi
 
+  # delay the launch of info dialog
+  echo "export DIALOG_SLEEP=4" >> ${GUEST_HOME}/.profile
+
   # setup session
   su ${GUEST_USER} -c "env HOME=${GUEST_HOME} site_gs=${site_gs} ${dist_gs}/setup.sh"
 

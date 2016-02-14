@@ -1,1 +1,0 @@
-export DIALOG_SLEEP=4
