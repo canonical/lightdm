@@ -408,11 +408,8 @@ session_child_run (int argc, char **argv)
             ut.ut_type = USER_PROCESS;
             ut.ut_pid = getpid ();
             if (xdisplay)
-            {
-                strncpy (ut.ut_line, xdisplay, sizeof (ut.ut_line));
                 strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
-            }
-            else if (tty)
+            if (tty && g_str_has_prefix (tty, "/dev/"))
                 strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
             strncpy (ut.ut_user, username, sizeof (ut.ut_user));
             if (xdisplay)
@@ -732,11 +729,8 @@ session_child_run (int argc, char **argv)
             ut.ut_type = USER_PROCESS;
             ut.ut_pid = child_pid;
             if (xdisplay)
-            {
-                strncpy (ut.ut_line, xdisplay, sizeof (ut.ut_line));
                 strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
-            }
-            else if (tty)
+            if (tty && g_str_has_prefix (tty, "/dev/"))
                 strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
             strncpy (ut.ut_user, username, sizeof (ut.ut_user));
             if (xdisplay)
@@ -772,11 +766,8 @@ session_child_run (int argc, char **argv)
             ut.ut_type = DEAD_PROCESS;
             ut.ut_pid = child_pid;
             if (xdisplay)
-            {
-                strncpy (ut.ut_line, xdisplay, sizeof (ut.ut_line));
                 strncpy (ut.ut_id, xdisplay, sizeof (ut.ut_id));
-            }
-            else if (tty)
+            if (tty && g_str_has_prefix (tty, "/dev/"))
                 strncpy (ut.ut_line, tty + strlen ("/dev/"), sizeof (ut.ut_line));
             strncpy (ut.ut_user, username, sizeof (ut.ut_user));
             if (xdisplay)
