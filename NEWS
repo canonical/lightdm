@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.17.6
+
+    * Don't write $DISPLAY into tty line in utmp/btmp.
+
 Overview of changes in lightdm 1.17.5
 
     * Set XDG_RUNTIME_DIR for ConsoleKit sessions. This is a recent change in

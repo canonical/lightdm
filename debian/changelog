@@ -1,3 +1,14 @@
+lightdm (1.17.6-0ubuntu1) xenial; urgency=medium
+
+  * New upstream release:
+    - Don't write $DISPLAY into tty line in utmp/btmp. (LP: #1380364)
+  * debian/guest-account.sh:
+  * debian/guest-session.profile:
+  * debian/rules:
+    - Don't overwrite .profile file from skeleton session, append it instead
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 15 Mar 2016 15:47:08 +1300
+
 lightdm (1.17.5-0ubuntu2) xenial; urgency=medium
 
   * debian/control:
