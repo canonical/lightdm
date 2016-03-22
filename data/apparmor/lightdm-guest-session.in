@@ -9,4 +9,10 @@
 
   # chromium-browser needs special confinement due to its sandboxing
   #include <abstractions/lightdm_chromium-browser>
+
+  # fcitx and friends needs special treatment due to C/S design
+  include <abstractions/fcitx>
+
+  # mozc_server needs special treatment due to C/S design
+  #include <abstractions/mozc_server>
 }
