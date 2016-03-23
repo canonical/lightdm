@@ -1,3 +1,13 @@
+lightdm (1.18.0-0ubuntu1) xenial; urgency=medium
+
+  * New upstream release:
+    - Small documentation fixes
+  * debian/guest-account.sh:
+    - More forcibly remove guest sessions so they don't remain after logout
+      (LP: #1556516)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 23 Mar 2016 15:09:54 +1300
+
 lightdm (1.17.6-0ubuntu1) xenial; urgency=medium
 
   * New upstream release:

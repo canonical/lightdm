@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.18.0
+
+    * Small documentation fixes
+
 Overview of changes in lightdm 1.17.6
 
     * Don't write $DISPLAY into tty line in utmp/btmp.
