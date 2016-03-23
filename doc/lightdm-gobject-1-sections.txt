@@ -95,6 +95,7 @@ lightdm_user_get_logged_in
 lightdm_user_get_name
 lightdm_user_get_real_name
 lightdm_user_get_session
+lightdm_user_get_uid
 user_added
 user_changed
 user_removed
