@@ -802,6 +802,7 @@ lightdm_greeter_connect_to_daemon (LightDMGreeter *greeter, GCancellable *cancel
 
 /**
  * lightdm_greeter_connect_to_daemon_finish:
+ * @greeter: The greeter the the request was done with
  * @result: A #GAsyncResult.
  * @error: return location for a #GError, or %NULL
  *
