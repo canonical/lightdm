@@ -161,7 +161,7 @@ remove_account ()
 
   # kill all remaining processes
   if [ -x /bin/loginctl ] || [ -x /usr/bin/loginctl ]; then
-    loginctl kill-user ${GUEST_USER} >/dev/null || true
+    loginctl --signal=9 kill-user ${GUEST_USER} >/dev/null || true
   else
     while ps h -u ${GUEST_USER} >/dev/null
     do
@@ -193,7 +193,7 @@ remove_account ()
     fi
   done
 
-  userdel ${GUEST_USER}
+  userdel --force ${GUEST_USER}
 }
 
 case ${1} in
