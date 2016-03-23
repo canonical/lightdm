@@ -15,6 +15,8 @@ GTKDOC_LIBS = \
 	$(LIBLIGHTDM_GOBJECT_LIBS) \
 	$(top_builddir)/liblightdm-gobject/liblightdm-gobject-1.la
 
+SCAN_OPTIONS=--deprecated-guards="LIGHTDM_DISABLE_DEPRECATED"
+
 MKDB_OPTIONS=--sgml-mode --output-format=xml --name-space=LightDM
 
 DISTCLEANFILES = \
