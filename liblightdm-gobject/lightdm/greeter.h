@@ -99,8 +99,6 @@ gboolean lightdm_greeter_connect_to_daemon_finish (LightDMGreeter *greeter, GAsy
 
 gboolean lightdm_greeter_connect_to_daemon_sync (LightDMGreeter *greeter, GError **error);
 
-gboolean lightdm_greeter_connect_sync (LightDMGreeter *greeter, GError **error);
-
 const gchar *lightdm_greeter_get_hint (LightDMGreeter *greeter, const gchar *name);
 
 const gchar *lightdm_greeter_get_default_session_hint (LightDMGreeter *greeter);
@@ -158,6 +156,10 @@ void lightdm_greeter_ensure_shared_data_dir (LightDMGreeter *greeter, const gcha
 gchar *lightdm_greeter_ensure_shared_data_dir_finish (LightDMGreeter *greeter, GAsyncResult *result);
 
 gchar *lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gchar *username);
+
+#ifndef LIGHTDM_DISABLE_DEPRECATED
+gboolean lightdm_greeter_connect_sync (LightDMGreeter *greeter, GError **error);
+#endif
 
 G_END_DECLS
 
