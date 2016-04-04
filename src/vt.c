@@ -26,13 +26,13 @@
 static GList *used_vts = NULL;
 
 static gint
-open_console (void)
+open_tty (void)
 {
     int fd;
 
-    fd = g_open ("/dev/console", O_RDONLY | O_NOCTTY, 0);
+    fd = g_open ("/dev/tty0", O_RDONLY | O_NOCTTY, 0);
     if (fd < 0)
-        g_warning ("Error opening /dev/console: %s", strerror (errno));
+        g_warning ("Error opening /dev/tty0: %s", strerror (errno));
     return fd;
 }
 
@@ -41,11 +41,7 @@ vt_can_multi_seat (void)
 {
     /* Quick check to see if we can multi seat.  This is intentionally the
        same check logind does, just without actually reading from the files.
-       Existence will prove whether we have CONFIG_VT built into the kernel.
-       (Reading /dev/console like the rest of the code in this file isn't
-       sufficient -- it may still exist if tty0 doesn't and it may not work
-       in situations where tty0 does exist and thus logind will think we are
-       multi seat.) */
+       Existence will prove whether we have CONFIG_VT built into the kernel. */
     return access ("/dev/tty0", F_OK) == 0 &&
            access ("/sys/class/tty/tty0/active", F_OK) == 0;
 }
@@ -54,22 +50,22 @@ gint
 vt_get_active (void)
 {
 #ifdef __linux__
-    gint console_fd;
+    gint tty_fd;
     gint active = -1;
 
     /* Pretend always active */
     if (getuid () != 0)
         return 1;
 
-    console_fd = open_console ();
-    if (console_fd >= 0)
+    tty_fd = open_tty ();
+    if (tty_fd >= 0)
     {
-        struct vt_stat console_state = { 0 };
-        if (ioctl (console_fd, VT_GETSTATE, &console_state) < 0)
-            g_warning ("Error using VT_GETSTATE on /dev/console: %s", strerror (errno));
+        struct vt_stat vt_state = { 0 };
+        if (ioctl (tty_fd, VT_GETSTATE, &vt_state) < 0)
+            g_warning ("Error using VT_GETSTATE on /dev/tty0: %s", strerror (errno));
         else
-            active = console_state.v_active;
-        close (console_fd);
+            active = vt_state.v_active;
+        close (tty_fd);
     }
 
     return active;
@@ -82,7 +78,7 @@ void
 vt_set_active (gint number)
 {
 #ifdef __linux__
-    gint console_fd;
+    gint tty_fd;
 
     g_debug ("Activating VT %d", number);
 
@@ -90,21 +86,21 @@ vt_set_active (gint number)
     if (getuid () != 0)
         return;
 
-    console_fd = open_console ();
-    if (console_fd >= 0)
+    tty_fd = open_tty ();
+    if (tty_fd >= 0)
     {
         int n = number;
 
-        if (ioctl (console_fd, VT_ACTIVATE, n) < 0)
-            g_warning ("Error using VT_ACTIVATE %d on /dev/console: %s", n, strerror (errno));
+        if (ioctl (tty_fd, VT_ACTIVATE, n) < 0)
+            g_warning ("Error using VT_ACTIVATE %d on /dev/tty0: %s", n, strerror (errno));
 
         /* Wait for the VT to become active to avoid a suspected
          * race condition somewhere between LightDM, X, ConsoleKit and the kernel.
          * See https://bugs.launchpad.net/bugs/851612 */
-        if (ioctl (console_fd, VT_WAITACTIVE) < 0)
-            g_warning ("Error using VT_WAITACTIVE %d on /dev/console: %s", n, strerror (errno));
+        if (ioctl (tty_fd, VT_WAITACTIVE) < 0)
+            g_warning ("Error using VT_WAITACTIVE %d on /dev/tty0: %s", n, strerror (errno));
 
-        close (console_fd);
+        close (tty_fd);
     }
 #endif
 }

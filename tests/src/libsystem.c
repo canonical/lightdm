@@ -36,7 +36,7 @@
 
 #define LOGIN_PROMPT "login:"
 
-static int console_fd = -1;
+static int tty_fd = -1;
 
 static GList *user_entries = NULL;
 static GList *getpwent_link = NULL;
@@ -234,14 +234,14 @@ open_wrapper (const char *func, const char *pathname, int flags, mode_t mode)
 
     _open = (int (*)(const char *pathname, int flags, mode_t mode)) dlsym (RTLD_NEXT, func);
 
-    if (strcmp (pathname, "/dev/console") == 0)
+    if (strcmp (pathname, "/dev/tty0") == 0)
     {
-        if (console_fd < 0)
+        if (tty_fd < 0)
         {
-            console_fd = _open ("/dev/null", flags, mode);
-            fcntl (console_fd, F_SETFD, FD_CLOEXEC);
+            tty_fd = _open ("/dev/null", flags, mode);
+            fcntl (tty_fd, F_SETFD, FD_CLOEXEC);
         }
-        return console_fd;
+        return tty_fd;
     }
 
     new_path = redirect_path (pathname);
@@ -521,9 +521,9 @@ ioctl (int d, unsigned long request, ...)
     int (*_ioctl) (int d, int request, ...);
 
     _ioctl = (int (*)(int d, int request, ...)) dlsym (RTLD_NEXT, "ioctl");
-    if (d > 0 && d == console_fd)
+    if (d > 0 && d == tty_fd)
     {
-        struct vt_stat *console_state;
+        struct vt_stat *vt_state;
         int vt;
         va_list ap;
 
@@ -531,9 +531,9 @@ ioctl (int d, unsigned long request, ...)
         {
         case VT_GETSTATE:
             va_start (ap, request);
-            console_state = va_arg (ap, struct vt_stat *);
+            vt_state = va_arg (ap, struct vt_stat *);
             va_end (ap);
-            console_state->v_active = active_vt;
+            vt_state->v_active = active_vt;
             break;
         case VT_ACTIVATE:
             va_start (ap, request);
@@ -750,7 +750,7 @@ close (int fd)
 {
     int (*_close) (int fd);
 
-    if (fd > 0 && fd == console_fd)
+    if (fd > 0 && fd == tty_fd)
         return 0;
 
     _close = (int (*)(int fd)) dlsym (RTLD_NEXT, "close");
