@@ -32,7 +32,7 @@ override_dh_install:
 	chmod +x debian/lightdm/usr/lib/lightdm/guest-session-auto.sh
 
 override_dh_installinit:
-	dh_installinit --no-start
+	dh_installinit --no-restart-on-upgrade
 
 override_dh_systemd_start:
 	dh_systemd_start -plightdm --no-start -r lightdm.service
