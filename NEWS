@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.18.1
+
+    * Use /dev/tty0 instead of /dev/console for VT operations
+
 Overview of changes in lightdm 1.18.0
 
     * Small documentation fixes
