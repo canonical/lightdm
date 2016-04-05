@@ -196,9 +196,19 @@ set_seat_properties (Seat *seat, const gchar *seat_name)
 static void
 signal_cb (Process *process, int signum)
 {
-    g_debug ("Caught %s signal, shutting down", g_strsignal (signum));
-    display_manager_stop (display_manager);
-    // FIXME: Stop XDMCP server
+    switch (signum)
+    {
+    case SIGINT:
+    case SIGTERM:
+        g_debug ("Caught %s signal, shutting down", g_strsignal (signum));
+        display_manager_stop (display_manager);
+        // FIXME: Stop XDMCP server
+        break;
+    case SIGUSR1:
+    case SIGUSR2:
+    case SIGHUP:
+        break;
+    }
 }
 
 static void
