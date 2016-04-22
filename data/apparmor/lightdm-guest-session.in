@@ -10,3 +10,5 @@
   # chromium-browser needs special confinement due to its sandboxing
   #include <abstractions/lightdm_chromium-browser>
 }
+
+/etc/xdg/lxsession/Lubuntu/* cx,  # LP1273524
