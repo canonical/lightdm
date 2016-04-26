@@ -184,14 +184,6 @@ setresuid (uid_t ruid, uid_t uuid, uid_t suid)
 static gchar *
 redirect_path (const gchar *path)
 {
-    /* Hide Xmir for legacy tests */
-    if (g_str_has_suffix (path, "/Xmir"))
-    {
-        connect_status ();
-        if (g_key_file_get_boolean (config, "test-xmir", "hide", NULL))
-            return NULL;
-    }
-
     // Don't redirect if inside the running directory
     if (g_str_has_prefix (path, g_getenv ("LIGHTDM_TEST_ROOT")))
         return g_strdup (path);
