@@ -405,15 +405,14 @@ emit_upstart_signal (const gchar *signal)
 {
     g_return_if_fail (signal != NULL);
     g_return_if_fail (signal[0] != 0);
-    const gchar* argv[] = {"initctl", "-q", "emit", signal, "DISPLAY_MANAGER=lightdm", NULL};
+    GSubprocess *p;
 
     if (getuid () != 0)
         return;
 
     /* OK if it fails, probably not installed or not running upstart */
-    g_spawn_async (NULL, argv, NULL,
-            G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
-            NULL, NULL, NULL, NULL);
+    p = g_subprocess_new (G_SUBPROCESS_FLAGS_STDERR_SILENCE, NULL, "initctl", "-q", "emit", signal, "DISPLAY_MANAGER=lightdm", NULL);
+    g_object_unref (p);
 }
 
 static void
