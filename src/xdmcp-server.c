@@ -56,6 +56,13 @@ G_DEFINE_TYPE (XDMCPServer, xdmcp_server, G_TYPE_OBJECT);
 /* Maximum number of milliseconds client will resend manage requests before giving up */
 #define MANAGE_TIMEOUT 126000
 
+/* Address sort support structure */
+typedef struct
+{
+    gsize index;
+    GInetAddress *address;
+} AddrSortItem;
+
 XDMCPServer *
 xdmcp_server_new (void)
 {
@@ -355,54 +362,90 @@ connection_to_address (XDMCPConnection *connection)
     }
 }
 
-static gssize
-find_address (GInetAddress **addresses, gsize length, GSocketFamily family)
+/* Sort function to order XDMCP addresses by which is best to connect to */
+static gint
+compare_addresses (gconstpointer a, gconstpointer b, gpointer user_data)
 {
-    int i;
+    const AddrSortItem *item_a = a;
+    const AddrSortItem *item_b = b;
+    GInetAddress *source_address = user_data;
+    GSocketFamily family_a;
+    GSocketFamily family_b;
+    gboolean is_link_local;
 
-    for (i = 0; i < length; i++)
+    /* Prefer non link-local addresses */
+    is_link_local = g_inet_address_get_is_link_local (item_a->address);
+    if (is_link_local != g_inet_address_get_is_link_local (item_b->address))
+        return is_link_local ? 1 : -1;
+
+    /* Prefer the source address family */
+    family_a = g_inet_address_get_family (item_a->address);
+    family_b = g_inet_address_get_family (item_b->address);
+    if (family_a != family_b)
     {
-        GInetAddress *address = addresses[i];
-        if (address && g_inet_address_get_family (address) == family)
-            return i;
+        GSocketFamily family;
+
+        family = g_inet_address_get_family (source_address);
+        if (family_a == family)
+            return -1;
+        if (family_b == family)
+            return 1;
+        return family_a < family_b ? -1 : 1;
     }
 
-    return -1;
+    /* Check equality */
+    if (g_inet_address_equal (item_a->address, item_b->address))
+        return 0;
+
+    /* Prefer the source address */
+    if (g_inet_address_equal (source_address, item_a->address))
+        return -1;
+    if (g_inet_address_equal (source_address, item_b->address))
+        return 1;
+
+    /* Addresses are not equal, but preferences are: order is undefined */
+    return 0;
 }
 
 static XDMCPConnection *
 choose_connection (XDMCPPacket *packet, GInetAddress *source_address)
 {
-    GInetAddress **addresses;
     gsize addresses_length, i;
+    GArray *addresses;
     gssize index = -1;
+    AddrSortItem addr;
 
     addresses_length = packet->Request.n_connections;
     if (addresses_length == 0)
         return NULL;
 
-    addresses = malloc (sizeof (GInetAddress *) * addresses_length);
-    for (i = 0; i < addresses_length; i++)
-        addresses[i] = connection_to_address (&packet->Request.connections[i]);
-
-    /* Use the address the request came in on as this is the least likely to have firewall / routing issues */
-    for (i = 0; i < addresses_length && index < 0; i++)
-        if (g_inet_address_equal (source_address, addresses[i]))
-            index = i;
-
-    /* Otherwise try and find an address that matches the incoming type */
-    if (index < 0)
-        index = find_address (addresses, addresses_length, g_inet_address_get_family (source_address));
-
-    /* Otherwise use the first available */
-    if (index < 0)    
-        index = 0;
+    addresses = g_array_sized_new (FALSE, FALSE, sizeof addr, addresses_length);
+    if (!addresses)
+        return NULL;
 
     for (i = 0; i < addresses_length; i++)
-        g_object_unref (addresses[i]);
-    g_free (addresses);
+    {
+        addr.address = connection_to_address (&packet->Request.connections[i]);
+        if (addr.address)
+        {
+            addr.index = i;
+            g_array_append_val (addresses, addr);
+        }
+    }
 
-    return &packet->Request.connections[index];
+    /* Sort the addresses according to our preferences */
+    g_array_sort_with_data (addresses, compare_addresses, source_address);
+
+    /* Use the best address */
+    if (addresses->len)
+        index = g_array_index (addresses, AddrSortItem, 0).index;
+
+    /* Free the local sort array and items */
+    for (i = 0; i < addresses->len; i++)
+        g_object_unref (g_array_index (addresses, AddrSortItem, i).address);
+    g_object_unref (addresses);
+
+    return index >= 0 ? &packet->Request.connections[index] : NULL;
 }
 
 static gboolean
