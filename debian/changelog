@@ -1,3 +1,20 @@
+lightdm (1.19.0-0ubuntu1) yakkety; urgency=medium
+
+  * New upstream release:
+    - Use /dev/tty0 instead of /dev/console for VT operations (LP: #1566073)
+    - Don't quit on SIGUSR1, SIGUSR2 or SIGHUP (LP: #960157)
+    - Improve XDMCP IPv6 address selection (LP: #1575200)
+    - Set XDMCP hostname field in to system hostname or configured value
+      (LP: #1578442)
+    - Allow fcitx and mozc to run in guest session (LP: #1509829)
+    - Fix lxsession running in guest session
+    - Drop support for legacy XMir
+    - Fix g_spawn compiler warning
+  * debian/rules:
+    - Fix usage of dh_installinit (LP: #1292990)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 05 May 2016 12:23:45 +1200
+
 lightdm (1.18.0-0ubuntu2) xenial; urgency=medium
 
   * debian/control:

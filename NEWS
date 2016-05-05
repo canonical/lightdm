@@ -1,3 +1,14 @@
+Overview of changes in lightdm 1.19.0
+
+    * Use /dev/tty0 instead of /dev/console for VT operations
+    * Don't quit on SIGUSR1, SIGUSR2 or SIGHUP
+    * Improve XDMCP IPv6 address selection
+    * Set XDMCP hostname field in to system hostname or configured value
+    * Allow fcitx and mozc to run in guest session
+    * Fix lxsession running in guest sessiono
+    * Drop support for legacy XMir
+    * Fix g_spawn compiler warning
+
 Overview of changes in lightdm 1.18.0
 
     * Small documentation fixes
