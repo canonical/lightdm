@@ -178,6 +178,7 @@ TESTS = \
 	test-xdmcp-server-double-login \
 	test-xdmcp-server-guest \
 	test-xdmcp-server-keep-alive \
+	test-xdmcp-server-hostname \
 	test-xdmcp-server-xdm-authentication \
 	test-xdmcp-server-xdm-authentication-missing-data \
 	test-xdmcp-server-xdm-authentication-short-data \
@@ -610,6 +611,7 @@ EXTRA_DIST = \
 	scripts/xdmcp-server-autologin.conf \
 	scripts/xdmcp-server-double-login.conf \
 	scripts/xdmcp-server-guest.conf \
+	scripts/xdmcp-server-hostname.conf \        
 	scripts/xdmcp-server-invalid-authentication.conf \
 	scripts/xdmcp-server-keep-alive.conf \
 	scripts/xdmcp-server-login.conf \

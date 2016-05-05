@@ -889,7 +889,7 @@ bus_acquired_cb (GDBusConnection *connection,
     /* Start the XDMCP server */
     if (config_get_boolean (config_get_instance (), "XDMCPServer", "enabled"))
     {
-        gchar *key_name, *key = NULL, *listen_address;
+        gchar *key_name, *key = NULL, *listen_address, *hostname;
 
         xdmcp_server = xdmcp_server_new ();
         if (config_has_key (config_get_instance (), "XDMCPServer", "port"))
@@ -902,6 +902,9 @@ bus_acquired_cb (GDBusConnection *connection,
         listen_address = config_get_string (config_get_instance (), "XDMCPServer", "listen-address");
         xdmcp_server_set_listen_address (xdmcp_server, listen_address);
         g_free (listen_address);
+        hostname = config_get_string (config_get_instance (), "XDMCPServer", "hostname");
+        xdmcp_server_set_hostname (xdmcp_server, hostname);
+        g_free (hostname);
         g_signal_connect (xdmcp_server, XDMCP_SERVER_SIGNAL_NEW_SESSION, G_CALLBACK (xdmcp_session_cb), NULL);
 
         key_name = config_get_string (config_get_instance (), "XDMCPServer", "key");
@@ -1441,6 +1444,8 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "LightDM", "remote-sessions-directory", REMOTE_SESSIONS_DIR);
     if (!config_has_key (config_get_instance (), "LightDM", "greeters-directory"))
         config_set_string (config_get_instance (), "LightDM", "greeters-directory", GREETERS_DIR);
+    if (!config_has_key (config_get_instance (), "XDMCPServer", "hostname"))
+        config_set_string (config_get_instance (), "XDMCPServer", "hostname", g_get_host_name ());
 
     /* Override defaults */
     if (log_dir)
