@@ -72,6 +72,13 @@ struct pam_handle
     struct pam_conv conversation;
 };
 
+int
+gethostname (char *name, size_t len)
+{
+   snprintf (name, len, "lightdm-test");
+   return 0;
+}
+
 uid_t
 getuid (void)
 {
