@@ -1,3 +1,5 @@
+/etc/guest-session
+/etc/lightdm/lightdm.conf.d
 /etc/X11
 /var/cache/lightdm
 /var/lib/lightdm-data
