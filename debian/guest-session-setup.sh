@@ -30,6 +30,9 @@ echo "hideRestartNotifier=true" >> ${HOME}/.kde/share/config/notificationhelper
 #dmrc='[Desktop]\nSession=guest-restricted'
 #/bin/echo -e ${dmrc} > ${HOME}/.dmrc
 
+# delay the launch of info dialog
+echo "export DIALOG_SLEEP=4" >> ${HOME}/.profile
+
 # set possible local guest session preferences
 if [ -f ${site_gs}/prefs.sh ]; then
     . ${site_gs}/prefs.sh
