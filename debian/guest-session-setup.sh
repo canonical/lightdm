@@ -1,7 +1,6 @@
 #!/bin/sh
 
 HOME=${HOME:-$(getent passwd $(whoami) | cut -f6 -d:)}
-site_gs=${site_gs:-/etc/guest-session}
 
 # disable some services that are unnecessary for the guest session
 services="jockey-kde.desktop jockey-gtk.desktop update-notifier.desktop user-dirs-update-gtk.desktop"
@@ -32,8 +31,3 @@ echo "hideRestartNotifier=true" >> ${HOME}/.kde/share/config/notificationhelper
 
 # delay the launch of info dialog
 echo "export DIALOG_SLEEP=4" >> ${HOME}/.profile
-
-# set possible local guest session preferences
-if [ -f ${site_gs}/prefs.sh ]; then
-    . ${site_gs}/prefs.sh
-fi
