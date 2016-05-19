@@ -1424,9 +1424,9 @@ main (int argc, char **argv)
     if (!config_has_key (config_get_instance (), "Seat:*", "greeter-show-remote-login"))
         config_set_boolean (config_get_instance (), "Seat:*", "greeter-show-remote-login", TRUE);
     if (!config_has_key (config_get_instance (), "Seat:*", "greeter-session"))
-        config_set_string (config_get_instance (), "Seat:*", "greeter-session", GREETER_SESSION);
+        config_set_string (config_get_instance (), "Seat:*", "greeter-session", DEFAULT_GREETER_SESSION);
     if (!config_has_key (config_get_instance (), "Seat:*", "user-session"))
-        config_set_string (config_get_instance (), "Seat:*", "user-session", USER_SESSION);
+        config_set_string (config_get_instance (), "Seat:*", "user-session", DEFAULT_USER_SESSION);
     if (!config_has_key (config_get_instance (), "Seat:*", "session-wrapper"))
         config_set_string (config_get_instance (), "Seat:*", "session-wrapper", "lightdm-session");
     if (!config_has_key (config_get_instance (), "LightDM", "log-directory"))

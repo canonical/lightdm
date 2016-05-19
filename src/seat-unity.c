@@ -255,10 +255,10 @@ seat_unity_create_display_server (Seat *seat, Session *session)
     }
 }
 
-static Greeter *
+static GreeterSession *
 seat_unity_create_greeter_session (Seat *seat)
 {
-    Greeter *greeter_session;
+    GreeterSession *greeter_session;
     gchar *id;
     gint vt;
 
