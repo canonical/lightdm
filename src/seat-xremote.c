@@ -49,10 +49,10 @@ seat_xremote_create_display_server (Seat *seat, Session *session)
     return DISPLAY_SERVER (x_server);
 }
 
-static Greeter *
+static GreeterSession *
 seat_xremote_create_greeter_session (Seat *seat)
 {
-    Greeter *greeter_session;
+    GreeterSession *greeter_session;
 
     greeter_session = SEAT_CLASS (seat_xremote_parent_class)->create_greeter_session (seat);
     session_set_env (SESSION (greeter_session), "XDG_SEAT", seat_get_name (seat));

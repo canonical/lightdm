@@ -290,10 +290,10 @@ seat_xlocal_create_display_server (Seat *seat, Session *session)
     }
 }
 
-static Greeter *
+static GreeterSession *
 seat_xlocal_create_greeter_session (Seat *seat)
 {
-    Greeter *greeter_session;
+    GreeterSession *greeter_session;
 
     greeter_session = SEAT_CLASS (seat_xlocal_parent_class)->create_greeter_session (seat);
     session_set_env (SESSION (greeter_session), "XDG_SEAT", seat_get_name (seat));
@@ -324,7 +324,7 @@ seat_xlocal_set_active_session (Seat *seat, Session *session)
         vt_set_active (vt);
 
     if (IS_UNITY_SYSTEM_COMPOSITOR (display_server))
-        unity_system_compositor_set_active_session (UNITY_SYSTEM_COMPOSITOR (display_server), IS_GREETER (session) ? "greeter-0" : "session-0");
+        unity_system_compositor_set_active_session (UNITY_SYSTEM_COMPOSITOR (display_server), IS_GREETER_SESSION (session) ? "greeter-0" : "session-0");
 
     SEAT_CLASS (seat_xlocal_parent_class)->set_active_session (seat, session);
 }
