@@ -229,7 +229,7 @@ request_cb (const gchar *name, GHashTable *params)
 int
 main (int argc, char **argv)
 {
-    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_current_desktop, *xdg_greeter_data_dir, *xdg_session_cookie, *xdg_session_class, *xdg_session_type, *xdg_session_desktop, *mir_socket, *mir_vt, *mir_id;
+    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_current_desktop, *xdg_greeter_data_dir, *xdg_session_cookie, *xdg_session_class, *xdg_session_type, *xdg_session_desktop, *mir_server_host_socket, *mir_vt, *mir_id;
     GString *status_text;
     int fd, open_max;
 
@@ -242,7 +242,7 @@ main (int argc, char **argv)
     xdg_session_class = getenv ("XDG_SESSION_CLASS");
     xdg_session_type = getenv ("XDG_SESSION_TYPE");
     xdg_session_desktop = getenv ("XDG_SESSION_DESKTOP");
-    mir_socket = getenv ("MIR_SOCKET");
+    mir_server_host_socket = getenv ("MIR_SERVER_HOST_SOCKET");
     mir_vt = getenv ("MIR_SERVER_VT");
     mir_id = getenv ("MIR_SERVER_NAME");
     if (display)
@@ -254,7 +254,7 @@ main (int argc, char **argv)
     }
     else if (mir_id)
         session_id = g_strdup_printf ("SESSION-MIR-%s", mir_id);
-    else if (mir_socket || mir_vt)
+    else if (mir_server_host_socket || mir_vt)
         session_id = g_strdup ("SESSION-MIR");
     else if (g_strcmp0 (xdg_session_type, "wayland") == 0)
         session_id = g_strdup ("SESSION-WAYLAND");
