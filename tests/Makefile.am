@@ -249,6 +249,7 @@ TESTS = \
 	test-unity-mir-switch \
 	test-unity-mir-switch-to-user-resettable \
 	test-unity-mir-script-hooks \
+	test-invalid-seat \
 	test-seatdefaults-still-supported
 
 #	test-mir-script-hooks \
@@ -447,6 +448,7 @@ EXTRA_DIST = \
 	scripts/headless.conf \
 	scripts/home-dir-on-authenticate.conf \
 	scripts/home-dir-on-session.conf \
+	scripts/invalid-seat.conf \
 	scripts/language.conf \
 	scripts/language-env.conf \
 	scripts/language-no-accounts-service.conf \

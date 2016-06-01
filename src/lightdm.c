@@ -1038,15 +1038,14 @@ add_login1_seat (Login1Seat *login1_seat)
             seat_set_property (seat, "exit-on-failure", "true");
     }
     else
-        g_debug ("Unable to create seat: %s", seat_name);
-
-    if (seat)
     {
-        started = display_manager_add_seat (display_manager, seat);
-        if (!started)
-            g_debug ("Failed to start seat: %s", seat_name);
+        g_debug ("Unable to create seat: %s", seat_name);
+        return FALSE;
     }
 
+    started = display_manager_add_seat (display_manager, seat);
+    if (!started)
+        g_debug ("Failed to start seat: %s", seat_name);
     g_object_unref (seat);
 
     return started;
