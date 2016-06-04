@@ -11,8 +11,14 @@
   #include <abstractions/lightdm_chromium-browser>
 
   # fcitx and friends needs special treatment due to C/S design
-  #include <abstractions/fcitx>
+  /usr/bin/fcitx ix,
+  /tmp/fcitx-socket-* rwl,
+  /dev/shm/* rwl,
+  /usr/bin/fcitx-qimpanel ix,
+  /usr/bin/sogou-qimpanel-watchdog ix,
+  /usr/bin/sogou-sys-notify ix,
+  /tmp/sogou-qimpanel:* rwl,
 
   # mozc_server needs special treatment due to C/S design
-  #include <abstractions/mozc_server>
+  unix (bind, listen) type=stream addr="@tmp/.mozc.*",
 }
