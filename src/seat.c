@@ -78,7 +78,7 @@ G_DEFINE_TYPE_WITH_CODE (Seat, seat, G_TYPE_OBJECT,
 
 typedef struct
 {
-    const gchar *name;
+    gchar *name;
     GType type;
 } SeatModule;
 static GHashTable *seat_modules = NULL;
@@ -88,13 +88,21 @@ static DisplayServer *create_display_server (Seat *seat, Session *session);
 static GreeterSession *create_greeter_session (Seat *seat);
 static void start_session (Seat *seat, Session *session);
 
+static void
+free_seat_module (gpointer data)
+{
+    SeatModule *module = data;
+    g_free (module->name);
+    g_free (module);
+}
+
 void
 seat_register_module (const gchar *name, GType type)
 {
     SeatModule *module;
 
     if (!seat_modules)
-        seat_modules = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+        seat_modules = g_hash_table_new_full (g_str_hash, g_str_equal, free_seat_module, NULL);
 
     g_debug ("Registered seat module %s", name);
 
