@@ -407,7 +407,7 @@ connect_finished (GObject *object, GAsyncResult *result, gpointer data)
 int
 main (int argc, char **argv)
 {
-    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie, *xdg_session_class, *xdg_session_type, *mir_socket, *mir_vt, *mir_id, *path;
+    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie, *xdg_session_class, *xdg_session_type, *mir_server_host_socket, *mir_vt, *mir_id, *path;
     GString *status_text;
 
 #if !defined(GLIB_VERSION_2_36)
@@ -420,7 +420,7 @@ main (int argc, char **argv)
     xdg_session_cookie = getenv ("XDG_SESSION_COOKIE");
     xdg_session_class = getenv ("XDG_SESSION_CLASS");
     xdg_session_type = getenv ("XDG_SESSION_TYPE");  
-    mir_socket = getenv ("MIR_SOCKET");
+    mir_server_host_socket = getenv ("MIR_SERVER_HOST_SOCKET");
     mir_vt = getenv ("MIR_SERVER_VT");
     mir_id = getenv ("MIR_SERVER_NAME");
     if (display)
@@ -432,7 +432,7 @@ main (int argc, char **argv)
     }
     else if (mir_id)
         greeter_id = g_strdup_printf ("GREETER-MIR-%s", mir_id);
-    else if (mir_socket || mir_vt)
+    else if (mir_server_host_socket || mir_vt)
         greeter_id = g_strdup ("GREETER-MIR");
     else if (g_strcmp0 (xdg_session_type, "wayland") == 0)
         greeter_id = g_strdup ("GREETER-WAYLAND");

@@ -177,7 +177,7 @@ unity_system_compositor_connect_session (DisplayServer *display_server, Session 
     session_set_env (session, "XDG_SESSION_TYPE", "mir");
 
     if (compositor->priv->socket)
-        session_set_env (session, "MIR_SOCKET", compositor->priv->socket);
+        session_set_env (session, "MIR_SERVER_HOST_SOCKET", compositor->priv->socket);
     if (IS_GREETER_SESSION (session))
         name = "greeter-0";
     else
@@ -196,7 +196,7 @@ static void
 unity_system_compositor_disconnect_session (DisplayServer *display_server, Session *session)
 {
     session_unset_env (session, "XDG_SESSION_TYPE");
-    session_unset_env (session, "MIR_SOCKET");
+    session_unset_env (session, "MIR_SERVER_HOST_SOCKET");
     session_unset_env (session, "MIR_SERVER_NAME");
     session_unset_env (session, "XDG_VTNR");
 }
