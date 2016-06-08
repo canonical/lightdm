@@ -20,10 +20,6 @@ struct GreeterSessionPrivate
 {
     /* Greeter running inside this session */
     Greeter *greeter;
-
-    /* Communication channels to communicate with */
-    int to_greeter_input;
-    int from_greeter_output;
 };
 
 G_DEFINE_TYPE (GreeterSession, greeter_session, SESSION_TYPE);
@@ -88,8 +84,6 @@ greeter_session_finalize (GObject *object)
     GreeterSession *self = GREETER_SESSION (object);
 
     g_clear_object (&self->priv->greeter);
-    close (self->priv->to_greeter_input);
-    close (self->priv->from_greeter_output);
 
     G_OBJECT_CLASS (greeter_session_parent_class)->finalize (object);
 }
