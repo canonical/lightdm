@@ -435,9 +435,9 @@ unity_system_compositor_start (DisplayServer *server)
 
     /* Close compostor ends of the pipes */
     close (compositor->priv->to_compositor_pipe[0]);
-    compositor->priv->to_compositor_pipe[0] = 0;
+    compositor->priv->to_compositor_pipe[0] = -1;
     close (compositor->priv->from_compositor_pipe[1]);
-    compositor->priv->from_compositor_pipe[1] = 0;
+    compositor->priv->from_compositor_pipe[1] = -1;
 
     if (!result)
         return FALSE;
@@ -466,6 +466,10 @@ unity_system_compositor_init (UnitySystemCompositor *compositor)
     compositor->priv->command = g_strdup ("unity-system-compositor");
     compositor->priv->socket = g_strdup ("/run/mir_socket");
     compositor->priv->timeout = -1;
+    compositor->priv->to_compositor_pipe[0] = -1;
+    compositor->priv->to_compositor_pipe[1] = -1;
+    compositor->priv->from_compositor_pipe[0] = -1;
+    compositor->priv->from_compositor_pipe[1] = -1;
 }
 
 static void
