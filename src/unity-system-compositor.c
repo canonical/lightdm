@@ -472,6 +472,10 @@ unity_system_compositor_init (UnitySystemCompositor *compositor)
     compositor->priv->command = g_strdup ("unity-system-compositor");
     compositor->priv->socket = g_strdup ("/tmp/mir_socket");
     compositor->priv->timeout = -1;
+    compositor->priv->to_compositor_pipe[0] = -1;
+    compositor->priv->to_compositor_pipe[1] = -1;
+    compositor->priv->from_compositor_pipe[0] = -1;
+    compositor->priv->from_compositor_pipe[1] = -1;
 }
 
 static void
