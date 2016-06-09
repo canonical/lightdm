@@ -441,9 +441,9 @@ unity_system_compositor_start (DisplayServer *server)
 
     /* Close compostor ends of the pipes */
     close (compositor->priv->to_compositor_pipe[0]);
-    compositor->priv->to_compositor_pipe[0] = 0;
+    compositor->priv->to_compositor_pipe[0] = -1;
     close (compositor->priv->from_compositor_pipe[1]);
-    compositor->priv->from_compositor_pipe[1] = 0;
+    compositor->priv->from_compositor_pipe[1] = -1;
 
     if (!result)
         return FALSE;
