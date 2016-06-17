@@ -12,7 +12,6 @@
 #include <config.h>
 #include <string.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <glib/gstdio.h>
@@ -185,7 +184,7 @@ x_server_xvnc_start (DisplayServer *display_server)
     gboolean result, backup_logs;
     gchar *filename, *run_dir, *dir, *log_file, *absolute_command;
     GString *command;
-    gchar hostname[1024], *number;
+    gchar *number;
     GError *error = NULL;
 
     g_return_val_if_fail (server->priv->x_server_process == NULL, FALSE);
@@ -216,9 +215,8 @@ x_server_xvnc_start (DisplayServer *display_server)
         return FALSE;
     }
 
-    gethostname (hostname, 1024);
     number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (server)));
-    authority = x_authority_new_cookie (XAUTH_FAMILY_LOCAL, (guint8*) hostname, strlen (hostname), number);
+    authority = x_authority_new_local_cookie (number);
 
     x_server_set_authority (X_SERVER (server), authority);
 

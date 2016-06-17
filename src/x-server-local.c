@@ -12,7 +12,6 @@
 #include <config.h>
 #include <string.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <glib/gstdio.h>
@@ -204,16 +203,15 @@ XServerLocal *
 x_server_local_new (void)
 {
     XServerLocal *self;
-    gchar hostname[1024], *number, *name;
+    gchar *number, *name;
     XAuthority *cookie;
 
     self = g_object_new (X_SERVER_LOCAL_TYPE, NULL);
 
     x_server_set_display_number (X_SERVER (self), x_server_local_get_unused_display_number ());
 
-    gethostname (hostname, 1024);
     number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (self)));
-    cookie = x_authority_new_cookie (XAUTH_FAMILY_LOCAL, (guint8*) hostname, strlen (hostname), number);
+    cookie = x_authority_new_local_cookie (number);
     x_server_set_authority (X_SERVER (self), cookie);
     g_free (number);
     g_object_unref (cookie);
