@@ -19,9 +19,12 @@ G_BEGIN_DECLS
 #define X_SERVER_REMOTE_TYPE (x_server_remote_get_type())
 #define X_SERVER_REMOTE(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), X_SERVER_REMOTE_TYPE, XServerRemote))
 
+typedef struct XServerRemotePrivate XServerRemotePrivate;
+
 typedef struct
 {
-    XServer parent_instance;
+    XServer               parent_instance;
+    XServerRemotePrivate *priv;
 } XServerRemote;
 
 typedef struct
