@@ -32,8 +32,6 @@ typedef struct
 typedef struct
 {
     DisplayServerClass parent_class;
-
-    void (*ready)(UnitySystemCompositor *compositor);
 } UnitySystemCompositorClass;
 
 GType unity_system_compositor_get_type (void);
