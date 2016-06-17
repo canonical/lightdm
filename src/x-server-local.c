@@ -382,7 +382,7 @@ get_absolute_command (const gchar *command)
 }
 
 static void
-run_cb (Process *process, gpointer user_data)
+x_server_local_run (Process *process, gpointer user_data)
 {
     int fd;
 
@@ -393,6 +393,18 @@ run_cb (Process *process, gpointer user_data)
 
     /* Set SIGUSR1 to ignore so the X server can indicate it when it is ready */
     signal (SIGUSR1, SIG_IGN);
+}
+
+static ProcessRunFunc
+x_server_local_get_run_function (XServerLocal *server)
+{
+    return x_server_local_run;
+}
+
+static gboolean
+x_server_local_get_log_stdout (XServerLocal *server)
+{
+    return TRUE;
 }
 
 static void
@@ -471,6 +483,7 @@ static gboolean
 x_server_local_start (DisplayServer *display_server)
 {
     XServerLocal *server = X_SERVER_LOCAL (display_server);
+    ProcessRunFunc run_cb;
     gboolean result, backup_logs;
     gchar *filename, *dir, *log_file, *absolute_command;
     GString *command;
@@ -481,6 +494,7 @@ x_server_local_start (DisplayServer *display_server)
 
     g_return_val_if_fail (server->priv->command != NULL, FALSE);
 
+    run_cb = X_SERVER_LOCAL_GET_CLASS (server)->get_run_function (server);
     server->priv->x_server_process = process_new (run_cb, server);
     process_set_clear_environment (server->priv->x_server_process, TRUE);
     g_signal_connect (server->priv->x_server_process, PROCESS_SIGNAL_GOT_SIGNAL, G_CALLBACK (got_signal_cb), server);
@@ -491,7 +505,7 @@ x_server_local_start (DisplayServer *display_server)
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
     log_file = g_build_filename (dir, filename, NULL);
     backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
-    process_set_log_file (server->priv->x_server_process, log_file, TRUE, backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
+    process_set_log_file (server->priv->x_server_process, log_file, X_SERVER_LOCAL_GET_CLASS (server)->get_log_stdout (server), backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
     l_debug (display_server, "Logging to %s", log_file);
     g_free (log_file);
     g_free (filename);
@@ -551,6 +565,10 @@ x_server_local_start (DisplayServer *display_server)
 
     if (server->priv->background)
         g_string_append_printf (command, " -background %s", server->priv->background);
+
+    /* Allow sub-classes to add arguments */
+    if (X_SERVER_LOCAL_GET_CLASS (server)->add_args)
+        X_SERVER_LOCAL_GET_CLASS (server)->add_args (server, command);
 
     process_set_command (server->priv->x_server_process, command->str);
     g_string_free (command, TRUE);
@@ -639,6 +657,8 @@ x_server_local_class_init (XServerLocalClass *klass)
     XServerClass *x_server_class = X_SERVER_CLASS (klass);
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
+    klass->get_run_function = x_server_local_get_run_function;
+    klass->get_log_stdout = x_server_local_get_log_stdout;
     x_server_class->get_display_number = x_server_local_get_display_number;
     display_server_class->get_vt = x_server_local_get_vt;
     display_server_class->start = x_server_local_start;
