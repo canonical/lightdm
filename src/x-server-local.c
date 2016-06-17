@@ -350,7 +350,6 @@ x_server_local_set_mir_socket (XServerLocal *server, const gchar *socket)
 static gint
 x_server_local_get_vt (DisplayServer *server)
 {
-    g_return_val_if_fail (server != NULL, 0);
     return X_SERVER_LOCAL (server)->priv->vt;
 }
 
