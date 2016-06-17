@@ -807,6 +807,7 @@ session_real_run (Session *session)
     write_data (session, &argc, sizeof (argc));
     for (link = session->priv->env; link; link = link->next)
         write_string (session, (gchar *) link->data);
+
     argc = g_strv_length (session->priv->argv);
     write_data (session, &argc, sizeof (argc));
     for (i = 0; i < argc; i++)

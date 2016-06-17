@@ -37,6 +37,7 @@ typedef struct
     ProcessRunFunc (*get_run_function)(XServerLocal *server);
     gboolean (*get_log_stdout)(XServerLocal *server);  
     void (*add_args)(XServerLocal *server, GString *command);
+    gboolean (*start)(DisplayServer *server);
 } XServerLocalClass;
 
 const gchar *x_server_local_get_version (void);
@@ -74,12 +75,6 @@ guint x_server_local_get_xdmcp_port (XServerLocal *server);
 void x_server_local_set_xdmcp_key (XServerLocal *server, const gchar *key);
 
 void x_server_local_set_background (XServerLocal *server, const gchar *background);
-
-void x_server_local_set_mir_id (XServerLocal *server, const gchar *id);
-
-const gchar *x_server_local_get_mir_id (XServerLocal *server);
-
-void x_server_local_set_mir_socket (XServerLocal *server, const gchar *socket);
 
 const gchar *x_server_local_get_authority_file_path (XServerLocal *server);
 
