@@ -225,9 +225,9 @@ TESTS = \
 	test-mir-session-crash \
 	test-mir-session-compositor-crash \
 	test-mir-container-session \
-	test-wayland-autologin \
-	test-wayland-greeter \
-	test-wayland-session \
+	test-xmir-autologin \
+	test-xmir-login \
+	test-xmir-switch \
 	test-unity-compositor-command \
 	test-unity-compositor-not-found \
 	test-unity-compositor-fail-start \
@@ -249,6 +249,9 @@ TESTS = \
 	test-unity-mir-switch \
 	test-unity-mir-switch-to-user-resettable \
 	test-unity-mir-script-hooks \
+	test-wayland-autologin \
+	test-wayland-greeter \
+	test-wayland-session \
 	test-invalid-seat \
 	test-seatdefaults-still-supported
 
@@ -634,6 +637,9 @@ EXTRA_DIST = \
 	scripts/xdmcp-server-xdm-authentication-no-key.conf \
 	scripts/xdmcp-server-xdm-authentication-required.conf \
 	scripts/xdmcp-server-xdm-authentication-short-data.conf \
+	scripts/xmir-autologin.conf \
+	scripts/xmir-login.conf \
+	scripts/xmir-switch.conf \
 	scripts/xremote-autologin.conf \
 	scripts/xremote-login.conf \
 	scripts/xserver-config.conf \
