@@ -58,6 +58,10 @@ struct UnitySystemCompositorPrivate
 
     /* TRUE when received ready signal */
     gboolean is_ready;
+
+    /* Counters for Mir IDs to use */
+    int next_session_id;
+    int next_greeter_id;  
 };
 
 G_DEFINE_TYPE (UnitySystemCompositor, unity_system_compositor, DISPLAY_SERVER_TYPE);
@@ -172,17 +176,28 @@ static void
 unity_system_compositor_connect_session (DisplayServer *display_server, Session *session)
 {
     UnitySystemCompositor *compositor = UNITY_SYSTEM_COMPOSITOR (display_server);
-    const gchar *name;
 
     session_set_env (session, "XDG_SESSION_TYPE", "mir");
 
     if (compositor->priv->socket)
         session_set_env (session, "MIR_SERVER_HOST_SOCKET", compositor->priv->socket);
-    if (IS_GREETER_SESSION (session))
-        name = "greeter-0";
-    else
-        name = "session-0";
-    session_set_env (session, "MIR_SERVER_NAME", name);
+
+    if (!session_get_env (session, "MIR_SERVER_NAME"))
+    {
+        gchar *name;
+        if (IS_GREETER_SESSION (session))
+        {
+            name = g_strdup_printf ("greeter-%d", compositor->priv->next_greeter_id);
+            compositor->priv->next_greeter_id++;
+        }
+        else
+        {
+            name = g_strdup_printf ("session-%d", compositor->priv->next_session_id);
+            compositor->priv->next_session_id++;
+        }
+        session_set_env (session, "MIR_SERVER_NAME", name);
+        g_free (name);
+    }
 
     if (compositor->priv->vt >= 0)
     {

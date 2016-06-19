@@ -104,6 +104,12 @@ x_server_xmir_add_args (XServerLocal *x_server, GString *command)
         g_string_append_printf (command, " -mirSocket %s", server->priv->mir_socket);
 }
 
+static DisplayServer *
+x_server_xmir_get_parent (DisplayServer *server)
+{
+    return DISPLAY_SERVER (X_SERVER_XMIR (server)->priv->compositor);
+}
+
 static gint
 x_server_xmir_get_vt (DisplayServer *server)
 {
@@ -159,6 +165,7 @@ x_server_xmir_class_init (XServerXmirClass *klass)
     XServerLocalClass *x_server_local_class = X_SERVER_LOCAL_CLASS (klass);  
 
     x_server_local_class->add_args = x_server_xmir_add_args;
+    display_server_class->get_parent = x_server_xmir_get_parent;
     display_server_class->get_vt = x_server_xmir_get_vt;
     display_server_class->start = x_server_xmir_start;
     object_class->finalize = x_server_xmir_finalize;

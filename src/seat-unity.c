@@ -18,7 +18,6 @@
 #include "configuration.h"
 #include "unity-system-compositor.h"
 #include "x-server-xmir.h"
-#include "mir-server.h"
 #include "vt.h"
 #include "plymouth.h"
 
@@ -30,10 +29,8 @@ struct SeatUnityPrivate
     /* X server being used for XDMCP */
     XServerXmir *xdmcp_x_server;
 
-    /* Next Mir ID to use for a Mir sessions, X server and greeters */
-    gint next_session_id;
+    /* Next Mir ID to use for a Xmir servers */
     gint next_x_server_id;
-    gint next_greeter_id;
 
     /* The currently visible session */
     Session *active_session;
@@ -236,18 +233,6 @@ create_x_server (Seat *seat)
 }
 
 static DisplayServer *
-create_mir_server (Seat *seat)
-{
-    MirServer *mir_server;
-
-    mir_server = mir_server_new ();
-    mir_server_set_parent_socket (mir_server, unity_system_compositor_get_socket (SEAT_UNITY (seat)->priv->compositor));
-    mir_server_set_vt (mir_server, display_server_get_vt (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor)));
-
-    return DISPLAY_SERVER (mir_server);
-}
-
-static DisplayServer *
 seat_unity_create_display_server (Seat *seat, Session *session)
 {
     const gchar *session_type;
@@ -256,7 +241,7 @@ seat_unity_create_display_server (Seat *seat, Session *session)
     if (strcmp (session_type, "x") == 0)
         return DISPLAY_SERVER (create_x_server (seat));
     else if (strcmp (session_type, "mir") == 0)
-        return create_mir_server (seat);
+        return g_object_ref (SEAT_UNITY (seat)->priv->compositor);
     else
     {
         l_warning (seat, "Can't create unsupported display server '%s'", session_type);
@@ -264,20 +249,23 @@ seat_unity_create_display_server (Seat *seat, Session *session)
     }
 }
 
+static gboolean
+seat_unity_display_server_is_used (Seat *seat, DisplayServer *display_server)
+{
+    if (display_server == DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor))
+        return TRUE;
+
+    return SEAT_CLASS (seat_unity_parent_class)->display_server_is_used (seat, display_server);
+}
+
 static GreeterSession *
 seat_unity_create_greeter_session (Seat *seat)
 {
     GreeterSession *greeter_session;
-    gchar *id;
     gint vt;
 
     greeter_session = SEAT_CLASS (seat_unity_parent_class)->create_greeter_session (seat);
     session_set_env (SESSION (greeter_session), "XDG_SEAT", seat_get_name (seat));
-
-    id = g_strdup_printf ("greeter-%d", SEAT_UNITY (seat)->priv->next_greeter_id);
-    SEAT_UNITY (seat)->priv->next_greeter_id++;
-    session_set_env (SESSION (greeter_session), "MIR_SERVER_NAME", id);
-    g_free (id);
 
     vt = display_server_get_vt (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor));
     if (vt >= 0)
@@ -294,16 +282,10 @@ static Session *
 seat_unity_create_session (Seat *seat)
 {
     Session *session;
-    gchar *id;
     gint vt;
 
     session = SEAT_CLASS (seat_unity_parent_class)->create_session (seat);
     session_set_env (session, "XDG_SEAT", seat_get_name (seat));
-
-    id = g_strdup_printf ("session-%d", SEAT_UNITY (seat)->priv->next_session_id);
-    SEAT_UNITY (seat)->priv->next_session_id++;
-    session_set_env (session, "MIR_SERVER_NAME", id);
-    g_free (id);
 
     vt = display_server_get_vt (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor));
     if (vt >= 0)
@@ -316,37 +298,39 @@ seat_unity_create_session (Seat *seat)
     return session;
 }
 
-static void
-seat_unity_set_active_session (Seat *seat, Session *session)
+static const gchar *
+get_mir_id (Session *session)
 {
     DisplayServer *display_server;
 
-    if (session == SEAT_UNITY (seat)->priv->active_session)
-        return;
-    SEAT_UNITY (seat)->priv->active_session = g_object_ref (session);
+    if (!session)
+        return NULL;
 
-    display_server = session_get_display_server (session);
-    if (SEAT_UNITY (seat)->priv->active_display_server != display_server)
-    {
-        const gchar *id = NULL;
+    display_server = session_get_display_server (session);  
+    if (IS_UNITY_SYSTEM_COMPOSITOR (display_server))
+        return session_get_env (session, "MIR_SERVER_NAME");
+    if (IS_X_SERVER_XMIR (display_server))
+        return x_server_xmir_get_mir_id (X_SERVER_XMIR (display_server));
 
-        SEAT_UNITY (seat)->priv->active_display_server = g_object_ref (display_server);
+    return NULL;
+}
 
-        if (IS_X_SERVER_LOCAL (display_server))
-            id = x_server_xmir_get_mir_id (X_SERVER_XMIR (display_server));
-        else
-            id = session_get_env (session, "MIR_SERVER_NAME");
+static void
+seat_unity_set_active_session (Seat *s, Session *session)
+{
+    SeatUnity *seat = SEAT_UNITY (s);
+    const gchar *old_id, *new_id;
 
-        if (id)
-        {
-            l_debug (seat, "Switching to Mir session %s", id);
-            unity_system_compositor_set_active_session (SEAT_UNITY (seat)->priv->compositor, id);
-        }
-        else
-            l_warning (seat, "Failed to work out session ID");
-    }
+    old_id = get_mir_id (seat->priv->active_session);
+    new_id = get_mir_id (session);
 
-    SEAT_CLASS (seat_unity_parent_class)->set_active_session (seat, session);
+    g_clear_object (&seat->priv->active_session);
+    seat->priv->active_session = g_object_ref (session);
+
+    if (g_strcmp0 (old_id, new_id) != 0)
+        unity_system_compositor_set_active_session (seat->priv->compositor, new_id);
+
+    SEAT_CLASS (seat_unity_parent_class)->set_active_session (s, session);
 }
 
 static Session *
@@ -448,6 +432,7 @@ seat_unity_class_init (SeatUnityClass *klass)
     seat_class->setup = seat_unity_setup;
     seat_class->start = seat_unity_start;
     seat_class->create_display_server = seat_unity_create_display_server;
+    seat_class->display_server_is_used = seat_unity_display_server_is_used;
     seat_class->create_greeter_session = seat_unity_create_greeter_session;
     seat_class->create_session = seat_unity_create_session;
     seat_class->set_active_session = seat_unity_set_active_session;

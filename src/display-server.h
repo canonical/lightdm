@@ -44,6 +44,7 @@ typedef struct
     void (*ready)(DisplayServer *server);
     void (*stopped)(DisplayServer *server);
 
+    DisplayServer *(*get_parent)(DisplayServer *server);  
     const gchar *(*get_session_type)(DisplayServer *server);
     gboolean (*get_can_share)(DisplayServer *server);
     gint (*get_vt)(DisplayServer *server);
@@ -60,6 +61,8 @@ void display_server_set_name (DisplayServer *server, const gchar *name);
 const gchar *display_server_get_name (DisplayServer *server);
 
 const gchar *display_server_get_session_type (DisplayServer *server);
+
+DisplayServer *display_server_get_parent (DisplayServer *server);
 
 gboolean display_server_get_can_share (DisplayServer *server);
 
