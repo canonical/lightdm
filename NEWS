@@ -1,3 +1,18 @@
+Overview of changes in lightdm 1.19.1
+
+    * Rename "xlocal" seat type to "local". Using "xlocal" will continue to work
+      but report a warning.
+    * Fix memory leaks
+    * Fix uninitialized memory errors
+    * Use MIR_SERVER_HOST_SOCKET instead of MIR_SOCKET to report compositor
+      socket to sessions. This used to work but no longer works in Mir 0.21
+    * Allow XMir to run on the xlocal seat using the new x-server-backend=mir
+      option
+    * Use only a single compositor on local seats
+    * Fix Mir greeter log filename having "(null)" in the name
+    * Copy fcitx/mozc rules so session works when these aren't installed
+    * Revert lxsession change - it caused the AppArmor to fail to compile
+
 Overview of changes in lightdm 1.19.0
 
     * Use /dev/tty0 instead of /dev/console for VT operations

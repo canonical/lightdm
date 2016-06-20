@@ -1,3 +1,31 @@
+lightdm (1.19.1-0ubuntu1) yakkety; urgency=medium
+
+  * New upstream release:
+  * debian/lightdm.dirs:
+    - Rename "xlocal" seat type to "local". Using "xlocal" will continue to work
+      but report a warning.
+    - Ensure user configuration directories /etc/lightdm/lightdm.conf.d and
+      /etc/guest-session exist
+    - Use MIR_SERVER_HOST_SOCKET instead of MIR_SOCKET to report compositor
+      socket to sessions. This used to work but no longer works in Mir 0.21
+      (LP: #1583624)
+    - Allow XMir to run on the xlocal seat using the new x-server-backend=mir
+      option
+    - Use only a single compositor on local seats (LP: #1594229)
+    - Fix Mir greeter log filename having "(null)" in the name (LP: #1590582)
+    - Copy fcitx/mozc rules so session works when these aren't installed
+      (LP #1581187)
+    - Revert lxsession change - it caused the AppArmor to fail to compile
+  * debian/rules:
+    - Revert dh_installinit change - we don't want to start LightDM on install
+      (LP: #1581106)
+  * debian/guest-account.sh:
+  * debian/guest-session-setup.sh:
+    - Source prefs.sh as privileged user to allow user modification
+      (LP: #1581853)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 20 Jun 2016 16:18:36 +1200
+
 lightdm (1.19.0-0ubuntu1) yakkety; urgency=medium
 
   * New upstream release:
