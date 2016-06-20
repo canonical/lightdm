@@ -50,7 +50,7 @@ seat_local_setup (Seat *seat)
 static void
 check_stopped (SeatLocal *seat)
 {
-    if (!seat->priv->xdmcp_x_server)
+    if (!seat->priv->compositor && !seat->priv->xdmcp_x_server)
         SEAT_CLASS (seat_local_parent_class)->stop (SEAT (seat));
 }
 
