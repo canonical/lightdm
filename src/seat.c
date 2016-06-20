@@ -621,7 +621,7 @@ start_session (Seat *seat, Session *session)
         gboolean backup_logs;
 
         log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-        filename = g_strdup_printf ("%s-greeter.log", display_server_get_name (session_get_display_server (session)));
+        filename = g_strdup_printf ("%s-greeter.log", seat->priv->name);
         log_filename = g_build_filename (log_dir, filename, NULL);
         g_free (log_dir);
         g_free (filename);
