@@ -613,7 +613,7 @@ EXTRA_DIST = \
 	scripts/wayland-autologin.conf \
 	scripts/wayland-greeter.conf \
 	scripts/wayland-session.conf \
-	scripts/xauthority.conf \       
+	scripts/xauthority.conf \
 	scripts/xdg-current-desktop.conf \
 	scripts/xdg-current-desktop-legacy.conf \
 	scripts/xdmcp-client.conf \
