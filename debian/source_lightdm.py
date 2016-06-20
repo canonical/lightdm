@@ -13,9 +13,9 @@ def add_info(report, ui):
             display_manager_files['LightdmDisplayLog'] = \
                 'cat /var/log/lightdm/x-0.log'
             display_manager_files['LightdmGreeterLog'] = \
-                 'cat /var/log/lightdm/x-0-greeter.log'
+                 'cat /var/log/lightdm/seat0-greeter.log'
             display_manager_files['LightdmGreeterLogOld'] = \
-                 'cat /var/log/lightdm/x-0-greeter.log.old'
+                 'cat /var/log/lightdm/seat0-greeter.log.old'
             display_manager_files['LightdmConfig'] = \
                 'cat /etc/lightdm/lightdm.conf'
             display_manager_files['LightdmUsersConfig'] = \
