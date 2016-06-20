@@ -17,7 +17,7 @@
 
 #include "display-manager.h"
 #include "configuration.h"
-#include "seat-xlocal.h"
+#include "seat-local.h"
 #include "seat-xremote.h"
 #include "seat-unity.h"
 #include "plymouth.h"
@@ -162,7 +162,7 @@ display_manager_init (DisplayManager *manager)
     manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, DISPLAY_MANAGER_TYPE, DisplayManagerPrivate);
 
     /* Load the seat modules */
-    seat_register_module ("xlocal", SEAT_XLOCAL_TYPE);
+    seat_register_module ("local", SEAT_LOCAL_TYPE);
     seat_register_module ("xremote", SEAT_XREMOTE_TYPE);
     seat_register_module ("unity", SEAT_UNITY_TYPE);
 }

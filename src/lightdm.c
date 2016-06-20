@@ -218,6 +218,17 @@ display_manager_stopped_cb (DisplayManager *display_manager)
     g_main_loop_quit (loop);
 }
 
+static Seat *
+create_seat (const gchar *module_name, const gchar *name)
+{
+    if (strcmp (module_name, "xlocal") == 0) {
+        g_warning ("Seat type 'xlocal' is deprecated, use 'type=local' instead");
+        return seat_new ("local", name);
+    }
+    else
+        return seat_new (module_name, name);
+}
+
 static void
 display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
@@ -237,7 +248,7 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 
         if (!next_seat)
         {
-            next_seat = seat_new (*iter, seat_get_name (seat));
+            next_seat = create_seat (*iter, seat_get_name (seat));
             g_string_assign (next_types, *iter);
         }
         else
@@ -354,7 +365,7 @@ handle_display_manager_call (GDBusConnection       *connection,
 
         g_debug ("Adding local X seat :%d", display_number);
 
-        seat = seat_new ("xremote", "xremote0"); // FIXME: What to use for a name?
+        seat = create_seat ("xremote", "xremote0"); // FIXME: What to use for a name?
         if (seat)
         {
             gchar *display_number_string;
@@ -1020,7 +1031,7 @@ add_login1_seat (Login1Seat *login1_seat)
     g_list_free_full (config_sections, g_free);
 
     for (type = types; !seat && type && *type; type++)
-        seat = seat_new (*type, seat_name);
+        seat = create_seat (*type, seat_name);
     g_strfreev (types);
 
     if (seat)
@@ -1397,7 +1408,7 @@ main (int argc, char **argv)
     if (!config_has_key (config_get_instance (), "LightDM", "backup-logs"))
         config_set_boolean (config_get_instance (), "LightDM", "backup-logs", TRUE);
     if (!config_has_key (config_get_instance (), "Seat:*", "type"))
-        config_set_string (config_get_instance (), "Seat:*", "type", "xlocal");
+        config_set_string (config_get_instance (), "Seat:*", "type", "local");
     if (!config_has_key (config_get_instance (), "Seat:*", "pam-service"))
         config_set_string (config_get_instance (), "Seat:*", "pam-service", "lightdm");
     if (!config_has_key (config_get_instance (), "Seat:*", "pam-autologin-service"))
@@ -1531,7 +1542,7 @@ main (int argc, char **argv)
             types = config_get_string_list (config_get_instance (), "Seat:*", "type");
             for (type = types; type && *type; type++)
             {
-                seat = seat_new (*type, "seat0");
+                seat = create_seat (*type, "seat0");
                 if (seat)
                     break;
             }

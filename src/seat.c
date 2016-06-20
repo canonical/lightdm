@@ -294,7 +294,7 @@ seat_get_next_session (Seat *seat)
  * Obtains the active session which lightdm expects to be active.
  *
  * This function is different from seat_get_active_session() in that the
- * later (in the case of xlocal seats) dynamically finds the session that is
+ * later (in the case of local seats) dynamically finds the session that is
  * really active (based on the active VT), whereas this function returns the
  * session that lightdm activated last by itself, which may not be the actual
  * active session (i.e. VT changes).

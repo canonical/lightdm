@@ -34,6 +34,7 @@ TESTS = \
 	test-autologin-new-authtok \
 	test-autologin-timeout-gobject \
 	test-autologin-guest-timeout-gobject \
+	test-xlocal-legacy \
 	test-xserver-config \
 	test-allow-tcp \
 	test-allow-tcp-xorg-1.16 \
@@ -612,7 +613,7 @@ EXTRA_DIST = \
 	scripts/wayland-autologin.conf \
 	scripts/wayland-greeter.conf \
 	scripts/wayland-session.conf \
-	scripts/xauthority.conf \
+	scripts/xauthority.conf \       
 	scripts/xdg-current-desktop.conf \
 	scripts/xdg-current-desktop-legacy.conf \
 	scripts/xdmcp-client.conf \
@@ -637,6 +638,7 @@ EXTRA_DIST = \
 	scripts/xdmcp-server-xdm-authentication-no-key.conf \
 	scripts/xdmcp-server-xdm-authentication-required.conf \
 	scripts/xdmcp-server-xdm-authentication-short-data.conf \
+	scripts/xlocal-legacy.conf \
 	scripts/xmir-autologin.conf \
 	scripts/xmir-login.conf \
 	scripts/xmir-switch.conf \

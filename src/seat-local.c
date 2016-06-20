@@ -11,7 +11,7 @@
 
 #include <string.h>
 
-#include "seat-xlocal.h"
+#include "seat-local.h"
 #include "configuration.h"
 #include "x-server-local.h"
 #include "x-server-xmir.h"
@@ -20,7 +20,7 @@
 #include "plymouth.h"
 #include "vt.h"
 
-struct SeatXLocalPrivate
+struct SeatLocalPrivate
 {
     /* System compositor being used for Mir sessions */
     UnitySystemCompositor *compositor;
@@ -35,27 +35,27 @@ struct SeatXLocalPrivate
     XServerLocal *xdmcp_x_server;
 };
 
-G_DEFINE_TYPE (SeatXLocal, seat_xlocal, SEAT_TYPE);
+G_DEFINE_TYPE (SeatLocal, seat_local, SEAT_TYPE);
 
-static XServerLocal *create_x_server (SeatXLocal *seat);
+static XServerLocal *create_x_server (SeatLocal *seat);
 
 static void
-seat_xlocal_setup (Seat *seat)
+seat_local_setup (Seat *seat)
 {
     seat_set_supports_multi_session (seat, TRUE);
     seat_set_share_display_server (seat, seat_get_boolean_property (seat, "xserver-share"));
-    SEAT_CLASS (seat_xlocal_parent_class)->setup (seat);
+    SEAT_CLASS (seat_local_parent_class)->setup (seat);
 }
 
 static void
-check_stopped (SeatXLocal *seat)
+check_stopped (SeatLocal *seat)
 {
     if (!seat->priv->xdmcp_x_server)
-        SEAT_CLASS (seat_xlocal_parent_class)->stop (SEAT (seat));
+        SEAT_CLASS (seat_local_parent_class)->stop (SEAT (seat));
 }
 
 static void
-xdmcp_x_server_stopped_cb (DisplayServer *display_server, SeatXLocal *seat)
+xdmcp_x_server_stopped_cb (DisplayServer *display_server, SeatLocal *seat)
 {
     l_debug (seat, "XDMCP X server stopped");
 
@@ -69,7 +69,7 @@ xdmcp_x_server_stopped_cb (DisplayServer *display_server, SeatXLocal *seat)
 }
 
 static void
-compositor_stopped_cb (UnitySystemCompositor *compositor, SeatXLocal *seat)
+compositor_stopped_cb (UnitySystemCompositor *compositor, SeatLocal *seat)
 {
     l_debug (seat, "Compositor stopped");
 
@@ -80,7 +80,7 @@ compositor_stopped_cb (UnitySystemCompositor *compositor, SeatXLocal *seat)
 }  
 
 static gboolean
-seat_xlocal_start (Seat *seat)
+seat_local_start (Seat *seat)
 {
     const gchar *xdmcp_manager = NULL;
 
@@ -88,7 +88,7 @@ seat_xlocal_start (Seat *seat)
     xdmcp_manager = seat_get_string_property (seat, "xdmcp-manager");
     if (xdmcp_manager)
     {
-        SeatXLocal *s = SEAT_XLOCAL (seat);
+        SeatLocal *s = SEAT_LOCAL (seat);
         const gchar *key_name = NULL;
         gint port = 0;
 
@@ -135,7 +135,7 @@ seat_xlocal_start (Seat *seat)
         return display_server_start (DISPLAY_SERVER (s->priv->xdmcp_x_server));
     }
 
-    return SEAT_CLASS (seat_xlocal_parent_class)->start (seat);
+    return SEAT_CLASS (seat_local_parent_class)->start (seat);
 }
 
 static void
@@ -156,7 +156,7 @@ display_server_transition_plymouth_cb (DisplayServer *display_server, Seat *seat
 }
 
 static gint
-get_vt (SeatXLocal *seat, DisplayServer *display_server)
+get_vt (SeatLocal *seat, DisplayServer *display_server)
 {
     gint vt = -1;
     const gchar *xdg_seat = seat_get_name (SEAT (seat));
@@ -187,7 +187,7 @@ get_vt (SeatXLocal *seat, DisplayServer *display_server)
 }
 
 static UnitySystemCompositor *
-create_unity_system_compositor (SeatXLocal *seat)
+create_unity_system_compositor (SeatLocal *seat)
 {
     UnitySystemCompositor *compositor;
     const gchar *command;
@@ -212,7 +212,7 @@ create_unity_system_compositor (SeatXLocal *seat)
 }
 
 static UnitySystemCompositor *
-get_unity_system_compositor (SeatXLocal *seat)
+get_unity_system_compositor (SeatLocal *seat)
 {
     if (seat->priv->compositor)
         return seat->priv->compositor;
@@ -225,7 +225,7 @@ get_unity_system_compositor (SeatXLocal *seat)
 }
 
 static XServerLocal *
-create_x_server (SeatXLocal *seat)
+create_x_server (SeatLocal *seat)
 {
     const gchar *x_server_backend;
     XServerLocal *x_server;
@@ -242,7 +242,7 @@ create_x_server (SeatXLocal *seat)
         const gchar *command;
         gchar *id;
 
-        compositor = get_unity_system_compositor (SEAT_XLOCAL (seat));
+        compositor = get_unity_system_compositor (SEAT_LOCAL (seat));
         x_server = X_SERVER_LOCAL (x_server_xmir_new (compositor));
 
         command = seat_get_string_property (SEAT (seat), "xmir-command");
@@ -302,7 +302,7 @@ create_x_server (SeatXLocal *seat)
 }
 
 static DisplayServer *
-create_wayland_session (SeatXLocal *seat)
+create_wayland_session (SeatLocal *seat)
 {
     WaylandSession *session;
     gint vt;
@@ -317,9 +317,9 @@ create_wayland_session (SeatXLocal *seat)
 }
 
 static DisplayServer *
-seat_xlocal_create_display_server (Seat *s, Session *session)
+seat_local_create_display_server (Seat *s, Session *session)
 {
-    SeatXLocal *seat = SEAT_XLOCAL (s);
+    SeatLocal *seat = SEAT_LOCAL (s);
     const gchar *session_type;
 
     session_type = session_get_session_type (session);
@@ -349,40 +349,40 @@ seat_xlocal_create_display_server (Seat *s, Session *session)
 }
 
 static gboolean
-seat_xlocal_display_server_is_used (Seat *seat, DisplayServer *display_server)
+seat_local_display_server_is_used (Seat *seat, DisplayServer *display_server)
 {
-    if (display_server == DISPLAY_SERVER (SEAT_XLOCAL (seat)->priv->compositor))
+    if (display_server == DISPLAY_SERVER (SEAT_LOCAL (seat)->priv->compositor))
         return TRUE;
 
-    return SEAT_CLASS (seat_xlocal_parent_class)->display_server_is_used (seat, display_server);
+    return SEAT_CLASS (seat_local_parent_class)->display_server_is_used (seat, display_server);
 }
 
 static GreeterSession *
-seat_xlocal_create_greeter_session (Seat *seat)
+seat_local_create_greeter_session (Seat *seat)
 {
     GreeterSession *greeter_session;
 
-    greeter_session = SEAT_CLASS (seat_xlocal_parent_class)->create_greeter_session (seat);
+    greeter_session = SEAT_CLASS (seat_local_parent_class)->create_greeter_session (seat);
     session_set_env (SESSION (greeter_session), "XDG_SEAT", seat_get_name (seat));
 
     return greeter_session;
 }
 
 static Session *
-seat_xlocal_create_session (Seat *seat)
+seat_local_create_session (Seat *seat)
 {
     Session *session;
 
-    session = SEAT_CLASS (seat_xlocal_parent_class)->create_session (seat);
+    session = SEAT_CLASS (seat_local_parent_class)->create_session (seat);
     session_set_env (SESSION (session), "XDG_SEAT", seat_get_name (seat));
 
     return session;
 }
 
 static void
-seat_xlocal_set_active_session (Seat *s, Session *session)
+seat_local_set_active_session (Seat *s, Session *session)
 {
-    SeatXLocal *seat = SEAT_XLOCAL (s);
+    SeatLocal *seat = SEAT_LOCAL (s);
     DisplayServer *display_server;
 
     display_server = session_get_display_server (session);
@@ -403,13 +403,13 @@ seat_xlocal_set_active_session (Seat *s, Session *session)
         seat->priv->active_compositor_session = g_object_ref (session);
     }
 
-    SEAT_CLASS (seat_xlocal_parent_class)->set_active_session (s, session);
+    SEAT_CLASS (seat_local_parent_class)->set_active_session (s, session);
 }
 
 static Session *
-seat_xlocal_get_active_session (Seat *s)
+seat_local_get_active_session (Seat *s)
 {
-    SeatXLocal *seat = SEAT_XLOCAL (s);
+    SeatLocal *seat = SEAT_LOCAL (s);
     gint vt;
     GList *link;
 
@@ -436,7 +436,7 @@ seat_xlocal_get_active_session (Seat *s)
 }
 
 static void
-seat_xlocal_set_next_session (Seat *seat, Session *session)
+seat_local_set_next_session (Seat *seat, Session *session)
 {
     DisplayServer *display_server;
     const gchar *id = NULL;
@@ -454,16 +454,16 @@ seat_xlocal_set_next_session (Seat *seat, Session *session)
     if (id)
     {
         l_debug (seat, "Marking Mir session %s as the next session", id);
-        unity_system_compositor_set_next_session (SEAT_XLOCAL (seat)->priv->compositor, id);
+        unity_system_compositor_set_next_session (SEAT_LOCAL (seat)->priv->compositor, id);
     }
     else
         l_debug (seat, "Failed to work out session ID to mark");
 
-    SEAT_CLASS (seat_xlocal_parent_class)->set_next_session (seat, session);
+    SEAT_CLASS (seat_local_parent_class)->set_next_session (seat, session);
 }
 
 static void
-seat_xlocal_run_script (Seat *seat, DisplayServer *display_server, Process *script)
+seat_local_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
     if (IS_X_SERVER_LOCAL (display_server))
     {
@@ -476,13 +476,13 @@ seat_xlocal_run_script (Seat *seat, DisplayServer *display_server, Process *scri
         process_set_env (script, "XAUTHORITY", path);
     }
 
-    SEAT_CLASS (seat_xlocal_parent_class)->run_script (seat, display_server, script);
+    SEAT_CLASS (seat_local_parent_class)->run_script (seat, display_server, script);
 }
 
 static void
-seat_xlocal_stop (Seat *s)
+seat_local_stop (Seat *s)
 {
-    SeatXLocal *seat = SEAT_XLOCAL (s);
+    SeatLocal *seat = SEAT_LOCAL (s);
 
     /* Stop the compositor */
     if (seat->priv->compositor)
@@ -496,15 +496,15 @@ seat_xlocal_stop (Seat *s)
 }
 
 static void
-seat_xlocal_init (SeatXLocal *seat)
+seat_local_init (SeatLocal *seat)
 {
-    seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_XLOCAL_TYPE, SeatXLocalPrivate);
+    seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_LOCAL_TYPE, SeatLocalPrivate);
 }
 
 static void
-seat_xlocal_finalize (GObject *object)
+seat_local_finalize (GObject *object)
 {
-    SeatXLocal *seat = SEAT_XLOCAL (object);
+    SeatLocal *seat = SEAT_LOCAL (object);
 
     g_clear_object (&seat->priv->compositor);
     g_clear_object (&seat->priv->active_compositor_session);
@@ -514,28 +514,28 @@ seat_xlocal_finalize (GObject *object)
         g_object_unref (seat->priv->xdmcp_x_server);
     }
 
-    G_OBJECT_CLASS (seat_xlocal_parent_class)->finalize (object);
+    G_OBJECT_CLASS (seat_local_parent_class)->finalize (object);
 }
 
 static void
-seat_xlocal_class_init (SeatXLocalClass *klass)
+seat_local_class_init (SeatLocalClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     SeatClass *seat_class = SEAT_CLASS (klass);
 
-    object_class->finalize = seat_xlocal_finalize;
+    object_class->finalize = seat_local_finalize;
 
-    seat_class->setup = seat_xlocal_setup;
-    seat_class->start = seat_xlocal_start;
-    seat_class->create_display_server = seat_xlocal_create_display_server;
-    seat_class->display_server_is_used = seat_xlocal_display_server_is_used;
-    seat_class->create_greeter_session = seat_xlocal_create_greeter_session;
-    seat_class->create_session = seat_xlocal_create_session;
-    seat_class->set_active_session = seat_xlocal_set_active_session;
-    seat_class->get_active_session = seat_xlocal_get_active_session;
-    seat_class->set_next_session = seat_xlocal_set_next_session;
-    seat_class->run_script = seat_xlocal_run_script;
-    seat_class->stop = seat_xlocal_stop;
+    seat_class->setup = seat_local_setup;
+    seat_class->start = seat_local_start;
+    seat_class->create_display_server = seat_local_create_display_server;
+    seat_class->display_server_is_used = seat_local_display_server_is_used;
+    seat_class->create_greeter_session = seat_local_create_greeter_session;
+    seat_class->create_session = seat_local_create_session;
+    seat_class->set_active_session = seat_local_set_active_session;
+    seat_class->get_active_session = seat_local_get_active_session;
+    seat_class->set_next_session = seat_local_set_next_session;
+    seat_class->run_script = seat_local_run_script;
+    seat_class->stop = seat_local_stop;
 
-    g_type_class_add_private (klass, sizeof (SeatXLocalPrivate));
+    g_type_class_add_private (klass, sizeof (SeatLocalPrivate));
 }

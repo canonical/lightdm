@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-06-01 12:01+1200\n"
+"POT-Creation-Date: 2016-06-20 12:03+1200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,57 +18,57 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #. Help string for command line --config flag
-#: ../src/lightdm.c:1187
+#: ../src/lightdm.c:1198
 msgid "Use configuration file"
 msgstr ""
 
 #. Help string for command line --debug flag
-#: ../src/lightdm.c:1190
+#: ../src/lightdm.c:1201
 msgid "Print debugging messages"
 msgstr ""
 
 #. Help string for command line --test-mode flag
-#: ../src/lightdm.c:1193
+#: ../src/lightdm.c:1204
 msgid "Run as unprivileged user, skipping things that require root access"
 msgstr ""
 
 #. Help string for command line --pid-file flag
-#: ../src/lightdm.c:1196
+#: ../src/lightdm.c:1207
 msgid "File to write PID into"
 msgstr ""
 
 #. Help string for command line --log-dir flag
-#: ../src/lightdm.c:1199
+#: ../src/lightdm.c:1210
 msgid "Directory to write logs to"
 msgstr ""
 
 #. Help string for command line --run-dir flag
-#: ../src/lightdm.c:1202
+#: ../src/lightdm.c:1213
 msgid "Directory to store running state"
 msgstr ""
 
 #. Help string for command line --cache-dir flag
-#: ../src/lightdm.c:1205
+#: ../src/lightdm.c:1216
 msgid "Directory to cache information"
 msgstr ""
 
 #. Help string for command line --show-config flag
-#: ../src/lightdm.c:1208
+#: ../src/lightdm.c:1219
 msgid "Show combined configuration"
 msgstr ""
 
 #. Help string for command line --version flag
-#: ../src/lightdm.c:1211
+#: ../src/lightdm.c:1222
 msgid "Show release version"
 msgstr ""
 
 #. Arguments and description for --help test
-#: ../src/lightdm.c:1230
+#: ../src/lightdm.c:1241
 msgid "- Display Manager"
 msgstr ""
 
 #. Text printed out when an unknown command-line argument provided
-#: ../src/lightdm.c:1240
+#: ../src/lightdm.c:1251
 #, c-format
 msgid "Run '%s --help' to see a full list of available command line options."
 msgstr ""
