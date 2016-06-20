@@ -34,16 +34,11 @@ G_DEFINE_TYPE (XServerXVNC, x_server_xvnc, X_SERVER_LOCAL_TYPE);
 XServerXVNC *
 x_server_xvnc_new (void)
 {
-    XServerXVNC *self = g_object_new (X_SERVER_XVNC_TYPE, NULL);
-    gchar *name;
+    XServerXVNC *server = g_object_new (X_SERVER_XVNC_TYPE, NULL);
 
-    name = g_strdup_printf ("xvnc-%d", x_server_get_display_number (X_SERVER (self)));
-    display_server_set_name (DISPLAY_SERVER (self), name);
-    g_free (name);
-  
-    x_server_local_set_command (X_SERVER_LOCAL (self), "Xvnc");
+    x_server_local_set_command (X_SERVER_LOCAL (server), "Xvnc");
 
-    return self;
+    return server;
 }
 void
 x_server_xvnc_set_socket (XServerXVNC *server, int fd)

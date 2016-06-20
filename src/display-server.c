@@ -22,9 +22,6 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct DisplayServerPrivate
 {
-    /* Unique name for this display server */
-    gchar *name;
-
     /* TRUE when started */
     gboolean is_ready;
 
@@ -38,23 +35,7 @@ struct DisplayServerPrivate
 static void display_server_logger_iface_init (LoggerInterface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (DisplayServer, display_server, G_TYPE_OBJECT,
-                         G_IMPLEMENT_INTERFACE (
-                             LOGGER_TYPE, display_server_logger_iface_init));
-
-void
-display_server_set_name (DisplayServer *server, const gchar *name)
-{
-    g_return_if_fail (server != NULL);
-    g_free (server->priv->name);
-    server->priv->name = g_strdup (name);
-}
-
-const gchar *
-display_server_get_name (DisplayServer *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->name;
-}
+                         G_IMPLEMENT_INTERFACE (LOGGER_TYPE, display_server_logger_iface_init));
 
 const gchar *
 display_server_get_session_type (DisplayServer *server)
@@ -175,20 +156,8 @@ display_server_init (DisplayServer *server)
 }
 
 static void
-display_server_finalize (GObject *object)
-{
-    DisplayServer *self = DISPLAY_SERVER (object);
-
-    g_free (self->priv->name);
-
-    G_OBJECT_CLASS (display_server_parent_class)->finalize (object);
-}
-
-static void
 display_server_class_init (DisplayServerClass *klass)
 {
-    GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
     klass->get_parent = display_server_real_get_parent;  
     klass->get_can_share = display_server_real_get_can_share;
     klass->get_vt = display_server_real_get_vt;
@@ -196,7 +165,6 @@ display_server_class_init (DisplayServerClass *klass)
     klass->connect_session = display_server_real_connect_session;
     klass->disconnect_session = display_server_real_disconnect_session;
     klass->stop = display_server_real_stop;
-    object_class->finalize = display_server_finalize;
 
     g_type_class_add_private (klass, sizeof (DisplayServerPrivate));
 
@@ -221,12 +189,7 @@ display_server_class_init (DisplayServerClass *klass)
 static gint
 display_server_real_logprefix (Logger *self, gchar *buf, gulong buflen)
 {
-    DisplayServer *server = DISPLAY_SERVER (self);
-    const gchar *name = display_server_get_name (server);
-    if (name)
-        return g_snprintf (buf, buflen, "DisplayServer %s: ", name);
-    else
-        return g_snprintf (buf, buflen, "DisplayServer: ");
+    return g_snprintf (buf, buflen, "DisplayServer: ");
 }
 
 static void

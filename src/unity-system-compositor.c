@@ -64,7 +64,10 @@ struct UnitySystemCompositorPrivate
     int next_greeter_id;  
 };
 
-G_DEFINE_TYPE (UnitySystemCompositor, unity_system_compositor, DISPLAY_SERVER_TYPE);
+static void unity_system_compositor_logger_iface_init (LoggerInterface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (UnitySystemCompositor, unity_system_compositor, DISPLAY_SERVER_TYPE,
+                         G_IMPLEMENT_INTERFACE (LOGGER_TYPE, unity_system_compositor_logger_iface_init));               
 
 typedef enum
 {
@@ -529,4 +532,16 @@ unity_system_compositor_class_init (UnitySystemCompositorClass *klass)
     object_class->finalize = unity_system_compositor_finalize;
 
     g_type_class_add_private (klass, sizeof (UnitySystemCompositorPrivate));
+}
+
+static gint
+unity_system_compositor_real_logprefix (Logger *self, gchar *buf, gulong buflen)
+{
+    return g_snprintf (buf, buflen, "Unity System Compositor: ");
+}
+
+static void
+unity_system_compositor_logger_iface_init (LoggerInterface *iface)
+{
+    iface->logprefix = &unity_system_compositor_real_logprefix;
 }

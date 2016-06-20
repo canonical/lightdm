@@ -68,7 +68,10 @@ struct XServerLocalPrivate
     gchar *background;
 };
 
-G_DEFINE_TYPE (XServerLocal, x_server_local, X_SERVER_TYPE);
+static void x_server_local_logger_iface_init (LoggerInterface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (XServerLocal, x_server_local, X_SERVER_TYPE,
+                         G_IMPLEMENT_INTERFACE (LOGGER_TYPE, x_server_local_logger_iface_init));
 
 static gchar *version = NULL;
 static guint version_major = 0, version_minor = 0;
@@ -199,16 +202,7 @@ x_server_local_release_display_number (guint display_number)
 XServerLocal *
 x_server_local_new (void)
 {
-    XServerLocal *self;
-    gchar *name;
-
-    self = g_object_new (X_SERVER_LOCAL_TYPE, NULL);
-
-    name = g_strdup_printf ("x-%d", x_server_get_display_number (X_SERVER (self)));
-    display_server_set_name (DISPLAY_SERVER (self), name);
-    g_free (name);
-
-    return self;
+    return g_object_new (X_SERVER_LOCAL_TYPE, NULL);
 }
 
 void
@@ -473,7 +467,7 @@ x_server_local_start (DisplayServer *display_server)
     g_signal_connect (server->priv->x_server_process, PROCESS_SIGNAL_STOPPED, G_CALLBACK (stopped_cb), server);
 
     /* Setup logging */
-    filename = g_strdup_printf ("%s.log", display_server_get_name (display_server));
+    filename = g_strdup_printf ("x-%d.log", x_server_get_display_number (X_SERVER (server)));
     dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
     log_file = g_build_filename (dir, filename, NULL);
     backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
@@ -629,4 +623,17 @@ x_server_local_class_init (XServerLocalClass *klass)
     object_class->finalize = x_server_local_finalize;
 
     g_type_class_add_private (klass, sizeof (XServerLocalPrivate));
+}
+
+static gint
+x_server_local_real_logprefix (Logger *self, gchar *buf, gulong buflen)
+{
+    XServerLocal *server = X_SERVER_LOCAL (self);
+    return g_snprintf (buf, buflen, "XServer %d: ", server->priv->display_number);
+}
+
+static void
+x_server_local_logger_iface_init (LoggerInterface *iface)
+{
+    iface->logprefix = &x_server_local_real_logprefix;
 }

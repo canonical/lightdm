@@ -24,19 +24,14 @@ G_DEFINE_TYPE (XServerRemote, x_server_remote, X_SERVER_TYPE);
 XServerRemote *
 x_server_remote_new (const gchar *hostname, guint number, XAuthority *authority)
 {
-    XServerRemote *self = g_object_new (X_SERVER_REMOTE_TYPE, NULL);
-    gchar *name;
+    XServerRemote *server = g_object_new (X_SERVER_REMOTE_TYPE, NULL);
 
-    self->priv->display_number = number;
+    server->priv->display_number = number;
 
-    x_server_set_hostname (X_SERVER (self), hostname);
-    x_server_set_authority (X_SERVER (self), authority);
+    x_server_set_hostname (X_SERVER (server), hostname);
+    x_server_set_authority (X_SERVER (server), authority);
 
-    name = g_strdup_printf ("x-%s-%d", hostname, number);
-    display_server_set_name (DISPLAY_SERVER (self), name);
-    g_free (name);
-
-    return self;
+    return server;
 }
 
 static guint

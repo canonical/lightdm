@@ -53,18 +53,12 @@ XServerXmir *
 x_server_xmir_new (UnitySystemCompositor *compositor)
 {
     XServerXmir *server;
-    gchar *name;
 
     server = g_object_new (X_SERVER_XMIR_TYPE, NULL);
     x_server_local_set_command (X_SERVER_LOCAL (server), "Xmir");
     server->priv->compositor = g_object_ref (compositor);
     g_signal_connect (compositor, DISPLAY_SERVER_SIGNAL_READY, G_CALLBACK (compositor_ready_cb), server);
     g_signal_connect (compositor, DISPLAY_SERVER_SIGNAL_STOPPED, G_CALLBACK (compositor_stopped_cb), server);
-  
-    name = g_strdup_printf ("x-%d", x_server_get_display_number (X_SERVER (server)));
-    display_server_set_name (DISPLAY_SERVER (server), name);
-    g_free (name);
-
 
     return server;
 }
