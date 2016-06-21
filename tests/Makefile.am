@@ -225,7 +225,6 @@ TESTS = \
 	test-mir-session \
 	test-mir-session-crash \
 	test-mir-session-compositor-crash \
-	test-mir-container-session \
 	test-xmir-autologin \
 	test-xmir-login \
 	test-xmir-switch \
@@ -387,7 +386,6 @@ EXTRA_DIST = \
 	data/sessions/alternative.desktop \
 	data/sessions/default.desktop \
 	data/sessions/mir.desktop \
-	data/sessions/mir-container.desktop \
 	data/sessions/named.desktop \
 	data/sessions/named-legacy.desktop \
 	data/sessions/wayland.desktop \
@@ -502,7 +500,6 @@ EXTRA_DIST = \
 	scripts/login-wrong-password.conf \
 	scripts/login-xserver-crash.conf \
 	scripts/mir-autologin.conf \
-	scripts/mir-container-session.conf \
 	scripts/mir-greeter.conf \
 	scripts/mir-script-hooks.conf \
 	scripts/mir-session.conf \

@@ -44,8 +44,6 @@ const gchar *session_config_get_session_type (SessionConfig *config);
 
 gchar **session_config_get_desktop_names (SessionConfig *config);
 
-const gchar *session_config_get_compositor_command (SessionConfig *config);
-
 G_END_DECLS
 
 #endif /* SESSION_CONFIG_H_ */

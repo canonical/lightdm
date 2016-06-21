@@ -187,37 +187,29 @@ get_vt (SeatLocal *seat, DisplayServer *display_server)
 }
 
 static UnitySystemCompositor *
-create_unity_system_compositor (SeatLocal *seat)
+get_unity_system_compositor (SeatLocal *seat)
 {
-    UnitySystemCompositor *compositor;
     const gchar *command;
     gint timeout, vt;
 
-    compositor = unity_system_compositor_new ();
+    if (seat->priv->compositor)
+        return seat->priv->compositor;
+
+    seat->priv->compositor = unity_system_compositor_new ();
 
     command = seat_get_string_property (SEAT (seat), "unity-compositor-command");
     if (command)
-        unity_system_compositor_set_command (compositor, command);
+        unity_system_compositor_set_command (seat->priv->compositor, command);
 
     timeout = seat_get_integer_property (SEAT (seat), "unity-compositor-timeout");
     if (timeout <= 0)
         timeout = 60;
-    unity_system_compositor_set_timeout (compositor, timeout);
+    unity_system_compositor_set_timeout (seat->priv->compositor, timeout);
 
-    vt = get_vt (seat, DISPLAY_SERVER (compositor));
+    vt = get_vt (seat, DISPLAY_SERVER (seat->priv->compositor));
     if (vt >= 0)
-        unity_system_compositor_set_vt (compositor, vt);
+        unity_system_compositor_set_vt (seat->priv->compositor, vt);
 
-    return compositor;
-}
-
-static UnitySystemCompositor *
-get_unity_system_compositor (SeatLocal *seat)
-{
-    if (seat->priv->compositor)
-        return seat->priv->compositor;
-
-    seat->priv->compositor = create_unity_system_compositor (seat);
     seat->priv->next_xmir_id = 0;
     g_signal_connect (seat->priv->compositor, DISPLAY_SERVER_SIGNAL_STOPPED, G_CALLBACK (compositor_stopped_cb), seat);
 
@@ -329,18 +321,6 @@ seat_local_create_display_server (Seat *s, Session *session)
         return g_object_ref (get_unity_system_compositor (seat));
     else if (strcmp (session_type, "wayland") == 0)
         return create_wayland_session (seat);
-    else if (strcmp (session_type, "mir-container") == 0)
-    {
-        UnitySystemCompositor *compositor;
-        const gchar *compositor_command;
-
-        compositor = create_unity_system_compositor (seat);
-        compositor_command = session_config_get_compositor_command (session_get_config (session));
-        if (compositor_command)
-            unity_system_compositor_set_command (compositor, compositor_command);
-
-        return DISPLAY_SERVER (compositor);
-    }
     else
     {
         l_warning (seat, "Can't create unsupported display server '%s'", session_type);
