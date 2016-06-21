@@ -13,11 +13,14 @@
 #define X_SERVER_LOCAL_H_
 
 #include "x-server.h"
+#include "process.h"
 
 G_BEGIN_DECLS
 
 #define X_SERVER_LOCAL_TYPE    (x_server_local_get_type())
 #define X_SERVER_LOCAL(obj)    (G_TYPE_CHECK_INSTANCE_CAST ((obj), X_SERVER_LOCAL_TYPE, XServerLocal))
+#define X_SERVER_LOCAL_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST ((klass), X_SERVER_LOCAL_TYPE, XServerLocalClass))
+#define X_SERVER_LOCAL_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), X_SERVER_LOCAL_TYPE, XServerLocalClass))
 #define IS_X_SERVER_LOCAL(obj) (G_TYPE_CHECK_INSTANCE_TYPE ((obj), X_SERVER_LOCAL_TYPE))
 
 typedef struct XServerLocalPrivate XServerLocalPrivate;
@@ -31,6 +34,9 @@ typedef struct
 typedef struct
 {
     XServerClass parent_class;
+    ProcessRunFunc (*get_run_function)(XServerLocal *server);
+    gboolean (*get_log_stdout)(XServerLocal *server);  
+    void (*add_args)(XServerLocal *server, GString *command);
 } XServerLocalClass;
 
 const gchar *x_server_local_get_version (void);

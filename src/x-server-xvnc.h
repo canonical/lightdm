@@ -12,7 +12,7 @@
 #ifndef X_SERVER_XVNC_H_
 #define X_SERVER_XVNC_H_
 
-#include "x-server.h"
+#include "x-server-local.h"
 
 G_BEGIN_DECLS
 
@@ -24,13 +24,13 @@ typedef struct XServerXVNCPrivate XServerXVNCPrivate;
 
 typedef struct
 {
-    XServer              parent_instance;
+    XServerLocal        parent_instance;
     XServerXVNCPrivate *priv;
 } XServerXVNC;
 
 typedef struct
 {
-    XServerClass parent_class;
+    XServerLocalClass parent_class;
 
     void (*ready)(XServerXVNC *server);
 } XServerXVNCClass;
@@ -41,8 +41,6 @@ gboolean x_server_xvnc_check_available (void);
 
 XServerXVNC *x_server_xvnc_new (void);
 
-void x_server_xvnc_set_command (XServerXVNC *server, const gchar *command);
-
 void x_server_xvnc_set_socket (XServerXVNC *server, int fd);
 
 int x_server_xvnc_get_socket (XServerXVNC *server);
@@ -50,8 +48,6 @@ int x_server_xvnc_get_socket (XServerXVNC *server);
 void x_server_xvnc_set_geometry (XServerXVNC *server, gint width, gint height);
 
 void x_server_xvnc_set_depth (XServerXVNC *server, gint depth);
-
-const gchar *x_server_xvnc_get_authority_file_path (XServerXVNC *server);
 
 G_END_DECLS
 
