@@ -1,3 +1,27 @@
+lightdm (1.18.2-0ubuntu1) xenial; urgency=medium
+
+  * New upstream release:
+    - Don't quit on SIGUSR1, SIGUSR2 or SIGHUP (LP: #960157)
+    - Use MIR_SERVER_HOST_SOCKET instead of MIR_SOCKET to report compositor
+      socket to sessions. This used to work but no longer works in Mir 0.21
+      (LP: #1583624)
+    - Use only a single compositor on xlocal seats (LP: #1594229)
+    - Fix Mir greeter log filename having "(null)" in the name (LP: #1590582)
+    - Set XDMCP hostname field in to system hostname or configured value
+      (LP: #1578442)
+    - Improve XDMCP IPv6 address selection (LP: #1575200)
+    - Allow fcitx and mozc to run in guest session (LP: #1509829)
+    - Fix uninitialized memory errors
+  * debian/lightdm.dirs:
+    - Ensure user configuration directories /etc/lightdm/lightdm.conf.d and
+      /etc/guest-session exist
+  * debian/guest-account.sh:
+  * debian/guest-session-setup.sh:
+    - Source prefs.sh as privileged user to allow user modification
+      (LP: #1581853)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 21 Jun 2016 12:49:01 +1200
+
 lightdm (1.18.1-0ubuntu1) xenial; urgency=medium
 
   * New upstream release:
