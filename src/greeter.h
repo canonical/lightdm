@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2010-2011 Robert Ancell.
- * Author: Robert Ancell <robert.ancell@canonical.com>
+ * Copyright (C) 2010-2016 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
@@ -34,13 +33,13 @@ typedef struct GreeterPrivate GreeterPrivate;
 
 typedef struct
 {
-    Session         parent_instance;
+    GObject         parent_instance;
     GreeterPrivate *priv;
 } Greeter;
 
 typedef struct
 {
-    SessionClass parent_class;
+    GObjectClass parent_class;
     void (*connected)(Greeter *greeter);
     Session *(*create_session)(Greeter *greeter);
     gboolean (*start_session)(Greeter *greeter, SessionType type, const gchar *session);
@@ -49,6 +48,10 @@ typedef struct
 GType greeter_get_type (void);
 
 Greeter *greeter_new (void);
+
+gboolean greeter_start (Greeter *greeter, gboolean (*setup_child_cb)(Greeter *greeter, int input_fd, int output_fd, gpointer user_data), gpointer user_data);
+
+void greeter_stop (Greeter *greeter);
 
 void greeter_set_pam_services (Greeter *greeter, const gchar *pam_service, const gchar *autologin_pam_service);
 

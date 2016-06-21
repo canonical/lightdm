@@ -16,7 +16,7 @@
 #include "seat.h"
 #include "configuration.h"
 #include "guest-account.h"
-#include "greeter.h"
+#include "greeter-session.h"
 #include "session-config.h"
 
 enum {
@@ -67,7 +67,7 @@ struct SeatPrivate
     gboolean stopped;
     
     /* The greeter to be started to replace the current one */
-    Greeter *replacement_greeter;
+    GreeterSession *replacement_greeter;
 };
 
 static void seat_logger_iface_init (LoggerInterface *iface);
@@ -85,7 +85,7 @@ static GHashTable *seat_modules = NULL;
 
 // FIXME: Make a get_display_server() that re-uses display servers if supported
 static DisplayServer *create_display_server (Seat *seat, Session *session);
-static Greeter *create_greeter_session (Seat *seat);
+static GreeterSession *create_greeter_session (Seat *seat);
 static void start_session (Seat *seat, Session *session);
 
 void
@@ -235,12 +235,12 @@ seat_set_active_session (Seat *seat, Session *session)
         if (s == session || session_get_is_stopping (s))
             continue;
 
-        if (IS_GREETER (s))
+        if (IS_GREETER_SESSION (s))
         {
-            Greeter *greeter = GREETER (s);
+            Greeter *greeter = greeter_session_get_greeter (GREETER_SESSION (s));
             if (greeter_get_resettable (greeter))
             {
-                if (seat->priv->active_session == SESSION (greeter))
+                if (seat->priv->active_session == s)
                 {
                     l_debug (seat, "Idling greeter");
                     /* Do this in an idle callback, because we might very well
@@ -259,7 +259,7 @@ seat_set_active_session (Seat *seat, Session *session)
     }
 
     /* Lock previous sessions */
-    if (seat->priv->active_session && session != seat->priv->active_session && !IS_GREETER (seat->priv->active_session))
+    if (seat->priv->active_session && session != seat->priv->active_session && !IS_GREETER_SESSION (seat->priv->active_session))
         session_lock (seat->priv->active_session);
 
     session_activate (session);
@@ -466,7 +466,7 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
             continue;
 
         /* Stop seat if this is the only display server and it failed to start a greeter */
-        if (IS_GREETER (session) &&
+        if (IS_GREETER_SESSION (session) &&
             !session_get_is_started (session) &&
             g_list_length (seat->priv->display_servers) == 0)
         {
@@ -503,7 +503,7 @@ can_share_display_server (Seat *seat, DisplayServer *display_server)
     return seat->priv->share_display_server && display_server_get_can_share (display_server);
 }
 
-static Greeter *
+static GreeterSession *
 find_greeter_session (Seat *seat)
 {
     GList *link;
@@ -511,14 +511,14 @@ find_greeter_session (Seat *seat)
     for (link = seat->priv->sessions; link; link = link->next)
     {
         Session *session = link->data;
-        if (!session_get_is_stopping (session) && IS_GREETER (session))
-            return GREETER (session);
+        if (!session_get_is_stopping (session) && IS_GREETER_SESSION (session))
+            return GREETER_SESSION (session);
     }
 
     return NULL;
 }
 
-static Greeter *
+static GreeterSession *
 find_resettable_greeter (Seat *seat)
 {
     GList *link;
@@ -526,29 +526,30 @@ find_resettable_greeter (Seat *seat)
     for (link = seat->priv->sessions; link; link = link->next)
     {
         Session *session = link->data;
-        if (!session_get_is_stopping (session) && IS_GREETER (session) &&
-            greeter_get_resettable (GREETER (session)))
-            return GREETER (session);
+        if (!session_get_is_stopping (session) && IS_GREETER_SESSION (session) &&
+            greeter_get_resettable (greeter_session_get_greeter (GREETER_SESSION (session))))
+            return GREETER_SESSION (session);
     }
 
     return NULL;
 }
 
 static void
-set_greeter_hints (Seat *seat, Greeter *greeter_session)
+set_greeter_hints (Seat *seat, Greeter *greeter)
 {
-    greeter_clear_hints (greeter_session);
-    greeter_set_hint (greeter_session, "default-session", seat_get_string_property (seat, "user-session"));
-    greeter_set_hint (greeter_session, "hide-users", seat_get_boolean_property (seat, "greeter-hide-users") ? "true" : "false");
-    greeter_set_hint (greeter_session, "show-manual-login", seat_get_boolean_property (seat, "greeter-show-manual-login") ? "true" : "false");
-    greeter_set_hint (greeter_session, "show-remote-login", seat_get_boolean_property (seat, "greeter-show-remote-login") ? "true" : "false");
-    greeter_set_hint (greeter_session, "has-guest-account", seat_get_allow_guest (seat) && seat_get_boolean_property (seat, "greeter-allow-guest") ? "true" : "false");
+    greeter_clear_hints (greeter);
+    greeter_set_hint (greeter, "default-session", seat_get_string_property (seat, "user-session"));
+    greeter_set_hint (greeter, "hide-users", seat_get_boolean_property (seat, "greeter-hide-users") ? "true" : "false");
+    greeter_set_hint (greeter, "show-manual-login", seat_get_boolean_property (seat, "greeter-show-manual-login") ? "true" : "false");
+    greeter_set_hint (greeter, "show-remote-login", seat_get_boolean_property (seat, "greeter-show-remote-login") ? "true" : "false");
+    greeter_set_hint (greeter, "has-guest-account", seat_get_allow_guest (seat) && seat_get_boolean_property (seat, "greeter-allow-guest") ? "true" : "false");
 }
 
 static void
 switch_to_greeter_from_failed_session (Seat *seat, Session *session)
 {
-    Greeter *greeter_session;
+    GreeterSession *greeter_session;
+    Greeter *greeter;  
     gboolean existing = FALSE;
 
     /* Switch to greeter if one open */
@@ -556,22 +557,23 @@ switch_to_greeter_from_failed_session (Seat *seat, Session *session)
     if (greeter_session)
     {
         l_debug (seat, "Switching to existing greeter");
-        set_greeter_hints (seat, greeter_session);
+        set_greeter_hints (seat, greeter_session_get_greeter (greeter_session));
         existing = TRUE;
     }
     else
     {
         greeter_session = create_greeter_session (seat);
     }
+    greeter = greeter_session_get_greeter (greeter_session);
 
     if (session_get_is_guest (session))
-        greeter_set_hint (greeter_session, "select-guest", "true");
+        greeter_set_hint (greeter, "select-guest", "true");
     else
-        greeter_set_hint (greeter_session, "select-user", session_get_username (session));
+        greeter_set_hint (greeter, "select-user", session_get_username (session));
 
     if (existing)
     {
-        greeter_reset (greeter_session);
+        greeter_reset (greeter);
         seat_set_active_session (seat, SESSION (greeter_session));
     }
     else
@@ -605,7 +607,7 @@ static void
 start_session (Seat *seat, Session *session)
 {
     /* Use system location for greeter log file */
-    if (IS_GREETER (session))
+    if (IS_GREETER_SESSION (session))
     {
         gchar *log_dir, *filename, *log_filename;
         gboolean backup_logs;
@@ -623,7 +625,7 @@ start_session (Seat *seat, Session *session)
     if (session_start (session))
         return;
 
-    if (IS_GREETER (session))
+    if (IS_GREETER_SESSION (session))
     {
         l_debug (seat, "Failed to start greeter");
         display_server_stop (session_get_display_server (session));
@@ -639,7 +641,7 @@ run_session (Seat *seat, Session *session)
 {
     const gchar *script;
 
-    if (IS_GREETER (session))
+    if (IS_GREETER_SESSION (session))
         script = seat_get_string_property (seat, "greeter-setup-script");
     else
         script = seat_get_string_property (seat, "session-setup-script");
@@ -650,7 +652,7 @@ run_session (Seat *seat, Session *session)
         return;
     }
 
-    if (!IS_GREETER (session))
+    if (!IS_GREETER_SESSION (session))
     {
         g_signal_emit (seat, signals[RUNNING_USER_SESSION], 0, session);
         emit_upstart_signal ("desktop-session-start");
@@ -733,7 +735,7 @@ session_authentication_complete_cb (Session *session, Seat *seat)
             run_session (seat, session);
         }
     }
-    else if (!IS_GREETER (session))
+    else if (!IS_GREETER_SESSION (session))
     {
         l_debug (seat, "Switching to greeter due to failed authentication");
         switch_to_greeter_from_failed_session (seat, session);
@@ -769,7 +771,7 @@ session_stopped_cb (Session *session, Seat *seat)
     }
 
     /* Cleanup */
-    if (!IS_GREETER (session))
+    if (!IS_GREETER_SESSION (session))
     {
         const gchar *script;
         script = seat_get_string_property (seat, "session-cleanup-script");
@@ -790,9 +792,9 @@ session_stopped_cb (Session *session, Seat *seat)
     }
     
     /* If there is a pending replacement greeter, start it */
-    if (IS_GREETER (session) && seat->priv->replacement_greeter)
+    if (IS_GREETER_SESSION (session) && seat->priv->replacement_greeter)
     {
-        Greeter *replacement_greeter = seat->priv->replacement_greeter;
+        GreeterSession *replacement_greeter = seat->priv->replacement_greeter;
         seat->priv->replacement_greeter = NULL;
         
         if (session_get_is_authenticated (SESSION (replacement_greeter)))
@@ -809,9 +811,9 @@ session_stopped_cb (Session *session, Seat *seat)
         g_object_unref (replacement_greeter);
     }
     /* If this is the greeter session then re-use this display server */
-    else if (IS_GREETER (session) &&
+    else if (IS_GREETER_SESSION (session) &&
         can_share_display_server (seat, display_server) &&
-        greeter_get_start_session (GREETER (session)))
+        greeter_get_start_session (greeter_session_get_greeter (GREETER_SESSION (session))))
     {
         GList *link;
 
@@ -837,8 +839,8 @@ session_stopped_cb (Session *session, Seat *seat)
         }
     }
     /* If this is the greeter and nothing else is running then stop the seat */
-    else if (IS_GREETER (session) &&
-        !greeter_get_start_session (GREETER (session)) &&
+    else if (IS_GREETER_SESSION (session) &&
+        !greeter_get_start_session (greeter_session_get_greeter (GREETER_SESSION (session))) &&
         g_list_length (seat->priv->display_servers) == 1 &&
         g_list_nth_data (seat->priv->display_servers, 0) == display_server)
     {
@@ -846,7 +848,7 @@ session_stopped_cb (Session *session, Seat *seat)
         seat_stop (seat);
     }
     /* If we were the active session, switch to a greeter */
-    else if (!IS_GREETER (session) && session == seat_get_active_session (seat))
+    else if (!IS_GREETER_SESSION (session) && session == seat_get_active_session (seat))
     {
         l_debug (seat, "Active session stopped, starting greeter");
         if (!seat_switch_to_greeter (seat))
@@ -1139,14 +1141,33 @@ create_guest_session (Seat *seat, const gchar *session_name)
     return session;
 }
 
+// FIXME: This is inefficient and we already know the greeter session when we set the callbacks...
+static Session *
+get_greeter_session (Seat *seat, Greeter *greeter)
+{
+    GList *link;
+
+    /* Stop any greeters */
+    for (link = seat->priv->sessions; link; link = link->next)
+    {
+        Session *session = link->data;
+
+        if (IS_GREETER_SESSION (session) && greeter_session_get_greeter (GREETER_SESSION (session)))
+            return session;
+    }
+
+    return NULL;
+}
+
 static Session *
 greeter_create_session_cb (Greeter *greeter, Seat *seat)
 {
-    Session *session;
+    Session *greeter_session, *session;
 
+    greeter_session = get_greeter_session (seat, greeter);
     session = create_session (seat, FALSE);
-    session_set_config (session, session_get_config (SESSION (greeter)));
-    session_set_display_server (session, session_get_display_server (SESSION (greeter)));
+    session_set_config (session, session_get_config (greeter_session));
+    session_set_display_server (session, session_get_display_server (greeter_session));
 
     return g_object_ref (session);
 }
@@ -1154,7 +1175,7 @@ greeter_create_session_cb (Greeter *greeter, Seat *seat)
 static gboolean
 greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
 {
-    Session *session, *existing_session;
+    Session *session, *existing_session, *greeter_session;
     const gchar *username;
     DisplayServer *display_server;
 
@@ -1233,7 +1254,8 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     }
 
     /* If can re-use the display server, stop the greeter first */
-    display_server = session_get_display_server (SESSION (greeter));
+    greeter_session = get_greeter_session (seat, greeter);
+    display_server = session_get_display_server (greeter_session);
     if (!greeter_get_resettable (greeter) &&
         can_share_display_server (seat, display_server) &&
         strcmp (display_server_get_session_type (display_server), session_get_session_type (session)) == 0)
@@ -1244,7 +1266,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         session_set_display_server (session, display_server);
 
         /* Stop the greeter */
-        session_stop (SESSION (greeter));
+        session_stop (greeter_session);
 
         return TRUE;
     }
@@ -1263,12 +1285,13 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     }
 }
 
-static Greeter *
+static GreeterSession *
 create_greeter_session (Seat *seat)
 {
     gchar *sessions_dir, **argv;
     SessionConfig *session_config;
-    Greeter *greeter_session;
+    GreeterSession *greeter_session;
+    Greeter *greeter;  
     const gchar *greeter_wrapper;
     const gchar *autologin_username;
     int autologin_timeout;
@@ -1293,9 +1316,10 @@ create_greeter_session (Seat *seat)
     }
 
     greeter_session = SEAT_GET_CLASS (seat)->create_greeter_session (seat);
+    greeter = greeter_session_get_greeter (greeter_session);
     session_set_config (SESSION (greeter_session), session_config);
     seat->priv->sessions = g_list_append (seat->priv->sessions, SESSION (greeter_session));
-    g_signal_connect (greeter_session, GREETER_SIGNAL_ACTIVE_USERNAME_CHANGED, G_CALLBACK (greeter_active_username_changed_cb), seat);
+    g_signal_connect (greeter, GREETER_SIGNAL_ACTIVE_USERNAME_CHANGED, G_CALLBACK (greeter_active_username_changed_cb), seat);
     g_signal_connect (greeter_session, SESSION_SIGNAL_AUTHENTICATION_COMPLETE, G_CALLBACK (session_authentication_complete_cb), seat);
     g_signal_connect (greeter_session, SESSION_SIGNAL_STOPPED, G_CALLBACK (session_stopped_cb), seat);
 
@@ -1318,15 +1342,15 @@ create_greeter_session (Seat *seat)
     session_set_argv (SESSION (greeter_session), argv);
     g_strfreev (argv);
 
-    greeter_set_pam_services (greeter_session,
+    greeter_set_pam_services (greeter,
                               seat_get_string_property (seat, "pam-service"),
                               seat_get_string_property (seat, "pam-autologin-service"));
-    g_signal_connect (greeter_session, GREETER_SIGNAL_CREATE_SESSION, G_CALLBACK (greeter_create_session_cb), seat);
-    g_signal_connect (greeter_session, GREETER_SIGNAL_START_SESSION, G_CALLBACK (greeter_start_session_cb), seat);
+    g_signal_connect (greeter, GREETER_SIGNAL_CREATE_SESSION, G_CALLBACK (greeter_create_session_cb), seat);
+    g_signal_connect (greeter, GREETER_SIGNAL_START_SESSION, G_CALLBACK (greeter_start_session_cb), seat);
 
     /* Set hints to greeter */
-    greeter_set_allow_guest (greeter_session, seat_get_allow_guest (seat));
-    set_greeter_hints (seat, greeter_session);
+    greeter_set_allow_guest (greeter, seat_get_allow_guest (seat));
+    set_greeter_hints (seat, greeter);
 
     /* Configure for automatic login */
     autologin_username = seat_get_string_property (seat, "autologin-user");
@@ -1339,12 +1363,12 @@ create_greeter_session (Seat *seat)
         gchar *value;
 
         value = g_strdup_printf ("%d", autologin_timeout);
-        greeter_set_hint (greeter_session, "autologin-timeout", value);
+        greeter_set_hint (greeter, "autologin-timeout", value);
         g_free (value);
         if (autologin_username)
-            greeter_set_hint (greeter_session, "autologin-user", autologin_username);
+            greeter_set_hint (greeter, "autologin-user", autologin_username);
         if (autologin_guest)
-            greeter_set_hint (greeter_session, "autologin-guest", "true");
+            greeter_set_hint (greeter, "autologin-guest", "true");
     }
 
     g_object_unref (session_config);
@@ -1427,7 +1451,7 @@ create_display_server (Seat *seat, Session *session)
 gboolean
 seat_switch_to_greeter (Seat *seat)
 {
-    Greeter *greeter_session;
+    GreeterSession *greeter_session;
     DisplayServer *display_server;
 
     g_return_val_if_fail (seat != NULL, FALSE);
@@ -1460,7 +1484,8 @@ seat_switch_to_greeter (Seat *seat)
 static void
 switch_authentication_complete_cb (Session *session, Seat *seat)
 {
-    Greeter *greeter_session;
+    GreeterSession *greeter_session;
+    Greeter *greeter;
     DisplayServer *display_server;
     gboolean existing = FALSE;
 
@@ -1497,7 +1522,7 @@ switch_authentication_complete_cb (Session *session, Seat *seat)
     if (greeter_session)
     {
         l_debug (seat, "Switching to existing greeter to authenticate session");
-        set_greeter_hints (seat, greeter_session);
+        set_greeter_hints (seat, greeter_session_get_greeter (greeter_session));
         existing = TRUE;
     }
     else
@@ -1505,15 +1530,16 @@ switch_authentication_complete_cb (Session *session, Seat *seat)
         l_debug (seat, "Starting greeter to authenticate session");
         greeter_session = create_greeter_session (seat);
     }
+    greeter = greeter_session_get_greeter (greeter_session);
 
     if (session_get_is_guest (session))
-        greeter_set_hint (greeter_session, "select-guest", "true");
+        greeter_set_hint (greeter, "select-guest", "true");
     else
-        greeter_set_hint (greeter_session, "select-user", session_get_username (session));
+        greeter_set_hint (greeter, "select-user", session_get_username (session));
 
     if (existing)
     {
-        greeter_reset (greeter_session);
+        greeter_reset (greeter);
         seat_set_active_session (seat, SESSION (greeter_session));
     }
     else
@@ -1605,7 +1631,8 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
 gboolean
 seat_lock (Seat *seat, const gchar *username)
 {
-    Greeter *greeter_session;
+    GreeterSession *greeter_session;
+    Greeter *greeter;
     DisplayServer *display_server = NULL;
     gboolean reset_existing = FALSE;
     gboolean reuse_xserver = FALSE;
@@ -1624,7 +1651,7 @@ seat_lock (Seat *seat, const gchar *username)
     if (greeter_session)
     {
         l_debug (seat, "Switching to existing greeter");
-        set_greeter_hints (seat, greeter_session);
+        set_greeter_hints (seat, greeter_session_get_greeter (greeter_session));
         reset_existing = TRUE;
     }
     else
@@ -1646,14 +1673,15 @@ seat_lock (Seat *seat, const gchar *username)
         if (!greeter_session)
             return FALSE;
     }
+    greeter = greeter_session_get_greeter (greeter_session);
 
-    greeter_set_hint (greeter_session, "lock-screen", "true");
+    greeter_set_hint (greeter, "lock-screen", "true");
     if (username)
-        greeter_set_hint (greeter_session, "select-user", username);
+        greeter_set_hint (greeter, "select-user", username);
 
     if (reset_existing)
     {
-        greeter_reset (greeter_session);
+        greeter_reset (greeter);
         seat_set_active_session (seat, SESSION (greeter_session));
         return TRUE;
     }
@@ -1760,7 +1788,7 @@ seat_real_start (Seat *seat)
     /* Fallback to a greeter */
     if (!session)
     {
-        Greeter *greeter_session;
+        GreeterSession *greeter_session;
         DisplayServer *display_server;
 
         greeter_session = create_greeter_session (seat);
@@ -1807,10 +1835,10 @@ seat_real_start (Seat *seat)
     return TRUE;
 }
 
-static Greeter *
+static GreeterSession *
 seat_real_create_greeter_session (Seat *seat)
 {
-    return greeter_new ();
+    return greeter_session_new ();
 }
 
 static Session *

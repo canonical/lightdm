@@ -158,27 +158,27 @@ dnl ###########################################################################
 dnl Configurable values
 dnl ###########################################################################
 
-USER_SESSION=default
+DEFAULT_USER_SESSION=default
 AC_ARG_WITH(user-session,
             AS_HELP_STRING(--with-user-session=<name>,
                            Session to use for user accounts),
     if test x$withval != x; then
-        USER_SESSION="$withval"
+        DEFAULT_USER_SESSION="$withval"
     fi
 )
-AC_SUBST(USER_SESSION)
-AC_DEFINE_UNQUOTED(USER_SESSION, "$USER_SESSION", User session)
+AC_SUBST(DEFAULT_USER_SESSION)
+AC_DEFINE_UNQUOTED(DEFAULT_USER_SESSION, "$DEFAULT_USER_SESSION", User session)
 
-GREETER_SESSION=default
+DEFAULT_GREETER_SESSION=default
 AC_ARG_WITH(greeter-session,
             AS_HELP_STRING(--with-greeter-session=<session>,
                            Greeter session),
     if test x$withval != x; then
-        GREETER_SESSION="$withval"
+        DEFAULT_GREETER_SESSION="$withval"
     fi
 )
-AC_SUBST(GREETER_SESSION)
-AC_DEFINE_UNQUOTED(GREETER_SESSION, "$GREETER_SESSION", Greeter session)
+AC_SUBST(DEFAULT_GREETER_SESSION)
+AC_DEFINE_UNQUOTED(DEFAULT_GREETER_SESSION, "$DEFAULT_GREETER_SESSION", Greeter session)
 
 GREETER_USER=lightdm
 AC_ARG_WITH(greeter-user,
@@ -237,9 +237,9 @@ echo "
                     ===========================
 
         prefix:                   $prefix
-        Greeter session:          $GREETER_SESSION
+        Greeter session:          $DEFAULT_GREETER_SESSION
         Greeter user:             $GREETER_USER
-        User session:             $USER_SESSION
+        User session:             $DEFAULT_USER_SESSION
         GObject introspection:    $found_introspection
         Vala bindings:            $enable_vala
         liblightdm-qt:            $compile_liblightdm_qt4

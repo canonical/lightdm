@@ -21,7 +21,7 @@
 #include "unity-system-compositor.h"
 #include "configuration.h"
 #include "process.h"
-#include "greeter.h"
+#include "greeter-session.h"
 #include "vt.h"
 
 struct UnitySystemCompositorPrivate
@@ -178,7 +178,7 @@ unity_system_compositor_connect_session (DisplayServer *display_server, Session 
 
     if (compositor->priv->socket)
         session_set_env (session, "MIR_SERVER_HOST_SOCKET", compositor->priv->socket);
-    if (IS_GREETER (session))
+    if (IS_GREETER_SESSION (session))
         name = "greeter-0";
     else
         name = "session-0";
