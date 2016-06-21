@@ -75,7 +75,7 @@ mir_server_connect_session (DisplayServer *display_server, Session *session)
     if (server->priv->vt > 0)
     {
         gchar *value = g_strdup_printf ("%d", server->priv->vt);
-        session_set_env (session, "MIR_SERVER_VT", value);
+        session_set_env (session, "XDG_VTNR", value);
         g_free (value);
     }
 }
@@ -85,7 +85,7 @@ mir_server_disconnect_session (DisplayServer *display_server, Session *session)
 {
     session_unset_env (session, "XDG_SESSION_TYPE");
     session_unset_env (session, "MIR_SERVER_HOST_SOCKET");
-    session_unset_env (session, "MIR_SERVER_VT");
+    session_unset_env (session, "XDG_VTNR");
 }
 
 static void

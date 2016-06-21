@@ -57,12 +57,6 @@ struct XServerLocalPrivate
     /* XDMCP key to use */
     gchar *xdmcp_key;
 
-    /* ID to report to Mir */
-    gchar *mir_id;
-
-    /* Filename of socket Mir is listening on */
-    gchar *mir_socket;
-
     /* TRUE when received ready signal */
     gboolean got_signal;
 
@@ -317,28 +311,6 @@ x_server_local_set_background (XServerLocal *server, const gchar *background)
     server->priv->background = g_strdup (background);
 }
 
-void
-x_server_local_set_mir_id (XServerLocal *server, const gchar *id)
-{
-    g_return_if_fail (server != NULL);
-    g_free (server->priv->mir_id);
-    server->priv->mir_id = g_strdup (id);
-}
-
-const gchar *x_server_local_get_mir_id (XServerLocal *server)
-{
-    g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->mir_id;
-}
-
-void
-x_server_local_set_mir_socket (XServerLocal *server, const gchar *socket)
-{
-    g_return_if_fail (server != NULL);
-    g_free (server->priv->mir_socket);
-    server->priv->mir_socket = g_strdup (socket);
-}
-
 static guint
 x_server_local_get_display_number (XServer *server)
 {
@@ -537,13 +509,6 @@ x_server_local_start (DisplayServer *display_server)
     if (server->priv->authority_file)
         g_string_append_printf (command, " -auth %s", server->priv->authority_file);
 
-    /* Setup for running inside Mir */
-    if (server->priv->mir_id)
-        g_string_append_printf (command, " -mir %s", server->priv->mir_id);
-
-    if (server->priv->mir_socket)
-        g_string_append_printf (command, " -mirSocket %s", server->priv->mir_socket);
-
     /* Connect to a remote server using XDMCP */
     if (server->priv->xdmcp_server != NULL)
     {
@@ -641,8 +606,6 @@ x_server_local_finalize (GObject *object)
     g_free (self->priv->xdg_seat);
     g_free (self->priv->xdmcp_server);
     g_free (self->priv->xdmcp_key);
-    g_free (self->priv->mir_id);
-    g_free (self->priv->mir_socket);
     g_free (self->priv->authority_file);
     if (self->priv->have_vt_ref)
         vt_unref (self->priv->vt);
@@ -662,7 +625,7 @@ x_server_local_class_init (XServerLocalClass *klass)
     klass->get_log_stdout = x_server_local_get_log_stdout;
     x_server_class->get_display_number = x_server_local_get_display_number;
     display_server_class->get_vt = x_server_local_get_vt;
-    display_server_class->start = x_server_local_start;
+    display_server_class->start = klass->start = x_server_local_start;
     display_server_class->stop = x_server_local_stop;
     object_class->finalize = x_server_local_finalize;
 

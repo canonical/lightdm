@@ -67,6 +67,8 @@ gint display_server_get_vt (DisplayServer *server);
 
 gboolean display_server_start (DisplayServer *server);
 
+gboolean display_server_get_is_ready (DisplayServer *server);
+
 void display_server_connect_session (DisplayServer *server, Session *session);
 
 void display_server_disconnect_session (DisplayServer *server, Session *session);

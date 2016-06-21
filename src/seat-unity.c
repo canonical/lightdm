@@ -17,7 +17,7 @@
 #include "seat-unity.h"
 #include "configuration.h"
 #include "unity-system-compositor.h"
-#include "x-server-local.h"
+#include "x-server-xmir.h"
 #include "mir-server.h"
 #include "vt.h"
 #include "plymouth.h"
@@ -28,7 +28,7 @@ struct SeatUnityPrivate
     UnitySystemCompositor *compositor;
 
     /* X server being used for XDMCP */
-    XServerLocal *xdmcp_x_server;
+    XServerXmir *xdmcp_x_server;
 
     /* Next Mir ID to use for a Mir sessions, X server and greeters */
     gint next_session_id;
@@ -42,7 +42,7 @@ struct SeatUnityPrivate
 
 G_DEFINE_TYPE (SeatUnity, seat_unity, SEAT_TYPE);
 
-static XServerLocal *create_x_server (Seat *seat);
+static XServerXmir *create_x_server (Seat *seat);
 
 static void
 seat_unity_setup (Seat *seat)
@@ -89,10 +89,10 @@ compositor_ready_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
         gint port = 0;
 
         seat->priv->xdmcp_x_server = create_x_server (SEAT (seat));
-        x_server_local_set_xdmcp_server (seat->priv->xdmcp_x_server, xdmcp_manager);
+        x_server_local_set_xdmcp_server (X_SERVER_LOCAL (seat->priv->xdmcp_x_server), xdmcp_manager);
         port = seat_get_integer_property (SEAT (seat), "xdmcp-port");
         if (port > 0)
-            x_server_local_set_xdmcp_port (seat->priv->xdmcp_x_server, port);
+            x_server_local_set_xdmcp_port (X_SERVER_LOCAL (seat->priv->xdmcp_x_server), port);
         key_name = seat_get_string_property (SEAT (seat), "xdmcp-key");
         if (key_name)
         {
@@ -119,7 +119,7 @@ compositor_ready_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
                     l_debug (seat, "Key %s not defined", key_name);
 
                 if (key)
-                    x_server_local_set_xdmcp_key (seat->priv->xdmcp_x_server, key);
+                    x_server_local_set_xdmcp_key (X_SERVER_LOCAL (seat->priv->xdmcp_x_server), key);
                 g_free (key);
             }
 
@@ -190,10 +190,10 @@ seat_unity_start (Seat *seat)
     return display_server_start (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor));
 }
 
-static XServerLocal *
+static XServerXmir *
 create_x_server (Seat *seat)
 {
-    XServerLocal *x_server;
+    XServerXmir *x_server;
     gchar *number;
     XAuthority *cookie;
     const gchar *command = NULL, *layout = NULL, *config_file = NULL;
@@ -202,18 +202,18 @@ create_x_server (Seat *seat)
 
     l_debug (seat, "Starting X server on Unity compositor");
 
-    x_server = x_server_local_new ();
+    x_server = x_server_xmir_new (SEAT_UNITY (seat)->priv->compositor);
 
     command = seat_get_string_property (seat, "xmir-command");
     /* Fall back to using X if Xmir is not available as this was the previous way XMir worked */
     if (strcmp (command, "Xmir") == 0 && !g_find_program_in_path ("Xmir"))
         command = seat_get_string_property (seat, "xserver-command");
-    x_server_local_set_command (x_server, command);
+    x_server_local_set_command (X_SERVER_LOCAL (x_server), command);
 
     id = g_strdup_printf ("x-%d", SEAT_UNITY (seat)->priv->next_x_server_id);
     SEAT_UNITY (seat)->priv->next_x_server_id++;
-    x_server_local_set_mir_id (x_server, id);
-    x_server_local_set_mir_socket (x_server, unity_system_compositor_get_socket (SEAT_UNITY (seat)->priv->compositor));
+    x_server_xmir_set_mir_id (x_server, id);
+    x_server_xmir_set_mir_socket (x_server, unity_system_compositor_get_socket (SEAT_UNITY (seat)->priv->compositor));
     g_free (id);
 
     number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (x_server)));
@@ -224,16 +224,16 @@ create_x_server (Seat *seat)
 
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)
-        x_server_local_set_layout (x_server, layout);
+        x_server_local_set_layout (X_SERVER_LOCAL (x_server), layout);
 
-    x_server_local_set_xdg_seat (x_server, seat_get_name (seat));
+    x_server_local_set_xdg_seat (X_SERVER_LOCAL (x_server), seat_get_name (seat));
 
     config_file = seat_get_string_property (seat, "xserver-config");
     if (config_file)
-        x_server_local_set_config (x_server, config_file);
+        x_server_local_set_config (X_SERVER_LOCAL (x_server), config_file);
 
     allow_tcp = seat_get_boolean_property (seat, "xserver-allow-tcp");
-    x_server_local_set_allow_tcp (x_server, allow_tcp);
+    x_server_local_set_allow_tcp (X_SERVER_LOCAL (x_server), allow_tcp);
 
     return x_server;
 }
@@ -245,6 +245,7 @@ create_mir_server (Seat *seat)
 
     mir_server = mir_server_new ();
     mir_server_set_parent_socket (mir_server, unity_system_compositor_get_socket (SEAT_UNITY (seat)->priv->compositor));
+    mir_server_set_vt (mir_server, display_server_get_vt (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor)));
 
     return DISPLAY_SERVER (mir_server);
 }
@@ -335,7 +336,7 @@ seat_unity_set_active_session (Seat *seat, Session *session)
         SEAT_UNITY (seat)->priv->active_display_server = g_object_ref (display_server);
 
         if (IS_X_SERVER_LOCAL (display_server))
-            id = x_server_local_get_mir_id (X_SERVER_LOCAL (display_server));
+            id = x_server_xmir_get_mir_id (X_SERVER_XMIR (display_server));
         else
             id = session_get_env (session, "MIR_SERVER_NAME");
 
@@ -369,7 +370,7 @@ seat_unity_set_next_session (Seat *seat, Session *session)
     display_server = session_get_display_server (session);
 
     if (IS_X_SERVER_LOCAL (display_server))
-        id = x_server_local_get_mir_id (X_SERVER_LOCAL (display_server));
+        id = x_server_xmir_get_mir_id (X_SERVER_XMIR (display_server));
     else
         id = session_get_env (session, "MIR_SERVER_NAME");
 
@@ -389,13 +390,13 @@ seat_unity_set_next_session (Seat *seat, Session *session)
 static void
 seat_unity_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
-    if (IS_X_SERVER_LOCAL (display_server))
+    if (IS_X_SERVER_XMIR (display_server))
     {
-        XServerLocal *x_server;
+        XServerXmir *x_server;
         const gchar *path;
 
-        x_server = X_SERVER_LOCAL (display_server);
-        path = x_server_local_get_authority_file_path (x_server);
+        x_server = X_SERVER_XMIR (display_server);
+        path = x_server_local_get_authority_file_path (X_SERVER_LOCAL (x_server));
         process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
         process_set_env (script, "XAUTHORITY", path);
     }

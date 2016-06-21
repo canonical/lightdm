@@ -61,6 +61,8 @@ lightdm_SOURCES = \
 	x-server-local.h \
 	x-server-remote.c \
 	x-server-remote.h \
+	x-server-xmir.c \
+	x-server-xmir.h \
 	x-server-xvnc.c \
 	x-server-xvnc.h \
 	x-server.c \

@@ -25,6 +25,9 @@ struct DisplayServerPrivate
     /* Unique name for this display server */
     gchar *name;
 
+    /* TRUE when started */
+    gboolean is_ready;
+
     /* TRUE when being stopped */
     gboolean stopping;
 
@@ -91,9 +94,17 @@ display_server_start (DisplayServer *server)
     return DISPLAY_SERVER_GET_CLASS (server)->start (server);
 }
 
+gboolean
+display_server_get_is_ready (DisplayServer *server)
+{
+    g_return_val_if_fail (server != NULL, FALSE);
+    return server->priv->is_ready;
+}
+
 static gboolean
 display_server_real_start (DisplayServer *server)
 {
+    server->priv->is_ready = TRUE;
     g_signal_emit (server, signals[READY], 0);
     return TRUE;
 }
