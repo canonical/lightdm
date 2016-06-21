@@ -170,6 +170,8 @@ static XServerLocal *
 create_x_server (Seat *seat)
 {
     XServerLocal *x_server;
+    gchar *number;
+    XAuthority *cookie;
     const gchar *command = NULL, *layout = NULL, *config_file = NULL;
     gboolean allow_tcp;
     gint vt;
@@ -192,6 +194,12 @@ create_x_server (Seat *seat)
         command = seat_get_string_property (seat, "xserver-command");
     if (command)
         x_server_local_set_command (x_server, command);
+
+    number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (x_server)));
+    cookie = x_authority_new_local_cookie (number);
+    x_server_set_authority (X_SERVER (x_server), cookie);
+    g_free (number);
+    g_object_unref (cookie);
 
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)

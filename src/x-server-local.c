@@ -206,16 +206,9 @@ XServerLocal *
 x_server_local_new (void)
 {
     XServerLocal *self;
-    gchar *number, *name;
-    XAuthority *cookie;
+    gchar *name;
 
     self = g_object_new (X_SERVER_LOCAL_TYPE, NULL);
-
-    number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (self)));
-    cookie = x_authority_new_local_cookie (number);
-    x_server_set_authority (X_SERVER (self), cookie);
-    g_free (number);
-    g_object_unref (cookie);
 
     name = g_strdup_printf ("x-%d", x_server_get_display_number (X_SERVER (self)));
     display_server_set_name (DISPLAY_SERVER (self), name);
