@@ -56,6 +56,8 @@ XAuthority *x_authority_new (guint16 family, const guint8 *address, gsize addres
 
 XAuthority *x_authority_new_cookie (guint16 family, const guint8 *address, gsize address_length, const gchar *number);
 
+XAuthority *x_authority_new_local_cookie (const gchar *number);
+
 void x_authority_set_family (XAuthority *auth, guint16 family);
 
 guint16 x_authority_get_family (XAuthority *auth);
