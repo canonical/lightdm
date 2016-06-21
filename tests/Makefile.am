@@ -200,7 +200,7 @@ TESTS = \
 	test-audit-autologin \
 	test-no-accounts-service \
 	test-console-kit \
-	test-console-kit-no-xdg-runtime \        
+	test-console-kit-no-xdg-runtime \
 	test-no-console-kit \
 	test-no-login1 \
 	test-no-console-kit-or-login1 \
@@ -389,7 +389,7 @@ EXTRA_DIST = \
 	data/sessions/wayland.desktop \
 	scripts/0-additional.conf \
 	scripts/1-additional.conf \
-	scripts/add-local-x-seat.conf \        
+	scripts/add-local-x-seat.conf \
 	scripts/additional-config.conf \
 	scripts/additional-config-priority.conf \
 	scripts/additional-system-config.conf \
@@ -424,7 +424,7 @@ EXTRA_DIST = \
 	scripts/change-authentication.conf \
 	scripts/cancel-authentication.conf \
 	scripts/console-kit.conf \
-	scripts/console-kit-no-xdg-runtime.conf \        
+	scripts/console-kit-no-xdg-runtime.conf \
 	scripts/corrupt-xauthority.conf \
 	scripts/crash-authenticate.conf \
 	scripts/cred-error.conf \
@@ -617,7 +617,7 @@ EXTRA_DIST = \
 	scripts/xdmcp-server-autologin.conf \
 	scripts/xdmcp-server-double-login.conf \
 	scripts/xdmcp-server-guest.conf \
-	scripts/xdmcp-server-hostname.conf \        
+	scripts/xdmcp-server-hostname.conf \
 	scripts/xdmcp-server-invalid-authentication.conf \
 	scripts/xdmcp-server-keep-alive.conf \
 	scripts/xdmcp-server-login.conf \
