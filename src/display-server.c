@@ -62,6 +62,18 @@ display_server_get_session_type (DisplayServer *server)
     return DISPLAY_SERVER_GET_CLASS (server)->get_session_type (server);
 }
 
+DisplayServer *
+display_server_get_parent (DisplayServer *server)
+{
+    return DISPLAY_SERVER_GET_CLASS (server)->get_parent (server);
+}
+
+static DisplayServer *
+display_server_real_get_parent (DisplayServer *server)
+{
+    return NULL;
+}
+
 gboolean
 display_server_get_can_share (DisplayServer *server)
 {
@@ -177,6 +189,7 @@ display_server_class_init (DisplayServerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
+    klass->get_parent = display_server_real_get_parent;  
     klass->get_can_share = display_server_real_get_can_share;
     klass->get_vt = display_server_real_get_vt;
     klass->start = display_server_real_start;

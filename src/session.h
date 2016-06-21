@@ -136,6 +136,8 @@ const gchar *session_get_authentication_result_string (Session *session);
 
 void session_run (Session *session);
 
+gboolean session_get_is_run (Session *session);
+
 void session_lock (Session *session);
 
 void session_unlock (Session *session);

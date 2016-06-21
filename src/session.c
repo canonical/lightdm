@@ -735,8 +735,16 @@ session_get_authentication_result_string (Session *session)
 void
 session_run (Session *session)
 {
+    g_return_if_fail (session != NULL);
     g_return_if_fail (session->priv->display_server != NULL);
     return SESSION_GET_CLASS (session)->run (session);
+}
+
+gboolean
+session_get_is_run (Session *session)
+{
+    g_return_val_if_fail (session != NULL, FALSE);
+    return session->priv->command_run;
 }
 
 static void
@@ -807,7 +815,6 @@ session_real_run (Session *session)
     write_data (session, &argc, sizeof (argc));
     for (link = session->priv->env; link; link = link->next)
         write_string (session, (gchar *) link->data);
-
     argc = g_strv_length (session->priv->argv);
     write_data (session, &argc, sizeof (argc));
     for (i = 0; i < argc; i++)
