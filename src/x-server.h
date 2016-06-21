@@ -35,6 +35,7 @@ typedef struct
 typedef struct
 {
     DisplayServerClass parent_class;
+    guint (*get_display_number) (XServer *server);
 } XServerClass;
 
 GType x_server_get_type (void);
@@ -42,8 +43,6 @@ GType x_server_get_type (void);
 void x_server_set_hostname (XServer *server, const gchar *hostname);
 
 gchar *x_server_get_hostname (XServer *server);
-
-void x_server_set_display_number (XServer *server, guint number);
 
 guint x_server_get_display_number (XServer *server);
 

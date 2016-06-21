@@ -21,9 +21,6 @@ struct XServerPrivate
     /* Host running the server */
     gchar *hostname;
 
-    /* Display number */
-    guint number;
-
     /* Cached server address */
     gchar *address;
 
@@ -53,20 +50,11 @@ x_server_get_hostname (XServer *server)
     return server->priv->hostname;
 }
 
-void
-x_server_set_display_number (XServer *server, guint number)
-{
-    g_return_if_fail (server != NULL);
-    server->priv->number = number;
-    g_free (server->priv->address);
-    server->priv->address = NULL;
-}
-
 guint
 x_server_get_display_number (XServer *server)
 {
     g_return_val_if_fail (server != NULL, 0);
-    return server->priv->number;
+    return X_SERVER_GET_CLASS (server)->get_display_number (server);
 }
 
 const gchar *
@@ -77,9 +65,9 @@ x_server_get_address (XServer *server)
     if (!server->priv->address)
     {
         if (server->priv->hostname)
-            server->priv->address = g_strdup_printf("%s:%d", server->priv->hostname, server->priv->number);
+            server->priv->address = g_strdup_printf("%s:%d", server->priv->hostname, x_server_get_display_number (server));
         else
-            server->priv->address = g_strdup_printf(":%d", server->priv->number);
+            server->priv->address = g_strdup_printf(":%d", x_server_get_display_number (server));
     }
 
     return server->priv->address;

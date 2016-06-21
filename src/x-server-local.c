@@ -30,6 +30,9 @@ struct XServerLocalPrivate
     /* Command to run the X server */
     gchar *command;
 
+    /* Display number to use */
+    guint display_number;
+
     /* Config file to use */
     gchar *config_file;
 
@@ -208,8 +211,6 @@ x_server_local_new (void)
 
     self = g_object_new (X_SERVER_LOCAL_TYPE, NULL);
 
-    x_server_set_display_number (X_SERVER (self), x_server_local_get_unused_display_number ());
-
     number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (self)));
     cookie = x_authority_new_local_cookie (number);
     x_server_set_authority (X_SERVER (self), cookie);
@@ -345,6 +346,12 @@ x_server_local_set_mir_socket (XServerLocal *server, const gchar *socket)
     server->priv->mir_socket = g_strdup (socket);
 }
 
+static guint
+x_server_local_get_display_number (XServer *server)
+{
+    return X_SERVER_LOCAL (server)->priv->display_number;
+}
+
 static gint
 x_server_local_get_vt (DisplayServer *server)
 {
@@ -402,7 +409,7 @@ got_signal_cb (Process *process, int signum, XServerLocal *server)
     if (signum == SIGUSR1 && !server->priv->got_signal)
     {
         server->priv->got_signal = TRUE;
-        l_debug (server, "Got signal from X server :%d", x_server_get_display_number (X_SERVER (server)));
+        l_debug (server, "Got signal from X server :%d", server->priv->display_number);
 
         // FIXME: Check return value
         DISPLAY_SERVER_CLASS (x_server_local_parent_class)->start (DISPLAY_SERVER (server));
@@ -420,7 +427,7 @@ stopped_cb (Process *process, XServerLocal *server)
         vt_unref (server->priv->vt);
         server->priv->have_vt_ref = FALSE;
     }
-    x_server_local_release_display_number (x_server_get_display_number (X_SERVER (server)));
+    x_server_local_release_display_number (server->priv->display_number);
 
     if (x_server_get_authority (X_SERVER (server)) && server->priv->authority_file)
     {
@@ -508,7 +515,7 @@ x_server_local_start (DisplayServer *display_server)
     command = g_string_new (absolute_command);
     g_free (absolute_command);
 
-    g_string_append_printf (command, " :%d", x_server_get_display_number (X_SERVER (server)));
+    g_string_append_printf (command, " :%d", server->priv->display_number);
 
     if (server->priv->config_file)
         g_string_append_printf (command, " -config %s", server->priv->config_file);
@@ -584,7 +591,7 @@ x_server_local_start (DisplayServer *display_server)
     result = process_start (server->priv->x_server_process, FALSE);
 
     if (result)
-        l_debug (display_server, "Waiting for ready signal from X server :%d", x_server_get_display_number (X_SERVER (server)));
+        l_debug (display_server, "Waiting for ready signal from X server :%d", server->priv->display_number);
 
     if (!result)
         stopped_cb (server->priv->x_server_process, X_SERVER_LOCAL (server));
@@ -604,6 +611,7 @@ x_server_local_init (XServerLocal *server)
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, X_SERVER_LOCAL_TYPE, XServerLocalPrivate);
     server->priv->vt = -1;
     server->priv->command = g_strdup ("X");
+    server->priv->display_number = x_server_local_get_unused_display_number ();
 }
 
 static void
@@ -636,8 +644,10 @@ static void
 x_server_local_class_init (XServerLocalClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    XServerClass *x_server_class = X_SERVER_CLASS (klass);
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
+    x_server_class->get_display_number = x_server_local_get_display_number;
     display_server_class->get_vt = x_server_local_get_vt;
     display_server_class->start = x_server_local_start;
     display_server_class->stop = x_server_local_stop;

@@ -29,6 +29,9 @@ struct XServerXVNCPrivate
     /* Command to run the X server */
     gchar *command;
 
+    /* Display number to use */
+    guint display_number;
+
     /* Authority file */
     gchar *authority_file;
 
@@ -49,8 +52,6 @@ x_server_xvnc_new (void)
 {
     XServerXVNC *self = g_object_new (X_SERVER_XVNC_TYPE, NULL);
     gchar *name;
-
-    x_server_set_display_number (X_SERVER (self), x_server_local_get_unused_display_number ());
 
     name = g_strdup_printf ("xvnc-%d", x_server_get_display_number (X_SERVER (self)));
     display_server_set_name (DISPLAY_SERVER (self), name);
@@ -101,6 +102,12 @@ x_server_xvnc_get_authority_file_path (XServerXVNC *server)
 {
     g_return_val_if_fail (server != NULL, 0);
     return server->priv->authority_file;
+}
+
+static guint
+x_server_xvnc_get_display_number (XServer *server)
+{
+    return X_SERVER_XVNC (server)->priv->display_number;
 }
 
 static gchar *
@@ -281,6 +288,7 @@ x_server_xvnc_init (XServerXVNC *server)
 {
     server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, X_SERVER_XVNC_TYPE, XServerXVNCPrivate);
     server->priv->command = g_strdup ("Xvnc");
+    server->priv->display_number = x_server_local_get_unused_display_number ();
     server->priv->width = 1024;
     server->priv->height = 768;
     server->priv->depth = 8;
@@ -302,8 +310,10 @@ static void
 x_server_xvnc_class_init (XServerXVNCClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    XServerClass *x_server_class = X_SERVER_CLASS (klass);
     DisplayServerClass *display_server_class = DISPLAY_SERVER_CLASS (klass);
 
+    x_server_class->get_display_number = x_server_xvnc_get_display_number;
     display_server_class->get_can_share = x_server_xvnc_get_can_share;
     display_server_class->start = x_server_xvnc_start;
     display_server_class->stop = x_server_xvnc_stop;
