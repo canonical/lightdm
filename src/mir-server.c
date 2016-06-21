@@ -71,7 +71,7 @@ mir_server_connect_session (DisplayServer *display_server, Session *session)
 
     server = MIR_SERVER (display_server);
     if (server->priv->parent_socket)
-        session_set_env (session, "MIR_SOCKET", server->priv->parent_socket);
+        session_set_env (session, "MIR_SERVER_HOST_SOCKET", server->priv->parent_socket);
     if (server->priv->vt > 0)
     {
         gchar *value = g_strdup_printf ("%d", server->priv->vt);
@@ -84,7 +84,7 @@ static void
 mir_server_disconnect_session (DisplayServer *display_server, Session *session)
 {
     session_unset_env (session, "XDG_SESSION_TYPE");
-    session_unset_env (session, "MIR_SOCKET");
+    session_unset_env (session, "MIR_SERVER_HOST_SOCKET");
     session_unset_env (session, "MIR_SERVER_VT");
 }
 
