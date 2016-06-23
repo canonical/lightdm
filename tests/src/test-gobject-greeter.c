@@ -393,7 +393,8 @@ connect_finished (GObject *object, GAsyncResult *result, gpointer data)
 
     if (!lightdm_greeter_connect_to_daemon_finish (greeter, result, &error))
     {
-        status_notify ("%s FAIL-CONNECT-DAEMON", greeter_id);
+        status_notify ("%s FAIL-CONNECT-DAEMON ERROR=%s", greeter_id, error->message);
+        g_clear_error (&error);
         exit_code = EXIT_FAILURE;
         g_main_loop_quit (loop);
         return;
