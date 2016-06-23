@@ -831,6 +831,7 @@ lightdm_greeter_connect_to_daemon_sync (LightDMGreeter *greeter, GError **error)
 {
     LightDMGreeterPrivate *priv;
     Request *request;
+    gboolean result;
 
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
 
@@ -852,9 +853,10 @@ lightdm_greeter_connect_to_daemon_sync (LightDMGreeter *greeter, GError **error)
         g_free (message);
     } while (!request->complete);
 
+    result = request->complete;
     g_object_unref (request);
 
-    return request->complete;
+    return result;
 }
 
 /**
