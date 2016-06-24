@@ -125,7 +125,7 @@ start_session_finished (GObject *object, GAsyncResult *result, gpointer data)
     GError *error = NULL;
 
     if (!lightdm_greeter_start_session_finish (greeter, result, &error))
-        status_notify ("%s SESSION-FAILED", greeter_id);
+        status_notify ("%s SESSION-FAILED ERROR=%s", greeter_id, error->message);
     g_clear_error (&error);
 }
 

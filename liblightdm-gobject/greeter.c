@@ -16,6 +16,8 @@
 
 #include "lightdm/greeter.h"
 
+G_DEFINE_QUARK (lightdm_greeter_error, lightdm_greeter_error)
+
 enum {
     PROP_0,
     PROP_DEFAULT_SESSION_HINT,
@@ -129,6 +131,7 @@ typedef struct
     GAsyncReadyCallback callback;
     gpointer user_data;
     gboolean complete;
+    gboolean connected;
     guint32 return_code;
     gchar *dir;
 } Request;
@@ -140,6 +143,23 @@ GType request_get_type (void);
 static void request_iface_init (GAsyncResultIface *iface);
 #define REQUEST(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), request_get_type (), Request))
 G_DEFINE_TYPE_WITH_CODE (Request, request, G_TYPE_OBJECT, G_IMPLEMENT_INTERFACE (G_TYPE_ASYNC_RESULT, request_iface_init));
+
+GType
+lightdm_greeter_error_get_type (void)
+{
+    static GType enum_type = 0;
+
+    if (G_UNLIKELY(enum_type == 0)) {
+        static const GEnumValue values[] = {
+            { LIGHTDM_GREETER_ERROR_CONNECTION_FAILED, "LIGHTDM_GREETER_ERROR_CONNECTION_FAILED", "connection-failed" },
+            { LIGHTDM_GREETER_ERROR_SESSION_FAILED, "LIGHTDM_GREETER_ERROR_SESSION_FAILED", "session-failed" },
+            { 0, NULL, NULL }
+        };
+        enum_type = g_enum_register_static (g_intern_static_string ("LightDMGreeterError"), values);
+    }
+
+    return enum_type;
+}
 
 GType
 lightdm_prompt_type_get_type (void)
@@ -434,6 +454,7 @@ handle_connected (LightDMGreeter *greeter, guint8 *message, gsize message_length
     request = g_list_nth_data (priv->connect_requests, 0);
     if (request)
     {
+        request->connected = TRUE;
         request_complete (request, G_OBJECT (greeter));
         priv->connect_requests = g_list_remove (priv->connect_requests, request);
         g_object_unref (request);
@@ -813,8 +834,17 @@ lightdm_greeter_connect_to_daemon (LightDMGreeter *greeter, GCancellable *cancel
 gboolean
 lightdm_greeter_connect_to_daemon_finish (LightDMGreeter *greeter, GAsyncResult *result, GError **error)
 {
+    Request *request = REQUEST (result);
+
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
-    return REQUEST (result)->complete;
+
+    if (request->connected)
+        return TRUE;
+    else
+    {
+        g_set_error_literal (error, LIGHTDM_GREETER_ERROR, LIGHTDM_GREETER_ERROR_CONNECTION_FAILED, "Failed to connect to daemon");
+        return FALSE;
+    }
 }
 
 /**
@@ -831,7 +861,6 @@ lightdm_greeter_connect_to_daemon_sync (LightDMGreeter *greeter, GError **error)
 {
     LightDMGreeterPrivate *priv;
     Request *request;
-    gboolean result;
 
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
 
@@ -853,10 +882,7 @@ lightdm_greeter_connect_to_daemon_sync (LightDMGreeter *greeter, GError **error)
         g_free (message);
     } while (!request->complete);
 
-    result = request->complete;
-    g_object_unref (request);
-
-    return result;
+    return lightdm_greeter_connect_to_daemon_finish (greeter, G_ASYNC_RESULT (request), error);
 }
 
 /**
@@ -1433,8 +1459,17 @@ lightdm_greeter_start_session (LightDMGreeter *greeter, const gchar *session, GC
 gboolean
 lightdm_greeter_start_session_finish (LightDMGreeter *greeter, GAsyncResult *result, GError **error)
 {
+    Request *request = REQUEST (result);
+
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
-    return REQUEST (result)->return_code == 0;
+
+    if (request->return_code == 0)
+        return TRUE;
+    else
+    {
+        g_set_error (error, LIGHTDM_GREETER_ERROR, LIGHTDM_GREETER_ERROR_SESSION_FAILED, "Session returned error code %d", request->return_code);
+        return FALSE;
+    }
 }
 
 /**
@@ -1452,7 +1487,6 @@ lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *sessio
 {
     LightDMGreeterPrivate *priv;
     Request *request;
-    guint32 return_code;
 
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
 
@@ -1477,10 +1511,7 @@ lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *sessio
         g_free (message);
     } while (!request->complete);
 
-    return_code = request->return_code;
-    g_object_unref (request);
-
-    return return_code == 0;
+    return lightdm_greeter_start_session_finish (greeter, G_ASYNC_RESULT (request), error);
 }
 
 /**

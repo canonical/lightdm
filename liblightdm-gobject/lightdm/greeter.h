@@ -23,6 +23,8 @@ G_BEGIN_DECLS
 #define LIGHTDM_IS_GREETER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LIGHTDM_TYPE_GREETER))
 #define LIGHTDM_GREETER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LIGHTDM_TYPE_GREETER, LightDMGreeterClass))
 
+#define LIGHTDM_GREETER_ERROR lightdm_greeter_error_quark ()
+
 #define LIGHTDM_GREETER_SIGNAL_SHOW_PROMPT             "show-prompt"
 #define LIGHTDM_GREETER_SIGNAL_SHOW_MESSAGE            "show-message"
 #define LIGHTDM_GREETER_SIGNAL_AUTHENTICATION_COMPLETE "authentication-complete"
@@ -86,6 +88,21 @@ static inline void glib_autoptr_cleanup_LightDMGreeter (LightDMGreeter **_ptr)
     glib_autoptr_cleanup_GObject ((GObject **) _ptr);
 }
 #endif
+
+/**
+ * LightDMGreeterError:
+ * @LIGHTDM_GREETER_ERROR_CONNECTION_FAILED: Failed to connect to the daemon
+ * @LIGHTDM_GREETER_ERROR_SESSION_FAILED: Requested session failed to start
+ */
+typedef enum
+{
+  LIGHTDM_GREETER_ERROR_CONNECTION_FAILED,
+  LIGHTDM_GREETER_ERROR_SESSION_FAILED
+} LightDMGreeterError;
+
+GQuark lightdm_greeter_error_quark (void);
+
+GType lightdm_greeter_error_get_type (void);
 
 GType lightdm_greeter_get_type (void);
 
