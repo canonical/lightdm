@@ -133,37 +133,37 @@ bool Greeter::connectSync()
 void Greeter::authenticate(const QString &username)
 {
     Q_D(Greeter);
-    lightdm_greeter_authenticate(d->ldmGreeter, username.toLocal8Bit().data());
+    lightdm_greeter_authenticate(d->ldmGreeter, username.toLocal8Bit().data(), NULL);
 }
 
 void Greeter::authenticateAsGuest()
 {
     Q_D(Greeter);
-    lightdm_greeter_authenticate_as_guest(d->ldmGreeter);
+    lightdm_greeter_authenticate_as_guest(d->ldmGreeter, NULL);
 }
 
 void Greeter::authenticateAutologin()
 {
     Q_D(Greeter);
-    lightdm_greeter_authenticate_autologin(d->ldmGreeter);
+    lightdm_greeter_authenticate_autologin(d->ldmGreeter, NULL);
 }
 
 void Greeter::authenticateRemote(const QString &session, const QString &username)
 {
     Q_D(Greeter);
-    lightdm_greeter_authenticate_remote(d->ldmGreeter, session.toLocal8Bit().data(), username.toLocal8Bit().data());
+    lightdm_greeter_authenticate_remote(d->ldmGreeter, session.toLocal8Bit().data(), username.toLocal8Bit().data(), NULL);
 }
 
 void Greeter::respond(const QString &response)
 {
     Q_D(Greeter);
-    lightdm_greeter_respond(d->ldmGreeter, response.toLocal8Bit().data());
+    lightdm_greeter_respond(d->ldmGreeter, response.toLocal8Bit().data(), NULL);
 }
 
 void Greeter::cancelAuthentication()
 {
     Q_D(Greeter);
-    lightdm_greeter_cancel_authentication(d->ldmGreeter);
+    lightdm_greeter_cancel_authentication(d->ldmGreeter, NULL);
 }
 
 void Greeter::cancelAutologin()
@@ -193,7 +193,7 @@ QString Greeter::authenticationUser() const
 void Greeter::setLanguage (const QString &language)
 {
     Q_D(Greeter);
-    lightdm_greeter_set_language(d->ldmGreeter, language.toLocal8Bit().constData());
+    lightdm_greeter_set_language(d->ldmGreeter, language.toLocal8Bit().constData(), NULL);
 }
 
 void Greeter::setResettable (bool resettable)
@@ -211,7 +211,7 @@ bool Greeter::startSessionSync(const QString &session)
 QString Greeter::ensureSharedDataDirSync(const QString &username)
 {
     Q_D(Greeter);
-    return QString::fromUtf8(lightdm_greeter_ensure_shared_data_dir_sync(d->ldmGreeter, username.toLocal8Bit().constData()));
+    return QString::fromUtf8(lightdm_greeter_ensure_shared_data_dir_sync(d->ldmGreeter, username.toLocal8Bit().constData(), NULL));
 }
 
 

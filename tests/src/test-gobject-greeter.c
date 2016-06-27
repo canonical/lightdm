@@ -135,11 +135,13 @@ write_shared_data_finished (GObject *object, GAsyncResult *result, gpointer data
     LightDMGreeter *greeter = LIGHTDM_GREETER (object);
     gchar *dir, *path, *test_data;
     FILE *f;
+    GError *error = NULL;
 
-    dir = lightdm_greeter_ensure_shared_data_dir_finish (greeter, result);
+    dir = lightdm_greeter_ensure_shared_data_dir_finish (greeter, result, &error);
     if (!dir)
     {
-        status_notify ("%s WRITE-SHARED-DATA ERROR=NO_SHARED_DIR", greeter_id);
+        status_notify ("%s WRITE-SHARED-DATA ERROR=%s", greeter_id, error->message);
+        g_clear_error (&error);
         return;
     }
 
@@ -165,10 +167,11 @@ read_shared_data_finished (GObject *object, GAsyncResult *result, gpointer data)
     gchar *contents = NULL;
     GError *error = NULL;
 
-    dir = lightdm_greeter_ensure_shared_data_dir_finish (greeter, result);
+    dir = lightdm_greeter_ensure_shared_data_dir_finish (greeter, result, &error);
     if (!dir)
     {
-        status_notify ("%s READ-SHARED-DATA ERROR=NO_SHARED_DIR", greeter_id);
+        status_notify ("%s READ-SHARED-DATA ERROR=%s", greeter_id, error->message);
+        g_clear_error (&error);
         return;
     }
 
@@ -185,6 +188,8 @@ read_shared_data_finished (GObject *object, GAsyncResult *result, gpointer data)
 static void
 request_cb (const gchar *name, GHashTable *params)
 {
+    GError *error = NULL;
+
     if (!name)
     {
         g_main_loop_quit (loop);
@@ -195,22 +200,58 @@ request_cb (const gchar *name, GHashTable *params)
         kill (getpid (), SIGSEGV);
 
     else if (strcmp (name, "AUTHENTICATE") == 0)
-        lightdm_greeter_authenticate (greeter, g_hash_table_lookup (params, "USERNAME"));
+    {
+        if (!lightdm_greeter_authenticate (greeter, g_hash_table_lookup (params, "USERNAME"), &error))
+        {
+            status_notify ("%s FAIL-AUTHENTICATE ERROR=%s", greeter_id, error->message);
+            g_clear_error (&error);
+        }
+    }
 
     else if (strcmp (name, "AUTHENTICATE-GUEST") == 0)
-        lightdm_greeter_authenticate_as_guest (greeter);
+    {
+        if (!lightdm_greeter_authenticate_as_guest (greeter, &error))
+        {
+            status_notify ("%s FAIL-AUTHENTICATE-GUEST ERROR=%s", greeter_id, error->message);
+            g_clear_error (&error);
+        }
+    }
 
     else if (strcmp (name, "AUTHENTICATE-AUTOLOGIN") == 0)
-        lightdm_greeter_authenticate_autologin (greeter);
+    {
+        if (!lightdm_greeter_authenticate_autologin (greeter, &error))
+        {
+            status_notify ("%s FAIL-AUTHENTICATE-AUTOLOGIN ERROR=%s", greeter_id, error->message);
+            g_clear_error (&error);
+        }
+    }
 
     else if (strcmp (name, "AUTHENTICATE-REMOTE") == 0)
-        lightdm_greeter_authenticate_remote (greeter, g_hash_table_lookup (params, "SESSION"), NULL);
+    {
+        if (!lightdm_greeter_authenticate_remote (greeter, g_hash_table_lookup (params, "SESSION"), NULL, &error))
+        {
+            status_notify ("%s FAIL-AUTHENTICATE-REMOTE ERROR=%s", greeter_id, error->message);
+            g_clear_error (&error);
+        }
+    }
 
     else if (strcmp (name, "RESPOND") == 0)
-        lightdm_greeter_respond (greeter, g_hash_table_lookup (params, "TEXT"));
+    {
+        if (!lightdm_greeter_respond (greeter, g_hash_table_lookup (params, "TEXT"), &error))
+        {
+            status_notify ("%s FAIL-RESPOND ERROR=%s", greeter_id, error->message);
+            g_clear_error (&error);
+        }
+    }
 
     else if (strcmp (name, "CANCEL-AUTHENTICATION") == 0)
-        lightdm_greeter_cancel_authentication (greeter);
+    {
+        if (!lightdm_greeter_cancel_authentication (greeter, &error))
+        {
+            status_notify ("%s FAIL-CANCEL-AUTHENTICATION ERROR=%s", greeter_id, error->message);
+            g_clear_error (&error);
+        }
+    }
 
     else if (strcmp (name, "START-SESSION") == 0)
         lightdm_greeter_start_session (greeter, g_hash_table_lookup (params, "SESSION"), NULL, start_session_finished, NULL);

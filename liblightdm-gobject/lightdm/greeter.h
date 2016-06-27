@@ -91,13 +91,19 @@ static inline void glib_autoptr_cleanup_LightDMGreeter (LightDMGreeter **_ptr)
 
 /**
  * LightDMGreeterError:
+ * @LIGHTDM_GREETER_ERROR_COMMUNICATION_ERROR: Error communicating with daemon
  * @LIGHTDM_GREETER_ERROR_CONNECTION_FAILED: Failed to connect to the daemon
  * @LIGHTDM_GREETER_ERROR_SESSION_FAILED: Requested session failed to start
+ * @LIGHTDM_GREETER_ERROR_NO_AUTOLOGIN: Autologin not configured
+ * @LIGHTDM_GREETER_ERROR_INVALID_USER: Autologin not configured
  */
 typedef enum
 {
+  LIGHTDM_GREETER_ERROR_COMMUNICATION_ERROR,
   LIGHTDM_GREETER_ERROR_CONNECTION_FAILED,
-  LIGHTDM_GREETER_ERROR_SESSION_FAILED
+  LIGHTDM_GREETER_ERROR_SESSION_FAILED,
+  LIGHTDM_GREETER_ERROR_NO_AUTOLOGIN,
+  LIGHTDM_GREETER_ERROR_INVALID_USER
 } LightDMGreeterError;
 
 GQuark lightdm_greeter_error_quark (void);
@@ -142,17 +148,17 @@ gint lightdm_greeter_get_autologin_timeout_hint (LightDMGreeter *greeter);
 
 void lightdm_greeter_cancel_autologin (LightDMGreeter *greeter);
 
-void lightdm_greeter_authenticate (LightDMGreeter *greeter, const gchar *username);
+gboolean lightdm_greeter_authenticate (LightDMGreeter *greeter, const gchar *username, GError **error);
 
-void lightdm_greeter_authenticate_as_guest (LightDMGreeter *greeter);
+gboolean lightdm_greeter_authenticate_as_guest (LightDMGreeter *greeter, GError **error);
 
-void lightdm_greeter_authenticate_autologin (LightDMGreeter *greeter);
+gboolean lightdm_greeter_authenticate_autologin (LightDMGreeter *greeter, GError **error);
 
-void lightdm_greeter_authenticate_remote (LightDMGreeter *greeter, const gchar *session, const gchar *username);
+gboolean lightdm_greeter_authenticate_remote (LightDMGreeter *greeter, const gchar *session, const gchar *username, GError **error);
 
-void lightdm_greeter_respond (LightDMGreeter *greeter, const gchar *response);
+gboolean lightdm_greeter_respond (LightDMGreeter *greeter, const gchar *response, GError **error);
 
-void lightdm_greeter_cancel_authentication (LightDMGreeter *greeter);
+gboolean lightdm_greeter_cancel_authentication (LightDMGreeter *greeter, GError **error);
 
 gboolean lightdm_greeter_get_in_authentication (LightDMGreeter *greeter);
 
@@ -160,7 +166,7 @@ gboolean lightdm_greeter_get_is_authenticated (LightDMGreeter *greeter);
 
 const gchar *lightdm_greeter_get_authentication_user (LightDMGreeter *greeter);
 
-void lightdm_greeter_set_language (LightDMGreeter *greeter, const gchar *language);
+gboolean lightdm_greeter_set_language (LightDMGreeter *greeter, const gchar *language, GError **error);
 
 void lightdm_greeter_start_session (LightDMGreeter *greeter, const gchar *session, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 
@@ -170,9 +176,9 @@ gboolean lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gcha
 
 void lightdm_greeter_ensure_shared_data_dir (LightDMGreeter *greeter, const gchar *username, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 
-gchar *lightdm_greeter_ensure_shared_data_dir_finish (LightDMGreeter *greeter, GAsyncResult *result);
+gchar *lightdm_greeter_ensure_shared_data_dir_finish (LightDMGreeter *greeter, GAsyncResult *result, GError **error);
 
-gchar *lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gchar *username);
+gchar *lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gchar *username, GError **error);
 
 #ifndef LIGHTDM_DISABLE_DEPRECATED
 gboolean lightdm_greeter_connect_sync (LightDMGreeter *greeter, GError **error);

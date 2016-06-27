@@ -78,15 +78,15 @@ def request_cb (channel, condition):
     if request == r:
         try:
             greeter.start_session_sync (None)
-        except:
-            status_notify ('%s SESSION-FAILED' % greeter_id)
+        except GLib.Error as e:
+            status_notify ('%s SESSION-FAILED ERROR=%s' % (greeter_id, e.message))
 
     r = '%s START-SESSION SESSION=' % greeter_id
     if request.startswith (r):
         try:
             greeter.start_session_sync (request[len(r):])
-        except:
-            status_notify ('%s SESSION-FAILED' % greeter_id)
+        except GLib.Error as e:
+            status_notify ('%s SESSION-FAILED ERROR=%s' % (greeter_id, e.message))
 
     r = '%s LOG-USER-LIST-LENGTH' % greeter_id
     if request == r:

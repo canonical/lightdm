@@ -206,6 +206,7 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 
 @greeter: 
 @result: 
+@error: 
 @Returns: 
 
 
@@ -216,6 +217,7 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 
 @greeter: 
 @username: 
+@error: 
 @Returns: 
 
 
@@ -335,6 +337,8 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 
 @greeter: 
 @language: 
+@error: 
+@Returns: 
 
 
 <!-- ##### FUNCTION lightdm_greeter_cancel_autologin ##### -->
@@ -352,6 +356,8 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 
 @greeter: 
 @username: 
+@error: 
+@Returns: 
 
 
 <!-- ##### FUNCTION lightdm_greeter_authenticate_as_guest ##### -->
@@ -360,6 +366,8 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 </para>
 
 @greeter: 
+@error: 
+@Returns: 
 
 
 <!-- ##### FUNCTION lightdm_greeter_authenticate_autologin ##### -->
@@ -368,6 +376,8 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 </para>
 
 @greeter: 
+@error: 
+@Returns: 
 
 
 <!-- ##### FUNCTION lightdm_greeter_authenticate_remote ##### -->
@@ -378,6 +388,8 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 @greeter: 
 @session: 
 @username: 
+@error: 
+@Returns: 
 
 
 <!-- ##### FUNCTION lightdm_greeter_respond ##### -->
@@ -387,6 +399,8 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 
 @greeter: 
 @response: 
+@error: 
+@Returns: 
 
 
 <!-- ##### FUNCTION lightdm_greeter_cancel_authentication ##### -->
@@ -395,6 +409,8 @@ static void authentication_complete_cb (LightDMGreeter *greeter)
 </para>
 
 @greeter: 
+@error: 
+@Returns: 
 
 
 <!-- ##### FUNCTION lightdm_greeter_get_in_authentication ##### -->

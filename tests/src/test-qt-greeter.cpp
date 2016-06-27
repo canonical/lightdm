@@ -161,12 +161,12 @@ request_cb (const gchar *name, GHashTable *params)
         if (g_hash_table_lookup (params, "SESSION"))
         {
             if (!greeter->startSessionSync ((const gchar *) g_hash_table_lookup (params, "SESSION")))
-                status_notify ("%s SESSION-FAILED", greeter_id);
+                status_notify ("%s SESSION-FAILED ERROR=%s", greeter_id, "FIXME: Exceptions in Qt");
         }
         else
         {
             if (!greeter->startSessionSync ())
-                status_notify ("%s SESSION-FAILED", greeter_id);
+                status_notify ("%s SESSION-FAILED ERROR=%s", greeter_id, "FIXME: Exceptions in Qt");
         }
     }
 
