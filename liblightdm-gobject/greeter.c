@@ -465,6 +465,8 @@ send_message (LightDMGreeter *greeter, guint8 *message, gsize message_length, GE
                          "Failed to write to daemon: %s",
                          write_error->message);
         g_clear_error (&write_error);
+        if (status == G_IO_STATUS_AGAIN) 
+            continue;
         if (status != G_IO_STATUS_NORMAL) 
             return FALSE;
         data_length -= n_written;
@@ -774,7 +776,12 @@ recv_message (LightDMGreeter *greeter, gboolean block, guint8 **message, gsize *
                                           n_to_read - priv->n_read,
                                           &n_read,
                                           &read_error);
-        if (status != G_IO_STATUS_NORMAL)
+        if (status == G_IO_STATUS_AGAIN)
+        {
+            if (block)
+                continue;
+        }
+        else if (status != G_IO_STATUS_NORMAL)
         {
             g_set_error (error, LIGHTDM_GREETER_ERROR, LIGHTDM_GREETER_ERROR_COMMUNICATION_ERROR,
                          "Failed to read from daemon: %s",
