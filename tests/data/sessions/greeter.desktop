@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=Test Session with greeter
+Comment=LightDM test session that can run a greeter inside
+Exec=test-session
+X-LightDM-Allow-Greeter=true

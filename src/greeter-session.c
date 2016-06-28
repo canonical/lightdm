@@ -13,6 +13,7 @@
 
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "greeter-session.h"
 
@@ -38,27 +39,46 @@ greeter_session_get_greeter (GreeterSession *session)
 }
 
 static gboolean
-setup_cb (Greeter *greeter, int input_fd, int output_fd, gpointer user_data)
-{
-    Session *session = user_data;
-    gchar *value;
-
-    /* Let the greeter session know how to communicate with the daemon */
-    value = g_strdup_printf ("%d", input_fd);
-    session_set_env (session, "LIGHTDM_TO_SERVER_FD", value);
-    g_free (value);
-    value = g_strdup_printf ("%d", output_fd);
-    session_set_env (session, "LIGHTDM_FROM_SERVER_FD", value);
-    g_free (value);
-
-    return SESSION_CLASS (greeter_session_parent_class)->start (session);
-}
-
-static gboolean
 greeter_session_start (Session *session)
 {
     GreeterSession *s = GREETER_SESSION (session);
-    return greeter_start (s->priv->greeter, setup_cb, session);
+    int to_greeter_pipe[2], from_greeter_pipe[2];
+    int to_greeter_input, to_greeter_output, from_greeter_input, from_greeter_output;
+    gchar *value;
+    gboolean result;
+
+    /* Create a pipe to talk with the greeter */
+    if (pipe (to_greeter_pipe) != 0 || pipe (from_greeter_pipe) != 0)
+    {
+        g_warning ("Failed to create pipes: %s", strerror (errno));
+        return FALSE;
+    }
+
+    to_greeter_input = to_greeter_pipe[1];  
+    to_greeter_output = to_greeter_pipe[0];
+    from_greeter_input = from_greeter_pipe[1];
+    from_greeter_output = from_greeter_pipe[0];  
+    greeter_set_file_descriptors (s->priv->greeter, to_greeter_input, from_greeter_output);
+
+    /* Don't allow the daemon end of the pipes to be accessed in child processes */
+    fcntl (to_greeter_input, F_SETFD, FD_CLOEXEC);
+    fcntl (from_greeter_output, F_SETFD, FD_CLOEXEC);
+
+    /* Let the greeter session know how to communicate with the daemon */
+    value = g_strdup_printf ("%d", from_greeter_input);
+    session_set_env (session, "LIGHTDM_TO_SERVER_FD", value);
+    g_free (value);
+    value = g_strdup_printf ("%d", to_greeter_output);
+    session_set_env (session, "LIGHTDM_FROM_SERVER_FD", value);
+    g_free (value);
+
+    result = SESSION_CLASS (greeter_session_parent_class)->start (session);
+
+    /* Close the session ends of the pipe */
+    close (from_greeter_input);
+    close (to_greeter_output);
+
+    return result;
 }
 
 static void

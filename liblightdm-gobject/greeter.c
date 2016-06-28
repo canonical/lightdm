@@ -12,6 +12,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <gio/gio.h>
+#include <gio/gunixsocketaddress.h>
 #include <security/pam_appl.h>
 
 #include "lightdm/greeter.h"
@@ -51,6 +53,9 @@ typedef struct
 {
     /* TRUE if the daemon can reuse this greeter */
     gboolean resettable;
+
+    /* Socket connection to daemon */
+    GSocket *socket;
 
     /* Channel to write to daemon */
     GIOChannel *to_server_channel;
@@ -400,22 +405,45 @@ static gboolean
 connect_to_daemon (LightDMGreeter *greeter, GError **error)
 {
     LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-    const gchar *to_server_fd, *from_server_fd;
+    const gchar *to_server_fd, *from_server_fd, *pipe_path;
 
     if (priv->to_server_channel || priv->from_server_channel)
         return TRUE;
 
+    /* Use private connection if one exists */  
     to_server_fd = g_getenv ("LIGHTDM_TO_SERVER_FD");
     from_server_fd = g_getenv ("LIGHTDM_FROM_SERVER_FD");
-    if (!to_server_fd || !from_server_fd)
+    pipe_path = g_getenv ("LIGHTDM_GREETER_PIPE");
+    if (to_server_fd && from_server_fd)
+    {
+        priv->to_server_channel = g_io_channel_unix_new (atoi (to_server_fd));
+        priv->from_server_channel = g_io_channel_unix_new (atoi (from_server_fd));
+    }
+    else if (pipe_path)
+    {
+        GSocketAddress *address;
+        gboolean result;
+
+        priv->socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, error);
+        if (!priv->socket)
+            return FALSE;
+
+        address = g_unix_socket_address_new (pipe_path);
+        result = g_socket_connect (priv->socket, address, NULL, error);
+        g_object_unref (address);
+        if (!result)
+            return FALSE;
+
+        priv->from_server_channel = g_io_channel_unix_new (g_socket_get_fd (priv->socket));
+        priv->to_server_channel = g_io_channel_ref (priv->from_server_channel);
+    }
+    else
     {
         g_set_error_literal (error, LIGHTDM_GREETER_ERROR, LIGHTDM_GREETER_ERROR_CONNECTION_FAILED,
                              "Unable to determine socket to daemon");
         return FALSE;
     }
 
-    priv->to_server_channel = g_io_channel_unix_new (atoi (to_server_fd));
-    priv->from_server_channel = g_io_channel_unix_new (atoi (from_server_fd));
     g_io_add_watch (priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
 
     if (!g_io_channel_set_encoding (priv->to_server_channel, NULL, error) ||
@@ -1848,6 +1876,7 @@ lightdm_greeter_finalize (GObject *object)
     LightDMGreeter *self = LIGHTDM_GREETER (object);
     LightDMGreeterPrivate *priv = GET_PRIVATE (self);
 
+    g_clear_object (&priv->socket);
     if (priv->to_server_channel)
         g_io_channel_unref (priv->to_server_channel);
     if (priv->from_server_channel)

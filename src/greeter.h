@@ -11,6 +11,8 @@
 #ifndef GREETER_H_
 #define GREETER_H_
 
+typedef struct Greeter Greeter;
+
 #include "session.h"
 
 G_BEGIN_DECLS
@@ -31,11 +33,11 @@ G_BEGIN_DECLS
 
 typedef struct GreeterPrivate GreeterPrivate;
 
-typedef struct
+struct Greeter
 {
     GObject         parent_instance;
     GreeterPrivate *priv;
-} Greeter;
+};
 
 typedef struct
 {
@@ -49,7 +51,7 @@ GType greeter_get_type (void);
 
 Greeter *greeter_new (void);
 
-gboolean greeter_start (Greeter *greeter, gboolean (*setup_child_cb)(Greeter *greeter, int input_fd, int output_fd, gpointer user_data), gpointer user_data);
+void greeter_set_file_descriptors (Greeter *greeter, int to_greeter_fd, int from_greeter_fd);
 
 void greeter_stop (Greeter *greeter);
 

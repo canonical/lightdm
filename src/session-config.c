@@ -21,6 +21,9 @@ struct SessionConfigPrivate
 
     /* Command to run */
     gchar *command;
+
+    /* TRUE if can run a greeter inside the session */
+    gboolean allow_greeter;
 };
 
 G_DEFINE_TYPE (SessionConfig, session_config, G_TYPE_OBJECT);
@@ -64,6 +67,7 @@ session_config_new_from_file (const gchar *filename, const gchar *default_sessio
             config->priv->desktop_names[1] = NULL;
         }
     }
+    config->priv->allow_greeter = g_key_file_get_boolean (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Allow-Greeter", NULL);
 
     g_key_file_free (desktop_file);
 
@@ -89,6 +93,13 @@ session_config_get_desktop_names (SessionConfig *config)
 {
     g_return_val_if_fail (config != NULL, NULL);
     return config->priv->desktop_names;
+}
+
+gboolean
+session_config_get_allow_greeter (SessionConfig *config)
+{
+    g_return_val_if_fail (config != NULL, FALSE);
+    return config->priv->allow_greeter;
 }
 
 static void

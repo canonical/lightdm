@@ -11,6 +11,7 @@
 #include <gio/gio.h>
 #include <glib-unix.h>
 #include <glib/gstdio.h>
+#include <lightdm/greeter.h>
 
 #include "status.h"
 
@@ -23,6 +24,8 @@ static GString *open_fds;
 static GKeyFile *config;
 
 static xcb_connection_t *connection;
+
+static LightDMGreeter *greeter = NULL;
 
 static gboolean
 sigint_cb (gpointer user_data)
@@ -41,8 +44,36 @@ sigterm_cb (gpointer user_data)
 }
 
 static void
+show_message_cb (LightDMGreeter *greeter, const gchar *text, LightDMMessageType type)
+{
+    status_notify ("%s GREETER-SHOW-MESSAGE TEXT=\"%s\"", session_id, text);
+}
+
+static void
+show_prompt_cb (LightDMGreeter *greeter, const gchar *text, LightDMPromptType type)
+{
+    status_notify ("%s GREETER-SHOW-PROMPT TEXT=\"%s\"", session_id, text);
+}
+
+static void
+authentication_complete_cb (LightDMGreeter *greeter)
+{
+    if (lightdm_greeter_get_authentication_user (greeter))
+        status_notify ("%s GREETER-AUTHENTICATION-COMPLETE USERNAME=%s AUTHENTICATED=%s",
+                       session_id,
+                       lightdm_greeter_get_authentication_user (greeter),
+                       lightdm_greeter_get_is_authenticated (greeter) ? "TRUE" : "FALSE");
+    else
+        status_notify ("%s GREETER-AUTHENTICATION-COMPLETE AUTHENTICATED=%s",
+                       session_id,
+                       lightdm_greeter_get_is_authenticated (greeter) ? "TRUE" : "FALSE");
+}
+
+static void
 request_cb (const gchar *name, GHashTable *params)
 {
+    GError *error = NULL;
+
     if (!name)
     {
         g_main_loop_quit (loop);
@@ -223,6 +254,51 @@ request_cb (const gchar *name, GHashTable *params)
         }
         else
             status_notify ("%s WRITE-SHARED-DATA ERROR=NO_XDG_GREETER_DATA_DIR", session_id);
+    }
+
+    else if (strcmp (name, "GREETER-START") == 0)
+    {
+        GError *error = NULL;
+
+        g_assert (greeter == NULL);
+        greeter = lightdm_greeter_new ();
+        g_signal_connect (greeter, LIGHTDM_GREETER_SIGNAL_SHOW_MESSAGE, G_CALLBACK (show_message_cb), NULL);
+        g_signal_connect (greeter, LIGHTDM_GREETER_SIGNAL_SHOW_PROMPT, G_CALLBACK (show_prompt_cb), NULL);
+        g_signal_connect (greeter, LIGHTDM_GREETER_SIGNAL_AUTHENTICATION_COMPLETE, G_CALLBACK (authentication_complete_cb), NULL);
+        if (lightdm_greeter_connect_to_daemon_sync (greeter, &error))
+            status_notify ("%s GREETER-STARTED", session_id);
+        else
+        {
+            status_notify ("%s GREETER-FAILED ERROR=%s", session_id, error->message);
+            g_clear_error (&error);
+        }
+    }
+
+    else if (strcmp (name, "GREETER-AUTHENTICATE") == 0)
+    {
+        if (!lightdm_greeter_authenticate (greeter, g_hash_table_lookup (params, "USERNAME"), &error))
+        {
+            status_notify ("%s FAIL-AUTHENTICATE ERROR=%s", session_id, error->message);
+            g_clear_error (&error);
+        }
+    }
+
+    else if (strcmp (name, "GREETER-RESPOND") == 0)
+    {
+        if (!lightdm_greeter_respond (greeter, g_hash_table_lookup (params, "TEXT"), &error))
+        {
+            status_notify ("%s FAIL-RESPOND ERROR=%s", session_id, error->message);
+            g_clear_error (&error);
+        }
+    }
+
+    else if (strcmp (name, "GREETER-START-SESSION") == 0)
+    {
+        if (!lightdm_greeter_start_session_sync (greeter, g_hash_table_lookup (params, "SESSION"), &error))
+        {
+            status_notify ("%s FAIL-START-SESSION ERROR=%s", session_id, error->message);
+            g_clear_error (&error);          
+        }
     }
 }
 

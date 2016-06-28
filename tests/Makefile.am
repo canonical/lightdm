@@ -167,6 +167,7 @@ TESTS = \
 	test-switch-to-user-logout-inactive \
 	test-switch-to-user-resettable \
 	test-switch-to-users \
+	test-session-greeter \        
 	test-vnc-login \
 	test-vnc-command \
 	test-vnc-dimensions \
@@ -385,6 +386,7 @@ EXTRA_DIST = \
 	data/keys.conf \
 	data/sessions/alternative.desktop \
 	data/sessions/default.desktop \
+	data/sessions/greeter.desktop \
 	data/sessions/mir.desktop \
 	data/sessions/named.desktop \
 	data/sessions/named-legacy.desktop \
@@ -538,6 +540,7 @@ EXTRA_DIST = \
 	scripts/script-hook-greeter-setup-missing.conf \
 	scripts/script-hook-session-setup-fail.conf \
 	scripts/script-hook-session-setup-missing.conf \
+	scripts/session-greeter.conf \
 	scripts/session-stdout.conf \
 	scripts/session-stderr.conf \
 	scripts/session-stderr-multi-write.conf \
