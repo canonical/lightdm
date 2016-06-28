@@ -46,6 +46,7 @@ display_server_get_session_type (DisplayServer *server)
 DisplayServer *
 display_server_get_parent (DisplayServer *server)
 {
+    g_return_val_if_fail (server != NULL, NULL);
     return DISPLAY_SERVER_GET_CLASS (server)->get_parent (server);
 }
 
@@ -58,6 +59,7 @@ display_server_real_get_parent (DisplayServer *server)
 gboolean
 display_server_get_can_share (DisplayServer *server)
 {
+    g_return_val_if_fail (server != NULL, FALSE);
     return DISPLAY_SERVER_GET_CLASS (server)->get_can_share (server);
 }
 
