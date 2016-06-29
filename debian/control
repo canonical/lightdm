@@ -3,7 +3,7 @@ Section: x11
 Priority: optional
 Maintainer: Robert Ancell <robert.ancell@ubuntu.com>
 Uploaders: Julien Lavergne <gilir@ubuntu.com>
-Standards-Version: 3.9.6
+Standards-Version: 3.9.8
 Build-Depends: debhelper (>= 9),
                gnome-common,
                intltool (>= 0.35.0),
