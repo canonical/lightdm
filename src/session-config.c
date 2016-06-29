@@ -24,6 +24,9 @@ struct SessionConfigPrivate
 
     /* Compositor command to run (for type mir-container) */
     gchar *compositor_command;
+
+    /* TRUE if can run a greeter inside the session */
+    gboolean allow_greeter;
 };
 
 G_DEFINE_TYPE (SessionConfig, session_config, G_TYPE_OBJECT);
@@ -68,6 +71,7 @@ session_config_new_from_file (const gchar *filename, const gchar *default_sessio
         }
     }
     config->priv->compositor_command = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-System-Compositor-Command", NULL);
+    config->priv->allow_greeter = g_key_file_get_boolean (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Allow-Greeter", NULL);
 
     g_key_file_free (desktop_file);
 
@@ -100,6 +104,13 @@ session_config_get_compositor_command (SessionConfig *config)
 {
     g_return_val_if_fail (config != NULL, NULL);
     return config->priv->compositor_command;
+}
+
+gboolean
+session_config_get_allow_greeter (SessionConfig *config)
+{
+    g_return_val_if_fail (config != NULL, FALSE);
+    return config->priv->allow_greeter;
 }
 
 static void

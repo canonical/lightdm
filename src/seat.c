@@ -1243,34 +1243,36 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
 
     /* If can re-use the display server, stop the greeter first */
     greeter_session = get_greeter_session (seat, greeter);
-    display_server = session_get_display_server (greeter_session);
-    if (!greeter_get_resettable (greeter) &&
-        can_share_display_server (seat, display_server) &&
-        strcmp (display_server_get_session_type (display_server), session_get_session_type (session)) == 0)
+    if (greeter_session)
     {
-        l_debug (seat, "Stopping greeter; display server will be re-used for user session");
-
-        /* Run on the same display server after the greeter has stopped */
-        session_set_display_server (session, display_server);
-
-        /* Stop the greeter */
-        session_stop (greeter_session);
-
-        return TRUE;
-    }
-    /* Otherwise start a new display server for this session */
-    else
-    {
-        display_server = create_display_server (seat, session);
-        session_set_display_server (session, display_server);
-        if (!start_display_server (seat, display_server))
+        display_server = session_get_display_server (greeter_session);
+        if (display_server &&
+            !greeter_get_resettable (greeter) &&
+            can_share_display_server (seat, display_server) &&
+            strcmp (display_server_get_session_type (display_server), session_get_session_type (session)) == 0)
         {
-            l_debug (seat, "Failed to start display server for new session");
-            return FALSE;
-        }
+            l_debug (seat, "Stopping greeter; display server will be re-used for user session");
 
-        return TRUE;
+            /* Run on the same display server after the greeter has stopped */
+            session_set_display_server (session, display_server);
+
+            /* Stop the greeter */
+            session_stop (greeter_session);
+
+            return TRUE;
+        }
     }
+
+    /* Otherwise start a new display server for this session */
+    display_server = create_display_server (seat, session);
+    session_set_display_server (session, display_server);
+    if (!start_display_server (seat, display_server))
+    {
+        l_debug (seat, "Failed to start display server for new session");
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 static GreeterSession *
@@ -1873,9 +1875,35 @@ seat_real_create_greeter_session (Seat *seat)
 }
 
 static Session *
+create_session_cb (Greeter *greeter, Seat *seat)
+{
+    return create_session (seat, FALSE);
+}
+
+static Greeter *
+create_greeter_cb (Session *session, Seat *seat)
+{
+    Greeter *greeter;
+
+    greeter = greeter_new ();
+    greeter_set_pam_services (greeter,
+                              seat_get_string_property (seat, "pam-service"),
+                              seat_get_string_property (seat, "pam-autologin-service"));
+    g_signal_connect (greeter, GREETER_SIGNAL_CREATE_SESSION, G_CALLBACK (create_session_cb), seat);
+    g_signal_connect (greeter, GREETER_SIGNAL_START_SESSION, G_CALLBACK (greeter_start_session_cb), seat);
+
+    return greeter;
+}
+
+static Session *
 seat_real_create_session (Seat *seat)
 {
-    return session_new ();
+    Session *session;
+
+    session = session_new ();
+    g_signal_connect (session, SESSION_SIGNAL_CREATE_GREETER, G_CALLBACK (create_greeter_cb), seat);
+
+    return session;
 }
 
 static void

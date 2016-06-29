@@ -46,6 +46,8 @@ gchar **session_config_get_desktop_names (SessionConfig *config);
 
 const gchar *session_config_get_compositor_command (SessionConfig *config);
 
+gboolean session_config_get_allow_greeter (SessionConfig *config);
+
 G_END_DECLS
 
 #endif /* SESSION_CONFIG_H_ */

@@ -12,6 +12,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <gio/gio.h>
+#include <gio/gunixsocketaddress.h>
 #include <security/pam_appl.h>
 
 #include "lightdm/greeter.h"
@@ -49,6 +51,9 @@ typedef struct
 {
     /* TRUE if the daemon can reuse this greeter */
     gboolean resettable;
+
+    /* Socket connection to daemon */
+    GSocket *socket;
 
     /* Channel to write to daemon */
     GIOChannel *to_server_channel;
@@ -140,6 +145,8 @@ GType request_get_type (void);
 static void request_iface_init (GAsyncResultIface *iface);
 #define REQUEST(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), request_get_type (), Request))
 G_DEFINE_TYPE_WITH_CODE (Request, request, G_TYPE_OBJECT, G_IMPLEMENT_INTERFACE (G_TYPE_ASYNC_RESULT, request_iface_init));
+
+static gboolean from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data);
 
 GType
 lightdm_prompt_type_get_type (void)
@@ -347,6 +354,66 @@ get_message_length (guint8 *message, gsize message_length)
 }
 
 static gboolean
+connect_to_daemon (LightDMGreeter *greeter)
+{
+    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    const gchar *to_server_fd, *from_server_fd, *pipe_path;
+    GError *error = NULL;
+
+    if (priv->to_server_channel || priv->from_server_channel)
+        return TRUE;
+
+    /* Use private connection if one exists */  
+    to_server_fd = g_getenv ("LIGHTDM_TO_SERVER_FD");
+    from_server_fd = g_getenv ("LIGHTDM_FROM_SERVER_FD");
+    pipe_path = g_getenv ("LIGHTDM_GREETER_PIPE");
+    if (to_server_fd && from_server_fd)
+    {
+        priv->to_server_channel = g_io_channel_unix_new (atoi (to_server_fd));
+        priv->from_server_channel = g_io_channel_unix_new (atoi (from_server_fd));
+    }
+    else if (pipe_path)
+    {
+        GSocketAddress *address;
+        gboolean result;
+
+        priv->socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
+        if (!priv->socket)
+            return FALSE;
+
+        address = g_unix_socket_address_new (pipe_path);
+        result = g_socket_connect (priv->socket, address, NULL, &error);
+        g_object_unref (address);
+        if (!result)
+        {
+            g_warning ("Failed to connect to greeter socket %s: %s", pipe_path, error->message);
+            g_clear_error (&error);
+            return FALSE;
+        }
+
+        priv->from_server_channel = g_io_channel_unix_new (g_socket_get_fd (priv->socket));
+        priv->to_server_channel = g_io_channel_ref (priv->from_server_channel);
+    }
+    else
+    {
+        g_warning ("Unable to determine socket to daemon");
+        return FALSE;
+    }
+
+    g_io_add_watch (priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
+
+    if (!g_io_channel_set_encoding (priv->to_server_channel, NULL, &error) ||
+        !g_io_channel_set_encoding (priv->from_server_channel, NULL, &error))
+    {
+        g_warning ("Failed to set encoding on from server channel to binary: %s", error->message);
+        g_clear_error (&error);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+static gboolean
 send_message (LightDMGreeter *greeter, guint8 *message, gsize message_length)
 {
     LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
@@ -355,7 +422,7 @@ send_message (LightDMGreeter *greeter, guint8 *message, gsize message_length)
     GError *error = NULL;
     guint32 stated_length;
 
-    if (!priv->to_server_channel)
+    if (!connect_to_daemon (greeter))
         return FALSE;
 
     /* Double check that we're sending well-formed messages.  If we say we're
@@ -381,6 +448,8 @@ send_message (LightDMGreeter *greeter, guint8 *message, gsize message_length)
         if (error)
             g_warning ("Error writing to daemon: %s", error->message);
         g_clear_error (&error);
+        if (status == G_IO_STATUS_AGAIN)
+            continue;
         if (status != G_IO_STATUS_NORMAL)
             return FALSE;
         data_length -= n_written;
@@ -660,8 +729,8 @@ recv_message (LightDMGreeter *greeter, gsize *length, gboolean block)
     guint8 *buffer;
     GError *error = NULL;
 
-    if (!priv->from_server_channel)
-        return NULL;
+    if (!connect_to_daemon (greeter))
+        return FALSE;
 
     /* Read the header, or the whole message if we already have that */
     n_to_read = HEADER_SIZE;
@@ -679,7 +748,12 @@ recv_message (LightDMGreeter *greeter, gsize *length, gboolean block)
         if (error)
             g_warning ("Error reading from server: %s", error->message);
         g_clear_error (&error);
-        if (status != G_IO_STATUS_NORMAL)
+        if (status == G_IO_STATUS_AGAIN)
+        {
+            if (block)
+                continue;
+        }
+        else if (status != G_IO_STATUS_NORMAL)
             break;
 
         g_debug ("Read %zi bytes from daemon", n_read);
@@ -1590,39 +1664,9 @@ static void
 lightdm_greeter_init (LightDMGreeter *greeter)
 {
     LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-    const gchar *fd;
 
     priv->read_buffer = g_malloc (HEADER_SIZE);
     priv->hints = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-
-    fd = g_getenv ("LIGHTDM_TO_SERVER_FD");
-    if (fd)
-    {
-        GError *error = NULL;
-
-        priv->to_server_channel = g_io_channel_unix_new (atoi (fd));
-        g_io_channel_set_encoding (priv->to_server_channel, NULL, &error);
-        if (error)
-            g_warning ("Failed to set encoding on to server channel to binary: %s\n", error->message);
-        g_clear_error (&error);
-    }
-    else
-        g_warning ("No LIGHTDM_TO_SERVER_FD environment variable");
-
-    fd = g_getenv ("LIGHTDM_FROM_SERVER_FD");
-    if (fd)
-    {
-        GError *error = NULL;
-
-        priv->from_server_channel = g_io_channel_unix_new (atoi (fd));
-        g_io_channel_set_encoding (priv->from_server_channel, NULL, &error);
-        if (error)
-            g_warning ("Failed to set encoding on from server channel to binary: %s\n", error->message);
-        g_clear_error (&error);
-        g_io_add_watch (priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
-    }
-    else
-        g_warning ("No LIGHTDM_FROM_SERVER_FD environment variable");
 }
 
 static void
@@ -1699,6 +1743,7 @@ lightdm_greeter_finalize (GObject *object)
     LightDMGreeter *self = LIGHTDM_GREETER (object);
     LightDMGreeterPrivate *priv = GET_PRIVATE (self);
 
+    g_clear_object (&priv->socket);
     if (priv->to_server_channel)
         g_io_channel_unref (priv->to_server_channel);
     if (priv->from_server_channel)

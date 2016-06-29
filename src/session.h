@@ -18,12 +18,19 @@
 
 typedef struct Session Session;
 
+typedef enum
+{
+    SESSION_TYPE_LOCAL,
+    SESSION_TYPE_REMOTE
+} SessionType;
+
 #include "session-config.h"
 #include "display-server.h"
 #include "accounts.h"
 #include "x-authority.h"
 #include "logger.h"
 #include "log-file.h"
+#include "greeter.h"
 
 G_BEGIN_DECLS
 
@@ -32,6 +39,7 @@ G_BEGIN_DECLS
 #define SESSION_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST ((klass), SESSION_TYPE, SessionClass))
 #define SESSION_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), SESSION_TYPE, SessionClass))
 
+#define SESSION_SIGNAL_CREATE_GREETER          "create-greeter"
 #define SESSION_SIGNAL_GOT_MESSAGES            "got-messages"
 #define SESSION_SIGNAL_AUTHENTICATION_COMPLETE "authentication-complete"
 #define SESSION_SIGNAL_STOPPED                 "stopped"
@@ -52,16 +60,11 @@ typedef struct
     void (*run)(Session *session);
     void (*stop)(Session *session);
 
+    Greeter *(*create_greeter)(Session *session);
     void (*got_messages)(Session *session);
     void (*authentication_complete)(Session *session);
     void (*stopped)(Session *session);
 } SessionClass;
-
-typedef enum
-{
-    SESSION_TYPE_LOCAL,
-    SESSION_TYPE_REMOTE
-} SessionType;
 
 GType session_get_type (void);
 

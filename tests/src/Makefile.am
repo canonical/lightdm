@@ -195,11 +195,14 @@ test_qt5_greeter_LDADD = \
 
 test_session_SOURCES = test-session.c status.c status.h
 test_session_CFLAGS = \
+	-I$(top_srcdir)/liblightdm-gobject \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
 	$(GIO_UNIX_CFLAGS) \
 	$(XCB_CFLAGS)
 test_session_LDADD = \
+	-L$(top_builddir)/liblightdm-gobject \
+	-llightdm-gobject-1 \
 	$(GLIB_LIBS) \
 	$(GIO_UNIX_LIBS) \
 	$(XCB_LIBS)
