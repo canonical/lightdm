@@ -1,3 +1,22 @@
+lightdm (1.19.2-0ubuntu1) yakkety; urgency=medium
+
+  * New upstream release:
+    * Add support for greeters running inside sessions. This is enabled by
+      setting X-LightDM-Allow-Greeter inside the session .desktop file.
+      The session can then use liblightdm to connect one greeter to the
+      daemon. The communication is done using a socket
+      (/var/run/lightdm/<user>/greeter-socket) that is accessible to any
+      process run by that user. Consider controlling access to this socket
+      using a MAC system such as AppArmor. (LP: #1582242)
+    * Report errors for all liblightdm methods. This will require existing
+      greeters to update their API usage. The ABI is unchanged.
+    * Handle EAGAIN correctly when daemons communicate with the daemon.
+    * Drop support for mir-container sessions - no-one ever used these.
+  * debian/liblightdm-gobject-1-0.symbols:
+    - Updated
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 29 Jun 2016 15:29:17 +1200
+
 lightdm (1.19.1-0ubuntu1) yakkety; urgency=medium
 
   * New upstream release:
