@@ -1,3 +1,12 @@
+lightdm (1.19.3-0ubuntu1) yakkety; urgency=medium
+
+  * New upstream release:
+    - Fix in-session greeters not working for greeter logins
+  * debian/control:
+    - Use standards version 3.9.8
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 12 Jul 2016 10:10:41 +1200
+
 lightdm (1.19.2-0ubuntu1) yakkety; urgency=medium
 
   * New upstream release:

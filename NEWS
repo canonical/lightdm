@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.19.3
+
+    * Fix in-session greeters not working for greeter logins
+
 Overview of changes in lightdm 1.19.2
 
     * Add support for greeters running inside sessions. This is enabled by
