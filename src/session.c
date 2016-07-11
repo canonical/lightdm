@@ -602,38 +602,6 @@ session_real_start (Session *session)
             return FALSE;
     }
 
-    /* Open socket to allow in-session greeter */
-    if (session->priv->config && session_config_get_allow_greeter (session->priv->config))
-    {
-        gchar *run_dir, *dir, *path;
-        GError *error = NULL;
-
-        run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
-        dir = g_build_filename (run_dir, session->priv->username, NULL);
-        g_free (run_dir);
-
-        if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
-            l_warning (session, "Failed to create greeter socket dir %s: %s", dir, strerror (errno));
-        if (getuid () == 0)
-        {
-            if (chown (dir, user_get_uid (session_get_user (session)), user_get_gid (session_get_user (session))) < 0)
-                l_warning (session, "Failed to set ownership of greeter socket dir: %s", strerror (errno));
-        }
-
-        path = g_build_filename (dir, "greeter-socket", NULL);
-        session->priv->greeter_socket = greeter_socket_new (path);
-        g_signal_connect (session->priv->greeter_socket, GREETER_SOCKET_SIGNAL_CREATE_GREETER, G_CALLBACK (create_greeter_cb), session);
-        session_set_env (session, "LIGHTDM_GREETER_PIPE", path);
-        g_free (path);
-        g_free (dir);
-
-        if (!greeter_socket_start (session->priv->greeter_socket, &error))
-        {
-            l_warning (session, "Failed to start greeter socket: %s\n", error->message);
-            g_clear_error (&error);
-        }
-    }
-
     /* Run the child */
     arg0 = g_strdup_printf ("%d", to_child_output);
     arg1 = g_strdup_printf ("%d", from_child_input);
@@ -844,6 +812,38 @@ session_real_run (Session *session)
         {
             session_set_env (session, "XDG_GREETER_DATA_DIR", data_dir);
             g_free (data_dir);
+        }
+    }
+
+    /* Open socket to allow in-session greeter */
+    if (session->priv->config && session_config_get_allow_greeter (session->priv->config))
+    {
+        gchar *run_dir, *dir, *path;
+        GError *error = NULL;
+
+        run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
+        dir = g_build_filename (run_dir, session->priv->username, NULL);
+        g_free (run_dir);
+
+        if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
+            l_warning (session, "Failed to create greeter socket dir %s: %s", dir, strerror (errno));
+        if (getuid () == 0)
+        {
+            if (chown (dir, user_get_uid (session_get_user (session)), user_get_gid (session_get_user (session))) < 0)
+                l_warning (session, "Failed to set ownership of greeter socket dir: %s", strerror (errno));
+        }
+
+        path = g_build_filename (dir, "greeter-socket", NULL);
+        session->priv->greeter_socket = greeter_socket_new (path);
+        g_signal_connect (session->priv->greeter_socket, GREETER_SOCKET_SIGNAL_CREATE_GREETER, G_CALLBACK (create_greeter_cb), session);
+        session_set_env (session, "LIGHTDM_GREETER_PIPE", path);
+        g_free (path);
+        g_free (dir);
+
+        if (!greeter_socket_start (session->priv->greeter_socket, &error))
+        {
+            l_warning (session, "Failed to start greeter socket: %s\n", error->message);
+            g_clear_error (&error);
         }
     }
 
