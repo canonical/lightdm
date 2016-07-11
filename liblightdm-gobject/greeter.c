@@ -976,8 +976,9 @@ lightdm_greeter_connect_to_daemon_finish (LightDMGreeter *greeter, GAsyncResult 
     Request *request = REQUEST (result);
 
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
-  
-    g_propagate_error (error, request->error);
+
+    if (request->error)
+        g_propagate_error (error, request->error);
     return request->result;
 }
 
@@ -1637,7 +1638,8 @@ lightdm_greeter_start_session_finish (LightDMGreeter *greeter, GAsyncResult *res
 
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
 
-    g_propagate_error (error, request->error);
+    if (request->error)  
+        g_propagate_error (error, request->error);
     return request->result;
 }
 
@@ -1739,7 +1741,8 @@ lightdm_greeter_ensure_shared_data_dir_finish (LightDMGreeter *greeter, GAsyncRe
 
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
 
-    g_propagate_error (error, request->error);
+    if (request->error)
+        g_propagate_error (error, request->error);
     return g_strdup (request->dir);
 }
 
