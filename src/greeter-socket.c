@@ -10,6 +10,8 @@
 
 #include <config.h>
 
+#include <errno.h>
+#include <sys/stat.h>
 #include <gio/gio.h>
 #include <gio/gunixsocketaddress.h>
 
@@ -105,6 +107,18 @@ greeter_socket_start (GreeterSocket *socket, GError **error)
     socket->priv->source = g_socket_create_source (socket->priv->socket, G_IO_IN, NULL);
     g_source_set_callback (socket->priv->source, (GSourceFunc) greeter_connect_cb, socket, NULL);
     g_source_attach (socket->priv->source, NULL);
+
+    /* Allow to be written to */
+    if (chmod (socket->priv->path, S_IRWXU | S_IRWXG | S_IRWXO) < 0)
+    {
+        g_set_error (error,
+                     G_FILE_ERROR,
+                     g_file_error_from_errno (errno),
+                     "Failed to set permissions on greeter socket %s: %s",
+                     socket->priv->path,
+                     g_strerror (errno));     
+        return FALSE;
+    }
 
     return TRUE;
 }
