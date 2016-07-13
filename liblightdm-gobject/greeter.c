@@ -248,7 +248,7 @@ request_new (LightDMGreeter *greeter, GCancellable *cancellable, GAsyncReadyCall
     Request *request;
 
     request = g_object_new (request_get_type (), NULL);
-    request->greeter = g_object_ref (greeter);
+    request->greeter = greeter;
     if (cancellable)
         request->cancellable = g_object_ref (cancellable);
     request->callback = callback;
