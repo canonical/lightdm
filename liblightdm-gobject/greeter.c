@@ -1884,8 +1884,18 @@ lightdm_greeter_finalize (GObject *object)
         g_io_channel_unref (priv->to_server_channel);
     if (priv->from_server_channel)
         g_io_channel_unref (priv->from_server_channel);
-    g_free (priv->authentication_user);
+    g_clear_pointer (&priv->read_buffer, g_free);
+    g_list_free_full (priv->responses_received, g_free);
+    priv->responses_received = NULL;
+    g_list_free_full (priv->connect_requests, g_object_unref);
+    priv->connect_requests = NULL;
+    g_list_free_full (priv->start_session_requests, g_object_unref);
+    priv->start_session_requests = NULL;
+    g_list_free_full (priv->ensure_shared_data_dir_requests, g_object_unref);
+    priv->ensure_shared_data_dir_requests = NULL;
+    g_clear_pointer (&priv->authentication_user, g_free);
     g_hash_table_unref (priv->hints);
+    priv->hints = NULL;
 
     G_OBJECT_CLASS (lightdm_greeter_parent_class)->finalize (object);
 }
