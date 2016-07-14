@@ -1107,7 +1107,12 @@ status_message_cb (GSocket *socket, GIOCondition condition, StatusClient *client
     if (n_read > 0)
         n_read = g_socket_receive (socket, buffer, length, NULL, &error);
     if (error)
-        g_warning ("Error reading from socket: %s", error->message);
+    {
+        if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED))
+            n_read = 0;
+        else
+            g_warning ("Error reading from socket: %s", error->message);
+    }
     g_clear_error (&error);
     if (n_read == 0)
     {
