@@ -29,15 +29,20 @@ status_request_cb (GSocket *socket, GIOCondition condition, gpointer data)
     n_read = g_socket_receive (socket, (gchar *)&length, sizeof (length), NULL, &error);
     if (n_read > 0)
         n_read = g_socket_receive (socket, buffer, length, NULL, &error);
+    if (error)
+    {
+        if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED))
+            n_read = 0;
+        else
+            g_warning ("Error reading from socket: %s", error->message);
+    }
+    g_clear_error (&error);
     if (n_read == 0)
     {
         if (request_func)
             request_func (NULL, NULL);
         return FALSE;
     }
-    if (error)
-        g_warning ("Error reading from socket: %s", error->message);
-    g_clear_error (&error);
 
     if (n_read <= 0 || !request_func)
         return TRUE;
