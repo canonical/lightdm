@@ -274,6 +274,12 @@ request_cb (const gchar *name, GHashTable *params)
         }
     }
 
+    else if (strcmp (name, "GREETER-STOP") == 0)
+    {
+        g_assert (greeter != NULL);
+        g_clear_object (&greeter);
+    }
+
     else if (strcmp (name, "GREETER-AUTHENTICATE") == 0)
     {
         if (!lightdm_greeter_authenticate (greeter, g_hash_table_lookup (params, "USERNAME"), &error))

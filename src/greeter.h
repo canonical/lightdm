@@ -24,6 +24,7 @@ G_BEGIN_DECLS
 #define IS_GREETER(obj)        (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GREETER_TYPE))
 
 #define GREETER_SIGNAL_CONNECTED      "connected"
+#define GREETER_SIGNAL_DISCONNECTED   "disconnected"
 #define GREETER_SIGNAL_CREATE_SESSION "create-session"
 #define GREETER_SIGNAL_START_SESSION  "start-session"
 
@@ -43,6 +44,7 @@ typedef struct
 {
     GObjectClass parent_class;
     void (*connected)(Greeter *greeter);
+    void (*disconnected)(Greeter *greeter);  
     Session *(*create_session)(Greeter *greeter);
     gboolean (*start_session)(Greeter *greeter, SessionType type, const gchar *session);
 } GreeterClass;

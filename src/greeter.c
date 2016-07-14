@@ -25,6 +25,7 @@ enum {
 
 enum {
     CONNECTED,
+    DISCONNECTED,  
     CREATE_SESSION,
     START_SESSION,
     LAST_SIGNAL
@@ -836,6 +837,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     {
         g_debug ("Greeter closed communication channel");
         greeter->priv->from_greeter_watch = 0;
+        g_signal_emit (greeter, signals[DISCONNECTED], 0);
         return FALSE;
     }
 
@@ -862,6 +864,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     {
         g_debug ("Greeter closed communication channel");
         greeter->priv->from_greeter_watch = 0;
+        g_signal_emit (greeter, signals[DISCONNECTED], 0);
         return FALSE;
     }
     else if (status != G_IO_STATUS_NORMAL)
@@ -1086,6 +1089,15 @@ greeter_class_init (GreeterClass *klass)
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
                       G_STRUCT_OFFSET (GreeterClass, connected),
+                      NULL, NULL,
+                      NULL,
+                      G_TYPE_NONE, 0);
+
+    signals[DISCONNECTED] =
+        g_signal_new (GREETER_SIGNAL_DISCONNECTED,
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (GreeterClass, disconnected),
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 0);
