@@ -1123,9 +1123,10 @@ login1_active_session_changed_cb (Login1Seat *login1_seat, const gchar *login1_s
     if (seat)
     {
         Session *active_session;
-        active_session = seat_get_expected_active_session (seat);
 
-        if (g_strcmp0 (login1_session_id, session_get_login1_session_id (active_session)) == 0)
+        active_session = seat_get_expected_active_session (seat);
+        if (active_session != NULL &&
+            g_strcmp0 (login1_session_id, session_get_login1_session_id (active_session)) == 0)
         {
             // Session is already active
             g_debug ("Session %s is already active", login1_session_id);
