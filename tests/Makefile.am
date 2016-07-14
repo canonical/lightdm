@@ -113,6 +113,7 @@ TESTS = \
 	test-login-remote-session-gobject \
 	test-login-session-crash \
 	test-login-xserver-crash \
+	test-multiple-authenticate \
 	test-xserver-no-share \
 	test-home-dir-on-authenticate \
 	test-home-dir-on-session \
@@ -510,6 +511,7 @@ EXTRA_DIST = \
 	scripts/mir-session.conf \
 	scripts/mir-session-compositor-crash.conf \
 	scripts/mir-session-crash.conf \
+	scripts/multiple-authenticate.conf \        
 	scripts/multi-seat.conf \
 	scripts/multi-seat-change-graphical.conf \
 	scripts/multi-seat-change-graphical-disabled.conf \
