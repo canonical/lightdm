@@ -456,7 +456,7 @@ reset_session (Greeter *greeter)
 }
 
 static void
-handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
+handle_authenticate (Greeter *greeter, guint32 sequence_number, const gchar *username)
 {
     const gchar *autologin_username, *service;
     gboolean is_interactive;
@@ -509,7 +509,7 @@ handle_login (Greeter *greeter, guint32 sequence_number, const gchar *username)
 }
 
 static void
-handle_login_as_guest (Greeter *greeter, guint32 sequence_number)
+handle_authenticate_as_guest (Greeter *greeter, guint32 sequence_number)
 {
     g_debug ("Greeter start authentication for guest account");
 
@@ -562,7 +562,7 @@ get_remote_session_service (const gchar *session_name)
 }
 
 static void
-handle_login_remote (Greeter *greeter, const gchar *session_name, const gchar *username, guint32 sequence_number)
+handle_authenticate_remote (Greeter *greeter, const gchar *session_name, const gchar *username, guint32 sequence_number)
 {
     gchar *service;
 
@@ -901,18 +901,18 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     case GREETER_MESSAGE_AUTHENTICATE:
         sequence_number = read_int (greeter, &offset);
         username = read_string (greeter, &offset);
-        handle_login (greeter, sequence_number, username);
+        handle_authenticate (greeter, sequence_number, username);
         g_free (username);
         break;
     case GREETER_MESSAGE_AUTHENTICATE_AS_GUEST:
         sequence_number = read_int (greeter, &offset);
-        handle_login_as_guest (greeter, sequence_number);
+        handle_authenticate_as_guest (greeter, sequence_number);
         break;
     case GREETER_MESSAGE_AUTHENTICATE_REMOTE:
         sequence_number = read_int (greeter, &offset);
         session_name = read_string (greeter, &offset);
         username = read_string (greeter, &offset);
-        handle_login_remote (greeter, session_name, username, sequence_number);
+        handle_authenticate_remote (greeter, session_name, username, sequence_number);
         break;
     case GREETER_MESSAGE_CONTINUE_AUTHENTICATION:
         n_secrets = read_int (greeter, &offset);
