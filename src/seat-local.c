@@ -436,8 +436,6 @@ seat_local_set_next_session (Seat *seat, Session *session)
         l_debug (seat, "Marking Mir session %s as the next session", id);
         unity_system_compositor_set_next_session (SEAT_LOCAL (seat)->priv->compositor, id);
     }
-    else
-        l_debug (seat, "Failed to work out session ID to mark");
 
     SEAT_CLASS (seat_local_parent_class)->set_next_session (seat, session);
 }
