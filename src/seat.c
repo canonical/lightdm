@@ -1868,6 +1868,9 @@ seat_real_display_server_is_used (Seat *seat, DisplayServer *display_server)
         DisplayServer *d;
 
         d = session_get_display_server (session);
+        if (!d)
+            continue;
+
         if (d == display_server || display_server_get_parent (d) == display_server)
             return TRUE;
     }
