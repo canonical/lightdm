@@ -529,6 +529,7 @@ handle_command (const gchar *command)
         /* Stop status timeout */
         if (status_timeout)
             g_source_remove (status_timeout);
+        status_timeout = 0;
 
         /* Use a main loop so that our DBus functions are still responsive */
         GMainLoop *loop = g_main_loop_new (NULL, FALSE);
@@ -1042,10 +1043,12 @@ status_timeout_cb (gpointer data)
 {
     ScriptLine *line;
 
+    status_timeout = 0;
+
     line = get_script_line (NULL);
     fail ("(timeout)", line ? line->text : NULL);
 
-    return FALSE;
+    return G_SOURCE_REMOVE;
 }
 
 static void
