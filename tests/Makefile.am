@@ -171,6 +171,7 @@ TESTS = \
 	test-session-greeter \
 	test-session-greeter-autologin \
 	test-session-greeter-reconnect \
+	test-session-greeter-twice \
 	test-session-greeter-unlock \
 	test-vnc-login \
 	test-vnc-command \

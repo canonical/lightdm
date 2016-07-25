@@ -441,6 +441,16 @@ authentication_complete_cb (Session *session, Greeter *greeter)
 }
 
 static void
+session_stopped_cb (Session *session, Greeter *greeter)
+{
+    if (session == greeter->priv->authentication_session)
+    {
+        g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
+        g_clear_object (&greeter->priv->authentication_session);
+    }
+}
+
+static void
 reset_session (Greeter *greeter)
 {
     g_free (greeter->priv->remote_session);
@@ -486,6 +496,7 @@ handle_authenticate (Greeter *greeter, guint32 sequence_number, const gchar *use
 
     g_signal_connect (G_OBJECT (greeter->priv->authentication_session), SESSION_SIGNAL_GOT_MESSAGES, G_CALLBACK (pam_messages_cb), greeter);
     g_signal_connect (G_OBJECT (greeter->priv->authentication_session), SESSION_SIGNAL_AUTHENTICATION_COMPLETE, G_CALLBACK (authentication_complete_cb), greeter);
+    g_signal_connect (G_OBJECT (greeter->priv->authentication_session), SESSION_SIGNAL_STOPPED, G_CALLBACK (session_stopped_cb), greeter);
 
     /* Use non-interactive service for autologin user */
     autologin_username = g_hash_table_lookup (greeter->priv->hints, "autologin-user");
@@ -590,6 +601,7 @@ handle_authenticate_remote (Greeter *greeter, const gchar *session_name, const g
     {
         g_signal_connect (G_OBJECT (greeter->priv->authentication_session), SESSION_SIGNAL_GOT_MESSAGES, G_CALLBACK (pam_messages_cb), greeter);
         g_signal_connect (G_OBJECT (greeter->priv->authentication_session), SESSION_SIGNAL_AUTHENTICATION_COMPLETE, G_CALLBACK (authentication_complete_cb), greeter);
+        g_signal_connect (G_OBJECT (greeter->priv->authentication_session), SESSION_SIGNAL_STOPPED, G_CALLBACK (session_stopped_cb), greeter);
 
         /* Run the session process */
         session_set_pam_service (greeter->priv->authentication_session, service);
