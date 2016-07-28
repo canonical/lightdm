@@ -2,10 +2,10 @@ Description: Adjustments due to handling of languages
 Forwarded: not-needed
 Author: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
 
-Index: trunk/liblightdm-gobject/language.c
+Index: 1.18/liblightdm-gobject/language.c
 ===================================================================
---- trunk.orig/liblightdm-gobject/language.c
-+++ trunk/liblightdm-gobject/language.c
+--- 1.18.orig/liblightdm-gobject/language.c
++++ 1.18/liblightdm-gobject/language.c
 @@ -40,7 +40,7 @@ static GList *languages = NULL;
  static void
  update_languages (void)
@@ -56,10 +56,10 @@ Index: trunk/liblightdm-gobject/language.c
              return language;
      }
  
-Index: trunk/tests/scripts/language-env.conf
+Index: 1.18/tests/scripts/language-env.conf
 ===================================================================
---- trunk.orig/tests/scripts/language-env.conf
-+++ trunk/tests/scripts/language-env.conf
+--- 1.18.orig/tests/scripts/language-env.conf
++++ 1.18/tests/scripts/language-env.conf
 @@ -24,8 +24,8 @@ user-session=default
  #?SESSION-X-0 CONNECT-XSERVER
  
@@ -71,11 +71,11 @@ Index: trunk/tests/scripts/language-env.conf
  #?*SESSION-X-0 READ-ENV NAME=GDM_LANG
  #?SESSION-X-0 READ-ENV NAME=GDM_LANG VALUE=en_AU
  
-Index: trunk/src/seat.c
+Index: 1.18/src/seat.c
 ===================================================================
---- trunk.orig/src/seat.c
-+++ trunk/src/seat.c
-@@ -1020,7 +1020,7 @@ configure_session (Session *session, Ses
+--- 1.18.orig/src/seat.c
++++ 1.18/src/seat.c
+@@ -1010,7 +1010,7 @@ configure_session (Session *session, Ses
      }
      if (language && language[0] != '\0')
      {

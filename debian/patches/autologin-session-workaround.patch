@@ -2,11 +2,11 @@ Description: Workaround faulty setting from Ubuntu user-setup package
 Author: Robert Ancell <robert.ancell@canonical.com>
 Bug: https://bugs.launchpad.net/bugs/1484083
 
-Index: trunk/src/seat.c
+Index: 1.18/src/seat.c
 ===================================================================
---- trunk.orig/src/seat.c
-+++ trunk/src/seat.c
-@@ -1050,7 +1050,12 @@ create_user_session (Seat *seat, const g
+--- 1.18.orig/src/seat.c
++++ 1.18/src/seat.c
+@@ -1040,7 +1040,12 @@ create_user_session (Seat *seat, const g
      if (autostart)
      {
          const gchar *autologin_session_name = seat_get_string_property (seat, "autologin-session");
