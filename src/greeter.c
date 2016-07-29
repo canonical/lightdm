@@ -858,7 +858,13 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     if (error)
         g_warning ("Error reading from greeter: %s", error->message);
     g_clear_error (&error);
-    if (status != G_IO_STATUS_NORMAL)
+    if (status == G_IO_STATUS_EOF)
+    {
+        g_debug ("Greeter closed communication channel");
+        greeter->priv->from_greeter_watch = 0;
+        return FALSE;
+    }
+    else if (status != G_IO_STATUS_NORMAL)
         return TRUE;
 
     greeter->priv->n_read += n_read;
