@@ -168,7 +168,8 @@ TESTS = \
 	test-switch-to-users \
 	test-session-greeter \
 	test-session-greeter-autologin \
-	test-session-greeter-reconnect \        
+	test-session-greeter-reconnect \
+	test-session-greeter-unlock \
 	test-vnc-login \
 	test-vnc-command \
 	test-vnc-dimensions \
@@ -543,6 +544,7 @@ EXTRA_DIST = \
 	scripts/session-greeter.conf \
 	scripts/session-greeter-autologin.conf \
 	scripts/session-greeter-reconnect.conf \
+	scripts/session-greeter-unlock.conf \
 	scripts/session-stdout.conf \
 	scripts/session-stderr.conf \
 	scripts/session-stderr-multi-write.conf \
