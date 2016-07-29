@@ -60,6 +60,7 @@ typedef struct
 
     /* Channel to read from daemon */
     GIOChannel *from_server_channel;
+    guint from_server_watch;
 
     /* Data read from the daemon */
     guint8 *read_buffer;
@@ -400,7 +401,7 @@ connect_to_daemon (LightDMGreeter *greeter)
         return FALSE;
     }
 
-    g_io_add_watch (priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
+    priv->from_server_watch = g_io_add_watch (priv->from_server_channel, G_IO_IN, from_server_cb, greeter);
 
     if (!g_io_channel_set_encoding (priv->to_server_channel, NULL, &error) ||
         !g_io_channel_set_encoding (priv->from_server_channel, NULL, &error))
@@ -1748,6 +1749,9 @@ lightdm_greeter_finalize (GObject *object)
         g_io_channel_unref (priv->to_server_channel);
     if (priv->from_server_channel)
         g_io_channel_unref (priv->from_server_channel);
+    if (priv->from_server_watch)
+        g_source_remove (priv->from_server_watch);
+    priv->from_server_watch = 0;
     g_clear_pointer (&priv->read_buffer, g_free);
     g_list_free_full (priv->responses_received, g_free);
     priv->responses_received = NULL;
