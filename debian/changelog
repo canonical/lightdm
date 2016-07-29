@@ -1,3 +1,18 @@
+lightdm (1.18.3-0ubuntu1) UNRELEASED; urgency=medium
+
+  * debian/patches/lp1605117.patch:
+    - Applied upstream
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 29 Jul 2016 15:32:29 +1200
+
+lightdm (1.18.2-0ubuntu2) xenial; urgency=medium
+
+  * debian/patches/lp1605117.patch:
+    - Fix stdin being accidentally closed, causing indicators not to show in
+      unity-greeter (LP: #1605117)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 29 Jul 2016 15:18:41 +1200
+
 lightdm (1.18.2-0ubuntu1) xenial; urgency=medium
 
   * New upstream release:
