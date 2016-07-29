@@ -61,6 +61,7 @@ static guint list_signals[LAST_LIST_SIGNAL] = { 0 };
 enum
 {
     CHANGED,
+    GET_LOGGED_IN,
     LAST_USER_SIGNAL
 };
 static guint user_signals[LAST_USER_SIGNAL] = { 0 };
@@ -93,11 +94,11 @@ typedef struct
 
 typedef struct
 {
-    /* User list this user is part of */
-    CommonUserList *user_list;
-
     /* TRUE if have loaded the DMRC file */
     gboolean loaded_dmrc;
+
+    /* Bus we are listening for accounts service on */
+    GDBusConnection *bus;
 
     /* Accounts service path */
     gchar *path;
@@ -252,10 +253,34 @@ update_passwd_user (CommonUser *user, const gchar *real_name, const gchar *home_
     return TRUE;
 }
 
-static void
-user_changed_cb (CommonUser *user)
+static void load_sessions (CommonUserList *user_list);
+
+static gboolean
+get_logged_in_cb (CommonUser *user, CommonUserList *user_list)
 {
-    g_signal_emit (GET_USER_PRIVATE (user)->user_list, list_signals[USER_CHANGED], 0, user);
+    CommonUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
+    const gchar *username;
+    GList *link;
+
+    // Lazily decide to load/listen to sessions
+    if (priv->session_added_signal == 0)
+        load_sessions (user_list);
+
+    username = GET_USER_PRIVATE (user)->name;
+    for (link = priv->sessions; link; link = link->next)
+    {
+        CommonSession *session = link->data;
+        if (strcmp (session->username, username) == 0)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static void
+user_changed_cb (CommonUser *user, CommonUserList *user_list)
+{
+    g_signal_emit (user_list, list_signals[USER_CHANGED], 0, user);
 }
 
 static CommonUser *
@@ -265,6 +290,8 @@ make_passwd_user (CommonUserList *user_list, struct passwd *entry)
     CommonUserPrivate *priv = GET_USER_PRIVATE (user);
     char **tokens;
     gchar *real_name, *image;
+
+    g_signal_connect (user, "get-logged-in", G_CALLBACK (get_logged_in_cb), user_list);  
 
     tokens = g_strsplit (entry->pw_gecos, ",", -1);
     if (tokens[0] != NULL && tokens[0][0] != '\0')
@@ -285,7 +312,6 @@ make_passwd_user (CommonUserList *user_list, struct passwd *entry)
         }
     }
 
-    priv->user_list = user_list;
     priv->name = g_strdup (entry->pw_name);
     priv->real_name = real_name;
     priv->home_directory = g_strdup (entry->pw_dir);
@@ -405,7 +431,7 @@ load_passwd_file (CommonUserList *user_list, gboolean emit_add_signal)
     {
         CommonUser *info = link->data;
         g_debug ("User %s added", common_user_get_name (info));
-        g_signal_connect (info, USER_SIGNAL_CHANGED, G_CALLBACK (user_changed_cb), NULL);
+        g_signal_connect (info, USER_SIGNAL_CHANGED, G_CALLBACK (user_changed_cb), user_list);
         if (emit_add_signal)
             g_signal_emit (user_list, list_signals[USER_ADDED], 0, info);
     }
@@ -483,7 +509,7 @@ load_accounts_user (CommonUser *user)
 
     /* Get the properties for this user */
     if (!priv->changed_signal)
-        priv->changed_signal = g_dbus_connection_signal_subscribe (GET_LIST_PRIVATE (priv->user_list)->bus,
+        priv->changed_signal = g_dbus_connection_signal_subscribe (priv->bus,
                                                                    "org.freedesktop.Accounts",
                                                                    "org.freedesktop.Accounts.User",
                                                                    "Changed",
@@ -493,7 +519,7 @@ load_accounts_user (CommonUser *user)
                                                                    accounts_user_changed_cb,
                                                                    user,
                                                                    NULL);
-    result = g_dbus_connection_call_sync (GET_LIST_PRIVATE (priv->user_list)->bus,
+    result = g_dbus_connection_call_sync (priv->bus,
                                           "org.freedesktop.Accounts",
                                           priv->path,
                                           "org.freedesktop.DBus.Properties",
@@ -600,9 +626,10 @@ add_accounts_user (CommonUserList *user_list, const gchar *path, gboolean emit_s
     priv = GET_USER_PRIVATE (user);
 
     g_debug ("User %s added", path);
-    priv->user_list = user_list;
+    priv->bus = g_object_ref (list_priv->bus);
     priv->path = g_strdup (path);
-    g_signal_connect (user, USER_SIGNAL_CHANGED, G_CALLBACK (user_changed_cb), NULL);
+    g_signal_connect (user, USER_SIGNAL_CHANGED, G_CALLBACK (user_changed_cb), user_list);
+    g_signal_connect (user, "get-logged-in", G_CALLBACK (get_logged_in_cb), user_list);  
     if (load_accounts_user (user))
     {
         list_priv->users = g_list_insert_sorted (list_priv->users, user, compare_user);
@@ -1135,12 +1162,11 @@ call_method (CommonUser *user, const gchar *method, GVariant *args,
 {
     GVariant *answer;
     GError *error = NULL;
-    CommonUserPrivate *user_priv = GET_USER_PRIVATE (user);
-    CommonUserListPrivate *list_priv = GET_LIST_PRIVATE (user_priv->user_list);
+    CommonUserPrivate *priv = GET_USER_PRIVATE (user);
 
-    answer = g_dbus_connection_call_sync (list_priv->bus,
+    answer = g_dbus_connection_call_sync (priv->bus,
                                           "org.freedesktop.Accounts",
-                                          user_priv->path,
+                                          priv->path,
                                           "org.freedesktop.Accounts.User",
                                           method,
                                           args,
@@ -1438,27 +1464,13 @@ common_user_set_session (CommonUser *user, const gchar *session)
 gboolean
 common_user_get_logged_in (CommonUser *user)
 {
-    CommonUserPrivate *priv;
-    CommonUserListPrivate *list_priv;
-    GList *link;
+    gboolean result;
 
     g_return_val_if_fail (COMMON_IS_USER (user), FALSE);
 
-    priv = GET_USER_PRIVATE (user);
-    list_priv = GET_LIST_PRIVATE (priv->user_list);
+    g_signal_emit (user, user_signals[GET_LOGGED_IN], 0, &result);
 
-    // Lazily decide to load/listen to sessions
-    if (list_priv->session_added_signal == 0)
-        load_sessions (priv->user_list);
-
-    for (link = list_priv->sessions; link; link = link->next)
-    {
-        CommonSession *session = link->data;
-        if (strcmp (session->username, priv->name) == 0)
-            return TRUE;
-    }
-
-    return FALSE;
+    return result;
 }
 
 /**
@@ -1604,7 +1616,8 @@ common_user_finalize (GObject *object)
 
     g_free (priv->path);
     if (priv->changed_signal)
-        g_dbus_connection_signal_unsubscribe (GET_LIST_PRIVATE (priv->user_list)->bus, priv->changed_signal);
+        g_dbus_connection_signal_unsubscribe (priv->bus, priv->changed_signal);
+    g_clear_object (&priv->bus);
     g_free (priv->name);
     g_free (priv->real_name);
     g_free (priv->home_directory);
@@ -1751,6 +1764,16 @@ common_user_class_init (CommonUserClass *klass)
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 0);
+
+    user_signals[GET_LOGGED_IN] =
+        g_signal_new ("get-logged-in",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      0,
+                      g_signal_accumulator_first_wins,
+                      NULL,
+                      NULL,
+                      G_TYPE_BOOLEAN, 0);
 }
 
 static void
