@@ -54,6 +54,16 @@ greeter_socket_new (const gchar *path)
     return socket;
 }
 
+static void
+greeter_disconnected_cb (Greeter *greeter, GreeterSocket *socket)
+{
+    if (greeter == socket->priv->greeter)
+    {
+        g_clear_object (&socket->priv->greeter);
+        g_clear_object (&socket->priv->greeter_socket);
+    }
+}
+
 static gboolean
 greeter_connect_cb (GSocket *s, GIOCondition condition, GreeterSocket *socket)
 {
@@ -77,6 +87,7 @@ greeter_connect_cb (GSocket *s, GIOCondition condition, GreeterSocket *socket)
 
     socket->priv->greeter_socket = new_socket;
     g_signal_emit (socket, signals[CREATE_GREETER], 0, &socket->priv->greeter);
+    g_signal_connect (socket->priv->greeter, GREETER_SIGNAL_DISCONNECTED, G_CALLBACK (greeter_disconnected_cb), socket);
     greeter_set_file_descriptors (socket->priv->greeter, g_socket_get_fd (new_socket), g_socket_get_fd (new_socket));
 
     return G_SOURCE_CONTINUE;

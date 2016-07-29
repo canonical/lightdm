@@ -271,6 +271,12 @@ request_cb (const gchar *name, GHashTable *params)
             status_notify ("%s GREETER-FAILED", session_id);
     }
 
+    else if (strcmp (name, "GREETER-STOP") == 0)
+    {
+        g_assert (greeter != NULL);
+        g_clear_object (&greeter);
+    }
+
     else if (strcmp (name, "GREETER-AUTHENTICATE") == 0)
     {
         lightdm_greeter_authenticate (greeter, g_hash_table_lookup (params, "USERNAME"));
