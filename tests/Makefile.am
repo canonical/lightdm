@@ -216,6 +216,7 @@ TESTS = \
 	test-xdmcp-server-open-file-descriptors \
 	test-add-local-x-seat \
 	test-multi-seat \
+	test-multi-seat-login \        
 	test-multi-seat-seat0-non-graphical \
 	test-multi-seat-seat0-non-graphical-disabled \
 	test-multi-seat-non-graphical \
@@ -511,6 +512,7 @@ EXTRA_DIST = \
 	scripts/multi-seat.conf \
 	scripts/multi-seat-change-graphical.conf \
 	scripts/multi-seat-change-graphical-disabled.conf \
+	scripts/multi-seat-login.conf \
 	scripts/multi-seat-non-graphical.conf \
 	scripts/multi-seat-non-graphical-disabled.conf \
 	scripts/multi-seat-seat0-non-graphical.conf \
