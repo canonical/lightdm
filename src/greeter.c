@@ -19,8 +19,7 @@
 #include "shared-data-manager.h"
 
 enum {
-    PROP_0,
-    PROP_ACTIVE_USERNAME,
+    PROP_ACTIVE_USERNAME = 1,
 };
 
 enum {

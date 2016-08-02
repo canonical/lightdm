@@ -15,8 +15,7 @@
 #include "lightdm/session.h"
 
 enum {
-    PROP_0,
-    PROP_KEY,
+    PROP_KEY = 1,
     PROP_NAME,
     PROP_COMMENT
 };
@@ -331,18 +330,18 @@ lightdm_session_init (LightDMSession *session)
 
 static void
 lightdm_session_set_property (GObject      *object,
-                          guint         prop_id,
-                          const GValue *value,
-                          GParamSpec   *pspec)
+                              guint         prop_id,
+                              const GValue *value,
+                              GParamSpec   *pspec)
 {
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 }
 
 static void
 lightdm_session_get_property (GObject    *object,
-                          guint       prop_id,
-                          GValue     *value,
-                          GParamSpec *pspec)
+                              guint       prop_id,
+                              GValue     *value,
+                              GParamSpec *pspec)
 {
     LightDMSession *self;
 

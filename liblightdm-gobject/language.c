@@ -17,8 +17,7 @@
 #include "lightdm/language.h"
 
 enum {
-    PROP_0,
-    PROP_CODE,
+    PROP_CODE = 1,
     PROP_NAME,
     PROP_TERRITORY
 };
@@ -329,9 +328,9 @@ lightdm_language_init (LightDMLanguage *language)
 
 static void
 lightdm_language_set_property (GObject      *object,
-                           guint         prop_id,
-                           const GValue *value,
-                           GParamSpec   *pspec)
+                               guint         prop_id,
+                               const GValue *value,
+                               GParamSpec   *pspec)
 {
     LightDMLanguage *self = LIGHTDM_LANGUAGE (object);
     LightDMLanguagePrivate *priv = GET_PRIVATE (self);
@@ -349,9 +348,9 @@ lightdm_language_set_property (GObject      *object,
 
 static void
 lightdm_language_get_property (GObject    *object,
-                           guint       prop_id,
-                           GValue     *value,
-                           GParamSpec *pspec)
+                               guint       prop_id,
+                               GValue     *value,
+                               GParamSpec *pspec)
 {
     LightDMLanguage *self;
 

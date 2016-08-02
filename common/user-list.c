@@ -24,15 +24,13 @@
 
 enum
 {
-    LIST_PROP_0,
-    LIST_PROP_NUM_USERS,
+    LIST_PROP_NUM_USERS = 1,
     LIST_PROP_USERS,
 };
 
 enum
 {
-    USER_PROP_0,
-    USER_PROP_NAME,
+    USER_PROP_NAME = 1,
     USER_PROP_REAL_NAME,
     USER_PROP_DISPLAY_NAME,
     USER_PROP_HOME_DIRECTORY,
@@ -1036,19 +1034,19 @@ common_user_list_init (CommonUserList *user_list)
 }
 
 static void
-common_user_list_set_property (GObject    *object,
-                                guint       prop_id,
-                                const GValue *value,
-                                GParamSpec *pspec)
+common_user_list_set_property (GObject      *object,
+                               guint         prop_id,
+                               const GValue *value,
+                               GParamSpec   *pspec)
 {
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 }
 
 static void
 common_user_list_get_property (GObject    *object,
-                                guint       prop_id,
-                                GValue     *value,
-                                GParamSpec *pspec)
+                               guint       prop_id,
+                               GValue     *value,
+                               GParamSpec *pspec)
 {
     CommonUserList *self;
 

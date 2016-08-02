@@ -21,8 +21,7 @@
 G_DEFINE_QUARK (lightdm_greeter_error, lightdm_greeter_error)
 
 enum {
-    PROP_0,
-    PROP_DEFAULT_SESSION_HINT,
+    PROP_DEFAULT_SESSION_HINT = 1,
     PROP_HIDE_USERS_HINT,
     PROP_SHOW_MANUAL_LOGIN_HINT,
     PROP_SHOW_REMOTE_LOGIN_HINT,

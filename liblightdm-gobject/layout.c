@@ -14,8 +14,7 @@
 #include "lightdm/layout.h"
 
 enum {
-    PROP_0,
-    PROP_NAME,
+    PROP_NAME = 1,
     PROP_SHORT_DESCRIPTION,
     PROP_DESCRIPTION
 };
@@ -252,9 +251,9 @@ lightdm_layout_init (LightDMLayout *layout)
 
 static void
 lightdm_layout_set_property (GObject      *object,
-                         guint         prop_id,
-                         const GValue *value,
-                         GParamSpec   *pspec)
+                             guint         prop_id,
+                             const GValue *value,
+                             GParamSpec   *pspec)
 {
     LightDMLayout *self = LIGHTDM_LAYOUT (object);
     LightDMLayoutPrivate *priv = GET_PRIVATE (self);
@@ -280,9 +279,9 @@ lightdm_layout_set_property (GObject      *object,
 
 static void
 lightdm_layout_get_property (GObject    *object,
-                         guint       prop_id,
-                         GValue     *value,
-                         GParamSpec *pspec)
+                             guint       prop_id,
+                             GValue     *value,
+                             GParamSpec *pspec)
 {
     LightDMLayout *self;
 
