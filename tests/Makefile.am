@@ -216,7 +216,9 @@ TESTS = \
 	test-xdmcp-server-open-file-descriptors \
 	test-add-local-x-seat \
 	test-multi-seat \
-	test-multi-seat-login \        
+	test-multi-seat-login \
+	test-multi-seat-autologin-seat0 \
+	test-multi-seat-autologin-seat1 \        
 	test-multi-seat-seat0-non-graphical \
 	test-multi-seat-seat0-non-graphical-disabled \
 	test-multi-seat-non-graphical \
@@ -510,6 +512,8 @@ EXTRA_DIST = \
 	scripts/mir-session-compositor-crash.conf \
 	scripts/mir-session-crash.conf \
 	scripts/multi-seat.conf \
+	scripts/multi-seat-autologin-seat0.conf \
+	scripts/multi-seat-autologin-seat1.conf \
 	scripts/multi-seat-change-graphical.conf \
 	scripts/multi-seat-change-graphical-disabled.conf \
 	scripts/multi-seat-login.conf \
