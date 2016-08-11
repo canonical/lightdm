@@ -1,3 +1,12 @@
+lightdm (1.19.4-0ubuntu1) yakkety; urgency=medium
+
+  * New upstream release:
+    - Fix various issues in new in-session greeter code
+    - Fix user list memory management exposed by use of in-session greeters
+    - Fix some spurious warnings in the log
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 12 Aug 2016 11:07:57 +1200
+
 lightdm (1.19.3-0ubuntu1) yakkety; urgency=medium
 
   * New upstream release:
