@@ -1887,7 +1887,7 @@ seat_real_create_greeter_session (Seat *seat)
 static Session *
 create_session_cb (Greeter *greeter, Seat *seat)
 {
-    return create_session (seat, FALSE);
+    return g_object_ref (create_session (seat, FALSE));
 }
 
 static Greeter *
