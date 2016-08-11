@@ -1,3 +1,17 @@
+Overview of changes in lightdm 1.18.3
+
+    * Fix error that caused stdin to be closed. This seems to have lots of bad
+      side effects (greeter not working correctly, multi-seat failing).
+    * Add support for greeters running inside sessions. This is enabled by
+      setting X-LightDM-Allow-Greeter inside the session .desktop file.
+      The session can then use liblightdm to connect one greeter to the
+      daemon. The communication is done using a socket
+      (/var/run/lightdm/<user>/greeter-socket) that is accessible to any
+      process run by that user. Consider controlling access to this socket
+      using a MAC system such as AppArmor.
+    * Fix various memory management issues exposed by the use of in-session
+      greeters.
+
 Overview of changes in lightdm 1.18.2
 
     * Don't quit on SIGUSR1, SIGUSR2 or SIGHUP
