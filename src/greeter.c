@@ -967,10 +967,18 @@ greeter_get_guest_authenticated (Greeter *greeter)
 }
 
 Session *
-greeter_get_authentication_session (Greeter *greeter)
+greeter_take_authentication_session (Greeter *greeter)
 {
+    Session *session;
+
     g_return_val_if_fail (greeter != NULL, NULL);
-    return greeter->priv->authentication_session;
+
+    session = greeter->priv->authentication_session;
+    if (greeter->priv->authentication_session)
+        g_signal_handlers_disconnect_matched (greeter->priv->authentication_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, greeter);
+    greeter->priv->authentication_session = NULL;
+
+    return session;
 }
 
 gboolean
