@@ -15,7 +15,7 @@ lightdm_SOURCES = \
 	greeter-session.c \
 	greeter-session.h \
 	greeter-socket.c \
-	greeter-socket.h \        
+	greeter-socket.h \
 	guest-account.c \
 	guest-account.h \
 	lightdm.c \
