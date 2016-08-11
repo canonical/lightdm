@@ -1896,11 +1896,16 @@ create_greeter_cb (Session *session, Seat *seat)
     Greeter *greeter;
 
     greeter = greeter_new ();
+
     greeter_set_pam_services (greeter,
                               seat_get_string_property (seat, "pam-service"),
                               seat_get_string_property (seat, "pam-autologin-service"));
     g_signal_connect (greeter, GREETER_SIGNAL_CREATE_SESSION, G_CALLBACK (create_session_cb), seat);
     g_signal_connect (greeter, GREETER_SIGNAL_START_SESSION, G_CALLBACK (greeter_start_session_cb), seat);
+
+    /* Set hints to greeter */
+    greeter_set_allow_guest (greeter, seat_get_allow_guest (seat));
+    set_greeter_hints (seat, greeter);
 
     return greeter;
 }

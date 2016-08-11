@@ -258,6 +258,7 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "GREETER-START") == 0)
     {
+        int timeout;
         GError *error = NULL;
 
         g_assert (greeter == NULL);
@@ -272,13 +273,40 @@ request_cb (const gchar *name, GHashTable *params)
             status_notify ("%s GREETER-FAILED ERROR=%s", session_id, error->message);
             g_clear_error (&error);
         }
+
+        if (lightdm_greeter_get_select_user_hint (greeter))
+            status_notify ("%s GREETER-SELECT-USER-HINT USERNAME=%s", session_id, lightdm_greeter_get_select_user_hint (greeter));
+        if (lightdm_greeter_get_select_guest_hint (greeter))
+            status_notify ("%s GREETER-SELECT-GUEST-HINT", session_id);
+        if (lightdm_greeter_get_lock_hint (greeter))
+            status_notify ("%s GREETER-LOCK-HINT", session_id);
+        if (!lightdm_greeter_get_has_guest_account_hint (greeter))
+            status_notify ("%s GREETER-HAS-GUEST-ACCOUNT-HINT=FALSE", session_id);
+        if (lightdm_greeter_get_hide_users_hint (greeter))
+            status_notify ("%s GREETER-HIDE-USERS-HINT", session_id);
+        if (lightdm_greeter_get_show_manual_login_hint (greeter))
+            status_notify ("%s GREETER-SHOW-MANUAL-LOGIN-HINT", session_id);
+        if (!lightdm_greeter_get_show_remote_login_hint (greeter))
+            status_notify ("%s GREETER-SHOW-REMOTE-LOGIN-HINT=FALSE", session_id);
+        timeout = lightdm_greeter_get_autologin_timeout_hint (greeter);
+        if (lightdm_greeter_get_autologin_user_hint (greeter))
+        {
+            if (timeout != 0)
+                status_notify ("%s GREETER-AUTOLOGIN-USER USERNAME=%s TIMEOUT=%d", session_id, lightdm_greeter_get_autologin_user_hint (greeter), timeout);
+            else
+                status_notify ("%s GREETER-AUTOLOGIN-USER USERNAME=%s", session_id, lightdm_greeter_get_autologin_user_hint (greeter));
+        }
+        else if (lightdm_greeter_get_autologin_guest_hint (greeter))
+        {
+            if (timeout != 0)
+                status_notify ("%s GREETER-AUTOLOGIN-GUEST TIMEOUT=%d", session_id, timeout);
+            else
+                status_notify ("%s GREETER-AUTOLOGIN-GUEST", session_id);
+        }     
     }
 
-    else if (strcmp (name, "GREETER-STOP") == 0)
-    {
-        g_assert (greeter != NULL);
-        g_clear_object (&greeter);
-    }
+    else if (strcmp (name, "GREETER-LOG-DEFAULT-SESSION") == 0)
+        status_notify ("%s GREETER-LOG-DEFAULT-SESSION SESSION=%s", session_id, lightdm_greeter_get_default_session_hint (greeter));
 
     else if (strcmp (name, "GREETER-AUTHENTICATE") == 0)
     {
@@ -305,6 +333,12 @@ request_cb (const gchar *name, GHashTable *params)
             status_notify ("%s FAIL-START-SESSION ERROR=%s", session_id, error->message);
             g_clear_error (&error);          
         }
+    }
+
+    else if (strcmp (name, "GREETER-STOP") == 0)
+    {
+        g_assert (greeter != NULL);
+        g_clear_object (&greeter);
     }
 }
 
