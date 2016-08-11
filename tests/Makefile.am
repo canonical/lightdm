@@ -228,7 +228,7 @@ TESTS = \
 	test-multi-seat \
 	test-multi-seat-login \
 	test-multi-seat-autologin-seat0 \
-	test-multi-seat-autologin-seat1 \        
+	test-multi-seat-autologin-seat1 \
 	test-multi-seat-seat0-non-graphical \
 	test-multi-seat-seat0-non-graphical-disabled \
 	test-multi-seat-non-graphical \
@@ -522,7 +522,7 @@ EXTRA_DIST = \
 	scripts/mir-session.conf \
 	scripts/mir-session-compositor-crash.conf \
 	scripts/mir-session-crash.conf \
-	scripts/multiple-authenticate.conf \        
+	scripts/multiple-authenticate.conf \
 	scripts/multi-seat.conf \
 	scripts/multi-seat-autologin-seat0.conf \
 	scripts/multi-seat-autologin-seat1.conf \
@@ -562,15 +562,15 @@ EXTRA_DIST = \
 	scripts/session-greeter.conf \
 	scripts/session-greeter-allow-guest.conf \
 	scripts/session-greeter-autologin.conf \
-	scripts/session-greeter-default-session.conf \        
+	scripts/session-greeter-default-session.conf \
 	scripts/session-greeter-hide-users.conf \
-	scripts/session-greeter-multiple-login.conf \        
+	scripts/session-greeter-multiple-login.conf \
 	scripts/session-greeter-reconnect.conf \
 	scripts/session-greeter-show-manual-login.conf \
 	scripts/session-greeter-show-remote-login.conf \
 	scripts/session-greeter-switch.conf \
 	scripts/session-greeter-unlock.conf \
-	scripts/session-greeter-unlock-twice.conf \        
+	scripts/session-greeter-unlock-twice.conf \
 	scripts/session-stdout.conf \
 	scripts/session-stderr.conf \
 	scripts/session-stderr-multi-write.conf \
