@@ -1170,7 +1170,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     /* Get the session to use */
     if (greeter_get_guest_authenticated (greeter))
     {
-        session = create_guest_session (seat, session_name);
+        session = g_object_ref (create_guest_session (seat, session_name));
         if (!session)
             return FALSE;
         session_set_pam_service (session, seat_get_string_property (seat, "pam-autologin-service"));
@@ -1183,7 +1183,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         gchar *sessions_dir = NULL;
         gchar **argv;
 
-        session = greeter_get_authentication_session (greeter);
+        session = greeter_take_authentication_session (greeter);
 
         /* Get session command to run */
         switch (type)
@@ -1227,7 +1227,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
 
     /* Switch to this session when it is ready */
     g_clear_object (&seat->priv->session_to_activate);
-    seat->priv->session_to_activate = g_object_ref (session);
+    seat->priv->session_to_activate = session;
 
     /* Return to existing session if it is open */
     username = session_get_username (session);

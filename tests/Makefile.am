@@ -171,7 +171,8 @@ TESTS = \
 	test-session-greeter-reconnect \
 	test-session-greeter-unlock \
 	test-session-greeter-unlock-twice \
-	test-session-greeter-switch \        
+	test-session-greeter-switch \
+	test-session-greeter-multiple-login \
 	test-vnc-login \
 	test-vnc-command \
 	test-vnc-dimensions \
@@ -551,6 +552,7 @@ EXTRA_DIST = \
 	scripts/script-hook-session-setup-missing.conf \
 	scripts/session-greeter.conf \
 	scripts/session-greeter-autologin.conf \
+	scripts/session-greeter-multiple-login.conf \        
 	scripts/session-greeter-reconnect.conf \
 	scripts/session-greeter-switch.conf \
 	scripts/session-greeter-unlock.conf \
