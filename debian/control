@@ -4,28 +4,28 @@ Priority: optional
 Maintainer: Robert Ancell <robert.ancell@ubuntu.com>
 Uploaders: Julien Lavergne <gilir@ubuntu.com>
 Standards-Version: 3.9.8
-Build-Depends: debhelper (>= 9),
-               gnome-common,
-               intltool (>= 0.35.0),
-               quilt,
-               libgcrypt20-dev,
-               libglib2.0-dev,
-               libpam0g-dev,
-               libxdmcp-dev,
-               libxcb1-dev,
-               libxklavier-dev,
-               libgtk-3-dev,
-               libgirepository1.0-dev,
-               valac,
-               libqt4-dev,
-               qtbase5-dev,
+Build-Depends: dbus,
+               debhelper (>= 9),
                dh-autoreconf,
                dh-translations,
                dh-systemd (>= 1.14),
+               gnome-common,
                gtk-doc-tools,
-               yelp-tools,
-               dbus,
-               libaudit-dev [linux-any]
+               intltool (>= 0.35.0),
+               libaudit-dev [linux-any],
+               libgcrypt20-dev,
+               libgirepository1.0-dev,
+               libglib2.0-dev,
+               libgtk-3-dev,
+               libpam0g-dev,
+               libqt4-dev,
+               libxcb1-dev,
+               libxdmcp-dev,
+               libxklavier-dev,
+               qtbase5-dev,
+               quilt,
+               valac,
+               yelp-tools
 Homepage: https://launchpad.net/lightdm
 # If you aren't a member of ~lightdm-team but need to upload packaging changes,
 # just go ahead.  ~lightdm-team will notice and sync up the code again.
@@ -36,13 +36,13 @@ Architecture: any
 Pre-Depends: dpkg (>= 1.15.7.2),
 Depends: ${misc:Depends},
          ${shlibs:Depends},
+         adduser,
+         bash (>= 4.3),
+         dbus,
+         libglib2.0-bin,
          libpam-runtime (>= 0.76-14),
          libpam-modules,
-         adduser,
-         libglib2.0-bin,
-         dbus,
-         plymouth (>= 0.8.8-0ubuntu18) [linux-any],
-         bash (>= 4.3),
+         plymouth (>= 0.8.8-0ubuntu18) [linux-any]
 Recommends: xserver-xorg,
             unity-greeter | lightdm-greeter | lightdm-kde-greeter,
 Suggests: bindfs
@@ -104,8 +104,8 @@ Architecture: any
 Multi-Arch: same
 Depends: ${misc:Depends},
          liblightdm-gobject-1-0 (= ${binary:Version}),
-         libglib2.0-dev,
          libdbus-glib-1-dev,
+         libglib2.0-dev,
          libxklavier-dev,
 Description: LightDM GObject client library (development files)
  A GObject based library for LightDM clients to use to interface with LightDM.
