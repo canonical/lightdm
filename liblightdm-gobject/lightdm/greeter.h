@@ -16,12 +16,9 @@
 
 G_BEGIN_DECLS
 
-#define LIGHTDM_TYPE_GREETER            (lightdm_greeter_get_type())
-#define LIGHTDM_GREETER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), LIGHTDM_TYPE_GREETER, LightDMGreeter))
-#define LIGHTDM_GREETER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), LIGHTDM_TYPE_GREETER, LightDMGreeterClass))
-#define LIGHTDM_IS_GREETER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), LIGHTDM_TYPE_GREETER))
-#define LIGHTDM_IS_GREETER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LIGHTDM_TYPE_GREETER))
-#define LIGHTDM_GREETER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LIGHTDM_TYPE_GREETER, LightDMGreeterClass))
+#define LIGHTDM_TYPE_GREETER (lightdm_greeter_get_type())
+
+G_DECLARE_DERIVABLE_TYPE (LightDMGreeter, lightdm_greeter, LIGHTDM, GREETER, GObject)
 
 #define LIGHTDM_GREETER_ERROR lightdm_greeter_error_quark ()
 
@@ -58,12 +55,7 @@ typedef enum
 
 GType lightdm_message_type_get_type (void);
 
-typedef struct
-{
-    GObject parent_instance;
-} LightDMGreeter;
-
-typedef struct
+struct _LightDMGreeterClass
 {
     GObjectClass parent_class;
 
@@ -79,15 +71,7 @@ typedef struct
     void (*reserved2) (void);
     void (*reserved3) (void);
     void (*reserved4) (void);
-} LightDMGreeterClass;
-
-#ifdef GLIB_VERSION_2_44
-typedef LightDMGreeter *LightDMGreeter_autoptr;
-static inline void glib_autoptr_cleanup_LightDMGreeter (LightDMGreeter **_ptr)
-{
-    glib_autoptr_cleanup_GObject ((GObject **) _ptr);
-}
-#endif
+};
 
 /**
  * LightDMGreeterError:
@@ -109,8 +93,6 @@ typedef enum
 GQuark lightdm_greeter_error_quark (void);
 
 GType lightdm_greeter_error_get_type (void);
-
-GType lightdm_greeter_get_type (void);
 
 LightDMGreeter *lightdm_greeter_new (void);
 

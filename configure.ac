@@ -43,7 +43,7 @@ AC_CHECK_HEADERS(gcrypt.h, [], AC_MSG_ERROR(libgcrypt not found))
 AC_CHECK_FUNCS(setresgid setresuid clearenv)
 
 PKG_CHECK_MODULES(LIGHTDM, [
-    glib-2.0 >= 2.40
+    glib-2.0 >= 2.44
     gio-2.0 >= 2.26
     gio-unix-2.0
     xdmcp
