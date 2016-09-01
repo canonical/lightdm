@@ -75,21 +75,21 @@ struct _LightDMGreeterClass
 
 /**
  * LightDMGreeterError:
- * @LIGHTDM_GREETER_ERROR_COMMUNICATION_ERROR: Error communicating with daemon
- * @LIGHTDM_GREETER_ERROR_CONNECTION_FAILED: Failed to connect to the daemon
- * @LIGHTDM_GREETER_ERROR_SESSION_FAILED: Requested session failed to start
- * @LIGHTDM_GREETER_ERROR_NO_AUTOLOGIN: Autologin not configured
- * @LIGHTDM_GREETER_ERROR_INVALID_USER: Autologin not configured
+ * @LIGHTDM_GREETER_ERROR_COMMUNICATION_ERROR: error communicating with daemon.
+ * @LIGHTDM_GREETER_ERROR_CONNECTION_FAILED: failed to connect to the daemon.
+ * @LIGHTDM_GREETER_ERROR_SESSION_FAILED: requested session failed to start.
+ * @LIGHTDM_GREETER_ERROR_NO_AUTOLOGIN: autologin not configured.
+ * @LIGHTDM_GREETER_ERROR_INVALID_USER: autologin not configured.
  *
  * Error codes returned by greeter operations.
  */
 typedef enum
 {
-  LIGHTDM_GREETER_ERROR_COMMUNICATION_ERROR,
-  LIGHTDM_GREETER_ERROR_CONNECTION_FAILED,
-  LIGHTDM_GREETER_ERROR_SESSION_FAILED,
-  LIGHTDM_GREETER_ERROR_NO_AUTOLOGIN,
-  LIGHTDM_GREETER_ERROR_INVALID_USER
+    LIGHTDM_GREETER_ERROR_COMMUNICATION_ERROR,
+    LIGHTDM_GREETER_ERROR_CONNECTION_FAILED,
+    LIGHTDM_GREETER_ERROR_SESSION_FAILED,
+    LIGHTDM_GREETER_ERROR_NO_AUTOLOGIN,
+    LIGHTDM_GREETER_ERROR_INVALID_USER
 } LightDMGreeterError;
 
 GQuark lightdm_greeter_error_quark (void);
