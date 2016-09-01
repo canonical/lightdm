@@ -303,12 +303,23 @@ lightdm_layout_get_property (GObject    *object,
 }
 
 static void
+lightdm_layout_finalize (GObject *object)
+{
+    LightDMLayout *self = LIGHTDM_LAYOUT (object);
+
+    g_free (self->name);
+    g_free (self->short_description);  
+    g_free (self->description);
+}
+
+static void
 lightdm_layout_class_init (LightDMLayoutClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->set_property = lightdm_layout_set_property;
     object_class->get_property = lightdm_layout_get_property;
+    object_class->finalize = lightdm_layout_finalize;
 
     g_object_class_install_property (object_class,
                                      PROP_NAME,
