@@ -80,6 +80,8 @@ struct _LightDMGreeterClass
  * @LIGHTDM_GREETER_ERROR_SESSION_FAILED: Requested session failed to start
  * @LIGHTDM_GREETER_ERROR_NO_AUTOLOGIN: Autologin not configured
  * @LIGHTDM_GREETER_ERROR_INVALID_USER: Autologin not configured
+ *
+ * Error codes returned by greeter operations.
  */
 typedef enum
 {
