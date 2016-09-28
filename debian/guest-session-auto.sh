@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2013 Canonical Ltd
+# Copyright (C) 2013-2016 Canonical Ltd
 # Author: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -37,7 +37,7 @@ USB stick, if you would like to access them again later.')
 /var/guest-data folder.')
 	test -w /var/guest-data && TEXT="$TEXT\n\n$para2"
 }
-test -f "$HOME"/.skip-guest-warning-dialog || {
+if [ ! -f "$HOME"/.skip-guest-warning-dialog ] && [ "$XDG_CURRENT_DESKTOP" != 'MATE' ]; then
 	if [ "$KDE_FULL_SESSION" = true ] && [ -x /usr/bin/kdialog ]; then
 		dialog_content
 		TEXT_FILE="$HOME"/.guest-session-kdialog
@@ -58,7 +58,7 @@ test -f "$HOME"/.skip-guest-warning-dialog || {
 			zenity --warning --no-wrap --title="$TITLE" --text="$TEXT"
 		} &
 	fi
-}
+fi
 
 # run possible local startup commands
 test -f /etc/guest-session/auto.sh && . /etc/guest-session/auto.sh
