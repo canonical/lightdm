@@ -95,7 +95,7 @@
   unix (receive) peer=(label=unconfined),
   unix (create),
   unix (getattr, getopt, setopt, shutdown),
-  unix (bind, listen) type=stream addr="@/com/ubuntu/upstart-session/**",
+  unix (bind, listen, accept, receive, send) type=stream addr="@/com/ubuntu/upstart-session/**",
   unix (bind, listen) type=stream addr="@/tmp/dbus-*",
   unix (bind, listen) type=stream addr="@/tmp/.ICE-unix/[0-9]*",
   unix (bind, listen) type=stream addr="@/dbus-vfs-daemon/*",
