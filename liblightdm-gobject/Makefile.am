@@ -70,7 +70,7 @@ liblightdm_gobject_1_vapi_METADATADIRS = $(srcdir)
 liblightdm_gobject_1_vapi_FILES = $(gir_DATA) $(srcdir)/LightDM-1-custom.vala
 
 vapidir = $(datadir)/vala/vapi
-dist_vapi_DATA = $(VAPIGEN_VAPIS) $(srcdir)/liblightdm-gobject-1.deps
+vapi_DATA = $(VAPIGEN_VAPIS) $(srcdir)/liblightdm-gobject-1.deps
 
 endif
 
@@ -79,12 +79,9 @@ pkgconfig_DATA = liblightdm-gobject-1.pc
 
 CLEANFILES = \
 	$(gir_DATA) \
-	$(typelib_DATA)
-
-DISTCLEANFILES = \
-	$(pkgconfig_DATA) \
-	$(gir_DATA) \
-	$(typelib_DATA)
+	$(typelib_DATA) \
+	$(vapi_DATA) \
+	$(pkgconfig_DATA)
 
 EXTRA_DIST = \
 	LightDM-1.metadata \
