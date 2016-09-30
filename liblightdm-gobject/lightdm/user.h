@@ -15,31 +15,83 @@
 
 G_BEGIN_DECLS
 
-#define LIGHTDM_TYPE_USER (lightdm_user_get_type())
+#define LIGHTDM_TYPE_USER_LIST            (lightdm_user_list_get_type())
+#define LIGHTDM_USER_LIST(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), LIGHTDM_TYPE_USER_LIST, LightDMUserList));
+#define LIGHTDM_USER_LIST_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), LIGHTDM_TYPE_USER_LIST, LightDMUserListClass))
+#define LIGHTDM_IS_USER_LIST(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), LIGHTDM_TYPE_USER_LIST))
+#define LIGHTDM_IS_USER_LIST_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LIGHTDM_TYPE_USER_LIST))
+#define LIGHTDM_USER_LIST_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LIGHTDM_TYPE_USER_LIST, LightDMUserListClass))
 
-G_DECLARE_FINAL_TYPE (LightDMUser, lightdm_user, LIGHTDM, USER, GObject)
-
-#define LIGHTDM_SIGNAL_USER_CHANGED "changed"
-
-struct _LightDMUserClass
-{
-    /*< private >*/
-    GObjectClass parent_class;
-};
-
-#define LIGHTDM_TYPE_USER_LIST (lightdm_user_list_get_type())
-
-G_DECLARE_FINAL_TYPE (LightDMUserList, lightdm_user_list, LIGHTDM, USER_LIST, GObject)
+#define LIGHTDM_TYPE_USER            (lightdm_user_get_type())
+#define LIGHTDM_USER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), LIGHTDM_TYPE_USER, LightDMUser));
+#define LIGHTDM_USER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), LIGHTDM_TYPE_USER, LightDMUserClass))
+#define LIGHTDM_IS_USER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), LIGHTDM_TYPE_USER))
+#define LIGHTDM_IS_USER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LIGHTDM_TYPE_USER))
+#define LIGHTDM_USER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LIGHTDM_TYPE_USER, LightDMUserClass))
 
 #define LIGHTDM_USER_LIST_SIGNAL_USER_ADDED   "user-added"
 #define LIGHTDM_USER_LIST_SIGNAL_USER_CHANGED "user-changed"
 #define LIGHTDM_USER_LIST_SIGNAL_USER_REMOVED "user-removed"
 
-struct _LightDMUserListClass
+#define LIGHTDM_SIGNAL_USER_CHANGED "changed"
+
+typedef struct
 {
-    /*< private >*/
+    GObject parent_instance;
+} LightDMUser;
+
+typedef struct
+{
     GObjectClass parent_class;
-};
+    void (*changed)(LightDMUser *user);
+
+    /* Reserved */
+    void (*reserved1) (void);
+    void (*reserved2) (void);
+    void (*reserved3) (void);
+    void (*reserved4) (void);
+    void (*reserved5) (void);
+    void (*reserved6) (void);
+} LightDMUserClass;
+
+typedef struct
+{
+    GObject parent_instance;
+} LightDMUserList;
+
+typedef struct
+{
+    GObjectClass parent_class;
+
+    void (*user_added)(LightDMUserList *user_list, LightDMUser *user);
+    void (*user_changed)(LightDMUserList *user_list, LightDMUser *user);
+    void (*user_removed)(LightDMUserList *user_list, LightDMUser *user);
+
+    /* Reserved */
+    void (*reserved1) (void);
+    void (*reserved2) (void);
+    void (*reserved3) (void);
+    void (*reserved4) (void);
+    void (*reserved5) (void);
+    void (*reserved6) (void);
+} LightDMUserListClass;
+
+#ifdef GLIB_VERSION_2_44
+typedef LightDMUser *LightDMUser_autoptr;
+static inline void glib_autoptr_cleanup_LightDMUser (LightDMUser **_ptr)
+{
+    glib_autoptr_cleanup_GObject ((GObject **) _ptr);
+}
+typedef LightDMUserList *LightDMUserList_autoptr;
+static inline void glib_autoptr_cleanup_LightDMUserList (LightDMUserList **_ptr)
+{
+    glib_autoptr_cleanup_GObject ((GObject **) _ptr);
+}
+#endif
+
+GType lightdm_user_list_get_type (void);
+
+GType lightdm_user_get_type (void);
 
 LightDMUserList *lightdm_user_list_get_instance (void);
 

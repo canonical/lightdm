@@ -22,16 +22,16 @@ enum {
     PROP_TERRITORY
 };
 
-struct _LightDMLanguage
+typedef struct
 {
-    GObject parent_instance;
-
     gchar *code;
     gchar *name;
     gchar *territory;
-};
+} LightDMLanguagePrivate;
 
 G_DEFINE_TYPE (LightDMLanguage, lightdm_language, G_TYPE_OBJECT);
+
+#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_LANGUAGE, LightDMLanguagePrivate)
 
 static gboolean have_languages = FALSE;
 static GList *languages = NULL;
@@ -201,7 +201,7 @@ const gchar *
 lightdm_language_get_code (LightDMLanguage *language)
 {
     g_return_val_if_fail (LIGHTDM_IS_LANGUAGE (language), NULL);
-    return language->code;
+    return GET_PRIVATE (language)->code;
 }
 
 /**
@@ -215,11 +215,15 @@ lightdm_language_get_code (LightDMLanguage *language)
 const gchar *
 lightdm_language_get_name (LightDMLanguage *language)
 {
+    LightDMLanguagePrivate *priv;
+
     g_return_val_if_fail (LIGHTDM_IS_LANGUAGE (language), NULL);
 
-    if (!language->name)
+    priv = GET_PRIVATE (language);
+
+    if (!priv->name)
     {
-        gchar *locale = get_locale_name (language->code);
+        gchar *locale = get_locale_name (priv->code);
         if (locale)
         {
             gchar *current = setlocale (LC_ALL, NULL);
@@ -228,19 +232,19 @@ lightdm_language_get_name (LightDMLanguage *language)
 
             gchar *language_en = nl_langinfo (_NL_IDENTIFICATION_LANGUAGE);
             if (language_en && strlen (language_en) > 0)
-                language->name = g_strdup (dgettext ("iso_639_3", language_en));
+                priv->name = g_strdup (dgettext ("iso_639_3", language_en));
 
             setlocale (LC_ALL, current);
         }
-        if (!language->name)
+        if (!priv->name)
         {
-            gchar **tokens = g_strsplit_set (language->code, "_.@", 2);
-            language->name = g_strdup (tokens[0]);
+            gchar **tokens = g_strsplit_set (priv->code, "_.@", 2);
+            priv->name = g_strdup (tokens[0]);
             g_strfreev (tokens);
         }
     }
 
-    return language->name;
+    return priv->name;
 }
 
 /**
@@ -254,11 +258,15 @@ lightdm_language_get_name (LightDMLanguage *language)
 const gchar *
 lightdm_language_get_territory (LightDMLanguage *language)
 {
+    LightDMLanguagePrivate *priv;
+
     g_return_val_if_fail (LIGHTDM_IS_LANGUAGE (language), NULL);
 
-    if (!language->territory && strchr (language->code, '_'))
+    priv = GET_PRIVATE (language);
+
+    if (!priv->territory && strchr (priv->code, '_'))
     {
-        gchar *locale = get_locale_name (language->code);
+        gchar *locale = get_locale_name (priv->code);
         if (locale)
         {
             gchar *current = setlocale (LC_ALL, NULL);
@@ -267,19 +275,19 @@ lightdm_language_get_territory (LightDMLanguage *language)
 
             gchar *country_en = nl_langinfo (_NL_IDENTIFICATION_TERRITORY);
             if (country_en && strlen (country_en) > 0 && g_strcmp0 (country_en, "ISO") != 0)
-                language->territory = g_strdup (dgettext ("iso_3166", country_en));
+                priv->territory = g_strdup (dgettext ("iso_3166", country_en));
 
             setlocale (LC_ALL, current);
         }
-        if (!language->territory)
+        if (!priv->territory)
         {
-            gchar **tokens = g_strsplit_set (language->code, "_.@", 3);
-            language->territory = g_strdup (tokens[1]);
+            gchar **tokens = g_strsplit_set (priv->code, "_.@", 3);
+            priv->territory = g_strdup (tokens[1]);
             g_strfreev (tokens);
         }
     }
 
-    return language->territory;
+    return priv->territory;
 }
 
 /**
@@ -294,19 +302,23 @@ lightdm_language_get_territory (LightDMLanguage *language)
 gboolean
 lightdm_language_matches (LightDMLanguage *language, const gchar *code)
 {
+    LightDMLanguagePrivate *priv;
+
     g_return_val_if_fail (LIGHTDM_IS_LANGUAGE (language), FALSE);
     g_return_val_if_fail (code != NULL, FALSE);
 
+    priv = GET_PRIVATE (language);
+
     /* Handle the fact the UTF-8 is specified both as '.utf8' and '.UTF-8' */
-    if (is_utf8 (language->code) && is_utf8 (code))
+    if (is_utf8 (priv->code) && is_utf8 (code))
     {
         /* Match the characters before the '.' */
         int i;
-        for (i = 0; language->code[i] && code[i] && language->code[i] == code[i] && code[i] != '.' ; i++);
-        return language->code[i] == '.' && code[i] == '.';
+        for (i = 0; priv->code[i] && code[i] && priv->code[i] == code[i] && code[i] != '.' ; i++);
+        return priv->code[i] == '.' && code[i] == '.';
     }
 
-    return g_str_equal (language->code, code);
+    return g_str_equal (priv->code, code);
 }
 
 static void
@@ -321,11 +333,12 @@ lightdm_language_set_property (GObject      *object,
                                GParamSpec   *pspec)
 {
     LightDMLanguage *self = LIGHTDM_LANGUAGE (object);
+    LightDMLanguagePrivate *priv = GET_PRIVATE (self);
 
     switch (prop_id) {
     case PROP_CODE:
-        g_free (self->name);
-        self->code = g_strdup (g_value_get_string (value));
+        g_free (priv->name);
+        priv->code = g_strdup (g_value_get_string (value));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -363,6 +376,8 @@ static void
 lightdm_language_class_init (LightDMLanguageClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    g_type_class_add_private (klass, sizeof (LightDMLanguagePrivate));
 
     object_class->set_property = lightdm_language_set_property;
     object_class->get_property = lightdm_language_get_property;

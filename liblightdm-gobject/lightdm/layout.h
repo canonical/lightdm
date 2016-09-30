@@ -15,15 +15,40 @@
 
 G_BEGIN_DECLS
 
-#define LIGHTDM_TYPE_LAYOUT (lightdm_layout_get_type())
+#define LIGHTDM_TYPE_LAYOUT            (lightdm_layout_get_type())
+#define LIGHTDM_LAYOUT(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), LIGHTDM_TYPE_LAYOUT, LightDMLayout));
+#define LIGHTDM_LAYOUT_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), LIGHTDM_TYPE_LAYOUT, LightDMLayoutClass))
+#define LIGHTDM_IS_LAYOUT(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), LIGHTDM_TYPE_LAYOUT))
+#define LIGHTDM_IS_LAYOUT_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LIGHTDM_TYPE_LAYOUT))
+#define LIGHTDM_LAYOUT_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LIGHTDM_TYPE_LAYOUT, LightDMLayoutClass))
 
-G_DECLARE_FINAL_TYPE (LightDMLayout, lightdm_layout, LIGHTDM, LAYOUT, GObject)
-
-struct _LightDMLayoutClass
+typedef struct
 {
-    /*< private >*/
+    GObject parent_instance;
+} LightDMLayout;
+
+typedef struct
+{
     GObjectClass parent_class;
-};
+
+    /* Reserved */
+    void (*reserved1) (void);
+    void (*reserved2) (void);
+    void (*reserved3) (void);
+    void (*reserved4) (void);
+    void (*reserved5) (void);
+    void (*reserved6) (void);
+} LightDMLayoutClass;
+
+#ifdef GLIB_VERSION_2_44
+typedef LightDMLayout *LightDMLayout_autoptr;
+static inline void glib_autoptr_cleanup_LightDMLayout (LightDMLayout **_ptr)
+{
+    glib_autoptr_cleanup_GObject ((GObject **) _ptr);
+}
+#endif
+
+GType lightdm_layout_get_type (void);
 
 GList *lightdm_get_layouts (void);
 

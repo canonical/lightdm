@@ -20,15 +20,17 @@ enum {
     PROP_COMMENT
 };
 
-struct _LightDMSession
+typedef struct
 {
     gchar *key;
     gchar *type;
     gchar *name;
     gchar *comment;
-};
+} LightDMSessionPrivate;
 
 G_DEFINE_TYPE (LightDMSession, lightdm_session, G_TYPE_OBJECT);
+
+#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_SESSION, LightDMSessionPrivate)
 
 static gboolean have_sessions = FALSE;
 static GList *local_sessions = NULL;
@@ -37,8 +39,9 @@ static GList *remote_sessions = NULL;
 static gint
 compare_session (gconstpointer a, gconstpointer b)
 {
-    const LightDMSession *sa = a, *sb = b;
-    return strcmp (sa->name, sb->name);
+    LightDMSessionPrivate *priv_a = GET_PRIVATE (a);
+    LightDMSessionPrivate *priv_b = GET_PRIVATE (b);
+    return strcmp (priv_a->name, priv_b->name);
 }
 
 static LightDMSession *
@@ -46,6 +49,7 @@ load_session (GKeyFile *key_file, const gchar *key, const gchar *default_type)
 {
     gchar *domain, *name, *type;
     LightDMSession *session;
+    LightDMSessionPrivate *priv;
     gchar *try_exec;
 
     if (g_key_file_get_boolean (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY, NULL) ||
@@ -87,20 +91,21 @@ load_session (GKeyFile *key_file, const gchar *key, const gchar *default_type)
         type = strdup (default_type);
 
     session = g_object_new (LIGHTDM_TYPE_SESSION, NULL);
+    priv = GET_PRIVATE (session);
 
-    g_free (session->key);
-    session->key = g_strdup (key);
+    g_free (priv->key);
+    priv->key = g_strdup (key);
 
-    g_free (session->type);
-    session->type = type;
+    g_free (priv->type);
+    priv->type = type;
 
-    g_free (session->name);
-    session->name = name;
+    g_free (priv->name);
+    priv->name = name;
 
-    g_free (session->comment);
-    session->comment = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_COMMENT, domain, NULL);
-    if (!session->comment)
-        session->comment = g_strdup ("");
+    g_free (priv->comment);
+    priv->comment = g_key_file_get_locale_string (key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_COMMENT, domain, NULL);
+    if (!priv->comment)
+        priv->comment = g_strdup ("");
 
     g_free (domain);
 
@@ -151,7 +156,7 @@ load_sessions_dir (GList *sessions, const gchar *sessions_dir, const gchar *defa
             session = load_session (key_file, key, default_type);
             if (session)
             {
-                g_debug ("Loaded session %s (%s, %s)", path, session->name, session->comment);
+                g_debug ("Loaded session %s (%s, %s)", path, GET_PRIVATE (session)->name, GET_PRIVATE (session)->comment);
                 sessions = g_list_insert_sorted (sessions, session, compare_session);
             }
             else
@@ -270,7 +275,7 @@ const gchar *
 lightdm_session_get_key (LightDMSession *session)
 {
     g_return_val_if_fail (LIGHTDM_IS_SESSION (session), NULL);
-    return session->key;
+    return GET_PRIVATE (session)->key;
 }
 
 /**
@@ -285,7 +290,7 @@ const gchar *
 lightdm_session_get_session_type (LightDMSession *session)
 {
     g_return_val_if_fail (LIGHTDM_IS_SESSION (session), NULL);
-    return session->type;
+    return GET_PRIVATE (session)->type;
 }
 
 /**
@@ -300,7 +305,7 @@ const gchar *
 lightdm_session_get_name (LightDMSession *session)
 {
     g_return_val_if_fail (LIGHTDM_IS_SESSION (session), NULL);
-    return session->name;
+    return GET_PRIVATE (session)->name;
 }
 
 /**
@@ -315,7 +320,7 @@ const gchar *
 lightdm_session_get_comment (LightDMSession *session)
 {
     g_return_val_if_fail (LIGHTDM_IS_SESSION (session), NULL);
-    return session->comment;
+    return GET_PRIVATE (session)->comment;
 }
 
 static void
@@ -362,17 +367,20 @@ static void
 lightdm_session_finalize (GObject *object)
 {
     LightDMSession *self = LIGHTDM_SESSION (object);
+    LightDMSessionPrivate *priv = GET_PRIVATE (self);
 
-    g_free (self->key);
-    g_free (self->type);
-    g_free (self->name);
-    g_free (self->comment);
+    g_free (priv->key);
+    g_free (priv->type);
+    g_free (priv->name);
+    g_free (priv->comment);
 }
 
 static void
 lightdm_session_class_init (LightDMSessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    g_type_class_add_private (klass, sizeof (LightDMSessionPrivate));
 
     object_class->set_property = lightdm_session_set_property;
     object_class->get_property = lightdm_session_get_property;

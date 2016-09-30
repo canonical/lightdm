@@ -57,26 +57,24 @@ enum
 };
 static guint user_signals[LAST_USER_SIGNAL] = { 0 };
 
-struct _LightDMUserList
+typedef struct
 {
-    GObject parent_instance;
-
     gboolean initialized;
 
     /* Wrapper list, kept locally to preserve transfer-none promises */
     GList *lightdm_list;
-};
+} LightDMUserListPrivate;
+
+typedef struct
+{
+    CommonUser *common_user;
+} LightDMUserPrivate;
 
 G_DEFINE_TYPE (LightDMUserList, lightdm_user_list, G_TYPE_OBJECT);
-
-struct _LightDMUser
-{
-    GObject parent_instance;
-
-    CommonUser *common_user;
-};
-
 G_DEFINE_TYPE (LightDMUser, lightdm_user, G_TYPE_OBJECT);
+
+#define GET_LIST_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_USER_LIST, LightDMUserListPrivate)
+#define GET_USER_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_USER, LightDMUserPrivate)
 
 static LightDMUserList *singleton = NULL;
 
@@ -112,31 +110,35 @@ wrap_common_user (CommonUser *user)
 static void
 user_list_added_cb (CommonUserList *common_list, CommonUser *common_user, LightDMUserList *user_list)
 {
+    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
     GList *common_users = common_user_list_get_users (common_list);
     LightDMUser *lightdm_user = wrap_common_user (common_user);
-    user_list->lightdm_list = g_list_insert (user_list->lightdm_list, lightdm_user, g_list_index (common_users, common_user));
+    priv->lightdm_list = g_list_insert (priv->lightdm_list, lightdm_user, g_list_index (common_users, common_user));
     g_signal_emit (user_list, list_signals[USER_ADDED], 0, lightdm_user);
 }
 
 static void
 user_list_changed_cb (CommonUserList *common_list, CommonUser *common_user, LightDMUserList *user_list)
 {
+    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
     GList *common_users = common_user_list_get_users (common_list);
-    LightDMUser *lightdm_user = g_list_nth_data (user_list->lightdm_list, g_list_index (common_users, common_user));
+    LightDMUser *lightdm_user = g_list_nth_data (priv->lightdm_list, g_list_index (common_users, common_user));
     g_signal_emit (user_list, list_signals[USER_CHANGED], 0, lightdm_user);
 }
 
 static void
 user_list_removed_cb (CommonUserList *common_list, CommonUser *common_user, LightDMUserList *user_list)
 {
+    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
     GList *link;
 
-    for (link = user_list->lightdm_list; link; link = link->next)
+    for (link = priv->lightdm_list; link; link = link->next)
     {
         LightDMUser *lightdm_user = link->data;
-        if (lightdm_user->common_user == common_user)
+        LightDMUserPrivate *user_priv = GET_USER_PRIVATE (lightdm_user);
+        if (user_priv->common_user == common_user)
         {
-            user_list->lightdm_list = g_list_delete_link (user_list->lightdm_list, link);
+            priv->lightdm_list = g_list_delete_link (priv->lightdm_list, link);
             g_signal_emit (user_list, list_signals[USER_REMOVED], 0, lightdm_user);
             g_object_unref (lightdm_user);
             break;
@@ -147,10 +149,11 @@ user_list_removed_cb (CommonUserList *common_list, CommonUser *common_user, Ligh
 static void
 initialize_user_list_if_needed (LightDMUserList *user_list)
 {
+    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
     GList *common_users;
     GList *link;
 
-    if (user_list->initialized)
+    if (priv->initialized)
         return;
 
     common_users = common_user_list_get_users (common_user_list_get_instance ());
@@ -158,16 +161,16 @@ initialize_user_list_if_needed (LightDMUserList *user_list)
     {
         CommonUser *user = link->data;
         LightDMUser *lightdm_user = wrap_common_user (user);
-        user_list->lightdm_list = g_list_prepend (user_list->lightdm_list, lightdm_user);
+        priv->lightdm_list = g_list_prepend (priv->lightdm_list, lightdm_user);
     }
-    user_list->lightdm_list = g_list_reverse (user_list->lightdm_list);
+    priv->lightdm_list = g_list_reverse (priv->lightdm_list);
 
     CommonUserList *common_list = common_user_list_get_instance ();
     g_signal_connect (common_list, USER_LIST_SIGNAL_USER_ADDED, G_CALLBACK (user_list_added_cb), user_list);
     g_signal_connect (common_list, USER_LIST_SIGNAL_USER_CHANGED, G_CALLBACK (user_list_changed_cb), user_list);
     g_signal_connect (common_list, USER_LIST_SIGNAL_USER_REMOVED, G_CALLBACK (user_list_removed_cb), user_list);
 
-    user_list->initialized = TRUE;
+    priv->initialized = TRUE;
 }
 
 /**
@@ -181,7 +184,7 @@ lightdm_user_list_get_length (LightDMUserList *user_list)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER_LIST (user_list), 0);
     initialize_user_list_if_needed (user_list);
-    return g_list_length (user_list->lightdm_list);
+    return g_list_length (GET_LIST_PRIVATE (user_list)->lightdm_list);
 }
 
 /**
@@ -198,7 +201,7 @@ lightdm_user_list_get_users (LightDMUserList *user_list)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER_LIST (user_list), NULL);
     initialize_user_list_if_needed (user_list);
-    return user_list->lightdm_list;
+    return GET_LIST_PRIVATE (user_list)->lightdm_list;
 }
 
 /**
@@ -220,7 +223,7 @@ lightdm_user_list_get_user_by_name (LightDMUserList *user_list, const gchar *use
 
     initialize_user_list_if_needed (user_list);
 
-    for (link = user_list->lightdm_list; link; link = link->next)
+    for (link = GET_LIST_PRIVATE (user_list)->lightdm_list; link; link = link->next)
     {
         LightDMUser *user = link->data;
         if (g_strcmp0 (lightdm_user_get_name (user), username) == 0)
@@ -270,8 +273,9 @@ static void
 lightdm_user_list_finalize (GObject *object)
 {
     LightDMUserList *self = LIGHTDM_USER_LIST (object);
+    LightDMUserListPrivate *priv = GET_LIST_PRIVATE (self);
 
-    g_list_free_full (self->lightdm_list, g_object_unref);
+    g_list_free_full (priv->lightdm_list, g_object_unref);
 
     G_OBJECT_CLASS (lightdm_user_list_parent_class)->finalize (object);
 }
@@ -280,6 +284,8 @@ static void
 lightdm_user_list_class_init (LightDMUserListClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    g_type_class_add_private (klass, sizeof (LightDMUserListPrivate));
 
     object_class->set_property = lightdm_user_list_set_property;
     object_class->get_property = lightdm_user_list_get_property;
@@ -319,7 +325,7 @@ lightdm_user_list_class_init (LightDMUserListClass *klass)
         g_signal_new (LIGHTDM_USER_LIST_SIGNAL_USER_ADDED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      0,
+                      G_STRUCT_OFFSET (LightDMUserListClass, user_added),
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 1, LIGHTDM_TYPE_USER);
@@ -335,7 +341,7 @@ lightdm_user_list_class_init (LightDMUserListClass *klass)
         g_signal_new (LIGHTDM_USER_LIST_SIGNAL_USER_CHANGED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      0,
+                      G_STRUCT_OFFSET (LightDMUserListClass, user_changed),
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 1, LIGHTDM_TYPE_USER);
@@ -351,7 +357,7 @@ lightdm_user_list_class_init (LightDMUserListClass *klass)
         g_signal_new (LIGHTDM_USER_LIST_SIGNAL_USER_REMOVED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      0,
+                      G_STRUCT_OFFSET (LightDMUserListClass, user_removed),
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 1, LIGHTDM_TYPE_USER);
@@ -369,7 +375,7 @@ const gchar *
 lightdm_user_get_name (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    return common_user_get_name (user->common_user);
+    return common_user_get_name (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -384,7 +390,7 @@ const gchar *
 lightdm_user_get_real_name (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    return common_user_get_real_name (user->common_user);
+    return common_user_get_real_name (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -399,7 +405,7 @@ const gchar *
 lightdm_user_get_display_name (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    return common_user_get_display_name (user->common_user);
+    return common_user_get_display_name (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -414,7 +420,7 @@ const gchar *
 lightdm_user_get_home_directory (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    return common_user_get_home_directory (user->common_user);
+    return common_user_get_home_directory (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -429,7 +435,7 @@ const gchar *
 lightdm_user_get_image (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    return common_user_get_image (user->common_user);
+    return common_user_get_image (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -444,7 +450,7 @@ const gchar *
 lightdm_user_get_background (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    return common_user_get_background (user->common_user);
+    return common_user_get_background (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -459,7 +465,7 @@ const gchar *
 lightdm_user_get_language (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    return common_user_get_language (user->common_user);
+    return common_user_get_language (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -474,7 +480,7 @@ const gchar *
 lightdm_user_get_layout (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    return common_user_get_layout (user->common_user);
+    return common_user_get_layout (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -489,7 +495,7 @@ const gchar * const *
 lightdm_user_get_layouts (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    return common_user_get_layouts (user->common_user);
+    return common_user_get_layouts (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -504,7 +510,7 @@ const gchar *
 lightdm_user_get_session (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), NULL);
-    return common_user_get_session (user->common_user);
+    return common_user_get_session (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -519,7 +525,7 @@ gboolean
 lightdm_user_get_logged_in (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), FALSE);
-    return common_user_get_logged_in (user->common_user);
+    return common_user_get_logged_in (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -534,7 +540,7 @@ gboolean
 lightdm_user_get_has_messages (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), FALSE);
-    return common_user_get_has_messages (user->common_user);
+    return common_user_get_has_messages (GET_USER_PRIVATE (user)->common_user);
 }
 
 /**
@@ -549,7 +555,7 @@ uid_t
 lightdm_user_get_uid (LightDMUser *user)
 {
     g_return_val_if_fail (LIGHTDM_IS_USER (user), (uid_t)-1);
-    return common_user_get_uid (user->common_user);
+    return common_user_get_uid (GET_USER_PRIVATE (user)->common_user);
 }
 
 static void
@@ -564,11 +570,12 @@ lightdm_user_set_property (GObject    *object,
                            GParamSpec *pspec)
 {
     LightDMUser *self = LIGHTDM_USER (object);
+    LightDMUserPrivate *priv = GET_USER_PRIVATE (self);
 
     switch (prop_id)
     {
     case USER_PROP_COMMON_USER:
-        self->common_user = g_value_dup_object (value);
+        priv->common_user = g_value_dup_object (value);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -637,8 +644,9 @@ static void
 lightdm_user_finalize (GObject *object)
 {
     LightDMUser *self = LIGHTDM_USER (object);
+    LightDMUserPrivate *priv = GET_USER_PRIVATE (self);
 
-    g_object_unref (self->common_user);
+    g_object_unref (priv->common_user);
 
     G_OBJECT_CLASS (lightdm_user_parent_class)->finalize (object);
 }
@@ -647,6 +655,8 @@ static void
 lightdm_user_class_init (LightDMUserClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    g_type_class_add_private (klass, sizeof (LightDMUserPrivate));
 
     object_class->set_property = lightdm_user_set_property;
     object_class->get_property = lightdm_user_get_property;
@@ -755,13 +765,13 @@ lightdm_user_class_init (LightDMUserClass *klass)
      * LightDMUser::changed:
      * @user: A #LightDMUser
      *
-     * The ::changed signal gets emitted when this user account is modified.
+     * The ::changed signal gets emitted this user account is modified.
      **/
     user_signals[CHANGED] =
         g_signal_new (LIGHTDM_SIGNAL_USER_CHANGED,
                       G_TYPE_FROM_CLASS (klass),
                       G_SIGNAL_RUN_LAST,
-                      0,
+                      G_STRUCT_OFFSET (LightDMUserClass, changed),
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 0);

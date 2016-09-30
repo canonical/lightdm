@@ -15,15 +15,40 @@
 
 G_BEGIN_DECLS
 
-struct _LightDMSessionClass
+#define LIGHTDM_TYPE_SESSION            (lightdm_session_get_type())
+#define LIGHTDM_SESSION(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), LIGHTDM_TYPE_SESSION, LightDMSession));
+#define LIGHTDM_SESSION_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), LIGHTDM_TYPE_SESSION, LightDMSessionClass))
+#define LIGHTDM_IS_SESSION(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), LIGHTDM_TYPE_SESSION))
+#define LIGHTDM_IS_SESSION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LIGHTDM_TYPE_SESSION))
+#define LIGHTDM_SESSION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LIGHTDM_TYPE_SESSION, LightDMSessionClass))
+
+typedef struct
 {
-    /*< private >*/
+    GObject parent_instance;
+} LightDMSession;
+
+typedef struct
+{
     GObjectClass parent_class;
-};
 
-#define LIGHTDM_TYPE_SESSION (lightdm_session_get_type())
+    /* Reserved */
+    void (*reserved1) (void);
+    void (*reserved2) (void);
+    void (*reserved3) (void);
+    void (*reserved4) (void);
+    void (*reserved5) (void);
+    void (*reserved6) (void);
+} LightDMSessionClass;
 
-G_DECLARE_FINAL_TYPE (LightDMSession, lightdm_session, LIGHTDM, SESSION, GObject)
+#ifdef GLIB_VERSION_2_44
+typedef LightDMSession *LightDMSession_autoptr;
+static inline void glib_autoptr_cleanup_LightDMSession (LightDMSession **_ptr)
+{
+    glib_autoptr_cleanup_GObject ((GObject **) _ptr);
+}
+#endif
+
+GType lightdm_session_get_type (void);
 
 GList *lightdm_get_sessions (void);
 
