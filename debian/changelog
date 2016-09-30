@@ -1,3 +1,19 @@
+lightdm (1.19.5-0ubuntu1) yakkety; urgency=medium
+
+  * New upstream release:
+    - Fix errors in documentation generation
+    - Improve documentation
+    - Fix guest AppArmor profile to allow guest sessions more access to the
+      upstart session socket (LP: #1627304)
+    - Fix small memory leak in liblightdm-gobject keyboard layout code
+  * debian/control:
+    - Drop duplicate dependency on gobject-introspection
+    - Alphabetically order dependencies
+  * debian/guest-session-auto.sh:
+    - Don't show guest session dialog in MATE (LP: #1627395)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 30 Sep 2016 14:56:00 +1300
+
 lightdm (1.19.4-0ubuntu1) yakkety; urgency=medium
 
   * New upstream release:

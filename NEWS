@@ -1,3 +1,11 @@
+Overview of changes in lightdm 1.19.5
+
+    * Fix errors in documentation generation
+    * Improve documentation
+    * Fix guest AppArmor profile to allow guest sessions more access to the
+      upstart session socket
+    * Fix small memory leak in liblightdm-gobject keyboard layout code
+
 Overview of changes in lightdm 1.19.4
 
     * Fix various issues in new in-session greeter code
