@@ -1,3 +1,10 @@
+lightdm (1.20.0-0ubuntu1) yakkety; urgency=medium
+
+  * New upstream release:
+    - Use stable version number (no other changes)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Sat, 15 Oct 2016 18:14:22 +1300
+
 lightdm (1.19.5-0ubuntu1) yakkety; urgency=medium
 
   * New upstream release:

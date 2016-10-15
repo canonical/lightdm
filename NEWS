@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.20.0
+
+    * Use stable version number (no other changes)
+
 Overview of changes in lightdm 1.19.5
 
     * Fix errors in documentation generation
