@@ -236,6 +236,9 @@ process_start (Process *process, gboolean block)
         for (i = 0; i < env_length; i++)
             setenv (env_keys[i], env_values[i], TRUE);
 
+        /* Reset SIGPIPE handler so the child has default behaviour (we disabled it at LightDM start) */
+        signal (SIGPIPE, SIG_DFL);
+
         execvp (argv[0], argv);
         _exit (EXIT_FAILURE);
     }
