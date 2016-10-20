@@ -1160,6 +1160,12 @@ main (int argc, char **argv)
     };
     GError *error = NULL;
 
+    /* Disable the SIGPIPE handler - this is a stupid Unix hangover behaviour.
+     * We will handle piples / sockets being closed instead of having the whole daemon be killed...
+     * http://stackoverflow.com/questions/8369506/why-does-sigpipe-exist
+     */
+    signal (SIGPIPE, SIG_IGN);
+
     /* When lightdm starts sessions it needs to run itself in a new mode */
     if (argc >= 2 && strcmp (argv[1], "--session-child") == 0)
         return session_child_run (argc, argv);

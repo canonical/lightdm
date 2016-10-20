@@ -696,6 +696,9 @@ session_child_run (int argc, char **argv)
             }
         }
 
+        /* Reset SIGPIPE handler so the child has default behaviour (we disabled it at LightDM start) */
+        signal (SIGPIPE, SIG_DFL);
+
         /* Run the command */
         execve (command_argv[0], command_argv, pam_getenvlist (pam_handle));
         _exit (EXIT_FAILURE);
