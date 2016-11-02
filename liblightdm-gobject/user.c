@@ -359,7 +359,7 @@ lightdm_user_list_class_init (LightDMUserListClass *klass)
     /**
      * LightDMUserList::user-added:
      * @user_list: A #LightDMUserList
-     * @user: The #LightDM user that has been added.
+     * @user: The #LightDMUser that has been added.
      *
      * The ::user-added signal gets emitted when a user account is created.
      **/
@@ -375,7 +375,7 @@ lightdm_user_list_class_init (LightDMUserListClass *klass)
     /**
      * LightDMUserList::user-changed:
      * @user_list: A #LightDMUserList
-     * @user: The #LightDM user that has been changed.
+     * @user: The #LightDMUser that has been changed.
      *
      * The ::user-changed signal gets emitted when a user account is modified.
      **/
@@ -391,7 +391,7 @@ lightdm_user_list_class_init (LightDMUserListClass *klass)
     /**
      * LightDMUserList::user-removed:
      * @user_list: A #LightDMUserList
-     * @user: The #LightDM user that has been removed.
+     * @user: The #LightDMUser that has been removed.
      *
      * The ::user-removed signal gets emitted when a user account is removed.
      **/
