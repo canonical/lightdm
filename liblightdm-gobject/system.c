@@ -14,6 +14,7 @@
 
 /**
  * SECTION:system
+ * @title: System Information
  * @short_description: Get system infomation
  * @include: lightdm.h
  *

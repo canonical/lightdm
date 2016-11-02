@@ -32,10 +32,14 @@ Makefile.in.in
 data/apparmor/lightdm-guest-session
 data/lightdm-guest-session
 doc/html
-doc/lightdm-gobject-*.*
+doc/*.args
+doc/*.hierarchy
+doc/*.interfaces
+doc/*.prerequisites
+doc/*.signals
 doc/*.stamp
-doc/tmpl/*-unused.sgml
 doc/*.txt
+doc/*.types
 doc/xml
 greeters/gtk/lightdm-gtk-greeter
 greeters/qt/lightdm-qt-greeter

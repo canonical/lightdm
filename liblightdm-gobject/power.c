@@ -17,6 +17,7 @@
 
 /**
  * SECTION:power
+ * @title: Power Management
  * @short_description: Shutdown, restart, sleep the system
  * @include: lightdm.h
  *

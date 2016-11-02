@@ -1,9 +1,0 @@
-lightdm_greeter_error_get_type
-lightdm_greeter_get_type
-lightdm_language_get_type
-lightdm_layout_get_type
-lightdm_message_type_get_type
-lightdm_prompt_type_get_type
-lightdm_session_get_type
-lightdm_user_get_type
-lightdm_user_list_get_type
