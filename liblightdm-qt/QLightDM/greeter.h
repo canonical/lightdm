@@ -40,8 +40,6 @@ class Q_DECL_EXPORT Greeter : public QObject
     Q_PROPERTY(bool hasGuestAccount READ hasGuestAccountHint CONSTANT)
     Q_PROPERTY(bool locked READ lockHint CONSTANT)
 
-    Q_PROPERTY(QString hostname READ hostname CONSTANT)
-
     Q_ENUMS(PromptType MessageType)
 
 public:
