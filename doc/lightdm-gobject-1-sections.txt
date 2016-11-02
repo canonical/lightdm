@@ -149,6 +149,7 @@ lightdm_get_os_name
 lightdm_get_os_pretty_name
 lightdm_get_os_version
 lightdm_get_os_version_id
+lightdm_get_motd
 </SECTION>
 
 <SECTION>

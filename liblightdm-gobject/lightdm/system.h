@@ -27,6 +27,8 @@ const gchar *lightdm_get_os_version (void);
 
 const gchar *lightdm_get_os_version_id (void);
 
+gchar *lightdm_get_motd (void);
+
 G_END_DECLS
 
 #endif /* LIGHTDM_HOSTNAME_H_ */

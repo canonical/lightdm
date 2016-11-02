@@ -317,6 +317,11 @@ QString Greeter::osVersionId() const
     return QString::fromUtf8(lightdm_get_os_version_id());
 }
 
+QString Greeter::motd() const
+{
+    return QString::fromUtf8(lightdm_get_motd());
+}
+
 #if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
 #include "greeter_moc5.cpp"
 #else

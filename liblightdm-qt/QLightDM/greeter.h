@@ -35,7 +35,8 @@ class Q_DECL_EXPORT Greeter : public QObject
     Q_PROPERTY(QString osName READ osName CONSTANT)
     Q_PROPERTY(QString osPrettyName READ osPrettyName CONSTANT)
     Q_PROPERTY(QString osVersion READ osVersion CONSTANT)
-    Q_PROPERTY(QString osVersionId READ osVersionId CONSTANT)                      
+    Q_PROPERTY(QString osVersionId READ osVersionId CONSTANT)
+    Q_PROPERTY(QString motd READ motd CONSTANT)
     Q_PROPERTY(bool hasGuestAccount READ hasGuestAccountHint CONSTANT)
     Q_PROPERTY(bool locked READ lockHint CONSTANT)
 
@@ -78,7 +79,8 @@ public:
     QString osName() const;
     QString osPrettyName() const;
     QString osVersion() const;
-    QString osVersionId() const;  
+    QString osVersionId() const;
+    QString motd() const;
 
 public Q_SLOTS:
     bool connectToDaemonSync();

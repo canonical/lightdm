@@ -169,3 +169,21 @@ lightdm_get_os_version_id (void)
     load_os_release ();
     return os_version_id;
 }
+
+/**
+ * lightdm_get_motd:
+ *
+ * Get a system message that should be presented to the user.
+ * e.g. "Welcome to Yoyodyne"
+ *
+ * Return value: (nullable): a string (the contents of /etc/motd) or %NULL if not set.
+ **/
+gchar *
+lightdm_get_motd (void)
+{
+    gchar *data = NULL;
+
+    g_file_get_contents ("/etc/motd", &data, NULL, NULL);
+
+    return data;
+}
