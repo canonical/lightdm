@@ -17,6 +17,16 @@ G_BEGIN_DECLS
 
 const gchar *lightdm_get_hostname (void);
 
+const gchar *lightdm_get_os_id (void);
+
+const gchar *lightdm_get_os_name (void);
+
+const gchar *lightdm_get_os_pretty_name (void);
+
+const gchar *lightdm_get_os_version (void);
+
+const gchar *lightdm_get_os_version_id (void);
+
 G_END_DECLS
 
 #endif /* LIGHTDM_HOSTNAME_H_ */

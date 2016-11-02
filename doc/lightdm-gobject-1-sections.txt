@@ -144,6 +144,11 @@ lightdm_session_get_type
 <SECTION>
 <FILE>system</FILE>
 lightdm_get_hostname
+lightdm_get_os_id
+lightdm_get_os_name
+lightdm_get_os_pretty_name
+lightdm_get_os_version
+lightdm_get_os_version_id
 </SECTION>
 
 <SECTION>

@@ -292,6 +292,31 @@ QString Greeter::hostname() const
     return QString::fromUtf8(lightdm_get_hostname());
 }
 
+QString Greeter::osName() const
+{
+    return QString::fromUtf8(lightdm_get_os_name());
+}
+
+QString Greeter::osId() const
+{
+    return QString::fromUtf8(lightdm_get_os_id());
+}
+
+QString Greeter::osPrettyName() const
+{
+    return QString::fromUtf8(lightdm_get_os_pretty_name());
+}
+
+QString Greeter::osVersion() const
+{
+    return QString::fromUtf8(lightdm_get_os_version());
+}
+
+QString Greeter::osVersionId() const
+{
+    return QString::fromUtf8(lightdm_get_os_version_id());
+}
+
 #if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
 #include "greeter_moc5.cpp"
 #else
