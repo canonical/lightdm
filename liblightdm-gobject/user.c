@@ -531,7 +531,7 @@ lightdm_user_get_layout (LightDMUser *user)
  *
  * Get the configured keyboard layouts for a user.
  *
- * Return value: (transfer none): A NULL-terminated array of keyboard layouts for the given user.  Copy the values if you want to use them long term.
+ * Return value: (transfer none) (array zero-terminated=1): A NULL-terminated array of keyboard layouts for the given user.  Copy the values if you want to use them long term.
  **/
 const gchar * const *
 lightdm_user_get_layouts (LightDMUser *user)
