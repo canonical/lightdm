@@ -21,8 +21,6 @@
  * Helper functions to get system information.
  */
 
-static gchar *hostname = NULL;
-
 /**
  * lightdm_get_hostname:
  *
@@ -31,12 +29,5 @@ static gchar *hostname = NULL;
 const gchar *
 lightdm_get_hostname (void)
 {
-    if (!hostname)
-    {
-        struct utsname info;
-        uname (&info);
-        hostname = g_strdup (info.nodename);
-    }
-
-    return hostname;
+    return g_get_host_name ();
 }
