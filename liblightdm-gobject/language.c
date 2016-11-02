@@ -17,6 +17,14 @@
 #include "lightdm/language.h"
 
 /**
+ * SECTION:language
+ * @short_description: Get information on available languages
+ * @include: lightdm.h
+ *
+ * #LightDMLanguage is an object that describes a language that is available on the system. 
+ */
+
+/**
  * LightDMLanguage:
  *
  * #LightDMLanguage is an opaque data structure and can only be accessed

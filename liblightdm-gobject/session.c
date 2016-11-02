@@ -15,6 +15,14 @@
 #include "lightdm/session.h"
 
 /**
+ * SECTION:session
+ * @short_description: Choose the session to use
+ * @include: lightdm.h
+ *
+ * Object containing information about a session type. #LightDMSession objects are not created by the user, but provided by the #LightDMGreeter object.
+ */
+
+/**
  * LightDMSession:
  *
  * #LightDMSession is an opaque data structure and can only be accessed

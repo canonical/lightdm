@@ -15,6 +15,14 @@
 
 #include "lightdm/power.h"
 
+/**
+ * SECTION:power
+ * @short_description: Shutdown, restart, sleep the system
+ * @include: lightdm.h
+ *
+ * Helper functions to perform power management operations.
+ */
+
 static GDBusProxy *upower_proxy = NULL;
 static GDBusProxy *ck_proxy = NULL;
 static GDBusProxy *login1_proxy = NULL;

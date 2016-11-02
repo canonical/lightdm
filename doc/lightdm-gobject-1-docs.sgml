@@ -14,12 +14,12 @@
 
   <part id="core">
     <title>liblightdm-gobject</title>
-<!--    <xi:include href="liblightdm-gobject.sgml"/>-->
     <xi:include href="xml/greeter.xml"/>
     <xi:include href="xml/language.xml"/>
     <xi:include href="xml/layout.xml"/>
     <xi:include href="xml/session.xml"/>
-    <xi:include href="xml/user.xml"/>
+    <xi:include href="xml/user-list.xml"/>
+    <xi:include href="xml/user.xml"/>    
     <xi:include href="xml/power.xml"/>
     <xi:include href="xml/system.xml"/>
   </part>

@@ -17,6 +17,22 @@
 #include "lightdm/user.h"
 
 /**
+ * SECTION:user-list
+ * @short_description: Get information on user accounts on this system
+ * @include: lightdm.h
+ *
+ * An object that contains information about local user accounts.
+ */
+
+/**
+ * SECTION:user
+ * @short_description: Get information on a user account
+ * @include: lightdm.h
+ *
+ * Information about a local user account.
+ */
+
+/**
  * LightDMUserList:
  *
  * #LightDMUserList is an opaque data structure and can only be accessed

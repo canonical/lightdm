@@ -12,6 +12,14 @@
 
 #include "lightdm/system.h"
 
+/**
+ * SECTION:system
+ * @short_description: Get system infomation
+ * @include: lightdm.h
+ *
+ * Helper functions to get system information.
+ */
+
 static gchar *hostname = NULL;
 
 /**

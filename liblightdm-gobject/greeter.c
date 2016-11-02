@@ -19,6 +19,60 @@
 #include "lightdm/greeter.h"
 
 /**
+ * SECTION:greeter
+ * @short_description: Make a connection to the LightDM daemon and authenticate users
+ * @include: lightdm.h
+ *
+ * #LightDMGreeter is an object that manages the connection to the LightDM server and provides common greeter functionality.
+ *
+ * An example of a simple greeter:
+ * |[
+ * int main ()
+ * {
+ *     GMainLoop *main_loop;
+ *     LightDMGreeter *greeter
+ * 
+ *     main_loop = g_main_loop_new ();
+ * 
+ *     greeter = lightdm_greeter_new ();
+ *     g_object_connect (greeter, "show-prompt", G_CALLBACK (show_prompt_cb), NULL);
+ *     g_object_connect (greeter, "authentication-complete", G_CALLBACK (authentication_complete_cb), NULL);
+ * 
+ *     // Connect to LightDM daemon
+ *     if (!lightdm_greeter_connect_to_daemon_sync (greeter, NULL))
+ *         return EXIT_FAILURE;
+ * 
+ *     // Start authentication
+ *     lightdm_greeter_authenticate (greeter, NULL);
+ * 
+ *     g_main_loop_run (main_loop);
+ * 
+ *     return EXIT_SUCCESS;
+ * }
+ * 
+ * static void show_prompt_cb (LightDMGreeter *greeter, const char *text, LightDMPromptType type)
+ * {
+ *     // Show the user the message and prompt for some response
+ *     gchar *secret = prompt_user (text, type);
+ * 
+ *     // Give the result to the user
+ *     lightdm_greeter_respond (greeter, response);
+ * }
+ * 
+ * static void authentication_complete_cb (LightDMGreeter *greeter)
+ * {
+ *     // Start the session
+ *     if (!lightdm_greeter_get_is_authenticated (greeter) ||
+ *         !lightdm_greeter_start_session_sync (greeter, NULL))
+ *     {
+ *         // Failed authentication, try again
+ *         lightdm_greeter_authenticate (greeter, NULL);
+ *     }
+ * }
+ * ]|
+ */
+
+/**
  * LightDMGreeter:
  *
  * #LightDMGreeter is an opaque data structure and can only be accessed
@@ -2101,7 +2155,7 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
      * @greeter: A #LightDMGreeter
      *
      * The ::timed-login signal gets emitted when the automatic login timer has expired.
-     * The application should then call lightdm_greeter_login().
+     * The application should then call lightdm_greeter_authenticate_autologin().
      **/
     signals[AUTOLOGIN_TIMER_EXPIRED] =
         g_signal_new (LIGHTDM_GREETER_SIGNAL_AUTOLOGIN_TIMER_EXPIRED,

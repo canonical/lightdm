@@ -14,6 +14,14 @@
 #include "lightdm/layout.h"
 
 /**
+ * SECTION:layout
+ * @short_description: Control the keyboard layout
+ * @include: lightdm.h
+ *
+ * #LightDMLayout is an object that describes a keyboard that is available on the system.
+ */
+
+/**
  * LightDMLayout:
  *
  * #LightDMLayout is an opaque data structure and can only be accessed

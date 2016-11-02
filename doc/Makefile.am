@@ -1,26 +1,32 @@
-DOC_MODULE=lightdm-gobject-1
+DOC_MODULE = lightdm-gobject-1
+DOC_MAIN_SGML_FILE = $(DOC_MODULE)-docs.sgml
+DOC_SOURCE_DIR = $(top_srcdir)/liblightdm-gobject
 
-DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
+SCANGOBJ_OPTIONS =
+SCAN_OPTIONS = --deprecated-guards="LIGHTDM_DISABLE_DEPRECATED" --rebuild-types
+MKDB_OPTIONS = --output-format=xml --name-space=LightDM
+MKTMPL_OPTIONS =
+FIXXREF_OPTIONS = \
+	--extra-dir=$(GLIB_PREFIX)/share/gtk-doc/html/glib \
+	--extra-dir=$(GLIB_PREFIX)/share/gtk-doc/html/gobject \
+	--extra-dir=$(GLIB_PREFIX)/share/gtk-doc/html/gio
 
-DOC_SOURCE_DIR=$(top_srcdir)/liblightdm-gobject
+HFILE_GLOB = $(top_srcdir)/liblightdm-gobject/lightdm.h
+CFILE_GLOB = $(top_srcdir)/liblightdm-gobject/*.c
 
-HFILE_GLOB=$(top_srcdir)/liblightdm-gobject/lightdm.h
-CFILE_GLOB=$(top_srcdir)/liblightdm-gobject/*.c
+IGNORE_HFILES = \
+	snapd-glib.h 		\
+	snapd-enum-types.h
 
-AM_CPPFLAGS = \
-	$(LIBLIGHTDM_GOBJECT_CFLAGS) \
-	-I$(top_srcdir)/liblightdm-gobject
+EXTRA_HFILES =
 
-GTKDOC_LIBS = \
-	$(LIBLIGHTDM_GOBJECT_LIBS) \
-	$(top_builddir)/liblightdm-gobject/liblightdm-gobject-1.la
+HTML_IMAGES =
 
-SCAN_OPTIONS=--deprecated-guards="LIGHTDM_DISABLE_DEPRECATED" --rebuild-types
+content_files =
 
-MKDB_OPTIONS=--sgml-mode --output-format=xml --name-space=LightDM
+expand_content_files =
 
-DISTCLEANFILES = \
-	$(DOC_MODULE)-docs.xml \
-	$(DOC_MODULE)-overrides.txt
+AM_CPPFLAGS = -I$(top_srcdir)/liblightdm-gobject $(LIBLIGHTDM_GOBJECT_CFLAGS)
+GTKDOC_LIBS = $(top_builddir)/liblightdm-gobject/liblightdm-gobject-1.la $(LIBLIGHTDM_GOBJECT_LIBS)
 
 include $(top_srcdir)/gtk-doc.make
