@@ -23,6 +23,9 @@ G_BEGIN_DECLS
 #define LIGHTDM_IS_GREETER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LIGHTDM_TYPE_GREETER))
 #define LIGHTDM_GREETER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LIGHTDM_TYPE_GREETER, LightDMGreeterClass))
 
+typedef struct _LightDMGreeter          LightDMGreeter;
+typedef struct _LightDMGreeterClass     LightDMGreeterClass;
+
 #define LIGHTDM_GREETER_ERROR lightdm_greeter_error_quark ()
 
 #define LIGHTDM_GREETER_SIGNAL_SHOW_PROMPT             "show-prompt"
@@ -58,12 +61,12 @@ typedef enum
 
 GType lightdm_message_type_get_type (void);
 
-typedef struct
+struct _LightDMGreeter
 {
     GObject parent_instance;
-} LightDMGreeter;
+};
 
-typedef struct
+struct _LightDMGreeterClass
 {
     GObjectClass parent_class;
 
@@ -79,7 +82,7 @@ typedef struct
     void (*reserved2) (void);
     void (*reserved3) (void);
     void (*reserved4) (void);
-} LightDMGreeterClass;
+};
 
 #ifdef GLIB_VERSION_2_44
 typedef LightDMGreeter *LightDMGreeter_autoptr;

@@ -22,12 +22,15 @@ G_BEGIN_DECLS
 #define LIGHTDM_IS_LANGUAGE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LIGHTDM_TYPE_LANGUAGE))
 #define LIGHTDM_LANGUAGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LIGHTDM_TYPE_LANGUAGE, LightDMLanguageClass))
 
-typedef struct
+typedef struct _LightDMLanguage          LightDMLanguage;
+typedef struct _LightDMLanguageClass     LightDMLanguageClass;
+
+struct _LightDMLanguage
 {
     GObject parent_instance;
-} LightDMLanguage;
+};
 
-typedef struct
+struct _LightDMLanguageClass
 {
     GObjectClass parent_class;
 
@@ -38,7 +41,7 @@ typedef struct
     void (*reserved4) (void);
     void (*reserved5) (void);
     void (*reserved6) (void);
-} LightDMLanguageClass;
+};
 
 #ifdef GLIB_VERSION_2_44
 typedef LightDMLanguage *LightDMLanguage_autoptr;

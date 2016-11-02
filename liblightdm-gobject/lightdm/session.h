@@ -22,12 +22,15 @@ G_BEGIN_DECLS
 #define LIGHTDM_IS_SESSION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LIGHTDM_TYPE_SESSION))
 #define LIGHTDM_SESSION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), LIGHTDM_TYPE_SESSION, LightDMSessionClass))
 
-typedef struct
+typedef struct _LightDMSession          LightDMSession;
+typedef struct _LightDMSessionClass     LightDMSessionClass;
+
+struct _LightDMSession
 {
     GObject parent_instance;
-} LightDMSession;
+};
 
-typedef struct
+struct _LightDMSessionClass
 {
     GObjectClass parent_class;
 
@@ -38,7 +41,7 @@ typedef struct
     void (*reserved4) (void);
     void (*reserved5) (void);
     void (*reserved6) (void);
-} LightDMSessionClass;
+};
 
 #ifdef GLIB_VERSION_2_44
 typedef LightDMSession *LightDMSession_autoptr;
