@@ -13,6 +13,19 @@
 
 #include "lightdm/layout.h"
 
+/**
+ * LightDMLayout:
+ *
+ * #LightDMLayout is an opaque data structure and can only be accessed
+ * using the provided functions.
+ */
+
+/**
+ * LightDMLayoutClass:
+ *
+ * Class structure for #LightDMLayout.
+ */
+
 enum {
     PROP_NAME = 1,
     PROP_SHORT_DESCRIPTION,

@@ -48,7 +48,9 @@ struct _LightDMUser
 
 struct _LightDMUserClass
 {
+    /*< private >*/
     GObjectClass parent_class;
+
     void (*changed)(LightDMUser *user);
 
     /* Reserved */
@@ -67,6 +69,7 @@ struct _LightDMUserList
 
 struct _LightDMUserListClass
 {
+    /*< private >*/
     GObjectClass parent_class;
 
     void (*user_added)(LightDMUserList *user_list, LightDMUser *user);

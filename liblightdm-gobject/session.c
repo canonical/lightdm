@@ -14,6 +14,19 @@
 #include "configuration.h"
 #include "lightdm/session.h"
 
+/**
+ * LightDMSession:
+ *
+ * #LightDMSession is an opaque data structure and can only be accessed
+ * using the provided functions.
+ */
+
+/**
+ * LightDMSessionClass:
+ *
+ * Class structure for #LightDMSession.
+ */
+
 enum {
     PROP_KEY = 1,
     PROP_NAME,

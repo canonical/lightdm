@@ -16,6 +16,32 @@
 #include "user-list.h"
 #include "lightdm/user.h"
 
+/**
+ * LightDMUserList:
+ *
+ * #LightDMUserList is an opaque data structure and can only be accessed
+ * using the provided functions.
+ */
+
+/**
+ * LightDMUserListClass:
+ *
+ * Class structure for #LightDMUserList.
+ */
+
+/**
+ * LightDMUser:
+ *
+ * #LightDMUser is an opaque data structure and can only be accessed
+ * using the provided functions.
+ */
+
+/**
+ * LightDMUserClass:
+ *
+ * Class structure for #LightDMUser.
+ */
+
 enum
 {
     LIST_PROP_NUM_USERS = 1,

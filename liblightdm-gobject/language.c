@@ -16,6 +16,19 @@
 
 #include "lightdm/language.h"
 
+/**
+ * LightDMLanguage:
+ *
+ * #LightDMLanguage is an opaque data structure and can only be accessed
+ * using the provided functions.
+ */
+
+/**
+ * LightDMLanguageClass:
+ *
+ * Class structure for #LightDMLanguage.
+ */
+
 enum {
     PROP_CODE = 1,
     PROP_NAME,

@@ -37,8 +37,10 @@ typedef struct _LightDMGreeterClass     LightDMGreeterClass;
 
 /**
  * LightDMPromptType:
- * @LIGHTDM_PROMPT_TYPE_QUESTION: Prompt is a question.  The information can be shown as it is entered.
- * @LIGHTDM_PROMPT_TYPE_SECRET: Prompt is for secret information.  The entered information should be obscured so it can't be publically visible.
+ * @LIGHTDM_PROMPT_TYPE_QUESTION: prompt is a question.  The information can be shown as it is entered.
+ * @LIGHTDM_PROMPT_TYPE_SECRET: prompt is for secret information.  The entered information should be obscured so it can't be publically visible.
+ *
+ * Prompt types the client is required to display.
  */
 typedef enum
 {
@@ -68,6 +70,7 @@ struct _LightDMGreeter
 
 struct _LightDMGreeterClass
 {
+    /*< private >*/  
     GObjectClass parent_class;
 
     void (*show_message)(LightDMGreeter *greeter, const gchar *text, LightDMMessageType type);

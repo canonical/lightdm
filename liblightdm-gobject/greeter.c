@@ -18,6 +18,19 @@
 
 #include "lightdm/greeter.h"
 
+/**
+ * LightDMGreeter:
+ *
+ * #LightDMGreeter is an opaque data structure and can only be accessed
+ * using the provided functions.
+ */
+
+/**
+ * LightDMGreeterClass:
+ *
+ * Class structure for #LightDMGreeter.
+ */
+
 G_DEFINE_QUARK (lightdm_greeter_error, lightdm_greeter_error)
 
 enum {

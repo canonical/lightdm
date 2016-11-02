@@ -32,6 +32,7 @@ struct _LightDMSession
 
 struct _LightDMSessionClass
 {
+    /*< private >*/  
     GObjectClass parent_class;
 
     /* Reserved */

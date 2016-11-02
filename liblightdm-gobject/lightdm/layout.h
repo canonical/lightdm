@@ -32,6 +32,7 @@ struct _LightDMLayout
 
 struct _LightDMLayoutClass
 {
+    /*< private >*/
     GObjectClass parent_class;
 
     /* Reserved */

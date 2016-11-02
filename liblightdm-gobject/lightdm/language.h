@@ -32,6 +32,7 @@ struct _LightDMLanguage
 
 struct _LightDMLanguageClass
 {
+    /*< private >*/
     GObjectClass parent_class;
 
     /* Reserved */
