@@ -30,7 +30,7 @@ source_with_error_check () {
     if [ -s "$ERR" ]; then
         . /usr/lib/lightdm/config-error-dialog.sh
     fi
-    cat "$ERR" >>/dev/stderr
+    cat "$ERR" >&2
     truncate -s 0 "$ERR"
 }
 
