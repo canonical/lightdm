@@ -897,9 +897,6 @@ getpwnam (const char *name)
 {
     GList *link;
 
-    if (name == NULL)
-        return NULL;
-
     load_passwd_file ();
 
     for (link = user_entries; link; link = link->next)
@@ -1031,9 +1028,6 @@ pam_start (const char *service_name, const char *user, const struct pam_conv *co
 {
     pam_handle_t *handle;
 
-    if (service_name == NULL || conversation == NULL || pamh == NULL)
-        return PAM_SYSTEM_ERR;
-
     handle = *pamh = malloc (sizeof (pam_handle_t));
     if (handle == NULL)
         return PAM_BUF_ERR;
@@ -1075,9 +1069,6 @@ pam_authenticate (pam_handle_t *pamh, int flags)
 {
     struct passwd *entry;
     gboolean password_matches = FALSE;
-
-    if (pamh == NULL)
-        return PAM_SYSTEM_ERR;
 
     connect_status ();
     if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
@@ -1335,9 +1326,6 @@ pam_putenv (pam_handle_t *pamh, const char *name_value)
     int i;
     gchar *name;
 
-    if (pamh == NULL || name_value == NULL)
-        return PAM_SYSTEM_ERR;
-
     name = strdup (name_value);
     for (i = 0; name[i]; i++)
         if (name[i] == '=')
@@ -1369,9 +1357,6 @@ pam_getenv (pam_handle_t *pamh, const char *name)
 {
     int i;
 
-    if (pamh == NULL || name == NULL)
-        return NULL;
-
     for (i = 0; pamh->envlist[i]; i++)
     {
         const char *value;
@@ -1386,16 +1371,13 @@ pam_getenv (pam_handle_t *pamh, const char *name)
 char **
 pam_getenvlist (pam_handle_t *pamh)
 {
-    if (pamh == NULL)
-        return NULL;
-
     return pamh->envlist;
 }
 
 int
 pam_set_item (pam_handle_t *pamh, int item_type, const void *item)
 {
-    if (pamh == NULL || item == NULL)
+    if (item == NULL)
         return PAM_SYSTEM_ERR;
 
     switch (item_type)
@@ -1414,7 +1396,7 @@ pam_set_item (pam_handle_t *pamh, int item_type, const void *item)
 int
 pam_get_item (const pam_handle_t *pamh, int item_type, const void **item)
 {
-    if (pamh == NULL || item == NULL)
+    if (item == NULL)
         return PAM_SYSTEM_ERR;
 
     switch (item_type)
@@ -1457,9 +1439,6 @@ pam_open_session (pam_handle_t *pamh, int flags)
 {
     GVariant *result;
     GError *error = NULL;
-
-    if (pamh == NULL)
-        return PAM_SYSTEM_ERR;
 
     connect_status ();
     if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
@@ -1518,9 +1497,6 @@ pam_open_session (pam_handle_t *pamh, int flags)
 int
 pam_close_session (pam_handle_t *pamh, int flags)
 {
-    if (pamh == NULL)
-        return PAM_SYSTEM_ERR;
-
     connect_status ();
     if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
     {
@@ -1541,9 +1517,6 @@ pam_close_session (pam_handle_t *pamh, int flags)
 int
 pam_acct_mgmt (pam_handle_t *pamh, int flags)
 {
-    if (pamh == NULL)
-        return PAM_SYSTEM_ERR;
-
     connect_status ();
     if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
     {
@@ -1580,9 +1553,6 @@ pam_chauthtok (pam_handle_t *pamh, int flags)
     int result;
     struct pam_message **msg;
     struct pam_response *resp = NULL;
-
-    if (pamh == NULL)
-        return PAM_SYSTEM_ERR;
 
     connect_status ();
     if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
@@ -1634,9 +1604,6 @@ int
 pam_setcred (pam_handle_t *pamh, int flags)
 {
     gchar *e;
-
-    if (pamh == NULL)
-        return PAM_SYSTEM_ERR;
 
     connect_status ();
     if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
@@ -1705,9 +1672,6 @@ pam_setcred (pam_handle_t *pamh, int flags)
 int
 pam_end (pam_handle_t *pamh, int pam_status)
 {
-    if (pamh == NULL)
-        return PAM_SYSTEM_ERR;
-
     connect_status ();
     if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
     {
