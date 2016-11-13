@@ -1,3 +1,13 @@
+Overview of changes in lightdm 1.21.0
+
+    * Add liblightdm functions for getting OS release information and the
+      message of the day.
+    * Warn if we find unknown keys in configuration.
+    * Fix .profile errors not showing in .xsession-errors log.
+    * Remove duplicate Qt property in liblightdm.
+    * Fix and improve liblightdm API documentation.
+    * Minor GIR annotation fixes.
+
 Overview of changes in lightdm 1.20.0
 
     * Use stable version number (no other changes)

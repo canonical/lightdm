@@ -1,3 +1,18 @@
+lightdm (1.21.0-0ubuntu1) zesty; urgency=medium
+
+  * New upstream release:
+    - Add liblightdm functions for getting OS release information and the
+      message of the day.
+    - Warn if we find unknown keys in configuration.
+    - Fix .profile errors not showing in .xsession-errors log. (LP: #1639533)
+    - Remove duplicate Qt property in liblightdm.
+    - Fix and improve liblightdm API documentation.
+    - Minor GIR annotation fixes.
+  * debian/liblightdm-gobject-1-0.symbols:
+    - Updated
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 14 Nov 2016 11:40:20 +1300
+
 lightdm (1.20.0-0ubuntu2) zesty; urgency=medium
 
   * debian/lightdm-greeter-session: Don't launch another session D-Bus if one

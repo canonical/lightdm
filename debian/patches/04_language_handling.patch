@@ -6,7 +6,7 @@ Index: trunk/liblightdm-gobject/language.c
 ===================================================================
 --- trunk.orig/liblightdm-gobject/language.c
 +++ trunk/liblightdm-gobject/language.c
-@@ -39,7 +39,7 @@ static GList *languages = NULL;
+@@ -60,7 +60,7 @@ static GList *languages = NULL;
  static void
  update_languages (void)
  {
@@ -15,7 +15,7 @@ Index: trunk/liblightdm-gobject/language.c
      gchar *stdout_text = NULL, *stderr_text = NULL;
      gint exit_status;
      gboolean result;
-@@ -160,15 +160,39 @@ lightdm_get_language (void)
+@@ -181,15 +181,39 @@ lightdm_get_language (void)
  {
      const gchar *lang;
      GList *link;
