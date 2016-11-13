@@ -19,7 +19,18 @@ struct ConfigurationPrivate
     GKeyFile *key_file;
     GList *sources;
     GHashTable *key_sources;
+    GHashTable *lightdm_keys;
+    GHashTable *seat_keys;
+    GHashTable *xdmcp_keys;  
+    GHashTable *vnc_keys;
 };
+
+typedef enum 
+{
+    KEY_UNKNOWN,
+    KEY_SUPPORTED,
+    KEY_DEPRECATED
+} KeyStatus;
 
 G_DEFINE_TYPE (Configuration, config, G_TYPE_OBJECT);
 
@@ -54,6 +65,7 @@ config_load_from_file (Configuration *config, const gchar *path, GList **message
     for (i = 0; groups[i]; i++)
     {
         gchar **keys, *group;
+        GHashTable *known_keys = NULL;
         int j;
 
         /* Move keys from deprecated [SeatDefaults] into [Seat:*] */
@@ -65,6 +77,18 @@ config_load_from_file (Configuration *config, const gchar *path, GList **message
             group = "Seat:*";
         }
 
+        /* Check if we know this group */
+        if (strcmp (group, "LightDM") == 0)
+            known_keys = config->priv->lightdm_keys;      
+        else if (g_str_has_prefix (group, "Seat:"))
+            known_keys = config->priv->seat_keys;
+        else if (strcmp (group, "XDMCPServer") == 0)
+            known_keys = config->priv->xdmcp_keys;
+        else if (strcmp (group, "VNCServer") == 0)
+            known_keys = config->priv->vnc_keys;
+        else
+            *messages = g_list_append (*messages, g_strdup_printf ("  Unknown group [%s] in configuration", group));
+
         keys = g_key_file_get_keys (key_file, groups[i], NULL, error);
         if (!keys)
             break;
@@ -73,10 +97,16 @@ config_load_from_file (Configuration *config, const gchar *path, GList **message
         {
             gchar *value, *k;
 
-            if (messages && g_str_has_prefix (group, "Seat:") && strcmp (keys[j], "xdg-seat") == 0)
-                *messages = g_list_append (*messages, g_strdup_printf ("  [%s] contains deprecated option xdg-seat, this can be safely removed", group));
-            if (messages && strcmp (group, "LightDM") == 0 && strcmp (keys[j], "logind-load-seats") == 0)
-                *messages = g_list_append (*messages, g_strdup ("  [LightDM] contains deprecated option logind-load-seats, this can be safely removed"));
+            if (known_keys != NULL)
+            {
+                KeyStatus status;
+
+                status = GPOINTER_TO_INT (g_hash_table_lookup (known_keys, keys[j]));
+                if (status == KEY_UNKNOWN)
+                    *messages = g_list_append (*messages, g_strdup_printf ("  [%s] contains unknown option %s", group, keys[j]));
+                else if (status == KEY_DEPRECATED)
+                    *messages = g_list_append (*messages, g_strdup_printf ("  [%s] contains deprecated option %s, this can be safely removed", group, keys[j]));
+            }
 
             value = g_key_file_get_value (key_file, groups[i], keys[j], NULL);
             g_key_file_set_value (config->priv->key_file, group, keys[j], value);
@@ -341,6 +371,85 @@ config_init (Configuration *config)
     config->priv = G_TYPE_INSTANCE_GET_PRIVATE (config, CONFIGURATION_TYPE, ConfigurationPrivate);
     config->priv->key_file = g_key_file_new ();
     config->priv->key_sources = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+    config->priv->lightdm_keys = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
+    config->priv->seat_keys = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
+    config->priv->xdmcp_keys = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
+    config->priv->vnc_keys = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
+
+    /* Build up tables of known keys */
+    g_hash_table_insert (config->priv->lightdm_keys, "start-default-seat", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->lightdm_keys, "greeter-user", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->lightdm_keys, "minimum-display-number", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->lightdm_keys, "minimum-vt", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->lightdm_keys, "lock-memory", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->lightdm_keys, "user-authority-in-system-dir", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->lightdm_keys, "guest-account-script", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->lightdm_keys, "logind-check-graphical", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->lightdm_keys, "log-directory", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->lightdm_keys, "run-directory", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->lightdm_keys, "cache-directory", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->lightdm_keys, "sessions-directory", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->lightdm_keys, "remote-sessions-directory", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->lightdm_keys, "greeters-directory", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->lightdm_keys, "backup-logs", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->lightdm_keys, "logind-load-seats", GINT_TO_POINTER (KEY_DEPRECATED));
+
+    g_hash_table_insert (config->priv->seat_keys, "type", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "pam-service", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "pam-autologin-service", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "pam-greeter-service", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "xserver-backend", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "xserver-command", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "xmir-command", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "xserver-config", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "xserver-layout", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "xserver-allow-tcp", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "xserver-share", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "xserver-hostname", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "xserver-display-number", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "xdmcp-manager", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "xdmcp-port", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "xdmcp-key", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "unity-compositor-command", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "unity-compositor-timeout", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "greeter-session", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "greeter-hide-users", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "greeter-allow-guest", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "greeter-show-manual-login", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "greeter-show-remote-login", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "user-session", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "allow-user-switching", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "allow-guest", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "guest-session", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "session-wrapper", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "greeter-wrapper", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "guest-wrapper", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "display-setup-script", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "display-stopped-script", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "greeter-setup-script", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "session-setup-script", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "session-cleanup-script", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "autologin-guest", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "autologin-user", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "autologin-user-timeout", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "autologin-in-background", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "autologin-session", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "exit-on-failure", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "xdg-seat", GINT_TO_POINTER (KEY_DEPRECATED));
+
+    g_hash_table_insert (config->priv->xdmcp_keys, "enabled", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->xdmcp_keys, "port", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->xdmcp_keys, "listen-address", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->xdmcp_keys, "key", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->xdmcp_keys, "hostname", GINT_TO_POINTER (KEY_SUPPORTED));
+
+    g_hash_table_insert (config->priv->vnc_keys, "enabled", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->vnc_keys, "command", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->vnc_keys, "port", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->vnc_keys, "listen-address", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->vnc_keys, "width", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->vnc_keys, "height", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->vnc_keys, "depth", GINT_TO_POINTER (KEY_SUPPORTED));  
 }
 
 static void
@@ -352,6 +461,10 @@ config_finalize (GObject *object)
     g_key_file_free (self->priv->key_file);
     g_list_free_full (self->priv->sources, g_free);
     g_hash_table_destroy (self->priv->key_sources);
+    g_hash_table_destroy (self->priv->lightdm_keys);
+    g_hash_table_destroy (self->priv->seat_keys);
+    g_hash_table_destroy (self->priv->xdmcp_keys);
+    g_hash_table_destroy (self->priv->vnc_keys);
 
     G_OBJECT_CLASS (config_parent_class)->finalize (object);  
 }
