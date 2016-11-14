@@ -78,6 +78,8 @@ void login1_service_unlock_session (Login1Service *service, const gchar *session
 
 void login1_service_activate_session (Login1Service *service, const gchar *session_id);
 
+void login1_service_terminate_session (Login1Service *service, const gchar *session_id);
+
 const gchar *login1_seat_get_id (Login1Seat *seat);
 
 gboolean login1_seat_get_can_graphical (Login1Seat *seat);

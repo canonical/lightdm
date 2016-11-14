@@ -437,6 +437,39 @@ login1_service_activate_session (Login1Service *service, const gchar *session_id
     }
 }
 
+void
+login1_service_terminate_session (Login1Service *service, const gchar *session_id)
+{
+    GError *error = NULL;
+
+    g_return_if_fail (service != NULL);
+    g_return_if_fail (session_id != NULL);
+
+    g_debug ("Terminating login1 session %s", session_id);
+
+    if (session_id)
+    {
+        GVariant *result;
+
+        result = g_dbus_connection_call_sync (service->priv->connection,
+                                              LOGIN1_SERVICE_NAME,
+                                              LOGIN1_OBJECT_NAME,
+                                              LOGIN1_MANAGER_INTERFACE_NAME,
+                                              "TerminateSession",
+                                              g_variant_new ("(s)", session_id),
+                                              G_VARIANT_TYPE ("()"),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              -1,
+                                              NULL,
+                                              &error);
+        if (error)
+            g_warning ("Error terminating login1 session: %s", error->message);
+        g_clear_error (&error);
+        if (result)
+            g_variant_unref (result);
+    }
+}
+
 static void
 login1_service_init (Login1Service *service)
 {

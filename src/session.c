@@ -913,6 +913,11 @@ session_stop (Session *session)
 {
     g_return_if_fail (session != NULL);
 
+    /* Kill remaining processes in our logind session to avoid them leaking
+     * to the user session (they share the same $DISPLAY) */
+    if (getuid () == 0 && session->priv->login1_session_id)
+        login1_service_terminate_session (login1_service_get_instance (), session->priv->login1_session_id);
+
     /* If can cleanly stop then do that */
     if (session_get_is_authenticated (session) && !session->priv->command_run)
     {
