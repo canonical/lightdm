@@ -13,6 +13,8 @@ TESTS = \
 	test-greeter-show-manual-login \
 	test-greeter-show-remote-login \
 	test-no-config \
+	test-unknown-config \
+	test-deprecated-config \
 	test-additional-config \
 	test-additional-config-priority \
 	test-additional-system-config \
@@ -451,6 +453,7 @@ EXTRA_DIST = \
 	scripts/cred-unavail.conf \
 	scripts/dbus.conf \
 	scripts/denied.conf \
+	scripts/deprecated-config.conf \
 	scripts/expired.conf \
 	scripts/greeter-allow-guest.conf \
 	scripts/greeter-crash.conf \
@@ -619,6 +622,7 @@ EXTRA_DIST = \
 	scripts/unity-plymouth.conf \
 	scripts/unity-script-hooks.conf \
 	scripts/unity-switch.conf \
+	scripts/unknown-config.conf \
 	scripts/upstart-autologin.conf \
 	scripts/upstart-login.conf \
 	scripts/users.conf \
