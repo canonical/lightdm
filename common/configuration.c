@@ -86,7 +86,7 @@ config_load_from_file (Configuration *config, const gchar *path, GList **message
             known_keys = config->priv->xdmcp_keys;
         else if (strcmp (group, "VNCServer") == 0)
             known_keys = config->priv->vnc_keys;
-        else
+        else if (messages)
             *messages = g_list_append (*messages, g_strdup_printf ("  Unknown group [%s] in configuration", group));
 
         keys = g_key_file_get_keys (key_file, groups[i], NULL, error);
@@ -102,10 +102,14 @@ config_load_from_file (Configuration *config, const gchar *path, GList **message
                 KeyStatus status;
 
                 status = GPOINTER_TO_INT (g_hash_table_lookup (known_keys, keys[j]));
-                if (status == KEY_UNKNOWN)
-                    *messages = g_list_append (*messages, g_strdup_printf ("  [%s] contains unknown option %s", group, keys[j]));
-                else if (status == KEY_DEPRECATED)
-                    *messages = g_list_append (*messages, g_strdup_printf ("  [%s] contains deprecated option %s, this can be safely removed", group, keys[j]));
+                if (status == KEY_UNKNOWN) {
+                    if (messages != NULL)
+                        *messages = g_list_append (*messages, g_strdup_printf ("  [%s] contains unknown option %s", group, keys[j]));
+                }
+                else if (status == KEY_DEPRECATED) {
+                    if (messages != NULL)
+                        *messages = g_list_append (*messages, g_strdup_printf ("  [%s] contains deprecated option %s, this can be safely removed", group, keys[j]));
+                }
             }
 
             value = g_key_file_get_value (key_file, groups[i], keys[j], NULL);
