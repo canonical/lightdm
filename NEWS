@@ -1,7 +1,7 @@
 Overview of changes in lightdm 1.21.1
 
     * Fix greeters crashing with unknown configuration keys (regression from
-      1.12.0)
+      1.21.0)
     * Add an API verison to the greeter-daemon protocol for future enhancements
     * More regression tests
 
