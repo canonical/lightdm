@@ -357,6 +357,18 @@ request_cb (const gchar *name, GHashTable *params)
         }
     }
 
+    else if (strcmp (name, "LOG-SESSIONS") == 0)
+    {
+        GList *sessions, *link;
+
+        sessions = lightdm_get_sessions ();
+        for (link = sessions; link; link = link->next)
+        {
+            LightDMSession *session = link->data;
+            status_notify ("%s LOG-SESSION KEY=%s", greeter_id, lightdm_session_get_key (session));
+        }
+    }
+
     else if (strcmp (name, "GET-CAN-SUSPEND") == 0)
     {
         gboolean can_suspend = lightdm_get_can_suspend ();

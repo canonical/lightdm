@@ -7,6 +7,7 @@
 #include <QLightDM/Greeter>
 #include <QLightDM/Power>
 #include <QLightDM/UsersModel>
+#include <QLightDM/SessionsModel>
 #include <QtCore/QSettings>
 #include <QtCore/QDebug>
 #include <QtCore/QCoreApplication>
@@ -20,6 +21,7 @@ static QSettings *config = NULL;
 static QLightDM::PowerInterface *power = NULL;
 static TestGreeter *greeter = NULL;
 static QLightDM::UsersModel *users_model = NULL;
+static QLightDM::SessionsModel *sessions_model = NULL;
 
 TestGreeter::TestGreeter ()
 {
@@ -193,6 +195,15 @@ request_cb (const gchar *name, GHashTable *params)
         }
     }
 
+    else if (strcmp (name, "LOG-SESSIONS") == 0)
+    {
+        for (int i = 0; i < sessions_model->rowCount (QModelIndex ()); i++)
+        {
+            QString key = sessions_model->data (sessions_model->index (i, 0), QLightDM::SessionsModel::KeyRole).toString ();
+            status_notify ("%s LOG-SESSION KEY=%s", greeter_id, qPrintable (key));
+        }
+    }
+
     else if (strcmp (name, "GET-CAN-SUSPEND") == 0)
     {
         gboolean can_suspend = power->canSuspend ();
@@ -321,6 +332,8 @@ main(int argc, char *argv[])
         QObject::connect (users_model, SIGNAL(rowsInserted(const QModelIndex&, int, int)), greeter, SLOT(userRowsInserted(const QModelIndex&, int, int)));
         QObject::connect (users_model, SIGNAL(rowsAboutToBeRemoved(const QModelIndex&, int, int)), greeter, SLOT(userRowsRemoved(const QModelIndex&, int, int)));
     }
+
+    sessions_model = new QLightDM::SessionsModel();
 
     status_notify ("%s CONNECT-TO-DAEMON", greeter_id);
     if (!greeter->connectSync())
