@@ -1,4 +1,4 @@
-lightdm (1.21.1-0ubuntu2) UNRELEASED; urgency=medium
+lightdm (1.21.1-0ubuntu2) zesty; urgency=medium
 
   Restore patch from 1.20.0-0ubuntu3:
   * Add debian/patches/terminate-session.patch: Terminate leftover processes
