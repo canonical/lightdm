@@ -1,3 +1,4 @@
 04_language_handling.patch
 05_translate_debian_files.patch
 autologin-session-workaround.patch
+terminate-session.patch

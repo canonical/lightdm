@@ -1,3 +1,16 @@
+lightdm (1.21.1-0ubuntu2) UNRELEASED; urgency=medium
+
+  Restore patch from 1.20.0-0ubuntu3:
+  * Add debian/patches/terminate-session.patch: Terminate leftover processes
+    in greeter session. It can happen that the greeter session does not
+    properly clean up itself on logout. This causes leaked processes like
+    settings-daemon which act on the user session as they share the same
+    $DISPLAY. Ask logind to terminate remaining processes in the greeter
+    session on closing, which is more robust than trying to fix every greeter.
+    (LP: #1637758)
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Tue, 22 Nov 2016 09:43:39 +0100
+
 lightdm (1.21.1-0ubuntu1) zesty; urgency=medium
 
   * New upstream release:
