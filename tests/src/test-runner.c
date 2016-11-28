@@ -1871,6 +1871,28 @@ handle_login1_call (GDBusConnection       *connection,
 
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
+    else if (strcmp (method_name, "TerminateSession") == 0)
+    {
+        const gchar *id;
+        Login1Session *session;
+
+        g_variant_get (parameters, "(&s)", &id);
+        session = find_login1_session (id);
+        if (!session)
+        {
+            g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such session: %s", id);
+            return;
+        }
+
+        if (g_key_file_get_boolean (config, "test-runner-config", "log-login1-terminate", NULL))
+        {
+            gchar *status = g_strdup_printf ("LOGIN1 TERMINATE-SESSION SESSION=%s", id);
+            check_status (status);
+            g_free (status);
+        }
+
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
     else if (strcmp (method_name, "CanReboot") == 0)
     {
         check_status ("LOGIN1 CAN-REBOOT");
@@ -1945,6 +1967,9 @@ login1_name_acquired_cb (GDBusConnection *connection,
         "      <arg name='id' type='s' direction='in'/>"
         "    </method>"
         "    <method name='ActivateSession'>"
+        "      <arg name='id' type='s' direction='in'/>"
+        "    </method>"
+        "    <method name='TerminateSession'>"
         "      <arg name='id' type='s' direction='in'/>"
         "    </method>"
         "    <method name='CanReboot'>"
