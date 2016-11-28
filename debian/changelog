@@ -1,3 +1,10 @@
+lightdm (1.21.2-0ubuntu1) UNRELEASED; urgency=medium
+
+  * debian/patches/terminate-session.patch:
+    - Merged upstream
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 28 Nov 2016 16:35:58 +1300
+
 lightdm (1.21.1-0ubuntu2) zesty; urgency=medium
 
   Restore patch from 1.20.0-0ubuntu3:

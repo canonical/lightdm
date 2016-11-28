@@ -219,6 +219,7 @@ TESTS = \
 	test-console-kit \
 	test-console-kit-no-xdg-runtime \
 	test-no-console-kit \
+	test-login1-terminate \
 	test-no-login1 \
 	test-no-console-kit-or-login1 \
 	test-power-gobject \
@@ -490,6 +491,7 @@ EXTRA_DIST = \
 	scripts/lock-session-resettable.conf \
 	scripts/lock-session-return-session.conf \
 	scripts/lock-session-twice.conf \
+	scripts/login1-terminate.conf \
 	scripts/login.conf \
 	scripts/login-crash-authenticate.conf \
 	scripts/login-guest.conf \
