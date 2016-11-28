@@ -60,6 +60,9 @@ struct GreeterPrivate
     /* PAM session being constructed by the greeter */
     Session *authentication_session;
 
+    /* API version the client can speak */
+    guint32 api_version;
+
     /* TRUE if a the greeter can handle a reset; else we will just kill it instead */
     gboolean resettable;
 
@@ -81,6 +84,8 @@ struct GreeterPrivate
 };
 
 G_DEFINE_TYPE (Greeter, greeter, G_TYPE_OBJECT);
+
+#define API_VERSION 1
 
 /* Messages from the greeter to the server */
 typedef enum
@@ -106,6 +111,7 @@ typedef enum
     SERVER_MESSAGE_SHARED_DIR_RESULT,
     SERVER_MESSAGE_IDLE,
     SERVER_MESSAGE_RESET,
+    SERVER_MESSAGE_CONNECTED_V2,  
 } ServerMessage;
 
 static gboolean read_cb (GIOChannel *source, GIOCondition condition, gpointer data);
@@ -294,30 +300,46 @@ string_length (const gchar *value)
 }
 
 static void
-handle_connect (Greeter *greeter, const gchar *version, gboolean resettable)
+handle_connect (Greeter *greeter, const gchar *version, gboolean resettable, guint32 api_version)
 {
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
-    guint32 length;
+    guint32 env_length = 0;
     GHashTableIter iter;
     gpointer key, value;
 
-    g_debug ("Greeter connected version=%s resettable=%s", version, resettable ? "true" : "false");
+    g_debug ("Greeter connected version=%s api=%u resettable=%s", version, api_version, resettable ? "true" : "false");
 
+    greeter->priv->api_version = api_version;
     greeter->priv->resettable = resettable;
 
-    length = string_length (VERSION);
     g_hash_table_iter_init (&iter, greeter->priv->hints);
     while (g_hash_table_iter_next (&iter, &key, &value))
-        length += string_length (key) + string_length (value);
+        env_length += string_length (key) + string_length (value);
 
-    write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_CONNECTED, length, &offset);
-    write_string (message, MAX_MESSAGE_LENGTH, VERSION, &offset);
-    g_hash_table_iter_init (&iter, greeter->priv->hints);
-    while (g_hash_table_iter_next (&iter, &key, &value))
+    if (api_version == 0)
     {
-        write_string (message, MAX_MESSAGE_LENGTH, key, &offset);
-        write_string (message, MAX_MESSAGE_LENGTH, value, &offset);
+        write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_CONNECTED, string_length (VERSION) + env_length, &offset);
+        write_string (message, MAX_MESSAGE_LENGTH, VERSION, &offset);
+        g_hash_table_iter_init (&iter, greeter->priv->hints);
+        while (g_hash_table_iter_next (&iter, &key, &value))
+        {
+            write_string (message, MAX_MESSAGE_LENGTH, key, &offset);
+            write_string (message, MAX_MESSAGE_LENGTH, value, &offset);
+        }
+    }
+    else
+    {
+        write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_CONNECTED_V2, string_length (VERSION) + int_length () * 2 + env_length, &offset);
+        write_int (message, MAX_MESSAGE_LENGTH, api_version <= API_VERSION ? api_version : API_VERSION, &offset);
+        write_string (message, MAX_MESSAGE_LENGTH, VERSION, &offset);
+        write_int (message, MAX_MESSAGE_LENGTH, g_hash_table_size (greeter->priv->hints), &offset);
+        g_hash_table_iter_init (&iter, greeter->priv->hints);
+        while (g_hash_table_iter_next (&iter, &key, &value))
+        {
+            write_string (message, MAX_MESSAGE_LENGTH, key, &offset);
+            write_string (message, MAX_MESSAGE_LENGTH, value, &offset);
+        }
     }
     write_message (greeter, message, offset);
 
@@ -830,6 +852,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     gchar *version, *username, *session_name, *language;
     gchar **secrets;
     gboolean resettable = FALSE;
+    guint32 api_version = 0;
     GError *error = NULL;
 
     if (condition == G_IO_HUP)
@@ -894,7 +917,9 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         version = read_string (greeter, &offset);
         if (offset < length)
             resettable = read_int (greeter, &offset) != 0;
-        handle_connect (greeter, version, resettable);
+        if (offset < length)
+            api_version = read_int (greeter, &offset);
+        handle_connect (greeter, version, resettable, api_version);
         g_free (version);
         break;
     case GREETER_MESSAGE_AUTHENTICATE:

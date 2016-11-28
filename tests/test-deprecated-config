@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/dbus-env ./src/test-runner deprecated-config test-gobject-greeter

@@ -13,6 +13,8 @@ TESTS = \
 	test-greeter-show-manual-login \
 	test-greeter-show-remote-login \
 	test-no-config \
+	test-unknown-config \
+	test-deprecated-config \
 	test-additional-config \
 	test-additional-config-priority \
 	test-additional-system-config \
@@ -70,6 +72,7 @@ TESTS = \
 	test-xauthority \
 	test-corrupt-xauthority \
 	test-system-xauthority \
+	test-sessions-gobject \
 	test-user-renamed \
 	test-user-renamed-invalid \
 	test-user-name \
@@ -281,6 +284,7 @@ TESTS = \
 
 TESTS += \
 	test-cancel-authentication-python \
+	test-sessions-python \
 	test-users-python \
 	test-login-python \
 	test-login-manual-python \
@@ -344,6 +348,7 @@ TESTS += \
 	test-login-guest-fail-setup-script-qt4 \
 	test-login-guest-logout-qt4 \
 	test-login-remote-session-qt4 \
+	test-sessions-qt4 \
 	test-users-qt4 \
 	test-power-qt4 \
 	test-power-no-console-kit-qt4 \
@@ -381,6 +386,7 @@ TESTS += \
 	test-login-guest-fail-setup-script-qt5 \
 	test-login-guest-logout-qt5 \
 	test-login-remote-session-qt5 \
+	test-sessions-qt5 \
 	test-users-qt5 \
 	test-power-qt5 \
 	test-power-no-console-kit-qt5 \
@@ -452,6 +458,7 @@ EXTRA_DIST = \
 	scripts/cred-unavail.conf \
 	scripts/dbus.conf \
 	scripts/denied.conf \
+	scripts/deprecated-config.conf \
 	scripts/expired.conf \
 	scripts/greeter-allow-guest.conf \
 	scripts/greeter-crash.conf \
@@ -561,6 +568,8 @@ EXTRA_DIST = \
 	scripts/script-hook-greeter-setup-missing.conf \
 	scripts/script-hook-session-setup-fail.conf \
 	scripts/script-hook-session-setup-missing.conf \
+	scripts/seatdefaults-still-supported.conf \
+	scripts/sessions.conf \
 	scripts/session-greeter.conf \
 	scripts/session-greeter-allow-guest.conf \
 	scripts/session-greeter-autologin.conf \
@@ -621,6 +630,7 @@ EXTRA_DIST = \
 	scripts/unity-plymouth.conf \
 	scripts/unity-script-hooks.conf \
 	scripts/unity-switch.conf \
+	scripts/unknown-config.conf \
 	scripts/upstart-autologin.conf \
 	scripts/upstart-login.conf \
 	scripts/users.conf \
@@ -678,5 +688,4 @@ EXTRA_DIST = \
 	scripts/xremote-login.conf \
 	scripts/xserver-config.conf \
 	scripts/xserver-fail-start.conf \
-	scripts/xserver-no-share.conf \
-	scripts/seatdefaults-still-supported.conf
+	scripts/xserver-no-share.conf

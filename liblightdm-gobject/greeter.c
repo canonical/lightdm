@@ -117,6 +117,9 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 typedef struct
 {
+    /* API version the daemon is using */
+    guint32 api_version;
+
     /* TRUE if the daemon can reuse this greeter */
     gboolean resettable;
 
@@ -168,6 +171,7 @@ G_DEFINE_TYPE (LightDMGreeter, lightdm_greeter, G_TYPE_OBJECT);
 
 #define HEADER_SIZE 8
 #define MAX_MESSAGE_LENGTH 1024
+#define API_VERSION 1
 
 /* Messages from the greeter to the server */
 typedef enum
@@ -193,6 +197,7 @@ typedef enum
     SERVER_MESSAGE_SHARED_DIR_RESULT,
     SERVER_MESSAGE_IDLE,
     SERVER_MESSAGE_RESET,
+    SERVER_MESSAGE_CONNECTED_V2,
 } ServerMessage;
 
 /* Request sent to server */
@@ -582,30 +587,57 @@ send_message (LightDMGreeter *greeter, guint8 *message, gsize message_length, GE
 }
 
 static void
-handle_connected (LightDMGreeter *greeter, guint8 *message, gsize message_length, gsize *offset)
+handle_connected (LightDMGreeter *greeter, gboolean v2, guint8 *message, gsize message_length, gsize *offset)
 {
     LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-    gchar *version;
-    GString *hint_string;
+    GString *debug_string;
     int timeout;
     Request *request;
 
-    version = read_string (message, message_length, offset);
-    hint_string = g_string_new ("");
-    while (*offset < message_length)
+    debug_string = g_string_new ("Connected");
+    if (v2)
     {
-        gchar *name, *value;
+        guint32 i, n_env;
+        gchar *version;
 
-        name = read_string (message, message_length, offset);
-        value = read_string (message, message_length, offset);
-        g_hash_table_insert (priv->hints, name, value);
-        g_string_append_printf (hint_string, " %s=%s", name, value);
+        priv->api_version = read_int (message, message_length, offset);
+        g_string_append_printf (debug_string, " api=%u", priv->api_version);
+        version = read_string (message, message_length, offset);
+        g_string_append_printf (debug_string, " version=%s", version);
+        g_free (version);
+        n_env = read_int (message, message_length, offset);
+        for (i = 0; i < n_env; i++)
+        {
+            gchar *name, *value;
+
+            name = read_string (message, message_length, offset);
+            value = read_string (message, message_length, offset);
+            g_hash_table_insert (priv->hints, name, value);
+            g_string_append_printf (debug_string, " %s=%s", name, value);
+        }
+    }
+    else
+    {
+        gchar *version;
+
+        priv->api_version = 0;
+        version = read_string (message, message_length, offset);
+        g_string_append_printf (debug_string, " version=%s", version);
+        g_free (version);
+        while (*offset < message_length)
+        {
+            gchar *name, *value;
+
+            name = read_string (message, message_length, offset);
+            value = read_string (message, message_length, offset);
+            g_hash_table_insert (priv->hints, name, value);
+            g_string_append_printf (debug_string, " %s=%s", name, value);
+        }
     }
 
     priv->connected = TRUE;
-    g_debug ("Connected version=%s%s", version, hint_string->str);
-    g_free (version);
-    g_string_free (hint_string, TRUE);
+    g_debug ("%s", debug_string->str);
+    g_string_free (debug_string, TRUE);
 
     /* Set timeout for default login */
     timeout = lightdm_greeter_get_autologin_timeout_hint (greeter);
@@ -821,7 +853,7 @@ handle_message (LightDMGreeter *greeter, guint8 *message, gsize message_length)
     switch (id)
     {
     case SERVER_MESSAGE_CONNECTED:
-        handle_connected (greeter, message, message_length, &offset);
+        handle_connected (greeter, FALSE, message, message_length, &offset);
         break;
     case SERVER_MESSAGE_PROMPT_AUTHENTICATION:
         handle_prompt_authentication (greeter, message, message_length, &offset);
@@ -840,6 +872,9 @@ handle_message (LightDMGreeter *greeter, guint8 *message, gsize message_length)
         break;
     case SERVER_MESSAGE_RESET:
         handle_reset (greeter, message, message_length, &offset);
+        break;
+    case SERVER_MESSAGE_CONNECTED_V2:
+        handle_connected (greeter, TRUE, message, message_length, &offset);
         break;
     default:
         g_warning ("Unknown message from server: %d", id);
@@ -957,9 +992,10 @@ send_connect (LightDMGreeter *greeter, gboolean resettable, GError **error)
     gsize offset = 0;
 
     g_debug ("Connecting to display manager...");
-    return write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECT, string_length (VERSION) + int_length (), &offset, error) &&
+    return write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECT, string_length (VERSION) + int_length () * 2, &offset, error) &&
            write_string (message, MAX_MESSAGE_LENGTH, VERSION, &offset, error) &&
            write_int (message, MAX_MESSAGE_LENGTH, resettable ? 1 : 0, &offset, error) &&
+           write_int (message, MAX_MESSAGE_LENGTH, API_VERSION, &offset, error) &&
            send_message (greeter, message, offset, error);
 }
 

@@ -1,3 +1,13 @@
+lightdm (1.21.1-0ubuntu1) zesty; urgency=medium
+
+  * New upstream release:
+    - Fix greeters crashing with unknown configuration keys (regression from
+      1.21.0) (LP: #1643276)
+    - Add an API verison to the greeter-daemon protocol for future enhancements
+    - More regression tests
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 23 Nov 2016 09:47:00 +1300
+
 lightdm (1.21.0-0ubuntu1) zesty; urgency=medium
 
   * New upstream release:
