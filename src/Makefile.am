@@ -88,8 +88,7 @@ lightdm_CFLAGS = \
 	-DCACHE_DIR=\"$(localstatedir)/cache/lightdm\" \
 	-DSESSIONS_DIR=\"$(pkgdatadir)/sessions:$(datadir)/xsessions:$(datadir)/wayland-sessions\" \
 	-DWAYLAND_SESSIONS_DIR=\"$(datadir)/wayland-sessions\" \
-	-DREMOTE_SESSIONS_DIR=\"$(pkgdatadir)/remote-sessions\" \
-	-DGREETERS_DIR=\"$(pkgdatadir)/greeters:$(datadir)/xgreeters\"
+	-DREMOTE_SESSIONS_DIR=\"$(pkgdatadir)/remote-sessions\"
 
 lightdm_LDADD = \
 	$(LIGHTDM_LIBS) \

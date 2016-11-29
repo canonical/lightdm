@@ -1460,7 +1460,24 @@ main (int argc, char **argv)
     if (!config_has_key (config_get_instance (), "LightDM", "remote-sessions-directory"))
         config_set_string (config_get_instance (), "LightDM", "remote-sessions-directory", REMOTE_SESSIONS_DIR);
     if (!config_has_key (config_get_instance (), "LightDM", "greeters-directory"))
-        config_set_string (config_get_instance (), "LightDM", "greeters-directory", GREETERS_DIR);
+    {
+        GPtrArray *dirs;
+        const gchar * const *data_dirs;
+        gchar *value;
+        int i;
+
+        dirs = g_ptr_array_new_with_free_func (g_free);
+        data_dirs = g_get_system_data_dirs ();
+        for (i = 0; data_dirs[i]; i++) 
+            g_ptr_array_add (dirs, g_build_filename (data_dirs[i], "lightdm/greeters", NULL));
+        for (i = 0; data_dirs[i]; i++)
+            g_ptr_array_add (dirs, g_build_filename (data_dirs[i], "xgreeters", NULL));
+        g_ptr_array_add (dirs, NULL);
+        value = g_strjoinv (":", (gchar **) dirs->pdata);
+        config_set_string (config_get_instance (), "LightDM", "greeters-directory", value);
+        g_free (value);
+        g_ptr_array_unref (dirs);
+    }
     if (!config_has_key (config_get_instance (), "XDMCPServer", "hostname"))
         config_set_string (config_get_instance (), "XDMCPServer", "hostname", g_get_host_name ());
 
