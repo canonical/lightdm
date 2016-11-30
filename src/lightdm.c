@@ -793,108 +793,8 @@ vnc_connection_cb (VNCServer *server, GSocket *connection)
 }
 
 static void
-bus_acquired_cb (GDBusConnection *connection,
-                 const gchar     *name,
-                 gpointer         user_data)
+start_display_manager (void)
 {
-    const gchar *display_manager_interface =
-        "<node>"
-        "  <interface name='org.freedesktop.DisplayManager'>"
-        "    <property name='Seats' type='ao' access='read'/>"
-        "    <property name='Sessions' type='ao' access='read'/>"
-        "    <method name='AddSeat'>"
-        "      <arg name='type' direction='in' type='s'/>"
-        "      <arg name='properties' direction='in' type='a(ss)'/>"
-        "      <arg name='seat' direction='out' type='o'/>"
-        "    </method>"
-        "    <method name='AddLocalXSeat'>"
-        "      <arg name='display-number' direction='in' type='i'/>"
-        "      <arg name='seat' direction='out' type='o'/>"
-        "    </method>"
-        "    <signal name='SeatAdded'>"
-        "      <arg name='seat' type='o'/>"
-        "    </signal>"
-        "    <signal name='SeatRemoved'>"
-        "      <arg name='seat' type='o'/>"
-        "    </signal>"
-        "    <signal name='SessionAdded'>"
-        "      <arg name='session' type='o'/>"
-        "    </signal>"
-        "    <signal name='SessionRemoved'>"
-        "      <arg name='session' type='o'/>"
-        "    </signal>"
-        "  </interface>"
-        "</node>";
-    static const GDBusInterfaceVTable display_manager_vtable =
-    {
-        handle_display_manager_call,
-        handle_display_manager_get_property
-    };
-    const gchar *seat_interface =
-        "<node>"
-        "  <interface name='org.freedesktop.DisplayManager.Seat'>"
-        "    <property name='CanSwitch' type='b' access='read'/>"
-        "    <property name='HasGuestAccount' type='b' access='read'/>"
-        "    <property name='Sessions' type='ao' access='read'/>"
-        "    <method name='SwitchToGreeter'/>"
-        "    <method name='SwitchToUser'>"
-        "      <arg name='username' direction='in' type='s'/>"
-        "      <arg name='session-name' direction='in' type='s'/>"
-        "    </method>"
-        "    <method name='SwitchToGuest'>"
-        "      <arg name='session-name' direction='in' type='s'/>"
-        "    </method>"
-        "    <method name='Lock'/>"
-        "    <signal name='SessionAdded'>"
-        "      <arg name='session' type='o'/>"
-        "    </signal>"
-        "    <signal name='SessionRemoved'>"
-        "      <arg name='session' type='o'/>"
-        "    </signal>"
-        "  </interface>"
-        "</node>";
-    const gchar *session_interface =
-        "<node>"
-        "  <interface name='org.freedesktop.DisplayManager.Session'>"
-        "    <property name='Seat' type='o' access='read'/>"
-        "    <property name='UserName' type='s' access='read'/>"
-        "    <method name='Lock'/>"
-        "  </interface>"
-        "</node>";
-    GDBusNodeInfo *display_manager_info;
-    GList *link;
-    GError *error = NULL;
-
-    g_debug ("Acquired bus name %s", name);
-
-    bus = connection;
-
-    display_manager_info = g_dbus_node_info_new_for_xml (display_manager_interface, NULL);
-    g_assert (display_manager_info != NULL);
-    seat_info = g_dbus_node_info_new_for_xml (seat_interface, NULL);
-    g_assert (seat_info != NULL);
-    session_info = g_dbus_node_info_new_for_xml (session_interface, NULL);
-    g_assert (session_info != NULL);
-
-    reg_id = g_dbus_connection_register_object (connection,
-                                                "/org/freedesktop/DisplayManager",
-                                                display_manager_info->interfaces[0],
-                                                &display_manager_vtable,
-                                                NULL, NULL,
-                                                &error);
-    if (reg_id == 0)
-        g_warning ("Failed to register display manager: %s", error->message);
-    g_clear_error (&error);
-    g_dbus_node_info_unref (display_manager_info);
-
-    seat_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, seat_bus_entry_free);
-    session_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, session_bus_entry_free);
-
-    g_signal_connect (display_manager, DISPLAY_MANAGER_SIGNAL_SEAT_ADDED, G_CALLBACK (seat_added_cb), NULL);
-    g_signal_connect (display_manager, DISPLAY_MANAGER_SIGNAL_SEAT_REMOVED, G_CALLBACK (seat_removed_cb), NULL);
-    for (link = display_manager_get_seats (display_manager); link; link = link->next)
-        seat_added_cb (display_manager, (Seat *) link->data);
-
     display_manager_start (display_manager);
 
     /* Start the XDMCP server */
@@ -993,6 +893,113 @@ bus_acquired_cb (GDBusConnection *connection,
         else
             g_warning ("Can't start VNC server, Xvnc is not in the path");
     }
+}
+
+static void
+bus_acquired_cb (GDBusConnection *connection,
+                 const gchar     *name,
+                 gpointer         user_data)
+{
+    const gchar *display_manager_interface =
+        "<node>"
+        "  <interface name='org.freedesktop.DisplayManager'>"
+        "    <property name='Seats' type='ao' access='read'/>"
+        "    <property name='Sessions' type='ao' access='read'/>"
+        "    <method name='AddSeat'>"
+        "      <arg name='type' direction='in' type='s'/>"
+        "      <arg name='properties' direction='in' type='a(ss)'/>"
+        "      <arg name='seat' direction='out' type='o'/>"
+        "    </method>"
+        "    <method name='AddLocalXSeat'>"
+        "      <arg name='display-number' direction='in' type='i'/>"
+        "      <arg name='seat' direction='out' type='o'/>"
+        "    </method>"
+        "    <signal name='SeatAdded'>"
+        "      <arg name='seat' type='o'/>"
+        "    </signal>"
+        "    <signal name='SeatRemoved'>"
+        "      <arg name='seat' type='o'/>"
+        "    </signal>"
+        "    <signal name='SessionAdded'>"
+        "      <arg name='session' type='o'/>"
+        "    </signal>"
+        "    <signal name='SessionRemoved'>"
+        "      <arg name='session' type='o'/>"
+        "    </signal>"
+        "  </interface>"
+        "</node>";
+    static const GDBusInterfaceVTable display_manager_vtable =
+    {
+        handle_display_manager_call,
+        handle_display_manager_get_property
+    };
+    const gchar *seat_interface =
+        "<node>"
+        "  <interface name='org.freedesktop.DisplayManager.Seat'>"
+        "    <property name='CanSwitch' type='b' access='read'/>"
+        "    <property name='HasGuestAccount' type='b' access='read'/>"
+        "    <property name='Sessions' type='ao' access='read'/>"
+        "    <method name='SwitchToGreeter'/>"
+        "    <method name='SwitchToUser'>"
+        "      <arg name='username' direction='in' type='s'/>"
+        "      <arg name='session-name' direction='in' type='s'/>"
+        "    </method>"
+        "    <method name='SwitchToGuest'>"
+        "      <arg name='session-name' direction='in' type='s'/>"
+        "    </method>"
+        "    <method name='Lock'/>"
+        "    <signal name='SessionAdded'>"
+        "      <arg name='session' type='o'/>"
+        "    </signal>"
+        "    <signal name='SessionRemoved'>"
+        "      <arg name='session' type='o'/>"
+        "    </signal>"
+        "  </interface>"
+        "</node>";
+    const gchar *session_interface =
+        "<node>"
+        "  <interface name='org.freedesktop.DisplayManager.Session'>"
+        "    <property name='Seat' type='o' access='read'/>"
+        "    <property name='UserName' type='s' access='read'/>"
+        "    <method name='Lock'/>"
+        "  </interface>"
+        "</node>";
+    GDBusNodeInfo *display_manager_info;
+    GList *link;
+    GError *error = NULL;
+
+    g_debug ("Acquired bus name %s", name);
+
+    bus = connection;
+
+    display_manager_info = g_dbus_node_info_new_for_xml (display_manager_interface, NULL);
+    g_assert (display_manager_info != NULL);
+    seat_info = g_dbus_node_info_new_for_xml (seat_interface, NULL);
+    g_assert (seat_info != NULL);
+    session_info = g_dbus_node_info_new_for_xml (session_interface, NULL);
+    g_assert (session_info != NULL);
+
+    reg_id = g_dbus_connection_register_object (connection,
+                                                "/org/freedesktop/DisplayManager",
+                                                display_manager_info->interfaces[0],
+                                                &display_manager_vtable,
+                                                NULL, NULL,
+                                                &error);
+    if (reg_id == 0)
+        g_warning ("Failed to register display manager: %s", error->message);
+    g_clear_error (&error);
+    g_dbus_node_info_unref (display_manager_info);
+
+    seat_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, seat_bus_entry_free);
+    session_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, session_bus_entry_free);
+
+    /* Add objects for existing seats and listen to new ones */
+    g_signal_connect (display_manager, DISPLAY_MANAGER_SIGNAL_SEAT_ADDED, G_CALLBACK (seat_added_cb), NULL);
+    g_signal_connect (display_manager, DISPLAY_MANAGER_SIGNAL_SEAT_REMOVED, G_CALLBACK (seat_removed_cb), NULL);
+    for (link = display_manager_get_seats (display_manager); link; link = link->next)
+        seat_added_cb (display_manager, (Seat *) link->data);
+
+    start_display_manager ();
 }
 
 static void
