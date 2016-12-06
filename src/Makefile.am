@@ -8,6 +8,8 @@ lightdm_SOURCES = \
 	console-kit.h \
 	display-manager.c \
 	display-manager.h \
+	display-manager-service.c \
+	display-manager-service.h \
 	display-server.c \
 	display-server.h \
 	greeter.c \
