@@ -137,6 +137,7 @@ TESTS = \
 	test-upstart-autologin \
 	test-upstart-login \
 	test-dbus \
+	test-no-dbus \        
 	test-lock-seat \
 	test-lock-seat-after-vt-switch \
 	test-lock-seat-twice \
@@ -547,6 +548,7 @@ EXTRA_DIST = \
 	scripts/no-config.conf \
 	scripts/no-console-kit.conf \
 	scripts/no-console-kit-or-login1.conf \
+	scripts/no-dbus.conf \
 	scripts/no-login1.conf \
 	scripts/open-file-descriptors.conf \
 	scripts/power.conf \

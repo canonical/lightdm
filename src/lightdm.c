@@ -833,6 +833,8 @@ main (int argc, char **argv)
         config_set_boolean (config_get_instance (), "LightDM", "lock-memory", TRUE);
     if (!config_has_key (config_get_instance (), "LightDM", "backup-logs"))
         config_set_boolean (config_get_instance (), "LightDM", "backup-logs", TRUE);
+    if (!config_has_key (config_get_instance (), "LightDM", "dbus-service"))
+        config_set_boolean (config_get_instance (), "LightDM", "dbus-service", TRUE);
     if (!config_has_key (config_get_instance (), "Seat:*", "type"))
         config_set_string (config_get_instance (), "Seat:*", "type", "local");
     if (!config_has_key (config_get_instance (), "Seat:*", "pam-service"))
@@ -941,11 +943,16 @@ main (int argc, char **argv)
     g_signal_connect (display_manager, DISPLAY_MANAGER_SIGNAL_STOPPED, G_CALLBACK (display_manager_stopped_cb), NULL);
     g_signal_connect (display_manager, DISPLAY_MANAGER_SIGNAL_SEAT_REMOVED, G_CALLBACK (display_manager_seat_removed_cb), NULL);
 
-    display_manager_service = display_manager_service_new (display_manager);
-    g_signal_connect (display_manager_service, DISPLAY_MANAGER_SERVICE_SIGNAL_ADD_XLOCAL_SEAT, G_CALLBACK (service_add_xlocal_seat_cb), NULL);
-    g_signal_connect (display_manager_service, DISPLAY_MANAGER_SERVICE_SIGNAL_READY, G_CALLBACK (service_ready_cb), NULL);
-    g_signal_connect (display_manager_service, DISPLAY_MANAGER_SERVICE_SIGNAL_NAME_LOST, G_CALLBACK (service_name_lost_cb), NULL);
-    display_manager_service_start (display_manager_service);
+    if (config_get_boolean (config_get_instance (), "LightDM", "dbus-service"))
+    {
+        display_manager_service = display_manager_service_new (display_manager);
+        g_signal_connect (display_manager_service, DISPLAY_MANAGER_SERVICE_SIGNAL_ADD_XLOCAL_SEAT, G_CALLBACK (service_add_xlocal_seat_cb), NULL);
+        g_signal_connect (display_manager_service, DISPLAY_MANAGER_SERVICE_SIGNAL_READY, G_CALLBACK (service_ready_cb), NULL);
+        g_signal_connect (display_manager_service, DISPLAY_MANAGER_SERVICE_SIGNAL_NAME_LOST, G_CALLBACK (service_name_lost_cb), NULL);
+        display_manager_service_start (display_manager_service);
+    }
+    else
+        start_display_manager ();
 
     shared_data_manager_start (shared_data_manager_get_instance ());
 

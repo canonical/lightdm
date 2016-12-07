@@ -634,9 +634,7 @@ handle_command (const gchar *command)
     {
         GVariant *result, *value;
         GString *status;
-        GVariantIter *iter;
-        const gchar *path;
-        int i = 0;
+        GError *error = NULL;
 
         result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
                                               "org.freedesktop.DisplayManager",
@@ -648,20 +646,36 @@ handle_command (const gchar *command)
                                               G_DBUS_CALL_FLAGS_NONE,
                                               G_MAXINT,
                                               NULL,
-                                              NULL);
+                                              &error);
 
-        status = g_string_new ("RUNNER LIST-SEATS SEATS=");
-        g_variant_get (result, "(v)", &value);
-        g_variant_get (value, "ao", &iter);
-        while (g_variant_iter_loop (iter, "&o", &path))
+        status = g_string_new ("RUNNER LIST-SEATS");
+        if (result)
         {
-            if (i != 0)
-                g_string_append (status, ",");
-            g_string_append (status, path);
-            i++;
+            GVariantIter *iter;
+            const gchar *path;
+            int i = 0;
+
+            g_string_append (status, " SEATS=");
+            g_variant_get (result, "(v)", &value);
+            g_variant_get (value, "ao", &iter);
+            while (g_variant_iter_loop (iter, "&o", &path))
+            {
+                if (i != 0)
+                    g_string_append (status, ",");
+                g_string_append (status, path);
+                i++;
+            }
+            g_variant_unref (value);
+            g_variant_unref (result);
         }
-        g_variant_unref (value);
-        g_variant_unref (result);
+        else
+        {
+            if (g_error_matches (error, G_DBUS_ERROR, G_DBUS_ERROR_SERVICE_UNKNOWN))
+                g_string_append_printf (status, " ERROR=SERVICE_UNKNOWN");
+            else
+                g_string_append_printf (status, " ERROR=%s", error->message);
+            g_clear_error (&error);
+        }
 
         check_status (status->str);
         g_string_free (status, TRUE);
@@ -670,9 +684,7 @@ handle_command (const gchar *command)
     {
         GVariant *result, *value;
         GString *status;
-        GVariantIter *iter;
-        const gchar *path;
-        int i = 0;
+        GError *error = NULL;
 
         result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
                                               "org.freedesktop.DisplayManager",
@@ -684,20 +696,37 @@ handle_command (const gchar *command)
                                               G_DBUS_CALL_FLAGS_NONE,
                                               G_MAXINT,
                                               NULL,
-                                              NULL);
+                                              &error);
 
-        status = g_string_new ("RUNNER LIST-SESSIONS SESSIONS=");
-        g_variant_get (result, "(v)", &value);
-        g_variant_get (value, "ao", &iter);
-        while (g_variant_iter_loop (iter, "&o", &path))
+        status = g_string_new ("RUNNER LIST-SESSIONS");
+        if (result)
         {
-            if (i != 0)
-                g_string_append (status, ",");
-            g_string_append (status, path);
-            i++;
+            GVariantIter *iter;
+            const gchar *path;
+            int i = 0;
+
+            g_string_append (status, " SESSIONS=");
+
+            g_variant_get (result, "(v)", &value);
+            g_variant_get (value, "ao", &iter);
+            while (g_variant_iter_loop (iter, "&o", &path))
+            {
+                if (i != 0)
+                    g_string_append (status, ",");
+                g_string_append (status, path);
+                i++;
+            }
+            g_variant_unref (value);
+            g_variant_unref (result);
         }
-        g_variant_unref (value);
-        g_variant_unref (result);
+        else
+        {
+            if (g_error_matches (error, G_DBUS_ERROR, G_DBUS_ERROR_SERVICE_UNKNOWN))
+                g_string_append_printf (status, " ERROR=SERVICE_UNKNOWN");
+            else
+                g_string_append_printf (status, " ERROR=%s", error->message);
+            g_clear_error (&error);
+        }
 
         check_status (status->str);
         g_string_free (status, TRUE);
@@ -705,7 +734,8 @@ handle_command (const gchar *command)
     else if (strcmp (name, "SEAT-CAN-SWITCH") == 0)
     {
         GVariant *result, *value;
-        gchar *status;
+        GString *status;
+        GError *error = NULL;
 
         result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
                                               "org.freedesktop.DisplayManager",
@@ -717,19 +747,33 @@ handle_command (const gchar *command)
                                               G_DBUS_CALL_FLAGS_NONE,
                                               G_MAXINT,
                                               NULL,
-                                              NULL);
+                                              &error);
 
-        g_variant_get (result, "(v)", &value);
-        status = g_strdup_printf ("RUNNER SEAT-CAN-SWITCH CAN-SWITCH=%s", g_variant_get_boolean (value) ? "TRUE" : "FALSE");
-        g_variant_unref (value);
-        g_variant_unref (result);
-        check_status (status);
-        g_free (status);
+        status = g_string_new ("RUNNER SEAT-CAN-SWITCH");
+        if (result)
+        {
+            g_variant_get (result, "(v)", &value);
+            g_string_append_printf (status, " CAN-SWITCH=%s", g_variant_get_boolean (value) ? "TRUE" : "FALSE");
+            g_variant_unref (value);
+            g_variant_unref (result);
+        }
+        else
+        {
+            if (g_error_matches (error, G_DBUS_ERROR, G_DBUS_ERROR_SERVICE_UNKNOWN))
+                g_string_append_printf (status, " ERROR=SERVICE_UNKNOWN");
+            else
+                g_string_append_printf (status, " ERROR=%s", error->message);
+            g_clear_error (&error);
+        }
+
+        check_status (status->str);
+        g_string_free (status, TRUE);
     }
     else if (strcmp (name, "SEAT-HAS-GUEST-ACCOUNT") == 0)
     {
         GVariant *result, *value;
-        gchar *status;
+        GString *status;
+        GError *error = NULL;
 
         result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
                                               "org.freedesktop.DisplayManager",
@@ -741,14 +785,27 @@ handle_command (const gchar *command)
                                               G_DBUS_CALL_FLAGS_NONE,
                                               G_MAXINT,
                                               NULL,
-                                              NULL);
+                                              &error);
 
-        g_variant_get (result, "(v)", &value);
-        status = g_strdup_printf ("RUNNER SEAT-HAS-GUEST-ACCOUNT HAS-GUEST-ACCOUNT=%s", g_variant_get_boolean (value) ? "TRUE" : "FALSE");
-        g_variant_unref (value);
-        g_variant_unref (result);
-        check_status (status);
-        g_free (status);
+        status = g_string_new ("RUNNER SEAT-HAS-GUEST-ACCOUNT");
+        if (result)
+        {
+            g_variant_get (result, "(v)", &value);
+            g_string_append_printf (status, " HAS-GUEST-ACCOUNT=%s", g_variant_get_boolean (value) ? "TRUE" : "FALSE");
+            g_variant_unref (value);
+            g_variant_unref (result);
+        }
+        else
+        {
+            if (g_error_matches (error, G_DBUS_ERROR, G_DBUS_ERROR_SERVICE_UNKNOWN))
+                g_string_append_printf (status, " ERROR=SERVICE_UNKNOWN");
+            else
+                g_string_append_printf (status, " ERROR=%s", error->message);
+            g_clear_error (&error);
+        }
+
+        check_status (status->str);
+        g_string_free (status, TRUE);
     }
     else if (strcmp (name, "SWITCH-TO-GREETER") == 0)
     {
