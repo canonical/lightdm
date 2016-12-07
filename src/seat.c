@@ -365,16 +365,13 @@ run_script (Seat *seat, DisplayServer *display_server, const gchar *script_name,
     process_set_clear_environment (script, TRUE);
     process_set_env (script, "SHELL", "/bin/sh");
 
+    process_set_env (script, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
+    process_set_env (script, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+    process_set_env (script, "PATH", g_getenv ("PATH"));
+
     /* Variables required for regression tests */
     if (g_getenv ("LIGHTDM_TEST_ROOT"))
-    {
         process_set_env (script, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
-        process_set_env (script, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
-        process_set_env (script, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
-        process_set_env (script, "PATH", g_getenv ("PATH"));
-    }
-    else
-        process_set_env (script, "PATH", "/usr/local/bin:/usr/bin:/bin");
 
     if (user)
     {
@@ -887,12 +884,6 @@ set_session_env (Session *session)
         if (g_getenv ("DBUS_SESSION_BUS_ADDRESS"))
             session_set_env (session, "DBUS_SESSION_BUS_ADDRESS", g_getenv ("DBUS_SESSION_BUS_ADDRESS"));
         session_set_env (session, "LDM_BUS", "SESSION");
-        if (g_getenv ("LD_PRELOAD"))
-            session_set_env (session, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
-        if (g_getenv ("LD_LIBRARY_PATH"))
-            session_set_env (session, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
-        if (g_getenv ("PATH"))
-            session_set_env (session, "PATH", g_getenv ("PATH"));
     }
 
     /* Variables required for regression tests */
@@ -901,10 +892,11 @@ set_session_env (Session *session)
         session_set_env (session, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
         session_set_env (session, "DBUS_SYSTEM_BUS_ADDRESS", g_getenv ("DBUS_SYSTEM_BUS_ADDRESS"));
         session_set_env (session, "DBUS_SESSION_BUS_ADDRESS", g_getenv ("DBUS_SESSION_BUS_ADDRESS"));
-        session_set_env (session, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
-        session_set_env (session, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
         session_set_env (session, "GI_TYPELIB_PATH", g_getenv ("GI_TYPELIB_PATH"));
     }
+
+    session_set_env (session, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
+    session_set_env (session, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
 }
 
 static Session *
