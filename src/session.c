@@ -404,14 +404,9 @@ static ssize_t
 read_from_child (Session *session, void *buf, size_t count)
 {
     ssize_t n_read;
-    while ((n_read = read (session->priv->from_child_output, buf, count)) < 0)
-    {
-        if (errno != EINTR)
-        {
-            l_warning (session, "Error reading from session: %s", strerror (errno));
-            return n_read;
-        }
-    }
+    n_read = read (session->priv->from_child_output, buf, count);
+    if (n_read < 0)
+        l_warning (session, "Error reading from session: %s", strerror (errno));
     return n_read;
 }
 
