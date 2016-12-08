@@ -1,3 +1,12 @@
+Overview of changes in lightdm 1.21.2
+
+    * Use SA_RESTART on signals so we don't get interrupted reads
+    * Use logind to terminate greeter sessions if it is available
+    * Load greeters from XDG_DATA_DIRS instead of compile time value
+    * Allow D-Bus interface to be disabled
+    * Always pass through LD_PRELOAD, LD_LIBRARY_PATH and PATH to
+      sessions/display servers
+
 Overview of changes in lightdm 1.21.1
 
     * Fix greeters crashing with unknown configuration keys (regression from

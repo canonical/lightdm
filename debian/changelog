@@ -1,9 +1,16 @@
-lightdm (1.21.2-0ubuntu1) UNRELEASED; urgency=medium
+lightdm (1.21.2-0ubuntu1) zesty; urgency=medium
 
+  * New upstream release:
+    - Use SA_RESTART on signals so we don't get interrupted reads (LP: #1648637)
+    - Use logind to terminate greeter sessions if it is available
+    - Load greeters from XDG_DATA_DIRS instead of compile time value
+    - Allow D-Bus interface to be disabled
+    - Always pass through LD_PRELOAD, LD_LIBRARY_PATH and PATH to
+      sessions/display servers
   * debian/patches/terminate-session.patch:
     - Merged upstream
 
- -- Robert Ancell <robert.ancell@canonical.com>  Mon, 28 Nov 2016 16:35:58 +1300
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 09 Dec 2016 10:51:07 +1300
 
 lightdm (1.21.1-0ubuntu2) zesty; urgency=medium
 
