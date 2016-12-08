@@ -395,7 +395,7 @@ process_class_init (ProcessClass *klass)
     g_io_add_watch (g_io_channel_unix_new (signal_pipe[0]), G_IO_IN, handle_signal, NULL);
     action.sa_sigaction = signal_cb;
     sigemptyset (&action.sa_mask);
-    action.sa_flags = SA_SIGINFO;
+    action.sa_flags = SA_SIGINFO | SA_RESTART;
     sigaction (SIGTERM, &action, NULL);
     sigaction (SIGINT, &action, NULL);
     sigaction (SIGHUP, &action, NULL);
