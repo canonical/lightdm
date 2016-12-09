@@ -443,7 +443,7 @@ choose_connection (XDMCPPacket *packet, GInetAddress *source_address)
     /* Free the local sort array and items */
     for (i = 0; i < addresses->len; i++)
         g_object_unref (g_array_index (addresses, AddrSortItem, i).address);
-    g_object_unref (addresses);
+    g_array_unref (addresses);
 
     return index >= 0 ? &packet->Request.connections[index] : NULL;
 }
