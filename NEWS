@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.21.3
+
+    * Fix crashes introduced in 1.21.2 due to environment variable changes
+    * Fix incorrect unref in XDMCP server code
+    * Fix logging warning
+
 Overview of changes in lightdm 1.21.2
 
     * Use SA_RESTART on signals so we don't get interrupted reads

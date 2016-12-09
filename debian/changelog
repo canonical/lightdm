@@ -1,3 +1,12 @@
+lightdm (1.21.3-0ubuntu1) zesty; urgency=medium
+
+  * New upstream release:
+    - Fix crashes introduced in 1.21.2 due to environment variable changes
+    - Fix incorrect unref in XDMCP server code
+    - Fix logging warning 
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 09 Dec 2016 14:04:49 +1300
+
 lightdm (1.21.2-0ubuntu1) zesty; urgency=medium
 
   * New upstream release:

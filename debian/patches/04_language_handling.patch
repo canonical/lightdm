@@ -75,7 +75,7 @@ Index: trunk/src/seat.c
 ===================================================================
 --- trunk.orig/src/seat.c
 +++ trunk/src/seat.c
-@@ -1017,7 +1017,7 @@ configure_session (Session *session, Ses
+@@ -1016,7 +1016,7 @@ configure_session (Session *session, Ses
      }
      if (language && language[0] != '\0')
      {
