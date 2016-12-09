@@ -550,9 +550,12 @@ x_server_local_start (DisplayServer *display_server)
     }
 
     /* Pass through library variables */
-    process_set_env (server->priv->x_server_process, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
-    process_set_env (server->priv->x_server_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
-    process_set_env (server->priv->x_server_process, "PATH", g_getenv ("PATH"));  
+    if (g_getenv ("LD_PRELOAD"))
+        process_set_env (server->priv->x_server_process, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
+    if (g_getenv ("LD_LIBRARY_PATH"))
+        process_set_env (server->priv->x_server_process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+    if (g_getenv ("PATH"))
+        process_set_env (server->priv->x_server_process, "PATH", g_getenv ("PATH"));
 
     /* Variable required for regression tests */
     process_set_env (server->priv->x_server_process, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));

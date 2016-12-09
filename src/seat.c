@@ -365,9 +365,12 @@ run_script (Seat *seat, DisplayServer *display_server, const gchar *script_name,
     process_set_clear_environment (script, TRUE);
     process_set_env (script, "SHELL", "/bin/sh");
 
-    process_set_env (script, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
-    process_set_env (script, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
-    process_set_env (script, "PATH", g_getenv ("PATH"));
+    if (g_getenv ("LD_PRELOAD"))
+        process_set_env (script, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
+    if (g_getenv ("LD_LIBRARY_PATH"))
+        process_set_env (script, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+    if (g_getenv ("PATH"))
+        process_set_env (script, "PATH", g_getenv ("PATH"));
 
     /* Variables required for regression tests */
     if (g_getenv ("LIGHTDM_TEST_ROOT"))
@@ -895,8 +898,10 @@ set_session_env (Session *session)
         session_set_env (session, "GI_TYPELIB_PATH", g_getenv ("GI_TYPELIB_PATH"));
     }
 
-    session_set_env (session, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
-    session_set_env (session, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+    if (g_getenv ("LD_PRELOAD"))
+        session_set_env (session, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
+    if (g_getenv ("LD_LIBRARY_PATH"))
+        session_set_env (session, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
 }
 
 static Session *
