@@ -469,21 +469,23 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     for (link = list; link; link = link->next)
     {
         Session *session = link->data;
+        gboolean is_failed_greeter;
 
         if (session_get_display_server (session) != display_server || session_get_is_stopping (session))
             continue;
+      
+        is_failed_greeter = IS_GREETER_SESSION (session) && !session_get_is_started (session);
+
+        l_debug (seat, "Stopping session");
+        session_stop (session);
 
         /* Stop seat if this is the only display server and it failed to start a greeter */
-        if (IS_GREETER_SESSION (session) &&
-            !session_get_is_started (session) &&
+        if (is_failed_greeter &&
             g_list_length (seat->priv->display_servers) == 0)
         {
             l_debug (seat, "Stopping; greeter display server failed to start");
             seat_stop (seat);
         }
-
-        l_debug (seat, "Stopping session");
-        session_stop (session);
     }
     g_list_free_full (list, g_object_unref);
 
