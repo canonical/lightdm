@@ -558,7 +558,8 @@ x_server_local_start (DisplayServer *display_server)
         process_set_env (server->priv->x_server_process, "PATH", g_getenv ("PATH"));
 
     /* Variable required for regression tests */
-    process_set_env (server->priv->x_server_process, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
+    if (g_getenv ("LIGHTDM_TEST_ROOT"))
+        process_set_env (server->priv->x_server_process, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
 
     result = process_start (server->priv->x_server_process, FALSE);
 
