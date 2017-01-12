@@ -1,2 +1,0 @@
-#!/bin/sh
-./src/dbus-env ./src/test-runner power-no-login1 test-qt5-greeter

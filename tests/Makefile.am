@@ -224,9 +224,9 @@ TESTS = \
 	test-no-login1 \
 	test-no-console-kit-or-login1 \
 	test-power-gobject \
-	test-power-no-console-kit-gobject \
-	test-power-no-login1-gobject \
-	test-power-no-services-gobject \
+	test-power-no-console-kit \
+	test-power-no-login1 \
+	test-power-no-services \
 	test-open-file-descriptors \
 	test-xdmcp-server-open-file-descriptors \
 	test-add-local-x-seat \
@@ -314,10 +314,7 @@ TESTS += \
 	test-login-remote-session-python \
 	test-autologin-timeout-python \
 	test-autologin-guest-timeout-python \
-	test-power-python \
-	test-power-no-console-kit-python \
-	test-power-no-login1-python \
-	test-power-no-services-python
+	test-power-python
 
 if COMPILE_LIBLIGHTDM_QT4
 TESTS += \
@@ -351,10 +348,7 @@ TESTS += \
 	test-login-remote-session-qt4 \
 	test-sessions-qt4 \
 	test-users-qt4 \
-	test-power-qt4 \
-	test-power-no-console-kit-qt4 \
-	test-power-no-login1-qt4 \
-	test-power-no-services-qt4
+	test-power-qt4
 endif
 
 if COMPILE_LIBLIGHTDM_QT5
@@ -389,10 +383,7 @@ TESTS += \
 	test-login-remote-session-qt5 \
 	test-sessions-qt5 \
 	test-users-qt5 \
-	test-power-qt5 \
-	test-power-no-console-kit-qt5 \
-	test-power-no-login1-qt5 \
-	test-power-no-services-qt5
+	test-power-qt5
 endif
 
 EXTRA_DIST = \
