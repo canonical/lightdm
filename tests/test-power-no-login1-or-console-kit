@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/dbus-env ./src/test-runner power-no-login1-or-console-kit test-gobject-greeter
