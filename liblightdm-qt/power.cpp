@@ -12,12 +12,7 @@
 
 #include "QLightDM/power.h"
 
-#include <QtCore/QVariant>
-#include <QtDBus/QDBusInterface>
-#include <QtDBus/QDBusReply>
-#include <QDebug>
-
-#include "config.h"
+#include <lightdm.h>
 
 using namespace QLightDM;
 
@@ -25,15 +20,9 @@ class PowerInterface::PowerInterfacePrivate
 {
 public:
     PowerInterfacePrivate();
-    QScopedPointer<QDBusInterface> powerManagementInterface;
-    QScopedPointer<QDBusInterface> consoleKitInterface;
-    QScopedPointer<QDBusInterface> login1Interface;
 };
 
-PowerInterface::PowerInterfacePrivate::PowerInterfacePrivate() :
-    powerManagementInterface(new QDBusInterface("org.freedesktop.UPower","/org/freedesktop/UPower", "org.freedesktop.UPower", QDBusConnection::systemBus())),
-    consoleKitInterface(new QDBusInterface("org.freedesktop.ConsoleKit", "/org/freedesktop/ConsoleKit/Manager", "org.freedesktop.ConsoleKit.Manager", QDBusConnection::systemBus())),
-    login1Interface(new QDBusInterface("org.freedesktop.login1", "/org/freedesktop/login1", "org.freedesktop.login1.Manager", QDBusConnection::systemBus()))
+PowerInterface::PowerInterfacePrivate::PowerInterfacePrivate()
 {
 }
 
@@ -51,124 +40,42 @@ PowerInterface::~PowerInterface()
 
 bool PowerInterface::canSuspend()
 {
-    if (d->login1Interface->isValid())
-    {
-	QDBusReply<QString> reply = d->login1Interface->call("CanSuspend");
-	if (reply.isValid())
-	{
-	    return reply.value() == "yes";
-	}
-    }
-
-    qWarning() << d->login1Interface->lastError();
-
-    QDBusReply<bool> reply = d->powerManagementInterface->call("SuspendAllowed");
-    if (reply.isValid()) {
-        return reply.value();
-    }
-    else {
-        return false;
-    }
+    return lightdm_get_can_suspend ();
 }
 
 bool PowerInterface::suspend()
 {
-    QDBusReply<void> reply;
-    if (d->login1Interface->isValid())
-        reply = d->login1Interface->call("Suspend", false);
-    else
-        reply = d->powerManagementInterface->call("Suspend");
-
-    return reply.isValid ();
+    return lightdm_suspend (NULL);
 }
 
 bool PowerInterface::canHibernate()
 {
-    if (d->login1Interface->isValid())
-    {
-        QDBusReply<QString> reply = d->login1Interface->call("CanHibernate");
-        if (reply.isValid())
-        {
-            return reply.value() == "yes";
-        }
-    }
-
-    qWarning() << d->login1Interface->lastError();
-
-    QDBusReply<bool> reply = d->powerManagementInterface->call("HibernateAllowed");
-    if (reply.isValid()) {
-        return reply.value();
-    }
-    else {
-        return false;
-    }
+    return lightdm_get_can_hibernate ();
 }
 
 bool PowerInterface::hibernate()
 {
-    QDBusReply<void> reply;
-    if (d->login1Interface->isValid())
-        reply = d->login1Interface->call("Hibernate", false);
-    else
-        reply = d->powerManagementInterface->call("Hibernate");
-
-    return reply.isValid ();
+    return lightdm_hibernate (NULL);  
 }
 
 bool PowerInterface::canShutdown()
 {
-    if (d->login1Interface->isValid()) {
-        QDBusReply<QString> reply1 = d->login1Interface->call("CanPowerOff");
-        if (reply1.isValid()) {
-            return reply1.value() == "yes";
-        }
-    }
-    qWarning() << d->login1Interface->lastError();
-
-    QDBusReply<bool> reply = d->consoleKitInterface->call("CanStop");
-    if (reply.isValid()) {
-        return reply.value();
-    }
-
-    return false;
+    return lightdm_get_can_shutdown ();
 }
 
 bool PowerInterface::shutdown()
 {
-    QDBusReply<void> reply;
-    if (d->login1Interface->isValid())
-        reply = d->login1Interface->call("PowerOff", false);
-    else
-        reply = d->consoleKitInterface->call("Stop");
-    return reply.isValid();
+    return lightdm_shutdown (NULL);
 }
 
 bool PowerInterface::canRestart()
 {
-    if (d->login1Interface->isValid()) {
-        QDBusReply<QString> reply1 = d->login1Interface->call("CanReboot");
-        if (reply1.isValid()) {
-            return reply1.value() == "yes";
-        }
-    }
-    qWarning() << d->login1Interface->lastError();
-
-    QDBusReply<bool> reply = d->consoleKitInterface->call("CanRestart");
-    if (reply.isValid()) {
-        return reply.value();
-    }
-
-    return false;
+    return lightdm_get_can_restart ();
 }
 
 bool PowerInterface::restart()
 {
-    QDBusReply<void> reply;
-    if (d->login1Interface->isValid())
-        reply = d->login1Interface->call("Reboot", false);
-    else
-        reply = d->consoleKitInterface->call("Restart");
-    return reply.isValid();
+    return lightdm_restart (NULL);
 }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
