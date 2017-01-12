@@ -226,6 +226,7 @@ TESTS = \
 	test-power-gobject \
 	test-power-no-console-kit \
 	test-power-no-login1 \
+	test-power-no-login1-or-console-kit \        
 	test-power-no-services \
 	test-open-file-descriptors \
 	test-xdmcp-server-open-file-descriptors \
@@ -546,6 +547,7 @@ EXTRA_DIST = \
 	scripts/power-no-console-kit.conf \
 	scripts/power-no-services.conf \
 	scripts/power-no-login1.conf \
+	scripts/power-no-login1-or-console-kit.conf \        
 	scripts/plymouth-active-vt.conf \
 	scripts/plymouth-inactive-vt.conf \
 	scripts/plymouth-no-seat.conf \

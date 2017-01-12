@@ -84,6 +84,36 @@ login1_call_function (const gchar *function, GVariant *parameters, GError **erro
     return r;
 }
 
+static GVariant *
+ck_call_function (const gchar *function, GVariant *parameters, GError **error)
+{
+    GVariant *r;
+
+    if (!ck_proxy)
+    {
+        ck_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                                  G_DBUS_PROXY_FLAGS_NONE,
+                                                  NULL,
+                                                  "org.freedesktop.ConsoleKit",
+                                                  "/org/freedesktop/ConsoleKit/Manager",
+                                                  "org.freedesktop.ConsoleKit.Manager",
+                                                  NULL,
+                                                  error);
+        if (!ck_proxy)
+            return FALSE;
+    }
+
+    r = g_dbus_proxy_call_sync (ck_proxy,
+                                function,
+                                parameters,
+                                G_DBUS_CALL_FLAGS_NONE,
+                                -1,
+                                NULL,
+                                error);
+
+    return r;
+}
+
 /**
  * lightdm_get_can_suspend:
  *
@@ -107,7 +137,13 @@ lightdm_get_can_suspend (void)
             can_suspend = g_strcmp0 (result, "yes") == 0;
         }
     }
-    else
+    if (!r)
+    {
+        r = ck_call_function ("CanSuspend", NULL, NULL);
+        if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
+            g_variant_get (r, "(b)", &can_suspend);
+    }
+    if (!r)
     {
         r = upower_call_function ("SuspendAllowed", NULL);
         if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
@@ -137,7 +173,14 @@ lightdm_suspend (GError **error)
     if (!result)
     {
         if (error)
-            g_debug ("Can't suspend using logind; falling back to UPower: %s", (*error)->message);
+            g_debug ("Can't suspend using logind; falling back to ConsoleKit: %s", (*error)->message);
+        g_clear_error (error);
+        result = ck_call_function ("Suspend", g_variant_new ("(b)", FALSE), error);
+    }
+    if (!result)
+    {
+        if (error)
+            g_debug ("Can't suspend using logind or ConsoleKit; falling back to UPower: %s", (*error)->message);
         g_clear_error (error);
         result = upower_call_function ("Suspend", error);
     }
@@ -172,7 +215,13 @@ lightdm_get_can_hibernate (void)
             can_hibernate = g_strcmp0 (result, "yes") == 0;
         }
     }
-    else
+    if (!r)
+    {
+        r = ck_call_function ("CanHibernate", NULL, NULL);
+        if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
+            g_variant_get (r, "(b)", &can_hibernate);
+    }
+    if (!r)
     {
         r = upower_call_function ("HibernateAllowed", NULL);
         if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
@@ -202,7 +251,14 @@ lightdm_hibernate (GError **error)
     if (!result)
     {
         if (error)
-            g_debug ("Can't hibernate using logind; falling back to UPower: %s", (*error)->message);
+            g_debug ("Can't hibernate using logind; falling back to ConsoleKit: %s", (*error)->message);
+        g_clear_error (error);
+        result = ck_call_function ("Hibernate", g_variant_new ("(b)", FALSE), error);
+    }
+    if (!result)
+    {
+        if (error)
+            g_debug ("Can't hibernate using logind or ConsoleKit; falling back to UPower: %s", (*error)->message);
         g_clear_error (error);
         result = upower_call_function ("Hibernate", error);
     }
@@ -212,36 +268,6 @@ lightdm_hibernate (GError **error)
         g_variant_unref (result);
 
     return hibernated;
-}
-
-static GVariant *
-ck_call_function (const gchar *function, GError **error)
-{
-    GVariant *r;
-
-    if (!ck_proxy)
-    {
-        ck_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                                  G_DBUS_PROXY_FLAGS_NONE,
-                                                  NULL,
-                                                  "org.freedesktop.ConsoleKit",
-                                                  "/org/freedesktop/ConsoleKit/Manager",
-                                                  "org.freedesktop.ConsoleKit.Manager",
-                                                  NULL,
-                                                  error);
-        if (!ck_proxy)
-            return FALSE;
-    }
-
-    r = g_dbus_proxy_call_sync (ck_proxy,
-                                function,
-                                NULL,
-                                G_DBUS_CALL_FLAGS_NONE,
-                                -1,
-                                NULL,
-                                error);
-
-    return r;
 }
 
 /**
@@ -269,7 +295,7 @@ lightdm_get_can_restart (void)
     }
     else
     {
-        r = ck_call_function ("CanRestart", NULL);
+        r = ck_call_function ("CanRestart", NULL, NULL);
         if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
             g_variant_get (r, "(b)", &can_restart);
     }
@@ -297,7 +323,7 @@ lightdm_restart (GError **error)
     if (!r)
     {
         g_clear_error (error);
-        r = ck_call_function ("Restart", error);
+        r = ck_call_function ("Restart", NULL, error);
     }
     restarted = r != NULL;
     if (r)
@@ -331,7 +357,7 @@ lightdm_get_can_shutdown (void)
     }
     else
     {
-        r = ck_call_function ("CanStop", NULL);
+        r = ck_call_function ("CanStop", NULL, NULL);
         if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
             g_variant_get (r, "(b)", &can_shutdown);
     }
@@ -359,7 +385,7 @@ lightdm_shutdown (GError **error)
     if (!r)
     {
         g_clear_error (error);
-        r = ck_call_function ("Stop", error);
+        r = ck_call_function ("Stop", NULL, error);
     }
     shutdown = r != NULL;
     if (r)
