@@ -1344,6 +1344,16 @@ handle_ck_call (GDBusConnection       *connection,
         check_status ("CONSOLE-KIT CAN-STOP");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
     }
+    else if (strcmp (method_name, "CanSuspend") == 0)
+    {
+        check_status ("CONSOLE-KIT CAN-SUSPEND");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+    }
+    else if (strcmp (method_name, "CanHibernate") == 0)
+    {
+        check_status ("CONSOLE-KIT CAN-HIBERNATE");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+    }
     else if (strcmp (method_name, "CloseSession") == 0)
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
     else if (strcmp (method_name, "OpenSession") == 0)
@@ -1385,6 +1395,16 @@ handle_ck_call (GDBusConnection       *connection,
     else if (strcmp (method_name, "Stop") == 0)
     {
         check_status ("CONSOLE-KIT STOP");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "Suspend") == 0)
+    {
+        check_status ("CONSOLE-KIT SUSPEND");
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "Hibernate") == 0)
+    {
+        check_status ("CONSOLE-KIT HIBERNATE");
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
     }
     else
@@ -1447,6 +1467,12 @@ ck_name_acquired_cb (GDBusConnection *connection,
         "    <method name='CanStop'>"
         "      <arg name='can_stop' direction='out' type='b'/>"
         "    </method>"
+        "    <method name='CanSuspend'>"
+        "      <arg name='can_suspend' direction='out' type='b'/>"
+        "    </method>"
+        "    <method name='CanHibernate'>"
+        "      <arg name='can_hibernate' direction='out' type='b'/>"
+        "    </method>"
         "    <method name='CloseSession'>"
         "      <arg name='cookie' direction='in' type='s'/>"
         "      <arg name='result' direction='out' type='b'/>"
@@ -1464,6 +1490,12 @@ ck_name_acquired_cb (GDBusConnection *connection,
         "    </method>"
         "    <method name='Restart'/>"
         "    <method name='Stop'/>"
+        "    <method name='Suspend'>"
+        "      <arg name='policykit_interactivity' direction='in' type='b'/>"
+        "    </method>"
+        "    <method name='Hibernate'>"
+        "      <arg name='policykit_interactivity' direction='in' type='b'/>"
+        "    </method>"
         "    <signal name='SeatAdded'>"
         "      <arg name='seat' type='o'/>"
         "    </signal>"
