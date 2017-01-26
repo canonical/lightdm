@@ -646,8 +646,9 @@ main (int argc, char **argv)
     GError *error = NULL;
 
     /* Disable the SIGPIPE handler - this is a stupid Unix hangover behaviour.
-     * We will handle piples / sockets being closed instead of having the whole daemon be killed...
+     * We will handle pipes / sockets being closed instead of having the whole daemon be killed...
      * http://stackoverflow.com/questions/8369506/why-does-sigpipe-exist
+     * Similar case for SIGHUP.
      */
     action.sa_handler = SIG_IGN;
     sigemptyset (&action.sa_mask);
