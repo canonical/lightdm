@@ -116,6 +116,7 @@ TESTS = \
 	test-login-remote-session-gobject \
 	test-login-session-crash \
 	test-login-xserver-crash \
+	test-login-greeter-return-failure \
 	test-multiple-authenticate \
 	test-xserver-no-share \
 	test-home-dir-on-authenticate \
@@ -487,6 +488,7 @@ EXTRA_DIST = \
 	scripts/login1-terminate.conf \
 	scripts/login.conf \
 	scripts/login-crash-authenticate.conf \
+	scripts/login-greeter-return-failure.conf \
 	scripts/login-guest.conf \
 	scripts/login-guest-disabled.conf \
 	scripts/login-guest-fail-setup-script.conf \

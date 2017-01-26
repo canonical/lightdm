@@ -722,6 +722,8 @@ session_child_run (int argc, char **argv)
     /* Wait for the command to complete (blocks) */
     if (child_pid > 0)
     {
+        int child_status;
+
         /* Log to utmp */
         if (g_strcmp0 (pam_getenv (pam_handle, "XDG_SESSION_CLASS"), "greeter") != 0)
         {
@@ -756,8 +758,12 @@ session_child_run (int argc, char **argv)
 #endif
         }
 
-        waitpid (child_pid, &return_code, 0);
+        waitpid (child_pid, &child_status, 0);
         child_pid = 0;
+        if (WIFEXITED (child_status))
+            return_code = WEXITSTATUS (child_status);
+        else
+            return_code = EXIT_FAILURE;
 
         /* Log to utmp */
         if (g_strcmp0 (pam_getenv (pam_handle, "XDG_SESSION_CLASS"), "greeter") != 0)

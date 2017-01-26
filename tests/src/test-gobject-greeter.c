@@ -520,7 +520,7 @@ main (int argc, char **argv)
     g_key_file_load_from_file (config, path, G_KEY_FILE_NONE, NULL);
     g_free (path);
 
-    if (g_key_file_has_key (config, "test-greeter-config", "return-value", NULL))
+    if (g_key_file_get_boolean (config, "test-greeter-config", "exit-on-startup", NULL))    
     {
         int return_value = g_key_file_get_integer (config, "test-greeter-config", "return-value", NULL);
         status_notify ("%s EXIT CODE=%d", greeter_id, return_value);
@@ -560,6 +560,12 @@ main (int argc, char **argv)
     lightdm_greeter_connect_to_daemon (greeter, NULL, connect_finished, NULL);
 
     g_main_loop_run (loop);
+
+    if (g_key_file_has_key (config, "test-greeter-config", "return-value", NULL))
+    {
+        int return_value = g_key_file_get_integer (config, "test-greeter-config", "return-value", NULL);
+        return return_value;
+    }
 
     return exit_code;
 }
