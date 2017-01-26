@@ -597,6 +597,7 @@ login1_service_seat_removed_cb (Login1Service *service, Login1Seat *login1_seat)
 int
 main (int argc, char **argv)
 {
+    struct sigaction action;
     FILE *pid_file;
     GOptionContext *option_context;
     gboolean result;
@@ -648,7 +649,11 @@ main (int argc, char **argv)
      * We will handle piples / sockets being closed instead of having the whole daemon be killed...
      * http://stackoverflow.com/questions/8369506/why-does-sigpipe-exist
      */
-    signal (SIGPIPE, SIG_IGN);
+    action.sa_handler = SIG_IGN;
+    sigemptyset (&action.sa_mask);
+    action.sa_flags = SA_RESTART;
+    sigaction (SIGPIPE, &action, NULL);
+    sigaction (SIGHUP, &action, NULL);  
 
     /* When lightdm starts sessions it needs to run itself in a new mode */
     if (argc >= 2 && strcmp (argv[1], "--session-child") == 0)

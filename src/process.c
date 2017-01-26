@@ -461,7 +461,6 @@ process_class_init (ProcessClass *klass)
     action.sa_flags = SA_SIGINFO | SA_RESTART;
     sigaction (SIGTERM, &action, NULL);
     sigaction (SIGINT, &action, NULL);
-    sigaction (SIGHUP, &action, NULL);
     sigaction (SIGUSR1, &action, NULL);
     sigaction (SIGUSR2, &action, NULL);
 }
