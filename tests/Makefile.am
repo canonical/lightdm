@@ -158,6 +158,7 @@ TESTS = \
 	test-switch-to-greeter-return-session \
 	test-switch-to-greeter-return-session-pam \
 	test-switch-to-greeter-return-session-logout \
+	test-switch-to-greeter-return-session-repeat \
 	test-switch-to-guest \
 	test-switch-to-guest-disabled \
 	test-switch-to-guest-fail-resettable \
@@ -590,6 +591,7 @@ EXTRA_DIST = \
 	scripts/switch-to-greeter-return-session.conf \
 	scripts/switch-to-greeter-return-session-logout.conf \
 	scripts/switch-to-greeter-return-session-pam.conf \
+	scripts/switch-to-greeter-return-session-repeat.conf \        
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-guest-disabled.conf \
 	scripts/switch-to-guest-fail-resettable.conf \
