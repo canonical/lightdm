@@ -1,4 +1,8 @@
 liblightdm-qt-3.so.0 liblightdm-qt-3-0 #MINVER#
+ (c++|regex)"^.*::qt_metacall\(QMetaObject::Call, int, void[*][*]\)@Base$" 0
+ (c++|regex)"^.*::qt_metacast\(char const[*]\)@Base$" 0
+ (c++|regex)"^.*::staticMetaObject@Base$" 0
+ (c++|regex)"^.*::metaObject\(\) const@Base$" 0
  (c++|regex)"^typeinfo for .*@Base$" 0
  (c++|regex)"^typeinfo name for .*@Base$" 0
  (c++|regex)"^vtable for .*@Base$" 0
@@ -16,14 +20,8 @@ liblightdm-qt-3.so.0 liblightdm-qt-3-0 #MINVER#
  (c++|optional)"QList<UserItem>::detach_helper(int)@Base" 1.21.3
  (c++|optional)"QList<UserItem>::detach_helper_grow(int, int)@Base" 1.21.3
  (c++|optional)"QList<UserItem>::append(UserItem const&)@Base" 1.21.3
- (c++)"QLightDM::UsersModel::qt_metacall(QMetaObject::Call, int, void**)@Base" 1.21.3
- (c++)"QLightDM::UsersModel::qt_metacast(char const*)@Base" 1.21.3
- (c++)"QLightDM::UsersModel::staticMetaObject@Base" 1.21.3
  (c++)"QLightDM::UsersModel::UsersModel(QObject*)@Base" 1.21.3
  (c++)"QLightDM::UsersModel::~UsersModel()@Base" 1.21.3
- (c++)"QLightDM::SessionsModel::qt_metacall(QMetaObject::Call, int, void**)@Base" 1.21.3
- (c++)"QLightDM::SessionsModel::qt_metacast(char const*)@Base" 1.21.3
- (c++)"QLightDM::SessionsModel::staticMetaObject@Base" 1.21.3
  (c++)"QLightDM::SessionsModel::SessionsModel(QLightDM::SessionsModel::SessionType, QObject*)@Base" 1.21.3
  (c++)"QLightDM::SessionsModel::SessionsModel(QObject*)@Base" 1.21.3
  (c++)"QLightDM::SessionsModel::SessionsModel(QLightDM::SessionsModel::SessionType, QObject*)@Base" 1.21.3
@@ -39,10 +37,7 @@ liblightdm-qt-3.so.0 liblightdm-qt-3-0 #MINVER#
  (c++)"QLightDM::PowerInterface::canRestart()@Base" 1.21.3
  (c++)"QLightDM::PowerInterface::canSuspend()@Base" 1.21.3
  (c++)"QLightDM::PowerInterface::canShutdown()@Base" 1.21.3
- (c++)"QLightDM::PowerInterface::qt_metacall(QMetaObject::Call, int, void**)@Base" 1.21.3
- (c++)"QLightDM::PowerInterface::qt_metacast(char const*)@Base" 1.21.3
  (c++)"QLightDM::PowerInterface::canHibernate()@Base" 1.21.3
- (c++)"QLightDM::PowerInterface::staticMetaObject@Base" 1.21.3
  (c++)"QLightDM::PowerInterface::PowerInterfacePrivate::PowerInterfacePrivate()@Base" 1.21.3
  (c++)"QLightDM::PowerInterface::restart()@Base" 1.21.3
  (c++)"QLightDM::PowerInterface::suspend()@Base" 1.21.3
@@ -58,15 +53,12 @@ liblightdm-qt-3.so.0 liblightdm-qt-3-0 #MINVER#
  (c++)"QLightDM::UsersModelPrivate::~UsersModelPrivate()@Base" 1.21.3
  (c++)"QLightDM::Greeter::showPrompt(QString, QLightDM::Greeter::PromptType)@Base" 1.21.3
  (c++)"QLightDM::Greeter::connectSync()@Base" 1.21.3
- (c++)"QLightDM::Greeter::qt_metacall(QMetaObject::Call, int, void**)@Base" 1.21.3
- (c++)"QLightDM::Greeter::qt_metacast(char const*)@Base" 1.21.3
  (c++)"QLightDM::Greeter::setLanguage(QString const&)@Base" 1.21.3
  (c++)"QLightDM::Greeter::showMessage(QString, QLightDM::Greeter::MessageType)@Base" 1.21.3
  (c++)"QLightDM::Greeter::authenticate(QString const&)@Base" 1.21.3
  (c++)"QLightDM::Greeter::setResettable(bool)@Base" 1.21.3
  (c++)"QLightDM::Greeter::cancelAutologin()@Base" 1.21.3
  (c++)"QLightDM::Greeter::startSessionSync(QString const&)@Base" 1.21.3
- (c++)"QLightDM::Greeter::staticMetaObject@Base" 1.21.3
  (c++)"QLightDM::Greeter::authenticateRemote(QString const&, QString const&)@Base" 1.21.3
  (c++)"QLightDM::Greeter::authenticateAsGuest()@Base" 1.21.3
  (c++)"QLightDM::Greeter::connectToDaemonSync()@Base" 1.21.3
@@ -80,14 +72,10 @@ liblightdm-qt-3.so.0 liblightdm-qt-3-0 #MINVER#
  (c++)"QLightDM::Greeter::respond(QString const&)@Base" 1.21.3
  (c++)"QLightDM::Greeter::Greeter(QObject*)@Base" 1.21.3
  (c++)"QLightDM::Greeter::~Greeter()@Base" 1.21.3
- (c++)"QLightDM::UsersModel::metaObject() const@Base" 1.21.3
  (c++)"QLightDM::UsersModel::data(QModelIndex const&, int) const@Base" 1.21.3
  (c++)"QLightDM::UsersModel::rowCount(QModelIndex const&) const@Base" 1.21.3
- (c++)"QLightDM::SessionsModel::metaObject() const@Base" 1.21.3
  (c++)"QLightDM::SessionsModel::data(QModelIndex const&, int) const@Base" 1.21.3
  (c++)"QLightDM::SessionsModel::rowCount(QModelIndex const&) const@Base" 1.21.3
- (c++)"QLightDM::PowerInterface::metaObject() const@Base" 1.21.3
- (c++)"QLightDM::Greeter::metaObject() const@Base" 1.21.3
  (c++)"QLightDM::Greeter::osVersionId() const@Base" 1.21.3
  (c++)"QLightDM::Greeter::osPrettyName() const@Base" 1.21.3
  (c++)"QLightDM::Greeter::hideUsersHint() const@Base" 1.21.3
