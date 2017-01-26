@@ -2,23 +2,23 @@ liblightdm-qt5-3.so.0 liblightdm-qt5-3-0 #MINVER#
  (c++|regex)"^typeinfo for .*@Base$" 0
  (c++|regex)"^typeinfo name for .*@Base$" 0
  (c++|regex)"^vtable for .*@Base$" 0
- (c++)"QByteArray::~QByteArray()@Base" 1.21.3
- (c++)"QString::~QString()@Base" 1.21.3
- (c++)"QVector<int>::~QVector()@Base" 1.21.3
- (c++)"SessionItem::~SessionItem()@Base" 1.21.3
- (c++)"SessionsModelPrivate::loadSessions(QLightDM::SessionsModel::SessionType)@Base" 1.21.3
- (c++)"SessionsModelPrivate::SessionsModelPrivate(QLightDM::SessionsModel*)@Base" 1.21.3
- (c++)"QHash<int, QByteArray>::deleteNode2(QHashData::Node*)@Base" 1.21.3
- (c++)"QHash<int, QByteArray>::duplicateNode(QHashData::Node*, void*)@Base" 1.21.3
- (c++)"QHash<int, QByteArray>::findNode(int const&, unsigned int) const@Base" 1.21.3
- (c++)"QHash<int, QByteArray>::~QHash()@Base" 1.21.3
- (c++)"QList<SessionItem>::detach_helper_grow(int, int)@Base" 1.21.3
- (c++)"QList<SessionItem>::append(SessionItem const&)@Base" 1.21.3
- (c++)"UserItem::displayName() const@Base" 1.21.3
- (c++)"UserItem::~UserItem()@Base" 1.21.3
- (c++)"QList<UserItem>::detach_helper(int)@Base" 1.21.3
- (c++)"QList<UserItem>::detach_helper_grow(int, int)@Base" 1.21.3
- (c++)"QList<UserItem>::append(UserItem const&)@Base" 1.21.3
+ (c++|optional)"QByteArray::~QByteArray()@Base" 0
+ (c++|optional)"QString::~QString()@Base" 0
+ (c++|optional)"QVector<int>::~QVector()@Base" 0
+ (c++|optional)"QHash<int, QByteArray>::deleteNode2(QHashData::Node*)@Base" 0
+ (c++|optional)"QHash<int, QByteArray>::duplicateNode(QHashData::Node*, void*)@Base" 0
+ (c++|optional)"QHash<int, QByteArray>::findNode(int const&, unsigned int) const@Base" 0
+ (c++|optional)"QHash<int, QByteArray>::~QHash()@Base" 0
+ (c++|optional)"SessionItem::~SessionItem()@Base" 1.21.3
+ (c++|optional)"SessionsModelPrivate::loadSessions(QLightDM::SessionsModel::SessionType)@Base" 1.21.3
+ (c++|optional)"SessionsModelPrivate::SessionsModelPrivate(QLightDM::SessionsModel*)@Base" 1.21.3
+ (c++|optional)"QList<SessionItem>::detach_helper_grow(int, int)@Base" 1.21.3
+ (c++|optional)"QList<SessionItem>::append(SessionItem const&)@Base" 1.21.3
+ (c++|optional)"UserItem::displayName() const@Base" 1.21.3
+ (c++|optional)"UserItem::~UserItem()@Base" 1.21.3
+ (c++|optional)"QList<UserItem>::detach_helper(int)@Base" 1.21.3
+ (c++|optional)"QList<UserItem>::detach_helper_grow(int, int)@Base" 1.21.3
+ (c++|optional)"QList<UserItem>::append(UserItem const&)@Base" 1.21.3
  (c++)"QLightDM::UsersModel::qt_metacall(QMetaObject::Call, int, void**)@Base" 1.21.3
  (c++)"QLightDM::UsersModel::qt_metacast(char const*)@Base" 1.21.3
  (c++)"QLightDM::UsersModel::staticMetaObject@Base" 1.21.3
