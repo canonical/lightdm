@@ -1,16 +1,18 @@
 liblightdm-qt-3.so.0 liblightdm-qt-3-0 #MINVER#
+ (c++|regex)"^typeinfo for .*@Base$" 0
+ (c++|regex)"^typeinfo name for .*@Base$" 0
+ (c++|regex)"^vtable for .*@Base$" 0
  (c++)"QHash<int, QByteArray>::deleteNode2(QHashData::Node*)@Base" 1.21.3
  (c++)"QHash<int, QByteArray>::detach_helper()@Base" 1.21.3
  (c++)"QHash<int, QByteArray>::duplicateNode(QHashData::Node*, void*)@Base" 1.21.3
  (c++)"QHash<int, QByteArray>::findNode(int const&, unsigned int*) const@Base" 1.21.3
- (c++|regex)"^typeinfo for .*@Base$" 0
- (c++|regex)"^typeinfo name for .*@Base$" 0
- (c++|regex)"^vtable for .*@Base$" 0
  (c++)"SessionItem::~SessionItem()@Base" 1.21.3
  (c++)"SessionsModelPrivate::loadSessions(QLightDM::SessionsModel::SessionType)@Base" 1.21.3
  (c++)"SessionsModelPrivate::SessionsModelPrivate(QLightDM::SessionsModel*)@Base" 1.21.3
  (c++)"QList<SessionItem>::detach_helper_grow(int, int)@Base" 1.21.3
  (c++)"QList<SessionItem>::append(SessionItem const&)@Base" 1.21.3
+ (c++)"UserItem::displayName() const@Base" 1.21.3
+ (c++)"UserItem::~UserItem()@Base" 1.21.3
  (c++)"QList<UserItem>::detach_helper(int)@Base" 1.21.3
  (c++)"QList<UserItem>::detach_helper_grow(int, int)@Base" 1.21.3
  (c++)"QList<UserItem>::append(UserItem const&)@Base" 1.21.3
@@ -78,7 +80,6 @@ liblightdm-qt-3.so.0 liblightdm-qt-3-0 #MINVER#
  (c++)"QLightDM::Greeter::respond(QString const&)@Base" 1.21.3
  (c++)"QLightDM::Greeter::Greeter(QObject*)@Base" 1.21.3
  (c++)"QLightDM::Greeter::~Greeter()@Base" 1.21.3
- (c++)"UserItem::~UserItem()@Base" 1.21.3
  (c++)"QLightDM::UsersModel::metaObject() const@Base" 1.21.3
  (c++)"QLightDM::UsersModel::data(QModelIndex const&, int) const@Base" 1.21.3
  (c++)"QLightDM::UsersModel::rowCount(QModelIndex const&) const@Base" 1.21.3
@@ -109,4 +110,3 @@ liblightdm-qt-3.so.0 liblightdm-qt-3-0 #MINVER#
  (c++)"QLightDM::Greeter::hostname() const@Base" 1.21.3
  (c++)"QLightDM::Greeter::lockHint() const@Base" 1.21.3
  (c++)"QLightDM::Greeter::osVersion() const@Base" 1.21.3
- (c++)"UserItem::displayName() const@Base" 1.21.3
