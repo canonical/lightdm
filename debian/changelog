@@ -1,3 +1,11 @@
+lightdm (1.21.3-0ubuntu2) UNRELEASED; urgency=medium
+
+  * debian/liblightdm-qt-3-0.symbols:
+  * debian/liblightdm-qt5-3-0.symbols:
+    - Add symbols files for C++ libraries
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 26 Jan 2017 12:56:02 +1300
+
 lightdm (1.21.3-0ubuntu1) zesty; urgency=medium
 
   * New upstream release:
