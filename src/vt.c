@@ -101,8 +101,17 @@ vt_set_active (gint number)
         /* Wait for the VT to become active to avoid a suspected
          * race condition somewhere between LightDM, X, ConsoleKit and the kernel.
          * See https://bugs.launchpad.net/bugs/851612 */
-        if (ioctl (tty_fd, VT_WAITACTIVE, n) < 0)
-            g_warning ("Error using VT_WAITACTIVE %d on /dev/tty0: %s", n, strerror (errno));
+        /* This call sometimes get interrupted (not sure what signal is causing it), so retry if that is the case */
+        while (TRUE)
+        {
+            if (ioctl (tty_fd, VT_WAITACTIVE, n) < 0) 
+            {
+                if (errno == EINTR)
+                    continue;
+                g_warning ("Error using VT_WAITACTIVE %d on /dev/tty0: %s", n, strerror (errno));
+            }
+            break;
+        }
 
         close (tty_fd);
     }
