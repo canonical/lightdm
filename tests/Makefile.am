@@ -138,7 +138,7 @@ TESTS = \
 	test-upstart-autologin \
 	test-upstart-login \
 	test-dbus \
-	test-no-dbus \        
+	test-no-dbus \
 	test-lock-seat \
 	test-lock-seat-after-vt-switch \
 	test-lock-seat-twice \
@@ -228,7 +228,7 @@ TESTS = \
 	test-power-gobject \
 	test-power-no-console-kit \
 	test-power-no-login1 \
-	test-power-no-login1-or-console-kit \        
+	test-power-no-login1-or-console-kit \
 	test-power-no-services \
 	test-open-file-descriptors \
 	test-xdmcp-server-open-file-descriptors \
@@ -550,7 +550,7 @@ EXTRA_DIST = \
 	scripts/power-no-console-kit.conf \
 	scripts/power-no-services.conf \
 	scripts/power-no-login1.conf \
-	scripts/power-no-login1-or-console-kit.conf \        
+	scripts/power-no-login1-or-console-kit.conf \
 	scripts/plymouth-active-vt.conf \
 	scripts/plymouth-inactive-vt.conf \
 	scripts/plymouth-no-seat.conf \
@@ -591,7 +591,7 @@ EXTRA_DIST = \
 	scripts/switch-to-greeter-return-session.conf \
 	scripts/switch-to-greeter-return-session-logout.conf \
 	scripts/switch-to-greeter-return-session-pam.conf \
-	scripts/switch-to-greeter-return-session-repeat.conf \        
+	scripts/switch-to-greeter-return-session-repeat.conf \
 	scripts/switch-to-guest.conf \
 	scripts/switch-to-guest-disabled.conf \
 	scripts/switch-to-guest-fail-resettable.conf \
