@@ -1,3 +1,12 @@
+lightdm (1.21.5-0ubuntu1) zesty; urgency=medium
+
+  * New upstream release:
+    - Fix logic that checked if a session was being stopped.
+      This fixes a race condition that could cause logging into an existing
+      session from a greeter to not return to that session. (LP: #1656399)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 22 Feb 2017 12:38:50 +1300
+
 lightdm (1.21.4-0ubuntu1) zesty; urgency=medium
 
   * New upstream release:

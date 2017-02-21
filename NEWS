@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.21.5
+
+    * Fix logic that checked if a session was being stopped.
+      This fixes a race condition that could cause logging into an existing
+      session from a greeter to not return to that session.
+
 Overview of changes in lightdm 1.21.4
 
     * Use power management functions from ConsoleKit2 if available.
