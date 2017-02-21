@@ -913,6 +913,10 @@ session_stop (Session *session)
 {
     g_return_if_fail (session != NULL);
 
+    if (session->priv->stopping)
+        return;
+    session->priv->stopping = TRUE;
+
     /* If can cleanly stop then do that */
     if (session_get_is_authenticated (session) && !session->priv->command_run)
     {
@@ -930,10 +934,6 @@ session_stop (Session *session)
         write_data (session, &n, sizeof (n)); // command
         return;
     }
-
-    if (session->priv->stopping)
-        return;
-    session->priv->stopping = TRUE;
 
     return SESSION_GET_CLASS (session)->stop (session);
 }
