@@ -913,6 +913,10 @@ session_stop (Session *session)
 {
     g_return_if_fail (session != NULL);
 
+    if (session->priv->stopping)
+        return;
+    session->priv->stopping = TRUE;
+
     /* Kill remaining processes in our logind session to avoid them leaking
      * to the user session (they share the same $DISPLAY) */
     if (getuid () == 0 && session->priv->login1_session_id)
@@ -935,10 +939,6 @@ session_stop (Session *session)
         write_data (session, &n, sizeof (n)); // command
         return;
     }
-
-    if (session->priv->stopping)
-        return;
-    session->priv->stopping = TRUE;
 
     return SESSION_GET_CLASS (session)->stop (session);
 }
