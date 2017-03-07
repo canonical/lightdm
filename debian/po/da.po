@@ -8,21 +8,20 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2007-05-31 08:04+0200\n"
-"PO-Revision-Date: 2011-05-12 11:52+0000\n"
-"Last-Translator: Nicholas Christian Langkjær Ipsen "
-"<sephiroth7vii@gmail.com>\n"
+"PO-Revision-Date: 2017-03-07 03:55+0000\n"
+"Last-Translator: scootergrisen <scootergrisen@gmail.com>\n"
 "Language-Team: Danish <da@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2017-03-01 05:39+0000\n"
-"X-Generator: Launchpad (build 18329)\n"
+"X-Launchpad-Export-Date: 2017-03-07 05:37+0000\n"
+"X-Generator: Launchpad (build 18330)\n"
 
 #. Type: select
 #. Description
 #: ../lightdm.templates:2001
 msgid "Default display manager:"
-msgstr ""
+msgstr "Standard-display manager:"
 
 #. Type: select
 #. Description
@@ -31,6 +30,8 @@ msgid ""
 "A display manager is a program that provides graphical login capabilities "
 "for the X Window System."
 msgstr ""
+"En display manager er et program som giver mulighed for et grafisk login til "
+"X Window System."
 
 #. Type: select
 #. Description
@@ -40,6 +41,9 @@ msgid ""
 "manager packages are installed. Please select which display manager should "
 "run by default."
 msgstr ""
+"Kun én display manager kan håndtere en given X-server, men der er "
+"installeret flere display manager-pakker. Vælg venligst hvilken display "
+"manager som skal køres som standard."
 
 #. Type: select
 #. Description
@@ -50,6 +54,10 @@ msgid ""
 "accordingly, edit each of their init scripts in /etc/init.d, and disable the "
 "check for a default display manager."
 msgstr ""
+"Flere display managere kan køre på samme tid hvis de er konfigureret til at "
+"håndtere forskellige servere. For at opnå dette skal du konfigurere display "
+"managerne i overensstemmelse hermed, redigere hver af deres skripter i "
+"/etc/init.d og deaktivere tjek af standard-display manager."
 
 #~ msgid "Large Font"
 #~ msgstr "Stor skrifttype"
