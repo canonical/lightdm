@@ -19,6 +19,9 @@
   /usr/bin/sogou-sys-notify ix,
   /tmp/sogou-qimpanel:* rwl,
 
+  # Allow ibus
+  unix (bind, listen) type=stream addr="@tmp/ibus/*",
+
   # mozc_server needs special treatment due to C/S design
   unix (bind, listen) type=stream addr="@tmp/.mozc.*",
 }
