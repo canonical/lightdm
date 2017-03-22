@@ -1,3 +1,9 @@
+lightdm (1.22.0-0ubuntu1) zesty; urgency=medium
+
+  * Allow guest sessions to talk to Mir (allowing unity8)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 22 Mar 2017 09:46:38 +1300
+
 lightdm (1.21.5-0ubuntu1) zesty; urgency=medium
 
   * New upstream release:

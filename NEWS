@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.22.0
+
+    * Allow guest sessions to talk to Mir (allowing unity8)
+
 Overview of changes in lightdm 1.21.5
 
     * Fix logic that checked if a session was being stopped.
