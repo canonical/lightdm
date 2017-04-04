@@ -35,7 +35,13 @@ add_account ()
   temp_home=$(mktemp -td guest-XXXXXX)
   GUEST_HOME=$(echo ${temp_home} | tr '[:upper:]' '[:lower:]')
   GUEST_USER=${GUEST_HOME#/tmp/}
-  [ ${GUEST_HOME} != ${temp_home} ] && mv ${temp_home} ${GUEST_HOME}
+  if [ "${GUEST_HOME}" != "${temp_home}" ]; then
+    mkdir "${GUEST_HOME}" || {
+      echo "Failed to create ${GUEST_USER}'s home directory (${GUEST_HOME})"
+      exit 1
+    }
+    rmdir "${temp_home}"
+  fi
 
   # if ${GUEST_USER} already exists, it must be a locked system account with no existing
   # home directory
