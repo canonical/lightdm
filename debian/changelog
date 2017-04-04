@@ -1,9 +1,12 @@
-lightdm (1.20.0-0ubuntu1) yakkety; urgency=medium
+lightdm (1.19.5-0ubuntu1.1) yakkety-security; urgency=medium
 
-  * New upstream release:
-    - Use stable version number (no other changes)
+  * SECURITY UPDATE: Directory traversal allowing arbitrary directory
+    ownership and privilege escalation (LP: #1677924)
+    - debian/guest-account.sh: Detect existing malicious guest user home dirs
+      before proceeding with guest user creation
+    - CVE-2017-7358
 
- -- Robert Ancell <robert.ancell@canonical.com>  Sat, 15 Oct 2016 18:14:22 +1300
+ -- Tyler Hicks <tyhicks@canonical.com>  Fri, 31 Mar 2017 16:04:04 +0000
 
 lightdm (1.19.5-0ubuntu1) yakkety; urgency=medium
 
