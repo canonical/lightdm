@@ -1,3 +1,13 @@
+lightdm (1.22.0-0ubuntu2) zesty; urgency=medium
+
+  * SECURITY UPDATE: Directory traversal allowing arbitrary directory
+    ownership and privilege escalation (LP: #1677924)
+    - debian/guest-account.sh: Detect existing malicious guest user home dirs
+      before proceeding with guest user creation
+    - CVE-2017-7358
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 05 Apr 2017 10:34:32 +1200
+
 lightdm (1.22.0-0ubuntu1) zesty; urgency=medium
 
   * Allow guest sessions to talk to Mir (allowing unity8)
