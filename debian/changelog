@@ -1,3 +1,13 @@
+lightdm (1.18.3-0ubuntu1.1) xenial-security; urgency=medium
+
+  * SECURITY UPDATE: Directory traversal allowing arbitrary directory
+    ownership and privilege escalation (LP: #1677924)
+    - debian/guest-account.sh: Detect existing malicious guest user home dirs
+      before proceeding with guest user creation
+    - CVE-2017-7358
+
+ -- Tyler Hicks <tyhicks@canonical.com>  Fri, 31 Mar 2017 16:04:04 +0000
+
 lightdm (1.18.3-0ubuntu1) xenial; urgency=medium
 
   * New upstream release:
