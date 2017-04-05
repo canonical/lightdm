@@ -8,20 +8,20 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2007-05-31 08:04+0200\n"
-"PO-Revision-Date: 2011-10-05 21:13+0000\n"
-"Last-Translator: David Planella <david.planella@gmail.com>\n"
+"PO-Revision-Date: 2017-03-24 06:56+0000\n"
+"Last-Translator: Walter Garcia-Fontes <walter.garcia@upf.edu>\n"
 "Language-Team: Catalan <ca@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2017-03-22 06:21+0000\n"
-"X-Generator: Launchpad (build 18334)\n"
+"X-Launchpad-Export-Date: 2017-04-05 06:26+0000\n"
+"X-Generator: Launchpad (build 18335)\n"
 
 #. Type: select
 #. Description
 #: ../lightdm.templates:2001
 msgid "Default display manager:"
-msgstr ""
+msgstr "Gestor de pantalla predeterminat:"
 
 #. Type: select
 #. Description
@@ -30,6 +30,8 @@ msgid ""
 "A display manager is a program that provides graphical login capabilities "
 "for the X Window System."
 msgstr ""
+"Un gestor de pantalla és un programa que proveeix la capacitat d'iniciar una "
+"sessió gràficament al Sistema de Finestres X."
 
 #. Type: select
 #. Description
@@ -39,6 +41,9 @@ msgid ""
 "manager packages are installed. Please select which display manager should "
 "run by default."
 msgstr ""
+"Només un gestor de pantalla pot gestionar un servidor X donat, però estan "
+"instal·lats múltiples paquets de gestió de pantalles. Si us plau, "
+"seleccioneu quin gestor de pantalla s'ha d'executar per defecte."
 
 #. Type: select
 #. Description
@@ -49,6 +54,11 @@ msgid ""
 "accordingly, edit each of their init scripts in /etc/init.d, and disable the "
 "check for a default display manager."
 msgstr ""
+"Múltiples gestors de pantalla es poden executar simultàniament si estan "
+"configurats per gestionar servidors diferents; per aconseguir això, "
+"configureu els gestors de pantalla en la forma corresponent, editeu cada un "
+"dels seus scripts d'inici a /etc/init.d i inhabiliteu la comprovació per un "
+"gestor de pantalla predeterminat."
 
 #~ msgid "Cancel"
 #~ msgstr "Cancel·la"
