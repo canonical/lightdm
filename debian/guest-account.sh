@@ -36,7 +36,7 @@ add_account ()
   GUEST_HOME=$(echo ${temp_home} | tr '[:upper:]' '[:lower:]')
   GUEST_USER=${GUEST_HOME#/tmp/}
   if [ "${GUEST_HOME}" != "${temp_home}" ]; then
-    mkdir "${GUEST_HOME}" || {
+    mkdir -m 700 "${GUEST_HOME}" || {
       echo "Failed to create ${GUEST_USER}'s home directory (${GUEST_HOME})"
       exit 1
     }
