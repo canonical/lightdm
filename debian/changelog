@@ -1,3 +1,14 @@
+lightdm (1.19.5-0ubuntu1.2) yakkety-security; urgency=medium
+
+  * SECURITY UPDATE: Guest session not confined (LP: #1663157)
+    - debian/50-disable-guest.conf:
+    - debian/lightdm.install:
+      - Disable guest sessions by default, this can be overridden by custom
+        configuration (e.g. /etc/lightdm/lightdm.conf)
+    - CVE-2017-8900
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 09 May 2017 09:32:16 +1200
+
 lightdm (1.19.5-0ubuntu1.1) yakkety-security; urgency=medium
 
   * SECURITY UPDATE: Directory traversal allowing arbitrary directory

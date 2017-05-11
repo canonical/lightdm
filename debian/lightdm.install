@@ -19,3 +19,4 @@ debian/50-xserver-command.conf usr/share/lightdm/lightdm.conf.d
 debian/50-greeter-wrapper.conf usr/share/lightdm/lightdm.conf.d
 debian/50-guest-wrapper.conf usr/share/lightdm/lightdm.conf.d
 debian/50-disable-log-backup.conf usr/share/lightdm/lightdm.conf.d
+debian/50-disable-guest.conf usr/share/lightdm/lightdm.conf.d
