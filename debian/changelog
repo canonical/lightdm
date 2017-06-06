@@ -1,6 +1,5 @@
 lightdm (1.23.0-0ubuntu1) UNRELEASED; urgency=medium
 
-  [ Robert Ancell ]
   * New upstream release:
     - TBD
   * SECURITY UPDATE: Guest session not confined (LP: #1663157)
@@ -10,10 +9,13 @@ lightdm (1.23.0-0ubuntu1) UNRELEASED; urgency=medium
         configuration (e.g. /etc/lightdm/lightdm.conf)
     - CVE-2017-8900    
 
-  [ Iain Lane ]
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 12 May 2017 11:30:02 +1200
+
+lightdm (1.22.0-0ubuntu3) artful; urgency=medium
+
   * Change the default session to `gnome' (Shell).
 
- -- Robert Ancell <robert.ancell@canonical.com>  Fri, 12 May 2017 11:30:02 +1200
+ -- Iain Lane <iain@orangesquash.org.uk>  Tue, 06 Jun 2017 18:40:05 +0100
 
 lightdm (1.22.0-0ubuntu2) zesty; urgency=medium
 
