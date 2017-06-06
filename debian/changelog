@@ -1,5 +1,6 @@
 lightdm (1.23.0-0ubuntu1) UNRELEASED; urgency=medium
 
+  [ Robert Ancell ]
   * New upstream release:
     - TBD
   * SECURITY UPDATE: Guest session not confined (LP: #1663157)
@@ -8,6 +9,9 @@ lightdm (1.23.0-0ubuntu1) UNRELEASED; urgency=medium
       - Disable guest sessions by default, this can be overridden by custom
         configuration (e.g. /etc/lightdm/lightdm.conf)
     - CVE-2017-8900    
+
+  [ Iain Lane ]
+  * Change the default session to `gnome' (Shell).
 
  -- Robert Ancell <robert.ancell@canonical.com>  Fri, 12 May 2017 11:30:02 +1200
 
