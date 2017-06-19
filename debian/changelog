@@ -1,7 +1,5 @@
-lightdm (1.23.0-0ubuntu1) UNRELEASED; urgency=medium
+lightdm (1.22.0-0ubuntu4) artful; urgency=medium
 
-  * New upstream release:
-    - TBD
   * SECURITY UPDATE: Guest session not confined (LP: #1663157)
     - debian/50-disable-guest.conf:
     - debian/lightdm.install:
@@ -9,7 +7,7 @@ lightdm (1.23.0-0ubuntu1) UNRELEASED; urgency=medium
         configuration (e.g. /etc/lightdm/lightdm.conf)
     - CVE-2017-8900    
 
- -- Robert Ancell <robert.ancell@canonical.com>  Fri, 12 May 2017 11:30:02 +1200
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 19 Jun 2017 16:32:24 +1200
 
 lightdm (1.22.0-0ubuntu3) artful; urgency=medium
 
