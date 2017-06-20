@@ -1,3 +1,10 @@
+lightdm (1.22.0-0ubuntu5) UNRELEASED; urgency=medium
+
+  * Change back the default session to 'ubuntu', as it now corresponds to
+    GNOME Shell one with our ubuntu changes.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Tue, 20 Jun 2017 12:14:37 +0200
+
 lightdm (1.22.0-0ubuntu4) artful; urgency=medium
 
   * SECURITY UPDATE: Guest session not confined (LP: #1663157)
