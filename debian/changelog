@@ -1,4 +1,4 @@
-lightdm (1.22.0-0ubuntu5) UNRELEASED; urgency=medium
+lightdm (1.22.0-0ubuntu5) artful; urgency=medium
 
   * Change back the default session to 'ubuntu', as it now corresponds to
     GNOME Shell one with our ubuntu changes.
