@@ -1,3 +1,15 @@
+lightdm (1.22.0-0ubuntu6) UNRELEASED; urgency=medium
+
+  * debian/lightdm.config: When upgrading to this version, don't show the DM
+    selection prompt. We're trying to suppress the prompt and switch Ubuntu
+    desktop users to gdm3 smoothly, but lightdm's prompt is showing up as gdm3
+    is on the system when lightdm.config is executed. This means that if there
+    is a situation when upgraders to this version *should* be shown the
+    prompt, they won't be. If that is the case, we'll need to think again
+    about how to implement this.
+
+ -- Iain Lane <iain.lane@canonical.com>  Fri, 14 Jul 2017 13:01:42 +0100
+
 lightdm (1.22.0-0ubuntu5) artful; urgency=medium
 
   * Change back the default session to 'ubuntu', as it now corresponds to
