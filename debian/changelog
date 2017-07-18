@@ -1,4 +1,4 @@
-lightdm (1.22.0-0ubuntu6) UNRELEASED; urgency=medium
+lightdm (1.22.0-0ubuntu6) artful; urgency=medium
 
   * debian/lightdm.config: When upgrading to this version, don't show the DM
     selection prompt. We're trying to suppress the prompt and switch Ubuntu
@@ -8,7 +8,7 @@ lightdm (1.22.0-0ubuntu6) UNRELEASED; urgency=medium
     prompt, they won't be. If that is the case, we'll need to think again
     about how to implement this.
 
- -- Iain Lane <iain.lane@canonical.com>  Fri, 14 Jul 2017 13:01:42 +0100
+ -- Iain Lane <iain.lane@canonical.com>  Tue, 18 Jul 2017 10:21:45 +0100
 
 lightdm (1.22.0-0ubuntu5) artful; urgency=medium
 
