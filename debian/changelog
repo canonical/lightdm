@@ -1,3 +1,10 @@
+lightdm (1.24.0-0ubuntu1) artful; urgency=medium
+
+  * New upstream release:
+    - No changes from 1.22
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 05 Sep 2017 10:42:34 +1200
+
 lightdm (1.22.0-0ubuntu6) artful; urgency=medium
 
   * debian/lightdm.config: When upgrading to this version, don't show the DM
