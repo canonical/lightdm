@@ -90,17 +90,26 @@ if test x"$enable_liblightdm_qt4" != "xno" ; then
         QtDBus
         QtGui
     ],
-    [compile_liblightdm_qt4=yes
-     AC_CHECK_TOOLS(MOC4, [moc-qt4 moc])
-     if test x"$(readlink $(which $MOC4))" = xqtchooser; then
-         MOC4="$MOC4 --qt=qt4"
-     fi
-    ],
+    [compile_liblightdm_qt4=yes],
     [if test "x$enable_liblightdm_qt4" != xauto; then
         AC_MSG_FAILURE(
           [--enable-liblightdm-qt was given, but test for Qt4 failed])
       fi
     ])
+
+    AC_CHECK_TOOLS(MOC4, [moc-qt4 moc])
+    if test x$MOC4 = x; then
+        compile_liblightdm_qt4=no
+        if test "x$enable_liblightdm_qt4" != xauto; then
+            AC_MSG_FAILURE(
+              [--enable-liblightdm-qt4 was given, but MOC not found])
+        fi
+    fi
+    if test x"$MOC4" = xmoc; then
+        if test x"$(readlink $(which $MOC4))" = xqtchooser; then
+            MOC4="$MOC4 --qt=qt4"
+        fi
+    fi
 fi
 AM_CONDITIONAL(COMPILE_LIBLIGHTDM_QT4, test x"$compile_liblightdm_qt4" != "xno")
 
@@ -115,17 +124,26 @@ if test x"$enable_liblightdm_qt5" != "xno"; then
         Qt5DBus
         Qt5Gui
     ],
-    [compile_liblightdm_qt5=yes
-     AC_CHECK_TOOLS(MOC5, [moc-qt5 moc])
-     if test x"$(readlink $(which $MOC5))" = xqtchooser; then
-         MOC5="$MOC5 --qt=qt5"
-     fi
-    ],
+    [compile_liblightdm_qt5=yes],
     [if test "x$enable_liblightdm_qt5" != xauto; then
         AC_MSG_FAILURE(
           [--enable-liblightdm-qt5 was given, but test for Qt5 failed])
       fi
     ])
+
+    AC_CHECK_TOOLS(MOC5, [moc-qt5 moc])
+    if test x$MOC5 = x; then
+        compile_liblightdm_qt5=no
+        if test "x$enable_liblightdm_qt5" != xauto; then
+            AC_MSG_FAILURE(
+              [--enable-liblightdm-qt5 was given, but MOC not found])
+        fi
+    fi
+    if test x"$MOC5" = xmoc; then
+        if test x"$(readlink $(which $MOC5))" = xqtchooser; then
+            MOC5="$MOC5 --qt=qt5"
+        fi
+    fi
 fi
 AM_CONDITIONAL(COMPILE_LIBLIGHTDM_QT5, test x"$compile_liblightdm_qt5" != "xno")
 
