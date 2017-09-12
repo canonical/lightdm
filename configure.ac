@@ -116,7 +116,7 @@ if test x"$enable_liblightdm_qt5" != "xno"; then
         Qt5Gui
     ],
     [compile_liblightdm_qt5=yes
-     AC_CHECK_TOOLS(MOC5, [moc])
+     AC_CHECK_TOOLS(MOC5, [moc-qt5 moc])
      if test x"$(readlink $(which $MOC5))" = xqtchooser; then
          MOC5="$MOC5 --qt=qt5"
      fi
