@@ -53,6 +53,7 @@ TESTS = \
 	test-autologin-session-error \
 	test-autologin-logout \
 	test-autologin-session \
+	test-autologin-session-timeout-gobject \
 	test-autologin-timeout-logout \
 	test-autologin-previous-session \
 	test-autologin-guest \
@@ -287,6 +288,9 @@ TESTS = \
 #   test-autologin-create-directory
 
 TESTS += \
+	test-autologin-timeout-python \
+	test-autologin-guest-timeout-python \
+	test-autologin-session-timeout-python \
 	test-cancel-authentication-python \
 	test-sessions-python \
 	test-users-python \
@@ -315,14 +319,13 @@ TESTS += \
 	test-login-guest-fail-setup-script-python \
 	test-login-guest-logout-python \
 	test-login-remote-session-python \
-	test-autologin-timeout-python \
-	test-autologin-guest-timeout-python \
 	test-power-python
 
 if COMPILE_LIBLIGHTDM_QT4
 TESTS += \
 	test-autologin-timeout-qt4 \
 	test-autologin-guest-timeout-qt4 \
+	test-autologin-session-timeout-qt5 \
 	test-cancel-authentication-qt4 \
 	test-login-qt4 \
 	test-login-manual-qt4 \
@@ -358,6 +361,7 @@ if COMPILE_LIBLIGHTDM_QT5
 TESTS += \
 	test-autologin-timeout-qt5 \
 	test-autologin-guest-timeout-qt5 \
+	test-autologin-session-timeout-qt5 \
 	test-cancel-authentication-qt5 \
 	test-login-qt5 \
 	test-login-manual-qt5 \
@@ -438,6 +442,7 @@ EXTRA_DIST = \
 	scripts/autologin-session.conf \
 	scripts/autologin-session-crash.conf \
 	scripts/autologin-session-error.conf \
+	scripts/autologin-session-timeout.conf \        
 	scripts/autologin-timeout.conf \
 	scripts/autologin-timeout-in-background.conf \
 	scripts/autologin-timeout-logout.conf \

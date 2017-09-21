@@ -102,6 +102,7 @@ enum {
     PROP_AUTHENTICATION_USER,
     PROP_IN_AUTHENTICATION,
     PROP_IS_AUTHENTICATED,
+    PROP_AUTOLOGIN_SESSION_HINT,
 };
 
 enum {
@@ -1326,6 +1327,21 @@ lightdm_greeter_get_autologin_user_hint (LightDMGreeter *greeter)
 }
 
 /**
+ * lightdm_greeter_get_autologin_session_hint:
+ * @greeter: A #LightDMGreeter
+ *
+ * Get the session used to automatically log into when the timer expires.
+ *
+ * Return value: (nullable): The session name or %NULL if configured to use the default.
+ */
+const gchar *
+lightdm_greeter_get_autologin_session_hint (LightDMGreeter *greeter)
+{
+    g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
+    return lightdm_greeter_get_hint (greeter, "autologin-session");
+}
+
+/**
  * lightdm_greeter_get_autologin_guest_hint:
  * @greeter: A #LightDMGreeter
  *
@@ -1955,6 +1971,9 @@ lightdm_greeter_get_property (GObject    *object,
     case PROP_AUTOLOGIN_USER_HINT:
         g_value_set_string (value, lightdm_greeter_get_autologin_user_hint (self));
         break;
+    case PROP_AUTOLOGIN_SESSION_HINT:
+        g_value_set_string (value, lightdm_greeter_get_autologin_session_hint (self));
+        break;
     case PROP_AUTOLOGIN_GUEST_HINT:
         g_value_set_boolean (value, lightdm_greeter_get_autologin_guest_hint (self));
         break;
@@ -2086,6 +2105,14 @@ lightdm_greeter_class_init (LightDMGreeterClass *klass)
                                      g_param_spec_string ("autologin-user-hint",
                                                           "autologin-user-hint",
                                                           "Autologin user hint",
+                                                          NULL,
+                                                          G_PARAM_READABLE));
+
+    g_object_class_install_property (object_class,
+                                     PROP_AUTOLOGIN_SESSION_HINT,
+                                     g_param_spec_string ("autologin-session-hint",
+                                                          "autologin-session-hint",
+                                                          "Autologin session hint",
                                                           NULL,
                                                           G_PARAM_READABLE));
 
