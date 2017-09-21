@@ -119,6 +119,8 @@ gboolean lightdm_greeter_get_select_guest_hint (LightDMGreeter *greeter);
 
 const gchar *lightdm_greeter_get_autologin_user_hint (LightDMGreeter *greeter);
 
+const gchar *lightdm_greeter_get_autologin_session_hint (LightDMGreeter *greeter);
+
 gboolean lightdm_greeter_get_autologin_guest_hint (LightDMGreeter *greeter);
 
 gint lightdm_greeter_get_autologin_timeout_hint (LightDMGreeter *greeter);

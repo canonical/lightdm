@@ -69,21 +69,14 @@ void TestGreeter::printHints ()
         status_notify ("%s SHOW-MANUAL-LOGIN-HINT", greeter_id);
     if (!showRemoteLoginHint ())
         status_notify ("%s SHOW-REMOTE-LOGIN-HINT=FALSE", greeter_id);
-    int timeout = autologinTimeoutHint ();
     if (autologinUserHint () != "")
-    {
-        if (timeout != 0)
-            status_notify ("%s AUTOLOGIN-USER USERNAME=%s TIMEOUT=%d", greeter_id, greeter->autologinUserHint ().toAscii ().constData (), timeout);
-        else
-            status_notify ("%s AUTOLOGIN-USER USERNAME=%s", greeter_id, greeter->autologinUserHint ().toAscii ().constData ());
-    }
-    else if (autologinGuestHint ())
-    {
-        if (timeout != 0)
-            status_notify ("%s AUTOLOGIN-GUEST TIMEOUT=%d", greeter_id, timeout);
-        else
-            status_notify ("%s AUTOLOGIN-GUEST", greeter_id);
-    }
+        status_notify ("%s AUTOLOGIN-USER-HINT=%s", greeter_id, autologinUserHint ().toAscii ().constData ());
+    if (autologinGuestHint ())
+        status_notify ("%s AUTOLOGIN-GUEST-HINT", greeter_id);
+    if (autologinSessionHint () != "")
+        status_notify ("%s AUTOLOGIN-SESSION-HINT=%s", greeter_id, autologinSessionHint ().toAscii ().constData ());
+    if (autologinTimeoutHint () != 0)
+        status_notify ("%s AUTOLOGIN-TIMEOUT-HINT=%d", greeter_id, autologinTimeoutHint ());
 }
 
 void TestGreeter::idle ()

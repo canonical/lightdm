@@ -1284,6 +1284,7 @@ create_greeter_session (Seat *seat)
     Greeter *greeter;  
     const gchar *greeter_wrapper;
     const gchar *autologin_username;
+    const gchar *autologin_session;
     int autologin_timeout;
     gboolean autologin_guest;
 
@@ -1346,6 +1347,9 @@ create_greeter_session (Seat *seat)
     autologin_username = seat_get_string_property (seat, "autologin-user");
     if (g_strcmp0 (autologin_username, "") == 0)
         autologin_username = NULL;
+    autologin_session = seat_get_string_property (seat, "autologin-session");
+    if (g_strcmp0 (autologin_session, "") == 0)
+        autologin_session = NULL;
     autologin_timeout = seat_get_integer_property (seat, "autologin-user-timeout");
     autologin_guest = seat_get_boolean_property (seat, "autologin-guest");
     if (autologin_timeout > 0)
@@ -1357,6 +1361,8 @@ create_greeter_session (Seat *seat)
         g_free (value);
         if (autologin_username)
             greeter_set_hint (greeter, "autologin-user", autologin_username);
+        if (autologin_session)
+            greeter_set_hint (greeter, "autologin-session", autologin_session);
         if (autologin_guest)
             greeter_set_hint (greeter, "autologin-guest", "true");
     }
