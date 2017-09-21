@@ -442,7 +442,7 @@ EXTRA_DIST = \
 	scripts/autologin-session.conf \
 	scripts/autologin-session-crash.conf \
 	scripts/autologin-session-error.conf \
-	scripts/autologin-session-timeout.conf \        
+	scripts/autologin-session-timeout.conf \
 	scripts/autologin-timeout.conf \
 	scripts/autologin-timeout-in-background.conf \
 	scripts/autologin-timeout-logout.conf \
