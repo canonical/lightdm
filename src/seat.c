@@ -1206,6 +1206,13 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
         user = session_get_user (session);
         if (user)
         {
+            const gchar *autologin_username;
+
+            /* Override session for autologin if configured */
+            autologin_username = seat_get_string_property (seat, "autologin-user");
+            if (!session_name && g_strcmp0 (user_get_name (user), autologin_username) == 0)
+                session_name = seat_get_string_property (seat, "autologin-session");
+
             if (!session_name)
                 session_name = user_get_xsession (user);
             language = user_get_language (user);
