@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/dbus-env ./src/test-runner autologin-session-timeout test-qt4-greeter

@@ -275,6 +275,12 @@ QString Greeter::autologinUserHint() const
     return QString::fromUtf8(lightdm_greeter_get_autologin_user_hint(d->ldmGreeter));
 }
 
+QString Greeter::autologinSessionHint() const
+{
+    Q_D(const Greeter);
+    return QString::fromUtf8(lightdm_greeter_get_autologin_session_hint(d->ldmGreeter));
+}
+
 bool Greeter::autologinGuestHint() const
 {
     Q_D(const Greeter);
