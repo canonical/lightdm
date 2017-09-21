@@ -66,6 +66,7 @@ public:
     QString selectUserHint() const;
     bool selectGuestHint() const;
     QString autologinUserHint() const;
+    QString autologinSessionHint() const;  
     bool autologinGuestHint() const;
     int autologinTimeoutHint() const;
 
