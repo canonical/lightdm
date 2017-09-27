@@ -72,6 +72,8 @@ struct Login1SeatPrivate
 G_DEFINE_TYPE (Login1Service, login1_service, G_TYPE_OBJECT);
 G_DEFINE_TYPE (Login1Seat, login1_seat, G_TYPE_OBJECT);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (Login1Seat, g_object_unref);
+
 static Login1Service *singleton = NULL;
 
 Login1Service *
@@ -119,8 +121,8 @@ seat_properties_changed_cb (GDBusConnection *connection,
     g_variant_iter_free (iter);
     while (g_variant_iter_loop (invalidated_properties, "&s", &name))
     {
-        GVariant *result;
-        GError *error = NULL;
+        g_autoptr(GVariant) result = NULL;
+        g_autoptr(GError) error = NULL;
 
         result = g_dbus_connection_call_sync (connection,
                                               LOGIN1_SERVICE_NAME,
@@ -135,13 +137,11 @@ seat_properties_changed_cb (GDBusConnection *connection,
                                               &error);
         if (error)
             g_warning ("Error updating seat property %s: %s", name, error->message);
-        g_clear_error (&error);
         if (result)
         {
-            g_variant_get (result, "(v)", &value);
-            update_property (seat, name, value);
-            g_variant_unref (value);
-            g_variant_unref (result);
+            g_autoptr(GVariant) v = NULL;
+            g_variant_get (result, "(v)", &v);
+            update_property (seat, name, v);
         }
     }
     g_variant_iter_free (invalidated_properties);
@@ -151,8 +151,8 @@ static Login1Seat *
 add_seat (Login1Service *service, const gchar *id, const gchar *path)
 {
     Login1Seat *seat;
-    GVariant *result;
-    GError *error = NULL;
+    g_autoptr(GVariant) result = NULL;
+    g_autoptr(GError) error = NULL;
 
     seat = g_object_new (LOGIN1_SEAT_TYPE, NULL);
     seat->priv->connection = g_object_ref (service->priv->connection);
@@ -184,7 +184,6 @@ add_seat (Login1Service *service, const gchar *id, const gchar *path)
                                           &error);
     if (error)
         g_warning ("Failed to get seat properties: %s", error->message);
-    g_clear_error (&error);
     if (result)
     {
         GVariantIter *properties;
@@ -200,7 +199,6 @@ add_seat (Login1Service *service, const gchar *id, const gchar *path)
                 seat->priv->can_multi_session = g_variant_get_boolean (value);
         }
         g_variant_iter_free (properties);
-        g_variant_unref (result);
     }
 
     service->priv->seats = g_list_append (service->priv->seats, seat);
@@ -235,7 +233,7 @@ signal_cb (GDBusConnection *connection,
     else if (strcmp (signal_name, "SeatRemoved") == 0)
     {
         const gchar *id, *path;
-        Login1Seat *seat;
+        g_autoptr(Login1Seat) seat = NULL;
 
         g_variant_get (parameters, "(&s&o)", &id, &path);
         seat = login1_service_get_seat (service, id);
@@ -243,7 +241,6 @@ signal_cb (GDBusConnection *connection,
         {
             service->priv->seats = g_list_remove (service->priv->seats, seat);
             g_signal_emit (service, service_signals[SEAT_REMOVED], 0, seat);
-            g_object_unref (seat);
         }
     }
 }
@@ -251,10 +248,10 @@ signal_cb (GDBusConnection *connection,
 gboolean
 login1_service_connect (Login1Service *service)
 {
-    GVariant *result;
+    g_autoptr(GVariant) result = NULL;
     GVariantIter *seat_iter;
     const gchar *id, *path;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     g_return_val_if_fail (service != NULL, FALSE);
 
@@ -264,7 +261,6 @@ login1_service_connect (Login1Service *service)
     service->priv->connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
     if (error)
         g_warning ("Failed to get system bus: %s", error->message);
-    g_clear_error (&error);
     if (!service->priv->connection)
         return FALSE;
 
@@ -292,7 +288,6 @@ login1_service_connect (Login1Service *service)
                                           &error);
     if (error)
         g_warning ("Failed to get list of logind seats: %s", error->message);
-    g_clear_error (&error);
     if (!result)
         return FALSE;
 
@@ -300,7 +295,6 @@ login1_service_connect (Login1Service *service)
     while (g_variant_iter_loop (seat_iter, "(&s&o)", &id, &path))
         add_seat (service, id, path);
     g_variant_iter_free (seat_iter);
-    g_variant_unref (result);
 
     service->priv->connected = TRUE;
 
@@ -341,133 +335,117 @@ login1_service_get_seat (Login1Service *service, const gchar *id)
 void
 login1_service_lock_session (Login1Service *service, const gchar *session_id)
 {
-    GError *error = NULL;
+    g_autoptr(GVariant) result = NULL;
+    g_autoptr(GError) error = NULL;
 
     g_return_if_fail (service != NULL);
     g_return_if_fail (session_id != NULL);
 
     g_debug ("Locking login1 session %s", session_id);
 
-    if (session_id)
-    {
-        GVariant *result;
+    if (!session_id)
+        return;
 
-        result = g_dbus_connection_call_sync (service->priv->connection,
-                                              LOGIN1_SERVICE_NAME,
-                                              LOGIN1_OBJECT_NAME,
-                                              LOGIN1_MANAGER_INTERFACE_NAME,
-                                              "LockSession",
-                                              g_variant_new ("(s)", session_id),
-                                              G_VARIANT_TYPE ("()"),
-                                              G_DBUS_CALL_FLAGS_NONE,
-                                              -1,
-                                              NULL,
-                                              &error);
-        if (error)
-            g_warning ("Error locking login1 session: %s", error->message);
-        g_clear_error (&error);
-        if (result)
-            g_variant_unref (result);
-    }
+    result = g_dbus_connection_call_sync (service->priv->connection,
+                                          LOGIN1_SERVICE_NAME,
+                                          LOGIN1_OBJECT_NAME,
+                                          LOGIN1_MANAGER_INTERFACE_NAME,
+                                          "LockSession",
+                                          g_variant_new ("(s)", session_id),
+                                          G_VARIANT_TYPE ("()"),
+                                          G_DBUS_CALL_FLAGS_NONE,
+                                          -1,
+                                          NULL,
+                                          &error);
+    if (error)
+        g_warning ("Error locking login1 session: %s", error->message);
 }
 
 void
 login1_service_unlock_session (Login1Service *service, const gchar *session_id)
 {
-    GError *error = NULL;
+    g_autoptr(GVariant) result = NULL;
+    g_autoptr(GError) error = NULL;
 
     g_return_if_fail (service != NULL);
     g_return_if_fail (session_id != NULL);
 
     g_debug ("Unlocking login1 session %s", session_id);
 
-    if (session_id)
-    {
-        GVariant *result;
+    if (!session_id)
+        return;
 
-        result = g_dbus_connection_call_sync (service->priv->connection,
-                                              LOGIN1_SERVICE_NAME,
-                                              LOGIN1_OBJECT_NAME,
-                                              LOGIN1_MANAGER_INTERFACE_NAME,
-                                              "UnlockSession",
-                                              g_variant_new ("(s)", session_id),
-                                              G_VARIANT_TYPE ("()"),
-                                              G_DBUS_CALL_FLAGS_NONE,
-                                              -1,
-                                              NULL,
-                                              &error);
-        if (error)
-            g_warning ("Error unlocking login1 session: %s", error->message);
-        g_clear_error (&error);
-        if (result)
-            g_variant_unref (result);
-    }
+    result = g_dbus_connection_call_sync (service->priv->connection,
+                                          LOGIN1_SERVICE_NAME,
+                                          LOGIN1_OBJECT_NAME,
+                                          LOGIN1_MANAGER_INTERFACE_NAME,
+                                          "UnlockSession",
+                                          g_variant_new ("(s)", session_id),
+                                          G_VARIANT_TYPE ("()"),
+                                          G_DBUS_CALL_FLAGS_NONE,
+                                          -1,
+                                          NULL,
+                                          &error);
+    if (error)
+        g_warning ("Error unlocking login1 session: %s", error->message);
 }
 
 void
 login1_service_activate_session (Login1Service *service, const gchar *session_id)
 {
-    GError *error = NULL;
+    g_autoptr(GVariant) result = NULL;
+    g_autoptr(GError) error = NULL;
 
     g_return_if_fail (service != NULL);
     g_return_if_fail (session_id != NULL);
 
     g_debug ("Activating login1 session %s", session_id);
 
-    if (session_id)
-    {
-        GVariant *result;
+    if (!session_id)
+        return;
 
-        result = g_dbus_connection_call_sync (service->priv->connection,
-                                              LOGIN1_SERVICE_NAME,
-                                              LOGIN1_OBJECT_NAME,
-                                              LOGIN1_MANAGER_INTERFACE_NAME,
-                                              "ActivateSession",
-                                              g_variant_new ("(s)", session_id),
-                                              G_VARIANT_TYPE ("()"),
-                                              G_DBUS_CALL_FLAGS_NONE,
-                                              -1,
-                                              NULL,
-                                              &error);
-        if (error)
-            g_warning ("Error activating login1 session: %s", error->message);
-        g_clear_error (&error);
-        if (result)
-            g_variant_unref (result);
-    }
+    result = g_dbus_connection_call_sync (service->priv->connection,
+                                          LOGIN1_SERVICE_NAME,
+                                          LOGIN1_OBJECT_NAME,
+                                          LOGIN1_MANAGER_INTERFACE_NAME,
+                                          "ActivateSession",
+                                          g_variant_new ("(s)", session_id),
+                                          G_VARIANT_TYPE ("()"),
+                                          G_DBUS_CALL_FLAGS_NONE,
+                                          -1,
+                                          NULL,
+                                          &error);
+    if (error)
+        g_warning ("Error activating login1 session: %s", error->message);
 }
 
 void
 login1_service_terminate_session (Login1Service *service, const gchar *session_id)
 {
-    GError *error = NULL;
+    g_autoptr(GVariant) result = NULL;
+    g_autoptr(GError) error = NULL;
 
     g_return_if_fail (service != NULL);
     g_return_if_fail (session_id != NULL);
 
     g_debug ("Terminating login1 session %s", session_id);
 
-    if (session_id)
-    {
-        GVariant *result;
+    if (!session_id)
+        return;
 
-        result = g_dbus_connection_call_sync (service->priv->connection,
-                                              LOGIN1_SERVICE_NAME,
-                                              LOGIN1_OBJECT_NAME,
-                                              LOGIN1_MANAGER_INTERFACE_NAME,
-                                              "TerminateSession",
-                                              g_variant_new ("(s)", session_id),
-                                              G_VARIANT_TYPE ("()"),
-                                              G_DBUS_CALL_FLAGS_NONE,
-                                              -1,
-                                              NULL,
-                                              &error);
-        if (error)
-            g_warning ("Error terminating login1 session: %s", error->message);
-        g_clear_error (&error);
-        if (result)
-            g_variant_unref (result);
-    }
+    result = g_dbus_connection_call_sync (service->priv->connection,
+                                          LOGIN1_SERVICE_NAME,
+                                          LOGIN1_OBJECT_NAME,
+                                          LOGIN1_MANAGER_INTERFACE_NAME,
+                                          "TerminateSession",
+                                          g_variant_new ("(s)", session_id),
+                                          G_VARIANT_TYPE ("()"),
+                                          G_DBUS_CALL_FLAGS_NONE,
+                                          -1,
+                                          NULL,
+                                          &error);
+    if (error)
+        g_warning ("Error terminating login1 session: %s", error->message);
 }
 
 static void
@@ -547,10 +525,10 @@ login1_seat_finalize (GObject *object)
 {
     Login1Seat *self = LOGIN1_SEAT (object);
 
-    g_free (self->priv->id);
-    g_free (self->priv->path);
+    g_clear_pointer (&self->priv->id, g_free);
+    g_clear_pointer (&self->priv->path, g_free);
     g_dbus_connection_signal_unsubscribe (self->priv->connection, self->priv->signal_id);
-    g_object_unref (self->priv->connection);
+    g_clear_object (&self->priv->connection);
 
     G_OBJECT_CLASS (login1_seat_parent_class)->finalize (object);
 }

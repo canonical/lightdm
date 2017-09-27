@@ -46,14 +46,13 @@ main (int argc, char **argv)
         {
             while (fgets (line, 1024, passwd))
             {
-                gchar **tokens = g_strsplit (line, ":", -1);
+                g_auto(GStrv) tokens = g_strsplit (line, ":", -1);
                 if (g_strv_length (tokens) >= 3)
                 {
                     gint uid = atoi (tokens[2]);
                     if (uid > max_uid)
                         max_uid = uid;
                 }
-                g_strfreev (tokens);
             }
             fclose (passwd);
         }

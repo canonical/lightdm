@@ -125,7 +125,7 @@ gboolean
 lightdm_get_can_suspend (void)
 {
     gboolean can_suspend = FALSE;
-    GVariant *r;
+    g_autoptr(GVariant) r = NULL;
 
     r = login1_call_function ("CanSuspend", NULL, NULL);
     if (r)
@@ -149,8 +149,6 @@ lightdm_get_can_suspend (void)
         if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
             g_variant_get (r, "(b)", &can_suspend);
     }
-    if (r)
-        g_variant_unref (r);
 
     return can_suspend;
 }
@@ -166,30 +164,26 @@ lightdm_get_can_suspend (void)
 gboolean
 lightdm_suspend (GError **error)
 {
-    GVariant *result;
-    gboolean suspended;
+    g_autoptr(GVariant) login1_result = NULL;
+    g_autoptr(GVariant) ck_result = NULL;
+    g_autoptr(GVariant) upower_result = NULL;
+    g_autoptr(GError) login1_error = NULL;
+    g_autoptr(GError) ck_error = NULL;
 
-    result = login1_call_function ("Suspend", g_variant_new("(b)", FALSE), error);
-    if (!result)
-    {
-        if (error)
-            g_debug ("Can't suspend using logind; falling back to ConsoleKit: %s", (*error)->message);
-        g_clear_error (error);
-        result = ck_call_function ("Suspend", g_variant_new ("(b)", FALSE), error);
-    }
-    if (!result)
-    {
-        if (error)
-            g_debug ("Can't suspend using logind or ConsoleKit; falling back to UPower: %s", (*error)->message);
-        g_clear_error (error);
-        result = upower_call_function ("Suspend", error);
-    }
+    login1_result = login1_call_function ("Suspend", g_variant_new("(b)", FALSE), &login1_error);
+    if (login1_result)
+        return TRUE;
 
-    suspended = result != NULL;
-    if (result)
-        g_variant_unref (result);
+    g_debug ("Can't suspend using logind; falling back to ConsoleKit: %s", login1_error->message);
 
-    return suspended;
+    ck_result = ck_call_function ("Suspend", g_variant_new ("(b)", FALSE), &ck_error);
+    if (ck_result)
+        return TRUE;
+
+    g_debug ("Can't suspend using logind or ConsoleKit; falling back to UPower: %s", ck_error->message);
+
+    upower_result = upower_call_function ("Suspend", error);
+    return upower_result != NULL;
 }
 
 /**
@@ -203,7 +197,7 @@ gboolean
 lightdm_get_can_hibernate (void)
 {
     gboolean can_hibernate = FALSE;
-    GVariant *r;
+    g_autoptr(GVariant) r = NULL;
 
     r = login1_call_function ("CanHibernate", NULL, NULL);
     if (r)
@@ -227,8 +221,6 @@ lightdm_get_can_hibernate (void)
         if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
             g_variant_get (r, "(b)", &can_hibernate);
     }
-    if (r)
-        g_variant_unref (r);
 
     return can_hibernate;
 }
@@ -244,30 +236,26 @@ lightdm_get_can_hibernate (void)
 gboolean
 lightdm_hibernate (GError **error)
 {
-    GVariant *result;
-    gboolean hibernated;
+    g_autoptr(GVariant) login1_result = NULL;
+    g_autoptr(GVariant) ck_result = NULL;
+    g_autoptr(GVariant) upower_result = NULL;
+    g_autoptr(GError) login1_error = NULL;
+    g_autoptr(GError) ck_error = NULL;
 
-    result = login1_call_function ("Hibernate", g_variant_new("(b)", FALSE), error);
-    if (!result)
-    {
-        if (error)
-            g_debug ("Can't hibernate using logind; falling back to ConsoleKit: %s", (*error)->message);
-        g_clear_error (error);
-        result = ck_call_function ("Hibernate", g_variant_new ("(b)", FALSE), error);
-    }
-    if (!result)
-    {
-        if (error)
-            g_debug ("Can't hibernate using logind or ConsoleKit; falling back to UPower: %s", (*error)->message);
-        g_clear_error (error);
-        result = upower_call_function ("Hibernate", error);
-    }
+    login1_result = login1_call_function ("Hibernate", g_variant_new("(b)", FALSE), &login1_error);
+    if (login1_result)
+        return TRUE;
 
-    hibernated = result != NULL;
-    if (result)
-        g_variant_unref (result);
+    g_debug ("Can't hibernate using logind; falling back to ConsoleKit: %s", login1_error->message);
 
-    return hibernated;
+    ck_result = ck_call_function ("Hibernate", g_variant_new ("(b)", FALSE), &ck_error);
+    if (ck_result)
+        return TRUE;
+
+    g_debug ("Can't hibernate using logind or ConsoleKit; falling back to UPower: %s", ck_error->message);
+
+    upower_result = upower_call_function ("Hibernate", error);
+    return upower_result != NULL;
 }
 
 /**
@@ -281,7 +269,7 @@ gboolean
 lightdm_get_can_restart (void)
 {
     gboolean can_restart = FALSE;
-    GVariant *r;
+    g_autoptr(GVariant) r = NULL;
 
     r = login1_call_function ("CanReboot", NULL, NULL);
     if (r)
@@ -299,8 +287,6 @@ lightdm_get_can_restart (void)
         if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
             g_variant_get (r, "(b)", &can_restart);
     }
-    if (r)
-        g_variant_unref (r);
 
     return can_restart;
 }
@@ -316,20 +302,16 @@ lightdm_get_can_restart (void)
 gboolean
 lightdm_restart (GError **error)
 {
-    GVariant *r;
-    gboolean restarted;
+    g_autoptr(GVariant) login1_result = NULL;
+    g_autoptr(GVariant) ck_result = NULL;
+    g_autoptr(GError) login1_error = NULL;
 
-    r = login1_call_function ("Reboot", g_variant_new("(b)", FALSE), error);
-    if (!r)
-    {
-        g_clear_error (error);
-        r = ck_call_function ("Restart", NULL, error);
-    }
-    restarted = r != NULL;
-    if (r)
-        g_variant_unref (r);
+    login1_result = login1_call_function ("Reboot", g_variant_new("(b)", FALSE), &login1_error);
+    if (login1_result)
+        return TRUE;
 
-    return restarted;
+    ck_result = ck_call_function ("Restart", NULL, error);
+    return ck_result != NULL;
 }
 
 /**
@@ -343,7 +325,7 @@ gboolean
 lightdm_get_can_shutdown (void)
 {
     gboolean can_shutdown = FALSE;
-    GVariant *r;
+    g_autoptr(GVariant) r = NULL;
 
     r = login1_call_function ("CanPowerOff", NULL, NULL);
     if (r)
@@ -361,8 +343,6 @@ lightdm_get_can_shutdown (void)
         if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
             g_variant_get (r, "(b)", &can_shutdown);
     }
-    if (r)
-        g_variant_unref (r);
 
     return can_shutdown;
 }
@@ -378,18 +358,14 @@ lightdm_get_can_shutdown (void)
 gboolean
 lightdm_shutdown (GError **error)
 {
-    GVariant *r;
-    gboolean shutdown;
+    g_autoptr(GVariant) login1_result = NULL;
+    g_autoptr(GVariant) ck_result = NULL;
+    g_autoptr(GError) login1_error = NULL;
 
-    r = login1_call_function ("PowerOff", g_variant_new("(b)", FALSE), error);
-    if (!r)
-    {
-        g_clear_error (error);
-        r = ck_call_function ("Stop", NULL, error);
-    }
-    shutdown = r != NULL;
-    if (r)
-        g_variant_unref (r);
+    login1_result = login1_call_function ("PowerOff", g_variant_new("(b)", FALSE), &login1_error);
+    if (login1_result)
+        return TRUE;
 
-    return shutdown;
+    ck_result = ck_call_function ("Stop", NULL, error);
+    return ck_result != NULL;
 }

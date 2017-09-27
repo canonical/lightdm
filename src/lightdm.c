@@ -54,7 +54,7 @@ static void
 log_cb (const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer data)
 {
     const gchar *prefix;
-    gchar *text;
+    g_autofree gchar *text = NULL;
 
     switch (log_level & G_LOG_LEVEL_MASK)
     {
@@ -97,14 +97,13 @@ log_cb (const gchar *log_domain, GLogLevelFlags log_level, const gchar *message,
         g_printerr ("%s", text);
     else
         g_log_default_handler (log_domain, log_level, message, data);
-
-    g_free (text);
 }
 
 static void
 log_init (void)
 {
-    gchar *log_dir, *path;
+    g_autofree gchar *log_dir = NULL;
+    g_autofree gchar *path = NULL;
     gboolean backup_logs;
 
     log_timer = g_timer_new ();
@@ -112,7 +111,6 @@ log_init (void)
     /* Log to a file */
     log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
     path = g_build_filename (log_dir, "lightdm.log", NULL);
-    g_free (log_dir);
 
     backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
     log_fd = log_file_open (path, backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
@@ -120,13 +118,13 @@ log_init (void)
     g_log_set_default_handler (log_cb, NULL);
 
     g_debug ("Logging to %s", path);
-    g_free (path);
 }
 
 static GList*
 get_config_sections (const gchar *seat_name)
 {
-    gchar **groups, **i;
+    g_auto(GStrv) groups = NULL;
+    gchar **i;
     GList *config_sections = NULL;
 
     /* Load seat defaults first */
@@ -142,7 +140,6 @@ get_config_sections (const gchar *seat_name)
                 config_sections = g_list_append (config_sections, g_strdup (*i));
         }
     }
-    g_strfreev (groups);
 
     return config_sections;
 }
@@ -151,23 +148,22 @@ static void
 set_seat_properties (Seat *seat, const gchar *seat_name)
 {
     GList *sections, *link;
-    gchar **keys;
     gint i;
 
     sections = get_config_sections (seat_name);
     for (link = sections; link; link = link->next)
     {
         const gchar *section = link->data;
+        g_auto(GStrv) keys = NULL;
+
         keys = config_get_keys (config_get_instance (), section);
 
         l_debug (seat, "Loading properties from config section %s", section);
         for (i = 0; keys && keys[i]; i++)
         {
-            gchar *value = config_get_string (config_get_instance (), section, keys[i]);
+            g_autofree gchar *value = config_get_string (config_get_instance (), section, keys[i]);
             seat_set_property (seat, keys[i], value);
-            g_free (value);
         }
-        g_strfreev (keys);
     }
     g_list_free_full (sections, g_free);
 }
@@ -211,8 +207,8 @@ create_seat (const gchar *module_name, const gchar *name)
 static Seat *
 service_add_xlocal_seat_cb (DisplayManagerService *service, gint display_number)
 {
-    Seat *seat;
-    gchar *display_number_string;
+    g_autoptr(Seat) seat = NULL;
+    g_autofree gchar *display_number_string = NULL;
 
     g_debug ("Adding local X seat :%d", display_number);
 
@@ -223,24 +219,20 @@ service_add_xlocal_seat_cb (DisplayManagerService *service, gint display_number)
     set_seat_properties (seat, NULL);
     display_number_string = g_strdup_printf ("%d", display_number);
     seat_set_property (seat, "xserver-display-number", display_number_string);
-    g_free (display_number_string);
 
     if (!display_manager_add_seat (display_manager, seat))
-    {      
-        g_object_unref (seat);
         return NULL;
-    }
 
-    return seat;
+    return g_steal_pointer (&seat);
 }
 
 static void
 display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
-    gchar **types;
+    g_auto(GStrv) types = NULL;
     gchar **iter;
-    Seat *next_seat = NULL;
-    GString *next_types;
+    g_autoptr(Seat) next_seat = NULL;
+    g_autoptr(GString) next_types = NULL;
 
     /* If we have fallback types registered for the seat, let's try them
        before giving up. */
@@ -263,7 +255,6 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
             g_string_append (next_types, *iter);
         }
     }
-    g_strfreev (types);
 
     if (next_seat)
     {
@@ -276,7 +267,6 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
         seat_set_property (next_seat, "type", next_types->str);
 
         display_manager_add_seat (display_manager, next_seat);
-        g_object_unref (next_seat);
     }
     else if (seat_get_boolean_property (seat, "exit-on-failure"))
     {
@@ -284,20 +274,17 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
         exit_code = EXIT_FAILURE;
         display_manager_stop (display_manager);
     }
-
-    g_string_free (next_types, TRUE);
 }
 
 static gboolean
 xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
 {
-    SeatXDMCPSession *seat;
+    g_autoptr(SeatXDMCPSession) seat = NULL;
     gboolean result;
 
     seat = seat_xdmcp_session_new (session);
     set_seat_properties (SEAT (seat), NULL);
     result = display_manager_add_seat (display_manager, SEAT (seat));
-    g_object_unref (seat);
 
     return result;
 }
@@ -305,12 +292,11 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
 static void
 vnc_connection_cb (VNCServer *server, GSocket *connection)
 {
-    SeatXVNC *seat;
+    g_autoptr(SeatXVNC) seat = NULL;
 
     seat = seat_xvnc_new (connection);
     set_seat_properties (SEAT (seat), NULL);
     display_manager_add_seat (display_manager, SEAT (seat));
-    g_object_unref (seat);
 }
 
 static void
@@ -321,7 +307,10 @@ start_display_manager (void)
     /* Start the XDMCP server */
     if (config_get_boolean (config_get_instance (), "XDMCPServer", "enabled"))
     {
-        gchar *key_name, *key = NULL, *listen_address, *hostname;
+        g_autofree gchar *hostname = NULL;
+        g_autofree gchar *key_name = NULL;
+        g_autofree gchar *key = NULL;
+        g_autofree gchar *listen_address = NULL;
 
         xdmcp_server = xdmcp_server_new ();
         if (config_has_key (config_get_instance (), "XDMCPServer", "port"))
@@ -333,19 +322,17 @@ start_display_manager (void)
         }
         listen_address = config_get_string (config_get_instance (), "XDMCPServer", "listen-address");
         xdmcp_server_set_listen_address (xdmcp_server, listen_address);
-        g_free (listen_address);
         hostname = config_get_string (config_get_instance (), "XDMCPServer", "hostname");
         xdmcp_server_set_hostname (xdmcp_server, hostname);
-        g_free (hostname);
         g_signal_connect (xdmcp_server, XDMCP_SERVER_SIGNAL_NEW_SESSION, G_CALLBACK (xdmcp_session_cb), NULL);
 
         key_name = config_get_string (config_get_instance (), "XDMCPServer", "key");
         if (key_name)
         {
-            gchar *path;
-            GKeyFile *keys;
+            g_autofree gchar *path = NULL;
+            g_autoptr(GKeyFile) keys = NULL;
             gboolean result;
-            GError *error = NULL;
+            g_autoptr(GError) error = NULL;
 
             path = g_build_filename (config_get_directory (config_get_instance ()), "keys.conf", NULL);
 
@@ -353,7 +340,6 @@ start_display_manager (void)
             result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
             if (error)
                 g_warning ("Unable to load keys from %s: %s", path, error->message);
-            g_clear_error (&error);
 
             if (result)
             {
@@ -362,13 +348,9 @@ start_display_manager (void)
                 else
                     g_warning ("Key %s not defined", key_name);
             }
-            g_free (path);
-            g_key_file_free (keys);
         }
         if (key)
             xdmcp_server_set_key (xdmcp_server, key);
-        g_free (key_name);
-        g_free (key);
       
         if (key_name && !key)
         {
@@ -386,12 +368,12 @@ start_display_manager (void)
     /* Start the VNC server */
     if (config_get_boolean (config_get_instance (), "VNCServer", "enabled"))
     {
-        gchar *path;
+        g_autofree gchar *path = NULL;
 
         path = g_find_program_in_path ("Xvnc");
         if (path)
         {
-            gchar *listen_address;
+            g_autofree gchar *listen_address = NULL;
 
             vnc_server = vnc_server_new ();
             if (config_has_key (config_get_instance (), "VNCServer", "port"))
@@ -403,13 +385,10 @@ start_display_manager (void)
             }
             listen_address = config_get_string (config_get_instance (), "VNCServer", "listen-address");
             vnc_server_set_listen_address (vnc_server, listen_address);
-            g_free (listen_address);
             g_signal_connect (vnc_server, VNC_SERVER_SIGNAL_NEW_CONNECTION, G_CALLBACK (vnc_connection_cb), NULL);
 
             g_debug ("Starting VNC server on TCP/IP port %d", vnc_server_get_port (vnc_server));
             vnc_server_start (vnc_server);
-
-            g_free (path);
         }
         else
             g_warning ("Can't start VNC server, Xvnc is not in the path");
@@ -431,9 +410,10 @@ static gboolean
 add_login1_seat (Login1Seat *login1_seat)
 {
     const gchar *seat_name = login1_seat_get_id (login1_seat);
-    gchar **types = NULL, **type;
+    g_auto(GStrv) types = NULL;
+    gchar **type;
     GList *config_sections = NULL, *link;
-    Seat *seat = NULL;
+    g_autoptr(Seat) seat = NULL;
     gboolean is_seat0, started = FALSE;
 
     g_debug ("New seat added from logind: %s", seat_name);
@@ -451,7 +431,6 @@ add_login1_seat (Login1Seat *login1_seat)
 
     for (type = types; !seat && type && *type; type++)
         seat = create_seat (*type, seat_name);
-    g_strfreev (types);
 
     if (seat)
     {
@@ -476,7 +455,6 @@ add_login1_seat (Login1Seat *login1_seat)
     started = display_manager_add_seat (display_manager, seat);
     if (!started)
         g_debug ("Failed to start seat: %s", seat_name);
-    g_object_unref (seat);
 
     return started;
 }
@@ -643,7 +621,7 @@ main (int argc, char **argv)
           N_("Show release version"), NULL },
         { NULL }
     };
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     /* Disable the SIGPIPE handler - this is a stupid Unix hangover behaviour.
      * We will handle pipes / sockets being closed instead of having the whole daemon be killed...
@@ -675,7 +653,6 @@ main (int argc, char **argv)
     result = g_option_context_parse (option_context, &argc, &argv, &error);
     if (error)
         g_printerr ("%s\n", error->message);
-    g_clear_error (&error);
     g_option_context_free (option_context);
     if (!result)
     {
@@ -689,7 +666,8 @@ main (int argc, char **argv)
     if (show_config)
     {
         GList *sources, *link;
-        gchar **groups, *last_source, *empty_source;
+        g_auto(GStrv) groups = NULL;
+        gchar *last_source, *empty_source;
         GHashTable *source_ids;
         int i;
 
@@ -720,7 +698,7 @@ main (int argc, char **argv)
         groups = config_get_groups (config_get_instance ());
         for (i = 0; groups[i]; i++)
         {
-            gchar **keys;
+            g_auto(GStrv) keys = NULL;
             int j;
 
             if (i != 0)
@@ -731,18 +709,15 @@ main (int argc, char **argv)
             for (j = 0; keys && keys[j]; j++)
             {
                 const gchar *source, *id;
-                gchar *value;
+                g_autofree gchar *value = NULL;
 
                 source = config_get_source (config_get_instance (), groups[i], keys[j]);
                 id = source ? g_hash_table_lookup (source_ids, source) : empty_source;
                 value = config_get_string (config_get_instance (), groups[i], keys[j]);
                 g_printerr ("%s  %s=%s\n", id, keys[j], value);
-                g_free (value);
             }
 
-            g_strfreev (keys);
         }
-        g_strfreev (groups);
 
         /* Show mapping from source number to path */
         g_printerr ("\n");
@@ -777,7 +752,7 @@ main (int argc, char **argv)
     /* If running inside an X server use Xephyr for display */
     if (getenv ("DISPLAY") && getuid () != 0)
     {
-        gchar *x_server_path;
+        g_autofree gchar *x_server_path = NULL;
 
         x_server_path = g_find_program_in_path ("Xephyr");
         if (!x_server_path)
@@ -785,21 +760,19 @@ main (int argc, char **argv)
             g_printerr ("Running inside an X server requires Xephyr to be installed but it cannot be found.  Please install it or update your PATH environment variable.\n");
             return EXIT_FAILURE;
         }
-        g_free (x_server_path);
     }
 
     /* Make sure the system binary directory (where the greeters are installed) is in the path */
     if (test_mode)
     {
         const gchar *path = g_getenv ("PATH");
-        gchar *new_path;
+        g_autofree gchar *new_path = NULL;
 
         if (path)
             new_path = g_strdup_printf ("%s:%s", path, SBIN_DIR);
         else
             new_path = g_strdup (SBIN_DIR);
         g_setenv ("PATH", new_path, TRUE);
-        g_free (new_path);
     }
 
     /* Write PID file */
@@ -888,9 +861,9 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "LightDM", "remote-sessions-directory", REMOTE_SESSIONS_DIR);
     if (!config_has_key (config_get_instance (), "LightDM", "greeters-directory"))
     {
-        GPtrArray *dirs;
+        g_autoptr(GPtrArray) dirs = NULL;
         const gchar * const *data_dirs;
-        gchar *value;
+        g_autofree gchar *value = NULL;
         int i;
 
         dirs = g_ptr_array_new_with_free_func (g_free);
@@ -902,8 +875,6 @@ main (int argc, char **argv)
         g_ptr_array_add (dirs, NULL);
         value = g_strjoinv (":", (gchar **) dirs->pdata);
         config_set_string (config_get_instance (), "LightDM", "greeters-directory", value);
-        g_free (value);
-        g_ptr_array_unref (dirs);
     }
     if (!config_has_key (config_get_instance (), "XDMCPServer", "hostname"))
         config_set_string (config_get_instance (), "XDMCPServer", "hostname", g_get_host_name ());
@@ -985,9 +956,9 @@ main (int argc, char **argv)
     {
         if (config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
         {
-            gchar **types;
+            g_auto(GStrv) types = NULL;
             gchar **type;
-            Seat *seat = NULL;
+            g_autoptr(Seat) seat = NULL;
 
             g_debug ("Adding default seat");
 
@@ -998,14 +969,12 @@ main (int argc, char **argv)
                 if (seat)
                     break;
             }
-            g_strfreev (types);
             if (seat)
             {
                 set_seat_properties (seat, NULL);
                 seat_set_property (seat, "exit-on-failure", "true");
                 if (!display_manager_add_seat (display_manager, seat))
                     return EXIT_FAILURE;
-                g_object_unref (seat);
             }
             else
             {

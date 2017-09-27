@@ -47,16 +47,14 @@ config_get_instance (void)
 gboolean
 config_load_from_file (Configuration *config, const gchar *path, GList **messages, GError **error)
 {
-    GKeyFile *key_file;
-    gchar *source_path, **groups;
+    g_autoptr(GKeyFile) key_file = NULL;
+    gchar *source_path;
+    g_auto(GStrv) groups = NULL;
     int i;
 
     key_file = g_key_file_new ();
     if (!g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, error))
-    {
-        g_key_file_free (key_file);
         return FALSE;
-    }
 
     source_path = g_strdup (path);
     config->priv->sources = g_list_append (config->priv->sources, source_path);
@@ -64,7 +62,8 @@ config_load_from_file (Configuration *config, const gchar *path, GList **message
     groups = g_key_file_get_groups (key_file, NULL);
     for (i = 0; groups[i]; i++)
     {
-        gchar **keys, *group;
+        g_auto(GStrv) keys = NULL;
+        const gchar *group;
         GHashTable *known_keys = NULL;
         int j;
 
@@ -95,7 +94,8 @@ config_load_from_file (Configuration *config, const gchar *path, GList **message
 
         for (j = 0; keys[j]; j++)
         {
-            gchar *value, *k;
+            g_autofree gchar *value = NULL;
+            g_autofree gchar *k = NULL;
 
             if (known_keys != NULL)
             {
@@ -114,17 +114,11 @@ config_load_from_file (Configuration *config, const gchar *path, GList **message
 
             value = g_key_file_get_value (key_file, groups[i], keys[j], NULL);
             g_key_file_set_value (config->priv->key_file, group, keys[j], value);
-            g_free (value);
 
             k = g_strdup_printf ("%s]%s", group, keys[j]);
-            g_hash_table_insert (config->priv->key_sources, k, source_path);
+            g_hash_table_insert (config->priv->key_sources, g_steal_pointer (&k), source_path);
         }
-
-        g_strfreev (keys);
     }
-    g_strfreev (groups);
-
-    g_key_file_free (key_file);
 
     return TRUE;
 }
@@ -132,7 +126,7 @@ config_load_from_file (Configuration *config, const gchar *path, GList **message
 static gchar *
 path_make_absolute (gchar *path)
 {
-    gchar *cwd, *abs_path;
+    g_autofree gchar *cwd = NULL;
 
     if (!path)
         return NULL;
@@ -141,10 +135,7 @@ path_make_absolute (gchar *path)
         return path;
 
     cwd = g_get_current_dir ();
-    abs_path = g_build_filename (cwd, path, NULL);
-    g_free (path);
-
-    return abs_path;
+    return g_build_filename (cwd, path, NULL);
 }
 
 static int
@@ -158,13 +149,12 @@ load_config_directory (const gchar *path, GList **messages)
 {
     GDir *dir;
     GList *files = NULL, *link;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     /* Find configuration files */
     dir = g_dir_open (path, 0, &error);
     if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
         g_printerr ("Failed to open configuration directory %s: %s\n", path, error->message);
-    g_clear_error (&error);
     if (dir)
     {
         const gchar *name;
@@ -178,21 +168,20 @@ load_config_directory (const gchar *path, GList **messages)
     for (link = files; link; link = link->next)
     {
         gchar *filename = link->data;
-        gchar *conf_path;
+        g_autofree gchar *conf_path = NULL;
+        g_autoptr(GError) conf_error = NULL;
 
         conf_path = g_build_filename (path, filename, NULL);
         if (g_str_has_suffix (filename, ".conf"))
         {
             if (messages)
                 *messages = g_list_append (*messages, g_strdup_printf ("Loading configuration from %s", conf_path));
-            config_load_from_file (config_get_instance (), conf_path, messages, &error);
-            if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
-                g_printerr ("Failed to load configuration from %s: %s\n", filename, error->message);
-            g_clear_error (&error);
+            config_load_from_file (config_get_instance (), conf_path, messages, &conf_error);
+            if (conf_error && !g_error_matches (conf_error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+                g_printerr ("Failed to load configuration from %s: %s\n", filename, conf_error->message);
         }
         else
             g_debug ("Ignoring configuration file %s, it does not have .conf suffix", conf_path);
-        g_free (conf_path);
     }
     g_list_free_full (files, g_free);
 }
@@ -205,20 +194,19 @@ load_config_directories (const gchar * const *dirs, GList **messages)
     /* Load in reverse order, because XDG_* fields are preference-ordered and the directories in front should override directories in back. */
     for (i = g_strv_length ((gchar **)dirs) - 1; i >= 0; i--)
     {
-        gchar *full_dir = g_build_filename (dirs[i], "lightdm", "lightdm.conf.d", NULL);
+        g_autofree gchar *full_dir = g_build_filename (dirs[i], "lightdm", "lightdm.conf.d", NULL);
         if (messages)
             *messages = g_list_append (*messages, g_strdup_printf ("Loading configuration dirs from %s", full_dir));
         load_config_directory (full_dir, messages);
-        g_free (full_dir);
     }
 }
 
 gboolean
 config_load_from_standard_locations (Configuration *config, const gchar *config_path, GList **messages)
 {
-    gchar *config_d_dir = NULL, *path;
-    gboolean success = TRUE;
-    GError *error = NULL;
+    g_autofree gchar *config_d_dir = NULL;
+    g_autofree gchar *path = NULL;
+    g_autoptr(GError) error = NULL;
 
     g_return_val_if_fail (config->priv->dir == NULL, FALSE);
 
@@ -227,8 +215,11 @@ config_load_from_standard_locations (Configuration *config, const gchar *config_
 
     if (config_path)
     {
+        g_autofree gchar *basename = NULL;
+
         path = g_strdup (config_path);
-        config->priv->dir = path_make_absolute (g_path_get_basename (config_path));
+        basename = g_path_get_basename (config_path);
+        config->priv->dir = path_make_absolute (basename);
     }
     else
     {
@@ -252,15 +243,11 @@ config_load_from_standard_locations (Configuration *config, const gchar *config_
         {
             if (error)
                 g_printerr ("Failed to load configuration from %s: %s\n", path, error->message);
-            success = FALSE;
+            return FALSE;
         }
     }
-    g_clear_error (&error);
 
-    g_free (config_d_dir);
-    g_free (path);
-
-    return success;
+    return TRUE;
 }
 
 const gchar *
@@ -296,12 +283,11 @@ config_get_sources (Configuration *config)
 const gchar *
 config_get_source (Configuration *config, const gchar *section, const gchar *key)
 {
-    gchar *k;
+    g_autofree gchar *k = NULL;
     const gchar *source;
 
     k = g_strdup_printf ("%s]%s", section, key);
     source = g_hash_table_lookup (config->priv->key_sources, k);
-    g_free (k);
 
     return source;
 }
@@ -356,17 +342,13 @@ config_get_boolean (Configuration *config, const gchar *section, const gchar *ke
      */
     /*return g_key_file_get_boolean (config->priv->key_file, section, key, NULL);*/
 
-    gchar *value;
-    gboolean v;
+    g_autofree gchar *value = NULL;
 
     value = g_key_file_get_value (config->priv->key_file, section, key, NULL);
     if (!value)
         return FALSE;
     g_strchomp (value);
-    v = strcmp (value, "true") == 0;
-    g_free (value);
-
-    return v;
+    return strcmp (value, "true") == 0;
 }
 
 static void
@@ -462,8 +444,8 @@ config_finalize (GObject *object)
 {
     Configuration *self = CONFIGURATION (object);
 
-    g_free (self->priv->dir);
-    g_key_file_free (self->priv->key_file);
+    g_clear_pointer (&self->priv->dir, g_free);
+    g_clear_pointer (&self->priv->key_file, g_key_file_free);
     g_list_free_full (self->priv->sources, g_free);
     g_hash_table_destroy (self->priv->key_sources);
     g_hash_table_destroy (self->priv->lightdm_keys);

@@ -66,6 +66,8 @@ typedef struct
     void (*stopped)(Session *session);
 } SessionClass;
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (Session, g_object_unref);
+
 GType session_get_type (void);
 
 Session *session_new (void);

@@ -125,7 +125,8 @@ greeter_new (void)
 void
 greeter_set_file_descriptors (Greeter *greeter, int to_greeter_fd, int from_greeter_fd)
 {
-    GError *error = NULL;
+    g_autoptr(GError) to_error = NULL;
+    g_autoptr(GError) from_error = NULL;
 
     g_return_if_fail (greeter != NULL);
     g_return_if_fail (greeter->priv->to_greeter_input < 0);
@@ -133,16 +134,14 @@ greeter_set_file_descriptors (Greeter *greeter, int to_greeter_fd, int from_gree
 
     greeter->priv->to_greeter_input = to_greeter_fd;  
     greeter->priv->to_greeter_channel = g_io_channel_unix_new (greeter->priv->to_greeter_input);
-    g_io_channel_set_encoding (greeter->priv->to_greeter_channel, NULL, &error);
-    if (error)
-        g_warning ("Failed to set encoding on to greeter channel to binary: %s\n", error->message);
-    g_clear_error (&error);
+    g_io_channel_set_encoding (greeter->priv->to_greeter_channel, NULL, &to_error);
+    if (to_error)
+        g_warning ("Failed to set encoding on to greeter channel to binary: %s\n", to_error->message);
     greeter->priv->from_greeter_output = from_greeter_fd;
     greeter->priv->from_greeter_channel = g_io_channel_unix_new (greeter->priv->from_greeter_output);
-    g_io_channel_set_encoding (greeter->priv->from_greeter_channel, NULL, &error);
-    if (error)
-        g_warning ("Failed to set encoding on from greeter channel to binary: %s\n", error->message);
-    g_clear_error (&error);
+    g_io_channel_set_encoding (greeter->priv->from_greeter_channel, NULL, &from_error);
+    if (from_error)
+        g_warning ("Failed to set encoding on from greeter channel to binary: %s\n", from_error->message);
     g_io_channel_set_buffered (greeter->priv->from_greeter_channel, FALSE);
     greeter->priv->from_greeter_watch = g_io_add_watch (greeter->priv->from_greeter_channel, G_IO_IN | G_IO_HUP, read_cb, greeter);
 }
@@ -213,6 +212,16 @@ secure_free (Greeter *greeter, void *ptr)
         return g_free (ptr);
 }
 
+static void
+secure_freev (Greeter *greeter, gchar **v)
+{
+    int i;
+
+    for (i = 0; v[i]; i++)
+        secure_free (greeter, v[i]);
+    g_free (v);
+}
+
 static guint32
 int_length (void)
 {
@@ -227,7 +236,7 @@ write_message (Greeter *greeter, guint8 *message, gsize message_length)
 {
     gchar *data;
     gsize data_length;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     data = (gchar *) message;
     data_length = message_length;
@@ -239,7 +248,6 @@ write_message (Greeter *greeter, guint8 *message, gsize message_length)
         status = g_io_channel_write_chars (greeter->priv->to_greeter_channel, data, data_length, &n_written, &error);
         if (error)
             g_warning ("Error writing to greeter: %s", error->message);
-        g_clear_error (&error);
         if (status != G_IO_STATUS_NORMAL)
             return;
         data_length -= n_written;
@@ -249,7 +257,6 @@ write_message (Greeter *greeter, guint8 *message, gsize message_length)
     g_io_channel_flush (greeter->priv->to_greeter_channel, &error);
     if (error)
         g_warning ("Failed to flush data to greeter: %s", error->message);
-    g_clear_error (&error);
 }
 
 static void
@@ -550,11 +557,13 @@ handle_authenticate_as_guest (Greeter *greeter, guint32 sequence_number)
 static gchar *
 get_remote_session_service (const gchar *session_name)
 {
-    GKeyFile *session_desktop_file;
+    g_autoptr(GKeyFile) session_desktop_file = NULL;
     gboolean result;
     const gchar *c;
-    gchar *remote_sessions_dir, *filename, *path, *service = NULL;
-    GError *error = NULL;
+    g_autofree gchar *remote_sessions_dir = NULL;
+    g_autofree gchar *filename = NULL;
+    g_autofree gchar *path = NULL;
+    g_autoptr(GError) error = NULL;
 
     /* Validate session name doesn't contain directory separators */
     for (c = session_name; *c; c++)
@@ -568,24 +577,19 @@ get_remote_session_service (const gchar *session_name)
     filename = g_strdup_printf ("%s.desktop", session_name);
     remote_sessions_dir = config_get_string (config_get_instance (), "LightDM", "remote-sessions-directory");
     path = g_build_filename (remote_sessions_dir, filename, NULL);
-    g_free (remote_sessions_dir);
-    g_free (filename);
     result = g_key_file_load_from_file (session_desktop_file, path, G_KEY_FILE_NONE, &error);
     if (error)
         g_debug ("Failed to load session file %s: %s", path, error->message);
-    g_free (path);
-    g_clear_error (&error);
-    if (result)
-        service = g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-PAM-Service", NULL);
-    g_key_file_free (session_desktop_file);
+    if (!result)
+        return NULL;
 
-    return service;
+    return g_key_file_get_string (session_desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-PAM-Service", NULL);
 }
 
 static void
 handle_authenticate_remote (Greeter *greeter, const gchar *session_name, const gchar *username, guint32 sequence_number)
 {
-    gchar *service;
+    g_autofree gchar *service = NULL;
 
     if (username[0] == '\0')
     {
@@ -620,8 +624,6 @@ handle_authenticate_remote (Greeter *greeter, const gchar *session_name, const g
         session_set_is_guest (greeter->priv->authentication_session, TRUE);
         session_start (greeter->priv->authentication_session);
     }
-
-    g_free (service);
 
     if (!greeter->priv->authentication_session)
     {
@@ -756,7 +758,7 @@ handle_set_language (Greeter *greeter, const gchar *language)
 static void
 handle_ensure_shared_dir (Greeter *greeter, const gchar *username)
 {
-    gchar *dir;
+    g_autofree gchar *dir = NULL;
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
 
@@ -767,8 +769,6 @@ handle_ensure_shared_dir (Greeter *greeter, const gchar *username)
     write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_SHARED_DIR_RESULT, string_length (dir), &offset);
     write_string (message, MAX_MESSAGE_LENGTH, dir, &offset);
     write_message (greeter, message, offset);
-
-    g_free (dir);
 }
 
 static guint32
@@ -849,11 +849,14 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     GIOStatus status;
     int id, length, i;
     guint32 sequence_number, n_secrets, max_secrets;
-    gchar *version, *username, *session_name, *language;
+    g_autofree gchar *version = NULL;
+    g_autofree gchar *username = NULL;
+    g_autofree gchar *session_name = NULL;
+    g_autofree gchar *language = NULL;
     gchar **secrets;
     gboolean resettable = FALSE;
     guint32 api_version = 0;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     if (condition == G_IO_HUP)
     {
@@ -881,7 +884,6 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
                                       &error);
     if (error)
         g_warning ("Error reading from greeter: %s", error->message);
-    g_clear_error (&error);
     if (status == G_IO_STATUS_EOF)
     {
         g_debug ("Greeter closed communication channel");
@@ -920,13 +922,11 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         if (offset < length)
             api_version = read_int (greeter, &offset);
         handle_connect (greeter, version, resettable, api_version);
-        g_free (version);
         break;
     case GREETER_MESSAGE_AUTHENTICATE:
         sequence_number = read_int (greeter, &offset);
         username = read_string (greeter, &offset);
         handle_authenticate (greeter, sequence_number, username);
-        g_free (username);
         break;
     case GREETER_MESSAGE_AUTHENTICATE_AS_GUEST:
         sequence_number = read_int (greeter, &offset);
@@ -952,9 +952,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
             secrets[i] = read_secret (greeter, &offset);
         secrets[i] = NULL;
         handle_continue_authentication (greeter, secrets);
-        for (i = 0; i < n_secrets; i++)
-            secure_free (greeter, secrets[i]);
-        g_free (secrets);
+        secure_freev (greeter, secrets);
         break;
     case GREETER_MESSAGE_CANCEL_AUTHENTICATION:
         handle_cancel_authentication (greeter);
@@ -962,17 +960,14 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     case GREETER_MESSAGE_START_SESSION:
         session_name = read_string (greeter, &offset);
         handle_start_session (greeter, session_name);
-        g_free (session_name);
         break;
     case GREETER_MESSAGE_SET_LANGUAGE:
         language = read_string (greeter, &offset);
         handle_set_language (greeter, language);
-        g_free (language);
         break;
     case GREETER_MESSAGE_ENSURE_SHARED_DIR:
         username = read_string (greeter, &offset);
         handle_ensure_shared_dir (greeter, username);
-        g_free (username);
         break;
     default:
         g_warning ("Unknown message from greeter: %d", id);
@@ -1055,12 +1050,12 @@ greeter_finalize (GObject *object)
 {
     Greeter *self = GREETER (object);
 
-    g_free (self->priv->pam_service);
-    g_free (self->priv->autologin_pam_service);
+    g_clear_pointer (&self->priv->pam_service, g_free);
+    g_clear_pointer (&self->priv->autologin_pam_service, g_free);
     secure_free (self, self->priv->read_buffer);
     g_hash_table_unref (self->priv->hints);
-    g_free (self->priv->remote_session);
-    g_free (self->priv->active_username);
+    g_clear_pointer (&self->priv->remote_session, g_free);
+    g_clear_pointer (&self->priv->active_username, g_free);
     if (self->priv->authentication_session)
     {
         g_signal_handlers_disconnect_matched (self->priv->authentication_session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);

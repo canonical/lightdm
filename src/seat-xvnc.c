@@ -37,8 +37,8 @@ static DisplayServer *
 seat_xvnc_create_display_server (Seat *seat, Session *session)
 {
     XServerXVNC *x_server;
-    gchar *number;
-    XAuthority *cookie;
+    g_autofree gchar *number = NULL;
+    g_autoptr(XAuthority) cookie = NULL;
     const gchar *command = NULL;
 
     if (strcmp (session_get_session_type (session), "x") != 0)
@@ -48,8 +48,6 @@ seat_xvnc_create_display_server (Seat *seat, Session *session)
     number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (x_server)));
     cookie = x_authority_new_local_cookie (number);
     x_server_set_authority (X_SERVER (x_server), cookie);
-    g_free (number);
-    g_object_unref (cookie);
     x_server_xvnc_set_socket (x_server, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
 
     command = config_get_string (config_get_instance (), "VNCServer", "command");
@@ -81,7 +79,7 @@ seat_xvnc_run_script (Seat *seat, DisplayServer *display_server, Process *script
 {
     XServerXVNC *x_server;
     GInetSocketAddress *address;
-    gchar *hostname;
+    g_autofree gchar *hostname = NULL;
     const gchar *path;
 
     x_server = X_SERVER_XVNC (display_server);
@@ -93,8 +91,6 @@ seat_xvnc_run_script (Seat *seat, DisplayServer *display_server, Process *script
     process_set_env (script, "REMOTE_HOST", hostname);
     process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
     process_set_env (script, "XAUTHORITY", path);
-
-    g_free (hostname);
 
     SEAT_CLASS (seat_xvnc_parent_class)->run_script (seat, display_server, script);
 }

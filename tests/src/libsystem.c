@@ -107,7 +107,7 @@ int
 getgroups (int size, gid_t list[])
 {
     const gchar *group_list;
-    gchar **groups;
+    g_auto(GStrv) groups = NULL;
     gint groups_length;
 
     /* Get groups we are a member of */
@@ -129,7 +129,6 @@ getgroups (int size, gid_t list[])
         for (i = 0; groups[i]; i++)
             list[i] = atoi (groups[i]);
     }
-    g_free (groups);
 
     return groups_length;
 }
@@ -138,7 +137,7 @@ int
 setgroups (size_t size, const gid_t *list)
 {
     size_t i;
-    GString *group_list;
+    g_autoptr(GString) group_list = NULL;
 
     group_list = g_string_new ("");
     for (i = 0; i < size; i++)
@@ -148,7 +147,6 @@ setgroups (size_t size, const gid_t *list)
         g_string_append_printf (group_list, "%d", list[i]);
     }
     g_setenv ("LIGHTDM_TEST_GROUPS", group_list->str, TRUE);
-    g_string_free (group_list, TRUE);
 
     return 0;
 }
@@ -229,7 +227,7 @@ static int
 open_wrapper (const char *func, const char *pathname, int flags, mode_t mode)
 {
     int (*_open) (const char *pathname, int flags, mode_t mode);
-    gchar *new_path = NULL;
+    g_autofree gchar *new_path = NULL;
     int fd;
 
     _open = (int (*)(const char *pathname, int flags, mode_t mode)) dlsym (RTLD_NEXT, func);
@@ -246,7 +244,6 @@ open_wrapper (const char *func, const char *pathname, int flags, mode_t mode)
 
     new_path = redirect_path (pathname);
     fd = _open (new_path, flags, mode);
-    g_free (new_path);
 
     return fd;
 }
@@ -283,14 +280,13 @@ FILE *
 fopen (const char *path, const char *mode)
 {
     FILE *(*_fopen) (const char *pathname, const char *mode);
-    gchar *new_path = NULL;
+    g_autofree gchar *new_path = NULL;
     FILE *result;
 
     _fopen = (FILE *(*)(const char *pathname, const char *mode)) dlsym (RTLD_NEXT, "fopen");
 
     new_path = redirect_path (path);
     result = _fopen (new_path, mode);
-    g_free (new_path);
 
     return result;
 }
@@ -299,14 +295,13 @@ int
 unlinkat (int dirfd, const char *pathname, int flags)
 {
     int (*_unlinkat) (int dirfd, const char *pathname, int flags);
-    gchar *new_path = NULL;
+    g_autofree gchar *new_path = NULL;
     int result;
 
     _unlinkat = (int (*)(int dirfd, const char *pathname, int flags)) dlsym (RTLD_NEXT, "unlinkat");
 
     new_path = redirect_path (pathname);
     result = _unlinkat (dirfd, new_path, flags);
-    g_free (new_path);
 
     return result;
 }
@@ -315,14 +310,13 @@ int
 creat (const char *pathname, mode_t mode)
 {
     int (*_creat) (const char *pathname, mode_t mode);
-    gchar *new_path = NULL;
+    g_autofree gchar *new_path = NULL;
     int result;
 
     _creat = (int (*)(const char *pathname, mode_t mode)) dlsym (RTLD_NEXT, "creat");
 
     new_path = redirect_path (pathname);
     result = _creat (new_path, mode);
-    g_free (new_path);
 
     return result;
 }
@@ -331,14 +325,13 @@ int
 creat64 (const char *pathname, mode_t mode)
 {
     int (*_creat64) (const char *pathname, mode_t mode);
-    gchar *new_path = NULL;
+    g_autofree gchar *new_path = NULL;
     int result;
 
     _creat64 = (int (*)(const char *pathname, mode_t mode)) dlsym (RTLD_NEXT, "creat64");
 
     new_path = redirect_path (pathname);
     result = _creat64 (new_path, mode);
-    g_free (new_path);
 
     return result;
 }
@@ -347,8 +340,7 @@ int
 access (const char *pathname, int mode)
 {
     int (*_access) (const char *pathname, int mode);
-    gchar *new_path = NULL;
-    int ret;
+    g_autofree gchar *new_path = NULL;
 
     _access = (int (*)(const char *pathname, int mode)) dlsym (RTLD_NEXT, "access");
 
@@ -358,138 +350,103 @@ access (const char *pathname, int mode)
         return F_OK;
 
     new_path = redirect_path (pathname);
-    ret = _access (new_path, mode);
-    g_free (new_path);
-
-    return ret;
+    return _access (new_path, mode);
 }
 
 int
 stat (const char *path, struct stat *buf)
 {
     int (*_stat) (const char *path, struct stat *buf);
-    gchar *new_path = NULL;
-    int ret;
+    g_autofree gchar *new_path = NULL;
 
     _stat = (int (*)(const char *path, struct stat *buf)) dlsym (RTLD_NEXT, "stat");
 
     new_path = redirect_path (path);
-    ret = _stat (new_path, buf);
-    g_free (new_path);
-
-    return ret;
+    return _stat (new_path, buf);
 }
 
 int
 stat64 (const char *path, struct stat64 *buf)
 {
     int (*_stat64) (const char *path, struct stat64 *buf);
-    gchar *new_path = NULL;
-    int ret;
+    g_autofree gchar *new_path = NULL;
 
     _stat64 = (int (*)(const char *path, struct stat64 *buf)) dlsym (RTLD_NEXT, "stat64");
 
     new_path = redirect_path (path);
-    ret = _stat64 (new_path, buf);
-    g_free (new_path);
-
-    return ret;
+    return _stat64 (new_path, buf);
 }
 
 int
 __xstat (int version, const char *path, struct stat *buf)
 {
     int (*___xstat) (int version, const char *path, struct stat *buf);
-    gchar *new_path = NULL;
-    int ret;
+    g_autofree gchar *new_path = NULL;
 
     ___xstat = (int (*)(int version, const char *path, struct stat *buf)) dlsym (RTLD_NEXT, "__xstat");
 
     new_path = redirect_path (path);
-    ret = ___xstat (version, new_path, buf);
-    g_free (new_path);
-
-    return ret;
+    return ___xstat (version, new_path, buf);
 }
 
 int
 __xstat64 (int version, const char *path, struct stat64 *buf)
 {
     int (*___xstat64) (int version, const char *path, struct stat64 *buf);
-    gchar *new_path = NULL;
-    int ret;
+    g_autofree gchar *new_path = NULL;
 
     ___xstat64 = (int (*)(int version, const char *path, struct stat64 *buf)) dlsym (RTLD_NEXT, "__xstat64");
 
     new_path = redirect_path (path);
-    ret = ___xstat64 (version, new_path, buf);
-    g_free (new_path);
-
-    return ret;
+    return ___xstat64 (version, new_path, buf);
 }
 
 int
 __fxstatat(int ver, int dirfd, const char *pathname, struct stat *buf, int flags)
 {
     int (*___fxstatat) (int ver, int dirfd, const char *pathname, struct stat *buf, int flags);
-    gchar *new_path = NULL;
-    int ret;
+    g_autofree gchar *new_path = NULL;
 
     ___fxstatat = (int (*)(int ver, int dirfd, const char *pathname, struct stat *buf, int flags)) dlsym (RTLD_NEXT, "__fxstatat");
 
     new_path = redirect_path (pathname);
-    ret = ___fxstatat (ver, dirfd, new_path, buf, flags);
-    g_free (new_path);
-
-    return ret;
+    return ___fxstatat (ver, dirfd, new_path, buf, flags);
 }
 
 int
 __fxstatat64(int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags)
 {
     int (*___fxstatat64) (int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags);
-    gchar *new_path = NULL;
-    int ret;
+    g_autofree gchar *new_path = NULL;
 
     ___fxstatat64 = (int (*)(int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags)) dlsym (RTLD_NEXT, "__fxstatat64");
 
     new_path = redirect_path (pathname);
-    ret = ___fxstatat64 (ver, dirfd, new_path, buf, flags);
-    g_free (new_path);
-
-    return ret;
+    return ___fxstatat64 (ver, dirfd, new_path, buf, flags);
 }
 
 DIR *
 opendir (const char *name)
 {
     DIR *(*_opendir) (const char *name);
-    gchar *new_path = NULL;
-    DIR *result;
+    g_autofree gchar *new_path = NULL;
 
     _opendir = (DIR *(*)(const char *name)) dlsym (RTLD_NEXT, "opendir");
 
     new_path = redirect_path (name);
-    result = _opendir (new_path);
-    g_free (new_path);
-
-    return result;
+    return _opendir (new_path);
 }
 
 int
 mkdir (const char *pathname, mode_t mode)
 {
     int (*_mkdir) (const char *pathname, mode_t mode);
-    gchar *new_path = NULL;
-    int result;
+    g_autofree gchar *new_path = NULL;
 
     _mkdir = (int (*)(const char *pathname, mode_t mode)) dlsym (RTLD_NEXT, "mkdir");
 
     new_path = redirect_path (pathname);
-    result = _mkdir (new_path, mode);
-    g_free (new_path);
-
-    return result;
+    return _mkdir (new_path, mode);
 }
 
 int
@@ -503,16 +460,12 @@ int
 chmod (const char *path, mode_t mode)
 {
     int (*_chmod) (const char *path, mode_t mode);
-    gchar *new_path = NULL;
-    int result;
+    g_autofree gchar *new_path = NULL;
 
     _chmod = (int (*)(const char *path, mode_t mode)) dlsym (RTLD_NEXT, "chmod");
 
     new_path = redirect_path (path);
-    result = _chmod (new_path, mode);
-    g_free (new_path);
-
-    return result;
+    return _chmod (new_path, mode);
 }
 
 int
@@ -566,8 +519,10 @@ ioctl (int d, unsigned long request, ...)
 static void
 add_port_redirect (int requested_port, int redirected_port)
 {
-    GKeyFile *file;
-    gchar *path, *name, *data;
+    g_autoptr(GKeyFile) file = NULL;
+    g_autofree gchar *path = NULL;
+    g_autofree gchar *name = NULL;
+    g_autofree gchar *data = NULL;
 
     file = g_key_file_new ();
     path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".port-redirects", NULL);
@@ -575,32 +530,25 @@ add_port_redirect (int requested_port, int redirected_port)
 
     name = g_strdup_printf ("%d", requested_port);
     g_key_file_set_integer (file, name, "redirected", redirected_port);
-    g_free (name);
   
     data = g_key_file_to_data (file, NULL, NULL);
     g_file_set_contents (path, data, -1, NULL);
-    g_free (data);
-    g_free (path);
-
-    g_key_file_free (file);
 }
 
 static int
 find_port_redirect (int port)
 {
-    GKeyFile *file;
-    gchar *path, *name;
+    g_autoptr(GKeyFile) file = NULL;
+    g_autofree gchar *path = NULL;
+    g_autofree gchar *name = NULL;
     int redirected_port;
 
     file = g_key_file_new ();
     path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".port-redirects", NULL);
     g_key_file_load_from_file (file, path, G_KEY_FILE_NONE, NULL);
-    g_free (path);
 
     name = g_strdup_printf ("%d", port);
     redirected_port = g_key_file_get_integer (file, name, "redirected", NULL);
-    g_free (name);
-    g_key_file_free (file);
 
     return redirected_port;
 }
@@ -625,10 +573,9 @@ bind (int sockfd, const struct sockaddr *addr, socklen_t addrlen)
         path = ((const struct sockaddr_un *) addr)->sun_path;
         if (path[0] != '\0')
         {
-            gchar *new_path = redirect_path (path);
+            g_autofree gchar *new_path = redirect_path (path);
             memcpy (&temp_addr_un, addr, sizeof (struct sockaddr_un));
             strncpy (temp_addr_un.sun_path, new_path, sizeof (temp_addr_un.sun_path) - 1);
-            g_free (new_path);
             modified_addr = (struct sockaddr *) &temp_addr_un;
         }
         break;
@@ -703,10 +650,9 @@ connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen)
         path = ((const struct sockaddr_un *) addr)->sun_path;
         if (path[0] != '\0') 
         {
-            gchar *new_path = redirect_path (path);
+            g_autofree gchar *new_path = redirect_path (path);
             memcpy (&temp_addr_un, addr, addrlen);
             strncpy (temp_addr_un.sun_path, new_path, sizeof (temp_addr_un.sun_path) - 1);
-            g_free (new_path);
             modified_addr = (struct sockaddr *) &temp_addr_un;
         }
         break;
@@ -754,10 +700,9 @@ sendto (int sockfd, const void *buf, size_t len, int flags, const struct sockadd
         path = ((const struct sockaddr_un *) dest_addr)->sun_path;
         if (path[0] != '\0') 
         {
-            gchar *new_path = redirect_path (path);
+            g_autofree gchar *new_path = redirect_path (path);
             memcpy (&temp_addr_un, dest_addr, sizeof (struct sockaddr_un));
             strncpy (temp_addr_un.sun_path, new_path, sizeof (temp_addr_un.sun_path) - 1);
-            g_free (new_path);
             modified_addr = (struct sockaddr *) &temp_addr_un;
         }
         break;
@@ -815,30 +760,29 @@ free_user (gpointer data)
 static void
 load_passwd_file (void)
 {
-    gchar *path, *data = NULL, **lines;
+    g_autofree gchar *path = NULL;
+    g_autofree gchar *data = NULL;
+    g_auto(GStrv) lines = NULL;
     gint i;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     g_list_free_full (user_entries, free_user);
     user_entries = NULL;
     getpwent_link = NULL;
 
     path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "passwd", NULL);
-    g_file_get_contents (path, &data, NULL, &error);
-    g_free (path);
-    if (error)
+    if (!g_file_get_contents (path, &data, NULL, &error))
+    {
         g_warning ("Error loading passwd file: %s", error->message);
-    g_clear_error (&error);
-
-    if (!data)
         return;
+    }
 
     lines = g_strsplit (data, "\n", -1);
-    g_free (data);
 
     for (i = 0; lines[i]; i++)
     {
-        gchar *line, **fields;
+        const gchar *line;
+        g_auto(GStrv) fields = NULL;
 
         line = g_strstrip (lines[i]);
         fields = g_strsplit (line, ":", -1);
@@ -855,9 +799,7 @@ load_passwd_file (void)
             entry->pw_shell = g_strdup (fields[6]);
             user_entries = g_list_append (user_entries, entry);
         }
-        g_strfreev (fields);
     }
-    g_strfreev (lines);
 }
 
 struct passwd *
@@ -944,29 +886,28 @@ free_group (gpointer data)
 static void
 load_group_file (void)
 {
-    gchar *path, *data = NULL, **lines;
+    g_autofree gchar *path = NULL;
+    g_autofree gchar *data = NULL;
+    g_auto(GStrv) lines = NULL;
     gint i;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     g_list_free_full (group_entries, free_group);
     group_entries = NULL;
 
     path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "etc", "group", NULL);
-    g_file_get_contents (path, &data, NULL, &error);
-    g_free (path);
-    if (error)
+    if (!g_file_get_contents (path, &data, NULL, &error))
+    {
         g_warning ("Error loading group file: %s", error->message);
-    g_clear_error (&error);
-
-    if (!data)
         return;
+    }
 
     lines = g_strsplit (data, "\n", -1);
-    g_free (data);
 
     for (i = 0; lines[i]; i++)
     {
-        gchar *line, **fields;
+        const gchar *line;
+        g_auto(GStrv) fields = NULL;
 
         line = g_strstrip (lines[i]);
         fields = g_strsplit (line, ":", -1);
@@ -980,9 +921,7 @@ load_group_file (void)
             entry->gr_mem = g_strsplit (fields[3], ",", -1);
             group_entries = g_list_append (group_entries, entry);
         }
-        g_strfreev (fields);
     }
-    g_strfreev (lines);
 }
 
 struct group *
@@ -1040,7 +979,7 @@ pam_start (const char *service_name, const char *user, const struct pam_conv *co
     connect_status ();
     if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
     {
-        GString *status;
+        g_autoptr(GString) status = NULL;
 
         status = g_string_new ("");
         g_string_append_printf (status, "%s START", handle->id);
@@ -1048,7 +987,6 @@ pam_start (const char *service_name, const char *user, const struct pam_conv *co
         if (user)
             g_string_append_printf (status, " USER=%s", user);
         status_notify ("%s", status->str);
-        g_string_free (status, TRUE);
     }
 
     handle->service_name = strdup (service_name);
@@ -1073,7 +1011,7 @@ pam_authenticate (pam_handle_t *pamh, int flags)
     connect_status ();
     if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
     {
-        GString *status;
+        g_autoptr(GString) status = NULL;
 
         status = g_string_new ("");
         g_string_append_printf (status, "%s AUTHENTICATE", pamh->id);
@@ -1083,7 +1021,6 @@ pam_authenticate (pam_handle_t *pamh, int flags)
             g_string_append (status, " DISALLOW_NULL_AUTHTOK");
 
         status_notify ("%s", status->str);
-        g_string_free (status, TRUE);
     }
 
     if (strcmp (pamh->service_name, "test-remote") == 0)
@@ -1437,13 +1374,13 @@ pam_get_item (const pam_handle_t *pamh, int item_type, const void **item)
 int
 pam_open_session (pam_handle_t *pamh, int flags)
 {
-    GVariant *result;
-    GError *error = NULL;
+    g_autoptr(GVariant) result = NULL;
+    g_autoptr(GError) error = NULL;
 
     connect_status ();
     if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
     {
-        GString *status;
+        g_autoptr(GString) status = NULL;
 
         status = g_string_new ("");
         g_string_append_printf (status, "%s OPEN-SESSION", pamh->id);
@@ -1451,7 +1388,6 @@ pam_open_session (pam_handle_t *pamh, int flags)
             g_string_append (status, " SILENT");
 
         status_notify ("%s", status->str);
-        g_string_free (status, TRUE);
     }
 
     if (strcmp (pamh->user, "session-error") == 0)
@@ -1478,18 +1414,15 @@ pam_open_session (pam_handle_t *pamh, int flags)
                                           &error);
     if (result)
     {
-        gchar *e;
+        g_autofree gchar *e = NULL;
         const gchar *id;
 
         g_variant_get (result, "(&so)", &id, NULL);
         e = g_strdup_printf ("XDG_SESSION_ID=%s", id);
         pam_putenv (pamh, e);
-        g_free (e);
-        g_variant_unref (result);
     }
     else
         g_printerr ("Failed to create logind session: %s\n", error->message);
-    g_clear_error (&error);
 
     return PAM_SUCCESS;
 }
@@ -1500,7 +1433,7 @@ pam_close_session (pam_handle_t *pamh, int flags)
     connect_status ();
     if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
     {
-        GString *status;
+        g_autoptr(GString) status = NULL;
 
         status = g_string_new ("");
         g_string_append_printf (status, "%s CLOSE-SESSION", pamh->id);
@@ -1508,7 +1441,6 @@ pam_close_session (pam_handle_t *pamh, int flags)
             g_string_append (status, " SILENT");
 
         status_notify ("%s", status->str);
-        g_string_free (status, TRUE);
     }
 
     return PAM_SUCCESS;
@@ -1520,7 +1452,7 @@ pam_acct_mgmt (pam_handle_t *pamh, int flags)
     connect_status ();
     if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
     {
-        GString *status;
+        g_autoptr(GString) status = NULL;
 
         status = g_string_new ("");
         g_string_append_printf (status, "%s ACCT-MGMT", pamh->id);
@@ -1530,7 +1462,6 @@ pam_acct_mgmt (pam_handle_t *pamh, int flags)
             g_string_append (status, " DISALLOW_NULL_AUTHTOK");
 
         status_notify ("%s", status->str);
-        g_string_free (status, TRUE);
     }
 
     if (!pamh->user)
@@ -1557,7 +1488,7 @@ pam_chauthtok (pam_handle_t *pamh, int flags)
     connect_status ();
     if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
     {
-        GString *status;
+        g_autoptr(GString) status = NULL;
 
         status = g_string_new ("");
         g_string_append_printf (status, "%s CHAUTHTOK", pamh->id);
@@ -1567,7 +1498,6 @@ pam_chauthtok (pam_handle_t *pamh, int flags)
             g_string_append (status, " CHANGE_EXPIRED_AUTHTOK");
 
         status_notify ("%s", status->str);
-        g_string_free (status, TRUE);
     }
 
     msg = malloc (sizeof (struct pam_message *) * 1);
@@ -1603,12 +1533,12 @@ pam_chauthtok (pam_handle_t *pamh, int flags)
 int
 pam_setcred (pam_handle_t *pamh, int flags)
 {
-    gchar *e;
+    g_autofree gchar *e = NULL;
 
     connect_status ();
     if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
     {
-        GString *status;
+        g_autoptr(GString) status = NULL;
 
         status = g_string_new ("");
         g_string_append_printf (status, "%s SETCRED", pamh->id);
@@ -1624,13 +1554,11 @@ pam_setcred (pam_handle_t *pamh, int flags)
             g_string_append (status, " REFRESH_CRED");
 
         status_notify ("%s", status->str);
-        g_string_free (status, TRUE);
     }
 
     /* Put the test directories into the path */
     e = g_strdup_printf ("PATH=%s/tests/src/.libs:%s/tests/src:%s/tests/src:%s/src:%s", BUILDDIR, BUILDDIR, SRCDIR, BUILDDIR, pam_getenv (pamh, "PATH"));
     pam_putenv (pamh, e);
-    g_free (e);
 
     if (strcmp (pamh->user, "cred-error") == 0)
         return PAM_CRED_ERR;
@@ -1675,12 +1603,11 @@ pam_end (pam_handle_t *pamh, int pam_status)
     connect_status ();
     if (g_key_file_get_boolean (config, "test-pam", "log-events", NULL))
     {
-        GString *status;
+        g_autoptr(GString) status = NULL;
 
         status = g_string_new ("");
         g_string_append_printf (status, "%s END", pamh->id);
         status_notify ("%s", status->str);
-        g_string_free (status, TRUE);
     }
 
     free (pamh->id);
@@ -1786,7 +1713,7 @@ pututxline (const struct utmpx *ut)
     connect_status ();
     if (g_key_file_get_boolean (config, "test-utmp-config", "check-events", NULL))
     {
-        GString *status;
+        g_autoptr(GString) status = NULL;
 
         status = g_string_new ("UTMP");
         switch (ut->ut_type)
@@ -1815,7 +1742,6 @@ pututxline (const struct utmpx *ut)
         if (ut->ut_host)
             g_string_append_printf (status, " HOST=%s", ut->ut_host);
         status_notify ("%s", status->str);
-        g_string_free (status, TRUE);
     }
 
     return (struct utmpx *)ut;
@@ -1832,7 +1758,7 @@ updwtmp (const char *wtmp_file, const struct utmp *ut)
     connect_status ();
     if (g_key_file_get_boolean (config, "test-utmp-config", "check-events", NULL))
     {
-        GString *status;
+        g_autoptr(GString) status = NULL;
 
         status = g_string_new ("WTMP");
         g_string_append_printf (status, " FILE=%s", wtmp_file);
@@ -1862,7 +1788,6 @@ updwtmp (const char *wtmp_file, const struct utmp *ut)
         if (ut->ut_host)
             g_string_append_printf (status, " HOST=%s", ut->ut_host);
         status_notify ("%s", status->str);
-        g_string_free (status, TRUE);
     }
 }
 
@@ -1877,8 +1802,6 @@ xcb_connection_t *
 xcb_connect_to_display_with_auth_info (const char *display, xcb_auth_info_t *auth, int *screen)
 {
     xcb_connection_t *c;
-    gchar *socket_path;
-    GError *error = NULL;
 
     c = malloc (sizeof (xcb_connection_t));
     c->display = g_strdup (display);
@@ -1891,32 +1814,32 @@ xcb_connect_to_display_with_auth_info (const char *display, xcb_auth_info_t *aut
 
     if (c->error == 0)
     {
+        g_autoptr(GError) error = NULL;
+
         c->socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
-        if (error)
-            g_printerr ("%s\n", error->message);
-        g_clear_error (&error);
         if (c->socket == NULL)
+        {
+            g_printerr ("%s\n", error->message);
             c->error = XCB_CONN_ERROR;
+        }
     }
 
     if (c->error == 0)
     {
-        gchar *d;
-        GSocketAddress *address;
+        g_autofree gchar *d = NULL;
+        g_autofree gchar *socket_path = NULL;
+        g_autoptr(GSocketAddress) address = NULL;
+        g_autoptr(GError) error = NULL;
 
         /* Skip the hostname, we'll assume it's localhost */
         d = g_strdup_printf (".x%s", strchr (display, ':'));
-
         socket_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), d, NULL);
-        g_free (d);
         address = g_unix_socket_address_new (socket_path);
         if (!g_socket_connect (c->socket, address, NULL, &error))
-            c->error = XCB_CONN_ERROR;
-        g_object_unref (address);
-        if (error)
+        {
             g_printerr ("Failed to connect to X socket %s: %s\n", socket_path, error->message);
-        g_free (socket_path);
-        g_clear_error (&error);
+            c->error = XCB_CONN_ERROR;
+        }
     }
 
     // FIXME: Send auth info
@@ -1964,7 +1887,7 @@ audit_log_acct_message (int audit_fd, int type, const char *pgname,
                         const char *op, const char *name, unsigned int id,
                         const char *host, const char *addr, const char *tty, int result)
 {
-    gchar *type_string;
+    g_autofree gchar *type_string = NULL;
 
     connect_status ();  
     if (!g_key_file_get_boolean (config, "test-audit-config", "check-events", NULL))
@@ -1985,8 +1908,6 @@ audit_log_acct_message (int audit_fd, int type, const char *pgname,
   
     status_notify ("AUDIT LOG-ACCT TYPE=%s PGNAME=%s OP=%s NAME=%s ID=%u HOST=%s ADDR=%s TTY=%s RESULT=%d",
                    type_string, pgname ? pgname : "", op ? op : "", name ? name : "", id, host ? host : "", addr ? addr : "", tty ? tty : "", result);
-
-    g_free (type_string);
 
     return 1;
 }

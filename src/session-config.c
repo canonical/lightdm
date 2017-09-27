@@ -113,9 +113,9 @@ session_config_finalize (GObject *object)
 {
     SessionConfig *self = SESSION_CONFIG (object);
 
-    g_free (self->priv->session_type);
-    g_strfreev (self->priv->desktop_names);
-    g_free (self->priv->command);
+    g_clear_pointer (&self->priv->session_type, g_free);
+    g_clear_pointer (&self->priv->desktop_names, g_strfreev);
+    g_clear_pointer (&self->priv->command, g_free);
 
     G_OBJECT_CLASS (session_config_parent_class)->finalize (object);
 }

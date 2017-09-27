@@ -258,7 +258,7 @@ session_child_run (int argc, char **argv)
     int i, version, fd, result;
     gboolean auth_complete = TRUE;
     User *user = NULL;
-    gchar *log_filename;
+    g_autofree gchar *log_filename = NULL;
     LogMode log_mode = LOG_MODE_BACKUP_AND_TRUNCATE;
     gsize env_length;
     gsize command_argc;
@@ -278,7 +278,6 @@ session_child_run (int argc, char **argv)
     const gchar *login1_session_id = NULL;
     gchar *console_kit_cookie = NULL;
     const gchar *locale_value;
-    gchar *locale_var;
     static const gchar * const locale_var_names[] = {
         "LC_PAPER",
         "LC_NAME",
@@ -299,7 +298,7 @@ session_child_run (int argc, char **argv)
     gid_t gid;
     uid_t uid;
     const gchar *home_directory;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
@@ -460,9 +459,8 @@ session_child_run (int argc, char **argv)
             {
                 if ((locale_value = g_getenv (locale_var_names[i])) != NULL)
                 {
-                    locale_var = g_strdup_printf ("%s=%s", locale_var_names[i], locale_value);
+                    g_autofree gchar *locale_var = g_strdup_printf ("%s=%s", locale_var_names[i], locale_value);
                     pam_putenv (pam_handle, locale_var);
-                    g_free (locale_var);
                 }
             }
         }
@@ -505,8 +503,7 @@ session_child_run (int argc, char **argv)
     {
         g_free (xdisplay);
         xdisplay = read_string ();
-        if (x_authority)
-            g_object_unref (x_authority);
+        g_clear_object (&x_authority);
         x_authority = read_xauth ();
     }
     read_data (&env_length, sizeof (env_length));
@@ -534,8 +531,7 @@ session_child_run (int argc, char **argv)
             fd = log_file_open (log_filename, log_mode);
             dup2 (fd, STDERR_FILENO);
             close (fd);
-            g_free (log_filename);
-            log_filename = NULL;
+            g_clear_pointer (&log_filename, g_free);
         }
     }
     else
@@ -617,20 +613,16 @@ session_child_run (int argc, char **argv)
         write_string (console_kit_cookie);
         if (console_kit_cookie)
         {
-            gchar *value;
-            gchar *runtime_dir;
+            g_autofree gchar *value = NULL;
+            g_autofree gchar *runtime_dir = NULL;
             value = g_strdup_printf ("XDG_SESSION_COOKIE=%s", console_kit_cookie);
             pam_putenv (pam_handle, value);
-            g_free (value);
 
             runtime_dir = ck_get_xdg_runtime_dir (console_kit_cookie);
             if (runtime_dir)
             {
-                gchar *value;
-                value = g_strdup_printf ("XDG_RUNTIME_DIR=%s", runtime_dir);
-                pam_putenv (pam_handle, value);
-                g_free (value);
-                g_free (runtime_dir);
+                g_autofree gchar *v = g_strdup_printf ("XDG_RUNTIME_DIR=%s", runtime_dir);
+                pam_putenv (pam_handle, v);
             }
         }
     }
@@ -639,8 +631,8 @@ session_child_run (int argc, char **argv)
     if (x_authority)
     {
         gboolean drop_privileges, result;
-        gchar *value;
-        GError *error = NULL;
+        g_autofree gchar *value = NULL;
+        g_autoptr(GError) error = NULL;
 
         drop_privileges = geteuid () == 0;
         if (drop_privileges)
@@ -651,7 +643,6 @@ session_child_run (int argc, char **argv)
 
         if (error)
             g_printerr ("Error writing X authority: %s\n", error->message);
-        g_clear_error (&error);
         if (!result)
         {
             pam_end (pam_handle, 0);
@@ -660,7 +651,6 @@ session_child_run (int argc, char **argv)
 
         value = g_strdup_printf ("XAUTHORITY=%s", x_authority_filename);
         pam_putenv (pam_handle, value);
-        g_free (value);
     }
 
     /* Catch terminate signal and pass it to the child */
@@ -804,7 +794,7 @@ session_child_run (int argc, char **argv)
     if (x_authority)
     {
         gboolean drop_privileges, result;
-        GError *error = NULL;
+        g_autoptr(GError) error = NULL;
 
         drop_privileges = geteuid () == 0;
         if (drop_privileges)
@@ -815,7 +805,6 @@ session_child_run (int argc, char **argv)
 
         if (error)
             g_printerr ("Error removing X authority: %s\n", error->message);
-        g_clear_error (&error);
         if (!result)
             _exit (EXIT_FAILURE);
     }

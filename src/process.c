@@ -177,13 +177,14 @@ gboolean
 process_start (Process *process, gboolean block)
 {
     gint argc;
-    gchar **argv;
-    gchar **env_keys, **env_values;
+    g_auto(GStrv) argv = NULL;
+    g_autofree gchar **env_keys = NULL;
+    g_autofree gchar **env_values = NULL;
     guint i, env_length;
     GList *keys, *link;
     pid_t pid;
     int log_fd = -1;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     g_return_val_if_fail (process != NULL, FALSE);
     g_return_val_if_fail (process->priv->command != NULL, FALSE);
@@ -244,9 +245,6 @@ process_start (Process *process, gboolean block)
     }
 
     close (log_fd);
-    g_strfreev (argv);
-    g_free (env_keys);
-    g_free (env_values);
 
     if (pid < 0)
     {
@@ -358,8 +356,8 @@ process_finalize (GObject *object)
     if (self->priv->pid > 0)
         g_hash_table_remove (processes, GINT_TO_POINTER (self->priv->pid));
 
-    g_free (self->priv->log_file);
-    g_free (self->priv->command);
+    g_clear_pointer (&self->priv->log_file, g_free);
+    g_clear_pointer (&self->priv->command, g_free);
     g_hash_table_unref (self->priv->env);
     if (self->priv->quit_timeout)
         g_source_remove (self->priv->quit_timeout);

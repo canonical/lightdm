@@ -533,7 +533,7 @@ send_message (LightDMGreeter *greeter, guint8 *message, gsize message_length, GE
     gchar *data;
     gsize data_length;
     guint32 stated_length;
-    GError *flush_error = NULL;
+    g_autoptr(GError) flush_error = NULL;
 
     if (!connect_to_daemon (greeter, error))
         return FALSE;
@@ -558,14 +558,13 @@ send_message (LightDMGreeter *greeter, guint8 *message, gsize message_length, GE
     {
         GIOStatus status;
         gsize n_written;
-        GError *write_error = NULL;
+        g_autoptr(GError) write_error = NULL;
 
         status = g_io_channel_write_chars (priv->to_server_channel, data, data_length, &n_written, &write_error);
         if (write_error)
             g_set_error (error, LIGHTDM_GREETER_ERROR, LIGHTDM_GREETER_ERROR_COMMUNICATION_ERROR,
                          "Failed to write to daemon: %s",
                          write_error->message);
-        g_clear_error (&write_error);
         if (status == G_IO_STATUS_AGAIN) 
             continue;
         if (status != G_IO_STATUS_NORMAL) 
@@ -580,7 +579,6 @@ send_message (LightDMGreeter *greeter, guint8 *message, gsize message_length, GE
         g_set_error (error, LIGHTDM_GREETER_ERROR, LIGHTDM_GREETER_ERROR_COMMUNICATION_ERROR,
                      "Failed to write to daemon: %s",
                      flush_error->message);
-        g_clear_error (&flush_error);
         return FALSE;
     }
 
@@ -591,7 +589,7 @@ static void
 handle_connected (LightDMGreeter *greeter, gboolean v2, guint8 *message, gsize message_length, gsize *offset)
 {
     LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-    GString *debug_string;
+    g_autoptr(GString) debug_string = NULL;
     int timeout;
     Request *request;
 
@@ -638,7 +636,6 @@ handle_connected (LightDMGreeter *greeter, gboolean v2, guint8 *message, gsize m
 
     priv->connected = TRUE;
     g_debug ("%s", debug_string->str);
-    g_string_free (debug_string, TRUE);
 
     /* Set timeout for default login */
     timeout = lightdm_greeter_get_autologin_timeout_hint (greeter);
@@ -773,7 +770,7 @@ static void
 handle_reset (LightDMGreeter *greeter, guint8 *message, gsize message_length, gsize *offset)
 {
     LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
-    GString *hint_string;
+    g_autoptr(GString) hint_string = NULL;
 
     g_hash_table_remove_all (priv->hints);
 
@@ -789,7 +786,6 @@ handle_reset (LightDMGreeter *greeter, guint8 *message, gsize message_length, gs
     }
 
     g_debug ("Reset%s", hint_string->str);
-    g_string_free (hint_string, TRUE);
 
     g_signal_emit (G_OBJECT (greeter), signals[RESET], 0);
 }
@@ -900,7 +896,7 @@ recv_message (LightDMGreeter *greeter, gboolean block, guint8 **message, gsize *
     do
     {
         GIOStatus status;
-        GError *read_error = NULL;
+        g_autoptr(GError) read_error = NULL;
 
         status = g_io_channel_read_chars (priv->from_server_channel,
                                           (gchar *) priv->read_buffer + priv->n_read,
@@ -917,7 +913,6 @@ recv_message (LightDMGreeter *greeter, gboolean block, guint8 **message, gsize *
             g_set_error (error, LIGHTDM_GREETER_ERROR, LIGHTDM_GREETER_ERROR_COMMUNICATION_ERROR,
                          "Failed to read from daemon: %s",
                          read_error->message);
-            g_clear_error (&read_error);
             return FALSE;
         }
 
@@ -964,24 +959,20 @@ static gboolean
 from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 {
     LightDMGreeter *greeter = data;
-    guint8 *message;
+    g_autofree guint8 *message = NULL;
     gsize message_length;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     /* Read one message and process it */
     if (!recv_message (greeter, FALSE, &message, &message_length, &error))
     {
         // FIXME: Should push this up to the client somehow
         g_warning ("Failed to read from daemon: %s\n", error->message);
-        g_clear_error (&error);
         return G_SOURCE_REMOVE;
     }
 
     if (message)
-    {
         handle_message (greeter, message, message_length);
-        g_free (message);
-    }
 
     return G_SOURCE_CONTINUE;
 }

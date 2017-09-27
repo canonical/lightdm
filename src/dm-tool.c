@@ -39,9 +39,9 @@ xephyr_setup_cb (gpointer user_data)
 static void
 xephyr_signal_cb (int signum)
 {
-    gchar *path;
-    GVariant *result;
-    GError *error = NULL;
+    g_autofree gchar *path = NULL;
+    g_autoptr(GVariant) result = NULL;
+    g_autoptr(GError) error = NULL;
 
     result = g_dbus_proxy_call_sync (dm_proxy,
                                      "AddLocalXSeat",
@@ -72,7 +72,7 @@ xephyr_signal_cb (int signum)
 static GDBusProxy *
 get_seat_proxy (void)
 {
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     if (seat_proxy)
         return seat_proxy;
@@ -96,7 +96,6 @@ get_seat_proxy (void)
         g_printerr ("Unable to contact display manager: %s\n", error->message);
         exit (EXIT_FAILURE);
     }
-    g_clear_error (&error);
 
     return seat_proxy;
 }
@@ -107,7 +106,7 @@ main (int argc, char **argv)
     gchar *command;
     gint n_options;
     gchar **options;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
     gint arg_index;
 
 #if !defined(GLIB_VERSION_2_36)
@@ -178,7 +177,6 @@ main (int argc, char **argv)
         g_printerr ("Unable to contact display manager: %s\n", error->message);
         return EXIT_FAILURE;
     }
-    g_clear_error (&error);
 
     command = argv[arg_index];
     arg_index++;
@@ -300,7 +298,7 @@ main (int argc, char **argv)
         while (g_variant_iter_loop (seat_iter, "&o", &seat_path))
         {
             gchar *seat_name;
-            GDBusProxy *proxy;
+            g_autoptr(GDBusProxy) proxy = NULL;
             gchar **property_names;
             GVariant *sessions;
             GVariantIter *session_iter;
@@ -327,14 +325,13 @@ main (int argc, char **argv)
             property_names = g_dbus_proxy_get_cached_property_names (proxy);
             for (i = 0; property_names[i]; i++)
             {
-                GVariant *value;
+                g_autoptr(GVariant) value = NULL;
 
                 if (strcmp (property_names[i], "Sessions") == 0)
                     continue;
 
                 value = g_dbus_proxy_get_cached_property (proxy, property_names[i]);
                 g_print ("  %s=%s\n", property_names[i], g_variant_print (value, FALSE));
-                g_variant_unref (value);
             }
 
             sessions = g_dbus_proxy_get_cached_property (proxy, "Sessions");
@@ -344,8 +341,8 @@ main (int argc, char **argv)
             g_variant_get (sessions, "ao", &session_iter);
             while (g_variant_iter_loop (session_iter, "&o", &session_path))
             {
-                GDBusProxy *session_proxy;
-                gchar *session_name;
+                g_autoptr(GDBusProxy) session_proxy = NULL;
+                const gchar *session_name;
 
                 if (g_str_has_prefix (session_path, "/org/freedesktop/DisplayManager/"))
                     session_name = session_path + strlen ("/org/freedesktop/DisplayManager/");
@@ -367,21 +364,16 @@ main (int argc, char **argv)
                 property_names = g_dbus_proxy_get_cached_property_names (session_proxy);
                 for (i = 0; property_names[i]; i++)
                 {
-                    GVariant *value;
+                    g_autoptr(GVariant) value = NULL;
 
                     if (strcmp (property_names[i], "Seat") == 0)
                         continue;
 
                     value = g_dbus_proxy_get_cached_property (session_proxy, property_names[i]);
                     g_print ("    %s=%s\n", property_names[i], g_variant_print (value, FALSE));
-                    g_variant_unref (value);
                 }
-
-                g_object_unref (session_proxy);
             }
             g_variant_iter_free (session_iter);
-
-            g_object_unref (proxy);
         }
         g_variant_iter_free (seat_iter);
 
@@ -423,12 +415,11 @@ main (int argc, char **argv)
         xephyr_display_number = 0;
         while (TRUE)
         {
-            gchar *lock_name;
+            g_autofree gchar *lock_name = NULL;
             gboolean has_lock;
 
             lock_name = g_strdup_printf ("/tmp/.X%d-lock", xephyr_display_number);
             has_lock = g_file_test (lock_name, G_FILE_TEST_EXISTS);
-            g_free (lock_name);
 
             if (has_lock)
                 xephyr_display_number++;
@@ -460,7 +451,6 @@ main (int argc, char **argv)
             g_printerr ("Error running Xephyr: %s\n", error->message);
             exit (EXIT_FAILURE);
         }
-        g_clear_error (&error);
 
         /* Block until ready */
         loop = g_main_loop_new (NULL, FALSE);
@@ -524,7 +514,8 @@ main (int argc, char **argv)
 
         for (i = 1; i < n_options; i++)
         {
-            gchar *property, *name, *value;
+            g_autofree gchar *property = NULL;
+            gchar *name, *value;
 
             property = g_strdup (options[i]);
             name = property;
@@ -538,7 +529,6 @@ main (int argc, char **argv)
                value = "";
 
             g_variant_builder_add_value (properties, g_variant_new ("(ss)", name, value));
-            g_free (property);
         }
 
         result = g_dbus_proxy_call_sync (dm_proxy,

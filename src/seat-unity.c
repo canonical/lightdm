@@ -93,10 +93,10 @@ compositor_ready_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
         key_name = seat_get_string_property (SEAT (seat), "xdmcp-key");
         if (key_name)
         {
-            gchar *path;
-            GKeyFile *keys;
+            g_autofree gchar *path = NULL;
+            g_autoptr(GKeyFile) keys = NULL;
             gboolean result;
-            GError *error = NULL;
+            g_autoptr(GError) error = NULL;
 
             path = g_build_filename (config_get_directory (config_get_instance ()), "keys.conf", NULL);
 
@@ -104,11 +104,10 @@ compositor_ready_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
             result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
             if (error)
                 l_debug (seat, "Error getting key %s", error->message);
-            g_clear_error (&error);
 
             if (result)
             {
-                gchar *key = NULL;
+                g_autofree gchar *key = NULL;
 
                 if (g_key_file_has_key (keys, "keyring", key_name, NULL))
                     key = g_key_file_get_string (keys, "keyring", key_name, NULL);
@@ -117,11 +116,7 @@ compositor_ready_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
 
                 if (key)
                     x_server_local_set_xdmcp_key (X_SERVER_LOCAL (seat->priv->xdmcp_x_server), key);
-                g_free (key);
             }
-
-            g_free (path);
-            g_key_file_free (keys);
         }
 
         g_signal_connect (seat->priv->xdmcp_x_server, DISPLAY_SERVER_SIGNAL_STOPPED, G_CALLBACK (xdmcp_x_server_stopped_cb), seat);
@@ -191,11 +186,11 @@ static XServerXmir *
 create_x_server (Seat *seat)
 {
     XServerXmir *x_server;
-    gchar *number;
-    XAuthority *cookie;
+    g_autoptr(XAuthority) cookie = NULL;
     const gchar *command = NULL, *layout = NULL, *config_file = NULL;
+    g_autofree gchar *id = NULL;
+    g_autofree gchar *number = NULL;
     gboolean allow_tcp;
-    gchar *id;
 
     l_debug (seat, "Starting X server on Unity compositor");
 
@@ -208,13 +203,10 @@ create_x_server (Seat *seat)
     SEAT_UNITY (seat)->priv->next_x_server_id++;
     x_server_xmir_set_mir_id (x_server, id);
     x_server_xmir_set_mir_socket (x_server, unity_system_compositor_get_socket (SEAT_UNITY (seat)->priv->compositor));
-    g_free (id);
 
     number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (x_server)));
     cookie = x_authority_new_local_cookie (number);
     x_server_set_authority (X_SERVER (x_server), cookie);
-    g_free (number);
-    g_object_unref (cookie);
 
     layout = seat_get_string_property (seat, "xserver-layout");
     if (layout)
@@ -270,9 +262,8 @@ seat_unity_create_greeter_session (Seat *seat)
     vt = display_server_get_vt (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor));
     if (vt >= 0)
     {
-        gchar *value = g_strdup_printf ("%d", vt);
+        g_autofree gchar *value = g_strdup_printf ("%d", vt);
         session_set_env (SESSION (greeter_session), "XDG_VTNR", value);
-        g_free (value);
     }
 
     return greeter_session;
@@ -290,9 +281,8 @@ seat_unity_create_session (Seat *seat)
     vt = display_server_get_vt (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor));
     if (vt >= 0)
     {
-        gchar *value = g_strdup_printf ("%d", vt);
+        g_autofree gchar *value = g_strdup_printf ("%d", vt);
         session_set_env (SESSION (session), "XDG_VTNR", value);
-        g_free (value);
     }
 
     return session;

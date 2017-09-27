@@ -72,23 +72,21 @@ vnc_server_get_listen_address (VNCServer *server)
 static gboolean
 read_cb (GSocket *socket, GIOCondition condition, VNCServer *server)
 {
-    GError *error = NULL;
     GSocket *client_socket;
+    g_autoptr(GError) error = NULL;
 
     client_socket = g_socket_accept (socket, NULL, &error);
     if (error)
         g_warning ("Failed to get connection from from VNC socket: %s", error->message);
-    g_clear_error (&error);
 
     if (client_socket)
     {
         GInetSocketAddress *address;
-        gchar *hostname;
+        g_autofree gchar *hostname = NULL;
 
         address = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (client_socket, NULL));
         hostname = g_inet_address_to_string (g_inet_socket_address_get_address (address));
         g_debug ("Got VNC connection from %s:%d", hostname, g_inet_socket_address_get_port (address));
-        g_free (hostname);
 
         g_signal_emit (server, signals[NEW_CONNECTION], 0, client_socket);
     }
@@ -99,8 +97,8 @@ read_cb (GSocket *socket, GIOCondition condition, VNCServer *server)
 static GSocket *
 open_tcp_socket (GSocketFamily family, guint port, const gchar *listen_address, GError **error)
 {
-    GSocket *socket;
-    GSocketAddress *address;
+    g_autoptr(GSocket) socket = NULL;
+    g_autoptr(GSocketAddress) address = NULL;
 
     socket = g_socket_new (family, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_TCP, error);
     if (!socket)
@@ -112,10 +110,7 @@ open_tcp_socket (GSocketFamily family, guint port, const gchar *listen_address, 
 
         addresses = g_resolver_lookup_by_name (g_resolver_get_default (), listen_address, NULL, error);
         if (!addresses)
-        {
-            g_object_unref (socket);
             return NULL;
-        }
         address = g_inet_socket_address_new (addresses->data, port);
         g_resolver_free_addresses (addresses);
     }
@@ -123,26 +118,23 @@ open_tcp_socket (GSocketFamily family, guint port, const gchar *listen_address, 
         address = g_inet_socket_address_new (g_inet_address_new_any (family), port);
     if (!g_socket_bind (socket, address, TRUE, error) ||
         !g_socket_listen (socket, error))
-    {
-        g_object_unref (socket);
         return NULL;
-    }
 
-    return socket;
+    return g_steal_pointer (&socket);
 }
 
 gboolean
 vnc_server_start (VNCServer *server)
 {
     GSource *source;
-    GError *error = NULL;
+    g_autoptr(GError) ipv4_error = NULL;
+    g_autoptr(GError) ipv6_error = NULL;
 
     g_return_val_if_fail (server != NULL, FALSE);
 
-    server->priv->socket = open_tcp_socket (G_SOCKET_FAMILY_IPV4, server->priv->port, server->priv->listen_address, &error);
-    if (error)
-        g_warning ("Failed to create IPv4 VNC socket: %s", error->message);
-    g_clear_error (&error);
+    server->priv->socket = open_tcp_socket (G_SOCKET_FAMILY_IPV4, server->priv->port, server->priv->listen_address, &ipv4_error);
+    if (ipv4_error)
+        g_warning ("Failed to create IPv4 VNC socket: %s", ipv4_error->message);
 
     if (server->priv->socket)
     {
@@ -151,10 +143,9 @@ vnc_server_start (VNCServer *server)
         g_source_attach (source, NULL);
     }
 
-    server->priv->socket6 = open_tcp_socket (G_SOCKET_FAMILY_IPV6, server->priv->port, server->priv->listen_address, &error);
-    if (error)
-        g_warning ("Failed to create IPv6 VNC socket: %s", error->message);
-    g_clear_error (&error);
+    server->priv->socket6 = open_tcp_socket (G_SOCKET_FAMILY_IPV6, server->priv->port, server->priv->listen_address, &ipv6_error);
+    if (ipv6_error)
+        g_warning ("Failed to create IPv6 VNC socket: %s", ipv6_error->message);
 
     if (server->priv->socket6)
     {
@@ -181,7 +172,7 @@ vnc_server_finalize (GObject *object)
 {
     VNCServer *self = VNC_SERVER (object);
 
-    g_free (self->priv->listen_address);
+    g_clear_pointer (&self->priv->listen_address, g_free);
     g_clear_object (&self->priv->socket);
     g_clear_object (&self->priv->socket6);
 

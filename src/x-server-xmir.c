@@ -141,12 +141,10 @@ x_server_xmir_finalize (GObject *object)
     XServerXmir *self = X_SERVER_XMIR (object);
 
     if (self->priv->compositor)
-    {
         g_signal_handlers_disconnect_matched (self->priv->compositor, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
-        g_object_unref (self->priv->compositor);
-    }
-    g_free (self->priv->mir_id);
-    g_free (self->priv->mir_socket);
+    g_clear_object (&self->priv->compositor);
+    g_clear_pointer (&self->priv->mir_id, g_free);
+    g_clear_pointer (&self->priv->mir_socket, g_free);
 
     G_OBJECT_CLASS (x_server_xmir_parent_class)->finalize (object);
 }

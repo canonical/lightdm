@@ -72,8 +72,6 @@ authentication_complete_cb (LightDMGreeter *greeter)
 static void
 request_cb (const gchar *name, GHashTable *params)
 {
-    GError *error = NULL;
-
     if (!name)
     {
         g_main_loop_quit (loop);
@@ -122,7 +120,7 @@ request_cb (const gchar *name, GHashTable *params)
     {
         int n_groups, i;
         gid_t *groups;
-        GString *group_list;
+        g_autoptr(GString) group_list = NULL;
 
         n_groups = getgroups (0, NULL);
         if (n_groups < 0)
@@ -146,7 +144,6 @@ request_cb (const gchar *name, GHashTable *params)
                 g_string_append_printf (group_list, "%d", groups[i]);
         }
         status_notify ("%s LIST-GROUPS GROUPS=%s", session_id, group_list->str);
-        g_string_free (group_list, TRUE);
         free (groups);
     }
 
@@ -166,15 +163,13 @@ request_cb (const gchar *name, GHashTable *params)
     else if (strcmp (name, "READ") == 0)
     {
         const gchar *name = g_hash_table_lookup (params, "FILE");
-        gchar *contents = NULL;
-        GError *error = NULL;
+        g_autofree gchar *contents = NULL;
+        g_autoptr(GError) error = NULL;
 
         if (g_file_get_contents (name, &contents, NULL, &error))
             status_notify ("%s READ FILE=%s TEXT=%s", session_id, name, contents);
         else
             status_notify ("%s READ FILE=%s ERROR=%s", session_id, name, error->message);
-        g_free (contents);
-        g_clear_error (&error);
     }
 
     else if (strcmp (name, "LIST-UNKNOWN-FILE-DESCRIPTORS") == 0)
@@ -182,16 +177,15 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "CHECK-X-AUTHORITY") == 0)
     {
-        gchar *xauthority;
+        g_autofree gchar *xauthority = NULL;
         GStatBuf file_info;
-        GString *mode_string;
+        g_autoptr(GString) mode_string = NULL;
 
         xauthority = g_strdup (g_getenv ("XAUTHORITY"));
         if (!xauthority)
             xauthority = g_build_filename (g_get_home_dir (), ".Xauthority", NULL);
 
         g_stat (xauthority, &file_info);
-        g_free (xauthority);
 
         mode_string = g_string_new ("");
         g_string_append_c (mode_string, file_info.st_mode & S_IRUSR ? 'r' : '-');
@@ -204,18 +198,17 @@ request_cb (const gchar *name, GHashTable *params)
         g_string_append_c (mode_string, file_info.st_mode & S_IWOTH ? 'w' : '-');
         g_string_append_c (mode_string, file_info.st_mode & S_IXOTH ? 'x' : '-');
         status_notify ("%s CHECK-X-AUTHORITY MODE=%s", session_id, mode_string->str);
-        g_string_free (mode_string, TRUE);
     }
 
     else if (strcmp (name, "WRITE-SHARED-DATA") == 0)
     {
         const gchar *data = g_hash_table_lookup (params, "DATA");
-        gchar *dir;
+        const gchar *dir;
 
         dir = getenv ("XDG_GREETER_DATA_DIR");
         if (dir)
         {
-            gchar *path;
+            g_autofree gchar *path = NULL;
             FILE *f;
 
             path = g_build_filename (dir, "data", NULL);
@@ -226,7 +219,6 @@ request_cb (const gchar *name, GHashTable *params)
 
             if (f)
                 fclose (f);
-            g_free (path);
         }
         else
             status_notify ("%s WRITE-SHARED-DATA ERROR=NO_XDG_GREETER_DATA_DIR", session_id);
@@ -234,23 +226,20 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "READ-SHARED-DATA") == 0)
     {
-        gchar *dir;
+        const gchar *dir;
 
         dir = getenv ("XDG_GREETER_DATA_DIR");
         if (dir)
         {
-            gchar *path;
-            gchar *contents = NULL;
-            GError *error = NULL;
+            g_autofree gchar *path = NULL;
+            g_autofree gchar *contents = NULL;
+            g_autoptr(GError) error = NULL;
 
             path = g_build_filename (dir, "data", NULL);
             if (g_file_get_contents (path, &contents, NULL, &error))
                 status_notify ("%s READ-SHARED-DATA DATA=%s", session_id, contents);
             else
                 status_notify ("%s WRITE-SHARED-DATA ERROR=%s", session_id, error->message);
-            g_free (path);
-            g_free (contents);
-            g_clear_error (&error);
         }
         else
             status_notify ("%s WRITE-SHARED-DATA ERROR=NO_XDG_GREETER_DATA_DIR", session_id);
@@ -259,7 +248,7 @@ request_cb (const gchar *name, GHashTable *params)
     else if (strcmp (name, "GREETER-START") == 0)
     {
         int timeout;
-        GError *error = NULL;
+        g_autoptr(GError) error = NULL;
 
         g_assert (greeter == NULL);
         greeter = lightdm_greeter_new ();
@@ -269,10 +258,7 @@ request_cb (const gchar *name, GHashTable *params)
         if (lightdm_greeter_connect_to_daemon_sync (greeter, &error))
             status_notify ("%s GREETER-STARTED", session_id);
         else
-        {
             status_notify ("%s GREETER-FAILED ERROR=%s", session_id, error->message);
-            g_clear_error (&error);
-        }
 
         if (lightdm_greeter_get_select_user_hint (greeter))
             status_notify ("%s GREETER-SELECT-USER-HINT USERNAME=%s", session_id, lightdm_greeter_get_select_user_hint (greeter));
@@ -310,29 +296,26 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "GREETER-AUTHENTICATE") == 0)
     {
+        g_autoptr(GError) error = NULL;
+
         if (!lightdm_greeter_authenticate (greeter, g_hash_table_lookup (params, "USERNAME"), &error))
-        {
             status_notify ("%s FAIL-AUTHENTICATE ERROR=%s", session_id, error->message);
-            g_clear_error (&error);
-        }
     }
 
     else if (strcmp (name, "GREETER-RESPOND") == 0)
     {
+        g_autoptr(GError) error = NULL;
+
         if (!lightdm_greeter_respond (greeter, g_hash_table_lookup (params, "TEXT"), &error))
-        {
             status_notify ("%s FAIL-RESPOND ERROR=%s", session_id, error->message);
-            g_clear_error (&error);
-        }
     }
 
     else if (strcmp (name, "GREETER-START-SESSION") == 0)
     {
+        g_autoptr(GError) error = NULL;
+
         if (!lightdm_greeter_start_session_sync (greeter, g_hash_table_lookup (params, "SESSION"), &error))
-        {
             status_notify ("%s FAIL-START-SESSION ERROR=%s", session_id, error->message);
-            g_clear_error (&error);          
-        }
     }
 
     else if (strcmp (name, "GREETER-STOP") == 0)
@@ -346,7 +329,7 @@ int
 main (int argc, char **argv)
 {
     gchar *display, *xdg_seat, *xdg_vtnr, *xdg_current_desktop, *xdg_greeter_data_dir, *xdg_session_cookie, *xdg_session_class, *xdg_session_type, *xdg_session_desktop, *mir_server_host_socket, *mir_vt, *mir_id;
-    GString *status_text;
+    g_autoptr(GString) status_text = NULL;
     int fd, open_max;
 
     display = getenv ("DISPLAY");
@@ -422,7 +405,6 @@ main (int argc, char **argv)
         g_string_append_printf (status_text, " NAME=%s", argv[1]);
     g_string_append_printf (status_text, " USER=%s", getenv ("USER"));
     status_notify ("%s", status_text->str);
-    g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);

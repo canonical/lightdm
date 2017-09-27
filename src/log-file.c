@@ -24,11 +24,10 @@ log_file_open (const gchar *log_filename, LogMode log_mode)
     if (log_mode == LOG_MODE_BACKUP_AND_TRUNCATE)
     {
         /* Move old file out of the way */
-        gchar *old_filename;
+        g_autofree gchar *old_filename = NULL;
 
         old_filename = g_strdup_printf ("%s.old", log_filename);
         rename (log_filename, old_filename);
-        g_free (old_filename);
 
         open_flags |= O_TRUNC;
     }

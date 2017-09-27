@@ -91,9 +91,9 @@ find_version (const gchar *line)
 const gchar *
 x_server_local_get_version (void)
 {
-    gchar *stderr_text;
+    g_autofree gchar *stderr_text = NULL;
     gint exit_status;
-    gchar **tokens;
+    g_auto(GStrv) tokens = NULL;
     guint n_tokens;
 
     if (version)
@@ -103,21 +103,18 @@ x_server_local_get_version (void)
         return NULL;
     if (exit_status == EXIT_SUCCESS)
     {
-        gchar **lines;
+        g_auto(GStrv) lines = NULL;
         int i;
 
         lines = g_strsplit (stderr_text, "\n", -1);
         for (i = 0; lines[i] && !version; i++)
             version = find_version (lines[i]);
-        g_strfreev (lines);
     }
-    g_free (stderr_text);
 
     tokens = g_strsplit (version, ".", 3);
     n_tokens = g_strv_length (tokens);
     version_major = n_tokens > 0 ? atoi (tokens[0]) : 0;
     version_minor = n_tokens > 1 ? atoi (tokens[1]) : 0;
-    g_strfreev (tokens);
 
     return version;
 }
@@ -136,9 +133,9 @@ static gboolean
 display_number_in_use (guint display_number)
 {
     GList *link;
-    gchar *path;
+    g_autofree gchar *path = NULL;
     gboolean in_use;
-    gchar *data;
+    g_autofree gchar *data = NULL;
 
     /* See if we know we are managing a server with that number */
     for (link = display_numbers; link; link = link->next)
@@ -158,14 +155,11 @@ display_number_in_use (guint display_number)
         int pid;
 
         pid = atoi (g_strstrip (data));
-        g_free (data);
 
         errno = 0;
         if (pid < 0 || (kill (pid, 0) < 0 && errno == ESRCH))
             in_use = FALSE;
     }
-
-    g_free (path);
 
     return in_use;
 }
@@ -327,8 +321,9 @@ x_server_local_get_authority_file_path (XServerLocal *server)
 static gchar *
 get_absolute_command (const gchar *command)
 {
-    gchar **tokens;
-    gchar *absolute_binary, *absolute_command = NULL;
+    g_auto(GStrv) tokens = NULL;
+    g_autofree gchar *absolute_binary = NULL;
+    gchar *absolute_command = NULL;
 
     tokens = g_strsplit (command, " ", 2);
 
@@ -340,9 +335,6 @@ get_absolute_command (const gchar *command)
         else
             absolute_command = g_strdup (absolute_binary);
     }
-    g_free (absolute_binary);
-
-    g_strfreev (tokens);
 
     return absolute_command;
 }
@@ -416,7 +408,7 @@ static void
 write_authority_file (XServerLocal *server)
 {
     XAuthority *authority;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     authority = x_server_get_authority (X_SERVER (server));
     if (!authority)
@@ -425,16 +417,15 @@ write_authority_file (XServerLocal *server)
     /* Get file to write to if have authority */
     if (!server->priv->authority_file)
     {
-        gchar *run_dir, *dir;
+        g_autofree gchar *run_dir = NULL;
+        g_autofree gchar *dir = NULL;
 
         run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
         dir = g_build_filename (run_dir, "root", NULL);
-        g_free (run_dir);
         if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
             l_warning (server, "Failed to make authority directory %s: %s", dir, strerror (errno));
 
         server->priv->authority_file = g_build_filename (dir, x_server_get_address (X_SERVER (server)), NULL);
-        g_free (dir);
     }
 
     l_debug (server, "Writing X server authority to %s", server->priv->authority_file);
@@ -442,7 +433,6 @@ write_authority_file (XServerLocal *server)
     x_authority_write (authority, XAUTH_WRITE_MODE_REPLACE, server->priv->authority_file, &error);
     if (error)
         l_warning (server, "Failed to write authority: %s", error->message);
-    g_clear_error (&error);
 }
 
 static gboolean
@@ -451,8 +441,11 @@ x_server_local_start (DisplayServer *display_server)
     XServerLocal *server = X_SERVER_LOCAL (display_server);
     ProcessRunFunc run_cb;
     gboolean result, backup_logs;
-    gchar *filename, *dir, *log_file, *absolute_command;
-    GString *command;
+    g_autofree gchar *filename = NULL;
+    g_autofree gchar *dir = NULL;
+    g_autofree gchar *log_file = NULL;
+    g_autofree gchar *absolute_command = NULL;
+    g_autoptr(GString) command = NULL;
 
     g_return_val_if_fail (server->priv->x_server_process == NULL, FALSE);
 
@@ -473,9 +466,6 @@ x_server_local_start (DisplayServer *display_server)
     backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
     process_set_log_file (server->priv->x_server_process, log_file, X_SERVER_LOCAL_GET_CLASS (server)->get_log_stdout (server), backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
     l_debug (display_server, "Logging to %s", log_file);
-    g_free (log_file);
-    g_free (filename);
-    g_free (dir);
 
     absolute_command = get_absolute_command (server->priv->command);
     if (!absolute_command)
@@ -485,7 +475,6 @@ x_server_local_start (DisplayServer *display_server)
         return FALSE;
     }
     command = g_string_new (absolute_command);
-    g_free (absolute_command);
 
     g_string_append_printf (command, " :%d", server->priv->display_number);
 
@@ -530,7 +519,6 @@ x_server_local_start (DisplayServer *display_server)
         X_SERVER_LOCAL_GET_CLASS (server)->add_args (server, command);
 
     process_set_command (server->priv->x_server_process, command->str);
-    g_string_free (command, TRUE);
 
     l_debug (display_server, "Launching X Server");
 
@@ -542,10 +530,8 @@ x_server_local_start (DisplayServer *display_server)
             process_set_env (server->priv->x_server_process, "XAUTHORITY", g_getenv ("XAUTHORITY"));
         else
         {
-            gchar *path;
-            path = g_build_filename (g_get_home_dir (), ".Xauthority", NULL);
+            g_autofree gchar *path = g_build_filename (g_get_home_dir (), ".Xauthority", NULL);
             process_set_env (server->priv->x_server_process, "XAUTHORITY", path);
-            g_free (path);
         }
     }
 
@@ -593,20 +579,18 @@ x_server_local_finalize (GObject *object)
     XServerLocal *self = X_SERVER_LOCAL (object);
 
     if (self->priv->x_server_process)
-    {
         g_signal_handlers_disconnect_matched (self->priv->x_server_process, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
-        g_object_unref (self->priv->x_server_process);
-    }
-    g_free (self->priv->command);
-    g_free (self->priv->config_file);
-    g_free (self->priv->layout);
-    g_free (self->priv->xdg_seat);
-    g_free (self->priv->xdmcp_server);
-    g_free (self->priv->xdmcp_key);
-    g_free (self->priv->authority_file);
+    g_clear_object (&self->priv->x_server_process);
+    g_clear_pointer (&self->priv->command, g_free);
+    g_clear_pointer (&self->priv->config_file, g_free);
+    g_clear_pointer (&self->priv->layout, g_free);
+    g_clear_pointer (&self->priv->xdg_seat, g_free);
+    g_clear_pointer (&self->priv->xdmcp_server, g_free);
+    g_clear_pointer (&self->priv->xdmcp_key, g_free);
+    g_clear_pointer (&self->priv->authority_file, g_free);
     if (self->priv->have_vt_ref)
         vt_unref (self->priv->vt);
-    g_free (self->priv->background);
+    g_clear_pointer (&self->priv->background, g_free);
 
     G_OBJECT_CLASS (x_server_local_parent_class)->finalize (object);
 }

@@ -24,18 +24,15 @@ static gboolean has_active_vt = FALSE;
 static gboolean
 plymouth_run_command (const gchar *command, gint *exit_status)
 {
-    gchar *command_line;
+    g_autofree gchar *command_line = NULL;
     gboolean result;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     command_line = g_strdup_printf ("plymouth %s", command);
     result = g_spawn_command_line_sync (command_line, NULL, NULL, exit_status, &error);
 
     if (error)
         g_debug ("Could not run %s: %s", command_line, error->message);
-    g_clear_error (&error);
-
-    g_free (command_line);
 
     return result;
 }

@@ -137,12 +137,11 @@ static GList *
 load_sessions_dir (GList *sessions, const gchar *sessions_dir, const gchar *default_type)
 {
     GDir *directory;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     directory = g_dir_open (sessions_dir, 0, &error);
     if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
         g_warning ("Failed to open sessions directory: %s", error->message);
-    g_clear_error (&error);
     if (!directory)
         return sessions;
 
@@ -152,6 +151,7 @@ load_sessions_dir (GList *sessions, const gchar *sessions_dir, const gchar *defa
         gchar *path;
         GKeyFile *key_file;
         gboolean result;
+        g_autoptr(GError) e = NULL;
 
         filename = g_dir_read_name (directory);
         if (filename == NULL)
@@ -163,10 +163,9 @@ load_sessions_dir (GList *sessions, const gchar *sessions_dir, const gchar *defa
         path = g_build_filename (sessions_dir, filename, NULL);
 
         key_file = g_key_file_new ();
-        result = g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, &error);
-        if (error)
-            g_warning ("Failed to load session file %s: %s:", path, error->message);
-        g_clear_error (&error);
+        result = g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, &e);
+        if (e)
+            g_warning ("Failed to load session file %s: %s:", path, e->message);
 
         if (result)
         {
@@ -198,7 +197,7 @@ static GList *
 load_sessions (const gchar *sessions_dir)
 {
     GList *sessions = NULL;
-    gchar **dirs;
+    g_auto(GStrv) dirs = NULL;
     int i;
 
     dirs = g_strsplit (sessions_dir, ":", -1);
@@ -212,8 +211,6 @@ load_sessions (const gchar *sessions_dir)
         sessions = load_sessions_dir (sessions, dirs[i], default_type);
     }
  
-    g_strfreev (dirs);
-
     return sessions;
 }
 

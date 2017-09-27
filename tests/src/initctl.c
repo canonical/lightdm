@@ -16,14 +16,13 @@ main (int argc, char **argv)
 
     if (g_key_file_get_boolean (config, "test-initctl-config", "report-events", NULL))
     {
-        GString *status_text;
+        g_autoptr(GString) status_text = NULL;
         int i;
 
         status_text = g_string_new ("INIT");
         for (i = 1; i < argc; i++)
             g_string_append_printf (status_text, " %s", argv[i]);
         status_notify ("%s", status_text->str);
-        g_string_free (status_text, TRUE);
     }
 
     return EXIT_SUCCESS;

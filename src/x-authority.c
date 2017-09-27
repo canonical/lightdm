@@ -246,10 +246,9 @@ write_string (int fd, const gchar *value)
 gboolean
 x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GError **error)
 {
-    gchar *input = NULL;
+    g_autofree gchar *input = NULL;
     gsize input_length = 0, input_offset = 0;
     GList *link, *records = NULL;
-    XAuthority *a;
     gboolean result = TRUE;
     gboolean matched = FALSE;
     int output_fd;
@@ -260,15 +259,15 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
     /* Read out existing records */
     if (mode != XAUTH_WRITE_MODE_SET)
     {
-        GError *read_error = NULL;
+        g_autoptr(GError) read_error = NULL;
 
         g_file_get_contents (filename, &input, &input_length, &read_error);
         if (read_error && !g_error_matches (read_error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
             g_warning ("Error reading existing Xauthority: %s", read_error->message);
-        g_clear_error (&read_error);
     }
     while (input_offset != input_length)
     {
+        g_autoptr(XAuthority) a = NULL;
         gboolean address_matches = FALSE;
         guint16 address_length = 0;
         guint16 authorization_data_length = 0;
@@ -286,10 +285,7 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
         a->priv->authorization_data_length = authorization_data_length;
 
         if (!result)
-        {
-            g_object_unref (a);
             break;
-        }
 
         if (auth->priv->address_length == a->priv->address_length)
         {
@@ -306,17 +302,13 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
         {
             matched = TRUE;
             if (mode == XAUTH_WRITE_MODE_REMOVE)
-            {
-                g_object_unref (a);
                 continue;
-            }
             else
                 x_authority_set_authorization_data (a, auth->priv->authorization_data, auth->priv->authorization_data_length);
         }
 
-        records = g_list_append (records, a);
+        records = g_list_append (records, g_steal_pointer (&a));
     }
-    g_free (input);
 
     /* If didn't exist, then add a new one */
     if (!matched)
@@ -349,10 +341,8 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
                  write_string (output_fd, a->priv->authorization_name) &&
                  write_uint16 (output_fd, a->priv->authorization_data_length) &&
                  write_data (output_fd, a->priv->authorization_data, a->priv->authorization_data_length);
-
-        g_object_unref (a);
     }
-    g_list_free (records);
+    g_list_free_full (records, g_object_unref);
 
     fsync (output_fd);
     close (output_fd);
@@ -383,10 +373,10 @@ x_authority_finalize (GObject *object)
 {
     XAuthority *self = X_AUTHORITY (object);
 
-    g_free (self->priv->address);
-    g_free (self->priv->number);
-    g_free (self->priv->authorization_name);
-    g_free (self->priv->authorization_data);
+    g_clear_pointer (&self->priv->address, g_free);
+    g_clear_pointer (&self->priv->number, g_free);
+    g_clear_pointer (&self->priv->authorization_name, g_free);
+    g_clear_pointer (&self->priv->authorization_data, g_free);
 
     G_OBJECT_CLASS (x_authority_parent_class)->finalize (object);
 }

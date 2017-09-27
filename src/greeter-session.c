@@ -44,7 +44,8 @@ greeter_session_start (Session *session)
     GreeterSession *s = GREETER_SESSION (session);
     int to_greeter_pipe[2], from_greeter_pipe[2];
     int to_greeter_input, to_greeter_output, from_greeter_input, from_greeter_output;
-    gchar *value;
+    g_autofree gchar *to_server_value = NULL;
+    g_autofree gchar *from_server_value = NULL;
     gboolean result;
 
     /* Create a pipe to talk with the greeter */
@@ -65,12 +66,10 @@ greeter_session_start (Session *session)
     fcntl (from_greeter_output, F_SETFD, FD_CLOEXEC);
 
     /* Let the greeter session know how to communicate with the daemon */
-    value = g_strdup_printf ("%d", from_greeter_input);
-    session_set_env (session, "LIGHTDM_TO_SERVER_FD", value);
-    g_free (value);
-    value = g_strdup_printf ("%d", to_greeter_output);
-    session_set_env (session, "LIGHTDM_FROM_SERVER_FD", value);
-    g_free (value);
+    to_server_value = g_strdup_printf ("%d", from_greeter_input);
+    session_set_env (session, "LIGHTDM_TO_SERVER_FD", to_server_value);
+    from_server_value = g_strdup_printf ("%d", to_greeter_output);
+    session_set_env (session, "LIGHTDM_FROM_SERVER_FD", from_server_value);
 
     result = SESSION_CLASS (greeter_session_parent_class)->start (session);
 

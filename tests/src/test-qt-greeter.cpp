@@ -250,7 +250,7 @@ int
 main(int argc, char *argv[])
 {
     gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie, *xdg_session_class;
-    GString *status_text;   
+    g_autoptr(GString) status_text = NULL;
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
@@ -294,7 +294,6 @@ main(int argc, char *argv[])
     if (xdg_session_class)
         g_string_append_printf (status_text, " XDG_SESSION_CLASS=%s", xdg_session_class);
     status_notify ("%s", status_text->str);
-    g_string_free (status_text, TRUE);
 
     config = new QSettings (g_build_filename (getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), QSettings::IniFormat);
 

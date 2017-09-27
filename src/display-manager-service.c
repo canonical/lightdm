@@ -109,7 +109,7 @@ static void
 emit_object_value_changed (GDBusConnection *bus, const gchar *path, const gchar *interface_name, const gchar *property_name, GVariant *property_value)
 {
     GVariantBuilder builder;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     g_variant_builder_init (&builder, G_VARIANT_TYPE_ARRAY);
     g_variant_builder_add (&builder, "{sv}", property_name, property_value);
@@ -122,13 +122,12 @@ emit_object_value_changed (GDBusConnection *bus, const gchar *path, const gchar 
                                         g_variant_new ("(sa{sv}as)", interface_name, &builder, NULL),
                                         &error))
         g_warning ("Failed to emit PropertiesChanged signal: %s", error->message);
-    g_clear_error (&error);
 }
 
 static void
 emit_object_signal (GDBusConnection *bus, const gchar *path, const gchar *signal_name, const gchar *object_path)
 {
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     if (!g_dbus_connection_emit_signal (bus,
                                         NULL,
@@ -138,7 +137,6 @@ emit_object_signal (GDBusConnection *bus, const gchar *path, const gchar *signal
                                         g_variant_new ("(o)", object_path),
                                         &error))
         g_warning ("Failed to emit %s signal on %s: %s", signal_name, path, error->message);
-    g_clear_error (&error);
 }
 
 static void
@@ -430,7 +428,7 @@ running_user_session_cb (Seat *seat, Session *session, DisplayManagerService *se
     SeatBusEntry *seat_entry;
     SessionBusEntry *session_entry;
     gchar *path;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     /* Set environment variables when session runs */
     seat_entry = g_hash_table_lookup (service->priv->seat_bus_entries, seat);
@@ -453,7 +451,6 @@ running_user_session_cb (Seat *seat, Session *session, DisplayManagerService *se
                                                                &error);
     if (session_entry->bus_id == 0)
         g_warning ("Failed to register user session: %s", error->message);
-    g_clear_error (&error);
 
     emit_object_value_changed (service->priv->bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Sessions", get_session_list (service, NULL));
     emit_object_signal (service->priv->bus, "/org/freedesktop/DisplayManager", "SessionAdded", session_entry->path);
@@ -466,7 +463,7 @@ static void
 session_removed_cb (Seat *seat, Session *session, DisplayManagerService *service)
 {
     SessionBusEntry *entry;
-    gchar *seat_path = NULL;
+    g_autofree gchar *seat_path = NULL;
 
     g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
 
@@ -485,7 +482,6 @@ session_removed_cb (Seat *seat, Session *session, DisplayManagerService *service
     {
         emit_object_value_changed (service->priv->bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Sessions", get_session_list (service, NULL));
         emit_object_value_changed (service->priv->bus, seat_path, "org.freedesktop.DisplayManager.Seat", "Sessions", get_session_list (service, seat_path));
-        g_free (seat_path);
     }
 }
 
@@ -497,15 +493,14 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat, DisplayManagerServic
         handle_seat_call,
         handle_seat_get_property
     };
-    gchar *path;
+    g_autofree gchar *path = NULL;
     SeatBusEntry *entry;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     path = g_strdup_printf ("/org/freedesktop/DisplayManager/Seat%d", service->priv->seat_index);
     service->priv->seat_index++;
 
     entry = seat_bus_entry_new (service, seat, path);
-    g_free (path);
     g_hash_table_insert (service->priv->seat_bus_entries, g_object_ref (seat), entry);
 
     g_debug ("Registering seat with bus path %s", entry->path);
@@ -518,7 +513,6 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat, DisplayManagerServic
                                                        &error);
     if (entry->bus_id == 0)
         g_warning ("Failed to register seat: %s", error->message);
-    g_clear_error (&error);
 
     emit_object_value_changed (service->priv->bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Seats", get_seat_list (service));
     emit_object_signal (service->priv->bus, "/org/freedesktop/DisplayManager", "SeatAdded", entry->path);
@@ -616,7 +610,7 @@ bus_acquired_cb (GDBusConnection *connection,
     DisplayManagerService *service = user_data;
     GDBusNodeInfo *display_manager_info;
     GList *link;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     g_debug ("Acquired bus name %s", name);
 
@@ -637,7 +631,6 @@ bus_acquired_cb (GDBusConnection *connection,
                                                                &error);
     if (service->priv->reg_id == 0)
         g_warning ("Failed to register display manager: %s", error->message);
-    g_clear_error (&error);
     g_dbus_node_info_unref (display_manager_info);
 
     /* Add objects for existing seats and listen to new ones */

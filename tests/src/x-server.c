@@ -51,25 +51,19 @@ static guint x_client_signals[X_CLIENT_LAST_SIGNAL] = { 0 };
 void
 x_client_send_failed (XClient *client, const gchar *reason)
 {
-    gchar *message;
-
-    message = g_strdup_printf ("FAILED:%s", reason);
+    g_autofree gchar *message = g_strdup_printf ("FAILED:%s", reason);
     errno = 0;
     if (send (g_io_channel_unix_get_fd (client->priv->channel), message, strlen (message), 0) != strlen (message))
         g_printerr ("Failed to send FAILED: %s\n", strerror (errno));
-    g_free (message);
 }
 
 void
 x_client_send_success (XClient *client)
 {
-    gchar *message;
-
-    message = g_strdup ("SUCCESS");
+    g_autofree gchar *message = g_strdup ("SUCCESS");
     errno = 0;
     if (send (g_io_channel_unix_get_fd (client->priv->channel), message, strlen (message), 0) != strlen (message))
         g_printerr ("Failed to send SUCCESS: %s\n", strerror (errno));
-    g_free (message);
 }
 
 void
@@ -121,12 +115,11 @@ socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     XServer *server = data;
     GSocket *data_socket;
     XClient *client;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     data_socket = g_socket_accept (server->priv->socket, NULL, &error);
     if (error)
         g_warning ("Error accepting connection: %s", strerror (errno));
-    g_clear_error (&error);
     if (!data_socket)
         return FALSE;
 
@@ -145,12 +138,11 @@ socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 gboolean
 x_server_start (XServer *server)
 {
-    gchar *name;
-    GError *error = NULL;
+    g_autofree gchar *name = NULL;
+    g_autoptr(GError) error = NULL;
 
     name = g_strdup_printf (".x:%d", server->priv->display_number);
     server->priv->socket_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), name, NULL);
-    g_free (name);
 
     server->priv->socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
     if (!server->priv->socket ||

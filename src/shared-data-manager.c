@@ -56,35 +56,33 @@ static void
 delete_unused_user (gpointer key, gpointer value, gpointer user_data)
 {
     const gchar *user = (const gchar *)key;
-    GError *error = NULL;
+    g_autofree gchar *path = NULL;
+    g_autofree gchar *quoted_path = NULL;
+    g_autofree gchar *cmd = NULL;
+    g_autoptr(GError) error = NULL;
 
     /* For this operation, we just need a fire and forget rm -rf.  Since
        recursively deleting in GIO is a huge pain in the butt, we'll just drop
        to shell for this. */
 
-    gchar *path = g_build_filename (USERS_DIR, user, NULL);
-    gchar *quoted_path = g_shell_quote (path);
-    gchar *cmd = g_strdup_printf ("/bin/rm -rf %s", quoted_path);
+    path = g_build_filename (USERS_DIR, user, NULL);
+    quoted_path = g_shell_quote (path);
+    cmd = g_strdup_printf ("/bin/rm -rf %s", quoted_path);
 
     g_spawn_command_line_async (cmd, &error);
     if (error)
         g_warning ("Could not delete unused user data directory %s: %s", path, error->message);
-    g_clear_error (&error);
-
-    g_free (cmd);
-    g_free (quoted_path);
-    g_free (path);
 }
 
 gchar *
 shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *user)
 {
     struct passwd *entry;
-    gchar *path;
-    GFile *file;
+    g_autofree gchar *path = NULL;
+    g_autoptr(GFile) file = NULL;
     gboolean result;
-    GFileInfo *info;
-    GError *error = NULL;
+    g_autoptr(GFileInfo) info = NULL;
+    g_autoptr(GError) error = NULL;
 
     entry = getpwnam (user);
     if (!entry)
@@ -103,11 +101,9 @@ shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *us
         else
             g_warning ("Could not create user data directory %s: %s", path, error->message);
     }
-    g_clear_error (&error);
     if (!result)
     {
-        g_object_unref (file);
-        g_free (path);
+        g_clear_pointer (&path, g_free);
         return NULL;
     }
 
@@ -119,17 +115,12 @@ shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *us
     g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_GID, manager->priv->greeter_gid);
     g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_MODE, 0770);
     result = g_file_set_attributes_from_info (file, info, G_FILE_QUERY_INFO_NONE, NULL, &error);
-    g_object_unref (info);
-    g_object_unref (file);
     if (error)
         g_warning ("Could not chown user data directory %s: %s", path, error->message);
     if (!result)
-    {
-        g_free (path);
         return NULL;
-    }
 
-    return path;
+    return g_steal_pointer (&path);
 }
 
 static void
@@ -138,13 +129,12 @@ next_user_dirs_cb (GObject *object, GAsyncResult *res, gpointer user_data)
     GFileEnumerator *enumerator = G_FILE_ENUMERATOR (object);
     SharedDataManager *manager = SHARED_DATA_MANAGER (user_data);
     GList *link;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     GList *files = g_file_enumerator_next_files_finish (enumerator, res, &error);
     if (error)
     {
         g_warning ("Could not enumerate user data directory %s: %s", USERS_DIR, error->message);
-        g_clear_error (&error);
         g_object_unref (manager);
         return;
     }
@@ -185,12 +175,11 @@ list_user_dirs_cb (GObject *object, GAsyncResult *res, gpointer user_data)
     GFile *file = G_FILE (object);
     SharedDataManager *manager = SHARED_DATA_MANAGER (user_data);
     GFileEnumerator *enumerator;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     enumerator = g_file_enumerate_children_finish (file, res, &error);
     if (error)
         g_warning ("Could not enumerate user data directory %s: %s", USERS_DIR, error->message);
-    g_clear_error (&error);
     if (!enumerator)
     {
         g_object_unref (manager);
@@ -212,7 +201,7 @@ user_removed_cb (CommonUserList *list, CommonUser *user, SharedDataManager *mana
 void
 shared_data_manager_start (SharedDataManager *manager)
 {
-    GFile *file;
+    g_autoptr(GFile) file = NULL;
 
     /* Grab list of all current directories, so we know if any exist that we no longer need. */
     file = g_file_new_for_path (USERS_DIR);
@@ -220,7 +209,6 @@ shared_data_manager_start (SharedDataManager *manager)
                                      G_FILE_QUERY_INFO_NONE,
                                      G_PRIORITY_DEFAULT, NULL,
                                      list_user_dirs_cb, g_object_ref (manager));
-    g_object_unref (file);
 
     /* And listen for user removals. */
     g_signal_connect (common_user_list_get_instance (), USER_LIST_SIGNAL_USER_REMOVED, G_CALLBACK (user_removed_cb), manager);
@@ -252,7 +240,7 @@ shared_data_manager_finalize (GObject *object)
     if (self->priv->starting_dirs)
         g_hash_table_destroy (self->priv->starting_dirs);
 
-    g_free (self->priv->greeter_user);
+    g_clear_pointer (&self->priv->greeter_user, g_free);
 
     G_OBJECT_CLASS (shared_data_manager_parent_class)->finalize (object);
 }

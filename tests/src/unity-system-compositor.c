@@ -71,7 +71,7 @@ read_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
     gsize n_read;
     guint16 id;
     guint16 payload_length;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     if (g_io_channel_read_chars (channel, header, 4, &n_read, &error) != G_IO_STATUS_NORMAL)
     {
@@ -144,7 +144,7 @@ int
 main (int argc, char **argv)
 {
     int i;
-    GString *status_text;
+    g_autoptr(GString) status_text = NULL;
     gboolean test = FALSE, container = FALSE;
     int vt_number = -1;
     const gchar *file = NULL;
@@ -206,7 +206,6 @@ main (int argc, char **argv)
     if (container)
         g_string_append (status_text, " CONTAINER=TRUE");
     status_notify ("%s", status_text->str);
-    g_string_free (status_text, TRUE);
 
     config = g_key_file_new ();
     g_key_file_load_from_file (config, g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL), G_KEY_FILE_NONE, NULL);

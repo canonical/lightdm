@@ -57,8 +57,8 @@ use_os_value (const gchar *name, const gchar *value)
 static void
 load_os_release (void)
 {
-    gchar *data;
-    gchar **lines;
+    g_autofree gchar *data = NULL;
+    g_auto(GStrv) lines = NULL;
     guint i;
 
     if (os_release_loaded)
@@ -70,8 +70,7 @@ load_os_release (void)
     lines = g_strsplit (data, "\n", -1);
     for (i = 0; lines[i] != NULL; i++)
     {
-        gchar **tokens;
-        tokens = g_strsplit (lines[i], "=", 2);
+        g_auto(GStrv) tokens = g_strsplit (lines[i], "=", 2);
         if (tokens[0] != NULL && tokens[1] != NULL)
         {
             gchar *name, *value;
@@ -87,10 +86,7 @@ load_os_release (void)
                  use_os_value (name, value);
             }
         }
-        g_strfreev (tokens);
     }
-    g_strfreev (lines);
-    g_free (data);
 
     os_release_loaded = TRUE;
 }

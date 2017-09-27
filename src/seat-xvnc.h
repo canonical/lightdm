@@ -33,6 +33,8 @@ typedef struct
     SeatClass parent_class;
 } SeatXVNCClass;
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SeatXVNC, g_object_unref);
+
 GType seat_xvnc_get_type (void);
 
 SeatXVNC *seat_xvnc_new (GSocket *connection);

@@ -57,14 +57,13 @@ static void
 xdmcp_write (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
 {
     gssize n_written;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     n_written = g_socket_send (client->priv->socket, (const gchar *) buffer, buffer_length, NULL, &error);
     if (n_written < 0)
         g_warning ("Failed to send XDMCP request: %s", error->message);
     else if (n_written != buffer_length)
         g_warning ("Partial write for XDMCP request, wrote %zi, expected %zi", n_written, buffer_length);
-    g_clear_error (&error);
 }
 
 static void
@@ -292,8 +291,7 @@ xdmcp_client_start (XDMCPClient *client)
 {
     GSocketConnectable *address;
     GSocketAddressEnumerator *enumerator;
-    gboolean result;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     if (client->priv->socket)
         return TRUE;
@@ -301,41 +299,32 @@ xdmcp_client_start (XDMCPClient *client)
     client->priv->socket = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_DATAGRAM, G_SOCKET_PROTOCOL_UDP, &error);
     if (error)
         g_warning ("Error creating XDMCP socket: %s", error->message);
-    g_clear_error (&error);
     if (!client->priv->socket)
         return FALSE;
 
     address = g_network_address_new (client->priv->host, client->priv->port);
     enumerator = g_socket_connectable_enumerate (address);
-    result = FALSE;
     while (TRUE)
     {
-        GSocketAddress *socket_address;
-        GError *e = NULL;
+        g_autoptr(GSocketAddress) socket_address = NULL;
+        g_autoptr(GError) e = NULL;
 
         socket_address = g_socket_address_enumerator_next (enumerator, NULL, &e);
         if (e)
             g_warning ("Failed to get socket address: %s", e->message);
-        g_clear_error (&e);
         if (!socket_address)
-            break;
+            return FALSE;
 
-        result = g_socket_connect (client->priv->socket, socket_address, NULL, error ? NULL : &error);
-        g_object_unref (socket_address);
-        if (result)
+        if (!g_socket_connect (client->priv->socket, socket_address, NULL, &e))
         {
-            g_clear_error (&error);
-            break;
+            g_warning ("Unable to connect XDMCP socket: %s", error->message);
+            continue;
         }
+
+        g_io_add_watch (g_io_channel_unix_new (g_socket_get_fd (client->priv->socket)), G_IO_IN, xdmcp_data_cb, client);
+
+        return TRUE;
     }
-    if (error)
-        g_warning ("Unable to connect XDMCP socket: %s", error->message);
-    if (!result)
-        return FALSE;
-
-    g_io_add_watch (g_io_channel_unix_new (g_socket_get_fd (client->priv->socket)), G_IO_IN, xdmcp_data_cb, client);
-
-    return TRUE;
 }
 
 GInetAddress *
@@ -500,11 +489,10 @@ static void
 xdmcp_client_finalize (GObject *object)
 {
     XDMCPClient *client = (XDMCPClient *) object;
-    g_free (client->priv->host);
-    if (client->priv->socket)
-        g_object_unref (client->priv->socket);
-    g_free (client->priv->authorization_name);
-    g_free (client->priv->authorization_data);
+    g_clear_pointer (&client->priv->host, g_free);
+    g_clear_object (&client->priv->socket);
+    g_clear_pointer (&client->priv->authorization_name, g_free);
+    g_clear_pointer (&client->priv->authorization_data, g_free);
 }
 
 static void

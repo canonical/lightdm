@@ -67,10 +67,8 @@ cleanup (void)
 {
     if (lock_path)
         unlink (lock_path);
-    if (xserver)
-        g_object_unref (xserver);
-    if (xdmcp_client)
-        g_object_unref (xdmcp_client);
+    g_clear_object (&xserver);
+    g_clear_object (&xdmcp_client);
 }
 
 static void
@@ -136,14 +134,13 @@ data_to_string (guint8 *data, gsize data_length)
 static void
 xdmcp_accept_cb (XDMCPClient *client, XDMCPAccept *message)
 {
-    gchar *authentication_data_text, *authorization_data_text;
+    g_autofree gchar *authentication_data_text = NULL;
+    g_autofree gchar *authorization_data_text = NULL;
 
     authentication_data_text = data_to_string (message->authentication_data, message->authentication_data_length);
     authorization_data_text = data_to_string (message->authorization_data, message->authorization_data_length);
     status_notify ("%s GOT-ACCEPT SESSION-ID=%d AUTHENTICATION-NAME=\"%s\" AUTHENTICATION-DATA=%s AUTHORIZATION-NAME=\"%s\" AUTHORIZATION-DATA=%s",
                    id, message->session_id, message->authentication_name, authentication_data_text, message->authorization_name, authorization_data_text);
-    g_free (authentication_data_text);
-    g_free (authorization_data_text);  
 
     xdmcp_session_id = message->session_id;
 
@@ -156,11 +153,10 @@ xdmcp_accept_cb (XDMCPClient *client, XDMCPAccept *message)
 static void
 xdmcp_decline_cb (XDMCPClient *client, XDMCPDecline *message)
 {
-    gchar *authentication_data_text;
+    g_autofree gchar *authentication_data_text = NULL;
 
     authentication_data_text = data_to_string (message->authentication_data, message->authentication_data_length);
     status_notify ("%s GOT-DECLINE STATUS=\"%s\" AUTHENTICATION-NAME=\"%s\" AUTHENTICATION-DATA=%s", id, message->status, message->authentication_name, authentication_data_text);
-    g_free (authentication_data_text);
 }
 
 static void
@@ -232,7 +228,7 @@ request_cb (const gchar *name, GHashTable *params)
     else if (strcmp (name, "SEND-QUERY") == 0)
     {
         const gchar *authentication_names_list;
-        gchar **authentication_names;
+        g_auto(GStrv) authentication_names = NULL;
 
         if (!xdmcp_client_start (xdmcp_client))
             quit (EXIT_FAILURE);
@@ -243,15 +239,15 @@ request_cb (const gchar *name, GHashTable *params)
         authentication_names = g_strsplit (authentication_names_list, " ", -1);
 
         xdmcp_client_send_query (xdmcp_client, authentication_names);
-        g_strfreev (authentication_names);
     }
 
     else if (strcmp (name, "SEND-REQUEST") == 0)
     {
         const gchar *text, *addresses_list, *authentication_name, *authentication_data_text, *authorization_names_list, *mfid;
         int request_display_number = display_number;
-        gchar **list, **authorization_names;
-        guint8 *authentication_data;
+        g_auto(GStrv) list = NULL;
+        g_auto(GStrv) authorization_names = NULL;
+        g_autofree guint8 *authentication_data = NULL;
         gsize authentication_data_length, list_length;
         gint i;
         GInetAddress **addresses;
@@ -281,7 +277,6 @@ request_cb (const gchar *name, GHashTable *params)
         for (i = 0; i < list_length; i++)
             addresses[i] = g_inet_address_new_from_string (list[i]);
         addresses[i] = NULL;
-        g_strfreev (list);
 
         authentication_data_length = strlen (authentication_data_text) / 2;
         authentication_data = malloc (authentication_data_length);
@@ -296,8 +291,6 @@ request_cb (const gchar *name, GHashTable *params)
                                    authentication_name,
                                    authentication_data, authentication_data_length,
                                    authorization_names, mfid);
-        g_free (authentication_data);
-        g_strfreev (authorization_names);
     }
 
     else if (strcmp (name, "SEND-MANAGE") == 0)
@@ -352,16 +345,16 @@ int
 main (int argc, char **argv)
 {
     int i;
-    gchar **tokens;
-    char *pid_string;
+    g_auto(GStrv) tokens = NULL;
+    g_autofree gchar *pid_string = NULL;
     gboolean do_xdmcp = FALSE;
     guint xdmcp_port = 0;
-    gchar *xdmcp_host = NULL;
-    gchar *seat = NULL;
-    gchar *mir_id = NULL;
-    gchar *lock_filename;
+    const gchar *xdmcp_host = NULL;
+    const gchar *seat = NULL;
+    const gchar *mir_id = NULL;
+    g_autofree gchar *lock_filename = NULL;
     int lock_file;
-    GString *status_text;
+    g_autoptr(GString) status_text = NULL;
 
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
@@ -382,7 +375,6 @@ main (int argc, char **argv)
     tokens = g_strsplit (xorg_version, ".", -1);
     xorg_version_major = g_strv_length (tokens) > 0 ? atoi (tokens[0]) : 0;
     xorg_version_minor = g_strv_length (tokens) > 1 ? atoi (tokens[1]) : 0;
-    g_strfreev (tokens);
 
     /* TCP listening default changed in 1.17.0 */
     listen_tcp = version_compare (1, 17) < 0;
@@ -530,7 +522,6 @@ main (int argc, char **argv)
     if (mir_id != NULL)
         g_string_append_printf (status_text, " MIR-ID=%s", mir_id);
     status_notify ("%s", status_text->str);
-    g_string_free (status_text, TRUE);
 
     if (g_key_file_has_key (config, "test-xserver-config", "return-value", NULL))
     {
@@ -541,26 +532,24 @@ main (int argc, char **argv)
 
     lock_filename = g_strdup_printf (".X%d-lock", display_number);
     lock_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", lock_filename, NULL);
-    g_free (lock_filename);
     lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
     if (lock_file < 0)
     {
-        char *lock_contents = NULL;
+        g_autofree gchar *lock_contents = NULL;
 
         if (g_file_get_contents (lock_path, &lock_contents, NULL, NULL))
         {
-            gchar *proc_filename;
+            g_autofree gchar *proc_filename = NULL;
             pid_t pid;
 
             pid = atol (lock_contents);
-            g_free (lock_contents);
 
             proc_filename = g_strdup_printf ("/proc/%d", pid);
             if (!g_file_test (proc_filename, G_FILE_TEST_EXISTS))
             {
-                gchar *socket_dir;
-                gchar *socket_filename;
-                gchar *socket_path;
+                g_autofree gchar *socket_dir = NULL;
+                g_autofree gchar *socket_filename = NULL;
+                g_autofree gchar *socket_path = NULL;
 
                 socket_dir = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", ".X11-unix", NULL);
                 g_mkdir_with_parents (socket_dir, 0755);
@@ -571,12 +560,7 @@ main (int argc, char **argv)
                 g_printerr ("Breaking lock on non-existant process %d\n", pid);
                 unlink (lock_path);
                 unlink (socket_path);
-
-                g_free (socket_dir);
-                g_free (socket_filename);
-                g_free (socket_path);
             }
-            g_free (proc_filename);
 
             lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
         }
@@ -588,8 +572,7 @@ main (int argc, char **argv)
                  "Server is already active for display %d\n"
                  "	If this server is no longer running, remove %s\n"
                  "	and start again.\n", display_number, lock_path);
-        g_free (lock_path);
-        lock_path = NULL;
+        g_clear_pointer (&lock_path, g_free);
         return EXIT_FAILURE;
     }
     pid_string = g_strdup_printf ("%10ld", (long) getpid ());
@@ -598,7 +581,6 @@ main (int argc, char **argv)
         g_warning ("Error writing PID file: %s", strerror (errno));
         return EXIT_FAILURE;
     }
-    g_free (pid_string);
 
     if (!x_server_start (xserver))
         return EXIT_FAILURE;

@@ -34,6 +34,8 @@ typedef struct
     GObjectClass parent_class;
 } UserClass;
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (User, g_object_unref);
+
 User *accounts_get_user_by_name (const gchar *username);
 
 User *accounts_get_current_user (void);

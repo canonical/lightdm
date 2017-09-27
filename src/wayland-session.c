@@ -59,9 +59,8 @@ wayland_session_connect_session (DisplayServer *display_server, Session *session
 
     if (wayland_session->priv->vt >= 0)
     {
-        gchar *value = g_strdup_printf ("%d", wayland_session->priv->vt);
+        g_autofree gchar *value = g_strdup_printf ("%d", wayland_session->priv->vt);
         session_set_env (session, "XDG_VTNR", value);
-        g_free (value);
     }
 }
 

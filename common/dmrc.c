@@ -21,8 +21,8 @@
 GKeyFile *
 dmrc_load (CommonUser *user)
 {
-    GKeyFile *dmrc_file;
-    gchar *path;
+    g_autoptr(GKeyFile) dmrc_file = NULL;
+    g_autofree gchar *path = NULL;
     gboolean have_dmrc, drop_privileges;
 
     dmrc_file = g_key_file_new ();
@@ -38,31 +38,33 @@ dmrc_load (CommonUser *user)
     have_dmrc = g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, NULL);
     if (drop_privileges)
         privileges_reclaim ();
-    g_free (path);
 
     /* If no ~/.dmrc, then load from the cache */  
     if (!have_dmrc)
     {
-        gchar *filename, *cache_dir;
+        g_autofree gchar *cache_path = NULL;
+        g_autofree gchar *filename = NULL;
+        g_autofree gchar *cache_dir = NULL;
 
         filename = g_strdup_printf ("%s.dmrc", common_user_get_name (user));
         cache_dir = config_get_string (config_get_instance (), "LightDM", "cache-directory");
-        path = g_build_filename (cache_dir, "dmrc", filename, NULL);
-        g_free (filename);
-        g_free (cache_dir);
+        cache_path = g_build_filename (cache_dir, "dmrc", filename, NULL);
 
-        g_key_file_load_from_file (dmrc_file, path, G_KEY_FILE_KEEP_COMMENTS, NULL);
-        g_free (path);
+        g_key_file_load_from_file (dmrc_file, cache_path, G_KEY_FILE_KEEP_COMMENTS, NULL);
     }
 
-    return dmrc_file;
+    return g_steal_pointer (&dmrc_file);
 }
 
 void
 dmrc_save (GKeyFile *dmrc_file, CommonUser *user)
 {
-    gchar *path, *filename, *cache_dir, *dmrc_cache_dir;
-    gchar *data;
+    g_autofree gchar *data = NULL;
+    g_autofree gchar *path = NULL;
+    g_autofree gchar *cache_path = NULL;
+    g_autofree gchar *filename = NULL;
+    g_autofree gchar *cache_dir = NULL;
+    g_autofree gchar *dmrc_cache_dir = NULL;
     gsize length;
     gboolean drop_privileges;
 
@@ -80,21 +82,13 @@ dmrc_save (GKeyFile *dmrc_file, CommonUser *user)
     if (drop_privileges)
         privileges_reclaim ();
 
-    g_free (path);
-
     /* Update the .dmrc cache */
     cache_dir = config_get_string (config_get_instance (), "LightDM", "cache-directory");
     dmrc_cache_dir = g_build_filename (cache_dir, "dmrc", NULL);
-    g_free (cache_dir);
     if (g_mkdir_with_parents (dmrc_cache_dir, 0700) < 0)
         g_warning ("Failed to make DMRC cache directory %s: %s", dmrc_cache_dir, strerror (errno));
 
     filename = g_strdup_printf ("%s.dmrc", common_user_get_name (user));
-    path = g_build_filename (dmrc_cache_dir, filename, NULL);
-    g_file_set_contents (path, data, length, NULL);
-
-    g_free (data);
-    g_free (path);
-    g_free (filename);
-    g_free (dmrc_cache_dir);
+    cache_path = g_build_filename (dmrc_cache_dir, filename, NULL);
+    g_file_set_contents (cache_path, data, length, NULL);
 }

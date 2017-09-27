@@ -79,10 +79,10 @@ xdmcp_session_finalize (GObject *object)
 {
     XDMCPSession *self = XDMCP_SESSION (object);
 
-    g_free (self->priv->manufacturer_display_id);
+    g_clear_pointer (&self->priv->manufacturer_display_id, g_free);
     g_clear_object (&self->priv->address);
     g_clear_object (&self->priv->authority);
-    g_free (self->priv->display_class);
+    g_clear_pointer (&self->priv->display_class, g_free);
 
     G_OBJECT_CLASS (xdmcp_session_parent_class)->finalize (object);
 }

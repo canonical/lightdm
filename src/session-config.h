@@ -34,6 +34,8 @@ typedef struct
     GObjectClass parent_class;
 } SessionConfigClass;
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SessionConfig, g_object_unref);
+
 GType session_config_get_type (void);
 
 SessionConfig *session_config_new_from_file (const gchar *filename, const gchar *default_session_type, GError **error);

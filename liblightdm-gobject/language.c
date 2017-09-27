@@ -61,25 +61,23 @@ static void
 update_languages (void)
 {
     gchar *command = "locale -a";
-    gchar *stdout_text = NULL, *stderr_text = NULL;
+    g_autofree gchar *stdout_text = NULL;
+    g_autofree gchar *stderr_text = NULL;
     gint exit_status;
     gboolean result;
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
 
     if (have_languages)
         return;
 
     result = g_spawn_command_line_sync (command, &stdout_text, &stderr_text, &exit_status, &error);
     if (error)
-    {
         g_warning ("Failed to run '%s': %s", command, error->message);
-        g_clear_error (&error);
-    }
     else if (exit_status != 0)
         g_warning ("Failed to get languages, '%s' returned %d", command, exit_status);
     else if (result)
     {
-        gchar **tokens;
+        g_auto(GStrv) tokens = NULL;
         int i;
 
         tokens = g_strsplit_set (stdout_text, "\n\r", -1);
@@ -99,12 +97,7 @@ update_languages (void)
             language = g_object_new (LIGHTDM_TYPE_LANGUAGE, "code", code, NULL);
             languages = g_list_append (languages, language);
         }
-
-        g_strfreev (tokens);
     }
-
-    g_free (stdout_text);
-    g_free (stderr_text);
 
     have_languages = TRUE;
 }
@@ -134,19 +127,13 @@ get_locale_name (const gchar *code)
 
     if (!avail_locales)
     {
-        gchar *locales;
-        GError *error = NULL;
+        g_autofree gchar *locales = NULL;
+        g_autoptr(GError) error = NULL;
 
         if (g_spawn_command_line_sync ("locale -a", &locales, NULL, NULL, &error))
-        {
             avail_locales = g_strsplit (g_strchomp (locales), "\n", -1);
-            g_free (locales);
-        }
         else
-        {
             g_warning ("Failed to run 'locale -a': %s", error->message);
-            g_clear_error (&error);
-        }
     }
 
     if (avail_locales)
@@ -259,9 +246,8 @@ lightdm_language_get_name (LightDMLanguage *language)
         }
         if (!priv->name)
         {
-            gchar **tokens = g_strsplit_set (priv->code, "_.@", 2);
+            g_auto(GStrv) tokens = g_strsplit_set (priv->code, "_.@", 2);
             priv->name = g_strdup (tokens[0]);
-            g_strfreev (tokens);
         }
     }
 
@@ -302,9 +288,8 @@ lightdm_language_get_territory (LightDMLanguage *language)
         }
         if (!priv->territory)
         {
-            gchar **tokens = g_strsplit_set (priv->code, "_.@", 3);
+            g_auto(GStrv) tokens = g_strsplit_set (priv->code, "_.@", 3);
             priv->territory = g_strdup (tokens[1]);
-            g_strfreev (tokens);
         }
     }
 

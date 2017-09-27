@@ -100,10 +100,10 @@ seat_local_start (Seat *seat)
         key_name = seat_get_string_property (seat, "xdmcp-key");
         if (key_name)
         {
-            gchar *path;
-            GKeyFile *keys;
+            g_autofree gchar *path = NULL;
+            g_autoptr(GKeyFile) keys = NULL;
             gboolean result;
-            GError *error = NULL;
+            g_autoptr(GError) error = NULL;
 
             path = g_build_filename (config_get_directory (config_get_instance ()), "keys.conf", NULL);
 
@@ -111,11 +111,10 @@ seat_local_start (Seat *seat)
             result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
             if (error)
                 l_debug (seat, "Error getting key %s", error->message);
-            g_clear_error (&error);
 
             if (result)
             {
-                gchar *key = NULL;
+                g_autofree gchar *key = NULL;
 
                 if (g_key_file_has_key (keys, "keyring", key_name, NULL))
                     key = g_key_file_get_string (keys, "keyring", key_name, NULL);
@@ -124,11 +123,7 @@ seat_local_start (Seat *seat)
 
                 if (key)
                     x_server_local_set_xdmcp_key (s->priv->xdmcp_x_server, key);
-                g_free (key);
             }
-
-            g_free (path);
-            g_key_file_free (keys);
         }
 
         g_signal_connect (s->priv->xdmcp_x_server, DISPLAY_SERVER_SIGNAL_STOPPED, G_CALLBACK (xdmcp_x_server_stopped_cb), seat);
@@ -221,8 +216,8 @@ create_x_server (SeatLocal *seat)
 {
     const gchar *x_server_backend;
     XServerLocal *x_server;
-    gchar *number;
-    XAuthority *cookie;
+    g_autofree gchar *number = NULL;
+    g_autoptr(XAuthority) cookie = NULL;
     const gchar *layout = NULL, *config_file = NULL;
     gboolean allow_tcp;
     gint vt;
@@ -232,7 +227,7 @@ create_x_server (SeatLocal *seat)
     {
         UnitySystemCompositor *compositor;
         const gchar *command;
-        gchar *id;
+        g_autofree gchar *id = NULL;
 
         compositor = get_unity_system_compositor (SEAT_LOCAL (seat));
         x_server = X_SERVER_LOCAL (x_server_xmir_new (compositor));
@@ -245,7 +240,6 @@ create_x_server (SeatLocal *seat)
         seat->priv->next_xmir_id++;
         x_server_xmir_set_mir_id (X_SERVER_XMIR (x_server), id);
         x_server_xmir_set_mir_socket (X_SERVER_XMIR (x_server), unity_system_compositor_get_socket (compositor));
-        g_free (id);
     }
     else
     {
@@ -274,8 +268,6 @@ create_x_server (SeatLocal *seat)
     number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (x_server)));
     cookie = x_authority_new_local_cookie (number);
     x_server_set_authority (X_SERVER (x_server), cookie);
-    g_free (number);
-    g_object_unref (cookie);
 
     layout = seat_get_string_property (SEAT (seat), "xserver-layout");
     if (layout)
@@ -487,10 +479,8 @@ seat_local_finalize (GObject *object)
     g_clear_object (&seat->priv->compositor);
     g_clear_object (&seat->priv->active_compositor_session);
     if (seat->priv->xdmcp_x_server)
-    {
         g_signal_handlers_disconnect_matched (seat->priv->xdmcp_x_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
-        g_object_unref (seat->priv->xdmcp_x_server);
-    }
+    g_clear_object (&seat->priv->xdmcp_x_server);
 
     G_OBJECT_CLASS (seat_local_parent_class)->finalize (object);
 }

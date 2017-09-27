@@ -141,15 +141,14 @@ x_server_connect_session (DisplayServer *display_server, Session *session)
     vt = display_server_get_vt (display_server);
     if (vt > 0)
     {
-        gchar *t;
+        g_autofree gchar *tty_text = NULL;
+        g_autofree gchar *vt_text = NULL;
 
-        t = g_strdup_printf ("/dev/tty%d", vt);
-        session_set_tty (session, t);
-        g_free (t);
+        tty_text = g_strdup_printf ("/dev/tty%d", vt);
+        session_set_tty (session, tty_text);
 
-        t = g_strdup_printf ("%d", vt);
-        session_set_env (session, "XDG_VTNR", t);
-        g_free (t);
+        vt_text = g_strdup_printf ("%d", vt);
+        session_set_env (session, "XDG_VTNR", vt_text);
     }
     else
         l_debug (session, "Not setting XDG_VTNR");
@@ -191,11 +190,12 @@ x_server_finalize (GObject *object)
 {
     XServer *self = X_SERVER (object);
 
-    g_free (self->priv->hostname);
-    g_free (self->priv->address);
+    g_clear_pointer (&self->priv->hostname, g_free);
+    g_clear_pointer (&self->priv->address, g_free);
     g_clear_object (&self->priv->authority);
     if (self->priv->connection)
         xcb_disconnect (self->priv->connection);
+    self->priv->connection = NULL;
 
     G_OBJECT_CLASS (x_server_parent_class)->finalize (object);
 }

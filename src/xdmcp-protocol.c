@@ -408,24 +408,20 @@ xdmcp_packet_encode (XDMCPPacket *packet, guint8 *data, gsize max_length)
 static gchar *
 data_tostring (XDMCPData *data)
 {
-    GString *s;
+    g_autoptr(GString) s = NULL;
     guint16 i;
-    gchar *string;
 
     s = g_string_new ("");
     for (i = 0; i < data->length; i++)
         g_string_append_printf (s, "%02X", data->data[i]);
-    string = s->str;
-    g_string_free (s, FALSE);
 
-    return string;
+    return g_steal_pointer (&s->str);
 }
 
 static gchar *
 string_list_tostring (gchar **strings)
 {
-    GString *s;
-    gchar *string;
+    g_autoptr(GString) s = NULL;
     gchar **i;
 
     s = g_string_new ("");
@@ -435,46 +431,38 @@ string_list_tostring (gchar **strings)
            g_string_append (s, " ");
         g_string_append_printf (s, "'%s'", *i);
     }
-    string = s->str;
-    g_string_free (s, FALSE);
 
-    return string;
+    return g_steal_pointer (&s->str);
 }
 
 gchar *
 xdmcp_packet_tostring (XDMCPPacket *packet)
 {
-    gchar *string, *t, *t2, *t5;
-    gint i;
-    GString *t3;
-
     switch (packet->opcode)
     {
     case XDMCP_BroadcastQuery:
-        t = string_list_tostring (packet->Query.authentication_names);
-        string = g_strdup_printf ("BroadcastQuery(authentication_names=[%s])", t);
-        g_free (t);
-        return string;
+    {
+        g_autofree gchar *names = string_list_tostring (packet->Query.authentication_names);
+        return g_strdup_printf ("BroadcastQuery(authentication_names=[%s])", names);
+    }
     case XDMCP_Query:
-        t = string_list_tostring (packet->Query.authentication_names);
-        string = g_strdup_printf ("Query(authentication_names=[%s])", t);
-        g_free (t);
-        return string;
+    {
+        g_autofree gchar *names = string_list_tostring (packet->Query.authentication_names);
+        return g_strdup_printf ("Query(authentication_names=[%s])", names);
+    }
     case XDMCP_IndirectQuery:
-        t = string_list_tostring (packet->Query.authentication_names);
-        string = g_strdup_printf ("IndirectQuery(authentication_names=[%s])", t);
-        g_free (t);
-        return string;
+    {
+        g_autofree gchar *names = string_list_tostring (packet->Query.authentication_names);
+        return g_strdup_printf ("IndirectQuery(authentication_names=[%s])", names);
+    }
     case XDMCP_ForwardQuery:
-        t = data_tostring (&packet->ForwardQuery.client_address);
-        t2 = data_tostring (&packet->ForwardQuery.client_port);
-        t5 = string_list_tostring (packet->ForwardQuery.authentication_names);      
-        string = g_strdup_printf ("ForwardQuery(client_address=%s client_port=%s authentication_names=[%s])",
-                                  t, t2, t5);
-        g_free (t);
-        g_free (t2);
-        g_free (t5);
-        return string;
+    {
+        g_autofree gchar *address_text = data_tostring (&packet->ForwardQuery.client_address);
+        g_autofree gchar *port_text = data_tostring (&packet->ForwardQuery.client_port);
+        g_autofree gchar *names_text = string_list_tostring (packet->ForwardQuery.authentication_names);
+        return g_strdup_printf ("ForwardQuery(client_address=%s client_port=%s authentication_names=[%s])",
+                                address_text, port_text, names_text);
+    }
     case XDMCP_Willing:
         return g_strdup_printf ("Willing(authentication_name='%s' hostname='%s' status='%s')",
                                 packet->Willing.authentication_name, packet->Willing.hostname, packet->Willing.status);
@@ -482,16 +470,19 @@ xdmcp_packet_tostring (XDMCPPacket *packet)
         return g_strdup_printf ("Unwilling(hostname='%s' status='%s')",
                                 packet->Unwilling.hostname, packet->Unwilling.status);
     case XDMCP_Request:
-        t = string_list_tostring (packet->Request.authorization_names);
-        t2 = data_tostring (&packet->Request.authentication_data);
-        t3 = g_string_new ("");
+    {
+        g_autofree gchar *names_text = string_list_tostring (packet->Request.authorization_names);
+        g_autofree gchar *data_text = data_tostring (&packet->Request.authentication_data);
+        g_autoptr(GString) connections_text = g_string_new ("");
+        gint i;
+
         for (i = 0; i < packet->Request.n_connections; i++)
         {
             XDMCPConnection *connection = &packet->Request.connections[i];
             GSocketFamily family = G_SOCKET_FAMILY_INVALID;
 
             if (i != 0)
-               g_string_append (t3, " ");
+               g_string_append (connections_text, " ");
 
             if (connection->type == XAUTH_FAMILY_INTERNET && connection->address.length == 4)
                 family = G_SOCKET_FAMILY_IPV4;
@@ -500,41 +491,34 @@ xdmcp_packet_tostring (XDMCPPacket *packet)
 
             if (family != G_SOCKET_FAMILY_INVALID)
             {
-                GInetAddress *address = g_inet_address_new_from_bytes (connection->address.data, family);
-                gchar *t4 = g_inet_address_to_string (address);
-                g_string_append (t3, t4);
-                g_free (t4);
-                g_object_unref (address);
+                g_autoptr(GInetAddress) address = g_inet_address_new_from_bytes (connection->address.data, family);
+                g_autofree gchar *text = g_inet_address_to_string (address);
+                g_string_append (connections_text, text);
             }
             else
             {
-                gchar *t4 = data_tostring (&connection->address);
-                g_string_append_printf (t3, "(%d, %s)", connection->type, t4);
-                g_free (t4);
+                g_autofree gchar *text = data_tostring (&connection->address);
+                g_string_append_printf (connections_text, "(%d, %s)", connection->type, text);
             }
         }
-        string = g_strdup_printf ("Request(display_number=%d connections=[%s] authentication_name='%s' authentication_data=%s authorization_names=[%s] manufacturer_display_id='%s')",
-                                  packet->Request.display_number, t3->str, packet->Request.authentication_name, t2,
-                                  t, packet->Request.manufacturer_display_id);
-        g_free (t);
-        g_free (t2);
-        g_string_free (t3, TRUE);
-        return string;
+        return g_strdup_printf ("Request(display_number=%d connections=[%s] authentication_name='%s' authentication_data=%s authorization_names=[%s] manufacturer_display_id='%s')",
+                                packet->Request.display_number, connections_text->str, packet->Request.authentication_name, data_text,
+                                names_text, packet->Request.manufacturer_display_id);
+    }
     case XDMCP_Accept:
-        t = data_tostring (&packet->Accept.authentication_data);
-        t2 = data_tostring (&packet->Accept.authorization_data);
-        string =  g_strdup_printf ("Accept(session_id=%d authentication_name='%s' authentication_data=%s authorization_name='%s' authorization_data=%s)",
-                                   packet->Accept.session_id, packet->Accept.authentication_name, t,
-                                   packet->Accept.authorization_name, t2);
-        g_free (t);
-        g_free (t2);
-        return string;
+    {
+        g_autofree gchar *authentication_text = data_tostring (&packet->Accept.authentication_data);
+        g_autofree gchar *authorization_text = data_tostring (&packet->Accept.authorization_data);
+        return g_strdup_printf ("Accept(session_id=%d authentication_name='%s' authentication_data=%s authorization_name='%s' authorization_data=%s)",
+                                packet->Accept.session_id, packet->Accept.authentication_name, authentication_text,
+                                packet->Accept.authorization_name, authorization_text);
+    }
     case XDMCP_Decline:
-        t = data_tostring (&packet->Decline.authentication_data);
-        string = g_strdup_printf ("Decline(status='%s' authentication_name='%s' authentication_data=%s)",
-                                  packet->Decline.status, packet->Decline.authentication_name, t);
-        g_free (t);
-        return string;
+    {
+        g_autofree gchar *t = data_tostring (&packet->Decline.authentication_data);
+        return g_strdup_printf ("Decline(status='%s' authentication_name='%s' authentication_data=%s)",
+                                packet->Decline.status, packet->Decline.authentication_name, t);
+    }
     case XDMCP_Manage:
         return g_strdup_printf ("Manage(session_id=%d display_number=%d display_class='%s')",
                                 packet->Manage.session_id, packet->Manage.display_number, packet->Manage.display_class);

@@ -72,7 +72,7 @@ make_layout_string (const gchar *layout, const gchar *variant)
 static void
 parse_layout_string (const gchar *name, gchar **layout, gchar **variant)
 {
-    gchar **split;
+    g_auto(GStrv) split = NULL;
 
     *layout = NULL;
     *variant = NULL;
@@ -87,7 +87,6 @@ parse_layout_string (const gchar *name, gchar **layout, gchar **variant)
         if (split[1])
             *variant = g_strdup (split[1]);
     }
-    g_strfreev (split);
 }
 
 static void

@@ -222,10 +222,8 @@ session_set_display_server (Session *session, DisplayServer *display_server)
         return;
 
     if (session->priv->display_server)
-    {
         display_server_disconnect_session (session->priv->display_server, session);
-        g_object_unref (session->priv->display_server);
-    }
+    g_clear_object (&session->priv->display_server);
     session->priv->display_server = g_object_ref (display_server);
 }
 
@@ -473,7 +471,7 @@ static gboolean
 from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 {
     Session *session = data;
-    gchar *username;
+    g_autofree gchar *username = NULL;
     ssize_t n_read;
     gboolean auth_complete;
 
@@ -489,11 +487,9 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     if (g_strcmp0 (username, session->priv->username) != 0)
     {
         g_free (session->priv->username);
-        session->priv->username = username;
+        session->priv->username = g_steal_pointer (&username);
         g_clear_object (&session->priv->user);
     }
-    else
-        g_free (username);
 
     /* Check if authentication completed */
     n_read = read_from_child (session, &auth_complete, sizeof (auth_complete));
@@ -570,7 +566,8 @@ session_real_start (Session *session)
     int version;
     int to_child_pipe[2], from_child_pipe[2];
     int to_child_output, from_child_input;
-    gchar *arg0, *arg1;
+    g_autofree gchar *arg0 = NULL;
+    g_autofree gchar *arg1 = NULL;
 
     g_return_val_if_fail (session->priv->pid == 0, FALSE);
 
@@ -615,8 +612,6 @@ session_real_start (Session *session)
                 arg0, arg1, NULL);
         _exit (EXIT_FAILURE);
     }
-    g_free (arg0);
-    g_free (arg1);
 
     if (session->priv->pid < 0)
     {
@@ -764,7 +759,8 @@ static void
 session_real_run (Session *session)
 {
     gsize i, argc;
-    gchar *command, *x_authority_filename;
+    g_autofree gchar *command = NULL;
+    g_autofree gchar *x_authority_filename = NULL;
     GList *link;
 
     g_return_if_fail (session != NULL);
@@ -779,16 +775,15 @@ session_real_run (Session *session)
 
     command = g_strjoinv (" ", session->priv->argv);
     l_debug (session, "Running command %s", command);
-    g_free (command);
 
     /* Create authority location */
     if (session->priv->x_authority_use_system_location)
     {
-        gchar *run_dir, *dir;
+        g_autofree gchar *run_dir = NULL;
+        g_autofree gchar *dir = NULL;
 
         run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
         dir = g_build_filename (run_dir, session->priv->username, NULL);
-        g_free (run_dir);
 
         if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
             l_warning (session, "Failed to set create system authority dir %s: %s", dir, strerror (errno));
@@ -799,7 +794,6 @@ session_real_run (Session *session)
         }
 
         x_authority_filename = g_build_filename (dir, "xauthority", NULL);
-        g_free (dir);
     }
     else
         x_authority_filename = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
@@ -807,23 +801,21 @@ session_real_run (Session *session)
     /* Make sure shared user directory for this user exists */
     if (!session->priv->remote_host_name)
     {
-        gchar *data_dir = shared_data_manager_ensure_user_dir (shared_data_manager_get_instance (), session->priv->username);
+        g_autofree gchar *data_dir = shared_data_manager_ensure_user_dir (shared_data_manager_get_instance (), session->priv->username);
         if (data_dir)
-        {
             session_set_env (session, "XDG_GREETER_DATA_DIR", data_dir);
-            g_free (data_dir);
-        }
     }
 
     /* Open socket to allow in-session greeter */
     if (session->priv->config && session_config_get_allow_greeter (session->priv->config))
     {
-        gchar *run_dir, *dir, *path;
-        GError *error = NULL;
+        g_autofree gchar *run_dir = NULL;
+        g_autofree gchar *dir = NULL;
+        g_autofree gchar *path = NULL;
+        g_autoptr(GError) error = NULL;
 
         run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
         dir = g_build_filename (run_dir, session->priv->username, NULL);
-        g_free (run_dir);
 
         if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
             l_warning (session, "Failed to create greeter socket dir %s: %s", dir, strerror (errno));
@@ -837,14 +829,9 @@ session_real_run (Session *session)
         session->priv->greeter_socket = greeter_socket_new (path);
         g_signal_connect (session->priv->greeter_socket, GREETER_SOCKET_SIGNAL_CREATE_GREETER, G_CALLBACK (create_greeter_cb), session);
         session_set_env (session, "LIGHTDM_GREETER_PIPE", path);
-        g_free (path);
-        g_free (dir);
 
         if (!greeter_socket_start (session->priv->greeter_socket, &error))
-        {
             l_warning (session, "Failed to start greeter socket: %s\n", error->message);
-            g_clear_error (&error);
-        }
     }
 
     if (session->priv->log_filename)
@@ -853,7 +840,6 @@ session_real_run (Session *session)
     write_data (session, &session->priv->log_mode, sizeof (session->priv->log_mode));
     write_string (session, session->priv->tty);
     write_string (session, x_authority_filename);
-    g_free (x_authority_filename);
     write_string (session, session->priv->xdisplay);
     write_xauth (session, session->priv->x_authority);
     argc = g_list_length (session->priv->env);
@@ -987,28 +973,27 @@ session_finalize (GObject *object)
         kill (self->priv->pid, SIGKILL);
     close (self->priv->to_child_input);
     close (self->priv->from_child_output);
-    if (self->priv->from_child_channel)
-        g_io_channel_unref (self->priv->from_child_channel);
+    g_clear_pointer (&self->priv->from_child_channel, g_io_channel_unref);
     if (self->priv->from_child_watch)
         g_source_remove (self->priv->from_child_watch);
     if (self->priv->child_watch)
         g_source_remove (self->priv->child_watch);
-    g_free (self->priv->username);
+    g_clear_pointer (&self->priv->username, g_free);
     g_clear_object (&self->priv->user);
-    g_free (self->priv->pam_service);
+    g_clear_pointer (&self->priv->pam_service, g_free);
     for (i = 0; i < self->priv->messages_length; i++)
         g_free ((char *) self->priv->messages[i].msg);
-    g_free (self->priv->messages);
-    g_free (self->priv->authentication_result_string);
-    g_free (self->priv->log_filename);
-    g_free (self->priv->tty);
-    g_free (self->priv->xdisplay);
+    g_clear_pointer (&self->priv->messages, g_free);
+    g_clear_pointer (&self->priv->authentication_result_string, g_free);
+    g_clear_pointer (&self->priv->log_filename, g_free);
+    g_clear_pointer (&self->priv->tty, g_free);
+    g_clear_pointer (&self->priv->xdisplay, g_free);
     g_clear_object (&self->priv->x_authority);
-    g_free (self->priv->remote_host_name);
-    g_free (self->priv->login1_session_id);
-    g_free (self->priv->console_kit_cookie);
+    g_clear_pointer (&self->priv->remote_host_name, g_free);
+    g_clear_pointer (&self->priv->login1_session_id, g_free);
+    g_clear_pointer (&self->priv->console_kit_cookie, g_free);
     g_list_free_full (self->priv->env, g_free);
-    g_strfreev (self->priv->argv);
+    g_clear_pointer (&self->priv->argv, g_strfreev);
 
     G_OBJECT_CLASS (session_parent_class)->finalize (object);
 }
