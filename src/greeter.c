@@ -63,6 +63,9 @@ typedef struct
     /* API version the client can speak */
     guint32 api_version;
 
+    /* TRUE if the PAM session is being cancelled */
+    gboolean cancelling;
+
     /* TRUE if a the greeter can handle a reset; else we will just kill it instead */
     gboolean resettable;
 
@@ -462,6 +465,8 @@ greeter_reset (Greeter *greeter)
     write_message (greeter, message, offset);
 }
 
+static void reset_session (Greeter *greeter);
+
 static void
 authentication_complete_cb (Session *session, Greeter *greeter)
 {
@@ -480,6 +485,11 @@ authentication_complete_cb (Session *session, Greeter *greeter)
             result = PAM_USER_UNKNOWN;
         }
     }
+
+    if (priv->cancelling)
+        reset_session (greeter);
+    else
+        priv->cancelling = FALSE;
 
     send_end_authentication (greeter, priv->authentication_sequence_number, session_get_username (session), result);
 }
@@ -500,6 +510,7 @@ reset_session (Greeter *greeter)
 
     priv->guest_account_authenticated = FALSE;
     priv->have_sent_end_authentication = FALSE;
+    priv->cancelling = FALSE;
 }
 
 static void
@@ -712,7 +723,8 @@ handle_cancel_authentication (Greeter *greeter)
         return;
 
     g_debug ("Cancel authentication");
-    reset_session (greeter);
+    priv->cancelling = TRUE;
+    session_stop (priv->authentication_session);
 }
 
 static void
@@ -1078,6 +1090,7 @@ greeter_init (Greeter *greeter)
     priv->use_secure_memory = config_get_boolean (config_get_instance (), "LightDM", "lock-memory");
     priv->to_greeter_input = -1;
     priv->from_greeter_output = -1;
+    priv->cancelling = FALSE;
 }
 
 static void
