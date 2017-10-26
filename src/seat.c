@@ -998,7 +998,13 @@ create_user_session (Seat *seat, const gchar *username, gboolean autostart)
     l_debug (seat, "Creating user session");
 
     /* Load user preferences */
-    gboolean login_unknown = config_get_boolean (config_get_instance (), "LightDM", "login-unknown");
+    gboolean login_unknown = FALSE;
+
+    if (seat_get_string_property (seat, "login-unknown"))
+        login_unknown = seat_get_boolean_property (seat, "login-unknown");
+    else
+        login_unknown = config_get_boolean (config_get_instance (), "LightDM", "login-unknown");
+
     g_autoptr(User) user = accounts_get_user_by_name (username);
     if (!user && !login_unknown)
     {
