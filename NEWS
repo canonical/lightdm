@@ -1,3 +1,10 @@
+Overview of changes in lightdm 1.25.0
+
+    * Support moc being called moc-qt5 (e.g. Fedora)
+    * Fail configure if MOC can't be found
+    * Expose autologin-session as a hint to the greeter
+    * Fix timed autologins not using autologin-session when no session specified
+
 Overview of changes in lightdm 1.24.0
 
     * No changes from 1.22

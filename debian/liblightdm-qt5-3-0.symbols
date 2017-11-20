@@ -86,6 +86,7 @@ liblightdm-qt5-3.so.0 liblightdm-qt5-3-0 #MINVER#
  (c++)"QLightDM::Greeter::isAuthenticated() const@Base" 1.21.3
  (c++)"QLightDM::Greeter::selectGuestHint() const@Base" 1.21.3
  (c++)"QLightDM::Greeter::inAuthentication() const@Base" 1.21.3
+ (c++)"QLightDM::Greeter::autologinSessionHint() const@Base" 1.25.0
  (c++)"QLightDM::Greeter::autologinUserHint() const@Base" 1.21.3
  (c++)"QLightDM::Greeter::authenticationUser() const@Base" 1.21.3
  (c++)"QLightDM::Greeter::autologinGuestHint() const@Base" 1.21.3

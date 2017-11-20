@@ -1,3 +1,24 @@
+lightdm (1.25.0-0ubuntu1) bionic; urgency=medium
+
+  * New upstream release:
+    - Support moc being called moc-qt5 (e.g. Fedora)
+    - Fail configure if MOC can't be found
+    - Expose autologin-session as a hint to the greeter
+    - Fix timed autologins not using autologin-session when no session specified
+  * debian/control:
+    - Use standards version 4.1.1
+    - Fix package sections
+    - Fix introspection dependencies
+    - Use recent debhelper
+  * debian/liblightdm-gobject-1-0.symbols:
+  * debian/liblightdm-qt-3-0.symbols:
+  * debian/liblightdm-qt5-3-0.symbols:
+    - Updated
+  * debian/watch:
+    - Update to use github for tarballs
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 20 Nov 2017 15:38:13 +1300
+
 lightdm (1.24.0-0ubuntu1) artful; urgency=medium
 
   * New upstream release:

@@ -3,12 +3,11 @@ Section: x11
 Priority: optional
 Maintainer: Robert Ancell <robert.ancell@ubuntu.com>
 Uploaders: Julien Lavergne <gilir@ubuntu.com>
-Standards-Version: 3.9.8
+Standards-Version: 4.1.1
 Build-Depends: dbus,
-               debhelper (>= 9),
+               debhelper (>= 9.20160709),
                dh-autoreconf,
                dh-translations,
-               dh-systemd (>= 1.14),
                gnome-common,
                gtk-doc-tools,
                intltool (>= 0.35.0),
@@ -57,6 +56,7 @@ Description: Display Manager
   * Cross-desktop (greeters can be written in any toolkit)
 
 Package: liblightdm-gobject-1-0
+Section: libs
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -68,27 +68,30 @@ Description: LightDM GObject client library
  A GObject based library for LightDM clients to use to interface with LightDM.
 
 Package: gir1.2-lightdm-1
-Section: libs
+Section: introspection
 Architecture: any
 Multi-Arch: same
 Depends: ${misc:Depends},
+         ${gir:Depends},
          liblightdm-gobject-1-0 (= ${binary:Version}),
 Description: Typelib file for liblightdm-1
  A GObject based library for LightDM clients to use to interface with LightDM.
 
 Package: liblightdm-qt-3-0
+Section: libs
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends},
          ${shlibs:Depends},
-Recommends: lightdm         
+Recommends: lightdm
 Conflicts: liblightdm-qt-1-0 (>= 1.1.1)
 Replaces: liblightdm-qt-1-0 (>= 1.1.1)
 Description: LightDM Qt client library
  A Qt based library for LightDM clients to use to interface with LightDM.
 
 Package: liblightdm-qt5-3-0
+Section: libs
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -104,6 +107,7 @@ Architecture: any
 Multi-Arch: same
 Depends: ${misc:Depends},
          liblightdm-gobject-1-0 (= ${binary:Version}),
+         gir1.2-lightdm-1 (= ${binary:Version}),
          libdbus-glib-1-dev,
          libglib2.0-dev,
          libxklavier-dev,

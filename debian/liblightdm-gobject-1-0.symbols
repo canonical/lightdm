@@ -33,6 +33,7 @@ liblightdm-gobject-1.so.0 liblightdm-gobject-1-0 #MINVER#
  lightdm_greeter_error_quark@Base 1.19.2
  lightdm_greeter_get_authentication_user@Base 0.9.2
  lightdm_greeter_get_autologin_guest_hint@Base 0.9.2
+ lightdm_greeter_get_autologin_session_hint@Base 1.25.0
  lightdm_greeter_get_autologin_timeout_hint@Base 0.9.2
  lightdm_greeter_get_autologin_user_hint@Base 0.9.2
  lightdm_greeter_get_default_session_hint@Base 0.9.2

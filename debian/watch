@@ -1,3 +1,2 @@
 version=3
-https://launchpad.net/lightdm/+download .*/lightdm-([0-9.]+)\.tar\.xz
-
+https://github.com/CanonicalLtd/lightdm/releases .*/lightdm-([0-9.]+)\.tar\.xz
