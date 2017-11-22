@@ -15,7 +15,7 @@
 /**
  * SECTION:system
  * @title: System Information
- * @short_description: Get system infomation
+ * @short_description: Get system information
  * @include: lightdm.h
  *
  * Helper functions to get system information.

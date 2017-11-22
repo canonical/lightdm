@@ -251,7 +251,7 @@ lightdm_user_list_get_users (LightDMUserList *user_list)
  * @user_list: A #LightDMUserList
  * @username: Name of user to get.
  *
- * Get infomation about a given user or #NULL if this user doesn't exist.
+ * Get information about a given user or #NULL if this user doesn't exist.
  *
  * Return value: (transfer none): A #LightDMUser entry for the given user.
  **/

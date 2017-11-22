@@ -1355,7 +1355,7 @@ lightdm_greeter_get_autologin_guest_hint (LightDMGreeter *greeter)
  * lightdm_greeter_get_autologin_timeout_hint:
  * @greeter: A #LightDMGreeter
  *
- * Get the number of seconds to wait before automaitcally logging in.
+ * Get the number of seconds to wait before automatically logging in.
  *
  * Return value: The number of seconds to wait before automatically logging in or 0 for no timeout.
  */
