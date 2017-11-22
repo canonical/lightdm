@@ -443,7 +443,7 @@ unity_system_compositor_start (DisplayServer *server)
     g_signal_connect (compositor->priv->process, PROCESS_SIGNAL_STOPPED, G_CALLBACK (stopped_cb), compositor);
     result = process_start (compositor->priv->process, FALSE);
 
-    /* Close compostor ends of the pipes */
+    /* Close compositor ends of the pipes */
     close (compositor->priv->to_compositor_pipe[0]);
     compositor->priv->to_compositor_pipe[0] = -1;
     close (compositor->priv->from_compositor_pipe[1]);

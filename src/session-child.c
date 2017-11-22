@@ -541,7 +541,7 @@ session_child_run (int argc, char **argv)
         close (fd);
     }
 
-    /* Set group membership - these can be overriden in pam_setcred */
+    /* Set group membership - these can be overridden in pam_setcred */
     if (getuid () == 0)
     {
         if (initgroups (username, user_get_gid (user)) < 0)
