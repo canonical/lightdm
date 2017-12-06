@@ -67,5 +67,20 @@ main (int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    return EXIT_SUCCESS;
+    while (TRUE)
+    {
+        n_read = g_socket_receive (socket, buffer, 1023, NULL, &error);
+        if (n_read < 0)
+        {
+            g_warning ("Unable to receive on VNC socket: %s", error->message);
+            return EXIT_FAILURE;
+        }
+
+        if (n_read == 0)
+        {
+            status_notify ("VNC-CLIENT DISCONNECTED");
+            return EXIT_SUCCESS;
+        }
+    }
+
 }

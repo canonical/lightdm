@@ -72,7 +72,7 @@ vnc_server_get_listen_address (VNCServer *server)
 static gboolean
 read_cb (GSocket *socket, GIOCondition condition, VNCServer *server)
 {
-    GSocket *client_socket;
+    g_autoptr(GSocket) client_socket = NULL;
     g_autoptr(GError) error = NULL;
 
     client_socket = g_socket_accept (socket, NULL, &error);
