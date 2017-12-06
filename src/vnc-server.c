@@ -91,6 +91,7 @@ read_cb (GSocket *socket, GIOCondition condition, VNCServer *server)
         g_free (hostname);
 
         g_signal_emit (server, signals[NEW_CONNECTION], 0, client_socket);
+        g_object_unref (client_socket);
     }
 
     return TRUE;
