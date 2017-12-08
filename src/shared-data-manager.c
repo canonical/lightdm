@@ -97,7 +97,10 @@ shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *us
     if (error)
     {
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_EXISTS))
+        {
+            g_clear_error (&error);
             result = TRUE;
+        }
         else
             g_warning ("Could not create user data directory %s: %s", path, error->message);
     }
