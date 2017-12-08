@@ -530,7 +530,7 @@ add_port_redirect (int requested_port, int redirected_port)
 
     name = g_strdup_printf ("%d", requested_port);
     g_key_file_set_integer (file, name, "redirected", redirected_port);
-  
+
     data = g_key_file_to_data (file, NULL, NULL);
     g_file_set_contents (path, data, -1, NULL);
 }
@@ -648,7 +648,7 @@ connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     {
     case AF_UNIX:
         path = ((const struct sockaddr_un *) addr)->sun_path;
-        if (path[0] != '\0') 
+        if (path[0] != '\0')
         {
             g_autofree gchar *new_path = redirect_path (path);
             memcpy (&temp_addr_un, addr, addrlen);
@@ -659,7 +659,7 @@ connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     case AF_INET:
         port = ntohs (((const struct sockaddr_in *) addr)->sin_port);
         redirected_port = find_port_redirect (port);
-        if (redirected_port != 0) 
+        if (redirected_port != 0)
         {
             memcpy (&temp_addr_in, addr, sizeof (struct sockaddr_in));
             temp_addr_in.sin_port = htons (redirected_port);
@@ -669,7 +669,7 @@ connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     case AF_INET6:
         port = ntohs (((const struct sockaddr_in6 *) addr)->sin6_port);
         redirected_port = find_port_redirect (port);
-        if (redirected_port != 0) 
+        if (redirected_port != 0)
         {
             memcpy (&temp_addr_in6, addr, sizeof (struct sockaddr_in6));
             temp_addr_in6.sin6_port = htons (redirected_port);
@@ -689,7 +689,7 @@ sendto (int sockfd, const void *buf, size_t len, int flags, const struct sockadd
     const struct sockaddr *modified_addr = dest_addr;
     struct sockaddr_in temp_addr_in;
     struct sockaddr_in6 temp_addr_in6;
-    struct sockaddr_un temp_addr_un;  
+    struct sockaddr_un temp_addr_un;
     ssize_t (*_sendto) (int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen);
 
     _sendto = (ssize_t (*)(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen)) dlsym (RTLD_NEXT, "sendto");
@@ -698,7 +698,7 @@ sendto (int sockfd, const void *buf, size_t len, int flags, const struct sockadd
     {
     case AF_UNIX:
         path = ((const struct sockaddr_un *) dest_addr)->sun_path;
-        if (path[0] != '\0') 
+        if (path[0] != '\0')
         {
             g_autofree gchar *new_path = redirect_path (path);
             memcpy (&temp_addr_un, dest_addr, sizeof (struct sockaddr_un));
@@ -709,7 +709,7 @@ sendto (int sockfd, const void *buf, size_t len, int flags, const struct sockadd
     case AF_INET:
         port = ntohs (((const struct sockaddr_in *) dest_addr)->sin_port);
         redirected_port = find_port_redirect (port);
-        if (redirected_port != 0) 
+        if (redirected_port != 0)
         {
             memcpy (&temp_addr_in, dest_addr, sizeof (struct sockaddr_in));
             temp_addr_in.sin_port = htons (redirected_port);
@@ -719,7 +719,7 @@ sendto (int sockfd, const void *buf, size_t len, int flags, const struct sockadd
     case AF_INET6:
         port = ntohs (((const struct sockaddr_in6 *) dest_addr)->sin6_port);
         redirected_port = find_port_redirect (port);
-        if (redirected_port != 0) 
+        if (redirected_port != 0)
         {
             memcpy (&temp_addr_in6, dest_addr, sizeof (struct sockaddr_in6));
             temp_addr_in6.sin6_port = htons (redirected_port);
@@ -1875,7 +1875,7 @@ xcb_disconnect (xcb_connection_t *c)
 int
 audit_open (void)
 {
-    connect_status ();  
+    connect_status ();
     if (g_key_file_get_boolean (config, "test-audit-config", "check-events", NULL))
         status_notify ("AUDIT OPEN");
 
@@ -1889,7 +1889,7 @@ audit_log_acct_message (int audit_fd, int type, const char *pgname,
 {
     g_autofree gchar *type_string = NULL;
 
-    connect_status ();  
+    connect_status ();
     if (!g_key_file_get_boolean (config, "test-audit-config", "check-events", NULL))
         return 1;
 
@@ -1897,7 +1897,7 @@ audit_log_acct_message (int audit_fd, int type, const char *pgname,
     {
     case AUDIT_USER_LOGIN:
         type_string = g_strdup ("USER_LOGIN");
-        break;      
+        break;
     case AUDIT_USER_LOGOUT:
         type_string = g_strdup ("USER_LOGOUT");
         break;
@@ -1905,7 +1905,7 @@ audit_log_acct_message (int audit_fd, int type, const char *pgname,
         type_string = g_strdup_printf ("%d", type);
         break;
     }
-  
+
     status_notify ("AUDIT LOG-ACCT TYPE=%s PGNAME=%s OP=%s NAME=%s ID=%u HOST=%s ADDR=%s TTY=%s RESULT=%d",
                    type_string, pgname ? pgname : "", op ? op : "", name ? name : "", id, host ? host : "", addr ? addr : "", tty ? tty : "", result);
 
