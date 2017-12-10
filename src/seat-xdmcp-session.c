@@ -20,7 +20,7 @@ struct SeatXDMCPSessionPrivate
     XDMCPSession *session;
 };
 
-G_DEFINE_TYPE (SeatXDMCPSession, seat_xdmcp_session, SEAT_TYPE);
+G_DEFINE_TYPE (SeatXDMCPSession, seat_xdmcp_session, SEAT_TYPE)
 
 SeatXDMCPSession *
 seat_xdmcp_session_new (XDMCPSession *session)

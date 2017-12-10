@@ -19,7 +19,7 @@ struct WaylandSessionPrivate
     gboolean have_vt_ref;
 };
 
-G_DEFINE_TYPE (WaylandSession, wayland_session, DISPLAY_SERVER_TYPE);
+G_DEFINE_TYPE (WaylandSession, wayland_session, DISPLAY_SERVER_TYPE)
 
 WaylandSession *
 wayland_session_new (void)

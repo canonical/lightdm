@@ -66,7 +66,7 @@ struct ProcessPrivate
     guint watch;
 };
 
-G_DEFINE_TYPE (Process, process, G_TYPE_OBJECT);
+G_DEFINE_TYPE (Process, process, G_TYPE_OBJECT)
 
 static Process *current_process = NULL;
 static GHashTable *processes = NULL;

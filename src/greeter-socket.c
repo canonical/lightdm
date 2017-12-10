@@ -41,7 +41,7 @@ struct GreeterSocketPrivate
     Greeter *greeter;
 };
 
-G_DEFINE_TYPE (GreeterSocket, greeter_socket, G_TYPE_OBJECT);
+G_DEFINE_TYPE (GreeterSocket, greeter_socket, G_TYPE_OBJECT)
 
 GreeterSocket *
 greeter_socket_new (const gchar *path)

@@ -29,7 +29,7 @@ struct XServerXVNCPrivate
     gint width, height, depth;
 };
 
-G_DEFINE_TYPE (XServerXVNC, x_server_xvnc, X_SERVER_LOCAL_TYPE);
+G_DEFINE_TYPE (XServerXVNC, x_server_xvnc, X_SERVER_LOCAL_TYPE)
 
 XServerXVNC *
 x_server_xvnc_new (void)

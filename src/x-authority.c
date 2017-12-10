@@ -39,7 +39,7 @@ struct XAuthorityPrivate
     gsize authorization_data_length;
 };
 
-G_DEFINE_TYPE (XAuthority, x_authority, G_TYPE_OBJECT);
+G_DEFINE_TYPE (XAuthority, x_authority, G_TYPE_OBJECT)
 
 XAuthority *
 x_authority_new (guint16 family, const guint8 *address, gsize address_length, const gchar *number, const gchar *name, const guint8 *data, gsize data_length)

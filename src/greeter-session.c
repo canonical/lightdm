@@ -23,7 +23,7 @@ struct GreeterSessionPrivate
     Greeter *greeter;
 };
 
-G_DEFINE_TYPE (GreeterSession, greeter_session, SESSION_TYPE);
+G_DEFINE_TYPE (GreeterSession, greeter_session, SESSION_TYPE)
 
 GreeterSession *
 greeter_session_new (void)

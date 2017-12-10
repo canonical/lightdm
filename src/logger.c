@@ -1,6 +1,6 @@
 #include "logger.h"
 
-G_DEFINE_INTERFACE (Logger, logger, G_TYPE_INVALID);
+G_DEFINE_INTERFACE (Logger, logger, G_TYPE_INVALID)
 
 static void
 logger_logv_default (Logger *self, GLogLevelFlags log_level, const gchar *format, va_list ap) __attribute__ ((format (printf, 3, 0)));

@@ -12,7 +12,7 @@
 #include "xdmcp-session.h"
 #include "xdmcp-session-private.h"
 
-G_DEFINE_TYPE (XDMCPSession, xdmcp_session, G_TYPE_OBJECT);
+G_DEFINE_TYPE (XDMCPSession, xdmcp_session, G_TYPE_OBJECT)
 
 XDMCPSession *
 xdmcp_session_new (guint16 id)

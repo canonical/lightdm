@@ -67,7 +67,7 @@ struct UnitySystemCompositorPrivate
 static void unity_system_compositor_logger_iface_init (LoggerInterface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (UnitySystemCompositor, unity_system_compositor, DISPLAY_SERVER_TYPE,
-                         G_IMPLEMENT_INTERFACE (LOGGER_TYPE, unity_system_compositor_logger_iface_init));               
+                         G_IMPLEMENT_INTERFACE (LOGGER_TYPE, unity_system_compositor_logger_iface_init))
 
 typedef enum
 {

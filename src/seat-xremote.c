@@ -15,7 +15,7 @@
 #include "configuration.h"
 #include "x-server-remote.h"
 
-G_DEFINE_TYPE (SeatXRemote, seat_xremote, SEAT_TYPE);
+G_DEFINE_TYPE (SeatXRemote, seat_xremote, SEAT_TYPE)
 
 static void
 seat_xremote_setup (Seat *seat)

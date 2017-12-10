@@ -31,7 +31,7 @@ struct XServerPrivate
     xcb_connection_t *connection;
 };
 
-G_DEFINE_TYPE (XServer, x_server, DISPLAY_SERVER_TYPE);
+G_DEFINE_TYPE (XServer, x_server, DISPLAY_SERVER_TYPE)
 
 void
 x_server_set_hostname (XServer *server, const gchar *hostname)

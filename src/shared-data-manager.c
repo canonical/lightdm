@@ -34,7 +34,7 @@ struct OwnerInfo
     guint32 uid;
 };
 
-G_DEFINE_TYPE (SharedDataManager, shared_data_manager, G_TYPE_OBJECT);
+G_DEFINE_TYPE (SharedDataManager, shared_data_manager, G_TYPE_OBJECT)
 
 static SharedDataManager *singleton = NULL;
 

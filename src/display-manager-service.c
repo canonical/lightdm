@@ -47,7 +47,7 @@ struct DisplayManagerServicePrivate
     GHashTable *session_bus_entries;
 };
 
-G_DEFINE_TYPE (DisplayManagerService, display_manager_service, G_TYPE_OBJECT);
+G_DEFINE_TYPE (DisplayManagerService, display_manager_service, G_TYPE_OBJECT)
 
 typedef struct
 {

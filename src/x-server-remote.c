@@ -19,7 +19,7 @@ struct XServerRemotePrivate
     guint display_number;
 };
 
-G_DEFINE_TYPE (XServerRemote, x_server_remote, X_SERVER_TYPE);
+G_DEFINE_TYPE (XServerRemote, x_server_remote, X_SERVER_TYPE)
 
 XServerRemote *
 x_server_remote_new (const gchar *hostname, guint number, XAuthority *authority)

@@ -50,7 +50,7 @@ typedef struct
     gchar *territory;
 } LightDMLanguagePrivate;
 
-G_DEFINE_TYPE (LightDMLanguage, lightdm_language, G_TYPE_OBJECT);
+G_DEFINE_TYPE (LightDMLanguage, lightdm_language, G_TYPE_OBJECT)
 
 #define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_LANGUAGE, LightDMLanguagePrivate)
 

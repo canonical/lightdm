@@ -153,11 +153,11 @@ typedef struct
     GObjectClass parent_class;
 } CommonSessionClass;
 
-G_DEFINE_TYPE (CommonUserList, common_user_list, G_TYPE_OBJECT);
-G_DEFINE_TYPE (CommonUser, common_user, G_TYPE_OBJECT);
+G_DEFINE_TYPE (CommonUserList, common_user_list, G_TYPE_OBJECT)
+G_DEFINE_TYPE (CommonUser, common_user, G_TYPE_OBJECT)
 #define COMMON_SESSION(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), common_session_get_type (), CommonSession))
 GType common_session_get_type (void);
-G_DEFINE_TYPE (CommonSession, common_session, G_TYPE_OBJECT);
+G_DEFINE_TYPE (CommonSession, common_session, G_TYPE_OBJECT)
 
 #define GET_LIST_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), COMMON_TYPE_USER_LIST, CommonUserListPrivate)
 #define GET_USER_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), COMMON_TYPE_USER, CommonUserPrivate)

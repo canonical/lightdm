@@ -34,7 +34,7 @@ typedef struct
     GObjectClass parent_class;
 } SessionConfigClass;
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (SessionConfig, g_object_unref);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SessionConfig, g_object_unref)
 
 GType session_config_get_type (void);
 

@@ -27,7 +27,7 @@ struct XServerXmirPrivate
     gchar *mir_socket;
 };
 
-G_DEFINE_TYPE (XServerXmir, x_server_xmir, X_SERVER_LOCAL_TYPE);
+G_DEFINE_TYPE (XServerXmir, x_server_xmir, X_SERVER_LOCAL_TYPE)
 
 static void
 compositor_ready_cb (UnitySystemCompositor *compositor, XServerXmir *server)

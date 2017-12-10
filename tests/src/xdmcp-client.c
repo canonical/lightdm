@@ -9,7 +9,7 @@
 #include "x-common.h"
 #include "xdmcp-client.h"
 
-G_DEFINE_TYPE (XDMCPClient, xdmcp_client, G_TYPE_OBJECT);
+G_DEFINE_TYPE (XDMCPClient, xdmcp_client, G_TYPE_OBJECT)
 
 #define MAXIMUM_REQUEST_LENGTH 65535
 

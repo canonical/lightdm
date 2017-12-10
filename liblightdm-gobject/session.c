@@ -49,7 +49,7 @@ typedef struct
     gchar *comment;
 } LightDMSessionPrivate;
 
-G_DEFINE_TYPE (LightDMSession, lightdm_session, G_TYPE_OBJECT);
+G_DEFINE_TYPE (LightDMSession, lightdm_session, G_TYPE_OBJECT)
 
 #define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_SESSION, LightDMSessionPrivate)
 

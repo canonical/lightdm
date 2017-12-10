@@ -71,7 +71,7 @@ struct XServerLocalPrivate
 static void x_server_local_logger_iface_init (LoggerInterface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (XServerLocal, x_server_local, X_SERVER_TYPE,
-                         G_IMPLEMENT_INTERFACE (LOGGER_TYPE, x_server_local_logger_iface_init));
+                         G_IMPLEMENT_INTERFACE (LOGGER_TYPE, x_server_local_logger_iface_init))
 
 static gchar *version = NULL;
 static guint version_major = 0, version_minor = 0;

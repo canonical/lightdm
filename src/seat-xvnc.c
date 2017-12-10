@@ -15,7 +15,7 @@
 #include "x-server-xvnc.h"
 #include "configuration.h"
 
-G_DEFINE_TYPE (SeatXVNC, seat_xvnc, SEAT_TYPE);
+G_DEFINE_TYPE (SeatXVNC, seat_xvnc, SEAT_TYPE)
 
 struct SeatXVNCPrivate
 {

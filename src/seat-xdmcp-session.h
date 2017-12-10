@@ -33,7 +33,7 @@ typedef struct
     SeatClass parent_class;
 } SeatXDMCPSessionClass;
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (SeatXDMCPSession, g_object_unref);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SeatXDMCPSession, g_object_unref)
 
 GType seat_xdmcp_session_get_type (void);
 

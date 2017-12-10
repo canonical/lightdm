@@ -43,7 +43,7 @@ typedef struct
     void (*stopped)(Process *process);
 } ProcessClass;
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (Process, g_object_unref);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (Process, g_object_unref)
 
 typedef void (*ProcessRunFunc)(Process *process, gpointer user_data);
 

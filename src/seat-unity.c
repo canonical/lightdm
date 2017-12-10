@@ -37,7 +37,7 @@ struct SeatUnityPrivate
     DisplayServer *active_display_server;
 };
 
-G_DEFINE_TYPE (SeatUnity, seat_unity, SEAT_TYPE);
+G_DEFINE_TYPE (SeatUnity, seat_unity, SEAT_TYPE)
 
 static XServerXmir *create_x_server (Seat *seat);
 

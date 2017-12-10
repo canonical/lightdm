@@ -69,10 +69,10 @@ struct Login1SeatPrivate
     gboolean can_multi_session;
 };
 
-G_DEFINE_TYPE (Login1Service, login1_service, G_TYPE_OBJECT);
-G_DEFINE_TYPE (Login1Seat, login1_seat, G_TYPE_OBJECT);
+G_DEFINE_TYPE (Login1Service, login1_service, G_TYPE_OBJECT)
+G_DEFINE_TYPE (Login1Seat, login1_seat, G_TYPE_OBJECT)
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (Login1Seat, g_object_unref);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (Login1Seat, g_object_unref)
 
 static Login1Service *singleton = NULL;
 

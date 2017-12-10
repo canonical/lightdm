@@ -61,7 +61,7 @@ typedef struct
     void (*stopped)(Seat *seat);
 } SeatClass;
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (Seat, g_object_unref);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (Seat, g_object_unref)
 
 GType seat_get_type (void);
 

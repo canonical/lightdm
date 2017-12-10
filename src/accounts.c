@@ -22,7 +22,7 @@ struct UserPrivate
     CommonUser *common_user;
 };
 
-G_DEFINE_TYPE (User, user, G_TYPE_OBJECT);
+G_DEFINE_TYPE (User, user, G_TYPE_OBJECT)
 
 User *
 accounts_get_user_by_name (const gchar *username)

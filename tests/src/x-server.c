@@ -12,8 +12,8 @@
 
 #include "x-server.h"
 
-G_DEFINE_TYPE (XServer, x_server, G_TYPE_OBJECT);
-G_DEFINE_TYPE (XClient, x_client, G_TYPE_OBJECT);
+G_DEFINE_TYPE (XServer, x_server, G_TYPE_OBJECT)
+G_DEFINE_TYPE (XClient, x_client, G_TYPE_OBJECT)
 
 #define MAXIMUM_REQUEST_LENGTH 65535
 

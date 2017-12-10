@@ -35,7 +35,7 @@ struct SeatLocalPrivate
     XServerLocal *xdmcp_x_server;
 };
 
-G_DEFINE_TYPE (SeatLocal, seat_local, SEAT_TYPE);
+G_DEFINE_TYPE (SeatLocal, seat_local, SEAT_TYPE)
 
 static XServerLocal *create_x_server (SeatLocal *seat);
 

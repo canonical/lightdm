@@ -32,7 +32,7 @@ typedef enum
     KEY_DEPRECATED
 } KeyStatus;
 
-G_DEFINE_TYPE (Configuration, config, G_TYPE_OBJECT);
+G_DEFINE_TYPE (Configuration, config, G_TYPE_OBJECT)
 
 static Configuration *configuration_instance = NULL;
 

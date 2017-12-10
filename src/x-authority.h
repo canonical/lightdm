@@ -32,7 +32,7 @@ typedef struct
     GObjectClass parent_class;
 } XAuthorityClass;
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (XAuthority, g_object_unref);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (XAuthority, g_object_unref)
 
 #define XAUTH_FAMILY_INTERNET 0
 #define XAUTH_FAMILY_DECNET 1

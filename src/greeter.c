@@ -83,7 +83,7 @@ struct GreeterPrivate
     guint from_greeter_watch;
 };
 
-G_DEFINE_TYPE (Greeter, greeter, G_TYPE_OBJECT);
+G_DEFINE_TYPE (Greeter, greeter, G_TYPE_OBJECT)
 
 #define API_VERSION 1
 

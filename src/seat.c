@@ -74,7 +74,7 @@ static void seat_logger_iface_init (LoggerInterface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (Seat, seat, G_TYPE_OBJECT,
                          G_IMPLEMENT_INTERFACE (
-                             LOGGER_TYPE, seat_logger_iface_init));
+                             LOGGER_TYPE, seat_logger_iface_init))
 
 typedef struct
 {

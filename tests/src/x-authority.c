@@ -19,8 +19,8 @@ struct XAuthorityRecordPrivate
     guint8 *authorization_data;
 };
 
-G_DEFINE_TYPE (XAuthority, x_authority, G_TYPE_OBJECT);
-G_DEFINE_TYPE (XAuthorityRecord, x_authority_record, G_TYPE_OBJECT);
+G_DEFINE_TYPE (XAuthority, x_authority, G_TYPE_OBJECT)
+G_DEFINE_TYPE (XAuthorityRecord, x_authority_record, G_TYPE_OBJECT)
 
 XAuthority *
 x_authority_new (void)

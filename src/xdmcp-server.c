@@ -51,7 +51,7 @@ struct XDMCPServerPrivate
     GHashTable *sessions;
 };
 
-G_DEFINE_TYPE (XDMCPServer, xdmcp_server, G_TYPE_OBJECT);
+G_DEFINE_TYPE (XDMCPServer, xdmcp_server, G_TYPE_OBJECT)
 
 /* Maximum number of milliseconds client will resend manage requests before giving up */
 #define MANAGE_TIMEOUT 126000

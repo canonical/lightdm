@@ -35,7 +35,7 @@ struct DisplayServerPrivate
 static void display_server_logger_iface_init (LoggerInterface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (DisplayServer, display_server, G_TYPE_OBJECT,
-                         G_IMPLEMENT_INTERFACE (LOGGER_TYPE, display_server_logger_iface_init));
+                         G_IMPLEMENT_INTERFACE (LOGGER_TYPE, display_server_logger_iface_init))
 
 const gchar *
 display_server_get_session_type (DisplayServer *server)

@@ -47,7 +47,7 @@ typedef struct
     gchar *description;
 } LightDMLayoutPrivate;
 
-G_DEFINE_TYPE (LightDMLayout, lightdm_layout, G_TYPE_OBJECT);
+G_DEFINE_TYPE (LightDMLayout, lightdm_layout, G_TYPE_OBJECT)
 
 #define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_LAYOUT, LightDMLayoutPrivate)
 

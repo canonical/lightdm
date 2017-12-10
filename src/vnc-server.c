@@ -31,7 +31,7 @@ struct VNCServerPrivate
     GSocket *socket, *socket6;
 };
 
-G_DEFINE_TYPE (VNCServer, vnc_server, G_TYPE_OBJECT);
+G_DEFINE_TYPE (VNCServer, vnc_server, G_TYPE_OBJECT)
 
 VNCServer *
 vnc_server_new (void)

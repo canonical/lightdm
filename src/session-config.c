@@ -26,7 +26,7 @@ struct SessionConfigPrivate
     gboolean allow_greeter;
 };
 
-G_DEFINE_TYPE (SessionConfig, session_config, G_TYPE_OBJECT);
+G_DEFINE_TYPE (SessionConfig, session_config, G_TYPE_OBJECT)
 
 SessionConfig *
 session_config_new_from_file (const gchar *filename, const gchar *default_session_type, GError **error)

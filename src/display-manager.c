@@ -42,7 +42,7 @@ struct DisplayManagerPrivate
     gboolean stopped;
 };
 
-G_DEFINE_TYPE (DisplayManager, display_manager, G_TYPE_OBJECT);
+G_DEFINE_TYPE (DisplayManager, display_manager, G_TYPE_OBJECT)
 
 DisplayManager *
 display_manager_new (void)

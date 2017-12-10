@@ -112,8 +112,8 @@ typedef struct
     CommonUser *common_user;
 } LightDMUserPrivate;
 
-G_DEFINE_TYPE (LightDMUserList, lightdm_user_list, G_TYPE_OBJECT);
-G_DEFINE_TYPE (LightDMUser, lightdm_user, G_TYPE_OBJECT);
+G_DEFINE_TYPE (LightDMUserList, lightdm_user_list, G_TYPE_OBJECT)
+G_DEFINE_TYPE (LightDMUser, lightdm_user, G_TYPE_OBJECT)
 
 #define GET_LIST_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_USER_LIST, LightDMUserListPrivate)
 #define GET_USER_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_USER, LightDMUserPrivate)

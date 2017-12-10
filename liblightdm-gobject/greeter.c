@@ -166,7 +166,7 @@ typedef struct
     gboolean cancelling_authentication;
 } LightDMGreeterPrivate;
 
-G_DEFINE_TYPE (LightDMGreeter, lightdm_greeter, G_TYPE_OBJECT);
+G_DEFINE_TYPE (LightDMGreeter, lightdm_greeter, G_TYPE_OBJECT)
 
 #define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_GREETER, LightDMGreeterPrivate)
 
@@ -221,7 +221,7 @@ typedef struct
 GType request_get_type (void);
 static void request_iface_init (GAsyncResultIface *iface);
 #define REQUEST(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), request_get_type (), Request))
-G_DEFINE_TYPE_WITH_CODE (Request, request, G_TYPE_OBJECT, G_IMPLEMENT_INTERFACE (G_TYPE_ASYNC_RESULT, request_iface_init));
+G_DEFINE_TYPE_WITH_CODE (Request, request, G_TYPE_OBJECT, G_IMPLEMENT_INTERFACE (G_TYPE_ASYNC_RESULT, request_iface_init))
 
 static gboolean from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data);
 
