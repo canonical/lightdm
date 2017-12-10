@@ -68,7 +68,7 @@ void x_authority_set_address (XAuthority *auth, const guint8 *address, gsize add
 
 const guint8 *x_authority_get_address (XAuthority *auth);
 
-const gsize x_authority_get_address_length (XAuthority *auth);
+gsize x_authority_get_address_length (XAuthority *auth);
 
 void x_authority_set_number (XAuthority *auth, const gchar *number);
 
