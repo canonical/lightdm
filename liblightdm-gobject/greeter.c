@@ -2291,7 +2291,7 @@ request_get_user_data (GAsyncResult *result)
 static GObject *
 request_get_source_object (GAsyncResult *result)
 {
-    return g_object_ref (REQUEST (result)->greeter);
+    return g_object_ref (G_OBJECT (REQUEST (result)->greeter));
 }
 
 static void

@@ -586,7 +586,7 @@ switch_to_greeter_from_failed_session (Seat *seat, Session *session)
     else
     {
         g_clear_object (&seat->priv->session_to_activate);
-        seat->priv->session_to_activate = g_object_ref (greeter_session);
+        seat->priv->session_to_activate = g_object_ref (SESSION (greeter_session));
 
         if (can_share_display_server (seat, session_get_display_server (session)))
             session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
@@ -1482,7 +1482,7 @@ seat_switch_to_greeter (Seat *seat)
         return FALSE;
 
     g_clear_object (&seat->priv->session_to_activate);
-    seat->priv->session_to_activate = g_object_ref (greeter_session);
+    seat->priv->session_to_activate = g_object_ref (SESSION (greeter_session));
 
     display_server = create_display_server (seat, SESSION (greeter_session));
     session_set_display_server (SESSION (greeter_session), display_server);
@@ -1554,7 +1554,7 @@ switch_authentication_complete_cb (Session *session, Seat *seat)
     else
     {
         g_clear_object (&seat->priv->session_to_activate);
-        seat->priv->session_to_activate = g_object_ref (greeter_session);
+        seat->priv->session_to_activate = g_object_ref (SESSION (greeter_session));
 
         display_server = create_display_server (seat, SESSION (greeter_session));
         session_set_display_server (SESSION (greeter_session), display_server);
@@ -1701,7 +1701,7 @@ seat_lock (Seat *seat, const gchar *username)
         session_set_display_server (SESSION (greeter_session), display_server);
 
         g_clear_object (&seat->priv->session_to_activate);
-        seat->priv->session_to_activate = g_object_ref (greeter_session);
+        seat->priv->session_to_activate = g_object_ref (SESSION (greeter_session));
 
         if (reuse_xserver)
         {
@@ -1808,8 +1808,8 @@ seat_real_start (Seat *seat)
         }
 
         g_clear_object (&seat->priv->session_to_activate);
-        seat->priv->session_to_activate = g_object_ref (greeter_session);
         session = SESSION (greeter_session);
+        seat->priv->session_to_activate = g_object_ref (session);
 
         display_server = create_display_server (seat, session);
         session_set_display_server (session, display_server);

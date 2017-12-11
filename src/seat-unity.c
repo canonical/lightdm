@@ -233,7 +233,7 @@ seat_unity_create_display_server (Seat *seat, Session *session)
     if (strcmp (session_type, "x") == 0)
         return DISPLAY_SERVER (create_x_server (seat));
     else if (strcmp (session_type, "mir") == 0)
-        return g_object_ref (SEAT_UNITY (seat)->priv->compositor);
+        return g_object_ref (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor));
     else
     {
         l_warning (seat, "Can't create unsupported display server '%s'", session_type);

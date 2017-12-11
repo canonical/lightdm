@@ -310,7 +310,7 @@ seat_local_create_display_server (Seat *s, Session *session)
     if (strcmp (session_type, "x") == 0)
         return DISPLAY_SERVER (create_x_server (seat));
     else if (strcmp (session_type, "mir") == 0)
-        return g_object_ref (get_unity_system_compositor (seat));
+        return g_object_ref (DISPLAY_SERVER (get_unity_system_compositor (seat)));
     else if (strcmp (session_type, "wayland") == 0)
         return create_wayland_session (seat);
     else
