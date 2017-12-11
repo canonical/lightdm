@@ -323,7 +323,7 @@ request_cb (const gchar *name, GHashTable *params)
 
         text = g_hash_table_lookup (params, "DISPLAY-NUMBER");
         if (text)
-            keep_alive_display_number = atoi (text);     
+            keep_alive_display_number = atoi (text);
         text = g_hash_table_lookup (params, "SESSION-ID");
         if (text)
             session_id = atoi (text);
@@ -594,11 +594,11 @@ main (int argc, char **argv)
         if (xdmcp_port > 0)
             xdmcp_client_set_port (xdmcp_client, xdmcp_port);
         g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_WILLING, G_CALLBACK (xdmcp_willing_cb), NULL);
-        g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_UNWILLING, G_CALLBACK (xdmcp_unwilling_cb), NULL);      
+        g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_UNWILLING, G_CALLBACK (xdmcp_unwilling_cb), NULL);
         g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_ACCEPT, G_CALLBACK (xdmcp_accept_cb), NULL);
         g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_DECLINE, G_CALLBACK (xdmcp_decline_cb), NULL);
         g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_FAILED, G_CALLBACK (xdmcp_failed_cb), NULL);
-        g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_ALIVE, G_CALLBACK (xdmcp_alive_cb), NULL);      
+        g_signal_connect (xdmcp_client, XDMCP_CLIENT_SIGNAL_ALIVE, G_CALLBACK (xdmcp_alive_cb), NULL);
     }
 
     g_main_loop_run (loop);
