@@ -1,7 +1,9 @@
 usr/sbin/lightdm
+usr/share/accountsservice
+usr/share/bash-completion
 usr/share/man
 usr/share/locale
-usr/share/bash-completion
+usr/share/polkit-1
 usr/lib/lightdm
 usr/bin
 etc/dbus-1/

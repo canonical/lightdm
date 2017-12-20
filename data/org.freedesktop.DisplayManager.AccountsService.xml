@@ -1,0 +1,26 @@
+<node>
+  <interface name="org.freedesktop.DisplayManager.AccountsService">
+
+    <annotation name="org.freedesktop.Accounts.VendorExtension" value="true"/>
+
+    <annotation name="org.freedesktop.Accounts.Authentication.ChangeOwn"
+                value="org.freedesktop.DisplayManager.AccountsService.ModifyOwn"/>
+
+    <annotation name="org.freedesktop.Accounts.Authentication.ReadAny"
+                value="org.freedesktop.DisplayManager.AccountsService.ReadAny"/>
+
+    <annotation name="org.freedesktop.Accounts.Authentication.ChangeAny"
+                value="org.freedesktop.DisplayManager.AccountsService.ModifyAny"/>
+
+    <property name="BackgroundFile" type="s" access="readwrite">
+      <annotation name="org.freedesktop.Accounts.DefaultValue" value=""/>
+    </property>
+    <property name="HasMessages" type="b" access="readwrite">
+      <annotation name="org.freedesktop.Accounts.DefaultValue" value="false"/>
+    </property>
+    <property name="BackgroundFile" type="s" access="readwrite">
+      <annotation name="org.freedesktop.Accounts.DefaultValue" value=""/>
+    </property>
+
+  </interface>
+</node>

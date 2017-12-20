@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<policyconfig>
+        <action id="org.freedesktop.DisplayManager.AccountsService.ModifyOwn">
+                <_description>Set properties of own user</_description>
+                <_message>Authentication is required to set one's own greeter properties.</_message>
+                <defaults>
+                        <allow_any>yes</allow_any>
+                        <allow_inactive>yes</allow_inactive>
+                        <allow_active>yes</allow_active>
+                </defaults>
+        </action>
+
+        <action id="org.freedesktop.DisplayManager.AccountsService.ReadAny">
+                <_description>Set properties of any user</_description>
+                <_message>Authentication is required to get another user's greeter properties.</_message>
+                <defaults>
+                        <allow_any>yes</allow_any>
+                        <allow_inactive>yes</allow_inactive>
+                        <allow_active>yes</allow_active>
+                </defaults>
+        </action>
+
+        <action id="org.freedesktop.DisplayManager.AccountsService.ModifyAny">
+                <_description>Set properties of any user</_description>
+                <_message>Authentication is required to set another user's greeter properties.</_message>
+                <defaults>
+                        <allow_any>no</allow_any>
+                        <allow_inactive>no</allow_inactive>
+                        <allow_active>no</allow_active>
+                </defaults>
+        </action>
+</policyconfig>

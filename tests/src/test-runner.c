@@ -52,6 +52,7 @@ typedef struct
     gchar *background;
     gchar *path;
     guint id;
+    guint extra_id;
     gchar *language;
     gchar *xsession;
     gchar **layouts;
@@ -2122,8 +2123,6 @@ handle_user_get_property (GDBusConnection       *connection,
         return g_variant_new_string (user->home_directory);
     else if (strcmp (property_name, "SystemAccount") == 0)
         return g_variant_new_boolean (user->uid < 1000);
-    else if (strcmp (property_name, "BackgroundFile") == 0)
-        return g_variant_new_string (user->background ? user->background : "");
     else if (strcmp (property_name, "Language") == 0)
         return g_variant_new_string (user->language ? user->language : "");
     else if (strcmp (property_name, "IconFile") == 0)
@@ -2134,6 +2133,25 @@ handle_user_get_property (GDBusConnection       *connection,
         return g_variant_new_uint64 (user->uid);
     else if (strcmp (property_name, "XSession") == 0)
         return g_variant_new_string (user->xsession ? user->xsession : "");
+
+    return NULL;
+}
+
+static GVariant *
+handle_user_get_extra_property (GDBusConnection       *connection,
+                                const gchar           *sender,
+                                const gchar           *object_path,
+                                const gchar           *interface_name,
+                                const gchar           *property_name,
+                                GError               **error,
+                                gpointer               user_data)
+{
+    AccountsUser *user = user_data;
+
+    if (strcmp (property_name, "BackgroundFile") == 0)
+        return g_variant_new_string (user->background ? user->background : "");
+    else if (strcmp (property_name, "HasMessages") == 0)
+        return g_variant_new_boolean (user->has_messages);
     else if (strcmp (property_name, "XKeyboardLayouts") == 0)
     {
         if (user->layouts != NULL)
@@ -2141,8 +2159,6 @@ handle_user_get_property (GDBusConnection       *connection,
         else
             return g_variant_new_strv (NULL, 0);
     }
-    else if (strcmp (property_name, "XHasMessages") == 0)
-        return g_variant_new_boolean (user->has_messages);
 
     return NULL;
 }
@@ -2157,6 +2173,7 @@ accounts_user_set_hidden (AccountsUser *user, gboolean hidden, gboolean emit_sig
         g_autoptr(GError) error = NULL;
 
         g_dbus_connection_unregister_object (accounts_connection, user->id);
+        g_dbus_connection_unregister_object (accounts_connection, user->extra_id);
         if (!g_dbus_connection_emit_signal (accounts_connection,
                                             NULL,
                                             "/org/freedesktop/Accounts",
@@ -2185,12 +2202,12 @@ accounts_user_set_hidden (AccountsUser *user, gboolean hidden, gboolean emit_sig
             "    <property name='Shell' type='s' access='read'/>"
             "    <property name='Uid' type='t' access='read'/>"
             "    <property name='XSession' type='s' access='read'/>"
-            "    <property name='XKeyboardLayouts' type='as' access='read'/>"
             "    <signal name='Changed' />"
             "  </interface>"
             "  <interface name='org.freedesktop.DisplayManager.AccountsService'>"
             "    <property name='BackgroundFile' type='s' access='read'/>"
             "    <property name='HasMessages' type='b' access='read'/>"
+            "    <property name='XKeyboardLayouts' type='as' access='read'/>"
             "  </interface>"
             "</node>";
         g_autoptr(GDBusNodeInfo) user_info = NULL;
@@ -2199,6 +2216,11 @@ accounts_user_set_hidden (AccountsUser *user, gboolean hidden, gboolean emit_sig
         {
             handle_user_call,
             handle_user_get_property,
+        };
+        static const GDBusInterfaceVTable user_extra_vtable =
+        {
+            NULL,
+            handle_user_get_extra_property,
         };
 
         user_info = g_dbus_node_info_new_for_xml (user_interface, &error);
@@ -2215,6 +2237,18 @@ accounts_user_set_hidden (AccountsUser *user, gboolean hidden, gboolean emit_sig
                                                       NULL,
                                                       &error);
         if (user->id == 0)
+        {
+            g_warning ("Failed to register user: %s", error->message);
+            return;
+        }
+        user->extra_id = g_dbus_connection_register_object (accounts_connection,
+                                                            user->path,
+                                                            user_info->interfaces[1],
+                                                            &user_extra_vtable,
+                                                            user,
+                                                            NULL,
+                                                            &error);
+        if (user->extra_id == 0)
         {
             g_warning ("Failed to register user: %s", error->message);
             return;

@@ -494,6 +494,7 @@ load_accounts_user (CommonUser *user)
 {
     CommonUserPrivate *priv = GET_USER_PRIVATE (user);
     g_autoptr(GVariant) result = NULL;
+    g_autoptr(GVariant) extra_result = NULL;
     GVariant *value;
     GVariantIter *iter;
     gchar *name;
@@ -572,29 +573,50 @@ load_accounts_user (CommonUser *user)
             g_free (priv->session);
             priv->session = g_variant_dup_string (value, NULL);
         }
-        else if (strcmp (name, "BackgroundFile") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
-        {
-            g_free (priv->background);
-            priv->background = g_variant_dup_string (value, NULL);
-            if (strcmp (priv->background, "") == 0)
-                g_clear_pointer (&priv->background, g_free);
-        }
-        else if (strcmp (name, "XKeyboardLayouts") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING_ARRAY))
-        {
-            g_strfreev (priv->layouts);
-            priv->layouts = g_variant_dup_strv (value, NULL);
-            if (!priv->layouts)
-            {
-                priv->layouts = g_malloc (sizeof (gchar *) * 1);
-                priv->layouts[0] = NULL;
-            }
-        }
-        else if (strcmp (name, "XHasMessages") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
-            priv->has_messages = g_variant_get_boolean (value);
         else if (strcmp (name, "Uid") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_UINT64))
             priv->uid = g_variant_get_uint64 (value);
     }
     g_variant_iter_free (iter);
+
+    extra_result = g_dbus_connection_call_sync (priv->bus,
+                                                "org.freedesktop.Accounts",
+                                                priv->path,
+                                                "org.freedesktop.DBus.Properties",
+                                                "GetAll",
+                                                g_variant_new ("(s)", "org.freedesktop.DisplayManager.AccountsService"),
+                                                G_VARIANT_TYPE ("(a{sv})"),
+                                                G_DBUS_CALL_FLAGS_NONE,
+                                                -1,
+                                                NULL,
+                                                &error);
+    if (error)
+        g_warning ("Error updating user %s: %s", priv->path, error->message);
+    if (extra_result) {
+        g_variant_get (extra_result, "(a{sv})", &iter);
+        while (g_variant_iter_loop (iter, "{&sv}", &name, &value))
+        {
+            if (strcmp (name, "BackgroundFile") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
+            {
+                g_free (priv->background);
+                priv->background = g_variant_dup_string (value, NULL);
+                if (strcmp (priv->background, "") == 0)
+                    g_clear_pointer (&priv->background, g_free);
+            }
+            else if (strcmp (name, "HasMessages") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
+                priv->has_messages = g_variant_get_boolean (value);
+            else if (strcmp (name, "XKeyboardLayouts") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING_ARRAY))
+            {
+                g_strfreev (priv->layouts);
+                priv->layouts = g_variant_dup_strv (value, NULL);
+                if (!priv->layouts)
+                {
+                    priv->layouts = g_malloc (sizeof (gchar *) * 1);
+                    priv->layouts[0] = NULL;
+                }
+            }
+        }
+        g_variant_iter_free (iter);
+    }
 
     return !system_account;
 }

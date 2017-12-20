@@ -1,5 +1,6 @@
 # List of source files containing translatable strings.
 # Please keep this file sorted alphabetically.
 [encoding: UTF-8]
+data/org.freedesktop.DisplayManager.AccountsService.policy.in
 src/lightdm.c
 src/dm-tool.c
