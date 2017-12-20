@@ -42,8 +42,6 @@ static GHashTable *children = NULL;
 static gboolean stop = FALSE;
 static gint exit_status = 0;
 static GDBusConnection *accounts_connection = NULL;
-static GDBusNodeInfo *accounts_info;
-static GDBusNodeInfo *user_info;
 typedef struct
 {
     guint uid;
@@ -61,27 +59,6 @@ typedef struct
     gboolean hidden;
 } AccountsUser;
 static GList *accounts_users = NULL;
-static void handle_user_call (GDBusConnection       *connection,
-                              const gchar           *sender,
-                              const gchar           *object_path,
-                              const gchar           *interface_name,
-                              const gchar           *method_name,
-                              GVariant              *parameters,
-                              GDBusMethodInvocation *invocation,
-                              gpointer               user_data);
-static GVariant *handle_user_get_property (GDBusConnection       *connection,
-                                           const gchar           *sender,
-                                           const gchar           *object_path,
-                                           const gchar           *interface_name,
-                                           const gchar           *property_name,
-                                           GError               **error,
-                                           gpointer               user_data);
-static const GDBusInterfaceVTable user_vtable =
-{
-    handle_user_call,
-    handle_user_get_property,
-};
-static GDBusNodeInfo *ck_session_info;
 typedef struct
 {
     gchar *cookie;
@@ -91,18 +68,6 @@ typedef struct
 } CKSession;
 static GList *ck_sessions = NULL;
 static gint ck_session_index = 0;
-static void handle_ck_session_call (GDBusConnection       *connection,
-                                    const gchar           *sender,
-                                    const gchar           *object_path,
-                                    const gchar           *interface_name,
-                                    const gchar           *method_name,
-                                    GVariant              *parameters,
-                                    GDBusMethodInvocation *invocation,
-                                    gpointer               user_data);
-static const GDBusInterfaceVTable ck_session_vtable =
-{
-    handle_ck_session_call,
-};
 
 typedef struct
 {
@@ -1291,6 +1256,47 @@ start_upower_daemon (void)
                     NULL);
 }
 
+static void
+handle_ck_session_call (GDBusConnection       *connection,
+                        const gchar           *sender,
+                        const gchar           *object_path,
+                        const gchar           *interface_name,
+                        const gchar           *method_name,
+                        GVariant              *parameters,
+                        GDBusMethodInvocation *invocation,
+                        gpointer               user_data)
+{
+    CKSession *session = user_data;
+
+    if (strcmp (method_name, "GetXDGRuntimeDir") == 0 && !g_key_file_get_boolean (config, "test-runner-config", "ck-no-xdg-runtime", NULL))
+    {
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "/run/console-kit"));
+    }
+    else if (strcmp (method_name, "Lock") == 0)
+    {
+        if (!session->locked)
+            check_status ("CONSOLE-KIT LOCK-SESSION");
+        session->locked = TRUE;
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "Unlock") == 0)
+    {
+        if (session->locked)
+            check_status ("CONSOLE-KIT UNLOCK-SESSION");
+        session->locked = FALSE;
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else if (strcmp (method_name, "Activate") == 0)
+    {
+        g_autofree gchar *status = g_strdup_printf ("CONSOLE-KIT ACTIVATE-SESSION SESSION=%s", session->cookie);
+        check_status (status);
+
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+    }
+    else
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
+}
+
 static CKSession *
 open_ck_session (GDBusConnection *connection, GVariant *params)
 {
@@ -1300,6 +1306,30 @@ open_ck_session (GDBusConnection *connection, GVariant *params)
     const gchar *name;
     GVariant *value;
     g_autoptr(GError) error = NULL;
+    const gchar *ck_session_interface_old =
+        "<node>"
+        "  <interface name='org.freedesktop.ConsoleKit.Session'>"
+        "    <method name='Lock'/>"
+        "    <method name='Unlock'/>"
+        "    <method name='Activate'/>"
+        "  </interface>"
+        "</node>";
+    const gchar *ck_session_interface =
+        "<node>"
+        "  <interface name='org.freedesktop.ConsoleKit.Session'>"
+        "    <method name='GetXDGRuntimeDir'>"
+        "      <arg name='dir' direction='out' type='s'/>"
+        "    </method>"
+        "    <method name='Lock'/>"
+        "    <method name='Unlock'/>"
+        "    <method name='Activate'/>"
+        "  </interface>"
+        "</node>";
+    g_autoptr(GDBusNodeInfo) ck_session_info = NULL;
+    static const GDBusInterfaceVTable ck_session_vtable =
+    {
+        handle_ck_session_call,
+    };
 
     session = g_malloc0 (sizeof (CKSession));
     ck_sessions = g_list_append (ck_sessions, session);
@@ -1315,6 +1345,13 @@ open_ck_session (GDBusConnection *connection, GVariant *params)
             g_string_append_printf (cookie, "-x%s", display);
         }
     }
+
+    if (g_key_file_get_boolean (config, "test-runner-config", "ck-no-xdg-runtime", NULL))
+        ck_session_info = g_dbus_node_info_new_for_xml (ck_session_interface_old, &error);
+    else
+        ck_session_info = g_dbus_node_info_new_for_xml (ck_session_interface, &error);  
+    if (!ck_session_info)
+        g_warning ("Failed to parse D-Bus interface: %s", error->message);
 
     session->cookie = g_strdup (cookie->str);
     session->path = g_strdup_printf ("/org/freedesktop/ConsoleKit/Session%d", ck_session_index++);
@@ -1419,47 +1456,6 @@ handle_ck_call (GDBusConnection       *connection,
 }
 
 static void
-handle_ck_session_call (GDBusConnection       *connection,
-                        const gchar           *sender,
-                        const gchar           *object_path,
-                        const gchar           *interface_name,
-                        const gchar           *method_name,
-                        GVariant              *parameters,
-                        GDBusMethodInvocation *invocation,
-                        gpointer               user_data)
-{
-    CKSession *session = user_data;
-
-    if (strcmp (method_name, "GetXDGRuntimeDir") == 0 && !g_key_file_get_boolean (config, "test-runner-config", "ck-no-xdg-runtime", NULL))
-    {
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "/run/console-kit"));
-    }
-    else if (strcmp (method_name, "Lock") == 0)
-    {
-        if (!session->locked)
-            check_status ("CONSOLE-KIT LOCK-SESSION");
-        session->locked = TRUE;
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
-    }
-    else if (strcmp (method_name, "Unlock") == 0)
-    {
-        if (session->locked)
-            check_status ("CONSOLE-KIT UNLOCK-SESSION");
-        session->locked = FALSE;
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
-    }
-    else if (strcmp (method_name, "Activate") == 0)
-    {
-        g_autofree gchar *status = g_strdup_printf ("CONSOLE-KIT ACTIVATE-SESSION SESSION=%s", session->cookie);
-        check_status (status);
-
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
-    }
-    else
-        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
-}
-
-static void
 ck_name_acquired_cb (GDBusConnection *connection,
                      const gchar     *name,
                      gpointer         user_data)
@@ -1514,39 +1510,11 @@ ck_name_acquired_cb (GDBusConnection *connection,
     {
         handle_ck_call,
     };
-    const gchar *ck_session_interface_old =
-        "<node>"
-        "  <interface name='org.freedesktop.ConsoleKit.Session'>"
-        "    <method name='Lock'/>"
-        "    <method name='Unlock'/>"
-        "    <method name='Activate'/>"
-        "  </interface>"
-        "</node>";
-    const gchar *ck_session_interface =
-        "<node>"
-        "  <interface name='org.freedesktop.ConsoleKit.Session'>"
-        "    <method name='GetXDGRuntimeDir'>"
-        "      <arg name='dir' direction='out' type='s'/>"
-        "    </method>"
-        "    <method name='Lock'/>"
-        "    <method name='Unlock'/>"
-        "    <method name='Activate'/>"
-        "  </interface>"
-        "</node>";
     g_autoptr(GDBusNodeInfo) ck_info = NULL;
     g_autoptr(GError) error = NULL;
 
     ck_info = g_dbus_node_info_new_for_xml (ck_interface, &error);
     if (!ck_info)
-    {
-        g_warning ("Failed to parse D-Bus interface: %s", error->message);
-        return;
-    }
-    if (g_key_file_get_boolean (config, "test-runner-config", "ck-no-xdg-runtime", NULL))
-        ck_session_info = g_dbus_node_info_new_for_xml (ck_session_interface_old, &error);
-    else
-        ck_session_info = g_dbus_node_info_new_for_xml (ck_session_interface, &error);  
-    if (!ck_session_info)
     {
         g_warning ("Failed to parse D-Bus interface: %s", error->message);
         return;
@@ -2100,6 +2068,86 @@ get_accounts_user_by_name (const gchar *username)
 }
 
 static void
+handle_user_call (GDBusConnection       *connection,
+                  const gchar           *sender,
+                  const gchar           *object_path,
+                  const gchar           *interface_name,
+                  const gchar           *method_name,
+                  GVariant              *parameters,
+                  GDBusMethodInvocation *invocation,
+                  gpointer               user_data)
+{
+    AccountsUser *user = user_data;
+
+    if (strcmp (method_name, "SetXSession") == 0)
+    {
+        gchar *xsession;
+
+        g_variant_get (parameters, "(&s)", &xsession);
+
+        g_free (user->xsession);
+        user->xsession = g_strdup (xsession);
+
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+
+        /* And notify others that it took */
+        g_dbus_connection_emit_signal (accounts_connection,
+                                       NULL,
+                                       user->path,
+                                       "org.freedesktop.Accounts.User",
+                                       "Changed",
+                                       g_variant_new ("()"),
+                                       NULL);
+    }
+    else
+        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
+}
+
+static GVariant *
+handle_user_get_property (GDBusConnection       *connection,
+                          const gchar           *sender,
+                          const gchar           *object_path,
+                          const gchar           *interface_name,
+                          const gchar           *property_name,
+                          GError               **error,
+                          gpointer               user_data)
+{
+    AccountsUser *user = user_data;
+
+    if (strcmp (property_name, "UserName") == 0)
+        return g_variant_new_string (user->user_name);
+    else if (strcmp (property_name, "RealName") == 0)
+        return g_variant_new_string (user->real_name);
+    else if (strcmp (property_name, "HomeDirectory") == 0)
+        return g_variant_new_string (user->home_directory);
+    else if (strcmp (property_name, "SystemAccount") == 0)
+        return g_variant_new_boolean (user->uid < 1000);
+    else if (strcmp (property_name, "BackgroundFile") == 0)
+        return g_variant_new_string (user->background ? user->background : "");
+    else if (strcmp (property_name, "Language") == 0)
+        return g_variant_new_string (user->language ? user->language : "");
+    else if (strcmp (property_name, "IconFile") == 0)
+        return g_variant_new_string (user->image ? user->image : "");
+    else if (strcmp (property_name, "Shell") == 0)
+        return g_variant_new_string ("/bin/sh");
+    else if (strcmp (property_name, "Uid") == 0)
+        return g_variant_new_uint64 (user->uid);
+    else if (strcmp (property_name, "XSession") == 0)
+        return g_variant_new_string (user->xsession ? user->xsession : "");
+    else if (strcmp (property_name, "XKeyboardLayouts") == 0)
+    {
+        if (user->layouts != NULL)
+            return g_variant_new_strv ((const gchar * const *) user->layouts, -1);
+        else
+            return g_variant_new_strv (NULL, 0);
+    }
+    else if (strcmp (property_name, "XHasMessages") == 0)
+        return g_variant_new_boolean (user->has_messages);
+
+    return NULL;
+}
+
+static void
 accounts_user_set_hidden (AccountsUser *user, gboolean hidden, gboolean emit_signal)
 {
     user->hidden = hidden;
@@ -2122,18 +2170,55 @@ accounts_user_set_hidden (AccountsUser *user, gboolean hidden, gboolean emit_sig
     }
     if (!user->hidden && user->id == 0)
     {
-        g_autoptr(GError) register_error = NULL;
-        g_autoptr(GError) emit_error = NULL;
+        const gchar *user_interface =
+            "<node>"
+            "  <interface name='org.freedesktop.Accounts.User'>"
+            "    <method name='SetXSession'>"
+            "      <arg name='x_session' direction='in' type='s'/>"
+            "    </method>"
+            "    <property name='UserName' type='s' access='read'/>"
+            "    <property name='RealName' type='s' access='read'/>"
+            "    <property name='HomeDirectory' type='s' access='read'/>"
+            "    <property name='SystemAccount' type='b' access='read'/>"
+            "    <property name='Language' type='s' access='read'/>"
+            "    <property name='IconFile' type='s' access='read'/>"
+            "    <property name='Shell' type='s' access='read'/>"
+            "    <property name='Uid' type='t' access='read'/>"
+            "    <property name='XSession' type='s' access='read'/>"
+            "    <property name='XKeyboardLayouts' type='as' access='read'/>"
+            "    <signal name='Changed' />"
+            "  </interface>"
+            "  <interface name='org.freedesktop.DisplayManager.AccountsService'>"
+            "    <property name='BackgroundFile' type='s' access='read'/>"
+            "    <property name='HasMessages' type='b' access='read'/>"
+            "  </interface>"
+            "</node>";
+        g_autoptr(GDBusNodeInfo) user_info = NULL;
+        g_autoptr(GError) error = NULL;
+        static const GDBusInterfaceVTable user_vtable =
+        {
+            handle_user_call,
+            handle_user_get_property,
+        };
 
+        user_info = g_dbus_node_info_new_for_xml (user_interface, &error);
+        if (!user_info)
+        {
+            g_warning ("Failed to parse D-Bus interface: %s", error->message);
+            return;
+        }
         user->id = g_dbus_connection_register_object (accounts_connection,
                                                       user->path,
                                                       user_info->interfaces[0],
                                                       &user_vtable,
                                                       user,
                                                       NULL,
-                                                      &register_error);
+                                                      &error);
         if (user->id == 0)
-            g_warning ("Failed to register user: %s", register_error->message);
+        {
+            g_warning ("Failed to register user: %s", error->message);
+            return;
+        }
 
         if (!g_dbus_connection_emit_signal (accounts_connection,
                                             NULL,
@@ -2141,8 +2226,8 @@ accounts_user_set_hidden (AccountsUser *user, gboolean hidden, gboolean emit_sig
                                             "org.freedesktop.Accounts",
                                             "UserAdded",
                                             g_variant_new ("(o)", user->path),
-                                            &emit_error))
-            g_warning ("Failed to emit UserAdded: %s", emit_error->message);
+                                            &error))
+            g_warning ("Failed to emit UserAdded: %s", error->message);
     }
 }
 
@@ -2282,86 +2367,6 @@ handle_accounts_call (GDBusConnection       *connection,
 }
 
 static void
-handle_user_call (GDBusConnection       *connection,
-                  const gchar           *sender,
-                  const gchar           *object_path,
-                  const gchar           *interface_name,
-                  const gchar           *method_name,
-                  GVariant              *parameters,
-                  GDBusMethodInvocation *invocation,
-                  gpointer               user_data)
-{
-    AccountsUser *user = user_data;
-
-    if (strcmp (method_name, "SetXSession") == 0)
-    {
-        gchar *xsession;
-
-        g_variant_get (parameters, "(&s)", &xsession);
-
-        g_free (user->xsession);
-        user->xsession = g_strdup (xsession);
-
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
-
-        /* And notify others that it took */
-        g_dbus_connection_emit_signal (accounts_connection,
-                                       NULL,
-                                       user->path,
-                                       "org.freedesktop.Accounts.User",
-                                       "Changed",
-                                       g_variant_new ("()"),
-                                       NULL);
-    }
-    else
-        g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "No such method: %s", method_name);
-}
-
-static GVariant *
-handle_user_get_property (GDBusConnection       *connection,
-                          const gchar           *sender,
-                          const gchar           *object_path,
-                          const gchar           *interface_name,
-                          const gchar           *property_name,
-                          GError               **error,
-                          gpointer               user_data)
-{
-    AccountsUser *user = user_data;
-
-    if (strcmp (property_name, "UserName") == 0)
-        return g_variant_new_string (user->user_name);
-    else if (strcmp (property_name, "RealName") == 0)
-        return g_variant_new_string (user->real_name);
-    else if (strcmp (property_name, "HomeDirectory") == 0)
-        return g_variant_new_string (user->home_directory);
-    else if (strcmp (property_name, "SystemAccount") == 0)
-        return g_variant_new_boolean (user->uid < 1000);
-    else if (strcmp (property_name, "BackgroundFile") == 0)
-        return g_variant_new_string (user->background ? user->background : "");
-    else if (strcmp (property_name, "Language") == 0)
-        return g_variant_new_string (user->language ? user->language : "");
-    else if (strcmp (property_name, "IconFile") == 0)
-        return g_variant_new_string (user->image ? user->image : "");
-    else if (strcmp (property_name, "Shell") == 0)
-        return g_variant_new_string ("/bin/sh");
-    else if (strcmp (property_name, "Uid") == 0)
-        return g_variant_new_uint64 (user->uid);
-    else if (strcmp (property_name, "XSession") == 0)
-        return g_variant_new_string (user->xsession ? user->xsession : "");
-    else if (strcmp (property_name, "XKeyboardLayouts") == 0)
-    {
-        if (user->layouts != NULL)
-            return g_variant_new_strv ((const gchar * const *) user->layouts, -1);
-        else
-            return g_variant_new_strv (NULL, 0);
-    }
-    else if (strcmp (property_name, "XHasMessages") == 0)
-        return g_variant_new_boolean (user->has_messages);
-
-    return NULL;
-}
-
-static void
 accounts_name_acquired_cb (GDBusConnection *connection,
                            const gchar     *name,
                            gpointer         user_data)
@@ -2384,43 +2389,17 @@ accounts_name_acquired_cb (GDBusConnection *connection,
         "    </signal>"
         "  </interface>"
         "</node>";
+    g_autoptr(GDBusNodeInfo) accounts_info = NULL;
     static const GDBusInterfaceVTable accounts_vtable =
     {
         handle_accounts_call,
     };
-    const gchar *user_interface =
-        "<node>"
-        "  <interface name='org.freedesktop.Accounts.User'>"
-        "    <method name='SetXSession'>"
-        "      <arg name='x_session' direction='in' type='s'/>"
-        "    </method>"
-        "    <property name='UserName' type='s' access='read'/>"
-        "    <property name='RealName' type='s' access='read'/>"
-        "    <property name='HomeDirectory' type='s' access='read'/>"
-        "    <property name='SystemAccount' type='b' access='read'/>"
-        "    <property name='BackgroundFile' type='s' access='read'/>"
-        "    <property name='Language' type='s' access='read'/>"
-        "    <property name='IconFile' type='s' access='read'/>"
-        "    <property name='Shell' type='s' access='read'/>"
-        "    <property name='Uid' type='t' access='read'/>"
-        "    <property name='XSession' type='s' access='read'/>"
-        "    <property name='XKeyboardLayouts' type='as' access='read'/>"
-        "    <property name='XHasMessages' type='b' access='read'/>"
-        "    <signal name='Changed' />"
-        "  </interface>"
-        "</node>";
     g_autoptr(GError) error = NULL;
 
     accounts_connection = connection;
 
     accounts_info = g_dbus_node_info_new_for_xml (accounts_interface, &error);
     if (!accounts_info)
-    {
-        g_warning ("Failed to parse D-Bus interface: %s", error->message);
-        return;
-    }
-    user_info = g_dbus_node_info_new_for_xml (user_interface, &error);
-    if (!user_info)
     {
         g_warning ("Failed to parse D-Bus interface: %s", error->message);
         return;
@@ -2432,8 +2411,10 @@ accounts_name_acquired_cb (GDBusConnection *connection,
                                            NULL,
                                            NULL,
                                            &error) == 0)
+    {
         g_warning ("Failed to register accounts service: %s", error->message);
-    g_dbus_node_info_unref (accounts_info);
+        return;
+    }
 
     service_count--;
     if (service_count == 0)
