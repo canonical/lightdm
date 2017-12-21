@@ -18,8 +18,8 @@
     <property name="HasMessages" type="b" access="readwrite">
       <annotation name="org.freedesktop.Accounts.DefaultValue" value="false"/>
     </property>
-    <property name="BackgroundFile" type="s" access="readwrite">
-      <annotation name="org.freedesktop.Accounts.DefaultValue" value=""/>
+    <property name="KeyboardLayouts" type="as" access="readwrite">
+      <annotation name="org.freedesktop.Accounts.DefaultValue" value="[]"/>
     </property>
 
   </interface>

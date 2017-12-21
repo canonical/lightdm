@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-12-07 15:52+1300\n"
+"POT-Creation-Date: 2017-12-22 12:38+1300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,58 +17,78 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+#: ../data/org.freedesktop.DisplayManager.AccountsService.policy.in.h:1
+msgid "Set properties of own user"
+msgstr ""
+
+#: ../data/org.freedesktop.DisplayManager.AccountsService.policy.in.h:2
+msgid "Authentication is required to set one's own greeter properties."
+msgstr ""
+
+#: ../data/org.freedesktop.DisplayManager.AccountsService.policy.in.h:3
+msgid "Set properties of any user"
+msgstr ""
+
+#: ../data/org.freedesktop.DisplayManager.AccountsService.policy.in.h:4
+msgid "Authentication is required to get another user's greeter properties."
+msgstr ""
+
+#: ../data/org.freedesktop.DisplayManager.AccountsService.policy.in.h:5
+msgid "Authentication is required to set another user's greeter properties."
+msgstr ""
+
 #. Help string for command line --config flag
-#: ../src/lightdm.c:618
+#: ../src/lightdm.c:597
 msgid "Use configuration file"
 msgstr ""
 
 #. Help string for command line --debug flag
-#: ../src/lightdm.c:621
+#: ../src/lightdm.c:600
 msgid "Print debugging messages"
 msgstr ""
 
 #. Help string for command line --test-mode flag
-#: ../src/lightdm.c:624
+#: ../src/lightdm.c:603
 msgid "Run as unprivileged user, skipping things that require root access"
 msgstr ""
 
 #. Help string for command line --pid-file flag
-#: ../src/lightdm.c:627
+#: ../src/lightdm.c:606
 msgid "File to write PID into"
 msgstr ""
 
 #. Help string for command line --log-dir flag
-#: ../src/lightdm.c:630
+#: ../src/lightdm.c:609
 msgid "Directory to write logs to"
 msgstr ""
 
 #. Help string for command line --run-dir flag
-#: ../src/lightdm.c:633
+#: ../src/lightdm.c:612
 msgid "Directory to store running state"
 msgstr ""
 
 #. Help string for command line --cache-dir flag
-#: ../src/lightdm.c:636
+#: ../src/lightdm.c:615
 msgid "Directory to cache information"
 msgstr ""
 
 #. Help string for command line --show-config flag
-#: ../src/lightdm.c:639
+#: ../src/lightdm.c:618
 msgid "Show combined configuration"
 msgstr ""
 
 #. Help string for command line --version flag
-#: ../src/lightdm.c:642
+#: ../src/lightdm.c:621
 msgid "Show release version"
 msgstr ""
 
 #. Arguments and description for --help test
-#: ../src/lightdm.c:667
+#: ../src/lightdm.c:651
 msgid "- Display Manager"
 msgstr ""
 
 #. Text printed out when an unknown command-line argument provided
-#: ../src/lightdm.c:677
+#: ../src/lightdm.c:660
 #, c-format
 msgid "Run '%s --help' to see a full list of available command line options."
 msgstr ""

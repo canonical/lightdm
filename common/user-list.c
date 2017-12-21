@@ -604,7 +604,7 @@ load_accounts_user (CommonUser *user)
             }
             else if (strcmp (name, "HasMessages") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
                 priv->has_messages = g_variant_get_boolean (value);
-            else if (strcmp (name, "XKeyboardLayouts") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING_ARRAY))
+            else if (strcmp (name, "KeyboardLayouts") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING_ARRAY))
             {
                 g_strfreev (priv->layouts);
                 priv->layouts = g_variant_dup_strv (value, NULL);

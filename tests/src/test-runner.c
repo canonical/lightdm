@@ -2152,7 +2152,7 @@ handle_user_get_extra_property (GDBusConnection       *connection,
         return g_variant_new_string (user->background ? user->background : "");
     else if (strcmp (property_name, "HasMessages") == 0)
         return g_variant_new_boolean (user->has_messages);
-    else if (strcmp (property_name, "XKeyboardLayouts") == 0)
+    else if (strcmp (property_name, "KeyboardLayouts") == 0)
     {
         if (user->layouts != NULL)
             return g_variant_new_strv ((const gchar * const *) user->layouts, -1);
@@ -2207,7 +2207,7 @@ accounts_user_set_hidden (AccountsUser *user, gboolean hidden, gboolean emit_sig
             "  <interface name='org.freedesktop.DisplayManager.AccountsService'>"
             "    <property name='BackgroundFile' type='s' access='read'/>"
             "    <property name='HasMessages' type='b' access='read'/>"
-            "    <property name='XKeyboardLayouts' type='as' access='read'/>"
+            "    <property name='KeyboardLayouts' type='as' access='read'/>"
             "  </interface>"
             "</node>";
         g_autoptr(GDBusNodeInfo) user_info = NULL;
