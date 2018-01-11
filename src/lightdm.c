@@ -45,7 +45,9 @@ static gboolean debug = FALSE;
 static DisplayManager *display_manager = NULL;
 static DisplayManagerService *display_manager_service = NULL;
 static XDMCPServer *xdmcp_server = NULL;
+static guint xdmcp_client_count = 0;
 static VNCServer *vnc_server = NULL;
+static guint vnc_client_count = 0;
 static gint exit_code = EXIT_SUCCESS;
 
 static gboolean update_login1_seat (Login1Seat *login1_seat);
@@ -196,12 +198,19 @@ display_manager_stopped_cb (DisplayManager *display_manager)
 static Seat *
 create_seat (const gchar *module_name, const gchar *name)
 {
+    Seat *seat;
+
     if (strcmp (module_name, "xlocal") == 0) {
         g_warning ("Seat type 'xlocal' is deprecated, use 'type=local' instead");
-        return seat_new ("local", name);
+        module_name = "local";
     }
-    else
-        return seat_new (module_name, name);
+
+    seat = seat_new (module_name);
+    if (!seat)
+        return NULL;
+
+    seat_set_name (seat, name);
+    return seat;
 }
 
 static Seat *
@@ -280,21 +289,30 @@ static gboolean
 xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
 {
     g_autoptr(SeatXDMCPSession) seat = NULL;
-    gboolean result;
+    g_autofree gchar *name = NULL;
 
     seat = seat_xdmcp_session_new (session);
-    set_seat_properties (SEAT (seat), NULL);
-    result = display_manager_add_seat (display_manager, SEAT (seat));
 
-    return result;
+    name = g_strdup_printf ("xdmcp%d", xdmcp_client_count);
+    xdmcp_client_count++;
+
+    seat_set_name (SEAT (seat), name);
+    set_seat_properties (SEAT (seat), NULL);
+    return display_manager_add_seat (display_manager, SEAT (seat));
 }
 
 static void
 vnc_connection_cb (VNCServer *server, GSocket *connection)
 {
     g_autoptr(SeatXVNC) seat = NULL;
+    g_autofree gchar *name = NULL;
 
     seat = seat_xvnc_new (connection);
+
+    name = g_strdup_printf ("vnc%d", vnc_client_count);
+    vnc_client_count++;
+
+    seat_set_name (SEAT (seat), name);
     set_seat_properties (SEAT (seat), NULL);
     display_manager_add_seat (display_manager, SEAT (seat));
 }
