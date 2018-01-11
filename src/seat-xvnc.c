@@ -21,6 +21,9 @@ struct SeatXVNCPrivate
 {
     /* VNC connection */
     GSocket *connection;
+
+    /* X server using VNC connection */
+    XServerXVNC *x_server;
 };
 
 SeatXVNC *seat_xvnc_new (GSocket *connection)
@@ -33,6 +36,13 @@ SeatXVNC *seat_xvnc_new (GSocket *connection)
     return seat;
 }
 
+static void
+seat_xvnc_setup (Seat *seat)
+{
+    seat_set_supports_multi_session (seat, FALSE);
+    SEAT_CLASS (seat_xvnc_parent_class)->setup (seat);
+}
+
 static DisplayServer *
 seat_xvnc_create_display_server (Seat *seat, Session *session)
 {
@@ -41,8 +51,12 @@ seat_xvnc_create_display_server (Seat *seat, Session *session)
 
     if (strcmp (session_get_session_type (session), "x") != 0)
         return NULL;
-  
-    x_server = x_server_xvnc_new ();
+
+    /* Can only create one server for the lifetime of this seat (can't re-use VNC connection) */
+    if (SEAT_XVNC (seat)->priv->x_server)
+        return NULL;
+
+    SEAT_XVNC (seat)->priv->x_server = x_server = x_server_xvnc_new ();
     x_server_xvnc_set_socket (x_server, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
 
     command = config_get_string (config_get_instance (), "VNCServer", "command");
@@ -66,7 +80,7 @@ seat_xvnc_create_display_server (Seat *seat, Session *session)
             x_server_xvnc_set_depth (x_server, depth);
     }
 
-    return DISPLAY_SERVER (x_server);
+    return g_object_ref (DISPLAY_SERVER (x_server));
 }
 
 static void
@@ -106,6 +120,7 @@ seat_xdmcp_session_finalize (GObject *object)
     self = SEAT_XVNC (object);
 
     g_object_unref (self->priv->connection);
+    g_object_unref (&self->priv->x_server);
 
     G_OBJECT_CLASS (seat_xvnc_parent_class)->finalize (object);
 }
@@ -116,6 +131,7 @@ seat_xvnc_class_init (SeatXVNCClass *klass)
     SeatClass *seat_class = SEAT_CLASS (klass);
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
+    seat_class->setup = seat_xvnc_setup;
     seat_class->create_display_server = seat_xvnc_create_display_server;
     seat_class->run_script = seat_xvnc_run_script;
     object_class->finalize = seat_xdmcp_session_finalize;
