@@ -954,7 +954,7 @@ handle_command (const gchar *command)
         const gchar *id;
         Login1Session *session;
         g_autofree gchar *status_text = NULL;
-        
+
         id = g_hash_table_lookup (params, "SESSION");
         session = find_login1_session (id);
         if (session)
@@ -1350,7 +1350,7 @@ open_ck_session (GDBusConnection *connection, GVariant *params)
     if (g_key_file_get_boolean (config, "test-runner-config", "ck-no-xdg-runtime", NULL))
         ck_session_info = g_dbus_node_info_new_for_xml (ck_session_interface_old, &error);
     else
-        ck_session_info = g_dbus_node_info_new_for_xml (ck_session_interface, &error);  
+        ck_session_info = g_dbus_node_info_new_for_xml (ck_session_interface, &error);
     if (!ck_session_info)
         g_warning ("Failed to parse D-Bus interface: %s", error->message);
 
@@ -1584,7 +1584,7 @@ handle_login1_seat_get_property (GDBusConnection       *connection,
             g_autofree gchar *path = g_strdup_printf ("/org/freedesktop/login1/session/%s", seat->active_session);
             return g_variant_new ("(so)", seat->active_session, path);
         }
-        else 
+        else
             return NULL;
     }
     else
