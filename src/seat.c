@@ -775,11 +775,6 @@ session_stopped_cb (Session *session, Seat *seat)
         g_clear_object (&seat->priv->session_to_activate);
 
     display_server = session_get_display_server (session);
-    if (!display_server)
-    {
-        g_object_unref (session);
-        return;
-    }
 
     /* Cleanup */
     if (!IS_GREETER_SESSION (session))
@@ -1469,7 +1464,7 @@ seat_switch_to_greeter (Seat *seat)
 
     g_return_val_if_fail (seat != NULL, FALSE);
 
-    if (!seat_get_can_switch (seat))
+    if (!seat_get_can_switch (seat) && seat->priv->sessions != NULL)
         return FALSE;
 
     /* Switch to greeter if one open */
@@ -1489,6 +1484,10 @@ seat_switch_to_greeter (Seat *seat)
     seat->priv->session_to_activate = g_object_ref (SESSION (greeter_session));
 
     display_server = create_display_server (seat, SESSION (greeter_session));
+    if (!display_server) {
+        g_clear_object (&seat->priv->session_to_activate);
+        return FALSE;
+    }
     session_set_display_server (SESSION (greeter_session), display_server);
 
     return start_display_server (seat, display_server);
