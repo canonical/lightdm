@@ -106,9 +106,8 @@ seat_register_module (const gchar *name, GType type)
 }
 
 Seat *
-seat_new (const gchar *module_name, const gchar *name)
+seat_new (const gchar *module_name)
 {
-    Seat *seat;
     SeatModule *m = NULL;
 
     g_return_val_if_fail (module_name != NULL, NULL);
@@ -118,10 +117,15 @@ seat_new (const gchar *module_name, const gchar *name)
     if (!m)
         return NULL;
 
-    seat = g_object_new (m->type, NULL);
-    seat->priv->name = g_strdup (name);
+    return g_object_new (m->type, NULL);
+}
 
-    return seat;
+void
+seat_set_name (Seat *seat, const gchar *name)
+{
+    g_return_if_fail (seat != NULL);
+    g_free (seat->priv->name);
+    seat->priv->name = g_strdup (name);
 }
 
 void

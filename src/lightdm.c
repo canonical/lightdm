@@ -43,7 +43,9 @@ static gboolean debug = FALSE;
 
 static DisplayManager *display_manager = NULL;
 static XDMCPServer *xdmcp_server = NULL;
+static guint xdmcp_client_count = 0;
 static VNCServer *vnc_server = NULL;
+static guint vnc_client_count = 0;
 static guint bus_id = 0;
 static GDBusConnection *bus = NULL;
 static guint reg_id = 0;
@@ -218,6 +220,19 @@ display_manager_stopped_cb (DisplayManager *display_manager)
     g_main_loop_quit (loop);
 }
 
+static Seat *
+create_seat (const gchar *module_name, const gchar *name)
+{
+    Seat *seat;
+
+    seat = seat_new (module_name);
+    if (!seat)
+        return NULL;
+
+    seat_set_name (seat, name);
+    return seat;
+}
+
 static void
 display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
@@ -237,7 +252,7 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 
         if (!next_seat)
         {
-            next_seat = seat_new (*iter, seat_get_name (seat));
+            next_seat = create_seat (*iter, seat_get_name (seat));
             g_string_assign (next_types, *iter);
         }
         else
@@ -354,7 +369,7 @@ handle_display_manager_call (GDBusConnection       *connection,
 
         g_debug ("Adding local X seat :%d", display_number);
 
-        seat = seat_new ("xremote", "xremote0"); // FIXME: What to use for a name?
+        seat = create_seat ("xremote", "xremote0"); // FIXME: What to use for a name?
         if (seat)
         {
             gchar *display_number_string;
@@ -761,8 +776,14 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
 {
     SeatXDMCPSession *seat;
     gboolean result;
+    gchar *name;
+
+    name = g_strdup_printf ("xdmcp%d", xdmcp_client_count);
+    xdmcp_client_count++;
 
     seat = seat_xdmcp_session_new (session);
+    seat_set_name (SEAT (seat), name);
+    g_free (name);
     set_seat_properties (SEAT (seat), NULL);
     result = display_manager_add_seat (display_manager, SEAT (seat));
     g_object_unref (seat);
@@ -774,8 +795,14 @@ static void
 vnc_connection_cb (VNCServer *server, GSocket *connection)
 {
     SeatXVNC *seat;
+    gchar *name;
+
+    name = g_strdup_printf ("vnc%d", vnc_client_count);
+    vnc_client_count++;
 
     seat = seat_xvnc_new (connection);
+    seat_set_name (SEAT (seat), name);
+    g_free (name);
     set_seat_properties (SEAT (seat), NULL);
     display_manager_add_seat (display_manager, SEAT (seat));
     g_object_unref (seat);
@@ -1020,7 +1047,7 @@ add_login1_seat (Login1Seat *login1_seat)
     g_list_free_full (config_sections, g_free);
 
     for (type = types; !seat && type && *type; type++)
-        seat = seat_new (*type, seat_name);
+        seat = create_seat (*type, seat_name);
     g_strfreev (types);
 
     if (seat)
@@ -1538,7 +1565,7 @@ main (int argc, char **argv)
             types = config_get_string_list (config_get_instance (), "Seat:*", "type");
             for (type = types; type && *type; type++)
             {
-                seat = seat_new (*type, "seat0");
+                seat = create_seat (*type, "seat0");
                 if (seat)
                     break;
             }
