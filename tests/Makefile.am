@@ -186,6 +186,7 @@ TESTS = \
 	test-vnc-guest \
 	test-xremote-autologin \
 	test-xremote-login \
+	test-xremote-login-logout \
 	test-xdmcp-client \
 	test-xdmcp-client-xorg-1.16 \
 	test-xdmcp-server-autologin \
@@ -665,6 +666,7 @@ EXTRA_DIST = \
 	scripts/xdmcp-server-xdm-authentication-short-data.conf \
 	scripts/xremote-autologin.conf \
 	scripts/xremote-login.conf \
+	scripts/xremote-login-logout.conf \
 	scripts/xserver-config.conf \
 	scripts/xserver-fail-start.conf \
 	scripts/xserver-no-share.conf \
