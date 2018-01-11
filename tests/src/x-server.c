@@ -20,6 +20,7 @@ G_DEFINE_TYPE (XClient, x_client, G_TYPE_OBJECT)
 enum {
     X_SERVER_CLIENT_CONNECTED,
     X_SERVER_CLIENT_DISCONNECTED,
+    X_SERVER_RESET,
     X_SERVER_LAST_SIGNAL
 };
 static guint x_server_signals[X_SERVER_LAST_SIGNAL] = { 0 };
@@ -101,12 +102,29 @@ x_server_new (gint display_number)
     return server;
 }
 
-static void
-x_client_disconnected_cb (XClient *client, XServer *server)
+static gboolean
+client_read_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 {
-    g_signal_handlers_disconnect_matched (client, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, server);
-    g_hash_table_remove (server->priv->clients, client->priv->channel);
-    g_signal_emit (server, x_server_signals[X_SERVER_CLIENT_DISCONNECTED], 0, client);
+    XClient *client = data;
+    g_autofree gchar *d = NULL;
+    gsize d_length;
+
+    if (g_io_channel_read_to_end (channel, &d, &d_length, NULL) == G_IO_STATUS_NORMAL && d_length == 0)
+    {
+        XServer *server = client->priv->server;
+
+        g_signal_emit (client, x_client_signals[X_CLIENT_DISCONNECTED], 0);
+        g_signal_emit (server, x_server_signals[X_SERVER_CLIENT_DISCONNECTED], 0, client);
+
+        g_hash_table_remove (server->priv->clients, client->priv->channel);
+
+        if (g_hash_table_size (server->priv->clients) == 0)
+            g_signal_emit (server, x_server_signals[X_SERVER_RESET], 0);
+
+        return G_SOURCE_REMOVE;
+    }
+
+    return G_SOURCE_CONTINUE;
 }
 
 static gboolean
@@ -125,9 +143,9 @@ socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 
     client = g_object_new (x_client_get_type (), NULL);
     client->priv->server = server;
-    g_signal_connect (client, X_CLIENT_SIGNAL_DISCONNECTED, G_CALLBACK (x_client_disconnected_cb), server);
     client->priv->socket = data_socket;
     client->priv->channel = g_io_channel_unix_new (g_socket_get_fd (data_socket));
+    g_io_add_watch (client->priv->channel, G_IO_IN | G_IO_HUP, client_read_cb, client);
     g_hash_table_insert (server->priv->clients, client->priv->channel, client);
 
     g_signal_emit (server, x_server_signals[X_SERVER_CLIENT_CONNECTED], 0, client);
@@ -202,4 +220,12 @@ x_server_class_init (XServerClass *klass)
                       NULL, NULL,
                       NULL,
                       G_TYPE_NONE, 1, x_client_get_type ());
+    x_server_signals[X_SERVER_RESET] =
+        g_signal_new (X_SERVER_SIGNAL_RESET,
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      G_STRUCT_OFFSET (XServerClass, reset),
+                      NULL, NULL,
+                      NULL,
+                      G_TYPE_NONE, 0);
 }

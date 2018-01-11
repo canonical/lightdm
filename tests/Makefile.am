@@ -199,6 +199,7 @@ TESTS = \
 	test-xdmcp-client-xorg-1.16 \
 	test-xdmcp-server-autologin \
 	test-xdmcp-server-login \
+	test-xdmcp-server-login-logout \
 	test-xdmcp-server-double-login \
 	test-xdmcp-server-guest \
 	test-xdmcp-server-keep-alive \
@@ -672,6 +673,7 @@ EXTRA_DIST = \
 	scripts/xdmcp-server-invalid-authentication.conf \
 	scripts/xdmcp-server-keep-alive.conf \
 	scripts/xdmcp-server-login.conf \
+	scripts/xdmcp-server-login-logout.conf \
 	scripts/xdmcp-server-open-file-descriptors.conf \
 	scripts/xdmcp-server-request-invalid-authentication.conf \
 	scripts/xdmcp-server-request-invalid-authorization.conf \
