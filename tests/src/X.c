@@ -62,6 +62,9 @@ static guint32 xdmcp_session_id = 0;
 static guint16 xdmcp_cookie_length = 0;
 static guint8 *xdmcp_cookie = NULL;
 
+/* Terminate on server reset */
+static gboolean terminate_on_reset = FALSE;
+
 static void
 cleanup (void)
 {
@@ -186,6 +189,16 @@ static void
 client_disconnected_cb (XServer *server, XClient *client)
 {
     g_signal_handlers_disconnect_matched (client, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, NULL);
+}
+
+static void
+reset_cb (XServer *server)
+{
+    if (terminate_on_reset)
+    {
+        status_notify ("%s TERMINATE", id);
+        quit (EXIT_SUCCESS);
+    }
 }
 
 static guint8
@@ -511,6 +524,10 @@ main (int argc, char **argv)
         {
             sharevts = TRUE;
         }
+        else if (strcmp (arg, "-terminate") == 0)
+        {
+            terminate_on_reset = TRUE;
+        }
         else if (strcmp (arg, "-mir") == 0)
         {
             mir_id = argv[i+1];
@@ -558,6 +575,7 @@ main (int argc, char **argv)
     xserver = x_server_new (display_number);
     g_signal_connect (xserver, X_SERVER_SIGNAL_CLIENT_CONNECTED, G_CALLBACK (client_connected_cb), NULL);
     g_signal_connect (xserver, X_SERVER_SIGNAL_CLIENT_DISCONNECTED, G_CALLBACK (client_disconnected_cb), NULL);
+    g_signal_connect (xserver, X_SERVER_SIGNAL_RESET, G_CALLBACK (reset_cb), NULL);
 
     status_text = g_string_new ("");
     g_string_printf (status_text, "%s START", id);

@@ -1945,7 +1945,10 @@ xcb_disconnect (xcb_connection_t *c)
 {
     free (c->display);
     if (c->socket)
+    {
+        g_socket_close (c->socket, NULL);
         g_object_unref (c->socket);
+    }
     free (c);
 }
 

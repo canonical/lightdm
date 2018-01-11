@@ -713,6 +713,9 @@ session_stopped_cb (Session *session, Seat *seat)
         }
     }
 
+    g_signal_emit (seat, signals[SESSION_REMOVED], 0, session);
+    g_object_unref (session);
+
     /* Stop the display server if no-longer required */
     if (display_server && !display_server_get_is_stopping (display_server))
     {
@@ -733,9 +736,6 @@ session_stopped_cb (Session *session, Seat *seat)
             display_server_stop (display_server);
         }
     }
-
-    g_signal_emit (seat, signals[SESSION_REMOVED], 0, session);
-    g_object_unref (session);
 }
 
 static void
