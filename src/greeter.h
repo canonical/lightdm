@@ -49,6 +49,8 @@ typedef struct
     gboolean (*start_session)(Greeter *greeter, SessionType type, const gchar *session);
 } GreeterClass;
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (Greeter, g_object_unref)
+
 GType greeter_get_type (void);
 
 Greeter *greeter_new (void);

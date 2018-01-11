@@ -28,9 +28,7 @@ struct SeatXVNCPrivate
 
 SeatXVNC *seat_xvnc_new (GSocket *connection)
 {
-    SeatXVNC *seat;
-
-    seat = g_object_new (SEAT_XVNC_TYPE, NULL);
+    SeatXVNC *seat = g_object_new (SEAT_XVNC_TYPE, NULL);
     seat->priv->connection = g_object_ref (connection);
 
     return seat;
@@ -46,11 +44,6 @@ seat_xvnc_setup (Seat *seat)
 static DisplayServer *
 seat_xvnc_create_display_server (Seat *seat, Session *session)
 {
-    XServerXVNC *x_server;
-    g_autofree gchar *number = NULL;
-    g_autoptr(XAuthority) cookie = NULL;
-    const gchar *command = NULL;
-
     if (strcmp (session_get_session_type (session), "x") != 0)
         return NULL;
 
@@ -58,13 +51,14 @@ seat_xvnc_create_display_server (Seat *seat, Session *session)
     if (SEAT_XVNC (seat)->priv->x_server)
         return NULL;
 
-    SEAT_XVNC (seat)->priv->x_server = x_server = x_server_xvnc_new ();
-    number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (x_server)));
-    cookie = x_authority_new_local_cookie (number);
+    g_autoptr(XServerXVNC) x_server = x_server_xvnc_new ();
+    SEAT_XVNC (seat)->priv->x_server = g_object_ref (x_server);
+    g_autofree gchar *number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (x_server)));
+    g_autoptr(XAuthority) cookie = x_authority_new_local_cookie (number);
     x_server_set_authority (X_SERVER (x_server), cookie);
     x_server_xvnc_set_socket (x_server, g_socket_get_fd (SEAT_XVNC (seat)->priv->connection));
 
-    command = config_get_string (config_get_instance (), "VNCServer", "command");
+    const gchar *command = config_get_string (config_get_instance (), "VNCServer", "command");
     if (command)
         x_server_local_set_command (X_SERVER_LOCAL (x_server), command);
 
@@ -85,22 +79,17 @@ seat_xvnc_create_display_server (Seat *seat, Session *session)
             x_server_xvnc_set_depth (x_server, depth);
     }
 
-    return g_object_ref (DISPLAY_SERVER (x_server));
+    return DISPLAY_SERVER (g_steal_pointer (&x_server));
 }
 
 static void
 seat_xvnc_run_script (Seat *seat, DisplayServer *display_server, Process *script)
 {
-    XServerXVNC *x_server;
-    GInetSocketAddress *address;
-    g_autofree gchar *hostname = NULL;
-    const gchar *path;
+    XServerXVNC *x_server = X_SERVER_XVNC (display_server);
 
-    x_server = X_SERVER_XVNC (display_server);
-
-    address = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (SEAT_XVNC (seat)->priv->connection, NULL));
-    hostname = g_inet_address_to_string (g_inet_socket_address_get_address (address));
-    path = x_server_local_get_authority_file_path (X_SERVER_LOCAL (x_server));
+    GInetSocketAddress *address = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (SEAT_XVNC (seat)->priv->connection, NULL));
+    g_autofree gchar *hostname = g_inet_address_to_string (g_inet_socket_address_get_address (address));
+    const gchar *path = x_server_local_get_authority_file_path (X_SERVER_LOCAL (x_server));
 
     process_set_env (script, "REMOTE_HOST", hostname);
     process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));

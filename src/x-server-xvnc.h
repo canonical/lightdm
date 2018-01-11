@@ -35,6 +35,8 @@ typedef struct
     void (*ready)(XServerXVNC *server);
 } XServerXVNCClass;
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (XServerXVNC, g_object_unref)
+
 GType x_server_xvnc_get_type (void);
 
 gboolean x_server_xvnc_check_available (void);

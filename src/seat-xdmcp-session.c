@@ -28,9 +28,7 @@ G_DEFINE_TYPE (SeatXDMCPSession, seat_xdmcp_session, SEAT_TYPE)
 SeatXDMCPSession *
 seat_xdmcp_session_new (XDMCPSession *session)
 {
-    SeatXDMCPSession *seat;
-
-    seat = g_object_new (SEAT_XDMCP_SESSION_TYPE, NULL);
+    SeatXDMCPSession *seat = g_object_new (SEAT_XDMCP_SESSION_TYPE, NULL);
     seat->priv->session = g_object_ref (session);
 
     return seat;
@@ -39,9 +37,6 @@ seat_xdmcp_session_new (XDMCPSession *session)
 static DisplayServer *
 seat_xdmcp_session_create_display_server (Seat *seat, Session *session)
 {
-    XAuthority *authority;
-    g_autofree gchar *host = NULL;
-
     if (strcmp (session_get_session_type (session), "x") != 0)
         return NULL;
 
@@ -49,8 +44,8 @@ seat_xdmcp_session_create_display_server (Seat *seat, Session *session)
     if (SEAT_XDMCP_SESSION (seat)->priv->x_server)
         return NULL;
 
-    authority = xdmcp_session_get_authority (SEAT_XDMCP_SESSION (seat)->priv->session);
-    host = g_inet_address_to_string (xdmcp_session_get_address (SEAT_XDMCP_SESSION (seat)->priv->session));
+    XAuthority *authority = xdmcp_session_get_authority (SEAT_XDMCP_SESSION (seat)->priv->session);
+    g_autofree gchar *host = g_inet_address_to_string (xdmcp_session_get_address (SEAT_XDMCP_SESSION (seat)->priv->session));
 
     SEAT_XDMCP_SESSION (seat)->priv->x_server = x_server_remote_new (host, xdmcp_session_get_display_number (SEAT_XDMCP_SESSION (seat)->priv->session), authority);
 

@@ -28,9 +28,7 @@ static GList *used_vts = NULL;
 static gint
 open_tty (void)
 {
-    int fd;
-
-    fd = g_open ("/dev/tty0", O_RDONLY | O_NOCTTY, 0);
+    int fd = g_open ("/dev/tty0", O_RDONLY | O_NOCTTY, 0);
     if (fd < 0)
         g_warning ("Error opening /dev/tty0: %s", strerror (errno));
     return fd;
@@ -50,14 +48,12 @@ gint
 vt_get_active (void)
 {
 #ifdef __linux__
-    gint tty_fd;
-    gint active = -1;
-
     /* Pretend always active */
     if (getuid () != 0)
         return 1;
 
-    tty_fd = open_tty ();
+    gint tty_fd = open_tty ();
+    gint active = -1;
     if (tty_fd >= 0)
     {
         struct vt_stat vt_state = { 0 };
@@ -78,19 +74,16 @@ void
 vt_set_active (gint number)
 {
 #ifdef __linux__
-    gint tty_fd;
-
     g_debug ("Activating VT %d", number);
 
     /* Pretend always active */
     if (getuid () != 0)
         return;
 
-    tty_fd = open_tty ();
+    gint tty_fd = open_tty ();
     if (tty_fd >= 0)
     {
         int n = number;
-
         if (ioctl (tty_fd, VT_ACTIVATE, n) < 0)
         {
             g_warning ("Error using VT_ACTIVATE %d on /dev/tty0: %s", n, strerror (errno));
@@ -121,9 +114,7 @@ vt_set_active (gint number)
 static gboolean
 vt_is_used (gint number)
 {
-    GList *link;
-
-    for (link = used_vts; link; link = link->next)
+    for (GList *link = used_vts; link; link = link->next)
     {
         int n = GPOINTER_TO_INT (link->data);
         if (n == number)
@@ -136,9 +127,7 @@ vt_is_used (gint number)
 gint
 vt_get_min (void)
 {
-    gint number;
-
-    number = config_get_integer (config_get_instance (), "LightDM", "minimum-vt");
+    gint number = config_get_integer (config_get_instance (), "LightDM", "minimum-vt");
     if (number < 1)
         number = 1;
 
@@ -148,12 +137,10 @@ vt_get_min (void)
 gint
 vt_get_unused (void)
 {
-    gint number;
-
     if (getuid () != 0)
         return -1;
 
-    number = vt_get_min ();
+    gint number = vt_get_min ();
     while (vt_is_used (number))
         number++;
 

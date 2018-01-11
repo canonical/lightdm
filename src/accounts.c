@@ -27,18 +27,14 @@ G_DEFINE_TYPE (User, user, G_TYPE_OBJECT)
 User *
 accounts_get_user_by_name (const gchar *username)
 {
-    User *user = NULL;
-    CommonUser *common_user;
-
     g_return_val_if_fail (username != NULL, NULL);
 
-    common_user = common_user_list_get_user_by_name (common_user_list_get_instance (), username);
-    if (common_user != NULL)
-    {
-        user = g_object_new (USER_TYPE, NULL);
-        user->priv->common_user = common_user;
-    }
+    CommonUser *common_user = common_user_list_get_user_by_name (common_user_list_get_instance (), username);
+    if (common_user == NULL)
+        return NULL;
 
+    User *user = g_object_new (USER_TYPE, NULL);
+    user->priv->common_user = common_user;
     return user;
 }
 

@@ -91,28 +91,22 @@ find_version (const gchar *line)
 const gchar *
 x_server_local_get_version (void)
 {
-    g_autofree gchar *stderr_text = NULL;
-    gint exit_status;
-    g_auto(GStrv) tokens = NULL;
-    guint n_tokens;
-
     if (version)
         return version;
 
+    g_autofree gchar *stderr_text = NULL;
+    gint exit_status;
     if (!g_spawn_command_line_sync ("X -version", NULL, &stderr_text, &exit_status, NULL))
         return NULL;
     if (exit_status == EXIT_SUCCESS)
     {
-        g_auto(GStrv) lines = NULL;
-        int i;
-
-        lines = g_strsplit (stderr_text, "\n", -1);
-        for (i = 0; lines[i] && !version; i++)
+        g_auto(GStrv) lines = g_strsplit (stderr_text, "\n", -1);
+        for (int i = 0; lines[i] && !version; i++)
             version = find_version (lines[i]);
     }
 
-    tokens = g_strsplit (version, ".", 3);
-    n_tokens = g_strv_length (tokens);
+    g_auto(GStrv) tokens = g_strsplit (version, ".", 3);
+    guint n_tokens = g_strv_length (tokens);
     version_major = n_tokens > 0 ? atoi (tokens[0]) : 0;
     version_minor = n_tokens > 1 ? atoi (tokens[1]) : 0;
 
@@ -132,13 +126,8 @@ x_server_local_version_compare (guint major, guint minor)
 static gboolean
 display_number_in_use (guint display_number)
 {
-    GList *link;
-    g_autofree gchar *path = NULL;
-    gboolean in_use;
-    g_autofree gchar *data = NULL;
-
     /* See if we know we are managing a server with that number */
-    for (link = display_numbers; link; link = link->next)
+    for (GList *link = display_numbers; link; link = link->next)
     {
         guint number = GPOINTER_TO_UINT (link->data);
         if (number == display_number)
@@ -146,15 +135,14 @@ display_number_in_use (guint display_number)
     }
 
     /* See if an X server that we don't know of has a lock on that number */
-    path = g_strdup_printf ("/tmp/.X%d-lock", display_number);
-    in_use = g_file_test (path, G_FILE_TEST_EXISTS);
+    g_autofree gchar *path = g_strdup_printf ("/tmp/.X%d-lock", display_number);
+    gboolean in_use = g_file_test (path, G_FILE_TEST_EXISTS);
 
     /* See if that lock file is valid, ignore it if the contents are invalid or the process doesn't exist */
+    g_autofree gchar *data = NULL;
     if (in_use && g_file_get_contents (path, &data, NULL, NULL))
     {
-        int pid;
-
-        pid = atoi (g_strstrip (data));
+        int pid = atoi (g_strstrip (data));
 
         errno = 0;
         if (pid < 0 || (kill (pid, 0) < 0 && errno == ESRCH))
@@ -167,9 +155,7 @@ display_number_in_use (guint display_number)
 guint
 x_server_local_get_unused_display_number (void)
 {
-    guint number;
-
-    number = config_get_integer (config_get_instance (), "LightDM", "minimum-display-number");
+    guint number = config_get_integer (config_get_instance (), "LightDM", "minimum-display-number");
     while (display_number_in_use (number))
         number++;
 
@@ -181,8 +167,7 @@ x_server_local_get_unused_display_number (void)
 void
 x_server_local_release_display_number (guint display_number)
 {
-    GList *link;
-    for (link = display_numbers; link; link = link->next)
+    for (GList *link = display_numbers; link; link = link->next)
     {
         guint number = GPOINTER_TO_UINT (link->data);
         if (number == display_number)
@@ -321,13 +306,9 @@ x_server_local_get_authority_file_path (XServerLocal *server)
 static gchar *
 get_absolute_command (const gchar *command)
 {
-    g_auto(GStrv) tokens = NULL;
-    g_autofree gchar *absolute_binary = NULL;
+    g_auto(GStrv) tokens = g_strsplit (command, " ", 2);
+    g_autofree gchar *absolute_binary = g_find_program_in_path (tokens[0]);
     gchar *absolute_command = NULL;
-
-    tokens = g_strsplit (command, " ", 2);
-
-    absolute_binary = g_find_program_in_path (tokens[0]);
     if (absolute_binary)
     {
         if (tokens[1])
@@ -342,10 +323,8 @@ get_absolute_command (const gchar *command)
 static void
 x_server_local_run (Process *process, gpointer user_data)
 {
-    int fd;
-
     /* Make input non-blocking */
-    fd = open ("/dev/null", O_RDONLY);
+    int fd = open ("/dev/null", O_RDONLY);
     dup2 (fd, STDIN_FILENO);
     close (fd);
 
@@ -407,10 +386,7 @@ stopped_cb (Process *process, XServerLocal *server)
 static void
 write_authority_file (XServerLocal *server)
 {
-    XAuthority *authority;
-    g_autoptr(GError) error = NULL;
-
-    authority = x_server_get_authority (X_SERVER (server));
+    XAuthority *authority = x_server_get_authority (X_SERVER (server));
     if (!authority)
         return;
 
@@ -430,6 +406,7 @@ write_authority_file (XServerLocal *server)
 
     l_debug (server, "Writing X server authority to %s", server->priv->authority_file);
 
+    g_autoptr(GError) error = NULL;
     x_authority_write (authority, XAUTH_WRITE_MODE_REPLACE, server->priv->authority_file, &error);
     if (error)
         l_warning (server, "Failed to write authority: %s", error->message);
@@ -439,13 +416,6 @@ static gboolean
 x_server_local_start (DisplayServer *display_server)
 {
     XServerLocal *server = X_SERVER_LOCAL (display_server);
-    ProcessRunFunc run_cb;
-    gboolean result, backup_logs;
-    g_autofree gchar *filename = NULL;
-    g_autofree gchar *dir = NULL;
-    g_autofree gchar *log_file = NULL;
-    g_autofree gchar *absolute_command = NULL;
-    g_autoptr(GString) command = NULL;
 
     g_return_val_if_fail (server->priv->x_server_process == NULL, FALSE);
 
@@ -453,28 +423,28 @@ x_server_local_start (DisplayServer *display_server)
 
     g_return_val_if_fail (server->priv->command != NULL, FALSE);
 
-    run_cb = X_SERVER_LOCAL_GET_CLASS (server)->get_run_function (server);
+    ProcessRunFunc run_cb = X_SERVER_LOCAL_GET_CLASS (server)->get_run_function (server);
     server->priv->x_server_process = process_new (run_cb, server);
     process_set_clear_environment (server->priv->x_server_process, TRUE);
     g_signal_connect (server->priv->x_server_process, PROCESS_SIGNAL_GOT_SIGNAL, G_CALLBACK (got_signal_cb), server);
     g_signal_connect (server->priv->x_server_process, PROCESS_SIGNAL_STOPPED, G_CALLBACK (stopped_cb), server);
 
     /* Setup logging */
-    filename = g_strdup_printf ("x-%d.log", x_server_get_display_number (X_SERVER (server)));
-    dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    log_file = g_build_filename (dir, filename, NULL);
-    backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
+    g_autofree gchar *filename = g_strdup_printf ("x-%d.log", x_server_get_display_number (X_SERVER (server)));
+    g_autofree gchar *dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
+    g_autofree gchar *log_file = g_build_filename (dir, filename, NULL);
+    gboolean backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
     process_set_log_file (server->priv->x_server_process, log_file, X_SERVER_LOCAL_GET_CLASS (server)->get_log_stdout (server), backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
     l_debug (display_server, "Logging to %s", log_file);
 
-    absolute_command = get_absolute_command (server->priv->command);
+    g_autofree gchar *absolute_command = get_absolute_command (server->priv->command);
     if (!absolute_command)
     {
         l_debug (display_server, "Can't launch X server %s, not found in path", server->priv->command);
         stopped_cb (server->priv->x_server_process, X_SERVER_LOCAL (server));
         return FALSE;
     }
-    command = g_string_new (absolute_command);
+    g_autoptr(GString) command = g_string_new (absolute_command);
 
     g_string_append_printf (command, " :%d", server->priv->display_number);
 
@@ -547,12 +517,10 @@ x_server_local_start (DisplayServer *display_server)
     if (g_getenv ("LIGHTDM_TEST_ROOT"))
         process_set_env (server->priv->x_server_process, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
 
-    result = process_start (server->priv->x_server_process, FALSE);
-
+    gboolean result = process_start (server->priv->x_server_process, FALSE);
     if (result)
         l_debug (display_server, "Waiting for ready signal from X server :%d", server->priv->display_number);
-
-    if (!result)
+    else
         stopped_cb (server->priv->x_server_process, X_SERVER_LOCAL (server));
 
     return result;

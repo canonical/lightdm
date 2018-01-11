@@ -176,42 +176,37 @@ process_watch_cb (GPid pid, gint status, gpointer data)
 gboolean
 process_start (Process *process, gboolean block)
 {
-    gint argc;
-    g_auto(GStrv) argv = NULL;
-    g_autofree gchar **env_keys = NULL;
-    g_autofree gchar **env_values = NULL;
-    guint i, env_length;
-    GList *keys, *link;
-    pid_t pid;
-    int log_fd = -1;
-    g_autoptr(GError) error = NULL;
-
     g_return_val_if_fail (process != NULL, FALSE);
     g_return_val_if_fail (process->priv->command != NULL, FALSE);
     g_return_val_if_fail (process->priv->pid == 0, FALSE);
 
+    gint argc;
+    g_auto(GStrv) argv = NULL;
+    g_autoptr(GError) error = NULL;
     if (!g_shell_parse_argv (process->priv->command, &argc, &argv, &error))
     {
         g_warning ("Error parsing command %s: %s", process->priv->command, error->message);
         return FALSE;
     }
 
+    int log_fd = -1;
     if (process->priv->log_file)
         log_fd = log_file_open (process->priv->log_file, process->priv->log_mode);
 
     /* Work out variables to set */
-    env_length = g_hash_table_size (process->priv->env);
-    env_keys = g_malloc (sizeof (gchar *) * env_length);
-    env_values = g_malloc (sizeof (gchar *) * env_length);
-    keys = g_hash_table_get_keys (process->priv->env);
-    for (i = 0, link = keys; i < env_length; i++, link = link->next)
+    guint env_length = g_hash_table_size (process->priv->env);
+    g_autofree gchar **env_keys = g_malloc (sizeof (gchar *) * env_length);
+    g_autofree gchar **env_values = g_malloc (sizeof (gchar *) * env_length);
+    GList *keys = g_hash_table_get_keys (process->priv->env);
+    guint i = 0;
+    for (GList *link = keys; i < env_length; i++, link = link->next)
     {
         env_keys[i] = link->data;
         env_values[i] = g_hash_table_lookup (process->priv->env, env_keys[i]);
     }
     g_list_free (keys);
 
-    pid = fork ();
+    pid_t pid = fork ();
     if (pid == 0)
     {
         /* Do custom setup */
@@ -234,7 +229,7 @@ process_start (Process *process, gboolean block)
 #else
             environ = NULL;
 #endif
-        for (i = 0; i < env_length; i++)
+        for (guint i = 0; i < env_length; i++)
             setenv (env_keys[i], env_values[i], TRUE);
 
         /* Reset SIGPIPE handler so the child has default behaviour (we disabled it at LightDM start) */
@@ -387,11 +382,9 @@ signal_cb (int signum, siginfo_t *info, void *data)
 static gboolean
 handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
 {
+    errno = 0;
     int signo;
     pid_t pid;
-    Process *process;
-
-    errno = 0;
     if (read (signal_pipe[0], &signo, sizeof (int)) != sizeof (int) ||
         read (signal_pipe[0], &pid, sizeof (pid_t)) != sizeof (pid_t))
     {
@@ -401,7 +394,7 @@ handle_signal (GIOChannel *source, GIOCondition condition, gpointer data)
 
     g_debug ("Got signal %d from process %d", signo, pid);
 
-    process = g_hash_table_lookup (processes, GINT_TO_POINTER (pid));
+    Process *process = g_hash_table_lookup (processes, GINT_TO_POINTER (pid));
     if (process == NULL)
         process = process_get_current ();
     if (process)

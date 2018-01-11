@@ -56,9 +56,7 @@ write_data (const void *buf, size_t count)
 static void
 write_string (const char *value)
 {
-    int length;
-
-    length = value ? strlen (value) : -1;
+    int length = value ? strlen (value) : -1;
     write_data (&length, sizeof (length));
     if (value)
         write_data (value, sizeof (char) * length);
@@ -67,9 +65,7 @@ write_string (const char *value)
 static ssize_t
 read_data (void *buf, size_t count)
 {
-    ssize_t n_read;
-
-    n_read = read (from_daemon_output, buf, count);
+    ssize_t n_read = read (from_daemon_output, buf, count);
     if (n_read < 0)
         g_printerr ("Error reading from daemon: %s\n", strerror (errno));
 
@@ -80,8 +76,6 @@ static gchar *
 read_string_full (void* (*alloc_fn)(size_t n))
 {
     int length;
-    char *value;
-
     if (read_data (&length, sizeof (length)) <= 0)
         return NULL;
     if (length < 0)
@@ -92,7 +86,7 @@ read_string_full (void* (*alloc_fn)(size_t n))
         return NULL;
     }
 
-    value = (*alloc_fn) (sizeof (char) * (length + 1));
+    gchar *value = (*alloc_fn) (sizeof (gchar) * (length + 1));
     read_data (value, length);
     value[length] = '\0';
 
@@ -108,11 +102,6 @@ read_string (void)
 static int
 pam_conv_cb (int msg_length, const struct pam_message **msg, struct pam_response **resp, void *app_data)
 {
-    int i, error;
-    gboolean auth_complete = FALSE;
-    struct pam_response *response;
-    gchar *username = NULL;
-
     /* FIXME: We don't support communication after pam_authenticate completes */
     if (authentication_complete)
         return PAM_SUCCESS;
@@ -120,7 +109,7 @@ pam_conv_cb (int msg_length, const struct pam_message **msg, struct pam_response
     /* Cancel authentication if requiring input */
     if (!is_interactive)
     {
-        for (i = 0; i < msg_length; i++)
+        for (int i = 0; i < msg_length; i++)
         {
             if (msg[i]->msg_style == PAM_PROMPT_ECHO_ON || msg[i]->msg_style == PAM_PROMPT_ECHO_OFF)
             {
@@ -134,13 +123,15 @@ pam_conv_cb (int msg_length, const struct pam_message **msg, struct pam_response
     }
 
     /* Check if we changed user */
+    gchar *username = NULL;
     pam_get_item (pam_handle, PAM_USER, (const void **) &username);
 
     /* Notify the daemon */
     write_string (username);
+    gboolean auth_complete = FALSE;
     write_data (&auth_complete, sizeof (auth_complete));
     write_data (&msg_length, sizeof (msg_length));
-    for (i = 0; i < msg_length; i++)
+    for (int i = 0; i < msg_length; i++)
     {
         const struct pam_message *m = msg[i];
         write_data (&m->msg_style, sizeof (m->msg_style));
@@ -148,11 +139,12 @@ pam_conv_cb (int msg_length, const struct pam_message **msg, struct pam_response
     }
 
     /* Get response */
+    int error;
     read_data (&error, sizeof (error));
     if (error != PAM_SUCCESS)
         return error;
-    response = calloc (msg_length, sizeof (struct pam_response));
-    for (i = 0; i < msg_length; i++)
+    struct pam_response *response = calloc (msg_length, sizeof (struct pam_response));
+    for (int i = 0; i < msg_length; i++)
     {
         struct pam_response *r = &response[i];
         // callers of this function inside pam will expect to be able to call
@@ -178,25 +170,23 @@ signal_cb (int signum)
 static XAuthority *
 read_xauth (void)
 {
-    gchar *x_authority_name;
-    guint16 x_authority_family;
-    guint8 *x_authority_address;
-    gsize x_authority_address_length;
-    gchar *x_authority_number;
-    guint8 *x_authority_data;
-    gsize x_authority_data_length;
-
-    x_authority_name = read_string ();
+    g_autofree gchar *x_authority_name = read_string ();
     if (!x_authority_name)
         return NULL;
 
+    guint16 x_authority_family;
     read_data (&x_authority_family, sizeof (x_authority_family));
+
+    gsize x_authority_address_length;
     read_data (&x_authority_address_length, sizeof (x_authority_address_length));
-    x_authority_address = g_malloc (x_authority_address_length);
+    g_autofree guint8 *x_authority_address = g_malloc (x_authority_address_length);
     read_data (x_authority_address, x_authority_address_length);
-    x_authority_number = read_string ();
+
+    g_autofree gchar *x_authority_number = read_string ();
+
+    gsize x_authority_data_length;
     read_data (&x_authority_data_length, sizeof (x_authority_data_length));
-    x_authority_data = g_malloc (x_authority_data_length);
+    g_autofree guint8 *x_authority_data = g_malloc (x_authority_data_length);
     read_data (x_authority_data, x_authority_data_length);
 
     return x_authority_new (x_authority_family, x_authority_address, x_authority_address_length, x_authority_number, x_authority_name, x_authority_data, x_authority_data_length);
@@ -207,7 +197,6 @@ static void
 updwtmpx (const gchar *wtmp_file, struct utmpx *ut)
 {
     struct utmp u;
-
     memset (&u, 0, sizeof (u));
     u.ut_type = ut->ut_type;
     u.ut_pid = ut->ut_pid;
@@ -229,20 +218,18 @@ updwtmpx (const gchar *wtmp_file, struct utmpx *ut)
 static void
 audit_event (int type, const gchar *username, uid_t uid, const gchar *remote_host_name, const gchar *tty, gboolean success)
 {
-    int auditfd, result;
-    const char *op = NULL;
-
-    auditfd = audit_open ();
+    int auditfd = audit_open ();
     if (auditfd < 0) {
         g_printerr ("Error opening audit socket: %s\n", strerror (errno));
         return;
     }
 
+    const char *op = NULL;
     if (type == AUDIT_USER_LOGIN)
         op = "login";
     else if (type == AUDIT_USER_LOGOUT)
         op = "logout";
-    result = success == TRUE ? 1 : 0;
+    int result = success == TRUE ? 1 : 0;
 
     if (audit_log_acct_message (auditfd, type, NULL, op, username, uid, remote_host_name, NULL, tty, result) <= 0)
         g_printerr ("Error writing audit message: %s\n", strerror (errno));
@@ -254,52 +241,6 @@ audit_event (int type, const gchar *username, uid_t uid, const gchar *remote_hos
 int
 session_child_run (int argc, char **argv)
 {
-    struct pam_conv conversation = { pam_conv_cb, NULL };
-    int i, version, fd, result;
-    gboolean auth_complete = TRUE;
-    User *user = NULL;
-    g_autofree gchar *log_filename = NULL;
-    LogMode log_mode = LOG_MODE_BACKUP_AND_TRUNCATE;
-    gsize env_length;
-    gsize command_argc;
-    gchar **command_argv;
-    GVariantBuilder ck_parameters;
-    int return_code;
-    int authentication_result;
-    gchar *authentication_result_string;
-    gchar *service;
-    gchar *username;
-    gchar *tty;
-    gchar *remote_host_name;
-    gchar *xdisplay;
-    XAuthority *x_authority = NULL;
-    gchar *x_authority_filename;
-    GDBusConnection *bus;
-    const gchar *login1_session_id = NULL;
-    gchar *console_kit_cookie = NULL;
-    const gchar *locale_value;
-    static const gchar * const locale_var_names[] = {
-        "LC_PAPER",
-        "LC_NAME",
-        "LC_ADDRESS",
-        "LC_TELEPHONE",
-        "LC_MEASUREMENT",
-        "LC_IDENTIFICATION",
-        "LC_COLLATE",
-        "LC_CTYPE",
-        "LC_MONETARY",
-        "LC_NUMERIC",
-        "LC_TIME",
-        "LC_MESSAGES",
-        "LC_ALL",
-        "LANG",
-        NULL
-    };
-    gid_t gid;
-    uid_t uid;
-    const gchar *home_directory;
-    g_autoptr(GError) error = NULL;
-
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
@@ -311,7 +252,7 @@ session_child_run (int argc, char **argv)
     }
 
     /* Make input non-blocking */
-    fd = open ("/dev/null", O_RDONLY);
+    int fd = open ("/dev/null", O_RDONLY);
     dup2 (fd, STDIN_FILENO);
     close (fd);
 
@@ -339,20 +280,22 @@ session_child_run (int argc, char **argv)
     fcntl (to_daemon_input, F_SETFD, FD_CLOEXEC);
 
     /* Read a version number so we can handle upgrades (i.e. a newer version of session child is run for an old daemon */
+    int version;
     read_data (&version, sizeof (version));
 
-    service = read_string ();
-    username = read_string ();
+    g_autofree gchar *service = read_string ();
+    g_autofree gchar *username = read_string ();
     read_data (&do_authenticate, sizeof (do_authenticate));
     read_data (&is_interactive, sizeof (is_interactive));
-    read_string (); /* Used to be class, now we just use the environment variable */
-    tty = read_string ();
-    remote_host_name = read_string ();
-    xdisplay = read_string ();
-    x_authority = read_xauth ();
+    g_autofree gchar *unused_class = read_string (); /* Used to be class, now we just use the environment variable */
+    g_autofree gchar *tty = read_string ();
+    g_autofree gchar *remote_host_name = read_string ();
+    g_autofree gchar *xdisplay = read_string ();
+    g_autoptr(XAuthority) x_authority = read_xauth ();
 
     /* Setup PAM */
-    result = pam_start (service, username, &conversation, &pam_handle);
+    struct pam_conv conversation = { pam_conv_cb, NULL };
+    int result = pam_start (service, username, &conversation, &pam_handle);
     if (result != PAM_SUCCESS)
     {
         g_printerr ("Failed to start PAM: %s", pam_strerror (NULL, result));
@@ -382,6 +325,7 @@ session_child_run (int argc, char **argv)
 #endif
 
     /* Authenticate */
+    int authentication_result = PAM_SUCCESS;
     if (do_authenticate)
     {
         const gchar *new_username;
@@ -436,6 +380,7 @@ session_child_run (int argc, char **argv)
         authentication_result = PAM_SUCCESS;
     authentication_complete = TRUE;
 
+    User *user = NULL;
     if (authentication_result == PAM_SUCCESS)
     {
         /* Fail authentication if user doesn't actually exist */
@@ -455,8 +400,26 @@ session_child_run (int argc, char **argv)
             pam_putenv (pam_handle, g_strdup_printf ("SHELL=%s", user_get_shell (user)));
 
             /* Let the greeter and user session inherit the system default locale */
-            for (i = 0; locale_var_names[i] != NULL; i++)
+            static const gchar * const locale_var_names[] = {
+                "LC_PAPER",
+                "LC_NAME",
+                "LC_ADDRESS",
+                "LC_TELEPHONE",
+                "LC_MEASUREMENT",
+                "LC_IDENTIFICATION",
+                "LC_COLLATE",
+                "LC_CTYPE",
+                "LC_MONETARY",
+                "LC_NUMERIC",
+                "LC_TIME",
+                "LC_MESSAGES",
+                "LC_ALL",
+                "LANG",
+                NULL
+            };
+            for (int i = 0; locale_var_names[i] != NULL; i++)
             {
+                const gchar *locale_value;
                 if ((locale_value = g_getenv (locale_var_names[i])) != NULL)
                 {
                     g_autofree gchar *locale_var = g_strdup_printf ("%s=%s", locale_var_names[i], locale_value);
@@ -466,10 +429,11 @@ session_child_run (int argc, char **argv)
         }
     }
 
-    authentication_result_string = g_strdup (pam_strerror (pam_handle, authentication_result));
+    g_autofree gchar *authentication_result_string = g_strdup (pam_strerror (pam_handle, authentication_result));
 
     /* Report authentication result */
     write_string (username);
+    gboolean auth_complete = TRUE;
     write_data (&auth_complete, sizeof (auth_complete));
     write_data (&authentication_result, sizeof (authentication_result));
     write_string (authentication_result_string);
@@ -490,7 +454,8 @@ session_child_run (int argc, char **argv)
     }
 
     /* Get the command to run (blocks) */
-    log_filename = read_string ();
+    g_autofree gchar *log_filename = read_string ();
+    LogMode log_mode = LOG_MODE_BACKUP_AND_TRUNCATE;
     if (version >= 3)
         read_data (&log_mode, sizeof (log_mode));
     if (version >= 1)
@@ -498,7 +463,7 @@ session_child_run (int argc, char **argv)
         g_free (tty);
         tty = read_string ();
     }
-    x_authority_filename = read_string ();
+    g_autofree gchar *x_authority_filename = read_string ();
     if (version >= 1)
     {
         g_free (xdisplay);
@@ -506,11 +471,14 @@ session_child_run (int argc, char **argv)
         g_clear_object (&x_authority);
         x_authority = read_xauth ();
     }
+    gsize env_length;
     read_data (&env_length, sizeof (env_length));
-    for (i = 0; i < env_length; i++)
+    for (int i = 0; i < env_length; i++)
         pam_putenv (pam_handle, read_string ());
+    gsize command_argc;
     read_data (&command_argc, sizeof (command_argc));
-    command_argv = g_malloc (sizeof (gchar *) * (command_argc + 1));
+    g_auto(GStrv) command_argv = g_malloc (sizeof (gchar *) * (command_argc + 1));
+    int i;
     for (i = 0; i < command_argc; i++)
         command_argv[i] = read_string ();
     command_argv[i] = NULL;
@@ -528,7 +496,7 @@ session_child_run (int argc, char **argv)
     {
         if (g_path_is_absolute (log_filename))
         {
-            fd = log_file_open (log_filename, log_mode);
+            int fd = log_file_open (log_filename, log_mode);
             dup2 (fd, STDERR_FILENO);
             close (fd);
             g_clear_pointer (&log_filename, g_free);
@@ -536,7 +504,7 @@ session_child_run (int argc, char **argv)
     }
     else
     {
-        fd = open ("/dev/null", O_WRONLY);
+        int fd = open ("/dev/null", O_WRONLY);
         dup2 (fd, STDERR_FILENO);
         close (fd);
     }
@@ -570,7 +538,8 @@ session_child_run (int argc, char **argv)
     }
 
     /* Open a connection to the system bus for ConsoleKit - we must keep it open or CK will close the session */
-    bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
+    g_autoptr(GError) error = NULL;
+    g_autoptr(GDBusConnection) bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
     if (error)
         g_printerr ("Unable to contact system bus: %s", error->message);
     if (!bus)
@@ -580,7 +549,8 @@ session_child_run (int argc, char **argv)
     }
 
     /* Check what logind session we are, or fallback to ConsoleKit */
-    login1_session_id = pam_getenv (pam_handle, "XDG_SESSION_ID");
+    const gchar *login1_session_id = pam_getenv (pam_handle, "XDG_SESSION_ID");
+    g_autofree gchar *console_kit_cookie = NULL;
     if (login1_session_id)
     {
         write_string (login1_session_id);
@@ -589,6 +559,7 @@ session_child_run (int argc, char **argv)
     }
     else
     {
+        GVariantBuilder ck_parameters;
         g_variant_builder_init (&ck_parameters, G_VARIANT_TYPE ("(a(sv))"));
         g_variant_builder_open (&ck_parameters, G_VARIANT_TYPE ("a(sv)"));
         g_variant_builder_add (&ck_parameters, "(sv)", "unix-user", g_variant_new_int32 (user_get_uid (user)));
@@ -630,14 +601,12 @@ session_child_run (int argc, char **argv)
     /* Write X authority */
     if (x_authority)
     {
-        gboolean drop_privileges, result;
-        g_autofree gchar *value = NULL;
-        g_autoptr(GError) error = NULL;
-
-        drop_privileges = geteuid () == 0;
+        gboolean drop_privileges = geteuid () == 0;
         if (drop_privileges)
             privileges_drop (user_get_uid (user), user_get_gid (user));
-        result = x_authority_write (x_authority, XAUTH_WRITE_MODE_REPLACE, x_authority_filename, &error);
+
+        g_autoptr(GError) error = NULL;
+        gboolean result = x_authority_write (x_authority, XAUTH_WRITE_MODE_REPLACE, x_authority_filename, &error);
         if (drop_privileges)
             privileges_reclaim ();
 
@@ -649,7 +618,7 @@ session_child_run (int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        value = g_strdup_printf ("XAUTHORITY=%s", x_authority_filename);
+        g_autofree gchar *value = g_strdup_printf ("XAUTHORITY=%s", x_authority_filename);
         pam_putenv (pam_handle, value);
     }
 
@@ -657,9 +626,9 @@ session_child_run (int argc, char **argv)
     signal (SIGTERM, signal_cb);
 
     /* Run the command as the authenticated user */
-    uid = user_get_uid (user);
-    gid = user_get_gid (user);
-    home_directory = user_get_home_directory (user);
+    uid_t uid = user_get_uid (user);
+    gid_t gid = user_get_gid (user);
+    const gchar *home_directory = user_get_home_directory (user);
     child_pid = fork ();
     if (child_pid == 0)
     {
@@ -686,7 +655,7 @@ session_child_run (int argc, char **argv)
 
         if (log_filename)
         {
-            fd = log_file_open (log_filename, log_mode);
+            int fd = log_file_open (log_filename, log_mode);
             if (fd >= 0)
             {
                 dup2 (fd, STDERR_FILENO);
@@ -703,6 +672,7 @@ session_child_run (int argc, char **argv)
     }
 
     /* Bail out if failed to fork */
+    int return_code = EXIT_SUCCESS;
     if (child_pid < 0)
     {
         g_printerr ("Failed to fork session child process: %s\n", strerror (errno));
@@ -712,14 +682,10 @@ session_child_run (int argc, char **argv)
     /* Wait for the command to complete (blocks) */
     if (child_pid > 0)
     {
-        int child_status;
-
         /* Log to utmp */
         if (g_strcmp0 (pam_getenv (pam_handle, "XDG_SESSION_CLASS"), "greeter") != 0)
         {
             struct utmpx ut;
-            struct timeval tv;
-
             memset (&ut, 0, sizeof (ut));
             ut.ut_type = USER_PROCESS;
             ut.ut_pid = child_pid;
@@ -732,6 +698,7 @@ session_child_run (int argc, char **argv)
                 strncpy (ut.ut_host, xdisplay, sizeof (ut.ut_host));
             else if (remote_host_name)
                 strncpy (ut.ut_host, remote_host_name, sizeof (ut.ut_host));
+            struct timeval tv;
             gettimeofday (&tv, NULL);
             ut.ut_tv.tv_sec = tv.tv_sec;
             ut.ut_tv.tv_usec = tv.tv_usec;
@@ -743,11 +710,12 @@ session_child_run (int argc, char **argv)
             endutxent ();
             updwtmpx ("/var/log/wtmp", &ut);
 
-#if HAVE_LIBAUDIT          
+#if HAVE_LIBAUDIT
             audit_event (AUDIT_USER_LOGIN, username, uid, remote_host_name, tty, TRUE);
 #endif
         }
 
+        int child_status;
         waitpid (child_pid, &child_status, 0);
         child_pid = 0;
         if (WIFEXITED (child_status))
@@ -759,8 +727,6 @@ session_child_run (int argc, char **argv)
         if (g_strcmp0 (pam_getenv (pam_handle, "XDG_SESSION_CLASS"), "greeter") != 0)
         {
             struct utmpx ut;
-            struct timeval tv;
-
             memset (&ut, 0, sizeof (ut));
             ut.ut_type = DEAD_PROCESS;
             ut.ut_pid = child_pid;
@@ -773,6 +739,7 @@ session_child_run (int argc, char **argv)
                 strncpy (ut.ut_host, xdisplay, sizeof (ut.ut_host));
             else if (remote_host_name)
                 strncpy (ut.ut_host, remote_host_name, sizeof (ut.ut_host));
+            struct timeval tv;
             gettimeofday (&tv, NULL);
             ut.ut_tv.tv_sec = tv.tv_sec;
             ut.ut_tv.tv_usec = tv.tv_usec;
@@ -793,13 +760,12 @@ session_child_run (int argc, char **argv)
     /* Remove X authority */
     if (x_authority)
     {
-        gboolean drop_privileges, result;
-        g_autoptr(GError) error = NULL;
-
-        drop_privileges = geteuid () == 0;
+        gboolean drop_privileges = geteuid () == 0;
         if (drop_privileges)
             privileges_drop (user_get_uid (user), user_get_gid (user));
-        result = x_authority_write (x_authority, XAUTH_WRITE_MODE_REMOVE, x_authority_filename, &error);
+
+        g_autoptr(GError) error = NULL;
+        gboolean result = x_authority_write (x_authority, XAUTH_WRITE_MODE_REMOVE, x_authority_filename, &error);
         if (drop_privileges)
             privileges_reclaim ();
 

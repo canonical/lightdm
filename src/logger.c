@@ -28,11 +28,8 @@ logger_logv (Logger *self, GLogLevelFlags log_level, const gchar *format, va_lis
 void
 logger_logv_default (Logger *self, GLogLevelFlags log_level, const gchar *format, va_list ap)
 {
-    va_list ap_copy;
-    gint tmp;
-
     /* figure out how long the prefix is */
-    tmp = logger_logprefix (self, NULL, 0);
+    gint tmp = logger_logprefix (self, NULL, 0);
     if (tmp < 0)
     {
         g_error ("failed to get log prefix");
@@ -49,6 +46,7 @@ logger_logv_default (Logger *self, GLogLevelFlags log_level, const gchar *format
     }
 
     /* figure out how long the formatted message is */
+    va_list ap_copy;
     va_copy (ap_copy, ap);
     tmp = g_vsnprintf (NULL, 0, format, ap_copy);
     va_end (ap_copy);

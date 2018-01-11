@@ -59,9 +59,7 @@ display_manager_get_seats (DisplayManager *manager)
 Seat *
 display_manager_get_seat (DisplayManager *manager, const gchar *name)
 {
-    GList *link;
-
-    for (link = manager->priv->seats; link; link = link->next)
+    for (GList *link = manager->priv->seats; link; link = link->next)
     {
         Seat *seat = link->data;
 
@@ -133,8 +131,6 @@ display_manager_start (DisplayManager *manager)
 void
 display_manager_stop (DisplayManager *manager)
 {
-    GList *seats, *link;
-
     g_return_if_fail (manager != NULL);
 
     if (manager->priv->stopping)
@@ -145,8 +141,8 @@ display_manager_stop (DisplayManager *manager)
     manager->priv->stopping = TRUE;
 
     /* Stop all the seats. Copy the list as it might be modified if a seat stops during this loop */
-    seats = g_list_copy (manager->priv->seats);
-    for (link = seats; link; link = link->next)
+    GList *seats = g_list_copy (manager->priv->seats);
+    for (GList *link = seats; link; link = link->next)
     {
         Seat *seat = link->data;
         seat_stop (seat);
@@ -171,9 +167,8 @@ static void
 display_manager_finalize (GObject *object)
 {
     DisplayManager *self = DISPLAY_MANAGER (object);
-    GList *link;
 
-    for (link = self->priv->seats; link; link = link->next)
+    for (GList *link = self->priv->seats; link; link = link->next)
     {
         Seat *seat = link->data;
         g_signal_handlers_disconnect_matched (seat, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);

@@ -32,13 +32,11 @@ G_DEFINE_TYPE (XServerXmir, x_server_xmir, X_SERVER_LOCAL_TYPE)
 static void
 compositor_ready_cb (UnitySystemCompositor *compositor, XServerXmir *server)
 {
-    gboolean result;
-
     if (!server->priv->waiting_for_compositor)
         return;
     server->priv->waiting_for_compositor = FALSE;
 
-    result = X_SERVER_LOCAL_CLASS (x_server_xmir_parent_class)->start (DISPLAY_SERVER (server));
+    gboolean result = X_SERVER_LOCAL_CLASS (x_server_xmir_parent_class)->start (DISPLAY_SERVER (server));
     if (!result)
         display_server_stop (DISPLAY_SERVER (server));
 }
@@ -52,9 +50,7 @@ compositor_stopped_cb (UnitySystemCompositor *compositor, XServerXmir *server)
 XServerXmir *
 x_server_xmir_new (UnitySystemCompositor *compositor)
 {
-    XServerXmir *server;
-
-    server = g_object_new (X_SERVER_XMIR_TYPE, NULL);
+    XServerXmir *server = g_object_new (X_SERVER_XMIR_TYPE, NULL);
     x_server_local_set_command (X_SERVER_LOCAL (server), "Xmir");
     server->priv->compositor = g_object_ref (compositor);
     g_signal_connect (compositor, DISPLAY_SERVER_SIGNAL_READY, G_CALLBACK (compositor_ready_cb), server);

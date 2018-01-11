@@ -77,45 +77,36 @@ compositor_stopped_cb (UnitySystemCompositor *compositor, SeatLocal *seat)
 
     if (seat_get_is_stopping (SEAT (seat)))
         check_stopped (seat);
-}  
+}
 
 static gboolean
 seat_local_start (Seat *seat)
 {
-    const gchar *xdmcp_manager = NULL;
-
     /* If running as an XDMCP client then just start an X server */
-    xdmcp_manager = seat_get_string_property (seat, "xdmcp-manager");
+    const gchar *xdmcp_manager = seat_get_string_property (seat, "xdmcp-manager");
     if (xdmcp_manager)
     {
         SeatLocal *s = SEAT_LOCAL (seat);
-        const gchar *key_name = NULL;
-        gint port = 0;
 
         s->priv->xdmcp_x_server = create_x_server (s);
         x_server_local_set_xdmcp_server (s->priv->xdmcp_x_server, xdmcp_manager);
-        port = seat_get_integer_property (seat, "xdmcp-port");
+        gint port = seat_get_integer_property (seat, "xdmcp-port");
         if (port > 0)
             x_server_local_set_xdmcp_port (s->priv->xdmcp_x_server, port);
-        key_name = seat_get_string_property (seat, "xdmcp-key");
+        const gchar *key_name = seat_get_string_property (seat, "xdmcp-key");
         if (key_name)
         {
-            g_autofree gchar *path = NULL;
-            g_autoptr(GKeyFile) keys = NULL;
-            gboolean result;
+            g_autofree gchar *path = g_build_filename (config_get_directory (config_get_instance ()), "keys.conf", NULL);
+
+            g_autoptr(GKeyFile) keys = g_key_file_new ();
             g_autoptr(GError) error = NULL;
-
-            path = g_build_filename (config_get_directory (config_get_instance ()), "keys.conf", NULL);
-
-            keys = g_key_file_new ();
-            result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
+            gboolean result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
             if (error)
                 l_debug (seat, "Error getting key %s", error->message);
 
             if (result)
             {
                 g_autofree gchar *key = NULL;
-
                 if (g_key_file_has_key (keys, "keyring", key_name, NULL))
                     key = g_key_file_get_string (keys, "keyring", key_name, NULL);
                 else
@@ -153,13 +144,11 @@ display_server_transition_plymouth_cb (DisplayServer *display_server, Seat *seat
 static gint
 get_vt (SeatLocal *seat, DisplayServer *display_server)
 {
-    gint vt = -1;
-    const gchar *xdg_seat = seat_get_name (SEAT (seat));
-
-    if (strcmp (xdg_seat, "seat0") != 0)
-        return vt;
+    if (strcmp (seat_get_name (SEAT (seat)), "seat0") != 0)
+        return -1;
 
     /* If Plymouth is running, stop it */
+    gint vt = -1;
     if (plymouth_get_is_active () && plymouth_has_active_vt ())
     {
         gint active_vt = vt_get_active ();
@@ -184,24 +173,21 @@ get_vt (SeatLocal *seat, DisplayServer *display_server)
 static UnitySystemCompositor *
 get_unity_system_compositor (SeatLocal *seat)
 {
-    const gchar *command;
-    gint timeout, vt;
-
     if (seat->priv->compositor)
         return seat->priv->compositor;
 
     seat->priv->compositor = unity_system_compositor_new ();
 
-    command = seat_get_string_property (SEAT (seat), "unity-compositor-command");
+    const gchar *command = seat_get_string_property (SEAT (seat), "unity-compositor-command");
     if (command)
         unity_system_compositor_set_command (seat->priv->compositor, command);
 
-    timeout = seat_get_integer_property (SEAT (seat), "unity-compositor-timeout");
+    gint timeout = seat_get_integer_property (SEAT (seat), "unity-compositor-timeout");
     if (timeout <= 0)
         timeout = 60;
     unity_system_compositor_set_timeout (seat->priv->compositor, timeout);
 
-    vt = get_vt (seat, DISPLAY_SERVER (seat->priv->compositor));
+    gint vt = get_vt (seat, DISPLAY_SERVER (seat->priv->compositor));
     if (vt >= 0)
         unity_system_compositor_set_vt (seat->priv->compositor, vt);
 
@@ -214,40 +200,28 @@ get_unity_system_compositor (SeatLocal *seat)
 static XServerLocal *
 create_x_server (SeatLocal *seat)
 {
-    const gchar *x_server_backend;
-    XServerLocal *x_server;
-    g_autofree gchar *number = NULL;
-    g_autoptr(XAuthority) cookie = NULL;
-    const gchar *layout = NULL, *config_file = NULL;
-    gboolean allow_tcp;
-    gint vt;
+    g_autoptr(XServerLocal) x_server = NULL;
 
-    x_server_backend = seat_get_string_property (SEAT (seat), "xserver-backend");
+    const gchar *x_server_backend = seat_get_string_property (SEAT (seat), "xserver-backend");
     if (g_strcmp0 (x_server_backend, "mir") == 0)
     {
-        UnitySystemCompositor *compositor;
-        const gchar *command;
-        g_autofree gchar *id = NULL;
-
-        compositor = get_unity_system_compositor (SEAT_LOCAL (seat));
+        UnitySystemCompositor *compositor = get_unity_system_compositor (SEAT_LOCAL (seat));
         x_server = X_SERVER_LOCAL (x_server_xmir_new (compositor));
 
-        command = seat_get_string_property (SEAT (seat), "xmir-command");
+        const gchar *command = seat_get_string_property (SEAT (seat), "xmir-command");
         if (command)
             x_server_local_set_command (x_server, command);
 
-        id = g_strdup_printf ("x-%d", seat->priv->next_xmir_id);
+        g_autofree gchar *id = g_strdup_printf ("x-%d", seat->priv->next_xmir_id);
         seat->priv->next_xmir_id++;
         x_server_xmir_set_mir_id (X_SERVER_XMIR (x_server), id);
         x_server_xmir_set_mir_socket (X_SERVER_XMIR (x_server), unity_system_compositor_get_socket (compositor));
     }
     else
     {
-        const gchar *command = NULL;
-
         x_server = x_server_local_new ();
 
-        vt = get_vt (seat, DISPLAY_SERVER (x_server));
+        gint vt = get_vt (seat, DISPLAY_SERVER (x_server));
         if (vt >= 0)
             x_server_local_set_vt (x_server, vt);
 
@@ -257,6 +231,7 @@ create_x_server (SeatLocal *seat)
             l_debug (seat, "Starting local X display");
 
         /* If running inside an X server use Xephyr instead */
+        const gchar *command = NULL;
         if (g_getenv ("DISPLAY"))
             command = "Xephyr";
         if (!command)
@@ -265,48 +240,44 @@ create_x_server (SeatLocal *seat)
             x_server_local_set_command (x_server, command);
     }
 
-    number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (x_server)));
-    cookie = x_authority_new_local_cookie (number);
+    g_autofree gchar *number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (x_server)));
+    g_autoptr(XAuthority) cookie = x_authority_new_local_cookie (number);
     x_server_set_authority (X_SERVER (x_server), cookie);
 
-    layout = seat_get_string_property (SEAT (seat), "xserver-layout");
+    const gchar *layout = seat_get_string_property (SEAT (seat), "xserver-layout");
     if (layout)
         x_server_local_set_layout (x_server, layout);
 
     x_server_local_set_xdg_seat (x_server, seat_get_name (SEAT (seat)));
 
-    config_file = seat_get_string_property (SEAT (seat), "xserver-config");
+    const gchar *config_file = seat_get_string_property (SEAT (seat), "xserver-config");
     if (config_file)
         x_server_local_set_config (x_server, config_file);
 
-    allow_tcp = seat_get_boolean_property (SEAT (seat), "xserver-allow-tcp");
+    gboolean allow_tcp = seat_get_boolean_property (SEAT (seat), "xserver-allow-tcp");
     x_server_local_set_allow_tcp (x_server, allow_tcp);
 
-    return x_server;
+    return g_steal_pointer (&x_server);
 }
 
 static DisplayServer *
 create_wayland_session (SeatLocal *seat)
 {
-    WaylandSession *session;
-    gint vt;
+    g_autoptr(WaylandSession) session = wayland_session_new ();
 
-    session = wayland_session_new ();
-
-    vt = get_vt (seat, DISPLAY_SERVER (session));
+    gint vt = get_vt (seat, DISPLAY_SERVER (session));
     if (vt >= 0)
         wayland_session_set_vt (session, vt);
 
-    return DISPLAY_SERVER (session);
+    return DISPLAY_SERVER (g_steal_pointer (&session));
 }
 
 static DisplayServer *
 seat_local_create_display_server (Seat *s, Session *session)
 {
     SeatLocal *seat = SEAT_LOCAL (s);
-    const gchar *session_type;
 
-    session_type = session_get_session_type (session);
+    const gchar *session_type = session_get_session_type (session);
     if (strcmp (session_type, "x") == 0)
         return DISPLAY_SERVER (create_x_server (seat));
     else if (strcmp (session_type, "mir") == 0)
@@ -332,9 +303,7 @@ seat_local_display_server_is_used (Seat *seat, DisplayServer *display_server)
 static GreeterSession *
 seat_local_create_greeter_session (Seat *seat)
 {
-    GreeterSession *greeter_session;
-
-    greeter_session = SEAT_CLASS (seat_local_parent_class)->create_greeter_session (seat);
+    GreeterSession *greeter_session = SEAT_CLASS (seat_local_parent_class)->create_greeter_session (seat);
     session_set_env (SESSION (greeter_session), "XDG_SEAT", seat_get_name (seat));
 
     return greeter_session;
@@ -343,9 +312,7 @@ seat_local_create_greeter_session (Seat *seat)
 static Session *
 seat_local_create_session (Seat *seat)
 {
-    Session *session;
-
-    session = SEAT_CLASS (seat_local_parent_class)->create_session (seat);
+    Session *session = SEAT_CLASS (seat_local_parent_class)->create_session (seat);
     session_set_env (SESSION (session), "XDG_SEAT", seat_get_name (seat));
 
     return session;
@@ -355,9 +322,8 @@ static void
 seat_local_set_active_session (Seat *s, Session *session)
 {
     SeatLocal *seat = SEAT_LOCAL (s);
-    DisplayServer *display_server;
 
-    display_server = session_get_display_server (session);
+    DisplayServer *display_server = session_get_display_server (session);
 
     gint vt = display_server_get_vt (display_server);
     if (vt >= 0)
@@ -382,10 +348,8 @@ static Session *
 seat_local_get_active_session (Seat *s)
 {
     SeatLocal *seat = SEAT_LOCAL (s);
-    gint vt;
-    GList *link;
 
-    vt = vt_get_active ();
+    gint vt = vt_get_active ();
     if (vt < 0)
         return NULL;
 
@@ -394,7 +358,7 @@ seat_local_get_active_session (Seat *s)
         return seat->priv->active_compositor_session;
 
     /* Otherwise find out which session is on this VT */
-    for (link = seat_get_sessions (s); link; link = link->next)
+    for (GList *link = seat_get_sessions (s); link; link = link->next)
     {
         Session *session = link->data;
         DisplayServer *display_server;
@@ -410,14 +374,12 @@ seat_local_get_active_session (Seat *s)
 static void
 seat_local_set_next_session (Seat *seat, Session *session)
 {
-    DisplayServer *display_server;
-    const gchar *id = NULL;
-
     if (!session)
         return;
 
-    display_server = session_get_display_server (session);
+    DisplayServer *display_server = session_get_display_server (session);
 
+    const gchar *id = NULL;
     if (IS_X_SERVER_XMIR (display_server))
         id = x_server_xmir_get_mir_id (X_SERVER_XMIR (display_server));
     else
@@ -437,12 +399,8 @@ seat_local_run_script (Seat *seat, DisplayServer *display_server, Process *scrip
 {
     if (IS_X_SERVER_LOCAL (display_server))
     {
-        const gchar *path;
-        XServerLocal *x_server;
-
-        x_server = X_SERVER_LOCAL (display_server);
-        path = x_server_local_get_authority_file_path (x_server);
-        process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (x_server)));
+        const gchar *path = x_server_local_get_authority_file_path (X_SERVER_LOCAL (display_server));
+        process_set_env (script, "DISPLAY", x_server_get_address (X_SERVER (display_server)));
         process_set_env (script, "XAUTHORITY", path);
     }
 

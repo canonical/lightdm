@@ -38,6 +38,8 @@ typedef struct
     guint (*get_display_number) (XServer *server);
 } XServerClass;
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (XServer, g_object_unref)
+
 GType x_server_get_type (void);
 
 void x_server_set_hostname (XServer *server, const gchar *hostname);

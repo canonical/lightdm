@@ -56,8 +56,6 @@ static void
 log_cb (const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer data)
 {
     const gchar *prefix;
-    g_autofree gchar *text = NULL;
-
     switch (log_level & G_LOG_LEVEL_MASK)
     {
     case G_LOG_LEVEL_ERROR:
@@ -83,13 +81,12 @@ log_cb (const gchar *log_domain, GLogLevelFlags log_level, const gchar *message,
         break;
     }
 
-    text = g_strdup_printf ("[%+.2fs] %s %s\n", g_timer_elapsed (log_timer, NULL), prefix, message);
+    g_autofree gchar *text = g_strdup_printf ("[%+.2fs] %s %s\n", g_timer_elapsed (log_timer, NULL), prefix, message);
 
     /* Log everything to a file */
     if (log_fd >= 0)
     {
-        ssize_t n_written;
-        n_written = write (log_fd, text, strlen (text));
+        ssize_t n_written = write (log_fd, text, strlen (text));
         if (n_written < 0)
             ; /* Check result so compiler doesn't warn about it */
     }
@@ -104,17 +101,13 @@ log_cb (const gchar *log_domain, GLogLevelFlags log_level, const gchar *message,
 static void
 log_init (void)
 {
-    g_autofree gchar *log_dir = NULL;
-    g_autofree gchar *path = NULL;
-    gboolean backup_logs;
-
     log_timer = g_timer_new ();
 
     /* Log to a file */
-    log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    path = g_build_filename (log_dir, "lightdm.log", NULL);
+    g_autofree gchar *log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
+    g_autofree gchar *path = g_build_filename (log_dir, "lightdm.log", NULL);
 
-    backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
+    gboolean backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
     log_fd = log_file_open (path, backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
     fcntl (log_fd, F_SETFD, FD_CLOEXEC);
     g_log_set_default_handler (log_cb, NULL);
@@ -125,15 +118,11 @@ log_init (void)
 static GList*
 get_config_sections (const gchar *seat_name)
 {
-    g_auto(GStrv) groups = NULL;
-    gchar **i;
-    GList *config_sections = NULL;
-
     /* Load seat defaults first */
-    config_sections = g_list_append (config_sections, g_strdup ("Seat:*"));
+    GList *config_sections = g_list_append (NULL, g_strdup ("Seat:*"));
 
-    groups = config_get_groups (config_get_instance ());
-    for (i = groups; *i; i++)
+    g_auto(GStrv) groups = config_get_groups (config_get_instance ());
+    for (gchar **i = groups; *i; i++)
     {
         if (g_str_has_prefix (*i, "Seat:") && strcmp (*i, "Seat:*") != 0)
         {
@@ -149,11 +138,8 @@ get_config_sections (const gchar *seat_name)
 static void
 set_seat_properties (Seat *seat, const gchar *seat_name)
 {
-    GList *sections, *link;
-    gint i;
-
-    sections = get_config_sections (seat_name);
-    for (link = sections; link; link = link->next)
+    GList *sections = get_config_sections (seat_name);
+    for (GList *link = sections; link; link = link->next)
     {
         const gchar *section = link->data;
         g_auto(GStrv) keys = NULL;
@@ -161,7 +147,7 @@ set_seat_properties (Seat *seat, const gchar *seat_name)
         keys = config_get_keys (config_get_instance (), section);
 
         l_debug (seat, "Loading properties from config section %s", section);
-        for (i = 0; keys && keys[i]; i++)
+        for (gint i = 0; keys && keys[i]; i++)
         {
             g_autofree gchar *value = config_get_string (config_get_instance (), section, keys[i]);
             seat_set_property (seat, keys[i], value);
@@ -198,14 +184,12 @@ display_manager_stopped_cb (DisplayManager *display_manager)
 static Seat *
 create_seat (const gchar *module_name, const gchar *name)
 {
-    Seat *seat;
-
     if (strcmp (module_name, "xlocal") == 0) {
         g_warning ("Seat type 'xlocal' is deprecated, use 'type=local' instead");
         module_name = "local";
     }
 
-    seat = seat_new (module_name);
+    Seat *seat = seat_new (module_name);
     if (!seat)
         return NULL;
 
@@ -216,17 +200,14 @@ create_seat (const gchar *module_name, const gchar *name)
 static Seat *
 service_add_xlocal_seat_cb (DisplayManagerService *service, gint display_number)
 {
-    g_autoptr(Seat) seat = NULL;
-    g_autofree gchar *display_number_string = NULL;
-
     g_debug ("Adding local X seat :%d", display_number);
 
-    seat = create_seat ("xremote", "xremote0"); // FIXME: What to use for a name?
+    g_autoptr(Seat) seat = create_seat ("xremote", "xremote0"); // FIXME: What to use for a name?
     if (!seat)
         return NULL;
 
     set_seat_properties (seat, NULL);
-    display_number_string = g_strdup_printf ("%d", display_number);
+    g_autofree gchar *display_number_string = g_strdup_printf ("%d", display_number);
     seat_set_property (seat, "xserver-display-number", display_number_string);
 
     if (!display_manager_add_seat (display_manager, seat))
@@ -238,16 +219,12 @@ service_add_xlocal_seat_cb (DisplayManagerService *service, gint display_number)
 static void
 display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 {
-    g_auto(GStrv) types = NULL;
-    gchar **iter;
-    g_autoptr(Seat) next_seat = NULL;
-    g_autoptr(GString) next_types = NULL;
-
     /* If we have fallback types registered for the seat, let's try them
        before giving up. */
-    types = seat_get_string_list_property (seat, "type");
-    next_types = g_string_new ("");
-    for (iter = types; iter && *iter; iter++)
+    g_auto(GStrv) types = seat_get_string_list_property (seat, "type");
+    g_autoptr(GString) next_types = g_string_new ("");
+    g_autoptr(Seat) next_seat = NULL;
+    for (gchar **iter = types; iter && *iter; iter++)
     {
         if (iter == types)
             continue; // skip first one, that is our current seat type
@@ -288,12 +265,9 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
 static gboolean
 xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
 {
-    g_autoptr(SeatXDMCPSession) seat = NULL;
-    g_autofree gchar *name = NULL;
+    g_autoptr(SeatXDMCPSession) seat = seat_xdmcp_session_new (session);
 
-    seat = seat_xdmcp_session_new (session);
-
-    name = g_strdup_printf ("xdmcp%d", xdmcp_client_count);
+    g_autofree gchar *name = g_strdup_printf ("xdmcp%d", xdmcp_client_count);
     xdmcp_client_count++;
 
     seat_set_name (SEAT (seat), name);
@@ -304,12 +278,9 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
 static void
 vnc_connection_cb (VNCServer *server, GSocket *connection)
 {
-    g_autoptr(SeatXVNC) seat = NULL;
-    g_autofree gchar *name = NULL;
+    g_autoptr(SeatXVNC) seat = seat_xvnc_new (connection);
 
-    seat = seat_xvnc_new (connection);
-
-    name = g_strdup_printf ("vnc%d", vnc_client_count);
+    g_autofree gchar *name = g_strdup_printf ("vnc%d", vnc_client_count);
     vnc_client_count++;
 
     seat_set_name (SEAT (seat), name);
@@ -325,11 +296,6 @@ start_display_manager (void)
     /* Start the XDMCP server */
     if (config_get_boolean (config_get_instance (), "XDMCPServer", "enabled"))
     {
-        g_autofree gchar *hostname = NULL;
-        g_autofree gchar *key_name = NULL;
-        g_autofree gchar *key = NULL;
-        g_autofree gchar *listen_address = NULL;
-
         xdmcp_server = xdmcp_server_new ();
         if (config_has_key (config_get_instance (), "XDMCPServer", "port"))
         {
@@ -338,24 +304,21 @@ start_display_manager (void)
             if (port > 0)
                 xdmcp_server_set_port (xdmcp_server, port);
         }
-        listen_address = config_get_string (config_get_instance (), "XDMCPServer", "listen-address");
+        g_autofree gchar *listen_address = config_get_string (config_get_instance (), "XDMCPServer", "listen-address");
         xdmcp_server_set_listen_address (xdmcp_server, listen_address);
-        hostname = config_get_string (config_get_instance (), "XDMCPServer", "hostname");
+        g_autofree gchar *hostname = config_get_string (config_get_instance (), "XDMCPServer", "hostname");
         xdmcp_server_set_hostname (xdmcp_server, hostname);
         g_signal_connect (xdmcp_server, XDMCP_SERVER_SIGNAL_NEW_SESSION, G_CALLBACK (xdmcp_session_cb), NULL);
 
-        key_name = config_get_string (config_get_instance (), "XDMCPServer", "key");
+        g_autofree gchar *key_name = config_get_string (config_get_instance (), "XDMCPServer", "key");
+        g_autofree gchar *key = NULL;
         if (key_name)
         {
-            g_autofree gchar *path = NULL;
-            g_autoptr(GKeyFile) keys = NULL;
-            gboolean result;
+            g_autofree gchar *path = g_build_filename (config_get_directory (config_get_instance ()), "keys.conf", NULL);
+
+            g_autoptr(GKeyFile) keys = g_key_file_new ();
             g_autoptr(GError) error = NULL;
-
-            path = g_build_filename (config_get_directory (config_get_instance ()), "keys.conf", NULL);
-
-            keys = g_key_file_new ();
-            result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
+            gboolean result = g_key_file_load_from_file (keys, path, G_KEY_FILE_NONE, &error);
             if (error)
                 g_warning ("Unable to load keys from %s: %s", path, error->message);
 
@@ -369,7 +332,7 @@ start_display_manager (void)
         }
         if (key)
             xdmcp_server_set_key (xdmcp_server, key);
-      
+
         if (key_name && !key)
         {
             exit_code = EXIT_FAILURE;
@@ -386,22 +349,17 @@ start_display_manager (void)
     /* Start the VNC server */
     if (config_get_boolean (config_get_instance (), "VNCServer", "enabled"))
     {
-        g_autofree gchar *path = NULL;
-
-        path = g_find_program_in_path ("Xvnc");
+        g_autofree gchar *path = g_find_program_in_path ("Xvnc");
         if (path)
         {
-            g_autofree gchar *listen_address = NULL;
-
             vnc_server = vnc_server_new ();
             if (config_has_key (config_get_instance (), "VNCServer", "port"))
             {
-                gint port;
-                port = config_get_integer (config_get_instance (), "VNCServer", "port");
+                gint port = config_get_integer (config_get_instance (), "VNCServer", "port");
                 if (port > 0)
                     vnc_server_set_port (vnc_server, port);
             }
-            listen_address = config_get_string (config_get_instance (), "VNCServer", "listen-address");
+            g_autofree gchar *listen_address = config_get_string (config_get_instance (), "VNCServer", "listen-address");
             vnc_server_set_listen_address (vnc_server, listen_address);
             g_signal_connect (vnc_server, VNC_SERVER_SIGNAL_NEW_CONNECTION, G_CALLBACK (vnc_connection_cb), NULL);
 
@@ -428,17 +386,12 @@ static gboolean
 add_login1_seat (Login1Seat *login1_seat)
 {
     const gchar *seat_name = login1_seat_get_id (login1_seat);
-    g_auto(GStrv) types = NULL;
-    gchar **type;
-    GList *config_sections = NULL, *link;
-    g_autoptr(Seat) seat = NULL;
-    gboolean is_seat0, started = FALSE;
-
     g_debug ("New seat added from logind: %s", seat_name);
-    is_seat0 = strcmp (seat_name, "seat0") == 0;
+    gboolean is_seat0 = strcmp (seat_name, "seat0") == 0;
 
-    config_sections = get_config_sections (seat_name);
-    for (link = g_list_last (config_sections); link; link = link->prev)
+    GList *config_sections = get_config_sections (seat_name);
+    g_auto(GStrv) types = NULL;
+    for (GList *link = g_list_last (config_sections); link; link = link->prev)
     {
         gchar *config_section = link->data;
         types = config_get_string_list (config_get_instance (), config_section, "type");
@@ -447,7 +400,8 @@ add_login1_seat (Login1Seat *login1_seat)
     }
     g_list_free_full (config_sections, g_free);
 
-    for (type = types; !seat && type && *type; type++)
+    g_autoptr(Seat) seat = NULL;
+    for (gchar **type = types; !seat && type && *type; type++)
         seat = create_seat (*type, seat_name);
 
     if (seat)
@@ -470,7 +424,7 @@ add_login1_seat (Login1Seat *login1_seat)
         return FALSE;
     }
 
-    started = display_manager_add_seat (display_manager, seat);
+    gboolean started = display_manager_add_seat (display_manager, seat);
     if (!started)
         g_debug ("Failed to start seat: %s", seat_name);
 
@@ -480,9 +434,7 @@ add_login1_seat (Login1Seat *login1_seat)
 static void
 remove_login1_seat (Login1Seat *login1_seat)
 {
-    Seat *seat;
-
-    seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
+    Seat *seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
     if (seat)
         seat_stop (seat);
 }
@@ -500,10 +452,8 @@ update_login1_seat (Login1Seat *login1_seat)
     if (!config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical") ||
         login1_seat_get_can_graphical (login1_seat))
     {
-        Seat *seat;
-
         /* Wait for existing seat to stop or ignore if we already have a valid seat */
-        seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
+        Seat *seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
         if (seat)
         {
             if (seat_get_is_stopping (seat))
@@ -532,14 +482,10 @@ login1_active_session_changed_cb (Login1Seat *login1_seat, const gchar *login1_s
 {
     g_debug ("Seat %s changes active session to %s", login1_seat_get_id (login1_seat), login1_session_id);
 
-    Seat *seat;
-    seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
-
+    Seat *seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
     if (seat)
     {
-        Session *active_session;
-
-        active_session = seat_get_expected_active_session (seat);
+        Session *active_session = seat_get_expected_active_session (seat);
         if (active_session != NULL &&
             g_strcmp0 (login1_session_id, session_get_login1_session_id (active_session)) == 0)
         {
@@ -593,21 +539,39 @@ login1_service_seat_removed_cb (Login1Service *service, Login1Seat *login1_seat)
 int
 main (int argc, char **argv)
 {
+    /* Disable the SIGPIPE handler - this is a stupid Unix hangover behaviour.
+     * We will handle pipes / sockets being closed instead of having the whole daemon be killed...
+     * http://stackoverflow.com/questions/8369506/why-does-sigpipe-exist
+     * Similar case for SIGHUP.
+     */
     struct sigaction action;
-    FILE *pid_file;
-    GOptionContext *option_context;
-    gboolean result;
-    gchar *dir;
+    action.sa_handler = SIG_IGN;
+    sigemptyset (&action.sa_mask);
+    action.sa_flags = SA_RESTART;
+    sigaction (SIGPIPE, &action, NULL);
+    sigaction (SIGHUP, &action, NULL);
+
+    /* When lightdm starts sessions it needs to run itself in a new mode */
+    if (argc >= 2 && strcmp (argv[1], "--session-child") == 0)
+        return session_child_run (argc, argv);
+
+#if !defined(GLIB_VERSION_2_36)
+    g_type_init ();
+#endif
+    loop = g_main_loop_new (NULL, FALSE);
+
+    GList *messages = g_list_append (NULL, g_strdup_printf ("Starting Light Display Manager %s, UID=%i PID=%i", VERSION, getuid (), getpid ()));
+
+    g_signal_connect (process_get_current (), PROCESS_SIGNAL_GOT_SIGNAL, G_CALLBACK (signal_cb), NULL);
+
+    g_autoptr(GOptionContext) option_context = g_option_context_new (/* Arguments and description for --help test */
+                                                                     _("- Display Manager"));
     gboolean test_mode = FALSE;
     gchar *pid_path = "/var/run/lightdm.pid";
     gchar *log_dir = NULL;
     gchar *run_dir = NULL;
     gchar *cache_dir = NULL;
-    gchar *default_log_dir = g_strdup (LOG_DIR);
-    gchar *default_run_dir = g_strdup (RUN_DIR);
-    gchar *default_cache_dir = g_strdup (CACHE_DIR);
     gboolean show_config = FALSE, show_version = FALSE;
-    GList *link, *messages = NULL;
     GOptionEntry options[] =
     {
         { "config", 'c', 0, G_OPTION_ARG_STRING, &config_path,
@@ -639,39 +603,11 @@ main (int argc, char **argv)
           N_("Show release version"), NULL },
         { NULL }
     };
-    g_autoptr(GError) error = NULL;
-
-    /* Disable the SIGPIPE handler - this is a stupid Unix hangover behaviour.
-     * We will handle pipes / sockets being closed instead of having the whole daemon be killed...
-     * http://stackoverflow.com/questions/8369506/why-does-sigpipe-exist
-     * Similar case for SIGHUP.
-     */
-    action.sa_handler = SIG_IGN;
-    sigemptyset (&action.sa_mask);
-    action.sa_flags = SA_RESTART;
-    sigaction (SIGPIPE, &action, NULL);
-    sigaction (SIGHUP, &action, NULL);  
-
-    /* When lightdm starts sessions it needs to run itself in a new mode */
-    if (argc >= 2 && strcmp (argv[1], "--session-child") == 0)
-        return session_child_run (argc, argv);
-
-#if !defined(GLIB_VERSION_2_36)
-    g_type_init ();
-#endif
-    loop = g_main_loop_new (NULL, FALSE);
-
-    messages = g_list_append (messages, g_strdup_printf ("Starting Light Display Manager %s, UID=%i PID=%i", VERSION, getuid (), getpid ()));
-
-    g_signal_connect (process_get_current (), PROCESS_SIGNAL_GOT_SIGNAL, G_CALLBACK (signal_cb), NULL);
-
-    option_context = g_option_context_new (/* Arguments and description for --help test */
-                                           _("- Display Manager"));
     g_option_context_add_main_entries (option_context, options, GETTEXT_PACKAGE);
-    result = g_option_context_parse (option_context, &argc, &argv, &error);
+    g_autoptr(GError) error = NULL;
+    gboolean result = g_option_context_parse (option_context, &argc, &argv, &error);
     if (error)
         g_printerr ("%s\n", error->message);
-    g_option_context_free (option_context);
     if (!result)
     {
         g_printerr (/* Text printed out when an unknown command-line argument provided */
@@ -683,24 +619,18 @@ main (int argc, char **argv)
     /* Show combined configuration if user requested it */
     if (show_config)
     {
-        GList *sources, *link;
-        g_auto(GStrv) groups = NULL;
-        gchar *last_source, *empty_source;
-        GHashTable *source_ids;
-        int i;
-
         if (!config_load_from_standard_locations (config_get_instance (), config_path, NULL))
             return EXIT_FAILURE;
 
         /* Number sources */
-        sources = config_get_sources (config_get_instance ());
-        source_ids = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-        last_source = "";
-        for (i = 0, link = sources; link; i++, link = link->next)
+        GList *sources = config_get_sources (config_get_instance ());
+        g_autoptr(GHashTable) source_ids = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+        const gchar *last_source = "";
+        int i = 0;
+        for (GList *link = sources; link; i++, link = link->next)
         {
-            gchar *path, *id;
-
-            path = link->data;
+            const gchar *path = link->data;
+            gchar *id;
             if (i < 26)
                 id = g_strdup_printf ("%c", 'A' + i);
             else
@@ -708,23 +638,20 @@ main (int argc, char **argv)
             g_hash_table_insert (source_ids, g_strdup (path), id);
             last_source = id;
         }
-        empty_source = g_strdup (last_source);
+        g_autofree gchar *empty_source = g_strdup (last_source);
         for (i = 0; empty_source[i] != '\0'; i++)
             empty_source[i] = ' ';
 
         /* Print out keys */
-        groups = config_get_groups (config_get_instance ());
+        g_auto(GStrv) groups = config_get_groups (config_get_instance ());
         for (i = 0; groups[i]; i++)
         {
-            g_auto(GStrv) keys = NULL;
-            int j;
-
             if (i != 0)
                 g_printerr ("\n");
             g_printerr ("%s  [%s]\n", empty_source, groups[i]);
 
-            keys = config_get_keys (config_get_instance (), groups[i]);
-            for (j = 0; keys && keys[j]; j++)
+            g_auto(GStrv) keys = config_get_keys (config_get_instance (), groups[i]);
+            for (int j = 0; keys && keys[j]; j++)
             {
                 const gchar *source, *id;
                 g_autofree gchar *value = NULL;
@@ -740,16 +667,12 @@ main (int argc, char **argv)
         /* Show mapping from source number to path */
         g_printerr ("\n");
         g_printerr ("Sources:\n");
-        for (link = sources; link; link = link->next)
+        for (GList *link = sources; link; link = link->next)
         {
             const gchar *path = link->data;
-            const gchar *source;
-
-            source = g_hash_table_lookup (source_ids, path);
+            const gchar *source = g_hash_table_lookup (source_ids, path);
             g_printerr ("%s  %s\n", source, path);
         }
-
-        g_hash_table_destroy (source_ids);
 
         return EXIT_SUCCESS;
     }
@@ -770,9 +693,7 @@ main (int argc, char **argv)
     /* If running inside an X server use Xephyr for display */
     if (getenv ("DISPLAY") && getuid () != 0)
     {
-        g_autofree gchar *x_server_path = NULL;
-
-        x_server_path = g_find_program_in_path ("Xephyr");
+        g_autofree gchar *x_server_path = g_find_program_in_path ("Xephyr");
         if (!x_server_path)
         {
             g_printerr ("Running inside an X server requires Xephyr to be installed but it cannot be found.  Please install it or update your PATH environment variable.\n");
@@ -785,7 +706,6 @@ main (int argc, char **argv)
     {
         const gchar *path = g_getenv ("PATH");
         g_autofree gchar *new_path = NULL;
-
         if (path)
             new_path = g_strdup_printf ("%s:%s", path, SBIN_DIR);
         else
@@ -794,7 +714,7 @@ main (int argc, char **argv)
     }
 
     /* Write PID file */
-    pid_file = fopen (pid_path, "w");
+    FILE *pid_file = fopen (pid_path, "w");
     if (pid_file)
     {
         fprintf (pid_file, "%d\n", getpid ());
@@ -802,14 +722,20 @@ main (int argc, char **argv)
     }
 
     /* If not running as root write output to directories we control */
+    g_autofree gchar *default_log_dir = NULL;
+    g_autofree gchar *default_run_dir = NULL;
+    g_autofree gchar *default_cache_dir = NULL;
     if (getuid () != 0)
     {
-        g_free (default_log_dir);
         default_log_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "log", NULL);
-        g_free (default_run_dir);
         default_run_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "run", NULL);
-        g_free (default_cache_dir);
         default_cache_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "cache", NULL);
+    }
+    else
+    {
+        default_log_dir = g_strdup (LOG_DIR);
+        default_run_dir = g_strdup (RUN_DIR);
+        default_cache_dir = g_strdup (CACHE_DIR);
     }
 
     /* Load config file(s) */
@@ -866,32 +792,24 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "Seat:*", "session-wrapper", "lightdm-session");
     if (!config_has_key (config_get_instance (), "LightDM", "log-directory"))
         config_set_string (config_get_instance (), "LightDM", "log-directory", default_log_dir);
-    g_free (default_log_dir);
     if (!config_has_key (config_get_instance (), "LightDM", "run-directory"))
         config_set_string (config_get_instance (), "LightDM", "run-directory", default_run_dir);
-    g_free (default_run_dir);
     if (!config_has_key (config_get_instance (), "LightDM", "cache-directory"))
         config_set_string (config_get_instance (), "LightDM", "cache-directory", default_cache_dir);
-    g_free (default_cache_dir);
     if (!config_has_key (config_get_instance (), "LightDM", "sessions-directory"))
         config_set_string (config_get_instance (), "LightDM", "sessions-directory", SESSIONS_DIR);
     if (!config_has_key (config_get_instance (), "LightDM", "remote-sessions-directory"))
         config_set_string (config_get_instance (), "LightDM", "remote-sessions-directory", REMOTE_SESSIONS_DIR);
     if (!config_has_key (config_get_instance (), "LightDM", "greeters-directory"))
     {
-        g_autoptr(GPtrArray) dirs = NULL;
-        const gchar * const *data_dirs;
-        g_autofree gchar *value = NULL;
-        int i;
-
-        dirs = g_ptr_array_new_with_free_func (g_free);
-        data_dirs = g_get_system_data_dirs ();
-        for (i = 0; data_dirs[i]; i++) 
+        g_autoptr(GPtrArray) dirs = g_ptr_array_new_with_free_func (g_free);
+        const gchar * const *data_dirs = g_get_system_data_dirs ();
+        for (int i = 0; data_dirs[i]; i++)
             g_ptr_array_add (dirs, g_build_filename (data_dirs[i], "lightdm/greeters", NULL));
-        for (i = 0; data_dirs[i]; i++)
+        for (int i = 0; data_dirs[i]; i++)
             g_ptr_array_add (dirs, g_build_filename (data_dirs[i], "xgreeters", NULL));
         g_ptr_array_add (dirs, NULL);
-        value = g_strjoinv (":", (gchar **) dirs->pdata);
+        g_autofree gchar *value = g_strjoinv (":", (gchar **) dirs->pdata);
         config_set_string (config_get_instance (), "LightDM", "greeters-directory", value);
     }
     if (!config_has_key (config_get_instance (), "XDMCPServer", "hostname"))
@@ -909,23 +827,20 @@ main (int argc, char **argv)
     g_free (cache_dir);
 
     /* Create run and cache directories */
-    dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    if (g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
-        g_warning ("Failed to make log directory %s: %s", dir, strerror (errno));
-    g_free (dir);
-    dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
-    if (g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
-        g_warning ("Failed to make run directory %s: %s", dir, strerror (errno));
-    g_free (dir);
-    dir = config_get_string (config_get_instance (), "LightDM", "cache-directory");
-    if (g_mkdir_with_parents (dir, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
-        g_warning ("Failed to make cache directory %s: %s", dir, strerror (errno));
-    g_free (dir);
+    g_autofree gchar *log_dir_path = config_get_string (config_get_instance (), "LightDM", "log-directory");
+    if (g_mkdir_with_parents (log_dir_path, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
+        g_warning ("Failed to make log directory %s: %s", log_dir_path, strerror (errno));
+    g_autofree gchar *run_dir_path = config_get_string (config_get_instance (), "LightDM", "run-directory");
+    if (g_mkdir_with_parents (run_dir_path, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
+        g_warning ("Failed to make run directory %s: %s", run_dir_path, strerror (errno));
+    g_autofree gchar *cache_dir_path = config_get_string (config_get_instance (), "LightDM", "cache-directory");
+    if (g_mkdir_with_parents (cache_dir_path, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
+        g_warning ("Failed to make cache directory %s: %s", cache_dir_path, strerror (errno));
 
     log_init ();
 
     /* Show queued messages once logging is complete */
-    for (link = messages; link; link = link->next)
+    for (GList *link = messages; link; link = link->next)
         g_debug ("%s", (gchar *)link->data);
     g_list_free_full (messages, g_free);
 
@@ -962,7 +877,7 @@ main (int argc, char **argv)
             g_signal_connect (login1_service_get_instance (), LOGIN1_SERVICE_SIGNAL_SEAT_ADDED, G_CALLBACK (login1_service_seat_added_cb), NULL);
             g_signal_connect (login1_service_get_instance (), LOGIN1_SERVICE_SIGNAL_SEAT_REMOVED, G_CALLBACK (login1_service_seat_removed_cb), NULL);
 
-            for (link = login1_service_get_seats (login1_service_get_instance ()); link; link = link->next)
+            for (GList *link = login1_service_get_seats (login1_service_get_instance ()); link; link = link->next)
             {
                 Login1Seat *login1_seat = link->data;
                 if (!login1_add_seat (login1_seat))
@@ -974,14 +889,11 @@ main (int argc, char **argv)
     {
         if (config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
         {
-            g_auto(GStrv) types = NULL;
-            gchar **type;
-            g_autoptr(Seat) seat = NULL;
-
             g_debug ("Adding default seat");
 
-            types = config_get_string_list (config_get_instance (), "Seat:*", "type");
-            for (type = types; type && *type; type++)
+            g_auto(GStrv) types = config_get_string_list (config_get_instance (), "Seat:*", "type");
+            g_autoptr(Seat) seat = NULL;
+            for (gchar **type = types; type && *type; type++)
             {
                 seat = create_seat (*type, "seat0");
                 if (seat)

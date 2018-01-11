@@ -106,8 +106,8 @@ static gboolean
 x_server_start (DisplayServer *display_server)
 {
     XServer *server = X_SERVER (display_server);
-    xcb_auth_info_t *auth = NULL, a;
 
+    xcb_auth_info_t *auth = NULL, a;
     if (server->priv->authority)
     {
         a.namelen = strlen (x_authority_get_authorization_name (server->priv->authority));
@@ -132,13 +132,11 @@ x_server_start (DisplayServer *display_server)
 static void
 x_server_connect_session (DisplayServer *display_server, Session *session)
 {
-    gint vt;
-
     session_set_env (session, "XDG_SESSION_TYPE", "x11");
 
     display_server = session_get_display_server (session);
 
-    vt = display_server_get_vt (display_server);
+    gint vt = display_server_get_vt (display_server);
     if (vt > 0)
     {
         g_autofree gchar *tty_text = NULL;
@@ -164,10 +162,8 @@ x_server_connect_session (DisplayServer *display_server, Session *session)
 static void
 x_server_disconnect_session (DisplayServer *display_server, Session *session)
 {
-    gint vt;
-
     session_unset_env (session, "XDG_SESSION_TYPE");
-    vt = display_server_get_vt (display_server);
+    gint vt = display_server_get_vt (display_server);
     if (vt > 0)
     {
         session_set_tty (session, NULL);

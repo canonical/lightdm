@@ -136,10 +136,8 @@ unity_system_compositor_set_timeout (UnitySystemCompositor *compositor, gint tim
 static void
 write_message (UnitySystemCompositor *compositor, guint16 id, const guint8 *payload, guint16 payload_length)
 {
-    g_autofree guint8 *data = NULL;
     gsize data_length = 4 + payload_length;
-
-    data = g_malloc (data_length);
+    g_autofree guint8 *data = g_malloc (data_length);
     data[0] = id >> 8;
     data[1] = id & 0xFF;
     data[2] = payload_length >> 8;
@@ -186,7 +184,6 @@ unity_system_compositor_connect_session (DisplayServer *display_server, Session 
     if (!session_get_env (session, "MIR_SERVER_NAME"))
     {
         g_autofree gchar *name = NULL;
-
         if (IS_GREETER_SESSION (session))
         {
             name = g_strdup_printf ("greeter-%d", compositor->priv->next_greeter_id);
@@ -219,13 +216,10 @@ unity_system_compositor_disconnect_session (DisplayServer *display_server, Sessi
 static gchar *
 get_absolute_command (const gchar *command)
 {
-    g_auto(GStrv) tokens = NULL;
-    g_autofree gchar *absolute_binary = NULL;
+    g_auto(GStrv) tokens = g_strsplit (command, " ", 2);
+
+    g_autofree gchar *absolute_binary = g_find_program_in_path (tokens[0]);
     gchar *absolute_command = NULL;
-
-    tokens = g_strsplit (command, " ", 2);
-
-    absolute_binary = g_find_program_in_path (tokens[0]);
     if (absolute_binary)
     {
         if (tokens[1])
@@ -241,9 +235,6 @@ static gboolean
 read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 {
     UnitySystemCompositor *compositor = data;
-    gsize n_to_read = 0;
-    guint16 id, payload_length;
-    /*guint8 *payload;*/
 
     if (condition == G_IO_HUP)
     {
@@ -253,30 +244,29 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     }
 
     /* Work out how much required for a message */
+    gsize n_to_read = 0;
     if (compositor->priv->read_buffer_n_used < 4)
         n_to_read = 4 - compositor->priv->read_buffer_n_used;
     else
     {
-        payload_length = compositor->priv->read_buffer[2] << 8 | compositor->priv->read_buffer[3];
+        guint16 payload_length = compositor->priv->read_buffer[2] << 8 | compositor->priv->read_buffer[3];
         n_to_read = 4 + payload_length - compositor->priv->read_buffer_n_used;
     }
 
     /* Read from compositor */
     if (n_to_read > 0)
     {
-        gsize n_total, n_read = 0;
-        GIOStatus status;
-        g_autoptr(GError) error = NULL;
-
-        n_total = compositor->priv->read_buffer_n_used + n_to_read;
+        gsize n_total = compositor->priv->read_buffer_n_used + n_to_read;
         if (compositor->priv->read_buffer_length < n_total)
             compositor->priv->read_buffer = g_realloc (compositor->priv->read_buffer, n_total);
 
-        status = g_io_channel_read_chars (source,
-                                          (gchar *)compositor->priv->read_buffer + compositor->priv->read_buffer_n_used,
-                                          n_to_read,
-                                          &n_read,
-                                          &error);
+        g_autoptr(GError) error = NULL;
+        gsize n_read = 0;
+        GIOStatus status = g_io_channel_read_chars (source,
+                                                    (gchar *)compositor->priv->read_buffer + compositor->priv->read_buffer_n_used,
+                                                    n_to_read,
+                                                    &n_read,
+                                                    &error);
         if (error)
             l_warning (compositor, "Failed to read from compositor: %s", error->message);
         if (status != G_IO_STATUS_NORMAL)
@@ -287,13 +277,13 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     /* Read header */
     if (compositor->priv->read_buffer_n_used < 4)
          return TRUE;
-    id = compositor->priv->read_buffer[0] << 8 | compositor->priv->read_buffer[1];
-    payload_length = compositor->priv->read_buffer[2] << 8 | compositor->priv->read_buffer[3];
+    guint16 id = compositor->priv->read_buffer[0] << 8 | compositor->priv->read_buffer[1];
+    guint16 payload_length = compositor->priv->read_buffer[2] << 8 | compositor->priv->read_buffer[3];
 
     /* Read payload */
     if (compositor->priv->read_buffer_n_used < 4 + payload_length)
         return TRUE;
-    /*payload = compositor->priv->read_buffer + 4;*/
+    /*guint8 *payload = compositor->priv->read_buffer + 4;*/
 
     switch (id)
     {
@@ -332,10 +322,8 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 static void
 run_cb (Process *process, gpointer user_data)
 {
-    int fd;
-
     /* Make input non-blocking */
-    fd = open ("/dev/null", O_RDONLY);
+    int fd = open ("/dev/null", O_RDONLY);
     dup2 (fd, STDIN_FILENO);
     close (fd);
 }
@@ -376,12 +364,6 @@ static gboolean
 unity_system_compositor_start (DisplayServer *server)
 {
     UnitySystemCompositor *compositor = UNITY_SYSTEM_COMPOSITOR (server);
-    gboolean result, backup_logs;
-    g_autoptr(GString) command = NULL;
-    g_autofree gchar *dir = NULL;
-    g_autofree gchar *log_file = NULL;
-    g_autofree gchar *value = NULL;
-    g_autofree gchar *absolute_command = NULL;
 
     g_return_val_if_fail (compositor->priv->process == NULL, FALSE);
 
@@ -405,17 +387,17 @@ unity_system_compositor_start (DisplayServer *server)
     compositor->priv->from_compositor_watch = g_io_add_watch (compositor->priv->from_compositor_channel, G_IO_IN | G_IO_HUP, read_cb, compositor);
 
     /* Setup logging */
-    dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    log_file = g_build_filename (dir, "unity-system-compositor.log", NULL);
+    g_autofree gchar *dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
+    g_autofree gchar *log_file = g_build_filename (dir, "unity-system-compositor.log", NULL);
     l_debug (compositor, "Logging to %s", log_file);
 
     /* Setup environment */
     compositor->priv->process = process_new (run_cb, compositor);
-    backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
+    gboolean backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
     process_set_log_file (compositor->priv->process, log_file, TRUE, backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
     process_set_clear_environment (compositor->priv->process, TRUE);
     process_set_env (compositor->priv->process, "XDG_SEAT", "seat0");
-    value = g_strdup_printf ("%d", compositor->priv->vt);
+    g_autofree gchar *value = g_strdup_printf ("%d", compositor->priv->vt);
     process_set_env (compositor->priv->process, "XDG_VTNR", value);
     /* Variable required for regression tests */
     if (g_getenv ("LIGHTDM_TEST_ROOT"))
@@ -426,13 +408,13 @@ unity_system_compositor_start (DisplayServer *server)
     }
 
     /* Generate command line to run */
-    absolute_command = get_absolute_command (compositor->priv->command);
+    g_autofree gchar *absolute_command = get_absolute_command (compositor->priv->command);
     if (!absolute_command)
     {
         l_debug (compositor, "Can't launch compositor %s, not found in path", compositor->priv->command);
         return FALSE;
     }
-    command = g_string_new (absolute_command);
+    g_autoptr(GString) command = g_string_new (absolute_command);
     g_string_append_printf (command, " --file '%s'", compositor->priv->socket);
     g_string_append_printf (command, " --from-dm-fd %d --to-dm-fd %d", compositor->priv->to_compositor_pipe[0], compositor->priv->from_compositor_pipe[1]);
     if (compositor->priv->vt > 0)
@@ -441,7 +423,7 @@ unity_system_compositor_start (DisplayServer *server)
 
     /* Start the compositor */
     g_signal_connect (compositor->priv->process, PROCESS_SIGNAL_STOPPED, G_CALLBACK (stopped_cb), compositor);
-    result = process_start (compositor->priv->process, FALSE);
+    gboolean result = process_start (compositor->priv->process, FALSE);
 
     /* Close compositor ends of the pipes */
     close (compositor->priv->to_compositor_pipe[0]);

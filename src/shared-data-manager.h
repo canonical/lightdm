@@ -36,6 +36,8 @@ typedef struct
     GObjectClass parent_class;
 } SharedDataManagerClass;
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SharedDataManager, g_object_unref)
+
 GType shared_data_manager_get_type (void);
 
 SharedDataManager *shared_data_manager_get_instance (void);

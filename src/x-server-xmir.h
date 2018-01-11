@@ -33,6 +33,8 @@ typedef struct
     XServerLocalClass parent_class;
 } XServerXmirClass;
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (XServerXmir, g_object_unref)
+
 GType x_server_xmir_get_type (void);
 
 XServerXmir *x_server_xmir_new (UnitySystemCompositor *compositor);

@@ -34,6 +34,8 @@ typedef struct
     DisplayServerClass parent_class;
 } WaylandSessionClass;
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (WaylandSession, g_object_unref)
+
 GType wayland_session_get_type (void);
 
 WaylandSession *wayland_session_new (void);

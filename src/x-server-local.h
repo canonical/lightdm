@@ -40,6 +40,8 @@ typedef struct
     gboolean (*start)(DisplayServer *server);
 } XServerLocalClass;
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (XServerLocal, g_object_unref)
+
 const gchar *x_server_local_get_version (void);
 
 gint x_server_local_version_compare (guint major, guint minor);

@@ -59,9 +59,7 @@ XAuthority *
 x_authority_new_cookie (guint16 family, const guint8 *address, gsize address_length, const gchar *number)
 {
     guint8 cookie[16];
-    gint i;
-
-    for (i = 0; i < 16; i++)
+    for (gint i = 0; i < 16; i++)
         cookie[i] = g_random_int () & 0xFF;
 
     return x_authority_new (family, address, address_length, number, "MIT-MAGIC-COOKIE-1", cookie, 16);
@@ -71,7 +69,6 @@ XAuthority *
 x_authority_new_local_cookie (const gchar *number)
 {
     gchar hostname[1024];
-
     gethostname (hostname, 1024);
     return x_authority_new_cookie (XAUTH_FAMILY_LOCAL, (guint8 *) hostname, strlen (hostname), number);
 }
@@ -164,11 +161,9 @@ x_authority_get_authorization_data (XAuthority *auth)
 guint8 *
 x_authority_copy_authorization_data (XAuthority *auth)
 {
-    guint8 *data;
-
     g_return_val_if_fail (auth != NULL, NULL);
 
-    data = g_malloc (auth->priv->authorization_data_length);
+    guint8 *data = g_malloc (auth->priv->authorization_data_length);
     memcpy (data, auth->priv->authorization_data, auth->priv->authorization_data_length);
     return data;
 }
@@ -195,8 +190,6 @@ read_uint16 (gchar *data, gsize data_length, gsize *offset, guint16 *value)
 static gboolean
 read_data (gchar *data, gsize data_length, gsize *offset, guint16 length, guint8 **value)
 {
-    int i;
-
     g_free (*value);
     *value = NULL;
 
@@ -204,7 +197,7 @@ read_data (gchar *data, gsize data_length, gsize *offset, guint16 length, guint8
         return FALSE;
 
     *value = g_malloc0 (length + 1);
-    for (i = 0; i < length; i++)
+    for (int i = 0; i < length; i++)
         (*value)[i] = data[*offset + i];
     *offset += length;
     (*value)[length] = 0;
@@ -246,47 +239,41 @@ write_string (int fd, const gchar *value)
 gboolean
 x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GError **error)
 {
-    g_autofree gchar *input = NULL;
-    gsize input_length = 0, input_offset = 0;
-    GList *link, *records = NULL;
-    gboolean result = TRUE;
-    gboolean matched = FALSE;
-    int output_fd;
-
     g_return_val_if_fail (auth != NULL, FALSE);
     g_return_val_if_fail (filename != NULL, FALSE);
 
     /* Read out existing records */
+    g_autofree gchar *input = NULL;
+    gsize input_length = 0, input_offset = 0;
     if (mode != XAUTH_WRITE_MODE_SET)
     {
         g_autoptr(GError) read_error = NULL;
-
         g_file_get_contents (filename, &input, &input_length, &read_error);
         if (read_error && !g_error_matches (read_error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
             g_warning ("Error reading existing Xauthority: %s", read_error->message);
     }
+    GList *records = NULL;
+    gboolean matched = FALSE;
     while (input_offset != input_length)
     {
-        g_autoptr(XAuthority) a = NULL;
-        gboolean address_matches = FALSE;
+        g_autoptr(XAuthority) a = g_object_new (X_AUTHORITY_TYPE, NULL);
+
         guint16 address_length = 0;
         guint16 authorization_data_length = 0;
-
-        a = g_object_new (X_AUTHORITY_TYPE, NULL);
-
-        result = read_uint16 (input, input_length, &input_offset, &a->priv->family) &&
-                 read_uint16 (input, input_length, &input_offset, &address_length) &&
-                 read_data (input, input_length, &input_offset, address_length, &a->priv->address) &&
-                 read_string (input, input_length, &input_offset, &a->priv->number) &&
-                 read_string (input, input_length, &input_offset, &a->priv->authorization_name) &&
-                 read_uint16 (input, input_length, &input_offset, &authorization_data_length) &&
-                 read_data (input, input_length, &input_offset, authorization_data_length, &a->priv->authorization_data);
+        gboolean result = read_uint16 (input, input_length, &input_offset, &a->priv->family) &&
+                          read_uint16 (input, input_length, &input_offset, &address_length) &&
+                          read_data (input, input_length, &input_offset, address_length, &a->priv->address) &&
+                          read_string (input, input_length, &input_offset, &a->priv->number) &&
+                          read_string (input, input_length, &input_offset, &a->priv->authorization_name) &&
+                          read_uint16 (input, input_length, &input_offset, &authorization_data_length) &&
+                          read_data (input, input_length, &input_offset, authorization_data_length, &a->priv->authorization_data);
         a->priv->address_length = address_length;
         a->priv->authorization_data_length = authorization_data_length;
 
         if (!result)
             break;
 
+        gboolean address_matches = FALSE;
         if (auth->priv->address_length == a->priv->address_length)
         {
             guint16 i;
@@ -316,7 +303,7 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
 
     /* Write records back */
     errno = 0;
-    output_fd = g_open (filename, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    int output_fd = g_open (filename, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
     if (output_fd < 0)
     {
         g_set_error (error,
@@ -329,8 +316,8 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
     }
 
     errno = 0;
-    result = TRUE;
-    for (link = records; link && result; link = link->next)
+    gboolean result = TRUE;
+    for (GList *link = records; link && result; link = link->next)
     {
         XAuthority *a = link->data;
 

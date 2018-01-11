@@ -46,9 +46,7 @@ G_DEFINE_TYPE (GreeterSocket, greeter_socket, G_TYPE_OBJECT)
 GreeterSocket *
 greeter_socket_new (const gchar *path)
 {
-    GreeterSocket *socket;
-
-    socket = g_object_new (GREETER_SOCKET_TYPE, NULL);
+    GreeterSocket *socket = g_object_new (GREETER_SOCKET_TYPE, NULL);
     socket->priv->path = g_strdup (path);
 
     return socket;
@@ -67,10 +65,8 @@ greeter_disconnected_cb (Greeter *greeter, GreeterSocket *socket)
 static gboolean
 greeter_connect_cb (GSocket *s, GIOCondition condition, GreeterSocket *socket)
 {
-    g_autoptr(GSocket) new_socket = NULL;
     g_autoptr(GError) error = NULL;
-
-    new_socket = g_socket_accept (socket->priv->socket, NULL, &error);
+    g_autoptr(GSocket) new_socket = g_socket_accept (socket->priv->socket, NULL, &error);
     if (error)
         g_warning ("Failed to accept greeter connection: %s", error->message);
     if (!new_socket)
@@ -94,9 +90,6 @@ greeter_connect_cb (GSocket *s, GIOCondition condition, GreeterSocket *socket)
 gboolean
 greeter_socket_start (GreeterSocket *socket, GError **error)
 {
-    g_autoptr(GSocketAddress) address = NULL;
-    gboolean result;
-
     g_return_val_if_fail (socket != NULL, FALSE);
     g_return_val_if_fail (socket->priv->socket == NULL, FALSE);  
 
@@ -105,8 +98,8 @@ greeter_socket_start (GreeterSocket *socket, GError **error)
         return FALSE;
 
     unlink (socket->priv->path);  
-    address = g_unix_socket_address_new (socket->priv->path);
-    result = g_socket_bind (socket->priv->socket, address, FALSE, error);
+    g_autoptr(GSocketAddress) address = g_unix_socket_address_new (socket->priv->path);
+    gboolean result = g_socket_bind (socket->priv->socket, address, FALSE, error);
     if (!result)
         return FALSE;
     if (!g_socket_listen (socket->priv->socket, error))
