@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/CanonicalLtd/lightdm.svg?branch=lightdm-1-24)](https://travis-ci.org/CanonicalLtd/lightdm)
 
-This version of LightDM is supported until October 2019.
+This version of LightDM is supported until April 2021.
 
 LightDM is a cross-desktop display manager. A display manager is a daemon that:
 - Runs display servers (e.g. X) where necessary.
