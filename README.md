@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/CanonicalLtd/lightdm.svg?branch=lightdm-1-24)](https://travis-ci.org/CanonicalLtd/lightdm)
+[![Build Status](https://travis-ci.org/CanonicalLtd/lightdm.svg?branch=lightdm-1-18)](https://travis-ci.org/CanonicalLtd/lightdm)
 
 This version of LightDM is supported until April 2021.
 
