@@ -180,6 +180,8 @@ test_qt5_greeter_CXXFLAGS = \
 	$(common_qt_cxxflags) \
 	$(LIBLIGHTDM_QT5_CFLAGS)
 common_qt_ldadd = \
+	-L$(top_builddir)/liblightdm-gobject \
+	-llightdm-gobject-1 \
 	-L$(top_builddir)/liblightdm-qt \
 	$(GLIB_LIBS) \
 	$(GIO_UNIX_LIBS) \
