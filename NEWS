@@ -1,3 +1,14 @@
+Overview of changes in lightdm 1.18.4
+
+    * Fixes for VNC and XDMCP connections
+    * Set names for XDMCP and VNC seats
+    * Use power management functions from ConsoleKit2 if available.
+    * Expose autologin-session as a hint to the greeter
+    * Fix timed autologins not using autologin-session when no session specified
+    * liblightdm-qt: Use liblightdm-gobject power methods instead of
+      re-implementing in Qt.
+    * Use SA_RESTART with SIGPIPE.
+
 Overview of changes in lightdm 1.18.3
 
     * Fix error that caused stdin to be closed. This seems to have lots of bad
