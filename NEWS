@@ -1,3 +1,10 @@
+Overview of changes in lightdm 1.24.1
+
+    * Fixes for VNC and XDMCP connections
+    * Set names for XDMCP and VNC seats
+    * Expose autologin-session as a hint to the greeter
+    * Fix timed autologins not using autologin-session when no session specified
+
 Overview of changes in lightdm 1.24.0
 
     * No changes from 1.22
