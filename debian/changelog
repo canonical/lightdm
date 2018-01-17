@@ -1,3 +1,12 @@
+lightdm (1.25.1-0ubuntu1) bionic; urgency=medium
+
+  * New upstream release:
+    - Fixes for VNC and XDMCP connections
+    * Use AccountsService extension system for extended greeter information
+    - Modernise code style
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 18 Jan 2018 09:43:40 +1300
+
 lightdm (1.25.0-0ubuntu1) bionic; urgency=medium
 
   * New upstream release:

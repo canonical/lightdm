@@ -6,49 +6,43 @@ Index: lightdm/liblightdm-gobject/language.c
 ===================================================================
 --- lightdm.orig/liblightdm-gobject/language.c
 +++ lightdm/liblightdm-gobject/language.c
-@@ -60,7 +60,7 @@ static GList *languages = NULL;
- static void
- update_languages (void)
- {
--    gchar *command = "locale -a";
-+    gchar *command = "/usr/share/language-tools/language-options";
+@@ -63,7 +63,7 @@ update_languages (void)
+     if (have_languages)
+         return;
+ 
+-    const gchar *command = "locale -a";
++    const gchar *command = "/usr/share/language-tools/language-options";
      g_autofree gchar *stdout_text = NULL;
      g_autofree gchar *stderr_text = NULL;
      gint exit_status;
-@@ -168,15 +168,39 @@ lightdm_get_language (void)
+@@ -150,14 +150,30 @@ get_locale_name (const gchar *code)
+ LightDMLanguage *
+ lightdm_get_language (void)
  {
-     const gchar *lang;
-     GList *link;
+-    const gchar *lang = g_getenv ("LANG");
+-    if (!lang)
+-        return NULL;
 +    static const gchar *short_lang = NULL;
-+
-+    if (short_lang)
-+        goto match;
- 
-     lang = g_getenv ("LANG");
-     if (!lang)
-         return NULL;
- 
-+    /* Convert to a short form language code */
-+    gchar *command = g_strconcat ("/usr/share/language-tools/language-validate ", lang, NULL);
-+    gchar *out;
-+    GError *error = NULL;
-+    if (g_spawn_command_line_sync (command, &out, NULL, NULL, &error))
++    if (!short_lang)
 +    {
-+        short_lang = g_strdup (g_strchomp (out));
-+        g_free (out);
-+        g_free (command);
-+    }
-+    else
-+    {
-+        g_warning ("Failed to run '%s': %s", command, error->message);
-+        g_error_free (error);
-+        g_free (command);
-+        return NULL;
-+    }
++        const gchar *lang = g_getenv ("LANG");
++        if (!lang)
++            return NULL;
 +
-+match:
-+
-     for (link = lightdm_get_languages (); link; link = link->next)
++        /* Convert to a short form language code */
++        g_autofree gchar *command = g_strconcat ("/usr/share/language-tools/language-validate ", lang, NULL);
++        g_autofree gchar *out = NULL;
++        g_autoptr(GError) error = NULL;
++        if (g_spawn_command_line_sync (command, &out, NULL, NULL, &error))
++            short_lang = g_strdup (g_strchomp (out));
++        else
++        {
++            g_warning ("Failed to run '%s': %s", command, error->message);
++            return NULL;
++        }
++    }
+ 
+     for (GList *link = lightdm_get_languages (); link; link = link->next)
      {
          LightDMLanguage *language = link->data;
 -        if (lightdm_language_matches (language, lang))
@@ -75,7 +69,7 @@ Index: lightdm/src/seat.c
 ===================================================================
 --- lightdm.orig/src/seat.c
 +++ lightdm/src/seat.c
-@@ -1008,7 +1008,7 @@ configure_session (Session *session, Ses
+@@ -944,7 +944,7 @@ configure_session (Session *session, Ses
      }
      if (language && language[0] != '\0')
      {

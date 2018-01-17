@@ -1,3 +1,9 @@
+Overview of changes in lightdm 1.25.1
+
+    * Fixes for VNC and XDMCP connections
+    * Use AccountsService extension system for extended greeter information
+    * Modernise code style
+
 Overview of changes in lightdm 1.25.0
 
     * Support moc being called moc-qt5 (e.g. Fedora)
