@@ -1016,9 +1016,7 @@ common_user_list_get_property (GObject    *object,
                                GValue     *value,
                                GParamSpec *pspec)
 {
-    CommonUserList *self;
-
-    self = COMMON_USER_LIST (object);
+    CommonUserList *self = COMMON_USER_LIST (object);
 
     switch (prop_id)
     {

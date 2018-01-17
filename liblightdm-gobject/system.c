@@ -43,7 +43,7 @@ static void
 use_os_value (const gchar *name, const gchar *value)
 {
     if (strcmp (name, "ID") == 0)
-        os_id = g_strdup (value);  
+        os_id = g_strdup (value);
     if (strcmp (name, "NAME") == 0)
         os_name = g_strdup (value);
     if (strcmp (name, "VERSION") == 0)
@@ -57,28 +57,22 @@ use_os_value (const gchar *name, const gchar *value)
 static void
 load_os_release (void)
 {
-    g_autofree gchar *data = NULL;
-    g_auto(GStrv) lines = NULL;
-    guint i;
-
     if (os_release_loaded)
         return;
 
+    g_autofree gchar *data = NULL;
     if (!g_file_get_contents ("/etc/os-release", &data, NULL, NULL))
         return;
 
-    lines = g_strsplit (data, "\n", -1);
-    for (i = 0; lines[i] != NULL; i++)
+    g_auto(GStrv) lines = g_strsplit (data, "\n", -1);
+    for (guint i = 0; lines[i] != NULL; i++)
     {
         g_auto(GStrv) tokens = g_strsplit (lines[i], "=", 2);
         if (tokens[0] != NULL && tokens[1] != NULL)
         {
-            gchar *name, *value;
-            size_t value_length;
-
-            name = g_strstrip (tokens[0]);
-            value = g_strstrip (tokens[1]);
-            value_length = strlen (value);
+            const gchar *name = g_strstrip (tokens[0]);
+            gchar *value = g_strstrip (tokens[1]);
+            size_t value_length = strlen (value);
             if (value_length > 1 && value[0] == '\"' && value[value_length - 1] == '\"')
             {
                  value[value_length - 1] = '\0';
@@ -178,8 +172,6 @@ gchar *
 lightdm_get_motd (void)
 {
     gchar *data = NULL;
-
     g_file_get_contents ("/etc/motd", &data, NULL, NULL);
-
     return data;
 }

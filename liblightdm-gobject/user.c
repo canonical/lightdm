@@ -172,9 +172,8 @@ static void
 user_list_removed_cb (CommonUserList *common_list, CommonUser *common_user, LightDMUserList *user_list)
 {
     LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
-    GList *link;
 
-    for (link = priv->lightdm_list; link; link = link->next)
+    for (GList *link = priv->lightdm_list; link; link = link->next)
     {
         LightDMUser *lightdm_user = link->data;
         LightDMUserPrivate *user_priv = GET_USER_PRIVATE (lightdm_user);
@@ -192,14 +191,12 @@ static void
 initialize_user_list_if_needed (LightDMUserList *user_list)
 {
     LightDMUserListPrivate *priv = GET_LIST_PRIVATE (user_list);
-    GList *common_users;
-    GList *link;
 
     if (priv->initialized)
         return;
 
-    common_users = common_user_list_get_users (common_user_list_get_instance ());
-    for (link = common_users; link; link = link->next)
+    GList *common_users = common_user_list_get_users (common_user_list_get_instance ());
+    for (GList *link = common_users; link; link = link->next)
     {
         CommonUser *user = link->data;
         LightDMUser *lightdm_user = wrap_common_user (user);
@@ -258,14 +255,12 @@ lightdm_user_list_get_users (LightDMUserList *user_list)
 LightDMUser *
 lightdm_user_list_get_user_by_name (LightDMUserList *user_list, const gchar *username)
 {
-    GList *link;
-
     g_return_val_if_fail (LIGHTDM_IS_USER_LIST (user_list), NULL);
     g_return_val_if_fail (username != NULL, NULL);
 
     initialize_user_list_if_needed (user_list);
 
-    for (link = GET_LIST_PRIVATE (user_list)->lightdm_list; link; link = link->next)
+    for (GList *link = GET_LIST_PRIVATE (user_list)->lightdm_list; link; link = link->next)
     {
         LightDMUser *user = link->data;
         if (g_strcmp0 (lightdm_user_get_name (user), username) == 0)
@@ -295,9 +290,7 @@ lightdm_user_list_get_property (GObject    *object,
                                 GValue     *value,
                                 GParamSpec *pspec)
 {
-    LightDMUserList *self;
-
-    self = LIGHTDM_USER_LIST (object);
+    LightDMUserList *self = LIGHTDM_USER_LIST (object);
 
     switch (prop_id)
     {
@@ -631,9 +624,7 @@ lightdm_user_get_property (GObject    *object,
                            GValue     *value,
                            GParamSpec *pspec)
 {
-    LightDMUser *self;
-
-    self = LIGHTDM_USER (object);
+    LightDMUser *self = LIGHTDM_USER (object);
 
     switch (prop_id)
     {

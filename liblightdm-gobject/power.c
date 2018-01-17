@@ -57,8 +57,6 @@ upower_call_function (const gchar *function, GError **error)
 static GVariant *
 login1_call_function (const gchar *function, GVariant *parameters, GError **error)
 {
-    GVariant *r;
-
     if (!login1_proxy)
     {
         login1_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
@@ -73,22 +71,18 @@ login1_call_function (const gchar *function, GVariant *parameters, GError **erro
             return NULL;
     }
 
-    r = g_dbus_proxy_call_sync (login1_proxy,
-                                function,
-                                parameters,
-                                G_DBUS_CALL_FLAGS_NONE,
-                                -1,
-                                NULL,
-                                error);
-
-    return r;
+    return g_dbus_proxy_call_sync (login1_proxy,
+                                   function,
+                                   parameters,
+                                   G_DBUS_CALL_FLAGS_NONE,
+                                   -1,
+                                   NULL,
+                                   error);
 }
 
 static GVariant *
 ck_call_function (const gchar *function, GVariant *parameters, GError **error)
 {
-    GVariant *r;
-
     if (!ck_proxy)
     {
         ck_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
@@ -103,15 +97,13 @@ ck_call_function (const gchar *function, GVariant *parameters, GError **error)
             return FALSE;
     }
 
-    r = g_dbus_proxy_call_sync (ck_proxy,
-                                function,
-                                parameters,
-                                G_DBUS_CALL_FLAGS_NONE,
-                                -1,
-                                NULL,
-                                error);
-
-    return r;
+    return g_dbus_proxy_call_sync (ck_proxy,
+                                   function,
+                                   parameters,
+                                   G_DBUS_CALL_FLAGS_NONE,
+                                   -1,
+                                   NULL,
+                                   error);
 }
 
 /**
@@ -124,10 +116,8 @@ ck_call_function (const gchar *function, GVariant *parameters, GError **error)
 gboolean
 lightdm_get_can_suspend (void)
 {
+    g_autoptr(GVariant) r = login1_call_function ("CanSuspend", NULL, NULL);
     gboolean can_suspend = FALSE;
-    g_autoptr(GVariant) r = NULL;
-
-    r = login1_call_function ("CanSuspend", NULL, NULL);
     if (r)
     {
         gchar *result;
@@ -164,25 +154,21 @@ lightdm_get_can_suspend (void)
 gboolean
 lightdm_suspend (GError **error)
 {
-    g_autoptr(GVariant) login1_result = NULL;
-    g_autoptr(GVariant) ck_result = NULL;
-    g_autoptr(GVariant) upower_result = NULL;
     g_autoptr(GError) login1_error = NULL;
-    g_autoptr(GError) ck_error = NULL;
-
-    login1_result = login1_call_function ("Suspend", g_variant_new("(b)", FALSE), &login1_error);
+    g_autoptr(GVariant) login1_result = login1_call_function ("Suspend", g_variant_new("(b)", FALSE), &login1_error);
     if (login1_result)
         return TRUE;
 
     g_debug ("Can't suspend using logind; falling back to ConsoleKit: %s", login1_error->message);
 
-    ck_result = ck_call_function ("Suspend", g_variant_new ("(b)", FALSE), &ck_error);
+    g_autoptr(GError) ck_error = NULL;
+    g_autoptr(GVariant) ck_result = ck_call_function ("Suspend", g_variant_new ("(b)", FALSE), &ck_error);
     if (ck_result)
         return TRUE;
 
     g_debug ("Can't suspend using logind or ConsoleKit; falling back to UPower: %s", ck_error->message);
 
-    upower_result = upower_call_function ("Suspend", error);
+    g_autoptr(GVariant) upower_result = upower_call_function ("Suspend", error);
     return upower_result != NULL;
 }
 
@@ -196,10 +182,8 @@ lightdm_suspend (GError **error)
 gboolean
 lightdm_get_can_hibernate (void)
 {
+    g_autoptr(GVariant) r = login1_call_function ("CanHibernate", NULL, NULL);
     gboolean can_hibernate = FALSE;
-    g_autoptr(GVariant) r = NULL;
-
-    r = login1_call_function ("CanHibernate", NULL, NULL);
     if (r)
     {
         gchar *result;
@@ -236,25 +220,21 @@ lightdm_get_can_hibernate (void)
 gboolean
 lightdm_hibernate (GError **error)
 {
-    g_autoptr(GVariant) login1_result = NULL;
-    g_autoptr(GVariant) ck_result = NULL;
-    g_autoptr(GVariant) upower_result = NULL;
     g_autoptr(GError) login1_error = NULL;
-    g_autoptr(GError) ck_error = NULL;
-
-    login1_result = login1_call_function ("Hibernate", g_variant_new("(b)", FALSE), &login1_error);
+    g_autoptr(GVariant) login1_result = login1_call_function ("Hibernate", g_variant_new("(b)", FALSE), &login1_error);
     if (login1_result)
         return TRUE;
 
     g_debug ("Can't hibernate using logind; falling back to ConsoleKit: %s", login1_error->message);
 
-    ck_result = ck_call_function ("Hibernate", g_variant_new ("(b)", FALSE), &ck_error);
+    g_autoptr(GError) ck_error = NULL;
+    g_autoptr(GVariant) ck_result = ck_call_function ("Hibernate", g_variant_new ("(b)", FALSE), &ck_error);
     if (ck_result)
         return TRUE;
 
     g_debug ("Can't hibernate using logind or ConsoleKit; falling back to UPower: %s", ck_error->message);
 
-    upower_result = upower_call_function ("Hibernate", error);
+    g_autoptr(GVariant) upower_result = upower_call_function ("Hibernate", error);
     return upower_result != NULL;
 }
 
@@ -268,10 +248,8 @@ lightdm_hibernate (GError **error)
 gboolean
 lightdm_get_can_restart (void)
 {
+    g_autoptr(GVariant) r = login1_call_function ("CanReboot", NULL, NULL);
     gboolean can_restart = FALSE;
-    g_autoptr(GVariant) r = NULL;
-
-    r = login1_call_function ("CanReboot", NULL, NULL);
     if (r)
     {
         gchar *result;
@@ -302,15 +280,12 @@ lightdm_get_can_restart (void)
 gboolean
 lightdm_restart (GError **error)
 {
-    g_autoptr(GVariant) login1_result = NULL;
-    g_autoptr(GVariant) ck_result = NULL;
     g_autoptr(GError) login1_error = NULL;
-
-    login1_result = login1_call_function ("Reboot", g_variant_new("(b)", FALSE), &login1_error);
+    g_autoptr(GVariant) login1_result = login1_call_function ("Reboot", g_variant_new("(b)", FALSE), &login1_error);
     if (login1_result)
         return TRUE;
 
-    ck_result = ck_call_function ("Restart", NULL, error);
+    g_autoptr(GVariant) ck_result = ck_call_function ("Restart", NULL, error);
     return ck_result != NULL;
 }
 
@@ -324,10 +299,8 @@ lightdm_restart (GError **error)
 gboolean
 lightdm_get_can_shutdown (void)
 {
+    g_autoptr(GVariant) r = login1_call_function ("CanPowerOff", NULL, NULL);
     gboolean can_shutdown = FALSE;
-    g_autoptr(GVariant) r = NULL;
-
-    r = login1_call_function ("CanPowerOff", NULL, NULL);
     if (r)
     {
         gchar *result;
@@ -358,14 +331,11 @@ lightdm_get_can_shutdown (void)
 gboolean
 lightdm_shutdown (GError **error)
 {
-    g_autoptr(GVariant) login1_result = NULL;
-    g_autoptr(GVariant) ck_result = NULL;
     g_autoptr(GError) login1_error = NULL;
-
-    login1_result = login1_call_function ("PowerOff", g_variant_new("(b)", FALSE), &login1_error);
+    g_autoptr(GVariant) login1_result = login1_call_function ("PowerOff", g_variant_new("(b)", FALSE), &login1_error);
     if (login1_result)
         return TRUE;
 
-    ck_result = ck_call_function ("Stop", NULL, error);
+    g_autoptr(GVariant) ck_result = ck_call_function ("Stop", NULL, error);
     return ck_result != NULL;
 }

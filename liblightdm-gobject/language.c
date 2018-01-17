@@ -21,7 +21,7 @@
  * @short_description: Get information on available languages
  * @include: lightdm.h
  *
- * #LightDMLanguage is an object that describes a language that is available on the system. 
+ * #LightDMLanguage is an object that describes a language that is available on the system.
  */
 
 /**
@@ -60,33 +60,25 @@ static GList *languages = NULL;
 static void
 update_languages (void)
 {
-    gchar *command = "locale -a";
-    g_autofree gchar *stdout_text = NULL;
-    g_autofree gchar *stderr_text = NULL;
-    gint exit_status;
-    gboolean result;
-    g_autoptr(GError) error = NULL;
-
     if (have_languages)
         return;
 
-    result = g_spawn_command_line_sync (command, &stdout_text, &stderr_text, &exit_status, &error);
+    const gchar *command = "locale -a";
+    g_autofree gchar *stdout_text = NULL;
+    g_autofree gchar *stderr_text = NULL;
+    gint exit_status;
+    g_autoptr(GError) error = NULL;
+    gboolean result = g_spawn_command_line_sync (command, &stdout_text, &stderr_text, &exit_status, &error);
     if (error)
         g_warning ("Failed to run '%s': %s", command, error->message);
     else if (exit_status != 0)
         g_warning ("Failed to get languages, '%s' returned %d", command, exit_status);
     else if (result)
     {
-        g_auto(GStrv) tokens = NULL;
-        int i;
-
-        tokens = g_strsplit_set (stdout_text, "\n\r", -1);
-        for (i = 0; tokens[i]; i++)
+        g_auto(GStrv) tokens = g_strsplit_set (stdout_text, "\n\r", -1);
+        for (int i = 0; tokens[i]; i++)
         {
-            LightDMLanguage *language;
-            gchar *code;
-
-            code = g_strchug (tokens[i]);
+            const gchar *code = g_strchug (tokens[i]);
             if (code[0] == '\0')
                 continue;
 
@@ -94,7 +86,7 @@ update_languages (void)
             if (strcmp (command, "locale -a") == 0 && !g_strrstr (code, ".utf8"))
                 continue;
 
-            language = g_object_new (LIGHTDM_TYPE_LANGUAGE, "code", code, NULL);
+            LightDMLanguage *language = g_object_new (LIGHTDM_TYPE_LANGUAGE, "code", code, NULL);
             languages = g_list_append (languages, language);
         }
     }
@@ -358,9 +350,7 @@ lightdm_language_get_property (GObject    *object,
                                GValue     *value,
                                GParamSpec *pspec)
 {
-    LightDMLanguage *self;
-
-    self = LIGHTDM_LANGUAGE (object);
+    LightDMLanguage *self = LIGHTDM_LANGUAGE (object);
 
     switch (prop_id) {
     case PROP_CODE:
