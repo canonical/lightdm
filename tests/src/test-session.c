@@ -118,20 +118,16 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "LIST-GROUPS") == 0)
     {
-        int n_groups, i;
-        gid_t *groups;
-        g_autoptr(GString) group_list = NULL;
-
-        n_groups = getgroups (0, NULL);
+        int n_groups = getgroups (0, NULL);
         if (n_groups < 0)
         {
             g_printerr ("Failed to get groups: %s", strerror (errno));
             n_groups = 0;
         }
-        groups = malloc (sizeof (gid_t) * n_groups);
+        gid_t *groups = malloc (sizeof (gid_t) * n_groups);
         n_groups = getgroups (n_groups, groups);
-        group_list = g_string_new ("");
-        for (i = 0; i < n_groups; i++)
+        g_autoptr(GString) group_list = g_string_new ("");
+        for (int i = 0; i < n_groups; i++)
         {
             struct group *group;
 
@@ -163,9 +159,9 @@ request_cb (const gchar *name, GHashTable *params)
     else if (strcmp (name, "READ") == 0)
     {
         const gchar *name = g_hash_table_lookup (params, "FILE");
+
         g_autofree gchar *contents = NULL;
         g_autoptr(GError) error = NULL;
-
         if (g_file_get_contents (name, &contents, NULL, &error))
             status_notify ("%s READ FILE=%s TEXT=%s", session_id, name, contents);
         else
@@ -177,17 +173,14 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "CHECK-X-AUTHORITY") == 0)
     {
-        g_autofree gchar *xauthority = NULL;
-        GStatBuf file_info;
-        g_autoptr(GString) mode_string = NULL;
-
-        xauthority = g_strdup (g_getenv ("XAUTHORITY"));
+        g_autofree gchar *xauthority = g_strdup (g_getenv ("XAUTHORITY"));
         if (!xauthority)
             xauthority = g_build_filename (g_get_home_dir (), ".Xauthority", NULL);
 
+        GStatBuf file_info;
         g_stat (xauthority, &file_info);
 
-        mode_string = g_string_new ("");
+        g_autoptr(GString) mode_string = g_string_new ("");
         g_string_append_c (mode_string, file_info.st_mode & S_IRUSR ? 'r' : '-');
         g_string_append_c (mode_string, file_info.st_mode & S_IWUSR ? 'w' : '-');
         g_string_append_c (mode_string, file_info.st_mode & S_IXUSR ? 'x' : '-');
@@ -203,9 +196,8 @@ request_cb (const gchar *name, GHashTable *params)
     else if (strcmp (name, "WRITE-SHARED-DATA") == 0)
     {
         const gchar *data = g_hash_table_lookup (params, "DATA");
-        const gchar *dir;
 
-        dir = getenv ("XDG_GREETER_DATA_DIR");
+        const gchar *dir = getenv ("XDG_GREETER_DATA_DIR");
         if (dir)
         {
             g_autofree gchar *path = NULL;
@@ -226,16 +218,12 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "READ-SHARED-DATA") == 0)
     {
-        const gchar *dir;
-
-        dir = getenv ("XDG_GREETER_DATA_DIR");
+        const gchar *dir = getenv ("XDG_GREETER_DATA_DIR");
         if (dir)
         {
-            g_autofree gchar *path = NULL;
+            g_autofree gchar *path = g_build_filename (dir, "data", NULL);
             g_autofree gchar *contents = NULL;
             g_autoptr(GError) error = NULL;
-
-            path = g_build_filename (dir, "data", NULL);
             if (g_file_get_contents (path, &contents, NULL, &error))
                 status_notify ("%s READ-SHARED-DATA DATA=%s", session_id, contents);
             else
@@ -247,14 +235,12 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "GREETER-START") == 0)
     {
-        int timeout;
-        g_autoptr(GError) error = NULL;
-
         g_assert (greeter == NULL);
         greeter = lightdm_greeter_new ();
         g_signal_connect (greeter, LIGHTDM_GREETER_SIGNAL_SHOW_MESSAGE, G_CALLBACK (show_message_cb), NULL);
         g_signal_connect (greeter, LIGHTDM_GREETER_SIGNAL_SHOW_PROMPT, G_CALLBACK (show_prompt_cb), NULL);
         g_signal_connect (greeter, LIGHTDM_GREETER_SIGNAL_AUTHENTICATION_COMPLETE, G_CALLBACK (authentication_complete_cb), NULL);
+        g_autoptr(GError) error = NULL;
         if (lightdm_greeter_connect_to_daemon_sync (greeter, &error))
             status_notify ("%s GREETER-STARTED", session_id);
         else
@@ -274,7 +260,7 @@ request_cb (const gchar *name, GHashTable *params)
             status_notify ("%s GREETER-SHOW-MANUAL-LOGIN-HINT", session_id);
         if (!lightdm_greeter_get_show_remote_login_hint (greeter))
             status_notify ("%s GREETER-SHOW-REMOTE-LOGIN-HINT=FALSE", session_id);
-        timeout = lightdm_greeter_get_autologin_timeout_hint (greeter);
+        int timeout = lightdm_greeter_get_autologin_timeout_hint (greeter);
         if (lightdm_greeter_get_autologin_user_hint (greeter))
         {
             if (timeout != 0)
@@ -305,7 +291,6 @@ request_cb (const gchar *name, GHashTable *params)
     else if (strcmp (name, "GREETER-RESPOND") == 0)
     {
         g_autoptr(GError) error = NULL;
-
         if (!lightdm_greeter_respond (greeter, g_hash_table_lookup (params, "TEXT"), &error))
             status_notify ("%s FAIL-RESPOND ERROR=%s", session_id, error->message);
     }
@@ -328,22 +313,18 @@ request_cb (const gchar *name, GHashTable *params)
 int
 main (int argc, char **argv)
 {
-    gchar *display, *xdg_seat, *xdg_vtnr, *xdg_current_desktop, *xdg_greeter_data_dir, *xdg_session_cookie, *xdg_session_class, *xdg_session_type, *xdg_session_desktop, *mir_server_host_socket, *mir_vt, *mir_id;
-    g_autoptr(GString) status_text = NULL;
-    int fd, open_max;
-
-    display = getenv ("DISPLAY");
-    xdg_seat = getenv ("XDG_SEAT");
-    xdg_vtnr = getenv ("XDG_VTNR");
-    xdg_current_desktop = getenv ("XDG_CURRENT_DESKTOP");
-    xdg_greeter_data_dir = getenv ("XDG_GREETER_DATA_DIR");
-    xdg_session_cookie = getenv ("XDG_SESSION_COOKIE");
-    xdg_session_class = getenv ("XDG_SESSION_CLASS");
-    xdg_session_type = getenv ("XDG_SESSION_TYPE");
-    xdg_session_desktop = getenv ("XDG_SESSION_DESKTOP");
-    mir_server_host_socket = getenv ("MIR_SERVER_HOST_SOCKET");
-    mir_vt = getenv ("MIR_SERVER_VT");
-    mir_id = getenv ("MIR_SERVER_NAME");
+    const gchar *display = getenv ("DISPLAY");
+    const gchar *xdg_seat = getenv ("XDG_SEAT");
+    const gchar *xdg_vtnr = getenv ("XDG_VTNR");
+    const gchar *xdg_current_desktop = getenv ("XDG_CURRENT_DESKTOP");
+    const gchar *xdg_greeter_data_dir = getenv ("XDG_GREETER_DATA_DIR");
+    const gchar *xdg_session_cookie = getenv ("XDG_SESSION_COOKIE");
+    const gchar *xdg_session_class = getenv ("XDG_SESSION_CLASS");
+    const gchar *xdg_session_type = getenv ("XDG_SESSION_TYPE");
+    const gchar *xdg_session_desktop = getenv ("XDG_SESSION_DESKTOP");
+    const gchar *mir_server_host_socket = getenv ("MIR_SERVER_HOST_SOCKET");
+    const gchar *mir_vt = getenv ("MIR_SERVER_VT");
+    const gchar *mir_id = getenv ("MIR_SERVER_NAME");
     if (display)
     {
         if (display[0] == ':')
@@ -361,8 +342,8 @@ main (int argc, char **argv)
         session_id = g_strdup ("SESSION-UNKNOWN");
 
     open_fds = g_string_new ("");
-    open_max = sysconf (_SC_OPEN_MAX);
-    for (fd = STDERR_FILENO + 1; fd < open_max; fd++)
+    int open_max = sysconf (_SC_OPEN_MAX);
+    for (int fd = STDERR_FILENO + 1; fd < open_max; fd++)
     {
         if (fcntl (fd, F_GETFD) >= 0)
             g_string_append_printf (open_fds, "%d,", fd);
@@ -381,7 +362,7 @@ main (int argc, char **argv)
 
     status_connect (request_cb, session_id);
 
-    status_text = g_string_new ("");
+    g_autoptr(GString) status_text = g_string_new ("");
     g_string_printf (status_text, "%s START", session_id);
     if (xdg_seat)
         g_string_append_printf (status_text, " XDG_SEAT=%s", xdg_seat);

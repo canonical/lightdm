@@ -6,11 +6,9 @@
 int
 main (int argc, char **argv)
 {
-    gchar *display;
-
     status_connect (NULL, NULL);
 
-    display = getenv ("DISPLAY");
+    const gchar *display = getenv ("DISPLAY");
     if (display == NULL)
         status_notify ("GUEST-WRAPPER-? START");
     else if (display[0] == ':')

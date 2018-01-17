@@ -124,20 +124,18 @@ static void
 write_shared_data_finished (GObject *object, GAsyncResult *result, gpointer data)
 {
     LightDMGreeter *greeter = LIGHTDM_GREETER (object);
-    g_autofree gchar *dir = NULL;
-    g_autofree gchar *path = NULL;
     g_autofree gchar *test_data = data;
-    FILE *f;
-    g_autoptr(GError) error = NULL;
 
-    dir = lightdm_greeter_ensure_shared_data_dir_finish (greeter, result, &error);
+    g_autoptr(GError) error = NULL;
+    g_autofree gchar *dir = lightdm_greeter_ensure_shared_data_dir_finish (greeter, result, &error);
     if (!dir)
     {
         status_notify ("%s WRITE-SHARED-DATA ERROR=%s", greeter_id, error->message);
         return;
     }
 
-    path = g_build_filename (dir, "data", NULL);
+    g_autofree gchar *path = g_build_filename (dir, "data", NULL);
+    FILE *f;
     if (!(f = fopen (path, "w")) || fprintf (f, "%s", test_data) < 0)
         status_notify ("%s WRITE-SHARED-DATA ERROR=%s", greeter_id, strerror (errno));
     else
@@ -151,19 +149,17 @@ static void
 read_shared_data_finished (GObject *object, GAsyncResult *result, gpointer data)
 {
     LightDMGreeter *greeter = LIGHTDM_GREETER (object);
-    g_autofree gchar *dir = NULL;
-    g_autofree gchar *path = NULL;
-    g_autofree gchar *contents = NULL;
-    g_autoptr(GError) error = NULL;
 
-    dir = lightdm_greeter_ensure_shared_data_dir_finish (greeter, result, &error);
+    g_autoptr(GError) error = NULL;
+    g_autofree gchar *dir = lightdm_greeter_ensure_shared_data_dir_finish (greeter, result, &error);
     if (!dir)
     {
         status_notify ("%s READ-SHARED-DATA ERROR=%s", greeter_id, error->message);
         return;
     }
 
-    path = g_build_filename (dir, "data", NULL);
+    g_autofree gchar *path = g_build_filename (dir, "data", NULL);
+    g_autofree gchar *contents = NULL;
     if (g_file_get_contents (path, &contents, NULL, &error))
         status_notify ("%s READ-SHARED-DATA DATA=%s", greeter_id, contents);
     else
@@ -244,11 +240,8 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "WATCH-USER") == 0)
     {
-        LightDMUser *user;
-        const gchar *username;
-
-        username = g_hash_table_lookup (params, "USERNAME");
-        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
+        const gchar *username = g_hash_table_lookup (params, "USERNAME");
+        LightDMUser *user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
         if (user)
             g_signal_connect (user, LIGHTDM_SIGNAL_USER_CHANGED, G_CALLBACK (user_changed_cb), NULL);
         status_notify ("%s WATCH-USER USERNAME=%s", greeter_id, username);
@@ -256,15 +249,8 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "LOG-USER") == 0)
     {
-        LightDMUser *user;
-        const gchar *username, *image, *background, *language, *layout, *session;
-        const gchar * const * layouts;
+        const gchar *username = g_hash_table_lookup (params, "USERNAME");
         g_auto(GStrv) fields = NULL;
-        g_autofree gchar *layouts_text = NULL;
-        g_autoptr(GString) status_text = NULL;
-        int i;
-
-        username = g_hash_table_lookup (params, "USERNAME");
         if (g_hash_table_lookup (params, "FIELDS"))
             fields = g_strsplit (g_hash_table_lookup (params, "FIELDS"), ",", -1);
         if (!fields)
@@ -273,18 +259,18 @@ request_cb (const gchar *name, GHashTable *params)
             fields[0] = NULL;
         }
 
-        user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
-        image = lightdm_user_get_image (user);
-        background = lightdm_user_get_background (user);
-        language = lightdm_user_get_language (user);
-        layout = lightdm_user_get_layout (user);
-        layouts = lightdm_user_get_layouts (user);
-        layouts_text = g_strjoinv (";", (gchar **) layouts);
-        session = lightdm_user_get_session (user);
+        LightDMUser *user = lightdm_user_list_get_user_by_name (lightdm_user_list_get_instance (), username);
+        const gchar *image = lightdm_user_get_image (user);
+        const gchar *background = lightdm_user_get_background (user);
+        const gchar *language = lightdm_user_get_language (user);
+        const gchar *layout = lightdm_user_get_layout (user);
+        const gchar * const * layouts = lightdm_user_get_layouts (user);
+        g_autofree gchar *layouts_text = g_strjoinv (";", (gchar **) layouts);
+        const gchar *session = lightdm_user_get_session (user);
 
-        status_text = g_string_new ("");
+        g_autoptr(GString) status_text = g_string_new ("");
         g_string_append_printf (status_text, "%s LOG-USER USERNAME=%s", greeter_id, username);
-        for (i = 0; fields[i]; i++)
+        for (int i = 0; fields[i]; i++)
         {
             if (strcmp (fields[i], "REAL-NAME") == 0)
                 g_string_append_printf (status_text, " REAL-NAME=%s", lightdm_user_get_real_name (user));
@@ -315,10 +301,8 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "LOG-USER-LIST") == 0)
     {
-        GList *users, *link;
-
-        users = lightdm_user_list_get_users (lightdm_user_list_get_instance ());
-        for (link = users; link; link = link->next)
+        GList *users = lightdm_user_list_get_users (lightdm_user_list_get_instance ());
+        for (GList *link = users; link; link = link->next)
         {
             LightDMUser *user = link->data;
             status_notify ("%s LOG-USER USERNAME=%s", greeter_id, lightdm_user_get_name (user));
@@ -327,10 +311,8 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "LOG-SESSIONS") == 0)
     {
-        GList *sessions, *link;
-
-        sessions = lightdm_get_sessions ();
-        for (link = sessions; link; link = link->next)
+        GList *sessions = lightdm_get_sessions ();
+        for (GList *link = sessions; link; link = link->next)
         {
             LightDMSession *session = link->data;
             status_notify ("%s LOG-SESSION KEY=%s", greeter_id, lightdm_session_get_key (session));
@@ -424,23 +406,19 @@ connect_finished (GObject *object, GAsyncResult *result, gpointer data)
 int
 main (int argc, char **argv)
 {
-    const gchar *display, *xdg_seat, *xdg_vtnr, *xdg_session_cookie, *xdg_session_class, *xdg_session_type, *mir_server_host_socket, *mir_vt, *mir_id;
-    g_autofree gchar *path = NULL;
-    g_autoptr(GString) status_text = NULL;
-
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
 
-    display = getenv ("DISPLAY");
-    xdg_seat = getenv ("XDG_SEAT");
-    xdg_vtnr = getenv ("XDG_VTNR");
-    xdg_session_cookie = getenv ("XDG_SESSION_COOKIE");
-    xdg_session_class = getenv ("XDG_SESSION_CLASS");
-    xdg_session_type = getenv ("XDG_SESSION_TYPE");  
-    mir_server_host_socket = getenv ("MIR_SERVER_HOST_SOCKET");
-    mir_vt = getenv ("MIR_SERVER_VT");
-    mir_id = getenv ("MIR_SERVER_NAME");
+    const gchar *display = getenv ("DISPLAY");
+    const gchar *xdg_seat = getenv ("XDG_SEAT");
+    const gchar *xdg_vtnr = getenv ("XDG_VTNR");
+    const gchar *xdg_session_cookie = getenv ("XDG_SESSION_COOKIE");
+    const gchar *xdg_session_class = getenv ("XDG_SESSION_CLASS");
+    const gchar *xdg_session_type = getenv ("XDG_SESSION_TYPE");
+    const gchar *mir_server_host_socket = getenv ("MIR_SERVER_HOST_SOCKET");
+    const gchar *mir_vt = getenv ("MIR_SERVER_VT");
+    const gchar *mir_id = getenv ("MIR_SERVER_NAME");
     if (display)
     {
         if (display[0] == ':')
@@ -464,7 +442,7 @@ main (int argc, char **argv)
 
     status_connect (request_cb, greeter_id);
 
-    status_text = g_string_new ("");
+    g_autoptr(GString) status_text = g_string_new ("");
     g_string_printf (status_text, "%s START", greeter_id);
     if (xdg_seat)
         g_string_append_printf (status_text, " XDG_SEAT=%s", xdg_seat);
@@ -479,10 +457,10 @@ main (int argc, char **argv)
     status_notify ("%s", status_text->str);
 
     config = g_key_file_new ();
-    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL);
+    g_autofree gchar *path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "script", NULL);
     g_key_file_load_from_file (config, path, G_KEY_FILE_NONE, NULL);
 
-    if (g_key_file_get_boolean (config, "test-greeter-config", "exit-on-startup", NULL))    
+    if (g_key_file_get_boolean (config, "test-greeter-config", "exit-on-startup", NULL))
     {
         int return_value = g_key_file_get_integer (config, "test-greeter-config", "return-value", NULL);
         status_notify ("%s EXIT CODE=%d", greeter_id, return_value);

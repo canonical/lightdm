@@ -119,13 +119,11 @@ xdmcp_unwilling_cb (XDMCPClient *client, XDMCPUnwilling *message)
 static gchar *
 data_to_string (guint8 *data, gsize data_length)
 {
-    static gchar hex_char[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
-    gchar *text;
+    gchar *text = malloc (data_length * 2 + 1);
     gsize i;
-
-    text = malloc (data_length * 2 + 1);
     for (i = 0; i < data_length; i++)
     {
+        static gchar hex_char[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
         text[i*2] = hex_char [data[i] >> 4];
         text[i*2 + 1] = hex_char [data[i] & 0xF];
     }
@@ -137,11 +135,8 @@ data_to_string (guint8 *data, gsize data_length)
 static void
 xdmcp_accept_cb (XDMCPClient *client, XDMCPAccept *message)
 {
-    g_autofree gchar *authentication_data_text = NULL;
-    g_autofree gchar *authorization_data_text = NULL;
-
-    authentication_data_text = data_to_string (message->authentication_data, message->authentication_data_length);
-    authorization_data_text = data_to_string (message->authorization_data, message->authorization_data_length);
+    g_autofree gchar *authentication_data_text = data_to_string (message->authentication_data, message->authentication_data_length);
+    g_autofree gchar *authorization_data_text = data_to_string (message->authorization_data, message->authorization_data_length);
     status_notify ("%s GOT-ACCEPT SESSION-ID=%d AUTHENTICATION-NAME=\"%s\" AUTHENTICATION-DATA=%s AUTHORIZATION-NAME=\"%s\" AUTHORIZATION-DATA=%s",
                    id, message->session_id, message->authentication_name, authentication_data_text, message->authorization_name, authorization_data_text);
 
@@ -156,9 +151,7 @@ xdmcp_accept_cb (XDMCPClient *client, XDMCPAccept *message)
 static void
 xdmcp_decline_cb (XDMCPClient *client, XDMCPDecline *message)
 {
-    g_autofree gchar *authentication_data_text = NULL;
-
-    authentication_data_text = data_to_string (message->authentication_data, message->authentication_data_length);
+    g_autofree gchar *authentication_data_text = data_to_string (message->authentication_data, message->authentication_data_length);
     status_notify ("%s GOT-DECLINE STATUS=\"%s\" AUTHENTICATION-NAME=\"%s\" AUTHENTICATION-DATA=%s", id, message->status, message->authentication_name, authentication_data_text);
 }
 
@@ -227,9 +220,7 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "INDICATE-READY") == 0)
     {
-        void *handler;
-
-        handler = signal (SIGUSR1, SIG_IGN);
+        void *handler = signal (SIGUSR1, SIG_IGN);
         if (handler == SIG_IGN)
         {
             status_notify ("%s INDICATE-READY", id);
@@ -240,63 +231,58 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "SEND-QUERY") == 0)
     {
-        const gchar *authentication_names_list;
-        g_auto(GStrv) authentication_names = NULL;
-
         if (!xdmcp_client_start (xdmcp_client))
             quit (EXIT_FAILURE);
 
-        authentication_names_list = g_hash_table_lookup (params, "AUTHENTICATION-NAMES");
+        const gchar *authentication_names_list = g_hash_table_lookup (params, "AUTHENTICATION-NAMES");
         if (!authentication_names_list)
             authentication_names_list = "";
-        authentication_names = g_strsplit (authentication_names_list, " ", -1);
+        g_auto(GStrv) authentication_names = g_strsplit (authentication_names_list, " ", -1);
 
         xdmcp_client_send_query (xdmcp_client, authentication_names);
     }
 
     else if (strcmp (name, "SEND-REQUEST") == 0)
     {
-        const gchar *text, *addresses_list, *authentication_name, *authentication_data_text, *authorization_names_list, *mfid;
         int request_display_number = display_number;
-        g_auto(GStrv) list = NULL;
-        g_auto(GStrv) authorization_names = NULL;
-        g_autofree guint8 *authentication_data = NULL;
-        gsize authentication_data_length, list_length;
-        gint i;
-        GInetAddress **addresses;
-
-        text = g_hash_table_lookup (params, "DISPLAY-NUMBER");
+        const gchar *text = g_hash_table_lookup (params, "DISPLAY-NUMBER");
         if (text)
             request_display_number = atoi (text);
-        addresses_list = g_hash_table_lookup (params, "ADDRESSES");
+
+        const gchar *addresses_list = g_hash_table_lookup (params, "ADDRESSES");
         if (!addresses_list)
             addresses_list = "";
-        authentication_name = g_hash_table_lookup (params, "AUTHENTICATION-NAME");
+
+        const gchar *authentication_name = g_hash_table_lookup (params, "AUTHENTICATION-NAME");
         if (!authentication_name)
             authentication_name = "";
-        authentication_data_text = g_hash_table_lookup (params, "AUTHENTICATION-DATA");
+
+        const gchar *authentication_data_text = g_hash_table_lookup (params, "AUTHENTICATION-DATA");
         if (!authentication_data_text)
             authentication_data_text = "";
-        authorization_names_list = g_hash_table_lookup (params, "AUTHORIZATION-NAMES");
+
+        const gchar *authorization_names_list = g_hash_table_lookup (params, "AUTHORIZATION-NAMES");
         if (!authorization_names_list)
             authorization_names_list = "";
-        mfid = g_hash_table_lookup (params, "MFID");
+
+        const gchar *mfid = g_hash_table_lookup (params, "MFID");
         if (!mfid)
             mfid = "";
 
-        list = g_strsplit (addresses_list, " ", -1);
-        list_length = g_strv_length (list);
-        addresses = g_malloc (sizeof (GInetAddress *) * (list_length + 1));
+        g_auto(GStrv) list = g_strsplit (addresses_list, " ", -1);
+        gsize list_length = g_strv_length (list);
+        GInetAddress **addresses = g_malloc (sizeof (GInetAddress *) * (list_length + 1));
+        gsize i;
         for (i = 0; i < list_length; i++)
             addresses[i] = g_inet_address_new_from_string (list[i]);
         addresses[i] = NULL;
 
-        authentication_data_length = strlen (authentication_data_text) / 2;
-        authentication_data = malloc (authentication_data_length);
-        for (i = 0; i < authentication_data_length; i++)
+        gsize authentication_data_length = strlen (authentication_data_text) / 2;
+        g_autofree guint8 *authentication_data = malloc (authentication_data_length);
+        for (gsize i = 0; i < authentication_data_length; i++)
             authentication_data[i] = get_nibble (authentication_data_text[i*2]) << 4 | get_nibble (authentication_data_text[i*2+1]);
 
-        authorization_names = g_strsplit (authorization_names_list, " ", -1);
+        g_auto(GStrv) authorization_names = g_strsplit (authorization_names_list, " ", -1);
 
         xdmcp_client_send_request (xdmcp_client,
                                    request_display_number,
@@ -304,24 +290,27 @@ request_cb (const gchar *name, GHashTable *params)
                                    authentication_name,
                                    authentication_data, authentication_data_length,
                                    authorization_names, mfid);
+        for (gsize i = 0; addresses[i] != NULL; i++)
+            g_object_unref (addresses[i]);
+        g_free (addresses);
     }
 
     else if (strcmp (name, "SEND-MANAGE") == 0)
     {
-        const char *text, *display_class;
         guint32 session_id = xdmcp_session_id;
-        guint16 manage_display_number = display_number;
-
-        text = g_hash_table_lookup (params, "SESSION-ID");
+        const gchar *text = g_hash_table_lookup (params, "SESSION-ID");
         if (text)
             session_id = atoi (text);
+
+        guint16 manage_display_number = display_number;
         text = g_hash_table_lookup (params, "DISPLAY-NUMBER");
         if (text)
             manage_display_number = atoi (text);
-        display_class = g_hash_table_lookup (params, "DISPLAY-CLASS");
 
+        const gchar *display_class = g_hash_table_lookup (params, "DISPLAY-CLASS");
         if (!display_class)
             display_class = "";
+
         xdmcp_client_send_manage (xdmcp_client,
                                   session_id,
                                   manage_display_number,
@@ -330,13 +319,12 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "SEND-KEEP-ALIVE") == 0)
     {
-        const char *text;
-        guint32 session_id = xdmcp_session_id;
         guint16 keep_alive_display_number = display_number;
-
-        text = g_hash_table_lookup (params, "DISPLAY-NUMBER");
+        const gchar *text = g_hash_table_lookup (params, "DISPLAY-NUMBER");
         if (text)
             keep_alive_display_number = atoi (text);
+
+        guint32 session_id = xdmcp_session_id;
         text = g_hash_table_lookup (params, "SESSION-ID");
         if (text)
             session_id = atoi (text);
@@ -357,18 +345,6 @@ version_compare (int major, int minor)
 int
 main (int argc, char **argv)
 {
-    int i;
-    g_auto(GStrv) tokens = NULL;
-    g_autofree gchar *pid_string = NULL;
-    gboolean do_xdmcp = FALSE;
-    guint xdmcp_port = 0;
-    const gchar *xdmcp_host = NULL;
-    const gchar *seat = NULL;
-    const gchar *mir_id = NULL;
-    g_autofree gchar *lock_filename = NULL;
-    int lock_file;
-    g_autoptr(GString) status_text = NULL;
-
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
@@ -385,14 +361,19 @@ main (int argc, char **argv)
     xorg_version = g_key_file_get_string (config, "test-xserver-config", "version", NULL);
     if (!xorg_version)
         xorg_version = g_strdup ("1.17.0");
-    tokens = g_strsplit (xorg_version, ".", -1);
+    g_auto(GStrv) tokens = g_strsplit (xorg_version, ".", -1);
     xorg_version_major = g_strv_length (tokens) > 0 ? atoi (tokens[0]) : 0;
     xorg_version_minor = g_strv_length (tokens) > 1 ? atoi (tokens[1]) : 0;
 
     /* TCP listening default changed in 1.17.0 */
     listen_tcp = version_compare (1, 17) < 0;
 
-    for (i = 1; i < argc; i++)
+    gboolean do_xdmcp = FALSE;
+    guint xdmcp_port = 0;
+    const gchar *xdmcp_host = NULL;
+    const gchar *seat = NULL;
+    const gchar *mir_id = NULL;
+    for (int i = 1; i < argc; i++)
     {
         char *arg = argv[i];
 
@@ -523,7 +504,7 @@ main (int argc, char **argv)
     g_signal_connect (xserver, X_SERVER_SIGNAL_CLIENT_DISCONNECTED, G_CALLBACK (client_disconnected_cb), NULL);
     g_signal_connect (xserver, X_SERVER_SIGNAL_RESET, G_CALLBACK (reset_cb), NULL);
 
-    status_text = g_string_new ("");
+    g_autoptr(GString) status_text = g_string_new ("");
     g_string_printf (status_text, "%s START", id);
     if (config_file)
         g_string_append_printf (status_text, " CONFIG=%s", config_file);
@@ -548,9 +529,9 @@ main (int argc, char **argv)
         return return_value;
     }
 
-    lock_filename = g_strdup_printf (".X%d-lock", display_number);
+    g_autofree gchar *lock_filename = g_strdup_printf (".X%d-lock", display_number);
     lock_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", lock_filename, NULL);
-    lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
+    int lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
     if (lock_file < 0)
     {
         g_autofree gchar *lock_contents = NULL;
@@ -593,7 +574,7 @@ main (int argc, char **argv)
         g_clear_pointer (&lock_path, g_free);
         return EXIT_FAILURE;
     }
-    pid_string = g_strdup_printf ("%10ld", (long) getpid ());
+    g_autofree gchar *pid_string = g_strdup_printf ("%10ld", (long) getpid ());
     if (write (lock_file, pid_string, strlen (pid_string)) < 0)
     {
         g_warning ("Error writing PID file: %s", strerror (errno));

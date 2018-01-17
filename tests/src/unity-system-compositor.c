@@ -49,10 +49,8 @@ typedef enum
 static void
 write_message (guint16 id, const guint8 *payload, guint16 payload_length)
 {
-    guint8 *data;
     gsize data_length = 4 + payload_length;
-
-    data = g_malloc (data_length);
+    guint8 *data = g_malloc (data_length);
     data[0] = id >> 8;
     data[1] = id & 0xFF;
     data[2] = payload_length >> 8;
@@ -67,12 +65,9 @@ write_message (guint16 id, const guint8 *payload, guint16 payload_length)
 static gboolean
 read_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 {
-    gchar header[4], *payload;
+    gchar header[4];
     gsize n_read;
-    guint16 id;
-    guint16 payload_length;
     g_autoptr(GError) error = NULL;
-
     if (g_io_channel_read_chars (channel, header, 4, &n_read, &error) != G_IO_STATUS_NORMAL)
     {
         g_printerr ("Failed to read header: %s\n", error->message);
@@ -83,9 +78,9 @@ read_message_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
         g_printerr ("Short read for header, %zi instead of expected 4\n", n_read);
         return FALSE;
     }
-    id = header[0] << 8 | header[1];
-    payload_length = header[2] << 8 | header[3];
-    payload = g_malloc0 (payload_length + 1);
+    guint16 id = header[0] << 8 | header[1];
+    guint16 payload_length = header[2] << 8 | header[3];
+    gchar *payload = g_malloc0 (payload_length + 1);
     if (g_io_channel_read_chars (channel, payload, payload_length, &n_read, &error) != G_IO_STATUS_NORMAL)
     {
         g_printerr ("Failed to read payload: %s\n", error->message);
@@ -143,12 +138,6 @@ request_cb (const gchar *name, GHashTable *params)
 int
 main (int argc, char **argv)
 {
-    int i;
-    g_autoptr(GString) status_text = NULL;
-    gboolean test = FALSE, container = FALSE;
-    int vt_number = -1;
-    const gchar *file = NULL;
-
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
@@ -160,7 +149,10 @@ main (int argc, char **argv)
 
     status_connect (request_cb, "UNITY-SYSTEM-COMPOSITOR");
 
-    for (i = 1; i < argc; i++)
+    gboolean test = FALSE, container = FALSE;
+    int vt_number = -1;
+    const gchar *file = NULL;
+    for (int i = 1; i < argc; i++)
     {
         char *arg = argv[i];
 
@@ -194,7 +186,7 @@ main (int argc, char **argv)
 
     g_io_add_watch (g_io_channel_unix_new (from_dm_fd), G_IO_IN, read_message_cb, NULL);
 
-    status_text = g_string_new ("UNITY-SYSTEM-COMPOSITOR START");
+    g_autoptr(GString) status_text = g_string_new ("UNITY-SYSTEM-COMPOSITOR START");
     if (file)
         g_string_append_printf (status_text, " FILE=%s", file);
     if (vt_number >= 0)

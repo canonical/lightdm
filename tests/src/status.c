@@ -17,17 +17,9 @@ static gboolean
 status_request_cb (GSocket *socket, GIOCondition condition, gpointer data)
 {
     int length;
-    gchar buffer[1024];
-    ssize_t n_read;
-    const gchar *c, *start;
-    int l;
-    g_autofree gchar *id = NULL;
-    g_autofree gchar *name = NULL;
-    gboolean id_matches;
-    g_autoptr(GHashTable) params = NULL;
     g_autoptr(GError) error = NULL;
-
-    n_read = g_socket_receive (socket, (gchar *)&length, sizeof (length), NULL, &error);
+    ssize_t n_read = g_socket_receive (socket, (gchar *)&length, sizeof (length), NULL, &error);
+    gchar buffer[1024];
     if (n_read > 0)
         n_read = g_socket_receive (socket, buffer, length, NULL, &error);
     if (error)
@@ -48,17 +40,16 @@ status_request_cb (GSocket *socket, GIOCondition condition, gpointer data)
         return TRUE;
 
     buffer[n_read] = '\0';
-    c = buffer;
-    start = c;
-    l = 0;
+    const gchar *c = buffer;
+    const gchar *start = c;
+    int l = 0;
     while (*c && !isspace (*c))
     {
         c++;
         l++;
     }
-    id = g_strdup_printf ("%.*s", l, start);
-    id_matches = g_strcmp0 (id, filter_id) == 0;
-    if (!id_matches)
+    g_autofree gchar *id = g_strdup_printf ("%.*s", l, start);
+    if (g_strcmp0 (id, filter_id) != 0)
         return TRUE;
 
     while (isspace (*c))
@@ -70,24 +61,21 @@ status_request_cb (GSocket *socket, GIOCondition condition, gpointer data)
         c++;
         l++;
     }
-    name = g_strdup_printf ("%.*s", l, start);
+    g_autofree gchar *name = g_strdup_printf ("%.*s", l, start);
 
-    params = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+    g_autoptr(GHashTable) params = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
     while (TRUE)
     {
-        const gchar *start;
-        g_autofree gchar *param_name = NULL;
-        g_autofree gchar *param_value = NULL;
-
         while (isspace (*c))
             c++;
-        start = c;
+        const gchar *start = c;
         while (*c && !isspace (*c) && *c != '=')
             c++;
         if (*c == '\0')
             break;
 
-        param_name = g_strdup_printf ("%.*s", (int) (c - start), start);
+        g_autofree gchar *param_name = g_strdup_printf ("%.*s", (int) (c - start), start);
+        g_autofree gchar *param_value = NULL;
 
         if (*c == '=')
         {
@@ -96,11 +84,9 @@ status_request_cb (GSocket *socket, GIOCondition condition, gpointer data)
                 c++;
             if (*c == '\"')
             {
-                gboolean escaped = FALSE;
-                g_autoptr(GString) value = NULL;
-
                 c++;
-                value = g_string_new ("");
+                g_autoptr(GString) value = g_string_new ("");
+                gboolean escaped = FALSE;
                 while (*c)
                 {
                     if (*c == '\\')
@@ -145,14 +131,10 @@ status_request_cb (GSocket *socket, GIOCondition condition, gpointer data)
 gboolean
 status_connect (StatusRequestFunc request_cb, const gchar *id)
 {
-    g_autofree gchar *path = NULL;
-    g_autoptr(GSocketAddress) address = NULL;
-    GSource *source;
-    g_autoptr(GError) error = NULL;
-
     request_func = request_cb;
     filter_id = g_strdup (id);
 
+    g_autoptr(GError) error = NULL;
     status_socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
     if (!status_socket)
     {
@@ -160,8 +142,8 @@ status_connect (StatusRequestFunc request_cb, const gchar *id)
         return FALSE;
     }
 
-    path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".s", NULL);
-    address = g_unix_socket_address_new (path);
+    g_autofree gchar *path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), ".s", NULL);
+    g_autoptr(GSocketAddress) address = g_unix_socket_address_new (path);
     if (!g_socket_connect (status_socket, address, NULL, &error))
     {
         g_printerr ("Failed to connect to status socket %s: %s\n", path, error->message);
@@ -169,7 +151,7 @@ status_connect (StatusRequestFunc request_cb, const gchar *id)
         return FALSE;
     }
 
-    source = g_socket_create_source (status_socket, G_IO_IN, NULL);
+    GSource *source = g_socket_create_source (status_socket, G_IO_IN, NULL);
     g_source_set_callback (source, (GSourceFunc) status_request_cb, NULL, NULL);
     g_source_attach (source, NULL);
 
@@ -181,17 +163,14 @@ status_notify (const gchar *format, ...)
 {
     gchar status[1024];
     va_list ap;
-
     va_start (ap, format);
     vsnprintf (status, 1024, format, ap);
     va_end (ap);
 
     if (status_socket)
     {
+        int length = strlen (status);
         g_autoptr(GError) error = NULL;
-        int length;
-
-        length = strlen (status);
         if (g_socket_send (status_socket, (gchar *) &length, sizeof (length), NULL, &error) < 0 ||
             g_socket_send (status_socket, status, strlen (status), NULL, &error) < 0)
             g_printerr ("Failed to write to status socket: %s\n", error->message);

@@ -106,9 +106,9 @@ static gboolean
 client_read_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 {
     XClient *client = data;
+
     g_autofree gchar *d = NULL;
     gsize d_length;
-
     if (g_io_channel_read_to_end (channel, &d, &d_length, NULL) == G_IO_STATUS_NORMAL && d_length == 0)
     {
         XServer *server = client->priv->server;
@@ -131,20 +131,18 @@ static gboolean
 socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 {
     XServer *server = data;
-    GSocket *data_socket;
-    XClient *client;
-    g_autoptr(GError) error = NULL;
 
-    data_socket = g_socket_accept (server->priv->socket, NULL, &error);
+    g_autoptr(GError) error = NULL;
+    g_autoptr(GSocket) data_socket = g_socket_accept (server->priv->socket, NULL, &error);
     if (error)
         g_warning ("Error accepting connection: %s", strerror (errno));
     if (!data_socket)
         return FALSE;
 
-    client = g_object_new (x_client_get_type (), NULL);
+    XClient *client = g_object_new (x_client_get_type (), NULL);
     client->priv->server = server;
-    client->priv->socket = data_socket;
-    client->priv->channel = g_io_channel_unix_new (g_socket_get_fd (data_socket));
+    client->priv->socket = g_steal_pointer (&data_socket);
+    client->priv->channel = g_io_channel_unix_new (g_socket_get_fd (client->priv->socket));
     g_io_add_watch (client->priv->channel, G_IO_IN | G_IO_HUP, client_read_cb, client);
     g_hash_table_insert (server->priv->clients, client->priv->channel, client);
 
@@ -156,12 +154,10 @@ socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 gboolean
 x_server_start (XServer *server)
 {
-    g_autofree gchar *name = NULL;
-    g_autoptr(GError) error = NULL;
-
-    name = g_strdup_printf (".x:%d", server->priv->display_number);
+    g_autofree gchar *name = g_strdup_printf (".x:%d", server->priv->display_number);
     server->priv->socket_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), name, NULL);
 
+    g_autoptr(GError) error = NULL;
     server->priv->socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
     if (!server->priv->socket ||
         !g_socket_bind (server->priv->socket, g_unix_socket_address_new (server->priv->socket_path), TRUE, &error) ||

@@ -12,13 +12,6 @@ static GKeyFile *config;
 int
 main (int argc, char **argv)
 {
-    g_autoptr(GError) error = NULL;
-    g_autoptr(GSocket) socket = NULL;
-    g_autoptr(GSocketAddress) address = NULL;
-    gboolean result;
-    gchar buffer[1024];
-    gssize n_read, n_sent;
-
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
@@ -32,22 +25,24 @@ main (int argc, char **argv)
 
     status_notify ("VNC-CLIENT CONNECT");
 
-    socket = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_TCP, &error);
+    g_autoptr(GError) error = NULL;
+    g_autoptr(GSocket) socket = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_TCP, &error);
     if (!socket)
     {
         g_warning ("Unable to make VNC socket: %s", error->message);
         return EXIT_FAILURE;
     }
 
-    address = g_inet_socket_address_new (g_inet_address_new_loopback (G_SOCKET_FAMILY_IPV4), 5900);
-    result = g_socket_connect (socket, address, NULL, &error);
+    g_autoptr(GSocketAddress) address = g_inet_socket_address_new (g_inet_address_new_loopback (G_SOCKET_FAMILY_IPV4), 5900);
+    gboolean result = g_socket_connect (socket, address, NULL, &error);
     if (!result)
     {
         g_warning ("Unable to connect VNC socket: %s", error->message);
         return EXIT_FAILURE;
     }
 
-    n_read = g_socket_receive (socket, buffer, 1023, NULL, &error);
+    gchar buffer[1024];
+    gssize n_read = g_socket_receive (socket, buffer, 1023, NULL, &error);
     if (n_read <= 0)
     {
         g_warning ("Unable to receive on VNC socket: %s", error->message);
@@ -60,7 +55,7 @@ main (int argc, char **argv)
     status_notify ("VNC-CLIENT CONNECTED VERSION=\"%s\"", buffer);
 
     snprintf (buffer, 1024, "RFB 003.003\n");
-    n_sent = g_socket_send (socket, buffer, strlen (buffer), NULL, &error);
+    gssize n_sent = g_socket_send (socket, buffer, strlen (buffer), NULL, &error);
     if (n_sent != strlen (buffer))
     {
         g_warning ("Unable to send on VNC socket: %s", error->message);
@@ -69,7 +64,7 @@ main (int argc, char **argv)
 
     while (TRUE)
     {
-        n_read = g_socket_receive (socket, buffer, 1023, NULL, &error);
+        gssize n_read = g_socket_receive (socket, buffer, 1023, NULL, &error);
         if (n_read < 0)
         {
             g_warning ("Unable to receive on VNC socket: %s", error->message);

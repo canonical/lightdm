@@ -113,14 +113,6 @@ request_cb (const gchar *name, GHashTable *params)
 int
 main (int argc, char **argv)
 {
-    int i;
-    g_autofree gchar *pid_string = NULL;
-    gchar *seat = NULL;
-    gchar *mir_id = NULL;
-    g_autofree gchar *lock_filename = NULL;
-    int lock_file;
-    g_autoptr(GString) status_text = NULL;
-
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
@@ -131,7 +123,9 @@ main (int argc, char **argv)
     g_unix_signal_add (SIGTERM, sigterm_cb, NULL);
     g_unix_signal_add (SIGHUP, sighup_cb, NULL);
 
-    for (i = 1; i < argc; i++)
+    gchar *seat = NULL;
+    gchar *mir_id = NULL;
+    for (int i = 1; i < argc; i++)
     {
         char *arg = argv[i];
 
@@ -209,7 +203,7 @@ main (int argc, char **argv)
     g_signal_connect (xserver, X_SERVER_SIGNAL_CLIENT_CONNECTED, G_CALLBACK (client_connected_cb), NULL);
     g_signal_connect (xserver, X_SERVER_SIGNAL_CLIENT_DISCONNECTED, G_CALLBACK (client_disconnected_cb), NULL);
 
-    status_text = g_string_new ("");
+    g_autoptr(GString) status_text = g_string_new ("");
     g_string_printf (status_text, "%s START", id);
     if (vt_number >= 0)
         g_string_append_printf (status_text, " VT=%d", vt_number);
@@ -229,32 +223,24 @@ main (int argc, char **argv)
         return return_value;
     }
 
-    lock_filename = g_strdup_printf (".X%d-lock", display_number);
+    g_autofree gchar *lock_filename = g_strdup_printf (".X%d-lock", display_number);
     lock_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", lock_filename, NULL);
-    lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
+    int lock_file = open (lock_path, O_CREAT | O_EXCL | O_WRONLY, 0444);
     if (lock_file < 0)
     {
         g_autofree gchar *lock_contents = NULL;
-
         if (g_file_get_contents (lock_path, &lock_contents, NULL, NULL))
         {
-            g_autofree gchar *proc_filename = NULL;
-            pid_t pid;
+            pid_t pid = atol (lock_contents);
 
-            pid = atol (lock_contents);
-
-            proc_filename = g_strdup_printf ("/proc/%d", pid);
+            g_autofree gchar *proc_filename = g_strdup_printf ("/proc/%d", pid);
             if (!g_file_test (proc_filename, G_FILE_TEST_EXISTS))
             {
-                g_autofree gchar *socket_dir = NULL;
-                g_autofree gchar *socket_filename = NULL;
-                g_autofree gchar *socket_path = NULL;
-
-                socket_dir = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", ".X11-unix", NULL);
+                g_autofree gchar *socket_dir = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), "tmp", ".X11-unix", NULL);
                 g_mkdir_with_parents (socket_dir, 0755);
 
-                socket_filename = g_strdup_printf ("X%d", display_number);
-                socket_path = g_build_filename (socket_dir, socket_filename, NULL);
+                g_autofree gchar *socket_filename = g_strdup_printf ("X%d", display_number);
+                g_autofree gchar *socket_path = g_build_filename (socket_dir, socket_filename, NULL);
 
                 g_printerr ("Breaking lock on non-existant process %d\n", pid);
                 unlink (lock_path);
@@ -274,7 +260,7 @@ main (int argc, char **argv)
         g_clear_pointer (&lock_path, g_free);
         return EXIT_FAILURE;
     }
-    pid_string = g_strdup_printf ("%10ld", (long) getpid ());
+    g_autofree gchar *pid_string = g_strdup_printf ("%10ld", (long) getpid ());
     if (write (lock_file, pid_string, strlen (pid_string)) < 0)
     {
         g_warning ("Error writing PID file: %s", strerror (errno));

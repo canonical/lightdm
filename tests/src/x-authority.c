@@ -33,21 +33,17 @@ x_authority_load (XAuthority *authority, const gchar *filename, GError **error)
 {
     guint8 *xauth_data;
     gsize xauth_length;
-    gsize offset = 0;
-
     if (!g_file_get_contents (filename, (gchar **) &xauth_data, &xauth_length, error))
         return FALSE;
 
+    gsize offset = 0;
     while (offset < xauth_length)
     {
-        XAuthorityRecord *record;
-        guint16 length;
-
-        record = g_object_new (x_authority_record_get_type (), NULL);
+        XAuthorityRecord *record = g_object_new (x_authority_record_get_type (), NULL);
         record->priv->family = read_card16 (xauth_data, xauth_length, X_BYTE_ORDER_MSB, &offset);
         record->priv->address_length = read_card16 (xauth_data, xauth_length, X_BYTE_ORDER_MSB, &offset);
         record->priv->address = read_string8 (xauth_data, xauth_length, record->priv->address_length, &offset);
-        length = read_card16 (xauth_data, xauth_length, X_BYTE_ORDER_MSB, &offset);
+        guint16 length = read_card16 (xauth_data, xauth_length, X_BYTE_ORDER_MSB, &offset);
         record->priv->number = (gchar *) read_string8 (xauth_data, xauth_length, length, &offset);
         length = read_card16 (xauth_data, xauth_length, X_BYTE_ORDER_MSB, &offset);
         record->priv->authorization_name = (gchar *) read_string8 (xauth_data, xauth_length, length, &offset);
@@ -63,9 +59,7 @@ x_authority_load (XAuthority *authority, const gchar *filename, GError **error)
 XAuthorityRecord *
 x_authority_match_local (XAuthority *authority, const gchar *authorization_name)
 {
-    GList *link;
-
-    for (link = authority->priv->records; link; link = link->next)
+    for (GList *link = authority->priv->records; link; link = link->next)
     {
         XAuthorityRecord *record = link->data;
 
@@ -82,9 +76,7 @@ x_authority_match_local (XAuthority *authority, const gchar *authorization_name)
 XAuthorityRecord *
 x_authority_match_localhost (XAuthority *authority, const gchar *authorization_name)
 {
-    GList *link;
-
-    for (link = authority->priv->records; link; link = link->next)
+    for (GList *link = authority->priv->records; link; link = link->next)
     {
         XAuthorityRecord *record = link->data;
 
@@ -101,11 +93,7 @@ x_authority_match_localhost (XAuthority *authority, const gchar *authorization_n
 XAuthorityRecord *
 x_authority_match_inet (XAuthority *authority, GInetAddress *address, const gchar *authorization_name)
 {
-    GList *link;
     guint16 family;
-    gssize address_data_length;
-    const guint8 *address_data;
-
     switch (g_inet_address_get_family (address))
     {
     case G_SOCKET_FAMILY_IPV4:
@@ -118,13 +106,11 @@ x_authority_match_inet (XAuthority *authority, GInetAddress *address, const gcha
         return NULL;
     }
 
-    address_data_length = g_inet_address_get_native_size (address);
-    address_data = g_inet_address_to_bytes (address);
-    for (link = authority->priv->records; link; link = link->next)
+    gssize address_data_length = g_inet_address_get_native_size (address);
+    const guint8 *address_data = g_inet_address_to_bytes (address);
+    for (GList *link = authority->priv->records; link; link = link->next)
     {
         XAuthorityRecord *record = link->data;
-        int i;
-        gboolean matches = TRUE;
 
         if (strcmp (record->priv->authorization_name, authorization_name) != 0)
             continue;
@@ -138,7 +124,8 @@ x_authority_match_inet (XAuthority *authority, GInetAddress *address, const gcha
         if (record->priv->address_length != address_data_length)
             continue;
 
-        for (i = 0; i < address_data_length; i++)
+        gboolean matches = TRUE;
+        for (int i = 0; i < address_data_length; i++)
         {
             if (address_data[i] != record->priv->address[i])
             {
@@ -189,15 +176,13 @@ x_authority_record_get_authorization_data (XAuthorityRecord *record)
 gboolean
 x_authority_record_check_cookie (XAuthorityRecord *record, const guint8 *cookie_data, guint16 cookie_data_length)
 {
-    guint16 i;
-
     if (strcmp (record->priv->authorization_name, "MIT-MAGIC-COOKIE-1") != 0)
         return FALSE;
 
     if (cookie_data_length != record->priv->authorization_data_length)
         return FALSE;
 
-    for (i = 0; i < cookie_data_length; i++)
+    for (guint16 i = 0; i < cookie_data_length; i++)
         if (cookie_data[i] != record->priv->authorization_data[i])
             return FALSE;
 
