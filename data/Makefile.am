@@ -32,7 +32,7 @@ dist_accountsservice_DATA = \
     org.freedesktop.DisplayManager.AccountsService.xml
 
 polkitdir = $(datadir)/polkit-1/actions
-polkit_in_files = org.freedesktop.DisplayManager.AccountsService.policy
+polkit_in_files = org.freedesktop.DisplayManager.AccountsService.policy.in
 polkit_DATA = $(polkit_in_files:.policy.in=.policy)
 @INTLTOOL_POLICY_RULE@
 
