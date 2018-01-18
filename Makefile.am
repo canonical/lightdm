@@ -1,3 +1,4 @@
+ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = common liblightdm-gobject liblightdm-qt
 if COMPILE_TESTS
 SUBDIRS += tests
