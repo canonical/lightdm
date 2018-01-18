@@ -481,8 +481,10 @@ x_server_local_start (DisplayServer *display_server)
     if (server->priv->vt >= 0)
         g_string_append_printf (command, " vt%d -novtswitch", server->priv->vt);
 
-    if (server->priv->background)
-        g_string_append_printf (command, " -background %s", server->priv->background);
+    if (!server->priv->background)
+        x_server_local_set_background (server, "none");
+
+    g_string_append_printf (command, " -background %s", server->priv->background);
 
     /* Allow sub-classes to add arguments */
     if (X_SERVER_LOCAL_GET_CLASS (server)->add_args)
