@@ -170,7 +170,17 @@ AC_MSG_CHECKING(whether to build tests)
 AC_ARG_ENABLE(tests,
         AS_HELP_STRING([--disable-tests], [Disable tests building]),
         [], [enable_tests="yes"])
+AC_MSG_RESULT([$enable_tests])
 AM_CONDITIONAL(COMPILE_TESTS, test x"$enable_tests" != "xno")
+
+AC_MSG_CHECKING(whether to enable writing dmrc files)
+AC_ARG_ENABLE(dmrc,
+        AS_HELP_STRING([--disable-dmrc], [Disable writing .dmrc in user home]),
+        [], [enable_dmrc="yes"])
+AC_MSG_RESULT([$enable_dmrc])
+if test x"$enable_dmrc" != "xno"; then
+  AC_DEFINE([WRITE_DMRC], [1], [Enable writing .dmrc in user home])
+fi
 
 dnl ###########################################################################
 dnl Configurable values
@@ -264,4 +274,5 @@ echo "
         liblightdm-qt5:           $compile_liblightdm_qt5
         libaudit support:         $use_libaudit
         Enable tests:             $enable_tests
+        Write .dmrc files:        $enable_dmrc
 "
