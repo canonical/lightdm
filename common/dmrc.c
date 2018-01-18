@@ -13,6 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "dmrc.h"
 #include "configuration.h"
 #include "privileges.h"
@@ -54,6 +55,7 @@ dmrc_save (GKeyFile *dmrc_file, CommonUser *user)
     gsize length;
     g_autofree gchar *data = g_key_file_to_data (dmrc_file, &length, NULL);
 
+#ifdef WRITE_DMRC
     /* Update the users .dmrc */
     g_autofree gchar *path = g_build_filename (common_user_get_home_directory (user), ".dmrc", NULL);
 
@@ -65,6 +67,7 @@ dmrc_save (GKeyFile *dmrc_file, CommonUser *user)
     g_file_set_contents (path, data, length, NULL);
     if (drop_privileges)
         privileges_reclaim ();
+#endif
 
     /* Update the .dmrc cache */
     g_autofree gchar *cache_dir = config_get_string (config_get_instance (), "LightDM", "cache-directory");
