@@ -107,7 +107,7 @@ if test x"$enable_liblightdm_qt4" != "xno" ; then
     fi
     if test x"$MOC4" = xmoc; then
         if test x"$(readlink $(which $MOC4))" = xqtchooser; then
-            MOC4="$MOC4 --qt=qt4"
+            MOC4="$MOC4 --qt=4"
         fi
     fi
 fi
@@ -141,7 +141,7 @@ if test x"$enable_liblightdm_qt5" != "xno"; then
     fi
     if test x"$MOC5" = xmoc; then
         if test x"$(readlink $(which $MOC5))" = xqtchooser; then
-            MOC5="$MOC5 --qt=qt5"
+            MOC5="$MOC5 --qt=5"
         fi
     fi
 fi
