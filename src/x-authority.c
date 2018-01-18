@@ -104,7 +104,7 @@ x_authority_get_address (XAuthority *auth)
     return auth->priv->address;
 }
 
-const gsize
+gsize
 x_authority_get_address_length (XAuthority *auth)
 {
     g_return_val_if_fail (auth != NULL, 0);
