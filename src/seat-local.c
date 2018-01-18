@@ -158,6 +158,8 @@ get_vt (SeatLocal *seat, DisplayServer *display_server)
             g_signal_connect (display_server, DISPLAY_SERVER_SIGNAL_READY, G_CALLBACK (display_server_ready_cb), seat);
             g_signal_connect (display_server, DISPLAY_SERVER_SIGNAL_STOPPED, G_CALLBACK (display_server_transition_plymouth_cb), seat);
             plymouth_deactivate ();
+
+            return vt;
         }
         else
             l_debug (seat, "Plymouth is running on VT %d, but this is less than the configured minimum of %d so not replacing it", active_vt, vt_get_min ());
