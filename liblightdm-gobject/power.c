@@ -139,9 +139,13 @@ lightdm_get_can_suspend (void)
     }
     if (!r)
     {
+        const gchar *result;
         r = ck_call_function ("CanSuspend", NULL, NULL);
-        if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
-            g_variant_get (r, "(b)", &can_suspend);
+        if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(s)")))
+        {
+            g_variant_get (r, "(&s)", &result);
+            can_suspend = g_strcmp0 (result, "yes") == 0;
+        }
     }
     if (!r)
     {
@@ -217,9 +221,13 @@ lightdm_get_can_hibernate (void)
     }
     if (!r)
     {
+        const gchar *result;
         r = ck_call_function ("CanHibernate", NULL, NULL);
-        if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(b)")))
-            g_variant_get (r, "(b)", &can_hibernate);
+        if (r && g_variant_is_of_type (r, G_VARIANT_TYPE ("(s)")))
+        {
+            g_variant_get (r, "(&s)", &result);
+            can_hibernate = g_strcmp0 (result, "yes") == 0;
+        }
     }
     if (!r)
     {

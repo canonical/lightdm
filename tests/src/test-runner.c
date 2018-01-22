@@ -1404,12 +1404,12 @@ handle_ck_call (GDBusConnection       *connection,
     else if (strcmp (method_name, "CanSuspend") == 0)
     {
         check_status ("CONSOLE-KIT CAN-SUSPEND");
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "yes"));
     }
     else if (strcmp (method_name, "CanHibernate") == 0)
     {
         check_status ("CONSOLE-KIT CAN-HIBERNATE");
-        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(s)", "yes"));
     }
     else if (strcmp (method_name, "CloseSession") == 0)
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(b)", TRUE));
@@ -1525,10 +1525,10 @@ ck_name_acquired_cb (GDBusConnection *connection,
         "      <arg name='can_stop' direction='out' type='b'/>"
         "    </method>"
         "    <method name='CanSuspend'>"
-        "      <arg name='can_suspend' direction='out' type='b'/>"
+        "      <arg name='can_suspend' direction='out' type='s'/>"
         "    </method>"
         "    <method name='CanHibernate'>"
-        "      <arg name='can_hibernate' direction='out' type='b'/>"
+        "      <arg name='can_hibernate' direction='out' type='s'/>"
         "    </method>"
         "    <method name='CloseSession'>"
         "      <arg name='cookie' direction='in' type='s'/>"
