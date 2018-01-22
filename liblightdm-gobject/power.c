@@ -120,7 +120,7 @@ lightdm_get_can_suspend (void)
     gboolean can_suspend = FALSE;
     if (r)
     {
-        gchar *result;
+        const gchar *result;
         if (g_variant_is_of_type (r, G_VARIANT_TYPE ("(s)")))
         {
             g_variant_get (r, "(&s)", &result);
@@ -186,7 +186,7 @@ lightdm_get_can_hibernate (void)
     gboolean can_hibernate = FALSE;
     if (r)
     {
-        gchar *result;
+        const gchar *result;
         if (g_variant_is_of_type (r, G_VARIANT_TYPE ("(s)")))
         {
             g_variant_get (r, "(&s)", &result);
@@ -252,7 +252,7 @@ lightdm_get_can_restart (void)
     gboolean can_restart = FALSE;
     if (r)
     {
-        gchar *result;
+        const gchar *result;
         if (g_variant_is_of_type (r, G_VARIANT_TYPE ("(s)")))
         {
             g_variant_get (r, "(&s)", &result);
@@ -303,7 +303,7 @@ lightdm_get_can_shutdown (void)
     gboolean can_shutdown = FALSE;
     if (r)
     {
-        gchar *result;
+        const gchar *result;
         if (g_variant_is_of_type (r, G_VARIANT_TYPE ("(s)")))
         {
             g_variant_get (r, "(&s)", &result);
