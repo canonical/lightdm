@@ -10,6 +10,8 @@ LT_INIT
 AM_PROG_CC_C_O
 AC_PROG_CXX
 AC_PROG_LIBTOOL
+AC_PROG_LN_S
+AC_PROG_MKDIR_P
 AM_MAINTAINER_MODE
 
 dnl Check if the compiler really supports `-std=c99`.
