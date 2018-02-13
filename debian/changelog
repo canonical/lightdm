@@ -1,8 +1,20 @@
+lightdm (1.25.2-0ubuntu1) bionic; urgency=medium
+
+  * New upstream release:
+    - Fix incorrect use of ConsoleKit CanSuspend/Hibernate API
+    - Correctly install AccountsService interface file
+    - Fix build system to require C99
+    - Use standard format for arguments passed to qtchooser
+  * debian/lightdm.install:
+    - Install AccountsService D-Bus extension files
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 13 Feb 2018 16:33:14 +1300
+
 lightdm (1.25.1-0ubuntu1) bionic; urgency=medium
 
   * New upstream release:
     - Fixes for VNC and XDMCP connections
-    * Use AccountsService extension system for extended greeter information
+    - Use AccountsService extension system for extended greeter information
     - Modernise code style
 
  -- Robert Ancell <robert.ancell@canonical.com>  Thu, 18 Jan 2018 09:43:40 +1300

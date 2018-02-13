@@ -1,3 +1,10 @@
+Overview of changes in lightdm 1.25.2
+
+    * Fix incorrect use of ConsoleKit CanSuspend/Hibernate API
+    * Correctly install AccountsService interface file
+    * Fix build system to require C99
+    * Use standard format for arguments passed to qtchooser
+
 Overview of changes in lightdm 1.25.1
 
     * Fixes for VNC and XDMCP connections
