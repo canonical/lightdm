@@ -1,3 +1,10 @@
+lightdm (1.26.0-0ubuntu1) bionic; urgency=medium
+
+  * debian/control:
+    - Drop obsolete gnome-common build-depends and use explicit depends instead
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 22 Mar 2018 12:12:06 +1300
+
 lightdm (1.25.2-0ubuntu1) bionic; urgency=medium
 
   * New upstream release:

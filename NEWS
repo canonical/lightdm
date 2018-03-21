@@ -1,3 +1,7 @@
+Overview of changes in lightdm 1.26.0
+
+    * No changes from 1.25.2
+
 Overview of changes in lightdm 1.25.2
 
     * Fix incorrect use of ConsoleKit CanSuspend/Hibernate API
