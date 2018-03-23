@@ -810,8 +810,7 @@ session_child_run (int argc, char **argv)
         if (error)
             g_printerr ("Error removing X authority: %s\n", error->message);
         g_clear_error (&error);
-        if (!result)
-            _exit (EXIT_FAILURE);
+        /* Ignore this error, don't exit, continue closing the session. */
     }
 
     /* Close the Console Kit session */
