@@ -15,12 +15,12 @@ AC_PROG_MKDIR_P
 AM_MAINTAINER_MODE
 
 dnl Check if the compiler really supports `-std=c99`.
-if test "x$ac_cv_prog_cc_c99" == xno; then
+if test "x$ac_cv_prog_cc_c99" = xno; then
     AC_MSG_ERROR([$CC does not support '-std=c99'.])
 fi
 
 dnl Enable compile warnings (only supporting GCC)
-if test "x$GCC" == xyes; then
+if test "x$GCC" = xyes; then
     WARN_CFLAGS="-Wall \
                  -Wstrict-prototypes \
                  -Wnested-externs \
