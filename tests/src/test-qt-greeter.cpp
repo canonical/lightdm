@@ -11,6 +11,7 @@
 #include <QtCore/QSettings>
 #include <QtCore/QDebug>
 #include <QtCore/QCoreApplication>
+#include <QStringList>
 
 #include "test-qt-greeter.h"
 #include "status.h"
@@ -190,11 +191,12 @@ request_cb (const gchar *name, GHashTable *params)
 
     else if (strcmp (name, "LOG-SESSIONS") == 0)
     {
+        QStringList names;
         for (int i = 0; i < sessions_model->rowCount (QModelIndex ()); i++)
-        {
-            QString key = sessions_model->data (sessions_model->index (i, 0), QLightDM::SessionsModel::KeyRole).toString ();
-            status_notify ("%s LOG-SESSION KEY=%s", greeter_id, qPrintable (key));
-        }
+	    names.append (sessions_model->data (sessions_model->index (i, 0), QLightDM::SessionsModel::KeyRole).toString ());
+        names.sort ();
+        for (int i = 0; i < names.size (); i++)
+            status_notify ("%s LOG-SESSION KEY=%s", greeter_id, qPrintable (names.at (i)));
     }
 
     else if (strcmp (name, "GET-CAN-SUSPEND") == 0)
