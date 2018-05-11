@@ -16,7 +16,7 @@
 G_BEGIN_DECLS
 
 #define LIGHTDM_TYPE_LAYOUT            (lightdm_layout_get_type())
-#define LIGHTDM_LAYOUT(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), LIGHTDM_TYPE_LAYOUT, LightDMLayout));
+#define LIGHTDM_LAYOUT(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), LIGHTDM_TYPE_LAYOUT, LightDMLayout))
 #define LIGHTDM_LAYOUT_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), LIGHTDM_TYPE_LAYOUT, LightDMLayoutClass))
 #define LIGHTDM_IS_LAYOUT(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), LIGHTDM_TYPE_LAYOUT))
 #define LIGHTDM_IS_LAYOUT_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), LIGHTDM_TYPE_LAYOUT))
