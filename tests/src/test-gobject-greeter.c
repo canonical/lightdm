@@ -166,6 +166,12 @@ read_shared_data_finished (GObject *object, GAsyncResult *result, gpointer data)
         status_notify ("%s READ-SHARED-DATA ERROR=%s", greeter_id, error->message);
 }
 
+static int
+compare_session (gconstpointer a, gconstpointer b)
+{
+    return strcmp (lightdm_session_get_key (LIGHTDM_SESSION (a)), lightdm_session_get_key (LIGHTDM_SESSION (b)));
+}
+
 static void
 request_cb (const gchar *name, GHashTable *params)
 {
@@ -312,6 +318,7 @@ request_cb (const gchar *name, GHashTable *params)
     else if (strcmp (name, "LOG-SESSIONS") == 0)
     {
         GList *sessions = lightdm_get_sessions ();
+        sessions = g_list_sort (sessions, compare_session);
         for (GList *link = sessions; link; link = link->next)
         {
             LightDMSession *session = link->data;
