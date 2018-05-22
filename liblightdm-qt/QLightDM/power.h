@@ -16,7 +16,7 @@
 
 namespace QLightDM
 {
-    class PowerInterface : public QObject
+    class Q_DECL_EXPORT PowerInterface : public QObject
     {
         Q_OBJECT
     public:
