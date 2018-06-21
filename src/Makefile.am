@@ -35,8 +35,6 @@ lightdm_SOURCES = \
 	seat.h \
 	seat-local.c \
 	seat-local.h \
-	seat-unity.c \
-	seat-unity.h \
 	seat-xdmcp-session.c \
 	seat-xdmcp-session.h \
 	seat-xremote.c \
@@ -51,8 +49,6 @@ lightdm_SOURCES = \
 	session-config.h \
 	shared-data-manager.c \
 	shared-data-manager.h \
-	unity-system-compositor.c \
-	unity-system-compositor.h \
 	vnc-server.c \
 	vnc-server.h \
 	vt.c \
@@ -65,8 +61,6 @@ lightdm_SOURCES = \
 	x-server-local.h \
 	x-server-remote.c \
 	x-server-remote.h \
-	x-server-xmir.c \
-	x-server-xmir.h \
 	x-server-xvnc.c \
 	x-server-xvnc.h \
 	x-server.c \
