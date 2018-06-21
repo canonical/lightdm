@@ -250,39 +250,13 @@ TESTS = \
 	test-mir-autologin \
 	test-mir-greeter \
 	test-mir-session \
-	test-mir-session-crash \
-	test-mir-session-compositor-crash \
-	test-xmir-autologin \
-	test-xmir-login \
-	test-xmir-switch \
-	test-unity-compositor-command \
-	test-unity-compositor-not-found \
-	test-unity-compositor-fail-start \
-	test-unity-compositor-fail-ready \
-	test-unity-compositor-crash \
-	test-unity-compositor-fallback \
-	test-unity-compositor-next-session \
-	test-unity-compositor-mir-next-session \
-	test-unity-autologin \
-	test-unity-login \
-	test-unity-switch \
-	test-unity-plymouth \
-	test-unity-script-hooks \
-	test-unity-mir-autologin \
-	test-unity-mir-greeter-x-session \
-	test-unity-mir-greeter-mir-session \
-	test-unity-mir-lock-seat \
-	test-unity-mir-session-x-greeter \
-	test-unity-mir-switch \
-	test-unity-mir-switch-to-user-resettable \
-	test-unity-mir-script-hooks \
+	test-unity \
 	test-wayland-autologin \
 	test-wayland-greeter \
 	test-wayland-session \
 	test-invalid-seat \
 	test-seatdefaults-still-supported
 
-#	test-mir-script-hooks \
 #	test-session-exit-error
 #	test-greeter-no-exit
 #   test-change-password-gobject
@@ -530,10 +504,7 @@ EXTRA_DIST = \
 	scripts/login-xserver-crash.conf \
 	scripts/mir-autologin.conf \
 	scripts/mir-greeter.conf \
-	scripts/mir-script-hooks.conf \
 	scripts/mir-session.conf \
-	scripts/mir-session-compositor-crash.conf \
-	scripts/mir-session-crash.conf \
 	scripts/multiple-authenticate.conf \
 	scripts/multi-seat.conf \
 	scripts/multi-seat-autologin-seat0.conf \
@@ -615,27 +586,7 @@ EXTRA_DIST = \
 	scripts/switch-to-user-no-password.conf \
 	scripts/switch-to-user-resettable.conf \
 	scripts/system-xauthority.conf \
-	scripts/unity-autologin.conf \
-	scripts/unity-compositor-command.conf \
-	scripts/unity-compositor-crash.conf \
-	scripts/unity-compositor-fail-ready.conf \
-	scripts/unity-compositor-fail-start.conf \
-	scripts/unity-compositor-fallback.conf \
-	scripts/unity-compositor-mir-next-session.conf \
-	scripts/unity-compositor-next-session.conf \
-	scripts/unity-compositor-not-found.conf \
-	scripts/unity-login.conf \
-	scripts/unity-mir-autologin.conf \
-	scripts/unity-mir-greeter-mir-session.conf \
-	scripts/unity-mir-lock-seat.conf \
-	scripts/unity-mir-greeter-x-session.conf \
-	scripts/unity-mir-script-hooks.conf \
-	scripts/unity-mir-session-x-greeter.conf \
-	scripts/unity-mir-switch.conf \
-	scripts/unity-mir-switch-to-user-resettable.conf \
-	scripts/unity-plymouth.conf \
-	scripts/unity-script-hooks.conf \
-	scripts/unity-switch.conf \
+	scripts/unity.conf \
 	scripts/unknown-config.conf \
 	scripts/upstart-autologin.conf \
 	scripts/upstart-login.conf \
@@ -688,9 +639,6 @@ EXTRA_DIST = \
 	scripts/xdmcp-server-xdm-authentication-required.conf \
 	scripts/xdmcp-server-xdm-authentication-short-data.conf \
 	scripts/xlocal-legacy.conf \
-	scripts/xmir-autologin.conf \
-	scripts/xmir-login.conf \
-	scripts/xmir-switch.conf \
 	scripts/xremote-autologin.conf \
 	scripts/xremote-login.conf \
 	scripts/xremote-login-logout.conf \

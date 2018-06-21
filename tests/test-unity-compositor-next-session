@@ -1,2 +1,0 @@
-#!/bin/sh
-./src/dbus-env ./src/test-runner unity-compositor-next-session test-gobject-greeter

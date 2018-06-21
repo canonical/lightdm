@@ -19,7 +19,6 @@
 #include "configuration.h"
 #include "seat-local.h"
 #include "seat-xremote.h"
-#include "seat-unity.h"
 #include "plymouth.h"
 
 enum {
@@ -167,7 +166,6 @@ display_manager_init (DisplayManager *manager)
     /* Load the seat modules */
     seat_register_module ("local", SEAT_LOCAL_TYPE);
     seat_register_module ("xremote", SEAT_XREMOTE_TYPE);
-    seat_register_module ("unity", SEAT_UNITY_TYPE);
 }
 
 static void

@@ -1,2 +1,0 @@
-#!/bin/sh
-./src/dbus-env ./src/test-runner unity-compositor-crash test-gobject-greeter

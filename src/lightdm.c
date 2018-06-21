@@ -772,8 +772,6 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "Seat:*", "xmir-command", "Xmir");
     if (!config_has_key (config_get_instance (), "Seat:*", "xserver-share"))
         config_set_boolean (config_get_instance (), "Seat:*", "xserver-share", TRUE);
-    if (!config_has_key (config_get_instance (), "Seat:*", "unity-compositor-command"))
-        config_set_string (config_get_instance (), "Seat:*", "unity-compositor-command", "unity-system-compositor");
     if (!config_has_key (config_get_instance (), "Seat:*", "start-session"))
         config_set_boolean (config_get_instance (), "Seat:*", "start-session", TRUE);
     if (!config_has_key (config_get_instance (), "Seat:*", "allow-user-switching"))
