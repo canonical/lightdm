@@ -23,7 +23,7 @@
 
   / r,
   /bin/ rmix,
-  /bin/fusermount Px,
+  /{,usr/}bin/fusermount Px,
   /bin/** rmix,
   /cdrom/ rmix,
   /cdrom/** rmix,
