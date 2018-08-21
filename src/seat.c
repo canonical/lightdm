@@ -366,6 +366,8 @@ run_script (Seat *seat, DisplayServer *display_server, const gchar *script_name,
     if (g_getenv ("LIGHTDM_TEST_ROOT"))
         process_set_env (script, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
 
+    process_set_env (script, "XDG_SEAT", seat_get_name (seat));
+
     if (user)
     {
         process_set_env (script, "USER", user_get_name (user));
