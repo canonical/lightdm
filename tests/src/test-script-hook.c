@@ -28,6 +28,8 @@ main (int argc, char **argv)
 
     status_text = g_string_new ("SCRIPT-HOOK");
     g_string_append_printf (status_text, " %s", argv[1]);
+    if (g_getenv ("XDG_SEAT"))
+        g_string_append_printf (status_text, " XDG_SEAT=%s", g_getenv ("XDG_SEAT"));
     if (g_getenv ("USER"))
         g_string_append_printf (status_text, " USER=%s", g_getenv ("USER"));
     status_notify ("%s", status_text->str);
